@@ -964,8 +964,7 @@ impl Compilation {
             })
             .await;
 
-          let result = (job.module, job.runtimes, codegen_res);
-          result
+          (job.module, job.runtimes, codegen_res)
         })
       })
     })
@@ -2153,20 +2152,37 @@ impl Compilation {
 
   #[instrument(skip_all)]
   pub async fn runtime_modules_code_generation(&mut self) -> Result<()> {
-    let runtime_module_sources = join_all(self.runtime_modules.iter().map(
-      |(runtime_module_identifier, runtime_module)| async {
-        let result = runtime_module.code_generation(self, None, None).await?;
-        let source = result
-          .get(&SourceType::Runtime)
-          .expect("should have source");
-        Ok((*runtime_module_identifier, source.clone()))
-      },
-    ))
+    let results = rspack_futures::scope::<_, Result<_>>(|token| {
+      self
+        .runtime_modules
+        .iter()
+        .for_each(|(runtime_module_identifier, runtime_module)| {
+          let s = unsafe { token.used((&self, runtime_module_identifier, runtime_module)) };
+          s.spawn(
+            |(compilation, runtime_module_identifier, runtime_module)| async {
+              let result = runtime_module
+                .code_generation(compilation, None, None)
+                .await?;
+              let source = result
+                .get(&SourceType::Runtime)
+                .expect("should have source");
+              Ok((*runtime_module_identifier, source.clone()))
+            },
+          )
+        })
+    })
     .await
     .into_iter()
+    .map(|res| res.map_err(rspack_error::miette::Error::from_err))
     .collect::<Result<Vec<_>>>()?;
 
-    self.runtime_modules_code_generation_source = runtime_module_sources.into_iter().collect::<_>();
+    let mut runtime_module_sources = IdentifierMap::<BoxSource>::default();
+    for result in results {
+      let (runtime_module_identifier, source) = result?;
+      runtime_module_sources.insert(runtime_module_identifier, source);
+    }
+
+    self.runtime_modules_code_generation_source = runtime_module_sources;
     self
       .code_generated_modules
       .extend(self.runtime_modules.keys().copied());

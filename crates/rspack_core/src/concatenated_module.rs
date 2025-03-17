@@ -7,7 +7,6 @@ use std::{
 };
 
 use dashmap::DashMap;
-use futures::future::join_all;
 use indexmap::IndexMap;
 use regex::Regex;
 use rspack_ast::javascript::Ast;
@@ -649,14 +648,23 @@ impl Module for ConcatenatedModule {
     //
     let arc_map = Arc::new(module_to_info_map);
 
-    let tmp: Vec<Result<(Identifier, ModuleInfo)>> =
-      join_all(arc_map.iter().map(|(id, info)| async {
-        let updated_module_info = self
-          .analyze_module(compilation, Arc::clone(&arc_map), info.clone(), runtime)
-          .await?;
-        Ok((*id, updated_module_info))
-      }))
-      .await;
+    let tmp = rspack_futures::scope::<_, Result<_>>(|token| {
+      arc_map.iter().for_each(|(id, info)| {
+        let s = unsafe { token.used((&self, &compilation, &arc_map, runtime, id, info)) };
+        s.spawn(
+          |(module, compilation, arc_map, runtime, id, info)| async move {
+            let updated_module_info = module
+              .analyze_module(compilation, Arc::clone(arc_map), info.clone(), runtime)
+              .await?;
+            Ok((*id, updated_module_info))
+          },
+        );
+      })
+    })
+    .await
+    .into_iter()
+    .map(|res| res.map_err(rspack_error::miette::Error::from_err))
+    .collect::<Result<Vec<_>>>()?;
 
     let mut updated_pairs = vec![];
     for item in tmp {
