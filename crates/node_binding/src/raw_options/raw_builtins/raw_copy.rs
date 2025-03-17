@@ -38,6 +38,10 @@ pub struct RawCopyPattern {
   pub priority: i32,
   pub glob_options: RawCopyGlobOptions,
   pub info: Option<RawInfo>,
+  /// Determines whether to copy file permissions from the source to the destination.
+  /// When set to true, the plugin will preserve executable permissions and other file modes.
+  /// This is particularly useful when copying scripts or executable files.
+  /// @default false
   pub copy_permissions: Option<bool>,
   #[debug(skip)]
   #[napi(
