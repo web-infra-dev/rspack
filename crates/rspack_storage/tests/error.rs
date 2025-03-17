@@ -56,9 +56,8 @@ mod test_storage_error {
       );
     }
     let rx = storage.trigger_save()?;
-    assert_eq!(storage.load("test_scope").await?.len(), 1000);
-
     rx.await.expect("should save")?;
+    assert_eq!(storage.load("test_scope").await?.len(), 1000);
     assert!(fs.exists(&root.join("test_scope/scope_meta")).await?);
     Ok(())
   }

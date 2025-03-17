@@ -5430,7 +5430,6 @@ dependencies = [
  "cow-utils",
  "futures",
  "itertools 0.14.0",
- "pollster",
  "rayon",
  "rspack_error",
  "rspack_fs",

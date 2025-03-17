@@ -48,9 +48,8 @@ mod test_storage_expire {
       );
     }
     let rx = storage.trigger_save()?;
-    assert_eq!(storage.load("test_scope").await?.len(), 100);
-
     rx.await.expect("should save")?;
+    assert_eq!(storage.load("test_scope").await?.len(), 100);
     assert!(
       fs.exists(&root.join(version).join("test_scope/scope_meta"))
         .await?
