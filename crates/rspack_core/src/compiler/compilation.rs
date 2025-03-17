@@ -935,33 +935,45 @@ impl Compilation {
       jobs.extend(map.into_values());
     }
 
-    let results = join_all(jobs.into_iter().map(|job| async {
-      let module = module_graph
-        .module_by_identifier(&job.module)
-        .expect("should have module");
-      let codegen_res = self
-        .old_cache
-        .code_generate_occasion
-        .use_cache(&job, || async {
-          module
-            .code_generation(self, Some(&job.runtime), None)
-            .await
-            .map(|mut codegen_res| {
-              codegen_res.set_hash(
-                &self.options.output.hash_function,
-                &self.options.output.hash_digest,
-                &self.options.output.hash_salt,
-              );
-              codegen_res
-            })
-        })
-        .await;
+    let results = rspack_futures::scope::<_, _>(|token| {
+      jobs.into_iter().for_each(|job| {
+        // SAFETY: await immediately and trust caller to poll future entirely
+        let s = unsafe { token.used((&self, &module_graph, job)) };
 
-      Ok((job.module, job.runtimes, codegen_res))
-    }))
-    .await
-    .into_iter()
-    .collect::<Result<Vec<_>>>()?;
+        s.spawn(|(this, module_graph, job)| async {
+          let options = &this.options;
+          let old_cache = &this.old_cache;
+
+          let module = module_graph
+            .module_by_identifier(&job.module)
+            .expect("should have module");
+          let codegen_res = old_cache
+            .code_generate_occasion
+            .use_cache(&job, || async {
+              module
+                .code_generation(this, Some(&job.runtime), None)
+                .await
+                .map(|mut codegen_res| {
+                  codegen_res.set_hash(
+                    &options.output.hash_function,
+                    &options.output.hash_digest,
+                    &options.output.hash_salt,
+                  );
+                  codegen_res
+                })
+            })
+            .await;
+
+          let result = (job.module, job.runtimes, codegen_res);
+          result
+        })
+      })
+    })
+    .await;
+    let results = results
+      .into_iter()
+      .map(|res| res.map_err(rspack_error::miette::Error::from_err))
+      .collect::<Result<Vec<_>>>()?;
 
     for (module, runtimes, (codegen_res, from_cache)) in results {
       if let Some(counter) = cache_counter {
