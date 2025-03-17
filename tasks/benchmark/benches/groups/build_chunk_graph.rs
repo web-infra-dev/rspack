@@ -105,7 +105,7 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
 
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table =
-    serde_json::from_str::<Vec<Vec<usize>>>(include_str!("build_chunk_graph/random_table.json"))
+    serde_json::from_str::<Vec<Vec<usize>>>(include_str!("../build_chunk_graph/random_table.json"))
       .expect("should not fail to parse random table json");
 
   let mut compiler = Compiler::builder()
