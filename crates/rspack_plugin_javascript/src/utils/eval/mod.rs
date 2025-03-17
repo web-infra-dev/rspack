@@ -12,21 +12,20 @@ mod eval_unary_expr;
 use bitflags::bitflags;
 use num_bigint::BigInt;
 use rspack_core::DependencyRange;
-use swc_core::atoms::Atom;
-use swc_core::common::Span;
+use swc_core::{atoms::Atom, common::Span};
 
-pub use self::eval_array_expr::eval_array_expression;
-pub use self::eval_binary_expr::eval_binary_expression;
-pub use self::eval_call_expr::eval_call_expression;
-pub use self::eval_cond_expr::eval_cond_expression;
-pub use self::eval_lit_expr::{eval_lit_expr, eval_prop_name};
-pub use self::eval_member_expr::eval_member_expression;
-pub use self::eval_new_expr::eval_new_expression;
-pub use self::eval_source::eval_source;
-pub use self::eval_tpl_expr::{
-  eval_tagged_tpl_expression, eval_tpl_expression, TemplateStringKind,
+pub use self::{
+  eval_array_expr::eval_array_expression,
+  eval_binary_expr::eval_binary_expression,
+  eval_call_expr::eval_call_expression,
+  eval_cond_expr::eval_cond_expression,
+  eval_lit_expr::{eval_lit_expr, eval_prop_name},
+  eval_member_expr::eval_member_expression,
+  eval_new_expr::eval_new_expression,
+  eval_source::eval_source,
+  eval_tpl_expr::{eval_tagged_tpl_expression, eval_tpl_expression, TemplateStringKind},
+  eval_unary_expr::eval_unary_expression,
 };
-pub use self::eval_unary_expr::eval_unary_expression;
 use crate::visitors::ExportedVariableInfo;
 
 #[allow(dead_code)]

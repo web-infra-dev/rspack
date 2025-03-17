@@ -1,14 +1,16 @@
-use std::fmt::{Display, Formatter};
-use std::hash::Hash;
-use std::sync::Arc;
-use std::{any::Any, borrow::Cow, fmt::Debug};
+use std::{
+  any::Any,
+  borrow::Cow,
+  fmt::{Debug, Display, Formatter},
+  hash::Hash,
+  sync::Arc,
+};
 
 use async_trait::async_trait;
 use json::JsonValue;
-use rspack_cacheable::with::AsPreset;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsOption, AsVec},
+  with::{AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
@@ -16,15 +18,16 @@ use rspack_fs::ReadableFileSystem;
 use rspack_hash::RspackHashDigest;
 use rspack_paths::ArcPath;
 use rspack_sources::BoxSource;
-use rspack_util::atom::Atom;
-use rspack_util::ext::{AsAny, DynHash};
-use rspack_util::source_map::ModuleSourceMapConfig;
+use rspack_util::{
+  atom::Atom,
+  ext::{AsAny, DynHash},
+  source_map::ModuleSourceMapConfig,
+};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
 
-use crate::concatenated_module::ConcatenatedModule;
-use crate::dependencies_block::dependencies_block_update_hash;
 use crate::{
+  concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
   AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
   CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, DependencyTemplate,

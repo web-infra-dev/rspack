@@ -1,10 +1,9 @@
 use rayon::prelude::*;
-use rspack_core::chunk_graph_chunk::ChunkId;
-use rspack_core::rspack_sources::{
-  BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
-};
 use rspack_core::{
-  get_undo_path, to_normal_comment, BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey,
+  chunk_graph_chunk::ChunkId,
+  get_undo_path,
+  rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
+  to_normal_comment, BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationPublicPathAutoReplace, Compilation, RuntimeGlobals, SourceType,
 };
 use rspack_error::{error, Result};

@@ -2,8 +2,9 @@ use std::vec;
 
 use napi::bindgen_prelude::Either3;
 use napi_derive::napi;
-use rspack_core::LibraryAuxiliaryComment;
-use rspack_core::{LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject, LibraryOptions};
+use rspack_core::{
+  LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject, LibraryOptions,
+};
 use rspack_napi::napi::bindgen_prelude::Either;
 
 #[derive(Debug)]

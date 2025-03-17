@@ -1,7 +1,9 @@
-use std::collections::HashSet;
-use std::sync::LazyLock;
-use std::sync::Mutex;
-use std::{fmt, path::Path, sync::Arc};
+use std::{
+  collections::HashSet,
+  fmt,
+  path::Path,
+  sync::{Arc, LazyLock, Mutex},
+};
 
 use async_trait::async_trait;
 use regex::Regex;

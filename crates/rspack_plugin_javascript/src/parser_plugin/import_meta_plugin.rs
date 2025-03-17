@@ -1,16 +1,20 @@
 use itertools::Itertools;
 use rspack_core::{property_access, ConstDependency, SpanExt};
 use rspack_error::miette::Severity;
-use swc_core::common::{Span, Spanned};
-use swc_core::ecma::ast::MemberProp;
+use swc_core::{
+  common::{Span, Spanned},
+  ecma::ast::MemberProp,
+};
 use url::Url;
 
 use super::JavascriptParserPlugin;
-use crate::utils::eval;
-use crate::visitors::JavascriptParser;
-use crate::visitors::{create_traceable_error, RootName};
-use crate::visitors::{expr_name, AllowedMemberTypes};
-use crate::visitors::{ExportedVariableInfo, MemberExpressionInfo};
+use crate::{
+  utils::eval,
+  visitors::{
+    create_traceable_error, expr_name, AllowedMemberTypes, ExportedVariableInfo, JavascriptParser,
+    MemberExpressionInfo, RootName,
+  },
+};
 
 pub struct ImportMetaPlugin;
 

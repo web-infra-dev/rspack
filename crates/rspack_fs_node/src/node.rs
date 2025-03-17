@@ -1,5 +1,7 @@
-use napi::bindgen_prelude::{Buffer, Either3, Promise};
-use napi::Either;
+use napi::{
+  bindgen_prelude::{Buffer, Either3, Promise},
+  Either,
+};
 use napi_derive::napi;
 use rspack_fs::FileMetadata;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;

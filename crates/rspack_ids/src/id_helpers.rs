@@ -1,8 +1,8 @@
-use std::sync::LazyLock;
 use std::{
   borrow::Cow,
   cmp::Ordering,
   hash::{Hash, Hasher},
+  sync::LazyLock,
 };
 
 use itertools::{
@@ -15,10 +15,10 @@ use rspack_core::{
   compare_runtime, BoxModule, Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleGraph,
   ModuleIdentifier, ModuleIdsArtifact,
 };
-use rspack_util::itoa;
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
   identifier::make_paths_relative,
+  itoa,
   number_hash::get_number_hash,
 };
 use rustc_hash::{FxHashSet, FxHasher};

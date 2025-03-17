@@ -1,5 +1,7 @@
-use std::sync::LazyLock;
-use std::{fmt::Debug, sync::Arc};
+use std::{
+  fmt::Debug,
+  sync::{Arc, LazyLock},
+};
 
 use rspack_core::{
   ApplyContext, BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation,

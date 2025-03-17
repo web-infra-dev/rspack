@@ -1,5 +1,4 @@
-use std::sync::LazyLock;
-use std::{borrow::Cow, fmt::Debug, hash::Hash, str::FromStr, string::ParseError};
+use std::{borrow::Cow, fmt::Debug, hash::Hash, str::FromStr, string::ParseError, sync::LazyLock};
 
 use regex::Regex;
 use rspack_cacheable::cacheable;

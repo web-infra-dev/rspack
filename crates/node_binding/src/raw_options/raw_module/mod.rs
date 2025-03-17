@@ -1,9 +1,10 @@
-use std::fmt::Formatter;
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, fmt::Formatter, sync::Arc};
 
 use derive_more::Debug;
-use napi::bindgen_prelude::{Buffer, Either3};
-use napi::Either;
+use napi::{
+  bindgen_prelude::{Buffer, Either3},
+  Either,
+};
 use napi_derive::napi;
 use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorDataUrlOptions,
@@ -21,8 +22,7 @@ use rspack_error::error;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
 
-use crate::RawResolveOptions;
-use crate::{JsFilename, ModuleObject};
+use crate::{JsFilename, ModuleObject, RawResolveOptions};
 
 /// `loader` is for both JS and Rust loaders.
 /// `options` is

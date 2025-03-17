@@ -1,13 +1,17 @@
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 
-use std::ops::{Deref, DerefMut};
-use std::ptr;
-
-use napi::bindgen_prelude::{
-  check_status, ClassInstance, JavaScriptClassExt, ToNapiValue, TypeName, ValidateNapiValue,
+use std::{
+  ops::{Deref, DerefMut},
+  ptr,
 };
-use napi::sys::{self, napi_env};
-use napi::{Env, Result};
+
+use napi::{
+  bindgen_prelude::{
+    check_status, ClassInstance, JavaScriptClassExt, ToNapiValue, TypeName, ValidateNapiValue,
+  },
+  sys::{self, napi_env},
+  Env, Result,
+};
 
 use crate::OneShotRef;
 
