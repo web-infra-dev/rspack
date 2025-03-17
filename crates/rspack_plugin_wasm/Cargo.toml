@@ -28,4 +28,4 @@ tracing            = { workspace = true }
 wasmparser         = "0.222.0"
 
 [package.metadata.cargo-shear]
-ignored = ["tracing"]
+ignored = ["tracing", "rspack_hash", "tokio"]

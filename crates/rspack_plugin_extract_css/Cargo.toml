@@ -28,4 +28,4 @@ tracing                  = { workspace = true }
 ustr                     = { workspace = true }
 
 [package.metadata.cargo-shear]
-ignored = ["tracing"]
+ignored = ["tracing", "tokio"]

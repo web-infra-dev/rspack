@@ -25,4 +25,4 @@ tokio       = { workspace = true }
 tracing     = { workspace = true }
 
 [package.metadata.cargo-shear]
-ignored = ["tracing", "rspack_cacheable"]
+ignored = ["tracing", "rspack_cacheable", "rspack_hash", "tokio"]

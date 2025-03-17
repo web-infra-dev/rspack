@@ -29,4 +29,4 @@ tokio       = { workspace = true, features = ["rt"] }
 tracing     = { workspace = true }
 
 [package.metadata.cargo-shear]
-ignored = ["tracing"]
+ignored = ["tracing", "rspack_hash"]
