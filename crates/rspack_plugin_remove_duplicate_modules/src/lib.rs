@@ -21,7 +21,7 @@ impl std::default::Default for RemoveDuplicateModulesPlugin {
 }
 
 #[plugin_hook(CompilationOptimizeChunks for RemoveDuplicateModulesPlugin)]
-fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   let module_graph = compilation.get_module_graph();
   let chunk_graph = &compilation.chunk_graph;
 

@@ -40,10 +40,10 @@ impl SplitChunksPlugin {
     )
   }
 
-  fn inner_impl(&self, compilation: &mut Compilation) -> Result<()> {
+  async fn inner_impl(&self, compilation: &mut Compilation) -> Result<()> {
     let logger = compilation.get_logger(self.name());
     let start = logger.time("prepare module group map");
-    let mut module_group_map = self.prepare_module_group_map(compilation)?;
+    let mut module_group_map = self.prepare_module_group_map(compilation).await?;
     tracing::trace!("prepared module_group_map {:#?}", module_group_map);
     logger.time_end(start);
 
@@ -160,8 +160,8 @@ impl Debug for SplitChunksPlugin {
 }
 
 #[plugin_hook(CompilationOptimizeChunks for SplitChunksPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED)]
-pub fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
-  self.inner_impl(compilation)?;
+async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  self.inner_impl(compilation).await?;
   Ok(None)
 }
 

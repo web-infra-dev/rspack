@@ -40,10 +40,13 @@ impl<'a> From<ChunkNameGetterFnCtx<'a>> for JsChunkOptionNameCtx {
 }
 
 pub(super) fn normalize_raw_chunk_name(raw: RawChunkOptionName) -> ChunkNameGetter {
-  use pollster::block_on;
   match raw {
     Either3::A(str) => ChunkNameGetter::String(str),
     Either3::B(_) => ChunkNameGetter::Disabled, // FIXME: when set bool is true?
-    Either3::C(v) => ChunkNameGetter::Fn(Arc::new(move |ctx| block_on(v.call(ctx.into())))),
+    Either3::C(v) => ChunkNameGetter::Fn(Arc::new(move |ctx: ChunkNameGetterFnCtx| {
+      let ctx = ctx.into();
+      let v = v.clone();
+      Box::pin(async move { v.call(ctx).await })
+    })),
   }
 }
