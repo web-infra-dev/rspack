@@ -19,6 +19,10 @@ type RawTo = Either<String, RawToFn>;
 #[derive(Debug, Clone)]
 #[napi(object, object_to_js = false)]
 pub struct RawTransformOptions {
+  #[debug(skip)]
+  #[napi(
+    ts_type = "{ transformer: (input: string, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>  }"
+  )]
   pub transformer: TransformerFn,
 }
 

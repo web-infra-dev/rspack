@@ -2364,7 +2364,7 @@ export interface RawToOptions {
 }
 
 export interface RawTransformOptions {
-  transformer: TransformerFn
+transformer: { transformer: (input: string, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>  }
 }
 
 export interface RawTrustedTypes {
