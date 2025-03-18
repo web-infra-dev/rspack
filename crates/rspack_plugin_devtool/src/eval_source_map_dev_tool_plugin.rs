@@ -2,7 +2,6 @@ use std::hash::Hash;
 
 use dashmap::DashMap;
 use derive_more::Debug;
-use futures::future::join_all;
 use rspack_core::{
   rspack_sources::{BoxSource, MapOptions, RawStringSource, Source, SourceExt},
   ApplyContext, BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
@@ -127,19 +126,32 @@ async fn eval_source_map_devtool_plugin_render_module_content(
             })
             .collect::<Vec<_>>(),
           ModuleFilenameTemplate::Fn(f) => {
-            let modules = modules.collect::<Vec<_>>();
-            let features = modules.iter().map(|module_or_source| {
-              ModuleFilenameHelpers::create_filename_of_fn_template(
-                module_or_source,
-                compilation,
-                f,
-                output_options,
-                &self.namespace,
-              )
-            });
-            futures::executor::block_on(join_all(features))
-              .into_iter()
-              .collect::<Result<Vec<_>>>()?
+            let results = rspack_futures::scope::<_, Result<_>>(|token| {
+              modules.for_each(|module_or_source| {
+                let s = unsafe { token.used((compilation, f, output_options, &self.namespace)) };
+                s.spawn(|(compilation, f, output_options, namespace)| async move {
+                  ModuleFilenameHelpers::create_filename_of_fn_template(
+                    &module_or_source,
+                    compilation,
+                    f,
+                    output_options,
+                    namespace,
+                  )
+                  .await
+                });
+              })
+            })
+            .await
+            .into_iter()
+            .map(|res| res.map_err(rspack_error::miette::Error::from_err))
+            .collect::<Result<Vec<_>>>()?;
+
+            let mut module_filenames = vec![];
+            for res in results {
+              module_filenames.push(res?);
+            }
+
+            module_filenames
           }
         };
         let module_filenames =
