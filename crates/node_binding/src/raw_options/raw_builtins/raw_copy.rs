@@ -9,17 +9,24 @@ use rspack_plugin_copy::{
   Transformer,
 };
 
-type RawTransformer = ThreadsafeFunction<(Buffer, String), Either<String, Buffer>>;
+type TransformerFn = ThreadsafeFunction<(Buffer, String), Either<String, Buffer>>;
+type RawTransformer = Either<RawTransformWithCacheOptions, TransformerFn>;
 
 type RawToFn = ThreadsafeFunction<RawToOptions, String>;
 
 type RawTo = Either<String, RawToFn>;
 
 #[derive(Debug, Clone)]
+#[napi(object, object_to_js = false)]
+pub struct RawTransformWithCacheOptions {
+  pub transformer: TransformerFn,
+}
+
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawToOptions {
   pub context: String,
-  pub absolute_filename: String,
+  pub absolute_filename: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -45,7 +52,7 @@ pub struct RawCopyPattern {
   pub copy_permissions: Option<bool>,
   #[debug(skip)]
   #[napi(
-    ts_type = "(input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>"
+    ts_type = "{ transformer: (input: string, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>  } | ((input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>)"
   )]
   pub transform: Option<RawTransformer>,
 }
@@ -108,7 +115,7 @@ impl From<RawCopyPattern> for CopyPattern {
           Box::pin(async move {
             f.call(RawToOptions {
               context: ctx.context.as_str().to_owned(),
-              absolute_filename: ctx.absolute_filename.as_str().to_owned(),
+              absolute_filename: Some(ctx.absolute_filename.as_str().to_owned()),
             })
             .await
           })
@@ -143,9 +150,28 @@ impl From<RawCopyPattern> for CopyPattern {
         }),
       },
       copy_permissions,
-      transform: transform.map(|transformer| {
-        Transformer::Fn(Box::new(move |input, absolute_filename| {
-          let f = transformer.clone();
+      transform: transform.map(|transformer| match transformer {
+        Either::A(transformer_with_cache_options) => Transformer::Opt((
+          Box::new(move |input, absolute_filename| {
+            let f = transformer_with_cache_options.transformer.clone();
+
+            fn convert_to_enum(input: Either<String, Buffer>) -> RawSource {
+              match input {
+                Either::A(s) => RawSource::from(s),
+                Either::B(b) => RawSource::from(Vec::<u8>::from(b)),
+              }
+            }
+
+            Box::pin(async move {
+              f.call((input.into(), absolute_filename.to_owned()))
+                .await
+                .map(convert_to_enum)
+            })
+          }),
+          None, // transformer_with_cache_options.cache,
+        )),
+        Either::B(f) => Transformer::Fn(Box::new(move |input, absolute_filename| {
+          let f = f.clone();
 
           fn convert_to_enum(input: Either<String, Buffer>) -> RawSource {
             match input {
@@ -159,7 +185,7 @@ impl From<RawCopyPattern> for CopyPattern {
               .await
               .map(convert_to_enum)
           })
-        }))
+        })),
       }),
     }
   }

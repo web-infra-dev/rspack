@@ -75,8 +75,11 @@ impl Display for ToType {
 pub type TransformerFn =
   Box<dyn for<'a> Fn(Vec<u8>, &'a str) -> BoxFuture<'a, Result<RawSource>> + Sync + Send>;
 
+pub type TransformerWithCacheOpt = (TransformerFn, Option<bool>);
+
 pub enum Transformer {
   Fn(TransformerFn),
+  Opt(TransformerWithCacheOpt),
 }
 
 pub struct ToFnCtx<'a> {
@@ -291,24 +294,50 @@ impl CopyRspackPlugin {
     let mut source = RawSource::from(source_vec.clone());
 
     if let Some(transform) = &pattern.transform {
+      logger.debug(format!(
+        "transforming content for '{}'...",
+        absolute_filename
+      ));
       match transform {
         Transformer::Fn(transformer) => {
-          let transformed = transformer(source_vec, absolute_filename.as_str()).await;
-          match transformed {
-            Ok(code) => {
-              source = code;
-            }
-            Err(e) => {
-              diagnostics
-                .lock()
-                .expect("failed to obtain lock of `diagnostics`")
-                .push(Diagnostic::error(
-                  "Run copy transform fn error".into(),
-                  e.to_string(),
-                ));
-            }
-          };
+          handle_transform(
+            transformer,
+            source_vec,
+            absolute_filename.clone(),
+            &mut source,
+            diagnostics,
+          )
+          .await
         }
+        Transformer::Opt((transformer, cache)) => match cache {
+          Some(true) => {
+            // let content_hash = Self::get_content_hash(
+            //   &source,
+            //   &compilation.options.output.hash_function,
+            //   &compilation.options.output.hash_digest,
+            //   &compilation.options.output.hash_salt,
+            // );
+            // let content_hash = content_hash.rendered(compilation.options.output.hash_digest_length);
+            // let cache_key = format!(
+            //   "transform|sourceFilename|{}|contentHash{}idx{:?}",
+            //   source_filename.as_str(),
+            //   content_hash,
+            //   pattern_index
+            // );
+            // TODO: need compilation support get_cache() api
+            todo!()
+          }
+          _ => {
+            handle_transform(
+              transformer,
+              source_vec,
+              absolute_filename.clone(),
+              &mut source,
+              diagnostics,
+            )
+            .await
+          }
+        },
       }
     }
 
@@ -786,6 +815,29 @@ fn set_info(target: &mut AssetInfo, info: Info) {
 
   if let Some(version) = info.version {
     target.version = version;
+  }
+}
+
+async fn handle_transform(
+  transformer: &TransformerFn,
+  source_vec: Vec<u8>,
+  absolute_filename: Utf8PathBuf,
+  source: &mut RawSource,
+  diagnostics: &Mutex<Vec<Diagnostic>>,
+) {
+  match transformer(source_vec, absolute_filename.as_str()).await {
+    Ok(code) => {
+      *source = code;
+    }
+    Err(e) => {
+      diagnostics
+        .lock()
+        .expect("failed to obtain lock of `diagnostics`")
+        .push(Diagnostic::error(
+          "Run copy transform fn error".into(),
+          e.to_string(),
+        ));
+    }
   }
 }
 

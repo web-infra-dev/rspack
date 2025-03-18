@@ -1558,7 +1558,7 @@ export interface RawCopyPattern {
    * @default false
    */
   copyPermissions?: boolean
-  transform?: (input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>
+  transform?: { transformer: (input: string, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>  } | ((input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>)
 }
 
 export interface RawCopyRspackPluginOptions {
@@ -2360,7 +2360,11 @@ export interface RawSwcJsMinimizerRspackPluginOptions {
 
 export interface RawToOptions {
   context: string
-  absoluteFilename: string
+  absoluteFilename?: string
+}
+
+export interface RawTransformWithCacheOptions {
+  transformer: TransformerFn
 }
 
 export interface RawTrustedTypes {

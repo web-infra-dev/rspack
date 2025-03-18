@@ -405,10 +405,17 @@ export default {
 - **Type:**
 
 ```ts
-type Transform = (
-  input: Buffer,
-  absoluteFilename: string,
-) => string | Buffer | Promise<string> | Promise<Buffer>;
+type transform =
+  | {
+      transformer: (
+        input: string,
+        absoluteFilename: string,
+      ) => string | Buffer | Promise<string> | Promise<Buffer>;
+    }
+  | ((
+      input: string,
+      absoluteFilename: string,
+    ) => string | Buffer | Promise<string> | Promise<Buffer>);
 ```
 
 - **Default:** `undefined`
@@ -424,8 +431,8 @@ export default {
           from: 'src/*.png',
           // The `content` argument is a [`Buffer`](https://nodejs.org/api/buffer.html) object,
           // it could be converted to a string to be processed using `content.toString()`.
-          // The `absoluteFrom` argument is a string, it is absolute path from where the file is being copied.
-          transform(content, absoluteFrom) {
+          // The `absoluteFilename` argument is a string, it is absolute path from where the file is being copied.
+          transform(content, absoluteFilename) {
             return optimize(content);
           },
         },

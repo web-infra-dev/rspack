@@ -409,10 +409,17 @@ export default {
 - **类型：**
 
 ```ts
-type Transform = (
-  content: Buffer,
-  absoluteFrom: string,
-) => string | Buffer | Promise<string> | Promise<Buffer>;
+type transform =
+  | {
+      transformer: (
+        input: string,
+        absoluteFilename: string,
+      ) => string | Buffer | Promise<string> | Promise<Buffer>;
+    }
+  | ((
+      input: string,
+      absoluteFilename: string,
+    ) => string | Buffer | Promise<string> | Promise<Buffer>);
 ```
 
 - **默认值：** `undefined`
@@ -428,8 +435,8 @@ export default {
           from: 'src/*.png',
           // `content` 参数是一个 [`Buffer`](https://nodejs.org/api/buffer.html) 对象，
           // 可以使用 `content.toString()` 转换为字符串。
-          // `absoluteFrom` 参数是一个字符串，是文件被拷贝的绝对路径。
-          transform(content, absoluteFrom) {
+          // `absoluteFilename` 参数是一个字符串，是文件被拷贝的绝对路径。
+          transform(content, absoluteFilename) {
             return optimize(content);
           },
         },
