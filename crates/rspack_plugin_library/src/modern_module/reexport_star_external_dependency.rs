@@ -1,11 +1,10 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  AsContextDependency, Dependency, FactorizeInfo, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, NormalInitFragment,
+  AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId,
+  DependencyTemplate, DependencyType, ExternalRequest, ExternalType, FactorizeInfo,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency, NormalInitFragment,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
-use rspack_core::{Compilation, DependencyType, ExternalRequest, ExternalType, RuntimeSpec};
-use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
-use rspack_core::{ModuleDependency, TemplateContext, TemplateReplaceSource};
 use rspack_plugin_javascript::dependency::create_resource_identifier_for_esm_dependency;
 use swc_core::ecma::atoms::Atom;
 
@@ -22,13 +21,18 @@ pub struct ModernModuleReexportStarExternalDependency {
 }
 
 impl ModernModuleReexportStarExternalDependency {
-  pub fn new(request: Atom, target_request: ExternalRequest, external_type: ExternalType) -> Self {
+  pub fn new(
+    id: DependencyId,
+    request: Atom,
+    target_request: ExternalRequest,
+    external_type: ExternalType,
+  ) -> Self {
     let resource_identifier = create_resource_identifier_for_esm_dependency(request.as_str(), None);
     Self {
+      id,
       request,
       target_request,
       external_type,
-      id: DependencyId::new(),
       resource_identifier,
       factorize_info: Default::default(),
     }

@@ -1,10 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyLocation,
-  DependencyRange, RuntimeSpec,
+  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId,
+  DependencyLocation, DependencyRange, DependencyTemplate, RuntimeGlobals, RuntimeSpec,
+  SharedSourceMap, TemplateContext,
 };
-use rspack_core::{DependencyId, SharedSourceMap};
-use rspack_core::{DependencyTemplate, RuntimeGlobals, TemplateContext};
 
 #[cacheable]
 #[derive(Debug, Clone)]

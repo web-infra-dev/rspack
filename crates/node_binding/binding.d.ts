@@ -3,14 +3,53 @@
 
 /* -- banner.d.ts -- */
 export type JsFilename =
-	| string
-	| ((pathData: JsPathData, assetInfo?: AssetInfo) => string);
+  | string
+  | ((pathData: JsPathData, assetInfo?: AssetInfo) => string);
 
 export type LocalJsFilename = JsFilename;
 
-export type RawLazyCompilationTest = RegExp | ((m: JsModule) => boolean);
+export type RawLazyCompilationTest = RegExp | ((module: Module) => boolean);
 
 export type AssetInfo = KnownAssetInfo & Record<string, any>;
+
+export interface Module {
+	readonly type: string;
+	get context(): string | undefined;
+	get layer(): string | undefined;
+	get factoryMeta(): JsFactoryMeta | undefined
+	get useSourceMap(): boolean;
+	get useSimpleSourceMap(): boolean;
+	buildInfo: Record<string, any>;
+	buildMeta: Record<string, any>;
+}
+
+interface NormalModuleConstructor {
+	new (): NormalModule;
+	readonly prototype: NormalModule;
+}
+
+export var NormalModule: NormalModuleConstructor;
+
+export interface NormalModule extends Module {
+	get resource(): string | undefined;
+	get request(): string | undefined
+	get userRequest(): string | undefined
+	set userRequest(val: string | undefined)
+	get rawRequest(): string | undefined
+	get loaders(): Array<JsLoaderItem> | undefined
+	get resourceResolveData(): JsResourceData | undefined
+	get matchResource(): string | undefined
+	set matchResource(val: string | undefined)
+}
+
+export interface ConcatenatedModule extends Module {
+}
+
+export interface ContextModule extends Module {
+}
+
+export interface ExternalModule extends Module {
+}
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */
@@ -21,6 +60,34 @@ export declare class ExternalObject<T> {
     [K: symbol]: T
   }
 }
+export declare class AsyncDependenciesBlock {
+  get dependencies(): Dependency[]
+  get blocks(): AsyncDependenciesBlock[]
+}
+
+export declare class ConcatenatedModule {
+  get modules(): Module[] | undefined
+  _originalSource(): JsCompatSource | undefined
+  identifier(): string
+  nameForCondition(): string | undefined
+  get blocks(): AsyncDependenciesBlock[]
+  get dependencies(): Dependency[]
+  size(ty?: string | undefined | null): number
+  libIdent(options: JsLibIdentOptions): string | null
+  _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
+}
+
+export declare class ContextModule {
+  _originalSource(): JsCompatSource | undefined
+  identifier(): string
+  nameForCondition(): string | undefined
+  get blocks(): AsyncDependenciesBlock[]
+  get dependencies(): Dependency[]
+  size(ty?: string | undefined | null): number
+  libIdent(options: JsLibIdentOptions): string | null
+  _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
+}
+
 export declare class Dependency {
   get type(): string
   get category(): string
@@ -64,6 +131,19 @@ export declare class EntryOptionsDto {
 }
 export type EntryOptionsDTO = EntryOptionsDto
 
+export declare class ExternalModule {
+  get userRequest(): string | undefined
+  set userRequest(val: string | undefined)
+  _originalSource(): JsCompatSource | undefined
+  identifier(): string
+  nameForCondition(): string | undefined
+  get blocks(): AsyncDependenciesBlock[]
+  get dependencies(): Dependency[]
+  size(ty?: string | undefined | null): number
+  libIdent(options: JsLibIdentOptions): string | null
+  _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
+}
+
 export declare class JsChunk {
   get name(): string | undefined
   get id(): string | undefined
@@ -89,15 +169,15 @@ export declare class JsChunk {
 }
 
 export declare class JsChunkGraph {
-  getChunkModules(chunk: JsChunk): JsModule[]
-  getChunkEntryModules(chunk: JsChunk): JsModule[]
+  getChunkModules(chunk: JsChunk): Module[]
+  getChunkEntryModules(chunk: JsChunk): Module[]
   getNumberOfEntryModules(chunk: JsChunk): number
   getChunkEntryDependentChunksIterable(chunk: JsChunk): JsChunk[]
-  getChunkModulesIterableBySourceType(chunk: JsChunk, sourceType: string): JsModule[]
-  getModuleChunks(module: JsModule): JsChunk[]
-  getModuleId(jsModule: JsModule): string | null
-  getModuleHash(module: JsModule, runtime: string | string[] | undefined): string | null
-  getBlockChunkGroup(jsBlock: JsDependenciesBlock): JsChunkGroup | null
+  getChunkModulesIterableBySourceType(chunk: JsChunk, sourceType: string): Module[]
+  getModuleChunks(module: Module): JsChunk[]
+  getModuleId(module: Module): string | null
+  getModuleHash(module: Module, runtime: string | string[] | undefined): string | null
+  getBlockChunkGroup(jsBlock: AsyncDependenciesBlock): JsChunkGroup | null
 }
 
 export declare class JsChunkGroup {
@@ -109,9 +189,10 @@ export declare class JsChunkGroup {
   isInitial(): boolean
   getParents(): JsChunkGroup[]
   getRuntimeChunk(): JsChunk
+  getEntrypointChunk(): JsChunk
   getFiles(): Array<string>
-  getModulePreOrderIndex(module: JsModule): number | null
-  getModulePostOrderIndex(module: JsModule): number | null
+  getModulePreOrderIndex(module: Module): number | null
+  getModulePostOrderIndex(module: Module): number | null
 }
 
 export declare class JsCompilation {
@@ -119,8 +200,8 @@ export declare class JsCompilation {
   getAssets(): Readonly<JsAsset>[]
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsCompatSource | null
-  get modules(): Array<JsModule>
-  get builtModules(): Array<JsModule>
+  get modules(): Array<Module>
+  get builtModules(): Array<Module>
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
   getChunks(): JsChunk[]
   getNamedChunkKeys(): Array<string>
@@ -164,7 +245,7 @@ export declare class JsCompilation {
   addRuntimeModule(chunk: JsChunk, runtimeModule: JsAddingRuntimeModule): void
   get moduleGraph(): JsModuleGraph
   get chunkGraph(): JsChunkGraph
-  addInclude(args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsModule][]) => void): void
+  addInclude(args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, Module][]) => void): void
 }
 
 export declare class JsCompiler {
@@ -216,11 +297,6 @@ export declare class JsDependencies {
   get removedBuildDependencies(): Array<string>
 }
 
-export declare class JsDependenciesBlock {
-  get dependencies(): Dependency[]
-  get blocks(): JsDependenciesBlock[]
-}
-
 export declare class JsEntries {
   clear(): void
   get size(): number
@@ -236,58 +312,33 @@ export declare class JsExportsInfo {
   isUsed(runtime: string | string[] | undefined): boolean
   isModuleUsed(runtime: string | string[] | undefined): boolean
   setUsedInUnknownWay(runtime: string | string[] | undefined): boolean
-  getUsed(name: string | string[], runtime: string | string[] | undefined):  0 | 1 | 2 | 3 | 4
-}
-
-export declare class JsModule {
-  get context(): string | undefined
-  get originalSource(): JsCompatSource | undefined
-  get resource(): string | undefined
-  get moduleIdentifier(): string
-  get nameForCondition(): string | undefined
-  get request(): string | undefined
-  get userRequest(): string | undefined
-  set userRequest(val: string | undefined)
-  get rawRequest(): string | undefined
-  get factoryMeta(): JsFactoryMeta | undefined
-  get type(): string
-  get layer(): string | undefined
-  get blocks(): JsDependenciesBlock[]
-  get dependencies(): Dependency[]
-  size(ty?: string | undefined | null): number
-  get modules(): JsModule[] | undefined
-  get useSourceMap(): boolean
-  libIdent(options: JsLibIdentOptions): string | null
-  get resourceResolveData(): JsResourceData | undefined
-  get matchResource(): string | undefined
-  set matchResource(val: string | undefined)
-  emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
+  getUsed(name: string | string[], runtime: string | string[] | undefined): 0 | 1 | 2 | 3 | 4
 }
 
 export declare class JsModuleGraph {
-  getModule(dependency: Dependency): JsModule | null
-  getResolvedModule(dependency: Dependency): JsModule | null
-  getUsedExports(jsModule: JsModule, jsRuntime: string | Array<string>): boolean | Array<string> | null
-  getIssuer(module: JsModule): JsModule | null
-  getExportsInfo(module: JsModule): JsExportsInfo
+  getModule(dependency: Dependency): Module | null
+  getResolvedModule(dependency: Dependency): Module | null
+  getUsedExports(module: Module, runtime: string | string[]): boolean | Array<string> | null
+  getIssuer(module: Module): Module | null
+  getExportsInfo(module: Module): JsExportsInfo
   getConnection(dependency: Dependency): JsModuleGraphConnection | null
-  getOutgoingConnections(module: JsModule): JsModuleGraphConnection[]
-  getOutgoingConnectionsInOrder(module: JsModule): JsModuleGraphConnection[]
-  getIncomingConnections(module: JsModule): JsModuleGraphConnection[]
-  getParentModule(dependency: Dependency): JsModule | null
+  getOutgoingConnections(module: Module): JsModuleGraphConnection[]
+  getOutgoingConnectionsInOrder(module: Module): JsModuleGraphConnection[]
+  getIncomingConnections(module: Module): JsModuleGraphConnection[]
+  getParentModule(dependency: Dependency): Module | null
   getParentBlockIndex(dependency: Dependency): number
-  isAsync(module: JsModule): boolean
+  isAsync(module: Module): boolean
 }
 
 export declare class JsModuleGraphConnection {
   get dependency(): Dependency
-  get module(): JsModule | null
-  get resolvedModule(): JsModule | null
-  get originModule(): JsModule | null
+  get module(): Module | null
+  get resolvedModule(): Module | null
+  get originModule(): Module | null
 }
 
 export declare class JsResolver {
-  resolveSync(path: string, request: string): string | false
+  resolveSync(path: string, request: string): JsResourceData | false
   withOptions(raw?: RawResolveOptionsWithDependencyType | undefined | null): JsResolver
 }
 
@@ -302,6 +353,18 @@ export declare class JsStats {
   hasErrors(): boolean
   getLogging(acceptedTypes: number): Array<JsStatsLogging>
 }
+
+export declare class Module {
+  _originalSource(): JsCompatSource | undefined
+  identifier(): string
+  nameForCondition(): string | undefined
+  get blocks(): AsyncDependenciesBlock[]
+  get dependencies(): Dependency[]
+  size(ty?: string | undefined | null): number
+  libIdent(options: JsLibIdentOptions): string | null
+  _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
+}
+
 
 export declare class RawExternalItemFnCtx {
   data(): RawExternalItemFnCtxData
@@ -523,7 +586,7 @@ export interface JsBuildTimeExecutionOption {
 }
 
 export interface JsCacheGroupTestCtx {
-  module: JsModule
+  module: Module
 }
 
 export interface JsChunkAssetArgs {
@@ -532,12 +595,12 @@ export interface JsChunkAssetArgs {
 }
 
 export interface JsChunkGroupOrigin {
-  module?: JsModule | undefined
+  module?: Module | undefined
   request?: string
 }
 
 export interface JsChunkOptionNameCtx {
-  module: JsModule
+  module: Module
   chunks: JsChunk[]
   cacheGroupKey: string
 }
@@ -736,7 +799,7 @@ export interface JsLoaderContext {
   resourceData: Readonly<JsResourceData>
   /** Will be deprecated. Use module.module_identifier instead */
   _moduleIdentifier: Readonly<string>
-  _module: JsModule
+  _module: Module
   hot: Readonly<boolean>
   /** Content maybe empty in pitching stage */
   content: null | Buffer
@@ -825,6 +888,8 @@ export interface JsResourceData {
   query?: string
   /** Resource fragment with `#` prefix */
   fragment?: string
+  descriptionFileData?: any
+  descriptionFilePath?: string
 }
 
 export interface JsRsdoctorAsset {
@@ -1338,7 +1403,7 @@ export interface RawAliasOptionItem {
 
 export interface RawAssetGeneratorDataUrlFnCtx {
   filename: string
-  module: JsModule
+  module: Module
 }
 
 export interface RawAssetGeneratorDataUrlOptions {
@@ -1486,6 +1551,13 @@ export interface RawCopyPattern {
   priority: number
   globOptions: RawCopyGlobOptions
   info?: RawInfo
+  /**
+   * Determines whether to copy file permissions from the source to the destination.
+   * When set to true, the plugin will preserve executable permissions and other file modes.
+   * This is particularly useful when copying scripts or executable files.
+   * @default false
+   */
+  copyPermissions?: boolean
   transform?: (input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>
 }
 
@@ -1612,16 +1684,16 @@ export interface RawExperimentCacheOptionsPersistent {
 export interface RawExperiments {
   layers: boolean
   topLevelAwait: boolean
-incremental?: false | { [key: string]: boolean }
-parallelCodeSplitting: boolean
-rspackFuture?: RawRspackFuture
-cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
+  incremental?: false | { [key: string]: boolean }
+  parallelCodeSplitting: boolean
+  rspackFuture?: RawRspackFuture
+  cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
 }
 
 export interface RawExperimentSnapshotOptions {
-  immutablePaths: Array<string|RegExp>
-  unmanagedPaths: Array<string|RegExp>
-  managedPaths: Array<string|RegExp>
+  immutablePaths: Array<string | RegExp>
+  unmanagedPaths: Array<string | RegExp>
+  managedPaths: Array<string | RegExp>
 }
 
 export interface RawExposeOptions {
@@ -1684,13 +1756,14 @@ export interface RawFuncUseCtx {
 }
 
 export interface RawGeneratorOptions {
-  type: "asset" | "asset/inline" | "asset/resource" | "css" | "css/auto" | "css/module"
+  type: "asset" | "asset/inline" | "asset/resource" | "css" | "css/auto" | "css/module" | "json"
   asset?: RawAssetGeneratorOptions
   assetInline?: RawAssetInlineGeneratorOptions
   assetResource?: RawAssetResourceGeneratorOptions
   css?: RawCssGeneratorOptions
   cssAuto?: RawCssAutoGeneratorOptions
   cssModule?: RawCssModuleGeneratorOptions
+  json?: RawJsonGeneratorOptions
 }
 
 export interface RawHtmlRspackPluginBaseOptions {
@@ -1810,6 +1883,10 @@ export interface RawJavascriptParserOptions {
    * @experimental
    */
   importDynamic?: boolean
+}
+
+export interface RawJsonGeneratorOptions {
+  JSONParse?: boolean
 }
 
 export interface RawJsonParserOptions {
@@ -2361,9 +2438,9 @@ export interface RegisterJsTaps {
   registerCompilerEmitTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
   registerCompilerAfterEmitTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
   registerCompilerAssetEmittedTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAssetEmittedArgs) => Promise<void>); stage: number; }>
-  registerCompilationBuildModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
-  registerCompilationStillValidModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
-  registerCompilationSucceedModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>
+  registerCompilationBuildModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: Module) => void); stage: number; }>
+  registerCompilationStillValidModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: Module) => void); stage: number; }>
+  registerCompilationSucceedModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: Module) => void); stage: number; }>
   registerCompilationExecuteModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsExecuteModuleArg) => void); stage: number; }>
   registerCompilationAdditionalTreeRuntimeRequirementsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAdditionalTreeRuntimeRequirementsArg) => JsAdditionalTreeRuntimeRequirementsResult | undefined); stage: number; }>
   registerCompilationRuntimeRequirementInTreeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRuntimeRequirementInTreeArg) => JsRuntimeRequirementInTreeResult | undefined); stage: number; }>

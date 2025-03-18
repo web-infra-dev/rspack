@@ -41,7 +41,7 @@ module.exports = {
 		+           Object {
 		+             "descriptionData": Object {
 		+               "type": "module",
-		@@ ... @@
+		+             },
 		+             "resolve": Object {
 		+               "fullySpecified": true,
 		+             },
@@ -49,7 +49,7 @@ module.exports = {
 		+         ],
 		+         "type": "webassembly/async",
 		+       },
-		@@ ... @@
+		+       Object {
 		+         "resolve": Object {
 		+           "fullySpecified": true,
 		+           "preferRelative": true,
@@ -72,11 +72,7 @@ module.exports = {
 		+           "preferRelative": true,
 		+         },
 		+         "type": "css",
-		+       },
-		+       Object {
 		@@ ... @@
-		-     "generator": Object {},
-		+     "generator": Object {
 		+       "css": Object {
 		+         "esModule": true,
 		+         "exportsOnly": false,
@@ -93,16 +89,15 @@ module.exports = {
 		+         "exportsOnly": false,
 		+         "localIdentName": "[uniqueName]-[id]-[local]",
 		+       },
-		+     },
 		@@ ... @@
 		+         },
 		+       },
 		+       "css": Object {
 		+         "namedExports": true,
-		+       },
+		@@ ... @@
 		+       "css/auto": Object {
 		+         "namedExports": true,
-		@@ ... @@
+		+       },
 		+       "css/module": Object {
 		+         "namedExports": true,
 		@@ ... @@
@@ -111,6 +106,8 @@ module.exports = {
 		-     "charset": true,
 		+     "charset": false,
 		@@ ... @@
+		+           "...",
+		+         ],
 		+       },
 		+       "css-import": Object {
 		+         "conditionNames": Array [
@@ -123,8 +120,7 @@ module.exports = {
 		+         ],
 		+         "mainFields": Array [
 		+           "style",
-		+           "...",
-		+         ],
+		@@ ... @@
 		+         "mainFiles": Array [],
 		+         "preferRelative": true,
 	`)

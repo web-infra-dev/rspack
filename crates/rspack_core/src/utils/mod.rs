@@ -1,8 +1,7 @@
 use std::cmp::Ordering;
 
 use rspack_collections::Identifier;
-use rspack_util::comparators::compare_ids;
-use rspack_util::comparators::compare_numbers;
+use rspack_util::comparators::{compare_ids, compare_numbers};
 
 use crate::{
   BoxModule, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ModuleGraph,
@@ -34,23 +33,25 @@ pub use compile_boolean_matcher::*;
 pub use concatenated_module_visitor::*;
 pub use concatenation_scope::*;
 
-pub use self::comment::*;
-pub use self::extract_url_and_global::*;
-pub use self::fast_actions::*;
-pub use self::file_counter::FileCounter;
-pub use self::find_graph_roots::*;
-pub use self::hash::*;
-pub use self::identifier::*;
-pub use self::iterator_consumer::{FutureConsumer, RayonConsumer, RayonFutureConsumer};
-pub use self::module_rules::*;
-pub use self::property_access::*;
-pub use self::property_name::*;
-pub use self::queue::*;
-pub use self::remove_bom::*;
-pub use self::runtime::*;
-pub use self::source::*;
-pub use self::template::*;
-pub use self::to_path::to_path;
+pub use self::{
+  comment::*,
+  extract_url_and_global::*,
+  fast_actions::*,
+  file_counter::FileCounter,
+  find_graph_roots::*,
+  hash::*,
+  identifier::*,
+  iterator_consumer::{FutureConsumer, RayonConsumer, RayonFutureConsumer},
+  module_rules::*,
+  property_access::*,
+  property_name::*,
+  queue::*,
+  remove_bom::*,
+  runtime::*,
+  source::*,
+  template::*,
+  to_path::to_path,
+};
 
 /// join string component in a more human readable way
 /// e.g.

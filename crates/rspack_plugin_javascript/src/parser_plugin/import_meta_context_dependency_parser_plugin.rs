@@ -2,17 +2,19 @@ use rspack_core::{
   ContextMode, ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt,
 };
 use rspack_regex::RspackRegex;
-use swc_core::common::Spanned;
-use swc_core::ecma::ast::{CallExpr, Lit};
+use swc_core::{
+  common::Spanned,
+  ecma::ast::{CallExpr, Lit},
+};
 
 use super::JavascriptParserPlugin;
-use crate::dependency::ImportMetaContextDependency;
-use crate::utils::eval::{self, BasicEvaluatedExpression};
-use crate::utils::object_properties::{
-  get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_by_obj_prop,
-};
-use crate::visitors::{
-  clean_regexp_in_context_module, context_reg_exp, expr_name, JavascriptParser,
+use crate::{
+  dependency::ImportMetaContextDependency,
+  utils::{
+    eval::{self, BasicEvaluatedExpression},
+    object_properties::{get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_by_obj_prop},
+  },
+  visitors::{clean_regexp_in_context_module, context_reg_exp, expr_name, JavascriptParser},
 };
 
 fn create_import_meta_context_dependency(

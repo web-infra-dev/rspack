@@ -1,16 +1,20 @@
 use std::borrow::Cow;
 
 use rustc_hash::FxHashSet;
-use swc_core::common::Spanned;
-use swc_core::ecma::ast::{AssignExpr, BlockStmt, CatchClause, Decl, DoWhileStmt};
-use swc_core::ecma::ast::{ForInStmt, ForOfStmt, ForStmt, IfStmt, LabeledStmt, WithStmt};
-use swc_core::ecma::ast::{ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, WhileStmt};
-use swc_core::ecma::ast::{SwitchCase, SwitchStmt, TryStmt, VarDecl, VarDeclKind, VarDeclarator};
+use swc_core::{
+  common::Spanned,
+  ecma::ast::{
+    AssignExpr, BlockStmt, CatchClause, Decl, DoWhileStmt, ForInStmt, ForOfStmt, ForStmt, IfStmt,
+    LabeledStmt, ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, SwitchCase, SwitchStmt,
+    TryStmt, VarDecl, VarDeclKind, VarDeclarator, WhileStmt, WithStmt,
+  },
+};
 
-use super::estree::{MaybeNamedFunctionDecl, Statement};
-use super::JavascriptParser;
-use crate::parser_plugin::JavascriptParserPlugin;
-use crate::utils::eval;
+use super::{
+  estree::{MaybeNamedFunctionDecl, Statement},
+  JavascriptParser,
+};
+use crate::{parser_plugin::JavascriptParserPlugin, utils::eval};
 
 impl JavascriptParser<'_> {
   pub fn pre_walk_module_items(&mut self, statements: &Vec<ModuleItem>) {

@@ -1,12 +1,15 @@
 use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency, SpanExt};
-use swc_core::common::Spanned;
-use swc_core::ecma::ast::{CallExpr, Callee, Expr, Ident, UnaryExpr};
+use swc_core::{
+  common::Spanned,
+  ecma::ast::{CallExpr, Callee, Expr, Ident, UnaryExpr},
+};
 
-use crate::dependency::ModuleArgumentDependency;
-use crate::parser_plugin::JavascriptParserPlugin;
-use crate::utils::eval::{self, BasicEvaluatedExpression};
-use crate::visitors::{expr_matcher, JavascriptParser};
-use crate::visitors::{expression_not_supported, extract_member_root};
+use crate::{
+  dependency::ModuleArgumentDependency,
+  parser_plugin::JavascriptParserPlugin,
+  utils::eval::{self, BasicEvaluatedExpression},
+  visitors::{expr_matcher, expression_not_supported, extract_member_root, JavascriptParser},
+};
 
 const WEBPACK_HASH: &str = "__webpack_hash__";
 const WEBPACK_LAYER: &str = "__webpack_layer__";

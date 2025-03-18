@@ -111,21 +111,7 @@ export class NormalProcessor<
 				]
 			},
 			module: {
-				rules: [
-					{
-						test: /\.coffee$/,
-						loader: "coffee-loader"
-					},
-					{
-						test: /\.pug/,
-						loader: "@webdiscus/pug-loader"
-					},
-					{
-						test: /\.wat$/i,
-						loader: "wast-loader",
-						type: "webassembly/async"
-					}
-				]
+				rules: []
 			},
 			plugins: (compilerOptions?.plugins || [])
 				// @ts-ignore

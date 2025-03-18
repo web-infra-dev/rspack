@@ -1,5 +1,4 @@
-use std::hash::Hash;
-use std::{cmp::Ordering, sync::atomic::AtomicU32};
+use std::{cmp::Ordering, hash::Hash, sync::atomic::AtomicU32};
 
 use rspack_collections::{impl_item_ukey, Database, DatabaseItem, Ukey};
 use rspack_core::ChunkUkey;

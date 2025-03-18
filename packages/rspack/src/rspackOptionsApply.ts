@@ -16,7 +16,7 @@ import type {
 	RspackOptionsNormalized,
 	RspackPluginFunction
 } from ".";
-import { Module } from "./Module";
+import type { Module } from "./Module";
 import {
 	APIPlugin,
 	ArrayPushCallbackChunkFormatPlugin,
@@ -284,10 +284,10 @@ export class RspackOptionsApply {
 				lazyOptions.entries ?? true,
 				lazyOptions.imports ?? true,
 				typeof lazyOptions.test === "function"
-					? jsModule =>
-							(lazyOptions.test as (jsModule: Module) => boolean)!.call(
+					? module =>
+							(lazyOptions.test as (module: Module) => boolean)!.call(
 								lazyOptions,
-								Module.__from_binding(jsModule)
+								module
 							)
 					: lazyOptions.test,
 				lazyOptions.backend

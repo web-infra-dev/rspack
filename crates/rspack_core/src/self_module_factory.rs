@@ -1,7 +1,6 @@
 use rspack_error::Result;
 
-use crate::SelfModule;
-use crate::{ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult};
+use crate::{ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, SelfModule};
 
 #[derive(Debug)]
 pub struct SelfModuleFactory;

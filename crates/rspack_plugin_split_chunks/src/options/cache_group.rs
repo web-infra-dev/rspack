@@ -1,8 +1,7 @@
 use derive_more::Debug;
 use rspack_core::Filename;
 
-use super::cache_group_test::CacheGroupTest;
-use super::chunk_name::ChunkNameGetter;
+use super::{cache_group_test::CacheGroupTest, chunk_name::ChunkNameGetter};
 use crate::common::{ChunkFilter, ModuleLayerFilter, ModuleTypeFilter, SplitChunkSizes};
 
 #[derive(Debug)]

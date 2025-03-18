@@ -78,11 +78,12 @@ use crate::{
   JsContextModuleFactoryAfterResolveDataWrapper, JsContextModuleFactoryAfterResolveResult,
   JsContextModuleFactoryBeforeResolveDataWrapper, JsContextModuleFactoryBeforeResolveResult,
   JsCreateData, JsCreateScriptData, JsExecuteModuleArg, JsFactorizeArgs, JsFactorizeOutput,
-  JsLinkPrefetchData, JsLinkPreloadData, JsModuleWrapper, JsNormalModuleFactoryCreateModuleArgs,
-  JsResolveArgs, JsResolveForSchemeArgs, JsResolveForSchemeOutput, JsResolveOutput,
-  JsRsdoctorAssetPatch, JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
+  JsLinkPrefetchData, JsLinkPreloadData, JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs,
+  JsResolveForSchemeArgs, JsResolveForSchemeOutput, JsResolveOutput, JsRsdoctorAssetPatch,
+  JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
   JsRsdoctorModuleSourcesPatch, JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg,
-  JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult, ToJsCompatSourceOwned,
+  JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult, ModuleObject,
+  ToJsCompatSourceOwned,
 };
 
 #[napi(object)]
@@ -463,17 +464,17 @@ pub struct RegisterJsTaps {
   )]
   pub register_compiler_asset_emitted_taps: RegisterFunction<JsAssetEmittedArgs, Promise<()>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: Module) => void); stage: number; }>"
   )]
-  pub register_compilation_build_module_taps: RegisterFunction<JsModuleWrapper, ()>,
+  pub register_compilation_build_module_taps: RegisterFunction<ModuleObject, ()>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: Module) => void); stage: number; }>"
   )]
-  pub register_compilation_still_valid_module_taps: RegisterFunction<JsModuleWrapper, ()>,
+  pub register_compilation_still_valid_module_taps: RegisterFunction<ModuleObject, ()>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: Module) => void); stage: number; }>"
   )]
-  pub register_compilation_succeed_module_taps: RegisterFunction<JsModuleWrapper, ()>,
+  pub register_compilation_succeed_module_taps: RegisterFunction<ModuleObject, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsExecuteModuleArg) => void); stage: number; }>"
   )]
@@ -728,7 +729,7 @@ define_register!(
 /* Compilation Hooks */
 define_register!(
   RegisterCompilationBuildModuleTaps,
-  tap = CompilationBuildModuleTap<JsModuleWrapper, ()> @ CompilationBuildModuleHook,
+  tap = CompilationBuildModuleTap<ModuleObject, ()> @ CompilationBuildModuleHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationBuildModule,
@@ -736,7 +737,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationStillValidModuleTaps,
-  tap = CompilationStillValidModuleTap<JsModuleWrapper, ()> @ CompilationStillValidModuleHook,
+  tap = CompilationStillValidModuleTap<ModuleObject, ()> @ CompilationStillValidModuleHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationStillValidModule,
@@ -744,7 +745,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationSucceedModuleTaps,
-  tap = CompilationSucceedModuleTap<JsModuleWrapper, ()> @ CompilationSucceedModuleHook,
+  tap = CompilationSucceedModuleTap<ModuleObject, ()> @ CompilationSucceedModuleHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationSucceedModule,
@@ -1198,9 +1199,8 @@ impl CompilationBuildModule for CompilationBuildModuleTap {
     #[allow(clippy::unwrap_used)]
     let _ = self
       .function
-      .call_with_sync(JsModuleWrapper::new(
-        module.identifier(),
-        Some(NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap()),
+      .call_with_sync(ModuleObject::with_ptr(
+        NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap(),
         compiler_id,
       ))
       .await?;
@@ -1223,9 +1223,8 @@ impl CompilationStillValidModule for CompilationStillValidModuleTap {
     #[allow(clippy::unwrap_used)]
     let _ = self
       .function
-      .call_with_sync(JsModuleWrapper::new(
-        module.identifier(),
-        Some(NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap()),
+      .call_with_sync(ModuleObject::with_ptr(
+        NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap(),
         compiler_id,
       ))
       .await?;
@@ -1248,9 +1247,8 @@ impl CompilationSucceedModule for CompilationSucceedModuleTap {
     #[allow(clippy::unwrap_used)]
     let _ = self
       .function
-      .call_with_sync(JsModuleWrapper::new(
-        module.identifier(),
-        Some(NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap()),
+      .call_with_sync(ModuleObject::with_ptr(
+        NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap(),
         compiler_id,
       ))
       .await?;

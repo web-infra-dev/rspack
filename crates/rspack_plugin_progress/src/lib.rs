@@ -1,8 +1,12 @@
-use std::cmp::Ordering;
-use std::sync::atomic::Ordering::Relaxed;
-use std::sync::{Arc, LazyLock, RwLock};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use std::{cmp, sync::atomic::AtomicU32, time::Instant};
+use std::{
+  cmp,
+  cmp::Ordering,
+  sync::{
+    atomic::{AtomicU32, Ordering::Relaxed},
+    Arc, LazyLock, RwLock,
+  },
+  time::{Duration, Instant, SystemTime, UNIX_EPOCH},
+};
 
 use async_trait::async_trait;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};

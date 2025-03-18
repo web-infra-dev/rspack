@@ -1,29 +1,30 @@
-use std::collections::HashSet as RawHashSet;
-use std::hash::{BuildHasherDefault, Hash};
-use std::sync::atomic::AtomicU32;
-use std::sync::Arc;
+use std::{
+  collections::HashSet as RawHashSet,
+  hash::{BuildHasherDefault, Hash},
+  sync::{atomic::AtomicU32, Arc},
+};
 
 use indexmap::{IndexMap as RawIndexMap, IndexSet as RawIndexSet};
 use itertools::Itertools;
 use num_bigint::BigUint;
 use rspack_collections::{
-  impl_item_ukey, Database, DatabaseItem, IdentifierHasher, Ukey, UkeyIndexMap, UkeyIndexSet,
-  UkeyMap, UkeySet,
+  impl_item_ukey, Database, DatabaseItem, IdentifierHasher, IdentifierIndexSet, IdentifierMap,
+  Ukey, UkeyIndexMap, UkeyIndexSet, UkeyMap, UkeySet,
 };
-use rspack_collections::{IdentifierIndexSet, IdentifierMap};
 use rspack_error::{error, Diagnostic, Error, Result};
 use rspack_util::itoa;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use super::incremental::ChunkCreateData;
-use crate::dependencies_block::AsyncDependenciesToInitialChunkError;
-use crate::incremental::{IncrementalPasses, Mutation};
 use crate::{
-  assign_depths, get_entry_runtime, merge_runtime, AsyncDependenciesBlockIdentifier, ChunkGroup,
-  ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
-  ConnectionState, DependenciesBlock, DependencyId, DependencyLocation, EntryDependency,
-  EntryRuntime, GroupOptions, Logger, ModuleDependency, ModuleGraph, ModuleIdentifier, RuntimeSpec,
-  SyntheticDependencyLocation,
+  assign_depths,
+  dependencies_block::AsyncDependenciesToInitialChunkError,
+  get_entry_runtime,
+  incremental::{IncrementalPasses, Mutation},
+  merge_runtime, AsyncDependenciesBlockIdentifier, ChunkGroup, ChunkGroupKind, ChunkGroupOptions,
+  ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, ConnectionState, DependenciesBlock,
+  DependencyId, DependencyLocation, EntryDependency, EntryRuntime, GroupOptions, Logger,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, RuntimeSpec, SyntheticDependencyLocation,
 };
 
 type IndexMap<K, V, H = FxHasher> = RawIndexMap<K, V, BuildHasherDefault<H>>;
@@ -437,7 +438,7 @@ impl CodeSplitter {
       entrypoint.set_runtime_chunk(chunk.ukey());
     }
 
-    entrypoint.set_entry_point_chunk(chunk.ukey());
+    entrypoint.set_entrypoint_chunk(chunk.ukey());
     entrypoint.connect_chunk(chunk);
 
     compilation
@@ -529,7 +530,7 @@ Remove the 'runtime' option from the entrypoint."
           compilation
             .chunk_group_by_ukey
             .expect_get(key)
-            .get_entry_point_chunk()
+            .get_entrypoint_chunk()
             .as_u32()
         })),
       );
@@ -550,7 +551,7 @@ Remove the 'runtime' option from the entrypoint."
         let entry_point = compilation.chunk_group_by_ukey.expect_get(ukey);
         let entry_point_chunk = compilation
           .chunk_by_ukey
-          .expect_get(&entry_point.get_entry_point_chunk());
+          .expect_get(&entry_point.get_entrypoint_chunk());
         let referenced_chunks =
           entry_point_chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey);
 
@@ -559,13 +560,13 @@ Remove the 'runtime' option from the entrypoint."
             let dependency_chunk_ukey = compilation
               .chunk_group_by_ukey
               .expect_get(dependency_ukey)
-              .get_entry_point_chunk();
+              .get_entrypoint_chunk();
             if referenced_chunks.contains(&dependency_chunk_ukey) {
               runtime_errors.push(Diagnostic::from(
                 error!(
                   "Entrypoints '{name}' and '{dep}' use 'dependOn' to depend on each other in a circular way."
                 ),
-              ).with_chunk(Some(entry_point.get_entry_point_chunk().as_u32())));
+              ).with_chunk(Some(entry_point.get_entrypoint_chunk().as_u32())));
               entry_point_runtime = Some(entry_point_chunk.ukey());
               has_error = true;
               break;
@@ -605,7 +606,7 @@ Remove the 'runtime' option from the entrypoint."
       let chunk = match compilation.named_chunks.get(runtime) {
         Some(ukey) => {
           if !self.runtime_chunks.contains(ukey) {
-            let entry_chunk = entry_point.get_entry_point_chunk();
+            let entry_chunk = entry_point.get_entrypoint_chunk();
             runtime_errors.push(Diagnostic::from(
               error!(
                 "Entrypoint '{name}' has a 'runtime' option which points to another entrypoint named '{runtime}'.
@@ -707,7 +708,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         self.chunk_groups_for_combining.insert(*cgi);
       } else {
         // The application may start here: We start with an empty list of available modules
-        let chunk = chunk_group.get_entry_point_chunk();
+        let chunk = chunk_group.get_entrypoint_chunk();
         for module in modules {
           self
             .queue
@@ -847,7 +848,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
         Some(root_modules)
       } else if chunk_group.kind.is_entrypoint() && chunk_group.is_initial() {
-        let entry_chunk_ukey = chunk_group.get_entry_point_chunk();
+        let entry_chunk_ukey = chunk_group.get_entrypoint_chunk();
         let entry_modules = compilation
           .chunk_graph
           .get_chunk_entry_modules(&entry_chunk_ukey);
@@ -1395,7 +1396,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             self.chunk_group_infos.entry(ukey).or_insert(cgi);
 
             entrypoint.set_runtime_chunk(chunk.ukey());
-            entrypoint.set_entry_point_chunk(chunk.ukey());
+            entrypoint.set_entrypoint_chunk(chunk.ukey());
             compilation.async_entrypoints.push(entrypoint.ukey);
             self.next_chunk_group_index += 1;
             entrypoint.index = Some(self.next_chunk_group_index);

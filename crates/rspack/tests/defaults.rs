@@ -6,7 +6,8 @@ async fn default_options() {
   let mut builder_context = BuilderContext::default();
   let options = CompilerOptionsBuilder::default()
     .mode(Mode::None)
-    .build(&mut builder_context);
+    .build(&mut builder_context)
+    .unwrap();
   let cwd = std::env::current_dir().unwrap();
 
   let mut settings = insta::Settings::clone_current();

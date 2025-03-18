@@ -6,8 +6,10 @@ use rspack_core::{ErrorSpan, SpanExt};
 use rspack_error::miette::{Diagnostic, Severity};
 use rspack_regex::RspackRegex;
 use rustc_hash::{FxHashMap, FxHashSet};
-use swc_core::common::comments::{Comment, CommentKind, Comments};
-use swc_core::common::{SourceFile, Span};
+use swc_core::common::{
+  comments::{Comment, CommentKind, Comments},
+  SourceFile, Span,
+};
 
 use crate::visitors::create_traceable_error;
 

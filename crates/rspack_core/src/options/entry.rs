@@ -31,7 +31,7 @@ where
   }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub struct EntryData {
   pub dependencies: Vec<DependencyId>,
   pub include_dependencies: Vec<DependencyId>,

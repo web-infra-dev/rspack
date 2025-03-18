@@ -7,6 +7,7 @@ import type { Module } from "../Module";
 import type ModuleGraph from "../ModuleGraph";
 import type { LazyCompilationDefaultBackendOptions } from "../builtin-plugin/lazy-compilation/backend";
 import type { Chunk } from "../exports";
+import type { ResolveCallback } from "./adapterRuleUse";
 
 export type FilenameTemplate = string;
 
@@ -1237,6 +1238,15 @@ export type CssAutoGeneratorOptions = {
 /** Generator options for css/module modules. */
 export type CssModuleGeneratorOptions = CssAutoGeneratorOptions;
 
+/** Generator options for json modules. */
+export type JsonGeneratorOptions = {
+	/**
+	 * Use `JSON.parse` when the JSON string is longer than 20 characters.
+	 * @default true
+	 */
+	JSONParse?: boolean;
+};
+
 export type GeneratorOptionsByModuleTypeKnown = {
 	/** Generator options for asset modules. */
 	asset?: AssetGeneratorOptions;
@@ -1255,6 +1265,9 @@ export type GeneratorOptionsByModuleTypeKnown = {
 
 	/** Generator options for css/module modules. */
 	"css/module"?: CssModuleGeneratorOptions;
+
+	/** Generator options for json modules. */
+	json?: JsonGeneratorOptions;
 };
 
 export type GeneratorOptionsByModuleTypeUnknown = Record<
@@ -1425,11 +1438,7 @@ export type ExternalItemFunctionData = {
 	getResolve?: (
 		options?: ResolveOptions
 	) =>
-		| ((
-				context: string,
-				request: string,
-				callback: (err?: Error, result?: string) => void
-		  ) => void)
+		| ((context: string, request: string, callback: ResolveCallback) => void)
 		| ((context: string, request: string) => Promise<string>);
 };
 
@@ -2730,6 +2739,11 @@ export type RspackOptions = {
 	 * An array of dependencies required by the project.
 	 */
 	dependencies?: Dependencies;
+	/**
+	 * Configuration files to extend from. The configurations are merged from right to left,
+	 * with the rightmost configuration taking precedence(only works when using @rspack/cli).
+	 */
+	extends?: string | string[];
 	/**
 	 * The entry point of the application.
 	 */

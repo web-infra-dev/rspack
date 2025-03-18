@@ -6,6 +6,7 @@ import { ChunkGraph } from "../ChunkGraph";
 import type { Compilation, PathData } from "../Compilation";
 import { Module } from "../Module";
 import ModuleGraph from "../ModuleGraph";
+import type { ResolveCallback } from "./adapterRuleUse";
 import type * as t from "./types";
 import { ZodRspackCrossChecker } from "./utils";
 
@@ -664,13 +665,18 @@ const cssModuleGeneratorOptions = z.strictObject({
 	esModule: cssGeneratorEsModule.optional()
 }) satisfies z.ZodType<t.CssModuleGeneratorOptions>;
 
+const jsonGeneratorOptions = z.strictObject({
+	JSONParse: z.boolean().optional()
+}) satisfies z.ZodType<t.JsonGeneratorOptions>;
+
 const generatorOptionsByModuleTypeKnown = z.strictObject({
 	asset: assetGeneratorOptions.optional(),
 	"asset/inline": assetInlineGeneratorOptions.optional(),
 	"asset/resource": assetResourceGeneratorOptions.optional(),
 	css: cssGeneratorOptions.optional(),
 	"css/auto": cssAutoGeneratorOptions.optional(),
-	"css/module": cssModuleGeneratorOptions.optional()
+	"css/module": cssModuleGeneratorOptions.optional(),
+	json: jsonGeneratorOptions.optional()
 }) satisfies z.ZodType<t.GeneratorOptionsByModuleTypeKnown>;
 
 const generatorOptionsByModuleTypeUnknown = z.record(
@@ -806,7 +812,7 @@ export const externalsType = z.enum([
 ]) satisfies z.ZodType<t.ExternalsType>;
 //#endregion
 
-const ZodExternalObjectValue = new ZodRspackCrossChecker<
+const externalObjectValue = new ZodRspackCrossChecker<
 	t.ExternalItemUmdValue | t.ExternalItemObjectValue
 >({
 	patterns: [
@@ -855,7 +861,7 @@ const externalItemValue = z
 	.string()
 	.or(z.boolean())
 	.or(z.string().array().min(1))
-	.or(ZodExternalObjectValue) satisfies z.ZodType<t.ExternalItemValue>;
+	.or(externalObjectValue) satisfies z.ZodType<t.ExternalItemValue>;
 
 const externalItemObjectUnknown = z.record(
 	externalItemValue
@@ -881,14 +887,7 @@ const externalItemFunctionData = z.strictObject({
 				.or(
 					z
 						.function()
-						.args(
-							z.string(),
-							z.string(),
-							z
-								.function()
-								.args(z.instanceof(Error).optional(), z.string().optional())
-								.returns(z.void())
-						)
+						.args(z.string(), z.string(), z.custom<ResolveCallback>())
 						.returns(z.void())
 				)
 		)
@@ -1463,6 +1462,7 @@ const performance = z
 export const rspackOptions = z.strictObject({
 	name: name.optional(),
 	dependencies: dependencies.optional(),
+	extends: z.union([z.string(), z.array(z.string())]).optional(),
 	entry: entry.optional(),
 	output: output.optional(),
 	target: target.optional(),

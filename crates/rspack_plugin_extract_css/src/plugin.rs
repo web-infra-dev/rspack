@@ -1,21 +1,25 @@
-use std::sync::LazyLock;
-use std::{borrow::Cow, hash::Hash, sync::Arc};
+use std::{
+  borrow::Cow,
+  hash::Hash,
+  sync::{Arc, LazyLock},
+};
 
 use cow_utils::CowUtils;
 use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet, UkeySet};
-use rspack_core::rspack_sources::{BoxSource, CachedSource, SourceExt};
-use rspack_core::{get_undo_path, AssetInfo, ChunkGraph};
 use rspack_core::{
+  get_undo_path,
   rspack_sources::{
-    ConcatSource, RawStringSource, SourceMap, SourceMapSource, WithoutOriginalOptions,
+    BoxSource, CachedSource, ConcatSource, RawStringSource, SourceExt, SourceMap, SourceMapSource,
+    WithoutOriginalOptions,
   },
-  ApplyContext, Chunk, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation, CompilationContentHash,
-  CompilationParams, CompilationRenderManifest, CompilationRuntimeRequirementInTree,
-  CompilerCompilation, CompilerOptions, DependencyType, Filename, Module, ModuleGraph,
-  ModuleIdentifier, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
-  PathData, Plugin, PluginContext, RenderManifestEntry, RuntimeGlobals, SourceType,
+  ApplyContext, AssetInfo, Chunk, ChunkGraph, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
+  CompilationContentHash, CompilationParams, CompilationRenderManifest,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, DependencyType,
+  Filename, Module, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
+  ParserAndGenerator, ParserOptions, PathData, Plugin, PluginContext, RenderManifestEntry,
+  RuntimeGlobals, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;

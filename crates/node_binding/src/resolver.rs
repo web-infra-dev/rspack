@@ -1,12 +1,14 @@
-use std::path::Path;
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 use napi::Either;
 use napi_derive::napi;
-use rspack_core::{ResolveOptionsWithDependencyType, Resolver, ResolverFactory};
+use rspack_core::{ResolveOptionsWithDependencyType, Resolver, ResolverFactory, ResourceData};
 
-use crate::raw_resolve::{
-  normalize_raw_resolve_options_with_dependency_type, RawResolveOptionsWithDependencyType,
+use crate::{
+  raw_resolve::{
+    normalize_raw_resolve_options_with_dependency_type, RawResolveOptionsWithDependencyType,
+  },
+  JsResourceData,
 };
 
 #[napi]
@@ -33,10 +35,16 @@ impl JsResolver {
 
 #[napi]
 impl JsResolver {
-  #[napi(ts_return_type = "string | false")]
-  pub fn resolve_sync(&self, path: String, request: String) -> napi::Result<Either<String, bool>> {
+  #[napi(ts_return_type = "JsResourceData | false")]
+  pub fn resolve_sync(
+    &self,
+    path: String,
+    request: String,
+  ) -> napi::Result<Either<JsResourceData, bool>> {
     match self.resolver.resolve(Path::new(&path), &request) {
-      Ok(rspack_core::ResolveResult::Resource(resource)) => Ok(Either::A(resource.full_path())),
+      Ok(rspack_core::ResolveResult::Resource(resource)) => {
+        Ok(Either::A(ResourceData::from(resource).into()))
+      }
       Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(false)),
       Err(err) => Err(napi::Error::from_reason(format!("{:?}", err))),
     }

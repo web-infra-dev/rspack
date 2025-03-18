@@ -5,10 +5,12 @@
 extern crate napi_derive;
 extern crate rspack_allocator;
 
-use std::cell::RefCell;
-use std::pin::Pin;
-use std::str::FromStr;
-use std::sync::{Arc, Mutex};
+use std::{
+  cell::RefCell,
+  pin::Pin,
+  str::FromStr,
+  sync::{Arc, Mutex},
+};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use napi::{bindgen_prelude::*, CallContext};
@@ -19,10 +21,10 @@ use rspack_core::{
 use rspack_error::Diagnostic;
 use rspack_fs::IntermediateFileSystem;
 use rspack_fs_node::{NodeFileSystem, ThreadsafeNodeFS};
-use rspack_napi::napi::bindgen_prelude::within_runtime_if_available;
 
 mod asset;
 mod asset_condition;
+mod async_dependency_block;
 mod chunk;
 mod chunk_graph;
 mod chunk_group;
@@ -33,7 +35,6 @@ mod compiler;
 mod context_module_factory;
 mod dependencies;
 mod dependency;
-mod dependency_block;
 mod diagnostic;
 mod error;
 mod exports_info;
@@ -43,6 +44,7 @@ mod identifier;
 mod module;
 mod module_graph;
 mod module_graph_connection;
+mod modules;
 mod normal_module_factory;
 mod options;
 mod panic;
@@ -60,6 +62,7 @@ mod utils;
 
 pub use asset::*;
 pub use asset_condition::*;
+pub use async_dependency_block::*;
 pub use chunk::*;
 pub use chunk_graph::*;
 pub use chunk_group::*;
@@ -69,7 +72,6 @@ pub use compilation::*;
 pub use context_module_factory::*;
 pub use dependencies::*;
 pub use dependency::*;
-pub use dependency_block::*;
 pub use diagnostic::*;
 pub use error::*;
 pub use exports_info::*;
@@ -78,6 +80,7 @@ pub use html::*;
 pub use module::*;
 pub use module_graph::*;
 pub use module_graph_connection::*;
+pub use modules::*;
 pub use normal_module_factory::*;
 pub use options::*;
 pub use path_data::*;
@@ -88,16 +91,16 @@ pub use resolver::*;
 use resolver_factory::*;
 pub use resource_data::*;
 pub use rsdoctor::*;
-use rspack_tracing::{ChromeTracer, OtelTracer, StdoutTracer, Tracer};
+use rspack_tracing::{ChromeTracer, StdoutTracer, Tracer};
 pub use runtime::*;
 use rustc_hash::FxHashMap;
 pub use source::*;
 pub use stats::*;
 use swc_core::common::util::take::Take;
 use tracing::Level;
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::{EnvFilter, Layer, Registry};
+use tracing_subscriber::{
+  layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
+};
 pub use utils::*;
 
 thread_local! {
@@ -108,7 +111,7 @@ thread_local! {
 fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
   let external = ctx.get::<&mut External<Vec<ModuleIdentifier>>>(0)?;
   let revoked_modules = external.take();
-  JsModuleWrapper::cleanup_by_module_identifiers(&revoked_modules);
+  ModuleObject::cleanup_by_module_identifiers(&revoked_modules);
   Ok(())
 }
 
@@ -305,7 +308,7 @@ impl JsCompiler {
     JsChunkWrapper::cleanup_last_compilation(compilation_id);
     JsChunkGroupWrapper::cleanup_last_compilation(compilation_id);
     DependencyWrapper::cleanup_last_compilation(compilation_id);
-    JsDependenciesBlockWrapper::cleanup_last_compilation(compilation_id);
+    AsyncDependenciesBlockWrapper::cleanup_last_compilation(compilation_id);
   }
 }
 
@@ -318,7 +321,7 @@ impl ObjectFinalize for JsCompiler {
       references.remove(&compiler_id);
     });
 
-    JsModuleWrapper::cleanup_by_compiler_id(&compiler_id);
+    ModuleObject::cleanup_by_compiler_id(&compiler_id);
     Ok(())
   }
 }
@@ -337,6 +340,7 @@ enum TraceState {
   Off,
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[ctor]
 fn init() {
   panic::install_panic_handler();
@@ -389,7 +393,12 @@ pub fn register_global_trace(
     if let TraceState::Off = *state {
       let mut tracer: Box<dyn Tracer> = match layer.as_str() {
         "chrome" => Box::new(ChromeTracer::default()),
-        "otel" => Box::new(within_runtime_if_available(OtelTracer::default)),
+        #[cfg(not(target_family = "wasm"))]
+        "otel" => {
+          use rspack_tracing::OtelTracer;
+          use rspack_napi::napi::bindgen_prelude::within_runtime_if_available;
+          Box::new(within_runtime_if_available(OtelTracer::default))
+        },
         "logger" => Box::new(StdoutTracer),
         _ => anyhow::bail!(
           "Unexpected layer: {}, supported layers: 'chrome', 'logger', 'console' and 'otel' ",

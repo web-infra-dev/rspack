@@ -1,5 +1,4 @@
-use std::collections::BTreeSet;
-use std::sync::LazyLock;
+use std::{collections::BTreeSet, sync::LazyLock};
 
 use regex::Regex;
 use rustc_hash::FxHashMap as HashMap;

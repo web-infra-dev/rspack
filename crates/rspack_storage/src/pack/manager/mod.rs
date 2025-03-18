@@ -3,17 +3,19 @@ mod queue;
 use std::sync::Arc;
 
 use futures::future::join_all;
-use pollster::block_on;
 use queue::TaskQueue;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use tokio::sync::oneshot::Receiver;
-use tokio::sync::{oneshot, Mutex};
+use tokio::sync::{oneshot, oneshot::Receiver, Mutex};
 
-use super::data::{PackOptions, PackScope, RootMeta, RootMetaState, RootOptions};
-use super::strategy::{ScopeStrategy, WriteScopeResult};
-use super::ScopeUpdates;
-use crate::error::{Error, ErrorType, ValidateResult};
-use crate::{ItemPairs, Result};
+use super::{
+  data::{PackOptions, PackScope, RootMeta, RootMetaState, RootOptions},
+  strategy::{ScopeStrategy, WriteScopeResult},
+  ScopeUpdates,
+};
+use crate::{
+  error::{Error, ErrorType, ValidateResult},
+  ItemPairs, Result,
+};
 
 type ScopeMap = HashMap<String, PackScope>;
 
@@ -44,14 +46,16 @@ impl ScopeManager {
   }
 
   pub fn save(&self, updates: ScopeUpdates) -> Result<Receiver<Result<()>>> {
-    let pack_options = self.pack_options.clone();
     let strategy = self.strategy.clone();
     let scopes = self.scopes.clone();
     let root_meta = self.root_meta.clone();
-    block_on(tokio::task::unconstrained(async move {
-      let mut scopes_guard = scopes.lock().await;
+    let pack_options = self.pack_options.clone();
+    let root_options = self.root_options.clone();
+    let (tx, rx) = oneshot::channel();
+    self.queue.add_task(Box::pin(async move {
+      let mut scopes_lock = scopes.lock().await;
       match update_scopes(
-        &mut scopes_guard,
+        &mut scopes_lock,
         updates,
         pack_options.clone(),
         strategy.as_ref(),
@@ -60,26 +64,20 @@ impl ScopeManager {
       {
         Ok(_) => {
           *root_meta.lock().await = RootMetaState::Value(Some(RootMeta::new(
-            scopes_guard
+            scopes_lock
               .iter()
               .filter(|(_, scope)| scope.loaded())
               .map(|(name, _)| name.clone())
               .collect::<HashSet<_>>(),
-            self.root_options.expire,
+            root_options.expire,
           )));
-          Ok(())
         }
-        Err(e) => Err(e),
-      }
-    }))?;
+        Err(e) => {
+          let _ = tx.send(Err(e));
+          return;
+        }
+      };
 
-    let strategy = self.strategy.clone();
-    let scopes = self.scopes.clone();
-    let root_meta = self.root_meta.clone();
-    let root_options = self.root_options.clone();
-    let (tx, rx) = oneshot::channel();
-    self.queue.add_task(Box::pin(async move {
-      let mut scopes_lock = scopes.lock().await;
       let root_meta = root_meta
         .lock()
         .await
@@ -374,8 +372,6 @@ mod tests {
     );
     let rx = manager.save(scope_updates)?;
 
-    assert_eq!(manager.load("scope1").await?.len(), 100);
-    assert_eq!(manager.load("scope2").await?.len(), 100);
     assert!(!(fs.exists(root.join("scope1/scope_meta").as_path()).await?));
     assert!(!(fs.exists(root.join("scope2/scope_meta").as_path()).await?));
 
@@ -431,17 +427,6 @@ mod tests {
         .collect::<HashMap<_, _>>(),
     );
     let rx = manager.save(scope_updates)?;
-    let (update_items, insert_items): (Vec<_>, Vec<_>) = manager
-      .load("scope1")
-      .await?
-      .into_iter()
-      .partition(|(_, v)| {
-        let val = String::from_utf8(v.to_vec()).unwrap();
-        val.ends_with("_new")
-      });
-    assert_eq!(insert_items.len(), 50);
-    assert_eq!(update_items.len(), 50);
-    assert_eq!(manager.load("scope2").await?.len(), 50);
     let scope1_mtime = fs
       .metadata(root.join("scope1/scope_meta").as_path())
       .await?

@@ -12,4 +12,10 @@ dunce        = { version = "1.0.5" }
 pnp          = { version = "0.9.0" }
 rspack_error = { path = "../rspack_error", version = "0.2.0" }
 rspack_paths = { path = "../rspack_paths", version = "0.2.0" }
-tokio        = { workspace = true, features = ["fs", "test-util", "macros"] }
+tokio        = { workspace = true, features = ["rt", "macros", "sync"] }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+tokio = { workspace = true, features = ["rt", "macros", "sync", "fs"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["time"] }

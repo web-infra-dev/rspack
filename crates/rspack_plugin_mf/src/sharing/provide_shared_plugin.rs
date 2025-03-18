@@ -1,5 +1,7 @@
-use std::sync::LazyLock;
-use std::{fmt, sync::Arc};
+use std::{
+  fmt,
+  sync::{Arc, LazyLock},
+};
 
 use async_trait::async_trait;
 use regex::Regex;
