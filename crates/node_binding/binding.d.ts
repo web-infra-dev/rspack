@@ -2363,7 +2363,7 @@ export interface RawToOptions {
   absoluteFilename?: string
 }
 
-export interface RawTransformWithCacheOptions {
+export interface RawTransformOptions {
   transformer: TransformerFn
 }
 

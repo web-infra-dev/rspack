@@ -10,7 +10,7 @@ use rspack_plugin_copy::{
 };
 
 type TransformerFn = ThreadsafeFunction<(Buffer, String), Either<String, Buffer>>;
-type RawTransformer = Either<RawTransformWithCacheOptions, TransformerFn>;
+type RawTransformer = Either<RawTransformOptions, TransformerFn>;
 
 type RawToFn = ThreadsafeFunction<RawToOptions, String>;
 
@@ -18,7 +18,7 @@ type RawTo = Either<String, RawToFn>;
 
 #[derive(Debug, Clone)]
 #[napi(object, object_to_js = false)]
-pub struct RawTransformWithCacheOptions {
+pub struct RawTransformOptions {
   pub transformer: TransformerFn,
 }
 
