@@ -21,7 +21,6 @@ rspack_collections       = { workspace = true }
 rspack_core              = { workspace = true }
 rspack_error             = { workspace = true }
 rspack_fs                = { workspace = true }
-rspack_fs_node           = { workspace = true }
 rspack_hash              = { workspace = true }
 rspack_hook              = { workspace = true }
 rspack_napi              = { workspace = true }
