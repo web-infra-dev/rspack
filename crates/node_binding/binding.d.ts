@@ -3,8 +3,8 @@
 
 /* -- banner.d.ts -- */
 export type JsFilename =
-	| string
-	| ((pathData: JsPathData, assetInfo?: AssetInfo) => string);
+  | string
+  | ((pathData: JsPathData, assetInfo?: AssetInfo) => string);
 
 export type LocalJsFilename = JsFilename;
 
@@ -60,12 +60,17 @@ export declare class ExternalObject<T> {
     [K: symbol]: T
   }
 }
+export declare class AsyncDependenciesBlock {
+  get dependencies(): Dependency[]
+  get blocks(): AsyncDependenciesBlock[]
+}
+
 export declare class ConcatenatedModule {
   get modules(): Module[] | undefined
   _originalSource(): JsCompatSource | undefined
   identifier(): string
   nameForCondition(): string | undefined
-  get _blocks(): JsDependenciesBlock[]
+  get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
@@ -76,7 +81,7 @@ export declare class ContextModule {
   _originalSource(): JsCompatSource | undefined
   identifier(): string
   nameForCondition(): string | undefined
-  get _blocks(): JsDependenciesBlock[]
+  get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
@@ -132,7 +137,7 @@ export declare class ExternalModule {
   _originalSource(): JsCompatSource | undefined
   identifier(): string
   nameForCondition(): string | undefined
-  get _blocks(): JsDependenciesBlock[]
+  get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
@@ -172,7 +177,7 @@ export declare class JsChunkGraph {
   getModuleChunks(module: Module): JsChunk[]
   getModuleId(module: Module): string | null
   getModuleHash(module: Module, runtime: string | string[] | undefined): string | null
-  getBlockChunkGroup(jsBlock: JsDependenciesBlock): JsChunkGroup | null
+  getBlockChunkGroup(jsBlock: AsyncDependenciesBlock): JsChunkGroup | null
 }
 
 export declare class JsChunkGroup {
@@ -292,11 +297,6 @@ export declare class JsDependencies {
   get removedBuildDependencies(): Array<string>
 }
 
-export declare class JsDependenciesBlock {
-  get dependencies(): Dependency[]
-  get blocks(): JsDependenciesBlock[]
-}
-
 export declare class JsEntries {
   clear(): void
   get size(): number
@@ -312,7 +312,7 @@ export declare class JsExportsInfo {
   isUsed(runtime: string | string[] | undefined): boolean
   isModuleUsed(runtime: string | string[] | undefined): boolean
   setUsedInUnknownWay(runtime: string | string[] | undefined): boolean
-  getUsed(name: string | string[], runtime: string | string[] | undefined):  0 | 1 | 2 | 3 | 4
+  getUsed(name: string | string[], runtime: string | string[] | undefined): 0 | 1 | 2 | 3 | 4
 }
 
 export declare class JsModuleGraph {
@@ -338,7 +338,7 @@ export declare class JsModuleGraphConnection {
 }
 
 export declare class JsResolver {
-  resolveSync(path: string, request: string): string | false
+  resolveSync(path: string, request: string): JsResourceData | false
   withOptions(raw?: RawResolveOptionsWithDependencyType | undefined | null): JsResolver
 }
 
@@ -358,7 +358,7 @@ export declare class Module {
   _originalSource(): JsCompatSource | undefined
   identifier(): string
   nameForCondition(): string | undefined
-  get _blocks(): JsDependenciesBlock[]
+  get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
@@ -888,6 +888,8 @@ export interface JsResourceData {
   query?: string
   /** Resource fragment with `#` prefix */
   fragment?: string
+  descriptionFileData?: any
+  descriptionFilePath?: string
 }
 
 export interface JsRsdoctorAsset {
@@ -1549,6 +1551,13 @@ export interface RawCopyPattern {
   priority: number
   globOptions: RawCopyGlobOptions
   info?: RawInfo
+  /**
+   * Determines whether to copy file permissions from the source to the destination.
+   * When set to true, the plugin will preserve executable permissions and other file modes.
+   * This is particularly useful when copying scripts or executable files.
+   * @default false
+   */
+  copyPermissions?: boolean
   transform?: (input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>
 }
 
@@ -1675,16 +1684,16 @@ export interface RawExperimentCacheOptionsPersistent {
 export interface RawExperiments {
   layers: boolean
   topLevelAwait: boolean
-incremental?: false | { [key: string]: boolean }
-parallelCodeSplitting: boolean
-rspackFuture?: RawRspackFuture
-cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
+  incremental?: false | { [key: string]: boolean }
+  parallelCodeSplitting: boolean
+  rspackFuture?: RawRspackFuture
+  cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
 }
 
 export interface RawExperimentSnapshotOptions {
-  immutablePaths: Array<string|RegExp>
-  unmanagedPaths: Array<string|RegExp>
-  managedPaths: Array<string|RegExp>
+  immutablePaths: Array<string | RegExp>
+  unmanagedPaths: Array<string | RegExp>
+  managedPaths: Array<string | RegExp>
 }
 
 export interface RawExposeOptions {

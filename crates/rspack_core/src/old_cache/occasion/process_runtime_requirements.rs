@@ -1,9 +1,9 @@
 use rspack_collections::Identifier;
 use rspack_error::Result;
 
-use crate::old_cache::storage;
 use crate::{
-  get_runtime_key, ChunkGraph, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeSpec,
+  get_runtime_key, old_cache::storage, ChunkGraph, Compilation, ModuleIdentifier, RuntimeGlobals,
+  RuntimeSpec,
 };
 
 type Storage = dyn storage::Storage<RuntimeGlobals>;

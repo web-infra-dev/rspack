@@ -1,29 +1,30 @@
-use std::collections::HashSet as RawHashSet;
-use std::hash::{BuildHasherDefault, Hash};
-use std::sync::atomic::AtomicU32;
-use std::sync::Arc;
+use std::{
+  collections::HashSet as RawHashSet,
+  hash::{BuildHasherDefault, Hash},
+  sync::{atomic::AtomicU32, Arc},
+};
 
 use indexmap::{IndexMap as RawIndexMap, IndexSet as RawIndexSet};
 use itertools::Itertools;
 use num_bigint::BigUint;
 use rspack_collections::{
-  impl_item_ukey, Database, DatabaseItem, IdentifierHasher, Ukey, UkeyIndexMap, UkeyIndexSet,
-  UkeyMap, UkeySet,
+  impl_item_ukey, Database, DatabaseItem, IdentifierHasher, IdentifierIndexSet, IdentifierMap,
+  Ukey, UkeyIndexMap, UkeyIndexSet, UkeyMap, UkeySet,
 };
-use rspack_collections::{IdentifierIndexSet, IdentifierMap};
 use rspack_error::{error, Diagnostic, Error, Result};
 use rspack_util::itoa;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use super::incremental::ChunkCreateData;
-use crate::dependencies_block::AsyncDependenciesToInitialChunkError;
-use crate::incremental::{IncrementalPasses, Mutation};
 use crate::{
-  assign_depths, get_entry_runtime, merge_runtime, AsyncDependenciesBlockIdentifier, ChunkGroup,
-  ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
-  ConnectionState, DependenciesBlock, DependencyId, DependencyLocation, EntryDependency,
-  EntryRuntime, GroupOptions, Logger, ModuleDependency, ModuleGraph, ModuleIdentifier, RuntimeSpec,
-  SyntheticDependencyLocation,
+  assign_depths,
+  dependencies_block::AsyncDependenciesToInitialChunkError,
+  get_entry_runtime,
+  incremental::{IncrementalPasses, Mutation},
+  merge_runtime, AsyncDependenciesBlockIdentifier, ChunkGroup, ChunkGroupKind, ChunkGroupOptions,
+  ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, ConnectionState, DependenciesBlock,
+  DependencyId, DependencyLocation, EntryDependency, EntryRuntime, GroupOptions, Logger,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, RuntimeSpec, SyntheticDependencyLocation,
 };
 
 type IndexMap<K, V, H = FxHasher> = RawIndexMap<K, V, BuildHasherDefault<H>>;

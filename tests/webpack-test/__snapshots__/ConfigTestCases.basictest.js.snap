@@ -1,5 +1,30 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`ConfigTestCases css build-http exported tests should work with URLs in CSS 1`] = `
+Array [
+  "/* #region \\"https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/import/print.css\\" */
+/*
+- type: javascript/auto
+*/
+@import url(\\"https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/import/print.css\\");
+/* #endregion \\"https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/import/print.css\\" */
+
+/* #region \\"./style.css\\" */
+/*
+- type: css/auto
+*/
+
+
+div {
+	background: url(https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/url/img.png)
+}
+
+/* #endregion \\"./style.css\\" */
+
+",
+]
+`;
+
 exports[`ConfigTestCases css escape-unescape exported tests should work with URLs in CSS: classes 1`] = `
 Object {
   "#": "-_style_modules_css-#",
@@ -413,6 +438,393 @@ Object {
 exports[`ConfigTestCases css large exported tests should allow to create css modules: prod 1`] = `
 Object {
   "placeholder": "-_6d72b53b84605386-placeholder-gray-700",
+}
+`;
+
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 1`] = `
+Object {
+  "btn--info_is-disabled_1": "-_style_module_css-btn--info_is-disabled_1",
+  "btn-info_is-disabled": "-_style_module_css-btn-info_is-disabled",
+  "foo": "bar",
+  "foo_bar": "-_style_module_css-foo_bar",
+  "my-btn-info_is-disabled": "value",
+  "simple": "-_style_module_css-simple",
+}
+`;
+
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 2`] = `
+Object {
+  "btn--info_is-disabled_1": "feb1ff69382c6202",
+  "btn-info_is-disabled": "f9df66ace1f48520",
+  "foo": "bar",
+  "foo_bar": "dc875ce826d54d9a",
+  "my-btn-info_is-disabled": "value",
+  "simple": "_3e131f18e8ba4d9a",
+}
+`;
+
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 3`] = `
+Object {
+  "btn--info_is-disabled_1": "_6fc78548db75122e-btn--info_is-disabled_1",
+  "btn-info_is-disabled": "_6fc78548db75122e-btn-info_is-disabled",
+  "foo": "bar",
+  "foo_bar": "_6fc78548db75122e-foo_bar",
+  "my-btn-info_is-disabled": "value",
+  "simple": "_6fc78548db75122e-simple",
+}
+`;
+
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 4`] = `
+Object {
+  "btn--info_is-disabled_1": "./style.module__btn--info_is-disabled_1",
+  "btn-info_is-disabled": "./style.module__btn-info_is-disabled",
+  "foo": "bar",
+  "foo_bar": "./style.module__foo_bar",
+  "my-btn-info_is-disabled": "value",
+  "simple": "./style.module__simple",
+}
+`;
+
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 5`] = `
+Object {
+  "btn--info_is-disabled_1": "./style.module.css__btn--info_is-disabled_1",
+  "btn-info_is-disabled": "./style.module.css__btn-info_is-disabled",
+  "foo": "bar",
+  "foo_bar": "./style.module.css__foo_bar",
+  "my-btn-info_is-disabled": "value",
+  "simple": "./style.module.css__simple",
+}
+`;
+
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 6`] = `
+Object {
+  "btn--info_is-disabled_1": "./style.module.css?q#f__btn--info_is-disabled_1",
+  "btn-info_is-disabled": "./style.module.css?q#f__btn-info_is-disabled",
+  "foo": "bar",
+  "foo_bar": "./style.module.css?q#f__foo_bar",
+  "my-btn-info_is-disabled": "value",
+  "simple": "./style.module.css?q#f__simple",
+}
+`;
+
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 7`] = `
+Object {
+  "btn--info_is-disabled_1": "-_style_module_css_uniqueName-id-contenthash-[contenthash]",
+  "btn-info_is-disabled": "-_style_module_css_uniqueName-id-contenthash-[contenthash]",
+  "foo": "bar",
+  "foo_bar": "-_style_module_css_uniqueName-id-contenthash-[contenthash]",
+  "my-btn-info_is-disabled": "value",
+  "simple": "-_style_module_css_uniqueName-id-contenthash-[contenthash]",
+}
+`;
+
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 8`] = `
+Object {
+  "btn--info_is-disabled_1": "./style.module.less__btn--info_is-disabled_1",
+  "btn-info_is-disabled": "./style.module.less__btn-info_is-disabled",
+  "foo": "bar",
+  "foo_bar": "./style.module.less__foo_bar",
+  "my-btn-info_is-disabled": "value",
+  "simple": "./style.module.less__simple",
+}
+`;
+
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 9`] = `
+Object {
+  "btn--info_is-disabled_1": "-_style_module_css-btn--info_is-disabled_1",
+  "btn-info_is-disabled": "-_style_module_css-btn-info_is-disabled",
+  "foo": "bar",
+  "foo_bar": "-_style_module_css-foo_bar",
+  "my-btn-info_is-disabled": "value",
+  "simple": "-_style_module_css-simple",
+}
+`;
+
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 10`] = `
+Object {
+  "btn--info_is-disabled_1": "feb1ff69382c6202",
+  "btn-info_is-disabled": "f9df66ace1f48520",
+  "foo": "bar",
+  "foo_bar": "dc875ce826d54d9a",
+  "my-btn-info_is-disabled": "value",
+  "simple": "_3e131f18e8ba4d9a",
+}
+`;
+
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 11`] = `
+Object {
+  "btn--info_is-disabled_1": "_6fc78548db75122e-btn--info_is-disabled_1",
+  "btn-info_is-disabled": "_6fc78548db75122e-btn-info_is-disabled",
+  "foo": "bar",
+  "foo_bar": "_6fc78548db75122e-foo_bar",
+  "my-btn-info_is-disabled": "value",
+  "simple": "_6fc78548db75122e-simple",
+}
+`;
+
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 12`] = `
+Object {
+  "btn--info_is-disabled_1": "./style.module__btn--info_is-disabled_1",
+  "btn-info_is-disabled": "./style.module__btn-info_is-disabled",
+  "foo": "bar",
+  "foo_bar": "./style.module__foo_bar",
+  "my-btn-info_is-disabled": "value",
+  "simple": "./style.module__simple",
+}
+`;
+
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 13`] = `
+Object {
+  "btn--info_is-disabled_1": "./style.module.css__btn--info_is-disabled_1",
+  "btn-info_is-disabled": "./style.module.css__btn-info_is-disabled",
+  "foo": "bar",
+  "foo_bar": "./style.module.css__foo_bar",
+  "my-btn-info_is-disabled": "value",
+  "simple": "./style.module.css__simple",
+}
+`;
+
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 14`] = `
+Object {
+  "btn--info_is-disabled_1": "./style.module.css?q#f__btn--info_is-disabled_1",
+  "btn-info_is-disabled": "./style.module.css?q#f__btn-info_is-disabled",
+  "foo": "bar",
+  "foo_bar": "./style.module.css?q#f__foo_bar",
+  "my-btn-info_is-disabled": "value",
+  "simple": "./style.module.css?q#f__simple",
+}
+`;
+
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 15`] = `
+Object {
+  "btn--info_is-disabled_1": "-_style_module_css_uniqueName-id-contenthash-[contenthash]",
+  "btn-info_is-disabled": "-_style_module_css_uniqueName-id-contenthash-[contenthash]",
+  "foo": "bar",
+  "foo_bar": "-_style_module_css_uniqueName-id-contenthash-[contenthash]",
+  "my-btn-info_is-disabled": "value",
+  "simple": "-_style_module_css_uniqueName-id-contenthash-[contenthash]",
+}
+`;
+
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 16`] = `
+Object {
+  "btn--info_is-disabled_1": "./style.module.less__btn--info_is-disabled_1",
+  "btn-info_is-disabled": "./style.module.less__btn-info_is-disabled",
+  "foo": "bar",
+  "foo_bar": "./style.module.less__foo_bar",
+  "my-btn-info_is-disabled": "value",
+  "simple": "./style.module.less__simple",
+}
+`;
+
+exports[`ConfigTestCases css pure-css exported tests should compile 1`] = `
+Array [
+  "/* #region \\"../css-modules/style.module.css\\" */
+/*
+- type: css
+*/
+.class {
+	color: red;
+}
+
+.local1,
+.local2 :global .global,
+.local3 {
+	color: green;
+}
+
+:global .global :local .local4 {
+	color: yellow;
+}
+
+.local5:global(.global).local6 {
+	color: blue;
+}
+
+:global(:global(:local(.nested1)).nested2).nested3 {
+	color: pink;
+}
+
+#ident {
+	color: purple;
+}
+
+@keyframes localkeyframes {
+	0% {
+		left: var(--pos1x);
+		top: var(--pos1y);
+		color: var(--theme-color1);
+	}
+	100% {
+		left: var(--pos2x);
+		top: var(--pos2y);
+		color: var(--theme-color2);
+	}
+}
+
+@keyframes localkeyframes2 {
+	0% {
+		left: 0;
+	}
+	100% {
+		left: 100px;
+	}
+}
+
+.animation {
+	animation-name: localkeyframes;
+	animation: 3s ease-in 1s 2 reverse both paused localkeyframes, localkeyframes2;
+	--pos1x: 0px;
+	--pos1y: 0px;
+	--pos2x: 10px;
+	--pos2y: 20px;
+}
+
+/* .composed {
+	composes: local1;
+	composes: local2;
+} */
+
+.vars {
+	color: var(--local-color);
+	--local-color: red;
+}
+
+.globalVars :global {
+	color: var(--global-color);
+	--global-color: red;
+}
+
+/* #endregion \\"../css-modules/style.module.css\\" */
+
+/* #region \\"./style.css\\" */
+/*
+- type: css
+*/
+
+
+.class {
+	color: red;
+	background: var(--color);
+}
+
+@keyframes test {
+	0% {
+		color: red;
+	}
+	100% {
+		color: blue;
+	}
+}
+
+:local(.class) {
+	color: red;
+}
+
+:local .class {
+	color: green;
+}
+
+:global(.class) {
+	color: blue;
+}
+
+:global .class {
+	color: white;
+}
+
+:export {
+	foo: bar;
+}
+
+.class {
+	animation: test 1s, test;
+}
+
+/* #endregion \\"./style.css\\" */
+
+",
+]
+`;
+
+exports[`ConfigTestCases css url-and-asset-module-filename exported tests should generate correct url public path with css filename 1`] = `
+Object {
+  "getPropertyValue": [Function],
+  "nested-dir": " url(../../bundle0/assets/img2.png)",
+  "nested-nested-dir": " url(../../bundle0/assets/img3.png)",
+  "same-dir": " url(../../bundle0/assets/img1.png)",
+}
+`;
+
+exports[`ConfigTestCases css url-and-asset-module-filename exported tests should generate correct url public path with css filename 2`] = `
+Object {
+  "getPropertyValue": [Function],
+  "nested-dir": " url(../../bundle0/assets/img3.png)",
+  "outer-dir": " url(../../bundle0/assets/img1.png)",
+  "same-dir": " url(../../bundle0/assets/img2.png)",
+}
+`;
+
+exports[`ConfigTestCases css url-and-asset-module-filename exported tests should generate correct url public path with css filename 3`] = `
+Object {
+  "getPropertyValue": [Function],
+  "outer-dir": " url(../../bundle0/assets/img2.png)",
+  "outer-outer-dir": " url(../../bundle0/assets/img1.png)",
+  "same-dir": " url(../../bundle0/assets/img3.png)",
+}
+`;
+
+exports[`ConfigTestCases css url-and-asset-module-filename exported tests should generate correct url public path with css filename 4`] = `
+Object {
+  "getPropertyValue": [Function],
+  "nested-dir": " url(https://test.cases/path/bundle1/assets/img2.png)",
+  "nested-nested-dir": " url(https://test.cases/path/bundle1/assets/img3.png)",
+  "same-dir": " url(https://test.cases/path/bundle1/assets/img1.png)",
+}
+`;
+
+exports[`ConfigTestCases css url-and-asset-module-filename exported tests should generate correct url public path with css filename 5`] = `
+Object {
+  "getPropertyValue": [Function],
+  "nested-dir": " url(https://test.cases/path/bundle1/assets/img3.png)",
+  "outer-dir": " url(https://test.cases/path/bundle1/assets/img1.png)",
+  "same-dir": " url(https://test.cases/path/bundle1/assets/img2.png)",
+}
+`;
+
+exports[`ConfigTestCases css url-and-asset-module-filename exported tests should generate correct url public path with css filename 6`] = `
+Object {
+  "getPropertyValue": [Function],
+  "outer-dir": " url(https://test.cases/path/bundle1/assets/img2.png)",
+  "outer-outer-dir": " url(https://test.cases/path/bundle1/assets/img1.png)",
+  "same-dir": " url(https://test.cases/path/bundle1/assets/img3.png)",
+}
+`;
+
+exports[`ConfigTestCases css url-and-asset-module-filename exported tests should generate correct url public path with css filename 7`] = `
+Object {
+  "getPropertyValue": [Function],
+  "nested-dir": " url(https://test.cases/path/bundle2/assets/bundle2/assets/img2.png)",
+  "nested-nested-dir": " url(https://test.cases/path/bundle2/assets/bundle2/assets/img3.png)",
+  "same-dir": " url(https://test.cases/path/bundle2/assets/bundle2/assets/img1.png)",
+}
+`;
+
+exports[`ConfigTestCases css url-and-asset-module-filename exported tests should generate correct url public path with css filename 8`] = `
+Object {
+  "getPropertyValue": [Function],
+  "nested-dir": " url(https://test.cases/path/bundle2/assets/bundle2/assets/img3.png)",
+  "outer-dir": " url(https://test.cases/path/bundle2/assets/bundle2/assets/img1.png)",
+  "same-dir": " url(https://test.cases/path/bundle2/assets/bundle2/assets/img2.png)",
+}
+`;
+
+exports[`ConfigTestCases css url-and-asset-module-filename exported tests should generate correct url public path with css filename 9`] = `
+Object {
+  "getPropertyValue": [Function],
+  "outer-dir": " url(https://test.cases/path/bundle2/assets/bundle2/assets/img2.png)",
+  "outer-outer-dir": " url(https://test.cases/path/bundle2/assets/bundle2/assets/img1.png)",
+  "same-dir": " url(https://test.cases/path/bundle2/assets/bundle2/assets/img3.png)",
 }
 `;
 

@@ -134,11 +134,10 @@ macro_rules! impl_module_methods {
 
       #[napi(
         getter,
-        js_name = "_blocks",
-        ts_return_type = "JsDependenciesBlock[]",
+        ts_return_type = "AsyncDependenciesBlock[]",
         enumerable = false
       )]
-      pub fn blocks(&mut self) -> napi::Result<Vec<$crate::JsDependenciesBlockWrapper>> {
+      pub fn blocks(&mut self) -> napi::Result<Vec<$crate::AsyncDependenciesBlockWrapper>> {
         self.module.blocks()
       }
 

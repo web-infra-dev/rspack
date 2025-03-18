@@ -1,6 +1,8 @@
-use std::collections::HashSet;
-use std::hash::Hash;
-use std::{collections::HashMap, fmt::Debug, hash::BuildHasherDefault};
+use std::{
+  collections::{HashMap, HashSet},
+  fmt::Debug,
+  hash::{BuildHasherDefault, Hash},
+};
 
 use dashmap::{DashMap, DashSet};
 use indexmap::{IndexMap, IndexSet};

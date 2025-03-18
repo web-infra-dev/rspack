@@ -1,0 +1,1 @@
+This is test file 2 for glob pattern copying. 

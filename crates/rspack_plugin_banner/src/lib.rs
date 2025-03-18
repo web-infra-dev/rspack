@@ -1,7 +1,9 @@
 #![feature(let_chains)]
 
-use std::fmt::{self, Debug};
-use std::sync::LazyLock;
+use std::{
+  fmt::{self, Debug},
+  sync::LazyLock,
+};
 
 use cow_utils::CowUtils;
 use futures::future::BoxFuture;
@@ -13,8 +15,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::asset_condition::AssetConditions;
-use rspack_util::infallible::ResultInfallibleExt as _;
+use rspack_util::{asset_condition::AssetConditions, infallible::ResultInfallibleExt as _};
 
 #[derive(Debug)]
 pub struct BannerPluginOptions {

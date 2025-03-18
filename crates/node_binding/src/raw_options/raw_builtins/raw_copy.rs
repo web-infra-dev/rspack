@@ -38,6 +38,7 @@ pub struct RawCopyPattern {
   pub priority: i32,
   pub glob_options: RawCopyGlobOptions,
   pub info: Option<RawInfo>,
+  pub copy_permissions: Option<bool>,
   #[debug(skip)]
   #[napi(
     ts_type = "(input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>"
@@ -90,6 +91,7 @@ impl From<RawCopyPattern> for CopyPattern {
       priority,
       glob_options,
       info,
+      copy_permissions,
       transform,
     } = value;
 
@@ -136,6 +138,7 @@ impl From<RawCopyPattern> for CopyPattern {
             .collect()
         }),
       },
+      copy_permissions,
       transform: transform.map(|transformer| {
         Transformer::Fn(Box::new(move |input, absolute_filename| {
           let f = transformer.clone();

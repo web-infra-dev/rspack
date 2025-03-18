@@ -1,15 +1,8 @@
 import * as binding from "@rspack/binding";
 import type { Source } from "webpack-sources";
-
-import { DependenciesBlock } from "./DependenciesBlock";
+import type { ResourceData } from "./Resolver";
 import { JsSource } from "./util/source";
 
-export type ResourceData = {
-	resource: string;
-	path: string;
-	query?: string;
-	fragment?: string;
-};
 export type ResourceDataWithData = ResourceData & {
 	data?: Record<string, any>;
 };
@@ -183,13 +176,6 @@ export type ContextModuleFactoryAfterResolveResult =
 	| false
 	| ContextModuleFactoryAfterResolveData;
 
-Object.defineProperty(binding.Module.prototype, "blocks", {
-	enumerable: true,
-	configurable: true,
-	get(this: binding.Module) {
-		return this._blocks.map(block => DependenciesBlock.__from_binding(block));
-	}
-});
 Object.defineProperty(binding.Module.prototype, "originalSource", {
 	enumerable: true,
 	configurable: true,
@@ -216,7 +202,6 @@ Object.defineProperty(binding.Module.prototype, "emitFile", {
 
 declare module "@rspack/binding" {
 	interface Module {
-		get blocks(): DependenciesBlock[];
 		originalSource(): Source | null;
 		emitFile(filename: string, source: Source, assetInfo?: AssetInfo): void;
 	}

@@ -18,12 +18,13 @@ impl PublicPathRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for PublicPathRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     Ok(
       RawStringSource::from(format!(
         "{} = \"{}\";",

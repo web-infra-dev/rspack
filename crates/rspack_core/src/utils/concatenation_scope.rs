@@ -1,14 +1,17 @@
-use std::collections::hash_map::Entry;
-use std::sync::Arc;
-use std::sync::LazyLock;
+use std::{
+  collections::hash_map::Entry,
+  sync::{Arc, LazyLock},
+};
 
 use regex::Regex;
 use rspack_collections::IdentifierIndexMap;
 use rspack_util::itoa;
 use swc_core::atoms::Atom;
 
-use crate::concatenated_module::{ConcatenatedModuleInfo, ModuleInfo};
-use crate::ModuleIdentifier;
+use crate::{
+  concatenated_module::{ConcatenatedModuleInfo, ModuleInfo},
+  ModuleIdentifier,
+};
 
 pub const DEFAULT_EXPORT: &str = "__WEBPACK_DEFAULT_EXPORT__";
 pub const NAMESPACE_OBJECT_EXPORT: &str = "__WEBPACK_NAMESPACE_OBJECT__";

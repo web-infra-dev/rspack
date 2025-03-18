@@ -1,7 +1,4 @@
-use std::cell::RefCell;
-use std::future::Future;
-use std::marker::PhantomData;
-use std::pin::Pin;
+use std::{cell::RefCell, future::Future, marker::PhantomData, pin::Pin};
 
 use tokio::task::{JoinError, JoinHandle};
 

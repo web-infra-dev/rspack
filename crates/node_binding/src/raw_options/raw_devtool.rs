@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
-use napi::bindgen_prelude::{Either3, Null};
-use napi::Either;
+use napi::{
+  bindgen_prelude::{Either3, Null},
+  Either,
+};
 use napi_derive::napi;
 use rspack_core::PathData;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;

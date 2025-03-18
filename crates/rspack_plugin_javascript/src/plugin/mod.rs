@@ -1,6 +1,8 @@
-use std::collections::{HashMap, HashSet};
-use std::ops::Deref;
-use std::sync::Arc;
+use std::{
+  collections::{HashMap, HashSet},
+  ops::Deref,
+  sync::Arc,
+};
 
 use rayon::prelude::*;
 pub mod api_plugin;
@@ -14,10 +16,7 @@ pub mod module_concatenation_plugin;
 mod module_info_header_plugin;
 mod side_effects_flag_plugin;
 
-use std::borrow::Cow;
-use std::collections::hash_map::Entry;
-use std::hash::Hash;
-use std::sync::LazyLock;
+use std::{borrow::Cow, collections::hash_map::Entry, hash::Hash, sync::LazyLock};
 
 pub use drive::*;
 pub use flag_dependency_exports_plugin::*;
@@ -28,27 +27,26 @@ pub use module_concatenation_plugin::*;
 pub use module_info_header_plugin::*;
 use rspack_ast::javascript::Ast;
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, IdentifierMap};
-use rspack_core::concatenated_module::find_new_name;
-use rspack_core::reserved_names::RESERVED_NAMES;
-use rspack_core::rspack_sources::{
-  BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
-};
 use rspack_core::{
-  basic_function, render_init_fragments, ChunkGraph, ChunkGroupUkey, ChunkInitFragments,
-  ChunkRenderContext, ChunkUkey, CodeGenerationDataTopLevelDeclarations, Compilation,
-  CompilationId, ConcatenatedModuleIdent, ExportsArgument, Module, RuntimeGlobals, SourceType,
-  SpanExt,
+  basic_function,
+  concatenated_module::find_new_name,
+  render_init_fragments,
+  reserved_names::RESERVED_NAMES,
+  rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
+  BoxModule, ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
+  CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
+  ExportsArgument, IdentCollector, Module, RuntimeGlobals, SourceType, SpanExt,
 };
-use rspack_core::{BoxModule, IdentCollector};
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::plugin;
-use rspack_util::diff_mode;
-use rspack_util::fx_hash::FxDashMap;
+use rspack_util::{diff_mode, fx_hash::FxDashMap};
 pub use side_effects_flag_plugin::*;
-use swc_core::atoms::Atom;
-use swc_core::common::{FileName, Spanned, SyntaxContext};
-use swc_core::ecma::transforms::base::resolver;
+use swc_core::{
+  atoms::Atom,
+  common::{FileName, Spanned, SyntaxContext},
+  ecma::transforms::base::resolver,
+};
 
 use crate::runtime::{
   render_chunk_modules, render_module, render_runtime_modules, stringify_array,
@@ -617,7 +615,7 @@ impl JsPlugin {
       .chunk_graph
       .has_chunk_runtime_modules(chunk_ukey)
     {
-      sources.add(render_runtime_modules(compilation, chunk_ukey)?);
+      sources.add(render_runtime_modules(compilation, chunk_ukey).await?);
       sources.add(RawStringSource::from(
         "/************************************************************************/\n",
       ));
@@ -1141,7 +1139,8 @@ impl JsPlugin {
     };
     hooks
       .render_chunk
-      .call(compilation, chunk_ukey, &mut render_source)?;
+      .call(compilation, chunk_ukey, &mut render_source)
+      .await?;
     let source_with_fragments = render_init_fragments(
       render_source.source,
       chunk_init_fragments,

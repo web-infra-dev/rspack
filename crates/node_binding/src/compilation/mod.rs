@@ -1,79 +1,47 @@
 mod dependencies;
 pub mod entries;
 
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::path::Path;
-use std::ptr::NonNull;
+use std::{cell::RefCell, collections::HashMap, path::Path, ptr::NonNull};
 
 use dependencies::JsDependencies;
 use entries::JsEntries;
 use napi_derive::napi;
 use rspack_collections::{DatabaseItem, IdentifierSet};
-use rspack_core::rspack_sources::BoxSource;
-use rspack_core::BoxDependency;
-use rspack_core::Compilation;
-use rspack_core::CompilationId;
-use rspack_core::EntryOptions;
-use rspack_core::FactorizeInfo;
-use rspack_core::ModuleIdentifier;
+use rspack_core::{
+  rspack_sources::BoxSource, BoxDependency, Compilation, CompilationId, EntryOptions,
+  FactorizeInfo, ModuleIdentifier,
+};
 use rspack_error::Diagnostic;
-use rspack_napi::napi::bindgen_prelude::*;
-use rspack_napi::NapiResultExt;
-use rspack_napi::OneShotRef;
+use rspack_napi::{napi::bindgen_prelude::*, NapiResultExt, OneShotRef};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rustc_hash::FxHashMap;
 
 use super::{JsFilename, PathWithInfo};
-use crate::entry::JsEntryOptions;
-use crate::utils::callbackify;
-use crate::EntryDependency;
-use crate::JsAddingRuntimeModule;
-use crate::JsChunk;
-use crate::JsChunkGraph;
-use crate::JsChunkGroupWrapper;
-use crate::JsChunkWrapper;
-use crate::JsCompatSource;
-use crate::JsModuleGraph;
-use crate::JsStatsOptimizationBailout;
-use crate::LocalJsFilename;
-use crate::ModuleObject;
-use crate::ToJsCompatSource;
-use crate::COMPILER_REFERENCES;
-use crate::{AssetInfo, JsAsset, JsPathData, JsStats};
-use crate::{JsRspackDiagnostic, JsRspackError};
+use crate::{
+  entry::JsEntryOptions, utils::callbackify, AssetInfo, EntryDependency, JsAddingRuntimeModule,
+  JsAsset, JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper, JsCompatSource,
+  JsModuleGraph, JsPathData, JsRspackDiagnostic, JsRspackError, JsStats,
+  JsStatsOptimizationBailout, LocalJsFilename, ModuleObject, ToJsCompatSource, COMPILER_REFERENCES,
+};
 
 #[napi]
 pub struct JsCompilation {
+  #[allow(dead_code)]
   pub(crate) id: CompilationId,
   pub(crate) inner: NonNull<Compilation>,
 }
 
 impl JsCompilation {
   fn as_ref(&self) -> napi::Result<&'static Compilation> {
-    let compilation = unsafe { self.inner.as_ref() };
-    if compilation.id() == self.id {
-      return Ok(compilation);
-    }
-
-    Err(napi::Error::from_reason(format!(
-      "Unable to access compilation with id = {:?} now. The compilation have been removed on the Rust side. The latest compilation id is {:?}",
-      self.id,
-      compilation.id()
-    )))
+    // SAFETY: The memory address of rspack_core::Compilation will not change,
+    // so as long as the Compiler is not dropped, we can safely return a 'static reference.
+    Ok(unsafe { self.inner.as_ref() })
   }
 
   fn as_mut(&mut self) -> napi::Result<&'static mut Compilation> {
-    let compilation = unsafe { self.inner.as_mut() };
-    if compilation.id() == self.id {
-      return Ok(compilation);
-    }
-
-    Err(napi::Error::from_reason(format!(
-      "Unable to access compilation with id = {:?} now. The compilation have been removed on the Rust side. The latest compilation id is {:?}",
-      self.id,
-      compilation.id()
-    )))
+    // SAFETY: The memory address of rspack_core::Compilation will not change,
+    // so as long as the Compiler is not dropped, we can safely return a 'static reference.
+    Ok(unsafe { self.inner.as_mut() })
   }
 }
 

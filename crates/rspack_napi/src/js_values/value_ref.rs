@@ -6,8 +6,12 @@
 
 use std::ptr;
 
-use napi::sys::{napi_env, napi_value};
-use napi::{bindgen_prelude::ToNapiValue, check_status, sys, Result};
+use napi::{
+  bindgen_prelude::ToNapiValue,
+  check_status, sys,
+  sys::{napi_env, napi_value},
+  Result,
+};
 
 pub struct Ref {
   pub(crate) raw_ref: sys::napi_ref,

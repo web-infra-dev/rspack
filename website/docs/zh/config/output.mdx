@@ -1516,7 +1516,7 @@ define('MyLibrary', [], factory);
 - **类型：** `boolean`
 - **默认值：** `false`
 
-以 ESM 模块的形式输出 JavaScript 文件。由于此功能还处于实验阶段，默认关闭，想要使用的话必须将 [`experiments.outputModule`](/config/experiments#experimentsoutputmodule) 设置为 true。
+以 ESM 模块的形式输出 JavaScript 文件。由于此功能仍处于实验阶段，默认为关闭状态。如需启用，请将 [`experiments.outputModule`](/config/experiments#experimentsoutputmodule) 设置为 `true`。
 
 当启用时，Rspack 会将 [`output.iife`](#outputiife) 设置为 `false`， [`output.scriptType`](#outputscripttype) 设置为 `'module'`。
 

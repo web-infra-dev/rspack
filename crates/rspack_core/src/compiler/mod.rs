@@ -2,12 +2,11 @@ mod compilation;
 pub mod make;
 mod module_executor;
 mod rebuild;
-use std::sync::atomic::AtomicU32;
-use std::sync::Arc;
+use std::sync::{atomic::AtomicU32, Arc};
 
+use futures::future::join_all;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
-use rspack_futures::FuturesResults;
 use rspack_hook::define_hook;
 use rspack_macros::cacheable;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
@@ -16,17 +15,19 @@ use rspack_util::node_path::NodePath;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
-pub use self::compilation::*;
-pub use self::module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor};
-pub use self::rebuild::CompilationRecords;
-use crate::cache::{new_cache, Cache};
-use crate::incremental::IncrementalPasses;
-use crate::old_cache::Cache as OldCache;
-use crate::{
-  fast_set, include_hash, trim_dir, BoxPlugin, CleanOptions, CompilerOptions, Logger, PluginDriver,
-  ResolverFactory, SharedPluginDriver,
+pub use self::{
+  compilation::*,
+  module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor},
+  rebuild::CompilationRecords,
 };
-use crate::{ContextModuleFactory, NormalModuleFactory};
+use crate::{
+  cache::{new_cache, Cache},
+  fast_set, include_hash,
+  incremental::IncrementalPasses,
+  old_cache::Cache as OldCache,
+  trim_dir, BoxPlugin, CleanOptions, CompilerOptions, ContextModuleFactory, Logger,
+  NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
+};
 
 // should be SyncHook, but rspack need call js hook
 define_hook!(CompilerThisCompilation: AsyncSeries(compilation: &mut Compilation, params: &mut CompilationParams));
@@ -500,23 +501,25 @@ impl Compiler {
     }
 
     let assets = self.compilation.assets();
-    let _ = self
-      .emitted_asset_versions
-      .iter()
-      .filter_map(|(filename, _version)| {
-        if !assets.contains_key(filename) {
-          let filename = filename.to_owned();
-          Some(async {
-            if !clean_options.keep(filename.as_str()) {
-              let filename = Utf8Path::new(&self.options.output.path).join(filename);
-              let _ = self.output_filesystem.remove_file(&filename).await;
-            }
-          })
-        } else {
-          None
-        }
-      })
-      .collect::<FuturesResults<_>>();
+    join_all(
+      self
+        .emitted_asset_versions
+        .iter()
+        .filter_map(|(filename, _version)| {
+          if !assets.contains_key(filename) {
+            let filename = filename.to_owned();
+            Some(async {
+              if !clean_options.keep(filename.as_str()) {
+                let filename = Utf8Path::new(&self.options.output.path).join(filename);
+                let _ = self.output_filesystem.remove_file(&filename).await;
+              }
+            })
+          } else {
+            None
+          }
+        }),
+    )
+    .await;
 
     Ok(())
   }

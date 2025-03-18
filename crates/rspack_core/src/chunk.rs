@@ -1,6 +1,8 @@
-use std::cmp::Ordering;
-use std::hash::BuildHasherDefault;
-use std::{fmt::Debug, hash::Hash};
+use std::{
+  cmp::Ordering,
+  fmt::Debug,
+  hash::{BuildHasherDefault, Hash},
+};
 
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -9,13 +11,11 @@ use rspack_error::Diagnostic;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
-use crate::chunk_graph_chunk::ChunkId;
 use crate::{
-  compare_chunk_group, merge_runtime, sort_group_by_index, ChunkGraph, ChunkGroupOrderKey,
-  ChunkIdsArtifact, RenderManifestEntry,
+  chunk_graph_chunk::ChunkId, compare_chunk_group, merge_runtime, sort_group_by_index, ChunkGraph,
+  ChunkGroupByUkey, ChunkGroupOrderKey, ChunkGroupUkey, ChunkIdsArtifact, ChunkUkey, Compilation,
+  EntryOptions, Filename, ModuleGraph, RenderManifestEntry, RuntimeSpec, SourceType,
 };
-use crate::{ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, SourceType};
-use crate::{Compilation, EntryOptions, Filename, ModuleGraph, RuntimeSpec};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChunkKind {
@@ -141,6 +141,10 @@ impl Chunk {
 
   pub fn groups(&self) -> &UkeySet<ChunkGroupUkey> {
     &self.groups
+  }
+
+  pub fn clear_groups(&mut self) {
+    self.groups.clear();
   }
 
   pub fn add_group(&mut self, group: ChunkGroupUkey) {

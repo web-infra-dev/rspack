@@ -1,10 +1,14 @@
 use rspack_core::SpanExt;
-use swc_core::common::Spanned;
-use swc_core::ecma::ast::{Lit, UnaryExpr, UnaryOp};
+use swc_core::{
+  common::Spanned,
+  ecma::ast::{Lit, UnaryExpr, UnaryOp},
+};
 
 use super::BasicEvaluatedExpression;
-use crate::parser_plugin::JavascriptParserPlugin;
-use crate::visitors::{CallHooksName, JavascriptParser, RootName};
+use crate::{
+  parser_plugin::JavascriptParserPlugin,
+  visitors::{CallHooksName, JavascriptParser, RootName},
+};
 
 #[inline]
 fn eval_typeof(

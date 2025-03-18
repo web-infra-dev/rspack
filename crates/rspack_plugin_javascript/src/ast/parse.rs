@@ -3,16 +3,19 @@ use std::sync::Arc;
 use rspack_ast::javascript::Ast;
 use rspack_core::ModuleType;
 use rspack_error::TraceableError;
-use swc_core::common::comments::Comments;
-use swc_core::common::input::SourceFileInput;
-use swc_core::common::{SourceFile, SourceMap};
-use swc_core::ecma::ast::{EsVersion, Program};
-use swc_core::ecma::parser::lexer::Lexer;
-use swc_core::ecma::parser::{self, Parser, Syntax};
+use swc_core::{
+  common::{comments::Comments, input::SourceFileInput, SourceFile, SourceMap},
+  ecma::{
+    ast::{EsVersion, Program},
+    parser::{self, lexer::Lexer, Parser, Syntax},
+  },
+};
 use swc_node_comments::SwcComments;
 
-use crate::utils::{ecma_parse_error_deduped_to_rspack_error, DedupEcmaErrors};
-use crate::IsModule;
+use crate::{
+  utils::{ecma_parse_error_deduped_to_rspack_error, DedupEcmaErrors},
+  IsModule,
+};
 
 fn module_type_to_is_module(value: &ModuleType) -> IsModule {
   // parser options align with webpack

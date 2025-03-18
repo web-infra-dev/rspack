@@ -50,7 +50,7 @@
   },
   "devDependencies": {
     "@rspack/tracing": "workspace:*",
-    "@swc/core": "1.10.18",
+    "@swc/core": "1.11.9",
     "@swc/types": "0.1.19",
     "@types/graceful-fs": "4.1.9",
     "@types/watchpack": "^2.4.4",
@@ -72,7 +72,7 @@
     "zod-validation-error": "3.4.0"
   },
   "dependencies": {
-    "@module-federation/runtime-tools": "0.8.4",
+    "@module-federation/runtime-tools": "0.11.0",
     "@rspack/binding": "workspace:*",
     "@rspack/lite-tapable": "1.0.1",
     "caniuse-lite": "^1.0.30001703"

@@ -1,9 +1,8 @@
-import type { JsChunkGraph } from "@rspack/binding";
+import type { AsyncDependenciesBlock, JsChunkGraph } from "@rspack/binding";
 import type { RuntimeSpec } from "./util/runtime";
 
 import { Chunk } from "./Chunk";
 import { ChunkGroup } from "./ChunkGroup";
-import { DependenciesBlock } from "./DependenciesBlock";
 import type { Module } from "./Module";
 import { toJsRuntimeSpec } from "./util/runtime";
 
@@ -70,10 +69,8 @@ export class ChunkGraph {
 		return this.#inner.getModuleHash(module, toJsRuntimeSpec(runtime));
 	}
 
-	getBlockChunkGroup(depBlock: DependenciesBlock): ChunkGroup | null {
-		const binding = this.#inner.getBlockChunkGroup(
-			DependenciesBlock.__to_binding(depBlock)
-		);
+	getBlockChunkGroup(depBlock: AsyncDependenciesBlock): ChunkGroup | null {
+		const binding = this.#inner.getBlockChunkGroup(depBlock);
 		return binding ? ChunkGroup.__from_binding(binding) : null;
 	}
 }

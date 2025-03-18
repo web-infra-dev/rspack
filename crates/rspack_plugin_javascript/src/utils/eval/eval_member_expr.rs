@@ -2,8 +2,10 @@ use rspack_core::SpanExt;
 use swc_core::ecma::ast::MemberExpr;
 
 use super::BasicEvaluatedExpression;
-use crate::parser_plugin::JavascriptParserPlugin;
-use crate::visitors::{AllowedMemberTypes, JavascriptParser, MemberExpressionInfo};
+use crate::{
+  parser_plugin::JavascriptParserPlugin,
+  visitors::{AllowedMemberTypes, JavascriptParser, MemberExpressionInfo},
+};
 
 pub fn eval_member_expression(
   parser: &mut JavascriptParser,

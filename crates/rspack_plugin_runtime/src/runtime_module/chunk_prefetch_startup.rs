@@ -24,6 +24,7 @@ impl ChunkPrefetchStartupRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
@@ -40,7 +41,7 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
     )]
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk_ukey = self.chunk.expect("chunk do not attached");
 
     let source = self

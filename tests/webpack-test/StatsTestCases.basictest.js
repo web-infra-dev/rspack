@@ -74,7 +74,8 @@ describe("StatsTestCases", () => {
 			}
 
 			(Array.isArray(options) ? options : [options]).forEach(options => {
-				if (options.amd === undefined) options.amd = {}; // TODO(AMD): remove this
+				// CHANGE: rspack does not enable AMD by default
+				if (options.amd === undefined) options.amd = {};
 				if (!options.context) options.context = path.join(base, testName);
 				if (!options.output) options.output = options.output || {};
 				if (!options.output.path) options.output.path = outputDirectory;

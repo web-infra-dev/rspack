@@ -1,7 +1,8 @@
-use rspack_core::ConstDependency;
-use rspack_core::SpanExt;
-use swc_core::common::Spanned;
-use swc_core::ecma::ast::{BinExpr, BinaryOp};
+use rspack_core::{ConstDependency, SpanExt};
+use swc_core::{
+  common::Spanned,
+  ecma::ast::{BinExpr, BinaryOp},
+};
 
 use crate::visitors::JavascriptParser;
 
