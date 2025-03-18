@@ -309,7 +309,7 @@ impl CopyRspackPlugin {
           )
           .await
         }
-        // TODO: support cache in the furture.
+        // TODO: support cache in the future.
         Transformer::Opt((transformer, _)) => {
           handle_transform(
             transformer,
