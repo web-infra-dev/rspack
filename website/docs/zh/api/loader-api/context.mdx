@@ -584,13 +584,23 @@ loader API 的版本号。当前为 2。
 
 这对于提供向后兼容性很有用。基于版本号，你可以为 breaking changes 指定自定义逻辑或降级方案。
 
-## this.\_compiler
+## 内部属性
+
+:::warning
+注意，使用 `this._compiler` 和 `this._compilation` 这些 Rspack 的内部属性会使你的 loader 失去独立性。
+
+理想情况下，loader 应该只关注文件转换逻辑，对于给定的输入，输出是确定的，不依赖 Rspack 的内部状态。依赖这些内部对象会增加不可预测的行为，使测试和维护变得困难。
+
+因此，建议仅在没有其他替代方案时才考虑使用这些属性。
+:::
+
+### this.\_compiler
 
 - **类型：** `Compiler`
 
 访问当前的 Rspack [Compiler](/api/javascript-api/compiler) 对象。
 
-## this.\_compilation
+### this.\_compilation
 
 - **类型：** `Compilation`
 

@@ -2,7 +2,9 @@ import { ApiMeta, Stability } from '@components/ApiMeta';
 
 # 内置 swc-loader
 
-`builtin:swc-loader` 是 [`swc-loader`](https://github.com/swc-project/pkgs/tree/main/packages/swc-loader) 的 Rust 版本，旨在提供更优的性能，Loader 的[配置](https://swc.rs/docs/configuration/compilation)与 JS 版本的 `swc-loader` 保持对齐。
+[SWC](https://github.com/swc-project/swc)（Speedy Web Compiler）是基于 Rust 语言编写的高性能 JavaScript 和 TypeScript 转译和压缩工具。SWC 提供与 Babel 和 Terser 相似的能力，在单线程上它比 Babel 快 20 倍，在四核上它比 Babel 快 70 倍。
+
+Rspack 提供了一个内置的 `builtin:swc-loader`，它是 [swc-loader](https://github.com/swc-project/pkgs/tree/main/packages/swc-loader) 的 Rust 版本，旨在提供更优的性能，Loader 的 [选项](https://swc.rs/docs/configuration/compilation) 与 JS 版本的 `swc-loader` 保持一致。
 
 ## 示例
 
