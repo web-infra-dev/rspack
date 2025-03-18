@@ -163,7 +163,7 @@ impl CopyRspackPlugin {
     output_path: &Utf8Path,
     from_type: FromType,
     file_dependencies: &DashSet<PathBuf>,
-    diagnostics: &Mutex<Vec<Diagnostic>>,
+    diagnostics: Arc<Mutex<Vec<Diagnostic>>>,
     compilation: &Compilation,
     logger: &CompilationLogger,
     pattern_index: usize,
@@ -392,7 +392,7 @@ impl CopyRspackPlugin {
     index: usize,
     file_dependencies: &DashSet<PathBuf>,
     context_dependencies: &DashSet<PathBuf>,
-    diagnostics: &Mutex<Vec<Diagnostic>>,
+    diagnostics: Arc<Mutex<Vec<Diagnostic>>>,
     logger: &CompilationLogger,
   ) -> Option<Vec<Option<RunPatternResult>>> {
     let orig_from = &pattern.from;
@@ -554,7 +554,7 @@ impl CopyRspackPlugin {
             output_path,
             from_type,
             file_dependencies,
-            diagnostics,
+            diagnostics.clone(),
             compilation,
             logger,
             index,
@@ -619,7 +619,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let start = logger.time("run pattern");
   let file_dependencies = DashSet::default();
   let context_dependencies = DashSet::default();
-  let diagnostics = Mutex::new(Vec::new());
+  let diagnostics = Arc::new(Mutex::new(Vec::new()));
 
   let mut copied_result: Vec<(i32, RunPatternResult)> =
     join_all(self.patterns.iter().enumerate().map(|(index, pattern)| {
@@ -629,7 +629,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         index,
         &file_dependencies,
         &context_dependencies,
-        &diagnostics,
+        diagnostics.clone(),
         &logger,
       )
     }))
@@ -823,7 +823,7 @@ async fn handle_transform(
   source_vec: Vec<u8>,
   absolute_filename: Utf8PathBuf,
   source: &mut RawSource,
-  diagnostics: &Mutex<Vec<Diagnostic>>,
+  diagnostics: Arc<Mutex<Vec<Diagnostic>>>,
 ) {
   match transformer(source_vec, absolute_filename.as_str()).await {
     Ok(code) => {
