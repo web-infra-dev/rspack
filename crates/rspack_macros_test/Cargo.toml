@@ -12,6 +12,7 @@ rspack_cacheable   = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_core        = { workspace = true }
 rspack_error       = { workspace = true }
+rspack_hash        = { workspace = true }
 rspack_hook        = { workspace = true }
 rspack_macros      = { workspace = true }
 rspack_util        = { workspace = true }
@@ -20,4 +21,4 @@ tracing            = { workspace = true }
 trybuild           = { version = "1.0.101", features = ["diff"] }
 
 [package.metadata.cargo-shear]
-ignored = ["tracing", "rspack_cacheable", "async-trait"]
+ignored = ["tracing", "rspack_cacheable", "async-trait", "rspack_hash", "tokio"]

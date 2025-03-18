@@ -74,6 +74,7 @@ enum TemplateId {
   WithHmrManifest,
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
@@ -96,7 +97,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     ]
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk = compilation
       .chunk_by_ukey
       .expect_get(&self.chunk.expect("The chunk should be attached."));

@@ -26,6 +26,7 @@ impl StartupChunkDependenciesRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
@@ -38,7 +39,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
     )]
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk_ids = compilation
         .chunk_graph
