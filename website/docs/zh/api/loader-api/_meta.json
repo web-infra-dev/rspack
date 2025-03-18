@@ -1,8 +1,1 @@
-[
-  "index",
-  "examples",
-  "context",
-  "rspack-specific-properties",
-  "inline",
-  "inline-match-resource"
-]
+["index", "examples", "context", "inline", "inline-match-resource"]
