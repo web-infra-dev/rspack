@@ -5,6 +5,7 @@ use rspack_fs::ReadableFileSystem;
 use rspack_sources::SourceMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::task::spawn_blocking;
+use tracing::{info_span, Instrument};
 
 use crate::{
   content::{AdditionalData, Content, ResourceData},
@@ -49,9 +50,12 @@ async fn process_resource<Context: Send>(
     {
       let resource_path_owned = resource_path.to_owned();
       // use spawn_blocking to avoid block,see https://docs.rs/tokio/latest/src/tokio/fs/read.rs.html#48
+      let read_resource_span = info_span!("read_resource", resource = %resource_path_owned);
       let result = spawn_blocking(move || fs.read(resource_path_owned.as_path()))
+        .instrument(read_resource_span)
         .await
         .map_err(|e| error!("{e}, spawn task failed"))?;
+
       let result = result.map_err(|e| error!("{e}, failed to read {resource_path}"))?;
       loader_context.content = Some(Content::from(result));
     } else if !resource_data.get_scheme().is_none() {
