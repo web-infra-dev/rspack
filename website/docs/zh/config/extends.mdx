@@ -3,15 +3,15 @@ import PropertyType from '../../../components/PropertyType.tsx';
 
 <WebpackLicense from="https://webpack.js.org/configuration/configuration-types/#exporting-multiple-configurations" />
 
-# 扩展配置
+# Extends
 
 用于从其他文件或包中扩展配置。这允许你创建一个基础配置，并针对不同的环境或用例进行扩展。
 
 - **类型：** `string | string[]`
 - **默认值：** `undefined`
 
-:::warning Warning
-**此选项在 Node API 中不受支持**：在使用 Node API 时，extends 选项将不会生效。使用此功能需要 @rspack/cli。
+:::warning
+**此选项在 JavaScript API 中不受支持**：在使用 JavaScript API 时，`extends` 选项将不会生效。使用此功能需要 `@rspack/cli`。
 :::
 
 ## 基本用法
