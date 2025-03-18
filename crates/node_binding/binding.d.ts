@@ -3,8 +3,8 @@
 
 /* -- banner.d.ts -- */
 export type JsFilename =
-  | string
-  | ((pathData: JsPathData, assetInfo?: AssetInfo) => string);
+	| string
+	| ((pathData: JsPathData, assetInfo?: AssetInfo) => string);
 
 export type LocalJsFilename = JsFilename;
 
@@ -312,7 +312,7 @@ export declare class JsExportsInfo {
   isUsed(runtime: string | string[] | undefined): boolean
   isModuleUsed(runtime: string | string[] | undefined): boolean
   setUsedInUnknownWay(runtime: string | string[] | undefined): boolean
-  getUsed(name: string | string[], runtime: string | string[] | undefined): 0 | 1 | 2 | 3 | 4
+  getUsed(name: string | string[], runtime: string | string[] | undefined):  0 | 1 | 2 | 3 | 4
 }
 
 export declare class JsModuleGraph {
@@ -1551,12 +1551,6 @@ export interface RawCopyPattern {
   priority: number
   globOptions: RawCopyGlobOptions
   info?: RawInfo
-  /**
-   * Determines whether to copy file permissions from the source to the destination.
-   * When set to true, the plugin will preserve executable permissions and other file modes.
-   * This is particularly useful when copying scripts or executable files.
-   * @default false
-   */
   copyPermissions?: boolean
   transform?: (input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>
 }
@@ -1684,16 +1678,16 @@ export interface RawExperimentCacheOptionsPersistent {
 export interface RawExperiments {
   layers: boolean
   topLevelAwait: boolean
-  incremental?: false | { [key: string]: boolean }
-  parallelCodeSplitting: boolean
-  rspackFuture?: RawRspackFuture
-  cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
+incremental?: false | { [key: string]: boolean }
+parallelCodeSplitting: boolean
+rspackFuture?: RawRspackFuture
+cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
 }
 
 export interface RawExperimentSnapshotOptions {
-  immutablePaths: Array<string | RegExp>
-  unmanagedPaths: Array<string | RegExp>
-  managedPaths: Array<string | RegExp>
+  immutablePaths: Array<string|RegExp>
+  unmanagedPaths: Array<string|RegExp>
+  managedPaths: Array<string|RegExp>
 }
 
 export interface RawExposeOptions {
