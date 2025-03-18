@@ -5,7 +5,7 @@ use rustc_hash::FxHashMap as HashMap;
 
 pub enum BooleanMatcher {
   Condition(bool),
-  Matcher(Box<dyn Fn(String) -> String>),
+  Matcher(Box<dyn Fn(String) -> String + Send + Sync + 'static>),
 }
 
 impl BooleanMatcher {

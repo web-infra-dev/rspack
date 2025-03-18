@@ -5190,7 +5190,6 @@ dependencies = [
  "derive_more 1.0.0",
  "indexmap 2.7.1",
  "itertools 0.14.0",
- "pollster",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_core",

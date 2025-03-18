@@ -1,7 +1,6 @@
 use std::ptr::NonNull;
 
 use cow_utils::CowUtils;
-use pollster::block_on;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
@@ -228,19 +227,17 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       .to_string();
 
       let chunk_ukey = self.chunk.expect("The chunk should be attached");
-      let res = block_on(tokio::task::unconstrained(async {
-        hooks
-          .link_prefetch
-          .call(LinkPrefetchData {
-            code: link_prefetch_code,
-            chunk: RuntimeModuleChunkWrapper {
-              chunk_ukey,
-              compilation_id: compilation.id(),
-              compilation: NonNull::from(compilation),
-            },
-          })
-          .await
-      }))?;
+      let res = hooks
+        .link_prefetch
+        .call(LinkPrefetchData {
+          code: link_prefetch_code,
+          chunk: RuntimeModuleChunkWrapper {
+            chunk_ukey,
+            compilation_id: compilation.id(),
+            compilation: NonNull::from(compilation),
+          },
+        })
+        .await?;
 
       let source_with_prefetch = compilation.runtime_template.render(
         &self.template_id(TemplateId::WithPrefetch),
@@ -313,19 +310,17 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       .to_string();
 
       let chunk_ukey = self.chunk.expect("The chunk should be attached");
-      let res = block_on(tokio::task::unconstrained(async {
-        hooks
-          .link_preload
-          .call(LinkPreloadData {
-            code: link_preload_code,
-            chunk: RuntimeModuleChunkWrapper {
-              chunk_ukey,
-              compilation_id: compilation.id(),
-              compilation: NonNull::from(compilation),
-            },
-          })
-          .await
-      }))?;
+      let res = hooks
+        .link_preload
+        .call(LinkPreloadData {
+          code: link_preload_code,
+          chunk: RuntimeModuleChunkWrapper {
+            chunk_ukey,
+            compilation_id: compilation.id(),
+            compilation: NonNull::from(compilation),
+          },
+        })
+        .await?;
 
       let source_with_preload = compilation.runtime_template.render(
         &self.template_id(TemplateId::WithPreload),
