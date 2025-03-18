@@ -206,7 +206,7 @@ async fn compilation(
 }
 
 #[plugin_hook(JavascriptModulesRender for AssignLibraryPlugin)]
-fn render(
+async fn render(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
@@ -234,7 +234,7 @@ fn render(
 }
 
 #[plugin_hook(JavascriptModulesRenderStartup for AssignLibraryPlugin)]
-fn render_startup(
+async fn render_startup(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,

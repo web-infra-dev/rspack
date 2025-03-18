@@ -210,12 +210,15 @@ async fn render_chunk(
     let mut render_source = RenderSource {
       source: RawStringSource::from(startup_source.join("\n")).boxed(),
     };
-    hooks.render_startup.call(
-      compilation,
-      chunk_ukey,
-      last_entry_module,
-      &mut render_source,
-    )?;
+    hooks
+      .render_startup
+      .call(
+        compilation,
+        chunk_ukey,
+        last_entry_module,
+        &mut render_source,
+      )
+      .await?;
     sources.add(render_source.source);
   }
   render_source.source = sources.boxed();

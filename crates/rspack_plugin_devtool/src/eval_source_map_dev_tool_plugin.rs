@@ -81,7 +81,7 @@ async fn eval_source_map_devtool_plugin_compilation(
 }
 
 #[plugin_hook(JavascriptModulesRenderModuleContent for EvalSourceMapDevToolPlugin)]
-fn eval_source_map_devtool_plugin_render_module_content(
+async fn eval_source_map_devtool_plugin_render_module_content(
   &self,
   compilation: &Compilation,
   module: &BoxModule,

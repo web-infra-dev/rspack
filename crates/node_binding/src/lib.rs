@@ -20,7 +20,8 @@ use rspack_core::{
 };
 use rspack_error::Diagnostic;
 use rspack_fs::IntermediateFileSystem;
-use rspack_fs_node::{NodeFileSystem, ThreadsafeNodeFS};
+
+use crate::fs_node::{NodeFileSystem, ThreadsafeNodeFS};
 
 mod asset;
 mod asset_condition;
@@ -39,6 +40,7 @@ mod diagnostic;
 mod error;
 mod exports_info;
 mod filename;
+mod fs_node;
 mod html;
 mod identifier;
 mod module;
@@ -360,7 +362,6 @@ fn init() {
   let rt = tokio::runtime::Builder::new_multi_thread()
     .max_blocking_threads(blocking_threads)
     .enable_all()
-    .disable_lifo_slot()
     .build()
     .expect("Create tokio runtime failed");
   create_custom_tokio_runtime(rt);
