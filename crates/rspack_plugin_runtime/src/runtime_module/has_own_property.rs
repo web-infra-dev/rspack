@@ -17,6 +17,7 @@ impl Default for HasOwnPropertyRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for HasOwnPropertyRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
@@ -29,7 +30,7 @@ impl RuntimeModule for HasOwnPropertyRuntimeModule {
     )]
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let source = compilation.runtime_template.render(&self.id, None)?;
 
     Ok(RawStringSource::from(source).boxed())

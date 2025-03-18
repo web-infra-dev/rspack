@@ -92,7 +92,7 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(JavascriptModulesRenderChunk for ArrayPushCallbackChunkFormatPlugin)]
-fn render_chunk(
+async fn render_chunk(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
@@ -117,7 +117,7 @@ fn render_chunk(
     source.add(render_source.source.clone());
     if has_runtime_modules {
       source.add(RawStringSource::from_static(","));
-      source.add(render_chunk_runtime_modules(compilation, chunk_ukey)?);
+      source.add(render_chunk_runtime_modules(compilation, chunk_ukey).await?);
     }
     source.add(RawStringSource::from_static(")"));
   } else {
@@ -141,7 +141,7 @@ fn render_chunk(
         RuntimeGlobals::REQUIRE
       )));
       if has_runtime_modules {
-        source.add(render_runtime_modules(compilation, chunk_ukey)?);
+        source.add(render_runtime_modules(compilation, chunk_ukey).await?);
       }
       if has_entry {
         let entries = compilation

@@ -360,6 +360,7 @@ fn init() {
   let rt = tokio::runtime::Builder::new_multi_thread()
     .max_blocking_threads(blocking_threads)
     .enable_all()
+    .disable_lifo_slot()
     .build()
     .expect("Create tokio runtime failed");
   create_custom_tokio_runtime(rt);

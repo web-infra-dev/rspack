@@ -34,6 +34,7 @@ impl EnsureChunkRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for EnsureChunkRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
@@ -52,7 +53,7 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
     ]
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk_ukey = self.chunk.expect("should have chunk");
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
     let source = if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {

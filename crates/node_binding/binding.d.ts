@@ -3,8 +3,8 @@
 
 /* -- banner.d.ts -- */
 export type JsFilename =
-  | string
-  | ((pathData: JsPathData, assetInfo?: AssetInfo) => string);
+	| string
+	| ((pathData: JsPathData, assetInfo?: AssetInfo) => string);
 
 export type LocalJsFilename = JsFilename;
 
@@ -312,7 +312,7 @@ export declare class JsExportsInfo {
   isUsed(runtime: string | string[] | undefined): boolean
   isModuleUsed(runtime: string | string[] | undefined): boolean
   setUsedInUnknownWay(runtime: string | string[] | undefined): boolean
-  getUsed(name: string | string[], runtime: string | string[] | undefined): 0 | 1 | 2 | 3 | 4
+  getUsed(name: string | string[], runtime: string | string[] | undefined):  0 | 1 | 2 | 3 | 4
 }
 
 export declare class JsModuleGraph {
@@ -819,7 +819,7 @@ export interface JsLoaderContext {
 }
 
 export interface JsLoaderItem {
-  request: string
+  loader: string
   type: string
   data: any
   normalExecuted: boolean
@@ -1684,16 +1684,16 @@ export interface RawExperimentCacheOptionsPersistent {
 export interface RawExperiments {
   layers: boolean
   topLevelAwait: boolean
-  incremental?: false | { [key: string]: boolean }
-  parallelCodeSplitting: boolean
-  rspackFuture?: RawRspackFuture
-  cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
+incremental?: false | { [key: string]: boolean }
+parallelCodeSplitting: boolean
+rspackFuture?: RawRspackFuture
+cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
 }
 
 export interface RawExperimentSnapshotOptions {
-  immutablePaths: Array<string | RegExp>
-  unmanagedPaths: Array<string | RegExp>
-  managedPaths: Array<string | RegExp>
+  immutablePaths: Array<string|RegExp>
+  unmanagedPaths: Array<string|RegExp>
+  managedPaths: Array<string|RegExp>
 }
 
 export interface RawExposeOptions {

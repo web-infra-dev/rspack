@@ -1937,7 +1937,7 @@ impl Compilation {
       for runtime_module_identifier in self.chunk_graph.get_chunk_runtime_modules_iterable(chunk) {
         let runtime_module = &self.runtime_modules[runtime_module_identifier];
         let mut hasher = RspackHash::from(&self.options.output);
-        runtime_module.update_hash(&mut hasher, self, None)?;
+        runtime_module.get_hash_async(self).await?.hash(&mut hasher);
         let digest = hasher.digest(&self.options.output.hash_digest);
         self
           .runtime_modules_hash
@@ -2067,7 +2067,7 @@ impl Compilation {
       {
         let runtime_module = &self.runtime_modules[runtime_module_identifier];
         let mut hasher = RspackHash::from(&self.options.output);
-        runtime_module.update_hash(&mut hasher, self, None)?;
+        runtime_module.get_hash_async(self).await?.hash(&mut hasher);
         let digest = hasher.digest(&self.options.output.hash_digest);
         self
           .runtime_modules_hash
@@ -2103,7 +2103,7 @@ impl Compilation {
         let runtime_module = &self.runtime_modules[runtime_module_identifier];
         if runtime_module.full_hash() || runtime_module.dependent_hash() {
           let mut hasher = RspackHash::from(&self.options.output);
-          runtime_module.update_hash(&mut hasher, self, None)?;
+          runtime_module.get_hash_async(self).await?.hash(&mut hasher);
           let digest = hasher.digest(&self.options.output.hash_digest);
           self
             .runtime_modules_hash

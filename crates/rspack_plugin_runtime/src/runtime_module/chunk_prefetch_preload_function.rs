@@ -30,6 +30,7 @@ impl ChunkPrefetchPreloadFunctionRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
@@ -42,7 +43,7 @@ impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
     )]
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let source = compilation.runtime_template.render(
       &self.id,
       Some(serde_json::json!({
