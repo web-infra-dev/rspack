@@ -34,7 +34,8 @@ pub struct EvalSourceMapDevToolPlugin {
   module_filename_template: ModuleFilenameTemplate,
   namespace: String,
   source_root: Option<String>,
-  cache: DashMap<BoxSource, BoxSource>,
+  // TODO: memory leak if not clear across multiple compilations
+  cache: DashMap<String, BoxSource>,
 }
 
 impl EvalSourceMapDevToolPlugin {
@@ -89,9 +90,13 @@ async fn eval_source_map_devtool_plugin_render_module_content(
   _init_fragments: &mut ChunkInitFragments,
 ) -> Result<()> {
   let output_options = &compilation.options.output;
+  let module_hash = compilation
+    .code_generation_results
+    .get_hash(&module.identifier(), None)
+    .map(|hash| hash.encoded());
 
   let origin_source = render_source.source.clone();
-  if let Some(cached_source) = self.cache.get(&origin_source) {
+  if let Some(cached_source) = module_hash.and_then(|hash| self.cache.get(hash)) {
     render_source.source = cached_source.value().clone();
     return Ok(());
   } else if let Some(mut map) = origin_source.map(&MapOptions::new(self.columns)) {
@@ -137,7 +142,8 @@ async fn eval_source_map_devtool_plugin_render_module_content(
                 &self.namespace,
               )
             });
-            futures::executor::block_on(join_all(features))
+            join_all(features)
+              .await
               .into_iter()
               .collect::<Result<Vec<_>>>()?
           }
@@ -184,7 +190,9 @@ async fn eval_source_map_devtool_plugin_render_module_content(
       ))
       .boxed()
     };
-    self.cache.insert(origin_source, source.clone());
+    if let Some(hash) = module_hash {
+      self.cache.insert(hash.to_string(), source.clone());
+    }
     render_source.source = source;
     return Ok(());
   }
