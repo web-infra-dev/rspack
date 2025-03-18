@@ -4,10 +4,20 @@ import { useLang } from 'rspress/runtime';
 const WebpackLicense: FC<{ from: string | string[] }> = ({ from }) => {
   const links = Array.isArray(from) ? from : [from];
   const isEn = useLang() === 'en';
+
+  const rootStyle = {
+    fontSize: '14px',
+  };
+
+  const summaryStyle = {
+    display: 'list-item',
+    color: 'var(--rp-c-text-2)',
+  };
+
   if (isEn) {
     return (
-      <details>
-        <summary style={{ display: 'list-item' }}>CC 4.0 License</summary>
+      <details style={rootStyle}>
+        <summary style={summaryStyle}>CC 4.0 License</summary>
         <blockquote>
           <p>
             The content of this section is derived from the content of the
@@ -30,8 +40,8 @@ const WebpackLicense: FC<{ from: string | string[] }> = ({ from }) => {
     );
   }
   return (
-    <details>
-      <summary style={{ display: 'list-item' }}>CC 4.0 协议声明</summary>
+    <details style={rootStyle}>
+      <summary style={summaryStyle}>CC 4.0 协议</summary>
       <blockquote>
         <p>
           本节内容派生于以下链接指向的内容 ，并遵守 CC BY 4.0 许可证的规定。
