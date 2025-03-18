@@ -18,12 +18,13 @@ impl AmdOptionsRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for AmdOptionsRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     Ok(
       RawStringSource::from(format!(
         "{} = {}",

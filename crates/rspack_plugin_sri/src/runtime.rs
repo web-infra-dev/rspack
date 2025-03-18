@@ -45,12 +45,13 @@ impl SRIHashVariableRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for SRIHashVariableRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> Result<BoxSource> {
     let Some(chunk) = compilation.chunk_by_ukey.get(&self.chunk) else {
       return Err(error!(
         "Generate sri runtime module failed: chunk not found"

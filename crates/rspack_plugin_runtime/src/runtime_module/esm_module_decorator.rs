@@ -17,6 +17,7 @@ impl Default for ESMModuleDecoratorRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for ESMModuleDecoratorRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
@@ -29,7 +30,7 @@ impl RuntimeModule for ESMModuleDecoratorRuntimeModule {
     )]
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let source = compilation.runtime_template.render(&self.id, None)?;
 
     Ok(RawStringSource::from(source).boxed())

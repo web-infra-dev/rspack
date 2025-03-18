@@ -31,11 +31,12 @@ impl AsyncWasmLoadingRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let (fake_filename, hash_len_map) =
       get_filename_without_hash_length(&compilation.options.output.webassembly_module_filename);
 

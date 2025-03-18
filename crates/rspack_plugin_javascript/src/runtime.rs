@@ -259,11 +259,11 @@ pub fn render_module(
   )))
 }
 
-pub fn render_chunk_runtime_modules(
+pub async fn render_chunk_runtime_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
 ) -> Result<BoxSource> {
-  let runtime_modules_sources = render_runtime_modules(compilation, chunk_ukey)?;
+  let runtime_modules_sources = render_runtime_modules(compilation, chunk_ukey).await?;
   if runtime_modules_sources.source().is_empty() {
     return Ok(runtime_modules_sources);
   }
@@ -278,70 +278,85 @@ pub fn render_chunk_runtime_modules(
   Ok(sources.boxed())
 }
 
-pub fn render_runtime_modules(
+pub async fn render_runtime_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
 ) -> Result<BoxSource> {
   let mut sources = ConcatSource::default();
-  compilation
-    .chunk_graph
-    .get_chunk_runtime_modules_in_order(chunk_ukey, compilation)
-    .map(|(identifier, runtime_module)| {
-      (
-        compilation
-          .runtime_modules_code_generation_source
-          .get(identifier)
-          .expect("should have runtime module result"),
-        runtime_module,
-      )
-    })
-    .try_for_each(|(source, module)| -> Result<()> {
-      if source.size() == 0 {
-        return Ok(());
-      }
-      if is_diff_mode() {
-        sources.add(RawStringSource::from(format!(
-          "/* start::{} */\n",
-          module.identifier()
-        )));
-      } else {
-        sources.add(RawStringSource::from(format!(
-          "// {}\n",
-          module.identifier()
-        )));
-      }
-      let supports_arrow_function = compilation
-        .options
-        .output
-        .environment
-        .supports_arrow_function();
-      if module.should_isolate() {
-        sources.add(RawStringSource::from(if supports_arrow_function {
-          "(() => {\n"
-        } else {
-          "!function() {\n"
-        }));
-      }
-      if !(module.full_hash() || module.dependent_hash()) {
-        sources.add(source.clone());
-      } else {
-        sources.add(module.generate_with_custom(compilation)?);
-      }
-      if module.should_isolate() {
-        sources.add(RawStringSource::from(if supports_arrow_function {
-          "\n})();\n"
-        } else {
-          "\n}();\n"
-        }));
-      }
-      if is_diff_mode() {
-        sources.add(RawStringSource::from(format!(
-          "/* end::{} */\n",
-          module.identifier()
-        )));
-      }
-      Ok(())
-    })?;
+  let runtime_module_sources = rspack_futures::scope::<_, Result<_>>(|token| {
+    compilation
+      .chunk_graph
+      .get_chunk_runtime_modules_in_order(chunk_ukey, compilation)
+      .map(|(identifier, runtime_module)| {
+        (
+          compilation
+            .runtime_modules_code_generation_source
+            .get(identifier)
+            .expect("should have runtime module result"),
+          runtime_module,
+        )
+      })
+      .for_each(|(source, module)| {
+        let s = unsafe { token.used((compilation, source, module)) };
+        s.spawn(|(compilation, source, module)| async move {
+          let mut sources = ConcatSource::default();
+          if source.size() == 0 {
+            return Ok(sources);
+          }
+          if is_diff_mode() {
+            sources.add(RawStringSource::from(format!(
+              "/* start::{} */\n",
+              module.identifier()
+            )));
+          } else {
+            sources.add(RawStringSource::from(format!(
+              "// {}\n",
+              module.identifier()
+            )));
+          }
+          let supports_arrow_function = compilation
+            .options
+            .output
+            .environment
+            .supports_arrow_function();
+          if module.should_isolate() {
+            sources.add(RawStringSource::from(if supports_arrow_function {
+              "(() => {\n"
+            } else {
+              "!function() {\n"
+            }));
+          }
+          if !(module.full_hash() || module.dependent_hash()) {
+            sources.add(source.clone());
+          } else {
+            sources.add(module.generate_with_custom(compilation).await?);
+          }
+          if module.should_isolate() {
+            sources.add(RawStringSource::from(if supports_arrow_function {
+              "\n})();\n"
+            } else {
+              "\n}();\n"
+            }));
+          }
+          if is_diff_mode() {
+            sources.add(RawStringSource::from(format!(
+              "/* end::{} */\n",
+              module.identifier()
+            )));
+          }
+          Ok(sources)
+        });
+      })
+  })
+  .await
+  .into_iter()
+  .map(|res| res.map_err(rspack_error::miette::Error::from_err))
+  .collect::<Result<Vec<_>>>()?;
+
+  for runtime_module_source in runtime_module_sources {
+    sources.add(runtime_module_source?);
+  }
+
   Ok(sources.boxed())
 }
 
