@@ -40,7 +40,7 @@ impl RemoveEmptyChunksPlugin {
 }
 
 #[plugin_hook(CompilationOptimizeChunks for RemoveEmptyChunksPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED)]
-fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   self.remove_empty_chunks(compilation);
   Ok(None)
 }
