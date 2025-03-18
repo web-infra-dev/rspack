@@ -14,28 +14,43 @@ use crate::{JsPlugin, RenderSource};
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__";
 
-pub fn render_chunk_modules(
+pub async fn render_chunk_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   ordered_modules: &Vec<&BoxModule>,
   all_strict: bool,
   output_path: &str,
 ) -> Result<Option<(BoxSource, ChunkInitFragments)>> {
-  let mut module_code_array = ordered_modules
-    .par_iter()
-    .filter_map(|module| {
-      render_module(
-        compilation,
-        chunk_ukey,
-        module,
-        all_strict,
-        true,
-        output_path,
-      )
-      .transpose()
-      .map(|result| result.map(|(s, f, a)| (module.identifier(), s, f, a)))
-    })
-    .collect::<Result<Vec<_>>>()?;
+  let module_sources = rspack_futures::scope::<_, _>(|token| {
+    ordered_modules.iter().for_each(|module| {
+      let s = unsafe { token.used((compilation, chunk_ukey, module, all_strict, output_path)) };
+      s.spawn(
+        |(compilation, chunk_ukey, module, all_strict, output_path)| async move {
+          render_module(
+            compilation,
+            chunk_ukey,
+            module,
+            all_strict,
+            true,
+            output_path,
+          )
+          .await
+          .map(|result| result.map(|(s, f, a)| (module.identifier(), s, f, a)))
+        },
+      );
+    });
+  })
+  .await
+  .into_iter()
+  .map(|res| res.map_err(rspack_error::miette::Error::from_err))
+  .collect::<Result<Vec<_>>>()?;
+
+  let mut module_code_array = vec![];
+  for item in module_sources {
+    if let Some(i) = item? {
+      module_code_array.push(i);
+    }
+  }
 
   if module_code_array.is_empty() {
     return Ok(None);
@@ -72,7 +87,7 @@ pub fn render_chunk_modules(
   Ok(Some((sources.boxed(), chunk_init_fragments)))
 }
 
-pub fn render_module(
+pub async fn render_module(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   module: &BoxModule,
@@ -129,12 +144,15 @@ pub fn render_module(
     }
   };
 
-  hooks.render_module_content.call(
-    compilation,
-    module,
-    &mut render_source,
-    &mut module_chunk_init_fragments,
-  )?;
+  hooks
+    .render_module_content
+    .call(
+      compilation,
+      module,
+      &mut render_source,
+      &mut module_chunk_init_fragments,
+    )
+    .await?;
 
   let sources = if factory {
     let mut sources = ConcatSource::default();
@@ -221,33 +239,42 @@ pub fn render_module(
       }
     };
 
-    hooks.render_module_container.call(
-      compilation,
-      module,
-      &mut post_module_container,
-      &mut module_chunk_init_fragments,
-    )?;
+    hooks
+      .render_module_container
+      .call(
+        compilation,
+        module,
+        &mut post_module_container,
+        &mut module_chunk_init_fragments,
+      )
+      .await?;
 
     let mut post_module_package = post_module_container;
 
-    hooks.render_module_package.call(
-      compilation,
-      chunk_ukey,
-      module,
-      &mut post_module_package,
-      &mut module_chunk_init_fragments,
-    )?;
+    hooks
+      .render_module_package
+      .call(
+        compilation,
+        chunk_ukey,
+        module,
+        &mut post_module_package,
+        &mut module_chunk_init_fragments,
+      )
+      .await?;
 
     sources.add(post_module_package.source);
     sources.boxed()
   } else {
-    hooks.render_module_package.call(
-      compilation,
-      chunk_ukey,
-      module,
-      &mut render_source,
-      &mut module_chunk_init_fragments,
-    )?;
+    hooks
+      .render_module_package
+      .call(
+        compilation,
+        chunk_ukey,
+        module,
+        &mut render_source,
+        &mut module_chunk_init_fragments,
+      )
+      .await?;
 
     render_source.source
   };

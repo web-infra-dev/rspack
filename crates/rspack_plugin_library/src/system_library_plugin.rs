@@ -78,7 +78,7 @@ async fn compilation(
 }
 
 #[plugin_hook(JavascriptModulesRender for SystemLibraryPlugin)]
-fn render(
+async fn render(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,

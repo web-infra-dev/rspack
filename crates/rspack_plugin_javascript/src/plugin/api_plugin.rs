@@ -26,7 +26,7 @@ async fn compilation(
 }
 
 #[plugin_hook(JavascriptModulesRenderModuleContent for APIPlugin)]
-fn render_module_content(
+async fn render_module_content(
   &self,
   compilation: &Compilation,
   module: &BoxModule,

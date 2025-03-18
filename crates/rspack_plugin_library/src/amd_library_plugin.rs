@@ -88,7 +88,7 @@ async fn compilation(
 }
 
 #[plugin_hook(JavascriptModulesRender for AmdLibraryPlugin)]
-fn render(
+async fn render(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
