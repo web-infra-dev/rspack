@@ -963,8 +963,8 @@ importers:
   website:
     dependencies:
       '@rstack-dev/doc-ui':
-        specifier: 1.7.2
-        version: 1.7.2(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+        specifier: 1.7.3
+        version: 1.7.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       axios:
         specifier: ^1.8.2
         version: 1.8.2
@@ -992,10 +992,10 @@ importers:
         version: 1.9.4
       '@rsbuild/plugin-sass':
         specifier: ^1.2.2
-        version: 1.2.2(@rsbuild/core@1.2.16(@rspack/tracing@1.2.8))
+        version: 1.2.2(@rsbuild/core@1.2.19(@rspack/tracing@1.2.8))
       '@rspress/plugin-rss':
-        specifier: 2.0.0-alpha.2
-        version: 2.0.0-alpha.2(@rspack/tracing@1.2.8)(react@19.0.0)(rspress@2.0.0-alpha.2(@rspack/tracing@1.2.8)(webpack@5.98.0(@swc/core@1.11.9(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0))))
+        specifier: 2.0.0-alpha.3
+        version: 2.0.0-alpha.3(@rspack/tracing@1.2.8)(react@19.0.0)(rspress@2.0.0-alpha.3(@rspack/tracing@1.2.8)(webpack@5.98.0(@swc/core@1.11.9(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0))))
       '@types/node':
         specifier: ^20.17.24
         version: 20.17.24
@@ -1013,13 +1013,13 @@ importers:
         version: 3.5.3
       rsbuild-plugin-google-analytics:
         specifier: 1.0.3
-        version: 1.0.3(@rsbuild/core@1.2.16(@rspack/tracing@1.2.8))
+        version: 1.0.3(@rsbuild/core@1.2.19(@rspack/tracing@1.2.8))
       rsbuild-plugin-open-graph:
         specifier: 1.0.2
-        version: 1.0.2(@rsbuild/core@1.2.16(@rspack/tracing@1.2.8))
+        version: 1.0.2(@rsbuild/core@1.2.19(@rspack/tracing@1.2.8))
       rspress:
-        specifier: 2.0.0-alpha.2
-        version: 2.0.0-alpha.2(@rspack/tracing@1.2.8)(webpack@5.98.0(@swc/core@1.11.9(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0)))
+        specifier: 2.0.0-alpha.3
+        version: 2.0.0-alpha.3(@rspack/tracing@1.2.8)(webpack@5.98.0(@swc/core@1.11.9(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0)))
       rspress-plugin-font-open-sans:
         specifier: 1.0.0
         version: 1.0.0
@@ -2703,13 +2703,13 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@rsbuild/core@1.2.16':
-    resolution: {integrity: sha512-LxiZUTKhg3ZHFIeZkDmrOG8pWn/lny4vx0AqtSxovWPDnFHgYeuL45rAGDfkrx4TuGwwDN3qJgbetPRSYA8cWw==}
+  '@rsbuild/core@1.2.17':
+    resolution: {integrity: sha512-e5J+Fn5kjwOcf254pGwNGeMdTSmsFFC3vmLEAmxVVRYOr8rgph4fSfKXxUwN1jbL2o5sEDdw0vFNq02PdEofnQ==}
     engines: {node: '>=16.7.0'}
     hasBin: true
 
-  '@rsbuild/core@1.2.17':
-    resolution: {integrity: sha512-e5J+Fn5kjwOcf254pGwNGeMdTSmsFFC3vmLEAmxVVRYOr8rgph4fSfKXxUwN1jbL2o5sEDdw0vFNq02PdEofnQ==}
+  '@rsbuild/core@1.2.19':
+    resolution: {integrity: sha512-k76is4HygmbYYMLG2V1d1yQeurHHC+ZEtGs/nwE11y6HmwSndoFhmjOeQbQ2Ul0b2B8HErksqSMtlCxd37YPPQ==}
     engines: {node: '>=16.7.0'}
     hasBin: true
 
@@ -2883,8 +2883,8 @@ packages:
   '@rspack/tracing@1.2.8':
     resolution: {integrity: sha512-mBFNN1YbSXz1fKOr2BhfjB/0GQPabQxTXMyvBw0utL6vugZXLAhKe/+xEsczqwh1Grfm4MpPiIZ99V4zE88gcA==}
 
-  '@rspress/core@2.0.0-alpha.2':
-    resolution: {integrity: sha512-qwWi4oly7y0mN95nx5AtmIxkOxC5JDUexyTEYdY6PpDnld0dvzRHhXBmx1psSF91gudRyHrYKQWr34LbGoqDqA==}
+  '@rspress/core@2.0.0-alpha.3':
+    resolution: {integrity: sha512-q5/MoIevPRX8KRsnvCZ1ZpYbs1SmPXY0uJcDPm6ChK+0EvnrCOQNRdAeR1Si8sMxCszRDd7jbFwM5aKxlf8AHA==}
     engines: {node: '>=14.17.6'}
 
   '@rspress/mdx-rs-darwin-arm64@0.6.6':
@@ -2939,44 +2939,44 @@ packages:
     resolution: {integrity: sha512-NpNhTKBIlV3O6ADhoZkgHvBFvXMW2TYlIWmIT1ysJESUBqDpaN9H3Teve5fugjU2pQ2ORBZO6SQGKliMw/8m/Q==}
     engines: {node: '>= 10'}
 
-  '@rspress/plugin-auto-nav-sidebar@2.0.0-alpha.2':
-    resolution: {integrity: sha512-XI5V3gw0q15V0MU2yAF/AnM1IXroHeSyf2866KZBiPqrRtF4D8fGiygFAWPInMFqh+n51D7t1msBzi+/lyrbbA==}
+  '@rspress/plugin-auto-nav-sidebar@2.0.0-alpha.3':
+    resolution: {integrity: sha512-U1detSiGlAd+2U6oK1/PEPBulOKUnODsygWvfiY4fydF9FAhcvjeDWanmiAoNWnKBj+bmUMay/e9nR1vtSSpmw==}
     engines: {node: '>=14.17.6'}
 
-  '@rspress/plugin-container-syntax@2.0.0-alpha.2':
-    resolution: {integrity: sha512-hbtjGIH0TjKxgJXDoH7lsn4BTspgPXlSd5z+lCOh7q00ZrOq9DaY8w8G2D/naNg4miQDKkm2gBXsVq4UhA9tUg==}
+  '@rspress/plugin-container-syntax@2.0.0-alpha.3':
+    resolution: {integrity: sha512-//IDlD/BKUkx/TRtxSIlTNomf7cU7Hc9Aeqtl02jk+b/wNbirmpFKQKCU5kvyZTzCLuHMEQSTe+Asf3PWqzlnQ==}
     engines: {node: '>=14.17.6'}
 
-  '@rspress/plugin-last-updated@2.0.0-alpha.2':
-    resolution: {integrity: sha512-I/mJt2cy7oUdA72dwfmsjp7C+tLndFH5kognirzpV2L9Je+aPllFMDURxvdtSd42LMNE33T3V/ytru9HC5fuuQ==}
+  '@rspress/plugin-last-updated@2.0.0-alpha.3':
+    resolution: {integrity: sha512-6xvPvSnx2wPPnKFjVyHSUspaDWRMrTMXg1HO+YOnruSMjXQGELoagGRObH0FUtXQkmUH8Og8w0Ezf6a7oZZISQ==}
     engines: {node: '>=14.17.6'}
 
-  '@rspress/plugin-medium-zoom@2.0.0-alpha.2':
-    resolution: {integrity: sha512-n+PCey+dzxT7Le6tM9IgM0gFCQvz27mYDp6+YxbVJpVaYpBd1wVrmW9f9Zg6LBU+ojaR6NSP9TL0nyK+3AWHvQ==}
+  '@rspress/plugin-medium-zoom@2.0.0-alpha.3':
+    resolution: {integrity: sha512-3mInIGNIdMD5g+AdLAEHuN+xPHH/Wn58xWcyH4MKlvvZRhfhBd3xwWQbWB1tNlCelwNfREuqcaq65HITRJBQxg==}
     engines: {node: '>=14.17.6'}
     peerDependencies:
-      '@rspress/runtime': ^2.0.0-alpha.2
+      '@rspress/runtime': ^2.0.0-alpha.3
 
-  '@rspress/plugin-rss@2.0.0-alpha.2':
-    resolution: {integrity: sha512-0SYV+iusi+q8WllZ8MIBtXf10EWgtFLZqTd64aTf0T3Fx41app5iXu7q8tHErKc+d7yOyxpa7RvIGQ3duaRwQg==}
+  '@rspress/plugin-rss@2.0.0-alpha.3':
+    resolution: {integrity: sha512-JnWztT0n6qLW8l0oHOAvEcMYo2Tb69R/YBi1Z2bX6FxkRuPYV8dt+r7GD/M1BxiqmfrptcFf6Y6vSpt6IkORWA==}
     engines: {node: '>=14.17.6'}
     peerDependencies:
       react: '>=17.0.0'
-      rspress: ^2.0.0-alpha.2
+      rspress: ^2.0.0-alpha.3
 
-  '@rspress/runtime@2.0.0-alpha.2':
-    resolution: {integrity: sha512-QxR0IgwOUF4O2tNhT+9yir/5lUvOnGSnP63N90tKxAX8SPb8UTwK43MPtaBlGMGzTnW+SzRj4XeiX5jTTaYtfA==}
+  '@rspress/runtime@2.0.0-alpha.3':
+    resolution: {integrity: sha512-NFzPc+LsHyFN8DUpXDQJGbJQ8o/YNnDkc4pcntqWMuG5pyAqp8Qe+w9n80w4iM47P0TRDnMkUXv1vS2ZezmksQ==}
     engines: {node: '>=14.17.6'}
 
-  '@rspress/shared@2.0.0-alpha.2':
-    resolution: {integrity: sha512-mHbiWdB5zN4dyy3fmIVw19N7t93ptNk9UdhANuBphh0yvlbhyJmhawioAGWGsMFWl6EZ4QTVKt0TuJuvcWOUgQ==}
+  '@rspress/shared@2.0.0-alpha.3':
+    resolution: {integrity: sha512-h6vOhwwe57pDZWJjbKO4IUCNpYM/8XAIjHWT8NCQKCgNE7lCykXgifvZQtPHTEfQA0EX1BowlruHhsZkIo6Ntw==}
 
-  '@rspress/theme-default@2.0.0-alpha.2':
-    resolution: {integrity: sha512-JR1CpJ6Qufe1JQy03Bb7rBZiu+NogkyQMRJqbyzhwc1EX9Y9GtcY5Bf/Tog5iR4A8LuVznyNQ5ZnkJZ7UZ/hdg==}
+  '@rspress/theme-default@2.0.0-alpha.3':
+    resolution: {integrity: sha512-7N+Fwv99t6tPITVsR6D+7DS2kfWA5kdfX7s2GyCnJE1oAuK+idq392xkvsUG2j+bauNvbg2VEQqbOOjurdBeUg==}
     engines: {node: '>=14.17.6'}
 
-  '@rstack-dev/doc-ui@1.7.2':
-    resolution: {integrity: sha512-bGqK1OzOJpQon5va8iQI7GX8jfjoXsVJJJjRUJ6jdoWrA1BAcggBf7SDSJ9+RSWjaTp74t/dBRuoLeSrOOh0gw==}
+  '@rstack-dev/doc-ui@1.7.3':
+    resolution: {integrity: sha512-rWJgZoe2bG9dMLjRUMjifU3SyF2JR/73fkPVJfUfp34xZS8fnOYVBEvHJkKuBwKOzFwEthz0nbO5mDu+kaGpuQ==}
 
   '@rushstack/node-core-library@5.11.0':
     resolution: {integrity: sha512-I8+VzG9A0F3nH2rLpPd7hF8F7l5Xb7D+ldrWVZYegXM6CsKkvWc670RlgK3WX8/AseZfXA/vVrh0bpXe2Y2UDQ==}
@@ -4928,8 +4928,8 @@ packages:
     resolution: {integrity: sha512-buRG0fpBtRHSTCOASe6hD258tEubFoRLb4ZNA6NxMVHNw2gOcwHo9wyablzMzOA5z9xA9L1KNjk/Nt6MT9aYow==}
     engines: {node: '>= 0.6'}
 
-  framer-motion@12.3.1:
-    resolution: {integrity: sha512-Br4a2YhdeEvdzMDX8ToVO+/Jbqm2Loo/8rMjizX1nejjBvRJGMfz+NW1qBo4WCHF26uIdES5MBztUlB4pIyfqQ==}
+  framer-motion@12.5.0:
+    resolution: {integrity: sha512-buPlioFbH9/W7rDzYh1C09AuZHAk2D1xTA1BlounJ2Rb9aRg84OXexP0GLd+R83v0khURdMX7b5MKnGTaSg5iA==}
     peerDependencies:
       '@emotion/is-prop-valid': '*'
       react: ^18.0.0 || ^19.0.0
@@ -6191,11 +6191,11 @@ packages:
   module-details-from-path@1.0.3:
     resolution: {integrity: sha512-ySViT69/76t8VhE1xXHK6Ch4NcDd26gx0MzKXLO+F7NOtnqH68d9zF94nT8ZWSxXh8ELOERsnJO/sWt1xZYw5A==}
 
-  motion-dom@12.0.0:
-    resolution: {integrity: sha512-CvYd15OeIR6kHgMdonCc1ihsaUG4MYh/wrkz8gZ3hBX/uamyZCXN9S9qJoYF03GqfTt7thTV/dxnHYX4+55vDg==}
+  motion-dom@12.5.0:
+    resolution: {integrity: sha512-uH2PETDh7m+Hjd1UQQ56yHqwn83SAwNjimNPE/kC+Kds0t4Yh7+29rfo5wezVFpPOv57U4IuWved5d1x0kNhbQ==}
 
-  motion-utils@12.0.0:
-    resolution: {integrity: sha512-MNFiBKbbqnmvOjkPyOKgHUp3Q6oiokLkI1bEwm5QA28cxMZrv0CbbBGDNmhF6DIXsi1pCQBSs0dX8xjeER1tmA==}
+  motion-utils@12.5.0:
+    resolution: {integrity: sha512-+hFFzvimn0sBMP9iPxBa9OtRX35ZQ3py0UHnb8U29VD+d8lQ8zH3dTygJWqK7av2v6yhg7scj9iZuvTS0f4+SA==}
 
   mri@1.2.0:
     resolution: {integrity: sha512-tzzskb3bG8LvYGFF/mDTpq3jpI6Q9wc3LEmBaghu+DdCssd1FakN7Bc0hVNmEyGq1bq3RgfkCb3cmQLpNPOroA==}
@@ -6776,11 +6776,10 @@ packages:
   react-fast-compare@3.2.2:
     resolution: {integrity: sha512-nsO+KSNgo1SbJqJEYRE9ERzo7YtYbou/OqjSQKxV7jcKox7+usiUVZOAC+XnDOABXggQTno0Y1CpVnuWEc1boQ==}
 
-  react-helmet-async@1.3.0:
-    resolution: {integrity: sha512-9jZ57/dAn9t3q6hneQS0wukqC2ENOBgMNVEhb/ZG9ZSxUetzVIw4iAmEU38IaVg3QGYauQPhSeUTuIUtFglWpg==}
+  react-helmet-async@2.0.5:
+    resolution: {integrity: sha512-rYUYHeus+i27MvFE+Jaa4WsyBKGkL6qVgbJvSBoX8mbsWoABJXdEO0bZyi0F6i+4f0NuIb8AvqPMj3iXFHkMwg==}
     peerDependencies:
       react: ^16.6.0 || ^17.0.0 || ^18.0.0
-      react-dom: ^16.6.0 || ^17.0.0 || ^18.0.0
 
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
@@ -6997,8 +6996,8 @@ packages:
   rspress-plugin-sitemap@1.1.1:
     resolution: {integrity: sha512-usb6zWoi5wFFmBeA9HKR6BhsnnsItudMBarc54GYpuRL55SWkLxyWyMijv14mUI04FI7J7lEmea08uZE0bVKxg==}
 
-  rspress@2.0.0-alpha.2:
-    resolution: {integrity: sha512-Ds/bQC/7YZTrSyLafnm8RIgT2EyjaDjuHOJk/wTc5TTczqnEXThu2NcDmorcLYrKEBQLTM0De1LlnXtBrBeCDA==}
+  rspress@2.0.0-alpha.3:
+    resolution: {integrity: sha512-tJZxBQ21Cp8eUYGm7U9E7N4twYkWVJwR4yEmDSoqiotf5lrS24ft2METvLBwdp90U5OfPD+tRHKXEPpSLay+hQ==}
     hasBin: true
 
   run-applescript@7.0.0:
@@ -9958,16 +9957,6 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.34.9':
     optional: true
 
-  '@rsbuild/core@1.2.16(@rspack/tracing@1.2.8)':
-    dependencies:
-      '@rspack/core': 1.2.7(@rspack/tracing@1.2.8)(@swc/helpers@0.5.15)
-      '@rspack/lite-tapable': 1.0.1
-      '@swc/helpers': 0.5.15
-      core-js: 3.41.0
-      jiti: 2.4.2
-    transitivePeerDependencies:
-      - '@rspack/tracing'
-
   '@rsbuild/core@1.2.17(@rspack/tracing@1.2.8)':
     dependencies:
       '@rspack/core': 1.2.7(@rspack/tracing@1.2.8)(@swc/helpers@0.5.15)
@@ -9988,15 +9977,25 @@ snapshots:
     transitivePeerDependencies:
       - '@rspack/tracing'
 
-  '@rsbuild/plugin-react@1.1.1(@rsbuild/core@1.2.16(@rspack/tracing@1.2.8))':
+  '@rsbuild/core@1.2.19(@rspack/tracing@1.2.8)':
     dependencies:
-      '@rsbuild/core': 1.2.16(@rspack/tracing@1.2.8)
+      '@rspack/core': 1.2.8(@rspack/tracing@1.2.8)(@swc/helpers@0.5.15)
+      '@rspack/lite-tapable': 1.0.1
+      '@swc/helpers': 0.5.15
+      core-js: 3.41.0
+      jiti: 2.4.2
+    transitivePeerDependencies:
+      - '@rspack/tracing'
+
+  '@rsbuild/plugin-react@1.1.1(@rsbuild/core@1.2.19(@rspack/tracing@1.2.8))':
+    dependencies:
+      '@rsbuild/core': 1.2.19(@rspack/tracing@1.2.8)
       '@rspack/plugin-react-refresh': 1.0.1(react-refresh@0.16.0)
       react-refresh: 0.16.0
 
-  '@rsbuild/plugin-sass@1.2.2(@rsbuild/core@1.2.16(@rspack/tracing@1.2.8))':
+  '@rsbuild/plugin-sass@1.2.2(@rsbuild/core@1.2.19(@rspack/tracing@1.2.8))':
     dependencies:
-      '@rsbuild/core': 1.2.16(@rspack/tracing@1.2.8)
+      '@rsbuild/core': 1.2.19(@rspack/tracing@1.2.8)
       deepmerge: 4.3.1
       loader-utils: 2.0.4
       postcss: 8.5.3
@@ -10102,7 +10101,6 @@ snapshots:
       '@rspack/binding-win32-arm64-msvc': 1.2.8
       '@rspack/binding-win32-ia32-msvc': 1.2.8
       '@rspack/binding-win32-x64-msvc': 1.2.8
-    optional: true
 
   '@rspack/core@1.2.7(@rspack/tracing@1.2.8)(@swc/helpers@0.5.15)':
     dependencies:
@@ -10133,7 +10131,6 @@ snapshots:
     optionalDependencies:
       '@rspack/tracing': 1.2.8
       '@swc/helpers': 0.5.15
-    optional: true
 
   '@rspack/dev-server@1.1.0(@rspack/core@packages+rspack)(@types/express@4.17.21)(webpack-cli@5.1.4(webpack@5.98.0))(webpack@5.98.0(@swc/core@1.11.9(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0)))':
     dependencies:
@@ -10180,21 +10177,21 @@ snapshots:
       - supports-color
     optional: true
 
-  '@rspress/core@2.0.0-alpha.2(@rspack/tracing@1.2.8)(webpack@5.98.0(@swc/core@1.11.9(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0)))':
+  '@rspress/core@2.0.0-alpha.3(@rspack/tracing@1.2.8)(webpack@5.98.0(@swc/core@1.11.9(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0)))':
     dependencies:
       '@mdx-js/loader': 2.3.0(webpack@5.98.0(@swc/core@1.11.9(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0)))
       '@mdx-js/mdx': 2.3.0
       '@mdx-js/react': 2.3.0(react@18.3.1)
-      '@rsbuild/core': 1.2.16(@rspack/tracing@1.2.8)
-      '@rsbuild/plugin-react': 1.1.1(@rsbuild/core@1.2.16(@rspack/tracing@1.2.8))
+      '@rsbuild/core': 1.2.19(@rspack/tracing@1.2.8)
+      '@rsbuild/plugin-react': 1.1.1(@rsbuild/core@1.2.19(@rspack/tracing@1.2.8))
       '@rspress/mdx-rs': 0.6.6
-      '@rspress/plugin-auto-nav-sidebar': 2.0.0-alpha.2(@rspack/tracing@1.2.8)
-      '@rspress/plugin-container-syntax': 2.0.0-alpha.2(@rspack/tracing@1.2.8)
-      '@rspress/plugin-last-updated': 2.0.0-alpha.2(@rspack/tracing@1.2.8)
-      '@rspress/plugin-medium-zoom': 2.0.0-alpha.2(@rspress/runtime@2.0.0-alpha.2(@rspack/tracing@1.2.8))
-      '@rspress/runtime': 2.0.0-alpha.2(@rspack/tracing@1.2.8)
-      '@rspress/shared': 2.0.0-alpha.2(@rspack/tracing@1.2.8)
-      '@rspress/theme-default': 2.0.0-alpha.2(@rspack/tracing@1.2.8)
+      '@rspress/plugin-auto-nav-sidebar': 2.0.0-alpha.3(@rspack/tracing@1.2.8)
+      '@rspress/plugin-container-syntax': 2.0.0-alpha.3(@rspack/tracing@1.2.8)
+      '@rspress/plugin-last-updated': 2.0.0-alpha.3(@rspack/tracing@1.2.8)
+      '@rspress/plugin-medium-zoom': 2.0.0-alpha.3(@rspress/runtime@2.0.0-alpha.3(@rspack/tracing@1.2.8))
+      '@rspress/runtime': 2.0.0-alpha.3(@rspack/tracing@1.2.8)
+      '@rspress/shared': 2.0.0-alpha.3(@rspack/tracing@1.2.8)
+      '@rspress/theme-default': 2.0.0-alpha.3(@rspack/tracing@1.2.8)
       enhanced-resolve: 5.18.1
       github-slugger: 2.0.0
       hast-util-from-html: 2.0.3
@@ -10206,7 +10203,7 @@ snapshots:
       picocolors: 1.1.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-      react-helmet-async: 1.3.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react-helmet-async: 2.0.5(react@18.3.1)
       react-lazy-with-preload: 2.2.1
       react-syntax-highlighter: 15.6.1(react@18.3.1)
       rehype-external-links: 3.0.0
@@ -10257,62 +10254,62 @@ snapshots:
       '@rspress/mdx-rs-win32-arm64-msvc': 0.6.6
       '@rspress/mdx-rs-win32-x64-msvc': 0.6.6
 
-  '@rspress/plugin-auto-nav-sidebar@2.0.0-alpha.2(@rspack/tracing@1.2.8)':
+  '@rspress/plugin-auto-nav-sidebar@2.0.0-alpha.3(@rspack/tracing@1.2.8)':
     dependencies:
-      '@rspress/shared': 2.0.0-alpha.2(@rspack/tracing@1.2.8)
+      '@rspress/shared': 2.0.0-alpha.3(@rspack/tracing@1.2.8)
     transitivePeerDependencies:
       - '@rspack/tracing'
 
-  '@rspress/plugin-container-syntax@2.0.0-alpha.2(@rspack/tracing@1.2.8)':
+  '@rspress/plugin-container-syntax@2.0.0-alpha.3(@rspack/tracing@1.2.8)':
     dependencies:
-      '@rspress/shared': 2.0.0-alpha.2(@rspack/tracing@1.2.8)
+      '@rspress/shared': 2.0.0-alpha.3(@rspack/tracing@1.2.8)
     transitivePeerDependencies:
       - '@rspack/tracing'
 
-  '@rspress/plugin-last-updated@2.0.0-alpha.2(@rspack/tracing@1.2.8)':
+  '@rspress/plugin-last-updated@2.0.0-alpha.3(@rspack/tracing@1.2.8)':
     dependencies:
-      '@rspress/shared': 2.0.0-alpha.2(@rspack/tracing@1.2.8)
+      '@rspress/shared': 2.0.0-alpha.3(@rspack/tracing@1.2.8)
     transitivePeerDependencies:
       - '@rspack/tracing'
 
-  '@rspress/plugin-medium-zoom@2.0.0-alpha.2(@rspress/runtime@2.0.0-alpha.2(@rspack/tracing@1.2.8))':
+  '@rspress/plugin-medium-zoom@2.0.0-alpha.3(@rspress/runtime@2.0.0-alpha.3(@rspack/tracing@1.2.8))':
     dependencies:
-      '@rspress/runtime': 2.0.0-alpha.2(@rspack/tracing@1.2.8)
+      '@rspress/runtime': 2.0.0-alpha.3(@rspack/tracing@1.2.8)
       medium-zoom: 1.1.0
 
-  '@rspress/plugin-rss@2.0.0-alpha.2(@rspack/tracing@1.2.8)(react@19.0.0)(rspress@2.0.0-alpha.2(@rspack/tracing@1.2.8)(webpack@5.98.0(@swc/core@1.11.9(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0))))':
+  '@rspress/plugin-rss@2.0.0-alpha.3(@rspack/tracing@1.2.8)(react@19.0.0)(rspress@2.0.0-alpha.3(@rspack/tracing@1.2.8)(webpack@5.98.0(@swc/core@1.11.9(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0))))':
     dependencies:
-      '@rspress/shared': 2.0.0-alpha.2(@rspack/tracing@1.2.8)
+      '@rspress/shared': 2.0.0-alpha.3(@rspack/tracing@1.2.8)
       feed: 4.2.2
       react: 19.0.0
-      rspress: 2.0.0-alpha.2(@rspack/tracing@1.2.8)(webpack@5.98.0(@swc/core@1.11.9(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0)))
+      rspress: 2.0.0-alpha.3(@rspack/tracing@1.2.8)(webpack@5.98.0(@swc/core@1.11.9(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0)))
     transitivePeerDependencies:
       - '@rspack/tracing'
 
-  '@rspress/runtime@2.0.0-alpha.2(@rspack/tracing@1.2.8)':
+  '@rspress/runtime@2.0.0-alpha.3(@rspack/tracing@1.2.8)':
     dependencies:
-      '@rspress/shared': 2.0.0-alpha.2(@rspack/tracing@1.2.8)
+      '@rspress/shared': 2.0.0-alpha.3(@rspack/tracing@1.2.8)
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-      react-helmet-async: 1.3.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react-helmet-async: 2.0.5(react@18.3.1)
       react-router-dom: 6.29.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     transitivePeerDependencies:
       - '@rspack/tracing'
 
-  '@rspress/shared@2.0.0-alpha.2(@rspack/tracing@1.2.8)':
+  '@rspress/shared@2.0.0-alpha.3(@rspack/tracing@1.2.8)':
     dependencies:
-      '@rsbuild/core': 1.2.16(@rspack/tracing@1.2.8)
+      '@rsbuild/core': 1.2.19(@rspack/tracing@1.2.8)
       gray-matter: 4.0.3
       lodash-es: 4.17.21
       unified: 10.1.2
     transitivePeerDependencies:
       - '@rspack/tracing'
 
-  '@rspress/theme-default@2.0.0-alpha.2(@rspack/tracing@1.2.8)':
+  '@rspress/theme-default@2.0.0-alpha.3(@rspack/tracing@1.2.8)':
     dependencies:
       '@mdx-js/react': 2.3.0(react@18.3.1)
-      '@rspress/runtime': 2.0.0-alpha.2(@rspack/tracing@1.2.8)
-      '@rspress/shared': 2.0.0-alpha.2(@rspack/tracing@1.2.8)
+      '@rspress/runtime': 2.0.0-alpha.3(@rspack/tracing@1.2.8)
+      '@rspress/shared': 2.0.0-alpha.3(@rspack/tracing@1.2.8)
       body-scroll-lock: 4.0.0-beta.0
       copy-to-clipboard: 3.3.3
       flexsearch: 0.7.43
@@ -10322,14 +10319,14 @@ snapshots:
       nprogress: 0.2.0
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-      react-helmet-async: 1.3.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react-helmet-async: 2.0.5(react@18.3.1)
       react-syntax-highlighter: 15.6.1(react@18.3.1)
     transitivePeerDependencies:
       - '@rspack/tracing'
 
-  '@rstack-dev/doc-ui@1.7.2(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
+  '@rstack-dev/doc-ui@1.7.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
     dependencies:
-      framer-motion: 12.3.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      framer-motion: 12.5.0(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
     transitivePeerDependencies:
       - '@emotion/is-prop-valid'
       - react
@@ -12463,10 +12460,10 @@ snapshots:
 
   forwarded@0.2.0: {}
 
-  framer-motion@12.3.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0):
+  framer-motion@12.5.0(react-dom@19.0.0(react@19.0.0))(react@19.0.0):
     dependencies:
-      motion-dom: 12.0.0
-      motion-utils: 12.0.0
+      motion-dom: 12.5.0
+      motion-utils: 12.5.0
       tslib: 2.8.1
     optionalDependencies:
       react: 19.0.0
@@ -14255,11 +14252,11 @@ snapshots:
 
   module-details-from-path@1.0.3: {}
 
-  motion-dom@12.0.0:
+  motion-dom@12.5.0:
     dependencies:
-      motion-utils: 12.0.0
+      motion-utils: 12.5.0
 
-  motion-utils@12.0.0: {}
+  motion-utils@12.5.0: {}
 
   mri@1.2.0: {}
 
@@ -14826,13 +14823,10 @@ snapshots:
 
   react-fast-compare@3.2.2: {}
 
-  react-helmet-async@1.3.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  react-helmet-async@2.0.5(react@18.3.1):
     dependencies:
-      '@babel/runtime': 7.26.7
       invariant: 2.2.4
-      prop-types: 15.8.1
       react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
       react-fast-compare: 3.2.2
       shallowequal: 1.1.0
 
@@ -15092,13 +15086,13 @@ snapshots:
       '@microsoft/api-extractor': 7.49.2(@types/node@20.17.24)
       typescript: 5.7.3
 
-  rsbuild-plugin-google-analytics@1.0.3(@rsbuild/core@1.2.16(@rspack/tracing@1.2.8)):
+  rsbuild-plugin-google-analytics@1.0.3(@rsbuild/core@1.2.19(@rspack/tracing@1.2.8)):
     optionalDependencies:
-      '@rsbuild/core': 1.2.16(@rspack/tracing@1.2.8)
+      '@rsbuild/core': 1.2.19(@rspack/tracing@1.2.8)
 
-  rsbuild-plugin-open-graph@1.0.2(@rsbuild/core@1.2.16(@rspack/tracing@1.2.8)):
+  rsbuild-plugin-open-graph@1.0.2(@rsbuild/core@1.2.19(@rspack/tracing@1.2.8)):
     optionalDependencies:
-      '@rsbuild/core': 1.2.16(@rspack/tracing@1.2.8)
+      '@rsbuild/core': 1.2.19(@rspack/tracing@1.2.8)
 
   rspack-plugin-virtual-module@0.1.13:
     dependencies:
@@ -15108,11 +15102,11 @@ snapshots:
 
   rspress-plugin-sitemap@1.1.1: {}
 
-  rspress@2.0.0-alpha.2(@rspack/tracing@1.2.8)(webpack@5.98.0(@swc/core@1.11.9(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0))):
+  rspress@2.0.0-alpha.3(@rspack/tracing@1.2.8)(webpack@5.98.0(@swc/core@1.11.9(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0))):
     dependencies:
-      '@rsbuild/core': 1.2.16(@rspack/tracing@1.2.8)
-      '@rspress/core': 2.0.0-alpha.2(@rspack/tracing@1.2.8)(webpack@5.98.0(@swc/core@1.11.9(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0)))
-      '@rspress/shared': 2.0.0-alpha.2(@rspack/tracing@1.2.8)
+      '@rsbuild/core': 1.2.19(@rspack/tracing@1.2.8)
+      '@rspress/core': 2.0.0-alpha.3(@rspack/tracing@1.2.8)(webpack@5.98.0(@swc/core@1.11.9(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0)))
+      '@rspress/shared': 2.0.0-alpha.3(@rspack/tracing@1.2.8)
       cac: 6.7.14
       chokidar: 3.6.0
       picocolors: 1.1.1

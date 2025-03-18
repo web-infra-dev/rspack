@@ -14,7 +14,7 @@ Used to extend configurations from other files or packages. This allows you to c
 **This option is not supported via the JavaScript API**: `extends` will have no effect when using the JavaScript API. `@rspack/cli` is required to use this feature.
 :::
 
-## Basic Usage
+## Basic usage
 
 You can extend a configuration from another file by specifying the path to the file in the `extends` property. The path can be absolute or relative to the configuration file:
 
@@ -33,7 +33,7 @@ module.exports = {
 When using relative paths, they are resolved relative to the configuration file that contains the `extends` property.
 :::
 
-## Multiple Configurations
+## Multiple configurations
 
 - **Type:** `string[]`
 - **Default:** `undefined`
@@ -60,7 +60,7 @@ When merging configurations:
 
 :::
 
-## Node Modules
+## Node modules
 
 - **Type:** `string`
 - **Default:** `undefined`
@@ -74,7 +74,7 @@ module.exports = {
 };
 ```
 
-## Nested Extends
+## Nested extends
 
 Configurations can have their own `extends` property, allowing for nested configuration inheritance. The resolution is performed recursively:
 

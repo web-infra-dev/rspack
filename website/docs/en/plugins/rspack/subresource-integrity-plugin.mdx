@@ -16,11 +16,11 @@ For more on subresource integrity, see [Subresource Integrity - MDN](https://dev
 
 ## Features
 
-### Support for HTML Plugin
+### Support for HTML plugin
 
 The plugin supports integration with [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin) and [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin). It will automatically set the `integrity` and `crossorigin` attributes for the injected tags.
 
-### Support for Code Splitting
+### Support for code splitting
 
 The plugin supports code splitting. When you use dynamic imports, the plugin will automatically set the `integrity` and `crossorigin` attributes for the generated chunk loading tags.
 
@@ -41,7 +41,7 @@ const {
 } = require('@rspack/core');
 ```
 
-### Recommended Rspack Configuration
+### Recommended Rspack configuration
 
 The [output.crossOriginLoading](/config/output#outputcrossoriginloading) option is required for SRI to work:
 
@@ -57,7 +57,7 @@ export default {
 };
 ```
 
-### With HTML Plugin
+### With HTML plugin
 
 When the HTML plugin([`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin.mdx) or [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin)) is used, the `integrity` and `crossorigin` attributes will be set automatically.
 
@@ -90,7 +90,7 @@ export default {
 };
 ```
 
-### With HTML Plugin and `inject: false`
+### With HTML plugin and `inject: false`
 
 If you use the HTML plugin with `inject: false`, you need to set the `integrity` and `crossorigin` attributes in your template manually.
 
@@ -134,7 +134,7 @@ With [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin), y
 <% } %>
 ```
 
-### Without HTML Plugin
+### Without HTML plugin
 
 The `integrity` can also be obtained from `stats.assets`. For example:
 
@@ -181,7 +181,7 @@ used for calculating integrity hash values. Only supports `sha256`, `sha384`, an
 
 The path to the HTML plugin, defaults to `"HtmlRspackPlugin"` which means the native HTML plugin of Rspack. If you are using the `html-webpack-plugin`, you can set this option to the path of it. It is recommended to set the absolute path to make sure the plugin can be found.
 
-## More Information
+## More information
 
 You can find more information about Subresource Integrity in the following resources:
 
