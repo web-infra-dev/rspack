@@ -1412,7 +1412,8 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
       module: JsRuntimeModule {
         source: Some(
           module
-            .generate(compilation)?
+            .generate(compilation)
+            .await?
             .to_js_compat_source_owned()
             .unwrap_or_else(|err| panic!("Failed to generate runtime module source: {err}")),
         ),

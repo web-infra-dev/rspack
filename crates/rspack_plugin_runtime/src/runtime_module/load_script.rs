@@ -33,12 +33,13 @@ impl LoadScriptRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for LoadScriptRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &self.chunk_ukey);
     let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
 

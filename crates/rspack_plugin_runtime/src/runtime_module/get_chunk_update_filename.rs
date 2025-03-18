@@ -23,6 +23,7 @@ impl Default for GetChunkUpdateFilenameRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
@@ -35,7 +36,7 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
     )]
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
       let filename = compilation

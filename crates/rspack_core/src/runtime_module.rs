@@ -1,14 +1,15 @@
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
+use async_trait::async_trait;
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
 use rspack_sources::{BoxSource, Source};
 
 use crate::{ChunkUkey, Compilation, Module};
 
-pub trait RuntimeModule: Module + CustomSourceRuntimeModule {
+#[async_trait]
+pub trait RuntimeModule: Module + CustomSourceRuntimeModule + AsyncHashRuntimeModule {
   fn name(&self) -> Identifier;
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource>;
   fn attach(&mut self, _chunk: ChunkUkey) {}
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Normal
@@ -26,18 +27,25 @@ pub trait RuntimeModule: Module + CustomSourceRuntimeModule {
   fn template(&self) -> Vec<(String, String)> {
     vec![]
   }
-  fn generate_with_custom(
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource>;
+  async fn generate_with_custom(
     &self,
     compilation: &Compilation,
   ) -> rspack_error::Result<Arc<dyn Source>> {
     if let Some(custom_source) = self.get_custom_source() {
       Ok(custom_source as Arc<dyn Source>)
     } else {
-      self.generate(compilation)
+      self.generate(compilation).await
     }
   }
 }
 
+#[async_trait]
+pub trait AsyncHashRuntimeModule {
+  async fn get_hash_async(&self, compilation: &Compilation) -> rspack_error::Result<String>;
+}
+
+#[async_trait]
 pub trait CustomSourceRuntimeModule {
   fn set_custom_source(&mut self, source: BoxSource);
   fn get_custom_source(&self) -> Option<BoxSource>;

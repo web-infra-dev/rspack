@@ -5,7 +5,7 @@ use rspack_core::{
 use rspack_hash::RspackHash;
 use rspack_hook::define_hook;
 
-define_hook!(JavascriptModulesRenderChunk: SyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, source: &mut RenderSource));
+define_hook!(JavascriptModulesRenderChunk: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, source: &mut RenderSource));
 define_hook!(JavascriptModulesRender: SyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, source: &mut RenderSource));
 define_hook!(JavascriptModulesRenderStartup: SyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, module: &ModuleIdentifier, source: &mut RenderSource));
 define_hook!(JavascriptModulesRenderModuleContent: SyncSeries(compilation: &Compilation, module: &BoxModule, source: &mut RenderSource, init_fragments: &mut ChunkInitFragments));
