@@ -61,7 +61,7 @@ fn federation_runtime_template(chunk: &Chunk, compilation: &Compilation) -> Stri
       r#"
 chunkMatcher: function(chunkId) {{
     return {has_js_matcher};
-}},
+}}
 "#,
       has_js_matcher = &has_js_matcher.render("chunkId")
     )
@@ -94,7 +94,8 @@ chunkMatcher: function(chunkId) {{
     r#"
 if(!{federation_global}){{
     {federation_global} = {{
-        {chunk_matcher}{root_output_dir_str}
+        {chunk_matcher}
+        {root_output_dir_str}
     }};
 }}
 "#,
