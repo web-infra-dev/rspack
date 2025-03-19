@@ -28,15 +28,17 @@ type CycleHookParams = (String, Vec<String>, JsCompilationWrapper);
 pub struct RawCircularDependencyRspackPluginOptions {
   pub fail_on_error: Option<bool>,
   pub allow_async_cycles: Option<bool>,
+  #[napi(ts_type = "RegExp")]
   pub exclude: Option<RspackRegex>,
+  #[napi(ts_type = "Array<[string | RegExp, string | RegExp]>")]
   pub ignored_connections: Option<Vec<(ConnectionPattern, ConnectionPattern)>>,
-  #[napi(ts_type = "(entrypoint: Module, modules: string[], compilation: Compilation) => void")]
+  #[napi(ts_type = "(entrypoint: Module, modules: string[], compilation: JsCompilation) => void")]
   pub on_detected: Option<ThreadsafeFunction<CycleHookParams, JsUnknown>>,
-  #[napi(ts_type = "(entrypoint: Module, modules: string[], compilation: Compilation) => void")]
+  #[napi(ts_type = "(entrypoint: Module, modules: string[], compilation: JsCompilation) => void")]
   pub on_ignored: Option<ThreadsafeFunction<CycleHookParams, JsUnknown>>,
-  #[napi(ts_type = "(compilation: Compilation) => void")]
+  #[napi(ts_type = "(compilation: JsCompilation) => void")]
   pub on_start: Option<ThreadsafeFunction<JsCompilationWrapper, JsUnknown>>,
-  #[napi(ts_type = "(compilation: Compilation) => void")]
+  #[napi(ts_type = "(compilation: JsCompilation) => void")]
   pub on_end: Option<ThreadsafeFunction<JsCompilationWrapper, JsUnknown>>,
 }
 

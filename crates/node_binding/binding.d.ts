@@ -1496,12 +1496,12 @@ export interface RawCacheOptions {
 export interface RawCircularDependencyRspackPluginOptions {
   failOnError?: boolean
   allowAsyncCycles?: boolean
-  exclude?: RspackRegex
-  ignoredConnections?: Array<[ConnectionPattern, ConnectionPattern]>
-  onDetected?: (entrypoint: Module, modules: string[], compilation: Compilation) => void
-  onIgnored?: (entrypoint: Module, modules: string[], compilation: Compilation) => void
-  onStart?: (compilation: Compilation) => void
-  onEnd?: (compilation: Compilation) => void
+  exclude?: RegExp
+  ignoredConnections?: Array<[string | RegExp, string | RegExp]>
+  onDetected?: (entrypoint: Module, modules: string[], compilation: JsCompilation) => void
+  onIgnored?: (entrypoint: Module, modules: string[], compilation: JsCompilation) => void
+  onStart?: (compilation: JsCompilation) => void
+  onEnd?: (compilation: JsCompilation) => void
 }
 
 export interface RawConsumeOptions {
