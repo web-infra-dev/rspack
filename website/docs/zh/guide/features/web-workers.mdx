@@ -1,5 +1,6 @@
 import WebpackLicense from '@components/WebpackLicense';
 import { ApiMeta, Stability } from '@components/ApiMeta.tsx';
+import { Tabs, Tab } from '@theme';
 
 <WebpackLicense from="https://webpack.docschina.org/guides/web-workers/" />
 
@@ -23,16 +24,15 @@ new Worker(new URL('./worker.js', import.meta.url), {
 
 - `new SharedWorker()`
 - `import { Worker } from "worker_thread"`：常用于 node 环境
-- <ApiMeta addedVersion={'1.0.0-alpha.0'} inline /> `navigator.serviceWorker.register()`：用于注册
-  Service Worker
+- `navigator.serviceWorker.register()`：用于注册 Service Worker
 
 可通过 [`module.parser.javascript.worker`](/config/module#moduleparserjavascriptworker) 提供自定义语法。
 
 使用示例可参考：
 
-- [examples/worker](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/worker)
-- [examples/monaco-editor-js](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/monaco-editor-js)
-- [examples/monaco-editor-ts-react](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/monaco-editor-ts-react)
+- [examples/worker](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/worker)
+- [examples/monaco-editor-js](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/monaco-editor-js)
+- [examples/monaco-editor-ts-react](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/monaco-editor-ts-react)
 
 :::info
 选择该语法是因为该语法在不使用打包工具时也能运行代码，它可以直接运行在支持 ES modules 的浏览器上运行，是符合标准的 ECMAScript 语法。
@@ -57,14 +57,33 @@ new Worker(new URL('./worker.js', import.meta.url), {
 ## worker-loader
 
 :::warning
-worker-loader 仅供作为方便项目迁移至 Rspack 的临时方案，推荐使用 `new Worker()` 语法。
+`worker-loader` 仅作为项目迁移到 Rspack 的临时便捷方案，推荐使用 `new Worker()` 语法。
 :::
 
 Rspack 也支持了 worker-loader，不过由于 [worker-loader](https://github.com/webpack-contrib/worker-loader) 已不再维护，请使用 [worker-rspack-loader](https://github.com/rspack-contrib/worker-rspack-loader) 进行替换。
 
 使用 [resolveLoader](/config/resolve-loader) 替换 worker-loader 为 worker-rspack-loader：
 
-```js
+<Tabs>
+  <Tab label="ESM">
+```js title="rspack.config.mjs"
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+
+export default {
+  resolveLoader: {
+    alias: {
+      'worker-loader': require.resolve('worker-rspack-loader'),
+    },
+  },
+};
+```
+
+  </Tab>
+  <Tab label="CJS">
+
+```js title="rspack.config.cjs"
 module.exports = {
   resolveLoader: {
     alias: {
@@ -73,3 +92,6 @@ module.exports = {
   },
 };
 ```
+
+  </Tab>
+</Tabs>

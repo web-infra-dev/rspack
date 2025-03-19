@@ -1,15 +1,16 @@
 #![allow(clippy::only_used_in_recursion)]
-use std::borrow::Cow;
-use std::collections::hash_map::DefaultHasher;
-use std::collections::VecDeque;
-use std::hash::Hasher;
+use std::{
+  borrow::Cow,
+  collections::{hash_map::DefaultHasher, VecDeque},
+  hash::Hasher,
+};
 
 use rayon::prelude::*;
 use rspack_collections::{IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
-use rspack_core::concatenated_module::{
-  is_esm_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
-};
 use rspack_core::{
+  concatenated_module::{
+    is_esm_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
+  },
   filter_runtime, merge_runtime, ApplyContext, Compilation, CompilationOptimizeChunkModules,
   CompilerOptions, ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module,
   ModuleExt, ModuleGraph, ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext,
@@ -306,10 +307,7 @@ impl ModuleConcatenationPlugin {
         }
 
         let mut origin_runtime = RuntimeSpec::default();
-        for r in chunk_graph
-          .get_module_runtimes(*origin_module, chunk_by_ukey)
-          .values()
-        {
+        for r in chunk_graph.get_module_runtimes_iter(*origin_module, chunk_by_ukey) {
           origin_runtime = merge_runtime(&origin_runtime, r);
         }
 
@@ -547,7 +545,6 @@ impl ModuleConcatenationPlugin {
       return Ok(());
     }
 
-    //
     let modules_set = config.get_modules();
     for m in modules_set {
       used_modules.insert(*m);
@@ -555,6 +552,9 @@ impl ModuleConcatenationPlugin {
     let box_module = module_graph
       .module_by_identifier(&root_module_id)
       .expect("should have module");
+    let root_module_source_types = box_module.source_types();
+    let is_root_module_asset_module = root_module_source_types.contains(&SourceType::Asset);
+
     let root_module_ctxt = RootModuleContext {
       id: root_module_id,
       readable_identifier: box_module
@@ -578,7 +578,9 @@ impl ModuleConcatenationPlugin {
       side_effect_connection_state: box_module
         .get_side_effects_connection_state(&module_graph, &mut IdentifierSet::default()),
       factory_meta: box_module.factory_meta().cloned(),
-      build_meta: box_module.build_meta().cloned(),
+      build_meta: box_module.build_meta().clone(),
+      module_argument: box_module.get_module_argument(),
+      exports_argument: box_module.get_exports_argument(),
     };
     let modules = modules_set
       .iter()
@@ -592,7 +594,7 @@ impl ModuleConcatenationPlugin {
             Some(&rspack_core::SourceType::JavaScript),
             Some(compilation),
           ),
-          original_source_hash: module.original_source().map(|source| {
+          original_source_hash: module.source().map(|source| {
             let mut hasher = DefaultHasher::default();
             source.dyn_hash(&mut hasher);
             hasher.finish()
@@ -611,20 +613,10 @@ impl ModuleConcatenationPlugin {
       config.runtime.clone(),
       compilation,
     );
-    let new_module_assets: HashSet<String> =
-      modules_set.iter().fold(HashSet::default(), |mut acc, id| {
-        acc.extend(
-          compilation
-            .module_assets
-            .get(id)
-            .cloned()
-            .unwrap_or_default(),
-        );
-        acc
-      });
     new_module
       .build(
         rspack_core::BuildContext {
+          compiler_id: compilation.compiler_id(),
           compilation_id: compilation.id(),
           resolver_factory: compilation.resolver_factory.clone(),
           plugin_driver: compilation.plugin_driver.clone(),
@@ -673,12 +665,32 @@ impl ModuleConcatenationPlugin {
         }
       }
     }
-    // module_graph
-    //   .module_identifier_to_module
-    //   .remove(&root_module_id);
-    // compilation.chunk_graph.clear
 
-    chunk_graph.replace_module(&root_module_id, &new_module.id());
+    // different from webpack
+    // Rspack: if entry is an asset module, outputs a js chunk and a asset chunk
+    // Webpack: if entry is an asset module, outputs an asset chunk
+    // these lines of codes fix a bug: when asset module (NormalModule) is concatenated into ConcatenatedModule, the asset will be lost
+    // because `chunk_graph.replace_module(&root_module_id, &new_module.id());` will remove the asset module from chunk, and I add this module back to fix this bug
+    if is_root_module_asset_module {
+      chunk_graph.replace_module(&root_module_id, &new_module.id());
+      chunk_graph.add_module(root_module_id);
+      for chunk_ukey in chunk_graph.get_module_chunks(new_module.id()).clone() {
+        let module = module_graph
+          .module_by_identifier(&root_module_id)
+          .expect("should exist module");
+
+        let source_types = chunk_graph.get_chunk_module_source_types(&chunk_ukey, module);
+        let new_source_types = source_types
+          .iter()
+          .filter(|source_type| !matches!(source_type, SourceType::JavaScript))
+          .copied()
+          .collect();
+        chunk_graph.set_chunk_modules_source_types(&chunk_ukey, root_module_id, new_source_types);
+        chunk_graph.connect_chunk_and_module(chunk_ukey, root_module_id);
+      }
+    } else {
+      chunk_graph.replace_module(&root_module_id, &new_module.id());
+    }
 
     module_graph.move_module_connections(&root_module_id, &new_module.id(), |c, dep| {
       let other_module = if *c.module_identifier() == root_module_id {
@@ -694,11 +706,8 @@ impl ModuleConcatenationPlugin {
         };
       !inner_connection
     });
-    let id = new_module.id();
     module_graph.add_module(new_module.boxed());
     compilation.chunk_graph = chunk_graph;
-    compilation.module_assets.insert(id, new_module_assets);
-
     Ok(())
   }
 
@@ -743,11 +752,7 @@ impl ModuleConcatenationPlugin {
           return (false, false, module_id, bailout_reason);
         }
 
-        if !m
-          .and_then(|m| m.build_info())
-          .expect("should have build info")
-          .strict
-        {
+        if !m.expect("should have module").build_info().strict {
           bailout_reason.push("Module is not in strict mode".into());
           return (false, false, module_id, bailout_reason);
         }
@@ -893,10 +898,9 @@ impl ModuleConcatenationPlugin {
       let mut chunk_runtime = Default::default();
       for r in compilation
         .chunk_graph
-        .get_module_runtimes(*current_root, &compilation.chunk_by_ukey)
-        .into_values()
+        .get_module_runtimes_iter(*current_root, &compilation.chunk_by_ukey)
       {
-        chunk_runtime = merge_runtime(&chunk_runtime, &r);
+        chunk_runtime = merge_runtime(&chunk_runtime, r);
       }
       let module_graph = compilation.get_module_graph();
       let exports_info = module_graph.get_exports_info(current_root);

@@ -1,8 +1,12 @@
-use std::cmp::Ordering;
-use std::sync::atomic::Ordering::Relaxed;
-use std::sync::{Arc, LazyLock, RwLock};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use std::{cmp, sync::atomic::AtomicU32, time::Instant};
+use std::{
+  cmp,
+  cmp::Ordering,
+  sync::{
+    atomic::{AtomicU32, Ordering::Relaxed},
+    Arc, LazyLock, RwLock,
+  },
+  time::{Duration, Instant, SystemTime, UNIX_EPOCH},
+};
 
 use async_trait::async_trait;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
@@ -14,8 +18,8 @@ use rspack_core::{
   CompilationOptimizeChunks, CompilationOptimizeDependencies, CompilationOptimizeModules,
   CompilationOptimizeTree, CompilationParams, CompilationProcessAssets, CompilationSeal,
   CompilationSucceedModule, CompilerAfterEmit, CompilerCompilation, CompilerEmit,
-  CompilerFinishMake, CompilerMake, CompilerOptions, CompilerThisCompilation, ModuleIdentifier,
-  Plugin, PluginContext,
+  CompilerFinishMake, CompilerId, CompilerMake, CompilerOptions, CompilerThisCompilation,
+  ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -320,7 +324,12 @@ async fn make(&self, _compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationBuildModule for ProgressPlugin)]
-async fn build_module(&self, _compilation_id: CompilationId, module: &mut BoxModule) -> Result<()> {
+async fn build_module(
+  &self,
+  _compiler_id: CompilerId,
+  _compilation_id: CompilationId,
+  module: &mut BoxModule,
+) -> Result<()> {
   self
     .active_modules
     .write()
@@ -344,6 +353,7 @@ async fn build_module(&self, _compilation_id: CompilationId, module: &mut BoxMod
 #[plugin_hook(CompilationSucceedModule for ProgressPlugin)]
 async fn succeed_module(
   &self,
+  _compiler_id: CompilerId,
   _compilation_id: CompilationId,
   module: &mut BoxModule,
 ) -> Result<()> {
@@ -421,7 +431,7 @@ async fn after_optimize_modules(&self, _compilation: &mut Compilation) -> Result
 }
 
 #[plugin_hook(CompilationOptimizeChunks for ProgressPlugin)]
-fn optimize_chunks(&self, _compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunks(&self, _compilation: &mut Compilation) -> Result<Option<bool>> {
   self.sealing_hooks_report("chunk optimization", 9)?;
   Ok(None)
 }

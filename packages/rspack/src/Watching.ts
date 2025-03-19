@@ -233,6 +233,7 @@ export class Watching {
 		changedFiles?: ReadonlySet<string>,
 		removedFiles?: ReadonlySet<string>
 	) {
+		this.#initial = false;
 		if (this.startTime === undefined) this.startTime = Date.now();
 		this.running = true;
 		if (this.watcher) {
@@ -261,19 +262,14 @@ export class Watching {
 			this.compiler.contextTimestamps = contextTimeInfoEntries;
 		}
 
-		const modifiedFiles = (this.compiler.modifiedFiles =
-			this.#collectedChangedFiles);
-		const deleteFiles = (this.compiler.removedFiles =
-			this.#collectedRemovedFiles);
+		this.compiler.modifiedFiles = this.#collectedChangedFiles;
+		this.compiler.removedFiles = this.#collectedRemovedFiles;
 		this.#collectedChangedFiles = undefined;
 		this.#collectedRemovedFiles = undefined;
 		this.invalid = false;
 		this.#invalidReported = false;
 		this.compiler.hooks.watchRun.callAsync(this.compiler, err => {
 			if (err) return this._done(err);
-
-			const canRebuild =
-				!this.#initial && (modifiedFiles?.size || deleteFiles?.size);
 
 			const onCompiled = (
 				err: Error | null,
@@ -304,9 +300,6 @@ export class Watching {
 			};
 
 			this.compiler.compile(onCompiled);
-			if (!canRebuild) {
-				this.#initial = false;
-			}
 		});
 	}
 

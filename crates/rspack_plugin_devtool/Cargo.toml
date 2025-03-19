@@ -26,6 +26,7 @@ rspack_plugin_javascript = { workspace = true }
 rspack_util              = { workspace = true }
 rustc-hash               = { workspace = true }
 simd-json                = { workspace = true }
+sugar_path               = { workspace = true }
 tracing                  = { workspace = true }
 
 [package.metadata.cargo-shear]

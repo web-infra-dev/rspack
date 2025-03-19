@@ -43,11 +43,8 @@ console.log('bar.js');
 
 这是最简单直观分离代码的方式。但这种方式需要我们手动对 Rspack 进行配置。我们来看看如何从通过多个入口起点分割出多个 Chunk 。
 
-```js title=rspack.config.js
-/**
- * @type {import('@rspack/core').Configuration}
- */
-const config = {
+```js title="rspack.config.mjs"
+export default {
   mode: 'development',
   entry: {
     index: './src/index.js',
@@ -55,8 +52,6 @@ const config = {
   },
   stats: 'normal',
 };
-
-module.exports = config;
 ```
 
 ```js title=index.js
@@ -92,11 +87,8 @@ Rspack 默认会对 `node_modules` 目录下的文件以及重复模块进行拆
 
 我们可以配置最小拆分体积为 0 ，来让 `shared.js` 被单独抽离。
 
-```diff title=rspack.config.js
-/**
- * @type {import('@rspack/core').Configuration}
- */
-const config = {
+```diff title="rspack.config.mjs"
+export default {
   entry: {
     index: './src/index.js',
   },
@@ -106,8 +98,6 @@ const config = {
 +    }
 +  }
 };
-
-module.exports = config;
 ```
 
 重新打包会发现 `shared.js` 被单独抽离出去，产物中多了一个包含有 `shared.js` 的 Chunk。
@@ -116,13 +106,15 @@ module.exports = config;
 
 我们可以通过 `optimization.splitChunks.cacheGroups.{cacheGroup}.name` 强制将指定模块分到一个 Chunk 中去，例如如下配置：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   optimization: {
     splitChunks: {
       cacheGroups: {
-        test: /\/some-lib\//,
-        name: 'lib',
+        someLib: {
+          test: /\/some-lib\//,
+          name: 'lib',
+        },
       },
     },
   },
@@ -179,7 +171,7 @@ import(/* webpackPreload: true */ 'ChartingLibrary');
 错误地使用 webpackPreload 也会导致性能劣化，请谨慎使用。
 :::
 
-有时您需要对预载拥有自己的控制权。例如，可以通过异步脚本完成任何动态导入的预载。这在流式服务器端渲染的情况下会很有用。
+有时你需要对预载拥有自己的控制权。例如，可以通过异步脚本完成任何动态导入的预载。这在流式服务器端渲染的情况下会很有用。
 
 ```js
 const lazyComp = () =>
@@ -191,7 +183,7 @@ const lazyComp = () =>
 
 如果在 Rspack 开始加载该脚本之前脚本加载失败（如果该脚本不在页面上，Rspack 创建一个 script 标签来加载代码），则该异常将无法被捕获，直到 chunkLoadTimeout 超时。这可能出乎预料但可解释为 —— Rspack 无法抛出任何异常，因为 Rspack 并不知道该脚本失败了。Rspack 将在错误发生后立即为 script 标签添加 onerror 监听。
 
-为了避免发生这类问题，您可以添加自己的 onerror 监听，在发生异常时删除该 script：
+为了避免发生这类问题，你可以添加自己的 onerror 监听，在发生异常时删除该 script：
 
 ```html
 <script

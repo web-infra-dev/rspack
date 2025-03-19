@@ -8,14 +8,14 @@ module.exports = {
 	context: __dirname,
 	module: {
 		rules: [
-      {
-        test: resolve("app.jsx"),
-        type: "javascript/auto"
-      },
-      {
-        test: resolve("app.tsx"),
-        type: "ts"
-      },
+			{
+				test: resolve("app.jsx"),
+				type: "javascript/auto"
+			},
+			{
+				test: resolve("app.tsx"),
+				type: "ts"
+			}
 		]
-	},
+	}
 };

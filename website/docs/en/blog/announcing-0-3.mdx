@@ -3,9 +3,9 @@ date: 2023-08-24 12:15:00
 sidebar: false
 ---
 
-# Announcing Rspack 0.3
+_August 24, 2023_
 
-> August 24, 2023
+# Announcing Rspack 0.3
 
 ## Breaking changes
 
@@ -17,8 +17,8 @@ Before Rspack fully supported `postcss-loader`, Rspack implemented `@rspack/post
 
 • Before:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   builtins: {
     postcss: {
       pxtorem: {
@@ -31,8 +31,8 @@ module.exports = {
 
 • After:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -64,8 +64,8 @@ module.exports = {
 
 To align better with webpack's CSS handling, Rspack removes the built-in autoprefixer functionality in 0.3. You can use `postcss-loader` to achieve `autoprefixer`.
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -87,7 +87,7 @@ module.exports = {
 };
 ```
 
-You can refer to the [examples/postcss-loader](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/postcss-loader/rspack.config.js) for a complete example.
+You can refer to the [examples/postcss-loader](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/postcss-loader) for a complete example.
 
 ### Access to internal modules restricted
 
@@ -124,9 +124,10 @@ For more information about web workers support, see [web workers](/guide/feature
 
 Although Rspack provides many SWC compilation configuration options, these configurations are global and cannot fulfill the requirement of using different SWC transformation logic for different modules. Therefore, Rspack supports `builtin:swc-loader` to provide more fine-grained SWC transformation configuration. Compared to the JavaScript version of `swc-loader`, `builtin:swc-loader` has better performance. You can use `builtin:swc-loader` as follows:
 
-```js
-const path = require('path');
-const config = {
+```js title="rspack.config.mjs"
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
   module: {
     rules: [
       {
@@ -155,11 +156,10 @@ const config = {
       },
     ],
   },
-};
-module.exports = config;
+});
 ```
 
-You can refer to [examples/builtin-swc-loader](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/builtin-swc-loader) for more examples. Currently, `builtin:swc-loader` still has limitations, such as not supporting Wasm plugins, etc. Rspack will continue to iterate and support more features of `builtin:swc-loader` in future versions.
+You can refer to [examples/builtin-swc-loader](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/builtin-swc-loader) for more examples. Currently, `builtin:swc-loader` still has limitations, such as not supporting Wasm plugins, etc. Rspack will continue to iterate and support more features of `builtin:swc-loader` in future versions.
 
 ### Improved profile support
 

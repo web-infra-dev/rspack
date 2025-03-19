@@ -85,4 +85,14 @@ describe("TypeScript React project", () => {
 			}
 		}
 	});
+
+	bench("Traverse compilation.modules", () => {
+		for (const module of theCompilation.modules) {
+			module.identifier();
+		}
+	});
+
+	bench("stats.toJson()", () => {
+		const json = theCompilation.getStats().toJson();
+	});
 });

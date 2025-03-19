@@ -1,5 +1,0 @@
-@import url("./import-with-supports.css") supports(display: flex);
-
-.top {
-  background: red;
-}

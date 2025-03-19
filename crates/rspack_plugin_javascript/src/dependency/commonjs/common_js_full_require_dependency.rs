@@ -3,14 +3,12 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec, Skip},
 };
 use rspack_core::{
-  module_id, property_access, to_normal_comment, Compilation, DependencyLocation, DependencyRange,
-  ExportsType, ExtendedReferencedExport, ModuleGraph, RuntimeGlobals, RuntimeSpec, SharedSourceMap,
-  UsedName,
+  module_id, property_access, to_normal_comment, AsContextDependency, Compilation, Dependency,
+  DependencyCategory, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
+  DependencyType, ExportsType, ExtendedReferencedExport, FactorizeInfo, ModuleDependency,
+  ModuleGraph, RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource, UsedName,
 };
-use rspack_core::{AsContextDependency, Dependency, DependencyCategory};
-use rspack_core::{DependencyId, DependencyTemplate};
-use rspack_core::{DependencyType, ModuleDependency};
-use rspack_core::{TemplateContext, TemplateReplaceSource};
 use swc_core::atoms::Atom;
 
 #[cacheable]
@@ -26,6 +24,7 @@ pub struct CommonJsFullRequireDependency {
   asi_safe: bool,
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
+  factorize_info: FactorizeInfo,
 }
 
 impl CommonJsFullRequireDependency {
@@ -47,6 +46,7 @@ impl CommonJsFullRequireDependency {
       optional,
       asi_safe,
       source_map,
+      factorize_info: Default::default(),
     }
   }
 }
@@ -117,6 +117,14 @@ impl ModuleDependency for CommonJsFullRequireDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 

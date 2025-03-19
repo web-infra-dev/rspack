@@ -6,11 +6,12 @@ const runtime = fs.readFileSync(
 	path.resolve(__dirname, "../src/runtime/moduleFederationDefaultRuntime.js"),
 	"utf-8"
 );
-const downgradedRuntime = swc.transformSync(runtime, {
+const { code: downgradedRuntime } = swc.transformSync(runtime, {
 	jsc: {
 		target: "es2015"
 	}
 });
+
 const minimizedRuntime = swc.minifySync(downgradedRuntime, {
 	compress: false,
 	mangle: false,

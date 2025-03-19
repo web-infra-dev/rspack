@@ -4,16 +4,18 @@ import { ApiMeta, Stability } from '@components/ApiMeta';
 
 <ApiMeta addedVersion="1.0.0" />
 
-The `builtin:lightningcss-loader` uses the builtin [lightningcss](https://github.com/parcel-bundler/lightningcss) from Rspack to process CSS, which can replace the syntax lowering functionality in `postcss-loader` to make the CSS transformation faster.
+[Lightning CSS](https://lightningcss.dev) is a high performance CSS parser, transformer and minifier written in Rust. It supports parsing and transforming many modern CSS features into syntax supported by target browsers, and also provides a better compression ratio.
+
+Rspack provides a built-in `builtin:lightningcss-loader`, which is based on Lightning CSS to transform CSS. It can replace the [postcss-loader](https://github.com/postcss/postcss-loader) and [autoprefixer](https://github.com/postcss/autoprefixer) for CSS syntax downgrading, prefixing, and other functionalities, offering better performance.
 
 ## Example
 
 To use `builtin:lightningcss-loader` in your project, you need to configure it as follows.
 
-```js
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   module: {
     rules: [
       {
@@ -37,10 +39,8 @@ module.exports = {
 
 You can use the `LightningcssLoaderOptions` type exported by `@rspack/core` to enable type hints:
 
-- `rspack.config.js`:
-
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -63,7 +63,7 @@ module.exports = {
 
 ## Options
 
-Below are the configurations supported by `builtin:lightningcss-loader`. For detailed configuration, please refer to [lightningcss document](https://lightningcss.dev/transpilation.html)
+Below are the configurations supported by `builtin:lightningcss-loader`. For detailed configuration, please refer to [lightningcss document](https://lightningcss.dev/transpilation.html).
 
 ```ts
 type LightningcssFeatureOptions = {

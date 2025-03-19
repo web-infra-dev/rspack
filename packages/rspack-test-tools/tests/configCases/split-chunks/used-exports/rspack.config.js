@@ -2,13 +2,13 @@
 module.exports = {
 	entry: {
 		foo: "./foo",
-		bar: "./bar",
+		bar: "./bar"
 	},
 	output: {
-		filename: '[name].js'
+		filename: "[name].js"
 	},
 	optimization: {
-		chunkIds: 'named',
+		chunkIds: "named",
 		usedExports: true,
 		splitChunks: {
 			chunks: "all",
@@ -16,7 +16,7 @@ module.exports = {
 			cacheGroups: {
 				shared: {
 					test: /shared/,
-					minSize: 0,
+					minSize: 0
 				}
 			}
 		}

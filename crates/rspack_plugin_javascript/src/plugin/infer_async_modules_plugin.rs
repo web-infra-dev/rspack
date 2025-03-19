@@ -47,7 +47,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     let module = module_graph
       .module_by_identifier(&module_identifier)
       .expect("should have module");
-    let build_meta = module.build_meta().expect("should have build meta");
+    let build_meta = module.build_meta();
     if build_meta.has_top_level_await {
       async_modules.insert(module_identifier);
     } else {

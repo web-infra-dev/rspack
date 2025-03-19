@@ -30,7 +30,7 @@ Say you have a configuration file `some/path/config.development.js` and a specia
 
 Add the following plugin when building for production:
 
-```javascript
+```js
 new rspack.NormalModuleReplacementPlugin(
   /some\/path\/config\.development\.js/,
   './config.production.js',
@@ -43,7 +43,7 @@ Conditional build depending on a specified environment.
 
 Say you want a configuration with specific values for different build targets.
 
-```javascript
+```js
 module.exports = function getRspackConfig(env) {
   const appTarget = env.APP_TARGET || 'VERSION_A';
   return {
@@ -78,7 +78,7 @@ export const config = {
 
 Then import that configuration using the keyword you're looking for in the regexp:
 
-```javascript
+```js
 import { config } from './app/config-APP_TARGET';
 console.log(config.title);
 ```

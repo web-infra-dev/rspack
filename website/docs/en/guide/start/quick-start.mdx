@@ -1,4 +1,4 @@
-import { Tabs, Tab, PackageManagerTabs } from '@theme';
+import { PackageManagerTabs } from '@theme';
 
 # Quick start
 
@@ -6,11 +6,11 @@ Get up to speed quickly with a new Rspack based project.
 
 - [Create a new project](#create-a-new-project): Use the CLI to create a brand-new Rspack or Rsbuild project.
 - [Migrating from existing projects](#migrating-from-existing-projects): Migrate from a webpack-based project to Rspack.
-- [Community ecosystem](#community-ecosystem): Discover projects within the Rspack community ecosystem.
+- [Ecosystem](#ecosystem): Discover projects within the Rspack community ecosystem.
 
 ## Setup environment
 
-Rsbuild supports using [Node.js](https://nodejs.org/), [Deno](https://deno.com/), or [Bun](https://bun.sh/) as the runtime.
+Rspack supports using [Node.js](https://nodejs.org/), [Deno](https://deno.com/), or [Bun](https://bun.sh/) as the runtime.
 
 ### Node.js
 
@@ -43,7 +43,7 @@ We recommend using [Rsbuild](https://rsbuild.dev/) to create new projects, simpl
 
 <PackageManagerTabs command="create rsbuild@latest" />
 
-> For more information, refer to [Rsbuild - Quick Start](https://rsbuild.dev/guide/start/quick-start).
+> For more information, refer to [Rsbuild - Quick start](https://rsbuild.dev/guide/start/quick-start).
 
 ### Using the Rspack CLI
 
@@ -88,7 +88,7 @@ cd rspack-demo
 npm init -y
 ```
 
-Then installing `@rspack/core` and `@rspack/cli` as dev dependencies:
+Then installing [@rspack/core](https://www.npmjs.com/package/@rspack/core) and [@rspack/cli](https://www.npmjs.com/package/@rspack/cli) as dev dependencies:
 
 <PackageManagerTabs command="add @rspack/core @rspack/cli -D" />
 
@@ -97,24 +97,54 @@ Update your build scripts to use Rspack CLI:
 ```js title="package.json"
 {
   "scripts": {
-    "dev": "rspack serve",
+    "dev": "rspack dev",
     "build": "rspack build"
   }
 }
 ```
 
-See [Configure Rspack](/config/index) to learn about how to configure Rspack.
+Next, see [Configure Rspack](/config/index) to learn about how to configure Rspack.
 
 ## Migrating from existing projects
 
-If you need to migrate from an existing project to Rspack or Rsbuild, you can refer to the following guides:
+If you need to migrate from an existing project to Rspack stack, you can refer to the following guides:
 
 - [Migrating from webpack to Rspack](/guide/migration/webpack)
 - [Migrating from webpack to Rsbuild](https://rsbuild.dev/guide/migration/webpack)
 - [Migrating from Create React App to Rsbuild](https://rsbuild.dev/guide/migration/cra)
 - [Migrating from Vue CLI to Rsbuild](https://rsbuild.dev/guide/migration/vue-cli)
 - [Migrating from Vite to Rsbuild](https://rsbuild.dev/guide/migration/vite)
+- [Migrating from Tsup to Rslib](https://lib.rsbuild.dev/guide/migration/tsup)
 - [Migrating from Storybook](/guide/migration/storybook)
+
+## Install canary version
+
+When you need to test or verify the features of Rspack that are not yet released to the stable version, you may need to use the canary version.
+
+The canary version of Rspack has a `-canary` suffix in the package scope. For example, the canary package name of `@rspack/core` is `@rspack-canary/core`. To use these versions, you can configure the overrides of the package manager (npm/yarn/pnpm/bun).
+
+Here is an example of using pnpm overrides:
+
+```json title="package.json"
+{
+  "pnpm": {
+    "overrides": {
+      "@rspack/core": "npm:@rspack-canary/core@latest"
+    },
+    "peerDependencyRules": {
+      "allowAny": ["@rspack/*"]
+    }
+  }
+}
+```
+
+Rspack community also provides [install-rspack](https://github.com/rspack-contrib/install-rspack) tool to easily install canary version:
+
+```shell
+npx install-rspack --version latest # Install the latest version
+npx install-rspack --version canary # Install the canary version
+npx install-rspack --version 1.0.0-canary-d614005-20250101082730 # Install the specified canary version
+```
 
 ## Ecosystem
 
@@ -129,6 +159,10 @@ If you need to migrate from an existing project to Rspack or Rsbuild, you can re
 ### Rsdoctor
 
 [Rsdoctor](https://rsdoctor.dev/) is a build analyzer that can visually display the build process, such as compilation time, code changes before and after compilation, module reference relationships, duplicate modules, etc.
+
+### Rspeedy
+
+[Rspeedy](https://lynxjs.org/rspeedy/) is an Rspack-based build tool designed specifically for Lynx applications. [Lynx](https://lynxjs.org/) is a family of technologies empowering developers to use their existing web skills to create truly native UIs for both mobile and web from a single codebase.
 
 ### Modern.js
 
@@ -155,6 +189,16 @@ Docusaurus v3.6 supports Rspack as the bundler, see [Docusaurus Faster](https://
 [Nuxt](https://nuxt.com/) is a free and open-source framework with an intuitive and extendable way to create type-safe, performant and production-grade full-stack web applications and websites with Vue.js.
 
 Nuxt v3.14 introduces a new first-class Nuxt builder for Rspack, see [Nuxt 3.14](https://nuxt.com/blog/v3-14) for details.
+
+### Re.Pack
+
+[Re.Pack](https://github.com/callstack/repack) is a toolkit for building your React Native application.
+
+Re.Pack v5 uses Rspack and React Native community CLI's plugin system to allow you to bundle your application using Rspack and easily switch from Metro.
+
+### Angular Rspack
+
+[Angular Rspack](https://github.com/nrwl/angular-rspack) is a set of plugins and tools to make it easy and straightforward to build Angular applications with Rspack and Rsbuild.
 
 ### More
 

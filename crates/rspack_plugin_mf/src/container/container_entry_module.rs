@@ -6,7 +6,7 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   basic_function, block_promise, impl_module_meta_info, impl_source_map_config, module_raw,
   module_update_hash, returning_function,
-  rspack_sources::{RawStringSource, Source, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   throw_missing_module_error_block, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier,
   BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult,
   ChunkGroupOptions, CodeGenerationResult, Compilation, ConcatenationScope, Context,
@@ -14,7 +14,7 @@ use rspack_core::{
   ModuleDependency, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
   StaticExportsDependency, StaticExportsSpec,
 };
-use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashSet;
 
@@ -34,8 +34,8 @@ pub struct ContainerEntryModule {
   exposes: Vec<(String, ExposeOptions)>,
   share_scope: String,
   factory_meta: Option<FactoryMeta>,
-  build_info: Option<BuildInfo>,
-  build_meta: Option<BuildMeta>,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
   enhanced: bool,
 }
 
@@ -59,8 +59,15 @@ impl ContainerEntryModule {
       exposes,
       share_scope,
       factory_meta: None,
-      build_info: None,
-      build_meta: None,
+      build_info: BuildInfo {
+        strict: true,
+        top_level_declarations: Some(FxHashSet::default()),
+        ..Default::default()
+      },
+      build_meta: BuildMeta {
+        exports_type: BuildMetaExportsType::Namespace,
+        ..Default::default()
+      },
       source_map_kind: SourceMapKind::empty(),
       enhanced,
     }
@@ -112,7 +119,7 @@ impl Module for ContainerEntryModule {
     &[SourceType::JavaScript, SourceType::Expose]
   }
 
-  fn original_source(&self) -> Option<&dyn Source> {
+  fn source(&self) -> Option<&BoxSource> {
     None
   }
 
@@ -123,9 +130,7 @@ impl Module for ContainerEntryModule {
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
     Some(self.lib_ident.as_str().into())
   }
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
-  }
+
   async fn build(
     &mut self,
     _build_context: BuildContext,
@@ -161,15 +166,6 @@ impl Module for ContainerEntryModule {
     )));
 
     Ok(BuildResult {
-      build_info: BuildInfo {
-        strict: true,
-        top_level_declarations: Some(FxHashSet::default()),
-        ..Default::default()
-      },
-      build_meta: BuildMeta {
-        exports_type: BuildMetaExportsType::Namespace,
-        ..Default::default()
-      },
       dependencies,
       blocks,
       ..Default::default()
@@ -177,7 +173,7 @@ impl Module for ContainerEntryModule {
   }
 
   // #[tracing::instrument("ContainerEntryModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
-  fn code_generation(
+  async fn code_generation(
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,

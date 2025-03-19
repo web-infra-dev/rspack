@@ -14,6 +14,11 @@ on:
           - latest
           - beta
           - alpha
+      test:
+        type: boolean
+        description: "Run tests before release"
+        required: true
+        default: true
       dry_run:
         type: boolean
         description: "DryRun release"
@@ -28,6 +33,8 @@ on:
 permissions:
   # To publish packages with provenance
   id-token: write
+  # Allow commenting on issues for `reusable-build.yml`
+  issues: write
 
 jobs:
   get-runner-labels:
@@ -64,7 +71,8 @@ jobs:
     with:
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
-      profile: "release-prod"
+      test: ${{ inputs.test }}
+      profile: "release"
 
   release:
     name: Release
@@ -77,13 +85,16 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           # This makes Actions fetch only one branch to release
           fetch-depth: 1
 
-      - name: Pnpm Cache
-        uses: ./.github/actions/pnpm-cache
+      - name: Pnpm Setup
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Pnpm Install
+        uses: ./.github/actions/pnpm/install-dependencies
 
       - name: Download artifacts
         uses: actions/download-artifact@v4.1.7

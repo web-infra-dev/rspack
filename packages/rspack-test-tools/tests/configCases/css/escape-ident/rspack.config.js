@@ -5,10 +5,10 @@ module.exports = {
 	},
 	module: {
 		generator: {
-			'css/auto': {
+			"css/auto": {
 				exportsOnly: false,
-				localIdentName: '[local]-[path]'
+				localIdentName: "[local]-[path]"
 			}
 		}
-	},
+	}
 };

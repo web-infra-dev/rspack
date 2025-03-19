@@ -1,12 +1,12 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {
-    main: './index.js',
-  },
+		main: "./index.js"
+	},
 	module: {
 		parser: {
-			'css/module': {
-				namedExports: false,
+			"css/module": {
+				namedExports: false
 			}
 		},
 		rules: [
@@ -16,8 +16,8 @@ module.exports = {
 				generator: {
 					exportsConvention: "camel-case",
 					localIdentName: "[path][name][ext]__[local]",
-					exportsOnly: true,
-				},
+					exportsOnly: true
+				}
 			}
 		]
 	}

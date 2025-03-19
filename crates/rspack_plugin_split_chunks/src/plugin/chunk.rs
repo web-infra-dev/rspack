@@ -1,9 +1,7 @@
 use rspack_collections::{DatabaseItem, UkeySet};
-use rspack_core::incremental::Mutation;
-use rspack_core::{Chunk, ChunkUkey, Compilation};
+use rspack_core::{incremental::Mutation, Chunk, ChunkUkey, Compilation};
 
-use crate::module_group::ModuleGroup;
-use crate::SplitChunksPlugin;
+use crate::{module_group::ModuleGroup, SplitChunksPlugin};
 
 fn put_split_chunk_reason(
   chunk_reason: &mut Option<String>,

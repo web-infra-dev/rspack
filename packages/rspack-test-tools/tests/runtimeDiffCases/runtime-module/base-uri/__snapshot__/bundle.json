@@ -1,0 +1,12 @@
+{
+  "modules": {
+    "asset/resource|__WORKSPACE__/packages/rspack-test-tools/tests/runtimeDiffCases/runtime-module/base-uri/src/1.jpg": "(function () {\n  \"use strict\";\n\n  module.exports = __webpack_require__.p + \"1.jpg\";\n});",
+    "__WORKSPACE__/packages/rspack-test-tools/tests/runtimeDiffCases/runtime-module/base-uri/src/index.js": "(function () {\n  const jpg = new URL(__webpack_require__(\"./src/1.jpg\"), __webpack_require__.b);\n  it(\"should provide custom base uri\", () => {\n    expect(jpg.toString()).toBe(\"my-scheme://baseuri/1.jpg\");\n  });\n});"
+  },
+  "runtimeModules": {
+    "webpack/runtime/bootstrap": "var __webpack_module_cache__ = {};\nfunction __webpack_require__(moduleId) {\n  var cachedModule = __webpack_module_cache__[moduleId];\n  if (cachedModule !== undefined) return cachedModule.exports;\n  var module = __webpack_module_cache__[moduleId] = {\n    \"exports\": {}\n  };\n  __webpack_modules__[moduleId](module, module.exports, __webpack_require__);\n  return module.exports;\n}\n__webpack_require__.m = __webpack_modules__;",
+    "webpack/runtime/hasOwnProperty shorthand": "!function () {\n  __webpack_require__.o = function (obj, prop) {\n    return Object.prototype.hasOwnProperty.call(obj, prop);\n  };\n}();",
+    "webpack/runtime/publicPath": "!function () {\n  __webpack_require__.p = \"/\";\n}();",
+    "webpack/runtime/jsonp chunk loading": "!function () {\n  __webpack_require__.b = \"my-scheme://baseuri\";\n  var installedChunks = {\n    \"bundle\": 0\n  };\n}();"
+  }
+}

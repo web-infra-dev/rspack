@@ -3,7 +3,7 @@ const path = __non_webpack_require__('path')
 
 it('should have correct css result', async () => {
 	const css = await fs.promises.readFile(path.resolve(eval('__dirname'), './imported_js.bundle0.css'))
-	expect(css.toString()).toMatchSnapshot()
+	expect(css.toString()).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'imported_js.bundle0.css.txt'));
 })
 
 it("should allow to dynamic import a css module", done => {

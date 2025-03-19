@@ -6,8 +6,10 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 此插件使用 [lightningcss](https://lightningcss.dev/) 来压缩 CSS 产物。参见 [optimization.minimizer](/config/optimization#optimizationminimizer)。
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
   // ...
   optimization: {
     minimizer: [new rspack.LightningCssMinimizerRspackPlugin()],

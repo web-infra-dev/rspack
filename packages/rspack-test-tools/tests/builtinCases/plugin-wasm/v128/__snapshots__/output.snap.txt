@@ -1,6 +1,6 @@
 ```js title=main.js
 "use strict";
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./index.js": (function (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {
 __webpack_require__.r(__webpack_exports__);

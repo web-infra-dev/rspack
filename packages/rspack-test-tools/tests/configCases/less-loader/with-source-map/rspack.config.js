@@ -1,10 +1,10 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	target: 'web',
+	target: "web",
 	node: false,
 	devtool: "source-map",
 	output: {
-		publicPath: '/'
+		publicPath: "/"
 	},
 	module: {
 		rules: [
@@ -13,7 +13,7 @@ module.exports = {
 				use: [{ loader: "less-loader" }],
 				type: "css",
 				generator: {
-					exportsOnly: false,
+					exportsOnly: false
 				}
 			},
 			{

@@ -456,8 +456,8 @@ import WebpackLicense from '@components/WebpackLicense';
 
 是否展示插件和 loader 中指定 [Logger](/api/javascript-api/logger) 的调试信息。当 `stats.logging` 为 `false` 时 `stats.loggingDebug` 会被忽略。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   stats: {
     loggingDebug: [
@@ -573,8 +573,8 @@ module.exports = {
 
 举例来说，只输出错误和模块被引入的原因：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   stats: {
     preset: 'errors-only',

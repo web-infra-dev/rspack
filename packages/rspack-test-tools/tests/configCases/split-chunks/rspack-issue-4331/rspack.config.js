@@ -3,7 +3,7 @@ module.exports = {
 	mode: "development",
 	target: "node",
 	entry: {
-		main: "./src/index.js",
+		main: "./src/index.js"
 	},
 	output: {
 		filename: "[name].js"

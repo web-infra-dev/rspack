@@ -1,4 +1,4 @@
-use rspack_cacheable::{cacheable, from_bytes, to_bytes};
+use rspack_cacheable::{cacheable, from_bytes, r#dyn::VTablePtr, to_bytes};
 
 #[test]
 #[cfg_attr(miri, ignore)]
@@ -16,13 +16,13 @@ fn test_manual_cacheable_dyn_macro_with_generics() {
   const _: () = {
     use std::alloc::{Layout, LayoutError};
 
-    use rspack_cacheable::__private::rkyv::{
-      bytecheck::CheckBytes,
-      ptr_meta,
-      traits::{ArchivePointee, LayoutRaw},
-      ArchiveUnsized, ArchivedMetadata, DeserializeUnsized, Portable, SerializeUnsized,
-    };
     use rspack_cacheable::{
+      __private::rkyv::{
+        bytecheck::CheckBytes,
+        ptr_meta,
+        traits::{ArchivePointee, LayoutRaw},
+        ArchiveUnsized, ArchivedMetadata, DeserializeUnsized, Portable, SerializeUnsized,
+      },
       r#dyn::{validation::CHECK_BYTES_REGISTRY, ArchivedDynMetadata, DeserializeDyn},
       DeserializeError, Deserializer, SerializeError, Serializer, Validator,
     };
@@ -99,7 +99,7 @@ fn test_manual_cacheable_dyn_macro_with_generics() {
         value: *const Self,
         context: &mut Validator,
       ) -> Result<(), DeserializeError> {
-        let vtable: usize = std::mem::transmute(ptr_meta::metadata(value));
+        let vtable = VTablePtr::new(ptr_meta::metadata(value));
         if let Some(check_bytes_dyn) = CHECK_BYTES_REGISTRY.get(&vtable) {
           check_bytes_dyn(value.cast(), context)?;
           Ok(())
@@ -115,13 +115,8 @@ fn test_manual_cacheable_dyn_macro_with_generics() {
     color: String,
   }
 
-  static __DYN_ID_DOG_ANIMAL: std::sync::LazyLock<u64> = std::sync::LazyLock::new(|| {
-    use std::hash::{DefaultHasher, Hash, Hasher};
-    let mut hasher = DefaultHasher::new();
-    module_path!().hash(&mut hasher);
-    line!().hash(&mut hasher);
-    hasher.finish()
-  });
+  const __DYN_ID_DOG_ANIMAL: u64 =
+    xxhash_rust::const_xxh64::xxh64(concat!(module_path!(), ":", line!()).as_bytes(), 0);
 
   impl Animal<&'static str> for Dog {
     fn color(&self) -> &str {
@@ -131,16 +126,16 @@ fn test_manual_cacheable_dyn_macro_with_generics() {
       "dog"
     }
     fn __dyn_id(&self) -> u64 {
-      *__DYN_ID_DOG_ANIMAL
+      __DYN_ID_DOG_ANIMAL
     }
   }
 
   const _: () = {
-    use rspack_cacheable::__private::{
-      inventory,
-      rkyv::{ptr_meta, ArchiveUnsized, Archived, Deserialize, DeserializeUnsized},
-    };
     use rspack_cacheable::{
+      __private::{
+        inventory,
+        rkyv::{ptr_meta, ArchiveUnsized, Archived, Deserialize, DeserializeUnsized},
+      },
       r#dyn::{
         validation::{default_check_bytes_dyn, CheckBytesEntry},
         DeserializeDyn, DynEntry,
@@ -148,13 +143,11 @@ fn test_manual_cacheable_dyn_macro_with_generics() {
       DeserializeError, Deserializer,
     };
 
-    fn get_vtable() -> usize {
-      unsafe {
-        core::mem::transmute(ptr_meta::metadata(core::ptr::null::<Archived<Dog>>()
-          as *const <dyn Animal<&'static str> as ArchiveUnsized>::Archived))
-      }
+    const fn get_vtable() -> VTablePtr {
+      VTablePtr::new(ptr_meta::metadata(core::ptr::null::<Archived<Dog>>()
+        as *const <dyn Animal<&'static str> as ArchiveUnsized>::Archived))
     }
-    inventory::submit! { DynEntry::new(*__DYN_ID_DOG_ANIMAL, get_vtable()) }
+    inventory::submit! { DynEntry::new(__DYN_ID_DOG_ANIMAL, get_vtable()) }
     inventory::submit! { CheckBytesEntry::new(get_vtable(), default_check_bytes_dyn::<Archived<Dog>>) }
 
     impl DeserializeDyn<dyn Animal<&'static str>> for ArchivedDog
@@ -182,13 +175,8 @@ fn test_manual_cacheable_dyn_macro_with_generics() {
     color: String,
   }
 
-  static __DYN_ID_CAT_ANIMAL: std::sync::LazyLock<u64> = std::sync::LazyLock::new(|| {
-    use std::hash::{DefaultHasher, Hash, Hasher};
-    let mut hasher = DefaultHasher::new();
-    module_path!().hash(&mut hasher);
-    line!().hash(&mut hasher);
-    hasher.finish()
-  });
+  const __DYN_ID_CAT_ANIMAL: u64 =
+    xxhash_rust::const_xxh64::xxh64(concat!(module_path!(), ":", line!()).as_bytes(), 0);
 
   impl Animal<String> for Cat {
     fn color(&self) -> &str {
@@ -198,16 +186,16 @@ fn test_manual_cacheable_dyn_macro_with_generics() {
       String::from("cat")
     }
     fn __dyn_id(&self) -> u64 {
-      *__DYN_ID_CAT_ANIMAL
+      __DYN_ID_CAT_ANIMAL
     }
   }
 
   const _: () = {
-    use rspack_cacheable::__private::{
-      inventory,
-      rkyv::{ptr_meta, ArchiveUnsized, Archived, Deserialize, DeserializeUnsized},
-    };
     use rspack_cacheable::{
+      __private::{
+        inventory,
+        rkyv::{ptr_meta, ArchiveUnsized, Archived, Deserialize, DeserializeUnsized},
+      },
       r#dyn::{
         validation::{default_check_bytes_dyn, CheckBytesEntry},
         DeserializeDyn, DynEntry,
@@ -215,13 +203,11 @@ fn test_manual_cacheable_dyn_macro_with_generics() {
       DeserializeError, Deserializer,
     };
 
-    fn get_vtable() -> usize {
-      unsafe {
-        core::mem::transmute(ptr_meta::metadata(core::ptr::null::<Archived<Cat>>()
-          as *const <dyn Animal<String> as ArchiveUnsized>::Archived))
-      }
+    const fn get_vtable() -> VTablePtr {
+      VTablePtr::new(ptr_meta::metadata(core::ptr::null::<Archived<Cat>>()
+        as *const <dyn Animal<String> as ArchiveUnsized>::Archived))
     }
-    inventory::submit! { DynEntry::new(*__DYN_ID_CAT_ANIMAL, get_vtable()) }
+    inventory::submit! { DynEntry::new(__DYN_ID_CAT_ANIMAL, get_vtable()) }
     inventory::submit! { CheckBytesEntry::new(get_vtable(), default_check_bytes_dyn::<Archived<Cat>>)}
 
     impl DeserializeDyn<dyn Animal<String>> for ArchivedCat

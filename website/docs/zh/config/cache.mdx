@@ -20,10 +20,10 @@ Rspack 当前支持内存缓存（Memory Cache）和实验性的持久化缓存�
 
 ## 用法
 
-你可以在 `rspack.config.js` 中直接设置 cache 来禁用缓存:
+你可以在 Rspack 配置中直接设置 `cache` 来禁用缓存:
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   cache: false,
 };
 ```

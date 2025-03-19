@@ -79,14 +79,7 @@ export default {
 			}
 		},
 		{
-			name: "@swc/types",
-			ignoreDts: true,
-			afterBundle(task) {
-				copyFileSync(
-					join(task.depPath, "index.d.ts"),
-					join(task.distPath, "index.d.ts")
-				);
-			}
+			name: "@swc/types"
 		}
 	]
 };

@@ -11,11 +11,13 @@ version     = "0.2.0"
 [dependencies]
 dashmap            = { workspace = true }
 derive_more        = { workspace = true, features = ["debug"] }
+futures            = { workspace = true }
 rayon              = { workspace = true }
 regex              = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_core        = { workspace = true }
 rspack_error       = { workspace = true }
+rspack_futures     = { workspace = true }
 rspack_hash        = { workspace = true }
 rspack_hook        = { workspace = true }
 rspack_regex       = { workspace = true }

@@ -15,4 +15,7 @@ it("modern-module-dynamic-import-runtime", () => {
 
 	expect(asyncChunk).toContain('const litNs = await import("lit-alias")');
 	expect(asyncChunk).toContain('const solidNs = await import("solid-alias")');
+
+	const initialChunk2 = fs.readFileSync(path.resolve(__dirname, "main2.js"), "utf-8");
+	expect(initialChunk2).not.toContain('__webpack_require__');
 });

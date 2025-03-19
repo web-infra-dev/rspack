@@ -1,0 +1,20 @@
+{
+  "name": "@rspack/test-tools-viewer",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "init": "pnpm install --ignore-workspace",
+    "build": "node ../../rspack-cli/bin/rspack.js build",
+    "dev": "node ../../rspack-cli/bin/rspack.js serve"
+  },
+  "dependencies": {
+    "@arco-design/web-react": "^2.65.0",
+    "@monaco-editor/react": "^4.7.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-refresh": "^0.16.0",
+    "prettier": "^3.5.3",
+    "monaco-editor": "0.52.2",
+    "monaco-editor-webpack-plugin": "7.1.0"
+  }
+}

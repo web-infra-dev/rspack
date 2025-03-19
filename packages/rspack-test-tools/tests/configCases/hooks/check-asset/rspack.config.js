@@ -6,7 +6,7 @@ class Plugin {
 		let called = 0;
 		compiler.hooks.compilation.tap(pluginName, compilation => {
 			compilation.hooks.chunkAsset.tap(pluginName, (chunk, name) => {
-				let files = [...chunk.files]
+				let files = [...chunk.files];
 				assert(files.includes("bundle0.js"));
 				called++;
 			});

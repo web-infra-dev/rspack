@@ -1,5 +1,6 @@
 import type { Compiler } from "../Compiler";
-import { type ExternalsType, externalsType } from "../config";
+import type { ExternalsType } from "../config";
+import { externalsType } from "../config/zod";
 import { isValidate } from "../util/validate";
 import type { ModuleFederationPluginV1Options } from "./ModuleFederationPluginV1";
 import { ModuleFederationRuntimePlugin } from "./ModuleFederationRuntimePlugin";

@@ -13,10 +13,10 @@ Rspack CLI comes with a built-in `@rspack/dev-server` for development and debugg
 
 ### HMR
 
-By default, Rspack enables HMR in dev mode. You can disable HMR by configuring the `devServer.hot` option in `rspack.config.js`.
+By default, Rspack enables HMR in dev mode. You can disable HMR by configuring the `devServer.hot` option in Rspack configuration.
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   devServer: {
     hot: false,
   },
@@ -24,15 +24,15 @@ module.exports = {
 ```
 
 :::warning
-HMR is not working for CSS when `output.cssFilename` contains `[hash]` or `[contenthash]`
+Do not include `[hash]` or `[contenthash]` in [output.cssFilename](/config/output#outputcssfilename), otherwise CSS HMR may not work.
 :::
 
 ### Proxy
 
-Rspack has a built-in simple proxy server. You can enable the proxy server by configuring the `devServer.proxy` option in `rspack.config.js`. The devServer internally uses [http-proxy-middleware](https://github.com/chimurai/http-proxy-middleware) to implement the proxy function. For example, you can proxy `/api` to `http://localhost:3000` as follows:
+Rspack has a built-in simple proxy server. You can enable the proxy server by configuring the `devServer.proxy` option in Rspack configuration. The devServer internally uses [http-proxy-middleware](https://github.com/chimurai/http-proxy-middleware) to implement the proxy function. For example, you can proxy `/api` to `http://localhost:3000` as follows:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   devServer: {
     proxy: [
       {

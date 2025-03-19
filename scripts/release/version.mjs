@@ -1,19 +1,32 @@
 import path from "node:path";
-import { findWorkspacePackagesNoCheck } from "@pnpm/find-workspace-packages";
+import { glob } from "glob";
 import semver from "semver";
 
 async function getCommitId() {
 	const result = await $`git rev-parse --short HEAD`;
 	return result.stdout.replace("\n", "");
 }
+
 export async function getLastVersion(root) {
 	const pkgPath = path.resolve(root, "./packages/rspack/package.json");
-	const result = await import(pkgPath, {
-		assert: {
-			type: "json"
-		}
-	});
-	return result.default.version;
+
+	try {
+		// Node >= 20
+		const result = await import(pkgPath, {
+			with: {
+				type: "json"
+			}
+		});
+		return result.default.version;
+	} catch (e) {
+		// Node < 20
+		const result = await import(pkgPath, {
+			assert: {
+				type: "json"
+			}
+		});
+		return result.default.version;
+	}
 }
 
 export function getNextName(name) {
@@ -77,32 +90,47 @@ export async function version_handler(version, options) {
 			nextVersion = semver.inc(lastVersion, version);
 		}
 	}
-	const workspaces = await findWorkspacePackagesNoCheck(root);
-	for (const workspace of workspaces) {
-		// skip all example upgrade
+
+	const packageFiles = await glob("{packages,npm,crates}/*/package.json", {
+		cwd: root,
+		ignore: ["**/node_modules/**", "**/dist/**"],
+		absolute: true
+	});
+
+	const rootPackageJson = path.join(root, "package.json");
+	const allPackageFiles = [...packageFiles, rootPackageJson];
+
+	for (const packageFile of allPackageFiles) {
+		const packageJson = JSON.parse(await fs.readFile(packageFile, "utf-8"));
+
 		if (
-			workspace.manifest.name?.includes("example-") ||
-			(workspace.manifest.private === true &&
-				workspace.manifest.name !== "monorepo")
+			(packageJson.private === true && packageJson.name !== "monorepo") ||
+			packageJson.name?.includes("example-")
 		) {
 			continue;
 		}
-		let newManifest;
 
+		let newPackageJson;
 		if (version === "snapshot") {
-			const nextName = getNextName(workspace.manifest.name);
-			newManifest = {
-				...workspace.manifest,
+			const nextName = getNextName(packageJson.name);
+			newPackageJson = {
+				...packageJson,
 				name: nextName,
 				version: nextVersion
 			};
 		} else {
-			newManifest = {
-				...workspace.manifest,
+			newPackageJson = {
+				...packageJson,
 				version: nextVersion
 			};
 		}
-		console.log(newManifest.name);
-		workspace.writeProjectManifest(newManifest);
+
+		await fs.writeFile(
+			packageFile,
+			`${JSON.stringify(newPackageJson, null, 2)}\n`,
+			"utf-8"
+		);
+
+		console.log(`Update ${newPackageJson.name}: ${newPackageJson.version}`);
 	}
 }

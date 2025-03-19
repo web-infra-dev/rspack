@@ -21,11 +21,6 @@ on:
     tags-ignore:
       - "**"
 
-env:
-  # Since CI builds are more akin to from-scratch builds, incremental compilation adds unnecessary dependency-tracking and IO overhead, reducing caching effectiveness.
-  # https://github.com/rust-lang/rust-analyzer/blob/25368d24308d6a94ffe8b99f0122bcf5a2175322/.github/workflows/ci.yaml#L11
-  CARGO_INCREMENTAL: 0
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.ref_name != 'main' }}
@@ -46,8 +41,8 @@ jobs:
       changed: ${{ steps.filter.outputs.changed == 'true' }}
       document_changed: ${{ steps.document_filter.outputs.changed == 'true' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
         id: filter
         with:
           predicate-quantifier: "every"
@@ -56,7 +51,7 @@ jobs:
               - "!**/*.md"
               - "!**/*.mdx"
               - "!website/**"
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
         id: document_filter
         with:
           predicate-quantifier: "every"
@@ -70,27 +65,10 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
-      native: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS == '"ubuntu-22.04"' }}
       runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
       skipable: ${{ needs.check-changed.outputs.changed != 'true' }}
       bench: true
-
-  test-release-linux:
-    name: Test Release Linux
-    needs: [get-runner-labels]
-    if: contains(github.event.pull_request.title, '!linux')
-    uses: ./.github/workflows/reusable-build.yml
-    strategy:
-      fail-fast: false # Build and test everything so we can look at all the errors
-      matrix:
-        array:
-          - target: x86_64-unknown-linux-gnu
-          - target: aarch64-unknown-linux-gnu
-          - target: x86_64-unknown-linux-musl
-          - target: aarch64-unknown-linux-musl
-    with:
-      target: ${{ matrix.array.target }}
-      runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+      full-install: false
 
   test-windows:
     name: Test Windows
@@ -98,58 +76,41 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-pc-windows-msvc
-      profile: "debug"
+      profile: "dev"
       runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
       skipable: ${{ needs.check-changed.outputs.changed != 'true' }}
-
-  test-release-windows:
-    name: Test Release Windows
-    needs: [get-runner-labels]
-    if: contains(github.event.pull_request.title, '!windows')
-    uses: ./.github/workflows/reusable-build.yml
-    strategy:
-      fail-fast: false # Build and test everything so we can look at all the errors
-      matrix:
-        array:
-          - target: i686-pc-windows-msvc
-          - target: x86_64-pc-windows-msvc
-          - target: aarch64-pc-windows-msvc
-    with:
-      target: ${{ matrix.array.target }}
-      runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+      full-install: false
 
   test-mac:
-    name: Test Mac
+    name: Test Mac ARM64
     needs: [get-runner-labels, check-changed]
     if: github.ref_name == 'main' || contains(github.event.pull_request.title, '!macos')
     uses: ./.github/workflows/reusable-build.yml
     with:
-      target: x86_64-apple-darwin
-      profile: "debug"
+      target: aarch64-apple-darwin
+      profile: "ci"
       runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
       skipable: ${{ needs.check-changed.outputs.changed  != 'true' }}
+      full-install: false
 
-  test-release-mac:
-    name: Test Release Mac
-    needs: [get-runner-labels]
-    if: contains(github.event.pull_request.title, '!macos')
+  test-wasm:
+    name: Test WASM
+    needs: [get-runner-labels, check-changed]
     uses: ./.github/workflows/reusable-build.yml
-    strategy:
-      fail-fast: false # Build and test everything so we can look at all the errors
-      matrix:
-        array:
-          - target: x86_64-apple-darwin
-          - target: aarch64-apple-darwin
     with:
-      target: ${{ matrix.array.target }}
-      runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
+      target: wasm32-wasip1-threads
+      profile: "ci"
+      runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+      skipable: true
+      full-install: false
+      test: false
 
   cargo-deny:
     name: Check license of dependencies
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
         id: filter
         with:
           filters: |
@@ -157,7 +118,7 @@ jobs:
               - 'Cargo.lock'
       - name: Install cargo-deny
         if: steps.filter.outputs.src == 'true'
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@03351cfd91ee8253b66020be1ad81991e6ba3502 # v2
         with:
           tool: cargo-deny@0.16
       - name: Check licenses
@@ -168,8 +129,8 @@ jobs:
     name: Spell check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: crate-ci/typos@v1.29.4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: crate-ci/typos@7bc041cbb7ca9167c9e0e4ccbb26f48eb0f9d4e0 # v1.30.2
         with:
           files: .
 
@@ -179,9 +140,9 @@ jobs:
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.changed == 'true' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
         id: changes
         with:
           filters: |
@@ -189,12 +150,16 @@ jobs:
               - pnpm-lock.yaml
               - '**/*.{ts,js,mjs,tsx,jsx}'
 
-      - name: Pnpm Cache
-        uses: ./.github/actions/pnpm-cache
+      - name: Pnpm Setup
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Pnpm Install
+        uses: ./.github/actions/pnpm/install-dependencies
 
       - name: Lint js
         if: steps.changes.outputs.src == 'true'
         run: pnpm run lint-ci:js
+
       - name: Prettier
         if: steps.changes.outputs.src == 'true'
         run: pnpm run format-ci:js
@@ -203,16 +168,33 @@ jobs:
         if: steps.changes.outputs.src == 'true'
         run: pnpm run check-dependency-version
 
+      - name: API change check
+        if: steps.changes.outputs.src == 'true'
+        run: |
+          echo "===================================="
+          echo "Note: force build npm packages with \`pnpm build:js\` and  \`pnpm api-extractor:local\` locally to generate API change if \`api-extractor\` check failed."
+          echo "$ pnpm build:js && pnpm api-extractor:local"
+          echo "===================================="
+          pnpm build:js
+          pnpm api-extractor:ci
+
+      - name: Documentation coverage check
+        if: steps.changes.outputs.src == 'true'
+        run: pnpm doc-coverage
+
   lint-website:
     name: Lint and format website
     runs-on: ubuntu-latest
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.document_changed == 'true' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - name: Pnpm Cache
-        uses: ./.github/actions/pnpm-cache
+      - name: Pnpm Setup
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Pnpm Install
+        uses: ./.github/actions/pnpm/install-dependencies
 
       - name: Run
         run: |
@@ -228,9 +210,9 @@ jobs:
     outputs:
       changed: ${{ steps.filter.outputs.changed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
         id: filter
         with:
           filters: |
@@ -245,10 +227,13 @@ jobs:
     name: Pnpm Lockfile Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - name: Pnpm Cache # Required by some tests
-        uses: ./.github/actions/pnpm-cache
+      - name: Pnpm Setup
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Pnpm Install
+        uses: ./.github/actions/pnpm/install-dependencies
         with:
           frozen-lockfile: true
 
@@ -258,7 +243,7 @@ jobs:
     if: ${{ needs.rust_changes.outputs.changed == 'true' }}
     runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
@@ -267,26 +252,26 @@ jobs:
           fmt: true
           shared-key: check
 
-      - name: Pnpm Cache # Required by some tests
-        uses: ./.github/actions/pnpm-cache
+      - name: Pnpm Setup
+        uses: ./.github/actions/pnpm/setup
 
       - name: Run Cargo Check
         run: cargo check --workspace --all-targets --locked # Not using --release because it uses too much cache, and is also slow.
 
       - name: Run Clippy
-        uses: actions-rs/cargo@v1
+        uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505 # v1
         with:
           command: clippy
           args: --workspace --all-targets --tests -- -D warnings
 
       - name: Run rustfmt
-        uses: actions-rs/cargo@v1
+        uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505 # v1
         with:
           command: fmt
           args: --all -- --check
 
       - name: Run toml format check
-        run: pnpm run format-ci:toml
+        run: npm run format-ci:toml
 
   rust_unused_dependencies:
     name: Check Rust Unused Dependencies
@@ -294,12 +279,12 @@ jobs:
     if: ${{ needs.rust_changes.outputs.changed == 'true' }}
     runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - uses: ./.github/actions/rustup
         with:
           shared-key: check
-      - uses: cargo-bins/cargo-binstall@v1.10.21
-      - run: cargo binstall --no-confirm cargo-shear
+      - uses: cargo-bins/cargo-binstall@acd08f184561622f67f0e4406a62a10f656777a9 # v1.12.0
+      - run: cargo binstall --no-confirm cargo-shear --force
       - run: cargo shear
 
   rust_test:
@@ -308,10 +293,7 @@ jobs:
     if: ${{ needs.rust_changes.outputs.changed == 'true' }}
     runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Pnpm Cache # Required by some tests
-        uses: ./.github/actions/pnpm-cache
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
@@ -325,10 +307,8 @@ jobs:
         run: |
           echo '[profile.test]' >> Cargo.toml
           echo 'debug = false' >> Cargo.toml
-
-      - name: Run test
-        # reason for excluding https://github.com/napi-rs/napi-rs/issues/2200
-        run: cargo test --workspace --exclude rspack_node -- --nocapture
+      - name: Run rspack test
+        run: cargo test -- --nocapture
 
   rust_test_miri:
     name: Rust test miri
@@ -338,10 +318,7 @@ jobs:
     if: false
     runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Pnpm Cache # Required by some tests
-        uses: ./.github/actions/pnpm-cache
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
@@ -369,8 +346,8 @@ jobs:
     if: ${{ failure() && !cancelled() && github.ref_name == 'main' && github.repository_owner == 'web-infra-dev' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
         with:
           node-version: 20
       - shell: bash

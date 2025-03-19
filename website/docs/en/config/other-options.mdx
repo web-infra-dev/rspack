@@ -1,11 +1,43 @@
 import WebpackLicense from '@components/WebpackLicense';
 import PropertyType from '@components/PropertyType';
+import { ApiMeta } from '@components/ApiMeta';
 
 <WebpackLicense from="https://webpack.js.org/configuration/other-options/" />
 
 # Other options
 
 These are the remaining configuration options supported by rspack.
+
+## amd
+
+<ApiMeta addedVersion="1.3.0" />
+
+<PropertyType
+  type="false | object"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+:::info
+Unlike webpack, where the default value of the `amd` option is `{}` (meaning AMD module dependency analysis is enabled by default), Rspack sets the default value of the `amd` option to `false`. This means AMD module dependency analysis is disabled by default in Rspack. This change was made because the usage of AMD modules is gradually decreasing. If your application requires it, you can enable this option by yourself.
+:::
+
+Enable this option to support dependency analysis for AMD modules, which is helpful for compatibility with some older libraries written according to the AMD specification.
+
+```js title="rspack.config.mjs"
+export default {
+  amd: {}, // enable parsing AMD module dependencies
+};
+```
+
+In addition, you can set the values of `require.amd` or `define.amd` through this configuration:
+
+```js title="rspack.config.mjs"
+export default {
+  amd: {
+    jQuery: true, // `require.amd` and `define.amd` are set to `{ jQuery: true }`.
+  },
+};
+```
 
 ## bail
 
@@ -14,8 +46,8 @@ These are the remaining configuration options supported by rspack.
 Fail out on the first error instead of tolerating it. By default Rspack will log these errors in red in the terminal, as well as the browser console when using HMR, but continue bundling.
 To enable it:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   bail: true,
 };
 ```
@@ -38,8 +70,8 @@ In watch mode dependencies will invalidate the compiler when:
 
 Remember that current configuration will not compile until its dependencies are done.
 
-```js title="rspack.config.js"
-module.exports = [
+```js title="rspack.config.mjs"
+export default [
   {
     name: 'client',
     target: 'web',
@@ -62,8 +94,8 @@ module.exports = [
 
 Tells Rspack to ignore specific warnings.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   ignoreWarnings: [/warning from compiler/, warning => true],
 };
@@ -78,8 +110,8 @@ module.exports = {
 
 Name of the configuration. Used when loading multiple configurations.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   name: 'admin-app',
 };
@@ -96,8 +128,8 @@ Expose custom values into the [loader context](/api/loader-api/context).
 
 For example, you can define a new variable in the loader context:
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   loader: {
     answer: 42,

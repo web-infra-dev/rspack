@@ -6,8 +6,8 @@ module.exports = {
 			{
 				test: /\.tsx$/,
 				use: {
-					loader: "builtin:swc-loader",
-				},
+					loader: "builtin:swc-loader"
+				}
 			}
 		]
 	}

@@ -5,7 +5,7 @@ use derive_more::Debug;
 use futures::future::join_all;
 use rspack_core::{
   rspack_sources::{BoxSource, MapOptions, RawStringSource, Source, SourceExt},
-  ApplyContext, BoxModule, ChunkInitFragments, ChunkUkey, Compilation,
+  ApplyContext, BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
   CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation,
   CompilerOptions, ModuleIdentifier, Plugin, PluginContext, RuntimeGlobals,
 };
@@ -34,7 +34,8 @@ pub struct EvalSourceMapDevToolPlugin {
   module_filename_template: ModuleFilenameTemplate,
   namespace: String,
   source_root: Option<String>,
-  cache: DashMap<BoxSource, BoxSource>,
+  // TODO: memory leak if not clear across multiple compilations
+  cache: DashMap<String, BoxSource>,
 }
 
 impl EvalSourceMapDevToolPlugin {
@@ -65,7 +66,7 @@ async fn eval_source_map_devtool_plugin_compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation);
+  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
   hooks
     .render_module_content
     .tap(eval_source_map_devtool_plugin_render_module_content::new(
@@ -81,7 +82,7 @@ async fn eval_source_map_devtool_plugin_compilation(
 }
 
 #[plugin_hook(JavascriptModulesRenderModuleContent for EvalSourceMapDevToolPlugin)]
-fn eval_source_map_devtool_plugin_render_module_content(
+async fn eval_source_map_devtool_plugin_render_module_content(
   &self,
   compilation: &Compilation,
   module: &BoxModule,
@@ -89,9 +90,13 @@ fn eval_source_map_devtool_plugin_render_module_content(
   _init_fragments: &mut ChunkInitFragments,
 ) -> Result<()> {
   let output_options = &compilation.options.output;
+  let module_hash = compilation
+    .code_generation_results
+    .get_hash(&module.identifier(), None)
+    .map(|hash| hash.encoded());
 
   let origin_source = render_source.source.clone();
-  if let Some(cached_source) = self.cache.get(&origin_source) {
+  if let Some(cached_source) = module_hash.and_then(|hash| self.cache.get(hash)) {
     render_source.source = cached_source.value().clone();
     return Ok(());
   } else if let Some(mut map) = origin_source.map(&MapOptions::new(self.columns)) {
@@ -137,7 +142,8 @@ fn eval_source_map_devtool_plugin_render_module_content(
                 &self.namespace,
               )
             });
-            futures::executor::block_on(join_all(features))
+            join_all(features)
+              .await
               .into_iter()
               .collect::<Result<Vec<_>>>()?
           }
@@ -153,16 +159,25 @@ fn eval_source_map_devtool_plugin_render_module_content(
       if self.no_sources {
         map.set_sources_content([]);
       }
+
       map.set_source_root(self.source_root.clone());
       map.set_file(Some(module.identifier().to_string()));
 
       let mut map_buffer = Vec::new();
+      let module_ids = &compilation.module_ids_artifact;
+      // align with https://github.com/webpack/webpack/blob/3919c844eca394d73ca930e4fc5506fb86e2b094/lib/EvalSourceMapDevToolPlugin.js#L171
+      let module_id =
+        if let Some(module_id) = ChunkGraph::get_module_id(module_ids, module.identifier()) {
+          module_id.as_str()
+        } else {
+          "unknown"
+        };
       map
         .to_writer(&mut map_buffer)
         .unwrap_or_else(|e| panic!("{}", e.to_string()));
       let base64 = rspack_base64::encode_to_string(&map_buffer);
       let footer =
-        format!("\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}");
+        format!("\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}\n//# sourceURL=webpack-internal:///{module_id}\n");
       let module_content =
         simd_json::to_string(&format!("{source}{footer}")).expect("should convert to string");
       RawStringSource::from(format!(
@@ -175,7 +190,9 @@ fn eval_source_map_devtool_plugin_render_module_content(
       ))
       .boxed()
     };
-    self.cache.insert(origin_source, source.clone());
+    if let Some(hash) = module_hash {
+      self.cache.insert(hash.to_string(), source.clone());
+    }
     render_source.source = source;
     return Ok(());
   }

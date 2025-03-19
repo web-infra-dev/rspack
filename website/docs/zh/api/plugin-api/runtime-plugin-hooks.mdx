@@ -1,0 +1,106 @@
+import { Collapse, CollapsePanel } from '@components/Collapse';
+import ChunkType from '../../types/chunk.mdx';
+
+# RuntimePlugin 钩子
+
+`RuntimePlugin` 用于生成运行时 Rspack 启动所需的代码。它提供以下生命周期钩子，可用于修改这些运行时代码。
+
+你可以通过参考如下代码获取这些钩子：
+
+```js title="rspack.config.mjs"
+export default {
+  // ...
+  plugins: [
+    {
+      apply: compiler => {
+        const { RuntimePlugin } = compiler.webpack;
+        compiler.hooks.compilation.tap('MyPlugin', compilation => {
+          const hooks = RuntimePlugin.getCompilationHooks(compilation);
+          // ...
+        });
+      },
+    },
+  ],
+};
+```
+
+## `createScript`
+
+`SyncWaterallHook<[string, chunk]>`
+
+可修改创建 `<script>` 标签时所执行的代码。
+
+如以下代码，可给 `<script>` 标签添加 `crossorigin` 属性：
+
+```js
+hooks.createScript.tap('MyPlugin', (code, chunk) => {
+  return `
+    ${code}
+    script.crossorigin = 'anonymous';
+  `;
+});
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="CreateScript.ts"
+    key="CreateScript"
+  >
+    <ChunkType />
+  </CollapsePanel>
+</Collapse>
+
+## `linkPrefetch`
+
+`SyncWaterallHook<[string, chunk]>`
+
+可修改创建[预载](/guide/optimization/code-splitting#prefetchingpreloading-modules)的 `<link rel="prefetch">` 标签时所执行的代码。
+
+如以下代码，可给用于预载的 `<link>` 标签添加 `crossorigin` 属性：
+
+```js
+hooks.linkPrefetch.tap('MyPlugin', (code, chunk) => {
+  return `
+    ${code}
+    link.crossorigin = 'anonymous';
+  `;
+});
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="CreateScript.ts"
+    key="CreateScript"
+  >
+    <ChunkType />
+  </CollapsePanel>
+</Collapse>
+
+## `linkPreload`
+
+`SyncWaterallHook<[string, chunk]>`
+
+可修改创建[预取](/guide/optimization/code-splitting#prefetchingpreloading-modules)的 `<link rel="preload">` 标签时所执行的代码。
+
+如以下代码，可给用于预取的 `<link>` 标签添加 `crossorigin` 属性：
+
+```js
+hooks.linkPreload.tap('MyPlugin', (code, chunk) => {
+  return `
+    ${code}
+    link.crossorigin = 'anonymous';
+  `;
+});
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="CreateScript.ts"
+    key="CreateScript"
+  >
+    <ChunkType />
+  </CollapsePanel>
+</Collapse>

@@ -13,8 +13,8 @@ module.exports = {
 				},
 				use: [
 					{
-						loader: "./loader.js", 
-					 }
+						loader: "./loader.js"
+					}
 				]
 			},
 			{

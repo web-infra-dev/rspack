@@ -12,8 +12,8 @@ import WebpackLicense from '@components/WebpackLicense';
 
 将内容逐行追加到输出中，而不更新现有的输出。这对状态消息非常有用。只有在未提供自定义 [console](#infrastructureloggingconsole) 时才会使用此选项。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   infrastructureLogging: {
     appendOnly: true,
@@ -35,8 +35,8 @@ module.exports = {
 
 基础架构级别的输出颜色。只有在未提供自定义 [console](#infrastructureloggingconsole) 时才会使用此选项。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   infrastructureLogging: {
     colors: true,
@@ -58,8 +58,8 @@ module.exports = {
 
 自定义用于基础架构级别日志记录的控制台。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   infrastructureLogging: {
     console: yourCustomConsole(),
@@ -74,8 +74,8 @@ module.exports = {
 
 指定输出（如特定的插件或 loader）的调试信息。类似 [stats.loggingDebug](/config/stats#statsloggingdebug) 选项，但适用于基础架构。默认为 `false`。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   infrastructureLogging: {
     level: 'info',
@@ -100,8 +100,8 @@ module.exports = {
 - `'log'` - 记录错误、警告、信息消息、日志消息、组和清除。折叠的组以折叠状态显示。
 - `'verbose'` - 记录除调试和跟踪以外的所有内容。折叠的组以扩展状态显示。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   infrastructureLogging: {
     level: 'info',
@@ -116,8 +116,8 @@ module.exports = {
 
 用于日志记录输出的流。默认为 `process.stderr`。只有在未提供自定义 [console](#infrastructureloggingconsole) 时才会使用此选项。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   infrastructureLogging: {
     stream: process.stderr,

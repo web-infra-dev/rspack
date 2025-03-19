@@ -3,7 +3,7 @@ module.exports = {
 	module: {
 		generator: {
 			"css/auto": {
-				localIdentName: "[path][name]-[local]",
+				localIdentName: "[path][name]-[local]"
 			}
 		}
 	},

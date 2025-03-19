@@ -2,6 +2,7 @@
 
 mod compiler;
 mod options;
+mod plugin;
 mod transformer;
 
 use std::default::Default;
@@ -9,17 +10,21 @@ use std::default::Default;
 use compiler::{IntoJsAst, SwcCompiler};
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
+pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{Mode, RunnerContext};
 use rspack_error::{error, AnyhowError, Diagnostic, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
-use rspack_plugin_javascript::ast::{self, SourceMapConfig};
-use rspack_plugin_javascript::TransformOutput;
+use rspack_plugin_javascript::{
+  ast::{self, SourceMapConfig},
+  TransformOutput,
+};
 use rspack_util::source_map::SourceMapKind;
 use swc_config::{config_types::MergingOption, merge::Merge};
-use swc_core::base::config::SourceMapsConfig;
-use swc_core::base::config::{InputSourceMap, OutputCharset, TransformConfig};
-use swc_core::ecma::visit::VisitWith;
+use swc_core::{
+  base::config::{InputSourceMap, OutputCharset, SourceMapsConfig, TransformConfig},
+  ecma::visit::VisitWith,
+};
 use transformer::IdentCollector;
 
 #[cacheable]
@@ -145,7 +150,7 @@ impl Loader<RunnerContext> for SwcLoader {
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
     #[allow(unused_mut)]
     let mut inner = || self.loader_impl(loader_context);
-    #[cfg(debug_assertions)]
+    #[cfg(all(debug_assertions, not(target_family = "wasm")))]
     {
       // Adjust stack to avoid stack overflow.
       stacker::maybe_grow(
@@ -154,7 +159,7 @@ impl Loader<RunnerContext> for SwcLoader {
         inner,
       )
     }
-    #[cfg(not(debug_assertions))]
+    #[cfg(any(not(debug_assertions), target_family = "wasm"))]
     inner()
   }
 }

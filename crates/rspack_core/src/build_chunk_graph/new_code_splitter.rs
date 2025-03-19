@@ -1,24 +1,26 @@
-use std::borrow::Cow;
-use std::hash::BuildHasherDefault;
-use std::iter::once;
-use std::sync::Arc;
+use std::{
+  borrow::Cow,
+  hash::BuildHasherDefault,
+  iter::once,
+  sync::{atomic::AtomicU32, Arc},
+};
 
 use dashmap::mapref::one::Ref;
 use indexmap::IndexSet;
-use num_bigint::BigInt;
 use rayon::prelude::*;
 use rspack_collections::{
   DatabaseItem, IdentifierDashMap, IdentifierHasher, IdentifierIndexMap, IdentifierIndexSet,
-  IdentifierMap, IdentifierSet, UkeyMap,
+  IdentifierMap, IdentifierSet, Ukey, UkeyMap,
 };
-use rspack_error::Result;
-use rspack_error::{error, Diagnostic};
+use rspack_error::{error, Diagnostic, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::incremental::Mutation;
+use super::available_modules::{remove_available_modules, AvailableModules};
 use crate::{
-  assign_depths, merge_runtime, AsyncDependenciesBlockIdentifier, ChunkGroup, ChunkGroupKind,
-  ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, Compilation, DependenciesBlock,
+  assign_depths,
+  incremental::{IncrementalPasses, Mutation},
+  merge_runtime, AsyncDependenciesBlockIdentifier, Chunk, ChunkGroup, ChunkGroupKind,
+  ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, DependenciesBlock,
   DependencyLocation, EntryData, EntryDependency, EntryOptions, EntryRuntime, GroupOptions,
   ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
   SyntheticDependencyLocation,
@@ -29,16 +31,30 @@ type ModuleDeps = HashMap<
   IdentifierDashMap<(Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>)>,
 >;
 
-#[derive(Clone)]
-enum AvailableModules {
-  NotSet,
-  Calculating,
-  Done(BigInt),
+static NEXT_CACHE_UKEY: AtomicU32 = AtomicU32::new(0);
+
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
+pub struct CacheUkey(Ukey, std::marker::PhantomData<CacheableChunkItem>);
+
+impl CacheUkey {
+  fn new() -> Self {
+    Self(
+      Ukey::new(NEXT_CACHE_UKEY.fetch_add(1, std::sync::atomic::Ordering::Relaxed)),
+      std::marker::PhantomData,
+    )
+  }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+pub struct CacheableChunkItem {
+  pub cache_ukey: CacheUkey,
+  pub chunk_desc: ChunkDesc,
+}
+
+#[derive(Debug, Default)]
 pub struct CodeSplitter {
-  pub _connect_count: usize,
+  cache_chunk_desc: HashMap<CreateChunkRoot, Vec<CacheableChunkItem>>,
+  cache_chunks: UkeyMap<CacheUkey, Chunk>,
 
   pub module_deps: ModuleDeps,
   pub module_deps_without_runtime:
@@ -46,20 +62,20 @@ pub struct CodeSplitter {
   pub module_ordinal: IdentifierMap<u64>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 enum CreateChunkRoot {
   Entry(String, EntryData, Option<RuntimeSpec>),
   Block(AsyncDependenciesBlockIdentifier, Option<RuntimeSpec>),
 }
 
 struct FinalizeChunksResult {
-  chunks: Vec<ChunkDesc>,
+  chunks: Vec<(bool, CacheableChunkItem)>,
   chunk_children: Vec<Vec<usize>>,
 }
 
 // Description about how to create chunk
 #[derive(Debug, Clone)]
-enum ChunkDesc {
+pub enum ChunkDesc {
   // Name, entry_modules, Options, Modules
   Entry(Box<EntryChunkDesc>),
 
@@ -68,7 +84,7 @@ enum ChunkDesc {
 }
 
 impl ChunkDesc {
-  fn name(&self) -> Option<&str> {
+  pub fn name(&self) -> Option<&str> {
     match self {
       ChunkDesc::Entry(entry) => entry.entry.as_deref(),
       ChunkDesc::Chunk(chunk) => chunk.options.as_ref().and_then(|opt| opt.name.as_deref()),
@@ -82,27 +98,42 @@ impl ChunkDesc {
     }
   }
 
-  fn available_modules(&self) -> &BigInt {
+  pub(crate) fn chunk_modules_ordinal(&self) -> &AvailableModules {
     match self {
       ChunkDesc::Entry(entry) => &entry.modules_ordinal,
       ChunkDesc::Chunk(chunk) => &chunk.modules_ordinal,
     }
   }
 
-  fn available_modules_mut(&mut self) -> &mut BigInt {
+  pub(crate) fn available_modules_mut(&mut self) -> &mut AvailableModules {
     match self {
-      ChunkDesc::Entry(entry) => &mut entry.modules_ordinal,
-      ChunkDesc::Chunk(chunk) => &mut chunk.modules_ordinal,
+      ChunkDesc::Entry(entry) => &mut entry.available_modules,
+      ChunkDesc::Chunk(chunk) => &mut chunk.available_modules,
+    }
+  }
+
+  pub(crate) fn runtime(&self) -> Option<&RuntimeSpec> {
+    match self {
+      ChunkDesc::Entry(entry) => entry.runtime.as_ref(),
+      ChunkDesc::Chunk(chunk) => chunk.runtime.as_ref(),
+    }
+  }
+
+  pub(crate) fn runtime_mut(&mut self) -> Option<&mut RuntimeSpec> {
+    match self {
+      ChunkDesc::Entry(entry) => entry.runtime.as_mut(),
+      ChunkDesc::Chunk(chunk) => chunk.runtime.as_mut(),
     }
   }
 }
 
 #[derive(Debug, Clone)]
-struct EntryChunkDesc {
-  initial: bool,
+pub struct EntryChunkDesc {
+  pub initial: bool,
 
   options: EntryOptions,
-  modules_ordinal: BigInt,
+  modules_ordinal: AvailableModules,
+  available_modules: AvailableModules,
   entry: Option<String>,
   entry_modules: Vec<ModuleIdentifier>,
   chunk_modules: IdentifierSet,
@@ -119,9 +150,10 @@ struct EntryChunkDesc {
 }
 
 #[derive(Debug, Clone)]
-struct NormalChunkDesc {
+pub struct NormalChunkDesc {
   options: Option<ChunkGroupOptions>,
-  modules_ordinal: BigInt,
+  modules_ordinal: AvailableModules,
+  available_modules: AvailableModules,
   chunk_modules: IdentifierSet,
 
   pre_order_indices: IdentifierMap<usize>,
@@ -139,29 +171,10 @@ struct FillCtx {
   pub out_goings: IndexSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>>,
   pub pre_order_indices: IdentifierMap<usize>,
   pub post_order_indices: IdentifierMap<usize>,
-  pub module_ordinal: BigInt,
+  pub module_ordinal: AvailableModules,
   pub next_pre_order_index: usize,
   pub next_post_order_index: usize,
   pub chunk_loading: bool,
-}
-
-#[derive(Default)]
-struct GetOrInit<T> {
-  value: Option<T>,
-}
-
-impl<T> GetOrInit<T> {
-  fn new() -> Self {
-    Self { value: None }
-  }
-
-  fn get(&mut self, f: impl FnOnce() -> T) -> &T {
-    if let Some(ref value) = self.value {
-      return value;
-    }
-    self.value = Some((f)());
-    self.value.as_ref().expect("should have value")
-  }
 }
 
 impl CreateChunkRoot {
@@ -179,7 +192,7 @@ impl CreateChunkRoot {
     }
   }
 
-  fn create(self, splitter: &CodeSplitter, compilation: &Compilation) -> Vec<ChunkDesc> {
+  fn create(&self, splitter: &CodeSplitter, compilation: &Compilation) -> Vec<ChunkDesc> {
     let module_graph = compilation.get_module_graph();
 
     match self {
@@ -232,15 +245,16 @@ impl CreateChunkRoot {
           pre_order_indices: ctx.pre_order_indices,
           post_order_indices: ctx.post_order_indices,
           options: data.options.clone(),
+          available_modules: AvailableModules::default(),
           modules_ordinal: ctx.module_ordinal,
           incoming_blocks: Default::default(),
           outgoing_blocks: ctx.out_goings,
-          runtime,
+          runtime: runtime.clone(),
         }))]
       }
       CreateChunkRoot::Block(block_id, runtime) => {
         let block = module_graph
-          .block_by_id(&block_id)
+          .block_by_id(block_id)
           .expect("should have block");
 
         let mut chunks = vec![];
@@ -287,11 +301,12 @@ impl CreateChunkRoot {
             initial: false,
             options: entry_options.clone(),
             modules_ordinal: ctx.module_ordinal,
+            available_modules: AvailableModules::default(),
             entry: entry_options.name.clone(),
             entry_modules: entry_modules.iter().copied().collect(),
             chunk_modules: ctx.chunk_modules,
             outgoing_blocks: ctx.out_goings,
-            incoming_blocks: once(block_id).collect(),
+            incoming_blocks: once(*block_id).collect(),
             pre_order_indices: ctx.pre_order_indices,
             post_order_indices: ctx.post_order_indices,
             runtime: runtime.clone(),
@@ -303,11 +318,12 @@ impl CreateChunkRoot {
               GroupOptions::Entrypoint(_) => unreachable!(),
               GroupOptions::ChunkGroup(group_option) => group_option.clone(),
             }),
+            available_modules: AvailableModules::default(),
             modules_ordinal: ctx.module_ordinal,
             pre_order_indices: ctx.pre_order_indices,
             post_order_indices: ctx.post_order_indices,
 
-            incoming_blocks: once(block_id).collect(),
+            incoming_blocks: once(*block_id).collect(),
             outgoing_blocks: ctx.out_goings,
 
             runtime: runtime.clone(),
@@ -321,17 +337,50 @@ impl CreateChunkRoot {
 }
 
 impl CodeSplitter {
-  pub fn new(modules: Vec<ModuleIdentifier>) -> Self {
+  pub fn new(modules: impl Iterator<Item = ModuleIdentifier>) -> Self {
     let mut module_ordinal = IdentifierMap::default();
-    for (idx, m) in modules.iter().enumerate() {
-      module_ordinal.insert(*m, idx as u64);
+    for m in modules {
+      if !module_ordinal.contains_key(&m) {
+        module_ordinal.insert(m, module_ordinal.len() as u64);
+      }
     }
 
     Self {
-      _connect_count: 0,
+      cache_chunk_desc: Default::default(),
+      cache_chunks: Default::default(),
       module_deps: Default::default(),
       module_deps_without_runtime: Default::default(),
       module_ordinal,
+    }
+  }
+
+  // modify the module ordinal for changed_modules
+  pub fn invalidate(&mut self, changed_modules: impl Iterator<Item = ModuleIdentifier>) {
+    let module_ordinal = &mut self.module_ordinal;
+
+    for module in changed_modules {
+      // add ordinal for new modules
+      if !module_ordinal.contains_key(&module) {
+        module_ordinal.insert(module, module_ordinal.len() as u64);
+      }
+
+      // refresh module traversal result in the last compilation
+      for map in self.module_deps.values() {
+        map.remove(&module);
+      }
+
+      self.module_deps_without_runtime.remove(&module);
+
+      // remove chunks that contains changed module
+      self.cache_chunk_desc.retain(|_, chunks| {
+        // if this module is not in this chunk
+        let can_reuse = chunks.iter().all(|item| match &item.chunk_desc {
+          ChunkDesc::Entry(entry_chunk_desc) => !entry_chunk_desc.chunk_modules.contains(&module),
+          ChunkDesc::Chunk(normal_chunk_desc) => !normal_chunk_desc.chunk_modules.contains(&module),
+        });
+
+        can_reuse
+      });
     }
   }
 
@@ -478,7 +527,6 @@ impl CodeSplitter {
 
     compilation.extend_diagnostics(diagnostics);
     entries.extend(roots.into_values());
-    // dbg!(visit_module_graph.elapsed().as_millis());
 
     Ok(entries)
   }
@@ -535,6 +583,7 @@ impl CodeSplitter {
     Ok(runtime)
   }
 
+  #[cfg(not(debug_assertions))]
   fn get_module_ordinal(&self, m: ModuleIdentifier) -> u64 {
     *self
       .module_ordinal
@@ -628,13 +677,22 @@ impl CodeSplitter {
           if !ctx.chunk_modules.insert(target_module) {
             continue;
           }
-          let module = self.get_module_ordinal(target_module);
 
-          if ctx.module_ordinal.bit(module) {
+          let module = {
+            #[cfg(debug_assertions)]
+            {
+              target_module
+            }
+            #[cfg(not(debug_assertions))]
+            {
+              self.get_module_ordinal(target_module)
+            }
+          };
+          if ctx.module_ordinal.is_module_available(module) {
             // we already include this module
             continue;
           } else {
-            ctx.module_ordinal.set_bit(module, true);
+            ctx.module_ordinal.add(module);
           }
 
           stack.push(Task::Leave(target_module));
@@ -826,153 +884,94 @@ impl CodeSplitter {
     }
   }
 
+  fn reuse_chunk(mut chunk: Chunk, compilation: &mut Compilation) -> ChunkUkey {
+    chunk.clear_groups();
+    chunk.set_prevent_integration(false);
+
+    let ukey = chunk.ukey();
+    if let Some(name) = chunk.name() {
+      compilation.named_chunks.insert(name.to_owned(), ukey);
+    }
+    compilation.chunk_by_ukey.add(chunk);
+    ukey
+  }
+
   fn create_chunks(&mut self, compilation: &mut Compilation) -> Result<()> {
     let mut errors = vec![];
-    // let mut roots: Vec<CreateChunkRoot> = vec![];
-    // for (idx, (name, data)) in entries.iter().enumerate() {
-    //   name_to_idx.insert(name, idx);
-    //   let runtime = if let Some(depend_on) = &data.options.depend_on {
-    //     deps.push((name, depend_on.clone()));
-    //     None
-    //   } else {
-    //     Some(RuntimeSpec::from_entry_options(&data.options).expect("should have runtime"))
-    //   };
 
-    //   // set runtime later
-    //   roots.push(CreateChunkRoot::Entry(name.clone(), data.clone(), runtime));
-    // }
+    let mut roots = self.analyze_module_graph(compilation)?;
 
-    // let mut entry_to_deps = HashMap::default();
-    // for (entry, deps) in deps {
-    //   entry_to_deps.insert(
-    //     entry.as_str(),
-    //     deps
-    //       .into_iter()
-    //       .map(|dep| *name_to_idx.get(&dep).expect("should have idx"))
-    //       .collect::<Vec<_>>(),
-    //   );
-    // }
+    let enable_incremental: bool = compilation
+      .incremental
+      .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH);
 
-    // for (entry, _) in entries.iter() {
-    //   let curr = *name_to_idx.get(entry).expect("unreachable");
-    //   if roots[curr].get_runtime().is_some() {
-    //     // already set
-    //     continue;
-    //   }
-    //   let mut visited = Default::default();
-    //   if let Err(dep) =
-    //     set_entry_runtime_and_depend_on(curr, &mut roots, &entry_to_deps, &mut visited, &mut vec![])
-    //   {
-    //     let dep_name = roots[dep].entry_name();
-    //     let dep_rt = RuntimeSpec::from_entry(dep_name, None);
-    //     error_roots.push((curr, Diagnostic::from(error!("Entrypoints '{entry}' and '{dep_name}' use 'dependOn' to depend on each other in a circular way."))));
-    //     roots[dep].set_runtime(dep_rt);
-    //     roots[curr].set_runtime(RuntimeSpec::from_entry(entry, None));
-    //   }
-    // }
+    let reused = if enable_incremental {
+      // lets see if any of them are from cache
+      roots
+        .par_iter()
+        .map(|root| self.cache_chunk_desc.contains_key(root))
+        .collect()
+    } else {
+      vec![false; roots.len()]
+    };
 
-    // let mut entry_module_runtime = IdentifierMap::<RuntimeSpec>::default();
-    // let module_graph: ModuleGraph = compilation.get_module_graph();
-    // for root in &roots {
-    //   if let CreateChunkRoot::Entry(_name, data, runtime) = root {
-    //     let runtime = runtime
-    //       .as_ref()
-    //       .expect("should have runtime after calculated depend on");
-    //     for dep_id in compilation
-    //       .global_entry
-    //       .all_dependencies()
-    //       .chain(data.all_dependencies())
-    //     {
-    //       let Some(module) = module_graph.module_identifier_by_dependency_id(dep_id) else {
-    //         continue;
-    //       };
-    //       match entry_module_runtime.entry(*module) {
-    //         std::collections::hash_map::Entry::Occupied(mut existing) => {
-    //           let new_runtime = merge_runtime(existing.get(), &runtime);
-    //           existing.insert(new_runtime);
-    //         }
-    //         std::collections::hash_map::Entry::Vacant(vacant) => {
-    //           vacant.insert(runtime.clone());
-    //         }
-    //       }
-    //     }
-    //   }
-    // }
-
-    // let module_graph = compilation.get_module_graph();
-    // let module_cache = DashMap::default();
-
-    // roots.extend(
-    //   self
-    //     .blocks
-    //     .par_iter()
-    //     .map(|(block_id, origin)| {
-    //       let visited = IdentifierDashSet::default();
-    //       let block = module_graph
-    //         .block_by_id(block_id)
-    //         .expect("should have block");
-    //       let runtime = if let Some(group_options) = block.get_group_options()
-    //         && let Some(entry_options) = group_options.entry_options()
-    //       {
-    //         RuntimeSpec::from_entry_options(entry_options).or_else(|| {
-    //           determine_runtime(
-    //             *origin,
-    //             &module_graph,
-    //             &entry_module_runtime,
-    //             &module_cache,
-    //             &visited,
-    //           )
-    //         })
-    //       } else {
-    //         determine_runtime(
-    //           *origin,
-    //           &module_graph,
-    //           &entry_module_runtime,
-    //           &module_cache,
-    //           &visited,
-    //         )
-    //       };
-
-    //       if runtime.is_none() {
-    //         dbg!(block.identifier());
-    //         panic!()
-    //       }
-    //       CreateChunkRoot::Block(*origin, *block_id, runtime)
-    //     })
-    //     .collect::<Vec<_>>(),
-    // );
-
-    // for root in &roots {
-    //   if let Some(runtime) = root.get_runtime() {
-    //     self.module_deps.insert(runtime.clone(), Default::default());
-    //   }
-    // }
-
-    let roots = self.analyze_module_graph(compilation)?;
     // fill chunk with modules in parallel
-    let chunks = roots
-      .into_par_iter()
-      .map(|root| root.create(self, compilation))
-      .flatten()
+    let root_chunks = roots
+      .par_iter()
+      .enumerate()
+      .map(|(idx, root)| {
+        if reused[idx] {
+          // we can reuse result from last computation
+          // because inner modules have no changes at all
+          self
+            .cache_chunk_desc
+            .get(root)
+            .expect("should have value")
+            .clone()
+        } else {
+          root
+            .create(self, compilation)
+            .into_iter()
+            .map(|chunk| CacheableChunkItem {
+              cache_ukey: CacheUkey::new(),
+              chunk_desc: chunk,
+            })
+            .collect()
+        }
+      })
       .collect::<Vec<_>>();
 
-    let (chunks, merge_errors) = self.merge_same_chunks(chunks);
+    let mut cached_chunks = root_chunks.clone();
+
+    let chunks = root_chunks
+      .into_iter()
+      .enumerate()
+      .flat_map(|(idx, caches)| {
+        caches
+          .into_iter()
+          .map(|cache| (reused[idx], cache))
+          .collect::<Vec<_>>()
+      })
+      .collect::<Vec<_>>();
+
+    let (chunks, merged, merge_errors) = self.merge_same_chunks(chunks);
 
     errors.extend(merge_errors);
 
+    // determine chunk graph relations and
     // remove available modules if could
-    // determine chunk graph relations
-    let finalize_result = self.finalize_chunk_desc(chunks, compilation);
+    let finalize_result = self.finalize_chunk_desc(chunks, merged.into_iter(), compilation);
 
     let chunks_len = finalize_result.chunks.len();
     let mut chunks_ukey = vec![0.into(); chunks_len];
 
     let mut entries_depend_on = vec![];
-    let mut skipped_modules = 0;
     let mut async_entrypoints = HashSet::default();
-    let mut skipped = HashSet::default();
+    let mut entrypoints = HashMap::default();
+    let mut skipped = HashSet::<usize>::default();
 
-    for (idx, chunk_desc) in finalize_result.chunks.into_iter().enumerate() {
+    for (idx, (reuse, cache)) in finalize_result.chunks.into_iter().enumerate() {
+      let chunk_desc = cache.chunk_desc;
       match chunk_desc {
         ChunkDesc::Entry(entry_desc) => {
           let box EntryChunkDesc {
@@ -980,32 +979,36 @@ impl CodeSplitter {
             entry_modules,
             chunk_modules,
             options,
-            modules_ordinal,
+            available_modules,
             incoming_blocks,
             outgoing_blocks: _,
             initial,
             pre_order_indices,
             post_order_indices,
             runtime,
+            ..
           } = entry_desc;
 
-          let entry_chunk_ukey = if let Some(chunk_name) = &options.name {
-            let (ukey, add) = Compilation::add_named_chunk(
-              chunk_name.clone(),
-              &mut compilation.chunk_by_ukey,
-              &mut compilation.named_chunks,
-            );
-            if add && let Some(mutations) = compilation.incremental.mutations_write() {
-              mutations.add(Mutation::ChunkAdd { chunk: ukey });
+          let entry_chunk_ukey =
+            if reuse && let Some(chunk) = self.cache_chunks.remove(&cache.cache_ukey) {
+              Self::reuse_chunk(chunk, compilation)
+            } else if let Some(chunk_name) = &options.name {
+              let (ukey, add) = Compilation::add_named_chunk(
+                chunk_name.clone(),
+                &mut compilation.chunk_by_ukey,
+                &mut compilation.named_chunks,
+              );
+              if add && let Some(mutations) = compilation.incremental.mutations_write() {
+                mutations.add(Mutation::ChunkAdd { chunk: ukey });
+              };
+              ukey
+            } else {
+              let ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
+              if let Some(mutations) = compilation.incremental.mutations_write() {
+                mutations.add(Mutation::ChunkAdd { chunk: ukey });
+              };
+              ukey
             };
-            ukey
-          } else {
-            let ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
-            if let Some(mutations) = compilation.incremental.mutations_write() {
-              mutations.add(Mutation::ChunkAdd { chunk: ukey });
-            };
-            ukey
-          };
 
           let mut entrypoint = ChunkGroup::new(ChunkGroupKind::new_entrypoint(
             initial,
@@ -1016,12 +1019,10 @@ impl CodeSplitter {
           entrypoint.module_post_order_indices = post_order_indices;
 
           let entry_chunk = compilation.chunk_by_ukey.expect_get_mut(&entry_chunk_ukey);
-          entrypoint.set_entry_point_chunk(entry_chunk_ukey);
+          entrypoint.set_entrypoint_chunk(entry_chunk_ukey);
 
           if initial {
-            compilation
-              .entrypoints
-              .insert(entry.clone().expect("entry has name"), entrypoint.ukey);
+            entrypoints.insert(entry.clone().expect("entry has name"), entrypoint.ukey);
           } else {
             compilation.async_entrypoints.push(entrypoint.ukey);
             async_entrypoints.insert(entrypoint.ukey);
@@ -1163,44 +1164,62 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
 
           // TODO: do this in parallel
           for module in chunk_modules.iter() {
-            if modules_ordinal.bit(self.get_module_ordinal(*module)) {
-              self._connect_count += 1;
+            if !available_modules.is_module_available({
+              #[cfg(debug_assertions)]
+              {
+                *module
+              }
+              #[cfg(not(debug_assertions))]
+              {
+                self.get_module_ordinal(*module)
+              }
+            }) {
               compilation
                 .chunk_graph
                 .connect_chunk_and_module(entry_chunk_ukey, *module);
-            } else {
-              skipped_modules += 1;
             }
           }
 
           chunks_ukey[idx] = entry_chunk_ukey;
+          self.cache_chunks.insert(
+            cache.cache_ukey,
+            compilation
+              .chunk_by_ukey
+              .expect_get(&entry_chunk_ukey)
+              .clone(),
+          );
         }
         ChunkDesc::Chunk(chunk_desc) => {
           let box NormalChunkDesc {
             options,
             chunk_modules,
-            modules_ordinal,
+            available_modules,
             pre_order_indices,
             post_order_indices,
             incoming_blocks,
-            outgoing_blocks: _,
             runtime,
+            ..
           } = chunk_desc;
 
           let modules = chunk_modules
             .into_iter()
             .filter(|m| {
-              if modules_ordinal.bit(self.get_module_ordinal(*m)) {
-                true
-              } else {
-                skipped_modules += 1;
-                false
-              }
+              !available_modules.is_module_available({
+                #[cfg(debug_assertions)]
+                {
+                  *m
+                }
+                #[cfg(not(debug_assertions))]
+                {
+                  self.get_module_ordinal(*m)
+                }
+              })
             })
             .collect::<Vec<_>>();
+
           if modules.is_empty() {
+            // ignore empty chunk
             skipped.insert(idx);
-            continue;
           }
 
           let name = if let Some(option) = &options {
@@ -1209,7 +1228,9 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
             None
           };
 
-          let ukey = if let Some(name) = name {
+          let ukey = if reuse && let Some(chunk) = self.cache_chunks.remove(&cache.cache_ukey) {
+            Self::reuse_chunk(chunk, compilation)
+          } else if let Some(name) = name {
             let (ukey, add) = Compilation::add_named_chunk(
               name.clone(),
               &mut compilation.chunk_by_ukey,
@@ -1259,15 +1280,38 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
           }
 
           chunks_ukey[idx] = ukey;
-
+          self.cache_chunks.insert(
+            cache.cache_ukey,
+            compilation.chunk_by_ukey.expect_get(&ukey).clone(),
+          );
           // TODO: do this in parallel
           for module in modules {
-            self._connect_count += 1;
             compilation
               .chunk_graph
               .connect_chunk_and_module(ukey, module);
           }
         }
+      }
+    }
+
+    // the left cache is unused, mark them as removed
+    if let Some(mutations) = compilation.incremental.mutations_write() {
+      self.cache_chunks.retain(|_, chunk| {
+        let should_remove = !compilation.chunk_by_ukey.contains(&chunk.ukey());
+
+        if should_remove {
+          mutations.add(Mutation::ChunkRemove {
+            chunk: chunk.ukey(),
+          });
+        }
+
+        !should_remove
+      });
+    }
+
+    for entry in compilation.entries.keys() {
+      if let Some(entrypoint) = entrypoints.get(entry) {
+        compilation.entrypoints.insert(entry.clone(), *entrypoint);
       }
     }
 
@@ -1279,7 +1323,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
         .expect("unreachable");
       let entry_point_chunk = compilation
         .chunk_by_ukey
-        .expect_get(&entrypoint.get_entry_point_chunk());
+        .expect_get(&entrypoint.get_entrypoint_chunk());
       let entry_point_chunk_ukey = entry_point_chunk.ukey();
       let referenced_chunks =
         entry_point_chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey);
@@ -1291,7 +1335,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
           let dep_entrypoint = compilation
             .chunk_group_by_ukey
             .expect_get_mut(dep_entrypoint_ukey);
-          let dependency_chunk_ukey = dep_entrypoint.get_entry_point_chunk();
+          let dependency_chunk_ukey = dep_entrypoint.get_entrypoint_chunk();
           if referenced_chunks.contains(&dependency_chunk_ukey) {
             // cycle dep
             compilation
@@ -1364,6 +1408,18 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
 
     compilation.extend_diagnostics(errors);
 
+    if enable_incremental {
+      // flush cache from previous compilation
+      self.cache_chunk_desc.clear();
+
+      // insert new cache
+      cached_chunks.reverse();
+      for chunks in &cached_chunks {
+        let root = roots.pop().expect("should have root");
+        self.cache_chunk_desc.insert(root, chunks.clone());
+      }
+    }
+
     Ok(())
   }
 
@@ -1371,7 +1427,8 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
   // 2. remove modules that exist in all parents
   fn finalize_chunk_desc(
     &mut self,
-    mut chunks: Vec<ChunkDesc>,
+    mut chunks: Vec<(bool, CacheableChunkItem)>,
+    merged: impl Iterator<Item = usize>,
     compilation: &Compilation,
   ) -> FinalizeChunksResult {
     let chunks_len = chunks.len();
@@ -1382,7 +1439,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
 
     // this is useful when determine chunk index, the order index of chunk is deterministic,
     // we use chunk outgoing blocks order to ensure that
-    let mut chunk_children = Vec::<Vec<usize>>::with_capacity(chunks_len);
+    let mut chunk_children: Vec<Vec<usize>> = vec![vec![]; chunks_len];
 
     // which chunk owns this block identifier
     let mut chunks_by_block: HashMap<AsyncDependenciesBlockIdentifier, Vec<usize>> =
@@ -1398,21 +1455,21 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
 
     // 1st iter, find roots and analyze which block belongs to which chunk
     // note that async entrypoint has no parents
-    for (idx, chunk) in chunks.iter().enumerate() {
+    for (idx, (_, cache)) in chunks.iter().enumerate() {
+      let chunk = &cache.chunk_desc;
       if let Some(name) = chunk.name() {
         idx_by_name.insert(name, idx);
       }
       let incoming_blocks = match chunk {
         ChunkDesc::Entry(entry) => {
-          if entry.initial {
-            roots.push(idx);
-          }
+          roots.push(idx);
+
           &entry.incoming_blocks
         }
         ChunkDesc::Chunk(chunk) => &chunk.incoming_blocks,
       };
-      for block_and_dep in incoming_blocks {
-        if chunks_origin_block.insert(*block_and_dep, idx).is_some() {
+      for block in incoming_blocks {
+        if chunks_origin_block.insert(*block, idx).is_some() {
           unreachable!()
         }
       }
@@ -1423,15 +1480,20 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
     }
 
     // 2nd iter, analyze chunk relations
-    for chunk in chunks.iter() {
-      match chunk {
+    for (idx, (_, cache)) in chunks.iter().enumerate() {
+      match &cache.chunk_desc {
         ChunkDesc::Entry(entry) => {
           if let Some(depend_on) = &entry.options.depend_on {
-            let depend_on_parents = depend_on
+            let depend_on_parents: Vec<usize> = depend_on
               .iter()
               .map(|dep| idx_by_name.get(dep.as_str()).expect("unreachable"))
               .copied()
               .collect();
+
+            for parent in &depend_on_parents {
+              chunk_children[*parent].push(idx);
+            }
+
             chunk_parents.push(depend_on_parents);
           } else {
             chunk_parents.push(Vec::default());
@@ -1451,19 +1513,58 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
       }
     }
 
-    for chunk in chunks.iter() {
-      chunk_children.push(
-        chunk
+    for (idx, (_, cache)) in chunks.iter().enumerate() {
+      chunk_children[idx].extend(
+        cache
+          .chunk_desc
           .outgoings()
-          .filter_map(|outgoing_block| chunks_origin_block.get(outgoing_block).copied())
-          .collect(),
+          .filter_map(|outgoing_block| chunks_origin_block.get(outgoing_block).copied()),
       );
     }
 
-    if compilation.options.optimization.remove_available_modules {
-      // traverse through chunk graph,remove modules that already available in all parents
-      let mut available_modules = vec![AvailableModules::NotSet; chunks_len];
+    // 3rd iter, merge runtime if user use __webpack_chunk_name__ to merge chunks
+    for idx in merged {
+      let chunk = &mut chunks[idx].1.chunk_desc;
+      if let ChunkDesc::Chunk(box NormalChunkDesc { runtime, .. }) = chunk {
+        // this chunk is async chunk which has multiple parents and name
+        // could be user merged chunk, ensure its children has the same runtime
+        let runtime = runtime.as_ref().expect("should have runtime");
+        let mut stack: Vec<(RuntimeSpec, usize)> = chunk_children[idx]
+          .iter()
+          .copied()
+          .map(|idx: usize| (runtime.clone(), idx))
+          .collect();
 
+        while let Some((runtime, child)) = stack.pop() {
+          let child_runtime = chunks[child]
+            .1
+            .chunk_desc
+            .runtime_mut()
+            .expect("should have runtime");
+
+          let new_runtime = merge_runtime(&runtime, child_runtime);
+          if &new_runtime == child_runtime {
+            // no change
+            continue;
+          }
+
+          *child_runtime = new_runtime;
+          let child_runtime = chunks[child]
+            .1
+            .chunk_desc
+            .runtime()
+            .expect("should have runtime");
+          stack.extend(
+            chunk_children[child]
+              .iter()
+              .copied()
+              .map(|idx| (child_runtime.clone(), idx)),
+          );
+        }
+      }
+    }
+
+    if compilation.options.optimization.remove_available_modules {
       /*
             4rd iter, remove modules that is available in parents
             remove modules that are already exist in parent chunk
@@ -1486,19 +1587,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
                           v
                       module x (this should not be included in any chunk, as it already exist in all parents)
           */
-
-      let mut roots_available_modules = GetOrInit::new();
-
-      for chunk in 0..chunks_len {
-        remove_available_modules(
-          chunk,
-          &mut chunks,
-          &roots,
-          &chunk_parents,
-          &mut available_modules,
-          &mut roots_available_modules,
-        );
-      }
+      remove_available_modules(&mut chunks, &roots, &chunk_parents, &chunk_children);
     }
 
     FinalizeChunksResult {
@@ -1508,36 +1597,49 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
   }
 
   // merge chunks that has the same name on them
-  fn merge_same_chunks(&mut self, chunks: Vec<ChunkDesc>) -> (Vec<ChunkDesc>, Vec<Diagnostic>) {
-    let mut final_chunks: Vec<ChunkDesc> = vec![];
-    let mut named_chunks = HashMap::<String, usize>::default();
+  fn merge_same_chunks(
+    &mut self,
+    chunks: Vec<(bool, CacheableChunkItem)>,
+  ) -> (
+    Vec<(bool, CacheableChunkItem)>,
+    HashSet<usize>,
+    Vec<Diagnostic>,
+  ) {
+    let mut final_chunks: Vec<(bool, CacheableChunkItem)> = vec![];
+    let mut named_chunks: std::collections::HashMap<String, usize, rustc_hash::FxBuildHasher> =
+      HashMap::<String, usize>::default();
+    let mut merged = HashSet::default();
     let mut errors = vec![];
 
-    for chunk in chunks {
-      if let Some(name) = chunk.name() {
+    for (reuse, cache) in chunks {
+      if let Some(name) = cache.chunk_desc.name() {
         if let Some(idx) = named_chunks.get(name).copied() {
           // there is existing chunk, merge them,
           // this is caused by same webpackChunkName
-          if let Err(err) = merge_chunk(chunk, &mut final_chunks[idx]) {
+          if let Err(err) = merge_chunk(cache.chunk_desc, &mut final_chunks[idx].1.chunk_desc) {
             errors.push(Diagnostic::from(err));
           }
+          let (reuse, _) = &mut final_chunks[idx];
+          // if the chunk has multiple parents this chunk cannot be reused
+          *reuse = false;
+          merged.insert(idx);
           continue;
         } else {
           let idx = final_chunks.len();
           named_chunks.insert(name.to_string(), idx);
         }
       }
-      final_chunks.push(chunk);
+      final_chunks.push((reuse, cache));
     }
 
-    (final_chunks, errors)
+    (final_chunks, merged, errors)
   }
 }
 
 fn merge_chunk(chunk: ChunkDesc, existing_chunk: &mut ChunkDesc) -> Result<()> {
   match (existing_chunk, chunk) {
     (ChunkDesc::Entry(existing_chunk), ChunkDesc::Entry(chunk)) => {
-      existing_chunk.modules_ordinal |= chunk.modules_ordinal;
+      existing_chunk.modules_ordinal = existing_chunk.modules_ordinal.union(&chunk.modules_ordinal);
       existing_chunk.chunk_modules.extend(chunk.chunk_modules);
       existing_chunk.incoming_blocks.extend(chunk.incoming_blocks);
       existing_chunk.outgoing_blocks.extend(chunk.outgoing_blocks);
@@ -1549,7 +1651,7 @@ fn merge_chunk(chunk: ChunkDesc, existing_chunk: &mut ChunkDesc) -> Result<()> {
       }
     }
     (ChunkDesc::Chunk(existing_chunk), ChunkDesc::Chunk(chunk)) => {
-      existing_chunk.modules_ordinal |= chunk.modules_ordinal;
+      existing_chunk.modules_ordinal = existing_chunk.modules_ordinal.union(&chunk.modules_ordinal);
       existing_chunk.chunk_modules.extend(chunk.chunk_modules);
       existing_chunk.incoming_blocks.extend(chunk.incoming_blocks);
       existing_chunk.outgoing_blocks.extend(chunk.outgoing_blocks);
@@ -1608,7 +1710,7 @@ fn merge_chunk(chunk: ChunkDesc, existing_chunk: &mut ChunkDesc) -> Result<()> {
       // }
     }
     (ChunkDesc::Entry(entry), ChunkDesc::Chunk(chunk)) => {
-      entry.modules_ordinal |= chunk.modules_ordinal;
+      entry.modules_ordinal = entry.modules_ordinal.union(&chunk.modules_ordinal);
       entry.chunk_modules.extend(chunk.chunk_modules);
       entry.incoming_blocks.extend(chunk.incoming_blocks);
       entry.outgoing_blocks.extend(chunk.outgoing_blocks);
@@ -1617,7 +1719,7 @@ fn merge_chunk(chunk: ChunkDesc, existing_chunk: &mut ChunkDesc) -> Result<()> {
       ));
     }
     (ChunkDesc::Chunk(existing), ChunkDesc::Entry(entry)) => {
-      existing.modules_ordinal |= entry.modules_ordinal;
+      existing.modules_ordinal = existing.modules_ordinal.union(&entry.modules_ordinal);
       existing.chunk_modules.extend(entry.chunk_modules);
       existing.incoming_blocks.extend(entry.incoming_blocks);
       existing.outgoing_blocks.extend(entry.outgoing_blocks);
@@ -1630,17 +1732,38 @@ fn merge_chunk(chunk: ChunkDesc, existing_chunk: &mut ChunkDesc) -> Result<()> {
   Ok(())
 }
 
+// main entry for code splitting
 pub fn code_split(compilation: &mut Compilation) -> Result<()> {
-  let modules: Vec<ModuleIdentifier> = compilation
-    .get_module_graph()
-    .modules()
-    .keys()
-    .copied()
-    .collect();
-  let mut splitter = CodeSplitter::new(modules);
+  let mutations = compilation
+    .incremental
+    .mutations_read(IncrementalPasses::BUILD_CHUNK_GRAPH);
+  let enable_incremental = mutations.is_some();
+
+  let module_graph: &ModuleGraph<'_> = &compilation.get_module_graph();
+
+  let mut splitter = if let Some(mutations) = mutations {
+    let mut affected = mutations.get_affected_modules_with_module_graph(module_graph);
+    let removed = mutations.iter().filter_map(|mutation| match mutation {
+      Mutation::ModuleRemove { module } => Some(*module),
+      _ => None,
+    });
+    affected.extend(removed);
+
+    // reuse data from last computation
+    let mut splitter = std::mem::take(&mut compilation.code_splitting_cache.new_code_splitter);
+    splitter.invalidate(affected.into_iter());
+    splitter
+  } else {
+    CodeSplitter::new(compilation.get_module_graph().modules().keys().copied())
+  };
 
   // fill chunks with its modules
   splitter.create_chunks(compilation)?;
+
+  if enable_incremental {
+    // if enable incremental, store data
+    compilation.code_splitting_cache.new_code_splitter = splitter;
+  }
 
   // ensure every module have a cgm, webpack uses the same trick
   for m in compilation
@@ -1654,97 +1777,4 @@ pub fn code_split(compilation: &mut Compilation) -> Result<()> {
   }
 
   Ok(())
-}
-
-fn remove_available_modules(
-  curr: usize,
-  chunks: &mut Vec<ChunkDesc>,
-  roots: &Vec<usize>,
-  chunk_parents: &Vec<Vec<usize>>,
-  available_modules: &mut Vec<AvailableModules>,
-  roots_available_modules: &mut GetOrInit<BigInt>,
-) {
-  if !matches!(available_modules[curr], AvailableModules::NotSet) {
-    // skip if it's already visited
-    return;
-  }
-
-  let Some(parents) = chunk_parents.get(curr) else {
-    unreachable!()
-  };
-
-  // current available modules
-  let mut parents_available = None;
-
-  // insert a placeholder to avoid cyclic
-  available_modules[curr] = AvailableModules::Calculating;
-
-  let parents = parents.clone();
-
-  for parent in parents {
-    let parent_available_modules =
-      if let AvailableModules::Done(finished) = &available_modules[parent] {
-        finished.clone()
-      } else {
-        remove_available_modules(
-          parent,
-          chunks,
-          roots,
-          chunk_parents,
-          available_modules,
-          roots_available_modules,
-        );
-        match &available_modules[parent] {
-          AvailableModules::Done(finished) => finished.clone(),
-          AvailableModules::Calculating => {
-            if matches!(chunks[parent], ChunkDesc::Chunk(_)) {
-              let parents_available_modules = roots_available_modules.get(|| {
-                let mut value = None;
-
-                for root in roots {
-                  let modules = chunks[*root].available_modules();
-                  match &mut value {
-                    Some(value) => *value &= modules,
-                    None => value = Some(modules.clone()),
-                  }
-                }
-
-                value.unwrap_or(BigInt::from(0))
-              });
-
-              chunks[parent].available_modules().clone() | parents_available_modules
-            } else {
-              chunks[parent].available_modules().clone()
-            }
-          }
-          AvailableModules::NotSet => unreachable!(),
-        }
-      };
-
-    if let Some(ref mut parents_available) = parents_available {
-      *parents_available &= parent_available_modules
-    } else {
-      parents_available = Some(parent_available_modules);
-    }
-  }
-
-  let chunk = &mut chunks[curr];
-  let curr_value = if let Some(parents_available) = &parents_available {
-    // a: parents:       0110
-    // b: self:          1100
-    // c: parents & self 0100
-    // remove c in b
-    // self:    1000
-    let chunk_modules = chunk.available_modules().clone();
-    let available = parents_available & &chunk_modules;
-    let available_bitwise_not = &available ^ BigInt::from(-1);
-    let result = chunk_modules & available_bitwise_not;
-    let v = parents_available | &result;
-    *chunk.available_modules_mut() = result;
-    v
-  } else {
-    chunk.available_modules().clone()
-  };
-
-  available_modules[curr] = AvailableModules::Done(curr_value);
 }

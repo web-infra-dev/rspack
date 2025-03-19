@@ -8,11 +8,15 @@ const { Stats } = require("@rspack/core");
 const { createFsFromVolume, Volume } = require("memfs");
 const captureStdio = require("./helpers/captureStdio");
 const deprecationTracking = require("./helpers/deprecationTracking");
-const { normalizeFilteredTestName, FilteredStatus } = require("./lib/util/filterUtil");
+const {
+	normalizeFilteredTestName,
+	FilteredStatus
+} = require("./lib/util/filterUtil");
 
 describe("Compiler", () => {
 	jest.setTimeout(20000);
-	function compile(entry, options, callback) {
+
+	function compile(entry, options, callback, done = () => {}) {
 		const noOutputPath = !options.output || !options.output.path;
 		const webpack = require("@rspack/core");
 		options = webpack.config.getNormalizedWebpackOptions(options);
@@ -20,8 +24,7 @@ describe("Compiler", () => {
 		options.entry = entry;
 		options.context = path.join(__dirname, "fixtures");
 		if (noOutputPath) options.output.path = "/";
-		// CHANGE: The pathinfo is currently not supported in rspack
-		// options.output.pathinfo = true;
+		options.output.pathinfo = true;
 		options.optimization = {
 			minimize: false
 		};
@@ -81,7 +84,11 @@ describe("Compiler", () => {
 			stats.logs = logs;
 			c.close(err => {
 				if (err) return callback(err);
-				callback(stats, files, compilation);
+				try {
+					callback(stats, files, compilation);
+				} catch (e) {
+					done(e);
+				}
 			});
 		});
 	}
@@ -116,78 +123,90 @@ describe("Compiler", () => {
 		);
 	});
 
-	// CHANGE: skip due to Rspack defaults to numerical module ids, unlike webpack's string-based ids
-	it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should compile a single file"), done => {
-		compile("./c", {}, (stats, files) => {
-			expect(Object.keys(files)).toEqual(["/main.js"]);
-			const bundle = files["/main.js"];
-			expect(bundle).toMatch("function __webpack_require__(");
-			expect(bundle).toMatch(/__webpack_require__\(\/\*! \.\/a \*\/ \w+\);/);
-			expect(bundle).toMatch("./c.js");
-			expect(bundle).toMatch("./a.js");
-			expect(bundle).toMatch("This is a");
-			expect(bundle).toMatch("This is c");
-			expect(bundle).not.toMatch("2: function(");
-			expect(bundle).not.toMatch("window");
-			expect(bundle).not.toMatch("jsonp");
-			expect(bundle).not.toMatch("fixtures");
-			done();
-		});
+	it("should compile a single file", done => {
+		compile(
+			"./c",
+			{},
+			(stats, files) => {
+				expect(Object.keys(files)).toEqual(["/main.js"]);
+				const bundle = files["/main.js"];
+				expect(bundle).toMatch("function __webpack_require__(");
+				expect(bundle).toMatch(/__webpack_require__\(\/\*! \.\/a \*\/ \w+\);/);
+				expect(bundle).toMatch("./c.js");
+				expect(bundle).toMatch("./a.js");
+				expect(bundle).toMatch("This is a");
+				expect(bundle).toMatch("This is c");
+				expect(bundle).not.toMatch("2: function(");
+				expect(bundle).not.toMatch("window");
+				expect(bundle).not.toMatch("jsonp");
+				expect(bundle).not.toMatch("fixtures");
+				done();
+			},
+			done
+		);
 	});
 
-	// CHANGE: skip with custom test name for tracking alignment status
-	it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should compile a complex file"), done => {
-		compile("./main1", {}, (stats, files) => {
-			expect(Object.keys(files)).toEqual(["/main.js"]);
-			const bundle = files["/main.js"];
-			expect(bundle).toMatch("function __webpack_require__(");
-			expect(bundle).toMatch("__webpack_require__(/*! ./a */");
-			expect(bundle).toMatch("./main1.js");
-			expect(bundle).toMatch("./a.js");
-			expect(bundle).toMatch("./b.js");
-			expect(bundle).toMatch("./node_modules/m1/a.js");
-			expect(bundle).toMatch("This is a");
-			expect(bundle).toMatch("This is b");
-			expect(bundle).toMatch("This is m1/a");
-			expect(bundle).not.toMatch("4: function(");
-			expect(bundle).not.toMatch("window");
-			expect(bundle).not.toMatch("jsonp");
-			expect(bundle).not.toMatch("fixtures");
-			done();
-		});
+
+	it("should compile a complex file", done => {
+		compile(
+			"./main1",
+			{},
+			(stats, files) => {
+				expect(Object.keys(files)).toEqual(["/main.js"]);
+				const bundle = files["/main.js"];
+				expect(bundle).toMatch("function __webpack_require__(");
+				expect(bundle).toMatch("__webpack_require__(/*! ./a */");
+				expect(bundle).toMatch("./main1.js");
+				expect(bundle).toMatch("./a.js");
+				expect(bundle).toMatch("./b.js");
+				expect(bundle).toMatch("./node_modules/m1/a.js");
+				expect(bundle).toMatch("This is a");
+				expect(bundle).toMatch("This is b");
+				expect(bundle).toMatch("This is m1/a");
+				expect(bundle).not.toMatch("4: function(");
+				expect(bundle).not.toMatch("window");
+				expect(bundle).not.toMatch("jsonp");
+				expect(bundle).not.toMatch("fixtures");
+				done();
+			},
+			done
+		);
 	});
 
-	// CHANGE: skip with custom test name for tracking alignment status
-	it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should compile a file with transitive dependencies"), done => {
-		compile("./abc", {}, (stats, files) => {
-			expect(Object.keys(files)).toEqual(["/main.js"]);
-			const bundle = files["/main.js"];
-			expect(bundle).toMatch("function __webpack_require__(");
-			expect(bundle).toMatch("__webpack_require__(/*! ./a */");
-			expect(bundle).toMatch("__webpack_require__(/*! ./b */");
-			expect(bundle).toMatch("__webpack_require__(/*! ./c */");
-			expect(bundle).toMatch("./abc.js");
-			expect(bundle).toMatch("./a.js");
-			expect(bundle).toMatch("./b.js");
-			expect(bundle).toMatch("./c.js");
-			expect(bundle).toMatch("This is a");
-			expect(bundle).toMatch("This is b");
-			expect(bundle).toMatch("This is c");
-			expect(bundle).not.toMatch("4: function(");
-			expect(bundle).not.toMatch("window");
-			expect(bundle).not.toMatch("jsonp");
-			expect(bundle).not.toMatch("fixtures");
-			done();
-		});
+	it("should compile a file with transitive dependencies", done => {
+		compile(
+			"./abc",
+			{},
+			(stats, files) => {
+				expect(Object.keys(files)).toEqual(["/main.js"]);
+				const bundle = files["/main.js"];
+				expect(bundle).toMatch("function __webpack_require__(");
+				expect(bundle).toMatch("__webpack_require__(/*! ./a */");
+				expect(bundle).toMatch("__webpack_require__(/*! ./b */");
+				expect(bundle).toMatch("__webpack_require__(/*! ./c */");
+				expect(bundle).toMatch("./abc.js");
+				expect(bundle).toMatch("./a.js");
+				expect(bundle).toMatch("./b.js");
+				expect(bundle).toMatch("./c.js");
+				expect(bundle).toMatch("This is a");
+				expect(bundle).toMatch("This is b");
+				expect(bundle).toMatch("This is c");
+				expect(bundle).not.toMatch("4: function(");
+				expect(bundle).not.toMatch("window");
+				expect(bundle).not.toMatch("jsonp");
+				expect(bundle).not.toMatch("fixtures");
+				done();
+			},
+			done
+		);
 	});
 
-	// CHANGE: skip with custom test name for tracking alignment status
-	it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should compile a file with multiple chunks"), done => {
+	it("should compile a file with multiple chunks", done => {
 		compile("./chunks", {}, (stats, files) => {
 			expect(stats.chunks).toHaveLength(2);
-			expect(Object.keys(files)).toEqual(["/main.js", "/394.js"]);
+			expect(Object.keys(files).sort().reverse()).toEqual(["/main.js", "/798.js"]);
 			const bundle = files["/main.js"];
-			const chunk = files["/394.js"];
+			const chunk = files["/798.js"];
 			expect(bundle).toMatch("function __webpack_require__(");
 			expect(bundle).toMatch("__webpack_require__(/*! ./b */");
 			expect(chunk).not.toMatch("__webpack_require__(/* ./b */");
@@ -204,7 +223,7 @@ describe("Compiler", () => {
 			expect(bundle).toMatch("webpackChunk");
 			expect(chunk).toMatch('self["webpackChunk"] || []).push');
 			done();
-		});
+		}, done);
 	});
 
 	// CHANGE: skip with custom test name for tracking alignment status
@@ -699,7 +718,7 @@ describe("Compiler", () => {
 	});
 	// CHANGE: skip with custom test name for tracking alignment status
 	// CHANGE: skip due to panic occurred at runtime
-	it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should call afterDone hook after other callbacks (watch)"), done => {
+	it("should call afterDone hook after other callbacks (watch)", done => {
 		const webpack = require("@rspack/core");
 		compiler = webpack({
 			context: __dirname,
@@ -788,9 +807,7 @@ describe("Compiler", () => {
 			});
 		});
 	});
-	// CHANGE: skip with custom test name for tracking alignment status
-	// CHANGE: skip due to panic occurred at runtime
-	it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should use cache on second run call"), done => {
+	it("should use cache on second run call", done => {
 		const webpack = require("@rspack/core");
 		compiler = webpack({
 			context: __dirname,

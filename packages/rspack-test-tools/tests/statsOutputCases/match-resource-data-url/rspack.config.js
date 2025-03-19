@@ -6,6 +6,6 @@ module.exports = {
 	mode: "development",
 	stats: {
 		all: false,
-		modules: true,
+		modules: true
 	}
 };

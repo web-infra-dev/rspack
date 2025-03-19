@@ -1,8 +1,8 @@
 use std::hash::Hash;
 
 use async_trait::async_trait;
-use rspack_core::rspack_sources::{ConcatSource, RawStringSource, SourceExt};
 use rspack_core::{
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationParams, CompilerCompilation,
   CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
@@ -10,16 +10,17 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_plugin_javascript::runtime::render_chunk_runtime_modules;
 use rspack_plugin_javascript::{
-  JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JsPlugin, RenderSource,
+  runtime::render_chunk_runtime_modules, JavascriptModulesChunkHash, JavascriptModulesRenderChunk,
+  JsPlugin, RenderSource,
 };
 use rspack_util::itoa;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::update_hash_for_entry_startup;
 use crate::{
-  get_all_chunks, get_chunk_output_name, get_relative_path, get_runtime_chunk_output_name,
+  chunk_has_js, get_all_chunks, get_chunk_output_name, get_relative_path,
+  get_runtime_chunk_output_name,
 };
 
 const PLUGIN_NAME: &str = "rspack.ModuleChunkFormatPlugin";
@@ -34,7 +35,7 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation);
+  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
   hooks.render_chunk.tap(render_chunk::new(self));
   hooks.chunk_hash.tap(js_chunk_hash::new(self));
   Ok(())
@@ -93,13 +94,18 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(JavascriptModulesRenderChunk for ModuleChunkFormatPlugin)]
-fn render_chunk(
+async fn render_chunk(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
 ) -> Result<()> {
-  let hooks = JsPlugin::get_compilation_hooks(compilation);
+  // Skip processing if the chunk doesn't have any JavaScript
+  if !chunk_has_js(chunk_ukey, compilation) {
+    return Ok(());
+  }
+
+  let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation)?;
   if matches!(chunk.kind(), ChunkKind::HotUpdate) {
@@ -108,10 +114,12 @@ fn render_chunk(
 
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
-    "export const ids = ['{}'];\n",
+    "export const __webpack_ids__ = ['{}'];\n",
     &chunk.expect_id(&compilation.chunk_ids_artifact)
   )));
-  sources.add(RawStringSource::from_static("export const modules = "));
+  sources.add(RawStringSource::from_static(
+    "export const __webpack_modules__ = ",
+  ));
   sources.add(render_source.source.clone());
   sources.add(RawStringSource::from_static(";\n"));
 
@@ -119,8 +127,10 @@ fn render_chunk(
     .chunk_graph
     .has_chunk_runtime_modules(chunk_ukey)
   {
-    sources.add(RawStringSource::from_static("export const runtime = "));
-    sources.add(render_chunk_runtime_modules(compilation, chunk_ukey)?);
+    sources.add(RawStringSource::from_static(
+      "export const __webpack_runtime__ = ",
+    ));
+    sources.add(render_chunk_runtime_modules(compilation, chunk_ukey).await?);
     sources.add(RawStringSource::from_static(";\n"));
   }
 
@@ -158,6 +168,10 @@ fn render_chunk(
       );
 
       for chunk_ukey in chunks.iter() {
+        // Skip processing if the chunk doesn't have any JavaScript
+        if !chunk_has_js(chunk_ukey, compilation) {
+          continue;
+        }
         if loaded_chunks.contains(chunk_ukey) {
           continue;
         }
@@ -196,12 +210,15 @@ fn render_chunk(
     let mut render_source = RenderSource {
       source: RawStringSource::from(startup_source.join("\n")).boxed(),
     };
-    hooks.render_startup.call(
-      compilation,
-      chunk_ukey,
-      last_entry_module,
-      &mut render_source,
-    )?;
+    hooks
+      .render_startup
+      .call(
+        compilation,
+        chunk_ukey,
+        last_entry_module,
+        &mut render_source,
+      )
+      .await?;
     sources.add(render_source.source);
   }
   render_source.source = sources.boxed();

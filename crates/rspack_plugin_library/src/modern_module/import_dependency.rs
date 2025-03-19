@@ -1,11 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
-use rspack_core::{AsContextDependency, Dependency};
 use rspack_core::{
-  Compilation, DependencyRange, DependencyType, ExternalRequest, ExternalType, ImportAttributes,
-  RuntimeSpec,
+  AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId, DependencyRange,
+  DependencyTemplate, DependencyType, ExternalRequest, ExternalType, FactorizeInfo,
+  ImportAttributes, ModuleDependency, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
-use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
-use rspack_core::{ModuleDependency, TemplateContext, TemplateReplaceSource};
 use rspack_plugin_javascript::dependency::create_resource_identifier_for_esm_dependency;
 use swc_core::ecma::atoms::Atom;
 
@@ -20,10 +18,12 @@ pub struct ModernModuleImportDependency {
   range: DependencyRange,
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
+  factorize_info: FactorizeInfo,
 }
 
 impl ModernModuleImportDependency {
   pub fn new(
+    id: DependencyId,
     request: Atom,
     target_request: ExternalRequest,
     external_type: ExternalType,
@@ -33,13 +33,14 @@ impl ModernModuleImportDependency {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(request.as_str(), attributes.as_ref());
     Self {
+      id,
       request,
       target_request,
       external_type,
       range,
-      id: DependencyId::new(),
       attributes,
       resource_identifier,
+      factorize_info: Default::default(),
     }
   }
 }
@@ -87,6 +88,14 @@ impl ModuleDependency for ModernModuleImportDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request.into();
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 

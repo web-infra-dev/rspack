@@ -1,3 +1,3 @@
 module.exports = {
-	documentType: 'jsdom'
-}
+	documentType: "jsdom"
+};

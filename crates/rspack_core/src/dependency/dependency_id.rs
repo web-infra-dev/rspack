@@ -1,5 +1,4 @@
-use std::sync::atomic::AtomicU32;
-use std::sync::atomic::Ordering::Relaxed;
+use std::sync::atomic::{AtomicU32, Ordering::Relaxed};
 
 use rspack_cacheable::cacheable;
 use serde::Serialize;

@@ -3,9 +3,9 @@ date: 2024-11-07 16:00:00
 sidebar: false
 ---
 
-# Rspack 1.1 发布公告
+_2024 年 11 月 07 日_
 
-> 2024 年 11 月 07 日
+# Rspack 1.1 发布公告
 
 ![Rspack 1.1](https://assets.rspack.dev/rspack/rspack-banner-v1-1.png)
 
@@ -60,10 +60,10 @@ Rspack v1.1 和 Rsbuild v1.1 已经正式发布！
 
 在 Rspack v1.1 中，你可以在 `dev` 模式下通过以下方式启用此功能：
 
-```js title=rspack.config.js
+```js title="rspack.config.mjs"
 const isDev = process.env.NODE_ENV === 'development';
 
-module.exports = {
+export default {
   mode: isDev ? 'development' : 'production',
   experiments: {
     incremental: isDev,
@@ -83,9 +83,9 @@ module.exports = {
 
 因此，我们大幅重构了 `HtmlRspackPlugin`，在对齐了更多 `HtmlWebpackPlugin` 配置项的同时，也完成了 `hooks` 对齐。现在你可以通过 `HtmlRspackPlugin.getCompilationHooks` 来获取它们，并使用其修改 HTML 产物的内容：
 
-```js
+```js title="rspack.config.mjs"
 const AddAttributePlugin = {
-  apply: function (compiler) {
+  apply(compiler) {
     compiler.hooks.compilation.tap('AddAttributePlugin', compilation => {
       HtmlRspackPlugin.getCompilationHooks(
         compilation,
@@ -101,7 +101,7 @@ const AddAttributePlugin = {
   },
 };
 
-module.exports = {
+export default {
   plugins: [new HtmlRspackPlugin(), AddAttributePlugin],
 };
 ```
@@ -189,8 +189,8 @@ Rspack 的 [output.hashFunction](/config/output#outputhashfunction) 现在默认
 
 如果你倾向于使用之前的哈希函数，可以设置：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   output: {
     hashFunction: 'md5',
     hashDigestLength: 20,

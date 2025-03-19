@@ -30,7 +30,8 @@ const creator = new BasicCaseCreator({
 			configFiles: ["rspack.config.js", "webpack.config.js"]
 		})
 	],
-	runner: MultipleRunnerFactory
+	runner: MultipleRunnerFactory,
+	concurrent: true
 });
 
 export function createConfigCase(name: string, src: string, dist: string) {

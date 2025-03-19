@@ -47,8 +47,8 @@ export function parseModules(
 		renameModule?: (name: string) => string;
 	} = {}
 ) {
-	const modules: Map<string, string> = new Map();
-	const runtimeModules: Map<string, string> = new Map();
+	const modules: Record<string, string> = {};
+	const runtimeModules: Record<string, string> = {};
 
 	let currentPosition = 0;
 
@@ -61,7 +61,7 @@ export function parseModules(
 			BOOTSTRAP_SPLIT_LINE
 		);
 		if (bootstrap.result) {
-			runtimeModules.set("webpack/runtime/bootstrap", bootstrap.result);
+			runtimeModules["webpack/runtime/bootstrap"] = bootstrap.result;
 		}
 	}
 	// parse module & runtime module code
@@ -86,10 +86,10 @@ export function parseModules(
 				? options.renameModule(moduleName)
 				: moduleName;
 		if (moduleName.startsWith("webpack/runtime")) {
-			runtimeModules.set(renamedModuleName, moduleContent.result);
+			runtimeModules[renamedModuleName] = moduleContent.result;
 		} else {
 			if (isValidModule(moduleName)) {
-				modules.set(renamedModuleName, moduleContent.result);
+				modules[renamedModuleName] = moduleContent.result;
 			}
 		}
 		currentPosition = moduleContent.remain;

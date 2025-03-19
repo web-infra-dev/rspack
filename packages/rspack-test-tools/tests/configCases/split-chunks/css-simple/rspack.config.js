@@ -1,6 +1,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	target: 'web',
+	target: "web",
 	entry: {
 		main: "./index"
 	},
@@ -8,7 +8,7 @@ module.exports = {
 		filename: "[name].js"
 	},
 	node: {
-		__dirname: false,
+		__dirname: false
 	},
 	optimization: {
 		chunkIds: "named"
@@ -17,7 +17,7 @@ module.exports = {
 		generator: {
 			"css/auto": {
 				exportsOnly: false
-			},
-		},
+			}
+		}
 	}
 };

@@ -1,10 +1,10 @@
-use std::hash::Hash;
-use std::sync::Arc;
+use std::{hash::Hash, sync::Arc};
 
 use async_trait::async_trait;
-use rspack_core::rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rspack_core::{
-  get_js_chunk_filename_template, AssetInfo, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
+  get_js_chunk_filename_template,
+  rspack_sources::{BoxSource, CachedSource, SourceExt},
+  AssetInfo, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationChunkHash, CompilationContentHash,
   CompilationParams, CompilationRenderManifest, CompilerCompilation, CompilerOptions,
   DependencyType, IgnoreErrorModuleFactory, ModuleGraph, ModuleType, ParserAndGenerator, PathData,
@@ -15,8 +15,7 @@ use rspack_hash::RspackHash;
 use rspack_hook::plugin_hook;
 use rustc_hash::FxHashMap;
 
-use crate::parser_and_generator::JavaScriptParserAndGenerator;
-use crate::{JsPlugin, JsPluginInner};
+use crate::{parser_and_generator::JavaScriptParserAndGenerator, JsPlugin, JsPluginInner};
 
 #[plugin_hook(CompilerCompilation for JsPlugin)]
 async fn compilation(
@@ -70,6 +69,10 @@ async fn compilation(
   compilation.set_dependency_factory(
     DependencyType::AmdRequireItem,
     params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::AmdRequireContext,
+    params.context_module_factory.clone(),
   );
   // RequireContextPlugin
   compilation.set_dependency_factory(
@@ -251,21 +254,6 @@ async fn render_manifest(
   {
     return Ok(());
   }
-  let (source, _) = compilation
-    .old_cache
-    .chunk_render_occasion
-    .use_cache(compilation, chunk, &SourceType::JavaScript, || async {
-      let source = if is_hot_update {
-        self.render_chunk(compilation, chunk_ukey).await?
-      } else if is_main_chunk {
-        self.render_main(compilation, chunk_ukey).await?
-      } else {
-        self.render_chunk(compilation, chunk_ukey).await?
-      };
-      Ok((CachedSource::new(source).boxed(), Vec::new()))
-    })
-    .await?;
-
   let filename_template = get_js_chunk_filename_template(
     chunk,
     &compilation.options.output,
@@ -295,6 +283,28 @@ async fn render_manifest(
     &mut asset_info,
   )?;
   asset_info.set_javascript_module(compilation.options.output.module);
+
+  let (source, _) = compilation
+    .old_cache
+    .chunk_render_occasion
+    .use_cache(compilation, chunk, &SourceType::JavaScript, || async {
+      let source = if is_hot_update {
+        self
+          .render_chunk(compilation, chunk_ukey, &output_path)
+          .await?
+      } else if is_main_chunk {
+        self
+          .render_main(compilation, chunk_ukey, &output_path)
+          .await?
+      } else {
+        self
+          .render_chunk(compilation, chunk_ukey, &output_path)
+          .await?
+      };
+      Ok((CachedSource::new(source).boxed(), Vec::new()))
+    })
+    .await?;
+
   manifest.push(RenderManifestEntry {
     source,
     filename: output_path,

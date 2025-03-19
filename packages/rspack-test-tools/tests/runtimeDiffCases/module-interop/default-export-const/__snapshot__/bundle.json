@@ -1,0 +1,11 @@
+{
+  "modules": {
+    "__WORKSPACE__/packages/rspack-test-tools/tests/runtimeDiffCases/module-interop/default-export-const/src/index.js": "(function () {\n  __webpack_require__.r(__webpack_exports__);\n  __webpack_require__.d(__webpack_exports__, {\n    \"default\": function () {\n      return __WEBPACK_DEFAULT_EXPORT__;\n    }\n  });\n  var __WEBPACK_IMPORTED_MODULE_xxx__ = __webpack_require__(\"./src/index.js\");\n  console.log(__WEBPACK_IMPORTED_MODULE_xxx__[\"default\"]);\n  const __WEBPACK_DEFAULT_EXPORT__ = 1;\n});"
+  },
+  "runtimeModules": {
+    "webpack/runtime/bootstrap": "var __webpack_module_cache__ = {};\nfunction __webpack_require__(moduleId) {\n  var cachedModule = __webpack_module_cache__[moduleId];\n  if (cachedModule !== undefined) return cachedModule.exports;\n  var module = __webpack_module_cache__[moduleId] = {\n    \"exports\": {}\n  };\n  __webpack_modules__[moduleId](module, module.exports, __webpack_require__);\n  return module.exports;\n}",
+    "webpack/runtime/define property getters": "!function () {\n  __webpack_require__.d = function (exports, definition) {\n    for (var key in definition) if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) Object.defineProperty(exports, key, {\n      \"enumerable\": true,\n      \"get\": definition[key]\n    });\n  };\n}();",
+    "webpack/runtime/hasOwnProperty shorthand": "!function () {\n  __webpack_require__.o = function (obj, prop) {\n    return Object.prototype.hasOwnProperty.call(obj, prop);\n  };\n}();",
+    "webpack/runtime/make namespace object": "!function () {\n  __webpack_require__.r = function (exports) {\n    if (typeof Symbol !== \"undefined\" && Symbol.toStringTag) Object.defineProperty(exports, Symbol.toStringTag, {\n      \"value\": \"Module\"\n    });\n    Object.defineProperty(exports, \"__esModule\", {\n      \"value\": true\n    });\n  };\n}();"
+  }
+}

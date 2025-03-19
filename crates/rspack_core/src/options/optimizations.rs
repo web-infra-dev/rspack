@@ -119,6 +119,9 @@ impl From<&str> for MangleExportsOption {
   }
 }
 
+// BE CAREFUL:
+// Add more fields to this struct should result in adding new fields to options builder.
+// `impl From<Optimization> for OptimizationBuilder` should be updated.
 #[derive(Debug, Default)]
 pub struct Optimization {
   pub remove_available_modules: bool,
@@ -129,6 +132,7 @@ pub struct Optimization {
   pub mangle_exports: MangleExportsOption,
   pub concatenate_modules: bool,
   pub avoid_entry_iife: bool,
+  pub real_content_hash: bool,
 }
 
 pub static DEFAULT_DELIMITER: &str = "~";

@@ -1,4 +1,4 @@
-const { SourceMapDevToolPlugin } = require('@rspack/core')
+const { SourceMapDevToolPlugin } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -8,10 +8,8 @@ module.exports = {
 		main: "./index.js"
 	},
 	optimization: {
-		minimize: true,
+		minimize: true
 	},
-	plugins: [
-		new SourceMapDevToolPlugin({})
-	],
-	devtool: false,
+	plugins: [new SourceMapDevToolPlugin({})],
+	devtool: false
 };

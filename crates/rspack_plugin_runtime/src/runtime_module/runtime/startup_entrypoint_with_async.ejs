@@ -1,0 +1,9 @@
+<%- STARTUP_ENTRYPOINT %> = <%- basicFunction("result, chunkIds, fn") %> {
+  // arguments: chunkIds, moduleId are deprecated
+  var moduleId = chunkIds;
+  if (!fn) chunkIds = result, fn = <%- returningFunction("__webpack_require__(__webpack_require__.s = moduleId)", "") %>
+  return Promise.all(chunkIds.map(<%- ENSURE_CHUNK %>, <%- REQUIRE %>)).then(<%- basicFunction("") %> {
+      var r = fn();
+      return r === undefined ? result : r;
+  });
+}

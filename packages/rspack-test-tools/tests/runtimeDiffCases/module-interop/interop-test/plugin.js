@@ -130,6 +130,10 @@ module.exports = class GenerateCasesPlugin {
       )
       .sort(comparator);
     compiler.hooks.beforeCompile.tapPromise(GenerateCasesPlugin.name, async () => {
+      // clean
+      await fs.promises.rm(extEntryFile, { force: true });
+      await fs.promises.rm(extDir, { recursive: true, force: true });
+      // init
       await fs.promises.mkdir(extDir);
       await Promise.all(modules.map(moduleName => fs.promises.mkdir(path.resolve(extDir, moduleName))));
       const imports = await Promise.all(

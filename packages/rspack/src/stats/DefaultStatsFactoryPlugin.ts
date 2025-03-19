@@ -1366,9 +1366,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 					reason.resolvedModuleDescriptor.identifier;
 				object.resolvedModule = reason.resolvedModuleDescriptor.name;
 			}
-			// - explanation
-			// - active
-			// - loc
+			object.explanation = reason.explanation;
+			object.active = reason.active;
+			object.loc = reason.loc;
 		},
 		ids: (object, reason) => {
 			object.moduleId = reason.moduleDescriptor
@@ -1447,11 +1447,12 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 	moduleTraceItem: {
 		_: (
 			object,
-			{ origin, module },
-			_context,
+			{ origin, module, dependencies },
+			context,
 			{ requestShortener },
-			_factory
+			factory
 		) => {
+			const { type } = context;
 			if (origin.moduleDescriptor) {
 				object.originIdentifier = origin.moduleDescriptor.identifier;
 				object.originName = origin.moduleDescriptor.name;
@@ -1460,13 +1461,22 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				object.moduleIdentifier = module.moduleDescriptor.identifier;
 				object.moduleName = module.moduleDescriptor.name;
 			}
+			object.dependencies = factory.create(
+				`${type}.dependencies`,
+				dependencies,
+				context
+			);
 		},
 		ids: (object, { origin, module }) => {
 			object.originId = origin.moduleDescriptor.id;
 			object.moduleId = module.moduleDescriptor.id;
 		}
+	},
+	moduleTraceDependency: {
+		_: (object, dependency) => {
+			object.loc = dependency.loc;
+		}
 	}
-	// - moduleTraceDependency
 };
 
 const FILTER: Record<

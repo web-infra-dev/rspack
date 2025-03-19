@@ -7,7 +7,7 @@ const config = {
 		generator: {
 			"css/auto": {
 				exportsOnly: false
-			},
+			}
 		},
 		rules: [
 			{

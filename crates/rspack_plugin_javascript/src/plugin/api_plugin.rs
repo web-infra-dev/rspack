@@ -18,7 +18,7 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation);
+  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
   hooks
     .render_module_content
     .tap(render_module_content::new(self));
@@ -26,16 +26,14 @@ async fn compilation(
 }
 
 #[plugin_hook(JavascriptModulesRenderModuleContent for APIPlugin)]
-fn render_module_content(
+async fn render_module_content(
   &self,
   compilation: &Compilation,
   module: &BoxModule,
   _source: &mut RenderSource,
   init_fragments: &mut ChunkInitFragments,
 ) -> Result<()> {
-  if let Some(build_info) = module.build_info()
-    && build_info.need_create_require
-  {
+  if module.build_info().need_create_require {
     let need_prefix = compilation
       .options
       .output

@@ -1,19 +1,18 @@
 use std::borrow::Cow;
 
 use async_trait::async_trait;
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  async_module_factory, impl_module_meta_info, impl_source_map_config, rspack_sources::Source,
-  sync_module_factory, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency,
-  BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context,
-  DependenciesBlock, DependencyId, LibIdentOptions, Module, ModuleIdentifier, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SourceType,
+  async_module_factory, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  rspack_sources::BoxSource, sync_module_factory, AsyncDependenciesBlock,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
+  FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec,
+  SourceType,
 };
-use rspack_core::{module_update_hash, ConcatenationScope, FactoryMeta};
-use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
-use rspack_util::ext::DynHash;
-use rspack_util::source_map::SourceMapKind;
+use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_util::{ext::DynHash, source_map::SourceMapKind};
 
 use super::{
   consume_shared_fallback_dependency::ConsumeSharedFallbackDependency,
@@ -25,6 +24,7 @@ use crate::{utils::json_stringify, ConsumeOptions};
 #[cacheable]
 #[derive(Debug)]
 pub struct ConsumeSharedModule {
+  #[cacheable(with=Unsupported)]
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
   identifier: ModuleIdentifier,
@@ -33,8 +33,8 @@ pub struct ConsumeSharedModule {
   context: Context,
   options: ConsumeOptions,
   factory_meta: Option<FactoryMeta>,
-  build_info: Option<BuildInfo>,
-  build_meta: Option<BuildMeta>,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
 }
 
 impl ConsumeSharedModule {
@@ -78,8 +78,8 @@ impl ConsumeSharedModule {
       context,
       options,
       factory_meta: None,
-      build_info: None,
-      build_meta: None,
+      build_info: Default::default(),
+      build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -122,10 +122,6 @@ impl Module for ConsumeSharedModule {
     42.0
   }
 
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
-  }
-
   fn module_type(&self) -> &ModuleType {
     &ModuleType::ConsumeShared
   }
@@ -134,7 +130,7 @@ impl Module for ConsumeSharedModule {
     &[SourceType::ConsumeShared]
   }
 
-  fn original_source(&self) -> Option<&dyn Source> {
+  fn source(&self) -> Option<&BoxSource> {
     None
   }
 
@@ -168,8 +164,6 @@ impl Module for ConsumeSharedModule {
     }
 
     Ok(BuildResult {
-      build_info: Default::default(),
-      build_meta: Default::default(),
       dependencies,
       blocks,
       ..Default::default()
@@ -177,7 +171,7 @@ impl Module for ConsumeSharedModule {
   }
 
   // #[tracing::instrument("ConsumeSharedModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
-  fn code_generation(
+  async fn code_generation(
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,

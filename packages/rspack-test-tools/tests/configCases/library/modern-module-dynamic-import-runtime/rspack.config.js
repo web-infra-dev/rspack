@@ -1,29 +1,27 @@
 /** @type {import("@rspack/core").Configuration} */
-module.exports = [{
-	entry: {
-		"main": "./main.js",
-	},
+
+const basic = {
 	output: {
 		filename: `[name].js`,
-    chunkFilename: `async.js`,
+		chunkFilename: `async.js`,
 		module: true,
 		library: {
-			type: "modern-module",
+			type: "modern-module"
 		},
 		iife: false,
 		chunkFormat: "module",
-		chunkLoading: 'import',
+		chunkLoading: "import"
 	},
 	externals: {
-		react: 'react-alias',
-		vue: 'vue-alias',
-		angular: 'angular-alias',
-		svelte: 'svelte-alias',
-		lit: 'lit-alias',
-		solid: 'solid-alias',
-		jquery: 'jquery-alias',
+		react: "react-alias",
+		vue: "vue-alias",
+		angular: "angular-alias",
+		svelte: "svelte-alias",
+		lit: "lit-alias",
+		solid: "solid-alias",
+		jquery: "jquery-alias"
 	},
-	externalsType: 'module-import',
+	externalsType: "module-import",
 	experiments: {
 		outputModule: true
 	},
@@ -31,12 +29,28 @@ module.exports = [{
 		concatenateModules: true,
 		avoidEntryIife: true,
 		minimize: false
+	}
+};
+
+module.exports = [
+	{
+		entry: {
+			main: "./main.js"
+		},
+		...basic
 	},
-}, {
-	entry: {
-		"index": "./index.js",
+	{
+		entry: {
+			main2: "./main2.js"
+		},
+		...basic
 	},
-	output: {
-		filename: 'index.js',
-	},
-}]
+	{
+		entry: {
+			index: "./index.js"
+		},
+		output: {
+			filename: "index.js"
+		}
+	}
+];

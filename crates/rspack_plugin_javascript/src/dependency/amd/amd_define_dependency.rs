@@ -164,7 +164,7 @@ impl Branch {
 
 #[cacheable]
 #[derive(Debug, Clone)]
-pub struct AmdDefineDependency {
+pub struct AMDDefineDependency {
   id: DependencyId,
   range: (u32, u32),
   array_range: Option<(u32, u32)>,
@@ -175,7 +175,7 @@ pub struct AmdDefineDependency {
   local_module: Option<LocalModule>,
 }
 
-impl AmdDefineDependency {
+impl AMDDefineDependency {
   pub fn new(
     range: (u32, u32),
     array_range: Option<(u32, u32)>,
@@ -201,7 +201,7 @@ impl AmdDefineDependency {
 }
 
 #[cacheable_dyn]
-impl Dependency for AmdDefineDependency {
+impl Dependency for AMDDefineDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -219,7 +219,7 @@ impl Dependency for AmdDefineDependency {
   }
 }
 
-impl AmdDefineDependency {
+impl AMDDefineDependency {
   fn local_module_var(&self) -> Option<String> {
     self.local_module.as_ref().and_then(|m| {
       if m.is_used() {
@@ -249,7 +249,7 @@ impl AmdDefineDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for AmdDefineDependency {
+impl DependencyTemplate for AMDDefineDependency {
   fn apply(
     &self,
     source: &mut TemplateReplaceSource,
@@ -305,6 +305,6 @@ impl DependencyTemplate for AmdDefineDependency {
   }
 }
 
-impl AsModuleDependency for AmdDefineDependency {}
+impl AsModuleDependency for AMDDefineDependency {}
 
-impl AsContextDependency for AmdDefineDependency {}
+impl AsContextDependency for AMDDefineDependency {}

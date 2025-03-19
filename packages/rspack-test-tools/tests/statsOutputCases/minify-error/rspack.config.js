@@ -3,7 +3,7 @@ module.exports = {
 	entry: "./index",
 	stats: "errors-warnings",
 	optimization: {
-		minimize: true,
+		minimize: true
 	},
 	plugins: [
 		{
@@ -20,16 +20,13 @@ module.exports = {
 							for (const [key, value] of Object.entries(assets)) {
 								compilation.updateAsset(
 									key,
-									new ConcatSource(
-										new RawSource("const a {}\n"),
-										value
-									)
+									new ConcatSource(new RawSource("const a {}\n"), value)
 								);
 							}
 						}
 					);
 				});
 			}
-		},
-	],
-}
+		}
+	]
+};

@@ -2,6 +2,44 @@
 
 开启该 chunkLoadingType 的运行时模块打包，[output.enabledChunkLoadingTypes](/config/output#outputenabledchunkloadingtypes) 底层使用了该插件。
 
+## 示例
+
+### 使用内置 chunkLoading
+
+可选值：`"jsonp" | "import-scripts" | "require" | "async-node" | "import"`。
+
 ```js
 new rspack.javascript.EnableChunkLoadingPlugin('import');
+```
+
+更多细节请参考 [output.chunkLoading](/config/output#outputchunkloading)。
+
+### 使用自定义 chunkLoading
+
+使用 `EnableChunkLoadingPlugin.setEnabled` 实现一个自定义插件：
+
+```js title="CustomChunkLoadingPlugin.mjs"
+import { rspack } from '@rspack/core';
+
+export class CustomChunkLoadingPlugin {
+  apply(compiler) {
+    rspack.javascript.EnableChunkLoadingPlugin.setEnabled(
+      compiler,
+      'custom-chunk-loading',
+    );
+  }
+}
+```
+
+然后在 Rspack 配置中使用 `output.chunkLoading: 'custom-chunk-loading'`：
+
+```js title="rspack.config.mjs"
+import { CustomChunkLoadingPlugin } from './CustomChunkLoadingPlugin.mjs';
+
+export default {
+  output: {
+    chunkLoading: 'custom-chunk-loading',
+  },
+  plugins: [new CustomChunkLoadingPlugin()],
+};
 ```

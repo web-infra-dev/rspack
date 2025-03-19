@@ -1,18 +1,16 @@
 #![feature(let_chains)]
 
-use std::sync::LazyLock;
 use std::{
   collections::HashSet,
   hash::Hash,
-  sync::{Arc, RwLock},
+  sync::{Arc, LazyLock, RwLock},
 };
 
 pub use lightningcss::targets::Browsers;
-use lightningcss::targets::Features;
 use lightningcss::{
   printer::PrinterOptions,
   stylesheet::{MinifyOptions, ParserFlags, ParserOptions, StyleSheet},
-  targets::Targets,
+  targets::{Features, Targets},
 };
 use rayon::prelude::*;
 use regex::Regex;

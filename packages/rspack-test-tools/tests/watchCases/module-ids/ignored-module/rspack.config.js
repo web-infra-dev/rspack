@@ -2,7 +2,7 @@
 module.exports = {
 	resolve: {
 		alias: {
-			"ignored": false,
-		},
+			ignored: false
+		}
 	}
 };

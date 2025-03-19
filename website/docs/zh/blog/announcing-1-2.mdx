@@ -1,0 +1,192 @@
+---
+date: 2025-1-21 16:00:00
+sidebar: false
+---
+
+_2025 年 1 月 21 日_
+
+# Rspack 1.2 发布公告
+
+![Rspack 1.2](https://assets.rspack.dev/rspack/rspack-banner-v1-2.png)
+
+> 由 [@jerrykingxyz](https://github.com/jerrykingxyz)，[@chenjiahan](https://github.com/chenjiahan)，[@JSerFeng](https://github.com/JSerFeng)， [@ahabhgk](https://github.com/ahabhgk) 发布
+
+---
+
+Rspack v1.2 已经正式发布！
+
+值得关注的变更如下：
+
+- 新功能
+  - [支持持久化缓存](#支持持久化缓存)：实验性功能，让热启动性能提升高达 **250%**
+  - [支持 Yarn PnP](#支持-yarn-pnp)
+- 性能优化
+  - [更快的 code splitting](#更快的-code-splitting)：实验性开关，显著提升 code splitting 性能
+  - [Watch 范围变化](#watch-范围变化)
+  - [减少内存使用](#减少内存使用)
+  - [更小的压缩体积](#更小的压缩体积)
+  - [更快的副作用优化](#更快的副作用优化)
+- 生态系统
+  - [Angular 支持](#angular-支持)
+  - [Rsbuild v1.2](#rsbuild-v1-2)
+
+## 新功能
+
+### 支持持久化缓存
+
+在 Rspack v1.2 中，我们实验性的支持了持久化缓存，其会将构建中的缓存信息写入到存储介质中，加速下次 Rspack 的启动速度。
+
+```js title="rspack.config.mjs"
+export default {
+  cache: true,
+  experiments: {
+    cache: {
+      type: 'persistent',
+    },
+  },
+};
+```
+
+当构建命中缓存时，它可以在真实项目中带来高达 250% 的性能提升。
+
+| 项目类型                 | 模块数量 | Normal dev | Cold dev     | Hot dev       |
+| ------------------------ | -------- | ---------- | ------------ | ------------- |
+| 初始项目                 | 26       | 146 ms     | 149 ms (+2%) | 134 ms (-8%)  |
+| 包含 10000 个模块的项目  | 10040    | 2.43 s     | 2.43 s (+0%) | 1.16 s (-52%) |
+| 包含 Less 文件的中型项目 | 1898     | 3.47 s     | 3.55 s (+2%) | 0.92 s (-73%) |
+| 大型真实项目             | 45968    | 93.3 s     | 91.9 s (-1%) | 26 s (-72%)   |
+
+需要注意的是，持久化缓存目前仍处于实验阶段，当前仅支持构建过程中的 make 阶段（包括模块解析、转换等流程）。未来我们将持续优化，进一步提升缓存的性能和覆盖范围。
+
+如果你在使用持久化缓存时遇到任何问题，欢迎通过 GitHub Issues 反馈。
+
+> 详情请参考 [experiments.cache](/config/experiments#experimentscache)。
+
+### 支持 Yarn PnP
+
+Rspack 迎来了对 [Yarn PnP](https://yarnpkg.com/features/pnp) 的支持，其默认根据 `process.versions.pnp`（即应用在 Yarn PnP 环境中运行时）来进行开启，也可以将 `resolve.pnp` 配置为 `true` 来强制开启。
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    pnp: true,
+  },
+};
+```
+
+在此特别感谢 [@arcanis](https://x.com/arcanis)（Yarn 的维护者），为 Rspack 的 resolver 实现了 PnP 解析。
+
+> 详情请参考 [resolve.pnp](/config/resolve#resolvepnp)。
+
+## 性能优化
+
+### 更快的 code splitting
+
+在之前的 Rspack 版本中，code splitting 算法在 HMR 下会占用大量的耗时，在 Rspack v1.2 中，我们实现了全新的 code splitting 算法，它支持多线程，增量构建效率更高。如果你的代码库包含大量动态导入，code splitting 可能会花费大量时间，开启这项新功能可以显著提高 code splitting 的性能。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    parallelCodeSplitting: true,
+  },
+};
+```
+
+> 详情请参考 [experiments.parallelCodeSplitting](/config/experiments#experimentsparallelcodesplitting)。
+
+### Watch 范围变化
+
+Rspack v1.2 将不再监听 `node_modules` 和 `.git` 目录下的文件变动，这将显著减少监听的文件数目并带来性能提升。
+
+通过 [benchmark 仓库](https://github.com/rspack-contrib/build-tools-performance) 中的数据，这项调整将：
+
+- 减少内存占用 120MB
+- 提升 Dev 启动速度 40%
+- 提升 HMR 速度 20~30%
+
+这个变更不会影响 monorepo 中的符号链接资源，因为 Rspack 默认将符号链接资源解析为它的真实路径。
+
+如果你倾向于保持之前的行为，可以设置 ：
+
+```js title="rspack.config.mjs"
+export default {
+  watchOptions: {
+    ignored: [],
+  },
+};
+```
+
+> 详情请参考 [watchOptions.ignored](/config/watch#watchoptionsignored)。
+
+### 减少内存使用
+
+我们优化了在 [rspack-sources](https://github.com/web-infra-dev/rspack-sources) 计算过程中用于存储字符串的数据结构。在整个计算过程中，所有字符串数据都指向根节点的字符串堆内存，有效避免了计算过程中产生新的字符串分配。
+
+> 详见：[perf: reduce memory consumption of CachedSource](https://github.com/web-infra-dev/rspack/pull/8666)。
+
+### 更小的压缩体积
+
+Rspack v1.2 将 SWC 压缩器的默认 `passes` 设置为 `2`，以减少 1%-7% 的打包体积。
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  minimizerOptions: {
+    compress: {
+      // 在之前的版本中默认为 1
+      passes: 2,
+    },
+  },
+});
+```
+
+[passes](https://swc.rs/docs/configuration/minification#jscminifycompress) 是运行压缩的最大次数。在某些情况下，多次压缩可以产生更小的代码。考虑到 Rspack 本身的性能优势，我们将默认值设为 `2` 以在构建性能和打包体积之间取得最佳平衡。
+
+> 详见：[feat: set default SWC minimizer passes to 2 to reduce bundle size](https://github.com/web-infra-dev/rspack/pull/8853)。
+
+### 更快的副作用优化
+
+我们对副作用优化的实现进行了重构，采用了更简洁且更易并行化的方案。通过充分利用多线程并行处理能力，在测试项目中，这个阶段的性能获得了 2-3 倍的提升。
+
+> 详见：[perf: parallelize side effects optimization](https://github.com/web-infra-dev/rspack/pull/8781)。
+
+## 生态系统
+
+### Angular 支持
+
+Nx 团队的核心成员 [Colum Ferry](https://github.com/Coly010) 为 Rspack 生态带来了完整的 Angular 支持。
+
+通过新发布的 `@ng-rsbuild/plugin-angular` 和 `@ng-rspack/build` 包，开发者现在可以使用 Rspack 或 Rsbuild 来构建 Angular 应用，获得更快的构建性能和模块联邦等特性。
+
+欢迎访问 [Angular Rspack](https://github.com/nrwl/angular-rspack) 仓库了解详细信息。
+
+### Rsbuild v1.2
+
+Rsbuild v1.2 已经与 Rspack v1.2 同步发布，并带来了多项新特性：
+
+- 通过 [output.manifest.generate](https://rsbuild.dev/config/output/manifest#generate) 来自定义 manifest 文件的生成。
+- 通过 [cleanDistPath.keep](https://rsbuild.dev/config/output/clean-dist-path#keep) 来指定在产物目录下保留的文件。
+- [@rsbuild/plugin-assets-retry](https://rsbuild.dev/plugins/list/plugin-assets-retry) 现在会生成更小的运行时代码。
+
+> 详情请参考 [Rsbuild v1.2.0](https://github.com/web-infra-dev/rsbuild/releases/tag/v1.2.0)。
+
+## 升级指南
+
+### 升级 SWC 插件
+
+在 Rspack v1.2 中，Rust 依赖包 `swc_core` 的版本已升级到 `10.1.0`。SWC Wasm 插件的用户需要确保与正在使用的 `swc_core` 版本一致，否则可能会导致意外问题。
+
+> 详情请参考 [常见问题 - SWC 插件版本不匹配](/errors/swc-plugin-version)。
+
+### WarnCaseSensitiveModules 默认关闭
+
+[WarnCaseSensitiveModulesPlugin](/plugins/webpack/warn-case-sensitive-modules-plugin) 插件用于检查模块的路径，并对路径全部为小写的冲突模块发出警告。Rspack 过去默认启用它，但由于它只是一个 linter 插件，并且它在开发模式下会产生额外的性能开销。所以现在 Rspack 默认禁用了这项功能。
+
+如果你倾向于保持之前的行为，可以设置：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.WarnCaseSensitiveModulesPlugin()],
+};
+```

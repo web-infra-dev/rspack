@@ -1,9 +1,8 @@
-use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
   has_hash_placeholder, impl_runtime_module,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  Compilation, Filename, PublicPath, RuntimeModule,
+  Compilation, Filename, PublicPath, RuntimeGlobals, RuntimeModule,
 };
 
 #[impl_runtime_module]
@@ -19,21 +18,19 @@ impl PublicPathRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for PublicPathRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     Ok(
-      RawStringSource::from(
-        include_str!("runtime/public_path.js")
-          .cow_replace(
-            "__PUBLIC_PATH_PLACEHOLDER__",
-            &PublicPath::render_filename(compilation, &self.public_path),
-          )
-          .into_owned(),
-      )
+      RawStringSource::from(format!(
+        "{} = \"{}\";",
+        RuntimeGlobals::PUBLIC_PATH.name(),
+        &PublicPath::render_filename(compilation, &self.public_path)
+      ))
       .boxed(),
     )
   }

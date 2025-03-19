@@ -2,21 +2,26 @@ use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange, RuntimeGlobals,
   RuntimeRequirementsDependency, SpanExt,
 };
-use swc_core::atoms::Atom;
-use swc_core::common::Spanned;
-use swc_core::ecma::ast::{
-  AssignExpr, AssignTarget, CallExpr, PropOrSpread, SimpleAssignTarget, UnaryExpr,
+use swc_core::{
+  atoms::Atom,
+  common::Spanned,
+  ecma::ast::{
+    AssignExpr, AssignTarget, CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit, MemberExpr,
+    ObjectLit, Prop, PropName, PropOrSpread, SimpleAssignTarget, ThisExpr, UnaryExpr, UnaryOp,
+  },
 };
-use swc_core::ecma::ast::{Callee, ExprOrSpread, Ident, MemberExpr, ObjectLit};
-use swc_core::ecma::ast::{Expr, Lit, Prop, PropName, ThisExpr, UnaryOp};
 
 use super::JavascriptParserPlugin;
-use crate::dependency::{CommonJsExportRequireDependency, CommonJsExportsDependency};
-use crate::dependency::{CommonJsSelfReferenceDependency, ExportsBase, ModuleDecoratorDependency};
-use crate::utils::eval::{self, BasicEvaluatedExpression};
-use crate::visitors::expr_like::ExprLike;
-use crate::visitors::{
-  expr_matcher, AllowedMemberTypes, JavascriptParser, MemberExpressionInfo, TopLevelScope,
+use crate::{
+  dependency::{
+    CommonJsExportRequireDependency, CommonJsExportsDependency, CommonJsSelfReferenceDependency,
+    ExportsBase, ModuleDecoratorDependency,
+  },
+  utils::eval::{self, BasicEvaluatedExpression},
+  visitors::{
+    expr_like::ExprLike, expr_matcher, AllowedMemberTypes, JavascriptParser, MemberExpressionInfo,
+    TopLevelScope,
+  },
 };
 
 const MODULE_NAME: &str = "module";

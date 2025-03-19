@@ -20,10 +20,12 @@
 
 ## 示例
 
-### 使用 `type: 'asset'` 根据条件自动选择策略
+### 使用 `type: 'asset'`
 
-```js title="rspack.config.js"
-module.exports = {
+使用 `type: 'asset'` 根据条件自动选择策略：
+
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -39,10 +41,12 @@ module.exports = {
 
 如果你希望修改这个行为，可以使用 [module.parser.asset.dataUrlCondition](/config/module#moduleparserasset) 来修改全局的配置，或使用 [Rule.parser.dataUrlCondition](/config/module#ruleparserdataurlcondition) 对特定符合条件的模块单独配置。
 
-### 使用 `type: 'asset/inline'` 替换 `url-loader`
+### 替换 `url-loader`
 
-```diff title="rspack.config.js"
-module.exports = {
+使用 `type: 'asset/inline'` 替换 `url-loader`：
+
+```diff title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -59,10 +63,12 @@ module.exports = {
 };
 ```
 
-### 使用 `type: 'asset/resource'` 替换 `file-loader`
+### 替换 `file-loader`
 
-```diff title="rspack.config.js"
-module.exports = {
+使用 `type: 'asset/resource'` 替换 `file-loader`：
+
+```diff title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -79,10 +85,12 @@ module.exports = {
 };
 ```
 
-### 使用 `type: 'asset/source'` 替换 `raw-loader`
+### 替换 `raw-loader`
 
-```diff title="rspack.config.js"
-module.exports = {
+使用 `type: 'asset/source'` 替换 `raw-loader`：
+
+```diff title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -105,10 +113,10 @@ module.exports = {
 
 例如对所有 `.png` 结尾的文件使用 [image-minimizer-webpack-plugin](https://github.com/webpack-contrib/image-minimizer-webpack-plugin) 进行优化：
 
-```js title="rspack.config.js"
-const ImageMinimizerPlugin = require('image-minimizer-webpack-plugin');
+```js title="rspack.config.mjs"
+import ImageMinimizerPlugin from 'image-minimizer-webpack-plugin';
 
-module.exports = {
+export default {
   module: {
     rules: [
       {

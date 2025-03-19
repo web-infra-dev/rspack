@@ -45,3 +45,9 @@ impl Tracer for OtelTracer {
     opentelemetry::global::shutdown_tracer_provider();
   }
 }
+
+pub mod otel {
+  pub use opentelemetry;
+  pub use opentelemetry_sdk as sdk;
+  pub use tracing_opentelemetry as tracing;
+}

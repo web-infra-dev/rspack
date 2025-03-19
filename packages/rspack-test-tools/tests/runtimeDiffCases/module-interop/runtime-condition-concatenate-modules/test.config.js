@@ -15,8 +15,8 @@ module.exports = {
 		"d1.js",
 		"d2.js"
 	],
-	renameModule: (raw) => {
+	renameModule: raw => {
 		// remove hash for concated module identifier
-		return raw.split("|").slice(0, -1).join('|');
-	},
+		return raw.split("|").slice(0, -1).join("|");
+	}
 };

@@ -3,18 +3,18 @@ module.exports = {
 	entry: {
 		"a-name": {
 			import: "./a",
-			runtime: "a-runtime",
+			runtime: "a-runtime"
 		},
 		"b-name": {
 			import: "./b",
-			runtime: "b-runtime",
+			runtime: "b-runtime"
 		},
 		"ax-name": "./ax.js",
 		"bx-name": "./bx.js"
 	},
 	target: "web",
 	output: {
-		filename: "[id].js",
+		filename: "[id].js"
 	},
 	node: false,
 	optimization: {
@@ -41,5 +41,5 @@ module.exports = {
 				sideEffects: false
 			}
 		]
-	},
+	}
 };

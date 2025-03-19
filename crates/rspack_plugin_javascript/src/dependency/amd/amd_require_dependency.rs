@@ -81,7 +81,7 @@ impl DependencyTemplate for AMDRequireDependency {
     {
       let start_block = promise + ".then(function() {";
       let end_block = format!(
-        ";}})['catch']{}",
+        ";}})['catch']({})",
         RuntimeGlobals::UNCAUGHT_ERROR_HANDLER.name()
       );
       code_generatable_context

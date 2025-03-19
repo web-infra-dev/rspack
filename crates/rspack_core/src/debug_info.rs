@@ -1,5 +1,4 @@
-use std::fmt::Display;
-use std::sync::Mutex;
+use std::{fmt::Display, sync::Mutex};
 
 /// Debug info used when programs panics
 /// Only works with #[cfg(debug_assertions)]

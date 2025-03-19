@@ -1,12 +1,13 @@
-use std::borrow::Cow;
-use std::collections::hash_map::Entry;
-use std::collections::BTreeMap;
-use std::collections::VecDeque;
-use std::hash::Hash;
-use std::rc::Rc;
-use std::sync::atomic::AtomicU32;
-use std::sync::atomic::Ordering::Relaxed;
-use std::sync::Arc;
+use std::{
+  borrow::Cow,
+  collections::{hash_map::Entry, BTreeMap, VecDeque},
+  hash::Hash,
+  rc::Rc,
+  sync::{
+    atomic::{AtomicU32, Ordering::Relaxed},
+    Arc,
+  },
+};
 
 use either::Either;
 use itertools::Itertools;
@@ -14,20 +15,14 @@ use rspack_cacheable::{
   cacheable,
   with::{AsPreset, AsVec},
 };
-use rspack_collections::impl_item_ukey;
-use rspack_collections::Ukey;
-use rspack_collections::UkeySet;
-use rspack_util::atom::Atom;
-use rspack_util::ext::DynHash;
-use rustc_hash::FxHashMap as HashMap;
-use rustc_hash::FxHashSet as HashSet;
+use rspack_collections::{impl_item_ukey, Ukey, UkeySet};
+use rspack_util::{atom::Atom, ext::DynHash};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
 
-use crate::Compilation;
-use crate::DependencyConditionFn;
 use crate::{
-  property_access, ConnectionState, DependencyCondition, DependencyId, ModuleGraph,
-  ModuleIdentifier, Nullable, RuntimeSpec,
+  property_access, Compilation, ConnectionState, DependencyCondition, DependencyConditionFn,
+  DependencyId, ModuleGraph, ModuleIdentifier, Nullable, RuntimeSpec,
 };
 
 #[cacheable]
@@ -135,7 +130,7 @@ impl ExportsInfo {
   }
 
   /// # Panic
-  /// it will panic if you provide a export info that does not exists in the module graph  
+  /// it will panic if you provide a export info that does not exists in the module graph
   pub fn set_has_provide_info(&self, mg: &mut ModuleGraph) {
     let exports_info = mg.get_exports_info_by_id(self);
     let redirect_id = exports_info.redirect_to;
@@ -526,7 +521,7 @@ impl ExportsInfo {
 
   pub fn get_provided_exports(&self, mg: &ModuleGraph) -> ProvidedExports {
     let info = self.as_exports_info(mg);
-    if let Some(_redirect_to) = info.redirect_to {
+    if info.redirect_to.is_none() {
       match info.other_exports_info.provided(mg) {
         Some(ExportInfoProvided::Null) => {
           return ProvidedExports::True;
@@ -946,6 +941,31 @@ impl ExportInfo {
       Some(ExportInfoProvided::True) => "provided",
       None => "no provided info",
     }
+  }
+
+  pub fn get_rename_info(&self, mg: &ModuleGraph) -> Cow<str> {
+    let export_info_data = self.as_export_info(mg);
+
+    match (&export_info_data.used_name, &export_info_data.name) {
+      (Some(used), Some(name)) if used != name => return format!("renamed to {used}").into(),
+      (Some(used), None) => return format!("renamed to {used}").into(),
+      _ => {}
+    }
+
+    match (self.can_mangle_provide(mg), self.can_mangle_use(mg)) {
+      (None, None) => "missing provision and use info prevents renaming",
+      (None, Some(false)) => "usage prevents renaming (no provision info)",
+      (None, Some(true)) => "missing provision info prevents renaming",
+
+      (Some(true), None) => "missing usage info prevents renaming",
+      (Some(true), Some(false)) => "usage prevents renaming",
+      (Some(true), Some(true)) => "could be renamed",
+
+      (Some(false), None) => "provision prevents renaming (no use info)",
+      (Some(false), Some(false)) => "usage and provision prevents renaming",
+      (Some(false), Some(true)) => "provision prevents renaming",
+    }
+    .into()
   }
 
   pub fn get_used_info(&self, mg: &ModuleGraph) -> Cow<str> {
@@ -1486,7 +1506,7 @@ pub struct ExportInfoData {
 pub enum ExportInfoProvided {
   True,
   False,
-  /// `Null` has real semantic in webpack https://github.com/webpack/webpack/blob/853bfda35a0080605c09e1bdeb0103bcb9367a10/lib/ExportsInfo.js#L830  
+  /// `Null` has real semantic in webpack https://github.com/webpack/webpack/blob/853bfda35a0080605c09e1bdeb0103bcb9367a10/lib/ExportsInfo.js#L830
   Null,
 }
 

@@ -6,13 +6,11 @@ packages:
   - "packages/create-rspack/**"
   - "npm/*"
   - "crates/node_binding"
-  - "crates/rspack_fs_node"
   - "examples/**"
   - "!examples/three"
   - "tests/e2e"
   - "tests/webpack-examples"
   - "tests/webpack-test"
-  - "tests/plugin-test"
   - "tests/webpack-cli-test"
   - "tests/bench"
   # this following is used to test resolve in monorepo

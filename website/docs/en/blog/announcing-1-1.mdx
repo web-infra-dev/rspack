@@ -3,9 +3,9 @@ date: 2024-11-07 16:00:00
 sidebar: false
 ---
 
-# Announcing Rspack 1.1
+_November 7, 2024_
 
-> November 7, 2024
+# Announcing Rspack 1.1
 
 ![Rspack 1.1](https://assets.rspack.dev/rspack/rspack-banner-v1-1.png)
 
@@ -60,10 +60,10 @@ In a case of 10000 React components, the HMR becomes 38% faster:
 
 In Rspack v1.1 you can enable this feature in development mode by:
 
-```js title=rspack.config.js
+```js title="rspack.config.mjs"
 const isDev = process.env.NODE_ENV === 'development';
 
-module.exports = {
+export default {
   mode: isDev ? 'development' : 'production',
   experiments: {
     incremental: isDev,
@@ -83,7 +83,7 @@ In earlier versions of Rspack, the built-in [HtmlRspackPlugin](/plugins/rspack/h
 
 Therefore, we refactored `HtmlRspackPlugin`. While supporting most of the configuration options of `HtmlWebpackPlugin`, we also completed the alignment of `hooks`. Now you can get these hooks through `HtmlRspackPlugin.getCompilationHooks` and use them to modify the content of the HTML assets like below:
 
-```js title="rspack.config.js"
+```js title="rspack.config.mjs"
 const DeferPlugin = {
   apply(compiler) {
     compiler.hooks.compilation.tap('DeferPlugin', compilation => {
@@ -100,7 +100,7 @@ const DeferPlugin = {
   },
 };
 
-module.exports = {
+export default {
   plugins: [new HtmlRspackPlugin(), DeferPlugin],
 };
 ```
@@ -188,8 +188,8 @@ Rspack's [output.hashFunction](/config/output#outputhashfunction) now defaults t
 
 If you prefer the previous hash function, you can set:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   output: {
     hashFunction: 'md5',
     hashDigestLength: 20,

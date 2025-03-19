@@ -7,6 +7,8 @@ type Module = {
   request?: string;
   userRequest?: string;
   rawRequest?: string;
+  matchResource?: string;
+  loaders?: LoaderItem[];
   factoryMeta?: JsFactoryMeta;
   buildInfo: Record<string, any>;
   buildMeta: Record<string, any>;

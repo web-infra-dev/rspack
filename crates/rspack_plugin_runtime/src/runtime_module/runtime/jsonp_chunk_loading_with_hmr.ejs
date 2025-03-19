@@ -1,0 +1,47 @@
+var currentUpdatedModulesList;
+var waitingUpdateResolves = {};
+function loadUpdateChunk(chunkId, updatedModulesList) {
+	currentUpdatedModulesList = updatedModulesList;
+	return new Promise(<%- basicFunction("resolve, reject") %> {
+		waitingUpdateResolves[chunkId] = resolve;
+		// start update chunk loading
+		var url = <%- PUBLIC_PATH %> + <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId);
+		// create error before stack unwound to get useful stacktrace later
+		var error = new Error();
+		var loadingEnded = <%- basicFunction("event") %> {
+			if (waitingUpdateResolves[chunkId]) {
+				waitingUpdateResolves[chunkId] = undefined;
+				var errorType =
+					event && (event.type === 'load' ? 'missing' : event.type);
+				var realSrc = event && event.target && event.target.src;
+				error.message =
+					'Loading hot update chunk ' +
+					chunkId +
+					' failed.\n(' +
+					errorType +
+					': ' +
+					realSrc +
+					')';
+				error.name = 'ChunkLoadError';
+				error.type = errorType;
+				error.request = realSrc;
+				reject(error);
+			}
+		};
+		<%- LOAD_SCRIPT %>(url, loadingEnded);
+	});
+}
+
+<%- _global_object %>[<%- _hot_update_global %>] = <%- basicFunction("chunkId, moreModules, runtime") %> {
+	for (var moduleId in moreModules) {
+		if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {
+			currentUpdate[moduleId] = moreModules[moduleId];
+			if (currentUpdatedModulesList) currentUpdatedModulesList.push(moduleId);
+		}
+	}
+	if (runtime) currentUpdateRuntime.push(runtime);
+	if (waitingUpdateResolves[chunkId]) {
+		waitingUpdateResolves[chunkId]();
+		waitingUpdateResolves[chunkId] = undefined;
+	}
+};

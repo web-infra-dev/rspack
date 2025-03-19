@@ -3,23 +3,20 @@
  */
 module.exports = {
 	mode: "development",
-	target: 'web',
+	target: "web",
 	devtool: "source-map",
 	module: {
 		generator: {
-			'css/auto': {
-				exportsOnly: false,
+			"css/auto": {
+				exportsOnly: false
 			}
 		},
 		rules: [
 			{
 				test: /\.css$/,
-				use: [
-					'./loader.js',
-					'builtin:lightningcss-loader',
-				],
+				use: ["./loader.js", "builtin:lightningcss-loader"],
 				sideEffects: true,
-				type: 'css/auto'
+				type: "css/auto"
 			}
 		]
 	},

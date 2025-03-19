@@ -1,5 +1,6 @@
 import WebpackLicense from '@components/WebpackLicense';
 import PropertyType from '@components/PropertyType';
+import { ApiMeta } from '@components/ApiMeta';
 
 <WebpackLicense from="https://webpack.js.org/configuration/other-options/" />
 
@@ -7,14 +8,45 @@ import PropertyType from '@components/PropertyType';
 
 这里展示了 Rspack 支持的其余配置项。
 
+## amd
+
+<ApiMeta addedVersion="1.3.0" />
+
+<PropertyType
+  type="false | object"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+:::info
+与 webpack 不同，webpack 中 `amd` 选项的默认值为 `{}`， 即默认开启了 AMD 模块的依赖分析。但由于 AMD 模块的使用量正在逐步减少，Rspack 将 `amd` 选项的默认值设置为 `false`，即默认关闭了 AMD 模块的依赖分析。如果你的项目需要使用 AMD 模块，可以自行开启该选项。
+:::
+
+开启此选项可以支持 AMD 模块的依赖分析，这对于兼容一些按照 AMD 规范编写的老旧库很有帮助。
+
+```js title="rspack.config.mjs"
+export default {
+  amd: {}, // 开启 AMD 模块的依赖分析
+};
+```
+
+另外可以通过该配置设置 `require.amd` 或 `define.amd` 的值：
+
+```js title="rspack.config.mjs"
+export default {
+  amd: {
+    jQuery: true, // require.amd 和 define.amd 被设置为 { jQuery: true }
+  },
+};
+```
+
 ## bail
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 遇到第一个错误时退出。Rspack 在默认情况下会在命令行以及在 HMR 时的浏览器 console 中打印这些错误，并且继续编译。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   bail: true,
 };
 ```
@@ -37,8 +69,8 @@ module.exports = {
 
 请记住，当前配置在其依赖项完成之前不会编译。
 
-```js title="rspack.config.js"
-module.exports = [
+```js title="rspack.config.mjs"
+export default [
   {
     name: 'client',
     target: 'web',
@@ -61,8 +93,8 @@ module.exports = [
 
 告知 Rspack 忽略特定的警告。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   ignoreWarnings: [/warning from compiler/, warning => true],
 };
@@ -77,8 +109,8 @@ module.exports = {
 
 配置的名称。当加载多个配置时被使用。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   name: 'admin-app',
 };
@@ -95,8 +127,8 @@ module.exports = {
 
 如下示例在 Loader 上下问中定义了一个新变量 `answer`：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   loader: {
     answer: 42,

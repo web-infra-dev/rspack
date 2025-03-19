@@ -14,8 +14,10 @@ new rspack.WarnCaseSensitiveModulesPlugin();
 
 ## Register
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
   plugins: [new rspack.WarnCaseSensitiveModulesPlugin()],
 };
 ```

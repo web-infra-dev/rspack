@@ -1,0 +1,19 @@
+/**
+ * bar
+ * @license MIT
+ */
+
+/**
+ * baz
+ * @license MIT
+ */
+
+/**
+ * foo
+ * @license MIT
+ */
+
+/**
+ * relative
+ * @license MIT
+ */

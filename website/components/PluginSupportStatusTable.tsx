@@ -1,6 +1,7 @@
 import { Table } from '@builtIns/Table';
 import type React from 'react';
 import { useLang } from 'rspress/runtime';
+import { useI18nUrl } from 'theme/i18n';
 import S from './PluginSupportStatusTable.module.scss';
 
 enum SupportStatus {
@@ -58,7 +59,8 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'DllPlugin',
-    status: SupportStatus.NotSupported,
+    url: '/plugins/webpack/dll-plugin',
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'EnvironmentPlugin',
@@ -140,11 +142,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   {
     name: 'SplitChunksPlugin',
     url: '/plugins/webpack/split-chunks-plugin',
-    status: SupportStatus.PartiallySupported,
-    notes: {
-      en: '`minSizeReduction`, `usedExports` options not supported',
-      zh: '不支持 `minSizeReduction`、`usedExports` 选项',
-    },
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'WatchIgnorePlugin',
@@ -319,7 +317,8 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'DllReferencePlugin',
-    status: SupportStatus.NotSupported,
+    url: '/plugins/webpack/dll-reference-plugin',
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'DynamicEntryPlugin',
@@ -465,6 +464,7 @@ const getNotesText = (
 
 export const PluginSupportStatusTable: React.FC = () => {
   const lang = useLang();
+  const tUrl = useI18nUrl();
 
   return (
     <Table
@@ -492,7 +492,7 @@ export const PluginSupportStatusTable: React.FC = () => {
 
         return {
           name: url ? (
-            <a href={url} target="_blank" rel="noreferrer">
+            <a href={tUrl(url)} target="_blank" rel="noreferrer">
               {name}
             </a>
           ) : (

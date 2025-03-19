@@ -5,28 +5,32 @@ mod overwrite;
 
 use std::sync::Arc;
 
-use dashmap::{mapref::entry::Entry, DashMap, DashSet};
+use dashmap::{mapref::entry::Entry, DashMap};
 pub use execute::{ExecuteModuleId, ExecutedRuntimeModule};
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierDashSet};
-use rustc_hash::FxHashSet as HashSet;
-use tokio::sync::{
-  mpsc::{unbounded_channel, UnboundedSender},
-  oneshot,
+use rspack_error::Result;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use tokio::{
+  sync::{
+    mpsc::{unbounded_channel, UnboundedSender},
+    oneshot,
+  },
+  task,
 };
-use tokio::task;
 
 use self::{
   ctrl::{CtrlTask, Event, ExecuteParam},
   execute::{ExecuteModuleResult, ExecuteTask},
   overwrite::OverwriteTask,
 };
-use super::make::cutout::Cutout;
-use super::make::repair::repair;
-use super::make::{repair::MakeTaskContext, MakeArtifact, MakeParam};
-use crate::cache::MemoryCache;
+use super::make::{
+  cutout::Cutout,
+  repair::{repair, MakeTaskContext},
+  MakeArtifact, MakeParam,
+};
 use crate::{
-  task_loop::run_task_loop_with_event, Compilation, CompilationAsset, Context, Dependency,
-  DependencyId, LoaderImportDependency, PublicPath,
+  cache::MemoryCache, task_loop::run_task_loop_with_event, Compilation, CompilationAsset, Context,
+  Dependency, DependencyId, LoaderImportDependency, PublicPath,
 };
 
 #[derive(Debug)]
@@ -43,15 +47,14 @@ pub struct ModuleExecutor {
 
   event_sender: Option<UnboundedSender<Event>>,
   stop_receiver: Option<oneshot::Receiver<MakeArtifact>>,
-  assets: DashMap<String, CompilationAsset>,
-  module_assets: IdentifierDashMap<DashSet<String>>,
+  module_assets: IdentifierDashMap<HashMap<String, CompilationAsset>>,
   code_generated_modules: IdentifierDashSet,
   module_code_generated_modules: IdentifierDashMap<IdentifierDashSet>,
   pub executed_runtime_modules: IdentifierDashMap<ExecutedRuntimeModule>,
 }
 
 impl ModuleExecutor {
-  pub async fn hook_before_make(&mut self, compilation: &Compilation) {
+  pub async fn hook_before_make(&mut self, compilation: &Compilation) -> Result<()> {
     let mut make_artifact = std::mem::take(&mut self.make_artifact);
     let mut params = Vec::with_capacity(5);
     params.push(MakeParam::CheckNeedBuild);
@@ -61,21 +64,19 @@ impl ModuleExecutor {
     if !compilation.removed_files.is_empty() {
       params.push(MakeParam::RemovedFiles(compilation.removed_files.clone()));
     }
-    if !make_artifact.make_failed_dependencies.is_empty() {
-      let deps = std::mem::take(&mut make_artifact.make_failed_dependencies);
-      params.push(MakeParam::ForceBuildDeps(deps));
-    }
-    if !make_artifact.make_failed_module.is_empty() {
-      let modules = std::mem::take(&mut make_artifact.make_failed_module);
-      params.push(MakeParam::ForceBuildModules(modules));
-    }
     make_artifact.built_modules = Default::default();
     make_artifact.revoked_modules = Default::default();
-    make_artifact.diagnostics = Default::default();
-    make_artifact.has_module_graph_change = false;
 
     // Modules imported by `importModule` are passively loaded.
     let mut build_dependencies = self.cutout.cutout_artifact(&mut make_artifact, params);
+
+    compilation
+      .plugin_driver
+      .compilation_hooks
+      .revoked_modules
+      .call(&make_artifact.revoked_modules)
+      .await?;
+
     let mut build_dependencies_id = build_dependencies
       .iter()
       .map(|(id, _)| *id)
@@ -115,6 +116,8 @@ impl ModuleExecutor {
         .send(ctx.transform_to_make_artifact())
         .expect("should success");
     }));
+
+    Ok(())
   }
 
   pub async fn hook_after_finish_modules(&mut self, compilation: &mut Compilation) {
@@ -134,36 +137,18 @@ impl ModuleExecutor {
     let cutout = std::mem::take(&mut self.cutout);
     cutout.fix_artifact(&mut self.make_artifact);
 
+    let mut mg = compilation.make_artifact.get_module_graph_mut();
     let module_assets = std::mem::take(&mut self.module_assets);
-    for (original_module_identifier, files) in module_assets {
-      let assets = compilation
-        .module_assets
-        .entry(original_module_identifier)
-        .or_default();
-      for file in files {
-        assets.insert(file);
+    for (original_module_identifier, assets) in module_assets {
+      // recursive import module may not exist the module, just skip it
+      if let Some(module) = mg.module_by_identifier_mut(&original_module_identifier) {
+        module.build_info_mut().assets.extend(assets);
       }
     }
 
-    let module_code_generation_modules = std::mem::take(&mut self.module_code_generated_modules);
-    for (original_module_identifier, code_generation_modules) in module_code_generation_modules {
-      for module_identifier in code_generation_modules {
-        if let Some(module_assets) = compilation.module_assets.remove(&module_identifier) {
-          compilation
-            .module_assets
-            .entry(original_module_identifier)
-            .or_default()
-            .extend(module_assets);
-        }
-      }
-    }
+    //    let module_code_generation_modules = std::mem::take(&mut self.module_code_generated_modules);
 
-    let assets = std::mem::take(&mut self.assets);
-    for (filename, asset) in assets {
-      compilation.emit_asset(filename, asset);
-    }
-
-    let diagnostics = self.make_artifact.take_diagnostics();
+    let diagnostics = self.make_artifact.diagnostics();
     compilation.extend_diagnostics(diagnostics);
 
     let code_generated_modules = std::mem::take(&mut self.code_generated_modules);
@@ -257,11 +242,7 @@ impl ModuleExecutor {
         .module_assets
         .entry(original_module_identifier)
         .or_default()
-        .extend(execute_result.assets.clone());
-    }
-
-    for (key, value) in assets {
-      self.assets.insert(key.clone(), value);
+        .extend(assets);
     }
 
     for id in code_generated_modules {

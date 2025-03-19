@@ -2,6 +2,6 @@
 module.exports = {
 	optimization: {
 		sideEffects: true,
-		providedExports: true,
+		providedExports: true
 	}
 };

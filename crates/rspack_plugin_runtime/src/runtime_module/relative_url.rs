@@ -17,12 +17,22 @@ impl Default for RelativeUrlRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for RelativeUrlRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
 
-  fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(RawStringSource::from_static(include_str!("runtime/relative_url.js")).boxed())
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("runtime/relative_url.ejs").to_string(),
+    )]
+  }
+
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    let source = compilation.runtime_template.render(&self.id, None)?;
+
+    Ok(RawStringSource::from(source).boxed())
   }
 }

@@ -1,4 +1,5 @@
 aarch
+absolutify
 ahabhgk
 Akait
 alexander-akait
@@ -24,6 +25,7 @@ chakra
 chapple
 chenjiahan
 codeva
+Colum
 commmonjs
 cpuprofile
 CRACO
@@ -136,6 +138,7 @@ proxying
 px2rem
 pxtorem
 recognise
+resolvepnp
 Rollup
 rome
 rsbuild
@@ -147,14 +150,17 @@ Rslib
 rspack
 Rspack
 rspackplugin
+Rspeedy
 rspress
 Rspress
 rstack
+Rstest
 ruid
 ruleoneof
 ruleparserdataurlcondition
 Rust
 rustup
+samply
 sanyuan
 Shenzhen
 shulaoda
@@ -185,6 +191,7 @@ Undelayed
 unplugin
 valorkin
 vant
+verkada
 viktoriialurie
 weapp
 Webpack

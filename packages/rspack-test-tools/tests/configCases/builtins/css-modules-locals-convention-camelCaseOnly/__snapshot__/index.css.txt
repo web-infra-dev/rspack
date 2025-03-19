@@ -1,0 +1,6 @@
+Object {
+  "btnInfoIsDisabled": "-bd00b1e0e0954270-btn-info_is-disabled",
+  "btnInfoIsDisabled1": "-bd00b1e0e0954270-btn--info_is-disabled_1",
+  "fooBar": "-bd00b1e0e0954270-foo_bar",
+  "simple": "-bd00b1e0e0954270-simple",
+}

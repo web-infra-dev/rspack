@@ -26,10 +26,9 @@ import {
 	SourceMapSource
 } from "webpack-sources";
 
-import type { Context, Tracer } from "@rspack/tracing";
+import type { ContextAPI, PropagationAPI, TraceAPI } from "@rspack/tracing";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
-import { Module } from "../Module";
 import { NormalModule } from "../NormalModule";
 import { NonErrorEmittedError, type RspackError } from "../RspackError";
 import {
@@ -81,8 +80,8 @@ function createLoaderObject(
 			obj.path.replace(/#/g, "\u200b#") +
 			obj.query.replace(/#/g, "\u200b#") +
 			obj.fragment,
-		set: value => {
-			const splittedRequest = parseResourceWithoutFragment(value.request);
+		set: (value: JsLoaderItem) => {
+			const splittedRequest = parseResourceWithoutFragment(value.loader);
 			obj.path = splittedRequest.path;
 			obj.query = splittedRequest.query;
 			obj.fragment = "";
@@ -340,36 +339,64 @@ function getCurrentLoader(
 	}
 	return null;
 }
-let tracingCache!: { tracer?: Tracer; activeContext?: Context };
-async function tryTrace(context: JsLoaderContext) {
+
+// FIXME: a temporary fix, we may need to change @rspack/tracing to commonjs really fix it
+let cachedTracing:
+	| {
+			trace: TraceAPI;
+			propagation: PropagationAPI;
+			context: ContextAPI;
+	  }
+	| null
+	| undefined;
+
+async function getCachedTracing() {
 	// disable tracing in non-profile mode
 	if (!process.env.RSPACK_PROFILE) {
-		return {};
+		cachedTracing = null;
+		return cachedTracing;
 	}
-	try {
-		const {
-			trace,
-			propagation,
-			context: tracingContext
-		} = await import("@rspack/tracing");
+	if (cachedTracing) {
+		return cachedTracing;
+	}
+	if (cachedTracing === undefined) {
+		try {
+			const tracing = await import("@rspack/tracing");
+			cachedTracing = {
+				trace: tracing.trace,
+				propagation: tracing.propagation,
+				context: tracing.context
+			};
+			return cachedTracing;
+		} catch (e) {
+			cachedTracing = null;
+			return cachedTracing;
+		}
+	} else {
+		cachedTracing = null;
+		return cachedTracing;
+	}
+}
+
+async function tryTrace(context: JsLoaderContext) {
+	const cachedTracing = await getCachedTracing();
+	if (cachedTracing) {
+		const { trace, propagation, context: tracingContext } = cachedTracing;
 		const tracer = trace.getTracer("rspack-loader-runner");
 		const activeContext = propagation.extract(
 			tracingContext.active(),
 			context.__internal__tracingCarrier
 		);
-		tracingCache = { tracer, activeContext };
-		return tracingCache;
-	} catch (error) {
-		tracingCache = {};
-		return tracingCache;
+		return { trace, tracer, activeContext };
 	}
+	return null;
 }
 
 export async function runLoaders(
 	compiler: Compiler,
 	context: JsLoaderContext
 ): Promise<JsLoaderContext> {
-	const { tracer, activeContext } = await tryTrace(context);
+	const { tracer, activeContext } = (await tryTrace(context)) ?? {};
 
 	const loaderState = context.loaderState;
 
@@ -431,13 +458,12 @@ export async function runLoaders(
 	};
 
 	loaderContext.importModule = function importModule(
-		this: LoaderContext,
 		request,
 		userOptions,
 		callback
 	) {
 		const options = userOptions ? userOptions : {};
-		const context = this;
+		const context = loaderContext;
 		function finalCallback(
 			onError: (err: Error) => void,
 			onDone: (res: any) => void
@@ -603,12 +629,16 @@ export async function runLoaders(
 		};
 	};
 
-	const resolver = compiler._lastCompilation!.resolverFactory.get("normal");
+	const getResolver = memoize(() => {
+		return compiler._lastCompilation!.resolverFactory.get("normal");
+	});
+
 	loaderContext.resolve = function resolve(context, request, callback) {
-		resolver.resolve({}, context, request, getResolveContext(), callback);
+		getResolver().resolve({}, context, request, getResolveContext(), callback);
 	};
 
 	loaderContext.getResolve = function getResolve(options) {
+		const resolver = getResolver();
 		const child = options ? resolver.withOptions(options) : resolver;
 		return (context, request, callback) => {
 			if (callback) {
@@ -646,7 +676,8 @@ export async function runLoaders(
 			loaderContext.loaders[loaderContext.loaderIndex]
 		)})`;
 		error = concatErrorMsgAndStack(error);
-		(error as RspackError).moduleIdentifier = this._module.identifier();
+		(error as RspackError).moduleIdentifier =
+			loaderContext._module.identifier();
 		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
 			error,
 			severity: JsRspackSeverity.Error
@@ -662,7 +693,8 @@ export async function runLoaders(
 			loaderContext.loaders[loaderContext.loaderIndex]
 		)})`;
 		warning = concatErrorMsgAndStack(warning);
-		(warning as RspackError).moduleIdentifier = this._module.identifier();
+		(warning as RspackError).moduleIdentifier =
+			loaderContext._module.identifier();
 		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
 			error: warning,
 			severity: JsRspackSeverity.Warn
@@ -688,7 +720,7 @@ export async function runLoaders(
 				);
 			}
 
-			if (this.sourceMap) {
+			if (loaderContext.sourceMap) {
 				source = new SourceMapSource(
 					// @ts-expect-error webpack-sources type declaration is wrong
 					content,
@@ -702,12 +734,7 @@ export async function runLoaders(
 				content
 			);
 		}
-		compiler._lastCompilation!.__internal__emit_asset_from_loader(
-			name,
-			source!,
-			assetInfo!,
-			context._moduleIdentifier
-		);
+		loaderContext._module.emitFile(name, source!, assetInfo!);
 	};
 	loaderContext.fs = compiler.inputFileSystem;
 	loaderContext.experiments = {
@@ -717,7 +744,7 @@ export async function runLoaders(
 					diagnostic.severity === "warning"
 						? `ModuleWarning: ${diagnostic.message}`
 						: `ModuleError: ${diagnostic.message}`,
-				moduleIdentifier: context._module.moduleIdentifier
+				moduleIdentifier: context._module.identifier()
 			});
 			compiler._lastCompilation!.__internal__pushDiagnostic(
 				formatDiagnostic(d)
@@ -754,7 +781,7 @@ export async function runLoaders(
 
 	loaderContext._compiler = compiler;
 	loaderContext._compilation = compiler._lastCompilation!;
-	loaderContext._module = Module.__from_binding(context._module);
+	loaderContext._module = context._module;
 
 	loaderContext.getOptions = () => {
 		const loader = getCurrentLoader(loaderContext);

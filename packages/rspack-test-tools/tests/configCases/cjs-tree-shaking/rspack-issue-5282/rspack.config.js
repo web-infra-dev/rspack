@@ -4,5 +4,5 @@ module.exports = {
 	optimization: {
 		minimize: false,
 		moduleIds: "named"
-	},
+	}
 };

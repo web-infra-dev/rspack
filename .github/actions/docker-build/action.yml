@@ -26,6 +26,10 @@ inputs:
     required: false
     default: ""
     type: string
+  plugin:
+    required: false
+    default: true
+    type: boolean
 
 runs:
   using: composite
@@ -42,13 +46,11 @@ runs:
           ${{ inputs.pre }}
           rustup target add ${{ inputs.target }}
 
-          # corepack > 0.24.1 will use native fetch
-          # and native fetch not support HTTP_PROXY
-          # https://github.com/nodejs/undici/issues/1650
-          npm install -g corepack@0.24.1
+          npm install -g corepack@0.31.0 --force
+          echo "Corepack version: $(corepack --version)"
           corepack enable
 
-          RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
+          RUST_TARGET=${{ inputs.target }} ${{ inputs.plugin == 'false' && 'DISABLE_PLUGIN=1' || '' }} pnpm build:binding:${{ inputs.profile }}
           ${{ inputs.post }}
         '
         if [[ ! -n "$CARGO_HOME" ]]; then
@@ -62,6 +64,7 @@ runs:
           -v $CARGO_HOME/registry/index:/usr/local/cargo/registry/index \
           -v $CARGO_HOME/registry/cache:/usr/local/cargo/registry/cache \
           -v $CARGO_HOME/git/db:/usr/local/cargo/git/db \
+          -v /tmp:/tmp \
           ${{ inputs.options }} \
           -e CI=1 \
           -e HOME=$HOME \

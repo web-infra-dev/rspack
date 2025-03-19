@@ -2,33 +2,33 @@ module.exports = [
 	{
 		name: "lib",
 		entry: {
-			lib: "./lib.js",
+			lib: "./lib.js"
 		},
 		output: {
 			filename: "[name].js",
 			library: {
 				name: "lib",
-				type: "umd",
+				type: "umd"
 			}
 		},
 		target: "web",
 		optimization: {
 			chunkIds: "named",
 			moduleIds: "named",
-			runtimeChunk: true,
+			runtimeChunk: true
 		}
 	},
 	{
 		dependencies: ["lib"],
 		entry: {
-			main: "./index.js",
+			main: "./index.js"
 		},
 		output: {
-			filename: "[name].js",
+			filename: "[name].js"
 		},
 		target: "web",
 		experiments: {
-			css: true,
+			css: true
 		}
 	}
 ];

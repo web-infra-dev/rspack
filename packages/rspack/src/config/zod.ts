@@ -1,9 +1,12 @@
 import nodePath from "node:path";
-import type { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
+import type { AssetInfo, RawFuncUseCtx } from "@rspack/binding";
 import { type SyncParseReturnType, ZodIssueCode, z } from "zod";
 import { Chunk } from "../Chunk";
+import { ChunkGraph } from "../ChunkGraph";
 import type { Compilation, PathData } from "../Compilation";
 import { Module } from "../Module";
+import ModuleGraph from "../ModuleGraph";
+import type { ResolveCallback } from "./adapterRuleUse";
 import type * as t from "./types";
 import { ZodRspackCrossChecker } from "./utils";
 
@@ -12,7 +15,7 @@ const filenameTemplate = z.string() satisfies z.ZodType<t.FilenameTemplate>;
 const filename = filenameTemplate.or(
 	z
 		.function()
-		.args(z.custom<PathData>(), z.custom<JsAssetInfo>().optional())
+		.args(z.custom<PathData>(), z.custom<AssetInfo>().optional())
 		.returns(z.string())
 ) satisfies z.ZodType<t.Filename>;
 
@@ -662,13 +665,18 @@ const cssModuleGeneratorOptions = z.strictObject({
 	esModule: cssGeneratorEsModule.optional()
 }) satisfies z.ZodType<t.CssModuleGeneratorOptions>;
 
+const jsonGeneratorOptions = z.strictObject({
+	JSONParse: z.boolean().optional()
+}) satisfies z.ZodType<t.JsonGeneratorOptions>;
+
 const generatorOptionsByModuleTypeKnown = z.strictObject({
 	asset: assetGeneratorOptions.optional(),
 	"asset/inline": assetInlineGeneratorOptions.optional(),
 	"asset/resource": assetResourceGeneratorOptions.optional(),
 	css: cssGeneratorOptions.optional(),
 	"css/auto": cssAutoGeneratorOptions.optional(),
-	"css/module": cssModuleGeneratorOptions.optional()
+	"css/module": cssModuleGeneratorOptions.optional(),
+	json: jsonGeneratorOptions.optional()
 }) satisfies z.ZodType<t.GeneratorOptionsByModuleTypeKnown>;
 
 const generatorOptionsByModuleTypeUnknown = z.record(
@@ -804,7 +812,7 @@ export const externalsType = z.enum([
 ]) satisfies z.ZodType<t.ExternalsType>;
 //#endregion
 
-const ZodExternalObjectValue = new ZodRspackCrossChecker<
+const externalObjectValue = new ZodRspackCrossChecker<
 	t.ExternalItemUmdValue | t.ExternalItemObjectValue
 >({
 	patterns: [
@@ -853,7 +861,7 @@ const externalItemValue = z
 	.string()
 	.or(z.boolean())
 	.or(z.string().array().min(1))
-	.or(ZodExternalObjectValue) satisfies z.ZodType<t.ExternalItemValue>;
+	.or(externalObjectValue) satisfies z.ZodType<t.ExternalItemValue>;
 
 const externalItemObjectUnknown = z.record(
 	externalItemValue
@@ -879,14 +887,7 @@ const externalItemFunctionData = z.strictObject({
 				.or(
 					z
 						.function()
-						.args(
-							z.string(),
-							z.string(),
-							z
-								.function()
-								.args(z.instanceof(Error).optional(), z.string().optional())
-								.returns(z.void())
-						)
+						.args(z.string(), z.string(), z.custom<ResolveCallback>())
 						.returns(z.void())
 				)
 		)
@@ -1206,6 +1207,7 @@ const sharedOptimizationSplitChunksCacheGroup = {
 	minChunks: z.number().min(1).optional(),
 	usedExports: z.boolean().optional(),
 	name: optimizationSplitChunksName.optional(),
+	filename: filename.optional(),
 	minSize: optimizationSplitChunksSizes.optional(),
 	maxSize: optimizationSplitChunksSizes.optional(),
 	maxAsyncSize: optimizationSplitChunksSizes.optional(),
@@ -1221,15 +1223,26 @@ const optimizationSplitChunksCacheGroup = z.strictObject({
 		.or(
 			z
 				.function()
-				.args(z.instanceof(Module) /** FIXME: lack of CacheGroupContext */)
+				.args(
+					z.instanceof(Module) /** FIXME: lack of CacheGroupContext */,
+					z.object({
+						moduleGraph: z.instanceof(ModuleGraph),
+						chunkGraph: z.instanceof(ChunkGraph)
+					})
+				)
+				.returns(z.boolean())
 		)
 		.optional(),
 	priority: z.number().optional(),
 	enforce: z.boolean().optional(),
-	filename: filename.optional(),
 	reuseExistingChunk: z.boolean().optional(),
 	type: z.string().or(z.instanceof(RegExp)).optional(),
 	idHint: z.string().optional(),
+	layer: z
+		.string()
+		.or(z.instanceof(RegExp))
+		.or(z.function(z.tuple([z.string().optional()]), z.boolean()))
+		.optional(),
 	...sharedOptimizationSplitChunksCacheGroup
 }) satisfies z.ZodType<t.OptimizationSplitChunksCacheGroup>;
 
@@ -1338,8 +1351,13 @@ const lazyCompilationOptions = z.object({
 	backend: z
 		.object({
 			client: z.string().optional(),
-			listen: z.number().optional().or(listenOptions),
-			protocol: z.enum(["http", "https"]).optional()
+			listen: z
+				.number()
+				.or(listenOptions)
+				.or(z.function().args(z.any()).returns(z.void()))
+				.optional(),
+			protocol: z.enum(["http", "https"]).optional(),
+			server: z.record(z.any()).or(z.function().returns(z.any())).optional()
 		})
 		.optional(),
 	imports: z.boolean().optional(),
@@ -1444,6 +1462,7 @@ const performance = z
 export const rspackOptions = z.strictObject({
 	name: name.optional(),
 	dependencies: dependencies.optional(),
+	extends: z.union([z.string(), z.array(z.string())]).optional(),
 	entry: entry.optional(),
 	output: output.optional(),
 	target: target.optional(),

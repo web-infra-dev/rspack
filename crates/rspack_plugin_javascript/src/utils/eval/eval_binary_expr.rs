@@ -295,30 +295,34 @@ fn handle_add(
     // TODO: handle `left.is_bigint`
     return None;
   } else if left.is_wrapped() {
-    if let Some(postfix) = left.postfix {
-      if postfix.is_string() && right.is_string() {
-        let range = join_locations(postfix.range.as_ref(), right.range.as_ref());
-        let mut right_postfix = BasicEvaluatedExpression::with_range(range.0, range.1);
-        right_postfix.set_string(format!("{}{}", postfix.string(), right.string()));
-        res.set_wrapped(
-          left.prefix.map(|prefix| *prefix),
-          Some(right_postfix),
-          left
-            .wrapped_inner_expressions
-            .expect("wrapped_inner_expressions must be exists under wrapped"),
-        )
-      } else if postfix.is_string() && right.is_number() {
-        let range = join_locations(postfix.range.as_ref(), right.range.as_ref());
-        let mut right_postfix = BasicEvaluatedExpression::with_range(range.0, range.1);
-        right_postfix.set_string(format!("{}{}", postfix.string(), right.number()));
-        res.set_wrapped(
-          left.prefix.map(|prefix| *prefix),
-          Some(right_postfix),
-          left
-            .wrapped_inner_expressions
-            .expect("wrapped_inner_expressions must be exists under wrapped"),
-        )
-      }
+    if let Some(postfix) = &left.postfix
+      && postfix.is_string()
+      && right.is_string()
+    {
+      let range = join_locations(postfix.range.as_ref(), right.range.as_ref());
+      let mut right_postfix = BasicEvaluatedExpression::with_range(range.0, range.1);
+      right_postfix.set_string(format!("{}{}", postfix.string(), right.string()));
+      res.set_wrapped(
+        left.prefix.map(|prefix| *prefix),
+        Some(right_postfix),
+        left
+          .wrapped_inner_expressions
+          .expect("wrapped_inner_expressions must be exists under wrapped"),
+      )
+    } else if let Some(postfix) = &left.postfix
+      && postfix.is_string()
+      && right.is_number()
+    {
+      let range = join_locations(postfix.range.as_ref(), right.range.as_ref());
+      let mut right_postfix = BasicEvaluatedExpression::with_range(range.0, range.1);
+      right_postfix.set_string(format!("{}{}", postfix.string(), right.number()));
+      res.set_wrapped(
+        left.prefix.map(|prefix| *prefix),
+        Some(right_postfix),
+        left
+          .wrapped_inner_expressions
+          .expect("wrapped_inner_expressions must be exists under wrapped"),
+      )
     } else if right.is_string() {
       res.set_wrapped(
         left.prefix.map(|prefix| *prefix),

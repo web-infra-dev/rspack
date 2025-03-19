@@ -5,23 +5,20 @@ use rspack_cacheable::{
   with::{AsPreset, Skip},
 };
 use rspack_collections::IdentifierSet;
-use rspack_core::Compilation;
-use rspack_core::DependencyConditionFn;
-use rspack_core::DependencyLocation;
-use rspack_core::DependencyRange;
-use rspack_core::SharedSourceMap;
 use rspack_core::{
   filter_runtime, import_statement, merge_runtime, AsContextDependency,
-  AwaitDependenciesInitFragment, BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState,
-  Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, ExportInfoProvided, ExportsType, ExtendedReferencedExport,
-  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
-  ProvidedExports, RuntimeCondition, TemplateContext, TemplateReplaceSource,
+  AwaitDependenciesInitFragment, BuildMetaDefaultObject, Compilation, ConditionalInitFragment,
+  ConnectionState, Dependency, DependencyCategory, DependencyCondition, DependencyConditionFn,
+  DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyType, ErrorSpan,
+  ExportInfoProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph,
+  ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource,
 };
-use rspack_core::{ModuleGraph, RuntimeSpec};
-use rspack_error::miette::{MietteDiagnostic, Severity};
-use rspack_error::DiagnosticExt;
-use rspack_error::{Diagnostic, TraceableError};
+use rspack_error::{
+  miette::{MietteDiagnostic, Severity},
+  Diagnostic, DiagnosticExt, TraceableError,
+};
 use swc_core::ecma::atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
@@ -77,6 +74,7 @@ pub struct ESMImportSideEffectDependency {
   resource_identifier: String,
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
+  factorize_info: FactorizeInfo,
 }
 
 impl ESMImportSideEffectDependency {
@@ -104,6 +102,7 @@ impl ESMImportSideEffectDependency {
       attributes,
       resource_identifier,
       source_map,
+      factorize_info: Default::default(),
     }
   }
 }
@@ -234,7 +233,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
   should_error: bool,
 ) -> Option<Diagnostic> {
   let imported_module = module_graph.get_module_by_dependency_id(module_dependency.id())?;
-  if !imported_module.get_diagnostics().is_empty() {
+  if !imported_module.diagnostics().is_empty() {
     return None;
   }
   let parent_module_identifier = module_graph
@@ -243,13 +242,8 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
   let parent_module = module_graph
     .module_by_identifier(parent_module_identifier)
     .expect("should have module");
-  let exports_type = imported_module.get_exports_type(
-    module_graph,
-    parent_module
-      .build_meta()
-      .expect("should have build_meta")
-      .strict_esm_module,
-  );
+  let exports_type =
+    imported_module.get_exports_type(module_graph, parent_module.build_meta().strict_esm_module);
   let create_error = |message: String| {
     let (severity, title) = if should_error {
       (Severity::Error, "ESModulesLinkingError")
@@ -257,11 +251,11 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       (Severity::Warning, "ESModulesLinkingWarning")
     };
     let mut diagnostic = if let Some(span) = module_dependency.range()
-      && let Some(source) = parent_module.original_source().map(|s| s.source())
+      && let Some(source) = parent_module.source()
     {
       Diagnostic::from(
         TraceableError::from_file(
-          source.into_owned(),
+          source.source().into_owned(),
           span.start as usize,
           span.end as usize,
           title.to_string(),
@@ -373,10 +367,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       if !ids.is_empty()
         && ids[0] != "default"
         && matches!(
-          imported_module
-            .build_meta()
-            .expect("should have build_meta")
-            .default_object,
+          imported_module.build_meta().default_object,
           BuildMetaDefaultObject::RedirectWarn { ignore: false }
         )
       {
@@ -502,7 +493,13 @@ impl ModuleDependency for ESMImportSideEffectDependency {
     )))
   }
 
-  // It's from ESMImportSideEffectDependency.
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
+  }
 }
 
 #[cacheable_dyn]

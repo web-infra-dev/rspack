@@ -1,0 +1,9 @@
+Object {
+  "btn--info_is-disabled_1": "-bd00b1e0e0954270-btn--info_is-disabled_1",
+  "btn-info-is-disabled": "-bd00b1e0e0954270-btn-info_is-disabled",
+  "btn-info-is-disabled-1": "-bd00b1e0e0954270-btn--info_is-disabled_1",
+  "btn-info_is-disabled": "-bd00b1e0e0954270-btn-info_is-disabled",
+  "foo-bar": "-bd00b1e0e0954270-foo_bar",
+  "foo_bar": "-bd00b1e0e0954270-foo_bar",
+  "simple": "-bd00b1e0e0954270-simple",
+}

@@ -5,19 +5,21 @@ use rspack_cacheable::{
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
-  get_exports_type, AsContextDependency, Compilation, ConnectionState, Dependency,
+  get_exports_type, property_access, AsContextDependency, Compilation, ConnectionState, Dependency,
   DependencyCategory, DependencyCondition, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyType, ExportPresenceMode, ExportsType, ExtendedReferencedExport,
-  ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph, ReferencedExport,
-  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedByExports,
+  FactorizeInfo, ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph,
+  ModuleReferenceOptions, ReferencedExport, RuntimeSpec, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource, UsedByExports,
 };
-use rspack_core::{property_access, ModuleReferenceOptions};
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::Atom;
 
-use super::esm_import_dependency::esm_import_dependency_get_linking_error;
-use super::{create_resource_identifier_for_esm_dependency, esm_import_dependency_apply};
+use super::{
+  create_resource_identifier_for_esm_dependency,
+  esm_import_dependency::esm_import_dependency_get_linking_error, esm_import_dependency_apply,
+};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -44,6 +46,7 @@ pub struct ESMImportSpecifierDependency {
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
   pub namespace_object_as_context: bool,
+  factorize_info: FactorizeInfo,
 }
 
 impl ESMImportSpecifierDependency {
@@ -83,6 +86,7 @@ impl ESMImportSpecifierDependency {
       attributes,
       resource_identifier,
       source_map,
+      factorize_info: Default::default(),
     }
   }
 
@@ -375,6 +379,14 @@ impl ModuleDependency for ESMImportSpecifierDependency {
   fn get_condition(&self) -> Option<DependencyCondition> {
     // TODO: this part depend on inner graph parser plugin to call set_used_by_exports to update the used_by_exports
     get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 

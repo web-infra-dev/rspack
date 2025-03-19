@@ -8,14 +8,14 @@ module.exports = {
 	},
 	plugins: [
 		new ModuleFederationPlugin({
-			shareStrategy:'loaded-first',
+			shareStrategy: "loaded-first",
 			shared: {
 				react: {
 					version: false,
 					requiredVersion: false,
 					singleton: true,
 					strictVersion: false,
-					version: "0.1.2",
+					version: "0.1.2"
 				}
 			}
 		})

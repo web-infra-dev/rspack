@@ -7,14 +7,13 @@ use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_collections::{DatabaseItem, IdentifierSet, UkeyMap};
 use rspack_core::{
   chunk_graph_chunk::ChunkId,
-  collect_changed_modules,
   rspack_sources::{RawStringSource, SourceExt},
-  ApplyContext, AssetInfo, Chunk, ChunkKind, ChunkUkey, Compilation,
+  ApplyContext, AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationParams,
   CompilationProcessAssets, CompilationRecords, CompilerCompilation, CompilerOptions,
-  DependencyType, LoaderContext, ModuleType, NormalModuleFactoryParser, NormalModuleLoader,
-  ParserAndGenerator, ParserOptions, PathData, Plugin, PluginContext, RunnerContext,
-  RuntimeGlobals, RuntimeModuleExt, RuntimeSpec,
+  DependencyType, LoaderContext, ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
+  NormalModuleLoader, ParserAndGenerator, ParserOptions, PathData, Plugin, PluginContext,
+  RunnerContext, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -60,15 +59,22 @@ async fn compilation(
 #[plugin_hook(CompilationProcessAssets for HotModuleReplacementPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let Some(CompilationRecords {
-    old_chunks,
-    all_old_runtime,
-    old_all_modules,
-    old_runtime_modules,
-    old_hash,
+    chunks: old_chunks,
+    runtimes: all_old_runtime,
+    modules: old_all_modules,
+    runtime_modules: old_runtime_modules,
+    hash: old_hash,
   }) = compilation.records.take()
   else {
     return Ok(());
   };
+
+  if let Some(old_hash) = &old_hash
+    && let Some(hash) = &compilation.hash
+    && old_hash == hash
+  {
+    return Ok(());
+  }
 
   let mut hot_update_main_content_by_runtime = all_old_runtime
     .iter()
@@ -80,65 +86,50 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     })
     .collect::<HashMap<String, HotUpdateContent>>();
 
-  // ----
   if hot_update_main_content_by_runtime.is_empty() {
     return Ok(());
   }
 
-  let (now_all_modules, now_runtime_modules) = collect_changed_modules(compilation)?;
-
-  let mut updated_modules: IdentifierSet = Default::default();
   let mut updated_runtime_modules: IdentifierSet = Default::default();
-  let mut completely_removed_modules: HashSet<String> = Default::default();
   let mut updated_chunks: UkeyMap<ChunkUkey, HashSet<String>> = Default::default();
-
-  for (old_uri, (old_hash, old_module_id)) in &old_all_modules {
-    if let Some((now_hash, _)) = now_all_modules.get(old_uri) {
+  for (identifier, old_runtime_module_hash) in &old_runtime_modules {
+    if let Some(new_runtime_module_hash) = compilation.runtime_modules_hash.get(identifier) {
       // updated
-      if now_hash != old_hash {
-        updated_modules.insert(*old_uri);
-      }
-    } else {
-      // deleted
-      completely_removed_modules.insert(old_module_id.to_string());
-    }
-  }
-  for identifier in now_all_modules.keys() {
-    if !old_all_modules.contains_key(identifier) {
-      // added
-      updated_modules.insert(*identifier);
-    }
-  }
-
-  // println!(
-  //   "updated_modules: {:?}\n, remove modules {:?}",
-  //   updated_modules, completely_removed_modules
-  // );
-
-  for (identifier, old_runtime_module_content) in &old_runtime_modules {
-    if let Some(new_runtime_module_content) = now_runtime_modules.get(identifier) {
-      // updated
-      if new_runtime_module_content != old_runtime_module_content {
+      if new_runtime_module_hash != old_runtime_module_hash {
         updated_runtime_modules.insert(*identifier);
       }
     }
   }
-  for identifier in now_runtime_modules.keys() {
+  for identifier in compilation.runtime_modules.keys() {
     if !old_runtime_modules.contains_key(identifier) {
       // added
       updated_runtime_modules.insert(*identifier);
     }
   }
 
-  // TODO: hash
-  // if old.hash == now.hash { return  } else { // xxxx}
+  let all_module_ids: HashMap<ModuleId, ModuleIdentifier> = compilation
+    .module_ids_artifact
+    .iter()
+    .map(|(k, v)| (v.clone(), *k))
+    .collect();
+  let mut completely_removed_modules: HashSet<ModuleId> = Default::default();
 
-  for (chunk_id, old_runtime) in &old_chunks {
+  for (chunk_id, (old_runtime, old_module_ids)) in &old_chunks {
+    let mut remaining_modules: HashSet<ModuleId> = Default::default();
+    for old_module_id in old_module_ids {
+      if !all_module_ids.contains_key(old_module_id) {
+        completely_removed_modules.insert(old_module_id.clone());
+      } else {
+        remaining_modules.insert(old_module_id.clone());
+      }
+    }
+
     let mut new_modules = vec![];
     let mut new_runtime_modules = vec![];
-    let mut chunk_id = chunk_id.clone();
-    let mut new_runtime = all_old_runtime.clone();
-    let mut removed_from_runtime = all_old_runtime.clone();
+    let chunk_id = chunk_id.clone();
+    let new_runtime: RuntimeSpec;
+    let removed_from_runtime: RuntimeSpec;
+
     let current_chunk = compilation
       .chunk_by_ukey
       .iter()
@@ -151,17 +142,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let current_chunk_ukey = current_chunk.map(|c| c.ukey());
 
     if let Some(current_chunk) = current_chunk {
-      chunk_id = current_chunk
-        .expect_id(&compilation.chunk_ids_artifact)
-        .clone();
-      new_runtime = Default::default();
-      // intersectRuntime
-      for old_runtime in all_old_runtime.iter() {
-        if current_chunk.runtime().contains(old_runtime) {
-          new_runtime.insert(old_runtime.clone());
-        }
-      }
-      // ------
+      new_runtime = current_chunk
+        .runtime()
+        .intersection(&all_old_runtime)
+        .cloned()
+        .collect();
+
       if new_runtime.is_empty() {
         continue;
       }
@@ -170,7 +156,20 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .chunk_graph
         .get_chunk_modules_identifier(&current_chunk.ukey())
         .iter()
-        .filter_map(|module| updated_modules.contains(module).then_some(*module))
+        .filter_map(|&module| {
+          let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module)?;
+          let Some(old_module_hashes) = old_all_modules.get(module_id) else {
+            return Some(module);
+          };
+          let old_hash = old_module_hashes.get(current_chunk.runtime());
+          let new_hash = compilation
+            .code_generation_results
+            .get_hash(&module, Some(current_chunk.runtime()));
+          if old_hash != new_hash {
+            return Some(module);
+          }
+          None
+        })
         .collect::<Vec<_>>();
 
       new_runtime_modules = compilation
@@ -180,19 +179,48 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .map(|(&module, _)| module)
         .collect::<Vec<_>>();
 
-      // subtractRuntime
-      removed_from_runtime = removed_from_runtime.subtract(&new_runtime);
+      removed_from_runtime = old_runtime.subtract(&new_runtime);
     } else {
       removed_from_runtime = old_runtime.clone();
-      // new_runtime = old_runtime.clone();
+      new_runtime = old_runtime.clone();
     }
 
-    for removed in removed_from_runtime {
+    for removed in removed_from_runtime.iter() {
       if let Some(info) = hot_update_main_content_by_runtime.get_mut(removed.as_ref()) {
         info.removed_chunk_ids.insert(chunk_id.clone());
       }
-      // TODO:
-      // for (const module of remainingModules) {}
+    }
+
+    for old_module_id in remaining_modules {
+      let module_identifier = all_module_ids
+        .get(&old_module_id)
+        .expect("should have module");
+      let old_hashes = old_all_modules
+        .get(&old_module_id)
+        .expect("should have module");
+      let old_hash = old_hashes.get(old_runtime);
+      let runtimes = compilation
+        .chunk_graph
+        .get_module_runtimes(*module_identifier, &compilation.chunk_by_ukey);
+      if old_runtime == &new_runtime && runtimes.contains(&new_runtime) {
+        let new_hash = compilation
+          .code_generation_results
+          .get_hash(module_identifier, Some(&new_runtime));
+        if new_hash != old_hash {
+          new_modules.push(*module_identifier);
+        }
+      } else {
+        for removed in removed_from_runtime.iter() {
+          for runtime in runtimes.values() {
+            if runtime.contains(removed.as_ref()) {
+              continue;
+            }
+          }
+          if let Some(content) = hot_update_main_content_by_runtime.get_mut(removed.as_ref()) {
+            content.removed_modules.insert(old_module_id.clone());
+          }
+        }
+      }
     }
 
     if !new_modules.is_empty() || !new_runtime_modules.is_empty() {
@@ -321,16 +349,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
   }
 
-  let completely_removed_modules_array: Vec<String> =
-    completely_removed_modules.into_iter().collect();
-
   for (_, content) in hot_update_main_content_by_runtime {
     let c: Vec<ChunkId> = content.updated_chunk_ids.into_iter().collect();
     let r: Vec<ChunkId> = content.removed_chunk_ids.into_iter().collect();
-    let m: Vec<String> = completely_removed_modules_array
-      .iter()
-      .map(|x| x.to_owned())
-      .collect();
+    let m: Vec<ModuleId> = {
+      let mut m = completely_removed_modules.clone();
+      m.extend(content.removed_modules);
+      m.into_iter().collect()
+    };
     let filename = compilation
       .get_path(
         &compilation.options.output.hot_update_main_filename,
@@ -460,7 +486,7 @@ struct HotUpdateContent {
   runtime: RuntimeSpec,
   updated_chunk_ids: HashSet<ChunkId>,
   removed_chunk_ids: HashSet<ChunkId>,
-  _removed_modules: IdentifierSet,
+  removed_modules: HashSet<ModuleId>,
 }
 
 impl HotUpdateContent {

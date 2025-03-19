@@ -1,1 +1,0 @@
-import "./simple.css";

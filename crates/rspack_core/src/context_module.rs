@@ -1,5 +1,4 @@
-use std::sync::Arc;
-use std::{borrow::Cow, hash::Hash};
+use std::{borrow::Cow, hash::Hash, sync::Arc};
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
@@ -10,13 +9,12 @@ use rspack_cacheable::{
   with::{AsOption, AsPreset, AsVec, Unsupported},
 };
 use rspack_collections::{Identifiable, Identifier};
-use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_macros::impl_source_map_config;
 use rspack_paths::{ArcPath, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt};
-use rspack_util::itoa;
-use rspack_util::{fx_hash::FxIndexMap, json_stringify, source_map::SourceMapKind};
+use rspack_util::{fx_hash::FxIndexMap, itoa, json_stringify, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::atoms::Atom;
 
@@ -168,8 +166,8 @@ pub struct ContextModule {
   identifier: Identifier,
   options: ContextModuleOptions,
   factory_meta: Option<FactoryMeta>,
-  build_info: Option<BuildInfo>,
-  build_meta: Option<BuildMeta>,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
   #[debug(skip)]
   #[cacheable(with=Unsupported)]
   resolve_dependencies: ResolveContextModuleDependencies,
@@ -186,8 +184,12 @@ impl ContextModule {
       identifier: create_identifier(&options),
       options,
       factory_meta: None,
-      build_info: None,
-      build_meta: None,
+      build_info: Default::default(),
+      build_meta: BuildMeta {
+        exports_type: BuildMetaExportsType::Default,
+        default_object: BuildMetaDefaultObject::RedirectWarn { ignore: false },
+        ..Default::default()
+      },
       source_map_kind: SourceMapKind::empty(),
       resolve_dependencies,
     }
@@ -843,11 +845,7 @@ impl Module for ContextModule {
     &[SourceType::JavaScript]
   }
 
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
-  }
-
-  fn original_source(&self) -> Option<&dyn rspack_sources::Source> {
+  fn source(&self) -> Option<&rspack_sources::BoxSource> {
     None
   }
 
@@ -975,18 +973,9 @@ impl Module for ContextModule {
     let mut context_dependencies: HashSet<ArcPath> = Default::default();
     context_dependencies.insert(self.options.resource.as_std_path().into());
 
-    let build_info = BuildInfo {
-      context_dependencies,
-      ..Default::default()
-    };
+    self.build_info.context_dependencies = context_dependencies;
 
     Ok(BuildResult {
-      build_info,
-      build_meta: BuildMeta {
-        exports_type: BuildMetaExportsType::Default,
-        default_object: BuildMetaDefaultObject::RedirectWarn { ignore: false },
-        ..Default::default()
-      },
       dependencies,
       blocks,
       optimization_bailouts: vec![],
@@ -994,7 +983,7 @@ impl Module for ContextModule {
   }
 
   // #[tracing::instrument("ContextModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
-  fn code_generation(
+  async fn code_generation(
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,

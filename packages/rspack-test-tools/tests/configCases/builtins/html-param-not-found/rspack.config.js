@@ -4,7 +4,8 @@ const { rspack } = require("@rspack/core");
 module.exports = {
 	plugins: [
 		new rspack.HtmlRspackPlugin({
-			templateContent: "<!DOCTYPE html><html><head><title><%= title %></title></head><body></body></html>",
+			templateContent:
+				"<!DOCTYPE html><html><head><title><%= title %></title></head><body></body></html>"
 		})
 	]
 };

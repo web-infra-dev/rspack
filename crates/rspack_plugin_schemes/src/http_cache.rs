@@ -1,7 +1,9 @@
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+  collections::HashMap,
+  path::{Path, PathBuf},
+  sync::Arc,
+  time::{SystemTime, UNIX_EPOCH},
+};
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -293,7 +295,7 @@ fn parse_cache_control(cache_control: &Option<String>, request_time: u64) -> (bo
         .filter_map(|part| {
           let mut parts = part.splitn(2, '=');
           Some((
-            parts.next()?.trim().cow_to_lowercase(),
+            parts.next()?.trim().cow_to_ascii_lowercase(),
             parts.next().map(|v| v.trim().to_string()),
           ))
         })

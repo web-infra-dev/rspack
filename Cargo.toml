@@ -30,7 +30,6 @@ ignored = [
 anyhow             = { version = "1.0.95", features = ["backtrace"] }
 anymap             = { package = "anymap3", version = "1.0.1" }
 async-recursion    = { version = "1.1.1" }
-async-scoped       = { version = "0.9.0" }
 async-trait        = { version = "0.1.84" }
 bitflags           = { version = "2.6.0" }
 camino             = { version = "1.1.9" }
@@ -48,11 +47,12 @@ heck               = { version = "0.5.0" }
 hex                = { version = "0.4.3" }
 indexmap           = { version = "2.7.0" }
 indoc              = { version = "2.0.5" }
+insta              = { version = "1.42.0" }
 itertools          = { version = "0.14.0" }
 json               = { version = "0.12.4" }
-lightningcss       = { version = "1.0.0-alpha.63" }
+lightningcss       = { version = "1.0.0-alpha.64", default-features = false, features = ["grid", "serde"] }
 linked_hash_set    = { version = "0.1.5" }
-mimalloc           = { version = "0.1.44", package = "mimalloc-rspack" }
+mimalloc           = { version = "0.2.3", package = "mimalloc-rspack" }
 mime_guess         = { version = "2.0.5" }
 once_cell          = { version = "1.20.2" }
 parcel_sourcemap   = { version = "2.1.1" }
@@ -65,17 +65,18 @@ quote              = { version = "1.0.38" }
 rayon              = { version = "1.10.0" }
 regex              = { version = "1.11.1" }
 ropey              = "1.6.1"
-rspack_resolver    = { features = ["package_json_raw_json_api"], version = "0.5.0" }
-rspack_sources     = { version = "0.4.1" }
+rspack_resolver    = { features = ["package_json_raw_json_api"], version = "0.5.3" }
+rspack_sources     = { version = "0.4.7" }
 rustc-hash         = { version = "2.1.0" }
 serde              = { version = "1.0.217" }
 serde_json         = { version = "1.0.134" }
+sha2               = { version = "0.10.8" }
 simd-json          = { version = "0.14.3" }
 smol_str           = { version = "0.3.0" }
 stacker            = { version = "0.1.17" }
 sugar_path         = { version = "1.2.0", features = ["cached_current_dir"] }
 syn                = { version = "2.0.95" }
-tokio              = { version = "1.42.0" }
+tokio              = { version = "1.42.0", features = ["rt-multi-thread", "rt"] }
 tracing            = { version = "0.1.41" }
 tracing-subscriber = { version = "0.3.19" }
 unicase            = { version = "2.8.1" }
@@ -90,22 +91,22 @@ napi-build  = { version = "2.1.4" }
 napi-derive = { version = "3.0.0-alpha.22" }
 
 # Serialize and Deserialize
-inventory = { version = "=0.1" }
+inventory = { version = "0.3.17" }
 rkyv      = { version = "=0.8.8" }
 
 # Must be pinned with the same swc versions
-swc                 = { version = "=10.0.0" }
-swc_config          = { version = "=1.0.0" }
-swc_core            = { version = "=10.1.0", default-features = false }
-swc_ecma_minifier   = { version = "=7.0.1", default-features = false }
-swc_error_reporters = { version = "=6.0.0" }
-swc_html            = { version = "=7.0.0" }
-swc_html_minifier   = { version = "=7.0.0", default-features = false }
-swc_node_comments   = { version = "=5.0.0" }
+swc                 = { version = "=16.1.1" }
+swc_config          = { version = "=2.0.0" }
+swc_core            = { version = "=16.7.0", default-features = false }
+swc_ecma_minifier   = { version = "=12.2.0", default-features = false }
+swc_error_reporters = { version = "=9.1.0" }
+swc_html            = { version = "=12.0.0" }
+swc_html_minifier   = { version = "=12.0.0", default-features = false }
+swc_node_comments   = { version = "=8.0.0" }
 
 pnp = { version = "0.9.0" }
 
-rspack_dojang = { version = "0.1.9" }
+rspack_dojang = { version = "0.1.11" }
 
 
 # all rspack workspace dependencies
@@ -114,7 +115,6 @@ rspack_allocator                       = { version = "0.2.0", path = "crates/rsp
 rspack_ast                             = { version = "0.2.0", path = "crates/rspack_ast" }
 rspack_base64                          = { version = "0.2.0", path = "crates/rspack_base64" }
 rspack_binding                         = { version = "0.2.0", path = "crates/rspack_binding" }
-rspack_binding_values                  = { version = "0.2.0", path = "crates/rspack_binding_values" }
 rspack_builtin                         = { version = "0.2.0", path = "crates/rspack_builtin" }
 rspack_cacheable                       = { version = "0.2.0", path = "crates/rspack_cacheable" }
 rspack_collection                      = { version = "0.2.0", path = "crates/rspack_collection" }
@@ -123,7 +123,6 @@ rspack_core                            = { version = "0.2.0", path = "crates/rsp
 rspack_deps_graph                      = { version = "0.2.0", path = "crates/rspack_deps_graph" }
 rspack_error                           = { version = "0.2.0", path = "crates/rspack_error" }
 rspack_fs                              = { version = "0.2.0", path = "crates/rspack_fs" }
-rspack_fs_node                         = { version = "0.2.0", path = "crates/rspack_fs_node" }
 rspack_futures                         = { version = "0.2.0", path = "crates/rspack_futures" }
 rspack_hash                            = { version = "0.2.0", path = "crates/rspack_hash" }
 rspack_hook                            = { version = "0.2.0", path = "crates/rspack_hook" }
@@ -172,11 +171,13 @@ rspack_plugin_progress                 = { version = "0.2.0", path = "crates/rsp
 rspack_plugin_real_content_hash        = { version = "0.2.0", path = "crates/rspack_plugin_real_content_hash" }
 rspack_plugin_remove_duplicate_modules = { version = "0.2.0", path = "crates/rspack_plugin_remove_duplicate_modules" }
 rspack_plugin_remove_empty_chunks      = { version = "0.2.0", path = "crates/rspack_plugin_remove_empty_chunks" }
+rspack_plugin_rsdoctor                 = { version = "0.2.0", path = "crates/rspack_plugin_rsdoctor" }
 rspack_plugin_runtime                  = { version = "0.2.0", path = "crates/rspack_plugin_runtime" }
 rspack_plugin_runtime_chunk            = { version = "0.2.0", path = "crates/rspack_plugin_runtime_chunk" }
 rspack_plugin_schemes                  = { version = "0.2.0", path = "crates/rspack_plugin_schemes" }
 rspack_plugin_size_limits              = { version = "0.2.0", path = "crates/rspack_plugin_size_limits" }
 rspack_plugin_split_chunks             = { version = "0.2.0", path = "crates/rspack_plugin_split_chunks" }
+rspack_plugin_sri                      = { version = "0.2.0", path = "crates/rspack_plugin_sri" }
 rspack_plugin_swc_js_minimizer         = { version = "0.2.0", path = "crates/rspack_plugin_swc_js_minimizer" }
 rspack_plugin_warn_sensitive_module    = { version = "0.2.0", path = "crates/rspack_plugin_warn_sensitive_module" }
 rspack_plugin_wasm                     = { version = "0.2.0", path = "crates/rspack_plugin_wasm" }
@@ -192,30 +193,197 @@ rspack_util                            = { version = "0.2.0", path = "crates/rsp
 
 [workspace.metadata.release]
 rate-limit = { existing-packages = 70, new-packages = 70 }
+
+# Follow servo's style https://github.com/servo/servo/blob/c95bd9d052d7eae378d31c5be0f92669cadb2c85/Cargo.toml#L175
+
+# This is for local development
 [profile.dev]
 codegen-units = 16
 debug         = 2       # debug build will cause runtime panic if codegen-unints is default
 incremental   = true
 panic         = "abort"
 
+# This is for release build for users
 [profile.release]
 codegen-units = 1
 debug         = false
-# Performs “thin” LTO. This is similar to “fat”, but takes substantially less time to run while still achieving performance gains similar to “fat”.
-lto       = "thin"
+# Performs “fat” LTO which attempts to perform optimizations across all crates within the dependency graph.
+lto       = false
 opt-level = 3
 panic     = "abort"
 strip     = true
 
-[profile.release-prod]
-inherits = "release"
-# Performs “fat” LTO which attempts to perform optimizations across all crates within the dependency graph.
-lto = "fat"
+[profile.release.package]
 
-[profile.release-debug]
-debug    = true
-inherits = "release"
-strip    = false
+[profile.release.package.regex-syntax]
+opt-level = "s"
+
+[profile.release.package.swc_ecma_transforms_module]
+opt-level = "s"
+
+[profile.release.package.handlebars]
+opt-level = "s"
+
+[profile.release.package.swc_ecma_transforms_proposal]
+opt-level = "s"
+
+[profile.release.package.swc_ecma_compat_es2022]
+opt-level = "s"
+
+[profile.release.package.rspack_plugin_rsdoctor]
+opt-level = "s"
+
+[profile.release.package.swc_ecma_compat_es3]
+opt-level = "s"
+
+[profile.release.package.h2]
+opt-level = "s"
+
+[profile.release.package.backtrace]
+opt-level = "s"
+
+[profile.release.package.aho-corasick]
+opt-level = "s"
+
+[profile.release.package.swc_ecma_lints]
+opt-level = "s"
+
+[profile.release.package.miette]
+opt-level = "s"
+
+[profile.release.package.pnp]
+opt-level = "s"
+
+[profile.release.package.opentelemetry-otlp]
+opt-level = "s"
+
+[profile.release.package.fancy-regex]
+opt-level = "s"
+
+[profile.release.package.swc_ecma_loader]
+opt-level = "s"
+
+[profile.release.package.chrono]
+opt-level = "s"
+
+[profile.release.package.once_cell]
+opt-level = "s"
+
+[profile.release.package.rustc-demangle]
+opt-level = "s"
+
+[profile.release.package.regress]
+opt-level = "s"
+
+[profile.release.package.indicatif]
+opt-level = "s"
+
+[profile.release.package.gimli]
+opt-level = "s"
+
+[profile.release.package.regex]
+opt-level = "s"
+
+[profile.release.package.rspack_error]
+opt-level = "s"
+
+[profile.release.package.opentelemetry_sdk]
+opt-level = "s"
+
+[profile.release.package.rspack_plugin_progress]
+opt-level = "s"
+
+[profile.release.package.num-bigint]
+opt-level = "s"
+
+[profile.release.package.tonic]
+opt-level = "s"
+
+[profile.release.package.swc_error_reporters]
+opt-level = "s"
+
+[profile.release.package.http]
+opt-level = "s"
+
+[profile.release.package.idna]
+opt-level = "s"
+
+[profile.release.package.addr2line]
+opt-level = "s"
+
+[profile.release.package.color-backtrace]
+opt-level = "s"
+
+[profile.release.package.glob]
+opt-level = "s"
+
+[profile.release.package.hyper-util]
+opt-level = "s"
+
+[profile.release.package.wasmparser]
+opt-level = "s"
+
+[profile.release.package.data-encoding]
+opt-level = "s"
+
+[profile.release.package.jsonc-parser]
+opt-level = "s"
+
+[profile.release.package.opentelemetry]
+opt-level = "s"
+
+[profile.release.package.textwrap]
+opt-level = "s"
+
+[profile.release.package.console]
+opt-level = "s"
+
+[profile.release.package.hashlink]
+opt-level = "s"
+
+[profile.release.package.hyper]
+opt-level = "s"
+
+[profile.release.package.opentelemetry-proto]
+opt-level = "s"
+
+[profile.release.package.swc_ecma_ext_transforms]
+opt-level = "s"
+
+[profile.release.package.tracing-opentelemetry]
+opt-level = "s"
+
+[profile.release.package.icu_normalizer]
+opt-level = "s"
+
+[profile.release.package.rspack_plugin_banner]
+opt-level = "s"
+
+[profile.release.package.anyhow]
+opt-level = "s"
+
+[profile.release.package.tracing-chrome]
+opt-level = "s"
+
+[profile.release.package.oneshot]
+opt-level = "s"
+
+# This is for CI build based on release but with faster build time
+[profile.ci]
+codegen-units = 256
+inherits      = "release"
+lto           = false
+## reduce little optimization to reduce build time
+opt-level = 2
+
+# This is for production for profiling production build
+[profile.profiling]
+debug           = "limited"
+inherits        = "release"
+lto             = "thin"
+split-debuginfo = "off"
+strip           = false
+
 
 # the following lints rules are from https://github.com/biomejs/biome/blob/4bd3d6f09642952ee14445ed56af81a73796cea1/Cargo.toml#L7C1-L75C1
 [workspace.lints.rust]

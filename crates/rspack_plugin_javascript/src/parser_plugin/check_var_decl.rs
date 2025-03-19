@@ -1,8 +1,10 @@
 use std::sync::LazyLock;
 
 use rustc_hash::FxHashSet;
-use swc_core::common::Spanned;
-use swc_core::ecma::ast::{Ident, ObjectPatProp, Pat, VarDeclKind};
+use swc_core::{
+  common::Spanned,
+  ecma::ast::{Ident, ObjectPatProp, Pat, VarDeclKind},
+};
 
 use super::JavascriptParserPlugin;
 use crate::visitors::{create_traceable_error, JavascriptParser};

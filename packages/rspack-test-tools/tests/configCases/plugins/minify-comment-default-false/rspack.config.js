@@ -13,7 +13,5 @@ module.exports = {
 	optimization: {
 		minimize: true
 	},
-	plugins: [
-		new rspack.SwcJsMinimizerRspackPlugin()
-	]
+	plugins: [new rspack.SwcJsMinimizerRspackPlugin()]
 };

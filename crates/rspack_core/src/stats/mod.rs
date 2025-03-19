@@ -5,10 +5,12 @@ use rayon::iter::{
   ParallelIterator,
 };
 use rspack_collections::{DatabaseItem, IdentifierSet};
-use rspack_error::emitter::{
-  DiagnosticDisplay, DiagnosticDisplayer, StdioDiagnosticDisplay, StringDiagnosticDisplay,
+use rspack_error::{
+  emitter::{
+    DiagnosticDisplay, DiagnosticDisplayer, StdioDiagnosticDisplay, StringDiagnosticDisplay,
+  },
+  Result,
 };
-use rspack_error::Result;
 use rustc_hash::FxHashMap as HashMap;
 
 mod utils;
@@ -841,7 +843,7 @@ impl Stats<'_> {
       stats.name_for_condition = module.name_for_condition().map(|n| n.to_string());
       stats.pre_order_index = module_graph.get_pre_order_index(&identifier);
       stats.post_order_index = module_graph.get_post_order_index(&identifier);
-      stats.cacheable = module.build_info().map(|i| i.cacheable);
+      stats.cacheable = Some(module.build_info().cacheable);
       stats.optional = Some(module_graph.is_optional(&identifier));
       stats.orphan = Some(orphan);
       stats.dependent = dependent;
@@ -891,12 +893,11 @@ impl Stats<'_> {
       stats.assets = if executed {
         None
       } else {
-        let mut assets = self
-          .compilation
-          .module_assets
-          .get(&identifier)
-          .map(|files| files.iter().map(|i| i.to_string()).collect_vec())
-          .unwrap_or_default();
+        let mg = self.compilation.get_module_graph();
+        let module = mg
+          .module_by_identifier(&identifier)
+          .expect("should have module");
+        let mut assets = module.build_info().assets.keys().cloned().collect_vec();
         assets.sort();
         Some(assets)
       };
@@ -946,6 +947,10 @@ impl Stats<'_> {
             } else {
               (None, None)
             };
+          let loc = dependency.and_then(|d| d.loc()).map(|l| l.to_string());
+          let explanation = module_graph
+            .get_dep_meta_if_existing(&connection.dependency_id)
+            .and_then(|extra| extra.explanation);
           Some(StatsModuleReason {
             module_identifier: connection.original_module_identifier,
             module_name,
@@ -967,6 +972,9 @@ impl Stats<'_> {
             resolved_module_id: resolved_module_id.and_then(|i| i),
             r#type,
             user_request,
+            explanation,
+            active: connection.active,
+            loc,
           })
         })
         .collect();
@@ -1034,7 +1042,7 @@ impl Stats<'_> {
     }
 
     if options.source {
-      stats.source = module.original_source();
+      stats.source = module.source();
     }
 
     Ok(stats)

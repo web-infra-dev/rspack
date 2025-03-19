@@ -9,6 +9,9 @@ module.exports = {
 	devtool: "eval-source-map",
 	externals: ["source-map"],
 	externalsType: "commonjs",
+	optimization: {
+		moduleIds: 'named'
+	},
 	plugins: [
 		new rspack.DefinePlugin({
 			CONTEXT: JSON.stringify(__dirname)

@@ -1,15 +1,19 @@
 use rspack_core::{ConstDependency, Dependency, DependencyType, ImportAttributes, SpanExt};
-use swc_core::atoms::Atom;
-use swc_core::common::{Span, Spanned};
-use swc_core::ecma::ast::{
-  AssignExpr, AssignOp, AssignTarget, AssignTargetPat, Callee, MemberExpr, OptChainBase,
+use swc_core::{
+  atoms::Atom,
+  common::{Span, Spanned},
+  ecma::ast::{
+    AssignExpr, AssignOp, AssignTarget, AssignTargetPat, Callee, Expr, Ident, ImportDecl,
+    MemberExpr, OptChainBase,
+  },
 };
-use swc_core::ecma::ast::{Expr, Ident, ImportDecl};
 
 use super::{InnerGraphPlugin, JavascriptParserPlugin};
-use crate::dependency::{ESMImportSideEffectDependency, ESMImportSpecifierDependency};
-use crate::utils::object_properties::get_attributes;
-use crate::visitors::{collect_destructuring_assignment_properties, JavascriptParser, TagInfoData};
+use crate::{
+  dependency::{ESMImportSideEffectDependency, ESMImportSpecifierDependency},
+  utils::object_properties::get_attributes,
+  visitors::{collect_destructuring_assignment_properties, JavascriptParser, TagInfoData},
+};
 
 fn get_non_optional_part<'a>(members: &'a [Atom], members_optionals: &[bool]) -> &'a [Atom] {
   let mut i = 0;

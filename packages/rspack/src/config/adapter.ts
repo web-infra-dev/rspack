@@ -12,13 +12,16 @@ import {
 	type RawCssModuleGeneratorOptions,
 	type RawCssModuleParserOptions,
 	type RawCssParserOptions,
+	type RawEnvironment,
 	type RawFuncUseCtx,
 	type RawGeneratorOptions,
 	type RawJavascriptParserOptions,
+	type RawJsonGeneratorOptions,
 	type RawJsonParserOptions,
 	type RawModuleRule,
 	type RawModuleRuleUse,
 	type RawOptions,
+	type RawOutputOptions,
 	type RawParserOptions,
 	type RawRuleSetCondition,
 	RawRuleSetConditionType,
@@ -26,7 +29,6 @@ import {
 } from "@rspack/binding";
 
 import type { Compiler } from "../Compiler";
-import { Module } from "../Module";
 import { normalizeStatsPreset } from "../Stats";
 import { isNil } from "../util";
 import { parseResource } from "../util/identifier";
@@ -55,9 +57,11 @@ import type {
 	CssParserOptions,
 	GeneratorOptionsByModuleType,
 	JavascriptParserOptions,
+	JsonGeneratorOptions,
 	JsonParserOptions,
 	Node,
 	Optimization,
+	Output,
 	ParserOptionsByModuleType,
 	Resolve,
 	RuleSetCondition,
@@ -79,7 +83,7 @@ export const getRawOptions = (
 		name: options.name,
 		mode,
 		context: options.context!,
-		output: options.output as Required<OutputNormalized>,
+		output: getRawOutput(options.output),
 		resolve: getRawResolve(options.resolve),
 		resolveLoader: getRawResolve(options.resolveLoader),
 		module: getRawModule(options.module, {
@@ -96,11 +100,38 @@ export const getRawOptions = (
 		experiments,
 		node: getRawNode(options.node),
 		profile: options.profile!,
-		amd: options.amd,
+		amd: options.amd ? JSON.stringify(options.amd || {}) : undefined,
 		bail: options.bail!,
 		__references: {}
 	};
 };
+
+function getRawOutput(output: Output): RawOutputOptions {
+	return {
+		...(output as Required<OutputNormalized>),
+		environment: getRawOutputEnvironment(output.environment)
+	};
+}
+
+function getRawOutputEnvironment(
+	environment: Output["environment"] = {}
+): RawEnvironment {
+	return {
+		const: Boolean(environment.const),
+		arrowFunction: Boolean(environment.arrowFunction),
+		nodePrefixForCoreModules: Boolean(environment.nodePrefixForCoreModules),
+		asyncFunction: Boolean(environment.asyncFunction),
+		bigIntLiteral: Boolean(environment.bigIntLiteral),
+		destructuring: Boolean(environment.destructuring),
+		document: Boolean(environment.document),
+		dynamicImport: Boolean(environment.dynamicImport),
+		forOf: Boolean(environment.forOf),
+		globalThis: Boolean(environment.globalThis),
+		module: Boolean(environment.module),
+		optionalChaining: Boolean(environment.optionalChaining),
+		templateLiteral: Boolean(environment.templateLiteral)
+	};
+}
 
 function getRawExtensionAlias(
 	alias: Resolve["extensionAlias"] = {}
@@ -633,9 +664,16 @@ function getRawGeneratorOptions(
 			cssModule: getRawCssAutoOrModuleGeneratorOptions(generator)
 		};
 	}
+	if (type === "json") {
+		return {
+			type: "json",
+			json: getRawJsonGeneratorOptions(generator)
+		};
+	}
 
 	if (
 		[
+			"asset/source",
 			"javascript",
 			"javascript/auto",
 			"javascript/dynamic",
@@ -674,7 +712,8 @@ function getRawAssetResourceGeneratorOptions(
 		emit: options.emit,
 		filename: options.filename,
 		outputPath: options.outputPath,
-		publicPath: options.publicPath
+		publicPath: options.publicPath,
+		importMode: options.importMode
 	};
 }
 
@@ -688,10 +727,7 @@ function getRawAssetGeneratorDataUrl(dataUrl: AssetGeneratorDataUrl) {
 	}
 	if (typeof dataUrl === "function" && dataUrl !== null) {
 		return (source: Buffer, context: RawAssetGeneratorDataUrlFnCtx) => {
-			return dataUrl(source, {
-				...context,
-				module: Module.__from_binding(context.module)
-			});
+			return dataUrl(source, context);
 		};
 	}
 	throw new Error(
@@ -716,6 +752,14 @@ function getRawCssAutoOrModuleGeneratorOptions(
 		exportsConvention: options.exportsConvention,
 		exportsOnly: options.exportsOnly,
 		esModule: options.esModule
+	};
+}
+
+function getRawJsonGeneratorOptions(
+	options: JsonGeneratorOptions
+): RawJsonGeneratorOptions {
+	return {
+		JSONParse: options.JSONParse
 	};
 }
 

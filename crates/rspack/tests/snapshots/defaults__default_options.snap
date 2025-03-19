@@ -1,0 +1,1380 @@
+---
+source: crates/rspack/tests/defaults.rs
+expression: options
+---
+CompilerOptions {
+    name: None,
+    context: Context {
+        inner: "<cwd>",
+    },
+    output: OutputOptions {
+        path: "<cwd>/dist",
+        pathinfo: Bool(
+            false,
+        ),
+        clean: CleanAll(
+            false,
+        ),
+        public_path: Auto,
+        asset_module_filename: Filename(
+            Template(
+                "[hash][ext][query]",
+            ),
+        ),
+        wasm_loading: Enable(
+            Fetch,
+        ),
+        webassembly_module_filename: Filename(
+            Template(
+                "[hash].module.wasm",
+            ),
+        ),
+        unique_name: "",
+        chunk_loading: Enable(
+            Jsonp,
+        ),
+        chunk_loading_global: "webpackChunk",
+        chunk_load_timeout: 120000,
+        charset: true,
+        filename: Filename(
+            Template(
+                "[name].js",
+            ),
+        ),
+        chunk_filename: Filename(
+            Template(
+                "[name].js",
+            ),
+        ),
+        cross_origin_loading: Disable,
+        css_filename: Filename(
+            Template(
+                "[name].css",
+            ),
+        ),
+        css_chunk_filename: Filename(
+            Template(
+                "[name].css",
+            ),
+        ),
+        hot_update_main_filename: Filename(
+            Template(
+                "[runtime].[fullhash].hot-update.json",
+            ),
+        ),
+        hot_update_chunk_filename: Filename(
+            Template(
+                "[id].[fullhash].hot-update.js",
+            ),
+        ),
+        hot_update_global: "webpackHotUpdate",
+        library: None,
+        enabled_library_types: Some(
+            [],
+        ),
+        strict_module_error_handling: false,
+        global_object: "self",
+        import_function_name: "import",
+        import_meta_name: "import.meta",
+        iife: true,
+        module: false,
+        trusted_types: None,
+        source_map_filename: Filename(
+            Template(
+                "[file].map[query]",
+            ),
+        ),
+        hash_function: Xxhash64,
+        hash_digest: Hex,
+        hash_digest_length: 16,
+        hash_salt: None,
+        async_chunks: true,
+        worker_chunk_loading: Enable(
+            ImportScripts,
+        ),
+        worker_wasm_loading: Enable(
+            Fetch,
+        ),
+        worker_public_path: "",
+        script_type: "",
+        environment: Environment {
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            node_prefix_for_core_modules: Some(
+                true,
+            ),
+            async_function: Some(
+                true,
+            ),
+            big_int_literal: Some(
+                true,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            document: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                false,
+            ),
+            for_of: Some(
+                true,
+            ),
+            global_this: None,
+            module: Some(
+                false,
+            ),
+            optional_chaining: Some(
+                true,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            dynamic_import_in_worker: Some(
+                false,
+            ),
+        },
+        compare_before_emit: true,
+    },
+    mode: None,
+    resolve: Resolve {
+        extensions: Some(
+            [],
+        ),
+        alias: None,
+        prefer_relative: None,
+        prefer_absolute: None,
+        symlinks: None,
+        main_files: Some(
+            [
+                "index",
+            ],
+        ),
+        main_fields: Some(
+            [
+                "main",
+            ],
+        ),
+        condition_names: Some(
+            [
+                "webpack",
+                "production",
+                "browser",
+            ],
+        ),
+        tsconfig: None,
+        modules: Some(
+            [
+                "node_modules",
+            ],
+        ),
+        fallback: None,
+        fully_specified: None,
+        exports_fields: Some(
+            [
+                [
+                    "exports",
+                ],
+            ],
+        ),
+        extension_alias: None,
+        alias_fields: Some(
+            [],
+        ),
+        roots: Some(
+            [
+                "<cwd>",
+            ],
+        ),
+        restrictions: None,
+        imports_fields: Some(
+            [
+                [
+                    "imports",
+                ],
+            ],
+        ),
+        by_dependency: Some(
+            ByDependency(
+                {
+                    "wasm": Resolve {
+                        extensions: Some(
+                            [
+                                ".js",
+                                ".json",
+                                ".wasm",
+                            ],
+                        ),
+                        alias: None,
+                        prefer_relative: None,
+                        prefer_absolute: None,
+                        symlinks: None,
+                        main_files: None,
+                        main_fields: Some(
+                            [
+                                "browser",
+                                "module",
+                                "...",
+                            ],
+                        ),
+                        condition_names: Some(
+                            [
+                                "import",
+                                "module",
+                                "...",
+                            ],
+                        ),
+                        tsconfig: None,
+                        modules: None,
+                        fallback: None,
+                        fully_specified: None,
+                        exports_fields: None,
+                        extension_alias: None,
+                        alias_fields: Some(
+                            [
+                                [
+                                    "browser",
+                                ],
+                            ],
+                        ),
+                        roots: None,
+                        restrictions: None,
+                        imports_fields: None,
+                        by_dependency: None,
+                        description_files: None,
+                        enforce_extension: None,
+                        pnp: None,
+                    },
+                    "esm": Resolve {
+                        extensions: Some(
+                            [
+                                ".js",
+                                ".json",
+                                ".wasm",
+                            ],
+                        ),
+                        alias: None,
+                        prefer_relative: None,
+                        prefer_absolute: None,
+                        symlinks: None,
+                        main_files: None,
+                        main_fields: Some(
+                            [
+                                "browser",
+                                "module",
+                                "...",
+                            ],
+                        ),
+                        condition_names: Some(
+                            [
+                                "import",
+                                "module",
+                                "...",
+                            ],
+                        ),
+                        tsconfig: None,
+                        modules: None,
+                        fallback: None,
+                        fully_specified: None,
+                        exports_fields: None,
+                        extension_alias: None,
+                        alias_fields: Some(
+                            [
+                                [
+                                    "browser",
+                                ],
+                            ],
+                        ),
+                        roots: None,
+                        restrictions: None,
+                        imports_fields: None,
+                        by_dependency: None,
+                        description_files: None,
+                        enforce_extension: None,
+                        pnp: None,
+                    },
+                    "url": Resolve {
+                        extensions: None,
+                        alias: None,
+                        prefer_relative: Some(
+                            true,
+                        ),
+                        prefer_absolute: None,
+                        symlinks: None,
+                        main_files: None,
+                        main_fields: None,
+                        condition_names: None,
+                        tsconfig: None,
+                        modules: None,
+                        fallback: None,
+                        fully_specified: None,
+                        exports_fields: None,
+                        extension_alias: None,
+                        alias_fields: None,
+                        roots: None,
+                        restrictions: None,
+                        imports_fields: None,
+                        by_dependency: None,
+                        description_files: None,
+                        enforce_extension: None,
+                        pnp: None,
+                    },
+                    "worker": Resolve {
+                        extensions: Some(
+                            [
+                                ".js",
+                                ".json",
+                                ".wasm",
+                            ],
+                        ),
+                        alias: None,
+                        prefer_relative: Some(
+                            true,
+                        ),
+                        prefer_absolute: None,
+                        symlinks: None,
+                        main_files: None,
+                        main_fields: Some(
+                            [
+                                "browser",
+                                "module",
+                                "...",
+                            ],
+                        ),
+                        condition_names: Some(
+                            [
+                                "import",
+                                "module",
+                                "...",
+                            ],
+                        ),
+                        tsconfig: None,
+                        modules: None,
+                        fallback: None,
+                        fully_specified: None,
+                        exports_fields: None,
+                        extension_alias: None,
+                        alias_fields: Some(
+                            [
+                                [
+                                    "browser",
+                                ],
+                            ],
+                        ),
+                        roots: None,
+                        restrictions: None,
+                        imports_fields: None,
+                        by_dependency: None,
+                        description_files: None,
+                        enforce_extension: None,
+                        pnp: None,
+                    },
+                    "commonjs": Resolve {
+                        extensions: Some(
+                            [
+                                ".js",
+                                ".json",
+                                ".wasm",
+                            ],
+                        ),
+                        alias: None,
+                        prefer_relative: None,
+                        prefer_absolute: None,
+                        symlinks: None,
+                        main_files: None,
+                        main_fields: Some(
+                            [
+                                "browser",
+                                "module",
+                                "...",
+                            ],
+                        ),
+                        condition_names: Some(
+                            [
+                                "require",
+                                "module",
+                                "...",
+                            ],
+                        ),
+                        tsconfig: None,
+                        modules: None,
+                        fallback: None,
+                        fully_specified: None,
+                        exports_fields: None,
+                        extension_alias: None,
+                        alias_fields: Some(
+                            [
+                                [
+                                    "browser",
+                                ],
+                            ],
+                        ),
+                        roots: None,
+                        restrictions: None,
+                        imports_fields: None,
+                        by_dependency: None,
+                        description_files: None,
+                        enforce_extension: None,
+                        pnp: None,
+                    },
+                    "amd": Resolve {
+                        extensions: Some(
+                            [
+                                ".js",
+                                ".json",
+                                ".wasm",
+                            ],
+                        ),
+                        alias: None,
+                        prefer_relative: None,
+                        prefer_absolute: None,
+                        symlinks: None,
+                        main_files: None,
+                        main_fields: Some(
+                            [
+                                "browser",
+                                "module",
+                                "...",
+                            ],
+                        ),
+                        condition_names: Some(
+                            [
+                                "require",
+                                "module",
+                                "...",
+                            ],
+                        ),
+                        tsconfig: None,
+                        modules: None,
+                        fallback: None,
+                        fully_specified: None,
+                        exports_fields: None,
+                        extension_alias: None,
+                        alias_fields: Some(
+                            [
+                                [
+                                    "browser",
+                                ],
+                            ],
+                        ),
+                        roots: None,
+                        restrictions: None,
+                        imports_fields: None,
+                        by_dependency: None,
+                        description_files: None,
+                        enforce_extension: None,
+                        pnp: None,
+                    },
+                    "unknown": Resolve {
+                        extensions: Some(
+                            [
+                                ".js",
+                                ".json",
+                                ".wasm",
+                            ],
+                        ),
+                        alias: None,
+                        prefer_relative: None,
+                        prefer_absolute: None,
+                        symlinks: None,
+                        main_files: None,
+                        main_fields: Some(
+                            [
+                                "browser",
+                                "module",
+                                "...",
+                            ],
+                        ),
+                        condition_names: Some(
+                            [
+                                "require",
+                                "module",
+                                "...",
+                            ],
+                        ),
+                        tsconfig: None,
+                        modules: None,
+                        fallback: None,
+                        fully_specified: None,
+                        exports_fields: None,
+                        extension_alias: None,
+                        alias_fields: Some(
+                            [
+                                [
+                                    "browser",
+                                ],
+                            ],
+                        ),
+                        roots: None,
+                        restrictions: None,
+                        imports_fields: None,
+                        by_dependency: None,
+                        description_files: None,
+                        enforce_extension: None,
+                        pnp: None,
+                    },
+                },
+            ),
+        ),
+        description_files: None,
+        enforce_extension: None,
+        pnp: None,
+    },
+    resolve_loader: Resolve {
+        extensions: Some(
+            [
+                ".js",
+            ],
+        ),
+        alias: None,
+        prefer_relative: None,
+        prefer_absolute: None,
+        symlinks: None,
+        main_files: Some(
+            [
+                "index",
+            ],
+        ),
+        main_fields: Some(
+            [
+                "loader",
+                "main",
+            ],
+        ),
+        condition_names: Some(
+            [
+                "loader",
+                "require",
+                "node",
+            ],
+        ),
+        tsconfig: None,
+        modules: None,
+        fallback: None,
+        fully_specified: None,
+        exports_fields: Some(
+            [
+                [
+                    "exports",
+                ],
+            ],
+        ),
+        extension_alias: None,
+        alias_fields: None,
+        roots: None,
+        restrictions: None,
+        imports_fields: None,
+        by_dependency: None,
+        description_files: None,
+        enforce_extension: None,
+        pnp: None,
+    },
+    module: ModuleOptions {
+        rules: [
+            ModuleRule {
+                rspack_resource: None,
+                test: None,
+                include: None,
+                exclude: None,
+                resource: None,
+                resource_query: None,
+                resource_fragment: None,
+                dependency: None,
+                issuer: None,
+                issuer_layer: None,
+                scheme: None,
+                mimetype: None,
+                description_data: None,
+                with: None,
+                one_of: None,
+                rules: Some(
+                    [
+                        ModuleRule {
+                            rspack_resource: None,
+                            test: None,
+                            include: None,
+                            exclude: None,
+                            resource: None,
+                            resource_query: None,
+                            resource_fragment: None,
+                            dependency: None,
+                            issuer: None,
+                            issuer_layer: None,
+                            scheme: None,
+                            mimetype: Some(
+                                RuleSetConditionWithEmpty {
+                                    condition: "application/node",
+                                    match_when_empty: OnceCell {
+                                        value: None,
+                                    },
+                                },
+                            ),
+                            description_data: None,
+                            with: None,
+                            one_of: None,
+                            rules: None,
+                            effect: ModuleRuleEffect {
+                                side_effects: None,
+                                type: Some(
+                                    JsAuto,
+                                ),
+                                layer: None,
+                                use: ,
+                                parser: None,
+                                generator: None,
+                                resolve: None,
+                                enforce: Normal,
+                            },
+                        },
+                        ModuleRule {
+                            rspack_resource: None,
+                            test: Some(
+                                "Func(...)",
+                            ),
+                            include: None,
+                            exclude: None,
+                            resource: None,
+                            resource_query: None,
+                            resource_fragment: None,
+                            dependency: None,
+                            issuer: None,
+                            issuer_layer: None,
+                            scheme: None,
+                            mimetype: None,
+                            description_data: None,
+                            with: None,
+                            one_of: None,
+                            rules: None,
+                            effect: ModuleRuleEffect {
+                                side_effects: None,
+                                type: Some(
+                                    Json,
+                                ),
+                                layer: None,
+                                use: ,
+                                parser: None,
+                                generator: None,
+                                resolve: None,
+                                enforce: Normal,
+                            },
+                        },
+                        ModuleRule {
+                            rspack_resource: None,
+                            test: None,
+                            include: None,
+                            exclude: None,
+                            resource: None,
+                            resource_query: None,
+                            resource_fragment: None,
+                            dependency: None,
+                            issuer: None,
+                            issuer_layer: None,
+                            scheme: None,
+                            mimetype: Some(
+                                RuleSetConditionWithEmpty {
+                                    condition: "application/json",
+                                    match_when_empty: OnceCell {
+                                        value: None,
+                                    },
+                                },
+                            ),
+                            description_data: None,
+                            with: None,
+                            one_of: None,
+                            rules: None,
+                            effect: ModuleRuleEffect {
+                                side_effects: None,
+                                type: Some(
+                                    Json,
+                                ),
+                                layer: None,
+                                use: ,
+                                parser: None,
+                                generator: None,
+                                resolve: None,
+                                enforce: Normal,
+                            },
+                        },
+                        ModuleRule {
+                            rspack_resource: None,
+                            test: Some(
+                                "Func(...)",
+                            ),
+                            include: None,
+                            exclude: None,
+                            resource: None,
+                            resource_query: None,
+                            resource_fragment: None,
+                            dependency: None,
+                            issuer: None,
+                            issuer_layer: None,
+                            scheme: None,
+                            mimetype: None,
+                            description_data: None,
+                            with: None,
+                            one_of: None,
+                            rules: None,
+                            effect: ModuleRuleEffect {
+                                side_effects: None,
+                                type: Some(
+                                    JsEsm,
+                                ),
+                                layer: None,
+                                use: ,
+                                parser: None,
+                                generator: None,
+                                resolve: Some(
+                                    Resolve {
+                                        extensions: None,
+                                        alias: None,
+                                        prefer_relative: None,
+                                        prefer_absolute: None,
+                                        symlinks: None,
+                                        main_files: None,
+                                        main_fields: None,
+                                        condition_names: None,
+                                        tsconfig: None,
+                                        modules: None,
+                                        fallback: None,
+                                        fully_specified: None,
+                                        exports_fields: None,
+                                        extension_alias: None,
+                                        alias_fields: None,
+                                        roots: None,
+                                        restrictions: None,
+                                        imports_fields: None,
+                                        by_dependency: Some(
+                                            ByDependency(
+                                                {
+                                                    "esm": Resolve {
+                                                        extensions: None,
+                                                        alias: None,
+                                                        prefer_relative: None,
+                                                        prefer_absolute: None,
+                                                        symlinks: None,
+                                                        main_files: None,
+                                                        main_fields: None,
+                                                        condition_names: None,
+                                                        tsconfig: None,
+                                                        modules: None,
+                                                        fallback: None,
+                                                        fully_specified: Some(
+                                                            true,
+                                                        ),
+                                                        exports_fields: None,
+                                                        extension_alias: None,
+                                                        alias_fields: None,
+                                                        roots: None,
+                                                        restrictions: None,
+                                                        imports_fields: None,
+                                                        by_dependency: None,
+                                                        description_files: None,
+                                                        enforce_extension: None,
+                                                        pnp: None,
+                                                    },
+                                                },
+                                            ),
+                                        ),
+                                        description_files: None,
+                                        enforce_extension: None,
+                                        pnp: None,
+                                    },
+                                ),
+                                enforce: Normal,
+                            },
+                        },
+                        ModuleRule {
+                            rspack_resource: None,
+                            test: Some(
+                                "Func(...)",
+                            ),
+                            include: None,
+                            exclude: None,
+                            resource: None,
+                            resource_query: None,
+                            resource_fragment: None,
+                            dependency: None,
+                            issuer: None,
+                            issuer_layer: None,
+                            scheme: None,
+                            mimetype: None,
+                            description_data: Some(
+                                {
+                                    "type": RuleSetConditionWithEmpty {
+                                        condition: "module",
+                                        match_when_empty: OnceCell {
+                                            value: None,
+                                        },
+                                    },
+                                },
+                            ),
+                            with: None,
+                            one_of: None,
+                            rules: None,
+                            effect: ModuleRuleEffect {
+                                side_effects: None,
+                                type: Some(
+                                    JsEsm,
+                                ),
+                                layer: None,
+                                use: ,
+                                parser: None,
+                                generator: None,
+                                resolve: Some(
+                                    Resolve {
+                                        extensions: None,
+                                        alias: None,
+                                        prefer_relative: None,
+                                        prefer_absolute: None,
+                                        symlinks: None,
+                                        main_files: None,
+                                        main_fields: None,
+                                        condition_names: None,
+                                        tsconfig: None,
+                                        modules: None,
+                                        fallback: None,
+                                        fully_specified: None,
+                                        exports_fields: None,
+                                        extension_alias: None,
+                                        alias_fields: None,
+                                        roots: None,
+                                        restrictions: None,
+                                        imports_fields: None,
+                                        by_dependency: Some(
+                                            ByDependency(
+                                                {
+                                                    "esm": Resolve {
+                                                        extensions: None,
+                                                        alias: None,
+                                                        prefer_relative: None,
+                                                        prefer_absolute: None,
+                                                        symlinks: None,
+                                                        main_files: None,
+                                                        main_fields: None,
+                                                        condition_names: None,
+                                                        tsconfig: None,
+                                                        modules: None,
+                                                        fallback: None,
+                                                        fully_specified: Some(
+                                                            true,
+                                                        ),
+                                                        exports_fields: None,
+                                                        extension_alias: None,
+                                                        alias_fields: None,
+                                                        roots: None,
+                                                        restrictions: None,
+                                                        imports_fields: None,
+                                                        by_dependency: None,
+                                                        description_files: None,
+                                                        enforce_extension: None,
+                                                        pnp: None,
+                                                    },
+                                                },
+                                            ),
+                                        ),
+                                        description_files: None,
+                                        enforce_extension: None,
+                                        pnp: None,
+                                    },
+                                ),
+                                enforce: Normal,
+                            },
+                        },
+                        ModuleRule {
+                            rspack_resource: None,
+                            test: Some(
+                                "Func(...)",
+                            ),
+                            include: None,
+                            exclude: None,
+                            resource: None,
+                            resource_query: None,
+                            resource_fragment: None,
+                            dependency: None,
+                            issuer: None,
+                            issuer_layer: None,
+                            scheme: None,
+                            mimetype: None,
+                            description_data: None,
+                            with: None,
+                            one_of: None,
+                            rules: None,
+                            effect: ModuleRuleEffect {
+                                side_effects: None,
+                                type: Some(
+                                    JsDynamic,
+                                ),
+                                layer: None,
+                                use: ,
+                                parser: None,
+                                generator: None,
+                                resolve: None,
+                                enforce: Normal,
+                            },
+                        },
+                        ModuleRule {
+                            rspack_resource: None,
+                            test: Some(
+                                "Func(...)",
+                            ),
+                            include: None,
+                            exclude: None,
+                            resource: None,
+                            resource_query: None,
+                            resource_fragment: None,
+                            dependency: None,
+                            issuer: None,
+                            issuer_layer: None,
+                            scheme: None,
+                            mimetype: None,
+                            description_data: Some(
+                                {
+                                    "type": RuleSetConditionWithEmpty {
+                                        condition: "commonjs",
+                                        match_when_empty: OnceCell {
+                                            value: None,
+                                        },
+                                    },
+                                },
+                            ),
+                            with: None,
+                            one_of: None,
+                            rules: None,
+                            effect: ModuleRuleEffect {
+                                side_effects: None,
+                                type: Some(
+                                    JsDynamic,
+                                ),
+                                layer: None,
+                                use: ,
+                                parser: None,
+                                generator: None,
+                                resolve: None,
+                                enforce: Normal,
+                            },
+                        },
+                        ModuleRule {
+                            rspack_resource: None,
+                            test: None,
+                            include: None,
+                            exclude: None,
+                            resource: None,
+                            resource_query: None,
+                            resource_fragment: None,
+                            dependency: None,
+                            issuer: None,
+                            issuer_layer: None,
+                            scheme: None,
+                            mimetype: Some(
+                                RuleSetConditionWithEmpty {
+                                    condition: RuleSetLogicalConditions {
+                                        and: None,
+                                        or: Some(
+                                            [
+                                                "text/javascript",
+                                                "application/javascript",
+                                            ],
+                                        ),
+                                        not: None,
+                                    },
+                                    match_when_empty: OnceCell {
+                                        value: None,
+                                    },
+                                },
+                            ),
+                            description_data: None,
+                            with: None,
+                            one_of: None,
+                            rules: None,
+                            effect: ModuleRuleEffect {
+                                side_effects: None,
+                                type: Some(
+                                    JsEsm,
+                                ),
+                                layer: None,
+                                use: ,
+                                parser: None,
+                                generator: None,
+                                resolve: Some(
+                                    Resolve {
+                                        extensions: None,
+                                        alias: None,
+                                        prefer_relative: None,
+                                        prefer_absolute: None,
+                                        symlinks: None,
+                                        main_files: None,
+                                        main_fields: None,
+                                        condition_names: None,
+                                        tsconfig: None,
+                                        modules: None,
+                                        fallback: None,
+                                        fully_specified: None,
+                                        exports_fields: None,
+                                        extension_alias: None,
+                                        alias_fields: None,
+                                        roots: None,
+                                        restrictions: None,
+                                        imports_fields: None,
+                                        by_dependency: Some(
+                                            ByDependency(
+                                                {
+                                                    "esm": Resolve {
+                                                        extensions: None,
+                                                        alias: None,
+                                                        prefer_relative: None,
+                                                        prefer_absolute: None,
+                                                        symlinks: None,
+                                                        main_files: None,
+                                                        main_fields: None,
+                                                        condition_names: None,
+                                                        tsconfig: None,
+                                                        modules: None,
+                                                        fallback: None,
+                                                        fully_specified: Some(
+                                                            true,
+                                                        ),
+                                                        exports_fields: None,
+                                                        extension_alias: None,
+                                                        alias_fields: None,
+                                                        roots: None,
+                                                        restrictions: None,
+                                                        imports_fields: None,
+                                                        by_dependency: None,
+                                                        description_files: None,
+                                                        enforce_extension: None,
+                                                        pnp: None,
+                                                    },
+                                                },
+                                            ),
+                                        ),
+                                        description_files: None,
+                                        enforce_extension: None,
+                                        pnp: None,
+                                    },
+                                ),
+                                enforce: Normal,
+                            },
+                        },
+                        ModuleRule {
+                            rspack_resource: None,
+                            test: None,
+                            include: None,
+                            exclude: None,
+                            resource: None,
+                            resource_query: None,
+                            resource_fragment: None,
+                            dependency: Some(
+                                "url",
+                            ),
+                            issuer: None,
+                            issuer_layer: None,
+                            scheme: None,
+                            mimetype: None,
+                            description_data: None,
+                            with: None,
+                            one_of: Some(
+                                [
+                                    ModuleRule {
+                                        rspack_resource: None,
+                                        test: None,
+                                        include: None,
+                                        exclude: None,
+                                        resource: None,
+                                        resource_query: None,
+                                        resource_fragment: None,
+                                        dependency: None,
+                                        issuer: None,
+                                        issuer_layer: None,
+                                        scheme: Some(
+                                            RuleSetConditionWithEmpty {
+                                                condition: "data",
+                                                match_when_empty: OnceCell {
+                                                    value: None,
+                                                },
+                                            },
+                                        ),
+                                        mimetype: None,
+                                        description_data: None,
+                                        with: None,
+                                        one_of: None,
+                                        rules: None,
+                                        effect: ModuleRuleEffect {
+                                            side_effects: None,
+                                            type: Some(
+                                                AssetInline,
+                                            ),
+                                            layer: None,
+                                            use: ,
+                                            parser: None,
+                                            generator: None,
+                                            resolve: None,
+                                            enforce: Normal,
+                                        },
+                                    },
+                                    ModuleRule {
+                                        rspack_resource: None,
+                                        test: None,
+                                        include: None,
+                                        exclude: None,
+                                        resource: None,
+                                        resource_query: None,
+                                        resource_fragment: None,
+                                        dependency: None,
+                                        issuer: None,
+                                        issuer_layer: None,
+                                        scheme: None,
+                                        mimetype: None,
+                                        description_data: None,
+                                        with: None,
+                                        one_of: None,
+                                        rules: None,
+                                        effect: ModuleRuleEffect {
+                                            side_effects: None,
+                                            type: Some(
+                                                AssetResource,
+                                            ),
+                                            layer: None,
+                                            use: ,
+                                            parser: None,
+                                            generator: None,
+                                            resolve: None,
+                                            enforce: Normal,
+                                        },
+                                    },
+                                ],
+                            ),
+                            rules: None,
+                            effect: ModuleRuleEffect {
+                                side_effects: None,
+                                type: None,
+                                layer: None,
+                                use: ,
+                                parser: None,
+                                generator: None,
+                                resolve: None,
+                                enforce: Normal,
+                            },
+                        },
+                        ModuleRule {
+                            rspack_resource: None,
+                            test: None,
+                            include: None,
+                            exclude: None,
+                            resource: None,
+                            resource_query: None,
+                            resource_fragment: None,
+                            dependency: None,
+                            issuer: None,
+                            issuer_layer: None,
+                            scheme: None,
+                            mimetype: None,
+                            description_data: None,
+                            with: Some(
+                                {
+                                    "type": RuleSetConditionWithEmpty {
+                                        condition: "json",
+                                        match_when_empty: OnceCell {
+                                            value: None,
+                                        },
+                                    },
+                                },
+                            ),
+                            one_of: None,
+                            rules: None,
+                            effect: ModuleRuleEffect {
+                                side_effects: None,
+                                type: Some(
+                                    Json,
+                                ),
+                                layer: None,
+                                use: ,
+                                parser: None,
+                                generator: None,
+                                resolve: None,
+                                enforce: Normal,
+                            },
+                        },
+                    ],
+                ),
+                effect: ModuleRuleEffect {
+                    side_effects: None,
+                    type: None,
+                    layer: None,
+                    use: ,
+                    parser: None,
+                    generator: None,
+                    resolve: None,
+                    enforce: Normal,
+                },
+            },
+            ModuleRule {
+                rspack_resource: None,
+                test: None,
+                include: None,
+                exclude: None,
+                resource: None,
+                resource_query: None,
+                resource_fragment: None,
+                dependency: None,
+                issuer: None,
+                issuer_layer: None,
+                scheme: None,
+                mimetype: None,
+                description_data: None,
+                with: None,
+                one_of: None,
+                rules: Some(
+                    [],
+                ),
+                effect: ModuleRuleEffect {
+                    side_effects: None,
+                    type: None,
+                    layer: None,
+                    use: ,
+                    parser: None,
+                    generator: None,
+                    resolve: None,
+                    enforce: Normal,
+                },
+            },
+        ],
+        parser: Some(
+            ParserOptionsMap(
+                {
+                    "asset": Asset(
+                        AssetParserOptions {
+                            data_url_condition: Some(
+                                Options(
+                                    AssetParserDataUrlOptions {
+                                        max_size: Some(
+                                            8096.0,
+                                        ),
+                                    },
+                                ),
+                            ),
+                        },
+                    ),
+                    "javascript": Javascript(
+                        JavascriptParserOptions {
+                            dynamic_import_mode: Some(
+                                Lazy,
+                            ),
+                            dynamic_import_preload: Some(
+                                Disable,
+                            ),
+                            dynamic_import_prefetch: Some(
+                                Disable,
+                            ),
+                            dynamic_import_fetch_priority: None,
+                            url: Some(
+                                Enable,
+                            ),
+                            expr_context_critical: Some(
+                                true,
+                            ),
+                            wrapped_context_critical: Some(
+                                false,
+                            ),
+                            wrapped_context_reg_exp: Some(
+                                RspackRegex {
+                                    flags: "",
+                                    source: ".*",
+                                },
+                            ),
+                            exports_presence: None,
+                            import_exports_presence: None,
+                            reexport_exports_presence: None,
+                            strict_export_presence: Some(
+                                false,
+                            ),
+                            worker: Some(
+                                [
+                                    "...",
+                                ],
+                            ),
+                            override_strict: None,
+                            import_meta: Some(
+                                true,
+                            ),
+                            require_as_expression: Some(
+                                true,
+                            ),
+                            require_dynamic: Some(
+                                true,
+                            ),
+                            require_resolve: Some(
+                                true,
+                            ),
+                            import_dynamic: Some(
+                                true,
+                            ),
+                        },
+                    ),
+                    "json": Json(
+                        JsonParserOptions {
+                            exports_depth: Some(
+                                4294967295,
+                            ),
+                            parse: ParseOption::None,
+                        },
+                    ),
+                },
+            ),
+        ),
+        generator: Some(
+            GeneratorOptionsMap(
+                {
+                    "json": Json(
+                        JsonGeneratorOptions {
+                            json_parse: Some(
+                                true,
+                            ),
+                        },
+                    ),
+                },
+            ),
+        ),
+        no_parse: None,
+    },
+    stats: StatsOptions {
+        colors: true,
+    },
+    cache: Disabled,
+    experiments: Experiments {
+        layers: false,
+        incremental: IncrementalPasses(
+            MAKE | EMIT_ASSETS,
+        ),
+        parallel_code_splitting: false,
+        top_level_await: true,
+        rspack_future: RspackFuture,
+        cache: Disabled,
+    },
+    node: Some(
+        NodeOption {
+            dirname: WarnMock,
+            global: Warn,
+            filename: WarnMock,
+        },
+    ),
+    optimization: Optimization {
+        remove_available_modules: false,
+        side_effects: Flag,
+        provided_exports: true,
+        used_exports: False,
+        inner_graph: false,
+        mangle_exports: False,
+        concatenate_modules: false,
+        avoid_entry_iife: false,
+        real_content_hash: false,
+    },
+    profile: false,
+    amd: None,
+    bail: false,
+    __references: {},
+}

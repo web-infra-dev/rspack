@@ -1,0 +1,3 @@
+
+;// CONCATENATED MODULE: ./d.mjs
+const d = 'd'

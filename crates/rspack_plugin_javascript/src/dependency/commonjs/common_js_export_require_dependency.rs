@@ -7,8 +7,8 @@ use rspack_core::{
   module_raw, process_export_info, property_access, AsContextDependency, Compilation, Dependency,
   DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
   ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ExportsType,
-  ExtendedReferencedExport, ModuleDependency, ModuleGraph, ModuleIdentifier, Nullable,
-  ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  Nullable, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
   UsageState, UsedName,
 };
 use rustc_hash::FxHashSet;
@@ -30,6 +30,7 @@ pub struct CommonJsExportRequireDependency {
   #[cacheable(with=AsVec<AsPreset>)]
   ids: Vec<Atom>,
   result_used: bool,
+  factorize_info: FactorizeInfo,
 }
 
 impl CommonJsExportRequireDependency {
@@ -50,6 +51,7 @@ impl CommonJsExportRequireDependency {
       names,
       ids: vec![],
       result_used,
+      factorize_info: Default::default(),
     }
   }
 }
@@ -165,7 +167,7 @@ impl CommonJsExportRequireDependency {
     Some(exports)
   }
 
-  fn get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
+  pub fn get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
     mg.get_dep_meta_if_existing(&self.id)
       .map(|meta| meta.ids.as_slice())
       .unwrap_or_else(|| self.ids.as_slice())
@@ -468,6 +470,14 @@ impl ModuleDependency for CommonJsExportRequireDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 impl AsContextDependency for CommonJsExportRequireDependency {}

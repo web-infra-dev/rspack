@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use rspack_util::json_stringify;
 use rustc_hash::FxHashSet as HashSet;
 use serde_json::json;
 use swc_core::ecma::atoms::Atom;
@@ -338,11 +339,7 @@ pub fn module_id_expr(
         ..Default::default()
       }
     ),
-    match module_id.as_number() {
-      Some(id) => serde_json::to_string(&id),
-      None => serde_json::to_string(module_id),
-    }
-    .expect("should render module id")
+    json_stringify(module_id)
   )
 }
 

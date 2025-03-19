@@ -1,5 +1,5 @@
 import path from 'node:path';
-
+import { pluginSass } from '@rsbuild/plugin-sass';
 import { pluginRss } from '@rspress/plugin-rss';
 import { pluginGoogleAnalytics } from 'rsbuild-plugin-google-analytics';
 import { pluginOpenGraph } from 'rsbuild-plugin-open-graph';
@@ -23,6 +23,9 @@ export default defineConfig({
   markdown: {
     checkDeadLinks: true,
     highlightLanguages: [['rs', 'rust']],
+  },
+  search: {
+    codeBlocks: true,
   },
   route: {
     cleanUrls: true,
@@ -79,6 +82,11 @@ export default defineConfig({
         content: 'https://twitter.com/rspack_dev',
       },
       {
+        icon: 'bluesky',
+        mode: 'link',
+        content: 'https://bsky.app/profile/rspack.dev',
+      },
+      {
         icon: 'lark',
         mode: 'link',
         content:
@@ -110,19 +118,42 @@ export default defineConfig({
       },
     ],
   },
+  head: [
+    ({ routePath }) => {
+      const getOgImage = () => {
+        if (routePath.endsWith('blog/announcing-0-7')) {
+          return 'assets/rspack-og-image-v0-7.png';
+        }
+        if (routePath.endsWith('blog/announcing-1-0-alpha')) {
+          return 'assets/rspack-og-image-v1-0-alpha.png';
+        }
+        if (routePath.endsWith('blog/announcing-1-0')) {
+          return 'assets/rspack-og-image-v1-0.png';
+        }
+        if (routePath.endsWith('blog/announcing-1-1')) {
+          return 'assets/rspack-og-image-v1-1.png';
+        }
+        if (routePath.endsWith('blog/announcing-1-2')) {
+          return 'assets/rspack-og-image-v1-2.png';
+        }
+        // default
+        return 'rspack-og-image.png';
+      };
+      return `<meta property="og:image" content="https://assets.rspack.dev/rspack/${getOgImage()}">`;
+    },
+  ],
   builderConfig: {
     dev: {
       lazyCompilation: true,
     },
     plugins: [
+      pluginSass(),
       pluginGoogleAnalytics({ id: 'G-XKKCNZZNJD' }),
       pluginOpenGraph({
         title: 'Rspack',
         type: 'website',
         url: PUBLISH_URL,
-        image:
-          'https://assets.rspack.dev/rspack/assets/rspack-og-image-v1-1.png',
-        description: 'Fast Rust-based Web Bundler',
+        description: 'Fast Rust-based web bundler',
         twitter: {
           site: '@rspack_dev',
           card: 'summary_large_image',

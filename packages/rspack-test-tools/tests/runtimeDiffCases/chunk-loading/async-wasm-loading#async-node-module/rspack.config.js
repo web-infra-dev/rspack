@@ -1,7 +1,12 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
-		wasmLoading: "async-node-module"
+		wasmLoading: "async-node",
+		module: true,
+		environment: {
+			dynamicImport: true,
+			module: true
+		}
 	},
 	module: {
 		rules: [

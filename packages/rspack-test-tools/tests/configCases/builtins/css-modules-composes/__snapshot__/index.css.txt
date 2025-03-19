@@ -1,0 +1,4 @@
+Object {
+  "simple-bar": "-bd00b1e0e0954270-simple-bar -e631de715f468814-imported-simple",
+  "simple-foo": "-bd00b1e0e0954270-simple-foo -e631de715f468814-imported-simple",
+}

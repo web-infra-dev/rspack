@@ -68,5 +68,5 @@ module.exports = {
 					throw e;
 				}
 			})
-	],
+	]
 };

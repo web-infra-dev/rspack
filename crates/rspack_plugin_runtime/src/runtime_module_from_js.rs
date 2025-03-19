@@ -24,12 +24,13 @@ pub struct RuntimeModuleFromJs {
   pub stage: RuntimeModuleStage,
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for RuntimeModuleFromJs {
   fn name(&self) -> Identifier {
     Identifier::from(format!("webpack/runtime/{}", self.name))
   }
 
-  fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
     let res = (self.generator)()?;
     Ok(RawStringSource::from(res).boxed())
   }

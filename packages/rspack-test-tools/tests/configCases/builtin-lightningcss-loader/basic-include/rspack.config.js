@@ -1,10 +1,10 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	target: 'web',
+	target: "web",
 	node: false,
 	module: {
 		parser: {
-			'css/auto': {
+			"css/auto": {
 				namedExports: true
 			}
 		},
@@ -12,15 +12,15 @@ module.exports = {
 			{
 				test: /\.css$/,
 				generator: {
-					exportsOnly: false,
+					exportsOnly: false
 				},
 				use: [
 					{
 						loader: "builtin:lightningcss-loader",
 						/** @type {import("@rspack/core").LightningcssLoaderOptions} */
 						options: {
-							unusedSymbols: ['unused'],
-							targets: 'ie 10',
+							unusedSymbols: ["unused"],
+							targets: "ie 10",
 							exclude: {
 								nesting: true
 							}

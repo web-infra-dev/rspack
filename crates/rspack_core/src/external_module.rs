@@ -2,7 +2,7 @@ use std::{borrow::Cow, hash::Hash, iter};
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
-use rspack_error::{error, impl_empty_diagnosable_trait, Diagnostic, Result};
+use rspack_error::{error, impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
 use rspack_macros::impl_source_map_config;
 use rspack_util::{ext::DynHash, json_stringify, source_map::SourceMapKind};
@@ -11,15 +11,15 @@ use serde::Serialize;
 
 use crate::{
   extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
-  rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_identifier, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
-  BuildMetaExportsType, BuildResult, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
-  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
-  ExternalType, FactoryMeta, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  LibIdentOptions, Module, ModuleType, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec, NAMESPACE_OBJECT_EXPORT,
+  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey,
+  CodeGenerationDataUrl, CodeGenerationResult, Compilation, ConcatenationScope, Context,
+  DependenciesBlock, DependencyId, ExternalType, FactoryMeta, ImportAttributes, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleGraph, ModuleType,
+  NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
+  StaticExportsSpec, NAMESPACE_OBJECT_EXPORT,
 };
-use crate::{ChunkGraph, ModuleGraph};
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
 static EXTERNAL_MODULE_CSS_SOURCE_TYPES: &[SourceType] = &[SourceType::CssImport];
@@ -177,10 +177,10 @@ pub struct ExternalModule {
   pub request: ExternalRequest,
   pub external_type: ExternalType,
   /// Request intended by user (without loaders from config)
-  pub user_request: String,
+  user_request: String,
   factory_meta: Option<FactoryMeta>,
-  build_info: Option<BuildInfo>,
-  build_meta: Option<BuildMeta>,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
   dependency_meta: DependencyMeta,
 }
 
@@ -219,11 +219,23 @@ impl ExternalModule {
       external_type,
       user_request,
       factory_meta: None,
-      build_info: None,
-      build_meta: None,
+      build_info: BuildInfo {
+        top_level_declarations: Some(FxHashSet::default()),
+        strict: true,
+        ..Default::default()
+      },
+      build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
       dependency_meta,
     }
+  }
+
+  pub fn user_request(&self) -> &str {
+    &self.user_request
+  }
+
+  pub fn user_request_mut(&mut self) -> &mut String {
+    &mut self.user_request
   }
 
   pub fn get_external_type(&self) -> &ExternalType {
@@ -486,10 +498,6 @@ impl Module for ExternalModule {
     &ModuleType::JsAuto
   }
 
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
-  }
-
   fn source_types(&self) -> &[SourceType] {
     if self.external_type == "css-import" {
       EXTERNAL_MODULE_CSS_SOURCE_TYPES
@@ -510,7 +518,7 @@ impl Module for ExternalModule {
     )
   }
 
-  fn original_source(&self) -> Option<&dyn Source> {
+  fn source(&self) -> Option<&BoxSource> {
     None
   }
 
@@ -529,46 +537,42 @@ impl Module for ExternalModule {
 
   async fn build(
     &mut self,
-    _build_context: BuildContext,
+    build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
+    self.build_info.module = build_context.compiler_options.output.module;
     let resolved_external_type = self.resolve_external_type();
-    let build_info = BuildInfo {
-      top_level_declarations: Some(FxHashSet::default()),
-      strict: true,
-      ..Default::default()
-    };
 
-    let mut build_result = BuildResult {
-      build_info,
-      build_meta: Default::default(),
-      dependencies: Vec::new(),
-      blocks: Vec::new(),
-      optimization_bailouts: vec![],
-    };
     // TODO add exports_type for request
     match resolved_external_type {
-      "this" => build_result.build_info.strict = false,
-      "system" => build_result.build_meta.exports_type = BuildMetaExportsType::Namespace,
-      "module" => build_result.build_meta.exports_type = BuildMetaExportsType::Namespace,
-      "script" | "promise" => build_result.build_meta.has_top_level_await = true,
-      "import" => {
-        build_result.build_meta.has_top_level_await = true;
-        build_result.build_meta.exports_type = BuildMetaExportsType::Namespace;
+      "this" => self.build_info.strict = false,
+      "system" => self.build_meta.exports_type = BuildMetaExportsType::Namespace,
+      "module" => {
+        self.build_meta.exports_type = BuildMetaExportsType::Namespace;
+        // align with https://github.com/webpack/webpack/blob/3919c844eca394d73ca930e4fc5506fb86e2b094/lib/ExternalModule.js#L597
+        if !self.build_info.module {
+          self.build_meta.has_top_level_await = true;
+        }
       }
-      _ => build_result.build_meta.exports_type = BuildMetaExportsType::Dynamic,
+      "script" | "promise" => self.build_meta.has_top_level_await = true,
+      "import" => {
+        self.build_meta.has_top_level_await = true;
+        self.build_meta.exports_type = BuildMetaExportsType::Namespace;
+      }
+      _ => self.build_meta.exports_type = BuildMetaExportsType::Dynamic,
     }
-    build_result
-      .dependencies
-      .push(Box::new(StaticExportsDependency::new(
+    Ok(BuildResult {
+      dependencies: vec![Box::new(StaticExportsDependency::new(
         StaticExportsSpec::True,
         false,
-      )));
-    Ok(build_result)
+      ))],
+      blocks: Vec::new(),
+      optimization_bailouts: vec![],
+    })
   }
 
   // #[tracing::instrument("ExternalModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
-  fn code_generation(
+  async fn code_generation(
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,

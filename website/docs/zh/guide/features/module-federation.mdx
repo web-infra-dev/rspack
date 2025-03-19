@@ -39,12 +39,10 @@ Module Federation（MF） 目前有多个主要版本，你可以根据你的需
 
 你需要安装额外的 `@module-federation/enhanced` 插件，才能使用 Module Federation v2.0。
 
-```js title="rspack.config.js"
-const {
-  ModuleFederationPlugin,
-} = require('@module-federation/enhanced/rspack');
+```js title="rspack.config.mjs"
+import { ModuleFederationPlugin } from '@module-federation/enhanced/rspack';
 
-module.exports = {
+export default {
   plugins: [
     new ModuleFederationPlugin({
       // options
@@ -61,10 +59,10 @@ module.exports = {
 
 你可以通过 Rspack 的 [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin) 来使用它，无须安装任何插件。
 
-```js title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   output: {
     // set uniqueName explicitly to make HMR works
     uniqueName: 'app',
@@ -77,7 +75,7 @@ module.exports = {
 };
 ```
 
-> 参考：[Module Federation v1.5 示例](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/module-federation-v1.5)。
+> 参考：[Module Federation v1.5 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/module-federation-v1.5)。
 
 ### Module Federation v1.0
 

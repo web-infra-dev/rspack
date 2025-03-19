@@ -5,9 +5,9 @@ sidebar: false
 
 import { PackageManagerTabs } from '@theme';
 
-# Announcing Rspack 0.6
+_April 10, 2024_
 
-> April 10, 2024
+# Announcing Rspack 0.6
 
 ## Major feature updates
 
@@ -19,9 +19,10 @@ This is very useful in some scenarios, for example when the built-in CSS parser 
 
 For more details, please see [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin#cssextractrspackplugin).
 
-```js
-const { rspack } = require('@rspack/core');
-module.exports = {
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
   plugins: [new rspack.CssExtractRspackPlugin()],
   module: {
     rules: [
@@ -34,7 +35,7 @@ module.exports = {
 };
 ```
 
-> There is an basic [project example](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-with-extract-css).
+> There is an basic [project example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/react-with-extract-css).
 
 ### Enable new tree shaking by default
 
@@ -64,7 +65,7 @@ Remove `builtins.css`, please replace it with the CSS-related [`module.parser`](
 
 Also, starting from v0.6.0, Rspack's experiments CSS will align with webpack's experiments CSS as a target, which means that, like webpack experiments CSS, it will no longer support [browsers that do not support CSS variables](https://caniuse.com/css-variables) in the future. Therefore, for those projects that need to use configurations not yet supported by experiments CSS, or need to support older browsers, we recommend migrating to [`rspack.CssExtractRspackPlugin`](/plugins/rspack/css-extract-rspack-plugin.html).
 
-In v0.6.0, we introduced three new types of `module.generator` and `module.parser` options: `css/auto`, `css`, and `css/module`, which will only take effect when experiments.css is enabled, checkout [this example](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/css-parser-generator-options) about how to use it.
+In v0.6.0, we introduced three new types of `module.generator` and `module.parser` options: `css/auto`, `css`, and `css/module`, which will only take effect when experiments.css is enabled, checkout [this example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/css-parser-generator-options) about how to use it.
 
 In the `module.parser` options, module types `css`, `css/auto`, and `css/module` all include the `namedExports` property. It has replaced the `builtins.css.namedExports` configuration.
 
@@ -114,8 +115,8 @@ WARNING in ⚠ chunk src_a_css-src_b_-5c8c53 [css-extract-rspack-plugin]
 
 If you are sure that their order inconsistency does not matter, you can ignore this error by configuring `ignoreWarnings`.
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   ignoreWarnings: [/Conflicting order/],
 };
 ```
@@ -126,11 +127,12 @@ module.exports = {
 
 If you have used `mini-css-extract-plugin` and webpack before, you can simply replace `mini-css-extract-plugin` by `rspack.CssExtractPlugin`.
 
-```diff
-+ const CssExtract = require('@rspack/core').CssExtractRspackPlugin;
-- const CssExtract = require('mini-css-extract-plugin');
-module.exports = {
-  plugins: [new CssExtract()],
+```diff title="rspack.config.mjs"
++ import { rspack } from '@rspack/core';
+- import CssExtract from 'mini-css-extract-plugin';
+
+export default {
+  plugins: [new rspack.CssExtractRspackPlugin()],
   module: {
     rules: [
       {
@@ -153,8 +155,8 @@ The above occurrences of `"css/auto"` are the default module type for CSS, which
 
 Add the following configuration to maintain the original default behavior of `builtins.css`, which can be modified as needed based on the following setup:
 
-```diff
-module.exports = {
+```diff title="rspack.config.mjs"
+export default {
    // ...
 +  module: {
 +    generator: {

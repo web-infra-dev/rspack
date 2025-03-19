@@ -2,7 +2,7 @@
 module.exports = {
 	mode: "none",
 	optimization: {
-		moduleIds: 'named'
+		moduleIds: "named"
 	},
 	module: {
 		rules: [

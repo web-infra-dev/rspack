@@ -6,10 +6,11 @@
  * Copyright (c)
  */
 use std::env;
-use std::fs::File;
-use std::path::Path;
-use std::sync::LazyLock;
-use std::{path::PathBuf, sync::Arc};
+use std::{
+  fs::File,
+  path::{Path, PathBuf},
+  sync::{Arc, LazyLock},
+};
 
 use anyhow::{anyhow, bail, Context, Error};
 use base64::prelude::*;
@@ -17,30 +18,25 @@ use indoc::formatdoc;
 use jsonc_parser::parse_to_serde_value;
 use rspack_ast::javascript::{Ast as JsAst, Context as JsAstContext, Program as JsProgram};
 use rspack_error::miette::{self, MietteDiagnostic};
-use rspack_util::itoa;
-use rspack_util::swc::minify_file_comments;
+use rspack_util::{itoa, swc::minify_file_comments};
 use serde_json::error::Category;
-use swc::config::JsMinifyCommentOption;
-use swc::BoolOr;
+use swc::{config::JsMinifyCommentOption, BoolOr};
 use swc_config::merge::Merge;
-use swc_core::base::config::{
-  BuiltInput, Config, ConfigFile, InputSourceMap, IsModule, Rc, RootMode,
-};
-use swc_core::base::{sourcemap, SwcComments};
-use swc_core::common::comments::Comments;
-use swc_core::common::errors::Handler;
-use swc_core::common::SourceFile;
-use swc_core::common::{
-  comments::SingleThreadedComments, FileName, FilePathMapping, Mark, SourceMap, GLOBALS,
-};
-use swc_core::ecma::ast::{EsVersion, Pass, Program};
-use swc_core::ecma::parser::{
-  parse_file_as_module, parse_file_as_program, parse_file_as_script, Syntax,
-};
-use swc_core::ecma::transforms::base::helpers::{self, Helpers};
 use swc_core::{
-  base::{config::Options, try_with_handler},
-  common::Globals,
+  base::{
+    config::{BuiltInput, Config, ConfigFile, InputSourceMap, IsModule, Options, Rc, RootMode},
+    sourcemap, try_with_handler, SwcComments,
+  },
+  common::{
+    comments::{Comments, SingleThreadedComments},
+    errors::Handler,
+    FileName, FilePathMapping, Globals, Mark, SourceFile, SourceMap, GLOBALS,
+  },
+  ecma::{
+    ast::{EsVersion, Pass, Program},
+    parser::{parse_file_as_module, parse_file_as_program, parse_file_as_script, Syntax},
+    transforms::base::helpers::{self, Helpers},
+  },
 };
 use url::Url;
 

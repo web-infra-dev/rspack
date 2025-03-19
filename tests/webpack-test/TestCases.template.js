@@ -97,6 +97,8 @@ const describeCases = config => {
 							});
 							let options = {
 								...testConfig,
+								// CHANGE: rspack does not enable AMD by default
+								amd: {},
 								context: casesPath,
 								entry: "./" + category.name + "/" + testName + "/",
 								target: config.target || "async-node",
@@ -184,7 +186,7 @@ const describeCases = config => {
 										},
 										{
 											test: /\.pug/,
-											loader: "pug-loader"
+											loader: "@webdiscus/pug-loader"
 										},
 										{
 											test: /\.wat$/i,
@@ -344,28 +346,38 @@ const describeCases = config => {
 											}
 											compiler.close(err => {
 												if (err) return done(err);
-												const statOptions = {
-													preset: "verbose",
-													colors: false,
-													modules: true,
-													reasonsSpace: 1000
-												};
 												fs.mkdirSync(outputDirectory, { recursive: true });
-												fs.writeFileSync(
-													path.join(outputDirectory, "stats.txt"),
-													stats.toString(statOptions),
-													"utf-8"
-												);
-												const jsonStats = stats.toJson({
-													errorDetails: true,
-													modules: false,
-													assets: false,
-													chunks: false
-												});
+												// CHANGE: no test cases use stats.txt
+												// const statOptions = {
+												// 	preset: "verbose",
+												// 	colors: false,
+												// 	modules: true,
+												// 	reasonsSpace: 1000
+												// };
+												// fs.writeFileSync(
+												// 	path.join(outputDirectory, "stats.txt"),
+												// 	stats.toString(statOptions),
+												// 	"utf-8"
+												// );
+												const getStatsJson = (() => {
+													let cache = null;
+													return () => {
+														if (!cache) {
+															cache = stats.toJson({
+																errorDetails: true,
+																modules: false,
+																assets: false,
+																chunks: false
+															});
+														}
+														return cache;
+													};
+												})();
 												if (
+													fs.existsSync(path.join(testDirectory, "errors.js")) &&
 													checkArrayExpectation(
 														testDirectory,
-														jsonStats,
+														getStatsJson(),
 														"error",
 														"Error",
 														done
@@ -374,9 +386,10 @@ const describeCases = config => {
 													return;
 												}
 												if (
+													fs.existsSync(path.join(testDirectory, "warnings.js")) &&
 													checkArrayExpectation(
 														testDirectory,
-														jsonStats,
+														getStatsJson(),
 														"warning",
 														"Warning",
 														done

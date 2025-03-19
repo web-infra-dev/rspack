@@ -1,0 +1,54 @@
+---
+source: crates/rspack/tests/defaults.rs
+expression: builder_context
+---
+BuilderContext {
+    plugins: [
+        ArrayPushCallbackChunkFormatPlugin,
+        EnableChunkLoadingPlugin(
+            Jsonp,
+        ),
+        EnableChunkLoadingPlugin(
+            ImportScripts,
+        ),
+        EnableWasmLoadingPlugin(
+            Fetch,
+        ),
+        RemoveEmptyChunksPlugin,
+        MergeDuplicateChunksPlugin,
+        NaturalModuleIdsPlugin,
+        NaturalChunkIdsPlugin,
+        SideEffectsFlagPlugin,
+        FlagDependencyExportsPlugin,
+        EntryPlugin(
+            (
+                "./src",
+                EntryOptions {
+                    name: Some(
+                        "main",
+                    ),
+                    runtime: None,
+                    chunk_loading: None,
+                    async_chunks: None,
+                    public_path: None,
+                    base_uri: None,
+                    filename: None,
+                    library: None,
+                    depend_on: None,
+                    layer: None,
+                },
+            ),
+        ),
+        ChunkPrefetchPreloadPlugin,
+        JavascriptModulesPlugin,
+        JsonModulesPlugin,
+        AssetModulesPlugin,
+        RuntimePlugin,
+        InferAsyncModulesPlugin,
+        APIPlugin,
+        DataUriPlugin,
+        FileUriPlugin,
+        EnsureChunkConditionsPlugin,
+        WorkerPlugin,
+    ],
+}

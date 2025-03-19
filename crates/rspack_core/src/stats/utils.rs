@@ -5,7 +5,10 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rspack_collections::Identifier;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use super::{Stats, StatsChunkGroup, StatsErrorModuleTraceModule, StatsModule, StatsModuleTrace};
+use super::{
+  Stats, StatsChunkGroup, StatsErrorModuleTraceDependency, StatsErrorModuleTraceModule,
+  StatsModule, StatsModuleTrace,
+};
 use crate::{
   BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupOrderKey, ChunkGroupUkey,
   Compilation, CompilerOptions, ModuleGraph,
@@ -189,10 +192,19 @@ pub fn get_module_trace(
       )
       .map(|s| s.to_string()),
     };
+    let dependencies = module_graph
+      .get_incoming_connections(&module_identifier)
+      .filter_map(|c| {
+        let dep = module_graph.dependency_by_id(&c.dependency_id)?;
+        let loc = dep.loc().map(|loc| loc.to_string())?;
+        Some(StatsErrorModuleTraceDependency { loc })
+      })
+      .collect::<Vec<_>>();
 
     module_trace.push(StatsModuleTrace {
       origin: origin_stats_module,
       module: current_stats_module,
+      dependencies,
     });
 
     current_module_identifier = Some(origin_module.identifier());

@@ -5,13 +5,13 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   async_module_factory, impl_module_meta_info, impl_source_map_config, module_update_hash,
-  rspack_sources::Source, sync_module_factory, AsyncDependenciesBlock,
+  rspack_sources::BoxSource, sync_module_factory, AsyncDependenciesBlock,
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
   FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec,
   SourceType,
 };
-use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_util::source_map::SourceMapKind;
 
 use super::{
@@ -41,8 +41,8 @@ pub struct ProvideSharedModule {
   required_version: Option<ConsumeVersion>,
   strict_version: Option<bool>,
   factory_meta: Option<FactoryMeta>,
-  build_info: Option<BuildInfo>,
-  build_meta: Option<BuildMeta>,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
 }
 
 impl ProvideSharedModule {
@@ -76,8 +76,11 @@ impl ProvideSharedModule {
       required_version,
       strict_version,
       factory_meta: None,
-      build_info: None,
-      build_meta: None,
+      build_info: BuildInfo {
+        strict: true,
+        ..Default::default()
+      },
+      build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -120,10 +123,6 @@ impl Module for ProvideSharedModule {
     42.0
   }
 
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
-  }
-
   fn module_type(&self) -> &ModuleType {
     &ModuleType::ProvideShared
   }
@@ -132,7 +131,7 @@ impl Module for ProvideSharedModule {
     &[SourceType::ShareInit]
   }
 
-  fn original_source(&self) -> Option<&dyn Source> {
+  fn source(&self) -> Option<&BoxSource> {
     None
   }
 
@@ -160,11 +159,6 @@ impl Module for ProvideSharedModule {
     }
 
     Ok(BuildResult {
-      build_info: BuildInfo {
-        strict: true,
-        ..Default::default()
-      },
-      build_meta: Default::default(),
       dependencies,
       blocks,
       ..Default::default()
@@ -172,7 +166,7 @@ impl Module for ProvideSharedModule {
   }
 
   // #[tracing::instrument("ProvideSharedModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
-  fn code_generation(
+  async fn code_generation(
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,

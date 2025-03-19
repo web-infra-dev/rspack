@@ -4,39 +4,41 @@ mod walk;
 mod walk_block_pre;
 mod walk_pre;
 
-use std::borrow::Cow;
-use std::fmt::Display;
-use std::rc::Rc;
-use std::sync::Arc;
+use std::{borrow::Cow, fmt::Display, rc::Rc, sync::Arc};
 
 use bitflags::bitflags;
 pub use call_hooks_name::CallHooksName;
 use rspack_core::{
-  AdditionalData, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, DependencyTemplate,
-  JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ResourceData,
+  AdditionalData, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, CompilerOptions,
+  DependencyTemplate, JavascriptParserOptions, JavascriptParserUrl, ModuleIdentifier, ModuleLayer,
+  ModuleType, ResourceData, SpanExt,
 };
-use rspack_core::{CompilerOptions, JavascriptParserUrl, ModuleType, SpanExt};
 use rspack_error::miette::Diagnostic;
 use rustc_hash::{FxHashMap, FxHashSet};
-use swc_core::atoms::Atom;
-use swc_core::common::comments::Comments;
-use swc_core::common::util::take::Take;
-use swc_core::common::{BytePos, Mark, SourceFile, SourceMap, Span, Spanned};
-use swc_core::ecma::ast::{
-  ArrayPat, AssignPat, AssignTargetPat, CallExpr, Callee, Decl, MetaPropExpr, MetaPropKind,
-  ObjectPat, ObjectPatProp, OptCall, OptChainBase, OptChainExpr, Pat, Program, Stmt, ThisExpr,
+use swc_core::{
+  atoms::Atom,
+  common::{
+    comments::Comments, util::take::Take, BytePos, Mark, SourceFile, SourceMap, Span, Spanned,
+  },
+  ecma::{
+    ast::{
+      ArrayPat, AssignPat, AssignTargetPat, CallExpr, Callee, Decl, Expr, Ident, Lit, MemberExpr,
+      MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, OptCall, OptChainBase, OptChainExpr,
+      Pat, Program, RestPat, Stmt, ThisExpr,
+    },
+    utils::ExprFactory,
+  },
 };
-use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, RestPat};
-use swc_core::ecma::utils::ExprFactory;
 
-use crate::dependency::local_module::LocalModule;
-use crate::parser_plugin::InnerGraphState;
-use crate::parser_plugin::{self, JavaScriptParserPluginDrive, JavascriptParserPlugin};
-use crate::utils::eval::{self, BasicEvaluatedExpression};
-use crate::visitors::scope_info::{
-  FreeName, ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoId,
+use crate::{
+  dependency::local_module::LocalModule,
+  parser_plugin::{self, InnerGraphState, JavaScriptParserPluginDrive, JavascriptParserPlugin},
+  utils::eval::{self, BasicEvaluatedExpression},
+  visitors::scope_info::{
+    FreeName, ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoId,
+  },
+  BoxJavascriptParserPlugin,
 };
-use crate::BoxJavascriptParserPlugin;
 
 pub trait TagInfoData: Clone + Sized + 'static {
   fn into_any(data: Self) -> Box<dyn anymap::CloneAny>;
@@ -315,7 +317,7 @@ impl<'parser> JavascriptParser<'parser> {
         parser_plugin::AMDRequireDependenciesBlockParserPlugin,
       ));
       plugins.push(Box::new(parser_plugin::AMDDefineDependencyParserPlugin));
-      plugins.push(Box::new(parser_plugin::RequireJsStuffPlugin));
+      plugins.push(Box::new(parser_plugin::AMDParserPlugin));
     }
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() {
@@ -1006,11 +1008,11 @@ impl JavascriptParser<'_> {
           .or_else(|| {
             let info = self.get_variable_info(name);
             if let Some(info) = info {
-              if let Some(FreeName::String(_)) = &info.free_name {
+              if let Some(FreeName::String(name)) = &info.free_name {
                 let mut eval =
                   BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.hi.0);
                 eval.set_identifier(
-                  ident.sym.to_string(),
+                  name.to_owned(),
                   ExportedVariableInfo::VariableInfo(info.id()),
                   None,
                   None,

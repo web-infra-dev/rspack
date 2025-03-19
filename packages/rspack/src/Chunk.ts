@@ -1,6 +1,7 @@
 import type { JsChunk } from "@rspack/binding";
 
 import { ChunkGroup } from "./ChunkGroup";
+import type { EntryOptions } from "./exports";
 
 const CHUNK_MAPPINGS = new WeakMap<JsChunk, Chunk>();
 
@@ -193,5 +194,9 @@ export class Chunk {
 				.getAllReferencedChunks()
 				.map(binding => Chunk.__from_binding(binding))
 		);
+	}
+
+	getEntryOptions(): Readonly<EntryOptions> | undefined {
+		return this.#inner.getEntryOptions();
 	}
 }

@@ -31,7 +31,7 @@ new rspack.NormalModuleReplacementPlugin(resourceRegExp, newResource);
 
 可以在生产构建时这样配置该插件：
 
-```javascript
+```js
 new rspack.NormalModuleReplacementPlugin(
   /some\/path\/config\.development\.js/,
   './config.production.js',
@@ -44,7 +44,7 @@ new rspack.NormalModuleReplacementPlugin(
 
 假设你希望为不同的构建目标使用不同的配置：
 
-```javascript
+```js
 module.exports = function getRspackConfig(env) {
   const appTarget = env.APP_TARGET || 'VERSION_A';
   return {

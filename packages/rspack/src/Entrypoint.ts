@@ -27,4 +27,9 @@ export class Entrypoint extends ChunkGroup {
 		const chunkBinding = this.#inner.getRuntimeChunk();
 		return chunkBinding ? Chunk.__from_binding(chunkBinding) : null;
 	}
+
+	getEntrypointChunk(): Readonly<Chunk | null> {
+		const chunkBinding = this.#inner.getEntrypointChunk();
+		return chunkBinding ? Chunk.__from_binding(chunkBinding) : null;
+	}
 }

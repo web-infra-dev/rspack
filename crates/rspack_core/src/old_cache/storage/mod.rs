@@ -11,7 +11,7 @@ pub trait Storage<Item>: Debug + Send + Sync {
   fn get(&self, id: &Identifier) -> Option<Item>;
   fn set(&self, id: Identifier, data: Item);
   fn remove(&self, id: &Identifier);
-  // fn begin_idle(&self);
+  fn begin_idle(&self);
   // fn end_idle(&self);
   // fn clear(&self);
 }
@@ -22,6 +22,8 @@ where
 {
   match options {
     CacheOptions::Disabled => None,
-    _ => Some(Box::new(MemoryStorage::new())),
+    CacheOptions::Memory { max_generations } => {
+      Some(Box::new(MemoryStorage::new(max_generations.unwrap_or(1))))
+    }
   }
 }

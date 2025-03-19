@@ -1,34 +1,36 @@
 use rspack_core::{
-  ConstDependency, ContextDependency, ContextMode, DependencyCategory, DependencyRange, SpanExt,
+  ConstDependency, ContextDependency, ContextMode, ContextNameSpaceObject, ContextOptions,
+  DependencyCategory, DependencyRange, SpanExt,
 };
-use rspack_core::{ContextNameSpaceObject, ContextOptions};
 use rspack_error::{DiagnosticExt, Severity};
-use swc_core::common::{Span, Spanned};
-use swc_core::ecma::ast::{CallExpr, Expr, Ident, MemberExpr, UnaryExpr};
+use swc_core::{
+  common::{Span, Spanned},
+  ecma::ast::{CallExpr, Expr, ExprOrSpread, Ident, MemberExpr, NewExpr, UnaryExpr},
+};
 
 use super::JavascriptParserPlugin;
-use crate::dependency::{
-  CommonJsFullRequireDependency, CommonJsRequireContextDependency, CommonJsRequireDependency,
-  RequireHeaderDependency, RequireResolveContextDependency, RequireResolveDependency,
-  RequireResolveHeaderDependency,
+use crate::{
+  dependency::{
+    local_module_dependency::LocalModuleDependency, CommonJsFullRequireDependency,
+    CommonJsRequireContextDependency, CommonJsRequireDependency, RequireHeaderDependency,
+    RequireResolveContextDependency, RequireResolveDependency, RequireResolveHeaderDependency,
+  },
+  utils::eval::{self, BasicEvaluatedExpression},
+  visitors::{
+    context_reg_exp, create_context_dependency, create_traceable_error, expr_matcher, expr_name,
+    extract_require_call_info, is_require_call_start, JavascriptParser,
+  },
 };
-use crate::utils::eval::{self, BasicEvaluatedExpression};
-use crate::visitors::{
-  context_reg_exp, create_context_dependency, create_traceable_error, expr_matcher, expr_name,
-  JavascriptParser,
-};
-use crate::visitors::{extract_require_call_info, is_require_call_start};
 
 fn create_commonjs_require_context_dependency(
   parser: &mut JavascriptParser,
   param: &BasicEvaluatedExpression,
-  expr: &Expr,
-  span: Span,
-  callee_span: Span,
+  call_expr: &CallExpr,
+  arg_expr: &Expr,
 ) -> CommonJsRequireContextDependency {
-  let start = callee_span.real_lo();
-  let end = callee_span.real_hi();
-  let result = create_context_dependency(param, expr, parser);
+  let result = create_context_dependency(param, parser);
+  parser.walk_expression(arg_expr);
+
   let options = ContextOptions {
     mode: ContextMode::Sync,
     recursive: true,
@@ -41,13 +43,17 @@ fn create_commonjs_require_context_dependency(
     namespace_object: ContextNameSpaceObject::Unset,
     group_options: None,
     replaces: result.replaces,
-    start,
-    end,
+    start: call_expr.span().real_lo(),
+    end: call_expr.span().real_hi(),
     referenced_exports: None,
     attributes: None,
   };
-  let mut dep =
-    CommonJsRequireContextDependency::new(options, span.into(), (start, end).into(), parser.in_try);
+  let mut dep = CommonJsRequireContextDependency::new(
+    options,
+    call_expr.span().into(),
+    Some(arg_expr.span().into()),
+    parser.in_try,
+  );
   *dep.critical_mut() = result.critical;
   dep
 }
@@ -61,7 +67,10 @@ fn create_require_resolve_context_dependency(
 ) -> RequireResolveContextDependency {
   let start = range.start;
   let end = range.end;
-  let result = create_context_dependency(param, expr, parser);
+
+  let result = create_context_dependency(param, parser);
+  parser.walk_expression(expr);
+
   let options = ContextOptions {
     mode: if weak {
       ContextMode::Weak
@@ -84,6 +93,34 @@ fn create_require_resolve_context_dependency(
     attributes: None,
   };
   RequireResolveContextDependency::new(options, range, parser.in_try)
+}
+
+enum CallOrNewExpr<'a> {
+  Call(&'a CallExpr),
+  New(&'a NewExpr),
+}
+
+impl CallOrNewExpr<'_> {
+  pub fn callee(&self) -> Option<&Expr> {
+    match self {
+      CallOrNewExpr::Call(call_expr) => call_expr.callee.as_expr().map(|e| &**e),
+      CallOrNewExpr::New(new_expr) => Some(&new_expr.callee),
+    }
+  }
+
+  pub fn args(&self) -> Option<&[ExprOrSpread]> {
+    match self {
+      CallOrNewExpr::Call(call_expr) => Some(&call_expr.args),
+      CallOrNewExpr::New(new_expr) => new_expr.args.as_deref(),
+    }
+  }
+
+  pub fn span(&self) -> Span {
+    match self {
+      CallOrNewExpr::Call(call_expr) => call_expr.span,
+      CallOrNewExpr::New(new_expr) => new_expr.span,
+    }
+  }
 }
 
 pub struct CommonJsImportsParserPlugin;
@@ -224,13 +261,7 @@ impl CommonJsImportsParserPlugin {
     let Some(argument_expr) = &call_expr.args.first().map(|expr| expr.expr.as_ref()) else {
       unreachable!("ensure require includes arguments")
     };
-    let dep = create_commonjs_require_context_dependency(
-      parser,
-      param,
-      argument_expr,
-      call_expr.span,
-      call_expr.callee.span(),
-    );
+    let dep = create_commonjs_require_context_dependency(parser, param, call_expr, argument_expr);
     parser.dependencies.push(Box::new(dep));
     Some(true)
   }
@@ -238,33 +269,28 @@ impl CommonJsImportsParserPlugin {
   fn require_handler(
     &self,
     parser: &mut JavascriptParser,
-    call_expr: &CallExpr,
+    expr: CallOrNewExpr,
     for_name: &str,
   ) -> Option<bool> {
-    let is_require_expr = for_name == expr_name::REQUIRE
-      || call_expr
-        .callee
-        .as_expr()
-        .is_some_and(|expr| expr_matcher::is_module_require(&**expr)); // FIXME: remove `module.require`
+    let callee = expr.callee()?;
+    let is_require_expr = for_name == expr_name::REQUIRE || expr_matcher::is_module_require(callee); // FIXME: remove `module.require`
+    let args = expr.args()?;
 
-    if !is_require_expr || call_expr.args.len() != 1 {
+    if !is_require_expr || args.len() != 1 {
       return None;
     }
 
-    let argument_expr = &call_expr.args[0].expr;
+    let argument_expr = &args[0].expr;
     let param = parser.evaluate_expression(argument_expr);
     if param.is_conditional() {
       let mut is_expression = false;
       for p in param.options() {
-        if self
-          .process_require_item(parser, call_expr.span(), p)
-          .is_none()
-        {
+        if self.process_require_item(parser, expr.span(), p).is_none() {
           is_expression = true;
         }
       }
       if !is_expression {
-        let range: DependencyRange = call_expr.callee.span().into();
+        let range: DependencyRange = callee.span().into();
         parser
           .presentational_dependencies
           .push(Box::new(RequireHeaderDependency::new(
@@ -274,19 +300,32 @@ impl CommonJsImportsParserPlugin {
         return Some(true);
       }
     }
+    if param.is_string()
+      && let Some(local_module) = parser.get_local_module_mut(param.string())
+    {
+      local_module.flag_used();
+      let span = expr.span();
+      let dep = Box::new(LocalModuleDependency::new(
+        local_module.clone(),
+        Some((span.real_lo(), span.real_hi())),
+        matches!(expr, CallOrNewExpr::New(_)),
+      ));
+      parser.presentational_dependencies.push(dep);
+      return Some(true);
+    }
 
     if matches!(parser.javascript_options.require_dynamic, Some(false)) && !param.is_string() {
       return None;
     }
 
-    // FIXME: should support `LocalModuleDependency`
     if self
-      .process_require_item(parser, call_expr.span, &param)
+      .process_require_item(parser, expr.span(), &param)
       .is_none()
+      && let CallOrNewExpr::Call(call_expr) = expr
     {
       self.process_require_context(parser, call_expr, &param);
     } else {
-      let range: DependencyRange = call_expr.callee.span().into();
+      let range: DependencyRange = callee.span().into();
       parser
         .presentational_dependencies
         .push(Box::new(RequireHeaderDependency::new(
@@ -327,7 +366,7 @@ impl CommonJsImportsParserPlugin {
         attributes: None,
       },
       ident.span().into(),
-      (start, end).into(),
+      None,
       parser.in_try,
     );
     *dep.critical_mut() = Some(
@@ -474,7 +513,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if self
-      .require_handler(parser, call_expr, for_name)
+      .require_handler(parser, CallOrNewExpr::Call(call_expr), for_name)
       .unwrap_or_default()
     {
       Some(true)
@@ -483,6 +522,22 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       Some(true)
     } else if for_name == expr_name::REQUIRE_RESOLVE_WEAK {
       self.process_resolve(parser, call_expr, true);
+      Some(true)
+    } else {
+      None
+    }
+  }
+
+  fn new_expression(
+    &self,
+    parser: &mut JavascriptParser,
+    new_expr: &NewExpr,
+    for_name: &str,
+  ) -> Option<bool> {
+    if self
+      .require_handler(parser, CallOrNewExpr::New(new_expr), for_name)
+      .unwrap_or_default()
+    {
       Some(true)
     } else {
       None

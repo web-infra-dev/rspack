@@ -19,4 +19,4 @@ module.exports = {
 		builtAt: false,
 		version: false
 	}
-}
+};

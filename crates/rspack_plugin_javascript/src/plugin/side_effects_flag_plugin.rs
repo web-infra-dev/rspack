@@ -1,35 +1,27 @@
-use std::fmt::Debug;
-use std::rc::Rc;
-use std::sync::LazyLock;
+use std::{fmt::Debug, rc::Rc, sync::LazyLock};
 
 use rayon::prelude::*;
-use rspack_collections::IdentifierMap;
-use rspack_collections::IdentifierSet;
-use rspack_core::incremental::IncrementalPasses;
-use rspack_core::incremental::Mutation;
-use rspack_core::DependencyExtraMeta;
-use rspack_core::DependencyId;
-use rspack_core::Logger;
-use rspack_core::MaybeDynamicTargetExportInfo;
-use rspack_core::ModuleGraphConnection;
-use rspack_core::SideEffectsDoOptimize;
-use rspack_core::SideEffectsDoOptimizeMoveTarget;
-use rspack_core::SideEffectsOptimizeArtifact;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, FactoryMeta,
-  ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, NormalModuleCreateData,
+  incremental::{IncrementalPasses, Mutation},
+  BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta,
+  DependencyId, FactoryMeta, Logger, MaybeDynamicTargetExportInfo, ModuleFactoryCreateData,
+  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData,
   NormalModuleFactoryModule, Plugin, ResolvedExportInfoTarget, SideEffectsBailoutItemWithSpan,
+  SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_paths::AssertUtf8;
-use rspack_paths::Utf8Path;
+use rspack_paths::{AssertUtf8, Utf8Path};
 use sugar_path::SugarPath;
-use swc_core::common::comments::Comments;
-use swc_core::common::{comments, Span, Spanned, SyntaxContext, GLOBALS};
-use swc_core::ecma::ast::*;
-use swc_core::ecma::utils::{ExprCtx, ExprExt};
-use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
+use swc_core::{
+  common::{comments, comments::Comments, Span, Spanned, SyntaxContext, GLOBALS},
+  ecma::{
+    ast::*,
+    utils::{ExprCtx, ExprExt},
+    visit::{noop_visit_type, Visit, VisitWith},
+  },
+};
 
 use crate::dependency::{ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency};
 
@@ -363,10 +355,11 @@ fn is_pure_call_expr(
     .unwrap_or(false);
   if !pure_flag {
     let expr = Expr::Call(call_expr.clone());
-    !expr.may_have_side_effects(&ExprCtx {
+    !expr.may_have_side_effects(ExprCtx {
       unresolved_ctxt,
       in_strict: false,
       is_unresolved_ref_safe: false,
+      remaining_depth: 4,
     })
   } else {
     call_expr.args.iter().all(|arg| {
@@ -438,10 +431,11 @@ pub fn is_pure_expression<'a>(
 
         _is_pure_expression(cur, unresolved_ctxt, comments, paren_spans)
       }
-      _ => !expr.may_have_side_effects(&ExprCtx {
+      _ => !expr.may_have_side_effects(ExprCtx {
         unresolved_ctxt,
         is_unresolved_ref_safe: true,
         in_strict: false,
+        remaining_depth: 4,
       }),
     }
   }
@@ -822,7 +816,13 @@ fn do_optimize_connection(
     need_move_target,
   } = do_optimize;
   module_graph.do_update_module(&dependency, &target_module);
-  module_graph.set_dependency_extra_meta(dependency, DependencyExtraMeta { ids });
+  module_graph.set_dependency_extra_meta(
+    dependency,
+    DependencyExtraMeta {
+      ids,
+      explanation: Some("(skipped side-effect-free modules)"),
+    },
+  );
   if let Some(SideEffectsDoOptimizeMoveTarget {
     export_info,
     target_export,

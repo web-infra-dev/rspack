@@ -190,6 +190,7 @@ mod test_storage_release {
     let storage = PackStorage::new(options);
     let data = storage.load("test_scope").await?;
     assert_eq!(data.len(), 1000);
+    assert_eq!(get_scope_released_count(&storage, "test_scope").await?, 660);
     Ok(())
   }
 

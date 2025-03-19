@@ -1,5 +1,6 @@
 [
   "index",
+  "extends",
   "entry",
   "context",
   "mode",

@@ -3,12 +3,11 @@ use std::{
   collections::hash_map::Entry,
   fmt::Debug,
   hash::{BuildHasherDefault, Hasher},
-  sync::{Arc, LazyLock, Mutex},
+  sync::{Arc, LazyLock},
 };
 
 use dashmap::DashMap;
 use indexmap::IndexMap;
-use rayon::prelude::*;
 use regex::Regex;
 use rspack_ast::javascript::Ast;
 use rspack_cacheable::{
@@ -22,11 +21,10 @@ use rspack_error::{Diagnosable, Diagnostic, DiagnosticKind, Result, TraceableErr
 use rspack_hash::{HashDigest, HashFunction, RspackHash};
 use rspack_hook::define_hook;
 use rspack_sources::{
-  CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
+  BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
 };
 use rspack_util::{ext::DynHash, itoa, source_map::SourceMapKind, swc::join_atom};
-use rustc_hash::FxHasher;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::{
   common::{FileName, Spanned, SyntaxContext},
   ecma::{
@@ -45,13 +43,14 @@ use crate::{
   subtract_runtime_condition, to_identifier, AsyncDependenciesBlockIdentifier, BoxDependency,
   BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
   ChunkGraph, ChunkInitFragments, CodeGenerationDataTopLevelDeclarations,
-  CodeGenerationExportsFinalNames, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
-  ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, ExportInfoProvided, ExportsArgument, ExportsType,
-  FactoryMeta, IdentCollector, LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module,
-  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType,
-  Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template,
-  UsageState, UsedName, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
+  CodeGenerationExportsFinalNames, CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
+  Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConnectionState, Context,
+  DependenciesBlock, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
+  ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta, IdentCollector, LibIdentOptions,
+  MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleDependency, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType, Resolve, RuntimeCondition,
+  RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsageState, UsedName, DEFAULT_EXPORT,
+  NAMESPACE_OBJECT_EXPORT,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -76,7 +75,9 @@ pub struct RootModuleContext {
   pub layer: Option<ModuleLayer>,
   pub side_effect_connection_state: ConnectionState,
   pub factory_meta: Option<FactoryMeta>,
-  pub build_meta: Option<BuildMeta>,
+  pub build_meta: BuildMeta,
+  pub exports_argument: ExportsArgument,
+  pub module_argument: ModuleArgument,
 }
 
 #[allow(unused)]
@@ -193,6 +194,8 @@ pub struct ConcatenatedModuleInfo {
   pub global_scope_ident: Vec<ConcatenatedModuleIdent>,
   pub idents: Vec<ConcatenatedModuleIdent>,
   pub binding_to_ref: HashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>>,
+
+  pub public_path_auto_replace: Option<bool>,
 }
 
 #[derive(Debug, Clone)]
@@ -369,8 +372,8 @@ pub struct ConcatenatedModule {
   #[cacheable(with=AsMap)]
   cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
   #[cacheable(with=Skip)]
-  diagnostics: Mutex<Vec<Diagnostic>>,
-  build_info: Option<BuildInfo>,
+  diagnostics: Vec<Diagnostic>,
+  build_info: BuildInfo,
 }
 
 #[allow(unused)]
@@ -383,6 +386,11 @@ impl ConcatenatedModule {
   ) -> Self {
     // make the hash consistent
     modules.sort_by(|a, b| a.id.cmp(&b.id));
+    let RootModuleContext {
+      module_argument,
+      exports_argument,
+      ..
+    } = root_module_ctxt;
     Self {
       id,
       root_module_ctxt,
@@ -391,8 +399,15 @@ impl ConcatenatedModule {
       dependencies: vec![],
       blocks: vec![],
       cached_source_sizes: DashMap::default(),
-      diagnostics: Mutex::new(vec![]),
-      build_info: None,
+      diagnostics: vec![],
+      build_info: BuildInfo {
+        cacheable: true,
+        strict: true,
+        module_argument,
+        exports_argument,
+        top_level_declarations: Some(Default::default()),
+        ..Default::default()
+      },
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -433,6 +448,10 @@ impl ConcatenatedModule {
 
   pub fn id(&self) -> ModuleIdentifier {
     self.id
+  }
+
+  pub fn get_root(&self) -> ModuleIdentifier {
+    self.root_module_ctxt.id
   }
 
   pub fn get_modules(&self) -> &[ConcatenatedInnerModule] {
@@ -477,11 +496,6 @@ impl Module for ConcatenatedModule {
     &ModuleType::JsEsm
   }
 
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    let guard = self.diagnostics.lock().expect("should have diagnostics");
-    guard.clone()
-  }
-
   fn factory_meta(&self) -> Option<&FactoryMeta> {
     self.root_module_ctxt.factory_meta.as_ref()
   }
@@ -490,27 +504,27 @@ impl Module for ConcatenatedModule {
     self.root_module_ctxt.factory_meta = Some(v);
   }
 
-  fn build_info(&self) -> Option<&BuildInfo> {
-    self.build_info.as_ref()
+  fn build_info(&self) -> &BuildInfo {
+    &self.build_info
   }
 
-  fn set_build_meta(&mut self, v: BuildMeta) {
-    self.root_module_ctxt.build_meta = Some(v);
+  fn build_info_mut(&mut self) -> &mut BuildInfo {
+    &mut self.build_info
   }
 
-  fn build_meta(&self) -> Option<&BuildMeta> {
-    self.root_module_ctxt.build_meta.as_ref()
+  fn build_meta(&self) -> &BuildMeta {
+    &self.root_module_ctxt.build_meta
   }
 
-  fn set_build_info(&mut self, v: BuildInfo) {
-    self.build_info = Some(v);
+  fn build_meta_mut(&mut self) -> &mut BuildMeta {
+    &mut self.root_module_ctxt.build_meta
   }
 
   fn source_types(&self) -> &[SourceType] {
     &[SourceType::JavaScript]
   }
 
-  fn original_source(&self) -> Option<&dyn Source> {
+  fn source(&self) -> Option<&BoxSource> {
     None
   }
 
@@ -543,24 +557,6 @@ impl Module for ConcatenatedModule {
     compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let compilation = compilation.expect("should pass compilation");
-    // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L774-L784
-    // Some fields does not exists in rspack
-    let mut build_info = BuildInfo {
-      cacheable: true,
-      hash: None,
-      strict: true,
-      file_dependencies: Default::default(),
-      context_dependencies: Default::default(),
-      missing_dependencies: Default::default(),
-      build_dependencies: Default::default(),
-      esm_named_exports: Default::default(),
-      all_star_exports: Default::default(),
-      need_create_require: Default::default(),
-      json_data: Default::default(),
-      top_level_declarations: Some(Default::default()),
-      module_concatenation_bailout: Default::default(),
-    };
-    self.clear_diagnostics();
 
     let module_graph = compilation.get_module_graph();
     let modules = self
@@ -572,11 +568,11 @@ impl Module for ConcatenatedModule {
       let module = module_graph
         .module_by_identifier(&m.id)
         .expect("should have module");
-      let cur_build_info = module.build_info().expect("should have module info");
+      let cur_build_info = module.build_info();
 
       // populate cacheable
       if !cur_build_info.cacheable {
-        build_info.cacheable = false;
+        self.build_info.cacheable = false;
       }
 
       // populate dependencies
@@ -594,31 +590,31 @@ impl Module for ConcatenatedModule {
       for b in module.get_blocks() {
         self.blocks.push(*b);
       }
-      let mut diagnostics_guard = self.diagnostics.lock().expect("should have diagnostics");
       // populate diagnostic
-      diagnostics_guard.extend(module.get_diagnostics());
-
-      // release guard ASAP
-      drop(diagnostics_guard);
+      self.diagnostics.extend(module.diagnostics().into_owned());
 
       // populate topLevelDeclarations
-      if let Some(module_build_info) = module.build_info() {
-        if let Some(decls) = &module_build_info.top_level_declarations
-          && let Some(top_level_declarations) = &mut build_info.top_level_declarations
-        {
-          top_level_declarations.extend(decls.iter().cloned());
-        } else {
-          build_info.top_level_declarations = None;
-        }
+      let module_build_info = module.build_info();
+      if let Some(decls) = &module_build_info.top_level_declarations
+        && let Some(top_level_declarations) = &mut self.build_info.top_level_declarations
+      {
+        top_level_declarations.extend(decls.iter().cloned());
+      } else {
+        self.build_info.top_level_declarations = None;
       }
+
+      // populate assets
+      self
+        .build_info
+        .assets
+        .extend(module_build_info.assets.clone());
     }
-    self.set_build_info(build_info);
     // return a dummy result is enough, since we don't build the ConcatenatedModule in make phase
     Ok(BuildResult::default())
   }
 
   // #[tracing::instrument("ConcatenatedModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
-  fn code_generation(
+  async fn code_generation(
     &self,
     compilation: &Compilation,
     generation_runtime: Option<&RuntimeSpec>,
@@ -650,14 +646,24 @@ impl Module for ConcatenatedModule {
     // Prepare a ReplaceSource for the final source
     //
     let arc_map = Arc::new(module_to_info_map);
-    let tmp: Vec<rspack_error::Result<(rspack_collections::Identifier, ModuleInfo)>> = arc_map
-      .par_iter()
-      .map(|(id, info)| {
-        let updated_module_info =
-          self.analyze_module(compilation, Arc::clone(&arc_map), info.clone(), runtime)?;
-        Ok((*id, updated_module_info))
+
+    let tmp = rspack_futures::scope::<_, Result<_>>(|token| {
+      arc_map.iter().for_each(|(id, info)| {
+        let s = unsafe { token.used((&self, &compilation, &arc_map, runtime, id, info)) };
+        s.spawn(
+          |(module, compilation, arc_map, runtime, id, info)| async move {
+            let updated_module_info = module
+              .analyze_module(compilation, Arc::clone(arc_map), info.clone(), runtime)
+              .await?;
+            Ok((*id, updated_module_info))
+          },
+        );
       })
-      .collect::<Vec<_>>();
+    })
+    .await
+    .into_iter()
+    .map(|res| res.map_err(rspack_error::miette::Error::from_err))
+    .collect::<Result<Vec<_>>>()?;
 
     let mut updated_pairs = vec![];
     for item in tmp {
@@ -672,8 +678,9 @@ impl Module for ConcatenatedModule {
 
     let mut all_used_names: HashSet<Atom> = RESERVED_NAMES.iter().map(|s| Atom::new(*s)).collect();
     let mut top_level_declarations: HashSet<Atom> = HashSet::default();
+    let mut public_path_auto_replace: bool = false;
 
-    for module_info_id in modules_with_info.iter() {
+    for (module_info_id, _raw_condition) in modules_with_info.iter() {
       let Some(ModuleInfo::Concatenated(info)) = module_to_info_map.get_mut(module_info_id) else {
         continue;
       };
@@ -724,10 +731,8 @@ impl Module for ConcatenatedModule {
         .module_by_identifier(&info.id())
         .expect("should have module identifier");
       let readable_identifier = module.readable_identifier(&context);
-      let exports_type: Option<BuildMetaExportsType> =
-        module.build_meta().map(|item| item.exports_type);
-      let default_object: Option<BuildMetaDefaultObject> =
-        module.build_meta().map(|item| item.default_object);
+      let exports_type: BuildMetaExportsType = module.build_meta().exports_type;
+      let default_object: BuildMetaDefaultObject = module.build_meta().default_object;
       match info {
         // Handle concatenated type
         ModuleInfo::Concatenated(info) => {
@@ -800,6 +805,11 @@ impl Module for ConcatenatedModule {
             info.namespace_object_name = Some(namespace_object_name.clone());
             top_level_declarations.insert(namespace_object_name);
           }
+
+          // Handle publicPathAutoReplace for perf
+          if let Some(info_auto) = info.public_path_auto_replace {
+            public_path_auto_replace = public_path_auto_replace || info_auto;
+          }
         }
 
         // Handle external type
@@ -811,7 +821,7 @@ impl Module for ConcatenatedModule {
         }
       }
       // Handle additional logic based on module build meta
-      if exports_type != Some(BuildMetaExportsType::Namespace) {
+      if exports_type != BuildMetaExportsType::Namespace {
         let external_name_interop: Atom = find_new_name(
           "namespaceObject",
           &all_used_names,
@@ -823,8 +833,8 @@ impl Module for ConcatenatedModule {
         top_level_declarations.insert(external_name_interop.clone());
       }
 
-      if exports_type == Some(BuildMetaExportsType::Default)
-        && !matches!(default_object, Some(BuildMetaDefaultObject::Redirect))
+      if exports_type == BuildMetaExportsType::Default
+        && !matches!(default_object, BuildMetaDefaultObject::Redirect)
       {
         let external_name_interop: Atom = find_new_name(
           "namespaceObject2",
@@ -839,7 +849,7 @@ impl Module for ConcatenatedModule {
 
       if matches!(
         exports_type,
-        Some(BuildMetaExportsType::Dynamic | BuildMetaExportsType::Unset)
+        BuildMetaExportsType::Dynamic | BuildMetaExportsType::Unset
       ) {
         let external_name_interop: Atom =
           find_new_name("default", &all_used_names, None, &readable_identifier);
@@ -858,13 +868,13 @@ impl Module for ConcatenatedModule {
         let module = module_graph
           .module_by_identifier(&info.module)
           .expect("should have module");
-        let build_meta = module.build_meta().expect("should have build meta");
+        let build_meta = module.build_meta();
         let mut refs = vec![];
         for reference in info.global_scope_ident.iter() {
           let name = &reference.id.sym;
           let match_result = ConcatenationScope::match_module_reference(name.as_str());
           if let Some(match_info) = match_result {
-            let referenced_info_id = &modules_with_info[match_info.index];
+            let referenced_info_id = &modules_with_info[match_info.index].0;
             refs.push((
               reference.clone(),
               referenced_info_id,
@@ -935,10 +945,7 @@ impl Module for ConcatenatedModule {
     let root_module = module_graph
       .module_by_identifier(&root_module_id)
       .expect("should have box module");
-    let strict_esm_module = root_module
-      .build_meta()
-      .map(|item| item.strict_esm_module)
-      .unwrap_or_default();
+    let strict_esm_module = root_module.build_meta().strict_esm_module;
 
     let exports_info = module_graph.get_exports_info(&root_module_id);
     let mut exports_final_names: Vec<(String, String)> = vec![];
@@ -1014,9 +1021,7 @@ impl Module for ConcatenatedModule {
         ));
       }
 
-      let exports_argument = self
-        .build_meta()
-        .map_or(ExportsArgument::Exports, |meta| meta.exports_argument);
+      let exports_argument = self.get_exports_argument();
 
       let should_skip_render_definitions = compilation
         .plugin_driver
@@ -1085,10 +1090,7 @@ impl Module for ConcatenatedModule {
           .module_by_identifier(module_info_id)
           .expect("should have box module");
         let module_readable_identifier = box_module.readable_identifier(&context);
-        let strict_esm_module = box_module
-          .build_meta()
-          .map(|meta| meta.strict_esm_module)
-          .unwrap_or_default();
+        let strict_esm_module = box_module.build_meta().strict_esm_module;
         let name_space_name = module_info.namespace_object_name.clone();
 
         if let Some(ref _namespace_export_symbol) = module_info.namespace_export_symbol {
@@ -1181,7 +1183,7 @@ impl Module for ConcatenatedModule {
 
     // Evaluate modules in order
     let module_graph = compilation.get_module_graph();
-    for module_info_id in modules_with_info {
+    for (module_info_id, item_runtime_condition) in modules_with_info {
       let name;
       let mut is_conditional = false;
       let info = module_to_info_map
@@ -1214,11 +1216,9 @@ impl Module for ConcatenatedModule {
 
           runtime_requirements.insert(RuntimeGlobals::REQUIRE);
 
-          let runtime_condition = &info.runtime_condition;
-
           let condition = runtime_condition_expression(
             &compilation.chunk_graph,
-            Some(runtime_condition),
+            item_runtime_condition.as_ref(),
             runtime,
             &mut runtime_requirements,
           );
@@ -1288,6 +1288,13 @@ impl Module for ConcatenatedModule {
     code_generation_result.add(SourceType::JavaScript, CachedSource::new(result).boxed());
     code_generation_result.chunk_init_fragments = chunk_init_fragments;
     code_generation_result.runtime_requirements = runtime_requirements;
+
+    if public_path_auto_replace {
+      code_generation_result
+        .data
+        .insert(CodeGenerationPublicPathAutoReplace(true));
+    }
+
     code_generation_result
       .data
       .insert(CodeGenerationDataTopLevelDeclarations::new(
@@ -1406,48 +1413,29 @@ impl Module for ConcatenatedModule {
 }
 
 impl Diagnosable for ConcatenatedModule {
-  fn add_diagnostic(&self, diagnostic: Diagnostic) {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .push(diagnostic);
+  fn add_diagnostic(&mut self, diagnostic: Diagnostic) {
+    self.diagnostics.push(diagnostic);
   }
 
-  fn add_diagnostics(&self, mut diagnostics: Vec<Diagnostic>) {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .append(&mut diagnostics);
+  fn add_diagnostics(&mut self, mut diagnostics: Vec<Diagnostic>) {
+    self.diagnostics.append(&mut diagnostics);
   }
 
-  fn clone_diagnostics(&self) -> Vec<Diagnostic> {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .iter()
-      .cloned()
-      .collect()
+  fn diagnostics(&self) -> Cow<[Diagnostic]> {
+    Cow::Borrowed(&self.diagnostics)
   }
 }
 
 impl ConcatenatedModule {
-  fn clear_diagnostics(&mut self) {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .clear()
-  }
-
   // TODO: replace self.modules with indexmap or linkedhashset
   fn get_modules_with_info(
     &self,
     mg: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
-  ) -> (Vec<ModuleIdentifier>, IdentifierIndexMap<ModuleInfo>) {
+  ) -> (
+    Vec<(ModuleIdentifier, Option<RuntimeCondition>)>,
+    IdentifierIndexMap<ModuleInfo>,
+  ) {
     let ordered_concatenation_list = self.create_concatenation_list(
       self.root_module_ctxt.id,
       self.modules.iter().map(|item| item.id).collect(),
@@ -1460,7 +1448,17 @@ impl ConcatenatedModule {
       let module_id = concatenation_entry.module(mg);
       match map.entry(module_id) {
         indexmap::map::Entry::Occupied(_) => {
-          list.push(module_id);
+          let runtime_condition =
+            if let ConcatenationEntry::External(ConcatenationEntryExternal {
+              runtime_condition,
+              ..
+            }) = &concatenation_entry
+            {
+              Some(runtime_condition.clone())
+            } else {
+              None
+            };
+          list.push((module_id, runtime_condition));
         }
         indexmap::map::Entry::Vacant(vac) => {
           match concatenation_entry {
@@ -1471,13 +1469,13 @@ impl ConcatenatedModule {
                 ..Default::default()
               };
               vac.insert(ModuleInfo::Concatenated(Box::new(info)));
-              list.push(module_id);
+              list.push((module_id, None));
             }
             ConcatenationEntry::External(e) => {
               let info = ExternalModuleInfo {
                 index: i,
                 module: module_id,
-                runtime_condition: e.runtime_condition,
+                runtime_condition: e.runtime_condition.clone(),
                 interop_namespace_object_used: false,
                 interop_namespace_object_name: None,
                 interop_namespace_object2_used: false,
@@ -1487,7 +1485,7 @@ impl ConcatenatedModule {
                 name: None,
               };
               vac.insert(ModuleInfo::External(info));
-              list.push(module_id)
+              list.push((module_id, Some(e.runtime_condition)))
             }
           };
         }
@@ -1544,7 +1542,7 @@ impl ConcatenatedModule {
     let exist_entry = match exists_entry.get(module) {
       Some(RuntimeCondition::Boolean(true)) => return,
       None => None,
-      Some(_condition) => Some(runtime_condition.clone()),
+      Some(condition) => Some(condition.clone()),
     };
     if module_set.contains(module) {
       exists_entry.insert(*module, RuntimeCondition::Boolean(true));
@@ -1573,16 +1571,22 @@ impl ConcatenatedModule {
         },
       ));
     } else {
-      if let Some(cond) = exist_entry {
+      let runtime_condition = if let Some(cond) = exist_entry {
         let reduced_runtime_condition =
           subtract_runtime_condition(&runtime_condition, &cond, runtime);
         if matches!(reduced_runtime_condition, RuntimeCondition::Boolean(false)) {
           return;
         }
-        exists_entry.insert(*con.module_identifier(), reduced_runtime_condition);
+        exists_entry.insert(
+          *con.module_identifier(),
+          merge_runtime_condition_non_false(&cond, &reduced_runtime_condition, runtime),
+        );
+        reduced_runtime_condition
       } else {
         exists_entry.insert(*con.module_identifier(), runtime_condition.clone());
-      }
+        runtime_condition
+      };
+
       if let Some(ConcatenationEntry::External(last)) = list.last_mut()
         && last.module(mg) == *con.module_identifier()
       {
@@ -1685,7 +1689,7 @@ impl ConcatenatedModule {
   }
 
   /// Using `ModuleIdentifier` instead of `ModuleInfo` to work around rustc borrow checker
-  fn analyze_module(
+  async fn analyze_module(
     &self,
     compilation: &Compilation,
     module_info_map: Arc<IdentifierIndexMap<ModuleInfo>>,
@@ -1700,7 +1704,10 @@ impl ConcatenatedModule {
       let module = module_graph
         .module_by_identifier(&module_id)
         .unwrap_or_else(|| panic!("should have module {module_id}"));
-      let codegen_res = module.code_generation(compilation, runtime, Some(concatenation_scope))?;
+      let codegen_res = module
+        .code_generation(compilation, runtime, Some(concatenation_scope))
+        .await?;
+
       let CodeGenerationResult {
         mut inner,
         mut chunk_init_fragments,
@@ -1779,6 +1786,12 @@ impl ConcatenatedModule {
       module_info.internal_source = Some(source);
       module_info.source = Some(result_source);
       module_info.chunk_init_fragments = chunk_init_fragments;
+      if let Some(CodeGenerationPublicPathAutoReplace(true)) = codegen_res
+        .data
+        .get::<CodeGenerationPublicPathAutoReplace>(
+      ) {
+        module_info.public_path_auto_replace = Some(true);
+      }
       Ok(ModuleInfo::Concatenated(Box::new(module_info)))
     } else {
       Ok(info)
@@ -2139,8 +2152,8 @@ impl ConcatenatedModule {
               // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L457
               let build_meta = mg
                 .module_by_identifier(&ref_info.id())
-                .and_then(|m| m.build_meta())
-                .expect("should have module meta");
+                .expect("should have module")
+                .build_meta();
               return Self::get_final_binding(
                 mg,
                 &ref_info.id(),

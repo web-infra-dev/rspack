@@ -1,0 +1,106 @@
+import { Collapse, CollapsePanel } from '@components/Collapse';
+import ChunkType from '../../types/chunk.mdx';
+
+# RuntimePlugin hooks
+
+`RuntimePlugin` is used to generate the code for the Rspack startup. It provides the following hooks that can be used to modify these runtime codes.
+
+You can obtain these hooks like below:
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  plugins: [
+    {
+      apply: compiler => {
+        const { RuntimePlugin } = compiler.webpack;
+        compiler.hooks.compilation.tap('MyPlugin', compilation => {
+          const hooks = RuntimePlugin.getCompilationHooks(compilation);
+          //...
+        });
+      },
+    },
+  ],
+};
+```
+
+## `createScript`
+
+`SyncWaterallHook<[string, chunk]>`
+
+Can modify the code executed when creating the `<script>` tag.
+
+As in the following code, the `crossorigin` attribute can be added to the `<script>` tag:
+
+```js
+hooks.createScript.tap('MyPlugin', (code, chunk) => {
+  return `
+    ${code}
+    script.crossorigin = 'anonymous';
+  `;
+});
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="CreateScript.ts"
+    key="CreateScript"
+  >
+    <ChunkType />
+  </CollapsePanel>
+</Collapse>
+
+## `linkPrefetch`
+
+`SyncWaterallHook<[string, chunk]>`
+
+Can modify the code executed when creating the [prefetch](/guide/optimization/code-splitting#prefetchingpreloading-modules) `<link rel="prefetch">` tag.
+
+As in the following code, the `crossorigin` attribute can be added to the `<link>` tag for prefetching:
+
+```js
+hooks.linkPrefetch.tap('MyPlugin', (code, chunk) => {
+  return `
+    ${code}
+    link.crossorigin = 'anonymous';
+  `;
+});
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="CreateScript.ts"
+    key="CreateScript"
+  >
+    <ChunkType />
+  </CollapsePanel>
+</Collapse>
+
+## `linkPreload`
+
+`SyncWaterallHook<[string, chunk]>`
+
+Can modify the code executed when creating the [preload](/guide/optimization/code-splitting#prefetchingpreloading-modules) `<link rel="preload">` tag.
+
+As in the following code, the `crossorigin` attribute can be added to the `<link>` tag for preloading:
+
+```js
+hooks.linkPreload.tap('MyPlugin', (code, chunk) => {
+  return `
+    ${code}
+    link.crossorigin = 'anonymous';
+  `;
+});
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="CreateScript.ts"
+    key="CreateScript"
+  >
+    <ChunkType />
+  </CollapsePanel>
+</Collapse>

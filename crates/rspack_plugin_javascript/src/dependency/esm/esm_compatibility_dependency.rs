@@ -72,7 +72,7 @@ impl DependencyTemplate for ESMCompatibilityDependency {
         InitFragmentStage::StageAsyncBoundary,
         0,
         InitFragmentKey::unique(),
-        Some(format!("\n__webpack_async_result__();\n}} catch(e) {{ __webpack_async_result__(e); }} }}{});", if matches!(module.build_meta().as_ref().map(|meta| meta.has_top_level_await), Some(true)) { ", 1" } else { "" })),
+        Some(format!("\n__webpack_async_result__();\n}} catch(e) {{ __webpack_async_result__(e); }} }}{});", if module.build_meta().has_top_level_await { ", 1" } else { "" })),
       )));
     }
   }

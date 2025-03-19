@@ -8,6 +8,6 @@ module.exports = {
 		}
 	},
 	experiments: {
-		css: true,
+		css: true
 	}
 };

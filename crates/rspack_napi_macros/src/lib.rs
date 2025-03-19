@@ -1,17 +1,16 @@
 #![feature(try_find)]
 
-mod getters;
+mod field_names;
 mod tagged_union;
 
 #[proc_macro_attribute]
-pub fn getters(
+pub fn field_names(
   args: proc_macro::TokenStream,
   tokens: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-  getters::getters(args, tokens)
+  field_names::field_names(args, tokens)
 }
 
-/// Generate tagged union upon a Rust enum.
 ///
 /// ## Difference from `napi::Either`
 ///

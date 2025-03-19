@@ -5,17 +5,17 @@ module.exports = {
 			{
 				test: /\.js/,
 				resolve: {
-					conditionNames: ["server"],
+					conditionNames: ["server"]
 				}
 			},
 			{
 				test: /reexports\.js/,
 				resolve: {
 					alias: {
-						"server-lib": "lib2",
+						"server-lib": "lib2"
 					}
 				}
-			},
+			}
 		]
 	},
 	resolve: {

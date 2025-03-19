@@ -26,7 +26,8 @@ function getCreator(target: TTarget) {
 						configFiles: ["rspack.config.js", "webpack.config.js"]
 					})
 				],
-				runner: HotRunnerFactory
+				runner: HotRunnerFactory,
+				concurrent: true
 			})
 		);
 	}

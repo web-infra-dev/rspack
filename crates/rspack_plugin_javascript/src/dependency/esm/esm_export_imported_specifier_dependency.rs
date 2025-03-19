@@ -1,5 +1,4 @@
-use std::hash::BuildHasherDefault;
-use std::sync::Arc;
+use std::{hash::BuildHasherDefault, sync::Arc};
 
 use indexmap::{IndexMap, IndexSet};
 use rspack_cacheable::{
@@ -14,10 +13,10 @@ use rspack_core::{
   DependencyCondition, DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyType, ESMExportInitFragment, ExportInfo, ExportInfoProvided,
   ExportNameOrSpec, ExportPresenceMode, ExportSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec,
-  ExportsType, ExtendedReferencedExport, ImportAttributes, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  NormalInitFragment, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap, Template,
-  TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, JavascriptParserOptions, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, NormalInitFragment, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  SharedSourceMap, Template, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -54,6 +53,7 @@ pub struct ESMExportImportedSpecifierDependency {
   export_presence_mode: ExportPresenceMode,
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
+  factorize_info: FactorizeInfo,
 }
 
 impl ESMExportImportedSpecifierDependency {
@@ -85,6 +85,7 @@ impl ESMExportImportedSpecifierDependency {
       export_presence_mode,
       attributes,
       source_map,
+      factorize_info: Default::default(),
     }
   }
 
@@ -94,8 +95,7 @@ impl ESMExportImportedSpecifierDependency {
       .get_parent_module(&self.id)
       .and_then(|ident| module_graph.module_by_identifier(ident))
       .expect("should have mgm")
-      .build_info()
-      .expect("should have build info");
+      .build_info();
     &build_info.esm_named_exports
   }
 
@@ -109,7 +109,7 @@ impl ESMExportImportedSpecifierDependency {
       .and_then(|ident| module_graph.module_by_identifier(ident));
 
     if let Some(module) = module {
-      let build_info = module.build_info().expect("should have build info");
+      let build_info = module.build_info();
       Some(&build_info.all_star_exports)
     } else {
       None
@@ -875,11 +875,11 @@ impl ESMExportImportedSpecifierDependency {
         .expect("should have parent module for dependency");
       let mut diagnostic = if let Some(span) = self.range()
         && let Some(parent_module) = module_graph.module_by_identifier(parent_module_identifier)
-        && let Some(source) = parent_module.original_source().map(|s| s.source())
+        && let Some(source) = parent_module.source()
       {
         Diagnostic::from(
           TraceableError::from_file(
-            source.into_owned(),
+            source.source().into_owned(),
             span.start as usize,
             span.end as usize,
             title.to_string(),
@@ -1078,7 +1078,6 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     self.attributes.as_ref()
   }
 
-  #[allow(clippy::unwrap_in_result)]
   fn get_exports(&self, mg: &ModuleGraph) -> Option<ExportsSpec> {
     let mode = self.get_mode(self.name.clone(), mg, &self.id, None);
     match mode.ty {
@@ -1395,6 +1394,14 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
     Some(DependencyCondition::Fn(Arc::new(
       ESMExportImportedSpecifierDependencyCondition(id),
     )))
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 

@@ -16,11 +16,11 @@ class Plugin {
 }
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	target: 'web',
+	target: "web",
 	node: false,
 	module: {
 		generator: {
-			"css": {
+			css: {
 				exportsOnly: false
 			},
 			"css/auto": {
@@ -28,7 +28,7 @@ module.exports = {
 			},
 			"css/module": {
 				exportsOnly: false
-			},
+			}
 		},
 		rules: [
 			{
@@ -49,6 +49,6 @@ module.exports = {
 	},
 	plugins: [new Plugin()],
 	experiments: {
-		css: true,
+		css: true
 	}
 };

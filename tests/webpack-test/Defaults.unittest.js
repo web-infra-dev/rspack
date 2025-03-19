@@ -279,7 +279,7 @@ describe("snapshots", () => {
 		    "portableRecords": false,
 		    "providedExports": true,
 		    "realContentHash": false,
-		    "removeAvailableModules": false,
+		    "removeAvailableModules": true,
 		    "removeEmptyChunks": true,
 		    "runtimeChunk": false,
 		    "sideEffects": "flag",

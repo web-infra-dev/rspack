@@ -1,7 +1,9 @@
-use std::hash::Hasher;
-use std::path::{Component, PathBuf};
-use std::sync::{Arc, LazyLock};
-use std::{borrow::Cow, path::Path};
+use std::{
+  borrow::Cow,
+  hash::Hasher,
+  path::{Component, Path, PathBuf},
+  sync::{Arc, LazyLock},
+};
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
@@ -18,11 +20,12 @@ use rspack_core::{
 use rspack_error::{error, miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::asset_condition::AssetConditions;
 use rspack_util::{
-  identifier::make_paths_absolute, infallible::ResultInfallibleExt, path::relative,
+  asset_condition::AssetConditions, identifier::make_paths_absolute,
+  infallible::ResultInfallibleExt,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use sugar_path::SugarPath;
 
 use crate::{
   mapped_assets_cache::MappedAssetsCache, module_filename_helpers::ModuleFilenameHelpers,
@@ -80,6 +83,36 @@ pub struct SourceMapDevToolPluginOptions {
   pub test: Option<AssetConditions>,
   pub include: Option<AssetConditions>,
   pub exclude: Option<AssetConditions>,
+  pub debug_ids: bool,
+}
+
+fn create_debug_id(filename: &str, source: &[u8]) -> String {
+  // We need two 64 bit hashes to give us the 128 bits required for a uuid
+  // The first 64 bit hash is built from the source
+  let mut hasher = RspackHash::new(&rspack_hash::HashFunction::Xxhash64);
+  hasher.write(source);
+  let hash1 = hasher.finish().to_le_bytes();
+
+  // The second 64 bit hash is built from the filename and the source hash
+  let mut hasher = RspackHash::new(&rspack_hash::HashFunction::Xxhash64);
+  hasher.write(filename.as_bytes());
+  hasher.write(&hash1);
+  let hash2 = hasher.finish().to_le_bytes();
+
+  let mut bytes = [hash1, hash2].concat();
+
+  // Build the uuid from the 16 bytes
+  let mut uuid = String::with_capacity(36);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+  for (i, byte) in bytes.iter().enumerate() {
+    if i == 4 || i == 6 || i == 8 || i == 10 {
+      uuid.push('-');
+    }
+    uuid.push_str(&format!("{byte:02x}"));
+  }
+  uuid
 }
 
 enum SourceMappingUrlComment {
@@ -119,6 +152,7 @@ pub struct SourceMapDevToolPlugin {
   test: Option<AssetConditions>,
   include: Option<AssetConditions>,
   exclude: Option<AssetConditions>,
+  debug_ids: bool,
   mapped_assets_cache: MappedAssetsCache,
 }
 
@@ -183,6 +217,7 @@ impl SourceMapDevToolPlugin {
       options.test,
       options.include,
       options.exclude,
+      options.debug_ids,
       MappedAssetsCache::new(),
     )
   }
@@ -369,9 +404,17 @@ impl SourceMapDevToolPlugin {
       .into_iter()
       .map(|(source_filename, source, source_map)| {
         async {
-          let source_map_json = match source_map {
-            Some(map) => Some(map.to_json().into_diagnostic()?),
-            None => None,
+          let (source_map_json, debug_id) = match source_map {
+            Some(mut map) => {
+              let debug_id = self.debug_ids.then(|| {
+                let debug_id = create_debug_id(&source_filename, &source.buffer());
+                map.set_debug_id(Some(debug_id.clone()));
+                debug_id
+              });
+
+              (Some(map.to_json().into_diagnostic()?), debug_id)
+            }
+            None => (None, None),
           };
 
           let mut asset = compilation
@@ -408,7 +451,8 @@ impl SourceMapDevToolPlugin {
             let chunk = file_to_chunk.get(&source_filename);
             let filename = match &self.file_context {
               Some(file_context) => Cow::Owned(
-                relative(Path::new(file_context), Path::new(&source_filename))
+                Path::new(&source_filename)
+                  .relative(Path::new(file_context))
                   .to_string_lossy()
                   .to_string(),
               ),
@@ -453,13 +497,13 @@ impl SourceMapDevToolPlugin {
                 source_map_path.push(Component::RootDir);
                 source_map_path.extend(Path::new(&source_map_filename).components());
 
-                relative(
-                  #[allow(clippy::unwrap_used)]
-                  file_path.parent().unwrap(),
-                  &source_map_path,
-                )
-                .to_string_lossy()
-                .to_string()
+                source_map_path
+                  .relative(
+                    #[allow(clippy::unwrap_used)]
+                    file_path.parent().unwrap(),
+                  )
+                  .to_string_lossy()
+                  .to_string()
               };
               let data = data.url(&source_map_url);
               let current_source_mapping_url_comment = match &current_source_mapping_url_comment {
@@ -473,15 +517,19 @@ impl SourceMapDevToolPlugin {
                     .always_ok()
                 }
               };
+              let current_source_mapping_url_comment = current_source_mapping_url_comment
+                .cow_replace("[url]", &source_map_url)
+                .into_owned();
+
+              let debug_id_comment = debug_id
+                .map(|id| format!("\n//# debugId={id}"))
+                .unwrap_or_default();
+
               asset.source = Some(
                 ConcatSource::new([
                   source.clone(),
-                  RawStringSource::from(
-                    current_source_mapping_url_comment
-                      .cow_replace("[url]", &source_map_url)
-                      .into_owned(),
-                  )
-                  .boxed(),
+                  RawStringSource::from(debug_id_comment).boxed(),
+                  RawStringSource::from(current_source_mapping_url_comment).boxed(),
                 ])
                 .boxed(),
               );

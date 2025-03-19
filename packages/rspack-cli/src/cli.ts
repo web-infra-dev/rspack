@@ -24,7 +24,11 @@ import type {
 	RspackCLILogger,
 	RspackCLIOptions
 } from "./types";
-import { type LoadedRspackConfig, loadRspackConfig } from "./utils/loadConfig";
+import {
+	type LoadedRspackConfig,
+	loadExtendedConfig,
+	loadRspackConfig
+} from "./utils/loadConfig";
 import { normalizeEnv } from "./utils/options";
 
 type Command = "serve" | "build";
@@ -44,14 +48,7 @@ export class RspackCLI {
 		process.env.RSPACK_CONFIG_VALIDATE ??= "loose";
 		process.env.WATCHPACK_WATCHER_LIMIT =
 			process.env.WATCHPACK_WATCHER_LIMIT || "20";
-		const nodeEnv = process?.env?.NODE_ENV;
-		const rspackCommandDefaultEnv =
-			rspackCommand === "build" ? "production" : "development";
-		if (typeof options.nodeEnv === "string") {
-			process.env.NODE_ENV = nodeEnv || options.nodeEnv;
-		} else {
-			process.env.NODE_ENV = nodeEnv || rspackCommandDefaultEnv;
-		}
+
 		let config = await this.loadConfig(options);
 		config = await this.buildConfig(config, options, rspackCommand);
 
@@ -124,9 +121,6 @@ export class RspackCLI {
 	): Promise<RspackOptions | MultiRspackOptions> {
 		const isBuild = command === "build";
 		const isServe = command === "serve";
-		const commandDefaultEnv: "production" | "development" = isBuild
-			? "production"
-			: "development";
 
 		const internalBuildConfig = async (item: RspackOptions) => {
 			if (options.entry) {
@@ -136,8 +130,8 @@ export class RspackCLI {
 			}
 			// to set output.path
 			item.output = item.output || {};
-			if (options["output-path"]) {
-				item.output.path = path.resolve(process.cwd(), options["output-path"]);
+			if (options.outputPath) {
+				item.output.path = path.resolve(process.cwd(), options.outputPath);
 			}
 			if (options.analyze) {
 				const { BundleAnalyzerPlugin } = await import(
@@ -165,7 +159,7 @@ export class RspackCLI {
 			}
 			// auto set default mode if user config don't set it
 			if (!item.mode) {
-				item.mode = commandDefaultEnv ?? "none";
+				item.mode = isBuild ? "production" : "development";
 			}
 			// user parameters always has highest priority than default mode and config mode
 			if (options.mode) {
@@ -222,12 +216,27 @@ export class RspackCLI {
 		)) as NonNullable<LoadedRspackConfig>;
 
 		if (typeof loadedConfig === "function") {
-			loadedConfig = loadedConfig(options.argv?.env, options.argv);
+			let functionResult = loadedConfig(options.argv?.env, options.argv);
 			// if return promise we should await its result
 			if (
-				typeof (loadedConfig as unknown as Promise<unknown>).then === "function"
+				typeof (functionResult as unknown as Promise<unknown>).then ===
+				"function"
 			) {
-				loadedConfig = await loadedConfig;
+				functionResult = await functionResult;
+			}
+
+			loadedConfig = functionResult;
+
+			// Handle extends property for function configs
+			if ("extends" in loadedConfig && loadedConfig.extends) {
+				// Create a temporary config path for the function result
+				const tempConfigPath = path.resolve(process.cwd(), "rspack.config.js");
+				loadedConfig = await loadExtendedConfig(
+					loadedConfig,
+					tempConfigPath,
+					process.cwd(),
+					options
+				);
 			}
 		}
 

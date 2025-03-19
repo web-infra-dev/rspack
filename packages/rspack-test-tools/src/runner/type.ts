@@ -22,13 +22,13 @@ export enum EEsmMode {
 }
 
 export interface IBasicModuleScope extends ITestEnv {
-	console: Console;
+	console: Record<string, (...args: any[]) => void>;
 	expect: jest.Expect;
 	[key: string]: any;
 }
 
 export interface IBasicGlobalContext {
-	console: Console;
+	console: Record<string, (...args: any[]) => void>;
 	setTimeout: typeof setTimeout;
 	clearTimeout: typeof clearTimeout;
 	[key: string]: any;

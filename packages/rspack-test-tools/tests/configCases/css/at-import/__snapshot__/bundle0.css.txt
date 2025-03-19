@@ -1,0 +1,24 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter");
+@media  (prefers-color-scheme: dark){
+
+
+.b {
+	color: red;
+}
+
+}
+@supports (display: grid) {
+@layer {
+.c {
+	color: pink;
+}
+
+}
+}
+
+
+
+
+.a {
+	color: blue;
+}

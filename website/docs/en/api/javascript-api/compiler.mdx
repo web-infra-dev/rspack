@@ -24,11 +24,20 @@ function run(
     error: Error, // Only including compiler-related errors, such as configuration errors, not including compilation errors
     stats: Stats, // detailed information generated during the compilation
   ) => void,
+  options?: {
+    modifiedFiles?: ReadonlySet<string>; // Modified files included in this compilation
+    removedFiles?: ReadonlySet<string>; // Deleted files included in this compilation
+  },
 ): void;
 ```
 
 :::warning
-This API only supports one compilation at a time. Please call `compiler.close` in the `compiler.run` callback and wait for it to finish before executing `compiler.run` again. Concurrent compilations will damage the output files.
+
+If you need to call the `run` method of the same `compiler` object multiple times, please note the following:
+
+1. This API does not support concurrent compilation. Before starting a new compilation, you must call `compiler.close()` in the callback function of `compiler.run` and wait for it to finish. Only then can you proceed with the next `compiler.run` call. Running multiple compilation processes simultaneously can lead to unexpected results in the output files.
+2. Rspack's cache invalidation detection relies on the `modifiedFiles` and `removedFiles` parameters. When caching is enabled and you're using a custom watcher to watch file changes, you need to pass these values to Rspack via the `options` parameter.
+
 :::
 
 ```js
@@ -115,26 +124,6 @@ The Watching object provides the following methods:
     key="Stats"
   >
     <StatsType />
-  </CollapsePanel>
-</Collapse>
-
-### compile
-
-Create a compilation and run it, which is the basic method that `compiler.run` and `compiler.watch` depend on.
-
-```ts
-compile(
-  callback: (compilation: Compilation) => void // callback after this compilation
-): void
-```
-
-<Collapse>
-  <CollapsePanel
-    className="collapse-code-panel"
-    header="Compilation.ts"
-    key="Compilation"
-  >
-    <CompilationType />
   </CollapsePanel>
 </Collapse>
 
@@ -458,7 +447,13 @@ validateDependencies(
 Execute the `run` method of each compiler according to the dependency relationship to start the compilation process.
 
 ```ts
-run(callback: (err: Error, stats: MultiStats) => void): void;
+run(
+  callback: (err: Error, stats: MultiStats) => void,
+  options?: {
+    modifiedFiles?: ReadonlySet<string>; // Modified files included in this compilation
+    removedFiles?: ReadonlySet<string>; // Deleted files included in this compilation
+  },
+): void;
 ```
 
 #### watch

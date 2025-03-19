@@ -160,5 +160,10 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 				new rspack.LoaderOptionsPlugin(this.updateOptions)
 			);
 		}
+		if (!global.printLogger) {
+			options.infrastructureLogging = {
+				level: "error"
+			};
+		}
 	}
 }

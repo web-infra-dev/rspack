@@ -1,0 +1,7 @@
+{
+  "modules": {
+    "javascript/esm|__WORKSPACE__/packages/rspack-test-tools/tests/runtimeDiffCases/scope-hoisting/runtime-condition/shared.mjs": "(function () {\n  \"use strict\";\n\n  __webpack_require__.d(__webpack_exports__, {\n    \"foo1\": function () {\n      return foo1;\n    },\n    \"v\": function () {\n      return v;\n    }\n  });\n  ;\n  const num = 1;\n  if (\"b\" == __webpack_require__.j) var utils = __webpack_require__(\"./utils.cjs\");\n  ;\n  num;\n  const foo1 = \"b\" == __webpack_require__.j ? utils.foo : null;\n  const v = 1;\n});",
+    "javascript/dynamic": "(function () {\n  var __webpack_unused_export__;\n  exports.foo = 1;\n  __webpack_unused_export__ = 1;\n});"
+  },
+  "runtimeModules": {}
+}

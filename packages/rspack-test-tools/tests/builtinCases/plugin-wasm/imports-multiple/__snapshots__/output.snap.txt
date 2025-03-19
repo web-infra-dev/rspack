@@ -1,5 +1,5 @@
 ```js title=main.js
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 (async function () {
 	return __webpack_require__.e(/* import() */ "wasm_wasm").then(__webpack_require__.bind(__webpack_require__, "./module.js")).then(function (mod) {
@@ -20,13 +20,13 @@ var __webpack_exports__ = (__webpack_exec__("./index.js"));
 
 ```js title=wasm_wasm.js
 "use strict";
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["wasm_wasm"], {
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["wasm_wasm"], {
 "./module.js": (function (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  getNumber: function() { return getNumber; },
-  result: function() { return result; }
+  getNumber: () => (getNumber),
+  result: () => (result)
 });
 /* ESM import */var _wasm_wasm__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./wasm.wasm");
 var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_wasm_wasm__WEBPACK_IMPORTED_MODULE_0__]);
@@ -46,7 +46,7 @@ __webpack_async_result__();
 __webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  getNumber: function() { return getNumber; }
+  getNumber: () => (getNumber)
 });
 /* ESM import */var _wasm_wasm__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./wasm.wasm");
 var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_wasm_wasm__WEBPACK_IMPORTED_MODULE_0__]);

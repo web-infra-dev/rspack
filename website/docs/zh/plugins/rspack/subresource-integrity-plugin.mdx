@@ -1,0 +1,185 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# SubresourceIntegrityPlugin
+
+<ApiMeta specific={['Rspack']} addedVersion="1.2.4" />
+
+`rspack.experiments.SubresourceIntegrityPlugin` 是一个用于在 Rspack 中启用子资源完整性的插件。
+
+## 什么是 SRI
+
+子资源完整性 Subresource Integrity（SRI）是专门用来校验资源的一种方案，它读取资源标签中的 integrity 属性，将其中的信息摘要值，和资源实际的信息摘要值进行对比，如果发现无法匹配，那么浏览器就会拒绝执行资源。
+
+对于 `<script>` 标签来说，结果为拒绝执行其中的代码；对于 CSS links 来说，结果为不加载其中的样式。
+
+关于 SRI 的更多内容，可以查看 [Subresource Integrity - MDN](https://developer.mozilla.org/zh-CN/docs/Web/Security/Subresource_Integrity)。
+
+## 特性
+
+### 支持 HTML 插件
+
+支持与 [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin) 和 [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin) 集成。它会自动为注入的标签设置 `integrity` 和 `crossorigin` 属性。
+
+### 支持代码分割
+
+该插件支持代码分割。使用动态导入时，插件会在生成加载 chunk 的标签时自动设置 `integrity` 和 `crossorigin` 属性。
+
+## 使用方法
+
+可以通过从 `@rspack/core` 中导入，目前该插件处于实验性阶段：
+
+```js title="rspack.config.mjs"
+import { experiments } from '@rspack/core';
+const { SubresourceIntegrityPlugin } = experiments;
+```
+
+或
+
+```js title="rspack.config.cjs"
+const {
+  experiments: { SubresourceIntegrityPlugin },
+} = require('@rspack/core');
+```
+
+### 推荐的 Rspack 配置
+
+为了确保 SRI 正常工作，需要配置 [output.crossOriginLoading](/config/output#outputcrossoriginloading) 选项：
+
+```js title="rspack.config.mjs"
+import { experiments } from '@rspack/core';
+const { SubresourceIntegrityPlugin } = experiments;
+
+export default {
+  output: {
+    crossOriginLoading: 'anonymous',
+  },
+  plugins: [new SubresourceIntegrityPlugin()],
+};
+```
+
+### 使用 HTML 插件
+
+当使用 HTML 插件（[`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin.mdx) 或 [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin)）时，`integrity` 和 `crossorigin` 属性将被自动设置。
+
+SubresourceIntegrityPlugin 默认会与 [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin.mdx) 交互：
+
+```js title="rspack.config.mjs"
+import { experiments, HtmlRspackPlugin } from '@rspack/core';
+const { SubresourceIntegrityPlugin } = experiments;
+
+export default {
+  plugins: [new SubresourceIntegrityPlugin(), new HtmlRspackPlugin()],
+};
+```
+
+如果使用 [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin)，需要在 `htmlPlugin` 选项中指定其路径：
+
+```js title="rspack.config.mjs"
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import { experiments } from '@rspack/core';
+const { SubresourceIntegrityPlugin } = experiments;
+
+export default {
+  plugins: [
+    new SubresourceIntegrityPlugin({
+      // html-webpack-plugin 的路径
+      htmlPlugin: import.meta.resolve('html-webpack-plugin'),
+    }),
+    new HtmlWebpackPlugin(),
+  ],
+};
+```
+
+### 使用 HTML 插件并且 `inject: false`
+
+如果使用 HTML 插件时设置了 `inject: false`，你需要在模板中手动注入 `integrity` 和 `crossorigin` 属性。
+
+对于 [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin.mdx)，模板的语法与标准 `.ejs` 稍有不同不同（参考[文档](/plugins/rspack/html-rspack-plugin#supported-ejs-syntax)），可以这样注入属性：
+
+```ejs title="index.ejs"
+<% for  in htmlRspackPlugin.files.js { %>
+  <script src="<%= htmlRspackPlugin.files.js[index] %>"
+    integrity="<%= htmlRspackPlugin.files.jsIntegrity[index] %>"
+    crossorigin="<%= rspackConfig.output.crossOriginLoading %>"
+  ></script>
+<% } %>
+
+<% for _ in htmlRspackPlugin.files.css { %>
+  <link href="<%= htmlRspackPlugin.files.css[index] %>"
+    integrity="<%= htmlRspackPlugin.files.cssIntegrity[index] %>"
+    crossorigin="<%= rspackConfig.output.crossOriginLoading %>"
+    rel="stylesheet"
+  />
+<% } %>
+```
+
+对于 [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin)，可以这样注入属性：
+
+```ejs title="index.ejs"
+<% for (let index in htmlWebpackPlugin.files.js) { %>
+  <script
+    src="<%= htmlWebpackPlugin.files.js[index] %>"
+    integrity="<%= htmlWebpackPlugin.files.jsIntegrity[index] %>"
+    crossorigin="<%= webpackConfig.output.crossOriginLoading %>"
+  ></script>
+<% } %>
+
+<% for (let index in htmlWebpackPlugin.files.css) { %>
+  <link
+    rel="stylesheet"
+    href="<%= htmlWebpackPlugin.files.css[index] %>"
+    integrity="<%= htmlWebpackPlugin.files.cssIntegrity[index] %>"
+    crossorigin="<%= webpackConfig.output.crossOriginLoading %>"
+  />
+<% } %>
+```
+
+### 不使用 HTML 插件
+
+若不使用 HTML 插件，也可以从 `stats.assets` 中获取 `integrity` 属性，如：
+
+```js
+compiler.plugin('done', stats => {
+  const integrityValues = stats
+    .toJson()
+    .assets.map(asset => [asset.name, asset.integrity]);
+});
+```
+
+:::tip 提示
+当你在 `link` 和 `script` 标签上添加 `integrity` 属性时，你还需要设置 `crossorigin` 属性。建议将此属性设置为与 Rspack 的 `output.crossOriginLoading` 配置选项相同的值。
+:::
+
+## 选项
+
+### hashFuncNames
+
+- **类型：** `Array<"sha256" | "sha384" | "sha512">`
+- **默认值：** `["sha384"]`
+
+一个字符串数组，每个字符串指定用于计算完整性哈希值的哈希函数的名称。目前仅支持 `sha256`、`sha384` 和 `sha512`。
+
+> 更多详情请参见 [SRI：加密哈希函数](http://www.w3.org/TR/SRI/#cryptographic-hash-functions)。
+
+### enabled
+
+- **类型：** `"auto" | boolean`
+- **默认值：** `"auto"`
+
+- `auto` 是默认值，表示在 [Rspack mode](/config/mode) 为 `production` 或 `none` 时启用插件，在 `development` 时禁用插件。
+- `true` 表示在任意 mode 下都启用插件。
+- `false` 表示在任意 mode 下都不启用插件。
+
+### htmlPlugin
+
+- **类型：** `string`
+- **默认值：** `"HtmlRspackPlugin"`
+
+HTML 插件的路径，默认为 `"HtmlRspackPlugin"`，表示 Rspack 的原生 HTML 插件。如果你使用的是 [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin)，你可以将此选项设置为它的路径。建议设置绝对路径以确保能找到正确的插件实例。
+
+## 更多信息
+
+更多关于子资源完整性的信息可参考：
+
+- [webpack-subresource-integrity](https://github.com/waysact/webpack-subresource-integrity/blob/main/webpack-subresource-integrity/README.md)
+- [MDN：子资源完整性](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity)

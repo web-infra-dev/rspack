@@ -12,7 +12,7 @@ module.exports = {
 					test: /[\/\\]src\/lib[\/\\]/,
 					minSize: 0,
 					maxSize: 50,
-					minChunks: 1,
+					minChunks: 1
 				}
 			}
 		}

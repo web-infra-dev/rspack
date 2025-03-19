@@ -4,13 +4,12 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec, Skip},
 };
 use rspack_core::{
-  create_exports_object_referenced, module_raw, Compilation, DependencyLocation, DependencyRange,
-  DependencyType, ExtendedReferencedExport, ModuleGraph, NormalInitFragment, RuntimeSpec,
-  SharedSourceMap, UsedName,
+  create_exports_object_referenced, module_raw, AsContextDependency, Compilation, Dependency,
+  DependencyCategory, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
+  DependencyType, ExtendedReferencedExport, FactorizeInfo, InitFragmentKey, InitFragmentStage,
+  ModuleDependency, ModuleGraph, NormalInitFragment, RuntimeSpec, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource, UsedName,
 };
-use rspack_core::{AsContextDependency, Dependency, InitFragmentKey, InitFragmentStage};
-use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
-use rspack_core::{ModuleDependency, TemplateContext, TemplateReplaceSource};
 use rspack_util::ext::DynHash;
 use swc_core::atoms::Atom;
 
@@ -26,6 +25,7 @@ pub struct ProvideDependency {
   range: DependencyRange,
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
+  factorize_info: FactorizeInfo,
 }
 
 impl ProvideDependency {
@@ -43,6 +43,7 @@ impl ProvideDependency {
       identifier,
       ids,
       id: DependencyId::new(),
+      factorize_info: Default::default(),
     }
   }
 }
@@ -94,6 +95,14 @@ impl ModuleDependency for ProvideDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request.into();
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 

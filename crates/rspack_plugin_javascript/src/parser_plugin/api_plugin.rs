@@ -1,12 +1,15 @@
 use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency, SpanExt};
-use swc_core::common::Spanned;
-use swc_core::ecma::ast::{CallExpr, Callee, Expr, Ident, UnaryExpr};
+use swc_core::{
+  common::Spanned,
+  ecma::ast::{CallExpr, Callee, Expr, Ident, UnaryExpr},
+};
 
-use crate::dependency::ModuleArgumentDependency;
-use crate::parser_plugin::JavascriptParserPlugin;
-use crate::utils::eval::{self, BasicEvaluatedExpression};
-use crate::visitors::{expr_matcher, JavascriptParser};
-use crate::visitors::{expression_not_supported, extract_member_root};
+use crate::{
+  dependency::ModuleArgumentDependency,
+  parser_plugin::JavascriptParserPlugin,
+  utils::eval::{self, BasicEvaluatedExpression},
+  visitors::{expr_matcher, expression_not_supported, extract_member_root, JavascriptParser},
+};
 
 const WEBPACK_HASH: &str = "__webpack_hash__";
 const WEBPACK_LAYER: &str = "__webpack_layer__";
@@ -355,7 +358,6 @@ impl JavascriptParserPlugin for APIPlugin {
         not_supported_expr!(is_require_extensions, expr, "require.extensions");
         not_supported_expr!(is_require_config, expr, "require.config");
         not_supported_expr!(is_require_version, expr, "require.version");
-        not_supported_expr!(is_require_amd, expr, "require.amd");
         not_supported_expr!(is_require_include, expr, "require.include");
         not_supported_expr!(is_require_onerror, expr, "require.onError");
         not_supported_expr!(is_require_main_require, expr, "require.main.require");

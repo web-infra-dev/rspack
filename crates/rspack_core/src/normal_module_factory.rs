@@ -1,5 +1,7 @@
-use std::sync::LazyLock;
-use std::{borrow::Cow, sync::Arc};
+use std::{
+  borrow::Cow,
+  sync::{Arc, LazyLock},
+};
 
 use regex::Regex;
 use rspack_cacheable::cacheable;
@@ -341,11 +343,7 @@ impl NormalModuleFactory {
         let resource_data = resolve(resolve_args, plugin_driver).await;
 
         match resource_data {
-          Ok(ResolveResult::Resource(resource)) => ResourceData::new(resource.full_path())
-            .path(resource.path)
-            .query(resource.query)
-            .fragment(resource.fragment)
-            .description_optional(resource.description_data),
+          Ok(ResolveResult::Resource(resource)) => resource.into(),
           Ok(ResolveResult::Ignored) => {
             let ident = format!("{}/{}", &data.context, resource);
             let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
@@ -418,13 +416,18 @@ impl NormalModuleFactory {
         let rule_use = match &rule.r#use {
           ModuleRuleUse::Array(array_use) => Cow::Borrowed(array_use),
           ModuleRuleUse::Func(func_use) => {
+            let resource_data_for_rules = match_resource_data.as_ref().unwrap_or(&resource_data);
             let context = FuncUseCtx {
               // align with webpack https://github.com/webpack/webpack/blob/899f06934391baede59da3dcd35b5ef51c675dbe/lib/NormalModuleFactory.js#L576
-              // resource shouldn't contain query otherwise it will cause duplicate query in https://github.com/unjs/unplugin/blob/62fdc5ae361d86a6ec39eaef5d8f01e12c6a794d/src/utils.ts#L58
-              resource: resource_data.resource_path.clone().map(|x| x.to_string()),
-              real_resource: Some(user_request.clone()),
+              resource: resource_data_for_rules
+                .resource_path
+                .as_ref()
+                .map(|x| x.to_string()),
+              resource_query: resource_data_for_rules.resource_query.clone(),
+              resource_fragment: resource_data_for_rules.resource_fragment.clone(),
+              real_resource: resource_data.resource_path.as_ref().map(|p| p.to_string()),
               issuer: data.issuer.clone(),
-              resource_query: resource_data.resource_query.clone(),
+              issuer_layer: data.issuer_layer.clone(),
             };
             Cow::Owned(func_use(context).await?)
           }
@@ -759,6 +762,16 @@ impl NormalModuleFactory {
             _ => unreachable!(),
           },
         ),
+        ModuleType::Json => rspack_util::merge_from_optional_with(
+          g.get("json").cloned(),
+          options,
+          |json_options, options| match (json_options, options) {
+            (GeneratorOptions::Json(a), GeneratorOptions::Json(b)) => {
+              GeneratorOptions::Json(a.merge_from(b))
+            }
+            _ => unreachable!(),
+          },
+        ),
         _ => options.cloned(),
       }
     });
@@ -793,9 +806,8 @@ impl NormalModuleFactory {
         | (GeneratorOptions::AssetResource(_), GeneratorOptions::AssetResource(_))
         | (GeneratorOptions::Css(_), GeneratorOptions::Css(_))
         | (GeneratorOptions::CssAuto(_), GeneratorOptions::CssAuto(_))
-        | (GeneratorOptions::CssModule(_), GeneratorOptions::CssModule(_)) => {
-          global.merge_from(local)
-        }
+        | (GeneratorOptions::CssModule(_), GeneratorOptions::CssModule(_))
+        | (GeneratorOptions::Json(_), GeneratorOptions::Json(_)) => global.merge_from(local),
         _ => global,
       },
     );

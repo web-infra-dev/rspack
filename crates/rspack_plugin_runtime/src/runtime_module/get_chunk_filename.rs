@@ -13,8 +13,7 @@ use rspack_core::{
 use rspack_util::{infallible::ResultInfallibleExt, itoa};
 use rustc_hash::FxHashMap;
 
-use super::stringify_dynamic_chunk_map;
-use super::stringify_static_chunk_map;
+use super::{stringify_dynamic_chunk_map, stringify_static_chunk_map};
 use crate::{get_chunk_runtime_requirements, runtime_module::unquoted_stringify};
 
 type GetChunkFilenameAllChunks = Box<dyn Fn(&RuntimeGlobals) -> bool + Sync + Send>;
@@ -73,16 +72,24 @@ impl GetChunkFilenameRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for GetChunkFilenameRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
+  }
+
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("runtime/get_chunk_filename.ejs").to_string(),
+    )]
   }
 
   fn dependent_hash(&self) -> bool {
     true
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunks = self
       .chunk
       .and_then(|chunk_ukey| compilation.chunk_by_ukey.get(&chunk_ukey))
@@ -109,7 +116,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
             chunk.get_all_referenced_async_entrypoints(&compilation.chunk_group_by_ukey)
           {
             let entrypoint = compilation.chunk_group_by_ukey.expect_get(&entrypoint);
-            chunks.insert(entrypoint.get_entry_point_chunk());
+            chunks.insert(entrypoint.get_entrypoint_chunk());
           }
           chunks
         }
@@ -344,25 +351,17 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         }
       }
     }
-    Ok(
-      RawStringSource::from(format!(
-        "// This function allow to reference chunks
-        {} = function (chunkId) {{
-          // return url for filenames not based on template
-          {}
-          // return url for filenames based on template
-          return {};
-        }};
-      ",
-        self.global,
-        static_urls
-          .iter()
-          .map(|(filename, chunk_ids)| stringify_static_chunk_map(filename, chunk_ids))
-          .join("\n"),
-        dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type))
-      ))
-      .boxed(),
-    )
+
+    let source = compilation.runtime_template.render(&self.id, Some(serde_json::json!({
+      "_global": self.global,
+      "_static_urls": static_urls
+                        .iter()
+                        .map(|(filename, chunk_ids)| stringify_static_chunk_map(filename, chunk_ids))
+                        .join("\n"),
+      "_dynamic_url": dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type))
+    })))?;
+
+    Ok(RawStringSource::from(source).boxed())
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

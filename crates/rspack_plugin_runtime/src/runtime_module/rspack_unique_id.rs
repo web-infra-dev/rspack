@@ -24,6 +24,7 @@ impl RspackUniqueIdRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for RspackUniqueIdRuntimeModule {
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
@@ -32,7 +33,7 @@ impl RuntimeModule for RspackUniqueIdRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
     Ok(
       RawStringSource::from(
         include_str!("runtime/get_unique_id.js")

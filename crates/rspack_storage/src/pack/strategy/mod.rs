@@ -111,6 +111,7 @@ pub trait ScopeWriteStrategy {
   async fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> Result<()>;
   async fn before_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()>;
   async fn optimize_scope(&self, scope: &mut PackScope) -> Result<()>;
+  async fn release_scope(&self, scope: &mut PackScope) -> Result<()>;
   async fn write_packs(&self, scope: &mut PackScope) -> Result<WriteScopeResult>;
   async fn write_meta(&self, scope: &mut PackScope) -> Result<WriteScopeResult>;
   async fn merge_changed(&self, changed: WriteScopeResult) -> Result<()>;

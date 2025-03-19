@@ -1,7 +1,7 @@
 use dyn_clone::clone_trait_object;
 use rspack_cacheable::cacheable_dyn;
 
-use super::Dependency;
+use super::{Dependency, FactorizeInfo};
 use crate::{DependencyCondition, ErrorSpan};
 
 #[cacheable_dyn]
@@ -36,6 +36,9 @@ pub trait ModuleDependency: Dependency {
   fn get_condition(&self) -> Option<DependencyCondition> {
     None
   }
+
+  fn factorize_info(&self) -> &FactorizeInfo;
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo;
 }
 
 clone_trait_object!(ModuleDependency);

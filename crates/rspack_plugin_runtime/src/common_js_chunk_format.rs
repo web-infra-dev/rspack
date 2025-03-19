@@ -1,16 +1,16 @@
 use std::hash::Hash;
 
-use rspack_core::rspack_sources::{ConcatSource, RawStringSource, SourceExt};
 use rspack_core::{
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationParams, CompilerCompilation, CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_plugin_javascript::runtime::render_chunk_runtime_modules;
 use rspack_plugin_javascript::{
-  JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JsPlugin, RenderSource,
+  runtime::render_chunk_runtime_modules, JavascriptModulesChunkHash, JavascriptModulesRenderChunk,
+  JsPlugin, RenderSource,
 };
 use rspack_util::json_stringify;
 
@@ -31,7 +31,7 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation);
+  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
   hooks.chunk_hash.tap(js_chunk_hash::new(self));
   hooks.render_chunk.tap(render_chunk::new(self));
   Ok(())
@@ -90,13 +90,13 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(JavascriptModulesRenderChunk for CommonJsChunkFormatPlugin)]
-fn render_chunk(
+async fn render_chunk(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
 ) -> Result<()> {
-  let hooks = JsPlugin::get_compilation_hooks(compilation);
+  let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation)?;
   let mut sources = ConcatSource::default();
@@ -112,7 +112,7 @@ fn render_chunk(
     .has_chunk_runtime_modules(chunk_ukey)
   {
     sources.add(RawStringSource::from_static("exports.runtime = "));
-    sources.add(render_chunk_runtime_modules(compilation, chunk_ukey)?);
+    sources.add(render_chunk_runtime_modules(compilation, chunk_ukey).await?);
     sources.add(RawStringSource::from_static(";\n"));
   }
 
@@ -142,12 +142,15 @@ fn render_chunk(
     let mut startup_render_source = RenderSource {
       source: start_up_source,
     };
-    hooks.render_startup.call(
-      compilation,
-      chunk_ukey,
-      last_entry_module,
-      &mut startup_render_source,
-    )?;
+    hooks
+      .render_startup
+      .call(
+        compilation,
+        chunk_ukey,
+        last_entry_module,
+        &mut startup_render_source,
+      )
+      .await?;
     sources.add(startup_render_source.source);
     render_source.source = ConcatSource::new([
       RawStringSource::from_static("(function() {\n").boxed(),

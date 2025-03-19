@@ -22,8 +22,10 @@ use swc_core::{
   },
 };
 
-use crate::legacy_case::{identifier_to_legacy_kebab_case, identifier_to_legacy_snake_case};
-use crate::visit::IdentComponent;
+use crate::{
+  legacy_case::{identifier_to_legacy_kebab_case, identifier_to_legacy_snake_case},
+  visit::IdentComponent,
+};
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -264,7 +266,7 @@ pub fn plugin_import(
           .param(0)
           .and_then(|v| v.value().as_str())
           .unwrap_or("");
-        out.write(param.cow_to_uppercase().as_ref())?;
+        out.write(param.cow_to_ascii_uppercase().as_ref())?;
         Ok(())
       },
     ),
@@ -283,7 +285,7 @@ pub fn plugin_import(
           .param(0)
           .and_then(|v| v.value().as_str())
           .unwrap_or("");
-        out.write(param.cow_to_lowercase().as_ref())?;
+        out.write(param.cow_to_ascii_lowercase().as_ref())?;
         Ok(())
       },
     ),

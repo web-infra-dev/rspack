@@ -24,9 +24,9 @@ import {
 	type RspackPluginFunction,
 	applyRspackOptionsBaseDefaults,
 	applyRspackOptionsDefaults,
-	getNormalizedRspackOptions,
-	rspackOptions
+	getNormalizedRspackOptions
 } from "./config";
+import { rspackOptions } from "./config/zod";
 import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
 import { RspackOptionsApply } from "./rspackOptionsApply";
 import { asArray, isNil } from "./util";

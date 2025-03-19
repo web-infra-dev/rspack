@@ -14,7 +14,7 @@ it("should return a valid url when modified", async () => {
 });
 
 it("should not rewrite files and only compare them", () => {
-	for (const asset of STATS_JSON.assets) {
+	for (const asset of __STATS__.assets) {
 		if (asset.name.endsWith(".txt")) {
 			expect(asset).toHaveProperty("cached", true);
 		}

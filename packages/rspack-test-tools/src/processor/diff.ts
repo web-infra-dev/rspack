@@ -38,21 +38,23 @@ export interface IDiffProcessorOptions extends IFormatCodeOptions {
 }
 export class DiffProcessor implements ITestProcessor {
 	private hashes: string[] = [];
-	private webpack: BasicProcessor<ECompilerType.Webpack>;
+	private webpack: BasicProcessor<ECompilerType.Webpack> | null = null;
 	private rspack: BasicProcessor<ECompilerType.Rspack>;
 	constructor(private options: IDiffProcessorOptions) {
-		this.webpack = new BasicProcessor<ECompilerType.Webpack>({
-			defaultOptions: context =>
-				this.getDefaultOptions(
-					ECompilerType.Webpack,
-					context.getSource(),
-					path.join(context.getDist(), ECompilerType.Webpack)
-				),
-			compilerType: ECompilerType.Webpack,
-			name: ECompilerType.Webpack,
-			configFiles: ["webpack.config.js", "rspack.config.js"],
-			runable: false
-		});
+		if (global.updateSnapshot) {
+			this.webpack = new BasicProcessor<ECompilerType.Webpack>({
+				defaultOptions: context =>
+					this.getDefaultOptions(
+						ECompilerType.Webpack,
+						context.getSource(),
+						path.join(context.getDist(), ECompilerType.Webpack)
+					),
+				compilerType: ECompilerType.Webpack,
+				name: ECompilerType.Webpack,
+				configFiles: ["webpack.config.js", "rspack.config.js"],
+				runable: false
+			});
+		}
 
 		this.rspack = new BasicProcessor<ECompilerType.Rspack>({
 			defaultOptions: context =>
@@ -69,24 +71,32 @@ export class DiffProcessor implements ITestProcessor {
 	}
 
 	async config(context: ITestContext) {
-		await this.webpack.config(context);
+		if (this.webpack) {
+			await this.webpack.config(context);
+		}
 		await this.rspack.config(context);
 	}
 	async compiler(context: ITestContext) {
-		await this.webpack.compiler(context);
+		if (this.webpack) {
+			await this.webpack.compiler(context);
+		}
 		await this.rspack.compiler(context);
 	}
 	async build(context: ITestContext) {
-		await this.webpack.build(context);
+		if (this.webpack) {
+			await this.webpack.build(context);
+		}
 		await this.rspack.build(context);
 	}
 	async check(env: ITestEnv, context: ITestContext) {
-		const webpackCompiler = context.getCompiler(ECompilerType.Webpack);
-		const webpackStats = webpackCompiler.getStats();
-		//TODO: handle chunk hash and content hash
-		webpackStats?.hash && this.hashes.push(webpackStats?.hash);
-		if (!this.options.errors) {
-			env.expect(webpackStats?.hasErrors()).toBe(false);
+		if (this.webpack) {
+			const webpackCompiler = context.getCompiler(ECompilerType.Webpack);
+			const webpackStats = webpackCompiler.getStats();
+			//TODO: handle chunk hash and content hash
+			webpackStats?.hash && this.hashes.push(webpackStats?.hash);
+			if (!this.options.errors) {
+				env.expect(webpackStats?.hasErrors()).toBe(false);
+			}
 		}
 
 		const rspackCompiler = context.getCompiler(ECompilerType.Rspack);
@@ -98,16 +108,19 @@ export class DiffProcessor implements ITestProcessor {
 		}
 
 		const dist = context.getDist();
+		const snapshot = context.getSource("__snapshot__");
 		for (const file of this.options.files!) {
 			const rspackDist = path.join(dist, ECompilerType.Rspack, file);
 			const webpackDist = path.join(dist, ECompilerType.Webpack, file);
+			const snapshotDist = path.join(snapshot, file.replace(/\.js$/, ".json"));
 			const result = compareFile(rspackDist, webpackDist, {
 				modules: this.options.modules,
 				runtimeModules: this.options.runtimeModules,
 				format: this.createFormatOptions(),
 				renameModule: this.options.renameModule,
 				bootstrap: this.options.bootstrap,
-				detail: this.options.detail
+				detail: this.options.detail,
+				snapshot: snapshotDist
 			});
 			if (typeof this.options.onCompareFile === "function") {
 				this.options.onCompareFile(file, result);

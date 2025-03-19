@@ -2,6 +2,6 @@
 module.exports = {
 	optimization: {
 		splitChunks: false,
-		sideEffects: false,
+		sideEffects: false
 	}
 };

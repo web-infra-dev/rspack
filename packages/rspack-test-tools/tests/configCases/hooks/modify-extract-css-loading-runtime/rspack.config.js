@@ -28,8 +28,5 @@ module.exports = {
 			}
 		]
 	},
-	plugins: [
-		new webpack.CssExtractRspackPlugin(),
-		new Plugin(),
-	]
+	plugins: [new webpack.CssExtractRspackPlugin(), new Plugin()]
 };

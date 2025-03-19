@@ -5,7 +5,7 @@ import { readFile, run } from "../../utils/test-utils";
 const successMessage = "stats are successfully stored as json to stats.json";
 
 describe("json", () => {
-	it("should work and store json to a file", async () => {
+	it.concurrent("should work and store json to a file", async () => {
 		const { exitCode, stderr, stdout } = await run(__dirname, [
 			"--json",
 			"stats.json"

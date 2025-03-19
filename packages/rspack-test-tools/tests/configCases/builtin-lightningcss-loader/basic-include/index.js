@@ -7,5 +7,5 @@ it("should transform css correct", () => {
 	expect(styles).toHaveProperty('used');
 	expect('unused' in styles).toBeFalsy();
 
-	expect(fs.readFileSync(path.resolve(__dirname, './bundle0.css')).toString()).toMatchSnapshot()
+	expect(fs.readFileSync(path.resolve(__dirname, './bundle0.css')).toString()).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'bundle0.css.txt'))
 });

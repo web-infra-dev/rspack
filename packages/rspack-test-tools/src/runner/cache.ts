@@ -40,7 +40,8 @@ export class CacheRunnerFactory<
 					this.context.getValue(this.name, "documentType") ||
 					EDocumentType.JSDOM,
 				env,
-				stats,
+				stats: this.createStatsGetter(),
+				cachable: false,
 				name: this.name,
 				runInNewContext: false,
 				testConfig: {

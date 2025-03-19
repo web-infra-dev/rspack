@@ -1,7 +1,9 @@
-use std::collections::HashSet;
-use std::sync::LazyLock;
-use std::sync::Mutex;
-use std::{fmt, path::Path, sync::Arc};
+use std::{
+  collections::HashSet,
+  fmt,
+  path::Path,
+  sync::{Arc, LazyLock, Mutex},
+};
 
 use async_trait::async_trait;
 use regex::Regex;
@@ -110,7 +112,13 @@ async fn get_description_file(
 
   loop {
     let description_file = dir.join(description_filename);
-    if let Ok(data) = tokio::fs::read(&description_file).await
+
+    #[cfg(not(target_family = "wasm"))]
+    let data = tokio::fs::read(&description_file).await;
+    #[cfg(target_family = "wasm")]
+    let data = std::fs::read(&description_file);
+
+    if let Ok(data) = data
       && let Ok(data) = serde_json::from_slice::<serde_json::Value>(&data)
     {
       if satisfies_description_file_data

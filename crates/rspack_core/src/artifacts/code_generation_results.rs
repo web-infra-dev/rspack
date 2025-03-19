@@ -1,7 +1,9 @@
-use std::collections::hash_map::Entry;
-use std::hash::Hash;
-use std::ops::{Deref, DerefMut};
-use std::sync::atomic::AtomicU32;
+use std::{
+  collections::hash_map::Entry,
+  hash::Hash,
+  ops::{Deref, DerefMut},
+  sync::atomic::AtomicU32,
+};
 
 use anymap::CloneAny;
 use rspack_collections::IdentifierMap;
@@ -13,7 +15,7 @@ use serde::Serialize;
 
 use crate::{
   AssetInfo, ChunkInitFragments, ConcatenationScope, ModuleIdentifier, PublicPath, RuntimeGlobals,
-  RuntimeMode, RuntimeSpec, RuntimeSpecMap, SourceType,
+  RuntimeSpec, RuntimeSpecMap, SourceType,
 };
 
 #[derive(Clone, Debug)]
@@ -30,6 +32,10 @@ impl CodeGenerationDataUrl {
     &self.inner
   }
 }
+
+// For performance, mark the js modules containing AUTO_PUBLIC_PATH_PLACEHOLDER
+#[derive(Clone, Debug)]
+pub struct CodeGenerationPublicPathAutoReplace(pub bool);
 
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataFilename {
@@ -198,23 +204,6 @@ impl CodeGenerationResults {
     self.module_generation_result_map.is_empty() && self.map.is_empty()
   }
 
-  pub fn get_one(&self, module_identifier: &ModuleIdentifier) -> Option<&CodeGenerationResult> {
-    self
-      .map
-      .get(module_identifier)
-      .and_then(|spec| match spec.mode {
-        RuntimeMode::Empty => None,
-        RuntimeMode::SingleEntry => spec
-          .single_value
-          .and_then(|result_id| self.module_generation_result_map.get(&result_id)),
-        RuntimeMode::Map => spec
-          .map
-          .values()
-          .next()
-          .and_then(|result_id| self.module_generation_result_map.get(result_id)),
-      })
-  }
-
   pub fn insert(
     &mut self,
     module_identifier: ModuleIdentifier,
@@ -232,7 +221,7 @@ impl CodeGenerationResults {
 
   pub fn remove(&mut self, module_identifier: &ModuleIdentifier) -> Option<()> {
     let runtime_map = self.map.remove(module_identifier)?;
-    for result in runtime_map.get_values() {
+    for result in runtime_map.values() {
       self.module_generation_result_map.remove(result)?;
     }
     Some(())
@@ -257,24 +246,23 @@ impl CodeGenerationResults {
           })
       } else {
         if entry.size() > 1 {
-          let results = entry.get_values();
-          if results.len() != 1 {
+          let mut values = entry.values();
+          let results: FxHashSet<_> = entry.values().collect();
+          if results.len() > 1 {
             panic!(
               "No unique code generation entry for unspecified runtime for {module_identifier} ",
             );
           }
 
-          return results
-            .first()
-            .copied()
+          return values
+            .next()
             .and_then(|m| self.module_generation_result_map.get(m))
             .unwrap_or_else(|| panic!("Expected value exists"));
         }
 
         entry
-          .get_values()
-          .first()
-          .copied()
+          .values()
+          .next()
           .and_then(|m| self.module_generation_result_map.get(m))
           .unwrap_or_else(|| panic!("Expected value exists"))
       }
@@ -313,7 +301,6 @@ impl CodeGenerationResults {
     self.get(module_identifier, runtime).runtime_requirements
   }
 
-  #[allow(clippy::unwrap_in_result)]
   pub fn get_hash(
     &self,
     module_identifier: &ModuleIdentifier,

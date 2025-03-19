@@ -13,10 +13,10 @@ Rspack is currently incompatible with [mini-css-extract-plugin](https://github.c
 
 When using CssExtractRspackPlugin, you need to register the plugin in the `plugins` section and register `CssExtractRspackPlugin.loader` in [module.rules](/config/module#modulerules).
 
-```ts title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   plugins: [new rspack.CssExtractRspackPlugin({})],
   module: {
     rules: [
@@ -201,10 +201,10 @@ Please note when enabling the built-in CSS support (`experiments.css`), Files en
 
 For example:
 
-```ts title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   plugins: [new rspack.CssExtractRspackPlugin({})],
   module: {
     rules: [

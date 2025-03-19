@@ -1,0 +1,52 @@
+name: nodejs and pnpm setup
+
+description: Install Node.js with pnpm global cache
+
+inputs:
+  node-version:
+    default: "20"
+    required: false
+    type: string
+
+runs:
+  using: composite
+  steps:
+    - name: Install Node.js
+      uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Enable corepack
+      if: ${{ inputs.node-version != '16' }}
+      shell: bash
+      run: |
+        if [[ "${{runner.os}}" == "Windows" ]]; then
+          # add the npm prefix to PATH to ensure the installed corepack work properly
+          NPM_PREFIX=$(cygpath -u "$(npm config get prefix)")
+          export PATH="$NPM_PREFIX:$PATH"
+        fi
+        npm install -g corepack@0.31.0 --force
+        echo "Corepack version: $(corepack --version)"
+        corepack enable
+
+    # https://pnpm.io/continuous-integration#github-actions
+    # Uses `packageManagement` field from package.json
+    - name: Install pnpm
+      if: ${{ inputs.node-version == '16' }}
+      uses: pnpm/action-setup@v4
+      with:
+        dest: ${{ runner.tool_cache }}/pnpm
+        # Use `@pnpm/exe` for Node 16
+        standalone: true
+
+    - name: Get pnpm store directory
+      id: pnpm-cache
+      shell: bash
+      run: |
+        # set store-dir to $(pnpm config get store-dir)/$(pnpm -v)
+        global_store_path=$(pnpm config get store-dir)
+        if [ -z "${global_store_path}" ] || [ "${global_store_path}" = "undefined" ]; then
+          global_store_path=~/.cache/pnpm
+        fi
+        pnpm config set store-dir $global_store_path/$(pnpm -v) --location project
+        echo "STORE_PATH is $(pnpm store path)"

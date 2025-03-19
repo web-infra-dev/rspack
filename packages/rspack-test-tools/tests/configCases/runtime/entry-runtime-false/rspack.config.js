@@ -4,14 +4,14 @@ module.exports = {
 		e1: "./e1.js",
 		e2: {
 			import: "./e2.js",
-			runtime: false,
+			runtime: false
 		}
 	},
 	mode: "development",
 	output: {
-		filename: '[name].js'
+		filename: "[name].js"
 	},
 	optimization: {
-		runtimeChunk: "single",
+		runtimeChunk: "single"
 	}
 };

@@ -4,8 +4,8 @@
 
 Enabling TypeScript support can be done through [`builtin:swc-loader`](/guide/features/builtin-swc-loader).
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -60,8 +60,8 @@ Remember to evaluate the trade-off between build speed and the accuracy of type 
 
 Enabling TSX|JSX support can be done through [`builtin:swc-loader`](/guide/features/builtin-swc-loader).
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {

@@ -1,5 +1,5 @@
 ```js title=index.js
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["index"], {
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["index"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 __webpack_require__.e(/* import() */ "parent-1_js").then(__webpack_require__.bind(__webpack_require__, "./parent-1.js"));
 __webpack_require__.e(/* import() */ "parent-2_js").then(__webpack_require__.t.bind(__webpack_require__, "./parent-2.js", 23));
@@ -16,7 +16,7 @@ var __webpack_exports__ = (__webpack_exec__("./index.js"));
 ```
 
 ```js title=parent-1_js.js
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["parent-1_js"], {
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["parent-1_js"], {
 "./exist.js": (function () {
 console.log("exist");
 
@@ -37,7 +37,7 @@ __webpack_require__.e(/* import() */ "shared_js-_5ce21").then(__webpack_require_
 ```
 
 ```js title=parent-2_js.js
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["parent-2_js"], {
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["parent-2_js"], {
 "./parent-2.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 __webpack_require__.e(/* import() */ "shared_js-_5ce20").then(__webpack_require__.bind(__webpack_require__, "./shared.js"));
 
@@ -48,7 +48,7 @@ __webpack_require__.e(/* import() */ "shared_js-_5ce20").then(__webpack_require_
 ```
 
 ```js title=shared_js-_5ce20.js
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["shared_js-_5ce20"], {
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["shared_js-_5ce20"], {
 "./exist.js": (function () {
 console.log("exist");
 
@@ -71,7 +71,7 @@ console.log("shared");
 
 ```js title=shared_js-_5ce21.js
 "use strict";
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["shared_js-_5ce21"], {
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["shared_js-_5ce21"], {
 "./shared.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 /* ESM import */var _exist__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./exist.js");

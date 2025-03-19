@@ -1,0 +1,18 @@
+// importScripts chunk loading
+var installChunk = <%- basicFunction("data") %> {
+    <%- destructureArray("chunkIds, moreModules, runtime", "data") %>
+    for (var moduleId in moreModules) {
+        if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {
+            <%- MODULE_FACTORIES %>[moduleId] = moreModules[moduleId];
+        }
+    }
+    if (runtime) runtime(<%- REQUIRE %>);
+    while (chunkIds.length) installedChunks[chunkIds.pop()] = 1;
+    parentChunkLoadingFunction(data);
+};
+<%- ENSURE_CHUNK_HANDLERS %>.i = <%- basicFunction("chunkId, promises") %> {
+    <%- _body %>
+};
+var chunkLoadingGlobal = <%- _chunk_loading_global_expr %> = <%- _chunk_loading_global_expr %> || [];
+var parentChunkLoadingFunction = chunkLoadingGlobal.push.bind(chunkLoadingGlobal);
+chunkLoadingGlobal.push = installChunk;

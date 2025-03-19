@@ -1,1 +1,1 @@
-exports.step = undefined;
+exports.step = {};

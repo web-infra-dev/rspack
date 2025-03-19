@@ -1,0 +1,9 @@
+Object {
+  "bar": "-bd00b1e0e0954270-bar",
+  "bav": "-bd00b1e0e0954270-bav",
+  "foo": "-bd00b1e0e0954270-foo",
+  "four": "-bd00b1e0e0954270-four",
+  "one": "-bd00b1e0e0954270-one",
+  "three": "-bd00b1e0e0954270-three",
+  "two": "-bd00b1e0e0954270-two",
+}

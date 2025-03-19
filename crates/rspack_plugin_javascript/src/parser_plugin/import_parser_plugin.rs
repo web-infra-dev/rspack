@@ -1,31 +1,30 @@
 use itertools::Itertools;
 use rspack_core::{
-  AsyncDependenciesBlock, ContextDependency, DependencyRange, DynamicImportMode, GroupOptions,
-  ImportAttributes, SharedSourceMap,
+  AsyncDependenciesBlock, ChunkGroupOptions, ContextDependency, ContextNameSpaceObject,
+  ContextOptions, DependencyCategory, DependencyRange, DynamicImportFetchPriority,
+  DynamicImportMode, GroupOptions, ImportAttributes, SharedSourceMap, SpanExt,
 };
-use rspack_core::{ChunkGroupOptions, DynamicImportFetchPriority};
-use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
 use rspack_error::miette::Severity;
-use swc_core::common::Spanned;
-use swc_core::ecma::ast::{CallExpr, Callee};
-use swc_core::ecma::atoms::Atom;
+use swc_core::{
+  common::Spanned,
+  ecma::{ast::CallExpr, atoms::Atom},
+};
 
 use super::JavascriptParserPlugin;
-use crate::dependency::{ImportContextDependency, ImportDependency, ImportEagerDependency};
-use crate::utils::object_properties::{get_attributes, get_value_by_obj_prop};
-use crate::visitors::{
-  context_reg_exp, create_context_dependency, create_traceable_error, parse_order_string,
-  ContextModuleScanResult, JavascriptParser,
+use crate::{
+  dependency::{ImportContextDependency, ImportDependency, ImportEagerDependency},
+  utils::object_properties::{get_attributes, get_value_by_obj_prop},
+  visitors::{
+    context_reg_exp, create_context_dependency, create_traceable_error, parse_order_string,
+    ContextModuleScanResult, JavascriptParser,
+  },
+  webpack_comment::try_extract_webpack_magic_comment,
 };
-use crate::webpack_comment::try_extract_webpack_magic_comment;
 
 pub struct ImportParserPlugin;
 
 impl JavascriptParserPlugin for ImportParserPlugin {
   fn import_call(&self, parser: &mut JavascriptParser, node: &CallExpr) -> Option<bool> {
-    let Callee::Import(import_call) = &node.callee else {
-      unreachable!()
-    };
     let dyn_imported = node.args.first()?;
     if dyn_imported.spread.is_some() {
       return None;
@@ -156,7 +155,9 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         fragment,
         replaces,
         critical,
-      } = create_context_dependency(&param, &dyn_imported.expr, parser);
+      } = create_context_dependency(&param, parser);
+      parser.walk_expression(&dyn_imported.expr);
+
       let reg_exp = context_reg_exp(&reg, "", Some(dyn_imported.span().into()), parser);
       let mut dep = ImportContextDependency::new(
         ContextOptions {
@@ -186,7 +187,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           attributes,
         },
         node.span().into(),
-        import_call.span.into(),
+        dyn_imported.span().into(),
         parser.in_try,
       );
       *dep.critical_mut() = critical;

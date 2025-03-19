@@ -2,5 +2,5 @@
  * @type {import('@rspack/core').RspackOptions}
  */
 module.exports = {
-	context: __dirname,
+	context: __dirname
 };

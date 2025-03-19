@@ -1,6 +1,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-    output: {
-        chunkFilename: "[id].[hash].js",
-    },
-}
+	output: {
+		chunkFilename: "[id].[hash].js"
+	}
+};

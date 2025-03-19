@@ -200,6 +200,7 @@ npm/**/*.node
 !npm/darwin-arm64/
 !npm/darwin-x64/
 !npm/linux-x64-gnu/
+!npm/wasm32-wasi
 !npm/win32-x64-msvc/
 
 # Precompiled config schema
@@ -217,13 +218,6 @@ tests/webpack-test/__snapshots__/*.snap.*
 tests/webpack-test/**/dev-defaults.webpack.lock
 !tests/webpack-test/**/target
 !tests/webpack-test/cases/**/node_modules
-
-tests/plugin-test/css-extract/js
-!tests/plugin-test/css-extract/**/node_modules
-
-tests/plugin-test/html-plugin/js
-
-tests/plugin-test/copy-plugin/build
 
 /webpack-examples/**/dist
 

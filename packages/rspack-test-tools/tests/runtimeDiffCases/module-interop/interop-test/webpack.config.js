@@ -5,20 +5,17 @@ module.exports = {
 	mode: "development",
 	entry: {
 		js: "./src/index.js",
-		mjs: "./src/index.mjs",
+		mjs: "./src/index.mjs"
 	},
 	target: "async-node",
 	output: {
-		filename: "[name].js",
+		filename: "[name].js"
 	},
 	mode: "production",
 	optimization: {
 		minimize: false,
 		mangleExports: false,
-		concatenateModules: false,
+		concatenateModules: false
 	},
-	plugins: [
-		new Plugin(".js"),
-		new Plugin(".mjs"),
-	]
+	plugins: [new Plugin(".js"), new Plugin(".mjs")]
 };

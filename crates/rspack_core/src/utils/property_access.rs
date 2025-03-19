@@ -1,55 +1,11 @@
-use std::sync::LazyLock;
-
-use regex::Regex;
-
-static SAFE_IDENTIFIER_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^[_a-zA-Z$][_a-zA-Z$0-9]*$").expect("should init regex"));
-const RESERVED_IDENTIFIER: [&str; 37] = [
-  "break",
-  "case",
-  "catch",
-  "class",
-  "const",
-  "continue",
-  "debugger",
-  "default",
-  "delete",
-  "do",
-  "else",
-  "enum",
-  "export",
-  "extends",
-  "false",
-  "finally",
-  "for",
-  "function",
-  "if",
-  "import",
-  "in",
-  "instanceof",
-  "new",
-  "null",
-  "package",
-  "return",
-  "super",
-  "switch",
-  "this",
-  "throw",
-  "true",
-  "try",
-  "typeof",
-  "var",
-  "void",
-  "while",
-  "with",
-];
+use crate::utils::property_name::{RESERVED_IDENTIFIER, SAFE_IDENTIFIER};
 
 pub fn property_access<S: AsRef<str>>(o: impl IntoIterator<Item = S>, start: usize) -> String {
   o.into_iter()
     .skip(start)
     .fold(String::default(), |mut str, property| {
       let property = property.as_ref();
-      if SAFE_IDENTIFIER_REGEX.is_match(property) && !RESERVED_IDENTIFIER.contains(&property) {
+      if SAFE_IDENTIFIER.is_match(property) && !RESERVED_IDENTIFIER.contains(property) {
         str.push_str(format!(".{property}").as_str());
       } else {
         str.push_str(

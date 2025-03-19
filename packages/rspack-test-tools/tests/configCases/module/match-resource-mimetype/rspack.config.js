@@ -7,19 +7,19 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				include: path.resolve(__dirname, 'a.js'),
+				include: path.resolve(__dirname, "a.js"),
 				use: [
-					'./get-source.js',
+					"./get-source.js",
 					{
 						loader: "builtin:swc-loader",
 						options: {
 							jsc: {
-								target: "es3",
+								target: "es3"
 							}
 						}
 					}
 				]
-			},
+			}
 		]
 	}
 };

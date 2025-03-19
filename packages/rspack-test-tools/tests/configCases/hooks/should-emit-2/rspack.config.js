@@ -34,5 +34,5 @@ class Plugin {
 /**@type {import("@rspack/core").Configuration}*/
 module.exports = {
 	plugins: [new Plugin()],
-	node: false,
+	node: false
 };

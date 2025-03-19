@@ -4,8 +4,8 @@
 
 通过 [`builtin:swc-loader`](/guide/features/builtin-swc-loader) 可以开启对 TypeScript 的支持。
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -61,8 +61,8 @@ module.exports = {
 
 通过 [`builtin:swc-loader`](/guide/features/builtin-swc-loader) 可以开启对 JSX 和 TSX 的支持。
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {

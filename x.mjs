@@ -75,7 +75,7 @@ buildCommand
 	.option("-r", "release")
 	.option("-f", "force")
 	.action(async ({ a, b = a, j = a, r, f }) => {
-		const mode = r ? "release" : "debug";
+		const mode = r ? "release" : "dev";
 		try {
 			if (b === undefined && j === undefined) {
 				b = j = true;
@@ -93,7 +93,7 @@ watchCommand
 	.option("-j", "watch js packages")
 	.option("-r", "release")
 	.action(async ({ a, b = a, j = a, r }) => {
-		const mode = r ? "release" : "debug";
+		const mode = r ? "release" : "dev";
 		try {
 			b && (await $`pnpm --filter @rspack/binding watch:${mode}`);
 			j && (await $`pnpm --filter "@rspack/*" watch`);
@@ -107,7 +107,7 @@ buildCommand
 	.command("binding")
 	.description("build rust binding")
 	.action(async () => {
-		await $`pnpm --filter @rspack/binding build:debug`;
+		await $`pnpm --filter @rspack/binding build:dev`;
 	});
 
 // x build js
@@ -154,14 +154,6 @@ testCommand
 		await $`pnpm --filter "webpack-test" test`;
 	});
 
-// x test plugin
-testCommand
-	.command("plugin")
-	.description("run plugin test suites")
-	.action(async () => {
-		await $`pnpm --filter "plugin-test" test`;
-	});
-
 // x api-extractor
 const extractorCommand = program
 	.command("api-extractor")
@@ -202,6 +194,7 @@ const rspackCommand = program.command("rspack").alias("rs").description(`
 
 rspackCommand
 	.option("-d, --debug", "Launch debugger in VSCode")
+	.argument("[args...]", "Arguments pass through to rspack cli")
 	.action(async ({ debug }) => {
 		try {
 			if (!debug) {
@@ -219,6 +212,7 @@ program
 	.command("rspack-debug")
 	.alias("rsd")
 	.description("Alias for `x rspack --debug`")
+	.argument("[args...]", "Arguments pass through to rspack cli")
 	.action(async () => {
 		await launchRspackCli(getVariadicArgs());
 	});
@@ -233,6 +227,7 @@ const jestCommand = program.command("jest").alias("j").description(`
 
 jestCommand
 	.option("-d, --debug", "Launch debugger in VSCode")
+	.argument("[args...]", "Arguments pass through to rspack cli")
 	.action(async ({ debug }) => {
 		if (!debug) {
 			await $`npx jest ${getVariadicArgs()}`;
@@ -246,6 +241,7 @@ program
 	.command("jest-debug")
 	.alias("jd")
 	.description("Alias for `x jest --debug`")
+	.argument("[args...]", "Arguments pass through to rspack cli")
 	.action(async () => {
 		await launchJestWithArgs(getVariadicArgs());
 	});
@@ -268,6 +264,7 @@ program
 	.option("--no-dry-run", "negative dry-run")
 	.option("--push-tags", "push tags to github")
 	.option("--no-push-tags", "don't push tags to github")
+	.option("--otp", "use npm OTP auth")
 	.description("publish package after version bump")
 	.action(publish_handler);
 let argv = process.argv.slice(2); // remove the `node` and script call

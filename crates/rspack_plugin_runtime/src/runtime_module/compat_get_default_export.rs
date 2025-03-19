@@ -19,12 +19,22 @@ impl Default for CompatGetDefaultExportRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for CompatGetDefaultExportRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(RawStringSource::from_static(include_str!("runtime/compat_get_default_export.js")).boxed())
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("runtime/compat_get_default_export.ejs").to_string(),
+    )]
+  }
+
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    let source = compilation.runtime_template.render(&self.id, None)?;
+
+    Ok(RawStringSource::from(source).boxed())
   }
 }

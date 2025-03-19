@@ -7,8 +7,8 @@ module.exports = {
 	module: {
 		generator: {
 			asset: {
-				emit: false,
-			},
+				emit: false
+			}
 		},
 		parser: {
 			asset: {
@@ -20,7 +20,7 @@ module.exports = {
 		rules: [
 			{
 				test: /\.png$/,
-				type: "asset",
+				type: "asset"
 			},
 			{
 				test: /\.jpg$/,

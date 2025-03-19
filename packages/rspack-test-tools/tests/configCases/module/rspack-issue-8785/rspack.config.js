@@ -4,11 +4,11 @@ module.exports = {
 		rules: [
 			{
 				test: /\.toml$/,
-				type: 'json',
+				type: "json",
 				parser: {
-					parse: () => ({ foo: 'bar' })
+					parse: () => ({ foo: "bar" })
 				}
 			}
 		]
 	}
-}
+};

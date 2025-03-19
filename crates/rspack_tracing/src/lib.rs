@@ -1,21 +1,18 @@
 mod chrome;
-mod opentelemetry;
 mod stdout;
 mod tracer;
 
 use std::{fs, io, path::Path};
 
 pub use chrome::ChromeTracer;
-pub use opentelemetry::OtelTracer;
 pub use stdout::StdoutTracer;
 pub use tracer::Tracer;
 use tracing_subscriber::fmt::writer::BoxMakeWriter;
 
-pub mod otel {
-  pub use opentelemetry;
-  pub use opentelemetry_sdk as sdk;
-  pub use tracing_opentelemetry as tracing;
-}
+#[cfg(feature = "otel")]
+mod opentelemetry;
+#[cfg(feature = "otel")]
+pub use opentelemetry::*;
 
 pub(crate) enum TraceWriter<'a> {
   Stdout,

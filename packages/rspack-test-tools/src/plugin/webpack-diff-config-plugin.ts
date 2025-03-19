@@ -24,7 +24,7 @@ export class WebpackDiffConfigPlugin {
 		options.optimization.mangleExports ??= false;
 		options.optimization.concatenateModules ??= false;
 
-		options.output ??= {};
+		options.output ??= {} as any;
 		options.output.pathinfo ??= false;
 
 		options.output.environment ??= {};

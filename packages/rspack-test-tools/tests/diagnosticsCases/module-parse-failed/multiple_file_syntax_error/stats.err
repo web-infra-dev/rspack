@@ -1,5 +1,19 @@
 ERROR in ./a.js
   × Module parse failed:
+  ╰─▶   × JavaScript parsing error: 'const' declarations must be initialized
+         ╭─[2:7]
+       1 │ const CONST = 9000 % 2;
+       2 │ const  D {
+         ·        ─
+       3 │     // Comma is required, but parser can recover because of the newline.
+       4 │     d = 10
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./a.js
+  × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
          ╭─[2:9]
        1 │ const CONST = 9000 % 2;
@@ -27,6 +41,20 @@ ERROR in ./a.js
 
 ERROR in ./b.js
   × Module parse failed:
+  ╰─▶   × JavaScript parsing error: 'const' declarations must be initialized
+         ╭─[2:7]
+       1 │ const CONST = 9000 % 2;
+       2 │ const  D {
+         ·        ─
+       3 │     // Comma is required, but parser can recover because of the newline.
+       4 │     d = 10
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./b.js
+  × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
          ╭─[2:9]
        1 │ const CONST = 9000 % 2;
@@ -54,6 +82,20 @@ ERROR in ./b.js
 
 ERROR in ./c.js
   × Module parse failed:
+  ╰─▶   × JavaScript parsing error: 'const' declarations must be initialized
+         ╭─[2:7]
+       1 │ const CONST = 9000 % 2;
+       2 │ const  D {
+         ·        ─
+       3 │     // Comma is required, but parser can recover because of the newline.
+       4 │     d = 10
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./c.js
+  × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
          ╭─[2:9]
        1 │ const CONST = 9000 % 2;
@@ -81,6 +123,20 @@ ERROR in ./c.js
 
 ERROR in ./d.js
   × Module parse failed:
+  ╰─▶   × JavaScript parsing error: 'const' declarations must be initialized
+         ╭─[2:7]
+       1 │ const CONST = 9000 % 2;
+       2 │ const  D {
+         ·        ─
+       3 │     // Comma is required, but parser can recover because of the newline.
+       4 │     d = 10
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./d.js
+  × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
          ╭─[2:9]
        1 │ const CONST = 9000 % 2;
@@ -108,6 +164,20 @@ ERROR in ./d.js
 
 ERROR in ./e.js
   × Module parse failed:
+  ╰─▶   × JavaScript parsing error: 'const' declarations must be initialized
+         ╭─[2:7]
+       1 │ const CONST = 9000 % 2;
+       2 │ const  D {
+         ·        ─
+       3 │     // Comma is required, but parser can recover because of the newline.
+       4 │     d = 10
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./e.js
+  × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
          ╭─[2:9]
        1 │ const CONST = 9000 % 2;
@@ -135,6 +205,20 @@ ERROR in ./e.js
 
 ERROR in ./f.js
   × Module parse failed:
+  ╰─▶   × JavaScript parsing error: 'const' declarations must be initialized
+         ╭─[2:7]
+       1 │ const CONST = 9000 % 2;
+       2 │ const  D {
+         ·        ─
+       3 │     // Comma is required, but parser can recover because of the newline.
+       4 │     d = 10
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./f.js
+  × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected a semicolon
          ╭─[2:9]
        1 │ const CONST = 9000 % 2;
@@ -155,6 +239,20 @@ ERROR in ./f.js
        5 │     g = CONST
        6 │ }
          · ─
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./g.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parsing error: 'const' declarations must be initialized
+         ╭─[2:7]
+       1 │ const CONST = 9000 % 2;
+       2 │ const  D {
+         ·        ─
+       3 │     // Comma is required, but parser can recover because of the newline.
+       4 │     d = 10
          ╰────
       
   help: 

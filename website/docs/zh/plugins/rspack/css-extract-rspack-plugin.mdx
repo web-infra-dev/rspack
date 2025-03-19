@@ -13,10 +13,10 @@ Rspack 目前不兼容 [mini-css-extract-plugin](https://github.com/webpack-cont
 
 使用 CssExtractRspackPlugin 时，需要在 `plugins` 中注册插件，并在 [module.rules](/config/module#modulerules) 中注册 `CssExtractRspackPlugin.loader`。
 
-```ts title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   plugins: [new rspack.CssExtractRspackPlugin({})],
   module: {
     rules: [
@@ -198,10 +198,10 @@ interface LoaderOptions {
 
 例如：
 
-```ts title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   plugins: [new rspack.CssExtractRspackPlugin({})],
   module: {
     rules: [

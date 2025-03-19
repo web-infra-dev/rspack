@@ -9,14 +9,16 @@
  */
 import type * as binding from "@rspack/binding";
 import {
+	type AssetInfo,
+	type Dependency,
 	type ExternalObject,
 	type JsCompatSourceOwned,
 	type JsCompilation,
-	type JsModule,
 	type JsPathData,
 	JsRspackSeverity,
 	type JsRuntimeModule
 } from "@rspack/binding";
+export type { AssetInfo } from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
 import type { Source } from "webpack-sources";
 import { Chunk } from "./Chunk";
@@ -24,10 +26,9 @@ import { ChunkGraph } from "./ChunkGraph";
 import { ChunkGroup } from "./ChunkGroup";
 import type { Compiler } from "./Compiler";
 import type { ContextModuleFactory } from "./ContextModuleFactory";
-import { Dependency } from "./Dependency";
 import { Entrypoint } from "./Entrypoint";
 import { cutOffLoaderExecution } from "./ErrorHelpers";
-import { type CodeGenerationResult, Module } from "./Module";
+import type { CodeGenerationResult, Module } from "./Module";
 import ModuleGraph from "./ModuleGraph";
 import type { NormalModuleFactory } from "./NormalModuleFactory";
 import type { ResolverFactory } from "./ResolverFactory";
@@ -52,15 +53,12 @@ import WebpackError from "./lib/WebpackError";
 import { LogType, Logger } from "./logging/Logger";
 import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";
-import { type AssetInfo, JsAssetInfo } from "./util/AssetInfo";
-import MergeCaller from "./util/MergeCaller";
+import { AsyncTask } from "./util/AsyncTask";
 import { createReadonlyMap } from "./util/createReadonlyMap";
 import { createFakeCompilationDependencies } from "./util/fake";
 import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
-import { memoizeValue } from "./util/memoize";
 import { JsSource } from "./util/source";
-export type { AssetInfo } from "./util/AssetInfo";
 
 export type Assets = Record<string, Source>;
 export interface Asset {
@@ -399,27 +397,24 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 * Get a map of all assets.
 	 */
 	get assets(): Record<string, Source> {
-		return memoizeValue(() => this.#createCachedAssets());
+		return this.#createCachedAssets();
 	}
 
 	/**
 	 * Get a map of all entrypoints.
 	 */
 	get entrypoints(): ReadonlyMap<string, Entrypoint> {
-		return memoizeValue(
-			() =>
-				new Map(
-					Object.entries(this.#inner.entrypoints).map(([n, e]) => [
-						n,
-						Entrypoint.__from_binding(e)
-					])
-				)
+		return new Map(
+			this.#inner.entrypoints.map(binding => {
+				const entrypoint = Entrypoint.__from_binding(binding);
+				return [entrypoint.name!, entrypoint];
+			})
 		);
 	}
 
 	get chunkGroups(): ReadonlyArray<ChunkGroup> {
-		return memoizeValue(() =>
-			this.#inner.chunkGroups.map(binding => ChunkGroup.__from_binding(binding))
+		return this.#inner.chunkGroups.map(binding =>
+			ChunkGroup.__from_binding(binding)
 		);
 	}
 
@@ -444,19 +439,15 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	get modules(): ReadonlySet<Module> {
-		return new Set(
-			this.#inner.modules.map(module => Module.__from_binding(module))
-		);
+		return new Set(this.#inner.modules);
 	}
 
 	get builtModules(): ReadonlySet<Module> {
-		return new Set(
-			this.#inner.builtModules.map(module => Module.__from_binding(module))
-		);
+		return new Set(this.#inner.builtModules);
 	}
 
 	get chunks(): ReadonlySet<Chunk> {
-		return memoizeValue(() => new Set(this.__internal__getChunks()));
+		return new Set(this.__internal__getChunks());
 	}
 
 	/**
@@ -473,7 +464,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			get: (property: unknown) => {
 				if (typeof property === "string") {
 					const binding = this.#inner.getNamedChunk(property);
-					return Chunk.__from_binding(binding);
+					return binding ? Chunk.__from_binding(binding) : undefined;
 				}
 			}
 		});
@@ -581,7 +572,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		newSourceOrFunction: Source | ((source: Source) => Source),
 		assetInfoUpdateOrFunction?:
 			| AssetInfo
-			| ((assetInfo: AssetInfo) => AssetInfo)
+			| ((assetInfo: AssetInfo) => AssetInfo | undefined)
 	) {
 		let compatNewSourceOrFunction:
 			| JsCompatSourceOwned
@@ -602,12 +593,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.#inner.updateAsset(
 			filename,
 			compatNewSourceOrFunction,
-			assetInfoUpdateOrFunction === undefined
-				? assetInfoUpdateOrFunction
-				: typeof assetInfoUpdateOrFunction === "function"
-					? jsAssetInfo =>
-							JsAssetInfo.__to_binding(assetInfoUpdateOrFunction(jsAssetInfo))
-					: JsAssetInfo.__to_binding(assetInfoUpdateOrFunction)
+			assetInfoUpdateOrFunction
 		);
 	}
 
@@ -619,30 +605,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 * @param assetInfo - extra asset information
 	 */
 	emitAsset(filename: string, source: Source, assetInfo?: AssetInfo) {
-		this.#inner.emitAsset(
-			filename,
-			JsSource.__to_binding(source),
-			JsAssetInfo.__to_binding(assetInfo)
-		);
-	}
-
-	/**
-	 * Note: This is not a webpack public API, maybe removed in future.
-	 *
-	 * @internal
-	 */
-	__internal__emit_asset_from_loader(
-		filename: string,
-		source: Source,
-		assetInfo: AssetInfo,
-		module: string
-	) {
-		this.#inner.emitAssetFromLoader(
-			filename,
-			JsSource.__to_binding(source),
-			JsAssetInfo.__to_binding(assetInfo),
-			module
-		);
+		this.#inner.emitAsset(filename, JsSource.__to_binding(source), assetInfo);
 	}
 
 	deleteAsset(filename: string) {
@@ -662,7 +625,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		return assets.map(asset => {
 			return Object.defineProperties(asset, {
 				info: {
-					value: JsAssetInfo.__from_binding(asset.info)
+					value: asset.info
 				},
 				source: {
 					get: () => this.__internal__getAssetSource(asset.name)
@@ -678,7 +641,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		}
 		return Object.defineProperties(asset, {
 			info: {
-				value: JsAssetInfo.__from_binding(asset.info)
+				value: asset.info
 			},
 			source: {
 				get: () => this.__internal__getAssetSource(asset.name)
@@ -1098,27 +1061,32 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		);
 	}
 
-	#rebuildModuleCaller = ((compilation: Compilation) =>
-		new MergeCaller(
-			(args: Array<[string, (err: Error, m: Module) => void]>) => {
-				compilation.#inner.rebuildModule(
-					args.map(item => item[0]),
-					(err: Error, modules: JsModule[]) => {
-						for (const [id, callback] of args) {
-							const m = modules.find(item => item.moduleIdentifier === id);
-							if (m) {
-								callback(err, Module.__from_binding(m));
-							} else {
-								callback(err || new Error("module no found"), null as any);
-							}
-						}
+	#rebuildModuleTask = new AsyncTask<string, Module>(
+		(moduleIdentifiers, doneWork) => {
+			this.#inner.rebuildModule(
+				moduleIdentifiers,
+				(err: Error | null, modules: Module[]) => {
+					/*
+					 * 	TODO:
+					 *	batch all call parameters, once a module is failed, we cannot know which module
+					 * 	is failed to rebuild, we have to make all modules failed, this should be improved
+					 *	in the future
+					 */
+					if (err) {
+						doneWork(new Array(moduleIdentifiers.length).fill([err, null]));
+					} else {
+						doneWork(modules.map(module => [null, module]));
 					}
-				);
-			}
-		))(this);
+				}
+			);
+		}
+	);
 
-	rebuildModule(m: Module, f: (err: Error, m: Module) => void) {
-		this.#rebuildModuleCaller.push([m.identifier(), f]);
+	rebuildModule(
+		module: Module,
+		f: (err: Error | null, module: Module | null) => void
+	) {
+		this.#rebuildModuleTask.exec(module.identifier(), f);
 	}
 
 	addRuntimeModule(chunk: Chunk, runtimeModule: RuntimeModule) {
@@ -1256,8 +1224,11 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 class AddIncludeDispatcher {
 	#inner: binding.JsCompilation["addInclude"];
 	#running: boolean;
-	#args: [string, binding.RawDependency, binding.JsEntryOptions | undefined][] =
-		[];
+	#args: [
+		string,
+		binding.EntryDependency,
+		binding.JsEntryOptions | undefined
+	][] = [];
 	#cbs: ((err?: null | WebpackError, module?: Module) => void)[] = [];
 
 	#execute = () => {
@@ -1271,7 +1242,7 @@ class AddIncludeDispatcher {
 		this.#cbs = [];
 		this.#inner(args, (wholeErr, results) => {
 			if (this.#args.length !== 0) {
-				queueMicrotask(this.#execute);
+				queueMicrotask(this.#execute.bind(this));
 			}
 
 			if (wholeErr) {
@@ -1282,12 +1253,9 @@ class AddIncludeDispatcher {
 				return;
 			}
 			for (let i = 0; i < results.length; i++) {
-				const [errMsg, moduleBinding] = results[i];
+				const [errMsg, module] = results[i];
 				const cb = cbs[i];
-				cb(
-					errMsg ? new WebpackError(errMsg) : null,
-					Module.__from_binding(moduleBinding)
-				);
+				cb(errMsg ? new WebpackError(errMsg) : null, module);
 			}
 		});
 	};
@@ -1304,7 +1272,7 @@ class AddIncludeDispatcher {
 		callback: (err?: null | WebpackError, module?: Module) => void
 	) {
 		if (this.#args.length === 0) {
-			queueMicrotask(this.#execute);
+			queueMicrotask(this.#execute.bind(this));
 		}
 
 		this.#args.push([context, dependency, options as any]);
@@ -1322,10 +1290,8 @@ export class EntryData {
 	}
 
 	private constructor(binding: binding.JsEntryData) {
-		this.dependencies = binding.dependencies.map(Dependency.__from_binding);
-		this.includeDependencies = binding.includeDependencies.map(
-			Dependency.__from_binding
-		);
+		this.dependencies = binding.dependencies;
+		this.includeDependencies = binding.includeDependencies;
 		this.options = binding.options;
 	}
 }

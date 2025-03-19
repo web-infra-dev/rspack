@@ -20,18 +20,7 @@ __webpack_require__.l = function (url, done, key, chunkId$FETCH_PRIORITY$) {
 	}
 	if (!script) {
 		needAttach = true;
-		script = document.createElement('script');
-		$SCRIPT_TYPE$
-		$SCRIPT_CHARSET$
-		script.timeout = $CHUNK_LOAD_TIMEOUT_IN_SECONDS$;
-		if (__webpack_require__.nc) {
-			script.setAttribute("nonce", __webpack_require__.nc);
-		}
-		$UNIQUE_SET_ATTRIBUTE$
-		$FETCH_PRIORITY_SET_ATTRIBUTE$
-		script.src = $URL$;
-
-		__CROSS_ORIGIN_LOADING_PLACEHOLDER__
+		$CREATE_SCRIPT$
 	}
 	inProgress[url] = [done];
 	var onScriptComplete = function (prev, event) {

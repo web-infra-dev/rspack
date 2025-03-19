@@ -17,7 +17,8 @@ const creator = new BasicCaseCreator({
 			compilerType: ECompilerType.Rspack
 		})
 	],
-	runner: NormalRunnerFactory
+	runner: NormalRunnerFactory,
+	concurrent: true
 });
 
 export function createNormalCase(name: string, src: string, dist: string) {

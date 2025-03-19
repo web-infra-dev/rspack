@@ -1,64 +1,50 @@
+const RUNTIME_MODULE_REGEX = /(webpack\/runtime\/)([a-z_]+)/g;
+const RUNTIME_MODULE_NAME_REPLACER: Record<string, string> = {
+	auto_public_path: "publicPath",
+	public_path: "publicPath",
+	async_module: "async module",
+	base_uri: "base uri",
+	chunk_name: "chunkName",
+	compat_get_default_export: "compat get default export",
+	compat: "compat",
+	create_fake_namespace_object: "create fake namespace object",
+	create_script_url: "trusted types script url",
+	create_script: "trusted types script",
+	define_property_getters: "define property getters",
+	ensure_chunk: "ensure chunk",
+	get_full_hash: "getFullHash",
+	get_trusted_types_policy: "trusted types policy",
+	global: "global",
+	has_own_property: "hasOwnProperty shorthand",
+	load_script: "load script",
+	make_namespace_object: "make namespace object",
+	nonce: "nonce",
+	on_chunk_loaded: "chunk loaded",
+	relative_url: "relative url",
+	runtime_id: "runtimeId",
+	startup_chunk_dependencies: "startup chunk dependencies",
+	startup_entrypoint: "startup entrypoint",
+	system_context: "__system_context__",
+	chunk_prefetch_startup: "startup prefetch",
+	chunk_prefetch_trigger: "chunk prefetch trigger",
+	chunk_preload_trigger: "chunk preload trigger",
+	css_loading: "css loading",
+	async_wasm_loading: "wasm loading",
+	hot_module_replacement: "hot module replacement",
+	readfile_chunk_loading: "readFile chunk loading",
+	require_chunk_loading: "require chunk loading",
+	import_scripts_chunk_loading: "importScripts chunk loading",
+	module_chunk_loading: "import chunk loading",
+	export_webpack_runtime: "export webpack runtime",
+	jsonp_chunk_loading: "jsonp chunk loading",
+	remote: "remotes loading",
+	share: "sharing",
+	consume_shared: "consumes",
+	esm_module_decorator: "harmony module decorator",
+	node_module_decorator: "node module decorator"
+};
+
 const RUNTIME_MODULE_NAME_MAPPING = {
-	"webpack/runtime/auto_public_path": "webpack/runtime/publicPath",
-	"webpack/runtime/public_path": "webpack/runtime/publicPath",
-	"webpack/runtime/async_module": "webpack/runtime/async module",
-	"webpack/runtime/base_uri": "webpack/runtime/base uri",
-	"webpack/runtime/chunk_name": "webpack/runtime/chunkName",
-	"webpack/runtime/compat_get_default_export":
-		"webpack/runtime/compat get default export",
-	"webpack/runtime/compat": "webpack/runtime/compat",
-	"webpack/runtime/create_fake_namespace_object":
-		"webpack/runtime/create fake namespace object",
-	"webpack/runtime/create_script_url":
-		"webpack/runtime/trusted types script url",
-	"webpack/runtime/create_script": "webpack/runtime/trusted types script",
-	"webpack/runtime/define_property_getters":
-		"webpack/runtime/define property getters",
-	"webpack/runtime/ensure_chunk": "webpack/runtime/ensure chunk",
-	"webpack/runtime/get_full_hash": "webpack/runtime/getFullHash",
-	"webpack/runtime/get_trusted_types_policy":
-		"webpack/runtime/trusted types policy",
-	"webpack/runtime/global": "webpack/runtime/global",
-	"webpack/runtime/has_own_property":
-		"webpack/runtime/hasOwnProperty shorthand",
-	"webpack/runtime/load_script": "webpack/runtime/load script",
-	"webpack/runtime/make_namespace_object":
-		"webpack/runtime/make namespace object",
-	"webpack/runtime/nonce": "webpack/runtime/nonce",
-	"webpack/runtime/on_chunk_loaded": "webpack/runtime/chunk loaded",
-	"webpack/runtime/relative_url": "webpack/runtime/relative url",
-	"webpack/runtime/runtime_id": "webpack/runtime/runtimeId",
-	"webpack/runtime/startup_chunk_dependencies":
-		"webpack/runtime/startup chunk dependencies",
-	"webpack/runtime/startup_entrypoint": "webpack/runtime/startup entrypoint",
-	"webpack/runtime/system_context": "webpack/runtime/__system_context__",
-	"webpack/runtime/chunk_prefetch_startup": "webpack/runtime/startup prefetch",
-	"webpack/runtime/chunk_prefetch_trigger":
-		"webpack/runtime/chunk prefetch trigger",
-	"webpack/runtime/chunk_preload_trigger":
-		"webpack/runtime/chunk preload trigger",
-	"webpack/runtime/css_loading": "webpack/runtime/css loading",
-	"webpack/runtime/async_wasm_loading": "webpack/runtime/wasm loading",
-	"webpack/runtime/hot_module_replacement":
-		"webpack/runtime/hot module replacement",
-	"webpack/runtime/readfile_chunk_loading":
-		"webpack/runtime/readFile chunk loading",
-	"webpack/runtime/require_chunk_loading":
-		"webpack/runtime/require chunk loading",
-	"webpack/runtime/import_scripts_chunk_loading":
-		"webpack/runtime/importScripts chunk loading",
-	"webpack/runtime/module_chunk_loading":
-		"webpack/runtime/import chunk loading",
-	"webpack/runtime/export_webpack_runtime":
-		"webpack/runtime/export webpack runtime",
-	"webpack/runtime/jsonp_chunk_loading": "webpack/runtime/jsonp chunk loading",
-	"webpack/runtime/remote": "webpack/runtime/remotes loading",
-	"webpack/runtime/share": "webpack/runtime/sharing",
-	"webpack/runtime/consume_shared": "webpack/runtime/consumes",
-	"webpack/runtime/esm_module_decorator":
-		"webpack/runtime/harmony module decorator",
-	"webpack/runtime/node_module_decorator":
-		"webpack/runtime/node module decorator",
 	// module name with parameters
 	"webpack/runtime/get_chunk_filename": "webpack/runtime/get $1 chunk filename",
 	"webpack/runtime/get_main_filename": "webpack/runtime/get $1 filename",
@@ -74,15 +60,20 @@ const RUNTIME_MODULE_PARAM_REGEX = {
 		/webpack\/runtime\/chunk_prefetch_function\/([\w.\-_\s]+)(\*\/)?/g
 };
 
-export function replaceRuntimeModuleName(name: string) {
-	return Object.entries(RUNTIME_MODULE_NAME_MAPPING).reduce(
-		(name, [rspackName, webpackName]) => {
+export function replaceRuntimeModuleName(content: string) {
+	let res = content.replace(
+		RUNTIME_MODULE_REGEX,
+		(_, $1: string, $2: string) =>
+			`${$1}${RUNTIME_MODULE_NAME_REPLACER[$2] || $2}`
+	);
+	res = Object.entries(RUNTIME_MODULE_NAME_MAPPING).reduce(
+		(res, [rspackName, webpackName]) => {
 			if (
 				RUNTIME_MODULE_PARAM_REGEX[
 					rspackName as keyof typeof RUNTIME_MODULE_PARAM_REGEX
 				]
 			) {
-				return name.replace(
+				return res.replace(
 					RUNTIME_MODULE_PARAM_REGEX[
 						rspackName as keyof typeof RUNTIME_MODULE_PARAM_REGEX
 					],
@@ -92,8 +83,9 @@ export function replaceRuntimeModuleName(name: string) {
 				);
 			}
 
-			return name.split(rspackName).join(webpackName);
+			return res.replaceAll(rspackName, webpackName);
 		},
-		name
+		res
 	);
+	return res;
 }

@@ -14,7 +14,8 @@ module.exports = [
 		plugins: [
 			new HtmlPlugin({
 				filename: "pug-index.html",
-				template: "pug-loader!" + path.join(__dirname, "template.pug")
+				template:
+					"@webdiscus/pug-loader!" + path.join(__dirname, "template.pug")
 			})
 		]
 	}

@@ -3,17 +3,17 @@ import path from "path";
 
 it("should include the correct split chunk ids in entry", async () => {
 	if (Math.random() < 0) import("./module");
-	const runtimeId = STATS_JSON.chunks.find(c => c.names.includes("runtime")).id;
+	const runtimeId = __STATS__.chunks.find(c => c.names.includes("runtime")).id;
 	const entryCode = fs.readFileSync(
 		path.resolve(__dirname, "entry.js"),
 		"utf-8"
 	);
 	STATE.allIds = new Set([
 		...(STATE.allIds || []),
-		...STATS_JSON.entrypoints.entry.chunks
+		...__STATS__.entrypoints.entry.chunks
 	]);
 	const expectedIds = Array.from(STATE.allIds).filter(
-		id => STATS_JSON.entrypoints.entry.chunks.includes(id) && id !== runtimeId
+		id => __STATS__.entrypoints.entry.chunks.includes(id) && id !== runtimeId
 	);
 	try {
 		for (const id of STATE.allIds) {

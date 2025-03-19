@@ -1,5 +1,7 @@
 #![feature(let_chains)]
 
+mod drive;
+
 use std::{
   borrow::Cow,
   hash::{BuildHasherDefault, Hasher},
@@ -7,16 +9,18 @@ use std::{
 };
 
 use derive_more::Debug;
+pub use drive::*;
 use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::{Captures, Regex};
 use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  AssetInfo, Compilation, CompilationProcessAssets, Logger, Plugin, PluginContext,
+  AssetInfo, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 type IndexSet<T> = indexmap::IndexSet<T, BuildHasherDefault<FxHasher>>;
@@ -24,13 +28,35 @@ type IndexSet<T> = indexmap::IndexSet<T, BuildHasherDefault<FxHasher>>;
 pub static QUOTE_META: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Invalid regex"));
 
+static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, Box<RealContentHashPluginHooks>>> =
+  LazyLock::new(Default::default);
+
 #[plugin]
 #[derive(Debug, Default)]
 pub struct RealContentHashPlugin;
 
+impl RealContentHashPlugin {
+  pub fn get_compilation_hooks(
+    id: CompilationId,
+  ) -> dashmap::mapref::one::Ref<'static, CompilationId, Box<RealContentHashPluginHooks>> {
+    if !COMPILATION_HOOKS_MAP.contains_key(&id) {
+      COMPILATION_HOOKS_MAP.insert(id, Default::default());
+    }
+    COMPILATION_HOOKS_MAP
+      .get(&id)
+      .expect("should have js plugin drive")
+  }
+
+  pub fn get_compilation_hooks_mut(
+    id: CompilationId,
+  ) -> dashmap::mapref::one::RefMut<'static, CompilationId, Box<RealContentHashPluginHooks>> {
+    COMPILATION_HOOKS_MAP.entry(id).or_default()
+  }
+}
+
 #[plugin_hook(CompilationProcessAssets for RealContentHashPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_HASH)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  inner_impl(compilation)
+  inner_impl(compilation).await
 }
 
 impl Plugin for RealContentHashPlugin {
@@ -52,7 +78,7 @@ impl Plugin for RealContentHashPlugin {
   }
 }
 
-fn inner_impl(compilation: &mut Compilation) -> Result<()> {
+async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.RealContentHashPlugin");
   let start = logger.time("hash to asset names");
   let mut hash_to_asset_names: HashMap<&str, Vec<&str>> = HashMap::default();
@@ -106,6 +132,7 @@ fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   let start = logger.time("old hash to new hash");
   let mut hash_to_new_hash = HashMap::default();
 
+  let hooks = RealContentHashPlugin::get_compilation_hooks(compilation.id());
   for old_hash in &ordered_hashes {
     if let Some(asset_names) = hash_to_asset_names.get_mut(old_hash.as_str()) {
       asset_names.sort();
@@ -113,20 +140,32 @@ fn inner_impl(compilation: &mut Compilation) -> Result<()> {
         .par_iter()
         .filter_map(|name| assets_data.get(name))
         .map(|data| {
-          data.compute_new_source(
-            data.own_hashes.contains(old_hash),
-            &hash_to_new_hash,
-            &hash_regexp,
-          )
+          data
+            .compute_new_source(
+              data.own_hashes.contains(old_hash),
+              &hash_to_new_hash,
+              &hash_regexp,
+            )
+            .clone()
         })
         .collect();
       asset_contents.dedup();
-      let mut hasher = RspackHash::from(&compilation.options.output);
-      for asset_content in asset_contents {
-        hasher.write(&asset_content.buffer());
-      }
-      let new_hash = hasher.digest(&compilation.options.output.hash_digest);
-      let new_hash = new_hash.rendered(old_hash.len()).to_string();
+      let updated_hash = hooks
+        .update_hash
+        .call(compilation, &asset_contents, old_hash)
+        .await?;
+
+      let new_hash = if let Some(new_hash) = updated_hash {
+        new_hash
+      } else {
+        let mut hasher = RspackHash::from(&compilation.options.output);
+        for asset_content in asset_contents {
+          hasher.write(&asset_content.buffer());
+        }
+        let new_hash = hasher.digest(&compilation.options.output.hash_digest);
+        let new_hash = new_hash.rendered(old_hash.len()).to_string();
+        new_hash
+      };
       hash_to_new_hash.insert(old_hash, new_hash);
     }
   }

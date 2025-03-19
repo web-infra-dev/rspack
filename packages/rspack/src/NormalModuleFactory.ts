@@ -2,6 +2,7 @@ import type * as binding from "@rspack/binding";
 
 import * as liteTapable from "@rspack/lite-tapable";
 import type { ResolveData, ResourceDataWithData } from "./Module";
+import type { ResolverFactory } from "./ResolverFactory";
 
 export type NormalModuleCreateData =
 	binding.JsNormalModuleFactoryCreateModuleArgs & {
@@ -23,7 +24,10 @@ export class NormalModuleFactory {
 			void
 		>;
 	};
-	constructor() {
+
+	resolverFactory: ResolverFactory;
+
+	constructor(resolverFactory: ResolverFactory) {
 		this.hooks = {
 			resolveForScheme: new liteTapable.HookMap(
 				() => new liteTapable.AsyncSeriesBailHook(["resourceData"])
@@ -37,5 +41,13 @@ export class NormalModuleFactory {
 				"resolveData"
 			])
 		};
+		this.resolverFactory = resolverFactory;
+	}
+
+	getResolver(
+		type: string,
+		resolveOptions: Parameters<ResolverFactory["get"]>[1]
+	) {
+		return this.resolverFactory.get(type, resolveOptions);
 	}
 }

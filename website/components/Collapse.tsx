@@ -1,4 +1,4 @@
-import Collapse from 'antd/es/collapse/Collapse';
+import { Collapse } from '@rstack-dev/doc-ui/antd';
 import './Collapse.scss';
 
 const CollapsePanel = Collapse.Panel;

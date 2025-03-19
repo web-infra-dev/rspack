@@ -1,17 +1,18 @@
-const { ContainerPlugin, ContainerReferencePlugin } = require("@rspack/core").container;
+const { ContainerPlugin, ContainerReferencePlugin } =
+	require("@rspack/core").container;
 
 const RUNTIME = "container-runtime";
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-  output: {
-    filename: "[name].js"
-  },
+	output: {
+		filename: "[name].js"
+	},
 	plugins: [
 		new ContainerPlugin({
 			name: "A",
-      runtime: RUNTIME,
-      filename: "container-a.js",
+			runtime: RUNTIME,
+			filename: "container-a.js",
 			library: {
 				type: "commonjs-module"
 			},
@@ -21,8 +22,8 @@ module.exports = {
 		}),
 		new ContainerPlugin({
 			name: "B",
-      runtime: RUNTIME,
-      filename: "container-b.js",
+			runtime: RUNTIME,
+			filename: "container-b.js",
 			library: {
 				type: "commonjs-module"
 			},
@@ -30,12 +31,12 @@ module.exports = {
 				".": "./b"
 			}
 		}),
-    new ContainerReferencePlugin({
+		new ContainerReferencePlugin({
 			remoteType: "commonjs-module",
-      remotes: {
-        "A": "./container-a.js",
-        "B": "./container-b.js",
-      }
-    })
+			remotes: {
+				A: "./container-a.js",
+				B: "./container-b.js"
+			}
+		})
 	]
 };

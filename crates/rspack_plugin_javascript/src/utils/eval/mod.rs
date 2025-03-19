@@ -12,21 +12,20 @@ mod eval_unary_expr;
 use bitflags::bitflags;
 use num_bigint::BigInt;
 use rspack_core::DependencyRange;
-use swc_core::atoms::Atom;
-use swc_core::common::Span;
+use swc_core::{atoms::Atom, common::Span};
 
-pub use self::eval_array_expr::eval_array_expression;
-pub use self::eval_binary_expr::eval_binary_expression;
-pub use self::eval_call_expr::eval_call_expression;
-pub use self::eval_cond_expr::eval_cond_expression;
-pub use self::eval_lit_expr::{eval_lit_expr, eval_prop_name};
-pub use self::eval_member_expr::eval_member_expression;
-pub use self::eval_new_expr::eval_new_expression;
-pub use self::eval_source::eval_source;
-pub use self::eval_tpl_expr::{
-  eval_tagged_tpl_expression, eval_tpl_expression, TemplateStringKind,
+pub use self::{
+  eval_array_expr::eval_array_expression,
+  eval_binary_expr::eval_binary_expression,
+  eval_call_expr::eval_call_expression,
+  eval_cond_expr::eval_cond_expression,
+  eval_lit_expr::{eval_lit_expr, eval_prop_name},
+  eval_member_expr::eval_member_expression,
+  eval_new_expr::eval_new_expression,
+  eval_source::eval_source,
+  eval_tpl_expr::{eval_tagged_tpl_expression, eval_tpl_expression, TemplateStringKind},
+  eval_unary_expr::eval_unary_expression,
 };
-pub use self::eval_unary_expr::eval_unary_expression;
 use crate::visitors::ExportedVariableInfo;
 
 #[allow(dead_code)]
@@ -70,6 +69,7 @@ pub struct BasicEvaluatedExpression {
   string: Option<String>,
   bigint: Option<Bigint>,
   regexp: Option<Regexp>,
+  array: Option<Vec<String>>,
   identifier: Option<String>,
   root_info: Option<ExportedVariableInfo>,
   members: Option<Vec<Atom>>,
@@ -81,7 +81,6 @@ pub struct BasicEvaluatedExpression {
   prefix: Option<Box<BasicEvaluatedExpression>>,
   postfix: Option<Box<BasicEvaluatedExpression>>,
   wrapped_inner_expressions: Option<Vec<BasicEvaluatedExpression>>,
-  // array: Option<Array>
   template_string_kind: Option<TemplateStringKind>,
 
   options: Option<Vec<BasicEvaluatedExpression>>,
@@ -105,6 +104,7 @@ impl BasicEvaluatedExpression {
       boolean: None,
       number: None,
       bigint: None,
+      array: None,
       quasis: None,
       parts: None,
       identifier: None,
@@ -163,6 +163,10 @@ impl BasicEvaluatedExpression {
 
   pub fn is_array(&self) -> bool {
     matches!(self.ty, Ty::Array)
+  }
+
+  pub fn is_const_array(&self) -> bool {
+    matches!(self.ty, Ty::ConstArray)
   }
 
   pub fn is_wrapped(&self) -> bool {
@@ -398,6 +402,12 @@ impl BasicEvaluatedExpression {
     self.items = Some(items);
   }
 
+  pub fn set_array(&mut self, array: Vec<String>) {
+    self.ty = Ty::ConstArray;
+    self.side_effects = false;
+    self.array = Some(array);
+  }
+
   pub fn options(&self) -> &Vec<BasicEvaluatedExpression> {
     self.options.as_ref().expect("options should not empty")
   }
@@ -572,6 +582,14 @@ impl BasicEvaluatedExpression {
   pub fn items(&self) -> &Vec<BasicEvaluatedExpression> {
     assert!(self.is_array());
     self.items.as_ref().expect("items must exists for array")
+  }
+
+  pub fn array(&self) -> &Vec<String> {
+    assert!(self.is_const_array());
+    self
+      .array
+      .as_ref()
+      .expect("array must exists for const array")
   }
 
   pub fn number(&self) -> Number {

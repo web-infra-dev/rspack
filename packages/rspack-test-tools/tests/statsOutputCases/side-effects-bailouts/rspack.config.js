@@ -3,7 +3,7 @@ module.exports = {
 	entry: {
 		main: "./index.js"
 	},
-	mode: 'production',
+	mode: "production",
 	stats: {
 		chunks: true,
 		children: true,

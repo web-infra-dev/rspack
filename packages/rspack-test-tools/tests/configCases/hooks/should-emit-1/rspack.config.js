@@ -18,5 +18,5 @@ class Plugin {
 /**@type {import("@rspack/core").Configuration}*/
 module.exports = {
 	context: __dirname,
-	plugins: [new Plugin()],
+	plugins: [new Plugin()]
 };

@@ -5,13 +5,13 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   impl_module_meta_info, impl_source_map_config, module_update_hash,
-  rspack_sources::{RawStringSource, Source, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   ChunkGraph, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
   DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec,
   SourceType,
 };
-use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_util::source_map::SourceMapKind;
 
 use super::{
@@ -37,8 +37,8 @@ pub struct RemoteModule {
   pub share_scope: String,
   pub remote_key: String,
   factory_meta: Option<FactoryMeta>,
-  build_info: Option<BuildInfo>,
-  build_meta: Option<BuildMeta>,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
 }
 
 impl RemoteModule {
@@ -68,8 +68,11 @@ impl RemoteModule {
       share_scope,
       remote_key,
       factory_meta: None,
-      build_info: None,
-      build_meta: None,
+      build_info: BuildInfo {
+        strict: true,
+        ..Default::default()
+      },
+      build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -116,15 +119,11 @@ impl Module for RemoteModule {
     &ModuleType::Remote
   }
 
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
-  }
-
   fn source_types(&self) -> &[SourceType] {
     &[SourceType::Remote, SourceType::ShareInit]
   }
 
-  fn original_source(&self) -> Option<&dyn Source> {
+  fn source(&self) -> Option<&BoxSource> {
     None
   }
 
@@ -145,11 +144,6 @@ impl Module for RemoteModule {
     _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let build_info = BuildInfo {
-      strict: true,
-      ..Default::default()
-    };
-
     let mut dependencies: Vec<BoxDependency> = Vec::new();
     if self.external_requests.len() == 1 {
       let dep = RemoteToExternalDependency::new(self.external_requests[0].clone());
@@ -160,8 +154,6 @@ impl Module for RemoteModule {
     }
 
     Ok(BuildResult {
-      build_info,
-      build_meta: Default::default(),
       dependencies,
       blocks: Vec::new(),
       optimization_bailouts: vec![],
@@ -169,7 +161,7 @@ impl Module for RemoteModule {
   }
 
   // #[tracing::instrument("RemoteModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
-  fn code_generation(
+  async fn code_generation(
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,

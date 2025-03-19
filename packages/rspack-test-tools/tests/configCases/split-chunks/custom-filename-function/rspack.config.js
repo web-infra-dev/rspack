@@ -17,9 +17,9 @@ module.exports = {
 					chunks: "all",
 					test: /shared/,
 					filename: (pathData, assetInfo) => {
-						expect(pathData).toBeDefined()
-						expect(typeof assetInfo).toBe('object')
-						return "shared-[name].js"
+						expect(pathData).toBeDefined();
+						expect(typeof assetInfo).toBe("object");
+						return "shared-[name].js";
 					},
 					enforce: true
 				},

@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
-use rspack_core::rspack_sources::{ConcatSource, RawStringSource, SourceExt};
 use rspack_core::{
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationParams, CompilerCompilation,
   CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
@@ -9,8 +9,8 @@ use rspack_core::{
 use rspack_error::{error, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_plugin_javascript::runtime::{render_chunk_runtime_modules, render_runtime_modules};
 use rspack_plugin_javascript::{
+  runtime::{render_chunk_runtime_modules, render_runtime_modules},
   JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JsPlugin, RenderSource,
 };
 
@@ -28,7 +28,7 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation);
+  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
   hooks.chunk_hash.tap(js_chunk_hash::new(self));
   hooks.render_chunk.tap(render_chunk::new(self));
   Ok(())
@@ -92,13 +92,13 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(JavascriptModulesRenderChunk for ArrayPushCallbackChunkFormatPlugin)]
-fn render_chunk(
+async fn render_chunk(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
 ) -> Result<()> {
-  let hooks = JsPlugin::get_compilation_hooks(compilation);
+  let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let has_runtime_modules = compilation
     .chunk_graph
@@ -117,14 +117,14 @@ fn render_chunk(
     source.add(render_source.source.clone());
     if has_runtime_modules {
       source.add(RawStringSource::from_static(","));
-      source.add(render_chunk_runtime_modules(compilation, chunk_ukey)?);
+      source.add(render_chunk_runtime_modules(compilation, chunk_ukey).await?);
     }
     source.add(RawStringSource::from_static(")"));
   } else {
     let chunk_loading_global = &compilation.options.output.chunk_loading_global;
 
     source.add(RawStringSource::from(format!(
-      r#"({}['{}'] = {}['{}'] || []).push([[{}], "#,
+      r#"({}["{}"] = {}["{}"] || []).push([[{}], "#,
       global_object,
       chunk_loading_global,
       global_object,
@@ -141,7 +141,7 @@ fn render_chunk(
         RuntimeGlobals::REQUIRE
       )));
       if has_runtime_modules {
-        source.add(render_runtime_modules(compilation, chunk_ukey)?);
+        source.add(render_runtime_modules(compilation, chunk_ukey).await?);
       }
       if has_entry {
         let entries = compilation
@@ -155,12 +155,15 @@ fn render_chunk(
         let mut render_source = RenderSource {
           source: start_up_source,
         };
-        hooks.render_startup.call(
-          compilation,
-          chunk_ukey,
-          last_entry_module,
-          &mut render_source,
-        )?;
+        hooks
+          .render_startup
+          .call(
+            compilation,
+            chunk_ukey,
+            last_entry_module,
+            &mut render_source,
+          )
+          .await?;
         source.add(render_source.source);
         let runtime_requirements =
           ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);

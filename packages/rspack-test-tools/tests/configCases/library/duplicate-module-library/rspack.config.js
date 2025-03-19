@@ -2,12 +2,12 @@
 module.exports = {
 	output: {
 		library: {
-			type: "module",
+			type: "module"
 		},
-		enabledLibraryTypes: ["module", "module"],
+		enabledLibraryTypes: ["module", "module"]
 	},
 	target: ["es2022"],
 	experiments: {
-		outputModule: true,
+		outputModule: true
 	}
 };

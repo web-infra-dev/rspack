@@ -1,6 +1,6 @@
 # 使用 Rsdoctor
 
-[Rsdoctor](https://rsdoctor.dev/) 是一个针对 Rspack 的构建分析器，可以直观地展示构建过程，例如编译时间、编译前后的代码变化、模块引用关系、重复模块等。如果您需要排查构建产物或构建时编译问题，可以使用 Rsdoctor。
+[Rsdoctor](https://rsdoctor.dev/) 是一个针对 Rspack 的构建分析器，可以直观地展示构建过程，例如编译时间、编译前后的代码变化、模块引用关系、重复模块等。如果你需要排查构建产物或构建时编译问题，可以使用 Rsdoctor。
 
 ## 💡 什么是 Rsdoctor？
 
@@ -54,12 +54,12 @@ import { PackageManagerTabs } from '@theme';
 
 :::
 
-在 `rspack.config.js` 的 [plugins](/config/plugins.html#plugins) 中初始化 RsdoctorRspackPlugin 插件，参考：
+在 Rspack 配置的 [plugins](/config/plugins.html#plugins) 中初始化 RsdoctorRspackPlugin 插件，参考：
 
-```ts title="rspack.config.js"
-const { RsdoctorRspackPlugin } = require('@rsdoctor/rspack-plugin');
+```ts title="rspack.config.mjs"
+import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
 
-module.exports = {
+export default {
   // ...
   plugins: [
     // 仅在 RSDOCTOR 为 true 时注册插件，因为插件会增加构建耗时
@@ -67,7 +67,7 @@ module.exports = {
       new RsdoctorRspackPlugin({
         // 插件选项
       }),
-  ].filter(Boolean),
+  ],
 };
 ```
 

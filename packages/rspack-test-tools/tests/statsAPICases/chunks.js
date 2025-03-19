@@ -1,3 +1,19 @@
+function deepReplace(obj) {
+	if (typeof obj === "object" && obj !== null) {
+		for (const key in obj) {
+			if (Object.prototype.hasOwnProperty.call(obj, key)) {
+				if (typeof obj[key] === "number" && key === "runtime") {
+					obj[key] = "xxx";
+				} else if (key === "hash") {
+					obj[key] = "xxxxxxxxxxxxxxxx";
+				} else if (typeof obj[key] === "object") {
+					deepReplace(obj[key]);
+				}
+			}
+		}
+	}
+}
+
 /** @type {import('../../dist').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should output the chunks",
@@ -8,15 +24,17 @@ module.exports = {
 		};
 	},
 	async check(stats) {
-		expect(
-			stats?.toJson({
-				chunks: true,
-				timings: false,
-				builtAt: false,
-				version: false,
-				modulesSpace: 3
-			}).chunks
-		).toMatchInlineSnapshot(`
+		const statsChunks = stats?.toJson({
+			chunks: true,
+			timings: false,
+			builtAt: false,
+			version: false,
+			modulesSpace: 3
+		}).chunks;
+
+		deepReplace(statsChunks);
+
+		expect(statsChunks).toMatchInlineSnapshot(`
 		Array [
 		  Object {
 		    auxiliaryFiles: Array [],
@@ -27,7 +45,7 @@ module.exports = {
 		      chunkB.js,
 		    ],
 		    filteredModules: undefined,
-		    hash: 64feb0c0aec6d474,
+		    hash: xxxxxxxxxxxxxxxx,
 		    id: 250,
 		    idHints: Array [],
 		    initial: false,
@@ -73,9 +91,12 @@ module.exports = {
 		        orphan: false,
 		        postOrderIndex: 1,
 		        preOrderIndex: 1,
-		        providedExports: Array [],
+		        providedExports: null,
 		        reasons: Array [
 		          Object {
+		            active: true,
+		            explanation: undefined,
+		            loc: undefined,
 		            moduleId: 101,
 		            moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/b.js,
 		            moduleName: ./fixtures/b.js,
@@ -86,6 +107,9 @@ module.exports = {
 		            userRequest: self,
 		          },
 		          Object {
+		            active: true,
+		            explanation: undefined,
+		            loc: undefined,
 		            moduleId: 725,
 		            moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/chunk-b.js,
 		            moduleName: ./fixtures/chunk-b.js,
@@ -144,7 +168,7 @@ module.exports = {
 		      main.js,
 		    ],
 		    filteredModules: undefined,
-		    hash: ecb98ed10bf9b94d,
+		    hash: xxxxxxxxxxxxxxxx,
 		    id: 909,
 		    idHints: Array [],
 		    initial: true,
@@ -184,15 +208,21 @@ module.exports = {
 		        orphan: false,
 		        postOrderIndex: 0,
 		        preOrderIndex: 0,
-		        providedExports: Array [],
+		        providedExports: null,
 		        reasons: Array [
 		          Object {
+		            active: true,
+		            explanation: undefined,
+		            loc: undefined,
 		            moduleId: null,
 		            resolvedModuleId: null,
 		            type: entry,
 		            userRequest: ./fixtures/chunk-b,
 		          },
 		          Object {
+		            active: true,
+		            explanation: undefined,
+		            loc: undefined,
 		            moduleId: 725,
 		            moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/chunk-b.js,
 		            moduleName: ./fixtures/chunk-b.js,
@@ -235,7 +265,7 @@ module.exports = {
 		    size: 85,
 		    sizes: Object {
 		      javascript: 85,
-		      runtime: 9129,
+		      runtime: xxx,
 		    },
 		    type: chunk,
 		  },

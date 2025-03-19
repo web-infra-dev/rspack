@@ -1,15 +1,12 @@
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{AsyncDependenciesBlockIdentifier, ModuleIdentifier};
-use crate::{ChunkGroupUkey, ChunkUkey};
+use crate::{AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, ModuleIdentifier};
 
 pub mod chunk_graph_chunk;
 pub mod chunk_graph_module;
-pub use chunk_graph_chunk::ChunkGraphChunk;
-pub use chunk_graph_chunk::ChunkSizeOptions;
-pub use chunk_graph_module::ChunkGraphModule;
-pub use chunk_graph_module::ModuleId;
+pub use chunk_graph_chunk::{ChunkGraphChunk, ChunkSizeOptions};
+pub use chunk_graph_module::{ChunkGraphModule, ModuleId};
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraph {

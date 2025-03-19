@@ -1,5 +1,4 @@
-use std::borrow::Cow;
-use std::sync::LazyLock;
+use std::{borrow::Cow, sync::LazyLock};
 
 use regex::Regex;
 use rspack_error::{error, Result};
@@ -51,7 +50,6 @@ pub static RESERVED_IDENTIFIER: LazyLock<HashSet<&str>> = LazyLock::new(|| {
     "protected",
     "public",
     "static",
-    "yield",
     "yield",
     // module code
     "await",

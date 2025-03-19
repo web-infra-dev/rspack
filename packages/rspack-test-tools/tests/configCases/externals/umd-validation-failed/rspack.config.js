@@ -13,7 +13,7 @@ module.exports = {
 		lodash: {
 			root: "./lodash.js",
 			commonjs: "./lodash.js",
-			commonjs2: "./lodash.js",
+			commonjs2: "./lodash.js"
 		}
 	},
 	plugins: [

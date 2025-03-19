@@ -218,12 +218,7 @@ impl ExportPresenceMode {
       ExportPresenceMode::None => None,
       ExportPresenceMode::Warn => Some(false),
       ExportPresenceMode::Error => Some(true),
-      ExportPresenceMode::Auto => Some(
-        module
-          .build_meta()
-          .map(|m| m.strict_esm_module)
-          .unwrap_or_default(),
-      ),
+      ExportPresenceMode::Auto => Some(module.build_meta().strict_esm_module),
     }
   }
 }
@@ -399,6 +394,7 @@ pub enum GeneratorOptions {
   Css(CssGeneratorOptions),
   CssAuto(CssAutoGeneratorOptions),
   CssModule(CssModuleGeneratorOptions),
+  Json(JsonGeneratorOptions),
   Unknown,
 }
 
@@ -413,6 +409,7 @@ impl GeneratorOptions {
   get_variant!(get_css, Css, CssGeneratorOptions);
   get_variant!(get_css_auto, CssAuto, CssAutoGeneratorOptions);
   get_variant!(get_css_module, CssModule, CssModuleGeneratorOptions);
+  get_variant!(get_json, Json, JsonGeneratorOptions);
 
   pub fn asset_filename(&self) -> Option<&Filename> {
     self
@@ -473,12 +470,52 @@ impl From<AssetGeneratorOptions> for AssetInlineGeneratorOptions {
 }
 
 #[cacheable]
+#[derive(Debug, Clone, Copy, MergeFrom)]
+struct AssetGeneratorImportModeFlags(u8);
+bitflags! {
+  impl AssetGeneratorImportModeFlags: u8 {
+    const URL = 1 << 0;
+    const PRESERVE = 1 << 1;
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy, MergeFrom)]
+pub struct AssetGeneratorImportMode(AssetGeneratorImportModeFlags);
+
+impl AssetGeneratorImportMode {
+  pub fn is_url(&self) -> bool {
+    self.0.contains(AssetGeneratorImportModeFlags::URL)
+  }
+  pub fn is_preserve(&self) -> bool {
+    self.0.contains(AssetGeneratorImportModeFlags::PRESERVE)
+  }
+}
+
+impl From<String> for AssetGeneratorImportMode {
+  fn from(s: String) -> Self {
+    match s.as_str() {
+      "url" => Self(AssetGeneratorImportModeFlags::URL),
+      "preserve" => Self(AssetGeneratorImportModeFlags::PRESERVE),
+      _ => unreachable!("AssetGeneratorImportMode error"),
+    }
+  }
+}
+
+impl Default for AssetGeneratorImportMode {
+  fn default() -> Self {
+    Self(AssetGeneratorImportModeFlags::URL)
+  }
+}
+
+#[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct AssetResourceGeneratorOptions {
   pub emit: Option<bool>,
   pub filename: Option<Filename>,
   pub output_path: Option<Filename>,
   pub public_path: Option<PublicPath>,
+  pub import_mode: Option<AssetGeneratorImportMode>,
 }
 
 impl From<AssetGeneratorOptions> for AssetResourceGeneratorOptions {
@@ -488,6 +525,7 @@ impl From<AssetGeneratorOptions> for AssetResourceGeneratorOptions {
       filename: value.filename,
       output_path: value.output_path,
       public_path: value.public_path,
+      import_mode: value.import_mode,
     }
   }
 }
@@ -500,6 +538,7 @@ pub struct AssetGeneratorOptions {
   pub output_path: Option<Filename>,
   pub public_path: Option<PublicPath>,
   pub data_url: Option<AssetGeneratorDataUrl>,
+  pub import_mode: Option<AssetGeneratorImportMode>,
 }
 
 pub struct AssetGeneratorDataUrlFnCtx<'a> {
@@ -617,6 +656,12 @@ impl From<CssGeneratorOptions> for CssModuleGeneratorOptions {
       ..Default::default()
     }
   }
+}
+
+#[cacheable]
+#[derive(Default, Debug, Clone, MergeFrom)]
+pub struct JsonGeneratorOptions {
+  pub json_parse: Option<bool>,
 }
 
 #[cacheable]
@@ -740,7 +785,7 @@ impl<'s> From<&'s serde_json::Value> for DataRef<'s> {
 }
 
 impl DataRef<'_> {
-  fn as_str(&self) -> Option<&str> {
+  pub fn as_str(&self) -> Option<&str> {
     match self {
       Self::Str(s) => Some(s),
       Self::Value(v) => v.as_str(),
@@ -871,7 +916,9 @@ pub struct FuncUseCtx {
   pub resource: Option<String>,
   pub real_resource: Option<String>,
   pub resource_query: Option<String>,
+  pub resource_fragment: Option<String>,
   pub issuer: Option<Box<str>>,
+  pub issuer_layer: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -1008,6 +1055,9 @@ pub enum ModuleRuleEnforce {
   Pre,
 }
 
+// BE CAREFUL:
+// Add more fields to this struct should result in adding new fields to options builder.
+// `impl From<ModuleOptions> for ModuleOptionsBuilder` should be updated.
 #[derive(Debug, Default)]
 pub struct ModuleOptions {
   pub rules: Vec<ModuleRule>,

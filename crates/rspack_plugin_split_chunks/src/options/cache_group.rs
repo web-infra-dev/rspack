@@ -1,8 +1,7 @@
 use derive_more::Debug;
 use rspack_core::Filename;
 
-use super::cache_group_test::CacheGroupTest;
-use super::chunk_name::ChunkNameGetter;
+use super::{cache_group_test::CacheGroupTest, chunk_name::ChunkNameGetter};
 use crate::common::{ChunkFilter, ModuleLayerFilter, ModuleTypeFilter, SplitChunkSizes};
 
 #[derive(Debug)]
@@ -31,6 +30,7 @@ pub struct CacheGroup {
   pub name: ChunkNameGetter,
   pub priority: f64,
   pub min_size: SplitChunkSizes,
+  pub min_size_reduction: SplitChunkSizes,
   pub reuse_existing_chunk: bool,
   /// number of referenced chunks
   pub min_chunks: u32,

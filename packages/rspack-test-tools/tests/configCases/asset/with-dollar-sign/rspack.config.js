@@ -7,9 +7,9 @@ module.exports = {
 				test: /\.png$/,
 				type: "asset/resource",
 				generator: {
-					filename: '[name][ext]'
+					filename: "[name][ext]"
 				}
 			}
-		],
+		]
 	}
 };

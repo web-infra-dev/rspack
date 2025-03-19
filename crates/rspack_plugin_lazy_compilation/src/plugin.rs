@@ -1,10 +1,13 @@
-use std::sync::LazyLock;
-use std::{fmt::Debug, sync::Arc};
+use std::{
+  fmt::Debug,
+  sync::{Arc, LazyLock},
+};
 
 use rspack_core::{
   ApplyContext, BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation,
-  CompilerOptions, DependencyType, EntryDependency, Module, ModuleFactory, ModuleFactoryCreateData,
-  NormalModuleCreateData, NormalModuleFactoryModule, Plugin, PluginContext,
+  CompilerId, CompilerOptions, DependencyType, EntryDependency, LibIdentOptions, Module,
+  ModuleFactory, ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryModule,
+  Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -29,16 +32,26 @@ pub enum LazyCompilationTest<F: LazyCompilationTestCheck> {
 }
 
 pub trait LazyCompilationTestCheck: Send + Sync + Debug {
-  fn test(&self, compilation_id: CompilationId, module: &dyn Module) -> bool;
+  fn test(
+    &self,
+    compiler_id: CompilerId,
+    compilation_id: CompilationId,
+    module: &dyn Module,
+  ) -> bool;
 }
 
 impl<F: LazyCompilationTestCheck> LazyCompilationTest<F> {
-  fn test(&self, compilation_id: CompilationId, module: &dyn Module) -> bool {
+  fn test(
+    &self,
+    compiler_id: CompilerId,
+    compilation_id: CompilationId,
+    module: &dyn Module,
+  ) -> bool {
     match self {
       LazyCompilationTest::Regex(regex) => {
         regex.test(&module.name_for_condition().unwrap_or("".into()))
       }
-      LazyCompilationTest::Fn(f) => f.test(compilation_id, module),
+      LazyCompilationTest::Fn(f) => f.test(compiler_id, compilation_id, module),
     }
   }
 }
@@ -64,9 +77,14 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
     Self::new_inner(Mutex::new(backend), entries, imports, test, cacheable)
   }
 
-  fn check_test(&self, compilation_id: CompilationId, module: &BoxModule) -> bool {
+  fn check_test(
+    &self,
+    compiler_id: CompilerId,
+    compilation_id: CompilationId,
+    module: &BoxModule,
+  ) -> bool {
     if let Some(test) = &self.inner.test {
-      test.test(compilation_id, module.as_ref())
+      test.test(compiler_id, compilation_id, module.as_ref())
     } else {
       true
     }
@@ -149,13 +167,21 @@ async fn normal_module_factory_module(
   }
 
   if WEBPACK_DEV_SERVER_CLIENT_RE.test(&create_data.resource_resolve_data.resource)
-    || !self.check_test(module_factory_create_data.compilation_id, module)
+    || !self.check_test(
+      module_factory_create_data.compiler_id,
+      module_factory_create_data.compilation_id,
+      module,
+    )
   {
     return Ok(());
   }
 
   let mut backend = self.backend.lock().await;
   let module_identifier = module.identifier();
+
+  let lib_ident = module.lib_ident(LibIdentOptions {
+    context: module_factory_create_data.options.context.as_str(),
+  });
   let info = backend
     .module(
       module_identifier,
@@ -165,6 +191,7 @@ async fn normal_module_factory_module(
 
   *module = Box::new(LazyCompilationProxyModule::new(
     module_identifier,
+    lib_ident.map(|ident| ident.into_owned()),
     module_factory_create_data.clone(),
     create_data.resource_resolve_data.resource.clone(),
     self.cacheable,

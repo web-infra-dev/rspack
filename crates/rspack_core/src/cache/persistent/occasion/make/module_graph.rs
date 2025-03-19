@@ -13,7 +13,7 @@ use rustc_hash::FxHashSet as HashSet;
 use super::Storage;
 use crate::{
   cache::persistent::cacheable_context::CacheableContext, AsyncDependenciesBlock,
-  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildDependency, DependencyParents,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, DependencyId, DependencyParents,
   ExportInfoData, ExportsInfoData, ModuleGraph, ModuleGraphConnection, ModuleGraphModule,
   ModuleGraphPartial, RayonConsumer,
 };
@@ -128,7 +128,7 @@ pub fn save_module_graph(
 pub async fn recovery_module_graph(
   storage: &Arc<dyn Storage>,
   context: &CacheableContext,
-) -> Result<(ModuleGraphPartial, HashSet<BuildDependency>)> {
+) -> Result<(ModuleGraphPartial, HashSet<DependencyId>)> {
   let mut need_check_dep = vec![];
   let mut partial = ModuleGraphPartial::default();
   let mut mg = ModuleGraph::new(vec![], Some(&mut partial));
@@ -142,12 +142,13 @@ pub async fn recovery_module_graph(
     })
     .with_max_len(1)
     .consume(|mut node| {
-      for (dep, parent_block) in node.dependencies {
+      for (index_in_block, (dep, parent_block)) in node.dependencies.into_iter().enumerate() {
         mg.set_parents(
           *dep.id(),
           DependencyParents {
             block: parent_block,
             module: node.module.identifier(),
+            index_in_block,
           },
         );
         mg.add_dependency(dep);
@@ -171,25 +172,17 @@ pub async fn recovery_module_graph(
       mg.add_module_graph_module(node.mgm);
       mg.add_module(node.module);
     });
+  let mut force_build_dependencies = HashSet::default();
   // recovery incoming connections
-  for (con_id, module_identifier) in &need_check_dep {
-    if let Some(mgm) = mg.module_graph_module_by_identifier_mut(module_identifier) {
-      mgm.add_incoming_connection(*con_id);
+  for (dep_id, module_identifier) in need_check_dep {
+    if let Some(mgm) = mg.module_graph_module_by_identifier_mut(&module_identifier) {
+      mgm.add_incoming_connection(dep_id);
+    } else {
+      force_build_dependencies.insert(dep_id);
     }
   }
 
   tracing::info!("recovery {} module", mg.modules().len());
-  let make_failed_dependencies = need_check_dep
-    .iter()
-    .filter_map(|(dep_id, module_identifier)| {
-      let module_exist = mg.module_by_identifier(module_identifier).is_some();
-      if module_exist {
-        None
-      } else {
-        mg.revoke_connection(dep_id, false)
-      }
-    })
-    .collect::<HashSet<_>>();
-  tracing::info!("recovery failed {} deps", make_failed_dependencies.len());
-  Ok((partial, make_failed_dependencies))
+  tracing::info!("recovery failed {} deps", force_build_dependencies.len());
+  Ok((partial, force_build_dependencies))
 }

@@ -19,7 +19,7 @@ export class MultipleRunnerFactory<
 
 	protected createRunner(
 		file: string,
-		stats: TCompilerStatsCompilation<T>,
+		stats: () => TCompilerStatsCompilation<T>,
 		compilerOptions: TCompilerOptions<T>,
 		env: ITestEnv
 	): ITestRunner {
@@ -29,7 +29,7 @@ export class MultipleRunnerFactory<
 		const [index] = getIndex();
 		const runner = super.createRunner(
 			file,
-			stats.children![index],
+			() => stats().children![index],
 			multiCompilerOptions[index],
 			env
 		);

@@ -1,18 +1,18 @@
-use std::{path::Path, sync::Arc};
+use std::{borrow::Cow, path::Path, sync::Arc};
 
 use cow_utils::CowUtils;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
 use rspack_collections::Identifiable;
 use rspack_core::{
   impl_module_meta_info, module_namespace_promise, module_update_hash,
-  rspack_sources::{RawStringSource, Source},
+  rspack_sources::{BoxSource, RawStringSource},
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildResult, ChunkGraph, CodeGenerationData, CodeGenerationResult, Compilation,
   ConcatenationScope, Context, DependenciesBlock, DependencyId, DependencyRange, FactoryMeta,
-  Module, ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals,
-  RuntimeSpec, SourceType, TemplateContext,
+  LibIdentOptions, Module, ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, ModuleType,
+  RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext,
 };
-use rspack_error::{Diagnosable, Diagnostic, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_plugin_javascript::dependency::CommonJsRequireDependency;
 use rspack_util::{
   ext::DynHash,
@@ -28,13 +28,14 @@ static SOURCE_TYPE: [SourceType; 1] = [SourceType::JavaScript];
 #[cacheable]
 #[derive(Debug)]
 pub(crate) struct LazyCompilationProxyModule {
-  build_info: Option<BuildInfo>,
-  build_meta: Option<BuildMeta>,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
   factory_meta: Option<FactoryMeta>,
   cacheable: bool,
 
   readable_identifier: String,
   identifier: ModuleIdentifier,
+  lib_ident: Option<String>,
 
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
@@ -61,8 +62,10 @@ impl ModuleSourceMapConfig for LazyCompilationProxyModule {
 }
 
 impl LazyCompilationProxyModule {
+  #[allow(clippy::too_many_arguments)]
   pub(crate) fn new(
     original_module: ModuleIdentifier,
+    lib_ident: Option<String>,
     create_data: ModuleFactoryCreateData,
     resource: String,
     cacheable: bool,
@@ -76,12 +79,15 @@ impl LazyCompilationProxyModule {
     );
     let identifier = format!("lazy-compilation-proxy|{original_module}").into();
 
+    let lib_ident = lib_ident.map(|s| format!("{s}!lazy-compilation-proxy"));
+
     Self {
-      build_info: None,
-      build_meta: None,
+      build_info: Default::default(),
+      build_meta: Default::default(),
       cacheable,
       create_data,
       readable_identifier,
+      lib_ident,
       resource,
       identifier,
       source_map_kind: SourceMapKind::empty(),
@@ -95,14 +101,7 @@ impl LazyCompilationProxyModule {
   }
 }
 
-impl Diagnosable for LazyCompilationProxyModule {
-  fn add_diagnostic(&self, _diagnostic: Diagnostic) {
-    unimplemented!()
-  }
-  fn add_diagnostics(&self, _diagnostics: Vec<Diagnostic>) {
-    unimplemented!()
-  }
-}
+impl_empty_diagnosable_trait!(LazyCompilationProxyModule);
 
 #[cacheable_dyn]
 #[async_trait::async_trait]
@@ -125,7 +124,7 @@ impl Module for LazyCompilationProxyModule {
     200f64
   }
 
-  fn original_source(&self) -> Option<&dyn Source> {
+  fn source(&self) -> Option<&BoxSource> {
     None
   }
 
@@ -133,8 +132,8 @@ impl Module for LazyCompilationProxyModule {
     std::borrow::Cow::Borrowed(&self.readable_identifier)
   }
 
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
+  fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
+    self.lib_ident.as_ref().map(|s| Cow::Borrowed(s.as_str()))
   }
 
   async fn build(
@@ -170,13 +169,10 @@ impl Module for LazyCompilationProxyModule {
     files.extend(self.create_data.file_dependencies.clone());
     files.insert(Path::new(&self.resource).into());
 
+    self.build_info.cacheable = self.cacheable;
+    self.build_info.file_dependencies = files;
+
     Ok(BuildResult {
-      build_info: BuildInfo {
-        cacheable: self.cacheable,
-        file_dependencies: files,
-        ..Default::default()
-      },
-      build_meta: BuildMeta::default(),
       dependencies,
       blocks,
       optimization_bailouts: vec![],
@@ -184,7 +180,7 @@ impl Module for LazyCompilationProxyModule {
   }
 
   // #[tracing::instrument("LazyCompilationProxyModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
-  fn code_generation(
+  async fn code_generation(
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,

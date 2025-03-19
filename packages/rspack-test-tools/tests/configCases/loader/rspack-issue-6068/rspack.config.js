@@ -11,8 +11,8 @@ module.exports = {
 						{
 							loader: "./loader1"
 						}
-					]
-				},
+					];
+				}
 			},
 			{
 				test: /a\.js$/,
@@ -21,7 +21,7 @@ module.exports = {
 						{
 							loader: "./loader2"
 						}
-					]
+					];
 				},
 				enforce: "pre"
 			},
@@ -32,7 +32,7 @@ module.exports = {
 						{
 							loader: "./loader3"
 						}
-					]
+					];
 				},
 				enforce: "post"
 			}

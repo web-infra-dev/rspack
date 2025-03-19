@@ -1,7 +1,7 @@
 import type { JsChunkGroup } from "@rspack/binding";
 
 import { Chunk } from "./Chunk";
-import { Module } from "./Module";
+import type { Module } from "./Module";
 
 const CHUNK_GROUP_MAPPINGS = new WeakMap<JsChunkGroup, ChunkGroup>();
 
@@ -10,6 +10,7 @@ export class ChunkGroup {
 	declare readonly index?: number;
 	declare readonly name?: string;
 	declare readonly origins: ReadonlyArray<ChunkGroupOrigin>;
+	declare readonly childrenIterable: Set<ChunkGroup>;
 
 	#inner: JsChunkGroup;
 
@@ -51,11 +52,17 @@ export class ChunkGroup {
 				enumerable: true,
 				get: () => {
 					return this.#inner.origins.map(origin => ({
-						module: origin.module
-							? Module.__from_binding(origin.module)
-							: undefined,
+						module: origin.module ? origin.module : undefined,
 						request: origin.request
 					}));
+				}
+			},
+			childrenIterable: {
+				enumerable: true,
+				get: () => {
+					return this.#inner.childrenIterable.map(child =>
+						ChunkGroup.__from_binding(child)
+					);
 				}
 			}
 		});
@@ -76,11 +83,11 @@ export class ChunkGroup {
 	}
 
 	getModulePreOrderIndex(module: Module) {
-		return this.#inner.getModulePreOrderIndex(Module.__to_binding(module));
+		return this.#inner.getModulePreOrderIndex(module);
 	}
 
 	getModulePostOrderIndex(module: Module) {
-		return this.#inner.getModulePostOrderIndex(Module.__to_binding(module));
+		return this.#inner.getModulePostOrderIndex(module);
 	}
 }
 

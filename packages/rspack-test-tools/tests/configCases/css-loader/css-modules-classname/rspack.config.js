@@ -15,7 +15,7 @@ module.exports = {
 							modules: {
 								namedExport: false,
 								localIdentName: "[name]__[local]--[contenthash]",
-								exportLocalsConvention: 'camel-case',
+								exportLocalsConvention: "camel-case"
 							}
 						}
 					}

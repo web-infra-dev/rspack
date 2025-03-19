@@ -1,0 +1,8 @@
+// getDefaultExport function for compatibility with non-ESM modules
+<%- COMPAT_GET_DEFAULT_EXPORT %> = <%- basicFunction("module") %> {
+	var getter = module && module.__esModule ?
+		<%- returningFunction("module['default']", "") %> :
+		<%- returningFunction("module", "") %>;
+	<%- DEFINE_PROPERTY_GETTERS %>(getter, { a: getter });
+	return getter;
+};

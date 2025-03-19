@@ -1,17 +1,17 @@
 use std::{collections::VecDeque, sync::Arc};
 
-use rspack_error::{Diagnostic, IntoTWithDiagnosticArray};
 use rspack_fs::ReadableFileSystem;
 
 use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
 use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
-  AsyncDependenciesBlock, BoxDependency, BuildContext, BuildInfo, BuildResult, CompilationId,
+  AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilationId, CompilerId,
   CompilerOptions, DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
 };
 
 #[derive(Debug)]
 pub struct BuildTask {
+  pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub module: Box<dyn Module>,
   pub current_profile: Option<Box<ModuleProfile>>,
@@ -28,6 +28,7 @@ impl Task<MakeTaskContext> for BuildTask {
   }
   async fn background_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {
     let Self {
+      compiler_id,
       compilation_id,
       compiler_options,
       resolver_factory,
@@ -43,12 +44,13 @@ impl Task<MakeTaskContext> for BuildTask {
     plugin_driver
       .compilation_hooks
       .build_module
-      .call(compilation_id, &mut module)
+      .call(compiler_id, compilation_id, &mut module)
       .await?;
 
     let result = module
       .build(
         BuildContext {
+          compiler_id,
           compilation_id,
           compiler_options: compiler_options.clone(),
           resolver_factory: resolver_factory.clone(),
@@ -59,28 +61,16 @@ impl Task<MakeTaskContext> for BuildTask {
       )
       .await;
 
-    let build_result = result.map(|t| {
-      let diagnostics = module
-        .clone_diagnostics()
-        .into_iter()
-        .map(|d| d.with_module_identifier(Some(module.identifier())))
-        .collect();
-      t.with_diagnostic(diagnostics)
-    });
-
     if let Some(current_profile) = &current_profile {
       current_profile.mark_building_end();
     }
 
-    build_result.map::<Vec<Box<dyn Task<MakeTaskContext>>>, _>(|build_result| {
-      let (build_result, diagnostics) = build_result.split_into_parts();
+    result.map::<Vec<Box<dyn Task<MakeTaskContext>>>, _>(|build_result| {
       vec![Box::new(BuildResultTask {
         module,
         build_result: Box::new(build_result),
         plugin_driver,
-        diagnostics,
         current_profile,
-        compilation_id,
       })]
     })
   }
@@ -90,10 +80,8 @@ impl Task<MakeTaskContext> for BuildTask {
 struct BuildResultTask {
   pub module: Box<dyn Module>,
   pub build_result: Box<BuildResult>,
-  pub diagnostics: Vec<Diagnostic>,
   pub plugin_driver: SharedPluginDriver,
   pub current_profile: Option<Box<ModuleProfile>>,
-  pub compilation_id: CompilationId,
 }
 #[async_trait::async_trait]
 impl Task<MakeTaskContext> for BuildResultTask {
@@ -104,35 +92,27 @@ impl Task<MakeTaskContext> for BuildResultTask {
     let BuildResultTask {
       mut module,
       build_result,
-      diagnostics,
       current_profile,
       plugin_driver,
-      compilation_id,
     } = *self;
-
-    module.set_build_info(build_result.build_info);
-    module.set_build_meta(build_result.build_meta);
 
     plugin_driver
       .compilation_hooks
       .succeed_module
-      .call(compilation_id, &mut module)
+      .call(context.compiler_id, context.compilation_id, &mut module)
       .await?;
 
-    let build_info_default = BuildInfo::default();
-
-    let build_info = module.build_info().unwrap_or(&build_info_default);
+    let build_info = module.build_info();
 
     let artifact = &mut context.artifact;
     let module_graph =
       &mut MakeTaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
 
-    if !diagnostics.is_empty() {
+    if !module.diagnostics().is_empty() {
       artifact.make_failed_module.insert(module.identifier());
     }
 
     tracing::trace!("Module built: {}", module.identifier());
-    artifact.diagnostics.extend(diagnostics);
     module_graph
       .get_optimization_bailout_mut(&module.identifier())
       .extend(build_result.optimization_bailouts);
@@ -155,7 +135,7 @@ impl Task<MakeTaskContext> for BuildResultTask {
                             blocks: Vec<Box<AsyncDependenciesBlock>>,
                             current_block: Option<Box<AsyncDependenciesBlock>>|
      -> Vec<Box<AsyncDependenciesBlock>> {
-      for dependency in dependencies {
+      for (index_in_block, dependency) in dependencies.into_iter().enumerate() {
         let dependency_id = *dependency.id();
         if current_block.is_none() {
           module.add_dependency_id(dependency_id);
@@ -166,6 +146,7 @@ impl Task<MakeTaskContext> for BuildResultTask {
           DependencyParents {
             block: current_block.as_ref().map(|block| block.identifier()),
             module: module.identifier(),
+            index_in_block,
           },
         );
         module_graph.add_dependency(dependency);

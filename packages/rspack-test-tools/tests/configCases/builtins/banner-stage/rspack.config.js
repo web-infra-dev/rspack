@@ -41,15 +41,13 @@ module.exports = {
 		new rspack.BannerPlugin("PROCESS_ASSETS_STAGE_ADDITIONS"), // Defaults to be PROCESS_ASSETS_STAGE_ADDITIONS(-100)
 
 		// Fotter
-		new rspack.BannerPlugin(
-			{
-				banner: "PROCESS_ASSETS_STAGE_REPORT",
-				footer: true,
-				entryOnly: true,
-				exclude: [/a\.js/],
-				stage: rspack.Compilation.PROCESS_ASSETS_STAGE_REPORT // 5000
-			}
-		),
+		new rspack.BannerPlugin({
+			banner: "PROCESS_ASSETS_STAGE_REPORT",
+			footer: true,
+			entryOnly: true,
+			exclude: [/a\.js/],
+			stage: rspack.Compilation.PROCESS_ASSETS_STAGE_REPORT // 5000
+		}),
 		new rspack.BannerPlugin({
 			banner: "PROCESS_ASSETS_STAGE_PRE_PROCESS",
 			footer: true,
@@ -63,6 +61,6 @@ module.exports = {
 			entryOnly: true,
 			exclude: [/a\.js/],
 			stage: rspack.Compilation.PROCESS_ASSETS_STAGE_DERIVED // -200
-		}),
+		})
 	]
 };

@@ -6,7 +6,7 @@ module.exports = {
 				test: /\.css$/,
 				type: "css/module",
 				generator: {
-					exportsConvention: "camel-case",
+					exportsConvention: "camel-case"
 				}
 			}
 		]

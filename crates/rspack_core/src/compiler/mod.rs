@@ -1,29 +1,33 @@
 mod compilation;
-mod hmr;
 pub mod make;
 mod module_executor;
-use std::sync::Arc;
+mod rebuild;
+use std::sync::{atomic::AtomicU32, Arc};
 
+use futures::future::join_all;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
-use rspack_futures::FuturesResults;
 use rspack_hook::define_hook;
+use rspack_macros::cacheable;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
+use rspack_util::node_path::NodePath;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
-pub use self::compilation::*;
-pub use self::hmr::{collect_changed_modules, CompilationRecords};
-pub use self::module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor};
-use crate::cache::{new_cache, Cache};
-use crate::incremental::IncrementalPasses;
-use crate::old_cache::Cache as OldCache;
-use crate::{
-  fast_set, include_hash, trim_dir, BoxPlugin, CleanOptions, CompilerOptions, Logger, PluginDriver,
-  ResolverFactory, SharedPluginDriver,
+pub use self::{
+  compilation::*,
+  module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor},
+  rebuild::CompilationRecords,
 };
-use crate::{ContextModuleFactory, NormalModuleFactory};
+use crate::{
+  cache::{new_cache, Cache},
+  fast_set, include_hash,
+  incremental::IncrementalPasses,
+  old_cache::Cache as OldCache,
+  trim_dir, BoxPlugin, CleanOptions, CompilerOptions, ContextModuleFactory, Logger,
+  NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
+};
 
 // should be SyncHook, but rspack need call js hook
 define_hook!(CompilerThisCompilation: AsyncSeries(compilation: &mut Compilation, params: &mut CompilationParams));
@@ -50,8 +54,27 @@ pub struct CompilerHooks {
   pub asset_emitted: CompilerAssetEmittedHook,
 }
 
+static COMPILER_ID: AtomicU32 = AtomicU32::new(0);
+
+#[cacheable]
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
+pub struct CompilerId(u32);
+
+impl CompilerId {
+  pub fn new() -> Self {
+    Self(COMPILER_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
+  }
+}
+
+impl Default for CompilerId {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 #[derive(Debug)]
 pub struct Compiler {
+  id: CompilerId,
   pub compiler_path: String,
   pub options: Arc<CompilerOptions>,
   pub output_filesystem: Arc<dyn WritableFileSystem>,
@@ -80,7 +103,7 @@ impl Compiler {
     output_filesystem: Option<Arc<dyn WritableFileSystem>>,
     intermediate_filesystem: Option<Arc<dyn IntermediateFileSystem>>,
     // only supports passing input_filesystem in rust api, no support for js api
-    input_filesystem: Option<Arc<dyn ReadableFileSystem + Send + Sync>>,
+    input_filesystem: Option<Arc<dyn ReadableFileSystem>>,
     // no need to pass resolve_factory in rust api
     resolver_factory: Option<Arc<ResolverFactory>>,
     loader_resolver_factory: Option<Arc<ResolverFactory>>,
@@ -126,10 +149,14 @@ impl Compiler {
     let old_cache = Arc::new(OldCache::new(options.clone()));
     let module_executor = ModuleExecutor::default();
 
+    let id = CompilerId::new();
+
     Self {
+      id,
       compiler_path,
       options: options.clone(),
       compilation: Compilation::new(
+        id,
         options,
         plugin_driver.clone(),
         buildtime_plugin_driver.clone(),
@@ -144,6 +171,7 @@ impl Compiler {
         input_filesystem.clone(),
         intermediate_filesystem.clone(),
         output_filesystem.clone(),
+        false,
       ),
       output_filesystem,
       intermediate_filesystem,
@@ -156,6 +184,10 @@ impl Compiler {
       emitted_asset_versions: Default::default(),
       input_filesystem,
     }
+  }
+
+  pub fn id(&self) -> CompilerId {
+    self.id
   }
 
   pub async fn run(&mut self) -> Result<()> {
@@ -173,6 +205,7 @@ impl Compiler {
     fast_set(
       &mut self.compilation,
       Compilation::new(
+        self.id,
         self.options.clone(),
         self.plugin_driver.clone(),
         self.buildtime_plugin_driver.clone(),
@@ -187,6 +220,7 @@ impl Compiler {
         self.input_filesystem.clone(),
         self.intermediate_filesystem.clone(),
         self.output_filesystem.clone(),
+        false,
       ),
     );
     if let Err(err) = self.cache.before_compile(&mut self.compilation).await {
@@ -310,36 +344,40 @@ impl Compiler {
       .await?;
 
     let mut new_emitted_asset_versions = HashMap::default();
-    let results = self
-      .compilation
-      .assets()
-      .iter()
-      .filter_map(|(filename, asset)| {
-        // collect version info to new_emitted_asset_versions
-        if self
-          .options
-          .experiments
-          .incremental
-          .contains(IncrementalPasses::EMIT_ASSETS)
-        {
-          new_emitted_asset_versions.insert(filename.to_string(), asset.info.version.clone());
-        }
 
-        if let Some(old_version) = self.emitted_asset_versions.get(filename) {
-          if old_version.as_str() == asset.info.version && !old_version.is_empty() {
-            return None;
+    rspack_futures::scope(|token| {
+      self
+        .compilation
+        .assets()
+        .iter()
+        .for_each(|(filename, asset)| {
+          // collect version info to new_emitted_asset_versions
+          if self
+            .options
+            .experiments
+            .incremental
+            .contains(IncrementalPasses::EMIT_ASSETS)
+          {
+            new_emitted_asset_versions.insert(filename.to_string(), asset.info.version.clone());
           }
-        }
 
-        Some(self.emit_asset(&self.options.output.path, filename, asset))
-      })
-      .collect::<FuturesResults<_>>();
+          if let Some(old_version) = self.emitted_asset_versions.get(filename) {
+            if old_version.as_str() == asset.info.version && !old_version.is_empty() {
+              return;
+            }
+          }
+
+          // SAFETY: await immediately and trust caller to poll future entirely
+          let s = unsafe { token.used((&self, filename, asset)) };
+
+          s.spawn(|(this, filename, asset)| {
+            this.emit_asset(&this.options.output.path, filename, asset)
+          });
+        })
+    })
+    .await;
 
     self.emitted_asset_versions = new_emitted_asset_versions;
-    // return first error
-    for item in results.into_inner() {
-      item?;
-    }
 
     self
       .plugin_driver
@@ -358,7 +396,7 @@ impl Compiler {
   ) -> Result<()> {
     if let Some(source) = asset.get_source() {
       let (target_file, query) = filename.split_once('?').unwrap_or((filename, ""));
-      let file_path = output_path.join(target_file);
+      let file_path = output_path.node_join(target_file);
       self
         .output_filesystem
         .create_dir_all(
@@ -463,28 +501,30 @@ impl Compiler {
     }
 
     let assets = self.compilation.assets();
-    let _ = self
-      .emitted_asset_versions
-      .iter()
-      .filter_map(|(filename, _version)| {
-        if !assets.contains_key(filename) {
-          let filename = filename.to_owned();
-          Some(async {
-            if !clean_options.keep(filename.as_str()) {
-              let filename = Utf8Path::new(&self.options.output.path).join(filename);
-              let _ = self.output_filesystem.remove_file(&filename).await;
-            }
-          })
-        } else {
-          None
-        }
-      })
-      .collect::<FuturesResults<_>>();
+    join_all(
+      self
+        .emitted_asset_versions
+        .iter()
+        .filter_map(|(filename, _version)| {
+          if !assets.contains_key(filename) {
+            let filename = filename.to_owned();
+            Some(async {
+              if !clean_options.keep(filename.as_str()) {
+                let filename = Utf8Path::new(&self.options.output.path).join(filename);
+                let _ = self.output_filesystem.remove_file(&filename).await;
+              }
+            })
+          } else {
+            None
+          }
+        }),
+    )
+    .await;
 
     Ok(())
   }
 
-  fn new_compilation_params(&self) -> CompilationParams {
+  pub fn new_compilation_params(&self) -> CompilationParams {
     CompilationParams {
       normal_module_factory: Arc::new(NormalModuleFactory::new(
         self.options.clone(),

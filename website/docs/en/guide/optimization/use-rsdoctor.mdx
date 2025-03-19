@@ -56,19 +56,19 @@ import { PackageManagerTabs } from '@theme';
 
 :::
 
-Initialize the RsdoctorRspackPlugin plugin in the [plugins](/config/plugins.html#plugins) section of `rspack.config.js`, as shown below:
+Initialize the RsdoctorRspackPlugin plugin in the [plugins](/config/plugins.html#plugins) field of Rspack configuration, as shown below:
 
-```ts title="rspack.config.js"
-const { RsdoctorRspackPlugin } = require('@rsdoctor/rspack-plugin');
+```ts title="rspack.config.mjs"
+import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
 
-module.exports = {
+export default {
   // ...
   plugins: [
     process.env.RSDOCTOR &&
       new RsdoctorRspackPlugin({
         // plugin options
       }),
-  ].filter(Boolean),
+  ],
 };
 ```
 

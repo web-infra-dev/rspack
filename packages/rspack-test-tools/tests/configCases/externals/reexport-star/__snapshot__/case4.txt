@@ -1,0 +1,6 @@
+export * from "external1-alias";
+
+;// CONCATENATED MODULE: ./case4.js
+
+
+

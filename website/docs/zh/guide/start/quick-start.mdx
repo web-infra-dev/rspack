@@ -1,4 +1,4 @@
-import { Tabs, Tab, PackageManagerTabs } from '@theme';
+import { PackageManagerTabs } from '@theme';
 
 # 快速上手
 
@@ -6,11 +6,11 @@ import { Tabs, Tab, PackageManagerTabs } from '@theme';
 
 - [创建新项目](#创建新项目)：使用 CLI 创建一个全新的 Rspack 或 Rsbuild 项目。
 - [从现有项目迁移](#从现有项目迁移)：从一个基于 webpack 的项目迁移到 Rspack。
-- [社区生态](#社区生态)：发现 Rspack 社区生态中的项目。
+- [生态](#生态)：发现 Rspack 社区生态中的项目。
 
 ## 环境准备
 
-Rsbuild 支持使用 [Node.js](https://nodejs.org/)、[Deno](https://deno.com/) 或 [Bun](https://bun.sh/) 作为运行时。
+Rspack 支持使用 [Node.js](https://nodejs.org/)、[Deno](https://deno.com/) 或 [Bun](https://bun.sh/) 作为运行时。
 
 ### Node.js
 
@@ -78,11 +78,6 @@ npx create-rsbuild -d my-project -t react
 
 - [Rsbuild CodeSandbox 示例](https://codesandbox.io/p/github/rspack-contrib/rsbuild-codesandbox-example)
 
-你也可以使用 [豆包 MarsCode](https://www.marscode.cn/) 快速创建一个在线的 Rsbuild 项目：
-
-1. 访问 [MarsCode - Rsbuild 模板](https://www.marscode.cn/dashboard/template-detail?id=8e8qr0k282d6wn)。
-2. 登录，点击右上角的「使用模板」按钮即可。
-
 ## 手动安装
 
 首先创建一个项目目录，并生成一个 npm `package.json` 文件：
@@ -93,7 +88,7 @@ cd rspack-demo
 npm init -y
 ```
 
-然后安装 `@rspack/core` 和 `@rspack/cli` 为 dev 依赖：
+然后安装 [@rspack/core](https://www.npmjs.com/package/@rspack/core) 和 [@rspack/cli](https://www.npmjs.com/package/@rspack/cli) 为 dev 依赖：
 
 <PackageManagerTabs command="add @rspack/core @rspack/cli -D" />
 
@@ -102,24 +97,54 @@ npm init -y
 ```js title="package.json"
 {
   "scripts": {
-    "dev": "rspack serve",
+    "dev": "rspack dev",
     "build": "rspack build"
   }
 }
 ```
 
-查看 [配置 Rspack](/config/index) 来了解如何配置 Rspack。
+接下来，查看 [配置 Rspack](/config/index) 来了解如何配置 Rspack。
 
 ## 从现有项目迁移
 
-如果你需要从一个现有项目迁移迁移到 Rspack 或 Rsbuild，可以参考以下指南：
+如果你需要从一个现有项目迁移迁移到 Rspack 技术栈，可以参考以下指南：
 
 - [从 webpack 迁移到 Rspack](/guide/migration/webpack)
 - [从 webpack 迁移到 Rsbuild](https://rsbuild.dev/zh/guide/migration/webpack)
 - [从 Create React App 迁移到 Rsbuild](https://rsbuild.dev/zh/guide/migration/cra)
 - [从 Vue CLI 迁移到 Rsbuild](https://rsbuild.dev/zh/guide/migration/vue-cli)
 - [从 Vite 迁移到 Rsbuild](https://rsbuild.dev/zh/guide/migration/vite)
+- [从 Tsup 迁移到 Rslib](https://lib.rsbuild.dev/zh/guide/migration/tsup)
 - [从 Storybook 迁移](/guide/migration/storybook)
+
+## 安装 canary 版本
+
+当你需要测试或验证 Rspack 未发布至稳定版的功能时，可能需要使用 canary 版本。
+
+Rspack canary 版本的 scope 会带有 `-canary` 后缀。例如 `@rspack/core` 的 canary 包名为 `@rspack-canary/core`。要使用这些版本，你可以配置包管理器（npm/yarn/pnpm/bun）的 overrides。
+
+以下是使用 pnpm overrides 的示例：
+
+```json title="package.json"
+{
+  "pnpm": {
+    "overrides": {
+      "@rspack/core": "npm:@rspack-canary/core@latest"
+    },
+    "peerDependencyRules": {
+      "allowAny": ["@rspack/*"]
+    }
+  }
+}
+```
+
+此外，Rspack 社区提供了 [install-rspack](https://github.com/rspack-contrib/install-rspack) 工具来方便地安装 canary 版本：
+
+```shell
+npx install-rspack --version latest # 安装当前的 latest 版本
+npx install-rspack --version canary # 安装当前的 canary 版本
+npx install-rspack --version 1.0.0-canary-d614005-20250101082730 # 安装指定的 canary 版本
+```
 
 ## 生态
 
@@ -133,7 +158,11 @@ npm init -y
 
 ### Rsdoctor
 
-[Rsdoctor](https://rsdoctor.dev/) 是一个针对 Rspack 的构建分析器，可以直观地展示构建过程，例如编译时间、编译前后的代码变化、模块引用关系、重复模块等。如果您需要排查构建产物或构建时编译问题，可以使用 Rsdoctor。
+[Rsdoctor](https://rsdoctor.dev/) 是一个针对 Rspack 的构建分析器，可以直观地展示构建过程，例如编译时间、编译前后的代码变化、模块引用关系、重复模块等。如果你需要排查构建产物或构建时编译问题，可以使用 Rsdoctor。
+
+### Rspeedy
+
+[Rspeedy](https://lynxjs.org/rspeedy/) 是一个基于 Rspack 的构建工具，专门为 Lynx 应用设计。[Lynx](https://lynxjs.org/) 是一套帮助 Web 开发者复用现有经验、通过一份代码同时构建移动端原生界面与 Web 端界面的技术方案。
 
 ### Modern.js
 
@@ -160,6 +189,16 @@ Docusaurus v3.6 支持使用 Rspack 作为打包工具，详见 [Docusaurus Fast
 [Nuxt](https://nuxt.com/) 是一个开源框架，提供了直观且可扩展的方式来使用 Vue.js 创建类型安全、高性能和生产级的全栈 Web 应用程序和网站。
 
 Nuxt v3.14 引入了对 Rspack 的官方支持，详见 [Nuxt 3.14](https://nuxt.com/blog/v3-14)。
+
+### Re.Pack
+
+[Re.Pack](https://github.com/callstack/repack) 是一个用于构建 React Native 应用的工具集。
+
+Re.Pack v5 使用 Rspack 和 React Native 社区 CLI 的插件系统，允许你使用 Rspack 打包你的应用，并轻松切换到 Metro。
+
+### Angular Rspack
+
+[Angular Rspack](https://github.com/nrwl/angular-rspack) 是一套工具链和插件集合，能够让你简单直接地使用 Rspack 和 Rsbuild 构建 Angular 应用。
 
 ### 更多
 

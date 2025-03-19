@@ -1,7 +1,7 @@
 import path from "path";
 import { run } from "../../utils/test-utils";
 
-it("should not print the warning for child compiler", async () => {
+it.concurrent("should not print the warning for child compiler", async () => {
 	const cwd = path.resolve(__dirname, "./child");
 	const { exitCode, stderr } = await run(
 		cwd,
@@ -15,7 +15,7 @@ it("should not print the warning for child compiler", async () => {
 	expect(stderr).not.toContain("deprecated");
 });
 
-it("should print the warning for root compiler", async () => {
+it.concurrent("should print the warning for root compiler", async () => {
 	const cwd = path.resolve(__dirname, "./root");
 	const { exitCode } = await run(
 		cwd,

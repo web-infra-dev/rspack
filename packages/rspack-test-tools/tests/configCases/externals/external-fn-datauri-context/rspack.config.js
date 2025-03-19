@@ -26,14 +26,14 @@ module.exports = {
 					paths: paths,
 					segments: segments
 				};
-			};
+			}
 			let { paths } = getPaths(context);
 			expect(paths).not.toContain(undefined);
 			if (request === "a") {
-				expect(paths).toEqual(["data:text/", "data:text/"])
-				return callback(null, "42")
+				expect(paths).toEqual(["data:text/", "data:text/"]);
+				return callback(null, "42");
 			}
-			return callback()
+			return callback();
 		}
 	]
 };

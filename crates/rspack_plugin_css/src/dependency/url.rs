@@ -2,7 +2,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency,
   DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
-  ModuleDependency, ModuleIdentifier, PublicPath, RuntimeSpec, TemplateContext,
+  FactorizeInfo, ModuleDependency, ModuleIdentifier, PublicPath, RuntimeSpec, TemplateContext,
   TemplateReplaceSource,
 };
 
@@ -15,6 +15,7 @@ pub struct CssUrlDependency {
   request: String,
   range: DependencyRange,
   replace_function: bool,
+  factorize_info: FactorizeInfo,
 }
 
 impl CssUrlDependency {
@@ -24,6 +25,7 @@ impl CssUrlDependency {
       range,
       id: DependencyId::new(),
       replace_function,
+      factorize_info: Default::default(),
     }
   }
 
@@ -32,23 +34,22 @@ impl CssUrlDependency {
     identifier: &ModuleIdentifier,
     compilation: &Compilation,
   ) -> Option<String> {
-    // TODO: how to handle if module related to multi runtime codegen
-    let code_gen_result = compilation.code_generation_results.get_one(identifier);
-    if let Some(code_gen_result) = code_gen_result {
-      if let Some(url) = code_gen_result.data.get::<CodeGenerationDataUrl>() {
-        Some(url.inner().to_string())
-      } else if let Some(data) = code_gen_result.data.get::<CodeGenerationDataFilename>() {
-        let filename = data.filename();
-        let public_path = match data.public_path() {
-          PublicPath::Filename(p) => PublicPath::render_filename(compilation, p),
-          PublicPath::Auto => AUTO_PUBLIC_PATH_PLACEHOLDER.to_string(),
-        };
-        Some(format!("{public_path}{filename}"))
-      } else {
-        None
-      }
+    // Here we need the asset module's runtime to get the code generation result, which is not equal to
+    // the css module's runtime, but actually multiple runtime optimization doesn't affect asset module,
+    // in different runtime asset module will always have the same code generation result, so we use
+    // `runtime: None` to get the only one code generation result
+    let code_gen_result = compilation.code_generation_results.get(identifier, None);
+    if let Some(url) = code_gen_result.data.get::<CodeGenerationDataUrl>() {
+      Some(url.inner().to_string())
+    } else if let Some(data) = code_gen_result.data.get::<CodeGenerationDataFilename>() {
+      let filename = data.filename();
+      let public_path = match data.public_path() {
+        PublicPath::Filename(p) => PublicPath::render_filename(compilation, p),
+        PublicPath::Auto => AUTO_PUBLIC_PATH_PLACEHOLDER.to_string(),
+      };
+      Some(format!("{public_path}{filename}"))
     } else {
-      Some("data:,".to_string())
+      None
     }
   }
 }
@@ -88,6 +89,14 @@ impl ModuleDependency for CssUrlDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 

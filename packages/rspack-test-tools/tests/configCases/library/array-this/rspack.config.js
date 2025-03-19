@@ -5,7 +5,7 @@ module.exports = {
 		library: ["a", "b"],
 		libraryTarget: "this",
 		environment: {
-			arrowFunction: false,
+			arrowFunction: false
 		}
 	}
 };

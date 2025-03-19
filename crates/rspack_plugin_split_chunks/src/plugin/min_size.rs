@@ -3,9 +3,33 @@ use std::ops::Deref;
 use rspack_core::{Compilation, SourceType};
 
 use super::ModuleGroupMap;
-use crate::{module_group::ModuleGroup, CacheGroup, SplitChunksPlugin};
+use crate::{module_group::ModuleGroup, CacheGroup, SplitChunkSizes, SplitChunksPlugin};
 
 impl SplitChunksPlugin {
+  pub(crate) fn check_min_size_reduction(
+    sizes: &SplitChunkSizes,
+    min_size_reduction: &SplitChunkSizes,
+    chunk_count: usize,
+  ) -> bool {
+    for (ty, min_reduction_size) in min_size_reduction.iter() {
+      if *min_reduction_size == 0.0f64 {
+        continue;
+      }
+
+      let Some(size) = sizes.get(ty) else {
+        continue;
+      };
+      if *size == 0.0f64 {
+        continue;
+      }
+      if size * (chunk_count as f64) < *min_reduction_size {
+        return false;
+      }
+    }
+
+    true
+  }
+
   /// Return `true` if the `ModuleGroup` become empty.
   pub(crate) fn remove_min_size_violating_modules(
     module_group_key: &str,
@@ -14,7 +38,7 @@ impl SplitChunksPlugin {
     cache_group: &CacheGroup,
   ) -> bool {
     // Find out what `SourceType`'s size is not fit the min_size
-    let violating_source_types = module_group
+    let violating_source_types: Box<[SourceType]> = module_group
     .sizes
     .iter()
     .filter_map(|(module_group_ty, module_group_ty_size)| {
@@ -95,6 +119,10 @@ impl SplitChunksPlugin {
           compilation,
           module_group,
           cache_group,
+        ) || !Self::check_min_size_reduction(
+          &module_group.sizes,
+          &cache_group.min_size_reduction,
+          module_group.chunks.len(),
         ) {
           Some(module_group_key.clone())
         } else {

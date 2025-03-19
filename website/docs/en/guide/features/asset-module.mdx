@@ -20,10 +20,12 @@ Other module types, such as JavaScript modules, are usually bundled into one or 
 
 ## Example
 
-### Using `type: 'asset'` to automatically select a mechanism based on conditions
+### Using `type: 'asset'`
 
-```js title="rspack.config.js"
-module.exports = {
+Using `type: 'asset'` to automatically select a mechanism based on conditions:
+
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -39,10 +41,12 @@ By default, the `'asset/inline'` mechanism is applied if the asset size is less 
 
 If you wish to modify this behavior, you can use [`module.parser.asset.dataUrlCondition`](/config/module#moduleparserasset) to modify the global configuration, or use [`Rule.parser. dataUrlCondition`](/config/module#ruleparserdataurlcondition) to configure it separately for a specific eligible module.
 
-### Replacing `url-loader` with `type: 'asset/inline'`
+### Replacing `url-loader`
 
-```diff title="rspack.config.js"
-module.exports = {
+Replacing `url-loader` with `type: 'asset/inline'`:
+
+```diff title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -59,10 +63,12 @@ module.exports = {
 };
 ```
 
-### Replacing `file-loader` with `type: 'asset/resource'`
+### Replacing `file-loader`
 
-```diff title="rspack.config.js"
-module.exports = {
+Replacing `file-loader` with `type: 'asset/resource'`:
+
+```diff title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -79,10 +85,12 @@ module.exports = {
 };
 ```
 
-### Replacing `raw-loader` with `type: 'asset/source'`
+### Replacing `raw-loader`
 
-```diff title="rspack.config.js"
-module.exports = {
+Replacing `raw-loader` with `type: 'asset/source'`:
+
+```diff title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -105,10 +113,10 @@ There are times when we want to optimize a specific image, for example by compre
 
 For example, optimizing all files ending in `.png` with [image-minimizer-webpack-plugin](https://github.com/webpack-contrib/image-minimizer-webpack-plugin):
 
-```js title="rspack.config.js"
-const ImageMinimizerPlugin = require('image-minimizer-webpack-plugin');
+```js title="rspack.config.mjs"
+import ImageMinimizerPlugin from 'image-minimizer-webpack-plugin';
 
-module.exports = {
+export default {
   module: {
     rules: [
       {

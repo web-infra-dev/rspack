@@ -1,0 +1,21 @@
+// import() chunk loading for javascript
+var installedChunkData = <%- HAS_OWN_PROPERTY %>(installedChunks, chunkId) ? installedChunks[chunkId] : undefined;
+if (installedChunkData !== 0) { // 0 means "already installed".'
+    // a Promise means "currently loading".
+    if (installedChunkData) {
+        promises.push(installedChunkData[1]);
+    } else {
+        if (<%- _js_matcher %>) {
+            // setup Promise in chunk cache
+            var promise = <%- _import_function_name %>("<%- _output_dir %>" + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId)).then(installChunk, <%- basicFunction("e") %> {
+                if (installedChunks[chunkId] !== 0) installedChunks[chunkId] = undefined;
+                throw e;
+            });
+            var promise = Promise.race([promise, new Promise(<%- basicFunction("resolve") %> {
+                installedChunkData = installedChunks[chunkId] = [resolve];
+            })]);
+            promises.push(installedChunkData[1] = promise);
+        }
+        <%- _match_fallback %>
+    }
+}

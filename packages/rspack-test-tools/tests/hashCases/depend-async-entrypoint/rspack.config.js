@@ -5,19 +5,19 @@ function config(subpath, filename) {
 		entry: {
 			main: {
 				import: "./index.js",
-				filename: "[name].[chunkhash].js",
+				filename: "[name].[chunkhash].js"
 			}
 		},
 		output: {
 			path: path.resolve(__dirname, `dist/${subpath}`),
-			filename,
+			filename
 		},
 		target: "node",
 		optimization: {
 			realContentHash: false,
 			moduleIds: "named",
 			chunkIds: "named",
-			minimize: false,
+			minimize: false
 		}
 	};
 }
@@ -25,5 +25,5 @@ function config(subpath, filename) {
 /** @type {import("@rspack/core").Configuration} */
 module.exports = [
 	config("a", "[name].[chunkhash].js"),
-	config("b", "[name].[contenthash].js"),
+	config("b", "[name].[contenthash].js")
 ];

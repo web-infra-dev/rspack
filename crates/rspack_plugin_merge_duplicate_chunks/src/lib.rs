@@ -14,7 +14,7 @@ use rustc_hash::FxHashSet as HashSet;
 pub struct MergeDuplicateChunksPlugin;
 
 #[plugin_hook(CompilationOptimizeChunks for MergeDuplicateChunksPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_BASIC)]
-fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   let mut not_duplicates = HashSet::default();
 
   let mut chunk_ukeys = compilation

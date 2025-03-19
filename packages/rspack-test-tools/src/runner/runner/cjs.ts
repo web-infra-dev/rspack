@@ -11,6 +11,10 @@ import type {
 } from "../type";
 import { BasicRunner } from "./basic";
 
+declare global {
+	var printLogger: boolean;
+}
+
 const define = (...args: unknown[]) => {
 	const factory = args.pop() as () => {};
 	factory();
@@ -21,7 +25,42 @@ export class CommonJsRunner<
 > extends BasicRunner<T> {
 	protected createGlobalContext(): IBasicGlobalContext {
 		return {
-			console: console,
+			console: {
+				log: (...args: any[]) => {
+					if (printLogger) {
+						console.log(...args);
+					}
+				},
+				warn: (...args: any[]) => {
+					if (printLogger) {
+						console.warn(...args);
+					}
+				},
+				error: (...args: any[]) => {
+					console.error(...args);
+				},
+				info: (...args: any[]) => {
+					if (printLogger) {
+						console.info(...args);
+					}
+				},
+				debug: (...args: any[]) => {
+					if (printLogger) {
+						console.info(...args);
+					}
+				},
+				trace: (...args: any[]) => {
+					if (printLogger) {
+						console.info(...args);
+					}
+				},
+				assert: (...args: any[]) => {
+					console.assert(...args);
+				},
+				clear: () => {
+					console.clear();
+				}
+			},
 			setTimeout: ((
 				cb: (...args: any[]) => void,
 				ms: number | undefined,
@@ -46,11 +85,9 @@ export class CommonJsRunner<
 				});
 				return m;
 			},
+			__SNAPSHOT__: path.join(this._options.source, "__snapshot__"),
 			...this._options.env
 		};
-		if (this._options.stats) {
-			baseModuleScope.__STATS__ = this._options.stats;
-		}
 		return baseModuleScope;
 	}
 
@@ -120,15 +157,16 @@ export class CommonJsRunner<
 			);
 
 			if (this._options.testConfig.moduleScope) {
-				this._options.testConfig.moduleScope(
-					currentModuleScope,
-					this._options.stats
-				);
+				this._options.testConfig.moduleScope(currentModuleScope);
 			}
 
 			if (!this._options.runInNewContext) {
 				file.content = `Object.assign(global, _globalAssign);\n ${file.content}`;
 			}
+			if (file.content.includes("__STATS__") && this._options.stats) {
+				currentModuleScope.__STATS__ = this._options.stats();
+			}
+
 			const args = Object.keys(currentModuleScope);
 			const argValues = args.map(arg => currentModuleScope[arg]);
 			const code = `(function(${args.join(", ")}) {

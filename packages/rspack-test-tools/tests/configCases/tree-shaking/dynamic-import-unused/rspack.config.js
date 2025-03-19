@@ -10,5 +10,5 @@ module.exports = {
 		usedExports: true,
 		sideEffects: true,
 		innerGraph: true
-	},
+	}
 };

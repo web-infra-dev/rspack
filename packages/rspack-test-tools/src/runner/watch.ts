@@ -18,9 +18,28 @@ export class WatchRunnerFactory<
 		);
 		return `${this.name}-${stepName}`;
 	}
+
+	protected createStatsGetter() {
+		const compiler = this.context.getCompiler<T>(this.name);
+		const stepName: string = this.context.getValue(this.name, "watchStepName")!;
+		const statsGetter = (() => {
+			const cached: Record<string, TCompilerStatsCompilation<T>> = {};
+			return () => {
+				if (cached[stepName]) {
+					return cached[stepName];
+				}
+				cached[stepName] = compiler.getStats()!.toJson({
+					errorDetails: true
+				});
+				return cached[stepName];
+			};
+		})();
+		return statsGetter;
+	}
+
 	protected createRunner(
 		file: string,
-		stats: TCompilerStatsCompilation<T>,
+		stats: () => TCompilerStatsCompilation<T>,
 		compilerOptions: TCompilerOptions<T>,
 		env: ITestEnv
 	): ITestRunner {
@@ -31,6 +50,14 @@ export class WatchRunnerFactory<
 		);
 		if (!stepName) {
 			throw new Error("Can not get watch step name from context");
+		}
+
+		const state: Record<string, any> | void = this.context.getValue(
+			this.name,
+			"watchState"
+		);
+		if (!state) {
+			throw new Error("Can not get watch state from context");
 		}
 
 		const isWeb = Array.isArray(compilerOptions)
@@ -44,9 +71,11 @@ export class WatchRunnerFactory<
 			env,
 			stats,
 			name: this.name,
+			state,
 			stepName,
 			runInNewContext: isWeb,
 			isWeb,
+			cachable: false,
 			testConfig: this.context.getTestConfig(),
 			source: this.context.getSource(),
 			dist: this.context.getDist(),

@@ -9,7 +9,7 @@ it("should rewrite the css url() with publicPath when output.cssFilename is set"
 	expect(a.includes("./logo.png")).toBe(false);
 	expect(a.endsWith(".png")).toBe(true);
 	expect(a.startsWith("/")).toBe(true);
-	expect(a).toMatchSnapshot();
+	expect(a).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'a.txt'));
 });
 
 it("should rewrite the css url() with publicPath and ~@ prefix", function () {
@@ -19,5 +19,5 @@ it("should rewrite the css url() with publicPath and ~@ prefix", function () {
 	expect(b.includes("./logo.png")).toBe(false);
 	expect(b.endsWith(".png")).toBe(true);
 	expect(b.startsWith("/")).toBe(true);
-	expect(b).toMatchSnapshot();
+	expect(b).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'b.txt'));
 });

@@ -99,7 +99,7 @@ impl ModuleGraphConnection {
 }
 
 #[cacheable]
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ConnectionState {
   Bool(bool),
   CircularConnection,

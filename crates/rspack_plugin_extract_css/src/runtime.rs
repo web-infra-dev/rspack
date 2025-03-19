@@ -56,6 +56,7 @@ impl CssLoadingRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for CssLoadingRuntimeModule {
   fn name(&self) -> rspack_collections::Identifier {
     "webpack/runtime/css loading".into()
@@ -65,7 +66,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     RuntimeModuleStage::Attach
   }
 
-  fn generate(
+  async fn generate(
     &self,
     compilation: &rspack_core::Compilation,
   ) -> Result<rspack_core::rspack_sources::BoxSource> {

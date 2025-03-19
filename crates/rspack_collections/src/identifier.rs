@@ -1,6 +1,10 @@
-use std::collections::{HashMap, HashSet};
-use std::hash::BuildHasherDefault;
-use std::{convert::From, fmt, ops::Deref};
+use std::{
+  collections::{HashMap, HashSet},
+  convert::From,
+  fmt,
+  hash::BuildHasherDefault,
+  ops::Deref,
+};
 
 use dashmap::{DashMap, DashSet};
 use hashlink::{LinkedHashMap, LinkedHashSet};

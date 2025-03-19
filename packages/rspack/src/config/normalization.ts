@@ -12,6 +12,7 @@ import path from "node:path";
 import util from "node:util";
 import type { Compilation } from "../Compilation";
 import type {
+	Amd,
 	AssetModuleFilename,
 	Bail,
 	CacheOptions,
@@ -373,7 +374,7 @@ export const getNormalizedRspackOptions = (
 		watchOptions: cloneObject(config.watchOptions),
 		devServer: config.devServer,
 		profile: config.profile,
-		amd: config.amd ? JSON.stringify(config.amd) : undefined,
+		amd: config.amd,
 		bail: config.bail
 	};
 };
@@ -650,6 +651,6 @@ export interface RspackOptionsNormalized {
 	ignoreWarnings?: IgnoreWarningsNormalized;
 	performance?: Performance;
 	profile?: Profile;
-	amd?: string;
+	amd?: Amd;
 	bail?: Bail;
 }

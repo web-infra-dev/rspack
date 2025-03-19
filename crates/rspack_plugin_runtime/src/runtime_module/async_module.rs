@@ -16,12 +16,22 @@ impl Default for AsyncRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for AsyncRuntimeModule {
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(RawStringSource::from_static(include_str!("runtime/async_module.js")).boxed())
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    let source = compilation.runtime_template.render(&self.id, None)?;
+
+    Ok(RawStringSource::from(source).boxed())
   }
 
   fn name(&self) -> Identifier {
     self.id
+  }
+
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("runtime/async_module.ejs").to_string(),
+    )]
   }
 }

@@ -1,7 +1,10 @@
-use std::collections::hash_map::IntoValues;
-use std::collections::hash_set;
-use std::ops::Deref;
-use std::{cmp::Ordering, fmt::Debug, sync::Arc};
+use std::{
+  cmp::Ordering,
+  collections::{hash_map, hash_set},
+  fmt::Debug,
+  ops::Deref,
+  sync::Arc,
+};
 
 use rspack_cacheable::{
   cacheable,
@@ -12,7 +15,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use crate::{EntryOptions, EntryRuntime};
 
 #[cacheable]
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone)]
 pub struct RuntimeSpec {
   #[cacheable(with=AsVec<AsRefStr>)]
   inner: FxHashSet<Arc<str>>,
@@ -38,6 +41,14 @@ impl std::hash::Hash for RuntimeSpec {
     self.key.hash(state);
   }
 }
+
+impl std::cmp::PartialEq for RuntimeSpec {
+  fn eq(&self, other: &Self) -> bool {
+    self.key == other.key
+  }
+}
+
+impl std::cmp::Eq for RuntimeSpec {}
 
 impl Deref for RuntimeSpec {
   type Target = FxHashSet<Arc<str>>;
@@ -128,7 +139,7 @@ impl RuntimeSpec {
 
 pub type RuntimeKey = String;
 
-#[derive(Default, Clone, Copy, Debug)]
+#[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RuntimeMode {
   #[default]
   Empty = 0,
@@ -324,7 +335,7 @@ pub fn compare_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> Ordering {
   Ordering::Equal
 }
 
-#[derive(Default, Clone, Debug)]
+#[derive(Default, Clone, Debug, PartialEq, Eq)]
 pub struct RuntimeSpecMap<T> {
   pub mode: RuntimeMode,
   pub map: HashMap<RuntimeKey, T>,
@@ -425,14 +436,37 @@ impl<T> RuntimeSpecMap<T> {
     }
   }
 
-  pub fn get_values(&self) -> Vec<&T> {
+  pub fn values(&self) -> RuntimeSpecMapValues<T> {
     match self.mode {
-      RuntimeMode::Empty => vec![],
-      RuntimeMode::SingleEntry => vec![self
-        .single_value
-        .as_ref()
-        .expect("Expected single value exists")],
-      RuntimeMode::Map => self.map.values().collect(),
+      RuntimeMode::Empty => RuntimeSpecMapValues::Empty,
+      RuntimeMode::SingleEntry => RuntimeSpecMapValues::SingleEntry(self.single_value.iter()),
+      RuntimeMode::Map => RuntimeSpecMapValues::Map(self.map.values()),
+    }
+  }
+}
+
+pub enum RuntimeSpecMapValues<'a, T> {
+  Empty,
+  SingleEntry(std::option::Iter<'a, T>),
+  Map(hash_map::Values<'a, RuntimeKey, T>),
+}
+
+impl<'a, T> Iterator for RuntimeSpecMapValues<'a, T> {
+  type Item = &'a T;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    match self {
+      RuntimeSpecMapValues::Empty => None,
+      RuntimeSpecMapValues::SingleEntry(i) => i.next(),
+      RuntimeSpecMapValues::Map(i) => i.next(),
+    }
+  }
+
+  fn size_hint(&self) -> (usize, Option<usize>) {
+    match self {
+      RuntimeSpecMapValues::Empty => (0, Some(0)),
+      RuntimeSpecMapValues::SingleEntry(i) => i.size_hint(),
+      RuntimeSpecMapValues::Map(i) => i.size_hint(),
     }
   }
 }
@@ -453,11 +487,15 @@ impl RuntimeSpecSet {
       .insert(get_runtime_key(&runtime).to_string(), runtime);
   }
 
-  pub fn values(&self) -> Vec<&RuntimeSpec> {
-    self.map.values().collect()
+  pub fn contains(&self, runtime: &RuntimeSpec) -> bool {
+    self.map.contains_key(get_runtime_key(runtime))
   }
 
-  pub fn into_values(self) -> IntoValues<String, RuntimeSpec> {
+  pub fn values(&self) -> hash_map::Values<RuntimeKey, RuntimeSpec> {
+    self.map.values()
+  }
+
+  pub fn into_values(self) -> hash_map::IntoValues<RuntimeKey, RuntimeSpec> {
     self.map.into_values()
   }
 

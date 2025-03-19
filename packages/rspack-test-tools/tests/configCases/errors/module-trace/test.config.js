@@ -1,5 +1,5 @@
 module.exports = {
-  findBundle: function () {
-    return [];
-  }
+	findBundle: function () {
+		return [];
+	}
 };

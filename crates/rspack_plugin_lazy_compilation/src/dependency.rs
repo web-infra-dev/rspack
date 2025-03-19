@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ModuleDependency, ModuleFactoryCreateData,
+  DependencyType, FactorizeInfo, ModuleDependency, ModuleFactoryCreateData,
 };
 
 #[cacheable]
@@ -10,6 +10,7 @@ pub(crate) struct LazyCompilationDependency {
   id: DependencyId,
   pub original_module_create_data: ModuleFactoryCreateData,
   request: String,
+  factorize_info: FactorizeInfo,
 }
 
 impl LazyCompilationDependency {
@@ -23,6 +24,7 @@ impl LazyCompilationDependency {
       id: DependencyId::new(),
       original_module_create_data,
       request,
+      factorize_info: Default::default(),
     }
   }
 }
@@ -31,6 +33,14 @@ impl LazyCompilationDependency {
 impl ModuleDependency for LazyCompilationDependency {
   fn request(&self) -> &str {
     &self.request
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 

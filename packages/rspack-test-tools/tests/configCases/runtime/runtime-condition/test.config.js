@@ -1,9 +1,5 @@
 module.exports = {
-  findBundle: function (i, options) {
-    return [
-      "a-runtime.js",
-      "shared.js",
-      "a-name.js",
-    ];
-  }
+	findBundle: function (i, options) {
+		return ["a-runtime.js", "shared.js", "a-name.js"];
+	}
 };

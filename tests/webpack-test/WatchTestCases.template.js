@@ -229,29 +229,39 @@ const describeCases = config => {
 											run.done = true;
 											run.stats = stats;
 											if (err) return compilationFinished(err);
-											const statOptions = {
-												preset: "verbose",
-												cached: true,
-												cachedAssets: true,
-												cachedModules: true,
-												colors: false
-											};
 											fs.mkdirSync(outputDirectory, { recursive: true });
-											fs.writeFileSync(
-												path.join(
-													outputDirectory,
-													`stats.${runs[runIdx] && runs[runIdx].name}.txt`
-												),
-												stats.toString(statOptions),
-												"utf-8"
-											);
-											const jsonStats = stats.toJson({
-												errorDetails: true
-											});
+											// CHANGE: no test cases use stats.txt
+											// const statOptions = {
+											// 	preset: "verbose",
+											// 	cached: true,
+											// 	cachedAssets: true,
+											// 	cachedModules: true,
+											// 	colors: false
+											// };
+											// fs.writeFileSync(
+											// 	path.join(
+											// 		outputDirectory,
+											// 		`stats.${runs[runIdx] && runs[runIdx].name}.txt`
+											// 	),
+											// 	stats.toString(statOptions),
+											// 	"utf-8"
+											// );
+											const getStatsJson = (() => {
+												let cache = null;
+												return () => {
+													if (!cache) {
+														cache = stats.toJson({
+															errorDetails: true
+														});
+													}
+													return cache;
+												};
+											})();
 											if (
+												fs.existsSync(path.join(testDirectory, run.name, "errors.js")) &&
 												checkArrayExpectation(
 													path.join(testDirectory, run.name),
-													jsonStats,
+													getStatsJson(),
 													"error",
 													"Error",
 													compilationFinished
@@ -259,9 +269,10 @@ const describeCases = config => {
 											)
 												return;
 											if (
+												fs.existsSync(path.join(testDirectory, run.name, "warnings.js")) &&
 												checkArrayExpectation(
 													path.join(testDirectory, run.name),
-													jsonStats,
+													getStatsJson(),
 													"warning",
 													"Warning",
 													compilationFinished
@@ -299,7 +310,7 @@ const describeCases = config => {
 														options.target === "webworker"
 													) {
 														fn = vm.runInNewContext(
-															"(function(require, module, exports, __dirname, __filename, it, WATCH_STEP, STATS_JSON, STATE, expect, window, self) {" +
+															"(function(require, module, exports, __dirname, __filename, it, WATCH_STEP, __STATS__, STATE, expect, window, self) {" +
 															'function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }' +
 															content +
 															"\n})",
@@ -308,7 +319,7 @@ const describeCases = config => {
 														);
 													} else {
 														fn = vm.runInThisContext(
-															"(function(require, module, exports, __dirname, __filename, it, WATCH_STEP, STATS_JSON, STATE, expect) {" +
+															"(function(require, module, exports, __dirname, __filename, it, WATCH_STEP, __STATS__, STATE, expect) {" +
 															"global.expect = expect;" +
 															'function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }' +
 															content +
@@ -328,7 +339,7 @@ const describeCases = config => {
 														p,
 														run.it,
 														run.name,
-														jsonStats,
+														content.includes("__STATS__") ? getStatsJson() : undefined,
 														state,
 														expect,
 														globalContext,
@@ -382,7 +393,7 @@ const describeCases = config => {
 																tempDirectory,
 																false
 															);
-														}, 1500);
+														});
 													} else {
 														const deprecations = deprecationTracker();
 														if (
@@ -406,7 +417,7 @@ const describeCases = config => {
 											compilationFinished();
 										}
 									);
-								}, 300);
+								});
 							},
 							45000
 						);
@@ -420,7 +431,7 @@ const describeCases = config => {
 							run.getNumberOfTests = getNumberOfTests;
 							it(`${run.name} should allow to read stats`, done => {
 								if (run.stats) {
-									run.stats.toString({ all: true });
+									// run.stats.toString({ all: true });
 									run.stats = undefined;
 								}
 								done();

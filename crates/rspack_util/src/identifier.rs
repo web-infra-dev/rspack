@@ -1,7 +1,7 @@
-use std::sync::LazyLock;
 use std::{
   borrow::Cow,
   path::{Path, PathBuf},
+  sync::LazyLock,
 };
 
 use concat_string::concat_string;

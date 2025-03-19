@@ -3,12 +3,14 @@
 import type EventEmitter from "node:events";
 import type {
 	Compiler as RspackCompiler,
+	MultiStats as RspackMultiStats,
 	RspackOptions,
 	Stats as RspackStats,
 	StatsCompilation as RspackStatsCompilation
 } from "@rspack/core";
 import type {
 	Compiler as WebpackCompiler,
+	MultiStats as WebpackMultiStats,
 	Configuration as WebpackOptions,
 	Stats as WebpackStats,
 	StatsCompilation as WebpackStatsCompilation
@@ -57,6 +59,9 @@ export type TCompiler<T> = T extends ECompilerType.Rspack
 export type TCompilerStats<T> = T extends ECompilerType.Rspack
 	? RspackStats
 	: WebpackStats;
+export type TCompilerMultiStats<T> = T extends ECompilerType.Rspack
+	? RspackMultiStats
+	: WebpackMultiStats;
 
 export type TCompilerStatsCompilation<T> = T extends ECompilerType.Rspack
 	? RspackStatsCompilation
@@ -70,7 +75,7 @@ export interface ITestCompilerManager<T extends ECompilerType> {
 	createCompiler(): TCompiler<T>;
 	build(): Promise<TCompilerStats<T>>;
 	watch(timeout?: number): void;
-	getStats(): TCompilerStats<T> | null;
+	getStats(): TCompilerStats<T> | TCompilerMultiStats<T> | null;
 	getEmitter(): EventEmitter;
 	close(): Promise<void>;
 }
@@ -187,8 +192,13 @@ export enum EDocumentType {
 
 export type TTestConfig<T extends ECompilerType> = {
 	documentType?: EDocumentType;
-	validate?: (stats: TCompilerStats<T>, stderr?: string) => void;
+	validate?: (
+		stats: TCompilerStats<T> | TCompilerMultiStats<T>,
+		stderr?: string
+	) => void;
 	noTest?: boolean;
+	writeStatsOuptut?: boolean;
+	writeStatsJson?: boolean;
 	beforeExecute?: () => void;
 	afterExecute?: () => void;
 	moduleScope?: (
@@ -197,7 +207,8 @@ export type TTestConfig<T extends ECompilerType> = {
 	) => IBasicModuleScope;
 	checkStats?: (
 		stepName: string,
-		stats: TCompilerStatsCompilation<T>
+		jsonStats: TCompilerStatsCompilation<T> | undefined,
+		stringStats: String
 	) => boolean;
 	findBundle?: (
 		index: number,
@@ -208,6 +219,7 @@ export type TTestConfig<T extends ECompilerType> = {
 	nonEsmThis?: (p: string | string[]) => Object;
 	modules?: Record<string, Object>;
 	timeout?: number;
+	concurrent?: boolean;
 };
 
 export type TTestFilter<T extends ECompilerType> = (

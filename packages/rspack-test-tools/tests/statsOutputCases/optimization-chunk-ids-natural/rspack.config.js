@@ -11,7 +11,7 @@ module.exports = {
 		chunks: true,
 		entrypoints: true,
 		chunkGroups: true,
-		errors: true,
+		errors: true
 	},
-	optimization: { chunkIds: 'natural' },
+	optimization: { chunkIds: "natural" }
 };

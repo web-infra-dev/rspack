@@ -69,7 +69,7 @@ async fn seal(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     let identifier = module.identifier();
-    let lower_identifier = identifier.cow_to_lowercase();
+    let lower_identifier = identifier.cow_to_ascii_lowercase();
     if let Some(prev_identifier) = not_conflect.remove(lower_identifier.as_ref()) {
       conflict.insert(
         lower_identifier.into_owned(),

@@ -7,7 +7,7 @@ module.exports = {
 	},
 	node: {
 		__dirname: false,
-		__filename: false,
+		__filename: false
 	},
 	target: "web",
 	output: {
@@ -17,8 +17,8 @@ module.exports = {
 		generator: {
 			"css/auto": {
 				exportsOnly: false
-			},
-		},
+			}
+		}
 	},
 	optimization: {
 		splitChunks: {

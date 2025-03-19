@@ -6,7 +6,7 @@ module.exports = {
 	mode: "development",
 	devtool: false,
 	output: {
-		hotUpdateChunkFilename: '[id].hot-update.js'
+		hotUpdateChunkFilename: "[id].hot-update.js"
 	},
 	module: {
 		rules: [

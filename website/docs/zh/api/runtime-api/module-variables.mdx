@@ -8,7 +8,7 @@ import { ApiMeta } from '@components/ApiMeta';
 
 本节涵盖了使用 Rspack 编译代码时所有可用的变量。模块将能够通过 `module` 和其他变量访问来自编译过程的特定数据。
 
-## CommonJs
+## CommonJS
 
 ### module.loaded
 
@@ -94,7 +94,7 @@ __dirname
 
 `import.meta` 将特定上下文的元数据暴露给 JavaScript 模块，例如模块的 URL。它仅在 ESM（ECMAScript 模块）中可用。
 
-> 请注意，Rspack 不支持直接访问 `import.meta`（将抛出警告）。因此，您应该访问其属性或使用解构赋值。
+> 请注意，Rspack 不支持直接访问 `import.meta`（将抛出警告）。因此，你应该访问其属性或使用解构赋值。
 
 <Columns>
 ```js title=源码
@@ -314,6 +314,8 @@ __webpack_require__.p = '由 document/location 计算得来';
 ```
 
 </Columns>
+
+> 查看 [动态设置 publicPath](/config/output#动态设置-publicpath) 了解更多关于 `__webpack_public_path__` 的用法。
 
 ### \_\_webpack_base_uri\_\_
 
@@ -681,10 +683,10 @@ __webpack_require__.rv = '0.7.4';
 
 <ApiMeta addedVersion="1.0.0" specific={['Rspack']} />
 
-当前打包工具的 ID，为 `{bundler}@{version}`。其中：
+当前打包工具的 ID，值为 `{bundler}@{version}`。其中：
 
-- `bundler`：默认为 `"rspack"` 可以通过 `experiments.rspackFuture.bundlerInfo.bundler` 修改
-- `version`：默认从 @rspack/core 读取，可以通过 `experiments.rspackFuture.bundlerInfo.version` 修改
+- `bundler`：默认为 `"rspack"` 可以通过 [experiments.rspackFuture.bundlerInfo.bundler](/config/experiments#rspackfuturebundlerinfo) 修改。
+- `version`：默认从 `@rspack/core/package.json` 读取，可以通过 [experiments.rspackFuture.bundlerInfo.version](/config/experiments#rspackfuturebundlerinfo) 修改。
 
 <Columns>
 ```js title=源码

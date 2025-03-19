@@ -1,9 +1,9 @@
 use rspack_collections::Identifier;
 use rspack_error::Result;
 
-use crate::old_cache::storage;
 use crate::{
-  get_runtime_key, ChunkGraph, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeSpec,
+  get_runtime_key, old_cache::storage, ChunkGraph, Compilation, ModuleIdentifier, RuntimeGlobals,
+  RuntimeSpec,
 };
 
 type Storage = dyn storage::Storage<RuntimeGlobals>;
@@ -16,6 +16,12 @@ pub struct ProcessRuntimeRequirementsOccasion {
 impl ProcessRuntimeRequirementsOccasion {
   pub fn new(storage: Option<Box<Storage>>) -> Self {
     Self { storage }
+  }
+
+  pub fn begin_idle(&self) {
+    if let Some(s) = &self.storage {
+      s.begin_idle();
+    }
   }
 
   // #[tracing::instrument(skip_all, fields(module = ?module))]

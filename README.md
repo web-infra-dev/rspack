@@ -11,6 +11,7 @@
   <a href="https://npmcharts.com/compare/@rspack/core?minimal=true"><img src="https://img.shields.io/npm/dm/@rspack/core.svg?style=flat-square&colorA=564341&colorB=EDED91" alt="downloads" /></a>
   <a href="https://nodejs.org/en/about/previous-releases"><img src="https://img.shields.io/node/v/@rspack/core.svg?style=flat-square&colorA=564341&colorB=EDED91" alt="node version"></a>
   <a href="https://github.com/web-infra-dev/rspack/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&colorA=564341&colorB=EDED91" alt="license" /></a>
+  <a href="https://codspeed.io/web-infra-dev/rspack"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fcodspeed.io%2Fbadge.json&style=flat-square&colorA=564341&colorB=EDED91" alt="codspeed" /></a>
 </p>
 
 English | [简体中文](./README.zh-CN.md)
@@ -46,19 +47,19 @@ Come chat with us on [Discord](https://discord.gg/79ZZ66GH9E)! Rspack team and R
 
 ## Links
 
-| Name                                                                                 | Description                                                                   |
-| ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack)                    | A curated list of awesome things related to Rspack                            |
-| [Rspack 1.x documentation](https://rspack.dev/)                                      | Documentation for Rspack 1.x (latest)                                         |
-| [Rspack 0.x documentation](https://v0.rspack.dev/)                                   | Documentation for Rspack 0.x version                                          |
-| [Rsbuild](https://github.com/web-infra-dev/rsbuild)                                  | An out-of-the-box build tool based on Rspack                                  |
-| [Rspress](https://github.com/web-infra-dev/rspress)                                  | A fast static site generator based on Rsbuild                                 |
-| [Rsdoctor](https://github.com/web-infra-dev/rsdoctor)                                | A one-stop build analyzer for Rspack                                          |
-| [Rslib](https://github.com/web-infra-dev/rslib)                                      | A library build tool powered by Rsbuild                                       |
-| [rspack-dev-server](https://github.com/web-infra-dev/rspack-dev-server)              | Dev server for Rspack                                                         |
-| [rspack-examples](https://github.com/rspack-contrib/rspack-examples)                 | Lots of Rspack example projects                                               |
-| [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                    | Rust port of [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
-| [rstack-design-resources](https://github.com/rspack-contrib/rstack-design-resources) | Design resources for Rspack Stack                                             |
+| Name                                                                                 | Description                                                                     |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack)                    | A curated list of awesome things related to Rspack                              |
+| [Rspack 1.x documentation](https://rspack.dev/)                                      | Documentation for Rspack 1.x (latest)                                           |
+| [Rspack 0.x documentation](https://v0.rspack.dev/)                                   | Documentation for Rspack 0.x version                                            |
+| [Rsbuild](https://github.com/web-infra-dev/rsbuild)                                  | An out-of-the-box build tool based on Rspack                                    |
+| [Rspress](https://github.com/web-infra-dev/rspress)                                  | A fast static site generator based on Rsbuild                                   |
+| [Rsdoctor](https://github.com/web-infra-dev/rsdoctor)                                | A one-stop build analyzer for Rspack                                            |
+| [Rslib](https://github.com/web-infra-dev/rslib)                                      | A library development tool powered by Rsbuild                                   |
+| [rspack-dev-server](https://github.com/web-infra-dev/rspack-dev-server)              | Dev server for Rspack                                                           |
+| [rstack-examples](https://github.com/rspack-contrib/rstack-examples)                 | Examples showcasing Rstack ecosystem tools (Rspack, Rsbuild, Rspress, Rsdoctor) |
+| [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                    | Rust port of [webpack-sources](https://www.npmjs.com/package/webpack-sources)   |
+| [rstack-design-resources](https://github.com/rspack-contrib/rstack-design-resources) | Design resources for Rspack Stack                                               |
 
 ## Contributors
 
@@ -87,6 +88,7 @@ Thanks to:
 - The [prefresh](https://github.com/preactjs/prefresh) created by [@Jovi De Croock](https://github.com/JoviDeCroock), which inspires implement [preact refresh rspack plugin](https://github.com/rspack-contrib/rspack-plugin-preact-refresh).
 - The [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin) project created by [@sokra](https://github.com/sokra) which inspired implement css extract plugin.
 - The [copy-webpack-plugin](https://github.com/webpack-contrib/copy-webpack-plugin) project created by [@kevlened](https://github.com/kevlened) which inspired implement copy rspack plugin.
+- The [webpack-subresource-integrity](https://github.com/waysact/webpack-subresource-integrity) project created by [@jscheid](https://github.com/jscheid), which inspires implement subresource integrity rspack plugin.
 
 ## License
 

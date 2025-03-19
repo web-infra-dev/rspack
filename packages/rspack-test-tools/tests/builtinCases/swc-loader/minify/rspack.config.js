@@ -12,8 +12,8 @@ module.exports = {
 								target: "es2015",
 								preserveAllComments: true,
 								minify: {
-                  compress: true,
-                },
+									compress: true
+								},
 								parser: {
 									syntax: "ecmascript",
 									jsx: true,
@@ -28,5 +28,5 @@ module.exports = {
 				]
 			}
 		]
-	},
+	}
 };

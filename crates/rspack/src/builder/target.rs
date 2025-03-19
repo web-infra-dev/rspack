@@ -1,5 +1,6 @@
 use rspack_core::Context;
 
+/// Targets type.
 pub type Targets = Vec<String>;
 
 #[derive(Debug, Default)]
@@ -35,6 +36,7 @@ pub struct TargetProperties {
   pub async_function: Option<bool>,
 }
 
+#[allow(unused)]
 impl TargetProperties {
   pub fn web(&self) -> bool {
     self.web.unwrap_or(false)

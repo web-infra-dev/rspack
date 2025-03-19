@@ -11,6 +11,8 @@ use rspack_hook::{plugin, plugin_hook};
 #[plugin]
 #[derive(Debug)]
 pub struct EntryPlugin {
+  // Need "cache" the dependency to tell incremental that this entry dependency is not changed
+  // so it can be reused and skip the module make
   dependency: BoxDependency,
   options: EntryOptions,
 }

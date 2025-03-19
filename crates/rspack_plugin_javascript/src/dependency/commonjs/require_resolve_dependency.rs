@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   module_id, AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyType, ExtendedReferencedExport, ModuleDependency,
-  ModuleGraph, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  DependencyRange, DependencyTemplate, DependencyType, ExtendedReferencedExport, FactorizeInfo,
+  ModuleDependency, ModuleGraph, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -13,6 +13,7 @@ pub struct RequireResolveDependency {
   pub weak: bool,
   range: DependencyRange,
   optional: bool,
+  factorize_info: FactorizeInfo,
 }
 
 impl RequireResolveDependency {
@@ -23,6 +24,7 @@ impl RequireResolveDependency {
       weak,
       optional,
       id: DependencyId::new(),
+      factorize_info: Default::default(),
     }
   }
 }
@@ -78,6 +80,14 @@ impl ModuleDependency for RequireResolveDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 

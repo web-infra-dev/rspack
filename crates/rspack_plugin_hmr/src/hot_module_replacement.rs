@@ -19,12 +19,13 @@ impl Default for HotModuleReplacementRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for HotModuleReplacementRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     Ok(
       RawStringSource::from(
         include_str!("runtime/hot_module_replacement.js")

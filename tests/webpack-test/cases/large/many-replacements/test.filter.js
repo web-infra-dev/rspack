@@ -2,5 +2,5 @@
 // 	return !process.env.CI;
 // };
 
-// TODO: Should create a issue for this test
-module.exports = () => false // passed it, but it's too slow
+// Already pass this test, but this test is too slow, and create a lot of big files, so we always skip this test
+module.exports = () => "Already pass this test, but this test is too slow, and create a lot of big files, so we always skip this test"

@@ -1,6 +1,5 @@
-import type { JsModuleGraphConnection } from "@rspack/binding";
-import { Dependency } from "./Dependency";
-import { Module } from "./Module";
+import type { Dependency, JsModuleGraphConnection } from "@rspack/binding";
+import type { Module } from "./Module";
 
 const MODULE_GRAPH_CONNECTION_MAPPINGS = new WeakMap<
 	JsModuleGraphConnection,
@@ -10,6 +9,8 @@ const MODULE_GRAPH_CONNECTION_MAPPINGS = new WeakMap<
 export class ModuleGraphConnection {
 	declare readonly module: Module | null;
 	declare readonly dependency: Dependency;
+	declare readonly resolvedModule: Module | null;
+	declare readonly originModule: Module | null;
 
 	#inner: JsModuleGraphConnection;
 
@@ -34,13 +35,25 @@ export class ModuleGraphConnection {
 			module: {
 				enumerable: true,
 				get(): Module | null {
-					return binding.module ? Module.__from_binding(binding.module) : null;
+					return binding.module;
 				}
 			},
 			dependency: {
 				enumerable: true,
 				get(): Dependency {
-					return Dependency.__from_binding(binding.dependency);
+					return binding.dependency;
+				}
+			},
+			resolvedModule: {
+				enumerable: true,
+				get(): Module | null {
+					return binding.resolvedModule;
+				}
+			},
+			originModule: {
+				enumerable: true,
+				get(): Module | null {
+					return binding.originModule;
 				}
 			}
 		});

@@ -1,13 +1,11 @@
-use std::sync::LazyLock;
-use std::{borrow::Cow, fmt::Debug, hash::Hash, str::FromStr, string::ParseError};
+use std::{borrow::Cow, fmt::Debug, hash::Hash, str::FromStr, string::ParseError, sync::LazyLock};
 
 use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_hash::RspackHash;
 pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_macros::MergeFrom;
-use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
-use sugar_path::SugarPath;
+use rspack_paths::Utf8PathBuf;
 
 use super::CleanOptions;
 use crate::{Chunk, ChunkGroupByUkey, ChunkKind, Compilation, Filename, FilenameTemplate};
@@ -18,6 +16,9 @@ pub enum PathInfo {
   String(String),
 }
 
+// BE CAREFUL:
+// Add more fields to this struct should result in adding new fields to options builder.
+// `impl From<OutputOptions> for OutputOptionsBuilder` should be updated.
 #[derive(Debug)]
 pub struct OutputOptions {
   pub path: Utf8PathBuf,
@@ -107,24 +108,24 @@ impl From<ChunkLoading> for String {
   }
 }
 
-impl From<&ChunkLoading> for &str {
-  fn from(value: &ChunkLoading) -> Self {
-    match value {
-      ChunkLoading::Enable(ty) => ty.into(),
+impl ChunkLoading {
+  pub fn as_str(&self) -> &str {
+    match self {
+      ChunkLoading::Enable(ty) => ty.as_str(),
       ChunkLoading::Disable => "false",
     }
   }
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChunkLoadingType {
   Jsonp,
   ImportScripts,
   Require,
   AsyncNode,
   Import,
-  // TODO: Custom
+  Custom(String),
 }
 
 impl From<&str> for ChunkLoadingType {
@@ -135,25 +136,26 @@ impl From<&str> for ChunkLoadingType {
       "require" => Self::Require,
       "async-node" => Self::AsyncNode,
       "import" => Self::Import,
-      _ => unimplemented!("custom chunkLoading in not supported yet"),
+      _ => Self::Custom(value.to_string()),
     }
   }
 }
 
 impl From<ChunkLoadingType> for String {
   fn from(value: ChunkLoadingType) -> Self {
-    Into::<&str>::into(&value).to_string()
+    value.as_str().to_string()
   }
 }
 
-impl From<&ChunkLoadingType> for &str {
-  fn from(value: &ChunkLoadingType) -> Self {
-    match value {
+impl ChunkLoadingType {
+  pub fn as_str(&self) -> &str {
+    match self {
       ChunkLoadingType::Jsonp => "jsonp",
       ChunkLoadingType::ImportScripts => "import-scripts",
       ChunkLoadingType::Require => "require",
       ChunkLoadingType::AsyncNode => "async-node",
       ChunkLoadingType::Import => "import",
+      ChunkLoadingType::Custom(value) => value.as_str(),
     }
   }
 }
@@ -173,11 +175,10 @@ impl From<&str> for WasmLoading {
   }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WasmLoadingType {
   Fetch,
   AsyncNode,
-  AsyncNodeModule,
 }
 
 impl From<&str> for WasmLoadingType {
@@ -185,13 +186,12 @@ impl From<&str> for WasmLoadingType {
     match value {
       "fetch" => Self::Fetch,
       "async-node" => Self::AsyncNode,
-      "async-node-module" => Self::AsyncNodeModule,
-      _ => todo!(),
+      _ => unreachable!("invalid wasm loading type: {value}, expect one of [fetch, async-node]",),
     }
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum CrossOriginLoading {
   Disable,
   Enable(String),
@@ -220,12 +220,21 @@ pub struct PathData<'a> {
   pub id: Option<&'a str>,
 }
 
+static MATCH_ID_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r#"^"\s\+*\s*(.*)\s*\+\s*"$"#).expect("invalid Regex"));
 static PREPARE_ID_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("invalid Regex"));
 
 impl<'a> PathData<'a> {
   pub fn prepare_id(v: &str) -> Cow<str> {
-    PREPARE_ID_REGEX.replace_all(v, "_")
+    if let Some(caps) = MATCH_ID_REGEX.captures(v) {
+      Cow::Owned(format!(
+        "\" + ({} + \"\").replace(/(^[.-]|[^a-zA-Z0-9_-])+/g, \"_\") + \"",
+        caps.get(1).expect("capture group should exist").as_str()
+      ))
+    } else {
+      PREPARE_ID_REGEX.replace_all(v, "_")
+    }
   }
 
   pub fn filename(mut self, v: &'a str) -> Self {
@@ -311,6 +320,54 @@ pub enum PublicPath {
   Auto,
 }
 
+//https://github.com/webpack/webpack/blob/001cab14692eb9a833c6b56709edbab547e291a1/lib/util/identifier.js#L378
+pub fn get_undo_path(filename: &str, output_path: String, enforce_relative: bool) -> String {
+  let mut depth: i32 = -1;
+  let mut append = String::new();
+  let mut p = output_path;
+  if p.ends_with('/') || p.ends_with('\\') {
+    p.pop();
+  }
+  for part in filename.split(&['/', '\\']) {
+    if part == ".." {
+      if depth > -1 {
+        depth -= 1
+      } else {
+        let pos = match (p.rfind('/'), p.rfind('\\')) {
+          (None, None) => {
+            p.push('/');
+            return p;
+          }
+          (None, Some(j)) => j,
+          (Some(i), None) => i,
+          (Some(i), Some(j)) => usize::max(i, j),
+        };
+        append = format!("{}/{append}", &p[pos + 1..]);
+        p = p[0..pos].to_string();
+      }
+    } else if part != "." {
+      depth += 1;
+    }
+  }
+
+  if depth > 0 {
+    format!("{}{append}", "../".repeat(depth as usize))
+  } else if enforce_relative {
+    format!("./{append}")
+  } else {
+    append
+  }
+}
+
+#[test]
+fn test_get_undo_path() {
+  assert_eq!(get_undo_path("a", "/a/b/c".to_string(), true), "./");
+  assert_eq!(
+    get_undo_path("static/js/a.js", "/a/b/c".to_string(), false),
+    "../../"
+  );
+}
+
 impl PublicPath {
   pub fn render(&self, compilation: &Compilation, filename: &str) -> String {
     match self {
@@ -338,26 +395,7 @@ impl PublicPath {
   }
 
   pub fn render_auto_public_path(compilation: &Compilation, filename: &str) -> String {
-    let public_path = match Utf8Path::new(filename).parent() {
-      None => String::new(),
-      Some(dirname) => compilation
-        .options
-        .output
-        .path
-        .as_std_path()
-        .relative(
-          compilation
-            .options
-            .output
-            .path
-            .join(dirname)
-            .into_std_path_buf()
-            .absolutize(),
-        )
-        .assert_utf8()
-        .as_str()
-        .to_owned(),
-    };
+    let public_path = get_undo_path(filename, compilation.options.output.path.to_string(), false);
     Self::ensure_ends_with_slash(public_path)
   }
 }
@@ -468,11 +506,22 @@ pub struct LibraryCustomUmdObject {
   pub root: Option<Vec<String>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct Environment {
   pub r#const: Option<bool>,
   pub arrow_function: Option<bool>,
   pub node_prefix_for_core_modules: Option<bool>,
+  pub async_function: Option<bool>,
+  pub big_int_literal: Option<bool>,
+  pub destructuring: Option<bool>,
+  pub document: Option<bool>,
+  pub dynamic_import: Option<bool>,
+  pub for_of: Option<bool>,
+  pub global_this: Option<bool>,
+  pub module: Option<bool>,
+  pub optional_chaining: Option<bool>,
+  pub template_literal: Option<bool>,
+  pub dynamic_import_in_worker: Option<bool>,
 }
 
 impl Environment {
@@ -486,5 +535,49 @@ impl Environment {
 
   pub fn supports_node_prefix_for_core_modules(&self) -> bool {
     self.node_prefix_for_core_modules.unwrap_or_default()
+  }
+
+  pub fn supports_async_function(&self) -> bool {
+    self.async_function.unwrap_or_default()
+  }
+
+  pub fn supports_big_int_literal(&self) -> bool {
+    self.big_int_literal.unwrap_or_default()
+  }
+
+  pub fn supports_destructuring(&self) -> bool {
+    self.destructuring.unwrap_or_default()
+  }
+
+  pub fn supports_document(&self) -> bool {
+    self.document.unwrap_or_default()
+  }
+
+  pub fn supports_dynamic_import(&self) -> bool {
+    self.dynamic_import.unwrap_or_default()
+  }
+
+  pub fn supports_dynamic_import_in_worker(&self) -> bool {
+    self.dynamic_import_in_worker.unwrap_or_default()
+  }
+
+  pub fn supports_for_of(&self) -> bool {
+    self.for_of.unwrap_or_default()
+  }
+
+  pub fn supports_global_this(&self) -> bool {
+    self.global_this.unwrap_or_default()
+  }
+
+  pub fn supports_module(&self) -> bool {
+    self.module.unwrap_or_default()
+  }
+
+  pub fn supports_optional_chaining(&self) -> bool {
+    self.optional_chaining.unwrap_or_default()
+  }
+
+  pub fn supports_template_literal(&self) -> bool {
+    self.template_literal.unwrap_or_default()
   }
 }

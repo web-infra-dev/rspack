@@ -1,16 +1,20 @@
-use swc_core::atoms::Atom;
-use swc_core::common::Span;
-use swc_core::ecma::ast::{
-  BinExpr, CallExpr, Callee, ClassMember, CondExpr, Expr, OptChainExpr, UnaryExpr,
+use swc_core::{
+  atoms::Atom,
+  common::Span,
+  ecma::ast::{
+    BinExpr, CallExpr, Callee, ClassMember, CondExpr, Expr, IfStmt, MemberExpr, OptChainExpr,
+    UnaryExpr, UnaryOp, VarDecl, VarDeclarator,
+  },
 };
-use swc_core::ecma::ast::{IfStmt, MemberExpr, UnaryOp, VarDecl, VarDeclarator};
 
 use super::{BoxJavascriptParserPlugin, JavascriptParserPlugin};
-use crate::parser_plugin::r#const::is_logic_op;
-use crate::utils::eval::BasicEvaluatedExpression;
-use crate::visitors::{
-  ClassDeclOrExpr, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal,
-  ExportedVariableInfo, JavascriptParser, Statement,
+use crate::{
+  parser_plugin::r#const::is_logic_op,
+  utils::eval::BasicEvaluatedExpression,
+  visitors::{
+    ClassDeclOrExpr, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal,
+    ExportedVariableInfo, JavascriptParser, Statement,
+  },
 };
 
 pub struct JavaScriptParserPluginDrive {

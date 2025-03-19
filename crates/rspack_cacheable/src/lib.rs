@@ -19,3 +19,4 @@ pub mod __private {
 
 pub use deserialize::{from_bytes, DeserializeError, Deserializer, Validator};
 pub use serialize::{to_bytes, SerializeError, Serializer};
+pub use xxhash_rust;

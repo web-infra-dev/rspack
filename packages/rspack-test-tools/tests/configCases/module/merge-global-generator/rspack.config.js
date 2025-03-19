@@ -4,8 +4,8 @@
 module.exports = {
 	module: {
 		generator: {
-			"css": {
-				exportsOnly: true,
+			css: {
+				exportsOnly: true
 			}
 		},
 		rules: [
@@ -14,13 +14,13 @@ module.exports = {
 				type: "css/module",
 				generator: {
 					localIdentName: "[path][name][ext]-[local]",
-					exportsOnly: false,
+					exportsOnly: false
 				}
 			},
 			{
 				test: /\.css$/,
-				type: "css",
-			},
+				type: "css"
+			}
 		]
 	}
 };

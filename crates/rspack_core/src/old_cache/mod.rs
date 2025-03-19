@@ -1,10 +1,4 @@
-use std::{
-  path::PathBuf,
-  sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-  },
-};
+use std::{path::PathBuf, sync::Arc};
 
 use crate::CompilerOptions;
 
@@ -17,7 +11,6 @@ use storage::new_storage;
 
 #[derive(Debug)]
 pub struct Cache {
-  is_idle: AtomicBool,
   pub code_generate_occasion: CodeGenerateOccasion,
   pub process_runtime_requirements_occasion: ProcessRuntimeRequirementsOccasion,
   pub chunk_render_occasion: ChunkRenderOccasion,
@@ -26,7 +19,6 @@ pub struct Cache {
 impl Cache {
   pub fn new(options: Arc<CompilerOptions>) -> Self {
     Self {
-      is_idle: true.into(),
       code_generate_occasion: CodeGenerateOccasion::new(new_storage(&options.cache)),
       process_runtime_requirements_occasion: ProcessRuntimeRequirementsOccasion::new(new_storage(
         &options.cache,
@@ -40,12 +32,10 @@ impl Cache {
   }
 
   pub fn begin_idle(&self) {
-    if self.is_idle.load(Ordering::Relaxed) {
-      // TODO clean cache
-    }
+    self.code_generate_occasion.begin_idle();
+    self.process_runtime_requirements_occasion.begin_idle();
+    self.chunk_render_occasion.begin_idle();
   }
 
-  pub fn end_idle(&self) {
-    self.is_idle.store(false, Ordering::Relaxed);
-  }
+  pub fn end_idle(&self) {}
 }

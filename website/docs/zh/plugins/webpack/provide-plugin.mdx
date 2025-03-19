@@ -27,7 +27,7 @@ new rspack.ProvidePlugin({
 也可以指定完整路径：
 
 ```js
-const path = require('path');
+const path = require('node:path');
 
 new rspack.ProvidePlugin({
   identifier: path.resolve(path.join(__dirname, 'src/module1')),

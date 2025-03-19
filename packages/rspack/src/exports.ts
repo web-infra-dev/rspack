@@ -27,9 +27,12 @@ export { RspackOptionsApply, RspackOptionsApply as WebpackOptionsApply };
 
 export type { Chunk } from "./Chunk";
 export type { ChunkGroup } from "./ChunkGroup";
-export type { Module, ResolveData } from "./Module";
+export type { Module, ResolveData, ResourceDataWithData } from "./Module";
 export { MultiStats } from "./MultiStats";
 export { NormalModule } from "./NormalModule";
+export { ContextModule } from "./ContextModule";
+export { ConcatenatedModule } from "./ConcatenatedModule";
+export { ExternalModule } from "./ExternalModule";
 export type { NormalModuleFactory } from "./NormalModuleFactory";
 export { RuntimeGlobals } from "./RuntimeGlobals";
 export type {
@@ -41,6 +44,11 @@ export type {
 } from "./Stats";
 export { Stats } from "./Stats";
 export { RuntimeModule } from "./RuntimeModule";
+export {
+	EntryDependency,
+	Dependency,
+	AsyncDependenciesBlock
+} from "@rspack/binding";
 
 // API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
 import * as ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";
@@ -104,6 +112,7 @@ export { ExternalsPlugin } from "./builtin-plugin";
 export { HotModuleReplacementPlugin } from "./builtin-plugin";
 export { NoEmitOnErrorsPlugin } from "./builtin-plugin";
 export { WarnCaseSensitiveModulesPlugin } from "./builtin-plugin";
+export { RuntimePlugin } from "./builtin-plugin";
 export { DllPlugin, type DllPluginOptions } from "./lib/DllPlugin";
 export {
 	DllReferencePlugin,
@@ -117,7 +126,10 @@ export { LoaderOptionsPlugin } from "./lib/LoaderOptionsPlugin";
 export { LoaderTargetPlugin } from "./lib/LoaderTargetPlugin";
 export { NormalModuleReplacementPlugin } from "./lib/NormalModuleReplacementPlugin";
 
-import { FetchCompileAsyncWasmPlugin } from "./builtin-plugin";
+import {
+	FetchCompileAsyncWasmPlugin,
+	SubresourceIntegrityPlugin
+} from "./builtin-plugin";
 interface Web {
 	FetchCompileAsyncWasmPlugin: typeof FetchCompileAsyncWasmPlugin;
 }
@@ -180,6 +192,7 @@ import { LimitChunkCountPlugin } from "./builtin-plugin";
 import { RuntimeChunkPlugin } from "./builtin-plugin";
 import { SplitChunksPlugin } from "./builtin-plugin";
 import { RemoveDuplicateModulesPlugin } from "./builtin-plugin";
+import { RsdoctorPlugin } from "./builtin-plugin";
 
 interface Optimize {
 	LimitChunkCountPlugin: typeof LimitChunkCountPlugin;
@@ -252,6 +265,7 @@ export const sharing = {
 };
 
 ///// Rspack Postfixed Internal Plugins /////
+export type { RsdoctorPluginData, RsdoctorPluginHooks } from "./builtin-plugin";
 export type { HtmlRspackPluginOptions } from "./builtin-plugin";
 export type { SwcJsMinimizerRspackPluginOptions } from "./builtin-plugin";
 export type { LightningCssMinimizerRspackPluginOptions } from "./builtin-plugin";
@@ -289,6 +303,8 @@ export type {
 	FeatureOptions as LightningcssFeatureOptions
 } from "./builtin-loader/lightningcss/index";
 
+export type { SubresourceIntegrityPluginOptions } from "./builtin-plugin";
+
 ///// Experiments Stuff /////
 import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";
 interface Experiments {
@@ -301,6 +317,8 @@ interface Experiments {
 		cleanup: () => Promise<void>;
 	};
 	RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
+	RsdoctorPlugin: typeof RsdoctorPlugin;
+	SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
 }
 
 export const experiments: Experiments = {
@@ -329,5 +347,12 @@ export const experiments: Experiments = {
 			}
 		}
 	},
-	RemoveDuplicateModulesPlugin
+	RemoveDuplicateModulesPlugin,
+	/**
+	 * Note: This plugin is unstable yet
+	 *
+	 * @internal
+	 */
+	RsdoctorPlugin,
+	SubresourceIntegrityPlugin
 };

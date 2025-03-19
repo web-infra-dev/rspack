@@ -1,0 +1,76 @@
+var webpackQueues =
+	typeof Symbol === "function"
+		? Symbol("webpack queues")
+		: "__webpack_queues__";
+var webpackExports =
+	typeof Symbol === "function"
+		? Symbol("webpack exports")
+		: "<%- EXPORTS %>";
+var webpackError =
+	typeof Symbol === "function" ? Symbol("webpack error") : "__webpack_error__";
+var resolveQueue = <%- basicFunction("queue") %> {
+  if (queue && queue.d < 1) {
+    queue.d = 1;
+    queue.forEach(<%- expressionFunction("fn.r--", "fn") %>);
+		queue.forEach(<%- expressionFunction("fn.r-- ? fn.r++ : fn()", "fn") %>);
+	}
+}
+var wrapDeps = <%- basicFunction("deps") %> {
+	return deps.map(<%- basicFunction("dep") %> {
+		if (dep !== null && typeof dep === "object") {
+			if (dep[webpackQueues]) return dep;
+			if (dep.then) {
+				var queue = [];
+				queue.d = 0;
+				dep.then(<%- basicFunction("r") %> {
+					obj[webpackExports] = r;
+					resolveQueue(queue);
+				},<%- basicFunction("e") %> {
+					obj[webpackError] = e;
+					resolveQueue(queue);
+				});
+				var obj = {};
+				obj[webpackQueues] = <%- expressionFunction("fn(queue)", "fn") %>;
+				return obj;
+			}
+		}
+		var ret = {};
+		ret[webpackQueues] = <%- emptyFunction() %>;
+		ret[webpackExports] = dep;
+		return ret;
+	});
+};
+<%- ASYNC_MODULE %> = <%- basicFunction("module, body, hasAwait") %> {
+	var queue;
+	hasAwait && ((queue = []).d = -1);
+	var depQueues = new Set();
+	var exports = module.exports;
+	var currentDeps;
+	var outerResolve;
+	var reject;
+	var promise = new Promise(<%- basicFunction("resolve, rej") %> {
+		reject = rej;
+		outerResolve = resolve;
+	});
+	promise[webpackExports] = exports;
+	promise[webpackQueues] = <%- basicFunction("fn") %> { queue && fn(queue), depQueues.forEach(fn), promise["catch"](<%- emptyFunction() %>); };
+	module.exports = promise;
+	body(<%- basicFunction("deps") %> {
+		currentDeps = wrapDeps(deps);
+		var fn;
+		var getResult = <%- basicFunction("") %> {
+			return currentDeps.map(<%- basicFunction("d") %> {
+				if (d[webpackError]) throw d[webpackError];
+				return d[webpackExports];
+			});
+		}
+		var promise = new Promise(<%- basicFunction("resolve") %> {
+			fn = <%- expressionFunction("resolve(getResult)", "") %>;
+			fn.r = 0;
+			var fnQueue = <%- expressionFunction("q !== queue && !depQueues.has(q) && (depQueues.add(q), q && !q.d && (fn.r++, q.push(fn)))", "q") %>;
+			currentDeps.map(<%- expressionFunction("dep[webpackQueues](fnQueue)", "dep") %>);
+		});
+		return fn.r ? promise : getResult();
+	}, <%- expressionFunction("(err ? reject(promise[webpackError] = err) : outerResolve(exports)), resolveQueue(queue)", "err") %>);
+	queue && queue.d < 0 && (queue.d = 0);
+};

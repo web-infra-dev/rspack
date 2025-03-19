@@ -3,16 +3,15 @@ use std::borrow::Cow;
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
-use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_macros::impl_source_map_config;
-use rspack_sources::Source;
+use rspack_sources::BoxSource;
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{
-  impl_module_meta_info, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, ChunkUkey, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleIdentifier,
-  ModuleType, RuntimeSpec, SourceType,
+  impl_module_meta_info, AsyncDependenciesBlockIdentifier, BuildInfo, BuildMeta, ChunkUkey,
+  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
+  FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
 };
 
 #[impl_source_map_config]
@@ -24,8 +23,8 @@ pub struct SelfModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
   factory_meta: Option<FactoryMeta>,
-  build_info: Option<BuildInfo>,
-  build_meta: Option<BuildMeta>,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
 }
 
 impl SelfModule {
@@ -37,8 +36,11 @@ impl SelfModule {
       blocks: Default::default(),
       dependencies: Default::default(),
       factory_meta: None,
-      build_info: None,
-      build_meta: None,
+      build_info: BuildInfo {
+        strict: true,
+        ..Default::default()
+      },
+      build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -77,10 +79,6 @@ impl DependenciesBlock for SelfModule {
 impl Module for SelfModule {
   impl_module_meta_info!();
 
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
-  }
-
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     self.identifier.len() as f64
   }
@@ -93,7 +91,7 @@ impl Module for SelfModule {
     &[SourceType::JavaScript]
   }
 
-  fn original_source(&self) -> Option<&dyn Source> {
+  fn source(&self) -> Option<&BoxSource> {
     None
   }
 
@@ -109,27 +107,8 @@ impl Module for SelfModule {
     None
   }
 
-  async fn build(
-    &mut self,
-    _build_context: BuildContext,
-    _: Option<&Compilation>,
-  ) -> Result<BuildResult> {
-    let build_info = BuildInfo {
-      strict: true,
-      ..Default::default()
-    };
-
-    Ok(BuildResult {
-      build_info,
-      build_meta: Default::default(),
-      dependencies: Vec::new(),
-      blocks: Vec::new(),
-      optimization_bailouts: vec![],
-    })
-  }
-
   // #[tracing::instrument("SelfModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
-  fn code_generation(
+  async fn code_generation(
     &self,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,

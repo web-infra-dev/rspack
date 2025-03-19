@@ -2,15 +2,15 @@
 module.exports = {
 	mode: "production",
 	optimization: {
-		minimize: false,
+		minimize: false
 	},
 	output: {
-    library: {
-      type: "module",
-    },
+		library: {
+			type: "module"
+		},
 		filename: "[name].mjs",
-    module: true,
-    chunkFormat: "module",
-    chunkLoading: "import",
+		module: true,
+		chunkFormat: "module",
+		chunkLoading: "import"
 	}
 };

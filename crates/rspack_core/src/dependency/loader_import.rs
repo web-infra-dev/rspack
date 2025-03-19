@@ -1,17 +1,18 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 
-use super::AffectType;
+use super::{AffectType, FactorizeInfo};
 use crate::{
   AsContextDependency, AsDependencyTemplate, Context, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency,
 };
 
 #[cacheable]
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+#[derive(Debug, Clone)]
 pub struct LoaderImportDependency {
   id: DependencyId,
   context: Context,
   request: String,
+  factorize_info: FactorizeInfo,
 }
 
 impl LoaderImportDependency {
@@ -20,6 +21,7 @@ impl LoaderImportDependency {
       request,
       context,
       id: DependencyId::new(),
+      factorize_info: Default::default(),
     }
   }
 
@@ -28,7 +30,24 @@ impl LoaderImportDependency {
       request,
       context,
       id,
+      factorize_info: Default::default(),
     }
+  }
+}
+
+impl PartialEq for LoaderImportDependency {
+  fn eq(&self, other: &Self) -> bool {
+    self.id == other.id && self.context == other.context && self.request == other.request
+  }
+}
+
+impl Eq for LoaderImportDependency {}
+
+impl std::hash::Hash for LoaderImportDependency {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.id.hash(state);
+    self.context.hash(state);
+    self.request.hash(state);
   }
 }
 
@@ -70,5 +89,13 @@ impl ModuleDependency for LoaderImportDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }

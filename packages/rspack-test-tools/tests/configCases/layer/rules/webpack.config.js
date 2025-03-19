@@ -54,10 +54,10 @@ module.exports = {
 	},
 	externals: [
 		{
-			external1: "var 42",
+			external1: "var 42"
 		},
 		{
-			external2: "var 42",
+			external2: "var 42"
 		}
 	]
 };

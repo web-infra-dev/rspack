@@ -40,7 +40,7 @@ Object {
     },
     layers: false,
     lazyCompilation: false,
-    parallelCodeSplitting: false,
+    parallelCodeSplitting: true,
     rspackFuture: Object {
       bundlerInfo: Object {
         bundler: rspack,
@@ -168,7 +168,11 @@ Object {
         },
       },
     ],
-    generator: Object {},
+    generator: Object {
+      json: Object {
+        JSONParse: true,
+      },
+    },
     noParse: undefined,
     parser: Object {
       asset: Object {
@@ -231,7 +235,7 @@ Object {
     nodeEnv: false,
     providedExports: true,
     realContentHash: false,
-    removeAvailableModules: false,
+    removeAvailableModules: true,
     removeEmptyChunks: true,
     runtimeChunk: false,
     sideEffects: flag,
@@ -340,6 +344,26 @@ Object {
   resolve: Object {
     aliasFields: Array [],
     byDependency: Object {
+      amd: Object {
+        aliasFields: Array [
+          browser,
+        ],
+        conditionNames: Array [
+          require,
+          module,
+          ...,
+        ],
+        extensions: Array [
+          .js,
+          .json,
+          .wasm,
+        ],
+        mainFields: Array [
+          browser,
+          module,
+          ...,
+        ],
+      },
       commonjs: Object {
         aliasFields: Array [
           browser,

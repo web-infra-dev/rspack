@@ -29,9 +29,10 @@ new rspack.IgnorePlugin(options);
 
 当使用以下配置时：
 
-```ts title="rspack.config.js"
-const { rspack } = require('@rspack/core');
-module.exports = {
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
   plugins: [
     new rspack.IgnorePlugin({
       resourceRegExp: /^\.\/locale$/,

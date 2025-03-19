@@ -120,7 +120,9 @@ impl HasModuleGraphChange {
     if self.disabled {
       return;
     }
-    if artifact.built_modules.len() != self.expect_built_modules_len {
+    if artifact.built_modules.len() != self.expect_built_modules_len
+      || artifact.built_modules.len() != artifact.revoked_modules.len()
+    {
       // contain unexpected module built
       artifact.has_module_graph_change = true;
       return;
@@ -145,17 +147,17 @@ mod t {
 
   use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
   use rspack_collections::Identifiable;
-  use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
+  use rspack_error::{impl_empty_diagnosable_trait, Result};
   use rspack_macros::impl_source_map_config;
-  use rspack_sources::Source;
+  use rspack_sources::BoxSource;
   use rspack_util::{atom::Atom, source_map::SourceMapKind};
 
   use crate::{
     compiler::make::cutout::has_module_graph_change::ModuleDeps, AffectType, AsContextDependency,
     BuildInfo, BuildMeta, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-    DependenciesBlock, Dependency, DependencyId, DependencyTemplate, ExportsInfo, FactoryMeta,
-    Module, ModuleDependency, ModuleGraph, ModuleGraphModule, ModuleGraphPartial, ModuleIdentifier,
-    ModuleType, RuntimeSpec, SourceType,
+    DependenciesBlock, Dependency, DependencyId, DependencyTemplate, ExportsInfo, FactorizeInfo,
+    FactoryMeta, Module, ModuleDependency, ModuleGraph, ModuleGraphModule, ModuleGraphPartial,
+    ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
   };
 
   #[cacheable]
@@ -164,6 +166,7 @@ mod t {
     #[cacheable(with=Skip)]
     ids: Vec<Atom>,
     id: DependencyId,
+    factorize_info: FactorizeInfo,
   }
 
   impl TestDep {
@@ -171,6 +174,7 @@ mod t {
       Self {
         ids,
         id: DependencyId::new(),
+        factorize_info: Default::default(),
       }
     }
   }
@@ -224,6 +228,14 @@ mod t {
   impl ModuleDependency for TestDep {
     fn request(&self) -> &str {
       ""
+    }
+
+    fn factorize_info(&self) -> &FactorizeInfo {
+      unreachable!()
+    }
+
+    fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+      unreachable!()
     }
   }
 
@@ -285,11 +297,7 @@ mod t {
       todo!()
     }
 
-    fn get_diagnostics(&self) -> Vec<Diagnostic> {
-      todo!()
-    }
-
-    fn original_source(&self) -> Option<&dyn Source> {
+    fn source(&self) -> Option<&BoxSource> {
       todo!()
     }
 
@@ -309,23 +317,23 @@ mod t {
       todo!()
     }
 
-    fn build_info(&self) -> Option<&BuildInfo> {
+    fn build_info(&self) -> &BuildInfo {
       todo!()
     }
 
-    fn set_build_info(&mut self, _build_info: BuildInfo) {
+    fn build_info_mut(&mut self) -> &mut BuildInfo {
       todo!()
     }
 
-    fn build_meta(&self) -> Option<&BuildMeta> {
+    fn build_meta(&self) -> &BuildMeta {
       todo!()
     }
 
-    fn set_build_meta(&mut self, _build_meta: BuildMeta) {
+    fn build_meta_mut(&mut self) -> &mut BuildMeta {
       todo!()
     }
 
-    fn code_generation(
+    async fn code_generation(
       &self,
       _compilation: &Compilation,
       _runtime: Option<&RuntimeSpec>,

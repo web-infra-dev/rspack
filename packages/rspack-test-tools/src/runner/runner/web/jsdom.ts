@@ -7,14 +7,18 @@ import EventSource from "../../../helper/legacy/EventSourceForNode";
 import createFakeWorker from "../../../helper/legacy/createFakeWorker";
 import urlToRelativePath from "../../../helper/legacy/urlToRelativePath";
 import type { ECompilerType } from "../../../type";
-import type { TRunnerRequirer } from "../../type";
+import type { TBasicRunnerFile, TRunnerRequirer } from "../../type";
 import type { IBasicRunnerOptions } from "../basic";
 import { CommonJsRunner } from "../cjs";
+
+// Compatibility code to suppress iconv-lite warnings
+require("iconv-lite").skipDecodeWarning = true;
 
 export class JSDOMWebRunner<
 	T extends ECompilerType = ECompilerType.Rspack
 > extends CommonJsRunner<T> {
 	private dom: JSDOM;
+	private requireCache: Record<string, any> = Object.create(null);
 	constructor(protected _webOptions: IBasicRunnerOptions<T>) {
 		super(_webOptions);
 
@@ -87,10 +91,26 @@ export class JSDOMWebRunner<
 				)
 				.split("?")[0];
 		};
+		const that = this;
 		class CustomResourceLoader extends ResourceLoader {
 			fetch(url: string, _: { element: HTMLScriptElement }) {
+				const filePath = urlToPath(url);
+				let finalCode: string | Buffer | void;
+				if (path.extname(filePath) === ".js") {
+					const currentDirectory = path.dirname(filePath);
+					const file = that.getFile(filePath, currentDirectory);
+					if (!file) {
+						throw new Error(`File not found: ${filePath}`);
+					}
+
+					const [_m, code] = that.getModuleContent(file);
+					finalCode = code;
+				} else {
+					finalCode = fs.readFileSync(filePath);
+				}
+
 				try {
-					return Promise.resolve(fs.readFileSync(urlToPath(url))) as any;
+					return Promise.resolve(finalCode!) as any;
 				} catch (err) {
 					console.error(err);
 					if ((err as { code: string }).code === "ENOENT") {
@@ -154,73 +174,81 @@ export class JSDOMWebRunner<
 				}
 			};
 		};
-		moduleScope.STATS = moduleScope.__STATS__;
 		return moduleScope;
 	}
 
-	protected createJSDOMRequirer(): TRunnerRequirer {
-		const requireCache = Object.create(null);
+	protected getModuleContent(file: TBasicRunnerFile): [
+		{
+			exports: Record<string, unknown>;
+		},
+		string
+	] {
+		const m = {
+			exports: {}
+		};
+		const currentModuleScope = this.createModuleScope(
+			this.getRequire(),
+			m,
+			file
+		);
 
+		if (this._options.testConfig.moduleScope) {
+			this._options.testConfig.moduleScope(currentModuleScope);
+		}
+
+		const scopeKey = escapeSep(file!.path);
+		const args = Object.keys(currentModuleScope).filter(
+			arg => !["window", "self", "globalThis", "console"].includes(arg)
+		);
+		const argValues = args
+			.map(arg => `window["${scopeKey}"]["${arg}"]`)
+			.join(", ");
+		this.dom.window[scopeKey] = currentModuleScope;
+		return [
+			m,
+			`
+			// hijack document.currentScript for auto public path
+			var $$g$$ = new Proxy(window, {
+				get(target, prop, receiver) {
+					if (prop === "document") {
+						return new Proxy(window.document, {
+							get(target, prop, receiver) {
+								if (prop === "currentScript") {
+									var script = target.createElement("script");
+									script.src = "https://test.cases/path/${escapeSep(file.subPath)}index.js";
+									return script;
+								}
+								return Reflect.get(target, prop, receiver);
+							}
+						});
+					}
+					return Reflect.get(target, prop, receiver);
+				}
+			});
+			(function(window, self, globalThis, console, ${args.join(", ")}) {
+				${file.content}
+			})($$g$$, $$g$$, $$g$$, window["console"], ${argValues});
+		`
+		];
+	}
+
+	protected createJSDOMRequirer(): TRunnerRequirer {
 		return (currentDirectory, modulePath, context = {}) => {
 			const file = context.file || this.getFile(modulePath, currentDirectory);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}
 
-			if (file.path in requireCache) {
-				return requireCache[file.path].exports;
+			if (file.path in this.requireCache) {
+				return this.requireCache[file.path].exports;
 			}
 
-			const m = {
-				exports: {}
-			};
-			requireCache[file.path] = m;
-			const currentModuleScope = this.createModuleScope(
-				this.getRequire(),
-				m,
-				file
-			);
-
-			if (this._options.testConfig.moduleScope) {
-				this._options.testConfig.moduleScope(currentModuleScope);
-			}
-
-			const scopeKey = escapeSep(file!.path);
-			const args = Object.keys(currentModuleScope).filter(
-				arg => !["window", "self", "globalThis", "console"].includes(arg)
-			);
-			const argValues = args
-				.map(arg => `window["${scopeKey}"]["${arg}"]`)
-				.join(", ");
-			const code = `
-        // hijack document.currentScript for auto public path
-        var $$g$$ = new Proxy(window, {
-          get(target, prop, receiver) {
-            if (prop === "document") {
-              return new Proxy(window.document, {
-                get(target, prop, receiver) {
-                  if (prop === "currentScript") {
-                    var script = target.createElement("script");
-                    script.src = "https://test.cases/path/${escapeSep(file.subPath)}index.js";
-                    return script;
-                  }
-                  return Reflect.get(target, prop, receiver);
-                }
-              });
-            }
-            return Reflect.get(target, prop, receiver);
-          }
-        });
-        (function(window, self, globalThis, console, ${args.join(", ")}) {
-          ${file.content}
-        })($$g$$, $$g$$, $$g$$, window["console"], ${argValues});
-      `;
-
+			const [m, code] = this.getModuleContent(file);
 			this.preExecute(code, file);
-			this.dom.window[scopeKey] = currentModuleScope;
 			this.dom.window.eval(code);
-
 			this.postExecute(m, file);
+
+			this.requireCache[file.path] = m;
 			return m.exports;
 		};
 	}

@@ -91,6 +91,8 @@ const describeCases = config => {
 							}).not.toThrow();
 							optionsArr = [].concat(options);
 							optionsArr.forEach((options, idx) => {
+								// CHANGE: rspack does not enable AMD by default
+								if (options.amd === undefined) options.amd = {};
 								if (!options.context) options.context = testDirectory;
 								if (!options.mode) options.mode = "production";
 								if (!options.optimization) options.optimization = {};
@@ -197,7 +199,7 @@ const describeCases = config => {
 								return;
 							}
 							// Wait for uncaught errors to occur
-							setTimeout(done, 200);
+							setTimeout(done);
 							return;
 						};
 						if (config.cache) {
@@ -255,12 +257,7 @@ const describeCases = config => {
 									require("@rspack/core")(options, (err, stats) => {
 										deprecationTracker();
 										if (err) return handleFatalError(err, done);
-										const { errorsCount } = stats.toJson({
-											all: false,
-											modules: true,
-											errorsCount: true
-										});
-										if (errorsCount === 0) {
+										if (!stats.hasErrors()) {
 											const infrastructureLogging = stderr.toString();
 											if (infrastructureLogging) {
 												return done(
@@ -333,23 +330,36 @@ const describeCases = config => {
 										colors: false
 									};
 									fs.mkdirSync(outputDirectory, { recursive: true });
-									fs.writeFileSync(
-										path.join(outputDirectory, "stats.txt"),
-										stats.toString(statOptions),
-										"utf-8"
-									);
-									const jsonStats = stats.toJson({
-										errorDetails: true
-									});
-									fs.writeFileSync(
-										path.join(outputDirectory, "stats.json"),
-										JSON.stringify(jsonStats, null, 2),
-										"utf-8"
-									);
+									// CHANGE: no test cases use stats.txt
+									// fs.writeFileSync(
+									// 	path.join(outputDirectory, "stats.txt"),
+									// 	stats.toString(statOptions),
+									// 	"utf-8"
+									// );
+
+									const getStatsJson = (() => {
+										let cache = null;
+										return () => {
+											if (!cache) {
+												cache = stats.toJson({
+													errorDetails: true
+												});
+											}
+											return cache;
+										};
+									})();
+									// const jsonStats = getStatsJson();
+									// CHANGE: no test cases use stats.json
+									// fs.writeFileSync(
+									// 	path.join(outputDirectory, "stats.json"),
+									// 	JSON.stringify(jsonStats, null, 2),
+									// 	"utf-8"
+									// );
 									if (
+										fs.existsSync(path.join(testDirectory, "errors.js")) &&
 										checkArrayExpectation(
 											testDirectory,
-											jsonStats,
+											getStatsJson(),
 											"error",
 											"Error",
 											done
@@ -358,9 +368,10 @@ const describeCases = config => {
 										return;
 									}
 									if (
+										fs.existsSync(path.join(testDirectory, "warnings.js")) &&
 										checkArrayExpectation(
 											testDirectory,
-											jsonStats,
+											getStatsJson(),
 											"warning",
 											"Warning",
 											done
@@ -447,7 +458,6 @@ const describeCases = config => {
 												afterEach: _afterEach,
 												expect,
 												jest,
-												__STATS__: jsonStats,
 												nsObj: m => {
 													Object.defineProperty(m, Symbol.toStringTag, {
 														value: "Module"
@@ -465,6 +475,9 @@ const describeCases = config => {
 												baseModuleScope.self = globalContext;
 												baseModuleScope.document = globalContext.document;
 												baseModuleScope.URL = URL;
+												if (typeof Blob !== "undefined") {
+													baseModuleScope.Blob = Blob;
+												}
 												baseModuleScope.Worker =
 													require("./helpers/createFakeWorker")({
 														outputDirectory
@@ -541,6 +554,13 @@ const describeCases = config => {
 															);
 														let esm = esmCache.get(p);
 														if (!esm) {
+															let moduleContext = esmContext;
+															if (content.includes("__STATS__")) {
+																moduleContext = vm.createContext({
+																	__STATS__: getStatsJson(),
+																	...moduleContext
+																});
+															}
 															esm = new vm.SourceTextModule(content, {
 																identifier: esmIdentifier + "-" + p,
 																url:
@@ -637,6 +657,9 @@ const describeCases = config => {
 														__filename: p,
 														_globalAssign: { expect }
 													};
+													if (content.includes("__STATS__")) {
+														moduleScope.__STATS__ = getStatsJson();
+													}
 													if (testConfig.moduleScope) {
 														testConfig.moduleScope(moduleScope);
 													}
@@ -697,7 +720,7 @@ const describeCases = config => {
 									}
 									// give a free pass to compilation that generated an error
 									if (
-										!jsonStats.errors.length &&
+										!stats.hasErrors() &&
 										filesCount !== optionsArr.length
 									) {
 										return done(

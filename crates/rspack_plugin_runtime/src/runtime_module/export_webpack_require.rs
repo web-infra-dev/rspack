@@ -17,12 +17,13 @@ impl ExportWebpackRequireRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for ExportWebpackRequireRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     Ok(RawStringSource::from_static("export default __webpack_require__;").boxed())
   }
 

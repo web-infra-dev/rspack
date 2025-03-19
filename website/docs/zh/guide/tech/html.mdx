@@ -6,11 +6,11 @@ Rspack 支持通过以下插件来生成 HTML 文件，并自动将生成的 CSS
 
 Rspack 完全支持 [HtmlWebpackPlugin](https://github.com/jantimon/html-webpack-plugin)。
 
-```js title="rspack.config.js"
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const path = require('path');
+```js title="rspack.config.mjs"
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import path from 'node:path';
 
-module.exports = {
+export default {
   entry: 'index.js',
   output: {
     path: path.resolve(__dirname, './dist'),
@@ -26,10 +26,10 @@ module.exports = {
 
 [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) 是以 Rust 实现的高性能 HTML 插件，它的构建性能显著优于 `HtmlWebpackPlugin` 插件，尤其是在构建大量 HTML 文件的场景下。
 
-```js title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   entry: 'index.js',
   output: {
     path: path.resolve(__dirname, './dist'),

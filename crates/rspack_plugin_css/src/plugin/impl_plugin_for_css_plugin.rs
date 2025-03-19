@@ -1,23 +1,21 @@
 #![allow(clippy::comparison_chain)]
 
-use std::hash::Hash;
-use std::sync::Arc;
+use std::{borrow::Cow, hash::Hash, sync::Arc};
 
 use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_collections::DatabaseItem;
-use rspack_core::rspack_sources::{BoxSource, CachedSource, ReplaceSource};
 use rspack_core::{
   get_css_chunk_filename_template,
-  rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
-  Chunk, ChunkKind, Module, ModuleType, ParserAndGenerator, PathData, Plugin, RenderManifestEntry,
-  SourceType,
-};
-use rspack_core::{
-  AssetInfo, ChunkGraph, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
+  rspack_sources::{
+    BoxSource, CachedSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, Source,
+    SourceExt,
+  },
+  AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
   CompilationContentHash, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, DependencyType,
-  LibIdentOptions, ModuleGraph, PublicPath, RuntimeGlobals, SelfModuleFactory,
+  LibIdentOptions, Module, ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin,
+  PublicPath, RenderManifestEntry, RuntimeGlobals, SelfModuleFactory, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -25,10 +23,14 @@ use rspack_hook::plugin_hook;
 use rspack_plugin_runtime::is_enabled_for_chunk;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::parser_and_generator::{CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator};
-use crate::runtime::CssLoadingRuntimeModule;
-use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER;
-use crate::{plugin::CssPluginInner, CssPlugin};
+use crate::{
+  dependency::{CssLayer, CssMedia, CssSupports},
+  parser_and_generator::{CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator},
+  plugin::CssPluginInner,
+  runtime::CssLoadingRuntimeModule,
+  utils::AUTO_PUBLIC_PATH_PLACEHOLDER,
+  CssPlugin,
+};
 
 struct CssModuleDebugInfo<'a> {
   pub module: &'a dyn Module,
@@ -131,11 +133,13 @@ impl CssPlugin {
           .code_generation_results
           .get(module_id, Some(chunk.runtime()));
 
-        Ok(
-          code_gen_result
-            .get(&SourceType::Css)
-            .map(|source| (CssModuleDebugInfo { module: *module }, source)),
-        )
+        Ok(code_gen_result.get(&SourceType::Css).map(|source| {
+          (
+            CssModuleDebugInfo { module: *module },
+            &code_gen_result.data,
+            source,
+          )
+        }))
       })
       .collect::<Result<Vec<_>>>()?;
 
@@ -147,11 +151,42 @@ impl CssPlugin {
       .flatten()
       .fold(
         ConcatSource::default,
-        |mut acc, (debug_info, cur_source)| {
+        |mut acc, (debug_info, data, cur_source)| {
           let (start, end) = Self::render_module_debug_info(compilation, &debug_info);
           acc.add(start);
+
+          let mut num_close_bracket = 0;
+
+          // TODO: use PrefixSource to create indent
+          if let Some(media) = data.get::<CssMedia>() {
+            num_close_bracket += 1;
+            acc.add(RawSource::from(format!("@media {}{{\n", media)));
+          }
+
+          if let Some(supports) = data.get::<CssSupports>() {
+            num_close_bracket += 1;
+            acc.add(RawSource::from(format!("@supports ({}) {{\n", supports)));
+          }
+
+          if let Some(layer) = data.get::<CssLayer>() {
+            num_close_bracket += 1;
+            acc.add(RawSource::from(format!(
+              "@layer{} {{\n",
+              if let CssLayer::Named(layer) = &layer {
+                Cow::Owned(format!(" {}", layer))
+              } else {
+                Cow::Borrowed("")
+              }
+            )));
+          }
+
           acc.add(cur_source.clone());
+
+          for _ in 0..num_close_bracket {
+            acc.add(RawStringSource::from_static("\n}"));
+          }
           acc.add(RawStringSource::from_static("\n"));
+
           acc.add(end);
           acc
         },
@@ -425,6 +460,7 @@ impl Plugin for CssPlugin {
           .expect("should have CssGeneratorOptions");
         Box::new(CssParserAndGenerator {
           exports: None,
+          local_names: None,
           convention: None,
           local_ident_name: None,
           exports_only: g.exports_only.expect("should have exports_only"),
@@ -445,6 +481,7 @@ impl Plugin for CssPlugin {
           .expect("should have CssModuleGeneratorOptions");
         Box::new(CssParserAndGenerator {
           exports: None,
+          local_names: None,
           convention: Some(
             g.exports_convention
               .expect("should have exports_convention"),
@@ -472,6 +509,7 @@ impl Plugin for CssPlugin {
           .expect("should have CssAutoGeneratorOptions");
         Box::new(CssParserAndGenerator {
           exports: None,
+          local_names: None,
           convention: Some(
             g.exports_convention
               .expect("should have exports_convention"),

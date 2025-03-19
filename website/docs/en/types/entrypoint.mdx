@@ -13,7 +13,8 @@ type Entrypoint = {
   isInitial(): boolean; // whether this chunk group will be loaded on initial page load
   getFiles(): ReadonlyArray<string>; // the files contained this chunk group
   getParents(): ReadonlyArray<ChunkGroup>; // returns the parent chunk groups
-  getRuntimeChunk(): Readonly<Chunk | null>; // the chunk containing the webpack bootstrap code
+  getRuntimeChunk(): Readonly<Chunk | null>; // get the runtime chunk of this entrypoint (runtime chunk refers to a chunk that contains runtime code. Generally, the runtime chunk and the entrypoint chunk are the same chunk. Only when the runtime is split into a separate chunk via `dependOn` or `optimization.runtimeChunk` do they refer to different chunks)
+  getEntrypointChunk(): Readonly<Chunk | null>; // get the entrypoint chunk of this entrypoint (entrypoint chunk refers to a chunk that contains entry modules)
 };
 ```
 

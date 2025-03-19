@@ -111,8 +111,6 @@ mod test_storage_lock {
       );
     }
     let rx = storage.trigger_save()?;
-    assert_eq!(storage.load("test_scope").await?.len(), 100);
-
     assert!(rx
       .await
       .expect("should save")

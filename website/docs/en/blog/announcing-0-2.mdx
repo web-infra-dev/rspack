@@ -3,9 +3,9 @@ date: 2023-06-02 13:11:00
 sidebar: false
 ---
 
-# Announcing Rspack 0.2
+_June 02, 2023_
 
-> June 02, 2023
+# Announcing Rspack 0.2
 
 It has been almost three months since the release of Rspack 0.1. We have received so much attention and feedback from the community, and we are grateful.
 
@@ -53,8 +53,8 @@ We have implemented optimization.realContentHash, which calculates the Hash base
 
 In the new version, System/ESM products can be generated, and the configuration for outputting ESM products is as follows:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   experiments: {
     outputModule: true,
@@ -93,8 +93,8 @@ import x from 'data:text/javascript,export default 42';
 
 In addition, we have supported `mimetype` and `scheme` as two types of module rule conditions. For example, you can make resources with `scheme` as `'data'` no longer treated as inline processing, but as separate resource files through the following method:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -112,8 +112,8 @@ module.exports = {
 
   In version 0.1.12, we further aligned the file name generation logic with webpack, and refactored the implementation of file name generation. However, the [ext] in `output.filename`, `output.chunkFilename`, `output.cssFilename`, and `output.cssChunkFilename` will no longer be replaced. This behavior is now consistent with webpack but is a breaking change for versions of Rspack prior to 0.1.12. If you used [ext] in the above 4 filename configurations, you need to change it to the corresponding `.js` or `.css`, for example:
 
-  ```diff title="rspack.config.js"
-  module.exports = {
+  ```diff title="rspack.config.mjs"
+  export default {
     output: {
   -    filename: "[name][ext]",
   +    filename: "[name].js",
@@ -164,7 +164,7 @@ Although Rspack supports and enables the `experiments.css` feature of webpack by
 
 When using Rspack to package Node applications like NestJS, a common requirement is to package libraries containing addons. These libraries' native dependencies cannot be directly packaged into js, so they need special treatment. Rspack has adapted [node-loader](https://github.com/webpack-contrib/node-loader), so you can now use Rspack to build node applications.
 
-Rspack has additional adaptation of webpack's plugins. We have tracked the adapted plugins and loaders in [loader-compat](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/loader-compat) and [plugin-compat](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/plugin). If you find that a community plugin or loader you are using is also compatible, welcome to submit it to us so we can list it in our compatibility matrix.
+Rspack has additional adaptation of webpack's plugins. We have tracked the adapted plugins and loaders in [loader-compat](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/loader-compat) and [plugin-compat](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/plugin). If you find that a community plugin or loader you are using is also compatible, welcome to submit it to us so we can list it in our compatibility matrix.
 
 ## Framework ecosystem updates
 
@@ -188,7 +188,7 @@ Rspack 0.2 has achieved compatibility with vue-loader! For Vue3 projects, you ca
 
 ### Svelte
 
-Thanks to Rspack's excellent support for the Loader API and the excellent design of [svelte-loader](https://github.com/sveltejs/svelte-loader), Rspack has fully adapted [svelte-loader](https://github.com/sveltejs/svelte-loader). Therefore, you can directly use [svelte-loader](https://github.com/sveltejs/svelte-loader) in Rspack for svelte application development. You can refer to [example-svelte](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/svelte) to complete the svelte-loader related configuration.
+Thanks to Rspack's excellent support for the Loader API and the excellent design of [svelte-loader](https://github.com/sveltejs/svelte-loader), Rspack has fully adapted [svelte-loader](https://github.com/sveltejs/svelte-loader). Therefore, you can directly use [svelte-loader](https://github.com/sveltejs/svelte-loader) in Rspack for svelte application development. You can refer to [example-svelte](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/svelte) to complete the svelte-loader related configuration.
 
 ### Storybook
 

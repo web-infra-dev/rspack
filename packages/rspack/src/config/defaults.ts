@@ -38,6 +38,7 @@ import type {
 	ExternalsPresets,
 	InfrastructureLogging,
 	JavascriptParserOptions,
+	JsonGeneratorOptions,
 	Library,
 	Loader,
 	Mode,
@@ -285,6 +286,12 @@ const applyJavascriptParserOptionsDefaults = (
 	D(parserOptions, "importMeta", true);
 };
 
+const applyJsonGeneratorOptionsDefaults = (
+	generatorOptions: JsonGeneratorOptions
+) => {
+	D(generatorOptions, "JSONParse", true);
+};
+
 const applyModuleDefaults = (
 	module: ModuleOptions,
 	{
@@ -321,6 +328,10 @@ const applyModuleDefaults = (
 		"exportsDepth",
 		mode === "development" ? 1 : Number.MAX_SAFE_INTEGER
 	);
+
+	F(module.generator, "json", () => ({}));
+	assertNotNill(module.generator.json);
+	applyJsonGeneratorOptionsDefaults(module.generator.json);
 
 	if (css) {
 		F(module.parser, "css", () => ({}));
@@ -708,8 +719,7 @@ const applyOutputDefaults = (
 	F(output, "wasmLoading", () => {
 		if (tp) {
 			if (tp.fetchWasm) return "fetch";
-			if (tp.nodeBuiltins)
-				return output.module ? "async-node-module" : "async-node";
+			if (tp.nodeBuiltins) return "async-node";
 			if (tp.nodeBuiltins === null || tp.fetchWasm === null) {
 				return "universal";
 			}
@@ -732,7 +742,7 @@ const applyOutputDefaults = (
 	D(output, "workerPublicPath", "");
 	D(output, "sourceMapFilename", "[file].map[query]");
 	F(output, "scriptType", () => (output.module ? "module" : false));
-	D(output, "charset", true);
+	D(output, "charset", !futureDefaults);
 	D(output, "chunkLoadTimeout", 120000);
 
 	const { trustedTypes } = output;
@@ -923,6 +933,7 @@ const applyOptimizationDefaults = (
 		css
 	}: { production: boolean; development: boolean; css: boolean }
 ) => {
+	// IGNORE(optimization.removeAvailableModules): removeAvailableModules is no use for webpack
 	D(optimization, "removeAvailableModules", true);
 	D(optimization, "removeEmptyChunks", true);
 	D(optimization, "mergeDuplicateChunks", true);
@@ -1059,8 +1070,8 @@ const getResolveDefaults = ({
 
 	const resolveOptions: ResolveOptions = {
 		// enable pnp only in pnp environment, see https://yarnpkg.com/advanced/pnpapi#processversionspnp
-		// IGNORE(resolve.pnp): Rspack use `resolve.enable` to enable yarn pnp feature
-		pnp: !!process.versions.pnp,
+		// IGNORE(resolve.pnp): Rspack use `resolve.enable` to enable Yarn PnP feature
+		pnp: getPnpDefault(),
 		modules: ["node_modules"],
 		conditionNames: conditions,
 		mainFiles: ["index"],
@@ -1081,7 +1092,7 @@ const getResolveDefaults = ({
 				preferRelative: true
 			},
 			commonjs: cjsDeps(),
-			// amd: cjsDeps(),
+			amd: cjsDeps(),
 			// for backward-compat: loadModule
 			// loader: cjsDeps(),
 			// for backward-compat: Custom Dependency and getResolve without dependencyType
@@ -1152,4 +1163,8 @@ const A = <T, P extends keyof T>(
 			}
 		}
 	}
+};
+
+export const getPnpDefault = () => {
+	return !!process.versions.pnp;
 };

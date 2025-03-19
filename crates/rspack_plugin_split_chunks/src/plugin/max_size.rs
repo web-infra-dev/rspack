@@ -1,16 +1,25 @@
+/**
+ * The following code is modified based on
+ * https://github.com/webpack/webpack/blob/3919c844eca394d73ca930e4fc5506fb86e2b094/lib/util/deterministicGrouping.js
+ *
+ * MIT Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/webpack/webpack/blob/main/LICENSE
+ */
 use std::sync::LazyLock;
 use std::{borrow::Cow, hash::Hash};
 
-use rayon::prelude::*;
 use regex::Regex;
 use rspack_collections::{DatabaseItem, UkeyMap};
-use rspack_core::incremental::Mutation;
 use rspack_core::{
-  ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier, DEFAULT_DELIMITER,
+  incremental::Mutation, ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier,
+  SourceType, DEFAULT_DELIMITER,
 };
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::identifier::make_paths_relative;
+use rustc_hash::FxHashSet;
 
 use super::MaxSizeSetting;
 use crate::{SplitChunkSizes, SplitChunksPlugin};
@@ -33,7 +42,7 @@ struct Group {
 impl Group {
   fn new(items: Vec<GroupItem>, key: Option<String>, similarities: Vec<usize>) -> Self {
     let mut summed_size = SplitChunkSizes::empty();
-    items.iter().for_each(|item| summed_size.add_by(&item.size));
+    sum_size(&mut summed_size, &items);
 
     Self {
       nodes: items,
@@ -42,6 +51,60 @@ impl Group {
       similarities,
     }
   }
+
+  fn pop_nodes(&mut self, filter: impl Fn(&GroupItem) -> bool) -> Option<Vec<GroupItem>> {
+    let mut filtered = vec![false; self.nodes.len()];
+    let mut all_success = true;
+    for (idx, node) in self.nodes.iter().enumerate() {
+      filtered[idx] = filter(node);
+
+      if !filtered[idx] {
+        all_success = false;
+      }
+    }
+
+    if all_success {
+      return None;
+    }
+
+    let mut new_nodes = vec![];
+    let mut new_similarities = vec![];
+    let mut result_nodes = vec![];
+    let mut last_node: Option<&GroupItem> = None;
+    let mut last_node_idx = 0;
+    let nodes = std::mem::take(&mut self.nodes);
+
+    for (idx, node) in nodes.into_iter().enumerate() {
+      if filtered[idx] {
+        result_nodes.push(node);
+      } else {
+        if !new_nodes.is_empty() {
+          let last_node = last_node.expect("last node exist");
+          let similarity = if last_node_idx == idx - 1 {
+            self.similarities[last_node_idx]
+          } else {
+            similarity(&last_node.key, &node.key)
+          };
+          new_similarities.push(similarity);
+        }
+
+        new_nodes.push(node);
+        last_node_idx = idx;
+        last_node = new_nodes.last();
+      }
+    }
+
+    self.nodes = new_nodes;
+    self.similarities = new_similarities;
+    self.size = SplitChunkSizes::empty();
+    sum_size(&mut self.size, &self.nodes);
+
+    Some(result_nodes)
+  }
+}
+
+fn sum_size(size: &mut SplitChunkSizes, items: &[GroupItem]) {
+  items.iter().for_each(|item| size.add_by(&item.size));
 }
 
 fn get_size(module: &dyn Module, compilation: &Compilation) -> SplitChunkSizes {
@@ -61,8 +124,6 @@ fn hash_filename(filename: &str, options: &CompilerOptions) -> String {
   hash_digest.rendered(8).to_string()
 }
 
-static REPLACE_MODULE_IDENTIFIER_REG: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^.*!|\?[^?!]*$").expect("regexp init failed"));
 static REPLACE_RELATIVE_PREFIX_REG: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^(\.\.?\/)+").expect("regexp init failed"));
 static REPLACE_ILLEGEL_LETTER_REG: LazyLock<Regex> =
@@ -76,6 +137,133 @@ fn request_to_id(req: &str) -> String {
   res
 }
 
+fn get_too_small_types(
+  size: &SplitChunkSizes,
+  min_size: &SplitChunkSizes,
+) -> FxHashSet<SourceType> {
+  let mut types = FxHashSet::default();
+  size.iter().for_each(|(ty, ty_size)| {
+    if *ty_size == 0.0f64 {
+      return;
+    }
+
+    if let Some(min_ty_size) = min_size.get(ty)
+      && ty_size < min_ty_size
+    {
+      types.insert(*ty);
+    }
+  });
+  types
+}
+
+fn remove_problematic_nodes(
+  group: &mut Group,
+  considered_size: &SplitChunkSizes,
+  min_size: &SplitChunkSizes,
+  result: &mut Vec<Group>,
+) -> bool {
+  let problem_types = get_too_small_types(considered_size, min_size);
+
+  if !problem_types.is_empty() {
+    // We hit an edge case where the working set is already smaller than minSize
+    // We merge problematic nodes with the smallest result node to keep minSize intact
+    let problem_nodes = group.pop_nodes(|item| {
+      item
+        .size
+        .iter()
+        .any(|(ty, size)| *size != 0.0f64 && problem_types.contains(ty))
+    });
+
+    let Some(problem_nodes) = problem_nodes else {
+      return false;
+    };
+
+    let possible_result_groups = result
+      .iter_mut()
+      .filter(|group| {
+        group
+          .size
+          .iter()
+          .any(|(ty, size)| *size != 0.0f64 && problem_types.contains(ty))
+      })
+      .collect::<Vec<_>>();
+
+    if possible_result_groups.is_empty() {
+      result.push(Group::new(problem_nodes, None, vec![]));
+    } else {
+      let best_group = possible_result_groups.into_iter().reduce(|min, group| {
+        let min_matched = min
+          .size
+          .iter()
+          .filter(|(ty, _)| problem_types.contains(ty))
+          .count();
+
+        let group_matched = group
+          .size
+          .iter()
+          .filter(|(ty, _)| problem_types.contains(ty))
+          .count();
+
+        match min_matched.cmp(&group_matched) {
+          std::cmp::Ordering::Less => group,
+          std::cmp::Ordering::Greater => min,
+          std::cmp::Ordering::Equal => {
+            if sum_for_types(&min.size, &problem_types) > sum_for_types(&group.size, &problem_types)
+            {
+              group
+            } else {
+              min
+            }
+          }
+        }
+      });
+
+      let best_group: &mut Group =
+        best_group.expect("best_group exist as possible_result_groups is not empty");
+      best_group.nodes.extend(problem_nodes);
+      best_group.nodes.sort_by(|a, b| a.key.cmp(&b.key));
+    }
+
+    return true;
+  }
+
+  false
+}
+
+fn sum_for_types(size: &SplitChunkSizes, ty: &FxHashSet<SourceType>) -> f64 {
+  size
+    .iter()
+    .filter(|(t, _)| ty.contains(t))
+    .map(|(_, s)| s)
+    .sum()
+}
+
+fn get_key(module: &dyn Module, delimiter: &str, compilation: &Compilation) -> String {
+  let ident = make_paths_relative(
+    compilation.options.context.as_str(),
+    module.identifier().as_str(),
+  );
+  let name = if let Some(name_for_condition) = module.name_for_condition() {
+    Cow::Owned(make_paths_relative(
+      compilation.options.context.as_str(),
+      &name_for_condition,
+    ))
+  } else {
+    static RE: LazyLock<Regex> =
+      LazyLock::new(|| Regex::new(r"^.*!|\?[^?!]*$").expect("should build regex"));
+    RE.replace_all(&ident, "")
+  };
+
+  let full_key = format!(
+    "{}{}{}",
+    name,
+    delimiter,
+    hash_filename(&ident, &compilation.options)
+  );
+
+  request_to_id(&full_key)
+}
+
 fn deterministic_grouping_for_modules(
   compilation: &Compilation,
   chunk: &ChunkUkey,
@@ -85,31 +273,18 @@ fn deterministic_grouping_for_modules(
 ) -> Vec<Group> {
   let mut results: Vec<Group> = Default::default();
   let module_graph = compilation.get_module_graph();
+
   let items = compilation
     .chunk_graph
     .get_chunk_modules(chunk, &module_graph);
-  let context = compilation.options.context.as_ref();
 
   let nodes = items.into_iter().map(|module| {
     let module: &dyn Module = &**module;
-    let name: String = if let Some(name_for_condition) = module.name_for_condition() {
-      make_paths_relative(context, &name_for_condition)
-    } else {
-      let path = make_paths_relative(context, module.identifier().as_str());
-      REPLACE_MODULE_IDENTIFIER_REG
-        .replace_all(&path, "")
-        .to_string()
-    };
-    let key = format!(
-      "{}{}{}",
-      name,
-      delimiter,
-      hash_filename(&name, &compilation.options)
-    );
+
     GroupItem {
       module: module.identifier(),
       size: get_size(module, compilation),
-      key: request_to_id(&key),
+      key: get_key(module, delimiter, compilation),
     }
   });
 
@@ -134,9 +309,8 @@ fn deterministic_grouping_for_modules(
     })
     .collect::<Vec<_>>();
 
-  initial_nodes.sort_by(|a, b| a.key.cmp(&b.key));
-
   if !initial_nodes.is_empty() {
+    initial_nodes.sort_by(|a, b| a.key.cmp(&b.key));
     let similarities = get_similarities(&initial_nodes);
     let initial_group = Group::new(initial_nodes, None, similarities);
 
@@ -149,14 +323,21 @@ fn deterministic_grouping_for_modules(
         continue;
       }
 
+      let size = group.size.clone();
+      if remove_problematic_nodes(&mut group, &size, min_size, &mut results) {
+        queue.push(group);
+        continue;
+      }
+
       // find unsplittable area from left and right
       // going minSize from left and right
       // at least one node need to be included otherwise we get stuck
-      let mut left = 1;
+      let mut left: i32 = 1;
       let mut left_size = SplitChunkSizes::empty();
       left_size.add_by(&group.nodes[0].size);
-      while left < group.nodes.len() && left_size.smaller_than(min_size) {
-        left_size.add_by(&group.nodes[left].size);
+
+      while left < group.nodes.len() as i32 && left_size.smaller_than(min_size) {
+        left_size.add_by(&group.nodes[left as usize].size);
 
         left += 1;
       }
@@ -167,20 +348,31 @@ fn deterministic_grouping_for_modules(
 
       while right >= 0 && right_size.smaller_than(min_size) {
         right_size.add_by(&group.nodes[right as usize].size);
-
         right -= 1;
       }
 
-      if left - 1 > right as usize {
+      if left - 1 > right {
         // There are overlaps
 
-        // TODO(hyf0): There are some algorithms we could do better in this
-        // situation.
+        let prev_size = if left + right < group.nodes.len() as i32 {
+          // [0 0 0 0 0 0 0]
+          //    ^ ^
+          subtract_size_from(&mut right_size, &group.nodes[(right + 1) as usize].size);
 
-        // can't split group while holding minSize
-        // because minSize is preferred of maxSize we return
-        // the problematic nodes as result here even while it's too big
-        // To avoid this make sure maxSize > minSize * 3
+          right_size
+        } else {
+          // [0 0 0 0 0 0 0]
+          //          ^ ^
+          subtract_size_from(&mut left_size, &group.nodes[left as usize - 1].size);
+
+          left_size
+        };
+
+        if remove_problematic_nodes(&mut group, &prev_size, min_size, &mut results) {
+          queue.push(group);
+          continue;
+        }
+
         group.key = group.nodes.first().map(|n| n.key.clone());
         results.push(group);
         continue;
@@ -188,24 +380,26 @@ fn deterministic_grouping_for_modules(
         let mut pos = left;
         let mut best = -1;
         let mut best_similarity = usize::MAX;
-        right_size = group.nodes.iter().rev().take(group.nodes.len() - pos).fold(
-          SplitChunkSizes::empty(),
-          |mut acc, node| {
+        right_size = group
+          .nodes
+          .iter()
+          .rev()
+          .take(group.nodes.len() - pos as usize)
+          .fold(SplitChunkSizes::empty(), |mut acc, node| {
             acc.add_by(&node.size);
             acc
-          },
-        );
+          });
 
-        while pos <= right as usize + 1 {
-          let similarity = group.similarities[pos - 1];
+        while pos <= right + 1 {
+          let similarity = group.similarities[pos as usize - 1];
           if similarity < best_similarity
             && left_size.bigger_than(min_size)
             && right_size.bigger_than(min_size)
           {
             best_similarity = similarity;
-            best = pos as i32;
+            best = pos;
           }
-          let size = &group.nodes[pos].size;
+          let size = &group.nodes[pos as usize].size;
           left_size.add_by(size);
           right_size.subtract_by(size);
           pos += 1;
@@ -216,7 +410,7 @@ fn deterministic_grouping_for_modules(
           continue;
         }
 
-        left = best as usize;
+        left = best;
         right = best - 1;
 
         let mut right_similarities = vec![];
@@ -226,10 +420,11 @@ fn deterministic_grouping_for_modules(
 
         let mut left_similarities = vec![];
         for i in 1..left {
-          left_similarities.push((group.similarities)[i - 1]);
+          left_similarities.push((group.similarities)[i as usize - 1]);
         }
-        let right_nodes = group.nodes.split_off(left);
+        let right_nodes = group.nodes.split_off(left as usize);
         let left_nodes = group.nodes;
+
         queue.push(Group::new(right_nodes, None, right_similarities));
         queue.push(Group::new(left_nodes, None, left_similarities));
       }
@@ -242,11 +437,18 @@ fn deterministic_grouping_for_modules(
   results
 }
 
-struct ChunkWithSizeInfo<'a> {
+fn subtract_size_from(total: &mut SplitChunkSizes, size: &SplitChunkSizes) {
+  size.iter().for_each(|(ty, ty_size)| {
+    let total_ty_size = total.get(ty).copied().unwrap_or(0.0);
+    total.insert(*ty, total_ty_size - ty_size);
+  });
+}
+
+struct ChunkWithSizeInfo {
   pub chunk: ChunkUkey,
-  pub allow_max_size: Cow<'a, SplitChunkSizes>,
-  pub min_size: &'a SplitChunkSizes,
-  pub automatic_name_delimiter: &'a String,
+  pub allow_max_size: SplitChunkSizes,
+  pub min_size: SplitChunkSizes,
+  pub automatic_name_delimiter: String,
 }
 
 fn get_similarities(nodes: &[GroupItem]) -> Vec<usize> {
@@ -277,89 +479,122 @@ fn similarity(a: &str, b: &str) -> usize {
 impl SplitChunksPlugin {
   /// Affected by `splitChunks.minSize`/`splitChunks.cacheGroups.{cacheGroup}.minSize`
   // #[tracing::instrument(skip_all)]
-  pub(super) fn ensure_max_size_fit(
+  pub(super) async fn ensure_max_size_fit(
     &self,
     compilation: &mut Compilation,
-    max_size_setting_map: UkeyMap<ChunkUkey, MaxSizeSetting>,
+    max_size_setting_map: &UkeyMap<ChunkUkey, MaxSizeSetting>,
   ) -> Result<()> {
     let fallback_cache_group = &self.fallback_cache_group;
     let chunk_group_db = &compilation.chunk_group_by_ukey;
     let compilation_ref = &*compilation;
 
-    let chunks_with_size_info = compilation_ref
-    .chunk_by_ukey
-    .values()
-    .par_bridge()
-    .map(|chunk| {
-      let max_size_setting = max_size_setting_map.get(&chunk.ukey());
-      tracing::trace!("max_size_setting : {max_size_setting:#?} for {:?}", chunk.ukey());
-
-      if max_size_setting.is_none()
-        && !(fallback_cache_group.chunks_filter)(chunk, compilation)?
-      {
-        tracing::debug!("Chunk({:?}) skips `maxSize` checking. Reason: max_size_setting.is_none() and chunks_filter is false", chunk.chunk_reason());
-        return Ok(None);
-      }
-
-      let min_size = max_size_setting
-        .map(|s| &s.min_size)
-        .unwrap_or(&fallback_cache_group.min_size);
-      let max_async_size = max_size_setting
-        .map(|s| &s.max_async_size)
-        .unwrap_or(&fallback_cache_group.max_async_size);
-      let max_initial_size: &SplitChunkSizes = max_size_setting
-        .map(|s| &s.max_initial_size)
-        .unwrap_or(&fallback_cache_group.max_initial_size);
-      let automatic_name_delimiter = max_size_setting.map(|s| &s.automatic_name_delimiter).unwrap_or(&fallback_cache_group.automatic_name_delimiter);
-
-      let mut allow_max_size = if chunk.is_only_initial(chunk_group_db) {
-        Cow::Borrowed(max_initial_size)
-      } else if chunk.can_be_initial(chunk_group_db) {
-        let mut sizes = SplitChunkSizes::empty();
-        sizes.combine_with(max_async_size, &f64::min);
-        sizes.combine_with(max_initial_size, &f64::min);
-        Cow::Owned(sizes)
-      } else {
-        Cow::Borrowed(max_async_size)
-      };
-
-      // Fast path
-      if allow_max_size.is_empty() {
-        tracing::debug!(
-          "Chunk({:?}) skips the `maxSize` checking. Reason: allow_max_size is empty",
-          chunk.chunk_reason()
-        );
-        return Ok(None);
-      }
-
-      let mut is_invalid = false;
-      allow_max_size.iter().for_each(|(ty, ty_max_size)| {
-        if let Some(ty_min_size) = min_size.get(ty) {
-          if ty_min_size > ty_max_size {
-            is_invalid = true;
-            tracing::warn!(
-              "minSize({}) should not be bigger than maxSize({})",
-              ty_min_size,
-              ty_max_size
+    let chunks_with_size_info_results = rspack_futures::scope::<_, Result<_>>(|token| {
+      compilation_ref.chunk_by_ukey.values().for_each(|chunk| {
+        let s = unsafe {
+          token.used((
+            &*compilation,
+            chunk,
+            fallback_cache_group,
+            chunk_group_db,
+            &max_size_setting_map,
+          ))
+        };
+        s.spawn(
+          move |(
+            compilation,
+            chunk,
+            fallback_cache_group,
+            chunk_group_db,
+            max_size_setting_map,
+          )| async move {
+            let max_size_setting = max_size_setting_map.get(&chunk.ukey());
+            tracing::trace!(
+              "max_size_setting : {max_size_setting:#?} for {:?}",
+              chunk.ukey()
             );
-          }
-        }
-      });
-      if is_invalid {
-        allow_max_size.to_mut().combine_with(min_size, &f64::max);
-      }
 
-      Ok(Some(ChunkWithSizeInfo {
-        allow_max_size,
-        min_size,
-        chunk: chunk.ukey(),
-        automatic_name_delimiter,
-      }))
-    }).collect::<Result<Vec<_>>>()?
+            if max_size_setting.is_none()
+              && !(fallback_cache_group.chunks_filter)(chunk, compilation).await?
+            {
+              tracing::debug!("Chunk({:?}) skips `maxSize` checking. Reason: max_size_setting.is_none() and chunks_filter is false", chunk.chunk_reason());
+              return Ok(None);
+            }
+
+            let min_size = max_size_setting
+              .map(|s| &s.min_size)
+              .unwrap_or(&fallback_cache_group.min_size);
+            let max_async_size = max_size_setting
+              .map(|s| &s.max_async_size)
+              .unwrap_or(&fallback_cache_group.max_async_size);
+            let max_initial_size: &SplitChunkSizes = max_size_setting
+              .map(|s| &s.max_initial_size)
+              .unwrap_or(&fallback_cache_group.max_initial_size);
+            let automatic_name_delimiter = max_size_setting
+              .map(|s| &s.automatic_name_delimiter)
+              .unwrap_or(&fallback_cache_group.automatic_name_delimiter);
+
+            let mut allow_max_size = if chunk.is_only_initial(chunk_group_db) {
+              Cow::Borrowed(max_initial_size)
+            } else if chunk.can_be_initial(chunk_group_db) {
+              let mut sizes = SplitChunkSizes::empty();
+              sizes.combine_with(max_async_size, &f64::min);
+              sizes.combine_with(max_initial_size, &f64::min);
+              Cow::Owned(sizes)
+            } else {
+              Cow::Borrowed(max_async_size)
+            };
+
+            // Fast path
+            if allow_max_size.is_empty() {
+              tracing::debug!(
+                "Chunk({:?}) skips the `maxSize` checking. Reason: allow_max_size is empty",
+                chunk.chunk_reason()
+              );
+              return Ok(None);
+            }
+
+            let mut is_invalid = false;
+            allow_max_size.iter().for_each(|(ty, ty_max_size)| {
+              if let Some(ty_min_size) = min_size.get(ty) {
+                if ty_min_size > ty_max_size {
+                  is_invalid = true;
+                  tracing::warn!(
+                    "minSize({}) should not be bigger than maxSize({})",
+                    ty_min_size,
+                    ty_max_size
+                  );
+                }
+              }
+            });
+            if is_invalid {
+              allow_max_size.to_mut().combine_with(min_size, &f64::max);
+            }
+
+            Ok(Some(ChunkWithSizeInfo {
+              allow_max_size: allow_max_size.into_owned(),
+              min_size: min_size.clone(),
+              chunk: chunk.ukey(),
+              automatic_name_delimiter: automatic_name_delimiter.clone(),
+            }))
+          },
+        );
+      });
+    })
+    .await
     .into_iter()
-    .flatten();
+    .map(|res| res.map_err(rspack_error::miette::Error::from_err))
+    .collect::<Result<Vec<_>>>()?;
+
+    let mut chunks_with_size_info = vec![];
+
+    for result in chunks_with_size_info_results {
+      if let Some(info) = result? {
+        chunks_with_size_info.push(info);
+      }
+    }
 
     let infos_with_results = chunks_with_size_info
+      .into_iter()
       .filter_map(|info| {
         let ChunkWithSizeInfo {
           chunk,

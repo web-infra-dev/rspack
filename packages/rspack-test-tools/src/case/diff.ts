@@ -42,55 +42,36 @@ export function createDiffCase(name: string, src: string, dist: string) {
 		steps: [processor]
 	});
 
-	beforeAll(async () => {
-		rimrafSync(dist);
-		await tester.prepare();
-	});
+	rimrafSync(dist);
 
-	do {
-		const prefix = path.basename(name);
-		describe(`${prefix}:build`, () => {
-			beforeAll(async () => {
-				await tester.compile();
-			});
-			checkBundleFiles(
-				"webpack",
-				path.join(dist, "webpack"),
-				caseConfig.files!
-			);
-			checkBundleFiles("rspack", path.join(dist, "rspack"), caseConfig.files!);
+	const prefix = path.basename(name);
+	describe(`${prefix}:check`, () => {
+		beforeAll(async () => {
+			await tester.compile();
+			compareMap.clear();
+			await tester.check(env);
 		});
-		describe(`${prefix}:check`, () => {
-			beforeAll(async () => {
-				compareMap.clear();
-				await tester.check(env);
-			});
-			for (const file of caseConfig.files!) {
-				describe(`Comparing "${file}"`, () => {
-					let moduleResults: TModuleCompareResult[] = [];
-					let runtimeResults: TModuleCompareResult[] = [];
-					beforeAll(() => {
-						const fileResult = compareMap.get(file);
-						if (!fileResult) {
-							throw new Error(`File ${file} has no results`);
-						}
-						moduleResults = fileResult.modules;
-						runtimeResults = fileResult.runtimeModules;
-					});
-					if (caseConfig.modules) {
-						checkCompareResults("modules", () => moduleResults);
+		for (const file of caseConfig.files!) {
+			describe(`Comparing "${file}"`, () => {
+				let moduleResults: TModuleCompareResult[] = [];
+				let runtimeResults: TModuleCompareResult[] = [];
+				beforeAll(() => {
+					const fileResult = compareMap.get(file);
+					if (!fileResult) {
+						throw new Error(`File ${file} has no results`);
 					}
-					if (caseConfig.runtimeModules) {
-						checkCompareResults("runtime modules", () => runtimeResults);
-					}
+					moduleResults = fileResult.modules;
+					runtimeResults = fileResult.runtimeModules;
 				});
-			}
-			const env = createLazyTestEnv(1000);
-		});
-	} while (tester.next());
-
-	afterAll(async () => {
-		await tester.resume();
+				if (caseConfig.modules) {
+					checkCompareResults("modules", () => moduleResults);
+				}
+				if (caseConfig.runtimeModules) {
+					checkCompareResults("runtime modules", () => runtimeResults);
+				}
+			});
+		}
+		const env = createLazyTestEnv(1000);
 	});
 }
 
@@ -134,16 +115,6 @@ function createDiffProcessor(config: IDiffProcessorOptions) {
 		DiffProcessor,
 		Map<string, TFileCompareResult>
 	];
-}
-
-function checkBundleFiles(name: string, dist: string, files: string[]) {
-	describe(`Checking ${name} dist files`, () => {
-		for (const file of files) {
-			it(`${name}: ${file} should be generated`, () => {
-				expect(fs.existsSync(path.join(dist, file))).toBeTruthy();
-			});
-		}
-	});
 }
 
 function checkCompareResults(

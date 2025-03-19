@@ -3,13 +3,13 @@ module.exports = {
 	target: "web",
 	node: {
 		__dirname: false,
-		__filename: false,
+		__filename: false
 	},
 	module: {
 		generator: {
 			"css/auto": {
 				exportsOnly: false
-			},
+			}
 		},
 		rules: [
 			{

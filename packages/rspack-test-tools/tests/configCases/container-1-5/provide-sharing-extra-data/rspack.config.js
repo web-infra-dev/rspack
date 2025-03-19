@@ -15,7 +15,7 @@ module.exports = {
 					requiredVersion: false,
 					singleton: true,
 					strictVersion: false,
-					version: "0.1.2",
+					version: "0.1.2"
 				}
 			}
 		})

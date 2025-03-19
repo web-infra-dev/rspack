@@ -54,11 +54,10 @@ fn optimize_code_generation(&self, compilation: &mut Compilation) -> Result<()> 
     ) else {
       continue;
     };
-    let is_namespace = module
-      .build_meta()
-      .as_ref()
-      .map(|meta| matches!(meta.exports_type, BuildMetaExportsType::Namespace))
-      .unwrap_or_default();
+    let is_namespace = matches!(
+      module.build_meta().exports_type,
+      BuildMetaExportsType::Namespace
+    );
     let exports_info = mgm.exports;
     mangle_exports_info(&mut mg, self.deterministic, exports_info, is_namespace);
   }

@@ -1,6 +1,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	target: 'web',
+	target: "web",
 	node: false,
 	externals: [
 		function ({ request, dependencyType }, callback) {
@@ -16,7 +16,7 @@ module.exports = {
 	module: {
 		generator: {
 			"css/auto": {
-				exportsOnly: false,
+				exportsOnly: false
 			}
 		}
 	}

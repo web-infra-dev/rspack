@@ -137,7 +137,7 @@ export class HotSnapshotProcessor<
 
 	async check(env: ITestEnv, context: ITestContext) {
 		const compiler = this.getCompiler(context);
-		const stats = compiler.getStats();
+		const stats = compiler.getStats() as TCompilerStats<T>;
 		if (!stats || !stats.hash) {
 			env.expect(false);
 			return;

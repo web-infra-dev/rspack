@@ -1,7 +1,6 @@
 package.json
 
 # Ignore generated
-
 dist/
 packages/rspack/src/config/schema.check.js
 
@@ -12,9 +11,14 @@ packages/rspack/src/config/schema.check.js
 packages/**/etc/**/*
 packages/rspack-test-tools/template/**/*
 packages/rspack-test-tools/src/helper/legacy/**/*
-packages/rspack-test-tools/tests/**/*
+packages/rspack-test-tools/tests/**/*.*
+packages/rspack-test-tools/tests/**/DO_NOT_REMOVE
+!packages/rspack-test-tools/tests/**/*.test.ts
+!packages/rspack-test-tools/tests/**/*.test.js
+!packages/rspack-test-tools/tests/**/*.config.js
 
 crates/**/*
 target/**/*
 tests/**/*
+
 !tests/**/test.filter.js

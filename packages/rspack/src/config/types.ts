@@ -1,16 +1,19 @@
-import type { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
+import type { AssetInfo, RawFuncUseCtx } from "@rspack/binding";
 import type * as webpackDevServer from "webpack-dev-server";
+import type { ChunkGraph } from "../ChunkGraph";
 import type { Compilation, PathData } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { Module } from "../Module";
+import type ModuleGraph from "../ModuleGraph";
 import type { LazyCompilationDefaultBackendOptions } from "../builtin-plugin/lazy-compilation/backend";
 import type { Chunk } from "../exports";
+import type { ResolveCallback } from "./adapterRuleUse";
 
 export type FilenameTemplate = string;
 
 export type Filename =
 	| FilenameTemplate
-	| ((pathData: PathData, assetInfo?: JsAssetInfo) => string);
+	| ((pathData: PathData, assetInfo?: AssetInfo) => string);
 
 //#region Name
 /** Name of the configuration. Used when loading multiple configurations. */
@@ -799,7 +802,7 @@ export type ResolveOptions = {
 
 	/** Customize the Resolve configuration based on the module type. */
 	byDependency?: Record<string, ResolveOptions>;
-	/** enable yarn pnp */
+	/** enable Yarn PnP */
 	pnp?: boolean;
 };
 
@@ -1148,6 +1151,14 @@ export type AssetInlineGeneratorOptions = {
 /** Emit the asset in the specified folder relative to 'output.path'. */
 export type AssetModuleOutputPath = Filename;
 
+/**
+ * If "url", a URL pointing to the asset will be generated based on publicPath.
+ * If "preserve", preserve import/require statement from generated asset.
+ * Only for modules with module type 'asset' or 'asset/resource'.
+ * @default "url"
+ */
+export type AssetModuleImportMode = "url" | "preserve";
+
 /** Options for asset modules. */
 export type AssetResourceGeneratorOptions = {
 	/**
@@ -1164,6 +1175,14 @@ export type AssetResourceGeneratorOptions = {
 
 	/** This option determines the URL prefix of the referenced 'asset' or 'asset/resource'*/
 	publicPath?: PublicPath;
+
+	/**
+	 * If "url", a URL pointing to the asset will be generated based on publicPath.
+	 * If "preserve", preserve import/require statement from generated asset.
+	 * Only for modules with module type 'asset' or 'asset/resource'.
+	 * @default "url"
+	 */
+	importMode?: AssetModuleImportMode;
 };
 
 /** Generator options for asset modules. */
@@ -1219,6 +1238,15 @@ export type CssAutoGeneratorOptions = {
 /** Generator options for css/module modules. */
 export type CssModuleGeneratorOptions = CssAutoGeneratorOptions;
 
+/** Generator options for json modules. */
+export type JsonGeneratorOptions = {
+	/**
+	 * Use `JSON.parse` when the JSON string is longer than 20 characters.
+	 * @default true
+	 */
+	JSONParse?: boolean;
+};
+
 export type GeneratorOptionsByModuleTypeKnown = {
 	/** Generator options for asset modules. */
 	asset?: AssetGeneratorOptions;
@@ -1237,6 +1265,9 @@ export type GeneratorOptionsByModuleTypeKnown = {
 
 	/** Generator options for css/module modules. */
 	"css/module"?: CssModuleGeneratorOptions;
+
+	/** Generator options for json modules. */
+	json?: JsonGeneratorOptions;
 };
 
 export type GeneratorOptionsByModuleTypeUnknown = Record<
@@ -1407,11 +1438,7 @@ export type ExternalItemFunctionData = {
 	getResolve?: (
 		options?: ResolveOptions
 	) =>
-		| ((
-				context: string,
-				request: string,
-				callback: (err?: Error, result?: string) => void
-		  ) => void)
+		| ((context: string, request: string, callback: ResolveCallback) => void)
 		| ((context: string, request: string) => Promise<string>);
 };
 
@@ -2133,6 +2160,9 @@ type SharedOptimizationSplitChunksCacheGroup = {
 	 * */
 	name?: false | OptimizationSplitChunksName;
 
+	/** Allows to override the filename when and only when it's an initial chunk. */
+	filename?: Filename;
+
 	/**
 	 * Minimum size, in bytes, for a chunk to be generated.
 	 *
@@ -2140,6 +2170,8 @@ type SharedOptimizationSplitChunksCacheGroup = {
 	 * The value is `10000` in others mode.
 	 */
 	minSize?: OptimizationSplitChunksSizes;
+
+	minSizeReduction?: OptimizationSplitChunksSizes;
 
 	/** Maximum size, in bytes, for a chunk to be generated. */
 	maxSize?: OptimizationSplitChunksSizes;
@@ -2170,10 +2202,18 @@ type SharedOptimizationSplitChunksCacheGroup = {
 	automaticNameDelimiter?: string;
 };
 
+export type OptimizationSplitChunksCacheGroupTestFn = (
+	module: Module,
+	ctx: {
+		chunkGraph: ChunkGraph;
+		moduleGraph: ModuleGraph;
+	}
+) => boolean;
+
 /** How to splitting chunks. */
 export type OptimizationSplitChunksCacheGroup = {
 	/** Controls which modules are selected by this cache group. */
-	test?: string | RegExp | ((module: Module) => unknown);
+	test?: string | RegExp | OptimizationSplitChunksCacheGroupTestFn;
 
 	/**
 	 * A module can belong to multiple cache groups.
@@ -2186,9 +2226,6 @@ export type OptimizationSplitChunksCacheGroup = {
 	 */
 	enforce?: boolean;
 
-	/** Allows to override the filename when and only when it's an initial chunk. */
-	filename?: Filename;
-
 	/**
 	 * Whether to reuse existing chunks when possible.
 	 * @default false
@@ -2200,6 +2237,11 @@ export type OptimizationSplitChunksCacheGroup = {
 
 	/** Sets the hint for chunk id. It will be added to chunk's filename. */
 	idHint?: string;
+
+	/**
+	 * Assign modules to a cache group by module layer.
+	 */
+	layer?: string | ((layer?: string) => boolean) | RegExp;
 } & SharedOptimizationSplitChunksCacheGroup;
 
 /** Tell Rspack how to splitting chunks. */
@@ -2434,7 +2476,7 @@ export type LazyCompilationOptions = {
 	/**
 	 * Test function or regex to determine which modules to include.
 	 */
-	test?: RegExp | ((module: any) => boolean);
+	test?: RegExp | ((module: Module) => boolean);
 };
 
 /**
@@ -2697,6 +2739,11 @@ export type RspackOptions = {
 	 * An array of dependencies required by the project.
 	 */
 	dependencies?: Dependencies;
+	/**
+	 * Configuration files to extend from. The configurations are merged from right to left,
+	 * with the rightmost configuration taking precedence(only works when using @rspack/cli).
+	 */
+	extends?: string | string[];
 	/**
 	 * The entry point of the application.
 	 */

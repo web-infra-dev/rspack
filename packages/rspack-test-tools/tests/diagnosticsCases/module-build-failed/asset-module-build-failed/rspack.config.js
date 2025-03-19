@@ -9,7 +9,7 @@ module.exports = {
 				test: /\.svg$/,
 				use: [
 					{
-						loader: "./my-loader.js",
+						loader: "./my-loader.js"
 					}
 				],
 				type: "asset"

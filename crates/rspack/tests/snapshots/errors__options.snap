@@ -1,0 +1,5 @@
+---
+source: crates/rspack/tests/errors.rs
+expression: error
+---
+Invalid option 'optimization.module_ids': unknown is not implemented

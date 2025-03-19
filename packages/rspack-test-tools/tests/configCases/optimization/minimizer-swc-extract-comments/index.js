@@ -5,5 +5,5 @@ it("should keep the extracted license file stable", () => {
 	require("bar")
 	require("baz")
 	require("./relative")
-	expect(fs.readFileSync(path.join(__dirname, "bundle0.js.LICENSE.txt"), "utf8")).toMatchSnapshot()
+	expect(fs.readFileSync(path.join(__dirname, "bundle0.js.LICENSE.txt"), "utf8")).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'bundle0.js.LICENSE.txt.txt'))
 })

@@ -1,9 +1,0 @@
-.c {
-  background: red;
-}
-@import "./a.css";
-@import url("https://some/other/external/css");
-
-.c {
-  color: yellow;
-}

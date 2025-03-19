@@ -2,7 +2,7 @@ const { rspack } = require("@rspack/core");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	devtool: "source-map",
-	target: 'web',
+	target: "web",
 	node: false,
 	module: {
 		rules: [
@@ -20,7 +20,7 @@ module.exports = {
 				],
 				type: "css/auto",
 				generator: {
-					exportsOnly: false,
+					exportsOnly: false
 				}
 			}
 		]

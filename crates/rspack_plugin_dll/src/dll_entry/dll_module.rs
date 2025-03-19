@@ -5,12 +5,13 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   impl_module_meta_info, impl_source_map_config, module_update_hash,
-  rspack_sources::RawStringSource, rspack_sources::Source, AsyncDependenciesBlockIdentifier,
-  BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation,
-  ConcatenationScope, Context, DependenciesBlock, Dependency, DependencyId, EntryDependency,
-  FactoryMeta, Module, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  rspack_sources::{BoxSource, RawStringSource},
+  AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, Dependency,
+  DependencyId, EntryDependency, FactoryMeta, Module, ModuleType, RuntimeGlobals, RuntimeSpec,
+  SourceType,
 };
-use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 
 use super::dll_entry_dependency::DllEntryDependency;
 
@@ -23,9 +24,9 @@ pub struct DllModule {
 
   factory_meta: Option<FactoryMeta>,
 
-  build_info: Option<BuildInfo>,
+  build_info: BuildInfo,
 
-  build_meta: Option<BuildMeta>,
+  build_meta: BuildMeta,
 
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
 
@@ -67,11 +68,7 @@ impl Module for DllModule {
     &[SourceType::JavaScript]
   }
 
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
-  }
-
-  fn original_source(&self) -> Option<&dyn Source> {
+  fn source(&self) -> Option<&BoxSource> {
     None
   }
 
@@ -98,7 +95,7 @@ impl Module for DllModule {
     })
   }
 
-  fn code_generation(
+  async fn code_generation(
     &self,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
@@ -123,7 +120,7 @@ impl Module for DllModule {
   }
 
   fn need_build(&self) -> bool {
-    self.build_meta.is_none()
+    false
   }
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {

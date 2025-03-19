@@ -1,10 +1,11 @@
 use rspack_core::{ConstDependency, SpanExt};
-use swc_core::common::Spanned;
-use swc_core::ecma::ast::{CallExpr, UnaryExpr};
+use swc_core::{
+  common::Spanned,
+  ecma::ast::{CallExpr, UnaryExpr},
+};
 
 use super::JavascriptParserPlugin;
-use crate::dependency::WebpackIsIncludedDependency;
-use crate::visitors::JavascriptParser;
+use crate::{dependency::WebpackIsIncludedDependency, visitors::JavascriptParser};
 
 const WEBPACK_IS_INCLUDED: &str = "__webpack_is_included__";
 

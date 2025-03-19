@@ -1,0 +1,13 @@
+// object to store loaded chunks
+// "1" means "loaded", otherwise not loaded yet
+var installChunk = <%- basicFunction("chunk") %> {
+	var moreModules = chunk.modules, chunkIds = chunk.ids, runtime = chunk.runtime;
+	for (var moduleId in moreModules) {
+		if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {
+		 <%- MODULE_FACTORIES %>[moduleId] = moreModules[moduleId];
+		}
+	}
+	if (runtime) runtime(<%- REQUIRE %>);
+	for (var i = 0; i < chunkIds.length; i++) installedChunks[chunkIds[i]] = 1;
+	<%- _with_on_chunk_loaded %>
+};

@@ -5,7 +5,7 @@ module.exports = [
 			entry1: "./entry1.js"
 		},
 		output: {
-			filename: "./bundle1.js",
+			filename: "./bundle1.js"
 		}
 	},
 	{
@@ -13,7 +13,7 @@ module.exports = [
 			entry2: "./entry2.js"
 		},
 		output: {
-			filename: "./bundle2.js",
+			filename: "./bundle2.js"
 		}
 	}
 ];

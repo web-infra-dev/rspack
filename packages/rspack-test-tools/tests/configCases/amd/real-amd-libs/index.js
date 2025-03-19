@@ -20,3 +20,8 @@ import webpackUmdOutput from './webpack-umd-output';
 it('should work with webpack umd output', function () {
 	expect(webpackUmdOutput).toStrictEqual({ version: '0.0.0' });
 });
+
+it('should work with define-in-params', function () {
+	const lib = require('./define-in-params');
+	expect(lib).toBe(1);
+});

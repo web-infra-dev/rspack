@@ -17,8 +17,9 @@ impl Default for BaseUriRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for BaseUriRuntimeModule {
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let base_uri = self
       .chunk
       .and_then(|ukey| compilation.chunk_by_ukey.get(&ukey))

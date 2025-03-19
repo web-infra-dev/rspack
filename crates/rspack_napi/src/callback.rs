@@ -1,8 +1,12 @@
-use std::marker::PhantomData;
-use std::os::raw::c_void;
-use std::ptr;
-use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
-use std::sync::Arc;
+use std::{
+  marker::PhantomData,
+  os::raw::c_void,
+  ptr,
+  sync::{
+    atomic::{AtomicBool, AtomicPtr, Ordering},
+    Arc,
+  },
+};
 
 use napi::{check_status, sys, Env, Result};
 

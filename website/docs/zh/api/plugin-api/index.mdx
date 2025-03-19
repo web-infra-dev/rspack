@@ -1,5 +1,37 @@
-# 兼容情况
+# 总览
+
+## 兼容情况
 
 Rspack 致力于兼容 webpack 生态中的插件。我们确保 Rspack 尽可能地去兼容 webpack 的插件 API，使更多现有的 webpack 插件能够在 Rspack 中直接使用。
 
 我们已兼容了大部分 webpack 的插件 API，你可以访问[这个页面](https://github.com/orgs/web-infra-dev/projects/9)来了解目前 webpack 插件 API 的兼容情况。
+
+## 编写兼容 Rspack 和 webpack 的插件
+
+通常情况下，你不需要做任何额外处理，就能够让一个 webpack 插件在 Rspack 中正常运行。但是，你需要注意不要直接从 webpack 包中导入类或方法，而是在插件中通过 `compiler` 对象获取这些类或方法。
+
+```js
+export class Plugin {
+  apply(compiler) {
+    const {
+      DefinePlugin, // 获取插件
+      NormalModule,
+      sources: { RawSource }, // 获取类
+    } = compiler.webpack;
+  }
+}
+```
+
+尽管 Rspack 致力于兼容 webpack 的插件 API，但你仍可能会遇到 Rspack 和 webpack 的插件 API 存在一些细微差异的情况。为了判断插件是在 webpack 还是在 Rspack 中执行，你可以通过 `compiler.rspack` 属性来判断：
+
+```js
+export class Plugin {
+  apply(compiler) {
+    if (compiler.rspack) {
+      // 在 Rspack 中执行的逻辑
+    } else {
+      // 在 webpack 中执行的逻辑
+    }
+  }
+}
+```

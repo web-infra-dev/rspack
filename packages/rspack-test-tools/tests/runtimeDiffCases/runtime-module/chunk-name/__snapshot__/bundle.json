@@ -1,0 +1,9 @@
+{
+  "modules": {
+    "__WORKSPACE__/packages/rspack-test-tools/tests/runtimeDiffCases/runtime-module/chunk-name/src/index.js": "(function () {\n  console.log(__webpack_require__.cn);\n});"
+  },
+  "runtimeModules": {
+    "webpack/runtime/bootstrap": "var __webpack_require__ = {};",
+    "webpack/runtime/chunkName": "!function () {\n  __webpack_require__.cn = \"other\";\n}();"
+  }
+}

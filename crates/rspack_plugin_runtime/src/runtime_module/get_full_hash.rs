@@ -1,4 +1,3 @@
-use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
@@ -18,20 +17,28 @@ impl Default for GetFullHashRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for GetFullHashRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(
-      RawStringSource::from(
-        include_str!("runtime/get_full_hash.js")
-          .cow_replace("$HASH$", compilation.get_hash().unwrap_or("XXXX"))
-          .into_owned(),
-      )
-      .boxed(),
-    )
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("runtime/get_full_hash.ejs").to_string(),
+    )]
+  }
+
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    let source = compilation.runtime_template.render(
+      &self.id,
+      Some(serde_json::json!({
+        "_hash": format!("\"{}\"", compilation.get_hash().unwrap_or("XXXX"))
+      })),
+    )?;
+
+    Ok(RawStringSource::from(source).boxed())
   }
 
   fn full_hash(&self) -> bool {

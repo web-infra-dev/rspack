@@ -1,19 +1,15 @@
-use std::hash::Hash;
-use std::sync::LazyLock;
+use std::{hash::Hash, sync::LazyLock};
 
 use regex::Regex;
 use rspack_collections::DatabaseItem;
-use rspack_core::rspack_sources::SourceExt;
 use rspack_core::{
-  get_entry_runtime, property_access, ApplyContext, BoxModule, ChunkUkey,
-  CodeGenerationDataTopLevelDeclarations, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationFinishModules, CompilationParams, CompilerCompilation, CompilerOptions, EntryData,
-  FilenameTemplate, LibraryExport, LibraryName, LibraryNonUmdObject, ModuleIdentifier,
-  RuntimeGlobals, UsageState,
-};
-use rspack_core::{
-  rspack_sources::{ConcatSource, RawStringSource},
-  to_identifier, Chunk, Compilation, LibraryOptions, PathData, Plugin, PluginContext, SourceType,
+  get_entry_runtime, property_access,
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
+  to_identifier, ApplyContext, BoxModule, Chunk, ChunkUkey, CodeGenerationDataTopLevelDeclarations,
+  Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules,
+  CompilationParams, CompilerCompilation, CompilerOptions, EntryData, ExportInfoProvided,
+  FilenameTemplate, LibraryExport, LibraryName, LibraryNonUmdObject, LibraryOptions,
+  ModuleIdentifier, PathData, Plugin, PluginContext, RuntimeGlobals, SourceType, UsageState,
 };
 use rspack_error::{error, error_bail, Result};
 use rspack_hash::RspackHash;
@@ -196,7 +192,7 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation);
+  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
   hooks.render.tap(render::new(self));
   hooks.render_startup.tap(render_startup::new(self));
   hooks.chunk_hash.tap(js_chunk_hash::new(self));
@@ -210,7 +206,7 @@ async fn compilation(
 }
 
 #[plugin_hook(JavascriptModulesRender for AssignLibraryPlugin)]
-fn render(
+async fn render(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
@@ -238,11 +234,11 @@ fn render(
 }
 
 #[plugin_hook(JavascriptModulesRenderStartup for AssignLibraryPlugin)]
-fn render_startup(
+async fn render_startup(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  _module: &ModuleIdentifier,
+  module: &ModuleIdentifier,
   render_source: &mut RenderSource,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
@@ -258,6 +254,58 @@ fn render_startup(
     .unwrap_or_default();
   if matches!(self.options.unnamed, Unnamed::Static) {
     let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
+    let module_graph = compilation.get_module_graph();
+    let exports_info = module_graph.get_exports_info(module);
+    let mut provided = vec![];
+    for export_info in exports_info.ordered_exports(&module_graph) {
+      if matches!(
+        export_info.provided(&module_graph),
+        Some(ExportInfoProvided::False)
+      ) {
+        continue;
+      }
+      let export_info_name = export_info
+        .name(&module_graph)
+        .expect("should have name")
+        .to_string();
+      provided.push(export_info_name.clone());
+      let name_access = property_access([export_info_name], 0);
+      source.add(RawStringSource::from(format!(
+        "{export_target}{name_access} = __webpack_exports__{export_access}{name_access};\n"
+      )));
+    }
+
+    let mut exports = "__webpack_exports__";
+    if !export_access.is_empty() {
+      source.add(RawStringSource::from(format!(
+        "var __webpack_exports_export__ = __webpack_exports__{export_access};\n"
+      )));
+      exports = "__webpack_exports_export__";
+    }
+    source.add(RawStringSource::from(format!(
+      "for(var __webpack_i__ in {exports}) {{\n"
+    )));
+    let has_provided = !provided.is_empty();
+    if has_provided {
+      source.add(RawStringSource::from(format!(
+        "  if({}.indexOf(__webpack_i__) === -1) {{\n",
+        serde_json::to_string(&provided).map_err(|e| error!(e.to_string()))?
+      )));
+    }
+    source.add(RawStringSource::from(format!(
+      "{}  {export_target}[__webpack_i__] = {exports}[__webpack_i__];\n",
+      match has_provided {
+        true => "  ",
+        false => "",
+      }
+    )));
+
+    source.add(RawStringSource::from(if has_provided {
+      "  }\n}\n"
+    } else {
+      "}\n"
+    }));
+
     source.add(RawStringSource::from(format!(
       "Object.defineProperty({export_target}, '__esModule', {{ value: true }});\n",
     )));
@@ -332,11 +380,7 @@ fn embed_in_runtime_bailout(
     .data
     .get::<CodeGenerationDataTopLevelDeclarations>()
     .map(|d| d.inner())
-    .or_else(|| {
-      module
-        .build_info()
-        .and_then(|build_info| build_info.top_level_declarations.as_ref())
-    });
+    .or_else(|| module.build_info().top_level_declarations.as_ref());
   if let Some(top_level_decls) = top_level_decls {
     let full_name = self.get_resolved_full_name(&options, compilation, chunk);
     if let Some(base) = full_name.first()

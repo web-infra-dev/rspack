@@ -9,6 +9,9 @@ import filenamify from "filenamify";
 import { diff } from "jest-diff";
 import type { FileMatcherOptions } from "../../../jest";
 
+const { serialize } = require(
+	path.join(path.dirname(require.resolve("jest-snapshot")), "./utils.js")
+);
 /**
  * Check if 2 strings or buffer are equal
  */
@@ -37,10 +40,15 @@ export function toMatchFileSnapshot(
 			_updateSnapshot: "none" | "new" | "all";
 		};
 	},
-	content: string | Buffer,
+	rawContent: string | Buffer,
 	filepath: string,
 	options: FileMatcherOptions = {}
 ) {
+	const content =
+		Buffer.isBuffer(rawContent) || typeof rawContent === "string"
+			? rawContent
+			: serialize(rawContent);
+
 	const { isNot, snapshotState } = this;
 
 	const filename =
