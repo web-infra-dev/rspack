@@ -6,9 +6,9 @@ use derive_more::Debug;
 use itertools::Itertools;
 use rspack_collections::{Identifier, IdentifierMap, IdentifierSet};
 use rspack_core::{
-  ApplyContext, Compilation, CompilerOptions, ModuleIdentifier, Plugin, PluginContext,
+  ApplyContext, Compilation, CompilationOptimizeModules, CompilerOptions, DependencyType,
+  ModuleIdentifier, Plugin, PluginContext,
 };
-use rspack_core::{CompilationOptimizeModules, DependencyType};
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_regex::RspackRegex;
