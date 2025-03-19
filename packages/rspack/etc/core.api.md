@@ -547,6 +547,29 @@ export type ChunkLoadingGlobal = string;
 // @public
 export type ChunkLoadingType = string | "jsonp" | "import-scripts" | "require" | "async-node" | "import";
 
+// @public (undocumented)
+export const CircularDependencyRspackPlugin: {
+    new (options: CircularDependencyRspackPluginOptions): {
+        name: BuiltinPluginName;
+        _args: [options: CircularDependencyRspackPluginOptions];
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler_2): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
+
+// @public (undocumented)
+export type CircularDependencyRspackPluginOptions = {
+    failOnError?: boolean;
+    allowAsyncCycles?: boolean;
+    exclude?: RegExp;
+    ignoredConnections?: Array<[string | RegExp, string | RegExp]>;
+    onDetected?(entrypoint: Module, modules: string[], compilation: Compilation): void;
+    onIgnored?(entrypoint: Module, modules: string[], compilation: Compilation): void;
+    onStart?(compilation: Compilation): void;
+    onEnd?(compilation: Compilation): void;
+};
+
 // @public
 export type Clean = boolean | {
     keep?: string;
@@ -4968,6 +4991,7 @@ declare namespace rspackExports {
         HtmlRspackPluginOptions,
         SwcJsMinimizerRspackPluginOptions,
         LightningCssMinimizerRspackPluginOptions,
+        CircularDependencyRspackPluginOptions,
         CopyRspackPluginOptions,
         SourceMapDevToolPluginOptions,
         EvalDevToolModulePluginOptions,
@@ -4976,6 +5000,7 @@ declare namespace rspackExports {
         HtmlRspackPlugin,
         SwcJsMinimizerRspackPlugin,
         LightningCssMinimizerRspackPlugin,
+        CircularDependencyRspackPlugin,
         CopyRspackPlugin,
         SourceMapDevToolPlugin,
         EvalSourceMapDevToolPlugin,
