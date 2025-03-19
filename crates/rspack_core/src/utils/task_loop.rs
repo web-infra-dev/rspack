@@ -54,16 +54,16 @@ pub trait Task: Debug + Send + Any + AsAny {
 }
 
 /// Run task loop
-pub async fn run_task_loop(
-  ctx: &mut MakeTaskContext,
+pub async fn run_task_loop<'a>(
+  ctx: &'a mut MakeTaskContext<'a>,
   init_tasks: Vec<Box<dyn Task>>,
 ) -> Result<()> {
   run_task_loop_with_event(ctx, init_tasks, |_, task| task).await
 }
 
 /// Run task loop with event
-pub async fn run_task_loop_with_event(
-  ctx: &mut MakeTaskContext,
+pub async fn run_task_loop_with_event<'a>(
+  ctx: &'a mut MakeTaskContext<'a>,
   init_tasks: Vec<Box<dyn Task>>,
   before_task_run: impl Fn(&mut MakeTaskContext, Box<dyn Task>) -> Box<dyn Task>,
 ) -> Result<()> {

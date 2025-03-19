@@ -189,10 +189,8 @@ pub enum MakeParam {
   ForceBuildModules(IdentifierSet),
 }
 
-pub async fn make_module_graph(
-  compilation: &Compilation,
-  mut artifact: MakeArtifact,
-) -> Result<MakeArtifact> {
+pub async fn make_module_graph(compilation: &mut Compilation) -> Result<()> {
+  let artifact = &mut compilation.make_artifact;
   let mut params = Vec::with_capacity(6);
 
   if !compilation.entries.is_empty() {
@@ -220,27 +218,26 @@ pub async fn make_module_graph(
   // reset temporary data
   artifact.built_modules = Default::default();
   artifact.revoked_modules = Default::default();
-  artifact = update_module_graph(compilation, artifact, params).await?;
-  Ok(artifact)
+  update_module_graph(compilation, params).await?;
+  Ok(())
 }
 
 pub async fn update_module_graph(
-  compilation: &Compilation,
-  mut artifact: MakeArtifact,
+  compilation: &mut Compilation,
   params: Vec<MakeParam>,
-) -> Result<MakeArtifact> {
-  artifact.state = MakeArtifactState::Initialized;
+) -> Result<()> {
+  compilation.make_artifact.state = MakeArtifactState::Initialized;
   let mut cutout = Cutout::default();
-  let build_dependencies = cutout.cutout_artifact(&mut artifact, params);
+  let build_dependencies = cutout.cutout_artifact(&mut compilation.make_artifact, params);
 
   compilation
     .plugin_driver
     .compilation_hooks
     .revoked_modules
-    .call(&artifact.revoked_modules)
+    .call(&compilation.make_artifact.revoked_modules)
     .await?;
 
-  artifact = repair(compilation, artifact, build_dependencies).await?;
-  cutout.fix_artifact(&mut artifact);
-  Ok(artifact)
+  repair(compilation, build_dependencies).await?;
+  cutout.fix_artifact(&mut compilation.make_artifact);
+  Ok(())
 }

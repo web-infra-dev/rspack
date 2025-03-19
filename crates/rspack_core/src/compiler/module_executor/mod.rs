@@ -54,8 +54,8 @@ pub struct ModuleExecutor {
 }
 
 impl ModuleExecutor {
-  pub async fn hook_before_make(&mut self, compilation: &Compilation) -> Result<()> {
-    let mut make_artifact = std::mem::take(&mut self.make_artifact);
+  pub async fn hook_before_make(&mut self, compilation: &mut Compilation) -> Result<()> {
+    let mut make_artifact = &mut self.make_artifact;
     let mut params = Vec::with_capacity(5);
     params.push(MakeParam::CheckNeedBuild);
     if !compilation.modified_files.is_empty() {
@@ -88,34 +88,34 @@ impl ModuleExecutor {
       }
     }
     build_dependencies.retain(|dep| build_dependencies_id.contains(&dep.0));
-    make_artifact = repair(compilation, make_artifact, build_dependencies)
+    repair(compilation, build_dependencies)
       .await
       .unwrap_or_default();
 
-    let mut ctx = MakeTaskContext::new(compilation, make_artifact, Arc::new(MemoryCache));
+    let mut ctx = MakeTaskContext::new(compilation, Arc::new(MemoryCache));
     let (event_sender, event_receiver) = unbounded_channel();
     let (stop_sender, stop_receiver) = oneshot::channel();
     self.event_sender = Some(event_sender.clone());
     self.stop_receiver = Some(stop_receiver);
     // avoid coop budget consumed to zero cause hang risk
     // related to https://tokio.rs/blog/2020-04-preemption
-    tokio::spawn(task::unconstrained(async move {
-      let _ = run_task_loop_with_event(
-        &mut ctx,
-        vec![Box::new(CtrlTask::new(event_receiver))],
-        |_, task| {
-          Box::new(OverwriteTask {
-            origin_task: task,
-            event_sender: event_sender.clone(),
-          })
-        },
-      )
-      .await;
+    // tokio::spawn(task::unconstrained(async move {
+    //   let _ = run_task_loop_with_event(
+    //     &mut ctx,
+    //     vec![Box::new(CtrlTask::new(event_receiver))],
+    //     |_, task| {
+    //       Box::new(OverwriteTask {
+    //         origin_task: task,
+    //         event_sender: event_sender.clone(),
+    //       })
+    //     },
+    //   )
+    //   .await;
 
-      stop_sender
-        .send(ctx.transform_to_make_artifact())
-        .expect("should success");
-    }));
+    //   stop_sender
+    //     .send(ctx.transform_to_make_artifact())
+    //     .expect("should success");
+    // }));
 
     Ok(())
   }
