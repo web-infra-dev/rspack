@@ -43,7 +43,7 @@ impl UnfinishCounter {
 }
 
 #[derive(Debug, Default)]
-struct ExecuteTaskList(Vec<Box<dyn Task<MakeTaskContext>>>);
+struct ExecuteTaskList(Vec<Box<dyn Task>>);
 
 impl ExecuteTaskList {
   fn add_task(&mut self, task: ExecuteTask) {
@@ -54,7 +54,7 @@ impl ExecuteTaskList {
     }
   }
 
-  fn into_vec(self) -> Vec<Box<dyn Task<MakeTaskContext>>> {
+  fn into_vec(self) -> Vec<Box<dyn Task>> {
     self.0
   }
 }
@@ -99,12 +99,12 @@ impl CtrlTask {
 }
 
 #[async_trait::async_trait]
-impl Task<MakeTaskContext> for CtrlTask {
+impl Task for CtrlTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Async
   }
 
-  async fn background_run(mut self: Box<Self>) -> TaskResult<MakeTaskContext> {
+  async fn background_run(mut self: Box<Self>) -> TaskResult {
     while let Some(event) = self.event_receiver.recv().await {
       tracing::info!("CtrlTask async receive {:?}", event);
       match event {
@@ -197,17 +197,17 @@ struct FinishModuleTask {
   module_identifier: ModuleIdentifier,
 }
 #[async_trait::async_trait]
-impl Task<MakeTaskContext> for FinishModuleTask {
+impl Task for FinishModuleTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
 
-  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult {
     let Self {
       mut ctrl_task,
       module_identifier,
     } = *self;
-    let mut res: Vec<Box<dyn Task<MakeTaskContext>>> = vec![];
+    let mut res: Vec<Box<dyn Task>> = vec![];
     let module_graph =
       MakeTaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
     let mut queue = VecDeque::new();

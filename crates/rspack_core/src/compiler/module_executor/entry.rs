@@ -10,12 +10,12 @@ pub struct EntryTask {
   pub layer: Option<String>,
 }
 #[async_trait::async_trait]
-impl Task<MakeTaskContext> for EntryTask {
+impl Task for EntryTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
 
-  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult {
     let Self { dep, layer } = *self;
     let mut module_graph =
       MakeTaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
