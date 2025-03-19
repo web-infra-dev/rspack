@@ -155,12 +155,15 @@ async fn render_chunk(
         let mut render_source = RenderSource {
           source: start_up_source,
         };
-        hooks.render_startup.call(
-          compilation,
-          chunk_ukey,
-          last_entry_module,
-          &mut render_source,
-        )?;
+        hooks
+          .render_startup
+          .call(
+            compilation,
+            chunk_ukey,
+            last_entry_module,
+            &mut render_source,
+          )
+          .await?;
         source.add(render_source.source);
         let runtime_requirements =
           ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);

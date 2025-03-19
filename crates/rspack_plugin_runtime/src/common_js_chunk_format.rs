@@ -142,12 +142,15 @@ async fn render_chunk(
     let mut startup_render_source = RenderSource {
       source: start_up_source,
     };
-    hooks.render_startup.call(
-      compilation,
-      chunk_ukey,
-      last_entry_module,
-      &mut startup_render_source,
-    )?;
+    hooks
+      .render_startup
+      .call(
+        compilation,
+        chunk_ukey,
+        last_entry_module,
+        &mut startup_render_source,
+      )
+      .await?;
     sources.add(startup_render_source.source);
     render_source.source = ConcatSource::new([
       RawStringSource::from_static("(function() {\n").boxed(),

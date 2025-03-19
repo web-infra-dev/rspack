@@ -27,6 +27,17 @@ use crate::{
 
 type ChunksKey = u64;
 
+/// If a module meets requirements of a `ModuleGroup`. We consider the `Module` and the `CacheGroup`
+/// to be a `MatchedItem`, which are consumed later to calculate `ModuleGroup`.
+struct MatchedItem<'a> {
+  idx: CacheGroupIdx,
+  module: &'a dyn Module,
+  cache_group_index: usize,
+  cache_group: &'a CacheGroup,
+  selected_chunks: Vec<&'a Chunk>,
+  selected_chunks_key: ChunksKey,
+}
+
 #[derive(Default)]
 struct IdentityHasher(u64);
 
@@ -282,23 +293,11 @@ impl SplitChunksPlugin {
   }
 
   // #[tracing::instrument(skip_all)]
-  pub(crate) fn prepare_module_group_map(
+  pub(crate) async fn prepare_module_group_map(
     &self,
     compilation: &Compilation,
   ) -> Result<ModuleGroupMap> {
-    let chunk_db = &compilation.chunk_by_ukey;
     let module_graph = compilation.get_module_graph();
-
-    /// If a module meets requirements of a `ModuleGroup`. We consider the `Module` and the `CacheGroup`
-    /// to be a `MatchedItem`, which are consumed later to calculate `ModuleGroup`.
-    struct MatchedItem<'a> {
-      idx: CacheGroupIdx,
-      module: &'a dyn Module,
-      cache_group_index: usize,
-      cache_group: &'a CacheGroup,
-      selected_chunks: Vec<&'a Chunk>,
-      selected_chunks_key: ChunksKey,
-    }
 
     let module_group_map: DashMap<String, ModuleGroup> = DashMap::default();
 
@@ -311,196 +310,152 @@ impl SplitChunksPlugin {
       .iter()
       .any(|cache_group| cache_group.used_exports)
     {
-      combinator.prepare_group_by_used_exports(&module_graph, &compilation.chunk_graph, chunk_db);
+      combinator.prepare_group_by_used_exports(
+        &module_graph,
+        &compilation.chunk_graph,
+        &compilation.chunk_by_ukey,
+      );
     }
 
-    module_graph.modules().values().par_bridge().map(|module| {
-      let module = &***module;
+    let modules = module_graph.modules();
 
-      let belong_to_chunks = compilation
-          .chunk_graph
-          .get_module_chunks(module.identifier());
+    let module_group_results = rspack_futures::scope::<_, Result<_>>(|token| {
+      modules.values().for_each(|module| {
+        let s = unsafe { token.used((&self, module, compilation, &module_group_map, &combinator)) };
+        s.spawn(|(plugin, module, compilation, module_group_map, combinator)| async move {
+          let module = &***module;
+          let belong_to_chunks = compilation
+              .chunk_graph
+              .get_module_chunks(module.identifier());
 
-      if belong_to_chunks.is_empty() {
-        return Ok(());
-      }
-
-      let mut temp = Vec::with_capacity(self.cache_groups.len());
-
-      for idx in 0..self.cache_groups.len() {
-        let cache_group = &self.cache_groups[idx];
-        // Filter by `splitChunks.cacheGroups.{cacheGroup}.test`
-        let is_match_the_test = match &cache_group.test {
-          CacheGroupTest::String(str) => module
-            .name_for_condition().is_some_and(|name| name.starts_with(str)),
-          CacheGroupTest::RegExp(regexp) => module
-            .name_for_condition().is_some_and(|name| regexp.test(&name)),
-          CacheGroupTest::Fn(f) => {
-            let ctx = CacheGroupTestFnCtx { compilation, module };
-            f(ctx)?.unwrap_or_default()
-          }
-          CacheGroupTest::Enabled => true,
-        };
-        let is_match_the_type: bool = (cache_group.r#type)(module);
-        let is_match_the_layer = (cache_group.layer)(module.get_layer().map(ToString::to_string))?;
-        let is_match = is_match_the_test && is_match_the_type && is_match_the_layer;
-        if !is_match {
-          tracing::trace!(
-            "Module({:?}) is ignored by CacheGroup({:?}). Reason: !(is_match_the_test({:?}) && is_match_the_type({:?}) && is_match_the_layer({:?}))",
-            module.identifier(),
-            cache_group.key,
-            is_match_the_test,
-            is_match_the_type,
-            is_match_the_layer
-          );
-        }
-
-        temp.push(is_match);
-      }
-      let mut chunk_key_to_string = HashMap::<ChunksKey, String, ChunksKeyHashBuilder>::default();
-
-      let filtered = self
-        .cache_groups
-        .iter()
-        .enumerate()
-        .filter(|(index, _)| temp[*index]);
-
-      for (cache_group_index, (idx, cache_group)) in filtered.enumerate() {
-        let combs = combinator.get_combs(
-          module.identifier(),
-          &compilation.chunk_graph,
-          cache_group.used_exports
-        );
-
-        for chunk_combination in combs {
-          if chunk_combination.is_empty() {
-            continue;
+          if belong_to_chunks.is_empty() {
+            return Ok(());
           }
 
-          // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
-          if chunk_combination.len() < cache_group.min_chunks as usize {
-            tracing::trace!(
-              "Module({:?}) is ignored by CacheGroup({:?}). Reason: chunk_combination.len({:?}) < cache_group.min_chunks({:?})",
-              module.identifier(),
-              cache_group.key,
-              chunk_combination.len(),
-              cache_group.min_chunks,
-            );
-            continue;
-          }
+          let mut temp = Vec::with_capacity(plugin.cache_groups.len());
 
-          let selected_chunks = chunk_combination
-              .iter()
-              .map(|c| {
-                let c = chunk_db.expect_get(c);
-                // Filter by `splitChunks.cacheGroups.{cacheGroup}.chunks`
-                (cache_group.chunk_filter)(c, compilation).map(|filtered|  (c, filtered))
-              })
-              .collect::<Result<Vec<_>>>()?
-              .into_iter().filter_map(
-                |(chunk, filtered)| {
-                  if filtered {
-                    Some(chunk)
-                  } else {
-                    None
-                  }
-                }
-              ).collect::<Vec<_>>();
-
-          // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
-          if selected_chunks.len() < cache_group.min_chunks as usize {
-            tracing::trace!(
-              "Module({:?}) is ignored by CacheGroup({:?}). Reason: selected_chunks.len({:?}) < cache_group.min_chunks({:?})",
-              module.identifier(),
-              cache_group.key,
-              selected_chunks.len(),
-              cache_group.min_chunks,
-            );
-            continue;
-          }
-
-          let selected_chunks_key =
-            { get_key(selected_chunks.iter().map(|chunk| chunk.ukey())) };
-
-          merge_matched_item_into_module_group_map(
-            MatchedItem {
-              idx: CacheGroupIdx::new(idx),
-              module,
-              cache_group,
-              cache_group_index,
-              selected_chunks,
-              selected_chunks_key,
-            },
-            &module_group_map,
-            &mut chunk_key_to_string,
-            compilation
-          )?;
-
-          fn merge_matched_item_into_module_group_map(
-            matched_item: MatchedItem<'_>,
-            module_group_map: &DashMap<String, ModuleGroup>,
-            chunk_key_to_string: &mut HashMap::<ChunksKey, String, ChunksKeyHashBuilder>,
-            compilation: &Compilation,
-          ) -> Result<()> {
-            let MatchedItem {
-              idx,
-              module,
-              cache_group_index,
-              cache_group,
-              selected_chunks,
-              selected_chunks_key,
-            } = matched_item;
-
-            // `Module`s with the same chunk_name would be merged togother.
-            // `Module`s could be in different `ModuleGroup`s.
-            let chunk_name = match &cache_group.name {
-              ChunkNameGetter::String(name) => Some(name.to_string()),
-              ChunkNameGetter::Disabled => None,
-              ChunkNameGetter::Fn(f) => {
-                let ctx = ChunkNameGetterFnCtx { module, chunks: &selected_chunks, cache_group_key: &cache_group.key, compilation };
-                f(ctx)?
+          for idx in 0..plugin.cache_groups.len() {
+            let cache_group = &plugin.cache_groups[idx];
+            // Filter by `splitChunks.cacheGroups.{cacheGroup}.test`
+            let is_match_the_test = match &cache_group.test {
+              CacheGroupTest::String(str) => module
+                .name_for_condition().is_some_and(|name| name.starts_with(str)),
+              CacheGroupTest::RegExp(regexp) => module
+                .name_for_condition().is_some_and(|name| regexp.test(&name)),
+              CacheGroupTest::Fn(f) => {
+                let ctx = CacheGroupTestFnCtx { compilation, module };
+                f(ctx).await?.unwrap_or_default()
               }
+              CacheGroupTest::Enabled => true,
             };
-            let key: String = if let Some(cache_group_name) = &chunk_name {
-              let mut key =
-                String::with_capacity(cache_group.key.len() + cache_group_name.len());
-              key.push_str(&cache_group.key);
-              key.push_str(cache_group_name);
-              key
-            } else {
-              let selected_chunks_key = match chunk_key_to_string.entry(selected_chunks_key) {
-                hash_map::Entry::Occupied(entry) => {
-                  entry.get().to_string()
-                },
-                hash_map::Entry::Vacant(entry) => {
-                  let key = format!("{:x}", selected_chunks_key);
-                  entry.insert(key.clone());
-                  key
-                },
-              };
-              let mut key =
-                String::with_capacity(cache_group.key.len() + selected_chunks_key.len());
-              key.push_str(&cache_group.key);
-              key.push_str(&selected_chunks_key);
-              key
-            };
+            let is_match_the_type: bool = (cache_group.r#type)(module);
+            let is_match_the_layer = (cache_group.layer)(module.get_layer().map(ToString::to_string))?;
+            let is_match = is_match_the_test && is_match_the_type && is_match_the_layer;
+            if !is_match {
+              tracing::trace!(
+                "Module({:?}) is ignored by CacheGroup({:?}). Reason: !(is_match_the_test({:?}) && is_match_the_type({:?}) && is_match_the_layer({:?}))",
+                module.identifier(),
+                cache_group.key,
+                is_match_the_test,
+                is_match_the_type,
+                is_match_the_layer
+              );
+            }
 
-            let mut module_group = {
-              module_group_map.entry(key).or_insert_with(|| {
-                ModuleGroup::new(idx, chunk_name, cache_group_index, cache_group)
-              })
-            };
-
-            module_group.add_module(module, compilation);
-            module_group
-              .chunks
-              .extend(selected_chunks.iter().map(|c| c.ukey()));
-            Ok(())
+            temp.push(is_match);
           }
-        }
-      }
-      Ok(())
-    }).collect::<Result<()>>()?;
+          let mut chunk_key_to_string = HashMap::<ChunksKey, String, ChunksKeyHashBuilder>::default();
+
+          let filtered = plugin
+            .cache_groups
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| temp[*index]);
+
+          for (cache_group_index, (idx, cache_group)) in filtered.enumerate() {
+            let combs = combinator.get_combs(
+              module.identifier(),
+              &compilation.chunk_graph,
+              cache_group.used_exports
+            );
+
+            for chunk_combination in combs {
+              if chunk_combination.is_empty() {
+                continue;
+              }
+
+              // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
+              if chunk_combination.len() < cache_group.min_chunks as usize {
+                tracing::trace!(
+                  "Module({:?}) is ignored by CacheGroup({:?}). Reason: chunk_combination.len({:?}) < cache_group.min_chunks({:?})",
+                  module.identifier(),
+                  cache_group.key,
+                  chunk_combination.len(),
+                  cache_group.min_chunks,
+                );
+                continue;
+              }
+
+              let selected_chunks = chunk_combination
+                  .iter()
+                  .map(|c| {
+                    let c = compilation.chunk_by_ukey.expect_get(c);
+                    // Filter by `splitChunks.cacheGroups.{cacheGroup}.chunks`
+                    (cache_group.chunk_filter)(c, compilation).map(|filtered|  (c, filtered))
+                  })
+                  .collect::<Result<Vec<_>>>()?
+                  .into_iter().filter_map(
+                    |(chunk, filtered)| {
+                      if filtered {
+                        Some(chunk)
+                      } else {
+                        None
+                      }
+                    }
+                  ).collect::<Vec<_>>();
+
+              // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
+              if selected_chunks.len() < cache_group.min_chunks as usize {
+                tracing::trace!(
+                  "Module({:?}) is ignored by CacheGroup({:?}). Reason: selected_chunks.len({:?}) < cache_group.min_chunks({:?})",
+                  module.identifier(),
+                  cache_group.key,
+                  selected_chunks.len(),
+                  cache_group.min_chunks,
+                );
+                continue;
+              }
+
+              let selected_chunks_key =
+                { get_key(selected_chunks.iter().map(|chunk| chunk.ukey())) };
+
+              merge_matched_item_into_module_group_map(
+                MatchedItem {
+                  idx: CacheGroupIdx::new(idx),
+                  module,
+                  cache_group,
+                  cache_group_index,
+                  selected_chunks,
+                  selected_chunks_key,
+                },
+                module_group_map,
+                &mut chunk_key_to_string,
+                compilation
+              ).await?;
+            }
+          }
+          Ok(())
+        });
+      })
+    })
+    .await
+    .into_iter().map(|res| res.map_err(rspack_error::miette::Error::from_err))
+    .collect::<Result<Vec<_>>>()?;
+
+    for result in module_group_results {
+      result?;
+    }
+
     Ok(module_group_map.into_iter().collect())
   }
 
@@ -648,4 +603,67 @@ impl SplitChunksPlugin {
   //     grouped_by_exports_map,
   //   )
   // }
+}
+
+async fn merge_matched_item_into_module_group_map(
+  matched_item: MatchedItem<'_>,
+  module_group_map: &DashMap<String, ModuleGroup>,
+  chunk_key_to_string: &mut HashMap<ChunksKey, String, ChunksKeyHashBuilder>,
+  compilation: &Compilation,
+) -> Result<()> {
+  let MatchedItem {
+    idx,
+    module,
+    cache_group_index,
+    cache_group,
+    selected_chunks,
+    selected_chunks_key,
+  } = matched_item;
+
+  // `Module`s with the same chunk_name would be merged togother.
+  // `Module`s could be in different `ModuleGroup`s.
+  let chunk_name = match &cache_group.name {
+    ChunkNameGetter::String(name) => Some(name.to_string()),
+    ChunkNameGetter::Disabled => None,
+    ChunkNameGetter::Fn(f) => {
+      let ctx = ChunkNameGetterFnCtx {
+        module,
+        chunks: &selected_chunks,
+        cache_group_key: &cache_group.key,
+        compilation,
+      };
+      f(ctx).await?
+    }
+  };
+  let key: String = if let Some(cache_group_name) = &chunk_name {
+    let mut key = String::with_capacity(cache_group.key.len() + cache_group_name.len());
+    key.push_str(&cache_group.key);
+    key.push_str(cache_group_name);
+    key
+  } else {
+    let selected_chunks_key = match chunk_key_to_string.entry(selected_chunks_key) {
+      hash_map::Entry::Occupied(entry) => entry.get().to_string(),
+      hash_map::Entry::Vacant(entry) => {
+        let key = format!("{:x}", selected_chunks_key);
+        entry.insert(key.clone());
+        key
+      }
+    };
+    let mut key = String::with_capacity(cache_group.key.len() + selected_chunks_key.len());
+    key.push_str(&cache_group.key);
+    key.push_str(&selected_chunks_key);
+    key
+  };
+
+  let mut module_group = {
+    module_group_map
+      .entry(key)
+      .or_insert_with(|| ModuleGroup::new(idx, chunk_name, cache_group_index, cache_group))
+  };
+
+  module_group.add_module(module, compilation);
+  module_group
+    .chunks
+    .extend(selected_chunks.iter().map(|c| c.ukey()));
+  Ok(())
 }

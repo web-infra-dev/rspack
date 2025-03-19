@@ -4,7 +4,9 @@ import { ApiMeta, Stability } from '@components/ApiMeta';
 
 <ApiMeta addedVersion="1.0.0" />
 
-`builtin:lightningcss-loader` 使用 Rspack 内置的 [lightningcss](https://github.com/parcel-bundler/lightningcss) 处理 CSS，可以替代 `postcss-loader` 中的降级功能，让 CSS 编译更快。
+[Lightning CSS](https://lightningcss.dev) 是一个基于 Rust 编写的高性能 CSS 解析、转译和压缩工具。它支持将许多现代的 CSS 特性解析并转化为指定浏览器支持的语法，并提供更好的压缩比例。
+
+Rspack 提供了一个内置的 `builtin:lightningcss-loader`，它基于 Lightning CSS 来转换 CSS，可以替代 [postcss-loader](https://github.com/postcss/postcss-loader) 和 [autoprefixer](https://github.com/postcss/autoprefixer) 的 CSS 语法降级、添加前缀等功能，并提供更好的性能。
 
 ## 示例
 

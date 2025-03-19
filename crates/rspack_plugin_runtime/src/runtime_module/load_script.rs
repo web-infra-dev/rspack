@@ -1,7 +1,6 @@
 use std::ptr::NonNull;
 
 use cow_utils::CowUtils;
-use pollster::block_on;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
@@ -138,19 +137,17 @@ impl RuntimeModule for LoadScriptRuntimeModule {
 
     let hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
     let chunk_ukey = self.chunk_ukey;
-    let res = block_on(tokio::task::unconstrained(async {
-      hooks
-        .create_script
-        .call(CreateScriptData {
-          code: create_script_code,
-          chunk: RuntimeModuleChunkWrapper {
-            chunk_ukey,
-            compilation_id: compilation.id(),
-            compilation: NonNull::from(compilation),
-          },
-        })
-        .await
-    }))?;
+    let res = hooks
+      .create_script
+      .call(CreateScriptData {
+        code: create_script_code,
+        chunk: RuntimeModuleChunkWrapper {
+          chunk_ukey,
+          compilation_id: compilation.id(),
+          compilation: NonNull::from(compilation),
+        },
+      })
+      .await?;
 
     Ok(
       RawStringSource::from(

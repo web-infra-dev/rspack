@@ -93,7 +93,7 @@ async fn compilation(
 }
 
 #[plugin_hook(JavascriptModulesRender for UmdLibraryPlugin)]
-fn render(
+async fn render(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
