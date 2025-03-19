@@ -86,6 +86,7 @@ pub struct CssParserAndGenerator {
 }
 
 #[cacheable_dyn]
+#[async_trait::async_trait]
 impl ParserAndGenerator for CssParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
     if self.exports_only {
@@ -461,7 +462,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
   }
 
   #[allow(clippy::unwrap_in_result)]
-  fn generate(
+  async fn generate(
     &self,
     source: &BoxSource,
     module: &dyn rspack_core::Module,

@@ -636,19 +636,23 @@ impl Module for NormalModule {
         .runtime_requirements
         .insert(RuntimeGlobals::THIS_AS_EXPORTS);
     }
+
     for source_type in self.source_types() {
-      let generation_result = self.parser_and_generator.generate(
-        source,
-        self,
-        &mut GenerateContext {
-          compilation,
-          runtime_requirements: &mut code_generation_result.runtime_requirements,
-          data: &mut code_generation_result.data,
-          requested_source_type: *source_type,
-          runtime,
-          concatenation_scope: concatenation_scope.as_mut(),
-        },
-      )?;
+      let generation_result = self
+        .parser_and_generator
+        .generate(
+          source,
+          self,
+          &mut GenerateContext {
+            compilation,
+            runtime_requirements: &mut code_generation_result.runtime_requirements,
+            data: &mut code_generation_result.data,
+            requested_source_type: *source_type,
+            runtime,
+            concatenation_scope: concatenation_scope.as_mut(),
+          },
+        )
+        .await?;
       code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
     }
     code_generation_result.concatenation_scope = concatenation_scope;

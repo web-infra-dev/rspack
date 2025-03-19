@@ -32,6 +32,7 @@ pub struct AsyncWasmParserAndGenerator {
 pub(crate) static WASM_SOURCE_TYPE: &[SourceType; 2] = &[SourceType::Wasm, SourceType::JavaScript];
 
 #[cacheable_dyn]
+#[async_trait::async_trait]
 impl ParserAndGenerator for AsyncWasmParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
     WASM_SOURCE_TYPE
@@ -122,7 +123,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
   }
 
   #[allow(clippy::unwrap_in_result)]
-  fn generate(
+  async fn generate(
     &self,
     source: &BoxSource,
     module: &dyn Module,
