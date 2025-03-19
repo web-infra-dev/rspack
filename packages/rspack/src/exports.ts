@@ -23,7 +23,6 @@ export type { MultiCompilerOptions, MultiRspackOptions } from "./MultiCompiler";
 export { MultiCompiler } from "./MultiCompiler";
 
 import { RspackOptionsApply } from "./rspackOptionsApply";
-
 export { RspackOptionsApply, RspackOptionsApply as WebpackOptionsApply };
 
 export type { Chunk } from "./Chunk";
@@ -53,7 +52,6 @@ export {
 
 // API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
 import * as ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";
-
 export { ModuleFilenameHelpers };
 
 // API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
