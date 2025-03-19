@@ -92,6 +92,7 @@ impl JavaScriptParserAndGenerator {
 static SOURCE_TYPES: &[SourceType; 1] = &[SourceType::JavaScript];
 
 #[cacheable_dyn]
+#[async_trait::async_trait]
 impl ParserAndGenerator for JavaScriptParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
     SOURCE_TYPES
@@ -269,7 +270,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     )
   }
 
-  fn generate(
+  async fn generate(
     &self,
     source: &BoxSource,
     module: &dyn Module,

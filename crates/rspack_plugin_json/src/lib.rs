@@ -39,6 +39,7 @@ struct JsonParserAndGenerator {
 }
 
 #[cacheable_dyn]
+#[async_trait::async_trait]
 impl ParserAndGenerator for JsonParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
     &[SourceType::JavaScript]
@@ -155,7 +156,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
 
   // Safety: `ast_and_source` is available in code generation.
   #[allow(clippy::unwrap_in_result)]
-  fn generate(
+  async fn generate(
     &self,
     _source: &BoxSource,
     module: &dyn rspack_core::Module,
