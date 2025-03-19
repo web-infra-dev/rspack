@@ -4,6 +4,7 @@ use std::{
 };
 
 use dashmap::{mapref::entry::Entry, DashMap};
+use futures::future::join_all;
 use rayon::prelude::*;
 use rspack_collections::{DatabaseItem, IdentifierMap, UkeyMap, UkeySet};
 use rspack_core::{
@@ -396,15 +397,13 @@ impl SplitChunksPlugin {
                 continue;
               }
 
-              let selected_chunks = chunk_combination
-                  .iter()
-                  .map(|c| {
-                    let c = compilation.chunk_by_ukey.expect_get(c);
-                    // Filter by `splitChunks.cacheGroups.{cacheGroup}.chunks`
-                    (cache_group.chunk_filter)(c, compilation).map(|filtered|  (c, filtered))
-                  })
-                  .collect::<Result<Vec<_>>>()?
-                  .into_iter().filter_map(
+              let selected_chunks = join_all(chunk_combination.iter().map(|c|
+                async move {
+                  let c = compilation.chunk_by_ukey.expect_get(c);
+                  // Filter by `splitChunks.cacheGroups.{cacheGroup}.chunks`
+                  (cache_group.chunk_filter)(c, compilation).await.map(|filtered|  (c, filtered))
+                }
+              )).await.into_iter().collect::<Result<Vec<_>>>()?.into_iter().filter_map(
                     |(chunk, filtered)| {
                       if filtered {
                         Some(chunk)
