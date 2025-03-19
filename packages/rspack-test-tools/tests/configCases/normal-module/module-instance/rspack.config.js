@@ -1,3 +1,5 @@
+const path = require("path");
+
 class Plugin {
 	/**
 	 * @param {import("@rspack/core").Compiler} compiler
@@ -26,6 +28,11 @@ class Plugin {
 			expect(module.resourceResolveData.resource).toContain("index.js");
 			expect("matchResource" in module).toBe(true);
 			expect(module.loaders.length).toBe(1);
+			expect(
+				module.loaders.map(({ loader }) =>
+					path.relative(compiler.context, loader)
+				)
+			).toEqual(["passthrough-loader.js"]);
 
 			expect(module.type).toBe("javascript/auto");
 			expect("context" in module).toBe(true);

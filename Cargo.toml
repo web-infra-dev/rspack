@@ -97,8 +97,8 @@ rkyv      = { version = "=0.8.8" }
 # Must be pinned with the same swc versions
 swc                 = { version = "=16.1.1" }
 swc_config          = { version = "=2.0.0" }
-swc_core            = { version = "=16.5.0", default-features = false }
-swc_ecma_minifier   = { version = "=12.0.4", default-features = false }
+swc_core            = { version = "=16.7.0", default-features = false }
+swc_ecma_minifier   = { version = "=12.2.0", default-features = false }
 swc_error_reporters = { version = "=9.1.0" }
 swc_html            = { version = "=12.0.0" }
 swc_html_minifier   = { version = "=12.0.0", default-features = false }
@@ -123,7 +123,6 @@ rspack_core                            = { version = "0.2.0", path = "crates/rsp
 rspack_deps_graph                      = { version = "0.2.0", path = "crates/rspack_deps_graph" }
 rspack_error                           = { version = "0.2.0", path = "crates/rspack_error" }
 rspack_fs                              = { version = "0.2.0", path = "crates/rspack_fs" }
-rspack_fs_node                         = { version = "0.2.0", path = "crates/rspack_fs_node" }
 rspack_futures                         = { version = "0.2.0", path = "crates/rspack_futures" }
 rspack_hash                            = { version = "0.2.0", path = "crates/rspack_hash" }
 rspack_hook                            = { version = "0.2.0", path = "crates/rspack_hook" }

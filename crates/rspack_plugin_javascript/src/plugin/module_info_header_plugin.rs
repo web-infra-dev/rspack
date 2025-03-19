@@ -188,7 +188,7 @@ async fn chunk_hash(
 }
 
 #[plugin_hook(JavascriptModulesRenderModulePackage for ModuleInfoHeaderPlugin)]
-fn render_module_package(
+async fn render_module_package(
   &self,
   compilation: &Compilation,
   chunk_key: &ChunkUkey,

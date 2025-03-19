@@ -2,7 +2,9 @@ import { ApiMeta, Stability } from '@components/ApiMeta';
 
 # Builtin swc-loader
 
-`builtin:swc-loader` is the Rust version of [`swc-loader`](https://github.com/swc-project/pkgs/tree/main/packages/swc-loader), aiming to deliver better performance. The Loader's [configuration](https://swc.rs/docs/configuration/compilation) is aligned with the JS version of `swc-loader`.
+[SWC](https://github.com/swc-project/swc) (Speedy Web Compiler) is a transformer and minimizer for JavaScript and TypeScript based on Rust. SWC provides similar functionality to Babel and Terser, and it is 20x faster than Babel on a single thread and 70x faster on four cores.
+
+Rspack provides a built-in loader for SWC, which is the Rust version of [swc-loader](https://github.com/swc-project/pkgs/tree/main/packages/swc-loader), aiming to deliver better performance. The loader's [options](https://swc.rs/docs/configuration/compilation) is aligned with the JS version of `swc-loader`.
 
 ## Example
 

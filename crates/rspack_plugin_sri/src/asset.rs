@@ -43,8 +43,8 @@ fn process_chunks(
     compilation.push_diagnostic(Diagnostic::warn(
       "SubresourceIntegrity".to_string(),
       r#"SRI requires a cross-origin policy, defaulting to "anonymous". 
-Set rspack option output.crossOriginLoading to a value other than false 
-to make this warning go away. 
+Set "output.crossOriginLoading" option to a value other than "false"
+to make this warning go away.
 See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-leakage"#
         .to_string(),
     ));
@@ -141,10 +141,9 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
     if should_warn_content_hash {
       compilation.push_diagnostic(Diagnostic::warn(
         "SubresourceIntegrity".to_string(),
-        r#"Using [hash], [fullhash], [modulehash], or [chunkhash] is dangerous 
-with SRI. The same is true for [contenthash] when realContentHash is disabled. 
-Use [contenthash] and ensure realContentHash is enabled. See the README for 
-more information."#
+        r#"Using [hash], [fullhash], [modulehash], or [chunkhash] can be risky
+with SRI. The same applies to [contenthash] when "optimization.realContentHash" option is disabled. 
+Use [contenthash] and ensure "optimization.realContentHash" option is enabled."#
           .to_string(),
       ));
     }

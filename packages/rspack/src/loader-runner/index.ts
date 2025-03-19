@@ -80,8 +80,8 @@ function createLoaderObject(
 			obj.path.replace(/#/g, "\u200b#") +
 			obj.query.replace(/#/g, "\u200b#") +
 			obj.fragment,
-		set: value => {
-			const splittedRequest = parseResourceWithoutFragment(value.request);
+		set: (value: JsLoaderItem) => {
+			const splittedRequest = parseResourceWithoutFragment(value.loader);
 			obj.path = splittedRequest.path;
 			obj.query = splittedRequest.query;
 			obj.fragment = "";

@@ -87,7 +87,7 @@ async fn eval_devtool_plugin_compilation(
 }
 
 #[plugin_hook(JavascriptModulesRenderModuleContent for EvalDevToolModulePlugin)]
-fn eval_devtool_plugin_render_module_content(
+async fn eval_devtool_plugin_render_module_content(
   &self,
   compilation: &Compilation,
   module: &BoxModule,
@@ -112,13 +112,14 @@ fn eval_devtool_plugin_render_module_content(
       &self.namespace,
     ),
     ModuleFilenameTemplate::Fn(f) => {
-      futures::executor::block_on(ModuleFilenameHelpers::create_filename_of_fn_template(
+      ModuleFilenameHelpers::create_filename_of_fn_template(
         &ModuleOrSource::Module(module.identifier()),
         compilation,
         f,
         output_options,
         &self.namespace,
-      ))?
+      )
+      .await?
     }
   };
   let source = {

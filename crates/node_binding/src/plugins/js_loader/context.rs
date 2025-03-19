@@ -11,7 +11,7 @@ use crate::{JsResourceData, JsRspackError, ModuleObject};
 
 #[napi(object)]
 pub struct JsLoaderItem {
-  pub request: String,
+  pub loader: String,
   pub r#type: String,
 
   // data
@@ -25,7 +25,7 @@ pub struct JsLoaderItem {
 impl From<&LoaderItem<RunnerContext>> for JsLoaderItem {
   fn from(value: &LoaderItem<RunnerContext>) -> Self {
     JsLoaderItem {
-      request: value.request().to_string(),
+      loader: value.request().to_string(),
       r#type: value.r#type().to_string(),
 
       data: value.data().clone(),

@@ -4,7 +4,9 @@ import { ApiMeta, Stability } from '@components/ApiMeta';
 
 <ApiMeta addedVersion="1.0.0" />
 
-The `builtin:lightningcss-loader` uses the builtin [lightningcss](https://github.com/parcel-bundler/lightningcss) from Rspack to process CSS, which can replace the syntax lowering functionality in `postcss-loader` to make the CSS transformation faster.
+[Lightning CSS](https://lightningcss.dev) is a high performance CSS parser, transformer and minifier written in Rust. It supports parsing and transforming many modern CSS features into syntax supported by target browsers, and also provides a better compression ratio.
+
+Rspack provides a built-in `builtin:lightningcss-loader`, which is based on Lightning CSS to transform CSS. It can replace the [postcss-loader](https://github.com/postcss/postcss-loader) and [autoprefixer](https://github.com/postcss/autoprefixer) for CSS syntax downgrading, prefixing, and other functionalities, offering better performance.
 
 ## Example
 
