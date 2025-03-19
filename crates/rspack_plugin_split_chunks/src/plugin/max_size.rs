@@ -509,17 +509,17 @@ impl SplitChunksPlugin {
             max_size_setting_map,
           )| async move {
             let max_size_setting = max_size_setting_map.get(&chunk.ukey());
-            // tracing::trace!(
-            //   "max_size_setting : {max_size_setting:#?} for {:?}",
-            //   chunk.ukey()
-            // );
+            tracing::trace!(
+              "max_size_setting : {max_size_setting:#?} for {:?}",
+              chunk.ukey()
+            );
 
-            // if max_size_setting.is_none()
-            //   && !(fallback_cache_group.chunks_filter)(chunk, compilation).await?
-            // {
-            //   tracing::debug!("Chunk({:?}) skips `maxSize` checking. Reason: max_size_setting.is_none() and chunks_filter is false", chunk.chunk_reason());
-            //   return Ok(None);
-            // }
+            if max_size_setting.is_none()
+              && !(fallback_cache_group.chunks_filter)(chunk, compilation).await?
+            {
+              tracing::debug!("Chunk({:?}) skips `maxSize` checking. Reason: max_size_setting.is_none() and chunks_filter is false", chunk.chunk_reason());
+              return Ok(None);
+            }
 
             let min_size = max_size_setting
               .map(|s| &s.min_size)
@@ -547,10 +547,10 @@ impl SplitChunksPlugin {
 
             // Fast path
             if allow_max_size.is_empty() {
-              // tracing::debug!(
-              //   "Chunk({:?}) skips the `maxSize` checking. Reason: allow_max_size is empty",
-              //   chunk.chunk_reason()
-              // );
+              tracing::debug!(
+                "Chunk({:?}) skips the `maxSize` checking. Reason: allow_max_size is empty",
+                chunk.chunk_reason()
+              );
               return Ok(None);
             }
 
@@ -559,11 +559,11 @@ impl SplitChunksPlugin {
               if let Some(ty_min_size) = min_size.get(ty) {
                 if ty_min_size > ty_max_size {
                   is_invalid = true;
-                  // tracing::warn!(
-                  //   "minSize({}) should not be bigger than maxSize({})",
-                  //   ty_min_size,
-                  //   ty_max_size
-                  // );
+                  tracing::warn!(
+                    "minSize({}) should not be bigger than maxSize({})",
+                    ty_min_size,
+                    ty_max_size
+                  );
                 }
               }
             });

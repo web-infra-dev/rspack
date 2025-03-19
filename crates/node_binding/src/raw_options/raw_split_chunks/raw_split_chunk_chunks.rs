@@ -18,7 +18,8 @@ pub fn create_chunks_filter(raw: Chunks) -> rspack_plugin_split_chunks::ChunkFil
     }
     Either3::C(f) => Arc::new(move |chunk, compilation| {
       let f = f.clone();
-      Box::pin(async move { f.call(JsChunkWrapper::new(chunk.ukey(), compilation)).await })
+      let chunk_wrapper = JsChunkWrapper::new(chunk.ukey(), compilation);
+      Box::pin(async move { f.call(chunk_wrapper).await })
     }),
   }
 }
