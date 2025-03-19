@@ -10,7 +10,6 @@
 use std::sync::LazyLock;
 use std::{borrow::Cow, hash::Hash};
 
-use rayon::prelude::*;
 use regex::Regex;
 use rspack_collections::{DatabaseItem, UkeyMap};
 use rspack_core::{
@@ -445,11 +444,11 @@ fn subtract_size_from(total: &mut SplitChunkSizes, size: &SplitChunkSizes) {
   });
 }
 
-struct ChunkWithSizeInfo<'a> {
+struct ChunkWithSizeInfo {
   pub chunk: ChunkUkey,
-  pub allow_max_size: Cow<'a, SplitChunkSizes>,
-  pub min_size: &'a SplitChunkSizes,
-  pub automatic_name_delimiter: &'a String,
+  pub allow_max_size: SplitChunkSizes,
+  pub min_size: SplitChunkSizes,
+  pub automatic_name_delimiter: String,
 }
 
 fn get_similarities(nodes: &[GroupItem]) -> Vec<usize> {
@@ -572,10 +571,10 @@ impl SplitChunksPlugin {
             }
 
             Ok(Some(ChunkWithSizeInfo {
-              allow_max_size,
-              min_size,
+              allow_max_size: allow_max_size.into_owned(),
+              min_size: min_size.clone(),
               chunk: chunk.ukey(),
-              automatic_name_delimiter,
+              automatic_name_delimiter: automatic_name_delimiter.clone(),
             }))
           },
         );
