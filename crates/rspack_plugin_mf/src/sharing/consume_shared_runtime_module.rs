@@ -69,7 +69,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         ));
       }
     };
-    for chunk in chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey) {
+    for chunk in chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey) {
       let modules = compilation
         .chunk_graph
         .get_chunk_modules_iterable_by_source_type(
