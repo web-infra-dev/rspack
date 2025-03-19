@@ -155,7 +155,7 @@ fn build_module_map(compilation: &Compilation) -> IdentifierMap<GraphModule> {
   let mut module_map: IdentifierMap<GraphModule> = IdentifierMap::default();
   module_map.reserve(modules.len());
   for (id, module) in modules {
-    let mut graph_module = GraphModule::new(id, module.original_source().is_some());
+    let mut graph_module = GraphModule::new(id, module.source().is_some());
     for dependency_id in module.get_dependencies() {
       let Some(dependency) = module_graph.dependency_by_id(dependency_id) else {
         continue;
@@ -164,7 +164,7 @@ fn build_module_map(compilation: &Compilation) -> IdentifierMap<GraphModule> {
         continue;
       };
       // Only include dependencies that represent a real source file.
-      if dependent_module.original_source().is_none() {
+      if dependent_module.source().is_none() {
         continue;
       }
       // Self dependencies are added in various ways, but don't mean anything here.
@@ -347,7 +347,7 @@ async fn optimize_modules(&self, compilation: &mut Compilation) -> Result<Option
       .expect("Compilation should contain entrypoint chunk groups");
     let entry_modules = compilation
       .chunk_graph
-      .get_chunk_entry_modules(&chunk_group.get_entry_point_chunk());
+      .get_chunk_entry_modules(&chunk_group.get_entrypoint_chunk());
 
     for module_id in entry_modules {
       // Only consider entrypoint modules coming from existing source code.
