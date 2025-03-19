@@ -2,10 +2,18 @@ allow-dbg-in-tests    = true
 allow-unwrap-in-tests = true
 
 disallowed-methods = [
+  
   { path = "str::to_ascii_lowercase", reason = "To avoid memory allocation, use `cow_utils::CowUtils::cow_to_ascii_lowercase` instead." },
   { path = "str::to_ascii_uppercase", reason = "To avoid memory allocation, use `cow_utils::CowUtils::cow_to_ascii_uppercase` instead." },
   { path = "str::to_lowercase", reason = "To avoid memory allocation, use `cow_utils::CowUtils::cow_to_lowercase` instead." },
   { path = "str::to_uppercase", reason = "To avoid memory allocation, use `cow_utils::CowUtils::cow_to_uppercase` instead." },
   { path = "str::replace", reason = "To avoid memory allocation, use `cow_utils::CowUtils::replace` instead." },
   { path = "str::replacen", reason = "To avoid memory allocation, use `cow_utils::CowUtils::replacen` instead." },
+  { path = "std::mem::forget", reason = "future::scope is unsafe when used with forget" },
+  { path = "tokio::runtime::Runtime::block_on", reason="block_on can cause deadlock easily"},
+  { path = "tokio::runtime::Handle::block_on", reason = "block_on can cause deadlock easily" },
+  { path = "napi::bindgen_prelude::block_on", reason = "block_on can cause deadlock easily" },
+  { path = "futures::executor::block_on", reason = "block_on can cause deadlock easily" },
+  { path = "async_std::task::block_on", reason = "block_on can cause deadlock easily" },
+  { path = "pollster::block_on", reason = "block_on can cause deadlock easily" }
 ]
