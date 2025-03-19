@@ -325,7 +325,7 @@ impl CircularDependencyRspackPlugin {
     };
 
     compilation.push_diagnostic(diagnostic_factory(
-      "Circular Dependency".to_string(),
+      "CircularDependencyRspackPlugin:\nCircular Dependency".to_string(),
       cycle.iter().join(" -> "),
     ));
     Ok(())
