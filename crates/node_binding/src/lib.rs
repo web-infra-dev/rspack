@@ -361,13 +361,14 @@ fn init() {
     .unwrap_or(default_blocking_threads);
   let rt = tokio::runtime::Builder::new_multi_thread()
     .max_blocking_threads(blocking_threads)
+    .thread_name("tokio")
     .enable_all()
     .build()
     .expect("Create tokio runtime failed");
   create_custom_tokio_runtime(rt);
   // initialize rayon
   rayon::ThreadPoolBuilder::new()
-    .thread_name(|id| format!("rayon-worker-{}", id))
+    .thread_name(|_| "rayon".to_string())
     .build_global()
     .expect("Create rayon thread pool failed");
 }
