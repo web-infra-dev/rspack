@@ -365,6 +365,11 @@ fn init() {
     .build()
     .expect("Create tokio runtime failed");
   create_custom_tokio_runtime(rt);
+  // initialize rayon
+  rayon::ThreadPoolBuilder::new()
+    .thread_name(|id| format!("rayon-worker-{}", id))
+    .build_global()
+    .expect("Create rayon thread pool failed");
 }
 
 fn print_error_diagnostic(e: rspack_error::Error, colored: bool) -> String {
