@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
-  compile_boolean_matcher, impl_runtime_module,
+  compile_boolean_matcher, get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   ApplyContext, BooleanMatcher, Chunk, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilerOptions, Plugin, PluginContext,
@@ -62,22 +62,46 @@ fn federation_runtime_template(chunk: &Chunk, compilation: &Compilation) -> Stri
       r#"
 chunkMatcher: function(chunkId) {{
     return {has_js_matcher};
-}}
+}},
 "#,
       has_js_matcher = &has_js_matcher.render("chunkId")
     )
   };
 
+  // Calculate rootOutputDir similar to webpack
+  let root_output_dir = {
+    let filename = get_js_chunk_filename_template(
+      chunk,
+      &compilation.options.output,
+      &compilation.chunk_group_by_ukey,
+    );
+    let output_name = compilation
+      .get_path(&filename, Default::default())
+      .expect("failed to get output path");
+    get_undo_path(
+      &output_name,
+      compilation.options.output.path.to_string(),
+      false,
+    )
+  };
+
+  let root_output_dir_str = format!(
+    r#"rootOutputDir: "{}",
+"#,
+    root_output_dir
+  );
+
   format!(
     r#"
 if(!{federation_global}){{
     {federation_global} = {{
-        {chunk_matcher}
+        {chunk_matcher}{root_output_dir_str}
     }};
 }}
 "#,
     federation_global = federation_global,
-    chunk_matcher = chunk_matcher
+    chunk_matcher = chunk_matcher,
+    root_output_dir_str = root_output_dir_str
   )
 }
 
