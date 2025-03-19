@@ -78,7 +78,7 @@
     "@types/babel__traverse": "7.20.6",
     "@types/fs-extra": "11.0.4",
     "@types/jsdom": "^21.1.7",
-    "@types/react": "^19.0.10",
+    "@types/react": "^19.0.11",
     "@types/react-dom": "^19.0.4",
     "@types/webpack": "5.28.5",
     "@types/webpack-sources": "3.2.3",
