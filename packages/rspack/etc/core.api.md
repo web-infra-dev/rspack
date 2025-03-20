@@ -564,10 +564,10 @@ export type CircularDependencyRspackPluginOptions = {
     allowAsyncCycles?: boolean;
     exclude?: RegExp;
     ignoredConnections?: Array<[string | RegExp, string | RegExp]>;
-    onDetected?(entrypoint: Module, modules: string[], compilation: Compilation): void;
-    onIgnored?(entrypoint: Module, modules: string[], compilation: Compilation): void;
-    onStart?(compilation: Compilation): void;
-    onEnd?(compilation: Compilation): void;
+    onDetected?(entrypoint: Module, modules: string[], compilation: JsCompilation): void;
+    onIgnored?(entrypoint: Module, modules: string[], compilation: JsCompilation): void;
+    onStart?(compilation: JsCompilation): void;
+    onEnd?(compilation: JsCompilation): void;
 };
 
 // @public
