@@ -651,11 +651,13 @@ impl From<AssetGeneratorDataUrlFnCtx<'_>> for RawAssetGeneratorDataUrlFnCtx {
 
 impl From<RawAssetGeneratorDataUrlWrapper> for AssetGeneratorDataUrl {
   fn from(value: RawAssetGeneratorDataUrlWrapper) -> Self {
-    use pollster::block_on;
     match value.0 {
       Either::A(a) => Self::Options(a.into()),
       Either::B(b) => Self::Func(Arc::new(move |source, ctx| {
-        block_on(b.call((source.into(), ctx.into())))
+        let b = b.clone();
+        let source = source.into();
+        let ctx = ctx.into();
+        Box::pin(async move { b.call((source, ctx)).await })
       })),
     }
   }

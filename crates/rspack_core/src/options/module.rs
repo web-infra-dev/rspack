@@ -547,8 +547,9 @@ pub struct AssetGeneratorDataUrlFnCtx<'a> {
   pub compilation: &'a Compilation,
 }
 
-pub type AssetGeneratorDataUrlFn =
-  Arc<dyn Fn(Vec<u8>, AssetGeneratorDataUrlFnCtx) -> Result<String> + Sync + Send>;
+pub type AssetGeneratorDataUrlFn = Arc<
+  dyn Fn(Vec<u8>, AssetGeneratorDataUrlFnCtx) -> BoxFuture<'static, Result<String>> + Sync + Send,
+>;
 
 #[cacheable]
 pub enum AssetGeneratorDataUrl {

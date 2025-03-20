@@ -827,6 +827,14 @@ Called after the [processAssets](#processAssets) hook had finished without error
   </CollapsePanel>
 </Collapse>
 
+- **Example:**
+
+```js
+compilation.hooks.afterProcessAssets.tap('MyPlugin', assets => {
+  console.log('assets', Object.keys(assets));
+});
+```
+
 ## `afterSeal`
 
 <Badge text="Read-only" type="info" />

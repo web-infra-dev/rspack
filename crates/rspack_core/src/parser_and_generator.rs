@@ -83,6 +83,7 @@ pub struct GenerateContext<'a> {
 }
 
 #[cacheable_dyn]
+#[async_trait::async_trait]
 pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
   /// The source types that the generator can generate (the source types you can make requests for)
   fn source_types(&self) -> &[SourceType];
@@ -91,7 +92,7 @@ pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
   /// Size of the original source
   fn size(&self, module: &dyn Module, source_type: Option<&SourceType>) -> f64;
   /// Generate source or AST based on the built source or AST
-  fn generate(
+  async fn generate(
     &self,
     source: &BoxSource,
     module: &dyn Module,

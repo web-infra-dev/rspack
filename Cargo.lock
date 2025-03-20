@@ -3597,12 +3597,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pollster"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f3a9f18d041e6d0e102a0a46750538147e5e8992d3b4873aaafee2520b00ce3"
-
-[[package]]
 name = "portable-atomic"
 version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4566,7 +4560,7 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
- "pollster",
+ "rayon",
  "ropey",
  "rspack_allocator",
  "rspack_cacheable",
@@ -4970,6 +4964,7 @@ dependencies = [
 name = "rspack_plugin_json"
 version = "0.2.0"
 dependencies = [
+ "async-trait",
  "cow-utils",
  "json",
  "ropey",
@@ -5404,9 +5399,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.4.7"
+version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f7e7ffb8325b1bb5c334df20afdc23df78e675d032884ba2c90bcd5f67a037e8"
+checksum = "36f2297ec566365aa29f1cc33c9c40db32789bc6116651f2b3e15d1f234b953b"
 dependencies = [
  "dashmap 6.1.0",
  "dyn-clone",
