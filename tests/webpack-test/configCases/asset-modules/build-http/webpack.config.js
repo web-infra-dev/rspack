@@ -26,7 +26,8 @@ module.exports = {
 					});
 				}
 			},
-			allowedUris: [() => true],
+			//todo: need to support functions as well for allowed url.
+			allowedUris: ["https://"],
 			lockfileLocation: path.resolve(__dirname, "./lock-files/lock.json"),
 			cacheLocation: path.resolve(__dirname, "./lock-files/test")
 		}
