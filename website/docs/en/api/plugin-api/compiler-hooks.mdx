@@ -468,7 +468,7 @@ In the seal phase, Rspack will create chunk graph from the module graph and then
 
 Called before emitting assets. Should return a boolean telling whether to emit.
 
-- **Type:** `SyncBailHook<[Compilation]>`
+- **Type:** `SyncBailHook<[Compilation], boolean>`
 - **Arguments:**
   - `Compilation`: current [compilation](/api/javascript-api/compilation) object
 
@@ -481,6 +481,15 @@ Called before emitting assets. Should return a boolean telling whether to emit.
     <CompilationType />
   </CollapsePanel>
 </Collapse>
+
+- **Example:**
+
+```js
+compiler.hooks.shouldEmit.tap('MyPlugin', compilation => {
+  // return true to emit the output, otherwise false
+  return true;
+});
+```
 
 ## `emit`
 
