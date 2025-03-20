@@ -829,6 +829,14 @@ compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
   </CollapsePanel>
 </Collapse>
 
+- **示例：**
+
+```js
+compilation.hooks.afterProcessAssets.tap('MyPlugin', assets => {
+  console.log('assets', Object.keys(assets));
+});
+```
+
 ## `afterSeal`
 
 <Badge text="只读" type="info" />
