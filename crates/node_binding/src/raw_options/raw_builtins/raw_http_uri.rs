@@ -8,12 +8,9 @@ use std::{
 };
 
 use async_trait::async_trait;
-use napi::{
-  bindgen_prelude::{Buffer, Promise},
-  threadsafe_function::{ThreadsafeFunction as NapiThreadsafeFunction, ThreadsafeFunctionCallMode},
-};
+use napi::bindgen_prelude::{Buffer, Promise};
 use napi_derive::napi;
-use rspack_error::{AnyhowError, Error as RspackError};
+use rspack_error::AnyhowError;
 use rspack_fs::WritableFileSystem;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_schemes::{
@@ -81,7 +78,7 @@ impl HttpClient for JsHttpClient {
 }
 
 static HTTP_CLIENT_REGISTERED: AtomicBool = AtomicBool::new(false);
-static mut JS_HTTP_CLIENT: Option<JsHttpClient> = None;
+static JS_HTTP_CLIENT: Mutex<Option<JsHttpClient>> = Mutex::new(None);
 
 #[napi]
 pub fn register_http_client(
@@ -99,10 +96,7 @@ pub fn register_http_client(
     function: http_client,
   };
 
-  unsafe {
-    JS_HTTP_CLIENT = Some(client);
-  }
-
+  *JS_HTTP_CLIENT.lock().unwrap() = Some(client);
   HTTP_CLIENT_REGISTERED.store(true, Ordering::SeqCst);
 }
 
@@ -118,7 +112,7 @@ pub fn create_http_uri_plugin(
   let allowed_uris = HttpUriOptionsAllowedUris::default();
 
   let http_client = if HTTP_CLIENT_REGISTERED.load(Ordering::SeqCst) {
-    unsafe { Some(Arc::new(JS_HTTP_CLIENT.clone().unwrap()) as Arc<dyn HttpClient>) }
+    Some(Arc::new(JS_HTTP_CLIENT.lock().unwrap().clone().unwrap()) as Arc<dyn HttpClient>)
   } else {
     Some(Arc::new(SimpleHttpClient) as Arc<dyn HttpClient>)
   };
@@ -155,4 +149,33 @@ impl HttpClient for SimpleHttpClient {
 
     Ok(response)
   }
+}
+
+pub fn create_plugin_with_options(
+  options: RawHttpUriPluginOptions,
+) -> Result<HttpUriPlugin, rspack_error::Error> {
+  // Use NativeFileSystem
+  let fs = Arc::new(rspack_fs::NativeFileSystem::new(false));
+
+  create_http_uri_plugin(
+    options.allowed_uris,
+    options.cache_location,
+    options.frozen,
+    options.lockfile_location,
+    options.proxy,
+    options.upgrade,
+    fs,
+  )
+  .map_err(|e| rspack_error::error!(e.to_string()))
+}
+
+#[napi(object)]
+#[derive(Debug)]
+pub struct RawHttpUriPluginOptions {
+  pub allowed_uris: Option<Vec<String>>,
+  pub cache_location: Option<String>,
+  pub frozen: Option<bool>,
+  pub lockfile_location: Option<String>,
+  pub proxy: Option<String>,
+  pub upgrade: Option<bool>,
 }

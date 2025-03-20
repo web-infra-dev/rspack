@@ -17,15 +17,10 @@ mod raw_size_limits;
 mod raw_sri;
 mod raw_swc_js_minimizer;
 
-use std::sync::Arc;
-
-use napi::{
-  bindgen_prelude::{FromNapiValue, *},
-  Env, JsUnknown,
-};
+use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
-pub use raw_http_uri::{create_http_uri_plugin, register_http_client};
+pub use raw_http_uri::{create_http_uri_plugin, register_http_client, RawHttpUriPluginOptions};
 use raw_ids::RawOccurrenceChunkIdsPluginOptions;
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use raw_sri::RawSubresourceIntegrityPluginOptions;
@@ -35,7 +30,7 @@ use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
   NamedModuleIdsPlugin, NaturalChunkIdsPlugin, NaturalModuleIdsPlugin, OccurrenceChunkIdsPlugin,
 };
-use rspack_napi::{JsCallback, NapiResultExt};
+use rspack_napi::NapiResultExt;
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
 use rspack_plugin_context_replacement::ContextReplacementPlugin;
@@ -114,8 +109,8 @@ use self::{
   raw_size_limits::RawSizeLimitsPluginOptions,
 };
 use crate::{
-  entry::JsEntryPluginOptions, fs_node::NodeFileSystem, plugins::JsLoaderRspackPlugin,
-  JsLoaderRunner, RawContextReplacementPluginOptions, RawDynamicEntryPluginOptions,
+  entry::JsEntryPluginOptions, plugins::JsLoaderRspackPlugin, JsLoaderRunner,
+  RawContextReplacementPluginOptions, RawDynamicEntryPluginOptions,
   RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
   RawHttpExternalsRspackPluginOptions, RawRsdoctorPluginOptions, RawSourceMapDevToolPluginOptions,
   RawSplitChunksOptions,
@@ -222,7 +217,7 @@ pub struct BuiltinPlugin {
 }
 
 impl BuiltinPlugin {
-  pub fn append_to(self, env: Env, plugins: &mut Vec<BoxPlugin>) -> rspack_error::Result<()> {
+  pub fn append_to(self, _env: Env, plugins: &mut Vec<BoxPlugin>) -> rspack_error::Result<()> {
     match self.name {
       // webpack also have these plugins
       BuiltinPluginName::DefinePlugin => {
@@ -410,23 +405,7 @@ impl BuiltinPlugin {
       BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin::default().boxed()),
       BuiltinPluginName::HttpUriPlugin => {
         let plugin_options = downcast_into::<RawHttpUriPluginOptions>(self.options)?;
-
-        // We need to create a NodeFileSystem, but we don't have a ThreadsafeNodeFS
-        // For now, we'll skip using real filesystem for simplicity
-        let fs = Arc::new(rspack_fs::MemoryFileSystem::default());
-
-        // Create the plugin
-        let plugin = raw_http_uri::create_http_uri_plugin(
-          plugin_options.allowed_uris.clone(),
-          plugin_options.cache_location.clone(),
-          plugin_options.frozen,
-          plugin_options.lockfile_location.clone(),
-          plugin_options.proxy.clone(),
-          plugin_options.upgrade,
-          fs,
-        )
-        .map_err(|e| rspack_error::error!(e.to_string()))?;
-
+        let plugin = raw_http_uri::create_plugin_with_options(plugin_options)?;
         plugins.push(plugin.boxed());
       }
       BuiltinPluginName::RuntimePlugin => plugins.push(RuntimePlugin::default().boxed()),
@@ -615,15 +594,4 @@ impl BuiltinPlugin {
 
 fn downcast_into<T: FromNapiValue + 'static>(o: JsUnknown) -> Result<T> {
   rspack_napi::downcast_into(o).into_rspack_result()
-}
-
-#[napi(object)]
-#[derive(Debug)]
-pub struct RawHttpUriPluginOptions {
-  pub allowed_uris: Option<Vec<String>>,
-  pub cache_location: Option<String>,
-  pub frozen: Option<bool>,
-  pub lockfile_location: Option<String>,
-  pub proxy: Option<String>,
-  pub upgrade: Option<bool>,
 }
