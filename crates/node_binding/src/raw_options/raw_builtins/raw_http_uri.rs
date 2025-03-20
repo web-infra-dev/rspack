@@ -54,14 +54,33 @@ impl HttpClient for JsHttpClient {
     let url_owned = url.to_string();
     let headers_owned = headers.clone();
 
+    // Add debug logging
+    println!(
+      "[JsHttpClient] Preparing to call JS with URL: '{}'",
+      url_owned
+    );
+    println!("[JsHttpClient] Headers: {:?}", headers_owned);
+
     // Clone the function before using it in async context to avoid MutexGuard Send issues
     let func = self.function.clone();
 
     // Ensure we pass parameters in the correct order expected by TS definition
+    // The correct signature is (err?: string, method?: string, url: string, headers: HashMap)
     let result = func
-      .call_with_promise((None, None, url_owned, headers_owned))
+      .call_with_promise((
+        None,                    // err
+        Some("GET".to_string()), // method
+        url_owned,               // url
+        headers_owned,           // headers
+      ))
       .await
       .map_err(|e| anyhow::anyhow!("Error calling JavaScript HTTP client: {}", e))?;
+
+    // Add debug logging for response
+    println!(
+      "[JsHttpClient] Received response with status: {}",
+      result.status
+    );
 
     // Convert JS response to the expected format
     Ok(HttpResponse {
