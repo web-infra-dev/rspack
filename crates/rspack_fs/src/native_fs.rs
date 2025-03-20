@@ -136,7 +136,21 @@ impl From<FileType> for FileMetadata {
 #[cfg(not(target_family = "wasm"))]
 #[async_trait::async_trait]
 impl ReadableFileSystem for NativeFileSystem {
-  fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+  async fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+    if self.options.pnp {
+      let path = path.as_std_path();
+      let buffer = match VPath::from(path)? {
+        VPath::Zip(info) => self.pnp_lru.read(info.physical_base_path(), info.zip_path),
+        VPath::Virtual(info) => tokio::fs::read(info.physical_base_path()).await,
+        VPath::Native(path) => tokio::fs::read(&path).await,
+      };
+      return buffer.map_err(Error::from);
+    }
+
+    tokio::fs::read(path).await.map_err(Error::from)
+  }
+
+  fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
     if self.options.pnp {
       let path = path.as_std_path();
       let buffer = match VPath::from(path)? {
@@ -149,7 +163,31 @@ impl ReadableFileSystem for NativeFileSystem {
     fs::read(path).map_err(Error::from)
   }
 
-  fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+  async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    if self.options.pnp {
+      let path = path.as_std_path();
+      return match VPath::from(path)? {
+        VPath::Zip(info) => self
+          .pnp_lru
+          .file_type(info.physical_base_path(), info.zip_path)
+          .map(FileMetadata::from)
+          .map_err(Error::from),
+
+        VPath::Virtual(info) => {
+          let meta = tokio::fs::metadata(info.physical_base_path()).await?;
+          FileMetadata::try_from(meta)
+        }
+        VPath::Native(path) => {
+          let meta = tokio::fs::metadata(path).await?;
+          FileMetadata::try_from(meta)
+        }
+      };
+    }
+    let meta = fs::metadata(path)?;
+    meta.try_into()
+  }
+
+  fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata> {
     if self.options.pnp {
       let path = path.as_std_path();
       return match VPath::from(path)? {
@@ -173,12 +211,12 @@ impl ReadableFileSystem for NativeFileSystem {
     meta.try_into()
   }
 
-  fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+  async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
     let meta = fs::symlink_metadata(path)?;
     meta.try_into()
   }
 
-  fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
+  async fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
     if self.options.pnp {
       let path = path.as_std_path();
       let path = match VPath::from(path)? {
@@ -196,7 +234,16 @@ impl ReadableFileSystem for NativeFileSystem {
     tokio::fs::read(file).await.map_err(Error::from)
   }
 
-  fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+  async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+    let mut res = vec![];
+    let mut dir_read = tokio::fs::read_dir(dir).await?;
+
+    while let Some(entry) = dir_read.next_entry().await? {
+      res.push(entry.file_name().to_string_lossy().to_string());
+    }
+    Ok(res)
+  }
+  fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     let mut res = vec![];
     for entry in fs::read_dir(dir)? {
       let entry = entry?;

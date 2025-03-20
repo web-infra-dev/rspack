@@ -113,7 +113,7 @@ impl MemoryFileSystem {
     Ok(())
   }
 
-  fn _remove_dir_all(&self, dir: &Utf8Path) -> Result<()> {
+  async fn _remove_dir_all(&self, dir: &Utf8Path) -> Result<()> {
     if self.contains_dir(dir)? {
       let mut files = self.files.lock().expect("should get lock");
       files.retain(|path, _| !path.starts_with(dir));
@@ -214,7 +214,7 @@ impl WritableFileSystem for MemoryFileSystem {
   }
 
   async fn remove_dir_all(&self, dir: &Utf8Path) -> Result<()> {
-    self._remove_dir_all(dir)
+    self._remove_dir_all(dir).await
   }
 
   async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
@@ -222,17 +222,21 @@ impl WritableFileSystem for MemoryFileSystem {
   }
 
   async fn read_file(&self, file: &Utf8Path) -> Result<Vec<u8>> {
-    ReadableFileSystem::read(self, file)
+    ReadableFileSystem::read(self, file).await
   }
 
   async fn stat(&self, file: &Utf8Path) -> Result<FileMetadata> {
-    ReadableFileSystem::metadata(self, file)
+    ReadableFileSystem::metadata(self, file).await
   }
 }
 
 #[async_trait::async_trait]
 impl ReadableFileSystem for MemoryFileSystem {
-  fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+  async fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+    self.read_sync(path)
+  }
+
+  fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
     let files = self.files.lock().expect("should get lock");
     match files.get(path) {
       Some(FileType::File { content, .. }) => Ok(content.clone()),
@@ -243,7 +247,11 @@ impl ReadableFileSystem for MemoryFileSystem {
     }
   }
 
-  fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+  async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    self.metadata_sync(path)
+  }
+
+  fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata> {
     let files = self.files.lock().expect("should get lock");
     match files.get(path) {
       Some(ft) => Ok(ft.metadata().clone()),
@@ -254,20 +262,24 @@ impl ReadableFileSystem for MemoryFileSystem {
     }
   }
 
-  fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    self.metadata(path)
+  async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    self.metadata(path).await
   }
 
-  fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
+  async fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
     let path = dunce::canonicalize(path)?;
     Ok(path.assert_utf8())
   }
 
   async fn async_read(&self, file: &Utf8Path) -> Result<Vec<u8>> {
-    ReadableFileSystem::read(self, file)
+    ReadableFileSystem::read(self, file).await
   }
 
-  fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+  async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+    self._read_dir(dir)
+  }
+
+  fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     self._read_dir(dir)
   }
 }
@@ -280,7 +292,7 @@ impl IntermediateFileSystemExtras for MemoryFileSystem {
   }
 
   async fn create_read_stream(&self, file: &Utf8Path) -> Result<Box<dyn ReadStream>> {
-    let contents = self.read(file)?;
+    let contents = self.read(file).await?;
     let reader = MemoryReadStream::new(contents);
     Ok(Box::new(reader))
   }
