@@ -1750,51 +1750,69 @@ impl Compilation {
   ) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let start = logger.time("runtime requirements.modules");
-    let results: Vec<(ModuleIdentifier, RuntimeSpecMap<RuntimeGlobals>)> = modules
-      .into_par_iter()
-      .filter(|module| self.chunk_graph.get_number_of_module_chunks(*module) > 0)
-      .map(|module| {
-        let mut map = RuntimeSpecMap::new();
-        let runtimes = self
-          .chunk_graph
-          .get_module_runtimes_iter(module, &self.chunk_by_ukey);
-        for runtime in runtimes {
-          let runtime_requirements = self
-            .old_cache
-            .process_runtime_requirements_occasion
-            .use_cache(module, runtime, self, |module, runtime| {
-              let mut runtime_requirements = self
-                .code_generation_results
-                .get_runtime_requirements(&module, Some(runtime));
 
-              plugin_driver
-                .compilation_hooks
-                .additional_module_runtime_requirements
-                .call(self, &module, &mut runtime_requirements)?;
+    let module_results = rspack_futures::scope::<_, Result<_>>(|token| {
+      modules
+        .into_iter()
+        .filter(|module| self.chunk_graph.get_number_of_module_chunks(*module) > 0)
+        .for_each(|module| {
+          let s = unsafe { token.used((&self, &plugin_driver)) };
+          s.spawn(move |(compilation, plugin_driver)| async move {
+            let mut map = RuntimeSpecMap::new();
+            let runtimes = compilation
+              .chunk_graph
+              .get_module_runtimes_iter(module, &compilation.chunk_by_ukey);
+            for runtime in runtimes {
+              let runtime_requirements = compilation
+                .old_cache
+                .process_runtime_requirements_occasion
+                .use_cache(module, runtime, compilation, || async {
+                  let mut runtime_requirements = compilation
+                    .code_generation_results
+                    .get_runtime_requirements(&module, Some(runtime));
 
-              process_runtime_requirement_hook(
-                &mut runtime_requirements,
-                |all_runtime_requirements, runtime_requirements, runtime_requirements_mut| {
                   plugin_driver
                     .compilation_hooks
-                    .runtime_requirement_in_module
-                    .call(
-                      self,
-                      &module,
-                      all_runtime_requirements,
-                      runtime_requirements,
-                      runtime_requirements_mut,
-                    )?;
-                  Ok(())
-                },
-              )?;
-              Ok(runtime_requirements)
-            })?;
-          map.set(runtime.clone(), runtime_requirements);
-        }
-        Ok((module, map))
-      })
-      .collect::<Result<_>>()?;
+                    .additional_module_runtime_requirements
+                    .call(compilation, &module, &mut runtime_requirements)?;
+
+                  process_runtime_requirement_hook(
+                    &mut runtime_requirements,
+                    |all_runtime_requirements, runtime_requirements, runtime_requirements_mut| {
+                      plugin_driver
+                        .compilation_hooks
+                        .runtime_requirement_in_module
+                        .call(
+                          compilation,
+                          &module,
+                          all_runtime_requirements,
+                          runtime_requirements,
+                          runtime_requirements_mut,
+                        )?;
+                      Ok(())
+                    },
+                  )
+                  .await?;
+                  Ok(runtime_requirements)
+                })
+                .await?;
+              map.set(runtime.clone(), runtime_requirements);
+            }
+            Ok((module, map))
+          });
+        });
+    })
+    .await
+    .into_iter()
+    .map(|res| res.map_err(rspack_error::miette::Error::from_err))
+    .collect::<Result<Vec<_>>>()?;
+
+    let mut results = vec![];
+
+    for result in module_results {
+      results.push(result?);
+    }
+
     for (module, map) in results {
       ChunkGraph::set_module_runtime_requirements(self, module, map);
     }
@@ -1848,7 +1866,8 @@ impl Compilation {
             )?;
           Ok(())
         },
-      )?;
+      )
+      .await?;
 
       ChunkGraph::set_chunk_runtime_requirements(self, *chunk_ukey, set);
     }
@@ -1887,7 +1906,8 @@ impl Compilation {
             )?;
           Ok(())
         },
-      )?;
+      )
+      .await?;
 
       ChunkGraph::set_tree_runtime_requirements(self, *entry_ukey, set);
     }
@@ -2659,7 +2679,7 @@ pub struct RenderManifestEntry {
   pub auxiliary: bool,
 }
 
-fn process_runtime_requirement_hook(
+async fn process_runtime_requirement_hook(
   requirements: &mut RuntimeGlobals,
   mut call_hook: impl FnMut(&RuntimeGlobals, &RuntimeGlobals, &mut RuntimeGlobals) -> Result<()>,
 ) -> Result<()> {
