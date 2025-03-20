@@ -44,6 +44,7 @@ export default {
 
 - `output.publicPath` 的值通常以 `/` 结尾。
 - 不建议将 `output.publicPath` 设置为相对路径，比如 `./assets/`。因为当资源位于不同的路径深度时，使用相对路径可能会导致资源无法正确加载。
+- 将 `output.publicPath` 设置为空字符串时，资源 URL 路径会相对于 HTML 页面（同个目录）。
 
 :::
 

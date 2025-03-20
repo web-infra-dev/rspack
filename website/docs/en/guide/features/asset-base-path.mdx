@@ -44,6 +44,7 @@ With this configuration, all assets will be loaded from the `/assets/` path, for
 
 - The value of `output.publicPath` usually ends with `/`.
 - Do not set `output.publicPath` to a relative path, such as `./assets/`. Using a relative path may cause assets to load incorrectly when they are located at different path depths.
+- If setting `output.publicPath` to an empty string, the asset URL path will be relative to the HTML page (same directory).
 
 :::
 
