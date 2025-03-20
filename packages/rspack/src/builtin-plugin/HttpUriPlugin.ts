@@ -10,6 +10,31 @@ export type HttpClientFunction = (
 	body: Buffer;
 }>;
 
+/**
+ * Default HTTP client implementation using the fetch API
+ */
+const defaultHttpClient: HttpClientFunction = (url, headers) => {
+	return fetch(url, { headers })
+		.then(response => {
+			return response.arrayBuffer().then(buffer => {
+				// Convert headers to record
+				const responseHeaders: Record<string, string> = {};
+				response.headers.forEach((value, key) => {
+					responseHeaders[key] = value;
+				});
+
+				return {
+					status: response.status,
+					headers: responseHeaders,
+					body: Buffer.from(buffer)
+				};
+			});
+		})
+		.catch(error => {
+			throw error;
+		});
+};
+
 export type HttpUriPluginOptions = {
 	/**
 	 * The allowed URIs regexp
@@ -48,19 +73,20 @@ export type HttpUriPluginOptions = {
 export const HttpUriPlugin = create(
 	BuiltinPluginName.HttpUriPlugin,
 	(options: HttpUriPluginOptions = {}) => {
-		if (options.http_client) {
-			registerHttpClient((err, method, url, headers) => {
-				if (err) throw err;
+		// Use provided HTTP client or fall back to default
+		const httpClient = options.http_client || defaultHttpClient;
 
-				const safeUrl =
-					typeof url === "string" && url ? url : String(url || "");
+		// Always register an HTTP client
+		registerHttpClient((err, method, url, headers) => {
+			if (err) throw err;
 
-				const safeHeaders: Record<string, string> =
-					headers && typeof headers === "object" ? headers : {};
+			const safeUrl = typeof url === "string" && url ? url : String(url || "");
 
-				return options.http_client!(safeUrl, safeHeaders);
-			});
-		}
+			const safeHeaders: Record<string, string> =
+				headers && typeof headers === "object" ? headers : {};
+
+			return httpClient(safeUrl, safeHeaders);
+		});
 
 		const { http_client, ...restOptions } = options;
 
