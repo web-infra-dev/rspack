@@ -4,6 +4,7 @@ mod raw_copy;
 mod raw_css_extract;
 mod raw_dll;
 mod raw_html;
+mod raw_http_uri;
 mod raw_ids;
 mod raw_ignore;
 mod raw_lazy_compilation;
@@ -76,7 +77,7 @@ use rspack_plugin_runtime::{
   ChunkPrefetchPreloadPlugin, CommonJsChunkFormatPlugin, ModuleChunkFormatPlugin, RuntimePlugin,
 };
 use rspack_plugin_runtime_chunk::RuntimeChunkPlugin;
-use rspack_plugin_schemes::{DataUriPlugin, FileUriPlugin};
+use rspack_plugin_schemes::{DataUriPlugin, FileUriPlugin, HttpUriPlugin};
 use rspack_plugin_size_limits::SizeLimitsPlugin;
 use rspack_plugin_sri::SubresourceIntegrityPlugin;
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
@@ -92,6 +93,7 @@ pub use self::{
   raw_copy::RawCopyRspackPluginOptions,
   raw_dll::{RawDllEntryPluginOptions, RawLibManifestPluginOptions},
   raw_html::RawHtmlRspackPluginOptions,
+  raw_http_uri::RawHttpUriPluginOptions,
   raw_ignore::RawIgnorePluginOptions,
   raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
   raw_mf::RawContainerPluginOptions,
@@ -162,6 +164,7 @@ pub enum BuiltinPluginName {
   WarnCaseSensitiveModulesPlugin,
   DataUriPlugin,
   FileUriPlugin,
+  HttpUriPlugin,
   RuntimePlugin,
   JsonModulesPlugin,
   InferAsyncModulesPlugin,
@@ -400,6 +403,11 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::DataUriPlugin => plugins.push(DataUriPlugin::default().boxed()),
       BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin::default().boxed()),
+      BuiltinPluginName::HttpUriPlugin => {
+        let options =
+          downcast_into::<self::raw_http_uri::RawHttpUriPluginOptions>(self.options)?.into();
+        plugins.push(HttpUriPlugin::new(options).boxed());
+      }
       BuiltinPluginName::RuntimePlugin => plugins.push(RuntimePlugin::default().boxed()),
       BuiltinPluginName::JsonModulesPlugin => plugins.push(JsonPlugin.boxed()),
       BuiltinPluginName::InferAsyncModulesPlugin => {

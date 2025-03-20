@@ -2623,6 +2623,33 @@ export type Experiments = {
 	 * Enable future Rspack features default options.
 	 */
 	rspackFuture?: RspackFutureOptions;
+	/**
+	 * Allow loading resources via http/https URLs.
+	 */
+	buildHttp?:
+		| boolean
+		| {
+				/**
+				 * Cache location for remote resources.
+				 */
+				cacheLocation?: string;
+				/**
+				 * Whether to not update existing resources in cache.
+				 */
+				frozen?: boolean;
+				/**
+				 * Location of the lockfile.
+				 */
+				lockfileLocation?: string;
+				/**
+				 * Proxy configuration for http requests.
+				 */
+				proxy?: string;
+				/**
+				 * Whether to upgrade the lockfile when remote files changed.
+				 */
+				upgrade?: boolean;
+		  };
 };
 //#endregion
 

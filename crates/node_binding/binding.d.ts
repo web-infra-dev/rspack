@@ -422,6 +422,7 @@ export declare enum BuiltinPluginName {
   WarnCaseSensitiveModulesPlugin = 'WarnCaseSensitiveModulesPlugin',
   DataUriPlugin = 'DataUriPlugin',
   FileUriPlugin = 'FileUriPlugin',
+  HttpUriPlugin = 'HttpUriPlugin',
   RuntimePlugin = 'RuntimePlugin',
   JsonModulesPlugin = 'JsonModulesPlugin',
   InferAsyncModulesPlugin = 'InferAsyncModulesPlugin',
@@ -1803,6 +1804,16 @@ export interface RawHttpExternalsRspackPluginOptions {
   webAsync: boolean
 }
 
+export interface RawHttpUriPluginOptions {
+  cacheLocation?: string
+  frozen?: boolean
+  lockfileLocation?: string
+  proxy?: string
+  upgrade?: boolean
+  httpClient?: unknown
+  allowedUris?: unknown
+}
+
 export interface RawIgnorePluginOptions {
   resourceRegExp?: RegExp
   contextRegExp?: RegExp
@@ -2380,6 +2391,8 @@ export interface RawTrustedTypes {
  * Copyright (c)
  */
 export declare function registerGlobalTrace(filter: string, layer: "chrome" | "logger" | "otel", output: string): void
+
+export declare function registerHttpClient(client: object): void
 
 export declare enum RegisterJsTapKind {
   CompilerThisCompilation = 0,
