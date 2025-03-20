@@ -3,22 +3,30 @@ use std::{
   fmt::Debug,
   sync::{
     atomic::{AtomicBool, Ordering},
-    Arc, Mutex,
+    Arc,
   },
 };
 
 use async_trait::async_trait;
-use napi::{
-  bindgen_prelude::{Buffer, Promise},
-  threadsafe_function::{ThreadsafeFunction as NapiThreadsafeFunction, ThreadsafeFunctionCallMode},
-};
+use napi::bindgen_prelude::{Buffer, Promise};
 use napi_derive::napi;
-use rspack_error::{AnyhowError, Error as RspackError};
+use once_cell::sync::OnceCell;
+use rspack_error::AnyhowError;
 use rspack_fs::WritableFileSystem;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_schemes::{
   HttpClient, HttpResponse, HttpUriOptionsAllowedUris, HttpUriPlugin, HttpUriPluginOptions,
 };
+
+// Type definition for the ThreadsafeFunction used in HTTP requests
+type HttpRequestParams = (
+  Option<String>,
+  Option<String>,
+  String,
+  HashMap<String, String>,
+);
+
+type HttpClientFunction = ThreadsafeFunction<HttpRequestParams, Promise<JsHttpResponseRaw>>;
 
 #[napi(object)]
 pub struct JsHttpResponseRaw {
@@ -29,15 +37,7 @@ pub struct JsHttpResponseRaw {
 
 #[derive(Debug, Clone)]
 pub struct JsHttpClient {
-  function: ThreadsafeFunction<
-    (
-      Option<String>,
-      Option<String>,
-      String,
-      HashMap<String, String>,
-    ),
-    Promise<JsHttpResponseRaw>,
-  >,
+  function: HttpClientFunction,
 }
 
 #[async_trait]
@@ -80,29 +80,17 @@ impl HttpClient for JsHttpClient {
   }
 }
 
+static JS_HTTP_CLIENT: OnceCell<JsHttpClient> = OnceCell::new();
 static HTTP_CLIENT_REGISTERED: AtomicBool = AtomicBool::new(false);
-static mut JS_HTTP_CLIENT: Option<JsHttpClient> = None;
 
 #[napi]
-pub fn register_http_client(
-  http_client: ThreadsafeFunction<
-    (
-      Option<String>,
-      Option<String>,
-      String,
-      HashMap<String, String>,
-    ),
-    Promise<JsHttpResponseRaw>,
-  >,
-) {
+pub fn register_http_client(http_client: HttpClientFunction) {
   let client = JsHttpClient {
     function: http_client,
   };
 
-  unsafe {
-    JS_HTTP_CLIENT = Some(client);
-  }
-
+  // This is safe because OnceCell ensures thread-safe initialization
+  let _ = JS_HTTP_CLIENT.set(client);
   HTTP_CLIENT_REGISTERED.store(true, Ordering::SeqCst);
 }
 
@@ -118,7 +106,14 @@ pub fn create_http_uri_plugin(
   let allowed_uris = HttpUriOptionsAllowedUris::default();
 
   let http_client = if HTTP_CLIENT_REGISTERED.load(Ordering::SeqCst) {
-    unsafe { Some(Arc::new(JS_HTTP_CLIENT.clone().unwrap()) as Arc<dyn HttpClient>) }
+    // Get a reference to the JS_HTTP_CLIENT using get() which returns Option<&T>
+    // Then clone it to create a new instance
+    let js_client = JS_HTTP_CLIENT
+      .get()
+      .expect("JS_HTTP_CLIENT was registered but is not initialized")
+      .clone();
+
+    Some(Arc::new(js_client) as Arc<dyn HttpClient>)
   } else {
     Some(Arc::new(SimpleHttpClient) as Arc<dyn HttpClient>)
   };
