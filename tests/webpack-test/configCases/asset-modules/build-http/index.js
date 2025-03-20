@@ -4,5 +4,5 @@ const urlSvg = new URL(
 );
 
 it("should work", () => {
-	expect(/[\da-f]{20}\.svg$/.test(urlSvg)).toBe(true);
+	expect(/[\da-f]{16}\.svg$/.test(urlSvg)).toBe(true);
 });
