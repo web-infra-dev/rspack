@@ -120,4 +120,6 @@ module.exports.JsLoaderState = __napiModule.exports.JsLoaderState
 module.exports.JsRspackSeverity = __napiModule.exports.JsRspackSeverity
 module.exports.RawRuleSetConditionType = __napiModule.exports.RawRuleSetConditionType
 module.exports.registerGlobalTrace = __napiModule.exports.registerGlobalTrace
+module.exports.registerHttpClient = __napiModule.exports.registerHttpClient
+module.exports.registerHttpClientFromConfig = __napiModule.exports.registerHttpClientFromConfig
 module.exports.RegisterJsTapKind = __napiModule.exports.RegisterJsTapKind

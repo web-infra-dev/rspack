@@ -230,6 +230,23 @@ export class RspackOptionsApply {
 			new CssModulesPlugin().apply(compiler);
 		}
 
+		if (options.experiments.buildHttp) {
+			const buildHttpOptions =
+				typeof options.experiments.buildHttp === "object"
+					? options.experiments.buildHttp
+					: {};
+
+			new HttpUriPlugin({
+				allowedUris: buildHttpOptions.allowedUris?.map(uri => new RegExp(uri)),
+				cacheLocation: buildHttpOptions.cacheLocation,
+				frozen: buildHttpOptions.frozen,
+				lockfileLocation: buildHttpOptions.lockfileLocation,
+				proxy: buildHttpOptions.proxy,
+				upgrade: buildHttpOptions.upgrade,
+				http_client: buildHttpOptions.http_client
+			}).apply(compiler);
+		}
+
 		new EntryOptionPlugin().apply(compiler);
 		assertNotNill(options.context);
 		compiler.hooks.entryOption.call(options.context, options.entry);
@@ -247,11 +264,6 @@ export class RspackOptionsApply {
 
 		new DataUriPlugin().apply(compiler);
 		new FileUriPlugin().apply(compiler);
-
-		if (options.experiments.buildHttp) {
-			const httpOptions = options.experiments.buildHttp;
-			new HttpUriPlugin(httpOptions).apply(compiler);
-		}
 
 		new EnsureChunkConditionsPlugin().apply(compiler);
 		if (options.optimization.mergeDuplicateChunks) {

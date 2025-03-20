@@ -1400,25 +1400,18 @@ const experiments = z.strictObject({
 	rspackFuture: rspackFutureOptions.optional(),
 	buildHttp: z
 		.boolean()
+		.optional()
 		.or(
 			z.strictObject({
+				http_client: z.function().returns(z.promise(z.any())).optional(),
+				allowedUris: z.array(z.string()).optional(),
 				cacheLocation: z.string().optional(),
 				frozen: z.boolean().optional(),
 				lockfileLocation: z.string().optional(),
 				proxy: z.string().optional(),
-				upgrade: z.boolean().optional(),
-				allowedUris: z
-					.array(
-						z.union([
-							z.string(),
-							z.instanceof(RegExp),
-							z.function().args(z.string()).returns(z.boolean())
-						])
-					)
-					.optional()
+				upgrade: z.boolean().optional()
 			})
 		)
-		.optional()
 }) satisfies z.ZodType<t.Experiments>;
 //#endregion
 

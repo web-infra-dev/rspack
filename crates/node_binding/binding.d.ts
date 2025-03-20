@@ -1689,6 +1689,7 @@ incremental?: false | { [key: string]: boolean }
 parallelCodeSplitting: boolean
 rspackFuture?: RawRspackFuture
 cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
+buildHttp?: boolean | { http_client?: Function, allowedUris?: Array<string>, cacheLocation?: string, frozen?: boolean, lockfileLocation?: string, proxy?: string, upgrade?: boolean }
 }
 
 export interface RawExperimentSnapshotOptions {
@@ -1810,7 +1811,7 @@ export interface RawHttpUriPluginOptions {
   lockfileLocation?: string
   proxy?: string
   upgrade?: boolean
-  httpClient?: unknown
+  http_client?: unknown
   allowedUris?: unknown
 }
 
@@ -2392,7 +2393,9 @@ export interface RawTrustedTypes {
  */
 export declare function registerGlobalTrace(filter: string, layer: "chrome" | "logger" | "otel", output: string): void
 
-export declare function registerHttpClient(client: object): void
+export declare function registerHttpClient(client: any): void
+
+export declare function registerHttpClientFromConfig(buildHttpOption: unknown): void
 
 export declare enum RegisterJsTapKind {
   CompilerThisCompilation = 0,

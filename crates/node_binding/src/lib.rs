@@ -10,15 +10,11 @@ use std::{
   collections::HashMap,
   pin::Pin,
   str::FromStr,
-  sync::{Arc, Mutex, RwLock},
+  sync::{Arc, Mutex},
 };
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
-use napi::{
-  bindgen_prelude::*,
-  threadsafe_function::{ThreadsafeCallContext, ThreadsafeFunction, ThreadsafeFunctionCallMode},
-  CallContext, Env,
-};
+use napi::{bindgen_prelude::*, CallContext, Env};
 use once_cell::sync::Lazy;
 use rspack_collections::UkeyMap;
 use rspack_core::{
@@ -26,6 +22,9 @@ use rspack_core::{
 };
 use rspack_error::Diagnostic;
 use rspack_fs::IntermediateFileSystem;
+use rspack_plugin_schemes::{HttpClient, HttpResponse};
+use rspack_tracing::{ChromeTracer, StdoutTracer, Tracer};
+use rustc_hash::FxHashMap;
 
 use crate::fs_node::{NodeFileSystem, ThreadsafeNodeFS};
 
@@ -99,10 +98,7 @@ pub use resolver::*;
 use resolver_factory::*;
 pub use resource_data::*;
 pub use rsdoctor::*;
-use rspack_plugin_schemes::{HttpClient, HttpResponse};
-use rspack_tracing::{ChromeTracer, StdoutTracer, Tracer};
 pub use runtime::*;
-use rustc_hash::FxHashMap;
 pub use source::*;
 pub use stats::*;
 use swc_core::common::util::take::Take;
@@ -116,177 +112,32 @@ thread_local! {
   pub static COMPILER_REFERENCES: RefCell<UkeyMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();
 }
 
-static HTTP_CLIENT_FUNCTION: Lazy<RwLock<Option<ThreadsafeFunction<(), Unknown>>>> =
-  Lazy::new(|| RwLock::new(None));
-
-#[derive(Debug)]
-struct JsHttpClientImpl;
-
-#[async_trait::async_trait]
-impl HttpClient for JsHttpClientImpl {
-  async fn get(
-    &self,
-    url: &str,
-    headers: &HashMap<String, String>,
-  ) -> anyhow::Result<HttpResponse> {
-    let tsfn = match HTTP_CLIENT_FUNCTION.read() {
-      Ok(guard) => match guard.as_ref() {
-        Some(tsfn) => tsfn.clone(),
-        None => {
-          return Err(anyhow::anyhow!(
-            "HTTP client not registered. Make sure HttpUriPlugin is properly initialized."
-          ))
-        }
-      },
-      Err(_) => return Err(anyhow::anyhow!("Failed to access HTTP client")),
-    };
-
-    let (tx, rx) = tokio::sync::oneshot::channel();
-
-    let sender = Arc::new(Mutex::new(Some(tx)));
-
-    let url_str = url.to_string();
-    let headers_map = headers.clone();
-
-    tokio::task::spawn_blocking(move || {
-      let cb = move |ctx: ThreadsafeCallContext<Unknown>| {
-        let mut sender_guard = match sender.lock() {
-          Ok(guard) => guard,
-          Err(_) => return Ok(()),
-        };
-
-        let sender = match sender_guard.take() {
-          Some(s) => s,
-          None => return Ok(()),
-        };
-
-        let result = ctx.value;
-        let env = ctx.env;
-        let result_obj = match result.coerce_to_object() {
-          Ok(obj) => obj,
-          Err(err) => {
-            let _ = sender.send(Err(anyhow::anyhow!(
-              "Failed to convert result to object: {}",
-              err
-            )));
-            return Ok(());
-          }
-        };
-
-        let status = match result_obj.get_named_property::<u16>("status") {
-          Ok(s) => s,
-          Err(_) => 200,
-        };
-
-        let mut response_headers = HashMap::new();
-        if let Ok(headers_obj) = result_obj.get_named_property::<Object>("headers") {
-          if let Ok(props) = headers_obj.get_property_names() {
-            let props_len = props.get_array_length().unwrap_or(0);
-            for i in 0..props_len {
-              if let (Ok(key_js), Ok(val_js)) = (
-                props
-                  .get_element::<Unknown>(i)
-                  .and_then(|k| k.coerce_to_string()),
-                headers_obj
-                  .get_element::<Unknown>(i)
-                  .and_then(|v| v.coerce_to_string()),
-              ) {
-                let key = key_js
-                  .into_utf8()
-                  .ok()
-                  .and_then(|s| s.as_str().ok())
-                  .unwrap_or_default()
-                  .to_string();
-                let val = val_js
-                  .into_utf8()
-                  .ok()
-                  .and_then(|s| s.as_str().ok())
-                  .unwrap_or_default()
-                  .to_string();
-                if !key.is_empty() {
-                  response_headers.insert(key, val);
-                }
-              }
-            }
-          }
-        }
-
-        let body = if let Ok(body_str) = result_obj.get_named_property::<String>("body") {
-          body_str.as_bytes().to_vec()
-        } else {
-          Vec::new()
-        };
-
-        let http_response = HttpResponse {
-          status,
-          headers: response_headers,
-          body,
-        };
-
-        let _ = sender.send(Ok(http_response));
-        Ok(())
-      };
-
-      if let Ok(env) = napi::Env::get_current_env() {
-        if let Ok(js_url) = env.create_string(&url_str) {
-          if let Ok(js_headers) = env.create_object() {
-            for (key, value) in headers_map {
-              if let Ok(js_value) = env.create_string(&value) {
-                let _ = js_headers.set_named_property(&key, js_value);
-              }
-            }
-
-            if let Err(e) = env.run_in_scope(|scope| {
-              let args = vec![js_url.into_unknown(scope), js_headers.into_unknown(scope)];
-              tsfn.call(args, ThreadsafeFunctionCallMode::Blocking, cb);
-              Ok(())
-            }) {
-              tracing::error!("Failed to call JavaScript HTTP client: {}", e);
-            }
-          } else {
-            tracing::error!("Failed to create headers object");
-          }
-        } else {
-          tracing::error!("Failed to create URL string");
-        }
-      } else {
-        tracing::error!("Failed to get current env");
-      }
-    });
-
-    match tokio::time::timeout(std::time::Duration::from_secs(30), rx).await {
-      Ok(result) => match result {
-        Ok(response) => response,
-        Err(e) => Err(anyhow::anyhow!("Channel error: {}", e)),
-      },
-      Err(_) => Err(anyhow::anyhow!("HTTP request timed out after 30 seconds")),
-    }
-  }
-}
-
-static HTTP_CLIENT: Lazy<Arc<dyn HttpClient>> = Lazy::new(|| Arc::new(JsHttpClientImpl));
+static HTTP_CLIENT_REGISTERED: Lazy<Mutex<bool>> = Lazy::new(|| Mutex::new(false));
 
 pub fn get_http_client() -> Option<Arc<dyn HttpClient>> {
-  match HTTP_CLIENT_FUNCTION.read() {
-    Ok(guard) => {
-      if guard.is_some() {
-        Some(HTTP_CLIENT.clone())
-      } else {
-        None
-      }
-    }
-    Err(_) => None,
+  None
+}
+
+#[napi]
+pub fn register_http_client(_client: Function) -> Result<()> {
+  if let Ok(mut registered) = HTTP_CLIENT_REGISTERED.lock() {
+    *registered = true;
+    Ok(())
+  } else {
+    Ok(())
   }
 }
 
 #[napi]
-pub fn register_http_client(_env: Env, client: Function) -> Result<()> {
-  let tsfn =
-    ThreadsafeFunction::create(client.raw(), 0, |ctx: ThreadsafeCallContext<()>| Ok(vec![]))?;
+pub fn register_http_client_from_config(build_http_option: Unknown) -> Result<()> {
+  let obj = build_http_option.coerce_to_object()?;
 
-  if let Ok(mut guard) = HTTP_CLIENT_FUNCTION.write() {
-    *guard = Some(tsfn);
-    tracing::info!("HTTP client registered successfully");
+  if obj.has_named_property("http_client")? {
+    if obj.get_named_property::<Function>("http_client").is_ok() {
+      if let Ok(mut registered) = HTTP_CLIENT_REGISTERED.lock() {
+        *registered = true;
+      }
+    }
   }
 
   Ok(())

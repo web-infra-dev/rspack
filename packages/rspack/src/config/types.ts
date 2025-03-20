@@ -2624,29 +2624,37 @@ export type Experiments = {
 	 */
 	rspackFuture?: RspackFutureOptions;
 	/**
-	 * Allow loading resources via http/https URLs.
+	 * Enable loading modules over HTTP.
 	 */
 	buildHttp?:
 		| boolean
 		| {
 				/**
-				 * Cache location for remote resources.
+				 * HTTP client function to handle requests
+				 */
+				http_client?: (url: string, options: any) => Promise<any>;
+				/**
+				 * List of allowed URIs
+				 */
+				allowedUris?: string[];
+				/**
+				 * Cache location for HTTP responses
 				 */
 				cacheLocation?: string;
 				/**
-				 * Whether to not update existing resources in cache.
+				 * Whether to freeze the HTTP cache
 				 */
 				frozen?: boolean;
 				/**
-				 * Location of the lockfile.
+				 * Lockfile location
 				 */
 				lockfileLocation?: string;
 				/**
-				 * Proxy configuration for http requests.
+				 * Proxy to use for HTTP requests
 				 */
 				proxy?: string;
 				/**
-				 * Whether to upgrade the lockfile when remote files changed.
+				 * Whether to upgrade dependencies
 				 */
 				upgrade?: boolean;
 		  };

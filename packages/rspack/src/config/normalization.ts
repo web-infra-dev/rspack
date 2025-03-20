@@ -612,11 +612,13 @@ export interface ExperimentsNormalized {
 	buildHttp?:
 		| boolean
 		| {
+				allowedUris?: string[];
 				cacheLocation?: string;
 				frozen?: boolean;
 				lockfileLocation?: string;
 				proxy?: string;
 				upgrade?: boolean;
+				http_client?: (url: string, options: any) => Promise<any>;
 		  };
 }
 

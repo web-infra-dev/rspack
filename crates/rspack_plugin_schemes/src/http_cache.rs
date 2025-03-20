@@ -82,15 +82,16 @@ impl HttpCache {
     lockfile_location: Option<String>,
     filesystem: Arc<dyn WritableFileSystem + Send + Sync>,
     http_client: Option<Arc<dyn HttpClient>>,
-  ) -> Self {
-    let cache_location = cache_location.map(PathBuf::from);
-    let lockfile_path = lockfile_location.map(PathBuf::from);
-    HttpCache {
-      cache_location,
-      lockfile_cache: LockfileCache::new(lockfile_path, filesystem.clone()),
-      filesystem: filesystem.clone(),
-      http_client: http_client.expect("http_client must be provided"),
-    }
+  ) -> Result<Self> {
+    // Just return simple error for JS to handle
+    let http_client = http_client.ok_or_else(|| anyhow::anyhow!("JS_HTTP_CLIENT_REQUIRED"))?;
+
+    Ok(HttpCache {
+      cache_location: cache_location.map(PathBuf::from),
+      lockfile_cache: LockfileCache::new(lockfile_location.map(PathBuf::from), filesystem.clone()),
+      filesystem,
+      http_client,
+    })
   }
 
   pub async fn fetch_content(
@@ -276,12 +277,13 @@ impl HttpCache {
 }
 
 pub async fn fetch_content(url: &str, options: &HttpUriPluginOptions) -> Result<FetchResultType> {
+  // Just create the cache and fetch the content
   let http_cache = HttpCache::new(
     options.cache_location.clone(),
     options.lockfile_location.clone(),
     options.filesystem.clone(),
     options.http_client.clone(),
-  );
+  )?;
 
   http_cache.fetch_content(url, options).await
 }
