@@ -77,10 +77,6 @@ impl Compiler {
 
         // reuse module executor
         new_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
-      } else {
-        let _ = std::mem::take(&mut self.compilation.make_artifact);
-        let _ = std::mem::take(&mut self.compilation.code_splitting_cache);
-        let _ = std::mem::take(&mut self.compilation.module_executor);
       }
 
       if new_compilation

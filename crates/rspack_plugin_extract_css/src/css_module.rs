@@ -6,8 +6,8 @@ use rspack_core::{
   impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
   AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, CompilerOptions, ConcatenationScope, DependenciesBlock,
-  DependencyId, FactoryMeta, Module, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  RuntimeSpec, SourceType,
+  DependencyId, FactoryMeta, Module, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
+  ModuleFactoryResult, Root, RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -228,8 +228,8 @@ impl ModuleFactory for CssModuleFactory {
       .downcast_ref::<CssDependency>()
       .expect("unreachable");
 
-    Ok(ModuleFactoryResult::new_with_module(Box::new(
-      CssModule::new(css_dep.clone()),
+    Ok(ModuleFactoryResult::new_with_module(Root::from(
+      CssModule::new(css_dep.clone()).boxed(),
     )))
   }
 }

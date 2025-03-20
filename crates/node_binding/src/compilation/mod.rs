@@ -1,7 +1,7 @@
 mod dependencies;
 mod entries;
 
-use std::{cell::RefCell, collections::HashMap, path::Path, ptr::NonNull};
+use std::path::Path;
 
 use dependencies::JsDependencies;
 pub use entries::*;
@@ -9,11 +9,10 @@ use napi::sys::napi_value;
 use napi_derive::napi;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{
-  rspack_sources::BoxSource, BoxDependency, Compilation, CompilationId, EntryOptions,
-  FactorizeInfo, ModuleIdentifier,
+  rspack_sources::BoxSource, BoxDependency, EntryOptions, FactorizeInfo, ModuleIdentifier,
 };
 use rspack_error::Diagnostic;
-use rspack_napi::{napi::bindgen_prelude::*, NapiResultExt, OneShotRef};
+use rspack_napi::{napi::bindgen_prelude::*, NapiResultExt};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rustc_hash::FxHashMap;
 

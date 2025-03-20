@@ -32,8 +32,8 @@ use crate::{
   CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, DependencyTemplate,
   ExportInfoProvided, ExternalModule, ModuleDependency, ModuleGraph, ModuleLayer, ModuleType,
-  NormalModule, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver,
-  SourceType,
+  NormalModule, RawModule, Resolve, ResolverFactory, Root, RuntimeSpec, SelfModule,
+  SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext {
@@ -517,23 +517,24 @@ pub fn module_update_hash(
   );
 }
 
+pub type BoxModule = Root<dyn Module>;
+
 pub trait ModuleExt {
-  fn boxed(self) -> Box<dyn Module>;
+  fn boxed(self) -> BoxModule;
 }
 
 impl<T: Module> ModuleExt for T {
-  fn boxed(self) -> Box<dyn Module> {
-    Box::new(self)
+  fn boxed(self) -> BoxModule {
+    let boxed: Box<dyn Module> = Box::new(self);
+    Root::from(boxed)
   }
 }
 
-pub type BoxModule = Box<dyn Module>;
-
-impl Identifiable for Box<dyn Module> {
+impl Identifiable for BoxModule {
   /// Uniquely identify a module. If two modules share the same module identifier, then they are considered as the same module.
   /// e.g `javascript/auto|<absolute-path>/index.js` and `javascript/auto|<absolute-path>/index.js` are considered as the same.
   fn identifier(&self) -> Identifier {
-    self.as_ref().identifier()
+    (&**self).identifier()
   }
 }
 
@@ -772,14 +773,14 @@ mod test {
 
   #[test]
   fn should_downcast_successfully() {
-    let a: Box<dyn Module> = ExternalModule(String::from("a")).boxed();
-    let b: Box<dyn Module> = RawModule(String::from("a")).boxed();
+    let a = ExternalModule(String::from("a")).boxed();
+    let b = RawModule(String::from("a")).boxed();
 
     assert!(a.downcast_ref::<ExternalModule>().is_some());
     assert!(b.downcast_ref::<RawModule>().is_some());
 
-    let a = a.as_ref();
-    let b = b.as_ref();
+    let a = &*a;
+    let b = &*b;
     assert!(a.downcast_ref::<ExternalModule>().is_some());
     assert!(b.downcast_ref::<RawModule>().is_some());
   }

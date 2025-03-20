@@ -327,10 +327,9 @@ impl ChunkGraph {
         },
         true,
       );
-      let module = mg
+      let module = &**mg
         .module_by_identifier(module_identifier)
-        .expect("should have module")
-        .as_ref();
+        .expect("should have module");
       module.get_exports_type(&mg, strict).hash(&mut hasher);
       self
         .get_module_graph_hash_without_connections(module, compilation, runtime)

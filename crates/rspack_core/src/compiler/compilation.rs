@@ -368,7 +368,14 @@ impl Compilation {
   }
 
   pub fn swap_make_artifact_with_compilation(&mut self, other: &mut Compilation) {
-    std::mem::swap(&mut self.make_artifact, &mut other.make_artifact);
+    #[cfg(feature = "napi")]
+    {
+      other.make_artifact = self.make_artifact.share();
+    }
+    #[cfg(not(feature = "napi"))]
+    {
+      std::mem::swap(&mut self.make_artifact, &mut other.make_artifact);
+    }
   }
   pub fn swap_make_artifact(&mut self, make_artifact: &mut MakeArtifact) {
     std::mem::swap(&mut self.make_artifact, make_artifact);

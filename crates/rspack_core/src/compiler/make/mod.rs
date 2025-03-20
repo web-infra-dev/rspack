@@ -12,7 +12,7 @@ use crate::{
   ModuleGraphPartial, ModuleIdentifier,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum MakeArtifactState {
   Uninitialized(HashSet<DependencyId>),
   Initialized,
@@ -175,6 +175,23 @@ impl MakeArtifact {
         .collect::<Vec<_>>()
     });
     module_diagnostics.chain(dep_diagnostics).collect()
+  }
+
+  #[cfg(feature = "napi")]
+  pub fn share(&mut self) -> Self {
+    Self {
+      built_modules: self.built_modules.clone(),
+      revoked_modules: self.revoked_modules.clone(),
+      state: self.state.clone(),
+      module_graph_partial: self.module_graph_partial.share(),
+      make_failed_module: std::mem::take(&mut self.make_failed_module),
+      make_failed_dependencies: std::mem::take(&mut self.make_failed_dependencies),
+      entry_dependencies: std::mem::take(&mut self.entry_dependencies),
+      file_dependencies: std::mem::take(&mut self.file_dependencies),
+      context_dependencies: std::mem::take(&mut self.context_dependencies),
+      missing_dependencies: std::mem::take(&mut self.missing_dependencies),
+      build_dependencies: std::mem::take(&mut self.build_dependencies),
+    }
   }
 }
 

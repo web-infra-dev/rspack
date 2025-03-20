@@ -4293,6 +4293,7 @@ dependencies = [
  "pretty_assertions",
  "rayon",
  "regex",
+ "rkyv 0.8.8",
  "ropey",
  "rspack_ast",
  "rspack_cacheable",

@@ -11,19 +11,19 @@ mod napi_binding {
   use crate::{bindings, Compilation, Entries, EntryData, NapiAllocator, ThreadSafeReference};
 
   #[derive(Debug)]
-  enum Heap<T> {
+  enum Heap<T: ?Sized> {
     Untracked(Option<Box<T>>),
     Tracked(#[debug(skip)] ThreadSafeReference),
   }
 
   #[derive(Debug)]
-  pub struct Root<T> {
+  pub struct Root<T: ?Sized> {
     raw: *mut T,
     state: Arc<Mutex<Heap<T>>>,
   }
 
-  unsafe impl<T: Send> Send for Root<T> {}
-  unsafe impl<T: Sync> Sync for Root<T> {}
+  unsafe impl<T: ?Sized + Send> Send for Root<T> {}
+  unsafe impl<T: ?Sized + Sync> Sync for Root<T> {}
 
   impl<T> Root<T> {
     pub fn new(value: T) -> Self {
@@ -34,11 +34,22 @@ mod napi_binding {
         state: Arc::new(Mutex::new(Heap::Untracked(Some(boxed)))),
       }
     }
+  }
 
+  impl<T: ?Sized> Root<T> {
     pub fn share(&self) -> Self {
       Self {
         raw: self.raw,
         state: self.state.clone(),
+      }
+    }
+  }
+
+  impl<T: ?Sized> From<Box<T>> for Root<T> {
+    fn from(mut value: Box<T>) -> Self {
+      Self {
+        raw: &mut *value as *mut T,
+        state: Arc::new(Mutex::new(Heap::Untracked(Some(value)))),
       }
     }
   }
@@ -50,7 +61,19 @@ mod napi_binding {
     }
   }
 
-  impl<T> Deref for Root<T> {
+  impl<T: ?Sized> AsRef<T> for Root<T> {
+    fn as_ref(&self) -> &T {
+      &**self
+    }
+  }
+
+  impl<T: ?Sized> AsMut<T> for Root<T> {
+    fn as_mut(&mut self) -> &mut T {
+      &mut **self
+    }
+  }
+
+  impl<T: ?Sized> Deref for Root<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -58,13 +81,13 @@ mod napi_binding {
     }
   }
 
-  impl<T> DerefMut for Root<T> {
+  impl<T: ?Sized> DerefMut for Root<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
       unsafe { &mut *self.raw }
     }
   }
 
-  impl<T: Default> Default for Root<T> {
+  impl<T: ?Sized + Default> Default for Root<T> {
     fn default() -> Self {
       let value = <T as Default>::default();
       Self::new(value)
@@ -156,6 +179,38 @@ mod napi_binding {
       to_napi_value_helper(env, val, |allocator, val| {
         allocator.allocate_entry_data(val)
       })
+    }
+  }
+
+  impl<T: rkyv::ArchiveUnsized + ?Sized> rkyv::Archive for Root<T> {
+    type Archived = rkyv::boxed::ArchivedBox<T::Archived>;
+    type Resolver = rkyv::boxed::BoxResolver;
+
+    fn resolve(&self, resolver: Self::Resolver, out: rkyv::Place<Self::Archived>) {
+      rkyv::boxed::ArchivedBox::resolve_from_ref(self.as_ref(), resolver, out);
+    }
+  }
+
+  impl<T, S> rkyv::Serialize<S> for Root<T>
+  where
+    T: rkyv::SerializeUnsized<S> + ?Sized,
+    S: rkyv::rancor::Fallible + ?Sized,
+  {
+    fn serialize(&self, serializer: &mut S) -> Result<Self::Resolver, S::Error> {
+      rkyv::boxed::ArchivedBox::serialize_from_ref(self.as_ref(), serializer)
+    }
+  }
+
+  impl<T, D> rkyv::Deserialize<Root<T>, D> for rkyv::boxed::ArchivedBox<T::Archived>
+  where
+    T: rkyv::ArchiveUnsized + rkyv::traits::LayoutRaw + ?Sized,
+    T::Archived: rkyv::DeserializeUnsized<T, D>,
+    D: rkyv::rancor::Fallible + ?Sized,
+    D::Error: rkyv::rancor::Source,
+  {
+    fn deserialize(&self, deserializer: &mut D) -> Result<Root<T>, D::Error> {
+      let boxed: Box<T> = self.deserialize(deserializer)?;
+      Ok(Root::from(boxed))
     }
   }
 }
