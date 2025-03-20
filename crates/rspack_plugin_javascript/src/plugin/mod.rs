@@ -1,6 +1,7 @@
 use std::{
   borrow::Cow,
   collections::{hash_map::Entry, HashMap, HashSet},
+  hash::Hash,
   ops::Deref,
   sync::{Arc, LazyLock},
 };
