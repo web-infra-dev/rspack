@@ -13,15 +13,18 @@ module.exports = {
 	experiments: {
 		buildHttp: {
 			allowedUris: ["https://esm.sh/.*"],
-			// Minimal HTTP client implementation using fetch
 			http_client: (url, headers) => {
-				return fetch(url, { headers }).then(res => 
-					res.arrayBuffer().then(buffer => ({
-						status: res.status,
-						headers: Object.fromEntries(res.headers.entries()),
-						body: Buffer.from(buffer)
-					}))
-				);
+				console.log('URL', url, 'HEADERS', headers);
+				return fetch(url, { headers }).then(res => {
+					return res.arrayBuffer().then(buffer => {
+						console.log(buffer);
+						return {
+							status: res.status,
+							headers: Object.fromEntries(res.headers.entries()),
+							body: Buffer.from(buffer)
+						};
+					});
+				});
 			}
 		}
 	}

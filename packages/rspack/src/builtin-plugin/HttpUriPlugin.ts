@@ -51,8 +51,10 @@ export const HttpUriPlugin = create(
 	(options: HttpUriPluginOptions = {}) => {
 		// Extract http_client if provided and register it with the native side
 		if (options.http_client) {
-			registerHttpClient((url: string, headers: Record<string, string>) => {
-				// Call the provided HTTP client and return its promise result
+			// The registerHttpClient function expects a callback that properly matches
+			// the ThreadsafeFunction's expected signature with error as first parameter
+			registerHttpClient((err, _method, _url, url, headers) => {
+				if (err) throw err;
 				return options.http_client!(url, headers);
 			});
 		}
