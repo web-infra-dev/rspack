@@ -27,63 +27,65 @@ ignored = [
   "rspack",
 ]
 [workspace.dependencies]
-anyhow             = { version = "1.0.95", features = ["backtrace"] }
-anymap             = { package = "anymap3", version = "1.0.1" }
-async-recursion    = { version = "1.1.1" }
-async-trait        = { version = "0.1.84" }
-bitflags           = { version = "2.6.0" }
-camino             = { version = "1.1.9" }
-concat-string      = { version = "1.0.1" }
-cow-utils          = { version = "0.1.3" }
-css-module-lexer   = { version = "0.0.15" }
-dashmap            = { version = "6.1.0" }
-derive_more        = { version = "1.0.0" }
-either             = { version = "1.13.0" }
-enum-tag           = { version = "0.3.0" }
-futures            = { version = "0.3.31" }
-glob               = { version = "0.3.2" }
-hashlink           = { version = "0.10.0" }
-heck               = { version = "0.5.0" }
-hex                = { version = "0.4.3" }
-indexmap           = { version = "2.7.0" }
-indoc              = { version = "2.0.5" }
-insta              = { version = "1.42.0" }
-itertools          = { version = "0.14.0" }
-json               = { version = "0.12.4" }
-lightningcss       = { version = "1.0.0-alpha.64", default-features = false, features = ["grid", "serde"] }
-linked_hash_set    = { version = "0.1.5" }
-mimalloc           = { version = "0.2.3", package = "mimalloc-rspack" }
-mime_guess         = { version = "2.0.5" }
-once_cell          = { version = "1.20.2" }
-parcel_sourcemap   = { version = "2.1.1" }
-paste              = { version = "1.0.15" }
-path-clean         = { version = "1.0.1" }
-pathdiff           = { version = "0.2.3" }
-pollster           = { version = "0.4.0" }
-proc-macro2        = { version = "1.0.92" }
-quote              = { version = "1.0.38" }
-rayon              = { version = "1.10.0" }
-regex              = { version = "1.11.1" }
-ropey              = "1.6.1"
-rspack_resolver    = { features = ["package_json_raw_json_api"], version = "0.5.3" }
-rspack_sources     = { version = "0.4.7" }
-rustc-hash         = { version = "2.1.0" }
-serde              = { version = "1.0.217" }
-serde_json         = { version = "1.0.134" }
-sha2               = { version = "0.10.8" }
-simd-json          = { version = "0.14.3" }
-smol_str           = { version = "0.3.0" }
-stacker            = { version = "0.1.17" }
-sugar_path         = { version = "1.2.0", features = ["cached_current_dir"] }
-syn                = { version = "2.0.95" }
-tokio              = { version = "1.42.0", features = ["rt-multi-thread", "rt"] }
-tracing            = { version = "0.1.41" }
+anyhow = { version = "1.0.95", features = ["backtrace"] }
+anymap = { package = "anymap3", version = "1.0.1" }
+async-recursion = { version = "1.1.1" }
+async-trait = { version = "0.1.84" }
+bitflags = { version = "2.6.0" }
+camino = { version = "1.1.9" }
+concat-string = { version = "1.0.1" }
+cow-utils = { version = "0.1.3" }
+css-module-lexer = { version = "0.0.15" }
+dashmap = { version = "6.1.0" }
+derive_more = { version = "1.0.0" }
+either = { version = "1.13.0" }
+enum-tag = { version = "0.3.0" }
+futures = { version = "0.3.31" }
+glob = { version = "0.3.2" }
+hashlink = { version = "0.10.0" }
+heck = { version = "0.5.0" }
+hex = { version = "0.4.3" }
+indexmap = { version = "2.7.0" }
+indoc = { version = "2.0.5" }
+insta = { version = "1.42.0" }
+itertools = { version = "0.14.0" }
+json = { version = "0.12.4" }
+lightningcss = { version = "1.0.0-alpha.64", default-features = false, features = ["grid", "serde"] }
+linked_hash_set = { version = "0.1.5" }
+mimalloc = { version = "0.2.3", package = "mimalloc-rspack" }
+mime_guess = { version = "2.0.5" }
+once_cell = { version = "1.20.2" }
+parcel_sourcemap = { version = "2.1.1" }
+paste = { version = "1.0.15" }
+path-clean = { version = "1.0.1" }
+pathdiff = { version = "0.2.3" }
+pollster = { version = "0.4.0" }
+proc-macro2 = { version = "1.0.92" }
+quote = { version = "1.0.38" }
+rayon = { version = "1.10.0" }
+regex = { version = "1.11.1" }
+ropey = "1.6.1"
+rspack_resolver = { git = "https://github.com/web-infra-dev/rspack-resolver.git", branch = "feat/async_fs", features = [
+  "package_json_raw_json_api",
+] }
+rspack_sources = { version = "0.4.7" }
+rustc-hash = { version = "2.1.0" }
+serde = { version = "1.0.217" }
+serde_json = { version = "1.0.134" }
+sha2 = { version = "0.10.8" }
+simd-json = { version = "0.14.3" }
+smol_str = { version = "0.3.0" }
+stacker = { version = "0.1.17" }
+sugar_path = { version = "1.2.0", features = ["cached_current_dir"] }
+syn = { version = "2.0.95" }
+tokio = { version = "1.42.0", features = ["rt-multi-thread", "rt"] }
+tracing = { version = "0.1.41" }
 tracing-subscriber = { version = "0.3.19" }
-unicase            = { version = "2.8.1" }
-url                = { version = "2.5.4" }
-urlencoding        = { version = "2.1.3" }
-ustr               = { package = "ustr-fxhash", version = "1.0.1" }
-xxhash-rust        = { version = "0.8.14" }
+unicase = { version = "2.8.1" }
+url = { version = "2.5.4" }
+urlencoding = { version = "2.1.3" }
+ustr = { package = "ustr-fxhash", version = "1.0.1" }
+xxhash-rust = { version = "0.8.14" }
 
 # Pinned
 napi        = { version = "3.0.0-alpha.24", features = ["anyhow"] }

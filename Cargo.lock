@@ -5384,21 +5384,21 @@ dependencies = [
 [[package]]
 name = "rspack_resolver"
 version = "0.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3d42226edb80efb1afc6a6a961becca9c89036aeac658bb33b4b63b2575e064"
+source = "git+https://github.com/web-infra-dev/rspack-resolver.git?branch=feat%2Fasync_fs#35782b8407eb8b977aadf7c7b52442a382ef2a42"
 dependencies = [
  "cfg-if",
  "dashmap 6.1.0",
  "dunce",
+ "futures",
  "indexmap 2.7.1",
  "json-strip-comments",
- "once_cell",
  "pnp",
  "rustc-hash 2.1.0",
  "serde",
  "serde_json",
  "simdutf8",
  "thiserror 1.0.69",
+ "tokio",
  "tracing",
 ]
 

@@ -238,6 +238,7 @@ impl ContextModuleFactory {
         for loader_request in loaders {
           let resolve_result = loader_resolver
             .resolve(data.context.as_ref(), loader_request)
+            .await
             .map_err(|err| {
               let context = data.context.to_string();
               error!("Failed to resolve loader: {loader_request} in {context} {err:?}")
