@@ -11,6 +11,7 @@
 import path from "node:path";
 import util from "node:util";
 import type { Compilation } from "../Compilation";
+import type { HttpClientFunction } from "../builtin-plugin/HttpUriPlugin";
 import type {
 	Amd,
 	AssetModuleFilename,
@@ -87,7 +88,6 @@ import type {
 	WebassemblyModuleFilename,
 	WorkerPublicPath
 } from "./types";
-import type { HttpClientFunction } from "../builtin-plugin/HttpUriPlugin";
 
 export const getNormalizedRspackOptions = (
 	config: RspackOptions
