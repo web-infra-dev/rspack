@@ -1,8 +1,8 @@
 import {
 	BuiltinPluginName,
+	type JsCompilation,
 	type RawCircularDependencyRspackPluginOptions
 } from "@rspack/binding";
-import type { Compilation } from "../Compilation";
 import type { Module } from "../Module";
 import { create } from "./base";
 
@@ -42,7 +42,7 @@ export type CircularDependencyRspackPluginOptions = {
 	onDetected?(
 		entrypoint: Module,
 		modules: string[],
-		compilation: Compilation
+		compilation: JsCompilation
 	): void;
 	/**
 	 * Called once for every detected cycle that was ignored because of a rule,
@@ -51,16 +51,16 @@ export type CircularDependencyRspackPluginOptions = {
 	onIgnored?(
 		entrypoint: Module,
 		modules: string[],
-		compilation: Compilation
+		compilation: JsCompilation
 	): void;
 	/**
 	 * Called before cycle detection begins.
 	 */
-	onStart?(compilation: Compilation): void;
+	onStart?(compilation: JsCompilation): void;
 	/**
 	 * Called after cycle detection finishes.
 	 */
-	onEnd?(compilation: Compilation): void;
+	onEnd?(compilation: JsCompilation): void;
 };
 
 export const CircularDependencyRspackPlugin = create(
