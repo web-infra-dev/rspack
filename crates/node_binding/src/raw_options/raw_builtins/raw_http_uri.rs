@@ -8,9 +8,12 @@ use std::{
 };
 
 use async_trait::async_trait;
-use napi::bindgen_prelude::{Buffer, Promise};
+use napi::{
+  bindgen_prelude::{Buffer, Promise},
+  threadsafe_function::{ThreadsafeFunction as NapiThreadsafeFunction, ThreadsafeFunctionCallMode},
+};
 use napi_derive::napi;
-use rspack_error::AnyhowError;
+use rspack_error::{AnyhowError, Error as RspackError};
 use rspack_fs::WritableFileSystem;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_schemes::{
@@ -24,20 +27,17 @@ pub struct JsHttpResponseRaw {
   pub body: Buffer,
 }
 
-// Define a type alias for the complex ThreadsafeFunction type
-type HttpClientFunction = ThreadsafeFunction<
-  (
-    Option<String>,
-    Option<String>,
-    String,
-    HashMap<String, String>,
-  ),
-  Promise<JsHttpResponseRaw>,
->;
-
 #[derive(Debug, Clone)]
 pub struct JsHttpClient {
-  function: HttpClientFunction,
+  function: ThreadsafeFunction<
+    (
+      Option<String>,
+      Option<String>,
+      String,
+      HashMap<String, String>,
+    ),
+    Promise<JsHttpResponseRaw>,
+  >,
 }
 
 #[async_trait]
@@ -81,17 +81,28 @@ impl HttpClient for JsHttpClient {
 }
 
 static HTTP_CLIENT_REGISTERED: AtomicBool = AtomicBool::new(false);
-static JS_HTTP_CLIENT: Mutex<Option<JsHttpClient>> = Mutex::new(None);
+static mut JS_HTTP_CLIENT: Option<JsHttpClient> = None;
 
 #[napi]
-pub fn register_http_client(http_client: HttpClientFunction) {
+pub fn register_http_client(
+  http_client: ThreadsafeFunction<
+    (
+      Option<String>,
+      Option<String>,
+      String,
+      HashMap<String, String>,
+    ),
+    Promise<JsHttpResponseRaw>,
+  >,
+) {
   let client = JsHttpClient {
     function: http_client,
   };
 
-  *JS_HTTP_CLIENT
-    .lock()
-    .expect("Failed to acquire HTTP client lock") = Some(client);
+  unsafe {
+    JS_HTTP_CLIENT = Some(client);
+  }
+
   HTTP_CLIENT_REGISTERED.store(true, Ordering::SeqCst);
 }
 
@@ -107,13 +118,7 @@ pub fn create_http_uri_plugin(
   let allowed_uris = HttpUriOptionsAllowedUris::default();
 
   let http_client = if HTTP_CLIENT_REGISTERED.load(Ordering::SeqCst) {
-    let client = JS_HTTP_CLIENT
-      .lock()
-      .expect("Failed to acquire HTTP client lock")
-      .clone()
-      .expect("HTTP client was registered but not initialized");
-
-    Some(Arc::new(client) as Arc<dyn HttpClient>)
+    unsafe { Some(Arc::new(JS_HTTP_CLIENT.clone().unwrap()) as Arc<dyn HttpClient>) }
   } else {
     Some(Arc::new(SimpleHttpClient) as Arc<dyn HttpClient>)
   };
@@ -130,24 +135,6 @@ pub fn create_http_uri_plugin(
   };
 
   Ok(HttpUriPlugin::new(options))
-}
-
-pub fn create_plugin_with_options(
-  options: RawHttpUriPluginOptions,
-) -> Result<HttpUriPlugin, rspack_error::Error> {
-  // Use NativeFileSystem
-  let fs = Arc::new(rspack_fs::NativeFileSystem::new(false));
-
-  create_http_uri_plugin(
-    options.allowed_uris,
-    options.cache_location,
-    options.frozen,
-    options.lockfile_location,
-    options.proxy,
-    options.upgrade,
-    fs,
-  )
-  .map_err(|e| rspack_error::error!(e.to_string()))
 }
 
 #[derive(Debug)]
@@ -168,15 +155,4 @@ impl HttpClient for SimpleHttpClient {
 
     Ok(response)
   }
-}
-
-#[napi(object)]
-#[derive(Debug)]
-pub struct RawHttpUriPluginOptions {
-  pub allowed_uris: Option<Vec<String>>,
-  pub cache_location: Option<String>,
-  pub frozen: Option<bool>,
-  pub lockfile_location: Option<String>,
-  pub proxy: Option<String>,
-  pub upgrade: Option<bool>,
 }
