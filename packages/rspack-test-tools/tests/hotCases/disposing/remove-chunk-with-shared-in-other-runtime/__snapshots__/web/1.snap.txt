@@ -8,7 +8,7 @@
 - Bundle: chunk1_js.chunk.CURRENT_HASH.js
 - Manifest: [runtime of chunk2_js].LAST_HASH.hot-update.json, size: 60
 - Manifest: main.LAST_HASH.hot-update.json, size: 41
-- Update: main.LAST_HASH.hot-update.js, size: 18221
+- Update: main.LAST_HASH.hot-update.js, size: 18217
 
 ## Manifest
 
@@ -660,10 +660,7 @@ var webpackJsonpCallback = (parentChunkLoadingFunction, data) => {
 
 var chunkLoadingGlobal = self["webpackChunk"] = self["webpackChunk"] || [];
 chunkLoadingGlobal.forEach(webpackJsonpCallback.bind(null, 0));
-chunkLoadingGlobal.push = webpackJsonpCallback.bind(
-	null,
-	chunkLoadingGlobal.push.bind(chunkLoadingGlobal)
-);
+chunkLoadingGlobal.push = webpackJsonpCallback.bind(null, chunkLoadingGlobal.push.bind(chunkLoadingGlobal));
 
 })();
 
