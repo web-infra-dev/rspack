@@ -78,6 +78,7 @@ where
 
   impl ScopeGuard {
     fn forget(self) {
+      #[allow(clippy::disallowed_methods)]
       std::mem::forget(self);
     }
   }

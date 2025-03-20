@@ -345,6 +345,11 @@ enum TraceState {
 #[cfg(not(target_family = "wasm"))]
 #[ctor]
 fn init() {
+  use std::{
+    sync::atomic::{AtomicUsize, Ordering},
+    thread,
+  };
+
   panic::install_panic_handler();
   // control the number of blocking threads, similar as https://github.com/tokio-rs/tokio/blob/946401c345d672d357693740bc51f77bc678c5c4/tokio/src/loom/std/mod.rs#L93
   const ENV_BLOCKING_THREADS: &str = "RSPACK_BLOCKING_THREADS";
@@ -361,10 +366,26 @@ fn init() {
     .unwrap_or(default_blocking_threads);
   let rt = tokio::runtime::Builder::new_multi_thread()
     .max_blocking_threads(blocking_threads)
+    .thread_name_fn(|| {
+      static ATOMIC_ID: AtomicUsize = AtomicUsize::new(0);
+      let id = ATOMIC_ID.fetch_add(1, Ordering::SeqCst);
+      format!("tokio-{}", id)
+    })
     .enable_all()
     .build()
     .expect("Create tokio runtime failed");
   create_custom_tokio_runtime(rt);
+  // initialize rayon
+  thread::Builder::new()
+    .name("rayon-spawner".to_string())
+    .spawn(|| {
+      // build_global will block until all threads are alive which will hurt performance or cause deadlock, so run it in separate thread
+      rayon::ThreadPoolBuilder::new()
+        .thread_name(|id| format!("rayon-{}", id))
+        .build_global()
+        .expect("Create rayon thread pool failed");
+    })
+    .expect("spawn rayon-spwaner thread failed");
 }
 
 fn print_error_diagnostic(e: rspack_error::Error, colored: bool) -> String {
