@@ -24,17 +24,20 @@ pub struct JsHttpResponseRaw {
   pub body: Buffer,
 }
 
+// Define a type alias for the complex ThreadsafeFunction type
+type HttpClientFunction = ThreadsafeFunction<
+  (
+    Option<String>,
+    Option<String>,
+    String,
+    HashMap<String, String>,
+  ),
+  Promise<JsHttpResponseRaw>,
+>;
+
 #[derive(Debug, Clone)]
 pub struct JsHttpClient {
-  function: ThreadsafeFunction<
-    (
-      Option<String>,
-      Option<String>,
-      String,
-      HashMap<String, String>,
-    ),
-    Promise<JsHttpResponseRaw>,
-  >,
+  function: HttpClientFunction,
 }
 
 #[async_trait]
@@ -81,22 +84,14 @@ static HTTP_CLIENT_REGISTERED: AtomicBool = AtomicBool::new(false);
 static JS_HTTP_CLIENT: Mutex<Option<JsHttpClient>> = Mutex::new(None);
 
 #[napi]
-pub fn register_http_client(
-  http_client: ThreadsafeFunction<
-    (
-      Option<String>,
-      Option<String>,
-      String,
-      HashMap<String, String>,
-    ),
-    Promise<JsHttpResponseRaw>,
-  >,
-) {
+pub fn register_http_client(http_client: HttpClientFunction) {
   let client = JsHttpClient {
     function: http_client,
   };
 
-  *JS_HTTP_CLIENT.lock().unwrap() = Some(client);
+  *JS_HTTP_CLIENT
+    .lock()
+    .expect("Failed to acquire HTTP client lock") = Some(client);
   HTTP_CLIENT_REGISTERED.store(true, Ordering::SeqCst);
 }
 
@@ -112,7 +107,13 @@ pub fn create_http_uri_plugin(
   let allowed_uris = HttpUriOptionsAllowedUris::default();
 
   let http_client = if HTTP_CLIENT_REGISTERED.load(Ordering::SeqCst) {
-    Some(Arc::new(JS_HTTP_CLIENT.lock().unwrap().clone().unwrap()) as Arc<dyn HttpClient>)
+    let client = JS_HTTP_CLIENT
+      .lock()
+      .expect("Failed to acquire HTTP client lock")
+      .clone()
+      .expect("HTTP client was registered but not initialized");
+
+    Some(Arc::new(client) as Arc<dyn HttpClient>)
   } else {
     Some(Arc::new(SimpleHttpClient) as Arc<dyn HttpClient>)
   };
@@ -129,6 +130,24 @@ pub fn create_http_uri_plugin(
   };
 
   Ok(HttpUriPlugin::new(options))
+}
+
+pub fn create_plugin_with_options(
+  options: RawHttpUriPluginOptions,
+) -> Result<HttpUriPlugin, rspack_error::Error> {
+  // Use NativeFileSystem
+  let fs = Arc::new(rspack_fs::NativeFileSystem::new(false));
+
+  create_http_uri_plugin(
+    options.allowed_uris,
+    options.cache_location,
+    options.frozen,
+    options.lockfile_location,
+    options.proxy,
+    options.upgrade,
+    fs,
+  )
+  .map_err(|e| rspack_error::error!(e.to_string()))
 }
 
 #[derive(Debug)]
@@ -149,24 +168,6 @@ impl HttpClient for SimpleHttpClient {
 
     Ok(response)
   }
-}
-
-pub fn create_plugin_with_options(
-  options: RawHttpUriPluginOptions,
-) -> Result<HttpUriPlugin, rspack_error::Error> {
-  // Use NativeFileSystem
-  let fs = Arc::new(rspack_fs::NativeFileSystem::new(false));
-
-  create_http_uri_plugin(
-    options.allowed_uris,
-    options.cache_location,
-    options.frozen,
-    options.lockfile_location,
-    options.proxy,
-    options.upgrade,
-    fs,
-  )
-  .map_err(|e| rspack_error::error!(e.to_string()))
 }
 
 #[napi(object)]
