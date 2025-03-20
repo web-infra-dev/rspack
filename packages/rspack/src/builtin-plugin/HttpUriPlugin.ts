@@ -1,4 +1,3 @@
-// Plugin class for handling HTTP URI modules
 import { BuiltinPluginName, registerHttpClient } from "@rspack/binding";
 import { create } from "./base";
 
@@ -49,20 +48,22 @@ export type HttpUriPluginOptions = {
 export const HttpUriPlugin = create(
 	BuiltinPluginName.HttpUriPlugin,
 	(options: HttpUriPluginOptions = {}) => {
-		// Extract http_client if provided and register it with the native side
 		if (options.http_client) {
-			// The registerHttpClient function expects a callback that properly matches
-			// the ThreadsafeFunction's expected signature with error as first parameter
-			registerHttpClient((err, _method, _url, url, headers) => {
+			registerHttpClient((err, method, url, headers) => {
 				if (err) throw err;
-				return options.http_client!(url, headers);
+
+				const safeUrl =
+					typeof url === "string" && url ? url : String(url || "");
+
+				const safeHeaders: Record<string, string> =
+					headers && typeof headers === "object" ? headers : {};
+
+				return options.http_client!(safeUrl, safeHeaders);
 			});
 		}
 
-		// Do not pass http_client to Rust since it's registered separately
 		const { http_client, ...restOptions } = options;
 
-		// Only return the other options
 		return restOptions;
 	},
 	"thisCompilation"

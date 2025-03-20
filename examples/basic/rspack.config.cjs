@@ -14,10 +14,12 @@ module.exports = {
 		buildHttp: {
 			allowedUris: ["https://esm.sh/.*"],
 			http_client: (url, headers) => {
-				console.log('URL', url, 'HEADERS', headers);
+				console.log('Fetching URL:', url);
+				console.log('Headers:', headers);
+				
 				return fetch(url, { headers }).then(res => {
 					return res.arrayBuffer().then(buffer => {
-						console.log(buffer);
+						console.log('Response size:', buffer.byteLength, 'bytes');
 						return {
 							status: res.status,
 							headers: Object.fromEntries(res.headers.entries()),

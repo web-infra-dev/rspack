@@ -20,7 +20,6 @@ use rspack_plugin_schemes::{
   HttpClient, HttpResponse, HttpUriOptionsAllowedUris, HttpUriPlugin, HttpUriPluginOptions,
 };
 
-// Define our response type for the JS -> Rust bridge
 #[napi(object)]
 pub struct JsHttpResponseRaw {
   pub status: u16,
@@ -28,10 +27,8 @@ pub struct JsHttpResponseRaw {
   pub body: Buffer,
 }
 
-// Thread-safe wrapper for the JS HTTP client function
 #[derive(Debug, Clone)]
 pub struct JsHttpClient {
-  // ThreadsafeFunction wrapper matching the binding.d.ts definition
   function: ThreadsafeFunction<
     (
       Option<String>,
@@ -43,7 +40,6 @@ pub struct JsHttpClient {
   >,
 }
 
-// Implement the HttpClient trait for our JS bridge
 #[async_trait]
 impl HttpClient for JsHttpClient {
   async fn get(
@@ -54,35 +50,28 @@ impl HttpClient for JsHttpClient {
     let url_owned = url.to_string();
     let headers_owned = headers.clone();
 
-    // Add debug logging
     println!(
       "[JsHttpClient] Preparing to call JS with URL: '{}'",
       url_owned
     );
     println!("[JsHttpClient] Headers: {:?}", headers_owned);
 
-    // Clone the function before using it in async context to avoid MutexGuard Send issues
     let func = self.function.clone();
 
-    // Ensure we pass parameters in the correct order expected by TS definition
-    // The correct signature is (err?: string, method?: string, url: string, headers: HashMap)
+    let method_str: Option<String> = Some("GET".to_string());
+    let url_str: String = url_owned.clone();
+    let null_str: Option<String> = None;
+
     let result = func
-      .call_with_promise((
-        None,                    // err
-        Some("GET".to_string()), // method
-        url_owned,               // url
-        headers_owned,           // headers
-      ))
+      .call_with_promise((null_str, method_str, url_str, headers_owned))
       .await
       .map_err(|e| anyhow::anyhow!("Error calling JavaScript HTTP client: {}", e))?;
 
-    // Add debug logging for response
     println!(
       "[JsHttpClient] Received response with status: {}",
       result.status
     );
 
-    // Convert JS response to the expected format
     Ok(HttpResponse {
       status: result.status,
       headers: result.headers,
@@ -91,11 +80,9 @@ impl HttpClient for JsHttpClient {
   }
 }
 
-// A global flag to track if HTTP client has been registered
 static HTTP_CLIENT_REGISTERED: AtomicBool = AtomicBool::new(false);
 static mut JS_HTTP_CLIENT: Option<JsHttpClient> = None;
 
-// Register a JS HTTP client function
 #[napi]
 pub fn register_http_client(
   http_client: ThreadsafeFunction<
@@ -108,21 +95,17 @@ pub fn register_http_client(
     Promise<JsHttpResponseRaw>,
   >,
 ) {
-  // Create the JsHttpClient instance
   let client = JsHttpClient {
     function: http_client,
   };
 
-  // Store it in our static variable
   unsafe {
     JS_HTTP_CLIENT = Some(client);
   }
 
-  // Mark as registered
   HTTP_CLIENT_REGISTERED.store(true, Ordering::SeqCst);
 }
 
-// Create a new HttpUriPlugin
 pub fn create_http_uri_plugin(
   _allowed_uris: Option<Vec<String>>,
   cache_location: Option<String>,
@@ -132,21 +115,14 @@ pub fn create_http_uri_plugin(
   upgrade: Option<bool>,
   filesystem: Arc<dyn WritableFileSystem>,
 ) -> Result<HttpUriPlugin, AnyhowError> {
-  // Create allowed_uris using default - this struct has no fields
   let allowed_uris = HttpUriOptionsAllowedUris::default();
 
-  // Use the JS HTTP client if registered, otherwise use SimpleHttpClient
   let http_client = if HTTP_CLIENT_REGISTERED.load(Ordering::SeqCst) {
-    unsafe {
-      // Safe because we only set this when the boolean is true
-      Some(Arc::new(JS_HTTP_CLIENT.clone().unwrap()) as Arc<dyn HttpClient>)
-    }
+    unsafe { Some(Arc::new(JS_HTTP_CLIENT.clone().unwrap()) as Arc<dyn HttpClient>) }
   } else {
-    // Fallback to a simple client
     Some(Arc::new(SimpleHttpClient) as Arc<dyn HttpClient>)
   };
 
-  // Create plugin options
   let options = HttpUriPluginOptions {
     allowed_uris,
     cache_location,
@@ -158,11 +134,9 @@ pub fn create_http_uri_plugin(
     http_client,
   };
 
-  // Create and return the plugin
   Ok(HttpUriPlugin::new(options))
 }
-// Simple implementation that always returns a successful response
-// Used as fallback when no JS client is registered
+
 #[derive(Debug)]
 pub struct SimpleHttpClient;
 
@@ -173,11 +147,10 @@ impl HttpClient for SimpleHttpClient {
     _url: &str,
     headers: &HashMap<String, String>,
   ) -> anyhow::Result<HttpResponse> {
-    // Just return a mock response that satisfies the API
     let response = HttpResponse {
       status: 200,
       headers: headers.clone(),
-      body: vec![], // Empty body
+      body: vec![],
     };
 
     Ok(response)
