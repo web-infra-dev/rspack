@@ -1,6 +1,5 @@
 use std::{fmt::Debug, sync::Arc};
 
-use anyhow;
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -95,19 +94,12 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
   if (resource_data.get_scheme().is_http() || resource_data.get_scheme().is_https())
     && EXTERNAL_HTTP_REQUEST.is_match(&resource_data.resource)
   {
-    // Simplified fetch content handling - minimal error handling
-    match fetch_content(&resource_data.resource, &self.options).await {
-      Ok(FetchResultType::Content(content_result)) => {
-        return Ok(Some(Content::from(content_result.content().to_vec())));
-      }
-      // Just pass the error through to JS
-      Err(e) => {
-        return Err(rspack_error::error!(
-          "JS_HTTP_CLIENT_REQUIRED:{}",
-          resource_data.resource
-        ));
-      }
-      _ => {}
+    let fetch_result = fetch_content(&resource_data.resource, &self.options)
+      .await
+      .map_err(rspack_error::AnyhowError::from)?;
+
+    if let FetchResultType::Content(content_result) = fetch_result {
+      return Ok(Some(Content::from(content_result.content().to_vec())));
     }
   }
   Ok(None)

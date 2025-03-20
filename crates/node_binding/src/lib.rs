@@ -7,24 +7,19 @@ extern crate rspack_allocator;
 
 use std::{
   cell::RefCell,
-  collections::HashMap,
   pin::Pin,
   str::FromStr,
   sync::{Arc, Mutex},
 };
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
-use napi::{bindgen_prelude::*, CallContext, Env};
-use once_cell::sync::Lazy;
+use napi::{bindgen_prelude::*, CallContext};
 use rspack_collections::UkeyMap;
 use rspack_core::{
   BoxDependency, Compilation, CompilerId, EntryOptions, ModuleIdentifier, PluginExt,
 };
 use rspack_error::Diagnostic;
 use rspack_fs::IntermediateFileSystem;
-use rspack_plugin_schemes::{HttpClient, HttpResponse};
-use rspack_tracing::{ChromeTracer, StdoutTracer, Tracer};
-use rustc_hash::FxHashMap;
 
 use crate::fs_node::{NodeFileSystem, ThreadsafeNodeFS};
 
@@ -98,7 +93,9 @@ pub use resolver::*;
 use resolver_factory::*;
 pub use resource_data::*;
 pub use rsdoctor::*;
+use rspack_tracing::{ChromeTracer, StdoutTracer, Tracer};
 pub use runtime::*;
+use rustc_hash::FxHashMap;
 pub use source::*;
 pub use stats::*;
 use swc_core::common::util::take::Take;
@@ -110,37 +107,6 @@ pub use utils::*;
 
 thread_local! {
   pub static COMPILER_REFERENCES: RefCell<UkeyMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();
-}
-
-static HTTP_CLIENT_REGISTERED: Lazy<Mutex<bool>> = Lazy::new(|| Mutex::new(false));
-
-pub fn get_http_client() -> Option<Arc<dyn HttpClient>> {
-  None
-}
-
-#[napi]
-pub fn register_http_client(_client: Function) -> Result<()> {
-  if let Ok(mut registered) = HTTP_CLIENT_REGISTERED.lock() {
-    *registered = true;
-    Ok(())
-  } else {
-    Ok(())
-  }
-}
-
-#[napi]
-pub fn register_http_client_from_config(build_http_option: Unknown) -> Result<()> {
-  let obj = build_http_option.coerce_to_object()?;
-
-  if obj.has_named_property("http_client")? {
-    if obj.get_named_property::<Function>("http_client").is_ok() {
-      if let Ok(mut registered) = HTTP_CLIENT_REGISTERED.lock() {
-        *registered = true;
-      }
-    }
-  }
-
-  Ok(())
 }
 
 #[js_function(1)]

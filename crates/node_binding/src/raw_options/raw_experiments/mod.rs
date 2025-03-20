@@ -2,8 +2,6 @@ mod raw_cache;
 mod raw_incremental;
 mod raw_rspack_future;
 
-use std::fmt;
-
 use napi_derive::napi;
 use raw_cache::{normalize_raw_experiment_cache_options, RawExperimentCacheOptions};
 use raw_incremental::RawIncremental;
@@ -12,6 +10,7 @@ use rspack_core::{incremental::IncrementalPasses, Experiments};
 
 use super::WithFalse;
 
+#[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawExperiments {
   pub layers: bool,
@@ -24,25 +23,6 @@ pub struct RawExperiments {
     ts_type = r#"boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }"#
   )]
   pub cache: RawExperimentCacheOptions,
-  #[napi(
-    ts_type = r#"boolean | { http_client?: Function, allowedUris?: Array<string>, cacheLocation?: string, frozen?: boolean, lockfileLocation?: string, proxy?: string, upgrade?: boolean }"#,
-    js_name = "buildHttp"
-  )]
-  pub build_http: Option<napi::JsUnknown>,
-}
-
-impl fmt::Debug for RawExperiments {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    f.debug_struct("RawExperiments")
-      .field("layers", &self.layers)
-      .field("top_level_await", &self.top_level_await)
-      .field("incremental", &self.incremental)
-      .field("parallel_code_splitting", &self.parallel_code_splitting)
-      .field("rspack_future", &self.rspack_future)
-      .field("cache", &self.cache)
-      .field("build_http", &"[JsUnknown]")
-      .finish()
-  }
 }
 
 impl From<RawExperiments> for Experiments {

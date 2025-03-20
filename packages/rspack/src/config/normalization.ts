@@ -87,6 +87,7 @@ import type {
 	WebassemblyModuleFilename,
 	WorkerPublicPath
 } from "./types";
+import type { HttpClientFunction } from "../builtin-plugin/HttpUriPlugin";
 
 export const getNormalizedRspackOptions = (
 	config: RspackOptions
@@ -613,12 +614,12 @@ export interface ExperimentsNormalized {
 		| boolean
 		| {
 				allowedUris?: string[];
-				cacheLocation?: string;
+				cacheLocation?: string | false;
 				frozen?: boolean;
 				lockfileLocation?: string;
 				proxy?: string;
 				upgrade?: boolean;
-				http_client?: (url: string, options: any) => Promise<any>;
+				http_client?: HttpClientFunction;
 		  };
 }
 

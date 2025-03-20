@@ -422,7 +422,6 @@ export declare enum BuiltinPluginName {
   WarnCaseSensitiveModulesPlugin = 'WarnCaseSensitiveModulesPlugin',
   DataUriPlugin = 'DataUriPlugin',
   FileUriPlugin = 'FileUriPlugin',
-  HttpUriPlugin = 'HttpUriPlugin',
   RuntimePlugin = 'RuntimePlugin',
   JsonModulesPlugin = 'JsonModulesPlugin',
   InferAsyncModulesPlugin = 'InferAsyncModulesPlugin',
@@ -458,7 +457,8 @@ export declare enum BuiltinPluginName {
   RsdoctorPlugin = 'RsdoctorPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin',
-  ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin'
+  ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin',
+  HttpUriPlugin = 'HttpUriPlugin'
 }
 
 export declare function cleanupGlobalTrace(): void
@@ -1689,7 +1689,6 @@ incremental?: false | { [key: string]: boolean }
 parallelCodeSplitting: boolean
 rspackFuture?: RawRspackFuture
 cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
-buildHttp?: boolean | { http_client?: Function, allowedUris?: Array<string>, cacheLocation?: string, frozen?: boolean, lockfileLocation?: string, proxy?: string, upgrade?: boolean }
 }
 
 export interface RawExperimentSnapshotOptions {
@@ -1806,13 +1805,12 @@ export interface RawHttpExternalsRspackPluginOptions {
 }
 
 export interface RawHttpUriPluginOptions {
+  allowedUris?: Array<string>
   cacheLocation?: string
   frozen?: boolean
   lockfileLocation?: string
   proxy?: string
   upgrade?: boolean
-  http_client?: unknown
-  allowedUris?: unknown
 }
 
 export interface RawIgnorePluginOptions {
@@ -2393,9 +2391,7 @@ export interface RawTrustedTypes {
  */
 export declare function registerGlobalTrace(filter: string, layer: "chrome" | "logger" | "otel", output: string): void
 
-export declare function registerHttpClient(client: any): void
-
-export declare function registerHttpClientFromConfig(buildHttpOption: unknown): void
+export declare function registerHttpClient(httpClient: any): void
 
 export declare enum RegisterJsTapKind {
   CompilerThisCompilation = 0,

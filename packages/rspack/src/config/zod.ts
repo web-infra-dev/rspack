@@ -1397,21 +1397,7 @@ const experiments = z.strictObject({
 	incremental: z.boolean().or(incremental).optional(),
 	parallelCodeSplitting: z.boolean().optional(),
 	futureDefaults: z.boolean().optional(),
-	rspackFuture: rspackFutureOptions.optional(),
-	buildHttp: z
-		.boolean()
-		.optional()
-		.or(
-			z.strictObject({
-				http_client: z.function().returns(z.promise(z.any())).optional(),
-				allowedUris: z.array(z.string()).optional(),
-				cacheLocation: z.string().optional(),
-				frozen: z.boolean().optional(),
-				lockfileLocation: z.string().optional(),
-				proxy: z.string().optional(),
-				upgrade: z.boolean().optional()
-			})
-		)
+	rspackFuture: rspackFutureOptions.optional()
 }) satisfies z.ZodType<t.Experiments>;
 //#endregion
 

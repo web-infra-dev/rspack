@@ -2624,25 +2624,24 @@ export type Experiments = {
 	 */
 	rspackFuture?: RspackFutureOptions;
 	/**
-	 * Enable loading modules over HTTP.
+	 * Enable loading of modules via HTTP/HTTPS requests.
+	 * @default false
 	 */
 	buildHttp?:
 		| boolean
 		| {
 				/**
-				 * HTTP client function to handle requests
-				 */
-				http_client?: (url: string, options: any) => Promise<any>;
-				/**
-				 * List of allowed URIs
+				 * Regular expressions for allowed URIs
 				 */
 				allowedUris?: string[];
 				/**
 				 * Cache location for HTTP responses
+				 * @default undefined
 				 */
-				cacheLocation?: string;
+				cacheLocation?: string | false;
 				/**
-				 * Whether to freeze the HTTP cache
+				 * Whether to use a frozen cache
+				 * @default false
 				 */
 				frozen?: boolean;
 				/**
@@ -2650,13 +2649,25 @@ export type Experiments = {
 				 */
 				lockfileLocation?: string;
 				/**
-				 * Proxy to use for HTTP requests
+				 * HTTP proxy to use
 				 */
 				proxy?: string;
 				/**
 				 * Whether to upgrade dependencies
+				 * @default false
 				 */
 				upgrade?: boolean;
+				/**
+				 * Custom HTTP client implementation
+				 */
+				http_client?: (
+					url: string,
+					headers: Record<string, string>
+				) => Promise<{
+					status: number;
+					headers: Record<string, string>;
+					body: Buffer;
+				}>;
 		  };
 };
 //#endregion

@@ -215,6 +215,13 @@ const applyExperimentsDefaults = (
 	D(experiments, "css", experiments.futureDefaults ? true : undefined);
 	D(experiments, "layers", false);
 	D(experiments, "topLevelAwait", true);
+	// Add buildHttp defaults
+	D(experiments, "buildHttp", false);
+	if (experiments.buildHttp && typeof experiments.buildHttp === "object") {
+		D(experiments.buildHttp, "allowedUris", []);
+		D(experiments.buildHttp, "frozen", false);
+		D(experiments.buildHttp, "upgrade", false);
+	}
 
 	// IGNORE(experiments.incremental): Rspack specific configuration for incremental
 	D(experiments, "incremental", !production ? {} : false);

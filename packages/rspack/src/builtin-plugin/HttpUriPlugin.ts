@@ -15,7 +15,7 @@ export type HttpUriPluginOptions = {
 	/**
 	 * The allowed URIs regexp
 	 */
-	allowedUris?: RegExp[];
+	allowedUris?: string[];
 	/**
 	 * The cache location for HTTP responses
 	 */
@@ -49,13 +49,19 @@ export type HttpUriPluginOptions = {
 export const HttpUriPlugin = create(
 	BuiltinPluginName.HttpUriPlugin,
 	(options: HttpUriPluginOptions = {}) => {
-		// No need to normalize - only use snake_case http_client
-		// Register the HTTP client directly
+		// Extract http_client if provided and register it with the native side
 		if (options.http_client) {
-			registerHttpClient(options.http_client);
+			registerHttpClient((url: string, headers: Record<string, string>) => {
+				// Call the provided HTTP client and return its promise result
+				return options.http_client!(url, headers);
+			});
 		}
 
-		return options;
+		// Do not pass http_client to Rust since it's registered separately
+		const { http_client, ...restOptions } = options;
+
+		// Only return the other options
+		return restOptions;
 	},
 	"thisCompilation"
 );
