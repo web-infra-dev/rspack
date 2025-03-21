@@ -1616,73 +1616,17 @@ It also adds some info about tree shaking to the generated bundle.
 - **Type:** `'auto' | string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** `'auto'` when [target](/config/target) is `'web'` or `'webworker'`, `undefined` otherwise
 
-This option determines the URL prefix of the referenced resource, such as: image, file, etc.
-
-For example, given a configuration file.
+Set the base URL path prefix for bundled static assets (such as JS, CSS, images, etc.).
 
 ```js title="rspack.config.mjs"
 export default {
   output: {
     publicPath: '/assets/',
-    chunkFilename: '[id].chunk.js',
-    assetModuleFilename: '[name][ext]',
   },
 };
 ```
 
-For a non-initial chunk file, its request URL looks like this: `/assets/1.chunk.js`.
-
-For a reference to an image, the request URL looks like this: `/assets/logo.png`.
-
-Also, it is useful when you deploy the product using a CDN
-
-```js title="rspack.config.mjs"
-export default {
-  output: {
-    publicPath: 'https://cdn.example.com/assets/',
-    assetModuleFilename: '[name][ext]',
-  },
-};
-```
-
-For all asset resources, their request URLs look like this: `https://cdn.example.com/assets/logo.png`.
-
-### Dynamically set publicPath
-
-You can set `publicPath` dynamically using `__webpack_public_path__` in your JavaScript code.
-
-The `__webpack_public_path__` will override the `output.publicPath` in the Rspack config, but it will only take effect for dynamically loaded resources, not for resources loaded via `<script src="...">`.
-
-First create a `publicPath.js`:
-
-```js title="publicPath.js"
-__webpack_public_path__ =
-  location.hostname === 'foo.com'
-    ? 'https://cdn1.com/assets/'
-    : 'https://cdn2.com/assets/';
-```
-
-Then import it into the first line of the entry file to ensure that `publicPath` is set before async resources are loaded:
-
-```js title="entry.js"
-import './publicPath.js';
-import './others.js';
-```
-
-### Automatic publicPath
-
-There are chances that you don't know what the `publicPath` will be in advance, and Rspack can automatically calculate the `publicPath` value by parsing some variables like [import.meta.url](/api/runtime-api/module-variables#importmetaurl), [document.currentScript](https://developer.mozilla.org/en-US/docs/Web/API/Document/currentScript), `script.src` or `self.location`.
-
-What you need is to set `output.publicPath` to `'auto'`:
-
-```js title="rspack.config.mjs"
-export default {
-  output: {
-    // this is the default value when `target` is `'web'` or `'webworker'`
-    publicPath: 'auto',
-  },
-};
-```
+See [Asset base path](/guide/features/asset-base-path) for more details.
 
 ## output.scriptType
 
