@@ -28,7 +28,7 @@ impl OccurrenceChunkIdsPlugin {
 }
 
 #[plugin_hook(CompilationChunkIds for OccurrenceChunkIdsPlugin)]
-fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
+async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
   let chunk_graph = &compilation.chunk_graph;
   let module_graph = &compilation.get_module_graph();
   let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;

@@ -657,7 +657,7 @@ async fn nmf_module(
 }
 
 #[plugin_hook(CompilationOptimizeDependencies for SideEffectsFlagPlugin)]
-fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   let logger = compilation.get_logger("rspack.SideEffectsFlagPlugin");
   let start = logger.time("update connections");
 

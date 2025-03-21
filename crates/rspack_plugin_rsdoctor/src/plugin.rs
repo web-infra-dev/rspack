@@ -326,7 +326,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
 }
 
 #[plugin_hook(CompilationModuleIds for RsdoctorPlugin, stage = 9999)]
-fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
+async fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
   if !self.has_module_graph_feature(RsdoctorPluginModuleGraphFeature::ModuleIds) {
     return Ok(());
   }

@@ -47,7 +47,6 @@ derive_more        = { workspace = true, features = ["debug"] }
 futures            = { workspace = true }
 glob               = { workspace = true }
 heck               = { workspace = true }
-pollster           = { workspace = true }
 rspack_cacheable   = { workspace = true }
 rspack_ids         = { workspace = true }
 rspack_napi_macros = { workspace = true }
@@ -58,7 +57,7 @@ serde_json         = { workspace = true }
 swc_core           = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
 tokio              = { workspace = true, features = ["rt", "macros", "test-util", "parking_lot"] }
 
-
+rayon                                  = { workspace = true }
 rspack_loader_lightningcss             = { workspace = true }
 rspack_loader_preact_refresh           = { workspace = true }
 rspack_loader_react_refresh            = { workspace = true }

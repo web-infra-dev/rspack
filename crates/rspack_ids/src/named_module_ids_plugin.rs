@@ -122,7 +122,7 @@ fn assign_named_module_ids(
 pub struct NamedModuleIdsPlugin;
 
 #[plugin_hook(CompilationModuleIds for NamedModuleIdsPlugin)]
-fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
+async fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
   let mut module_ids = std::mem::take(&mut compilation.module_ids_artifact);
   let mut used_ids: FxHashMap<ModuleId, ModuleIdentifier> = module_ids
     .iter()

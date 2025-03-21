@@ -456,7 +456,7 @@ compilation 创建之后执行。
 
 返回值为一个布尔值，用于决定是否将资源写入到磁盘中。
 
-- **类型：** `SyncBailHook<[Compilation]>`
+- **类型：** `SyncBailHook<[Compilation], boolean>`
 - **参数：**
   - `Compilation`: 当前 [Compilation](/api/javascript-api/compilation) 对象
 
@@ -469,6 +469,15 @@ compilation 创建之后执行。
     <CompilationType />
   </CollapsePanel>
 </Collapse>
+
+- **示例：**
+
+```js
+compiler.hooks.shouldEmit.tap('MyPlugin', compilation => {
+  // 返回 true 以输出 output 结果，否则返回 false
+  return true;
+});
+```
 
 ## `emit`
 

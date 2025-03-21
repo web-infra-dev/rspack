@@ -42,7 +42,7 @@ impl Plugin for FlagAllModulesAsUsedPlugin {
 }
 
 #[plugin_hook(CompilationOptimizeDependencies for FlagAllModulesAsUsedPlugin)]
-fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   let entries = &compilation.entries;
 
   let runtime = compilation

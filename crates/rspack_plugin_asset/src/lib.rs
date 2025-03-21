@@ -135,7 +135,7 @@ impl AssetParserAndGenerator {
     hasher.digest(&compiler_options.output.hash_digest)
   }
 
-  fn get_data_url(
+  async fn get_data_url(
     &self,
     resource_data: &ResourceData,
     data_url: Option<&AssetGeneratorDataUrl>,
@@ -151,7 +151,9 @@ impl AssetParserAndGenerator {
 
     if let Some(AssetGeneratorDataUrl::Func(data_url)) = data_url {
       return Some(
-        data_url(source.buffer().to_vec(), func_ctx).expect("call data_url function failed"),
+        data_url(source.buffer().to_vec(), func_ctx)
+          .await
+          .expect("call data_url function failed"),
       );
     }
     None
@@ -327,6 +329,7 @@ impl AssetParserAndGenerator {
 const DEFAULT_MAX_SIZE: f64 = 8096.0;
 
 #[cacheable_dyn]
+#[async_trait::async_trait]
 impl ParserAndGenerator for AssetParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
     if let Some(config) = self.parsed_asset_config.as_ref() {
@@ -437,7 +440,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     )
   }
 
-  fn generate(
+  async fn generate(
     &self,
     source: &BoxSource,
     module: &dyn Module,
@@ -462,8 +465,9 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           let data_url = module_generator_options.and_then(|x| x.asset_data_url());
           let encoded_source: String;
 
-          if let Some(custom_data_url) =
-            self.get_data_url(resource_data, data_url, source, module, compilation)
+          if let Some(custom_data_url) = self
+            .get_data_url(resource_data, data_url, source, module, compilation)
+            .await
           {
             encoded_source = custom_data_url;
           } else {

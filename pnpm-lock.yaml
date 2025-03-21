@@ -461,6 +461,9 @@ importers:
       graceful-fs:
         specifier: ^4.2.11
         version: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
+      iconv-lite:
+        specifier: ^0.6.3
+        version: 0.6.3
       jest-diff:
         specifier: ^29.7.0
         version: 29.7.0
@@ -513,12 +516,15 @@ importers:
       '@rspack/plugin-react-refresh':
         specifier: ^1.0.1
         version: 1.0.1(react-refresh@0.16.0)
+      '@rspack/test-tools':
+        specifier: workspace:*
+        version: 'link:'
       '@swc/helpers':
         specifier: 0.5.15
         version: 0.5.15
       '@swc/plugin-remove-console':
-        specifier: ^6.3.2
-        version: 6.3.2
+        specifier: ^7.0.0
+        version: 7.0.0
       '@types/babel__generator':
         specifier: 7.6.8
         version: 7.6.8
@@ -3087,8 +3093,8 @@ packages:
   '@swc/helpers@0.5.15':
     resolution: {integrity: sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g==}
 
-  '@swc/plugin-remove-console@6.3.2':
-    resolution: {integrity: sha512-92rPpkAPv4f8nd+9RiOWh/ditZYyy5tXn9OMtOm2PnDoO6auqDgzkLEAq9q2FE3Rq+C2b47aH6oqvQCQkw8SbA==}
+  '@swc/plugin-remove-console@7.0.0':
+    resolution: {integrity: sha512-7EQWQME4B/Os6LOrjtv68WEE0LOZtj6gKYo/Ag29mthw9O1B/a6Coan9ZzBx9dvToROBJWe2Q0KvY8jlJcToJw==}
 
   '@swc/types@0.1.19':
     resolution: {integrity: sha512-WkAZaAfj44kh/UFdAQcrMP1I0nwRqpt27u+08LMBYMqmQfwwMofYoMh/48NGkMMRfC4ynpfwRbJuu8ErfNloeA==}
@@ -10434,7 +10440,7 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  '@swc/plugin-remove-console@6.3.2':
+  '@swc/plugin-remove-console@7.0.0':
     dependencies:
       '@swc/counter': 0.1.3
 

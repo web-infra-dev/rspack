@@ -12,7 +12,7 @@ use crate::id_helpers::{assign_ascending_module_ids, get_used_module_ids_and_mod
 pub struct NaturalModuleIdsPlugin;
 
 #[plugin_hook(CompilationModuleIds for NaturalModuleIdsPlugin)]
-fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
+async fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
   let (used_ids, mut modules_in_natural_order) = get_used_module_ids_and_modules(compilation, None);
 
   let mut module_ids = std::mem::take(&mut compilation.module_ids_artifact);
