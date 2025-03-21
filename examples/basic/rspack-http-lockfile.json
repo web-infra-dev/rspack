@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "entries": {
+    "https://esm.sh/react@18.2.0/es2022/react.mjs": {
+      "resolved": "https://esm.sh/react@18.2.0/es2022/react.mjs",
+      "integrity": "sha512-sM8IYZP01ER+N16bAen10oemeBrmsLiEAmvumz8x4MRd7HkZtgl12hzd963qEdIEmmeoYXQzxsHxbl1kU9s3Eg==",
+      "content_type": "application/javascript; charset=utf-8",
+      "valid_until": 1774078204038,
+      "etag": null
+    },
+    "https://esm.sh/react@18.2.0": {
+      "resolved": "https://esm.sh/react@18.2.0",
+      "integrity": "sha512-6pIg7ZYBYy0s9DsMYuS79otm+N+IlrRsDoM8+u3nJAgyuJtc+0aURgVUxOuT7IhrmDaMCMXZ5MiGFRmI1SgKNA==",
+      "content_type": "application/javascript; charset=utf-8",
+      "valid_until": 1774078203910,
+      "etag": null
+    }
+  }
+}

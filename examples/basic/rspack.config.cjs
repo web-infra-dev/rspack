@@ -14,8 +14,10 @@ module.exports = {
 	experiments: {
 		buildHttp: {
 			allowedUris: [
-				"http://"
-			]
+				/^https?:\/\/.*/  // Regex literal that matches HTTP and HTTPS URLs
+			],
+			cacheLocation: './rspack-http-cache',
+			lockfileLocation: './rspack-http-lockfile.json'
 		}
 	}
 }
