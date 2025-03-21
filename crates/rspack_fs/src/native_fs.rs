@@ -183,7 +183,7 @@ impl ReadableFileSystem for NativeFileSystem {
         }
       };
     }
-    let meta = fs::metadata(path)?;
+    let meta = tokio::fs::metadata(path).await?;
     meta.try_into()
   }
 
@@ -212,7 +212,7 @@ impl ReadableFileSystem for NativeFileSystem {
   }
 
   async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    let meta = fs::symlink_metadata(path)?;
+    let meta = tokio::fs::symlink_metadata(path)?;
     meta.try_into()
   }
 
