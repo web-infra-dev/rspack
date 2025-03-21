@@ -49,9 +49,9 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     module.source().map_or(0, |source| source.size()) as f64
   }
 
-  fn parse(
+  async fn parse<'a>(
     &mut self,
-    parse_context: rspack_core::ParseContext,
+    parse_context: rspack_core::ParseContext<'a>,
   ) -> Result<TWithDiagnosticArray<rspack_core::ParseResult>> {
     let rspack_core::ParseContext {
       source: box_source,
