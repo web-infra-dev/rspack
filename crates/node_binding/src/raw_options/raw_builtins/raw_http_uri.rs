@@ -69,7 +69,9 @@ impl HttpClient for JsHttpClient {
 static JS_HTTP_CLIENT: OnceCell<JsHttpClient> = OnceCell::new();
 static HTTP_CLIENT_REGISTERED: AtomicBool = AtomicBool::new(false);
 
-#[napi]
+#[napi(
+  ts_type = "(http_client: (url: string, headers: Record<string, string>) => Promise<{ status: number, headers: Record<string, string>, body: Buffer }>):void"
+)]
 pub fn register_http_client(
   http_client: ThreadsafeFunction<(String, HashMap<String, String>), Promise<JsHttpResponseRaw>>,
 ) {
@@ -77,13 +79,12 @@ pub fn register_http_client(
     function: http_client,
   };
 
-  // This is safe because OnceCell ensures thread-safe initialization
   let _ = JS_HTTP_CLIENT.set(client);
   HTTP_CLIENT_REGISTERED.store(true, Ordering::SeqCst);
 }
 
 pub fn create_http_uri_plugin(
-  _allowed_uris: Option<Vec<String>>,
+  allowed_uris: Option<Vec<String>>,
   cache_location: Option<String>,
   frozen: Option<bool>,
   lockfile_location: Option<String>,
@@ -103,7 +104,9 @@ pub fn create_http_uri_plugin(
 
     Some(Arc::new(js_client) as Arc<dyn HttpClient>)
   } else {
-    Some(Arc::new(SimpleHttpClient) as Arc<dyn HttpClient>)
+    return Err(AnyhowError::from(anyhow::anyhow!(
+      "HTTP client not registered from JavaScript side"
+    )));
   };
 
   let options = HttpUriPluginOptions {
@@ -118,24 +121,4 @@ pub fn create_http_uri_plugin(
   };
 
   Ok(HttpUriPlugin::new(options))
-}
-
-#[derive(Debug)]
-pub struct SimpleHttpClient;
-
-#[async_trait]
-impl HttpClient for SimpleHttpClient {
-  async fn get(
-    &self,
-    _url: &str,
-    headers: &HashMap<String, String>,
-  ) -> anyhow::Result<HttpResponse> {
-    let response = HttpResponse {
-      status: 200,
-      headers: headers.clone(),
-      body: vec![],
-    };
-
-    Ok(response)
-  }
 }

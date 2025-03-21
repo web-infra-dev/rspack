@@ -14,7 +14,7 @@ module.exports = {
 	experiments: {
 		buildHttp: {
 			allowedUris: [
-				"https://esm.sh"
+				"http://"
 			]
 		}
 	}
