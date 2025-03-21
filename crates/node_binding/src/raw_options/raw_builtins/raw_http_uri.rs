@@ -18,16 +18,6 @@ use rspack_plugin_schemes::{
   HttpClient, HttpResponse, HttpUriOptionsAllowedUris, HttpUriPlugin, HttpUriPluginOptions,
 };
 
-// Type definition for the ThreadsafeFunction used in HTTP requests
-type HttpRequestParams = (
-  Option<String>,
-  Option<String>,
-  String,
-  HashMap<String, String>,
-);
-
-type HttpClientFunction = ThreadsafeFunction<HttpRequestParams, Promise<JsHttpResponseRaw>>;
-
 #[napi(object)]
 pub struct JsHttpResponseRaw {
   pub status: u16,
@@ -37,7 +27,15 @@ pub struct JsHttpResponseRaw {
 
 #[derive(Debug, Clone)]
 pub struct JsHttpClient {
-  function: HttpClientFunction,
+  function: ThreadsafeFunction<
+    (
+      Option<String>,
+      Option<String>,
+      String,
+      HashMap<String, String>,
+    ),
+    Promise<JsHttpResponseRaw>,
+  >,
 }
 
 #[async_trait]
@@ -84,7 +82,17 @@ static JS_HTTP_CLIENT: OnceCell<JsHttpClient> = OnceCell::new();
 static HTTP_CLIENT_REGISTERED: AtomicBool = AtomicBool::new(false);
 
 #[napi]
-pub fn register_http_client(http_client: HttpClientFunction) {
+pub fn register_http_client(
+  http_client: ThreadsafeFunction<
+    (
+      Option<String>,
+      Option<String>,
+      String,
+      HashMap<String, String>,
+    ),
+    Promise<JsHttpResponseRaw>,
+  >,
+) {
   let client = JsHttpClient {
     function: http_client,
   };

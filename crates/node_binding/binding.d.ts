@@ -2397,7 +2397,7 @@ export interface RawTrustedTypes {
  */
 export declare function registerGlobalTrace(filter: string, layer: "chrome" | "logger" | "otel", output: string): void
 
-export declare function registerHttpClient(httpClient: HttpClientFunction): void
+export declare function registerHttpClient(httpClient: ((err: Error | null, arg0: string | undefined | null, arg1: string | undefined | null, arg2: string, arg3: Record<string, string>) => Promise<JsHttpResponseRaw>)): void
 
 export declare enum RegisterJsTapKind {
   CompilerThisCompilation = 0,
