@@ -466,7 +466,10 @@ pub struct RawJsonParserOptions {
 impl From<RawJsonParserOptions> for JsonParserOptions {
   fn from(value: RawJsonParserOptions) -> Self {
     let parse = match value.parse {
-      Some(f) => ParseOption::Func(Arc::new(move |s: String| f.blocking_call_with_sync(s))),
+      Some(f) => ParseOption::Func(Arc::new(move |s: String| {
+        let f = f.clone();
+        Box::pin(async move { f.call(s).await })
+      })),
       _ => ParseOption::None,
     };
 
