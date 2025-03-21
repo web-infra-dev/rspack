@@ -36,6 +36,34 @@ mod napi_binding {
     }
   }
 
+  impl rkyv::Archive for Reflector {
+    type Archived = ();
+    type Resolver = ();
+
+    fn resolve(&self, _resolver: Self::Resolver, _out: rkyv::Place<Self::Archived>) {
+      ()
+    }
+  }
+
+  impl<S> rkyv::Serialize<S> for Reflector
+  where
+    S: rkyv::rancor::Fallible + ?Sized,
+  {
+    fn serialize(&self, _serializer: &mut S) -> Result<Self::Resolver, S::Error> {
+      Ok(())
+    }
+  }
+
+  impl<D> rkyv::Deserialize<Reflector, D> for ()
+  where
+    D: rkyv::rancor::Fallible + ?Sized,
+    D::Error: rkyv::rancor::Source,
+  {
+    fn deserialize(&self, _deserializer: &mut D) -> Result<Reflector, D::Error> {
+      Ok(Reflector::default())
+    }
+  }
+
   pub trait Reflectable {
     fn reflector(&self) -> &Reflector;
 
