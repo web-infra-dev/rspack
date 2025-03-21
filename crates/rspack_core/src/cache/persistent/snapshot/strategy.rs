@@ -176,7 +176,7 @@ mod tests {
     // modified_time
     assert_eq!(
       helper.modified_time(Path::new("/file1")).await,
-      Some(fs.metadata("/file1".into()).unwrap().mtime_ms)
+      Some(fs.metadata("/file1".into()).await.unwrap().mtime_ms)
     );
     assert!(helper.modified_time(Path::new("/file2")).await.is_none());
 
