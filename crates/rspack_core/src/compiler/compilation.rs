@@ -1776,23 +1776,28 @@ impl Compilation {
                     .additional_module_runtime_requirements
                     .call(compilation, &module, &mut runtime_requirements)?;
 
-                  process_runtime_requirement_hook(
-                    &mut runtime_requirements,
-                    |all_runtime_requirements, runtime_requirements, runtime_requirements_mut| {
-                      plugin_driver
-                        .compilation_hooks
-                        .runtime_requirement_in_module
-                        .call(
-                          compilation,
-                          &module,
-                          all_runtime_requirements,
-                          runtime_requirements,
-                          runtime_requirements_mut,
-                        )?;
-                      Ok(())
-                    },
-                  )
-                  .await?;
+                  compilation
+                    .process_runtime_requirement_hook(&mut runtime_requirements, {
+                      let plugin_driver = plugin_driver.clone();
+                      async move |compilation,
+                                  all_runtime_requirements,
+                                  runtime_requirements,
+                                  runtime_requirements_mut| {
+                        plugin_driver
+                          .compilation_hooks
+                          .runtime_requirement_in_module
+                          .call(
+                            compilation,
+                            &module,
+                            all_runtime_requirements,
+                            runtime_requirements,
+                            runtime_requirements_mut,
+                          )?;
+                        std::future::ready(()).await;
+                        Ok(())
+                      }
+                    })
+                    .await?;
                   Ok(runtime_requirements)
                 })
                 .await?;
@@ -1807,13 +1812,8 @@ impl Compilation {
     .map(|res| res.map_err(rspack_error::miette::Error::from_err))
     .collect::<Result<Vec<_>>>()?;
 
-    let mut results = vec![];
-
-    for result in module_results {
-      results.push(result?);
-    }
-
-    for (module, map) in results {
+    for entry in module_results {
+      let (module, map) = entry?;
       ChunkGraph::set_module_runtime_requirements(self, module, map);
     }
     logger.time_end(start);
@@ -1845,37 +1845,42 @@ impl Compilation {
       }
       chunk_requirements.insert(chunk_ukey, set);
     }
-    for (chunk_ukey, mut set) in chunk_requirements {
+    for (&chunk_ukey, mut set) in chunk_requirements {
       plugin_driver
         .compilation_hooks
         .additional_chunk_runtime_requirements
-        .call(self, chunk_ukey, &mut set)?;
+        .call(self, &chunk_ukey, &mut set)?;
 
-      process_runtime_requirement_hook(
-        &mut set,
-        |all_runtime_requirements, runtime_requirements, runtime_requirements_mut| {
-          plugin_driver
-            .compilation_hooks
-            .runtime_requirement_in_chunk
-            .call(
-              self,
-              chunk_ukey,
-              all_runtime_requirements,
-              runtime_requirements,
-              runtime_requirements_mut,
-            )?;
-          Ok(())
-        },
-      )
-      .await?;
+      self
+        .process_runtime_requirement_hook_mut(&mut set, {
+          let plugin_driver = plugin_driver.clone();
+          async move |compilation,
+                      all_runtime_requirements,
+                      runtime_requirements,
+                      runtime_requirements_mut| {
+            plugin_driver
+              .compilation_hooks
+              .runtime_requirement_in_chunk
+              .call(
+                compilation,
+                &chunk_ukey,
+                all_runtime_requirements,
+                runtime_requirements,
+                runtime_requirements_mut,
+              )?;
+            std::future::ready(()).await;
+            Ok(())
+          }
+        })
+        .await?;
 
-      ChunkGraph::set_chunk_runtime_requirements(self, *chunk_ukey, set);
+      ChunkGraph::set_chunk_runtime_requirements(self, chunk_ukey, set);
     }
     logger.time_end(start);
 
     let start = logger.time("runtime requirements.entries");
-    for entry_ukey in &entries {
-      let entry = self.chunk_by_ukey.expect_get(entry_ukey);
+    for &entry_ukey in &entries {
+      let entry = self.chunk_by_ukey.expect_get(&entry_ukey);
       let mut set = RuntimeGlobals::default();
       for chunk_ukey in entry
         .get_all_referenced_chunks(&self.chunk_group_by_ukey)
@@ -1888,28 +1893,33 @@ impl Compilation {
       plugin_driver
         .compilation_hooks
         .additional_tree_runtime_requirements
-        .call(self, entry_ukey, &mut set)
+        .call(self, &entry_ukey, &mut set)
         .await?;
 
-      process_runtime_requirement_hook(
-        &mut set,
-        |all_runtime_requirements, runtime_requirements, runtime_requirements_mut| {
-          plugin_driver
-            .compilation_hooks
-            .runtime_requirement_in_tree
-            .call(
-              self,
-              entry_ukey,
-              all_runtime_requirements,
-              runtime_requirements,
-              runtime_requirements_mut,
-            )?;
-          Ok(())
-        },
-      )
-      .await?;
+      self
+        .process_runtime_requirement_hook_mut(&mut set, {
+          let plugin_driver = plugin_driver.clone();
+          async move |compilation,
+                      all_runtime_requirements,
+                      runtime_requirements,
+                      runtime_requirements_mut| {
+            plugin_driver
+              .compilation_hooks
+              .runtime_requirement_in_tree
+              .call(
+                compilation,
+                &entry_ukey,
+                all_runtime_requirements,
+                runtime_requirements,
+                runtime_requirements_mut,
+              )?;
+            std::future::ready(()).await;
+            Ok(())
+          }
+        })
+        .await?;
 
-      ChunkGraph::set_tree_runtime_requirements(self, *entry_ukey, set);
+      ChunkGraph::set_tree_runtime_requirements(self, entry_ukey, set);
     }
 
     // NOTE: webpack runs hooks.runtime_module in compilation.add_runtime_module
@@ -1931,6 +1941,84 @@ impl Compilation {
     }
 
     logger.time_end(start);
+    Ok(())
+  }
+
+  async fn process_runtime_requirement_hook(
+    &self,
+    requirements: &mut RuntimeGlobals,
+    call_hook: impl async Fn(
+      &Compilation,
+      &RuntimeGlobals,
+      &RuntimeGlobals,
+      &mut RuntimeGlobals,
+    ) -> Result<()>,
+  ) -> Result<()> {
+    let mut runtime_requirements_mut = *requirements;
+    let mut runtime_requirements;
+
+    loop {
+      runtime_requirements = runtime_requirements_mut;
+      runtime_requirements_mut = RuntimeGlobals::default();
+      // runtime_requirements: rt_requirements of last time
+      // runtime_requirements_mut: changed rt_requirements
+      // requirements: all rt_requirements
+      call_hook(
+        self,
+        requirements,
+        &runtime_requirements,
+        &mut runtime_requirements_mut,
+      )
+      .await?;
+
+      // check if we have changes to runtime_requirements
+      runtime_requirements_mut =
+        runtime_requirements_mut.difference(requirements.intersection(runtime_requirements_mut));
+      if runtime_requirements_mut.is_empty() {
+        break;
+      } else {
+        requirements.insert(runtime_requirements_mut);
+      }
+    }
+    Ok(())
+  }
+
+  async fn process_runtime_requirement_hook_mut(
+    &mut self,
+    requirements: &mut RuntimeGlobals,
+    call_hook: impl async Fn(
+      &mut Compilation,
+      &RuntimeGlobals,
+      &RuntimeGlobals,
+      &mut RuntimeGlobals,
+    ) -> Result<()>,
+  ) -> Result<()> {
+    let mut runtime_requirements_mut = *requirements;
+    let mut runtime_requirements;
+
+    loop {
+      runtime_requirements = runtime_requirements_mut;
+      runtime_requirements_mut = RuntimeGlobals::default();
+      // runtime_requirements: rt_requirements of last time
+      // runtime_requirements_mut: changed rt_requirements
+      // requirements: all rt_requirements
+      call_hook(
+        self,
+        requirements,
+        &runtime_requirements,
+        &mut runtime_requirements_mut,
+      )
+      .await?;
+
+      // check if we have changes to runtime_requirements
+      runtime_requirements_mut =
+        runtime_requirements_mut.difference(requirements.intersection(runtime_requirements_mut));
+      if runtime_requirements_mut.is_empty() {
+        break;
+      } else {
+        requirements.insert(runtime_requirements_mut);
+      }
+    }
     Ok(())
   }
 
@@ -2677,35 +2765,4 @@ pub struct RenderManifestEntry {
   pub has_filename: bool, /* webpack only asset has filename, js/css/wasm has filename template */
   pub info: AssetInfo,
   pub auxiliary: bool,
-}
-
-async fn process_runtime_requirement_hook(
-  requirements: &mut RuntimeGlobals,
-  mut call_hook: impl FnMut(&RuntimeGlobals, &RuntimeGlobals, &mut RuntimeGlobals) -> Result<()>,
-) -> Result<()> {
-  let mut runtime_requirements_mut = *requirements;
-  let mut runtime_requirements;
-
-  loop {
-    runtime_requirements = runtime_requirements_mut;
-    runtime_requirements_mut = RuntimeGlobals::default();
-    // runtime_requirements: rt_requirements of last time
-    // runtime_requirements_mut: changed rt_requirements
-    // requirements: all rt_requirements
-    call_hook(
-      requirements,
-      &runtime_requirements,
-      &mut runtime_requirements_mut,
-    )?;
-
-    // check if we have changes to runtime_requirements
-    runtime_requirements_mut =
-      runtime_requirements_mut.difference(requirements.intersection(runtime_requirements_mut));
-    if runtime_requirements_mut.is_empty() {
-      break;
-    } else {
-      requirements.insert(runtime_requirements_mut);
-    }
-  }
-  Ok(())
 }
