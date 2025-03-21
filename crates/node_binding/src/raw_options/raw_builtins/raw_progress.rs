@@ -30,7 +30,8 @@ impl From<RawProgressPluginOptions> for ProgressPluginOptions {
   fn from(value: RawProgressPluginOptions) -> Self {
     if let Some(f) = value.handler {
       Self::Handler(Arc::new(move |percent, msg, items| {
-        f.blocking_call_with_sync((percent, msg, items))
+        let f = f.clone();
+        Box::pin(async move { f.call((percent, msg, items)).await })
       }))
     } else {
       Self::Default(ProgressPluginDisplayOptions {
