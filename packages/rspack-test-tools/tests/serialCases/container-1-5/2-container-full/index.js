@@ -16,8 +16,9 @@ let nativeLog;
 
 beforeEach(done => {
 	nativeLog = console.log;
-	console.log = m => {
-		if (m && m.includes('Warn')) {
+	console.log = (...args) => {
+		const m = args.join(' ');
+		if (m && m.includes('Federation Runtime')) {
 			warnings.push(m);
 		}
 	}

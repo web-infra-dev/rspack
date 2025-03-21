@@ -5,23 +5,20 @@ use rspack_cacheable::{
   with::{AsPreset, Skip},
 };
 use rspack_collections::IdentifierSet;
-use rspack_core::DependencyConditionFn;
-use rspack_core::DependencyLocation;
-use rspack_core::DependencyRange;
-use rspack_core::SharedSourceMap;
 use rspack_core::{
   filter_runtime, import_statement, merge_runtime, AsContextDependency,
-  AwaitDependenciesInitFragment, BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState,
-  Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, ExportInfoProvided, ExportsType, ExtendedReferencedExport,
-  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
-  ProvidedExports, RuntimeCondition, TemplateContext, TemplateReplaceSource,
+  AwaitDependenciesInitFragment, BuildMetaDefaultObject, Compilation, ConditionalInitFragment,
+  ConnectionState, Dependency, DependencyCategory, DependencyCondition, DependencyConditionFn,
+  DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyType, ErrorSpan,
+  ExportInfoProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph,
+  ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource,
 };
-use rspack_core::{Compilation, FactorizeInfo};
-use rspack_core::{ModuleGraph, RuntimeSpec};
-use rspack_error::miette::{MietteDiagnostic, Severity};
-use rspack_error::DiagnosticExt;
-use rspack_error::{Diagnostic, TraceableError};
+use rspack_error::{
+  miette::{MietteDiagnostic, Severity},
+  Diagnostic, DiagnosticExt, TraceableError,
+};
 use swc_core::ecma::atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;

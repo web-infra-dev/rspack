@@ -1,13 +1,14 @@
-use rspack_core::try_convert_str_to_context_mode;
-use rspack_core::{ContextMode, ContextOptions, DependencyCategory, SpanExt};
+use rspack_core::{
+  try_convert_str_to_context_mode, ContextMode, ContextOptions, DependencyCategory, SpanExt,
+};
 use rspack_regex::RspackRegex;
-use swc_core::common::Spanned;
-use swc_core::ecma::ast::CallExpr;
+use swc_core::{common::Spanned, ecma::ast::CallExpr};
 
 use super::JavascriptParserPlugin;
-use crate::dependency::RequireContextDependency;
-use crate::visitors::expr_matcher::is_require_context;
-use crate::visitors::{clean_regexp_in_context_module, JavascriptParser};
+use crate::{
+  dependency::RequireContextDependency,
+  visitors::{clean_regexp_in_context_module, expr_matcher::is_require_context, JavascriptParser},
+};
 
 pub struct RequireContextDependencyParserPlugin;
 

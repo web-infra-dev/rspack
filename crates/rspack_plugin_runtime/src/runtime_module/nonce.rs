@@ -17,12 +17,13 @@ impl Default for NonceRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for NonceRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
 
-  fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
     Ok(RawStringSource::from(format!("{} = undefined;", RuntimeGlobals::SCRIPT_NONCE)).boxed())
   }
 }

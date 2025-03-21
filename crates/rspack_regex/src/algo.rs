@@ -1,8 +1,6 @@
-use std::fmt::Debug;
-use std::hash::Hash;
+use std::{fmt::Debug, hash::Hash};
 
-use regex_syntax::hir::literal::ExtractKind;
-use regex_syntax::hir::{Hir, HirKind, Look};
+use regex_syntax::hir::{literal::ExtractKind, Hir, HirKind, Look};
 use regress::Match;
 use rspack_error::{error, Error};
 

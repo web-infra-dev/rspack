@@ -1516,7 +1516,7 @@ define('MyLibrary', [], factory);
 - **类型：** `boolean`
 - **默认值：** `false`
 
-以 ESM 模块的形式输出 JavaScript 文件。由于此功能还处于实验阶段，默认关闭，想要使用的话必须将 [`experiments.outputModule`](/config/experiments#experimentsoutputmodule) 设置为 true。
+以 ESM 模块的形式输出 JavaScript 文件。由于此功能仍处于实验阶段，默认为关闭状态。如需启用，请将 [`experiments.outputModule`](/config/experiments#experimentsoutputmodule) 设置为 `true`。
 
 当启用时，Rspack 会将 [`output.iife`](#outputiife) 设置为 `false`， [`output.scriptType`](#outputscripttype) 设置为 `'module'`。
 
@@ -1608,73 +1608,17 @@ export default {
 - **类型：** `'auto' | string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **默认值：** [target](/config/target) 为 `'web'` 或 `'webworker'` 时为 `'auto'`，否则为 `undefined`
 
-此选项决定了引用的资源的 URL 前缀，如: 图片、文件等等。
-
-例如，给定一个配置文件：
+用于设置打包后的静态资源文件（如 JS、CSS、图片等）的 URL 路径前缀。
 
 ```js title="rspack.config.mjs"
 export default {
   output: {
     publicPath: '/assets/',
-    chunkFilename: '[id].chunk.js',
-    assetModuleFilename: '[name][ext]',
   },
 };
 ```
 
-对于某一个非初始（non-initial） chunk 文件，它的请求 URL 看起来像是这样： `/assets/1.chunk.js`。
-
-对于一个图片的引用，它的请求 URL 看起来像是这样：`/assets/logo.png`。
-
-同时，当你使用 CDN 对产物进行部署时则非常有用：
-
-```js title="rspack.config.mjs"
-export default {
-  output: {
-    publicPath: 'https://cdn.example.com/assets/',
-    assetModuleFilename: '[name][ext]',
-  },
-};
-```
-
-对于所有 asset 资源，它们的请求 URL 看起来像是这样：`https://cdn.example.com/assets/logo.png`。
-
-### 动态设置 publicPath
-
-在 JavaScript 代码中，你可以通过 [`__webpack_public_path__`](/api/runtime-api/module-variables#__webpack_public_path__) 来动态设置 `publicPath`。
-
-`__webpack_public_path__` 会覆盖 Rspack 配置中的 `output.publicPath`，但它只能对异步加载的资源生效，不会对 HTML 中通过 `<script src="...">` 加载的资源生效。
-
-首先创建一个 `publicPath.js`：
-
-```js title="publicPath.js"
-__webpack_public_path__ =
-  location.hostname === 'foo.com'
-    ? 'https://cdn1.com/assets/'
-    : 'https://cdn2.com/assets/';
-```
-
-然后在入口文件的第一行引入它，以确保 `publicPath` 在异步资源被加载之前被设置：
-
-```js title="entry.js"
-import './publicPath.js';
-import './others.js';
-```
-
-### 自动 publicPath
-
-在某些情况下，你可能事先并不知道 `publicPath` 应该设置为什么值。这时 Rspack 可以通过解析一些变量来自动计算出 `publicPath` 的值，这些变量包括 [import.meta.url](/api/runtime-api/module-variables#importmetaurl)、[document.currentScript](https://developer.mozilla.org/en-US/docs/Web/API/Document/currentScript)、`script.src` 或 `self.location`。
-
-你只需要将 `output.publicPath` 设置为 `'auto'` 即可：
-
-```js title="rspack.config.mjs"
-export default {
-  output: {
-    // 当 `target` 为 `'web'` 或 `'webworker'` 时，这是默认值
-    publicPath: 'auto',
-  },
-};
-```
+参考 [资源基础路径](/guide/features/asset-base-path) 了解完整用法。
 
 ## output.scriptType
 

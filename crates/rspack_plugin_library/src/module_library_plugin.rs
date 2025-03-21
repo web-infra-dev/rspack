@@ -1,10 +1,11 @@
 use std::hash::Hash;
 
-use rspack_core::rspack_sources::{ConcatSource, RawStringSource, SourceExt};
 use rspack_core::{
-  property_access, to_identifier, ApplyContext, ChunkUkey, Compilation, CompilationParams,
-  CompilerCompilation, CompilerOptions, ExportInfoProvided, LibraryOptions, ModuleGraph,
-  ModuleIdentifier, Plugin, PluginContext,
+  property_access,
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
+  to_identifier, ApplyContext, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
+  CompilerOptions, ExportInfoProvided, LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin,
+  PluginContext,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
@@ -54,7 +55,7 @@ async fn compilation(
 }
 
 #[plugin_hook(JavascriptModulesRenderStartup for ModuleLibraryPlugin)]
-fn render_startup(
+async fn render_startup(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,

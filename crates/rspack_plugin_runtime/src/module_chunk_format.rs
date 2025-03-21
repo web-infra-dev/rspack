@@ -1,8 +1,8 @@
 use std::hash::Hash;
 
 use async_trait::async_trait;
-use rspack_core::rspack_sources::{ConcatSource, RawStringSource, SourceExt};
 use rspack_core::{
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationParams, CompilerCompilation,
   CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
@@ -10,9 +10,9 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_plugin_javascript::runtime::render_chunk_runtime_modules;
 use rspack_plugin_javascript::{
-  JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JsPlugin, RenderSource,
+  runtime::render_chunk_runtime_modules, JavascriptModulesChunkHash, JavascriptModulesRenderChunk,
+  JsPlugin, RenderSource,
 };
 use rspack_util::itoa;
 use rustc_hash::FxHashSet as HashSet;
@@ -94,7 +94,7 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(JavascriptModulesRenderChunk for ModuleChunkFormatPlugin)]
-fn render_chunk(
+async fn render_chunk(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
@@ -130,7 +130,7 @@ fn render_chunk(
     sources.add(RawStringSource::from_static(
       "export const __webpack_runtime__ = ",
     ));
-    sources.add(render_chunk_runtime_modules(compilation, chunk_ukey)?);
+    sources.add(render_chunk_runtime_modules(compilation, chunk_ukey).await?);
     sources.add(RawStringSource::from_static(";\n"));
   }
 
@@ -210,12 +210,15 @@ fn render_chunk(
     let mut render_source = RenderSource {
       source: RawStringSource::from(startup_source.join("\n")).boxed(),
     };
-    hooks.render_startup.call(
-      compilation,
-      chunk_ukey,
-      last_entry_module,
-      &mut render_source,
-    )?;
+    hooks
+      .render_startup
+      .call(
+        compilation,
+        chunk_ukey,
+        last_entry_module,
+        &mut render_source,
+      )
+      .await?;
     sources.add(render_source.source);
   }
   render_source.source = sources.boxed();

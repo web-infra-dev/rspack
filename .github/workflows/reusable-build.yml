@@ -406,7 +406,7 @@ jobs:
           shared-key: build-bench-${{ inputs.target }}-${{ inputs.profile }}
 
       - name: Install cargo-codspeed binary
-        uses: taiki-e/install-action@03351cfd91ee8253b66020be1ad81991e6ba3502 # v2
+        uses: taiki-e/install-action@351cce3d3afa3dbd66bbe6d30df1d481b1448522 # v2
         with:
           tool: cargo-codspeed@2.7.2
 
@@ -443,7 +443,7 @@ jobs:
         run: pnpm run build:js
 
       - name: Run benchmark
-        uses: CodSpeedHQ/action@63ae6025a0ffee97d7736a37c9192dbd6ed4e75f # v3
+        uses: CodSpeedHQ/action@0010eb0ca6e89b80c88e8edaaa07cfe5f3e6664d # v3
         timeout-minutes: 30
         with:
           run: pnpm run bench:ci

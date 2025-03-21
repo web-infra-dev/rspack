@@ -1,15 +1,19 @@
-use swc_core::atoms::Atom;
-use swc_core::common::Span;
-use swc_core::ecma::ast::{
-  AssignExpr, AwaitExpr, BinExpr, CallExpr, ClassMember, CondExpr, Expr, ForOfStmt, Ident, IfStmt,
-  ImportDecl, MemberExpr, ModuleDecl, OptChainExpr,
+use swc_core::{
+  atoms::Atom,
+  common::Span,
+  ecma::ast::{
+    AssignExpr, AwaitExpr, BinExpr, CallExpr, ClassMember, CondExpr, Expr, ForOfStmt, Ident,
+    IfStmt, ImportDecl, MemberExpr, ModuleDecl, NewExpr, OptChainExpr, Program, ThisExpr,
+    UnaryExpr, VarDecl, VarDeclarator,
+  },
 };
-use swc_core::ecma::ast::{NewExpr, Program, ThisExpr, UnaryExpr, VarDecl, VarDeclarator};
 
-use crate::utils::eval::BasicEvaluatedExpression;
-use crate::visitors::{
-  ClassDeclOrExpr, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal,
-  ExportedVariableInfo, JavascriptParser, Statement,
+use crate::{
+  utils::eval::BasicEvaluatedExpression,
+  visitors::{
+    ClassDeclOrExpr, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal,
+    ExportedVariableInfo, JavascriptParser, Statement,
+  },
 };
 
 type KeepRight = bool;

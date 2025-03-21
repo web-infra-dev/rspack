@@ -275,6 +275,10 @@ impl DescriptionData {
   pub fn json(&self) -> &serde_json::Value {
     self.json.as_ref()
   }
+
+  pub fn into_parts(self) -> (PathBuf, Arc<serde_json::Value>) {
+    (self.path, self.json)
+  }
 }
 
 pub type AdditionalData = anymap::Map<dyn CloneAny + Send + Sync>;

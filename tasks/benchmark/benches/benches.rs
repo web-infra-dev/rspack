@@ -1,11 +1,9 @@
 #![feature(trait_upcasting)]
 #![allow(clippy::unwrap_used)]
 
-use basic::basic;
-use build_chunk_graph::chunk_graph;
 use criterion::criterion_main;
+use groups::{basic_build::basic, build_chunk_graph::chunk_graph};
 
-mod basic;
-mod build_chunk_graph;
+mod groups;
 
 criterion_main!(basic, chunk_graph);

@@ -4,11 +4,12 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
-  rspack_sources::RawStringSource, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, Dependency, DependencyId, EntryDependency, FactoryMeta, Module, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SourceType,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  rspack_sources::{BoxSource, RawStringSource},
+  AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, Dependency,
+  DependencyId, EntryDependency, FactoryMeta, Module, ModuleType, RuntimeGlobals, RuntimeSpec,
+  SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 
@@ -94,7 +95,7 @@ impl Module for DllModule {
     })
   }
 
-  fn code_generation(
+  async fn code_generation(
     &self,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,

@@ -1,30 +1,30 @@
 use std::hash::Hash;
 
 use rspack_collections::IdentifierMap;
-use rspack_core::rspack_sources::{ConcatSource, RawStringSource, SourceExt};
 use rspack_core::{
-  merge_runtime, to_identifier, ApplyContext, BoxDependency, ChunkUkey,
-  CodeGenerationExportsFinalNames, Compilation, CompilationOptimizeChunkModules, CompilationParams,
-  CompilerCompilation, CompilerFinishMake, CompilerOptions, ConcatenatedModule,
-  ConcatenatedModuleExportsDefinitions, DependenciesBlock, Dependency, DependencyId,
-  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PluginContext,
+  merge_runtime,
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
+  to_identifier, ApplyContext, BoxDependency, ChunkUkey, CodeGenerationExportsFinalNames,
+  Compilation, CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation,
+  CompilerFinishMake, CompilerOptions, ConcatenatedModule, ConcatenatedModuleExportsDefinitions,
+  DependenciesBlock, Dependency, DependencyId, LibraryOptions, ModuleGraph, ModuleIdentifier,
+  Plugin, PluginContext,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_plugin_javascript::dependency::{
-  ESMExportImportedSpecifierDependency, ImportDependency,
-};
-use rspack_plugin_javascript::ModuleConcatenationPlugin;
 use rspack_plugin_javascript::{
+  dependency::{ESMExportImportedSpecifierDependency, ImportDependency},
   ConcatConfiguration, JavascriptModulesChunkHash, JavascriptModulesRenderStartup, JsPlugin,
-  RenderSource,
+  ModuleConcatenationPlugin, RenderSource,
 };
 use rustc_hash::FxHashSet as HashSet;
 
 use super::modern_module::ModernModuleReexportStarExternalDependency;
-use crate::modern_module::ModernModuleImportDependency;
-use crate::utils::{get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE};
+use crate::{
+  modern_module::ModernModuleImportDependency,
+  utils::{get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE},
+};
 
 const PLUGIN_NAME: &str = "rspack.ModernModuleLibraryPlugin";
 
@@ -136,7 +136,7 @@ impl ModernModuleLibraryPlugin {
 }
 
 #[plugin_hook(JavascriptModulesRenderStartup for ModernModuleLibraryPlugin)]
-fn render_startup(
+async fn render_startup(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,

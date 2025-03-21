@@ -11,7 +11,7 @@ use std::{
 
 use dashmap::DashSet;
 use derive_more::Debug;
-use futures::future::BoxFuture;
+use futures::future::{join_all, BoxFuture};
 use glob::{MatchOptions, Pattern as GlobPattern};
 use regex::Regex;
 use rspack_core::{
@@ -75,8 +75,11 @@ impl Display for ToType {
 pub type TransformerFn =
   Box<dyn for<'a> Fn(Vec<u8>, &'a str) -> BoxFuture<'a, Result<RawSource>> + Sync + Send>;
 
+pub type TransformerOpts = (TransformerFn, Option<bool>);
+
 pub enum Transformer {
   Fn(TransformerFn),
+  Opt(TransformerOpts),
 }
 
 pub struct ToFnCtx<'a> {
@@ -103,6 +106,7 @@ pub struct CopyPattern {
   pub force: bool,
   pub priority: i32,
   pub glob_options: CopyGlobOptions,
+  pub copy_permissions: Option<bool>,
   #[debug(skip)]
   pub transform: Option<Transformer>,
 }
@@ -123,6 +127,7 @@ pub struct RunPatternResult {
   pub info: Option<Info>,
   pub force: bool,
   pub priority: i32,
+  pub pattern_index: usize,
 }
 
 #[plugin]
@@ -158,9 +163,10 @@ impl CopyRspackPlugin {
     output_path: &Utf8Path,
     from_type: FromType,
     file_dependencies: &DashSet<PathBuf>,
-    diagnostics: &Mutex<Vec<Diagnostic>>,
+    diagnostics: Arc<Mutex<Vec<Diagnostic>>>,
     compilation: &Compilation,
     logger: &CompilationLogger,
+    pattern_index: usize,
   ) -> Option<RunPatternResult> {
     // Exclude directories
     if entry.is_dir() {
@@ -288,23 +294,31 @@ impl CopyRspackPlugin {
     let mut source = RawSource::from(source_vec.clone());
 
     if let Some(transform) = &pattern.transform {
+      logger.debug(format!(
+        "transforming content for '{}'...",
+        absolute_filename
+      ));
       match transform {
         Transformer::Fn(transformer) => {
-          let transformed = transformer(source_vec, absolute_filename.as_str()).await;
-          match transformed {
-            Ok(code) => {
-              source = code;
-            }
-            Err(e) => {
-              diagnostics
-                .lock()
-                .expect("failed to obtain lock of `diagnostics`")
-                .push(Diagnostic::error(
-                  "Run copy transform fn error".into(),
-                  e.to_string(),
-                ));
-            }
-          };
+          handle_transform(
+            transformer,
+            source_vec,
+            absolute_filename.clone(),
+            &mut source,
+            diagnostics,
+          )
+          .await
+        }
+        // TODO: support cache in the future.
+        Transformer::Opt((transformer, _)) => {
+          handle_transform(
+            transformer,
+            source_vec,
+            absolute_filename.clone(),
+            &mut source,
+            diagnostics,
+          )
+          .await
         }
       }
     }
@@ -350,16 +364,17 @@ impl CopyRspackPlugin {
       info: pattern.info.clone(),
       force: pattern.force,
       priority: pattern.priority,
+      pattern_index,
     })
   }
 
-  fn run_patter(
+  async fn run_patter(
     compilation: &Compilation,
     pattern: &CopyPattern,
-    _index: usize,
+    index: usize,
     file_dependencies: &DashSet<PathBuf>,
     context_dependencies: &DashSet<PathBuf>,
-    diagnostics: &Mutex<Vec<Diagnostic>>,
+    diagnostics: Arc<Mutex<Vec<Diagnostic>>>,
     logger: &CompilationLogger,
   ) -> Option<Vec<Option<RunPatternResult>>> {
     let orig_from = &pattern.from;
@@ -513,23 +528,22 @@ impl CopyRspackPlugin {
 
         let output_path = &compilation.options.output.path;
 
-        let copied_result = entries
-          .into_iter()
-          .map(|entry| async {
-            Self::analyze_every_entry(
-              entry,
-              pattern,
-              &context,
-              output_path,
-              from_type,
-              file_dependencies,
-              diagnostics,
-              compilation,
-              logger,
-            )
-            .await
-          })
-          .collect::<rspack_futures::FuturesResults<Option<RunPatternResult>>>();
+        let copied_result = join_all(entries.into_iter().map(|entry| async {
+          Self::analyze_every_entry(
+            entry,
+            pattern,
+            &context,
+            output_path,
+            from_type,
+            file_dependencies,
+            diagnostics.clone(),
+            compilation,
+            logger,
+            index,
+          )
+          .await
+        }))
+        .await;
 
         if copied_result.is_empty() {
           if pattern.no_error_on_missing {
@@ -547,7 +561,7 @@ impl CopyRspackPlugin {
           return None;
         }
 
-        Some(copied_result.into_inner())
+        Some(copied_result)
       }
       Err(e) => {
         if pattern.no_error_on_missing {
@@ -587,24 +601,21 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let start = logger.time("run pattern");
   let file_dependencies = DashSet::default();
   let context_dependencies = DashSet::default();
-  let diagnostics = Mutex::new(Vec::new());
+  let diagnostics = Arc::new(Mutex::new(Vec::new()));
 
-  let mut copied_result: Vec<(i32, RunPatternResult)> = self
-    .patterns
-    .iter()
-    .enumerate()
-    .map(|(index, pattern)| {
+  let mut copied_result: Vec<(i32, RunPatternResult)> =
+    join_all(self.patterns.iter().enumerate().map(|(index, pattern)| {
       CopyRspackPlugin::run_patter(
         compilation,
         pattern,
         index,
         &file_dependencies,
         &context_dependencies,
-        &diagnostics,
+        diagnostics.clone(),
         &logger,
       )
-    })
-    .collect::<Vec<_>>()
+    }))
+    .await
     .into_iter()
     .flatten()
     .flat_map(|item| {
@@ -632,7 +643,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   ));
 
   copied_result.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+
+  // Keep track of source to destination file mappings for permission copying
+  let mut permission_copies = Vec::new();
+
   copied_result.into_iter().for_each(|(_priority, result)| {
+    let source_path = result.absolute_filename.clone();
+    let dest_path = compilation.options.output.path.join(&result.filename);
+
     if let Some(exist_asset) = compilation.assets_mut().get_mut(&result.filename) {
       if !result.force {
         return;
@@ -660,10 +678,51 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           source: Some(Arc::new(result.source)),
           info: asset_info,
         },
-      )
+      );
     }
+
+    // Store the paths for permission copying along with the pattern index
+    permission_copies.push((result.pattern_index, source_path, dest_path));
   });
   logger.time_end(start);
+
+  // Handle permission copying after all assets are emitted
+  for (pattern_index, source_path, dest_path) in permission_copies.iter() {
+    if let Some(pattern) = self.patterns.get(*pattern_index) {
+      if pattern.copy_permissions.unwrap_or(false) {
+        if let Ok(metadata) = fs::metadata(source_path) {
+          let permissions = metadata.permissions();
+          // Make sure the output directory exists
+          if let Some(parent) = dest_path.parent() {
+            fs::create_dir_all(parent).unwrap_or_else(|e| {
+              logger.warn(format!("Failed to create directory {:?}: {}", parent, e));
+            });
+          }
+
+          // Make sure the file exists before trying to set permissions
+          if !dest_path.exists() {
+            logger.warn(format!(
+              "Destination file {:?} does not exist, cannot copy permissions",
+              dest_path
+            ));
+            continue;
+          }
+
+          if let Err(e) = fs::set_permissions(dest_path, permissions) {
+            logger.warn(format!(
+              "Failed to copy permissions from {:?} to {:?}: {}",
+              source_path, dest_path, e
+            ));
+          } else {
+            logger.log(format!(
+              "Successfully copied permissions from {:?} to {:?}",
+              source_path, dest_path
+            ));
+          }
+        }
+      }
+    }
+  }
 
   Ok(())
 }
@@ -738,6 +797,29 @@ fn set_info(target: &mut AssetInfo, info: Info) {
 
   if let Some(version) = info.version {
     target.version = version;
+  }
+}
+
+async fn handle_transform(
+  transformer: &TransformerFn,
+  source_vec: Vec<u8>,
+  absolute_filename: Utf8PathBuf,
+  source: &mut RawSource,
+  diagnostics: Arc<Mutex<Vec<Diagnostic>>>,
+) {
+  match transformer(source_vec, absolute_filename.as_str()).await {
+    Ok(code) => {
+      *source = code;
+    }
+    Err(e) => {
+      diagnostics
+        .lock()
+        .expect("failed to obtain lock of `diagnostics`")
+        .push(Diagnostic::error(
+          "Run copy transform fn error".into(),
+          e.to_string(),
+        ));
+    }
   }
 }
 

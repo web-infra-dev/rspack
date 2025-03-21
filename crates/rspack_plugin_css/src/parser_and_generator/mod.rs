@@ -17,10 +17,9 @@ use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, Compilation, ConstDependency,
   CssExportsConvention, Dependency, DependencyId, DependencyRange, DependencyTemplate,
   DependencyType, GenerateContext, LocalIdentName, Module, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleType, NormalModule, ParseContext, ParseResult, ParserAndGenerator,
-  RuntimeSpec, SourceType, TemplateContext, UsageState,
+  ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext, ParseResult,
+  ParserAndGenerator, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext, UsageState,
 };
-use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{
   miette::Diagnostic, IntoTWithDiagnosticArray, Result, RspackSeverity, TWithDiagnosticArray,
 };
@@ -29,21 +28,15 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   dependency::{
-    CssComposeDependency, CssExportDependency, CssImportDependency, CssLocalIdentDependency,
-    CssUrlDependency,
+    CssComposeDependency, CssExportDependency, CssImportDependency, CssLayer,
+    CssLocalIdentDependency, CssMedia, CssSelfReferenceLocalIdentDependency,
+    CssSelfReferenceLocalIdentReplacement, CssSupports, CssUrlDependency,
   },
   utils::{
-    css_modules_exports_to_concatenate_module_string, css_parsing_traceable_error, normalize_url,
-    replace_module_request_prefix,
+    css_modules_exports_to_concatenate_module_string, css_modules_exports_to_string,
+    css_parsing_traceable_error, export_locals_convention, normalize_url,
+    replace_module_request_prefix, unescape, LocalIdentOptions,
   },
-};
-use crate::{
-  dependency::{CssLayer, CssSelfReferenceLocalIdentReplacement, CssSupports},
-  utils::{export_locals_convention, unescape},
-};
-use crate::{
-  dependency::{CssMedia, CssSelfReferenceLocalIdentDependency},
-  utils::{css_modules_exports_to_string, LocalIdentOptions},
 };
 
 static REGEX_IS_MODULES: LazyLock<Regex> =
@@ -93,6 +86,7 @@ pub struct CssParserAndGenerator {
 }
 
 #[cacheable_dyn]
+#[async_trait::async_trait]
 impl ParserAndGenerator for CssParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
     if self.exports_only {
@@ -468,7 +462,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
   }
 
   #[allow(clippy::unwrap_in_result)]
-  fn generate(
+  async fn generate(
     &self,
     source: &BoxSource,
     module: &dyn rspack_core::Module,

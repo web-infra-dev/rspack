@@ -1,9 +1,11 @@
 //!  There are methods whose verb is `ChunkGraphModule`
 
-use std::borrow::Borrow;
-use std::fmt;
-use std::hash::{Hash, Hasher};
-use std::sync::Arc;
+use std::{
+  borrow::Borrow,
+  fmt,
+  hash::{Hash, Hasher},
+  sync::Arc,
+};
 
 use rspack_collections::{IdentifierSet, UkeySet};
 use rspack_hash::RspackHashDigest;
@@ -14,11 +16,10 @@ use serde::{Serialize, Serializer};
 use tracing::instrument;
 
 use crate::{
-  for_each_runtime, AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGroup, ChunkGroupByUkey,
-  ChunkGroupUkey, ChunkUkey, Compilation, ModuleGraph, ModuleIdentifier, ModuleIdsArtifact,
-  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
+  for_each_runtime, AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGraph, ChunkGroup,
+  ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier,
+  ModuleIdsArtifact, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
 };
-use crate::{ChunkGraph, Module};
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

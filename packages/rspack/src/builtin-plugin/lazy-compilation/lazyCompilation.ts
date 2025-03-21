@@ -1,4 +1,5 @@
-import { BuiltinPluginName, type JsModule } from "@rspack/binding";
+import { BuiltinPluginName } from "@rspack/binding";
+import type { Module } from "../../Module";
 
 import { create } from "../base";
 
@@ -13,7 +14,7 @@ export const BuiltinLazyCompilationPlugin = create(
 		cacheable: boolean,
 		entries: boolean,
 		imports: boolean,
-		test?: RegExp | ((m: JsModule) => boolean)
+		test?: RegExp | ((module: Module) => boolean)
 	) => ({ module, cacheable, imports, entries, test }),
 	"thisCompilation"
 );

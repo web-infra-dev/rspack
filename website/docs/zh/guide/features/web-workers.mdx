@@ -57,7 +57,7 @@ new Worker(new URL('./worker.js', import.meta.url), {
 ## worker-loader
 
 :::warning
-worker-loader 仅供作为方便项目迁移至 Rspack 的临时方案，推荐使用 `new Worker()` 语法。
+`worker-loader` 仅作为项目迁移到 Rspack 的临时便捷方案，推荐使用 `new Worker()` 语法。
 :::
 
 Rspack 也支持了 worker-loader，不过由于 [worker-loader](https://github.com/webpack-contrib/worker-loader) 已不再维护，请使用 [worker-rspack-loader](https://github.com/rspack-contrib/worker-rspack-loader) 进行替换。

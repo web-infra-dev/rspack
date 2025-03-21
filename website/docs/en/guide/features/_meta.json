@@ -1,0 +1,12 @@
+[
+  "plugin",
+  "loader",
+  "dev-server",
+  "asset-module",
+  "asset-base-path",
+  "module-resolution",
+  "module-federation",
+  "web-workers",
+  "builtin-swc-loader",
+  "builtin-lightningcss-loader"
+]

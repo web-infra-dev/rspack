@@ -591,13 +591,23 @@ The version number of the loader API. Currently 2.
 
 This is useful for providing backwards compatibility. Using the version you can specify custom logic or fallbacks for breaking changes.
 
-## this.\_compiler
+## Internal properties
+
+:::warning
+Please note that using internal Rspack properties like `this._compiler` and `this._compilation` will cause your loader to lose its independence.
+
+Ideally, loaders should focus on file transformation logic, with deterministic output for given input, without depending on Rspack's internal state. Relying on these internal objects introduces unpredictable behavior, making testing and maintenance more difficult.
+
+Therefore, it's recommended to consider using these properties only when there are no other alternatives.
+:::
+
+### this.\_compiler
 
 - **Type:** `Compiler`
 
 Access to the current [Compiler](/api/javascript-api/compiler) object of Rspack.
 
-## this.\_compilation
+### this.\_compilation
 
 - **Type:** `Compilation`
 

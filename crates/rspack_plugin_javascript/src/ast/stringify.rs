@@ -4,9 +4,8 @@ use rspack_ast::javascript::Ast;
 use rspack_core::rspack_sources::{self, encode_mappings, Mapping, OriginalLocation};
 use rspack_error::{miette::IntoDiagnostic, Result};
 use rustc_hash::FxHashMap;
-use swc_core::base::config::JsMinifyFormatOptions;
-use swc_core::base::sourcemap;
 use swc_core::{
+  base::{config::JsMinifyFormatOptions, sourcemap},
   common::{comments::Comments, source_map::SourceMapGenConfig, BytePos, FileName, SourceMap},
   ecma::{
     ast::{EsVersion, Program as SwcProgram},

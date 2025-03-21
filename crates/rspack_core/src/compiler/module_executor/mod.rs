@@ -10,24 +10,27 @@ pub use execute::{ExecuteModuleId, ExecutedRuntimeModule};
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierDashSet};
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use tokio::sync::{
-  mpsc::{unbounded_channel, UnboundedSender},
-  oneshot,
+use tokio::{
+  sync::{
+    mpsc::{unbounded_channel, UnboundedSender},
+    oneshot,
+  },
+  task,
 };
-use tokio::task;
 
 use self::{
   ctrl::{CtrlTask, Event, ExecuteParam},
   execute::{ExecuteModuleResult, ExecuteTask},
   overwrite::OverwriteTask,
 };
-use super::make::cutout::Cutout;
-use super::make::repair::repair;
-use super::make::{repair::MakeTaskContext, MakeArtifact, MakeParam};
-use crate::cache::MemoryCache;
+use super::make::{
+  cutout::Cutout,
+  repair::{repair, MakeTaskContext},
+  MakeArtifact, MakeParam,
+};
 use crate::{
-  task_loop::run_task_loop_with_event, Compilation, CompilationAsset, Context, Dependency,
-  DependencyId, LoaderImportDependency, PublicPath,
+  cache::MemoryCache, task_loop::run_task_loop_with_event, Compilation, CompilationAsset, Context,
+  Dependency, DependencyId, LoaderImportDependency, PublicPath,
 };
 
 #[derive(Debug)]

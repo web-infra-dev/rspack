@@ -15,13 +15,16 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{Mode, RunnerContext};
 use rspack_error::{error, AnyhowError, Diagnostic, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
-use rspack_plugin_javascript::ast::{self, SourceMapConfig};
-use rspack_plugin_javascript::TransformOutput;
+use rspack_plugin_javascript::{
+  ast::{self, SourceMapConfig},
+  TransformOutput,
+};
 use rspack_util::source_map::SourceMapKind;
 use swc_config::{config_types::MergingOption, merge::Merge};
-use swc_core::base::config::SourceMapsConfig;
-use swc_core::base::config::{InputSourceMap, OutputCharset, TransformConfig};
-use swc_core::ecma::visit::VisitWith;
+use swc_core::{
+  base::config::{InputSourceMap, OutputCharset, SourceMapsConfig, TransformConfig},
+  ecma::visit::VisitWith,
+};
 use transformer::IdentCollector;
 
 #[cacheable]

@@ -5,10 +5,12 @@ use rayon::iter::{
   ParallelIterator,
 };
 use rspack_collections::{DatabaseItem, IdentifierSet};
-use rspack_error::emitter::{
-  DiagnosticDisplay, DiagnosticDisplayer, StdioDiagnosticDisplay, StringDiagnosticDisplay,
+use rspack_error::{
+  emitter::{
+    DiagnosticDisplay, DiagnosticDisplayer, StdioDiagnosticDisplay, StringDiagnosticDisplay,
+  },
+  Result,
 };
-use rspack_error::Result;
 use rustc_hash::FxHashMap as HashMap;
 
 mod utils;

@@ -1,10 +1,9 @@
 use rayon::prelude::*;
-use rspack_core::chunk_graph_chunk::ChunkId;
-use rspack_core::rspack_sources::{
-  BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
-};
 use rspack_core::{
-  get_undo_path, to_normal_comment, BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey,
+  chunk_graph_chunk::ChunkId,
+  get_undo_path,
+  rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
+  to_normal_comment, BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationPublicPathAutoReplace, Compilation, RuntimeGlobals, SourceType,
 };
 use rspack_error::{error, Result};
@@ -15,28 +14,43 @@ use crate::{JsPlugin, RenderSource};
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__";
 
-pub fn render_chunk_modules(
+pub async fn render_chunk_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   ordered_modules: &Vec<&BoxModule>,
   all_strict: bool,
   output_path: &str,
 ) -> Result<Option<(BoxSource, ChunkInitFragments)>> {
-  let mut module_code_array = ordered_modules
-    .par_iter()
-    .filter_map(|module| {
-      render_module(
-        compilation,
-        chunk_ukey,
-        module,
-        all_strict,
-        true,
-        output_path,
-      )
-      .transpose()
-      .map(|result| result.map(|(s, f, a)| (module.identifier(), s, f, a)))
-    })
-    .collect::<Result<Vec<_>>>()?;
+  let module_sources = rspack_futures::scope::<_, _>(|token| {
+    ordered_modules.iter().for_each(|module| {
+      let s = unsafe { token.used((compilation, chunk_ukey, module, all_strict, output_path)) };
+      s.spawn(
+        |(compilation, chunk_ukey, module, all_strict, output_path)| async move {
+          render_module(
+            compilation,
+            chunk_ukey,
+            module,
+            all_strict,
+            true,
+            output_path,
+          )
+          .await
+          .map(|result| result.map(|(s, f, a)| (module.identifier(), s, f, a)))
+        },
+      );
+    });
+  })
+  .await
+  .into_iter()
+  .map(|res| res.map_err(rspack_error::miette::Error::from_err))
+  .collect::<Result<Vec<_>>>()?;
+
+  let mut module_code_array = vec![];
+  for item in module_sources {
+    if let Some(i) = item? {
+      module_code_array.push(i);
+    }
+  }
 
   if module_code_array.is_empty() {
     return Ok(None);
@@ -73,7 +87,7 @@ pub fn render_chunk_modules(
   Ok(Some((sources.boxed(), chunk_init_fragments)))
 }
 
-pub fn render_module(
+pub async fn render_module(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   module: &BoxModule,
@@ -130,12 +144,15 @@ pub fn render_module(
     }
   };
 
-  hooks.render_module_content.call(
-    compilation,
-    module,
-    &mut render_source,
-    &mut module_chunk_init_fragments,
-  )?;
+  hooks
+    .render_module_content
+    .call(
+      compilation,
+      module,
+      &mut render_source,
+      &mut module_chunk_init_fragments,
+    )
+    .await?;
 
   let sources = if factory {
     let mut sources = ConcatSource::default();
@@ -222,33 +239,42 @@ pub fn render_module(
       }
     };
 
-    hooks.render_module_container.call(
-      compilation,
-      module,
-      &mut post_module_container,
-      &mut module_chunk_init_fragments,
-    )?;
+    hooks
+      .render_module_container
+      .call(
+        compilation,
+        module,
+        &mut post_module_container,
+        &mut module_chunk_init_fragments,
+      )
+      .await?;
 
     let mut post_module_package = post_module_container;
 
-    hooks.render_module_package.call(
-      compilation,
-      chunk_ukey,
-      module,
-      &mut post_module_package,
-      &mut module_chunk_init_fragments,
-    )?;
+    hooks
+      .render_module_package
+      .call(
+        compilation,
+        chunk_ukey,
+        module,
+        &mut post_module_package,
+        &mut module_chunk_init_fragments,
+      )
+      .await?;
 
     sources.add(post_module_package.source);
     sources.boxed()
   } else {
-    hooks.render_module_package.call(
-      compilation,
-      chunk_ukey,
-      module,
-      &mut render_source,
-      &mut module_chunk_init_fragments,
-    )?;
+    hooks
+      .render_module_package
+      .call(
+        compilation,
+        chunk_ukey,
+        module,
+        &mut render_source,
+        &mut module_chunk_init_fragments,
+      )
+      .await?;
 
     render_source.source
   };
@@ -260,11 +286,11 @@ pub fn render_module(
   )))
 }
 
-pub fn render_chunk_runtime_modules(
+pub async fn render_chunk_runtime_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
 ) -> Result<BoxSource> {
-  let runtime_modules_sources = render_runtime_modules(compilation, chunk_ukey)?;
+  let runtime_modules_sources = render_runtime_modules(compilation, chunk_ukey).await?;
   if runtime_modules_sources.source().is_empty() {
     return Ok(runtime_modules_sources);
   }
@@ -279,70 +305,85 @@ pub fn render_chunk_runtime_modules(
   Ok(sources.boxed())
 }
 
-pub fn render_runtime_modules(
+pub async fn render_runtime_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
 ) -> Result<BoxSource> {
   let mut sources = ConcatSource::default();
-  compilation
-    .chunk_graph
-    .get_chunk_runtime_modules_in_order(chunk_ukey, compilation)
-    .map(|(identifier, runtime_module)| {
-      (
-        compilation
-          .runtime_modules_code_generation_source
-          .get(identifier)
-          .expect("should have runtime module result"),
-        runtime_module,
-      )
-    })
-    .try_for_each(|(source, module)| -> Result<()> {
-      if source.size() == 0 {
-        return Ok(());
-      }
-      if is_diff_mode() {
-        sources.add(RawStringSource::from(format!(
-          "/* start::{} */\n",
-          module.identifier()
-        )));
-      } else {
-        sources.add(RawStringSource::from(format!(
-          "// {}\n",
-          module.identifier()
-        )));
-      }
-      let supports_arrow_function = compilation
-        .options
-        .output
-        .environment
-        .supports_arrow_function();
-      if module.should_isolate() {
-        sources.add(RawStringSource::from(if supports_arrow_function {
-          "(() => {\n"
-        } else {
-          "!function() {\n"
-        }));
-      }
-      if !(module.full_hash() || module.dependent_hash()) {
-        sources.add(source.clone());
-      } else {
-        sources.add(module.generate_with_custom(compilation)?);
-      }
-      if module.should_isolate() {
-        sources.add(RawStringSource::from(if supports_arrow_function {
-          "\n})();\n"
-        } else {
-          "\n}();\n"
-        }));
-      }
-      if is_diff_mode() {
-        sources.add(RawStringSource::from(format!(
-          "/* end::{} */\n",
-          module.identifier()
-        )));
-      }
-      Ok(())
-    })?;
+  let runtime_module_sources = rspack_futures::scope::<_, Result<_>>(|token| {
+    compilation
+      .chunk_graph
+      .get_chunk_runtime_modules_in_order(chunk_ukey, compilation)
+      .map(|(identifier, runtime_module)| {
+        (
+          compilation
+            .runtime_modules_code_generation_source
+            .get(identifier)
+            .expect("should have runtime module result"),
+          runtime_module,
+        )
+      })
+      .for_each(|(source, module)| {
+        let s = unsafe { token.used((compilation, source, module)) };
+        s.spawn(|(compilation, source, module)| async move {
+          let mut sources = ConcatSource::default();
+          if source.size() == 0 {
+            return Ok(sources);
+          }
+          if is_diff_mode() {
+            sources.add(RawStringSource::from(format!(
+              "/* start::{} */\n",
+              module.identifier()
+            )));
+          } else {
+            sources.add(RawStringSource::from(format!(
+              "// {}\n",
+              module.identifier()
+            )));
+          }
+          let supports_arrow_function = compilation
+            .options
+            .output
+            .environment
+            .supports_arrow_function();
+          if module.should_isolate() {
+            sources.add(RawStringSource::from(if supports_arrow_function {
+              "(() => {\n"
+            } else {
+              "!function() {\n"
+            }));
+          }
+          if !(module.full_hash() || module.dependent_hash()) {
+            sources.add(source.clone());
+          } else {
+            sources.add(module.generate_with_custom(compilation).await?);
+          }
+          if module.should_isolate() {
+            sources.add(RawStringSource::from(if supports_arrow_function {
+              "\n})();\n"
+            } else {
+              "\n}();\n"
+            }));
+          }
+          if is_diff_mode() {
+            sources.add(RawStringSource::from(format!(
+              "/* end::{} */\n",
+              module.identifier()
+            )));
+          }
+          Ok(sources)
+        });
+      })
+  })
+  .await
+  .into_iter()
+  .map(|res| res.map_err(rspack_error::miette::Error::from_err))
+  .collect::<Result<Vec<_>>>()?;
+
+  for runtime_module_source in runtime_module_sources {
+    sources.add(runtime_module_source?);
+  }
+
   Ok(sources.boxed())
 }
 

@@ -13,8 +13,7 @@ use rspack_core::{
 use rspack_util::{infallible::ResultInfallibleExt, itoa};
 use rustc_hash::FxHashMap;
 
-use super::stringify_dynamic_chunk_map;
-use super::stringify_static_chunk_map;
+use super::{stringify_dynamic_chunk_map, stringify_static_chunk_map};
 use crate::{get_chunk_runtime_requirements, runtime_module::unquoted_stringify};
 
 type GetChunkFilenameAllChunks = Box<dyn Fn(&RuntimeGlobals) -> bool + Sync + Send>;
@@ -73,6 +72,7 @@ impl GetChunkFilenameRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for GetChunkFilenameRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
@@ -89,7 +89,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     true
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunks = self
       .chunk
       .and_then(|chunk_ukey| compilation.chunk_by_ukey.get(&chunk_ukey))

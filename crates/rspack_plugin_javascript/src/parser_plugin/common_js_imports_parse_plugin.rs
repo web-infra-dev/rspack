@@ -1,24 +1,26 @@
 use rspack_core::{
-  ConstDependency, ContextDependency, ContextMode, DependencyCategory, DependencyRange, SpanExt,
+  ConstDependency, ContextDependency, ContextMode, ContextNameSpaceObject, ContextOptions,
+  DependencyCategory, DependencyRange, SpanExt,
 };
-use rspack_core::{ContextNameSpaceObject, ContextOptions};
 use rspack_error::{DiagnosticExt, Severity};
-use swc_core::common::{Span, Spanned};
-use swc_core::ecma::ast::{CallExpr, Expr, ExprOrSpread, Ident, MemberExpr, NewExpr, UnaryExpr};
+use swc_core::{
+  common::{Span, Spanned},
+  ecma::ast::{CallExpr, Expr, ExprOrSpread, Ident, MemberExpr, NewExpr, UnaryExpr},
+};
 
 use super::JavascriptParserPlugin;
-use crate::dependency::local_module_dependency::LocalModuleDependency;
-use crate::dependency::{
-  CommonJsFullRequireDependency, CommonJsRequireContextDependency, CommonJsRequireDependency,
-  RequireHeaderDependency, RequireResolveContextDependency, RequireResolveDependency,
-  RequireResolveHeaderDependency,
+use crate::{
+  dependency::{
+    local_module_dependency::LocalModuleDependency, CommonJsFullRequireDependency,
+    CommonJsRequireContextDependency, CommonJsRequireDependency, RequireHeaderDependency,
+    RequireResolveContextDependency, RequireResolveDependency, RequireResolveHeaderDependency,
+  },
+  utils::eval::{self, BasicEvaluatedExpression},
+  visitors::{
+    context_reg_exp, create_context_dependency, create_traceable_error, expr_matcher, expr_name,
+    extract_require_call_info, is_require_call_start, JavascriptParser,
+  },
 };
-use crate::utils::eval::{self, BasicEvaluatedExpression};
-use crate::visitors::{
-  context_reg_exp, create_context_dependency, create_traceable_error, expr_matcher, expr_name,
-  JavascriptParser,
-};
-use crate::visitors::{extract_require_call_info, is_require_call_start};
 
 fn create_commonjs_require_context_dependency(
   parser: &mut JavascriptParser,

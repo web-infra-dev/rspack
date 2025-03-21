@@ -30,7 +30,6 @@ ignored = [
 anyhow             = { version = "1.0.95", features = ["backtrace"] }
 anymap             = { package = "anymap3", version = "1.0.1" }
 async-recursion    = { version = "1.1.1" }
-async-scoped       = { version = "0.9.0" }
 async-trait        = { version = "0.1.84" }
 bitflags           = { version = "2.6.0" }
 camino             = { version = "1.1.9" }
@@ -51,7 +50,7 @@ indoc              = { version = "2.0.5" }
 insta              = { version = "1.42.0" }
 itertools          = { version = "0.14.0" }
 json               = { version = "0.12.4" }
-lightningcss       = { version = "1.0.0-alpha.64" }
+lightningcss       = { version = "1.0.0-alpha.64", default-features = false, features = ["grid", "serde"] }
 linked_hash_set    = { version = "0.1.5" }
 mimalloc           = { version = "0.2.3", package = "mimalloc-rspack" }
 mime_guess         = { version = "2.0.5" }
@@ -60,14 +59,13 @@ parcel_sourcemap   = { version = "2.1.1" }
 paste              = { version = "1.0.15" }
 path-clean         = { version = "1.0.1" }
 pathdiff           = { version = "0.2.3" }
-pollster           = { version = "0.4.0" }
 proc-macro2        = { version = "1.0.92" }
 quote              = { version = "1.0.38" }
 rayon              = { version = "1.10.0" }
 regex              = { version = "1.11.1" }
 ropey              = "1.6.1"
-rspack_resolver    = { features = ["package_json_raw_json_api"], version = "0.5.2" }
-rspack_sources     = { version = "0.4.7" }
+rspack_resolver    = { features = ["package_json_raw_json_api"], version = "0.5.3" }
+rspack_sources     = { version = "0.4.8" }
 rustc-hash         = { version = "2.1.0" }
 serde              = { version = "1.0.217" }
 serde_json         = { version = "1.0.134" }
@@ -77,7 +75,7 @@ smol_str           = { version = "0.3.0" }
 stacker            = { version = "0.1.17" }
 sugar_path         = { version = "1.2.0", features = ["cached_current_dir"] }
 syn                = { version = "2.0.95" }
-tokio              = { version = "1.42.0" }
+tokio              = { version = "1.42.0", features = ["rt-multi-thread", "rt"] }
 tracing            = { version = "0.1.41" }
 tracing-subscriber = { version = "0.3.19" }
 unicase            = { version = "2.8.1" }
@@ -96,14 +94,14 @@ inventory = { version = "0.3.17" }
 rkyv      = { version = "=0.8.8" }
 
 # Must be pinned with the same swc versions
-swc                 = { version = "=14.0.0" }
+swc                 = { version = "=16.1.1" }
 swc_config          = { version = "=2.0.0" }
-swc_core            = { version = "=14.0.1", default-features = false }
-swc_ecma_minifier   = { version = "=11.0.0", default-features = false }
-swc_error_reporters = { version = "=8.0.0" }
-swc_html            = { version = "=11.0.0" }
-swc_html_minifier   = { version = "=11.0.0", default-features = false }
-swc_node_comments   = { version = "=7.0.0" }
+swc_core            = { version = "=16.7.0", default-features = false }
+swc_ecma_minifier   = { version = "=12.2.0", default-features = false }
+swc_error_reporters = { version = "=9.1.0" }
+swc_html            = { version = "=12.0.0" }
+swc_html_minifier   = { version = "=12.0.0", default-features = false }
+swc_node_comments   = { version = "=8.0.0" }
 
 pnp = { version = "0.9.0" }
 
@@ -124,7 +122,6 @@ rspack_core                            = { version = "0.2.0", path = "crates/rsp
 rspack_deps_graph                      = { version = "0.2.0", path = "crates/rspack_deps_graph" }
 rspack_error                           = { version = "0.2.0", path = "crates/rspack_error" }
 rspack_fs                              = { version = "0.2.0", path = "crates/rspack_fs" }
-rspack_fs_node                         = { version = "0.2.0", path = "crates/rspack_fs_node" }
 rspack_futures                         = { version = "0.2.0", path = "crates/rspack_futures" }
 rspack_hash                            = { version = "0.2.0", path = "crates/rspack_hash" }
 rspack_hook                            = { version = "0.2.0", path = "crates/rspack_hook" }
@@ -374,8 +371,7 @@ opt-level = "s"
 [profile.ci]
 codegen-units = 256
 inherits      = "release"
-## reduce little optimization to reduce build time
-lto = "thin"
+lto           = false
 ## reduce little optimization to reduce build time
 opt-level = 2
 

@@ -28,7 +28,7 @@ import type { Compiler } from "./Compiler";
 import type { ContextModuleFactory } from "./ContextModuleFactory";
 import { Entrypoint } from "./Entrypoint";
 import { cutOffLoaderExecution } from "./ErrorHelpers";
-import { type CodeGenerationResult, Module } from "./Module";
+import type { CodeGenerationResult, Module } from "./Module";
 import ModuleGraph from "./ModuleGraph";
 import type { NormalModuleFactory } from "./NormalModuleFactory";
 import type { ResolverFactory } from "./ResolverFactory";
@@ -439,15 +439,11 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	get modules(): ReadonlySet<Module> {
-		return new Set(
-			this.#inner.modules.map(module => Module.__from_binding(module))
-		);
+		return new Set(this.#inner.modules);
 	}
 
 	get builtModules(): ReadonlySet<Module> {
-		return new Set(
-			this.#inner.builtModules.map(module => Module.__from_binding(module))
-		);
+		return new Set(this.#inner.builtModules);
 	}
 
 	get chunks(): ReadonlySet<Chunk> {
@@ -1069,7 +1065,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		(moduleIdentifiers, doneWork) => {
 			this.#inner.rebuildModule(
 				moduleIdentifiers,
-				(err: Error | null, modules: binding.JsModule[]) => {
+				(err: Error | null, modules: Module[]) => {
 					/*
 					 * 	TODO:
 					 *	batch all call parameters, once a module is failed, we cannot know which module
@@ -1079,17 +1075,18 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					if (err) {
 						doneWork(new Array(moduleIdentifiers.length).fill([err, null]));
 					} else {
-						doneWork(
-							modules.map(jsModule => [null, Module.__from_binding(jsModule)])
-						);
+						doneWork(modules.map(module => [null, module]));
 					}
 				}
 			);
 		}
 	);
 
-	rebuildModule(m: Module, f: (err: Error | null, m: Module | null) => void) {
-		this.#rebuildModuleTask.exec(m.identifier(), f);
+	rebuildModule(
+		module: Module,
+		f: (err: Error | null, module: Module | null) => void
+	) {
+		this.#rebuildModuleTask.exec(module.identifier(), f);
 	}
 
 	addRuntimeModule(chunk: Chunk, runtimeModule: RuntimeModule) {
@@ -1256,12 +1253,9 @@ class AddIncludeDispatcher {
 				return;
 			}
 			for (let i = 0; i < results.length; i++) {
-				const [errMsg, moduleBinding] = results[i];
+				const [errMsg, module] = results[i];
 				const cb = cbs[i];
-				cb(
-					errMsg ? new WebpackError(errMsg) : null,
-					moduleBinding ? Module.__from_binding(moduleBinding) : undefined
-				);
+				cb(errMsg ? new WebpackError(errMsg) : null, module);
 			}
 		});
 	};

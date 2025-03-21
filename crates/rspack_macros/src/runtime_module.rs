@@ -29,7 +29,7 @@ pub fn impl_runtime_module(
       syn::Field::parse_named
             .parse2(quote! {
                 #[cacheable(with=rspack_cacheable::with::Skip)]
-                pub cached_generated_code: std::sync::RwLock<Option<::rspack_core::rspack_sources::BoxSource>>
+                pub cached_generated_code: std::sync::Arc<std::sync::RwLock<Option<::rspack_core::rspack_sources::BoxSource>>>
             })
         .expect("Failed to parse new field for cached_generated_code"),
     );
@@ -59,7 +59,7 @@ pub fn impl_runtime_module(
     impl #impl_generics #name #ty_generics #where_clause {
       #with_default
 
-      fn get_generated_code(
+      async fn get_generated_code(
         &self,
         compilation: &::rspack_core::Compilation,
       ) -> ::rspack_error::Result<std::sync::Arc<dyn ::rspack_core::rspack_sources::Source>> {
@@ -69,9 +69,11 @@ pub fn impl_runtime_module(
             return Ok(cached_generated_code.clone());
           }
         }
-        let mut cached_generated_code = self.cached_generated_code.write().expect("Failed to acquire write lock on cached_generated_code");
-        let source = self.generate_with_custom(compilation)?;
-        *cached_generated_code = Some(source.clone());
+        let source = self.generate_with_custom(compilation).await?;
+        {
+          let mut cached_generated_code = self.cached_generated_code.write().expect("Failed to acquire write lock on cached_generated_code");
+          *cached_generated_code = Some(source.clone());
+        }
         Ok(source)
       }
     }
@@ -117,6 +119,7 @@ pub fn impl_runtime_module(
     }
 
     #[rspack_cacheable::cacheable_dyn]
+    #[async_trait::async_trait]
     impl #impl_generics ::rspack_core::Module for #name #ty_generics #where_clause {
       fn module_type(&self) -> &::rspack_core::ModuleType {
         &::rspack_core::ModuleType::Runtime
@@ -128,7 +131,14 @@ pub fn impl_runtime_module(
 
       fn size(&self, _source_type: Option<&::rspack_core::SourceType>, compilation: Option<&::rspack_core::Compilation>) -> f64 {
         match compilation {
-          Some(compilation) => self.get_generated_code(compilation).ok().map(|source| source.size() as f64).unwrap_or(0f64),
+          Some(compilation) => {
+            let mut cached_generated_code = self.cached_generated_code.read().expect("Failed to acquire read lock on cached_generated_code");
+            if let Some(cached_generated_code) = (*cached_generated_code).as_ref() {
+              cached_generated_code.size() as f64
+            } else {
+              panic!("get size of runtime module before code generation")
+            }
+          },
           None => 0f64
         }
       }
@@ -163,32 +173,44 @@ pub fn impl_runtime_module(
         unreachable!()
       }
 
-      fn code_generation(
+      async fn code_generation(
         &self,
         compilation: &::rspack_core::Compilation,
         _runtime: Option<&::rspack_core::RuntimeSpec>,
         _: Option<::rspack_core::ConcatenationScope>,
       ) -> rspack_error::Result<::rspack_core::CodeGenerationResult> {
         let mut result = ::rspack_core::CodeGenerationResult::default();
-        result.add(::rspack_core::SourceType::Runtime, self.get_generated_code(compilation)?);
+        result.add(::rspack_core::SourceType::Runtime, self.get_generated_code(compilation).await?);
         Ok(result)
       }
 
       fn update_hash(
         &self,
-        hasher: &mut dyn std::hash::Hasher,
-        compilation: &::rspack_core::Compilation,
+        _hasher: &mut dyn std::hash::Hasher,
+        _compilation: &::rspack_core::Compilation,
         _runtime: Option<&::rspack_core::RuntimeSpec>,
       ) -> ::rspack_error::Result<()> {
+        unreachable!()
+      }
+    }
+
+    #[async_trait::async_trait]
+    impl #impl_generics ::rspack_core::AsyncHashRuntimeModule for #name #ty_generics #where_clause {
+      async fn get_hash_async(
+        &self,
+        compilation: &::rspack_core::Compilation,
+      ) -> rspack_error::Result<String> {
         use rspack_util::ext::DynHash;
-        self.name().dyn_hash(hasher);
-        self.stage().dyn_hash(hasher);
+        let mut hasher = rspack_hash::RspackHash::from(&compilation.options.output);
+        self.name().dyn_hash(&mut hasher);
+        self.stage().dyn_hash(&mut hasher);
         if self.full_hash() || self.dependent_hash() {
-          self.generate_with_custom(compilation)?.dyn_hash(hasher);
+          self.generate_with_custom(compilation).await?.dyn_hash(&mut hasher);
         } else {
-          self.get_generated_code(compilation)?.dyn_hash(hasher);
+          self.get_generated_code(compilation).await?.dyn_hash(&mut hasher);
         }
-        Ok(())
+        let digest = hasher.digest(&compilation.options.output.hash_digest);
+        Ok(digest.encoded().to_string())
       }
     }
 

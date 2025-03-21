@@ -1,6 +1,8 @@
 use swc_core::{common::DUMMY_SP, ecma::atoms::Atom};
-use swc_html::ast::{Child, Element, Text};
-use swc_html::visit::{VisitMut, VisitMutWith};
+use swc_html::{
+  ast::{Child, Element, Text},
+  visit::{VisitMut, VisitMutWith},
+};
 
 use crate::tag::HtmlPluginTag;
 

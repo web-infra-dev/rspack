@@ -33,29 +33,27 @@ macro_rules! expect {
   };
 }
 
-use std::borrow::Cow;
-use std::future::ready;
-use std::sync::Arc;
+use std::{borrow::Cow, future::ready, sync::Arc};
 
 use builder_context::BuiltinPluginOptions;
 use devtool::DevtoolFlags;
 use externals::ExternalsPresets;
 use indexmap::IndexMap;
-use rspack_core::{incremental::IncrementalPasses, ModuleType};
 use rspack_core::{
-  AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions, BoxPlugin, ByDependency,
-  CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, Compiler, CompilerOptions, Context,
-  CrossOriginLoading, CssAutoGeneratorOptions, CssAutoParserOptions, CssExportsConvention,
-  CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions, CssParserOptions,
-  DynamicImportMode, EntryDescription, EntryOptions, EntryRuntime, Environment,
-  ExperimentCacheOptions, Experiments, ExternalItem, ExternalType, Filename, FilenameTemplate,
-  GeneratorOptions, GeneratorOptionsMap, JavascriptParserOptions, JavascriptParserOrder,
-  JavascriptParserUrl, JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions,
-  LibraryType, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule,
-  ModuleRuleEffect, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption,
-  Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PublicPath,
-  Resolve, RspackFuture, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption,
-  StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
+  incremental::IncrementalPasses, AssetParserDataUrl, AssetParserDataUrlOptions,
+  AssetParserOptions, BoxPlugin, ByDependency, CacheOptions, ChunkLoading, ChunkLoadingType,
+  CleanOptions, Compiler, CompilerOptions, Context, CrossOriginLoading, CssAutoGeneratorOptions,
+  CssAutoParserOptions, CssExportsConvention, CssGeneratorOptions, CssModuleGeneratorOptions,
+  CssModuleParserOptions, CssParserOptions, DynamicImportMode, EntryDescription, EntryOptions,
+  EntryRuntime, Environment, ExperimentCacheOptions, Experiments, ExternalItem, ExternalType,
+  Filename, FilenameTemplate, GeneratorOptions, GeneratorOptionsMap, JavascriptParserOptions,
+  JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName,
+  LibraryNonUmdObject, LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules,
+  ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
+  NodeGlobalOption, NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions,
+  ParserOptionsMap, PathInfo, PublicPath, Resolve, RspackFuture, RuleSetCondition,
+  RuleSetLogicalConditions, SideEffectOption, StatsOptions, TrustedTypes, UsedExportsOption,
+  WasmLoading, WasmLoadingType,
 };
 use rspack_error::{
   miette::{self, Diagnostic},
@@ -388,8 +386,7 @@ impl CompilerBuilder {
   ///
   /// ```rust
   /// use rspack::builder::{Builder as _, ExperimentsBuilder};
-  /// use rspack_core::incremental::IncrementalPasses;
-  /// use rspack_core::{Compiler, Experiments};
+  /// use rspack_core::{incremental::IncrementalPasses, Compiler, Experiments};
   ///
   /// // Using builder without calling `build()`
   /// let compiler = Compiler::builder()
@@ -860,8 +857,7 @@ impl CompilerOptionsBuilder {
   ///
   /// ```rust
   /// use rspack::builder::{Builder as _, ExperimentsBuilder};
-  /// use rspack_core::incremental::IncrementalPasses;
-  /// use rspack_core::{Compiler, Experiments};
+  /// use rspack_core::{incremental::IncrementalPasses, Compiler, Experiments};
   ///
   /// // Using builder without calling `build()`
   /// let compiler = Compiler::builder()
@@ -1720,9 +1716,17 @@ impl ModuleOptionsBuilder {
       );
     }
 
-    if css {
-      let generator = self.generator.get_or_insert(GeneratorOptionsMap::default());
+    let generator = self.generator.get_or_insert(GeneratorOptionsMap::default());
+    if !generator.contains_key("json") {
+      generator.insert(
+        "json".to_string(),
+        GeneratorOptions::Json(JsonGeneratorOptions {
+          json_parse: Some(true),
+        }),
+      );
+    }
 
+    if css {
       let css_parser_options = ParserOptions::Css(CssParserOptions {
         named_exports: Some(true),
       });

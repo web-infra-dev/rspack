@@ -3,8 +3,7 @@ use std::{iter::once, sync::atomic::AtomicU32};
 use itertools::Itertools;
 use rspack_collections::{DatabaseItem, Identifier, IdentifierSet, UkeySet};
 use rspack_paths::ArcPath;
-use rustc_hash::FxHashMap as HashMap;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::oneshot::Sender;
 
 use crate::{
@@ -159,7 +158,9 @@ impl Task<MakeTaskContext> for ExecuteTask {
 
     compilation.create_module_hashes(modules.clone())?;
 
-    compilation.code_generation_modules(&mut None, modules.clone())?;
+    compilation
+      .code_generation_modules(&mut None, modules.clone())
+      .await?;
     compilation
       .process_modules_runtime_requirements(modules.clone(), compilation.plugin_driver.clone())
       .await?;
@@ -188,7 +189,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
         .get(runtime_id)
         .expect("runtime module exist");
 
-      let runtime_module_source = runtime_module.generate(&compilation)?;
+      let runtime_module_source = runtime_module.generate(&compilation).await?;
       runtime_module_size.insert(
         runtime_module.identifier(),
         runtime_module_source.size() as f64,

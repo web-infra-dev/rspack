@@ -2,22 +2,21 @@ use std::hash::Hash;
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
-use rspack_core::rspack_sources::BoxSource;
 use rspack_core::{
-  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
   AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, CompilerOptions, ConcatenationScope, DependenciesBlock,
   DependencyId, FactoryMeta, Module, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
   RuntimeSpec, SourceType,
 };
-use rspack_error::impl_empty_diagnosable_trait;
-use rspack_error::Result;
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_util::ext::DynHash;
-use rspack_util::itoa;
+use rspack_util::{ext::DynHash, itoa};
 
-use crate::css_dependency::CssDependency;
-use crate::plugin::{MODULE_TYPE, SOURCE_TYPE};
+use crate::{
+  css_dependency::CssDependency,
+  plugin::{MODULE_TYPE, SOURCE_TYPE},
+};
 
 #[impl_source_map_config]
 #[cacheable]
@@ -170,7 +169,7 @@ impl Module for CssModule {
   }
 
   // #[tracing::instrument("ExtractCssModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
-  fn code_generation(
+  async fn code_generation(
     &self,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,

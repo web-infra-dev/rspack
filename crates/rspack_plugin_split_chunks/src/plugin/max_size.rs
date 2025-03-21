@@ -10,12 +10,11 @@
 use std::sync::LazyLock;
 use std::{borrow::Cow, hash::Hash};
 
-use rayon::prelude::*;
 use regex::Regex;
 use rspack_collections::{DatabaseItem, UkeyMap};
-use rspack_core::incremental::Mutation;
 use rspack_core::{
-  ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier, SourceType, DEFAULT_DELIMITER,
+  incremental::Mutation, ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier,
+  SourceType, DEFAULT_DELIMITER,
 };
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -445,11 +444,11 @@ fn subtract_size_from(total: &mut SplitChunkSizes, size: &SplitChunkSizes) {
   });
 }
 
-struct ChunkWithSizeInfo<'a> {
+struct ChunkWithSizeInfo {
   pub chunk: ChunkUkey,
-  pub allow_max_size: Cow<'a, SplitChunkSizes>,
-  pub min_size: &'a SplitChunkSizes,
-  pub automatic_name_delimiter: &'a String,
+  pub allow_max_size: SplitChunkSizes,
+  pub min_size: SplitChunkSizes,
+  pub automatic_name_delimiter: String,
 }
 
 fn get_similarities(nodes: &[GroupItem]) -> Vec<usize> {
@@ -480,89 +479,122 @@ fn similarity(a: &str, b: &str) -> usize {
 impl SplitChunksPlugin {
   /// Affected by `splitChunks.minSize`/`splitChunks.cacheGroups.{cacheGroup}.minSize`
   // #[tracing::instrument(skip_all)]
-  pub(super) fn ensure_max_size_fit(
+  pub(super) async fn ensure_max_size_fit(
     &self,
     compilation: &mut Compilation,
-    max_size_setting_map: UkeyMap<ChunkUkey, MaxSizeSetting>,
+    max_size_setting_map: &UkeyMap<ChunkUkey, MaxSizeSetting>,
   ) -> Result<()> {
     let fallback_cache_group = &self.fallback_cache_group;
     let chunk_group_db = &compilation.chunk_group_by_ukey;
     let compilation_ref = &*compilation;
 
-    let chunks_with_size_info = compilation_ref
-    .chunk_by_ukey
-    .values()
-    .par_bridge()
-    .map(|chunk| {
-      let max_size_setting = max_size_setting_map.get(&chunk.ukey());
-      tracing::trace!("max_size_setting : {max_size_setting:#?} for {:?}", chunk.ukey());
-
-      if max_size_setting.is_none()
-        && !(fallback_cache_group.chunks_filter)(chunk, compilation)?
-      {
-        tracing::debug!("Chunk({:?}) skips `maxSize` checking. Reason: max_size_setting.is_none() and chunks_filter is false", chunk.chunk_reason());
-        return Ok(None);
-      }
-
-      let min_size = max_size_setting
-        .map(|s| &s.min_size)
-        .unwrap_or(&fallback_cache_group.min_size);
-      let max_async_size = max_size_setting
-        .map(|s| &s.max_async_size)
-        .unwrap_or(&fallback_cache_group.max_async_size);
-      let max_initial_size: &SplitChunkSizes = max_size_setting
-        .map(|s| &s.max_initial_size)
-        .unwrap_or(&fallback_cache_group.max_initial_size);
-      let automatic_name_delimiter = max_size_setting.map(|s| &s.automatic_name_delimiter).unwrap_or(&fallback_cache_group.automatic_name_delimiter);
-
-      let mut allow_max_size = if chunk.is_only_initial(chunk_group_db) {
-        Cow::Borrowed(max_initial_size)
-      } else if chunk.can_be_initial(chunk_group_db) {
-        let mut sizes = SplitChunkSizes::empty();
-        sizes.combine_with(max_async_size, &f64::min);
-        sizes.combine_with(max_initial_size, &f64::min);
-        Cow::Owned(sizes)
-      } else {
-        Cow::Borrowed(max_async_size)
-      };
-
-      // Fast path
-      if allow_max_size.is_empty() {
-        tracing::debug!(
-          "Chunk({:?}) skips the `maxSize` checking. Reason: allow_max_size is empty",
-          chunk.chunk_reason()
-        );
-        return Ok(None);
-      }
-
-      let mut is_invalid = false;
-      allow_max_size.iter().for_each(|(ty, ty_max_size)| {
-        if let Some(ty_min_size) = min_size.get(ty) {
-          if ty_min_size > ty_max_size {
-            is_invalid = true;
-            tracing::warn!(
-              "minSize({}) should not be bigger than maxSize({})",
-              ty_min_size,
-              ty_max_size
+    let chunks_with_size_info_results = rspack_futures::scope::<_, Result<_>>(|token| {
+      compilation_ref.chunk_by_ukey.values().for_each(|chunk| {
+        let s = unsafe {
+          token.used((
+            &*compilation,
+            chunk,
+            fallback_cache_group,
+            chunk_group_db,
+            &max_size_setting_map,
+          ))
+        };
+        s.spawn(
+          move |(
+            compilation,
+            chunk,
+            fallback_cache_group,
+            chunk_group_db,
+            max_size_setting_map,
+          )| async move {
+            let max_size_setting = max_size_setting_map.get(&chunk.ukey());
+            tracing::trace!(
+              "max_size_setting : {max_size_setting:#?} for {:?}",
+              chunk.ukey()
             );
-          }
-        }
-      });
-      if is_invalid {
-        allow_max_size.to_mut().combine_with(min_size, &f64::max);
-      }
 
-      Ok(Some(ChunkWithSizeInfo {
-        allow_max_size,
-        min_size,
-        chunk: chunk.ukey(),
-        automatic_name_delimiter,
-      }))
-    }).collect::<Result<Vec<_>>>()?
+            if max_size_setting.is_none()
+              && !(fallback_cache_group.chunks_filter)(chunk, compilation).await?
+            {
+              tracing::debug!("Chunk({:?}) skips `maxSize` checking. Reason: max_size_setting.is_none() and chunks_filter is false", chunk.chunk_reason());
+              return Ok(None);
+            }
+
+            let min_size = max_size_setting
+              .map(|s| &s.min_size)
+              .unwrap_or(&fallback_cache_group.min_size);
+            let max_async_size = max_size_setting
+              .map(|s| &s.max_async_size)
+              .unwrap_or(&fallback_cache_group.max_async_size);
+            let max_initial_size: &SplitChunkSizes = max_size_setting
+              .map(|s| &s.max_initial_size)
+              .unwrap_or(&fallback_cache_group.max_initial_size);
+            let automatic_name_delimiter = max_size_setting
+              .map(|s| &s.automatic_name_delimiter)
+              .unwrap_or(&fallback_cache_group.automatic_name_delimiter);
+
+            let mut allow_max_size = if chunk.is_only_initial(chunk_group_db) {
+              Cow::Borrowed(max_initial_size)
+            } else if chunk.can_be_initial(chunk_group_db) {
+              let mut sizes = SplitChunkSizes::empty();
+              sizes.combine_with(max_async_size, &f64::min);
+              sizes.combine_with(max_initial_size, &f64::min);
+              Cow::Owned(sizes)
+            } else {
+              Cow::Borrowed(max_async_size)
+            };
+
+            // Fast path
+            if allow_max_size.is_empty() {
+              tracing::debug!(
+                "Chunk({:?}) skips the `maxSize` checking. Reason: allow_max_size is empty",
+                chunk.chunk_reason()
+              );
+              return Ok(None);
+            }
+
+            let mut is_invalid = false;
+            allow_max_size.iter().for_each(|(ty, ty_max_size)| {
+              if let Some(ty_min_size) = min_size.get(ty) {
+                if ty_min_size > ty_max_size {
+                  is_invalid = true;
+                  tracing::warn!(
+                    "minSize({}) should not be bigger than maxSize({})",
+                    ty_min_size,
+                    ty_max_size
+                  );
+                }
+              }
+            });
+            if is_invalid {
+              allow_max_size.to_mut().combine_with(min_size, &f64::max);
+            }
+
+            Ok(Some(ChunkWithSizeInfo {
+              allow_max_size: allow_max_size.into_owned(),
+              min_size: min_size.clone(),
+              chunk: chunk.ukey(),
+              automatic_name_delimiter: automatic_name_delimiter.clone(),
+            }))
+          },
+        );
+      });
+    })
+    .await
     .into_iter()
-    .flatten();
+    .map(|res| res.map_err(rspack_error::miette::Error::from_err))
+    .collect::<Result<Vec<_>>>()?;
+
+    let mut chunks_with_size_info = vec![];
+
+    for result in chunks_with_size_info_results {
+      if let Some(info) = result? {
+        chunks_with_size_info.push(info);
+      }
+    }
 
     let infos_with_results = chunks_with_size_info
+      .into_iter()
       .filter_map(|info| {
         let ChunkWithSizeInfo {
           chunk,

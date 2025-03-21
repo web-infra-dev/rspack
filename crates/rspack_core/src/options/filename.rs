@@ -1,10 +1,13 @@
-use std::fmt::Debug;
-use std::hash::{Hash, Hasher};
-use std::ops::Deref;
-use std::str::FromStr;
-use std::sync::Arc;
-use std::sync::LazyLock;
-use std::{borrow::Cow, convert::Infallible, ptr};
+use std::{
+  borrow::Cow,
+  convert::Infallible,
+  fmt::Debug,
+  hash::{Hash, Hasher},
+  ops::Deref,
+  ptr,
+  str::FromStr,
+  sync::{Arc, LazyLock},
+};
 
 use regex::Regex;
 use rspack_cacheable::{
@@ -13,12 +16,9 @@ use rspack_cacheable::{
 };
 use rspack_error::error;
 use rspack_macros::MergeFrom;
-use rspack_util::atom::Atom;
-use rspack_util::ext::CowExt;
-use rspack_util::MergeFrom;
+use rspack_util::{atom::Atom, ext::CowExt, MergeFrom};
 
-use crate::ReplaceAllPlaceholder;
-use crate::{parse_resource, AssetInfo, PathData, ResourceParsedData};
+use crate::{parse_resource, AssetInfo, PathData, ReplaceAllPlaceholder, ResourceParsedData};
 
 static FILE_PLACEHOLDER: &str = "[file]";
 static BASE_PLACEHOLDER: &str = "[base]";

@@ -1,10 +1,13 @@
 use either::Either;
 use rustc_hash::FxHashMap;
-use swc_core::atoms::Atom;
-use swc_core::common::BytePos;
-use swc_core::ecma::ast::Pass;
-use swc_core::ecma::ast::{noop_pass, Ident};
-use swc_core::ecma::visit::{noop_visit_type, Visit};
+use swc_core::{
+  atoms::Atom,
+  common::BytePos,
+  ecma::{
+    ast::{noop_pass, Ident, Pass},
+    visit::{noop_visit_type, Visit},
+  },
+};
 
 use crate::options::RspackExperiments;
 

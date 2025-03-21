@@ -1,8 +1,7 @@
 use rspack_cacheable::{cacheable, with::Skip};
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::ExportsInfo;
-use crate::{DependencyId, ModuleIdentifier, ModuleIssuer, ModuleProfile};
+use crate::{DependencyId, ExportsInfo, ModuleIdentifier, ModuleIssuer, ModuleProfile};
 
 #[cacheable]
 #[derive(Debug, Clone)]

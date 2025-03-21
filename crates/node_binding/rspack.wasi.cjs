@@ -85,12 +85,16 @@ const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule
   },
 })
 
+module.exports.AsyncDependenciesBlock = __napiModule.exports.AsyncDependenciesBlock
+module.exports.ConcatenatedModule = __napiModule.exports.ConcatenatedModule
+module.exports.ContextModule = __napiModule.exports.ContextModule
 module.exports.Dependency = __napiModule.exports.Dependency
 module.exports.EntryDataDto = __napiModule.exports.EntryDataDto
 module.exports.EntryDataDTO = __napiModule.exports.EntryDataDTO
 module.exports.EntryDependency = __napiModule.exports.EntryDependency
 module.exports.EntryOptionsDto = __napiModule.exports.EntryOptionsDto
 module.exports.EntryOptionsDTO = __napiModule.exports.EntryOptionsDTO
+module.exports.ExternalModule = __napiModule.exports.ExternalModule
 module.exports.JsChunk = __napiModule.exports.JsChunk
 module.exports.JsChunkGraph = __napiModule.exports.JsChunkGraph
 module.exports.JsChunkGroup = __napiModule.exports.JsChunkGroup
@@ -99,15 +103,15 @@ module.exports.JsCompiler = __napiModule.exports.JsCompiler
 module.exports.JsContextModuleFactoryAfterResolveData = __napiModule.exports.JsContextModuleFactoryAfterResolveData
 module.exports.JsContextModuleFactoryBeforeResolveData = __napiModule.exports.JsContextModuleFactoryBeforeResolveData
 module.exports.JsDependencies = __napiModule.exports.JsDependencies
-module.exports.JsDependenciesBlock = __napiModule.exports.JsDependenciesBlock
 module.exports.JsEntries = __napiModule.exports.JsEntries
 module.exports.JsExportsInfo = __napiModule.exports.JsExportsInfo
-module.exports.JsModule = __napiModule.exports.JsModule
 module.exports.JsModuleGraph = __napiModule.exports.JsModuleGraph
 module.exports.JsModuleGraphConnection = __napiModule.exports.JsModuleGraphConnection
 module.exports.JsResolver = __napiModule.exports.JsResolver
 module.exports.JsResolverFactory = __napiModule.exports.JsResolverFactory
 module.exports.JsStats = __napiModule.exports.JsStats
+module.exports.Module = __napiModule.exports.Module
+module.exports.NormalModule = __napiModule.exports.NormalModule
 module.exports.RawExternalItemFnCtx = __napiModule.exports.RawExternalItemFnCtx
 module.exports.BuiltinPluginName = __napiModule.exports.BuiltinPluginName
 module.exports.cleanupGlobalTrace = __napiModule.exports.cleanupGlobalTrace

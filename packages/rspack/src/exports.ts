@@ -30,6 +30,9 @@ export type { ChunkGroup } from "./ChunkGroup";
 export type { Module, ResolveData, ResourceDataWithData } from "./Module";
 export { MultiStats } from "./MultiStats";
 export { NormalModule } from "./NormalModule";
+export { ContextModule } from "./ContextModule";
+export { ConcatenatedModule } from "./ConcatenatedModule";
+export { ExternalModule } from "./ExternalModule";
 export type { NormalModuleFactory } from "./NormalModuleFactory";
 export { RuntimeGlobals } from "./RuntimeGlobals";
 export type {
@@ -41,7 +44,11 @@ export type {
 } from "./Stats";
 export { Stats } from "./Stats";
 export { RuntimeModule } from "./RuntimeModule";
-export { EntryDependency, Dependency } from "@rspack/binding";
+export {
+	EntryDependency,
+	Dependency,
+	AsyncDependenciesBlock
+} from "@rspack/binding";
 
 // API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
 import * as ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";

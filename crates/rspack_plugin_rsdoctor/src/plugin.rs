@@ -1,5 +1,7 @@
-use std::fmt;
-use std::sync::{Arc, LazyLock};
+use std::{
+  fmt,
+  sync::{Arc, LazyLock},
+};
 
 use async_trait::async_trait;
 use futures::future::BoxFuture;
@@ -15,15 +17,15 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::chunk_graph::{
-  collect_assets, collect_chunk_assets, collect_chunk_dependencies, collect_chunk_modules,
-  collect_chunks, collect_entrypoint_assets, collect_entrypoints,
-};
-use crate::module_graph::{
-  collect_concatenated_modules, collect_module_dependencies, collect_module_ids,
-  collect_module_original_sources, collect_modules,
-};
 use crate::{
+  chunk_graph::{
+    collect_assets, collect_chunk_assets, collect_chunk_dependencies, collect_chunk_modules,
+    collect_chunks, collect_entrypoint_assets, collect_entrypoints,
+  },
+  module_graph::{
+    collect_concatenated_modules, collect_module_dependencies, collect_module_ids,
+    collect_module_original_sources, collect_modules,
+  },
   EntrypointUkey, ModuleUkey, RsdoctorAssetPatch, RsdoctorChunkGraph, RsdoctorModuleGraph,
   RsdoctorModuleIdsPatch, RsdoctorModuleSourcesPatch, RsdoctorPluginHooks,
 };
@@ -178,7 +180,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilationOptimizeChunks for RsdoctorPlugin, stage = 9999)]
-fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   if !self.has_chunk_graph_feature(RsdoctorPluginChunkGraphFeature::ChunkGraph) {
     return Ok(None);
   }

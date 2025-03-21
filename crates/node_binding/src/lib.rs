@@ -5,10 +5,12 @@
 extern crate napi_derive;
 extern crate rspack_allocator;
 
-use std::cell::RefCell;
-use std::pin::Pin;
-use std::str::FromStr;
-use std::sync::{Arc, Mutex};
+use std::{
+  cell::RefCell,
+  pin::Pin,
+  str::FromStr,
+  sync::{Arc, Mutex},
+};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use napi::{bindgen_prelude::*, CallContext};
@@ -18,10 +20,12 @@ use rspack_core::{
 };
 use rspack_error::Diagnostic;
 use rspack_fs::IntermediateFileSystem;
-use rspack_fs_node::{NodeFileSystem, ThreadsafeNodeFS};
+
+use crate::fs_node::{NodeFileSystem, ThreadsafeNodeFS};
 
 mod asset;
 mod asset_condition;
+mod async_dependency_block;
 mod chunk;
 mod chunk_graph;
 mod chunk_group;
@@ -32,16 +36,17 @@ mod compiler;
 mod context_module_factory;
 mod dependencies;
 mod dependency;
-mod dependency_block;
 mod diagnostic;
 mod error;
 mod exports_info;
 mod filename;
+mod fs_node;
 mod html;
 mod identifier;
 mod module;
 mod module_graph;
 mod module_graph_connection;
+mod modules;
 mod normal_module_factory;
 mod options;
 mod panic;
@@ -59,6 +64,7 @@ mod utils;
 
 pub use asset::*;
 pub use asset_condition::*;
+pub use async_dependency_block::*;
 pub use chunk::*;
 pub use chunk_graph::*;
 pub use chunk_group::*;
@@ -68,7 +74,6 @@ pub use compilation::*;
 pub use context_module_factory::*;
 pub use dependencies::*;
 pub use dependency::*;
-pub use dependency_block::*;
 pub use diagnostic::*;
 pub use error::*;
 pub use exports_info::*;
@@ -77,6 +82,7 @@ pub use html::*;
 pub use module::*;
 pub use module_graph::*;
 pub use module_graph_connection::*;
+pub use modules::*;
 pub use normal_module_factory::*;
 pub use options::*;
 pub use path_data::*;
@@ -94,9 +100,9 @@ pub use source::*;
 pub use stats::*;
 use swc_core::common::util::take::Take;
 use tracing::Level;
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::{EnvFilter, Layer, Registry};
+use tracing_subscriber::{
+  layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
+};
 pub use utils::*;
 
 thread_local! {
@@ -107,7 +113,7 @@ thread_local! {
 fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
   let external = ctx.get::<&mut External<Vec<ModuleIdentifier>>>(0)?;
   let revoked_modules = external.take();
-  JsModuleWrapper::cleanup_by_module_identifiers(&revoked_modules);
+  ModuleObject::cleanup_by_module_identifiers(&revoked_modules);
   Ok(())
 }
 
@@ -304,7 +310,7 @@ impl JsCompiler {
     JsChunkWrapper::cleanup_last_compilation(compilation_id);
     JsChunkGroupWrapper::cleanup_last_compilation(compilation_id);
     DependencyWrapper::cleanup_last_compilation(compilation_id);
-    JsDependenciesBlockWrapper::cleanup_last_compilation(compilation_id);
+    AsyncDependenciesBlockWrapper::cleanup_last_compilation(compilation_id);
   }
 }
 
@@ -317,7 +323,7 @@ impl ObjectFinalize for JsCompiler {
       references.remove(&compiler_id);
     });
 
-    JsModuleWrapper::cleanup_by_compiler_id(&compiler_id);
+    ModuleObject::cleanup_by_compiler_id(&compiler_id);
     Ok(())
   }
 }
@@ -339,6 +345,11 @@ enum TraceState {
 #[cfg(not(target_family = "wasm"))]
 #[ctor]
 fn init() {
+  use std::{
+    sync::atomic::{AtomicUsize, Ordering},
+    thread,
+  };
+
   panic::install_panic_handler();
   // control the number of blocking threads, similar as https://github.com/tokio-rs/tokio/blob/946401c345d672d357693740bc51f77bc678c5c4/tokio/src/loom/std/mod.rs#L93
   const ENV_BLOCKING_THREADS: &str = "RSPACK_BLOCKING_THREADS";
@@ -355,10 +366,26 @@ fn init() {
     .unwrap_or(default_blocking_threads);
   let rt = tokio::runtime::Builder::new_multi_thread()
     .max_blocking_threads(blocking_threads)
+    .thread_name_fn(|| {
+      static ATOMIC_ID: AtomicUsize = AtomicUsize::new(0);
+      let id = ATOMIC_ID.fetch_add(1, Ordering::SeqCst);
+      format!("tokio-{}", id)
+    })
     .enable_all()
     .build()
     .expect("Create tokio runtime failed");
   create_custom_tokio_runtime(rt);
+  // initialize rayon
+  thread::Builder::new()
+    .name("rayon-spawner".to_string())
+    .spawn(|| {
+      // build_global will block until all threads are alive which will hurt performance or cause deadlock, so run it in separate thread
+      rayon::ThreadPoolBuilder::new()
+        .thread_name(|id| format!("rayon-{}", id))
+        .build_global()
+        .expect("Create rayon thread pool failed");
+    })
+    .expect("spawn rayon-spwaner thread failed");
 }
 
 fn print_error_diagnostic(e: rspack_error::Error, colored: bool) -> String {

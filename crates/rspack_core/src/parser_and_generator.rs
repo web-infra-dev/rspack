@@ -1,22 +1,20 @@
-use std::any::Any;
-use std::borrow::Cow;
+use std::{any::Any, borrow::Cow};
 
 use derive_more::Debug;
 use rspack_cacheable::cacheable_dyn;
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::{AdditionalData, ResourceData};
 use rspack_sources::BoxSource;
-use rspack_util::ext::AsAny;
-use rspack_util::source_map::SourceMapKind;
+use rspack_util::{ext::AsAny, source_map::SourceMapKind};
 use rustc_hash::FxHashMap;
 use swc_core::common::Span;
 
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, BoxLoader, BuildInfo, BuildMeta, CodeGenerationData,
-  Compilation, CompilerOptions, DependencyTemplate, Module, ModuleDependency, ModuleIdentifier,
-  ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
+  AsyncDependenciesBlock, BoxDependency, BoxLoader, BuildInfo, BuildMeta, ChunkGraph,
+  CodeGenerationData, Compilation, CompilerOptions, ConcatenationScope, Context,
+  DependencyTemplate, Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleLayer,
+  ModuleType, NormalModule, ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
 };
-use crate::{ChunkGraph, ConcatenationScope, Context, ModuleGraph};
 
 #[derive(Debug)]
 pub struct ParseContext<'a> {
@@ -85,6 +83,7 @@ pub struct GenerateContext<'a> {
 }
 
 #[cacheable_dyn]
+#[async_trait::async_trait]
 pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
   /// The source types that the generator can generate (the source types you can make requests for)
   fn source_types(&self) -> &[SourceType];
@@ -93,7 +92,7 @@ pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
   /// Size of the original source
   fn size(&self, module: &dyn Module, source_type: Option<&SourceType>) -> f64;
   /// Generate source or AST based on the built source or AST
-  fn generate(
+  async fn generate(
     &self,
     source: &BoxSource,
     module: &dyn Module,

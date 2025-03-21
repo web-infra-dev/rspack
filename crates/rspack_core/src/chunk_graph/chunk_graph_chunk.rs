@@ -1,8 +1,6 @@
 //!  There are methods whose verb is `ChunkGraphChunk`
 
-use std::borrow::Borrow;
-use std::fmt;
-use std::sync::Arc;
+use std::{borrow::Borrow, fmt, sync::Arc};
 
 use hashlink::LinkedHashMap;
 use indexmap::IndexSet;
@@ -13,11 +11,10 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::{Serialize, Serializer};
 
 use crate::{
-  find_graph_roots, merge_runtime, BoxModule, Chunk, ChunkByUkey, ChunkGraphModule,
-  ChunkGroupByUkey, ChunkGroupUkey, ChunkIdsArtifact, ChunkUkey, Module, ModuleGraph,
+  find_graph_roots, merge_runtime, BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGraphModule,
+  ChunkGroupByUkey, ChunkGroupUkey, ChunkIdsArtifact, ChunkUkey, Compilation, Module, ModuleGraph,
   ModuleIdentifier, RuntimeGlobals, RuntimeModule, SourceType,
 };
-use crate::{ChunkGraph, Compilation};
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkSizeOptions {
@@ -96,6 +93,10 @@ impl ChunkGraphChunk {
 
   pub fn modules(&self) -> &IdentifierSet {
     &self.modules
+  }
+
+  pub fn modules_mut(&mut self) -> &mut IdentifierSet {
+    &mut self.modules
   }
 }
 

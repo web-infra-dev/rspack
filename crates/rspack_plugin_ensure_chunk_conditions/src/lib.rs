@@ -8,7 +8,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 pub struct EnsureChunkConditionsPlugin;
 
 #[plugin_hook(CompilationOptimizeChunks for EnsureChunkConditionsPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_BASIC)]
-fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   let logger = compilation.get_logger(self.name());
   let start = logger.time("ensure chunk conditions");
 

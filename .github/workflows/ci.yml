@@ -82,12 +82,12 @@ jobs:
       full-install: false
 
   test-mac:
-    name: Test Mac
+    name: Test Mac ARM64
     needs: [get-runner-labels, check-changed]
     if: github.ref_name == 'main' || contains(github.event.pull_request.title, '!macos')
     uses: ./.github/workflows/reusable-build.yml
     with:
-      target: x86_64-apple-darwin
+      target: aarch64-apple-darwin
       profile: "ci"
       runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
       skipable: ${{ needs.check-changed.outputs.changed  != 'true' }}
@@ -118,7 +118,7 @@ jobs:
               - 'Cargo.lock'
       - name: Install cargo-deny
         if: steps.filter.outputs.src == 'true'
-        uses: taiki-e/install-action@03351cfd91ee8253b66020be1ad81991e6ba3502 # v2
+        uses: taiki-e/install-action@351cce3d3afa3dbd66bbe6d30df1d481b1448522 # v2
         with:
           tool: cargo-deny@0.16
       - name: Check licenses
@@ -283,7 +283,7 @@ jobs:
       - uses: ./.github/actions/rustup
         with:
           shared-key: check
-      - uses: cargo-bins/cargo-binstall@acd08f184561622f67f0e4406a62a10f656777a9 # v1.12.0
+      - uses: cargo-bins/cargo-binstall@b9bf4400702f721d469eec4d280125f650c85638 # v1.12.2
       - run: cargo binstall --no-confirm cargo-shear --force
       - run: cargo shear
 
@@ -307,13 +307,8 @@ jobs:
         run: |
           echo '[profile.test]' >> Cargo.toml
           echo 'debug = false' >> Cargo.toml
-
-      - name: Run test
-        # reason for excluding https://github.com/napi-rs/napi-rs/issues/2200
-        run: cargo test --workspace --exclude rspack_node --exclude rspack -- --nocapture
-
       - name: Run rspack test
-        run: cargo test --package rspack --all-features -- --nocapture
+        run: cargo test -- --nocapture
 
   rust_test_miri:
     name: Rust test miri
@@ -352,7 +347,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
+      - uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4
         with:
           node-version: 20
       - shell: bash

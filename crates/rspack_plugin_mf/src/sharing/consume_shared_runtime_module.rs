@@ -28,6 +28,7 @@ impl ConsumeSharedRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for ConsumeSharedRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
@@ -37,7 +38,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     RuntimeModuleStage::Attach
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk_ukey = self
       .chunk
       .expect("should have chunk in <ConsumeSharedRuntimeModule as RuntimeModule>::generate");
@@ -68,7 +69,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         ));
       }
     };
-    for chunk in chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey) {
+    for chunk in chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey) {
       let modules = compilation
         .chunk_graph
         .get_chunk_modules_iterable_by_source_type(

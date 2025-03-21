@@ -1,14 +1,16 @@
-use swc_core::ecma::ast::{DefaultDecl, ExprStmt};
-use swc_core::ecma::ast::{ExportSpecifier, ImportDecl, ImportSpecifier, ModuleExportName};
-use swc_core::ecma::ast::{ModuleDecl, ModuleItem, Stmt, VarDecl, VarDeclKind};
-
-use super::estree::{
-  ExportAllDeclaration, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport,
-  ExportLocal, ExportNamedDeclaration, MaybeNamedClassDecl, Statement,
+use swc_core::ecma::ast::{
+  DefaultDecl, ExportSpecifier, ExprStmt, ImportDecl, ImportSpecifier, ModuleDecl,
+  ModuleExportName, ModuleItem, Stmt, VarDecl, VarDeclKind,
 };
-use super::JavascriptParser;
-use crate::parser_plugin::JavascriptParserPlugin;
-use crate::JS_DEFAULT_KEYWORD;
+
+use super::{
+  estree::{
+    ExportAllDeclaration, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport,
+    ExportLocal, ExportNamedDeclaration, MaybeNamedClassDecl, Statement,
+  },
+  JavascriptParser,
+};
+use crate::{parser_plugin::JavascriptParserPlugin, JS_DEFAULT_KEYWORD};
 
 impl JavascriptParser<'_> {
   pub fn block_pre_walk_module_items(&mut self, statements: &Vec<ModuleItem>) {

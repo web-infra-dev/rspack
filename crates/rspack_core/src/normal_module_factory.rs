@@ -1,5 +1,7 @@
-use std::sync::LazyLock;
-use std::{borrow::Cow, sync::Arc};
+use std::{
+  borrow::Cow,
+  sync::{Arc, LazyLock},
+};
 
 use regex::Regex;
 use rspack_cacheable::cacheable;
@@ -341,11 +343,7 @@ impl NormalModuleFactory {
         let resource_data = resolve(resolve_args, plugin_driver).await;
 
         match resource_data {
-          Ok(ResolveResult::Resource(resource)) => ResourceData::new(resource.full_path())
-            .path(resource.path)
-            .query(resource.query)
-            .fragment(resource.fragment)
-            .description_optional(resource.description_data),
+          Ok(ResolveResult::Resource(resource)) => resource.into(),
           Ok(ResolveResult::Ignored) => {
             let ident = format!("{}/{}", &data.context, resource);
             let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
@@ -764,6 +762,16 @@ impl NormalModuleFactory {
             _ => unreachable!(),
           },
         ),
+        ModuleType::Json => rspack_util::merge_from_optional_with(
+          g.get("json").cloned(),
+          options,
+          |json_options, options| match (json_options, options) {
+            (GeneratorOptions::Json(a), GeneratorOptions::Json(b)) => {
+              GeneratorOptions::Json(a.merge_from(b))
+            }
+            _ => unreachable!(),
+          },
+        ),
         _ => options.cloned(),
       }
     });
@@ -798,9 +806,8 @@ impl NormalModuleFactory {
         | (GeneratorOptions::AssetResource(_), GeneratorOptions::AssetResource(_))
         | (GeneratorOptions::Css(_), GeneratorOptions::Css(_))
         | (GeneratorOptions::CssAuto(_), GeneratorOptions::CssAuto(_))
-        | (GeneratorOptions::CssModule(_), GeneratorOptions::CssModule(_)) => {
-          global.merge_from(local)
-        }
+        | (GeneratorOptions::CssModule(_), GeneratorOptions::CssModule(_))
+        | (GeneratorOptions::Json(_), GeneratorOptions::Json(_)) => global.merge_from(local),
         _ => global,
       },
     );

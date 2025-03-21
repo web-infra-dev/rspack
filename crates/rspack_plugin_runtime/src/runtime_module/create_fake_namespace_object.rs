@@ -19,6 +19,7 @@ impl Default for CreateFakeNamespaceObjectRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
@@ -31,7 +32,7 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
     )]
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let source = compilation.runtime_template.render(&self.id, None)?;
 
     Ok(RawStringSource::from(source).boxed())

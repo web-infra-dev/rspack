@@ -1,6 +1,8 @@
-use std::hash::{DefaultHasher, Hash, Hasher};
-use std::path::PathBuf;
-use std::sync::Arc;
+use std::{
+  hash::{DefaultHasher, Hash, Hasher},
+  path::PathBuf,
+  sync::Arc,
+};
 
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::{AssertUtf8, Utf8Path};
