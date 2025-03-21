@@ -4,6 +4,8 @@
 
 ```ts
 
+/// <reference types="node" />
+
 import type { Abortable } from 'node:events';
 import type { AddressInfo } from 'node:net';
 import { AssetInfo } from '@rspack/binding';
@@ -17,17 +19,16 @@ import { CacheFacade as CacheFacade_2 } from './lib/CacheFacade';
 import type { Callback } from '@rspack/lite-tapable';
 import { Compiler as Compiler_2 } from '..';
 import { ConcatenatedModule } from '@rspack/binding';
-import type { Config as Config_2 } from '@swc/types';
 import { ContextModule } from '@rspack/binding';
 import { default as default_2 } from './util/hash';
 import { Dependency } from '@rspack/binding';
 import { EntryDependency } from '@rspack/binding';
-import type { EnvConfig } from '@swc/types';
-import type { EsParserConfig } from '@swc/types';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
+import { EventEmitter } from 'events';
 import { ExternalModule } from '@rspack/binding';
 import { ExternalObject } from '@rspack/binding';
-import { fs } from 'fs';
+import fs from 'graceful-fs';
+import { fs as fs_2 } from 'fs';
 import { HookMap } from '@rspack/lite-tapable';
 import type { IncomingMessage } from 'node:http';
 import { inspect } from 'node:util';
@@ -39,7 +40,6 @@ import type { JsAlterAssetTagsData } from '@rspack/binding';
 import type { JsBeforeAssetTagGenerationData } from '@rspack/binding';
 import type { JsBeforeEmitData } from '@rspack/binding';
 import type { JsBuildMeta } from '@rspack/binding';
-import type { JscConfig } from '@swc/types';
 import { JsChunk } from '@rspack/binding';
 import type { JsChunkGraph } from '@rspack/binding';
 import type { JsChunkGroup } from '@rspack/binding';
@@ -63,9 +63,7 @@ import type { ListenOptions } from 'node:net';
 import * as liteTapable from '@rspack/lite-tapable';
 import { Logger as Logger_2 } from './logging/Logger';
 import { Module } from '@rspack/binding';
-import type { ModuleConfig } from '@swc/types';
 import { NormalModule } from '@rspack/binding';
-import type { ParserConfig } from '@swc/types';
 import { RawCopyPattern } from '@rspack/binding';
 import { RawCssExtractPluginOption } from '@rspack/binding';
 import type { RawFuncUseCtx } from '@rspack/binding';
@@ -81,16 +79,12 @@ import type { SecureContextOptions } from 'node:tls';
 import type { ServerOptions } from 'node:http';
 import type { ServerResponse } from 'node:http';
 import type { Socket } from 'node:net';
-import type { Source } from 'webpack-sources';
 import { RawSourceMapDevToolPluginOptions as SourceMapDevToolPluginOptions } from '@rspack/binding';
-import sources = require('webpack-sources');
+import sources = require('../compiled/webpack-sources');
 import { SyncBailHook } from '@rspack/lite-tapable';
 import { SyncHook } from '@rspack/lite-tapable';
 import { SyncWaterfallHook } from '@rspack/lite-tapable';
 import type { TlsOptions } from 'node:tls';
-import type { TransformConfig } from '@swc/types';
-import type { TsParserConfig } from '@swc/types';
-import type Watchpack from 'watchpack';
 import type * as webpackDevServer from 'webpack-dev-server';
 
 // @public (undocumented)
@@ -107,6 +101,14 @@ type AllowTarget = "web" | "webworker" | "es3" | "es5" | "es2015" | "es2016" | "
 
 // @public
 export type Amd = false | Record<string, any>;
+
+// @public (undocumented)
+interface AmdConfig extends BaseModuleConfig {
+    // (undocumented)
+    moduleId?: string;
+    // (undocumented)
+    type: "amd";
+}
 
 // @public
 export type AmdContainer = string;
@@ -212,6 +214,35 @@ export type AssetResourceGeneratorOptions = {
 // @public (undocumented)
 export type Assets = Record<string, Source>;
 
+// @public (undocumented)
+interface Assumptions {
+    arrayLikeIsIterable?: boolean;
+    constantReexports?: boolean;
+    constantSuper?: boolean;
+    enumerableModuleMeta?: boolean;
+    ignoreFunctionLength?: boolean;
+    // (undocumented)
+    ignoreFunctionName?: boolean;
+    ignoreToPrimitiveHint?: boolean;
+    iterableIsArray?: boolean;
+    mutableTemplateObject?: boolean;
+    noClassCalls?: boolean;
+    noDocumentAll?: boolean;
+    noIncompleteNsImportDetection?: boolean;
+    noNewArrows?: boolean;
+    objectRestNoSymbols?: boolean;
+    privateFieldsAsProperties?: boolean;
+    pureGetters?: boolean;
+    setClassMethods?: boolean;
+    setComputedProperties?: boolean;
+    setPublicClassFields?: boolean;
+    setSpreadProperties?: boolean;
+    skipForOfIteratorClosing?: boolean;
+    superIsCallableConstructor?: boolean;
+    // @deprecated (undocumented)
+    tsEnumIsReadonly?: boolean;
+}
+
 // @public
 export type AsyncChunks = boolean;
 
@@ -269,6 +300,22 @@ abstract class BaseCache {
     abstract store<T>(data: T, callback: CallbackCache<void>): void;
     // (undocumented)
     abstract storePromise<T>(data: T): Promise<void>;
+}
+
+// @public (undocumented)
+interface BaseModuleConfig {
+    // (undocumented)
+    allowTopLevelThis?: boolean;
+    exportInteropAnnotation?: boolean;
+    ignoreDynamic?: boolean;
+    importInterop?: "swc" | "babel" | "node" | "none";
+    lazy?: boolean | string[];
+    // @deprecated (undocumented)
+    noInterop?: boolean;
+    // (undocumented)
+    preserveImportMeta?: boolean;
+    strict?: boolean;
+    strictMode?: boolean;
 }
 
 // @public
@@ -519,6 +566,12 @@ type CodeValue = RecursiveArrayOrRecord<CodeValuePrimitive>;
 type CodeValuePrimitive = null | undefined | RegExp | Function | string | number | boolean | bigint | undefined;
 
 // @public (undocumented)
+interface CommonJsConfig extends BaseModuleConfig {
+    // (undocumented)
+    type: "commonjs";
+}
+
+// @public (undocumented)
 export class Compilation {
     constructor(compiler: Compiler, inner: JsCompilation);
     // @internal
@@ -646,7 +699,7 @@ export class Compilation {
         Iterable<Module>
         ], void>;
         finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
-        chunkHash: liteTapable.SyncHook<[Chunk, Hash], void>;
+        chunkHash: liteTapable.SyncHook<[Chunk, Hash_2], void>;
         chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
         processWarnings: liteTapable.SyncWaterfallHook<[Error[]]>;
         succeedModule: liteTapable.SyncHook<[Module], void>;
@@ -753,7 +806,7 @@ export class Compilation {
 
 // @public (undocumented)
 type CompilationHooks = {
-    chunkHash: liteTapable.SyncHook<[Chunk, Hash]>;
+    chunkHash: liteTapable.SyncHook<[Chunk, Hash_2]>;
 };
 
 // @public (undocumented)
@@ -918,7 +971,34 @@ type Config = {
 export const config: Config;
 
 // @public
+interface Config_2 {
+    // (undocumented)
+    env?: EnvConfig;
+    exclude?: string | string[];
+    // (undocumented)
+    inlineSourcesContent?: boolean;
+    // (undocumented)
+    jsc?: JscConfig;
+    // (undocumented)
+    minify?: boolean;
+    // (undocumented)
+    module?: ModuleConfig;
+    sourceMaps?: boolean | "inline";
+    test?: string | string[];
+}
+
+// @public
 export type Configuration = RspackOptions;
+
+// @public
+interface ConstModulesConfig {
+    // (undocumented)
+    globals?: {
+        [module: string]: {
+            [name: string]: string;
+        };
+    };
+}
 
 // @public (undocumented)
 export type Consumes = (ConsumesItem | ConsumesObject)[] | ConsumesObject;
@@ -1311,6 +1391,67 @@ interface DiagnosticLocation {
 }
 
 // @public (undocumented)
+class DirectoryWatcher extends EventEmitter {
+    constructor(directoryPath: string, options: Watchpack.WatcherOptions);
+    // (undocumented)
+    close(): void;
+    // (undocumented)
+    createNestedWatcher(directoryPath: string): void;
+    // (undocumented)
+    directories: {
+        [path: string]: Watcher_2 | true;
+    };
+    // (undocumented)
+    doInitialScan(): void;
+    // (undocumented)
+    files: {
+        [path: string]: [number, number];
+    };
+    // (undocumented)
+    getTimes(): {
+        [path: string]: number;
+    };
+    // (undocumented)
+    initialScan: boolean;
+    // (undocumented)
+    initialScanRemoved: string[];
+    // (undocumented)
+    nestedWatching: boolean;
+    // (undocumented)
+    onChange(filePath: string, stat: fs.Stats): void;
+    // (undocumented)
+    onDirectoryAdded(directoryPath: string): void;
+    // (undocumented)
+    onDirectoryUnlinked(directoryPath: string): void;
+    // (undocumented)
+    onFileAdded(filePath: string, stat: fs.Stats): void;
+    // (undocumented)
+    onFileUnlinked(filePath: string): void;
+    // (undocumented)
+    onWatcherError(): void;
+    // (undocumented)
+    options: Watchpack.WatcherOptions;
+    // (undocumented)
+    path: string;
+    // (undocumented)
+    refs: number;
+    // (undocumented)
+    setDirectory(directoryPath: string, exist: boolean, initial: boolean): void;
+    // (undocumented)
+    setFileTime(filePath: string, mtime: number, initial: boolean, type?: string | boolean): void;
+    // (undocumented)
+    setNestedWatching(flag: boolean): void;
+    // (undocumented)
+    watch(filePath: string, startTime: number): Watcher_2;
+    // (undocumented)
+    watcher: fs.FSWatcher;
+    // (undocumented)
+    watchers: {
+        [path: string]: Watcher_2[];
+    };
+}
+
+// @public (undocumented)
 export class DllPlugin {
     constructor(options: DllPluginOptions);
     // (undocumented)
@@ -1469,6 +1610,12 @@ type EncodingOption = ObjectEncodingOptions | BufferEncoding | undefined | null;
 export type Entry = EntryStatic | EntryDynamic;
 
 // @public (undocumented)
+interface Entry_2 {
+    safeTime: number;
+    timestamp: number;
+}
+
+// @public (undocumented)
 class EntryData {
     // (undocumented)
     static __from_binding(binding: binding.JsEntryData): EntryData;
@@ -1574,6 +1721,33 @@ export interface EntryStaticNormalized {
 export type EntryUnnamed = EntryItem;
 
 // @public
+interface EnvConfig {
+    bugfixes?: boolean;
+    coreJs?: string;
+    // (undocumented)
+    debug?: boolean;
+    // (undocumented)
+    dynamicImport?: boolean;
+    // (undocumented)
+    exclude?: string[];
+    forceAllTransforms?: boolean;
+    // (undocumented)
+    include?: string[];
+    // (undocumented)
+    loose?: boolean;
+    // (undocumented)
+    mode?: "usage" | "entry";
+    // (undocumented)
+    path?: string;
+    // (undocumented)
+    shippedProposals?: boolean;
+    // (undocumented)
+    skip?: string[];
+    // (undocumented)
+    targets?: any;
+}
+
+// @public
 export type Environment = {
     arrowFunction?: boolean;
     asyncFunction?: boolean;
@@ -1605,6 +1779,50 @@ export class EnvironmentPlugin {
 type ErrorWithDetails = Error & {
     details?: string;
 };
+
+// @public (undocumented)
+interface Es6Config extends BaseModuleConfig {
+    // (undocumented)
+    type: "es6";
+}
+
+// @public (undocumented)
+interface EsParserConfig {
+    allowReturnOutsideFunction?: boolean;
+    allowSuperOutsideMethod?: boolean;
+    autoAccessors?: boolean;
+    // @deprecated (undocumented)
+    classPrivateProperty?: boolean;
+    // @deprecated (undocumented)
+    classProperty?: boolean;
+    decorators?: boolean;
+    decoratorsBeforeExport?: boolean;
+    // @deprecated (undocumented)
+    dynamicImport?: boolean;
+    explicitResourceManagement?: boolean;
+    exportDefaultFrom?: boolean;
+    // @deprecated (undocumented)
+    exportNamespaceFrom?: boolean;
+    functionBind?: boolean;
+    // @deprecated (undocumented)
+    importAssertions?: boolean;
+    importAttributes?: boolean;
+    // @deprecated (undocumented)
+    importMeta?: boolean;
+    jsx?: boolean;
+    // @deprecated (undocumented)
+    nullishCoalescing?: boolean;
+    // @deprecated (undocumented)
+    numericSeparator?: boolean;
+    // @deprecated (undocumented)
+    optionalChaining?: boolean;
+    // @deprecated (undocumented)
+    privateMethod?: boolean;
+    // (undocumented)
+    syntax: "ecmascript";
+    // @deprecated (undocumented)
+    topLevelAwait?: boolean;
+}
 
 // @public (undocumented)
 interface Etag {
@@ -1976,6 +2194,13 @@ export function getRawResolve(resolve: Resolve): RawOptions["resolve"];
 // @public
 export type GlobalObject = string;
 
+// @public
+interface GlobalPassOption {
+    envs?: string[] | Record<string, string>;
+    typeofs?: Record<string, string>;
+    vars?: Record<string, string>;
+}
+
 // @public (undocumented)
 type GotHandler<T = any> = (result: any | null, callback: (error: Error | null) => void) => void;
 
@@ -1995,6 +2220,15 @@ type GroupOptions = {
 
 // @public (undocumented)
 class Hash {
+    	constructor();
+
+    	digest(encoding?: string): string | Buffer;
+
+    	update(data: string | Buffer, inputEncoding?: string): Hash;
+}
+
+// @public (undocumented)
+class Hash_2 {
     digest(encoding?: string): string | Buffer;
     update(data: string | Buffer, inputEncoding?: string): this;
 }
@@ -2002,11 +2236,11 @@ class Hash {
 // @public (undocumented)
 interface HashableObject {
     // (undocumented)
-    updateHash(hash: Hash): void;
+    updateHash(hash: Hash_2): void;
 }
 
 // @public (undocumented)
-type HashConstructor = typeof Hash;
+type HashConstructor = typeof Hash_2;
 
 // @public
 export type HashDigest = string;
@@ -2364,6 +2598,45 @@ export type JavascriptParserOptions = {
 };
 
 // @public (undocumented)
+interface JscConfig {
+    // (undocumented)
+    assumptions?: Assumptions;
+    // (undocumented)
+    baseUrl?: string;
+    experimental?: {
+        optimizeHygiene?: boolean;
+        keepImportAttributes?: boolean;
+        emitAssertForImportAttributes?: boolean;
+        cacheRoot?: string;
+        plugins?: Array<[string, Record<string, any>]>;
+        runPluginFirst?: boolean;
+        disableBuiltinTransformsForInternalTesting?: boolean;
+        emitIsolatedDts?: boolean;
+        disableAllLints?: boolean;
+        keepImportAssertions?: boolean;
+    };
+    externalHelpers?: boolean;
+    keepClassNames?: boolean;
+    // (undocumented)
+    loose?: boolean;
+    // (undocumented)
+    minify?: JsMinifyOptions;
+    parser?: ParserConfig;
+    // (undocumented)
+    paths?: {
+        [from: string]: string[];
+    };
+    // (undocumented)
+    preserveAllComments?: boolean;
+    target?: JscTarget;
+    // (undocumented)
+    transform?: TransformConfig;
+}
+
+// @public (undocumented)
+type JscTarget = "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "es2023" | "es2024" | "esnext";
+
+// @public (undocumented)
 interface JsFormatOptions {
     asciiOnly?: boolean;
     beautify?: boolean;
@@ -2387,6 +2660,59 @@ interface JsFormatOptions {
     webkit?: boolean;
     wrapFuncArgs?: boolean;
     wrapIife?: boolean;
+}
+
+// @public
+interface JsFormatOptions_2 {
+    asciiOnly?: boolean;
+    beautify?: boolean;
+    braces?: boolean;
+    comments?: false | "some" | "all";
+    ecma?: TerserEcmaVersion_2;
+    indentLevel?: number;
+    indentStart?: number;
+    inlineScript?: boolean;
+    keepNumbers?: number;
+    keepQuotedProps?: boolean;
+    maxLineLen?: number | false;
+    preamble?: string;
+    preserveAnnotations?: boolean;
+    quoteKeys?: boolean;
+    quoteStyle?: boolean;
+    safari10?: boolean;
+    semicolons?: boolean;
+    shebang?: boolean;
+    webkit?: boolean;
+    wrapFuncArgs?: boolean;
+    wrapIife?: boolean;
+}
+
+// @public (undocumented)
+interface JsMinifyOptions {
+    // (undocumented)
+    compress?: TerserCompressOptions_2 | boolean;
+    // (undocumented)
+    ecma?: TerserEcmaVersion_2;
+    // (undocumented)
+    format?: JsFormatOptions_2 & ToSnakeCaseProperties_2<JsFormatOptions_2>;
+    // (undocumented)
+    inlineSourcesContent?: boolean;
+    // (undocumented)
+    keep_classnames?: boolean;
+    // (undocumented)
+    keep_fnames?: boolean;
+    // (undocumented)
+    mangle?: TerserMangleOptions_2 | boolean;
+    // (undocumented)
+    module?: boolean | "unknown";
+    // (undocumented)
+    outputPath?: string;
+    // (undocumented)
+    safari10?: boolean;
+    // (undocumented)
+    sourceMap?: boolean;
+    // (undocumented)
+    toplevel?: boolean;
 }
 
 // @public (undocumented)
@@ -3021,7 +3347,7 @@ export interface LoaderContext<OptionsType = {}> {
     utils: {
         absolutify: (context: string, request: string) => string;
         contextify: (context: string, request: string) => string;
-        createHash: (algorithm?: string) => Hash;
+        createHash: (algorithm?: string) => Hash_2;
     };
     version: 2;
 }
@@ -3238,6 +3564,9 @@ type MakeDirectoryOptions = {
     mode?: string | number;
 };
 
+// @public (undocumented)
+type MapOptions = { columns?: boolean; module?: boolean };
+
 // @public
 type Matcher = string | RegExp | (string | RegExp)[];
 
@@ -3264,6 +3593,9 @@ type MkdirSync = (path: PathLike, options: MakeDirectoryOptions) => undefined | 
 export type Mode = "development" | "production" | "none";
 
 export { Module }
+
+// @public (undocumented)
+type ModuleConfig = Es6Config | CommonJsConfig | UmdConfig | AmdConfig | NodeNextConfig | SystemjsConfig;
 
 // @public (undocumented)
 class ModuleFederationPlugin {
@@ -3431,8 +3763,8 @@ export class MultiCompiler {
     // (undocumented)
     _options: MultiCompilerOptions;
     // (undocumented)
-    get outputFileSystem(): fs;
-    set outputFileSystem(value: fs);
+    get outputFileSystem(): fs_2;
+    set outputFileSystem(value: fs_2);
     // (undocumented)
     get outputPath(): string;
     // (undocumented)
@@ -3546,6 +3878,12 @@ class NodeEnvironmentPlugin {
 interface NodeEnvironmentPluginOptions {
     // (undocumented)
     infrastructureLogging: InfrastructureLogging;
+}
+
+// @public (undocumented)
+interface NodeNextConfig extends BaseModuleConfig {
+    // (undocumented)
+    type: "nodenext";
 }
 
 // @public
@@ -3742,6 +4080,18 @@ interface Optimize {
 // @public (undocumented)
 export const optimize: Optimize;
 
+// @public (undocumented)
+interface OptimizerConfig {
+    // (undocumented)
+    globals?: GlobalPassOption;
+    // (undocumented)
+    jsonify?: {
+        minCost: number;
+    };
+    // (undocumented)
+    simplify?: boolean;
+}
+
 // @public
 const OriginEntryPlugin: {
     new (context: string, entry: string, options?: string | EntryOptions | undefined): {
@@ -3936,6 +4286,9 @@ export interface OutputNormalized {
     // (undocumented)
     workerWasmLoading?: WasmLoading;
 }
+
+// @public (undocumented)
+type ParserConfig = TsParserConfig | EsParserConfig;
 
 // @public
 export type ParserOptionsByModuleType = ParserOptionsByModuleTypeKnown | ParserOptionsByModuleTypeUnknown;
@@ -4134,6 +4487,30 @@ export type PublicPath = "auto" | Filename;
 
 // @public (undocumented)
 type Purge = (files?: string | string[] | Set<string>) => void;
+
+// @public (undocumented)
+type RawSourceMap = {
+    	version: number;
+    	sources: string[];
+    	names: string[];
+    	sourceRoot?: string;
+    	sourcesContent?: string[];
+    	mappings: string;
+    	file: string;
+};
+
+// @public (undocumented)
+interface ReactConfig {
+    development?: boolean;
+    importSource?: string;
+    pragma?: string;
+    pragmaFrag?: string;
+    refresh?: boolean;
+    runtime?: "automatic" | "classic";
+    throwIfNamespace?: boolean;
+    // @deprecated
+    useBuiltins?: boolean;
+}
 
 // @public (undocumented)
 type Read<TBuffer extends ArrayBufferView = Buffer> = (fd: number, options: ReadAsyncOptions<TBuffer>, callback: (err: null | NodeJS.ErrnoException, bytesRead: number, buffer: TBuffer) => void) => void;
@@ -5336,6 +5713,30 @@ export const sharing: {
 export type SnapshotOptions = {};
 
 // @public (undocumented)
+abstract class Source {
+    	// (undocumented)
+    buffer(): Buffer;
+
+    	// (undocumented)
+    map(options?: MapOptions): RawSourceMap | null;
+
+    	// (undocumented)
+    size(): number;
+
+    	// (undocumented)
+    source(): string | Buffer;
+
+    	// (undocumented)
+    sourceAndMap(options?: MapOptions): {
+        		source: string | Buffer;
+        		map: Object;
+        	};
+
+    	// (undocumented)
+    updateHash(hash: Hash): void;
+}
+
+// @public (undocumented)
 interface SourceMap {
     // (undocumented)
     file?: string;
@@ -5723,6 +6124,14 @@ export type SwcLoaderTransformConfig = TransformConfig;
 // @public (undocumented)
 export type SwcLoaderTsParserConfig = TsParserConfig;
 
+// @public (undocumented)
+interface SystemjsConfig {
+    // (undocumented)
+    allowTopLevelThis?: boolean;
+    // (undocumented)
+    type: "systemjs";
+}
+
 // @public
 export type Target = false | AllowTarget | AllowTarget[];
 
@@ -5899,7 +6308,126 @@ interface TerserCompressOptions {
 }
 
 // @public (undocumented)
+interface TerserCompressOptions_2 {
+    // (undocumented)
+    arguments?: boolean;
+    // (undocumented)
+    arrows?: boolean;
+    // (undocumented)
+    booleans?: boolean;
+    // (undocumented)
+    booleans_as_integers?: boolean;
+    // (undocumented)
+    collapse_vars?: boolean;
+    // (undocumented)
+    comparisons?: boolean;
+    // (undocumented)
+    computed_props?: boolean;
+    // (undocumented)
+    conditionals?: boolean;
+    // (undocumented)
+    const_to_let?: boolean;
+    // (undocumented)
+    dead_code?: boolean;
+    // (undocumented)
+    defaults?: boolean;
+    // (undocumented)
+    directives?: boolean;
+    // (undocumented)
+    drop_console?: boolean;
+    // (undocumented)
+    drop_debugger?: boolean;
+    // (undocumented)
+    ecma?: TerserEcmaVersion_2;
+    // (undocumented)
+    evaluate?: boolean;
+    // (undocumented)
+    expression?: boolean;
+    // (undocumented)
+    global_defs?: any;
+    // (undocumented)
+    hoist_funs?: boolean;
+    // (undocumented)
+    hoist_props?: boolean;
+    // (undocumented)
+    hoist_vars?: boolean;
+    // (undocumented)
+    ie8?: boolean;
+    // (undocumented)
+    if_return?: boolean;
+    // (undocumented)
+    inline?: 0 | 1 | 2 | 3;
+    // (undocumented)
+    join_vars?: boolean;
+    // (undocumented)
+    keep_classnames?: boolean;
+    // (undocumented)
+    keep_fargs?: boolean;
+    // (undocumented)
+    keep_fnames?: boolean;
+    // (undocumented)
+    keep_infinity?: boolean;
+    // (undocumented)
+    loops?: boolean;
+    // (undocumented)
+    module?: boolean;
+    // (undocumented)
+    negate_iife?: boolean;
+    // (undocumented)
+    passes?: number;
+    // (undocumented)
+    properties?: boolean;
+    // (undocumented)
+    pure_funcs?: string[];
+    // (undocumented)
+    pure_getters?: any;
+    // (undocumented)
+    reduce_funcs?: boolean;
+    // (undocumented)
+    reduce_vars?: boolean;
+    // (undocumented)
+    sequences?: any;
+    // (undocumented)
+    side_effects?: boolean;
+    // (undocumented)
+    switches?: boolean;
+    // (undocumented)
+    top_retain?: any;
+    // (undocumented)
+    toplevel?: any;
+    // (undocumented)
+    typeofs?: boolean;
+    // (undocumented)
+    unsafe?: boolean;
+    // (undocumented)
+    unsafe_arrows?: boolean;
+    // (undocumented)
+    unsafe_comps?: boolean;
+    // (undocumented)
+    unsafe_function?: boolean;
+    // (undocumented)
+    unsafe_math?: boolean;
+    // (undocumented)
+    unsafe_methods?: boolean;
+    // (undocumented)
+    unsafe_passes?: boolean;
+    // (undocumented)
+    unsafe_proto?: boolean;
+    // (undocumented)
+    unsafe_regexp?: boolean;
+    // (undocumented)
+    unsafe_symbols?: boolean;
+    // (undocumented)
+    unsafe_undefined?: boolean;
+    // (undocumented)
+    unused?: boolean;
+}
+
+// @public (undocumented)
 type TerserEcmaVersion = 5 | 2015 | 2016 | string | number;
+
+// @public (undocumented)
+type TerserEcmaVersion_2 = 5 | 2015 | 2016 | string | number;
 
 // @public (undocumented)
 interface TerserMangleOptions {
@@ -5922,7 +6450,35 @@ interface TerserMangleOptions {
 }
 
 // @public (undocumented)
+interface TerserMangleOptions_2 {
+    // (undocumented)
+    ie8?: boolean;
+    // @deprecated (undocumented)
+    keep_classnames?: boolean;
+    // @deprecated (undocumented)
+    keep_fnames?: boolean;
+    // @deprecated (undocumented)
+    keep_private_props?: boolean;
+    keepClassNames?: boolean;
+    keepFnNames?: boolean;
+    keepPrivateProps?: boolean;
+    // (undocumented)
+    props?: TerserManglePropertiesOptions_2;
+    // (undocumented)
+    reserved?: string[];
+    // (undocumented)
+    safari10?: boolean;
+    topLevel?: boolean;
+    // @deprecated (undocumented)
+    toplevel?: boolean;
+}
+
+// @public (undocumented)
 type TerserManglePropertiesOptions = {};
+
+// @public (undocumented)
+interface TerserManglePropertiesOptions_2 {
+}
 
 // @public (undocumented)
 const TIMERS_AGGREGATES_SYMBOL: unique symbol;
@@ -5934,15 +6490,58 @@ const TIMERS_SYMBOL: unique symbol;
 type ToSnakeCase<T extends string> = T extends `${infer A}${infer B}` ? `${A extends Lowercase<A> ? A : `_${Lowercase<A>}`}${ToSnakeCase<B>}` : T;
 
 // @public (undocumented)
+type ToSnakeCase_2<T extends string> = T extends `${infer A}${infer B}` ? `${A extends Lowercase<A> ? A : `_${Lowercase<A>}`}${ToSnakeCase_2<B>}` : T;
+
+// @public (undocumented)
 type ToSnakeCaseProperties<T> = {
     [K in keyof T as K extends string ? ToSnakeCase<K> : K]: T[K];
 };
+
+// @public (undocumented)
+type ToSnakeCaseProperties_2<T> = {
+    [K in keyof T as K extends string ? ToSnakeCase_2<K> : K]: T[K];
+};
+
+// @public
+interface TransformConfig {
+    // (undocumented)
+    constModules?: ConstModulesConfig;
+    decoratorMetadata?: boolean;
+    decoratorVersion?: "2021-12" | "2022-03";
+    legacyDecorator?: boolean;
+    optimizer?: OptimizerConfig;
+    react?: ReactConfig;
+    // (undocumented)
+    treatConstEnumAsEnum?: boolean;
+    useDefineForClassFields?: boolean;
+    verbatimModuleSyntax?: boolean;
+}
 
 // @public
 export type TrustedTypes = {
     policyName?: string;
     onPolicyCreationFailure?: "continue" | "stop";
 };
+
+// @public (undocumented)
+interface TsParserConfig {
+    decorators?: boolean;
+    // @deprecated (undocumented)
+    dynamicImport?: boolean;
+    // (undocumented)
+    syntax: "typescript";
+    tsx?: boolean;
+}
+
+// @public (undocumented)
+interface UmdConfig extends BaseModuleConfig {
+    // (undocumented)
+    globals?: {
+        [key: string]: string;
+    };
+    // (undocumented)
+    type: "umd";
+}
 
 // @public
 export type UmdNamedDefine = boolean;
@@ -6012,6 +6611,23 @@ interface Watcher {
     getInfo(): WatcherInfo;
     // (undocumented)
     pause(): void;
+}
+
+// @public (undocumented)
+class Watcher_2 extends EventEmitter {
+    constructor(directoryWatcher: DirectoryWatcher, filePath: string, startTime: number);
+    // (undocumented)
+    checkStartTime(mtime: number, initial: boolean): boolean;
+    // (undocumented)
+    close(): void;
+    // (undocumented)
+    data: number;
+    // (undocumented)
+    directoryWatcher: DirectoryWatcher;
+    // (undocumented)
+    path: string;
+    // (undocumented)
+    startTime: number;
 }
 
 // @public (undocumented)
@@ -6087,6 +6703,99 @@ export type WatchOptions = {
     poll?: number | boolean;
     stdin?: boolean;
 };
+
+// @public (undocumented)
+class Watchpack extends EventEmitter {
+    constructor(options: Watchpack.WatchOptions);
+    // (undocumented)
+    aggregatedChanges: Set<string>;
+    // (undocumented)
+    aggregatedRemovals: Set<string>;
+    // (undocumented)
+    aggregateTimeout: NodeJS.Timer;
+    close(): void;
+    collectTimeInfoEntries(fileInfoEntries: Map<string, Entry_2>, directoryInfoEntries: Map<string, Entry_2>): void;
+    // (undocumented)
+    _dirWatcher(item: string, watcher: Watcher_2): Watcher_2;
+    // (undocumented)
+    dirWatchers: Watcher_2[];
+    // (undocumented)
+    _fileWatcher(file: string, watcher: Watcher_2): Watcher_2;
+    // (undocumented)
+    fileWatchers: Watcher_2[];
+    getAggregated(): {
+        changes: Set<string>;
+        removals: Set<string>;
+    };
+    getTimeInfoEntries(): Map<string, Entry_2>;
+    // @deprecated
+    getTimes(): {
+        [path: string]: number;
+    };
+    mtimes: {
+        [path: string]: number;
+    };
+    // (undocumented)
+    on(
+    eventName: "change",
+    listener: (
+    filePath: string,
+    modifiedTime: number,
+    explanation: string,
+    ) => void,
+    ): this;
+    // (undocumented)
+    on(
+    eventName: "remove",
+    listener: (
+    filePath: string,
+    explanation: string,
+    ) => void,
+    ): this;
+    // (undocumented)
+    on(
+    eventName: "aggregated",
+    listener: (
+    changes: Set<string>,
+    removals: Set<string>,
+    ) => void,
+    ): this;
+    // (undocumented)
+    _onChange(item: string, mtime: number, file?: string): void;
+    // (undocumented)
+    _onTimeout(): void;
+    // (undocumented)
+    options: Watchpack.WatchOptions;
+    pause(): void;
+    // (undocumented)
+    paused: boolean;
+    watch(options: {
+        files?: Iterable<string>;
+        directories?: Iterable<string>;
+        missing?: Iterable<string>;
+        startTime?: number;
+    }): void;
+    // (undocumented)
+    watcherOptions: Watchpack.WatcherOptions;
+}
+
+// @public (undocumented)
+namespace Watchpack {
+    // (undocumented)
+    interface WatcherOptions {
+        // (undocumented)
+        followSymlinks?: boolean;
+        // (undocumented)
+        ignored?: string[] | string | RegExp | ((path: string) => boolean) | undefined;
+        // (undocumented)
+        poll?: boolean | number | undefined;
+    }
+    // (undocumented)
+    interface WatchOptions extends WatcherOptions {
+        // (undocumented)
+        aggregateTimeout?: number | undefined;
+    }
+}
 
 // @public (undocumented)
 interface Web {

@@ -79,18 +79,19 @@ export const HttpUriPlugin = create(
 		// Always register an HTTP client
 		registerHttpClient(
 			(
-				err: unknown,
-				method: string | null,
-				url: string,
-				headers: Record<string, string>
+				err: Error | null,
+				arg0: string | undefined | null,
+				arg1: string | undefined | null,
+				arg2: string,
+				arg3: Record<string, string>
 			) => {
 				if (err) throw err;
 
 				const safeUrl =
-					typeof url === "string" && url ? url : String(url || "");
+					typeof arg2 === "string" && arg2 ? arg2 : String(arg2 || "");
 
 				const safeHeaders: Record<string, string> =
-					headers && typeof headers === "object" ? headers : {};
+					arg3 && typeof arg3 === "object" ? arg3 : {};
 
 				return httpClient(safeUrl, safeHeaders);
 			}
