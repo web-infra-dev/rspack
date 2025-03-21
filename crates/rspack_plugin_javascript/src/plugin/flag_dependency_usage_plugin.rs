@@ -413,7 +413,7 @@ impl FlagDependencyUsagePlugin {
 }
 
 #[plugin_hook(CompilationOptimizeDependencies for FlagDependencyUsagePlugin)]
-fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   let mut proxy = FlagDependencyUsagePluginProxy::new(self.global, compilation);
   proxy.apply();
   Ok(None)
