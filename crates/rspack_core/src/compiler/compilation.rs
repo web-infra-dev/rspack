@@ -608,10 +608,8 @@ impl Compilation {
 
     // Recheck entry and clean useless entry
     // This should before finish_modules hook is called, ensure providedExports effects on new added modules
-    let make_artifact = std::mem::take(&mut self.make_artifact);
-    self.make_artifact = update_module_graph(
+    update_module_graph(
       self,
-      make_artifact,
       vec![MakeParam::BuildEntry(
         self
           .entries
@@ -841,8 +839,7 @@ impl Compilation {
       self.module_executor = Some(module_executor);
     }
 
-    let artifact = std::mem::take(&mut self.make_artifact);
-    self.make_artifact = make_module_graph(self, artifact).await?;
+    make_module_graph(self).await?;
 
     self.in_finish_make.store(true, Ordering::Release);
 
@@ -854,10 +851,8 @@ impl Compilation {
     module_identifiers: IdentifierSet,
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
-    let artifact = std::mem::take(&mut self.make_artifact);
-    self.make_artifact = update_module_graph(
+    update_module_graph(
       self,
-      artifact,
       vec![MakeParam::ForceBuildModules(module_identifiers.clone())],
     )
     .await?;
@@ -1215,10 +1210,8 @@ impl Compilation {
   #[instrument("Compilation:finish", skip_all)]
   pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     // clean up the entry deps
-    let make_artifact = std::mem::take(&mut self.make_artifact);
-    self.make_artifact = update_module_graph(
+    update_module_graph(
       self,
-      make_artifact,
       vec![MakeParam::BuildEntryAndClean(
         self
           .entries
