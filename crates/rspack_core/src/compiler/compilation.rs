@@ -75,8 +75,8 @@ define_hook!(CompilationAfterOptimizeModules: AsyncSeries(compilation: &mut Comp
 define_hook!(CompilationOptimizeChunks: AsyncSeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationOptimizeTree: AsyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationOptimizeChunkModules: AsyncSeriesBail(compilation: &mut Compilation) -> bool);
-define_hook!(CompilationModuleIds: SyncSeries(compilation: &mut Compilation));
-define_hook!(CompilationChunkIds: SyncSeries(compilation: &mut Compilation));
+define_hook!(CompilationModuleIds: AsyncSeries(compilation: &mut Compilation));
+define_hook!(CompilationChunkIds: AsyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationRuntimeModule: AsyncSeries(compilation: &mut Compilation, module: &ModuleIdentifier, chunk: &ChunkUkey));
 define_hook!(CompilationAdditionalModuleRuntimeRequirements: SyncSeries(compilation: &Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &mut RuntimeGlobals));
 define_hook!(CompilationRuntimeRequirementInModule: SyncSeriesBail(compilation: &Compilation, module_identifier: &ModuleIdentifier, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
@@ -1428,12 +1428,14 @@ impl Compilation {
 
     let start = logger.time("module ids");
     tracing::info_span!("Compilation:module_ids")
-      .in_scope(|| plugin_driver.compilation_hooks.module_ids.call(self))?;
+      .in_scope(|| plugin_driver.compilation_hooks.module_ids.call(self))
+      .await?;
     logger.time_end(start);
 
     let start = logger.time("chunk ids");
     tracing::info_span!("Compilation:chunk_ids")
-      .in_scope(|| plugin_driver.compilation_hooks.chunk_ids.call(self))?;
+      .in_scope(|| plugin_driver.compilation_hooks.chunk_ids.call(self))
+      .await?;
     logger.time_end(start);
 
     self.assign_runtime_ids();

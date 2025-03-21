@@ -448,12 +448,12 @@ async fn optimize_chunk_modules(&self, _compilation: &mut Compilation) -> Result
 }
 
 #[plugin_hook(CompilationModuleIds for ProgressPlugin)]
-fn module_ids(&self, _modules: &mut Compilation) -> Result<()> {
+async fn module_ids(&self, _modules: &mut Compilation) -> Result<()> {
   self.sealing_hooks_report("module ids", 16)
 }
 
 #[plugin_hook(CompilationChunkIds for ProgressPlugin)]
-fn chunk_ids(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn chunk_ids(&self, _compilation: &mut Compilation) -> Result<()> {
   self.sealing_hooks_report("chunk ids", 21)
 }
 
