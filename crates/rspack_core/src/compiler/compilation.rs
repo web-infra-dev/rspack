@@ -69,7 +69,7 @@ define_hook!(CompilationExecuteModule:
   AsyncSeries(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, codegen_results: &CodeGenerationResults, execute_module_id: &ExecuteModuleId));
 define_hook!(CompilationFinishModules: AsyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationSeal: AsyncSeries(compilation: &mut Compilation));
-define_hook!(CompilationOptimizeDependencies: SyncSeriesBail(compilation: &mut Compilation) -> bool);
+define_hook!(CompilationOptimizeDependencies: AsyncSeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationOptimizeModules: AsyncSeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationAfterOptimizeModules: AsyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationOptimizeChunks: AsyncSeriesBail(compilation: &mut Compilation) -> bool);
@@ -1361,7 +1361,8 @@ impl Compilation {
       plugin_driver
         .compilation_hooks
         .optimize_dependencies
-        .call(self)?,
+        .call(self)
+        .await?,
       Some(true)
     ) {}
     logger.time_end(start);

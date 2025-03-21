@@ -414,7 +414,7 @@ async fn seal(&self, _compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationOptimizeDependencies for ProgressPlugin)]
-fn optimize_dependencies(&self, _compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_dependencies(&self, _compilation: &mut Compilation) -> Result<Option<bool>> {
   self.sealing_hooks_report("dependencies", 2)?;
   Ok(None)
 }
