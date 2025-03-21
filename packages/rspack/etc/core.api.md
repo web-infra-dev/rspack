@@ -1923,7 +1923,7 @@ export type Experiments = {
     futureDefaults?: boolean;
     rspackFuture?: RspackFutureOptions;
     buildHttp?: boolean | {
-        allowedUris?: string[];
+        allowedUris?: (string | RegExp)[];
         cacheLocation?: string | false;
         frozen?: boolean;
         lockfileLocation?: string;
@@ -1961,7 +1961,7 @@ export interface ExperimentsNormalized {
     asyncWebAssembly?: boolean;
     // (undocumented)
     buildHttp?: boolean | {
-        allowedUris?: string[];
+        allowedUris?: (string | RegExp)[];
         cacheLocation?: string | false;
         frozen?: boolean;
         lockfileLocation?: string;

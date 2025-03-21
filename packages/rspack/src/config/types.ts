@@ -2633,7 +2633,7 @@ export type Experiments = {
 				/**
 				 * Regular expressions for allowed URIs
 				 */
-				allowedUris?: string[];
+				allowedUris?: (string | RegExp)[];
 				/**
 				 * Cache location for HTTP responses
 				 * @default undefined

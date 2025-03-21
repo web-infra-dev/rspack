@@ -14,7 +14,7 @@ export type HttpUriPluginOptions = {
 	/**
 	 * The allowed URIs regexp
 	 */
-	allowedUris?: string[];
+	allowedUris?: (string | RegExp)[];
 	/**
 	 * The cache location for HTTP responses
 	 */
@@ -71,11 +71,11 @@ const defaultHttpClient: HttpClientFunction = (url, headers) => {
 export const HttpUriPlugin = create(
 	BuiltinPluginName.HttpUriPlugin,
 	(options: HttpUriPluginOptions = {}) => {
-		const { http_client, ...restOptions } = options;
+		const { http_client } = options;
 
 		registerHttpClient(http_client || defaultHttpClient);
 
-		return restOptions;
+		return options;
 	},
 	"thisCompilation"
 );

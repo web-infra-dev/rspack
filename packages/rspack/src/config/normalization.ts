@@ -613,7 +613,7 @@ export interface ExperimentsNormalized {
 	buildHttp?:
 		| boolean
 		| {
-				allowedUris?: string[];
+				allowedUris?: (string | RegExp)[];
 				cacheLocation?: string | false;
 				frozen?: boolean;
 				lockfileLocation?: string;
