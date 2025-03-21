@@ -36,19 +36,23 @@ impl JsResolver {
 #[napi]
 impl JsResolver {
   #[napi(ts_return_type = "JsResourceData | false")]
-  pub async fn resolve_sync(
+  pub fn resolve_sync(
     &self,
     path: String,
     request: String,
   ) -> napi::Result<Either<JsResourceData, bool>> {
-    //FIXME: it should be sync or just remove this method
-    match self.resolver.resolve(Path::new(&path), &request).await {
-      Ok(rspack_core::ResolveResult::Resource(resource)) => {
-        Ok(Either::A(ResourceData::from(resource).into()))
-      }
-      Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(false)),
-      Err(err) => Err(napi::Error::from_reason(format!("{:?}", err))),
-    }
+    tokio::runtime::Builder::new_current_thread()
+      .enable_all()
+      .build()?
+      .block_on(async move {
+        match self.resolver.resolve(Path::new(&path), &request).await {
+          Ok(rspack_core::ResolveResult::Resource(resource)) => {
+            Ok(Either::A(ResourceData::from(resource).into()))
+          }
+          Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(false)),
+          Err(err) => Err(napi::Error::from_reason(format!("{:?}", err))),
+        }
+      })
   }
 
   #[napi]
