@@ -18,6 +18,8 @@ use rspack_plugin_schemes::{
   HttpClient, HttpResponse, HttpUriOptionsAllowedUris, HttpUriPlugin, HttpUriPluginOptions,
 };
 
+use crate::{into_asset_conditions, RawAssetConditions};
+
 #[napi(object)]
 pub struct JsHttpResponseRaw {
   pub status: u16,
@@ -84,7 +86,7 @@ pub fn register_http_client(
 }
 
 pub fn create_http_uri_plugin(
-  allowed_uris: Option<Vec<String>>,
+  allowed_uris: Option<RawAssetConditions>,
   cache_location: Option<String>,
   frozen: Option<bool>,
   lockfile_location: Option<String>,
@@ -92,7 +94,12 @@ pub fn create_http_uri_plugin(
   upgrade: Option<bool>,
   filesystem: Arc<dyn WritableFileSystem>,
 ) -> Result<HttpUriPlugin, AnyhowError> {
-  let allowed_uris = HttpUriOptionsAllowedUris::default();
+  let allowed_uris = match allowed_uris {
+    Some(conditions) => {
+      HttpUriOptionsAllowedUris::from_asset_conditions(into_asset_conditions(conditions))
+    }
+    None => HttpUriOptionsAllowedUris::default(),
+  };
 
   let http_client = if HTTP_CLIENT_REGISTERED.load(Ordering::SeqCst) {
     // Get a reference to the JS_HTTP_CLIENT using get() which returns Option<&T>

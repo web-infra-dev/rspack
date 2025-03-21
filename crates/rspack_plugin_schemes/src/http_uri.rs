@@ -11,6 +11,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_fs::WritableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_util::asset_condition::{AssetCondition, AssetConditions};
 
 use crate::http_cache::{fetch_content, FetchResultType, HttpClient};
 
@@ -130,5 +131,74 @@ impl Plugin for HttpUriPlugin {
     Ok(())
   }
 }
-#[derive(Debug, Default)]
-pub struct HttpUriOptionsAllowedUris;
+
+#[derive(Debug)]
+pub struct HttpUriOptionsAllowedUris {
+  conditions: AssetConditions,
+}
+
+impl Default for HttpUriOptionsAllowedUris {
+  fn default() -> Self {
+    Self {
+      conditions: AssetConditions::Multiple(vec![]),
+    }
+  }
+}
+
+impl HttpUriOptionsAllowedUris {
+  pub fn new(uris: Vec<String>) -> Self {
+    // Convert string URIs to AssetConditions
+    let conditions = if uris.is_empty() {
+      AssetConditions::Multiple(vec![])
+    } else {
+      AssetConditions::Multiple(
+        uris
+          .into_iter()
+          .map(|s| AssetCondition::String(s))
+          .collect(),
+      )
+    };
+
+    Self { conditions }
+  }
+
+  pub fn from_asset_conditions(conditions: AssetConditions) -> Self {
+    Self { conditions }
+  }
+
+  pub fn is_allowed(&self, uri: &str) -> bool {
+    // If conditions is empty, allow all
+    if let AssetConditions::Multiple(conditions) = &self.conditions {
+      if conditions.is_empty() {
+        return true;
+      }
+    }
+
+    // Otherwise, check if the URI matches any condition
+    self.conditions.try_match(uri)
+  }
+
+  pub fn get_allowed_uris_description(&self) -> String {
+    match &self.conditions {
+      AssetConditions::Single(condition) => self.condition_to_string(condition),
+      AssetConditions::Multiple(conditions) => {
+        if conditions.is_empty() {
+          return "All URIs are allowed".to_string();
+        }
+
+        conditions
+          .iter()
+          .map(|c| format!(" - {}", self.condition_to_string(c)))
+          .collect::<Vec<_>>()
+          .join("\n")
+      }
+    }
+  }
+
+  fn condition_to_string(&self, condition: &AssetCondition) -> String {
+    match condition {
+      AssetCondition::String(s) => s.to_string(),
+      AssetCondition::Regexp(r) => r.to_source_string(),
+    }
+  }
+}

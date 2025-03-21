@@ -111,7 +111,7 @@ use self::{
   raw_size_limits::RawSizeLimitsPluginOptions,
 };
 use crate::{
-  entry::JsEntryPluginOptions, plugins::JsLoaderRspackPlugin, JsLoaderRunner,
+  entry::JsEntryPluginOptions, plugins::JsLoaderRspackPlugin, JsLoaderRunner, RawAssetConditions,
   RawContextReplacementPluginOptions, RawDynamicEntryPluginOptions,
   RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
   RawHttpExternalsRspackPluginOptions, RawRsdoctorPluginOptions, RawSourceMapDevToolPluginOptions,
@@ -617,7 +617,7 @@ fn downcast_into<T: FromNapiValue + 'static>(o: JsUnknown) -> Result<T> {
 #[napi(object)]
 #[derive(Debug)]
 pub struct RawHttpUriPluginOptions {
-  pub allowed_uris: Option<Vec<String>>,
+  pub allowed_uris: Option<RawAssetConditions>,
   pub cache_location: Option<String>,
   pub frozen: Option<bool>,
   pub lockfile_location: Option<String>,
