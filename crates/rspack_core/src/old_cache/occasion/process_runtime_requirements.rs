@@ -1,3 +1,5 @@
+use std::future::Future;
+
 use rspack_collections::Identifier;
 use rspack_error::Result;
 
@@ -25,17 +27,21 @@ impl ProcessRuntimeRequirementsOccasion {
   }
 
   // #[tracing::instrument(skip_all, fields(module = ?module))]
-  pub fn use_cache(
+  pub async fn use_cache<G, F>(
     &self,
     module: ModuleIdentifier,
     runtime: &RuntimeSpec,
     compilation: &Compilation,
-    provide: impl Fn(ModuleIdentifier, &RuntimeSpec) -> Result<RuntimeGlobals>,
-  ) -> Result<RuntimeGlobals> {
+    provide: G,
+  ) -> Result<RuntimeGlobals>
+  where
+    G: FnOnce() -> F,
+    F: Future<Output = Result<RuntimeGlobals>>,
+  {
     let storage = match &self.storage {
       Some(s) => s,
       None => {
-        let res = provide(module, runtime)?;
+        let res = provide().await?;
         return Ok(res);
       }
     };
@@ -50,7 +56,7 @@ impl ProcessRuntimeRequirementsOccasion {
     if let Some(value) = storage.get(&cache_key) {
       Ok(value)
     } else {
-      let res = provide(module, runtime)?;
+      let res = provide().await?;
       storage.set(cache_key, res);
       Ok(res)
     }
