@@ -58,6 +58,8 @@ use crate::{
   RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
   Stats,
 };
+#[cfg(feature = "napi")]
+use crate::{Reflectable, Reflector};
 
 define_hook!(CompilationAddEntry: AsyncSeries(compilation: &mut Compilation, entry_name: Option<&str>));
 define_hook!(CompilationBuildModule: AsyncSeries(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
@@ -152,6 +154,8 @@ static COMPILATION_ID: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug)]
 pub struct Compilation {
+  #[cfg(feature = "napi")]
+  reflector: Reflector,
   /// get_compilation_hooks(compilation.id)
   id: CompilationId,
   compiler_id: CompilerId,
@@ -287,6 +291,8 @@ impl Compilation {
   ) -> Self {
     let incremental = Incremental::new(options.experiments.incremental);
     Self {
+      #[cfg(feature = "napi")]
+      reflector: Reflector::default(),
       id: CompilationId::new(),
       compiler_id,
       hot_index: 0,
@@ -2379,6 +2385,17 @@ impl Compilation {
 
   pub fn built_modules(&self) -> &IdentifierSet {
     &self.make_artifact.built_modules
+  }
+}
+
+#[cfg(feature = "napi")]
+impl Reflectable for Compilation {
+  fn reflector(&self) -> &Reflector {
+    &self.reflector
+  }
+
+  fn reflector_mut(&mut self) -> &mut Reflector {
+    &mut self.reflector
   }
 }
 

@@ -1056,6 +1056,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "790eea4361631c5e7d22598ecd5723ff611904e3344ce8720784c93e3d83d40b"
 
 [[package]]
+name = "crossbeam"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1137cd7e7fc0fb5d3c5a8678be38ec56e819125d8d7907411fe24ccb943faca8"
+dependencies = [
+ "crossbeam-channel",
+ "crossbeam-deque",
+ "crossbeam-epoch",
+ "crossbeam-queue",
+ "crossbeam-utils",
+]
+
+[[package]]
 name = "crossbeam-channel"
 version = "0.5.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4267,6 +4280,7 @@ dependencies = [
  "itertools 0.14.0",
  "json",
  "mime_guess",
+ "napi",
  "num-bigint",
  "once_cell",
  "paste",
@@ -4553,6 +4567,7 @@ dependencies = [
  "async-trait",
  "color-backtrace",
  "cow-utils",
+ "crossbeam",
  "derive_more 1.0.0",
  "futures",
  "glob",
