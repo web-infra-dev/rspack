@@ -52,7 +52,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     // this take is aiming to avoid use self ref and mut ref at the same time;
     let mut global_runtime: Option<RuntimeSpec> = None;
     let entries = std::mem::take(&mut self.compilation.entries);
-    for (entry_name, entry) in entries.iter() {
+    for (entry_name, entry) in &*entries {
       let runtime = if self.global {
         None
       } else {

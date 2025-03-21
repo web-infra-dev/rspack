@@ -155,7 +155,7 @@ impl Compiler {
       id,
       compiler_path,
       options: options.clone(),
-      compilation: Root::new(Compilation::new(
+      compilation: Root::from(Compilation::new(
         id,
         options,
         plugin_driver.clone(),
@@ -202,7 +202,7 @@ impl Compiler {
     // TODO: maybe it's better to use external entries.
     self.plugin_driver.clear_cache();
 
-    self.compilation = Root::new(Compilation::new(
+    self.compilation = Root::from(Compilation::new(
       self.id,
       self.options.clone(),
       self.plugin_driver.clone(),

@@ -155,7 +155,7 @@ impl Compiler {
           std::mem::take(&mut self.compilation.chunk_render_artifact);
       }
 
-      self.compilation = Root::new(new_compilation);
+      self.compilation = Root::from(new_compilation);
       if let Err(err) = self.cache.before_compile(&mut self.compilation).await {
         self.compilation.push_diagnostic(err.into());
       }

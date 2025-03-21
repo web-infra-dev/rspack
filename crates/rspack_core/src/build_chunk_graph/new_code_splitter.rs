@@ -23,7 +23,7 @@ use crate::{
   merge_runtime, AsyncDependenciesBlockIdentifier, Chunk, ChunkGroup, ChunkGroupKind,
   ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, DependenciesBlock,
   DependencyLocation, EntryData, EntryDependency, EntryOptions, EntryRuntime, GroupOptions,
-  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
+  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, Root, RuntimeSpec,
   SyntheticDependencyLocation,
 };
 
@@ -65,7 +65,7 @@ pub struct CodeSplitter {
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 enum CreateChunkRoot {
-  Entry(String, EntryData, Option<RuntimeSpec>),
+  Entry(String, Root<EntryData>, Option<RuntimeSpec>),
   Block(AsyncDependenciesBlockIdentifier, Option<RuntimeSpec>),
 }
 
@@ -399,7 +399,7 @@ impl CodeSplitter {
     let global_deps = compilation.global_entry.dependencies.iter();
     let global_included_deps = compilation.global_entry.include_dependencies.iter();
 
-    for (entry, entry_data) in &compilation.entries {
+    for (entry, entry_data) in &*compilation.entries {
       let chunk_loading = !matches!(
         entry_data
           .options
@@ -739,7 +739,7 @@ impl CodeSplitter {
     let global_deps = compilation.global_entry.dependencies.iter();
     let global_included_deps = compilation.global_entry.include_dependencies.iter();
 
-    for (name, entry) in &compilation.entries {
+    for (name, entry) in &*compilation.entries {
       global_deps
         .clone()
         .chain(entry.dependencies.iter())

@@ -120,7 +120,7 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
 
   let compiler_id = compiler.id();
 
-  compiler.compilation = Root::new(Compilation::new(
+  compiler.compilation = Root::from(Compilation::new(
     compiler_id,
     compiler.options.clone(),
     compiler.plugin_driver.clone(),
