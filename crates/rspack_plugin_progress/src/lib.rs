@@ -152,7 +152,7 @@ impl ProgressPlugin {
         .active_modules
         .lock()
         .await
-        .get(&last_active_module)
+        .get(last_active_module)
         .map(|time| Instant::now() - *time);
       self
         .handler(
