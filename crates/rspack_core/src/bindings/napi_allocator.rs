@@ -6,7 +6,7 @@ use napi::{
 };
 use once_cell::sync::OnceCell;
 
-use crate::Compilation;
+use crate::{Compilation, Entries, EntryData};
 
 /// ThreadSafeReference is a wrapper around napi::Reference<()>.
 /// It can only be created on the JS thread but can be used on any thread.
@@ -28,6 +28,7 @@ impl ThreadSafeReference {
 
 impl ToNapiValue for ThreadSafeReference {
   unsafe fn to_napi_value(env: napi_env, val: Self) -> napi::Result<napi_value> {
+    #[allow(clippy::unwrap_used)]
     let reference = val.i.as_ref().unwrap();
     ToNapiValue::to_napi_value(env, reference.downgrade())
   }
@@ -35,6 +36,7 @@ impl ToNapiValue for ThreadSafeReference {
 
 impl ToNapiValue for &ThreadSafeReference {
   unsafe fn to_napi_value(env: napi_env, val: Self) -> napi::Result<napi_value> {
+    #[allow(clippy::unwrap_used)]
     let reference = val.i.as_ref().unwrap();
     ToNapiValue::to_napi_value(env, reference.downgrade())
   }
@@ -42,6 +44,7 @@ impl ToNapiValue for &ThreadSafeReference {
 
 impl ToNapiValue for &mut ThreadSafeReference {
   unsafe fn to_napi_value(env: napi_env, val: Self) -> napi::Result<napi_value> {
+    #[allow(clippy::unwrap_used)]
     let reference = val.i.as_ref().unwrap();
     ToNapiValue::to_napi_value(env, reference.downgrade())
   }
@@ -49,6 +52,7 @@ impl ToNapiValue for &mut ThreadSafeReference {
 
 impl Drop for ThreadSafeReference {
   fn drop(&mut self) {
+    #[allow(clippy::unwrap_used)]
     self.destructor.push(self.i.take().unwrap());
   }
 }
@@ -59,6 +63,8 @@ thread_local! {
 
 pub trait NapiAllocator {
   fn allocate_compilation(&self, val: Box<Compilation>) -> napi::Result<ThreadSafeReference>;
+  fn allocate_entries(&self, val: Box<Entries>) -> napi::Result<ThreadSafeReference>;
+  fn allocate_entry_data(&self, val: Box<EntryData>) -> napi::Result<ThreadSafeReference>;
 }
 
 pub fn with_thread_local_allocator<T>(

@@ -52,11 +52,11 @@ use crate::{
   ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderResult, ChunkUkey,
   CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyId,
-  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
+  DependencyType, Entries, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
   Filename, ImportVarMap, LocalFilenameFn, Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial,
-  ModuleIdentifier, ModuleIdsArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeModule,
-  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
-  Stats,
+  ModuleIdentifier, ModuleIdsArtifact, PathData, ResolverFactory, Root, RuntimeGlobals,
+  RuntimeModule, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
+  SourceType, Stats,
 };
 #[cfg(feature = "napi")]
 use crate::{Reflectable, Reflector};
@@ -167,7 +167,7 @@ pub struct Compilation {
   pub hot_index: u32,
   pub records: Option<CompilationRecords>,
   pub options: Arc<CompilerOptions>,
-  pub entries: Entry,
+  pub entries: Root<Entries>,
   pub global_entry: EntryData,
   other_module_graph: Option<ModuleGraphPartial>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
@@ -306,7 +306,7 @@ impl Compilation {
       runtime_modules_code_generation_source: Default::default(),
       chunk_by_ukey: Default::default(),
       chunk_group_by_ukey: Default::default(),
-      entries: Default::default(),
+      entries: Root::from(Entries::default()),
       global_entry: Default::default(),
       chunk_graph: Default::default(),
       entrypoints: Default::default(),
@@ -561,12 +561,8 @@ impl Compilation {
         data.dependencies.push(entry_id);
         data.options.merge(options)?;
       } else {
-        let data = EntryData {
-          dependencies: vec![entry_id],
-          include_dependencies: vec![],
-          options,
-        };
-        self.entries.insert(name.to_owned(), data);
+        let data = EntryData::new(vec![entry_id], vec![], options);
+        self.entries.insert(name.to_owned(), Root::from(data));
       }
     } else {
       self.global_entry.dependencies.push(entry_id);
@@ -600,12 +596,8 @@ impl Compilation {
         if let Some(data) = self.entries.get_mut(&name) {
           data.include_dependencies.push(entry_id);
         } else {
-          let data = EntryData {
-            dependencies: vec![],
-            include_dependencies: vec![entry_id],
-            options,
-          };
-          self.entries.insert(name, data);
+          let data = EntryData::new(vec![], vec![entry_id], options);
+          self.entries.insert(name, Root::from(data));
         }
       } else {
         self.global_entry.include_dependencies.push(entry_id);

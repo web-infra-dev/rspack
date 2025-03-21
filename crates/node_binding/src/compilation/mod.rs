@@ -5,10 +5,12 @@ use std::path::Path;
 
 use dependencies::JsDependencies;
 use entries::JsEntries;
+use napi::sys::napi_value;
 use napi_derive::napi;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{
   rspack_sources::BoxSource, BoxDependency, EntryOptions, FactorizeInfo, ModuleIdentifier,
+  Reflectable,
 };
 use rspack_error::Diagnostic;
 use rspack_napi::{napi::bindgen_prelude::*, NapiResultExt};
@@ -616,12 +618,19 @@ impl JsCompilation {
     })
   }
 
-  #[napi(getter)]
-  pub fn entries(&mut self) -> Result<JsEntries> {
-    todo!()
-    // let compilation = self.0.as_mut();
-
-    // Ok(JsEntries::new(compilation))
+  #[napi(getter, ts_return_type = "JsEntries")]
+  pub fn entries(
+    &mut self,
+    env: Env,
+    reference: Reference<JsCompilation>,
+  ) -> napi::Result<napi_value> {
+    let compilation = self.0.as_mut();
+    Ok(unsafe {
+      let napi_val = ToNapiValue::to_napi_value(env.raw(), compilation.entries.reflector())?;
+      let js_entries = JsEntries::from_napi_mut_ref(env.raw(), napi_val)?;
+      js_entries.compilation = Some(reference.downgrade());
+      napi_val
+    })
   }
 
   #[napi]
