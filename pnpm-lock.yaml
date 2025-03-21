@@ -461,6 +461,9 @@ importers:
       graceful-fs:
         specifier: ^4.2.11
         version: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
+      iconv-lite:
+        specifier: ^0.6.3
+        version: 0.6.3
       jest-diff:
         specifier: ^29.7.0
         version: 29.7.0
@@ -513,6 +516,9 @@ importers:
       '@rspack/plugin-react-refresh':
         specifier: ^1.0.1
         version: 1.0.1(react-refresh@0.16.0)
+      '@rspack/test-tools':
+        specifier: workspace:*
+        version: 'link:'
       '@swc/helpers':
         specifier: 0.5.15
         version: 0.5.15
