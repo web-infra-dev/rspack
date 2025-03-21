@@ -5,7 +5,7 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier, ApplyContext, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
   CompilerOptions, ExportInfoProvided, LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin,
-  PluginContext,
+  PluginContext, Root,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
@@ -45,7 +45,7 @@ impl ModuleLibraryPlugin {
 #[plugin_hook(CompilerCompilation for ModuleLibraryPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());

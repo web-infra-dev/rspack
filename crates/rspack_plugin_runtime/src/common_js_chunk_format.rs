@@ -3,7 +3,8 @@ use std::hash::Hash;
 use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationParams, CompilerCompilation, CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
+  CompilationParams, CompilerCompilation, CompilerOptions, Plugin, PluginContext, Root,
+  RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -28,7 +29,7 @@ pub struct CommonJsChunkFormatPlugin;
 #[plugin_hook(CompilerCompilation for CommonJsChunkFormatPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());

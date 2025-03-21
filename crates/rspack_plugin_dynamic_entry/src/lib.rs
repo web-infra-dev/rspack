@@ -8,6 +8,7 @@ use futures::future::BoxFuture;
 use rspack_core::{
   ApplyContext, BoxDependency, Compilation, CompilationParams, CompilerCompilation, CompilerMake,
   CompilerOptions, Context, DependencyType, EntryDependency, EntryOptions, Plugin, PluginContext,
+  Root,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -46,7 +47,7 @@ impl DynamicEntryPlugin {
 #[plugin_hook(CompilerCompilation for DynamicEntryPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(DependencyType::Entry, params.normal_module_factory.clone());
@@ -54,7 +55,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilerMake for DynamicEntryPlugin)]
-async fn make(&self, compilation: &mut Compilation) -> Result<()> {
+async fn make(&self, compilation: &mut Root<Compilation>) -> Result<()> {
   let entry_fn = &self.entry;
   let decs = entry_fn().await?;
   for EntryDynamicResult { import, options } in decs {

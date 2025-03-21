@@ -16,6 +16,7 @@ use regex::{Captures, Regex};
 use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   AssetInfo, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin, PluginContext,
+  Root,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -55,7 +56,7 @@ impl RealContentHashPlugin {
 }
 
 #[plugin_hook(CompilationProcessAssets for RealContentHashPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_HASH)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &mut Root<Compilation>) -> Result<()> {
   inner_impl(compilation).await
 }
 

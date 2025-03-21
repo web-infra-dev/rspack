@@ -35,7 +35,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
   BoxModule, ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
-  ExportsArgument, IdentCollector, Module, RuntimeGlobals, SourceType, SpanExt,
+  ExportsArgument, IdentCollector, RuntimeGlobals, SourceType, SpanExt,
 };
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -565,7 +565,7 @@ impl JsPlugin {
       }
     }
 
-    let chunk_modules: Vec<&Box<dyn Module>> = if let Some(inlined_modules) = inlined_modules {
+    let chunk_modules: Vec<&BoxModule> = if let Some(inlined_modules) = inlined_modules {
       all_modules
         .clone()
         .into_iter()

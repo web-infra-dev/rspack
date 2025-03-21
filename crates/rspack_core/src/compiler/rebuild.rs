@@ -7,9 +7,8 @@ use rspack_paths::ArcPath;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  chunk_graph_chunk::ChunkId, chunk_graph_module::ModuleId, fast_set,
-  incremental::IncrementalPasses, ChunkGraph, ChunkKind, Compilation, Compiler, ModuleExecutor,
-  RuntimeSpec, RuntimeSpecMap,
+  chunk_graph_chunk::ChunkId, chunk_graph_module::ModuleId, incremental::IncrementalPasses,
+  ChunkGraph, ChunkKind, Compilation, Compiler, ModuleExecutor, Root, RuntimeSpec, RuntimeSpecMap,
 };
 
 impl Compiler {
@@ -79,12 +78,15 @@ impl Compiler {
         // reuse module executor
         new_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
       }
+
       if new_compilation
         .incremental
         .can_read_mutations(IncrementalPasses::INFER_ASYNC_MODULES)
       {
         new_compilation.async_modules_artifact =
           std::mem::take(&mut self.compilation.async_modules_artifact);
+      } else {
+        let _ = std::mem::take(&mut self.compilation.async_modules_artifact);
       }
       if new_compilation
         .incremental
@@ -92,6 +94,8 @@ impl Compiler {
       {
         new_compilation.dependencies_diagnostics_artifact =
           std::mem::take(&mut self.compilation.dependencies_diagnostics_artifact);
+      } else {
+        let _ = std::mem::take(&mut self.compilation.dependencies_diagnostics_artifact);
       }
       if new_compilation
         .incremental
@@ -99,6 +103,8 @@ impl Compiler {
       {
         new_compilation.side_effects_optimize_artifact =
           std::mem::take(&mut self.compilation.side_effects_optimize_artifact);
+      } else {
+        let _ = std::mem::take(&mut self.compilation.side_effects_optimize_artifact);
       }
       if new_compilation
         .incremental
@@ -106,6 +112,8 @@ impl Compiler {
       {
         new_compilation.module_ids_artifact =
           std::mem::take(&mut self.compilation.module_ids_artifact);
+      } else {
+        let _ = std::mem::take(&mut self.compilation.module_ids_artifact);
       }
       if new_compilation
         .incremental
@@ -113,12 +121,16 @@ impl Compiler {
       {
         new_compilation.chunk_ids_artifact =
           std::mem::take(&mut self.compilation.chunk_ids_artifact);
+      } else {
+        let _ = std::mem::take(&mut self.compilation.chunk_ids_artifact);
       }
       if new_compilation
         .incremental
         .can_read_mutations(IncrementalPasses::MODULES_HASHES)
       {
         new_compilation.cgm_hash_artifact = std::mem::take(&mut self.compilation.cgm_hash_artifact);
+      } else {
+        let _ = std::mem::take(&mut self.compilation.cgm_hash_artifact);
       }
       if new_compilation
         .incremental
@@ -126,6 +138,8 @@ impl Compiler {
       {
         new_compilation.code_generation_results =
           std::mem::take(&mut self.compilation.code_generation_results);
+      } else {
+        let _ = std::mem::take(&mut self.compilation.code_generation_results);
       }
       if new_compilation
         .incremental
@@ -133,6 +147,8 @@ impl Compiler {
       {
         new_compilation.cgm_runtime_requirements_artifact =
           std::mem::take(&mut self.compilation.cgm_runtime_requirements_artifact);
+      } else {
+        let _ = std::mem::take(&mut self.compilation.cgm_runtime_requirements_artifact);
       }
       if new_compilation
         .incremental
@@ -140,6 +156,8 @@ impl Compiler {
       {
         new_compilation.cgc_runtime_requirements_artifact =
           std::mem::take(&mut self.compilation.cgc_runtime_requirements_artifact);
+      } else {
+        let _ = std::mem::take(&mut self.compilation.cgc_runtime_requirements_artifact);
       }
       if new_compilation
         .incremental
@@ -147,6 +165,8 @@ impl Compiler {
       {
         new_compilation.chunk_hashes_artifact =
           std::mem::take(&mut self.compilation.chunk_hashes_artifact);
+      } else {
+        let _ = std::mem::take(&mut self.compilation.chunk_hashes_artifact);
       }
       if new_compilation
         .incremental
@@ -154,12 +174,11 @@ impl Compiler {
       {
         new_compilation.chunk_render_artifact =
           std::mem::take(&mut self.compilation.chunk_render_artifact);
+      } else {
+        let _ = std::mem::take(&mut self.compilation.chunk_render_artifact);
       }
 
-      // FOR BINDING SAFETY:
-      // Update `compilation` for each rebuild.
-      // Make sure `thisCompilation` hook was called before any other hooks that leverage `JsCompilation`.
-      fast_set(&mut self.compilation, new_compilation);
+      self.compilation = Root::new(new_compilation);
       if let Err(err) = self.cache.before_compile(&mut self.compilation).await {
         self.compilation.push_diagnostic(err.into());
       }

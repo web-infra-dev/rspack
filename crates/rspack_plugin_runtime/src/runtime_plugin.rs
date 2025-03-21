@@ -6,7 +6,7 @@ use rspack_core::{
   get_css_chunk_filename_template, get_js_chunk_filename_template, has_hash_placeholder,
   ApplyContext, ChunkLoading, ChunkUkey, Compilation, CompilationId, CompilationParams,
   CompilationRuntimeRequirementInModule, CompilationRuntimeRequirementInTree, CompilerCompilation,
-  CompilerOptions, ModuleIdentifier, Plugin, PluginContext, PublicPath, RuntimeGlobals,
+  CompilerOptions, ModuleIdentifier, Plugin, PluginContext, PublicPath, Root, RuntimeGlobals,
   RuntimeModuleExt, SourceType,
 };
 use rspack_error::Result;
@@ -179,7 +179,7 @@ impl RuntimePlugin {
 #[plugin_hook(CompilerCompilation for RuntimePlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());

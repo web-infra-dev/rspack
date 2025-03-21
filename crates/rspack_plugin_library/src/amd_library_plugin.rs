@@ -5,7 +5,7 @@ use rspack_core::{
   ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, FilenameTemplate,
   LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType, PathData, Plugin, PluginContext,
-  RuntimeGlobals, SourceType,
+  Root, RuntimeGlobals, SourceType,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
@@ -78,7 +78,7 @@ impl AmdLibraryPlugin {
 #[plugin_hook(CompilerCompilation for AmdLibraryPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());

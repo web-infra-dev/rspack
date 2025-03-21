@@ -9,7 +9,7 @@ use rspack_core::{
   to_comment_with_nl, ApplyContext, BoxModule, BuildMetaExportsType, ChunkGraph,
   ChunkInitFragments, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
   CompilerOptions, ExportInfo, ExportInfoProvided, ExportsInfo, ModuleGraph, ModuleIdentifier,
-  Plugin, PluginContext, UsageState,
+  Plugin, PluginContext, Root, UsageState,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -162,7 +162,7 @@ impl ModuleInfoHeaderPlugin {
 #[plugin_hook(CompilerCompilation for ModuleInfoHeaderPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());

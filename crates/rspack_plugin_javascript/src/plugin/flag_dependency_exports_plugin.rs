@@ -6,7 +6,7 @@ use rspack_core::{
   incremental::IncrementalPasses, ApplyContext, BuildMetaExportsType, Compilation,
   CompilationFinishModules, CompilerOptions, DependenciesBlock, DependencyId, ExportInfoProvided,
   ExportNameOrSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, Logger, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, Plugin, PluginContext,
+  ModuleGraphConnection, ModuleIdentifier, Plugin, PluginContext, Root,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -345,7 +345,7 @@ pub struct DefaultExportInfo<'a> {
 pub struct FlagDependencyExportsPlugin;
 
 #[plugin_hook(CompilationFinishModules for FlagDependencyExportsPlugin)]
-async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(&self, compilation: &mut Root<Compilation>) -> Result<()> {
   let modules: IdentifierSet = if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::PROVIDED_EXPORTS)

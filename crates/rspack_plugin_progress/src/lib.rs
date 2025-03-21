@@ -19,7 +19,7 @@ use rspack_core::{
   CompilationOptimizeTree, CompilationParams, CompilationProcessAssets, CompilationSeal,
   CompilationSucceedModule, CompilerAfterEmit, CompilerCompilation, CompilerEmit,
   CompilerFinishMake, CompilerId, CompilerMake, CompilerOptions, CompilerThisCompilation,
-  ModuleIdentifier, Plugin, PluginContext,
+  ModuleIdentifier, Plugin, PluginContext, Root,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -282,7 +282,7 @@ impl ProgressPlugin {
 #[plugin_hook(CompilerThisCompilation for ProgressPlugin)]
 async fn this_compilation(
   &self,
-  _compilation: &mut Compilation,
+  _compilation: &mut Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   if let ProgressPluginOptions::Default(options) = &self.options {
@@ -304,7 +304,7 @@ async fn this_compilation(
 #[plugin_hook(CompilerCompilation for ProgressPlugin)]
 async fn compilation(
   &self,
-  _compilation: &mut Compilation,
+  _compilation: &mut Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   self.handler(
@@ -316,7 +316,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilerMake for ProgressPlugin)]
-async fn make(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn make(&self, _compilation: &mut Root<Compilation>) -> Result<()> {
   self.handler(0.1, String::from("make"), vec![], None)?;
   self.modules_count.store(0, Relaxed);
   self.modules_done.store(0, Relaxed);
@@ -394,7 +394,7 @@ async fn succeed_module(
 }
 
 #[plugin_hook(CompilerFinishMake for ProgressPlugin)]
-async fn finish_make(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn finish_make(&self, _compilation: &mut Root<Compilation>) -> Result<()> {
   self.handler(
     0.69,
     "building".to_string(),
@@ -404,7 +404,7 @@ async fn finish_make(&self, _compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationFinishModules for ProgressPlugin)]
-async fn finish_modules(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(&self, _compilation: &mut Root<Compilation>) -> Result<()> {
   self.sealing_hooks_report("finish modules", 0)
 }
 
@@ -458,22 +458,22 @@ fn chunk_ids(&self, _compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationProcessAssets for ProgressPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
-async fn process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, _compilation: &mut Root<Compilation>) -> Result<()> {
   self.sealing_hooks_report("asset processing", 35)
 }
 
 #[plugin_hook(CompilationAfterProcessAssets for ProgressPlugin)]
-async fn after_process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn after_process_assets(&self, _compilation: &mut Root<Compilation>) -> Result<()> {
   self.sealing_hooks_report("after asset optimization", 36)
 }
 
 #[plugin_hook(CompilerEmit for ProgressPlugin)]
-async fn emit(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn emit(&self, _compilation: &mut Root<Compilation>) -> Result<()> {
   self.handler(0.98, "emitting".to_string(), vec!["emit".to_string()], None)
 }
 
 #[plugin_hook(CompilerAfterEmit for ProgressPlugin)]
-async fn after_emit(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn after_emit(&self, _compilation: &mut Root<Compilation>) -> Result<()> {
   self.handler(
     1.0,
     "emitting".to_string(),

@@ -12,6 +12,7 @@ use itertools::Itertools;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_collections::DatabaseItem;
+use rspack_core::Root;
 use rspack_core::{
   rspack_sources::{ConcatSource, MapOptions, RawStringSource, Source, SourceExt},
   AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets,
@@ -590,7 +591,7 @@ impl SourceMapDevToolPlugin {
 }
 
 #[plugin_hook(CompilationProcessAssets for SourceMapDevToolPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_DEV_TOOLING)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &mut Root<Compilation>) -> Result<()> {
   let logger = compilation.get_logger("rspack.SourceMapDevToolPlugin");
 
   // use to read
