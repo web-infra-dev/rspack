@@ -27,15 +27,7 @@ pub struct JsHttpResponseRaw {
 
 #[derive(Debug, Clone)]
 pub struct JsHttpClient {
-  function: ThreadsafeFunction<
-    (
-      Option<String>,
-      Option<String>,
-      String,
-      HashMap<String, String>,
-    ),
-    Promise<JsHttpResponseRaw>,
-  >,
+  function: ThreadsafeFunction<(String, HashMap<String, String>), Promise<JsHttpResponseRaw>>,
 }
 
 #[async_trait]
@@ -56,12 +48,8 @@ impl HttpClient for JsHttpClient {
 
     let func = self.function.clone();
 
-    let method_str: Option<String> = Some("GET".to_string());
-    let url_str: String = url_owned.clone();
-    let null_str: Option<String> = None;
-
     let result = func
-      .call_with_promise((null_str, method_str, url_str, headers_owned))
+      .call_with_promise((url_owned, headers_owned))
       .await
       .map_err(|e| anyhow::anyhow!("Error calling JavaScript HTTP client: {}", e))?;
 
@@ -83,15 +71,7 @@ static HTTP_CLIENT_REGISTERED: AtomicBool = AtomicBool::new(false);
 
 #[napi]
 pub fn register_http_client(
-  http_client: ThreadsafeFunction<
-    (
-      Option<String>,
-      Option<String>,
-      String,
-      HashMap<String, String>,
-    ),
-    Promise<JsHttpResponseRaw>,
-  >,
+  http_client: ThreadsafeFunction<(String, HashMap<String, String>), Promise<JsHttpResponseRaw>>,
 ) {
   let client = JsHttpClient {
     function: http_client,
