@@ -1811,7 +1811,7 @@ export interface RawHttpExternalsRspackPluginOptions {
 }
 
 export interface RawHttpUriPluginOptions {
-  allowedUris?: Array<string>
+  allowedUris?: (string | RegExp)[]
   cacheLocation?: string
   frozen?: boolean
   lockfileLocation?: string

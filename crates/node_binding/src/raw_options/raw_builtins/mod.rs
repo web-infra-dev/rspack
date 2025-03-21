@@ -22,12 +22,13 @@ use std::sync::Arc;
 use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
-pub use raw_http_uri::{create_http_uri_plugin, register_http_client};
+pub use raw_http_uri::{create_http_uri_plugin, register_http_client, RawHttpUriPluginOptions};
 use raw_ids::RawOccurrenceChunkIdsPluginOptions;
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use raw_sri::RawSubresourceIntegrityPluginOptions;
 use rspack_core::{BoxPlugin, Plugin, PluginExt};
 use rspack_error::Result;
+use rspack_fs::NativeFileSystem;
 use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
   NamedModuleIdsPlugin, NaturalChunkIdsPlugin, NaturalModuleIdsPlugin, OccurrenceChunkIdsPlugin,
@@ -111,7 +112,7 @@ use self::{
   raw_size_limits::RawSizeLimitsPluginOptions,
 };
 use crate::{
-  entry::JsEntryPluginOptions, plugins::JsLoaderRspackPlugin, JsLoaderRunner, RawAssetConditions,
+  entry::JsEntryPluginOptions, plugins::JsLoaderRspackPlugin, JsLoaderRunner, RawAssetCondition,
   RawContextReplacementPluginOptions, RawDynamicEntryPluginOptions,
   RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
   RawHttpExternalsRspackPluginOptions, RawRsdoctorPluginOptions, RawSourceMapDevToolPluginOptions,
@@ -406,25 +407,9 @@ impl BuiltinPlugin {
       BuiltinPluginName::DataUriPlugin => plugins.push(DataUriPlugin::default().boxed()),
       BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin::default().boxed()),
       BuiltinPluginName::HttpUriPlugin => {
-        let plugin_options = downcast_into::<RawHttpUriPluginOptions>(self.options)?;
-
-        // We need to create a NodeFileSystem, but we don't have a ThreadsafeNodeFS
-        // For now, we'll skip using real filesystem for simplicity
-        let fs = Arc::new(rspack_fs::MemoryFileSystem::default());
-
-        // Create the plugin
-        let plugin = raw_http_uri::create_http_uri_plugin(
-          plugin_options.allowed_uris.clone(),
-          plugin_options.cache_location.clone(),
-          plugin_options.frozen,
-          plugin_options.lockfile_location.clone(),
-          plugin_options.proxy.clone(),
-          plugin_options.upgrade,
-          fs,
-        )
-        .map_err(|e| rspack_error::error!(e.to_string()))?;
-
-        plugins.push(plugin.boxed());
+        let plugin_options =
+          downcast_into::<self::raw_http_uri::RawHttpUriPluginOptions>(self.options)?;
+        plugins.push(raw_http_uri::get_http_uri_plugin(plugin_options));
       }
       BuiltinPluginName::RuntimePlugin => plugins.push(RuntimePlugin::default().boxed()),
       BuiltinPluginName::JsonModulesPlugin => plugins.push(JsonPlugin.boxed()),
@@ -612,15 +597,4 @@ impl BuiltinPlugin {
 
 fn downcast_into<T: FromNapiValue + 'static>(o: JsUnknown) -> Result<T> {
   rspack_napi::downcast_into(o).into_rspack_result()
-}
-
-#[napi(object)]
-#[derive(Debug)]
-pub struct RawHttpUriPluginOptions {
-  pub allowed_uris: Option<RawAssetConditions>,
-  pub cache_location: Option<String>,
-  pub frozen: Option<bool>,
-  pub lockfile_location: Option<String>,
-  pub proxy: Option<String>,
-  pub upgrade: Option<bool>,
 }

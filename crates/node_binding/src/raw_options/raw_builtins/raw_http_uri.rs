@@ -8,7 +8,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use napi::bindgen_prelude::{Buffer, Promise};
+use napi::bindgen_prelude::{Buffer, Either, Promise};
 use napi_derive::napi;
 use once_cell::sync::OnceCell;
 use rspack_error::AnyhowError;
@@ -17,8 +17,20 @@ use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_schemes::{
   HttpClient, HttpResponse, HttpUriOptionsAllowedUris, HttpUriPlugin, HttpUriPluginOptions,
 };
+use rspack_regex::RspackRegex;
+use rspack_util::asset_condition::{AssetCondition, AssetConditions};
 
-use crate::{into_asset_conditions, RawAssetConditions};
+#[napi(object)]
+#[derive(Debug)]
+pub struct RawHttpUriPluginOptions {
+  #[napi(ts_type = "(string | RegExp)[]")]
+  pub allowed_uris: Option<Vec<Either<String, RspackRegex>>>,
+  pub cache_location: Option<String>,
+  pub frozen: Option<bool>,
+  pub lockfile_location: Option<String>,
+  pub proxy: Option<String>,
+  pub upgrade: Option<bool>,
+}
 
 #[napi(object)]
 pub struct JsHttpResponseRaw {
@@ -41,24 +53,12 @@ impl HttpClient for JsHttpClient {
   ) -> anyhow::Result<HttpResponse> {
     let url_owned = url.to_string();
     let headers_owned = headers.clone();
-
-    println!(
-      "[JsHttpClient] Preparing to call JS with URL: '{}'",
-      url_owned
-    );
-    println!("[JsHttpClient] Headers: {:?}", headers_owned);
-
     let func = self.function.clone();
 
     let result = func
       .call_with_promise((url_owned, headers_owned))
       .await
       .map_err(|e| anyhow::anyhow!("Error calling JavaScript HTTP client: {}", e))?;
-
-    println!(
-      "[JsHttpClient] Received response with status: {}",
-      result.status
-    );
 
     Ok(HttpResponse {
       status: result.status,
@@ -86,7 +86,7 @@ pub fn register_http_client(
 }
 
 pub fn create_http_uri_plugin(
-  allowed_uris: Option<RawAssetConditions>,
+  allowed_uris: Option<Vec<Either<String, RspackRegex>>>,
   cache_location: Option<String>,
   frozen: Option<bool>,
   lockfile_location: Option<String>,
@@ -96,17 +96,22 @@ pub fn create_http_uri_plugin(
 ) -> Result<HttpUriPlugin, AnyhowError> {
   let allowed_uris = match allowed_uris {
     Some(conditions) => {
-      HttpUriOptionsAllowedUris::from_asset_conditions(into_asset_conditions(conditions))
+      let asset_conditions = conditions
+        .into_iter()
+        .map(|condition| match condition {
+          Either::A(string) => AssetCondition::String(string),
+          Either::B(regex) => AssetCondition::Regexp(regex),
+        })
+        .collect();
+      HttpUriOptionsAllowedUris::from_asset_conditions(AssetConditions::Multiple(asset_conditions))
     }
     None => HttpUriOptionsAllowedUris::default(),
   };
 
   let http_client = if HTTP_CLIENT_REGISTERED.load(Ordering::SeqCst) {
-    // Get a reference to the JS_HTTP_CLIENT using get() which returns Option<&T>
-    // Then clone it to create a new instance
     let js_client = JS_HTTP_CLIENT
       .get()
-      .expect("JS_HTTP_CLIENT was registered but is not initialized")
+      .expect("HTTP client not available from JavaScript side")
       .clone();
 
     Some(Arc::new(js_client) as Arc<dyn HttpClient>)
@@ -128,4 +133,23 @@ pub fn create_http_uri_plugin(
   };
 
   Ok(HttpUriPlugin::new(options))
+}
+
+pub fn get_http_uri_plugin(options: RawHttpUriPluginOptions) -> Box<dyn rspack_core::Plugin> {
+  // Use NativeFileSystem for HTTP caching
+  let fs = Arc::new(rspack_fs::NativeFileSystem::new(false));
+
+  // Create the plugin with the provided options
+  let plugin = create_http_uri_plugin(
+    options.allowed_uris,
+    options.cache_location,
+    options.frozen,
+    options.lockfile_location,
+    options.proxy,
+    options.upgrade,
+    fs,
+  )
+  .expect("Failed to create HttpUriPlugin");
+
+  Box::new(plugin)
 }

@@ -172,10 +172,34 @@ impl HttpUriOptionsAllowedUris {
       if conditions.is_empty() {
         return true;
       }
+
+      // Check each condition, similar to webpack's isAllowed function
+      for condition in conditions {
+        match condition {
+          AssetCondition::String(s) => {
+            // String conditions in webpack check if URI starts with the string
+            if uri.starts_with(s) {
+              return true;
+            }
+          }
+          AssetCondition::Regexp(r) => {
+            // Regex conditions in webpack test the URI against the regex
+            if r.test(uri) {
+              return true;
+            }
+          }
+        }
+      }
+
+      return false;
     }
 
-    // Otherwise, check if the URI matches any condition
-    self.conditions.try_match(uri)
+    // For single conditions, do the same check
+    match &self.conditions {
+      AssetConditions::Single(AssetCondition::String(s)) => uri.starts_with(s),
+      AssetConditions::Single(AssetCondition::Regexp(r)) => r.test(uri),
+      _ => false, // Should never reach here given the check above
+    }
   }
 
   pub fn get_allowed_uris_description(&self) -> String {

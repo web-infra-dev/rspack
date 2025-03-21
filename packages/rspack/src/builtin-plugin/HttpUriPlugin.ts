@@ -42,38 +42,40 @@ export type HttpUriPluginOptions = {
 	http_client?: HttpClientFunction;
 };
 
-const defaultHttpClient: HttpClientFunction = (url, headers) => {
-	console.log("\n🔥 Fetching URL:", url);
-
-	return fetch(url, { headers }).then(response => {
-		return response.arrayBuffer().then(buffer => {
-			const responseHeaders: Record<string, string> = {};
-			response.headers.forEach((value, key) => {
-				responseHeaders[key] = value;
-			});
-
-			console.log(
-				`✅ Fetched ${url} successfully (${buffer.byteLength} bytes)`
-			);
-
-			return {
-				status: response.status,
-				headers: responseHeaders,
-				body: Buffer.from(buffer)
-			};
-		});
-	});
-};
-
 /**
  * Plugin that allows loading modules from HTTP URLs
  */
 export const HttpUriPlugin = create(
 	BuiltinPluginName.HttpUriPlugin,
 	(options: HttpUriPluginOptions = {}) => {
-		const { http_client } = options;
+		const http_client = (url: string, headers: Record<string, string>) => {
+			console.log("\n🔥 Fetching URL:", url);
 
-		registerHttpClient(http_client || defaultHttpClient);
+			// Return a promise that resolves to the response
+			return fetch(url, { headers }).then(response => {
+				// Convert the response to the format expected by the HTTP client
+				return response.arrayBuffer().then(buffer => {
+					// Extract headers
+					const responseHeaders: Record<string, string> = {};
+					response.headers.forEach((value, key) => {
+						responseHeaders[key] = value;
+					});
+
+					console.log(
+						`✅ Fetched ${url} successfully (${buffer.byteLength} bytes)`
+					);
+
+					// Return the standardized format
+					return {
+						status: response.status,
+						headers: responseHeaders,
+						body: Buffer.from(buffer)
+					};
+				});
+			});
+		};
+
+		registerHttpClient(options.http_client || http_client);
 
 		return options;
 	},

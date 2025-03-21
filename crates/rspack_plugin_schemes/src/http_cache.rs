@@ -1,6 +1,6 @@
 use std::{
   collections::HashMap,
-  path::{Path, PathBuf},
+  path::PathBuf,
   sync::Arc,
   time::{SystemTime, UNIX_EPOCH},
 };
@@ -13,6 +13,7 @@ use rspack_fs::WritableFileSystem;
 use rspack_paths::Utf8Path;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
+use url::Url;
 
 use crate::{
   http_uri::HttpUriPluginOptions,
@@ -117,9 +118,16 @@ impl HttpCache {
     let request_time = current_time();
     let mut headers = HashMap::new();
 
+    // Add webpack-like headers
+    headers.insert(
+      "accept-encoding".to_string(),
+      "gzip, deflate, br".to_string(),
+    );
+    headers.insert("user-agent".to_string(), "webpack".to_string());
+
     if let Some(cached) = &cached_result {
       if let Some(etag) = &cached.meta.etag {
-        headers.insert("If-None-Match".to_string(), etag.clone());
+        headers.insert("if-none-match".to_string(), etag.clone());
       }
     }
 
@@ -132,9 +140,11 @@ impl HttpCache {
 
     let (store_lock, store_cache, valid_until) = parse_cache_control(&cache_control, request_time);
 
+    // Handle 304 Not Modified (similar to webpack)
     if status == 304 {
       if let Some(cached) = cached_result {
         let new_valid_until = valid_until.max(cached.meta.valid_until);
+        println!("GET {} [{}] (unchanged)", url, status);
         return Ok(FetchResultType::Content(ContentFetchResult {
           meta: FetchResultMeta {
             fresh: true,
@@ -148,10 +158,50 @@ impl HttpCache {
       }
     }
 
+    // Improved handling of redirects to match webpack
     if let Some(location) = location {
-      if (300..=399).contains(&status) {
+      if (301..=308).contains(&status) {
+        println!("GET {} [{}] -> {}", url, status, location);
+        // Resolve relative redirects like webpack does
+        let absolute_location = match Url::parse(&location) {
+          Ok(loc) => loc.to_string(), // Already absolute
+          Err(_) => {
+            // Relative URL, resolve against original
+            match Url::parse(url) {
+              Ok(base_url) => base_url
+                .join(&location)
+                .map(|u| u.to_string())
+                .unwrap_or(location.clone()),
+              Err(_) => location.clone(), // Can't resolve, use as is
+            }
+          }
+        };
+
+        // If we had a cached redirect that's unchanged, use the cached meta
+        if let Some(cached) = &cached_result {
+          if let FetchResultType::Redirect(cached_redirect) =
+            fetch_cache_result_to_fetch_result_type(cached)
+          {
+            if cached_redirect.location == absolute_location
+              && cached_redirect.meta.valid_until >= valid_until
+              && cached_redirect.meta.store_lock == store_lock
+              && cached_redirect.meta.store_cache == store_cache
+              && cached_redirect.meta.etag == etag
+            {
+              println!("GET {} [{}] (unchanged redirect)", url, status);
+              return Ok(FetchResultType::Redirect(RedirectFetchResult {
+                meta: FetchResultMeta {
+                  fresh: true,
+                  ..cached_redirect.meta
+                },
+                ..cached_redirect
+              }));
+            }
+          }
+        }
+
         return Ok(FetchResultType::Redirect(RedirectFetchResult {
-          location,
+          location: absolute_location,
           meta: FetchResultMeta {
             fresh: true,
             store_lock,
@@ -164,18 +214,32 @@ impl HttpCache {
     }
 
     if !(200..=299).contains(&status) {
-      return Err(anyhow::anyhow!("Request failed with status: {}", status));
+      return Err(anyhow::anyhow!(
+        "Request failed with status: {}\n{}",
+        status,
+        String::from_utf8_lossy(&response.body)
+      ));
     }
 
     let content = response.body;
+    println!(
+      "GET {} [{}] {} kB{}",
+      url,
+      status,
+      content.len() / 1024,
+      if !store_lock { " no-cache" } else { "" }
+    );
+
     let integrity = compute_integrity(&content);
+    let content_type = headers
+      .get("content-type")
+      .unwrap_or(&"".to_string())
+      .to_string();
+
     let entry = LockfileEntry {
       resolved: url.to_string(),
       integrity: integrity.clone(),
-      content_type: headers
-        .get("content-type")
-        .unwrap_or(&"".to_string())
-        .to_string(),
+      content_type,
       valid_until,
       etag: etag.clone(),
     };
@@ -192,6 +256,14 @@ impl HttpCache {
       },
     };
 
+    if !store_cache {
+      println!(
+        "{} can't be stored in cache, due to Cache-Control header: {}",
+        url,
+        cache_control.unwrap_or_else(|| "null".to_string())
+      );
+    }
+
     if store_cache || store_lock {
       let should_update = cached_result
         .map(|cached| {
@@ -205,12 +277,29 @@ impl HttpCache {
         if store_cache {
           self.write_to_cache(url, &result.content).await?;
         }
+
         let lockfile = self.lockfile_cache.get_lockfile().await?;
-        lockfile
-          .lock()
-          .await
-          .entries_mut()
-          .insert(url.to_string(), entry);
+        let mut lock_guard = lockfile.lock().await;
+
+        // Log entry updates similar to webpack
+        let old_entry = lock_guard.get_entry(url);
+        if let Some(old_entry) = old_entry {
+          if old_entry.integrity != entry.integrity {
+            println!("{} updated in lockfile: content changed", url);
+          } else if old_entry.content_type != entry.content_type {
+            println!(
+              "{} updated in lockfile: {} -> {}",
+              url, old_entry.content_type, entry.content_type
+            );
+          } else {
+            println!("{} updated in lockfile", url);
+          }
+        } else {
+          println!("{} added to lockfile", url);
+        }
+
+        lock_guard.entries_mut().insert(url.to_string(), entry);
+        drop(lock_guard);
         self.lockfile_cache.save_lockfile().await?;
       }
     }
@@ -221,33 +310,38 @@ impl HttpCache {
   async fn read_from_cache(&self, resource: &str) -> Result<Option<ContentFetchResult>> {
     if let Some(cache_location) = &self.cache_location {
       let lockfile = self.lockfile_cache.get_lockfile().await?;
-      let lockfile = lockfile.lock().await;
-      let cache_path_buf = cache_location.join(Path::new(&*resource.cow_replace('/', "_")));
-      let cache_path = Utf8Path::from_path(&cache_path_buf).expect("Invalid cache path");
+      let lock_guard = lockfile.lock().await;
 
-      if let Some(entry) = lockfile.get_entry(resource) {
-        let current_time = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
-        let is_valid = entry.valid_until > current_time;
+      if let Some(entry) = lock_guard.get_entry(resource) {
+        // Generate cache key using webpack-compatible format
+        let cache_key = self.get_cache_key(&entry.resolved);
 
-        if is_valid && self.filesystem.read_file(cache_path).await.is_ok() {
-          let cached_content = self
-            .filesystem
-            .read_file(cache_path)
-            .await
-            .map_err(|e| anyhow::anyhow!("Failed to read cached content: {:?}", e))?;
+        // Full path to the cache file
+        let cache_path_buf = PathBuf::from(cache_location).join(&cache_key);
+        let cache_path = Utf8Path::from_path(&cache_path_buf).expect("Invalid cache path");
 
-          let result = ContentFetchResult {
-            entry: entry.clone(),
-            content: cached_content,
-            meta: FetchResultMeta {
-              fresh: true,
-              store_cache: false,
-              store_lock: false,
+        // Try to read the file
+        match self.filesystem.read_file(cache_path).await {
+          Ok(content) => {
+            let meta = FetchResultMeta {
+              store_cache: true,
+              store_lock: true,
               valid_until: entry.valid_until,
               etag: entry.etag.clone(),
-            },
-          };
-          return Ok(Some(result));
+              fresh: entry.valid_until >= current_time(),
+            };
+
+            let result = ContentFetchResult {
+              entry: entry.clone(),
+              content,
+              meta,
+            };
+
+            return Ok(Some(result));
+          }
+          Err(e) => {
+            println!("Failed to read cache file: {:?}", e);
+          }
         }
       }
     }
@@ -256,22 +350,135 @@ impl HttpCache {
 
   async fn write_to_cache(&self, resource: &str, content: &[u8]) -> Result<()> {
     if let Some(cache_location) = &self.cache_location {
-      let cache_location_path =
-        Utf8Path::from_path(cache_location).expect("Invalid cache location path");
-      self
-        .filesystem
-        .create_dir_all(cache_location_path)
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to create cache directory: {:?}", e))?;
-      let cache_path_buf = cache_location.join(Path::new(&*resource.cow_replace('/', "_")));
+      println!("Writing to cache at location: {:?}", cache_location);
+
+      // Generate cache key using webpack-compatible format
+      let cache_key = self.get_cache_key(resource);
+
+      // Create the full path to the cache file
+      let cache_path_buf = PathBuf::from(cache_location).join(&cache_key);
       let cache_path = Utf8Path::from_path(&cache_path_buf).expect("Invalid cache path");
-      self
-        .filesystem
-        .write(cache_path, content)
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to write to cache: {:?}", e))?;
+
+      // Create parent directories
+      if let Some(parent) = cache_path.parent() {
+        let parent_path = parent.to_string();
+        println!("Creating directory: {:?}", parent_path);
+        let parent_utf8_path = Utf8Path::new(&parent_path);
+        match self.filesystem.create_dir_all(parent_utf8_path).await {
+          Ok(_) => println!("Created cache directory successfully"),
+          Err(e) => println!("Failed to create cache directory: {:?}", e),
+        };
+      }
+
+      // Write the cache file
+      println!("Writing cache file to: {:?}", cache_path);
+      match self.filesystem.write(cache_path, content).await {
+        Ok(_) => println!("Wrote cache file successfully"),
+        Err(e) => println!("Failed to write cache file: {:?}", e),
+      };
+    } else {
+      println!("No cache location specified");
     }
     Ok(())
+  }
+
+  /// Get a cache key for a URL, compatible with webpack's getCacheKey function
+  fn get_cache_key(&self, url_str: &str) -> String {
+    // Parse the URL
+    let url = match Url::parse(url_str) {
+      Ok(url) => url,
+      Err(_) => {
+        let digest = Sha512::digest(url_str.as_bytes());
+        let hex_digest = self.to_hex_string(&digest)[..20].to_string();
+        return format!("invalid-url_{}", hex_digest);
+      }
+    };
+
+    // Extract components similar to webpack's _getCacheKey function
+    let folder = self.to_safe_path(&url.origin().ascii_serialization());
+    let pathname = self.to_safe_path(url.path());
+
+    // Extract query (search part)
+    let query = self.to_safe_path(url.query().unwrap_or(""));
+
+    // Get extension using the Path functionality, just like webpack does
+    let path = std::path::Path::new(pathname.as_str());
+    let ext_opt = path.extension().and_then(|e| e.to_str());
+
+    // Limit extension to 20 chars as webpack does
+    let ext = if let Some(ext) = ext_opt {
+      let ext_str = format!(".{}", ext);
+      if ext_str.len() > 20 {
+        String::new()
+      } else {
+        ext_str
+      }
+    } else {
+      String::new()
+    };
+
+    // Create basename similar to webpack
+    let basename = if !ext.is_empty() && pathname.ends_with(&ext) {
+      pathname[..pathname.len() - ext.len()].to_string()
+    } else {
+      pathname
+    };
+
+    // Create hash of URL for uniqueness using hex encoding like webpack
+    let mut hasher = Sha512::new();
+    hasher.update(url_str.as_bytes());
+    let digest = hasher.finalize();
+    // Convert to hex string and take first 20 chars
+    let hash_digest = self.to_hex_string(&digest)[..20].to_string();
+
+    // Construct the final key exactly as webpack does
+    // Take only the last 50 chars of the folder
+    let folder_component = if folder.len() > 50 {
+      folder[folder.len() - 50..].to_string()
+    } else {
+      folder
+    };
+
+    // Combine basename and query, limited to 150 chars
+    let name_component = if !query.is_empty() {
+      format!("{}_{}", basename, query)
+    } else {
+      basename
+    };
+    let name_component = if name_component.len() > 150 {
+      name_component[..150].to_string()
+    } else {
+      name_component
+    };
+
+    format!(
+      "{}/{}_{}{}",
+      folder_component, name_component, hash_digest, ext
+    )
+  }
+
+  /// Convert a string to a safe path component (similar to webpack's toSafePath)
+  fn to_safe_path(&self, input: &str) -> String {
+    input
+      .replace(':', "_")
+      .replace('/', "_")
+      .replace('\\', "_")
+      .replace('<', "_")
+      .replace('>', "_")
+      .replace(':', "_")
+      .replace('"', "_")
+      .replace('|', "_")
+      .replace('?', "_")
+      .replace('*', "_")
+      .replace('\0', "_")
+  }
+
+  /// Convert a byte array to a hex string
+  fn to_hex_string(&self, bytes: &[u8]) -> String {
+    bytes
+      .iter()
+      .map(|b| format!("{:02x}", b))
+      .collect::<String>()
   }
 }
 
@@ -338,5 +545,11 @@ fn compute_integrity(content: &[u8]) -> String {
   let mut hasher = Sha512::new();
   hasher.update(content);
   let digest = hasher.finalize();
+  // Use base64 for integrity as that's the standard format
   format!("sha512-{}", encode_to_string(digest))
+}
+
+// Helper function to convert ContentFetchResult to FetchResultType
+fn fetch_cache_result_to_fetch_result_type(result: &ContentFetchResult) -> FetchResultType {
+  FetchResultType::Content(result.clone())
 }
