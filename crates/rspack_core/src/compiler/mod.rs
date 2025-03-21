@@ -22,11 +22,11 @@ pub use self::{
 };
 use crate::{
   cache::{new_cache, Cache},
-  fast_set, include_hash,
+  include_hash,
   incremental::IncrementalPasses,
   old_cache::Cache as OldCache,
   trim_dir, BoxPlugin, CleanOptions, CompilerOptions, ContextModuleFactory, Logger,
-  NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
+  NormalModuleFactory, PluginDriver, ResolverFactory, Root, SharedPluginDriver,
 };
 
 // should be SyncHook, but rspack need call js hook
@@ -80,7 +80,7 @@ pub struct Compiler {
   pub output_filesystem: Arc<dyn WritableFileSystem>,
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
-  pub compilation: Compilation,
+  pub compilation: Root<Compilation>,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -155,7 +155,7 @@ impl Compiler {
       id,
       compiler_path,
       options: options.clone(),
-      compilation: Compilation::new(
+      compilation: Root::new(Compilation::new(
         id,
         options,
         plugin_driver.clone(),
@@ -172,7 +172,7 @@ impl Compiler {
         intermediate_filesystem.clone(),
         output_filesystem.clone(),
         false,
-      ),
+      )),
       output_filesystem,
       intermediate_filesystem,
       plugin_driver,
@@ -202,27 +202,25 @@ impl Compiler {
     // TODO: maybe it's better to use external entries.
     self.plugin_driver.clear_cache();
 
-    fast_set(
-      &mut self.compilation,
-      Compilation::new(
-        self.id,
-        self.options.clone(),
-        self.plugin_driver.clone(),
-        self.buildtime_plugin_driver.clone(),
-        self.resolver_factory.clone(),
-        self.loader_resolver_factory.clone(),
-        None,
-        self.cache.clone(),
-        self.old_cache.clone(),
-        Some(Default::default()),
-        Default::default(),
-        Default::default(),
-        self.input_filesystem.clone(),
-        self.intermediate_filesystem.clone(),
-        self.output_filesystem.clone(),
-        false,
-      ),
-    );
+    self.compilation = Root::new(Compilation::new(
+      self.id,
+      self.options.clone(),
+      self.plugin_driver.clone(),
+      self.buildtime_plugin_driver.clone(),
+      self.resolver_factory.clone(),
+      self.loader_resolver_factory.clone(),
+      None,
+      self.cache.clone(),
+      self.old_cache.clone(),
+      Some(Default::default()),
+      Default::default(),
+      Default::default(),
+      self.input_filesystem.clone(),
+      self.intermediate_filesystem.clone(),
+      self.output_filesystem.clone(),
+      false,
+    ));
+
     if let Err(err) = self.cache.before_compile(&mut self.compilation).await {
       self.compilation.push_diagnostic(err.into());
     }

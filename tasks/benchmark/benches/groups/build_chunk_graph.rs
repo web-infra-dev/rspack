@@ -5,7 +5,7 @@ use criterion::criterion_group;
 use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_core::{
-  build_chunk_graph, fast_set, incremental::IncrementalPasses, Compilation, Compiler, Experiments,
+  build_chunk_graph, incremental::IncrementalPasses, Compilation, Compiler, Experiments,
   Optimization,
 };
 use rspack_fs::{MemoryFileSystem, WritableFileSystem};
@@ -120,27 +120,24 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
 
   let compiler_id = compiler.id();
 
-  fast_set(
-    &mut compiler.compilation,
-    Compilation::new(
-      compiler_id,
-      compiler.options.clone(),
-      compiler.plugin_driver.clone(),
-      compiler.buildtime_plugin_driver.clone(),
-      compiler.resolver_factory.clone(),
-      compiler.loader_resolver_factory.clone(),
-      None,
-      compiler.cache.clone(),
-      compiler.old_cache.clone(),
-      Some(Default::default()),
-      Default::default(),
-      Default::default(),
-      compiler.input_filesystem.clone(),
-      compiler.intermediate_filesystem.clone(),
-      compiler.output_filesystem.clone(),
-      false,
-    ),
-  );
+  compiler.compilation = Root::new(Compilation::new(
+    compiler_id,
+    compiler.options.clone(),
+    compiler.plugin_driver.clone(),
+    compiler.buildtime_plugin_driver.clone(),
+    compiler.resolver_factory.clone(),
+    compiler.loader_resolver_factory.clone(),
+    None,
+    compiler.cache.clone(),
+    compiler.old_cache.clone(),
+    Some(Default::default()),
+    Default::default(),
+    Default::default(),
+    compiler.input_filesystem.clone(),
+    compiler.intermediate_filesystem.clone(),
+    compiler.output_filesystem.clone(),
+    false,
+  ));
 
   rt.block_on(async {
     fs.create_dir_all("/src".into())
