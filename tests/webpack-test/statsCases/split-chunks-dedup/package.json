@@ -4,6 +4,6 @@
     "node": ">=10.13.0"
   },
   "dependencies": {
-    "table": "=2.0.0"
+    "table": "=2.1.2"
   }
 }
