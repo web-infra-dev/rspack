@@ -153,6 +153,7 @@ pub(crate) async fn resolve_loader(
 
   let resolve_result = resolver
     .resolve(context.as_std_path(), prev.as_str())
+    .await
     .map_err(|err| error!("Failed to resolve loader: {prev} in {context}, error: {err:?}"))?;
 
   match resolve_result {

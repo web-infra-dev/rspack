@@ -2,6 +2,7 @@ use std::{path::Path, sync::Arc};
 
 use napi::Either;
 use napi_derive::napi;
+use pollster::block_on;
 use rspack_core::{ResolveOptionsWithDependencyType, Resolver, ResolverFactory, ResourceData};
 
 use crate::{
@@ -41,13 +42,15 @@ impl JsResolver {
     path: String,
     request: String,
   ) -> napi::Result<Either<JsResourceData, bool>> {
-    match self.resolver.resolve(Path::new(&path), &request) {
-      Ok(rspack_core::ResolveResult::Resource(resource)) => {
-        Ok(Either::A(ResourceData::from(resource).into()))
+    block_on(async move {
+      match self.resolver.resolve(Path::new(&path), &request).await {
+        Ok(rspack_core::ResolveResult::Resource(resource)) => {
+          Ok(Either::A(ResourceData::from(resource).into()))
+        }
+        Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(false)),
+        Err(err) => Err(napi::Error::from_reason(format!("{:?}", err))),
       }
-      Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(false)),
-      Err(err) => Err(napi::Error::from_reason(format!("{:?}", err))),
-    }
+    })
   }
 
   #[napi]
