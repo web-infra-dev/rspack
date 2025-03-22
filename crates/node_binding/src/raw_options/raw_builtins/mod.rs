@@ -17,8 +17,6 @@ mod raw_size_limits;
 mod raw_sri;
 mod raw_swc_js_minimizer;
 
-use std::sync::Arc;
-
 use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
@@ -28,7 +26,6 @@ use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use raw_sri::RawSubresourceIntegrityPluginOptions;
 use rspack_core::{BoxPlugin, Plugin, PluginExt};
 use rspack_error::Result;
-use rspack_fs::NativeFileSystem;
 use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
   NamedModuleIdsPlugin, NaturalChunkIdsPlugin, NaturalModuleIdsPlugin, OccurrenceChunkIdsPlugin,
@@ -112,7 +109,7 @@ use self::{
   raw_size_limits::RawSizeLimitsPluginOptions,
 };
 use crate::{
-  entry::JsEntryPluginOptions, plugins::JsLoaderRspackPlugin, JsLoaderRunner, RawAssetCondition,
+  entry::JsEntryPluginOptions, plugins::JsLoaderRspackPlugin, JsLoaderRunner,
   RawContextReplacementPluginOptions, RawDynamicEntryPluginOptions,
   RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
   RawHttpExternalsRspackPluginOptions, RawRsdoctorPluginOptions, RawSourceMapDevToolPluginOptions,

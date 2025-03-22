@@ -151,12 +151,7 @@ impl HttpUriOptionsAllowedUris {
     let conditions = if uris.is_empty() {
       AssetConditions::Multiple(vec![])
     } else {
-      AssetConditions::Multiple(
-        uris
-          .into_iter()
-          .map(|s| AssetCondition::String(s))
-          .collect(),
-      )
+      AssetConditions::Multiple(uris.into_iter().map(AssetCondition::String).collect())
     };
 
     Self { conditions }

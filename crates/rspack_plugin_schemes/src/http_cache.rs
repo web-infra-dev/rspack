@@ -460,25 +460,21 @@ impl HttpCache {
   /// Convert a string to a safe path component (similar to webpack's toSafePath)
   fn to_safe_path(&self, input: &str) -> String {
     input
-      .replace(':', "_")
-      .replace('/', "_")
-      .replace('\\', "_")
-      .replace('<', "_")
-      .replace('>', "_")
-      .replace(':', "_")
-      .replace('"', "_")
-      .replace('|', "_")
-      .replace('?', "_")
-      .replace('*', "_")
-      .replace('\0', "_")
+      .cow_replace(
+        &[':', '/', '\\', '<', '>', ':', '"', '|', '?', '*', '\0'] as &[char],
+        "_",
+      )
+      .into_owned()
   }
 
   /// Convert a byte array to a hex string
   fn to_hex_string(&self, bytes: &[u8]) -> String {
-    bytes
-      .iter()
-      .map(|b| format!("{:02x}", b))
-      .collect::<String>()
+    let mut result = String::with_capacity(bytes.len() * 2);
+    for b in bytes {
+      use std::fmt::Write;
+      write!(result, "{:02x}", b).unwrap();
+    }
+    result
   }
 }
 
