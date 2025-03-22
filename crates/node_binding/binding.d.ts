@@ -457,7 +457,8 @@ export declare enum BuiltinPluginName {
   RsdoctorPlugin = 'RsdoctorPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin',
-  ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin'
+  ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin',
+  HttpUriPlugin = 'HttpUriPlugin'
 }
 
 export declare function cleanupGlobalTrace(): void
@@ -750,6 +751,12 @@ export interface JsHtmlPluginTag {
   voidTag: boolean
   innerHTML?: string
   asset?: string
+}
+
+export interface JsHttpResponseRaw {
+  status: number
+  headers: Record<string, string>
+  body: Buffer
 }
 
 export interface JsLibIdentOptions {
@@ -1803,6 +1810,15 @@ export interface RawHttpExternalsRspackPluginOptions {
   webAsync: boolean
 }
 
+export interface RawHttpUriPluginOptions {
+  allowedUris?: (string | RegExp)[]
+  cacheLocation?: string
+  frozen?: boolean
+  lockfileLocation?: string
+  proxy?: string
+  upgrade?: boolean
+}
+
 export interface RawIgnorePluginOptions {
   resourceRegExp?: RegExp
   contextRegExp?: RegExp
@@ -2380,6 +2396,8 @@ export interface RawTrustedTypes {
  * Copyright (c)
  */
 export declare function registerGlobalTrace(filter: string, layer: "chrome" | "logger" | "otel", output: string): void
+
+export declare function registerHttpClient(http_client: (url: string, headers: Record<string, string>) => Promise<{ status: number, headers: Record<string, string>, body: Buffer }>):void
 
 export declare enum RegisterJsTapKind {
   CompilerThisCompilation = 0,

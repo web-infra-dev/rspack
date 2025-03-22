@@ -1,0 +1,62 @@
+```js title=main.js
+"use strict";
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
+"./index.js": (function (module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {
+__webpack_require__.r(__webpack_exports__);
+/* ESM import */var http_localhost_8999_allowed_module_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("http://localhost:8999/allowed-module.js");
+/* ESM import */var http_localhost_8999_regex_module_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("http://localhost:8999/regex-module.js");
+/* ESM import */var http_localhost_8999_restricted_module_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("http://localhost:8999/restricted-module.js");
+/* module decorator */ module = __webpack_require__.hmd(module);
+var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([http_localhost_8999_allowed_module_js__WEBPACK_IMPORTED_MODULE_0__, http_localhost_8999_regex_module_js__WEBPACK_IMPORTED_MODULE_1__, http_localhost_8999_restricted_module_js__WEBPACK_IMPORTED_MODULE_2__]);
+([http_localhost_8999_allowed_module_js__WEBPACK_IMPORTED_MODULE_0__, http_localhost_8999_regex_module_js__WEBPACK_IMPORTED_MODULE_1__, http_localhost_8999_restricted_module_js__WEBPACK_IMPORTED_MODULE_2__] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__);// Test file for default allowedUris behavior (no allowedUris specified)
+// When no allowedUris are specified, all URLs should be allowed by default
+
+
+
+
+// Test all three modules should load successfully when no allowedUris are specified
+it("should load all modules when no allowedUris are specified (allowed module)", () => {
+  expect(http_localhost_8999_allowed_module_js__WEBPACK_IMPORTED_MODULE_0__["default"]).toBe("This module is from an allowed URI");
+});
+
+it("should load all modules when no allowedUris are specified (regex module)", () => {
+  expect(http_localhost_8999_regex_module_js__WEBPACK_IMPORTED_MODULE_1__["default"]).toBe("This module is from a regex-matched URI");
+});
+
+it("should load all modules when no allowedUris are specified (restricted module)", () => {
+  // With no allowedUris, even the "restricted" module should load
+  expect(http_localhost_8999_restricted_module_js__WEBPACK_IMPORTED_MODULE_2__["default"]).toBe("This module is from a restricted URI");
+});
+
+// Export results for validation in other tests if needed
+module.exports = {
+  allowedModuleLoaded: typeof http_localhost_8999_allowed_module_js__WEBPACK_IMPORTED_MODULE_0__["default"] === "string",
+  regexModuleLoaded: typeof http_localhost_8999_regex_module_js__WEBPACK_IMPORTED_MODULE_1__["default"] === "string",
+  restrictedModuleLoaded: typeof http_localhost_8999_restricted_module_js__WEBPACK_IMPORTED_MODULE_2__["default"] === "string"
+};
+
+__webpack_async_result__();
+} catch(e) { __webpack_async_result__(e); } });
+
+}),
+"http://localhost:8999/allowed-module.js": (function (module) {
+module.exports = import("http://localhost:8999/allowed-module.js");
+
+}),
+"http://localhost:8999/regex-module.js": (function (module) {
+module.exports = import("http://localhost:8999/regex-module.js");
+
+}),
+"http://localhost:8999/restricted-module.js": (function (module) {
+module.exports = import("http://localhost:8999/restricted-module.js");
+
+}),
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```

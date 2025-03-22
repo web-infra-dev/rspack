@@ -2623,6 +2623,52 @@ export type Experiments = {
 	 * Enable future Rspack features default options.
 	 */
 	rspackFuture?: RspackFutureOptions;
+	/**
+	 * Enable loading of modules via HTTP/HTTPS requests.
+	 * @default false
+	 */
+	buildHttp?:
+		| boolean
+		| {
+				/**
+				 * Regular expressions for allowed URIs
+				 */
+				allowedUris?: (string | RegExp)[];
+				/**
+				 * Cache location for HTTP responses
+				 * @default undefined
+				 */
+				cacheLocation?: string | false;
+				/**
+				 * Whether to use a frozen cache
+				 * @default false
+				 */
+				frozen?: boolean;
+				/**
+				 * Lockfile location
+				 */
+				lockfileLocation?: string;
+				/**
+				 * HTTP proxy to use
+				 */
+				proxy?: string;
+				/**
+				 * Whether to upgrade dependencies
+				 * @default false
+				 */
+				upgrade?: boolean;
+				/**
+				 * Custom HTTP client implementation
+				 */
+				http_client?: (
+					url: string,
+					headers: Record<string, string>
+				) => Promise<{
+					status: number;
+					headers: Record<string, string>;
+					body: Buffer;
+				}>;
+		  };
 };
 //#endregion
 

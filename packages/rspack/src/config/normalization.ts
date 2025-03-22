@@ -11,6 +11,7 @@
 import path from "node:path";
 import util from "node:util";
 import type { Compilation } from "../Compilation";
+import type { HttpClientFunction } from "../builtin-plugin/HttpUriPlugin";
 import type {
 	Amd,
 	AssetModuleFilename,
@@ -368,7 +369,8 @@ export const getNormalizedRspackOptions = (
 						} satisfies Incremental)
 					: options
 			),
-			parallelCodeSplitting: experiments.parallelCodeSplitting
+			parallelCodeSplitting: experiments.parallelCodeSplitting,
+			buildHttp: experiments.buildHttp
 		})),
 		watch: config.watch,
 		watchOptions: cloneObject(config.watchOptions),
@@ -608,6 +610,17 @@ export interface ExperimentsNormalized {
 	parallelCodeSplitting?: boolean;
 	futureDefaults?: boolean;
 	rspackFuture?: RspackFutureOptions;
+	buildHttp?:
+		| boolean
+		| {
+				allowedUris?: (string | RegExp)[];
+				cacheLocation?: string | false;
+				frozen?: boolean;
+				lockfileLocation?: string;
+				proxy?: string;
+				upgrade?: boolean;
+				http_client?: HttpClientFunction;
+		  };
 }
 
 export type IgnoreWarningsNormalized = ((

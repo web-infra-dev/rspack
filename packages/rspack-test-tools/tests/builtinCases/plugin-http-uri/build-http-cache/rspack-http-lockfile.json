@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "entries": {
+    "http://localhost:8999/etag.js": {
+      "resolved": "http://localhost:8999/etag.js",
+      "integrity": "sha512-KXGJk7eeQTlYDeNFn2RwjoG0lESac8VwB1WUHUEG2Do/sILKNX5xnIW2zNKrcWOwXAlT/tE/YRuqiqqQM7uTcw==",
+      "content_type": "text/javascript",
+      "valid_until": 1742591303728,
+      "etag": "\"test-etag-value\""
+    }
+  }
+}

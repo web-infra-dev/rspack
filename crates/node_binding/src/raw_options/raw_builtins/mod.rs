@@ -4,6 +4,7 @@ mod raw_copy;
 mod raw_css_extract;
 mod raw_dll;
 mod raw_html;
+mod raw_http_uri;
 mod raw_ids;
 mod raw_ignore;
 mod raw_lazy_compilation;
@@ -19,6 +20,7 @@ mod raw_swc_js_minimizer;
 use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
+pub use raw_http_uri::{create_http_uri_plugin, register_http_client, RawHttpUriPluginOptions};
 use raw_ids::RawOccurrenceChunkIdsPluginOptions;
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use raw_sri::RawSubresourceIntegrityPluginOptions;
@@ -204,6 +206,7 @@ pub enum BuiltinPluginName {
   JsLoaderRspackPlugin,
   LazyCompilationPlugin,
   ModuleInfoHeaderPlugin,
+  HttpUriPlugin,
 }
 
 #[napi(object)]
@@ -400,6 +403,11 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::DataUriPlugin => plugins.push(DataUriPlugin::default().boxed()),
       BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin::default().boxed()),
+      BuiltinPluginName::HttpUriPlugin => {
+        let plugin_options =
+          downcast_into::<self::raw_http_uri::RawHttpUriPluginOptions>(self.options)?;
+        plugins.push(raw_http_uri::get_http_uri_plugin(plugin_options));
+      }
       BuiltinPluginName::RuntimePlugin => plugins.push(RuntimePlugin::default().boxed()),
       BuiltinPluginName::JsonModulesPlugin => plugins.push(JsonPlugin.boxed()),
       BuiltinPluginName::InferAsyncModulesPlugin => {
