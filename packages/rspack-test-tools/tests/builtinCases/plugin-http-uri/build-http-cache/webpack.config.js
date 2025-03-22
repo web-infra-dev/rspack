@@ -17,7 +17,8 @@ module.exports = {
 		buildHttp: {
 			allowedUris: ["http://localhost:8999/", /^http:\/\/localhost:8999\/.*/],
 			cacheLocation: path.resolve(__dirname, "rspack-http-cache"),
-			lockfileLocation: path.resolve(__dirname, "rspack-http-lockfile.json")
+			lockfileLocation: path.resolve(__dirname, "rspack-http-lockfile.json"),
+			http_client: require("./custom-http-client") // Use our mock HTTP client
 		}
 	},
 	plugins: [
