@@ -140,6 +140,7 @@ rspack_napi_macros                     = { version = "0.2.0", path = "crates/rsp
 rspack_paths                           = { version = "0.2.0", path = "crates/rspack_paths" }
 rspack_plugin_asset                    = { version = "0.2.0", path = "crates/rspack_plugin_asset" }
 rspack_plugin_banner                   = { version = "0.2.0", path = "crates/rspack_plugin_banner" }
+rspack_plugin_circular_dependencies    = { version = "0.2.0", path = "crates/rspack_plugin_circular_dependencies" }
 rspack_plugin_context_replacement      = { version = "0.2.0", path = "crates/rspack_plugin_context_replacement" }
 rspack_plugin_copy                     = { version = "0.2.0", path = "crates/rspack_plugin_copy" }
 rspack_plugin_css                      = { version = "0.2.0", path = "crates/rspack_plugin_css" }

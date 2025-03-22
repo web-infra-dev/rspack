@@ -62,6 +62,7 @@ export const WebpackError = Error;
 export type { Watching } from "./Watching";
 
 import sources = require("webpack-sources");
+
 export { sources };
 
 import {
@@ -86,10 +87,12 @@ export const config: Config = {
 export type * from "./config";
 
 import { ValidationError } from "./util/validate";
+
 export { ValidationError };
 
 import { cachedCleverMerge as cleverMerge } from "./util/cleverMerge";
 import { createHash } from "./util/createHash";
+
 export const util = { createHash, cleverMerge };
 
 export { default as EntryOptionPlugin } from "./lib/EntryOptionPlugin";
@@ -133,6 +136,7 @@ import {
 interface Web {
 	FetchCompileAsyncWasmPlugin: typeof FetchCompileAsyncWasmPlugin;
 }
+
 export const web: Web = {
 	FetchCompileAsyncWasmPlugin
 };
@@ -140,11 +144,13 @@ export const web: Web = {
 import { NodeTargetPlugin } from "./builtin-plugin";
 import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
 import NodeTemplatePlugin from "./node/NodeTemplatePlugin";
+
 interface Node {
 	NodeTargetPlugin: typeof NodeTargetPlugin;
 	NodeTemplatePlugin: typeof NodeTemplatePlugin;
 	NodeEnvironmentPlugin: typeof NodeEnvironmentPlugin;
 }
+
 export const node: Node = {
 	NodeTargetPlugin,
 	NodeTemplatePlugin,
@@ -152,40 +158,50 @@ export const node: Node = {
 };
 
 import { ElectronTargetPlugin } from "./builtin-plugin";
+
 interface Electron {
 	ElectronTargetPlugin: typeof ElectronTargetPlugin;
 }
+
 export const electron: Electron = { ElectronTargetPlugin };
 
 import { EnableLibraryPlugin } from "./builtin-plugin";
+
 interface Library {
 	EnableLibraryPlugin: typeof EnableLibraryPlugin;
 }
+
 export const library: Library = { EnableLibraryPlugin };
 
 import { EnableWasmLoadingPlugin } from "./builtin-plugin";
+
 interface Wasm {
 	EnableWasmLoadingPlugin: typeof EnableWasmLoadingPlugin;
 }
+
 export const wasm: Wasm = { EnableWasmLoadingPlugin };
 
 import {
 	EnableChunkLoadingPlugin,
 	JavascriptModulesPlugin
 } from "./builtin-plugin";
+
 interface JavaScript {
 	EnableChunkLoadingPlugin: typeof EnableChunkLoadingPlugin;
 	JavascriptModulesPlugin: typeof JavascriptModulesPlugin;
 }
+
 export const javascript: JavaScript = {
 	EnableChunkLoadingPlugin,
 	JavascriptModulesPlugin
 };
 
 import { WebWorkerTemplatePlugin } from "./builtin-plugin";
+
 interface Webworker {
 	WebWorkerTemplatePlugin: typeof WebWorkerTemplatePlugin;
 }
+
 export const webworker: Webworker = { WebWorkerTemplatePlugin };
 
 import { LimitChunkCountPlugin } from "./builtin-plugin";
@@ -199,6 +215,7 @@ interface Optimize {
 	RuntimeChunkPlugin: typeof RuntimeChunkPlugin;
 	SplitChunksPlugin: typeof SplitChunksPlugin;
 }
+
 export const optimize: Optimize = {
 	LimitChunkCountPlugin,
 	RuntimeChunkPlugin,
@@ -206,11 +223,14 @@ export const optimize: Optimize = {
 };
 
 import { ModuleFederationPlugin } from "./container/ModuleFederationPlugin";
+
 export type { ModuleFederationPluginOptions } from "./container/ModuleFederationPlugin";
 import { ModuleFederationPluginV1 } from "./container/ModuleFederationPluginV1";
+
 export type { ModuleFederationPluginV1Options } from "./container/ModuleFederationPluginV1";
 import { ContainerPlugin } from "./container/ContainerPlugin";
 import { ContainerReferencePlugin } from "./container/ContainerReferencePlugin";
+
 export type {
 	ContainerPluginOptions,
 	Exposes,
@@ -237,6 +257,7 @@ export const container = {
 import { ConsumeSharedPlugin } from "./sharing/ConsumeSharedPlugin";
 import { ProvideSharedPlugin } from "./sharing/ProvideSharedPlugin";
 import { SharePlugin } from "./sharing/SharePlugin";
+
 export type {
 	Consumes,
 	ConsumesConfig,
@@ -269,6 +290,7 @@ export type { RsdoctorPluginData, RsdoctorPluginHooks } from "./builtin-plugin";
 export type { HtmlRspackPluginOptions } from "./builtin-plugin";
 export type { SwcJsMinimizerRspackPluginOptions } from "./builtin-plugin";
 export type { LightningCssMinimizerRspackPluginOptions } from "./builtin-plugin";
+export type { CircularDependencyRspackPluginOptions } from "./builtin-plugin";
 export type { CopyRspackPluginOptions } from "./builtin-plugin";
 export type { SourceMapDevToolPluginOptions } from "./builtin-plugin";
 export type { EvalDevToolModulePluginOptions } from "./builtin-plugin";
@@ -279,6 +301,7 @@ export type {
 export { HtmlRspackPlugin } from "./builtin-plugin";
 export { SwcJsMinimizerRspackPlugin } from "./builtin-plugin";
 export { LightningCssMinimizerRspackPlugin } from "./builtin-plugin";
+export { CircularDependencyRspackPlugin } from "./builtin-plugin";
 export { CopyRspackPlugin } from "./builtin-plugin";
 export { SourceMapDevToolPlugin } from "./builtin-plugin";
 export { EvalSourceMapDevToolPlugin } from "./builtin-plugin";
@@ -307,6 +330,7 @@ export type { SubresourceIntegrityPluginOptions } from "./builtin-plugin";
 
 ///// Experiments Stuff /////
 import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";
+
 interface Experiments {
 	globalTrace: {
 		register: (

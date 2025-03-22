@@ -1,0 +1,5 @@
+ERROR in × Module not found: Can't resolve './' in '<TEST_TOOLS_ROOT>/tests/diagnosticsCases/plugins/circular-dependency-plugin'
+
+ERROR in × <TEST_TOOLS_ROOT>/tests/diagnosticsCases/plugins/circular-dependency-plugin/require-circular/d.js -> <TEST_TOOLS_ROOT>/tests/diagnosticsCases/plugins/circular-dependency-plugin/require-circular/e.js -> <TEST_TOOLS_ROOT>/tests/diagnosticsCases/plugins/circular-dependency-plugin/require-circular/f.js -> <TEST_TOOLS_ROOT>/tests/diagnosticsCases/plugins/circular-dependency-plugin/require-circular/a.js -> <TEST_TOOLS_ROOT>/tests/diagnosticsCases/plugins/circular-dependency-plugin/require-circular/b.js -> <TEST_TOOLS_ROOT>/tests/diagnosticsCases/plugins/circular-dependency-plugin/require-circular/c.js -> <TEST_TOOLS_ROOT>/tests/diagnosticsCases/plugins/circular-dependency-plugin/require-circular/d.js
+
+ERROR in × <TEST_TOOLS_ROOT>/tests/diagnosticsCases/plugins/circular-dependency-plugin/import-circular/b.js -> <TEST_TOOLS_ROOT>/tests/diagnosticsCases/plugins/circular-dependency-plugin/import-circular/a.js -> <TEST_TOOLS_ROOT>/tests/diagnosticsCases/plugins/circular-dependency-plugin/import-circular/b.js
