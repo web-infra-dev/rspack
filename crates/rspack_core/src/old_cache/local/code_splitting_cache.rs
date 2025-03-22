@@ -163,17 +163,16 @@ where
     return Ok(());
   }
 
-  let parallel_code_splitting = compilation.options.experiments.parallel_code_splitting;
-  // TODO: parallel_code_splitting is not supported with incremental code splitting for now
-  let incremental_code_splitting = !parallel_code_splitting
-    && compilation
-      .incremental
-      .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH);
+  let incremental_code_splitting = compilation
+    .incremental
+    .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH);
   let no_change = compilation
     .code_splitting_cache
     .can_skip_rebuilding(compilation);
 
-  if incremental_code_splitting || no_change {
+  if !compilation.options.experiments.parallel_code_splitting
+    && (incremental_code_splitting || no_change)
+  {
     let cache = &mut compilation.code_splitting_cache;
     rayon::scope(|s| {
       s.spawn(|_| compilation.chunk_by_ukey = cache.chunk_by_ukey.clone());

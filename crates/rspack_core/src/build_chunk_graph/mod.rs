@@ -5,10 +5,10 @@ use tracing::instrument;
 
 use crate::{incremental::IncrementalPasses, Compilation};
 
+mod available_modules;
 pub(crate) mod code_splitter;
 pub(crate) mod incremental;
 pub(crate) mod new_code_splitter;
-mod remove_available_modules;
 
 #[instrument("Compilation:build_chunk_graph", skip_all)]
 pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<()> {
