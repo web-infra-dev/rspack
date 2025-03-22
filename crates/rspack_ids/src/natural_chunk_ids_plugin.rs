@@ -12,7 +12,7 @@ use crate::id_helpers::{assign_ascending_chunk_ids, compare_chunks_natural};
 pub struct NaturalChunkIdsPlugin;
 
 #[plugin_hook(CompilationChunkIds for NaturalChunkIdsPlugin)]
-fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
+async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
   let module_ids = &compilation.module_ids_artifact;
   let chunk_graph = &compilation.chunk_graph;
   let module_graph = &compilation.get_module_graph();
