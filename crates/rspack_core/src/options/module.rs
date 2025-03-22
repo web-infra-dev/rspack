@@ -317,7 +317,7 @@ impl From<CssParserOptions> for CssModuleParserOptions {
   }
 }
 
-pub type JsonParseFn = Arc<dyn Fn(String) -> Result<String> + Sync + Send>;
+pub type JsonParseFn = Arc<dyn Fn(String) -> BoxFuture<'static, Result<String>> + Sync + Send>;
 
 #[cacheable]
 pub enum ParseOption {

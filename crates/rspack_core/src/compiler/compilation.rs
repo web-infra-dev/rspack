@@ -84,8 +84,8 @@ define_hook!(CompilationAdditionalChunkRuntimeRequirements: SyncSeries(compilati
 define_hook!(CompilationRuntimeRequirementInChunk: SyncSeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
 define_hook!(CompilationAdditionalTreeRuntimeRequirements: AsyncSeries(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
 define_hook!(CompilationRuntimeRequirementInTree: SyncSeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
-define_hook!(CompilationOptimizeCodeGeneration: SyncSeries(compilation: &mut Compilation));
-define_hook!(CompilationAfterCodeGeneration: SyncSeries(compilation: &mut Compilation));
+define_hook!(CompilationOptimizeCodeGeneration: AsyncSeries(compilation: &mut Compilation));
+define_hook!(CompilationAfterCodeGeneration: AsyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationChunkHash: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash));
 define_hook!(CompilationContentHash: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hashes: &mut HashMap<SourceType, RspackHash>));
 define_hook!(CompilationRenderManifest: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, manifest: &mut Vec<RenderManifestEntry>, diagnostics: &mut Vec<Diagnostic>));
@@ -1499,12 +1499,14 @@ impl Compilation {
     self.create_module_hashes(create_module_hashes_modules)?;
 
     let start = logger.time("optimize code generation");
-    tracing::info_span!("Compilation::optimize_code_generation").in_scope(|| {
-      plugin_driver
-        .compilation_hooks
-        .optimize_code_generation
-        .call(self)
-    })?;
+    tracing::info_span!("Compilation::optimize_code_generation")
+      .in_scope(|| {
+        plugin_driver
+          .compilation_hooks
+          .optimize_code_generation
+          .call(self)
+      })
+      .await?;
     logger.time_end(start);
 
     let start = logger.time("code generation");
@@ -1542,7 +1544,8 @@ impl Compilation {
     plugin_driver
       .compilation_hooks
       .after_code_generation
-      .call(self)?;
+      .call(self)
+      .await?;
     logger.time_end(start);
 
     let start = logger.time("runtime requirements");

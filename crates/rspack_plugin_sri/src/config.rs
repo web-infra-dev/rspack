@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use derive_more::Debug;
+use futures::future::BoxFuture;
 use rspack_core::CrossOriginLoading;
 use rspack_error::Result;
 use rspack_fs::WritableFileSystem;
@@ -9,7 +10,8 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::integrity::SubresourceIntegrityHashFunction;
 
-pub type IntegrityCallbackFn = Arc<dyn Fn(IntegrityCallbackData) -> Result<()> + Send + Sync>;
+pub type IntegrityCallbackFn =
+  Arc<dyn Fn(IntegrityCallbackData) -> BoxFuture<'static, Result<()>> + Send + Sync>;
 
 #[derive(Debug)]
 pub enum IntegrityHtmlPlugin {

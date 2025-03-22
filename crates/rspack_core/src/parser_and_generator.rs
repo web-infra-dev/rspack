@@ -88,7 +88,10 @@ pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
   /// The source types that the generator can generate (the source types you can make requests for)
   fn source_types(&self) -> &[SourceType];
   /// Parse the source and return the dependencies and the ast or source
-  fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>>;
+  async fn parse<'a>(
+    &mut self,
+    parse_context: ParseContext<'a>,
+  ) -> Result<TWithDiagnosticArray<ParseResult>>;
   /// Size of the original source
   fn size(&self, module: &dyn Module, source_type: Option<&SourceType>) -> f64;
   /// Generate source or AST based on the built source or AST

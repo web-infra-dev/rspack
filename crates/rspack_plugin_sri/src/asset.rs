@@ -269,7 +269,8 @@ pub async fn handle_assets(&self, compilation: &mut Compilation) -> Result<()> {
     if let Some(integrity_callback) = &self.options.integrity_callback {
       integrity_callback(IntegrityCallbackData {
         integerities: compilation_integrities.clone(),
-      })?;
+      })
+      .await?;
     }
   }
 
