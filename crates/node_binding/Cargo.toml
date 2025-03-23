@@ -42,7 +42,6 @@ napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json",
 napi-derive = { workspace = true }
 
 color-backtrace = "0.6.1"
-pollster        = "0.2.4"
 
 derive_more        = { workspace = true, features = ["debug"] }
 futures            = { workspace = true }

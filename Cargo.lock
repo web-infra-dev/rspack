@@ -3597,12 +3597,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pollster"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb20dcc30536a1508e75d47dd0e399bb2fe7354dcf35cda9127f2bf1ed92e30e"
-
-[[package]]
 name = "portable-atomic"
 version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4566,7 +4560,6 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
- "pollster",
  "rayon",
  "ropey",
  "rspack_allocator",

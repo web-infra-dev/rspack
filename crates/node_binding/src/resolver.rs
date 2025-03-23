@@ -1,8 +1,7 @@
 use std::{path::Path, sync::Arc};
 
-use napi::Either;
+use napi::{bindgen_prelude::block_on, Either};
 use napi_derive::napi;
-use pollster::block_on;
 use rspack_core::{ResolveOptionsWithDependencyType, Resolver, ResolverFactory, ResourceData};
 
 use crate::{
@@ -33,7 +32,6 @@ impl JsResolver {
     }
   }
 }
-
 #[napi]
 impl JsResolver {
   #[napi(ts_return_type = "JsResourceData | false")]
