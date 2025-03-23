@@ -41,7 +41,7 @@ Object {
     },
     layers: false,
     lazyCompilation: false,
-    parallelCodeSplitting: false,
+    parallelCodeSplitting: true,
     rspackFuture: Object {
       bundlerInfo: Object {
         bundler: rspack,
@@ -236,7 +236,7 @@ Object {
     nodeEnv: false,
     providedExports: true,
     realContentHash: false,
-    removeAvailableModules: false,
+    removeAvailableModules: true,
     removeEmptyChunks: true,
     runtimeChunk: false,
     sideEffects: flag,
