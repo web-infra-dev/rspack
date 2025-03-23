@@ -38,7 +38,10 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     WASM_SOURCE_TYPE
   }
 
-  fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
+  async fn parse<'a>(
+    &mut self,
+    parse_context: ParseContext<'a>,
+  ) -> Result<TWithDiagnosticArray<ParseResult>> {
     parse_context.build_info.strict = true;
     parse_context.build_meta.has_top_level_await = true;
     parse_context.build_meta.exports_type = BuildMetaExportsType::Namespace;

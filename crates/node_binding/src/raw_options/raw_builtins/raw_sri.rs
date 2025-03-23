@@ -27,7 +27,8 @@ impl From<RawSubresourceIntegrityPluginOptions> for SubresourceIntegrityPluginOp
     Self {
       integrity_callback: if let Some(func) = options.integrity_callback {
         Some(Arc::new(move |data| {
-          func.blocking_call_with_sync(data.into())
+          let func = func.clone();
+          Box::pin(async move { func.call(data.into()).await })
         }))
       } else {
         None

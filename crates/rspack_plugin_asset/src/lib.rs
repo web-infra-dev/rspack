@@ -384,9 +384,9 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     }
   }
 
-  fn parse(
+  async fn parse<'a>(
     &mut self,
-    parse_context: rspack_core::ParseContext,
+    parse_context: rspack_core::ParseContext<'a>,
   ) -> Result<rspack_error::TWithDiagnosticArray<rspack_core::ParseResult>> {
     let ParseContext {
       source,

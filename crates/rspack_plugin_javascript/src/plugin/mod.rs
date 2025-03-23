@@ -1,7 +1,9 @@
 use std::{
-  collections::{HashMap, HashSet},
+  borrow::Cow,
+  collections::{hash_map::Entry, HashMap, HashSet},
+  hash::Hash,
   ops::Deref,
-  sync::Arc,
+  sync::{Arc, LazyLock},
 };
 
 use rayon::prelude::*;
@@ -15,8 +17,6 @@ mod mangle_exports_plugin;
 pub mod module_concatenation_plugin;
 mod module_info_header_plugin;
 mod side_effects_flag_plugin;
-
-use std::{borrow::Cow, collections::hash_map::Entry, hash::Hash, sync::LazyLock};
 
 pub use drive::*;
 pub use flag_dependency_exports_plugin::*;
