@@ -4,7 +4,7 @@ Lazy compilation 是一个提升开发阶段启动性能的好手段，它可以
 
 ## 快速开始
 
-对于 `@rspack/cli` 的用户，你可以通过 [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) 配置开启懒编译，假设你正在开发一个包含多个入口的项目，当开发其中一个入口时，Rspack 只会构建你当前访问的入口。
+对于使用 `@rspack/cli` 的用户，你可以通过 [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) 配置开启懒编译，假设你正在开发一个包含多个入口的项目，当开发其中一个入口时，Rspack 只会构建你当前访问的入口。
 
 ```js title="rspack.config.mjs"
 import { defineConfig } from '@rspack/cli';
