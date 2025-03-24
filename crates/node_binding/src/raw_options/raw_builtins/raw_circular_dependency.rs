@@ -1,6 +1,5 @@
-use std::sync::Arc;
-
-use napi::{Either, JsUnknown};
+use derive_more::Debug;
+use napi::Either;
 use napi_derive::napi;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_circular_dependencies::{
@@ -32,53 +31,76 @@ pub struct RawCircularDependencyRspackPluginOptions {
   pub exclude: Option<RspackRegex>,
   #[napi(ts_type = "Array<[string | RegExp, string | RegExp]>")]
   pub ignored_connections: Option<Vec<(ConnectionPattern, ConnectionPattern)>>,
+  #[debug(skip)]
   #[napi(ts_type = "(entrypoint: Module, modules: string[], compilation: JsCompilation) => void")]
-  pub on_detected: Option<ThreadsafeFunction<CycleHookParams, JsUnknown>>,
+  pub on_detected: Option<ThreadsafeFunction<CycleHookParams, ()>>,
+  #[debug(skip)]
   #[napi(ts_type = "(entrypoint: Module, modules: string[], compilation: JsCompilation) => void")]
-  pub on_ignored: Option<ThreadsafeFunction<CycleHookParams, JsUnknown>>,
+  pub on_ignored: Option<ThreadsafeFunction<CycleHookParams, ()>>,
+  #[debug(skip)]
   #[napi(ts_type = "(compilation: JsCompilation) => void")]
-  pub on_start: Option<ThreadsafeFunction<JsCompilationWrapper, JsUnknown>>,
+  pub on_start: Option<ThreadsafeFunction<JsCompilationWrapper, ()>>,
+  #[debug(skip)]
   #[napi(ts_type = "(compilation: JsCompilation) => void")]
-  pub on_end: Option<ThreadsafeFunction<JsCompilationWrapper, JsUnknown>>,
+  pub on_end: Option<ThreadsafeFunction<JsCompilationWrapper, ()>>,
 }
 
 impl From<RawCircularDependencyRspackPluginOptions> for CircularDependencyRspackPluginOptions {
   fn from(value: RawCircularDependencyRspackPluginOptions) -> Self {
     // This explicit cast is needed because Rust otherwise infers an incompatible type
     // for the closure compared to the field in the options object.
+
     let on_detected: Option<CycleHandlerFn> = match value.on_detected {
-      Some(callback) => Some(Arc::new(move |entrypoint, modules, compilation| {
-        callback.blocking_call_with_sync((
-          entrypoint,
-          modules,
-          JsCompilationWrapper::new(compilation),
-        ))?;
-        Ok(())
+      Some(callback) => Some(Box::new(move |entrypoint, modules, compilation| {
+        let callback = callback.clone();
+        Box::pin(async move {
+          callback
+            .call((entrypoint, modules, JsCompilationWrapper::new(compilation)))
+            .await?;
+          Ok(())
+        })
       })),
       _ => None,
     };
     let on_ignored: Option<CycleHandlerFn> = match value.on_ignored {
-      Some(callback) => Some(Arc::new(move |entrypoint, modules, compilation| {
-        callback.blocking_call_with_sync((
-          entrypoint,
-          modules,
-          JsCompilationWrapper::new(compilation),
-        ))?;
-        Ok(())
+      Some(callback) => Some(Box::new(move |entrypoint, modules, compilation| {
+        Box::pin({
+          let callback = callback.clone();
+          async move {
+            callback
+              .call((entrypoint, modules, JsCompilationWrapper::new(compilation)))
+              .await?;
+            Ok(())
+          }
+        })
       })),
       _ => None,
     };
     let on_start: Option<CompilationHookFn> = match value.on_start {
-      Some(callback) => Some(Arc::new(move |compilation| {
-        callback.blocking_call_with_sync(JsCompilationWrapper::new(compilation))?;
-        Ok(())
+      Some(callback) => Some(Box::new(move |compilation| {
+        let callback = callback.clone();
+        Box::pin({
+          async move {
+            callback
+              .call(JsCompilationWrapper::new(compilation))
+              .await?;
+            Ok(())
+          }
+        })
       })),
       _ => None,
     };
     let on_end: Option<CompilationHookFn> = match value.on_end {
-      Some(callback) => Some(Arc::new(move |compilation| {
-        callback.blocking_call_with_sync(JsCompilationWrapper::new(compilation))?;
-        Ok(())
+      Some(callback) => Some(Box::new(move |compilation| {
+        let callback = callback.clone();
+        Box::pin({
+          async move {
+            callback
+              .call(JsCompilationWrapper::new(compilation))
+              .await?;
+            Ok(())
+          }
+        })
       })),
       _ => None,
     };

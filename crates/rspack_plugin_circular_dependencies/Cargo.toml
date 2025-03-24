@@ -8,6 +8,7 @@ version     = "0.2.0"
 
 [dependencies]
 derive_more        = { workspace = true, features = ["debug"] }
+futures            = { workspace = true }
 itertools          = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_core        = { workspace = true }

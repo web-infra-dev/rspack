@@ -1,8 +1,7 @@
 #![feature(array_windows)]
 
-use std::sync::Arc;
-
 use derive_more::Debug;
+use futures::future::BoxFuture;
 use itertools::Itertools;
 use rspack_collections::{Identifier, IdentifierMap, IdentifierSet};
 use rspack_core::{
@@ -209,9 +208,13 @@ impl CircularDependencyIgnoredConnection {
   }
 }
 
-pub type CycleHandlerFn =
-  Arc<dyn Fn(String, Vec<String>, &mut Compilation) -> Result<()> + Send + Sync>;
-pub type CompilationHookFn = Arc<dyn Fn(&mut Compilation) -> Result<()> + Send + Sync>;
+pub type CycleHandlerFn = Box<
+  dyn for<'a> Fn(String, Vec<String>, &'a mut Compilation) -> BoxFuture<'a, Result<()>>
+    + Sync
+    + Send,
+>;
+pub type CompilationHookFn =
+  Box<dyn for<'a> Fn(&'a mut Compilation) -> BoxFuture<'a, Result<()>> + Sync + Send>;
 
 #[derive(Debug)]
 pub struct CircularDependencyRspackPluginOptions {
@@ -288,23 +291,26 @@ impl CircularDependencyRspackPlugin {
     false
   }
 
-  fn handle_cycle_ignored(
+  async fn handle_cycle_ignored(
     &self,
     entrypoint: String,
     cycle: Vec<ModuleIdentifier>,
     compilation: &mut Compilation,
   ) -> Result<()> {
     match &self.options.on_ignored {
-      Some(callback) => callback(
-        entrypoint,
-        cycle.iter().map(ToString::to_string).collect(),
-        compilation,
-      ),
+      Some(callback) => {
+        callback(
+          entrypoint,
+          cycle.iter().map(ToString::to_string).collect(),
+          compilation,
+        )
+        .await
+      }
       _ => Ok(()),
     }
   }
 
-  fn handle_cycle_detected(
+  async fn handle_cycle_detected(
     &self,
     entrypoint: String,
     cycle: Vec<ModuleIdentifier>,
@@ -315,7 +321,8 @@ impl CircularDependencyRspackPlugin {
         entrypoint,
         cycle.iter().map(ToString::to_string).collect(),
         compilation,
-      );
+      )
+      .await;
     }
 
     let diagnostic_factory = if self.options.fail_on_error {
@@ -335,7 +342,7 @@ impl CircularDependencyRspackPlugin {
 #[plugin_hook(CompilationOptimizeModules for CircularDependencyRspackPlugin)]
 async fn optimize_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   if let Some(on_start) = &self.options.on_start {
-    on_start(compilation)?;
+    on_start(compilation).await?;
   };
 
   let module_map = build_module_map(compilation);
@@ -358,16 +365,20 @@ async fn optimize_modules(&self, compilation: &mut Compilation) -> Result<Option
 
       for cycle in detector.find_cycles_from(module_id) {
         if self.is_cycle_ignored(&module_map, &cycle) {
-          self.handle_cycle_ignored(entrypoint_name.clone(), cycle, compilation)?
+          self
+            .handle_cycle_ignored(entrypoint_name.clone(), cycle, compilation)
+            .await?
         } else {
-          self.handle_cycle_detected(entrypoint_name.clone(), cycle, compilation)?
+          self
+            .handle_cycle_detected(entrypoint_name.clone(), cycle, compilation)
+            .await?
         }
       }
     }
   }
 
   if let Some(on_end) = &self.options.on_end {
-    on_end(compilation)?;
+    on_end(compilation).await?;
   }
   Ok(None)
 }
