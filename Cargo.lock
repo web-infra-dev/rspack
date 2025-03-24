@@ -5170,6 +5170,7 @@ dependencies = [
  "cow-utils",
  "dashmap 6.1.0",
  "derive_more 1.0.0",
+ "futures",
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "rspack_cacheable",

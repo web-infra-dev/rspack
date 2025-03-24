@@ -19,7 +19,7 @@ pub fn enable_wasm_loading_plugin(wasm_loading_type: WasmLoadingType) -> BoxPlug
 pub struct FetchCompileAsyncWasmPlugin;
 
 #[plugin_hook(CompilationRuntimeRequirementInTree for FetchCompileAsyncWasmPlugin)]
-fn fetch_compile_async_wasm_plugin_runtime_requirements_in_tree(
+async fn fetch_compile_async_wasm_plugin_runtime_requirements_in_tree(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
@@ -73,7 +73,7 @@ impl ReadFileCompileAsyncWasmPlugin {
 }
 
 #[plugin_hook(CompilationRuntimeRequirementInTree for ReadFileCompileAsyncWasmPlugin)]
-fn read_file_compile_async_wasm_plugin_runtime_requirements_in_tree(
+async fn read_file_compile_async_wasm_plugin_runtime_requirements_in_tree(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,

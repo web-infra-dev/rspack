@@ -557,7 +557,10 @@ impl From<JsAddingRuntimeModule> for RuntimeModuleFromJs {
       dependent_hash: value.dependent_hash,
       isolate: value.isolate,
       stage: RuntimeModuleStage::from(value.stage),
-      generator: Arc::new(move || value.generator.blocking_call_with_sync(())),
+      generator: Arc::new(move || {
+        let generator = value.generator.clone();
+        Box::pin(async move { generator.call(()).await })
+      }),
       source_map_kind: SourceMapKind::empty(),
       custom_source: None,
       cached_generated_code: Default::default(),

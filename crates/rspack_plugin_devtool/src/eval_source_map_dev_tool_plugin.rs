@@ -219,7 +219,7 @@ fn eval_source_map_devtool_plugin_inline_in_runtime_bailout(
 }
 
 #[plugin_hook(CompilationAdditionalModuleRuntimeRequirements for EvalSourceMapDevToolPlugin)]
-fn eval_source_map_devtool_plugin_additional_module_runtime_requirements(
+async fn eval_source_map_devtool_plugin_additional_module_runtime_requirements(
   &self,
   compilation: &Compilation,
   _module: &ModuleIdentifier,

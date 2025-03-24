@@ -12,7 +12,7 @@ use crate::runtime_module::{is_enabled_for_chunk, JsonpChunkLoadingRuntimeModule
 pub struct JsonpChunkLoadingPlugin;
 
 #[plugin_hook(CompilationRuntimeRequirementInTree for JsonpChunkLoadingPlugin)]
-fn runtime_requirements_in_tree(
+async fn runtime_requirements_in_tree(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
