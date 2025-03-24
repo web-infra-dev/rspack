@@ -65,7 +65,7 @@ Only when corresponding entries and modules are executed will Rspack compile the
 
 ![image](https://assets.rspack.dev/rspack/assets/lazy-proxy-module.png)
 
-## Using Custom Development Servers
+## Using custom dev server
 
 In the configuration above, the `experiments.lazyCompilation` option is actually processed by `@rspack/cli`. It adds an [Express-style middleware](https://expressjs.com/en/guide/using-middleware.html) to `@rspack/dev-server` specifically designed to handle lazy compilation client requests.
 
