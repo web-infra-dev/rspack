@@ -215,7 +215,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     {
       name: 'circular-dependency-plugin',
       url: 'https://github.com/aackerman/circular-dependency-plugin',
-      status: CompatibleStatus.NotCompatible,
+      status: CompatibleStatus.Included,
       description: i18n[lang]['circular-dependency-plugin-desc'],
     },
     {
