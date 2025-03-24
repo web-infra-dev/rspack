@@ -370,9 +370,11 @@ async fn optimize_modules(&self, compilation: &mut Compilation) -> Result<Option
       .chunk_group_by_ukey
       .get(&chunk_group_key)
       .expect("Compilation should contain entrypoint chunk groups");
-    let entry_modules = compilation
+    let mut entry_modules = compilation
       .chunk_graph
       .get_chunk_entry_modules(&chunk_group.get_entrypoint_chunk());
+
+    entry_modules.sort();
 
     for module_id in entry_modules {
       // Only consider entrypoint modules coming from existing source code.
