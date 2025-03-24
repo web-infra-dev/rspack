@@ -331,9 +331,27 @@ impl CircularDependencyRspackPlugin {
       Diagnostic::warn
     };
 
+    let cwd = std::env::current_dir()
+      .expect("cwd should be available")
+      .to_string_lossy()
+      .to_string();
+    let cycle_without_root: Vec<String> = cycle
+      .iter()
+      .map(|module_path| {
+        module_path
+          .to_string()
+          .replace(&cwd, "")
+          .trim_start_matches('/')
+          .to_string()
+      })
+      .collect();
+
     compilation.push_diagnostic(diagnostic_factory(
-      "CircularDependencyRspackPlugin:\nCircular Dependency".to_string(),
-      cycle.iter().join(" -> "),
+      "Circular Dependency".to_string(),
+      format!(
+        "CircularDependencyRspackPlugin:\n {:?}",
+        cycle_without_root.iter().join(" -> ")
+      ),
     ));
     Ok(())
   }
