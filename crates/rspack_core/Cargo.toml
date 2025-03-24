@@ -67,6 +67,7 @@ swc_core = { workspace = true, features = [
   "swc_ecma_visit",
 ] }
 swc_node_comments = { workspace = true }
+swc_parallel = { workspace = true, default-features = false, features = ["rayon"] }
 tokio = { workspace = true, features = ["rt", "macros"] }
 tracing = { workspace = true }
 ustr = { workspace = true }

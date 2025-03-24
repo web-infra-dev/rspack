@@ -4163,6 +4163,7 @@ dependencies = [
  "swc_core",
  "swc_error_reporters",
  "swc_node_comments",
+ "swc_parallel",
 ]
 
 [[package]]
@@ -4291,6 +4292,7 @@ dependencies = [
  "sugar_path",
  "swc_core",
  "swc_node_comments",
+ "swc_parallel",
  "tokio",
  "tracing",
  "ustr-fxhash",
@@ -4321,6 +4323,7 @@ dependencies = [
  "rspack_collections",
  "rspack_paths",
  "swc_core",
+ "swc_parallel",
  "termcolor",
  "textwrap",
  "thiserror 1.0.69",
@@ -5303,6 +5306,7 @@ dependencies = [
  "swc_config",
  "swc_core",
  "swc_ecma_minifier",
+ "swc_parallel",
  "tracing",
 ]
 
@@ -7207,6 +7211,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f16052d5123ec45c1c49100781363f3f4e4a6be2da6d82f473b79db1e3abeb8"
 dependencies = [
  "once_cell",
+ "rayon",
 ]
 
 [[package]]
