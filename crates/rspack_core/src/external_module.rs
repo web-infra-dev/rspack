@@ -3,7 +3,7 @@ use std::{borrow::Cow, hash::Hash, iter};
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{error, impl_empty_diagnosable_trait, Result};
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_macros::impl_source_map_config;
 use rspack_util::{ext::DynHash, json_stringify, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
@@ -627,17 +627,17 @@ impl Module for ExternalModule {
     Some(Cow::Borrowed(self.user_request.as_str()))
   }
 
-  fn update_hash(
+  async fn get_hash_async(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
-  ) -> Result<()> {
-    self.id.dyn_hash(hasher);
+  ) -> Result<RspackHashDigest> {
+    let mut hasher = RspackHash::from(&compilation.options.output);
+    self.id.dyn_hash(&mut hasher);
     let is_optional = compilation.get_module_graph().is_optional(&self.id);
-    is_optional.dyn_hash(hasher);
-    module_update_hash(self, hasher, compilation, runtime);
-    Ok(())
+    is_optional.dyn_hash(&mut hasher);
+    module_update_hash(self, &mut hasher, compilation, runtime);
+    Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 }
 

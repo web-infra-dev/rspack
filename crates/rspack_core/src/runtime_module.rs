@@ -8,7 +8,7 @@ use rspack_sources::{BoxSource, Source};
 use crate::{ChunkUkey, Compilation, Module};
 
 #[async_trait]
-pub trait RuntimeModule: Module + CustomSourceRuntimeModule + AsyncHashRuntimeModule {
+pub trait RuntimeModule: Module + CustomSourceRuntimeModule {
   fn name(&self) -> Identifier;
   fn attach(&mut self, _chunk: ChunkUkey) {}
   fn stage(&self) -> RuntimeModuleStage {
@@ -38,11 +38,6 @@ pub trait RuntimeModule: Module + CustomSourceRuntimeModule + AsyncHashRuntimeMo
       self.generate(compilation).await
     }
   }
-}
-
-#[async_trait]
-pub trait AsyncHashRuntimeModule {
-  async fn get_hash_async(&self, compilation: &Compilation) -> rspack_error::Result<String>;
 }
 
 #[async_trait]

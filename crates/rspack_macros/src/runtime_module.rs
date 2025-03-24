@@ -184,22 +184,11 @@ pub fn impl_runtime_module(
         Ok(result)
       }
 
-      fn update_hash(
-        &self,
-        _hasher: &mut dyn std::hash::Hasher,
-        _compilation: &::rspack_core::Compilation,
-        _runtime: Option<&::rspack_core::RuntimeSpec>,
-      ) -> ::rspack_error::Result<()> {
-        unreachable!()
-      }
-    }
-
-    #[async_trait::async_trait]
-    impl #impl_generics ::rspack_core::AsyncHashRuntimeModule for #name #ty_generics #where_clause {
       async fn get_hash_async(
         &self,
         compilation: &::rspack_core::Compilation,
-      ) -> rspack_error::Result<String> {
+        runtime: Option<&::rspack_core::RuntimeSpec>,
+      ) -> rspack_error::Result<::rspack_hash::RspackHashDigest> {
         use rspack_util::ext::DynHash;
         let mut hasher = rspack_hash::RspackHash::from(&compilation.options.output);
         self.name().dyn_hash(&mut hasher);
@@ -209,8 +198,7 @@ pub fn impl_runtime_module(
         } else {
           self.get_generated_code(compilation).await?.dyn_hash(&mut hasher);
         }
-        let digest = hasher.digest(&compilation.options.output.hash_digest);
-        Ok(digest.encoded().to_string())
+        Ok(hasher.digest(&compilation.options.output.hash_digest))
       }
     }
 

@@ -15,6 +15,7 @@ use rspack_core::{
   StaticExportsDependency, StaticExportsSpec,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashSet;
 
@@ -272,14 +273,14 @@ var init = function(shareScope, initScope) {{
     Ok(code_generation_result)
   }
 
-  fn update_hash(
+  async fn get_hash_async(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
-  ) -> Result<()> {
-    module_update_hash(self, hasher, compilation, runtime);
-    Ok(())
+  ) -> Result<RspackHashDigest> {
+    let mut hasher = RspackHash::from(&compilation.options.output);
+    module_update_hash(self, &mut hasher, compilation, runtime);
+    Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 }
 

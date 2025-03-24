@@ -13,6 +13,7 @@ use rspack_core::{
   RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_plugin_javascript::dependency::CommonJsRequireDependency;
 use rspack_util::{
   ext::DynHash,
@@ -286,16 +287,16 @@ impl Module for LazyCompilationProxyModule {
     Ok(codegen_result)
   }
 
-  fn update_hash(
+  async fn get_hash_async(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
-  ) -> Result<()> {
-    module_update_hash(self, hasher, compilation, runtime);
-    self.active.dyn_hash(hasher);
-    self.data.dyn_hash(hasher);
-    Ok(())
+  ) -> Result<RspackHashDigest> {
+    let mut hasher = RspackHash::from(&compilation.options.output);
+    module_update_hash(self, &mut hasher, compilation, runtime);
+    self.active.dyn_hash(&mut hasher);
+    self.data.dyn_hash(&mut hasher);
+    Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 }
 

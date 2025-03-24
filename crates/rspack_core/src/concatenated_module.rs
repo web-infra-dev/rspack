@@ -18,7 +18,7 @@ use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_error::{Diagnosable, Diagnostic, DiagnosticKind, Result, TraceableError};
-use rspack_hash::{HashDigest, HashFunction, RspackHash};
+use rspack_hash::{HashDigest, HashFunction, RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
@@ -1319,12 +1319,12 @@ impl Module for ConcatenatedModule {
     Ok(code_generation_result)
   }
 
-  fn update_hash(
+  async fn get_hash_async(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
     generation_runtime: Option<&RuntimeSpec>,
-  ) -> Result<()> {
+  ) -> Result<RspackHashDigest> {
+    let mut hasher = RspackHash::from(&compilation.options.output);
     let runtime = if let Some(self_runtime) = &self.runtime
       && let Some(generation_runtime) = generation_runtime
     {
@@ -1345,22 +1345,27 @@ impl Module for ConcatenatedModule {
       &compilation.get_module_graph(),
     ) {
       match info {
-        ConcatenationEntry::Concatenated(e) => compilation
-          .get_module_graph()
-          .module_by_identifier(&e.module)
-          .expect("should have module")
-          .update_hash(hasher, compilation, generation_runtime)?,
+        ConcatenationEntry::Concatenated(e) => {
+          compilation
+            .get_module_graph()
+            .module_by_identifier(&e.module)
+            .expect("should have module")
+            .get_hash_async(compilation, generation_runtime)
+            .await?
+            .encoded()
+            .dyn_hash(&mut hasher);
+        }
         ConcatenationEntry::External(e) => {
           ChunkGraph::get_module_id(
             &compilation.module_ids_artifact,
             e.module(&compilation.get_module_graph()),
           )
-          .dyn_hash(hasher);
+          .dyn_hash(&mut hasher);
         }
       };
     }
-    module_update_hash(self, hasher, compilation, generation_runtime);
-    Ok(())
+    module_update_hash(self, &mut hasher, compilation, generation_runtime);
+    Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 
   fn name_for_condition(&self) -> Option<Box<str>> {

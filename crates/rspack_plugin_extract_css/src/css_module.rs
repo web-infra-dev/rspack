@@ -178,15 +178,15 @@ impl Module for CssModule {
     Ok(CodeGenerationResult::default())
   }
 
-  fn update_hash(
+  async fn get_hash_async(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
-  ) -> Result<()> {
-    module_update_hash(self, hasher, compilation, runtime);
-    self.build_info.hash.dyn_hash(hasher);
-    Ok(())
+  ) -> Result<RspackHashDigest> {
+    let mut hasher = RspackHash::from(&compilation.options.output);
+    module_update_hash(self, &mut hasher, compilation, runtime);
+    self.build_info.hash.dyn_hash(&mut hasher);
+    Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 }
 
