@@ -678,12 +678,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
-name = "chili"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e72f874459a658df39dd1d99f7f62a9c421792efc26eaae8d497ae5d2e816a62"
-
-[[package]]
 name = "chrono"
 version = "0.4.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4169,6 +4163,7 @@ dependencies = [
  "swc_core",
  "swc_error_reporters",
  "swc_node_comments",
+ "swc_parallel",
 ]
 
 [[package]]
@@ -4297,6 +4292,7 @@ dependencies = [
  "sugar_path",
  "swc_core",
  "swc_node_comments",
+ "swc_parallel",
  "tokio",
  "tracing",
  "ustr-fxhash",
@@ -4327,6 +4323,7 @@ dependencies = [
  "rspack_collections",
  "rspack_paths",
  "swc_core",
+ "swc_parallel",
  "termcolor",
  "textwrap",
  "thiserror 1.0.69",
@@ -5326,6 +5323,7 @@ dependencies = [
  "swc_config",
  "swc_core",
  "swc_ecma_minifier",
+ "swc_parallel",
  "tracing",
 ]
 
@@ -6238,9 +6236,9 @@ dependencies = [
 
 [[package]]
 name = "swc_common"
-version = "8.0.0"
+version = "8.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26fbd21a1179166b5635d4b7a6b5930cf34b803a7361e0297b04f84dc820db04"
+checksum = "9e4a932c152e7142de2d5dba1c393e5523c47cd8fe656e5b0d411954bbaf1810"
 dependencies = [
  "anyhow",
  "ast_node",
@@ -6323,9 +6321,9 @@ dependencies = [
 
 [[package]]
 name = "swc_core"
-version = "16.7.0"
+version = "16.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bdc40ff1db02b1e32541b1fd8348406497554eb481f229b91f35c9563baebfb"
+checksum = "f7453b2e6771d55f483903ed12fa9cf949ff7a3fefdfe4a63a5ea13b542e9eca"
 dependencies = [
  "swc",
  "swc_allocator",
@@ -6351,9 +6349,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_ast"
-version = "8.0.1"
+version = "8.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22b5c514e22bcd65176a356c0bd2de295881b97079a45b991b98c4dca666ac78"
+checksum = "01f80679b1afc52ae0663eed0a2539cc3c108d48c287b5601712f9850d9fa9c2"
 dependencies = [
  "bitflags 2.6.0",
  "bytecheck 0.8.0",
@@ -6663,9 +6661,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_minifier"
-version = "12.2.0"
+version = "12.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ecb9f5964120e890a88ec048f049fe1f5e525d54aa394b50de2fcf2fd9bbb228"
+checksum = "7856c7095f57c0990ba9c22d18469d57b9f68e851cf27d8d99b5a0238648f0ce"
 dependencies = [
  "arrayvec",
  "indexmap 2.7.1",
@@ -6700,9 +6698,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_parser"
-version = "10.0.1"
+version = "10.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9576fd56e613f83990190778878139ab1a8d5ff0b316318ba34204407a0142a2"
+checksum = "edfbfa5baabd14901a310f9d55d991625787d27d94de5c38a1a2ef85ebc19c97"
 dependencies = [
  "either",
  "new_debug_unreachable",
@@ -6901,9 +6899,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_transforms_optimization"
-version = "11.0.2"
+version = "11.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6815f07e48c8274ee5eee6331ede60169985b087e1b511819dddfefde4570f7"
+checksum = "83c0a8368b173d030aa2fb43688dcae11a98332239c902ccd97002327a1573f3"
 dependencies = [
  "dashmap 5.5.3",
  "indexmap 2.7.1",
@@ -6921,6 +6919,7 @@ dependencies = [
  "swc_ecma_utils",
  "swc_ecma_visit",
  "swc_fast_graph",
+ "swc_parallel",
  "tracing",
 ]
 
@@ -6991,9 +6990,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_usage_analyzer"
-version = "12.0.1"
+version = "12.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "384c49a5891a06857543370518bd37e1e27727e3174e439dc662b79333d6a652"
+checksum = "8af89be14ef84b16529f89a70972c7f85b0e9e2599ea09d9f7c3e5b186b8f225"
 dependencies = [
  "indexmap 2.7.1",
  "rustc-hash 2.1.0",
@@ -7055,9 +7054,9 @@ dependencies = [
 
 [[package]]
 name = "swc_error_reporters"
-version = "9.1.0"
+version = "9.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "897e83aafbb585409572a46e4dd00c56d25af1268309bfb9613644dd181377a6"
+checksum = "7938665a5561d6c3e2b796b5b2d0bc9a961d461db960cb5139f12e82b45bb471"
 dependencies = [
  "anyhow",
  "miette",
@@ -7224,12 +7223,12 @@ dependencies = [
 
 [[package]]
 name = "swc_parallel"
-version = "1.2.0"
+version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5f75f1094d69174ef628e3665fff0f81d58e9f568802e3c90d332c72b0b6026"
+checksum = "8f16052d5123ec45c1c49100781363f3f4e4a6be2da6d82f473b79db1e3abeb8"
 dependencies = [
- "chili",
  "once_cell",
+ "rayon",
 ]
 
 [[package]]
