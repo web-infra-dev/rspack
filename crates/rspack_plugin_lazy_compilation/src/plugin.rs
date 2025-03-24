@@ -5,7 +5,7 @@ use std::{
 
 use rspack_core::{
   ApplyContext, BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation,
-  CompilerId, CompilerOptions, DependencyType, EntryDependency, LibIdentOptions, Module,
+  CompilerId, CompilerOptions, DependencyType, EntryDependency, LibIdentOptions, Module, ModuleExt,
   ModuleFactory, ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryModule,
   Plugin, PluginContext,
 };
@@ -189,7 +189,7 @@ async fn normal_module_factory_module(
     )
     .await?;
 
-  *module = Box::new(LazyCompilationProxyModule::new(
+  *module = LazyCompilationProxyModule::new(
     module_identifier,
     lib_ident.map(|ident| ident.into_owned()),
     module_factory_create_data.clone(),
@@ -198,7 +198,8 @@ async fn normal_module_factory_module(
     info.active,
     info.data,
     info.client,
-  ));
+  )
+  .boxed();
 
   Ok(())
 }

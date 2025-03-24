@@ -8,8 +8,8 @@ use rspack_core::{
   rspack_sources::BoxSource, sync_module_factory, AsyncDependenciesBlock,
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec,
-  SourceType,
+  FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, Reflectable, Reflector,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_util::{ext::DynHash, source_map::SourceMapKind};
@@ -24,6 +24,7 @@ use crate::{utils::json_stringify, ConsumeOptions};
 #[cacheable]
 #[derive(Debug)]
 pub struct ConsumeSharedModule {
+  reflector: Reflector,
   #[cacheable(with=Unsupported)]
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
@@ -61,6 +62,7 @@ impl ConsumeSharedModule {
       options.eager.then_some(" (eager)").unwrap_or_default(),
     );
     Self {
+      reflector: Default::default(),
       blocks: Vec::new(),
       dependencies: Vec::new(),
       identifier: ModuleIdentifier::from(identifier.as_ref()),
@@ -110,6 +112,16 @@ impl DependenciesBlock for ConsumeSharedModule {
 
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependencies
+  }
+}
+
+impl Reflectable for ConsumeSharedModule {
+  fn reflector(&self) -> &Reflector {
+    &self.reflector
+  }
+
+  fn reflector_mut(&mut self) -> &mut Reflector {
+    &mut self.reflector
   }
 }
 

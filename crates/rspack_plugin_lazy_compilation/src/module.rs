@@ -10,7 +10,7 @@ use rspack_core::{
   BuildMeta, BuildResult, ChunkGraph, CodeGenerationData, CodeGenerationResult, Compilation,
   ConcatenationScope, Context, DependenciesBlock, DependencyId, DependencyRange, FactoryMeta,
   LibIdentOptions, Module, ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext,
+  Reflectable, Reflector, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_plugin_javascript::dependency::CommonJsRequireDependency;
@@ -28,6 +28,7 @@ static SOURCE_TYPE: [SourceType; 1] = [SourceType::JavaScript];
 #[cacheable]
 #[derive(Debug)]
 pub(crate) struct LazyCompilationProxyModule {
+  reflector: Reflector,
   build_info: BuildInfo,
   build_meta: BuildMeta,
   factory_meta: Option<FactoryMeta>,
@@ -82,6 +83,7 @@ impl LazyCompilationProxyModule {
     let lib_ident = lib_ident.map(|s| format!("{s}!lazy-compilation-proxy"));
 
     Self {
+      reflector: Default::default(),
       build_info: Default::default(),
       build_meta: Default::default(),
       cacheable,
@@ -102,6 +104,16 @@ impl LazyCompilationProxyModule {
 }
 
 impl_empty_diagnosable_trait!(LazyCompilationProxyModule);
+
+impl Reflectable for LazyCompilationProxyModule {
+  fn reflector(&self) -> &Reflector {
+    &self.reflector
+  }
+
+  fn reflector_mut(&mut self) -> &mut Reflector {
+    &mut self.reflector
+  }
+}
 
 #[cacheable_dyn]
 #[async_trait::async_trait]

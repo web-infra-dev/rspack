@@ -8,8 +8,8 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource},
   AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, Dependency,
-  DependencyId, EntryDependency, FactoryMeta, Module, ModuleType, RuntimeGlobals, RuntimeSpec,
-  SourceType,
+  DependencyId, EntryDependency, FactoryMeta, Module, ModuleType, Reflectable, Reflector,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 
@@ -19,6 +19,7 @@ use super::dll_entry_dependency::DllEntryDependency;
 #[cacheable]
 #[derive(Debug, Default)]
 pub struct DllModule {
+  reflector: Reflector,
   // TODO: it should be set to EntryDependency.loc
   name: String,
 
@@ -47,11 +48,22 @@ impl DllModule {
     } = dep.clone();
 
     Self {
+      reflector: Default::default(),
       name,
       entries,
       context,
       ..Default::default()
     }
+  }
+}
+
+impl Reflectable for DllModule {
+  fn reflector(&self) -> &Reflector {
+    &self.reflector
+  }
+
+  fn reflector_mut(&mut self) -> &mut Reflector {
+    &mut self.reflector
   }
 }
 

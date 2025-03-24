@@ -14,6 +14,11 @@ pub fn impl_runtime_module(
   if let syn::Fields::Named(ref mut fields) = input.fields {
     fields.named.push(
       syn::Field::parse_named
+        .parse2(quote! { reflector: ::rspack_core::Reflector })
+        .expect("Failed to parse new field for source_map_kind"),
+    );
+    fields.named.push(
+      syn::Field::parse_named
         .parse2(quote! { pub source_map_kind: ::rspack_util::source_map::SourceMapKind })
         .expect("Failed to parse new field for source_map_kind"),
     );
@@ -44,6 +49,7 @@ pub fn impl_runtime_module(
     #[allow(clippy::too_many_arguments)]
     fn with_default(#(#field_names: #field_tys,)*) -> Self {
       Self {
+        reflector: Default::default(),
         source_map_kind: ::rspack_util::source_map::SourceMapKind::empty(),
         custom_source: None,
         cached_generated_code: Default::default(),
@@ -233,6 +239,16 @@ pub fn impl_runtime_module(
 
       fn set_source_map_kind(&mut self, source_map_kind: ::rspack_util::source_map::SourceMapKind) {
         self.source_map_kind = source_map_kind;
+      }
+    }
+
+    impl #impl_generics ::rspack_core::Reflectable for #name #ty_generics #where_clause {
+      fn reflector(&self) -> &::rspack_core::Reflector {
+        &self.reflector
+      }
+
+      fn reflector_mut(&mut self) -> &mut ::rspack_core::Reflector {
+        &mut self.reflector
       }
     }
   }

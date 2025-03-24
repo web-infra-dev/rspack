@@ -421,12 +421,12 @@ fn strict_runtime_bailout(
 #[plugin_hook(CompilationFinishModules for AssignLibraryPlugin)]
 async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   let mut runtime_info = Vec::with_capacity(compilation.entries.len());
-  for (entry_name, entry) in compilation.entries.iter() {
+  for (entry_name, entry) in &*compilation.entries {
     let EntryData {
       dependencies,
       options,
       ..
-    } = entry;
+    } = &**entry;
     let runtime = get_entry_runtime(entry_name, options, &compilation.entries);
     let library_options = options
       .library

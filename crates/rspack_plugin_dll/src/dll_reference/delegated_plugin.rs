@@ -1,7 +1,8 @@
 use rspack_core::{
   ApplyContext, BoxModule, Compilation, CompilationParams, CompilerCompilation, CompilerOptions,
-  Context, DependencyType, LibIdentOptions, ModuleFactoryCreateData, NormalModuleCreateData,
-  NormalModuleFactoryFactorize, NormalModuleFactoryModule, Plugin, PluginContext,
+  Context, DependencyType, LibIdentOptions, ModuleExt, ModuleFactoryCreateData,
+  NormalModuleCreateData, NormalModuleFactoryFactorize, NormalModuleFactoryModule, Plugin,
+  PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -92,26 +93,32 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
         );
 
         if let Some(resolved) = self.options.content.get(&inner_request) {
-          return Ok(Some(Box::new(DelegatedModule::new(
-            self.options.source.clone(),
-            resolved.clone(),
-            self.options.r#type.clone(),
-            inner_request,
-            Some(request.to_owned()),
-          ))));
+          return Ok(Some(
+            DelegatedModule::new(
+              self.options.source.clone(),
+              resolved.clone(),
+              self.options.r#type.clone(),
+              inner_request,
+              Some(request.to_owned()),
+            )
+            .boxed(),
+          ));
         }
 
         for extension in self.options.extensions.iter() {
           let request_plus_ext = format!("{inner_request}{extension}");
 
           if let Some(resolved) = self.options.content.get(&request_plus_ext) {
-            return Ok(Some(Box::new(DelegatedModule::new(
-              self.options.source.clone(),
-              resolved.clone(),
-              self.options.r#type.clone(),
-              request_plus_ext,
-              format!("{request}{extension}").into(),
-            ))));
+            return Ok(Some(
+              DelegatedModule::new(
+                self.options.source.clone(),
+                resolved.clone(),
+                self.options.r#type.clone(),
+                request_plus_ext,
+                format!("{request}{extension}").into(),
+              )
+              .boxed(),
+            ));
           }
         }
       }
@@ -137,13 +144,14 @@ async fn nmf_module(
           context: &self.options.compilation_context,
         });
 
-        *module = Box::new(DelegatedModule::new(
+        *module = DelegatedModule::new(
           self.options.source.clone(),
           resolved.clone(),
           self.options.r#type.clone(),
           request.to_string(),
           original_request.map(|request| request.to_string()),
-        ));
+        )
+        .boxed();
       }
     };
   }

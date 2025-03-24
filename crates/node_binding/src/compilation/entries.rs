@@ -1,10 +1,11 @@
+use napi::sys::napi_value;
 use napi_derive::napi;
-use rspack_core::{ChunkLoading, Compilation, EntryData, EntryOptions, EntryRuntime};
+use rspack_core::{ChunkLoading, EntryData, EntryOptions, EntryRuntime, Reflectable, Root};
 use rspack_napi::napi::bindgen_prelude::*;
 
 use crate::{
   dependency::Dependency, entry::JsEntryOptions, library::JsLibraryOptions, DependencyWrapper,
-  RawChunkLoading, WithFalse,
+  JsCompilation, RawChunkLoading, WithFalse,
 };
 
 #[napi]
@@ -165,56 +166,79 @@ pub struct JsEntryData {
 
 impl From<JsEntryData> for EntryData {
   fn from(value: JsEntryData) -> Self {
-    Self {
-      dependencies: value
-        .dependencies
-        .into_iter()
-        .map(|dep| dep.dependency_id)
-        .collect::<Vec<_>>(),
-      include_dependencies: value
-        .include_dependencies
-        .into_iter()
-        .map(|dep| dep.dependency_id)
-        .collect::<Vec<_>>(),
-      options: value.options.into(),
-    }
+    let dependencies = value
+      .dependencies
+      .into_iter()
+      .map(|dep| dep.dependency_id)
+      .collect::<Vec<_>>();
+    let include_dependencies = value
+      .include_dependencies
+      .into_iter()
+      .map(|dep| dep.dependency_id)
+      .collect::<Vec<_>>();
+    let options = value.options.into();
+    EntryData::new(dependencies, include_dependencies, options)
   }
 }
 
 #[napi]
 pub struct EntryDataDTO {
-  compilation: &'static mut Compilation,
-  entry_data: EntryData,
+  i: Box<rspack_core::EntryData>,
+  // The WeakReference<JsCompilation> is inserted in the binding entries.get and entries.values methods
+  pub(crate) compilation: Option<WeakReference<JsCompilation>>,
+}
+
+impl EntryDataDTO {
+  pub fn new(entry_data: Box<rspack_core::EntryData>) -> Self {
+    Self {
+      i: entry_data,
+      compilation: None,
+    }
+  }
 }
 
 #[napi]
 impl EntryDataDTO {
   #[napi(getter, ts_return_type = "Dependency[]")]
-  pub fn dependencies(&'static self) -> Vec<DependencyWrapper> {
-    let module_graph = self.compilation.get_module_graph();
+  pub fn dependencies(&mut self) -> Vec<DependencyWrapper> {
+    let Some(weak_reference) = &mut self.compilation else {
+      return vec![];
+    };
+    let Some(js_compilation) = weak_reference.get_mut() else {
+      return vec![];
+    };
+    let compilation = &mut *js_compilation.0;
+    let module_graph = compilation.get_module_graph();
     self
-      .entry_data
+      .i
       .dependencies
       .iter()
       .map(|dependency_id| {
         #[allow(clippy::unwrap_used)]
         let dep = module_graph.dependency_by_id(dependency_id).unwrap();
-        DependencyWrapper::new(dep.as_ref(), self.compilation.id(), Some(self.compilation))
+        DependencyWrapper::new(dep.as_ref(), compilation.id(), Some(compilation))
       })
       .collect::<Vec<_>>()
   }
 
   #[napi(getter, ts_return_type = "Dependency[]")]
-  pub fn include_dependencies(&'static self) -> Vec<DependencyWrapper> {
-    let module_graph = self.compilation.get_module_graph();
+  pub fn include_dependencies(&mut self) -> Vec<DependencyWrapper> {
+    let Some(weak_reference) = &mut self.compilation else {
+      return vec![];
+    };
+    let Some(js_compilation) = weak_reference.get_mut() else {
+      return vec![];
+    };
+    let compilation = &mut *js_compilation.0;
+    let module_graph = compilation.get_module_graph();
     self
-      .entry_data
+      .i
       .include_dependencies
       .iter()
       .map(|dependency_id| {
         #[allow(clippy::unwrap_used)]
         let dep = module_graph.dependency_by_id(dependency_id).unwrap();
-        DependencyWrapper::new(dep.as_ref(), self.compilation.id(), Some(self.compilation))
+        DependencyWrapper::new(dep.as_ref(), compilation.id(), Some(compilation))
       })
       .collect::<Vec<_>>()
   }
@@ -224,18 +248,23 @@ impl EntryDataDTO {
     &self,
     env: &'scope Env,
   ) -> Result<ClassInstance<'scope, EntryOptionsDTO>> {
-    EntryOptionsDTO::new(self.entry_data.options.clone()).into_instance(env)
+    EntryOptionsDTO::new(self.i.options.clone()).into_instance(env)
   }
 }
 
 #[napi]
 pub struct JsEntries {
-  compilation: &'static mut Compilation,
+  i: Box<rspack_core::Entries>,
+  // The WeakReference<JsCompilation> is inserted in the binding compilation.entries method
+  pub(crate) compilation: Option<WeakReference<JsCompilation>>,
 }
 
 impl JsEntries {
-  pub fn new(compilation: &'static mut Compilation) -> Self {
-    Self { compilation }
+  pub fn new(entries: Box<rspack_core::Entries>) -> Self {
+    Self {
+      i: entries,
+      compilation: None,
+    }
   }
 }
 
@@ -243,73 +272,59 @@ impl JsEntries {
 impl JsEntries {
   #[napi]
   pub fn clear(&mut self) {
-    self.compilation.entries.drain(..);
+    self.i.drain(..);
   }
 
   #[napi(getter)]
   pub fn size(&mut self) -> u32 {
-    self.compilation.entries.len() as u32
+    self.i.len() as u32
   }
 
   #[napi]
   pub fn has(&self, key: String) -> bool {
-    self.compilation.entries.contains_key(&key)
+    self.i.contains_key(&key)
   }
 
   #[napi]
-  pub fn set(&mut self, key: String, value: Either<JsEntryData, ClassInstance<EntryDataDTO>>) {
-    let entry_data = match value {
-      Either::A(js) => js.into(),
-      Either::B(dto) => {
-        assert!(
-          std::ptr::eq(dto.compilation, self.compilation),
-          "The set() method cannot accept entry data from a different compilation instance."
-        );
-        dto.entry_data.clone()
-      }
-    };
-    self.compilation.entries.insert(key, entry_data);
+  pub fn set(&mut self, key: String, entry_data_object: JsEntryData) {
+    let entry_data = Root::from(rspack_core::EntryData::from(entry_data_object));
+    self.i.insert(key, entry_data);
   }
 
   #[napi]
   pub fn delete(&mut self, key: String) -> bool {
-    let r = self.compilation.entries.swap_remove(&key);
+    let r = self.i.swap_remove(&key);
     r.is_some()
   }
 
-  #[napi]
-  pub fn get(&'static mut self, key: String) -> Result<Either<EntryDataDTO, ()>> {
-    Ok(match self.compilation.entries.get(&key) {
-      Some(entry_data) => Either::A(EntryDataDTO {
-        entry_data: entry_data.clone(),
-        compilation: self.compilation,
-      }),
+  #[napi(ts_return_type = "JsEntryData | undefined")]
+  pub fn get(&mut self, env: Env, key: String) -> Result<Either<napi_value, ()>> {
+    Ok(match self.i.get_mut(&key) {
+      Some(entry_data) => unsafe {
+        let napi_val = ToNapiValue::to_napi_value(env.raw(), entry_data.reflector())?;
+        let js_entry_data = JsEntries::from_napi_mut_ref(env.raw(), napi_val)?;
+        js_entry_data.compilation = self.compilation.clone();
+        Either::A(napi_val)
+      },
       None => Either::B(()),
     })
   }
 
   #[napi]
   pub fn keys(&self) -> Vec<&String> {
-    self.compilation.entries.keys().collect()
+    self.i.keys().collect()
   }
 
-  #[napi]
-  pub fn values(&'static self) -> Vec<EntryDataDTO> {
+  #[napi(ts_return_type = "EntryDataDTO | undefined")]
+  pub fn values(&self, env: Env) -> napi::Result<Vec<napi_value>> {
     self
-      .compilation
-      .entries
+      .i
       .values()
-      .cloned()
-      .map(|value| {
-        // To resolve the lifetime issue, `&'static self` is converted to `&'static mut self`.
-        // Since JS is single-threaded, data races theoretically should not occur, making this safe.
-        // However, this approach is highly hacky. It is recommended to look for a better solution in the future.
-        let compilation_ptr = self.compilation as *const Compilation as *mut Compilation;
-        let compilation = unsafe { &mut *compilation_ptr };
-        EntryDataDTO {
-          entry_data: value,
-          compilation,
-        }
+      .map(|entry_data| unsafe {
+        let napi_val = ToNapiValue::to_napi_value(env.raw(), entry_data.reflector())?;
+        let js_entry_data = EntryDataDTO::from_napi_mut_ref(env.raw(), napi_val)?;
+        js_entry_data.compilation = self.compilation.clone();
+        Ok(napi_val)
       })
       .collect()
   }

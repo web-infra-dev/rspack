@@ -4,13 +4,13 @@ use super::{build::BuildTask, MakeTaskContext};
 use crate::{
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
-  BoxDependency, Module, ModuleIdentifier, ModuleProfile,
+  BoxDependency, BoxModule, ModuleIdentifier, ModuleProfile,
 };
 
 #[derive(Debug)]
 pub struct AddTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
-  pub module: Box<dyn Module>,
+  pub module: BoxModule,
   pub module_graph_module: Box<ModuleGraphModule>,
   pub dependencies: Vec<BoxDependency>,
   pub current_profile: Option<Box<ModuleProfile>>,

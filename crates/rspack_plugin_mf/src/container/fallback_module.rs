@@ -9,7 +9,7 @@ use rspack_core::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation, ConcatenationScope, Context,
   DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleIdentifier,
-  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  ModuleType, Reflectable, Reflector, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_util::{itoa, source_map::SourceMapKind};
@@ -21,6 +21,7 @@ use crate::utils::json_stringify;
 #[cacheable]
 #[derive(Debug)]
 pub struct FallbackModule {
+  reflector: Reflector,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
   identifier: ModuleIdentifier,
@@ -43,6 +44,7 @@ impl FallbackModule {
       itoa!(requests.len() - 1)
     );
     Self {
+      reflector: Default::default(),
       blocks: Default::default(),
       dependencies: Default::default(),
       identifier: ModuleIdentifier::from(identifier.as_str()),
@@ -85,6 +87,16 @@ impl DependenciesBlock for FallbackModule {
 
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependencies
+  }
+}
+
+impl Reflectable for FallbackModule {
+  fn reflector(&self) -> &Reflector {
+    &self.reflector
+  }
+
+  fn reflector_mut(&mut self) -> &mut Reflector {
+    &mut self.reflector
   }
 }
 

@@ -24,6 +24,19 @@ pub struct RuntimeModuleFromJs {
   pub stage: RuntimeModuleStage,
 }
 
+impl RuntimeModuleFromJs {
+  pub fn new(
+    name: String,
+    generator: GenerateFn,
+    full_hash: bool,
+    dependent_hash: bool,
+    isolate: bool,
+    stage: RuntimeModuleStage,
+  ) -> Self {
+    Self::with_default(name, generator, full_hash, dependent_hash, isolate, stage)
+  }
+}
+
 #[async_trait::async_trait]
 impl RuntimeModule for RuntimeModuleFromJs {
   fn name(&self) -> Identifier {

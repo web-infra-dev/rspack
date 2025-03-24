@@ -565,7 +565,7 @@ impl JsPlugin {
       }
     }
 
-    let chunk_modules: Vec<&Box<dyn Module>> = if let Some(inlined_modules) = inlined_modules {
+    let chunk_modules: Vec<&BoxModule> = if let Some(inlined_modules) = inlined_modules {
       all_modules
         .clone()
         .into_iter()

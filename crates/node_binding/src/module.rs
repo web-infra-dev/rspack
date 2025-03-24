@@ -551,17 +551,16 @@ pub struct JsAddingRuntimeModule {
 
 impl From<JsAddingRuntimeModule> for RuntimeModuleFromJs {
   fn from(value: JsAddingRuntimeModule) -> Self {
-    Self {
-      name: value.name,
-      full_hash: value.full_hash,
-      dependent_hash: value.dependent_hash,
-      isolate: value.isolate,
-      stage: RuntimeModuleStage::from(value.stage),
-      generator: Arc::new(move || value.generator.blocking_call_with_sync(())),
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-      cached_generated_code: Default::default(),
-    }
+    let mut module = Self::new(
+      value.name,
+      Arc::new(move || value.generator.blocking_call_with_sync(())),
+      value.full_hash,
+      value.dependent_hash,
+      value.isolate,
+      RuntimeModuleStage::from(value.stage),
+    );
+    module.source_map_kind = SourceMapKind::empty();
+    module
   }
 }
 

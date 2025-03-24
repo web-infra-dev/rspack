@@ -17,8 +17,8 @@ use crate::{
   CodeGenerationDataUrl, CodeGenerationResult, Compilation, ConcatenationScope, Context,
   DependenciesBlock, DependencyId, ExternalType, FactoryMeta, ImportAttributes, InitFragmentExt,
   InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleGraph, ModuleType,
-  NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, NAMESPACE_OBJECT_EXPORT,
+  NormalInitFragment, Reflectable, Reflector, RuntimeGlobals, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec, NAMESPACE_OBJECT_EXPORT,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -171,6 +171,7 @@ fn resolve_external_type<'a>(
 #[cacheable]
 #[derive(Debug)]
 pub struct ExternalModule {
+  reflector: Reflector,
   dependencies: Vec<DependencyId>,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   id: Identifier,
@@ -208,6 +209,7 @@ impl ExternalModule {
     dependency_meta: DependencyMeta,
   ) -> Self {
     Self {
+      reflector: Default::default(),
       dependencies: Vec::new(),
       blocks: Vec::new(),
       id: Identifier::from(format!(
@@ -472,6 +474,16 @@ impl DependenciesBlock for ExternalModule {
 
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependencies
+  }
+}
+
+impl Reflectable for ExternalModule {
+  fn reflector(&self) -> &Reflector {
+    &self.reflector
+  }
+
+  fn reflector_mut(&mut self) -> &mut Reflector {
+    &mut self.reflector
   }
 }
 
