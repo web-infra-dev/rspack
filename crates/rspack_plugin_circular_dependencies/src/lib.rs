@@ -1,5 +1,6 @@
 #![feature(array_windows)]
 
+use cow_utils::CowUtils;
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use itertools::Itertools;
@@ -337,13 +338,7 @@ impl CircularDependencyRspackPlugin {
       .to_string();
     let cycle_without_root: Vec<String> = cycle
       .iter()
-      .map(|module_path| {
-        module_path
-          .to_string()
-          .replace(&cwd, "")
-          .trim_start_matches('/')
-          .to_string()
-      })
+      .map(|module_path| module_path.to_string().cow_replace(&cwd, "").to_string())
       .collect();
 
     compilation.push_diagnostic(diagnostic_factory(

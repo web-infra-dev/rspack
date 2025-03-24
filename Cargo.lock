@@ -4678,6 +4678,7 @@ dependencies = [
 name = "rspack_plugin_circular_dependencies"
 version = "0.2.0"
 dependencies = [
+ "cow-utils",
  "derive_more 1.0.0",
  "futures",
  "itertools 0.14.0",
