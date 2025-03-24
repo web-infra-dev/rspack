@@ -126,7 +126,7 @@ impl Module for RawModule {
     Ok(cgr)
   }
 
-  async fn get_hash_async(
+  async fn get_runtime_hash(
     &self,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,

@@ -1319,7 +1319,7 @@ impl Module for ConcatenatedModule {
     Ok(code_generation_result)
   }
 
-  async fn get_hash_async(
+  async fn get_runtime_hash(
     &self,
     compilation: &Compilation,
     generation_runtime: Option<&RuntimeSpec>,
@@ -1350,7 +1350,7 @@ impl Module for ConcatenatedModule {
             .get_module_graph()
             .module_by_identifier(&e.module)
             .expect("should have module")
-            .get_hash_async(compilation, generation_runtime)
+            .get_runtime_hash(compilation, generation_runtime)
             .await?
             .encoded()
             .dyn_hash(&mut hasher);

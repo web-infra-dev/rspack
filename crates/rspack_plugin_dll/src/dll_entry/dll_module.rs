@@ -128,7 +128,7 @@ impl Module for DllModule {
     12.0
   }
 
-  async fn get_hash_async(
+  async fn get_runtime_hash(
     &self,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,

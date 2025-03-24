@@ -342,7 +342,7 @@ mod t {
       todo!()
     }
 
-    async fn get_hash_async(
+    async fn get_runtime_hash(
       &self,
       _compilation: &Compilation,
       _runtime: Option<&RuntimeSpec>,

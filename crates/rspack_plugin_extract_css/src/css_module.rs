@@ -178,7 +178,7 @@ impl Module for CssModule {
     Ok(CodeGenerationResult::default())
   }
 
-  async fn get_hash_async(
+  async fn get_runtime_hash(
     &self,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,

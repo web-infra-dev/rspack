@@ -184,7 +184,7 @@ pub fn impl_runtime_module(
         Ok(result)
       }
 
-      async fn get_hash_async(
+      async fn get_runtime_hash(
         &self,
         compilation: &::rspack_core::Compilation,
         runtime: Option<&::rspack_core::RuntimeSpec>,

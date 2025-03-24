@@ -2040,7 +2040,7 @@ impl Compilation {
     for chunk in &other_chunks {
       for runtime_module_identifier in self.chunk_graph.get_chunk_runtime_modules_iterable(chunk) {
         let runtime_module = &self.runtime_modules[runtime_module_identifier];
-        let digest = runtime_module.get_hash_async(self, None).await?;
+        let digest = runtime_module.get_runtime_hash(self, None).await?;
         self
           .runtime_modules_hash
           .insert(*runtime_module_identifier, digest);
@@ -2168,7 +2168,7 @@ impl Compilation {
         .get_chunk_runtime_modules_iterable(&runtime_chunk_ukey)
       {
         let runtime_module = &self.runtime_modules[runtime_module_identifier];
-        let digest = runtime_module.get_hash_async(self, None).await?;
+        let digest = runtime_module.get_runtime_hash(self, None).await?;
         self
           .runtime_modules_hash
           .insert(*runtime_module_identifier, digest);
@@ -2202,7 +2202,7 @@ impl Compilation {
       {
         let runtime_module = &self.runtime_modules[runtime_module_identifier];
         if runtime_module.full_hash() || runtime_module.dependent_hash() {
-          let digest = runtime_module.get_hash_async(self, None).await?;
+          let digest = runtime_module.get_runtime_hash(self, None).await?;
           self
             .runtime_modules_hash
             .insert(*runtime_module_identifier, digest);
@@ -2339,7 +2339,7 @@ impl Compilation {
               let module = mg
                 .module_by_identifier(&module_identifier)
                 .expect("should have module");
-              let hash = module.get_hash_async(compilation, Some(&runtime)).await?;
+              let hash = module.get_runtime_hash(compilation, Some(&runtime)).await?;
               hashes.set(runtime, hash);
             }
             Ok((module_identifier, hashes))

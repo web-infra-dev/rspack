@@ -118,7 +118,7 @@ impl Module for SelfModule {
     Ok(CodeGenerationResult::default())
   }
 
-  async fn get_hash_async(
+  async fn get_runtime_hash(
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,

@@ -312,7 +312,7 @@ pub trait Module:
   /// Different cgm code generation result should have different cgm.hash,
   /// so this also accept compilation (mainly chunk graph) and runtime as args.
   /// (Difference with `impl Hash for Module`: this is just a part for calculating cgm.hash, not for Module itself)
-  async fn get_hash_async(
+  async fn get_runtime_hash(
     &self,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
@@ -713,7 +713,7 @@ mod test {
           unreachable!()
         }
 
-        async fn get_hash_async(
+        async fn get_runtime_hash(
           &self,
           _compilation: &Compilation,
           _runtime: Option<&RuntimeSpec>,
