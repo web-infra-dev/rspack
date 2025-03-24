@@ -31,12 +31,12 @@ interface NormalModuleConstructor {
 export var NormalModule: NormalModuleConstructor;
 
 export interface NormalModule extends Module {
-	get resource(): string | undefined;
-	get request(): string | undefined
-	get userRequest(): string | undefined
-	set userRequest(val: string | undefined)
-	get rawRequest(): string | undefined
-	get loaders(): Array<JsLoaderItem> | undefined
+	get resource(): string;
+	get request(): string
+	get userRequest(): string
+	set userRequest(val: string)
+	get rawRequest(): string
+	get loaders(): Array<JsLoaderItem>
 	get resourceResolveData(): JsResourceData | undefined
 	get matchResource(): string | undefined
 	set matchResource(val: string | undefined)
