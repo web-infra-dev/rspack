@@ -811,7 +811,7 @@ define_register!(
   RegisterCompilationRuntimeRequirementInTreeTaps,
   tap = CompilationRuntimeRequirementInTreeTap<JsRuntimeRequirementInTreeArg, Option<JsRuntimeRequirementInTreeResult>> @ CompilationRuntimeRequirementInTreeHook,
   cache = true,
-  sync = true,
+  sync = false,
   kind = RegisterJsTapKind::CompilationRuntimeRequirementInTree,
   skip = true,
 );

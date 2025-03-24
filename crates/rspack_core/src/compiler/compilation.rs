@@ -1841,7 +1841,6 @@ impl Compilation {
                             runtime_requirements_mut,
                           )
                           .await?;
-                        std::future::ready(()).await;
                         Ok(())
                       }
                     })
@@ -1918,7 +1917,6 @@ impl Compilation {
                 runtime_requirements_mut,
               )
               .await?;
-            std::future::ready(()).await;
             Ok(())
           }
         })
@@ -1964,7 +1962,6 @@ impl Compilation {
                 runtime_requirements_mut,
               )
               .await?;
-            std::future::ready(()).await;
             Ok(())
           }
         })
