@@ -67,6 +67,25 @@ unsafe fn napi_value_to_json(
   env: sys::napi_env,
   value: Unknown,
 ) -> napi::Result<Option<serde_json::Value>> {
+  if value.is_array()? {
+    let js_array = Array::from_unknown(value)?;
+    let mut array = Vec::with_capacity(js_array.len() as usize);
+
+    for index in 0..js_array.len() {
+      if let Some(item) = js_array.get::<Unknown>(index)? {
+        if let Some(json_val) = napi_value_to_json(env, item)? {
+          array.push(json_val);
+        } else {
+          array.push(serde_json::Value::Null);
+        }
+      } else {
+        array.push(serde_json::Value::Null);
+      }
+    }
+
+    return Ok(Some(serde_json::Value::Array(array)));
+  }
+
   match value.get_type()? {
     napi::ValueType::Null => Ok(Some(serde_json::Value::Null)),
     napi::ValueType::Boolean => {
