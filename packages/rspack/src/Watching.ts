@@ -196,7 +196,7 @@ export class Watching {
 		this.#invalidate();
 	}
 
-	lazyCompilationInvalidate(files: Set<string>) {
+	invalidateWithChangedFiles(files: Set<string>) {
 		this.#invalidate(new Map(), new Map(), files, new Set());
 	}
 

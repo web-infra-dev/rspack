@@ -28,8 +28,8 @@ module.exports = {
 					}
 					if (firstRun) {
 						firstRun = false;
-						compiler.watching.lazyCompilationInvalidate(path.resolve(__dirname, "../fixtures/a.js"));
-						compiler.watching.lazyCompilationInvalidate(path.resolve(__dirname, "../fixtures/b.js"));
+						compiler.watching.invalidateWithChangedFiles(path.resolve(__dirname, "../fixtures/a.js"));
+						compiler.watching.invalidateWithChangedFiles(path.resolve(__dirname, "../fixtures/b.js"));
 						setTimeout(() => {
 							resolve()
 						}, 2000)

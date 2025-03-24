@@ -32,15 +32,19 @@ export const lazyCompilationMiddleware = (
 	}
 
 	const options = userOptions === true ? {} : userOptions;
-	const activeModules = new Map();
+	const activeModules: Map<string, boolean> = new Map();
 	const filesByKey: Map<string, string> = new Map();
 	new BuiltinLazyCompilationPlugin(
 		({ module, path }) => {
-			const key = `${encodeURIComponent(
+			const key = encodeURIComponent(
 				module.replace(/\\/g, "/").replace(/@/g, "_")
-			).replace(/%(2F|3A|24|26|2B|2C|3B|3D|3A)/g, decodeURIComponent)}`;
+			)
+				// module identifier may contain query, bang(!) or split(|),
+				// should do our best to ensure it's the same with which comes
+				// from server url
+				.replace(/%(2F|3A|24|26|2B|2C|3B|3D)/g, decodeURIComponent);
 			filesByKey.set(key, path);
-			const active = activeModules.get(key) > 0;
+			const active = activeModules.get(key) === true;
 			return {
 				client: `${options.client || getDefaultClient(compiler)}?${encodeURIComponent((options.serverUrl ?? "") + LAZY_COMPILATION_PREFIX)}`,
 				data: key,
@@ -99,9 +103,7 @@ const lazyCompilationMiddlewareInternal = (
 					.map(key => {
 						const filePath = filesByKey.get(key);
 						if (!filePath) {
-							logger.warn(
-								`Cannot find correct file path for module ${{ key }}`
-							);
+							logger.warn(`Cannot find correct file path for module ${key}`);
 						}
 						return filePath;
 					})
@@ -109,7 +111,7 @@ const lazyCompilationMiddlewareInternal = (
 			);
 
 			if (rebuiltModules.size) {
-				compiler.watching.lazyCompilationInvalidate(new Set(rebuiltModules));
+				compiler.watching.invalidateWithChangedFiles(new Set(rebuiltModules));
 			}
 		}
 	};

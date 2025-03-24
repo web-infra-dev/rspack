@@ -6631,11 +6631,11 @@ export class Watching {
     // (undocumented)
     invalidate(callback?: Callback<Error, void>): void;
     // (undocumented)
+    invalidateWithChangedFiles(files: Set<string>): void;
+    // (undocumented)
     isBlocked: () => boolean;
     // (undocumented)
     lastWatcherStartTime: number;
-    // (undocumented)
-    lazyCompilationInvalidate(files: Set<string>): void;
     // (undocumented)
     onChange: () => void;
     // (undocumented)

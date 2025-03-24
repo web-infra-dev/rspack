@@ -126,6 +126,10 @@ type LazyCompilationOptions =
     };
 ```
 
+:::Tip
+Check out the [guide](/guide/features/lazy-compilation) for a quick start.
+:::
+
 Enable lazy compilation, which can greatly improve the dev startup performance of multi-page applications (MPA) or large single-page applications (SPA). For example, if you have twenty entry points, only the accessed entry points will be built. Or if there are many `import()` statements in the project, each module pointed to by `import()` will only be built when it is actually accessed.
 
 If set to true, lazy compilation will be applied by default to both entry modules and modules pointed to by `import()`. You can decide whether it applies only to entries or only to `import()` through a configuration object. The `entries` option determines whether it applies to entries, while the `import()` option determines whether it applies to `import()`.
