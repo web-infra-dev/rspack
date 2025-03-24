@@ -25,6 +25,7 @@ ignored = [
   "rspack_binding",
   "rspack_plugin_merge",
   "rspack",
+  "swc_parallel",
 ]
 [workspace.dependencies]
 anyhow             = { version = "1.0.95", features = ["backtrace"] }
