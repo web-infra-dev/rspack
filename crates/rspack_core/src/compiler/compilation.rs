@@ -18,7 +18,7 @@ use rspack_cacheable::{
   with::{AsOption, AsPreset},
 };
 use rspack_collections::{
-  DatabaseItem, Identifiable, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
+  DatabaseItem, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
 };
 use rspack_error::{
   error, miette::diagnostic, Diagnostic, DiagnosticExt, InternalError, Result, RspackSeverity,

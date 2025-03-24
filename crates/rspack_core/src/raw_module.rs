@@ -10,14 +10,15 @@ use rspack_util::source_map::SourceMapKind;
 use crate::{
   dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info, module_update_hash,
   BuildInfo, BuildMeta, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, DependencyId, FactoryMeta, Module, ModuleIdentifier, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SourceType,
+  DependenciesBlock, DependencyId, FactoryMeta, Module, ModuleIdentifier, ModuleType, Reflectable,
+  Reflector, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[impl_source_map_config]
 #[cacheable]
 #[derive(Debug)]
 pub struct RawModule {
+  reflector: Reflector,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
   #[cacheable(with=AsPreset)]
@@ -40,6 +41,7 @@ impl RawModule {
     runtime_requirements: RuntimeGlobals,
   ) -> Self {
     Self {
+      reflector: Default::default(),
       blocks: Default::default(),
       dependencies: Default::default(),
       // TODO: useSourceMap, etc...
@@ -84,6 +86,16 @@ impl DependenciesBlock for RawModule {
 
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependencies
+  }
+}
+
+impl Reflectable for RawModule {
+  fn reflector(&self) -> &Reflector {
+    &self.reflector
+  }
+
+  fn reflector_mut(&mut self) -> &mut Reflector {
+    &mut self.reflector
   }
 }
 

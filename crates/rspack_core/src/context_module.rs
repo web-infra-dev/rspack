@@ -27,7 +27,7 @@ use crate::{
   DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyLocation,
   DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
   ImportAttributes, LibIdentOptions, Module, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleType,
-  RealDependencyLocation, Resolve, RuntimeGlobals, RuntimeSpec, SourceType,
+  RealDependencyLocation, Reflectable, Reflector, Resolve, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 static WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -161,6 +161,7 @@ pub type ResolveContextModuleDependencies =
 #[cacheable]
 #[derive(Debug)]
 pub struct ContextModule {
+  reflector: Reflector,
   dependencies: Vec<DependencyId>,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   identifier: Identifier,
@@ -179,6 +180,7 @@ impl ContextModule {
     options: ContextModuleOptions,
   ) -> Self {
     Self {
+      reflector: Default::default(),
       dependencies: Vec::new(),
       blocks: Vec::new(),
       identifier: create_identifier(&options),
@@ -829,6 +831,16 @@ impl DependenciesBlock for ContextModule {
 
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependencies
+  }
+}
+
+impl Reflectable for ContextModule {
+  fn reflector(&self) -> &Reflector {
+    &self.reflector
+  }
+
+  fn reflector_mut(&mut self) -> &mut Reflector {
+    &mut self.reflector
   }
 }
 

@@ -9,8 +9,8 @@ use rspack_core::{
   throw_missing_module_error_block, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext,
   BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope,
   Context, DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleDependency,
-  ModuleId, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec,
+  ModuleId, ModuleType, Reflectable, Reflector, RuntimeGlobals, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_util::{json_stringify, source_map::ModuleSourceMapConfig};
@@ -24,6 +24,7 @@ pub type SourceRequest = String;
 #[cacheable]
 #[derive(Debug, Default)]
 pub struct DelegatedModule {
+  reflector: Reflector,
   source_request: SourceRequest,
   request: Option<ModuleId>,
   delegation_type: String,
@@ -54,6 +55,16 @@ impl DelegatedModule {
       delegate_data: data,
       ..Default::default()
     }
+  }
+}
+
+impl Reflectable for DelegatedModule {
+  fn reflector(&self) -> &Reflector {
+    &self.reflector
+  }
+
+  fn reflector_mut(&mut self) -> &mut Reflector {
+    &mut self.reflector
   }
 }
 

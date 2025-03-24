@@ -14,7 +14,8 @@ use crate::{
   ContextModuleOptions, DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleExt,
   ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, RawModule,
   ResolveArgs, ResolveContextModuleDependencies, ResolveInnerOptions,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, Root,
+  SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -301,7 +302,7 @@ impl ContextModuleFactory {
           context_options: dependency.options().clone(),
           type_prefix: dependency.type_prefix(),
         };
-        let module = Box::new(ContextModule::new(
+        let module = Root::from(ContextModule::new(
           self.resolve_dependencies.clone(),
           options.clone(),
         ));
@@ -373,7 +374,7 @@ impl ContextModuleFactory {
           context_module_options.clone(),
         );
 
-        Ok(Some(ModuleFactoryResult::new_with_module(Box::new(module))))
+        Ok(Some(ModuleFactoryResult::new_with_module(module.boxed())))
       }
     }
   }

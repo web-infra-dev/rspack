@@ -11,13 +11,15 @@ use rspack_util::source_map::SourceMapKind;
 use crate::{
   impl_module_meta_info, AsyncDependenciesBlockIdentifier, BuildInfo, BuildMeta, ChunkUkey,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, Reflectable, Reflector,
+  RuntimeSpec, SourceType,
 };
 
 #[impl_source_map_config]
 #[cacheable]
 #[derive(Debug)]
 pub struct SelfModule {
+  reflector: Reflector,
   identifier: ModuleIdentifier,
   readable_identifier: String,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
@@ -31,6 +33,7 @@ impl SelfModule {
   pub fn new(module_identifier: ModuleIdentifier) -> Self {
     let identifier = format!("self {module_identifier}");
     Self {
+      reflector: Default::default(),
       identifier: ModuleIdentifier::from(identifier.as_str()),
       readable_identifier: identifier,
       blocks: Default::default(),
@@ -71,6 +74,16 @@ impl DependenciesBlock for SelfModule {
 
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependencies
+  }
+}
+
+impl Reflectable for SelfModule {
+  fn reflector(&self) -> &Reflector {
+    &self.reflector
+  }
+
+  fn reflector_mut(&mut self) -> &mut Reflector {
+    &mut self.reflector
   }
 }
 

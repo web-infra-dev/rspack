@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use rspack_core::{ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult};
+use rspack_core::{ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult};
 use rspack_error::Result;
 
 use super::{dll_entry_dependency::DllEntryDependency, dll_module::DllModule};
@@ -16,7 +16,7 @@ impl ModuleFactory for DllModuleFactory {
       .expect("unreachable");
 
     Ok(ModuleFactoryResult {
-      module: Some(Box::new(DllModule::new(dll_entry_dependency))),
+      module: Some(DllModule::new(dll_entry_dependency).boxed()),
     })
   }
 }

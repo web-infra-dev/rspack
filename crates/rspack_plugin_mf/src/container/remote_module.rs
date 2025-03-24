@@ -8,8 +8,8 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   ChunkGraph, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
-  DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec,
-  SourceType,
+  DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, Reflectable,
+  Reflector, RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_util::source_map::SourceMapKind;
@@ -26,6 +26,7 @@ use crate::{
 #[cacheable]
 #[derive(Debug)]
 pub struct RemoteModule {
+  reflector: Reflector,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
   identifier: ModuleIdentifier,
@@ -52,6 +53,7 @@ impl RemoteModule {
     let readable_identifier = format!("remote {}", &request);
     let lib_ident = format!("webpack/container/remote/{}", &request);
     Self {
+      reflector: Default::default(),
       blocks: Default::default(),
       dependencies: Default::default(),
       identifier: ModuleIdentifier::from(format!(
@@ -103,6 +105,16 @@ impl DependenciesBlock for RemoteModule {
 
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependencies
+  }
+}
+
+impl Reflectable for RemoteModule {
+  fn reflector(&self) -> &Reflector {
+    &self.reflector
+  }
+
+  fn reflector_mut(&mut self) -> &mut Reflector {
+    &mut self.reflector
   }
 }
 

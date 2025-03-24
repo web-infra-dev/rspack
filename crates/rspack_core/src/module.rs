@@ -32,8 +32,8 @@ use crate::{
   CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, DependencyTemplate,
   ExportInfoProvided, ExternalModule, ModuleDependency, ModuleGraph, ModuleLayer, ModuleType,
-  NormalModule, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver,
-  SourceType,
+  NormalModule, RawModule, Reflectable, Resolve, ResolverFactory, Root, RuntimeSpec, SelfModule,
+  SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext {
@@ -233,6 +233,7 @@ pub trait Module:
   + DependenciesBlock
   + Diagnosable
   + ModuleSourceMapConfig
+  + Reflectable
 {
   /// Defines what kind of module this is.
   fn module_type(&self) -> &ModuleType;
@@ -518,16 +519,16 @@ pub fn module_update_hash(
 }
 
 pub trait ModuleExt {
-  fn boxed(self) -> Box<dyn Module>;
+  fn boxed(self) -> Root<dyn Module>;
 }
 
 impl<T: Module> ModuleExt for T {
-  fn boxed(self) -> Box<dyn Module> {
-    Box::new(self)
+  fn boxed(self) -> Root<dyn Module> {
+    Root::from(self)
   }
 }
 
-pub type BoxModule = Box<dyn Module>;
+pub type BoxModule = Root<dyn Module>;
 
 impl Identifiable for Box<dyn Module> {
   /// Uniquely identify a module. If two modules share the same module identifier, then they are considered as the same module.
@@ -635,7 +636,7 @@ mod test {
   use crate::{
     AsyncDependenciesBlockIdentifier, BuildContext, BuildResult, CodeGenerationResult, Compilation,
     ConcatenationScope, Context, DependenciesBlock, DependencyId, ModuleExt, ModuleType,
-    RuntimeSpec, SourceType,
+    Reflectable, Reflector, RuntimeSpec, SourceType,
   };
 
   #[cacheable]
@@ -761,6 +762,16 @@ mod test {
           unreachable!()
         }
         fn set_source_map_kind(&mut self, _source_map: SourceMapKind) {
+          unreachable!()
+        }
+      }
+
+      impl Reflectable for $ident {
+        fn reflector(&self) -> &Reflector {
+          unreachable!()
+        }
+
+        fn reflector_mut(&mut self) -> &mut Reflector {
           unreachable!()
         }
       }

@@ -11,8 +11,8 @@ use rspack_core::{
   BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult,
   ChunkGroupOptions, CodeGenerationResult, Compilation, ConcatenationScope, Context,
   DependenciesBlock, Dependency, DependencyId, FactoryMeta, GroupOptions, LibIdentOptions, Module,
-  ModuleDependency, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec,
+  ModuleDependency, ModuleExt, ModuleIdentifier, ModuleType, Reflectable, Reflector,
+  RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_util::source_map::SourceMapKind;
@@ -27,6 +27,7 @@ use crate::utils::json_stringify;
 #[cacheable]
 #[derive(Debug)]
 pub struct ContainerEntryModule {
+  reflector: Reflector,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
   identifier: ModuleIdentifier,
@@ -48,6 +49,7 @@ impl ContainerEntryModule {
   ) -> Self {
     let lib_ident = format!("webpack/container/entry/{}", &name);
     Self {
+      reflector: Default::default(),
       blocks: Vec::new(),
       dependencies: Vec::new(),
       identifier: ModuleIdentifier::from(format!(
@@ -99,6 +101,16 @@ impl DependenciesBlock for ContainerEntryModule {
 
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependencies
+  }
+}
+
+impl Reflectable for ContainerEntryModule {
+  fn reflector(&self) -> &Reflector {
+    &self.reflector
+  }
+
+  fn reflector_mut(&mut self) -> &mut Reflector {
+    &mut self.reflector
   }
 }
 

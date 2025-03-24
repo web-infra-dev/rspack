@@ -6,8 +6,8 @@ use rspack_core::{
   impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
   AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, CompilerOptions, ConcatenationScope, DependenciesBlock,
-  DependencyId, FactoryMeta, Module, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  RuntimeSpec, SourceType,
+  DependencyId, FactoryMeta, Module, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
+  ModuleFactoryResult, Reflectable, Reflector, RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -22,6 +22,7 @@ use crate::{
 #[cacheable]
 #[derive(Debug)]
 pub(crate) struct CssModule {
+  reflector: Reflector,
   pub(crate) identifier: String,
   pub(crate) content: String,
   pub(crate) _context: String,
@@ -54,6 +55,7 @@ impl CssModule {
     .into();
 
     Self {
+      reflector: Default::default(),
       identifier: dep.identifier,
       content: dep.content,
       layer: dep.layer.clone(),
@@ -92,6 +94,16 @@ impl CssModule {
     self.source_map.hash(&mut hasher);
 
     hasher.digest(&options.output.hash_digest)
+  }
+}
+
+impl Reflectable for CssModule {
+  fn reflector(&self) -> &Reflector {
+    &self.reflector
+  }
+
+  fn reflector_mut(&mut self) -> &mut Reflector {
+    &mut self.reflector
   }
 }
 
@@ -228,9 +240,9 @@ impl ModuleFactory for CssModuleFactory {
       .downcast_ref::<CssDependency>()
       .expect("unreachable");
 
-    Ok(ModuleFactoryResult::new_with_module(Box::new(
-      CssModule::new(css_dep.clone()),
-    )))
+    Ok(ModuleFactoryResult::new_with_module(
+      CssModule::new(css_dep.clone()).boxed(),
+    ))
   }
 }
 

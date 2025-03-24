@@ -48,9 +48,9 @@ use crate::{
   DependenciesBlock, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
   ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta, IdentCollector, LibIdentOptions,
   MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleDependency, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType, Resolve, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsageState, UsedName, DEFAULT_EXPORT,
-  NAMESPACE_OBJECT_EXPORT,
+  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType, Reflectable, Reflector,
+  Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template,
+  UsageState, UsedName, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -361,6 +361,7 @@ impl ModuleInfo {
 #[cacheable]
 #[derive(Debug)]
 pub struct ConcatenatedModule {
+  reflector: Reflector,
   id: ModuleIdentifier,
   /// Used to implementing [Module] trait for [ConcatenatedModule]
   root_module_ctxt: RootModuleContext,
@@ -392,6 +393,7 @@ impl ConcatenatedModule {
       ..
     } = root_module_ctxt;
     Self {
+      reflector: Default::default(),
       id,
       root_module_ctxt,
       modules,
@@ -485,6 +487,16 @@ impl DependenciesBlock for ConcatenatedModule {
 
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependencies
+  }
+}
+
+impl Reflectable for ConcatenatedModule {
+  fn reflector(&self) -> &Reflector {
+    &self.reflector
+  }
+
+  fn reflector_mut(&mut self) -> &mut Reflector {
+    &mut self.reflector
   }
 }
 

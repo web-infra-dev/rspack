@@ -40,8 +40,8 @@ use crate::{
   DependenciesBlock, DependencyId, DependencyTemplate, FactoryMeta, GenerateContext,
   GeneratorOptions, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
   ModuleLayer, ModuleType, OutputOptions, ParseContext, ParseResult, ParserAndGenerator,
-  ParserOptions, Resolve, RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec,
-  SourceType,
+  ParserOptions, Reflectable, Reflector, Resolve, RspackLoaderRunnerPlugin, RunnerContext,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[cacheable]
@@ -99,6 +99,7 @@ pub struct NormalModuleHooks {
 #[cacheable]
 #[derive(Debug)]
 pub struct NormalModule {
+  reflector: Reflector,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
 
@@ -187,6 +188,7 @@ impl NormalModule {
     let module_type = module_type.into();
     let id = Self::create_id(&module_type, layer.as_ref(), &request);
     Self {
+      reflector: Default::default(),
       blocks: Vec::new(),
       dependencies: Vec::new(),
       id: ModuleIdentifier::from(id.as_ref()),
@@ -331,6 +333,16 @@ impl DependenciesBlock for NormalModule {
 
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependencies
+  }
+}
+
+impl Reflectable for NormalModule {
+  fn reflector(&self) -> &Reflector {
+    &self.reflector
+  }
+
+  fn reflector_mut(&mut self) -> &mut Reflector {
+    &mut self.reflector
   }
 }
 
