@@ -338,13 +338,19 @@ impl CircularDependencyRspackPlugin {
       .to_string();
     let cycle_without_root: Vec<String> = cycle
       .iter()
-      .map(|module_path| module_path.to_string().cow_replace(&cwd, "").to_string())
+      .map(|module_path| {
+        module_path
+          .to_string()
+          .cow_replace(&cwd, "")
+          .trim_start_matches('/')
+          .to_string()
+      })
       .collect();
 
     compilation.push_diagnostic(diagnostic_factory(
       "Circular Dependency".to_string(),
       format!(
-        "CircularDependencyRspackPlugin:\n {:?}",
+        "Circular dependency detected:\n {}",
         cycle_without_root.iter().join(" -> ")
       ),
     ));
