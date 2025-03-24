@@ -1120,7 +1120,7 @@ impl Compilation {
     let results = rspack_futures::scope::<_, Result<_>>(|token| {
       chunks.iter().for_each(|chunk| {
         // SAFETY: await immediately and trust caller to poll future entirely
-        let s = unsafe { token.used((&*self, &plugin_driver, chunk)) };
+        let s = unsafe { token.used((&self, &plugin_driver, chunk)) };
 
         s.spawn(|(this, plugin_driver, chunk)| async {
           let mut manifests = Vec::new();
