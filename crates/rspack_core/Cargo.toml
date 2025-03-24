@@ -67,7 +67,7 @@ swc_core = { workspace = true, features = [
   "swc_ecma_visit",
 ] }
 swc_node_comments = { workspace = true }
-swc_parallel = { workspace = true, default-features = false, features = ["rayon"] }
+swc_parallel = { workspace = true, default-features = false }
 tokio = { workspace = true, features = ["rt", "macros"] }
 tracing = { workspace = true }
 ustr = { workspace = true }
@@ -76,4 +76,7 @@ ustr = { workspace = true }
 pretty_assertions = { version = "1.4.1" }
 
 [lints]
+
 workspace = true
+[package.metadata.cargo-shear]
+ignored = ["swc_parallel"]

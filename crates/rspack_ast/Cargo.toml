@@ -24,4 +24,6 @@ swc_core = { workspace = true, features = [
 ] }
 swc_error_reporters = { workspace = true }
 swc_node_comments = { workspace = true }
-swc_parallel = { workspace = true, default-features = false, features = ["rayon"] }
+swc_parallel = { workspace = true, default-features = false }
+[package.metadata.cargo-shear]
+ignored = ["swc_parallel"]
