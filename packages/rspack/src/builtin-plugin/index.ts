@@ -6,6 +6,7 @@ export * from "./AssetModulesPlugin";
 export * from "./AsyncWebAssemblyModulesPlugin";
 export * from "./BannerPlugin";
 export * from "./BundlerInfoRspackPlugin";
+export * from "./CircularDependencyRspackPlugin";
 export * from "./ChunkPrefetchPreloadPlugin";
 export * from "./CommonJsChunkFormatPlugin";
 export * from "./CopyRspackPlugin";
