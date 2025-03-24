@@ -343,6 +343,7 @@ impl CircularDependencyRspackPlugin {
           .to_string()
           .cow_replace(&cwd, "")
           .trim_start_matches('/')
+          .trim_start_matches('\\')
           .to_string()
       })
       .collect();
