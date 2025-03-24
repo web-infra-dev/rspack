@@ -2,7 +2,7 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 # CircularDependencyRspackPlugin
 
-<ApiMeta specific={['Rspack']} />
+<ApiMeta specific={['Rspack']} addedVersion="1.3.0" />
 
 检测运行时模块之间的循环导入依赖关系。当运行时调用的函数使用时，循环引用通常不表示存在错误，但当在初始化期间使用导入时，可能会导致错误或错误。此插件不会区分这两者，但可用于在遇到错误后帮助识别和解决循环。
 
@@ -34,10 +34,10 @@ new rspack.CircularDependencyRspackPlugin(options);
 
 - 检测构建编译中存在的所有循环依赖，忽略掉 `node_modules` 中的一些包，并且为每个循环依赖都抛出编译报错。
 
-```ts title="rspack.config.js"
-const rspack = require('@rspack/core');
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   entry: './src/index.js',
   plugins: [
     new rspack.CircularDependencyRspackPlugin({
@@ -50,10 +50,10 @@ module.exports = {
 
 - 忽略两个模块之间的特定循环依赖，类似通过 `to` 的方式配置。
 
-```ts title="rspack.config.js"
-const rspack = require('@rspack/core');
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   entry: './src/index.js',
   plugins: [
     new rspack.CircularDependencyRspackPlugin({
@@ -68,10 +68,10 @@ module.exports = {
 
 - 允许异步循环(例如 `import('some/module')`) 并手动处理所有检测到的循环
 
-```ts title="rspack.config.js"
-const rspack = require('@rspack/core');
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   entry: './src/index.js',
   plugins: [
     new rspack.CircularDependencyRspackPlugin({
@@ -95,8 +95,10 @@ module.exports = {
 
 当设置为 `true` 时，检测到的循环依赖将生成错误级别的诊断而不是警告。在 `dev` 模式下不会产生明显的影响，在 `build` 模式下触发会直接导致构建失败。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
   plugins: [
     new rspack.CircularDependencyRspackPlugin({
       failOnError: true,
@@ -112,8 +114,10 @@ module.exports = {
 
 允许异步导入造成的循环依赖被忽略。异步导入包括 `import()` 调用、以及用于 lazy compilation 的弱引入、热模块连接等等。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
   plugins: [
     new rspack.CircularDependencyRspackPlugin({
       allowAsyncCycles: true,
@@ -129,8 +133,10 @@ module.exports = {
 
 和 webpack 插件 [`circular-dependency-plugin`](https://github.com/aackerman/circular-dependency-plugin) 里的 `exclude` 配置类似，检测到的任何包含该模式匹配的模块标识符的循环依赖都会被忽略。
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
   plugins: [
     new rspack.CircularDependencyRspackPlugin({
       // Ignore any cycles involving external packages from `node_modules`
@@ -147,8 +153,10 @@ module.exports = {
 
 忽略该配置中列出的显示循环依赖模块的循环依赖。该配置数组中的每个条目都通过 `[from, to]` 的方式来形成，匹配所有的 `from` 依赖于 `to` 的连接。
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
   plugins: [
     new rspack.CircularDependencyRspackPlugin({
       ignoredConnections: [
@@ -177,8 +185,10 @@ module.exports = {
 
 每次检测到循环时都会调用该处理函数。该处理函数实际上会覆盖掉添加诊断的默认行为，意味着 `failOnError` 的值实际上不会被使用。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
   plugins: [
     new rspack.CircularDependencyRspackPlugin({
       onDetected(entrypoint, modules, compilation) {
@@ -204,9 +214,11 @@ module.exports = {
 
 处理每个被故意忽略的检测到的循环，无论是通过 `exclude` 模式、`ignoredConnection` 的任何匹配，还是任何其他可能的原因。
 
-```js title="rspack.config.js"
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
 const ignoredCycles = [];
-module.exports = {
+export default {
   plugins: [
     new rspack.CircularDependencyRspackPlugin({
       onIgnored(entrypoint, modules, compilation) {
@@ -224,8 +236,10 @@ module.exports = {
 
 在循环检测开始之前立即调用的 hook 函数，用于设置在 `onDetected` 处理程序或记录进度中使用的临时状态。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
   plugins: [
     new rspack.CircularDependencyRspackPlugin({
       onStart(compilation) {
@@ -243,8 +257,10 @@ module.exports = {
 
 循环检测完成后立即调用的钩子函数，用于清理临时状态或记录进度。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
   plugins: [
     new rspack.CircularDependencyRspackPlugin({
       onEnd(compilation) {

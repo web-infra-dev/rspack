@@ -1,5 +1,6 @@
 #![feature(array_windows)]
 
+use cow_utils::CowUtils;
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use itertools::Itertools;
@@ -331,9 +332,28 @@ impl CircularDependencyRspackPlugin {
       Diagnostic::warn
     };
 
+    let cwd = std::env::current_dir()
+      .expect("cwd should be available")
+      .to_string_lossy()
+      .to_string();
+    let cycle_without_root: Vec<String> = cycle
+      .iter()
+      .map(|module_path| {
+        module_path
+          .to_string()
+          .cow_replace(&cwd, "")
+          .trim_start_matches('/')
+          .trim_start_matches('\\')
+          .to_string()
+      })
+      .collect();
+
     compilation.push_diagnostic(diagnostic_factory(
-      "CircularDependencyRspackPlugin:\nCircular Dependency".to_string(),
-      cycle.iter().join(" -> "),
+      "Circular Dependency".to_string(),
+      format!(
+        "Circular dependency detected:\n {}",
+        cycle_without_root.iter().join(" -> ")
+      ),
     ));
     Ok(())
   }
@@ -352,9 +372,11 @@ async fn optimize_modules(&self, compilation: &mut Compilation) -> Result<Option
       .chunk_group_by_ukey
       .get(&chunk_group_key)
       .expect("Compilation should contain entrypoint chunk groups");
-    let entry_modules = compilation
+    let mut entry_modules = compilation
       .chunk_graph
       .get_chunk_entry_modules(&chunk_group.get_entrypoint_chunk());
+
+    entry_modules.sort();
 
     for module_id in entry_modules {
       // Only consider entrypoint modules coming from existing source code.

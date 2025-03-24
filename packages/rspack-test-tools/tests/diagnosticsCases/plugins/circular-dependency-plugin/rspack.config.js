@@ -9,7 +9,7 @@ module.exports = {
 	},
 	plugins: [
 		new CircularDependencyRspackPlugin({
-			failOnError: true,
+			failOnError: false,
 			exclude: /ignore-circular/,
 			onStart(_compilation) {
 				console.log("[Circular Dependency check] start right now");

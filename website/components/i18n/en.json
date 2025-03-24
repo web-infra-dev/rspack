@@ -25,7 +25,7 @@
   "webpack-filter-warnings-plugin-desc": "Use [ignoreWarnings](/config/other-options#ignorewarnings) instead",
   "speed-measure-webpack-plugin-desc": "Use [Rsdoctor](/guide/optimization/use-rsdoctor) instead",
   "eslint-webpack-plugin-desc": "Use [eslint-rspack-plugin](https://github.com/rspack-contrib/eslint-rspack-plugin) instead",
-  "circular-dependency-plugin-desc": "Use ESLint [import/no-cycle](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-cycle.md) rule instead",
+  "circular-dependency-plugin-desc": "Use [CircularDependencyRspackPlugin](/plugins/rspack/circular-dependency-rspack-plugin) instead",
   "html-webpack-tags-plugin-desc": "Use [html-rspack-tags-plugin](https://github.com/rspack-contrib/html-rspack-tags-plugin) instead",
   "needs-html-webpack-plugin": "This plugin depends on html-webpack-plugin",
   "webpack-assets-manifest-desc": "Only supports basic usage",
