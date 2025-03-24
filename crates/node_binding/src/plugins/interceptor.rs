@@ -224,42 +224,6 @@ impl<T: 'static + ToNapiValue, R: 'static + FromNapiValue> RegisterJsTapsInner<T
     self.register.call_with_sync(used_stages).await
   }
 
-  pub fn call_register_blocking(
-    &self,
-    hook: &impl Hook,
-  ) -> rspack_error::Result<RegisterFunctionOutput<T, R>> {
-    if let RegisterJsTapsCache::Cache(rw) = &self.cache {
-      let cache = {
-        #[allow(clippy::unwrap_used)]
-        rw.read().unwrap().clone()
-      };
-      Ok(match cache {
-        Some(js_taps) => js_taps,
-        None => {
-          let js_taps = self.call_register_blocking_impl(hook)?;
-          {
-            #[allow(clippy::unwrap_used)]
-            let mut cache = rw.write().unwrap();
-            *cache = Some(js_taps.clone());
-          }
-          js_taps
-        }
-      })
-    } else {
-      let js_taps = self.call_register_blocking_impl(hook)?;
-      Ok(js_taps)
-    }
-  }
-
-  fn call_register_blocking_impl(
-    &self,
-    hook: &impl Hook,
-  ) -> rspack_error::Result<RegisterFunctionOutput<T, R>> {
-    let mut used_stages = Vec::from_iter(hook.used_stages());
-    used_stages.sort();
-    self.register.blocking_call_with_sync(used_stages)
-  }
-
   fn clear_cache(&self) {
     match &self.cache {
       RegisterJsTapsCache::NoCache => {}
