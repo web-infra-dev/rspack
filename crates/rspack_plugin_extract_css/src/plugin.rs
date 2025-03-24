@@ -501,7 +501,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilationRuntimeRequirementInTree for PluginCssExtract)]
-fn runtime_requirement_in_tree(
+async fn runtime_requirement_in_tree(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,

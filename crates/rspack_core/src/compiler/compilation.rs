@@ -78,12 +78,12 @@ define_hook!(CompilationOptimizeChunkModules: AsyncSeriesBail(compilation: &mut 
 define_hook!(CompilationModuleIds: AsyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationChunkIds: AsyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationRuntimeModule: AsyncSeries(compilation: &mut Compilation, module: &ModuleIdentifier, chunk: &ChunkUkey));
-define_hook!(CompilationAdditionalModuleRuntimeRequirements: SyncSeries(compilation: &Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &mut RuntimeGlobals));
-define_hook!(CompilationRuntimeRequirementInModule: SyncSeriesBail(compilation: &Compilation, module_identifier: &ModuleIdentifier, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
-define_hook!(CompilationAdditionalChunkRuntimeRequirements: SyncSeries(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
-define_hook!(CompilationRuntimeRequirementInChunk: SyncSeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
+define_hook!(CompilationAdditionalModuleRuntimeRequirements: AsyncSeries(compilation: &Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &mut RuntimeGlobals));
+define_hook!(CompilationRuntimeRequirementInModule: AsyncSeriesBail(compilation: &Compilation, module_identifier: &ModuleIdentifier, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
+define_hook!(CompilationAdditionalChunkRuntimeRequirements: AsyncSeries(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
+define_hook!(CompilationRuntimeRequirementInChunk: AsyncSeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
 define_hook!(CompilationAdditionalTreeRuntimeRequirements: AsyncSeries(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
-define_hook!(CompilationRuntimeRequirementInTree: SyncSeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
+define_hook!(CompilationRuntimeRequirementInTree: AsyncSeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
 define_hook!(CompilationOptimizeCodeGeneration: AsyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationAfterCodeGeneration: AsyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationChunkHash: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash));
@@ -149,6 +149,52 @@ impl Default for CompilationId {
 type ValueCacheVersions = HashMap<String, String>;
 
 static COMPILATION_ID: AtomicU32 = AtomicU32::new(0);
+
+/// Use macro to prevent cargo shear from failing and reporting errors
+/// due to the inability to parse the async closure syntax
+/// https://github.com/Boshen/cargo-shear/issues/143
+macro_rules! process_runtime_requirement_hook_macro {
+  ($name: ident, $s: ty, $c: ty) => {
+    async fn $name(
+      self: $s,
+      requirements: &mut RuntimeGlobals,
+      call_hook: impl async Fn(
+        $c,
+        &RuntimeGlobals,
+        &RuntimeGlobals,
+        &mut RuntimeGlobals,
+      ) -> Result<()>,
+    ) -> Result<()> {
+      let mut runtime_requirements_mut = *requirements;
+      let mut runtime_requirements;
+
+      loop {
+        runtime_requirements = runtime_requirements_mut;
+        runtime_requirements_mut = RuntimeGlobals::default();
+        // runtime_requirements: rt_requirements of last time
+        // runtime_requirements_mut: changed rt_requirements
+        // requirements: all rt_requirements
+        call_hook(
+          self,
+          requirements,
+          &runtime_requirements,
+          &mut runtime_requirements_mut,
+        )
+        .await?;
+
+        // check if we have changes to runtime_requirements
+        runtime_requirements_mut =
+          runtime_requirements_mut.difference(requirements.intersection(runtime_requirements_mut));
+        if runtime_requirements_mut.is_empty() {
+          break;
+        } else {
+          requirements.insert(runtime_requirements_mut);
+        }
+      }
+      Ok(())
+    }
+  };
+}
 
 #[derive(Debug)]
 pub struct Compilation {
@@ -1774,7 +1820,8 @@ impl Compilation {
                   plugin_driver
                     .compilation_hooks
                     .additional_module_runtime_requirements
-                    .call(compilation, &module, &mut runtime_requirements)?;
+                    .call(compilation, &module, &mut runtime_requirements)
+                    .await?;
 
                   compilation
                     .process_runtime_requirement_hook(&mut runtime_requirements, {
@@ -1792,7 +1839,8 @@ impl Compilation {
                             all_runtime_requirements,
                             runtime_requirements,
                             runtime_requirements_mut,
-                          )?;
+                          )
+                          .await?;
                         std::future::ready(()).await;
                         Ok(())
                       }
@@ -1849,7 +1897,8 @@ impl Compilation {
       plugin_driver
         .compilation_hooks
         .additional_chunk_runtime_requirements
-        .call(self, &chunk_ukey, &mut set)?;
+        .call(self, &chunk_ukey, &mut set)
+        .await?;
 
       self
         .process_runtime_requirement_hook_mut(&mut set, {
@@ -1867,7 +1916,8 @@ impl Compilation {
                 all_runtime_requirements,
                 runtime_requirements,
                 runtime_requirements_mut,
-              )?;
+              )
+              .await?;
             std::future::ready(()).await;
             Ok(())
           }
@@ -1912,7 +1962,8 @@ impl Compilation {
                 all_runtime_requirements,
                 runtime_requirements,
                 runtime_requirements_mut,
-              )?;
+              )
+              .await?;
             std::future::ready(()).await;
             Ok(())
           }
@@ -1944,83 +1995,16 @@ impl Compilation {
     Ok(())
   }
 
-  async fn process_runtime_requirement_hook(
-    &self,
-    requirements: &mut RuntimeGlobals,
-    call_hook: impl async Fn(
-      &Compilation,
-      &RuntimeGlobals,
-      &RuntimeGlobals,
-      &mut RuntimeGlobals,
-    ) -> Result<()>,
-  ) -> Result<()> {
-    let mut runtime_requirements_mut = *requirements;
-    let mut runtime_requirements;
-
-    loop {
-      runtime_requirements = runtime_requirements_mut;
-      runtime_requirements_mut = RuntimeGlobals::default();
-      // runtime_requirements: rt_requirements of last time
-      // runtime_requirements_mut: changed rt_requirements
-      // requirements: all rt_requirements
-      call_hook(
-        self,
-        requirements,
-        &runtime_requirements,
-        &mut runtime_requirements_mut,
-      )
-      .await?;
-
-      // check if we have changes to runtime_requirements
-      runtime_requirements_mut =
-        runtime_requirements_mut.difference(requirements.intersection(runtime_requirements_mut));
-      if runtime_requirements_mut.is_empty() {
-        break;
-      } else {
-        requirements.insert(runtime_requirements_mut);
-      }
-    }
-    Ok(())
-  }
-
-  async fn process_runtime_requirement_hook_mut(
-    &mut self,
-    requirements: &mut RuntimeGlobals,
-    call_hook: impl async Fn(
-      &mut Compilation,
-      &RuntimeGlobals,
-      &RuntimeGlobals,
-      &mut RuntimeGlobals,
-    ) -> Result<()>,
-  ) -> Result<()> {
-    let mut runtime_requirements_mut = *requirements;
-    let mut runtime_requirements;
-
-    loop {
-      runtime_requirements = runtime_requirements_mut;
-      runtime_requirements_mut = RuntimeGlobals::default();
-      // runtime_requirements: rt_requirements of last time
-      // runtime_requirements_mut: changed rt_requirements
-      // requirements: all rt_requirements
-      call_hook(
-        self,
-        requirements,
-        &runtime_requirements,
-        &mut runtime_requirements_mut,
-      )
-      .await?;
-
-      // check if we have changes to runtime_requirements
-      runtime_requirements_mut =
-        runtime_requirements_mut.difference(requirements.intersection(runtime_requirements_mut));
-      if runtime_requirements_mut.is_empty() {
-        break;
-      } else {
-        requirements.insert(runtime_requirements_mut);
-      }
-    }
-    Ok(())
-  }
+  process_runtime_requirement_hook_macro!(
+    process_runtime_requirement_hook,
+    &Compilation,
+    &Compilation
+  );
+  process_runtime_requirement_hook_macro!(
+    process_runtime_requirement_hook_mut,
+    &mut Compilation,
+    &mut Compilation
+  );
 
   #[instrument(name = "Compilation:create_hash", skip_all)]
   pub async fn create_hash(

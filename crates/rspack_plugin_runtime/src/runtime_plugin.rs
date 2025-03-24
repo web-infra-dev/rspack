@@ -206,7 +206,7 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(CompilationRuntimeRequirementInModule for RuntimePlugin)]
-fn runtime_requirements_in_module(
+async fn runtime_requirements_in_module(
   &self,
   _compilation: &Compilation,
   _module: &ModuleIdentifier,
@@ -225,7 +225,7 @@ fn runtime_requirements_in_module(
 }
 
 #[plugin_hook(CompilationRuntimeRequirementInTree for RuntimePlugin)]
-fn runtime_requirements_in_tree(
+async fn runtime_requirements_in_tree(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,

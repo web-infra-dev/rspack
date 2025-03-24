@@ -1369,7 +1369,7 @@ impl CompilationAdditionalTreeRuntimeRequirements
 
 #[async_trait]
 impl CompilationRuntimeRequirementInTree for CompilationRuntimeRequirementInTreeTap {
-  fn run(
+  async fn run(
     &self,
     compilation: &mut Compilation,
     chunk_ukey: &ChunkUkey,
@@ -1381,7 +1381,7 @@ impl CompilationRuntimeRequirementInTree for CompilationRuntimeRequirementInTree
       chunk: JsChunkWrapper::new(*chunk_ukey, compilation),
       runtime_requirements: JsRuntimeGlobals::from(*all_runtime_requirements),
     };
-    let result = self.function.blocking_call_with_sync(arg)?;
+    let result = self.function.call_with_sync(arg).await?;
     if let Some(result) = result {
       runtime_requirements_mut.extend(
         result
