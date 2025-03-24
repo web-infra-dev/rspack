@@ -71,7 +71,7 @@ export default defineConfig({
 
 在上面的配置中，`experiments.lazyCompilation` 配置实际上是由 `@rspack/cli` 消费，并向 `@rspack/dev-server` 中添加一个用于处理 `lazyCompilation` 客户端请求的[Express 风格的 middleware](https://expressjs.com/en/guide/using-middleware.html) 来处理懒编译的请求，如果你使用自己的开发服务器，你需要手动将该 middleware 的处理逻辑添加到你的开发服务器。
 
-```js title="start.js"
+```js title="start.mjs"
 import { experiments, rspack } from '@rspack/core';
 import config from './rspack.config.mjs';
 import DevServer from 'webpack-dev-server';
