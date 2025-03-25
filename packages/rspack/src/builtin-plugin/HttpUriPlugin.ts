@@ -49,8 +49,6 @@ export const HttpUriPlugin = create(
 	BuiltinPluginName.HttpUriPlugin,
 	(options: HttpUriPluginOptions = {}) => {
 		const http_client = (url: string, headers: Record<string, string>) => {
-			console.log("\n🔥 Fetching URL:", url);
-
 			// Return a promise that resolves to the response
 			return fetch(url, { headers }).then(response => {
 				// Convert the response to the format expected by the HTTP client
@@ -60,10 +58,6 @@ export const HttpUriPlugin = create(
 					response.headers.forEach((value, key) => {
 						responseHeaders[key] = value;
 					});
-
-					console.log(
-						`✅ Fetched ${url} successfully (${buffer.byteLength} bytes)`
-					);
 
 					// Return the standardized format
 					return {
