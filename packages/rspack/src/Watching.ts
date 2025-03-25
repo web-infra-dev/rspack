@@ -197,7 +197,7 @@ export class Watching {
 	}
 
 	/**
-	 * @internal This is not a public API yet, stil unstable, might change in the future
+	 * @internal This is not a public API yet, still unstable, might change in the future
 	 */
 	invalidateWithChangesAndRemovals(
 		changedFiles?: Set<string>,
