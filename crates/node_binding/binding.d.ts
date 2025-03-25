@@ -458,7 +458,8 @@ export declare enum BuiltinPluginName {
   CircularDependencyRspackPlugin = 'CircularDependencyRspackPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin',
-  ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin'
+  ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin',
+  HttpUriPlugin = 'HttpUriPlugin'
 }
 
 export declare function cleanupGlobalTrace(): void
@@ -751,6 +752,12 @@ export interface JsHtmlPluginTag {
   voidTag: boolean
   innerHTML?: string
   asset?: string
+}
+
+export interface JsHttpResponseRaw {
+  status: number
+  headers: Record<string, string>
+  body: Buffer
 }
 
 export interface JsLibIdentOptions {
@@ -1813,6 +1820,16 @@ export interface RawHtmlRspackPluginOptions {
 export interface RawHttpExternalsRspackPluginOptions {
   css: boolean
   webAsync: boolean
+}
+
+export interface RawHttpUriPluginOptions {
+  allowedUris?: (string | RegExp)[]
+  cacheLocation?: string
+  frozen?: boolean
+  lockfileLocation?: string
+  proxy?: string
+  upgrade?: boolean
+  httpClient: (url: string, headers: Record<string, string>) => Promise<JsHttpResponseRaw>
 }
 
 export interface RawIgnorePluginOptions {

@@ -1,30 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`ConfigTestCases css build-http exported tests should work with URLs in CSS 1`] = `
-Array [
-  "/* #region \\"https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/import/print.css\\" */
-/*
-- type: javascript/dynamic
-*/
-@import url(\\"https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/import/print.css\\");
-/* #endregion \\"https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/import/print.css\\" */
-
-/* #region \\"./style.css\\" */
-/*
-- type: css/auto
-*/
-
-
-div {
-	background: url(https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/url/img.png)
-}
-
-/* #endregion \\"./style.css\\" */
-
-",
-]
-`;
-
 exports[`ConfigTestCases css escape-unescape exported tests should work with URLs in CSS: classes 1`] = `
 Object {
   "#": "-_style_modules_css-#",
@@ -70,7 +45,7 @@ Object {
   "test": "-_style_modules_css-test",
   "{}": "-_style_modules_css-{}",
   "©": "-_style_modules_css-©",
-  "“‘’”": "-_style_modules_css-“‘’”",
+  """: "-_style_modules_css-""",
   "⌘⌥": "-_style_modules_css-⌘⌥",
   "☺☃": "-_style_modules_css-☺☃",
   "♥": "-_style_modules_css-♥",
@@ -125,7 +100,7 @@ Object {
   "test": "-_style_modules_css-test",
   "{}": "-_style_modules_css-{}",
   "©": "-_style_modules_css-©",
-  "“‘’”": "-_style_modules_css-“‘’”",
+  """: "-_style_modules_css-""",
   "⌘⌥": "-_style_modules_css-⌘⌥",
   "☺☃": "-_style_modules_css-☺☃",
   "♥": "-_style_modules_css-♥",
@@ -215,7 +190,7 @@ Array [
 .-_style_modules_css-♥ { background: lime; }
 .-_style_modules_css-© { background: lime; }
 .-_style_modules_css-\\\\😍 { background: lime; }
-.-_style_modules_css-“‘’” { background: lime; }
+.-_style_modules_css-"" { background: lime; }
 .-_style_modules_css-☺☃ { background: lime; }
 .-_style_modules_css-⌘⌥ { background: lime; }
 .-_style_modules_css-\\\\𝄞♪♩♫♬ { background: lime; }
@@ -362,7 +337,7 @@ Array [
 .-_style_modules_css-♥ { background: lime; }
 .-_style_modules_css-© { background: lime; }
 .-_style_modules_css-\\\\😍 { background: lime; }
-.-_style_modules_css-“‘’” { background: lime; }
+.-_style_modules_css-"" { background: lime; }
 .-_style_modules_css-☺☃ { background: lime; }
 .-_style_modules_css-⌘⌥ { background: lime; }
 .-_style_modules_css-\\\\𝄞♪♩♫♬ { background: lime; }

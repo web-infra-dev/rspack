@@ -32,6 +32,7 @@ export * from "./FlagDependencyUsagePlugin";
 export * from "./HotModuleReplacementPlugin";
 export * from "./html-plugin/index";
 export * from "./HttpExternalsRspackPlugin";
+export * from "./HttpUriPlugin";
 export * from "./IgnorePlugin";
 export * from "./InferAsyncModulesPlugin";
 export * from "./JavascriptModulesPlugin";

@@ -695,3 +695,71 @@ function transform(webpackConfig, rspackConfig) {
   };
 }
 ```
+
+## experiments.buildHttp
+
+<ApiMeta addedVersion="1.3.0" />
+
+- **类型：** `HttpUriOptions`
+- **默认值：** `undefined`
+
+```ts
+type HttpUriOptions = {
+  /**
+   * A list of allowed URIs
+   */
+  allowedUris?: (string | RegExp)[];
+  /**
+   * Define the location for caching remote resources
+   */
+  cacheLocation?: string | false;
+  /**
+   * Freeze the remote resources and lockfile. Any modification to the lockfile or resource contents will result in an error
+   */
+  frozen?: boolean;
+  /**
+   * Define the location to store the lockfile
+   */
+  lockfileLocation?: string;
+  /**
+   * Specify the proxy server to use for fetching remote resources
+   */
+  proxy?: string;
+  /**
+   * Detect changes to remote resources and upgrade them automatically
+   */
+  upgrade?: boolean;
+};
+```
+
+启用此功能后，Rspack 可以构建以 `http(s):` 协议开头的远程资源。Rspack 会将资源下载到本地，然后再进行打包。
+
+默认情况下，Rspack 会在 [context](/config/context) 文件夹下生成 `rspack.lock` 和 `rspack.lock.data` 分别作为 Lockfile 和缓存的位置，你也可以通过 `lockfileLocation` 和 `cacheLocation` 进行配置。
+
+:::note
+你应该将 `lockfileLocation` 和 `cacheLocation` 的文件提交到版本控制系统中，这样在生产构建期间不会发出网络请求。
+:::
+
+示例：
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    buildHttp: {
+      allowedUris: ['https://'],
+      lockfileLocation: path.join(__dirname, 'my_project.lock'),
+      cacheLocation: path.join(__dirname, 'my_project.lock.data'),
+    },
+  },
+};
+```
+
+启用此功能后，你可以直接从网址导入模块：
+
+```js
+// Import from a remote URL
+import { something } from 'https://example.com/module.js';
+
+// Or import assets
+import imageUrl from 'https://example.com/image.png';
+```
