@@ -10,7 +10,6 @@ version                 = "0.2.0"
 
 [dependencies]
 async-trait = { workspace = true }
-cow-utils   = { workspace = true }
 rustc-hash  = { workspace = true }
 tokio       = { workspace = true }
 tracing     = { workspace = true }
