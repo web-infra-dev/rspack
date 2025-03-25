@@ -4,7 +4,7 @@ exports[`ConfigTestCases css build-http exported tests should work with URLs in 
 Array [
   "/* #region \\"https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/import/print.css\\" */
 /*
-- type: javascript/auto
+- type: javascript/dynamic
 */
 @import url(\\"https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/import/print.css\\");
 /* #endregion \\"https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/import/print.css\\" */
