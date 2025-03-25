@@ -295,19 +295,19 @@ const getRawModuleRule = (
 			: undefined,
 		descriptionData: rule.descriptionData
 			? Object.fromEntries(
-					Object.entries(rule.descriptionData).map(([k, v]) => [
-						k,
-						getRawRuleSetCondition(v)
-					])
-				)
+				Object.entries(rule.descriptionData).map(([k, v]) => [
+					k,
+					getRawRuleSetCondition(v)
+				])
+			)
 			: undefined,
 		with: rule.with
 			? Object.fromEntries(
-					Object.entries(rule.with).map(([k, v]) => [
-						k,
-						getRawRuleSetCondition(v)
-					])
-				)
+				Object.entries(rule.with).map(([k, v]) => [
+					k,
+					getRawRuleSetCondition(v)
+				])
+			)
 			: undefined,
 		resource: rule.resource ? getRawRuleSetCondition(rule.resource) : undefined,
 		resourceQuery: rule.resourceQuery
@@ -334,27 +334,27 @@ const getRawModuleRule = (
 		resolve: rule.resolve ? getRawResolve(rule.resolve) : undefined,
 		oneOf: rule.oneOf
 			? rule.oneOf
-					.filter(Boolean)
-					.map((rule, index) =>
-						getRawModuleRule(
-							rule as RuleSetRule,
-							`${path}.oneOf[${index}]`,
-							options,
-							(rule as RuleSetRule).type ?? upperType
-						)
+				.filter(Boolean)
+				.map((rule, index) =>
+					getRawModuleRule(
+						rule as RuleSetRule,
+						`${path}.oneOf[${index}]`,
+						options,
+						(rule as RuleSetRule).type ?? upperType
 					)
+				)
 			: undefined,
 		rules: rule.rules
 			? rule.rules
-					.filter(Boolean)
-					.map((rule, index) =>
-						getRawModuleRule(
-							rule as RuleSetRule,
-							`${path}.rules[${index}]`,
-							options,
-							(rule as RuleSetRule).type ?? upperType
-						)
+				.filter(Boolean)
+				.map((rule, index) =>
+					getRawModuleRule(
+						rule as RuleSetRule,
+						`${path}.rules[${index}]`,
+						options,
+						(rule as RuleSetRule).type ?? upperType
 					)
+				)
 			: undefined,
 		enforce: rule.enforce
 	};
@@ -533,7 +533,7 @@ function getRawParserOptions(
 	}
 
 	// FIXME: shouldn't depend on module type, for example: `rules: [{ test: /\.css/, generator: {..} }]` will error
-	throw new Error(`unreachable: unknow module type: ${type}`);
+	throw new Error(`unreachable: unknown module type: ${type}`);
 }
 
 function getRawJavascriptParserOptions(
