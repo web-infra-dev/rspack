@@ -6,6 +6,8 @@ module.exports = [
 			case2: "./case2.js",
 			case3: "./case3/index.js",
 			case4: "./case4.js",
+			case5: "./case5.js",
+			case6: "./case6.js",
 			index: "./index.js"
 		},
 		output: {

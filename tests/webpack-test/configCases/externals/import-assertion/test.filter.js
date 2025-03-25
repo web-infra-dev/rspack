@@ -1,1 +1,1 @@
-module.exports = () => /^v(1[6-9]|21)/.test(process.version);
+module.exports = () => "https://github.com/web-infra-dev/rspack/issues/9780";

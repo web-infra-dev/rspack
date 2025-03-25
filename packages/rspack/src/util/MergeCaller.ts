@@ -14,6 +14,10 @@ export default class MergeCaller<D> {
 		this.callFn(args);
 	};
 
+	pendingData() {
+		return this.callArgs;
+	}
+
 	push(...data: D[]) {
 		if (this.callArgs.length === 0) {
 			queueMicrotask(this.finalCall);

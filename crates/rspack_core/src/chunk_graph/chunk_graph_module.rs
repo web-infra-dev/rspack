@@ -1,7 +1,6 @@
 //!  There are methods whose verb is `ChunkGraphModule`
 
 use std::{
-  borrow::Borrow,
   fmt,
   hash::{Hash, Hasher},
   sync::Arc,
@@ -22,7 +21,7 @@ use crate::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ModuleId {
   inner: Arc<str>,
 }
@@ -61,12 +60,6 @@ impl Serialize for ModuleId {
     } else {
       serializer.serialize_str(self.as_str())
     }
-  }
-}
-
-impl Borrow<str> for ModuleId {
-  fn borrow(&self) -> &str {
-    self.as_str()
   }
 }
 

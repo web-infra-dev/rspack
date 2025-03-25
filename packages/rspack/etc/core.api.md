@@ -7,7 +7,6 @@
 /// <reference types="node" />
 
 import type { Abortable } from 'node:events';
-import type { AddressInfo } from 'node:net';
 import { AssetInfo } from '@rspack/binding';
 import { AsyncDependenciesBlock } from '@rspack/binding';
 import { AsyncParallelHook } from '@rspack/lite-tapable';
@@ -30,7 +29,6 @@ import { ExternalObject } from '@rspack/binding';
 import fs from 'graceful-fs';
 import { fs as fs_2 } from 'fs';
 import { HookMap } from '@rspack/lite-tapable';
-import type { IncomingMessage } from 'node:http';
 import { inspect } from 'node:util';
 import type { JsAddingRuntimeModule } from '@rspack/binding';
 import type { JsAfterEmitData } from '@rspack/binding';
@@ -59,9 +57,9 @@ import type { JsStats } from '@rspack/binding';
 import type { JsStatsCompilation } from '@rspack/binding';
 import type { JsStatsError } from '@rspack/binding';
 import type { JsStatsWarning } from '@rspack/binding';
-import type { ListenOptions } from 'node:net';
 import * as liteTapable from '@rspack/lite-tapable';
 import { Logger as Logger_2 } from './logging/Logger';
+import type { Middleware } from 'webpack-dev-server';
 import { Module } from '@rspack/binding';
 import { NormalModule } from '@rspack/binding';
 import { RawCopyPattern } from '@rspack/binding';
@@ -75,16 +73,11 @@ import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { RawSubresourceIntegrityPluginOptions } from '@rspack/binding';
 import { Resolver as Resolver_2 } from './Resolver';
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
-import type { SecureContextOptions } from 'node:tls';
-import type { ServerOptions } from 'node:http';
-import type { ServerResponse } from 'node:http';
-import type { Socket } from 'node:net';
 import { RawSourceMapDevToolPluginOptions as SourceMapDevToolPluginOptions } from '@rspack/binding';
 import sources = require('../compiled/webpack-sources');
 import { SyncBailHook } from '@rspack/lite-tapable';
 import { SyncHook } from '@rspack/lite-tapable';
 import { SyncWaterfallHook } from '@rspack/lite-tapable';
-import type { TlsOptions } from 'node:tls';
 import type * as webpackDevServer from 'webpack-dev-server';
 
 // @public (undocumented)
@@ -498,7 +491,7 @@ class ChunkGraph {
     // (undocumented)
     getModuleHash(module: Module, runtime: RuntimeSpec): string | null;
     // (undocumented)
-    getModuleId(module: Module): string | null;
+    getModuleId(module: Module): string | number | null;
     // (undocumented)
     getNumberOfEntryModules(chunk: Chunk): number;
 }
@@ -1958,6 +1951,8 @@ interface Experiments_2 {
         cleanup: () => Promise<void>;
     };
     // (undocumented)
+    lazyCompilationMiddleware: typeof lazyCompilationMiddleware;
+    // (undocumented)
     RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
     // (undocumented)
     RsdoctorPlugin: typeof RsdoctorPlugin;
@@ -2947,7 +2942,7 @@ type KnownStatsChunkOrigin = {
     moduleName: string;
     loc: string;
     request: string;
-    moduleId?: string;
+    moduleId?: string | number | null;
 };
 
 // @public (undocumented)
@@ -2986,7 +2981,7 @@ type KnownStatsError = {
     moduleName?: string;
     loc?: string;
     chunkId?: string | number;
-    moduleId?: string | number;
+    moduleId?: string | number | null;
     moduleTrace?: StatsModuleTraceItem[];
     details?: any;
     stack?: string;
@@ -3041,8 +3036,8 @@ type KnownStatsModule = {
     cached: boolean;
     optional?: boolean;
     orphan?: boolean;
-    id?: string;
-    issuerId?: string;
+    id?: string | number | null;
+    issuerId?: string | number | null;
     chunks?: string[];
     assets?: string[];
     dependent?: boolean;
@@ -3067,7 +3062,7 @@ type KnownStatsModule = {
 type KnownStatsModuleIssuer = {
     identifier?: string;
     name?: string;
-    id?: string | number;
+    id?: string | number | null;
 };
 
 // @public (undocumented)
@@ -3082,7 +3077,7 @@ type KnownStatsModuleReason = {
     explanation?: string;
     userRequest?: string;
     loc?: string;
-    moduleId?: string | null;
+    moduleId?: string | number | null;
     resolvedModuleId?: string | number | null;
 };
 
@@ -3127,19 +3122,15 @@ type KnownStatsProfile = {
 export type Layer = string | null;
 
 // @public (undocumented)
-interface LazyCompilationDefaultBackendOptions {
-    client?: string;
-    listen?: number | ListenOptions | ((server: Server) => void);
-    protocol?: "http" | "https";
-    server?: ServerOptions<typeof IncomingMessage> | ServerOptionsHttps<typeof IncomingMessage, typeof ServerResponse> | (() => Server);
-}
+const lazyCompilationMiddleware: (compiler: Compiler, userOptions?: LazyCompilationOptions | boolean) => Middleware;
 
 // @public
 export type LazyCompilationOptions = {
-    backend?: LazyCompilationDefaultBackendOptions;
     imports?: boolean;
     entries?: boolean;
     test?: RegExp | ((module: Module) => boolean);
+    client?: string;
+    serverUrl?: string;
 };
 
 // @public
@@ -5592,27 +5583,6 @@ type RuntimeSpec = string | Set<string> | undefined;
 export type ScriptType = false | "text/javascript" | "module";
 
 // @public (undocumented)
-interface Server {
-    // (undocumented)
-    address(): AddressInfo;
-    // (undocumented)
-    close(callback: (err?: any) => void): void;
-    // (undocumented)
-    listen(listenOptions?: number | ListenOptions): void;
-    // (undocumented)
-    off(event: "request", callback: (req: IncomingMessage, res: ServerResponse) => void): void;
-    // (undocumented)
-    on(event: "request", callback: (req: IncomingMessage, res: ServerResponse) => void): void;
-    // (undocumented)
-    on(event: "connection", callback: (socket: Socket) => void): void;
-    // (undocumented)
-    on(event: "listening", callback: (err?: Error) => void): void;
-}
-
-// @public (undocumented)
-type ServerOptionsHttps<Request extends typeof IncomingMessage = typeof IncomingMessage, Response extends typeof ServerResponse = typeof ServerResponse> = SecureContextOptions & TlsOptions & ServerOptions<Request, Response>;
-
-// @public (undocumented)
 export type Shared = (SharedItem | SharedObject)[] | SharedObject;
 
 // @public (undocumented)
@@ -5881,8 +5851,8 @@ type StatsModuleTraceItem = {
     originName?: string;
     moduleIdentifier?: string;
     moduleName?: string;
-    originId?: string;
-    moduleId?: string;
+    originId?: string | number | null;
+    moduleId?: string | number | null;
     dependencies?: StatsModuleTraceDependency[];
 };
 
@@ -6661,11 +6631,11 @@ export class Watching {
     // (undocumented)
     invalidate(callback?: Callback<Error, void>): void;
     // (undocumented)
+    invalidateWithChangedFiles(files: Set<string>): void;
+    // (undocumented)
     isBlocked: () => boolean;
     // (undocumented)
     lastWatcherStartTime: number;
-    // (undocumented)
-    lazyCompilationInvalidate(files: Set<string>): void;
     // (undocumented)
     onChange: () => void;
     // (undocumented)

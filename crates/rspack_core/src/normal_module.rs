@@ -660,21 +660,21 @@ impl Module for NormalModule {
     Ok(code_generation_result)
   }
 
-  fn update_hash(
+  async fn get_runtime_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
-  ) -> Result<()> {
-    self.build_info.hash.dyn_hash(hasher);
+  ) -> Result<RspackHashDigest> {
+    let mut hasher = RspackHash::from(&compilation.options.output);
+    self.build_info.hash.dyn_hash(&mut hasher);
     // For built failed NormalModule, hash will be calculated by build_info.hash, which contains error message
     if self.source.is_some() {
       self
         .parser_and_generator
-        .update_hash(self, hasher, compilation, runtime)?;
+        .update_hash(self, &mut hasher, compilation, runtime)?;
     }
-    module_update_hash(self, hasher, compilation, runtime);
-    Ok(())
+    module_update_hash(self, &mut hasher, compilation, runtime);
+    Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 
   fn name_for_condition(&self) -> Option<Box<str>> {

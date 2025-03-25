@@ -1,6 +1,5 @@
 use std::{borrow::Cow, path::Path, sync::Arc};
 
-use cow_utils::CowUtils;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
 use rspack_collections::Identifiable;
 use rspack_core::{
@@ -13,9 +12,11 @@ use rspack_core::{
   RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_plugin_javascript::dependency::CommonJsRequireDependency;
 use rspack_util::{
   ext::DynHash,
+  json_stringify,
   source_map::{ModuleSourceMapConfig, SourceMapKind},
 };
 use rustc_hash::FxHashSet;
@@ -240,7 +241,7 @@ impl Module for LazyCompilationProxyModule {
         module.exports = {};
         if (module.hot) {{
           module.hot.accept();
-          module.hot.accept(\"{}\", function() {{ module.hot.invalidate(); }});
+          module.hot.accept({}, function() {{ module.hot.invalidate(); }});
           module.hot.dispose(function(data) {{ delete data.resolveSelf; dispose(data); }});
           if (module.hot.data && module.hot.data.resolveSelf)
             module.hot.data.resolveSelf(module.exports);
@@ -256,10 +257,10 @@ impl Module for LazyCompilationProxyModule {
           "import()",
           false
         ),
-        ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
-          .map(|s| s.as_str())
-          .expect("should have module id")
-          .cow_replace('"', r#"\""#),
+        json_stringify(
+          ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
+            .expect("should have module id")
+        ),
         keep_active,
       ))
     } else {
@@ -286,16 +287,16 @@ impl Module for LazyCompilationProxyModule {
     Ok(codegen_result)
   }
 
-  fn update_hash(
+  async fn get_runtime_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
-  ) -> Result<()> {
-    module_update_hash(self, hasher, compilation, runtime);
-    self.active.dyn_hash(hasher);
-    self.data.dyn_hash(hasher);
-    Ok(())
+  ) -> Result<RspackHashDigest> {
+    let mut hasher = RspackHash::from(&compilation.options.output);
+    module_update_hash(self, &mut hasher, compilation, runtime);
+    self.active.dyn_hash(&mut hasher);
+    self.data.dyn_hash(&mut hasher);
+    Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 }
 

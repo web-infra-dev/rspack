@@ -342,12 +342,11 @@ mod t {
       todo!()
     }
 
-    fn update_hash(
+    async fn get_runtime_hash(
       &self,
-      _hasher: &mut dyn std::hash::Hasher,
       _compilation: &Compilation,
       _runtime: Option<&RuntimeSpec>,
-    ) -> Result<()> {
+    ) -> Result<RspackHashDigest> {
       todo!()
     }
   }

@@ -1,0 +1,94 @@
+# Lazy Compilation
+
+Lazy compilation 是一个提升开发阶段启动性能的有效手段，它采用按需编译模块的方式，而非在启动时编译全部模块。这意味着开发者在启动 dev server 时，可以很快看到应用运行，并分次构建所需的模块。通过这种按需编译的机制，可以减少不必要的编译时间，且随着项目规模的扩大，编译时间不会显著增长，从而大幅提升开发体验。
+
+## 快速开始
+
+对于使用 `@rspack/cli` 的用户，你可以通过 [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) 配置开启懒编译，假设你正在开发一个包含多个入口的项目，当开发其中一个入口时，Rspack 只会构建你当前访问的入口。
+
+```js title="rspack.config.mjs"
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  entry: {
+    Home: './src/Home.js',
+    About: './src/About.js',
+  },
+  experiments: {
+    lazyCompilation: {
+      // 对入口开启懒编译
+      entries: true,
+
+      // 对动态引入的模块开启懒编译
+      imports: true,
+    },
+  },
+});
+```
+
+详细配置请参考 [experiments.lazyCompilation](/config/experiments#experimentslazycompilation)。
+
+:::info
+当对入口开启懒编译后，入口模块实际上会被异步地动态引入，因此如果你配置了 `splitChunks`，入口模块会被视为 `async Chunk`，这可能会导致开发环境和生产环境的产物内容有微小差别。
+:::
+
+### 筛选部分模块开启懒编译
+
+除了 `entries` 和 `imports` 两个粗粒度配置以外，你也可以使用 `test` 配置筛选部分模块开启懒编译。如果你想要禁止懒编译 `About` 入口，你可以参考如下配置。
+
+```js title="rspack.config.mjs"
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  entry: {
+    Home: './src/Home.js',
+    About: './src/About.js',
+  },
+  experiments: {
+    lazyCompilation: {
+      entries: true,
+      imports: true,
+      test(module) {
+        const name = module.nameForCondition();
+        return name && !/src\/About/.test(name);
+      },
+    },
+  },
+});
+```
+
+## 原理
+
+懒编译的原理是将未执行的入口和 Module 的内容改写，当该 Module 在运行时被执行时，会发送请求到开发服务器，随后开发服务器会触发对应 Compiler 的重编译以及模块热更新。
+
+如下图，左边是首次编译的 Home 入口 Module 内容，右图是触发重编译后对应 Module 的内容。
+
+![image](https://assets.rspack.dev/rspack/assets/lazy-proxy-module.png)
+
+只有当执行对应的入口或时，Rspack 才会编译对应的入口和 Module 以及他们的所有依赖。
+
+## 使用自定义的开发服务器
+
+在上面的配置中，`experiments.lazyCompilation` 配置实际上是由 `@rspack/cli` 消费，并向 `@rspack/dev-server` 中添加一个用于处理 `lazyCompilation` 客户端请求的[Express 风格的 middleware](https://expressjs.com/en/guide/using-middleware.html) 来处理懒编译的请求，如果你使用自己的开发服务器，你需要手动将该 middleware 的处理逻辑添加到你的开发服务器。
+
+```js title="start.mjs"
+import { experiments, rspack } from '@rspack/core';
+import config from './rspack.config.mjs';
+import DevServer from 'webpack-dev-server';
+
+const compiler = rspack(config);
+
+const middleware = experiments.lazyCompilationMiddleware(
+  compiler,
+  config.experiments.lazyCompilation,
+);
+
+const server = new DevServer(compiler, {
+  port: 3000,
+  setupMiddlewares(other) {
+    return [middleware, ...other];
+  },
+});
+
+server.start();
+```
