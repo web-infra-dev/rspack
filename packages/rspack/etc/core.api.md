@@ -498,7 +498,7 @@ class ChunkGraph {
     // (undocumented)
     getModuleHash(module: Module, runtime: RuntimeSpec): string | null;
     // (undocumented)
-    getModuleId(module: Module): string | null;
+    getModuleId(module: Module): string | number | null;
     // (undocumented)
     getNumberOfEntryModules(chunk: Chunk): number;
 }
@@ -2947,7 +2947,7 @@ type KnownStatsChunkOrigin = {
     moduleName: string;
     loc: string;
     request: string;
-    moduleId?: string;
+    moduleId?: string | number | null;
 };
 
 // @public (undocumented)
@@ -2986,7 +2986,7 @@ type KnownStatsError = {
     moduleName?: string;
     loc?: string;
     chunkId?: string | number;
-    moduleId?: string | number;
+    moduleId?: string | number | null;
     moduleTrace?: StatsModuleTraceItem[];
     details?: any;
     stack?: string;
@@ -3041,8 +3041,8 @@ type KnownStatsModule = {
     cached: boolean;
     optional?: boolean;
     orphan?: boolean;
-    id?: string;
-    issuerId?: string;
+    id?: string | number | null;
+    issuerId?: string | number | null;
     chunks?: string[];
     assets?: string[];
     dependent?: boolean;
@@ -3067,7 +3067,7 @@ type KnownStatsModule = {
 type KnownStatsModuleIssuer = {
     identifier?: string;
     name?: string;
-    id?: string | number;
+    id?: string | number | null;
 };
 
 // @public (undocumented)
@@ -3082,7 +3082,7 @@ type KnownStatsModuleReason = {
     explanation?: string;
     userRequest?: string;
     loc?: string;
-    moduleId?: string | null;
+    moduleId?: string | number | null;
     resolvedModuleId?: string | number | null;
 };
 
@@ -5881,8 +5881,8 @@ type StatsModuleTraceItem = {
     originName?: string;
     moduleIdentifier?: string;
     moduleName?: string;
-    originId?: string;
-    moduleId?: string;
+    originId?: string | number | null;
+    moduleId?: string | number | null;
     dependencies?: StatsModuleTraceDependency[];
 };
 
