@@ -111,7 +111,9 @@ const lazyCompilationMiddlewareInternal = (
 			);
 
 			if (rebuiltModules.size) {
-				compiler.watching.invalidateWithChangedFiles(new Set(rebuiltModules));
+				compiler.watching.invalidateWithChangesAndRemovals(
+					new Set(rebuiltModules)
+				);
 			}
 		}
 	};

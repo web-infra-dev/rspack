@@ -6630,8 +6630,8 @@ export class Watching {
     invalid: boolean;
     // (undocumented)
     invalidate(callback?: Callback<Error, void>): void;
-    // (undocumented)
-    invalidateWithChangedFiles(files: Set<string>): void;
+    // @internal
+    invalidateWithChangesAndRemovals(changedFiles?: Set<string>, removedFiles?: Set<string>, callback?: Callback<Error, void>): void;
     // (undocumented)
     isBlocked: () => boolean;
     // (undocumented)

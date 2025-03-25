@@ -1,10 +1,12 @@
 const path = require('path');
 
-const mockFn = jest.fn(() => {});
+const mockWatchRunFn = jest.fn(() => {});
+const mockInvalidFn = jest.fn(() => {});
 
 class MyPlugin {
 	apply(compiler) {
-		compiler.hooks.watchRun.tap("MyPlugin", mockFn)
+		compiler.hooks.watchRun.tap("MyPlugin", mockWatchRunFn)
+		compiler.hooks.invalid.tap("MyPlugin", mockInvalidFn)
 	}
 }
 
@@ -28,8 +30,8 @@ module.exports = {
 					}
 					if (firstRun) {
 						firstRun = false;
-						compiler.watching.invalidateWithChangedFiles(path.resolve(__dirname, "../fixtures/a.js"));
-						compiler.watching.invalidateWithChangedFiles(path.resolve(__dirname, "../fixtures/b.js"));
+						compiler.watching.invalidateWithChangesAndRemovals(new Set([path.resolve(__dirname, "../fixtures/a.js")]));
+						compiler.watching.invalidateWithChangesAndRemovals(new Set([path.resolve(__dirname, "../fixtures/b.js")]));
 						setTimeout(() => {
 							resolve()
 						}, 2000)
@@ -42,6 +44,7 @@ module.exports = {
 
 	},
 	async check() {
-		expect(mockFn).toHaveBeenCalledTimes(3);
+		expect(mockWatchRunFn).toHaveBeenCalledTimes(3);
+		expect(mockInvalidFn).toHaveBeenCalledTimes(2);
 	}
 };
