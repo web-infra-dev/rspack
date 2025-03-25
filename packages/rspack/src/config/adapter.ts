@@ -533,7 +533,7 @@ function getRawParserOptions(
 	}
 
 	// FIXME: shouldn't depend on module type, for example: `rules: [{ test: /\.css/, generator: {..} }]` will error
-	throw new Error(`unreachable: unknow module type: ${type}`);
+	throw new Error(`unreachable: unknown module type: ${type}`);
 }
 
 function getRawJavascriptParserOptions(
