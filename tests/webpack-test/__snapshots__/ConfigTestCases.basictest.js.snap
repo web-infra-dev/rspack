@@ -45,7 +45,7 @@ Object {
   "test": "-_style_modules_css-test",
   "{}": "-_style_modules_css-{}",
   "©": "-_style_modules_css-©",
-  """: "-_style_modules_css-""",
+  "“‘’”": "-_style_modules_css-“‘’”",
   "⌘⌥": "-_style_modules_css-⌘⌥",
   "☺☃": "-_style_modules_css-☺☃",
   "♥": "-_style_modules_css-♥",
@@ -100,7 +100,7 @@ Object {
   "test": "-_style_modules_css-test",
   "{}": "-_style_modules_css-{}",
   "©": "-_style_modules_css-©",
-  """: "-_style_modules_css-""",
+  "“‘’”": "-_style_modules_css-“‘’”",
   "⌘⌥": "-_style_modules_css-⌘⌥",
   "☺☃": "-_style_modules_css-☺☃",
   "♥": "-_style_modules_css-♥",
@@ -190,7 +190,7 @@ Array [
 .-_style_modules_css-♥ { background: lime; }
 .-_style_modules_css-© { background: lime; }
 .-_style_modules_css-\\\\😍 { background: lime; }
-.-_style_modules_css-"" { background: lime; }
+.-_style_modules_css-“‘’” { background: lime; }
 .-_style_modules_css-☺☃ { background: lime; }
 .-_style_modules_css-⌘⌥ { background: lime; }
 .-_style_modules_css-\\\\𝄞♪♩♫♬ { background: lime; }
@@ -337,7 +337,7 @@ Array [
 .-_style_modules_css-♥ { background: lime; }
 .-_style_modules_css-© { background: lime; }
 .-_style_modules_css-\\\\😍 { background: lime; }
-.-_style_modules_css-"" { background: lime; }
+.-_style_modules_css-“‘’” { background: lime; }
 .-_style_modules_css-☺☃ { background: lime; }
 .-_style_modules_css-⌘⌥ { background: lime; }
 .-_style_modules_css-\\\\𝄞♪♩♫♬ { background: lime; }
