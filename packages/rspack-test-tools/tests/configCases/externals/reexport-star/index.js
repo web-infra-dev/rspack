@@ -7,4 +7,6 @@ it("reexport star from external module", function () {
 	expect(readCase("case2")).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'case2.txt'));
 	expect(readCase("case3")).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'case3.txt'));
 	expect(readCase("case4")).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'case4.txt'));
+	expect(readCase("case5")).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'case5.txt'));
+	expect(readCase("case6")).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'case6.txt'));
 });
