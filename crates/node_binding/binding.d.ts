@@ -175,7 +175,7 @@ export declare class JsChunkGraph {
   getChunkEntryDependentChunksIterable(chunk: JsChunk): JsChunk[]
   getChunkModulesIterableBySourceType(chunk: JsChunk, sourceType: string): Module[]
   getModuleChunks(module: Module): JsChunk[]
-  getModuleId(module: Module): string | null
+  getModuleId(module: Module): string | number | null
   getModuleHash(module: Module, runtime: string | string[] | undefined): string | null
   getBlockChunkGroup(jsBlock: AsyncDependenciesBlock): JsChunkGroup | null
 }
@@ -835,7 +835,7 @@ export declare enum JsLoaderState {
 export interface JsModuleDescriptor {
   identifier: string
   name: string
-  id?: string
+  id?: string | number | null
 }
 
 export interface JsNormalModuleFactoryCreateModuleArgs {

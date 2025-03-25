@@ -148,10 +148,8 @@ pub fn generate_entry_startup(
     if let Some(module_id) = compilation
       .get_module_graph()
       .module_graph_module_by_identifier(module)
-      .map(|module| {
+      .and_then(|module| {
         ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.module_identifier)
-          .map(|s| s.as_str())
-          .unwrap_or("null")
       })
     {
       let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");

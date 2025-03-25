@@ -1,6 +1,5 @@
 use std::{borrow::Cow, path::Path, sync::Arc};
 
-use cow_utils::CowUtils;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
 use rspack_collections::Identifiable;
 use rspack_core::{
@@ -17,6 +16,7 @@ use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_plugin_javascript::dependency::CommonJsRequireDependency;
 use rspack_util::{
   ext::DynHash,
+  json_stringify,
   source_map::{ModuleSourceMapConfig, SourceMapKind},
 };
 use rustc_hash::FxHashSet;
@@ -241,7 +241,7 @@ impl Module for LazyCompilationProxyModule {
         module.exports = {};
         if (module.hot) {{
           module.hot.accept();
-          module.hot.accept(\"{}\", function() {{ module.hot.invalidate(); }});
+          module.hot.accept({}, function() {{ module.hot.invalidate(); }});
           module.hot.dispose(function(data) {{ delete data.resolveSelf; dispose(data); }});
           if (module.hot.data && module.hot.data.resolveSelf)
             module.hot.data.resolveSelf(module.exports);
@@ -257,10 +257,10 @@ impl Module for LazyCompilationProxyModule {
           "import()",
           false
         ),
-        ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
-          .map(|s| s.as_str())
-          .expect("should have module id")
-          .cow_replace('"', r#"\""#),
+        json_stringify(
+          ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
+            .expect("should have module id")
+        ),
         keep_active,
       ))
     } else {

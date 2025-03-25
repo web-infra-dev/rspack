@@ -5,7 +5,7 @@ use rspack_sources::BoxSource;
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{ChunkGroupOrderKey, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType};
+use crate::{ChunkGroupOrderKey, ModuleId, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType};
 
 pub enum EntrypointsStatsOption {
   Bool(bool),
@@ -42,7 +42,7 @@ pub struct StatsError<'s> {
   pub message: String,
   pub module_identifier: Option<ModuleIdentifier>,
   pub module_name: Option<Cow<'s, str>>,
-  pub module_id: Option<&'s str>,
+  pub module_id: Option<ModuleId>,
   pub loc: Option<String>,
   pub file: Option<Utf8PathBuf>,
 
@@ -60,7 +60,7 @@ pub struct StatsWarning<'s> {
   pub message: String,
   pub module_identifier: Option<ModuleIdentifier>,
   pub module_name: Option<Cow<'s, str>>,
-  pub module_id: Option<&'s str>,
+  pub module_id: Option<ModuleId>,
   pub loc: Option<String>,
   pub file: Option<Utf8PathBuf>,
 
@@ -84,7 +84,7 @@ pub struct StatsModuleTrace {
 pub struct StatsErrorModuleTraceModule {
   pub identifier: ModuleIdentifier,
   pub name: String,
-  pub id: Option<String>,
+  pub id: Option<ModuleId>,
 }
 
 #[derive(Debug)]
@@ -143,14 +143,14 @@ pub struct StatsModule<'s> {
   pub identifier: Option<ModuleIdentifier>,
   pub name: Option<Cow<'s, str>>,
   pub name_for_condition: Option<String>,
-  pub id: Option<&'s str>,
+  pub id: Option<ModuleId>,
   pub chunks: Option<Vec<String>>, // has id after the call of chunkIds hook
   pub size: f64,
   pub sizes: Vec<StatsSourceTypeSize>,
   pub dependent: Option<bool>,
   pub issuer: Option<ModuleIdentifier>,
   pub issuer_name: Option<Cow<'s, str>>,
-  pub issuer_id: Option<&'s str>,
+  pub issuer_id: Option<ModuleId>,
   pub issuer_path: Option<Vec<StatsModuleIssuer<'s>>>,
   pub reasons: Option<Vec<StatsModuleReason<'s>>>,
   pub assets: Option<Vec<String>>,
@@ -191,7 +191,7 @@ pub struct StatsModuleProfile {
 #[derive(Debug)]
 pub struct StatsOriginRecord {
   pub module: Option<ModuleIdentifier>,
-  pub module_id: String,
+  pub module_id: Option<ModuleId>,
   pub module_identifier: Option<ModuleIdentifier>,
   pub module_name: String,
   pub loc: String,
@@ -257,18 +257,18 @@ pub struct StatschunkGroupChildAssets {
 pub struct StatsModuleIssuer<'s> {
   pub identifier: ModuleIdentifier,
   pub name: Cow<'s, str>,
-  pub id: Option<&'s str>,
+  pub id: Option<ModuleId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct StatsModuleReason<'s> {
   pub module_identifier: Option<ModuleIdentifier>,
   pub module_name: Option<Cow<'s, str>>,
-  pub module_id: Option<&'s str>,
+  pub module_id: Option<ModuleId>,
   pub module_chunks: Option<u32>,
   pub resolved_module_identifier: Option<ModuleIdentifier>,
   pub resolved_module_name: Option<Cow<'s, str>>,
-  pub resolved_module_id: Option<&'s str>,
+  pub resolved_module_id: Option<ModuleId>,
 
   pub r#type: Option<&'static str>,
   pub user_request: Option<&'s str>,

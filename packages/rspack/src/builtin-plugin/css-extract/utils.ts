@@ -51,7 +51,7 @@ export function stringifyRequest(
 						return singlePath + query;
 					}
 
-					if (isRelativePath(singlePath) === false) {
+					if (!isRelativePath(singlePath)) {
 						// Ensure that the relative path starts at least with ./ otherwise it would be a request into the modules directory (like node_modules).
 						singlePath = `./${singlePath}`;
 					}
