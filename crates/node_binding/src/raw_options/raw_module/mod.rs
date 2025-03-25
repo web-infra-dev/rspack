@@ -636,7 +636,7 @@ type RawAssetGeneratorDataUrl = Either<
 >;
 struct RawAssetGeneratorDataUrlWrapper(RawAssetGeneratorDataUrl);
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct RawAssetGeneratorDataUrlFnCtx {
   pub filename: String,
   #[napi(ts_type = "Module")]
@@ -647,7 +647,7 @@ impl From<AssetGeneratorDataUrlFnCtx<'_>> for RawAssetGeneratorDataUrlFnCtx {
   fn from(value: AssetGeneratorDataUrlFnCtx) -> Self {
     Self {
       filename: value.filename,
-      module: ModuleObject::with_ref(value.module, value.compilation.compiler_id()),
+      module: ModuleObject::new(value.module, value.compilation.id()),
     }
   }
 }

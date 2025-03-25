@@ -1,6 +1,5 @@
 use std::{
   hash::Hash,
-  ptr::NonNull,
   sync::{Arc, RwLock},
 };
 
@@ -1201,17 +1200,14 @@ impl CompilerAssetEmitted for CompilerAssetEmittedTap {
 impl CompilationBuildModule for CompilationBuildModuleTap {
   async fn run(
     &self,
-    compiler_id: CompilerId,
-    _compilation_id: CompilationId,
+    _compiler_id: CompilerId,
+    compilation_id: CompilationId,
     module: &mut BoxModule,
   ) -> rspack_error::Result<()> {
     #[allow(clippy::unwrap_used)]
     let _ = self
       .function
-      .call_with_sync(ModuleObject::with_ptr(
-        NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap(),
-        compiler_id,
-      ))
+      .call_with_sync(ModuleObject::new(module.as_ref(), compilation_id))
       .await?;
     Ok(())
   }
@@ -1225,17 +1221,14 @@ impl CompilationBuildModule for CompilationBuildModuleTap {
 impl CompilationStillValidModule for CompilationStillValidModuleTap {
   async fn run(
     &self,
-    compiler_id: CompilerId,
-    _compilation_id: CompilationId,
+    _compiler_id: CompilerId,
+    compilation_id: CompilationId,
     module: &mut BoxModule,
   ) -> rspack_error::Result<()> {
     #[allow(clippy::unwrap_used)]
     let _ = self
       .function
-      .call_with_sync(ModuleObject::with_ptr(
-        NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap(),
-        compiler_id,
-      ))
+      .call_with_sync(ModuleObject::new(module.as_ref(), compilation_id))
       .await?;
     Ok(())
   }
@@ -1249,17 +1242,14 @@ impl CompilationStillValidModule for CompilationStillValidModuleTap {
 impl CompilationSucceedModule for CompilationSucceedModuleTap {
   async fn run(
     &self,
-    compiler_id: CompilerId,
-    _compilation_id: CompilationId,
+    _compiler_id: CompilerId,
+    compilation_id: CompilationId,
     module: &mut BoxModule,
   ) -> rspack_error::Result<()> {
     #[allow(clippy::unwrap_used)]
     let _ = self
       .function
-      .call_with_sync(ModuleObject::with_ptr(
-        NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap(),
-        compiler_id,
-      ))
+      .call_with_sync(ModuleObject::new(module.as_ref(), compilation_id))
       .await?;
     Ok(())
   }

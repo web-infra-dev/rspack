@@ -72,7 +72,7 @@ export declare class ConcatenatedModule {
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
-  size(ty?: string | undefined | null): number
+  size(this: this, ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
   _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
 }
@@ -83,7 +83,7 @@ export declare class ContextModule {
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
-  size(ty?: string | undefined | null): number
+  size(this: this, ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
   _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
 }
@@ -139,7 +139,7 @@ export declare class ExternalModule {
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
-  size(ty?: string | undefined | null): number
+  size(this: this, ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
   _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
 }
@@ -303,9 +303,9 @@ export declare class JsEntries {
   has(key: string): boolean
   set(key: string, entryDataObject: JsEntryData): void
   delete(key: string): boolean
-  get(key: string): napi_value | undefined
+  get(key: string): JsEntryData | undefined
   keys(): Array<string>
-  values(): Array<napi_value>
+  values(): EntryDataDTO[]
 }
 
 export declare class JsExportsInfo {
@@ -360,7 +360,7 @@ export declare class Module {
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
-  size(ty?: string | undefined | null): number
+  size(this: this, ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
   _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
 }

@@ -1,7 +1,7 @@
 use napi::Either;
 use rspack_core::{parse_resource, ResourceData, ResourceParsedData};
 
-use crate::{impl_module_methods, plugins::JsLoaderItem, JsResourceData, Module};
+use crate::{impl_module_methods, plugins::JsLoaderItem, JsCompilation, JsResourceData, Module};
 
 #[napi]
 pub struct NormalModule {
@@ -9,10 +9,9 @@ pub struct NormalModule {
 }
 
 impl NormalModule {
-  fn as_ref(&mut self) -> napi::Result<(&rspack_core::Compilation, &rspack_core::NormalModule)> {
-    let (compilation, module) = self.module.as_ref()?;
-    match module.as_normal_module() {
-      Some(normal_module) => Ok((compilation, normal_module)),
+  fn as_ref(&mut self) -> napi::Result<&rspack_core::NormalModule> {
+    match self.module.0.as_ref().as_normal_module() {
+      Some(normal_module) => Ok(normal_module),
       None => Err(napi::Error::new(
         napi::Status::GenericFailure,
         "Module is not a NormalModule",
@@ -21,8 +20,7 @@ impl NormalModule {
   }
 
   fn as_mut(&mut self) -> napi::Result<&mut rspack_core::NormalModule> {
-    let module = self.module.as_mut()?;
-    match module.as_normal_module_mut() {
+    match self.module.0.as_mut().as_normal_module_mut() {
       Some(normal_module) => Ok(normal_module),
       None => Err(napi::Error::new(
         napi::Status::GenericFailure,
@@ -36,22 +34,19 @@ impl NormalModule {
 impl NormalModule {
   #[napi(getter)]
   pub fn resource(&mut self) -> napi::Result<&String> {
-    let (_, module) = self.as_ref()?;
-
+    let module = self.as_ref()?;
     Ok(&module.resource_resolved_data().resource)
   }
 
   #[napi(getter)]
   pub fn request(&mut self) -> napi::Result<&str> {
-    let (_, module) = self.as_ref()?;
-
+    let module = self.as_ref()?;
     Ok(module.request())
   }
 
   #[napi(getter)]
   pub fn user_request(&mut self) -> napi::Result<&str> {
-    let (_, module) = self.as_ref()?;
-
+    let module = self.as_ref()?;
     Ok(module.user_request())
   }
 
@@ -64,15 +59,13 @@ impl NormalModule {
 
   #[napi(getter)]
   pub fn raw_request(&mut self) -> napi::Result<&str> {
-    let (_, module) = self.as_ref()?;
-
+    let module = self.as_ref()?;
     Ok(module.raw_request())
   }
 
   #[napi(getter)]
   pub fn loaders(&mut self) -> napi::Result<Vec<JsLoaderItem>> {
-    let (_, module) = self.as_ref()?;
-
+    let module = self.as_ref()?;
     Ok(
       module
         .loaders()
@@ -85,13 +78,13 @@ impl NormalModule {
 
   #[napi(getter)]
   pub fn resource_resolve_data(&mut self) -> napi::Result<JsResourceData> {
-    let (_, module) = self.as_ref()?;
+    let module = self.as_ref()?;
     Ok(module.resource_resolved_data().into())
   }
 
   #[napi(getter)]
   pub fn match_resource(&mut self) -> napi::Result<Either<&String, ()>> {
-    let (_, module) = self.as_ref()?;
+    let module = self.as_ref()?;
     Ok(match module.match_resource() {
       Some(match_resource) => Either::A(&match_resource.resource),
       None => Either::B(()),

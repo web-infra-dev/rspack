@@ -5,7 +5,7 @@ use rspack_paths::ArcPath;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 /// Used to count file usage
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct FileCounter {
   inner: HashMap<ArcPath, usize>,
   incremental_info: IncrementalInfo,

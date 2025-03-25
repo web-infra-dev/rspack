@@ -3,7 +3,6 @@ use std::{hash::Hash, sync::LazyLock};
 use async_trait::async_trait;
 use regex::Regex;
 use rspack_cacheable::with::AsVecConverter;
-use rspack_collections::Identifiable;
 use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_comment_with_nl, ApplyContext, BoxModule, BuildMetaExportsType, ChunkGraph,

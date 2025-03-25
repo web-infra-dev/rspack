@@ -20,7 +20,7 @@ pub struct JsCacheGroupTestCtx {
 impl<'a> From<CacheGroupTestFnCtx<'a>> for JsCacheGroupTestCtx {
   fn from(value: CacheGroupTestFnCtx<'a>) -> Self {
     JsCacheGroupTestCtx {
-      module: ModuleObject::with_ref(value.module, value.compilation.compiler_id()),
+      module: ModuleObject::new(value.module, value.compilation.id()),
     }
   }
 }

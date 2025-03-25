@@ -12,7 +12,7 @@ use crate::{
   ModuleGraphPartial, ModuleIdentifier,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum MakeArtifactState {
   Uninitialized(HashSet<DependencyId>),
   Initialized,
@@ -175,6 +175,22 @@ impl MakeArtifact {
         .collect::<Vec<_>>()
     });
     module_diagnostics.chain(dep_diagnostics).collect()
+  }
+
+  pub fn share(&mut self) -> Self {
+    Self {
+      built_modules: self.built_modules.clone(),
+      revoked_modules: self.revoked_modules.clone(),
+      state: self.state.clone(),
+      module_graph_partial: self.module_graph_partial.share(),
+      make_failed_module: self.make_failed_module.clone(),
+      make_failed_dependencies: self.make_failed_dependencies.clone(),
+      entry_dependencies: self.entry_dependencies.clone(),
+      file_dependencies: self.file_dependencies.clone(),
+      context_dependencies: self.context_dependencies.clone(),
+      missing_dependencies: self.missing_dependencies.clone(),
+      build_dependencies: self.build_dependencies.clone(),
+    }
   }
 }
 

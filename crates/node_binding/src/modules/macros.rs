@@ -8,9 +8,9 @@ macro_rules! impl_module_methods {
       ) -> napi::Result<napi::bindgen_prelude::ClassInstance<Self>> {
         use napi::bindgen_prelude::JavaScriptClassExt;
 
-        let mut instance = self.into_instance(env)?;
+        let instance = self.into_instance(env)?;
         let mut object = instance.as_object(env);
-        let (_, module) = instance.module.as_ref()?;
+        let module = &*instance.module.0;
 
         object.set_named_property("type", env.create_string(module.module_type().as_str())?)?;
 
@@ -23,7 +23,7 @@ macro_rules! impl_module_methods {
               napi::NapiRaw::raw(&this),
             )?
           };
-          let (_, module) = wrapped_value.module.as_ref()?;
+          let module = &*wrapped_value.module.0;
           Ok(match module.get_context() {
             Some(ctx) => napi::Either::A(ctx.to_string()),
             None => napi::Either::B(()),
@@ -39,7 +39,7 @@ macro_rules! impl_module_methods {
               napi::NapiRaw::raw(&this),
             )?
           };
-          let (_, module) = wrapped_value.module.as_ref()?;
+          let module = &*wrapped_value.module.0;
           Ok(match module.get_layer() {
             Some(layer) => napi::Either::A(layer),
             None => napi::Either::B(()),
@@ -55,7 +55,7 @@ macro_rules! impl_module_methods {
               napi::NapiRaw::raw(&this),
             )?
           };
-          let (_, module) = wrapped_value.module.as_ref()?;
+          let module = &*wrapped_value.module.0;
           Ok(module.get_source_map_kind().source_map())
         }
 
@@ -68,7 +68,7 @@ macro_rules! impl_module_methods {
               napi::NapiRaw::raw(&this),
             )?
           };
-          let (_, module) = wrapped_value.module.as_ref()?;
+          let module = &*wrapped_value.module.0;
           Ok(module.get_source_map_kind().source_map())
         }
 
@@ -85,7 +85,7 @@ macro_rules! impl_module_methods {
               napi::NapiRaw::raw(&this),
             )?
           };
-          let (_, module) = wrapped_value.module.as_ref()?;
+          let module = &*wrapped_value.module.0;
           Ok(match module.as_normal_module() {
             Some(normal_module) => match normal_module.factory_meta() {
               Some(meta) => napi::Either::A($crate::JsFactoryMeta {
@@ -109,6 +109,27 @@ macro_rules! impl_module_methods {
         object.set_named_property("buildMeta", env.create_object()?)?;
 
         Ok(instance)
+      }
+
+      fn get_compilation_ref(
+        &self,
+        env: &napi::Env,
+        this: napi::bindgen_prelude::This,
+      ) -> napi::Result<Option<&rspack_core::Compilation>> {
+        Ok(
+          match this.get::<napi::bindgen_prelude::Object>("_compilation")? {
+            Some(compilation_object) => {
+              let js_compilation: &crate::JsCompilation = unsafe {
+                napi::bindgen_prelude::FromNapiMutRef::from_napi_mut_ref(
+                  env.raw(),
+                  napi::NapiRaw::raw(&compilation_object),
+                )?
+              };
+              Some(&js_compilation.0)
+            }
+            None => None,
+          },
+        )
       }
     }
 
@@ -137,18 +158,31 @@ macro_rules! impl_module_methods {
         ts_return_type = "AsyncDependenciesBlock[]",
         enumerable = false
       )]
-      pub fn blocks(&mut self) -> napi::Result<Vec<$crate::AsyncDependenciesBlockWrapper>> {
-        self.module.blocks()
+      pub fn blocks(
+        &mut self,
+        env: &napi::Env,
+        this: napi::bindgen_prelude::This,
+      ) -> napi::Result<Vec<$crate::AsyncDependenciesBlockWrapper>> {
+        self.module.blocks(env, this)
       }
 
       #[napi(getter, ts_return_type = "Dependency[]")]
-      pub fn dependencies(&mut self) -> napi::Result<Vec<$crate::DependencyWrapper>> {
-        self.module.dependencies()
+      pub fn dependencies(
+        &mut self,
+        env: &napi::Env,
+        this: napi::bindgen_prelude::This,
+      ) -> napi::Result<Vec<$crate::DependencyWrapper>> {
+        self.module.dependencies(env, this)
       }
 
       #[napi]
-      pub fn size(&mut self, ty: Option<String>) -> napi::Result<f64> {
-        self.module.size(ty)
+      pub fn size(
+        &mut self,
+        env: &napi::Env,
+        this: napi::bindgen_prelude::This,
+        ty: Option<String>,
+      ) -> napi::Result<f64> {
+        self.module.size(env, this, ty)
       }
 
       #[napi]

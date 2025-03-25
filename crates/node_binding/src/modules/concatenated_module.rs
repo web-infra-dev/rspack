@@ -1,3 +1,5 @@
+use napi::{bindgen_prelude::This, Env};
+
 use crate::{impl_module_methods, Module, ModuleObject};
 
 #[napi]
@@ -6,12 +8,9 @@ pub struct ConcatenatedModule {
 }
 
 impl ConcatenatedModule {
-  fn as_ref(
-    &mut self,
-  ) -> napi::Result<(&rspack_core::Compilation, &rspack_core::ConcatenatedModule)> {
-    let (compilation, module) = self.module.as_ref()?;
-    match module.as_concatenated_module() {
-      Some(concatenated_module) => Ok((compilation, concatenated_module)),
+  fn as_ref(&self) -> napi::Result<&rspack_core::ConcatenatedModule> {
+    match self.module.0.as_ref().as_concatenated_module() {
+      Some(concatenated_module) => Ok(concatenated_module),
       None => Err(napi::Error::new(
         napi::Status::GenericFailure,
         "Module is not a ConcatenatedModule",
@@ -23,8 +22,11 @@ impl ConcatenatedModule {
 #[napi]
 impl ConcatenatedModule {
   #[napi(getter, ts_return_type = "Module[]")]
-  pub fn modules(&mut self) -> napi::Result<Vec<ModuleObject>> {
-    let (compilation, module) = self.as_ref()?;
+  pub fn modules(&mut self, env: &Env, this: This) -> napi::Result<Vec<ModuleObject>> {
+    let module = self.as_ref()?;
+    let Some(compilation) = self.get_compilation_ref(env, this)? else {
+      return Ok(vec![]);
+    };
 
     let inner_modules = module
       .get_modules()
@@ -32,7 +34,7 @@ impl ConcatenatedModule {
       .filter_map(|inner_module_info| {
         compilation
           .module_by_identifier(&inner_module_info.id)
-          .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id()))
+          .map(|module| ModuleObject::new(module.as_ref(), compilation.id()))
       })
       .collect::<Vec<_>>();
     Ok(inner_modules)

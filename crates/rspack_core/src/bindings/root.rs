@@ -1,6 +1,7 @@
 #[cfg(feature = "napi")]
 mod napi_binding {
   use std::{
+    any::{Any, TypeId},
     hash::{Hash, Hasher},
     ops::{Deref, DerefMut},
     sync::{Arc, Mutex, Weak},
@@ -9,9 +10,7 @@ mod napi_binding {
   use derive_more::Debug;
   use napi::bindgen_prelude::ToNapiValue;
 
-  use crate::{
-    bindings, Compilation, Entries, EntryData, Module, RuntimeModule, ThreadSafeReference,
-  };
+  use crate::{bindings, Compilation, Entries, EntryData, Module, ThreadSafeReference};
 
   #[derive(Debug)]
   enum Boxed {
@@ -98,10 +97,12 @@ mod napi_binding {
             #[allow(clippy::unwrap_used)]
             let boxed = untracked.take().unwrap();
             let reference = match boxed {
-              Boxed::Compilation(compilation) => allocator.allocate_compilation(compilation)?,
-              Boxed::Entries(entries) => allocator.allocate_entries(entries)?,
-              Boxed::EntryData(entry_data) => allocator.allocate_entry_data(entry_data)?,
-              Boxed::Module(module) => todo!(),
+              Boxed::Compilation(compilation) => {
+                allocator.allocate_compilation(env, compilation)?
+              }
+              Boxed::Entries(entries) => allocator.allocate_entries(env, entries)?,
+              Boxed::EntryData(entry_data) => allocator.allocate_entry_data(env, entry_data)?,
+              Boxed::Module(module) => allocator.allocate_module(env, module)?,
             };
             let napi_value = ToNapiValue::to_napi_value(env, &reference)?;
             *heap = Heap::Tracked(reference);
@@ -135,6 +136,15 @@ mod napi_binding {
   pub struct Root<T: ?Sized> {
     ptr: *mut T,
     heap: Arc<Mutex<Heap>>,
+  }
+
+  impl<T: ?Sized> Root<T> {
+    pub fn share(&self) -> Self {
+      Self {
+        ptr: self.ptr,
+        heap: self.heap.clone(),
+      }
+    }
   }
 
   unsafe impl<T: ?Sized + Send> Send for Root<T> {}
@@ -198,22 +208,11 @@ mod napi_binding {
     }
   }
 
-  impl<T: RuntimeModule> From<T> for Root<dyn RuntimeModule> {
-    fn from(module: T) -> Self {
-      todo!()
-      // let mut boxed = Box::new(module);
-      // let ptr = &mut *boxed.as_mut() as *mut T;
-      // let heap = Arc::new(Mutex::new(Heap::Untracked(Some(Boxed::Module(
-      //   boxed as Box<dyn Module>,
-      // )))));
-      // unsafe {
-      //   #[allow(clippy::unwrap_used)]
-      //   let reflector = ptr.as_mut().unwrap().reflector_mut();
-      //   reflector.set_heap(&heap);
-      // }
-      // Self { ptr, heap }
-    }
-  }
+  // impl<T: RuntimeModule> From<T> for Root<dyn RuntimeModule> {
+  //   fn from(module: T) -> Self {
+  //     todo!()
+  //   }
+  // }
 
   impl<T: ?Sized> AsRef<T> for Root<T> {
     fn as_ref(&self) -> &T {
@@ -294,15 +293,47 @@ mod napi_binding {
 
   impl<T, D> rkyv::Deserialize<Root<T>, D> for rkyv::boxed::ArchivedBox<T::Archived>
   where
-    T: rkyv::ArchiveUnsized + rkyv::traits::LayoutRaw + ?Sized,
+    T: rkyv::ArchiveUnsized + rkyv::traits::LayoutRaw + ?Sized + 'static,
     T::Archived: rkyv::DeserializeUnsized<T, D>,
     D: rkyv::rancor::Fallible + ?Sized,
     D::Error: rkyv::rancor::Source,
   {
     fn deserialize(&self, deserializer: &mut D) -> Result<Root<T>, D::Error> {
-      // let boxed: Box<T> = self.deserialize(deserializer)?;
-      // Ok(Root::from(boxed))
-      todo!()
+      let boxed: Box<T> = self.deserialize(deserializer)?;
+      let type_id = boxed.type_id();
+      if type_id == TypeId::of::<Box<Compilation>>() {
+        let ptr = Box::into_raw(boxed);
+        let boxed = unsafe { Box::from_raw(ptr as *mut Compilation) };
+        Ok(Root {
+          ptr,
+          heap: Arc::new(Mutex::new(Heap::Untracked(Some(Boxed::Compilation(boxed))))),
+        })
+      } else if type_id == TypeId::of::<Box<Entries>>() {
+        let ptr = Box::into_raw(boxed);
+        let boxed = unsafe { Box::from_raw(ptr as *mut Entries) };
+        Ok(Root {
+          ptr,
+          heap: Arc::new(Mutex::new(Heap::Untracked(Some(Boxed::Entries(boxed))))),
+        })
+      } else if type_id == TypeId::of::<Box<EntryData>>() {
+        let ptr = Box::into_raw(boxed);
+        let boxed = unsafe { Box::from_raw(ptr as *mut EntryData) };
+        Ok(Root {
+          ptr,
+          heap: Arc::new(Mutex::new(Heap::Untracked(Some(Boxed::EntryData(boxed))))),
+        })
+      } else if type_id == TypeId::of::<Box<dyn Module>>() {
+        let ptr = Box::into_raw(boxed);
+        let boxed = unsafe {
+          *Box::from_raw(Box::into_raw(Box::new(Box::from_raw(ptr))) as *mut Box<dyn Module>)
+        };
+        Ok(Root {
+          ptr,
+          heap: Arc::new(Mutex::new(Heap::Untracked(Some(Boxed::Module(boxed))))),
+        })
+      } else {
+        unreachable!()
+      }
     }
   }
 }

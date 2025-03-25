@@ -88,6 +88,28 @@ pub struct ModuleGraphPartial {
   dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
 }
 
+impl ModuleGraphPartial {
+  pub fn share(&mut self) -> Self {
+    Self {
+      modules: self
+        .modules
+        .iter()
+        .map(|(identifier, module)| (*identifier, module.as_ref().map(|root| root.share())))
+        .collect(),
+      // TODO
+      dependencies: std::mem::take(&mut self.dependencies),
+      blocks: std::mem::take(&mut self.blocks),
+      module_graph_modules: std::mem::take(&mut self.module_graph_modules),
+      connections: std::mem::take(&mut self.connections),
+      dependency_id_to_parents: std::mem::take(&mut self.dependency_id_to_parents),
+      exports_info_map: std::mem::take(&mut self.exports_info_map),
+      export_info_map: std::mem::take(&mut self.export_info_map),
+      connection_to_condition: std::mem::take(&mut self.connection_to_condition),
+      dep_meta_map: std::mem::take(&mut self.dep_meta_map),
+    }
+  }
+}
+
 #[derive(Debug, Default)]
 pub struct ModuleGraph<'a> {
   partials: Vec<&'a ModuleGraphPartial>,

@@ -6,7 +6,7 @@ use napi::{
 };
 use once_cell::sync::OnceCell;
 
-use crate::{Compilation, Entries, EntryData};
+use crate::{Compilation, Entries, EntryData, Module};
 
 /// ThreadSafeReference is a wrapper around napi::Reference<()>.
 /// It can only be created on the JS thread but can be used on any thread.
@@ -62,9 +62,23 @@ thread_local! {
 }
 
 pub trait NapiAllocator {
-  fn allocate_compilation(&self, val: Box<Compilation>) -> napi::Result<ThreadSafeReference>;
-  fn allocate_entries(&self, val: Box<Entries>) -> napi::Result<ThreadSafeReference>;
-  fn allocate_entry_data(&self, val: Box<EntryData>) -> napi::Result<ThreadSafeReference>;
+  fn allocate_compilation(
+    &self,
+    env: napi_env,
+    val: Box<Compilation>,
+  ) -> napi::Result<ThreadSafeReference>;
+  fn allocate_entries(&self, env: napi_env, val: Box<Entries>)
+    -> napi::Result<ThreadSafeReference>;
+  fn allocate_entry_data(
+    &self,
+    env: napi_env,
+    val: Box<EntryData>,
+  ) -> napi::Result<ThreadSafeReference>;
+  fn allocate_module(
+    &self,
+    env: napi_env,
+    val: Box<dyn Module>,
+  ) -> napi::Result<ThreadSafeReference>;
 }
 
 pub fn with_thread_local_allocator<T>(

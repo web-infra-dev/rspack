@@ -1,8 +1,8 @@
-use std::{collections::HashMap, ptr::NonNull};
+use std::collections::HashMap;
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use rspack_core::{LoaderContext, Module, RunnerContext};
+use rspack_core::{CompilationId, LoaderContext, Module, RunnerContext};
 use rspack_error::error;
 use rspack_loader_runner::{LoaderItem, State as LoaderState};
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
@@ -53,6 +53,26 @@ impl From<LoaderState> for JsLoaderState {
   }
 }
 
+pub struct ModuleObjectWrapper(Option<ModuleObject>);
+
+impl ModuleObjectWrapper {
+  pub fn new(module: &dyn Module, compilation_id: CompilationId) -> Self {
+    Self(Some(ModuleObject::new(module, compilation_id)))
+  }
+}
+
+impl ToNapiValue for ModuleObjectWrapper {
+  unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
+    ToNapiValue::to_napi_value(env, val.0.unwrap())
+  }
+}
+
+impl FromNapiValue for ModuleObjectWrapper {
+  unsafe fn from_napi_value(_env: sys::napi_env, _napi_val: sys::napi_value) -> Result<Self> {
+    Ok(ModuleObjectWrapper(None))
+  }
+}
+
 #[napi(object)]
 pub struct JsLoaderContext {
   #[napi(ts_type = "Readonly<JsResourceData>")]
@@ -61,7 +81,7 @@ pub struct JsLoaderContext {
   #[napi(js_name = "_moduleIdentifier", ts_type = "Readonly<string>")]
   pub module_identifier: String,
   #[napi(js_name = "_module", ts_type = "Module")]
-  pub module: ModuleObject,
+  pub module: ModuleObjectWrapper,
   #[napi(ts_type = "Readonly<boolean>")]
   pub hot: bool,
 
@@ -115,10 +135,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
     Ok(JsLoaderContext {
       resource_data: cx.resource_data.as_ref().into(),
       module_identifier: module.identifier().to_string(),
-      module: ModuleObject::with_ptr(
-        NonNull::new(module as *const dyn Module as *mut dyn Module).unwrap(),
-        cx.context.compiler_id,
-      ),
+      module: ModuleObjectWrapper::new(module, cx.context.compilation_id),
       hot: cx.hot,
       content: match cx.content() {
         Some(c) => Either::B(c.to_owned().into_bytes().into()),

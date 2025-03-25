@@ -28,7 +28,7 @@ pub struct JsChunkOptionNameCtx {
 impl<'a> From<ChunkNameGetterFnCtx<'a>> for JsChunkOptionNameCtx {
   fn from(value: ChunkNameGetterFnCtx<'a>) -> Self {
     JsChunkOptionNameCtx {
-      module: ModuleObject::with_ref(value.module, value.compilation.compiler_id()),
+      module: ModuleObject::new(value.module, value.compilation.id()),
       chunks: value
         .chunks
         .iter()

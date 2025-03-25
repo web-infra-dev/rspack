@@ -2,7 +2,7 @@ use rspack_paths::ArcPath;
 use rustc_hash::FxHashSet as HashSet;
 
 /// Used to collect file add or remove.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct IncrementalInfo {
   added_files: HashSet<ArcPath>,
   removed_files: HashSet<ArcPath>,

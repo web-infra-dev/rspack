@@ -1,4 +1,6 @@
 use std::{
+  any::TypeId,
+  cell::RefCell,
   ffi::c_void,
   ptr,
   sync::Arc,
@@ -7,16 +9,21 @@ use std::{
 
 use crossbeam::queue::SegQueue;
 use napi::{
-  bindgen_prelude::{JavaScriptClassExt, Reference},
+  bindgen_prelude::{JavaScriptClassExt, Reference, WeakReference},
   sys::{napi_callback_info, napi_env, napi_value},
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
   Env,
 };
+use rspack_collections::UkeyMap;
 
 use crate::{
   entries::{EntryDataDTO, JsEntries},
-  JsCompilation,
+  ConcatenatedModule, ContextModule, ExternalModule, JsCompilation, Module, NormalModule,
 };
+
+thread_local! {
+  pub(crate) static COMPILATION_INSTANCE_REFS: RefCell<UkeyMap<rspack_core::CompilationId, WeakReference<JsCompilation>>> = Default::default();
+}
 
 extern "C" fn on_destruct(_env: napi_env, _callback_info: napi_callback_info) -> napi_value {
   ptr::null_mut()
@@ -113,14 +120,56 @@ impl rspack_core::NapiAllocator for NapiAllocatorImpl {
   #[inline(always)]
   fn allocate_compilation(
     &self,
+    _env: napi_env,
     val: Box<rspack_core::Compilation>,
   ) -> napi::Result<rspack_core::ThreadSafeReference> {
-    self.allocate_instance(JsCompilation::new(val))
+    let compilation_id = val.id();
+    let template = JsCompilation::new(val);
+
+    let mut instance = template.into_instance(&self.env).map_err(|_| {
+      napi::Error::new(
+        napi::Status::GenericFailure,
+        "Failed to allocate instance: unable to create instance",
+      )
+    })?;
+
+    let reference = unsafe {
+      Reference::<JsCompilation>::from_value_ptr(
+        &mut *instance as *mut _ as *mut c_void,
+        self.env.raw(),
+      )
+      .map_err(|_| {
+        napi::Error::new(
+          napi::Status::GenericFailure,
+          "Failed to allocate instance: unable to create reference",
+        )
+      })?
+    };
+    COMPILATION_INSTANCE_REFS.with(|ref_cell| {
+      let mut weak_references = ref_cell.borrow_mut();
+      weak_references.insert(compilation_id, reference.downgrade())
+    });
+
+    let reference = unsafe {
+      Reference::<()>::from_value_ptr(&mut *instance as *mut _ as *mut c_void, self.env.raw())
+        .map_err(|_| {
+          napi::Error::new(
+            napi::Status::GenericFailure,
+            "Failed to allocate instance: unable to create reference",
+          )
+        })?
+    };
+
+    Ok(rspack_core::ThreadSafeReference::new(
+      reference,
+      self.destructor.clone(),
+    ))
   }
 
   #[inline(always)]
   fn allocate_entries(
     &self,
+    _env: napi_env,
     val: Box<rspack_core::Entries>,
   ) -> napi::Result<rspack_core::ThreadSafeReference> {
     self.allocate_instance(JsEntries::new(val))
@@ -129,8 +178,51 @@ impl rspack_core::NapiAllocator for NapiAllocatorImpl {
   #[inline(always)]
   fn allocate_entry_data(
     &self,
+    _env: napi_env,
     val: Box<rspack_core::EntryData>,
   ) -> napi::Result<rspack_core::ThreadSafeReference> {
     self.allocate_instance(EntryDataDTO::new(val))
+  }
+
+  fn allocate_module(
+    &self,
+    env: napi_env,
+    val: Box<dyn rspack_core::Module>,
+  ) -> napi::Result<rspack_core::ThreadSafeReference> {
+    let type_id = val.as_any().type_id();
+    let js_module = Module(val);
+    let env_wrapper = Env::from_raw(env);
+
+    let instance_ptr = if type_id == TypeId::of::<rspack_core::NormalModule>() {
+      let mut instance = NormalModule { module: js_module }.custom_into_instance(&env_wrapper)?;
+      &mut *instance as *mut _ as *mut c_void
+    } else if type_id == TypeId::of::<rspack_core::ConcatenatedModule>() {
+      let mut instance =
+        ConcatenatedModule { module: js_module }.custom_into_instance(&env_wrapper)?;
+      &mut *instance as *mut _ as *mut c_void
+    } else if type_id == TypeId::of::<rspack_core::ContextModule>() {
+      let mut instance = ContextModule { module: js_module }.custom_into_instance(&env_wrapper)?;
+      &mut *instance as *mut _ as *mut c_void
+    } else if type_id == TypeId::of::<rspack_core::ExternalModule>() {
+      let mut instance = ExternalModule { module: js_module }.custom_into_instance(&env_wrapper)?;
+      &mut *instance as *mut _ as *mut c_void
+    } else {
+      let mut instance = js_module.custom_into_instance(&env_wrapper)?;
+      &mut *instance as *mut _ as *mut c_void
+    };
+
+    let reference = unsafe {
+      Reference::<()>::from_value_ptr(instance_ptr, self.env.raw()).map_err(|_| {
+        napi::Error::new(
+          napi::Status::GenericFailure,
+          "Failed to allocate instance: unable to create reference",
+        )
+      })?
+    };
+
+    Ok(rspack_core::ThreadSafeReference::new(
+      reference,
+      self.destructor.clone(),
+    ))
   }
 }

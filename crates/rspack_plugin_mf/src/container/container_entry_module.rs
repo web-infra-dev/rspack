@@ -11,8 +11,8 @@ use rspack_core::{
   BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult,
   ChunkGroupOptions, CodeGenerationResult, Compilation, ConcatenationScope, Context,
   DependenciesBlock, Dependency, DependencyId, FactoryMeta, GroupOptions, LibIdentOptions, Module,
-  ModuleDependency, ModuleExt, ModuleIdentifier, ModuleType, Reflectable, Reflector,
-  RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
+  ModuleDependency, ModuleIdentifier, ModuleType, Reflectable, Reflector, RuntimeGlobals,
+  RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_util::source_map::SourceMapKind;

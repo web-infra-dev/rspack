@@ -1,13 +1,13 @@
 mod dependencies;
 pub mod entries;
 
-use std::path::Path;
+use std::{cell::RefCell, path::Path};
 
 use dependencies::JsDependencies;
 use entries::JsEntries;
 use napi::sys::napi_value;
 use napi_derive::napi;
-use rspack_collections::{DatabaseItem, IdentifierSet};
+use rspack_collections::{DatabaseItem, IdentifierSet, UkeyMap};
 use rspack_core::{
   rspack_sources::BoxSource, BoxDependency, EntryOptions, FactorizeInfo, ModuleIdentifier,
   Reflectable,
@@ -25,8 +25,12 @@ use crate::{
   JsStatsOptimizationBailout, LocalJsFilename, ModuleObject, ToJsCompatSource, COMPILER_REFERENCES,
 };
 
+thread_local! {
+  static COMPILATION_INSTANCE_REFS: RefCell<UkeyMap<rspack_core::CompilationId, WeakReference<JsCompilation>>> = Default::default();
+}
+
 #[napi]
-pub struct JsCompilation(Box<rspack_core::Compilation>);
+pub struct JsCompilation(pub(crate) Box<rspack_core::Compilation>);
 
 impl JsCompilation {
   pub fn new(i: Box<rspack_core::Compilation>) -> Self {
@@ -142,7 +146,7 @@ impl JsCompilation {
         .filter_map(|module_id| {
           compilation
             .module_by_identifier(module_id)
-            .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id()))
+            .map(|module| ModuleObject::new(module.as_ref(), compilation.id()))
         })
         .collect::<Vec<_>>(),
     )
@@ -159,7 +163,7 @@ impl JsCompilation {
         .filter_map(|module_id| {
           compilation
             .module_by_identifier(module_id)
-            .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id()))
+            .map(|module| ModuleObject::new(module.as_ref(), compilation.id()))
         })
         .collect::<Vec<_>>(),
     )
@@ -539,7 +543,7 @@ impl JsCompilation {
     let compilation = self.0.as_mut();
 
     callbackify(env, f, async {
-      let compiler_id = compilation.compiler_id();
+      let compilation_id = compilation.id();
 
       let modules = compilation
         .rebuild_module(
@@ -547,7 +551,7 @@ impl JsCompilation {
           |modules| {
             modules
               .into_iter()
-              .map(|module| ModuleObject::with_ref(module.as_ref(), compiler_id))
+              .map(|module| ModuleObject::new(module.as_ref(), compilation_id))
               .collect::<Vec<_>>()
           },
         )
@@ -743,7 +747,7 @@ impl JsCompilation {
 
           match module_graph.get_module_by_dependency_id(&dependency_id) {
             Some(module) => {
-              let js_module = ModuleObject::with_ref(module.as_ref(), compilation.compiler_id());
+              let js_module = ModuleObject::new(module.as_ref(), compilation.id());
               Either::B(js_module)
             }
             None => Either::A("build failed with unknown error".to_string()),

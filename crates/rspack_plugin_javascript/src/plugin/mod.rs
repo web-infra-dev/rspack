@@ -35,7 +35,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
   BoxModule, ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
-  ExportsArgument, IdentCollector, Module, RuntimeGlobals, SourceType, SpanExt,
+  ExportsArgument, IdentCollector, RuntimeGlobals, SourceType, SpanExt,
 };
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest};

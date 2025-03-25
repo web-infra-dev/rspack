@@ -315,7 +315,7 @@ impl JsEntries {
     self.i.keys().collect()
   }
 
-  #[napi(ts_return_type = "EntryDataDTO | undefined")]
+  #[napi(ts_return_type = "EntryDataDTO[]")]
   pub fn values(&self, env: Env) -> napi::Result<Vec<napi_value>> {
     self
       .i

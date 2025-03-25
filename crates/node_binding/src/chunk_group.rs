@@ -71,7 +71,7 @@ impl JsChunkGroup {
         module: origin.module.and_then(|module_id| {
           compilation
             .module_by_identifier(&module_id)
-            .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id()))
+            .map(|module| ModuleObject::new(module.as_ref(), compilation.id()))
         }),
         request: match &origin.request {
           Some(request) => Some(env.create_string(request)?),
