@@ -671,7 +671,9 @@ impl Module for NormalModule {
     if self.source.is_some() {
       self
         .parser_and_generator
-        .update_hash(self, &mut hasher, compilation, runtime)?;
+        .get_runtime_hash(self, compilation, runtime)
+        .await?
+        .dyn_hash(&mut hasher);
     }
     module_update_hash(self, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))

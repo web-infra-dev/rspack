@@ -640,13 +640,13 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     None
   }
 
-  fn update_hash(
+  async fn get_runtime_hash(
     &self,
     module: &NormalModule,
-    hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Result<()> {
+  ) -> Result<RspackHashDigest> {
+    let mut hasher = RspackHash::from(&compilation.options.output);
     let parsed_asset_config = self
       .parsed_asset_config
       .as_ref()
@@ -656,7 +656,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       && let Some(AssetGeneratorDataUrl::Options(data_url_options)) =
         module_generator_options.and_then(|x| x.asset_data_url())
     {
-      data_url_options.dyn_hash(hasher);
+      data_url_options.dyn_hash(&mut hasher);
     } else if parsed_asset_config.is_resource() {
       let source_file_name = self.get_source_file_name(module, compilation);
       let (filename, _, _) = self.get_asset_module_filename(
@@ -667,20 +667,20 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         &source_file_name,
         false,
       )?;
-      filename.dyn_hash(hasher);
+      filename.dyn_hash(&mut hasher);
       match module_generator_options.and_then(|x| x.asset_public_path()) {
         Some(public_path) => match public_path {
           PublicPath::Filename(template) => {
             let (public_path, _) =
               self.get_public_path(module, compilation, None, &source_file_name, template)?;
-            public_path.dyn_hash(hasher);
+            public_path.dyn_hash(&mut hasher);
           }
-          PublicPath::Auto => "auto".dyn_hash(hasher),
+          PublicPath::Auto => "auto".dyn_hash(&mut hasher),
         },
-        None => "no-path".dyn_hash(hasher),
+        None => "no-path".dyn_hash(&mut hasher),
       };
     }
-    Ok(())
+    Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 }
 
