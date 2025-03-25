@@ -527,7 +527,7 @@ fn parse_cache_control(cache_control: &Option<String>, request_time: u64) -> (bo
 
       (store_lock, store_cache, valid_until)
     })
-    .unwrap_or((true, true, request_time))
+    .unwrap_or((true, true, 0))
 }
 
 fn current_time() -> u64 {

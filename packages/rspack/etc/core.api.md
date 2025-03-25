@@ -65,6 +65,7 @@ import { NormalModule } from '@rspack/binding';
 import { RawCopyPattern } from '@rspack/binding';
 import { RawCssExtractPluginOption } from '@rspack/binding';
 import type { RawFuncUseCtx } from '@rspack/binding';
+import { RawHttpUriPluginOptions } from '@rspack/binding';
 import { RawIgnorePluginOptions } from '@rspack/binding';
 import { RawOptions } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
@@ -2365,6 +2366,7 @@ type HttpUriPluginOptions = {
     lockfileLocation?: string;
     proxy?: string;
     upgrade?: boolean;
+    httpClient?: RawHttpUriPluginOptions["httpClient"];
 };
 
 // @public (undocumented)

@@ -1372,7 +1372,20 @@ const buildHttpOptions = z.object({
 	frozen: z.boolean().optional(),
 	lockfileLocation: z.string().optional(),
 	proxy: z.string().optional(),
-	upgrade: z.boolean().optional()
+	upgrade: z.boolean().optional(),
+	httpClient: z
+		.function()
+		.args(z.string(), z.record(z.string()))
+		.returns(
+			z.promise(
+				z.object({
+					status: z.number(),
+					headers: z.record(z.string()),
+					body: z.instanceof(Buffer)
+				})
+			)
+		)
+		.optional()
 }) satisfies z.ZodType<t.HttpUriOptions>;
 
 const experiments = z.strictObject({

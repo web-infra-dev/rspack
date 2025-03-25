@@ -687,66 +687,56 @@ function transform(webpackConfig, rspackConfig) {
 
 <ApiMeta addedVersion="1.3.0" />
 
-- **Type:** `boolean | BuildHttpOptions`
-- **Default:** `false`
+- **Type:** `HttpUriOptions`
+- **Default:** `undefined`
 
 ```ts
-type BuildHttpOptions = {
+type HttpUriOptions = {
   /**
-   * Regular expressions for allowed URIs
+   * A list of allowed URIs
    */
-  allowedUris?: string[];
-
+  allowedUris?: (string | RegExp)[];
   /**
-   * Cache location for HTTP responses
-   * @default undefined
+   * Define the location for caching remote resources
    */
   cacheLocation?: string | false;
-
   /**
-   * Whether to use a frozen cache
-   * @default false
+   * Freeze the remote resources and lockfile. Any modification to the lockfile or resource contents will result in an error
    */
   frozen?: boolean;
-
   /**
-   * Lockfile location
+   * Define the location to store the lockfile
    */
   lockfileLocation?: string;
-
   /**
-   * HTTP proxy to use
+   * Specify the proxy server to use for fetching remote resources
    */
   proxy?: string;
-
   /**
-   * Whether to upgrade dependencies
-   * @default false
+   * Detect changes to remote resources and upgrade them automatically
    */
   upgrade?: boolean;
-
-  /**
-   * Custom HTTP client implementation
-   */
-  http_client?: (
-    url: string,
-    headers: Record<string, string>,
-  ) => Promise<{
-    status: number;
-    headers: Record<string, string>;
-    body: Buffer;
-  }>;
 };
 ```
 
-Enables loading of modules via HTTP/HTTPS requests. This allows importing modules directly from URLs.
+After enabling this feature, Rspack can build remote resources that start with the `http(s):` protocol. Rspack will download the resources to the local machine and then bundle them.
 
-**Example**
+By default, Rspack will generate `rspack.lock` and `rspack.lock.data` in the [context](/config/context) folder as the locations of the Lockfile and the cache respectively. You can also configure them through `lockfileLocation` and `cacheLocation`.
+
+:::Note
+You should commit the files at `lockfileLocation` and `cacheLocation` to the version control system so that no network requests will be made during the production build.
+:::
+
+For example:
 
 ```js title="rspack.config.mjs"
 export default {
   experiments: {
-    buildHttp: true,
+    buildHttp: {
+      allowedUris: ['https://'],
+      lockfileLocation: path.join(__dirname, 'my_project.lock'),
+      cacheLocation: path.join(__dirname, 'my_project.lock.data'),
+    },
   },
 };
 ```
@@ -760,11 +750,3 @@ import { something } from 'https://example.com/module.js';
 // Or import assets
 import imageUrl from 'https://example.com/image.png';
 ```
-
-The `buildHttp` feature is useful for:
-
-- Importing modules from CDNs or other HTTP sources
-- Loading shared libraries from remote locations
-- Working with remote assets without downloading them locally
-
-When using a custom HTTP client implementation, you need to implement the `http_client` function that handles HTTP requests and returns a Promise that resolves to an object with status, headers, and body.

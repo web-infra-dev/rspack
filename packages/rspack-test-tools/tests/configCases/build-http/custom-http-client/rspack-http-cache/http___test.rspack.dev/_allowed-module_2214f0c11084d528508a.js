@@ -1,0 +1,1 @@
+module.exports = "This module is from an allowed URI";
