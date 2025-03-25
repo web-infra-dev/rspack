@@ -388,16 +388,18 @@ export class Watching {
 		changedFiles?: ReadonlySet<string>,
 		removedFiles?: ReadonlySet<string>
 	) {
-		if (!changedFiles) return;
-		if (!removedFiles) return;
 		if (!this.#collectedChangedFiles || !this.#collectedRemovedFiles) {
 			this.#collectedChangedFiles = new Set(changedFiles);
 			this.#collectedRemovedFiles = new Set(removedFiles);
-		} else {
+			return;
+		}
+		if (changedFiles) {
 			for (const file of changedFiles) {
 				this.#collectedChangedFiles.add(file);
 				this.#collectedRemovedFiles.delete(file);
 			}
+		}
+		if (removedFiles) {
 			for (const file of removedFiles) {
 				this.#collectedChangedFiles.delete(file);
 				this.#collectedRemovedFiles.add(file);
