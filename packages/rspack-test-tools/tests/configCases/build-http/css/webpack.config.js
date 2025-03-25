@@ -4,6 +4,9 @@ const path = require("path");
 module.exports = {
 	target: "web",
 	mode: "development",
+	output: {
+		assetModuleFilename: "[hash][ext]"
+	},
 	experiments: {
 		buildHttp: {
 			allowedUris: ["https://"],

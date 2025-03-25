@@ -1,33 +1,19 @@
 {
   "version": 1,
   "entries": {
-    "https://raw.githubusercontent.com/web-infra-dev/rspack/55d5d812172f6c27d5c454e31360d8719d85d6a7/packages/rspack-test-tools/tests/configCases/asset/_images/file.jpg": {
-      "resolved": "https://raw.githubusercontent.com/web-infra-dev/rspack/55d5d812172f6c27d5c454e31360d8719d85d6a7/packages/rspack-test-tools/tests/configCases/asset/_images/file.jpg",
-      "integrity": "sha512-HhRuJjGk870JGQXMwQ7RBUcANJZIzVKq0k6u7t/w+sS0S2ISKEptCFWUL/FjCMZkAuy4leaO8cZtzUlpcwQ82w==",
-      "content_type": "image/jpeg",
-      "valid_until": 1742895285889,
-      "etag": "W/\"40111d35223d236145879eff0356549b1c5e1e09d728cc3006096a31617decdb\""
-    },
-    "https://raw.githubusercontent.com/web-infra-dev/rspack/55d5d812172f6c27d5c454e31360d8719d85d6a7/packages/rspack-test-tools/tests/configCases/css/at-import/c.css": {
-      "resolved": "https://raw.githubusercontent.com/web-infra-dev/rspack/55d5d812172f6c27d5c454e31360d8719d85d6a7/packages/rspack-test-tools/tests/configCases/css/at-import/c.css",
+    "https://raw.githubusercontent.com/web-infra-dev/rspack/55d5d81/packages/rspack-test-tools/tests/configCases/css/at-import/c.css": {
+      "resolved": "https://raw.githubusercontent.com/web-infra-dev/rspack/55d5d81/packages/rspack-test-tools/tests/configCases/css/at-import/c.css",
       "integrity": "sha512-9IlEDzn8p05oVHvfl/t+jFDyUpBrLPY01NndJc0CV/j179cnspaC67GzkOkzEYGDoYR/BhweNmqAeHrWMv1Ymg==",
       "content_type": "text/plain; charset=utf-8",
-      "valid_until": 1742895285889,
+      "valid_until": 1742896328480,
       "etag": "W/\"4d5779cc5c04a4b98731c226d9eb4aa736ef934300a25bb792ac3ca687d87126\""
     },
-    "https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/url/img.png": {
-      "resolved": "https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/url/img.png",
-      "integrity": "sha512-bHqIPBYwzPsVLYcTDqJzwgvIaxLjmezufiCVXAMI0Naelf3eWVdydMA40hXbSuB0dZCGjCepuGaI7Ze8kLM+Ew==",
-      "content_type": "image/png",
-      "valid_until": 1742893862627,
-      "etag": "W/\"b490339dc4c5d30539a23b23c3b63b2f41a931933e0e31ffa122a78e435f50ee\""
-    },
-    "https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/import/print.css": {
-      "resolved": "https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/import/print.css",
-      "integrity": "sha512-/myPbDE4wFl8iP0bC1CXR+X+TOscaPV9+NbYoBGSQC+isfd0aenGk15EijukV04CW61CXR+c22ZgG0dp7ldntw==",
-      "content_type": "text/plain; charset=utf-8",
-      "valid_until": 1742893862627,
-      "etag": "W/\"8d02dc02e792a98d02e2363cd62150c170a59ecb397ff4e77a27700fc9075c6c\""
+    "https://raw.githubusercontent.com/web-infra-dev/rspack/55d5d81/packages/rspack-test-tools/tests/configCases/asset/_images/file.jpg": {
+      "resolved": "https://raw.githubusercontent.com/web-infra-dev/rspack/55d5d81/packages/rspack-test-tools/tests/configCases/asset/_images/file.jpg",
+      "integrity": "sha512-HhRuJjGk870JGQXMwQ7RBUcANJZIzVKq0k6u7t/w+sS0S2ISKEptCFWUL/FjCMZkAuy4leaO8cZtzUlpcwQ82w==",
+      "content_type": "image/jpeg",
+      "valid_until": 1742896328480,
+      "etag": "W/\"40111d35223d236145879eff0356549b1c5e1e09d728cc3006096a31617decdb\""
     }
   }
 }
