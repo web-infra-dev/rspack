@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "entries": {
+    "https://raw.githubusercontent.com/web-infra-dev/rspack/55d5d81/packages/rspack-test-tools/tests/configCases/asset/_images/file.jpg": {
+      "resolved": "https://raw.githubusercontent.com/web-infra-dev/rspack/55d5d81/packages/rspack-test-tools/tests/configCases/asset/_images/file.jpg",
+      "integrity": "sha512-HhRuJjGk870JGQXMwQ7RBUcANJZIzVKq0k6u7t/w+sS0S2ISKEptCFWUL/FjCMZkAuy4leaO8cZtzUlpcwQ82w==",
+      "content_type": "image/jpeg",
+      "valid_until": 1742905466911,
+      "etag": "W/\"40111d35223d236145879eff0356549b1c5e1e09d728cc3006096a31617decdb\""
+    }
+  }
+}

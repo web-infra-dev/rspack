@@ -127,7 +127,8 @@ export const applyRspackOptionsDefaults = (
 	);
 
 	applyExternalsPresetsDefaults(options.externalsPresets, {
-		targetProperties
+		targetProperties,
+		buildHttp: Boolean(options.experiments.buildHttp)
 	});
 
 	F(options, "externalsType", () => {
@@ -214,7 +215,13 @@ const applyExperimentsDefaults = (
 	D(experiments, "asyncWebAssembly", experiments.futureDefaults);
 	D(experiments, "css", experiments.futureDefaults ? true : undefined);
 	D(experiments, "layers", false);
+	D(experiments, "buildHttp", undefined);
 	D(experiments, "topLevelAwait", true);
+	if (experiments.buildHttp && typeof experiments.buildHttp === "object") {
+		D(experiments.buildHttp, "allowedUris", []);
+		D(experiments.buildHttp, "frozen", false);
+		D(experiments.buildHttp, "upgrade", false);
+	}
 
 	// IGNORE(experiments.incremental): Rspack specific configuration for incremental
 	D(experiments, "incremental", !production ? {} : false);
@@ -844,9 +851,9 @@ const applyOutputDefaults = (
 
 const applyExternalsPresetsDefaults = (
 	externalsPresets: ExternalsPresets,
-	{ targetProperties }: { targetProperties: any }
+	{ targetProperties, buildHttp }: { targetProperties: any; buildHttp: boolean }
 ) => {
-	D(externalsPresets, "web", targetProperties?.web);
+	D(externalsPresets, "web", !buildHttp && targetProperties?.web);
 	D(externalsPresets, "node", targetProperties?.node);
 	D(externalsPresets, "electron", targetProperties?.electron);
 	D(

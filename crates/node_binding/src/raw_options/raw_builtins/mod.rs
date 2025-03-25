@@ -5,6 +5,7 @@ mod raw_copy;
 mod raw_css_extract;
 mod raw_dll;
 mod raw_html;
+mod raw_http_uri;
 mod raw_ids;
 mod raw_ignore;
 mod raw_lazy_compilation;
@@ -208,6 +209,7 @@ pub enum BuiltinPluginName {
   JsLoaderRspackPlugin,
   LazyCompilationPlugin,
   ModuleInfoHeaderPlugin,
+  HttpUriPlugin,
 }
 
 #[napi(object)]
@@ -404,6 +406,11 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::DataUriPlugin => plugins.push(DataUriPlugin::default().boxed()),
       BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin::default().boxed()),
+      BuiltinPluginName::HttpUriPlugin => {
+        let plugin_options =
+          downcast_into::<self::raw_http_uri::RawHttpUriPluginOptions>(self.options)?;
+        plugins.push(raw_http_uri::get_http_uri_plugin(plugin_options));
+      }
       BuiltinPluginName::RuntimePlugin => plugins.push(RuntimePlugin::default().boxed()),
       BuiltinPluginName::JsonModulesPlugin => plugins.push(JsonPlugin.boxed()),
       BuiltinPluginName::InferAsyncModulesPlugin => {

@@ -41,6 +41,7 @@ import {
 	FlagDependencyExportsPlugin,
 	FlagDependencyUsagePlugin,
 	HttpExternalsRspackPlugin,
+	HttpUriPlugin,
 	InferAsyncModulesPlugin,
 	JavascriptModulesPlugin,
 	JsonModulesPlugin,
@@ -244,6 +245,10 @@ export class RspackOptionsApply {
 
 		new DataUriPlugin().apply(compiler);
 		new FileUriPlugin().apply(compiler);
+
+		if (options.experiments.buildHttp) {
+			new HttpUriPlugin(options.experiments.buildHttp).apply(compiler);
+		}
 
 		new EnsureChunkConditionsPlugin().apply(compiler);
 		if (options.optimization.mergeDuplicateChunks) {

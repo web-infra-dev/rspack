@@ -1365,6 +1365,29 @@ const incremental = z.strictObject({
 	emitAssets: z.boolean().optional()
 }) satisfies z.ZodType<t.Incremental>;
 
+// Define buildHttp options schema
+const buildHttpOptions = z.object({
+	allowedUris: z.array(z.union([z.string(), z.instanceof(RegExp)])).optional(),
+	cacheLocation: z.union([z.string(), z.literal(false)]).optional(),
+	frozen: z.boolean().optional(),
+	lockfileLocation: z.string().optional(),
+	proxy: z.string().optional(),
+	upgrade: z.boolean().optional(),
+	httpClient: z
+		.function()
+		.args(z.string(), z.record(z.string()))
+		.returns(
+			z.promise(
+				z.object({
+					status: z.number(),
+					headers: z.record(z.string()),
+					body: z.instanceof(Buffer)
+				})
+			)
+		)
+		.optional()
+}) satisfies z.ZodType<t.HttpUriOptions>;
+
 const experiments = z.strictObject({
 	cache: z.boolean().optional().or(experimentCacheOptions),
 	lazyCompilation: z.boolean().optional().or(lazyCompilationOptions),
@@ -1376,7 +1399,8 @@ const experiments = z.strictObject({
 	incremental: z.boolean().or(incremental).optional(),
 	parallelCodeSplitting: z.boolean().optional(),
 	futureDefaults: z.boolean().optional(),
-	rspackFuture: rspackFutureOptions.optional()
+	rspackFuture: rspackFutureOptions.optional(),
+	buildHttp: buildHttpOptions.optional()
 }) satisfies z.ZodType<t.Experiments>;
 //#endregion
 

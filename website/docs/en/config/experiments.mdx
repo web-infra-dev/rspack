@@ -682,3 +682,71 @@ function transform(webpackConfig, rspackConfig) {
   };
 }
 ```
+
+## experiments.buildHttp
+
+<ApiMeta addedVersion="1.3.0" />
+
+- **Type:** `HttpUriOptions`
+- **Default:** `undefined`
+
+```ts
+type HttpUriOptions = {
+  /**
+   * A list of allowed URIs
+   */
+  allowedUris?: (string | RegExp)[];
+  /**
+   * Define the location for caching remote resources
+   */
+  cacheLocation?: string | false;
+  /**
+   * Freeze the remote resources and lockfile. Any modification to the lockfile or resource contents will result in an error
+   */
+  frozen?: boolean;
+  /**
+   * Define the location to store the lockfile
+   */
+  lockfileLocation?: string;
+  /**
+   * Specify the proxy server to use for fetching remote resources
+   */
+  proxy?: string;
+  /**
+   * Detect changes to remote resources and upgrade them automatically
+   */
+  upgrade?: boolean;
+};
+```
+
+After enabling this feature, Rspack can build remote resources that start with the `http(s):` protocol. Rspack will download the resources to the local machine and then bundle them.
+
+By default, Rspack will generate `rspack.lock` and `rspack.lock.data` in the [context](/config/context) folder as the locations of the Lockfile and the cache respectively. You can also configure them through `lockfileLocation` and `cacheLocation`.
+
+:::Note
+You should commit the files at `lockfileLocation` and `cacheLocation` to the version control system so that no network requests will be made during the production build.
+:::
+
+For example:
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    buildHttp: {
+      allowedUris: ['https://'],
+      lockfileLocation: path.join(__dirname, 'my_project.lock'),
+      cacheLocation: path.join(__dirname, 'my_project.lock.data'),
+    },
+  },
+};
+```
+
+With this feature enabled, you can import modules directly from URLs:
+
+```js
+// Import from a remote URL
+import { something } from 'https://example.com/module.js';
+
+// Or import assets
+import imageUrl from 'https://example.com/image.png';
+```

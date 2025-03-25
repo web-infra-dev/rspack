@@ -5,6 +5,7 @@ import type { Compilation, PathData } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { Module } from "../Module";
 import type ModuleGraph from "../ModuleGraph";
+import type { HttpUriPluginOptions } from "../builtin-plugin/HttpUriPlugin";
 import type { Chunk } from "../exports";
 import type { ResolveCallback } from "./adapterRuleUse";
 
@@ -2565,6 +2566,11 @@ export type Incremental = {
 };
 
 /**
+ * Options for experiments.buildHttp
+ */
+export type HttpUriOptions = HttpUriPluginOptions;
+
+/**
  * Experimental features configuration.
  */
 export type Experiments = {
@@ -2628,6 +2634,11 @@ export type Experiments = {
 	 * Enable future Rspack features default options.
 	 */
 	rspackFuture?: RspackFutureOptions;
+	/**
+	 * Enable loading of modules via HTTP/HTTPS requests.
+	 * @default false
+	 */
+	buildHttp?: HttpUriOptions;
 };
 //#endregion
 
