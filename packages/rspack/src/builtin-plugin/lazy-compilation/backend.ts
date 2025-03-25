@@ -156,7 +156,7 @@ const getBackend = (
 				}
 
 				if (moduleActivated.length && compiler.watching) {
-					compiler.watching.lazyCompilationInvalidate(
+					compiler.watching.invalidateWithChangesAndRemovals(
 						new Set(moduleActivated.map(key => filesByKey.get(key)!))
 					);
 				}
