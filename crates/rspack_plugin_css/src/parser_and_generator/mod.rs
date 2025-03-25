@@ -545,17 +545,16 @@ impl ParserAndGenerator for CssParserAndGenerator {
           let mut concate_source = ConcatSource::default();
           if let Some(ref exports) = self.exports {
             let mg = generate_context.compilation.get_module_graph();
-            let unused_exports = get_unused_local_ident(
-              exports,
-              self
-                .local_names
-                .as_ref()
-                .expect("local names must be set when self.exports is set"),
-              module.identifier(),
-              generate_context.runtime,
-              &mg,
-            );
-            generate_context.data.insert(unused_exports);
+            if let Some(local_names) = &self.local_names {
+              let unused_exports = get_unused_local_ident(
+                exports,
+                local_names,
+                module.identifier(),
+                generate_context.runtime,
+                &mg,
+              );
+              generate_context.data.insert(unused_exports);
+            }
             let exports =
               get_used_exports(exports, module.identifier(), generate_context.runtime, &mg);
 
@@ -581,17 +580,16 @@ impl ParserAndGenerator for CssParserAndGenerator {
             ("", "", "")
           };
           if let Some(exports) = &self.exports {
-            let unused_exports = get_unused_local_ident(
-              exports,
-              self
-                .local_names
-                .as_ref()
-                .expect("local names must be set when self.exports is set"),
-              module.identifier(),
-              generate_context.runtime,
-              &mg,
-            );
-            generate_context.data.insert(unused_exports);
+            if let Some(local_names) = &self.local_names {
+              let unused_exports = get_unused_local_ident(
+                exports,
+                local_names,
+                module.identifier(),
+                generate_context.runtime,
+                &mg,
+              );
+              generate_context.data.insert(unused_exports);
+            }
 
             let exports =
               get_used_exports(exports, module.identifier(), generate_context.runtime, &mg);

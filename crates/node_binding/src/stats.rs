@@ -16,7 +16,7 @@ use rspack_napi::{
 use rspack_util::itoa;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{identifier::JsIdentifier, JsCompilation};
+use crate::{identifier::JsIdentifier, to_js_module_id, JsCompilation, JsModuleId};
 
 thread_local! {
   static MODULE_DESCRIPTOR_REFS: RefCell<HashMap<Identifier, OneShotRef>> = Default::default();
@@ -28,7 +28,8 @@ pub struct JsModuleDescriptor {
   #[napi(ts_type = "string")]
   pub identifier: JsIdentifier,
   pub name: String,
-  pub id: Option<String>,
+  #[napi(ts_type = "string | number | null")]
+  pub id: Option<JsModuleId>,
 }
 
 pub struct JsModuleDescriptorWrapper(JsModuleDescriptor);
@@ -88,7 +89,7 @@ impl From<rspack_core::StatsError<'_>> for JsStatsError {
         JsModuleDescriptor {
           identifier: identifier.into(),
           name: stats.module_name.unwrap_or_default().into_owned(),
-          id: stats.module_id.map(|s| s.to_string()),
+          id: stats.module_id.map(|s| to_js_module_id(&s)),
         }
         .into()
       }),
@@ -132,7 +133,7 @@ impl From<rspack_core::StatsWarning<'_>> for JsStatsWarning {
         JsModuleDescriptor {
           identifier: identifier.into(),
           name: stats.module_name.unwrap_or_default().into_owned(),
-          id: stats.module_id.map(|s| s.to_string()),
+          id: stats.module_id.map(|s| to_js_module_id(&s)),
         }
         .into()
       }),
@@ -182,7 +183,7 @@ impl From<rspack_core::StatsErrorModuleTraceModule> for JsStatsModuleTraceModule
       module_descriptor: JsModuleDescriptor {
         identifier: stats.identifier.into(),
         name: stats.name,
-        id: stats.id,
+        id: stats.id.map(|s| to_js_module_id(&s)),
       }
       .into(),
     }
@@ -562,7 +563,7 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
       JsModuleDescriptor {
         identifier: identifier.into(),
         name: stats.name.unwrap_or_default().into_owned(),
-        id: stats.id.map(|s| s.to_string()),
+        id: stats.id.map(|s| to_js_module_id(&s)),
       }
       .into()
     });
@@ -604,7 +605,7 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
       JsModuleDescriptor {
         identifier: identifier.into(),
         name: stats.issuer_name.unwrap_or_default().into_owned(),
-        id: stats.issuer_id.map(|s| s.to_string()),
+        id: stats.issuer_id.map(|s| to_js_module_id(&s)),
       }
       .into()
     });
@@ -670,7 +671,7 @@ impl From<rspack_core::StatsModuleIssuer<'_>> for JsStatsModuleIssuer {
       module_descriptor: JsModuleDescriptor {
         identifier: stats.identifier.into(),
         name: stats.name.into_owned(),
-        id: stats.id.map(|s| s.to_string()),
+        id: stats.id.map(|s| to_js_module_id(&s)),
       }
       .into(),
     }
@@ -698,7 +699,7 @@ impl From<rspack_core::StatsModuleReason<'_>> for JsStatsModuleReason {
         JsModuleDescriptor {
           identifier: identifier.into(),
           name: stats.module_name.unwrap_or_default().into_owned(),
-          id: stats.module_id.map(|s| s.to_string()),
+          id: stats.module_id.map(|s| to_js_module_id(&s)),
         }
         .into()
       }),
@@ -706,7 +707,7 @@ impl From<rspack_core::StatsModuleReason<'_>> for JsStatsModuleReason {
         JsModuleDescriptor {
           identifier: identifier.into(),
           name: stats.resolved_module_name.unwrap_or_default().into_owned(),
-          id: stats.resolved_module_id.map(|s| s.to_string()),
+          id: stats.resolved_module_id.map(|s| to_js_module_id(&s)),
         }
         .into()
       }),
@@ -816,7 +817,7 @@ impl TryFrom<StatsChunk<'_>> for JsStatsChunk {
             JsModuleDescriptor {
               identifier: identifier.into(),
               name: origin.module_name,
-              id: Some(origin.module_id),
+              id: origin.module_id.map(|s| to_js_module_id(&s)),
             }
             .into()
           }),

@@ -330,7 +330,7 @@ Object {
         main.js,
       ],
       filteredModules: undefined,
-      hash: ffa8ff8eef6ec630,
+      hash: 526d08f00e1e8f2f,
       id: 909,
       idHints: Array [],
       initial: true,
@@ -718,7 +718,7 @@ Object {
   errorsCount: 0,
   filteredAssets: undefined,
   filteredModules: undefined,
-  hash: 6f7ac96854add3de,
+  hash: 1bb5e91c0d72ce7a,
   modules: Array [
     Object {
       assets: Array [],

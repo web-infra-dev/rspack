@@ -11,7 +11,7 @@ use super::{
 };
 use crate::{
   BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupOrderKey, ChunkGroupUkey,
-  Compilation, CompilerOptions, ModuleGraph,
+  Compilation, CompilerOptions, ModuleGraph, ModuleId,
 };
 
 pub fn get_asset_size(file: &str, compilation: &Compilation) -> usize {
@@ -40,14 +40,13 @@ pub fn sort_modules(modules: &mut [StatsModule]) {
   });
 }
 
-pub fn get_stats_module_name_and_id<'s, 'c>(
+pub fn get_stats_module_name_and_id<'s>(
   module: &'s BoxModule,
-  compilation: &'c Compilation,
-) -> (Cow<'s, str>, Option<&'c str>) {
+  compilation: &Compilation,
+) -> (Cow<'s, str>, Option<ModuleId>) {
   let identifier = module.identifier();
   let name = module.readable_identifier(&compilation.options.context);
-  let id =
-    ChunkGraph::get_module_id(&compilation.module_ids_artifact, identifier).map(|s| s.as_str());
+  let id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, identifier).cloned();
   (name, id)
 }
 
@@ -178,7 +177,7 @@ pub fn get_module_trace(
         .readable_identifier(&options.context)
         .to_string(),
       id: ChunkGraph::get_module_id(&compilation.module_ids_artifact, origin_module.identifier())
-        .map(|s| s.to_string()),
+        .cloned(),
     };
 
     let current_stats_module = StatsErrorModuleTraceModule {
@@ -190,7 +189,7 @@ pub fn get_module_trace(
         &compilation.module_ids_artifact,
         current_module.identifier(),
       )
-      .map(|s| s.to_string()),
+      .cloned(),
     };
     let dependencies = module_graph
       .get_incoming_connections(&module_identifier)

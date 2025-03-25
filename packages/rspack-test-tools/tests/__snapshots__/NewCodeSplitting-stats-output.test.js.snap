@@ -58,7 +58,7 @@ runtime modules xx KiB
     [no exports]
     [used exports unknown]
   
-Rspack compiled successfully (b647003278ae1d01)
+Rspack compiled successfully (27eddb11e03f28d2)
 `;
 
 exports[`new code splitting stats output new code splitting stats output/builtin-swc-loader-parse-error should print correct stats for: NewCodeSplittingStatsOutput 1`] = `

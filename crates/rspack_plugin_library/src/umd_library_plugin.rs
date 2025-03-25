@@ -261,7 +261,7 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for UmdLibraryPlugin)]
-fn additional_chunk_runtime_requirements(
+async fn additional_chunk_runtime_requirements(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,

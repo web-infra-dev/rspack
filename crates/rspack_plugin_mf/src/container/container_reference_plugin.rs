@@ -109,7 +109,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
 }
 
 #[plugin_hook(CompilationRuntimeRequirementInTree for ContainerReferencePlugin)]
-fn runtime_requirements_in_tree(
+async fn runtime_requirements_in_tree(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,

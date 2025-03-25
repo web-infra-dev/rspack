@@ -20,7 +20,7 @@ impl ShareRuntimePlugin {
 }
 
 #[plugin_hook(CompilationRuntimeRequirementInTree for ShareRuntimePlugin)]
-fn runtime_requirements_in_tree(
+async fn runtime_requirements_in_tree(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,

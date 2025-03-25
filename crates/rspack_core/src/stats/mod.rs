@@ -344,14 +344,10 @@ impl Stats<'_> {
                 })
                 .unwrap_or_default();
 
-              let module_id = origin
-                .module
-                .map(|identifier| {
-                  ChunkGraph::get_module_id(&self.compilation.module_ids_artifact, identifier)
-                    .map(|s| s.to_string())
-                    .unwrap_or_default()
-                })
-                .unwrap_or_default();
+              let module_id = origin.module.and_then(|identifier| {
+                ChunkGraph::get_module_id(&self.compilation.module_ids_artifact, identifier)
+                  .cloned()
+              });
 
               StatsOriginRecord {
                 module: module_identifier,
@@ -861,10 +857,9 @@ impl Stats<'_> {
       stats.id = if executed {
         None
       } else {
-        ChunkGraph::get_module_id(&self.compilation.module_ids_artifact, identifier)
-          .map(|s| s.as_str())
+        ChunkGraph::get_module_id(&self.compilation.module_ids_artifact, identifier).cloned()
       };
-      stats.issuer_id = issuer_id.and_then(|i| i);
+      stats.issuer_id = issuer_id.flatten();
 
       let mut chunks: Vec<String> = if executed {
         vec![]
@@ -954,7 +949,7 @@ impl Stats<'_> {
           Some(StatsModuleReason {
             module_identifier: connection.original_module_identifier,
             module_name,
-            module_id: module_id.and_then(|i| i),
+            module_id: module_id.flatten(),
             module_chunks: connection.original_module_identifier.and_then(|id| {
               if self
                 .compilation
@@ -1116,7 +1111,7 @@ impl Stats<'_> {
     }
 
     if options.ids {
-      stats.id = Some("");
+      stats.id = Some("".into());
       stats.chunks = Some(vec![]);
     }
 
@@ -1235,7 +1230,7 @@ impl Stats<'_> {
     }
 
     if options.ids {
-      stats.id = Some("");
+      stats.id = Some("".into());
       stats.chunks = Some(chunks);
     }
 

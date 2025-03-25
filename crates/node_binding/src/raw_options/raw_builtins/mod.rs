@@ -1,5 +1,6 @@
 mod raw_banner;
 mod raw_bundle_info;
+mod raw_circular_dependency;
 mod raw_copy;
 mod raw_css_extract;
 mod raw_dll;
@@ -33,6 +34,7 @@ use rspack_ids::{
 use rspack_napi::NapiResultExt;
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
+use rspack_plugin_circular_dependencies::CircularDependencyRspackPlugin;
 use rspack_plugin_context_replacement::ContextReplacementPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
 use rspack_plugin_css::CssPlugin;
@@ -91,6 +93,7 @@ use rspack_plugin_worker::WorkerPlugin;
 
 pub use self::{
   raw_banner::RawBannerPluginOptions,
+  raw_circular_dependency::RawCircularDependencyRspackPluginOptions,
   raw_copy::RawCopyRspackPluginOptions,
   raw_dll::{RawDllEntryPluginOptions, RawLibManifestPluginOptions},
   raw_html::RawHtmlRspackPluginOptions,
@@ -200,6 +203,7 @@ pub enum BuiltinPluginName {
   CssExtractRspackPlugin,
   SubresourceIntegrityPlugin,
   RsdoctorPlugin,
+  CircularDependencyRspackPlugin,
 
   // rspack js adapter plugins
   // naming format follow XxxRspackPlugin
@@ -529,6 +533,12 @@ impl BuiltinPlugin {
         .boxed();
         plugins.push(plugin);
       }
+      BuiltinPluginName::CircularDependencyRspackPlugin => plugins.push(
+        CircularDependencyRspackPlugin::new(
+          downcast_into::<RawCircularDependencyRspackPluginOptions>(self.options)?.into(),
+        )
+        .boxed(),
+      ),
       BuiltinPluginName::JsLoaderRspackPlugin => {
         plugins
           .push(JsLoaderRspackPlugin::new(downcast_into::<JsLoaderRunner>(self.options)?).boxed());

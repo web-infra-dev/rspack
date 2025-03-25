@@ -111,7 +111,6 @@ export default {
 type LazyCompilationOptions =
   | boolean
   | {
-      backend?: LazyCompilationBackendOptions;
       /**
        * Enable lazy compilation for entries.
        */
@@ -126,6 +125,10 @@ type LazyCompilationOptions =
       test?: RegExp | ((m: Module) => boolean);
     };
 ```
+
+:::Tip
+Check out the [guide](/guide/features/lazy-compilation) for a quick start.
+:::
 
 Enable lazy compilation, which can greatly improve the dev startup performance of multi-page applications (MPA) or large single-page applications (SPA). For example, if you have twenty entry points, only the accessed entry points will be built. Or if there are many `import()` statements in the project, each module pointed to by `import()` will only be built when it is actually accessed.
 
@@ -145,115 +148,45 @@ export default {
 In addition, you can also configure a `test` parameter for more fine-grained control over which modules are lazily compiled. The `test` parameter can be a regular expression that matches only those modules that should be lazily compiled. It can also be a function where the input is of type 'Module' and returns a boolean value indicating whether it meets the criteria for lazy compilation logic.
 
 :::tip
-The current lazy compilation aligns with the webpack implementation, **and is still in the experimental stage**. In some scenarios, lazy compilation might not work as expected, or the performance improvement may be insignificant.
+The current lazy compilation **is still in the experimental stage**. In some scenarios, lazy compilation might not work as expected, or the performance improvement may be insignificant.
 :::
 
-## experiments.lazyCompilation.backend
+### lazyCompilation.client
 
-- **Type:** `LazyCompilationBackendOptions`
+- **Type:** `string`
 
-```ts
-type LazyCompilationBackendOptions = {
-  /**
-   * Custom client script path.
-   */
-  client?: string;
-  /**
-   * Specify the port or options to listen from the server.
-   */
-  listen?: number | ListenOptions | ((server: Server) => void);
-  /**
-   * Specify the protocol used by the client.
-   */
-  protocol?: 'http' | 'https';
-  /**
-   * Specify how to create a server that handles EventSource requests.
-   */
-  server?:
-    | ServerOptionsImport<typeof IncomingMessage>
-    | ServerOptionsHttps<typeof IncomingMessage, typeof ServerResponse>
-    | (() => Server);
-};
-```
+Used to override the default lazy compilation client runtime. If you want to customize the logic of the client runtime, you can specify it through this configuration option.
 
-Enabling lazy compilation will start a separate server to handle requests from clients. You can customize the behavior of the server by configuring `lazyCompilation.backend`, and you can also provide your own server instance.
-
-### lazyCompilation.backend.server
-
-- **Type:**
-
-```ts
-type ServerOptions =
-  | ServerOptionsImport<typeof IncomingMessage>
-  | ServerOptionsHttps<typeof IncomingMessage, typeof ServerResponse>
-  | (() => Server);
-```
+- [Client for web](https://github.com/web-infra-dev/rspack/blob/699229b9e7c33b7db7968c2f803f750e0367fe8a/packages/rspack/hot/lazy-compilation-web.js)
+- [Client for node](https://github.com/web-infra-dev/rspack/blob/699229b9e7c33b7db7968c2f803f750e0367fe8a/packages/rspack/hot/lazy-compilation-node.js)
 
 ```js title="rspack.config.mjs"
+import path from 'path';
+
 export default {
   experiments: {
     lazyCompilation: {
-      backend: {
-        server() {
-          return yourServer;
-        },
-      },
+      client: path.resolve('custom-client.js'),
     },
   },
 };
 ```
 
-You can provide a custom server instance to handle requests from clients for `lazy-compilation`. The provided server must meet the following interface requirements.
+### lazyCompilation.serverUrl
 
-```ts
-import type { IncomingMessage, ServerResponse } from 'node:http';
-import type { AddressInfo, ListenOptions, Socket } from 'node:net';
+- **Type:** `string`
 
-interface Server {
-  // Register callback function to handle requests
-  on(
-    event: 'request',
-    callback: (req: IncomingMessage, res: ServerResponse) => void,
-  ): void;
+Tells the client the server path that needs to be requested. By default it is empty, in a browser environment it will find the server path where the page is located, but in a node environment you need to explicitly specify a specific path.
 
-  // Register callback function for new client connections
-  on(event: 'connection', callback: (socket: Socket) => void): void;
-
-  // Register callback function for new client connections
-  on(event: 'listening', callback: (err?: Error) => void): void;
-
-  // Unregister registered callbacks
-  off(event: string, callback: () => void): void;
-
-  // Show address information of the server
-  address(): AddressInfo;
-
-  close(callback: (err?: any) => void): void;
-
-  listen(listenOption: number | ListenOption): void;
-}
-```
-
-### lazyCompilation.backend.listen
-
-- **Type:** `number | ListenOptions | ((server: Server) => void)`
-
-```ts
-type ListenOptions = {
-  port?: number | undefined;
-  host?: string | undefined;
-  backlog?: number | undefined;
-  path?: string | undefined;
-  exclusive?: boolean | undefined;
-  readableAll?: boolean | null;
-  writableAll?: boolean | null;
-  ip6Only?: boolean | null;
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    lazyCompilation: {
+      serverUrl: 'http://localhost:3000',
+    },
+  },
 };
 ```
-
-Specify how the sever listens ,you can pass in object form listening configuration,such as specifying listening ports,you can also pass in functions control how listen is done.
-
-When providing a custom server instance, you are responsible for calling the server's `listen` method to start the service, unless you explicitly configure a function forms` listen` option.
 
 ### Exclude HMR client
 

@@ -312,12 +312,11 @@ pub trait Module:
   /// Different cgm code generation result should have different cgm.hash,
   /// so this also accept compilation (mainly chunk graph) and runtime as args.
   /// (Difference with `impl Hash for Module`: this is just a part for calculating cgm.hash, not for Module itself)
-  fn update_hash(
+  async fn get_runtime_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
-  ) -> Result<()>;
+  ) -> Result<RspackHashDigest>;
 
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
     // Align with https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L845
@@ -628,6 +627,7 @@ mod test {
   use rspack_cacheable::cacheable;
   use rspack_collections::{Identifiable, Identifier};
   use rspack_error::{impl_empty_diagnosable_trait, Result};
+  use rspack_hash::RspackHashDigest;
   use rspack_sources::BoxSource;
   use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
@@ -713,12 +713,11 @@ mod test {
           unreachable!()
         }
 
-        fn update_hash(
+        async fn get_runtime_hash(
           &self,
-          _hasher: &mut dyn std::hash::Hasher,
           _compilation: &Compilation,
           _runtime: Option<&RuntimeSpec>,
-        ) -> Result<()> {
+        ) -> Result<RspackHashDigest> {
           unreachable!()
         }
 

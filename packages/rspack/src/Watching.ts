@@ -196,8 +196,23 @@ export class Watching {
 		this.#invalidate();
 	}
 
-	lazyCompilationInvalidate(files: Set<string>) {
-		this.#invalidate(new Map(), new Map(), files, new Set());
+	/**
+	 * @internal This is not a public API yet, still unstable, might change in the future
+	 */
+	invalidateWithChangesAndRemovals(
+		changedFiles?: Set<string>,
+		removedFiles?: Set<string>,
+		callback?: Callback<Error, void>
+	) {
+		if (callback) {
+			this.callbacks.push(callback);
+		}
+		if (!this.#invalidReported) {
+			this.#invalidReported = true;
+			this.compiler.hooks.invalid.call(null, Date.now());
+		}
+		this.onChange();
+		this.#invalidate(undefined, undefined, changedFiles, removedFiles);
 	}
 
 	#invalidate(
@@ -373,16 +388,18 @@ export class Watching {
 		changedFiles?: ReadonlySet<string>,
 		removedFiles?: ReadonlySet<string>
 	) {
-		if (!changedFiles) return;
-		if (!removedFiles) return;
 		if (!this.#collectedChangedFiles || !this.#collectedRemovedFiles) {
 			this.#collectedChangedFiles = new Set(changedFiles);
 			this.#collectedRemovedFiles = new Set(removedFiles);
-		} else {
+			return;
+		}
+		if (changedFiles) {
 			for (const file of changedFiles) {
 				this.#collectedChangedFiles.add(file);
 				this.#collectedRemovedFiles.delete(file);
 			}
+		}
+		if (removedFiles) {
 			for (const file of removedFiles) {
 				this.#collectedChangedFiles.delete(file);
 				this.#collectedRemovedFiles.add(file);

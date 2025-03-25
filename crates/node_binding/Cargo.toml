@@ -67,6 +67,7 @@ rspack_loader_swc                      = { workspace = true }
 rspack_loader_testing                  = { workspace = true }
 rspack_plugin_asset                    = { workspace = true }
 rspack_plugin_banner                   = { workspace = true }
+rspack_plugin_circular_dependencies    = { workspace = true }
 rspack_plugin_context_replacement      = { workspace = true }
 rspack_plugin_copy                     = { workspace = true }
 rspack_plugin_css                      = { workspace = true }

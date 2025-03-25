@@ -175,7 +175,7 @@ export declare class JsChunkGraph {
   getChunkEntryDependentChunksIterable(chunk: JsChunk): JsChunk[]
   getChunkModulesIterableBySourceType(chunk: JsChunk, sourceType: string): Module[]
   getModuleChunks(module: Module): JsChunk[]
-  getModuleId(module: Module): string | null
+  getModuleId(module: Module): string | number | null
   getModuleHash(module: Module, runtime: string | string[] | undefined): string | null
   getBlockChunkGroup(jsBlock: AsyncDependenciesBlock): JsChunkGroup | null
 }
@@ -455,6 +455,7 @@ export declare enum BuiltinPluginName {
   CssExtractRspackPlugin = 'CssExtractRspackPlugin',
   SubresourceIntegrityPlugin = 'SubresourceIntegrityPlugin',
   RsdoctorPlugin = 'RsdoctorPlugin',
+  CircularDependencyRspackPlugin = 'CircularDependencyRspackPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin',
   ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin',
@@ -841,7 +842,7 @@ export declare enum JsLoaderState {
 export interface JsModuleDescriptor {
   identifier: string
   name: string
-  id?: string
+  id?: string | number | null
 }
 
 export interface JsNormalModuleFactoryCreateModuleArgs {
@@ -1497,6 +1498,17 @@ export interface RawCacheGroupOptions {
 export interface RawCacheOptions {
   type: string
   maxGenerations?: number
+}
+
+export interface RawCircularDependencyRspackPluginOptions {
+  failOnError?: boolean
+  allowAsyncCycles?: boolean
+  exclude?: RegExp
+  ignoredConnections?: Array<[string | RegExp, string | RegExp]>
+  onDetected?: (entrypoint: Module, modules: string[], compilation: JsCompilation) => void
+  onIgnored?: (entrypoint: Module, modules: string[], compilation: JsCompilation) => void
+  onStart?: (compilation: JsCompilation) => void
+  onEnd?: (compilation: JsCompilation) => void
 }
 
 export interface RawConsumeOptions {
