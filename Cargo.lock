@@ -4557,7 +4557,6 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
- "once_cell",
  "rayon",
  "ropey",
  "rspack_allocator",
