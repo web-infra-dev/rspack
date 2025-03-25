@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "entries": {
+    "https://raw.githubusercontent.com/web-infra-dev/rspack/55d5d812172f6c27d5c454e31360d8719d85d6a7/packages/rspack-test-tools/tests/configCases/asset/_images/file.jpg": {
+      "resolved": "https://raw.githubusercontent.com/web-infra-dev/rspack/55d5d812172f6c27d5c454e31360d8719d85d6a7/packages/rspack-test-tools/tests/configCases/asset/_images/file.jpg",
+      "integrity": "sha512-HhRuJjGk870JGQXMwQ7RBUcANJZIzVKq0k6u7t/w+sS0S2ISKEptCFWUL/FjCMZkAuy4leaO8cZtzUlpcwQ82w==",
+      "content_type": "image/jpeg",
+      "valid_until": 1742895339638,
+      "etag": "W/\"40111d35223d236145879eff0356549b1c5e1e09d728cc3006096a31617decdb\""
+    },
+    "https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/asset-modules/_images/file.svg": {
+      "resolved": "https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/asset-modules/_images/file.svg",
+      "integrity": "sha512-ncmj1otv+/Hu0YMJTrkNR+Tnzm9oQZt4PAKpmch4P73Gle2YoMdjhG5lAFxRurztcA/tRy5d8aI5gOet9D1Kag==",
+      "content_type": "image/svg+xml",
+      "valid_until": 1742891910238,
+      "etag": "W/\"04fb8ead422ddd0495775fd245d3fbcfeddf01ae7bfa10a79089555f374f7190\""
+    }
+  }
+}

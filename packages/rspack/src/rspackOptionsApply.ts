@@ -247,11 +247,7 @@ export class RspackOptionsApply {
 		new FileUriPlugin().apply(compiler);
 
 		if (options.experiments.buildHttp) {
-			const buildHttpOptions =
-				typeof options.experiments.buildHttp === "object"
-					? options.experiments.buildHttp
-					: {};
-			new HttpUriPlugin(buildHttpOptions).apply(compiler);
+			new HttpUriPlugin(options.experiments.buildHttp).apply(compiler);
 		}
 
 		new EnsureChunkConditionsPlugin().apply(compiler);

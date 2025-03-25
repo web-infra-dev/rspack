@@ -21,7 +21,6 @@ mod raw_swc_js_minimizer;
 use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
-pub use raw_http_uri::{create_http_uri_plugin, register_http_client, RawHttpUriPluginOptions};
 use raw_ids::RawOccurrenceChunkIdsPluginOptions;
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use raw_sri::RawSubresourceIntegrityPluginOptions;

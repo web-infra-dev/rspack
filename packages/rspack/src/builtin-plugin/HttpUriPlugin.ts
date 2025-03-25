@@ -1,14 +1,8 @@
-import { BuiltinPluginName, registerHttpClient } from "@rspack/binding";
+import {
+	BuiltinPluginName,
+	type RawHttpUriPluginOptions
+} from "@rspack/binding";
 import { create } from "./base";
-
-export type HttpClientFunction = (
-	url: string,
-	headers: Record<string, string>
-) => Promise<{
-	status: number;
-	headers: Record<string, string>;
-	body: Buffer;
-}>;
 
 export type HttpUriPluginOptions = {
 	/**
@@ -35,11 +29,6 @@ export type HttpUriPluginOptions = {
 	 * Whether to upgrade dependencies
 	 */
 	upgrade?: boolean;
-	/**
-	 * HTTP client to use for requests
-	 * Direct function that handles HTTP requests
-	 */
-	http_client?: HttpClientFunction;
 };
 
 /**
@@ -47,8 +36,8 @@ export type HttpUriPluginOptions = {
  */
 export const HttpUriPlugin = create(
 	BuiltinPluginName.HttpUriPlugin,
-	(options: HttpUriPluginOptions = {}) => {
-		const http_client = (url: string, headers: Record<string, string>) => {
+	(options: HttpUriPluginOptions = {}): RawHttpUriPluginOptions => {
+		const httpClient = (url: string, headers: Record<string, string>) => {
 			// Return a promise that resolves to the response
 			return fetch(url, { headers }).then(response => {
 				// Convert the response to the format expected by the HTTP client
@@ -69,9 +58,15 @@ export const HttpUriPlugin = create(
 			});
 		};
 
-		registerHttpClient(options.http_client || http_client);
-
-		return options;
+		return {
+			allowedUris: options.allowedUris,
+			cacheLocation: options.cacheLocation || undefined,
+			frozen: options.frozen,
+			lockfileLocation: options.lockfileLocation,
+			proxy: options.proxy,
+			upgrade: options.upgrade,
+			httpClient
+		};
 	},
-	"thisCompilation"
+	"compilation"
 );

@@ -1829,6 +1829,7 @@ export interface RawHttpUriPluginOptions {
   lockfileLocation?: string
   proxy?: string
   upgrade?: boolean
+  httpClient: (url: string, headers: Record<string, string>) => Promise<JsHttpResponseRaw>
 }
 
 export interface RawIgnorePluginOptions {
@@ -2408,8 +2409,6 @@ export interface RawTrustedTypes {
  * Copyright (c)
  */
 export declare function registerGlobalTrace(filter: string, layer: "chrome" | "logger" | "otel", output: string): void
-
-export declare function registerHttpClient(http_client: (url: string, headers: Record<string, string>) => Promise<{ status: number, headers: Record<string, string>, body: Buffer }>):void
 
 export declare enum RegisterJsTapKind {
   CompilerThisCompilation = 0,

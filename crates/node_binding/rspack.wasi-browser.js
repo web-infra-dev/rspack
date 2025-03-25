@@ -95,5 +95,4 @@ export const JsLoaderState = __napiModule.exports.JsLoaderState
 export const JsRspackSeverity = __napiModule.exports.JsRspackSeverity
 export const RawRuleSetConditionType = __napiModule.exports.RawRuleSetConditionType
 export const registerGlobalTrace = __napiModule.exports.registerGlobalTrace
-export const registerHttpClient = __napiModule.exports.registerHttpClient
 export const RegisterJsTapKind = __napiModule.exports.RegisterJsTapKind

@@ -82,7 +82,7 @@ impl HttpCache {
     cache_location: Option<String>,
     lockfile_location: Option<String>,
     filesystem: Arc<dyn WritableFileSystem + Send + Sync>,
-    http_client: Option<Arc<dyn HttpClient>>,
+    http_client: Arc<dyn HttpClient>,
   ) -> Self {
     let cache_location = cache_location.map(PathBuf::from);
     let lockfile_path = lockfile_location.map(PathBuf::from);
@@ -90,7 +90,7 @@ impl HttpCache {
       cache_location,
       lockfile_cache: LockfileCache::new(lockfile_path, filesystem.clone()),
       filesystem: filesystem.clone(),
-      http_client: http_client.expect("http_client must be provided"),
+      http_client,
     }
   }
 

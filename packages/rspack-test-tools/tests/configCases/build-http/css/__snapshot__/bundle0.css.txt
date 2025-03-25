@@ -1,0 +1,28 @@
+Array [
+  "/* #region \"./style.css\" */
+/*
+- type: css/auto
+*/
+
+
+div {
+	background: url(0dbf5c303a9fe7ec.jpg)
+}
+
+/* #endregion \"./style.css\" */
+
+",
+  "/* #region \"./style.css\" */
+/*
+- type: css/auto
+*/
+
+
+div {
+	background: url(0dbf5c303a9fe7ec.jpg)
+}
+
+/* #endregion \"./style.css\" */
+
+",
+]

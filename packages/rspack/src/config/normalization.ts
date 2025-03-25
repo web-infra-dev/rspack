@@ -11,7 +11,7 @@
 import path from "node:path";
 import util from "node:util";
 import type { Compilation } from "../Compilation";
-import type { HttpClientFunction } from "../builtin-plugin/HttpUriPlugin";
+import type { HttpUriPluginOptions } from "../builtin-plugin";
 import type {
 	Amd,
 	AssetModuleFilename,
@@ -610,17 +610,7 @@ export interface ExperimentsNormalized {
 	parallelCodeSplitting?: boolean;
 	futureDefaults?: boolean;
 	rspackFuture?: RspackFutureOptions;
-	buildHttp?:
-		| boolean
-		| {
-				allowedUris?: (string | RegExp)[];
-				cacheLocation?: string | false;
-				frozen?: boolean;
-				lockfileLocation?: string;
-				proxy?: string;
-				upgrade?: boolean;
-				http_client?: HttpClientFunction;
-		  };
+	buildHttp?: HttpUriPluginOptions;
 }
 
 export type IgnoreWarningsNormalized = ((

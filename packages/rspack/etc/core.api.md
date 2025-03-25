@@ -545,7 +545,7 @@ export const CircularDependencyRspackPlugin: {
     new (options: CircularDependencyRspackPluginOptions): {
         name: BuiltinPluginName;
         _args: [options: CircularDependencyRspackPluginOptions];
-        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
@@ -1938,19 +1938,7 @@ export type Experiments = {
     parallelCodeSplitting?: boolean;
     futureDefaults?: boolean;
     rspackFuture?: RspackFutureOptions;
-    buildHttp?: boolean | {
-        allowedUris?: (string | RegExp)[];
-        cacheLocation?: string | false;
-        frozen?: boolean;
-        lockfileLocation?: string;
-        proxy?: string;
-        upgrade?: boolean;
-        http_client?: (url: string, headers: Record<string, string>) => Promise<{
-            status: number;
-            headers: Record<string, string>;
-            body: Buffer;
-        }>;
-    };
+    buildHttp?: HttpUriOptions;
 };
 
 // @public (undocumented)
@@ -1978,15 +1966,7 @@ export interface ExperimentsNormalized {
     // (undocumented)
     asyncWebAssembly?: boolean;
     // (undocumented)
-    buildHttp?: boolean | {
-        allowedUris?: (string | RegExp)[];
-        cacheLocation?: string | false;
-        frozen?: boolean;
-        lockfileLocation?: string;
-        proxy?: string;
-        upgrade?: boolean;
-        http_client?: HttpClientFunction;
-    };
+    buildHttp?: HttpUriPluginOptions;
     // (undocumented)
     cache?: ExperimentCacheNormalized;
     // (undocumented)
@@ -2374,12 +2354,18 @@ export type HtmlRspackPluginOptions = {
     hash?: boolean;
 };
 
+// @public
+export type HttpUriOptions = HttpUriPluginOptions;
+
 // @public (undocumented)
-type HttpClientFunction = (url: string, headers: Record<string, string>) => Promise<{
-    status: number;
-    headers: Record<string, string>;
-    body: Buffer;
-}>;
+type HttpUriPluginOptions = {
+    allowedUris?: (string | RegExp)[];
+    cacheLocation?: string | false;
+    frozen?: boolean;
+    lockfileLocation?: string;
+    proxy?: string;
+    upgrade?: boolean;
+};
 
 // @public (undocumented)
 type IBigIntStats = IStatsBase<bigint> & {
@@ -5218,6 +5204,7 @@ declare namespace rspackExports {
         RspackFutureOptions,
         LazyCompilationOptions,
         Incremental,
+        HttpUriOptions,
         Experiments,
         Watch,
         WatchOptions,

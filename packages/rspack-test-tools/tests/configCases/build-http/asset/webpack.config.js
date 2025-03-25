@@ -5,9 +5,10 @@ module.exports = {
 	mode: "development",
 	experiments: {
 		buildHttp: {
-			allowedUris: [() => true],
+			allowedUris: ["https://"],
 			lockfileLocation: path.resolve(__dirname, "./lock-files/lock.json"),
 			cacheLocation: path.resolve(__dirname, "./lock-files/test")
-		}
+		},
+		css: false
 	}
 };

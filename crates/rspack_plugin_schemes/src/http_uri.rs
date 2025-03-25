@@ -39,7 +39,7 @@ pub struct HttpUriPluginOptions {
   pub proxy: Option<String>,
   pub upgrade: Option<bool>,
   pub filesystem: Arc<dyn WritableFileSystem>,
-  pub http_client: Option<Arc<dyn HttpClient>>,
+  pub http_client: Arc<dyn HttpClient>,
 }
 
 #[plugin_hook(NormalModuleFactoryResolveForScheme for HttpUriPlugin)]

@@ -1,17 +1,8 @@
-use std::{
-  collections::HashMap,
-  fmt::Debug,
-  sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-  },
-};
+use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
 use async_trait::async_trait;
 use napi::bindgen_prelude::{Buffer, Either, Promise};
 use napi_derive::napi;
-use once_cell::sync::OnceCell;
-use rspack_error::AnyhowError;
 use rspack_fs::WritableFileSystem;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_schemes::{
@@ -20,7 +11,7 @@ use rspack_plugin_schemes::{
 use rspack_regex::RspackRegex;
 use rspack_util::asset_condition::{AssetCondition, AssetConditions};
 
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 #[derive(Debug)]
 pub struct RawHttpUriPluginOptions {
   #[napi(ts_type = "(string | RegExp)[]")]
@@ -30,6 +21,9 @@ pub struct RawHttpUriPluginOptions {
   pub lockfile_location: Option<String>,
   pub proxy: Option<String>,
   pub upgrade: Option<bool>,
+  #[napi(ts_type = "(url: string, headers: Record<string, string>) => Promise<JsHttpResponseRaw>")]
+  pub http_client:
+    ThreadsafeFunction<(String, HashMap<String, String>), Promise<JsHttpResponseRaw>>,
 }
 
 #[napi(object)]
@@ -68,33 +62,11 @@ impl HttpClient for JsHttpClient {
   }
 }
 
-static JS_HTTP_CLIENT: OnceCell<JsHttpClient> = OnceCell::new();
-static HTTP_CLIENT_REGISTERED: AtomicBool = AtomicBool::new(false);
-
-#[napi(
-  ts_type = "(http_client: (url: string, headers: Record<string, string>) => Promise<{ status: number, headers: Record<string, string>, body: Buffer }>):void"
-)]
-pub fn register_http_client(
-  http_client: ThreadsafeFunction<(String, HashMap<String, String>), Promise<JsHttpResponseRaw>>,
-) {
-  let client = JsHttpClient {
-    function: http_client,
-  };
-
-  let _ = JS_HTTP_CLIENT.set(client);
-  HTTP_CLIENT_REGISTERED.store(true, Ordering::SeqCst);
-}
-
-pub fn create_http_uri_plugin(
-  allowed_uris: Option<Vec<Either<String, RspackRegex>>>,
-  cache_location: Option<String>,
-  frozen: Option<bool>,
-  lockfile_location: Option<String>,
-  proxy: Option<String>,
-  upgrade: Option<bool>,
+fn create_http_uri_plugin_options(
+  options: RawHttpUriPluginOptions,
   filesystem: Arc<dyn WritableFileSystem>,
-) -> Result<HttpUriPlugin, AnyhowError> {
-  let allowed_uris = match allowed_uris {
+) -> HttpUriPluginOptions {
+  let allowed_uris = match options.allowed_uris {
     Some(conditions) => {
       let asset_conditions = conditions
         .into_iter()
@@ -108,31 +80,20 @@ pub fn create_http_uri_plugin(
     None => HttpUriOptionsAllowedUris::default(),
   };
 
-  let http_client = if HTTP_CLIENT_REGISTERED.load(Ordering::SeqCst) {
-    let js_client = JS_HTTP_CLIENT
-      .get()
-      .expect("HTTP client not available from JavaScript side")
-      .clone();
+  let http_client = Arc::new(JsHttpClient {
+    function: options.http_client,
+  });
 
-    Some(Arc::new(js_client) as Arc<dyn HttpClient>)
-  } else {
-    return Err(AnyhowError::from(anyhow::anyhow!(
-      "HTTP client not registered from JavaScript side"
-    )));
-  };
-
-  let options = HttpUriPluginOptions {
+  HttpUriPluginOptions {
     allowed_uris,
-    cache_location,
-    frozen,
-    lockfile_location,
-    proxy,
-    upgrade,
-    filesystem,
+    cache_location: options.cache_location,
+    frozen: options.frozen,
+    lockfile_location: options.lockfile_location,
+    proxy: options.proxy,
+    upgrade: options.upgrade,
     http_client,
-  };
-
-  Ok(HttpUriPlugin::new(options))
+    filesystem,
+  }
 }
 
 pub fn get_http_uri_plugin(options: RawHttpUriPluginOptions) -> Box<dyn rspack_core::Plugin> {
@@ -140,16 +101,8 @@ pub fn get_http_uri_plugin(options: RawHttpUriPluginOptions) -> Box<dyn rspack_c
   let fs = Arc::new(rspack_fs::NativeFileSystem::new(false));
 
   // Create the plugin with the provided options
-  let plugin = create_http_uri_plugin(
-    options.allowed_uris,
-    options.cache_location,
-    options.frozen,
-    options.lockfile_location,
-    options.proxy,
-    options.upgrade,
-    fs,
-  )
-  .expect("Failed to create HttpUriPlugin");
+  let options = create_http_uri_plugin_options(options, fs);
+  let plugin = HttpUriPlugin::new(options);
 
   Box::new(plugin)
 }

@@ -5,6 +5,7 @@ import type { Compilation, PathData } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { Module } from "../Module";
 import type ModuleGraph from "../ModuleGraph";
+import type { HttpUriPluginOptions } from "../builtin-plugin/HttpUriPlugin";
 import type { Chunk } from "../exports";
 import type { ResolveCallback } from "./adapterRuleUse";
 
@@ -2565,6 +2566,11 @@ export type Incremental = {
 };
 
 /**
+ * Options for experiments.buildHttp
+ */
+export type HttpUriOptions = HttpUriPluginOptions;
+
+/**
  * Experimental features configuration.
  */
 export type Experiments = {
@@ -2632,48 +2638,7 @@ export type Experiments = {
 	 * Enable loading of modules via HTTP/HTTPS requests.
 	 * @default false
 	 */
-	buildHttp?:
-		| boolean
-		| {
-				/**
-				 * Regular expressions for allowed URIs
-				 */
-				allowedUris?: (string | RegExp)[];
-				/**
-				 * Cache location for HTTP responses
-				 * @default undefined
-				 */
-				cacheLocation?: string | false;
-				/**
-				 * Whether to use a frozen cache
-				 * @default false
-				 */
-				frozen?: boolean;
-				/**
-				 * Lockfile location
-				 */
-				lockfileLocation?: string;
-				/**
-				 * HTTP proxy to use
-				 */
-				proxy?: string;
-				/**
-				 * Whether to upgrade dependencies
-				 * @default false
-				 */
-				upgrade?: boolean;
-				/**
-				 * Custom HTTP client implementation
-				 */
-				http_client?: (
-					url: string,
-					headers: Record<string, string>
-				) => Promise<{
-					status: number;
-					headers: Record<string, string>;
-					body: Buffer;
-				}>;
-		  };
+	buildHttp?: HttpUriOptions;
 };
 //#endregion
 
