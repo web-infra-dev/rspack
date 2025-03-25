@@ -99,6 +99,7 @@ export class HotRunnerFactory<
 			name: this.name,
 			runInNewContext: false,
 			testConfig: {
+				documentType: testConfig.documentType || EDocumentType.Fake,
 				...testConfig,
 				moduleScope(ms, stats) {
 					const moduleScope =

@@ -1303,17 +1303,6 @@ const rspackFutureOptions = z.strictObject({
 		.optional()
 }) satisfies z.ZodType<t.RspackFutureOptions>;
 
-const listenOptions = z.object({
-	port: z.number().optional(),
-	host: z.string().optional(),
-	backlog: z.number().optional(),
-	path: z.string().optional(),
-	exclusive: z.boolean().optional(),
-	readableAll: z.boolean().optional(),
-	writableAll: z.boolean().optional(),
-	ipv6Only: z.boolean().optional()
-});
-
 const experimentCacheOptions = z
 	.object({
 		type: z.enum(["memory"])
@@ -1348,24 +1337,14 @@ const experimentCacheOptions = z
 	);
 
 const lazyCompilationOptions = z.object({
-	backend: z
-		.object({
-			client: z.string().optional(),
-			listen: z
-				.number()
-				.or(listenOptions)
-				.or(z.function().args(z.any()).returns(z.void()))
-				.optional(),
-			protocol: z.enum(["http", "https"]).optional(),
-			server: z.record(z.any()).or(z.function().returns(z.any())).optional()
-		})
-		.optional(),
 	imports: z.boolean().optional(),
 	entries: z.boolean().optional(),
 	test: z
 		.instanceof(RegExp)
 		.or(z.function().args(z.custom<Module>()).returns(z.boolean()))
-		.optional()
+		.optional(),
+	client: z.string().optional(),
+	serverUrl: z.string().optional()
 }) satisfies z.ZodType<t.LazyCompilationOptions>;
 
 const incremental = z.strictObject({
