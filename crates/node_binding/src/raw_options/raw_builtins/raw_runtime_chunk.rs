@@ -40,7 +40,7 @@ impl From<RawRuntimeChunkNameWrapper> for RuntimeChunkName {
       Either::B(f) => RuntimeChunkName::Fn(Box::new(move |name| {
         let f = f.clone();
         Box::pin(async move {
-          f.call(RawRuntimeChunkNameFnCtx {
+          f.call_with_sync(RawRuntimeChunkNameFnCtx {
             name: name.to_string(),
           })
           .await

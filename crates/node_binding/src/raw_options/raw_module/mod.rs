@@ -130,7 +130,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
       RawRuleSetCondition::func(f) => Self::Func(Box::new(move |data| {
         let data = data.to_value();
         let f = f.clone();
-        Box::pin(async move { f.call(data).await })
+        Box::pin(async move { f.call_with_sync(data).await })
       })),
     };
 
@@ -468,7 +468,7 @@ impl From<RawJsonParserOptions> for JsonParserOptions {
     let parse = match value.parse {
       Some(f) => ParseOption::Func(Arc::new(move |s: String| {
         let f = f.clone();
-        Box::pin(async move { f.call(s).await })
+        Box::pin(async move { f.call_with_sync(s).await })
       })),
       _ => ParseOption::None,
     };
@@ -660,7 +660,7 @@ impl From<RawAssetGeneratorDataUrlWrapper> for AssetGeneratorDataUrl {
         let b = b.clone();
         let source = source.into();
         let ctx = ctx.into();
-        Box::pin(async move { b.call((source, ctx)).await })
+        Box::pin(async move { b.call_with_sync((source, ctx)).await })
       })),
     }
   }
@@ -806,7 +806,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
         move |ctx: FuncUseCtx| {
           let tsfn = tsfn.clone();
           Box::pin(async move {
-            tsfn.call(ctx.into()).await.map(|uses| {
+            tsfn.call_with_sync(ctx.into()).await.map(|uses| {
               uses
                 .into_iter()
                 .map(|rule_use| ModuleRuleUseLoader {
@@ -957,7 +957,7 @@ fn js_func_to_no_parse_test_func(
 ) -> ModuleNoParseTestFn {
   Box::new(move |s| {
     let v = v.clone();
-    Box::pin(async move { v.call(s).await.map(|v| v.unwrap_or_default()) })
+    Box::pin(async move { v.call_with_sync(s).await.map(|v| v.unwrap_or_default()) })
   })
 }
 

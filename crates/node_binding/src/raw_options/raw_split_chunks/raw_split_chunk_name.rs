@@ -46,7 +46,7 @@ pub(super) fn normalize_raw_chunk_name(raw: RawChunkOptionName) -> ChunkNameGett
     Either3::C(v) => ChunkNameGetter::Fn(Arc::new(move |ctx: ChunkNameGetterFnCtx| {
       let ctx = ctx.into();
       let v = v.clone();
-      Box::pin(async move { v.call(ctx).await })
+      Box::pin(async move { v.call_with_sync(ctx).await })
     })),
   }
 }

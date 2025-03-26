@@ -1454,7 +1454,7 @@ export interface RawAssetResourceGeneratorOptions {
 }
 
 export interface RawBannerPluginOptions {
-  banner: string | ((...args: any[]) => any)
+  banner: string | ((args: { hash: string, chunk: JsChunk, filename: string }) => string)
   entryOnly?: boolean
   footer?: boolean
   raw?: boolean

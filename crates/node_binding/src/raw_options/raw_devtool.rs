@@ -41,7 +41,7 @@ fn normalize_raw_append(raw: RawAppend) -> Append {
     Either3::C(v) => Append::Fn(Box::new(move |ctx| {
       let v = v.clone();
       let value = ctx.into();
-      Box::pin(async move { v.call(value).await })
+      Box::pin(async move { v.call_with_sync(value).await })
     })),
   }
 }
@@ -92,7 +92,7 @@ fn normalize_raw_module_filename_template(
     Either::A(str) => ModuleFilenameTemplate::String(str),
     Either::B(v) => ModuleFilenameTemplate::Fn(Arc::new(move |ctx| {
       let v = v.clone();
-      Box::pin(async move { v.call(ctx.into()).await })
+      Box::pin(async move { v.call_with_sync(ctx.into()).await })
     })),
   }
 }

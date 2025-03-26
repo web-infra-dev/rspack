@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 
-use napi::bindgen_prelude::Either3;
+use napi::bindgen_prelude::{Either3, Promise};
 use napi_derive::napi;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_html::{
@@ -17,10 +17,10 @@ pub type RawHtmlSriHashFunction = String;
 pub type RawHtmlFilename = Vec<String>;
 type RawChunkSortMode = String;
 
-type RawTemplateRenderFn = ThreadsafeFunction<String, String>;
+type RawTemplateRenderFn = ThreadsafeFunction<String, Promise<String>>;
 
 type RawTemplateParameter =
-  Either3<HashMap<String, String>, bool, ThreadsafeFunction<String, String>>;
+  Either3<HashMap<String, String>, bool, ThreadsafeFunction<String, Promise<String>>>;
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
@@ -82,7 +82,7 @@ impl From<RawHtmlRspackPluginOptions> for HtmlRspackPluginOptions {
       template_fn: value.template_fn.map(|func| TemplateRenderFn {
         inner: Box::new(move |data| {
           let f = func.clone();
-          Box::pin(async move { f.call(data).await })
+          Box::pin(async move { f.call_with_promise(data).await })
         }),
       }),
       template_content: value.template_content,
@@ -99,7 +99,7 @@ impl From<RawHtmlRspackPluginOptions> for HtmlRspackPluginOptions {
           Either3::C(func) => TemplateParameters::Function(TemplateParameterFn {
             inner: Box::new(move |data| {
               let f = func.clone();
-              Box::pin(async move { f.call(data).await })
+              Box::pin(async move { f.call_with_promise(data).await })
             }),
           }),
         },
