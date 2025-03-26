@@ -1367,12 +1367,12 @@ const incremental = z.strictObject({
 
 // Define buildHttp options schema
 const buildHttpOptions = z.object({
-	allowedUris: z.array(z.union([z.string(), z.instanceof(RegExp)])).optional(),
-	cacheLocation: z.union([z.string(), z.literal(false)]).optional(),
-	frozen: z.boolean().optional(),
+	allowedUris: z.array(z.union([z.string(), z.instanceof(RegExp)])),
 	lockfileLocation: z.string().optional(),
-	proxy: z.string().optional(),
+	cacheLocation: z.union([z.string(), z.literal(false)]).optional(),
 	upgrade: z.boolean().optional(),
+	// proxy: z.string().optional(),
+	// frozen: z.boolean().optional(),
 	httpClient: z
 		.function()
 		.args(z.string(), z.record(z.string()))
