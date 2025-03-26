@@ -117,7 +117,7 @@ impl From<RawCopyPattern> for CopyPattern {
         Either::B(f) => ToOption::Fn(Box::new(move |ctx| {
           let f = f.clone();
           Box::pin(async move {
-            f.call(RawToOptions {
+            f.call_with_sync(RawToOptions {
               context: ctx.context.as_str().to_owned(),
               absolute_filename: Some(ctx.absolute_filename.as_str().to_owned()),
             })
@@ -167,7 +167,7 @@ impl From<RawCopyPattern> for CopyPattern {
             }
 
             Box::pin(async move {
-              f.call((input.into(), absolute_filename.to_owned()))
+              f.call_with_sync((input.into(), absolute_filename.to_owned()))
                 .await
                 .map(convert_to_enum)
             })
@@ -185,7 +185,7 @@ impl From<RawCopyPattern> for CopyPattern {
           }
 
           Box::pin(async move {
-            f.call((input.into(), absolute_filename.to_owned()))
+            f.call_with_sync((input.into(), absolute_filename.to_owned()))
               .await
               .map(convert_to_enum)
           })

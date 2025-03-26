@@ -331,7 +331,7 @@ fn create_module_layer_filter(
     }
     Either3::C(f) => Arc::new(move |layer| {
       let f = f.clone();
-      Box::pin(async move { f.call(layer).await })
+      Box::pin(async move { f.call_with_sync(layer).await })
     }),
   }
 }

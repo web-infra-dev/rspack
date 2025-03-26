@@ -31,7 +31,7 @@ impl From<RawProgressPluginOptions> for ProgressPluginOptions {
     if let Some(f) = value.handler {
       Self::Handler(Arc::new(move |percent, msg, items| {
         let f = f.clone();
-        Box::pin(async move { f.call((percent, msg, items)).await })
+        Box::pin(async move { f.call_with_sync((percent, msg, items)).await })
       }))
     } else {
       Self::Default(ProgressPluginDisplayOptions {

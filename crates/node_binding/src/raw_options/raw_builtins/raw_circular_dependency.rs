@@ -55,7 +55,7 @@ impl From<RawCircularDependencyRspackPluginOptions> for CircularDependencyRspack
         let callback = callback.clone();
         Box::pin(async move {
           callback
-            .call((entrypoint, modules, JsCompilationWrapper::new(compilation)))
+            .call_with_sync((entrypoint, modules, JsCompilationWrapper::new(compilation)))
             .await?;
           Ok(())
         })
@@ -68,7 +68,7 @@ impl From<RawCircularDependencyRspackPluginOptions> for CircularDependencyRspack
           let callback = callback.clone();
           async move {
             callback
-              .call((entrypoint, modules, JsCompilationWrapper::new(compilation)))
+              .call_with_sync((entrypoint, modules, JsCompilationWrapper::new(compilation)))
               .await?;
             Ok(())
           }
@@ -82,7 +82,7 @@ impl From<RawCircularDependencyRspackPluginOptions> for CircularDependencyRspack
         Box::pin({
           async move {
             callback
-              .call(JsCompilationWrapper::new(compilation))
+              .call_with_sync(JsCompilationWrapper::new(compilation))
               .await?;
             Ok(())
           }
@@ -96,7 +96,7 @@ impl From<RawCircularDependencyRspackPluginOptions> for CircularDependencyRspack
         Box::pin({
           async move {
             callback
-              .call(JsCompilationWrapper::new(compilation))
+              .call_with_sync(JsCompilationWrapper::new(compilation))
               .await?;
             Ok(())
           }
