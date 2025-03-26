@@ -15,6 +15,7 @@ use rspack_paths::{AssertUtf8, Utf8PathBuf};
 use rspack_util::identifier::insert_zero_width_space_for_fragment;
 use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
+use tokio::task::spawn_blocking;
 
 pub use self::{
   factory::{ResolveOptionsWithDependencyType, ResolverFactory},
@@ -315,11 +316,17 @@ pub async fn resolve(
     dependency_category: *args.dependency_category,
   };
 
-  let mut context = Default::default();
   let resolver = plugin_driver.resolver_factory.get(dep);
-  let mut result = resolver
-    .resolve_with_context(args.context.as_ref(), args.specifier, &mut context)
-    .map_err(|error| error.into_resolve_error(&args));
+  let resolve_context = args.context.clone();
+  let specifier = args.specifier.to_string();
+  let (result, context) = spawn_blocking(move || {
+    let mut context = Default::default();
+    let result = resolver.resolve_with_context(resolve_context.as_ref(), &specifier, &mut context);
+    (result, context)
+  })
+  .await
+  .unwrap();
+  let mut result = result.map_err(|error| error.into_resolve_error(&args));
 
   if let Err(ref err) = result {
     tracing::error!(
