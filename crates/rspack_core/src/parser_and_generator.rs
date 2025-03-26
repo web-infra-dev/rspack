@@ -3,6 +3,7 @@ use std::{any::Any, borrow::Cow};
 use derive_more::Debug;
 use rspack_cacheable::cacheable_dyn;
 use rspack_error::{Result, TWithDiagnosticArray};
+use rspack_hash::RspackHashDigest;
 use rspack_loader_runner::{AdditionalData, ResourceData};
 use rspack_sources::BoxSource;
 use rspack_util::{ext::AsAny, source_map::SourceMapKind};
@@ -109,14 +110,16 @@ pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>>;
 
-  fn update_hash(
+  async fn get_runtime_hash(
     &self,
     _module: &NormalModule,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
+    compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Result<()> {
-    Ok(())
+  ) -> Result<RspackHashDigest> {
+    Ok(RspackHashDigest::new(
+      vec![],
+      &compilation.options.output.hash_digest,
+    ))
   }
 }
 

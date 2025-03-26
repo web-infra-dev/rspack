@@ -23,6 +23,7 @@ use rspack_core::{
 use rspack_error::{
   miette::Diagnostic, IntoTWithDiagnosticArray, Result, RspackSeverity, TWithDiagnosticArray,
 };
+use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::ext::DynHash;
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -650,15 +651,15 @@ impl ParserAndGenerator for CssParserAndGenerator {
     }
   }
 
-  fn update_hash(
+  async fn get_runtime_hash(
     &self,
     _module: &NormalModule,
-    hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
+    compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Result<()> {
-    self.es_module.dyn_hash(hasher);
-    Ok(())
+  ) -> Result<RspackHashDigest> {
+    let mut hasher = RspackHash::from(&compilation.options.output);
+    self.es_module.dyn_hash(&mut hasher);
+    Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 }
 
