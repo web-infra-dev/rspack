@@ -559,7 +559,7 @@ impl From<JsAddingRuntimeModule> for RuntimeModuleFromJs {
       stage: RuntimeModuleStage::from(value.stage),
       generator: Arc::new(move || {
         let generator = value.generator.clone();
-        Box::pin(async move { generator.call(()).await })
+        Box::pin(async move { generator.call_with_sync(()).await })
       }),
       source_map_kind: SourceMapKind::empty(),
       custom_source: None,

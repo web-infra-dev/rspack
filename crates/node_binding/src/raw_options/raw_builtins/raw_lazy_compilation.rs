@@ -54,7 +54,7 @@ impl LazyCompilationTestCheck for LazyCompilationTestFn {
     #[allow(clippy::unwrap_used)]
     let res = self
       .tsfn
-      .call(ModuleObject::with_ptr(
+      .call_with_sync(ModuleObject::with_ptr(
         NonNull::new(m as *const dyn Module as *mut dyn Module).unwrap(),
         compiler_id,
       ))
@@ -128,7 +128,7 @@ impl Backend for JsBackend {
   ) -> rspack_error::Result<ModuleInfo> {
     let module_info = self
       .module
-      .call(RawModuleArg {
+      .call_with_sync(RawModuleArg {
         module: identifier.to_string(),
         path,
       })

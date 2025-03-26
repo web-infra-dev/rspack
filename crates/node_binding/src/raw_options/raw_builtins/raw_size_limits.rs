@@ -22,7 +22,7 @@ impl From<RawSizeLimitsPluginOptions> for SizeLimitsPluginOptions {
         let asset_filter_fn: AssetFilterFn = Box::new(move |name| {
           let f = asset_filter.clone();
 
-          Box::pin(async move { f.call(name.to_owned()).await })
+          Box::pin(async move { f.call_with_sync(name.to_owned()).await })
         });
         asset_filter_fn
       }),
