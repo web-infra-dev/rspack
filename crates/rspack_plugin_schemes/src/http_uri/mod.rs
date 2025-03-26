@@ -31,6 +31,52 @@ impl HttpUriPlugin {
   pub fn new(options: HttpUriPluginOptions) -> Self {
     Self::new_inner(options)
   }
+  async fn respond_with_url_module(
+    &self,
+    url: url::Url,
+    resource_data: &mut ResourceData,
+  ) -> Result<bool> {
+    let fetch_result = fetch_content(url.as_str(), &self.options)
+      .await
+      .map_err(rspack_error::AnyhowError::from)?;
+
+    if let FetchResultType::Content(content_result) = fetch_result {
+      resource_data.set_resource(url.to_string());
+
+      let path_str = format!("{}{}", url.origin().ascii_serialization(), url.path());
+      resource_data.set_path(path_str);
+
+      if let Some(query) = url.query() {
+        resource_data.set_query(format!("?{}", query));
+      } else {
+        resource_data.set_query_optional(None);
+      }
+
+      if let Some(fragment) = url.fragment() {
+        resource_data.set_fragment(format!("#{}", fragment));
+      } else {
+        resource_data.set_fragment_optional(None);
+      }
+
+      let resolved = content_result.resolved();
+      if let Ok(resolved_url) = url::Url::parse(resolved) {
+        if let Ok(context_url) = resolved_url.join("./") {
+          let context_str = context_url.as_str();
+          let _context = if let Some(stripped) = context_str.strip_suffix('/') {
+            stripped
+          } else {
+            context_str
+          };
+        }
+      }
+
+      resource_data.set_mimetype(content_result.content_type().to_string());
+
+      return Ok(true);
+    }
+
+    Ok(false)
+  }
 }
 
 #[derive(Debug)]
@@ -49,14 +95,22 @@ pub struct HttpUriPluginOptions {
 async fn resolve_for_scheme(
   &self,
   _data: &mut ModuleFactoryCreateData,
-  _resource_data: &mut ResourceData,
+  resource_data: &mut ResourceData,
   scheme: &Scheme,
 ) -> Result<Option<bool>> {
-  Ok(if scheme.is_http() || scheme.is_https() {
-    Some(true)
+  if scheme.is_http() || scheme.is_https() {
+    // Parse the URL
+    match url::Url::parse(&resource_data.resource) {
+      Ok(url) => match self.respond_with_url_module(url, resource_data).await {
+        Ok(true) => Ok(Some(true)),
+        Ok(false) => Ok(None),
+        Err(e) => Err(e),
+      },
+      Err(_) => Ok(None),
+    }
   } else {
-    None
-  })
+    Ok(None)
+  }
 }
 
 #[plugin_hook(NormalModuleFactoryResolveInScheme for HttpUriPlugin)]
@@ -83,14 +137,15 @@ async fn resolve_in_scheme(
     Ok(_) | Err(_) => resource_data.resource.clone(),
   };
 
-  let resource_set = base_url
-    .join(&resource_url)
-    .map(|url| url.to_string())
-    .unwrap_or_else(|_| resource_data.resource.clone());
-
-  resource_data.set_resource(resource_set);
-
-  Ok(Some(true))
+  // Join the base URL with the resource
+  match base_url.join(&resource_url) {
+    Ok(url) => match self.respond_with_url_module(url, resource_data).await {
+      Ok(true) => return Ok(Some(true)),
+      Ok(false) => return Ok(None),
+      Err(e) => return Err(e),
+    },
+    Err(_) => return Ok(None),
+  }
 }
 
 #[plugin_hook(NormalModuleReadResource for HttpUriPlugin)]
