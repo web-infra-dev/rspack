@@ -10,7 +10,7 @@ use rspack_loader_runner::State as LoaderState;
 use super::{JsLoaderContext, JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 
 #[plugin_hook(NormalModuleLoaderShouldYield for JsLoaderRspackPlugin)]
-pub(crate) fn loader_should_yield(
+pub(crate) async fn loader_should_yield(
   &self,
   loader_context: &LoaderContext<RunnerContext>,
 ) -> Result<Option<bool>> {

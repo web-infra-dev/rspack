@@ -7,32 +7,33 @@ import {
 import type { Compiler } from "../Compiler";
 import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 
+export type HttpUriPluginOptionsAllowedUris = (string | RegExp)[];
+
 export type HttpUriPluginOptions = {
 	/**
 	 * A list of allowed URIs
 	 */
-	allowedUris?: (string | RegExp)[];
-	/**
-	 * Define the location for caching remote resources
-	 */
-	cacheLocation?: string | false;
-	/**
-	 * Freeze the remote resources and lockfile. Any modification to the lockfile or resource contents will result in an error
-	 */
-	frozen?: boolean;
+	allowedUris: HttpUriPluginOptionsAllowedUris;
 	/**
 	 * Define the location to store the lockfile
 	 */
 	lockfileLocation?: string;
 	/**
-	 * Specify the proxy server to use for fetching remote resources
+	 * Define the location for caching remote resources
 	 */
-	proxy?: string;
+	cacheLocation?: string | false;
 	/**
 	 * Detect changes to remote resources and upgrade them automatically
 	 */
 	upgrade?: boolean;
-
+	// /**
+	//  * Specify the proxy server to use for fetching remote resources
+	//  */
+	// proxy?: string;
+	// /**
+	//  * Freeze the remote resources and lockfile. Any modification to the lockfile or resource contents will result in an error
+	//  */
+	// frozen?: boolean;
 	/**
 	 * Custom http client
 	 */
@@ -67,7 +68,7 @@ export class HttpUriPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.HttpUriPlugin;
 	affectedHooks = "compilation" as const;
 
-	constructor(private options: HttpUriPluginOptions = {}) {
+	constructor(private options: HttpUriPluginOptions) {
 		super();
 	}
 
@@ -88,9 +89,9 @@ export class HttpUriPlugin extends RspackBuiltinPlugin {
 			allowedUris: options.allowedUris,
 			lockfileLocation,
 			cacheLocation,
-			frozen: options.frozen,
-			proxy: options.proxy,
-			upgrade: options.upgrade,
+			upgrade: options.upgrade ?? false,
+			// frozen: options.frozen,
+			// proxy: options.proxy,
 			httpClient: options.httpClient ?? defaultHttpClient
 		};
 		return createBuiltinPlugin(this.name, raw);

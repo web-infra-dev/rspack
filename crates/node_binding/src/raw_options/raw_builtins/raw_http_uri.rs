@@ -15,12 +15,12 @@ use rspack_util::asset_condition::{AssetCondition, AssetConditions};
 #[derive(Debug)]
 pub struct RawHttpUriPluginOptions {
   #[napi(ts_type = "(string | RegExp)[]")]
-  pub allowed_uris: Option<Vec<Either<String, RspackRegex>>>,
-  pub cache_location: Option<String>,
-  pub frozen: Option<bool>,
+  pub allowed_uris: Vec<Either<String, RspackRegex>>,
   pub lockfile_location: Option<String>,
-  pub proxy: Option<String>,
-  pub upgrade: Option<bool>,
+  pub cache_location: Option<String>,
+  pub upgrade: bool,
+  // pub proxy: Option<String>,
+  // pub frozen: Option<bool>,
   #[napi(ts_type = "(url: string, headers: Record<string, string>) => Promise<JsHttpResponseRaw>")]
   pub http_client:
     ThreadsafeFunction<(String, HashMap<String, String>), Promise<JsHttpResponseRaw>>,
@@ -66,19 +66,16 @@ fn create_http_uri_plugin_options(
   options: RawHttpUriPluginOptions,
   filesystem: Arc<dyn WritableFileSystem>,
 ) -> HttpUriPluginOptions {
-  let allowed_uris = match options.allowed_uris {
-    Some(conditions) => {
-      let asset_conditions = conditions
-        .into_iter()
-        .map(|condition| match condition {
-          Either::A(string) => AssetCondition::String(string),
-          Either::B(regex) => AssetCondition::Regexp(regex),
-        })
-        .collect();
-      HttpUriOptionsAllowedUris::from_asset_conditions(AssetConditions::Multiple(asset_conditions))
-    }
-    None => HttpUriOptionsAllowedUris::default(),
-  };
+  let allowed_uris = HttpUriOptionsAllowedUris::new(AssetConditions::Multiple(
+    options
+      .allowed_uris
+      .into_iter()
+      .map(|condition| match condition {
+        Either::A(string) => AssetCondition::String(string),
+        Either::B(regex) => AssetCondition::Regexp(regex),
+      })
+      .collect(),
+  ));
 
   let http_client = Arc::new(JsHttpClient {
     function: options.http_client,
@@ -86,11 +83,11 @@ fn create_http_uri_plugin_options(
 
   HttpUriPluginOptions {
     allowed_uris,
-    cache_location: options.cache_location,
-    frozen: options.frozen,
     lockfile_location: options.lockfile_location,
-    proxy: options.proxy,
+    cache_location: options.cache_location,
     upgrade: options.upgrade,
+    // proxy: options.proxy,
+    // frozen: options.frozen,
     http_client,
     filesystem,
   }

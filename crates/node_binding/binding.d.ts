@@ -1823,12 +1823,10 @@ export interface RawHttpExternalsRspackPluginOptions {
 }
 
 export interface RawHttpUriPluginOptions {
-  allowedUris?: (string | RegExp)[]
-  cacheLocation?: string
-  frozen?: boolean
+  allowedUris: (string | RegExp)[]
   lockfileLocation?: string
-  proxy?: string
-  upgrade?: boolean
+  cacheLocation?: string
+  upgrade: boolean
   httpClient: (url: string, headers: Record<string, string>) => Promise<JsHttpResponseRaw>
 }
 

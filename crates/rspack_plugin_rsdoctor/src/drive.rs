@@ -5,11 +5,11 @@ use crate::{
   RsdoctorModuleSourcesPatch,
 };
 
-define_hook!(RsdoctorPluginModuleGraph: AsyncSeriesBail(data: &mut RsdoctorModuleGraph) -> bool);
-define_hook!(RsdoctorPluginChunkGraph: AsyncSeriesBail(data: &mut RsdoctorChunkGraph) -> bool);
-define_hook!(RsdoctorPluginModuleIds: AsyncSeriesBail(data: &mut RsdoctorModuleIdsPatch) -> bool);
-define_hook!(RsdoctorPluginModuleSources: AsyncSeriesBail(data: &mut RsdoctorModuleSourcesPatch) -> bool);
-define_hook!(RsdoctorPluginAssets: AsyncSeriesBail(data: &mut RsdoctorAssetPatch) -> bool);
+define_hook!(RsdoctorPluginModuleGraph: SeriesBail(data: &mut RsdoctorModuleGraph) -> bool);
+define_hook!(RsdoctorPluginChunkGraph: SeriesBail(data: &mut RsdoctorChunkGraph) -> bool);
+define_hook!(RsdoctorPluginModuleIds: SeriesBail(data: &mut RsdoctorModuleIdsPatch) -> bool);
+define_hook!(RsdoctorPluginModuleSources: SeriesBail(data: &mut RsdoctorModuleSourcesPatch) -> bool);
+define_hook!(RsdoctorPluginAssets: SeriesBail(data: &mut RsdoctorAssetPatch) -> bool);
 
 #[derive(Debug, Default)]
 pub struct RsdoctorPluginHooks {
