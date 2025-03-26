@@ -12,9 +12,9 @@ define_hook!(JavascriptModulesRenderModuleContent: AsyncSeries(compilation: &Com
 define_hook!(JavascriptModulesRenderModuleContainer: AsyncSeries(compilation: &Compilation, module: &BoxModule, source: &mut RenderSource, init_fragments: &mut ChunkInitFragments));
 define_hook!(JavascriptModulesRenderModulePackage: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, module: &BoxModule, source: &mut RenderSource, init_fragments: &mut ChunkInitFragments));
 define_hook!(JavascriptModulesChunkHash: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash));
-define_hook!(JavascriptModulesInlineInRuntimeBailout: SyncSeriesBail(compilation: &Compilation) -> String);
-define_hook!(JavascriptModulesEmbedInRuntimeBailout: SyncSeriesBail(compilation: &Compilation, module: &BoxModule, chunk: &Chunk) -> String);
-define_hook!(JavascriptModulesStrictRuntimeBailout: SyncSeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> String);
+define_hook!(JavascriptModulesInlineInRuntimeBailout: AsyncSeriesBail(compilation: &Compilation) -> String);
+define_hook!(JavascriptModulesEmbedInRuntimeBailout: AsyncSeriesBail(compilation: &Compilation, module: &BoxModule, chunk: &Chunk) -> String);
+define_hook!(JavascriptModulesStrictRuntimeBailout: AsyncSeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> String);
 
 #[derive(Debug, Default)]
 pub struct JavascriptModulesPluginHooks {

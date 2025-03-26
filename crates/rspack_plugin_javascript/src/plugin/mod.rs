@@ -197,7 +197,7 @@ impl JsPlugin {
     sources
   }
 
-  pub fn render_bootstrap(
+  pub async fn render_bootstrap(
     &self,
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,
@@ -353,7 +353,7 @@ impl JsPlugin {
             allow_inline_startup = false;
           }
           let hooks = JsPlugin::get_compilation_hooks(compilation.id());
-          let bailout = hooks.inline_in_runtime_bailout.call(compilation)?;
+          let bailout = hooks.inline_in_runtime_bailout.call(compilation).await?;
           if allow_inline_startup && let Some(bailout) = bailout {
             buf2.push(format!("// This entry module can't be inlined because {bailout}").into());
             allow_inline_startup = false;
@@ -529,7 +529,7 @@ impl JsPlugin {
       header,
       startup,
       allow_inline_startup,
-    } = self.render_bootstrap(chunk_ukey, compilation)?;
+    } = self.render_bootstrap(chunk_ukey, compilation).await?;
     let module_graph = &compilation.get_module_graph();
     let all_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
       chunk_ukey,
@@ -555,7 +555,11 @@ impl JsPlugin {
       }));
     }
     if !all_strict && all_modules.iter().all(|m| m.build_info().strict) {
-      if let Some(strict_bailout) = hooks.strict_runtime_bailout.call(compilation, chunk_ukey)? {
+      if let Some(strict_bailout) = hooks
+        .strict_runtime_bailout
+        .call(compilation, chunk_ukey)
+        .await?
+      {
         sources.add(RawStringSource::from(format!(
           "// runtime can't be in strict mode because {strict_bailout}.\n"
         )));
@@ -691,7 +695,8 @@ impl JsPlugin {
         } else {
           hooks
             .embed_in_runtime_bailout
-            .call(compilation, m, chunk)?
+            .call(compilation, m, chunk)
+            .await?
             .map(|s| s.into())
         };
         let footer;
@@ -1154,7 +1159,11 @@ impl JsPlugin {
     );
     let mut sources = ConcatSource::default();
     if !all_strict && chunk_modules.iter().all(|m| m.build_info().strict) {
-      if let Some(strict_bailout) = hooks.strict_runtime_bailout.call(compilation, chunk_ukey)? {
+      if let Some(strict_bailout) = hooks
+        .strict_runtime_bailout
+        .call(compilation, chunk_ukey)
+        .await?
+      {
         sources.add(RawStringSource::from(format!(
           "// runtime can't be in strict mode because {strict_bailout}.\n"
         )));
@@ -1210,7 +1219,7 @@ impl JsPlugin {
   }
 
   #[inline]
-  pub fn update_hash_with_bootstrap(
+  pub async fn update_hash_with_bootstrap(
     &self,
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,
@@ -1221,7 +1230,7 @@ impl JsPlugin {
       header,
       startup,
       allow_inline_startup,
-    } = self.render_bootstrap(chunk_ukey, compilation)?;
+    } = self.render_bootstrap(chunk_ukey, compilation).await?;
     header.hash(hasher);
     startup.hash(hasher);
     allow_inline_startup.hash(hasher);
