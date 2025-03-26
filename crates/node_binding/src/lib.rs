@@ -131,6 +131,7 @@ impl JsCompiler {
   #[napi(constructor)]
   pub fn new(
     env: Env,
+    mut this: This,
     compiler_path: String,
     options: RawOptions,
     builtin_plugins: Vec<BuiltinPlugin>,
@@ -156,7 +157,7 @@ impl JsCompiler {
     plugins.push(js_cleanup_plugin.boxed());
 
     for bp in builtin_plugins {
-      bp.append_to(env, &mut plugins)
+      bp.append_to(&env, &mut this, &mut plugins)
         .map_err(|e| Error::from_reason(format!("{e}")))?;
     }
 

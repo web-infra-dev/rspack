@@ -1,9 +1,9 @@
-use napi::Either;
+use napi::{bindgen_prelude::External, Either};
 use rspack_core::{
   diagnostics::CapturedLoaderError, AdditionalData, LoaderContext, NormalModuleLoaderShouldYield,
   NormalModuleLoaderStartYielding, RunnerContext, BUILTIN_LOADER_PREFIX,
 };
-use rspack_error::{error, Result};
+use rspack_error::{error, miette::IntoDiagnostic, Result};
 use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
 
@@ -32,11 +32,45 @@ pub(crate) async fn loader_yield(
   &self,
   loader_context: &mut LoaderContext<RunnerContext>,
 ) -> Result<()> {
-  let new_cx = self
-    .runner
-    .call_with_promise(loader_context.try_into()?)
-    .await?;
-  merge_loader_context(loader_context, new_cx)?;
+  let read_guard = self.runner.read().await;
+  match &*read_guard {
+    Some(runner) => {
+      let new_cx = runner
+        .call_async(loader_context.try_into()?)
+        .await
+        .into_diagnostic()?
+        .await
+        .into_diagnostic()?;
+      merge_loader_context(loader_context, new_cx)?;
+    }
+    None => {
+      drop(read_guard);
+
+      let mut write_guard = self.runner.write().await;
+
+      #[allow(clippy::unwrap_used)]
+      let compiler_id = self.compiler_id.get().unwrap();
+      #[allow(clippy::unwrap_used)]
+      let runner = self
+        .runner_getter
+        .call_async(External::new(*compiler_id))
+        .await
+        .into_diagnostic()?
+        .take()
+        .unwrap();
+
+      let new_cx = runner
+        .call_async(loader_context.try_into()?)
+        .await
+        .into_diagnostic()?
+        .await
+        .into_diagnostic()?;
+      merge_loader_context(loader_context, new_cx)?;
+
+      *write_guard = Some(runner);
+    }
+  };
+
   Ok(())
 }
 
@@ -115,6 +149,5 @@ pub(crate) fn merge_loader_context(
     .collect();
   to.loader_index = from.loader_index;
   to.parse_meta = from.parse_meta.into_iter().collect();
-
   Ok(())
 }
