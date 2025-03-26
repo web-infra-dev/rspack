@@ -403,7 +403,7 @@ async fn compilation(
 }
 
 #[plugin_hook(ConcatenatedModuleExportsDefinitions for ModernModuleLibraryPlugin)]
-fn exports_definitions(
+async fn exports_definitions(
   &self,
   _exports_definitions: &mut Vec<(String, String)>,
   is_entry_module: bool,

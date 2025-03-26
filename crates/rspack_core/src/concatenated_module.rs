@@ -54,7 +54,7 @@ use crate::{
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
-define_hook!(ConcatenatedModuleExportsDefinitions: SyncSeriesBail(exports_definitions: &mut ExportsDefinitionArgs, is_entry_module: bool) -> bool);
+define_hook!(ConcatenatedModuleExportsDefinitions: AsyncSeriesBail(exports_definitions: &mut ExportsDefinitionArgs, is_entry_module: bool) -> bool);
 
 #[derive(Debug, Default)]
 pub struct ConcatenatedModuleHooks {
@@ -1030,7 +1030,8 @@ impl Module for ConcatenatedModule {
         .call(
           &mut exports_final_names,
           compilation.chunk_graph.is_entry_module(&self.id),
-        )?;
+        )
+        .await?;
 
       if !matches!(should_skip_render_definitions, Some(true)) {
         runtime_requirements.insert(RuntimeGlobals::EXPORTS);
