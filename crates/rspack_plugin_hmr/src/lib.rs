@@ -392,7 +392,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(NormalModuleLoader for HotModuleReplacementPlugin)]
-fn normal_module_loader(&self, context: &mut LoaderContext<RunnerContext>) -> Result<()> {
+async fn normal_module_loader(&self, context: &mut LoaderContext<RunnerContext>) -> Result<()> {
   context.hot = true;
   Ok(())
 }

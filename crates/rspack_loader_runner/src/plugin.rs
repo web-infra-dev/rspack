@@ -13,7 +13,7 @@ pub trait LoaderRunnerPlugin: Send + Sync {
     "unknown"
   }
 
-  fn before_all(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()> {
+  async fn before_all(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()> {
     Ok(())
   }
 

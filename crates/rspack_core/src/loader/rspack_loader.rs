@@ -18,8 +18,13 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     "rspack-loader-runner"
   }
 
-  fn before_all(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
-    self.plugin_driver.normal_module_hooks.loader.call(context)
+  async fn before_all(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
+    self
+      .plugin_driver
+      .normal_module_hooks
+      .loader
+      .call(context)
+      .await
   }
 
   async fn process_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
