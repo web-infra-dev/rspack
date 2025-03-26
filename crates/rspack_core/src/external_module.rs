@@ -495,7 +495,7 @@ impl Module for ExternalModule {
   }
 
   fn module_type(&self) -> &ModuleType {
-    &ModuleType::JsAuto
+    &ModuleType::JsDynamic
   }
 
   fn source_types(&self) -> &[SourceType] {

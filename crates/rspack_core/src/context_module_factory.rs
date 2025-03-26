@@ -75,8 +75,8 @@ pub struct AfterResolveData {
   pub resolve_dependencies: ResolveContextModuleDependencies,
 }
 
-define_hook!(ContextModuleFactoryBeforeResolve: AsyncSeriesWaterfall(data: BeforeResolveResult) -> BeforeResolveResult);
-define_hook!(ContextModuleFactoryAfterResolve: AsyncSeriesWaterfall(data: AfterResolveResult) -> AfterResolveResult);
+define_hook!(ContextModuleFactoryBeforeResolve: SeriesWaterfall(data: BeforeResolveResult) -> BeforeResolveResult);
+define_hook!(ContextModuleFactoryAfterResolve: SeriesWaterfall(data: AfterResolveResult) -> AfterResolveResult);
 
 #[derive(Debug, Default)]
 pub struct ContextModuleFactoryHooks {

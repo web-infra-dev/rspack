@@ -1,6 +1,11 @@
+mod http_cache;
+mod lockfile;
+
 use std::{fmt::Debug, sync::Arc};
 
 use async_trait::async_trait;
+use http_cache::{fetch_content, FetchResultType};
+pub use http_cache::{HttpClient, HttpResponse};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
@@ -12,8 +17,6 @@ use rspack_error::Result;
 use rspack_fs::WritableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::{AssetCondition, AssetConditions};
-
-use crate::http_cache::{fetch_content, FetchResultType, HttpClient};
 
 static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^(//|https?://|#)").expect("Invalid regex"));
@@ -33,11 +36,11 @@ impl HttpUriPlugin {
 #[derive(Debug)]
 pub struct HttpUriPluginOptions {
   pub allowed_uris: HttpUriOptionsAllowedUris,
-  pub cache_location: Option<String>,
-  pub frozen: Option<bool>,
   pub lockfile_location: Option<String>,
-  pub proxy: Option<String>,
-  pub upgrade: Option<bool>,
+  pub cache_location: Option<String>,
+  pub upgrade: bool,
+  // pub proxy: Option<String>,
+  // pub frozen: Option<bool>,
   pub filesystem: Arc<dyn WritableFileSystem>,
   pub http_client: Arc<dyn HttpClient>,
 }
@@ -137,80 +140,23 @@ pub struct HttpUriOptionsAllowedUris {
   conditions: AssetConditions,
 }
 
-impl Default for HttpUriOptionsAllowedUris {
-  fn default() -> Self {
-    Self {
-      conditions: AssetConditions::Multiple(vec![]),
-    }
-  }
-}
-
 impl HttpUriOptionsAllowedUris {
-  pub fn new(uris: Vec<String>) -> Self {
-    // Convert string URIs to AssetConditions
-    let conditions = if uris.is_empty() {
-      AssetConditions::Multiple(vec![])
-    } else {
-      AssetConditions::Multiple(uris.into_iter().map(AssetCondition::String).collect())
-    };
-
-    Self { conditions }
-  }
-
-  pub fn from_asset_conditions(conditions: AssetConditions) -> Self {
+  pub fn new(conditions: AssetConditions) -> Self {
     Self { conditions }
   }
 
   pub fn is_allowed(&self, uri: &str) -> bool {
-    // If conditions is empty, allow all
-    if let AssetConditions::Multiple(conditions) = &self.conditions {
-      if conditions.is_empty() {
-        return true;
-      }
-
-      // Check each condition, similar to webpack's isAllowed function
-      for condition in conditions {
-        match condition {
-          AssetCondition::String(s) => {
-            // String conditions in webpack check if URI starts with the string
-            if uri.starts_with(s) {
-              return true;
-            }
-          }
-          AssetCondition::Regexp(r) => {
-            // Regex conditions in webpack test the URI against the regex
-            if r.test(uri) {
-              return true;
-            }
-          }
-        }
-      }
-
-      return false;
-    }
-
-    // For single conditions, do the same check
-    match &self.conditions {
-      AssetConditions::Single(AssetCondition::String(s)) => uri.starts_with(s),
-      AssetConditions::Single(AssetCondition::Regexp(r)) => r.test(uri),
-      _ => false, // Should never reach here given the check above
-    }
+    self.conditions.try_match(uri)
   }
 
   pub fn get_allowed_uris_description(&self) -> String {
     match &self.conditions {
       AssetConditions::Single(condition) => self.condition_to_string(condition),
-      AssetConditions::Multiple(conditions) => {
-        if conditions.is_empty() {
-          return "All URIs are allowed".to_string();
-        }
-
-        conditions
-          .iter()
-          .map(|c| format!(" - {}", self.condition_to_string(c)))
-          .collect::<Vec<_>>()
-          .join("\n")
-      }
+      AssetConditions::Multiple(conditions) => conditions
+        .iter()
+        .map(|c| format!(" - {}", self.condition_to_string(c)))
+        .collect::<Vec<_>>()
+        .join("\n"),
     }
   }
 

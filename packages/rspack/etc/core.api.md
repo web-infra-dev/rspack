@@ -2360,14 +2360,15 @@ export type HttpUriOptions = HttpUriPluginOptions;
 
 // @public (undocumented)
 type HttpUriPluginOptions = {
-    allowedUris?: (string | RegExp)[];
-    cacheLocation?: string | false;
-    frozen?: boolean;
+    allowedUris: HttpUriPluginOptionsAllowedUris;
     lockfileLocation?: string;
-    proxy?: string;
+    cacheLocation?: string | false;
     upgrade?: boolean;
     httpClient?: RawHttpUriPluginOptions["httpClient"];
 };
+
+// @public (undocumented)
+type HttpUriPluginOptionsAllowedUris = (string | RegExp)[];
 
 // @public (undocumented)
 type IBigIntStats = IStatsBase<bigint> & {

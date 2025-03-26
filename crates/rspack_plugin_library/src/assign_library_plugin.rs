@@ -364,7 +364,7 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(JavascriptModulesEmbedInRuntimeBailout for AssignLibraryPlugin)]
-fn embed_in_runtime_bailout(
+async fn embed_in_runtime_bailout(
   &self,
   compilation: &Compilation,
   module: &BoxModule,
@@ -398,7 +398,7 @@ fn embed_in_runtime_bailout(
 }
 
 #[plugin_hook(JavascriptModulesStrictRuntimeBailout for AssignLibraryPlugin)]
-fn strict_runtime_bailout(
+async fn strict_runtime_bailout(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,

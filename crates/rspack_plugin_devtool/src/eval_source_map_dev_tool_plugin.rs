@@ -211,7 +211,7 @@ async fn eval_source_map_devtool_plugin_js_chunk_hash(
 }
 
 #[plugin_hook(JavascriptModulesInlineInRuntimeBailout for EvalSourceMapDevToolPlugin)]
-fn eval_source_map_devtool_plugin_inline_in_runtime_bailout(
+async fn eval_source_map_devtool_plugin_inline_in_runtime_bailout(
   &self,
   _compilation: &Compilation,
 ) -> Result<Option<String>> {

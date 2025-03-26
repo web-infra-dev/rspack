@@ -18,7 +18,7 @@ class Plugin {
 
 			expect(module.userRequest).toBe("external");
 
-			expect(module.type).toBe("javascript/auto");
+			expect(module.type).toBe("javascript/dynamic");
 			expect("context" in module).toBe(true);
 			expect("layer" in module).toBe(true);
 			expect("factoryMeta" in module).toBe(true);
