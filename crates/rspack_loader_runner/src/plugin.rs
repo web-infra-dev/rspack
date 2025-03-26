@@ -17,7 +17,7 @@ pub trait LoaderRunnerPlugin: Send + Sync {
     Ok(())
   }
 
-  fn should_yield(&self, _context: &LoaderContext<Self::Context>) -> Result<bool> {
+  async fn should_yield(&self, _context: &LoaderContext<Self::Context>) -> Result<bool> {
     Ok(false)
   }
 

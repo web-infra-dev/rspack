@@ -80,9 +80,9 @@ impl ModuleIssuer {
 
 define_hook!(NormalModuleReadResource: AsyncSeriesBail(resource_data: &ResourceData) -> Content);
 define_hook!(NormalModuleLoader: AsyncSeries(loader_context: &mut LoaderContext<RunnerContext>));
-define_hook!(NormalModuleLoaderShouldYield: SyncSeriesBail(loader_context: &LoaderContext<RunnerContext>) -> bool);
+define_hook!(NormalModuleLoaderShouldYield: AsyncSeriesBail(loader_context: &LoaderContext<RunnerContext>) -> bool);
 define_hook!(NormalModuleLoaderStartYielding: AsyncSeries(loader_context: &mut LoaderContext<RunnerContext>));
-define_hook!(NormalModuleBeforeLoaders: SyncSeries(module: &mut NormalModule));
+define_hook!(NormalModuleBeforeLoaders: AsyncSeries(module: &mut NormalModule));
 define_hook!(NormalModuleAdditionalData: AsyncSeries(additional_data: &mut Option<&mut AdditionalData>));
 
 #[derive(Debug, Default)]
@@ -388,7 +388,8 @@ impl Module for NormalModule {
       .plugin_driver
       .normal_module_hooks
       .before_loaders
-      .call(self)?;
+      .call(self)
+      .await?;
 
     let plugin = Arc::new(RspackLoaderRunnerPlugin {
       plugin_driver: build_context.plugin_driver.clone(),
