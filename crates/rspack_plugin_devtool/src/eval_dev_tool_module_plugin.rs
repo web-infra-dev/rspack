@@ -167,7 +167,7 @@ async fn eval_devtool_plugin_js_chunk_hash(
 }
 
 #[plugin_hook(JavascriptModulesInlineInRuntimeBailout for EvalDevToolModulePlugin)]
-fn eval_devtool_plugin_inline_in_runtime_bailout(
+async fn eval_devtool_plugin_inline_in_runtime_bailout(
   &self,
   _compilation: &Compilation,
 ) -> Result<Option<String>> {

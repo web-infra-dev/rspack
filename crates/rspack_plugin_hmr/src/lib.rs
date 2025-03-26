@@ -392,13 +392,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(NormalModuleLoader for HotModuleReplacementPlugin)]
-fn normal_module_loader(&self, context: &mut LoaderContext<RunnerContext>) -> Result<()> {
+async fn normal_module_loader(&self, context: &mut LoaderContext<RunnerContext>) -> Result<()> {
   context.hot = true;
   Ok(())
 }
 
 #[plugin_hook(NormalModuleFactoryParser for HotModuleReplacementPlugin)]
-fn normal_module_factory_parser(
+async fn normal_module_factory_parser(
   &self,
   module_type: &ModuleType,
   parser: &mut dyn ParserAndGenerator,

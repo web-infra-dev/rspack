@@ -16,7 +16,7 @@ use crate::{
 impl<Context> LoaderContext<Context> {
   async fn start_yielding(&mut self) -> Result<bool> {
     if let Some(plugin) = &self.plugin
-      && plugin.should_yield(self)?
+      && plugin.should_yield(self).await?
     {
       plugin.clone().start_yielding(self).await?;
       return Ok(true);
@@ -102,7 +102,7 @@ async fn create_loader_context<Context>(
   };
 
   if let Some(plugin) = loader_context.plugin.clone() {
-    plugin.before_all(&mut loader_context)?;
+    plugin.before_all(&mut loader_context).await?;
   }
 
   Ok(loader_context)
@@ -263,7 +263,7 @@ mod test {
       "test-content"
     }
 
-    fn before_all(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()> {
+    async fn before_all(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()> {
       Ok(())
     }
 

@@ -16,5 +16,6 @@ pub struct RunnerContext {
 }
 
 unsafe impl Send for RunnerContext {}
+unsafe impl Sync for RunnerContext {}
 
 pub type BoxLoader = Arc<dyn for<'a> Loader<RunnerContext>>;
