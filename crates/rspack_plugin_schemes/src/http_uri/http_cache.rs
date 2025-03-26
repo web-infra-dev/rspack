@@ -15,15 +15,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
 use url::Url;
 
-use crate::{
-  http_uri::HttpUriPluginOptions,
-  lockfile::{LockfileCache, LockfileEntry},
-};
-
-pub struct HttpRequest {
-  pub url: String,
-  pub headers: HashMap<String, String>,
-}
+use super::lockfile::{LockfileCache, LockfileEntry};
+use crate::http_uri::HttpUriPluginOptions;
 
 pub struct HttpResponse {
   pub status: u16,
@@ -97,12 +90,12 @@ impl HttpCache {
   pub async fn fetch_content(
     &self,
     url: &str,
-    _options: &HttpUriPluginOptions,
+    options: &HttpUriPluginOptions,
   ) -> Result<FetchResultType> {
     let cached_result = self.read_from_cache(url).await?;
 
     if let Some(ref cached) = cached_result {
-      if cached.meta.fresh {
+      if !options.upgrade || cached.meta.fresh {
         return Ok(FetchResultType::Content(cached.clone()));
       }
     }
