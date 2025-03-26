@@ -33,7 +33,7 @@ define_hook!(NormalModuleFactoryResolveInScheme: AsyncSeriesBail(data: &mut Modu
 define_hook!(NormalModuleFactoryAfterResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> bool);
 define_hook!(NormalModuleFactoryCreateModule: AsyncSeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> BoxModule);
 define_hook!(NormalModuleFactoryModule: AsyncSeries(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData, module: &mut BoxModule));
-define_hook!(NormalModuleFactoryParser: SyncSeries(module_type: &ModuleType, parser: &mut dyn ParserAndGenerator, parser_options: Option<&ParserOptions>));
+define_hook!(NormalModuleFactoryParser: AsyncSeries(module_type: &ModuleType, parser: &mut dyn ParserAndGenerator, parser_options: Option<&ParserOptions>));
 define_hook!(NormalModuleFactoryResolveLoader: AsyncSeriesBail(context: &Context, resolver: &Resolver, l: &ModuleRuleUseLoader) -> BoxLoader);
 
 pub enum NormalModuleFactoryResolveResult {
@@ -550,11 +550,16 @@ impl NormalModuleFactory {
       resolved_parser_options.as_ref(),
       resolved_generator_options.as_ref(),
     );
-    self.plugin_driver.normal_module_factory_hooks.parser.call(
-      &resolved_module_type,
-      resolved_parser_and_generator.as_mut(),
-      resolved_parser_options.as_ref(),
-    )?;
+    self
+      .plugin_driver
+      .normal_module_factory_hooks
+      .parser
+      .call(
+        &resolved_module_type,
+        resolved_parser_and_generator.as_mut(),
+        resolved_parser_options.as_ref(),
+      )
+      .await?;
 
     let mut create_data = {
       let mut create_data = NormalModuleCreateData {

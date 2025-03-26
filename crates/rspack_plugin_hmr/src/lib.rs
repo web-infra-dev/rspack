@@ -398,7 +398,7 @@ fn normal_module_loader(&self, context: &mut LoaderContext<RunnerContext>) -> Re
 }
 
 #[plugin_hook(NormalModuleFactoryParser for HotModuleReplacementPlugin)]
-fn normal_module_factory_parser(
+async fn normal_module_factory_parser(
   &self,
   module_type: &ModuleType,
   parser: &mut dyn ParserAndGenerator,
