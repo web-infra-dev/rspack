@@ -5,16 +5,16 @@ use rspack_core::{
 use rspack_hash::RspackHash;
 use rspack_hook::define_hook;
 
-define_hook!(JavascriptModulesRenderChunk: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, source: &mut RenderSource));
-define_hook!(JavascriptModulesRender: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, source: &mut RenderSource));
-define_hook!(JavascriptModulesRenderStartup: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, module: &ModuleIdentifier, source: &mut RenderSource));
-define_hook!(JavascriptModulesRenderModuleContent: AsyncSeries(compilation: &Compilation, module: &BoxModule, source: &mut RenderSource, init_fragments: &mut ChunkInitFragments));
-define_hook!(JavascriptModulesRenderModuleContainer: AsyncSeries(compilation: &Compilation, module: &BoxModule, source: &mut RenderSource, init_fragments: &mut ChunkInitFragments));
-define_hook!(JavascriptModulesRenderModulePackage: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, module: &BoxModule, source: &mut RenderSource, init_fragments: &mut ChunkInitFragments));
-define_hook!(JavascriptModulesChunkHash: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash));
-define_hook!(JavascriptModulesInlineInRuntimeBailout: AsyncSeriesBail(compilation: &Compilation) -> String);
-define_hook!(JavascriptModulesEmbedInRuntimeBailout: AsyncSeriesBail(compilation: &Compilation, module: &BoxModule, chunk: &Chunk) -> String);
-define_hook!(JavascriptModulesStrictRuntimeBailout: AsyncSeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> String);
+define_hook!(JavascriptModulesRenderChunk: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, source: &mut RenderSource));
+define_hook!(JavascriptModulesRender: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, source: &mut RenderSource));
+define_hook!(JavascriptModulesRenderStartup: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, module: &ModuleIdentifier, source: &mut RenderSource));
+define_hook!(JavascriptModulesRenderModuleContent: Series(compilation: &Compilation, module: &BoxModule, source: &mut RenderSource, init_fragments: &mut ChunkInitFragments));
+define_hook!(JavascriptModulesRenderModuleContainer: Series(compilation: &Compilation, module: &BoxModule, source: &mut RenderSource, init_fragments: &mut ChunkInitFragments));
+define_hook!(JavascriptModulesRenderModulePackage: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, module: &BoxModule, source: &mut RenderSource, init_fragments: &mut ChunkInitFragments));
+define_hook!(JavascriptModulesChunkHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash));
+define_hook!(JavascriptModulesInlineInRuntimeBailout: SeriesBail(compilation: &Compilation) -> String);
+define_hook!(JavascriptModulesEmbedInRuntimeBailout: SeriesBail(compilation: &Compilation, module: &BoxModule, chunk: &Chunk) -> String);
+define_hook!(JavascriptModulesStrictRuntimeBailout: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> String);
 
 #[derive(Debug, Default)]
 pub struct JavascriptModulesPluginHooks {
