@@ -144,7 +144,7 @@ export function serializeError(error: unknown): WorkerError {
 		error instanceof Error ||
 		(error && typeof error === "object" && "message" in error)
 	) {
-		// Consider object with messaage property as an error
+		// Consider object with message property as an error
 		return {
 			...error,
 			name: (error as Error).name,
