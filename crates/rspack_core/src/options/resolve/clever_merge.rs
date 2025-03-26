@@ -318,8 +318,18 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
       |_| true,
       |_, b| b
     ),
-    fallback: merge!(fallback, ValueType::Other, |_| false, extend_alias),
-    alias: merge!(alias, ValueType::Other, |_| false, extend_alias),
+    fallback: merge!(
+      fallback,
+      second.fallback.base.get_value_type(),
+      |_| false,
+      extend_alias
+    ),
+    alias: merge!(
+      alias,
+      second.alias.base.get_value_type(),
+      |_| false,
+      extend_alias
+    ),
     exports_fields: merge!(exports_fields, ValueType::Other, |_| false, |_, b| b),
     imports_fields: merge!(imports_fields, ValueType::Other, |_| false, |_, b| b),
     description_files: merge!(
@@ -454,15 +464,20 @@ fn normalize_string_array(a: Vec<String>, b: Vec<String>) -> Vec<String> {
   })
 }
 
-fn extend_alias(mut a: Alias, b: Alias) -> Alias {
-  for (key, value) in b {
-    if let Some((_, v)) = a.iter_mut().find(|(k, _)| *k == key) {
-      *v = value;
-    } else {
-      a.push((key, value));
+fn extend_alias(a: Alias, b: Alias) -> Alias {
+  match (a, b) {
+    (Alias::MergeAlias(mut a), Alias::MergeAlias(b)) => {
+      for (key, value) in b {
+        if let Some((_, v)) = a.iter_mut().find(|(k, _)| *k == key) {
+          *v = value;
+        } else {
+          a.push((key, value));
+        }
+      }
+      Alias::MergeAlias(a)
     }
+    (_, b) => b,
   }
-  a
 }
 
 fn extend_extension_alias(mut a: ExtensionAlias, b: ExtensionAlias) -> ExtensionAlias {
@@ -611,7 +626,7 @@ mod test {
   fn test_merge_resolver_options_0() {
     let base = Resolve {
       extensions: string_list(&["a", "b"]),
-      alias: Some(vec![("c".to_string(), vec![AliasMap::Ignore])]),
+      alias: Some(vec![("c".to_string(), vec![AliasMap::Ignore])].into()),
       symlinks: Some(false),
       main_files: string_list(&["d", "e", "f"]),
       main_fields: string_list(&["g", "h", "i"]),
@@ -620,7 +635,7 @@ mod test {
     };
     let another = Resolve {
       extensions: string_list(&["a1", "b1"]),
-      alias: Some(vec![("c2".to_string(), vec![AliasMap::Ignore])]),
+      alias: Some(vec![("c2".to_string(), vec![AliasMap::Ignore])].into()),
       prefer_relative: Some(true),
       main_files: string_list(&["d1", "e", "..."]),
       main_fields: string_list(&["...", "h", "..."]),
@@ -645,6 +660,7 @@ mod test {
         ("c".to_string(), vec![AliasMap::Ignore]),
         ("c2".to_string(), vec![AliasMap::Ignore])
       ]
+      .into()
     );
     assert_eq!(options.condition_names.expect("should be Ok").len(), 3);
   }
@@ -693,13 +709,13 @@ mod test {
     let first = Resolve {
       extensions: string_list(&["1"]),
       modules: string_list(&["1"]),
-      alias: Some(vec![]),
+      alias: Some(vec![].into()),
       ..Default::default()
     };
     let second = Resolve {
       extensions: string_list(&["2"]),
       modules: string_list(&["2", "...", "3"]),
-      alias: Some(vec![("2".to_string(), vec![AliasMap::Ignore])]),
+      alias: Some(vec![("2".to_string(), vec![AliasMap::Ignore])].into()),
       ..Default::default()
     };
     pretty_assertions::assert_eq!(
@@ -707,7 +723,7 @@ mod test {
       Resolve {
         extensions: string_list(&["2"]),
         modules: string_list(&["2", "1", "3"]),
-        alias: Some(vec![("2".to_string(), vec![AliasMap::Ignore])]),
+        alias: Some(vec![("2".to_string(), vec![AliasMap::Ignore])].into()),
         ..Default::default()
       }
     )
@@ -2278,6 +2294,25 @@ mod test {
       merge_resolve(first, second),
       Resolve {
         extensions: string_list(&[]),
+        ..Default::default()
+      }
+    )
+  }
+
+  #[test]
+  fn merge_resolver_options_empty_alias() {
+    let first = Resolve {
+      alias: Some(vec![("2".to_string(), vec![AliasMap::Ignore])].into()),
+      ..Default::default()
+    };
+    let second = Resolve {
+      alias: Some(vec![].into()),
+      ..Default::default()
+    };
+    pretty_assertions::assert_eq!(
+      merge_resolve(first, second),
+      Resolve {
+        alias: Some(vec![].into()),
         ..Default::default()
       }
     )

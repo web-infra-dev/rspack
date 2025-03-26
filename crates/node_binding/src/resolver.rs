@@ -61,14 +61,13 @@ impl JsResolver {
       Ok(mut options) => {
         options.resolve_options = match options.resolve_options.take() {
           Some(resolve_options) => match &self.options.resolve_options {
-            Some(origin_resolve_options) => Some(Box::new(
-              resolve_options.merge(*origin_resolve_options.clone()),
+            Some(base_resolve_options) => Some(Box::new(
+              base_resolve_options.clone().merge(*resolve_options),
             )),
             None => Some(resolve_options),
           },
           None => self.options.resolve_options.clone(),
         };
-
         Ok(Self::new(self.resolver_factory.clone(), options))
       }
       Err(e) => Err(napi::Error::from_reason(format!("{e}"))),

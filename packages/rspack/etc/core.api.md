@@ -4695,7 +4695,7 @@ export type Resolve = ResolveOptions;
 // @public
 export type ResolveAlias = {
     [x: string]: string | false | (string | false)[];
-};
+} | false;
 
 // @public (undocumented)
 type ResolveCallback = (err: null | ErrorWithDetails, res?: string | false, req?: ResolveRequest) => void;
