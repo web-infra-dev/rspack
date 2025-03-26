@@ -1,5 +1,7 @@
 import allowedModule from "http://test.rspack.dev/allowed-module.js";
 import regexModule from "http://test.rspack.dev/regex-module.js";
+import image from 'https://github.com/vercel/next.js/raw/canary/test/integration/url/public/vercel.png?_=image'
+console.log(image);
 // import restrictedModule from "http://localhost:8999/restricted-module.js";
 
 it("should load a module from an allowed URI using string pattern", () => {

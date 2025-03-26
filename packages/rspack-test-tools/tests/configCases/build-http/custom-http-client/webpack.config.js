@@ -9,6 +9,7 @@ module.exports = {
 			allowedUris: [
 				// Allow a specific path with a string (should allow allowed-module.js)
 				"http://test.rspack.dev/allowed",
+				/^https:\/\/github\.com\/.*/,
 
 				// Allow paths matching a regex pattern (should match regex-module.js)
 				/^http:\/\/test\.rspack\.dev\/regex.*/
