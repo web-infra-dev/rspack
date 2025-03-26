@@ -291,7 +291,7 @@ impl ToNapiValue for ModuleObject {
       Object::from_napi_value(env, napi_val)
     })?;
 
-    module_object.set_named_property("_compilation", compilation_object)?;
+    // module_object.set_named_property("_compilation", compilation_object)?;
 
     Ok(napi_val)
   }
