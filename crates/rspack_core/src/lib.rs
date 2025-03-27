@@ -3,7 +3,6 @@
 #![feature(iter_intersperse)]
 #![feature(box_patterns)]
 #![feature(anonymous_lifetime_in_impl_trait)]
-#![feature(hash_raw_entry)]
 #![feature(async_closure)]
 
 use std::{fmt, sync::Arc};
