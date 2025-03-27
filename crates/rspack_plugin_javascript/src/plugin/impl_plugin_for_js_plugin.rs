@@ -265,27 +265,29 @@ async fn render_manifest(
   );
   let mut asset_info = AssetInfo::default();
   asset_info.set_javascript_module(compilation.options.output.module);
-  let output_path = compilation.get_path_with_info(
-    &filename_template,
-    PathData::default()
-      .chunk_hash_optional(chunk.rendered_hash(
-        &compilation.chunk_hashes_artifact,
-        compilation.options.output.hash_digest_length,
-      ))
-      .chunk_id_optional(
-        chunk
-          .id(&compilation.chunk_ids_artifact)
-          .map(|id| id.as_str()),
-      )
-      .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
-      .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-        &compilation.chunk_hashes_artifact,
-        &SourceType::JavaScript,
-        compilation.options.output.hash_digest_length,
-      ))
-      .runtime(chunk.runtime().as_str()),
-    &mut asset_info,
-  )?;
+  let output_path = compilation
+    .get_path_with_info(
+      &filename_template,
+      PathData::default()
+        .chunk_hash_optional(chunk.rendered_hash(
+          &compilation.chunk_hashes_artifact,
+          compilation.options.output.hash_digest_length,
+        ))
+        .chunk_id_optional(
+          chunk
+            .id(&compilation.chunk_ids_artifact)
+            .map(|id| id.as_str()),
+        )
+        .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+        .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+          &compilation.chunk_hashes_artifact,
+          &SourceType::JavaScript,
+          compilation.options.output.hash_digest_length,
+        ))
+        .runtime(chunk.runtime().as_str()),
+      &mut asset_info,
+    )
+    .await?;
   asset_info.set_javascript_module(compilation.options.output.module);
 
   let (source, _) = compilation

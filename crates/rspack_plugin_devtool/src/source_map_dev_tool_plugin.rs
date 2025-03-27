@@ -478,8 +478,9 @@ impl SourceMapDevToolPlugin {
                 .content_hash_optional(Some(digest.encoded())),
               None => data,
             };
-            let source_map_filename =
-              compilation.get_asset_path(source_map_filename_config, data)?;
+            let source_map_filename = compilation
+              .get_asset_path(source_map_filename_config, data)
+              .await?;
 
             if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment {
               let source_map_url = if let Some(public_path) = &self.public_path {
@@ -504,11 +505,13 @@ impl SourceMapDevToolPlugin {
               let data = data.url(&source_map_url);
               let current_source_mapping_url_comment = match &current_source_mapping_url_comment {
                 SourceMappingUrlCommentRef::String(s) => {
-                  compilation.get_asset_path(&Filename::from(s.as_ref()), data)?
+                  compilation
+                    .get_asset_path(&Filename::from(s.as_ref()), data)
+                    .await?
                 }
                 SourceMappingUrlCommentRef::Fn(f) => {
                   let comment = f(data).await?;
-                  Filename::from(comment).render(data, None)?
+                  Filename::from(comment).render(data, None).await?
                 }
               };
               let current_source_mapping_url_comment = current_source_mapping_url_comment

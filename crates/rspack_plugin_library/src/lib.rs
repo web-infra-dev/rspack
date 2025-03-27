@@ -1,4 +1,5 @@
 #![feature(let_chains)]
+#![feature(async_closure)]
 
 mod amd_library_plugin;
 mod assign_library_plugin;

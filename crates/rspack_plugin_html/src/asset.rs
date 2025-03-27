@@ -130,10 +130,12 @@ impl HtmlPluginAssets {
       );
 
       if favicon_path.to_str().unwrap_or_default().is_empty() {
-        let fake_html_file_name = compilation.get_path(
-          html_file_name,
-          PathData::default().filename(output_path.as_str()),
-        )?;
+        let fake_html_file_name = compilation
+          .get_path(
+            html_file_name,
+            PathData::default().filename(output_path.as_str()),
+          )
+          .await?;
         let output_path = compilation.options.output.path.as_std_path();
         favicon_path = output_path
           .relative(output_path.join(fake_html_file_name).join(".."))
@@ -350,7 +352,7 @@ pub fn create_favicon_asset(
     .map_err(|err| miette::Error::from(AnyhowError::from(err)))
 }
 
-pub fn create_html_asset(
+pub async fn create_html_asset(
   output_file_name: &Filename,
   html: &str,
   template_file_name: &str,
@@ -359,13 +361,15 @@ pub fn create_html_asset(
   let hash = hash_for_source(html);
 
   let mut asset_info = AssetInfo::default();
-  let output_path = compilation.get_path_with_info(
-    output_file_name,
-    PathData::default()
-      .filename(template_file_name)
-      .content_hash(&hash),
-    &mut asset_info,
-  )?;
+  let output_path = compilation
+    .get_path_with_info(
+      output_file_name,
+      PathData::default()
+        .filename(template_file_name)
+        .content_hash(&hash),
+      &mut asset_info,
+    )
+    .await?;
 
   Ok((
     output_path,

@@ -2398,7 +2398,7 @@ impl Compilation {
       .map(|hash| hash.rendered(self.options.output.hash_digest_length))
   }
 
-  pub fn get_path<'b, 'a: 'b>(
+  pub async fn get_path<'b, 'a: 'b>(
     &'a self,
     filename: &Filename,
     mut data: PathData<'b>,
@@ -2406,10 +2406,10 @@ impl Compilation {
     if data.hash.is_none() {
       data.hash = self.get_hash();
     }
-    filename.render(data, None)
+    filename.render(data, None).await
   }
 
-  pub fn get_path_with_info<'b, 'a: 'b>(
+  pub async fn get_path_with_info<'b, 'a: 'b>(
     &'a self,
     filename: &Filename,
     mut data: PathData<'b>,
@@ -2418,21 +2418,21 @@ impl Compilation {
     if data.hash.is_none() {
       data.hash = self.get_hash();
     }
-    let path = filename.render(data, Some(info))?;
+    let path = filename.render(data, Some(info)).await?;
     Ok(path)
   }
 
-  pub fn get_asset_path(&self, filename: &Filename, data: PathData) -> Result<String> {
-    filename.render(data, None)
+  pub async fn get_asset_path(&self, filename: &Filename, data: PathData<'_>) -> Result<String> {
+    filename.render(data, None).await
   }
 
-  pub fn get_asset_path_with_info(
+  pub async fn get_asset_path_with_info(
     &self,
     filename: &Filename,
-    data: PathData,
+    data: PathData<'_>,
   ) -> Result<(String, AssetInfo)> {
     let mut info = AssetInfo::default();
-    let path = filename.render(data, Some(&mut info))?;
+    let path = filename.render(data, Some(&mut info)).await?;
     Ok((path, info))
   }
 

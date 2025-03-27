@@ -242,7 +242,7 @@ impl AssetParserAndGenerator {
     relative
   }
 
-  fn get_asset_module_filename(
+  async fn get_asset_module_filename(
     &self,
     module: &NormalModule,
     module_generator_options: Option<&GeneratorOptions>,
@@ -264,16 +264,18 @@ impl AssetParserAndGenerator {
       .hash_optional(contenthash)
       .filename(source_file_name);
 
-    let (mut filename, mut asset_info) =
-      compilation.get_asset_path_with_info(asset_filename_template, path_data)?;
+    let (mut filename, mut asset_info) = compilation
+      .get_asset_path_with_info(asset_filename_template, path_data)
+      .await?;
     let original_filename = filename.clone();
 
     if use_output_path {
       let output_path = module_generator_options.and_then(|x| x.asset_output_path());
 
       if let Some(output_path) = output_path {
-        let (output_path, another_asset_info) =
-          compilation.get_asset_path_with_info(output_path, path_data)?;
+        let (output_path, another_asset_info) = compilation
+          .get_asset_path_with_info(output_path, path_data)
+          .await?;
         let output_path = PathBuf::from(output_path);
         let file_path = PathBuf::from(filename);
         filename = output_path.join(file_path).to_string_lossy().to_string();
@@ -284,7 +286,7 @@ impl AssetParserAndGenerator {
     Ok((original_filename, filename, asset_info))
   }
 
-  fn get_public_path(
+  async fn get_public_path(
     &self,
     module: &NormalModule,
     compilation: &Compilation,
@@ -292,17 +294,19 @@ impl AssetParserAndGenerator {
     source_file_name: &str,
     template: &Filename,
   ) -> Result<(String, AssetInfo)> {
-    let (public_path, info) = compilation.get_asset_path_with_info(
-      template,
-      PathData::default()
-        .module_id_optional(
-          ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.id())
-            .map(|s| s.as_str()),
-        )
-        .content_hash_optional(contenthash)
-        .hash_optional(contenthash)
-        .filename(source_file_name),
-    )?;
+    let (public_path, info) = compilation
+      .get_asset_path_with_info(
+        template,
+        PathData::default()
+          .module_id_optional(
+            ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.id())
+              .map(|s| s.as_str()),
+          )
+          .content_hash_optional(contenthash)
+          .hash_optional(contenthash)
+          .filename(source_file_name),
+      )
+      .await?;
     let public_path = PublicPath::ensure_ends_with_slash(public_path);
     Ok((public_path, info))
   }
@@ -494,14 +498,16 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           let contenthash = contenthash.rendered(compilation.options.output.hash_digest_length);
 
           let source_file_name = self.get_source_file_name(normal_module, compilation);
-          let (original_filename, filename, mut asset_info) = self.get_asset_module_filename(
-            normal_module,
-            module_generator_options,
-            compilation,
-            Some(contenthash),
-            &source_file_name,
-            true,
-          )?;
+          let (original_filename, filename, mut asset_info) = self
+            .get_asset_module_filename(
+              normal_module,
+              module_generator_options,
+              compilation,
+              Some(contenthash),
+              &source_file_name,
+              true,
+            )
+            .await?;
 
           let asset_path = if import_mode.is_preserve() {
             generate_context
@@ -516,13 +522,15 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           {
             let public_path = match public_path {
               PublicPath::Filename(template) => {
-                let (public_path, another_asset_info) = self.get_public_path(
-                  normal_module,
-                  compilation,
-                  Some(contenthash),
-                  &source_file_name,
-                  template,
-                )?;
+                let (public_path, another_asset_info) = self
+                  .get_public_path(
+                    normal_module,
+                    compilation,
+                    Some(contenthash),
+                    &source_file_name,
+                    template,
+                  )
+                  .await?;
                 asset_info.merge_another_asset(another_asset_info);
                 public_path
               }
@@ -662,20 +670,23 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       data_url_options.dyn_hash(&mut hasher);
     } else if parsed_asset_config.is_resource() {
       let source_file_name = self.get_source_file_name(module, compilation);
-      let (filename, _, _) = self.get_asset_module_filename(
-        module,
-        module_generator_options,
-        compilation,
-        None,
-        &source_file_name,
-        false,
-      )?;
+      let (filename, _, _) = self
+        .get_asset_module_filename(
+          module,
+          module_generator_options,
+          compilation,
+          None,
+          &source_file_name,
+          false,
+        )
+        .await?;
       filename.dyn_hash(&mut hasher);
       match module_generator_options.and_then(|x| x.asset_public_path()) {
         Some(public_path) => match public_path {
           PublicPath::Filename(template) => {
-            let (public_path, _) =
-              self.get_public_path(module, compilation, None, &source_file_name, template)?;
+            let (public_path, _) = self
+              .get_public_path(module, compilation, None, &source_file_name, template)
+              .await?;
             public_path.dyn_hash(&mut hasher);
           }
           PublicPath::Auto => "auto".dyn_hash(&mut hasher),

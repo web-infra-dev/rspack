@@ -382,6 +382,7 @@ impl PublicPath {
     let path_data = PathData::default().hash(compilation.get_hash().unwrap_or("XXXX"));
     template
       .render(path_data, None)
+      .await
       .expect("failed to render public path")
   }
 
