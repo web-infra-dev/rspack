@@ -455,6 +455,7 @@ impl JsCompilation {
   #[napi]
   pub fn get_asset_path(&self, filename: JsFilename, data: JsPathData) -> Result<String> {
     let compilation = self.as_ref()?;
+    #[allow(clippy::disallowed_methods)]
     futures::executor::block_on(compilation.get_asset_path(&filename.into(), data.to_path_data()))
       .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))
   }
@@ -467,6 +468,7 @@ impl JsCompilation {
   ) -> Result<PathWithInfo> {
     let compilation = self.as_ref()?;
 
+    #[allow(clippy::disallowed_methods)]
     let res = futures::executor::block_on(
       compilation.get_asset_path_with_info(&filename.into(), data.to_path_data()),
     )
@@ -477,7 +479,7 @@ impl JsCompilation {
   #[napi]
   pub fn get_path(&self, filename: JsFilename, data: JsPathData) -> Result<String> {
     let compilation = self.as_ref()?;
-
+    #[allow(clippy::disallowed_methods)]
     futures::executor::block_on(compilation.get_path(&filename.into(), data.to_path_data()))
       .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))
   }
@@ -487,6 +489,8 @@ impl JsCompilation {
     let compilation = self.as_ref()?;
 
     let mut asset_info = rspack_core::AssetInfo::default();
+
+    #[allow(clippy::disallowed_methods)]
     let path = futures::executor::block_on(compilation.get_path_with_info(
       &filename.into(),
       data.to_path_data(),

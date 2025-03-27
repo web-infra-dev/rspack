@@ -99,7 +99,7 @@ impl LocalIdentNameRenderOptions<'_> {
   pub async fn render_local_ident_name(self, local_ident_name: &LocalIdentName) -> Result<String> {
     let raw = local_ident_name
       .template
-      .render_async(self.path_data, None)
+      .render(self.path_data, None)
       .await?;
     let s: &str = raw.as_ref();
 
