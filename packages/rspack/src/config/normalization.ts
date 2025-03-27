@@ -333,7 +333,8 @@ export const getNormalizedRspackOptions = (
 						unmanagedPaths: nestedArray(snapshot.unmanagedPaths, p => [...p]),
 						managedPaths: optionalNestedArray(snapshot.managedPaths, p => [
 							...p
-						]) || [/\/node_modules\//]
+						]) || [/\/node_modules\//],
+						hashPaths: nestedArray(snapshot.hashPaths, p => [...p])
 					},
 					storage: {
 						type: "filesystem",
@@ -591,6 +592,7 @@ export type ExperimentCacheNormalized =
 				immutablePaths: Array<string | RegExp>;
 				unmanagedPaths: Array<string | RegExp>;
 				managedPaths: Array<string | RegExp>;
+				hashPaths: Array<string | RegExp>;
 			};
 			storage: {
 				type: "filesystem";
