@@ -415,7 +415,7 @@ async function loaderImpl(
 		}
 	}
 
-	await sendRequest(
+	sendRequest(
 		RequestType.UpdateLoaderObjects,
 		loaderContext.loaders.map(item => {
 			return {
