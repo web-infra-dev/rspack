@@ -93,7 +93,7 @@ async function loaderImpl(
 		return sendRequest(RequestType.GetMissingDependencies).wait();
 	};
 	loaderContext.clearDependencies = function clearDependencies() {
-		sendRequest(RequestType.ClearDependencies);
+		pendingDependencyRequest.push(sendRequest(RequestType.ClearDependencies));
 	};
 	loaderContext.importModule = function () {
 		throw new Error("importModule is not supported in worker");
