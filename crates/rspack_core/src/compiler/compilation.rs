@@ -2422,8 +2422,8 @@ impl Compilation {
     Ok(path)
   }
 
-  pub fn get_asset_path(&self, filename: &Filename, data: PathData) -> Result<String> {
-    filename.render(data, None)
+  pub async fn get_asset_path(&self, filename: &Filename, data: PathData<'_>) -> Result<String> {
+    filename.render_async(data, None).await
   }
 
   pub fn get_asset_path_with_info(
