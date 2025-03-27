@@ -49,14 +49,6 @@ impl ContentFetchResult {
   pub fn content(&self) -> &[u8] {
     &self.content
   }
-
-  pub fn content_type(&self) -> &str {
-    &self.entry.content_type
-  }
-
-  pub fn resolved(&self) -> &str {
-    &self.entry.resolved
-  }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

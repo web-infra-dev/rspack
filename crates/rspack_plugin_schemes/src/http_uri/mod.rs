@@ -9,7 +9,7 @@ pub use http_cache::{HttpClient, HttpResponse};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  get_scheme, ApplyContext, CompilerOptions, Content, ModuleFactoryCreateData,
+  ApplyContext, CompilerOptions, Content, ModuleFactoryCreateData,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveInScheme,
   NormalModuleReadResource, Plugin, PluginContext, ResourceData, Scheme,
 };
@@ -17,6 +17,7 @@ use rspack_error::Result;
 use rspack_fs::WritableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::{AssetCondition, AssetConditions};
+use url::Url;
 
 static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^(//|https?://|#)").expect("Invalid regex"));
@@ -31,51 +32,24 @@ impl HttpUriPlugin {
   pub fn new(options: HttpUriPluginOptions) -> Self {
     Self::new_inner(options)
   }
-  async fn respond_with_url_module(
+  pub async fn respond_with_url_module(
     &self,
-    url: url::Url,
     resource_data: &mut ResourceData,
+    url: &Url,
+    mimetype: Option<String>,
   ) -> Result<bool> {
-    let fetch_result = fetch_content(url.as_str(), &self.options)
-      .await
-      .map_err(rspack_error::AnyhowError::from)?;
-
-    if let FetchResultType::Content(content_result) = fetch_result {
-      resource_data.set_resource(url.to_string());
-
-      let path_str = format!("{}{}", url.origin().ascii_serialization(), url.path());
-      resource_data.set_path(path_str);
-
-      if let Some(query) = url.query() {
-        resource_data.set_query(format!("?{}", query));
-      } else {
-        resource_data.set_query_optional(None);
-      }
-
-      if let Some(fragment) = url.fragment() {
-        resource_data.set_fragment(format!("#{}", fragment));
-      } else {
-        resource_data.set_fragment_optional(None);
-      }
-
-      let resolved = content_result.resolved();
-      if let Ok(resolved_url) = url::Url::parse(resolved) {
-        if let Ok(context_url) = resolved_url.join("./") {
-          let context_str = context_url.as_str();
-          let _context = if let Some(stripped) = context_str.strip_suffix('/') {
-            stripped
-          } else {
-            context_str
-          };
-        }
-      }
-
-      resource_data.set_mimetype(content_result.content_type().to_string());
-
-      return Ok(true);
+    resource_data.set_resource(url.to_string());
+    resource_data.set_path(url.origin().ascii_serialization() + url.path());
+    if let Some(query) = url.query() {
+      resource_data.set_query(query.to_string());
     }
-
-    Ok(false)
+    if let Some(fragment) = url.fragment() {
+      resource_data.set_fragment(fragment.to_string());
+    }
+    if let Some(mime) = mimetype {
+      resource_data.set_mimetype(mime);
+    }
+    Ok(true)
   }
 }
 
@@ -92,54 +66,63 @@ pub struct HttpUriPluginOptions {
 }
 
 #[plugin_hook(NormalModuleFactoryResolveForScheme for HttpUriPlugin)]
-async fn resolve_for_scheme(
+pub async fn resolve_for_scheme(
   &self,
   _data: &mut ModuleFactoryCreateData,
   resource_data: &mut ResourceData,
-  scheme: &Scheme,
+  _scheme: &Scheme,
 ) -> Result<Option<bool>> {
-  if scheme.is_http() || scheme.is_https() {
-    // Parse the URL
-    match url::Url::parse(&resource_data.resource) {
-      Ok(url) => match self.respond_with_url_module(url, resource_data).await {
-        Ok(true) => Ok(Some(true)),
-        Ok(false) => Ok(None),
-        Err(e) => Err(e),
-      },
-      Err(_) => Ok(None),
-    }
-  } else {
-    Ok(None)
+  // Try to parse the URL and handle it
+  match Url::parse(&resource_data.resource) {
+    Ok(url) => match self
+      .respond_with_url_module(resource_data, &url, None)
+      .await
+    {
+      Ok(true) => Ok(Some(true)),
+      Ok(false) => Ok(None),
+      Err(e) => Err(e),
+    },
+    Err(_) => Ok(None),
   }
 }
 
 #[plugin_hook(NormalModuleFactoryResolveInScheme for HttpUriPlugin)]
-async fn resolve_in_scheme(
+pub async fn resolve_in_scheme(
   &self,
   data: &mut ModuleFactoryCreateData,
   resource_data: &mut ResourceData,
   _scheme: &Scheme,
 ) -> Result<Option<bool>> {
-  if !matches!(
-    get_scheme(data.context.as_str()),
-    Scheme::Http | Scheme::Https
-  ) {
+  // Check if the dependency type is "url", similar to webpack's check
+  let is_not_url_dependency = data
+    .dependencies
+    .first()
+    .and_then(|dep| dep.as_module_dependency())
+    .map(|dep| dep.dependency_type().as_str() != "url")
+    .unwrap_or(true);
+
+  // Only handle relative urls (./xxx, ../xxx, /xxx, //xxx) and non-url dependencies
+  if is_not_url_dependency
+    && (!resource_data.resource.starts_with("./")
+      && !resource_data.resource.starts_with("../")
+      && !resource_data.resource.starts_with("/")
+      && !resource_data.resource.starts_with("//"))
+  {
     return Ok(None);
   }
 
-  let base_url = match url::Url::parse(data.context.as_str()) {
+  // Parse the base URL from context
+  let base_url = match Url::parse(&format!("{}/", data.context)) {
     Ok(url) => url,
     Err(_) => return Ok(None),
   };
 
-  let resource_url = match url::Url::parse(&resource_data.resource) {
-    Ok(url) if url.scheme() == "http" || url.scheme() == "https" => return Ok(None),
-    Ok(_) | Err(_) => resource_data.resource.clone(),
-  };
-
   // Join the base URL with the resource
-  match base_url.join(&resource_url) {
-    Ok(url) => match self.respond_with_url_module(url, resource_data).await {
+  match base_url.join(&resource_data.resource) {
+    Ok(url) => match self
+      .respond_with_url_module(resource_data, &url, None)
+      .await
+    {
       Ok(true) => Ok(Some(true)),
       Ok(false) => Ok(None),
       Err(e) => Err(e),

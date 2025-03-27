@@ -1,5 +1,15 @@
 Array [
-  "/* #region \"./style.css\" */
+  "/* #region \"https://raw.githubusercontent.com/web-infra-dev/rspack/55d5d81/packages/rspack-test-tools/tests/configCases/css/at-import/c.css\" */
+/*
+- type: css/auto
+*/
+.c {
+	color: pink;
+}
+
+/* #endregion \"https://raw.githubusercontent.com/web-infra-dev/rspack/55d5d81/packages/rspack-test-tools/tests/configCases/css/at-import/c.css\" */
+
+/* #region \"./style.css\" */
 /*
 - type: css/auto
 */
@@ -12,7 +22,17 @@ div {
 /* #endregion \"./style.css\" */
 
 ",
-  "/* #region \"./style.css\" */
+  "/* #region \"https://raw.githubusercontent.com/web-infra-dev/rspack/55d5d81/packages/rspack-test-tools/tests/configCases/css/at-import/c.css\" */
+/*
+- type: css/auto
+*/
+.c {
+	color: pink;
+}
+
+/* #endregion \"https://raw.githubusercontent.com/web-infra-dev/rspack/55d5d81/packages/rspack-test-tools/tests/configCases/css/at-import/c.css\" */
+
+/* #region \"./style.css\" */
 /*
 - type: css/auto
 */
