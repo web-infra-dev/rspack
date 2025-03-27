@@ -4,7 +4,7 @@ import { type MessagePort, receiveMessageOnPort } from "node:worker_threads";
 
 import { JsLoaderState } from "@rspack/binding";
 import type { LoaderContext } from "../config";
-import { BUILTIN_LOADER_PREFIX } from "../config/adapterRuleUse";
+
 import { createHash } from "../util/createHash";
 import { absolutify, contextify } from "../util/identifier";
 import { memoize } from "../util/memoize";
@@ -23,6 +23,8 @@ import {
 	serializeError
 } from "./service";
 import { convertArgs, runSyncOrAsync } from "./utils";
+
+const BUILTIN_LOADER_PREFIX = "builtin:";
 
 interface WorkerOptions {
 	loaderContext: LoaderContext;
