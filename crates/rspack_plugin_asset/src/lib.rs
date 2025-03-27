@@ -12,9 +12,9 @@ use rspack_core::{
   AssetParserDataUrl, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkUkey,
   CodeGenerationDataAssetInfo, CodeGenerationDataFilename, CodeGenerationDataUrl,
   CodeGenerationPublicPathAutoReplace, Compilation, CompilationRenderManifest, CompilerOptions,
-  Filename, GenerateContext, GeneratorOptions, LocalFilenameFn, Module, ModuleGraph, NormalModule,
-  ParseContext, ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry,
-  ResourceData, RuntimeGlobals, RuntimeSpec, SourceType, NAMESPACE_OBJECT_EXPORT,
+  Filename, GenerateContext, GeneratorOptions, Module, ModuleGraph, NormalModule, ParseContext,
+  ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry, ResourceData,
+  RuntimeGlobals, RuntimeSpec, SourceType, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::{error, Diagnostic, IntoTWithDiagnosticArray, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -284,13 +284,13 @@ impl AssetParserAndGenerator {
     Ok((original_filename, filename, asset_info))
   }
 
-  fn get_public_path<F: LocalFilenameFn>(
+  fn get_public_path(
     &self,
     module: &NormalModule,
     compilation: &Compilation,
     contenthash: Option<&str>,
     source_file_name: &str,
-    template: &Filename<F>,
+    template: &Filename,
   ) -> Result<(String, AssetInfo)> {
     let (public_path, info) = compilation.get_asset_path_with_info(
       template,

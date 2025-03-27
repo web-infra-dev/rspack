@@ -12,7 +12,7 @@ use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_core::{
   rspack_sources::{RawBufferSource, RawStringSource, SourceExt},
-  AssetInfo, Compilation, CompilationAsset, Filename, NoFilenameFn, PathData,
+  AssetInfo, Compilation, CompilationAsset, Filename, PathData,
 };
 use rspack_error::{miette, AnyhowError, Result};
 use rspack_paths::Utf8PathBuf;
@@ -43,7 +43,7 @@ impl HtmlPluginAssets {
     compilation: &'a Compilation,
     public_path: &str,
     output_path: &Utf8PathBuf,
-    html_file_name: &Filename<NoFilenameFn>,
+    html_file_name: &Filename,
   ) -> Result<(HtmlPluginAssets, HashMap<String, &'a CompilationAsset>)> {
     let mut assets: HtmlPluginAssets = HtmlPluginAssets::default();
     let mut asset_map = HashMap::new();
@@ -351,7 +351,7 @@ pub fn create_favicon_asset(
 }
 
 pub fn create_html_asset(
-  output_file_name: &Filename<NoFilenameFn>,
+  output_file_name: &Filename,
   html: &str,
   template_file_name: &str,
   compilation: &Compilation,

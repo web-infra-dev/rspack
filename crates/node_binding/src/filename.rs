@@ -41,12 +41,12 @@ impl From<JsFilename> for Filename {
   fn from(value: JsFilename) -> Self {
     match value.filename {
       Either::A(template) => Filename::from(template),
-      Either::B(f) => Filename::from_fn(Arc::new(ThreadSafeFilenameFn(Arc::new(
+      Either::B(f) => Filename::from(Arc::new(ThreadSafeFilenameFn(Arc::new(
         move |path_data, asset_info| {
           let f = f.clone();
           Box::pin(async move { f.call_with_sync((path_data, asset_info)).await })
         },
-      )))),
+      ))) as Arc<dyn FilenameFn>),
     }
   }
 }
@@ -55,12 +55,12 @@ impl From<JsFilename> for PublicPath {
   fn from(value: JsFilename) -> Self {
     match value.filename {
       Either::A(template) => template.into(),
-      Either::B(f) => PublicPath::Filename(Filename::from_fn(Arc::new(ThreadSafeFilenameFn(
-        Arc::new(move |path_data, asset_info| {
+      Either::B(f) => PublicPath::Filename(Filename::from(Arc::new(ThreadSafeFilenameFn(Arc::new(
+        move |path_data, asset_info| {
           let f = f.clone();
           Box::pin(async move { f.call_with_sync((path_data, asset_info)).await })
-        }),
-      )))),
+        },
+      ))) as Arc<dyn FilenameFn>)),
     }
   }
 }

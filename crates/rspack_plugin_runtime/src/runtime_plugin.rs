@@ -403,12 +403,7 @@ async fn runtime_requirements_in_tree(
           GetMainFilenameRuntimeModule::new(
             "update manifest",
             RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME,
-            compilation
-              .options
-              .output
-              .hot_update_main_filename
-              .clone()
-              .into(),
+            compilation.options.output.hot_update_main_filename.clone(),
           )
           .boxed(),
         )?;

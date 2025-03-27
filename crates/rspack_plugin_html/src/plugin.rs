@@ -5,10 +5,7 @@ use std::{
 };
 
 use cow_utils::CowUtils;
-use rspack_core::{
-  Compilation, CompilationId, CompilationProcessAssets, Filename, FilenameTemplate, NoFilenameFn,
-  Plugin,
-};
+use rspack_core::{Compilation, CompilationId, CompilationProcessAssets, Filename, Plugin};
 use rspack_error::{miette, Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::FxDashMap;
@@ -59,7 +56,7 @@ impl HtmlRspackPlugin {
 
 async fn generate_html(
   filename: &str,
-  html_file_name: &Filename<NoFilenameFn>,
+  html_file_name: &Filename,
   config: &HtmlRspackPluginOptions,
   compilation: &mut Compilation,
   hooks: &HtmlPluginHooks,
@@ -210,7 +207,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
     };
 
-    let output_file_name = FilenameTemplate::from(filename.to_string());
+    let output_file_name = Filename::from(filename.to_string());
 
     let (template_file_name, html) = match generate_html(
       filename.as_ref(),

@@ -4,9 +4,8 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, Chunk, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, ExternalRequest,
-  FilenameTemplate, LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName,
-  LibraryNonUmdObject, LibraryOptions, LibraryType, PathData, Plugin, PluginContext,
-  RuntimeGlobals, SourceType,
+  Filename, LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject,
+  LibraryOptions, LibraryType, PathData, Plugin, PluginContext, RuntimeGlobals, SourceType,
 };
 use rspack_error::{error, Result};
 use rspack_hash::RspackHash;
@@ -307,7 +306,7 @@ fn library_name(v: &[String], chunk: &Chunk, compilation: &Compilation) -> Resul
 
 fn replace_keys(v: String, chunk: &Chunk, compilation: &Compilation) -> Result<String> {
   compilation.get_path(
-    &FilenameTemplate::from(v),
+    &Filename::from(v),
     PathData::default()
       .chunk_id_optional(
         chunk

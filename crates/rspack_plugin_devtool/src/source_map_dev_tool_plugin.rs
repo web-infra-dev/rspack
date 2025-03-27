@@ -14,8 +14,8 @@ use regex::Regex;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
   rspack_sources::{ConcatSource, MapOptions, RawStringSource, Source, SourceExt},
-  AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets,
-  FilenameTemplate, Logger, ModuleIdentifier, PathData, Plugin, PluginContext,
+  AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets, Filename,
+  Logger, ModuleIdentifier, PathData, Plugin, PluginContext,
 };
 use rspack_error::{error, miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
@@ -131,7 +131,7 @@ pub(crate) struct MappedAsset {
 #[plugin]
 #[derive(Debug)]
 pub struct SourceMapDevToolPlugin {
-  source_map_filename: Option<FilenameTemplate>,
+  source_map_filename: Option<Filename>,
   #[debug(skip)]
   source_mapping_url_comment: Option<SourceMappingUrlComment>,
   file_context: Option<String>,
@@ -200,7 +200,7 @@ impl SourceMapDevToolPlugin {
         ));
 
     Self::new_inner(
-      options.filename.map(FilenameTemplate::from),
+      options.filename.map(Filename::from),
       source_mapping_url_comment,
       options.file_context,
       module_filename_template,
@@ -504,11 +504,11 @@ impl SourceMapDevToolPlugin {
               let data = data.url(&source_map_url);
               let current_source_mapping_url_comment = match &current_source_mapping_url_comment {
                 SourceMappingUrlCommentRef::String(s) => {
-                  compilation.get_asset_path(&FilenameTemplate::from(s.as_ref()), data)?
+                  compilation.get_asset_path(&Filename::from(s.as_ref()), data)?
                 }
                 SourceMappingUrlCommentRef::Fn(f) => {
                   let comment = f(data).await?;
-                  FilenameTemplate::from(comment).render(data, None)?
+                  Filename::from(comment).render(data, None)?
                 }
               };
               let current_source_mapping_url_comment = current_source_mapping_url_comment

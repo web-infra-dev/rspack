@@ -10,8 +10,7 @@ use futures::future::BoxFuture;
 use regex::Regex;
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
-  to_comment, Chunk, Compilation, CompilationProcessAssets, FilenameTemplate, Logger, PathData,
-  Plugin,
+  to_comment, Chunk, Compilation, CompilationProcessAssets, Filename, Logger, PathData, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -186,7 +185,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
       };
       let comment = compilation.get_path(
-        &FilenameTemplate::from(banner),
+        &Filename::from(banner),
         PathData::default()
           .chunk_hash_optional(chunk.rendered_hash(
             &compilation.chunk_hashes_artifact,
