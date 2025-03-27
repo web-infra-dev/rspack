@@ -6,8 +6,6 @@ export type JsFilename =
 	| string
 	| ((pathData: JsPathData, assetInfo?: AssetInfo) => string);
 
-export type LocalJsFilename = JsFilename;
-
 export type RawLazyCompilationTest = RegExp | ((module: Module) => boolean);
 
 export type AssetInfo = KnownAssetInfo & Record<string, any>;
@@ -24,7 +22,7 @@ export interface Module {
 }
 
 interface NormalModuleConstructor {
-	new (): NormalModule;
+	new(): NormalModule;
 	readonly prototype: NormalModule;
 }
 

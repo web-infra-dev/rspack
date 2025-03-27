@@ -220,14 +220,17 @@ impl Default for HtmlRspackPluginOptions {
 }
 
 impl HtmlRspackPluginOptions {
-  pub fn get_public_path(&self, compilation: &Compilation, filename: &str) -> String {
+  pub async fn get_public_path(&self, compilation: &Compilation, filename: &str) -> String {
     match &self.public_path {
       Some(p) => PublicPath::ensure_ends_with_slash(p.clone()),
-      None => compilation
-        .options
-        .output
-        .public_path
-        .render(compilation, filename),
+      None => {
+        compilation
+          .options
+          .output
+          .public_path
+          .render(compilation, filename)
+          .await
+      }
     }
   }
   pub fn get_relative_path(&self, compilation: &Compilation, filename: &str) -> String {

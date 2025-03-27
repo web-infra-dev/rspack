@@ -14,8 +14,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
 use crate::{
-  AssetInfo, ChunkInitFragments, ConcatenationScope, ModuleIdentifier, PublicPath, RuntimeGlobals,
-  RuntimeSpec, RuntimeSpecMap, SourceType,
+  AssetInfo, ChunkInitFragments, ConcatenationScope, ModuleIdentifier, RuntimeGlobals, RuntimeSpec,
+  RuntimeSpecMap, SourceType,
 };
 
 #[derive(Clone, Debug)]
@@ -40,11 +40,11 @@ pub struct CodeGenerationPublicPathAutoReplace(pub bool);
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataFilename {
   filename: String,
-  public_path: PublicPath,
+  public_path: String,
 }
 
 impl CodeGenerationDataFilename {
-  pub fn new(filename: String, public_path: PublicPath) -> Self {
+  pub fn new(filename: String, public_path: String) -> Self {
     Self {
       filename,
       public_path,
@@ -55,7 +55,7 @@ impl CodeGenerationDataFilename {
     &self.filename
   }
 
-  pub fn public_path(&self) -> &PublicPath {
+  pub fn public_path(&self) -> &str {
     &self.public_path
   }
 }

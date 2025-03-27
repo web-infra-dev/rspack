@@ -20,10 +20,7 @@ use rspack_core::{
 use rspack_error::{error, miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::{
-  asset_condition::AssetConditions, identifier::make_paths_absolute,
-  infallible::ResultInfallibleExt,
-};
+use rspack_util::{asset_condition::AssetConditions, identifier::make_paths_absolute};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
 
@@ -481,9 +478,8 @@ impl SourceMapDevToolPlugin {
                 .content_hash_optional(Some(digest.encoded())),
               None => data,
             };
-            let source_map_filename = compilation
-              .get_asset_path(source_map_filename_config, data)
-              .always_ok();
+            let source_map_filename =
+              compilation.get_asset_path(source_map_filename_config, data)?;
 
             if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment {
               let source_map_url = if let Some(public_path) = &self.public_path {
@@ -507,14 +503,12 @@ impl SourceMapDevToolPlugin {
               };
               let data = data.url(&source_map_url);
               let current_source_mapping_url_comment = match &current_source_mapping_url_comment {
-                SourceMappingUrlCommentRef::String(s) => compilation
-                  .get_asset_path(&FilenameTemplate::from(s.as_ref()), data)
-                  .always_ok(),
+                SourceMappingUrlCommentRef::String(s) => {
+                  compilation.get_asset_path(&FilenameTemplate::from(s.as_ref()), data)?
+                }
                 SourceMappingUrlCommentRef::Fn(f) => {
                   let comment = f(data).await?;
-                  FilenameTemplate::from(comment)
-                    .render(data, None)
-                    .always_ok()
+                  FilenameTemplate::from(comment).render(data, None)?
                 }
               };
               let current_source_mapping_url_comment = current_source_mapping_url_comment

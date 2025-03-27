@@ -1191,10 +1191,10 @@ impl CompilerOptionsBuilder {
         expect!(desc.import).into_iter().for_each(|import| {
           builder_context
             .plugins
-            .push(BuiltinPluginOptions::EntryPlugin((
+            .push(BuiltinPluginOptions::EntryPlugin(Box::new((
               import,
               entry_options.clone(),
-            )));
+            ))));
         });
       });
 
