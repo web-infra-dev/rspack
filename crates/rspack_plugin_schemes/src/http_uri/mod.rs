@@ -140,11 +140,11 @@ async fn resolve_in_scheme(
   // Join the base URL with the resource
   match base_url.join(&resource_url) {
     Ok(url) => match self.respond_with_url_module(url, resource_data).await {
-      Ok(true) => return Ok(Some(true)),
-      Ok(false) => return Ok(None),
-      Err(e) => return Err(e),
+      Ok(true) => Ok(Some(true)),
+      Ok(false) => Ok(None),
+      Err(e) => Err(e),
     },
-    Err(_) => return Ok(None),
+    Err(_) => Ok(None),
   }
 }
 
