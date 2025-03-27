@@ -467,9 +467,10 @@ impl JsCompilation {
   ) -> Result<PathWithInfo> {
     let compilation = self.as_ref()?;
 
-    let res = compilation
-      .get_asset_path_with_info(&filename.into(), data.to_path_data())
-      .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
+    let res = futures::executor::block_on(
+      compilation.get_asset_path_with_info(&filename.into(), data.to_path_data()),
+    )
+    .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
     Ok(res.into())
   }
 

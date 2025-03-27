@@ -2426,13 +2426,13 @@ impl Compilation {
     filename.render_async(data, None).await
   }
 
-  pub fn get_asset_path_with_info(
+  pub async fn get_asset_path_with_info(
     &self,
     filename: &Filename,
-    data: PathData,
+    data: PathData<'_>,
   ) -> Result<(String, AssetInfo)> {
     let mut info = AssetInfo::default();
-    let path = filename.render(data, Some(&mut info))?;
+    let path = filename.render_async(data, Some(&mut info)).await?;
     Ok((path, info))
   }
 
