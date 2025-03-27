@@ -2409,7 +2409,7 @@ impl Compilation {
     filename.render(data, None)
   }
 
-  pub fn get_path_with_info<'b, 'a: 'b>(
+  pub async fn get_path_with_info<'b, 'a: 'b>(
     &'a self,
     filename: &Filename,
     mut data: PathData<'b>,
@@ -2418,7 +2418,7 @@ impl Compilation {
     if data.hash.is_none() {
       data.hash = self.get_hash();
     }
-    let path = filename.render(data, Some(info))?;
+    let path = filename.render_async(data, Some(info)).await?;
     Ok(path)
   }
 

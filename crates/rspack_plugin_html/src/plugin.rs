@@ -256,7 +256,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       &before_emit_data.html,
       &template_file_name,
       compilation,
-    )?;
+    )
+    .await?;
 
     compilation.emit_asset(html_asset.0.clone(), html_asset.1);
 

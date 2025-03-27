@@ -488,9 +488,12 @@ impl JsCompilation {
     let compilation = self.as_ref()?;
 
     let mut asset_info = rspack_core::AssetInfo::default();
-    let path = compilation
-      .get_path_with_info(&filename.into(), data.to_path_data(), &mut asset_info)
-      .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
+    let path = futures::executor::block_on(compilation.get_path_with_info(
+      &filename.into(),
+      data.to_path_data(),
+      &mut asset_info,
+    ))
+    .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
     Ok((path, asset_info).into())
   }
 
