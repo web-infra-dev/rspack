@@ -7,9 +7,9 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier, ApplyContext, BoxModule, Chunk, ChunkUkey, CodeGenerationDataTopLevelDeclarations,
   Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules,
-  CompilationParams, CompilerCompilation, CompilerOptions, EntryData, ExportInfoProvided,
-  FilenameTemplate, LibraryExport, LibraryName, LibraryNonUmdObject, LibraryOptions,
-  ModuleIdentifier, PathData, Plugin, PluginContext, RuntimeGlobals, SourceType, UsageState,
+  CompilationParams, CompilerCompilation, CompilerOptions, EntryData, ExportInfoProvided, Filename,
+  LibraryExport, LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData,
+  Plugin, PluginContext, RuntimeGlobals, SourceType, UsageState,
 };
 use rspack_error::{error, error_bail, Result};
 use rspack_hash::RspackHash;
@@ -150,7 +150,7 @@ impl AssignLibraryPlugin {
       let mut prefix = self.options.prefix.value(compilation);
       let get_path = |v: &str| {
         compilation.get_path(
-          &FilenameTemplate::from(v.to_owned()),
+          &Filename::from(v),
           PathData::default()
             .chunk_id_optional(
               chunk

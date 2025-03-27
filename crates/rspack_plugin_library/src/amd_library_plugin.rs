@@ -3,8 +3,8 @@ use std::hash::Hash;
 use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, FilenameTemplate,
-  LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType, PathData, Plugin, PluginContext,
+  CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, Filename, LibraryName,
+  LibraryNonUmdObject, LibraryOptions, LibraryType, PathData, Plugin, PluginContext,
   RuntimeGlobals, SourceType,
 };
 use rspack_error::{error_bail, Result};
@@ -129,7 +129,7 @@ async fn render(
     )));
   } else if let Some(name) = options.name {
     let normalize_name = compilation.get_path(
-      &FilenameTemplate::from(name.to_string()),
+      &Filename::from(name),
       PathData::default()
         .chunk_id_optional(
           chunk

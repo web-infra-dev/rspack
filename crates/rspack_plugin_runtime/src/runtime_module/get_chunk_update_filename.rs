@@ -2,7 +2,7 @@ use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  ChunkUkey, Compilation, FilenameTemplate, PathData, RuntimeGlobals, RuntimeModule, SourceType,
+  ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule, SourceType,
 };
 
 // TODO workaround for get_chunk_update_filename
@@ -39,7 +39,7 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
       let filename = compilation.get_path(
-        &FilenameTemplate::from(compilation.options.output.hot_update_chunk_filename.clone()),
+        &compilation.options.output.hot_update_chunk_filename,
         PathData::default()
           .chunk_hash_optional(chunk.rendered_hash(
             &compilation.chunk_hashes_artifact,

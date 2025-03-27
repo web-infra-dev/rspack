@@ -11,9 +11,9 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
   AssetInfo, BoxDependency, BuildMetaExportsType, ChunkGraph, Compilation,
   DependencyType::WasmImport,
-  FilenameTemplate, GenerateContext, Module, ModuleDependency, ModuleGraph, ModuleId,
-  ModuleIdentifier, NormalModule, ParseContext, ParseResult, ParserAndGenerator, PathData,
-  RuntimeGlobals, SourceType, StaticExportsDependency, StaticExportsSpec, UsedName,
+  Filename, GenerateContext, Module, ModuleDependency, ModuleGraph, ModuleId, ModuleIdentifier,
+  NormalModule, ParseContext, ParseResult, ParserAndGenerator, PathData, RuntimeGlobals,
+  SourceType, StaticExportsDependency, StaticExportsSpec, UsedName,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_util::itoa;
@@ -311,7 +311,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 fn render_wasm_name(
   compilation: &Compilation,
   normal_module: &NormalModule,
-  wasm_filename_template: &FilenameTemplate,
+  wasm_filename_template: &Filename,
   hash: &str,
 ) -> Result<(String, AssetInfo)> {
   compilation.get_asset_path_with_info(

@@ -1,7 +1,6 @@
 use std::{
   fmt::{self, Debug},
   ops::{Deref, DerefMut},
-  str::FromStr,
   sync::Arc,
 };
 
@@ -668,7 +667,7 @@ pub struct JsonGeneratorOptions {
 #[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct LocalIdentName {
-  pub template: crate::FilenameTemplate,
+  pub template: Filename,
 }
 
 impl From<String> for LocalIdentName {
@@ -682,7 +681,7 @@ impl From<String> for LocalIdentName {
 impl From<&str> for LocalIdentName {
   fn from(value: &str) -> Self {
     Self {
-      template: crate::FilenameTemplate::from_str(value).expect("should be infalliable"),
+      template: crate::Filename::from(value),
     }
   }
 }

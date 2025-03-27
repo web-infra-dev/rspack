@@ -48,9 +48,7 @@ pub fn get_entry_runtime(
   }
 }
 
-pub fn get_filename_without_hash_length<F: Clone>(
-  filename: &Filename<F>,
-) -> (Filename<F>, HashMap<String, usize>) {
+pub fn get_filename_without_hash_length(filename: &Filename) -> (Filename, HashMap<String, usize>) {
   let mut hash_len_map = HashMap::default();
   let Some(template) = filename.template() else {
     return (filename.clone(), hash_len_map);

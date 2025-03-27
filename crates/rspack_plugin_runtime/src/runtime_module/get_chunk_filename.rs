@@ -7,8 +7,8 @@ use rspack_collections::{DatabaseItem, Identifier, UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
   get_filename_without_hash_length, impl_runtime_module,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, FilenameTemplate, NoFilenameFn, PathData,
-  RuntimeGlobals, RuntimeModule, SourceType,
+  Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule,
+  SourceType,
 };
 use rspack_util::itoa;
 use rustc_hash::FxHashMap;
@@ -184,7 +184,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           })
           .collect::<UkeyIndexSet<ChunkUkey>>();
         let (fake_filename, hash_len_map) =
-          get_filename_without_hash_length(&FilenameTemplate::from(dynamic_filename.to_string()));
+          get_filename_without_hash_length(&Filename::from(dynamic_filename.to_string()));
 
         let chunk_id = "\" + chunkId + \"";
         let chunk_name = stringify_dynamic_chunk_map(
@@ -242,7 +242,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         };
 
         compilation.get_path(
-          &Filename::<NoFilenameFn>::from(
+          &Filename::from(
             serde_json::to_string(fake_filename.as_str()).expect("invalid json to_string"),
           ),
           PathData::default()
@@ -317,7 +317,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         };
 
         let filename = compilation.get_path(
-          &Filename::<NoFilenameFn>::from(
+          &Filename::from(
             serde_json::to_string(
               fake_filename
                 .render(

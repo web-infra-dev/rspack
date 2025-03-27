@@ -1,11 +1,9 @@
 use std::{
   borrow::Cow,
-  convert::Infallible,
   fmt::Debug,
   hash::{Hash, Hasher},
   ops::Deref,
   ptr,
-  str::FromStr,
   sync::{Arc, LazyLock},
 };
 
@@ -16,7 +14,6 @@ use rspack_cacheable::{
   with::{AsPreset, Unsupported},
 };
 use rspack_error::error;
-use rspack_macros::MergeFrom;
 use rspack_util::{atom::Atom, ext::CowExt, MergeFrom};
 
 use crate::{parse_resource, AssetInfo, PathData, ReplaceAllPlaceholder, ResourceParsedData};
@@ -41,10 +38,10 @@ static DATA_URI_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^data:([^;,]+)").expect("Invalid regex"));
 
 #[cacheable]
-#[derive(PartialEq, Debug, Hash, Eq, Clone, PartialOrd, Ord, MergeFrom)]
-enum FilenameKind<F> {
+#[derive(PartialEq, Debug, Hash, Eq, Clone, PartialOrd, Ord)]
+enum FilenameKind {
   Template(#[cacheable(with=AsPreset)] Atom),
-  Fn(#[cacheable(with=Unsupported)] F),
+  Fn(#[cacheable(with=Unsupported)] Arc<dyn FilenameFn>),
 }
 
 /// Filename template string or function
@@ -55,158 +52,18 @@ enum FilenameKind<F> {
 /// Other possible function types are `NoFilenameFn` and `LocalJsFilenameFn`
 #[cacheable]
 #[derive(PartialEq, Debug, Hash, Eq, Clone, PartialOrd, Ord)]
-pub struct Filename<F = Arc<dyn FilenameFn>>(FilenameKind<F>);
+pub struct Filename(FilenameKind);
 
-impl<F> Filename<F> {
-  pub fn from_fn(f: F) -> Self {
-    Self(FilenameKind::Fn(f))
-  }
-}
-
-impl Hash for dyn FilenameFn + '_ {
-  fn hash<H: Hasher>(&self, _: &mut H) {}
-}
-impl PartialEq for dyn FilenameFn + '_ {
-  fn eq(&self, other: &Self) -> bool {
-    ptr::eq(self, other)
-  }
-}
-impl Eq for dyn FilenameFn + '_ {}
-
-impl PartialOrd for dyn FilenameFn + '_ {
-  fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-    Some(self.cmp(other))
-  }
-}
-impl Ord for dyn FilenameFn + '_ {
-  fn cmp(&self, _: &Self) -> std::cmp::Ordering {
-    std::cmp::Ordering::Equal
-  }
-}
-
-impl<F: Clone> MergeFrom for Filename<F> {
-  fn merge_from(self, other: &Self) -> Self {
-    other.clone()
-  }
-}
-
-/// A `never` type of filename function. It marks the filename as template string only.
-///
-/// The error type of it is `Infallible`.
-#[derive(PartialEq, Debug, Hash, Eq, Clone, PartialOrd, Ord)]
-pub struct NoFilenameFn(Infallible);
-
-/// Filename template string. No function allowed.
-pub type FilenameTemplate = Filename<NoFilenameFn>;
-
-impl FilenameTemplate {
+impl Filename {
   pub fn as_str(&self) -> &str {
-    match &self.0 {
-      FilenameKind::Template(template) => template.as_str(),
-      FilenameKind::Fn(no_fn) => match no_fn.0 {},
-    }
+    self.template().unwrap_or("")
   }
-}
-
-#[async_trait::async_trait]
-impl LocalFilenameFn for NoFilenameFn {
-  async fn call(
-    &self,
-    _path_data: &PathData,
-    _asset_info: Option<&AssetInfo>,
-  ) -> rspack_error::Result<String> {
-    unreachable!()
-  }
-}
-
-impl From<FilenameTemplate> for Filename {
-  fn from(value: FilenameTemplate) -> Self {
-    let FilenameKind::Template(template) = value.0;
-
-    Self(FilenameKind::Template(template))
-  }
-}
-
-/// The minimum requirement for a filename fn.
-#[async_trait::async_trait]
-pub trait LocalFilenameFn {
-  async fn call(
-    &self,
-    path_data: &PathData,
-    asset_info: Option<&AssetInfo>,
-  ) -> rspack_error::Result<String>;
-}
-
-/// The default filename fn trait.
-pub trait FilenameFn: LocalFilenameFn + Debug + Send + Sync {}
-
-#[async_trait::async_trait]
-impl LocalFilenameFn for Arc<dyn FilenameFn> {
-  async fn call(
-    &self,
-    path_data: &PathData,
-    asset_info: Option<&AssetInfo>,
-  ) -> rspack_error::Result<String> {
-    self
-      .deref()
-      .call(path_data, asset_info)
-      .await
-      .map_err(|err| {
-        error!(
-          "Failed to render filename function: {}. Did you return the correct filename?",
-          err.to_string()
-        )
-      })
-  }
-}
-
-impl<F> From<String> for Filename<F> {
-  fn from(value: String) -> Self {
-    Self(FilenameKind::Template(Atom::from(value)))
-  }
-}
-impl<F> FromStr for Filename<F> {
-  type Err = Infallible;
-
-  fn from_str(s: &str) -> Result<Self, Self::Err> {
-    Ok(Self(FilenameKind::Template(Atom::from(s))))
-  }
-}
-
-impl<F> From<&str> for Filename<F> {
-  fn from(value: &str) -> Self {
-    Filename::from_str(value).expect("infallible")
-  }
-}
-
-#[inline]
-fn hash_len(hash: &str, len: Option<usize>) -> usize {
-  let hash_len = hash.len();
-  len.unwrap_or(hash_len).min(hash_len)
-}
-
-pub fn has_hash_placeholder(template: &str) -> bool {
-  for key in [HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER] {
-    let offset = key.len() - 1;
-    if let Some(start) = template.find(&key[..offset]) {
-      if template[start + offset..].find(']').is_some() {
-        return true;
-      }
-    }
-  }
-  false
-}
-
-impl<F> Filename<F> {
   pub fn template(&self) -> Option<&str> {
     match &self.0 {
       FilenameKind::Template(template) => Some(template.as_str()),
       _ => None,
     }
   }
-}
-
-impl<F: LocalFilenameFn> Filename<F> {
   pub fn render(
     &self,
     options: PathData<'_>,
@@ -237,6 +94,100 @@ impl<F: LocalFilenameFn> Filename<F> {
     };
     Ok(render_template(template, options, asset_info))
   }
+}
+
+impl MergeFrom for Filename {
+  fn merge_from(self, other: &Self) -> Self {
+    other.clone()
+  }
+}
+
+impl From<String> for Filename {
+  fn from(value: String) -> Self {
+    Self(FilenameKind::Template(Atom::from(value)))
+  }
+}
+impl From<&str> for Filename {
+  fn from(value: &str) -> Self {
+    Self(FilenameKind::Template(Atom::from(value)))
+  }
+}
+impl From<Arc<dyn FilenameFn>> for Filename {
+  fn from(value: Arc<dyn FilenameFn>) -> Self {
+    Self(FilenameKind::Fn(value))
+  }
+}
+
+/// The minimum requirement for a filename fn.
+#[async_trait::async_trait]
+pub trait LocalFilenameFn {
+  async fn call(
+    &self,
+    path_data: &PathData,
+    asset_info: Option<&AssetInfo>,
+  ) -> rspack_error::Result<String>;
+}
+
+/// The default filename fn trait.
+pub trait FilenameFn: LocalFilenameFn + Debug + Send + Sync {}
+
+impl Hash for dyn FilenameFn + '_ {
+  fn hash<H: Hasher>(&self, _: &mut H) {}
+}
+impl PartialEq for dyn FilenameFn + '_ {
+  fn eq(&self, other: &Self) -> bool {
+    ptr::eq(self, other)
+  }
+}
+impl Eq for dyn FilenameFn + '_ {}
+
+impl PartialOrd for dyn FilenameFn + '_ {
+  fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    Some(self.cmp(other))
+  }
+}
+impl Ord for dyn FilenameFn + '_ {
+  fn cmp(&self, _: &Self) -> std::cmp::Ordering {
+    std::cmp::Ordering::Equal
+  }
+}
+
+#[async_trait::async_trait]
+impl LocalFilenameFn for Arc<dyn FilenameFn> {
+  async fn call(
+    &self,
+    path_data: &PathData,
+    asset_info: Option<&AssetInfo>,
+  ) -> rspack_error::Result<String> {
+    self
+      .deref()
+      .call(path_data, asset_info)
+      .await
+      .map_err(|err| {
+        error!(
+          "Failed to render filename function: {}. Did you return the correct filename?",
+          err.to_string()
+        )
+      })
+  }
+}
+
+#[inline]
+fn hash_len(hash: &str, len: Option<usize>) -> usize {
+  let hash_len = hash.len();
+  len.unwrap_or(hash_len).min(hash_len)
+}
+
+pub fn has_hash_placeholder(template: &str) -> bool {
+  for key in [HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER] {
+    let offset = key.len() - 1;
+    if let Some(start) = template.find(&key[..offset]) {
+      if template[start + offset..].find(']').is_some() {
+        return true;
+      }
+    }
+  }
+  false
 }
 
 fn render_template(

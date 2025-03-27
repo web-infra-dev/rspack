@@ -8,7 +8,7 @@ use rspack_macros::MergeFrom;
 use rspack_paths::Utf8PathBuf;
 
 use super::CleanOptions;
-use crate::{Chunk, ChunkGroupByUkey, ChunkKind, Compilation, Filename, FilenameTemplate};
+use crate::{Chunk, ChunkGroupByUkey, ChunkKind, Compilation, Filename};
 
 #[derive(Debug)]
 pub enum PathInfo {
@@ -27,7 +27,7 @@ pub struct OutputOptions {
   pub public_path: PublicPath,
   pub asset_module_filename: Filename,
   pub wasm_loading: WasmLoading,
-  pub webassembly_module_filename: FilenameTemplate,
+  pub webassembly_module_filename: Filename,
   pub unique_name: String,
   pub chunk_loading: ChunkLoading,
   pub chunk_loading_global: String,
@@ -38,8 +38,8 @@ pub struct OutputOptions {
   pub cross_origin_loading: CrossOriginLoading,
   pub css_filename: Filename,
   pub css_chunk_filename: Filename,
-  pub hot_update_main_filename: FilenameTemplate,
-  pub hot_update_chunk_filename: FilenameTemplate,
+  pub hot_update_main_filename: Filename,
+  pub hot_update_chunk_filename: Filename,
   pub hot_update_global: String,
   pub library: Option<LibraryOptions>,
   pub enabled_library_types: Option<Vec<String>>,
@@ -50,7 +50,7 @@ pub struct OutputOptions {
   pub iife: bool,
   pub module: bool,
   pub trusted_types: Option<TrustedTypes>,
-  pub source_map_filename: FilenameTemplate,
+  pub source_map_filename: Filename,
   pub hash_function: HashFunction,
   pub hash_digest: HashDigest,
   pub hash_digest_length: usize,
@@ -411,7 +411,7 @@ impl FromStr for PublicPath {
     if s.eq("auto") {
       Ok(Self::Auto)
     } else {
-      Ok(Self::Filename(Filename::from_str(s)?))
+      Ok(Self::Filename(Filename::from(s)))
     }
   }
 }
@@ -450,7 +450,7 @@ pub fn get_js_chunk_filename_template(
   if let Some(filename_template) = chunk.filename_template() {
     filename_template.clone()
   } else if matches!(chunk.kind(), ChunkKind::HotUpdate) {
-    output_options.hot_update_chunk_filename.clone().into()
+    output_options.hot_update_chunk_filename.clone()
   } else if chunk.can_be_initial(chunk_group_by_ukey) {
     output_options.filename.clone()
   } else {
