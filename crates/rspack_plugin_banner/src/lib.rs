@@ -10,12 +10,11 @@ use futures::future::BoxFuture;
 use regex::Regex;
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
-  to_comment, Chunk, Compilation, CompilationProcessAssets, FilenameTemplate, Logger, PathData,
-  Plugin,
+  to_comment, Chunk, Compilation, CompilationProcessAssets, Filename, Logger, PathData, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::{asset_condition::AssetConditions, infallible::ResultInfallibleExt as _};
+use rspack_util::asset_condition::AssetConditions;
 
 #[derive(Debug)]
 pub struct BannerPluginOptions {
@@ -185,24 +184,22 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           self.wrap_comment(&res)
         }
       };
-      let comment = compilation
-        .get_path(
-          &FilenameTemplate::from(banner),
-          PathData::default()
-            .chunk_hash_optional(chunk.rendered_hash(
-              &compilation.chunk_hashes_artifact,
-              compilation.options.output.hash_digest_length,
-            ))
-            .chunk_id_optional(
-              chunk
-                .id(&compilation.chunk_ids_artifact)
-                .map(|id| id.as_str()),
-            )
-            .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
-            .hash(&hash)
-            .filename(file),
-        )
-        .always_ok();
+      let comment = compilation.get_path(
+        &Filename::from(banner),
+        PathData::default()
+          .chunk_hash_optional(chunk.rendered_hash(
+            &compilation.chunk_hashes_artifact,
+            compilation.options.output.hash_digest_length,
+          ))
+          .chunk_id_optional(
+            chunk
+              .id(&compilation.chunk_ids_artifact)
+              .map(|id| id.as_str()),
+          )
+          .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+          .hash(&hash)
+          .filename(file),
+      )?;
       updates.push((file.clone(), comment));
     }
   }

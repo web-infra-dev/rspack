@@ -3,8 +3,8 @@ use std::hash::Hash;
 use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, FilenameTemplate,
-  LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType, PathData, Plugin, PluginContext,
+  CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, Filename, LibraryName,
+  LibraryNonUmdObject, LibraryOptions, LibraryType, PathData, Plugin, PluginContext,
   RuntimeGlobals, SourceType,
 };
 use rspack_error::{error_bail, Result};
@@ -13,7 +13,6 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRender, JsPlugin, RenderSource,
 };
-use rspack_util::infallible::ResultInfallibleExt as _;
 
 use crate::utils::{
   external_arguments, externals_dep_array, get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE,
@@ -129,27 +128,25 @@ async fn render(
       "{amd_container_prefix}require({externals_deps_array}, {fn_start}"
     )));
   } else if let Some(name) = options.name {
-    let normalize_name = compilation
-      .get_path(
-        &FilenameTemplate::from(name.to_string()),
-        PathData::default()
-          .chunk_id_optional(
-            chunk
-              .id(&compilation.chunk_ids_artifact)
-              .map(|id| id.as_str()),
-          )
-          .chunk_hash_optional(chunk.rendered_hash(
-            &compilation.chunk_hashes_artifact,
-            compilation.options.output.hash_digest_length,
-          ))
-          .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
-          .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-            &compilation.chunk_hashes_artifact,
-            &SourceType::JavaScript,
-            compilation.options.output.hash_digest_length,
-          )),
-      )
-      .always_ok();
+    let normalize_name = compilation.get_path(
+      &Filename::from(name),
+      PathData::default()
+        .chunk_id_optional(
+          chunk
+            .id(&compilation.chunk_ids_artifact)
+            .map(|id| id.as_str()),
+        )
+        .chunk_hash_optional(chunk.rendered_hash(
+          &compilation.chunk_hashes_artifact,
+          compilation.options.output.hash_digest_length,
+        ))
+        .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+        .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+          &compilation.chunk_hashes_artifact,
+          &SourceType::JavaScript,
+          compilation.options.output.hash_digest_length,
+        )),
+    )?;
     source.add(RawStringSource::from(format!(
       "{amd_container_prefix}define('{normalize_name}', {externals_deps_array}, {fn_start}"
     )));

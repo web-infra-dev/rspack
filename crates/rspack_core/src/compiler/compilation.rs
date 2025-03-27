@@ -53,10 +53,9 @@ use crate::{
   CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyId,
   DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
-  Filename, ImportVarMap, LocalFilenameFn, Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial,
-  ModuleIdentifier, ModuleIdsArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeModule,
-  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
-  Stats,
+  Filename, ImportVarMap, Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
+  ModuleIdsArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpecMap,
+  RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats,
 };
 
 define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));
@@ -2399,23 +2398,23 @@ impl Compilation {
       .map(|hash| hash.rendered(self.options.output.hash_digest_length))
   }
 
-  pub fn get_path<'b, 'a: 'b, F: LocalFilenameFn>(
+  pub fn get_path<'b, 'a: 'b>(
     &'a self,
-    filename: &Filename<F>,
+    filename: &Filename,
     mut data: PathData<'b>,
-  ) -> Result<String, F::Error> {
+  ) -> Result<String> {
     if data.hash.is_none() {
       data.hash = self.get_hash();
     }
     filename.render(data, None)
   }
 
-  pub fn get_path_with_info<'b, 'a: 'b, F: LocalFilenameFn>(
+  pub fn get_path_with_info<'b, 'a: 'b>(
     &'a self,
-    filename: &Filename<F>,
+    filename: &Filename,
     mut data: PathData<'b>,
     info: &mut AssetInfo,
-  ) -> Result<String, F::Error> {
+  ) -> Result<String> {
     if data.hash.is_none() {
       data.hash = self.get_hash();
     }
@@ -2423,19 +2422,15 @@ impl Compilation {
     Ok(path)
   }
 
-  pub fn get_asset_path<F: LocalFilenameFn>(
-    &self,
-    filename: &Filename<F>,
-    data: PathData,
-  ) -> Result<String, F::Error> {
+  pub fn get_asset_path(&self, filename: &Filename, data: PathData) -> Result<String> {
     filename.render(data, None)
   }
 
-  pub fn get_asset_path_with_info<F: LocalFilenameFn>(
+  pub fn get_asset_path_with_info(
     &self,
-    filename: &Filename<F>,
+    filename: &Filename,
     data: PathData,
-  ) -> Result<(String, AssetInfo), F::Error> {
+  ) -> Result<(String, AssetInfo)> {
     let mut info = AssetInfo::default();
     let path = filename.render(data, Some(&mut info))?;
     Ok((path, info))
