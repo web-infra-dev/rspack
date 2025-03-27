@@ -97,8 +97,6 @@ impl<F: Clone> MergeFrom for Filename<F> {
 pub struct NoFilenameFn(Infallible);
 
 /// Filename template string. No function allowed.
-///
-/// Its render result is `Result<String, Infallible>`, which can be unwrapped with `ResultInfallibleExt::always_ok`
 pub type FilenameTemplate = Filename<NoFilenameFn>;
 
 impl FilenameTemplate {
