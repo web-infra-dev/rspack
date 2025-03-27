@@ -320,7 +320,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           &Filename::from(
             serde_json::to_string(
               fake_filename
-                .render(
+                .render_async(
                   PathData::default()
                     .chunk_name_optional(chunk.name())
                     .chunk_id_optional(
@@ -329,7 +329,8 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                         .map(|id| id.as_str()),
                     ),
                   None,
-                )?
+                )
+                .await?
                 .as_str(),
             )
             .expect("invalid json to_string"),

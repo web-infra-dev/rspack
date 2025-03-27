@@ -48,7 +48,7 @@ impl<'a> LocalIdentOptions<'a> {
     }
   }
 
-  pub fn get_local_ident(&self, local: &str) -> Result<String> {
+  pub async fn get_local_ident(&self, local: &str) -> Result<String> {
     let output = &self.compiler_options.output;
     let hash = {
       let mut hasher = RspackHash::with_salt(&output.hash_function, &output.hash_salt);
@@ -85,6 +85,7 @@ impl<'a> LocalIdentOptions<'a> {
       unique_name: &output.unique_name,
     }
     .render_local_ident_name(self.local_name_ident)
+    .await
   }
 }
 
@@ -95,8 +96,11 @@ struct LocalIdentNameRenderOptions<'a> {
 }
 
 impl LocalIdentNameRenderOptions<'_> {
-  pub fn render_local_ident_name(self, local_ident_name: &LocalIdentName) -> Result<String> {
-    let raw = local_ident_name.template.render(self.path_data, None)?;
+  pub async fn render_local_ident_name(self, local_ident_name: &LocalIdentName) -> Result<String> {
+    let raw = local_ident_name
+      .template
+      .render_async(self.path_data, None)
+      .await?;
     let s: &str = raw.as_ref();
 
     Ok(

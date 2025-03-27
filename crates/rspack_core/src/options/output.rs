@@ -381,7 +381,8 @@ impl PublicPath {
   pub async fn render_filename(compilation: &Compilation, template: &Filename) -> String {
     let path_data = PathData::default().hash(compilation.get_hash().unwrap_or("XXXX"));
     template
-      .render(path_data, None)
+      .render_async(path_data, None)
+      .await
       .expect("failed to render public path")
   }
 

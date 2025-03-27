@@ -508,7 +508,7 @@ impl SourceMapDevToolPlugin {
                 }
                 SourceMappingUrlCommentRef::Fn(f) => {
                   let comment = f(data).await?;
-                  Filename::from(comment).render(data, None)?
+                  Filename::from(comment).render_async(data, None).await?
                 }
               };
               let current_source_mapping_url_comment = current_source_mapping_url_comment
