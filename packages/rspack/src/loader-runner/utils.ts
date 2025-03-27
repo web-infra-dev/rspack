@@ -6,8 +6,10 @@ import type {
 } from "../config/adapterRuleUse";
 import loadLoaderRaw from "./loadLoader";
 
-function utf8BufferToString(buf: Buffer) {
-	const str = buf.toString("utf-8");
+const decoder = new TextDecoder();
+
+function utf8BufferToString(buf: Uint8Array) {
+	const str = decoder.decode(buf);
 	if (str.charCodeAt(0) === 0xfeff) {
 		return str.slice(1);
 	}
@@ -16,13 +18,13 @@ function utf8BufferToString(buf: Buffer) {
 
 export function convertArgs(args: any[], raw: boolean) {
 	if (!raw && args[0] instanceof Uint8Array)
-		args[0] = utf8BufferToString(Buffer.from(args[0]));
+		args[0] = utf8BufferToString(args[0]);
 	else if (raw && typeof args[0] === "string")
 		args[0] = Buffer.from(args[0], "utf-8");
 
 	// Ensure `Buffer` is used instead of `Uint8Array`
 	if (raw && args[0] instanceof Uint8Array && !Buffer.isBuffer(args[0])) {
-		args[0] = Buffer.from(args[0]);
+		args[0] = Buffer.from(args[0].buffer);
 	}
 }
 
