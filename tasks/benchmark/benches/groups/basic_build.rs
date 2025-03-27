@@ -1,4 +1,3 @@
-#![feature(trait_upcasting)]
 #![allow(unused_attributes)]
 #![allow(clippy::unwrap_used)]
 
