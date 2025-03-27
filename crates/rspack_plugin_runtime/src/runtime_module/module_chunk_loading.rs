@@ -100,7 +100,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     let has_js_matcher = compile_boolean_matcher(&condition_map);
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
 
-    let root_output_dir = get_output_dir(chunk, compilation, true)?;
+    let root_output_dir = get_output_dir(chunk, compilation, true).await?;
 
     let mut source = ConcatSource::default();
 

@@ -128,25 +128,27 @@ async fn render(
       "{amd_container_prefix}require({externals_deps_array}, {fn_start}"
     )));
   } else if let Some(name) = options.name {
-    let normalize_name = compilation.get_path(
-      &Filename::from(name),
-      PathData::default()
-        .chunk_id_optional(
-          chunk
-            .id(&compilation.chunk_ids_artifact)
-            .map(|id| id.as_str()),
-        )
-        .chunk_hash_optional(chunk.rendered_hash(
-          &compilation.chunk_hashes_artifact,
-          compilation.options.output.hash_digest_length,
-        ))
-        .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
-        .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-          &compilation.chunk_hashes_artifact,
-          &SourceType::JavaScript,
-          compilation.options.output.hash_digest_length,
-        )),
-    )?;
+    let normalize_name = compilation
+      .get_path(
+        &Filename::from(name),
+        PathData::default()
+          .chunk_id_optional(
+            chunk
+              .id(&compilation.chunk_ids_artifact)
+              .map(|id| id.as_str()),
+          )
+          .chunk_hash_optional(chunk.rendered_hash(
+            &compilation.chunk_hashes_artifact,
+            compilation.options.output.hash_digest_length,
+          ))
+          .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+          .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+            &compilation.chunk_hashes_artifact,
+            &SourceType::JavaScript,
+            compilation.options.output.hash_digest_length,
+          )),
+      )
+      .await?;
     source.add(RawStringSource::from(format!(
       "{amd_container_prefix}define('{normalize_name}', {externals_deps_array}, {fn_start}"
     )));

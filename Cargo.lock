@@ -5012,6 +5012,7 @@ name = "rspack_plugin_library"
 version = "0.2.0"
 dependencies = [
  "async-trait",
+ "futures",
  "regex",
  "rspack_cacheable",
  "rspack_collections",

@@ -295,23 +295,25 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let filename = if entry.has_filename {
           entry.filename.to_string()
         } else {
-          compilation.get_path(
-            &compilation.options.output.hot_update_chunk_filename,
-            PathData::default()
-              .chunk_id_optional(
-                hot_update_chunk
-                  .id(&compilation.chunk_ids_artifact)
-                  .map(|id| id.as_str()),
-              )
-              .chunk_name_optional(
-                hot_update_chunk.name_for_filename_template(&compilation.chunk_ids_artifact),
-              )
-              .hash_optional(
-                old_hash
-                  .as_ref()
-                  .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
-              ),
-          )?
+          compilation
+            .get_path(
+              &compilation.options.output.hot_update_chunk_filename,
+              PathData::default()
+                .chunk_id_optional(
+                  hot_update_chunk
+                    .id(&compilation.chunk_ids_artifact)
+                    .map(|id| id.as_str()),
+                )
+                .chunk_name_optional(
+                  hot_update_chunk.name_for_filename_template(&compilation.chunk_ids_artifact),
+                )
+                .hash_optional(
+                  old_hash
+                    .as_ref()
+                    .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
+                ),
+            )
+            .await?
         };
         let asset = CompilationAsset::new(
           Some(entry.source),
@@ -354,16 +356,18 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       m.extend(content.removed_modules);
       m.into_iter().collect()
     };
-    let filename = compilation.get_path(
-      &compilation.options.output.hot_update_main_filename,
-      PathData::default()
-        .runtime(content.runtime.as_str())
-        .hash_optional(
-          old_hash
-            .as_ref()
-            .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
-        ),
-    )?;
+    let filename = compilation
+      .get_path(
+        &compilation.options.output.hot_update_main_filename,
+        PathData::default()
+          .runtime(content.runtime.as_str())
+          .hash_optional(
+            old_hash
+              .as_ref()
+              .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
+          ),
+      )
+      .await?;
     compilation.emit_asset(
       filename,
       CompilationAsset::new(

@@ -7,7 +7,6 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
-use futures::executor::block_on;
 use regex::Regex;
 use rspack_cacheable::{
   cacheable,
@@ -64,24 +63,8 @@ impl Filename {
       _ => None,
     }
   }
-  pub fn render(
-    &self,
-    options: PathData<'_>,
-    asset_info: Option<&mut AssetInfo>,
-  ) -> rspack_error::Result<String> {
-    let template = match &self.0 {
-      FilenameKind::Template(template) => Cow::Borrowed(template.as_str()),
-      FilenameKind::Fn(filename_fn) => {
-        // clippy: compatible with sync filename function
-        // TODO: will be removed in the future
-        #[allow(clippy::disallowed_methods)]
-        Cow::Owned(block_on(filename_fn.call(&options, asset_info.as_deref()))?)
-      }
-    };
-    Ok(render_template(template, options, asset_info))
-  }
 
-  pub async fn render_async(
+  pub async fn render(
     &self,
     options: PathData<'_>,
     asset_info: Option<&mut AssetInfo>,

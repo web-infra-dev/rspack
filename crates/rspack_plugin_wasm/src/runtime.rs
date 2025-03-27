@@ -50,14 +50,16 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
     };
 
     let chunk = compilation.chunk_by_ukey.expect_get(&self.chunk);
-    let path = compilation.get_path(
-      &fake_filename,
-      PathData::default()
-        .hash(&hash)
-        .content_hash(&hash)
-        .id(&PathData::prepare_id("\" + wasmModuleId + \""))
-        .runtime(chunk.runtime().as_str()),
-    )?;
+    let path = compilation
+      .get_path(
+        &fake_filename,
+        PathData::default()
+          .hash(&hash)
+          .content_hash(&hash)
+          .id(&PathData::prepare_id("\" + wasmModuleId + \""))
+          .runtime(chunk.runtime().as_str()),
+      )
+      .await?;
     Ok(
       RawStringSource::from(get_async_wasm_loading(
         &self
