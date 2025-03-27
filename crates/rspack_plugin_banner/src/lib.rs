@@ -184,22 +184,24 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           self.wrap_comment(&res)
         }
       };
-      let comment = compilation.get_path(
-        &Filename::from(banner),
-        PathData::default()
-          .chunk_hash_optional(chunk.rendered_hash(
-            &compilation.chunk_hashes_artifact,
-            compilation.options.output.hash_digest_length,
-          ))
-          .chunk_id_optional(
-            chunk
-              .id(&compilation.chunk_ids_artifact)
-              .map(|id| id.as_str()),
-          )
-          .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
-          .hash(&hash)
-          .filename(file),
-      )?;
+      let comment = compilation
+        .get_path(
+          &Filename::from(banner),
+          PathData::default()
+            .chunk_hash_optional(chunk.rendered_hash(
+              &compilation.chunk_hashes_artifact,
+              compilation.options.output.hash_digest_length,
+            ))
+            .chunk_id_optional(
+              chunk
+                .id(&compilation.chunk_ids_artifact)
+                .map(|id| id.as_str()),
+            )
+            .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+            .hash(&hash)
+            .filename(file),
+        )
+        .await?;
       updates.push((file.clone(), comment));
     }
   }

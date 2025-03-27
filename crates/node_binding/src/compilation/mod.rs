@@ -478,8 +478,7 @@ impl JsCompilation {
   pub fn get_path(&self, filename: JsFilename, data: JsPathData) -> Result<String> {
     let compilation = self.as_ref()?;
 
-    compilation
-      .get_path(&filename.into(), data.to_path_data())
+    futures::executor::block_on(compilation.get_path(&filename.into(), data.to_path_data()))
       .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))
   }
 

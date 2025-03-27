@@ -2398,7 +2398,7 @@ impl Compilation {
       .map(|hash| hash.rendered(self.options.output.hash_digest_length))
   }
 
-  pub fn get_path<'b, 'a: 'b>(
+  pub async fn get_path<'b, 'a: 'b>(
     &'a self,
     filename: &Filename,
     mut data: PathData<'b>,
@@ -2406,7 +2406,7 @@ impl Compilation {
     if data.hash.is_none() {
       data.hash = self.get_hash();
     }
-    filename.render(data, None)
+    filename.render_async(data, None).await
   }
 
   pub async fn get_path_with_info<'b, 'a: 'b>(

@@ -31,7 +31,7 @@ impl ImportScriptsChunkLoadingRuntimeModule {
     )
   }
 
-  fn generate_base_uri(
+  async fn generate_base_uri(
     &self,
     chunk: &Chunk,
     compilation: &Compilation,
@@ -43,7 +43,7 @@ impl ImportScriptsChunkLoadingRuntimeModule {
     {
       base_uri
     } else {
-      let root_output_dir = get_output_dir(chunk, compilation, false)?;
+      let root_output_dir = get_output_dir(chunk, compilation, false).await?;
       format!(
         "self.location + {}",
         serde_json::to_string(&if root_output_dir.is_empty() {
@@ -119,7 +119,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     let mut source = ConcatSource::default();
 
     if with_base_uri {
-      source.add(self.generate_base_uri(chunk, compilation)?);
+      source.add(self.generate_base_uri(chunk, compilation).await?);
     }
 
     // object to store loaded chunks

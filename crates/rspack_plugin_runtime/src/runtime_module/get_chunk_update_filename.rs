@@ -38,23 +38,25 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
-      let filename = compilation.get_path(
-        &compilation.options.output.hot_update_chunk_filename,
-        PathData::default()
-          .chunk_hash_optional(chunk.rendered_hash(
-            &compilation.chunk_hashes_artifact,
-            compilation.options.output.hash_digest_length,
-          ))
-          .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
-          .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-            &compilation.chunk_hashes_artifact,
-            &SourceType::JavaScript,
-            compilation.options.output.hash_digest_length,
-          ))
-          .hash(format!("' + {}() + '", RuntimeGlobals::GET_FULL_HASH).as_str())
-          .id("' + chunkId + '")
-          .runtime(chunk.runtime().as_str()),
-      )?;
+      let filename = compilation
+        .get_path(
+          &compilation.options.output.hot_update_chunk_filename,
+          PathData::default()
+            .chunk_hash_optional(chunk.rendered_hash(
+              &compilation.chunk_hashes_artifact,
+              compilation.options.output.hash_digest_length,
+            ))
+            .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+            .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+              &compilation.chunk_hashes_artifact,
+              &SourceType::JavaScript,
+              compilation.options.output.hash_digest_length,
+            ))
+            .hash(format!("' + {}() + '", RuntimeGlobals::GET_FULL_HASH).as_str())
+            .id("' + chunkId + '")
+            .runtime(chunk.runtime().as_str()),
+        )
+        .await?;
 
       let source = compilation.runtime_template.render(
         &self.id,
