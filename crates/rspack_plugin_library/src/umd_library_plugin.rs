@@ -14,7 +14,6 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRender, JsPlugin, RenderSource,
 };
-use rspack_util::infallible::ResultInfallibleExt as _;
 
 use crate::utils::{external_arguments, externals_dep_array, get_options_for_chunk};
 
@@ -143,7 +142,7 @@ async fn render(
   let define = if let (Some(amd), Some(_)) = &(&names.amd, named_define) {
     format!(
       "define({}, {}, {amd_factory});\n",
-      library_name(&[amd.to_string()], chunk, compilation),
+      library_name(&[amd.to_string()], chunk, compilation)?,
       externals_dep_array(&required_externals)?
     )
   } else {
@@ -153,20 +152,25 @@ async fn render(
     )
   };
 
+  let name = names
+    .commonjs
+    .clone()
+    .map(|commonjs| library_name(&[commonjs], chunk, compilation))
+    .or_else(|| {
+      names
+        .root
+        .clone()
+        .map(|root| library_name(&root, chunk, compilation))
+    })
+    .transpose()?
+    .unwrap_or_default();
+
   let factory = if names.commonjs.is_some() || names.root.is_some() {
     let commonjs_code = format!(
       "{}
       exports[{}] = factory({});\n",
       get_auxiliary_comment("commonjs", auxiliary_comment),
-      names
-        .commonjs
-        .clone()
-        .map(|commonjs| library_name(&[commonjs], chunk, compilation))
-        .or_else(|| names
-          .root
-          .clone()
-          .map(|root| library_name(&root, chunk, compilation)))
-        .unwrap_or_default(),
+      name,
       externals_require_array("commonjs", &externals)?,
     );
     let root_code = format!(
@@ -184,7 +188,7 @@ async fn render(
         ),
         chunk,
         compilation,
-      ),
+      )?,
       externals_root_array(&externals)?
     );
     format!(
@@ -295,34 +299,32 @@ impl Plugin for UmdLibraryPlugin {
   }
 }
 
-fn library_name(v: &[String], chunk: &Chunk, compilation: &Compilation) -> String {
+fn library_name(v: &[String], chunk: &Chunk, compilation: &Compilation) -> Result<String> {
   let value =
     serde_json::to_string(v.last().expect("should have last")).expect("invalid module_id");
   replace_keys(value, chunk, compilation)
 }
 
-fn replace_keys(v: String, chunk: &Chunk, compilation: &Compilation) -> String {
-  compilation
-    .get_path(
-      &FilenameTemplate::from(v),
-      PathData::default()
-        .chunk_id_optional(
-          chunk
-            .id(&compilation.chunk_ids_artifact)
-            .map(|id| id.as_str()),
-        )
-        .chunk_hash_optional(chunk.rendered_hash(
-          &compilation.chunk_hashes_artifact,
-          compilation.options.output.hash_digest_length,
-        ))
-        .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
-        .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-          &compilation.chunk_hashes_artifact,
-          &SourceType::JavaScript,
-          compilation.options.output.hash_digest_length,
-        )),
-    )
-    .always_ok()
+fn replace_keys(v: String, chunk: &Chunk, compilation: &Compilation) -> Result<String> {
+  compilation.get_path(
+    &FilenameTemplate::from(v),
+    PathData::default()
+      .chunk_id_optional(
+        chunk
+          .id(&compilation.chunk_ids_artifact)
+          .map(|id| id.as_str()),
+      )
+      .chunk_hash_optional(chunk.rendered_hash(
+        &compilation.chunk_hashes_artifact,
+        compilation.options.output.hash_digest_length,
+      ))
+      .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+      .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+        &compilation.chunk_hashes_artifact,
+        &SourceType::JavaScript,
+        compilation.options.output.hash_digest_length,
+      )),
+  )
 }
 
 fn externals_require_array(external_type: &str, externals: &[&ExternalModule]) -> Result<String> {

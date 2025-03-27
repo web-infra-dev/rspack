@@ -291,7 +291,7 @@ impl AssetParserAndGenerator {
     contenthash: Option<&str>,
     source_file_name: &str,
     template: &Filename<F>,
-  ) -> Result<(String, AssetInfo), F::Error> {
+  ) -> Result<(String, AssetInfo)> {
     let (public_path, info) = compilation.get_asset_path_with_info(
       template,
       PathData::default()
@@ -526,7 +526,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
                 asset_info.merge_another_asset(another_asset_info);
                 public_path
               }
-              PublicPath::Auto => public_path.render(compilation, &filename),
+              PublicPath::Auto => public_path.render(compilation, &filename).await,
             };
             serde_json::to_string(&format!("{public_path}{original_filename}"))
               .map_err(|e| error!(e.to_string()))?
@@ -547,10 +547,13 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             .data
             .insert(CodeGenerationDataFilename::new(
               filename,
-              module_generator_options
+              match module_generator_options
                 .and_then(|x| x.asset_public_path())
                 .unwrap_or_else(|| &compilation.options.output.public_path)
-                .clone(),
+              {
+                PublicPath::Filename(p) => PublicPath::render_filename(compilation, p).await,
+                PublicPath::Auto => AUTO_PUBLIC_PATH_PLACEHOLDER.to_string(),
+              },
             ));
           generate_context
             .data

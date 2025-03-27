@@ -23,7 +23,6 @@ use rspack_error::{Diagnostic, DiagnosticError, Error, ErrorExt, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
-use rspack_util::infallible::ResultInfallibleExt as _;
 use sugar_path::SugarPath;
 
 #[derive(Debug)]
@@ -167,15 +166,15 @@ impl CopyRspackPlugin {
     compilation: &Compilation,
     logger: &CompilationLogger,
     pattern_index: usize,
-  ) -> Option<RunPatternResult> {
+  ) -> Result<Option<RunPatternResult>> {
     // Exclude directories
     if entry.is_dir() {
-      return None;
+      return Ok(None);
     }
     if let Some(ignore) = &pattern.glob_options.ignore
       && ignore.iter().any(|ignore| ignore.matches(entry.as_str()))
     {
-      return None;
+      return Ok(None);
     }
 
     let from = entry;
@@ -247,7 +246,11 @@ impl CopyRspackPlugin {
     };
 
     let filename = if filename.is_absolute() {
-      pathdiff::diff_utf8_paths(filename, output_path)?
+      if let Some(filename) = pathdiff::diff_utf8_paths(filename, output_path) {
+        filename
+      } else {
+        return Ok(None);
+      }
     } else {
       filename
     };
@@ -256,7 +259,9 @@ impl CopyRspackPlugin {
       "determined that '{from}' should write to '{filename}'"
     ));
 
-    let source_filename = relative?;
+    let Some(source_filename) = relative else {
+      return Ok(None);
+    };
 
     // If this came from a glob or dir, add it to the file dependencies
     if matches!(from_type, FromType::Dir | FromType::Glob) {
@@ -287,7 +292,7 @@ impl CopyRspackPlugin {
           .lock()
           .expect("failed to obtain lock of `diagnostics`")
           .push(e.into());
-        return None;
+        return Ok(None);
       }
     };
 
@@ -336,15 +341,13 @@ impl CopyRspackPlugin {
         &compilation.options.output.hash_salt,
       );
       let content_hash = content_hash.rendered(compilation.options.output.hash_digest_length);
-      let template_str = compilation
-        .get_asset_path(
-          &FilenameTemplate::from(filename.to_string()),
-          PathData::default()
-            .filename(source_filename.as_str())
-            .content_hash(content_hash)
-            .hash_optional(compilation.get_hash()),
-        )
-        .always_ok();
+      let template_str = compilation.get_asset_path(
+        &FilenameTemplate::from(filename.to_string()),
+        PathData::default()
+          .filename(source_filename.as_str())
+          .content_hash(content_hash)
+          .hash_optional(compilation.get_hash()),
+      )?;
 
       logger.log(format!(
         "interpolated template '{template_str}' for '{}'",
@@ -356,7 +359,7 @@ impl CopyRspackPlugin {
       filename.as_str().normalize().to_string_lossy().to_string()
     };
 
-    Some(RunPatternResult {
+    Ok(Some(RunPatternResult {
       source_filename,
       absolute_filename,
       filename,
@@ -365,7 +368,7 @@ impl CopyRspackPlugin {
       force: pattern.force,
       priority: pattern.priority,
       pattern_index,
-    })
+    }))
   }
 
   async fn run_patter(
@@ -376,7 +379,7 @@ impl CopyRspackPlugin {
     context_dependencies: &DashSet<PathBuf>,
     diagnostics: Arc<Mutex<Vec<Diagnostic>>>,
     logger: &CompilationLogger,
-  ) -> Option<Vec<Option<RunPatternResult>>> {
+  ) -> Result<Option<Vec<Option<RunPatternResult>>>> {
     let orig_from = &pattern.from;
     let normalized_orig_from = Utf8PathBuf::from(orig_from);
 
@@ -514,7 +517,7 @@ impl CopyRspackPlugin {
             logger.log(
               "finished to process a pattern from '${normalizedOriginalFrom}' using '${pattern.context}' context to '${pattern.to}'"
             );
-            return None;
+            return Ok(None);
           }
 
           diagnostics
@@ -543,11 +546,13 @@ impl CopyRspackPlugin {
           )
           .await
         }))
-        .await;
+        .await
+        .into_iter()
+        .collect::<Result<Vec<_>>>()?;
 
         if copied_result.is_empty() {
           if pattern.no_error_on_missing {
-            return None;
+            return Ok(None);
           }
 
           // TODO err handler
@@ -558,10 +563,10 @@ impl CopyRspackPlugin {
               "CopyRspackPlugin Error".into(),
               format!("unable to locate '{glob_query}' glob"),
             ));
-          return None;
+          return Ok(None);
         }
 
-        Some(copied_result)
+        Ok(Some(copied_result))
       }
       Err(e) => {
         if pattern.no_error_on_missing {
@@ -581,7 +586,7 @@ impl CopyRspackPlugin {
             to,
           ));
 
-          return None;
+          return Ok(None);
         }
 
         diagnostics
@@ -589,7 +594,7 @@ impl CopyRspackPlugin {
           .expect("failed to obtain lock of `diagnostics`")
           .push(Diagnostic::error("Glob Error".into(), e.msg.to_string()));
 
-        None
+        Ok(None)
       }
     }
   }
@@ -616,6 +621,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       )
     }))
     .await
+    .into_iter()
+    .collect::<Result<Vec<_>>>()?
     .into_iter()
     .flatten()
     .flat_map(|item| {

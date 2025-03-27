@@ -64,7 +64,7 @@ async fn generate_html(
   compilation: &mut Compilation,
   hooks: &HtmlPluginHooks,
 ) -> Result<(String, String, Vec<PathBuf>), miette::Error> {
-  let public_path = config.get_public_path(compilation, filename);
+  let public_path = config.get_public_path(compilation, filename).await;
 
   let mut template = HtmlTemplate::new(config, compilation)?;
 
@@ -80,7 +80,8 @@ async fn generate_html(
     &public_path,
     &template_file_name,
     html_file_name,
-  );
+  )
+  .await?;
 
   let before_generation_data = hooks
     .before_asset_tag_generation
@@ -258,7 +259,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       &before_emit_data.html,
       &template_file_name,
       compilation,
-    );
+    )?;
 
     compilation.emit_asset(html_asset.0.clone(), html_asset.1);
 

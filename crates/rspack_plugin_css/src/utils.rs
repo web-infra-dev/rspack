@@ -18,9 +18,7 @@ use rspack_error::{
   error, miette::Diagnostic, DiagnosticExt, Result, RspackSeverity, TraceableError,
 };
 use rspack_hash::RspackHash;
-use rspack_util::{
-  identifier::make_paths_relative, infallible::ResultInfallibleExt, itoa, json_stringify,
-};
+use rspack_util::{identifier::make_paths_relative, itoa, json_stringify};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::parser_and_generator::CssExport;
@@ -50,7 +48,7 @@ impl<'a> LocalIdentOptions<'a> {
     }
   }
 
-  pub fn get_local_ident(&self, local: &str) -> String {
+  pub fn get_local_ident(&self, local: &str) -> Result<String> {
     let output = &self.compiler_options.output;
     let hash = {
       let mut hasher = RspackHash::with_salt(&output.hash_function, &output.hash_salt);
@@ -97,16 +95,15 @@ struct LocalIdentNameRenderOptions<'a> {
 }
 
 impl LocalIdentNameRenderOptions<'_> {
-  pub fn render_local_ident_name(self, local_ident_name: &LocalIdentName) -> String {
-    let raw = local_ident_name
-      .template
-      .render(self.path_data, None)
-      .always_ok();
+  pub fn render_local_ident_name(self, local_ident_name: &LocalIdentName) -> Result<String> {
+    let raw = local_ident_name.template.render(self.path_data, None)?;
     let s: &str = raw.as_ref();
 
-    s.cow_replace("[uniqueName]", self.unique_name)
-      .cow_replace("[local]", self.local)
-      .into_owned()
+    Ok(
+      s.cow_replace("[uniqueName]", self.unique_name)
+        .cow_replace("[local]", self.local)
+        .into_owned(),
+    )
   }
 }
 

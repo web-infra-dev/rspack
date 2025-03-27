@@ -9,6 +9,7 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
+use futures::executor::block_on;
 use regex::Regex;
 use rspack_cacheable::{
   cacheable,
@@ -96,8 +97,6 @@ impl<F: Clone> MergeFrom for Filename<F> {
 pub struct NoFilenameFn(Infallible);
 
 /// Filename template string. No function allowed.
-///
-/// Its render result is `Result<String, Infallible>`, which can be unwrapped with `ResultInfallibleExt::always_ok`
 pub type FilenameTemplate = Filename<NoFilenameFn>;
 
 impl FilenameTemplate {
@@ -109,14 +108,13 @@ impl FilenameTemplate {
   }
 }
 
+#[async_trait::async_trait]
 impl LocalFilenameFn for NoFilenameFn {
-  type Error = Infallible;
-
-  fn call(
+  async fn call(
     &self,
     _path_data: &PathData,
     _asset_info: Option<&AssetInfo>,
-  ) -> Result<String, Self::Error> {
+  ) -> rspack_error::Result<String> {
     unreachable!()
   }
 }
@@ -130,31 +128,35 @@ impl From<FilenameTemplate> for Filename {
 }
 
 /// The minimum requirement for a filename fn.
+#[async_trait::async_trait]
 pub trait LocalFilenameFn {
-  type Error;
-  fn call(
+  async fn call(
     &self,
     path_data: &PathData,
     asset_info: Option<&AssetInfo>,
-  ) -> Result<String, Self::Error>;
+  ) -> rspack_error::Result<String>;
 }
 
 /// The default filename fn trait.
-pub trait FilenameFn: LocalFilenameFn<Error = rspack_error::Error> + Debug + Send + Sync {}
+pub trait FilenameFn: LocalFilenameFn + Debug + Send + Sync {}
 
+#[async_trait::async_trait]
 impl LocalFilenameFn for Arc<dyn FilenameFn> {
-  type Error = rspack_error::Error;
-  fn call(
+  async fn call(
     &self,
     path_data: &PathData,
     asset_info: Option<&AssetInfo>,
-  ) -> Result<String, Self::Error> {
-    self.deref().call(path_data, asset_info).map_err(|err| {
-      error!(
-        "Failed to render filename function: {}. Did you return the correct filename?",
-        err.to_string()
-      )
-    })
+  ) -> rspack_error::Result<String> {
+    self
+      .deref()
+      .call(path_data, asset_info)
+      .await
+      .map_err(|err| {
+        error!(
+          "Failed to render filename function: {}. Did you return the correct filename?",
+          err.to_string()
+        )
+      })
   }
 }
 
@@ -207,13 +209,30 @@ impl<F> Filename<F> {
 impl<F: LocalFilenameFn> Filename<F> {
   pub fn render(
     &self,
-    options: PathData,
+    options: PathData<'_>,
     asset_info: Option<&mut AssetInfo>,
-  ) -> Result<String, F::Error> {
+  ) -> rspack_error::Result<String> {
     let template = match &self.0 {
       FilenameKind::Template(template) => Cow::Borrowed(template.as_str()),
       FilenameKind::Fn(filename_fn) => {
-        Cow::Owned(filename_fn.call(&options, asset_info.as_deref())?)
+        // clippy: compatible with sync filename function
+        // TODO: will be removed in the future
+        #[allow(clippy::disallowed_methods)]
+        Cow::Owned(block_on(filename_fn.call(&options, asset_info.as_deref()))?)
+      }
+    };
+    Ok(render_template(template, options, asset_info))
+  }
+
+  pub async fn render_async(
+    &self,
+    options: PathData<'_>,
+    asset_info: Option<&mut AssetInfo>,
+  ) -> rspack_error::Result<String> {
+    let template = match &self.0 {
+      FilenameKind::Template(template) => Cow::Borrowed(template.as_str()),
+      FilenameKind::Fn(filename_fn) => {
+        Cow::Owned(filename_fn.call(&options, asset_info.as_deref()).await?)
       }
     };
     Ok(render_template(template, options, asset_info))

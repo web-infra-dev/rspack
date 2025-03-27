@@ -9,7 +9,6 @@ pub mod diff_mode;
 pub mod ext;
 pub mod fx_hash;
 pub mod identifier;
-pub mod infallible;
 pub mod itoa;
 pub mod location;
 pub mod node_path;

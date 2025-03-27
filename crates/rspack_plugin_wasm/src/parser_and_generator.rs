@@ -16,7 +16,7 @@ use rspack_core::{
   RuntimeGlobals, SourceType, StaticExportsDependency, StaticExportsSpec, UsedName,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use rspack_util::{infallible::ResultInfallibleExt as _, itoa};
+use rspack_util::itoa;
 use swc_core::atoms::Atom;
 use wasmparser::{Import, Parser, Payload};
 
@@ -143,7 +143,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
       .as_normal_module()
       .expect("module should be a NormalModule in AsyncWasmParserAndGenerator::generate");
     let wasm_path_with_info =
-      render_wasm_name(compilation, normal_module, wasm_filename_template, &hash);
+      render_wasm_name(compilation, normal_module, wasm_filename_template, &hash)?;
 
     self
       .module_id_to_filename
@@ -313,21 +313,19 @@ fn render_wasm_name(
   normal_module: &NormalModule,
   wasm_filename_template: &FilenameTemplate,
   hash: &str,
-) -> (String, AssetInfo) {
-  compilation
-    .get_asset_path_with_info(
-      wasm_filename_template,
-      PathData::default()
-        .module_id_optional(
-          ChunkGraph::get_module_id(&compilation.module_ids_artifact, normal_module.id())
-            .map(|s| PathData::prepare_id(s.as_str()))
-            .as_deref(),
-        )
-        .filename(&normal_module.resource_resolved_data().resource)
-        .content_hash(hash)
-        .hash(hash),
-    )
-    .always_ok()
+) -> Result<(String, AssetInfo)> {
+  compilation.get_asset_path_with_info(
+    wasm_filename_template,
+    PathData::default()
+      .module_id_optional(
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, normal_module.id())
+          .map(|s| PathData::prepare_id(s.as_str()))
+          .as_deref(),
+      )
+      .filename(&normal_module.resource_resolved_data().resource)
+      .content_hash(hash)
+      .hash(hash),
+  )
 }
 
 fn render_import_stmt(import_var: &str, module_id: &ModuleId) -> String {

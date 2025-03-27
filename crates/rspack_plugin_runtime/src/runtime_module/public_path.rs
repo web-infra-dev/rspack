@@ -29,7 +29,7 @@ impl RuntimeModule for PublicPathRuntimeModule {
       RawStringSource::from(format!(
         "{} = \"{}\";",
         RuntimeGlobals::PUBLIC_PATH.name(),
-        &PublicPath::render_filename(compilation, &self.public_path)
+        &PublicPath::render_filename(compilation, &self.public_path).await
       ))
       .boxed(),
     )

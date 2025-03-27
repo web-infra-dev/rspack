@@ -2403,7 +2403,7 @@ impl Compilation {
     &'a self,
     filename: &Filename<F>,
     mut data: PathData<'b>,
-  ) -> Result<String, F::Error> {
+  ) -> Result<String> {
     if data.hash.is_none() {
       data.hash = self.get_hash();
     }
@@ -2415,7 +2415,7 @@ impl Compilation {
     filename: &Filename<F>,
     mut data: PathData<'b>,
     info: &mut AssetInfo,
-  ) -> Result<String, F::Error> {
+  ) -> Result<String> {
     if data.hash.is_none() {
       data.hash = self.get_hash();
     }
@@ -2427,7 +2427,7 @@ impl Compilation {
     &self,
     filename: &Filename<F>,
     data: PathData,
-  ) -> Result<String, F::Error> {
+  ) -> Result<String> {
     filename.render(data, None)
   }
 
@@ -2435,7 +2435,7 @@ impl Compilation {
     &self,
     filename: &Filename<F>,
     data: PathData,
-  ) -> Result<(String, AssetInfo), F::Error> {
+  ) -> Result<(String, AssetInfo)> {
     let mut info = AssetInfo::default();
     let path = filename.render(data, Some(&mut info))?;
     Ok((path, info))

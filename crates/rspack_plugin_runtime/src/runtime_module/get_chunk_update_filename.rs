@@ -4,7 +4,6 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   ChunkUkey, Compilation, FilenameTemplate, PathData, RuntimeGlobals, RuntimeModule, SourceType,
 };
-use rspack_util::infallible::ResultInfallibleExt;
 
 // TODO workaround for get_chunk_update_filename
 #[impl_runtime_module]
@@ -39,25 +38,23 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
-      let filename = compilation
-        .get_path(
-          &FilenameTemplate::from(compilation.options.output.hot_update_chunk_filename.clone()),
-          PathData::default()
-            .chunk_hash_optional(chunk.rendered_hash(
-              &compilation.chunk_hashes_artifact,
-              compilation.options.output.hash_digest_length,
-            ))
-            .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
-            .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-              &compilation.chunk_hashes_artifact,
-              &SourceType::JavaScript,
-              compilation.options.output.hash_digest_length,
-            ))
-            .hash(format!("' + {}() + '", RuntimeGlobals::GET_FULL_HASH).as_str())
-            .id("' + chunkId + '")
-            .runtime(chunk.runtime().as_str()),
-        )
-        .always_ok();
+      let filename = compilation.get_path(
+        &FilenameTemplate::from(compilation.options.output.hot_update_chunk_filename.clone()),
+        PathData::default()
+          .chunk_hash_optional(chunk.rendered_hash(
+            &compilation.chunk_hashes_artifact,
+            compilation.options.output.hash_digest_length,
+          ))
+          .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+          .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+            &compilation.chunk_hashes_artifact,
+            &SourceType::JavaScript,
+            compilation.options.output.hash_digest_length,
+          ))
+          .hash(format!("' + {}() + '", RuntimeGlobals::GET_FULL_HASH).as_str())
+          .id("' + chunkId + '")
+          .runtime(chunk.runtime().as_str()),
+      )?;
 
       let source = compilation.runtime_template.render(
         &self.id,

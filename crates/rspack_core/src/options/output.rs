@@ -369,21 +369,20 @@ fn test_get_undo_path() {
 }
 
 impl PublicPath {
-  pub fn render(&self, compilation: &Compilation, filename: &str) -> String {
+  pub async fn render(&self, compilation: &Compilation, filename: &str) -> String {
     match self {
-      Self::Filename(f) => Self::ensure_ends_with_slash(Self::render_filename(compilation, f)),
+      Self::Filename(f) => {
+        Self::ensure_ends_with_slash(Self::render_filename(compilation, f).await)
+      }
       Self::Auto => Self::render_auto_public_path(compilation, filename),
     }
   }
 
-  pub fn render_filename(compilation: &Compilation, template: &Filename) -> String {
-    compilation
-      .get_path(
-        template,
-        // @{link https://github.com/webpack/webpack/blob/a642809846deefdb9db05214718af5ab78c0ab94/lib/runtime/PublicPathRuntimeModule.js#L30-L32}
-        PathData::default().hash(compilation.get_hash().unwrap_or("XXXX")),
-      )
-      .expect("failed to render public")
+  pub async fn render_filename(compilation: &Compilation, template: &Filename) -> String {
+    let path_data = PathData::default().hash(compilation.get_hash().unwrap_or("XXXX"));
+    template
+      .render(path_data, None)
+      .expect("failed to render public path")
   }
 
   pub fn ensure_ends_with_slash(public_path: String) -> String {
