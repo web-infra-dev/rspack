@@ -71,30 +71,31 @@ export default {
 
 ### Lazy compilation 中间件
 
-此前，lazy compilation 依赖开发服务器对 lazy compilation 模块的请求进行特殊处理，导致一些问题，例如无法与开发服务器共享代理配置和 CORS 配置。
+在过去的版本中，当 [lazy compilation](/guide/features/lazy-compilation) 被开启时，Rspack 会启动一个单独的服务器来处理 lazy compilation 相关的请求。这导致了一些问题，例如，开发阶段需要启动两个服务器，并且 lazy compilation 服务器无法与默认的开发服务器共享代理配置和 CORS 配置。
 
-现在会提供一个 Express 风格的中间件来处理 lazy compilation。若你是 `@rspack/cli` 的用户，无需任何改动。若你是使用自定义开发服务器，仅需注入中间件即可支持 lazy compilation。
+Rspack 1.3 提供了一个全新的 Express 风格的中间件来集成 lazy compilation，以解决上述问题。
+
+- 如果你在使用 `@rspack/cli` 或 Rsbuild，只需要升级依赖版本即可自动切换到新版中间件。
+- 如果你使用了自定义的开发服务器，则需要集成该中间件来支持 lazy compilation。
+
+下面是一个使用 lazy compilation 中间件的示例：
 
 ```js
-import { experiments, rspack } from '@rspack/core';
+import { rspack } from '@rspack/core';
 import config from './rspack.config.mjs';
 import DevServer from 'webpack-dev-server';
 
 const compiler = rspack(config);
-
-const middleware = experiments.lazyCompilationMiddleware(
+const middleware = rspack.experiments.lazyCompilationMiddleware(
   compiler,
   config.experiments.lazyCompilation,
 );
 
 const server = new DevServer(compiler, {
-  port: 3000,
   setupMiddlewares(other) {
     return [middleware, ...other];
   },
 });
-
-server.start();
 ```
 
 ### 支持 AMD 模块

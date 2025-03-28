@@ -71,30 +71,31 @@ export default {
 
 ### Lazy compilation middleware
 
-Lazy compilation used to have a standalone server to handle special requests from lazy compiled modules. It won't share proxy config with normal user's dev server, now the lazy compilation server side ability is provided through express style middleware. If you're using @rspack/cli you should feel no difference.
+In previous versions, when [lazy compilation](/guide/features/lazy-compilation) was enabled, Rspack would start a separate server to handle lazy compilation-related requests. This led to several issues, such as the need for two servers during development, and the lazy compilation server not being able to share proxy and CORS configurations with the default dev server.
 
-If you have your own dev server, you can make your server supports lazy compilation feature simply by adding this middleware to your server.
+Rspack 1.3 provides new Express-style middleware for integrating lazy compilation that addresses these issues.
+
+- If you are using `@rspack/cli` or Rsbuild, you can upgrade to the new middleware by simply updating the dependency version.
+- If you are using a custom development server, you will need to integrate this middleware to support lazy compilation.
+
+Here's an example of how to use the lazy compilation middleware:
 
 ```js
-import { experiments, rspack } from '@rspack/core';
+import { rspack } from '@rspack/core';
 import config from './rspack.config.mjs';
 import DevServer from 'webpack-dev-server';
 
 const compiler = rspack(config);
-
-const middleware = experiments.lazyCompilationMiddleware(
+const middleware = rspack.experiments.lazyCompilationMiddleware(
   compiler,
   config.experiments.lazyCompilation,
 );
 
 const server = new DevServer(compiler, {
-  port: 3000,
   setupMiddlewares(other) {
     return [middleware, ...other];
   },
 });
-
-server.start();
 ```
 
 ### AMD supports
