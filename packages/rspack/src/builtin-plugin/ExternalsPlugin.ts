@@ -57,8 +57,9 @@ function getRawExternalItem(
 							issuer: data.contextInfo.issuer,
 							issuerLayer: data.contextInfo.issuerLayer ?? null
 						},
-						getResolve: function getResolve(options) {
+						getResolve: options => (context, request, callback) => {
 							const resolver = new Resolver(ctx.getResolver());
+							const child = options ? resolver.withOptions(options) : resolver;
 							const getResolveContext = () => ({
 								fileDependencies: compiler._lastCompilation!.fileDependencies,
 								missingDependencies:
@@ -66,31 +67,28 @@ function getRawExternalItem(
 								contextDependencies:
 									compiler._lastCompilation!.contextDependencies
 							});
-							const child = options ? resolver.withOptions(options) : resolver;
-							return (context, request, callback) => {
-								if (callback) {
+							if (callback) {
+								child.resolve(
+									{},
+									context,
+									request,
+									getResolveContext(),
+									callback
+								);
+							} else {
+								return new Promise((resolve, reject) => {
 									child.resolve(
 										{},
 										context,
 										request,
 										getResolveContext(),
-										callback
+										(err, result) => {
+											if (err) reject(err);
+											else resolve(result);
+										}
 									);
-								} else {
-									return new Promise((resolve, reject) => {
-										child.resolve(
-											{},
-											context,
-											request,
-											getResolveContext(),
-											(err, result) => {
-												if (err) reject(err);
-												else resolve(result);
-											}
-										);
-									});
-								}
-							};
+								});
+							}
 						}
 					},
 					(err, result, type) => {

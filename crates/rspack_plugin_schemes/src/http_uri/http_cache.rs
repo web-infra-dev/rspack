@@ -137,7 +137,6 @@ impl HttpCache {
     if status == 304 {
       if let Some(cached) = cached_result {
         let new_valid_until = valid_until.max(cached.meta.valid_until);
-        println!("GET {} [{}] (unchanged)", url, status);
         return Ok(FetchResultType::Content(ContentFetchResult {
           meta: FetchResultMeta {
             fresh: true,
@@ -154,7 +153,6 @@ impl HttpCache {
     // Improved handling of redirects to match webpack
     if let Some(location) = location {
       if (301..=308).contains(&status) {
-        println!("GET {} [{}] -> {}", url, status, location);
         // Resolve relative redirects like webpack does
         let absolute_location = match Url::parse(&location) {
           Ok(loc) => loc.to_string(), // Already absolute
@@ -181,7 +179,6 @@ impl HttpCache {
               && cached_redirect.meta.store_cache == store_cache
               && cached_redirect.meta.etag == etag
             {
-              println!("GET {} [{}] (unchanged redirect)", url, status);
               return Ok(FetchResultType::Redirect(RedirectFetchResult {
                 meta: FetchResultMeta {
                   fresh: true,
@@ -215,14 +212,6 @@ impl HttpCache {
     }
 
     let content = response.body;
-    println!(
-      "GET {} [{}] {} kB{}",
-      url,
-      status,
-      content.len() / 1024,
-      if !store_lock { " no-cache" } else { "" }
-    );
-
     let integrity = compute_integrity(&content);
     let content_type = headers
       .get("content-type")
@@ -249,14 +238,6 @@ impl HttpCache {
       },
     };
 
-    if !store_cache {
-      println!(
-        "{} can't be stored in cache, due to Cache-Control header: {}",
-        url,
-        cache_control.unwrap_or_else(|| "null".to_string())
-      );
-    }
-
     if store_cache || store_lock {
       let should_update = cached_result
         .map(|cached| {
@@ -274,23 +255,7 @@ impl HttpCache {
         let lockfile = self.lockfile_cache.get_lockfile().await?;
         let mut lock_guard = lockfile.lock().await;
 
-        // Log entry updates similar to webpack
-        let old_entry = lock_guard.get_entry(url);
-        if let Some(old_entry) = old_entry {
-          if old_entry.integrity != entry.integrity {
-            println!("{} updated in lockfile: content changed", url);
-          } else if old_entry.content_type != entry.content_type {
-            println!(
-              "{} updated in lockfile: {} -> {}",
-              url, old_entry.content_type, entry.content_type
-            );
-          } else {
-            println!("{} updated in lockfile", url);
-          }
-        } else {
-          println!("{} added to lockfile", url);
-        }
-
+        // Update the lockfile entry
         lock_guard.entries_mut().insert(url.to_string(), entry);
         drop(lock_guard);
         self.lockfile_cache.save_lockfile().await?;
@@ -306,35 +271,26 @@ impl HttpCache {
       let lock_guard = lockfile.lock().await;
 
       if let Some(entry) = lock_guard.get_entry(resource) {
-        // Generate cache key using webpack-compatible format
         let cache_key = self.get_cache_key(&entry.resolved);
-
-        // Full path to the cache file
-        let cache_path_buf = PathBuf::from(cache_location).join(&cache_key);
+        let cache_path_buf = cache_location.join(&cache_key);
         let cache_path = Utf8Path::from_path(&cache_path_buf).expect("Invalid cache path");
 
-        // Try to read the file
-        match self.filesystem.read_file(cache_path).await {
-          Ok(content) => {
-            let meta = FetchResultMeta {
-              store_cache: true,
-              store_lock: true,
-              valid_until: entry.valid_until,
-              etag: entry.etag.clone(),
-              fresh: entry.valid_until >= current_time(),
-            };
+        if let Ok(content) = self.filesystem.read_file(cache_path).await {
+          let meta = FetchResultMeta {
+            store_cache: true,
+            store_lock: true,
+            valid_until: entry.valid_until,
+            etag: entry.etag.clone(),
+            fresh: entry.valid_until >= current_time(),
+          };
 
-            let result = ContentFetchResult {
-              entry: entry.clone(),
-              content,
-              meta,
-            };
+          let result = ContentFetchResult {
+            entry: entry.clone(),
+            content,
+            meta,
+          };
 
-            return Ok(Some(result));
-          }
-          Err(e) => {
-            println!("Failed to read cache file: {:?}", e);
-          }
+          return Ok(Some(result));
         }
       }
     }
@@ -343,8 +299,6 @@ impl HttpCache {
 
   async fn write_to_cache(&self, resource: &str, content: &[u8]) -> Result<()> {
     if let Some(cache_location) = &self.cache_location {
-      println!("Writing to cache at location: {:?}", cache_location);
-
       // Generate cache key using webpack-compatible format
       let cache_key = self.get_cache_key(resource);
 
@@ -355,22 +309,12 @@ impl HttpCache {
       // Create parent directories
       if let Some(parent) = cache_path.parent() {
         let parent_path = parent.to_string();
-        println!("Creating directory: {:?}", parent_path);
         let parent_utf8_path = Utf8Path::new(&parent_path);
-        match self.filesystem.create_dir_all(parent_utf8_path).await {
-          Ok(_) => println!("Created cache directory successfully"),
-          Err(e) => println!("Failed to create cache directory: {:?}", e),
-        };
+        self.filesystem.create_dir_all(parent_utf8_path).await.ok();
       }
 
       // Write the cache file
-      println!("Writing cache file to: {:?}", cache_path);
-      match self.filesystem.write(cache_path, content).await {
-        Ok(_) => println!("Wrote cache file successfully"),
-        Err(e) => println!("Failed to write cache file: {:?}", e),
-      };
-    } else {
-      println!("No cache location specified");
+      self.filesystem.write(cache_path, content).await.ok();
     }
     Ok(())
   }

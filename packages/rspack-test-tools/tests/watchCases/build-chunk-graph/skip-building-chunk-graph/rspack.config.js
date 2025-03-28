@@ -2,7 +2,7 @@
 module.exports = {
 	optimization: {
 		sideEffects: true,
-		usedExports: true,
+		usedExports: false,
 		innerGraph: true
 	},
 	experiments: {

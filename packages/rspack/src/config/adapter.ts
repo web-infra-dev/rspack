@@ -148,10 +148,13 @@ function getRawExtensionAlias(
 function getRawAlias(
 	alias: Resolve["alias"] = {}
 ): RawOptions["resolve"]["alias"] {
-	return Object.entries(alias).map(([key, value]) => ({
-		path: key,
-		redirect: Array.isArray(value) ? value : [value]
-	}));
+	if (typeof alias === "object" && alias !== null && !Array.isArray(alias)) {
+		return Object.entries(alias).map(([key, value]) => ({
+			path: key,
+			redirect: Array.isArray(value) ? value : [value]
+		}));
+	}
+	return false;
 }
 
 function getRawResolveByDependency(

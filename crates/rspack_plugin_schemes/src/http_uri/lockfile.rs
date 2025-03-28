@@ -187,8 +187,8 @@ impl LockfileCache {
         Err(e) if e.kind() == io::ErrorKind::NotFound => {
           // File doesn't exist, use the default empty lockfile
         }
-        Err(e) => {
-          eprintln!("Error reading lockfile: {:?}", e);
+        Err(_e) => {
+          // Error reading lockfile
         }
       }
     }

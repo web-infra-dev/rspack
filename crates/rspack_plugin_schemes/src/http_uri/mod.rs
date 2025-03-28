@@ -9,7 +9,7 @@ pub use http_cache::{HttpClient, HttpResponse};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  get_scheme, ApplyContext, CompilerOptions, Content, ModuleFactoryCreateData,
+  ApplyContext, CompilerOptions, Content, ModuleFactoryCreateData,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveInScheme,
   NormalModuleReadResource, Plugin, PluginContext, ResourceData, Scheme,
 };
@@ -17,6 +17,7 @@ use rspack_error::Result;
 use rspack_fs::WritableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::{AssetCondition, AssetConditions};
+use url::Url;
 
 static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^(//|https?://|#)").expect("Invalid regex"));
@@ -30,6 +31,25 @@ pub struct HttpUriPlugin {
 impl HttpUriPlugin {
   pub fn new(options: HttpUriPluginOptions) -> Self {
     Self::new_inner(options)
+  }
+  pub async fn respond_with_url_module(
+    &self,
+    resource_data: &mut ResourceData,
+    url: &Url,
+    mimetype: Option<String>,
+  ) -> Result<bool> {
+    resource_data.set_resource(url.to_string());
+    resource_data.set_path(url.origin().ascii_serialization() + url.path());
+    if let Some(query) = url.query() {
+      resource_data.set_query(query.to_string());
+    }
+    if let Some(fragment) = url.fragment() {
+      resource_data.set_fragment(fragment.to_string());
+    }
+    if let Some(mime) = mimetype {
+      resource_data.set_mimetype(mime);
+    }
+    Ok(true)
   }
 }
 
@@ -49,14 +69,21 @@ pub struct HttpUriPluginOptions {
 async fn resolve_for_scheme(
   &self,
   _data: &mut ModuleFactoryCreateData,
-  _resource_data: &mut ResourceData,
-  scheme: &Scheme,
+  resource_data: &mut ResourceData,
+  _scheme: &Scheme,
 ) -> Result<Option<bool>> {
-  Ok(if scheme.is_http() || scheme.is_https() {
-    Some(true)
-  } else {
-    None
-  })
+  // Try to parse the URL and handle it
+  match Url::parse(&resource_data.resource) {
+    Ok(url) => match self
+      .respond_with_url_module(resource_data, &url, None)
+      .await
+    {
+      Ok(true) => Ok(Some(true)),
+      Ok(false) => Ok(None),
+      Err(e) => Err(e),
+    },
+    Err(_) => Ok(None),
+  }
 }
 
 #[plugin_hook(NormalModuleFactoryResolveInScheme for HttpUriPlugin)]
@@ -66,31 +93,42 @@ async fn resolve_in_scheme(
   resource_data: &mut ResourceData,
   _scheme: &Scheme,
 ) -> Result<Option<bool>> {
-  if !matches!(
-    get_scheme(data.context.as_str()),
-    Scheme::Http | Scheme::Https
-  ) {
+  // Check if the dependency type is "url", similar to webpack's check
+  let is_not_url_dependency = data
+    .dependencies
+    .first()
+    .and_then(|dep| dep.as_module_dependency())
+    .map(|dep| dep.dependency_type().as_str() != "url")
+    .unwrap_or(true);
+
+  // Only handle relative urls (./xxx, ../xxx, /xxx, //xxx) and non-url dependencies
+  if is_not_url_dependency
+    && (!resource_data.resource.starts_with("./")
+      && !resource_data.resource.starts_with("../")
+      && !resource_data.resource.starts_with("/")
+      && !resource_data.resource.starts_with("//"))
+  {
     return Ok(None);
   }
 
-  let base_url = match url::Url::parse(data.context.as_str()) {
+  // Parse the base URL from context
+  let base_url = match Url::parse(&format!("{}/", data.context)) {
     Ok(url) => url,
     Err(_) => return Ok(None),
   };
 
-  let resource_url = match url::Url::parse(&resource_data.resource) {
-    Ok(url) if url.scheme() == "http" || url.scheme() == "https" => return Ok(None),
-    Ok(_) | Err(_) => resource_data.resource.clone(),
-  };
-
-  let resource_set = base_url
-    .join(&resource_url)
-    .map(|url| url.to_string())
-    .unwrap_or_else(|_| resource_data.resource.clone());
-
-  resource_data.set_resource(resource_set);
-
-  Ok(Some(true))
+  // Join the base URL with the resource
+  match base_url.join(&resource_data.resource) {
+    Ok(url) => match self
+      .respond_with_url_module(resource_data, &url, None)
+      .await
+    {
+      Ok(true) => Ok(Some(true)),
+      Ok(false) => Ok(None),
+      Err(e) => Err(e),
+    },
+    Err(_) => Ok(None),
+  }
 }
 
 #[plugin_hook(NormalModuleReadResource for HttpUriPlugin)]
