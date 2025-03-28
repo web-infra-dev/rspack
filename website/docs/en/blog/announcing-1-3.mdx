@@ -18,7 +18,6 @@ Notable changes:
   - [Support for HTTP/HTTPS URL Module Imports](#support-for-httphttps-url-module-imports): provides a more flexible module import strategy for modern web development
   - [Circular dependency detection](#circular-dependency-detection): detecting circular dependencies between modules
   - [AMD supports](#amd-supports)
-  - [JavaScript API support module subtypes](#javascript-api-support-module-subtypes)
 - Performance improvements
   - [Parallel code splitting](#parallel-code-splitting)
   - [Runtime template](#runtime-template)
@@ -29,6 +28,7 @@ Notable changes:
   - [Lynx open source](#lynx-open-source)
   - [Re.Pack 5](#repack-5)
 - Upgrade guide
+  - [Module subtypes changed](#module-subtypes-changed)
   - [Upgrade SWC plugins](#upgrade-swc-plugins)
 
 ## New features
@@ -115,45 +115,6 @@ const config = {
 ```
 
 For more details, please checkout [the docs](/config/other-options#amd).
-
-### JavaScript API support module subtypes
-
-To improve Webpack API compatibility, Rspack modules are now structured as specific subtypes. Currently supported module subtypes include:
-
-- NormalModule
-- ContextModule
-- ExternalModule
-- ConcatenatedModule
-
-You can now identify a module's specific type in two ways:
-
-```ts
-// Method 1: Instance type checking
-module instanceof NormalModule;
-
-// Method 2: Constructor signature detection
-module.constructor.name === 'NormalModule';
-```
-
-The new type definitions may cause TypeScript errors in existing JavaScript API code, such as:
-
-```ts
-module.resource; // TypeScript Error: Property 'resource' does not exist on type 'Module'
-```
-
-To access the resource property, you now need to assert the module type using one of the following methods:
-
-```ts
-// Solution 1: `in` operator type guard
-if ('resource' in module) {
-  console.log(module.resource);
-}
-
-// Solution 2: Instance type assertion
-if (module instanceof NormalModule) {
-  module.resource;
-}
-```
 
 ## Performance improvements
 
@@ -249,6 +210,45 @@ Re.Pack 5 has been released, which brings unprecedented performance improvements
 > Read the [Re.Pack 5 release blog](https://re-pack.dev/blog/repack-5-release) for more.
 
 ## Upgrade guide
+
+### Module subtypes changed
+
+To improve webpack API compatibility, Rspack modules are now structured as specific subtypes. Currently supported module subtypes include:
+
+- NormalModule
+- ContextModule
+- ExternalModule
+- ConcatenatedModule
+
+You can now identify a module's specific type in two ways:
+
+```ts
+// Method 1: Instance type checking
+module instanceof NormalModule;
+
+// Method 2: Constructor signature detection
+module.constructor.name === 'NormalModule';
+```
+
+The new type definitions may cause type errors in existing JavaScript API code, such as:
+
+```ts
+module.resource; // TypeScript Error: Property 'resource' does not exist on type 'Module'
+```
+
+To access the resource property, you now need to assert the module type using one of the following methods:
+
+```ts
+// Solution 1: `in` operator type guard
+if ('resource' in module) {
+  console.log(module.resource);
+}
+
+// Solution 2: Instance type assertion
+if (module instanceof NormalModule) {
+  module.resource;
+}
+```
 
 ### Upgrade SWC plugins
 

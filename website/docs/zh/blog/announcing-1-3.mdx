@@ -18,7 +18,6 @@ Rspack 1.3 已经正式发布！
   - [支持 HTTP/HTTPS URL 导入模块](#支持-httphttps-url-导入模块)：为现代 Web 开发提供更灵活的模块导入方式
   - [循环引用检测](#循环引用检测)：引入插件来检测模块间的循环依赖
   - [支持 AMD 模块](#支持-amd-模块)
-  - [JavaScript API 支持模块子类型](#javascript-api-支持模块子类型)
 - 性能优化
   - [并行的 code splitting 算法](#并行的-code-splitting-算法)
   - [产物体积优化](#产物体积优化)
@@ -29,6 +28,7 @@ Rspack 1.3 已经正式发布！
   - [Lynx 开源](#lynx-开源)
   - [Re.Pack 5](#repack-5)
 - 升级指南
+  - [模块子类型变更](#模块子类型变更)
   - [升级 SWC 插件](#升级-swc-插件)
 
 ## 新功能
@@ -117,45 +117,6 @@ const config = {
 ```
 
 完整配置参数请参阅[文档](https://rspack.dev/config/other-options#amd)。
-
-### JavaScript API 支持模块子类型
-
-为提升与 Webpack API 的兼容性，Rspack 模块被构建为具体的子类型。目前已支持的模块子类型包括：
-
-- NormalModule
-- ContextModule
-- ExternalModule
-- ConcatenatedModule
-
-现在你可通过两种方式来识别模块的具体类型：
-
-```ts
-// 方法一：实例类型校验
-module instanceof NormalModule;
-
-// 方法二：构造器特征检测
-module.constructor.name === 'NormalModule';
-```
-
-新的类型定义可能会让你原有使用 JavaScript API 的代码遇到 TypeScript 类型报错，例如：
-
-```ts
-module.resource; // TypeScript Error: Property 'resource' does not exist on type 'Module'
-```
-
-现在当你访问 resource 属性时，需要使用以下方法断言具体的模块类型：
-
-```ts
-// 模式一：in操作符守卫
-if ('resource' in module) {
-  console.log(module.resource);
-}
-
-// 模式二：类型实例断言
-if (module instanceof NormalModule) {
-  module.resource;
-}
-```
 
 ## 性能优化
 
@@ -253,6 +214,45 @@ Re.Pack 5 已正式发布，通过接入 Rspack 带来了显著的性能改进�
 > 参考 [Re.Pack 5 发布博客](https://re-pack.dev/blog/repack-5-release) 了解更多。
 
 ## 升级指南
+
+### 模块子类型变更
+
+为提升与 webpack API 的兼容性，Rspack 模块被构建为具体的子类型。目前已支持的模块子类型包括：
+
+- NormalModule
+- ContextModule
+- ExternalModule
+- ConcatenatedModule
+
+现在你可通过两种方式来识别模块的具体类型：
+
+```ts
+// 方法一：实例类型校验
+module instanceof NormalModule;
+
+// 方法二：构造器特征检测
+module.constructor.name === 'NormalModule';
+```
+
+新的类型定义可能会让你原有使用 JavaScript API 的代码遇到类型报错，例如：
+
+```ts
+module.resource; // TypeScript Error: Property 'resource' does not exist on type 'Module'
+```
+
+现在当你访问 `resource` 属性时，需要使用以下方法断言具体的模块类型：
+
+```ts
+// 模式一：in操作符守卫
+if ('resource' in module) {
+  console.log(module.resource);
+}
+
+// 模式二：类型实例断言
+if (module instanceof NormalModule) {
+  module.resource;
+}
+```
 
 ### 升级 SWC 插件
 
