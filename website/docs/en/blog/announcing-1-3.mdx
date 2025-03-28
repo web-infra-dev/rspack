@@ -15,6 +15,7 @@ Notable changes:
 
 - New features
   - [Lazy compilation middleware](#lazy-compilation-middleware): simplifies the integration of lazy compilation functionality into dev servers
+  - [Support for HTTP/HTTPS URL Module Imports](#support-for-httphttps-url-module-imports): provides a more flexible module import strategy for modern web development
   - [CircularDependencyRspackPlugin](#circulardependencyrspackplugin): detecting circular dependencies between modules
   - [AMD supports](#amd-supports)
   - [JavaScript API support module subtypes](#javascript-api-support-module-subtypes)
@@ -58,6 +59,33 @@ const server = new DevServer(compiler, {
 
 server.start();
 ```
+
+### Support for HTTP/HTTPS URL Module Imports
+
+Rspack now supports direct imports from remote HTTP/HTTPS modules, providing a more flexible modules import strategy for modern web development. To enable this experimental feature, add the following configuration:
+
+```js
+module.exports = {
+  experiments: {
+    buildHttp: true, // Enable HTTP/HTTPS module imports
+  },
+};
+```
+
+Once enabled, you can import modules via HTTP/HTTPS URLs in your code:
+
+```js
+import pMap from 'https://cdn.skypack.dev/p-map';
+```
+
+This feature supports the following JavaScript CDNs, which provide URL-based access to modules:
+
+- [Skypack](https://cdn.skypack.dev)
+- [esm.sh](https://cdn.esm.sh)
+- [jspm](https://jspm.dev)
+- [unpkg](https://unpkg.com)
+
+For more details, please checkout [the docs](https://rspack.dev/config/experiments#experimentsbuildhttp).
 
 ### CircularDependencyRspackPlugin
 

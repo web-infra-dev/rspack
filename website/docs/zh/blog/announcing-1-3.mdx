@@ -15,6 +15,7 @@ Rspack 1.3 已经正式发布！
 
 - 新功能
   - [Lazy compilation middleware](#lazy-compilation-middleware)：简化开发服务器对 lazy compilation 功能的接入
+  - [支持 HTTP/HTTPS URL 导入模块](#支持-httphttps-url-导入模块)：为现代 Web 开发提供更灵活的模块导入方式
   - [CircularDependencyRspackPlugin](#circulardependencyrspackplugin)：检测模块间的循环依赖
   - [增加对 AMD 模块的支持](#增加对-amd-模块的支持)
   - [JavaScript API 支持模块子类型](#javascript-api-支持模块子类型)
@@ -59,6 +60,33 @@ const server = new DevServer(compiler, {
 server.start();
 ```
 
+### 支持 HTTP/HTTPS URL 导入模块
+
+Rspack 现已支持直接引用远程 HTTP/HTTPS 模块，为现代 Web 开发提供更灵活的模块导入方式，该功能可通在配置文件通过以下配置开启，如下：
+
+```js
+module.exports = {
+  experiments: {
+    buildHttp: true, // 启用 HTTP/HTTPS 模块导入
+  },
+};
+```
+
+在启用该功能后，你可以在代码中通过 HTTP/HTTPS URL 导入模块：
+
+```js
+import pMap from 'https://cdn.skypack.dev/p-map';
+```
+
+我们支持以下 JavaScript CDN，因为它们提供了对 JavaScript 模块的 URL 访问：
+
+- [Skypack](https://cdn.skypack.dev)
+- [esm.sh](https://cdn.esm.sh)
+- [jspm](https://jspm.dev)
+- [unpkg](https://unpkg.com)
+
+完整配置参数参阅[文档](https://rspack.dev/zh/config/experiments#experimentsbuildhttp)。
+
 ### CircularDependencyRspackPlugin
 
 我们为 Rspack 增加了一个内置插件 CircularDependencyRspackPlugin，检测运行时模块之间的循环依赖。
@@ -81,7 +109,7 @@ const config = {
 
 完整配置参数参阅[文档](https://rspack.dev/zh/plugins/rspack/circular-dependency-rspack-plugin)。
 
-### 增加对 AMD 模块的支持
+### 支持 AMD 模块
 
 我们增加了对 AMD 模块的支持。
 
