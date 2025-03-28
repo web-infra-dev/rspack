@@ -325,6 +325,39 @@ export default {
 };
 ```
 
+## experiments.parallelLoader
+
+<ApiMeta addedVersion="1.3.1" />
+
+- **Type**: `boolean`
+- **Default:** `false`
+
+Enable parallel loader execution. You need to manually enable parallel mode for each loader using [`Rule.use.parallel`](/config/module#ruleuseparallel). When enabled, the corresponding loaders will be executed in worker threads.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        use: [
+          {
+            loader: 'less-loader',
+            parallel: true,
+            options: {
+              // loader options
+            },
+          },
+        ],
+      },
+    ],
+  },
+  experiments: {
+    parallelLoader: true,
+  },
+};
+```
+
 ## experiments.rspackFuture
 
 - **Type:** `object`
@@ -338,6 +371,7 @@ Used to control whether to enable Rspack future default options, check out the d
 <ApiMeta addedVersion="1.0.0" />
 
 - **Type**:
+
   ```ts
   type BundlerInfo = {
     version?: string,

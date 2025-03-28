@@ -11,7 +11,6 @@
 import querystring from "node:querystring";
 
 import assert from "node:assert";
-import { promisify } from "node:util";
 import {
 	type JsLoaderContext,
 	type JsLoaderItem,
@@ -35,7 +34,6 @@ import {
 	BUILTIN_LOADER_PREFIX,
 	type Diagnostic,
 	type LoaderContext,
-	type LoaderContextCallback,
 	isUseSimpleSourceMap,
 	isUseSourceMap
 } from "../config/adapterRuleUse";
@@ -55,7 +53,9 @@ import {
 	parseResourceWithoutFragment
 } from "../util/identifier";
 import { memoize } from "../util/memoize";
-import loadLoader from "./loadLoader";
+import * as pool from "./service";
+import { type HandleIncomingRequest, RequestType } from "./service";
+import { convertArgs, loadLoader, runSyncOrAsync } from "./utils";
 
 function createLoaderObject(
 	loader: JsLoaderItem,
@@ -138,7 +138,11 @@ export class LoaderObject {
 	pitch?: Function;
 	raw?: boolean;
 	type?: "module" | "commonjs";
-	#loaderItem: JsLoaderItem;
+	parallel?: boolean;
+	/**
+	 * @internal This field is rspack internal. Do not edit.
+	 */
+	loaderItem: JsLoaderItem;
 
 	constructor(loaderItem: JsLoaderItem, compiler: Compiler) {
 		const {
@@ -163,47 +167,29 @@ export class LoaderObject {
 		this.pitch = pitch;
 		this.raw = raw;
 		this.type = type;
-		this.#loaderItem = loaderItem;
+		this.parallel = ident
+			? compiler.__internal__ruleSet.references.get(`${ident}$$parallelism`)
+			: false;
+		this.loaderItem = loaderItem;
+		this.loaderItem.data = this.loaderItem.data ?? {};
 	}
 
 	get pitchExecuted() {
-		return this.#loaderItem.pitchExecuted;
+		return this.loaderItem.pitchExecuted;
 	}
 
 	set pitchExecuted(value: boolean) {
 		assert(value);
-		this.#loaderItem.pitchExecuted = true;
+		this.loaderItem.pitchExecuted = true;
 	}
 
 	get normalExecuted() {
-		return this.#loaderItem.normalExecuted;
+		return this.loaderItem.normalExecuted;
 	}
 
 	set normalExecuted(value: boolean) {
 		assert(value);
-		this.#loaderItem.normalExecuted = true;
-	}
-
-	// A data object shared between the pitch and the normal phase
-	get data() {
-		return new Proxy((this.#loaderItem.data = this.#loaderItem.data ?? {}), {
-			set: (_, property, value) => {
-				if (typeof property === "string") {
-					this.#loaderItem.data[property] = value;
-				}
-				return true;
-			},
-			get: (_, property) => {
-				if (typeof property === "string") {
-					return this.#loaderItem.data[property];
-				}
-			}
-		});
-	}
-
-	// A data object shared between the pitch and the normal phase
-	set data(data: any) {
-		this.#loaderItem.data = data;
+		this.loaderItem.normalExecuted = true;
 	}
 
 	shouldYield() {
@@ -218,7 +204,7 @@ export class LoaderObject {
 	}
 
 	static __to_binding(loader: LoaderObject): JsLoaderItem {
-		return loader.#loaderItem;
+		return loader.loaderItem;
 	}
 }
 
@@ -231,86 +217,6 @@ class JsSourceMap {
 		return serializeObject(map);
 	}
 }
-
-const loadLoaderAsync: (loaderObject: LoaderObject) => Promise<void> =
-	promisify(loadLoader);
-
-const runSyncOrAsync = promisify(function runSyncOrAsync(
-	fn: Function,
-	context: LoaderContext,
-	args: any[],
-	callback: (err: Error | null | undefined, args: any[]) => void
-) {
-	let isSync = true;
-	let isDone = false;
-	let isError = false; // internal error
-	let reportedError = false;
-	context.async = function async() {
-		if (isDone) {
-			if (reportedError) return undefined as any; // ignore
-			throw new Error("async(): The callback was already called.");
-		}
-		isSync = false;
-		return innerCallback;
-	};
-	const innerCallback: LoaderContextCallback = (err, ...args) => {
-		if (isDone) {
-			if (reportedError) return; // ignore
-			throw new Error("callback(): The callback was already called.");
-		}
-		isDone = true;
-		isSync = false;
-		try {
-			callback(err, args);
-		} catch (e) {
-			isError = true;
-			throw e;
-		}
-	};
-	context.callback = innerCallback;
-
-	try {
-		const result = (function LOADER_EXECUTION() {
-			return fn.apply(context, args);
-		})();
-		if (isSync) {
-			isDone = true;
-			if (result === undefined) {
-				callback(null, []);
-				return;
-			}
-			if (
-				result &&
-				typeof result === "object" &&
-				typeof result.then === "function"
-			) {
-				result.then((r: unknown) => {
-					callback(null, [r]);
-				}, callback);
-				return;
-			}
-			callback(null, [result]);
-			return;
-		}
-	} catch (e: unknown) {
-		// use string for napi getter
-		const err = e as Error;
-		if ("hideStack" in err && err.hideStack) {
-			err.hideStack = "true";
-		}
-		if (isError) throw e;
-		if (isDone) {
-			// loader is already "done", so we cannot use the callback function
-			// for better debugging we print the error on the console
-			if (e instanceof Error) console.error(e.stack);
-			else console.error(e);
-			return;
-		}
-		isDone = true;
-		reportedError = true;
-		callback(e as Error, []);
-	}
-});
 
 function dirname(path: string) {
 	if (path === "/") return "/";
@@ -422,6 +328,7 @@ export async function runLoaders(
 	loaderContext.loaders = context.loaderItems.map(item => {
 		return LoaderObject.__from_binding(item, compiler);
 	});
+	// console.log(loaderContext.loaders)
 
 	loaderContext.hot = context.hot;
 	loaderContext.context = contextDirectory;
@@ -839,13 +746,213 @@ export async function runLoaders(
 	});
 	Object.defineProperty(loaderContext, "data", {
 		enumerable: true,
-		get: () => loaderContext.loaders[loaderContext.loaderIndex].data,
-		set: data => (loaderContext.loaders[loaderContext.loaderIndex].data = data)
+		get: () => loaderContext.loaders[loaderContext.loaderIndex].loaderItem.data,
+		set: data =>
+			(loaderContext.loaders[loaderContext.loaderIndex].loaderItem.data = data)
 	});
 	Object.defineProperty(loaderContext, "__internal__parseMeta", {
 		enumerable: true,
 		get: () => context.__internal__parseMeta
 	});
+
+	const getWorkerLoaderContext = () => {
+		const workerLoaderContext = {
+			hot: loaderContext.hot,
+			context: loaderContext.context,
+			resourcePath: loaderContext.resourcePath,
+			resourceQuery: loaderContext.resourceQuery,
+			resourceFragment: loaderContext.resourceFragment,
+			resource: loaderContext.resource,
+			mode: loaderContext.mode,
+			sourceMap: loaderContext.sourceMap,
+			rootContext: loaderContext.context!,
+			loaderIndex: loaderContext.loaderIndex,
+			loaders: loaderContext.loaders.map(item => {
+				return {
+					...item,
+					normalExecuted: item.normalExecuted,
+					pitchExecuted: item.pitchExecuted
+				};
+			}),
+
+			__internal__workerInfo: {
+				hashFunction: compiler._lastCompilation!.outputOptions.hashFunction!
+			},
+			_compiler: {
+				options: {
+					experiments: {
+						css: compiler.options.experiments.css
+					}
+				}
+			},
+			_compilation: {
+				outputOptions: compiler._lastCompilation!.outputOptions
+			},
+			_module: {
+				type: loaderContext._module.type,
+				identifier: loaderContext._module.identifier()
+			}
+		} as any;
+		Object.assign(workerLoaderContext, compiler.options.loader);
+		return workerLoaderContext;
+	};
+
+	const getWorkerLoaderHandlers = function (): {
+		handleIncomingRequest: HandleIncomingRequest;
+	} {
+		return {
+			handleIncomingRequest(requestType, ...args) {
+				switch (requestType) {
+					case RequestType.AddDependency: {
+						loaderContext.addDependency(args[0]);
+						break;
+					}
+					case RequestType.AddContextDependency: {
+						loaderContext.addContextDependency(args[0]);
+						break;
+					}
+					case RequestType.AddMissingDependency: {
+						loaderContext.addMissingDependency(args[0]);
+						break;
+					}
+					case RequestType.AddBuildDependency: {
+						loaderContext.addBuildDependency(args[0]);
+						break;
+					}
+					case RequestType.GetDependencies: {
+						return loaderContext.getDependencies();
+					}
+					case RequestType.GetContextDependencies: {
+						return loaderContext.getContextDependencies();
+					}
+					case RequestType.GetMissingDependencies: {
+						return loaderContext.getMissingDependencies();
+					}
+					case RequestType.ClearDependencies: {
+						loaderContext.clearDependencies();
+						break;
+					}
+					case RequestType.Resolve: {
+						return new Promise((resolve, reject) => {
+							loaderContext.resolve(args[0], args[1], (err, result) => {
+								if (err) reject(err);
+								else resolve(result);
+							});
+						});
+					}
+					case RequestType.GetResolve: {
+						return new Promise((resolve, reject) => {
+							loaderContext.getResolve(args[0])(
+								args[1],
+								args[2],
+								(err, result) => {
+									if (err) reject(err);
+									else resolve(result);
+								}
+							);
+						});
+					}
+					case RequestType.GetLogger: {
+						const [type, name, arg] = args;
+						(loaderContext.getLogger(name) as any)[type](...arg);
+					}
+					case RequestType.EmitError: {
+						const workerError = args[0];
+						const error = new Error(workerError.message);
+						error.stack = workerError.stack;
+						error.name = workerError.name;
+						loaderContext.emitError(error);
+						break;
+					}
+					case RequestType.EmitWarning: {
+						const workerError = args[0];
+						const error = new Error(workerError.message);
+						error.stack = workerError.stack;
+						error.name = workerError.name;
+						loaderContext.emitWarning(error);
+						break;
+					}
+					case RequestType.EmitFile: {
+						const [name, content, sourceMap, assetInfo] = args;
+						loaderContext.emitFile(name, content, sourceMap, assetInfo);
+						break;
+					}
+					case RequestType.EmitDiagnostic: {
+						const diagnostic = args[0];
+						loaderContext.experiments.emitDiagnostic(diagnostic);
+						break;
+					}
+					case RequestType.SetCacheable: {
+						const cacheable = args[0];
+						loaderContext.cacheable(cacheable);
+						break;
+					}
+					case RequestType.UpdateLoaderObjects: {
+						const updates = args[0];
+						loaderContext.loaders = loaderContext.loaders.map((item, index) => {
+							const update = updates[index];
+							item.loaderItem.data = update.data;
+							if (update.pitchExecuted) {
+								item.pitchExecuted = true;
+							}
+							if (update.normalExecuted) {
+								item.normalExecuted = true;
+							}
+							return item;
+						});
+						break;
+					}
+					default: {
+						throw new Error(`Unknown request type: ${requestType}`);
+					}
+				}
+			}
+		};
+	};
+
+	const enableParallelism = (currentLoaderObject: any) => {
+		return (
+			compiler.options.experiments.parallelLoader &&
+			currentLoaderObject?.parallel
+		);
+	};
+
+	const isomorphoicRun = async (fn: Function, args: any[]) => {
+		const currentLoaderObject = getCurrentLoader(loaderContext);
+		const parallelism = enableParallelism(currentLoaderObject);
+		const pitch = loaderState === JsLoaderState.Pitching;
+		const worker = parallelism;
+
+		let result: any;
+		const span = tracer?.startSpan(
+			`LoaderRunner:${pitch ? "pitch" : "normal"}${worker ? " (worker)" : ""}`,
+			{
+				attributes: {
+					"loader.identifier": currentLoaderObject?.request
+				}
+			},
+			activeContext
+		);
+		if (parallelism) {
+			delete currentLoaderObject?.pitch;
+			delete currentLoaderObject?.normal;
+			result =
+				(await pool.run(
+					{
+						loaderContext: getWorkerLoaderContext(),
+						loaderState,
+						args
+					},
+					getWorkerLoaderHandlers()
+				)) || [];
+		} else {
+			if (loaderState === JsLoaderState.Normal)
+				convertArgs(args, !!currentLoaderObject?.raw);
+			result = (await runSyncOrAsync(fn, loaderContext, args)) || [];
+		}
+		span?.end();
+		return result;
+	};
 
 	try {
 		switch (loaderState) {
@@ -853,6 +960,7 @@ export async function runLoaders(
 				while (loaderContext.loaderIndex < loaderContext.loaders.length) {
 					const currentLoaderObject =
 						loaderContext.loaders[loaderContext.loaderIndex];
+					const parallelism = enableParallelism(currentLoaderObject);
 
 					if (currentLoaderObject.shouldYield()) break;
 					if (currentLoaderObject.pitchExecuted) {
@@ -860,35 +968,28 @@ export async function runLoaders(
 						continue;
 					}
 
-					await loadLoaderAsync(currentLoaderObject);
+					await loadLoader(currentLoaderObject);
 					const fn = currentLoaderObject.pitch;
-					currentLoaderObject.pitchExecuted = true;
+					// If parallelism is enabled,
+					// we delegate the current loader to use the runner in worker.
+					if (!parallelism || !fn) {
+						currentLoaderObject.pitchExecuted = true;
+					}
 					if (!fn) continue;
 
-					const span = tracer?.startSpan(
-						"LoaderRunner:pitch",
-						{
-							attributes: {
-								"loader.identifier": getCurrentLoader(loaderContext)?.request
-							}
-						},
-						activeContext
-					);
-					const args =
-						(await runSyncOrAsync(fn, loaderContext, [
-							loaderContext.remainingRequest,
-							loaderContext.previousRequest,
-							currentLoaderObject.data
-						])) || [];
-					span?.end();
+					const args = await isomorphoicRun(fn, [
+						loaderContext.remainingRequest,
+						loaderContext.previousRequest,
+						currentLoaderObject.loaderItem.data
+					]);
 
-					const hasArg = args.some(value => value !== undefined);
+					const hasArg = args.some((value: any) => value !== undefined);
 
 					if (hasArg) {
 						const [content, sourceMap, additionalData] = args;
 						context.content = isNil(content) ? null : toBuffer(content);
 						context.sourceMap = serializeObject(sourceMap);
-						context.additionalData = additionalData;
+						context.additionalData = additionalData || undefined;
 						break;
 					}
 				}
@@ -903,6 +1004,7 @@ export async function runLoaders(
 				while (loaderContext.loaderIndex >= 0) {
 					const currentLoaderObject =
 						loaderContext.loaders[loaderContext.loaderIndex];
+					const parallelism = enableParallelism(currentLoaderObject);
 
 					if (currentLoaderObject.shouldYield()) break;
 					if (currentLoaderObject.normalExecuted) {
@@ -910,25 +1012,19 @@ export async function runLoaders(
 						continue;
 					}
 
-					await loadLoaderAsync(currentLoaderObject);
+					await loadLoader(currentLoaderObject);
 					const fn = currentLoaderObject.normal;
-					currentLoaderObject.normalExecuted = true;
+					// If parallelism is enabled,
+					// we delegate the current loader to use the runner in worker.
+					if (!parallelism || !fn) {
+						currentLoaderObject.normalExecuted = true;
+					}
 					if (!fn) continue;
-					const args = [content, sourceMap, additionalData];
-					convertArgs(args, !!currentLoaderObject.raw);
-
-					const span = tracer?.startSpan(
-						"LoaderRunner:normal",
-						{
-							attributes: {
-								"loader.identifier": getCurrentLoader(loaderContext)?.request
-							}
-						},
-						activeContext
-					);
-					[content, sourceMap, additionalData] =
-						(await runSyncOrAsync(fn, loaderContext, args)) || [];
-					span?.end();
+					[content, sourceMap, additionalData] = await isomorphoicRun(fn, [
+						content,
+						sourceMap,
+						additionalData
+					]);
 				}
 
 				context.content = isNil(content) ? null : toBuffer(content);
@@ -964,20 +1060,6 @@ export async function runLoaders(
 					};
 	}
 	return context;
-}
-
-function utf8BufferToString(buf: Buffer) {
-	const str = buf.toString("utf-8");
-	if (str.charCodeAt(0) === 0xfeff) {
-		return str.slice(1);
-	}
-	return str;
-}
-
-function convertArgs(args: any[], raw: boolean) {
-	if (!raw && Buffer.isBuffer(args[0])) args[0] = utf8BufferToString(args[0]);
-	else if (raw && typeof args[0] === "string")
-		args[0] = Buffer.from(args[0], "utf-8");
 }
 
 const PATH_QUERY_FRAGMENT_REGEXP =

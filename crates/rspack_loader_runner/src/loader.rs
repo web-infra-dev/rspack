@@ -199,7 +199,10 @@ where
   }
 }
 
-impl<C> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
+impl<C> From<Arc<dyn Loader<C>>> for LoaderItem<C>
+where
+  C: Send,
+{
   fn from(loader: Arc<dyn Loader<C>>) -> Self {
     if let Some((r#type, ident)) = loader.identifier().split_once('|') {
       let ResourceParsedData {
