@@ -409,64 +409,64 @@ fn visit_dirs(
     } else if path.file_name().is_some_and(|name| name.starts_with('.')) {
       // ignore hidden files
       continue;
-    } else {
-      if let Some(include) = include
-        && !include.test(path_str)
-      {
-        // ignore not included files
-        continue;
-      }
-
-      // FIXME: nodejs resolver return path of context, sometimes is '/a/b', sometimes is '/a/b/'
-      let relative_path = {
-        let path_str = path_str.to_owned().drain(ctx.len()..).collect::<String>();
-        let p = path_str.cow_replace('\\', "/");
-        if p.as_ref().starts_with('/') {
-          format!(".{p}")
-        } else {
-          format!("./{p}")
-        }
-      };
-
-      let requests = alternative_requests(
-        resolve_options,
-        vec![AlternativeRequest::new(ctx.to_string(), relative_path)],
-      );
-
-      let Some(reg_exp) = &options.context_options.reg_exp else {
-        return Ok(());
-      };
-
-      requests.iter().for_each(|r| {
-        if !reg_exp.test(&r.request) {
-          return;
-        }
-        dependencies.push(ContextElementDependency {
-          id: DependencyId::new(),
-          request: format!(
-            "{}{}{}{}",
-            options.addon,
-            r.request,
-            options.resource_query.clone(),
-            options.resource_fragment.clone(),
-          ),
-          user_request: r.request.to_string(),
-          category: options.context_options.category,
-          context: options.resource.clone().into(),
-          layer: options.layer.clone(),
-          options: options.context_options.clone(),
-          resource_identifier: ContextElementDependency::create_resource_identifier(
-            options.resource.as_str(),
-            &path,
-            options.context_options.attributes.as_ref(),
-          ),
-          attributes: options.context_options.attributes.clone(),
-          referenced_exports: options.context_options.referenced_exports.clone(),
-          dependency_type: DependencyType::ContextElement(options.type_prefix),
-          factorize_info: Default::default(),
-        });
-      })
     }
+
+    if let Some(include) = include
+      && !include.test(path_str)
+    {
+      // ignore not included files
+      continue;
+    }
+
+    // FIXME: nodejs resolver return path of context, sometimes is '/a/b', sometimes is '/a/b/'
+    let relative_path = {
+      let path_str = path_str.to_owned().drain(ctx.len()..).collect::<String>();
+      let p = path_str.cow_replace('\\', "/");
+      if p.as_ref().starts_with('/') {
+        format!(".{p}")
+      } else {
+        format!("./{p}")
+      }
+    };
+
+    let requests = alternative_requests(
+      resolve_options,
+      vec![AlternativeRequest::new(ctx.to_string(), relative_path)],
+    );
+
+    let Some(reg_exp) = &options.context_options.reg_exp else {
+      return Ok(());
+    };
+
+    requests.iter().for_each(|r| {
+      if !reg_exp.test(&r.request) {
+        return;
+      }
+      dependencies.push(ContextElementDependency {
+        id: DependencyId::new(),
+        request: format!(
+          "{}{}{}{}",
+          options.addon,
+          r.request,
+          options.resource_query.clone(),
+          options.resource_fragment.clone(),
+        ),
+        user_request: r.request.to_string(),
+        category: options.context_options.category,
+        context: options.resource.clone().into(),
+        layer: options.layer.clone(),
+        options: options.context_options.clone(),
+        resource_identifier: ContextElementDependency::create_resource_identifier(
+          options.resource.as_str(),
+          &path,
+          options.context_options.attributes.as_ref(),
+        ),
+        attributes: options.context_options.attributes.clone(),
+        referenced_exports: options.context_options.referenced_exports.clone(),
+        dependency_type: DependencyType::ContextElement(options.type_prefix),
+        factorize_info: Default::default(),
+      });
+    })
   }
   Ok(())
 }
