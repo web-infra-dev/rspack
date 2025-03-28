@@ -14,18 +14,18 @@ Rspack 1.3 已经正式发布！
 值得关注的变更如下：
 
 - 新功能
-  - [循环引用检测](#循环引用检测)：引入插件来检测模块间的循环依赖
-  - [支持 `experiments.buildHttp`](#支持-experimentsbuildhttp)：在构建时自动将 HTTP/HTTPS 资源下载到本地，然后将它们进行打包
-  - [Lazy compilation middleware](#lazy-compilation-middleware)：简化开发服务器对 lazy compilation 功能的接入
+  - [循环引用检测](#循环引用检测)
+  - [构建 HTTP imports](#构建-http-imports)
+  - [Lazy compilation 中间件](#lazy-compilation-中间件)
   - [支持 AMD 模块](#支持-amd-模块)
 - 性能优化
-  - [并行的 code splitting 算法](#并行的-code-splitting-算法)
+  - [代码拆分提速 25%](#代码拆分提速-25)
   - [产物体积优化](#产物体积优化)
   - [内存优化](#内存优化)
 - 生态系统
   - [Rsdoctor 1.0](#rsdoctor-10)
   - [Rsbuild 1.3](#rsbuild-13)
-  - [Lynx 开源](#lynx-开源)
+  - [Rspeedy for Lynx](#rspeedy-for-lynx)
   - [Re.Pack 5](#repack-5)
 - 升级指南
   - [模块子类型变更](#模块子类型变更)
@@ -49,9 +49,9 @@ export default {
 
 > 特别感谢 [@faultyserver](https://github.com/faultyserver) 贡献了该插件 ❤️
 
-### 支持 `experiments.buildHttp`
+### 构建 HTTP imports
 
-在 Rspack 中，你可以通过 [externalsPresets.web](/config/externals#externalspresetsweb) 或 [externalsPresets.webAsync](/config/externals#externalspresetswebasync) 来导入 HTTP/HTTPS 资源，这只是将 HTTP/HTTPS 资源设置为外部资源，然后让浏览器（或其他平台）在运行时获取它们。
+在 Rspack 之前的版本中，你可以通过 [externalsPresets.web](/config/externals#externalspresetsweb) 或 [externalsPresets.webAsync](/config/externals#externalspresetswebasync) 来导入 HTTP/HTTPS 资源，这只是将 HTTP/HTTPS 资源设置为外部资源，然后让浏览器（或其他平台）在运行时获取它们。
 
 ```js
 import pMap from 'https://esm.sh/p-map';
@@ -69,7 +69,7 @@ export default {
 
 > 查看 [使用文档](/config/experiments#experimentsbuildhttp) 了解更多。
 
-### Lazy compilation middleware
+### Lazy compilation 中间件
 
 此前，lazy compilation 依赖开发服务器对 lazy compilation 模块的请求进行特殊处理，导致一些问题，例如无法与开发服务器共享代理配置和 CORS 配置。
 
@@ -117,17 +117,17 @@ export default {
 
 ## 性能优化
 
-### 并行的 code splitting 算法
+### 代码拆分提速 25%
 
 旧版本的 chunk 拆分算法是基于单线程而设计，并且计算过程有较多耦合，每一个 chunk 的生成会依赖其祖先 chunk 的一些输入，这导致其接入增量算法后非常复杂，为了更好地利用一些多线程的优势，以及更简单地接入增量架构中，我们重构了创建 chunk 的算法，现在的 code splitting 会更高效。
 
 ### 产物体积优化
 
-Rspack 1.3 版本引入了对 [output.environment](/config/output#outputenvironment) 选项的完整支持，这允许你指定在 Rspack 生成的运行时代码中可使用的 ECMAScript 特性，能够生成更精简、更现代的运行时代码。
+Rspack 1.3 版本引入了对 [output.environment](/config/output#outputenvironment) 选项的完整支持，这允许你指定在 Rspack 生成的运行时代码中可使用的 ECMAScript 特性，能够生成更简短和现代的运行时代码。
 
-默认情况下，Rspack 会解析 [target](/config/target) 配置项，并基于 `browserslist` 来判断目标环境所支持的 ECMAScript 特性，自动设置 `output.environment` 子选项的值，从而输出最优的代码。
+默认情况下，Rspack 会解析 [target](/config/target) 配置项，并基于 `browserslist` 来判断目标环境所支持的 ECMAScript 特性，自动设置 `output.environment` 子选项的值，从而输出优化后的代码。
 
-例如，当检测到目标环境支持箭头函数时，Rspack 会将 `output.environment.arrowFunction` 设置为 `true`，从而在生成的代码中使用箭头函数语法。
+例如，当检测到目标环境支持箭头函数时，Rspack 会将 `output.environment.arrowFunction` 设置为 `true`，并在生成的代码中使用箭头函数语法。
 
 ```diff
 // before
@@ -191,7 +191,7 @@ console.log(rawSvg); // 输出 SVG 文件的原始内容
 console.log(rawCss); // 输出 CSS 文件的原始内容
 ```
 
-### Lynx 开源
+### Rspeedy for Lynx
 
 [Lynx](https://lynxjs.org/) 是一套帮助 Web 开发者复用现有经验，通过一份代码同时构建移动端原生界面与 Web 端界面的技术方案。它最初由字节跳动的工程团队开发，并将由该团队继续推进其演进。
 
