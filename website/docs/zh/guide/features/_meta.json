@@ -7,6 +7,7 @@
   "module-resolution",
   "module-federation",
   "web-workers",
+  "lazy-compilation",
   "builtin-swc-loader",
   "builtin-lightningcss-loader"
 ]
