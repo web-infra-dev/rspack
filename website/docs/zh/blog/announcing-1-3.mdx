@@ -119,7 +119,9 @@ export default {
 
 ### 代码拆分提速 25%
 
-旧版本的 chunk 拆分算法是基于单线程而设计，并且计算过程有较多耦合，每一个 chunk 的生成会依赖其祖先 chunk 的一些输入，这导致其接入增量算法后非常复杂，为了更好地利用一些多线程的优势，以及更简单地接入增量架构中，我们重构了创建 chunk 的算法，现在的 code splitting 会更高效。
+在 Rspack 1.2 中，我们引入了 [experiments.parallelCodeSplitting](/config/experiments#experimentsparallelcodesplitting) 选项来开启新版的代码拆分算法。
+
+从 Rspack 1.3 开始，该选项已经默认开启，并使代码拆分的速度提升 25%。
 
 ### 产物体积优化
 

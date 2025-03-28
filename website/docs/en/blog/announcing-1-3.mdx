@@ -119,7 +119,9 @@ export default {
 
 ### Code splitting 25% faster
 
-The chunk creation algorithm in the previous version is designed for single thread with best performance in mind. But it's hard to make it right for incremental rebuild, as every chunk creation needs input from all parents, and it's error-prone to cut the dirty chunks from the last compilation. In order to better support the Rspack incremental algorithm, we've refactored the chunk creation algorithm which is more performant.
+In Rspack 1.2, we introduced the [experiments.parallelCodeSplitting](/config/experiments#experimentsparallelcodesplitting) option to enable the new code splitting algorithm.
+
+Starting from Rspack 1.3, this option is enabled by default, resulting in a 25% performance boost for code splitting.
 
 ### Bundle size optimization
 
