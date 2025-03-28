@@ -22,12 +22,14 @@ Rspack 1.3 已经正式发布！
   - [代码拆分提速 25%](#代码拆分提速-25)
   - [产物体积优化](#产物体积优化)
   - [内存优化](#内存优化)
-- Rstack 更新
+- Rstack 进展
   - [Rsdoctor 1.0](#rsdoctor-10)
   - [Rsbuild 1.3](#rsbuild-13)
+  - [Rslib 0.6](#rslib-06)
 - 生态系统
   - [Rspeedy for Lynx](#rspeedy-for-lynx)
   - [Re.Pack 5](#repack-5)
+  - [React Router v7 支持](#react-router-v7-支持)
 - 升级指南
   - [模块子类型变更](#模块子类型变更)
   - [升级 SWC 插件](#升级-swc-插件)
@@ -155,7 +157,7 @@ Rspack 1.3 还实现了清理过期缓存的内部机制 `maxGenerations`。这�
   alt="Max generations"
 />
 
-## Rstack 更新
+## Rstack 进展
 
 ### Rsdoctor 1.0
 
@@ -221,6 +223,16 @@ Lynx 基于 Rspack、Rsbuild 和 Rsdoctor 打造了现代化的工具链 [Rspeed
 Re.Pack 5 已正式发布，通过接入 Rspack 带来了显著的性能改进，通过 Module Federation 2 带来了适当的微前端支持，简化了配置等。
 
 > 参考 [Re.Pack 5 发布博客](https://re-pack.dev/blog/repack-5-release) 了解更多。
+
+### React Router v7 支持
+
+[rsbuild-plugin-react-router](https://github.com/rspack-contrib/rsbuild-plugin-react-router) 发布了首个版本，这是一个提供与 React Router v7 无缝集成的 Rsbuild 插件，并支持以下特性：
+
+- 文件系统路由
+- 服务端渲染
+- 实验性的 Module Federation 支持
+
+> 查看 [rsbuild-plugin-react-router 仓库](https://github.com/rspack-contrib/rsbuild-plugin-react-router) 来开始尝试。
 
 ## 升级指南
 
