@@ -68,7 +68,9 @@ import pMap from 'https://esm.sh/p-map';
 ```js title="rspack.config.mjs"
 export default {
   experiments: {
-    buildHttp: true,
+    buildHttp: {
+      // ...options
+    },
   },
 };
 ```

@@ -68,7 +68,9 @@ And the new [experiments.buildHttp](/config/experiments#experimentsbuildhttp) op
 ```js title="rspack.config.mjs"
 export default {
   experiments: {
-    buildHttp: true, // Enable HTTP/HTTPS module imports
+    buildHttp: {
+      // ...options
+    },
   },
 };
 ```
