@@ -99,20 +99,19 @@ server.start();
 
 ### 支持 AMD 模块
 
-我们增加了对 AMD 模块的支持。
+Rspack 现在允许你通过 [amd](/config/other-options#amd) 选项来开启对 AMD 模块的支持。
 
-与 webpack 默认启用 AMD 模块支持不同，Rspack 选择默认禁用该特性。此功能旨在兼容仍需使用 AMD 格式的依赖，我们强烈建议开发者优先选用 ES Module 规范的依赖，以便 Rspack 能基于静态模块分析进行更高效的产物体积优化。
+与 webpack 默认启用 AMD 模块支持不同，Rspack 选择默认禁用该特性。此功能旨在兼容仍需使用 AMD 格式的 npm 依赖，我们强烈建议开发者优先选用 ES Module 规范的依赖，以便 Rspack 能基于静态模块分析进行更高效的产物体积优化。
 
-若确需启用 AMD 支持，请在配置中：
+添加 `amd` 选项来开启支持：
 
-```js
-const config = {
-  // ...
-  amd: {},
+```js title="rspack.config.mjs"
+export default {
+  amd: {
+    // ...
+  },
 };
 ```
-
-完整配置参数请参阅[文档](https://rspack.dev/config/other-options#amd)。
 
 > 特别感谢 [@nilptr](https://github.com/nilptr) 贡献了该功能 ❤️
 

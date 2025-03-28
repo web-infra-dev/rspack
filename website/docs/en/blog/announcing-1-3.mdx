@@ -99,18 +99,19 @@ server.start();
 
 ### AMD supports
 
-We have supported the parsing of AMD modules.
+Rspack now allows you to enable AMD module support by using the [amd](/config/other-options#amd) option.
 
-Notably, Rspack differs from webpack in that the parsing of AMD modules is disabled by default (webpack enables it by default). This feature is only for compatibility with certain legacy AMD dependencies. We recommend prioritizing ES Module dependencies for better Rspack optimization and to boost ES Module adoption. If you really need to use AMD dependencies, you can enable this feature:
+Notably, Rspack differs from webpack in that the parsing of AMD modules is disabled by default (webpack enables it by default). This feature is only for compatibility with certain legacy AMD npm dependencies. We recommend prioritizing ES Module dependencies for better Rspack optimization and to boost ES Module adoption.
 
-```js
-const config = {
-  // ...
-  amd: {},
+Add the `amd` option to enable support:
+
+```js title="rspack.config.mjs"
+export default {
+  amd: {
+    // ...
+  },
 };
 ```
-
-For more details, please checkout [the docs](/config/other-options#amd).
 
 > Special thanks to [@nilptr](https://github.com/nilptr) for contributing this plugin ❤️
 
