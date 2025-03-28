@@ -2209,8 +2209,8 @@ export interface RawResolveOptions {
   mainFiles?: Array<string>
   mainFields?: Array<string>
   conditionNames?: Array<string>
-  alias?: Array<RawAliasOptionItem>
-  fallback?: Array<RawAliasOptionItem>
+  alias?: Array<RawAliasOptionItem> | false
+  fallback?: Array<RawAliasOptionItem> | false
   symlinks?: boolean
   tsconfig?: RawResolveTsconfigOptions
   modules?: Array<string>
@@ -2234,8 +2234,8 @@ export interface RawResolveOptionsWithDependencyType {
   mainFiles?: Array<string>
   mainFields?: Array<string>
   conditionNames?: Array<string>
-  alias?: Array<RawAliasOptionItem>
-  fallback?: Array<RawAliasOptionItem>
+  alias?: Array<RawAliasOptionItem> | false
+  fallback?: Array<RawAliasOptionItem> | false
   symlinks?: boolean
   tsconfig?: RawResolveTsconfigOptions
   modules?: Array<string>

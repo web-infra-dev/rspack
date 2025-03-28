@@ -6,14 +6,49 @@ use std::borrow::Cow;
 use hashlink::LinkedHashMap;
 use rspack_cacheable::{
   cacheable,
-  with::{AsCacheable, AsMap, AsOption, AsPreset, AsRefStr, AsTuple2, AsVec},
+  with::{AsCacheable, AsMap, AsPreset, AsRefStr, AsTuple2, AsVec},
 };
 use rspack_paths::Utf8PathBuf;
 
 use crate::DependencyCategory;
 
 pub type AliasMap = rspack_resolver::AliasValue;
-pub type Alias = rspack_resolver::Alias;
+
+// OverwriteToNoAlias is for false, webpack supports object and array for alias
+// the difference is object will merge with the default resolve options alias
+// but array will overwrite the default resolve options alias, unless there is `"..."`
+// and undefined is equal to {}, false is equal to [].
+// I've never seen a requirement that needs to support arrays, so for now I only
+// support false here for simplicity.
+#[cacheable]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub enum Alias {
+  OverwriteToNoAlias,
+  MergeAlias(
+    #[cacheable(with=AsVec<AsTuple2<AsCacheable, AsVec<AsPreset>>>)] rspack_resolver::Alias,
+  ),
+}
+
+impl Default for Alias {
+  fn default() -> Self {
+    Self::MergeAlias(rspack_resolver::Alias::default())
+  }
+}
+
+impl From<rspack_resolver::Alias> for Alias {
+  fn from(value: rspack_resolver::Alias) -> Alias {
+    Alias::MergeAlias(value)
+  }
+}
+
+impl value_type::GetValueType for Alias {
+  fn get_value_type(&self) -> value_type::ValueType {
+    match self {
+      Alias::OverwriteToNoAlias => value_type::ValueType::Atom,
+      Alias::MergeAlias(_) => value_type::ValueType::Other,
+    }
+  }
+}
 
 pub(super) type Extensions = Vec<String>;
 pub(super) type PreferRelative = bool;
@@ -41,7 +76,6 @@ pub struct Resolve {
   pub extensions: Option<Extensions>,
   /// Maps key to value.
   /// The reason for using `Vec` instead `HashMap` to keep the order.
-  #[cacheable(with=AsOption<AsVec<AsTuple2<AsCacheable, AsVec<AsPreset>>>>)]
   pub alias: Option<Alias>,
   /// Prefer to resolve request as relative request and
   /// fallback to resolving as modules.
@@ -67,7 +101,6 @@ pub struct Resolve {
   pub modules: Option<Modules>,
   /// Same as `alias`, but only used if default resolving fails
   /// Default is `[]`
-  #[cacheable(with=AsOption<AsVec<AsTuple2<AsCacheable, AsVec<AsPreset>>>>)]
   pub fallback: Option<Fallback>,
   /// Request passed to resolve is already fully specified and
   /// extensions or main files are not resolved for it.

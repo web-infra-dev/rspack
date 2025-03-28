@@ -380,12 +380,14 @@ const output = z.strictObject({
 //#endregion
 
 //#region Resolve
-const resolveAlias = z.record(
-	z
-		.literal(false)
-		.or(z.string())
-		.or(z.array(z.string().or(z.literal(false))))
-) satisfies z.ZodType<t.ResolveAlias>;
+const resolveAlias = z
+	.record(
+		z
+			.literal(false)
+			.or(z.string())
+			.or(z.array(z.string().or(z.literal(false))))
+	)
+	.or(z.literal(false)) satisfies z.ZodType<t.ResolveAlias>;
 
 const resolveTsConfigFile = z.string();
 const resolveTsConfig = resolveTsConfigFile.or(
