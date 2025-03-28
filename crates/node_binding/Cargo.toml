@@ -55,7 +55,7 @@ rustc-hash         = { workspace = true }
 serde              = { workspace = true }
 serde_json         = { workspace = true }
 swc_core           = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
-tokio              = { workspace = true, features = ["rt", "macros", "test-util", "parking_lot"] }
+tokio              = { workspace = true, features = ["rt", "macros", "test-util", "parking_lot", "tracing"] }
 
 rayon                                  = { workspace = true }
 rspack_loader_lightningcss             = { workspace = true }
