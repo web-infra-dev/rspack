@@ -11,6 +11,7 @@ import type EventEmitter from 'node:events';
 import { IBasicGlobalContext as IBasicGlobalContext_2 } from '../../type';
 import { IBasicModuleScope as IBasicModuleScope_2 } from '../../type';
 import { ITestCompilerManager as ITestCompilerManager_2 } from '../type';
+import type { MultiCompiler } from '@rspack/core';
 import type { MultiStats } from '@rspack/core';
 import type { MultiStats as MultiStats_2 } from 'webpack';
 import type { RspackOptions } from '@rspack/core';
@@ -1227,7 +1228,7 @@ export class JSDOMWebRunner<T extends ECompilerType = ECompilerType.Rspack> exte
 // @public (undocumented)
 export class LazyCompilationTestPlugin {
     // (undocumented)
-    apply(compiler: Compiler): void;
+    apply(compiler: Compiler | MultiCompiler): void;
 }
 
 // @public (undocumented)

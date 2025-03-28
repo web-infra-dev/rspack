@@ -42,6 +42,31 @@ class MultiWatching {
 		}
 	}
 
+	invalidateWithChangesAndRemovals(
+		changedFiles?: Set<string>,
+		removedFiles?: Set<string>,
+		callback?: Callback<Error, void>
+	) {
+		if (callback) {
+			asyncLib.each(
+				this.watchings,
+				(watching, callback) =>
+					watching.invalidateWithChangesAndRemovals(
+						changedFiles,
+						removedFiles,
+						callback
+					),
+				// cannot be resolved without assertion
+				// Type 'Error | null | undefined' is not assignable to type 'Error | null'
+				callback as (err: Error | null | undefined) => void
+			);
+		} else {
+			for (const watching of this.watchings) {
+				watching.invalidateWithChangesAndRemovals(changedFiles, removedFiles);
+			}
+		}
+	}
+
 	close(callback: Callback<Error, void>) {
 		asyncLib.each(
 			this.watchings,
