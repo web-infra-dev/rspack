@@ -30,12 +30,11 @@ const httpClient = async (url, headers) => {
     };
   }
 
-	const response = await fetch(url)
-return {
-	status: response.status,
-	headers: response.headers,
-	body: response.body
-}
+  return {
+    status: 404,
+    headers: { "content-type": "text/plain" },
+    body: Buffer.from(`Not found: ${pathname}`)
+  };
 };
 
 module.exports = httpClient;

@@ -3,6 +3,14 @@ const path = require("path");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	mode: "development",
+	module: {
+		rules: [
+			{
+				test: /\.png$/,
+				type: "asset/resource"
+			}
+		]
+	},
 	experiments: {
 		buildHttp: {
 			allowedUris: ["https://"],

@@ -1,2 +1,2 @@
 import "./a";
-console.log;
+console.log("hello, world");

@@ -66,7 +66,7 @@ pub struct HttpUriPluginOptions {
 }
 
 #[plugin_hook(NormalModuleFactoryResolveForScheme for HttpUriPlugin)]
-pub async fn resolve_for_scheme(
+async fn resolve_for_scheme(
   &self,
   _data: &mut ModuleFactoryCreateData,
   resource_data: &mut ResourceData,
@@ -87,7 +87,7 @@ pub async fn resolve_for_scheme(
 }
 
 #[plugin_hook(NormalModuleFactoryResolveInScheme for HttpUriPlugin)]
-pub async fn resolve_in_scheme(
+async fn resolve_in_scheme(
   &self,
   data: &mut ModuleFactoryCreateData,
   resource_data: &mut ResourceData,
