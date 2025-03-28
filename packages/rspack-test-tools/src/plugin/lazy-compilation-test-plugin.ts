@@ -1,16 +1,11 @@
 import { createServer } from "node:http";
 import type { Socket } from "node:net";
 import type { AddressInfo } from "node:net";
-import type { Compiler } from "@rspack/core";
+import type { Compiler, MultiCompiler } from "@rspack/core";
 import { experiments } from "@rspack/core";
 
 export class LazyCompilationTestPlugin {
-	apply(compiler: Compiler) {
-		const options = compiler.options.experiments.lazyCompilation!;
-		if (!options) {
-			return;
-		}
-
+	apply(compiler: Compiler | MultiCompiler) {
 		let middleware: any;
 		const server = createServer();
 		const sockets = new Set<Socket>();
@@ -27,12 +22,10 @@ export class LazyCompilationTestPlugin {
 						: addr.family === "IPv6"
 							? `${protocol}://[${addr.address}]:${addr.port}`
 							: `${protocol}://${addr.address}:${addr.port}`;
-
 				middleware = experiments.lazyCompilationMiddleware(compiler, {
 					// @ts-expect-error cacheable is hidden config only for tests
 					cacheable: false,
-					serverUrl: urlBase,
-					...options
+					serverUrl: urlBase
 				});
 
 				resolve(null);
