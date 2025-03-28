@@ -15,8 +15,8 @@ Notable changes:
 
 - New features
   - [Lazy compilation middleware](#lazy-compilation-middleware): simplifies the integration of lazy compilation functionality into dev servers
-  - [Support for HTTP/HTTPS URL Module Imports](#support-for-httphttps-url-module-imports): provides a more flexible module import strategy for modern web development
   - [Circular dependency detection](#circular-dependency-detection): detecting circular dependencies between modules
+  - [`experiments.buildHttp`](#experimentsbuildhttp): downloading the HTTP/HTTPS resources to the local at build time automatically and then bundle them
   - [AMD supports](#amd-supports)
 - Performance improvements
   - [Parallel code splitting](#parallel-code-splitting)
@@ -61,32 +61,6 @@ const server = new DevServer(compiler, {
 server.start();
 ```
 
-### Support for HTTP/HTTPS URL Module Imports
-
-Rspack now supports direct imports from remote HTTP/HTTPS modules, providing a more flexible modules import strategy for modern web development. To enable this experimental feature, add the following configuration:
-
-```js
-module.exports = {
-  experiments: {
-    buildHttp: true, // Enable HTTP/HTTPS module imports
-  },
-};
-```
-
-Once enabled, you can import modules via HTTP/HTTPS URLs in your code:
-
-```js
-import pMap from 'https://cdn.skypack.dev/p-map';
-```
-
-This feature supports the following JavaScript CDNs, which provide URL-based access to modules:
-
-- [esm.sh](https://cdn.esm.sh)
-- [jspm](https://jspm.dev)
-- [unpkg](https://unpkg.com)
-
-For more details, please checkout [the docs](/config/experiments#experimentsbuildhttp).
-
 ### Circular dependency detection
 
 Rspack 1.3 introduces a built-in plugin [CircularDependencyRspackPlugin](/plugins/rspack/circular-dependency-rspack-plugin) to detect circular dependencies between runtime modules.
@@ -103,6 +77,14 @@ export default {
 
 > Special thanks to [@faultyserver](https://github.com/faultyserver) for contributing this plugin ❤️
 
+### `experiments.buildHttp`
+
+In Rspack you can import HTTP/HTTPS resources by [`externalsPresets.web`](/config/externals#externalspresetsweb) or [`externalsPresets.webAsync`](/config/externals#externalspresetswebasync), which simply externals the HTTP/HTTPS resources and let the browser (or other platform) to fetch them at runtime.
+
+And `experiments.buildHttp` provides a new way to import HTTP/HTTPS resources, not fetch the resources at runtime, but download them to the local cache at build time and then bundle them into your output.
+
+For more details, please checkout [the docs](/config/experiments#experimentsbuildhttp).
+
 ### AMD supports
 
 We have supported the parsing of AMD modules.
@@ -117,6 +99,8 @@ const config = {
 ```
 
 For more details, please checkout [the docs](/config/other-options#amd).
+
+> Special thanks to [@nilptr](https://github.com/nilptr) for contributing this plugin ❤️
 
 ## Performance improvements
 
