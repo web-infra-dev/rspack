@@ -2300,19 +2300,19 @@ mod test {
   }
 
   #[test]
-  fn merge_resolver_options_empty_alias() {
+  fn merge_resolver_options_false_alias() {
     let first = Resolve {
       alias: Some(vec![("2".to_string(), vec![AliasMap::Ignore])].into()),
       ..Default::default()
     };
     let second = Resolve {
-      alias: Some(vec![].into()),
+      alias: Some(Alias::OverwriteToNoAlias),
       ..Default::default()
     };
     pretty_assertions::assert_eq!(
       merge_resolve(first, second),
       Resolve {
-        alias: Some(vec![].into()),
+        alias: Some(Alias::OverwriteToNoAlias),
         ..Default::default()
       }
     )
