@@ -14,6 +14,7 @@ use rspack_collections::{
 };
 use rspack_error::{error, Diagnostic, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use tracing::instrument;
 
 use super::available_modules::{remove_available_modules, AvailableModules};
 use crate::{
@@ -389,6 +390,7 @@ impl CodeSplitter {
     }
   }
 
+  #[instrument(skip_all)]
   fn analyze_module_graph(
     &mut self,
     compilation: &mut Compilation,
@@ -1418,6 +1420,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
 
   // 1. determine parent child relationship
   // 2. remove modules that exist in all parents
+  #[instrument(skip_all)]
   fn finalize_chunk_desc(
     &mut self,
     mut chunks: Vec<(bool, CacheableChunkItem)>,
@@ -1473,7 +1476,9 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
     }
 
     // 2nd iter, analyze chunk relations
+    let mut parents = HashSet::default();
     for (idx, (_, cache)) in chunks.iter().enumerate() {
+      parents.clear();
       match &cache.chunk_desc {
         ChunkDesc::Entry(entry) => {
           if let Some(depend_on) = &entry.options.depend_on {
@@ -1493,7 +1498,6 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
           }
         }
         ChunkDesc::Chunk(chunk) => {
-          let mut parents = HashSet::default();
           for block in &chunk.incoming_blocks {
             let Some(chunk_parents) = chunks_by_block.get(block) else {
               continue;
@@ -1503,8 +1507,9 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
           }
           chunk_parents.push(
             parents
-              .into_iter()
-              .filter(|parent| *parent != idx)
+              .iter()
+              .filter(|parent| **parent != idx)
+              .copied()
               .collect::<Vec<_>>(),
           );
         }
@@ -1605,6 +1610,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
   }
 
   // merge chunks that has the same name on them
+  #[instrument(skip_all)]
   fn merge_same_chunks(
     &mut self,
     chunks: Vec<(bool, CacheableChunkItem)>,
