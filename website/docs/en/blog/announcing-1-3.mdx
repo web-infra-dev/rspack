@@ -14,9 +14,9 @@ Rspack 1.3 has been released!
 Notable changes:
 
 - New features
-  - [Lazy compilation middleware](#lazy-compilation-middleware): simplifies the integration of lazy compilation functionality into dev servers
   - [Circular dependency detection](#circular-dependency-detection): detecting circular dependencies between modules
   - [`experiments.buildHttp`](#experimentsbuildhttp): downloading the HTTP/HTTPS resources to the local at build time automatically and then bundle them
+  - [Lazy compilation middleware](#lazy-compilation-middleware): simplifies the integration of lazy compilation functionality into dev servers
   - [AMD supports](#amd-supports)
 - Performance improvements
   - [Parallel code splitting](#parallel-code-splitting)
@@ -32,6 +32,42 @@ Notable changes:
   - [Upgrade SWC plugins](#upgrade-swc-plugins)
 
 ## New features
+
+### Circular dependency detection
+
+Rspack 1.3 introduces a built-in plugin [CircularDependencyRspackPlugin](/plugins/rspack/circular-dependency-rspack-plugin) to detect circular dependencies between runtime modules.
+
+Since the plugin is based on Rust, it is directly integrated with the Rspack module graph, avoiding expensive copying and serialization costs. The plugin traverses the module graph of each entry once to find all circular references, rather than checking modules individually, which means that the performance of the plugin is better.
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.CircularDependencyRspackPlugin()],
+};
+```
+
+> Special thanks to [@faultyserver](https://github.com/faultyserver) for contributing this plugin ❤️
+
+### `experiments.buildHttp`
+
+In Rspack you can import HTTP/HTTPS resources by [externalsPresets.web](/config/externals#externalspresetsweb) or [externalsPresets.webAsync](/config/externals#externalspresetswebasync), which simply externals the HTTP/HTTPS resources and let the browser (or other platform) to fetch them at runtime.
+
+```js
+import pMap from 'https://esm.sh/p-map';
+```
+
+And the new [experiments.buildHttp](/config/experiments#experimentsbuildhttp) option provides a new way to import HTTP/HTTPS resources, not fetch the resources at runtime, but download them to the local cache at build time and then bundle them into your output.
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    buildHttp: true, // Enable HTTP/HTTPS module imports
+  },
+};
+```
+
+> See [the docs](/config/experiments#experimentsbuildhttp) for more details.
 
 ### Lazy compilation middleware
 
@@ -61,35 +97,11 @@ const server = new DevServer(compiler, {
 server.start();
 ```
 
-### Circular dependency detection
-
-Rspack 1.3 introduces a built-in plugin [CircularDependencyRspackPlugin](/plugins/rspack/circular-dependency-rspack-plugin) to detect circular dependencies between runtime modules.
-
-Since the plugin is based on Rust, it is directly integrated with the Rspack module graph, avoiding expensive copying and serialization costs. The plugin traverses the module graph of each entry once to find all circular references, rather than checking modules individually, which means that the performance of the plugin is better.
-
-```js title="rspack.config.mjs"
-import { rspack } from '@rspack/core';
-
-export default {
-  plugins: [new rspack.CircularDependencyRspackPlugin()],
-};
-```
-
-> Special thanks to [@faultyserver](https://github.com/faultyserver) for contributing this plugin ❤️
-
-### `experiments.buildHttp`
-
-In Rspack you can import HTTP/HTTPS resources by [`externalsPresets.web`](/config/externals#externalspresetsweb) or [`externalsPresets.webAsync`](/config/externals#externalspresetswebasync), which simply externals the HTTP/HTTPS resources and let the browser (or other platform) to fetch them at runtime.
-
-And `experiments.buildHttp` provides a new way to import HTTP/HTTPS resources, not fetch the resources at runtime, but download them to the local cache at build time and then bundle them into your output.
-
-For more details, please checkout [the docs](/config/experiments#experimentsbuildhttp).
-
 ### AMD supports
 
 We have supported the parsing of AMD modules.
 
-Notably, Rspack differs from Webpack in that the parsing of AMD modules is disabled by default (Webpack enables it by default). This feature is only for compatibility with certain legacy AMD dependencies. We recommend prioritizing ES Module dependencies for better Rspack optimization and to boost ES Module adoption. If you really need to use AMD dependencies, you can enable this feature:
+Notably, Rspack differs from webpack in that the parsing of AMD modules is disabled by default (webpack enables it by default). This feature is only for compatibility with certain legacy AMD dependencies. We recommend prioritizing ES Module dependencies for better Rspack optimization and to boost ES Module adoption. If you really need to use AMD dependencies, you can enable this feature:
 
 ```js
 const config = {
@@ -115,12 +127,11 @@ By default, Rspack will parse the target configuration and determine the ES feat
 For example, when it detects that the target environment supports arrow functions, Rspack will set output.environment.arrowFunction to true, so that the arrow function syntax can be used in the generated code.
 
 ```diff
+// before
 - __webpack_require__.d = function(exports, definition) {
+
+// after
 + __webpack_require__.d = (exports, definition) => {
-        for(var key in definition) {
-         ...
-        }
-}
 ```
 
 By using JavaScript features supported by the target environment, Rspack is able to output smaller runtime code. In our performance tests on a real large-scale project, this optimization reduced the size of the production artifacts by approximately 500KB (before gzip compression).
@@ -137,7 +148,7 @@ We landed a few memory fixes on the latest version. This includes:
   alt="Max generations"
 />
 
-2. Rolling out mimalloc v3 on macOS. This mitigates some memory consumption issue on macOS during rebuilding. According to some community and internal projects, this would lift the RSS for rebuilding, based on the size of each project, varying from 10% to 85%.
+2. Rolling out [mimalloc](https://github.com/microsoft/mimalloc) v3 on macOS. This mitigates some memory consumption issue on macOS during rebuilding. According to some community and internal projects, this would lift the RSS for rebuilding, based on the size of each project, varying from 10% to 85%.
 
 ## Ecosystem
 
@@ -157,7 +168,7 @@ Rsdoctor 1.0 introduces significant enhancements:
 
 ### Rsbuild 1.3
 
-Rsbuild 1.3 has been released alongside Rspack 1.3, new features including:
+Rsbuild 1.3 has been released alongside Rspack 1.3, notable features including:
 
 - Support importing compiled CSS files as strings by using the [?inline](https://rsbuild.dev/guide/basic/css-usage#inline) query parameter:
 
