@@ -16,7 +16,7 @@ Rspack 1.3 已经正式发布！
 - 新功能
   - [Lazy compilation middleware](#lazy-compilation-middleware)：简化开发服务器对 lazy compilation 功能的接入
   - [支持 HTTP/HTTPS URL 导入模块](#支持-httphttps-url-导入模块)：为现代 Web 开发提供更灵活的模块导入方式
-  - [CircularDependencyRspackPlugin](#circulardependencyrspackplugin)：检测模块间的循环依赖
+  - [循环引用检测](#循环引用检测)：引入插件来检测模块间的循环依赖
   - [支持 AMD 模块](#支持-amd-模块)
   - [JavaScript API 支持模块子类型](#javascript-api-支持模块子类型)
 - 性能优化
@@ -25,8 +25,9 @@ Rspack 1.3 已经正式发布！
   - [内存优化](#内存优化)
 - 生态系统
   - [Rsdoctor 1.0](#rsdoctor-10)
-  - [Lynx 开源](#lynx-开源)
   - [Rsbuild 1.3](#rsbuild-13)
+  - [Lynx 开源](#lynx-开源)
+  - [Re.Pack 5](#repack-5)
 - 升级指南
   - [升级 SWC 插件](#升级-swc-插件)
 
@@ -80,34 +81,25 @@ import pMap from 'https://cdn.skypack.dev/p-map';
 
 我们支持以下 JavaScript CDN，因为它们提供了对 JavaScript 模块的 URL 访问：
 
-- [Skypack](https://cdn.skypack.dev)
 - [esm.sh](https://cdn.esm.sh)
 - [jspm](https://jspm.dev)
 - [unpkg](https://unpkg.com)
 
-完整配置参数参阅[文档](https://rspack.dev/zh/config/experiments#experimentsbuildhttp)。
+完整配置参数参阅[文档](/config/experiments#experimentsbuildhttp)。
 
-### CircularDependencyRspackPlugin
+### 循环引用检测
 
-我们为 Rspack 增加了一个内置插件 CircularDependencyRspackPlugin，检测运行时模块之间的循环依赖。
+Rspack 1.3 新增了一个内置插件 [CircularDependencyRspackPlugin](/plugins/rspack/circular-dependency-rspack-plugin)，用于检测运行时模块之间的循环依赖。
 
 由于该插件基于 Rust 实现，直接和 Rspack 模块图进行了集成，避免了昂贵的复制以及序列化成本。该插件对每个 entry 的模块图进行一次遍历来找到所有的循环引用，而不是单独检查模块，这意味着该插件的性能要更加好。
 
-使用方式参考:
-
-```js
+```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
 
-const config = {
-  plugins: [
-    new rspack.CircularDependencyRspackPlugin({
-      failOnError: true,
-    }),
-  ],
+export default {
+  plugins: [new rspack.CircularDependencyRspackPlugin()],
 };
 ```
-
-完整配置参数参阅[文档](https://rspack.dev/zh/plugins/rspack/circular-dependency-rspack-plugin)。
 
 ### 支持 AMD 模块
 
@@ -196,7 +188,11 @@ Rspack 1.3 版本引入了对 `output.environment` 选项的完整支持，这�
 
 1. 实现了清理过期缓存的内部机制 `maxGenerations`。这个参数控制了缓存的存活时间，Rspack 默认将这个值设置为 1，意味着如果特定缓存在下一轮编译中没有被使用，该缓存将会被清除。
 
-![Max generations](https://assets.rspack.dev/rspack/assets/rspack-v1-3-memory-improve-max-generations.png)
+<img
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-3-memory-improve-max-generations.png"
+  width="740"
+  alt="Max generations"
+/>
 
 2. 我们在 macOS 上默认使用了 mimalloc v3。这缓解了macOS 在 rebuild 过程中的一些内存消耗问题。根据一些社区和内部项目的反馈，这将减少 rebuild 时的 RSS 使用量，具体减少的比例因项目大小而异，根据我们的测试，减少的比例从 10% 到 85% 不等。
 
@@ -244,6 +240,8 @@ console.log(rawCss); // 输出 CSS 文件的原始内容
 
 Lynx 基于 Rspack、Rsbuild 和 Rsdoctor 打造了现代化的工具链 [Rspeedy](https://lynxjs.org/zh/rspeedy/)，用于支持 Lynx 的快速开发。此外，Lynx 还有着高性能、多功能的渲染引擎、性能优先的双线程 UI 编程范式等诸多特性。
 
+![](https://lf-lynx.tiktok-cdns.com/obj/lynx-artifacts-oss-sg/lynx-website/assets/blog/lynx-unlock-native-for-more.png)
+
 > 参考 [Lynx 发布博客](https://lynxjs.org/zh/blog/lynx-unlock-native-for-more.html) 了解更多。
 
 ### Re.Pack 5
@@ -260,4 +258,4 @@ Re.Pack 5 已正式发布，通过接入 Rspack 带来了显著的性能改进�
 
 在 Rspack 1.3 中，`swc_core` crate 已经升级到 v16。SWC Wasm 插件的用户需要确保与正在使用的 `swc_core` 版本一致，否则可能会导致意外问题。
 
-> 详情请参考 [常见问题 - SWC 插件版本不匹配](https://rspack.dev/zh/errors/swc-plugin-version)。
+> 详情请参考 [常见问题 - SWC 插件版本不匹配](/errors/swc-plugin-version)。

@@ -16,7 +16,7 @@ Notable changes:
 - New features
   - [Lazy compilation middleware](#lazy-compilation-middleware): simplifies the integration of lazy compilation functionality into dev servers
   - [Support for HTTP/HTTPS URL Module Imports](#support-for-httphttps-url-module-imports): provides a more flexible module import strategy for modern web development
-  - [CircularDependencyRspackPlugin](#circulardependencyrspackplugin): detecting circular dependencies between modules
+  - [Circular dependency detection](#circular-dependency-detection): detecting circular dependencies between modules
   - [AMD supports](#amd-supports)
   - [JavaScript API support module subtypes](#javascript-api-support-module-subtypes)
 - Performance improvements
@@ -25,8 +25,9 @@ Notable changes:
   - [Memory Improvements](#memory-improvements)
 - Ecosystem
   - [Rsdoctor 1.0](#rsdoctor-10)
-  - [Lynx open source](#lynx-open-source)
   - [Rsbuild 1.3](#rsbuild-13)
+  - [Lynx open source](#lynx-open-source)
+  - [Re.Pack 5](#repack-5)
 - Upgrade guide
   - [Upgrade SWC plugins](#upgrade-swc-plugins)
 
@@ -80,30 +81,23 @@ import pMap from 'https://cdn.skypack.dev/p-map';
 
 This feature supports the following JavaScript CDNs, which provide URL-based access to modules:
 
-- [Skypack](https://cdn.skypack.dev)
 - [esm.sh](https://cdn.esm.sh)
 - [jspm](https://jspm.dev)
 - [unpkg](https://unpkg.com)
 
-For more details, please checkout [the docs](https://rspack.dev/config/experiments#experimentsbuildhttp).
+For more details, please checkout [the docs](/config/experiments#experimentsbuildhttp).
 
-### CircularDependencyRspackPlugin
+### Circular dependency detection
 
-We added a built-in plugin CircularDependencyRspackPlugin to Rspack to detect circular dependencies between runtime modules.
+Rspack 1.3 introduces a built-in plugin [CircularDependencyRspackPlugin](/plugins/rspack/circular-dependency-rspack-plugin) to detect circular dependencies between runtime modules.
 
 Since the plugin is based on Rust, it is directly integrated with the Rspack module graph, avoiding expensive copying and serialization costs. The plugin traverses the module graph of each entry once to find all circular references, rather than checking modules individually, which means that the performance of the plugin is better.
 
-Usage reference:
-
-```js
+```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
 
-const config = {
-  plugins: [
-    new rspack.CircularDependencyRspackPlugin({
-      failOnError: true,
-    }),
-  ],
+export default {
+  plugins: [new rspack.CircularDependencyRspackPlugin()],
 };
 ```
 
@@ -120,7 +114,7 @@ const config = {
 };
 ```
 
-For more details, please checkout [the docs](https://rspack.dev/config/other-options#amd).
+For more details, please checkout [the docs](/config/other-options#amd).
 
 ### JavaScript API support module subtypes
 
@@ -190,17 +184,17 @@ We landed a few memory fixes on the latest version. This includes:
 
 1. Implemented internal mechanism to clean the outdated cache: `maxGenerations`. This controls how many compilations would cache survive if it's not being used by the compiler. Rspack sets the default to `1`. This means that the cache will be purged if it's not being used in the next compilation.
 
-![Max generations](https://assets.rspack.dev/rspack/assets/rspack-v1-3-memory-improve-max-generations.png)
+<img
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-3-memory-improve-max-generations.png"
+  width="740"
+  alt="Max generations"
+/>
 
 2. Rolling out mimalloc v3 on macOS. This mitigates some memory consumption issue on macOS during rebuilding. According to some community and internal projects, this would lift the RSS for rebuilding, based on the size of each project, varying from 10% to 85%.
 
 ## Ecosystem
 
 ### Rsdoctor 1.0
-
-### Lynx open source
-
-### Rsbuild 1.3
 
 After a year of development and testing, we are proud to introduce [Rsdoctor 1.0](https://github.com/web-infra-dev/rsdoctor) — a build analyzer tailored for the Rspack ecosystem and fully compatible with the webpack ecosystem.
 
@@ -242,6 +236,8 @@ console.log(rawCss); // Output the raw CSS file content
 
 Lynx has built a modern toolchain called [Rspeedy](https://lynxjs.org/zh/rspeedy/) based on Rspack, Rsbuild, and Rsdoctor to enable fast builds. Lynx also features a speedy, versatile rendering engine and performance-driven dual-threaded UI programming.
 
+![](https://lf-lynx.tiktok-cdns.com/obj/lynx-artifacts-oss-sg/lynx-website/assets/blog/lynx-unlock-native-for-more.png)
+
 > Read the [Introductory Blog of Lynx](https://lynxjs.org/zh/blog/lynx-unlock-native-for-more.html) for more.
 
 ### Re.Pack 5
@@ -258,4 +254,4 @@ Re.Pack 5 has been released, which brings unprecedented performance improvements
 
 In Rspack 1.3, the Rust crate `swc_core` has been upgraded to v16. Users of the SWC Wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
 
-For more details, see [FAQ - SWC plugin version unmatched](https://rspack.dev/errors/swc-plugin-version).
+For more details, see [FAQ - SWC plugin version unmatched](/errors/swc-plugin-version).
