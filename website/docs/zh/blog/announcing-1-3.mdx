@@ -37,7 +37,7 @@ Rspack 1.3 已经正式发布！
 
 Rspack 1.3 新增了一个内置插件 [CircularDependencyRspackPlugin](/plugins/rspack/circular-dependency-rspack-plugin)，用于检测运行时模块之间的循环依赖。
 
-由于该插件基于 Rust 实现，直接和 Rspack 模块图进行了集成，避免了昂贵的复制以及序列化成本。该插件对每个 entry 的模块图进行一次遍历来找到所有的循环引用，而不是单独检查模块，这意味着该插件的性能要更加好。
+该插件采用 Rust 实现，并与 Rspack 的模块图深度集成，避免了昂贵的数据复制和序列化开销。它通过对每个入口点的模块图执行单次遍历，来检测所有循环依赖，而非独立检查每个模块，因此性能开销更小。
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -51,7 +51,7 @@ export default {
 
 ### 构建 HTTP imports
 
-在 Rspack 之前的版本中，你可以通过 [externalsPresets.web](/config/externals#externalspresetsweb) 或 [externalsPresets.webAsync](/config/externals#externalspresetswebasync) 来导入 HTTP/HTTPS 资源，这只是将 HTTP/HTTPS 资源设置为外部资源，然后让浏览器（或其他平台）在运行时获取它们。
+在过去的版本中，你可以通过 [externalsPresets.web](/config/externals#externalspresetsweb) 或 [externalsPresets.webAsync](/config/externals#externalspresetswebasync) 选项来导入 HTTP/HTTPS 资源，这种方式仅是将这些资源设置为外部资源，然后让浏览器（或其他平台）在运行时获取它们。
 
 ```js
 import pMap from 'https://esm.sh/p-map';
@@ -121,7 +121,7 @@ export default {
 
 在 Rspack 1.2 中，我们引入了 [experiments.parallelCodeSplitting](/config/experiments#experimentsparallelcodesplitting) 选项来开启新版的代码拆分算法。
 
-从 Rspack 1.3 开始，该选项已经默认开启，并使代码拆分的速度提升 25%。
+从 Rspack 1.3 开始，该选项已经默认开启，并使代码拆分的速度提升 **25%**。
 
 ### 产物体积优化
 

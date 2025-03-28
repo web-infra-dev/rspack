@@ -37,7 +37,7 @@ Notable changes:
 
 Rspack 1.3 introduces a built-in plugin [CircularDependencyRspackPlugin](/plugins/rspack/circular-dependency-rspack-plugin) to detect circular dependencies between runtime modules.
 
-Since the plugin is based on Rust, it is directly integrated with the Rspack module graph, avoiding expensive copying and serialization costs. The plugin traverses the module graph of each entry once to find all circular references, rather than checking modules individually, which means that the performance of the plugin is better.
+This plugin is implemented in Rust and deeply integrated with Rspack's module graph, avoiding expensive data copying and serialization overhead. It detects all circular dependencies by performing a single traversal of the module graph for each entry point, rather than checking each module independently, resulting in lower performance overhead.
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -51,7 +51,7 @@ export default {
 
 ### Build HTTP imports
 
-In previous versions of Rspack, you could import HTTP/HTTPS resources by using [externalsPresets.web](/config/externals#externalspresetsweb) or [externalsPresets.webAsync](/config/externals#externalspresetswebasync), which simply externals the HTTP/HTTPS resources and let the browser (or other platform) to fetch them at runtime.
+In previous versions, you could import HTTP/HTTPS resources by using [externalsPresets.web](/config/externals#externalspresetsweb) or [externalsPresets.webAsync](/config/externals#externalspresetswebasync) options, which simply externals the these resources and let the browser (or other platform) to fetch them at runtime.
 
 ```js
 import pMap from 'https://esm.sh/p-map';
@@ -121,7 +121,7 @@ export default {
 
 In Rspack 1.2, we introduced the [experiments.parallelCodeSplitting](/config/experiments#experimentsparallelcodesplitting) option to enable the new code splitting algorithm.
 
-Starting from Rspack 1.3, this option is enabled by default, resulting in a 25% performance boost for code splitting.
+Starting from Rspack 1.3, this option is enabled by default, resulting in a **25%** performance boost for code splitting.
 
 ### Bundle size optimization
 
