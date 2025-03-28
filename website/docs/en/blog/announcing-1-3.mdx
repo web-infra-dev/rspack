@@ -186,6 +186,28 @@ Rsdoctor 1.0 introduces significant enhancements:
 
 See [Announcing Rsdoctor 1.0](https://rsdoctor.dev/zh/blog/release/release-note-1_0) for more details.
 
+### Rsbuild 1.3
+
+Rsbuild 1.3 has been released alongside Rspack 1.3, new features including:
+
+- Support importing compiled CSS files as strings by using the [?inline](https://rsbuild.dev/guide/basic/css-usage#inline) query parameter:
+
+```js
+import inlineCss from './style.css?inline';
+
+console.log(inlineCss); // Output the compiled CSS file content
+```
+
+- Support importing raw CSS files and static assets as strings by using the [?raw](https://rsbuild.dev/guide/basic/css-usage#raw) query parameter:
+
+```js
+import rawSvg from './logo.svg?raw';
+import rawCss from './style.css?raw';
+
+console.log(rawSvg); // Output the raw SVG file content
+console.log(rawCss); // Output the raw CSS file content
+```
+
 ### Lynx open source
 
 [Lynx](https://lynxjs.org/) a family of technologies empowering developers to use their existing web skills to create truly native UIs for both mobile and web from a single codebase. Lynx was originally developed by an engineering team of ByteDance, which continues to drive its development.
@@ -194,14 +216,10 @@ Lynx has built a modern toolchain called [Rspeedy](https://lynxjs.org/zh/rspeedy
 
 Read the [Introductory Blog of Lynx](https://lynxjs.org/zh/blog/lynx-unlock-native-for-more.html) for more.
 
-### Rsbuild 1.3
-
-Rsbuild 1.3 has been released alongside Rspack 1.3.
-
 ## Upgrade guide
 
 ### Upgrade SWC plugins
 
-In Rspack 1.3, the Rust crate `swc_core` has been upgraded to `16.7.0`. Users of the SWC Wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
+In Rspack 1.3, the Rust crate `swc_core` has been upgraded to v16. Users of the SWC Wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
 
-For more details, see [FAQ - SWC plugin version unmatched](https://swc.rs/docs/plugin/selecting-swc-core).
+For more details, see [FAQ - SWC plugin version unmatched](https://rspack.dev/errors/swc-plugin-version).

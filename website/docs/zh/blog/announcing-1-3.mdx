@@ -188,6 +188,28 @@ Rsdoctor 1.0 版本带来了诸多的新特性：
 
 更多内容请参考 [Rsdoctor 1.0 发布公告](https://rsdoctor.dev/zh/blog/release/release-note-1_0)。
 
+### Rsbuild 1.3
+
+Rsbuild 1.3 已经与 Rspack 1.3 同步发布，新特性包括：
+
+- 支持通过 [?inline](https://rsbuild.dev/zh/guide/basic/css-usage#inline) 查询参数引用 CSS 文件编译后的内容，并将其作为字符串导入：
+
+```js
+import inlineCss from './style.css?inline';
+
+console.log(inlineCss); // 输出编译后的 CSS 文件内容
+```
+
+- 支持通过 [?raw](https://rsbuild.dev/zh/guide/basic/css-usage#raw) 查询参数引用 CSS 文件和静态资源的原始内容，并将其作为字符串导入：
+
+```js
+import rawSvg from './logo.svg?raw';
+import rawCss from './style.css?raw';
+
+console.log(rawSvg); // 输出 SVG 文件的原始内容
+console.log(rawCss); // 输出 CSS 文件的原始内容
+```
+
 ### Lynx 开源
 
 [Lynx](https://lynxjs.org/) 是一套帮助 Web 开发者复用现有经验，通过一份代码同时构建移动端原生界面与 Web 端界面的技术方案。它最初由字节跳动的工程团队开发，并将由该团队继续推进其演进。
@@ -196,14 +218,10 @@ Lynx 基于 Rspack、Rsbuild 和 Rsdoctor 打造了现代化的工具链 [Rspeed
 
 参考 [Lynx 的发布博客](https://lynxjs.org/zh/blog/lynx-unlock-native-for-more.html) 了解更多。
 
-### Rsbuild 1.3
-
-Rsbuild 1.3 已经与 Rspack 1.3 同步发布。
-
 ## 升级指南
 
 ### 升级 SWC 插件
 
-在 Rspack 1.3 中，`swc_core` crate 已经升级到 `16.7.0`。SWC Wasm 插件的用户需要确保与正在使用的 `swc_core` 版本一致，否则可能会导致意外问题。
+在 Rspack 1.3 中，`swc_core` crate 已经升级到 v16。SWC Wasm 插件的用户需要确保与正在使用的 `swc_core` 版本一致，否则可能会导致意外问题。
 
 > 详情请参考 [常见问题 - SWC 插件版本不匹配](https://rspack.dev/zh/errors/swc-plugin-version)。
