@@ -9,13 +9,13 @@ _March 28, 2025_
 
 ---
 
-Rspack v1.3 has been released!
+Rspack 1.3 has been released!
 
 Notable changes:
 
 - New features
-  - [Lazy compilation middleware](#lazy-compilation-middleware): A experimental feature that simplifies the integration of lazy compilation functionality into development servers
-  - [CircularDependencyRspackPlugin](#circulardependencyrspackplugin): A experimental feature that efficiently detecting circular dependencies between modules
+  - [Lazy compilation middleware](#lazy-compilation-middleware): simplifies the integration of lazy compilation functionality into dev servers
+  - [CircularDependencyRspackPlugin](#circulardependencyrspackplugin): detecting circular dependencies between modules
   - [AMD supports](#amd-supports)
   - [JavaScript API support module subtypes](#javascript-api-support-module-subtypes)
 - Performance improvements
@@ -196,12 +196,12 @@ Read the [Introductory Blog of Lynx](https://lynxjs.org/zh/blog/lynx-unlock-nati
 
 ### Rsbuild 1.3
 
-Rsbuild v1.3 has been released alongside Rspack v1.3.
+Rsbuild 1.3 has been released alongside Rspack 1.3.
 
 ## Upgrade guide
 
 ### Upgrade SWC plugins
 
-In Rspack v1.3, the Rust crate `swc_core` has been upgraded to `16.7.0`. Users of the SWC Wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
+In Rspack 1.3, the Rust crate `swc_core` has been upgraded to `16.7.0`. Users of the SWC Wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
 
 For more details, see [FAQ - SWC plugin version unmatched](https://swc.rs/docs/plugin/selecting-swc-core).
