@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use rspack_collections::IdentifierMap;
 use rustc_hash::FxHashSet as HashSet;
+use tracing::instrument;
 
 use super::new_code_splitter::{CacheableChunkItem, ChunkDesc, EntryChunkDesc};
 use crate::Compilation;
@@ -78,6 +79,7 @@ impl AvailableModules {
   }
 }
 
+#[instrument(skip_all)]
 #[allow(unused_variables)]
 pub fn remove_available_modules(
   compilation: &Compilation,
@@ -126,11 +128,13 @@ pub fn remove_available_modules(
           continue;
         }
         let res = res.into_owned();
-        *curr = res.clone();
-        res
+        *curr = res;
+        curr
       } else {
-        available_modules[chunk_index] = Some(parent_available_modules.clone());
-        parent_available_modules
+        available_modules[chunk_index] = Some(parent_available_modules);
+        available_modules[chunk_index]
+          .as_ref()
+          .expect("should have available modules")
       };
 
       // we have incomings that are not calculated, wait till we calculated
@@ -175,13 +179,17 @@ pub fn remove_available_modules(
   }
 
   let module_graph = compilation.get_module_graph();
+  let mut removed = HashSet::default();
+  let mut disconnect_children = HashSet::default();
+
   for (chunk_index, available) in available_modules.iter().enumerate() {
+    removed.clear();
+    disconnect_children.clear();
+
     let chunk = &mut chunks[chunk_index].1.chunk_desc;
     let Some(available) = available else {
       continue;
     };
-
-    let mut removed = HashSet::default();
 
     chunk.chunk_modules_mut().retain(|module_identifier| {
       let module = {
@@ -207,29 +215,30 @@ pub fn remove_available_modules(
       !in_parent
     });
 
+    if removed.is_empty() {
+      continue;
+    }
+
     let chunk = &chunks[chunk_index].1.chunk_desc;
     let outgoings = chunk.outgoings();
-    for removed_block_id in &removed {
-      let mut disconnect_children = HashSet::default();
 
-      chunk_children[chunk_index].iter().for_each(|child| {
-        let child_chunk = &chunks[*child].1.chunk_desc;
+    chunk_children[chunk_index].iter().for_each(|child| {
+      let child_chunk = &chunks[*child].1.chunk_desc;
 
-        // if all incomings from current chunk are removed, we can remove this child
-        if child_chunk.incomings().iter().all(|incoming| {
-          // if all incomings are not from current chunk, we disconnect them
-          !removed.contains(incoming) && !outgoings.contains(incoming)
-        }) {
-          disconnect_children.insert(*child);
-        }
-      });
+      // if all incomings from current chunk are removed, we can remove this child
+      if child_chunk.incomings().iter().all(|incoming| {
+        // if all incomings are not from current chunk, we disconnect them
+        !removed.contains(incoming) && !outgoings.contains(incoming)
+      }) {
+        disconnect_children.insert(*child);
+      }
+    });
 
-      if !disconnect_children.is_empty() {
-        chunk_children[chunk_index].retain(|child| !disconnect_children.contains(child));
+    if !disconnect_children.is_empty() {
+      chunk_children[chunk_index].retain(|child| !disconnect_children.contains(child));
 
-        for dead_child in disconnect_children {
-          chunk_parents[dead_child].retain(|parent| *parent != chunk_index);
-        }
+      for dead_child in &disconnect_children {
+        chunk_parents[*dead_child].retain(|parent| *parent != chunk_index);
       }
     }
   }
