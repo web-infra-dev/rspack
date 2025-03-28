@@ -211,9 +211,9 @@ Re.Pack 5 has been released, which brings unprecedented performance improvements
 
 ## Upgrade guide
 
-### Module subtypes changed
+### Module types changed
 
-To improve webpack API compatibility, Rspack modules are now structured as specific subtypes. Currently supported module subtypes include:
+The module types exported by Rspack have been refined with more accurate type definitions, which helps to align with webpack. Currently supported module subtypes include:
 
 - NormalModule
 - ContextModule
@@ -236,7 +236,7 @@ The new type definitions may cause type errors in existing JavaScript API code, 
 module.resource; // TypeScript Error: Property 'resource' does not exist on type 'Module'
 ```
 
-To access the resource property, you now need to assert the module type using one of the following methods:
+To access the `resource` property, you now need to assert the module type using one of the following methods:
 
 ```ts
 // Solution 1: `in` operator type guard
