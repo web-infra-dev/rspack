@@ -7,13 +7,13 @@ mod transformer;
 
 use std::default::Default;
 
-use compiler::{IntoJsAst, SwcCompiler};
+use compiler::{IntoJsAst, SwcCompiler, SwcTransformOutput};
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{Mode, RunnerContext};
-use rspack_error::{error, AnyhowError, Diagnostic, Result};
+use rspack_error::{error, miette, AnyhowError, Diagnostic, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use rspack_plugin_javascript::{
   ast::{self, SourceMapConfig},
@@ -125,7 +125,16 @@ impl SwcLoader {
       keep_comments: Some(true),
     };
 
-    let program = c.transform(built)?;
+    let SwcTransformOutput {
+      ast: program,
+      diagnostics,
+    } = c.transform(built)?;
+
+    // apply swc diagnostics
+    for diagnostic in diagnostics {
+      loader_context.emit_diagnostic(miette::MietteDiagnostic::new(diagnostic));
+    }
+
     if source_map_kind.enabled() {
       let mut v = IdentCollector {
         names: Default::default(),
