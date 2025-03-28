@@ -96,7 +96,7 @@ Only when corresponding entries and modules are executed will Rspack compile the
 
 ## Integrating with custom server
 
-When using Rspack CLI, the `experiments.lazyCompilation` option is actually processed by `@rspack/cli`. It adds an [Express-style middleware](https://expressjs.com/en/guide/using-middleware.html) to `@rspack/dev-server` specifically designed to handle lazy compilation client requests.
+When using Rspack CLI, the `experiments.lazyCompilation` option is actually processed by `@rspack/cli`. It adds an [Express-style middleware](https://expressjs.com/en/guide/using-middleware.html) to dev server to handle lazy compilation requests from client.
 
 If you are using a custom dev server, you will need to manually integrate `rspack.experiments.lazyCompilationMiddleware` into your dev server.
 
