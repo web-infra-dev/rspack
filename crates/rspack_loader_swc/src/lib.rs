@@ -132,7 +132,7 @@ impl SwcLoader {
 
     // apply swc diagnostics
     for diagnostic in diagnostics {
-      loader_context.emit_diagnostic(miette::MietteDiagnostic::new(diagnostic));
+      loader_context.emit_diagnostic(miette::miette!(diagnostic).into());
     }
 
     if source_map_kind.enabled() {
