@@ -114,6 +114,7 @@ nativizing
 nestjs
 NestJS
 ngtools
+nilptr
 noimport
 nosources
 nuxt
@@ -206,3 +207,4 @@ yannik
 Zack
 Zack Jackson
 zackarychapple
+mimalloc

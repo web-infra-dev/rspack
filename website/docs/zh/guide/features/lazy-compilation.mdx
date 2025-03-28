@@ -96,7 +96,7 @@ export default defineConfig({
 
 ## 与自定义的服务器集成
 
-当你使用 Rspack CLI 时，`experiments.lazyCompilation` 选项实际上是由 `@rspack/cli` 消费，并向 `@rspack/dev-server` 中添加一个用于处理 `lazyCompilation` 客户端请求的 [Express 风格的中间件](https://expressjs.com/en/guide/using-middleware.html) 来处理懒编译请求。
+当你使用 Rspack CLI 时，`experiments.lazyCompilation` 选项实际上会由 `@rspack/cli` 消费，并向开发服务器中添加一个 [Express 风格的中间件](https://expressjs.com/en/guide/using-middleware.html)，来处理客户端发起的 lazy compilation 请求。
 
 如果你使用自己的开发服务器，你需要手动将 `rspack.experiments.lazyCompilationMiddleware` 集成到你的开发服务器中：
 
