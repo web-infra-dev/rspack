@@ -20,7 +20,7 @@ fn current_time() -> u64 {
 }
 
 fn new_error(msg: &str) -> Error {
-  Error::Io(std::io::Error::new(std::io::ErrorKind::Other, msg))
+  Error::Io(std::io::Error::other(msg))
 }
 
 #[derive(Debug)]
