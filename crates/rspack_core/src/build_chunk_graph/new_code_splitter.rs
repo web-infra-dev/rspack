@@ -1211,6 +1211,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
           if modules.is_empty() {
             // ignore empty chunk
             skipped.insert(idx);
+            continue;
           }
 
           let name = if let Some(option) = &options {
