@@ -69,7 +69,8 @@ And the new [experiments.buildHttp](/config/experiments#experimentsbuildhttp) op
 export default {
   experiments: {
     buildHttp: {
-      // ...options
+      allowedUris: ['https://esm.sh/'],
+      // ...
     },
   },
 };
