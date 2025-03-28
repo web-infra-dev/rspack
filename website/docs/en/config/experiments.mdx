@@ -513,6 +513,14 @@ An array of paths managed by the package manager. During hot start, it will dete
 
 Specifies an array of paths in `snapshot.managedPaths` that are not managed by the package manager
 
+##### snapshot.hashPaths
+
+- **Type:** `(RegExp | string)[]`
+
+- **Default:** `[]`
+
+An array of paths to files whose hash need to be verified. If the contents of these files have not changed, they will be ignored during a hot start.
+
 #### cache.storage
 
 - **Type:** `{ type: 'filesystem', directory: string }`

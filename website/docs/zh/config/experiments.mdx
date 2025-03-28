@@ -526,6 +526,14 @@ export default {
 
 指定 `snapshot.managedPaths` 中不受包管理器管理的路径数组。
 
+##### snapshot.hashPaths
+
+- **类型：** `(RegExp | string)[]`
+
+- **默认值：** `[]`
+
+需要校验文件 hash 的路径数组，如果这些文件内容没有改变，在热启动时会被忽略。
+
 #### cache.storage
 
 - **类型：** `{ type: 'filesystem', directory: string }`
