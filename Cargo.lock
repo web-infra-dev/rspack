@@ -211,9 +211,9 @@ dependencies = [
 
 [[package]]
 name = "async-trait"
-version = "0.1.84"
+version = "0.1.88"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b1244b10dcd56c92219da4e14caa97e312079e185f04ba3eea25061561dc0a0"
+checksum = "e539d3fca749fcee5236ab05e93a52867dd549cc157c8cb7f99595f3cedffdb5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5398,21 +5398,21 @@ dependencies = [
 [[package]]
 name = "rspack_resolver"
 version = "0.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3d42226edb80efb1afc6a6a961becca9c89036aeac658bb33b4b63b2575e064"
+source = "git+https://github.com/web-infra-dev/rspack-resolver.git?branch=feat%2Fasync_fs#aa865402e9a2cb95f1cb3c1f90634430bac2bd26"
 dependencies = [
+ "async-trait",
  "cfg-if",
  "dashmap 6.1.0",
  "dunce",
+ "futures",
  "indexmap 2.7.1",
  "json-strip-comments",
- "once_cell",
  "pnp",
  "rustc-hash 2.1.0",
  "serde",
  "serde_json",
- "simdutf8",
  "thiserror 1.0.69",
+ "tokio",
  "tracing",
 ]
 
