@@ -8,7 +8,6 @@ extern crate rspack_allocator;
 use std::{
   cell::RefCell,
   pin::Pin,
-  str::FromStr,
   sync::{Arc, Mutex},
 };
 
@@ -99,7 +98,7 @@ use rustc_hash::FxHashMap;
 pub use source::*;
 pub use stats::*;
 use swc_core::common::util::take::Take;
-use tracing::Level;
+use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{
   layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
 };
@@ -429,29 +428,17 @@ pub fn register_global_trace(
         ),
       };
       if let Some(layer) = tracer.setup(&output) {
-        if let Ok(default_level) = Level::from_str(&filter) {
-          let filter = tracing_subscriber::filter::Targets::new()
-            .with_target("rspack_core", default_level)
-            .with_target("node_binding", default_level)
-            .with_target("rspack_loader_swc", default_level)
-            .with_target("rspack_loader_runner", default_level)
-            .with_target("rspack_plugin_javascript", default_level)
-            .with_target("rspack_resolver", Level::WARN);
-          tracing_subscriber::registry()
-            .with(<_ as Layer<Registry>>::with_filter(layer, filter))
-            .init();
-        } else {
-          // SAFETY: we know that trace_var is `Ok(String)` now,
-          // for the second unwrap, if we can't parse the directive, then the tracing result would be
-          // unexpected, then panic is reasonable
-          let filter = EnvFilter::builder()
-            .with_regex(true)
-            .parse(filter)
-            .expect("Parse tracing directive syntax failed, for details about the directive syntax you could refer https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives");
-          tracing_subscriber::registry()
-            .with(<_ as Layer<Registry>>::with_filter(layer, filter))
-            .init();
-        }
+        // SAFETY: we know that trace_var is `Ok(String)` now,
+        // for the second unwrap, if we can't parse the directive, then the tracing result would be
+        // unexpected, then panic is reasonable
+        let filter = EnvFilter::builder()
+          .with_default_directive(LevelFilter::INFO.into())
+          .with_regex(true)
+          .parse(filter)
+          .expect("Parse tracing directive syntax failed, for details about the directive syntax you could refer https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives");
+        tracing_subscriber::registry()
+          .with(<_ as Layer<Registry>>::with_filter(layer, filter))
+          .init();
       }
       let new_state = TraceState::On(tracer);
       *state = new_state;
