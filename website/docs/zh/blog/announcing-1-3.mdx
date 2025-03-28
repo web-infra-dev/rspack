@@ -7,6 +7,8 @@ _2025 年 3 月 28 日_
 
 # Rspack 1.3 发布公告
 
+![Rspack 1.3](https://assets.rspack.dev/rspack/rspack-banner-v1-3.png)
+
 ---
 
 Rspack 1.3 已经正式发布！
@@ -66,7 +68,10 @@ import pMap from 'https://esm.sh/p-map';
 ```js title="rspack.config.mjs"
 export default {
   experiments: {
-    buildHttp: true,
+    buildHttp: {
+      allowedUris: ['https://esm.sh/'],
+      // ...
+    },
   },
 };
 ```
