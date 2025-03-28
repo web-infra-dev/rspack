@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use napi::Either;
 use napi_derive::napi;
 use rspack_core::{
   Alias, AliasMap, ByDependency, DependencyCategory, Resolve, ResolveOptionsWithDependencyType,
@@ -35,8 +36,10 @@ pub struct RawResolveOptions {
   pub main_files: Option<Vec<String>>,
   pub main_fields: Option<Vec<String>>,
   pub condition_names: Option<Vec<String>>,
-  pub alias: Option<Vec<RawAliasOptionItem>>,
-  pub fallback: Option<Vec<RawAliasOptionItem>>,
+  #[napi(ts_type = "Array<RawAliasOptionItem> | false")]
+  pub alias: Option<Either<Vec<RawAliasOptionItem>, bool>>,
+  #[napi(ts_type = "Array<RawAliasOptionItem> | false")]
+  pub fallback: Option<Either<Vec<RawAliasOptionItem>, bool>>,
   pub symlinks: Option<bool>,
   pub tsconfig: Option<RawResolveTsconfigOptions>,
   pub modules: Option<Vec<String>>,
@@ -54,35 +57,44 @@ pub struct RawResolveOptions {
   pub pnp: Option<bool>,
 }
 
-fn normalize_alias(alias: Option<Vec<RawAliasOptionItem>>) -> rspack_error::Result<Option<Alias>> {
+fn normalize_alias(
+  alias: Option<Either<Vec<RawAliasOptionItem>, bool>>,
+) -> rspack_error::Result<Option<Alias>> {
   alias
-    .map(|alias| {
-      alias
-        .into_iter()
-        .map(|alias_item| {
-          alias_item
-            .redirect
-            .into_iter()
-            .map(|value| {
-              if let Some(s) = value.as_str() {
-                Ok(AliasMap::Path(s.to_string()))
-              } else if let Some(b) = value.as_bool() {
-                if b {
-                  Err(error!("Alias should not be true in {}", alias_item.path))
+    .map(|alias| match alias {
+      Either::A(alias) => {
+        let alias = alias
+          .into_iter()
+          .map(|alias_item| {
+            alias_item
+              .redirect
+              .into_iter()
+              .map(|value| {
+                if let Some(s) = value.as_str() {
+                  Ok(AliasMap::Path(s.to_string()))
+                } else if let Some(b) = value.as_bool() {
+                  if b {
+                    Err(error!("Alias should not be true in {}", alias_item.path))
+                  } else {
+                    Ok(AliasMap::Ignore)
+                  }
                 } else {
-                  Ok(AliasMap::Ignore)
+                  Err(error!(
+                    "Alias should be false or string in {}",
+                    alias_item.path
+                  ))
                 }
-              } else {
-                Err(error!(
-                  "Alias should be false or string in {}",
-                  alias_item.path
-                ))
-              }
-            })
-            .collect::<rspack_error::Result<_>>()
-            .map(|value| (alias_item.path, value))
-        })
-        .collect::<rspack_error::Result<_>>()
+              })
+              .collect::<rspack_error::Result<Vec<_>>>()
+              .map(|value| (alias_item.path, value))
+          })
+          .collect::<rspack_error::Result<Vec<_>>>();
+        alias.map(Alias::MergeAlias)
+      }
+      Either::B(falsy) => {
+        assert!(!falsy, "Alias should not be true");
+        Ok(Alias::OverwriteToNoAlias)
+      }
     })
     .map_or(Ok(None), |v| v.map(Some))
 }
@@ -185,8 +197,10 @@ pub struct RawResolveOptionsWithDependencyType {
   pub main_files: Option<Vec<String>>,
   pub main_fields: Option<Vec<String>>,
   pub condition_names: Option<Vec<String>>,
-  pub alias: Option<Vec<RawAliasOptionItem>>,
-  pub fallback: Option<Vec<RawAliasOptionItem>>,
+  #[napi(ts_type = "Array<RawAliasOptionItem> | false")]
+  pub alias: Option<Either<Vec<RawAliasOptionItem>, bool>>,
+  #[napi(ts_type = "Array<RawAliasOptionItem> | false")]
+  pub fallback: Option<Either<Vec<RawAliasOptionItem>, bool>>,
   pub symlinks: Option<bool>,
   pub tsconfig: Option<RawResolveTsconfigOptions>,
   pub modules: Option<Vec<String>>,

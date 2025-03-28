@@ -1401,6 +1401,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
     }
     self.set_order_index_and_group_index(compilation);
 
+    errors.sort_unstable_by_key(|err| err.message());
     compilation.extend_diagnostics(errors);
 
     if enable_incremental {

@@ -682,9 +682,11 @@ export type Output = {
  * // - require("abc/file.js") will not match, and it will attempt to resolve node_modules/abc/file.js.
  * ```
  * */
-export type ResolveAlias = {
-	[x: string]: string | false | (string | false)[];
-};
+export type ResolveAlias =
+	| {
+			[x: string]: string | false | (string | false)[];
+	  }
+	| false;
 
 /** The replacement of [tsconfig-paths-webpack-plugin](https://www.npmjs.com/package/tsconfig-paths-webpack-plugin) in Rspack. */
 export type ResolveTsConfig =
