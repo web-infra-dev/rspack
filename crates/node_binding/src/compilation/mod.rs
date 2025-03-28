@@ -21,7 +21,7 @@ use crate::{
   entry::JsEntryOptions, utils::callbackify, AssetInfo, EntryDependency, JsAddingRuntimeModule,
   JsAsset, JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper, JsCompatSource,
   JsModuleGraph, JsPathData, JsRspackDiagnostic, JsRspackError, JsStats,
-  JsStatsOptimizationBailout, LocalJsFilename, ModuleObject, ToJsCompatSource, COMPILER_REFERENCES,
+  JsStatsOptimizationBailout, ModuleObject, ToJsCompatSource, COMPILER_REFERENCES,
 };
 
 #[napi]
@@ -453,47 +453,50 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_asset_path(
-    &self,
-    filename: LocalJsFilename,
-    data: JsPathData,
-  ) -> napi::Result<String> {
+  pub fn get_asset_path(&self, filename: JsFilename, data: JsPathData) -> Result<String> {
     let compilation = self.as_ref()?;
-
-    compilation.get_asset_path(&filename.into(), data.to_path_data())
+    #[allow(clippy::disallowed_methods)]
+    futures::executor::block_on(compilation.get_asset_path(&filename.into(), data.to_path_data()))
+      .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))
   }
 
   #[napi]
   pub fn get_asset_path_with_info(
     &self,
-    filename: LocalJsFilename,
+    filename: JsFilename,
     data: JsPathData,
-  ) -> napi::Result<PathWithInfo> {
+  ) -> Result<PathWithInfo> {
     let compilation = self.as_ref()?;
 
-    let path_and_asset_info =
-      compilation.get_asset_path_with_info(&filename.into(), data.to_path_data())?;
-    Ok(path_and_asset_info.into())
+    #[allow(clippy::disallowed_methods)]
+    let res = futures::executor::block_on(
+      compilation.get_asset_path_with_info(&filename.into(), data.to_path_data()),
+    )
+    .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
+    Ok(res.into())
   }
 
   #[napi]
-  pub fn get_path(&self, filename: LocalJsFilename, data: JsPathData) -> napi::Result<String> {
+  pub fn get_path(&self, filename: JsFilename, data: JsPathData) -> Result<String> {
     let compilation = self.as_ref()?;
-
-    compilation.get_path(&filename.into(), data.to_path_data())
+    #[allow(clippy::disallowed_methods)]
+    futures::executor::block_on(compilation.get_path(&filename.into(), data.to_path_data()))
+      .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))
   }
 
   #[napi]
-  pub fn get_path_with_info(
-    &self,
-    filename: LocalJsFilename,
-    data: JsPathData,
-  ) -> napi::Result<PathWithInfo> {
+  pub fn get_path_with_info(&self, filename: JsFilename, data: JsPathData) -> Result<PathWithInfo> {
     let compilation = self.as_ref()?;
 
     let mut asset_info = rspack_core::AssetInfo::default();
-    let path =
-      compilation.get_path_with_info(&filename.into(), data.to_path_data(), &mut asset_info)?;
+
+    #[allow(clippy::disallowed_methods)]
+    let path = futures::executor::block_on(compilation.get_path_with_info(
+      &filename.into(),
+      data.to_path_data(),
+      &mut asset_info,
+    ))
+    .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
     Ok((path, asset_info).into())
   }
 

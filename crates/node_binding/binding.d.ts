@@ -6,8 +6,6 @@ export type JsFilename =
 	| string
 	| ((pathData: JsPathData, assetInfo?: AssetInfo) => string);
 
-export type LocalJsFilename = JsFilename;
-
 export type RawLazyCompilationTest = RegExp | ((module: Module) => boolean);
 
 export type AssetInfo = KnownAssetInfo & Record<string, any>;
@@ -24,7 +22,7 @@ export interface Module {
 }
 
 interface NormalModuleConstructor {
-	new (): NormalModule;
+	new(): NormalModule;
 	readonly prototype: NormalModule;
 }
 
@@ -226,10 +224,10 @@ export declare class JsCompilation {
   getErrors(): Array<JsRspackError>
   getWarnings(): Array<JsRspackError>
   getStats(): JsStats
-  getAssetPath(filename: LocalJsFilename, data: JsPathData): string
-  getAssetPathWithInfo(filename: LocalJsFilename, data: JsPathData): PathWithInfo
-  getPath(filename: LocalJsFilename, data: JsPathData): string
-  getPathWithInfo(filename: LocalJsFilename, data: JsPathData): PathWithInfo
+  getAssetPath(filename: JsFilename, data: JsPathData): string
+  getAssetPathWithInfo(filename: JsFilename, data: JsPathData): PathWithInfo
+  getPath(filename: JsFilename, data: JsPathData): string
+  getPathWithInfo(filename: JsFilename, data: JsPathData): PathWithInfo
   addFileDependencies(deps: Array<string>): void
   addContextDependencies(deps: Array<string>): void
   addMissingDependencies(deps: Array<string>): void

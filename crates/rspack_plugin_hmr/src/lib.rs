@@ -24,7 +24,6 @@ use rspack_plugin_javascript::{
   },
   parser_and_generator::JavaScriptParserAndGenerator,
 };
-use rspack_util::infallible::ResultInfallibleExt as _;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 #[plugin]
@@ -314,7 +313,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                     .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
                 ),
             )
-            .always_ok()
+            .await?
         };
         let asset = CompilationAsset::new(
           Some(entry.source),
@@ -368,7 +367,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
           ),
       )
-      .always_ok();
+      .await?;
     compilation.emit_asset(
       filename,
       CompilationAsset::new(

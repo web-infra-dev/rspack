@@ -65,7 +65,7 @@ pub struct CodeSplitter {
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 enum CreateChunkRoot {
-  Entry(String, EntryData, Option<RuntimeSpec>),
+  Entry(String, Box<EntryData>, Option<RuntimeSpec>),
   Block(AsyncDependenciesBlockIdentifier, Option<RuntimeSpec>),
 }
 
@@ -419,7 +419,7 @@ impl CodeSplitter {
 
       entries.push(CreateChunkRoot::Entry(
         entry.clone(),
-        entry_data.clone(),
+        Box::new(entry_data.clone()),
         Some(runtime.clone()),
       ));
 

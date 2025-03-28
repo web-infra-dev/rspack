@@ -1,5 +1,6 @@
 use std::{hash::Hash, sync::LazyLock};
 
+use futures::future::join_all;
 use regex::Regex;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
@@ -7,9 +8,9 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier, ApplyContext, BoxModule, Chunk, ChunkUkey, CodeGenerationDataTopLevelDeclarations,
   Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules,
-  CompilationParams, CompilerCompilation, CompilerOptions, EntryData, ExportInfoProvided,
-  FilenameTemplate, LibraryExport, LibraryName, LibraryNonUmdObject, LibraryOptions,
-  ModuleIdentifier, PathData, Plugin, PluginContext, RuntimeGlobals, SourceType, UsageState,
+  CompilationParams, CompilerCompilation, CompilerOptions, EntryData, ExportInfoProvided, Filename,
+  LibraryExport, LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData,
+  Plugin, PluginContext, RuntimeGlobals, SourceType, UsageState,
 };
 use rspack_error::{error, error_bail, Result};
 use rspack_hash::RspackHash;
@@ -18,7 +19,6 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesEmbedInRuntimeBailout, JavascriptModulesRender,
   JavascriptModulesRenderStartup, JavascriptModulesStrictRuntimeBailout, JsPlugin, RenderSource,
 };
-use rspack_util::infallible::ResultInfallibleExt as _;
 
 use crate::utils::{get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE};
 
@@ -141,18 +141,18 @@ impl AssignLibraryPlugin {
     }
   }
 
-  fn get_resolved_full_name(
+  async fn get_resolved_full_name(
     &self,
-    options: &AssignLibraryPluginParsed,
+    options: &AssignLibraryPluginParsed<'_>,
     compilation: &Compilation,
     chunk: &Chunk,
-  ) -> Vec<String> {
+  ) -> Result<Vec<String>> {
     if let Some(name) = options.name {
       let mut prefix = self.options.prefix.value(compilation);
-      let get_path = |v: &str| {
+      let get_path = async |v: &str| {
         compilation
           .get_path(
-            &FilenameTemplate::from(v.to_owned()),
+            &Filename::from(v),
             PathData::default()
               .chunk_id_optional(
                 chunk
@@ -172,17 +172,22 @@ impl AssignLibraryPlugin {
                 compilation.options.output.hash_digest_length,
               )),
           )
-          .always_ok()
+          .await
       };
       match name {
         LibraryNonUmdObject::Array(arr) => {
-          prefix.extend(arr.iter().map(|s| get_path(s)).collect::<Vec<_>>());
+          let paths = join_all(arr.iter().map(|s| get_path(s)))
+            .await
+            .into_iter()
+            .collect::<Result<Vec<_>>>()?;
+          prefix.extend(paths);
         }
-        LibraryNonUmdObject::String(s) => prefix.push(get_path(s)),
+        LibraryNonUmdObject::String(s) => prefix.push(get_path(s).await?),
       };
-      return prefix;
+      Ok(prefix)
+    } else {
+      Ok(self.options.prefix.value(compilation))
     }
-    self.options.prefix.value(compilation)
   }
 }
 
@@ -217,7 +222,9 @@ async fn render(
   };
   if self.options.declare {
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-    let base = &self.get_resolved_full_name(&options, compilation, chunk)[0];
+    let base = &self
+      .get_resolved_full_name(&options, compilation, chunk)
+      .await?[0];
     if !is_name_valid(base) {
       let base_identifier = to_identifier(base);
       return Err(
@@ -247,7 +254,9 @@ async fn render_startup(
   let mut source = ConcatSource::default();
   source.add(render_source.source.clone());
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-  let full_name_resolved = self.get_resolved_full_name(&options, compilation, chunk);
+  let full_name_resolved = self
+    .get_resolved_full_name(&options, compilation, chunk)
+    .await?;
   let export_access = options
     .export
     .map(|e| property_access(e, 0))
@@ -349,7 +358,9 @@ async fn js_chunk_hash(
   };
   PLUGIN_NAME.hash(hasher);
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-  let full_resolved_name = self.get_resolved_full_name(&options, compilation, chunk);
+  let full_resolved_name = self
+    .get_resolved_full_name(&options, compilation, chunk)
+    .await?;
   if self.is_copy(&options) {
     "copy".hash(hasher);
   }
@@ -382,7 +393,9 @@ async fn embed_in_runtime_bailout(
     .map(|d| d.inner())
     .or_else(|| module.build_info().top_level_declarations.as_ref());
   if let Some(top_level_decls) = top_level_decls {
-    let full_name = self.get_resolved_full_name(&options, compilation, chunk);
+    let full_name = self
+      .get_resolved_full_name(&options, compilation, chunk)
+      .await?;
     if let Some(base) = full_name.first()
       && top_level_decls.contains(&base.as_str().into())
     {

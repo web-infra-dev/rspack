@@ -206,3 +206,4 @@ yannik
 Zack
 Zack Jackson
 zackarychapple
+mimalloc

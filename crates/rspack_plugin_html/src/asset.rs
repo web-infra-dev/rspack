@@ -12,11 +12,10 @@ use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_core::{
   rspack_sources::{RawBufferSource, RawStringSource, SourceExt},
-  AssetInfo, Compilation, CompilationAsset, Filename, NoFilenameFn, PathData,
+  AssetInfo, Compilation, CompilationAsset, Filename, PathData,
 };
-use rspack_error::{miette, AnyhowError};
+use rspack_error::{miette, AnyhowError, Result};
 use rspack_paths::Utf8PathBuf;
-use rspack_util::infallible::ResultInfallibleExt;
 use serde::{Deserialize, Serialize};
 use sugar_path::SugarPath;
 
@@ -39,13 +38,13 @@ pub struct HtmlPluginAssets {
 }
 
 impl HtmlPluginAssets {
-  pub fn create_assets<'a>(
+  pub async fn create_assets<'a>(
     config: &HtmlRspackPluginOptions,
     compilation: &'a Compilation,
     public_path: &str,
     output_path: &Utf8PathBuf,
-    html_file_name: &Filename<NoFilenameFn>,
-  ) -> (HtmlPluginAssets, HashMap<String, &'a CompilationAsset>) {
+    html_file_name: &Filename,
+  ) -> Result<(HtmlPluginAssets, HashMap<String, &'a CompilationAsset>)> {
     let mut assets: HtmlPluginAssets = HtmlPluginAssets::default();
     let mut asset_map = HashMap::new();
     assets.public_path = public_path.to_string();
@@ -121,10 +120,14 @@ impl HtmlPluginAssets {
 
       let favicon_relative_path = PathBuf::from(config.get_relative_path(compilation, &favicon));
 
-      let mut favicon_path: PathBuf = PathBuf::from(config.get_public_path(
-        compilation,
-        favicon_relative_path.to_string_lossy().to_string().as_str(),
-      ));
+      let mut favicon_path: PathBuf = PathBuf::from(
+        config
+          .get_public_path(
+            compilation,
+            favicon_relative_path.to_string_lossy().to_string().as_str(),
+          )
+          .await,
+      );
 
       if favicon_path.to_str().unwrap_or_default().is_empty() {
         let fake_html_file_name = compilation
@@ -132,7 +135,7 @@ impl HtmlPluginAssets {
             html_file_name,
             PathData::default().filename(output_path.as_str()),
           )
-          .always_ok();
+          .await?;
         let output_path = compilation.options.output.path.as_std_path();
         favicon_path = output_path
           .relative(output_path.join(fake_html_file_name).join(".."))
@@ -154,7 +157,7 @@ impl HtmlPluginAssets {
       None
     };
 
-    (assets, asset_map)
+    Ok((assets, asset_map))
   }
 }
 
@@ -349,12 +352,12 @@ pub fn create_favicon_asset(
     .map_err(|err| miette::Error::from(AnyhowError::from(err)))
 }
 
-pub fn create_html_asset(
-  output_file_name: &Filename<NoFilenameFn>,
+pub async fn create_html_asset(
+  output_file_name: &Filename,
   html: &str,
   template_file_name: &str,
   compilation: &Compilation,
-) -> (String, CompilationAsset) {
+) -> Result<(String, CompilationAsset)> {
   let hash = hash_for_source(html);
 
   let mut asset_info = AssetInfo::default();
@@ -366,12 +369,12 @@ pub fn create_html_asset(
         .content_hash(&hash),
       &mut asset_info,
     )
-    .always_ok();
+    .await?;
 
-  (
+  Ok((
     output_path,
     CompilationAsset::new(Some(RawStringSource::from(html).boxed()), asset_info),
-  )
+  ))
 }
 
 fn hash_for_source(source: &str) -> String {

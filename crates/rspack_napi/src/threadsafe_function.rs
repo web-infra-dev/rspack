@@ -104,13 +104,6 @@ impl<T: 'static + JsValuesTupleIntoVec, R: 'static + FromNapiValue> ThreadsafeFu
   pub async fn call_with_sync(&self, value: T) -> Result<R> {
     self.call_async::<R>(value).await
   }
-
-  /// Call the JS function with blocking.
-  /// Deprecated: will be removed in the future.
-  pub fn blocking_call_with_sync(&self, value: T) -> Result<R> {
-    let rx = self.call_with_return(value);
-    rx.recv().expect("failed to receive tsfn value")
-  }
 }
 
 impl<T: 'static + JsValuesTupleIntoVec, R: 'static + FromNapiValue>

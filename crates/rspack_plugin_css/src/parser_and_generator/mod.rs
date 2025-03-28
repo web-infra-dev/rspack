@@ -241,7 +241,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
               .expect("should have local_ident_name for module_type css/auto or css/module"),
             compiler_options,
           )
-          .get_local_ident(&name);
+          .get_local_ident(&name)
+          .await?;
           let convention = self
             .convention
             .as_ref()
@@ -280,7 +281,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
               .expect("should have local_ident_name for module_type css/auto or css/module"),
             compiler_options,
           )
-          .get_local_ident(&name);
+          .get_local_ident(&name)
+          .await?;
           let exports = self.exports.get_or_insert_default();
           let convention = self
             .convention
@@ -317,7 +319,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
               .expect("should have local_ident_name for module_type css/auto or css/module"),
             compiler_options,
           )
-          .get_local_ident(&name);
+          .get_local_ident(&name)
+          .await?;
           let exports = self.exports.get_or_insert_default();
           let convention = self
             .convention

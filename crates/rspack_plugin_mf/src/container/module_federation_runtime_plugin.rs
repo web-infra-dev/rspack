@@ -42,11 +42,11 @@ impl RuntimeModule for FederationRuntimeModule {
     let chunk = compilation
       .chunk_by_ukey
       .expect_get(&self.chunk.expect("The chunk should be attached."));
-    Ok(RawStringSource::from(federation_runtime_template(chunk, compilation)).boxed())
+    Ok(RawStringSource::from(federation_runtime_template(chunk, compilation).await).boxed())
   }
 }
 
-fn federation_runtime_template(chunk: &Chunk, compilation: &Compilation) -> String {
+async fn federation_runtime_template(chunk: &Chunk, compilation: &Compilation) -> String {
   let federation_global = format!("{}.federation", RuntimeGlobals::REQUIRE);
 
   let condition_map =
@@ -77,6 +77,7 @@ chunkMatcher: function(chunkId) {{
     );
     let output_name = compilation
       .get_path(&filename, Default::default())
+      .await
       .expect("failed to get output path");
     get_undo_path(
       &output_name,

@@ -1,0 +1,207 @@
+---
+date: 2025-3-28 16:00:00
+sidebar: false
+---
+
+_March 28, 2025_
+
+# Announcing Rspack 1.3
+
+---
+
+Rspack v1.3 has been released!
+
+Notable changes:
+
+- New features
+  - [Lazy compilation middleware](#lazy-compilation-middleware): A experimental feature that simplifies the integration of lazy compilation functionality into development servers
+  - [CircularDependencyRspackPlugin](#circulardependencyrspackplugin): A experimental feature that efficiently detecting circular dependencies between modules
+  - [AMD supports](#amd-supports)
+  - [JavaScript API support module subtypes](#javascript-api-support-module-subtypes)
+- Performance improvements
+  - [Parallel code splitting](#parallel-code-splitting)
+  - [Runtime template](#runtime-template)
+  - [Memory Improvements](#memory-improvements)
+- Ecosystem
+  - [Rsdoctor 1.0](#rsdoctor-10)
+  - [Lynx open source](#lynx-open-source)
+  - [Rsbuild 1.3](#rsbuild-13)
+- Upgrade guide
+  - [Upgrade SWC plugins](#upgrade-swc-plugins)
+
+## New features
+
+### Lazy compilation middleware
+
+Lazy compilation used to have a standalone server to handle special requests from lazy compiled modules. It won't share proxy config with normal user's dev server, now the lazy compilation server side ability is provided through express style middleware. If you're using @rspack/cli you should feel no difference.
+
+If you have your own dev server, you can make your server supports lazy compilation feature simply by adding this middleware to your server.
+
+```js
+import { experiments, rspack } from '@rspack/core';
+import config from './rspack.config.mjs';
+import DevServer from 'webpack-dev-server';
+
+const compiler = rspack(config);
+
+const middleware = experiments.lazyCompilationMiddleware(
+  compiler,
+  config.experiments.lazyCompilation,
+);
+
+const server = new DevServer(compiler, {
+  port: 3000,
+  setupMiddlewares(other) {
+    return [middleware, ...other];
+  },
+});
+
+server.start();
+```
+
+### CircularDependencyRspackPlugin
+
+We added a built-in plugin CircularDependencyRspackPlugin to Rspack to detect circular dependencies between runtime modules.
+
+Since the plugin is based on Rust, it is directly integrated with the Rspack module graph, avoiding expensive copying and serialization costs. The plugin traverses the module graph of each entry once to find all circular references, rather than checking modules individually, which means that the performance of the plugin is better.
+
+Usage reference:
+
+```js
+import { rspack } from '@rspack/core';
+
+const config = {
+  plugins: [
+    new rspack.CircularDependencyRspackPlugin({
+      failOnError: true,
+    }),
+  ],
+};
+```
+
+### AMD supports
+
+We have supported the parsing of AMD modules.
+
+Notably, Rspack differs from Webpack in that the parsing of AMD modules is disabled by default (Webpack enables it by default). This feature is only for compatibility with certain legacy AMD dependencies. We recommend prioritizing ES Module dependencies for better Rspack optimization and to boost ES Module adoption. If you really need to use AMD dependencies, you can enable this feature:
+
+```js
+const config = {
+  // ...
+  amd: {},
+};
+```
+
+For more details, please checkout [the docs](https://rspack.dev/config/other-options#amd).
+
+### JavaScript API support module subtypes
+
+To improve Webpack API compatibility, Rspack modules are now structured as specific subtypes. Currently supported module subtypes include:
+
+- NormalModule
+- ContextModule
+- ExternalModule
+- ConcatenatedModule
+
+You can now identify a module's specific type in two ways:
+
+```ts
+// Method 1: Instance type checking
+module instanceof NormalModule;
+
+// Method 2: Constructor signature detection
+module.constructor.name === 'NormalModule';
+```
+
+The new type definitions may cause TypeScript errors in existing JavaScript API code, such as:
+
+```ts
+module.resource; // TypeScript Error: Property 'resource' does not exist on type 'Module'
+```
+
+To access the resource property, you now need to assert the module type using one of the following methods:
+
+```ts
+// Solution 1: `in` operator type guard
+if ('resource' in module) {
+  console.log(module.resource);
+}
+
+// Solution 2: Instance type assertion
+if (module instanceof NormalModule) {
+  module.resource;
+}
+```
+
+## Performance improvements
+
+### Parallel code splitting
+
+The chunk creation algorithm in the previous version is designed for single thread with best performance in mind. But it's hard to make it right for incremental rebuild, as every chunk creation needs input from all parents, and it's error-prone to cut the dirty chunks from the last compilation. In order to better support the Rspack incremental algorithm, we've refactored the chunk creation algorithm which is more performant.
+
+### Runtime template
+
+The Rspack version 1.3 introduces full support for the output.environment option. This allows you to specify the ECMAScript features that can be used in the runtime code generated by Rspack, enabling the generation of more concise and modern runtime code.
+By default, Rspack will parse the target configuration and determine the ES features supported by the target environment based on browserslist. It will automatically set the values of the sub-options of output.environment to output the optimal code.
+For example, when it detects that the target environment supports arrow functions, Rspack will set output.environment.arrowFunction to true, so that the arrow function syntax can be used in the generated code.
+
+```diff
+- __webpack_require__.d = function(exports, definition) {
++ __webpack_require__.d = (exports, definition) => {
+        for(var key in definition) {
+         ...
+        }
+}
+```
+
+By using JavaScript features supported by the target environment, Rspack is able to output smaller runtime code. In our performance tests on a real large-scale project, this optimization reduced the size of the production artifacts by approximately 500KB (before gzip compression).
+
+### Memory Improvements
+
+We landed a few memory fixes on the latest version. This includes:
+
+1. Implemented internal mechanism to clean the outdated cache: `maxGenerations`. This controls how many compilations would cache survive if it's not being used by the compiler. Rspack sets the default to `1`. This means that the cache will be purged if it's not being used in the next compilation.
+
+![Max generations](https://assets.rspack.dev/rspack/assets/rspack-v1-3-memory-improve-max-generations.png)
+
+2. Rolling out mimalloc v3 on macOS. This mitigates some memory consumption issue on macOS during rebuilding. According to some community and internal projects, this would lift the RSS for rebuilding, based on the size of each project, varying from 10% to 85%.
+
+## Ecosystem
+
+### Rsdoctor 1.0
+
+### Lynx open source
+
+### Rsbuild 1.3
+
+After a year of development and testing, we are proud to introduce Rsdoctor 1.0 — a build analyzer tailored for the Rspack ecosystem and fully compatible with the webpack ecosystem.
+
+Rsdoctor is committed to being a one-stop, intelligent build analyzer that makes the build process transparent, predictable, and optimizable through visualization and smart analysis, helping development teams precisely identify bottlenecks, optimize performance, and improve engineering quality.
+
+Rsdoctor 1.0 introduces significant enhancements:
+
+- A completely redesigned UI that delivers more intuitive and efficient information visualization.
+- Rewrote data processing logic using Rust, achieving 20%+ improvement in analysis speed.
+- New module search capabilities for analyzing dependencies and module sizes.
+
+See [Announcing Rsdoctor 1.0](https://rsdoctor.dev/zh/blog/release/release-note-1_0) for more details.
+
+### Lynx open source
+
+[Lynx](https://lynxjs.org/) a family of technologies empowering developers to use their existing web skills to create truly native UIs for both mobile and web from a single codebase. Lynx was originally developed by an engineering team of ByteDance, which continues to drive its development.
+
+Lynx has built a modern toolchain called [Rspeedy](https://lynxjs.org/zh/rspeedy/) based on Rspack, Rsbuild, and Rsdoctor to enable fast builds. Lynx also features a speedy, versatile rendering engine and performance-driven dual-threaded UI programming.
+
+Read the [Introductory Blog of Lynx](https://lynxjs.org/zh/blog/lynx-unlock-native-for-more.html) for more.
+
+### Rsbuild 1.3
+
+Rsbuild v1.3 has been released alongside Rspack v1.3.
+
+## Upgrade guide
+
+### Upgrade SWC plugins
+
+In Rspack v1.3, the Rust crate `swc_core` has been upgraded to `16.7.0`. Users of the SWC Wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
+
+For more details, see [FAQ - SWC plugin version unmatched](https://swc.rs/docs/plugin/selecting-swc-core).

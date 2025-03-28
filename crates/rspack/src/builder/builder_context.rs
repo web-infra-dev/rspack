@@ -42,7 +42,7 @@ pub(super) enum BuiltinPluginOptions {
   CssModulesPlugin,
 
   // Entry and runtime plugins
-  EntryPlugin((String /* entry request */, EntryOptions)),
+  EntryPlugin(Box<(String /* entry request */, EntryOptions)>),
   RuntimePlugin,
   // TODO: add bundler info plugin
   // BundlerInfoRspackPlugin,
@@ -204,7 +204,8 @@ impl BuilderContext {
       }
 
       // Entry and runtime plugins
-      BuiltinPluginOptions::EntryPlugin((entry_request, options)) => {
+      BuiltinPluginOptions::EntryPlugin(entry_options) => {
+        let (entry_request, options) = *entry_options;
         plugins.push(
           rspack_plugin_entry::EntryPlugin::new(
             compiler_options.context.clone(),

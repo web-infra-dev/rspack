@@ -4715,7 +4715,6 @@ dependencies = [
  "rspack_hash",
  "rspack_hook",
  "rspack_paths",
- "rspack_util",
  "rustc-hash 2.1.0",
  "sugar_path",
  "tokio",
@@ -5013,6 +5012,7 @@ name = "rspack_plugin_library"
 version = "0.2.0"
 dependencies = [
  "async-trait",
+ "futures",
  "regex",
  "rspack_cacheable",
  "rspack_collections",
@@ -5021,7 +5021,6 @@ dependencies = [
  "rspack_hash",
  "rspack_hook",
  "rspack_plugin_javascript",
- "rspack_util",
  "rustc-hash 2.1.0",
  "serde_json",
  "swc_core",

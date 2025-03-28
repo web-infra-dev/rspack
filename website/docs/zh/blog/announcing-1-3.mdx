@@ -1,9 +1,9 @@
 ---
-date: 2025-3-26 16:00:00
+date: 2025-3-28 16:00:00
 sidebar: false
 ---
 
-_2025 年 3 月 26 日_
+_2025 年 3 月 28 日_
 
 # Rspack 1.3 发布公告
 
@@ -14,12 +14,12 @@ Rspack v1.3 已经正式发布！
 值得关注的变更如下：
 
 - 新功能
-  - [增加 lazy compilation middleware](#增加-lazy-compilation-middleware)
+  - [Lazy compilation middleware](#lazy-compilation-middleware)：实验性功能，简化开发服务器对 lazy compilation 功能的接入
+  - [CircularDependencyRspackPlugin](#circulardependencyrspackplugin)：实验性功能，高效检测模块间的循环依赖
   - [增加对 AMD 模块的支持](#增加对-amd-模块的支持)
-  - [CircularDependencyRspackPlugin](#circulardependencyrspackplugin)
   - [JavaScript API 支持模块子类型](#javascript-api-支持模块子类型)
 - 性能优化
-  - [并行的 code splitting 算法](#watch-范围变化)
+  - [并行的 code splitting 算法](#并行的-code-splitting-算法)
   - [产物体积优化](#产物体积优化)
   - [内存优化](#内存优化)
 - 生态系统
@@ -31,15 +31,13 @@ Rspack v1.3 已经正式发布！
 
 ## 新功能
 
-### 增加 lazy compilation middleware
+### Lazy compilation middleware
 
-此前，lazy compilation 依赖一个独立服务端处理来自 lazy compilation 模块的特殊请求，这样做会造成一些问题，例如该服务端无法与用户常规开发服务器共享代理配置，无法很方便配置 CORS。
+此前，lazy compilation 依赖开发服务器对 lazy compilation 模块的请求进行特殊处理，导致一些问题，例如无法与开发服务器共享代理配置和 CORS 配置。
 
-现在会提供一个 Express 风格的中间件来提供懒编译服务端能力。若你是 `@rspack/cli` 的用户，无需任何改动即可无缝使用。
+现在会提供一个 Express 风格的中间件来处理 lazy compilation。若你是 `@rspack/cli` 的用户，无需任何改动。若你是使用自定义开发服务器，仅需注入中间件即可支持 lazy compilation。
 
-若你是使用自定义开发服务端，只需想你的服务端添加该中间件即可让其支持懒编译。
-
-```rust
+```js
 import { experiments, rspack } from '@rspack/core';
 import config from './rspack.config.mjs';
 import DevServer from 'webpack-dev-server';
@@ -60,23 +58,6 @@ const server = new DevServer(compiler, {
 
 server.start();
 ```
-
-### 增加对 AMD 模块的支持
-
-我们增加了对 AMD 模块的支持。
-
-与 Webpack 默认启用 AMD 模块支持不同，Rspack 选择默认禁用该特性。此功能旨在兼容仍需使用 AMD 格式的依赖，我们强烈建议开发者优先选用 ES Module 规范的依赖，以便 Rspack 能基于静态模块分析进行更高效的产物体积优化。
-
-若确需启用 AMD 支持，请在配置中：
-
-```js
-const config = {
-  // ...
-  amd: {},
-};
-```
-
-完整配置参数请参阅[文档](https://rspack.dev/config/other-options#amd)。
 
 ### CircularDependencyRspackPlugin
 
@@ -99,6 +80,23 @@ const config = {
 ```
 
 完整配置参数参阅[文档](https://rspack.dev/zh/plugins/rspack/circular-dependency-rspack-plugin)。
+
+### 增加对 AMD 模块的支持
+
+我们增加了对 AMD 模块的支持。
+
+与 Webpack 默认启用 AMD 模块支持不同，Rspack 选择默认禁用该特性。此功能旨在兼容仍需使用 AMD 格式的依赖，我们强烈建议开发者优先选用 ES Module 规范的依赖，以便 Rspack 能基于静态模块分析进行更高效的产物体积优化。
+
+若确需启用 AMD 支持，请在配置中：
+
+```js
+const config = {
+  // ...
+  amd: {},
+};
+```
+
+完整配置参数请参阅[文档](https://rspack.dev/config/other-options#amd)。
 
 ### JavaScript API 支持模块子类型
 
@@ -168,9 +166,11 @@ Rspack 1.3 版本引入了对 `output.environment` 选项的完整支持，这�
 
 我们修复了一些内存的问题：
 
-实现了清理过期缓存的内部机制 `maxGenerations`。这个参数控制了缓存的存活时间，Rspack 默认将这个值设置为 1，意味着如果特定缓存在下一轮编译中没有被使用，该缓存将会被清除。
+1. 实现了清理过期缓存的内部机制 `maxGenerations`。这个参数控制了缓存的存活时间，Rspack 默认将这个值设置为 1，意味着如果特定缓存在下一轮编译中没有被使用，该缓存将会被清除。
 
-我们在 macOS 上默认使用了 mimalloc v3。这缓解了macOS 在 rebuild 过程中的一些内存消耗问题。根据一些社区和内部项目的反馈，这将减少 rebuild 时的 RSS 使用量，具体减少的比例因项目大小而异，根据我们的测试，减少的比例从 10% 到 85% 不等。
+![Max generations](https://assets.rspack.dev/rspack/assets/rspack-v1-3-memory-improve-max-generations.png)
+
+2. 我们在 macOS 上默认使用了 mimalloc v3。这缓解了macOS 在 rebuild 过程中的一些内存消耗问题。根据一些社区和内部项目的反馈，这将减少 rebuild 时的 RSS 使用量，具体减少的比例因项目大小而异，根据我们的测试，减少的比例从 10% 到 85% 不等。
 
 ## 生态系统
 
@@ -190,9 +190,9 @@ Rsdoctor 1.0 版本带来了诸多的新特性：
 
 ### Lynx 开源
 
-Lynx 是一套帮助 Web 开发者复用现有经验，通过一份代码同时构建移动端原生界面与 Web 端界面的技术方案。它最初由字节跳动的工程团队开发，并将由该团队继续推进其演进。
+[Lynx](https://lynxjs.org/) 是一套帮助 Web 开发者复用现有经验，通过一份代码同时构建移动端原生界面与 Web 端界面的技术方案。它最初由字节跳动的工程团队开发，并将由该团队继续推进其演进。
 
-Lynx 基于 Rspack、Rsbuild 和 Rsdoctor 打造了现代化的工具链 Rspeedy，用于支持 Lynx 的快速开发。此外，Lynx 还有着高性能、多功能的渲染引擎、性能优先的双线程 UI 编程范式等诸多特性。
+Lynx 基于 Rspack、Rsbuild 和 Rsdoctor 打造了现代化的工具链 [Rspeedy](https://lynxjs.org/zh/rspeedy/)，用于支持 Lynx 的快速开发。此外，Lynx 还有着高性能、多功能的渲染引擎、性能优先的双线程 UI 编程范式等诸多特性。
 
 参考 [Lynx 的发布博客](https://lynxjs.org/zh/blog/lynx-unlock-native-for-more.html) 了解更多。
 
