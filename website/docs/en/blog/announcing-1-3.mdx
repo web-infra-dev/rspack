@@ -16,15 +16,16 @@ Notable changes:
 - New features
   - [Circular dependency detection](#circular-dependency-detection)
   - [Build HTTP imports](#build-http-imports)
-  - [Lazy compilation middleware](#lazy-compilation-middleware)
+  - [Lazy compilation improvements](#lazy-compilation-improvements)
   - [AMD supports](#amd-supports)
 - Performance improvements
   - [Code splitting 25% faster](#code-splitting-25-faster)
   - [Bundle size optimization](#bundle-size-optimization)
   - [Memory improvements](#memory-improvements)
-- Ecosystem
+- Rstack updates
   - [Rsdoctor 1.0](#rsdoctor-10)
   - [Rsbuild 1.3](#rsbuild-13)
+- Ecosystem
   - [Rspeedy for Lynx](#rspeedy-for-lynx)
   - [Re.Pack 5](#repack-5)
 - Upgrade guide
@@ -69,7 +70,7 @@ export default {
 
 > See [the docs](/config/experiments#experimentsbuildhttp) for more details.
 
-### Lazy compilation middleware
+### Lazy compilation improvements
 
 In previous versions, when [lazy compilation](/guide/features/lazy-compilation) was enabled, Rspack would start a separate server to handle lazy compilation-related requests. This led to several issues, such as the need for two servers during development, and the lazy compilation server not being able to share proxy and CORS configurations with the default dev server.
 
@@ -154,7 +155,7 @@ Rspack 1.3 also implemented an internal mechanism to clean the outdated cache: `
   alt="Max generations"
 />
 
-## Ecosystem
+## Rstack updates
 
 ### Rsdoctor 1.0
 
@@ -191,6 +192,17 @@ import rawCss from './style.css?raw';
 console.log(rawSvg); // Output the raw SVG file content
 console.log(rawCss); // Output the raw CSS file content
 ```
+
+### Rslib 0.6
+
+Rslib 0.6 brings the following notable updates:
+
+- **Improved CJS output**: Rslib's CJS output can now be statically analyzed, allowing Node.js ESM modules to use named imports to reference exports from CJS output.
+- **Type error optimization**: When type errors occur, Rslib now prints the full context and code frame to the terminal, making it easier to fix type issues.
+
+This release also adds support for YAML and TOML. See [Rslib 0.6](https://github.com/web-infra-dev/rslib/releases/tag/v0.6.0) for more details.
+
+## Ecosystem
 
 ### Rspeedy for Lynx
 
