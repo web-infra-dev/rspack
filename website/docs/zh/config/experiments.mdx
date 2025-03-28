@@ -9,10 +9,9 @@ import PropertyType from '@components/PropertyType';
 该选项允许用户开启和尝试一些实验性的功能。
 
 - **类型：** `object`
-
-:::tip
-在 minor release 中，Rspack 可能对这些实验性特性的 public API 做一些调整，并在更新日志中对这些变动进行详细的说明。因此，如果你使用了实验性特性，请留意 minor 版本的更新日志。
-:::
+  :::tip
+  在 minor release 中，Rspack 可能对这些实验性特性的 public API 做一些调整，并在更新日志中对这些变动进行详细的说明。因此，如果你使用了实验性特性，请留意 minor 版本的更新日志。
+  :::
 
 ## experiments.asyncWebAssembly
 
@@ -337,6 +336,39 @@ export default {
 };
 ```
 
+## experiments.parallelLoader
+
+<ApiMeta addedVersion="1.3.1" />
+
+- **类型**: `boolean`
+- **默认值:** `false`
+
+开启并行 loader，你需要使用 [`Rule.use.parallel`](/config/module#ruleuseparallel) 手动为各个 loader 分别开启并行模式。开启后，对应的 loader 会被发送到 worker threads 执行。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        use: [
+          {
+            loader: 'less-loader',
+            parallel: true,
+            options: {
+              // loader options
+            },
+          },
+        ],
+      },
+    ],
+  },
+  experiments: {
+    parallelLoader: true,
+  },
+};
+```
+
 ## experiments.rspackFuture
 
 - **类型：** `object`
@@ -349,6 +381,7 @@ export default {
 <ApiMeta addedVersion="1.0.0" />
 
 - **类型：**
+
   ```ts
   type BundlerInfo = {
     version?: string,
