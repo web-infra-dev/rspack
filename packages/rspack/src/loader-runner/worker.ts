@@ -2,7 +2,7 @@ import querystring from "node:querystring";
 import { promisify } from "node:util";
 import { type MessagePort, receiveMessageOnPort } from "node:worker_threads";
 
-import { JsLoaderState } from "@rspack/binding";
+import { JsLoaderState, NormalModule } from "@rspack/binding";
 import type { LoaderContext } from "../config";
 
 import { createHash } from "../util/createHash";
@@ -64,7 +64,7 @@ async function loaderImpl(
 
 	const pendingDependencyRequest: SendRequestResult[] = [];
 
-	// @ts-ignore This option indicates that the loader is in a worker.
+	// @ts-expect-error `loaderContext.parallel` only works with loaders in worker
 	loaderContext.parallel = true;
 	loaderContext.dependency = loaderContext.addDependency =
 		function addDependency(file) {
@@ -247,7 +247,7 @@ async function loaderImpl(
 
 	loaderContext._compiler = {
 		...loaderContext._compiler,
-		// @ts-ignore
+		// @ts-expect-error: some properties are missing.
 		webpack: {
 			util: {
 				createHash: require("../util/createHash").createHash,
@@ -261,8 +261,12 @@ async function loaderImpl(
 		type: _module.type,
 		identifier() {
 			return _module.identifier;
-		}
-	} as LoaderContext["_module"];
+		},
+		matchResource: _module.matchResource,
+		request: _module.request,
+		userRequest: _module.userRequest,
+		rawRequest: _module.rawRequest
+	} as NormalModule;
 
 	Object.defineProperty(loaderContext, "request", {
 		enumerable: true,
