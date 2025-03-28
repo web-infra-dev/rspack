@@ -57,7 +57,7 @@ impl From<JsEntryOptions> for EntryOptions {
       base_uri: value.base_uri,
       filename: value.filename.map(Into::into),
       library: value.library.map(Into::into),
-      depend_on: value.depend_on.map(Into::into),
+      depend_on: value.depend_on,
       layer: value.layer,
     }
   }
