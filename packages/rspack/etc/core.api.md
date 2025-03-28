@@ -5419,7 +5419,6 @@ export type RuleSetRule = {
     layer?: string;
     loader?: RuleSetLoader;
     options?: RuleSetLoaderOptions;
-    parallel?: boolean;
     use?: RuleSetUse;
     parser?: Record<string, any>;
     generator?: Record<string, any>;

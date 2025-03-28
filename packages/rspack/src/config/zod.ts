@@ -487,7 +487,6 @@ const baseRuleSetRule = z.strictObject({
 	layer: z.string().optional(),
 	loader: ruleSetLoader.optional(),
 	options: ruleSetLoaderOptions.optional(),
-	parallel: z.boolean().optional(),
 	use: ruleSetUse.optional(),
 	parser: z.record(z.any()).optional(),
 	generator: z.record(z.any()).optional(),

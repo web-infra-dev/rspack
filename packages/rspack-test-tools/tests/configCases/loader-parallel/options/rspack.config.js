@@ -8,31 +8,39 @@ module.exports = {
 		rules: [
 			{
 				test: /a\.js$/,
-				loader: "./loader",
-				parallel: true,
-				options: {
-					arg: true,
-					arg1: null,
-					arg2: undefined,
-					arg3: 1234567890,
-					arg4: "string",
-					arg5: [1, 2, 3],
-					arg6: { foo: "value", bar: { baz: "other-value" } }
-				}
+				use: [
+					{
+						loader: "./loader",
+						parallel: true,
+						options: {
+							arg: true,
+							arg1: null,
+							arg2: undefined,
+							arg3: 1234567890,
+							arg4: "string",
+							arg5: [1, 2, 3],
+							arg6: { foo: "value", bar: { baz: "other-value" } }
+						}
+					}
+				]
 			},
 			{
 				test: /b\.js$/,
-				loader: "./loader-1",
-				parallel: true,
-				options: {
-					arg: true,
-					arg1: null,
-					arg2: undefined,
-					arg3: 1234567890,
-					arg4: "string",
-					arg5: [1, 2, 3],
-					arg6: { foo: "value", bar: { baz: "other-value" } }
-				}
+				use: [
+					{
+						loader: "./loader-1",
+						parallel: true,
+						options: {
+							arg: true,
+							arg1: null,
+							arg2: undefined,
+							arg3: 1234567890,
+							arg4: "string",
+							arg5: [1, 2, 3],
+							arg6: { foo: "value", bar: { baz: "other-value" } }
+						}
+					}
+				]
 			},
 			{
 				test: /c\.js$/,
@@ -83,19 +91,27 @@ module.exports = {
 			},
 			{
 				test: /error1\.js$/,
-				loader: "./loader-1",
-				parallel: true,
-				options: {
-					arg6: { foo: "value", bar: { baz: 42 } }
-				}
+				use: [
+					{
+						loader: "./loader-1",
+						parallel: true,
+						options: {
+							arg6: { foo: "value", bar: { baz: 42 } }
+						}
+					}
+				]
 			},
 			{
 				test: /error2\.js$/,
-				loader: "./loader-2",
-				parallel: true,
-				options: {
-					arg: false
-				}
+				use: [
+					{
+						loader: "./loader-2",
+						parallel: true,
+						options: {
+							arg: false
+						}
+					}
+				]
 			}
 		]
 	},

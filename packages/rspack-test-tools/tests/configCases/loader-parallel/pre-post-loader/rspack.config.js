@@ -6,23 +6,21 @@ module.exports = {
 		rules: [
 			{
 				test: /a\.js$/,
-				use: "./loader1",
-				parallel: true,
-				options: {}
+				use: { loader: "./loader1", parallel: true, options: {} }
 			},
 			{
 				test: /a\.js$/,
-				use: "./loader2",
-				enforce: "pre",
-				parallel: true,
-				options: {}
+				use: { loader: "./loader2", parallel: true, options: {} },
+				enforce: "pre"
 			},
 			{
 				test: /a\.js$/,
-				use: "./loader3",
-				enforce: "post",
-				parallel: true,
-				options: {}
+				use: {
+					loader: "./loader3",
+					parallel: true,
+					options: {}
+				},
+				enforce: "post"
 			}
 		]
 	},

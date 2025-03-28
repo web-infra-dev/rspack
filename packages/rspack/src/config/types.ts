@@ -900,9 +900,6 @@ export type RuleSetRule = {
 	/** A loader options */
 	options?: RuleSetLoaderOptions;
 
-	/** Parallel loader */
-	parallel?: boolean;
-
 	/** An array to pass the Loader package name and its options.  */
 	use?: RuleSetUse;
 

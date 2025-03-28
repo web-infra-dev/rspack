@@ -4,9 +4,13 @@ module.exports = {
 		rules: [
 			{
 				test: /lib\.js/,
-				loader: "./loader-in-worker.js",
-				parallel: true,
-				options: {}
+				use: [
+					{
+						loader: "./loader-in-worker.js",
+						parallel: true,
+						options: {}
+					}
+				]
 			}
 		]
 	},
