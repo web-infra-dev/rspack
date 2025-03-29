@@ -58,7 +58,7 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
     if expr
       .callee
       .as_expr()
-      .map_or(true, |expr| !is_require_ensure(&**expr))
+      .is_none_or(|expr| !is_require_ensure(&**expr))
     {
       return None;
     }

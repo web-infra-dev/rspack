@@ -416,14 +416,11 @@ impl Compiler {
             || include_hash(target_file, &asset.info.full_hash));
       }
 
-      let stat = match self
+      let stat = self
         .output_filesystem
         .stat(file_path.as_path().as_ref())
         .await
-      {
-        Ok(stat) => Some(stat),
-        Err(_) => None,
-      };
+        .ok();
 
       let need_write = if !self.options.output.compare_before_emit {
         // write when compare_before_emit is false

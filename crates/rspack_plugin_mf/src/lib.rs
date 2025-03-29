@@ -1,5 +1,4 @@
 #![feature(let_chains)]
-#![feature(hash_raw_entry)]
 
 mod container;
 mod sharing;

@@ -11,14 +11,11 @@ use rspack_paths::Utf8Path;
 use super::node::ThreadsafeNodeFS;
 
 fn map_error_to_fs_error(e: rspack_error::Error) -> Error {
-  Error::Io(std::io::Error::new(
-    std::io::ErrorKind::Other,
-    e.to_string(),
-  ))
+  Error::Io(std::io::Error::other(e.to_string()))
 }
 
 fn new_fs_error(msg: &str) -> Error {
-  Error::Io(std::io::Error::new(std::io::ErrorKind::Other, msg))
+  Error::Io(std::io::Error::other(msg))
 }
 
 pub struct NodeFileSystem(Arc<ThreadsafeNodeFS>);

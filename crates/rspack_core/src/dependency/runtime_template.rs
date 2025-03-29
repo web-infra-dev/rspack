@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use rspack_util::json_stringify;
 use rustc_hash::FxHashSet as HashSet;
 use serde_json::json;
@@ -210,34 +208,26 @@ pub fn export_from_import(
     .as_deref()
     .unwrap_or(export_name);
   if !export_name.is_empty() {
-    let used_name: Cow<Vec<Atom>> = {
-      let exports_info = compilation
-        .get_module_graph()
-        .get_exports_info(&module_identifier);
-      let used = exports_info.get_used_name(
-        &compilation.get_module_graph(),
-        *runtime,
-        crate::UsedName::Vec(export_name.to_vec()),
+    let exports_info = compilation
+      .get_module_graph()
+      .get_exports_info(&module_identifier);
+    let Some(used_name) = exports_info.get_used_name(
+      &compilation.get_module_graph(),
+      *runtime,
+      crate::UsedName::Vec(export_name.to_vec()),
+    ) else {
+      return format!(
+        "{} undefined",
+        to_normal_comment(&property_access(export_name, 0))
       );
-      if let Some(used) = used {
-        let used = match used {
-          crate::UsedName::Str(str) => vec![str],
-          crate::UsedName::Vec(strs) => strs,
-        };
-        Cow::Owned(used)
-      } else {
-        return format!(
-          "{} undefined",
-          to_normal_comment(&property_access(export_name, 0))
-        );
-      }
     };
-    let comment = if *used_name != export_name {
+    let used_name = used_name.as_ref();
+    let comment = if used_name != export_name {
       to_normal_comment(&property_access(export_name, 0))
     } else {
       String::new()
     };
-    let property = property_access(&*used_name, 0);
+    let property = property_access(used_name, 0);
     let access = format!("{import_var}{comment}{property}");
     if is_call && !call_context {
       if let Some(asi_safe) = asi_safe {

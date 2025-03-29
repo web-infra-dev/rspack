@@ -150,7 +150,7 @@ async fn render_chunk(
         let start_up_source = generate_entry_startup(compilation, chunk_ukey, entries, true);
         let last_entry_module = entries
           .keys()
-          .last()
+          .next_back()
           .expect("should have last entry module");
         let mut render_source = RenderSource {
           source: start_up_source,
