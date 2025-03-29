@@ -63,7 +63,7 @@ impl WritableFileSystem for NodeFileSystem {
     self
       .0
       .write_file
-      .call_with_promise((file, data.into()))
+      .call_with_promise((file, data.into()).into())
       .await
       .map_err(map_error_to_fs_error)
   }
@@ -145,7 +145,7 @@ impl IntermediateFileSystemExtras for NodeFileSystem {
     self
       .0
       .rename
-      .call_with_promise((from, to))
+      .call_with_promise((from, to).into())
       .await
       .map_err(map_error_to_fs_error)
   }
@@ -174,7 +174,7 @@ impl NodeReadStream {
   pub async fn try_new(file: &Utf8Path, fs: Arc<ThreadsafeNodeFS>) -> Result<Self> {
     let res = fs
       .open
-      .call_with_promise((file.as_str().to_string(), "r".to_string()))
+      .call_with_promise((file.as_str().to_string(), "r".to_string()).into())
       .await
       .map_err(map_error_to_fs_error)?;
 
@@ -191,7 +191,7 @@ impl ReadStream for NodeReadStream {
     let buffer = self
       .fs
       .read
-      .call_with_promise((self.fd, length as u32, self.pos as u32))
+      .call_with_promise((self.fd, length as u32, self.pos as u32).into())
       .await
       .map_err(map_error_to_fs_error)?;
 
@@ -208,7 +208,7 @@ impl ReadStream for NodeReadStream {
     let buffer = self
       .fs
       .read_until
-      .call_with_promise((self.fd, byte, self.pos as u32))
+      .call_with_promise((self.fd, byte, self.pos as u32).into())
       .await
       .map_err(map_error_to_fs_error)?;
 
@@ -224,7 +224,7 @@ impl ReadStream for NodeReadStream {
     let buffer = self
       .fs
       .read_to_end
-      .call_with_promise((self.fd, self.pos as u32))
+      .call_with_promise((self.fd, self.pos as u32).into())
       .await
       .map_err(map_error_to_fs_error)?;
 
@@ -261,7 +261,7 @@ impl NodeWriteStream {
   pub async fn try_new(file: &Utf8Path, fs: Arc<ThreadsafeNodeFS>) -> Result<Self> {
     let res = fs
       .open
-      .call_with_promise((file.as_str().to_string(), "w+".to_string()))
+      .call_with_promise((file.as_str().to_string(), "w+".to_string()).into())
       .await
       .map_err(map_error_to_fs_error)?;
 
@@ -283,7 +283,7 @@ impl WriteStream for NodeWriteStream {
     let res = self
       .fs
       .write
-      .call_with_promise((self.fd, buf.to_vec().into(), self.pos as u32))
+      .call_with_promise((self.fd, buf.to_vec().into(), self.pos as u32).into())
       .await
       .map_err(map_error_to_fs_error)?;
 
@@ -299,7 +299,7 @@ impl WriteStream for NodeWriteStream {
     self
       .fs
       .write_all
-      .call_with_promise((self.fd, buf.to_vec().into()))
+      .call_with_promise((self.fd, buf.to_vec().into()).into())
       .await
       .map_err(map_error_to_fs_error)
   }

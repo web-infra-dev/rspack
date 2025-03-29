@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt::Formatter, sync::Arc};
 
 use derive_more::Debug;
 use napi::{
-  bindgen_prelude::{Buffer, Either3},
+  bindgen_prelude::{Buffer, Either3, FnArgs},
   Either,
 };
 use napi_derive::napi;
@@ -624,7 +624,7 @@ impl From<RawAssetResourceGeneratorOptions> for AssetResourceGeneratorOptions {
 
 type RawAssetGeneratorDataUrl = Either<
   RawAssetGeneratorDataUrlOptions,
-  ThreadsafeFunction<(Buffer, RawAssetGeneratorDataUrlFnCtx), String>,
+  ThreadsafeFunction<FnArgs<(Buffer, RawAssetGeneratorDataUrlFnCtx)>, String>,
 >;
 struct RawAssetGeneratorDataUrlWrapper(RawAssetGeneratorDataUrl);
 
@@ -652,7 +652,7 @@ impl From<RawAssetGeneratorDataUrlWrapper> for AssetGeneratorDataUrl {
         let b = b.clone();
         let source = source.into();
         let ctx = ctx.into();
-        Box::pin(async move { b.call_with_sync((source, ctx)).await })
+        Box::pin(async move { b.call_with_sync((source, ctx).into()).await })
       })),
     }
   }
@@ -949,7 +949,11 @@ fn js_func_to_no_parse_test_func(
 ) -> ModuleNoParseTestFn {
   Box::new(move |s| {
     let v = v.clone();
-    Box::pin(async move { v.call_with_sync(s).await.map(|v| v.unwrap_or_default()) })
+    Box::pin(async move {
+      v.call_with_sync(s.into())
+        .await
+        .map(|v| v.unwrap_or_default())
+    })
   })
 }
 

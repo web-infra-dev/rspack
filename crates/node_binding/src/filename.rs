@@ -2,7 +2,7 @@ use std::{fmt::Debug, sync::Arc};
 
 use futures::future::BoxFuture;
 use napi::{
-  bindgen_prelude::{FromNapiValue, TypeName},
+  bindgen_prelude::{FnArgs, FromNapiValue, TypeName},
   Either,
 };
 use rspack_core::{Filename, FilenameFn, LocalFilenameFn, PathData, PublicPath};
@@ -13,7 +13,7 @@ use crate::{AssetInfo, JsPathData};
 /// A js filename value. Either a string or a function
 #[derive(Debug)]
 pub struct JsFilename {
-  pub filename: Either<String, ThreadsafeFunction<(JsPathData, Option<AssetInfo>), String>>,
+  pub filename: Either<String, ThreadsafeFunction<FnArgs<(JsPathData, Option<AssetInfo>)>, String>>,
 }
 
 impl FromNapiValue for JsFilename {
@@ -44,7 +44,7 @@ impl From<JsFilename> for Filename {
       Either::B(f) => Filename::from(Arc::new(ThreadSafeFilenameFn(Arc::new(
         move |path_data, asset_info| {
           let f = f.clone();
-          Box::pin(async move { f.call_with_sync((path_data, asset_info)).await })
+          Box::pin(async move { f.call_with_sync((path_data, asset_info).into()).await })
         },
       ))) as Arc<dyn FilenameFn>),
     }
@@ -58,7 +58,7 @@ impl From<JsFilename> for PublicPath {
       Either::B(f) => PublicPath::Filename(Filename::from(Arc::new(ThreadSafeFilenameFn(Arc::new(
         move |path_data, asset_info| {
           let f = f.clone();
-          Box::pin(async move { f.call_with_sync((path_data, asset_info)).await })
+          Box::pin(async move { f.call_with_sync((path_data, asset_info).into()).await })
         },
       ))) as Arc<dyn FilenameFn>)),
     }

@@ -1,5 +1,5 @@
 use napi::{
-  bindgen_prelude::{Buffer, Either3, Promise},
+  bindgen_prelude::{Buffer, Either3, FnArgs, Promise},
   Either,
 };
 use napi_derive::napi;
@@ -10,7 +10,7 @@ use rspack_napi::threadsafe_function::ThreadsafeFunction;
 #[napi(object, object_to_js = false, js_name = "ThreadsafeNodeFS")]
 pub struct ThreadsafeNodeFS {
   #[napi(ts_type = "(name: string, content: Buffer) => Promise<void>")]
-  pub write_file: ThreadsafeFunction<(String, Buffer), Promise<()>>,
+  pub write_file: ThreadsafeFunction<FnArgs<(String, Buffer)>, Promise<()>>,
   #[napi(ts_type = "(name: string) => Promise<void>")]
   pub remove_file: ThreadsafeFunction<String, Promise<()>>,
   #[napi(ts_type = "(name: string) => Promise<void>")]
@@ -28,21 +28,21 @@ pub struct ThreadsafeNodeFS {
   #[napi(ts_type = "(name: string) => Promise<NodeFsStats | void>")]
   pub lstat: ThreadsafeFunction<String, Promise<Either<NodeFsStats, ()>>>,
   #[napi(ts_type = "(name: string, flags: string) => Promise<number | void>")]
-  pub open: ThreadsafeFunction<(String, String), Promise<Either<i32, ()>>>,
+  pub open: ThreadsafeFunction<FnArgs<(String, String)>, Promise<Either<i32, ()>>>,
   #[napi(ts_type = "(from: string, to: string) => Promise<void>")]
-  pub rename: ThreadsafeFunction<(String, String), Promise<()>>,
+  pub rename: ThreadsafeFunction<FnArgs<(String, String)>, Promise<()>>,
   #[napi(ts_type = "(fd: number) => Promise<void>")]
   pub close: ThreadsafeFunction<i32, Promise<()>>,
   #[napi(ts_type = "(fd: number, content: Buffer, position: number) => Promise<number | void>")]
-  pub write: ThreadsafeFunction<(i32, Buffer, u32), Promise<Either<u32, ()>>>,
+  pub write: ThreadsafeFunction<FnArgs<(i32, Buffer, u32)>, Promise<Either<u32, ()>>>,
   #[napi(ts_type = "(fd: number, content: Buffer) => Promise<number | void>")]
-  pub write_all: ThreadsafeFunction<(i32, Buffer), Promise<()>>,
+  pub write_all: ThreadsafeFunction<FnArgs<(i32, Buffer)>, Promise<()>>,
   #[napi(ts_type = "(fd: number, length: number, position: number) => Promise<Buffer | void>")]
-  pub read: ThreadsafeFunction<(i32, u32, u32), Promise<Either<Buffer, ()>>>,
+  pub read: ThreadsafeFunction<FnArgs<(i32, u32, u32)>, Promise<Either<Buffer, ()>>>,
   #[napi(ts_type = "(fd: number, code: number, position: number) => Promise<Buffer | void>")]
-  pub read_until: ThreadsafeFunction<(i32, u8, u32), Promise<Either<Buffer, ()>>>,
+  pub read_until: ThreadsafeFunction<FnArgs<(i32, u8, u32)>, Promise<Either<Buffer, ()>>>,
   #[napi(ts_type = "(fd: number, position: number) => Promise<Buffer | void>")]
-  pub read_to_end: ThreadsafeFunction<(i32, u32), Promise<Either<Buffer, ()>>>,
+  pub read_to_end: ThreadsafeFunction<FnArgs<(i32, u32)>, Promise<Either<Buffer, ()>>>,
 }
 
 #[napi(object, object_to_js = false)]

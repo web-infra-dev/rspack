@@ -38,6 +38,7 @@ cow-utils          = { workspace = true }
 tracing            = { workspace = true }
 tracing-subscriber = { workspace = true }
 
+ctor        = { workspace = true }
 napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
 napi-derive = { workspace = true }
 
