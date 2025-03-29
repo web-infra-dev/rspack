@@ -1,6 +1,10 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Middleware } from "webpack-dev-server";
-import type { Compiler, LazyCompilationOptions } from "../..";
+import {
+	type Compiler,
+	type LazyCompilationOptions,
+	MultiCompiler
+} from "../..";
 import type { Module } from "../../Module";
 import { BuiltinLazyCompilationPlugin } from "./lazyCompilation";
 
@@ -24,7 +28,7 @@ const noop = (
 };
 
 export const lazyCompilationMiddleware = (
-	compiler: Compiler,
+	compiler: Compiler | MultiCompiler,
 	userOptions: LazyCompilationOptions | boolean = {}
 ): Middleware => {
 	if (userOptions === false) {
@@ -34,41 +38,88 @@ export const lazyCompilationMiddleware = (
 	const options = userOptions === true ? {} : userOptions;
 	const activeModules: Map<string, boolean> = new Map();
 	const filesByKey: Map<string, string> = new Map();
-	new BuiltinLazyCompilationPlugin(
-		({ module, path }) => {
-			const key = encodeURIComponent(
-				module.replace(/\\/g, "/").replace(/@/g, "_")
-			)
-				// module identifier may contain query, bang(!) or split(|),
-				// should do our best to ensure it's the same with which comes
-				// from server url
-				.replace(/%(2F|3A|24|26|2B|2C|3B|3D)/g, decodeURIComponent);
-			filesByKey.set(key, path);
-			const active = activeModules.get(key) === true;
-			return {
-				client: `${options.client || getDefaultClient(compiler)}?${encodeURIComponent((options.serverUrl ?? "") + LAZY_COMPILATION_PREFIX)}`,
-				data: key,
-				active
-			};
-		},
-		// @ts-expect-error internal option
-		options.cacheable ?? true,
-		options.entries ?? true,
-		options.imports ?? true,
-		typeof options.test === "function"
-			? module => {
-					const test = options.test as (module: Module) => boolean;
-					return test(module);
-				}
-			: options.test
-	).apply(compiler);
+
+	if (compiler instanceof MultiCompiler) {
+		for (const c of compiler.compilers) {
+			if (!c.options.experiments.lazyCompilation) {
+				continue;
+			}
+			const compilerConfig = c.options.experiments.lazyCompilation
+				? c.options.experiments.lazyCompilation
+				: {};
+			const testConfig = compilerConfig.test ?? options.test;
+
+			const plugin = new BuiltinLazyCompilationPlugin(
+				({ module, path }) => {
+					const key = encodeURIComponent(
+						module.replace(/\\/g, "/").replace(/@/g, "_")
+					)
+						// module identifier may contain query, bang(!) or split(|),
+						// should do our best to ensure it's the same with which comes
+						// from server url
+						.replace(/%(2F|3A|24|26|2B|2C|3B|3D)/g, decodeURIComponent);
+					filesByKey.set(key, path);
+					const active = activeModules.get(key) === true;
+					return {
+						client: `${options.client || getDefaultClient(c)}?${encodeURIComponent((options.serverUrl ?? "") + LAZY_COMPILATION_PREFIX)}`,
+						data: key,
+						active
+					};
+				},
+				// @ts-expect-error internal option
+				compilerConfig.cacheable ?? options.cacheable ?? true,
+				compilerConfig.entries ?? options.entries ?? true,
+				compilerConfig.imports ?? options.imports ?? true,
+				typeof testConfig === "function"
+					? module => {
+							const test = testConfig as (module: Module) => boolean;
+							return test(module);
+						}
+					: testConfig
+			);
+			plugin.apply(c);
+		}
+	} else {
+		if (!compiler.options.experiments.lazyCompilation) {
+			return noop;
+		}
+		const plugin = new BuiltinLazyCompilationPlugin(
+			({ module, path }) => {
+				const key = encodeURIComponent(
+					module.replace(/\\/g, "/").replace(/@/g, "_")
+				)
+					// module identifier may contain query, bang(!) or split(|),
+					// should do our best to ensure it's the same with which comes
+					// from server url
+					.replace(/%(2F|3A|24|26|2B|2C|3B|3D)/g, decodeURIComponent);
+				filesByKey.set(key, path);
+				const active = activeModules.get(key) === true;
+				return {
+					client: `${options.client || getDefaultClient(compiler)}?${encodeURIComponent((options.serverUrl ?? "") + LAZY_COMPILATION_PREFIX)}`,
+					data: key,
+					active
+				};
+			},
+			// @ts-expect-error internal option
+			options.cacheable ?? true,
+			options.entries ?? true,
+			options.imports ?? true,
+			typeof options.test === "function"
+				? module => {
+						const test = options.test as (module: Module) => boolean;
+						return test(module);
+					}
+				: options.test
+		);
+		plugin.apply(compiler);
+	}
 
 	return lazyCompilationMiddlewareInternal(compiler, activeModules, filesByKey);
 };
 
 // used for reuse code, do not export this
 const lazyCompilationMiddlewareInternal = (
-	compiler: Compiler,
+	compiler: Compiler | MultiCompiler,
 	activeModules: Map<string, boolean>,
 	filesByKey: Map<string, string>
 ) => {

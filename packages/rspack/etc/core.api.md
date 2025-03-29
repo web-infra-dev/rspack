@@ -3144,7 +3144,7 @@ type KnownStatsProfile = {
 export type Layer = string | null;
 
 // @public (undocumented)
-const lazyCompilationMiddleware: (compiler: Compiler, userOptions?: LazyCompilationOptions | boolean) => Middleware;
+const lazyCompilationMiddleware: (compiler: Compiler | MultiCompiler, userOptions?: LazyCompilationOptions | boolean) => Middleware;
 
 // @public
 export type LazyCompilationOptions = {
@@ -3754,6 +3754,8 @@ export class MultiCompiler {
     hooks: {
         done: liteTapable.SyncHook<MultiStats>;
         invalid: liteTapable.MultiHook<liteTapable.SyncHook<[string | null, number]>>;
+        beforeCompile: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[CompilationParams]>>;
+        shutdown: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[]>>;
         run: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[Compiler]>>;
         watchClose: liteTapable.SyncHook<[]>;
         watchRun: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[Compiler]>>;
@@ -3792,6 +3794,8 @@ export class MultiCompiler {
     // (undocumented)
     get watchFileSystem(): WatchFileSystem;
     set watchFileSystem(value: WatchFileSystem);
+    // (undocumented)
+    watching?: MultiWatching;
 }
 
 // @public (undocumented)
@@ -3828,6 +3832,8 @@ class MultiWatching {
     compiler: MultiCompiler;
     // (undocumented)
     invalidate(callback: Callback<Error, void>): void;
+    // (undocumented)
+    invalidateWithChangesAndRemovals(changedFiles?: Set<string>, removedFiles?: Set<string>, callback?: Callback<Error, void>): void;
     // (undocumented)
     resume(): void;
     // (undocumented)
