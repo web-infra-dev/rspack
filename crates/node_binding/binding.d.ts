@@ -1711,6 +1711,7 @@ export interface RawExperimentSnapshotOptions {
   immutablePaths: Array<string|RegExp>
   unmanagedPaths: Array<string|RegExp>
   managedPaths: Array<string|RegExp>
+  hashPaths: Array<string|RegExp>
 }
 
 export interface RawExposeOptions {

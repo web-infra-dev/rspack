@@ -42,9 +42,26 @@ impl Snapshot {
     }
   }
 
+  async fn calc_strategy(&self, helper: &StrategyHelper, path: &Path) -> Option<Strategy> {
+    let path_str = path.to_string_lossy();
+    if self.options.is_immutable_path(&path_str) {
+      return None;
+    }
+    if self.options.is_managed_path(&path_str) {
+      if let Some(v) = helper.package_version(path).await {
+        return Some(v);
+      }
+    }
+    if self.options.is_hash_path(&path_str) {
+      if let Some(h) = helper.path_hash(path).await {
+        return Some(h);
+      }
+    }
+    Some(helper.compile_time())
+  }
+
   #[tracing::instrument("Cache::Snapshot::add", skip_all)]
   pub async fn add(&self, paths: impl Iterator<Item = &Path>) {
-    let default_strategy = StrategyHelper::compile_time();
     let helper = StrategyHelper::new(self.fs.clone());
 
     // TODO merge package version file
@@ -60,26 +77,13 @@ impl Snapshot {
       if metadata_has_error {
         return;
       }
-      // TODO directory path should check all sub file
-      let path_str = utf8_path.as_str();
-      if self.options.is_immutable_path(path_str) {
+      let Some(strategy) = self.calc_strategy(&helper, path).await else {
         return;
-      }
-      if self.options.is_managed_path(path_str) {
-        if let Some(v) = helper.package_version(path).await {
-          self.storage.set(
-            SCOPE,
-            path.as_os_str().as_encoded_bytes().to_vec(),
-            to_bytes::<_, ()>(&v, &()).expect("should to bytes success"),
-          );
-          return;
-        }
-      }
-      // compiler time
+      };
       self.storage.set(
         SCOPE,
         path.as_os_str().as_encoded_bytes().to_vec(),
-        to_bytes::<_, ()>(&default_strategy, &()).expect("should to bytes success"),
+        to_bytes::<_, ()>(&strategy, &()).expect("should to bytes success"),
       );
     }))
     .await;
@@ -151,8 +155,10 @@ mod tests {
       vec![PathMatcher::String("constant".into())],
       vec![PathMatcher::String("node_modules/project".into())],
       vec![PathMatcher::String("node_modules".into())],
+      vec![PathMatcher::String("hash".into())],
     );
 
+    // init memory fs
     fs.create_dir_all("/node_modules/project".into())
       .await
       .unwrap();
@@ -161,6 +167,7 @@ mod tests {
     fs.write("/constant".into(), "abc".as_bytes())
       .await
       .unwrap();
+    fs.write("/hash".into(), "abc".as_bytes()).await.unwrap();
     fs.write(
       "/node_modules/project/package.json".into(),
       r#"{"version":"1.0.0"}"#.as_bytes(),
@@ -181,7 +188,7 @@ mod tests {
       .unwrap();
 
     let snapshot = Snapshot::new(options, fs.clone(), storage);
-
+    // create snapshot for test files
     snapshot
       .add(
         [
@@ -189,11 +196,13 @@ mod tests {
           p!("/constant"),
           p!("/node_modules/project/file1"),
           p!("/node_modules/lib/file1"),
+          p!("/hash"),
         ]
         .into_iter(),
       )
       .await;
     std::thread::sleep(std::time::Duration::from_millis(100));
+
     fs.write("/file1".into(), "abcd".as_bytes()).await.unwrap();
     fs.write("/constant".into(), "abcd".as_bytes())
       .await
@@ -208,6 +217,7 @@ mod tests {
     let (modified_paths, deleted_paths) = snapshot.calc_modified_paths().await.unwrap();
     assert!(deleted_paths.is_empty());
     assert!(!modified_paths.contains(p!("/constant")));
+    assert!(!modified_paths.contains(p!("/hash")));
     assert!(modified_paths.contains(p!("/file1")));
     assert!(modified_paths.contains(p!("/node_modules/project/file1")));
     assert!(!modified_paths.contains(p!("/node_modules/lib/file1")));
@@ -218,12 +228,22 @@ mod tests {
     )
     .await
     .unwrap();
+    fs.write("/hash".into(), "abc".as_bytes()).await.unwrap();
     snapshot.add([p!("/file1")].into_iter()).await;
     let (modified_paths, deleted_paths) = snapshot.calc_modified_paths().await.unwrap();
     assert!(deleted_paths.is_empty());
     assert!(!modified_paths.contains(p!("/constant")));
+    assert!(!modified_paths.contains(p!("/hash")));
     assert!(!modified_paths.contains(p!("/file1")));
     assert!(modified_paths.contains(p!("/node_modules/project/file1")));
     assert!(modified_paths.contains(p!("/node_modules/lib/file1")));
+
+    // test hash strategy
+    fs.write("/hash".into(), "abc".as_bytes()).await.unwrap();
+    let (modified_paths, _) = snapshot.calc_modified_paths().await.unwrap();
+    assert!(!modified_paths.contains(p!("/hash")));
+    fs.write("/hash".into(), "abcd".as_bytes()).await.unwrap();
+    let (modified_paths, _) = snapshot.calc_modified_paths().await.unwrap();
+    assert!(modified_paths.contains(p!("/hash")));
   }
 }

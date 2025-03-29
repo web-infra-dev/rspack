@@ -1327,7 +1327,8 @@ const experimentCacheOptions = z
 						.or(z.instanceof(RegExp))
 						.array()
 						.optional(),
-					managedPaths: z.string().or(z.instanceof(RegExp)).array().optional()
+					managedPaths: z.string().or(z.instanceof(RegExp)).array().optional(),
+					hashPaths: z.string().or(z.instanceof(RegExp)).array().optional()
 				})
 				.optional(),
 			storage: z

@@ -1901,6 +1901,7 @@ export type ExperimentCacheNormalized = boolean | {
         immutablePaths: Array<string | RegExp>;
         unmanagedPaths: Array<string | RegExp>;
         managedPaths: Array<string | RegExp>;
+        hashPaths: Array<string | RegExp>;
     };
     storage: {
         type: "filesystem";
@@ -1919,6 +1920,7 @@ export type ExperimentCacheOptions = boolean | {
         immutablePaths?: Array<string | RegExp>;
         unmanagedPaths?: Array<string | RegExp>;
         managedPaths?: Array<string | RegExp>;
+        hashPaths?: Array<string | RegExp>;
     };
     storage?: {
         type: "filesystem";

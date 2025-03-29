@@ -24,8 +24,10 @@ pub struct SnapshotOptions {
   /// unmanaged paths, snapshot will use compile time strategy even if
   /// them are in managed_paths
   unmanaged_paths: Vec<PathMatcher>,
-  /// managed_paths, snapshot will use lib version strategy
+  /// managed_paths, snapshot will use package version strategy
   managed_paths: Vec<PathMatcher>,
+  /// hash_paths, snapshot will use file hash strategy
+  hash_paths: Vec<PathMatcher>,
 }
 
 impl SnapshotOptions {
@@ -33,36 +35,39 @@ impl SnapshotOptions {
     immutable_paths: Vec<PathMatcher>,
     unmanaged_paths: Vec<PathMatcher>,
     managed_paths: Vec<PathMatcher>,
+    hash_paths: Vec<PathMatcher>,
   ) -> Self {
     Self {
       immutable_paths,
       unmanaged_paths,
       managed_paths,
+      hash_paths,
     }
+  }
+
+  #[inline]
+  fn match_path(paths: &Vec<PathMatcher>, path_str: &str) -> bool {
+    for item in paths {
+      if item.try_match(path_str) {
+        return true;
+      }
+    }
+    false
   }
 
   pub fn is_immutable_path(&self, path_str: &str) -> bool {
-    for item in &self.immutable_paths {
-      if item.try_match(path_str) {
-        return true;
-      }
-    }
-    false
+    Self::match_path(&self.immutable_paths, path_str)
   }
 
   pub fn is_managed_path(&self, path_str: &str) -> bool {
-    for item in &self.unmanaged_paths {
-      if item.try_match(path_str) {
-        return false;
-      }
+    if Self::match_path(&self.unmanaged_paths, path_str) {
+      return false;
     }
+    Self::match_path(&self.managed_paths, path_str)
+  }
 
-    for item in &self.managed_paths {
-      if item.try_match(path_str) {
-        return true;
-      }
-    }
-    false
+  pub fn is_hash_path(&self, path_str: &str) -> bool {
+    Self::match_path(&self.hash_paths, path_str)
   }
 }
 
@@ -101,6 +106,10 @@ mod tests {
         PathMatcher::String("node_modules".into()),
         PathMatcher::Regexp(RspackRegex::new("test_modules/.+").unwrap()),
       ],
+      vec![
+        PathMatcher::String("node_modules/hash".into()),
+        PathMatcher::Regexp(RspackRegex::new("test_modules/hash/.+").unwrap()),
+      ],
     );
 
     assert!(options.is_immutable_path("/root/project/constant/var.js"));
@@ -116,5 +125,11 @@ mod tests {
 
     assert!(options.is_managed_path("/root/project/test_modules/var.js"));
     assert!(!options.is_managed_path("/root/project/test_modules/test1/var.js"));
+
+    assert!(!options.is_hash_path("/root/project/node_modules/var.js"));
+    assert!(options.is_hash_path("/root/project/node_modules/hash/var.js"));
+
+    assert!(options.is_hash_path("/root/project/test_modules/hash/var.js"));
+    assert!(!options.is_hash_path("/root/project/test_modules/var.js"));
   }
 }
