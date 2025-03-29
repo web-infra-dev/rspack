@@ -58,12 +58,6 @@ jobs:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
 
-      - name: Clean
-        if: ${{ !inputs.skipable && runner.environment == 'self-hosted' }}
-        uses: ./.github/actions/clean
-        with:
-          target: ${{ inputs.target }}
-
       - name: Pnpm Setup
         if: ${{ !inputs.skipable }}
         uses: ./.github/actions/pnpm/setup
@@ -241,12 +235,6 @@ jobs:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
 
-      - name: Clean
-        if: ${{ runner.environment == 'self-hosted' }}
-        uses: ./.github/actions/clean
-        with:
-          target: ${{ inputs.target }}
-
       - name: Download bindings
         uses: ./.github/actions/artifact/download
         with:
@@ -303,12 +291,6 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
-
-      - name: Clean
-        if: ${{ !inputs.skipable && runner.environment == 'self-hosted' }}
-        uses: ./.github/actions/clean
-        with:
-          target: ${{ inputs.target }}
 
       - name: Download bindings
         if: ${{ !inputs.skipable }}
@@ -392,12 +374,6 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
-
-      - name: Clean
-        if: ${{ runner.environment == 'self-hosted' }}
-        uses: ./.github/actions/clean
-        with:
-          target: ${{ inputs.target }}
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
