@@ -21,6 +21,7 @@ console.log("a");
 
 }),
 "./resources sync recursive ^\\.\\/pre_.*\\.js$": (function (module, __unused_webpack_exports, __webpack_require__) {
+"use strict";
 var map = {
   "./pre_a.js": "./resources/pre_a.js",
   "./pre_b.js": "./resources/pre_b.js",
