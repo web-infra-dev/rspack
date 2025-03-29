@@ -30,11 +30,11 @@ pub struct FactorizeTask {
 }
 
 #[async_trait::async_trait]
-impl Task<MakeTaskContext> for FactorizeTask {
+impl Task for FactorizeTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Async
   }
-  async fn background_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {
+  async fn background_run(self: Box<Self>) -> TaskResult {
     if let Some(current_profile) = &self.current_profile {
       current_profile.mark_factory_start();
     }
@@ -155,11 +155,11 @@ pub struct FactorizeResultTask {
 }
 
 #[async_trait::async_trait]
-impl Task<MakeTaskContext> for FactorizeResultTask {
+impl Task for FactorizeResultTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
-  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult {
     let FactorizeResultTask {
       original_module_identifier,
       factory_result,
