@@ -10,10 +10,13 @@ use rspack_napi::threadsafe_function::ThreadsafeFunction;
 
 use crate::{AssetInfo, JsPathData};
 
+type FilenameValue =
+  Either<String, ThreadsafeFunction<FnArgs<(JsPathData, Option<AssetInfo>)>, String>>;
+
 /// A js filename value. Either a string or a function
 #[derive(Debug)]
 pub struct JsFilename {
-  pub filename: Either<String, ThreadsafeFunction<FnArgs<(JsPathData, Option<AssetInfo>)>, String>>,
+  pub filename: FilenameValue,
 }
 
 impl FromNapiValue for JsFilename {

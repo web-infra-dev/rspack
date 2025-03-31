@@ -949,11 +949,7 @@ fn js_func_to_no_parse_test_func(
 ) -> ModuleNoParseTestFn {
   Box::new(move |s| {
     let v = v.clone();
-    Box::pin(async move {
-      v.call_with_sync(s.into())
-        .await
-        .map(|v| v.unwrap_or_default())
-    })
+    Box::pin(async move { v.call_with_sync(s).await.map(|v| v.unwrap_or_default()) })
   })
 }
 
