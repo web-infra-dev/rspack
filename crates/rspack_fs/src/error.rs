@@ -70,6 +70,16 @@ impl<T, E: ToString> RspackResultToFsResultExt<T> for std::result::Result<T, E> 
   }
 }
 
+pub trait IoResultToFsResultExt<T> {
+  fn to_fs_result(self) -> Result<T>;
+}
+
+impl<T> IoResultToFsResultExt<T> for std::io::Result<T> {
+  fn to_fs_result(self) -> Result<T> {
+    self.map_err(Error::from)
+  }
+}
+
 pub trait FsResultToIoResultExt<T> {
   fn to_io_result(self) -> std::io::Result<T>;
 }

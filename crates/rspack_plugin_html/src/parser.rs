@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use rspack_core::{Compilation, ErrorSpan};
-use rspack_error::{error, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{
+  DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+  ToStringResultToRspackResultExt,
+};
 use swc_core::common::{sync::Lrc, FileName, FilePathMapping, SourceFile, SourceMap, GLOBALS};
 use swc_html::{
   ast::Document,
@@ -68,7 +71,7 @@ impl<'a> HtmlCompiler<'a> {
     let wr = BasicHtmlWriter::new(&mut output, None, writer_config);
     let mut gen = CodeGenerator::new(wr, codegen_config);
 
-    gen.emit(ast).map_err(|e| error!(e.to_string()))?;
+    gen.emit(ast).to_rspack_result()?;
     Ok(output)
   }
 }

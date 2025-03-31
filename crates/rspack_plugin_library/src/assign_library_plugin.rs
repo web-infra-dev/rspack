@@ -12,7 +12,7 @@ use rspack_core::{
   LibraryExport, LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData,
   Plugin, PluginContext, RuntimeGlobals, SourceType, UsageState,
 };
-use rspack_error::{error, error_bail, Result};
+use rspack_error::{error, error_bail, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
@@ -298,7 +298,7 @@ async fn render_startup(
     if has_provided {
       source.add(RawStringSource::from(format!(
         "  if({}.indexOf(__webpack_i__) === -1) {{\n",
-        serde_json::to_string(&provided).map_err(|e| error!(e.to_string()))?
+        serde_json::to_string(&provided).to_rspack_result()?
       )));
     }
     source.add(RawStringSource::from(format!(
