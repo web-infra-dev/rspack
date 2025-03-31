@@ -1378,6 +1378,9 @@ export class StatsProcessor<T extends ECompilerType> extends MultiTaskProcessor<
 }
 
 // @public (undocumented)
+export function supportsImportFn(): boolean;
+
+// @public (undocumented)
 export type TBasicRunnerFile = {
     path: string;
     content: string;

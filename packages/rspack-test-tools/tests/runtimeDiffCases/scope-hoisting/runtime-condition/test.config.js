@@ -1,4 +1,4 @@
-/** @type {import("../../../../dist").TDiffCaseConfig} */
+/** @type {import('@rspack/test-tools').TDiffCaseConfig} */
 module.exports = {
 	renameModule: raw => {
 		// remove hash for concated module identifier
