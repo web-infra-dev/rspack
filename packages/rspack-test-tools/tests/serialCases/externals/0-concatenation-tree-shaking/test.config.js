@@ -1,4 +1,4 @@
-/** @type {import("../../../../dist").TConfigCaseConfig} */
+/** @type {import('@rspack/test-tools').TConfigCaseConfig} */
 module.exports = {
 	noTests: true
 };

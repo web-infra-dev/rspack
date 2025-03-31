@@ -1,7 +1,7 @@
 const path = require('path');
 
-const mockWatchRunFn = jest.fn(() => {});
-const mockInvalidFn = jest.fn(() => {});
+const mockWatchRunFn = jest.fn(() => { });
+const mockInvalidFn = jest.fn(() => { });
 
 class MyPlugin {
 	apply(compiler) {
@@ -10,7 +10,7 @@ class MyPlugin {
 	}
 }
 
-/** @type {import('../../dist').TCompilerCaseConfig} */
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 module.exports = {
 	description: "should be invalidated correctly",
 	options(context) {
@@ -38,7 +38,7 @@ module.exports = {
 					}
 				});
 			});
-		} catch(err) {
+		} catch (err) {
 			throw err
 		}
 

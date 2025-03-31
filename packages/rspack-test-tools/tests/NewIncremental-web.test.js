@@ -2,7 +2,10 @@
 process.env.RSPACK_CONFIG_VALIDATE = "loose-silent";
 
 const path = require("path");
-const { describeByWalk, createHotNewIncrementalCase } = require("../dist");
+const {
+	describeByWalk,
+	createHotNewIncrementalCase
+} = require("@rspack/test-tools");
 
 function v(name) {
 	return path.join(__dirname, `new-incremental ${name}`);

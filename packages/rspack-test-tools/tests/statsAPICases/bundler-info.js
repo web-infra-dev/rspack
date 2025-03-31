@@ -1,4 +1,4 @@
-/** @type {import('../../dist').TStatsAPICaseConfig} */
+/** @type {import('@rspack/test-tools').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should inject bundler info runtime modules",
 	options(context) {

@@ -1,4 +1,4 @@
-const { createHashCase, describeByWalk } = require("../dist");
+const { createHashCase, describeByWalk } = require("@rspack/test-tools");
 
 describeByWalk(
 	__filename,

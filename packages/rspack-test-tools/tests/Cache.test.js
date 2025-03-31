@@ -2,7 +2,7 @@
 process.env.RSPACK_CONFIG_VALIDATE = "loose-silent";
 
 const path = require("path");
-const { describeByWalk, createCacheCase } = require("../dist");
+const { describeByWalk, createCacheCase } = require("@rspack/test-tools");
 
 // Run tests rspack-test-tools/tests/cacheCases in target async-node
 describeByWalk(
