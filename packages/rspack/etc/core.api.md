@@ -306,6 +306,7 @@ interface BaseModuleConfig {
     lazy?: boolean | string[];
     // @deprecated (undocumented)
     noInterop?: boolean;
+    outFileExtension?: "js" | "mjs" | "cjs";
     // (undocumented)
     preserveImportMeta?: boolean;
     strict?: boolean;
@@ -4512,7 +4513,11 @@ interface ReactConfig {
     importSource?: string;
     pragma?: string;
     pragmaFrag?: string;
-    refresh?: boolean;
+    refresh?: boolean | {
+        refreshReg?: string;
+        refreshSig?: string;
+        emitFullSignatures?: boolean;
+    };
     runtime?: "automatic" | "classic";
     throwIfNamespace?: boolean;
     // @deprecated
