@@ -2,9 +2,8 @@ use miette::{miette, LabeledSpan, SourceOffset};
 
 use crate::Result;
 
-pub trait SerdeResultToRspackResultExt<T> {
+pub trait SerdeResultToRspackResultExt<T>: ToStringResultToRspackResultExt<T> {
   fn to_rspack_result_with_detail(self, content: &str, msg: &str) -> Result<T>;
-  fn to_rspack_result(self) -> Result<T>;
 }
 
 impl<T> SerdeResultToRspackResultExt<T> for std::result::Result<T, serde_json::Error> {
@@ -15,16 +14,13 @@ impl<T> SerdeResultToRspackResultExt<T> for std::result::Result<T, serde_json::E
       miette!(labels = vec![span], "{msg}").with_source_code(content.to_string())
     })
   }
-  fn to_rspack_result(self) -> Result<T> {
-    self.map_err(|e| miette!(e.to_string()))
-  }
 }
 
-pub trait JoinResultToRspackResultExt<T> {
+pub trait ToStringResultToRspackResultExt<T> {
   fn to_rspack_result(self) -> Result<T>;
 }
 
-impl<T> JoinResultToRspackResultExt<T> for std::result::Result<T, tokio::task::JoinError> {
+impl<T, E: ToString> ToStringResultToRspackResultExt<T> for std::result::Result<T, E> {
   fn to_rspack_result(self) -> Result<T> {
     self.map_err(|e| miette!(e.to_string()))
   }

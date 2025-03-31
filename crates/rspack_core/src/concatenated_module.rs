@@ -18,7 +18,7 @@ use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_error::{
-  Diagnosable, Diagnostic, DiagnosticKind, JoinResultToRspackResultExt, Result, TraceableError,
+  Diagnosable, Diagnostic, DiagnosticKind, Result, ToStringResultToRspackResultExt, TraceableError,
 };
 use rspack_hash::{HashDigest, HashFunction, RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;

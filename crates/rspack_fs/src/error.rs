@@ -69,3 +69,15 @@ impl<T, E: ToString> RspackResultToFsResultExt<T> for std::result::Result<T, E> 
     }
   }
 }
+
+pub trait FsResultToIoResultExt<T> {
+  fn to_io_result(self) -> std::io::Result<T>;
+}
+
+impl<T> FsResultToIoResultExt<T> for Result<T> {
+  fn to_io_result(self) -> std::io::Result<T> {
+    self.map_err(|e| match e {
+      Error::Io(err) => err,
+    })
+  }
+}
