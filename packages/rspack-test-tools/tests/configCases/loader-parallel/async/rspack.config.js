@@ -1,3 +1,4 @@
+const supportsImportFn = require("../../../../dist/helper/legacy/supportsImportFn");
 const path = require("path");
 const file = path.join(__dirname, "a.js");
 const asyncLoader = path.join(__dirname, "asyncloader.js");
@@ -59,6 +60,6 @@ module.exports = {
 		]
 	},
 	experiments: {
-		parallelLoader: true
+		parallelLoader: supportsImportFn()
 	}
 };
