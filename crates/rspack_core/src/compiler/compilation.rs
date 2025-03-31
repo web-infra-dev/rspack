@@ -21,8 +21,8 @@ use rspack_collections::{
   DatabaseItem, Identifiable, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
 };
 use rspack_error::{
-  error, miette::diagnostic, Diagnostic, DiagnosticExt, InternalError, Result, RspackSeverity,
-  Severity,
+  error, miette::diagnostic, Diagnostic, DiagnosticExt, InternalError, JoinResultToRspackResultExt,
+  Result, RspackSeverity, Severity,
 };
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -1016,7 +1016,7 @@ impl Compilation {
     .await;
     let results = results
       .into_iter()
-      .map(|res| res.map_err(rspack_error::miette::Error::from_err))
+      .map(|res| res.to_rspack_result())
       .collect::<Result<Vec<_>>>()?;
 
     for (module, runtimes, (codegen_res, from_cache)) in results {
@@ -1144,8 +1144,7 @@ impl Compilation {
 
     let mut chunk_render_results: UkeyMap<ChunkUkey, ChunkRenderResult> = Default::default();
     for result in results {
-      let item: std::result::Result<(ChunkUkey, ChunkRenderResult), _> =
-        result.map_err(rspack_error::miette::Error::from_err)?;
+      let item = result.to_rspack_result()?;
       let (key, value) = item?;
       chunk_render_results.insert(key, value);
     }
@@ -1857,7 +1856,7 @@ impl Compilation {
     })
     .await
     .into_iter()
-    .map(|res| res.map_err(rspack_error::miette::Error::from_err))
+    .map(|r| r.to_rspack_result())
     .collect::<Result<Vec<_>>>()?;
 
     for entry in module_results {
@@ -2267,7 +2266,7 @@ impl Compilation {
     })
     .await
     .into_iter()
-    .map(|res| res.map_err(rspack_error::miette::Error::from_err))
+    .map(|res| res.to_rspack_result())
     .collect::<Result<Vec<_>>>()?;
 
     let mut runtime_module_sources = IdentifierMap::<BoxSource>::default();
@@ -2347,7 +2346,7 @@ impl Compilation {
     })
     .await
     .into_iter()
-    .map(|res| res.map_err(rspack_error::miette::Error::from_err))
+    .map(|r| r.to_rspack_result())
     .collect::<Result<Vec<_>>>()?;
 
     for result in results {
