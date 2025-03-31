@@ -29,7 +29,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "@rsbuild/plugin-sass": "^1.2.2",
+    "@rsbuild/plugin-sass": "^1.3.1",
     "@rspress/plugin-rss": "2.0.0-alpha.7",
     "@types/node": "^20.17.24",
     "@types/react": "^19.0.11",
