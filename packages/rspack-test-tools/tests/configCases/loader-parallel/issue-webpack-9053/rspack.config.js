@@ -1,3 +1,5 @@
+const supportsImportFn = require("../../../../dist/helper/legacy/supportsImportFn");
+
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	module: {
@@ -13,6 +15,6 @@ module.exports = {
 		]
 	},
 	experiments: {
-		parallelLoader: true
+		parallelLoader: supportsImportFn()
 	}
 };

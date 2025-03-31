@@ -1,3 +1,4 @@
+const supportsImportFn = require("../../../../dist/helper/legacy/supportsImportFn");
 const path = require("path");
 
 /**
@@ -22,6 +23,6 @@ module.exports = {
 		]
 	},
 	experiments: {
-		parallelLoader: true
+		parallelLoader: supportsImportFn()
 	}
 };
