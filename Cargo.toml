@@ -76,7 +76,7 @@ smol_str         = { version = "0.3.0" }
 stacker          = { version = "0.1.17" }
 sugar_path       = { version = "1.2.0", features = ["cached_current_dir"] }
 syn              = { version = "2.0.95" }
-tokio            = { version = "1.42.0", features = ["rt-multi-thread", "rt"] }
+tokio            = { version = "1.42.0", features = ["rt"] }
 # don't include debug & trace in release binary to save release binary size
 tracing            = { version = "0.1.41", features = ["max_level_trace", "release_max_level_info"] }
 tracing-subscriber = { version = "0.3.19" }
@@ -193,6 +193,9 @@ rspack_testing                         = { version = "0.2.0", path = "crates/rsp
 rspack_tracing                         = { version = "0.2.0", path = "crates/rspack_tracing" }
 rspack_util                            = { version = "0.2.0", path = "crates/rspack_util" }
 
+
+[workspace.target.'cfg(not(target_family = "wasm"))'.dependencies]
+tokio = { workspace = true, features = ["rt-multi-thread"] }
 
 [workspace.metadata.release]
 rate-limit = { existing-packages = 70, new-packages = 70 }
