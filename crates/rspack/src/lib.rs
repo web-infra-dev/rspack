@@ -1,14 +1,6 @@
 #![forbid(missing_docs)]
 
-//! Rspack is a high performance JavaScript bundler written in Rust. It offers strong compatibility with the webpack ecosystem, allowing for seamless replacement of webpack, and provides lightning fast build speeds.
-//!
-//! ## Why rspack?
-//!
-//! Rspack was initially created to solve performance problems encountered at ByteDance, a tech company that maintains many large monolithic app projects with complex bundling requirements. Production build times had grown to ten minutes or even half an hour in some cases, and cold start times could exceed several minutes. After experimenting with many bundlers and optimization ideas, a common set of requirements emerged:
-//! - **Dev mode startup performance.** npm run dev is a command that developers may invoke many times per hour. Engineering productivity suffers if startup time exceeds 10-15 seconds.
-//! - **Fast builds.** npm run build is used in CI/CD pipelines and directly impacts merging productivity and application delivery time. Large applications may spend 20-30 minutes running these pipelines, and bundling time is often a major contributor.
-//! - **Flexible configuration.** From experimenting with various popular bundlers, we found that one-size-fits-all configurations encountered many problems when trying to accommodate real world projects. A major advantage of webpack is its flexibility and ease of accommodating customized requirements for each project. This in turn may pose steep migration costs for legacy projects that try to migrate away from webpack.
-//! - **Production optimization capabilities.** All of the existing bundling solutions also had various limitations when optimizing for a production environment, such as insufficiently fine-grained code splitting, etc. Rspack has an opportunity to rethink these optimizations from the ground up, leveraging Rust-specific features such as multithreading.
+//! Rspack is a high performance JavaScript bundler written in Rust. It offers strong compatibility with the webpack ecosystem, allowing for seamless replacement of webpack, and provides lightning fast build 
 //!
 //! ## Example
 //!
