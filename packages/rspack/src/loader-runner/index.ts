@@ -910,6 +910,9 @@ export async function runLoaders(
 						loaderContext.cacheable(cacheable);
 						break;
 					}
+					case RequestType.ImportModule: {
+						return loaderContext.importModule(args[0], args[1]);
+					}
 					case RequestType.UpdateLoaderObjects: {
 						const updates = args[0];
 						loaderContext.loaders = loaderContext.loaders.map((item, index) => {
@@ -924,6 +927,29 @@ export async function runLoaders(
 							return item;
 						});
 						break;
+					}
+					case RequestType.CompilationGetPath: {
+						const filename = args[0];
+						const data = args[1];
+						return compiler._lastCompilation!.getPath(filename, data);
+					}
+					case RequestType.CompilationGetPathWithInfo: {
+						const filename = args[0];
+						const data = args[1];
+						return compiler._lastCompilation!.getPathWithInfo(filename, data);
+					}
+					case RequestType.CompilationGetAssetPath: {
+						const filename = args[0];
+						const data = args[1];
+						return compiler._lastCompilation!.getAssetPath(filename, data);
+					}
+					case RequestType.CompilationGetAssetPathWithInfo: {
+						const filename = args[0];
+						const data = args[1];
+						return compiler._lastCompilation!.getAssetPathWithInfo(
+							filename,
+							data
+						);
 					}
 					default: {
 						throw new Error(`Unknown request type: ${requestType}`);

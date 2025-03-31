@@ -2,7 +2,7 @@ import querystring from "node:querystring";
 import { promisify } from "node:util";
 import { type MessagePort, receiveMessageOnPort } from "node:worker_threads";
 
-import { JsLoaderState, NormalModule } from "@rspack/binding";
+import { JsLoaderState, type NormalModule } from "@rspack/binding";
 import type { LoaderContext } from "../config";
 
 import { createHash } from "../util/createHash";
@@ -96,9 +96,6 @@ async function loaderImpl(
 	};
 	loaderContext.clearDependencies = function clearDependencies() {
 		pendingDependencyRequest.push(sendRequest(RequestType.ClearDependencies));
-	};
-	loaderContext.importModule = function () {
-		throw new Error("importModule is not supported in worker");
 	};
 	loaderContext.resolve = function resolve(context, request, callback) {
 		sendRequest(RequestType.Resolve, context, request).then(
@@ -256,6 +253,34 @@ async function loaderImpl(
 		}
 	};
 
+	loaderContext._compilation = {
+		...loaderContext._compilation,
+		getPath(filename, data) {
+			return sendRequest(RequestType.CompilationGetPath, filename, data).wait();
+		},
+		getPathWithInfo(filename, data) {
+			return sendRequest(
+				RequestType.CompilationGetPathWithInfo,
+				filename,
+				data
+			).wait();
+		},
+		getAssetPath(filename, data) {
+			return sendRequest(
+				RequestType.CompilationGetAssetPath,
+				filename,
+				data
+			).wait();
+		},
+		getAssetPathWithInfo(filename, data) {
+			return sendRequest(
+				RequestType.CompilationGetAssetPathWithInfo,
+				filename,
+				data
+			).wait();
+		}
+	} as LoaderContext["_compilation"];
+
 	const _module = loaderContext._module as any;
 	loaderContext._module = {
 		type: _module.type,
@@ -267,6 +292,34 @@ async function loaderImpl(
 		userRequest: _module.userRequest,
 		rawRequest: _module.rawRequest
 	} as NormalModule;
+
+	// @ts-expect-error
+	loaderContext.importModule = function importModule(
+		request,
+		options,
+		callback
+	) {
+		if (!callback) {
+			return new Promise((resolve, reject) => {
+				sendRequest(RequestType.ImportModule, request, options).then(
+					result => {
+						resolve(result);
+					},
+					err => {
+						reject(err);
+					}
+				);
+			});
+		}
+		sendRequest(RequestType.ImportModule, request, options).then(
+			result => {
+				callback(null, result);
+			},
+			err => {
+				callback(err);
+			}
+		);
+	};
 
 	Object.defineProperty(loaderContext, "request", {
 		enumerable: true,
