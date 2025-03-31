@@ -1,4 +1,4 @@
-/** @type {import("../../../../dist").PitchLoaderDefinitionFunction} */
+/** @type {import('@rspack/test-tools').PitchLoaderDefinitionFunction} */
 module.exports = async function () {
 	try {
 		const result = await this.importModule("./syntax-error.js");

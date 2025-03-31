@@ -1,6 +1,6 @@
 const stats = [];
 
-/** @type {import('../../dist').TCompilerCaseConfig} */
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 module.exports = {
 	description: "should be called every compilation",
 	options(context) {

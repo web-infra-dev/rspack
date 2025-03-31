@@ -184,6 +184,14 @@ export type NormalizedStatsOptions = KnownNormalizedStatsOptions &
 	Omit<StatsOptions, keyof KnownNormalizedStatsOptions> &
 	Record<string, any>;
 
+export const checkCompilation = (compilation: Compilation) => {
+	if (!(compilation instanceof Compilation)) {
+		throw new TypeError(
+			`The 'compilation' argument must be an instance of Compilation. This usually occurs when multiple versions of "@rspack/core" are used, or when the code in "@rspack/core" is executed multiple times.`
+		);
+	}
+};
+
 export class Compilation {
 	#inner: JsCompilation;
 	#shutdown: boolean;

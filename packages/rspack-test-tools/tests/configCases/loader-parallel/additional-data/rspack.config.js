@@ -1,5 +1,5 @@
 const path = require("path");
-const supportsImportFn = require("../../../../dist/helper/legacy/supportsImportFn");
+const { supportsImportFn } = require("@rspack/test-tools");
 
 /**
  * @type {import('@rspack/core').RspackOptions}

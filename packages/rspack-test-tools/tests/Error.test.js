@@ -1,5 +1,5 @@
 const path = require("path");
-const { createErrorCase, describeByWalk } = require("../dist");
+const { createErrorCase, describeByWalk } = require("@rspack/test-tools");
 const caseDir = path.resolve(__dirname, "./errorCases");
 
 describeByWalk(

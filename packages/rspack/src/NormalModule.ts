@@ -2,7 +2,7 @@ import util from "node:util";
 import * as binding from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
 import type { Source } from "webpack-sources";
-import { Compilation } from "./Compilation";
+import { type Compilation, checkCompilation } from "./Compilation";
 import type { Module } from "./Module";
 import type { LoaderContext } from "./config";
 import { JsSource } from "./util/source";
@@ -100,11 +100,8 @@ Object.defineProperty(binding.NormalModule, "getCompilationHooks", {
 	enumerable: true,
 	configurable: true,
 	value(compilation: Compilation): NormalModuleCompilationHooks {
-		if (!(compilation instanceof Compilation)) {
-			throw new TypeError(
-				"The 'compilation' argument must be an instance of Compilation"
-			);
-		}
+		checkCompilation(compilation);
+
 		let hooks = compilationHooksMap.get(compilation);
 		if (hooks === undefined) {
 			hooks = {

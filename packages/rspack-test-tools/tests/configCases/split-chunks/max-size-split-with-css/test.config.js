@@ -1,4 +1,4 @@
-/** @type {import("../../../../dist").TConfigCaseConfig} */
+/** @type {import('@rspack/test-tools').TConfigCaseConfig} */
 module.exports = {
 	findBundle: function (i, options) {
 		// should split based on their file path
