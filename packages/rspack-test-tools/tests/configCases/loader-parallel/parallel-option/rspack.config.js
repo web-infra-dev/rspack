@@ -1,3 +1,4 @@
+const supportsImportFn = require("../../../../dist/helper/legacy/supportsImportFn");
 module.exports = {
 	context: __dirname,
 	module: {
@@ -15,6 +16,6 @@ module.exports = {
 		]
 	},
 	experiments: {
-		parallelLoader: false
+		parallelLoader: supportsImportFn()
 	}
 };
