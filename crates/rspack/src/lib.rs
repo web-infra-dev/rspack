@@ -49,7 +49,7 @@
 //!
 //! Currently, there's still alot of features that are not implemented yet. Here's a list of features that are not implemented yet:
 //!
-//! - [x] Basic `CompilerBuilder` API
+//! - [x] `CompilerBuilder` API
 //! - [ ] `SplitChunksPlugin` API
 //! - [ ] `BundlerInfoPlugin` API
 //! - [ ] `StatsPrinter` API
