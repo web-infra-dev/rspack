@@ -2,7 +2,7 @@ import { type BuiltinPlugin, BuiltinPluginName } from "@rspack/binding";
 
 import * as liteTapable from "@rspack/lite-tapable";
 import type { Chunk } from "../Chunk";
-import { Compilation } from "../Compilation";
+import { type Compilation, checkCompilation } from "../Compilation";
 import type Hash from "../util/hash";
 import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 
@@ -22,11 +22,8 @@ export class JavascriptModulesPlugin extends RspackBuiltinPlugin {
 	}
 
 	static getCompilationHooks(compilation: Compilation) {
-		if (!(compilation instanceof Compilation)) {
-			throw new TypeError(
-				"The 'compilation' argument must be an instance of Compilation"
-			);
-		}
+		checkCompilation(compilation);
+
 		let hooks = compilationHooksMap.get(compilation);
 		if (hooks === undefined) {
 			hooks = {

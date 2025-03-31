@@ -7,7 +7,7 @@ import type {
 	JsBeforeEmitData
 } from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
-import { Compilation } from "../../Compilation";
+import { type Compilation, checkCompilation } from "../../Compilation";
 import type { HtmlRspackPluginOptions } from "./options";
 
 const compilationHooksMap: WeakMap<Compilation, HtmlRspackPluginHooks> =
@@ -39,11 +39,8 @@ export type HtmlRspackPluginHooks = {
 };
 
 export const getPluginHooks = (compilation: Compilation) => {
-	if (!(compilation instanceof Compilation)) {
-		throw new TypeError(
-			"The 'compilation' argument must be an instance of Compilation"
-		);
-	}
+	checkCompilation(compilation);
+
 	let hooks = compilationHooksMap.get(compilation);
 	if (hooks === undefined) {
 		hooks = {
