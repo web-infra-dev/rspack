@@ -2510,6 +2510,22 @@ export interface RegisterJsTaps {
   registerRsdoctorPluginAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorAssetPatch) => Promise<boolean | undefined>); stage: number; }>
 }
 
+/**
+ * Shutdown the tokio runtime manually.
+ *
+ * This is required for the wasm target with `tokio_unstable` cfg.
+ * In the wasm runtime, the `park` threads will hang there until the tokio::Runtime is shutdown.
+ */
+export declare function shutdownAsyncRuntime(): void
+
+/**
+ * Start the async runtime manually.
+ *
+ * This is required when the async runtime is shutdown manually.
+ * Usually it's used in test.
+ */
+export declare function startAsyncRuntime(): void
+
 export interface ThreadsafeNodeFS {
   writeFile: (name: string, content: Buffer) => Promise<void>
   removeFile: (name: string) => Promise<void>
