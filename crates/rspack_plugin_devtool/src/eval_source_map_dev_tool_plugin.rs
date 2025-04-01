@@ -98,7 +98,7 @@ async fn eval_source_map_devtool_plugin_render_module_content(
     .expect("should have codegen results hash in process assets");
 
   let origin_source = render_source.source.clone();
-  if let Some(cached_source) = self.cache.get(&module_hash) {
+  if let Some(cached_source) = self.cache.get(module_hash) {
     render_source.source = cached_source.value().clone();
     return Ok(());
   } else if let Some(mut map) = origin_source.map(&MapOptions::new(self.columns)) {
