@@ -166,7 +166,9 @@ export class WatchProcessor<
 				) ||
 				fs.existsSync(
 					context.getSource(`${this._watchOptions.stepName}/warnings.js`)
-				)
+				) ||
+				stats.hasErrors() ||
+				stats.hasWarnings()
 			) {
 				const statsJson = stats.toJson({
 					errorDetails: true
