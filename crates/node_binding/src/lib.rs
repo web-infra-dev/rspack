@@ -155,13 +155,10 @@ impl JsCompiler {
     plugins.push(js_cleanup_plugin.boxed());
 
     for bp in builtin_plugins {
-      bp.append_to(env, &mut plugins)
-        .map_err(|e| Error::from_reason(format!("{e}")))?;
+      bp.append_to(env, &mut plugins).to_napi_result()?;
     }
 
-    let compiler_options: rspack_core::CompilerOptions = options
-      .try_into()
-      .map_err(|e| Error::from_reason(format!("{e}")))?;
+    let compiler_options: rspack_core::CompilerOptions = options.try_into().to_napi_result()?;
 
     tracing::info!("normalized_options: {:#?}", &compiler_options);
 
@@ -173,7 +170,7 @@ impl JsCompiler {
     let intermediate_filesystem: Option<Arc<dyn IntermediateFileSystem>> =
       if let Some(fs) = intermediate_filesystem {
         Some(Arc::new(NodeFileSystem::new(fs).map_err(|e| {
-          Error::from_reason(format!("Failed to create intermediate filesystem: {e}",))
+          format!("Failed to create intermediate filesystem: {e}").to_napi_error()
         })?))
       } else {
         None
@@ -185,7 +182,7 @@ impl JsCompiler {
       plugins,
       buildtime_plugins::buildtime_plugins(),
       Some(Arc::new(NodeFileSystem::new(output_filesystem).map_err(
-        |e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)),
+        |e| format!("Failed to create writable filesystem: {e}").to_napi_error(),
       )?)),
       intermediate_filesystem,
       None,
@@ -213,10 +210,7 @@ impl JsCompiler {
       self.run(env, reference, |compiler, _guard| {
         callbackify(env, f, async move {
           compiler.build().await.map_err(|e| {
-            Error::new(
-              napi::Status::GenericFailure,
-              print_error_diagnostic(e, compiler.options.stats.colors),
-            )
+            print_error_diagnostic(e, compiler.options.stats.colors).to_napi_error()
           })?;
           tracing::info!("build ok");
           drop(_guard);
@@ -250,10 +244,7 @@ impl JsCompiler {
             )
             .await
             .map_err(|e| {
-              Error::new(
-                napi::Status::GenericFailure,
-                print_error_diagnostic(e, compiler.options.stats.colors),
-              )
+              print_error_diagnostic(e, compiler.options.stats.colors).to_napi_error()
             })?;
           tracing::info!("rebuild ok");
           drop(_guard);

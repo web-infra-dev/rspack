@@ -18,6 +18,7 @@ owo-colors         = "4.0.0"
 rspack_cacheable   = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_paths       = { workspace = true }
+serde_json         = { workspace = true }
 swc_core           = { workspace = true, features = ["common", "common_concurrent"] }
 swc_parallel       = { workspace = true, default-features = false }
 termcolor          = "1.4.1"

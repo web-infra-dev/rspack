@@ -4,7 +4,7 @@ use anyhow::Context;
 use itertools::Itertools;
 use rspack_core::{Compilation, CrossOriginLoading, Mode};
 use rspack_dojang::{dojang::DojangOptions, Dojang, Operand};
-use rspack_error::{miette, AnyhowError};
+use rspack_error::{error, miette, AnyhowResultToRspackResultExt, Result};
 use rspack_paths::AssertUtf8;
 use serde_json::Value;
 
@@ -79,7 +79,7 @@ impl HtmlTemplate {
             file_dependencies: vec![resolved_template.into_std_path_buf()],
             parameters: None,
           })
-          .map_err(|err| miette::Error::from(AnyhowError::from(err)))
+          .to_rspack_result()
       }
     } else {
       let default_src_template =
@@ -210,11 +210,8 @@ impl HtmlTemplate {
         dj.add_with_option(self.url.clone(), content.clone())
           .expect("failed to add template");
 
-        dj.render(&self.url, parameters).map_err(|err| {
-          miette::Error::msg(format!(
-            "HtmlRspackPlugin: failed to render template from string: {err}"
-          ))
-        })
+        dj.render(&self.url, parameters)
+          .map_err(|err| error!("HtmlRspackPlugin: failed to render template from string: {err}"))
       }
       TemplateRender::Function => (config
         .template_fn
@@ -224,11 +221,7 @@ impl HtmlTemplate {
         serde_json::to_string(&parameters).unwrap_or_else(|_| panic!("invalid json to_string")),
       )
       .await
-      .map_err(|err| {
-        miette::Error::msg(format!(
-          "HtmlRspackPlugin: failed to render template from function: {err}"
-        ))
-      }),
+      .map_err(|err| error!("HtmlRspackPlugin: failed to render template from function: {err}")),
     }
   }
 }

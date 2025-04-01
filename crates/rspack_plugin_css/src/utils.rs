@@ -15,7 +15,8 @@ use rspack_core::{
   LocalIdentName, PathData, ResourceData, RuntimeGlobals, RESERVED_IDENTIFIER,
 };
 use rspack_error::{
-  error, miette::Diagnostic, DiagnosticExt, Result, RspackSeverity, TraceableError,
+  miette::Diagnostic, DiagnosticExt, Result, RspackSeverity, ToStringResultToRspackResultExt,
+  TraceableError,
 };
 use rspack_hash::RspackHash;
 use rspack_util::{identifier::make_paths_relative, itoa, json_stringify};
@@ -228,7 +229,7 @@ pub fn stringified_exports<'a>(
       json_stringify(&key),
       content
     )
-    .map_err(|e| error!(e.to_string()))?;
+    .to_rspack_result()?;
   }
 
   let decl_name = "exports";

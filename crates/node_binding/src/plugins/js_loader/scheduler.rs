@@ -3,7 +3,7 @@ use rspack_core::{
   diagnostics::CapturedLoaderError, AdditionalData, LoaderContext, NormalModuleLoaderShouldYield,
   NormalModuleLoaderStartYielding, RunnerContext, BUILTIN_LOADER_PREFIX,
 };
-use rspack_error::{error, Result};
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
 
@@ -87,7 +87,7 @@ pub(crate) fn merge_loader_context(
     .as_ref()
     .map(|s| rspack_core::rspack_sources::SourceMap::from_slice(s))
     .transpose()
-    .map_err(|e| error!(e.to_string()))?;
+    .to_rspack_result()?;
   let additional_data = from.additional_data.take().map(|data| {
     let mut additional = AdditionalData::default();
     additional.insert(data);

@@ -14,7 +14,7 @@ use rspack_core::{
   rspack_sources::{RawBufferSource, RawStringSource, SourceExt},
   AssetInfo, Compilation, CompilationAsset, Filename, PathData,
 };
-use rspack_error::{miette, AnyhowError, Result};
+use rspack_error::{miette, AnyhowResultToRspackResultExt, Result};
 use rspack_paths::Utf8PathBuf;
 use serde::{Deserialize, Serialize};
 use sugar_path::SugarPath;
@@ -349,7 +349,7 @@ pub fn create_favicon_asset(
         CompilationAsset::from(RawBufferSource::from(content).boxed()),
       )
     })
-    .map_err(|err| miette::Error::from(AnyhowError::from(err)))
+    .to_rspack_result()
 }
 
 pub async fn create_html_asset(

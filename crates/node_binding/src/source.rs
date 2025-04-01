@@ -8,6 +8,8 @@ use rspack_core::rspack_sources::{
 };
 use rspack_napi::napi::bindgen_prelude::*;
 
+use crate::RspackResultToNapiResultExt;
+
 /// Zero copy `JsCompatSource` slice shared between Rust and Node.js if buffer is used.
 ///
 /// It can only be used in non-async context and the lifetime is bound to the fn closure.
@@ -321,8 +323,5 @@ impl ToJsCompatSourceOwned for dyn Source + '_ {
 fn to_webpack_map(source: &dyn Source) -> Result<Option<String>> {
   let map = source.map(&MapOptions::default());
 
-  map
-    .map(|m| m.to_json())
-    .transpose()
-    .map_err(|err| napi::Error::from_reason(err.to_string()))
+  map.map(|m| m.to_json()).transpose().to_napi_result()
 }

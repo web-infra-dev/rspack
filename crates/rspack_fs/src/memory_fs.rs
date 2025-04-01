@@ -8,8 +8,8 @@ use std::{
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 
 use crate::{
-  Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, ReadStream,
-  ReadableFileSystem, Result, WritableFileSystem, WriteStream,
+  Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, IoResultToFsResultExt,
+  ReadStream, ReadableFileSystem, Result, WritableFileSystem, WriteStream,
 };
 
 fn current_time() -> u64 {
@@ -306,13 +306,13 @@ impl MemoryReadStream {
 impl ReadStream for MemoryReadStream {
   async fn read(&mut self, length: usize) -> Result<Vec<u8>> {
     let mut buf = vec![0u8; length];
-    self.0.read_exact(&mut buf).map_err(Error::from)?;
+    self.0.read_exact(&mut buf).to_fs_result()?;
     Ok(buf)
   }
 
   async fn read_until(&mut self, byte: u8) -> Result<Vec<u8>> {
     let mut buf = vec![];
-    self.0.read_until(byte, &mut buf).map_err(Error::from)?;
+    self.0.read_until(byte, &mut buf).to_fs_result()?;
     if buf.last().is_some_and(|b| b == &byte) {
       buf.pop();
     }
@@ -320,11 +320,11 @@ impl ReadStream for MemoryReadStream {
   }
   async fn read_to_end(&mut self) -> Result<Vec<u8>> {
     let mut buf = vec![];
-    self.0.read_to_end(&mut buf).map_err(Error::from)?;
+    self.0.read_to_end(&mut buf).to_fs_result()?;
     Ok(buf)
   }
   async fn skip(&mut self, offset: usize) -> Result<()> {
-    self.0.seek_relative(offset as i64).map_err(Error::from)
+    self.0.seek_relative(offset as i64).to_fs_result()
   }
   async fn close(&mut self) -> Result<()> {
     Ok(())
