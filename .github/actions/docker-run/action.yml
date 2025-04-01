@@ -18,6 +18,12 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Setup dockerd, if needed
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        docker ps || nohup sudo dockerd >/dev/null 2>&1 &
+
     - name: Docker Build ${{ inputs.target }}
       shell: bash
       run: |
