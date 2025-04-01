@@ -11,7 +11,7 @@ use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
   Chunk, ChunkGraph, ChunkKind, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
   CodeGenerationResult, CompilationAsset, CompilationAssets, DependencyId, EntryOptions,
-  Entrypoint, ModuleType, PublicPath, RuntimeSpec, SourceType,
+  Entrypoint, ModuleType, PublicPath, Root, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -258,7 +258,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
             let filename = filename.filename();
             compilation.emit_asset(
               filename.to_owned(),
-              CompilationAsset::new(Some(source.clone()), asset_info.inner().clone()),
+              CompilationAsset::new(Some(source.clone()), Root::from(asset_info.inner().clone())),
             );
           }
         }

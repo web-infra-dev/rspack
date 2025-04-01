@@ -17,7 +17,7 @@ use regex::Regex;
 use rspack_core::{
   rspack_sources::{RawSource, Source},
   AssetInfo, AssetInfoRelated, Compilation, CompilationAsset, CompilationLogger,
-  CompilationProcessAssets, Filename, Logger, PathData, Plugin,
+  CompilationProcessAssets, Filename, Logger, PathData, Plugin, Root,
 };
 use rspack_error::{Diagnostic, DiagnosticError, Error, ErrorExt, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
@@ -685,7 +685,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         result.filename,
         CompilationAsset {
           source: Some(Arc::new(result.source)),
-          info: asset_info,
+          info: Root::from(asset_info),
         },
       );
     }

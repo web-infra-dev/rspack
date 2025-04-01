@@ -54,8 +54,9 @@ use crate::{
   CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyId,
   DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
   Filename, ImportVarMap, Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
-  ModuleIdsArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpecMap,
-  RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats,
+  ModuleIdsArtifact, PathData, ResolverFactory, Root, RuntimeGlobals, RuntimeModule,
+  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
+  Stats,
 };
 
 define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));
@@ -675,7 +676,7 @@ impl Compilation {
   pub fn update_asset(
     &mut self,
     filename: &str,
-    updater: impl FnOnce(BoxSource, AssetInfo) -> Result<(BoxSource, AssetInfo)>,
+    updater: impl FnOnce(BoxSource, Root<AssetInfo>) -> Result<(BoxSource, Root<AssetInfo>)>,
   ) -> Result<()> {
     let assets = &mut self.assets;
 
@@ -734,8 +735,8 @@ impl Compilation {
 
   pub fn delete_asset(&mut self, filename: &str) {
     if let Some(asset) = self.assets.remove(filename) {
-      if let Some(source_map) = asset.info.related.source_map {
-        self.delete_asset(&source_map);
+      if let Some(source_map) = &asset.info.related.source_map {
+        self.delete_asset(source_map);
       }
       self.chunk_by_ukey.iter_mut().for_each(|(_, chunk)| {
         chunk.remove_file(filename);
@@ -1181,7 +1182,7 @@ impl Compilation {
           filename.clone(),
           CompilationAsset::new(
             Some(CachedSource::new(file_manifest.source).boxed()),
-            file_manifest.info,
+            Root::from(file_manifest.info),
           ),
         );
 
@@ -2477,7 +2478,7 @@ pub type CompilationAssets = HashMap<String, CompilationAsset>;
 pub struct CompilationAsset {
   #[cacheable(with=AsOption<AsPreset>)]
   pub source: Option<BoxSource>,
-  pub info: AssetInfo,
+  pub info: Root<AssetInfo>,
 }
 
 impl From<BoxSource> for CompilationAsset {
@@ -2487,7 +2488,7 @@ impl From<BoxSource> for CompilationAsset {
 }
 
 impl CompilationAsset {
-  pub fn new(source: Option<BoxSource>, info: AssetInfo) -> Self {
+  pub fn new(source: Option<BoxSource>, info: Root<AssetInfo>) -> Self {
     Self { source, info }
   }
 
@@ -2512,7 +2513,7 @@ impl CompilationAsset {
   }
 
   pub fn set_info(&mut self, info: AssetInfo) {
-    self.info = info;
+    self.info = Root::from(info);
   }
 }
 

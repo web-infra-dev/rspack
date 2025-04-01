@@ -16,6 +16,7 @@ use regex::{Captures, Regex};
 use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   AssetInfo, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin, PluginContext,
+  Root,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -206,7 +207,11 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
             .to_owned()
         })
         .collect();
-      Ok((new_source.clone(), old_info.with_content_hashes(new_hashes)))
+      let info_update = (*old_info).clone();
+      Ok((
+        new_source.clone(),
+        Root::from(info_update.with_content_hashes(new_hashes)),
+      ))
     })?;
     if let Some(new_name) = new_name {
       compilation.rename_asset(&name, new_name);

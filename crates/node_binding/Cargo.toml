@@ -18,7 +18,7 @@ anyhow                   = { workspace = true }
 ropey                    = { workspace = true }
 rspack_allocator         = { workspace = true }
 rspack_collections       = { workspace = true }
-rspack_core              = { workspace = true }
+rspack_core              = { workspace = true, features = ["napi"] }
 rspack_error             = { workspace = true }
 rspack_fs                = { workspace = true }
 rspack_hash              = { workspace = true }
@@ -38,7 +38,7 @@ cow-utils          = { workspace = true }
 tracing            = { workspace = true }
 tracing-subscriber = { workspace = true }
 
-napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
+napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow", "napi6"] }
 napi-derive = { workspace = true }
 
 color-backtrace = "0.6.1"

@@ -5,7 +5,7 @@ use napi_derive::napi;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
   BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilationAsset,
-  CompilerId, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage, SourceType,
+  CompilerId, LibIdentOptions, Module as _, ModuleIdentifier, Root, RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{
   napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotInstanceRef,
@@ -254,16 +254,33 @@ impl Module {
     )
   }
 
-  #[napi(js_name = "_emitFile", enumerable = false)]
+  #[napi(
+    js_name = "_emitFile",
+    enumerable = false,
+    ts_args_type = "filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null"
+  )]
   pub fn emit_file(
     &mut self,
+    env: &Env,
+    mut this: This,
     filename: String,
     source: JsCompatSource,
-    js_asset_info: Option<AssetInfo>,
+    object: Option<Object>,
   ) -> napi::Result<()> {
     let module = self.as_mut()?;
 
-    let asset_info = js_asset_info.map(Into::into).unwrap_or_default();
+    let asset_info = match object {
+      Some(object) => {
+        let js_info: AssetInfo =
+          unsafe { FromNapiValue::from_napi_value(env.raw(), object.raw())? };
+        let info: rspack_core::AssetInfo = js_info.into();
+        let info = Root::from(info);
+        info.set_jsobject(env, &mut this.object, object)?;
+
+        info
+      }
+      None => Default::default(),
+    };
 
     module.build_info_mut().assets.insert(
       filename,

@@ -12,7 +12,7 @@ use rspack_core::{
   CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationParams,
   CompilationProcessAssets, CompilationRecords, CompilerCompilation, CompilerOptions,
   DependencyType, LoaderContext, ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
-  NormalModuleLoader, ParserAndGenerator, ParserOptions, PathData, Plugin, PluginContext,
+  NormalModuleLoader, ParserAndGenerator, ParserOptions, PathData, Plugin, PluginContext, Root,
   RunnerContext, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec,
 };
 use rspack_error::Result;
@@ -318,10 +318,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let asset = CompilationAsset::new(
           Some(entry.source),
           // Reset version to make hmr generated assets always emit
-          entry
-            .info
-            .with_hot_module_replacement(Some(true))
-            .with_version(Default::default()),
+          Root::from(
+            entry
+              .info
+              .with_hot_module_replacement(Some(true))
+              .with_version(Default::default()),
+          ),
         );
         if let Some(current_chunk_ukey) = current_chunk_ukey {
           updated_chunks
@@ -382,7 +384,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           )
           .boxed(),
         ),
-        AssetInfo::default().with_hot_module_replacement(Some(true)),
+        Root::from(AssetInfo::default().with_hot_module_replacement(Some(true))),
       ),
     );
   }
