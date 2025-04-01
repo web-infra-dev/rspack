@@ -181,6 +181,7 @@ pub fn remove_available_modules(
   let module_graph = compilation.get_module_graph();
   let mut removed = HashSet::default();
   let mut disconnect_children = HashSet::default();
+  let mut completely_removed_children = vec![];
 
   for (chunk_index, available) in available_modules.iter().enumerate() {
     removed.clear();
@@ -234,11 +235,30 @@ pub fn remove_available_modules(
       }
     });
 
+    // there are children are disconnected, we should consider if they are completely removed
+    // if so, we should make sure all its children are also removed
+    // a-->b-->c, if `b` is removed, we should remove `c`
     if !disconnect_children.is_empty() {
       chunk_children[chunk_index].retain(|child| !disconnect_children.contains(child));
 
       for dead_child in &disconnect_children {
         chunk_parents[*dead_child].retain(|parent| *parent != chunk_index);
+
+        if chunk_parents[*dead_child].is_empty() {
+          completely_removed_children.push(*dead_child);
+        }
+      }
+
+      while let Some(removed_chunk) = completely_removed_children.pop() {
+        let children = std::mem::take(&mut chunk_children[removed_chunk]);
+
+        for child in children {
+          chunk_parents[child].retain(|parent| *parent != removed_chunk);
+
+          if chunk_parents[child].is_empty() {
+            completely_removed_children.push(child);
+          }
+        }
       }
     }
   }
