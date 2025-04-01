@@ -18,16 +18,6 @@ module.exports = {
 	externalsType: "commonjs",
 	optimization: {
 		concatenateModules: false
-		// splitChunks: {
-		// 	chunks: "all",
-		// 	minSize: 0,
-		// 	cacheGroups: {
-		// 		lib: {
-		// 			test: /lib/,
-		// 			name: "lib",
-		// 		}
-		// 	}
-		// }
 	},
 	plugins: [
 		new rspack.DefinePlugin({
