@@ -346,14 +346,19 @@ impl SwcCompiler {
     }
   }
 
-  pub fn transform(&self, config: BuiltInput<impl Pass>) -> Result<Program, miette::Report> {
+  pub fn transform(
+    &self,
+    config: BuiltInput<impl Pass>,
+  ) -> Result<SwcTransformOutput, miette::Report> {
     let program = config.program;
     let mut pass = config.pass;
 
+    let mut diagnostics = vec![];
     let program = self.run(|| {
       helpers::HELPERS.set(&self.helpers, || {
-      let result = try_with_handler(self.cm.clone(), Default::default(), |_handler| {
+      let result = try_with_handler(self.cm.clone(), Default::default(), |handler| {
         let result = program.apply(&mut pass);
+        diagnostics.extend(handler.take_diagnostics());
         Ok(result)
       });
       match result {
@@ -377,7 +382,7 @@ impl SwcCompiler {
       }
     }
     })
-    });
+    })?;
 
     if let Some(comments) = &config.comments {
       // TODO: Wait for https://github.com/swc-project/swc/blob/e6fc5327b1a309eae840fe1ec3a2367adab37430/crates/swc/src/config/mod.rs#L808 to land.
@@ -390,7 +395,10 @@ impl SwcCompiler {
       minify_file_comments(comments, config.preserve_comments, preserve_annotations);
     };
 
-    program
+    Ok(SwcTransformOutput {
+      ast: program,
+      diagnostics,
+    })
   }
 
   pub fn input_source_map(
@@ -541,6 +549,11 @@ impl SwcCompiler {
       }
     }
   }
+}
+
+pub struct SwcTransformOutput {
+  pub ast: Program,
+  pub diagnostics: Vec<String>,
 }
 
 pub(crate) trait IntoJsAst {
