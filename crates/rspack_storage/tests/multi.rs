@@ -155,7 +155,7 @@ mod test_storage_multi {
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn test_multi() {
+  async fn test_multi() -> Result<()> {
     let cases = [
       (
         get_native_path("test_multi_native"),
@@ -176,29 +176,27 @@ mod test_storage_multi {
         .await
         .expect("should remove temp root");
 
-      let _ = test_initial_build(
+      test_initial_build(
         &root.join(&version),
         fs.clone(),
         create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
 
-      let _ = test_recovery_modify(
+      test_recovery_modify(
         &root.join(&version),
         fs.clone(),
         create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
 
-      let _ = test_recovery_final(
+      test_recovery_final(
         &root.join(&version),
         fs.clone(),
         create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
     }
+    Ok(())
   }
 }

@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
 mod error;
-pub use error::{BatchFSError, FSError, FSOperation};
+use error::FsResultToStorageFsResult;
+pub use error::{BatchFSError, BatchFSResult, FSError, FSOperation, FSResult};
 use rspack_fs::{FileMetadata, IntermediateFileSystem, ReadStream, WriteStream};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::FxHashSet as HashSet;
-
-pub type FSResult<T> = Result<T, FSError>;
 
 #[async_trait::async_trait]
 pub trait FileSystem: std::fmt::Debug + Sync + Send {
@@ -33,35 +32,35 @@ impl Writer {
       .stream
       .write_line(line)
       .await
-      .map_err(|e| FSError::from_fs_error(&self.path, FSOperation::Write, e))
+      .to_storage_fs_result(&self.path, FSOperation::Write)
   }
   pub async fn write(&mut self, buf: &[u8]) -> FSResult<usize> {
     self
       .stream
       .write(buf)
       .await
-      .map_err(|e| FSError::from_fs_error(&self.path, FSOperation::Write, e))
+      .to_storage_fs_result(&self.path, FSOperation::Write)
   }
   pub async fn write_all(&mut self, buf: &[u8]) -> FSResult<()> {
     self
       .stream
       .write_all(buf)
       .await
-      .map_err(|e| FSError::from_fs_error(&self.path, FSOperation::Write, e))
+      .to_storage_fs_result(&self.path, FSOperation::Write)
   }
   pub async fn flush(&mut self) -> FSResult<()> {
     self
       .stream
       .flush()
       .await
-      .map_err(|e| FSError::from_fs_error(&self.path, FSOperation::Write, e))
+      .to_storage_fs_result(&self.path, FSOperation::Write)
   }
   pub async fn close(&mut self) -> FSResult<()> {
     self
       .stream
       .close()
       .await
-      .map_err(|e| FSError::from_fs_error(&self.path, FSOperation::Write, e))
+      .to_storage_fs_result(&self.path, FSOperation::Write)
   }
 }
 
@@ -77,42 +76,42 @@ impl Reader {
       .stream
       .read_line()
       .await
-      .map_err(|e| FSError::from_fs_error(&self.path, FSOperation::Read, e))
+      .to_storage_fs_result(&self.path, FSOperation::Read)
   }
   pub async fn read(&mut self, length: usize) -> FSResult<Vec<u8>> {
     self
       .stream
       .read(length)
       .await
-      .map_err(|e| FSError::from_fs_error(&self.path, FSOperation::Read, e))
+      .to_storage_fs_result(&self.path, FSOperation::Read)
   }
   pub async fn read_until(&mut self, byte: u8) -> FSResult<Vec<u8>> {
     self
       .stream
       .read_until(byte)
       .await
-      .map_err(|e| FSError::from_fs_error(&self.path, FSOperation::Read, e))
+      .to_storage_fs_result(&self.path, FSOperation::Read)
   }
   pub async fn read_to_end(&mut self) -> FSResult<Vec<u8>> {
     self
       .stream
       .read_to_end()
       .await
-      .map_err(|e| FSError::from_fs_error(&self.path, FSOperation::Read, e))
+      .to_storage_fs_result(&self.path, FSOperation::Read)
   }
   pub async fn skip(&mut self, offset: usize) -> FSResult<()> {
     self
       .stream
       .skip(offset)
       .await
-      .map_err(|e| FSError::from_fs_error(&self.path, FSOperation::Read, e))
+      .to_storage_fs_result(&self.path, FSOperation::Read)
   }
   pub async fn close(&mut self) -> FSResult<()> {
     self
       .stream
       .close()
       .await
-      .map_err(|e| FSError::from_fs_error(&self.path, FSOperation::Read, e))
+      .to_storage_fs_result(&self.path, FSOperation::Read)
   }
 }
 
@@ -140,7 +139,7 @@ impl FileSystem for BridgeFileSystem {
         .0
         .remove_dir_all(path)
         .await
-        .map_err(|e| FSError::from_fs_error(path, FSOperation::Remove, e))?;
+        .to_storage_fs_result(path, FSOperation::Remove)?;
     }
     Ok(())
   }
@@ -150,7 +149,7 @@ impl FileSystem for BridgeFileSystem {
       .0
       .create_dir_all(path)
       .await
-      .map_err(|e| FSError::from_fs_error(path, FSOperation::Dir, e))?;
+      .to_storage_fs_result(path, FSOperation::Dir)?;
     Ok(())
   }
 
@@ -166,7 +165,7 @@ impl FileSystem for BridgeFileSystem {
       .0
       .create_write_stream(path)
       .await
-      .map_err(|e| FSError::from_fs_error(path, FSOperation::Write, e))?;
+      .to_storage_fs_result(path, FSOperation::Write)?;
 
     Ok(Writer {
       path: path.to_path_buf(),
@@ -179,7 +178,7 @@ impl FileSystem for BridgeFileSystem {
       .0
       .create_read_stream(path)
       .await
-      .map_err(|e| FSError::from_fs_error(path, FSOperation::Read, e))?;
+      .to_storage_fs_result(path, FSOperation::Read)?;
     Ok(Reader {
       path: path.to_path_buf(),
       stream,
@@ -191,7 +190,7 @@ impl FileSystem for BridgeFileSystem {
       .0
       .read_dir(path)
       .await
-      .map_err(|e| FSError::from_fs_error(path, FSOperation::Read, e))?;
+      .to_storage_fs_result(path, FSOperation::Read)?;
     Ok(files.into_iter().collect::<HashSet<_>>())
   }
 
@@ -200,7 +199,7 @@ impl FileSystem for BridgeFileSystem {
       .0
       .stat(path)
       .await
-      .map_err(|e| FSError::from_fs_error(path, FSOperation::Stat, e))?;
+      .to_storage_fs_result(path, FSOperation::Stat)?;
     Ok(res)
   }
 
@@ -210,7 +209,7 @@ impl FileSystem for BridgeFileSystem {
         .0
         .remove_file(path)
         .await
-        .map_err(|e| FSError::from_fs_error(path, FSOperation::Remove, e))?;
+        .to_storage_fs_result(path, FSOperation::Remove)?;
     }
     Ok(())
   }
@@ -224,7 +223,7 @@ impl FileSystem for BridgeFileSystem {
         .0
         .rename(from, to)
         .await
-        .map_err(|e| FSError::from_fs_error(from, FSOperation::Move, e))?;
+        .to_storage_fs_result(from, FSOperation::Move)?;
     }
     Ok(())
   }
