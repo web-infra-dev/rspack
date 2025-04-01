@@ -169,9 +169,11 @@ impl JsCompiler {
 
     let intermediate_filesystem: Option<Arc<dyn IntermediateFileSystem>> =
       if let Some(fs) = intermediate_filesystem {
-        Some(Arc::new(NodeFileSystem::new(fs).map_err(|e| {
-          format!("Failed to create intermediate filesystem: {e}").to_napi_error()
-        })?))
+        Some(Arc::new(
+          NodeFileSystem::new(fs).to_napi_result_with_message(|e| {
+            format!("Failed to create intermediate filesystem: {e}")
+          })?,
+        ))
       } else {
         None
       };
@@ -181,9 +183,10 @@ impl JsCompiler {
       compiler_options,
       plugins,
       buildtime_plugins::buildtime_plugins(),
-      Some(Arc::new(NodeFileSystem::new(output_filesystem).map_err(
-        |e| format!("Failed to create writable filesystem: {e}").to_napi_error(),
-      )?)),
+      Some(Arc::new(
+        NodeFileSystem::new(output_filesystem)
+          .to_napi_result_with_message(|e| format!("Failed to create writable filesystem: {e}"))?,
+      )),
       intermediate_filesystem,
       None,
       Some(resolver_factory),
@@ -209,8 +212,8 @@ impl JsCompiler {
     unsafe {
       self.run(env, reference, |compiler, _guard| {
         callbackify(env, f, async move {
-          compiler.build().await.map_err(|e| {
-            print_error_diagnostic(e, compiler.options.stats.colors).to_napi_error()
+          compiler.build().await.to_napi_result_with_message(|e| {
+            print_error_diagnostic(e, compiler.options.stats.colors)
           })?;
           tracing::info!("build ok");
           drop(_guard);
@@ -243,8 +246,8 @@ impl JsCompiler {
               HashSet::from_iter(removed_files.into_iter()),
             )
             .await
-            .map_err(|e| {
-              print_error_diagnostic(e, compiler.options.stats.colors).to_napi_error()
+            .to_napi_result_with_message(|e| {
+              print_error_diagnostic(e, compiler.options.stats.colors)
             })?;
           tracing::info!("rebuild ok");
           drop(_guard);

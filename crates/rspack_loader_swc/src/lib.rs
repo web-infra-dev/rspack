@@ -95,17 +95,17 @@ impl SwcLoader {
 
     let source = content.into_string_lossy();
     let c = SwcCompiler::new(resource_path.into_std_path_buf(), source, swc_options)
-      .to_rspack_result()?;
+      .to_rspack_result_from_anyhow()?;
 
     let built = c
       .parse(None, |_| {
         transformer::transform(&self.options_with_additional.rspack_experiments)
       })
-      .to_rspack_result()?;
+      .to_rspack_result_from_anyhow()?;
 
     let input_source_map = c
       .input_source_map(&built.input_source_map)
-      .to_rspack_result()?;
+      .to_rspack_result_from_anyhow()?;
     let mut codegen_options = ast::CodegenOptions {
       target: Some(built.target),
       minify: Some(built.minify),

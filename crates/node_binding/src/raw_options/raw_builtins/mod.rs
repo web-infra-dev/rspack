@@ -25,12 +25,11 @@ use raw_ids::RawOccurrenceChunkIdsPluginOptions;
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use raw_sri::RawSubresourceIntegrityPluginOptions;
 use rspack_core::{BoxPlugin, Plugin, PluginExt};
-use rspack_error::Result;
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
   NamedModuleIdsPlugin, NaturalChunkIdsPlugin, NaturalModuleIdsPlugin, OccurrenceChunkIdsPlugin,
 };
-use rspack_napi::NapiResultExt;
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
 use rspack_plugin_circular_dependencies::CircularDependencyRspackPlugin;
@@ -602,5 +601,5 @@ impl BuiltinPlugin {
 }
 
 fn downcast_into<T: FromNapiValue + 'static>(o: JsUnknown) -> Result<T> {
-  rspack_napi::downcast_into(o).into_rspack_result()
+  rspack_napi::downcast_into(o).to_rspack_result()
 }

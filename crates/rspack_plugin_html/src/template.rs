@@ -4,7 +4,9 @@ use anyhow::Context;
 use itertools::Itertools;
 use rspack_core::{Compilation, CrossOriginLoading, Mode};
 use rspack_dojang::{dojang::DojangOptions, Dojang, Operand};
-use rspack_error::{error, miette, AnyhowResultToRspackResultExt, Result};
+use rspack_error::{
+  miette, AnyhowResultToRspackResultExt, Result, ToStringResultToRspackResultExt,
+};
 use rspack_paths::AssertUtf8;
 use serde_json::Value;
 
@@ -79,7 +81,7 @@ impl HtmlTemplate {
             file_dependencies: vec![resolved_template.into_std_path_buf()],
             parameters: None,
           })
-          .to_rspack_result()
+          .to_rspack_result_from_anyhow()
       }
     } else {
       let default_src_template =
@@ -211,7 +213,9 @@ impl HtmlTemplate {
           .expect("failed to add template");
 
         dj.render(&self.url, parameters)
-          .map_err(|err| error!("HtmlRspackPlugin: failed to render template from string: {err}"))
+          .to_rspack_result_with_message(|e| {
+            format!("HtmlRspackPlugin: failed to render template from string: {e}")
+          })
       }
       TemplateRender::Function => (config
         .template_fn
@@ -221,7 +225,9 @@ impl HtmlTemplate {
         serde_json::to_string(&parameters).unwrap_or_else(|_| panic!("invalid json to_string")),
       )
       .await
-      .map_err(|err| error!("HtmlRspackPlugin: failed to render template from function: {err}")),
+      .to_rspack_result_with_message(|e| {
+        format!("HtmlRspackPlugin: failed to render template from function: {e}")
+      }),
     }
   }
 }
