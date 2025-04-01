@@ -1,5 +1,5 @@
 use derive_more::Debug;
-use napi::Either;
+use napi::{bindgen_prelude::FnArgs, Either};
 use napi_derive::napi;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_circular_dependencies::{
@@ -33,10 +33,10 @@ pub struct RawCircularDependencyRspackPluginOptions {
   pub ignored_connections: Option<Vec<(ConnectionPattern, ConnectionPattern)>>,
   #[debug(skip)]
   #[napi(ts_type = "(entrypoint: Module, modules: string[], compilation: JsCompilation) => void")]
-  pub on_detected: Option<ThreadsafeFunction<CycleHookParams, ()>>,
+  pub on_detected: Option<ThreadsafeFunction<FnArgs<CycleHookParams>, ()>>,
   #[debug(skip)]
   #[napi(ts_type = "(entrypoint: Module, modules: string[], compilation: JsCompilation) => void")]
-  pub on_ignored: Option<ThreadsafeFunction<CycleHookParams, ()>>,
+  pub on_ignored: Option<ThreadsafeFunction<FnArgs<CycleHookParams>, ()>>,
   #[debug(skip)]
   #[napi(ts_type = "(compilation: JsCompilation) => void")]
   pub on_start: Option<ThreadsafeFunction<JsCompilationWrapper, ()>>,
@@ -55,7 +55,7 @@ impl From<RawCircularDependencyRspackPluginOptions> for CircularDependencyRspack
         let callback = callback.clone();
         Box::pin(async move {
           callback
-            .call_with_sync((entrypoint, modules, JsCompilationWrapper::new(compilation)))
+            .call_with_sync((entrypoint, modules, JsCompilationWrapper::new(compilation)).into())
             .await?;
           Ok(())
         })
@@ -68,7 +68,7 @@ impl From<RawCircularDependencyRspackPluginOptions> for CircularDependencyRspack
           let callback = callback.clone();
           async move {
             callback
-              .call_with_sync((entrypoint, modules, JsCompilationWrapper::new(compilation)))
+              .call_with_sync((entrypoint, modules, JsCompilationWrapper::new(compilation)).into())
               .await?;
             Ok(())
           }

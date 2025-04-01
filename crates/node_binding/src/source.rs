@@ -45,7 +45,6 @@ impl<'s> From<JsCompatSource<'s>> for BoxSource {
 }
 
 #[napi(object)]
-#[derive(Clone)]
 pub struct JsCompatSourceOwned {
   pub source: Either<String, Buffer>,
   pub map: Option<String>,

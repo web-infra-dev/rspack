@@ -333,7 +333,7 @@ enum TraceState {
 }
 
 #[cfg(not(target_family = "wasm"))]
-#[ctor]
+#[napi::ctor::ctor(crate_path = ::napi::ctor)]
 fn init() {
   use std::{
     sync::atomic::{AtomicUsize, Ordering},
