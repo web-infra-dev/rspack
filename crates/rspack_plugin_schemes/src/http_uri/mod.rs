@@ -17,6 +17,7 @@ use rspack_error::Result;
 use rspack_fs::WritableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::{AssetCondition, AssetConditions};
+use tracing::{debug, info, warn};
 use url::Url;
 
 static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
@@ -72,17 +73,47 @@ async fn resolve_for_scheme(
   resource_data: &mut ResourceData,
   _scheme: &Scheme,
 ) -> Result<Option<bool>> {
+  // Adding debug logging for resource path
+  debug!(
+    "[HttpUriPlugin::resolve_for_scheme] Processing resource: {}",
+    resource_data.resource
+  );
+
   // Try to parse the URL and handle it
   match Url::parse(&resource_data.resource) {
-    Ok(url) => match self
-      .respond_with_url_module(resource_data, &url, None)
-      .await
-    {
-      Ok(true) => Ok(Some(true)),
-      Ok(false) => Ok(None),
-      Err(e) => Err(e),
-    },
-    Err(_) => Ok(None),
+    Ok(url) => {
+      debug!(
+        "[HttpUriPlugin::resolve_for_scheme] Successfully parsed URL: {}",
+        url
+      );
+      match self
+        .respond_with_url_module(resource_data, &url, None)
+        .await
+      {
+        Ok(true) => {
+          debug!("[HttpUriPlugin::resolve_for_scheme] Successfully responded with URL module");
+          Ok(Some(true))
+        }
+        Ok(false) => {
+          debug!("[HttpUriPlugin::resolve_for_scheme] Not responding with URL module");
+          Ok(None)
+        }
+        Err(e) => {
+          warn!(
+            "[HttpUriPlugin::resolve_for_scheme] Error responding with URL module: {:?}",
+            e
+          );
+          Err(e)
+        }
+      }
+    }
+    Err(e) => {
+      debug!(
+        "[HttpUriPlugin::resolve_for_scheme] Failed to parse URL: {:?}",
+        e
+      );
+      Ok(None)
+    }
   }
 }
 
@@ -93,6 +124,12 @@ async fn resolve_in_scheme(
   resource_data: &mut ResourceData,
   _scheme: &Scheme,
 ) -> Result<Option<bool>> {
+  // Adding debug logging for resource path
+  debug!(
+    "[HttpUriPlugin::resolve_in_scheme] Processing resource: {}, context: {}",
+    resource_data.resource, data.context
+  );
+
   // Check if the dependency type is "url", similar to webpack's check
   let is_not_url_dependency = data
     .dependencies
@@ -108,41 +145,114 @@ async fn resolve_in_scheme(
       && !resource_data.resource.starts_with("/")
       && !resource_data.resource.starts_with("//"))
   {
+    debug!("[HttpUriPlugin::resolve_in_scheme] Not a relative URL or URL dependency, skipping");
     return Ok(None);
   }
 
   // Parse the base URL from context
   let base_url = match Url::parse(&format!("{}/", data.context)) {
-    Ok(url) => url,
-    Err(_) => return Ok(None),
+    Ok(url) => {
+      debug!("[HttpUriPlugin::resolve_in_scheme] Base URL: {}", url);
+      url
+    }
+    Err(e) => {
+      debug!(
+        "[HttpUriPlugin::resolve_in_scheme] Failed to parse base URL: {:?}",
+        e
+      );
+      return Ok(None);
+    }
   };
 
   // Join the base URL with the resource
   match base_url.join(&resource_data.resource) {
-    Ok(url) => match self
-      .respond_with_url_module(resource_data, &url, None)
-      .await
-    {
-      Ok(true) => Ok(Some(true)),
-      Ok(false) => Ok(None),
-      Err(e) => Err(e),
-    },
-    Err(_) => Ok(None),
+    Ok(url) => {
+      debug!("[HttpUriPlugin::resolve_in_scheme] Joined URL: {}", url);
+      if url.to_string().contains("react-refresh") || url.to_string().contains("reactRefresh") {
+        info!(
+          "[HttpUriPlugin::resolve_in_scheme] Detected React Refresh URL: {}",
+          url
+        );
+      }
+      match self
+        .respond_with_url_module(resource_data, &url, None)
+        .await
+      {
+        Ok(true) => {
+          debug!("[HttpUriPlugin::resolve_in_scheme] Successfully responded with URL module");
+          Ok(Some(true))
+        }
+        Ok(false) => {
+          debug!("[HttpUriPlugin::resolve_in_scheme] Not responding with URL module");
+          Ok(None)
+        }
+        Err(e) => {
+          warn!(
+            "[HttpUriPlugin::resolve_in_scheme] Error responding with URL module: {:?}",
+            e
+          );
+          Err(e)
+        }
+      }
+    }
+    Err(e) => {
+      debug!(
+        "[HttpUriPlugin::resolve_in_scheme] Failed to join URL: {:?}",
+        e
+      );
+      Ok(None)
+    }
   }
 }
 
 #[plugin_hook(NormalModuleReadResource for HttpUriPlugin)]
 async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
+  debug!(
+    "[HttpUriPlugin::read_resource] Processing resource: {}, scheme: {:?}",
+    resource_data.resource,
+    resource_data.get_scheme()
+  );
+
   if (resource_data.get_scheme().is_http() || resource_data.get_scheme().is_https())
     && EXTERNAL_HTTP_REQUEST.is_match(&resource_data.resource)
   {
+    // Add specific logging for React Refresh resources
+    if resource_data.resource.contains("react-refresh")
+      || resource_data.resource.contains("reactRefresh")
+    {
+      info!(
+        "[HttpUriPlugin::read_resource] Attempting to load React Refresh resource: {}",
+        resource_data.resource
+      );
+    }
+
     let fetch_result = fetch_content(&resource_data.resource, &self.options)
       .await
-      .map_err(rspack_error::AnyhowError::from)?;
+      .map_err(|e| {
+        warn!(
+          "[HttpUriPlugin::read_resource] Error fetching content for {}: {:?}",
+          resource_data.resource, e
+        );
+        rspack_error::AnyhowError::from(e)
+      })?;
 
     if let FetchResultType::Content(content_result) = fetch_result {
+      debug!(
+        "[HttpUriPlugin::read_resource] Successfully fetched content for {}",
+        resource_data.resource
+      );
       return Ok(Some(Content::from(content_result.content().to_vec())));
+    } else {
+      debug!(
+        "[HttpUriPlugin::read_resource] No content fetched for {}",
+        resource_data.resource
+      );
     }
+  } else {
+    debug!(
+      "[HttpUriPlugin::read_resource] Not an HTTP(S) resource or doesn't match external HTTP pattern: {}",
+      resource_data.resource
+    );
   }
   Ok(None)
 }
