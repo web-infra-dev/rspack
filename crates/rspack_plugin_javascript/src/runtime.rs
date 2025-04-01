@@ -148,6 +148,7 @@ pub async fn render_module(
     .render_module_content
     .call(
       compilation,
+      chunk_ukey,
       module,
       &mut render_source,
       &mut module_chunk_init_fragments,
@@ -243,6 +244,7 @@ pub async fn render_module(
       .render_module_container
       .call(
         compilation,
+        chunk_ukey,
         module,
         &mut post_module_container,
         &mut module_chunk_init_fragments,

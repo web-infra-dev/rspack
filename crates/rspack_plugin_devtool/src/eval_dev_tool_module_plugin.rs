@@ -90,6 +90,7 @@ async fn eval_devtool_plugin_compilation(
 async fn eval_devtool_plugin_render_module_content(
   &self,
   compilation: &Compilation,
+  _chunk_ukey: &ChunkUkey,
   module: &BoxModule,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
