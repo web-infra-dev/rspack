@@ -4,6 +4,7 @@ module.exports = {
 	experiments: {
 		cache: {
 			type: "persistent"
-		}
+		},
+		incremental: true
 	}
 };
