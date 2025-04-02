@@ -2069,7 +2069,7 @@ This configuration only takes effect when [experiments.parallelLoader](/config/e
 
 The loader configuration must comply with the [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist), otherwise transmission will fail.
 
-Currently, Rspack does not support `LoaderContext.fs`, `LoaderContext.importModule`, and most methods on `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module`.
+Currently, Rspack does not support `LoaderContext.fs`, and most methods on `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module`.
 :::
 
 ### Rule.resolve
