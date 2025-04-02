@@ -50,11 +50,11 @@ pub(crate) async fn after_resolve_loader(
 ) -> Result<Option<BoxLoader>> {
   let loader_request = &l.loader;
 
-  if loader_request.contains(REACT_REFRESH_LOADER_IDENTIFIER) {
-    // For our own loader, we don't need to replace it, so return None
-    return Ok(None);
+  if loader_request.starts_with(REACT_REFRESH_LOADER_IDENTIFIER) {
+    return Ok(Some(Arc::new(
+      crate::ReactRefreshLoader::default().with_identifier(loader_request.as_str().into()),
+    )));
   }
 
-  // For other loaders, let normal processing continue
   Ok(None)
 }
