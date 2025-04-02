@@ -42,16 +42,6 @@ pub enum NormalModuleFactoryResolveResult {
   Ignored,
 }
 
-#[derive(Debug)]
-pub struct NormalModuleCreateData {
-  pub raw_request: String,
-  pub request: String,
-  pub user_request: String,
-  pub resource_resolve_data: ResourceData,
-  pub match_resource: Option<String>,
-  pub side_effects: Option<bool>,
-}
-
 #[derive(Debug, Default)]
 pub struct NormalModuleFactoryHooks {
   pub before_resolve: NormalModuleFactoryBeforeResolveHook,
@@ -379,6 +369,24 @@ impl NormalModuleFactory {
       }
     };
 
+    // Call after_resolve_loader hook after the resource is resolved but before loaders are applied
+    // This gives plugins a chance to modify the module content before it's transformed
+    let resource_loader = ModuleRuleUseLoader {
+      loader: resource_data.resource.clone(),
+      options: None,
+    };
+
+    if let Some(_modified_loader) = self
+      .plugin_driver
+      .normal_module_factory_hooks
+      .after_resolve_loader
+      .call(&self.options.context, &loader_resolver, &resource_loader)
+      .await?
+    {
+      // If a plugin returned a modified loader, we could handle it here
+      // Currently just calling the hook for side effects
+    }
+
     let resolved_module_rules = if let Some(match_resource_data) = &mut match_resource_data
       && let Some(captures) = MATCH_WEBPACK_EXT_REGEX.captures(&match_resource_data.resource)
       && let Some(module_type) = captures.get(1)
@@ -505,26 +513,12 @@ impl NormalModuleFactory {
         loader_resolver: &Resolver,
         l: &ModuleRuleUseLoader,
       ) -> Result<Arc<dyn Loader<RunnerContext>>> {
-        let loader = plugin_driver
+        plugin_driver
           .normal_module_factory_hooks
           .resolve_loader
           .call(context, loader_resolver, l)
           .await?
-          .ok_or_else(|| error!("Unable to resolve loader {}", l.loader))?;
-
-        // Call the after_resolve_loader hook with the same arguments
-        let after_loader = plugin_driver
-          .normal_module_factory_hooks
-          .after_resolve_loader
-          .call(context, loader_resolver, l)
-          .await?;
-
-        // If the hook returned a loader, use that instead
-        if let Some(after_loader) = after_loader {
-          return Ok(after_loader);
-        }
-
-        Ok(loader)
+          .ok_or_else(|| error!("Unable to resolve loader {}", l.loader))
       }
 
       all_loaders
@@ -745,11 +739,11 @@ impl NormalModuleFactory {
           p.get("css").cloned(),
           options,
           |css_options, options| match (css_options, options) {
-            (GeneratorOptions::Css(a), GeneratorOptions::CssAuto(b)) => {
-              GeneratorOptions::CssAuto(Into::<CssAutoGeneratorOptions>::into(a).merge_from(b))
+            (ParserOptions::Css(a), ParserOptions::CssAuto(b)) => {
+              ParserOptions::CssAuto(Into::<CssAutoParserOptions>::into(a).merge_from(b))
             }
-            (GeneratorOptions::Css(a), GeneratorOptions::CssModule(b)) => {
-              GeneratorOptions::CssModule(Into::<CssModuleGeneratorOptions>::into(a).merge_from(b))
+            (ParserOptions::Css(a), ParserOptions::CssModule(b)) => {
+              ParserOptions::CssModule(Into::<CssModuleParserOptions>::into(a).merge_from(b))
             }
             _ => unreachable!(),
           },
@@ -952,6 +946,16 @@ impl From<Span> for ErrorSpan {
       end: span.hi.0.saturating_sub(1),
     }
   }
+}
+
+#[derive(Debug)]
+pub struct NormalModuleCreateData {
+  pub raw_request: String,
+  pub request: String,
+  pub user_request: String,
+  pub resource_resolve_data: ResourceData,
+  pub match_resource: Option<String>,
+  pub side_effects: Option<bool>,
 }
 
 #[test]
