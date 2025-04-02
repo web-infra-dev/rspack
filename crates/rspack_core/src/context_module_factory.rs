@@ -2,7 +2,7 @@ use std::{borrow::Cow, fs, sync::Arc};
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
-use rspack_error::{error, miette::IntoDiagnostic, Result};
+use rspack_error::{error, miette::IntoDiagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hook::define_hook;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use rspack_regex::RspackRegex;
@@ -238,9 +238,11 @@ impl ContextModuleFactory {
         for loader_request in loaders {
           let resolve_result = loader_resolver
             .resolve(data.context.as_ref(), loader_request)
-            .map_err(|err| {
-              let context = data.context.to_string();
-              error!("Failed to resolve loader: {loader_request} in {context} {err:?}")
+            .to_rspack_result_with_message(|e| {
+              format!(
+                "Failed to resolve loader: {loader_request} in {} {e}",
+                data.context
+              )
             })?;
           match resolve_result {
             ResolveResult::Resource(resource) => {

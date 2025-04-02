@@ -6,7 +6,7 @@ mod js_values;
 mod utils;
 
 mod errors;
-pub use errors::{NapiErrorExt, NapiResultExt};
+pub use errors::NapiErrorToRspackErrorExt;
 
 mod callback;
 pub use callback::JsCallback;

@@ -12,8 +12,8 @@ use rspack_core::{
   rspack_sources::BoxSource, BoxDependency, Compilation, CompilationId, EntryOptions,
   FactorizeInfo, ModuleIdentifier, Root,
 };
-use rspack_error::Diagnostic;
-use rspack_napi::{napi::bindgen_prelude::*, NapiResultExt, OneShotRef};
+use rspack_error::{Diagnostic, ToStringResultToRspackResultExt};
+use rspack_napi::{napi::bindgen_prelude::*, OneShotRef};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rustc_hash::FxHashMap;
 
@@ -75,7 +75,7 @@ impl JsCompilation {
           };
           new_source
         };
-        let new_source = new_source.into_rspack_result()?;
+        let new_source = new_source.to_rspack_result()?;
 
         let new_info: Option<Root<rspack_core::AssetInfo>> = match asset_info_update_or_function {
           Some(asset_info_update_or_function) => match asset_info_update_or_function {
