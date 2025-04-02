@@ -204,7 +204,7 @@ mod tests {
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn should_validate_scope_meta() {
+  async fn should_validate_scope_meta() -> Result<()> {
     for strategy in create_strategies("valid_scope_meta") {
       clean_strategy(&strategy).await;
       mock_root_meta_file(
@@ -228,19 +228,15 @@ mod tests {
       .await
       .expect("should mock meta file");
 
-      let _ = test_valid_meta(scope_path.clone(), &strategy)
-        .await
-        .map_err(|e| panic!("{}", e));
-
-      let _ = test_invalid_option_changed(scope_path.clone(), &strategy)
-        .await
-        .map_err(|e| panic!("{}", e));
+      test_valid_meta(scope_path.clone(), &strategy).await?;
+      test_invalid_option_changed(scope_path.clone(), &strategy).await?;
     }
+    Ok(())
   }
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn should_validate_scope_packs() {
+  async fn should_validate_scope_packs() -> Result<()> {
     for strategy in create_strategies("validate_scope_packs") {
       clean_strategy(&strategy).await;
       mock_root_meta_file(
@@ -280,19 +276,17 @@ mod tests {
 
       flag_scope_wrote(&mut mock_scope);
 
-      let _ = test_valid_packs(scope_path.clone(), &strategy, pack_options.clone())
-        .await
-        .map_err(|e| panic!("{}", e));
+      test_valid_packs(scope_path.clone(), &strategy, pack_options.clone()).await?;
 
-      let _ = test_invalid_packs_changed(
+      test_invalid_packs_changed(
         scope_path.clone(),
         &strategy,
         strategy.fs.clone(),
         pack_options.clone(),
         changed.wrote_files,
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
     }
+    Ok(())
   }
 }

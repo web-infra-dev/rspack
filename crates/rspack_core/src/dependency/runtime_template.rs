@@ -497,7 +497,7 @@ pub fn module_namespace_promise(
         }
         appending.push_str(
           format!(
-            ".then(function(m){{\n {}(m, {fake_type}) \n}})",
+            ".then(function(m){{\n return {}(m, {fake_type}) \n}})",
             RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT
           )
           .as_str(),

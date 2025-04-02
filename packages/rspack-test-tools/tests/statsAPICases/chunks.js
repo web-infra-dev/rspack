@@ -14,7 +14,7 @@ function deepReplace(obj) {
 	}
 }
 
-/** @type {import('../../dist').TStatsAPICaseConfig} */
+/** @type {import('@rspack/test-tools').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should output the chunks",
 	options(context) {

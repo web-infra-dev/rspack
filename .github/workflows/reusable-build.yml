@@ -140,6 +140,11 @@ jobs:
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
           profile: ${{ inputs.profile }}
           pre: |
+            # set apk repositories to stable release branch
+            rm /etc/apk/repositories
+            echo "https://dl-cdn.alpinelinux.org/alpine/v3.21/main" >> /etc/apk/repositories
+            echo "https://dl-cdn.alpinelinux.org/alpine/v3.21/community" >> /etc/apk/repositories
+            apk update
             # musl will enable clang-sys static linking
             # https://github.com/KyleMayes/clang-sys?tab=readme-ov-file#static
             # llvm19-dev is used to install llvm-config
@@ -155,6 +160,11 @@ jobs:
           profile: ${{ inputs.profile }}
           pre: |
             export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc
+            # set apk repositories to stable release branch
+            rm /etc/apk/repositories
+            echo "https://dl-cdn.alpinelinux.org/alpine/v3.21/main" >> /etc/apk/repositories
+            echo "https://dl-cdn.alpinelinux.org/alpine/v3.21/community" >> /etc/apk/repositories
+            apk update
             # musl will enable clang-sys static linking
             # https://github.com/KyleMayes/clang-sys?tab=readme-ov-file#static
             # llvm19-dev is used to install llvm-config

@@ -191,12 +191,12 @@ impl CopyRspackPlugin {
       let to = match to {
         ToOption::String(s) => s.to_owned(),
         ToOption::Fn(r) => {
-          let to_result = r(ToFnCtx {
+          let result = r(ToFnCtx {
             context,
             absolute_filename: &absolute_filename,
           })
           .await;
-          let to = match to_result {
+          let to = match result {
             Ok(to) => to,
             Err(e) => {
               diagnostics

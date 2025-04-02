@@ -14,7 +14,7 @@ use rspack_core::{
   rspack_sources::{encode_mappings, Mapping, OriginalLocation, SourceMap},
   Loader, LoaderContext, RunnerContext,
 };
-use rspack_error::Result;
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_loader_runner::{Identifiable, Identifier};
 use tokio::sync::Mutex;
 
@@ -84,8 +84,7 @@ impl LightningCssLoader {
       warnings: None,
       flags: parser_flags,
     };
-    let stylesheet = StyleSheet::parse(&content_str, option.clone())
-      .map_err(|e| rspack_error::error!(e.to_string()))?;
+    let stylesheet = StyleSheet::parse(&content_str, option.clone()).to_rspack_result()?;
 
     let mut stylesheet = to_static(
       stylesheet,
@@ -134,7 +133,7 @@ impl LightningCssLoader {
         targets,
         unused_symbols,
       })
-      .map_err(|e| rspack_error::error!(e))?;
+      .to_rspack_result()?;
 
     let enable_sourcemap = loader_context.context.module_source_map_kind.enabled();
 
@@ -147,8 +146,7 @@ impl LightningCssLoader {
             .unwrap_or(&loader_context.context.options.context),
         );
         sm.add_source(&filename);
-        sm.set_source_content(0, &content_str)
-          .map_err(|e| rspack_error::error!(e))?;
+        sm.set_source_content(0, &content_str).to_rspack_result()?;
         Ok(sm)
       })
       .transpose()?

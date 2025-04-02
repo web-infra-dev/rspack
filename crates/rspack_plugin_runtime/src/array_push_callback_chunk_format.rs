@@ -6,7 +6,7 @@ use rspack_core::{
   CompilationAdditionalChunkRuntimeRequirements, CompilationParams, CompilerCompilation,
   CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
 };
-use rspack_error::{error, Result};
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
@@ -111,7 +111,7 @@ async fn render_chunk(
     source.add(RawStringSource::from(format!(
       "{}[{}]('{}', ",
       global_object,
-      serde_json::to_string(hot_update_global).map_err(|e| error!(e.to_string()))?,
+      serde_json::to_string(hot_update_global).to_rspack_result()?,
       chunk.expect_id(&compilation.chunk_ids_artifact)
     )));
     source.add(render_source.source.clone());

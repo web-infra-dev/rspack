@@ -143,7 +143,7 @@ mod test_storage_dev {
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn test_dev() {
+  async fn test_dev() -> Result<()> {
     let cases = [
       (
         get_native_path("test_dev_native"),
@@ -164,29 +164,27 @@ mod test_storage_dev {
         .await
         .expect("should remove temp root");
 
-      let _ = test_initial_dev(
+      test_initial_dev(
         &root.join(&version),
         fs.clone(),
         create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
 
-      let _ = test_recovery_modify(
+      test_recovery_modify(
         &root.join(&version),
         fs.clone(),
         create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
 
-      let _ = test_recovery_final(
+      test_recovery_final(
         &root.join(&version),
         fs.clone(),
         create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
     }
+    Ok(())
   }
 }

@@ -176,25 +176,18 @@ mod tests {
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn should_read_pack() {
+  async fn should_read_pack() -> Result<()> {
     for strategy in create_strategies("read_pack") {
       clean_strategy(&strategy).await;
       let dir = strategy.get_path("pack");
       mock_pack_file(&dir.join("./mock_pack"), "mock", 20, strategy.fs.as_ref())
         .await
         .expect("should mock pack file");
-      let _ = test_read_keys(&dir.join("./mock_pack"), &strategy)
-        .await
-        .map_err(|e| panic!("{:?}", e));
-      let _ = test_read_contents(&dir.join("./mock_pack"), &strategy)
-        .await
-        .map_err(|e| panic!("{:?}", e));
-      let _ = test_read_keys_non_exists(&strategy)
-        .await
-        .map_err(|e| panic!("{:?}", e));
-      let _ = test_read_contents_non_exists(&strategy)
-        .await
-        .map_err(|e| panic!("{:?}", e));
+      test_read_keys(&dir.join("./mock_pack"), &strategy).await?;
+      test_read_contents(&dir.join("./mock_pack"), &strategy).await?;
+      test_read_keys_non_exists(&strategy).await?;
+      test_read_contents_non_exists(&strategy).await?;
     }
+    Ok(())
   }
 }

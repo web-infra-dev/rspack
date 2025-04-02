@@ -87,22 +87,22 @@ ustr               = { package = "ustr-fxhash", version = "1.0.1" }
 xxhash-rust        = { version = "0.8.14" }
 
 # Pinned
-napi        = { version = "3.0.0-alpha.24", features = ["anyhow"] }
+napi        = { version = "3.0.0-alpha.33", features = ["anyhow", "napi6"] }
 napi-build  = { version = "2.1.6" }
-napi-derive = { version = "3.0.0-alpha.22" }
+napi-derive = { version = "3.0.0-alpha.29" }
 
 # Serialize and Deserialize
 inventory = { version = "0.3.17" }
 rkyv      = { version = "=0.8.8" }
 
 # Must be pinned with the same swc versions
-swc                 = { version = "=16.1.1" }
+swc                 = { version = "=18.0.0" }
 swc_config          = { version = "=2.0.0" }
-swc_core            = { version = "=16.10.0", default-features = false }
-swc_ecma_minifier   = { version = "=12.4.0", default-features = false }
+swc_core            = { version = "=18.0.0", default-features = false, features = ["parallel_rayon"] }
+swc_ecma_minifier   = { version = "=14.0.0", default-features = false }
 swc_error_reporters = { version = "=9.1.1" }
-swc_html            = { version = "=12.0.0" }
-swc_html_minifier   = { version = "=12.0.0", default-features = false }
+swc_html            = { version = "=14.0.0" }
+swc_html_minifier   = { version = "=14.0.0", default-features = false }
 swc_node_comments   = { version = "=8.0.0" }
 swc_parallel        = { version = "1.3.0", default-features = false, features = ["rayon"] }
 

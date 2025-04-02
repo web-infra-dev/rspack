@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
 use async_trait::async_trait;
-use napi::bindgen_prelude::{Buffer, Either, Promise};
+use napi::bindgen_prelude::{Buffer, Either, FnArgs, Promise};
 use napi_derive::napi;
 use rspack_fs::WritableFileSystem;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -10,6 +10,9 @@ use rspack_plugin_schemes::{
 };
 use rspack_regex::RspackRegex;
 use rspack_util::asset_condition::{AssetCondition, AssetConditions};
+
+type HttpClientRequest =
+  ThreadsafeFunction<FnArgs<(String, HashMap<String, String>)>, Promise<JsHttpResponseRaw>>;
 
 #[napi(object, object_to_js = false)]
 #[derive(Debug)]
@@ -22,8 +25,7 @@ pub struct RawHttpUriPluginOptions {
   // pub proxy: Option<String>,
   // pub frozen: Option<bool>,
   #[napi(ts_type = "(url: string, headers: Record<string, string>) => Promise<JsHttpResponseRaw>")]
-  pub http_client:
-    ThreadsafeFunction<(String, HashMap<String, String>), Promise<JsHttpResponseRaw>>,
+  pub http_client: HttpClientRequest,
 }
 
 #[napi(object)]
@@ -33,9 +35,12 @@ pub struct JsHttpResponseRaw {
   pub body: Buffer,
 }
 
+type JsHttpClientFunction =
+  ThreadsafeFunction<FnArgs<(String, HashMap<String, String>)>, Promise<JsHttpResponseRaw>>;
+
 #[derive(Debug, Clone)]
 pub struct JsHttpClient {
-  function: ThreadsafeFunction<(String, HashMap<String, String>), Promise<JsHttpResponseRaw>>,
+  function: JsHttpClientFunction,
 }
 
 #[async_trait]
@@ -50,7 +55,7 @@ impl HttpClient for JsHttpClient {
     let func = self.function.clone();
 
     let result = func
-      .call_with_promise((url_owned, headers_owned))
+      .call_with_promise((url_owned, headers_owned).into())
       .await
       .map_err(|e| anyhow::anyhow!("Error calling JavaScript HTTP client: {}", e))?;
 

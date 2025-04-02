@@ -7,7 +7,7 @@ use rspack_core::{
   Filename, LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject,
   LibraryOptions, LibraryType, PathData, Plugin, PluginContext, RuntimeGlobals, SourceType,
 };
-use rspack_error::{error, Result};
+use rspack_error::{error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
@@ -336,8 +336,7 @@ fn externals_require_array(external_type: &str, externals: &[&ExternalModule]) -
             .ok_or_else(|| error!("Missing external configuration for type: {external_type}"))?,
         };
         // TODO: check if external module is optional
-        let primary =
-          serde_json::to_string(request.primary()).map_err(|e| error!(e.to_string()))?;
+        let primary = serde_json::to_string(request.primary()).to_rspack_result()?;
         let expr = if let Some(rest) = request.rest() {
           format!("require({}){}", primary, &accessor_to_object_access(rest))
         } else {

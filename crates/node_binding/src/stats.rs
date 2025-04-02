@@ -16,7 +16,9 @@ use rspack_napi::{
 use rspack_util::itoa;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{identifier::JsIdentifier, to_js_module_id, JsCompilation, JsModuleId};
+use crate::{
+  identifier::JsIdentifier, to_js_module_id, JsCompilation, JsModuleId, RspackResultToNapiResultExt,
+};
 
 thread_local! {
   static MODULE_DESCRIPTOR_REFS: RefCell<HashMap<Identifier, OneShotRef>> = Default::default();
@@ -546,7 +548,7 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
           .collect::<Result<_>>()
       })
       .transpose()
-      .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+      .to_napi_result()?;
 
     let reasons = match stats.reasons {
       Some(reasons) => {
@@ -1112,7 +1114,7 @@ impl JsStats {
       .get_modules(options, |res| {
         res.into_iter().map(JsStatsModule::try_from).collect()
       })
-      .map_err(|e| napi::Error::from_reason(e.to_string()))?
+      .to_napi_result()?
   }
 
   fn chunks(&self, options: &ExtendedStatsOptions) -> Result<Vec<JsStatsChunk>> {
@@ -1121,7 +1123,7 @@ impl JsStats {
       .get_chunks(options, |res| {
         res.into_iter().map(JsStatsChunk::try_from).collect()
       })
-      .map_err(|e| napi::Error::from_reason(e.to_string()))?
+      .to_napi_result()?
   }
 
   fn entrypoints(

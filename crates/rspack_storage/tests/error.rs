@@ -157,7 +157,7 @@ mod test_storage_error {
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn test_error() {
+  async fn test_error() -> Result<()> {
     let cases = [
       (
         get_native_path("test_error_native"),
@@ -178,37 +178,34 @@ mod test_storage_error {
         .await
         .expect("should remove temp root");
 
-      let _ = test_initial_error(
+      test_initial_error(
         &root.join(&version),
         fs.clone(),
         create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
 
-      let _ = test_recovery_invalid_meta(
+      test_recovery_invalid_meta(
         &root.join(&version),
         fs.clone(),
         create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
 
-      let _ = test_recovery_remove_pack(
+      test_recovery_remove_pack(
         &root.join(&version),
         fs.clone(),
         create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
 
-      let _ = test_recovery_modified_pack(
+      test_recovery_modified_pack(
         &root.join(&version),
         fs.clone(),
         create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
     }
+    Ok(())
   }
 }
