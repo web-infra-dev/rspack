@@ -35,10 +35,21 @@ define_hook!(NormalModuleFactoryCreateModule: SeriesBail(data: &mut ModuleFactor
 define_hook!(NormalModuleFactoryModule: Series(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData, module: &mut BoxModule));
 define_hook!(NormalModuleFactoryParser: Series(module_type: &ModuleType, parser: &mut dyn ParserAndGenerator, parser_options: Option<&ParserOptions>));
 define_hook!(NormalModuleFactoryResolveLoader: SeriesBail(context: &Context, resolver: &Resolver, l: &ModuleRuleUseLoader) -> BoxLoader);
+define_hook!(NormalModuleFactoryAfterResolveLoader: SeriesBail(context: &Context, resolver: &Resolver, l: &ModuleRuleUseLoader) -> BoxLoader);
 
 pub enum NormalModuleFactoryResolveResult {
   Module(BoxModule),
   Ignored,
+}
+
+#[derive(Debug)]
+pub struct NormalModuleCreateData {
+  pub raw_request: String,
+  pub request: String,
+  pub user_request: String,
+  pub resource_resolve_data: ResourceData,
+  pub match_resource: Option<String>,
+  pub side_effects: Option<bool>,
 }
 
 #[derive(Debug, Default)]
@@ -57,6 +68,7 @@ pub struct NormalModuleFactoryHooks {
   /// So this hook is used to resolve inline loader (inline loader requests).
   // should move to ResolverFactory?
   pub resolve_loader: NormalModuleFactoryResolveLoaderHook,
+  pub after_resolve_loader: NormalModuleFactoryAfterResolveLoaderHook,
 }
 
 #[derive(Debug)]
@@ -493,12 +505,26 @@ impl NormalModuleFactory {
         loader_resolver: &Resolver,
         l: &ModuleRuleUseLoader,
       ) -> Result<Arc<dyn Loader<RunnerContext>>> {
-        plugin_driver
+        let loader = plugin_driver
           .normal_module_factory_hooks
           .resolve_loader
           .call(context, loader_resolver, l)
           .await?
-          .ok_or_else(|| error!("Unable to resolve loader {}", l.loader))
+          .ok_or_else(|| error!("Unable to resolve loader {}", l.loader))?;
+
+        // Call the after_resolve_loader hook with the same arguments
+        let after_loader = plugin_driver
+          .normal_module_factory_hooks
+          .after_resolve_loader
+          .call(context, loader_resolver, l)
+          .await?;
+
+        // If the hook returned a loader, use that instead
+        if let Some(after_loader) = after_loader {
+          return Ok(after_loader);
+        }
+
+        Ok(loader)
       }
 
       all_loaders
@@ -719,11 +745,11 @@ impl NormalModuleFactory {
           p.get("css").cloned(),
           options,
           |css_options, options| match (css_options, options) {
-            (ParserOptions::Css(a), ParserOptions::CssAuto(b)) => {
-              ParserOptions::CssAuto(Into::<CssAutoParserOptions>::into(a).merge_from(b))
+            (GeneratorOptions::Css(a), GeneratorOptions::CssAuto(b)) => {
+              GeneratorOptions::CssAuto(Into::<CssAutoGeneratorOptions>::into(a).merge_from(b))
             }
-            (ParserOptions::Css(a), ParserOptions::CssModule(b)) => {
-              ParserOptions::CssModule(Into::<CssModuleParserOptions>::into(a).merge_from(b))
+            (GeneratorOptions::Css(a), GeneratorOptions::CssModule(b)) => {
+              GeneratorOptions::CssModule(Into::<CssModuleGeneratorOptions>::into(a).merge_from(b))
             }
             _ => unreachable!(),
           },
@@ -926,16 +952,6 @@ impl From<Span> for ErrorSpan {
       end: span.hi.0.saturating_sub(1),
     }
   }
-}
-
-#[derive(Debug)]
-pub struct NormalModuleCreateData {
-  pub raw_request: String,
-  pub request: String,
-  pub user_request: String,
-  pub resource_resolve_data: ResourceData,
-  pub match_resource: Option<String>,
-  pub side_effects: Option<bool>,
 }
 
 #[test]
