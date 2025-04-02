@@ -335,11 +335,10 @@ mod tests {
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn should_storage_bridge_fs_work() {
+  async fn should_storage_bridge_fs_work() -> FSResult<()> {
     let fs = BridgeFileSystem(Arc::new(MemoryFileSystem::default()));
 
-    let _ = test_memory_fs(&fs).await.map_err(|e| {
-      panic!("{}", e);
-    });
+    test_memory_fs(&fs).await?;
+    Ok(())
   }
 }

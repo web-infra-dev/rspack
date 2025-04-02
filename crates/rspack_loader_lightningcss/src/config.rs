@@ -3,6 +3,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsOption, AsPreset},
 };
+use rspack_error::ToStringResultToRspackResultExt;
 use serde::Deserialize;
 
 #[cacheable]
@@ -71,7 +72,7 @@ impl TryFrom<RawConfig> for Config {
         .targets
         .map(lightningcss::targets::Browsers::from_browserslist)
         .transpose()
-        .map_err(|err| rspack_error::error!("Failed to parse browserslist: {}", err))?
+        .to_rspack_result_with_message(|e| format!("Failed to parse browserslist: {}", e))?
         .flatten(),
       include: value.include,
       exclude: value.exclude,

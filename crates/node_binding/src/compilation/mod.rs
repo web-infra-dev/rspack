@@ -11,8 +11,8 @@ use rspack_core::{
   rspack_sources::BoxSource, BoxDependency, Compilation, CompilationId, EntryOptions,
   FactorizeInfo, ModuleIdentifier,
 };
-use rspack_error::Diagnostic;
-use rspack_napi::{napi::bindgen_prelude::*, NapiResultExt, OneShotRef};
+use rspack_error::{Diagnostic, ToStringResultToRspackResultExt};
+use rspack_napi::{napi::bindgen_prelude::*, OneShotRef};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rustc_hash::FxHashMap;
 
@@ -75,7 +75,7 @@ impl JsCompilation {
           };
           new_source
         };
-        let new_source = new_source.into_rspack_result()?;
+        let new_source = new_source.to_rspack_result()?;
 
         let new_info: napi::Result<Option<rspack_core::AssetInfo>> = asset_info_update_or_function
           .map(
@@ -90,7 +90,7 @@ impl JsCompilation {
             },
           )
           .transpose();
-        if let Some(new_info) = new_info.into_rspack_result()? {
+        if let Some(new_info) = new_info.to_rspack_result()? {
           original_info.merge_another_asset(new_info);
         }
         Ok((new_source, original_info))

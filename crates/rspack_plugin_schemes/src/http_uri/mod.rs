@@ -138,7 +138,7 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
   {
     let fetch_result = fetch_content(&resource_data.resource, &self.options)
       .await
-      .to_rspack_result()?;
+      .to_rspack_result_from_anyhow()?;
 
     if let FetchResultType::Content(content_result) = fetch_result {
       return Ok(Some(Content::from(content_result.content().to_vec())));

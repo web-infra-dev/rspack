@@ -7,7 +7,7 @@ use std::{
 use cow_utils::CowUtils;
 use itertools::Itertools;
 use rspack_dojang::{Context, Dojang, Operand};
-use rspack_error::{error, miette, Result};
+use rspack_error::{error, miette, Result, ToStringResultToRspackResultExt};
 use serde_json::{Map, Value};
 
 use crate::{Environment, RuntimeGlobals};
@@ -122,7 +122,9 @@ impl RuntimeTemplate {
         )
         // Replace Windows-style line endings (\r\n) with Unix-style (\n) to ensure consistent runtime templates across platforms
         .map(|render| render.cow_replace("\r\n", "\n").to_string())
-        .map_err(|err| error!("Runtime module: failed to render template {key} from: {err}"))
+        .to_rspack_result_with_message(|e| {
+          format!("Runtime module: failed to render template {key} from: {e}")
+        })
     } else {
       Err(error!("Runtime module: Template {key} is not found"))
     }

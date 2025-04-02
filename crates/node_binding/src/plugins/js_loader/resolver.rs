@@ -9,7 +9,7 @@ use rspack_core::{
   BoxLoader, Context, Loader, ModuleRuleUseLoader, NormalModuleFactoryResolveLoader, ResolveResult,
   Resolver, Resource, RunnerContext, BUILTIN_LOADER_PREFIX,
 };
-use rspack_error::{error, Result, SerdeResultToRspackResultExt};
+use rspack_error::{error, Result, SerdeResultToRspackResultExt, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_loader_lightningcss::{config::Config, LIGHTNINGCSS_LOADER_IDENTIFIER};
 use rspack_loader_preact_refresh::PREACT_REFRESH_LOADER_IDENTIFIER;
@@ -133,7 +133,9 @@ pub(crate) async fn resolve_loader(
 
   let resolve_result = resolver
     .resolve(context.as_std_path(), prev.as_str())
-    .map_err(|err| error!("Failed to resolve loader: {prev} in {context}, error: {err:?}"))?;
+    .to_rspack_result_with_message(|e| {
+      format!("Failed to resolve loader: {prev} in {context}, error: {e}")
+    })?;
 
   match resolve_result {
     ResolveResult::Resource(resource) => {
