@@ -23,7 +23,7 @@ use crate::{
   Compilation, CompilerOptions,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct PersistentCacheOptions {
   pub build_dependencies: Vec<PathBuf>,
   pub version: String,
@@ -54,7 +54,7 @@ impl PersistentCache {
       &option.build_dependencies,
       |hasher| {
         compiler_path.hash(hasher);
-        option.version.hash(hasher);
+        option.hash(hasher);
         rspack_version!().hash(hasher);
         compiler_options.name.hash(hasher);
         compiler_options.mode.hash(hasher);
@@ -113,13 +113,8 @@ impl Cache for PersistentCache {
       .chain(build_removed)
       .cloned()
       .collect();
-    self
-      .snapshot
-      .remove(removed_paths.iter().map(|item| item.as_ref()));
-    self
-      .snapshot
-      .add(modified_paths.iter().map(|item| item.as_ref()))
-      .await;
+    self.snapshot.remove(removed_paths.into_iter());
+    self.snapshot.add(modified_paths.into_iter()).await;
 
     let rx = self.storage.trigger_save()?;
     if self.async_mode {
