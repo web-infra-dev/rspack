@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rspack_core::{
   ApplyContext, BoxLoader, CompilerOptions, Context, ModuleRuleUseLoader,
-  NormalModuleFactoryAfterResolveLoader, Plugin, PluginContext, Resolver,
+  NormalModuleFactoryResolveLoader, Plugin, PluginContext, Resolver,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -34,15 +34,14 @@ impl Plugin for ReactRefreshLoaderPlugin {
     ctx
       .context
       .normal_module_factory_hooks
-      .after_resolve_loader
-      .tap(after_resolve_loader::new(self));
-
+      .resolve_loader
+      .tap(resolve_loader::new(self));
     Ok(())
   }
 }
 
-#[plugin_hook(NormalModuleFactoryAfterResolveLoader for ReactRefreshLoaderPlugin)]
-pub(crate) async fn after_resolve_loader(
+#[plugin_hook(NormalModuleFactoryResolveLoader for ReactRefreshLoaderPlugin)]
+pub(crate) async fn resolve_loader(
   &self,
   _context: &Context,
   _resolver: &Resolver,
@@ -51,10 +50,6 @@ pub(crate) async fn after_resolve_loader(
   let loader_request = &l.loader;
 
   if loader_request.starts_with(REACT_REFRESH_LOADER_IDENTIFIER) {
-    println!(
-      "[ReactRefreshLoaderPlugin] Adding React Refresh Loader for: {}",
-      loader_request
-    );
     return Ok(Some(Arc::new(
       crate::ReactRefreshLoader::default().with_identifier(loader_request.as_str().into()),
     )));
