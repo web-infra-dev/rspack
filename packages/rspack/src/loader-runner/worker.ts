@@ -321,6 +321,8 @@ async function loaderImpl(
 		);
 	};
 
+	loaderContext.fs = require("node:fs");
+
 	Object.defineProperty(loaderContext, "request", {
 		enumerable: true,
 		get: () =>
