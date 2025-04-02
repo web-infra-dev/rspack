@@ -73,7 +73,6 @@
     "@rspack/core": "workspace:*",
     "@rspack/plugin-preact-refresh": "1.1.2",
     "@rspack/plugin-react-refresh": "^1.0.1",
-    "@rspack/test-tools": "workspace:*",
     "@swc/helpers": "0.5.15",
     "@swc/plugin-remove-console": "^7.0.0",
     "@types/babel__generator": "7.6.8",
