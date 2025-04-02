@@ -349,7 +349,7 @@ pub fn create_favicon_asset(
         CompilationAsset::from(RawBufferSource::from(content).boxed()),
       )
     })
-    .to_rspack_result()
+    .to_rspack_result_from_anyhow()
 }
 
 pub async fn create_html_asset(
