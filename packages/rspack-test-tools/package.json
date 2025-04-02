@@ -42,10 +42,10 @@
     "directory": "packages/rspack-test-tools"
   },
   "dependencies": {
-    "@babel/generator": "7.26.10",
-    "@babel/parser": "7.26.10",
-    "@babel/traverse": "7.26.10",
-    "@babel/types": "7.26.10",
+    "@babel/generator": "7.27.0",
+    "@babel/parser": "7.27.0",
+    "@babel/traverse": "7.27.0",
+    "@babel/types": "7.27.0",
     "cross-env": "^7.0.3",
     "csv-to-markdown-table": "^1.4.1",
     "deepmerge": "^4.3.1",
