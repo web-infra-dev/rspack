@@ -3,10 +3,11 @@ use std::collections::HashMap;
 use napi::Either;
 use napi_derive::napi;
 use rspack_core::{
-  Alias, AliasMap, ByDependency, DependencyCategory, Resolve, ResolveOptionsWithDependencyType,
-  TsconfigOptions, TsconfigReferences,
+  Alias, AliasMap, ByDependency, DependencyCategory, RegexPattern, Resolve,
+  ResolveOptionsWithDependencyType, Restriction, TsconfigOptions, TsconfigReferences,
 };
 use rspack_error::error;
+use rspack_regex::RspackRegex;
 
 pub type AliasValue = serde_json::Value;
 
@@ -52,7 +53,8 @@ pub struct RawResolveOptions {
   #[napi(ts_type = "Record<string, Array<string>>")]
   pub extension_alias: Option<HashMap<String, Vec<String>>>,
   pub alias_fields: Option<Vec<String>>,
-  pub restrictions: Option<Vec<String>>,
+  #[napi(ts_type = "(string | RegExp)[]")]
+  pub restrictions: Option<Vec<Either<String, RspackRegex>>>,
   pub roots: Option<Vec<String>>,
   pub pnp: Option<bool>,
 }
@@ -134,7 +136,18 @@ impl TryFrom<RawResolveOptions> for Resolve {
     let alias_fields = value
       .alias_fields
       .map(|v| v.into_iter().map(|s| vec![s]).collect());
-    let restrictions = value.restrictions;
+    let restrictions = value.restrictions.map(|estriction| {
+      estriction
+        .into_iter()
+        .map(|restriction| match restriction {
+          Either::A(s) => Restriction::Path(s),
+          Either::B(r) => Restriction::Regex(RegexPattern {
+            flags: r.flags,
+            source: r.source,
+          }),
+        })
+        .collect::<Vec<_>>()
+    });
     let roots = value.roots;
     let enforce_extension = value.enforce_extension;
     let description_files = value.description_files;
@@ -189,7 +202,7 @@ impl TryFrom<RawResolveTsconfigOptions> for TsconfigOptions {
 }
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawResolveOptionsWithDependencyType {
   pub prefer_relative: Option<bool>,
   pub prefer_absolute: Option<bool>,
@@ -213,7 +226,8 @@ pub struct RawResolveOptionsWithDependencyType {
   #[napi(ts_type = "Record<string, Array<string>>")]
   pub extension_alias: Option<HashMap<String, Vec<String>>>,
   pub alias_fields: Option<Vec<String>>,
-  pub restrictions: Option<Vec<String>>,
+  #[napi(ts_type = "(string | RegExp)[]")]
+  pub restrictions: Option<Vec<Either<String, RspackRegex>>>,
   pub roots: Option<Vec<String>>,
 
   pub dependency_category: Option<String>,
@@ -254,6 +268,19 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         })
         .transpose()?;
 
+      let restrictions = raw.restrictions.map(|estriction| {
+        estriction
+          .into_iter()
+          .map(|restriction| match restriction {
+            Either::A(s) => Restriction::Path(s),
+            Either::B(r) => Restriction::Regex(RegexPattern {
+              flags: r.flags,
+              source: r.source,
+            }),
+          })
+          .collect::<Vec<_>>()
+      });
+
       let resolve_options = Resolve {
         extensions: raw.extensions,
         alias: normalize_alias(raw.alias)?,
@@ -272,7 +299,7 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         extension_alias,
         alias_fields,
         roots: raw.roots,
-        restrictions: raw.restrictions,
+        restrictions,
         imports_fields,
         by_dependency,
         description_files: raw.description_files,

@@ -50,6 +50,20 @@ impl value_type::GetValueType for Alias {
   }
 }
 
+#[cacheable]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct RegexPattern {
+  pub flags: String,
+  pub source: String,
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub enum Restriction {
+  Path(String),
+  Regex(RegexPattern),
+}
+
 pub(super) type Extensions = Vec<String>;
 pub(super) type PreferRelative = bool;
 pub(super) type PreferAbsolute = bool;
@@ -67,7 +81,7 @@ pub(super) type ImportsFields = Vec<Vec<String>>;
 pub(super) type ExtensionAlias = Vec<(String, Vec<String>)>;
 pub(super) type Modules = Vec<String>;
 pub(super) type Roots = Vec<String>;
-pub(super) type Restrictions = Vec<String>;
+pub(super) type Restrictions = Vec<Restriction>;
 
 #[cacheable]
 #[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]

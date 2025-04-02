@@ -269,7 +269,12 @@ fn to_rspack_resolver_options(
     .restrictions
     .unwrap_or_default()
     .into_iter()
-    .map(|s| rspack_resolver::Restriction::Path(s.into()))
+    .map(|s| match s {
+      crate::Restriction::Path(s) => rspack_resolver::Restriction::Path(s.into()),
+      crate::Restriction::Regex(r) => {
+        todo!()
+      }
+    })
     .collect();
   let roots = options
     .roots
