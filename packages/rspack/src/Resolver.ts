@@ -16,10 +16,6 @@ export type ResourceData = binding.JsResourceData;
 
 export type ResolveRequest = ResourceData;
 
-function isString(value: string | RegExp): value is string {
-	return typeof value === "string";
-}
-
 export class Resolver {
 	binding: binding.JsResolver;
 
@@ -58,12 +54,6 @@ export class Resolver {
 		...resolve
 	}: ResolveOptionsWithDependencyType): Resolver {
 		const rawResolve = getRawResolve(resolve);
-
-		// TODO: rspack_resolver is unimplemented regex
-		if (Array.isArray(rawResolve.restrictions)) {
-			rawResolve.restrictions =
-				rawResolve.restrictions.filter<string>(isString);
-		}
 
 		const binding = this.binding.withOptions({
 			dependencyCategory,
