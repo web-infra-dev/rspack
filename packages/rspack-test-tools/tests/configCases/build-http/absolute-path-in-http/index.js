@@ -2,7 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 
 // Import content that contains absolute paths
-import { message, getMessage } from "https://example.com/absolute-path-test.js";
+import * as lodash from "https://esm.sh/lodash";
 import App from './App';
 
 // Create a container for React rendering if we're in a browser environment
@@ -29,7 +29,7 @@ const renderApp = () => {
 renderApp();
 
 // Export for testing
-export { message, getMessage };
+export {lodash };
 
 // Tests
 it("should correctly import real module using absolute path from HTTP-imported content", () => {

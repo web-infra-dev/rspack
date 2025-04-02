@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 // Import a remote React component to demonstrate remote import capabilities
-import RemoteComponent from 'https://example.com/react-component.js';
+import RemoteComponent from 'https://esm.sh/lodash@4.17.21/es2022/lodash.mjs';
 
 // Simple React component to demonstrate React Refresh functionality
 function App({ message, getMessage }) {

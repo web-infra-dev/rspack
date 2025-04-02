@@ -29,7 +29,7 @@ const mockFiles = {
     headers: { "content-type": "application/javascript" },
     content: `
       // A remote React component to demonstrate full compatibility
-      import React from 'react';
+      import React from 'https://esm.sh/react';
 
       export function RemoteComponent({ label }) {
         return React.createElement('div', { className: 'remote-component' },
