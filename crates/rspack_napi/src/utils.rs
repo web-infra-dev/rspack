@@ -35,7 +35,6 @@ pub fn object_clone(env: &Env, object: &Object) -> napi::Result<Object> {
   )?;
   let names = Array::from_unknown(names.into_unknown())?;
 
-  println!("object_clone names.len() {}", names.len());
   for index in 0..names.len() {
     if let Some(name) = names.get::<Unknown>(index)? {
       let value = object.get_property::<&Unknown, Unknown>(&name)?;
