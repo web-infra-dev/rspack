@@ -17,7 +17,7 @@ use self::algo::Algo;
 
 /// Using wrapper type required by [TryFrom] trait
 #[cacheable(with=AsString)]
-#[derive(Clone, Hash)]
+#[derive(Clone)]
 pub struct RspackRegex {
   algo: Box<Algo>,
   pub flags: String,
@@ -31,6 +31,13 @@ impl PartialEq for RspackRegex {
 }
 
 impl Eq for RspackRegex {}
+
+impl std::hash::Hash for RspackRegex {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.flags.hash(state);
+    self.source.hash(state);
+  }
+}
 
 impl Debug for RspackRegex {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
