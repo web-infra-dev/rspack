@@ -11,19 +11,15 @@ module.exports = {
 		path: path.resolve(__dirname, "dist"),
 		filename: "bundle.js"
 	},
+	externalsPresets: {},
 	module: {
 		rules: [
 			{
-				test: /\.jsx?$/,
+				test: /\.(js|jsx|mjs)$/,
 				exclude: /node_modules/,
 				use: [
-					// Add React Refresh loader first, similar to how Next.js does it with attachReactRefresh
 					{
-						loader: "@rspack/react-refresh-loader"
-					},
-					// Add SWC loader for JSX transformations
-					{
-						loader: "swc-loader",
+						loader: "builtin:swc-loader",
 						options: {
 							jsc: {
 								transform: {
@@ -46,9 +42,8 @@ module.exports = {
 	},
 	experiments: {
 		buildHttp: {
-			allowedUris: ["https://example.com"],
-			cacheLocation: path.resolve(__dirname, "lock-files"),
-			httpClient: require("./mock-http-content")
+			allowedUris: ["https://esm.sh"],
+			cacheLocation: path.resolve(__dirname, "lock-files")
 		}
 	},
 	plugins: [
@@ -58,7 +53,7 @@ module.exports = {
 		new rspack.HotModuleReplacementPlugin()
 	],
 	resolve: {
-		extensions: [".js", ".jsx"]
+		extensions: [".js", ".jsx", ".mjs"]
 	},
 	devServer: {
 		hot: true

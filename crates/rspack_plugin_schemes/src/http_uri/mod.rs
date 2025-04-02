@@ -59,6 +59,8 @@ pub struct HttpUriPluginOptions {
   pub lockfile_location: Option<String>,
   pub cache_location: Option<String>,
   pub upgrade: bool,
+  // pub proxy: Option<String>,
+  // pub frozen: Option<bool>,
   pub filesystem: Arc<dyn WritableFileSystem>,
   pub http_client: Arc<dyn HttpClient>,
 }
@@ -70,6 +72,7 @@ async fn resolve_for_scheme(
   resource_data: &mut ResourceData,
   _scheme: &Scheme,
 ) -> Result<Option<bool>> {
+  // Try to parse the URL and handle it
   match Url::parse(&resource_data.resource) {
     Ok(url) => match self
       .respond_with_url_module(resource_data, &url, None)
@@ -90,6 +93,7 @@ async fn resolve_in_scheme(
   resource_data: &mut ResourceData,
   _scheme: &Scheme,
 ) -> Result<Option<bool>> {
+  // Check if the dependency type is "url", similar to webpack's check
   let is_not_url_dependency = data
     .dependencies
     .first()
@@ -97,6 +101,7 @@ async fn resolve_in_scheme(
     .map(|dep| dep.dependency_type().as_str() != "url")
     .unwrap_or(true);
 
+  // Only handle relative urls (./xxx, ../xxx, /xxx, //xxx) and non-url dependencies
   if is_not_url_dependency
     && (!resource_data.resource.starts_with("./")
       && !resource_data.resource.starts_with("../")
@@ -106,11 +111,13 @@ async fn resolve_in_scheme(
     return Ok(None);
   }
 
+  // Parse the base URL from context
   let base_url = match Url::parse(&format!("{}/", data.context)) {
     Ok(url) => url,
     Err(_) => return Ok(None),
   };
 
+  // Join the base URL with the resource
   match base_url.join(&resource_data.resource) {
     Ok(url) => match self
       .respond_with_url_module(resource_data, &url, None)
