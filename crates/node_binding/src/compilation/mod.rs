@@ -21,7 +21,8 @@ use crate::{
   entry::JsEntryOptions, utils::callbackify, AssetInfo, EntryDependency, JsAddingRuntimeModule,
   JsAsset, JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper, JsCompatSource,
   JsModuleGraph, JsPathData, JsRspackDiagnostic, JsRspackError, JsStats,
-  JsStatsOptimizationBailout, ModuleObject, ToJsCompatSource, COMPILER_REFERENCES,
+  JsStatsOptimizationBailout, ModuleObject, RspackResultToNapiResultExt, ToJsCompatSource,
+  COMPILER_REFERENCES,
 };
 
 #[napi]
@@ -94,7 +95,7 @@ impl JsCompilation {
         }
         Ok((new_source, original_info))
       })
-      .map_err(|err| napi::Error::from_reason(err.to_string()))
+      .to_napi_result()
   }
 
   #[napi(ts_return_type = "Readonly<JsAsset>[]")]
@@ -457,7 +458,7 @@ impl JsCompilation {
     let compilation = self.as_ref()?;
     #[allow(clippy::disallowed_methods)]
     futures::executor::block_on(compilation.get_asset_path(&filename.into(), data.to_path_data()))
-      .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))
+      .to_napi_result()
   }
 
   #[napi]
@@ -472,7 +473,7 @@ impl JsCompilation {
     let res = futures::executor::block_on(
       compilation.get_asset_path_with_info(&filename.into(), data.to_path_data()),
     )
-    .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
+    .to_napi_result()?;
     Ok(res.into())
   }
 
@@ -481,7 +482,7 @@ impl JsCompilation {
     let compilation = self.as_ref()?;
     #[allow(clippy::disallowed_methods)]
     futures::executor::block_on(compilation.get_path(&filename.into(), data.to_path_data()))
-      .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))
+      .to_napi_result()
   }
 
   #[napi]
@@ -496,7 +497,7 @@ impl JsCompilation {
       data.to_path_data(),
       &mut asset_info,
     ))
-    .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
+    .to_napi_result()?;
     Ok((path, asset_info).into())
   }
 
@@ -566,7 +567,7 @@ impl JsCompilation {
           },
         )
         .await
-        .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
+        .to_napi_result()?;
 
       Ok(modules)
     })
@@ -652,7 +653,7 @@ impl JsCompilation {
         &chunk.chunk_ukey,
         Box::new(RuntimeModuleFromJs::from(runtime_module)),
       )
-      .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))
+      .to_napi_result()
   }
 
   #[napi(getter)]
@@ -730,10 +731,7 @@ impl JsCompilation {
         .map(|(dependency, _)| *dependency.id())
         .collect::<Vec<_>>();
 
-      compilation
-        .add_include(args)
-        .await
-        .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
+      compilation.add_include(args).await.to_napi_result()?;
 
       let module_graph = compilation.get_module_graph();
       let results = dependency_ids

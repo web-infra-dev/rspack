@@ -78,3 +78,23 @@ impl JsRspackError {
     .with_hide_stack(self.hide_stack)
   }
 }
+
+pub trait RspackErrorToNapiErrorExt {
+  fn to_napi_error(self) -> napi::Error;
+}
+
+impl<T: ToString> RspackErrorToNapiErrorExt for T {
+  fn to_napi_error(self) -> napi::Error {
+    napi::Error::from_reason(self.to_string())
+  }
+}
+
+pub trait RspackResultToNapiResultExt<T> {
+  fn to_napi_result(self) -> napi::Result<T>;
+}
+
+impl<T, E: ToString> RspackResultToNapiResultExt<T> for Result<T, E> {
+  fn to_napi_result(self) -> napi::Result<T> {
+    self.map_err(|e| napi::Error::from_reason(e.to_string()))
+  }
+}

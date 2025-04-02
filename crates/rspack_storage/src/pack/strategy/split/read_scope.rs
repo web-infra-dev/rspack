@@ -367,7 +367,7 @@ mod tests {
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn should_read_scope() {
+  async fn should_read_scope() -> Result<()> {
     for strategy in create_strategies("read_scope") {
       clean_strategy(&strategy).await;
       let options = Arc::new(PackOptions {
@@ -384,12 +384,9 @@ mod tests {
         .await
         .expect("should mock packs");
 
-      let _ = test_read_meta(&mut scope, &strategy).await.map_err(|e| {
-        panic!("{}", e);
-      });
-      let _ = test_read_packs(&mut scope, &strategy).await.map_err(|e| {
-        panic!("{}", e);
-      });
+      test_read_meta(&mut scope, &strategy).await?;
+      test_read_packs(&mut scope, &strategy).await?;
     }
+    Ok(())
   }
 }

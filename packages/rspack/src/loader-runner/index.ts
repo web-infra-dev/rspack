@@ -770,6 +770,8 @@ export async function runLoaders(
 			loaders: loaderContext.loaders.map(item => {
 				return {
 					...item,
+					pitch: undefined,
+					normal: undefined,
 					normalExecuted: item.normalExecuted,
 					pitchExecuted: item.pitchExecuted
 				};
@@ -934,8 +936,6 @@ export async function runLoaders(
 			activeContext
 		);
 		if (parallelism) {
-			delete currentLoaderObject?.pitch;
-			delete currentLoaderObject?.normal;
 			result =
 				(await pool.run(
 					{

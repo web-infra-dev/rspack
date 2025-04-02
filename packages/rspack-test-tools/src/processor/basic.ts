@@ -166,7 +166,9 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 
 			if (
 				fs.existsSync(context.getSource("errors.js")) ||
-				fs.existsSync(context.getSource("warnings.js"))
+				fs.existsSync(context.getSource("warnings.js")) ||
+				stats.hasErrors() ||
+				stats.hasWarnings()
 			) {
 				const statsJson = stats.toJson({
 					errorDetails: true

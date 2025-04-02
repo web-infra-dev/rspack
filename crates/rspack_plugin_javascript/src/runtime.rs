@@ -6,7 +6,7 @@ use rspack_core::{
   to_normal_comment, BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationPublicPathAutoReplace, Compilation, RuntimeGlobals, SourceType,
 };
-use rspack_error::{error, Result};
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_util::diff_mode::is_diff_mode;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -42,7 +42,7 @@ pub async fn render_chunk_modules(
   })
   .await
   .into_iter()
-  .map(|res| res.map_err(rspack_error::miette::Error::from_err))
+  .map(|r| r.to_rspack_result())
   .collect::<Result<Vec<_>>>()?;
 
   let mut module_code_array = vec![];
@@ -148,6 +148,7 @@ pub async fn render_module(
     .render_module_content
     .call(
       compilation,
+      chunk_ukey,
       module,
       &mut render_source,
       &mut module_chunk_init_fragments,
@@ -160,7 +161,7 @@ pub async fn render_module(
       ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
         .expect("should have module_id in render_module");
     sources.add(RawStringSource::from(
-      serde_json::to_string(&module_id).map_err(|e| error!(e.to_string()))?,
+      serde_json::to_string(&module_id).to_rspack_result()?,
     ));
     sources.add(RawStringSource::from_static(": "));
 
@@ -243,6 +244,7 @@ pub async fn render_module(
       .render_module_container
       .call(
         compilation,
+        chunk_ukey,
         module,
         &mut post_module_container,
         &mut module_chunk_init_fragments,
@@ -377,7 +379,7 @@ pub async fn render_runtime_modules(
   })
   .await
   .into_iter()
-  .map(|res| res.map_err(rspack_error::miette::Error::from_err))
+  .map(|r| r.to_rspack_result())
   .collect::<Result<Vec<_>>>()?;
 
   for runtime_module_source in runtime_module_sources {

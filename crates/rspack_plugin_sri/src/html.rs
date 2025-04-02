@@ -1,5 +1,5 @@
 use futures::future::join_all;
-use rspack_error::Result;
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_paths::Utf8Path;
 use rspack_plugin_html::{
@@ -193,7 +193,7 @@ async fn compute_file_integrity(
   hash_func_names: &Vec<SubresourceIntegrityHashFunction>,
 ) -> Result<String> {
   let file = fs.read_file(path).await?;
-  let content = String::from_utf8(file).map_err(|e| rspack_error::error!(e.to_string()))?;
+  let content = String::from_utf8(file).to_rspack_result()?;
   let integrity = compute_integrity(hash_func_names, &content);
   Ok(integrity)
 }

@@ -13,7 +13,7 @@ use rspack_core::{
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveInScheme,
   NormalModuleReadResource, Plugin, PluginContext, ResourceData, Scheme,
 };
-use rspack_error::Result;
+use rspack_error::{AnyhowResultToRspackResultExt, Result};
 use rspack_fs::WritableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::{AssetCondition, AssetConditions};
@@ -141,7 +141,7 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
   {
     let fetch_result = fetch_content(&resource_data.resource, &self.options)
       .await
-      .map_err(rspack_error::AnyhowError::from)?;
+      .to_rspack_result()?;
 
     if let FetchResultType::Content(content_result) = fetch_result {
       return Ok(Some(Content::from(content_result.content().to_vec())));

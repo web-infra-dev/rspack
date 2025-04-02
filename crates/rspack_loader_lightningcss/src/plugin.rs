@@ -4,10 +4,7 @@ use rspack_core::{
   ApplyContext, BoxLoader, CompilerOptions, Context, ModuleRuleUseLoader,
   NormalModuleFactoryResolveLoader, Plugin, PluginContext, Resolver,
 };
-use rspack_error::{
-  miette::{miette, LabeledSpan, SourceOffset},
-  Result,
-};
+use rspack_error::{Result, SerdeResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::{config::Config, LIGHTNINGCSS_LOADER_IDENTIFIER};
@@ -54,13 +51,11 @@ pub(crate) async fn resolve_loader(
   let options = l.options.as_deref().unwrap_or("{}");
 
   if loader_request.starts_with(LIGHTNINGCSS_LOADER_IDENTIFIER) {
-    let config: crate::config::RawConfig = serde_json::from_str(options).map_err(|e| {
-      serde_error_to_miette(
-        e,
+    let config: crate::config::RawConfig = serde_json::from_str(options)
+      .to_rspack_result_with_detail(
         options,
         "Could not parse builtin:lightningcss-loader options",
-      )
-    })?;
+      )?;
     // TODO: builtin-loader supports function
     return Ok(Some(Arc::new(crate::LightningCssLoader::new(
       None,
@@ -70,15 +65,4 @@ pub(crate) async fn resolve_loader(
   }
 
   Ok(None)
-}
-
-// convert serde_error to miette report for pretty error
-pub fn serde_error_to_miette(
-  e: serde_json::Error,
-  content: &str,
-  msg: &str,
-) -> rspack_error::miette::Report {
-  let offset = SourceOffset::from_location(content, e.line(), e.column());
-  let span = LabeledSpan::at_offset(offset.offset(), e.to_string());
-  miette!(labels = vec![span], "{msg}").with_source_code(content.to_owned())
 }
