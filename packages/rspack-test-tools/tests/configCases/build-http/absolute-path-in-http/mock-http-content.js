@@ -10,12 +10,35 @@ const mockFiles = {
     headers: { "content-type": "application/javascript" },
     content: `
       // Import the real module using the actual absolute path
+      // Using dynamic import for ES module compatibility
       const realModule = require(${JSON.stringify(realModulePath)});
 
+      // Export as ES module for React compatibility
+      export const message = realModule.message;
+      export const getMessage = realModule.getMessage;
+
+      // For CommonJS compatibility
       module.exports = {
         message: realModule.message,
         getMessage: realModule.getMessage
       };
+    `
+  },
+  "/react-component.js": {
+    status: 200,
+    headers: { "content-type": "application/javascript" },
+    content: `
+      // A remote React component to demonstrate full compatibility
+      import React from 'react';
+
+      export function RemoteComponent({ label }) {
+        return React.createElement('div', { className: 'remote-component' },
+          React.createElement('h3', null, 'Remote Component'),
+          React.createElement('p', null, label || 'Default Label')
+        );
+      }
+
+      export default RemoteComponent;
     `
   }
 };

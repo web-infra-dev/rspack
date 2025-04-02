@@ -5,6 +5,11 @@ function getMessage() {
   return message;
 }
 
+// Support dual export for both CommonJS and ESM
+// ESM exports
+export { message, getMessage };
+
+// CommonJS exports
 module.exports = {
   message,
   getMessage

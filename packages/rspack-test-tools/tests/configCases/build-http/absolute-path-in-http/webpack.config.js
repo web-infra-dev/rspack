@@ -1,6 +1,9 @@
 const path = require("path");
 const rspack = require("@rspack/core");
 
+// Import React Refresh plugin - similar to Next.js
+const ReactRefreshPlugin = require("@rspack/plugin-react-refresh");
+
 module.exports = {
 	mode: "development",
 	entry: "./index.js",
@@ -11,13 +14,33 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				test: /\.js$/,
-				use: {
-					loader: "babel-loader",
-					options: {
-						presets: ["@babel/preset-env"]
+				test: /\.jsx?$/,
+				exclude: /node_modules/,
+				use: [
+					// Add React Refresh loader first, similar to how Next.js does it with attachReactRefresh
+					{
+						loader: "@rspack/react-refresh-loader"
+					},
+					// Add SWC loader for JSX transformations
+					{
+						loader: "swc-loader",
+						options: {
+							jsc: {
+								transform: {
+									react: {
+										runtime: "automatic",
+										development: true,
+										refresh: true
+									}
+								},
+								parser: {
+									syntax: "ecmascript",
+									jsx: true
+								}
+							}
+						}
 					}
-				}
+				]
 			}
 		]
 	},
@@ -28,7 +51,15 @@ module.exports = {
 			httpClient: require("./mock-http-content")
 		}
 	},
-	plugins: [new rspack.HotModuleReplacementPlugin()],
+	plugins: [
+		// Add React Refresh Plugin
+		new ReactRefreshPlugin(),
+		// Required for HMR
+		new rspack.HotModuleReplacementPlugin()
+	],
+	resolve: {
+		extensions: [".js", ".jsx"]
+	},
 	devServer: {
 		hot: true
 	}
