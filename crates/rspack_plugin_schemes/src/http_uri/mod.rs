@@ -71,16 +71,14 @@ async fn resolve_for_scheme(
   _scheme: &Scheme,
 ) -> Result<Option<bool>> {
   match Url::parse(&resource_data.resource) {
-    Ok(url) => {
-      match self
-        .respond_with_url_module(resource_data, &url, None)
-        .await
-      {
-        Ok(true) => Ok(Some(true)),
-        Ok(false) => Ok(None),
-        Err(e) => Err(e),
-      }
-    }
+    Ok(url) => match self
+      .respond_with_url_module(resource_data, &url, None)
+      .await
+    {
+      Ok(true) => Ok(Some(true)),
+      Ok(false) => Ok(None),
+      Err(e) => Err(e),
+    },
     Err(_) => Ok(None),
   }
 }
@@ -92,44 +90,36 @@ async fn resolve_in_scheme(
   resource_data: &mut ResourceData,
   _scheme: &Scheme,
 ) -> Result<Option<bool>> {
-  // Skip absolute filesystem paths (that aren't protocol-relative URLs starting with //)
-  // This check is crucial to prevent trying to resolve local paths against an HTTP context.
-  if resource_data.resource.starts_with('/') && !resource_data.resource.starts_with("//") {
-    return Ok(None);
-  }
-
-  let is_url_dependency = data
+  let is_not_url_dependency = data
     .dependencies
     .first()
-    .map(|dep| dep.category() == &rspack_core::DependencyCategory::Url)
-    .unwrap_or(false);
+    .and_then(|dep| dep.as_module_dependency())
+    .map(|dep| dep.dependency_type().as_str() != "url")
+    .unwrap_or(true);
 
-  let is_relative_url_pattern = resource_data.resource.starts_with("./")
-    || resource_data.resource.starts_with("../")
-    || resource_data.resource.starts_with('/');
-
-  if !is_url_dependency && !is_relative_url_pattern {
+  if is_not_url_dependency
+    && (!resource_data.resource.starts_with("./")
+      && !resource_data.resource.starts_with("../")
+      && !resource_data.resource.starts_with("/")
+      && !resource_data.resource.starts_with("//"))
+  {
     return Ok(None);
   }
 
   let base_url = match Url::parse(&format!("{}/", data.context)) {
     Ok(url) => url,
-    Err(_) => {
-      return Ok(None);
-    }
+    Err(_) => return Ok(None),
   };
 
   match base_url.join(&resource_data.resource) {
-    Ok(url) => {
-      match self
-        .respond_with_url_module(resource_data, &url, None)
-        .await
-      {
-        Ok(true) => Ok(Some(true)),
-        Ok(false) => Ok(None),
-        Err(e) => Err(e),
-      }
-    }
+    Ok(url) => match self
+      .respond_with_url_module(resource_data, &url, None)
+      .await
+    {
+      Ok(true) => Ok(Some(true)),
+      Ok(false) => Ok(None),
+      Err(e) => Err(e),
+    },
     Err(_) => Ok(None),
   }
 }
