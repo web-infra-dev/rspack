@@ -51,6 +51,10 @@ pub(crate) async fn after_resolve_loader(
   let loader_request = &l.loader;
 
   if loader_request.starts_with(REACT_REFRESH_LOADER_IDENTIFIER) {
+    println!(
+      "[ReactRefreshLoaderPlugin] Adding React Refresh Loader for: {}",
+      loader_request
+    );
     return Ok(Some(Arc::new(
       crate::ReactRefreshLoader::default().with_identifier(loader_request.as_str().into()),
     )));

@@ -96,6 +96,30 @@ const DOT: char = '.';
 const SLASH: char = '/';
 const QUESTION_MARK: char = '?';
 
+pub struct NormalModuleCreateData {
+  pub raw_request: String,
+  pub request: String,
+  pub user_request: String,
+  pub resource_resolve_data: ResourceData,
+  pub match_resource: Option<String>,
+  pub side_effects: Option<bool>,
+  pub loaders: Vec<BoxLoader>,
+}
+
+impl std::fmt::Debug for NormalModuleCreateData {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("NormalModuleCreateData")
+      .field("raw_request", &self.raw_request)
+      .field("request", &self.request)
+      .field("user_request", &self.user_request)
+      .field("resource_resolve_data", &self.resource_resolve_data)
+      .field("match_resource", &self.match_resource)
+      .field("side_effects", &self.side_effects)
+      .field("loaders", &format!("[{} loaders]", self.loaders.len()))
+      .finish()
+  }
+}
+
 impl NormalModuleFactory {
   pub fn new(
     options: Arc<CompilerOptions>,
@@ -369,24 +393,6 @@ impl NormalModuleFactory {
       }
     };
 
-    // Call after_resolve_loader hook after the resource is resolved but before loaders are applied
-    // This gives plugins a chance to modify the module content before it's transformed
-    let resource_loader = ModuleRuleUseLoader {
-      loader: resource_data.resource.clone(),
-      options: None,
-    };
-
-    if let Some(_modified_loader) = self
-      .plugin_driver
-      .normal_module_factory_hooks
-      .after_resolve_loader
-      .call(&self.options.context, &loader_resolver, &resource_loader)
-      .await?
-    {
-      // If a plugin returned a modified loader, we could handle it here
-      // Currently just calling the hook for side effects
-    }
-
     let resolved_module_rules = if let Some(match_resource_data) = &mut match_resource_data
       && let Some(captures) = MATCH_WEBPACK_EXT_REGEX.captures(&match_resource_data.resource)
       && let Some(module_type) = captures.get(1)
@@ -524,6 +530,8 @@ impl NormalModuleFactory {
       all_loaders
     };
 
+    let mut loaders = loaders;
+
     let request = if !loaders.is_empty() {
       let s = loaders
         .iter()
@@ -581,31 +589,43 @@ impl NormalModuleFactory {
       )
       .await?;
 
-    let mut create_data = {
-      let mut create_data = NormalModuleCreateData {
-        raw_request,
-        request,
-        user_request,
-        resource_resolve_data: resource_data,
-        match_resource: match_resource_data.as_ref().map(|d| d.resource.clone()),
-        side_effects: resolved_side_effects,
-      };
-      if let Some(plugin_result) = self
-        .plugin_driver
-        .normal_module_factory_hooks
-        .after_resolve
-        .call(data, &mut create_data)
-        .await?
-      {
-        if !plugin_result {
-          // ignored
-          // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/NormalModuleFactory.js#L301
-          return Ok(Some(ModuleFactoryResult::default()));
-        }
-      }
-
-      create_data
+    let mut create_data = NormalModuleCreateData {
+      raw_request,
+      request,
+      user_request,
+      resource_resolve_data: resource_data,
+      match_resource: match_resource_data.as_ref().map(|d| d.resource.clone()),
+      side_effects: resolved_side_effects,
+      loaders,
     };
+    if let Some(plugin_result) = self
+      .plugin_driver
+      .normal_module_factory_hooks
+      .after_resolve
+      .call(data, &mut create_data)
+      .await?
+    {
+      if !plugin_result {
+        // ignored
+        // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/NormalModuleFactory.js#L301
+        return Ok(Some(ModuleFactoryResult::default()));
+      }
+    }
+
+    let updated_request = if !create_data.loaders.is_empty() {
+      let s = create_data
+        .loaders
+        .iter()
+        .map(|i| i.identifier().as_str())
+        .collect::<Vec<_>>()
+        .join("!");
+      format!("{s}!{}", create_data.resource_resolve_data.resource)
+    } else {
+      create_data.resource_resolve_data.resource.clone()
+    };
+    create_data.request = updated_request;
+
+    let loaders_for_module = create_data.loaders.clone();
 
     let mut module = if let Some(module) = self
       .plugin_driver
@@ -628,7 +648,7 @@ impl NormalModuleFactory {
         match_resource_data,
         Arc::new(create_data.resource_resolve_data.clone()),
         resolved_resolve_options,
-        loaders,
+        loaders_for_module,
       )
       .boxed()
     };
@@ -946,16 +966,6 @@ impl From<Span> for ErrorSpan {
       end: span.hi.0.saturating_sub(1),
     }
   }
-}
-
-#[derive(Debug)]
-pub struct NormalModuleCreateData {
-  pub raw_request: String,
-  pub request: String,
-  pub user_request: String,
-  pub resource_resolve_data: ResourceData,
-  pub match_resource: Option<String>,
-  pub side_effects: Option<bool>,
 }
 
 #[test]
