@@ -29,7 +29,7 @@ mod napi_binding {
   use once_cell::sync::OnceCell;
   use rspack_napi::{object_assign, object_clone};
 
-  use crate::{bindings, AssetInfo};
+  use crate::{with_thread_local_allocator, AssetInfo};
 
   fn trace(env: &Env, scope: &mut Object, mut target: Object) -> napi::Result<napi_ref> {
     let mut raw_ref = ptr::null_mut();
@@ -97,7 +97,7 @@ mod napi_binding {
     }
 
     pub fn to_jsobject(&self, env: &Env, scope: &mut Object) -> napi::Result<Object> {
-      bindings::with_thread_local_allocator(|allocator| {
+      with_thread_local_allocator(|allocator| {
         let raw_ref = self
           .heap
           .jsobject

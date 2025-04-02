@@ -23,13 +23,13 @@ indoc = { workspace = true }
 itertools = { workspace = true }
 json = { workspace = true }
 mime_guess = { workspace = true }
-napi = { workspace = true, optional = true, features = ["napi6"] }
+napi = { workspace = true, optional = true }
 num-bigint = "0.4.6"
 once_cell = { workspace = true }
 paste = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
-rkyv = { workspace = true }
+rkyv = { workspace = true, optional = true }
 ropey = { workspace = true }
 rspack_ast = { workspace = true }
 rspack_cacheable = { workspace = true }
@@ -85,4 +85,5 @@ workspace = true
 ignored = ["swc_parallel"]
 
 [features]
-napi = ["dep:napi", "dep:rspack_napi"]
+default = []
+napi    = ["dep:napi", "dep:rspack_napi", "dep:rkyv"]

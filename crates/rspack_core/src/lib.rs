@@ -8,9 +8,9 @@
 
 use std::{fmt, sync::Arc};
 mod artifacts;
-mod bindings;
+mod binding;
 pub use artifacts::*;
-pub use bindings::*;
+pub use binding::*;
 mod dependencies_block;
 pub mod diagnostics;
 pub mod incremental;

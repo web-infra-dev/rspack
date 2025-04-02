@@ -81,31 +81,31 @@ impl JsCompilation {
           Some(asset_info_update_or_function) => match asset_info_update_or_function {
             Either::A(object) => {
               let js_asset_info: AssetInfo = unsafe {
-                FromNapiValue::from_napi_value(env.raw(), object.raw()).into_rspack_result()?
+                FromNapiValue::from_napi_value(env.raw(), object.raw()).to_rspack_result()?
               };
               let asset_info: rspack_core::AssetInfo = js_asset_info.into();
               let asset_info = Root::from(asset_info);
               asset_info
                 .set_jsobject(env, &mut this.object, object)
-                .into_rspack_result()?;
+                .to_rspack_result()?;
 
               Some(asset_info)
             }
             Either::B(f) => {
               let original_info_object = original_info
                 .to_jsobject(env, &mut this.object)
-                .into_rspack_result()?;
-              let result = f.call(original_info_object).into_rspack_result()?;
+                .to_rspack_result()?;
+              let result = f.call(original_info_object).to_rspack_result()?;
               match result {
                 Some(object) => {
                   let js_asset_info: AssetInfo = unsafe {
-                    FromNapiValue::from_napi_value(env.raw(), object.raw()).into_rspack_result()?
+                    FromNapiValue::from_napi_value(env.raw(), object.raw()).to_rspack_result()?
                   };
                   let asset_info: rspack_core::AssetInfo = js_asset_info.into();
                   let asset_info = Root::from(asset_info);
                   asset_info
                     .set_jsobject(env, &mut this.object, object)
-                    .into_rspack_result()?;
+                    .to_rspack_result()?;
 
                   Some(asset_info)
                 }
