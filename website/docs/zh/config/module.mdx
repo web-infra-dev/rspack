@@ -2067,7 +2067,7 @@ export default {
 
 loader 的配置需要满足 [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist)，否则会发送失败。
 
-目前 rspack 不支持 `LoaderContext.fs`, 以及大多数 `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module` 上的方法。
+目前 rspack 不支持大多数 `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module` 上的方法。
 :::
 
 ### Rule.resolve
