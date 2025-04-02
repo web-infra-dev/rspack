@@ -272,7 +272,10 @@ fn to_rspack_resolver_options(
     .map(|s| match s {
       crate::Restriction::Path(s) => rspack_resolver::Restriction::Path(s.into()),
       crate::Restriction::Regex(r) => {
-        todo!()
+        rspack_resolver::Restriction::Fn(Arc::new(move |path| match path.to_str() {
+          Some(path) => r.test(path),
+          None => false,
+        }))
       }
     })
     .collect();

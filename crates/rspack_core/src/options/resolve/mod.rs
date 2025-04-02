@@ -9,6 +9,7 @@ use rspack_cacheable::{
   with::{AsCacheable, AsMap, AsPreset, AsRefStr, AsTuple2, AsVec},
 };
 use rspack_paths::Utf8PathBuf;
+use rspack_regex::RspackRegex;
 
 use crate::DependencyCategory;
 
@@ -52,16 +53,9 @@ impl value_type::GetValueType for Alias {
 
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct RegexPattern {
-  pub flags: String,
-  pub source: String,
-}
-
-#[cacheable]
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum Restriction {
   Path(String),
-  Regex(RegexPattern),
+  Regex(RspackRegex),
 }
 
 pub(super) type Extensions = Vec<String>;

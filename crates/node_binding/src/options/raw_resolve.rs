@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use napi::Either;
 use napi_derive::napi;
 use rspack_core::{
-  Alias, AliasMap, ByDependency, DependencyCategory, RegexPattern, Resolve,
-  ResolveOptionsWithDependencyType, Restriction, TsconfigOptions, TsconfigReferences,
+  Alias, AliasMap, ByDependency, DependencyCategory, Resolve, ResolveOptionsWithDependencyType,
+  Restriction, TsconfigOptions, TsconfigReferences,
 };
 use rspack_error::error;
 use rspack_regex::RspackRegex;
@@ -141,10 +141,7 @@ impl TryFrom<RawResolveOptions> for Resolve {
         .into_iter()
         .map(|restriction| match restriction {
           Either::A(s) => Restriction::Path(s),
-          Either::B(r) => Restriction::Regex(RegexPattern {
-            flags: r.flags,
-            source: r.source,
-          }),
+          Either::B(r) => Restriction::Regex(r),
         })
         .collect::<Vec<_>>()
     });
@@ -273,10 +270,7 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
           .into_iter()
           .map(|restriction| match restriction {
             Either::A(s) => Restriction::Path(s),
-            Either::B(r) => Restriction::Regex(RegexPattern {
-              flags: r.flags,
-              source: r.source,
-            }),
+            Either::B(r) => Restriction::Regex(r),
           })
           .collect::<Vec<_>>()
       });

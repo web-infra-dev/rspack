@@ -24,6 +24,14 @@ pub struct RspackRegex {
   pub source: String,
 }
 
+impl PartialEq for RspackRegex {
+  fn eq(&self, other: &Self) -> bool {
+    self.flags == other.flags && self.source == other.source
+  }
+}
+
+impl Eq for RspackRegex {}
+
 impl Debug for RspackRegex {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("RspackRegex")
