@@ -72,7 +72,7 @@
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
     "@rspack/plugin-preact-refresh": "1.1.2",
-    "@rspack/plugin-react-refresh": "^1.0.1",
+    "@rspack/plugin-react-refresh": "^1.1.0",
     "@rspack/test-tools": "workspace:*",
     "@swc/helpers": "0.5.15",
     "@swc/plugin-remove-console": "^7.0.0",
