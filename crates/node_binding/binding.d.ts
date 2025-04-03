@@ -1087,11 +1087,12 @@ export interface JsRuntimeModuleArg {
 
 export interface JsRuntimeRequirementInTreeArg {
   chunk: JsChunk
+  allRuntimeRequirements: JsRuntimeGlobals
   runtimeRequirements: JsRuntimeGlobals
 }
 
 export interface JsRuntimeRequirementInTreeResult {
-  runtimeRequirements: JsRuntimeGlobals
+  allRuntimeRequirements: JsRuntimeGlobals
 }
 
 export interface JsStatsAsset {
