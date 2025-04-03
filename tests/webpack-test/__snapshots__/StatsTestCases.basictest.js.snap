@@ -396,9 +396,9 @@ cacheable modules xx bytes
   ./entry-xxx.js xx bytes [built] [code generated]
   ./dynamic.js xx bytes [built] [code generated]
 
-ERROR in × It's not allowed to load an initial chunk on demand. The chunk name \\"entry2\\" is already used by an entrypoint.
-
 ERROR in × It's not allowed to load an initial chunk on demand. The chunk name \\"entry3\\" is already used by an entrypoint.
+
+ERROR in × It's not allowed to load an initial chunk on demand. The chunk name \\"entry2\\" is already used by an entrypoint.
 
 Rspack x.x.x compiled with 2 errors in X.23"
 `;
