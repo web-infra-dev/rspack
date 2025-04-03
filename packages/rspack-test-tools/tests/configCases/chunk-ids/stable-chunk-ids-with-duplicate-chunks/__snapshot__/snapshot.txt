@@ -1,8 +1,8 @@
-node_modules_cell_index_js-XXX-0.bundle0.js
+node_modules_cell_index_js-XXX0.bundle0.js
 
 ::
 
-exports.ids = ['node_modules_cell_index_js-_861a-0'];
+exports.ids = ['node_modules_cell_index_js-_861a0'];
 exports.modules = {
 "./node_modules/cell/index.js": (function (module, __unused_webpack_exports, __webpack_require__) {
 const { tmpl } = __webpack_require__("webpack/sharing/consume/default/templater/templater")
@@ -15,13 +15,12 @@ module.exports.cell = function(cell) {
 
 };
 ;
-
 ==============================================================
-node_modules_cell_index_js-XXX-1.bundle0.js
+node_modules_cell_index_js-XXX1.bundle0.js
 
 ::
 
-exports.ids = ['node_modules_cell_index_js-_861a-1'];
+exports.ids = ['node_modules_cell_index_js-_861a1'];
 exports.modules = {
 "./node_modules/cell/index.js": (function (module, __unused_webpack_exports, __webpack_require__) {
 const { tmpl } = __webpack_require__("webpack/sharing/consume/default/templater/templater")
@@ -34,13 +33,12 @@ module.exports.cell = function(cell) {
 
 };
 ;
-
 ==============================================================
-node_modules_row_index_js-XXX-0.bundle0.js
+node_modules_row_index_js-XXX0.bundle0.js
 
 ::
 
-exports.ids = ['node_modules_row_index_js-_b2e2-0'];
+exports.ids = ['node_modules_row_index_js-_b2e20'];
 exports.modules = {
 "./node_modules/row/index.js": (function (module, __unused_webpack_exports, __webpack_require__) {
 const { cell } = __webpack_require__("webpack/sharing/consume/default/cell/cell")
@@ -54,13 +52,12 @@ module.exports.row = function(cells) {
 
 };
 ;
-
 ==============================================================
-node_modules_row_index_js-XXX-1.bundle0.js
+node_modules_row_index_js-XXX1.bundle0.js
 
 ::
 
-exports.ids = ['node_modules_row_index_js-_b2e2-1'];
+exports.ids = ['node_modules_row_index_js-_b2e21'];
 exports.modules = {
 "./node_modules/row/index.js": (function (module, __unused_webpack_exports, __webpack_require__) {
 const { cell } = __webpack_require__("webpack/sharing/consume/default/cell/cell")
@@ -74,5 +71,4 @@ module.exports.row = function(cells) {
 
 };
 ;
-
 ==============================================================

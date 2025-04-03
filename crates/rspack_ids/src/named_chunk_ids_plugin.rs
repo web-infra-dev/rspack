@@ -112,12 +112,12 @@ fn assign_named_chunk_ids(
       });
       let mut i = 0;
       for item in items {
-        let mut formatted_name = format!("{name}-{}", itoa!(i));
+        let mut formatted_name = format!("{name}{}", itoa!(i));
         while name_to_items_keys.contains(&formatted_name)
           && used_ids.contains_key(formatted_name.as_str())
         {
           i += 1;
-          formatted_name = format!("{name}-{}", itoa!(i));
+          formatted_name = format!("{name}{}", itoa!(i));
         }
         let name: ChunkId = formatted_name.into();
         if ChunkGraph::set_chunk_id(chunk_ids, item, name.clone())

@@ -95,12 +95,12 @@ fn assign_named_module_ids(
       items.sort_unstable_by(|a, b| compare_ids(a, b));
       let mut i = 0;
       for item in items {
-        let mut formatted_name = format!("{name}-{}", itoa!(i));
+        let mut formatted_name = format!("{name}{}", itoa!(i));
         while name_to_items_keys.contains(&formatted_name)
           && used_ids.contains_key(&formatted_name.as_str().into())
         {
           i += 1;
-          formatted_name = format!("{name}-{}", itoa!(i));
+          formatted_name = format!("{name}{}", itoa!(i));
         }
         let name: ModuleId = formatted_name.into();
         if ChunkGraph::set_module_id(module_ids, item, name.clone())
