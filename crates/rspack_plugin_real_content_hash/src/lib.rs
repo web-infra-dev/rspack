@@ -15,8 +15,8 @@ use rayon::prelude::*;
 use regex::{Captures, Regex};
 use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  AssetInfo, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin, PluginContext,
-  Root,
+  AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
+  PluginContext,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -210,7 +210,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
       let info_update = (*old_info).clone();
       Ok((
         new_source.clone(),
-        Root::from(info_update.with_content_hashes(new_hashes)),
+        BindingCell::from(info_update.with_content_hashes(new_hashes)),
       ))
     })?;
     if let Some(new_name) = new_name {

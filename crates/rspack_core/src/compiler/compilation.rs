@@ -46,17 +46,16 @@ use crate::{
   incremental::{Incremental, IncrementalPasses, Mutation},
   is_source_equal,
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
-  to_identifier, AsyncModulesArtifact, BoxDependency, BoxModule, CacheCount, CacheOptions,
-  CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact, Chunk,
-  ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact,
-  ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderResult, ChunkUkey,
-  CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
+  to_identifier, AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, CacheCount,
+  CacheOptions, CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact,
+  Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
+  ChunkHashesArtifact, ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderResult,
+  ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyId,
   DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
   Filename, ImportVarMap, Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
-  ModuleIdsArtifact, PathData, ResolverFactory, Root, RuntimeGlobals, RuntimeModule,
-  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
-  Stats,
+  ModuleIdsArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpecMap,
+  RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats,
 };
 
 define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));
@@ -676,7 +675,10 @@ impl Compilation {
   pub fn update_asset(
     &mut self,
     filename: &str,
-    updater: impl FnOnce(BoxSource, Root<AssetInfo>) -> Result<(BoxSource, Root<AssetInfo>)>,
+    updater: impl FnOnce(
+      BoxSource,
+      BindingCell<AssetInfo>,
+    ) -> Result<(BoxSource, BindingCell<AssetInfo>)>,
   ) -> Result<()> {
     let assets = &mut self.assets;
 
@@ -1181,7 +1183,7 @@ impl Compilation {
           filename.clone(),
           CompilationAsset::new(
             Some(CachedSource::new(file_manifest.source).boxed()),
-            Root::from(file_manifest.info),
+            BindingCell::from(file_manifest.info),
           ),
         );
 
@@ -2477,7 +2479,7 @@ pub type CompilationAssets = HashMap<String, CompilationAsset>;
 pub struct CompilationAsset {
   #[cacheable(with=AsOption<AsPreset>)]
   pub source: Option<BoxSource>,
-  pub info: Root<AssetInfo>,
+  pub info: BindingCell<AssetInfo>,
 }
 
 impl From<BoxSource> for CompilationAsset {
@@ -2487,7 +2489,7 @@ impl From<BoxSource> for CompilationAsset {
 }
 
 impl CompilationAsset {
-  pub fn new(source: Option<BoxSource>, info: Root<AssetInfo>) -> Self {
+  pub fn new(source: Option<BoxSource>, info: BindingCell<AssetInfo>) -> Self {
     Self { source, info }
   }
 
@@ -2512,7 +2514,7 @@ impl CompilationAsset {
   }
 
   pub fn set_info(&mut self, info: AssetInfo) {
-    self.info = Root::from(info);
+    self.info = BindingCell::from(info);
   }
 }
 

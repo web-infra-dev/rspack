@@ -1,5 +1,5 @@
-mod root;
-pub use root::*;
+mod cell;
+pub use cell::*;
 
 #[cfg(feature = "napi")]
 mod napi_allocator;

@@ -4,8 +4,9 @@ use napi::{CallContext, JsString, NapiRaw};
 use napi_derive::napi;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
-  BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilationAsset,
-  CompilerId, LibIdentOptions, Module as _, ModuleIdentifier, Root, RuntimeModuleStage, SourceType,
+  BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation,
+  CompilationAsset, CompilerId, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage,
+  SourceType,
 };
 use rspack_napi::{
   napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotInstanceRef,
@@ -274,7 +275,7 @@ impl Module {
         let js_info: AssetInfo =
           unsafe { FromNapiValue::from_napi_value(env.raw(), object.raw())? };
         let info: rspack_core::AssetInfo = js_info.into();
-        let info = Root::from(info);
+        let info = BindingCell::from(info);
         info.set_jsobject(env, &mut this.object, object)?;
 
         info

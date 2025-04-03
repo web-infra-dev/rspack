@@ -18,8 +18,8 @@ use rspack_core::{
     ConcatSource, MapOptions, RawStringSource, Source, SourceExt, SourceMapSource,
     SourceMapSourceOptions,
   },
-  AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
-  CompilerCompilation, Plugin, PluginContext, Root,
+  AssetInfo, BindingCell, ChunkUkey, Compilation, CompilationAsset, CompilationParams,
+  CompilationProcessAssets, CompilerCompilation, Plugin, PluginContext,
 };
 use rspack_error::{miette::IntoDiagnostic, Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -293,7 +293,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         comments.comments_file_name,
         CompilationAsset {
           source: Some(comments.source),
-          info: Root::from(AssetInfo {
+          info: BindingCell::from(AssetInfo {
             minimized: Some(true),
             ..Default::default()
           }),

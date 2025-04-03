@@ -12,7 +12,7 @@ use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_core::{
   rspack_sources::{RawBufferSource, RawStringSource, SourceExt},
-  AssetInfo, Compilation, CompilationAsset, Filename, PathData, Root,
+  AssetInfo, BindingCell, Compilation, CompilationAsset, Filename, PathData,
 };
 use rspack_error::{miette, AnyhowResultToRspackResultExt, Result};
 use rspack_paths::Utf8PathBuf;
@@ -375,7 +375,7 @@ pub async fn create_html_asset(
     output_path,
     CompilationAsset::new(
       Some(RawStringSource::from(html).boxed()),
-      Root::from(asset_info),
+      BindingCell::from(asset_info),
     ),
   ))
 }

@@ -1,13 +1,13 @@
-// This crate introduces a smart pointer called Root.
+// This crate introduces a smart pointer called BindingCell.
 //
-// When the "napi" feature is disabled, Root uses the sys_binding module as a simple alias for Box.
+// When the "napi" feature is disabled, BindingCell uses the sys_binding module as a simple alias for Box.
 //
-// When the "napi" feature is enabled, Root uses the napi_binding module.
-// 1. Root establishes a 1:1 relationship between a Rust instance and a JS Object.
-// 2. Root creates a JS Object only when converting a Rust instance to a JS object.
+// When the "napi" feature is enabled, BindingCell uses the napi_binding module.
+// 1. BindingCell establishes a 1:1 relationship between a Rust instance and a JS Object.
+// 2. BindingCell creates a JS Object only when converting a Rust instance to a JS object.
 // 3. The JS Object is hold a weak reference to the Rust instance. If the Rust instance is dropped,
 //    any attempt to access the JS Object will throw an exception indicating that the Rust instance has been dropped.
-// 4. Root holds a napi_ref to the JS Object but does not manage its lifecycle. Instead, the JS Object is associated
+// 4. BindingCell holds a napi_ref to the JS Object but does not manage its lifecycle. Instead, the JS Object is associated
 //    with another JS object (e.g., a Compilation JS object), ensuring it is not garbage-collected during that entity’s lifecycle.
 
 #[cfg(feature = "napi")]
@@ -68,12 +68,12 @@ mod napi_binding {
   }
 
   #[derive(Debug)]
-  pub struct Root<T: ?Sized> {
+  pub struct BindingCell<T: ?Sized> {
     ptr: *mut T,
     heap: Heap,
   }
 
-  impl Root<AssetInfo> {
+  impl BindingCell<AssetInfo> {
     pub fn take(self) -> AssetInfo {
       match self.heap.boxed {
         Boxed::AssetInfo(asset_info) =>
@@ -85,7 +85,7 @@ mod napi_binding {
     }
   }
 
-  impl<T: ?Sized> Root<T> {
+  impl<T: ?Sized> BindingCell<T> {
     pub fn set_jsobject(&self, env: &Env, scope: &mut Object, object: Object) -> napi::Result<()> {
       let _ = self
         .heap
@@ -130,10 +130,10 @@ mod napi_binding {
     }
   }
 
-  unsafe impl<T: ?Sized + Send> Send for Root<T> {}
-  unsafe impl<T: ?Sized + Sync> Sync for Root<T> {}
+  unsafe impl<T: ?Sized + Send> Send for BindingCell<T> {}
+  unsafe impl<T: ?Sized + Sync> Sync for BindingCell<T> {}
 
-  impl From<AssetInfo> for Root<AssetInfo> {
+  impl From<AssetInfo> for BindingCell<AssetInfo> {
     fn from(asset_info: AssetInfo) -> Self {
       let boxed = Arc::new(asset_info);
       let ptr = Arc::as_ptr(&boxed).cast_mut();
@@ -145,19 +145,19 @@ mod napi_binding {
     }
   }
 
-  impl<T: ?Sized> AsRef<T> for Root<T> {
+  impl<T: ?Sized> AsRef<T> for BindingCell<T> {
     fn as_ref(&self) -> &T {
       unsafe { &*self.ptr }
     }
   }
 
-  impl<T: ?Sized> AsMut<T> for Root<T> {
+  impl<T: ?Sized> AsMut<T> for BindingCell<T> {
     fn as_mut(&mut self) -> &mut T {
       unsafe { &mut *self.ptr }
     }
   }
 
-  impl<T: ?Sized> Deref for Root<T> {
+  impl<T: ?Sized> Deref for BindingCell<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -165,43 +165,43 @@ mod napi_binding {
     }
   }
 
-  impl<T: ?Sized> DerefMut for Root<T> {
+  impl<T: ?Sized> DerefMut for BindingCell<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
       unsafe { &mut *self.ptr }
     }
   }
 
-  impl<T: Clone + Into<Root<T>>> Clone for Root<T> {
+  impl<T: Clone + Into<BindingCell<T>>> Clone for BindingCell<T> {
     fn clone(&self) -> Self {
       let val = self.as_ref().clone();
       val.into()
     }
   }
 
-  impl<T: ?Sized + Hash> Hash for Root<T> {
+  impl<T: ?Sized + Hash> Hash for BindingCell<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
       self.as_ref().hash(state);
     }
   }
 
-  impl<T: ?Sized + PartialEq> PartialEq for Root<T> {
+  impl<T: ?Sized + PartialEq> PartialEq for BindingCell<T> {
     fn eq(&self, other: &Self) -> bool {
       self.as_ref() == other.as_ref()
     }
   }
 
-  impl<T: ?Sized + Eq> Eq for Root<T> {}
+  impl<T: ?Sized + Eq> Eq for BindingCell<T> {}
 
-  impl<T: Default + Into<Root<T>>> Default for Root<T> {
+  impl<T: Default + Into<BindingCell<T>>> Default for BindingCell<T> {
     fn default() -> Self {
       let value: T = Default::default();
       value.into()
     }
   }
 
-  // Implement rkyv traits for Root<T>
+  // Implement rkyv traits for BindingCell<T>
 
-  impl<T: rkyv::ArchiveUnsized + ?Sized> rkyv::Archive for Root<T> {
+  impl<T: rkyv::ArchiveUnsized + ?Sized> rkyv::Archive for BindingCell<T> {
     type Archived = rkyv::boxed::ArchivedBox<T::Archived>;
     type Resolver = rkyv::boxed::BoxResolver;
 
@@ -210,7 +210,7 @@ mod napi_binding {
     }
   }
 
-  impl<T, S> rkyv::Serialize<S> for Root<T>
+  impl<T, S> rkyv::Serialize<S> for BindingCell<T>
   where
     T: rkyv::SerializeUnsized<S> + ?Sized,
     S: rkyv::rancor::Fallible + ?Sized,
@@ -220,20 +220,20 @@ mod napi_binding {
     }
   }
 
-  impl<T, D> rkyv::Deserialize<Root<T>, D> for rkyv::boxed::ArchivedBox<T::Archived>
+  impl<T, D> rkyv::Deserialize<BindingCell<T>, D> for rkyv::boxed::ArchivedBox<T::Archived>
   where
     T: rkyv::ArchiveUnsized + rkyv::traits::LayoutRaw + ?Sized + 'static,
     T::Archived: rkyv::DeserializeUnsized<T, D>,
     D: rkyv::rancor::Fallible + ?Sized,
     D::Error: rkyv::rancor::Source,
   {
-    fn deserialize(&self, deserializer: &mut D) -> Result<Root<T>, D::Error> {
+    fn deserialize(&self, deserializer: &mut D) -> Result<BindingCell<T>, D::Error> {
       let boxed: Box<T> = self.deserialize(deserializer)?;
       let type_id = boxed.type_id();
       if type_id == TypeId::of::<Box<AssetInfo>>() {
         let ptr = Box::into_raw(boxed);
         let boxed = unsafe { Arc::from_raw(ptr as *mut AssetInfo) };
-        Ok(Root {
+        Ok(BindingCell {
           ptr,
           heap: Heap {
             boxed: Boxed::AssetInfo(boxed),
@@ -249,7 +249,7 @@ mod napi_binding {
 
 #[cfg(not(feature = "napi"))]
 mod sys_binding {
-  pub type Root<T> = Box<T>;
+  pub type BindingCell<T> = Box<T>;
 }
 
 #[cfg(feature = "napi")]

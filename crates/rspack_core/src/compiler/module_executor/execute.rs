@@ -9,9 +9,9 @@ use tokio::sync::oneshot::Sender;
 use crate::{
   compiler::make::repair::MakeTaskContext,
   utils::task_loop::{Task, TaskResult, TaskType},
-  Chunk, ChunkGraph, ChunkKind, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
-  CodeGenerationResult, CompilationAsset, CompilationAssets, DependencyId, EntryOptions,
-  Entrypoint, ModuleType, PublicPath, Root, RuntimeSpec, SourceType,
+  BindingCell, Chunk, ChunkGraph, ChunkKind, CodeGenerationDataAssetInfo,
+  CodeGenerationDataFilename, CodeGenerationResult, CompilationAsset, CompilationAssets,
+  DependencyId, EntryOptions, Entrypoint, ModuleType, PublicPath, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -258,7 +258,10 @@ impl Task<MakeTaskContext> for ExecuteTask {
             let filename = filename.filename();
             compilation.emit_asset(
               filename.to_owned(),
-              CompilationAsset::new(Some(source.clone()), Root::from(asset_info.inner().clone())),
+              CompilationAsset::new(
+                Some(source.clone()),
+                BindingCell::from(asset_info.inner().clone()),
+              ),
             );
           }
         }
