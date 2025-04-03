@@ -160,14 +160,22 @@ macro_rules! impl_module_methods {
         self.module.lib_ident(env, options)
       }
 
-      #[napi(js_name = "_emitFile", enumerable = false)]
+      #[napi(
+        js_name = "_emitFile",
+        enumerable = false,
+        ts_args_type = "filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null"
+      )]
       pub fn emit_file(
         &mut self,
+        env: &napi::Env,
+        this: napi::bindgen_prelude::This,
         filename: String,
         source: $crate::JsCompatSource,
-        js_asset_info: Option<$crate::AssetInfo>,
+        asset_info: Option<napi::bindgen_prelude::Object>,
       ) -> napi::Result<()> {
-        self.module.emit_file(filename, source, js_asset_info)
+        self
+          .module
+          .emit_file(env, this, filename, source, asset_info)
       }
     }
   };

@@ -8,7 +8,7 @@ use rspack_collections::{DatabaseItem, IdentifierSet, UkeyMap};
 use rspack_core::{
   chunk_graph_chunk::ChunkId,
   rspack_sources::{RawStringSource, SourceExt},
-  ApplyContext, AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
+  ApplyContext, AssetInfo, BindingCell, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationParams,
   CompilationProcessAssets, CompilationRecords, CompilerCompilation, CompilerOptions,
   DependencyType, LoaderContext, ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
@@ -318,10 +318,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let asset = CompilationAsset::new(
           Some(entry.source),
           // Reset version to make hmr generated assets always emit
-          entry
-            .info
-            .with_hot_module_replacement(Some(true))
-            .with_version(Default::default()),
+          BindingCell::from(
+            entry
+              .info
+              .with_hot_module_replacement(Some(true))
+              .with_version(Default::default()),
+          ),
         );
         if let Some(current_chunk_ukey) = current_chunk_ukey {
           updated_chunks
@@ -382,7 +384,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           )
           .boxed(),
         ),
-        AssetInfo::default().with_hot_module_replacement(Some(true)),
+        BindingCell::from(AssetInfo::default().with_hot_module_replacement(Some(true))),
       ),
     );
   }

@@ -124,6 +124,7 @@ unsafe fn napi_value_to_json(
     | napi::ValueType::Symbol
     | napi::ValueType::Function
     | napi::ValueType::External
+    | napi::ValueType::BigInt
     | napi::ValueType::Unknown => Ok(None),
   }
 }
@@ -237,7 +238,8 @@ impl From<AssetInfo> for rspack_core::AssetInfo {
 #[napi(object)]
 pub struct JsAsset {
   pub name: String,
-  pub info: AssetInfo,
+  #[napi(ts_type = "AssetInfo")]
+  pub info: Object,
 }
 
 impl From<rspack_core::AssetInfoRelated> for JsAssetInfoRelated {

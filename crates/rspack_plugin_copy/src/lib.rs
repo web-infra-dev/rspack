@@ -16,7 +16,7 @@ use glob::{MatchOptions, Pattern as GlobPattern};
 use regex::Regex;
 use rspack_core::{
   rspack_sources::{RawSource, Source},
-  AssetInfo, AssetInfoRelated, Compilation, CompilationAsset, CompilationLogger,
+  AssetInfo, AssetInfoRelated, BindingCell, Compilation, CompilationAsset, CompilationLogger,
   CompilationProcessAssets, Filename, Logger, PathData, Plugin,
 };
 use rspack_error::{Diagnostic, DiagnosticError, Error, ErrorExt, Result};
@@ -685,7 +685,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         result.filename,
         CompilationAsset {
           source: Some(Arc::new(result.source)),
-          info: asset_info,
+          info: BindingCell::from(asset_info),
         },
       );
     }

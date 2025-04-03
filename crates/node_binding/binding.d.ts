@@ -72,7 +72,7 @@ export declare class ConcatenatedModule {
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
+  _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class ContextModule {
@@ -83,7 +83,7 @@ export declare class ContextModule {
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
+  _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class Dependency {
@@ -139,7 +139,7 @@ export declare class ExternalModule {
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
+  _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class JsChunk {
@@ -195,8 +195,8 @@ export declare class JsChunkGroup {
 
 export declare class JsCompilation {
   updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)): void
-  getAssets(): Readonly<JsAsset>[]
-  getAsset(name: string): JsAsset | null
+  getAssets(this: this): Readonly<JsAsset>[]
+  getAsset(this: this, name: string): JsAsset | null
   getAssetSource(name: string): JsCompatSource | null
   get modules(): Array<Module>
   get builtModules(): Array<Module>
@@ -210,7 +210,7 @@ export declare class JsCompilation {
   deleteAssetSource(name: string): void
   getAssetFilenames(): Array<string>
   hasAsset(name: string): boolean
-  emitAsset(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
+  emitAsset(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
   deleteAsset(filename: string): void
   renameAsset(filename: string, newName: string): void
   get entrypoints(): JsChunkGroup[]
@@ -360,7 +360,7 @@ export declare class Module {
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
+  _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
 }
 
 
