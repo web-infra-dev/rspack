@@ -28,8 +28,8 @@ impl FromNapiValue for RspackRegex {
     let global = env.get_global()?;
     let object_prototype_to_string = global
       .get_named_property_unchecked::<JsObject>("Object")?
-      .get_named_property::<JsObject>("prototype")?
-      .get_named_property::<Function>("toString")?;
+      .get_named_property_unchecked::<JsObject>("prototype")?
+      .get_named_property_unchecked::<Function>("toString")?;
 
     let js_string = object_prototype_to_string
       .apply(&js_object, env.get_undefined()?.into_unknown())?

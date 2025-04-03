@@ -121,3 +121,5 @@ module.exports.JsRspackSeverity = __napiModule.exports.JsRspackSeverity
 module.exports.RawRuleSetConditionType = __napiModule.exports.RawRuleSetConditionType
 module.exports.registerGlobalTrace = __napiModule.exports.registerGlobalTrace
 module.exports.RegisterJsTapKind = __napiModule.exports.RegisterJsTapKind
+module.exports.shutdownAsyncRuntime = __napiModule.exports.shutdownAsyncRuntime
+module.exports.startAsyncRuntime = __napiModule.exports.startAsyncRuntime

@@ -18,7 +18,8 @@
     "build:ci": "node scripts/build.js --profile ci",
     "build:profiling": "node scripts/build.js --profile profiling",
     "build:release": "node scripts/build.js --profile release",
-    "build:wasm": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads node scripts/build.js",
+    "build:dev:wasm": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads node scripts/build.js",
+    "build:release:wasm": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads node scripts/build.js --profile release-wasi",
     "move-binding": "node scripts/move-binding",
     "test": "tsc -p tsconfig.type-test.json"
   },
