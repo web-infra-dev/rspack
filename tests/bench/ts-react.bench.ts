@@ -95,4 +95,17 @@ describe("TypeScript React project", () => {
 	bench("stats.toJson()", () => {
 		const json = theCompilation.getStats().toJson();
 	});
+
+	bench("collect imported identifiers", () => {
+		for (const module of theCompilation.modules) {
+			for (const connection of theCompilation.moduleGraph.getOutgoingConnectionsInOrder(module)) {
+				let importedIdentifiers: string[] = []
+				if (connection.dependency?.ids) {
+					importedIdentifiers.push(...connection.dependency.ids)
+				} else {
+					importedIdentifiers = ['*']
+				}
+			}
+		}
+	});
 });
