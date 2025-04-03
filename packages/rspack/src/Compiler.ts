@@ -442,6 +442,7 @@ class Compiler {
 		let isRuntimeShutdown = false;
 		if (isRuntimeShutdown) {
 			instanceBinding.startAsyncRuntime();
+			isRuntimeShutdown = false;
 		}
 
 		const finalCallback = (err: Error | null, stats?: Stats) => {
