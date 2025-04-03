@@ -1766,7 +1766,13 @@ pub fn code_split(compilation: &mut Compilation) -> Result<()> {
 
   let module_graph: &ModuleGraph<'_> = &compilation.get_module_graph();
 
-  let mut splitter = if let Some(mutations) = mutations {
+  let mut splitter = if !compilation
+    .code_splitting_cache
+    .new_code_splitter
+    .module_ordinal
+    .is_empty()
+    && let Some(mutations) = mutations
+  {
     let mut affected = mutations.get_affected_modules_with_module_graph(module_graph);
     let removed = mutations.iter().filter_map(|mutation| match mutation {
       Mutation::ModuleRemove { module } => Some(*module),
