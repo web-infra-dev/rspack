@@ -10,7 +10,8 @@
 
 import { BuiltinPluginName } from "@rspack/binding";
 
-import type { ChunkLoadingType, Compiler } from "../exports";
+import type { Compiler } from "../Compiler";
+import type { ChunkLoadingType } from "../config";
 import { create } from "./base";
 
 const EnableChunkLoadingPluginInner = create(

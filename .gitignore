@@ -114,6 +114,7 @@ out
 
 # Dist files
 dist
+dist-rslib
 compiled
 webpack-dist
 

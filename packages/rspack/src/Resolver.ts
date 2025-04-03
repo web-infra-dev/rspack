@@ -1,9 +1,10 @@
 import type * as binding from "@rspack/binding";
-import { type Resolve, getRawResolve } from "./config";
+import { getRawResolve } from "./config/adapter";
 import type {
 	ErrorWithDetails,
 	ResolveCallback
 } from "./config/adapterRuleUse";
+import type { Resolve } from "./config/types";
 
 type ResolveContext = {};
 

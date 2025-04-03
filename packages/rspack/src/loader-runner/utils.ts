@@ -1,9 +1,9 @@
 import { promisify } from "node:util";
-import type { LoaderObject } from ".";
 import type {
 	LoaderContext,
 	LoaderContextCallback
 } from "../config/adapterRuleUse";
+import type { LoaderObject } from "./LoaderObject";
 import loadLoaderRaw from "./loadLoader";
 
 const decoder = new TextDecoder();
@@ -107,3 +107,19 @@ export const runSyncOrAsync = promisify(function runSyncOrAsync(
 		callback(e as Error, []);
 	}
 });
+
+const PATH_QUERY_FRAGMENT_REGEXP =
+	/^((?:\u200b.|[^?#\u200b])*)(\?(?:\u200b.|[^#\u200b])*)?(#.*)?$/;
+
+export function parsePathQueryFragment(str: string): {
+	path: string;
+	query: string;
+	fragment: string;
+} {
+	const match = PATH_QUERY_FRAGMENT_REGEXP.exec(str);
+	return {
+		path: match?.[1].replace(/\u200b(.)/g, "$1") || "",
+		query: match?.[2] ? match[2].replace(/\u200b(.)/g, "$1") : "",
+		fragment: match?.[3] || ""
+	};
+}

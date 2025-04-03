@@ -10,8 +10,9 @@
 import assert from "node:assert";
 import type { Callback } from "@rspack/lite-tapable";
 
-import type { Compilation, Compiler } from ".";
-import { Stats } from ".";
+import type { Compilation } from "./Compilation";
+import type { Compiler } from "./Compiler";
+import { Stats } from "./Stats";
 import type { WatchOptions } from "./config";
 import type { FileSystemInfoEntry, Watcher } from "./util/fs";
 
