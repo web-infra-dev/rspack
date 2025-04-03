@@ -97,8 +97,14 @@ describe("TypeScript React project", () => {
 	});
 
 	bench("collect imported identifiers", () => {
-		for (const module of theCompilation.modules) {
-			for (const connection of theCompilation.moduleGraph.getOutgoingConnectionsInOrder(module)) {
+		for (const [_, entry] of theCompilation.entries.entries()) {
+			const entryDependency = entry.dependencies?.[0];
+			if (!entryDependency || !entryDependency.request) continue;
+
+			const entryModule = theCompilation.moduleGraph.getResolvedModule(entryDependency);
+			if (!entryModule) continue;
+
+			for (const connection of theCompilation.moduleGraph.getOutgoingConnectionsInOrder(entryModule)) {
 				let importedIdentifiers: string[] = []
 				if (connection.dependency?.ids) {
 					importedIdentifiers.push(...connection.dependency.ids)
