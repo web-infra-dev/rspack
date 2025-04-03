@@ -347,6 +347,9 @@ impl JavascriptParserPlugin for WorkerPlugin {
           if let Some(callee) = call_expr.callee.as_expr() {
             parser.walk_expression(callee);
           }
+          if let Some(arg) = call_expr.args.get(1) {
+            parser.walk_expression(&arg.expr);
+          }
           true
         },
       );
@@ -382,6 +385,9 @@ impl JavascriptParserPlugin for WorkerPlugin {
             if let Some(callee) = call_expr.callee.as_expr() {
               parser.walk_expression(callee);
             }
+            if let Some(arg) = call_expr.args.get(1) {
+              parser.walk_expression(&arg.expr);
+            }
             true
           },
         );
@@ -402,6 +408,9 @@ impl JavascriptParserPlugin for WorkerPlugin {
         );
         if let Some(callee) = call_expr.callee.as_expr() {
           parser.walk_expression(callee);
+        }
+        if let Some(arg) = call_expr.args.get(1) {
+          parser.walk_expression(&arg.expr);
         }
         true
       },
@@ -437,6 +446,11 @@ impl JavascriptParserPlugin for WorkerPlugin {
               parsed_options,
             );
             parser.walk_expression(&new_expr.callee);
+            if let Some(args) = &new_expr.args
+              && let Some(arg) = args.get(1)
+            {
+              parser.walk_expression(&arg.expr);
+            }
             true
           });
       }
@@ -458,6 +472,11 @@ impl JavascriptParserPlugin for WorkerPlugin {
           parsed_options,
         );
         parser.walk_expression(&new_expr.callee);
+        if let Some(args) = &new_expr.args
+          && let Some(arg) = args.get(1)
+        {
+          parser.walk_expression(&arg.expr);
+        }
         true
       })
   }
