@@ -15,9 +15,13 @@ class Plugin {
 				}
 			);
 
+			const once = new Set();
+
 			compilation.hooks.runtimeRequirementInTree
 				.for(RuntimeGlobals.chunkName)
 				.tap("TestFakePlugin", (chunk, set) => {
+					expect(once.has(RuntimeGlobals.chunkName)).toBe(false);
+					once.add(RuntimeGlobals.chunkName);
 					expect(chunk.name).toBe("main");
 					expect(set.has(RuntimeGlobals.chunkName)).toBeTruthy();
 					expect(set.has(RuntimeGlobals.ensureChunk)).toBeTruthy();
@@ -27,6 +31,8 @@ class Plugin {
 			compilation.hooks.runtimeRequirementInTree
 				.for(RuntimeGlobals.hasOwnProperty)
 				.tap("TestFakePlugin", (chunk, set) => {
+					expect(once.has(RuntimeGlobals.hasOwnProperty)).toBe(false);
+					once.add(RuntimeGlobals.chunkName);
 					expect(chunk.name).toBe("main");
 					expect(set.has(RuntimeGlobals.hasOwnProperty)).toBeTruthy();
 				});
@@ -35,6 +41,5 @@ class Plugin {
 }
 /**@type {import("@rspack/core").Configuration}*/
 module.exports = {
-	context: __dirname,
 	plugins: [new Plugin()]
 };

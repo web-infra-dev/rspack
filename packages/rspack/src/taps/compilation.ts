@@ -47,15 +47,17 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 			function (queried) {
 				return function ({
 					chunk: chunkBinding,
+					allRuntimeRequirements,
 					runtimeRequirements
-				}: binding.JsRuntimeRequirementInTreeArg) {
+				}: binding.JsRuntimeRequirementInTreeArg): binding.JsRuntimeRequirementInTreeResult {
 					const set = __from_binding_runtime_globals(runtimeRequirements);
+					const all = __from_binding_runtime_globals(allRuntimeRequirements);
 					const chunk = Chunk.__from_binding(chunkBinding);
 					for (const r of set) {
-						queried.for(r).call(chunk, set);
+						queried.for(r).call(chunk, all);
 					}
 					return {
-						runtimeRequirements: __to_binding_runtime_globals(set)
+						allRuntimeRequirements: __to_binding_runtime_globals(all)
 					};
 				};
 			}
