@@ -1,0 +1,46 @@
+# Next.js
+
+Rspack 与 Next.js 团队密切合作，从 Next.js 15.3 开始，可通过官方插件启用 Rspack。
+
+## 安装插件
+
+```bash
+pnpm install -D @next/plugin-rspack
+```
+
+有关插件的更多详情请查看：[@next/plugin-rspack](https://www.npmjs.com/package/@next/plugin-rspack)。
+
+## 使用
+
+在项目的 `next.config.js` 或 `next.config.ts` 中，对现有配置进行包装：
+
+```ts title="next.config.js"
+const withRspack = require('@next/plugin-rspack');
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  /* 现有配置 */
+};
+
+module.exports = withRspack(nextConfig);
+```
+
+## 自定义 Rspack 配置
+
+得益于 Rspack 对 webpack 的兼容性，Next.js 沿用与 webpack 相同的方式进行自定义配置。
+
+在 `next.config.js` 中，通过以下回调函数来修改 Rspack 配置：
+
+```ts title="next.config.js"
+module.exports = {
+  webpack: (
+    config,
+    { buildId, dev, isServer, defaultLoaders, nextRuntime, webpack },
+  ) => {
+    // 重要：返回修改后的配置
+    return config;
+  },
+};
+```
+
+更多信息请查看 [Next.js 官方文档](https://nextjs.org/docs/app/api-reference/config/next-config-js/webpack)。
