@@ -12,7 +12,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsPreset, Unsupported},
 };
-use rspack_error::error;
+use rspack_error::ToStringResultToRspackResultExt;
 use rspack_util::{atom::Atom, ext::CowExt, MergeFrom};
 
 use crate::{parse_resource, AssetInfo, PathData, ReplaceAllPlaceholder, ResourceParsedData};
@@ -146,11 +146,8 @@ impl LocalFilenameFn for Arc<dyn FilenameFn> {
       .deref()
       .call(path_data, asset_info)
       .await
-      .map_err(|err| {
-        error!(
-          "Failed to render filename function: {}. Did you return the correct filename?",
-          err.to_string()
-        )
+      .to_rspack_result_with_message(|e| {
+        format!("Failed to render filename function: {e}. Did you return the correct filename?")
       })
   }
 }

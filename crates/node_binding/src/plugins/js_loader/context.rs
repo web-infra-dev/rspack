@@ -3,7 +3,7 @@ use std::{collections::HashMap, ptr::NonNull};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{LoaderContext, Module, RunnerContext};
-use rspack_error::error;
+use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::{LoaderItem, State as LoaderState};
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
 
@@ -134,7 +134,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         .cloned()
         .map(|v| v.to_json())
         .transpose()
-        .map_err(|e| error!(e.to_string()))?
+        .to_rspack_result()?
         .map(|v| v.into_bytes().into()),
       cacheable: cx.cacheable,
       file_dependencies: cx

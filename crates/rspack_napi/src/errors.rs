@@ -1,29 +1,14 @@
 use std::{ffi::CString, ptr};
 
-use napi::{bindgen_prelude::*, sys::napi_value, Env, Error, Result};
+use napi::{bindgen_prelude::*, sys::napi_value, Env, Error};
 use rspack_error::NodeError;
 
-pub trait NapiErrorExt {
-  fn into_rspack_error(self) -> rspack_error::Error;
-  fn into_rspack_error_with_detail(self, env: &Env) -> rspack_error::Error;
+pub trait NapiErrorToRspackErrorExt {
+  fn to_rspack_error(self, env: &Env) -> rspack_error::Error;
 }
 
-pub trait NapiResultExt<T> {
-  fn into_rspack_result(self) -> rspack_error::Result<T>;
-  fn into_rspack_result_with_detail(self, env: &Env) -> rspack_error::Result<T>;
-}
-
-impl NapiErrorExt for Error {
-  fn into_rspack_error(self) -> rspack_error::Error {
-    (NodeError {
-      reason: self.reason,
-      stack: None,
-      backtrace: "".to_string(),
-      hide_stack: None,
-    })
-    .into()
-  }
-  fn into_rspack_error_with_detail(self, env: &Env) -> rspack_error::Error {
+impl NapiErrorToRspackErrorExt for Error {
+  fn to_rspack_error(self, env: &Env) -> rspack_error::Error {
     let (reason, stack, backtrace, hide_stack) =
       extract_stack_or_message_from_napi_error(env, self);
     (NodeError {
@@ -33,15 +18,6 @@ impl NapiErrorExt for Error {
       hide_stack,
     })
     .into()
-  }
-}
-
-impl<T: 'static> NapiResultExt<T> for Result<T> {
-  fn into_rspack_result(self) -> rspack_error::Result<T> {
-    self.map_err(|e| e.into_rspack_error())
-  }
-  fn into_rspack_result_with_detail(self, env: &Env) -> rspack_error::Result<T> {
-    self.map_err(|e| e.into_rspack_error_with_detail(env))
   }
 }
 

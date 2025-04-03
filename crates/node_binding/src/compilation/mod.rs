@@ -11,8 +11,8 @@ use rspack_core::{
   rspack_sources::BoxSource, BoxDependency, Compilation, CompilationId, EntryOptions,
   FactorizeInfo, ModuleIdentifier,
 };
-use rspack_error::Diagnostic;
-use rspack_napi::{napi::bindgen_prelude::*, NapiResultExt, OneShotRef};
+use rspack_error::{Diagnostic, ToStringResultToRspackResultExt};
+use rspack_napi::{napi::bindgen_prelude::*, OneShotRef};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rustc_hash::FxHashMap;
 
@@ -21,7 +21,8 @@ use crate::{
   entry::JsEntryOptions, utils::callbackify, AssetInfo, EntryDependency, JsAddingRuntimeModule,
   JsAsset, JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper, JsCompatSource,
   JsModuleGraph, JsPathData, JsRspackDiagnostic, JsRspackError, JsStats,
-  JsStatsOptimizationBailout, ModuleObject, ToJsCompatSource, COMPILER_REFERENCES,
+  JsStatsOptimizationBailout, ModuleObject, RspackResultToNapiResultExt, ToJsCompatSource,
+  COMPILER_REFERENCES,
 };
 
 #[napi]
@@ -74,7 +75,7 @@ impl JsCompilation {
           };
           new_source
         };
-        let new_source = new_source.into_rspack_result()?;
+        let new_source = new_source.to_rspack_result()?;
 
         let new_info: napi::Result<Option<rspack_core::AssetInfo>> = asset_info_update_or_function
           .map(
@@ -89,12 +90,12 @@ impl JsCompilation {
             },
           )
           .transpose();
-        if let Some(new_info) = new_info.into_rspack_result()? {
+        if let Some(new_info) = new_info.to_rspack_result()? {
           original_info.merge_another_asset(new_info);
         }
         Ok((new_source, original_info))
       })
-      .map_err(|err| napi::Error::from_reason(err.to_string()))
+      .to_napi_result()
   }
 
   #[napi(ts_return_type = "Readonly<JsAsset>[]")]
@@ -457,7 +458,7 @@ impl JsCompilation {
     let compilation = self.as_ref()?;
     #[allow(clippy::disallowed_methods)]
     futures::executor::block_on(compilation.get_asset_path(&filename.into(), data.to_path_data()))
-      .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))
+      .to_napi_result()
   }
 
   #[napi]
@@ -472,7 +473,7 @@ impl JsCompilation {
     let res = futures::executor::block_on(
       compilation.get_asset_path_with_info(&filename.into(), data.to_path_data()),
     )
-    .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
+    .to_napi_result()?;
     Ok(res.into())
   }
 
@@ -481,7 +482,7 @@ impl JsCompilation {
     let compilation = self.as_ref()?;
     #[allow(clippy::disallowed_methods)]
     futures::executor::block_on(compilation.get_path(&filename.into(), data.to_path_data()))
-      .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))
+      .to_napi_result()
   }
 
   #[napi]
@@ -496,7 +497,7 @@ impl JsCompilation {
       data.to_path_data(),
       &mut asset_info,
     ))
-    .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
+    .to_napi_result()?;
     Ok((path, asset_info).into())
   }
 
@@ -566,7 +567,7 @@ impl JsCompilation {
           },
         )
         .await
-        .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
+        .to_napi_result()?;
 
       Ok(modules)
     })
@@ -652,7 +653,7 @@ impl JsCompilation {
         &chunk.chunk_ukey,
         Box::new(RuntimeModuleFromJs::from(runtime_module)),
       )
-      .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))
+      .to_napi_result()
   }
 
   #[napi(getter)]
@@ -730,10 +731,7 @@ impl JsCompilation {
         .map(|(dependency, _)| *dependency.id())
         .collect::<Vec<_>>();
 
-      compilation
-        .add_include(args)
-        .await
-        .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
+      compilation.add_include(args).await.to_napi_result()?;
 
       let module_graph = compilation.get_module_graph();
       let results = dependency_ids

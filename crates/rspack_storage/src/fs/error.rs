@@ -4,6 +4,23 @@ use cow_utils::CowUtils;
 use rspack_paths::Utf8Path;
 use tokio::task::JoinError;
 
+pub type FSResult<T> = Result<T, FSError>;
+pub type BatchFSResult<T> = Result<T, BatchFSError>;
+
+pub trait FsResultToStorageFsResult<T> {
+  fn to_storage_fs_result(self, path: &Utf8Path, opt: FSOperation) -> FSResult<T>;
+}
+
+impl<T> FsResultToStorageFsResult<T> for Result<T, rspack_fs::Error> {
+  fn to_storage_fs_result(self, path: &Utf8Path, opt: FSOperation) -> FSResult<T> {
+    self.map_err(|e| FSError {
+      file: path.to_string(),
+      inner: e,
+      opt,
+    })
+  }
+}
+
 #[derive(Debug)]
 pub enum FSOperation {
   Read,
@@ -39,13 +56,6 @@ pub struct FSError {
 impl std::error::Error for FSError {}
 
 impl FSError {
-  pub fn from_fs_error(file: &Utf8Path, opt: FSOperation, error: rspack_fs::Error) -> Self {
-    Self {
-      file: file.to_string(),
-      inner: error,
-      opt,
-    }
-  }
   pub fn from_message(file: &Utf8Path, opt: FSOperation, message: String) -> Self {
     Self {
       file: file.to_string(),

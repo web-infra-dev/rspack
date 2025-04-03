@@ -2,7 +2,7 @@ use rspack_core::{
   ApplyContext, CompilerOptions, ModuleFactoryCreateData, NormalModuleFactoryResolveForScheme,
   Plugin, PluginContext, ResourceData, Scheme,
 };
-use rspack_error::{error, Result};
+use rspack_error::{error, Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::AssertUtf8;
 use url::Url;
@@ -19,7 +19,7 @@ async fn normal_module_factory_resolve_for_scheme(
   scheme: &Scheme,
 ) -> Result<Option<bool>> {
   if scheme.is_file() {
-    let url = Url::parse(&resource_data.resource).map_err(|e| error!(e.to_string()))?;
+    let url = Url::parse(&resource_data.resource).to_rspack_result()?;
     let path = url
       .to_file_path()
       .map_err(|_| error!("Failed to get file path of {url}"))?

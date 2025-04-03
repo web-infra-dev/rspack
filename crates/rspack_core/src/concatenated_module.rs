@@ -17,7 +17,9 @@ use rspack_cacheable::{
 use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
-use rspack_error::{Diagnosable, Diagnostic, DiagnosticKind, Result, TraceableError};
+use rspack_error::{
+  Diagnosable, Diagnostic, DiagnosticKind, Result, ToStringResultToRspackResultExt, TraceableError,
+};
 use rspack_hash::{HashDigest, HashFunction, RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_sources::{
@@ -662,7 +664,7 @@ impl Module for ConcatenatedModule {
     })
     .await
     .into_iter()
-    .map(|res| res.map_err(rspack_error::miette::Error::from_err))
+    .map(|r| r.to_rspack_result())
     .collect::<Result<Vec<_>>>()?;
 
     let mut updated_pairs = vec![];

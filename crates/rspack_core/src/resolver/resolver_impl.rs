@@ -33,6 +33,14 @@ pub enum ResolveInnerError {
   RspackResolver(rspack_resolver::ResolveError),
 }
 
+impl fmt::Display for ResolveInnerError {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match self {
+      Self::RspackResolver(error) => write!(f, "{error:?}"),
+    }
+  }
+}
+
 /// Proxy to [rspack_resolver::ResolveOptions]
 pub enum ResolveInnerOptions<'a> {
   RspackResolver(&'a rspack_resolver::ResolveOptions),

@@ -37,7 +37,7 @@ use rspack_core::{
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
   ExportsArgument, IdentCollector, Module, RuntimeGlobals, SourceType, SpanExt,
 };
-use rspack_error::Result;
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::plugin;
 use rspack_util::{diff_mode, fx_hash::FxDashMap};
@@ -854,7 +854,7 @@ impl JsPlugin {
     })
     .await
     .into_iter()
-    .map(|res| res.map_err(rspack_error::miette::Error::from_err))
+    .map(|r| r.to_rspack_result())
     .collect::<Result<Vec<_>>>()?;
 
     let mut render_module_sources = vec![];

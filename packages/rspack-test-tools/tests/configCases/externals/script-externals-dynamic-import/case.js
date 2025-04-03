@@ -1,0 +1,1 @@
+const e1 = import('externals1')

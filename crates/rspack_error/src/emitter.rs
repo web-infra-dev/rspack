@@ -4,7 +4,7 @@ use anyhow::Context;
 use miette::IntoDiagnostic;
 use termcolor::{Buffer, ColorChoice, ColorSpec, StandardStream, StandardStreamLock, WriteColor};
 
-use crate::Diagnostic;
+use crate::{Diagnostic, ToStringResultToRspackResultExt};
 
 pub trait FlushDiagnostic {
   fn flush_diagnostic(&mut self) {}
@@ -111,7 +111,7 @@ impl DiagnosticDisplay for StringDiagnosticDisplay {
       .diagnostic_vector
       .pop()
       .context("diagnostic_vector should not empty after flush_diagnostic")
-      .map_err(|e| miette::miette!(e.to_string()))
+      .to_rspack_result()
   }
 }
 

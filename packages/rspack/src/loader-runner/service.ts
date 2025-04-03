@@ -122,7 +122,12 @@ export enum RequestType {
 	EmitFile = "EmitFile",
 	EmitDiagnostic = "EmitDiagnostic",
 	SetCacheable = "SetCacheable",
-	UpdateLoaderObjects = "UpdateLoaderObjects"
+	ImportModule = "ImportModule",
+	UpdateLoaderObjects = "UpdateLoaderObjects",
+	CompilationGetPath = "CompilationGetPath",
+	CompilationGetPathWithInfo = "CompilationGetPathWithInfo",
+	CompilationGetAssetPath = "CompilationGetAssetPath",
+	CompilationGetAssetPathWithInfo = "CompilationGetAssetPathWithInfo"
 }
 
 export enum RequestSyncType {
@@ -234,15 +239,19 @@ export const run = async (
 					switch (message.requestType) {
 						case RequestSyncType.WaitForPendingRequest: {
 							const pendingRequestId = message.data[0];
-							const ids = Array.isArray(pendingRequestId)
-								? pendingRequestId
-								: [pendingRequestId];
+							const isArray = Array.isArray(pendingRequestId);
+
+							const ids = isArray ? pendingRequestId : [pendingRequestId];
 							// Pending requests now are not returning errors.
 							// To handle errors, you should not call `wait()` on send request
 							// result;
 							result = await Promise.all(
 								ids.map(id => pendingRequests.get(id))
 							);
+
+							if (!isArray) {
+								result = result[0];
+							}
 							break;
 						}
 						default:

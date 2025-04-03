@@ -5,8 +5,8 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   ApplyContext, CompilationRevokedModules, CompilerOptions, ModuleIdentifier, PluginContext,
 };
+use rspack_error::ToStringResultToRspackResultExt;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_napi::NapiResultExt;
 
 pub type CleanupRevokedModulesTsFn = ThreadsafeFunction<
   External<Vec<ModuleIdentifier>>,
@@ -59,6 +59,6 @@ async fn revoked_modules(&self, revoked_modules: &IdentifierSet) -> rspack_error
       revoked_modules.iter().cloned().collect::<Vec<_>>(),
     ))
     .await
-    .into_rspack_result()?;
+    .to_rspack_result()?;
   Ok(())
 }

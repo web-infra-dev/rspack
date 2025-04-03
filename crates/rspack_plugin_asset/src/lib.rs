@@ -16,7 +16,9 @@ use rspack_core::{
   ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry, ResourceData,
   RuntimeGlobals, RuntimeSpec, SourceType, NAMESPACE_OBJECT_EXPORT,
 };
-use rspack_error::{error, Diagnostic, IntoTWithDiagnosticArray, Result};
+use rspack_error::{
+  error, Diagnostic, IntoTWithDiagnosticArray, Result, ToStringResultToRspackResultExt,
+};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{ext::DynHash, identifier::make_paths_relative};
@@ -492,7 +494,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             .data
             .insert(CodeGenerationDataUrl::new(encoded_source.clone()));
 
-          serde_json::to_string(&encoded_source).map_err(|e| error!(e.to_string()))?
+          serde_json::to_string(&encoded_source).to_rspack_result()?
         } else if parsed_asset_config.is_resource() {
           let contenthash = self.hash_for_source(source, &compilation.options);
           let contenthash = contenthash.rendered(compilation.options.output.hash_digest_length);
@@ -516,7 +518,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             serde_json::to_string(&format!(
               "{AUTO_PUBLIC_PATH_PLACEHOLDER}{original_filename}"
             ))
-            .map_err(|e| error!(e.to_string()))?
+            .to_rspack_result()?
           } else if let Some(public_path) =
             module_generator_options.and_then(|x| x.asset_public_path())
           {
@@ -537,7 +539,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
               PublicPath::Auto => public_path.render(compilation, &filename).await,
             };
             serde_json::to_string(&format!("{public_path}{original_filename}"))
-              .map_err(|e| error!(e.to_string()))?
+              .to_rspack_result()?
           } else {
             generate_context
               .runtime_requirements
