@@ -5,8 +5,9 @@ import {
 	type RawExternalsPluginOptions
 } from "@rspack/binding";
 
-import type { Compiler, ExternalItem, ExternalItemValue, Externals } from "..";
+import type { Compiler } from "../Compiler";
 import { Resolver } from "../Resolver";
+import type { ExternalItem, ExternalItemValue, Externals } from "../config";
 import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 
 export class ExternalsPlugin extends RspackBuiltinPlugin {

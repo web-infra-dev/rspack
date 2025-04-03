@@ -9,7 +9,8 @@ import {
 	type FeatureOptions,
 	toFeatures
 } from "../builtin-loader/lightningcss";
-import { type LoaderObject, parsePathQueryFragment } from "../loader-runner";
+import type { LoaderObject } from "../loader-runner/LoaderObject";
+import { parsePathQueryFragment } from "../loader-runner/utils";
 import type { Logger } from "../logging/Logger";
 import { isNil } from "../util";
 import type Hash from "../util/hash";

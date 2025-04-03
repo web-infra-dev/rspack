@@ -6,8 +6,4 @@ type Rspack = typeof rspackFn &
 const fn = Object.assign(rspackFn, rspackExports) as Rspack;
 fn.rspack = fn;
 fn.webpack = fn;
-const rspack: Rspack = fn;
-
-export * from "./exports";
-export default rspack;
-export { rspack };
+export const rspack: Rspack = fn;

@@ -7,7 +7,7 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import Hash from ".";
+import Hash from "./index";
 import { MAX_SHORT_STRING } from "./wasm-hash";
 
 export default class BatchedHash extends Hash {

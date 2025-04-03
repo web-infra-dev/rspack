@@ -10,9 +10,10 @@
 
 import assert from "node:assert";
 
-import type { Compiler, EntryDescriptionNormalized, EntryNormalized } from "..";
-import { DynamicEntryPlugin, EntryPlugin } from "../builtin-plugin";
-import type { EntryOptions } from "../builtin-plugin";
+import type { Compiler } from "../Compiler";
+import { DynamicEntryPlugin } from "../builtin-plugin/DynamicEntryPlugin";
+import { type EntryOptions, EntryPlugin } from "../builtin-plugin/EntryPlugin";
+import type { EntryDescriptionNormalized, EntryNormalized } from "../config";
 
 export class EntryOptionPlugin {
 	/**

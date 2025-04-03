@@ -9,10 +9,10 @@
  */
 
 import type Url from "node:url";
-import type { LoaderObject } from ".";
 import type { LoaderDefinitionFunction } from "../config";
 import type { PitchLoaderDefinitionFunction } from "../config/adapterRuleUse";
 import LoaderLoadingError from "./LoaderLoadingError";
+import type { LoaderObject } from "./LoaderObject";
 
 type ModuleObject = {
 	default?: LoaderDefinitionFunction;

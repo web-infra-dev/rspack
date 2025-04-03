@@ -10,12 +10,7 @@
 import assert from "node:assert";
 import fs from "graceful-fs";
 
-import type {
-	Compiler,
-	OptimizationRuntimeChunkNormalized,
-	RspackOptionsNormalized,
-	RspackPluginFunction
-} from ".";
+import type { Compiler } from "./Compiler";
 import {
 	APIPlugin,
 	ArrayPushCallbackChunkFormatPlugin,
@@ -67,6 +62,11 @@ import {
 	SplitChunksPlugin,
 	WorkerPlugin
 } from "./builtin-plugin";
+import type {
+	OptimizationRuntimeChunkNormalized,
+	RspackOptionsNormalized,
+	RspackPluginFunction
+} from "./config";
 import EntryOptionPlugin from "./lib/EntryOptionPlugin";
 import IgnoreWarningsPlugin from "./lib/IgnoreWarningsPlugin";
 import MemoryCachePlugin from "./lib/cache/MemoryCachePlugin";

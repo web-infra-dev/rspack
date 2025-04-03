@@ -8,11 +8,8 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import type {
-	Compiler,
-	IgnoreWarningsNormalized,
-	RspackPluginInstance
-} from "..";
+import type { Compiler } from "../Compiler";
+import type { IgnoreWarningsNormalized, RspackPluginInstance } from "../config";
 
 class IgnoreWarningsPlugin implements RspackPluginInstance {
 	_ignorePattern: IgnoreWarningsNormalized;

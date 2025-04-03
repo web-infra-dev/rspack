@@ -11,7 +11,7 @@
 import CachedInputFileSystem from "enhanced-resolve/lib/CachedInputFileSystem";
 import fs from "graceful-fs";
 
-import type { Compiler } from "..";
+import type { Compiler } from "../Compiler";
 import type { InfrastructureLogging } from "../config";
 import {
 	type LoggerConsole,

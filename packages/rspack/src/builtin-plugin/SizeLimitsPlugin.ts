@@ -3,7 +3,7 @@ import {
 	type RawSizeLimitsPluginOptions
 } from "@rspack/binding";
 
-import type { Performance } from "..";
+import type { Performance } from "../config";
 import { create } from "./base";
 
 export const SizeLimitsPlugin = create(
