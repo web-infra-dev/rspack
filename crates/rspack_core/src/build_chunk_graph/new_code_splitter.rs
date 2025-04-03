@@ -1173,12 +1173,10 @@ impl CodeSplitter {
                 &mut compilation.named_chunks,
               );
 
-              if add {
-                if let Some(mutations) = compilation.incremental.mutations_write() {
-                  mutations.add(Mutation::ChunkAdd {
-                    chunk: runtime_chunk_ukey,
-                  });
-                }
+              if add && let Some(mutations) = compilation.incremental.mutations_write() {
+                mutations.add(Mutation::ChunkAdd {
+                  chunk: runtime_chunk_ukey,
+                });
               }
 
               let rt_chunk = if compilation.entries.contains_key(entry_runtime) {
