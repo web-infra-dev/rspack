@@ -438,6 +438,12 @@ class Compiler {
 		const startTime = Date.now();
 		this.running = true;
 
+		const instanceBinding: typeof binding = require("@rspack/binding");
+		let isRuntimeShutdown = false;
+		if (isRuntimeShutdown) {
+			instanceBinding.startAsyncRuntime();
+		}
+
 		const finalCallback = (err: Error | null, stats?: Stats) => {
 			this.idle = true;
 			this.cache.beginIdle();
@@ -450,6 +456,9 @@ class Compiler {
 				callback(err, stats);
 			}
 			this.hooks.afterDone.call(stats!);
+
+			instanceBinding.shutdownAsyncRuntime();
+			isRuntimeShutdown = true;
 		};
 
 		const onCompiled = (
