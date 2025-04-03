@@ -65,8 +65,8 @@ pub struct CodeSplitter {
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 enum CreateChunkRoot {
-  Entry(String, Box<EntryData>, Option<RuntimeSpec>),
-  Block(AsyncDependenciesBlockIdentifier, Option<RuntimeSpec>),
+  Entry(String, Box<EntryData>, RuntimeSpec),
+  Block(Vec<AsyncDependenciesBlockIdentifier>, RuntimeSpec),
 }
 
 struct FinalizeChunksResult {
@@ -122,20 +122,6 @@ impl ChunkDesc {
       ChunkDesc::Chunk(chunk) => &chunk.modules_ordinal,
     }
   }
-
-  pub(crate) fn runtime(&self) -> Option<&RuntimeSpec> {
-    match self {
-      ChunkDesc::Entry(entry) => entry.runtime.as_ref(),
-      ChunkDesc::Chunk(chunk) => chunk.runtime.as_ref(),
-    }
-  }
-
-  pub(crate) fn runtime_mut(&mut self) -> Option<&mut RuntimeSpec> {
-    match self {
-      ChunkDesc::Entry(entry) => entry.runtime.as_mut(),
-      ChunkDesc::Chunk(chunk) => chunk.runtime.as_mut(),
-    }
-  }
 }
 
 #[derive(Debug, Clone)]
@@ -156,7 +142,7 @@ pub struct EntryChunkDesc {
   outgoing_blocks: IndexSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>>,
   incoming_blocks: HashSet<AsyncDependenciesBlockIdentifier>,
 
-  runtime: Option<RuntimeSpec>,
+  runtime: RuntimeSpec,
 }
 
 #[derive(Debug, Clone)]
@@ -171,7 +157,7 @@ pub struct NormalChunkDesc {
   // use incoming and outgoing to track chunk relations
   incoming_blocks: HashSet<AsyncDependenciesBlockIdentifier>,
   outgoing_blocks: IndexSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>>,
-  runtime: Option<RuntimeSpec>,
+  runtime: RuntimeSpec,
 }
 
 #[derive(Default, Debug)]
@@ -187,17 +173,17 @@ struct FillCtx {
 }
 
 impl CreateChunkRoot {
-  pub(crate) fn get_runtime(&self) -> Option<&RuntimeSpec> {
+  pub(crate) fn get_runtime(&self) -> &RuntimeSpec {
     match self {
-      CreateChunkRoot::Entry(_, _, rt) => rt.as_ref(),
-      CreateChunkRoot::Block(_, rt) => rt.as_ref(),
+      CreateChunkRoot::Entry(_, _, rt) => rt,
+      CreateChunkRoot::Block(_, rt) => rt,
     }
   }
 
   fn set_runtime(&mut self, runtime: RuntimeSpec) {
     match self {
-      CreateChunkRoot::Entry(_, _, rt) => *rt = Some(runtime),
-      CreateChunkRoot::Block(_, rt) => *rt = Some(runtime),
+      CreateChunkRoot::Entry(_, _, rt) => *rt = runtime,
+      CreateChunkRoot::Block(_, rt) => *rt = runtime,
     }
   }
 
@@ -243,7 +229,7 @@ impl CreateChunkRoot {
           )
           .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
         {
-          splitter.fill_chunk_modules(*m, runtime.as_ref(), &module_graph, &mut ctx);
+          splitter.fill_chunk_modules(*m, Some(runtime), &module_graph, &mut ctx);
         }
 
         vec![ChunkDesc::Entry(Box::new(EntryChunkDesc {
@@ -260,7 +246,8 @@ impl CreateChunkRoot {
           runtime: runtime.clone(),
         }))]
       }
-      CreateChunkRoot::Block(block_id, runtime) => {
+      CreateChunkRoot::Block(block_ids, runtime) => {
+        let block_id = &block_ids[0];
         let block = module_graph
           .block_by_id(block_id)
           .expect("should have block");
@@ -286,12 +273,17 @@ impl CreateChunkRoot {
           ..Default::default()
         };
 
-        for dep_id in block.get_dependencies() {
+        let all_dependencies = block_ids.iter().flat_map(|id| {
+          let block = module_graph.block_by_id(id).expect("should have block");
+          block.get_dependencies()
+        });
+
+        for dep_id in all_dependencies {
           let Some(m) = module_graph.module_identifier_by_dependency_id(dep_id) else {
             continue;
           };
 
-          splitter.fill_chunk_modules(*m, runtime.as_ref(), &module_graph, &mut ctx);
+          splitter.fill_chunk_modules(*m, Some(runtime), &module_graph, &mut ctx);
         }
 
         if let Some(group_option) = block.get_group_options()
@@ -313,23 +305,47 @@ impl CreateChunkRoot {
             entry_modules: entry_modules.iter().copied().collect(),
             chunk_modules: ctx.chunk_modules,
             outgoing_blocks: ctx.out_goings,
-            incoming_blocks: once(*block_id).collect(),
+            incoming_blocks: block_ids.iter().copied().collect(),
             pre_order_indices: ctx.pre_order_indices,
             post_order_indices: ctx.post_order_indices,
             runtime: runtime.clone(),
           })))
         } else {
+          let blocks = block_ids.iter().map(|block_id| {
+            module_graph
+              .block_by_id(block_id)
+              .expect("should have block")
+          });
+
+          let mut options = block
+            .get_group_options()
+            .and_then(|opt| opt.normal_options())
+            .cloned();
+
+          // If uses webpackChunkName to merge chunks, the options should be merged
+          for block in blocks {
+            if let Some(GroupOptions::ChunkGroup(block_options)) = block.get_group_options() {
+              if let Some(group_options) = &mut options {
+                group_options.preload_order =
+                  group_options.preload_order.max(block_options.preload_order);
+
+                group_options.prefetch_order = group_options
+                  .prefetch_order
+                  .max(block_options.prefetch_order);
+              } else {
+                options = Some(block_options.clone());
+              }
+            }
+          }
+
           chunks.push(ChunkDesc::Chunk(Box::new(NormalChunkDesc {
             chunk_modules: ctx.chunk_modules,
-            options: block.get_group_options().map(|opt| match opt {
-              GroupOptions::Entrypoint(_) => unreachable!(),
-              GroupOptions::ChunkGroup(group_option) => group_option.clone(),
-            }),
+            options,
             modules_ordinal: ctx.module_ordinal,
             pre_order_indices: ctx.pre_order_indices,
             post_order_indices: ctx.post_order_indices,
 
-            incoming_blocks: once(*block_id).collect(),
+            incoming_blocks: block_ids.iter().copied().collect(),
             outgoing_blocks: ctx.out_goings,
 
             runtime: runtime.clone(),
@@ -417,10 +433,13 @@ impl CodeSplitter {
     let module_graph = compilation.get_module_graph();
     let global_chunk_loading = &compilation.options.output.chunk_loading;
     let mut roots = HashMap::<AsyncDependenciesBlockIdentifier, CreateChunkRoot>::default();
-    let mut entries = vec![];
+    let mut named_roots = HashMap::<String, CreateChunkRoot>::default();
 
     let global_deps = compilation.global_entry.dependencies.iter();
     let global_included_deps = compilation.global_entry.include_dependencies.iter();
+
+    let mut next_idx = 0;
+    let mut index_by_block = HashMap::<AsyncDependenciesBlockIdentifier, usize>::default();
 
     for (entry, entry_data) in &compilation.entries {
       let chunk_loading = !matches!(
@@ -440,11 +459,10 @@ impl CodeSplitter {
 
       self.module_deps.entry(runtime.clone()).or_default();
 
-      entries.push(CreateChunkRoot::Entry(
+      named_roots.insert(
         entry.clone(),
-        Box::new(entry_data.clone()),
-        Some(runtime.clone()),
-      ));
+        CreateChunkRoot::Entry(entry.clone(), Box::new(entry_data.clone()), runtime.clone()),
+      );
 
       global_deps
         .clone()
@@ -472,6 +490,11 @@ impl CodeSplitter {
       drop(guard);
 
       for block_id in blocks {
+        index_by_block.entry(block_id).or_insert_with(|| {
+          next_idx += 1;
+          next_idx
+        });
+
         let Some(block) = module_graph.block_by_id(&block_id) else {
           continue;
         };
@@ -481,9 +504,79 @@ impl CodeSplitter {
           .get_group_options()
           .and_then(|option| option.entry_options());
         let should_create = chunk_loading || entry_options.is_some();
+        let block = module_graph
+          .block_by_id(&block_id)
+          .expect("should have block");
+
+        let child_chunk_loading = entry_options.map_or(chunk_loading, |opt| {
+          !matches!(
+            opt.chunk_loading.as_ref().unwrap_or(global_chunk_loading),
+            ChunkLoading::Disable
+          ) && opt
+            .async_chunks
+            .unwrap_or(compilation.options.output.async_chunks)
+        });
         let child_runtime = if should_create {
-          if let Some(root) = roots.get_mut(&block_id) {
-            let old_runtime = root.get_runtime().expect("already set runtime");
+          if let Some(name) = block.get_group_options().and_then(|options| {
+            options
+              .name()
+              .or_else(|| entry_options.and_then(|entry| entry.name.as_deref()))
+          }) && let Some(root) = named_roots.get_mut(name)
+          {
+            // already created with name, let old_runtime = root.get_runtime();
+            let old_runtime = root.get_runtime();
+            let new_runtime = merge_runtime(&runtime, old_runtime);
+            self.module_deps.entry(new_runtime.clone()).or_default();
+            root.set_runtime(new_runtime.clone());
+
+            match root {
+              CreateChunkRoot::Entry(_, options, _) => {
+                if entry_options.is_some() {
+                  diagnostics.push(Diagnostic::from(error!(
+                    "Two entrypoints with the same name {}",
+                    name
+                  )));
+                } else {
+                  diagnostics.push(
+                    Diagnostic::from(
+                      error!(
+                        format!("It's not allowed to load an initial chunk on demand. The chunk name \"{}\" is already used by an entrypoint.", name)
+                      )
+                    )
+                  );
+
+                  options
+                    .dependencies
+                    .extend(block.get_dependencies().iter().copied());
+                }
+              }
+              CreateChunkRoot::Block(async_dependencies_block_identifiers, _) => {
+                if !async_dependencies_block_identifiers.contains(&block_id) {
+                  async_dependencies_block_identifiers.push(block_id);
+                }
+                // should re-visit all children bringing new runtime
+                async_dependencies_block_identifiers
+                  .iter()
+                  .filter(|id| **id != block_id)
+                  .for_each(|root_block| {
+                    let root_block = module_graph
+                      .block_by_id(root_block)
+                      .expect("should have block");
+                    root_block
+                      .get_dependencies()
+                      .iter()
+                      .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
+                      .for_each(|m| {
+                        stack.push((*m, Cow::Owned(new_runtime.clone()), child_chunk_loading));
+                      });
+                  });
+              }
+            }
+
+            Cow::Owned(new_runtime)
+          } else if let Some(root) = roots.get_mut(&block_id) {
+            // already created
+            let old_runtime = root.get_runtime();
             let new_runtime = merge_runtime(&runtime, old_runtime);
             self.module_deps.entry(new_runtime.clone()).or_default();
             root.set_runtime(new_runtime.clone());
@@ -499,28 +592,29 @@ impl CodeSplitter {
             } else {
               runtime.clone()
             };
-            roots.insert(
-              block_id,
-              CreateChunkRoot::Block(block_id, Some(rt.clone().into_owned())),
-            );
+
+            if let Some(name) = block.get_group_options().and_then(|options| {
+              options.name().or_else(|| {
+                options
+                  .entry_options()
+                  .and_then(|entry_options| entry_options.name.as_deref())
+              })
+            }) {
+              named_roots.insert(
+                name.to_string(),
+                CreateChunkRoot::Block(vec![block_id], rt.clone().into_owned()),
+              );
+            } else {
+              roots.insert(
+                block_id,
+                CreateChunkRoot::Block(vec![block_id], rt.clone().into_owned()),
+              );
+            }
             rt.clone()
           }
         } else {
           runtime.clone()
         };
-
-        let block = module_graph
-          .block_by_id(&block_id)
-          .expect("should have block");
-
-        let child_chunk_loading = entry_options.map_or(chunk_loading, |opt| {
-          !matches!(
-            opt.chunk_loading.as_ref().unwrap_or(global_chunk_loading),
-            ChunkLoading::Disable
-          ) && opt
-            .async_chunks
-            .unwrap_or(compilation.options.output.async_chunks)
-        });
 
         block
           .get_dependencies()
@@ -533,9 +627,28 @@ impl CodeSplitter {
     }
 
     compilation.extend_diagnostics(diagnostics);
-    entries.extend(roots.into_values());
 
-    Ok(entries)
+    for root in named_roots.values_mut() {
+      if let CreateChunkRoot::Block(blocks, _) = root {
+        if blocks.len() <= 1 {
+          continue;
+        }
+
+        blocks.sort_by(|a, b| {
+          let a_index = index_by_block.get(a).expect("should have index");
+          let b_index = index_by_block.get(b).expect("should have index");
+
+          a_index.cmp(b_index)
+        });
+      }
+    }
+
+    Ok(
+      roots
+        .into_values()
+        .chain(named_roots.into_values())
+        .collect(),
+    )
   }
 
   fn get_entry_runtime<'a, 'b>(
@@ -961,13 +1074,9 @@ impl CodeSplitter {
       })
       .collect::<Vec<_>>();
 
-    let (chunks, merged, merge_errors) = self.merge_same_chunks(chunks);
-
-    errors.extend(merge_errors);
-
     // determine chunk graph relations and
     // remove available modules if could
-    let finalize_result = self.finalize_chunk_desc(chunks, merged.into_iter(), compilation);
+    let finalize_result = self.finalize_chunk_desc(chunks, compilation);
 
     let chunks_len = finalize_result.chunks.len();
     let mut chunks_ukey = vec![0.into(); chunks_len];
@@ -1042,7 +1151,6 @@ impl CodeSplitter {
             async_entrypoints.insert(entrypoint.ukey);
           }
 
-          let runtime = runtime.clone().expect("should have runtime");
           entry_chunk.set_runtime(runtime.clone());
 
           if let Some(filename) = &options.filename {
@@ -1065,7 +1173,13 @@ impl CodeSplitter {
                 &mut compilation.named_chunks,
               );
 
-              let rt_chunk = if !add && compilation.entries.contains_key(entry_runtime) {
+              if add && let Some(mutations) = compilation.incremental.mutations_write() {
+                mutations.add(Mutation::ChunkAdd {
+                  chunk: runtime_chunk_ukey,
+                });
+              }
+
+              let rt_chunk = if compilation.entries.contains_key(entry_runtime) {
                 let name = entry.as_ref().expect("should have name");
                 errors.push(Diagnostic::from(error!(
                   "Entrypoint '{name}' has a 'runtime' option which points to another entrypoint named '{entry_runtime}'.
@@ -1248,7 +1362,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
 
           let chunk = compilation.chunk_by_ukey.expect_get_mut(&ukey);
           group.connect_chunk(chunk);
-          chunk.set_runtime(runtime.expect("should have runtime"));
+          chunk.set_runtime(runtime);
 
           for block in incoming_blocks {
             compilation
@@ -1425,7 +1539,6 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
   fn finalize_chunk_desc(
     &mut self,
     mut chunks: Vec<(bool, CacheableChunkItem)>,
-    merged: impl Iterator<Item = usize>,
     compilation: &Compilation,
   ) -> FinalizeChunksResult {
     let chunks_len = chunks.len();
@@ -1528,48 +1641,6 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
       );
     }
 
-    // 3rd iter, merge runtime if user use __webpack_chunk_name__ to merge chunks
-    for idx in merged {
-      let chunk = &mut chunks[idx].1.chunk_desc;
-      if let ChunkDesc::Chunk(box NormalChunkDesc { runtime, .. }) = chunk {
-        // this chunk is async chunk which has multiple parents and name
-        // could be user merged chunk, ensure its children has the same runtime
-        let runtime = runtime.as_ref().expect("should have runtime");
-        let mut stack: Vec<(RuntimeSpec, usize)> = chunk_children[idx]
-          .iter()
-          .copied()
-          .map(|idx: usize| (runtime.clone(), idx))
-          .collect();
-
-        while let Some((runtime, child)) = stack.pop() {
-          let child_runtime = chunks[child]
-            .1
-            .chunk_desc
-            .runtime_mut()
-            .expect("should have runtime");
-
-          let new_runtime = merge_runtime(&runtime, child_runtime);
-          if &new_runtime == child_runtime {
-            // no change
-            continue;
-          }
-
-          *child_runtime = new_runtime;
-          let child_runtime = chunks[child]
-            .1
-            .chunk_desc
-            .runtime()
-            .expect("should have runtime");
-          stack.extend(
-            chunk_children[child]
-              .iter()
-              .copied()
-              .map(|idx| (child_runtime.clone(), idx)),
-          );
-        }
-      }
-    }
-
     if compilation.options.optimization.remove_available_modules {
       /*
             4rd iter, remove modules that is available in parents
@@ -1609,142 +1680,6 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
       chunk_parents,
     }
   }
-
-  // merge chunks that has the same name on them
-  #[instrument(skip_all)]
-  fn merge_same_chunks(
-    &mut self,
-    chunks: Vec<(bool, CacheableChunkItem)>,
-  ) -> (
-    Vec<(bool, CacheableChunkItem)>,
-    HashSet<usize>,
-    Vec<Diagnostic>,
-  ) {
-    let mut final_chunks: Vec<(bool, CacheableChunkItem)> = vec![];
-    let mut named_chunks: std::collections::HashMap<String, usize, rustc_hash::FxBuildHasher> =
-      HashMap::<String, usize>::default();
-    let mut merged = HashSet::default();
-    let mut errors = vec![];
-
-    for (reuse, cache) in chunks {
-      if let Some(name) = cache.chunk_desc.name() {
-        if let Some(idx) = named_chunks.get(name).copied() {
-          // there is existing chunk, merge them,
-          // this is caused by same webpackChunkName
-          if let Err(err) = merge_chunk(cache.chunk_desc, &mut final_chunks[idx].1.chunk_desc) {
-            errors.push(Diagnostic::from(err));
-          }
-          let (reuse, _) = &mut final_chunks[idx];
-          // if the chunk has multiple parents this chunk cannot be reused
-          *reuse = false;
-          merged.insert(idx);
-          continue;
-        } else {
-          let idx = final_chunks.len();
-          named_chunks.insert(name.to_string(), idx);
-        }
-      }
-      final_chunks.push((reuse, cache));
-    }
-
-    (final_chunks, merged, errors)
-  }
-}
-
-fn merge_chunk(chunk: ChunkDesc, existing_chunk: &mut ChunkDesc) -> Result<()> {
-  match (existing_chunk, chunk) {
-    (ChunkDesc::Entry(existing_chunk), ChunkDesc::Entry(chunk)) => {
-      existing_chunk.modules_ordinal = existing_chunk.modules_ordinal.union(&chunk.modules_ordinal);
-      existing_chunk.chunk_modules.extend(chunk.chunk_modules);
-      existing_chunk.incoming_blocks.extend(chunk.incoming_blocks);
-      existing_chunk.outgoing_blocks.extend(chunk.outgoing_blocks);
-      match (&mut existing_chunk.runtime, chunk.runtime) {
-        (None, None) => {}
-        (None, Some(other)) => existing_chunk.runtime = Some(other),
-        (Some(_), None) => {}
-        (Some(existing), Some(other)) => *existing = merge_runtime(existing, &other),
-      }
-    }
-    (ChunkDesc::Chunk(existing_chunk), ChunkDesc::Chunk(chunk)) => {
-      existing_chunk.modules_ordinal = existing_chunk.modules_ordinal.union(&chunk.modules_ordinal);
-      existing_chunk.chunk_modules.extend(chunk.chunk_modules);
-      existing_chunk.incoming_blocks.extend(chunk.incoming_blocks);
-      existing_chunk.outgoing_blocks.extend(chunk.outgoing_blocks);
-      match (&mut existing_chunk.runtime, chunk.runtime) {
-        (None, None) => {}
-        (None, Some(other)) => existing_chunk.runtime = Some(other),
-        (Some(_), None) => {}
-        (Some(existing), Some(other)) => *existing = merge_runtime(existing, &other),
-      }
-
-      match (&mut existing_chunk.options, chunk.options) {
-        (None, None) => {}
-        (Some(_), None) => {}
-        (None, Some(options)) => {
-          existing_chunk.options = Some(options);
-        }
-        (Some(existing), Some(other)) => {
-          match (&mut existing.prefetch_order, other.prefetch_order) {
-            (None, None) => {}
-            (Some(_), None) => {}
-            (None, Some(other)) => existing.prefetch_order = Some(other),
-            (Some(existing), Some(other)) => {
-              *existing = std::cmp::max(*existing, other);
-            }
-          }
-
-          match (&mut existing.preload_order, other.preload_order) {
-            (None, None) => {}
-            (Some(_), None) => {}
-            (None, Some(other)) => existing.preload_order = Some(other),
-            (Some(existing), Some(other)) => {
-              *existing = std::cmp::max(*existing, other);
-            }
-          }
-
-          match (&mut existing.fetch_priority, other.fetch_priority) {
-            (None, None) => {}
-            (Some(_), None) => {}
-            (None, Some(other)) => existing.fetch_priority = Some(other),
-            (Some(existing), Some(other)) => {
-              *existing = std::cmp::max(*existing, other);
-            }
-          }
-        }
-      }
-
-      // for (module, idx) in &mut existing_chunk.pre_order_indices {
-      //   if let Some(other_idx) = chunk.pre_order_indices.get(module) {
-      //     *idx = std::cmp::min(*idx, *other_idx);
-      //   }
-      // }
-      // for (module, idx) in &mut existing_chunk.post_order_indices {
-      //   if let Some(other_idx) = chunk.post_order_indices.get(module) {
-      //     *idx = std::cmp::min(*idx, *other_idx);
-      //   }
-      // }
-    }
-    (ChunkDesc::Entry(entry), ChunkDesc::Chunk(chunk)) => {
-      entry.modules_ordinal = entry.modules_ordinal.union(&chunk.modules_ordinal);
-      entry.chunk_modules.extend(chunk.chunk_modules);
-      entry.incoming_blocks.extend(chunk.incoming_blocks);
-      entry.outgoing_blocks.extend(chunk.outgoing_blocks);
-      return Err(error!(
-        format!("It's not allowed to load an initial chunk on demand. The chunk name \"{}\" is already used by an entrypoint.", entry.entry.as_ref().expect("already has name"))
-      ));
-    }
-    (ChunkDesc::Chunk(existing), ChunkDesc::Entry(entry)) => {
-      existing.modules_ordinal = existing.modules_ordinal.union(&entry.modules_ordinal);
-      existing.chunk_modules.extend(entry.chunk_modules);
-      existing.incoming_blocks.extend(entry.incoming_blocks);
-      existing.outgoing_blocks.extend(entry.outgoing_blocks);
-      return Err(error!(
-        format!("It's not allowed to load an initial chunk on demand. The chunk name \"{}\" is already used by an entrypoint.", entry.entry.as_ref().expect("already has name"))
-      ));
-    }
-  };
-
-  Ok(())
 }
 
 // main entry for code splitting
