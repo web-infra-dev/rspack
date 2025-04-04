@@ -1,0 +1,44 @@
+# Next.js
+
+[@next/plugin-rspack](https://www.npmjs.com/package/@next/plugin-rspack) is a community-driven plugin that enables Next.js projects to use Rspack.
+
+## Installation
+
+```bash
+pnpm install -D @next/plugin-rspack
+```
+
+## Usage
+
+Wrap your existing configuration in the project's `next.config.js` or `next.config.ts`:
+
+```ts title="next.config.js"
+const withRspack = require('@next/plugin-rspack');
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // existing configuration
+};
+
+module.exports = withRspack(nextConfig);
+```
+
+## Customizing Rspack Configuration
+
+Rspack’s compatibility with webpack, Next.js adopts the same approach as webpack for custom configuration.
+
+In `next.config.js`, you can modify Rspack’s configuration by adding the following callback function:
+
+```ts title="next.config.js"
+module.exports = {
+  webpack: (
+    config,
+    { buildId, dev, isServer, defaultLoaders, nextRuntime, webpack },
+  ) => {
+    // Important: return the modified config
+    return config;
+  },
+};
+```
+
+For more details, see the [Next.js documentation](https://nextjs.org/docs/app/api-reference/config/next-config-js/webpack).
