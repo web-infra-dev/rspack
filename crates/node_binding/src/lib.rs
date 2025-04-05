@@ -335,6 +335,22 @@ enum TraceState {
   Off,
 }
 
+#[cfg(target_family = "wasm")]
+const _: () = {
+  #[used]
+  #[link_section = ".init_array"]
+  static __CTOR: unsafe extern "C" fn() = init;
+
+  unsafe extern "C" fn init() {
+    let rt = tokio::runtime::Builder::new_multi_thread()
+      .max_blocking_threads(1)
+      .enable_all()
+      .build()
+      .expect("Create tokio runtime failed");
+    create_custom_tokio_runtime(rt);
+  }
+};
+
 #[cfg(not(target_family = "wasm"))]
 #[napi::ctor::ctor(crate_path = ::napi::ctor)]
 fn init() {
