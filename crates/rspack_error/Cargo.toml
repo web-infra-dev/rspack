@@ -23,7 +23,7 @@ swc_core           = { workspace = true, features = ["common", "common_concurren
 swc_parallel       = { workspace = true, default-features = false }
 termcolor          = "1.4.1"
 textwrap           = "0.16.1"
-thiserror          = "1.0.69"
+thiserror          = "2.0.12"
 
 unicode-width = "0.2.0"
 
