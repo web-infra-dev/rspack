@@ -10,17 +10,12 @@ module.exports = {
 			compiler.hooks.finishMake.tapPromise(PLUGIN_NAME, compilation => {
 				return new Promise((resolve, reject) => {
 					const dependency = EntryPlugin.createDependency("./foo.js");
-					compilation.addInclude(
-						compiler.context,
-						dependency,
-						{},
-						err => {
-							if (err) return reject(err);
-							const module = compilation.moduleGraph.getModule(dependency);
-							expect(module).toBeTruthy();
-							return resolve();
-						}
-					);
+					compilation.addInclude(compiler.context, dependency, {}, err => {
+						if (err) return reject(err);
+						const module = compilation.moduleGraph.getModule(dependency);
+						expect(module).toBeTruthy();
+						return resolve();
+					});
 				});
 			});
 

@@ -303,9 +303,14 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 					}
 					const hash = createHash(getCompiler().options.output.hashFunction!);
 					queried.call(Chunk.__from_binding(chunk), hash);
-					const digestResult = hash.digest(
-						getCompiler().options.output.hashDigest
-					);
+					let digestResult: Buffer | string;
+					if (getCompiler().options.output.hashDigest) {
+						digestResult = hash.digest(
+							getCompiler().options.output.hashDigest as string
+						);
+					} else {
+						digestResult = hash.digest();
+					}
 					return toBuffer(digestResult);
 				};
 			}
