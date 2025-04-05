@@ -32,7 +32,7 @@ jobs:
         shell: bash
         run: |
           if ${{ !inputs.force-use-github-runner }}; then
-            LINUX_RUNNER_LABELS='${{ vars.LINUX_RUNNER_LABELS }}';
+            LINUX_RUNNER_LABELS='"rspack-ubuntu-22.04-large"';
             MACOS_RUNNER_LABELS='${{ vars.MACOS_RUNNER_LABELS }}';
             WINDOWS_RUNNER_LABELS='${{ vars.WINDOWS_RUNNER_LABELS }}';
           fi

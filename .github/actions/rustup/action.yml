@@ -46,6 +46,15 @@ runs:
         echo 'save-cache: ${{ inputs.save-cache }}'
         echo 'shared-key: ${{ inputs.shared-key }}'
 
+    - name: Install rustup, if needed
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        if ! command -v rustup &> /dev/null ; then
+          curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y
+          echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
+        fi
+
     # install components for nightly toolchain
     - name: Install
       shell: bash
