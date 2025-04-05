@@ -2431,6 +2431,7 @@ export type ExperimentCacheOptions =
 				immutablePaths?: Array<string | RegExp>;
 				unmanagedPaths?: Array<string | RegExp>;
 				managedPaths?: Array<string | RegExp>;
+				hashPaths?: Array<string | RegExp>;
 			};
 			storage?: {
 				type: "filesystem";

@@ -12,6 +12,8 @@ pub struct RawExperimentSnapshotOptions {
   pub unmanaged_paths: Vec<RawPathMatcher>,
   #[napi(ts_type = r#"Array<string|RegExp>"#)]
   pub managed_paths: Vec<RawPathMatcher>,
+  #[napi(ts_type = r#"Array<string|RegExp>"#)]
+  pub hash_paths: Vec<RawPathMatcher>,
 }
 
 type RawPathMatcher = Either<String, RspackRegex>;
@@ -31,6 +33,11 @@ impl From<RawExperimentSnapshotOptions> for SnapshotOptions {
         .collect(),
       value
         .managed_paths
+        .into_iter()
+        .map(normalize_raw_path_matcher)
+        .collect(),
+      value
+        .hash_paths
         .into_iter()
         .map(normalize_raw_path_matcher)
         .collect(),
