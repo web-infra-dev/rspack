@@ -21,6 +21,7 @@ const value = "dynamic";
 
 }),
 "./child sync recursive ^\\.\\/.*\\.js$": (function (module, __unused_webpack_exports, __webpack_require__) {
+"use strict";
 var map = {
   "./child/index.js": "./child/child/index.js",
   "./index.js": "./child/index.js"
