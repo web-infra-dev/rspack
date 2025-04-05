@@ -13,6 +13,7 @@ use rspack_fs::WritableFileSystem;
 use rspack_paths::Utf8Path;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
+use tracing::{debug, info, warn};
 use url::Url;
 
 use super::lockfile::{LockfileCache, LockfileEntry};
@@ -416,14 +417,43 @@ impl HttpCache {
 }
 
 pub async fn fetch_content(url: &str, options: &HttpUriPluginOptions) -> Result<FetchResultType> {
+  // Log all URLs for debugging
+  debug!(
+    "[HttpUriPlugin::fetch_content] Trying to fetch content for URL: {}",
+    url
+  );
+
+  // Log React refresh URLs specifically
+  if url.contains("react-refresh") || url.contains("reactRefresh") {
+    info!(
+      "[HttpUriPlugin::fetch_content] Processing React Refresh URL: {}",
+      url
+    );
+    info!(
+      "[HttpUriPlugin::fetch_content] AllowedUris description: \n{}",
+      options.allowed_uris.get_allowed_uris_description()
+    );
+  }
+
   // Check if the URL is allowed
   if !options.allowed_uris.is_allowed(url) {
-    return Err(anyhow::anyhow!(
+    let err_msg = format!(
       "{} doesn't match the allowedUris policy. These URIs are allowed:\n{}",
       url,
       options.allowed_uris.get_allowed_uris_description()
-    ));
+    );
+
+    warn!(
+      "[HttpUriPlugin::fetch_content] URL validation failed: {}",
+      err_msg
+    );
+    return Err(anyhow::anyhow!(err_msg));
   }
+
+  debug!(
+    "[HttpUriPlugin::fetch_content] URL validation passed: {}",
+    url
+  );
 
   let http_cache = HttpCache::new(
     options.cache_location.clone(),
