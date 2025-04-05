@@ -80,7 +80,7 @@
     "typescript": "^5.7.3",
     "webpack": "5.98.0",
     "webpack-cli": "5.1.4",
-    "zx": "8.4.1"
+    "zx": "8.5.0"
   },
   "packageManager": "pnpm@9.15.9",
   "pnpm": {
