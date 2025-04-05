@@ -29,6 +29,7 @@ pub struct CodegenOptions<'a> {
   pub minify: Option<bool>,
   pub ascii_only: Option<bool>,
   pub inline_script: Option<bool>,
+  pub emit_assert_for_import_attributes: Option<bool>,
 }
 
 pub fn stringify(ast: &Ast, options: CodegenOptions) -> Result<TransformOutput> {
@@ -40,8 +41,12 @@ pub fn stringify(ast: &Ast, options: CodegenOptions) -> Result<TransformOutput> 
     let format_opt = JsMinifyFormatOptions {
       inline_script: options.inline_script.unwrap_or(true),
       ascii_only: options.ascii_only.unwrap_or_default(),
+      emit_assert_for_import_attributes: options
+        .emit_assert_for_import_attributes
+        .unwrap_or_default(),
       ..Default::default()
     };
+    println!("format_opt is{:?}", format_opt);
     print(
       program.get_inner_program(),
       context.source_map.clone(),
@@ -90,7 +95,8 @@ pub fn print(
           .with_minify(minify)
           .with_target(target)
           .with_ascii_only(format.ascii_only)
-          .with_inline_script(format.inline_script),
+          .with_inline_script(format.inline_script)
+          .with_emit_assert_for_import_attributes(format.emit_assert_for_import_attributes),
         comments,
         cm: source_map.clone(),
         wr,
