@@ -45,6 +45,14 @@ if (__nodeFs.existsSync(__wasmDebugFilePath)) {
   }
 }
 
+const workers = new Set()
+const shutdownWorkers = () => {
+  for (const worker of workers) {
+    worker.terminate()
+  }
+  workers.clear()
+}
+
 const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule } = __emnapiInstantiateNapiModuleSync(__nodeFs.readFileSync(__wasmFilePath), {
   context: __emnapiContext,
   asyncWorkPoolSize: (function() {
@@ -65,6 +73,7 @@ const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule
     worker.onmessage = ({ data }) => {
       __wasmCreateOnMessageForFsProxy(__nodeFs)(data)
     }
+    workers.add(worker)
     return worker
   },
   overwriteImports(importObject) {
@@ -121,5 +130,8 @@ module.exports.JsRspackSeverity = __napiModule.exports.JsRspackSeverity
 module.exports.RawRuleSetConditionType = __napiModule.exports.RawRuleSetConditionType
 module.exports.registerGlobalTrace = __napiModule.exports.registerGlobalTrace
 module.exports.RegisterJsTapKind = __napiModule.exports.RegisterJsTapKind
-module.exports.shutdownAsyncRuntime = __napiModule.exports.shutdownAsyncRuntime
 module.exports.startAsyncRuntime = __napiModule.exports.startAsyncRuntime
+module.exports.shutdownAsyncRuntime = () => {
+  __napiModule.exports.shutdownAsyncRuntime()
+  shutdownWorkers()
+}
