@@ -1,4 +1,4 @@
-use std::{cell::RefCell, ptr::NonNull};
+use std::{any::Any, cell::RefCell, ptr::NonNull};
 
 use napi::{bindgen_prelude::ToNapiValue, Either, Env, JsString};
 use napi_derive::napi;
@@ -107,6 +107,7 @@ impl Dependency {
   pub fn ids(&mut self, env: Env) -> napi::Result<Either<Vec<JsString>, ()>> {
     let (dependency, compilation) = self.as_ref()?;
 
+    // 334.8 µs
     Ok(match compilation {
       Some(compilation) => {
         let module_graph = compilation.get_module_graph();

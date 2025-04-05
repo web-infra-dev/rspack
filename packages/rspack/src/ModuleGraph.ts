@@ -1,7 +1,10 @@
-import type { Dependency, JsModuleGraph } from "@rspack/binding";
+import type {
+	Dependency,
+	JsModuleGraph,
+	ModuleGraphConnection
+} from "@rspack/binding";
 import { ExportsInfo } from "./ExportsInfo";
 import type { Module } from "./Module";
-import { ModuleGraphConnection } from "./ModuleGraphConnection";
 
 export default class ModuleGraph {
 	static __from_binding(binding: JsModuleGraph) {
@@ -35,20 +38,15 @@ export default class ModuleGraph {
 	}
 
 	getConnection(dependency: Dependency): ModuleGraphConnection | null {
-		const binding = this.#inner.getConnection(dependency);
-		return binding ? ModuleGraphConnection.__from_binding(binding) : null;
+		return this.#inner.getConnection(dependency);
 	}
 
 	getOutgoingConnections(module: Module): ModuleGraphConnection[] {
-		return this.#inner
-			.getOutgoingConnections(module)
-			.map(binding => ModuleGraphConnection.__from_binding(binding));
+		return this.#inner.getOutgoingConnections(module);
 	}
 
 	getIncomingConnections(module: Module): ModuleGraphConnection[] {
-		return this.#inner
-			.getIncomingConnections(module)
-			.map(binding => ModuleGraphConnection.__from_binding(binding));
+		return this.#inner.getIncomingConnections(module);
 	}
 
 	getParentBlockIndex(dependency: Dependency): number {
@@ -60,8 +58,6 @@ export default class ModuleGraph {
 	}
 
 	getOutgoingConnectionsInOrder(module: Module): ModuleGraphConnection[] {
-		return this.#inner
-			.getOutgoingConnectionsInOrder(module)
-			.map(binding => ModuleGraphConnection.__from_binding(binding));
+		return this.#inner.getOutgoingConnectionsInOrder(module);
 	}
 }
