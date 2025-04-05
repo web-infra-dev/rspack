@@ -36,6 +36,16 @@ impl Loader<RunnerContext> for ReactRefreshLoader {
     let Some(content) = loader_context.take_content() else {
       return Ok(());
     };
+
+    // Skip processing if the resource is an HTTP URL
+    let resource = loader_context.resource();
+    if resource.starts_with("http://") || resource.starts_with("https://") {
+      // Just pass through the content without modification
+      let sm = loader_context.take_source_map();
+      loader_context.finish_with((content, sm));
+      return Ok(());
+    }
+
     let mut source = content.try_into_string()?;
     source += r#"
 function $RefreshSig$() {
