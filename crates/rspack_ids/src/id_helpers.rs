@@ -51,7 +51,7 @@ pub fn get_used_module_ids_and_modules(
       if let Some(module_id) = module_id {
         used_ids.insert(module_id.to_string());
       } else {
-        if filter.as_ref().map_or(true, |f| (f)(module))
+        if filter.as_ref().is_none_or(|f| (f)(module))
           && chunk_graph.get_number_of_module_chunks(module.identifier()) != 0
         {
           modules.push(module.identifier());

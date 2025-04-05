@@ -59,7 +59,7 @@ impl FSError {
   pub fn from_message(file: &Utf8Path, opt: FSOperation, message: String) -> Self {
     Self {
       file: file.to_string(),
-      inner: rspack_fs::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, message)),
+      inner: rspack_fs::Error::Io(std::io::Error::other(message)),
       opt,
     }
   }

@@ -410,7 +410,6 @@ fn visit_dirs(
       }
     } else if path.file_name().is_some_and(|name| name.starts_with('.')) {
       // ignore hidden files
-      continue;
     } else {
       if let Some(include) = include
         && !include.test(path_str)

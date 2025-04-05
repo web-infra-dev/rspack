@@ -37,10 +37,7 @@ impl From<Error> for rspack_error::Error {
 
 impl From<rspack_error::Error> for Error {
   fn from(e: rspack_error::Error) -> Self {
-    Error::Io(std::io::Error::new(
-      std::io::ErrorKind::Other,
-      e.to_string(),
-    ))
+    Error::Io(std::io::Error::other(e.to_string()))
   }
 }
 
@@ -62,10 +59,7 @@ impl<T, E: ToString> RspackResultToFsResultExt<T> for std::result::Result<T, E> 
   fn to_fs_result(self) -> Result<T> {
     match self {
       Ok(t) => Ok(t),
-      Err(e) => Err(Error::Io(std::io::Error::new(
-        std::io::ErrorKind::Other,
-        e.to_string(),
-      ))),
+      Err(e) => Err(Error::Io(std::io::Error::other(e.to_string()))),
     }
   }
 }

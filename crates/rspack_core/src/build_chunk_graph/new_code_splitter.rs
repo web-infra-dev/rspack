@@ -743,7 +743,7 @@ impl CodeSplitter {
           .dependency_by_id(dep_id)
           .expect("should have dep")
           .as_module_dependency()
-          .map_or(true, |module_dep| !module_dep.weak())
+          .is_none_or(|module_dep| !module_dep.weak())
       })
       .filter_map(|dep| module_graph.connection_by_dependency_id(dep))
       .map(|conn| (conn.module_identifier(), conn))
