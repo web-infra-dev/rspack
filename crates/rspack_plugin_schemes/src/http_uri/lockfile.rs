@@ -148,11 +148,11 @@ impl LockfileAsync for Lockfile {
       .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid UTF-8 path"))?;
     let content = self
       .to_json_string()
-      .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+      .map_err(|e| io::Error::other(e.to_string()))?;
     filesystem
       .write(utf8_path, content.as_bytes())
       .await
-      .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+      .map_err(|e| io::Error::other(e.to_string()))?;
     Ok(())
   }
 }
@@ -207,18 +207,18 @@ impl LockfileCache {
           .filesystem
           .create_dir_all(utf8_parent)
           .await
-          .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+          .map_err(|e| io::Error::other(e.to_string()))?;
       }
       let content = lockfile
         .to_json_string()
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+        .map_err(|e| io::Error::other(e.to_string()))?;
       let utf8_lockfile_path = Utf8Path::from_path(lockfile_path)
         .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid UTF-8 path"))?;
       self
         .filesystem
         .write(utf8_lockfile_path, content.as_bytes())
         .await
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+        .map_err(|e| io::Error::other(e.to_string()))?;
     }
 
     Ok(())

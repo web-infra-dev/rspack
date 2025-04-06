@@ -19,7 +19,7 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
     if expr
       .callee
       .as_expr()
-      .map_or(true, |expr| !is_require_context(&**expr))
+      .is_none_or(|expr| !is_require_context(&**expr))
     {
       return None;
     }
