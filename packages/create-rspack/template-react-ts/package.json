@@ -17,7 +17,7 @@
     "@rspack/plugin-react-refresh": "^1.1.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.1",
-    "react-refresh": "^0.16.0",
+    "react-refresh": "^0.17.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
   }
