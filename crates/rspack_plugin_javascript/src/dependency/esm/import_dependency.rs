@@ -160,7 +160,7 @@ impl DependencyTemplate for ImportDependency {
 impl AsContextDependency for ImportDependency {}
 
 #[cacheable]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ImportDependencyTemplate;
 
 impl ImportDependencyTemplate {

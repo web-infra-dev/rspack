@@ -107,7 +107,7 @@ async fn compilation(
   );
   compilation.set_dependency_template(
     ImportDependencyTemplate::template_type(),
-    Arc::new(ImportDependencyTemplate {}),
+    Arc::new(ImportDependencyTemplate::default()),
   );
   compilation.set_dependency_factory(
     DependencyType::DynamicImportEager,
