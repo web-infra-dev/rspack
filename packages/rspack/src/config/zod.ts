@@ -1271,6 +1271,7 @@ const optimization = z.strictObject({
 	moduleIds: z.enum(["named", "natural", "deterministic"]).optional(),
 	chunkIds: z
 		.enum(["natural", "named", "deterministic", "size", "total-size"])
+		.or(z.literal(false))
 		.optional(),
 	minimize: z.boolean().optional(),
 	minimizer: z.literal("...").or(plugin).array().optional(),
