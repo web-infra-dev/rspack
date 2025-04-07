@@ -6,8 +6,8 @@ use rspack_sources::{BoxSource, ReplaceSource};
 use rspack_util::ext::AsAny;
 
 use crate::{
-  AsDependency, ChunkInitFragments, CodeGenerationData, Compilation, ConcatenationScope,
-  DependencyId, Module, ModuleInitFragments, RuntimeGlobals, RuntimeSpec,
+  ChunkInitFragments, CodeGenerationData, Compilation, ConcatenationScope, DependencyId, Module,
+  ModuleInitFragments, RuntimeGlobals, RuntimeSpec,
 };
 
 pub struct TemplateContext<'a, 'b, 'c> {
@@ -44,7 +44,7 @@ clone_trait_object!(DependencyTemplate);
 
 // Align with https://github.com/webpack/webpack/blob/671ac29d462e75a10c3fdfc785a4c153e41e749e/lib/DependencyTemplate.js
 #[cacheable_dyn]
-pub trait DependencyTemplate: Debug + DynClone + Sync + Send + AsDependency + AsAny {
+pub trait DependencyTemplate: Debug + DynClone + Sync + Send + AsAny {
   fn apply(
     &self,
     source: &mut TemplateReplaceSource,

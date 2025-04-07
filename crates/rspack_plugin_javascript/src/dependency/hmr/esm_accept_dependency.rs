@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  import_statement, runtime_condition_expression, AsDependency, Compilation, DependencyId,
-  DependencyLocation, DependencyRange, DependencyTemplate, RuntimeCondition, RuntimeSpec,
-  SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  import_statement, runtime_condition_expression, Compilation, DependencyId, DependencyLocation,
+  DependencyRange, DependencyTemplate, RuntimeCondition, RuntimeSpec, SharedSourceMap,
+  TemplateContext, TemplateReplaceSource,
 };
 
 use crate::dependency::import_emitted_runtime;
@@ -137,5 +137,3 @@ impl DependencyTemplate for ESMAcceptDependency {
   ) {
   }
 }
-
-impl AsDependency for ESMAcceptDependency {}
