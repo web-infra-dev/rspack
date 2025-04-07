@@ -9,11 +9,9 @@ const tinypool = require
 	.replace("/package.json", "");
 const dest = path.resolve(__dirname, "./compiled/tinypool");
 
-fs.cpSync(tinypool, path.resolve(__dirname, "./compiled/tinypool"), {
-	recursive: true
-});
+fs.cpSync(tinypool, dest, { recursive: true });
 
 const pkg = JSON.parse(fs.readFileSync(path.join(dest, "package.json")));
-// Removes restirctions on node version (>= 18)
+// Removes restrictions on node version (>= 18)
 delete pkg.engines;
 fs.writeFileSync(path.join(dest, "package.json"), JSON.stringify(pkg, null, 2));
