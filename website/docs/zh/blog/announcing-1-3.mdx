@@ -100,11 +100,14 @@ const middleware = rspack.experiments.lazyCompilationMiddleware(
   config.experiments.lazyCompilation,
 );
 
-const server = new DevServer({
-  setupMiddlewares(other) {
-    return [middleware, ...other];
+const server = new DevServer(
+  {
+    setupMiddlewares(other) {
+      return [middleware, ...other];
+    },
   },
-}, compiler);
+  compiler,
+);
 ```
 
 ### 支持 AMD 模块

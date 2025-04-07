@@ -112,12 +112,15 @@ const middleware = experiments.lazyCompilationMiddleware(
   config.experiments.lazyCompilation,
 );
 
-const server = new DevServer({
-  port: 3000,
-  setupMiddlewares(other) {
-    return [middleware, ...other];
+const server = new DevServer(
+  {
+    port: 3000,
+    setupMiddlewares(other) {
+      return [middleware, ...other];
+    },
   },
-}, compiler);
+  compiler,
+);
 
 server.start();
 ```
