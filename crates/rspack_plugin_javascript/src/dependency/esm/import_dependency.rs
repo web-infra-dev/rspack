@@ -182,15 +182,15 @@ impl DynamicDependencyTemplate for ImportDependencyTemplate {
       .expect("ImportDependencyTemplate can only be applied to ImportDependency");
     let range = dep.range().expect("ImportDependency should have range");
     let module_graph = code_generatable_context.compilation.get_module_graph();
-    let block = module_graph.get_parent_block(&dep.id());
+    let block = module_graph.get_parent_block(dep.id());
     source.replace(
       range.start,
       range.end,
       module_namespace_promise(
         code_generatable_context,
-        &dep.id(),
+        dep.id(),
         block,
-        &dep.request(),
+        dep.request(),
         dep.dependency_type().as_str(),
         false,
       )
