@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  AsDependency, Compilation, DependencyLocation, DependencyRange, DependencyTemplate,
-  RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  Compilation, DependencyLocation, DependencyRange, DependencyTemplate, RuntimeGlobals,
+  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
@@ -77,5 +77,3 @@ impl DependencyTemplate for ModuleArgumentDependency {
     self.range.dyn_hash(hasher);
   }
 }
-
-impl AsDependency for ModuleArgumentDependency {}

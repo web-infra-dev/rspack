@@ -4,7 +4,7 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  AsDependency, Compilation, DependencyTemplate, ExportProvided, RuntimeSpec, TemplateContext,
+  Compilation, DependencyTemplate, ExportProvided, RuntimeSpec, TemplateContext,
   TemplateReplaceSource, UsageState, UsedExports, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
@@ -137,4 +137,3 @@ impl ExportInfoDependency {
     }
   }
 }
-impl AsDependency for ExportInfoDependency {}
