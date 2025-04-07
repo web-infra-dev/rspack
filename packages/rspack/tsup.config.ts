@@ -18,6 +18,11 @@ const aliasPlugin = {
 			path: "../package.json",
 			external: true
 		}));
+
+		build.onResolve({ filter: /^tinypool$/ }, () => ({
+			path: "../compiled/tinypool",
+			external: true
+		}));
 	}
 };
 
@@ -50,6 +55,6 @@ export default defineConfig([
 		...commonConfig,
 		entry: {
 			worker: "./src/loader-runner/worker.ts"
-		},
+		}
 	}
 ]);
