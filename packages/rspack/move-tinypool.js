@@ -4,12 +4,10 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-const tinypool = require
-	.resolve("tinypool/package.json")
-	.replace("/package.json", "");
+const tinypool = path.dirname(require.resolve("tinypool/package.json"));
 const dest = path.resolve(__dirname, "./compiled/tinypool");
 
-fs.cpSync(tinypool, dest, { recursive: true });
+fs.cpSync(tinypool, dest, { recursive: true, force: true });
 
 const pkg = JSON.parse(fs.readFileSync(path.join(dest, "package.json")));
 // Removes restrictions on node version (>= 18)
