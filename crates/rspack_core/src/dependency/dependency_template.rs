@@ -60,6 +60,10 @@ pub trait DependencyTemplate: Debug + DynClone + Sync + Send + AsAny {
     _runtime: Option<&RuntimeSpec>,
   ) {
   }
+
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    None
+  }
 }
 
 pub type BoxDependencyTemplate = Box<dyn DependencyTemplate>;
@@ -74,4 +78,19 @@ impl<T: DependencyTemplate> AsDependencyTemplate for T {
   fn as_dependency_template(&self) -> Option<&dyn DependencyTemplate> {
     Some(self)
   }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum DynamicDependencyTemplateType {
+  DependencyType(DependencyType),
+  CustomType(String),
+}
+
+pub trait DynamicDependencyTemplate: Debug + Sync + Send {
+  fn render(
+    &self,
+    dep: &dyn DependencyTemplate,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  );
 }

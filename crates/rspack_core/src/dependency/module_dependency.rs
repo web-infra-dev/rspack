@@ -62,3 +62,5 @@ impl<T: ModuleDependency> AsModuleDependency for T {
     Some(self)
   }
 }
+
+pub type BoxModuleDependency = Box<dyn ModuleDependency>;

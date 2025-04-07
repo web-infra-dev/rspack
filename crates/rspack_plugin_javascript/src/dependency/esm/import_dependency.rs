@@ -61,10 +61,10 @@ pub struct ImportDependency {
   pub request: Atom,
   pub range: DependencyRange,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
-  referenced_exports: Option<Vec<Atom>>,
-  attributes: Option<ImportAttributes>,
-  resource_identifier: String,
-  factorize_info: FactorizeInfo,
+  pub referenced_exports: Option<Vec<Atom>>,
+  pub attributes: Option<ImportAttributes>,
+  pub resource_identifier: String,
+  pub factorize_info: FactorizeInfo,
 }
 
 impl ImportDependency {
@@ -152,22 +152,46 @@ impl ModuleDependency for ImportDependency {
 
 #[cacheable_dyn]
 impl DependencyTemplate for ImportDependency {
-  fn apply(
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(ImportDependencyTemplate::template_type())
+  }
+}
+
+impl AsContextDependency for ImportDependency {}
+
+#[cacheable]
+#[derive(Debug)]
+pub struct ImportDependencyTemplate;
+
+impl ImportDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::DependencyType(DependencyType::DynamicImport)
+  }
+}
+
+impl DynamicDependencyTemplate for ImportDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyTemplate,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ImportDependency>()
+      .expect("ImportDependencyTemplate can only be applied to ImportDependency");
+    let range = dep.range().expect("ImportDependency should have range");
     let module_graph = code_generatable_context.compilation.get_module_graph();
-    let block = module_graph.get_parent_block(&self.id);
+    let block = module_graph.get_parent_block(&dep.id());
     source.replace(
-      self.range.start,
-      self.range.end,
+      range.start,
+      range.end,
       module_namespace_promise(
         code_generatable_context,
-        &self.id,
+        &dep.id(),
         block,
-        &self.request,
-        self.dependency_type().as_str(),
+        &dep.request(),
+        dep.dependency_type().as_str(),
         false,
       )
       .as_str(),
@@ -175,5 +199,3 @@ impl DependencyTemplate for ImportDependency {
     );
   }
 }
-
-impl AsContextDependency for ImportDependency {}

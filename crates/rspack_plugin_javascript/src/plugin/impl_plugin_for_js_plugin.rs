@@ -15,7 +15,10 @@ use rspack_hash::RspackHash;
 use rspack_hook::plugin_hook;
 use rustc_hash::FxHashMap;
 
-use crate::{parser_and_generator::JavaScriptParserAndGenerator, JsPlugin, JsPluginInner};
+use crate::{
+  dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
+  JsPlugin, JsPluginInner,
+};
 
 #[plugin_hook(CompilerCompilation for JsPlugin)]
 async fn compilation(
@@ -101,6 +104,10 @@ async fn compilation(
   compilation.set_dependency_factory(
     DependencyType::DynamicImport,
     params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_template(
+    ImportDependencyTemplate::template_type(),
+    Arc::new(ImportDependencyTemplate {}),
   );
   compilation.set_dependency_factory(
     DependencyType::DynamicImportEager,
