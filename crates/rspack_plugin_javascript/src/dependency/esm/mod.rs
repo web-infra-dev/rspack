@@ -36,7 +36,7 @@ pub use self::{
   external_module_dependency::{ExternalModuleDependency, ExternalModuleDependencyTemplate},
   import_dependency::{ImportDependency, ImportDependencyTemplate},
   import_eager_dependency::{ImportEagerDependency, ImportEagerDependencyTemplate},
-  provide_dependency::ProvideDependency,
+  provide_dependency::{ProvideDependency, ProvideDependencyTemplate},
 };
 
 pub fn create_resource_identifier_for_esm_dependency(
