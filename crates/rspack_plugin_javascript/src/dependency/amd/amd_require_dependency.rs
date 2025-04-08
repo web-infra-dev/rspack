@@ -1,8 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  block_promise, AffectType, AsContextDependency, AsModuleDependency, Compilation, Dependency,
+  block_promise, AffectType, AsContextDependency, AsModuleDependency, Dependency,
   DependencyCategory, DependencyId, DependencyTemplate, DependencyType, RuntimeGlobals,
-  RuntimeSpec,
 };
 
 #[cacheable]
@@ -183,18 +182,6 @@ impl DependencyTemplate for AMDRequireDependency {
 
       source.replace(function_range.1, self.outer_range.1, &end_block, None);
     };
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }
 

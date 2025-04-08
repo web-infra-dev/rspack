@@ -47,10 +47,6 @@ impl DependencyTemplate for ConstDependency {
     source.replace(self.start, self.end, self.content.as_ref(), None);
   }
 
-  fn dependency_id(&self) -> Option<crate::DependencyId> {
-    None
-  }
-
   fn update_hash(
     &self,
     hasher: &mut dyn std::hash::Hasher,

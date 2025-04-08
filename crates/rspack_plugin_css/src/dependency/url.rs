@@ -3,8 +3,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency,
   DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
-  FactorizeInfo, ModuleDependency, ModuleIdentifier, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  FactorizeInfo, ModuleDependency, ModuleIdentifier, TemplateContext, TemplateReplaceSource,
 };
 
 use crate::utils::{css_escape_string, AUTO_PUBLIC_PATH_PLACEHOLDER};
@@ -122,18 +121,6 @@ impl DependencyTemplate for CssUrlDependency {
       };
       source.replace(self.range.start, self.range.end, &content, None);
     }
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }
 

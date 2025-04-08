@@ -6,7 +6,7 @@ use rspack_sources::{BoxSource, ReplaceSource};
 use rspack_util::ext::AsAny;
 
 use crate::{
-  ChunkInitFragments, CodeGenerationData, Compilation, ConcatenationScope, DependencyId, Module,
+  ChunkInitFragments, CodeGenerationData, Compilation, ConcatenationScope, Module,
   ModuleInitFragments, RuntimeGlobals, RuntimeSpec,
 };
 
@@ -47,18 +47,19 @@ clone_trait_object!(DependencyTemplate);
 pub trait DependencyTemplate: Debug + DynClone + Sync + Send + AsAny {
   fn apply(
     &self,
-    source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  );
-
-  fn dependency_id(&self) -> Option<DependencyId>;
+    _source: &mut TemplateReplaceSource,
+    _code_generatable_context: &mut TemplateContext,
+  ) {
+    unimplemented!()
+  }
 
   fn update_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
-    compilation: &Compilation,
-    runtime: Option<&RuntimeSpec>,
-  );
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+  }
 }
 
 pub type BoxDependencyTemplate = Box<dyn DependencyTemplate>;

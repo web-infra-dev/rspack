@@ -24,10 +24,6 @@ impl DependencyTemplate for RuntimeRequirementsDependency {
       .insert(self.runtime_requirements);
   }
 
-  fn dependency_id(&self) -> Option<crate::DependencyId> {
-    None
-  }
-
   fn update_hash(
     &self,
     hasher: &mut dyn std::hash::Hasher,

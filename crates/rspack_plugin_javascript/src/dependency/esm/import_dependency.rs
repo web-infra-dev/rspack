@@ -3,11 +3,10 @@ use rspack_cacheable::{
   with::{AsOption, AsPreset, AsVec},
 };
 use rspack_core::{
-  create_exports_object_referenced, module_namespace_promise, AsContextDependency, Compilation,
-  Dependency, DependencyCategory, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyType, ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes,
-  ModuleDependency, ModuleGraph, ReferencedExport, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  create_exports_object_referenced, module_namespace_promise, AsContextDependency, Dependency,
+  DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
+  ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes, ModuleDependency,
+  ModuleGraph, ReferencedExport, TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -174,18 +173,6 @@ impl DependencyTemplate for ImportDependency {
       .as_str(),
       None,
     );
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }
 
