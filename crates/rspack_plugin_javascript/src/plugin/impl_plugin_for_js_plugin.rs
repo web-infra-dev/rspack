@@ -16,7 +16,10 @@ use rspack_hook::plugin_hook;
 use rustc_hash::FxHashMap;
 
 use crate::{
-  dependency::{ESMCompatibilityDependencyTemplate, ImportDependencyTemplate},
+  dependency::{
+    ESMCompatibilityDependencyTemplate, ESMExportExpressionDependencyTemplate,
+    ImportDependencyTemplate,
+  },
   parser_and_generator::JavaScriptParserAndGenerator,
   JsPlugin, JsPluginInner,
 };
@@ -146,6 +149,10 @@ async fn compilation(
   compilation.set_dependency_template(
     ImportDependencyTemplate::template_type(),
     Arc::new(ImportDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ESMExportExpressionDependencyTemplate::template_type(),
+    Arc::new(ESMExportExpressionDependencyTemplate::default()),
   );
   Ok(())
 }
