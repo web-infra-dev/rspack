@@ -28,6 +28,7 @@ pub use self::{
   },
   esm_import_dependency::{
     esm_import_dependency_apply, import_emitted_runtime, ESMImportSideEffectDependency,
+    ESMImportSideEffectDependencyTemplate,
   },
   esm_import_specifier_dependency::ESMImportSpecifierDependency,
   external_module_dependency::ExternalModuleDependency,
