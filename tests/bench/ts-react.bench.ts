@@ -157,11 +157,6 @@ describe("TypeScript React project", () => {
 				: null
 
 			if (mod.matchResource?.startsWith(BARREL_OPTIMIZATION_PREFIX)) {
-				ssrNamedModuleId = formatBarrelOptimizedResource(
-					ssrNamedModuleId,
-					mod.matchResource
-				)
-				resource = formatBarrelOptimizedResource(resource, mod.matchResource)
 			}
 		}
 

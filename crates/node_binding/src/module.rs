@@ -101,9 +101,7 @@ impl Module {
     }
 
     object.define_properties(&[
-      Property::new("type")?
-        .with_value(&env.create_string(module.module_type().as_str())?)
-        .with_property_attributes(PropertyAttributes::Enumerable),
+      Property::new("type")?.with_value(&env.create_string(module.module_type().as_str())?),
       Property::new("context")?.with_getter(context_getter),
       Property::new("layer")?.with_getter(layer_getter),
       Property::new("useSourceMap")?.with_getter(use_source_map_getter),

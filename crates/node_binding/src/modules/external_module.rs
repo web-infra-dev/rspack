@@ -6,6 +6,13 @@ pub struct ExternalModule {
 }
 
 impl ExternalModule {
+  pub(crate) fn custom_into_instance(
+    self,
+    env: &napi::Env,
+  ) -> napi::Result<napi::bindgen_prelude::ClassInstance<Self>> {
+    Self::new_inherited(self, env, vec![])
+  }
+
   fn as_ref(&mut self) -> napi::Result<(&rspack_core::Compilation, &rspack_core::ExternalModule)> {
     let (compilation, module) = self.module.as_ref()?;
     match module.as_external_module() {

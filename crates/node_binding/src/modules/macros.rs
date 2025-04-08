@@ -2,17 +2,16 @@
 macro_rules! impl_module_methods {
   ($module:ident) => {
     impl $module {
-      pub(crate) fn custom_into_instance(
+      fn new_inherited<'a>(
         self,
-        env: &napi::Env,
-      ) -> napi::Result<napi::bindgen_prelude::ClassInstance<Self>> {
+        env: &'a napi::Env,
+        mut properties: Vec<napi::Property>,
+      ) -> napi::Result<napi::bindgen_prelude::ClassInstance<'a, Self>> {
         use napi::bindgen_prelude::JavaScriptClassExt;
 
         let mut instance = self.into_instance(env)?;
         let mut object = instance.as_object(env);
         let (_, module) = instance.module.as_ref()?;
-
-        object.set_named_property("type", env.create_string(module.module_type().as_str())?)?;
 
         #[js_function]
         fn context_getter(ctx: napi::CallContext) -> napi::Result<napi::Either<String, ()>> {
@@ -97,16 +96,21 @@ macro_rules! impl_module_methods {
           })
         }
 
-        object.define_properties(&[
-          napi::Property::new("context")?.with_getter(context_getter),
-          napi::Property::new("layer")?.with_getter(layer_getter),
-          napi::Property::new("useSourceMap")?.with_getter(use_source_map_getter),
+        properties.push(
+          napi::Property::new("type")?
+            .with_value(&env.create_string(module.module_type().as_str())?),
+        );
+        properties.push(napi::Property::new("context")?.with_getter(context_getter));
+        properties.push(napi::Property::new("layer")?.with_getter(layer_getter));
+        properties.push(napi::Property::new("useSourceMap")?.with_getter(use_source_map_getter));
+        properties.push(
           napi::Property::new("useSimpleSourceMap")?.with_getter(use_simple_source_map_getter),
-          napi::Property::new("factoryMeta")?.with_getter(factory_meta_getter),
-        ])?;
+        );
+        properties.push(napi::Property::new("factoryMeta")?.with_getter(factory_meta_getter));
+        properties.push(napi::Property::new("buildInfo")?.with_value(&env.create_object()?));
+        properties.push(napi::Property::new("buildMeta")?.with_value(&env.create_object()?));
 
-        object.set_named_property("buildInfo", env.create_object()?)?;
-        object.set_named_property("buildMeta", env.create_object()?)?;
+        object.define_properties(&properties)?;
 
         Ok(instance)
       }
