@@ -15,8 +15,11 @@ use rspack_util::json_stringify;
 
 pub use self::{
   esm_compatibility_dependency::{ESMCompatibilityDependency, ESMCompatibilityDependencyTemplate},
-  esm_export_expression_dependency::*,
-  esm_export_header_dependency::ESMExportHeaderDependency,
+  esm_export_expression_dependency::{
+    DeclarationId, DeclarationInfo, ESMExportExpressionDependency,
+    ESMExportExpressionDependencyTemplate,
+  },
+  esm_export_header_dependency::{ESMExportHeaderDependency, ESMExportHeaderDependencyTemplate},
   esm_export_imported_specifier_dependency::ESMExportImportedSpecifierDependency,
   esm_export_specifier_dependency::ESMExportSpecifierDependency,
   esm_import_dependency::{
