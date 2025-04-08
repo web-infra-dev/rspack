@@ -35,7 +35,7 @@ pub use self::{
   },
   external_module_dependency::{ExternalModuleDependency, ExternalModuleDependencyTemplate},
   import_dependency::{ImportDependency, ImportDependencyTemplate},
-  import_eager_dependency::ImportEagerDependency,
+  import_eager_dependency::{ImportEagerDependency, ImportEagerDependencyTemplate},
   provide_dependency::ProvideDependency,
 };
 

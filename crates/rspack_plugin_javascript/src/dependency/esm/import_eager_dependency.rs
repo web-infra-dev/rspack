@@ -4,8 +4,9 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   module_namespace_promise, AsContextDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyType, FactorizeInfo, ImportAttributes,
-  ModuleDependency, TemplateContext, TemplateReplaceSource,
+  DependencyRange, DependencyTemplate, DependencyType, DynamicDependencyTemplate,
+  DynamicDependencyTemplateType, FactorizeInfo, ImportAttributes, ModuleDependency,
+  TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -113,22 +114,46 @@ impl ModuleDependency for ImportEagerDependency {
 
 #[cacheable_dyn]
 impl DependencyTemplate for ImportEagerDependency {
-  fn apply(
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(ImportEagerDependencyTemplate::template_type())
+  }
+}
+
+impl AsContextDependency for ImportEagerDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ImportEagerDependencyTemplate;
+
+impl ImportEagerDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::CustomType("ImportEagerDependency")
+  }
+}
+
+impl DynamicDependencyTemplate for ImportEagerDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyTemplate,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ImportEagerDependency>()
+      .expect("ImportEagerDependencyTemplate should only be used for ImportEagerDependency");
+
     let module_graph = code_generatable_context.compilation.get_module_graph();
-    let block = module_graph.get_parent_block(&self.id);
+    let block = module_graph.get_parent_block(&dep.id);
     source.replace(
-      self.range.start,
-      self.range.end,
+      dep.range.start,
+      dep.range.end,
       module_namespace_promise(
         code_generatable_context,
-        &self.id,
+        &dep.id,
         block,
-        &self.request,
-        self.dependency_type().as_str(),
+        &dep.request,
+        dep.dependency_type().as_str(),
         false,
       )
       .as_str(),
@@ -136,5 +161,3 @@ impl DependencyTemplate for ImportEagerDependency {
     );
   }
 }
-
-impl AsContextDependency for ImportEagerDependency {}
