@@ -1,8 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  Compilation, DependencyTemplate, InitFragmentKey, InitFragmentStage, ModuleGraph,
-  NormalInitFragment, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsageState,
+  DependencyTemplate, InitFragmentKey, InitFragmentStage, ModuleGraph, NormalInitFragment,
+  RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsageState,
 };
 use swc_core::atoms::Atom;
 
@@ -75,17 +74,5 @@ impl DependencyTemplate for ESMCompatibilityDependency {
         Some(format!("\n__webpack_async_result__();\n}} catch(e) {{ __webpack_async_result__(e); }} }}{});", if module.build_meta().has_top_level_await { ", 1" } else { "" })),
       )));
     }
-  }
-
-  fn dependency_id(&self) -> Option<rspack_core::DependencyId> {
-    None
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }

@@ -7,9 +7,9 @@ use rspack_cacheable::{
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   filter_runtime, import_statement, merge_runtime, AsContextDependency,
-  AwaitDependenciesInitFragment, BuildMetaDefaultObject, Compilation, ConditionalInitFragment,
-  ConnectionState, Dependency, DependencyCategory, DependencyCondition, DependencyConditionFn,
-  DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyType, ErrorSpan,
+  AwaitDependenciesInitFragment, BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState,
+  Dependency, DependencyCategory, DependencyCondition, DependencyConditionFn, DependencyId,
+  DependencyLocation, DependencyRange, DependencyTemplate, DependencyType, ErrorSpan,
   ExportInfoProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes,
   InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph,
   ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap, TemplateContext,
@@ -522,18 +522,6 @@ impl DependencyTemplate for ESMImportSideEffectDependency {
       }
     }
     esm_import_dependency_apply(self, self.source_order, code_generatable_context);
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }
 

@@ -57,10 +57,6 @@ impl DependencyTemplate for JsonExportsDependency {
   ) {
   }
 
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
   fn update_hash(
     &self,
     hasher: &mut dyn std::hash::Hasher,

@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AffectType, AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId,
-  DependencyTemplate, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyId,
+  DependencyTemplate, TemplateContext, TemplateReplaceSource,
 };
 
 use super::local_module::LocalModule;
@@ -59,18 +59,6 @@ impl DependencyTemplate for LocalModuleDependency {
       };
       source.replace(range.0, range.1, &module_instance, None);
     }
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }
 

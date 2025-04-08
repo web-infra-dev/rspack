@@ -6,7 +6,7 @@ use rspack_core::{Compilation, ModuleGraph, RuntimeSpec};
 use rustc_hash::FxHashSet;
 
 use crate::{
-  DependencyObject, JsExportsInfo, JsModuleGraphConnectionWrapper, ModuleObject, ModuleObjectRef,
+  DependencyObject, JsExportsInfo, ModuleGraphConnectionWrapper, ModuleObject, ModuleObjectRef,
 };
 
 #[napi]
@@ -120,12 +120,12 @@ impl JsModuleGraph {
 
   #[napi(
     ts_args_type = "dependency: Dependency",
-    ts_return_type = "JsModuleGraphConnection | null"
+    ts_return_type = "ModuleGraphConnection | null"
   )]
   pub fn get_connection(
     &self,
     js_dependency: DependencyObject,
-  ) -> napi::Result<Option<JsModuleGraphConnectionWrapper>> {
+  ) -> napi::Result<Option<ModuleGraphConnectionWrapper>> {
     let (compilation, module_graph) = self.as_ref()?;
 
     let Some(dependency_id) = js_dependency.dependency_id() else {
@@ -135,63 +135,57 @@ impl JsModuleGraph {
     Ok(
       module_graph
         .connection_by_dependency_id(&dependency_id)
-        .map(|connection| {
-          JsModuleGraphConnectionWrapper::new(connection.dependency_id, compilation)
-        }),
+        .map(|connection| ModuleGraphConnectionWrapper::new(connection.dependency_id, compilation)),
     )
   }
 
   #[napi(
     ts_args_type = "module: Module",
-    ts_return_type = "JsModuleGraphConnection[]"
+    ts_return_type = "ModuleGraphConnection[]"
   )]
   pub fn get_outgoing_connections(
     &self,
     module: ModuleObjectRef,
-  ) -> napi::Result<Vec<JsModuleGraphConnectionWrapper>> {
+  ) -> napi::Result<Vec<ModuleGraphConnectionWrapper>> {
     let (compilation, module_graph) = self.as_ref()?;
     Ok(
       module_graph
         .get_outgoing_connections(&module.identifier)
-        .map(|connection| {
-          JsModuleGraphConnectionWrapper::new(connection.dependency_id, compilation)
-        })
+        .map(|connection| ModuleGraphConnectionWrapper::new(connection.dependency_id, compilation))
         .collect::<Vec<_>>(),
     )
   }
 
   #[napi(
     ts_args_type = "module: Module",
-    ts_return_type = "JsModuleGraphConnection[]"
+    ts_return_type = "ModuleGraphConnection[]"
   )]
   pub fn get_outgoing_connections_in_order(
     &self,
     module: ModuleObjectRef,
-  ) -> napi::Result<Vec<JsModuleGraphConnectionWrapper>> {
+  ) -> napi::Result<Vec<ModuleGraphConnectionWrapper>> {
     let (compilation, module_graph) = self.as_ref()?;
     Ok(
       module_graph
         .get_outgoing_connections_in_order(&module.identifier)
-        .map(|dependency_id| JsModuleGraphConnectionWrapper::new(*dependency_id, compilation))
+        .map(|dependency_id| ModuleGraphConnectionWrapper::new(*dependency_id, compilation))
         .collect::<Vec<_>>(),
     )
   }
 
   #[napi(
     ts_args_type = "module: Module",
-    ts_return_type = "JsModuleGraphConnection[]"
+    ts_return_type = "ModuleGraphConnection[]"
   )]
   pub fn get_incoming_connections(
     &self,
     module: ModuleObjectRef,
-  ) -> napi::Result<Vec<JsModuleGraphConnectionWrapper>> {
+  ) -> napi::Result<Vec<ModuleGraphConnectionWrapper>> {
     let (compilation, module_graph) = self.as_ref()?;
     Ok(
       module_graph
         .get_incoming_connections(&module.identifier)
-        .map(|connection| {
-          JsModuleGraphConnectionWrapper::new(connection.dependency_id, compilation)
-        })
+        .map(|connection| ModuleGraphConnectionWrapper::new(connection.dependency_id, compilation))
         .collect::<Vec<_>>(),
     )
   }

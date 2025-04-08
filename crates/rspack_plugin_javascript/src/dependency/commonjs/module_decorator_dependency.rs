@@ -88,10 +88,6 @@ impl DependencyTemplate for ModuleDecoratorDependency {
     )));
   }
 
-  fn dependency_id(&self) -> Option<rspack_core::DependencyId> {
-    None
-  }
-
   fn update_hash(
     &self,
     hasher: &mut dyn std::hash::Hasher,

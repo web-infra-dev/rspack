@@ -4,8 +4,8 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  Compilation, DependencyTemplate, ExportProvided, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsageState, UsedExports, UsedName,
+  DependencyTemplate, ExportProvided, TemplateContext, TemplateReplaceSource, UsageState,
+  UsedExports, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -41,18 +41,6 @@ impl DependencyTemplate for ExportInfoDependency {
       value.unwrap_or("undefined".to_owned()).as_str(),
       None,
     );
-  }
-
-  fn dependency_id(&self) -> Option<rspack_core::DependencyId> {
-    None
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }
 

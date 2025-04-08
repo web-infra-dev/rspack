@@ -2,19 +2,19 @@ use std::{cell::RefCell, ptr::NonNull};
 
 use napi::bindgen_prelude::ToNapiValue;
 use napi_derive::napi;
+use rspack_collections::UkeyMap;
 use rspack_core::{Compilation, CompilationId, DependencyId, ModuleGraph};
 use rspack_napi::OneShotRef;
-use rustc_hash::FxHashMap as HashMap;
 
 use crate::{DependencyWrapper, ModuleObject};
 
 #[napi]
-pub struct JsModuleGraphConnection {
+pub struct ModuleGraphConnection {
   compilation: NonNull<Compilation>,
   dependency_id: DependencyId,
 }
 
-impl JsModuleGraphConnection {
+impl ModuleGraphConnection {
   fn as_ref(&self) -> napi::Result<(&'static Compilation, ModuleGraph<'static>)> {
     let compilation = unsafe { self.compilation.as_ref() };
     let module_graph = compilation.get_module_graph();
@@ -24,7 +24,7 @@ impl JsModuleGraphConnection {
 }
 
 #[napi]
-impl JsModuleGraphConnection {
+impl ModuleGraphConnection {
   #[napi(getter, ts_return_type = "Dependency")]
   pub fn dependency(&self) -> napi::Result<DependencyWrapper> {
     let (compilation, module_graph) = self.as_ref()?;
@@ -89,22 +89,22 @@ impl JsModuleGraphConnection {
   }
 }
 
-type ModuleGraphConnectionRefs = HashMap<DependencyId, OneShotRef>;
+type ModuleGraphConnectionRefs = UkeyMap<DependencyId, OneShotRef>;
 
 type ModuleGraphConnectionRefsByCompilationId =
-  RefCell<HashMap<CompilationId, ModuleGraphConnectionRefs>>;
+  RefCell<UkeyMap<CompilationId, ModuleGraphConnectionRefs>>;
 
 thread_local! {
   static MODULE_GRAPH_CONNECTION_INSTANCE_REFS: ModuleGraphConnectionRefsByCompilationId = Default::default();
 }
 
-pub struct JsModuleGraphConnectionWrapper {
+pub struct ModuleGraphConnectionWrapper {
   compilation_id: CompilationId,
   compilation: NonNull<Compilation>,
   dependency_id: DependencyId,
 }
 
-impl JsModuleGraphConnectionWrapper {
+impl ModuleGraphConnectionWrapper {
   pub fn new(dependency_id: DependencyId, compilation: &Compilation) -> Self {
     #[allow(clippy::unwrap_used)]
     Self {
@@ -122,7 +122,7 @@ impl JsModuleGraphConnectionWrapper {
   }
 }
 
-impl ToNapiValue for JsModuleGraphConnectionWrapper {
+impl ToNapiValue for ModuleGraphConnectionWrapper {
   unsafe fn to_napi_value(
     env: napi::sys::napi_env,
     val: Self,
@@ -133,7 +133,7 @@ impl ToNapiValue for JsModuleGraphConnectionWrapper {
       let refs = match entry {
         std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
         std::collections::hash_map::Entry::Vacant(entry) => {
-          let refs = HashMap::default();
+          let refs = UkeyMap::default();
           entry.insert(refs)
         }
       };
@@ -144,7 +144,7 @@ impl ToNapiValue for JsModuleGraphConnectionWrapper {
           ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(vacant_entry) => {
-          let js_dependency = JsModuleGraphConnection {
+          let js_dependency = ModuleGraphConnection {
             compilation: val.compilation,
             dependency_id: val.dependency_id,
           };
