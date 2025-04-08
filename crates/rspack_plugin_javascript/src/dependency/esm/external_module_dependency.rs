@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsDependency, Compilation, DependencyId, DependencyTemplate, ExternalModuleInitFragment,
-  InitFragmentExt, InitFragmentStage, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  Compilation, DependencyId, DependencyTemplate, ExternalModuleInitFragment, InitFragmentExt,
+  InitFragmentStage, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
@@ -68,5 +68,3 @@ impl DependencyTemplate for ExternalModuleDependency {
     self.default_import.dyn_hash(hasher);
   }
 }
-
-impl AsDependency for ExternalModuleDependency {}

@@ -25,10 +25,6 @@ import {
 import { NormalModuleFactory } from "./NormalModuleFactory";
 import { ResolverFactory } from "./ResolverFactory";
 import { RuleSetCompiler } from "./RuleSetCompiler";
-import {
-	__from_binding_runtime_globals,
-	__to_binding_runtime_globals
-} from "./RuntimeGlobals";
 import { Stats } from "./Stats";
 import { Watching } from "./Watching";
 import {

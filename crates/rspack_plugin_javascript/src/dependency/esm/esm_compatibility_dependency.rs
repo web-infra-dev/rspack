@@ -1,6 +1,6 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsDependency, Compilation, DependencyTemplate, InitFragmentKey, InitFragmentStage, ModuleGraph,
+  Compilation, DependencyTemplate, InitFragmentKey, InitFragmentStage, ModuleGraph,
   NormalInitFragment, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
   UsageState,
 };
@@ -89,4 +89,3 @@ impl DependencyTemplate for ESMCompatibilityDependency {
   ) {
   }
 }
-impl AsDependency for ESMCompatibilityDependency {}

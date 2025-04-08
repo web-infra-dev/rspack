@@ -205,7 +205,7 @@ async fn render_chunk(
 
     let last_entry_module = entries
       .keys()
-      .last()
+      .next_back()
       .expect("should have last entry module");
     let mut render_source = RenderSource {
       source: RawStringSource::from(startup_source.join("\n")).boxed(),

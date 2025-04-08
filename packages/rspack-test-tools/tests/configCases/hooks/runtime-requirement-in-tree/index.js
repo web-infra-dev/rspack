@@ -5,4 +5,5 @@ it("should modify runtime requirements", () => {
   expect(__webpack_require__.f).toBeTruthy();
   // RuntimeGlobals.hasOwnProperty been added as dependency
   expect(__webpack_require__.o).toBeTruthy();
+  expect(__webpack_require__.custom).toBe(42);
 });
