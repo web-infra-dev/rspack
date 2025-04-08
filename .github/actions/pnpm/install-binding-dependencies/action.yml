@@ -28,7 +28,6 @@ runs:
           node-cache-${{ runner.os }}-pnpm-binding-
 
     - name: Install binding node dependencies
-      if: ${{ !inputs.skipable && inputs.full-install != 'true' }}
       shell: bash
       run: |
         cd ./crates/node_binding
