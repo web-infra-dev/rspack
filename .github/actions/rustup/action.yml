@@ -50,7 +50,10 @@ runs:
         rustup toolchain install $toolchain \
           -c rustc \
           -c cargo \
-          -c rust-std
+          -c rust-std \
+          -c clippy \
+          -c rustfmt \
+          -c miri
 
     - name: Save rustup cache
       uses: ./.github/actions/cache/save
