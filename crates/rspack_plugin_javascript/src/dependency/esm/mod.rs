@@ -24,7 +24,7 @@ pub use self::{
   },
   esm_import_specifier_dependency::ESMImportSpecifierDependency,
   external_module_dependency::ExternalModuleDependency,
-  import_dependency::ImportDependency,
+  import_dependency::{ImportDependency, ImportDependencyTemplate},
   import_eager_dependency::ImportEagerDependency,
   provide_dependency::ProvideDependency,
 };

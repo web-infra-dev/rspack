@@ -84,7 +84,11 @@ impl JavaScriptParserAndGenerator {
       .expect("should have dependency")
       .as_dependency_template()
     {
-      dependency.apply(source, context)
+      if let Some(template) = compilation.get_dependency_template(dependency) {
+        template.render(dependency, source, context)
+      } else {
+        dependency.apply(source, context)
+      }
     }
   }
 }
@@ -301,9 +305,13 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       });
 
       if let Some(dependencies) = module.get_presentational_dependencies() {
-        dependencies
-          .iter()
-          .for_each(|dependency| dependency.apply(&mut source, &mut context));
+        dependencies.iter().for_each(|dependency| {
+          if let Some(template) = compilation.get_dependency_template(dependency.as_ref()) {
+            template.render(dependency.as_ref(), &mut source, &mut context)
+          } else {
+            dependency.apply(&mut source, &mut context)
+          }
+        });
       };
 
       module

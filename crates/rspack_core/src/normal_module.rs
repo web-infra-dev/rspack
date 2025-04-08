@@ -35,13 +35,12 @@ use crate::{
   contextify,
   diagnostics::{CapturedLoaderError, ModuleBuildError},
   get_context, impl_module_meta_info, module_update_hash, AsyncDependenciesBlockIdentifier,
-  BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph,
-  CodeGenerationResult, Compilation, ConcatenationScope, ConnectionState, Context,
-  DependenciesBlock, DependencyId, DependencyTemplate, FactoryMeta, GenerateContext,
-  GeneratorOptions, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  ModuleLayer, ModuleType, OutputOptions, ParseContext, ParseResult, ParserAndGenerator,
-  ParserOptions, Resolve, RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec,
-  SourceType,
+  BoxDependencyTemplate, BoxLoader, BoxModule, BoxModuleDependency, BuildContext, BuildInfo,
+  BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ConcatenationScope,
+  ConnectionState, Context, DependenciesBlock, DependencyId, FactoryMeta, GenerateContext,
+  GeneratorOptions, LibIdentOptions, Module, ModuleGraph, ModuleIdentifier, ModuleLayer,
+  ModuleType, OutputOptions, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
+  RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[cacheable]
@@ -143,8 +142,8 @@ pub struct NormalModule {
   #[cacheable(with=Skip)]
   diagnostics: Vec<Diagnostic>,
 
-  code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
-  presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
+  code_generation_dependencies: Option<Vec<BoxModuleDependency>>,
+  presentational_dependencies: Option<Vec<BoxDependencyTemplate>>,
 
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
@@ -262,23 +261,19 @@ impl NormalModule {
     &mut self.parser_and_generator
   }
 
-  pub fn code_generation_dependencies(&self) -> &Option<Vec<Box<dyn ModuleDependency>>> {
+  pub fn code_generation_dependencies(&self) -> &Option<Vec<BoxModuleDependency>> {
     &self.code_generation_dependencies
   }
 
-  pub fn code_generation_dependencies_mut(
-    &mut self,
-  ) -> &mut Option<Vec<Box<dyn ModuleDependency>>> {
+  pub fn code_generation_dependencies_mut(&mut self) -> &mut Option<Vec<BoxModuleDependency>> {
     &mut self.code_generation_dependencies
   }
 
-  pub fn presentational_dependencies(&self) -> &Option<Vec<Box<dyn DependencyTemplate>>> {
+  pub fn presentational_dependencies(&self) -> &Option<Vec<BoxDependencyTemplate>> {
     &self.presentational_dependencies
   }
 
-  pub fn presentational_dependencies_mut(
-    &mut self,
-  ) -> &mut Option<Vec<Box<dyn DependencyTemplate>>> {
+  pub fn presentational_dependencies_mut(&mut self) -> &mut Option<Vec<BoxDependencyTemplate>> {
     &mut self.presentational_dependencies
   }
 
@@ -706,7 +701,7 @@ impl Module for NormalModule {
     self.resolve_options.clone()
   }
 
-  fn get_code_generation_dependencies(&self) -> Option<&[Box<dyn ModuleDependency>]> {
+  fn get_code_generation_dependencies(&self) -> Option<&[BoxModuleDependency]> {
     if let Some(deps) = self.code_generation_dependencies.as_deref()
       && !deps.is_empty()
     {
@@ -716,7 +711,7 @@ impl Module for NormalModule {
     }
   }
 
-  fn get_presentational_dependencies(&self) -> Option<&[Box<dyn DependencyTemplate>]> {
+  fn get_presentational_dependencies(&self) -> Option<&[BoxDependencyTemplate]> {
     if let Some(deps) = self.presentational_dependencies.as_deref()
       && !deps.is_empty()
     {
