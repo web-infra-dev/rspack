@@ -33,7 +33,7 @@ pub use self::{
   esm_import_specifier_dependency::{
     ESMImportSpecifierDependency, ESMImportSpecifierDependencyTemplate,
   },
-  external_module_dependency::ExternalModuleDependency,
+  external_module_dependency::{ExternalModuleDependency, ExternalModuleDependencyTemplate},
   import_dependency::{ImportDependency, ImportDependencyTemplate},
   import_eager_dependency::ImportEagerDependency,
   provide_dependency::ProvideDependency,
