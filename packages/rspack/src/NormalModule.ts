@@ -7,6 +7,13 @@ import type { Module } from "./Module";
 import type { LoaderContext } from "./config";
 import { JsSource } from "./util/source";
 
+Object.defineProperty(binding.NormalModule.prototype, "identifier", {
+	enumerable: true,
+	configurable: true,
+	value(this: binding.NormalModule): string {
+		return this[binding.MODULE_IDENTIFIER_SYMBOL];
+	}
+});
 Object.defineProperty(binding.NormalModule.prototype, "originalSource", {
 	enumerable: true,
 	configurable: true,

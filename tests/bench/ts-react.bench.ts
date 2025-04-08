@@ -122,13 +122,6 @@ describe("TypeScript React project", () => {
 	});
 
 	bench("record module", () => {
-		function formatBarrelOptimizedResource(
-			resource: string,
-			matchResource: string
-		) {
-			return `${resource}@${matchResource}`;
-		}
-
 		function recordModule(mod: NormalModule) {
 			let resource =
 				mod.type === 'css/mini-extract'

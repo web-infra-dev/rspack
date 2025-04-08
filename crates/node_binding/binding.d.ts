@@ -10,7 +10,10 @@ export type RawLazyCompilationTest = RegExp | ((module: Module) => boolean);
 
 export type AssetInfo = KnownAssetInfo & Record<string, any>;
 
+export const MODULE_IDENTIFIER_SYMBOL: unique symbol;
+
 export interface Module {
+	[MODULE_IDENTIFIER_SYMBOL]: string;
 	readonly type: string;
 	get context(): string | undefined;
 	get layer(): string | undefined;
@@ -66,7 +69,6 @@ export declare class AsyncDependenciesBlock {
 export declare class ConcatenatedModule {
   get modules(): Module[]
   _originalSource(): JsCompatSource | undefined
-  identifier(): string
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -77,7 +79,6 @@ export declare class ConcatenatedModule {
 
 export declare class ContextModule {
   _originalSource(): JsCompatSource | undefined
-  identifier(): string
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -133,7 +134,6 @@ export declare class ExternalModule {
   get userRequest(): string
   set userRequest(val: string)
   _originalSource(): JsCompatSource | undefined
-  identifier(): string
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -347,7 +347,6 @@ export declare class JsStats {
 
 export declare class Module {
   _originalSource(): JsCompatSource | undefined
-  identifier(): string
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]

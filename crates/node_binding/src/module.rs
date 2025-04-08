@@ -1,6 +1,11 @@
-use std::{any::TypeId, cell::RefCell, ptr::NonNull, sync::Arc};
+use std::{
+  any::TypeId,
+  cell::{OnceCell, RefCell},
+  ptr::NonNull,
+  sync::Arc,
+};
 
-use napi::{CallContext, JsString, NapiRaw};
+use napi::{CallContext, JsString, JsSymbol, NapiRaw, NapiValue};
 use napi_derive::napi;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
@@ -8,7 +13,7 @@ use rspack_core::{
   CompilerId, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{
-  napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotInstanceRef,
+  napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotInstanceRef, OneShotRef,
 };
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_util::source_map::SourceMapKind;
@@ -111,6 +116,16 @@ impl Module {
       Property::new("buildMeta")?.with_value(&env.create_object()?),
     ])?;
 
+    MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
+      let identifier = env.create_string(module.identifier().as_str())?;
+      let symbol = unsafe {
+        #[allow(clippy::unwrap_used)]
+        let napi_val = ToNapiValue::to_napi_value(env.raw(), once_cell.get().unwrap())?;
+        JsSymbol::from_raw_unchecked(env.raw(), napi_val)
+      };
+      object.set_property(symbol, identifier)
+    })?;
+
     Ok(instance)
   }
 
@@ -168,13 +183,6 @@ impl Module {
       },
       None => Either::B(()),
     })
-  }
-
-  #[napi]
-  pub fn identifier(&mut self) -> napi::Result<&str> {
-    let (_, module) = self.as_ref()?;
-
-    Ok(module.identifier().as_str())
   }
 
   #[napi]
@@ -660,3 +668,18 @@ pub struct JsDefaultObjectRedirectWarnObject {
 }
 
 pub type JsBuildMetaDefaultObject = Either<String, JsBuildMetaDefaultObjectRedirectWarn>;
+
+thread_local! {
+  pub(crate) static MODULE_IDENTIFIER_SYMBOL: OnceCell<OneShotRef> = Default::default();
+}
+
+#[module_exports]
+fn init(mut exports: Object, env: Env) -> napi::Result<()> {
+  let module_identifier_symbol = OneShotRef::new(env.raw(), env.create_symbol(None)?)?;
+  exports.set_named_property("MODULE_IDENTIFIER_SYMBOL", &module_identifier_symbol)?;
+  MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
+    once_cell.get_or_init(move || module_identifier_symbol);
+  });
+
+  Ok(())
+}

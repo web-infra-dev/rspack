@@ -109,8 +109,20 @@ macro_rules! impl_module_methods {
         properties.push(napi::Property::new("factoryMeta")?.with_getter(factory_meta_getter));
         properties.push(napi::Property::new("buildInfo")?.with_value(&env.create_object()?));
         properties.push(napi::Property::new("buildMeta")?.with_value(&env.create_object()?));
-
         object.define_properties(&properties)?;
+
+        $crate::MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
+          let identifier = env.create_string(module.identifier().as_str())?;
+          let symbol = unsafe {
+            #[allow(clippy::unwrap_used)]
+            let napi_val = napi::bindgen_prelude::ToNapiValue::to_napi_value(
+              env.raw(),
+              once_cell.get().unwrap(),
+            )?;
+            <napi::JsSymbol as napi::NapiValue>::from_raw_unchecked(env.raw(), napi_val)
+          };
+          object.set_property(symbol, identifier)
+        })?;
 
         Ok(instance)
       }
@@ -124,11 +136,6 @@ macro_rules! impl_module_methods {
         env: &napi::Env,
       ) -> napi::Result<napi::Either<$crate::JsCompatSource, ()>> {
         self.module.original_source(env)
-      }
-
-      #[napi]
-      pub fn identifier(&mut self) -> napi::Result<&str> {
-        self.module.identifier()
       }
 
       #[napi]
