@@ -5,8 +5,9 @@ use rspack_cacheable::{
 use rspack_core::{
   create_exports_object_referenced, module_namespace_promise, AsContextDependency, Dependency,
   DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
-  ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes, ModuleDependency,
-  ModuleGraph, ReferencedExport, TemplateContext, TemplateReplaceSource,
+  DynamicDependencyTemplate, DynamicDependencyTemplateType, ExportsType, ExtendedReferencedExport,
+  FactorizeInfo, ImportAttributes, ModuleDependency, ModuleGraph, ReferencedExport,
+  TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
 

@@ -6,7 +6,7 @@ use rspack_sources::{BoxSource, ReplaceSource};
 use rspack_util::ext::AsAny;
 
 use crate::{
-  ChunkInitFragments, CodeGenerationData, Compilation, ConcatenationScope, Module,
+  ChunkInitFragments, CodeGenerationData, Compilation, ConcatenationScope, DependencyType, Module,
   ModuleInitFragments, RuntimeGlobals, RuntimeSpec,
 };
 
