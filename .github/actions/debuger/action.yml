@@ -1,0 +1,9 @@
+name: Debug action
+
+description: Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)
+
+runs:
+  using: composite
+  steps:
+    - name: Debug
+      uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48 # v3.19
