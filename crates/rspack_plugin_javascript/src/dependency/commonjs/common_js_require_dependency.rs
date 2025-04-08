@@ -112,10 +112,6 @@ impl DependencyTemplate for CommonJsRequireDependency {
       None,
     );
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 impl AsContextDependency for CommonJsRequireDependency {}

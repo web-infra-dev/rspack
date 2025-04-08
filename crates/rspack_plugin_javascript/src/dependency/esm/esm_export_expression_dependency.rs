@@ -252,8 +252,4 @@ impl DependencyTemplate for ESMExportExpressionDependency {
       );
     }
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }

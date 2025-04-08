@@ -78,10 +78,6 @@ impl DependencyTemplate for CssLocalIdentDependency {
     source.replace(self.start, self.end, &escape_css(&self.local_ident), None);
   }
 
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
   fn update_hash(
     &self,
     hasher: &mut dyn std::hash::Hasher,

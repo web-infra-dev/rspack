@@ -131,10 +131,6 @@ impl DependencyTemplate for CssImportDependency {
   ) {
     source.replace(self.range.start, self.range.end, "", None);
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 impl AsContextDependency for CssImportDependency {}

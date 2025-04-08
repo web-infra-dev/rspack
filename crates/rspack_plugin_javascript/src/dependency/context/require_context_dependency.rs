@@ -133,10 +133,6 @@ impl DependencyTemplate for RequireContextDependency {
     );
     source.replace(self.range.start, self.range.end, &content, None);
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 impl AsModuleDependency for RequireContextDependency {}

@@ -72,10 +72,6 @@ impl DependencyTemplate for AMDRequireItemDependency {
     );
     source.replace(range.0, range.1, &content, None);
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 #[cacheable_dyn]

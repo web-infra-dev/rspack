@@ -132,10 +132,6 @@ impl DependencyTemplate for ESMExportSpecifierDependency {
       )));
     }
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 impl AsContextDependency for ESMExportSpecifierDependency {}

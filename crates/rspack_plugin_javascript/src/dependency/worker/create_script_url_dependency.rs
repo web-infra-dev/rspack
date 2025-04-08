@@ -64,10 +64,6 @@ impl DependencyTemplate for CreateScriptUrlDependency {
     );
     source.insert(self.range_path.end, ")", None);
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 impl AsModuleDependency for CreateScriptUrlDependency {}

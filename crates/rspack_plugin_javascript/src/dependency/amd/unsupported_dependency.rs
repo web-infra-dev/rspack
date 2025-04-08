@@ -56,10 +56,6 @@ impl DependencyTemplate for UnsupportedDependency {
     );
     source.replace(self.range.0, self.range.1, &content, None);
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 impl AsModuleDependency for UnsupportedDependency {}

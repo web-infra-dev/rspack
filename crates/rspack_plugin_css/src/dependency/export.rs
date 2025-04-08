@@ -69,10 +69,6 @@ impl DependencyTemplate for CssExportDependency {
     // TODO: currently our css module implementation is different from `webpack`, so we do
     // nothing here. ref: https://github.com/webpack/webpack/blob/b9fb99c63ca433b24233e0bbc9ce336b47872c08/lib/dependencies/CssExportDependency.js#L85-L86
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 impl AsContextDependency for CssExportDependency {}

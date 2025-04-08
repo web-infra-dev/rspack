@@ -523,10 +523,6 @@ impl DependencyTemplate for ESMImportSideEffectDependency {
     }
     esm_import_dependency_apply(self, self.source_order, code_generatable_context);
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 impl AsContextDependency for ESMImportSideEffectDependency {}

@@ -229,10 +229,6 @@ impl DependencyTemplate for ESMImportSpecifierDependency {
       source.replace(self.range.start, self.range.end, export_expr.as_str(), None);
     }
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 #[cacheable_dyn]

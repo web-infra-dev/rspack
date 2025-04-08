@@ -6,7 +6,7 @@ use rspack_sources::{BoxSource, ReplaceSource};
 use rspack_util::ext::AsAny;
 
 use crate::{
-  ChunkInitFragments, CodeGenerationData, Compilation, ConcatenationScope, DependencyId, Module,
+  ChunkInitFragments, CodeGenerationData, Compilation, ConcatenationScope, Module,
   ModuleInitFragments, RuntimeGlobals, RuntimeSpec,
 };
 
@@ -51,10 +51,6 @@ pub trait DependencyTemplate: Debug + DynClone + Sync + Send + AsAny {
     _code_generatable_context: &mut TemplateContext,
   ) {
     unimplemented!()
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    None
   }
 
   fn update_hash(

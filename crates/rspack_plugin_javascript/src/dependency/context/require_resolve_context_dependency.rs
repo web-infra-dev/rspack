@@ -113,10 +113,6 @@ impl DependencyTemplate for RequireResolveContextDependency {
   ) {
     context_dependency_template_as_id(self, source, code_generatable_context, &self.range);
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 impl AsModuleDependency for RequireResolveContextDependency {}

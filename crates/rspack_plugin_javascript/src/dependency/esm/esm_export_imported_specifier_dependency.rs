@@ -1038,10 +1038,6 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependency {
       self.add_export_fragments(code_generatable_context, mode);
     }
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 #[cacheable_dyn]

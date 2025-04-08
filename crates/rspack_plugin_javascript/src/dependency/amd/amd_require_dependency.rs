@@ -183,10 +183,6 @@ impl DependencyTemplate for AMDRequireDependency {
       source.replace(function_range.1, self.outer_range.1, &end_block, None);
     };
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 impl AsModuleDependency for AMDRequireDependency {}

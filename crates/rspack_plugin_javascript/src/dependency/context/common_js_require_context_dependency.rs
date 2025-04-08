@@ -135,10 +135,6 @@ impl DependencyTemplate for CommonJsRequireContextDependency {
       self.value_range.as_ref(),
     );
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 impl AsModuleDependency for CommonJsRequireContextDependency {}

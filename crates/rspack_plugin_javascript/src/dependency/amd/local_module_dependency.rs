@@ -60,10 +60,6 @@ impl DependencyTemplate for LocalModuleDependency {
       source.replace(range.0, range.1, &module_instance, None);
     }
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 impl AsModuleDependency for LocalModuleDependency {}

@@ -133,10 +133,6 @@ impl DependencyTemplate for ImportMetaContextDependency {
     );
     source.replace(self.range.start, self.range.end, &content, None);
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 impl AsModuleDependency for ImportMetaContextDependency {}

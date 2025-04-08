@@ -440,10 +440,6 @@ impl DependencyTemplate for CommonJsExportRequireDependency {
       panic!("Unexpected type");
     }
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 #[cacheable_dyn]

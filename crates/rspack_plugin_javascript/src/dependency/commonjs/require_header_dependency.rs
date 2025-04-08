@@ -60,8 +60,4 @@ impl DependencyTemplate for RequireHeaderDependency {
       None,
     );
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }

@@ -56,8 +56,4 @@ impl DependencyTemplate for RequireResolveHeaderDependency {
       None,
     );
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }

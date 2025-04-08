@@ -111,10 +111,6 @@ impl DependencyTemplate for RequireResolveDependency {
       None,
     );
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 impl AsContextDependency for RequireResolveDependency {}

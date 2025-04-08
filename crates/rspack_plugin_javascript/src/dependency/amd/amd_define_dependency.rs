@@ -291,10 +291,6 @@ impl DependencyTemplate for AMDDefineDependency {
       panic!("Implementation error");
     }
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 impl AsModuleDependency for AMDDefineDependency {}

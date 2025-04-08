@@ -50,8 +50,4 @@ impl DependencyTemplate for AssetExportsDependency {
     _code_generatable_context: &mut TemplateContext,
   ) {
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }

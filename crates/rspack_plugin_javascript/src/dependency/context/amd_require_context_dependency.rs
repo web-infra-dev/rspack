@@ -128,10 +128,6 @@ impl DependencyTemplate for AMDRequireContextDependency {
       Some(&self.range),
     );
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 impl AsModuleDependency for AMDRequireContextDependency {}

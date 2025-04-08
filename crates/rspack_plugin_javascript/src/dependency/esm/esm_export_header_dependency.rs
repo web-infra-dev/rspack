@@ -70,10 +70,6 @@ impl DependencyTemplate for ESMExportHeaderDependency {
       None,
     );
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 impl AsModuleDependency for ESMExportHeaderDependency {}

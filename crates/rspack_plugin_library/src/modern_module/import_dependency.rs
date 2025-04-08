@@ -135,10 +135,6 @@ impl DependencyTemplate for ModernModuleImportDependency {
       );
     }
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 impl AsContextDependency for ModernModuleImportDependency {}

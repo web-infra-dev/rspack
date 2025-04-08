@@ -234,10 +234,6 @@ impl DependencyTemplate for CommonJsExportsDependency {
       panic!("Unexpected base type");
     }
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 impl AsContextDependency for CommonJsExportsDependency {}

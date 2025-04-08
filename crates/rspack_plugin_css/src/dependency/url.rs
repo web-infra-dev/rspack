@@ -122,10 +122,6 @@ impl DependencyTemplate for CssUrlDependency {
       source.replace(self.range.start, self.range.end, &content, None);
     }
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
 }
 
 impl AsContextDependency for CssUrlDependency {}

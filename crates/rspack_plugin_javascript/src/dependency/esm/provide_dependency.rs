@@ -149,10 +149,6 @@ impl DependencyTemplate for ProvideDependency {
     source.replace(self.range.start, self.range.end, &self.identifier, None);
   }
 
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
   fn update_hash(
     &self,
     hasher: &mut dyn std::hash::Hasher,
