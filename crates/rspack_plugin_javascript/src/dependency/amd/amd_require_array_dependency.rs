@@ -3,9 +3,9 @@ use std::borrow::Cow;
 use itertools::Itertools;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  module_raw, AffectType, AsContextDependency, AsModuleDependency, Compilation, Dependency,
-  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ModuleDependency,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  module_raw, AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
+  DependencyId, DependencyTemplate, DependencyType, ModuleDependency, TemplateContext,
+  TemplateReplaceSource,
 };
 
 use super::amd_require_item_dependency::AMDRequireItemDependency;
@@ -108,14 +108,6 @@ impl DependencyTemplate for AMDRequireArrayDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }
 

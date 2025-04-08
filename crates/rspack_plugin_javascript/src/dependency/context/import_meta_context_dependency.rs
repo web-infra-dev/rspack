@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  module_raw, AsModuleDependency, Compilation, ContextDependency, ContextOptions, Dependency,
+  module_raw, AsModuleDependency, ContextDependency, ContextOptions, Dependency,
   DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
-  FactorizeInfo, ModuleGraph, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  FactorizeInfo, ModuleGraph, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -136,14 +136,6 @@ impl DependencyTemplate for ImportMetaContextDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }
 

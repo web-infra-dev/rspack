@@ -4,7 +4,7 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  module_raw, process_export_info, property_access, AsContextDependency, Compilation, Dependency,
+  module_raw, process_export_info, property_access, AsContextDependency, Dependency,
   DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
   ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ExportsType,
   ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleIdentifier,
@@ -443,14 +443,6 @@ impl DependencyTemplate for CommonJsExportRequireDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }
 

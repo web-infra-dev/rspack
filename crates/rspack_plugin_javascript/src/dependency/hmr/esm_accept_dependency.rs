@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  import_statement, runtime_condition_expression, Compilation, DependencyId, DependencyLocation,
-  DependencyRange, DependencyTemplate, RuntimeCondition, RuntimeSpec, SharedSourceMap,
-  TemplateContext, TemplateReplaceSource,
+  import_statement, runtime_condition_expression, DependencyId, DependencyLocation,
+  DependencyRange, DependencyTemplate, RuntimeCondition, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource,
 };
 
 use crate::dependency::import_emitted_runtime;
@@ -123,17 +123,5 @@ impl DependencyTemplate for ESMAcceptDependency {
         None,
       );
     }
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    None
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }

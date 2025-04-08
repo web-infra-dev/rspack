@@ -1,9 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AffectType, AsModuleDependency, Compilation, ContextDependency, ContextOptions,
-  ContextTypePrefix, Dependency, DependencyCategory, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyType, FactorizeInfo, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  AffectType, AsModuleDependency, ContextDependency, ContextOptions, ContextTypePrefix, Dependency,
+  DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
+  FactorizeInfo, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -117,14 +116,6 @@ impl DependencyTemplate for RequireResolveContextDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }
 

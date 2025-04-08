@@ -3,11 +3,11 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  property_access, AsContextDependency, AsModuleDependency, Compilation, Dependency,
-  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ExportNameOrSpec,
-  ExportSpec, ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, ModuleGraph, NormalInitFragment, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsedName,
+  property_access, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
+  DependencyId, DependencyTemplate, DependencyType, ExportNameOrSpec, ExportSpec,
+  ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  ModuleGraph, NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  UsedName,
 };
 use swc_core::atoms::Atom;
 
@@ -237,14 +237,6 @@ impl DependencyTemplate for CommonJsExportsDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }
 

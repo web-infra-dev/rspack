@@ -4,8 +4,8 @@ use rspack_cacheable::{
   with::{AsOption, AsPreset},
 };
 use rspack_core::{
-  AffectType, AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
+  DependencyId, DependencyTemplate, DependencyType, RuntimeGlobals, TemplateContext,
   TemplateReplaceSource,
 };
 use rspack_util::{atom::Atom, json_stringify};
@@ -294,14 +294,6 @@ impl DependencyTemplate for AMDDefineDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }
 

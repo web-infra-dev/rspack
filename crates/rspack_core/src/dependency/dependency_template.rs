@@ -47,18 +47,23 @@ clone_trait_object!(DependencyTemplate);
 pub trait DependencyTemplate: Debug + DynClone + Sync + Send + AsAny {
   fn apply(
     &self,
-    source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  );
+    _source: &mut TemplateReplaceSource,
+    _code_generatable_context: &mut TemplateContext,
+  ) {
+    unimplemented!()
+  }
 
-  fn dependency_id(&self) -> Option<DependencyId>;
+  fn dependency_id(&self) -> Option<DependencyId> {
+    None
+  }
 
   fn update_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
-    compilation: &Compilation,
-    runtime: Option<&RuntimeSpec>,
-  );
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+  }
 }
 
 pub type BoxDependencyTemplate = Box<dyn DependencyTemplate>;

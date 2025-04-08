@@ -2,9 +2,9 @@ use std::fmt::Display;
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyType, FactorizeInfo, ModuleDependency, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyRange,
+  DependencyTemplate, DependencyType, FactorizeInfo, ModuleDependency, TemplateContext,
+  TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -134,14 +134,6 @@ impl DependencyTemplate for CssImportDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }
 

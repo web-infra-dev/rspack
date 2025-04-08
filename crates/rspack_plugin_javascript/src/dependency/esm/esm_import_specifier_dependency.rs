@@ -5,7 +5,7 @@ use rspack_cacheable::{
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
-  get_exports_type, property_access, AsContextDependency, Compilation, ConnectionState, Dependency,
+  get_exports_type, property_access, AsContextDependency, ConnectionState, Dependency,
   DependencyCategory, DependencyCondition, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyType, ExportPresenceMode, ExportsType, ExtendedReferencedExport,
   FactorizeInfo, ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph,
@@ -232,14 +232,6 @@ impl DependencyTemplate for ESMImportSpecifierDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }
 
