@@ -1,7 +1,11 @@
-import { type Compilation, rspack } from "@rspack/core";
+import * as path from "path";
+import { type Compilation, rspack, NormalModule } from "@rspack/core";
 import { beforeAll, bench, describe } from "vitest";
 import rspackConfig from "./fixtures/ts-react/rspack.config";
 
+const BARREL_OPTIMIZATION_PREFIX = '__barrel_optimize__';
+
+let context: string;
 let theCompilation: Compilation;
 
 beforeAll(() => {
@@ -13,6 +17,8 @@ beforeAll(() => {
 				plugins: [
 					...(rspackConfig.plugins ?? []),
 					compiler => {
+						context = compiler.context;
+
 						compiler.hooks.compilation.tap("PLUGIN", compilation => {
 							theCompilation = compilation;
 						});
@@ -111,6 +117,45 @@ describe("TypeScript React project", () => {
 				} else {
 					importedIdentifiers = ['*']
 				}
+			}
+		}
+	});
+
+	bench("record module", () => {
+		function recordModule(mod: NormalModule) {
+			let resource =
+				mod.type === 'css/mini-extract'
+				? mod.identifier().slice(mod.identifier().lastIndexOf('!') + 1)
+				: mod.resource
+	
+			if (!resource) {
+				return
+			}
+
+			let ssrNamedModuleId = path.relative(
+				context,
+				mod.resourceResolveData?.path || resource
+			);
+
+			const rscNamedModuleId = path.relative(
+				context,
+				mod.resourceResolveData?.path || resource
+			);
+
+			const esmResource = /[\\/]next[\\/]dist[\\/]/.test(resource)
+				? resource.replace(
+					/[\\/]next[\\/]dist[\\/]/,
+					'/next/dist/esm/'.replace(/\//g, path.sep)
+				)
+				: null
+
+			if (mod.matchResource?.startsWith(BARREL_OPTIMIZATION_PREFIX)) {
+			}
+		}
+
+		for (const module of theCompilation.modules) {
+			if (module instanceof NormalModule) {
+				recordModule(module);
 			}
 		}
 	});
