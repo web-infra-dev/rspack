@@ -83,7 +83,7 @@ impl<T: DependencyTemplate> AsDependencyTemplate for T {
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum DynamicDependencyTemplateType {
   DependencyType(DependencyType),
-  CustomType(String),
+  CustomType(&'static str),
 }
 
 pub trait DynamicDependencyTemplate: Debug + Sync + Send {

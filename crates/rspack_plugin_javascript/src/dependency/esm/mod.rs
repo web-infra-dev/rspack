@@ -14,7 +14,7 @@ use rspack_core::{DependencyCategory, ImportAttributes};
 use rspack_util::json_stringify;
 
 pub use self::{
-  esm_compatibility_dependency::ESMCompatibilityDependency,
+  esm_compatibility_dependency::{ESMCompatibilityDependency, ESMCompatibilityDependencyTemplate},
   esm_export_expression_dependency::*,
   esm_export_header_dependency::ESMExportHeaderDependency,
   esm_export_imported_specifier_dependency::ESMExportImportedSpecifierDependency,

@@ -16,7 +16,8 @@ use rspack_hook::plugin_hook;
 use rustc_hash::FxHashMap;
 
 use crate::{
-  dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
+  dependency::{ESMCompatibilityDependencyTemplate, ImportDependencyTemplate},
+  parser_and_generator::JavaScriptParserAndGenerator,
   JsPlugin, JsPluginInner,
 };
 
@@ -105,10 +106,7 @@ async fn compilation(
     DependencyType::DynamicImport,
     params.normal_module_factory.clone(),
   );
-  compilation.set_dependency_template(
-    ImportDependencyTemplate::template_type(),
-    Arc::new(ImportDependencyTemplate::default()),
-  );
+
   compilation.set_dependency_factory(
     DependencyType::DynamicImportEager,
     params.normal_module_factory.clone(),
@@ -140,6 +138,15 @@ async fn compilation(
   let self_factory = Arc::new(SelfModuleFactory {});
   compilation.set_dependency_factory(DependencyType::CjsSelfReference, self_factory.clone());
   compilation.set_dependency_factory(DependencyType::ModuleDecorator, self_factory);
+
+  compilation.set_dependency_template(
+    ESMCompatibilityDependencyTemplate::template_type(),
+    Arc::new(ESMCompatibilityDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ImportDependencyTemplate::template_type(),
+    Arc::new(ImportDependencyTemplate::default()),
+  );
   Ok(())
 }
 
