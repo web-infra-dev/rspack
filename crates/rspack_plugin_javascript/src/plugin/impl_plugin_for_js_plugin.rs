@@ -17,12 +17,13 @@ use rustc_hash::FxHashMap;
 
 use crate::{
   dependency::{
-    amd_define_dependency::AMDDefineDependencyTemplate, ESMCompatibilityDependencyTemplate,
-    ESMExportExpressionDependencyTemplate, ESMExportHeaderDependencyTemplate,
-    ESMExportImportedSpecifierDependencyTemplate, ESMExportSpecifierDependencyTemplate,
-    ESMImportSideEffectDependencyTemplate, ESMImportSpecifierDependencyTemplate,
-    ExternalModuleDependencyTemplate, ImportDependencyTemplate, ImportEagerDependencyTemplate,
-    ProvideDependencyTemplate,
+    amd_define_dependency::AMDDefineDependencyTemplate,
+    amd_require_array_dependency::AMDRequireArrayDependencyTemplate,
+    ESMCompatibilityDependencyTemplate, ESMExportExpressionDependencyTemplate,
+    ESMExportHeaderDependencyTemplate, ESMExportImportedSpecifierDependencyTemplate,
+    ESMExportSpecifierDependencyTemplate, ESMImportSideEffectDependencyTemplate,
+    ESMImportSpecifierDependencyTemplate, ExternalModuleDependencyTemplate,
+    ImportDependencyTemplate, ImportEagerDependencyTemplate, ProvideDependencyTemplate,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
   JsPlugin, JsPluginInner,
@@ -196,6 +197,10 @@ async fn compilation(
   compilation.set_dependency_template(
     AMDDefineDependencyTemplate::template_type(),
     Arc::new(AMDDefineDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    AMDRequireArrayDependencyTemplate::template_type(),
+    Arc::new(AMDRequireArrayDependencyTemplate::default()),
   );
   Ok(())
 }
