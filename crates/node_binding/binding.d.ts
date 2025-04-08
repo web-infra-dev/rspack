@@ -319,20 +319,13 @@ export declare class JsModuleGraph {
   getUsedExports(module: Module, runtime: string | string[]): boolean | Array<string> | null
   getIssuer(module: Module): Module | null
   getExportsInfo(module: Module): JsExportsInfo
-  getConnection(dependency: Dependency): JsModuleGraphConnection | null
-  getOutgoingConnections(module: Module): JsModuleGraphConnection[]
-  getOutgoingConnectionsInOrder(module: Module): JsModuleGraphConnection[]
-  getIncomingConnections(module: Module): JsModuleGraphConnection[]
+  getConnection(dependency: Dependency): ModuleGraphConnection | null
+  getOutgoingConnections(module: Module): ModuleGraphConnection[]
+  getOutgoingConnectionsInOrder(module: Module): ModuleGraphConnection[]
+  getIncomingConnections(module: Module): ModuleGraphConnection[]
   getParentModule(dependency: Dependency): Module | null
   getParentBlockIndex(dependency: Dependency): number
   isAsync(module: Module): boolean
-}
-
-export declare class JsModuleGraphConnection {
-  get dependency(): Dependency
-  get module(): Module | null
-  get resolvedModule(): Module | null
-  get originModule(): Module | null
 }
 
 export declare class JsResolver {
@@ -361,6 +354,13 @@ export declare class Module {
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
   _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
+}
+
+export declare class ModuleGraphConnection {
+  get dependency(): Dependency
+  get module(): Module | null
+  get resolvedModule(): Module | null
+  get originModule(): Module | null
 }
 
 
