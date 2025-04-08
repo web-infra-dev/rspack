@@ -12,10 +12,10 @@ use rspack_core::{
 #[derive(Debug, Clone)]
 pub struct ESMExportHeaderDependency {
   id: DependencyId,
-  pub range: DependencyRange,
-  pub range_decl: Option<DependencyRange>,
+  range: DependencyRange,
+  range_decl: Option<DependencyRange>,
   #[cacheable(with=Skip)]
-  pub source_map: Option<SharedSourceMap>,
+  source_map: Option<SharedSourceMap>,
 }
 
 impl ESMExportHeaderDependency {

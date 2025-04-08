@@ -41,12 +41,12 @@ impl DeclarationInfo {
 #[derive(Debug, Clone)]
 pub struct ESMExportExpressionDependency {
   id: DependencyId,
-  pub range: DependencyRange,
-  pub range_stmt: DependencyRange,
-  pub prefix: String,
-  pub declaration: Option<DeclarationId>,
+  range: DependencyRange,
+  range_stmt: DependencyRange,
+  prefix: String,
+  declaration: Option<DeclarationId>,
   #[cacheable(with=Skip)]
-  pub source_map: Option<SharedSourceMap>,
+  source_map: Option<SharedSourceMap>,
 }
 
 impl ESMExportExpressionDependency {

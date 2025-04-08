@@ -7,10 +7,10 @@ use rspack_core::{
   create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
   get_exports_type, property_access, AsContextDependency, ConnectionState, Dependency,
   DependencyCategory, DependencyCondition, DependencyId, DependencyLocation, DependencyRange,
-  DependencyTemplate, DependencyType, ExportPresenceMode, ExportsType, ExtendedReferencedExport,
-  FactorizeInfo, ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph,
-  ModuleReferenceOptions, ReferencedExport, RuntimeSpec, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, UsedByExports,
+  DependencyTemplate, DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType,
+  ExportPresenceMode, ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes,
+  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleReferenceOptions, ReferencedExport,
+  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedByExports,
 };
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
@@ -130,104 +130,6 @@ impl ESMImportSpecifierDependency {
       } else {
         ExportPresenceMode::Auto
       })
-  }
-}
-
-#[cacheable_dyn]
-impl DependencyTemplate for ESMImportSpecifierDependency {
-  fn apply(
-    &self,
-    source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    let TemplateContext {
-      compilation,
-      runtime,
-      concatenation_scope,
-      ..
-    } = code_generatable_context;
-    let module_graph = compilation.get_module_graph();
-    // Only available when module factorization is successful.
-    let reference_mgm = module_graph.module_graph_module_by_dependency_id(&self.id);
-    let connection = module_graph.connection_by_dependency_id(&self.id);
-    let is_target_active = if let Some(con) = connection {
-      con.is_target_active(&module_graph, *runtime)
-    } else {
-      true
-    };
-
-    if !is_target_active {
-      return;
-    }
-
-    let used = reference_mgm.is_some();
-    if reference_mgm.is_some() && !used {
-      // TODO do this by PureExpressionDependency.
-      let value = format!("/* \"{}\" unused */null", self.request);
-      if self.shorthand {
-        source.insert(self.range.end, &format!(": {value}"), None);
-      } else {
-        source.replace(self.range.start, self.range.end, &value, None)
-      }
-      return;
-    }
-
-    let ids = self.get_ids(&module_graph);
-    let import_var = compilation.get_import_var(&self.id);
-
-    let export_expr = if let Some(scope) = concatenation_scope
-      && let Some(con) = module_graph.connection_by_dependency_id(&self.id)
-      && scope.is_module_in_scope(con.module_identifier())
-    {
-      if ids.is_empty() {
-        scope.create_module_reference(
-          con.module_identifier(),
-          &ModuleReferenceOptions {
-            asi_safe: Some(self.asi_safe),
-            ..Default::default()
-          },
-        )
-      } else if self.namespace_object_as_context && ids.len() == 1 {
-        // ConcatenationScope::create_module_reference(&self, module, options)
-        scope.create_module_reference(
-          con.module_identifier(),
-          &ModuleReferenceOptions {
-            asi_safe: Some(self.asi_safe),
-            ..Default::default()
-          },
-        ) + property_access(ids, 0).as_str()
-      } else {
-        scope.create_module_reference(
-          con.module_identifier(),
-          &ModuleReferenceOptions {
-            asi_safe: Some(self.asi_safe),
-            ids: ids.to_vec(),
-            call: self.call,
-            direct_import: self.direct_import,
-            ..Default::default()
-          },
-        )
-      }
-    } else {
-      esm_import_dependency_apply(self, self.source_order, code_generatable_context);
-      export_from_import(
-        code_generatable_context,
-        true,
-        &self.request,
-        &import_var,
-        ids,
-        &self.id,
-        self.call,
-        !self.direct_import,
-        Some(self.shorthand || self.asi_safe),
-      )
-    };
-
-    if self.shorthand {
-      source.insert(self.range.end, format!(": {export_expr}").as_str(), None);
-    } else {
-      source.replace(self.range.start, self.range.end, export_expr.as_str(), None);
-    }
   }
 }
 
@@ -379,3 +281,124 @@ impl ModuleDependency for ESMImportSpecifierDependency {
 }
 
 impl AsContextDependency for ESMImportSpecifierDependency {}
+
+#[cacheable_dyn]
+impl DependencyTemplate for ESMImportSpecifierDependency {
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(ESMImportSpecifierDependencyTemplate::template_type())
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ESMImportSpecifierDependencyTemplate;
+
+impl ESMImportSpecifierDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::DependencyType(DependencyType::EsmImportSpecifier)
+  }
+}
+
+impl DynamicDependencyTemplate for ESMImportSpecifierDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyTemplate,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ESMImportSpecifierDependency>()
+      .expect(
+        "ESMImportSpecifierDependencyTemplate should only be used for ESMImportSpecifierDependency",
+      );
+    let TemplateContext {
+      compilation,
+      runtime,
+      concatenation_scope,
+      ..
+    } = code_generatable_context;
+    let module_graph = compilation.get_module_graph();
+    // Only available when module factorization is successful.
+    let reference_mgm = module_graph.module_graph_module_by_dependency_id(&dep.id);
+    let connection = module_graph.connection_by_dependency_id(&dep.id);
+    let is_target_active = if let Some(con) = connection {
+      con.is_target_active(&module_graph, *runtime)
+    } else {
+      true
+    };
+
+    if !is_target_active {
+      return;
+    }
+
+    let used = reference_mgm.is_some();
+    if reference_mgm.is_some() && !used {
+      // TODO do this by PureExpressionDependency.
+      let value = format!("/* \"{}\" unused */null", dep.request);
+      if dep.shorthand {
+        source.insert(dep.range.end, &format!(": {value}"), None);
+      } else {
+        source.replace(dep.range.start, dep.range.end, &value, None)
+      }
+      return;
+    }
+
+    let ids = dep.get_ids(&module_graph);
+    let import_var = compilation.get_import_var(&dep.id);
+
+    let export_expr = if let Some(scope) = concatenation_scope
+      && let Some(con) = module_graph.connection_by_dependency_id(&dep.id)
+      && scope.is_module_in_scope(con.module_identifier())
+    {
+      if ids.is_empty() {
+        scope.create_module_reference(
+          con.module_identifier(),
+          &ModuleReferenceOptions {
+            asi_safe: Some(dep.asi_safe),
+            ..Default::default()
+          },
+        )
+      } else if dep.namespace_object_as_context && ids.len() == 1 {
+        // ConcatenationScope::create_module_reference(&dep, module, options)
+        scope.create_module_reference(
+          con.module_identifier(),
+          &ModuleReferenceOptions {
+            asi_safe: Some(dep.asi_safe),
+            ..Default::default()
+          },
+        ) + property_access(ids, 0).as_str()
+      } else {
+        scope.create_module_reference(
+          con.module_identifier(),
+          &ModuleReferenceOptions {
+            asi_safe: Some(dep.asi_safe),
+            ids: ids.to_vec(),
+            call: dep.call,
+            direct_import: dep.direct_import,
+            ..Default::default()
+          },
+        )
+      }
+    } else {
+      esm_import_dependency_apply(dep, dep.source_order, code_generatable_context);
+      export_from_import(
+        code_generatable_context,
+        true,
+        &dep.request,
+        &import_var,
+        ids,
+        &dep.id,
+        dep.call,
+        !dep.direct_import,
+        Some(dep.shorthand || dep.asi_safe),
+      )
+    };
+
+    if dep.shorthand {
+      source.insert(dep.range.end, format!(": {export_expr}").as_str(), None);
+    } else {
+      source.replace(dep.range.start, dep.range.end, export_expr.as_str(), None);
+    }
+  }
+}

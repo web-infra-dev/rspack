@@ -63,18 +63,18 @@ pub mod import_emitted_runtime {
 #[derive(Debug, Clone)]
 pub struct ESMImportSideEffectDependency {
   #[cacheable(with=AsPreset)]
-  pub request: Atom,
-  pub source_order: i32,
-  pub id: DependencyId,
-  pub range: DependencyRange,
-  pub range_src: DependencyRange,
-  pub dependency_type: DependencyType,
-  pub export_all: bool,
-  pub attributes: Option<ImportAttributes>,
-  pub resource_identifier: String,
+  request: Atom,
+  source_order: i32,
+  id: DependencyId,
+  range: DependencyRange,
+  range_src: DependencyRange,
+  dependency_type: DependencyType,
+  export_all: bool,
+  attributes: Option<ImportAttributes>,
+  resource_identifier: String,
   #[cacheable(with=Skip)]
-  pub source_map: Option<SharedSourceMap>,
-  pub factorize_info: FactorizeInfo,
+  source_map: Option<SharedSourceMap>,
+  factorize_info: FactorizeInfo,
 }
 
 impl ESMImportSideEffectDependency {

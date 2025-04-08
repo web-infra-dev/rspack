@@ -20,7 +20,7 @@ use crate::{
     ESMCompatibilityDependencyTemplate, ESMExportExpressionDependencyTemplate,
     ESMExportHeaderDependencyTemplate, ESMExportImportedSpecifierDependencyTemplate,
     ESMExportSpecifierDependencyTemplate, ESMImportSideEffectDependencyTemplate,
-    ImportDependencyTemplate,
+    ESMImportSpecifierDependencyTemplate, ImportDependencyTemplate,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
   JsPlugin, JsPluginInner,
@@ -171,6 +171,10 @@ async fn compilation(
   compilation.set_dependency_template(
     ESMImportSideEffectDependencyTemplate::template_type(),
     Arc::new(ESMImportSideEffectDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ESMImportSpecifierDependencyTemplate::template_type(),
+    Arc::new(ESMImportSpecifierDependencyTemplate::default()),
   );
   Ok(())
 }

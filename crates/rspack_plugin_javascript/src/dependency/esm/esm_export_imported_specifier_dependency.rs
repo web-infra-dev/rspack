@@ -40,21 +40,21 @@ use super::{
 pub struct ESMExportImportedSpecifierDependency {
   pub id: DependencyId,
   #[cacheable(with=AsVec<AsPreset>)]
-  pub ids: Vec<Atom>,
+  ids: Vec<Atom>,
   #[cacheable(with=AsOption<AsPreset>)]
   pub name: Option<Atom>,
   #[cacheable(with=AsPreset)]
   pub request: Atom,
-  pub export_all: bool,
-  pub source_order: i32,
+  export_all: bool,
+  source_order: i32,
   pub other_star_exports: Option<Vec<DependencyId>>,
-  pub range: DependencyRange,
-  pub attributes: Option<ImportAttributes>,
-  pub resource_identifier: String,
-  pub export_presence_mode: ExportPresenceMode,
+  range: DependencyRange,
+  attributes: Option<ImportAttributes>,
+  resource_identifier: String,
+  export_presence_mode: ExportPresenceMode,
   #[cacheable(with=Skip)]
-  pub source_map: Option<SharedSourceMap>,
-  pub factorize_info: FactorizeInfo,
+  source_map: Option<SharedSourceMap>,
+  factorize_info: FactorizeInfo,
 }
 
 impl ESMExportImportedSpecifierDependency {

@@ -17,13 +17,13 @@ use swc_core::ecma::atoms::Atom;
 #[derive(Debug, Clone)]
 pub struct ESMExportSpecifierDependency {
   id: DependencyId,
-  pub range: DependencyRange,
+  range: DependencyRange,
   #[cacheable(with=Skip)]
-  pub source_map: Option<SharedSourceMap>,
+  source_map: Option<SharedSourceMap>,
   #[cacheable(with=AsPreset)]
-  pub name: Atom,
+  name: Atom,
   #[cacheable(with=AsPreset)]
-  pub value: Atom, // id
+  value: Atom, // id
 }
 
 impl ESMExportSpecifierDependency {
