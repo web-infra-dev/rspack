@@ -20,7 +20,9 @@ pub use self::{
     ESMExportExpressionDependencyTemplate,
   },
   esm_export_header_dependency::{ESMExportHeaderDependency, ESMExportHeaderDependencyTemplate},
-  esm_export_imported_specifier_dependency::ESMExportImportedSpecifierDependency,
+  esm_export_imported_specifier_dependency::{
+    ESMExportImportedSpecifierDependency, ESMExportImportedSpecifierDependencyTemplate,
+  },
   esm_export_specifier_dependency::ESMExportSpecifierDependency,
   esm_import_dependency::{
     esm_import_dependency_apply, import_emitted_runtime, ESMImportSideEffectDependency,

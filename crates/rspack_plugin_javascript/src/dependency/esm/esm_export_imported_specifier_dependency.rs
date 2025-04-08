@@ -11,12 +11,13 @@ use rspack_core::{
   process_export_info, property_access, property_name, string_of_used_name, AsContextDependency,
   ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory, DependencyCondition,
   DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyType, ESMExportInitFragment, ExportInfo, ExportInfoProvided, ExportNameOrSpec,
-  ExportPresenceMode, ExportSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  NormalInitFragment, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap, Template,
-  TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType, ESMExportInitFragment,
+  ExportInfo, ExportInfoProvided, ExportNameOrSpec, ExportPresenceMode, ExportSpec, ExportsInfo,
+  ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
+  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeCondition,
+  RuntimeGlobals, RuntimeSpec, SharedSourceMap, Template, TemplateContext, TemplateReplaceSource,
+  UsageState, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -47,13 +48,13 @@ pub struct ESMExportImportedSpecifierDependency {
   pub export_all: bool,
   pub source_order: i32,
   pub other_star_exports: Option<Vec<DependencyId>>,
-  range: DependencyRange,
-  attributes: Option<ImportAttributes>,
-  resource_identifier: String,
-  export_presence_mode: ExportPresenceMode,
+  pub range: DependencyRange,
+  pub attributes: Option<ImportAttributes>,
+  pub resource_identifier: String,
+  pub export_presence_mode: ExportPresenceMode,
   #[cacheable(with=Skip)]
-  source_map: Option<SharedSourceMap>,
-  factorize_info: FactorizeInfo,
+  pub source_map: Option<SharedSourceMap>,
+  pub factorize_info: FactorizeInfo,
 }
 
 impl ESMExportImportedSpecifierDependency {
@@ -123,7 +124,7 @@ impl ESMExportImportedSpecifierDependency {
   }
 
   // TODO cache get_mode result
-  fn get_mode(
+  pub fn get_mode(
     &self,
     name: Option<Atom>,
     module_graph: &ModuleGraph,
@@ -475,7 +476,7 @@ impl ESMExportImportedSpecifierDependency {
     None
   }
 
-  fn add_export_fragments(&self, ctxt: &mut TemplateContext, mut mode: ExportMode) {
+  pub fn add_export_fragments(&self, ctxt: &mut TemplateContext, mut mode: ExportMode) {
     let TemplateContext {
       module,
       runtime_requirements,
@@ -1008,35 +1009,8 @@ pub struct DiscoverActiveExportsFromOtherStarExportsRet<'a> {
 
 #[cacheable_dyn]
 impl DependencyTemplate for ESMExportImportedSpecifierDependency {
-  fn apply(
-    &self,
-    _source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    let TemplateContext {
-      compilation,
-      runtime,
-      concatenation_scope,
-      ..
-    } = code_generatable_context;
-
-    let module_graph = compilation.get_module_graph();
-    let mode = self.get_mode(self.name.clone(), &module_graph, &self.id, *runtime);
-
-    if let Some(ref mut scope) = concatenation_scope {
-      if matches!(mode.ty, ExportModeType::ReexportUndefined) {
-        scope.register_raw_export(
-          mode.name.clone().expect("should have name"),
-          String::from("/* reexport non-default export from non-ESM */ undefined"),
-        );
-      }
-      return;
-    }
-
-    if !matches!(mode.ty, ExportModeType::Unused | ExportModeType::EmptyStar) {
-      esm_import_dependency_apply(self, self.source_order, code_generatable_context);
-      self.add_export_fragments(code_generatable_context, mode);
-    }
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(ESMExportImportedSpecifierDependencyTemplate::template_type())
   }
 }
 
@@ -1523,4 +1497,52 @@ fn find_dependency_for_name<'a>(
     }
   }
   None
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ESMExportImportedSpecifierDependencyTemplate;
+
+impl ESMExportImportedSpecifierDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::DependencyType(DependencyType::EsmExportImportedSpecifier)
+  }
+}
+
+impl DynamicDependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyTemplate,
+    _source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ESMExportImportedSpecifierDependency>()
+      .expect("ESMExportImportedSpecifierDependencyTemplate should only be used for ESMExportImportedSpecifierDependency");
+    let TemplateContext {
+      compilation,
+      runtime,
+      concatenation_scope,
+      ..
+    } = code_generatable_context;
+
+    let module_graph = compilation.get_module_graph();
+    let mode = dep.get_mode(dep.name.clone(), &module_graph, &dep.id, *runtime);
+
+    if let Some(ref mut scope) = concatenation_scope {
+      if matches!(mode.ty, ExportModeType::ReexportUndefined) {
+        scope.register_raw_export(
+          mode.name.clone().expect("should have name"),
+          String::from("/* reexport non-default export from non-ESM */ undefined"),
+        );
+      }
+      return;
+    }
+
+    if !matches!(mode.ty, ExportModeType::Unused | ExportModeType::EmptyStar) {
+      esm_import_dependency_apply(dep, dep.source_order, code_generatable_context);
+      dep.add_export_fragments(code_generatable_context, mode);
+    }
+  }
 }
