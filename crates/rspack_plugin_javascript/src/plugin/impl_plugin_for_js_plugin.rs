@@ -17,11 +17,12 @@ use rustc_hash::FxHashMap;
 
 use crate::{
   dependency::{
-    ESMCompatibilityDependencyTemplate, ESMExportExpressionDependencyTemplate,
-    ESMExportHeaderDependencyTemplate, ESMExportImportedSpecifierDependencyTemplate,
-    ESMExportSpecifierDependencyTemplate, ESMImportSideEffectDependencyTemplate,
-    ESMImportSpecifierDependencyTemplate, ExternalModuleDependencyTemplate,
-    ImportDependencyTemplate, ImportEagerDependencyTemplate, ProvideDependencyTemplate,
+    amd_define_dependency::AMDDefineDependencyTemplate, ESMCompatibilityDependencyTemplate,
+    ESMExportExpressionDependencyTemplate, ESMExportHeaderDependencyTemplate,
+    ESMExportImportedSpecifierDependencyTemplate, ESMExportSpecifierDependencyTemplate,
+    ESMImportSideEffectDependencyTemplate, ESMImportSpecifierDependencyTemplate,
+    ExternalModuleDependencyTemplate, ImportDependencyTemplate, ImportEagerDependencyTemplate,
+    ProvideDependencyTemplate,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
   JsPlugin, JsPluginInner,
@@ -145,6 +146,7 @@ async fn compilation(
   compilation.set_dependency_factory(DependencyType::CjsSelfReference, self_factory.clone());
   compilation.set_dependency_factory(DependencyType::ModuleDecorator, self_factory);
 
+  // esm dependency templates
   compilation.set_dependency_template(
     ESMCompatibilityDependencyTemplate::template_type(),
     Arc::new(ESMCompatibilityDependencyTemplate::default()),
@@ -188,6 +190,12 @@ async fn compilation(
   compilation.set_dependency_template(
     ProvideDependencyTemplate::template_type(),
     Arc::new(ProvideDependencyTemplate::default()),
+  );
+
+  // amd dependency templates
+  compilation.set_dependency_template(
+    AMDDefineDependencyTemplate::template_type(),
+    Arc::new(AMDDefineDependencyTemplate::default()),
   );
   Ok(())
 }
