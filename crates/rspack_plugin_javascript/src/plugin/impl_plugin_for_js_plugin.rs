@@ -21,7 +21,8 @@ use crate::{
     amd_require_array_dependency::AMDRequireArrayDependencyTemplate,
     amd_require_dependency::AMDRequireDependencyTemplate,
     amd_require_item_dependency::AMDRequireItemDependencyTemplate,
-    local_module_dependency::LocalModuleDependencyTemplate, ESMCompatibilityDependencyTemplate,
+    local_module_dependency::LocalModuleDependencyTemplate,
+    unsupported_dependency::UnsupportedDependencyTemplate, ESMCompatibilityDependencyTemplate,
     ESMExportExpressionDependencyTemplate, ESMExportHeaderDependencyTemplate,
     ESMExportImportedSpecifierDependencyTemplate, ESMExportSpecifierDependencyTemplate,
     ESMImportSideEffectDependencyTemplate, ESMImportSpecifierDependencyTemplate,
@@ -216,6 +217,10 @@ async fn compilation(
   compilation.set_dependency_template(
     LocalModuleDependencyTemplate::template_type(),
     Arc::new(LocalModuleDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    UnsupportedDependencyTemplate::template_type(),
+    Arc::new(UnsupportedDependencyTemplate::default()),
   );
   Ok(())
 }
