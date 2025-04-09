@@ -1,7 +1,7 @@
 mod dependencies;
 pub mod entries;
 
-use std::{cell::RefCell, collections::HashMap, path::Path, ptr::NonNull};
+use std::{cell::RefCell, collections::HashMap, path::Path};
 
 use dependencies::JsDependencies;
 use entries::JsEntries;
@@ -10,8 +10,8 @@ use napi_derive::napi;
 use once_cell::sync::OnceCell;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{
-  rspack_sources::BoxSource, BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions,
-  FactorizeInfo, ModuleIdentifier,
+  rspack_sources::BoxSource, BindingCell, BoxDependency, Compilation, CompilationId, CompilerId,
+  EntryOptions, FactorizeInfo, ModuleIdentifier,
 };
 use rspack_error::{Diagnostic, ToStringResultToRspackResultExt};
 use rspack_napi::{napi::bindgen_prelude::*, OneShotRef};
@@ -107,6 +107,7 @@ impl JsCompilation {
             }
             Either::B(f) => {
               let original_info_object = original_info
+                .reflector()
                 .to_jsobject(env, &mut this.object)
                 .to_rspack_result()?;
               let result = f.call(original_info_object).to_rspack_result()?;
@@ -139,7 +140,7 @@ impl JsCompilation {
     let mut assets = Vec::<JsAsset>::with_capacity(compilation.assets().len());
 
     for (filename, asset) in compilation.assets() {
-      let info = asset.info.to_jsobject(env, &mut this.object)?;
+      let info = asset.info.reflector().to_jsobject(env, &mut this.object)?;
       assets.push(JsAsset {
         name: filename.clone(),
         info,
@@ -155,7 +156,7 @@ impl JsCompilation {
 
     match compilation.assets().get(&name) {
       Some(asset) => {
-        let info = asset.info.to_jsobject(env, &mut this.object)?;
+        let info = asset.info.reflector().to_jsobject(env, &mut this.object)?;
         Ok(Some(JsAsset { name, info }))
       }
       None => Ok(None),
@@ -348,7 +349,9 @@ impl JsCompilation {
         unsafe { FromNapiValue::from_napi_value(env.raw(), object.raw())? };
       let asset_info: rspack_core::AssetInfo = js_asset_info.into();
       let asset_info = BindingCell::from(asset_info);
-      asset_info.set_jsobject(env, &mut this.object, object)?;
+      asset_info
+        .reflector()
+        .set_jsobject(env, &mut this.object, object)?;
 
       asset_info
     } else {
@@ -761,15 +764,7 @@ impl JsCompilation {
       )
     };
 
-    let Some(mut compiler_reference) = COMPILER_REFERENCES.with(|ref_cell| {
-      let references = ref_cell.borrow_mut();
-      references.get(&compilation.compiler_id()).cloned()
-    }) else {
-      return Err(napi::Error::from_reason(
-        "Unable to addInclude now. The Compiler has been garbage collected by JavaScript.",
-      ));
-    };
-    let Some(js_compiler) = compiler_reference.get_mut() else {
+    let Some(js_compiler) = self.compiler_reference.get_mut() else {
       return Err(napi::Error::from_reason(
         "Unable to addInclude now. The Compiler has been garbage collected by JavaScript.",
       ));
@@ -878,7 +873,7 @@ thread_local! {
 // This means that when transferring a JsCompilation from Rust to JS, you must use JsCompilationWrapper instead.
 pub struct JsCompilationWrapper {
   id: CompilationId,
-  inner: NonNull<Compilation>,
+  compiler_id: CompilerId,
 }
 
 unsafe impl Send for JsCompilationWrapper {}
@@ -888,7 +883,7 @@ impl JsCompilationWrapper {
     #[allow(clippy::unwrap_used)]
     Self {
       id: compilation.id(),
-      inner: NonNull::new(compilation as *const Compilation as *mut Compilation).unwrap(),
+      compiler_id: compilation.compiler_id(),
     }
   }
 
@@ -911,11 +906,18 @@ impl ToNapiValue for JsCompilationWrapper {
           ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
-          // let js_compilation = JsCompilation::new(val.id, val);
-          // let r = OneShotRef::new(env, js_compilation)?;
-          // let r = entry.insert(r);
-          // ToNapiValue::to_napi_value(env, r)
-          todo!()
+          let Some(compiler_reference) = COMPILER_REFERENCES.with(|ref_cell| {
+            let references = ref_cell.borrow_mut();
+            references.get(&val.compiler_id).cloned()
+          }) else {
+            return Err(napi::Error::from_reason(
+              "Unable to addInclude now. The Compiler has been garbage collected by JavaScript.",
+            ));
+          };
+          let js_compilation = JsCompilation::new(val.id, compiler_reference);
+          let r = OneShotRef::new(env, js_compilation)?;
+          let r = entry.insert(r);
+          ToNapiValue::to_napi_value(env, r)
         }
       }
     })

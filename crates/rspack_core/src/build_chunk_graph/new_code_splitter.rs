@@ -1137,10 +1137,8 @@ impl CodeSplitter {
               ukey
             };
 
-          let mut entrypoint = ChunkGroup::new(ChunkGroupKind::new_entrypoint(
-            initial,
-            Box::new(options.clone()),
-          ));
+          let mut entrypoint =
+            ChunkGroup::new(ChunkGroupKind::new_entrypoint(initial, options.clone()));
 
           entrypoint.module_pre_order_indices = pre_order_indices;
           entrypoint.module_post_order_indices = post_order_indices;

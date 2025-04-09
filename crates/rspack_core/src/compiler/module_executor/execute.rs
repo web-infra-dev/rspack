@@ -112,7 +112,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
 
     let mut entrypoint = Entrypoint::new(crate::ChunkGroupKind::Entrypoint {
       initial: true,
-      options: Box::new(EntryOptions {
+      options: BindingCell::from(EntryOptions {
         name: Some("build time".into()),
         runtime: Some("runtime".into()),
         chunk_loading: Some(crate::ChunkLoading::Disable),

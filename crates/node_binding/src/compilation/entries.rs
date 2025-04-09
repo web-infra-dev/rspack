@@ -1,6 +1,8 @@
 use napi::{JsString, NapiRaw};
 use napi_derive::napi;
-use rspack_core::{BindingCell, BindingWeak, ChunkLoading, Compilation, EntryData, EntryRuntime};
+use rspack_core::{
+  BindingCell, ChunkLoading, Compilation, EntryData, EntryRuntime, WeakBindingCell,
+};
 use rspack_napi::napi::bindgen_prelude::*;
 
 use crate::{
@@ -10,7 +12,7 @@ use crate::{
 
 #[napi]
 pub struct EntryOptionsDTO {
-  pub(crate) i: BindingWeak<rspack_core::EntryOptions>,
+  pub(crate) i: WeakBindingCell<rspack_core::EntryOptions>,
 }
 
 impl EntryOptionsDTO {
@@ -19,7 +21,7 @@ impl EntryOptionsDTO {
     F: FnOnce(&rspack_core::EntryOptions) -> napi::Result<T>,
   {
     match self.i.upgrade() {
-      Some(entry_options) => f(unsafe { &**entry_options.get() }),
+      Some(entry_options) => f(&*entry_options),
       None => Err(napi::Error::from_reason(
         "Unable to access EntryOptions now. The EntryOptions has been dropped by Rust.",
       )),
@@ -31,7 +33,7 @@ impl EntryOptionsDTO {
     F: FnOnce(&mut rspack_core::EntryOptions) -> napi::Result<T>,
   {
     match self.i.upgrade() {
-      Some(entry_options) => f(unsafe { &mut **entry_options.get() }),
+      Some(mut entry_options) => f(&mut *entry_options),
       None => Err(napi::Error::from_reason(
         "Unable to access EntryOptions now. The EntryOptions has been dropped by Rust.",
       )),
@@ -264,7 +266,7 @@ impl From<JsEntryData> for EntryData {
 
 #[napi]
 pub struct EntryDataDTO {
-  pub(crate) i: BindingWeak<rspack_core::EntryData>,
+  pub(crate) i: WeakBindingCell<rspack_core::EntryData>,
   pub(crate) compiler_reference: Option<WeakReference<JsCompiler>>,
 }
 
@@ -280,7 +282,7 @@ impl EntryDataDTO {
     };
     match compiler_reference.get() {
       Some(this) => match self.i.upgrade() {
-        Some(entry_data) => f(&this.compiler.compilation, unsafe { &*entry_data.get() }),
+        Some(entry_data) => f(&this.compiler.compilation, &*entry_data),
         None => Err(napi::Error::from_reason(
           "Unable to access EntryData now. The EntryData has been dropped by Rust.",
         )),
@@ -332,7 +334,12 @@ impl EntryDataDTO {
 
   #[napi(getter)]
   pub fn options(&self, env: &Env, mut this: This) -> napi::Result<Object> {
-    self.with_ref(|_compilation, entry_data| entry_data.options.to_jsobject(env, &mut this.object))
+    self.with_ref(|_compilation, entry_data| {
+      entry_data
+        .options
+        .reflector()
+        .to_jsobject(env, &mut this.object)
+    })
   }
 }
 
@@ -413,7 +420,7 @@ impl JsEntries {
     self.with_ref(|entries| {
       Ok(match entries.get(&key) {
         Some(entry_data) => {
-          let object = entry_data.to_jsobject(env, &mut this.object)?;
+          let object = entry_data.reflector().to_jsobject(env, &mut this.object)?;
           let wrapped_value = unsafe { EntryDataDTO::from_napi_mut_ref(env.raw(), object.raw())? };
           wrapped_value.compiler_reference = Some(self.compiler_reference.clone());
           Either::A(object)
@@ -440,7 +447,7 @@ impl JsEntries {
     self.with_ref(|entries| {
       let mut array = env.create_array(0)?;
       for value in entries.values() {
-        let object = value.to_jsobject(env, &mut this.object)?;
+        let object = value.reflector().to_jsobject(env, &mut this.object)?;
         array.insert(object)?;
       }
       Ok(array)

@@ -12,9 +12,9 @@ use rspack_hash::{RspackHash, RspackHashDigest};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use crate::{
-  chunk_graph_chunk::ChunkId, compare_chunk_group, merge_runtime, sort_group_by_index, ChunkGraph,
-  ChunkGroupByUkey, ChunkGroupOrderKey, ChunkGroupUkey, ChunkIdsArtifact, ChunkUkey, Compilation,
-  EntryOptions, Filename, ModuleGraph, RenderManifestEntry, RuntimeSpec, SourceType,
+  chunk_graph_chunk::ChunkId, compare_chunk_group, merge_runtime, sort_group_by_index, BindingCell,
+  ChunkGraph, ChunkGroupByUkey, ChunkGroupOrderKey, ChunkGroupUkey, ChunkIdsArtifact, ChunkUkey,
+  Compilation, EntryOptions, Filename, ModuleGraph, RenderManifestEntry, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -303,7 +303,7 @@ impl Chunk {
   pub fn get_entry_options<'a>(
     &self,
     chunk_group_by_ukey: &'a ChunkGroupByUkey,
-  ) -> Option<&'a EntryOptions> {
+  ) -> Option<&'a BindingCell<EntryOptions>> {
     for group_ukey in &self.groups {
       if let Some(group) = chunk_group_by_ukey.get(group_ukey)
         && let Some(entry_options) = group.kind.get_entry_options()

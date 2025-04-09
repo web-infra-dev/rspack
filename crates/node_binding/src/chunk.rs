@@ -1,11 +1,14 @@
 use std::{cell::RefCell, collections::HashMap, ptr::NonNull};
 
-use napi::{bindgen_prelude::ToNapiValue, Either, Env, JsString};
+use napi::{
+  bindgen_prelude::{Object, This, ToNapiValue},
+  Either, Env, JsString,
+};
 use napi_derive::napi;
 use rspack_core::{Chunk, ChunkUkey, Compilation, CompilationId};
 use rspack_napi::OneShotRef;
 
-use crate::{compilation::entries::EntryOptionsDTO, JsChunkGroupWrapper};
+use crate::JsChunkGroupWrapper;
 
 #[napi]
 pub struct JsChunk {
@@ -236,13 +239,15 @@ impl JsChunk {
   }
 
   #[napi(ts_return_type = "EntryOptionsDTO | undefined")]
-  pub fn get_entry_options(&self) -> napi::Result<Option<EntryOptionsDTO>> {
+  pub fn get_entry_options(&self, env: &Env, mut this: This) -> napi::Result<Option<Object>> {
     let (compilation, chunk) = self.as_ref()?;
-
     let entry_options = chunk.get_entry_options(&compilation.chunk_group_by_ukey);
-
-    // Ok(entry_options.map(|options| EntryOptionsDTO::new(options.clone())))
-    todo!()
+    match entry_options {
+      Some(options) => Ok(Some(
+        options.reflector().to_jsobject(env, &mut this.object)?,
+      )),
+      None => Ok(None),
+    }
   }
 }
 

@@ -402,10 +402,7 @@ impl CodeSplitter {
 
     compilation.chunk_graph.add_chunk(chunk.ukey());
 
-    let mut entrypoint = ChunkGroup::new(ChunkGroupKind::new_entrypoint(
-      true,
-      Box::new((**options).clone()),
-    ));
+    let mut entrypoint = ChunkGroup::new(ChunkGroupKind::new_entrypoint(true, (**options).clone()));
 
     for request in requests {
       let loc = Some(DependencyLocation::Synthetic(
@@ -1371,10 +1368,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             if let Some(filename) = &entry_options.filename {
               chunk.set_filename_template(Some(filename.clone()));
             }
-            let mut entrypoint = ChunkGroup::new(ChunkGroupKind::new_entrypoint(
-              false,
-              Box::new(entry_options.clone()),
-            ));
+            let mut entrypoint =
+              ChunkGroup::new(ChunkGroupKind::new_entrypoint(false, entry_options.clone()));
 
             self.stat_chunk_group_created += 1;
             let cgi = ChunkGroupInfo::new(

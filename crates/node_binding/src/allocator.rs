@@ -1,7 +1,5 @@
-use std::sync::Arc;
-
 use napi::{bindgen_prelude::ToNapiValue, sys::napi_env, Env};
-use rspack_core::BindingRoot;
+use rspack_core::WeakBindingCell;
 
 use crate::{
   entries::{EntryDataDTO, EntryOptionsDTO},
@@ -20,19 +18,25 @@ impl rspack_core::NapiAllocator for NapiAllocatorImpl {
   fn allocate_asset_info(
     &self,
     env: napi_env,
-    val: &BindingRoot<rspack_core::AssetInfo>,
+    val: WeakBindingCell<rspack_core::AssetInfo>,
   ) -> napi::Result<napi::sys::napi_value> {
-    let asset_info: AssetInfo = unsafe { (**val.get()).clone() }.into();
+    let heap = val.upgrade().ok_or_else(|| {
+      napi::Error::new(
+        napi::Status::GenericFailure,
+        "Failed to upgrade weak reference to heap",
+      )
+    })?;
+    let asset_info: AssetInfo = (*heap).clone().into();
     unsafe { ToNapiValue::to_napi_value(env, asset_info) }
   }
 
   fn allocate_entry_data(
     &self,
     env: napi_env,
-    val: &BindingRoot<rspack_core::EntryData>,
+    val: WeakBindingCell<rspack_core::EntryData>,
   ) -> napi::Result<napi::sys::napi_value> {
     let entry_data = EntryDataDTO {
-      i: Arc::downgrade(val),
+      i: val,
       compiler_reference: None,
     };
     unsafe { ToNapiValue::to_napi_value(env, entry_data) }
@@ -41,11 +45,9 @@ impl rspack_core::NapiAllocator for NapiAllocatorImpl {
   fn allocate_entry_options(
     &self,
     env: napi_env,
-    val: &BindingRoot<rspack_core::EntryOptions>,
+    val: WeakBindingCell<rspack_core::EntryOptions>,
   ) -> napi::Result<napi::sys::napi_value> {
-    let entry_options = EntryOptionsDTO {
-      i: Arc::downgrade(val),
-    };
+    let entry_options = EntryOptionsDTO { i: val };
     unsafe { ToNapiValue::to_napi_value(env, entry_options) }
   }
 }

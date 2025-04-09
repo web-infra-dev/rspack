@@ -11,9 +11,9 @@ use rspack_error::{error, Result};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  compare_chunk_group, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkLoading,
-  ChunkUkey, Compilation, DependencyLocation, DynamicImportFetchPriority, Filename, LibraryOptions,
-  ModuleIdentifier, ModuleLayer, PublicPath,
+  compare_chunk_group, BindingCell, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey,
+  ChunkLoading, ChunkUkey, Compilation, DependencyLocation, DynamicImportFetchPriority, Filename,
+  LibraryOptions, ModuleIdentifier, ModuleLayer, PublicPath,
 };
 
 #[derive(Debug, Clone)]
@@ -381,7 +381,7 @@ impl ChunkGroup {
 pub enum ChunkGroupKind {
   Entrypoint {
     initial: bool,
-    options: Box<EntryOptions>,
+    options: BindingCell<EntryOptions>,
   },
   Normal {
     options: ChunkGroupOptions,
@@ -389,15 +389,18 @@ pub enum ChunkGroupKind {
 }
 
 impl ChunkGroupKind {
-  pub fn new_entrypoint(initial: bool, options: Box<EntryOptions>) -> Self {
-    Self::Entrypoint { initial, options }
+  pub fn new_entrypoint(initial: bool, options: EntryOptions) -> Self {
+    Self::Entrypoint {
+      initial,
+      options: BindingCell::from(options),
+    }
   }
 
   pub fn is_entrypoint(&self) -> bool {
     matches!(self, Self::Entrypoint { .. })
   }
 
-  pub fn get_entry_options(&self) -> Option<&EntryOptions> {
+  pub fn get_entry_options(&self) -> Option<&BindingCell<EntryOptions>> {
     match self {
       ChunkGroupKind::Entrypoint { options, .. } => Some(options),
       ChunkGroupKind::Normal { .. } => None,

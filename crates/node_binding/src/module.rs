@@ -282,7 +282,9 @@ impl Module {
           unsafe { FromNapiValue::from_napi_value(env.raw(), object.raw())? };
         let info: rspack_core::AssetInfo = js_info.into();
         let info = BindingCell::from(info);
-        info.set_jsobject(env, &mut this.object, object)?;
+        info
+          .reflector()
+          .set_jsobject(env, &mut this.object, object)?;
 
         info
       }
