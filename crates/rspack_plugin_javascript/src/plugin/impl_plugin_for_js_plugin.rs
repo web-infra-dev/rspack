@@ -23,12 +23,12 @@ use crate::{
     amd_require_item_dependency::AMDRequireItemDependencyTemplate,
     local_module_dependency::LocalModuleDependencyTemplate,
     unsupported_dependency::UnsupportedDependencyTemplate, CommonJsExportRequireDependencyTemplate,
-    CommonJsExportsDependencyTemplate, ESMCompatibilityDependencyTemplate,
-    ESMExportExpressionDependencyTemplate, ESMExportHeaderDependencyTemplate,
-    ESMExportImportedSpecifierDependencyTemplate, ESMExportSpecifierDependencyTemplate,
-    ESMImportSideEffectDependencyTemplate, ESMImportSpecifierDependencyTemplate,
-    ExternalModuleDependencyTemplate, ImportDependencyTemplate, ImportEagerDependencyTemplate,
-    ProvideDependencyTemplate,
+    CommonJsExportsDependencyTemplate, CommonJsFullRequireDependencyTemplate,
+    ESMCompatibilityDependencyTemplate, ESMExportExpressionDependencyTemplate,
+    ESMExportHeaderDependencyTemplate, ESMExportImportedSpecifierDependencyTemplate,
+    ESMExportSpecifierDependencyTemplate, ESMImportSideEffectDependencyTemplate,
+    ESMImportSpecifierDependencyTemplate, ExternalModuleDependencyTemplate,
+    ImportDependencyTemplate, ImportEagerDependencyTemplate, ProvideDependencyTemplate,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
   JsPlugin, JsPluginInner,
@@ -231,6 +231,10 @@ async fn compilation(
   compilation.set_dependency_template(
     CommonJsExportsDependencyTemplate::template_type(),
     Arc::new(CommonJsExportsDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    CommonJsFullRequireDependencyTemplate::template_type(),
+    Arc::new(CommonJsFullRequireDependencyTemplate::default()),
   );
   Ok(())
 }
