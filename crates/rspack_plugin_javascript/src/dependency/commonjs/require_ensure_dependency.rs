@@ -84,7 +84,7 @@ impl DynamicDependencyTemplate for RequireEnsureDependencyTemplate {
     let dep = dep
       .as_any()
       .downcast_ref::<RequireEnsureDependency>()
-      .unwrap();
+      .expect("RequireEnsureDependencyTemplate should be used for RequireEnsureDependency");
 
     let module_graph = code_generatable_context.compilation.get_module_graph();
     let block = module_graph.get_parent_block(&dep.id);
