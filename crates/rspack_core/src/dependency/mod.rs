@@ -20,7 +20,7 @@ mod static_exports_dependency;
 use std::sync::Arc;
 
 pub use cached_const_dependency::{CachedConstDependency, CachedConstDependencyTemplate};
-pub use const_dependency::ConstDependency;
+pub use const_dependency::{ConstDependency, ConstDependencyTemplate};
 pub use context_dependency::{AsContextDependency, ContextDependency};
 pub use context_element_dependency::ContextElementDependency;
 pub use dependency_category::DependencyCategory;
