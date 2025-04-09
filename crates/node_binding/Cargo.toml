@@ -38,7 +38,7 @@ cow-utils          = { workspace = true }
 tracing            = { workspace = true }
 tracing-subscriber = { workspace = true }
 
-napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
+napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow", "napi7"] }
 napi-derive = { workspace = true }
 
 color-backtrace = "0.6.1"

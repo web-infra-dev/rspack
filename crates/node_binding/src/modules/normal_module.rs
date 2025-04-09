@@ -1,17 +1,35 @@
+use std::{
+  hash::{Hash, Hasher},
+  ptr,
+};
+
 use napi::{
-  bindgen_prelude::{Object, ToNapiValue},
-  Either, NapiValue,
+  bindgen_prelude::{FromNapiMutRef, Object, ToNapiValue},
+  sys::{self, napi_ref},
+  CallContext, Either, JsSymbol, NapiRaw, NapiValue,
 };
 use rspack_core::{parse_resource, ResourceData, ResourceParsedData};
+use rspack_napi::napi::check_status;
+use rustc_hash::FxHasher;
 
-use crate::{impl_module_methods, plugins::JsLoaderItem, JsResourceData, Module};
+use crate::{
+  impl_module_methods, plugins::JsLoaderItem, JsResourceData, Module, MODULE_LOADERS_SYMBOL,
+};
 
 #[napi]
 pub struct NormalModule {
   pub(crate) module: Module,
+  loaders_ref: Option<(u64, napi_ref)>,
 }
 
 impl NormalModule {
+  pub fn new(module: Module) -> Self {
+    Self {
+      module,
+      loaders_ref: None,
+    }
+  }
+
   pub(crate) fn custom_into_instance(
     mut self,
     env: &napi::Env,
@@ -33,12 +51,107 @@ impl NormalModule {
       )
     };
 
+    #[js_function]
+    pub fn loaders_getter(ctx: CallContext) -> napi::Result<Object> {
+      let mut this = ctx.this_unchecked::<Object>();
+      let env = ctx.env.raw();
+      let wrapped_value = unsafe { NormalModule::from_napi_mut_ref(env, this.raw())? };
+
+      let (_, module) = wrapped_value.as_ref()?;
+
+      let loaders = module
+        .loaders()
+        .iter()
+        .map(JsLoaderItem::from)
+        .collect::<Vec<_>>();
+      let cur_hash = {
+        let mut hasher = FxHasher::default();
+        loaders.hash(&mut hasher);
+        hasher.finish()
+      };
+
+      if let Some((hash, raw_ref)) = wrapped_value.loaders_ref {
+        if hash == cur_hash {
+          let mut napi_val = ptr::null_mut();
+          check_status!(unsafe {
+            crate::sys::napi_get_reference_value(env, raw_ref, &mut napi_val)
+          })?;
+          let object = unsafe { Object::from_raw_unchecked(env, napi_val) };
+          return Ok(object);
+        }
+      }
+
+      let napi_val = unsafe { ToNapiValue::to_napi_value(env, loaders)? };
+      let mut raw_ref = ptr::null_mut();
+      check_status!(unsafe { sys::napi_create_reference(env, napi_val, 1, &mut raw_ref) })?;
+      let mut object = unsafe { Object::from_raw_unchecked(env, napi_val) };
+      object.add_finalizer((), (), move |_ctx| unsafe {
+        sys::napi_delete_reference(env, raw_ref);
+      })?;
+      wrapped_value.loaders_ref = Some((cur_hash, raw_ref));
+
+      let object = unsafe { Object::from_raw_unchecked(env, napi_val) };
+      MODULE_LOADERS_SYMBOL.with(|once_cell| {
+        let symbol = unsafe {
+          #[allow(clippy::unwrap_used)]
+          let napi_val = ToNapiValue::to_napi_value(env, once_cell.get().unwrap())?;
+          JsSymbol::from_raw_unchecked(env, napi_val)
+        };
+        this.set_property(symbol, &object)
+      })?;
+      Ok(object)
+    }
+
+    #[js_function]
+    pub fn match_resource_getter(ctx: CallContext) -> napi::Result<Either<&String, ()>> {
+      let this = ctx.this_unchecked::<Object>();
+      let env = ctx.env.raw();
+      let wrapped_value = unsafe { NormalModule::from_napi_mut_ref(env, this.raw())? };
+
+      let (_, module) = wrapped_value.as_ref()?;
+      Ok(match module.match_resource() {
+        Some(match_resource) => Either::A(&match_resource.resource),
+        None => Either::B(()),
+      })
+    }
+
+    #[js_function(1)]
+    pub fn match_resource_setter(ctx: CallContext) -> napi::Result<()> {
+      let this = ctx.this_unchecked::<Object>();
+      let env = ctx.env.raw();
+      let wrapped_value = unsafe { NormalModule::from_napi_mut_ref(env, this.raw())? };
+
+      let val = ctx.get::<Either<String, ()>>(0)?;
+      match val {
+        Either::A(val) => {
+          let module = wrapped_value.as_mut()?;
+          let ResourceParsedData {
+            path,
+            query,
+            fragment,
+          } = parse_resource(&val).expect("Should parse resource");
+          *module.match_resource_mut() = Some(
+            ResourceData::new(val)
+              .path(path)
+              .query_optional(query)
+              .fragment_optional(fragment),
+          );
+        }
+        Either::B(_) => {}
+      }
+      Ok(())
+    }
+
     let properties = vec![
       napi::Property::new("resource")?.with_value(&resource),
       napi::Property::new("request")?.with_value(&request),
       napi::Property::new("userRequest")?.with_value(&user_request),
       napi::Property::new("rawRequest")?.with_value(&raw_request),
       napi::Property::new("resourceResolveData")?.with_value(&resource_resolve_data),
+      napi::Property::new("loaders")?.with_getter(loaders_getter),
+      napi::Property::new("matchResource")?
+        .with_getter(match_resource_getter)
+        .with_setter(match_resource_setter),
     ];
     Self::new_inherited(self, env, properties)
   }
@@ -63,54 +176,6 @@ impl NormalModule {
         "Module is not a NormalModule",
       )),
     }
-  }
-}
-
-#[napi]
-impl NormalModule {
-  #[napi(getter)]
-  pub fn loaders(&mut self) -> napi::Result<Vec<JsLoaderItem>> {
-    let (_, module) = self.as_ref()?;
-
-    Ok(
-      module
-        .loaders()
-        .iter()
-        .map(|i| rspack_loader_runner::LoaderItem::<rspack_core::RunnerContext>::from(i.clone()))
-        .map(|i| JsLoaderItem::from(&i))
-        .collect::<Vec<_>>(),
-    )
-  }
-
-  #[napi(getter)]
-  pub fn match_resource(&mut self) -> napi::Result<Either<&String, ()>> {
-    let (_, module) = self.as_ref()?;
-    Ok(match module.match_resource() {
-      Some(match_resource) => Either::A(&match_resource.resource),
-      None => Either::B(()),
-    })
-  }
-
-  #[napi(setter)]
-  pub fn set_match_resource(&mut self, val: Either<String, ()>) -> napi::Result<()> {
-    match val {
-      Either::A(val) => {
-        let module = self.as_mut()?;
-        let ResourceParsedData {
-          path,
-          query,
-          fragment,
-        } = parse_resource(&val).expect("Should parse resource");
-        *module.match_resource_mut() = Some(
-          ResourceData::new(val)
-            .path(path)
-            .query_optional(query)
-            .fragment_optional(fragment),
-        );
-      }
-      Either::B(_) => {}
-    }
-    Ok(())
   }
 }
 
