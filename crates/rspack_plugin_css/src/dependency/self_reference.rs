@@ -1,8 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ExtendedReferencedExport, FactorizeInfo, ModuleDependency, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType,
+  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_util::atom::Atom;
 
@@ -88,12 +89,36 @@ impl ModuleDependency for CssSelfReferenceLocalIdentDependency {
 
 #[cacheable_dyn]
 impl DependencyTemplate for CssSelfReferenceLocalIdentDependency {
-  fn apply(
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(CssSelfReferenceLocalIdentDependencyTemplate::template_type())
+  }
+}
+
+impl AsContextDependency for CssSelfReferenceLocalIdentDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct CssSelfReferenceLocalIdentDependencyTemplate;
+
+impl CssSelfReferenceLocalIdentDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::DependencyType(DependencyType::CssSelfReferenceLocalIdent)
+  }
+}
+
+impl DynamicDependencyTemplate for CssSelfReferenceLocalIdentDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyTemplate,
     source: &mut TemplateReplaceSource,
     _code_generatable_context: &mut TemplateContext,
   ) {
-    for replace in &self.replaces {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<CssSelfReferenceLocalIdentDependency>()
+      .expect("CssSelfReferenceLocalIdentDependencyTemplate should be used for CssSelfReferenceLocalIdentDependency");
+
+    for replace in &dep.replaces {
       source.replace(
         replace.start,
         replace.end,
@@ -103,5 +128,3 @@ impl DependencyTemplate for CssSelfReferenceLocalIdentDependency {
     }
   }
 }
-
-impl AsContextDependency for CssSelfReferenceLocalIdentDependency {}
