@@ -15,7 +15,8 @@ pub use import_context_dependency::{ImportContextDependency, ImportContextDepend
 pub use import_meta_context_dependency::{
   ImportMetaContextDependency, ImportMetaContextDependencyTemplate,
 };
-pub use require_context_dependency::RequireContextDependency;
+use itertools::Itertools;
+pub use require_context_dependency::{RequireContextDependency, RequireContextDependencyTemplate};
 pub use require_resolve_context_dependency::RequireResolveContextDependency;
 use rspack_core::{
   module_raw, ContextDependency, ContextMode, ContextOptions, DependencyRange, GroupOptions,
