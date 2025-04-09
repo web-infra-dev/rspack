@@ -1,4 +1,4 @@
-use std::hash::Hash;
+use std::{hash::Hash, sync::Arc};
 
 use rspack_collections::IdentifierMap;
 use rspack_core::{
@@ -24,7 +24,10 @@ use rustc_hash::FxHashSet as HashSet;
 
 use super::modern_module::ModernModuleReexportStarExternalDependency;
 use crate::{
-  modern_module::ModernModuleImportDependency,
+  modern_module::{
+    ModernModuleImportDependency, ModernModuleImportDependencyTemplate,
+    ModernModuleReexportStarExternalDependencyTemplate,
+  },
   utils::{get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE},
 };
 
@@ -398,6 +401,15 @@ async fn compilation(
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
   hooks.render_startup.tap(render_startup::new(self));
   hooks.chunk_hash.tap(js_chunk_hash::new(self));
+
+  compilation.set_dependency_template(
+    ModernModuleImportDependencyTemplate::template_type(),
+    Arc::new(ModernModuleImportDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ModernModuleReexportStarExternalDependencyTemplate::template_type(),
+    Arc::new(ModernModuleReexportStarExternalDependencyTemplate::default()),
+  );
   Ok(())
 }
 
