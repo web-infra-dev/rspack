@@ -33,8 +33,8 @@ use crate::{
     ImportContextDependencyTemplate, ImportDependencyTemplate, ImportEagerDependencyTemplate,
     ImportMetaContextDependencyTemplate, ModuleDecoratorDependencyTemplate,
     ProvideDependencyTemplate, RequireContextDependencyTemplate, RequireEnsureDependencyTemplate,
-    RequireHeaderDependencyTemplate, RequireResolveDependencyTemplate,
-    RequireResolveHeaderDependencyTemplate,
+    RequireHeaderDependencyTemplate, RequireResolveContextDependencyTemplate,
+    RequireResolveDependencyTemplate, RequireResolveHeaderDependencyTemplate,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
   JsPlugin, JsPluginInner,
@@ -91,6 +91,10 @@ async fn compilation(
   compilation.set_dependency_factory(
     DependencyType::RequireResolve,
     params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::RequireResolveContext,
+    params.context_module_factory.clone(),
   );
   // AMDPlugin
   compilation.set_dependency_factory(
@@ -295,6 +299,10 @@ async fn compilation(
   compilation.set_dependency_template(
     RequireContextDependencyTemplate::template_type(),
     Arc::new(RequireContextDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    RequireResolveContextDependencyTemplate::template_type(),
+    Arc::new(RequireResolveContextDependencyTemplate::default()),
   );
   Ok(())
 }
