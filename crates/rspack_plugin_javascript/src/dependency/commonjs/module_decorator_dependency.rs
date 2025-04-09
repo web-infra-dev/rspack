@@ -1,9 +1,10 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, AsContextDependency, ChunkGraph,
-  Compilation, Dependency, DependencyId, DependencyTemplate, DependencyType, FactorizeInfo,
-  InitFragmentKey, InitFragmentStage, ModuleDependency, NormalInitFragment, RuntimeGlobals,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  Compilation, Dependency, DependencyId, DependencyTemplate, DependencyType,
+  DynamicDependencyTemplate, DynamicDependencyTemplateType, FactorizeInfo, InitFragmentKey,
+  InitFragmentStage, ModuleDependency, NormalInitFragment, RuntimeGlobals, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
@@ -44,48 +45,8 @@ impl ModuleDependency for ModuleDecoratorDependency {
 
 #[cacheable_dyn]
 impl DependencyTemplate for ModuleDecoratorDependency {
-  fn apply(
-    &self,
-    _source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    let TemplateContext {
-      runtime_requirements,
-      init_fragments,
-      compilation,
-      module,
-      ..
-    } = code_generatable_context;
-
-    runtime_requirements.insert(RuntimeGlobals::MODULE_LOADED);
-    runtime_requirements.insert(RuntimeGlobals::MODULE_ID);
-    runtime_requirements.insert(RuntimeGlobals::MODULE);
-    runtime_requirements.insert(self.decorator);
-
-    let module_graph = compilation.get_module_graph();
-    let module = module_graph
-      .module_by_identifier(&module.identifier())
-      .expect("should have mgm");
-    let module_argument = module.get_module_argument();
-
-    // ref: tests/webpack-test/cases/scope-hoisting/issue-5096 will return a `null` as module id
-    let module_id =
-      ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
-        .map(|s| s.to_string())
-        .unwrap_or_default();
-
-    init_fragments.push(Box::new(NormalInitFragment::new(
-      format!(
-        "/* module decorator */ {} = {}({});\n",
-        module_argument,
-        self.decorator.name(),
-        module_argument
-      ),
-      InitFragmentStage::StageProvides,
-      0,
-      InitFragmentKey::ModuleDecorator(module_id),
-      None,
-    )));
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(ModuleDecoratorDependencyTemplate::template_type())
   }
 
   fn update_hash(
@@ -129,5 +90,70 @@ impl Dependency for ModuleDecoratorDependency {
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::False
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ModuleDecoratorDependencyTemplate;
+
+impl ModuleDecoratorDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::DependencyType(DependencyType::ModuleDecorator)
+  }
+}
+
+impl DynamicDependencyTemplate for ModuleDecoratorDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyTemplate,
+
+    _source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ModuleDecoratorDependency>()
+      .expect(
+        "ModuleDecoratorDependencyTemplate should only be used for ModuleDecoratorDependency",
+      );
+
+    let TemplateContext {
+      runtime_requirements,
+      init_fragments,
+      compilation,
+      module,
+      ..
+    } = code_generatable_context;
+
+    runtime_requirements.insert(RuntimeGlobals::MODULE_LOADED);
+    runtime_requirements.insert(RuntimeGlobals::MODULE_ID);
+    runtime_requirements.insert(RuntimeGlobals::MODULE);
+    runtime_requirements.insert(dep.decorator);
+
+    let module_graph = compilation.get_module_graph();
+    let module = module_graph
+      .module_by_identifier(&module.identifier())
+      .expect("should have mgm");
+    let module_argument = module.get_module_argument();
+
+    // ref: tests/webpack-test/cases/scope-hoisting/issue-5096 will return a `null` as module id
+    let module_id =
+      ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
+        .map(|s| s.to_string())
+        .unwrap_or_default();
+
+    init_fragments.push(Box::new(NormalInitFragment::new(
+      format!(
+        "/* module decorator */ {} = {}({});\n",
+        module_argument,
+        dep.decorator.name(),
+        module_argument
+      ),
+      InitFragmentStage::StageProvides,
+      0,
+      InitFragmentKey::ModuleDecorator(module_id),
+      None,
+    )));
   }
 }
