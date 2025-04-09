@@ -4,7 +4,7 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  DependencyTemplate, DynamicDependencyTemplate, DynamicDependencyTemplateType, ExportProvided,
+  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportProvided,
   TemplateContext, TemplateReplaceSource, UsageState, UsedExports, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
@@ -32,8 +32,8 @@ impl ExportInfoDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ExportInfoDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for ExportInfoDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ExportInfoDependencyTemplate::template_type())
   }
 }
@@ -125,15 +125,15 @@ impl ExportInfoDependency {
 pub struct ExportInfoDependencyTemplate;
 
 impl ExportInfoDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::CustomType("ExportInfoDependency")
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("ExportInfoDependency")
   }
 }
 
-impl DynamicDependencyTemplate for ExportInfoDependencyTemplate {
+impl DependencyTemplate for ExportInfoDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

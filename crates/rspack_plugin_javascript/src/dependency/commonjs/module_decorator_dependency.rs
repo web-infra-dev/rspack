@@ -1,10 +1,10 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, AsContextDependency, ChunkGraph,
-  Compilation, Dependency, DependencyId, DependencyTemplate, DependencyType,
-  DynamicDependencyTemplate, DynamicDependencyTemplateType, FactorizeInfo, InitFragmentKey,
-  InitFragmentStage, ModuleDependency, NormalInitFragment, RuntimeGlobals, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  Compilation, Dependency, DependencyCodeGeneration, DependencyId, DependencyTemplate,
+  DependencyTemplateType, DependencyType, FactorizeInfo, InitFragmentKey, InitFragmentStage,
+  ModuleDependency, NormalInitFragment, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
@@ -44,8 +44,8 @@ impl ModuleDependency for ModuleDecoratorDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ModuleDecoratorDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for ModuleDecoratorDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ModuleDecoratorDependencyTemplate::template_type())
   }
 
@@ -98,15 +98,15 @@ impl Dependency for ModuleDecoratorDependency {
 pub struct ModuleDecoratorDependencyTemplate;
 
 impl ModuleDecoratorDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::ModuleDecorator)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::ModuleDecorator)
   }
 }
 
-impl DynamicDependencyTemplate for ModuleDecoratorDependencyTemplate {
+impl DependencyTemplate for ModuleDecoratorDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
 
     _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,

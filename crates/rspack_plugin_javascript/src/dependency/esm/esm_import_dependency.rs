@@ -8,12 +8,12 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   filter_runtime, import_statement, merge_runtime, AsContextDependency,
   AwaitDependenciesInitFragment, BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState,
-  Dependency, DependencyCategory, DependencyCondition, DependencyConditionFn, DependencyId,
-  DependencyLocation, DependencyRange, DependencyTemplate, DependencyType,
-  DynamicDependencyTemplate, DynamicDependencyTemplateType, ErrorSpan, ExportInfoProvided,
-  ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph, ProvidedExports,
-  RuntimeCondition, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
+  DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ErrorSpan, ExportInfoProvided, ExportsType,
+  ExtendedReferencedExport, FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, ModuleDependency, ModuleGraph, ProvidedExports, RuntimeCondition, RuntimeSpec,
+  SharedSourceMap, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -505,8 +505,8 @@ impl ModuleDependency for ESMImportSideEffectDependency {
 impl AsContextDependency for ESMImportSideEffectDependency {}
 
 #[cacheable_dyn]
-impl DependencyTemplate for ESMImportSideEffectDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for ESMImportSideEffectDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ESMImportSideEffectDependencyTemplate::template_type())
   }
 }
@@ -516,15 +516,15 @@ impl DependencyTemplate for ESMImportSideEffectDependency {
 pub struct ESMImportSideEffectDependencyTemplate;
 
 impl ESMImportSideEffectDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::EsmImport)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::EsmImport)
   }
 }
 
-impl DynamicDependencyTemplate for ESMImportSideEffectDependencyTemplate {
+impl DependencyTemplate for ESMImportSideEffectDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

@@ -2,8 +2,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 
 use super::{AffectType, FactorizeInfo};
 use crate::{
-  AsContextDependency, AsDependencyTemplate, Context, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ModuleDependency, ModuleLayer,
+  AsContextDependency, AsDependencyCodeGeneration, Context, Dependency, DependencyCategory,
+  DependencyId, DependencyType, ModuleDependency, ModuleLayer,
 };
 
 #[cacheable]
@@ -111,5 +111,5 @@ impl ModuleDependency for EntryDependency {
   }
 }
 
-impl AsDependencyTemplate for EntryDependency {}
+impl AsDependencyCodeGeneration for EntryDependency {}
 impl AsContextDependency for EntryDependency {}

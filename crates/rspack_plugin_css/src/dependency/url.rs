@@ -2,9 +2,9 @@ use cow_utils::CowUtils;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency,
-  DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
-  DynamicDependencyTemplate, DynamicDependencyTemplateType, FactorizeInfo, ModuleDependency,
-  ModuleIdentifier, TemplateContext, TemplateReplaceSource,
+  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleDependency, ModuleIdentifier,
+  TemplateContext, TemplateReplaceSource,
 };
 
 use crate::utils::{css_escape_string, AUTO_PUBLIC_PATH_PLACEHOLDER};
@@ -102,8 +102,8 @@ impl ModuleDependency for CssUrlDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for CssUrlDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for CssUrlDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(CssUrlDependencyTemplate::template_type())
   }
 }
@@ -115,15 +115,15 @@ impl AsContextDependency for CssUrlDependency {}
 pub struct CssUrlDependencyTemplate;
 
 impl CssUrlDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::CssUrl)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::CssUrl)
   }
 }
 
-impl DynamicDependencyTemplate for CssUrlDependencyTemplate {
+impl DependencyTemplate for CssUrlDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

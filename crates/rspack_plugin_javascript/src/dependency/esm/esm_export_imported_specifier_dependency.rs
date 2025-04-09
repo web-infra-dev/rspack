@@ -9,15 +9,15 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
   process_export_info, property_access, property_name, string_of_used_name, AsContextDependency,
-  ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory, DependencyCondition,
-  DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType, ESMExportInitFragment,
-  ExportInfo, ExportInfoProvided, ExportNameOrSpec, ExportPresenceMode, ExportSpec, ExportsInfo,
-  ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
-  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, SharedSourceMap, Template, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedName,
+  ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
+  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  ESMExportInitFragment, ExportInfo, ExportInfoProvided, ExportNameOrSpec, ExportPresenceMode,
+  ExportSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, ExportsType,
+  ExtendedReferencedExport, FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  NormalInitFragment, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap, Template,
+  TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -1008,8 +1008,8 @@ pub struct DiscoverActiveExportsFromOtherStarExportsRet<'a> {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ESMExportImportedSpecifierDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for ESMExportImportedSpecifierDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ESMExportImportedSpecifierDependencyTemplate::template_type())
   }
 }
@@ -1504,15 +1504,15 @@ fn find_dependency_for_name<'a>(
 pub struct ESMExportImportedSpecifierDependencyTemplate;
 
 impl ESMExportImportedSpecifierDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::EsmExportImportedSpecifier)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::EsmExportImportedSpecifier)
   }
 }
 
-impl DynamicDependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
+impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

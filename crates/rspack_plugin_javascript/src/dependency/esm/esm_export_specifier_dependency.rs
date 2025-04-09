@@ -4,11 +4,11 @@ use rspack_cacheable::{
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyLocation, DependencyRange, DependencyTemplate, DependencyType,
-  DynamicDependencyTemplate, DynamicDependencyTemplateType, ESMExportInitFragment,
-  ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, SharedSourceMap,
-  TemplateContext, TemplateReplaceSource, UsedName,
+  AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ESMExportInitFragment, ExportNameOrSpec,
+  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -90,8 +90,8 @@ impl Dependency for ESMExportSpecifierDependency {
 impl AsModuleDependency for ESMExportSpecifierDependency {}
 
 #[cacheable_dyn]
-impl DependencyTemplate for ESMExportSpecifierDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for ESMExportSpecifierDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ESMExportSpecifierDependencyTemplate::template_type())
   }
 }
@@ -103,15 +103,15 @@ impl AsContextDependency for ESMExportSpecifierDependency {}
 pub struct ESMExportSpecifierDependencyTemplate;
 
 impl ESMExportSpecifierDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::EsmExportSpecifier)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::EsmExportSpecifier)
   }
 }
 
-impl DynamicDependencyTemplate for ESMExportSpecifierDependencyTemplate {
+impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

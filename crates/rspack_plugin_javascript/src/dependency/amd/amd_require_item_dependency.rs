@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  module_raw, AffectType, AsContextDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType,
-  FactorizeInfo, ModuleDependency, TemplateContext, TemplateReplaceSource,
+  module_raw, AffectType, AsContextDependency, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
+  DependencyType, FactorizeInfo, ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::atom::Atom;
 
@@ -74,8 +74,8 @@ impl ModuleDependency for AMDRequireItemDependency {
 impl AsContextDependency for AMDRequireItemDependency {}
 
 #[cacheable_dyn]
-impl DependencyTemplate for AMDRequireItemDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for AMDRequireItemDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(AMDRequireItemDependencyTemplate::template_type())
   }
 }
@@ -85,15 +85,15 @@ impl DependencyTemplate for AMDRequireItemDependency {
 pub struct AMDRequireItemDependencyTemplate;
 
 impl AMDRequireItemDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::AmdRequireItem)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::AmdRequireItem)
   }
 }
 
-impl DynamicDependencyTemplate for AMDRequireItemDependencyTemplate {
+impl DependencyTemplate for AMDRequireItemDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

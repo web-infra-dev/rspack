@@ -3,8 +3,8 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  property_access, AsContextDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType,
+  property_access, AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, RuntimeGlobals,
   RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName,
 };
@@ -96,8 +96,8 @@ impl ModuleDependency for CommonJsSelfReferenceDependency {
 impl AsContextDependency for CommonJsSelfReferenceDependency {}
 
 #[cacheable_dyn]
-impl DependencyTemplate for CommonJsSelfReferenceDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for CommonJsSelfReferenceDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(CommonJsSelfReferenceDependencyTemplate::template_type())
   }
 }
@@ -107,15 +107,15 @@ impl DependencyTemplate for CommonJsSelfReferenceDependency {
 pub struct CommonJsSelfReferenceDependencyTemplate;
 
 impl CommonJsSelfReferenceDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::CjsSelfReference)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::CjsSelfReference)
   }
 }
 
-impl DynamicDependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
+impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

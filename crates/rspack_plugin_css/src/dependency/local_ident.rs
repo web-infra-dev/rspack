@@ -1,9 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, DynamicDependencyTemplate,
-  DynamicDependencyTemplateType, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
+  DependencyType, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
@@ -70,8 +70,8 @@ impl Dependency for CssLocalIdentDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for CssLocalIdentDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for CssLocalIdentDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(CssLocalIdentDependencyTemplate::template_type())
   }
 
@@ -93,15 +93,15 @@ impl AsModuleDependency for CssLocalIdentDependency {}
 pub struct CssLocalIdentDependencyTemplate;
 
 impl CssLocalIdentDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::CssLocalIdent)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::CssLocalIdent)
   }
 }
 
-impl DynamicDependencyTemplate for CssLocalIdentDependencyTemplate {
+impl DependencyTemplate for CssLocalIdentDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     _code_generatable_context: &mut TemplateContext,
   ) {

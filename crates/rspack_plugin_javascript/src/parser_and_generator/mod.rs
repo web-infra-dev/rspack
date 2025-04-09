@@ -82,12 +82,15 @@ impl JavaScriptParserAndGenerator {
       .get_module_graph()
       .dependency_by_id(dependency_id)
       .expect("should have dependency")
-      .as_dependency_template()
+      .as_dependency_code_generation()
     {
       if let Some(template) = compilation.get_dependency_template(dependency) {
         template.render(dependency, source, context)
       } else {
-        dependency.apply(source, context)
+        panic!(
+          "Can not find dependency template of {:?}",
+          dependency.dependency_template()
+        );
       }
     }
   }
@@ -309,7 +312,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           if let Some(template) = compilation.get_dependency_template(dependency.as_ref()) {
             template.render(dependency.as_ref(), &mut source, &mut context)
           } else {
-            dependency.apply(&mut source, &mut context)
+            panic!(
+              "Can not find dependency template of {:?}",
+              dependency.dependency_template()
+            );
           }
         });
       };

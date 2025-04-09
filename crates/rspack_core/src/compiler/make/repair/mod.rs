@@ -15,9 +15,9 @@ use crate::{
   module_graph::{ModuleGraph, ModuleGraphPartial},
   old_cache::Cache as OldCache,
   utils::task_loop::{run_task_loop, Task},
-  BuildDependency, Compilation, CompilationId, CompilerId, CompilerOptions, DependencyType,
-  DynamicDependencyTemplate, DynamicDependencyTemplateType, ModuleFactory, ModuleProfile,
-  ResolverFactory, SharedPluginDriver,
+  BuildDependency, Compilation, CompilationId, CompilerId, CompilerOptions, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ModuleFactory, ModuleProfile, ResolverFactory,
+  SharedPluginDriver,
 };
 
 pub struct MakeTaskContext {
@@ -35,8 +35,7 @@ pub struct MakeTaskContext {
   pub cache: Arc<dyn Cache>,
   pub old_cache: Arc<OldCache>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
-  pub dependency_templates:
-    HashMap<DynamicDependencyTemplateType, Arc<dyn DynamicDependencyTemplate>>,
+  pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
 
   pub artifact: MakeArtifact,
 }

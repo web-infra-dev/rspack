@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, DynamicDependencyTemplate,
-  DynamicDependencyTemplateType, TemplateContext, TemplateReplaceSource,
+  DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
+  DependencyType, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::atom::Atom;
 
@@ -45,8 +45,8 @@ impl Dependency for UnsupportedDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for UnsupportedDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for UnsupportedDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(UnsupportedDependencyTemplate::template_type())
   }
 }
@@ -60,15 +60,15 @@ impl AsContextDependency for UnsupportedDependency {}
 pub struct UnsupportedDependencyTemplate;
 
 impl UnsupportedDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::CustomType("UnsupportedDependency")
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("UnsupportedDependency")
   }
 }
 
-impl DynamicDependencyTemplate for UnsupportedDependencyTemplate {
+impl DependencyTemplate for UnsupportedDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     _code_generatable_context: &mut TemplateContext,
   ) {

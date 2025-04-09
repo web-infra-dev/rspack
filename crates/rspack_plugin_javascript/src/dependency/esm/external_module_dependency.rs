@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  Compilation, DependencyId, DependencyTemplate, DynamicDependencyTemplate,
-  DynamicDependencyTemplateType, ExternalModuleInitFragment, InitFragmentExt, InitFragmentStage,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  Compilation, DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
+  ExternalModuleInitFragment, InitFragmentExt, InitFragmentStage, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
@@ -31,8 +31,8 @@ impl ExternalModuleDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ExternalModuleDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for ExternalModuleDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ExternalModuleDependencyTemplate::template_type())
   }
 
@@ -53,15 +53,15 @@ impl DependencyTemplate for ExternalModuleDependency {
 pub struct ExternalModuleDependencyTemplate;
 
 impl ExternalModuleDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::CustomType("ExternalModuleDependency")
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("ExternalModuleDependency")
   }
 }
 
-impl DynamicDependencyTemplate for ExternalModuleDependencyTemplate {
+impl DependencyTemplate for ExternalModuleDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

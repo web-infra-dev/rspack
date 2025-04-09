@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyType, DynamicDependencyTemplate,
-  DynamicDependencyTemplateType, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -47,8 +47,8 @@ impl Dependency for CreateScriptUrlDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for CreateScriptUrlDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for CreateScriptUrlDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(CreateScriptUrlDependencyTemplate::template_type())
   }
 }
@@ -61,15 +61,15 @@ impl AsContextDependency for CreateScriptUrlDependency {}
 pub struct CreateScriptUrlDependencyTemplate;
 
 impl CreateScriptUrlDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::CreateScriptUrl)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::CreateScriptUrl)
   }
 }
 
-impl DynamicDependencyTemplate for CreateScriptUrlDependencyTemplate {
+impl DependencyTemplate for CreateScriptUrlDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

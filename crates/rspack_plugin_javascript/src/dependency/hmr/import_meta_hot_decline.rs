@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType,
+  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   FactorizeInfo, ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
@@ -78,8 +78,8 @@ impl ModuleDependency for ImportMetaHotDeclineDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ImportMetaHotDeclineDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for ImportMetaHotDeclineDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ImportMetaHotDeclineDependencyTemplate::template_type())
   }
 }
@@ -91,15 +91,15 @@ impl AsContextDependency for ImportMetaHotDeclineDependency {}
 pub struct ImportMetaHotDeclineDependencyTemplate;
 
 impl ImportMetaHotDeclineDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::ImportMetaHotDecline)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::ImportMetaHotDecline)
   }
 }
 
-impl DynamicDependencyTemplate for ImportMetaHotDeclineDependencyTemplate {
+impl DependencyTemplate for ImportMetaHotDeclineDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

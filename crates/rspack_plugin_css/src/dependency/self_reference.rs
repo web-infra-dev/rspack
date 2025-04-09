@@ -1,9 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExtendedReferencedExport,
+  FactorizeInfo, ModuleDependency, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::atom::Atom;
 
@@ -88,8 +87,8 @@ impl ModuleDependency for CssSelfReferenceLocalIdentDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for CssSelfReferenceLocalIdentDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for CssSelfReferenceLocalIdentDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(CssSelfReferenceLocalIdentDependencyTemplate::template_type())
   }
 }
@@ -101,15 +100,15 @@ impl AsContextDependency for CssSelfReferenceLocalIdentDependency {}
 pub struct CssSelfReferenceLocalIdentDependencyTemplate;
 
 impl CssSelfReferenceLocalIdentDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::CssSelfReferenceLocalIdent)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::CssSelfReferenceLocalIdent)
   }
 }
 
-impl DynamicDependencyTemplate for CssSelfReferenceLocalIdentDependencyTemplate {
+impl DependencyTemplate for CssSelfReferenceLocalIdentDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     _code_generatable_context: &mut TemplateContext,
   ) {

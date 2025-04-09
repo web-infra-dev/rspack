@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
-  DependencyId, DependencyRange, DependencyTemplate, DependencyType, DynamicDependencyTemplate,
-  DynamicDependencyTemplateType, FactorizeInfo, ModuleGraph, TemplateContext,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleGraph, TemplateContext,
   TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
@@ -122,8 +122,8 @@ impl ContextDependency for ImportContextDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ImportContextDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for ImportContextDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ImportContextDependencyTemplate::template_type())
   }
 }
@@ -135,15 +135,15 @@ impl AsModuleDependency for ImportContextDependency {}
 pub struct ImportContextDependencyTemplate;
 
 impl ImportContextDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::ImportContext)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::ImportContext)
   }
 }
 
-impl DynamicDependencyTemplate for ImportContextDependencyTemplate {
+impl DependencyTemplate for ImportContextDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

@@ -6,8 +6,8 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
   get_exports_type, property_access, AsContextDependency, ConnectionState, Dependency,
-  DependencyCategory, DependencyCondition, DependencyId, DependencyLocation, DependencyRange,
-  DependencyTemplate, DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType,
+  DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyId,
+  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExportPresenceMode, ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes,
   JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleReferenceOptions, ReferencedExport,
   RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedByExports,
@@ -283,8 +283,8 @@ impl ModuleDependency for ESMImportSpecifierDependency {
 impl AsContextDependency for ESMImportSpecifierDependency {}
 
 #[cacheable_dyn]
-impl DependencyTemplate for ESMImportSpecifierDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for ESMImportSpecifierDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ESMImportSpecifierDependencyTemplate::template_type())
   }
 }
@@ -294,15 +294,15 @@ impl DependencyTemplate for ESMImportSpecifierDependency {
 pub struct ESMImportSpecifierDependencyTemplate;
 
 impl ESMImportSpecifierDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::EsmImportSpecifier)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::EsmImportSpecifier)
   }
 }
 
-impl DynamicDependencyTemplate for ESMImportSpecifierDependencyTemplate {
+impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType,
+  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, RuntimeSpec,
   TemplateContext, TemplateReplaceSource,
 };
@@ -93,8 +93,8 @@ impl ModuleDependency for RequireResolveDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for RequireResolveDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for RequireResolveDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(RequireResolveDependencyTemplate::template_type())
   }
 }
@@ -106,15 +106,15 @@ impl AsContextDependency for RequireResolveDependency {}
 pub struct RequireResolveDependencyTemplate;
 
 impl RequireResolveDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::RequireResolve)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::RequireResolve)
   }
 }
 
-impl DynamicDependencyTemplate for RequireResolveDependencyTemplate {
+impl DependencyTemplate for RequireResolveDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

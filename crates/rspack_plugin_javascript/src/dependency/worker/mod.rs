@@ -4,8 +4,8 @@ pub use create_script_url_dependency::{
 };
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType,
+  AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, RuntimeGlobals,
   RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
@@ -95,8 +95,8 @@ impl ModuleDependency for WorkerDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for WorkerDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for WorkerDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(WorkerDependencyTemplate::template_type())
   }
 
@@ -117,15 +117,15 @@ impl AsContextDependency for WorkerDependency {}
 pub struct WorkerDependencyTemplate;
 
 impl WorkerDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::NewWorker)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::NewWorker)
   }
 }
 
-impl DynamicDependencyTemplate for WorkerDependencyTemplate {
+impl DependencyTemplate for WorkerDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

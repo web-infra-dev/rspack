@@ -1,9 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   get_dependency_used_by_exports_condition, module_id, AsContextDependency, Dependency,
-  DependencyCategory, DependencyCondition, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType, FactorizeInfo,
-  ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedByExports,
+  DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyId, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, FactorizeInfo, ModuleDependency,
+  RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedByExports,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -90,8 +90,8 @@ impl ModuleDependency for URLDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for URLDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for URLDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(URLDependencyTemplate::template_type())
   }
 }
@@ -103,15 +103,15 @@ impl AsContextDependency for URLDependency {}
 pub struct URLDependencyTemplate;
 
 impl URLDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::NewUrl)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::NewUrl)
   }
 }
 
-impl DynamicDependencyTemplate for URLDependencyTemplate {
+impl DependencyTemplate for URLDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

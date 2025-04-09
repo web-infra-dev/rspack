@@ -1,9 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyId, DependencyTemplate, DependencyType,
-  DynamicDependencyTemplate, DynamicDependencyTemplateType, ExtendedReferencedExport,
-  FactorizeInfo, ModuleDependency, ModuleGraph, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  AsContextDependency, Dependency, DependencyCodeGeneration, DependencyId, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExtendedReferencedExport, FactorizeInfo,
+  ModuleDependency, ModuleGraph, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -73,8 +72,8 @@ impl ModuleDependency for WebpackIsIncludedDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for WebpackIsIncludedDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for WebpackIsIncludedDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(WebpackIsIncludedDependencyTemplate::template_type())
   }
 }
@@ -84,15 +83,15 @@ impl DependencyTemplate for WebpackIsIncludedDependency {
 pub struct WebpackIsIncludedDependencyTemplate;
 
 impl WebpackIsIncludedDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::WebpackIsIncluded)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::WebpackIsIncluded)
   }
 }
 
-impl DynamicDependencyTemplate for WebpackIsIncludedDependencyTemplate {
+impl DependencyTemplate for WebpackIsIncludedDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
