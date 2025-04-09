@@ -51,9 +51,6 @@ runs:
           ${{ inputs.post }}
         options: |
           -e CARGO_INCREMENTAL=0 \
-          -v ~/.cargo/registry/index:/usr/local/cargo/registry/index \
-          -v ~/.cargo/registry/cache:/usr/local/cargo/registry/cache \
-          -v ~/.cargo/git/db:/usr/local/cargo/git/db \
-          -v ~/.rustup/toolchains:/usr/local/rustup/toolchains \
-          -v /tmp:/tmp \
+          -v ~/.cargo:/usr/local/cargo \
+          -v ~/.rustup:/usr/local/rustup \
           ${{ inputs.options }} \
