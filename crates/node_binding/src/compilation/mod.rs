@@ -5,10 +5,12 @@ use std::{cell::RefCell, collections::HashMap, path::Path, ptr::NonNull};
 
 use dependencies::JsDependencies;
 use entries::JsEntries;
+use napi::NapiRaw;
 use napi_derive::napi;
+use once_cell::sync::OnceCell;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{
-  rspack_sources::BoxSource, BoxDependency, Compilation, CompilationId, EntryOptions,
+  rspack_sources::BoxSource, BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions,
   FactorizeInfo, ModuleIdentifier,
 };
 use rspack_error::{Diagnostic, ToStringResultToRspackResultExt};
@@ -19,7 +21,7 @@ use rustc_hash::FxHashMap;
 use super::{JsFilename, PathWithInfo};
 use crate::{
   entry::JsEntryOptions, utils::callbackify, AssetInfo, EntryDependency, JsAddingRuntimeModule,
-  JsAsset, JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper, JsCompatSource,
+  JsAsset, JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper, JsCompatSource, JsCompiler,
   JsModuleGraph, JsPathData, JsRspackDiagnostic, JsRspackError, JsStats,
   JsStatsOptimizationBailout, ModuleObject, RspackResultToNapiResultExt, ToJsCompatSource,
   COMPILER_REFERENCES,
@@ -29,20 +31,38 @@ use crate::{
 pub struct JsCompilation {
   #[allow(dead_code)]
   pub(crate) id: CompilationId,
-  pub(crate) inner: NonNull<Compilation>,
+  pub(crate) compiler_reference: WeakReference<JsCompiler>,
+  entries: OnceCell<WeakReference<JsEntries>>,
 }
 
 impl JsCompilation {
-  fn as_ref(&self) -> napi::Result<&'static Compilation> {
-    // SAFETY: The memory address of rspack_core::Compilation will not change,
-    // so as long as the Compiler is not dropped, we can safely return a 'static reference.
-    Ok(unsafe { self.inner.as_ref() })
+  pub fn new(id: CompilationId, compiler_reference: WeakReference<JsCompiler>) -> Self {
+    #[allow(clippy::unwrap_used)]
+    Self {
+      id,
+      compiler_reference,
+      entries: OnceCell::new(),
+    }
+  }
+}
+
+impl JsCompilation {
+  fn as_ref(&self) -> napi::Result<&Compilation> {
+    match self.compiler_reference.get() {
+      Some(reference) => Ok(&reference.compiler.compilation),
+      None => Err(napi::Error::from_reason(
+        "Unable to access entries now. The compiler has been garbage collected by JavaScript.",
+      )),
+    }
   }
 
-  fn as_mut(&mut self) -> napi::Result<&'static mut Compilation> {
-    // SAFETY: The memory address of rspack_core::Compilation will not change,
-    // so as long as the Compiler is not dropped, we can safely return a 'static reference.
-    Ok(unsafe { self.inner.as_mut() })
+  fn as_mut<'a>(&'a mut self) -> napi::Result<&'a mut Compilation> {
+    match self.compiler_reference.get_mut() {
+      Some(reference) => Ok(&mut reference.compiler.compilation),
+      None => Err(napi::Error::from_reason(
+        "Unable to access entries now. The compiler has been garbage collected by JavaScript.",
+      )),
+    }
   }
 }
 
@@ -54,11 +74,10 @@ impl JsCompilation {
   pub fn update_asset(
     &mut self,
     env: &Env,
+    mut this: This,
     filename: String,
     new_source_or_function: Either<JsCompatSource, Function<'_, JsCompatSource, JsCompatSource>>,
-    asset_info_update_or_function: Option<
-      Either<AssetInfo, Function<'_, AssetInfo, Option<AssetInfo>>>,
-    >,
+    asset_info_update_or_function: Option<Either<Object, Function<'_, Object, Option<Object>>>>,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
@@ -77,20 +96,35 @@ impl JsCompilation {
         };
         let new_source = new_source.to_rspack_result()?;
 
-        let new_info: napi::Result<Option<rspack_core::AssetInfo>> = asset_info_update_or_function
-          .map(
-            |asset_info_update_or_function| match asset_info_update_or_function {
-              Either::A(asset_info) => Ok(asset_info.into()),
-              Either::B(asset_info_fn) => Ok(
-                asset_info_fn
-                  .call(original_info.clone().into())?
-                  .map(Into::into)
-                  .unwrap_or_default(),
-              ),
-            },
-          )
-          .transpose();
-        if let Some(new_info) = new_info.to_rspack_result()? {
+        let new_info: Option<rspack_core::AssetInfo> = match asset_info_update_or_function {
+          Some(asset_info_update_or_function) => match asset_info_update_or_function {
+            Either::A(object) => {
+              let js_asset_info: AssetInfo = unsafe {
+                FromNapiValue::from_napi_value(env.raw(), object.raw()).to_rspack_result()?
+              };
+              let asset_info: rspack_core::AssetInfo = js_asset_info.into();
+              Some(asset_info)
+            }
+            Either::B(f) => {
+              let original_info_object = original_info
+                .to_jsobject(env, &mut this.object)
+                .to_rspack_result()?;
+              let result = f.call(original_info_object).to_rspack_result()?;
+              match result {
+                Some(object) => {
+                  let js_asset_info: AssetInfo = unsafe {
+                    FromNapiValue::from_napi_value(env.raw(), object.raw()).to_rspack_result()?
+                  };
+                  let asset_info: rspack_core::AssetInfo = js_asset_info.into();
+                  Some(asset_info)
+                }
+                None => None,
+              }
+            }
+          },
+          None => None,
+        };
+        if let Some(new_info) = new_info {
           original_info.merge_another_asset(new_info);
         }
         Ok((new_source, original_info))
@@ -99,15 +133,16 @@ impl JsCompilation {
   }
 
   #[napi(ts_return_type = "Readonly<JsAsset>[]")]
-  pub fn get_assets(&self) -> Result<Vec<JsAsset>> {
+  pub fn get_assets(&self, mut this: This, env: &Env) -> Result<Vec<JsAsset>> {
     let compilation = self.as_ref()?;
 
     let mut assets = Vec::<JsAsset>::with_capacity(compilation.assets().len());
 
     for (filename, asset) in compilation.assets() {
+      let info = asset.info.to_jsobject(env, &mut this.object)?;
       assets.push(JsAsset {
         name: filename.clone(),
-        info: asset.info.clone().into(),
+        info,
       });
     }
 
@@ -115,21 +150,21 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_asset(&self, name: String) -> Result<Option<JsAsset>> {
+  pub fn get_asset(&self, env: &Env, mut this: This, name: String) -> Result<Option<JsAsset>> {
     let compilation = self.as_ref()?;
 
     match compilation.assets().get(&name) {
-      Some(asset) => Ok(Some(JsAsset {
-        name,
-        info: asset.info.clone().into(),
-      })),
+      Some(asset) => {
+        let info = asset.info.to_jsobject(env, &mut this.object)?;
+        Ok(Some(JsAsset { name, info }))
+      }
       None => Ok(None),
     }
   }
 
   #[napi]
   pub fn get_asset_source<'a>(
-    &self,
+    &'a self,
     env: &'a Env,
     name: String,
   ) -> Result<Option<JsCompatSource<'a>>> {
@@ -295,16 +330,30 @@ impl JsCompilation {
     Ok(compilation.assets().contains_key(&name))
   }
 
-  #[napi]
+  #[napi(
+    ts_args_type = "filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null"
+  )]
   pub fn emit_asset(
     &mut self,
+    env: &Env,
+    mut this: This,
     filename: String,
     source: JsCompatSource,
-    js_asset_info: Option<AssetInfo>,
+    object: Option<Object>,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
-    let asset_info: rspack_core::AssetInfo = js_asset_info.map(Into::into).unwrap_or_default();
+    let asset_info = if let Some(object) = object {
+      let js_asset_info: AssetInfo =
+        unsafe { FromNapiValue::from_napi_value(env.raw(), object.raw())? };
+      let asset_info: rspack_core::AssetInfo = js_asset_info.into();
+      let asset_info = BindingCell::from(asset_info);
+      asset_info.set_jsobject(env, &mut this.object, object)?;
+
+      asset_info
+    } else {
+      BindingCell::from(rspack_core::AssetInfo::default())
+    };
 
     compilation.emit_asset(
       filename,
@@ -553,6 +602,13 @@ impl JsCompilation {
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
+    // TODO: fix in future by using local future executor
+    let compilation = unsafe {
+      std::mem::transmute::<&mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
+        compilation,
+      )
+    };
+
     callbackify(env, f, async {
       let compiler_id = compilation.compiler_id();
 
@@ -587,6 +643,13 @@ impl JsCompilation {
     callback: Function,
   ) -> Result<()> {
     let compilation = self.as_ref()?;
+
+    // TODO: fix in future by using local future executor
+    let compilation = unsafe {
+      std::mem::transmute::<&rspack_core::Compilation, &'static rspack_core::Compilation>(
+        compilation,
+      )
+    };
 
     callbackify(env, callback, async {
       let module_executor = compilation
@@ -634,10 +697,22 @@ impl JsCompilation {
   }
 
   #[napi(getter)]
-  pub fn entries(&mut self) -> Result<JsEntries> {
-    let compilation = self.as_mut()?;
+  pub fn entries(&mut self, env: &Env, mut this: This) -> napi::Result<WeakReference<JsEntries>> {
+    let compiler_reference = self.compiler_reference.clone();
 
-    Ok(JsEntries::new(compilation))
+    let weak_reference: napi::Result<&WeakReference<JsEntries>> =
+      self.entries.get_or_try_init(move || {
+        let entries = JsEntries::new(compiler_reference);
+        let napi_value = unsafe { ToNapiValue::to_napi_value(env.raw(), entries)? };
+
+        this.object.set_named_property("$$entries", napi_value)?;
+
+        let reference: Reference<JsEntries> =
+          unsafe { Reference::from_napi_value(env.raw(), napi_value)? };
+        Ok(reference.downgrade())
+      });
+
+    Ok(weak_reference?.clone())
   }
 
   #[napi]
@@ -678,6 +753,13 @@ impl JsCompilation {
     f: Function,
   ) -> napi::Result<()> {
     let compilation = self.as_mut()?;
+
+    // TODO: fix in future by using local future executor
+    let compilation = unsafe {
+      std::mem::transmute::<&mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
+        compilation,
+      )
+    };
 
     let Some(mut compiler_reference) = COMPILER_REFERENCES.with(|ref_cell| {
       let references = ref_cell.borrow_mut();
@@ -829,13 +911,11 @@ impl ToNapiValue for JsCompilationWrapper {
           ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
-          let js_compilation = JsCompilation {
-            id: val.id,
-            inner: val.inner,
-          };
-          let r = OneShotRef::new(env, js_compilation)?;
-          let r = entry.insert(r);
-          ToNapiValue::to_napi_value(env, r)
+          // let js_compilation = JsCompilation::new(val.id, val);
+          // let r = OneShotRef::new(env, js_compilation)?;
+          // let r = entry.insert(r);
+          // ToNapiValue::to_napi_value(env, r)
+          todo!()
         }
       }
     })

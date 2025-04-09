@@ -46,14 +46,14 @@ use crate::{
   incremental::{Incremental, IncrementalPasses, Mutation},
   is_source_equal,
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
-  to_identifier, AsyncModulesArtifact, BoxDependency, BoxModule, CacheCount, CacheOptions,
-  CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact, Chunk,
-  ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact,
-  ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderResult, ChunkUkey,
-  CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
+  to_identifier, AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, CacheCount,
+  CacheOptions, CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact,
+  Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
+  ChunkHashesArtifact, ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderResult,
+  ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyId,
   DependencyTemplate, DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType,
-  Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename,
+  Entries, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename,
   ImportVarMap, Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
   ModuleIdsArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpecMap,
   RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats,
@@ -209,7 +209,7 @@ pub struct Compilation {
   pub hot_index: u32,
   pub records: Option<CompilationRecords>,
   pub options: Arc<CompilerOptions>,
-  pub entries: Entry,
+  pub entries: Entries,
   pub global_entry: EntryData,
   other_module_graph: Option<ModuleGraphPartial>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
@@ -607,9 +607,11 @@ impl Compilation {
         let data = EntryData {
           dependencies: vec![entry_id],
           include_dependencies: vec![],
-          options,
+          options: BindingCell::from(options),
         };
-        self.entries.insert(name.to_owned(), data);
+        self
+          .entries
+          .insert(name.to_owned(), BindingCell::from(data));
       }
     } else {
       self.global_entry.dependencies.push(entry_id);
@@ -646,9 +648,9 @@ impl Compilation {
           let data = EntryData {
             dependencies: vec![],
             include_dependencies: vec![entry_id],
-            options,
+            options: BindingCell::from(options),
           };
-          self.entries.insert(name, data);
+          self.entries.insert(name, BindingCell::from(data));
         }
       } else {
         self.global_entry.include_dependencies.push(entry_id);
@@ -679,7 +681,10 @@ impl Compilation {
   pub fn update_asset(
     &mut self,
     filename: &str,
-    updater: impl FnOnce(BoxSource, AssetInfo) -> Result<(BoxSource, AssetInfo)>,
+    updater: impl FnOnce(
+      BoxSource,
+      BindingCell<AssetInfo>,
+    ) -> Result<(BoxSource, BindingCell<AssetInfo>)>,
   ) -> Result<()> {
     let assets = &mut self.assets;
 
@@ -738,8 +743,8 @@ impl Compilation {
 
   pub fn delete_asset(&mut self, filename: &str) {
     if let Some(asset) = self.assets.remove(filename) {
-      if let Some(source_map) = asset.info.related.source_map {
-        self.delete_asset(&source_map);
+      if let Some(source_map) = &asset.info.related.source_map {
+        self.delete_asset(source_map);
       }
       self.chunk_by_ukey.iter_mut().for_each(|(_, chunk)| {
         chunk.remove_file(filename);
@@ -1184,7 +1189,7 @@ impl Compilation {
           filename.clone(),
           CompilationAsset::new(
             Some(CachedSource::new(file_manifest.source).boxed()),
-            file_manifest.info,
+            BindingCell::from(file_manifest.info),
           ),
         );
 
@@ -2497,7 +2502,7 @@ pub type CompilationAssets = HashMap<String, CompilationAsset>;
 pub struct CompilationAsset {
   #[cacheable(with=AsOption<AsPreset>)]
   pub source: Option<BoxSource>,
-  pub info: AssetInfo,
+  pub info: BindingCell<AssetInfo>,
 }
 
 impl From<BoxSource> for CompilationAsset {
@@ -2507,7 +2512,7 @@ impl From<BoxSource> for CompilationAsset {
 }
 
 impl CompilationAsset {
-  pub fn new(source: Option<BoxSource>, info: AssetInfo) -> Self {
+  pub fn new(source: Option<BoxSource>, info: BindingCell<AssetInfo>) -> Self {
     Self { source, info }
   }
 
@@ -2532,7 +2537,7 @@ impl CompilationAsset {
   }
 
   pub fn set_info(&mut self, info: AssetInfo) {
-    self.info = info;
+    self.info = BindingCell::from(info);
   }
 }
 

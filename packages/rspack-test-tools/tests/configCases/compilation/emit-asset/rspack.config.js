@@ -2,6 +2,8 @@ const { rspack } = require("@rspack/core");
 
 const PLUGIN_NAME = "plugin";
 
+const SYMBOL = Symbol("mark");
+
 class Plugin {
     /**
      * @param {import("@rspack/core").Compiler} compiler
@@ -24,7 +26,8 @@ class Plugin {
                             number: 1,
                             string: "foo",
                             array: ["foo", "bar"],
-                        }
+                        },
+                        [SYMBOL]: "foo",
                     });
                 }
             );
@@ -42,6 +45,7 @@ class Plugin {
                     string: "foo",
                     array: ["foo", "bar"],
                 });
+                expect(info[SYMBOL]).toBe("foo");
             });
         });
     }

@@ -241,7 +241,8 @@ impl JsChunk {
 
     let entry_options = chunk.get_entry_options(&compilation.chunk_group_by_ukey);
 
-    Ok(entry_options.map(|options| EntryOptionsDTO::new(options.clone())))
+    // Ok(entry_options.map(|options| EntryOptionsDTO::new(options.clone())))
+    todo!()
   }
 }
 

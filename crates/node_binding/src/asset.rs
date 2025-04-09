@@ -238,7 +238,8 @@ impl From<AssetInfo> for rspack_core::AssetInfo {
 #[napi(object)]
 pub struct JsAsset {
   pub name: String,
-  pub info: AssetInfo,
+  #[napi(ts_type = "AssetInfo")]
+  pub info: Object,
 }
 
 impl From<rspack_core::AssetInfoRelated> for JsAssetInfoRelated {
