@@ -478,7 +478,6 @@ impl CodeSplitter {
 
     compilation.extend_diagnostics(diagnostics);
     entries.extend(roots.into_values());
-    // dbg!(visit_module_graph.elapsed().as_millis());
 
     Ok(entries)
   }

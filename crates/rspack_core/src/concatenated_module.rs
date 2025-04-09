@@ -1600,7 +1600,8 @@ impl ConcatenatedModule {
     runtime: Option<&RuntimeSpec>,
     mg: &'a ModuleGraph,
   ) -> Vec<ConnectionWithRuntimeCondition<'a>> {
-    let mut connections = mg.get_outgoing_connections(module_id).collect::<Vec<_>>();
+    let mut connections: Vec<&ModuleGraphConnection> =
+      mg.get_ordered_outgoing_connections(&module_id).collect();
     if module_id == root_module_id {
       for c in mg.get_outgoing_connections(&self.id) {
         connections.push(c);
