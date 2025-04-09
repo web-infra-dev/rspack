@@ -3,7 +3,7 @@ use rspack_cacheable::{
   with::{AsPreset, Unsupported},
 };
 use rspack_core::{
-  AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
+  AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
   DependencyRange, DependencyType, ExtendedReferencedExport, FactorizeInfo, ModuleDependency,
   ModuleGraph, RuntimeSpec,
 };
@@ -94,6 +94,6 @@ impl ModuleDependency for WasmImportDependency {
   }
 }
 
-impl AsDependencyTemplate for WasmImportDependency {}
+impl AsDependencyCodeGeneration for WasmImportDependency {}
 
 impl AsContextDependency for WasmImportDependency {}

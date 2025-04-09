@@ -4,8 +4,8 @@ use itertools::Itertools;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   module_raw, AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, DynamicDependencyTemplate,
-  DynamicDependencyTemplateType, ModuleDependency, TemplateContext, TemplateReplaceSource,
+  DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
+  DependencyType, ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 
 use super::amd_require_item_dependency::AMDRequireItemDependency;
@@ -96,8 +96,8 @@ impl AMDRequireArrayDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for AMDRequireArrayDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for AMDRequireArrayDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(AMDRequireArrayDependencyTemplate::template_type())
   }
 }
@@ -111,15 +111,15 @@ impl AsContextDependency for AMDRequireArrayDependency {}
 pub struct AMDRequireArrayDependencyTemplate;
 
 impl AMDRequireArrayDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::AmdRequireArray)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::AmdRequireArray)
   }
 }
 
-impl DynamicDependencyTemplate for AMDRequireArrayDependencyTemplate {
+impl DependencyTemplate for AMDRequireArrayDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

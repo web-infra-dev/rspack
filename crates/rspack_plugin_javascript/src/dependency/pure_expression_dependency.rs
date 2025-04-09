@@ -2,10 +2,9 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   filter_runtime, runtime_condition_expression, AsContextDependency, AsModuleDependency,
-  Compilation, ConnectionState, Dependency, DependencyId, DependencyTemplate,
-  DynamicDependencyTemplate, DynamicDependencyTemplateType, ModuleGraph, ModuleIdentifier,
-  RuntimeCondition, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedByExports,
-  UsedName,
+  Compilation, ConnectionState, Dependency, DependencyCodeGeneration, DependencyId,
+  DependencyTemplate, DependencyTemplateType, ModuleGraph, ModuleIdentifier, RuntimeCondition,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedByExports, UsedName,
 };
 use rspack_util::ext::DynHash;
 
@@ -85,8 +84,8 @@ impl Dependency for PureExpressionDependency {
 impl AsModuleDependency for PureExpressionDependency {}
 
 #[cacheable_dyn]
-impl DependencyTemplate for PureExpressionDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for PureExpressionDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(PureExpressionDependencyTemplate::template_type())
   }
 
@@ -108,15 +107,15 @@ impl AsContextDependency for PureExpressionDependency {}
 pub struct PureExpressionDependencyTemplate;
 
 impl PureExpressionDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::CustomType("PureExpressionDependency")
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("PureExpressionDependency")
   }
 }
 
-impl DynamicDependencyTemplate for PureExpressionDependencyTemplate {
+impl DependencyTemplate for PureExpressionDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

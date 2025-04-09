@@ -3,10 +3,11 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_collections::{Identifier, IdentifierSet};
 use rspack_core::{
   property_access, rspack_sources::ReplacementEnforce, AsContextDependency, AsModuleDependency,
-  Compilation, Dependency, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType, ESMExportInitFragment,
-  ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, RuntimeGlobals, RuntimeSpec,
-  SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
+  Compilation, Dependency, DependencyCodeGeneration, DependencyId, DependencyLocation,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  ESMExportInitFragment, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
+  RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
+  DEFAULT_EXPORT,
 };
 use swc_core::atoms::Atom;
 
@@ -114,8 +115,8 @@ impl AsModuleDependency for ESMExportExpressionDependency {}
 impl AsContextDependency for ESMExportExpressionDependency {}
 
 #[cacheable_dyn]
-impl DependencyTemplate for ESMExportExpressionDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for ESMExportExpressionDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ESMExportExpressionDependencyTemplate::template_type())
   }
 }
@@ -125,15 +126,15 @@ impl DependencyTemplate for ESMExportExpressionDependency {
 pub struct ESMExportExpressionDependencyTemplate;
 
 impl ESMExportExpressionDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::EsmExportExpression)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::EsmExportExpression)
   }
 }
 
-impl DynamicDependencyTemplate for ESMExportExpressionDependencyTemplate {
+impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

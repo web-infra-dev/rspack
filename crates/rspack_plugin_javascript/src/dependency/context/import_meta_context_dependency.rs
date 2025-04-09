@@ -1,9 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   module_raw, AsModuleDependency, ContextDependency, ContextOptions, Dependency,
-  DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
-  DynamicDependencyTemplate, DynamicDependencyTemplateType, FactorizeInfo, ModuleGraph,
-  TemplateContext, TemplateReplaceSource,
+  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleGraph, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -113,8 +113,8 @@ impl ContextDependency for ImportMetaContextDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ImportMetaContextDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for ImportMetaContextDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ImportMetaContextDependencyTemplate::template_type())
   }
 }
@@ -126,15 +126,15 @@ impl AsModuleDependency for ImportMetaContextDependency {}
 pub struct ImportMetaContextDependencyTemplate;
 
 impl ImportMetaContextDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::ImportMetaContext)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::ImportMetaContext)
   }
 }
 
-impl DynamicDependencyTemplate for ImportMetaContextDependencyTemplate {
+impl DependencyTemplate for ImportMetaContextDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

@@ -4,10 +4,10 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   property_access, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, DynamicDependencyTemplate,
-  DynamicDependencyTemplateType, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph, NormalInitFragment,
-  RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedName,
+  DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
+  DependencyType, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, ModuleGraph, NormalInitFragment, RuntimeGlobals,
+  TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::atoms::Atom;
 
@@ -112,8 +112,8 @@ impl Dependency for CommonJsExportsDependency {
 impl AsModuleDependency for CommonJsExportsDependency {}
 
 #[cacheable_dyn]
-impl DependencyTemplate for CommonJsExportsDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for CommonJsExportsDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(CommonJsExportsDependencyTemplate::template_type())
   }
 }
@@ -125,15 +125,15 @@ impl AsContextDependency for CommonJsExportsDependency {}
 pub struct CommonJsExportsDependencyTemplate;
 
 impl CommonJsExportsDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::CjsExports)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::CjsExports)
   }
 }
 
-impl DynamicDependencyTemplate for CommonJsExportsDependencyTemplate {
+impl DependencyTemplate for CommonJsExportsDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

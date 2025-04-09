@@ -1,9 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   block_promise, AffectType, AsContextDependency, AsModuleDependency, Dependency,
-  DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
-  DynamicDependencyTemplate, DynamicDependencyTemplateType, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource,
+  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -56,8 +55,8 @@ impl Dependency for RequireEnsureDependency {
 impl AsModuleDependency for RequireEnsureDependency {}
 
 #[cacheable_dyn]
-impl DependencyTemplate for RequireEnsureDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for RequireEnsureDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(RequireEnsureDependencyTemplate::template_type())
   }
 }
@@ -69,15 +68,15 @@ impl AsContextDependency for RequireEnsureDependency {}
 pub struct RequireEnsureDependencyTemplate;
 
 impl RequireEnsureDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::RequireEnsure)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::RequireEnsure)
   }
 }
 
-impl DynamicDependencyTemplate for RequireEnsureDependencyTemplate {
+impl DependencyTemplate for RequireEnsureDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

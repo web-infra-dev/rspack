@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType,
+  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   FactorizeInfo, ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
@@ -78,8 +78,8 @@ impl ModuleDependency for ModuleHotAcceptDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ModuleHotAcceptDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for ModuleHotAcceptDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ModuleHotAcceptDependencyTemplate::template_type())
   }
 }
@@ -91,15 +91,15 @@ impl AsContextDependency for ModuleHotAcceptDependency {}
 pub struct ModuleHotAcceptDependencyTemplate;
 
 impl ModuleHotAcceptDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::ModuleHotAccept)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::ModuleHotAccept)
   }
 }
 
-impl DynamicDependencyTemplate for ModuleHotAcceptDependencyTemplate {
+impl DependencyTemplate for ModuleHotAcceptDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

@@ -2,9 +2,9 @@ use std::fmt::Display;
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType,
-  FactorizeInfo, ModuleDependency, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, FactorizeInfo,
+  ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -123,8 +123,8 @@ impl Display for CssSupports {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for CssImportDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for CssImportDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(CssImportDependencyTemplate::template_type())
   }
 }
@@ -135,15 +135,15 @@ impl AsContextDependency for CssImportDependency {}
 #[derive(Debug, Clone, Default)]
 pub struct CssImportDependencyTemplate;
 impl CssImportDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::CssImport)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::CssImport)
   }
 }
 
-impl DynamicDependencyTemplate for CssImportDependencyTemplate {
+impl DependencyTemplate for CssImportDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     _code_generatable_context: &mut TemplateContext,
   ) {

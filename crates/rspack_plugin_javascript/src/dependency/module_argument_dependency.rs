@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  Compilation, DependencyLocation, DependencyRange, DependencyTemplate, DynamicDependencyTemplate,
-  DynamicDependencyTemplateType, RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext,
+  Compilation, DependencyCodeGeneration, DependencyLocation, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext,
   TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
@@ -34,8 +34,8 @@ impl ModuleArgumentDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ModuleArgumentDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for ModuleArgumentDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ModuleArgumentDependencyTemplate::template_type())
   }
 
@@ -55,15 +55,15 @@ impl DependencyTemplate for ModuleArgumentDependency {
 pub struct ModuleArgumentDependencyTemplate;
 
 impl ModuleArgumentDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::CustomType("ModuleArgumentDependency")
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("ModuleArgumentDependency")
   }
 }
 
-impl DynamicDependencyTemplate for ModuleArgumentDependencyTemplate {
+impl DependencyTemplate for ModuleArgumentDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

@@ -5,11 +5,11 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   create_exports_object_referenced, module_raw, AsContextDependency, Compilation, Dependency,
-  DependencyCategory, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType,
-  ExtendedReferencedExport, FactorizeInfo, InitFragmentKey, InitFragmentStage, ModuleDependency,
-  ModuleGraph, NormalInitFragment, RuntimeSpec, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, UsedName,
+  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExtendedReferencedExport,
+  FactorizeInfo, InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph,
+  NormalInitFragment, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  UsedName,
 };
 use rspack_util::ext::DynHash;
 use swc_core::atoms::Atom;
@@ -108,8 +108,8 @@ impl ModuleDependency for ProvideDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ProvideDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for ProvideDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ProvideDependencyTemplate::template_type())
   }
 
@@ -145,15 +145,15 @@ impl AsContextDependency for ProvideDependency {}
 pub struct ProvideDependencyTemplate;
 
 impl ProvideDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::CustomType("ProvideDependency")
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("ProvideDependency")
   }
 }
 
-impl DynamicDependencyTemplate for ProvideDependencyTemplate {
+impl DependencyTemplate for ProvideDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

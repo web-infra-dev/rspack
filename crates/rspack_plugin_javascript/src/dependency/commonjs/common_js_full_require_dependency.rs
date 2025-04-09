@@ -4,8 +4,8 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   module_id, property_access, to_normal_comment, AsContextDependency, Dependency,
-  DependencyCategory, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType, ExportsType,
+  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsType,
   ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, RuntimeGlobals,
   RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
 };
@@ -129,8 +129,8 @@ impl ModuleDependency for CommonJsFullRequireDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for CommonJsFullRequireDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for CommonJsFullRequireDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(CommonJsFullRequireDependencyTemplate::template_type())
   }
 }
@@ -142,15 +142,15 @@ impl AsContextDependency for CommonJsFullRequireDependency {}
 pub struct CommonJsFullRequireDependencyTemplate;
 
 impl CommonJsFullRequireDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::CjsFullRequire)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::CjsFullRequire)
   }
 }
 
-impl DynamicDependencyTemplate for CommonJsFullRequireDependencyTemplate {
+impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

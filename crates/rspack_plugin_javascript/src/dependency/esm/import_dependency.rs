@@ -4,10 +4,10 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   create_exports_object_referenced, module_namespace_promise, AsContextDependency, Dependency,
-  DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
-  DynamicDependencyTemplate, DynamicDependencyTemplateType, ExportsType, ExtendedReferencedExport,
-  FactorizeInfo, ImportAttributes, ModuleDependency, ModuleGraph, ReferencedExport,
-  TemplateContext, TemplateReplaceSource,
+  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportsType, ExtendedReferencedExport, FactorizeInfo,
+  ImportAttributes, ModuleDependency, ModuleGraph, ReferencedExport, TemplateContext,
+  TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -152,8 +152,8 @@ impl ModuleDependency for ImportDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ImportDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for ImportDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ImportDependencyTemplate::template_type())
   }
 }
@@ -165,15 +165,15 @@ impl AsContextDependency for ImportDependency {}
 pub struct ImportDependencyTemplate;
 
 impl ImportDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::DynamicImport)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::DynamicImport)
   }
 }
 
-impl DynamicDependencyTemplate for ImportDependencyTemplate {
+impl DependencyTemplate for ImportDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

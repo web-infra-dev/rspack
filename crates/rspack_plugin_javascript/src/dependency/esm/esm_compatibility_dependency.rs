@@ -1,6 +1,6 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  DependencyTemplate, DynamicDependencyTemplate, DynamicDependencyTemplateType, InitFragmentKey,
+  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, InitFragmentKey,
   InitFragmentStage, ModuleGraph, NormalInitFragment, RuntimeGlobals, TemplateContext,
   TemplateReplaceSource, UsageState,
 };
@@ -13,8 +13,8 @@ use swc_core::atoms::Atom;
 pub struct ESMCompatibilityDependency;
 
 #[cacheable_dyn]
-impl DependencyTemplate for ESMCompatibilityDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for ESMCompatibilityDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ESMCompatibilityDependencyTemplate::template_type())
   }
 }
@@ -24,15 +24,15 @@ impl DependencyTemplate for ESMCompatibilityDependency {
 pub struct ESMCompatibilityDependencyTemplate;
 
 impl ESMCompatibilityDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::CustomType("ESMCompatibilityDependency")
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("ESMCompatibilityDependency")
   }
 }
 
-impl DynamicDependencyTemplate for ESMCompatibilityDependencyTemplate {
+impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
   fn render(
     &self,
-    _dep: &dyn DependencyTemplate,
+    _dep: &dyn DependencyCodeGeneration,
     _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

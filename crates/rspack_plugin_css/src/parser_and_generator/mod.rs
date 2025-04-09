@@ -500,11 +500,14 @@ impl ParserAndGenerator for CssParserAndGenerator {
             .dependency_by_id(id)
             .expect("should have dependency");
 
-          if let Some(dependency) = dep.as_dependency_template() {
+          if let Some(dependency) = dep.as_dependency_code_generation() {
             if let Some(template) = compilation.get_dependency_template(dependency) {
               template.render(dependency, &mut source, &mut context)
             } else {
-              dependency.apply(&mut source, &mut context)
+              panic!(
+                "Can not find dependency template of {:?}",
+                dependency.dependency_template()
+              );
             }
           }
         });
@@ -542,7 +545,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
             if let Some(template) = compilation.get_dependency_template(dependency.as_ref()) {
               template.render(dependency.as_ref(), &mut source, &mut context)
             } else {
-              dependency.apply(&mut source, &mut context)
+              panic!(
+                "Can not find dependency template of {:?}",
+                dependency.dependency_template()
+              );
             }
           });
         };

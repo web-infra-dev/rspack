@@ -1,8 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyId,
-  DependencyTemplate, DynamicDependencyTemplate, DynamicDependencyTemplateType, TemplateContext,
-  TemplateReplaceSource,
+  AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCodeGeneration,
+  DependencyId, DependencyTemplate, DependencyTemplateType, TemplateContext, TemplateReplaceSource,
 };
 
 use super::local_module::LocalModule;
@@ -43,8 +42,8 @@ impl Dependency for LocalModuleDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for LocalModuleDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for LocalModuleDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(LocalModuleDependencyTemplate::template_type())
   }
 }
@@ -58,15 +57,15 @@ impl AsContextDependency for LocalModuleDependency {}
 pub struct LocalModuleDependencyTemplate;
 
 impl LocalModuleDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::CustomType("LocalModuleDependency")
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("LocalModuleDependency")
   }
 }
 
-impl DynamicDependencyTemplate for LocalModuleDependencyTemplate {
+impl DependencyTemplate for LocalModuleDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     _code_generatable_context: &mut TemplateContext,
   ) {

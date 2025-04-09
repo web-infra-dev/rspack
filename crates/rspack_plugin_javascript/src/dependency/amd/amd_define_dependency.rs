@@ -5,8 +5,8 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, DynamicDependencyTemplate,
-  DynamicDependencyTemplateType, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
+  DependencyType, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::{atom::Atom, json_stringify};
 
@@ -253,8 +253,8 @@ impl AsModuleDependency for AMDDefineDependency {}
 impl AsContextDependency for AMDDefineDependency {}
 
 #[cacheable_dyn]
-impl DependencyTemplate for AMDDefineDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for AMDDefineDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(AMDDefineDependencyTemplate::template_type())
   }
 }
@@ -264,15 +264,15 @@ impl DependencyTemplate for AMDDefineDependency {
 pub struct AMDDefineDependencyTemplate;
 
 impl AMDDefineDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::AmdDefine)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::AmdDefine)
   }
 }
 
-impl DynamicDependencyTemplate for AMDDefineDependencyTemplate {
+impl DependencyTemplate for AMDDefineDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

@@ -2,8 +2,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 
 use super::{AffectType, FactorizeInfo};
 use crate::{
-  AsContextDependency, AsDependencyTemplate, Context, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ModuleDependency,
+  AsContextDependency, AsDependencyCodeGeneration, Context, Dependency, DependencyCategory,
+  DependencyId, DependencyType, ModuleDependency,
 };
 
 #[cacheable]
@@ -51,7 +51,7 @@ impl std::hash::Hash for LoaderImportDependency {
   }
 }
 
-impl AsDependencyTemplate for LoaderImportDependency {}
+impl AsDependencyCodeGeneration for LoaderImportDependency {}
 impl AsContextDependency for LoaderImportDependency {}
 
 #[cacheable_dyn]

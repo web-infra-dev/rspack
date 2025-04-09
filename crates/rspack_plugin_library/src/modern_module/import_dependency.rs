@@ -1,9 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType,
-  ExternalRequest, ExternalType, FactorizeInfo, ImportAttributes, ModuleDependency,
-  TemplateContext, TemplateReplaceSource,
+  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExternalRequest,
+  ExternalType, FactorizeInfo, ImportAttributes, ModuleDependency, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_plugin_javascript::dependency::create_resource_identifier_for_esm_dependency;
 use swc_core::ecma::atoms::Atom;
@@ -101,8 +101,8 @@ impl ModuleDependency for ModernModuleImportDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ModernModuleImportDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for ModernModuleImportDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ModernModuleImportDependencyTemplate::template_type())
   }
 }
@@ -113,15 +113,15 @@ impl AsContextDependency for ModernModuleImportDependency {}
 #[derive(Debug, Clone, Default)]
 pub struct ModernModuleImportDependencyTemplate;
 impl ModernModuleImportDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::CustomType("ModernModuleImportDependency")
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("ModernModuleImportDependency")
   }
 }
 
-impl DynamicDependencyTemplate for ModernModuleImportDependencyTemplate {
+impl DependencyTemplate for ModernModuleImportDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     _code_generatable_context: &mut TemplateContext,
   ) {
