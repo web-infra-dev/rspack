@@ -1,8 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   module_id, AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyType, ExtendedReferencedExport, FactorizeInfo, ModuleDependency,
-  ModuleGraph, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  DependencyTemplate, DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType,
+  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -93,24 +94,46 @@ impl ModuleDependency for RequireResolveDependency {
 
 #[cacheable_dyn]
 impl DependencyTemplate for RequireResolveDependency {
-  fn apply(
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(RequireResolveDependencyTemplate::template_type())
+  }
+}
+
+impl AsContextDependency for RequireResolveDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct RequireResolveDependencyTemplate;
+
+impl RequireResolveDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::DependencyType(DependencyType::RequireResolve)
+  }
+}
+
+impl DynamicDependencyTemplate for RequireResolveDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyTemplate,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<RequireResolveDependency>()
+      .expect("RequireResolveDependencyTemplate should only be used for RequireResolveDependency");
+
     source.replace(
-      self.range.start,
-      self.range.end,
+      dep.range.start,
+      dep.range.end,
       module_id(
         code_generatable_context.compilation,
-        &self.id,
-        &self.request,
-        self.weak,
+        &dep.id,
+        &dep.request,
+        dep.weak,
       )
       .as_str(),
       None,
     );
   }
 }
-
-impl AsContextDependency for RequireResolveDependency {}
