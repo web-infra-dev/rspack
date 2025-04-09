@@ -38,7 +38,7 @@ use crate::{
     ProvideDependencyTemplate, RequireContextDependencyTemplate, RequireEnsureDependencyTemplate,
     RequireHeaderDependencyTemplate, RequireResolveContextDependencyTemplate,
     RequireResolveDependencyTemplate, RequireResolveHeaderDependencyTemplate,
-    URLDependencyTemplate,
+    URLDependencyTemplate, WorkerDependencyTemplate,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
   JsPlugin, JsPluginInner,
@@ -338,6 +338,10 @@ async fn compilation(
   compilation.set_dependency_template(
     CreateScriptUrlDependencyTemplate::template_type(),
     Arc::new(CreateScriptUrlDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    WorkerDependencyTemplate::template_type(),
+    Arc::new(WorkerDependencyTemplate::default()),
   );
   Ok(())
 }
