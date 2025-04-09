@@ -26,7 +26,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use crate::{
   dependency::{
     CssImportDependencyTemplate, CssLayer, CssLocalIdentDependencyTemplate, CssMedia,
-    CssSelfReferenceLocalIdentDependencyTemplate, CssSupports,
+    CssSelfReferenceLocalIdentDependencyTemplate, CssSupports, CssUrlDependencyTemplate,
   },
   parser_and_generator::{CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator},
   plugin::CssPluginInner,
@@ -268,6 +268,10 @@ async fn compilation(
   compilation.set_dependency_template(
     CssSelfReferenceLocalIdentDependencyTemplate::template_type(),
     Arc::new(CssSelfReferenceLocalIdentDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    CssUrlDependencyTemplate::template_type(),
+    Arc::new(CssUrlDependencyTemplate::default()),
   );
   Ok(())
 }
