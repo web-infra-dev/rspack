@@ -31,9 +31,9 @@ use crate::{
     ESMExportSpecifierDependencyTemplate, ESMImportSideEffectDependencyTemplate,
     ESMImportSpecifierDependencyTemplate, ExternalModuleDependencyTemplate,
     ImportContextDependencyTemplate, ImportDependencyTemplate, ImportEagerDependencyTemplate,
-    ModuleDecoratorDependencyTemplate, ProvideDependencyTemplate, RequireEnsureDependencyTemplate,
-    RequireHeaderDependencyTemplate, RequireResolveDependencyTemplate,
-    RequireResolveHeaderDependencyTemplate,
+    ImportMetaContextDependencyTemplate, ModuleDecoratorDependencyTemplate,
+    ProvideDependencyTemplate, RequireEnsureDependencyTemplate, RequireHeaderDependencyTemplate,
+    RequireResolveDependencyTemplate, RequireResolveHeaderDependencyTemplate,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
   JsPlugin, JsPluginInner,
@@ -286,6 +286,10 @@ async fn compilation(
   compilation.set_dependency_template(
     ImportContextDependencyTemplate::template_type(),
     Arc::new(ImportContextDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ImportMetaContextDependencyTemplate::template_type(),
+    Arc::new(ImportMetaContextDependencyTemplate::default()),
   );
   Ok(())
 }
