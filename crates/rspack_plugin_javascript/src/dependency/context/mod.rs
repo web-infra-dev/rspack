@@ -11,7 +11,7 @@ pub use amd_require_context_dependency::{
 pub use common_js_require_context_dependency::{
   CommonJsRequireContextDependency, CommonJsRequireContextDependencyTemplate,
 };
-pub use import_context_dependency::ImportContextDependency;
+pub use import_context_dependency::{ImportContextDependency, ImportContextDependencyTemplate};
 pub use import_meta_context_dependency::ImportMetaContextDependency;
 use itertools::Itertools;
 pub use require_context_dependency::RequireContextDependency;
