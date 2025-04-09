@@ -19,7 +19,9 @@ pub use common_js_exports_dependency::{
 pub use common_js_full_require_dependency::{
   CommonJsFullRequireDependency, CommonJsFullRequireDependencyTemplate,
 };
-pub use common_js_require_dependency::CommonJsRequireDependency;
+pub use common_js_require_dependency::{
+  CommonJsRequireDependency, CommonJsRequireDependencyTemplate,
+};
 pub use common_js_self_reference_dependency::CommonJsSelfReferenceDependency;
 pub use module_decorator_dependency::ModuleDecoratorDependency;
 pub use require_ensure_dependency::RequireEnsureDependency;
