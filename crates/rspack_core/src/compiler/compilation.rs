@@ -52,8 +52,9 @@ use crate::{
   ChunkHashesArtifact, ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderResult,
   ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyId,
-  DependencyType, Entries, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
-  Filename, ImportVarMap, Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
+  DependencyTemplate, DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType,
+  Entries, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename,
+  ImportVarMap, Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
   ModuleIdsArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpecMap,
   RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats,
 };
@@ -212,6 +213,8 @@ pub struct Compilation {
   pub global_entry: EntryData,
   other_module_graph: Option<ModuleGraphPartial>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
+  pub dependency_templates:
+    HashMap<DynamicDependencyTemplateType, Arc<dyn DynamicDependencyTemplate>>,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
   pub runtime_modules_hash: IdentifierMap<RspackHashDigest>,
   pub runtime_modules_code_generation_source: IdentifierMap<BoxSource>,
@@ -340,6 +343,7 @@ impl Compilation {
       options,
       other_module_graph: None,
       dependency_factories: Default::default(),
+      dependency_templates: Default::default(),
       runtime_modules: Default::default(),
       runtime_modules_hash: Default::default(),
       runtime_modules_code_generation_source: Default::default(),
@@ -2467,6 +2471,23 @@ impl Compilation {
         )
       })
       .clone()
+  }
+
+  pub fn set_dependency_template(
+    &mut self,
+    template_type: DynamicDependencyTemplateType,
+    template: Arc<dyn DynamicDependencyTemplate>,
+  ) {
+    self.dependency_templates.insert(template_type, template);
+  }
+
+  pub fn get_dependency_template(
+    &self,
+    dep: &dyn DependencyTemplate,
+  ) -> Option<Arc<dyn DynamicDependencyTemplate>> {
+    dep
+      .dynamic_dependency_template()
+      .and_then(|template_type| self.dependency_templates.get(&template_type).cloned())
   }
 
   pub fn built_modules(&self) -> &IdentifierSet {

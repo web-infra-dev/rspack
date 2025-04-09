@@ -24,4 +24,4 @@ pub mod napi {
   pub use napi::*;
 }
 
-pub use js_values::{one_shot_instance_ref::*, one_shot_value_ref::*, value_ref::*};
+pub use js_values::{one_shot_instance_ref::*, one_shot_value_ref::*, value_ref::*, weak_ref::*};

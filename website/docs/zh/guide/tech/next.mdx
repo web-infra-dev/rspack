@@ -1,0 +1,80 @@
+import { Tabs, Tab, PackageManagerTabs } from '@theme';
+
+# Next.js
+
+[next-rspack](https://www.npmjs.com/package/next-rspack) 是一个社区驱动的插件，它允许 Next.js 项目使用 Rspack 作为打包工具。
+
+> 示例：[next.js/examples/with-rspack](https://github.com/vercel/next.js/tree/canary/examples/with-rspack)。
+
+## 安装
+
+<PackageManagerTabs command="add next-rspack -D" />
+
+## 使用
+
+在项目的 `next.config.js` 或 `next.config.ts` 中，对现有配置进行包装：
+
+<Tabs>
+  <Tab label="next.config.ts">
+
+```ts
+import withRspack from 'next-rspack';
+import type { NextConfig } from 'next';
+
+const nextConfig: NextConfig = {
+  /* config options here */
+};
+
+export default withRspack(nextConfig);
+```
+
+  </Tab>
+  <Tab label="next.config.js">
+
+```ts
+const withRspack = require('next-rspack');
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  /* config options here */
+};
+
+module.exports = withRspack(nextConfig);
+```
+
+  </Tab>
+</Tabs>
+
+## 自定义 Rspack 配置
+
+得益于 Rspack 对 webpack 的兼容性，在使用 `next-rspack` 时，可以沿用与 webpack 相同的方式来自定义配置。
+
+在 `next.config.js` 中，通过以下回调函数来修改 Rspack 配置：
+
+```ts title="next.config.js"
+module.exports = {
+  webpack: (
+    config,
+    { buildId, dev, isServer, defaultLoaders, nextRuntime, webpack },
+  ) => {
+    // 重要：返回修改后的配置
+    return config;
+  },
+};
+```
+
+> 更多信息请查看 [Next.js - Custom Webpack Config](https://nextjs.org/docs/app/api-reference/config/next-config-js/webpack)。
+
+## 使用 next-compose-plugins
+
+此外，你可以使用 [next-compose-plugins](https://www.npmjs.com/package/next-compose-plugins) 来快速将 `next-rspack` 与其他 Next.js 插件集成：
+
+```js title="next.config.js"
+const withPlugins = require('next-compose-plugins');
+const withRspack = require('next-rspack');
+
+module.exports = withPlugins([
+  [withRspack],
+  // 其他插件写在这里
+]);
+```

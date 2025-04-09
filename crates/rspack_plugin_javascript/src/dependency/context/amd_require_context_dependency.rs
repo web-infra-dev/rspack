@@ -1,8 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsModuleDependency, Compilation, ContextDependency, ContextOptions, Dependency,
-  DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
-  FactorizeInfo, ModuleGraph, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
+  DependencyId, DependencyRange, DependencyTemplate, DependencyType, DynamicDependencyTemplate,
+  DynamicDependencyTemplateType, FactorizeInfo, ModuleGraph, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -115,31 +116,41 @@ impl ContextDependency for AMDRequireContextDependency {
 
 #[cacheable_dyn]
 impl DependencyTemplate for AMDRequireContextDependency {
-  fn apply(
-    &self,
-    source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    context_dependency_template_as_require_call(
-      self,
-      source,
-      code_generatable_context,
-      &self.range,
-      Some(&self.range),
-    );
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(AMDRequireContextDependencyTemplate::template_type())
   }
 }
 
 impl AsModuleDependency for AMDRequireContextDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct AMDRequireContextDependencyTemplate;
+
+impl AMDRequireContextDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::DependencyType(DependencyType::AmdRequireContext)
+  }
+}
+
+impl DynamicDependencyTemplate for AMDRequireContextDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyTemplate,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<AMDRequireContextDependency>()
+      .expect("AMDRequireContextDependencyTemplate should be used for AMDRequireContextDependency");
+
+    context_dependency_template_as_require_call(
+      dep,
+      source,
+      code_generatable_context,
+      &dep.range,
+      Some(&dep.range),
+    );
+  }
+}

@@ -1,0 +1,85 @@
+name: Reusable Release
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        required: true
+        type: string
+      runner: # Runner labels
+        required: true
+        type: string
+      ref: # Git reference to checkout
+        required: false
+        type: string
+env:
+  # Since CI builds are more akin to from-scratch builds, incremental compilation adds unnecessary dependency-tracking and IO overhead, reducing caching effectiveness.
+  # https://github.com/rust-lang/rust-analyzer/blob/25368d24308d6a94ffe8b99f0122bcf5a2175322/.github/workflows/ci.yaml#L11
+  CARGO_INCREMENTAL: 0
+
+permissions:
+  # Allow commenting on issues
+  issues: write
+
+jobs:
+  bench:
+    name: Bench
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          ref: ${{ inputs.ref }}
+          clean: ${{ runner.environment == 'github-hosted' }}
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          save-if: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
+          key: build-bench-${{ inputs.target }}
+
+      - name: Install cargo-codspeed binary
+        uses: taiki-e/install-action@5651179950649c44da31d346537e20c0534f0f25 # v2
+        with:
+          tool: cargo-codspeed@2.7.2
+
+      - name: Build Benchmark
+        env:
+          RUSTFLAGS: "-C debuginfo=1 -C strip=none -g --cfg codspeed"
+        run: cargo codspeed build -p rspack_benchmark --features codspeed
+
+      - name: Wait for build job
+        uses: lewagon/wait-on-check-action@ccfb013c15c8afb7bf2b7c028fb74dc5a068cccc # v1.3.4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          check-name: "Test Linux / build / Build"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+
+      - name: Download bindings
+        uses: ./.github/actions/artifact/download
+        with:
+          name: bindings-${{ inputs.target }}
+          path: crates/node_binding/
+
+      - name: Show restored binding
+        run: ls -lah crates/node_binding/*.node
+
+      - name: Pnpm Setup
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Pnpm Install
+        uses: ./.github/actions/pnpm/install-dependencies
+
+      - name: Build JS
+        run: pnpm run build:js
+
+      - name: Run benchmark
+        uses: CodSpeedHQ/action@0010eb0ca6e89b80c88e8edaaa07cfe5f3e6664d # v3
+        timeout-minutes: 30
+        with:
+          run: pnpm run bench:ci
+          token: ${{ secrets.CODSPEED_TOKEN }}

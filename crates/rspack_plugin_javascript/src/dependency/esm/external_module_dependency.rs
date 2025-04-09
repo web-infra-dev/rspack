@@ -1,7 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsDependency, Compilation, DependencyId, DependencyTemplate, ExternalModuleInitFragment,
-  InitFragmentExt, InitFragmentStage, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  Compilation, DependencyId, DependencyTemplate, DynamicDependencyTemplate,
+  DynamicDependencyTemplateType, ExternalModuleInitFragment, InitFragmentExt, InitFragmentStage,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
@@ -31,30 +32,8 @@ impl ExternalModuleDependency {
 
 #[cacheable_dyn]
 impl DependencyTemplate for ExternalModuleDependency {
-  fn apply(
-    &self,
-    _source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    let need_prefix = code_generatable_context
-      .compilation
-      .options
-      .output
-      .environment
-      .supports_node_prefix_for_core_modules();
-    let chunk_init_fragments = code_generatable_context.chunk_init_fragments();
-    let fragment = ExternalModuleInitFragment::new(
-      format!("{}{}", if need_prefix { "node:" } else { "" }, self.module),
-      self.import_specifier.clone(),
-      self.default_import.clone(),
-      InitFragmentStage::StageConstants,
-      0,
-    );
-    chunk_init_fragments.push(fragment.boxed());
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(ExternalModuleDependencyTemplate::template_type())
   }
 
   fn update_hash(
@@ -69,4 +48,41 @@ impl DependencyTemplate for ExternalModuleDependency {
   }
 }
 
-impl AsDependency for ExternalModuleDependency {}
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ExternalModuleDependencyTemplate;
+
+impl ExternalModuleDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::CustomType("ExternalModuleDependency")
+  }
+}
+
+impl DynamicDependencyTemplate for ExternalModuleDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyTemplate,
+    _source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ExternalModuleDependency>()
+      .expect("ExternalModuleDependencyTemplate should only be used for ExternalModuleDependency");
+    let need_prefix = code_generatable_context
+      .compilation
+      .options
+      .output
+      .environment
+      .supports_node_prefix_for_core_modules();
+    let chunk_init_fragments = code_generatable_context.chunk_init_fragments();
+    let fragment = ExternalModuleInitFragment::new(
+      format!("{}{}", if need_prefix { "node:" } else { "" }, dep.module),
+      dep.import_specifier.clone(),
+      dep.default_import.clone(),
+      InitFragmentStage::StageConstants,
+      0,
+    );
+    chunk_init_fragments.push(fragment.boxed());
+  }
+}

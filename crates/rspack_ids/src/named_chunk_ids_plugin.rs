@@ -104,6 +104,7 @@ fn assign_named_chunk_ids(
         compare_chunks_natural(
           chunk_graph,
           &module_graph,
+          &compilation.chunk_group_by_ukey,
           &compilation.module_ids_artifact,
           a,
           b,
@@ -135,6 +136,7 @@ fn assign_named_chunk_ids(
     compare_chunks_natural(
       chunk_graph,
       &module_graph,
+      &compilation.chunk_group_by_ukey,
       &compilation.module_ids_artifact,
       a,
       b,

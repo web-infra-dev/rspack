@@ -2,7 +2,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::AsRefStr};
 use rspack_util::ext::DynHash;
 
 use crate::{
-  AsDependency, Compilation, DependencyTemplate, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  Compilation, DependencyTemplate, RuntimeGlobals, RuntimeSpec, TemplateContext,
   TemplateReplaceSource,
 };
 
@@ -47,10 +47,6 @@ impl DependencyTemplate for ConstDependency {
     source.replace(self.start, self.end, self.content.as_ref(), None);
   }
 
-  fn dependency_id(&self) -> Option<crate::DependencyId> {
-    None
-  }
-
   fn update_hash(
     &self,
     hasher: &mut dyn std::hash::Hasher,
@@ -63,5 +59,3 @@ impl DependencyTemplate for ConstDependency {
     self.runtime_requirements.dyn_hash(hasher);
   }
 }
-
-impl AsDependency for ConstDependency {}

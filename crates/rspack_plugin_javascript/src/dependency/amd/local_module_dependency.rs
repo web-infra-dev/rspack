@@ -1,7 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AffectType, AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId,
-  DependencyTemplate, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyId,
+  DependencyTemplate, DynamicDependencyTemplate, DynamicDependencyTemplateType, TemplateContext,
+  TemplateReplaceSource,
 };
 
 use super::local_module::LocalModule;
@@ -43,37 +44,47 @@ impl Dependency for LocalModuleDependency {
 
 #[cacheable_dyn]
 impl DependencyTemplate for LocalModuleDependency {
-  fn apply(
-    &self,
-    source: &mut TemplateReplaceSource,
-    _code_generatable_context: &mut TemplateContext,
-  ) {
-    if let Some(range) = self.range {
-      let module_instance = if self.call_new {
-        format!(
-          "new (function () {{ return {}; }})()",
-          self.local_module.variable_name()
-        )
-      } else {
-        self.local_module.variable_name()
-      };
-      source.replace(range.0, range.1, &module_instance, None);
-    }
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(LocalModuleDependencyTemplate::template_type())
   }
 }
 
 impl AsModuleDependency for LocalModuleDependency {}
 
 impl AsContextDependency for LocalModuleDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct LocalModuleDependencyTemplate;
+
+impl LocalModuleDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::CustomType("LocalModuleDependency")
+  }
+}
+
+impl DynamicDependencyTemplate for LocalModuleDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyTemplate,
+    source: &mut TemplateReplaceSource,
+    _code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<LocalModuleDependency>()
+      .expect("LocalModuleDependencyTemplate should only be used for LocalModuleDependency");
+
+    if let Some(range) = dep.range {
+      let module_instance = if dep.call_new {
+        format!(
+          "new (function () {{ return {}; }})()",
+          dep.local_module.variable_name()
+        )
+      } else {
+        dep.local_module.variable_name()
+      };
+      source.replace(range.0, range.1, &module_instance, None);
+    }
+  }
+}

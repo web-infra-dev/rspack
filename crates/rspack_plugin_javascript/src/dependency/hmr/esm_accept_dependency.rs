@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  import_statement, runtime_condition_expression, AsDependency, Compilation, DependencyId,
-  DependencyLocation, DependencyRange, DependencyTemplate, RuntimeCondition, RuntimeSpec,
-  SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  import_statement, runtime_condition_expression, DependencyId, DependencyLocation,
+  DependencyRange, DependencyTemplate, DynamicDependencyTemplate, DynamicDependencyTemplateType,
+  RuntimeCondition, SharedSourceMap, TemplateContext, TemplateReplaceSource,
 };
 
 use crate::dependency::import_emitted_runtime;
@@ -39,11 +39,33 @@ impl ESMAcceptDependency {
 
 #[cacheable_dyn]
 impl DependencyTemplate for ESMAcceptDependency {
-  fn apply(
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(ESMAcceptDependencyTemplate::template_type())
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ESMAcceptDependencyTemplate;
+
+impl ESMAcceptDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::CustomType("ESMAcceptDependency")
+  }
+}
+
+impl DynamicDependencyTemplate for ESMAcceptDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyTemplate,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ESMAcceptDependency>()
+      .expect("ESMAcceptDependencyTemplate should be used for ESMAcceptDependency");
+
     let TemplateContext {
       compilation,
       module,
@@ -54,7 +76,7 @@ impl DependencyTemplate for ESMAcceptDependency {
 
     let mut content = String::default();
     let module_graph = compilation.get_module_graph();
-    self.dependency_ids.iter().for_each(|id| {
+    dep.dependency_ids.iter().for_each(|id| {
       let dependency = module_graph.dependency_by_id(id);
       let runtime_condition =
         match dependency.and_then(|dep| module_graph.get_module_by_dependency_id(dep.id())) {
@@ -105,37 +127,23 @@ impl DependencyTemplate for ESMAcceptDependency {
       }
     });
 
-    if self.has_callback {
+    if dep.has_callback {
       source.insert(
-        self.range.start,
+        dep.range.start,
         format!("function(__WEBPACK_OUTDATED_DEPENDENCIES__) {{\n{content}(").as_str(),
         None,
       );
       source.insert(
-        self.range.end,
+        dep.range.end,
         ")(__WEBPACK_OUTDATED_DEPENDENCIES__); }.bind(this)",
         None,
       );
     } else {
       source.insert(
-        self.range.start,
+        dep.range.start,
         format!(", function(){{\n{content}\n}}").as_str(),
         None,
       );
     }
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    None
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
-  }
 }
-
-impl AsDependency for ESMAcceptDependency {}

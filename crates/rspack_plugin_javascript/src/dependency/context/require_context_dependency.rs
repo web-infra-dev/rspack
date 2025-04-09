@@ -1,8 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  module_raw, AsModuleDependency, Compilation, ContextDependency, ContextOptions, Dependency,
+  module_raw, AsModuleDependency, ContextDependency, ContextOptions, Dependency,
   DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
-  FactorizeInfo, ModuleGraph, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  DynamicDependencyTemplate, DynamicDependencyTemplateType, FactorizeInfo, ModuleGraph,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -113,11 +114,35 @@ impl ContextDependency for RequireContextDependency {
 
 #[cacheable_dyn]
 impl DependencyTemplate for RequireContextDependency {
-  fn apply(
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(RequireContextDependencyTemplate::template_type())
+  }
+}
+
+impl AsModuleDependency for RequireContextDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct RequireContextDependencyTemplate;
+
+impl RequireContextDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::DependencyType(DependencyType::RequireContext)
+  }
+}
+
+impl DynamicDependencyTemplate for RequireContextDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyTemplate,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<RequireContextDependency>()
+      .expect("RequireContextDependencyTemplate should be used for RequireContextDependency");
+
     let TemplateContext {
       compilation,
       runtime_requirements,
@@ -127,24 +152,10 @@ impl DependencyTemplate for RequireContextDependency {
     let content = module_raw(
       compilation,
       runtime_requirements,
-      &self.id,
-      &self.options.request,
-      self.optional,
+      &dep.id,
+      &dep.options.request,
+      dep.optional,
     );
-    source.replace(self.range.start, self.range.end, &content, None);
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
+    source.replace(dep.range.start, dep.range.end, &content, None);
   }
 }
-
-impl AsModuleDependency for RequireContextDependency {}

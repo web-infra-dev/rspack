@@ -756,6 +756,10 @@ export async function runLoaders(
 	});
 
 	const getWorkerLoaderContext = () => {
+		const normalModule =
+			loaderContext._module instanceof NormalModule
+				? loaderContext._module
+				: undefined;
 		const workerLoaderContext = {
 			hot: loaderContext.hot,
 			context: loaderContext.context,
@@ -788,11 +792,28 @@ export async function runLoaders(
 				}
 			},
 			_compilation: {
-				outputOptions: compiler._lastCompilation!.outputOptions
+				options: {
+					output: {
+						// css-loader
+						environment: compiler._lastCompilation!.outputOptions.environment
+					}
+				},
+				// css-loader
+				outputOptions: {
+					hashSalt: compiler._lastCompilation!.outputOptions.hashSalt,
+					hashFunction: compiler._lastCompilation!.outputOptions.hashFunction,
+					hashDigest: compiler._lastCompilation!.outputOptions.hashDigest,
+					hashDigestLength:
+						compiler._lastCompilation!.outputOptions.hashDigestLength
+				}
 			},
 			_module: {
 				type: loaderContext._module.type,
-				identifier: loaderContext._module.identifier()
+				identifier: loaderContext._module.identifier(),
+				matchResource: normalModule?.matchResource,
+				request: normalModule?.request,
+				userRequest: normalModule?.userRequest,
+				rawRequest: normalModule?.rawRequest
 			}
 		} as any;
 		Object.assign(workerLoaderContext, compiler.options.loader);
@@ -889,6 +910,9 @@ export async function runLoaders(
 						loaderContext.cacheable(cacheable);
 						break;
 					}
+					case RequestType.ImportModule: {
+						return loaderContext.importModule(args[0], args[1]);
+					}
 					case RequestType.UpdateLoaderObjects: {
 						const updates = args[0];
 						loaderContext.loaders = loaderContext.loaders.map((item, index) => {
@@ -903,6 +927,29 @@ export async function runLoaders(
 							return item;
 						});
 						break;
+					}
+					case RequestType.CompilationGetPath: {
+						const filename = args[0];
+						const data = args[1];
+						return compiler._lastCompilation!.getPath(filename, data);
+					}
+					case RequestType.CompilationGetPathWithInfo: {
+						const filename = args[0];
+						const data = args[1];
+						return compiler._lastCompilation!.getPathWithInfo(filename, data);
+					}
+					case RequestType.CompilationGetAssetPath: {
+						const filename = args[0];
+						const data = args[1];
+						return compiler._lastCompilation!.getAssetPath(filename, data);
+					}
+					case RequestType.CompilationGetAssetPathWithInfo: {
+						const filename = args[0];
+						const data = args[1];
+						return compiler._lastCompilation!.getAssetPathWithInfo(
+							filename,
+							data
+						);
 					}
 					default: {
 						throw new Error(`Unknown request type: ${requestType}`);

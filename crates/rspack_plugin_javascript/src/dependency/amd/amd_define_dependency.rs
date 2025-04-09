@@ -4,9 +4,9 @@ use rspack_cacheable::{
   with::{AsOption, AsPreset},
 };
 use rspack_core::{
-  AffectType, AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
+  DependencyId, DependencyTemplate, DependencyType, DynamicDependencyTemplate,
+  DynamicDependencyTemplateType, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::{atom::Atom, json_stringify};
 
@@ -248,21 +248,47 @@ impl AMDDefineDependency {
   }
 }
 
+impl AsModuleDependency for AMDDefineDependency {}
+
+impl AsContextDependency for AMDDefineDependency {}
+
 #[cacheable_dyn]
 impl DependencyTemplate for AMDDefineDependency {
-  fn apply(
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(AMDDefineDependencyTemplate::template_type())
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct AMDDefineDependencyTemplate;
+
+impl AMDDefineDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::DependencyType(DependencyType::AmdDefine)
+  }
+}
+
+impl DynamicDependencyTemplate for AMDDefineDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyTemplate,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let branch = self.branch();
+    let dep = dep
+      .as_any()
+      .downcast_ref::<AMDDefineDependency>()
+      .expect("AMDDefineDependencyTemplate should only be used for AMDDefineDependency");
+
+    let branch = dep.branch();
     code_generatable_context
       .runtime_requirements
       .insert(branch.get_requests());
 
-    let local_module_var = self.local_module_var();
+    let local_module_var = dep.local_module_var();
 
-    let text = branch.get_content(&local_module_var, &self.named_module);
+    let text = branch.get_content(&local_module_var, &dep.named_module);
     let definition = branch.get_definition(&local_module_var);
 
     let mut texts = text.split('#');
@@ -271,40 +297,24 @@ impl DependencyTemplate for AMDDefineDependency {
       source.insert(0, &definition, None);
     }
 
-    let mut current = self.range.0;
-    if let Some(array_range) = self.array_range {
+    let mut current = dep.range.0;
+    if let Some(array_range) = dep.array_range {
       source.replace(current, array_range.0, texts.next().unwrap_or(""), None);
       current = array_range.1;
     }
 
-    if let Some(object_range) = self.object_range {
+    if let Some(object_range) = dep.object_range {
       source.replace(current, object_range.0, texts.next().unwrap_or(""), None);
       current = object_range.1;
-    } else if let Some(function_range) = self.function_range {
+    } else if let Some(function_range) = dep.function_range {
       source.replace(current, function_range.0, texts.next().unwrap_or(""), None);
       current = function_range.1;
     }
 
-    source.replace(current, self.range.1, texts.next().unwrap_or(""), None);
+    source.replace(current, dep.range.1, texts.next().unwrap_or(""), None);
 
     if texts.next().is_some() {
       panic!("Implementation error");
     }
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
-  }
 }
-
-impl AsModuleDependency for AMDDefineDependency {}
-
-impl AsContextDependency for AMDDefineDependency {}

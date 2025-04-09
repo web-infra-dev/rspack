@@ -27,8 +27,9 @@ export { RspackOptionsApply, RspackOptionsApply as WebpackOptionsApply };
 
 export type { Chunk } from "./Chunk";
 export type { ChunkGroup } from "./ChunkGroup";
-export type { Module, ResolveData, ResourceDataWithData } from "./Module";
+export type { ResolveData, ResourceDataWithData } from "./Module";
 export { MultiStats } from "./MultiStats";
+export { Module } from "./Module";
 export { NormalModule } from "./NormalModule";
 export { ContextModule } from "./ContextModule";
 export { ConcatenatedModule } from "./ConcatenatedModule";

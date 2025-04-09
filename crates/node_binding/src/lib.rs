@@ -7,7 +7,6 @@ extern crate rspack_allocator;
 
 use std::{
   cell::RefCell,
-  pin::Pin,
   sync::{Arc, Mutex},
 };
 
@@ -333,6 +332,22 @@ enum TraceState {
   Off,
 }
 
+#[cfg(target_family = "wasm")]
+const _: () = {
+  #[used]
+  #[link_section = ".init_array"]
+  static __CTOR: unsafe extern "C" fn() = init;
+
+  unsafe extern "C" fn init() {
+    let rt = tokio::runtime::Builder::new_multi_thread()
+      .max_blocking_threads(1)
+      .enable_all()
+      .build()
+      .expect("Create tokio runtime failed");
+    create_custom_tokio_runtime(rt);
+  }
+};
+
 #[cfg(not(target_family = "wasm"))]
 #[napi::ctor::ctor(crate_path = ::napi::ctor)]
 fn init() {
@@ -454,4 +469,24 @@ pub fn cleanup_global_trace() {
 fn node_init(mut _exports: Object, env: Env) -> Result<()> {
   rspack_core::set_thread_local_allocator(Box::new(allocator::NapiAllocatorImpl::new(env)));
   Ok(())
+}
+
+#[napi]
+/// Shutdown the tokio runtime manually.
+///
+/// This is required for the wasm target with `tokio_unstable` cfg.
+/// In the wasm runtime, the `park` threads will hang there until the tokio::Runtime is shutdown.
+pub fn shutdown_async_runtime() {
+  #[cfg(all(target_family = "wasm", tokio_unstable))]
+  napi::bindgen_prelude::shutdown_async_runtime();
+}
+
+#[napi]
+/// Start the async runtime manually.
+///
+/// This is required when the async runtime is shutdown manually.
+/// Usually it's used in test.
+pub fn start_async_runtime() {
+  #[cfg(all(target_family = "wasm", tokio_unstable))]
+  napi::bindgen_prelude::start_async_runtime();
 }

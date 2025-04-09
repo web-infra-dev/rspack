@@ -3,11 +3,11 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec, Skip},
 };
 use rspack_core::{
-  module_id, property_access, to_normal_comment, AsContextDependency, Compilation, Dependency,
+  module_id, property_access, to_normal_comment, AsContextDependency, Dependency,
   DependencyCategory, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyType, ExportsType, ExtendedReferencedExport, FactorizeInfo, ModuleDependency,
-  ModuleGraph, RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, UsedName,
+  DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType, ExportsType,
+  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, RuntimeGlobals,
+  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::atoms::Atom;
 
@@ -62,7 +62,7 @@ impl Dependency for CommonJsFullRequireDependency {
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::CjsRequire
+    &DependencyType::CjsFullRequire
   }
 
   fn loc(&self) -> Option<DependencyLocation> {
@@ -130,11 +130,35 @@ impl ModuleDependency for CommonJsFullRequireDependency {
 
 #[cacheable_dyn]
 impl DependencyTemplate for CommonJsFullRequireDependency {
-  fn apply(
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(CommonJsFullRequireDependencyTemplate::template_type())
+  }
+}
+
+impl AsContextDependency for CommonJsFullRequireDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct CommonJsFullRequireDependencyTemplate;
+
+impl CommonJsFullRequireDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::DependencyType(DependencyType::CjsFullRequire)
+  }
+}
+
+impl DynamicDependencyTemplate for CommonJsFullRequireDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyTemplate,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<CommonJsFullRequireDependency>()
+      .expect("CommonJsFullRequireDependencyTemplate should only be used for CommonJsFullRequireDependency");
+
     let TemplateContext {
       compilation,
       runtime,
@@ -147,16 +171,16 @@ impl DependencyTemplate for CommonJsFullRequireDependency {
     let mut require_expr = format!(
       r#"{}({})"#,
       RuntimeGlobals::REQUIRE,
-      module_id(compilation, &self.id, &self.request, false)
+      module_id(compilation, &dep.id, &dep.request, false)
     );
 
-    if let Some(imported_module) = module_graph.module_graph_module_by_dependency_id(&self.id) {
+    if let Some(imported_module) = module_graph.module_graph_module_by_dependency_id(&dep.id) {
       let used = module_graph
         .get_exports_info(&imported_module.module_identifier)
-        .get_used_name(&module_graph, *runtime, UsedName::Vec(self.names.clone()));
+        .get_used_name(&module_graph, *runtime, UsedName::Vec(dep.names.clone()));
 
       if let Some(used) = used {
-        let comment = to_normal_comment(&property_access(self.names.clone(), 0));
+        let comment = to_normal_comment(&property_access(dep.names.clone(), 0));
         require_expr = format!(
           "{}{}{}",
           require_expr,
@@ -169,26 +193,12 @@ impl DependencyTemplate for CommonJsFullRequireDependency {
             0
           )
         );
-        if self.asi_safe {
+        if dep.asi_safe {
           require_expr = format!("({require_expr})");
         }
       }
     }
 
-    source.replace(self.range.start, self.range.end, &require_expr, None);
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
+    source.replace(dep.range.start, dep.range.end, &require_expr, None);
   }
 }
-
-impl AsContextDependency for CommonJsFullRequireDependency {}

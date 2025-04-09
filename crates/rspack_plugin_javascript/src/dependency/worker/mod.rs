@@ -1,10 +1,13 @@
 mod create_script_url_dependency;
-pub use create_script_url_dependency::CreateScriptUrlDependency;
+pub use create_script_url_dependency::{
+  CreateScriptUrlDependency, CreateScriptUrlDependencyTemplate,
+};
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyType, ExtendedReferencedExport, FactorizeInfo, ModuleDependency,
-  ModuleGraph, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  DependencyTemplate, DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType,
+  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, RuntimeGlobals,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
@@ -93,56 +96,8 @@ impl ModuleDependency for WorkerDependency {
 
 #[cacheable_dyn]
 impl DependencyTemplate for WorkerDependency {
-  fn apply(
-    &self,
-    source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    let TemplateContext {
-      compilation,
-      runtime_requirements,
-      ..
-    } = code_generatable_context;
-    let chunk_id = compilation
-      .get_module_graph()
-      .get_parent_block(&self.id)
-      .and_then(|block| {
-        compilation
-          .chunk_graph
-          .get_block_chunk_group(block, &compilation.chunk_group_by_ukey)
-      })
-      .map(|entrypoint| entrypoint.get_entrypoint_chunk())
-      .and_then(|ukey| compilation.chunk_by_ukey.get(&ukey))
-      .and_then(|chunk| chunk.id(&compilation.chunk_ids_artifact))
-      .and_then(|chunk_id| serde_json::to_string(chunk_id).ok())
-      .expect("failed to get json stringified chunk id");
-    let worker_import_base_url = if !self.public_path.is_empty() {
-      format!("\"{}\"", self.public_path)
-    } else {
-      RuntimeGlobals::PUBLIC_PATH.to_string()
-    };
-
-    runtime_requirements.insert(RuntimeGlobals::PUBLIC_PATH);
-    runtime_requirements.insert(RuntimeGlobals::BASE_URI);
-    runtime_requirements.insert(RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME);
-
-    source.replace(
-      self.range_path.start,
-      self.range_path.end,
-      format!(
-        "/* worker import */{} + {}({}), {}",
-        worker_import_base_url,
-        RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME,
-        chunk_id,
-        RuntimeGlobals::BASE_URI
-      )
-      .as_str(),
-      None,
-    );
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(WorkerDependencyTemplate::template_type())
   }
 
   fn update_hash(
@@ -156,3 +111,68 @@ impl DependencyTemplate for WorkerDependency {
 }
 
 impl AsContextDependency for WorkerDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct WorkerDependencyTemplate;
+
+impl WorkerDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::DependencyType(DependencyType::NewWorker)
+  }
+}
+
+impl DynamicDependencyTemplate for WorkerDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyTemplate,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<WorkerDependency>()
+      .expect("WorkerDependencyTemplate should be used for WorkerDependency");
+    let TemplateContext {
+      compilation,
+      runtime_requirements,
+      ..
+    } = code_generatable_context;
+    let chunk_id = compilation
+      .get_module_graph()
+      .get_parent_block(&dep.id)
+      .and_then(|block| {
+        compilation
+          .chunk_graph
+          .get_block_chunk_group(block, &compilation.chunk_group_by_ukey)
+      })
+      .map(|entrypoint| entrypoint.get_entrypoint_chunk())
+      .and_then(|ukey| compilation.chunk_by_ukey.get(&ukey))
+      .and_then(|chunk| chunk.id(&compilation.chunk_ids_artifact))
+      .and_then(|chunk_id| serde_json::to_string(chunk_id).ok())
+      .expect("failed to get json stringified chunk id");
+    let worker_import_base_url = if !dep.public_path.is_empty() {
+      format!("\"{}\"", dep.public_path)
+    } else {
+      RuntimeGlobals::PUBLIC_PATH.to_string()
+    };
+
+    runtime_requirements.insert(RuntimeGlobals::PUBLIC_PATH);
+    runtime_requirements.insert(RuntimeGlobals::BASE_URI);
+    runtime_requirements.insert(RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME);
+
+    source.replace(
+      dep.range_path.start,
+      dep.range_path.end,
+      format!(
+        "/* worker import */{} + {}({}), {}",
+        worker_import_base_url,
+        RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME,
+        chunk_id,
+        RuntimeGlobals::BASE_URI
+      )
+      .as_str(),
+      None,
+    );
+  }
+}

@@ -1,4 +1,4 @@
-use napi::JsString;
+use napi::{JsString, NapiRaw};
 use napi_derive::napi;
 use rspack_core::{BindingCell, BindingWeak, ChunkLoading, Compilation, EntryData, EntryRuntime};
 use rspack_napi::napi::bindgen_prelude::*;

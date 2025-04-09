@@ -1,9 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  get_dependency_used_by_exports_condition, module_id, AsContextDependency, Compilation,
-  Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyType, FactorizeInfo, ModuleDependency, RuntimeGlobals, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource, UsedByExports,
+  get_dependency_used_by_exports_condition, module_id, AsContextDependency, Dependency,
+  DependencyCategory, DependencyCondition, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType, FactorizeInfo,
+  ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedByExports,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -91,11 +91,34 @@ impl ModuleDependency for URLDependency {
 
 #[cacheable_dyn]
 impl DependencyTemplate for URLDependency {
-  fn apply(
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(URLDependencyTemplate::template_type())
+  }
+}
+
+impl AsContextDependency for URLDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct URLDependencyTemplate;
+
+impl URLDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::DependencyType(DependencyType::NewUrl)
+  }
+}
+
+impl DynamicDependencyTemplate for URLDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyTemplate,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<URLDependency>()
+      .expect("URLDependencyTemplate should be used for URLDependency");
     let TemplateContext {
       compilation,
       runtime_requirements,
@@ -104,16 +127,16 @@ impl DependencyTemplate for URLDependency {
 
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
 
-    if self.relative {
+    if dep.relative {
       runtime_requirements.insert(RuntimeGlobals::RELATIVE_URL);
       source.replace(
-        self.range.start,
-        self.range.end,
+        dep.range.start,
+        dep.range.end,
         format!(
           "/* asset import */ new {}({}({}))",
           RuntimeGlobals::RELATIVE_URL,
           RuntimeGlobals::REQUIRE,
-          module_id(compilation, &self.id, &self.request, false),
+          module_id(compilation, &dep.id, &dep.request, false),
         )
         .as_str(),
         None,
@@ -121,12 +144,12 @@ impl DependencyTemplate for URLDependency {
     } else {
       runtime_requirements.insert(RuntimeGlobals::BASE_URI);
       source.replace(
-        self.range_url.start,
-        self.range_url.end,
+        dep.range_url.start,
+        dep.range_url.end,
         format!(
           "/* asset import */{}({}), {}",
           RuntimeGlobals::REQUIRE,
-          module_id(compilation, &self.id, &self.request, false),
+          module_id(compilation, &dep.id, &dep.request, false),
           RuntimeGlobals::BASE_URI
         )
         .as_str(),
@@ -134,18 +157,4 @@ impl DependencyTemplate for URLDependency {
       );
     }
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
-  }
 }
-
-impl AsContextDependency for URLDependency {}

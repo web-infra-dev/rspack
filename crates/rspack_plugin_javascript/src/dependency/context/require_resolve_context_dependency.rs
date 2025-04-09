@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AffectType, AsModuleDependency, Compilation, ContextDependency, ContextOptions,
-  ContextTypePrefix, Dependency, DependencyCategory, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyType, FactorizeInfo, RuntimeSpec, TemplateContext,
+  AffectType, AsModuleDependency, ContextDependency, ContextOptions, ContextTypePrefix, Dependency,
+  DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
+  DynamicDependencyTemplate, DynamicDependencyTemplateType, FactorizeInfo, TemplateContext,
   TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
@@ -47,7 +47,7 @@ impl Dependency for RequireResolveContextDependency {
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::RequireContext
+    &DependencyType::RequireResolveContext
   }
 
   fn range(&self) -> Option<&DependencyRange> {
@@ -107,25 +107,35 @@ impl ContextDependency for RequireResolveContextDependency {
 
 #[cacheable_dyn]
 impl DependencyTemplate for RequireResolveContextDependency {
-  fn apply(
-    &self,
-    source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    context_dependency_template_as_id(self, source, code_generatable_context, &self.range);
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(RequireResolveContextDependencyTemplate::template_type())
   }
 }
 
 impl AsModuleDependency for RequireResolveContextDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct RequireResolveContextDependencyTemplate;
+
+impl RequireResolveContextDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::DependencyType(DependencyType::RequireResolveContext)
+  }
+}
+
+impl DynamicDependencyTemplate for RequireResolveContextDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyTemplate,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<RequireResolveContextDependency>()
+      .expect("RequireResolveContextDependencyTemplate should be used for RequireResolveContextDependency");
+
+    context_dependency_template_as_id(dep, source, code_generatable_context, &dep.range);
+  }
+}

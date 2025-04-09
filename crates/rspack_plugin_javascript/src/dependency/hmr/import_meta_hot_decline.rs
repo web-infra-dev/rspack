@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  module_id, AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyType, FactorizeInfo, ModuleDependency,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyRange,
+  DependencyTemplate, DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType,
+  FactorizeInfo, ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -79,36 +79,48 @@ impl ModuleDependency for ImportMetaHotDeclineDependency {
 
 #[cacheable_dyn]
 impl DependencyTemplate for ImportMetaHotDeclineDependency {
-  fn apply(
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(ImportMetaHotDeclineDependencyTemplate::template_type())
+  }
+}
+
+impl AsContextDependency for ImportMetaHotDeclineDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ImportMetaHotDeclineDependencyTemplate;
+
+impl ImportMetaHotDeclineDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::DependencyType(DependencyType::ImportMetaHotDecline)
+  }
+}
+
+impl DynamicDependencyTemplate for ImportMetaHotDeclineDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyTemplate,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ImportMetaHotDeclineDependency>()
+      .expect(
+        "ImportMetaHotDeclineDependencyTemplate should be used for ImportMetaHotDeclineDependency",
+      );
+
     source.replace(
-      self.range.start,
-      self.range.end,
+      dep.range.start,
+      dep.range.end,
       module_id(
         code_generatable_context.compilation,
-        &self.id,
-        &self.request,
-        self.weak(),
+        &dep.id,
+        &dep.request,
+        dep.weak(),
       )
       .as_str(),
       None,
     );
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
-  }
 }
-
-impl AsContextDependency for ImportMetaHotDeclineDependency {}

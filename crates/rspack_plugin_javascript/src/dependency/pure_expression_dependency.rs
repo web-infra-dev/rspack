@@ -2,9 +2,10 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   filter_runtime, runtime_condition_expression, AsContextDependency, AsModuleDependency,
-  Compilation, ConnectionState, Dependency, DependencyId, DependencyTemplate, ModuleGraph,
-  ModuleIdentifier, RuntimeCondition, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedByExports, UsedName,
+  Compilation, ConnectionState, Dependency, DependencyId, DependencyTemplate,
+  DynamicDependencyTemplate, DynamicDependencyTemplateType, ModuleGraph, ModuleIdentifier,
+  RuntimeCondition, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedByExports,
+  UsedName,
 };
 use rspack_util::ext::DynHash;
 
@@ -85,38 +86,8 @@ impl AsModuleDependency for PureExpressionDependency {}
 
 #[cacheable_dyn]
 impl DependencyTemplate for PureExpressionDependency {
-  fn apply(&self, source: &mut TemplateReplaceSource, ctx: &mut TemplateContext) {
-    let runtime_condition = self.get_runtime_condition(ctx.compilation, ctx.runtime);
-    let condition = match &runtime_condition {
-      rspack_core::RuntimeCondition::Boolean(true) => return,
-      rspack_core::RuntimeCondition::Boolean(false) => None,
-      rspack_core::RuntimeCondition::Spec(_spec) => Some(runtime_condition_expression(
-        &ctx.compilation.chunk_graph,
-        Some(&runtime_condition),
-        ctx.runtime,
-        ctx.runtime_requirements,
-      )),
-    };
-
-    if let Some(condition) = condition {
-      source.insert(
-        self.start,
-        &format!("(/* runtime-dependent pure expression or super */ {condition} ? ("),
-        None,
-      );
-      source.insert(self.end, ") : null)", None);
-    } else {
-      source.insert(
-        self.start,
-        "(/* unused pure expression or super */ null && (",
-        None,
-      );
-      source.insert(self.end, "))", None);
-    }
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(PureExpressionDependencyTemplate::template_type())
   }
 
   fn update_hash(
@@ -131,3 +102,58 @@ impl DependencyTemplate for PureExpressionDependency {
 }
 
 impl AsContextDependency for PureExpressionDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct PureExpressionDependencyTemplate;
+
+impl PureExpressionDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::CustomType("PureExpressionDependency")
+  }
+}
+
+impl DynamicDependencyTemplate for PureExpressionDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyTemplate,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<PureExpressionDependency>()
+      .expect("PureExpressionDependencyTemplate should be used for PureExpressionDependency");
+
+    let runtime_condition = dep.get_runtime_condition(
+      code_generatable_context.compilation,
+      code_generatable_context.runtime,
+    );
+    let condition = match &runtime_condition {
+      rspack_core::RuntimeCondition::Boolean(true) => return,
+      rspack_core::RuntimeCondition::Boolean(false) => None,
+      rspack_core::RuntimeCondition::Spec(_spec) => Some(runtime_condition_expression(
+        &code_generatable_context.compilation.chunk_graph,
+        Some(&runtime_condition),
+        code_generatable_context.runtime,
+        code_generatable_context.runtime_requirements,
+      )),
+    };
+
+    if let Some(condition) = condition {
+      source.insert(
+        dep.start,
+        &format!("(/* runtime-dependent pure expression or super */ {condition} ? ("),
+        None,
+      );
+      source.insert(dep.end, ") : null)", None);
+    } else {
+      source.insert(
+        dep.start,
+        "(/* unused pure expression or super */ null && (",
+        None,
+      );
+      source.insert(dep.end, "))", None);
+    }
+  }
+}

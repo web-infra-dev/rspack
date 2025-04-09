@@ -3,9 +3,10 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  property_access, AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ExtendedReferencedExport, FactorizeInfo, ModuleDependency,
-  ModuleGraph, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName,
+  property_access, AsContextDependency, Dependency, DependencyCategory, DependencyId,
+  DependencyTemplate, DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType,
+  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, RuntimeGlobals,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::atoms::Atom;
 
@@ -96,11 +97,33 @@ impl AsContextDependency for CommonJsSelfReferenceDependency {}
 
 #[cacheable_dyn]
 impl DependencyTemplate for CommonJsSelfReferenceDependency {
-  fn apply(
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(CommonJsSelfReferenceDependencyTemplate::template_type())
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct CommonJsSelfReferenceDependencyTemplate;
+
+impl CommonJsSelfReferenceDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::DependencyType(DependencyType::CjsSelfReference)
+  }
+}
+
+impl DynamicDependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyTemplate,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<CommonJsSelfReferenceDependency>()
+      .expect("CommonJsSelfReferenceDependencyTemplate should only be used for CommonJsSelfReferenceDependency");
+
     let TemplateContext {
       compilation,
       module,
@@ -113,25 +136,25 @@ impl DependencyTemplate for CommonJsSelfReferenceDependency {
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
 
-    let used = if self.names.is_empty() {
+    let used = if dep.names.is_empty() {
       module_graph
         .get_exports_info(&module.identifier())
-        .get_used_name(&module_graph, *runtime, UsedName::Vec(self.names.clone()))
-        .unwrap_or_else(|| UsedName::Vec(self.names.clone()))
+        .get_used_name(&module_graph, *runtime, UsedName::Vec(dep.names.clone()))
+        .unwrap_or_else(|| UsedName::Vec(dep.names.clone()))
     } else {
-      UsedName::Vec(self.names.clone())
+      UsedName::Vec(dep.names.clone())
     };
 
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();
 
-    let base = if self.base.is_exports() {
+    let base = if dep.base.is_exports() {
       runtime_requirements.insert(RuntimeGlobals::EXPORTS);
       exports_argument.to_string()
-    } else if self.base.is_module_exports() {
+    } else if dep.base.is_module_exports() {
       runtime_requirements.insert(RuntimeGlobals::MODULE);
       format!("{}.exports", module_argument)
-    } else if self.base.is_this() {
+    } else if dep.base.is_this() {
       runtime_requirements.insert(RuntimeGlobals::THIS_AS_EXPORTS);
       "this".to_string()
     } else {
@@ -139,8 +162,8 @@ impl DependencyTemplate for CommonJsSelfReferenceDependency {
     };
 
     source.replace(
-      self.range.0,
-      self.range.1,
+      dep.range.0,
+      dep.range.1,
       &format!(
         "{}{}",
         base,
@@ -154,17 +177,5 @@ impl DependencyTemplate for CommonJsSelfReferenceDependency {
       ),
       None,
     )
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }

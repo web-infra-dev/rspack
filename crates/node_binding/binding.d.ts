@@ -10,7 +10,10 @@ export type RawLazyCompilationTest = RegExp | ((module: Module) => boolean);
 
 export type AssetInfo = KnownAssetInfo & Record<string, any>;
 
+export const MODULE_IDENTIFIER_SYMBOL: unique symbol;
+
 export interface Module {
+	[MODULE_IDENTIFIER_SYMBOL]: string;
 	readonly type: string;
 	get context(): string | undefined;
 	get layer(): string | undefined;
@@ -29,15 +32,14 @@ interface NormalModuleConstructor {
 export var NormalModule: NormalModuleConstructor;
 
 export interface NormalModule extends Module {
-	get resource(): string;
-	get request(): string
-	get userRequest(): string
-	set userRequest(val: string)
-	get rawRequest(): string
-	get loaders(): Array<JsLoaderItem>
-	get resourceResolveData(): JsResourceData | undefined
-	get matchResource(): string | undefined
-	set matchResource(val: string | undefined)
+	readonly resource: string;
+	readonly request: string;
+	readonly userRequest: string;
+	readonly rawRequest: string;
+	readonly resourceResolveData: JsResourceData | undefined;
+	readonly loaders: ReadonlyArray<JsLoaderItem>;
+	get matchResource(): string | undefined;
+	set matchResource(val: string | undefined);
 }
 
 export interface ConcatenatedModule extends Module {
@@ -47,6 +49,7 @@ export interface ContextModule extends Module {
 }
 
 export interface ExternalModule extends Module {
+	readonly userRequest: string;
 }
 /* -- banner.d.ts end -- */
 
@@ -66,7 +69,6 @@ export declare class AsyncDependenciesBlock {
 export declare class ConcatenatedModule {
   get modules(): Module[]
   _originalSource(): JsCompatSource | undefined
-  identifier(): string
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -77,7 +79,6 @@ export declare class ConcatenatedModule {
 
 export declare class ContextModule {
   _originalSource(): JsCompatSource | undefined
-  identifier(): string
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -130,10 +131,7 @@ export declare class EntryOptionsDto {
 export type EntryOptionsDTO = EntryOptionsDto
 
 export declare class ExternalModule {
-  get userRequest(): string
-  set userRequest(val: string)
   _originalSource(): JsCompatSource | undefined
-  identifier(): string
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -319,20 +317,13 @@ export declare class JsModuleGraph {
   getUsedExports(module: Module, runtime: string | string[]): boolean | Array<string> | null
   getIssuer(module: Module): Module | null
   getExportsInfo(module: Module): JsExportsInfo
-  getConnection(dependency: Dependency): JsModuleGraphConnection | null
-  getOutgoingConnections(module: Module): JsModuleGraphConnection[]
-  getOutgoingConnectionsInOrder(module: Module): JsModuleGraphConnection[]
-  getIncomingConnections(module: Module): JsModuleGraphConnection[]
+  getConnection(dependency: Dependency): ModuleGraphConnection | null
+  getOutgoingConnections(module: Module): ModuleGraphConnection[]
+  getOutgoingConnectionsInOrder(module: Module): ModuleGraphConnection[]
+  getIncomingConnections(module: Module): ModuleGraphConnection[]
   getParentModule(dependency: Dependency): Module | null
   getParentBlockIndex(dependency: Dependency): number
   isAsync(module: Module): boolean
-}
-
-export declare class JsModuleGraphConnection {
-  get dependency(): Dependency
-  get module(): Module | null
-  get resolvedModule(): Module | null
-  get originModule(): Module | null
 }
 
 export declare class JsResolver {
@@ -354,13 +345,19 @@ export declare class JsStats {
 
 export declare class Module {
   _originalSource(): JsCompatSource | undefined
-  identifier(): string
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
   _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
+}
+
+export declare class ModuleGraphConnection {
+  get dependency(): Dependency
+  get module(): Module | null
+  get resolvedModule(): Module | null
+  get originModule(): Module | null
 }
 
 
@@ -1087,11 +1084,12 @@ export interface JsRuntimeModuleArg {
 
 export interface JsRuntimeRequirementInTreeArg {
   chunk: JsChunk
+  allRuntimeRequirements: JsRuntimeGlobals
   runtimeRequirements: JsRuntimeGlobals
 }
 
 export interface JsRuntimeRequirementInTreeResult {
-  runtimeRequirements: JsRuntimeGlobals
+  allRuntimeRequirements: JsRuntimeGlobals
 }
 
 export interface JsStatsAsset {
@@ -2509,6 +2507,22 @@ export interface RegisterJsTaps {
   registerRsdoctorPluginModuleSourcesTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleSourcesPatch) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorAssetPatch) => Promise<boolean | undefined>); stage: number; }>
 }
+
+/**
+ * Shutdown the tokio runtime manually.
+ *
+ * This is required for the wasm target with `tokio_unstable` cfg.
+ * In the wasm runtime, the `park` threads will hang there until the tokio::Runtime is shutdown.
+ */
+export declare function shutdownAsyncRuntime(): void
+
+/**
+ * Start the async runtime manually.
+ *
+ * This is required when the async runtime is shutdown manually.
+ * Usually it's used in test.
+ */
+export declare function startAsyncRuntime(): void
 
 export interface ThreadsafeNodeFS {
   writeFile: (name: string, content: Buffer) => Promise<void>
