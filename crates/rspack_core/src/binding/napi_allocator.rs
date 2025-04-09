@@ -1,9 +1,7 @@
-use std::{cell::RefCell, sync::Arc};
-
 use napi::sys::{napi_env, napi_value};
 use once_cell::sync::OnceCell;
 
-use crate::{AssetInfo, EntryData, EntryOptions};
+use crate::{AssetInfo, BindingRoot, EntryData, EntryOptions};
 
 thread_local! {
   static NAPI_ALLOCATOR: OnceCell<Box<dyn NapiAllocator>> = OnceCell::default();
@@ -13,17 +11,17 @@ pub trait NapiAllocator {
   fn allocate_asset_info(
     &self,
     env: napi_env,
-    val: &Arc<RefCell<Box<AssetInfo>>>,
+    val: &BindingRoot<AssetInfo>,
   ) -> napi::Result<napi_value>;
   fn allocate_entry_data(
     &self,
     env: napi_env,
-    val: &Arc<RefCell<Box<EntryData>>>,
+    val: &BindingRoot<EntryData>,
   ) -> napi::Result<napi_value>;
   fn allocate_entry_options(
     &self,
     env: napi_env,
-    val: &Arc<RefCell<Box<EntryOptions>>>,
+    val: &BindingRoot<EntryOptions>,
   ) -> napi::Result<napi_value>;
 }
 

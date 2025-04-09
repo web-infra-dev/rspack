@@ -1,11 +1,8 @@
-use std::{cell::RefCell, sync::Weak};
-
 use napi::JsString;
 use napi_derive::napi;
-use rspack_core::{BindingCell, ChunkLoading, Compilation, EntryData, EntryRuntime};
+use rspack_core::{BindingCell, BindingWeak, ChunkLoading, Compilation, EntryData, EntryRuntime};
 use rspack_napi::napi::bindgen_prelude::*;
 
-use super::JsCompilation;
 use crate::{
   dependency::Dependency, entry::JsEntryOptions, library::JsLibraryOptions, DependencyWrapper,
   JsCompiler, RawChunkLoading, WithFalse,
@@ -13,7 +10,7 @@ use crate::{
 
 #[napi]
 pub struct EntryOptionsDTO {
-  pub(crate) i: Weak<RefCell<Box<rspack_core::EntryOptions>>>,
+  pub(crate) i: BindingWeak<rspack_core::EntryOptions>,
 }
 
 impl EntryOptionsDTO {
@@ -22,7 +19,7 @@ impl EntryOptionsDTO {
     F: FnOnce(&rspack_core::EntryOptions) -> napi::Result<T>,
   {
     match self.i.upgrade() {
-      Some(entry_options) => f(&**entry_options.borrow()),
+      Some(entry_options) => f(unsafe { &**entry_options.get() }),
       None => Err(napi::Error::from_reason(
         "Unable to access EntryOptions now. The EntryOptions has been dropped by Rust.",
       )),
@@ -34,7 +31,7 @@ impl EntryOptionsDTO {
     F: FnOnce(&mut rspack_core::EntryOptions) -> napi::Result<T>,
   {
     match self.i.upgrade() {
-      Some(entry_options) => f(&mut **entry_options.borrow_mut()),
+      Some(entry_options) => f(unsafe { &mut **entry_options.get() }),
       None => Err(napi::Error::from_reason(
         "Unable to access EntryOptions now. The EntryOptions has been dropped by Rust.",
       )),
@@ -69,121 +66,152 @@ impl EntryOptionsDTO {
   }
 
   #[napi(getter, ts_return_type = "false | string | undefined")]
-  pub fn runtime(&self) -> napi::Result<Either3<bool, &String, ()>> {
-    // match &self.0.runtime {
-    //   Some(rt) => match rt {
-    //     EntryRuntime::String(s) => Either3::B(s),
-    //     EntryRuntime::False => Either3::A(false),
-    //   },
-    //   None => Either3::C(()),
-    // }
-    todo!()
+  pub fn runtime(&self, env: &Env) -> napi::Result<Either3<bool, JsString, ()>> {
+    self.with_ref(|entry_options| {
+      Ok(match &entry_options.runtime {
+        Some(rt) => match rt {
+          EntryRuntime::String(s) => Either3::B(env.create_string(s)?),
+          EntryRuntime::False => Either3::A(false),
+        },
+        None => Either3::C(()),
+      })
+    })
   }
 
   #[napi(setter)]
-  pub fn set_runtime(&mut self, chunk_loading: Either3<bool, String, ()>) {
-    // self.0.chunk_loading = match chunk_loading {
-    //   Either3::A(_) => Some(ChunkLoading::Disable),
-    //   Either3::B(s) => Some(ChunkLoading::Enable(s.as_str().into())),
-    //   Either3::C(_) => None,
-    // };
-    todo!()
+  pub fn set_runtime(&mut self, chunk_loading: Either3<bool, String, ()>) -> napi::Result<()> {
+    self.with_mut(|entry_options| {
+      entry_options.chunk_loading = match chunk_loading {
+        Either3::A(_) => Some(ChunkLoading::Disable),
+        Either3::B(s) => Some(ChunkLoading::Enable(s.as_str().into())),
+        Either3::C(_) => None,
+      };
+      Ok(())
+    })
   }
 
   #[napi(getter)]
-  pub fn chunk_loading(&self) -> Either<&str, ()> {
-    // match &self.0.chunk_loading {
-    //   Some(c) => Either::A(c.as_str()),
-    //   None => Either::B(()),
-    // }
-    todo!()
+  pub fn chunk_loading(&self, env: &Env) -> napi::Result<Either<JsString, ()>> {
+    self.with_ref(|entry_options| {
+      Ok(match &entry_options.chunk_loading {
+        Some(c) => Either::A(env.create_string(c.as_str())?),
+        None => Either::B(()),
+      })
+    })
   }
 
   #[napi(setter, ts_type = "(chunkLoading: string | false | undefined)")]
-  pub fn set_chunk_loading(&mut self, chunk_loading: Either<RawChunkLoading, ()>) {
-    // match chunk_loading {
-    //   Either::A(WithFalse::False) => self.0.chunk_loading = Some(ChunkLoading::Disable),
-    //   Either::A(WithFalse::True(s)) => {
-    //     self.0.chunk_loading = Some(ChunkLoading::Enable(s.as_str().into()))
-    //   }
-    //   Either::B(_) => self.0.chunk_loading = None,
-    // }
-    todo!()
+  pub fn set_chunk_loading(
+    &mut self,
+    chunk_loading: Either<RawChunkLoading, ()>,
+  ) -> napi::Result<()> {
+    self.with_mut(|entry_options| {
+      entry_options.chunk_loading = match chunk_loading {
+        Either::A(WithFalse::False) => Some(ChunkLoading::Disable),
+        Either::A(WithFalse::True(s)) => Some(ChunkLoading::Enable(s.as_str().into())),
+        Either::B(_) => None,
+      };
+      Ok(())
+    })
   }
 
   #[napi(getter)]
-  pub fn async_chunks(&self) -> Either<bool, ()> {
-    // self.0.async_chunks.into()
-    todo!()
+  pub fn async_chunks(&self) -> napi::Result<Either<bool, ()>> {
+    self.with_ref(|entry_options| Ok(entry_options.async_chunks.into()))
   }
 
   #[napi(setter)]
-  pub fn set_async_chunks(&mut self, async_chunks: Either<bool, ()>) {
-    // self.0.async_chunks = match async_chunks {
-    //   Either::A(b) => Some(b),
-    //   Either::B(_) => None,
-    // };
-    todo!()
+  pub fn set_async_chunks(&mut self, async_chunks: Either<bool, ()>) -> napi::Result<()> {
+    self.with_mut(|entry_options| {
+      entry_options.async_chunks = match async_chunks {
+        Either::A(b) => Some(b),
+        Either::B(_) => None,
+      };
+      Ok(())
+    })
   }
 
   #[napi(getter)]
-  pub fn base_uri(&self) -> Either<&String, ()> {
-    // self.0.base_uri.as_ref().into()
-    todo!()
+  pub fn base_uri(&self, env: &Env) -> napi::Result<Either<JsString, ()>> {
+    self.with_ref(|entry_options| match &entry_options.base_uri {
+      Some(base_uri) => Ok(Either::A(env.create_string(base_uri)?)),
+      None => Ok(Either::B(())),
+    })
   }
 
   #[napi(setter)]
-  pub fn set_base_uri(&mut self, base_uri: Either<String, ()>) {
-    // self.0.base_uri = match base_uri {
-    //   Either::A(s) => Some(s),
-    //   Either::B(_) => None,
-    // };
-    todo!()
+  pub fn set_base_uri(&mut self, base_uri: Either<String, ()>) -> napi::Result<()> {
+    self.with_mut(|entry_options| {
+      entry_options.base_uri = match base_uri {
+        Either::A(b) => Some(b),
+        Either::B(_) => None,
+      };
+      Ok(())
+    })
   }
 
   #[napi(getter)]
-  pub fn library(&self) -> Either<JsLibraryOptions, ()> {
-    // self.0.library.clone().map(Into::into).into()
-    todo!()
+  pub fn library(&self) -> napi::Result<Either<JsLibraryOptions, ()>> {
+    self.with_ref(|entry_options| Ok(entry_options.library.clone().map(Into::into).into()))
   }
 
   #[napi(setter)]
-  pub fn set_library(&mut self, library: Either<JsLibraryOptions, ()>) {
-    // self.0.library = match library {
-    //   Either::A(l) => Some(l.into()),
-    //   Either::B(_) => None,
-    // };
-    todo!()
+  pub fn set_library(&mut self, library: Either<JsLibraryOptions, ()>) -> napi::Result<()> {
+    self.with_mut(|entry_options| {
+      entry_options.library = match library {
+        Either::A(l) => Some(l.into()),
+        Either::B(_) => None,
+      };
+      Ok(())
+    })
   }
 
   #[napi(getter)]
-  pub fn depend_on(&self) -> Either<&Vec<String>, ()> {
-    // self.0.depend_on.as_ref().into()
-    todo!()
+  pub fn depend_on(&self, env: &Env) -> napi::Result<Either<Array, ()>> {
+    self.with_ref(|entry_options| match &entry_options.depend_on {
+      Some(depend_on) => {
+        let mut array = env.create_array(depend_on.len() as u32)?;
+        for (index, s) in depend_on.iter().enumerate() {
+          let js_string = env.create_string(s)?;
+          array.set(index as u32, js_string)?;
+        }
+        Ok(Either::A(array))
+      }
+      None => Ok(Either::B(())),
+    })
   }
 
   #[napi(setter)]
-  pub fn set_depend_on(&mut self, depend_on: Either<Vec<String>, ()>) {
-    // self.0.depend_on = match depend_on {
-    //   Either::A(vec) => Some(vec),
-    //   Either::B(_) => None,
-    // };
-    todo!()
+  pub fn set_depend_on(&mut self, depend_on: Either<Vec<String>, ()>) -> napi::Result<()> {
+    self.with_mut(|entry_options| {
+      entry_options.depend_on = match depend_on {
+        Either::A(vec) => Some(vec),
+        Either::B(_) => None,
+      };
+      Ok(())
+    })
   }
 
   #[napi(getter)]
-  pub fn layer(&self) -> Either<&String, ()> {
-    // self.0.layer.as_ref().into()
-    todo!()
+  pub fn layer(&self, env: &Env) -> napi::Result<Either<JsString, ()>> {
+    self.with_ref(|entry_options| match &entry_options.layer {
+      Some(layer) => {
+        let js_layer = env.create_string(layer)?;
+        Ok(Either::A(js_layer))
+      }
+      None => Ok(Either::B(())),
+    })
   }
 
   #[napi(setter)]
-  pub fn set_layer(&mut self, layer: Either<String, ()>) {
-    // self.0.layer = match layer {
-    //   Either::A(s) => Some(s),
-    //   Either::B(_) => None,
-    // };
-    todo!()
+  pub fn set_layer(&mut self, layer: Either<String, ()>) -> napi::Result<()> {
+    self.with_mut(|entry_options| {
+      entry_options.layer = match layer {
+        Either::A(s) => Some(s),
+        Either::B(_) => None,
+      };
+      Ok(())
+    })
   }
 
   // #[napi(getter)]
@@ -236,7 +264,7 @@ impl From<JsEntryData> for EntryData {
 
 #[napi]
 pub struct EntryDataDTO {
-  pub(crate) i: Weak<RefCell<Box<rspack_core::EntryData>>>,
+  pub(crate) i: BindingWeak<rspack_core::EntryData>,
   pub(crate) compiler_reference: Option<WeakReference<JsCompiler>>,
 }
 
@@ -252,7 +280,7 @@ impl EntryDataDTO {
     };
     match compiler_reference.get() {
       Some(this) => match self.i.upgrade() {
-        Some(entry_data) => f(&this.compiler.compilation, &**entry_data.borrow()),
+        Some(entry_data) => f(&this.compiler.compilation, unsafe { &*entry_data.get() }),
         None => Err(napi::Error::from_reason(
           "Unable to access EntryData now. The EntryData has been dropped by Rust.",
         )),
@@ -303,12 +331,8 @@ impl EntryDataDTO {
   }
 
   #[napi(getter)]
-  pub fn options(&self, env: &Env, mut this: This) -> napi::Result<ClassInstance<EntryOptionsDTO>> {
-    self.with_ref(|compilation, entry_data| {
-      entry_data.options.to_jsobject(env, &mut this.object)?;
-      // EntryOptionsDTO::new(self.entry_data.options.clone()).into_instance(env)
-      todo!()
-    })
+  pub fn options(&self, env: &Env, mut this: This) -> napi::Result<Object> {
+    self.with_ref(|_compilation, entry_data| entry_data.options.to_jsobject(env, &mut this.object))
   }
 }
 
@@ -368,19 +392,12 @@ impl JsEntries {
   }
 
   #[napi]
-  pub fn set(&mut self, key: String, value: JsEntryData) {
-    // let entry_data = match value {
-    //   Either::A(js) => js.into(),
-    //   Either::B(dto) => {
-    //     assert!(
-    //       std::ptr::eq(dto.compilation, self.compilation),
-    //       "The set() method cannot accept entry data from a different compilation instance."
-    //     );
-    //     dto.entry_data.clone()
-    //   }
-    // };
-    // self.compilation.entries.insert(key, entry_data);
-    todo!()
+  pub fn set(&mut self, key: String, value: JsEntryData) -> napi::Result<()> {
+    self.with_mut(|entries| {
+      let entry_data: rspack_core::EntryData = value.into();
+      entries.insert(key, BindingCell::from(entry_data));
+      Ok(())
+    })
   }
 
   #[napi]
@@ -395,7 +412,12 @@ impl JsEntries {
   pub fn get(&self, env: &Env, mut this: This, key: String) -> Result<Either<Object, ()>> {
     self.with_ref(|entries| {
       Ok(match entries.get(&key) {
-        Some(entry_data) => Either::A(entry_data.to_jsobject(env, &mut this.object)?),
+        Some(entry_data) => {
+          let object = entry_data.to_jsobject(env, &mut this.object)?;
+          let wrapped_value = unsafe { EntryDataDTO::from_napi_mut_ref(env.raw(), object.raw())? };
+          wrapped_value.compiler_reference = Some(self.compiler_reference.clone());
+          Either::A(object)
+        }
         None => Either::B(()),
       })
     })

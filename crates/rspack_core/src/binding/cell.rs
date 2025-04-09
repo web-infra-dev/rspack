@@ -14,11 +14,11 @@
 mod napi_binding {
   use std::{
     any::{Any, TypeId},
-    cell::RefCell,
+    cell::UnsafeCell,
     hash::{Hash, Hasher},
     ops::{Deref, DerefMut},
     ptr,
-    sync::Arc,
+    sync::{Arc, Weak},
   };
 
   use derive_more::Debug;
@@ -52,21 +52,24 @@ mod napi_binding {
     Ok(raw_ref)
   }
 
-  // 1. The reason Boxed does not use the generic type T is that for types requiring the implementation of the Reflectable trait,
-  // the implementation of Reflectable needs to use the concrete type T, which prevents the trait from inheriting the Reflectable trait.
-  //
-  // 2.  The reason Boxed uses Arc, the reference count of Arc will never exceed 1, but on the N-API side, Weak references are used
+  // The reason BindingRoot uses Arc, the reference count of Arc will never exceed 1, but on the N-API side, Weak references are used
   // to determine whether the Rust side has already been released.
+  pub type BindingRoot<T> = Arc<UnsafeCell<Box<T>>>;
+
+  pub type BindingWeak<T> = Weak<UnsafeCell<Box<T>>>;
+
+  // The reason HeapVariant does not use the generic type T is that for types requiring the implementation of the Reflectable trait,
+  // the implementation of Reflectable needs to use the concrete type T, which prevents the trait from inheriting the Reflectable trait.
   #[derive(Debug)]
-  enum Boxed {
-    AssetInfo(Arc<RefCell<Box<AssetInfo>>>),
-    EntryData(Arc<RefCell<Box<EntryData>>>),
-    EntryOptions(Arc<RefCell<Box<EntryOptions>>>),
+  enum HeapVariant {
+    AssetInfo(BindingRoot<AssetInfo>),
+    EntryData(BindingRoot<EntryData>),
+    EntryOptions(BindingRoot<EntryOptions>),
   }
 
   #[derive(Debug)]
   struct Heap {
-    boxed: Boxed,
+    variant: HeapVariant,
     jsobject: OnceCell<napi_ref>,
   }
 
@@ -76,21 +79,15 @@ mod napi_binding {
     heap: Heap,
   }
 
-  impl BindingCell<AssetInfo> {
-    pub fn take(self) -> AssetInfo {
-      todo!()
-    }
-  }
-
   impl<T: ?Sized> BindingCell<T> {
     pub fn set_jsobject(&self, env: &Env, scope: &mut Object, object: Object) -> napi::Result<()> {
       let _ = self
         .heap
         .jsobject
-        .get_or_try_init(|| match &self.heap.boxed {
-          Boxed::AssetInfo(_asset_info) => trace(env, scope, object),
-          Boxed::EntryOptions(_entry_options) => todo!(),
-          Boxed::EntryData(ref_cell) => todo!(),
+        .get_or_try_init(|| match &self.heap.variant {
+          HeapVariant::AssetInfo(_asset_info) => trace(env, scope, object),
+          HeapVariant::EntryOptions(_entry_options) => unimplemented!(),
+          HeapVariant::EntryData(_entry_data) => unimplemented!(),
         })?;
       Ok(())
     }
@@ -100,18 +97,18 @@ mod napi_binding {
         let raw_ref = self
           .heap
           .jsobject
-          .get_or_try_init(|| match &self.heap.boxed {
-            Boxed::AssetInfo(asset_info) => {
+          .get_or_try_init(|| match &self.heap.variant {
+            HeapVariant::AssetInfo(asset_info) => {
               let napi_val = allocator.allocate_asset_info(env.raw(), asset_info)?;
               let target = unsafe { Object::from_raw_unchecked(env.raw(), napi_val) };
               trace(env, scope, target)
             }
-            Boxed::EntryData(entry_data) => {
+            HeapVariant::EntryData(entry_data) => {
               let napi_val = allocator.allocate_entry_data(env.raw(), entry_data)?;
               let target = unsafe { Object::from_raw_unchecked(env.raw(), napi_val) };
               trace(env, scope, target)
             }
-            Boxed::EntryOptions(entry_options) => {
+            HeapVariant::EntryOptions(entry_options) => {
               let napi_val = allocator.allocate_entry_options(env.raw(), entry_options)?;
               let target = unsafe { Object::from_raw_unchecked(env.raw(), napi_val) };
               trace(env, scope, target)
@@ -124,10 +121,10 @@ mod napi_binding {
         })?;
         let result = unsafe { Object::from_raw_unchecked(env.raw(), napi_val) };
 
-        match &self.heap.boxed {
+        match &self.heap.variant {
           // AssetInfo is a vanilla object, so the associated JS object needs to be updated
           // every time it is converted to ensure consistency.
-          Boxed::AssetInfo(asset_info) => {
+          HeapVariant::AssetInfo(asset_info) => {
             let mut cloned_object = object_clone(env, &result)?;
             let napi_val = allocator.allocate_asset_info(env.raw(), asset_info)?;
             let new_object = unsafe { Object::from_raw_unchecked(env.raw(), napi_val) };
@@ -148,7 +145,7 @@ mod napi_binding {
       let boxed = Box::new(asset_info);
       let ptr = boxed.as_ref() as *const AssetInfo as *mut AssetInfo;
       let heap = Heap {
-        boxed: Boxed::AssetInfo(Arc::new(RefCell::new(boxed))),
+        variant: HeapVariant::AssetInfo(Arc::new(UnsafeCell::new(boxed))),
         jsobject: Default::default(),
       };
       Self { ptr, heap }
@@ -160,7 +157,7 @@ mod napi_binding {
       let boxed = Box::new(entry_data);
       let ptr = boxed.as_ref() as *const EntryData as *mut EntryData;
       let heap = Heap {
-        boxed: Boxed::EntryData(Arc::new(RefCell::new(boxed))),
+        variant: HeapVariant::EntryData(Arc::new(UnsafeCell::new(boxed))),
         jsobject: Default::default(),
       };
       Self { ptr, heap }
@@ -172,7 +169,7 @@ mod napi_binding {
       let boxed = Box::new(entry_options);
       let ptr = boxed.as_ref() as *const EntryOptions as *mut EntryOptions;
       let heap = Heap {
-        boxed: Boxed::EntryOptions(Arc::new(RefCell::new(boxed))),
+        variant: HeapVariant::EntryOptions(Arc::new(UnsafeCell::new(boxed))),
         jsobject: Default::default(),
       };
       Self { ptr, heap }
@@ -266,13 +263,13 @@ mod napi_binding {
       let type_id = boxed.type_id();
       if type_id == TypeId::of::<Box<AssetInfo>>() {
         let ptr = Box::into_raw(boxed);
-        let boxed = Arc::new(RefCell::new(unsafe {
+        let boxed = Arc::new(UnsafeCell::new(unsafe {
           Box::from_raw(ptr as *mut AssetInfo)
         }));
         Ok(BindingCell {
           ptr,
           heap: Heap {
-            boxed: Boxed::AssetInfo(boxed),
+            variant: HeapVariant::AssetInfo(boxed),
             jsobject: OnceCell::default(),
           },
         })

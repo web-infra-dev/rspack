@@ -1,6 +1,7 @@
-use std::{cell::RefCell, sync::Arc};
+use std::sync::Arc;
 
 use napi::{bindgen_prelude::ToNapiValue, sys::napi_env, Env};
+use rspack_core::BindingRoot;
 
 use crate::{
   entries::{EntryDataDTO, EntryOptionsDTO},
@@ -19,16 +20,16 @@ impl rspack_core::NapiAllocator for NapiAllocatorImpl {
   fn allocate_asset_info(
     &self,
     env: napi_env,
-    val: &Arc<RefCell<Box<rspack_core::AssetInfo>>>,
+    val: &BindingRoot<rspack_core::AssetInfo>,
   ) -> napi::Result<napi::sys::napi_value> {
-    let asset_info: AssetInfo = (&**val.as_ref().borrow()).clone().into();
+    let asset_info: AssetInfo = unsafe { (**val.get()).clone() }.into();
     unsafe { ToNapiValue::to_napi_value(env, asset_info) }
   }
 
   fn allocate_entry_data(
     &self,
     env: napi_env,
-    val: &Arc<RefCell<Box<rspack_core::EntryData>>>,
+    val: &BindingRoot<rspack_core::EntryData>,
   ) -> napi::Result<napi::sys::napi_value> {
     let entry_data = EntryDataDTO {
       i: Arc::downgrade(val),
@@ -40,7 +41,7 @@ impl rspack_core::NapiAllocator for NapiAllocatorImpl {
   fn allocate_entry_options(
     &self,
     env: napi_env,
-    val: &Arc<RefCell<Box<rspack_core::EntryOptions>>>,
+    val: &BindingRoot<rspack_core::EntryOptions>,
   ) -> napi::Result<napi::sys::napi_value> {
     let entry_options = EntryOptionsDTO {
       i: Arc::downgrade(val),
