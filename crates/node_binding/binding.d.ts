@@ -32,15 +32,14 @@ interface NormalModuleConstructor {
 export var NormalModule: NormalModuleConstructor;
 
 export interface NormalModule extends Module {
-	get resource(): string;
-	get request(): string
-	get userRequest(): string
-	set userRequest(val: string)
-	get rawRequest(): string
-	get loaders(): Array<JsLoaderItem>
-	get resourceResolveData(): JsResourceData | undefined
-	get matchResource(): string | undefined
-	set matchResource(val: string | undefined)
+	readonly resource: string;
+	readonly request: string;
+	readonly userRequest: string;
+	readonly rawRequest: string;
+	readonly resourceResolveData: JsResourceData | undefined;
+	readonly loaders: ReadonlyArray<JsLoaderItem>;
+	get matchResource(): string | undefined;
+	set matchResource(val: string | undefined);
 }
 
 export interface ConcatenatedModule extends Module {
@@ -50,6 +49,7 @@ export interface ContextModule extends Module {
 }
 
 export interface ExternalModule extends Module {
+	readonly userRequest: string;
 }
 /* -- banner.d.ts end -- */
 
@@ -131,8 +131,6 @@ export declare class EntryOptionsDto {
 export type EntryOptionsDTO = EntryOptionsDto
 
 export declare class ExternalModule {
-  get userRequest(): string
-  set userRequest(val: string)
   _originalSource(): JsCompatSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]

@@ -7,10 +7,14 @@ pub struct ExternalModule {
 
 impl ExternalModule {
   pub(crate) fn custom_into_instance(
-    self,
+    mut self,
     env: &napi::Env,
   ) -> napi::Result<napi::bindgen_prelude::ClassInstance<Self>> {
-    Self::new_inherited(self, env, vec![])
+    let (_, module) = self.as_ref()?;
+    let user_request = env.create_string(module.user_request())?;
+
+    let properties = vec![napi::Property::new("userRequest")?.with_value(&user_request)];
+    Self::new_inherited(self, env, properties)
   }
 
   fn as_ref(&mut self) -> napi::Result<(&rspack_core::Compilation, &rspack_core::ExternalModule)> {
@@ -22,35 +26,6 @@ impl ExternalModule {
         "Module is not a ExternalModule",
       )),
     }
-  }
-
-  fn as_mut(&mut self) -> napi::Result<&mut rspack_core::ExternalModule> {
-    let module = self.module.as_mut()?;
-    match module.as_external_module_mut() {
-      Some(external_module) => Ok(external_module),
-      None => Err(napi::Error::new(
-        napi::Status::GenericFailure,
-        "Module is not a ExternalModule",
-      )),
-    }
-  }
-}
-
-#[napi]
-impl ExternalModule {
-  #[napi(getter)]
-  pub fn user_request(&mut self) -> napi::Result<&str> {
-    let (_, module) = self.as_ref()?;
-
-    Ok(module.user_request())
-  }
-
-  #[napi(setter)]
-  pub fn set_user_request(&mut self, val: String) -> napi::Result<()> {
-    let module = self.as_mut()?;
-
-    *module.user_request_mut() = val;
-    Ok(())
   }
 }
 

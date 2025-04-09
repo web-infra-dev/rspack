@@ -415,7 +415,7 @@ impl ToNapiValue for ModuleObject {
               let env_wrapper = Env::from_raw(env);
 
               let instance_ref = if val.type_id == TypeId::of::<rspack_core::NormalModule>() {
-                let instance = NormalModule { module: js_module }.custom_into_instance(&env_wrapper)?;
+                let instance = NormalModule::new(js_module).custom_into_instance(&env_wrapper)?;
                 entry.insert(Either5::A(OneShotInstanceRef::from_instance(env, instance)?))
               } else if val.type_id == TypeId::of::<rspack_core::ConcatenatedModule>() {
                 let instance = ConcatenatedModule { module: js_module }.custom_into_instance(&env_wrapper)?;
