@@ -6,10 +6,10 @@ use rspack_cacheable::{
 use rspack_core::{
   module_raw, process_export_info, property_access, AsContextDependency, Dependency,
   DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
-  ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  Nullable, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedName,
+  DynamicDependencyTemplate, DynamicDependencyTemplateType, ExportInfoProvided, ExportNameOrSpec,
+  ExportSpec, ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
+  FactorizeInfo, ModuleDependency, ModuleGraph, ModuleIdentifier, Nullable, ReferencedExport,
+  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
@@ -349,100 +349,6 @@ impl Dependency for CommonJsExportRequireDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for CommonJsExportRequireDependency {
-  fn apply(
-    &self,
-    source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    let TemplateContext {
-      compilation,
-      module,
-      runtime,
-      runtime_requirements,
-      ..
-    } = code_generatable_context;
-
-    let mg = &compilation.get_module_graph();
-
-    let module = mg
-      .module_by_identifier(&module.identifier())
-      .expect("should have mgm");
-
-    let exports_argument = module.get_exports_argument();
-    let module_argument = module.get_module_argument();
-
-    let used = mg.get_exports_info(&module.identifier()).get_used_name(
-      mg,
-      *runtime,
-      UsedName::Vec(self.names.clone()),
-    );
-
-    let base = if self.base.is_exports() {
-      runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-      exports_argument.to_string()
-    } else if self.base.is_module_exports() {
-      runtime_requirements.insert(RuntimeGlobals::MODULE);
-      format!("{}.exports", module_argument)
-    } else if self.base.is_this() {
-      runtime_requirements.insert(RuntimeGlobals::THIS_AS_EXPORTS);
-      "this".to_string()
-    } else {
-      unreachable!()
-    };
-
-    let mut require_expr = module_raw(
-      compilation,
-      runtime_requirements,
-      &self.id,
-      &self.request,
-      false,
-    );
-
-    if let Some(imported_module) = mg.get_module_by_dependency_id(&self.id) {
-      let ids = self.get_ids(mg);
-      if let Some(used_imported) = mg
-        .get_exports_info(&imported_module.identifier())
-        .get_used_name(mg, *runtime, UsedName::Vec(ids.to_vec()))
-      {
-        require_expr = format!(
-          "{}{}",
-          require_expr,
-          property_access(
-            match used_imported {
-              UsedName::Str(name) => vec![name].into_iter(),
-              UsedName::Vec(names) => names.into_iter(),
-            },
-            0
-          )
-        )
-      }
-    }
-
-    if self.base.is_expression() {
-      let expr = match used {
-        Some(used) => format!(
-          "{base}{} = {require_expr}",
-          property_access(
-            match used {
-              UsedName::Str(name) => vec![name].into_iter(),
-              UsedName::Vec(names) => names.into_iter(),
-            },
-            0
-          )
-        ),
-        None => format!("/* unused reexport */ {}", require_expr),
-      };
-      source.replace(self.range.start, self.range.end, expr.as_str(), None)
-    } else if self.base.is_define_property() {
-      panic!("TODO")
-    } else {
-      panic!("Unexpected type");
-    }
-  }
-}
-
-#[cacheable_dyn]
 impl ModuleDependency for CommonJsExportRequireDependency {
   fn request(&self) -> &str {
     &self.request
@@ -469,3 +375,119 @@ impl ModuleDependency for CommonJsExportRequireDependency {
   }
 }
 impl AsContextDependency for CommonJsExportRequireDependency {}
+
+#[cacheable_dyn]
+impl DependencyTemplate for CommonJsExportRequireDependency {
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(CommonJsExportRequireDependencyTemplate::template_type())
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct CommonJsExportRequireDependencyTemplate;
+
+impl CommonJsExportRequireDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::DependencyType(DependencyType::CjsExportRequire)
+  }
+}
+
+impl DynamicDependencyTemplate for CommonJsExportRequireDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyTemplate,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<CommonJsExportRequireDependency>()
+      .expect("CommonJsExportRequireDependencyTemplate should only be used for CommonJsExportRequireDependency");
+
+    let TemplateContext {
+      compilation,
+      module,
+      runtime,
+      runtime_requirements,
+      ..
+    } = code_generatable_context;
+
+    let mg = &compilation.get_module_graph();
+
+    let module = mg
+      .module_by_identifier(&module.identifier())
+      .expect("should have mgm");
+
+    let exports_argument = module.get_exports_argument();
+    let module_argument = module.get_module_argument();
+
+    let used = mg.get_exports_info(&module.identifier()).get_used_name(
+      mg,
+      *runtime,
+      UsedName::Vec(dep.names.clone()),
+    );
+
+    let base = if dep.base.is_exports() {
+      runtime_requirements.insert(RuntimeGlobals::EXPORTS);
+      exports_argument.to_string()
+    } else if dep.base.is_module_exports() {
+      runtime_requirements.insert(RuntimeGlobals::MODULE);
+      format!("{}.exports", module_argument)
+    } else if dep.base.is_this() {
+      runtime_requirements.insert(RuntimeGlobals::THIS_AS_EXPORTS);
+      "this".to_string()
+    } else {
+      unreachable!()
+    };
+
+    let mut require_expr = module_raw(
+      compilation,
+      runtime_requirements,
+      &dep.id,
+      &dep.request,
+      false,
+    );
+
+    if let Some(imported_module) = mg.get_module_by_dependency_id(&dep.id) {
+      let ids = dep.get_ids(mg);
+      if let Some(used_imported) = mg
+        .get_exports_info(&imported_module.identifier())
+        .get_used_name(mg, *runtime, UsedName::Vec(ids.to_vec()))
+      {
+        require_expr = format!(
+          "{}{}",
+          require_expr,
+          property_access(
+            match used_imported {
+              UsedName::Str(name) => vec![name].into_iter(),
+              UsedName::Vec(names) => names.into_iter(),
+            },
+            0
+          )
+        )
+      }
+    }
+
+    if dep.base.is_expression() {
+      let expr = match used {
+        Some(used) => format!(
+          "{base}{} = {require_expr}",
+          property_access(
+            match used {
+              UsedName::Str(name) => vec![name].into_iter(),
+              UsedName::Vec(names) => names.into_iter(),
+            },
+            0
+          )
+        ),
+        None => format!("/* unused reexport */ {}", require_expr),
+      };
+      source.replace(dep.range.start, dep.range.end, expr.as_str(), None)
+    } else if dep.base.is_define_property() {
+      panic!("TODO")
+    } else {
+      panic!("Unexpected type");
+    }
+  }
+}

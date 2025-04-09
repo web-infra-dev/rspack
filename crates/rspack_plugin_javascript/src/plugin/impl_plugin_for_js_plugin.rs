@@ -22,12 +22,12 @@ use crate::{
     amd_require_dependency::AMDRequireDependencyTemplate,
     amd_require_item_dependency::AMDRequireItemDependencyTemplate,
     local_module_dependency::LocalModuleDependencyTemplate,
-    unsupported_dependency::UnsupportedDependencyTemplate, ESMCompatibilityDependencyTemplate,
-    ESMExportExpressionDependencyTemplate, ESMExportHeaderDependencyTemplate,
-    ESMExportImportedSpecifierDependencyTemplate, ESMExportSpecifierDependencyTemplate,
-    ESMImportSideEffectDependencyTemplate, ESMImportSpecifierDependencyTemplate,
-    ExternalModuleDependencyTemplate, ImportDependencyTemplate, ImportEagerDependencyTemplate,
-    ProvideDependencyTemplate,
+    unsupported_dependency::UnsupportedDependencyTemplate, CommonJsExportRequireDependencyTemplate,
+    ESMCompatibilityDependencyTemplate, ESMExportExpressionDependencyTemplate,
+    ESMExportHeaderDependencyTemplate, ESMExportImportedSpecifierDependencyTemplate,
+    ESMExportSpecifierDependencyTemplate, ESMImportSideEffectDependencyTemplate,
+    ESMImportSpecifierDependencyTemplate, ExternalModuleDependencyTemplate,
+    ImportDependencyTemplate, ImportEagerDependencyTemplate, ProvideDependencyTemplate,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
   JsPlugin, JsPluginInner,
@@ -221,6 +221,11 @@ async fn compilation(
   compilation.set_dependency_template(
     UnsupportedDependencyTemplate::template_type(),
     Arc::new(UnsupportedDependencyTemplate::default()),
+  );
+  // commonjs dependency templates
+  compilation.set_dependency_template(
+    CommonJsExportRequireDependencyTemplate::template_type(),
+    Arc::new(CommonJsExportRequireDependencyTemplate::default()),
   );
   Ok(())
 }
