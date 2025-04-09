@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   module_id, AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyType, FactorizeInfo, ModuleDependency, TemplateContext,
-  TemplateReplaceSource,
+  DependencyTemplate, DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType,
+  FactorizeInfo, ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -79,24 +79,46 @@ impl ModuleDependency for ModuleHotAcceptDependency {
 
 #[cacheable_dyn]
 impl DependencyTemplate for ModuleHotAcceptDependency {
-  fn apply(
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(ModuleHotAcceptDependencyTemplate::template_type())
+  }
+}
+
+impl AsContextDependency for ModuleHotAcceptDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ModuleHotAcceptDependencyTemplate;
+
+impl ModuleHotAcceptDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::DependencyType(DependencyType::ModuleHotAccept)
+  }
+}
+
+impl DynamicDependencyTemplate for ModuleHotAcceptDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyTemplate,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ModuleHotAcceptDependency>()
+      .expect("ModuleHotAcceptDependencyTemplate should be used for ModuleHotAcceptDependency");
+
     source.replace(
-      self.range.start,
-      self.range.end,
+      dep.range.start,
+      dep.range.end,
       module_id(
         code_generatable_context.compilation,
-        &self.id,
-        &self.request,
-        self.weak(),
+        &dep.id,
+        &dep.request,
+        dep.weak(),
       )
       .as_str(),
       None,
     );
   }
 }
-
-impl AsContextDependency for ModuleHotAcceptDependency {}

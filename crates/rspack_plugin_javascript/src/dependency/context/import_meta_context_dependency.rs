@@ -2,7 +2,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   module_raw, AsModuleDependency, ContextDependency, ContextOptions, Dependency,
   DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
-  FactorizeInfo, ModuleGraph, TemplateContext, TemplateReplaceSource,
+  DynamicDependencyTemplate, DynamicDependencyTemplateType, FactorizeInfo, ModuleGraph,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -113,11 +114,35 @@ impl ContextDependency for ImportMetaContextDependency {
 
 #[cacheable_dyn]
 impl DependencyTemplate for ImportMetaContextDependency {
-  fn apply(
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(ImportMetaContextDependencyTemplate::template_type())
+  }
+}
+
+impl AsModuleDependency for ImportMetaContextDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ImportMetaContextDependencyTemplate;
+
+impl ImportMetaContextDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::DependencyType(DependencyType::ImportMetaContext)
+  }
+}
+
+impl DynamicDependencyTemplate for ImportMetaContextDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyTemplate,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ImportMetaContextDependency>()
+      .expect("ImportMetaContextDependencyTemplate should be used for ImportMetaContextDependency");
+
     let TemplateContext {
       compilation,
       runtime_requirements,
@@ -127,12 +152,10 @@ impl DependencyTemplate for ImportMetaContextDependency {
     let content = module_raw(
       compilation,
       runtime_requirements,
-      &self.id,
-      &self.options.request,
-      self.optional,
+      &dep.id,
+      &dep.options.request,
+      dep.optional,
     );
-    source.replace(self.range.start, self.range.end, &content, None);
+    source.replace(dep.range.start, dep.range.end, &content, None);
   }
 }
-
-impl AsModuleDependency for ImportMetaContextDependency {}

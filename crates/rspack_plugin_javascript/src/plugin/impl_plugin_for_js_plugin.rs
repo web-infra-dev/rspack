@@ -22,16 +22,25 @@ use crate::{
     amd_require_dependency::AMDRequireDependencyTemplate,
     amd_require_item_dependency::AMDRequireItemDependencyTemplate,
     local_module_dependency::LocalModuleDependencyTemplate,
-    unsupported_dependency::UnsupportedDependencyTemplate, CommonJsExportRequireDependencyTemplate,
-    CommonJsExportsDependencyTemplate, CommonJsFullRequireDependencyTemplate,
+    unsupported_dependency::UnsupportedDependencyTemplate, AMDRequireContextDependencyTemplate,
+    CommonJsExportRequireDependencyTemplate, CommonJsExportsDependencyTemplate,
+    CommonJsFullRequireDependencyTemplate, CommonJsRequireContextDependencyTemplate,
     CommonJsRequireDependencyTemplate, CommonJsSelfReferenceDependencyTemplate,
+    CreateScriptUrlDependencyTemplate, ESMAcceptDependencyTemplate,
     ESMCompatibilityDependencyTemplate, ESMExportExpressionDependencyTemplate,
     ESMExportHeaderDependencyTemplate, ESMExportImportedSpecifierDependencyTemplate,
     ESMExportSpecifierDependencyTemplate, ESMImportSideEffectDependencyTemplate,
-    ESMImportSpecifierDependencyTemplate, ExternalModuleDependencyTemplate,
-    ImportDependencyTemplate, ImportEagerDependencyTemplate, ModuleDecoratorDependencyTemplate,
-    ProvideDependencyTemplate, RequireEnsureDependencyTemplate, RequireHeaderDependencyTemplate,
-    RequireResolveDependencyTemplate, RequireResolveHeaderDependencyTemplate,
+    ESMImportSpecifierDependencyTemplate, ExportInfoDependencyTemplate,
+    ExternalModuleDependencyTemplate, ImportContextDependencyTemplate, ImportDependencyTemplate,
+    ImportEagerDependencyTemplate, ImportMetaContextDependencyTemplate,
+    ImportMetaHotAcceptDependencyTemplate, ImportMetaHotDeclineDependencyTemplate,
+    ModuleArgumentDependencyTemplate, ModuleDecoratorDependencyTemplate,
+    ModuleHotAcceptDependencyTemplate, ModuleHotDeclineDependencyTemplate,
+    ProvideDependencyTemplate, PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
+    RequireEnsureDependencyTemplate, RequireHeaderDependencyTemplate,
+    RequireResolveContextDependencyTemplate, RequireResolveDependencyTemplate,
+    RequireResolveHeaderDependencyTemplate, URLDependencyTemplate,
+    WebpackIsIncludedDependencyTemplate, WorkerDependencyTemplate,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
   JsPlugin, JsPluginInner,
@@ -88,6 +97,10 @@ async fn compilation(
   compilation.set_dependency_factory(
     DependencyType::RequireResolve,
     params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::RequireResolveContext,
+    params.context_module_factory.clone(),
   );
   // AMDPlugin
   compilation.set_dependency_factory(
@@ -270,6 +283,83 @@ async fn compilation(
   compilation.set_dependency_template(
     RequireResolveHeaderDependencyTemplate::template_type(),
     Arc::new(RequireResolveHeaderDependencyTemplate::default()),
+  );
+
+  // commonjs context dependency templates
+  compilation.set_dependency_template(
+    AMDRequireContextDependencyTemplate::template_type(),
+    Arc::new(AMDRequireContextDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    CommonJsRequireContextDependencyTemplate::template_type(),
+    Arc::new(CommonJsRequireContextDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ImportContextDependencyTemplate::template_type(),
+    Arc::new(ImportContextDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ImportMetaContextDependencyTemplate::template_type(),
+    Arc::new(ImportMetaContextDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    RequireContextDependencyTemplate::template_type(),
+    Arc::new(RequireContextDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    RequireResolveContextDependencyTemplate::template_type(),
+    Arc::new(RequireResolveContextDependencyTemplate::default()),
+  );
+  // hmr dependency templates
+  compilation.set_dependency_template(
+    ESMAcceptDependencyTemplate::template_type(),
+    Arc::new(ESMAcceptDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ImportMetaHotAcceptDependencyTemplate::template_type(),
+    Arc::new(ImportMetaHotAcceptDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ImportMetaHotDeclineDependencyTemplate::template_type(),
+    Arc::new(ImportMetaHotDeclineDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ModuleHotAcceptDependencyTemplate::template_type(),
+    Arc::new(ModuleHotAcceptDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ModuleHotDeclineDependencyTemplate::template_type(),
+    Arc::new(ModuleHotDeclineDependencyTemplate::default()),
+  );
+  // url dependency templates
+  compilation.set_dependency_template(
+    URLDependencyTemplate::template_type(),
+    Arc::new(URLDependencyTemplate::default()),
+  );
+  // worker dependency templates
+  compilation.set_dependency_template(
+    CreateScriptUrlDependencyTemplate::template_type(),
+    Arc::new(CreateScriptUrlDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    WorkerDependencyTemplate::template_type(),
+    Arc::new(WorkerDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ExportInfoDependencyTemplate::template_type(),
+    Arc::new(ExportInfoDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    WebpackIsIncludedDependencyTemplate::template_type(),
+    Arc::new(WebpackIsIncludedDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ModuleArgumentDependencyTemplate::template_type(),
+    Arc::new(ModuleArgumentDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    PureExpressionDependencyTemplate::template_type(),
+    Arc::new(PureExpressionDependencyTemplate::default()),
   );
   Ok(())
 }
