@@ -34,7 +34,8 @@ use crate::{
     ImportEagerDependencyTemplate, ImportMetaContextDependencyTemplate,
     ImportMetaHotAcceptDependencyTemplate, ImportMetaHotDeclineDependencyTemplate,
     ModuleDecoratorDependencyTemplate, ModuleHotAcceptDependencyTemplate,
-    ProvideDependencyTemplate, RequireContextDependencyTemplate, RequireEnsureDependencyTemplate,
+    ModuleHotDeclineDependencyTemplate, ProvideDependencyTemplate,
+    RequireContextDependencyTemplate, RequireEnsureDependencyTemplate,
     RequireHeaderDependencyTemplate, RequireResolveContextDependencyTemplate,
     RequireResolveDependencyTemplate, RequireResolveHeaderDependencyTemplate,
   },
@@ -322,6 +323,10 @@ async fn compilation(
   compilation.set_dependency_template(
     ModuleHotAcceptDependencyTemplate::template_type(),
     Arc::new(ModuleHotAcceptDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ModuleHotDeclineDependencyTemplate::template_type(),
+    Arc::new(ModuleHotDeclineDependencyTemplate::default()),
   );
   Ok(())
 }
