@@ -183,6 +183,12 @@ export class BuiltinProcessor<
 			defaultOptions = rspackDefaultOptions as TCompilerOptions<T>;
 		}
 
+		if (!global.printLogger) {
+			defaultOptions.infrastructureLogging = {
+				level: "error"
+			};
+		}
+
 		return defaultOptions;
 	}
 }

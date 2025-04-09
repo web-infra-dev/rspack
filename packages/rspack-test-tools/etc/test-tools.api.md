@@ -312,6 +312,8 @@ export class DefaultsConfigProcessor<T extends ECompilerType> extends SimpleTask
     // (undocumented)
     static getDefaultConfig(cwd: string, config: TCompilerOptions<ECompilerType>): TCompilerOptions<ECompilerType>;
     // (undocumented)
+    static overrideOptions<T extends ECompilerType>(options: TCompilerOptions<T>): void;
+    // (undocumented)
     run(env: ITestEnv, context: ITestContext): Promise<void>;
 }
 
@@ -335,6 +337,8 @@ export class DiagnosticProcessor<T extends ECompilerType> extends BasicProcessor
     static defaultOptions<T extends ECompilerType>(context: ITestContext): TCompilerOptions<T>;
     // (undocumented)
     protected _diagnosticOptions: IDiagnosticProcessorOptions<T>;
+    // (undocumented)
+    static overrideOptions<T extends ECompilerType>(options: TCompilerOptions<T>): void;
 }
 
 // @public (undocumented)
@@ -529,6 +533,8 @@ export class HookTaskProcessor<T extends ECompilerType> extends SnapshotProcesso
     static defaultOptions<T extends ECompilerType>(context: ITestContext): TCompilerOptions<T>;
     // (undocumented)
     protected _hookOptions: IHookProcessorOptions<T>;
+    // (undocumented)
+    static overrideOptions<T extends ECompilerType>(options: TCompilerOptions<T>): void;
 }
 
 // @public (undocumented)
@@ -1248,6 +1254,8 @@ export class NormalProcessor<T extends ECompilerType> extends BasicProcessor<T> 
     static defaultOptions<T extends ECompilerType>(this: NormalProcessor<T>, context: ITestContext): TCompilerOptions<T>;
     // (undocumented)
     protected _normalOptions: INormalProcessorOptions<T>;
+    // (undocumented)
+    static overrideOptions<T extends ECompilerType>(options: TCompilerOptions<T>): void;
 }
 
 // @public (undocumented)
