@@ -33,7 +33,9 @@ pub use entry::*;
 pub use factorize_info::FactorizeInfo;
 pub use loader_import::*;
 pub use module_dependency::*;
-pub use runtime_requirements_dependency::RuntimeRequirementsDependency;
+pub use runtime_requirements_dependency::{
+  RuntimeRequirementsDependency, RuntimeRequirementsDependencyTemplate,
+};
 pub use runtime_template::*;
 use rustc_hash::FxHashMap;
 use serde::Serialize;

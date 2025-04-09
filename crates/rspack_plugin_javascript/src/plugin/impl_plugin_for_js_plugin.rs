@@ -9,7 +9,7 @@ use rspack_core::{
   CompilationParams, CompilationRenderManifest, CompilerCompilation, CompilerOptions,
   ConstDependencyTemplate, DependencyType, IgnoreErrorModuleFactory, ModuleGraph, ModuleType,
   ParserAndGenerator, PathData, Plugin, PluginContext, RenderManifestEntry, RuntimeGlobals,
-  SelfModuleFactory, SourceType,
+  RuntimeRequirementsDependencyTemplate, SelfModuleFactory, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -370,6 +370,10 @@ async fn compilation(
   compilation.set_dependency_template(
     ConstDependencyTemplate::template_type(),
     Arc::new(ConstDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    RuntimeRequirementsDependencyTemplate::template_type(),
+    Arc::new(RuntimeRequirementsDependencyTemplate::default()),
   );
   Ok(())
 }
