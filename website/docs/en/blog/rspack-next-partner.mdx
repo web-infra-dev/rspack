@@ -50,16 +50,20 @@ There're some known bottlenecks which limits further performance improvement(lik
 
 ## Frequently Asked Questions
 
-**How will it remain supported?**
+### **How will it remain supported?**
+
 next-rspack is already integrated into Next.js’s CI pipeline, helping us catch regressions early and keep compatibility high. Support will evolve alongside both Next.js and Rspack, with ongoing collaboration between both teams and the open source community.
 
-**Who maintains it?**
+### **Who maintains it?**
+
 next-rspack is a community plugin, but its development and integration rely on close collaboration between the Rspack and Vercel teams to ensure continued support and progress.
 
-**Does this have any impact on Turbopack? Is Vercel adopting Rspack?**
+### **Does this have any impact on Turbopack? Is Vercel adopting Rspack?**
+
 Turbopack remains Vercel’s long-term strategy. Rspack is not replacing it. However, next-rspack provides a alternative solution for users who are deep coupled with webpack ecosystem and not ready to migrate to Turbopack.
 
-**What are known issues?**
+### **What are known issues?**
+
 As of now, next-rspack passes around 96% of integration tests, and progress can be monitored on [arewerspackyet](https://www.arewerspackyet.com/).
 
 Some edge cases and advanced features may still require workarounds or additional support. Let we know how it went in the [feedback discussion](https://github.com/vercel/next.js/discussions/77800), even when you don't run into problems.
@@ -68,15 +72,16 @@ Due to the current plugin implementation, the performance of the App Router is s
 
 Since Rspack is not 100% compatible with webpack's API, some of your webpack plugin may not work smoothly on Rspack, Let we know if you meet compatible problems.
 
-**How can you help?**
+### **How can you help?**
+
 Try out next-rspack, report issues, contribute code or docs, and join the community discussions. Your feedback and contribution is valuable.
 
-**Module Federation?**
+### **Module Federation?**
 
 Federation is not currently supported by Rspack and Next.js. Next & Federation relies on custom patches that should not be ported to Rust.
 We are separately discussing with Next.js team about improved support of Module Federation. In the future finalized code will be added to the Rust side and it should be able to work. For now, Next users of federation will still need webpack.
 
-**Future Plans?**
+### **Future Plans?**
 
 - **Increase Test Coverage**: We aim to raise our test coverage from the current 96% to nearly 100% in the next quarter.
 - **Enhance Performance**: We'll explore deeper integration with Next.js through native plugins to improve build performance.
