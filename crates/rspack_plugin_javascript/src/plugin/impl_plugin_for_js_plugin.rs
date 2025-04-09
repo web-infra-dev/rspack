@@ -17,11 +17,21 @@ use rustc_hash::FxHashMap;
 
 use crate::{
   dependency::{
+    amd_define_dependency::AMDDefineDependencyTemplate,
+    amd_require_array_dependency::AMDRequireArrayDependencyTemplate,
+    amd_require_dependency::AMDRequireDependencyTemplate,
+    amd_require_item_dependency::AMDRequireItemDependencyTemplate,
+    local_module_dependency::LocalModuleDependencyTemplate,
+    unsupported_dependency::UnsupportedDependencyTemplate, CommonJsExportRequireDependencyTemplate,
+    CommonJsExportsDependencyTemplate, CommonJsFullRequireDependencyTemplate,
+    CommonJsRequireDependencyTemplate, CommonJsSelfReferenceDependencyTemplate,
     ESMCompatibilityDependencyTemplate, ESMExportExpressionDependencyTemplate,
     ESMExportHeaderDependencyTemplate, ESMExportImportedSpecifierDependencyTemplate,
     ESMExportSpecifierDependencyTemplate, ESMImportSideEffectDependencyTemplate,
     ESMImportSpecifierDependencyTemplate, ExternalModuleDependencyTemplate,
-    ImportDependencyTemplate, ImportEagerDependencyTemplate, ProvideDependencyTemplate,
+    ImportDependencyTemplate, ImportEagerDependencyTemplate, ModuleDecoratorDependencyTemplate,
+    ProvideDependencyTemplate, RequireEnsureDependencyTemplate, RequireHeaderDependencyTemplate,
+    RequireResolveDependencyTemplate, RequireResolveHeaderDependencyTemplate,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
   JsPlugin, JsPluginInner,
@@ -57,6 +67,10 @@ async fn compilation(
   // CommonJsPlugin
   compilation.set_dependency_factory(
     DependencyType::CjsRequire,
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::CjsFullRequire,
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
@@ -145,6 +159,7 @@ async fn compilation(
   compilation.set_dependency_factory(DependencyType::CjsSelfReference, self_factory.clone());
   compilation.set_dependency_factory(DependencyType::ModuleDecorator, self_factory);
 
+  // esm dependency templates
   compilation.set_dependency_template(
     ESMCompatibilityDependencyTemplate::template_type(),
     Arc::new(ESMCompatibilityDependencyTemplate::default()),
@@ -188,6 +203,73 @@ async fn compilation(
   compilation.set_dependency_template(
     ProvideDependencyTemplate::template_type(),
     Arc::new(ProvideDependencyTemplate::default()),
+  );
+
+  // amd dependency templates
+  compilation.set_dependency_template(
+    AMDDefineDependencyTemplate::template_type(),
+    Arc::new(AMDDefineDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    AMDRequireArrayDependencyTemplate::template_type(),
+    Arc::new(AMDRequireArrayDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    AMDRequireDependencyTemplate::template_type(),
+    Arc::new(AMDRequireDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    AMDRequireItemDependencyTemplate::template_type(),
+    Arc::new(AMDRequireItemDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    LocalModuleDependencyTemplate::template_type(),
+    Arc::new(LocalModuleDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    UnsupportedDependencyTemplate::template_type(),
+    Arc::new(UnsupportedDependencyTemplate::default()),
+  );
+  // commonjs dependency templates
+  compilation.set_dependency_template(
+    CommonJsExportRequireDependencyTemplate::template_type(),
+    Arc::new(CommonJsExportRequireDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    CommonJsExportsDependencyTemplate::template_type(),
+    Arc::new(CommonJsExportsDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    CommonJsFullRequireDependencyTemplate::template_type(),
+    Arc::new(CommonJsFullRequireDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    CommonJsRequireDependencyTemplate::template_type(),
+    Arc::new(CommonJsRequireDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    CommonJsSelfReferenceDependencyTemplate::template_type(),
+    Arc::new(CommonJsSelfReferenceDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ModuleDecoratorDependencyTemplate::template_type(),
+    Arc::new(ModuleDecoratorDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    RequireEnsureDependencyTemplate::template_type(),
+    Arc::new(RequireEnsureDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    RequireHeaderDependencyTemplate::template_type(),
+    Arc::new(RequireHeaderDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    RequireResolveDependencyTemplate::template_type(),
+    Arc::new(RequireResolveDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    RequireResolveHeaderDependencyTemplate::template_type(),
+    Arc::new(RequireResolveHeaderDependencyTemplate::default()),
   );
   Ok(())
 }
