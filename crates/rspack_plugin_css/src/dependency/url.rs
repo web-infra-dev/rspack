@@ -3,7 +3,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency,
   DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
-  FactorizeInfo, ModuleDependency, ModuleIdentifier, TemplateContext, TemplateReplaceSource,
+  DynamicDependencyTemplate, DynamicDependencyTemplateType, FactorizeInfo, ModuleDependency,
+  ModuleIdentifier, TemplateContext, TemplateReplaceSource,
 };
 
 use crate::utils::{css_escape_string, AUTO_PUBLIC_PATH_PLACEHOLDER};
@@ -102,26 +103,48 @@ impl ModuleDependency for CssUrlDependency {
 
 #[cacheable_dyn]
 impl DependencyTemplate for CssUrlDependency {
-  fn apply(
-    &self,
-    source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    let TemplateContext { compilation, .. } = code_generatable_context;
-    if let Some(mgm) = compilation
-      .get_module_graph()
-      .module_graph_module_by_dependency_id(self.id())
-      && let Some(target_url) = self.get_target_url(&mgm.module_identifier, compilation)
-    {
-      let target_url = css_escape_string(&target_url);
-      let content = if self.replace_function {
-        format!("url({target_url})")
-      } else {
-        target_url
-      };
-      source.replace(self.range.start, self.range.end, &content, None);
-    }
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(CssUrlDependencyTemplate::template_type())
   }
 }
 
 impl AsContextDependency for CssUrlDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct CssUrlDependencyTemplate;
+
+impl CssUrlDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::DependencyType(DependencyType::CssUrl)
+  }
+}
+
+impl DynamicDependencyTemplate for CssUrlDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyTemplate,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<CssUrlDependency>()
+      .expect("CssUrlDependencyTemplate should be used for CssUrlDependency");
+
+    let TemplateContext { compilation, .. } = code_generatable_context;
+    if let Some(mgm) = compilation
+      .get_module_graph()
+      .module_graph_module_by_dependency_id(dep.id())
+      && let Some(target_url) = dep.get_target_url(&mgm.module_identifier, compilation)
+    {
+      let target_url = css_escape_string(&target_url);
+      let content = if dep.replace_function {
+        format!("url({target_url})")
+      } else {
+        target_url
+      };
+      source.replace(dep.range.start, dep.range.end, &content, None);
+    }
+  }
+}

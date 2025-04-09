@@ -2,8 +2,9 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_util::ext::DynHash;
 
 use crate::{
-  Compilation, DependencyTemplate, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  NormalInitFragment, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  Compilation, DependencyTemplate, DynamicDependencyTemplate, DynamicDependencyTemplateType,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, NormalInitFragment, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -28,22 +29,8 @@ impl CachedConstDependency {
 
 #[cacheable_dyn]
 impl DependencyTemplate for CachedConstDependency {
-  fn apply(
-    &self,
-    source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    code_generatable_context.init_fragments.push(
-      NormalInitFragment::new(
-        format!("var {} = {};\n", self.identifier, self.content),
-        InitFragmentStage::StageConstants,
-        0,
-        InitFragmentKey::Const(self.identifier.to_string()),
-        None,
-      )
-      .boxed(),
-    );
-    source.replace(self.start, self.end, &self.identifier, None);
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(CachedConstDependencyTemplate::template_type())
   }
 
   fn update_hash(
@@ -56,5 +43,41 @@ impl DependencyTemplate for CachedConstDependency {
     self.start.dyn_hash(hasher);
     self.end.dyn_hash(hasher);
     self.content.dyn_hash(hasher);
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct CachedConstDependencyTemplate;
+
+impl CachedConstDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::CustomType("CachedConstDependency")
+  }
+}
+
+impl DynamicDependencyTemplate for CachedConstDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyTemplate,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<CachedConstDependency>()
+      .expect("CachedConstDependencyTemplate should be used for CachedConstDependency");
+
+    code_generatable_context.init_fragments.push(
+      NormalInitFragment::new(
+        format!("var {} = {};\n", dep.identifier, dep.content),
+        InitFragmentStage::StageConstants,
+        0,
+        InitFragmentKey::Const(dep.identifier.to_string()),
+        None,
+      )
+      .boxed(),
+    );
+    source.replace(dep.start, dep.end, &dep.identifier, None);
   }
 }

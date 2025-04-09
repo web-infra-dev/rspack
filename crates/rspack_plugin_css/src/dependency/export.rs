@@ -1,8 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec,
-  ExportsSpec, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, AsDependencyTemplate, AsModuleDependency, Dependency, DependencyCategory,
+  DependencyId, DependencyType, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec,
 };
 
 #[cacheable]
@@ -59,17 +58,6 @@ impl Dependency for CssExportDependency {
   }
 }
 
-#[cacheable_dyn]
-impl DependencyTemplate for CssExportDependency {
-  fn apply(
-    &self,
-    _source: &mut TemplateReplaceSource,
-    _code_generatable_context: &mut TemplateContext,
-  ) {
-    // TODO: currently our css module implementation is different from `webpack`, so we do
-    // nothing here. ref: https://github.com/webpack/webpack/blob/b9fb99c63ca433b24233e0bbc9ce336b47872c08/lib/dependencies/CssExportDependency.js#L85-L86
-  }
-}
-
+impl AsDependencyTemplate for CssExportDependency {}
 impl AsContextDependency for CssExportDependency {}
 impl AsModuleDependency for CssExportDependency {}
