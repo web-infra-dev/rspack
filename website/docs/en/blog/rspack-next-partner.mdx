@@ -48,7 +48,7 @@ The situation is much more promising:
 
 Users deeply integrated into the Webpack ecosystem will find migration easier.
 
-There're some known bottlenecks which limits further performance improvement(like huge Rust-JavaScript communication overhead, slower [output file tracing](https://nextjs.org/docs/pages/api-reference/config/next-config-js/output#how-it-works) implementation) which can be solved in the future, with expected improvements, we foresee:
+There're some known bottlenecks which limit further performance improvement(like huge Rust-JavaScript communication overhead, slower [output file tracing](https://nextjs.org/docs/pages/api-reference/config/next-config-js/output#how-it-works) implementation) which can be solved in the future, with expected improvements, we foresee:
 
 - **5x faster builds and HMR in development**
 - **3x faster production builds**
@@ -65,13 +65,13 @@ next-rspack is a community plugin, but its development and integration rely on c
 
 ### Does this have any impact on Turbopack? is Vercel adopting Rspack?
 
-Turbopack remains Vercel’s long-term strategy. Rspack is not replacing it. However, next-rspack provides a alternative solution for users who are deep coupled with webpack ecosystem and not ready to migrate to Turbopack.
+Turbopack remains Vercel’s long-term strategy. Rspack is not replacing it. However, next-rspack provides an alternative solution for users who are deep coupled with webpack ecosystem and not ready to migrate to Turbopack.
 
 ### What are known issues?
 
 As of now, next-rspack passes around 96% of integration tests, and progress can be monitored on [arewerspackyet](https://www.arewerspackyet.com/).
 
-Some edge cases and advanced features may still require workarounds or additional support. Let we know how it went in the [feedback discussion](https://github.com/vercel/next.js/discussions/77800), even when you don't run into problems.
+Some edge cases and advanced features may still require workarounds or additional support. Let us know how it went in the [feedback discussion](https://github.com/vercel/next.js/discussions/77800), even when you don't run into problems.
 
 Due to the current plugin implementation, the performance of the App Router is still suboptimal and there's still plenty of room for performance improvement.
 
