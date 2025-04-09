@@ -70,6 +70,10 @@ async fn compilation(
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
+    DependencyType::CjsFullRequire,
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
     DependencyType::CjsExports,
     params.normal_module_factory.clone(),
   );
