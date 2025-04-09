@@ -120,7 +120,7 @@ fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
 #[napi(custom_finalize)]
 pub struct JsCompiler {
   js_hooks_plugin: JsHooksAdapterPlugin,
-  compiler: Pin<Box<Compiler>>,
+  compiler: Compiler,
   state: CompilerState,
   include_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
 }
@@ -195,7 +195,7 @@ impl JsCompiler {
     );
 
     Ok(Self {
-      compiler: Box::pin(Compiler::from(rspack)),
+      compiler: Compiler::from(rspack),
       state: CompilerState::init(),
       js_hooks_plugin,
       include_dependencies_map: Default::default(),
@@ -281,10 +281,7 @@ impl JsCompiler {
       return Err(concurrent_compiler_error());
     }
     let _guard = self.state.enter();
-    let mut compiler = reference.share_with(env, |s| {
-      // SAFETY: The mutable reference to `Compiler` is exclusive. It's guaranteed by the running state guard.
-      Ok(unsafe { s.compiler.as_mut().get_unchecked_mut() })
-    })?;
+    let mut compiler = reference.share_with(env, |s| Ok(&mut s.compiler))?;
 
     self.cleanup_last_compilation(&compiler.compilation);
 

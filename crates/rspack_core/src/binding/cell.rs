@@ -14,6 +14,7 @@
 mod napi_binding {
   use std::{
     any::{Any, TypeId},
+    cell::RefCell,
     hash::{Hash, Hasher},
     ops::{Deref, DerefMut},
     ptr,
@@ -29,7 +30,7 @@ mod napi_binding {
   use once_cell::sync::OnceCell;
   use rspack_napi::{object_assign, object_clone};
 
-  use crate::{with_thread_local_allocator, AssetInfo};
+  use crate::{with_thread_local_allocator, AssetInfo, EntryData, EntryOptions};
 
   fn trace(env: &Env, scope: &mut Object, mut target: Object) -> napi::Result<napi_ref> {
     let mut raw_ref = ptr::null_mut();
@@ -58,7 +59,9 @@ mod napi_binding {
   // to determine whether the Rust side has already been released.
   #[derive(Debug)]
   enum Boxed {
-    AssetInfo(Arc<AssetInfo>),
+    AssetInfo(Arc<RefCell<Box<AssetInfo>>>),
+    EntryData(Arc<RefCell<Box<EntryData>>>),
+    EntryOptions(Arc<RefCell<Box<EntryOptions>>>),
   }
 
   #[derive(Debug)]
@@ -75,13 +78,7 @@ mod napi_binding {
 
   impl BindingCell<AssetInfo> {
     pub fn take(self) -> AssetInfo {
-      match self.heap.boxed {
-        Boxed::AssetInfo(asset_info) =>
-        {
-          #[allow(clippy::unwrap_used)]
-          Arc::into_inner(asset_info).unwrap()
-        }
-      }
+      todo!()
     }
   }
 
@@ -92,6 +89,8 @@ mod napi_binding {
         .jsobject
         .get_or_try_init(|| match &self.heap.boxed {
           Boxed::AssetInfo(_asset_info) => trace(env, scope, object),
+          Boxed::EntryOptions(_entry_options) => todo!(),
+          Boxed::EntryData(ref_cell) => todo!(),
         })?;
       Ok(())
     }
@@ -107,6 +106,16 @@ mod napi_binding {
               let target = unsafe { Object::from_raw_unchecked(env.raw(), napi_val) };
               trace(env, scope, target)
             }
+            Boxed::EntryData(entry_data) => {
+              let napi_val = allocator.allocate_entry_data(env.raw(), entry_data)?;
+              let target = unsafe { Object::from_raw_unchecked(env.raw(), napi_val) };
+              trace(env, scope, target)
+            }
+            Boxed::EntryOptions(entry_options) => {
+              let napi_val = allocator.allocate_entry_options(env.raw(), entry_options)?;
+              let target = unsafe { Object::from_raw_unchecked(env.raw(), napi_val) };
+              trace(env, scope, target)
+            }
           })?;
 
         let mut napi_val = ptr::null_mut();
@@ -115,9 +124,9 @@ mod napi_binding {
         })?;
         let result = unsafe { Object::from_raw_unchecked(env.raw(), napi_val) };
 
-        // AssetInfo is a vanilla object, so the associated JS object needs to be updated
-        // every time it is converted to ensure consistency.
         match &self.heap.boxed {
+          // AssetInfo is a vanilla object, so the associated JS object needs to be updated
+          // every time it is converted to ensure consistency.
           Boxed::AssetInfo(asset_info) => {
             let mut cloned_object = object_clone(env, &result)?;
             let napi_val = allocator.allocate_asset_info(env.raw(), asset_info)?;
@@ -125,6 +134,7 @@ mod napi_binding {
             object_assign(&mut cloned_object, &new_object)?;
             Ok(cloned_object)
           }
+          _ => Ok(result),
         }
       })
     }
@@ -135,10 +145,34 @@ mod napi_binding {
 
   impl From<AssetInfo> for BindingCell<AssetInfo> {
     fn from(asset_info: AssetInfo) -> Self {
-      let boxed = Arc::new(asset_info);
-      let ptr = Arc::as_ptr(&boxed).cast_mut();
+      let boxed = Box::new(asset_info);
+      let ptr = boxed.as_ref() as *const AssetInfo as *mut AssetInfo;
       let heap = Heap {
-        boxed: Boxed::AssetInfo(boxed),
+        boxed: Boxed::AssetInfo(Arc::new(RefCell::new(boxed))),
+        jsobject: Default::default(),
+      };
+      Self { ptr, heap }
+    }
+  }
+
+  impl From<EntryData> for BindingCell<EntryData> {
+    fn from(entry_data: EntryData) -> Self {
+      let boxed = Box::new(entry_data);
+      let ptr = boxed.as_ref() as *const EntryData as *mut EntryData;
+      let heap = Heap {
+        boxed: Boxed::EntryData(Arc::new(RefCell::new(boxed))),
+        jsobject: Default::default(),
+      };
+      Self { ptr, heap }
+    }
+  }
+
+  impl From<EntryOptions> for BindingCell<EntryOptions> {
+    fn from(entry_options: EntryOptions) -> Self {
+      let boxed = Box::new(entry_options);
+      let ptr = boxed.as_ref() as *const EntryOptions as *mut EntryOptions;
+      let heap = Heap {
+        boxed: Boxed::EntryOptions(Arc::new(RefCell::new(boxed))),
         jsobject: Default::default(),
       };
       Self { ptr, heap }
@@ -232,7 +266,9 @@ mod napi_binding {
       let type_id = boxed.type_id();
       if type_id == TypeId::of::<Box<AssetInfo>>() {
         let ptr = Box::into_raw(boxed);
-        let boxed = unsafe { Arc::from_raw(ptr as *mut AssetInfo) };
+        let boxed = Arc::new(RefCell::new(unsafe {
+          Box::from_raw(ptr as *mut AssetInfo)
+        }));
         Ok(BindingCell {
           ptr,
           heap: Heap {

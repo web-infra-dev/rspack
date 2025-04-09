@@ -1,8 +1,10 @@
 use indexmap::IndexMap;
 
-use crate::{ChunkLoading, DependencyId, EntryOptions, Filename, LibraryOptions, PublicPath};
+use crate::{
+  BindingCell, ChunkLoading, DependencyId, EntryOptions, Filename, LibraryOptions, PublicPath,
+};
 
-pub type Entry = IndexMap<String, EntryData>;
+pub type Entries = IndexMap<String, BindingCell<EntryData>>;
 
 pub type EntryItem = Vec<String>;
 
@@ -35,7 +37,7 @@ where
 pub struct EntryData {
   pub dependencies: Vec<DependencyId>,
   pub include_dependencies: Vec<DependencyId>,
-  pub options: EntryOptions,
+  pub options: BindingCell<EntryOptions>,
 }
 
 impl EntryData {

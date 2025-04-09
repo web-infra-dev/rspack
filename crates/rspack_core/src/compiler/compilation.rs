@@ -52,7 +52,7 @@ use crate::{
   ChunkHashesArtifact, ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderResult,
   ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyId,
-  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
+  DependencyType, Entries, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
   Filename, ImportVarMap, Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
   ModuleIdsArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpecMap,
   RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats,
@@ -208,7 +208,7 @@ pub struct Compilation {
   pub hot_index: u32,
   pub records: Option<CompilationRecords>,
   pub options: Arc<CompilerOptions>,
-  pub entries: Entry,
+  pub entries: Entries,
   pub global_entry: EntryData,
   other_module_graph: Option<ModuleGraphPartial>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
@@ -603,9 +603,11 @@ impl Compilation {
         let data = EntryData {
           dependencies: vec![entry_id],
           include_dependencies: vec![],
-          options,
+          options: BindingCell::from(options),
         };
-        self.entries.insert(name.to_owned(), data);
+        self
+          .entries
+          .insert(name.to_owned(), BindingCell::from(data));
       }
     } else {
       self.global_entry.dependencies.push(entry_id);
@@ -642,9 +644,9 @@ impl Compilation {
           let data = EntryData {
             dependencies: vec![],
             include_dependencies: vec![entry_id],
-            options,
+            options: BindingCell::from(options),
           };
-          self.entries.insert(name, data);
+          self.entries.insert(name, BindingCell::from(data));
         }
       } else {
         self.global_entry.include_dependencies.push(entry_id);

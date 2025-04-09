@@ -253,7 +253,7 @@ impl CreateChunkRoot {
           chunk_modules: ctx.chunk_modules,
           pre_order_indices: ctx.pre_order_indices,
           post_order_indices: ctx.post_order_indices,
-          options: data.options.clone(),
+          options: (*data.options).clone(),
           modules_ordinal: ctx.module_ordinal,
           incoming_blocks: Default::default(),
           outgoing_blocks: ctx.out_goings,
@@ -442,7 +442,7 @@ impl CodeSplitter {
 
       entries.push(CreateChunkRoot::Entry(
         entry.clone(),
-        Box::new(entry_data.clone()),
+        Box::new((**entry_data).clone()),
         Some(runtime.clone()),
       ));
 

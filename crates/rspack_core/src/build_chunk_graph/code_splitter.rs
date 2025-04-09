@@ -404,7 +404,7 @@ impl CodeSplitter {
 
     let mut entrypoint = ChunkGroup::new(ChunkGroupKind::new_entrypoint(
       true,
-      Box::new(options.clone()),
+      Box::new((**options).clone()),
     ));
 
     for request in requests {

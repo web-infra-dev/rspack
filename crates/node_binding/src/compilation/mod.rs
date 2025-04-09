@@ -1,12 +1,13 @@
 mod dependencies;
 pub mod entries;
 
-use std::{cell::RefCell, collections::HashMap, path::Path, ptr::NonNull};
+use std::{cell::RefCell, collections::HashMap, ffi::c_void, path::Path, ptr::NonNull};
 
 use dependencies::JsDependencies;
 use entries::JsEntries;
 use napi::NapiRaw;
 use napi_derive::napi;
+use once_cell::sync::OnceCell;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{
   rspack_sources::BoxSource, BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions,
@@ -20,7 +21,7 @@ use rustc_hash::FxHashMap;
 use super::{JsFilename, PathWithInfo};
 use crate::{
   entry::JsEntryOptions, utils::callbackify, AssetInfo, EntryDependency, JsAddingRuntimeModule,
-  JsAsset, JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper, JsCompatSource,
+  JsAsset, JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper, JsCompatSource, JsCompiler,
   JsModuleGraph, JsPathData, JsRspackDiagnostic, JsRspackError, JsStats,
   JsStatsOptimizationBailout, ModuleObject, RspackResultToNapiResultExt, ToJsCompatSource,
   COMPILER_REFERENCES,
@@ -30,20 +31,38 @@ use crate::{
 pub struct JsCompilation {
   #[allow(dead_code)]
   pub(crate) id: CompilationId,
-  pub(crate) inner: NonNull<Compilation>,
+  pub(crate) compiler_reference: WeakReference<JsCompiler>,
+  entries: OnceCell<WeakReference<JsEntries>>,
+}
+
+impl JsCompilation {
+  pub fn new(id: CompilationId, compiler_reference: WeakReference<JsCompiler>) -> Self {
+    #[allow(clippy::unwrap_used)]
+    Self {
+      id,
+      compiler_reference,
+      entries: OnceCell::new(),
+    }
+  }
 }
 
 impl JsCompilation {
   fn as_ref(&self) -> napi::Result<&'static Compilation> {
-    // SAFETY: The memory address of rspack_core::Compilation will not change,
-    // so as long as the Compiler is not dropped, we can safely return a 'static reference.
-    Ok(unsafe { self.inner.as_ref() })
+    match self.compiler_reference.get() {
+      Some(reference) => Ok(&reference.compiler.compilation),
+      None => Err(napi::Error::from_reason(
+        "Unable to access entries now. The compiler has been garbage collected by JavaScript.",
+      )),
+    }
   }
 
   fn as_mut(&mut self) -> napi::Result<&'static mut Compilation> {
-    // SAFETY: The memory address of rspack_core::Compilation will not change,
-    // so as long as the Compiler is not dropped, we can safely return a 'static reference.
-    Ok(unsafe { self.inner.as_mut() })
+    match self.compiler_reference.get_mut() {
+      Some(reference) => Ok(&mut reference.compiler.compilation),
+      None => Err(napi::Error::from_reason(
+        "Unable to access entries now. The compiler has been garbage collected by JavaScript.",
+      )),
+    }
   }
 }
 
@@ -675,10 +694,21 @@ impl JsCompilation {
   }
 
   #[napi(getter)]
-  pub fn entries(&mut self) -> Result<JsEntries> {
-    let compilation = self.as_mut()?;
+  pub fn entries(&mut self, env: &Env, mut this: This) -> Result<WeakReference<JsEntries>> {
+    let weak_reference = self.entries.get_or_try_init(|| {
+      let reference: Reference<JsCompilation> =
+        unsafe { Reference::from_value_ptr(self as *mut JsCompilation as *mut c_void, env.raw())? };
+      let entries = JsEntries::new(self.compiler_reference.clone());
+      let napi_value = unsafe { ToNapiValue::to_napi_value(env.raw(), entries)? };
 
-    Ok(JsEntries::new(compilation))
+      this.object.set_named_property("$$entries", napi_value)?;
+
+      let reference: Reference<JsEntries> =
+        unsafe { Reference::from_napi_value(env.raw(), napi_value)? };
+      Ok(reference.downgrade())
+    })?;
+
+    Ok(weak_reference.clone())
   }
 
   #[napi]
@@ -870,10 +900,7 @@ impl ToNapiValue for JsCompilationWrapper {
           ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
-          let js_compilation = JsCompilation {
-            id: val.id,
-            inner: val.inner,
-          };
+          let js_compilation = JsCompilation::new(val.id, val);
           let r = OneShotRef::new(env, js_compilation)?;
           let r = entry.insert(r);
           ToNapiValue::to_napi_value(env, r)
