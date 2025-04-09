@@ -4,9 +4,13 @@ import { Tabs, Tab, PackageManagerTabs } from '@theme';
 
 [next-rspack](https://www.npmjs.com/package/next-rspack) 是一个社区驱动的插件，它允许 Next.js 项目使用 Rspack 作为打包工具。
 
-> 示例：[next.js/examples/with-rspack](https://github.com/vercel/next.js/tree/canary/examples/with-rspack)。
+:::tip
+查看 [Rspack joins the Next.js ecosystem](https://rspack.dev/blog/rspack-next-partner) 博客文章了解更多。
+:::
 
 ## 安装
+
+安装 `next-rspack` 包：
 
 <PackageManagerTabs command="add next-rspack -D" />
 
@@ -44,6 +48,8 @@ module.exports = withRspack(nextConfig);
 
   </Tab>
 </Tabs>
+
+> 示例：[next.js/examples/with-rspack](https://github.com/vercel/next.js/tree/canary/examples/with-rspack)。
 
 ## 自定义 Rspack 配置
 
