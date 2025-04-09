@@ -16,7 +16,14 @@ use rspack_hook::plugin_hook;
 use rustc_hash::FxHashMap;
 
 use crate::{
-  dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
+  dependency::{
+    ESMCompatibilityDependencyTemplate, ESMExportExpressionDependencyTemplate,
+    ESMExportHeaderDependencyTemplate, ESMExportImportedSpecifierDependencyTemplate,
+    ESMExportSpecifierDependencyTemplate, ESMImportSideEffectDependencyTemplate,
+    ESMImportSpecifierDependencyTemplate, ExternalModuleDependencyTemplate,
+    ImportDependencyTemplate, ImportEagerDependencyTemplate, ProvideDependencyTemplate,
+  },
+  parser_and_generator::JavaScriptParserAndGenerator,
   JsPlugin, JsPluginInner,
 };
 
@@ -105,10 +112,7 @@ async fn compilation(
     DependencyType::DynamicImport,
     params.normal_module_factory.clone(),
   );
-  compilation.set_dependency_template(
-    ImportDependencyTemplate::template_type(),
-    Arc::new(ImportDependencyTemplate::default()),
-  );
+
   compilation.set_dependency_factory(
     DependencyType::DynamicImportEager,
     params.normal_module_factory.clone(),
@@ -140,6 +144,51 @@ async fn compilation(
   let self_factory = Arc::new(SelfModuleFactory {});
   compilation.set_dependency_factory(DependencyType::CjsSelfReference, self_factory.clone());
   compilation.set_dependency_factory(DependencyType::ModuleDecorator, self_factory);
+
+  compilation.set_dependency_template(
+    ESMCompatibilityDependencyTemplate::template_type(),
+    Arc::new(ESMCompatibilityDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ImportDependencyTemplate::template_type(),
+    Arc::new(ImportDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ESMExportExpressionDependencyTemplate::template_type(),
+    Arc::new(ESMExportExpressionDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ESMExportHeaderDependencyTemplate::template_type(),
+    Arc::new(ESMExportHeaderDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ESMExportImportedSpecifierDependencyTemplate::template_type(),
+    Arc::new(ESMExportImportedSpecifierDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ESMExportSpecifierDependencyTemplate::template_type(),
+    Arc::new(ESMExportSpecifierDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ESMImportSideEffectDependencyTemplate::template_type(),
+    Arc::new(ESMImportSideEffectDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ESMImportSpecifierDependencyTemplate::template_type(),
+    Arc::new(ESMImportSpecifierDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ExternalModuleDependencyTemplate::template_type(),
+    Arc::new(ExternalModuleDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ImportEagerDependencyTemplate::template_type(),
+    Arc::new(ImportEagerDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ProvideDependencyTemplate::template_type(),
+    Arc::new(ProvideDependencyTemplate::default()),
+  );
   Ok(())
 }
 

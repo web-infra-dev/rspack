@@ -4,9 +4,9 @@ use rspack_collections::{Identifier, IdentifierSet};
 use rspack_core::{
   property_access, rspack_sources::ReplacementEnforce, AsContextDependency, AsModuleDependency,
   Compilation, Dependency, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyType, ESMExportInitFragment, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
-  ModuleGraph, RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
+  DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType, ESMExportInitFragment,
+  ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, RuntimeGlobals, RuntimeSpec,
+  SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
 };
 use swc_core::atoms::Atom;
 
@@ -115,11 +115,34 @@ impl AsContextDependency for ESMExportExpressionDependency {}
 
 #[cacheable_dyn]
 impl DependencyTemplate for ESMExportExpressionDependency {
-  fn apply(
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(ESMExportExpressionDependencyTemplate::template_type())
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ESMExportExpressionDependencyTemplate;
+
+impl ESMExportExpressionDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::DependencyType(DependencyType::EsmExportExpression)
+  }
+}
+
+impl DynamicDependencyTemplate for ESMExportExpressionDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyTemplate,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ESMExportExpressionDependency>()
+      .expect(
+        "ESMExportExpressionDependencyTemplate should only be used for ESMExportExpressionDependency",
+      );
     let TemplateContext {
       compilation,
       runtime,
@@ -142,7 +165,7 @@ impl DependencyTemplate for ESMExportExpressionDependency {
         .get_used_name(&module_graph, *runtime, UsedName::Str(name.into()))
     }
 
-    if let Some(declaration) = &self.declaration {
+    if let Some(declaration) = &dep.declaration {
       let name = match declaration {
         DeclarationId::Id(id) => id,
         DeclarationId::Func(func) => {
@@ -182,9 +205,9 @@ impl DependencyTemplate for ESMExportExpressionDependency {
       }
 
       source.replace(
-        self.range_stmt.start,
-        self.range.start,
-        format!("/* ESM default export */ {}", self.prefix).as_str(),
+        dep.range_stmt.start,
+        dep.range.start,
+        format!("/* ESM default export */ {}", dep.prefix).as_str(),
         None,
       );
     } else {
@@ -238,14 +261,14 @@ impl DependencyTemplate for ESMExportExpressionDependency {
       };
 
       source.replace(
-        self.range_stmt.start,
-        self.range.start,
-        &format!("{}({}", content, self.prefix),
+        dep.range_stmt.start,
+        dep.range.start,
+        &format!("{}({}", content, dep.prefix),
         None,
       );
       source.replace_with_enforce(
-        self.range.end,
-        self.range_stmt.end,
+        dep.range.end,
+        dep.range_stmt.end,
         ");",
         None,
         ReplacementEnforce::Post,

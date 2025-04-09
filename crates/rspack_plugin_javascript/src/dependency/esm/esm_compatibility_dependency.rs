@@ -1,7 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  DependencyTemplate, InitFragmentKey, InitFragmentStage, ModuleGraph, NormalInitFragment,
-  RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsageState,
+  DependencyTemplate, DynamicDependencyTemplate, DynamicDependencyTemplateType, InitFragmentKey,
+  InitFragmentStage, ModuleGraph, NormalInitFragment, RuntimeGlobals, TemplateContext,
+  TemplateReplaceSource, UsageState,
 };
 use swc_core::atoms::Atom;
 
@@ -13,8 +14,25 @@ pub struct ESMCompatibilityDependency;
 
 #[cacheable_dyn]
 impl DependencyTemplate for ESMCompatibilityDependency {
-  fn apply(
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(ESMCompatibilityDependencyTemplate::template_type())
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Default)]
+pub struct ESMCompatibilityDependencyTemplate;
+
+impl ESMCompatibilityDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::CustomType("ESMCompatibilityDependency")
+  }
+}
+
+impl DynamicDependencyTemplate for ESMCompatibilityDependencyTemplate {
+  fn render(
     &self,
+    _dep: &dyn DependencyTemplate,
     _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
