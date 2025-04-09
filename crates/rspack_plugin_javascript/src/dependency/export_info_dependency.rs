@@ -4,8 +4,8 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  DependencyTemplate, ExportProvided, TemplateContext, TemplateReplaceSource, UsageState,
-  UsedExports, UsedName,
+  DependencyTemplate, DynamicDependencyTemplate, DynamicDependencyTemplateType, ExportProvided,
+  TemplateContext, TemplateReplaceSource, UsageState, UsedExports, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -33,14 +33,8 @@ impl ExportInfoDependency {
 
 #[cacheable_dyn]
 impl DependencyTemplate for ExportInfoDependency {
-  fn apply(&self, source: &mut TemplateReplaceSource, context: &mut TemplateContext) {
-    let value = self.get_property(context);
-    source.replace(
-      self.start,
-      self.end,
-      value.unwrap_or("undefined".to_owned()).as_str(),
-      None,
-    );
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(ExportInfoDependencyTemplate::template_type())
   }
 }
 
@@ -123,5 +117,37 @@ impl ExportInfoDependency {
         }),
       _ => None,
     }
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ExportInfoDependencyTemplate;
+
+impl ExportInfoDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::CustomType("ExportInfoDependency")
+  }
+}
+
+impl DynamicDependencyTemplate for ExportInfoDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyTemplate,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ExportInfoDependency>()
+      .expect("ExportInfoDependencyTemplate should be used for ExportInfoDependency");
+
+    let value = dep.get_property(code_generatable_context);
+    source.replace(
+      dep.start,
+      dep.end,
+      value.unwrap_or("undefined".to_owned()).as_str(),
+      None,
+    );
   }
 }
