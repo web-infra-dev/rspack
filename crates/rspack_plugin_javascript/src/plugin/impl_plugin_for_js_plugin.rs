@@ -24,12 +24,12 @@ use crate::{
     local_module_dependency::LocalModuleDependencyTemplate,
     unsupported_dependency::UnsupportedDependencyTemplate, CommonJsExportRequireDependencyTemplate,
     CommonJsExportsDependencyTemplate, CommonJsFullRequireDependencyTemplate,
-    CommonJsRequireDependencyTemplate, ESMCompatibilityDependencyTemplate,
-    ESMExportExpressionDependencyTemplate, ESMExportHeaderDependencyTemplate,
-    ESMExportImportedSpecifierDependencyTemplate, ESMExportSpecifierDependencyTemplate,
-    ESMImportSideEffectDependencyTemplate, ESMImportSpecifierDependencyTemplate,
-    ExternalModuleDependencyTemplate, ImportDependencyTemplate, ImportEagerDependencyTemplate,
-    ProvideDependencyTemplate,
+    CommonJsRequireDependencyTemplate, CommonJsSelfReferenceDependencyTemplate,
+    ESMCompatibilityDependencyTemplate, ESMExportExpressionDependencyTemplate,
+    ESMExportHeaderDependencyTemplate, ESMExportImportedSpecifierDependencyTemplate,
+    ESMExportSpecifierDependencyTemplate, ESMImportSideEffectDependencyTemplate,
+    ESMImportSpecifierDependencyTemplate, ExternalModuleDependencyTemplate,
+    ImportDependencyTemplate, ImportEagerDependencyTemplate, ProvideDependencyTemplate,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
   JsPlugin, JsPluginInner,
@@ -240,6 +240,10 @@ async fn compilation(
   compilation.set_dependency_template(
     CommonJsRequireDependencyTemplate::template_type(),
     Arc::new(CommonJsRequireDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    CommonJsSelfReferenceDependencyTemplate::template_type(),
+    Arc::new(CommonJsSelfReferenceDependencyTemplate::default()),
   );
   Ok(())
 }
