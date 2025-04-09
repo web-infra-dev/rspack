@@ -24,7 +24,7 @@ use rspack_plugin_runtime::is_enabled_for_chunk;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  dependency::{CssLayer, CssMedia, CssSupports},
+  dependency::{CssImportDependencyTemplate, CssLayer, CssMedia, CssSupports},
   parser_and_generator::{CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator},
   plugin::CssPluginInner,
   runtime::CssLoadingRuntimeModule,
@@ -253,6 +253,10 @@ async fn compilation(
   compilation.set_dependency_factory(
     DependencyType::CssSelfReferenceLocalIdent,
     Arc::new(SelfModuleFactory {}),
+  );
+  compilation.set_dependency_template(
+    CssImportDependencyTemplate::template_type(),
+    Arc::new(CssImportDependencyTemplate::default()),
   );
   Ok(())
 }
