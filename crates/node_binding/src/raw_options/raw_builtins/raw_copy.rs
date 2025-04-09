@@ -1,6 +1,9 @@
 use cow_utils::CowUtils;
 use derive_more::Debug;
-use napi::{bindgen_prelude::Buffer, Either};
+use napi::{
+  bindgen_prelude::{Buffer, FnArgs},
+  Either,
+};
 use napi_derive::napi;
 use rspack_core::rspack_sources::RawSource;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -9,7 +12,7 @@ use rspack_plugin_copy::{
   Transformer,
 };
 
-type TransformerFn = ThreadsafeFunction<(Buffer, String), Either<String, Buffer>>;
+type TransformerFn = ThreadsafeFunction<FnArgs<(Buffer, String)>, Either<String, Buffer>>;
 type RawTransformer = Either<RawTransformOptions, TransformerFn>;
 
 type RawToFn = ThreadsafeFunction<RawToOptions, String>;
@@ -117,7 +120,7 @@ impl From<RawCopyPattern> for CopyPattern {
         Either::B(f) => ToOption::Fn(Box::new(move |ctx| {
           let f = f.clone();
           Box::pin(async move {
-            f.call(RawToOptions {
+            f.call_with_sync(RawToOptions {
               context: ctx.context.as_str().to_owned(),
               absolute_filename: Some(ctx.absolute_filename.as_str().to_owned()),
             })
@@ -167,7 +170,7 @@ impl From<RawCopyPattern> for CopyPattern {
             }
 
             Box::pin(async move {
-              f.call((input.into(), absolute_filename.to_owned()))
+              f.call_with_sync((input.into(), absolute_filename.to_owned()).into())
                 .await
                 .map(convert_to_enum)
             })
@@ -185,7 +188,7 @@ impl From<RawCopyPattern> for CopyPattern {
           }
 
           Box::pin(async move {
-            f.call((input.into(), absolute_filename.to_owned()))
+            f.call_with_sync((input.into(), absolute_filename.to_owned()).into())
               .await
               .map(convert_to_enum)
           })

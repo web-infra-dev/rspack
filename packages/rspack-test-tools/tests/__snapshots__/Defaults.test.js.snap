@@ -18,6 +18,7 @@ Object {
   },
   experiments: Object {
     asyncWebAssembly: false,
+    buildHttp: undefined,
     cache: false,
     css: undefined,
     futureDefaults: false,
@@ -40,7 +41,8 @@ Object {
     },
     layers: false,
     lazyCompilation: false,
-    parallelCodeSplitting: false,
+    parallelCodeSplitting: true,
+    parallelLoader: false,
     rspackFuture: Object {
       bundlerInfo: Object {
         bundler: rspack,
@@ -235,7 +237,7 @@ Object {
     nodeEnv: false,
     providedExports: true,
     realContentHash: false,
-    removeAvailableModules: false,
+    removeAvailableModules: true,
     removeEmptyChunks: true,
     runtimeChunk: false,
     sideEffects: flag,

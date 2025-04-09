@@ -4,7 +4,9 @@ use anyhow::Context;
 use itertools::Itertools;
 use rspack_core::{Compilation, CrossOriginLoading, Mode};
 use rspack_dojang::{dojang::DojangOptions, Dojang, Operand};
-use rspack_error::{miette, AnyhowError};
+use rspack_error::{
+  miette, AnyhowResultToRspackResultExt, Result, ToStringResultToRspackResultExt,
+};
 use rspack_paths::AssertUtf8;
 use serde_json::Value;
 
@@ -79,7 +81,7 @@ impl HtmlTemplate {
             file_dependencies: vec![resolved_template.into_std_path_buf()],
             parameters: None,
           })
-          .map_err(|err| miette::Error::from(AnyhowError::from(err)))
+          .to_rspack_result_from_anyhow()
       }
     } else {
       let default_src_template =
@@ -146,7 +148,7 @@ impl HtmlTemplate {
               Mode::None => "none",
             },
             "output": {
-              "publicPath": config.get_public_path(compilation, filename),
+              "publicPath": config.get_public_path(compilation, filename).await,
             "crossOriginLoading": match &compilation.options.output.cross_origin_loading {
                 CrossOriginLoading::Disable => "false",
                 CrossOriginLoading::Enable(value) => value,
@@ -210,11 +212,10 @@ impl HtmlTemplate {
         dj.add_with_option(self.url.clone(), content.clone())
           .expect("failed to add template");
 
-        dj.render(&self.url, parameters).map_err(|err| {
-          miette::Error::msg(format!(
-            "HtmlRspackPlugin: failed to render template from string: {err}"
-          ))
-        })
+        dj.render(&self.url, parameters)
+          .to_rspack_result_with_message(|e| {
+            format!("HtmlRspackPlugin: failed to render template from string: {e}")
+          })
       }
       TemplateRender::Function => (config
         .template_fn
@@ -224,10 +225,8 @@ impl HtmlTemplate {
         serde_json::to_string(&parameters).unwrap_or_else(|_| panic!("invalid json to_string")),
       )
       .await
-      .map_err(|err| {
-        miette::Error::msg(format!(
-          "HtmlRspackPlugin: failed to render template from function: {err}"
-        ))
+      .to_rspack_result_with_message(|e| {
+        format!("HtmlRspackPlugin: failed to render template from function: {e}")
       }),
     }
   }

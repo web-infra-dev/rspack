@@ -10,7 +10,7 @@ use rspack_core::{
   CompilerOptions, ModuleIdentifier, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesInlineInRuntimeBailout,
@@ -35,7 +35,7 @@ pub struct EvalSourceMapDevToolPlugin {
   namespace: String,
   source_root: Option<String>,
   // TODO: memory leak if not clear across multiple compilations
-  cache: DashMap<String, BoxSource>,
+  cache: DashMap<RspackHashDigest, BoxSource>,
 }
 
 impl EvalSourceMapDevToolPlugin {
@@ -85,18 +85,20 @@ async fn eval_source_map_devtool_plugin_compilation(
 async fn eval_source_map_devtool_plugin_render_module_content(
   &self,
   compilation: &Compilation,
+  chunk: &ChunkUkey,
   module: &BoxModule,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
 ) -> Result<()> {
   let output_options = &compilation.options.output;
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk);
   let module_hash = compilation
     .code_generation_results
-    .get_hash(&module.identifier(), None)
-    .map(|hash| hash.encoded());
+    .get_hash(&module.identifier(), Some(chunk.runtime()))
+    .expect("should have codegen results hash in process assets");
 
   let origin_source = render_source.source.clone();
-  if let Some(cached_source) = module_hash.and_then(|hash| self.cache.get(hash)) {
+  if let Some(cached_source) = self.cache.get(module_hash) {
     render_source.source = cached_source.value().clone();
     return Ok(());
   } else if let Some(mut map) = origin_source.map(&MapOptions::new(self.columns)) {
@@ -150,7 +152,7 @@ async fn eval_source_map_devtool_plugin_render_module_content(
         };
         let module_filenames =
           ModuleFilenameHelpers::replace_duplicates(module_filenames, |mut filename, _, n| {
-            filename.extend(std::iter::repeat('*').take(n));
+            filename.extend(std::iter::repeat_n('*', n));
             filename
           });
         map.set_sources(module_filenames);
@@ -190,9 +192,7 @@ async fn eval_source_map_devtool_plugin_render_module_content(
       ))
       .boxed()
     };
-    if let Some(hash) = module_hash {
-      self.cache.insert(hash.to_string(), source.clone());
-    }
+    self.cache.insert(module_hash.clone(), source.clone());
     render_source.source = source;
     return Ok(());
   }
@@ -211,7 +211,7 @@ async fn eval_source_map_devtool_plugin_js_chunk_hash(
 }
 
 #[plugin_hook(JavascriptModulesInlineInRuntimeBailout for EvalSourceMapDevToolPlugin)]
-fn eval_source_map_devtool_plugin_inline_in_runtime_bailout(
+async fn eval_source_map_devtool_plugin_inline_in_runtime_bailout(
   &self,
   _compilation: &Compilation,
 ) -> Result<Option<String>> {
@@ -219,7 +219,7 @@ fn eval_source_map_devtool_plugin_inline_in_runtime_bailout(
 }
 
 #[plugin_hook(CompilationAdditionalModuleRuntimeRequirements for EvalSourceMapDevToolPlugin)]
-fn eval_source_map_devtool_plugin_additional_module_runtime_requirements(
+async fn eval_source_map_devtool_plugin_additional_module_runtime_requirements(
   &self,
   compilation: &Compilation,
   _module: &ModuleIdentifier,

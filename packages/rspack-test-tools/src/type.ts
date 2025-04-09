@@ -220,6 +220,9 @@ export type TTestConfig<T extends ECompilerType> = {
 	modules?: Record<string, Object>;
 	timeout?: number;
 	concurrent?: boolean;
+
+	// Only valid for Hot tests
+	checkSteps?: boolean;
 };
 
 export type TTestFilter<T extends ECompilerType> = (

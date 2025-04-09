@@ -1095,6 +1095,27 @@ Output ES modules.
 
 However this feature is still experimental and not fully supported yet, so make sure to enable [`experiments.outputModule`](/config/experiments#experimentsoutputmodule) beforehand. In addition, you can track the development progress in [this thread](https://github.com/webpack/webpack/issues/2933#issuecomment-774253975).
 
+##### type: 'modern-module'
+
+```js title="rspack.config.mjs"
+export default {
+  // …
+  experiments: {
+    outputModule: true,
+  },
+  output: {
+    library: {
+      // do not specify a `name` here
+      type: 'modern-module',
+    },
+  },
+};
+```
+
+This configuration generates tree-shakable output for ES Modules.
+
+However this feature is still experimental and not fully supported yet, so make sure to enable [`experiments.outputModule`](/config/experiments#experimentsoutputmodule) beforehand.
+
 ##### type: 'commonjs2'
 
 ```js title="rspack.config.mjs"

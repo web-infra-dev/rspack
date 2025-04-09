@@ -23,13 +23,10 @@ impl Parse for DefineHookInput {
     syn::parenthesized!(content in input);
     let args = content.parse_terminated(PatType::parse, Token![,])?;
     let exec_kind = match kind.as_str() {
-      "AsyncSeriesBail" => ExecKind::AsyncSeriesBail {
+      "SeriesBail" => ExecKind::SeriesBail {
         ret: ExecKind::parse_ret(input)?,
       },
-      "SyncSeriesBail" => ExecKind::SyncSeriesBail {
-        ret: ExecKind::parse_ret(input)?,
-      },
-      "AsyncSeriesWaterfall" => {
+      "SeriesWaterfall" => {
         let ret = match ExecKind::parse_ret(input)? {
           Some(t) => t,
           None => {
@@ -39,11 +36,10 @@ impl Parse for DefineHookInput {
             ))
           }
         };
-        ExecKind::AsyncSeriesWaterfall { ret }
+        ExecKind::SeriesWaterfall { ret }
       }
-      "AsyncSeries" => ExecKind::AsyncSeries,
-      "AsyncParallel" => ExecKind::AsyncParallel,
-      "SyncSeries" => ExecKind::SyncSeries,
+      "Series" => ExecKind::Series,
+      "Parallel" => ExecKind::Parallel,
       _ => {
         return Err(Error::new_spanned(
           kind_ident,
@@ -67,18 +63,9 @@ impl DefineHookInput {
       exec_kind,
     } = self;
     let ret = exec_kind.return_type();
-    let is_async = exec_kind.is_async();
-    let attr = if is_async {
-      Some(quote! { #[::rspack_hook::__macro_helper::async_trait] })
-    } else {
-      None
-    };
+    let attr = quote! { #[::rspack_hook::__macro_helper::async_trait] };
     let run_sig = quote! { fn run(&self, #args) -> #ret; };
-    let run_sig = if is_async {
-      quote! { async #run_sig }
-    } else {
-      run_sig
-    };
+    let run_sig = quote! { async #run_sig };
     let arg_names = args
       .iter()
       .map(|arg| match &*arg.pat {
@@ -92,11 +79,7 @@ impl DefineHookInput {
         #call_body
       }
     };
-    let call_fn = if is_async {
-      quote! { async #call_fn }
-    } else {
-      call_fn
-    };
+    let call_fn = quote! { async #call_fn };
     let hook_name = Ident::new(&format!("{trait_name}Hook"), trait_name.span());
     let hook_name_lit_str = LitStr::new(&hook_name.to_string(), trait_name.span());
     Ok(quote! {
@@ -152,12 +135,10 @@ impl DefineHookInput {
 }
 
 enum ExecKind {
-  AsyncSeries,
-  AsyncSeriesBail { ret: Option<TypePath> },
-  AsyncSeriesWaterfall { ret: TypePath },
-  AsyncParallel,
-  SyncSeries,
-  SyncSeriesBail { ret: Option<TypePath> },
+  Series,
+  SeriesBail { ret: Option<TypePath> },
+  SeriesWaterfall { ret: TypePath },
+  Parallel,
 }
 
 impl ExecKind {
@@ -171,26 +152,16 @@ impl ExecKind {
     })
   }
 
-  pub fn is_async(&self) -> bool {
-    match self {
-      Self::AsyncSeries
-      | Self::AsyncSeriesBail { .. }
-      | Self::AsyncSeriesWaterfall { .. }
-      | Self::AsyncParallel => true,
-      Self::SyncSeries | Self::SyncSeriesBail { .. } => false,
-    }
-  }
-
   pub fn return_type(&self) -> TokenStream {
     match self {
-      Self::AsyncSeriesBail { ret } | Self::SyncSeriesBail { ret } => {
+      Self::SeriesBail { ret } => {
         if let Some(ret) = ret {
           quote! { rspack_hook::__macro_helper::Result<std::option::Option<#ret>> }
         } else {
           quote! { rspack_hook::__macro_helper::Result<std::option::Option<()>> }
         }
       }
-      Self::AsyncSeriesWaterfall { ret } => {
+      Self::SeriesWaterfall { ret } => {
         quote! { rspack_hook::__macro_helper::Result<#ret> }
       }
       _ => quote! { rspack_hook::__macro_helper::Result<()> },
@@ -198,11 +169,7 @@ impl ExecKind {
   }
 
   fn additional_taps(&self) -> TokenStream {
-    let call = if self.is_async() {
-      quote! { additional_taps.extend(interceptor.call(self).await?); }
-    } else {
-      quote! { additional_taps.extend(interceptor.call_blocking(self)?); }
-    };
+    let call = quote! { additional_taps.extend(interceptor.call(self).await?); };
     quote! {
       let mut additional_taps = std::vec::Vec::new();
       for interceptor in self.interceptors.iter() {
@@ -218,7 +185,7 @@ impl ExecKind {
   pub fn body(&self, args: Punctuated<&Ident, Comma>) -> TokenStream {
     let additional_taps = self.additional_taps();
     match self {
-      Self::AsyncSeries => {
+      Self::Series => {
         quote! {
           #additional_taps
           for tap in all_taps {
@@ -227,7 +194,7 @@ impl ExecKind {
           Ok(())
         }
       }
-      Self::AsyncSeriesBail { .. } => {
+      Self::SeriesBail { .. } => {
         quote! {
           #additional_taps
           for tap in all_taps {
@@ -238,7 +205,7 @@ impl ExecKind {
           Ok(None)
         }
       }
-      Self::AsyncSeriesWaterfall { .. } => {
+      Self::SeriesWaterfall { .. } => {
         quote! {
           #additional_taps
           let mut data = #args;
@@ -248,32 +215,12 @@ impl ExecKind {
           Ok(data)
         }
       }
-      Self::AsyncParallel => {
+      Self::Parallel => {
         quote! {
           #additional_taps
           let futs: std::vec::Vec<_> = all_taps.iter().map(|t| t.run(#args)).collect();
           futures_concurrency::vec::TryJoin(futs).await?;
           Ok(())
-        }
-      }
-      Self::SyncSeries => {
-        quote! {
-          #additional_taps
-          for tap in all_taps {
-            tap.run(#args)?;
-          }
-          Ok(())
-        }
-      }
-      Self::SyncSeriesBail { .. } => {
-        quote! {
-          #additional_taps
-          for tap in all_taps {
-            if let Some(res) = tap.run(#args)? {
-              return Ok(Some(res));
-            }
-          }
-          Ok(None)
         }
       }
     }

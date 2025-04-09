@@ -42,7 +42,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for ModuleChunkFormatPlugin)]
-fn additional_chunk_runtime_requirements(
+async fn additional_chunk_runtime_requirements(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
@@ -107,7 +107,7 @@ async fn render_chunk(
 
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-  let base_chunk_output_name = get_chunk_output_name(chunk, compilation)?;
+  let base_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
   if matches!(chunk.kind(), ChunkKind::HotUpdate) {
     unreachable!("HMR is not implemented for module chunk format yet");
   }
@@ -135,7 +135,7 @@ async fn render_chunk(
   }
 
   if chunk.has_entry_module(&compilation.chunk_graph) {
-    let runtime_chunk_output_name = get_runtime_chunk_output_name(compilation, chunk_ukey)?;
+    let runtime_chunk_output_name = get_runtime_chunk_output_name(compilation, chunk_ukey).await?;
     sources.add(RawStringSource::from(format!(
       "import __webpack_require__ from '{}';\n",
       get_relative_path(&base_chunk_output_name, &runtime_chunk_output_name)
@@ -178,7 +178,7 @@ async fn render_chunk(
         loaded_chunks.insert(*chunk_ukey);
         let index = loaded_chunks.len();
         let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-        let other_chunk_output_name = get_chunk_output_name(chunk, compilation)?;
+        let other_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
         startup_source.push(format!(
           "import * as __webpack_chunk_${}__ from '{}';",
           itoa!(index),
@@ -205,7 +205,7 @@ async fn render_chunk(
 
     let last_entry_module = entries
       .keys()
-      .last()
+      .next_back()
       .expect("should have last entry module");
     let mut render_source = RenderSource {
       source: RawStringSource::from(startup_source.join("\n")).boxed(),

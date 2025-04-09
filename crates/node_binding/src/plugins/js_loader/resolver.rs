@@ -9,11 +9,7 @@ use rspack_core::{
   BoxLoader, Context, Loader, ModuleRuleUseLoader, NormalModuleFactoryResolveLoader, ResolveResult,
   Resolver, Resource, RunnerContext, BUILTIN_LOADER_PREFIX,
 };
-use rspack_error::{
-  error,
-  miette::{miette, LabeledSpan, SourceOffset},
-  Result,
-};
+use rspack_error::{error, Result, SerdeResultToRspackResultExt, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_loader_lightningcss::{config::Config, LIGHTNINGCSS_LOADER_IDENTIFIER};
 use rspack_loader_preact_refresh::PREACT_REFRESH_LOADER_IDENTIFIER;
@@ -37,16 +33,6 @@ impl Identifiable for JsLoader {
     self.0
   }
 }
-// convert serde_error to miette report for pretty error
-pub fn serde_error_to_miette(
-  e: serde_json::Error,
-  content: Arc<str>,
-  msg: &str,
-) -> rspack_error::miette::Report {
-  let offset = SourceOffset::from_location(content.as_ref(), e.line(), e.column());
-  let span = LabeledSpan::at_offset(offset.offset(), e.to_string());
-  miette!(labels = vec![span], "{msg}").with_source_code(content.clone())
-}
 
 type SwcLoaderCache<'a> = LazyLock<RwLock<FxHashMap<(Cow<'a, str>, Arc<str>), Arc<SwcLoader>>>>;
 static SWC_LOADER_CACHE: SwcLoaderCache = LazyLock::new(|| RwLock::new(FxHashMap::default()));
@@ -64,13 +50,10 @@ pub async fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<
 
     let loader = Arc::new(
       rspack_loader_swc::SwcLoader::new(options.as_ref())
-        .map_err(|e| {
-          serde_error_to_miette(
-            e,
-            options.clone(),
-            "failed to parse builtin:swc-loader options",
-          )
-        })?
+        .to_rspack_result_with_detail(
+          options.as_ref(),
+          "failed to parse builtin:swc-loader options",
+        )?
         .with_identifier(builtin.into()),
     );
 
@@ -83,13 +66,10 @@ pub async fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<
 
   if builtin.starts_with(LIGHTNINGCSS_LOADER_IDENTIFIER) {
     let config: rspack_loader_lightningcss::config::RawConfig =
-      serde_json::from_str(options.as_ref()).map_err(|e| {
-        serde_error_to_miette(
-          e,
-          options,
-          "Could not parse builtin:lightningcss-loader options",
-        )
-      })?;
+      serde_json::from_str(options.as_ref()).to_rspack_result_with_detail(
+        options.as_ref(),
+        "Could not parse builtin:lightningcss-loader options",
+      )?;
     // TODO: builtin-loader supports function
     return Ok(Arc::new(
       rspack_loader_lightningcss::LightningCssLoader::new(None, Config::try_from(config)?, builtin),
@@ -154,7 +134,9 @@ pub(crate) async fn resolve_loader(
   let resolve_result = resolver
     .resolve(context.as_std_path(), prev.as_str())
     .await
-    .map_err(|err| error!("Failed to resolve loader: {prev} in {context}, error: {err:?}"))?;
+    .to_rspack_result_with_message(|e| {
+      format!("Failed to resolve loader: {prev} in {context}, error: {e}")
+    })?;
 
   match resolve_result {
     ResolveResult::Resource(resource) => {

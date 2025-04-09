@@ -1,0 +1,306 @@
+---
+date: 2025-3-28 16:00:00
+sidebar: false
+---
+
+_2025 年 3 月 28 日_
+
+# Rspack 1.3 发布公告
+
+![Rspack 1.3](https://assets.rspack.dev/rspack/rspack-banner-v1-3.png)
+
+---
+
+Rspack 1.3 已经正式发布！
+
+值得关注的变更如下：
+
+- 新功能
+  - [循环引用检测](#循环引用检测)
+  - [构建 HTTP imports](#构建-http-imports)
+  - [Lazy compilation 改进](#lazy-compilation-改进)
+  - [支持 AMD 模块](#支持-amd-模块)
+- 性能优化
+  - [代码拆分提速 25%](#代码拆分提速-25)
+  - [产物体积优化](#产物体积优化)
+  - [内存优化](#内存优化)
+- Rstack 进展
+  - [Rsdoctor 1.0](#rsdoctor-10)
+  - [Rsbuild 1.3](#rsbuild-13)
+  - [Rslib 0.6](#rslib-06)
+  - [Rspress 和 Rstest](#rspress-和-rstest)
+- 生态系统
+  - [Rspeedy for Lynx](#rspeedy-for-lynx)
+  - [Re.Pack 5](#repack-5)
+  - [React Router v7 支持](#react-router-v7-支持)
+- 升级指南
+  - [模块子类型变更](#模块子类型变更)
+  - [升级 SWC 插件](#升级-swc-插件)
+
+## 新功能
+
+### 循环引用检测
+
+Rspack 1.3 新增了一个内置插件 [CircularDependencyRspackPlugin](/plugins/rspack/circular-dependency-rspack-plugin)，用于检测运行时模块之间的循环依赖。
+
+该插件采用 Rust 实现，并与 Rspack 的模块图深度集成，避免了昂贵的数据复制和序列化开销。它通过对每个入口点的模块图执行单次遍历，来检测所有循环依赖，而非独立检查每个模块，因此性能开销更小。
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.CircularDependencyRspackPlugin()],
+};
+```
+
+> 特别感谢 [@faultyserver](https://github.com/faultyserver) 贡献了该插件 ❤️
+
+### 构建 HTTP imports
+
+在过去的版本中，你可以通过 [externalsPresets.web](/config/externals#externalspresetsweb) 或 [externalsPresets.webAsync](/config/externals#externalspresetswebasync) 选项来导入 HTTP/HTTPS 资源，这种方式仅是将这些资源设置为外部资源，然后让浏览器（或其他平台）在运行时获取它们。
+
+```js
+import pMap from 'https://esm.sh/p-map';
+```
+
+而全新的 [experiments.buildHttp](/config/experiments#experimentsbuildhttp) 选项提供了一种导入 HTTP/HTTPS 资源的新方式，不是在运行时获取资源，而是在构建时将它们下载到本地缓存中，然后将其打包到输出文件中。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    buildHttp: {
+      allowedUris: ['https://esm.sh/'],
+      // ...
+    },
+  },
+};
+```
+
+> 查看 [使用文档](/config/experiments#experimentsbuildhttp) 了解更多。
+
+### Lazy compilation 改进
+
+在过去的版本中，当 [lazy compilation](/guide/features/lazy-compilation) 被开启时，Rspack 会启动一个单独的服务器来处理 lazy compilation 相关的请求。这导致了一些问题，例如，开发阶段需要启动两个服务器，并且 lazy compilation 服务器无法与默认的开发服务器共享代理配置和 CORS 配置。
+
+Rspack 1.3 提供了一个全新的 Express 风格的中间件来集成 lazy compilation，以解决上述问题。
+
+- 如果你在使用 `@rspack/cli` 或 Rsbuild，只需要升级依赖版本即可自动切换到新版中间件。
+- 如果你使用了自定义的开发服务器，则需要集成该中间件来支持 lazy compilation。
+
+下面是一个使用 lazy compilation 中间件的示例：
+
+```js
+import { rspack } from '@rspack/core';
+import config from './rspack.config.mjs';
+import DevServer from 'webpack-dev-server';
+
+const compiler = rspack(config);
+const middleware = rspack.experiments.lazyCompilationMiddleware(
+  compiler,
+  config.experiments.lazyCompilation,
+);
+
+const server = new DevServer(
+  {
+    setupMiddlewares(other) {
+      return [middleware, ...other];
+    },
+  },
+  compiler,
+);
+```
+
+### 支持 AMD 模块
+
+Rspack 现在允许你通过 [amd](/config/other-options#amd) 选项来开启对 AMD 模块的支持。
+
+与 webpack 默认启用 AMD 模块支持不同，Rspack 选择默认禁用该特性。此功能旨在兼容仍需使用 AMD 格式的 npm 依赖，我们强烈建议开发者优先选用 ES Module 规范的依赖，以便 Rspack 能基于静态模块分析进行更高效的产物体积优化。
+
+添加 `amd` 选项来开启支持：
+
+```js title="rspack.config.mjs"
+export default {
+  amd: {
+    // ...
+  },
+};
+```
+
+> 特别感谢 [@nilptr](https://github.com/nilptr) 贡献了该功能 ❤️
+
+## 性能优化
+
+### 代码拆分提速 25%
+
+在 Rspack 1.2 中，我们引入了 [experiments.parallelCodeSplitting](/config/experiments#experimentsparallelcodesplitting) 选项来开启新版的代码拆分算法。
+
+从 Rspack 1.3 开始，该选项已经默认开启，并使代码拆分的速度提升 **25%**。
+
+### 产物体积优化
+
+Rspack 1.3 版本引入了对 [output.environment](/config/output#outputenvironment) 选项的完整支持，这允许你指定在 Rspack 生成的运行时代码中可使用的 ECMAScript 特性，能够生成更简短和现代的运行时代码。
+
+默认情况下，Rspack 会解析 [target](/config/target) 配置项，并基于 `browserslist` 来判断目标环境所支持的 ECMAScript 特性，自动设置 `output.environment` 子选项的值，从而输出优化后的代码。
+
+例如，当检测到目标环境支持箭头函数时，Rspack 会将 `output.environment.arrowFunction` 设置为 `true`，并在生成的代码中使用箭头函数语法。
+
+```diff
+// before
+- __webpack_require__.d = function(exports, definition) {
+
+// after
++ __webpack_require__.d = (exports, definition) => {
+```
+
+通过使用目标环境支持的现代 JavaScript 特性，Rspack 能够输出更小的运行时代码。在我们对一个真实大型项目的性能测试中，该优化减少了约 500KB 的产物体积（未经 gzip 压缩）。
+
+### 内存优化
+
+Rspack 现在在 macOS 上默认使用 [mimalloc](https://github.com/microsoft/mimalloc) v3。这缓解了 macOS 在 rebuild 过程中的一些内存消耗问题。根据一些社区和内部项目的反馈，这将减少 rebuild 时的 RSS 使用量，具体减少的比例因项目大小而异，根据我们的测试，减少的比例**从 10% 到 85% 不等**。
+
+Rspack 1.3 还实现了清理过期缓存的内部机制 `maxGenerations`。这个参数控制了缓存的存活时间，Rspack 默认将这个值设置为 1，意味着如果特定缓存在下一轮编译中没有被使用，该缓存将会被清除。
+
+<img
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-3-memory-improve-max-generations.png"
+  width="760"
+  alt="Max generations"
+/>
+
+## Rstack 进展
+
+<img
+  src="https://assets.rspack.dev/rstack/rstack-overview.png"
+  width="760"
+  alt="Rstack"
+/>
+
+### Rsdoctor 1.0
+
+在经过一年的迭代与验证后，我们正式推出 [Rsdoctor 1.0](https://github.com/web-infra-dev/rsdoctor) —— 一款为 Rspack 生态量身打造的构建分析工具，同时也完全兼容 webpack 生态。
+
+Rsdoctor 致力于成为一站式、智能化的构建分析工具，通过可视化与智能分析，使整个构建流程变得透明、可预测和可优化，从而帮助开发团队精准定位瓶颈、优化性能并提升工程质量。
+
+Rsdoctor 1.0 版本带来了诸多的新特性：
+
+- 全面优化的 UI 界面，使信息展示更直观高效；
+- 通过 Rust 重写耗时较长的数据处理逻辑，分析性能提升超过 20%；
+- 新增模块搜索功能，用于快速分析模块引用关系和模块大小。
+
+> 参考 [Rsdoctor 1.0 发布博客](https://rsdoctor.dev/zh/blog/release/release-note-1_0) 了解更多。
+
+### Rsbuild 1.3
+
+Rsbuild 1.3 已经与 Rspack 1.3 同步发布，值得关注的特性有：
+
+- 支持通过 [?inline](https://rsbuild.dev/zh/guide/basic/css-usage#inline) 查询参数引用 CSS 文件编译后的内容，并将其作为字符串导入：
+
+```js
+import inlineCss from './style.css?inline';
+
+console.log(inlineCss); // 输出编译后的 CSS 文件内容
+```
+
+- 支持通过 [?raw](https://rsbuild.dev/zh/guide/basic/css-usage#raw) 查询参数引用 CSS 文件和静态资源的原始内容，并将其作为字符串导入：
+
+```js
+import rawSvg from './logo.svg?raw';
+import rawCss from './style.css?raw';
+
+console.log(rawSvg); // 输出 SVG 文件的原始内容
+console.log(rawCss); // 输出 CSS 文件的原始内容
+```
+
+### Rslib 0.6
+
+Rslib 0.6 主要带来以下更新：
+
+- **改进 CJS 产物**：现在 Rslib 的 CJS 产物可以被静态分析，这使得 Node.js 的 ESM 模块可以使用 named import 来引用 CJS 产物的导出。
+- **类型错误优化**：在遇到类型错误时，Rslib 现在会在终端中显示完整的上下文和 code frame，这使得修复类型问题变得更容易。
+
+此外，该版本还包含对 YAML 和 TOML 的支持，详见 [Rslib 0.6](https://github.com/web-infra-dev/rslib/releases/tag/v0.6.0)。
+
+### Rspress 和 Rstest
+
+我们正在开发：
+
+- **Rspress 2.0**：一个全面升级的静态站点生成器，带来了更丰富的功能和更好的性能。
+- **Rstest**：一个由 Rspack 提供支持的测试框架。它将为 Rspack 生态系统提供全面、一流的支持，可无缝集成到现有的基于 Rspack 的项目中。
+
+更多信息将陆续发布，敬请期待 🌟
+
+## 生态系统
+
+### Rspeedy for Lynx
+
+[Lynx](https://lynxjs.org/) 是一套帮助 Web 开发者复用现有经验，通过一份代码同时构建移动端原生界面与 Web 端界面的技术方案。它最初由字节跳动的工程团队开发，并将由该团队继续推进其演进。
+
+Lynx 基于 Rspack、Rsbuild 和 Rsdoctor 打造了现代化的工具链 [Rspeedy](https://lynxjs.org/zh/rspeedy/)，用于支持 Lynx 的快速开发。此外，Lynx 还有着高性能、多功能的渲染引擎、性能优先的双线程 UI 编程范式等诸多特性。
+
+![](https://lf-lynx.tiktok-cdns.com/obj/lynx-artifacts-oss-sg/lynx-website/assets/blog/lynx-unlock-native-for-more.png)
+
+> 参考 [Lynx 发布博客](https://lynxjs.org/zh/blog/lynx-unlock-native-for-more.html) 了解更多。
+
+### Re.Pack 5
+
+[Re.Pack](https://github.com/callstack/repack) 是一个用于开发 React Native 应用的构建工具。
+
+Re.Pack 5 已正式发布，通过接入 Rspack 带来了显著的性能改进，通过 Module Federation 2 带来了适当的微前端支持，简化了配置等。
+
+> 参考 [Re.Pack 5 发布博客](https://re-pack.dev/blog/repack-5-release) 了解更多。
+
+### React Router v7 支持
+
+[rsbuild-plugin-react-router](https://github.com/rspack-contrib/rsbuild-plugin-react-router) 发布了首个版本，这是一个提供与 React Router v7 无缝集成的 Rsbuild 插件，并支持以下特性：
+
+- 文件系统路由
+- 服务端渲染
+- 实验性的 Module Federation 支持
+
+> 查看 [rsbuild-plugin-react-router 仓库](https://github.com/rspack-contrib/rsbuild-plugin-react-router) 来开始尝试。
+
+## 升级指南
+
+### 模块类型变更
+
+Rspack 导出的模块类型已得到改进，提供更准确的类型定义，这有助于与 webpack 保持一致。目前已支持的模块子类型包括：
+
+- NormalModule
+- ContextModule
+- ExternalModule
+- ConcatenatedModule
+
+现在你可通过两种方式来识别模块的具体类型：
+
+```ts
+// 方法一：实例类型校验
+module instanceof NormalModule;
+
+// 方法二：构造器特征检测
+module.constructor.name === 'NormalModule';
+```
+
+新的类型定义可能会让你原有使用 JavaScript API 的代码遇到类型报错，例如：
+
+```ts
+module.resource; // TypeScript Error: Property 'resource' does not exist on type 'Module'
+```
+
+现在当你访问 `resource` 属性时，需要使用以下方法断言具体的模块类型：
+
+```ts
+// 模式一：in操作符守卫
+if ('resource' in module) {
+  console.log(module.resource);
+}
+
+// 模式二：类型实例断言
+if (module instanceof NormalModule) {
+  module.resource;
+}
+```
+
+### 升级 SWC 插件
+
+在 Rspack 1.3 中，`swc_core` crate 已经升级到 v16。SWC Wasm 插件的用户需要确保与正在使用的 `swc_core` 版本一致，否则可能会导致意外问题。
+
+> 详情请参考 [常见问题 - SWC 插件版本不匹配](/errors/swc-plugin-version)。

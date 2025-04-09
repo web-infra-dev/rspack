@@ -75,7 +75,7 @@ const defaultRustTraceChromeOutput = path.join(
 	"./trace.json"
 );
 const defaultRustTraceLoggerOutput = "stdout";
-const defaultRustTraceFilter = "trace";
+const defaultRustTraceFilter = "info";
 const defaultRustTraceLayer = "chrome";
 const defaultLoggingOutput = path.join(defaultOutputDirname, "./logging.json");
 

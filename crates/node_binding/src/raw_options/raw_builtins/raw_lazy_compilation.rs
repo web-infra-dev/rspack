@@ -43,8 +43,9 @@ pub struct LazyCompilationTestFn {
   tsfn: ThreadsafeFunction<ModuleObject, Option<bool>>,
 }
 
+#[async_trait::async_trait]
 impl LazyCompilationTestCheck for LazyCompilationTestFn {
-  fn test(
+  async fn test(
     &self,
     compiler_id: CompilerId,
     _compilation_id: CompilationId,
@@ -53,10 +54,11 @@ impl LazyCompilationTestCheck for LazyCompilationTestFn {
     #[allow(clippy::unwrap_used)]
     let res = self
       .tsfn
-      .blocking_call_with_sync(ModuleObject::with_ptr(
+      .call_with_sync(ModuleObject::with_ptr(
         NonNull::new(m as *const dyn Module as *mut dyn Module).unwrap(),
         compiler_id,
       ))
+      .await
       .expect("failed to invoke lazyCompilation.test");
 
     res.unwrap_or(false)
@@ -126,7 +128,7 @@ impl Backend for JsBackend {
   ) -> rspack_error::Result<ModuleInfo> {
     let module_info = self
       .module
-      .call(RawModuleArg {
+      .call_with_sync(RawModuleArg {
         module: identifier.to_string(),
         path,
       })

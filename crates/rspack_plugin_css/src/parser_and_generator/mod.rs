@@ -14,15 +14,16 @@ use rspack_core::{
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, Compilation, ConstDependency,
-  CssExportsConvention, Dependency, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyType, GenerateContext, LocalIdentName, Module, ModuleDependency, ModuleGraph,
+  BoxDependencyTemplate, BoxModuleDependency, BuildMetaDefaultObject, BuildMetaExportsType,
+  ChunkGraph, Compilation, ConstDependency, CssExportsConvention, Dependency, DependencyId,
+  DependencyRange, DependencyType, GenerateContext, LocalIdentName, Module, ModuleGraph,
   ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext, ParseResult,
   ParserAndGenerator, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext, UsageState,
 };
 use rspack_error::{
   miette::Diagnostic, IntoTWithDiagnosticArray, Result, RspackSeverity, TWithDiagnosticArray,
 };
+use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::ext::DynHash;
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -104,7 +105,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
     }
   }
 
-  fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
+  async fn parse<'a>(
+    &mut self,
+    parse_context: ParseContext<'a>,
+  ) -> Result<TWithDiagnosticArray<ParseResult>> {
     let ParseContext {
       source,
       module_type,
@@ -150,8 +154,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync + 'static>> = vec![];
     let mut dependencies: Vec<Box<dyn Dependency>> = vec![];
-    let mut presentational_dependencies: Vec<Box<dyn DependencyTemplate>> = vec![];
-    let mut code_generation_dependencies: Vec<Box<dyn ModuleDependency>> = vec![];
+    let mut presentational_dependencies: Vec<BoxDependencyTemplate> = vec![];
+    let mut code_generation_dependencies: Vec<BoxModuleDependency> = vec![];
 
     let (deps, warnings) = css_module_lexer::collect_dependencies(&source_code, mode);
     for dependency in deps {
@@ -237,7 +241,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
               .expect("should have local_ident_name for module_type css/auto or css/module"),
             compiler_options,
           )
-          .get_local_ident(&name);
+          .get_local_ident(&name)
+          .await?;
           let convention = self
             .convention
             .as_ref()
@@ -276,7 +281,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
               .expect("should have local_ident_name for module_type css/auto or css/module"),
             compiler_options,
           )
-          .get_local_ident(&name);
+          .get_local_ident(&name)
+          .await?;
           let exports = self.exports.get_or_insert_default();
           let convention = self
             .convention
@@ -313,7 +319,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
               .expect("should have local_ident_name for module_type css/auto or css/module"),
             compiler_options,
           )
-          .get_local_ident(&name);
+          .get_local_ident(&name)
+          .await?;
           let exports = self.exports.get_or_insert_default();
           let convention = self
             .convention
@@ -492,8 +499,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
           let dep = module_graph
             .dependency_by_id(id)
             .expect("should have dependency");
+
           if let Some(dependency) = dep.as_dependency_template() {
-            dependency.apply(&mut source, &mut context)
+            if let Some(template) = compilation.get_dependency_template(dependency) {
+              template.render(dependency, &mut source, &mut context)
+            } else {
+              dependency.apply(&mut source, &mut context)
+            }
           }
         });
 
@@ -526,9 +538,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
         }
 
         if let Some(dependencies) = module.get_presentational_dependencies() {
-          dependencies
-            .iter()
-            .for_each(|dependency| dependency.apply(&mut source, &mut context));
+          dependencies.iter().for_each(|dependency| {
+            if let Some(template) = compilation.get_dependency_template(dependency.as_ref()) {
+              template.render(dependency.as_ref(), &mut source, &mut context)
+            } else {
+              dependency.apply(&mut source, &mut context)
+            }
+          });
         };
 
         generate_context.concatenation_scope = context.concatenation_scope.take();
@@ -542,17 +558,16 @@ impl ParserAndGenerator for CssParserAndGenerator {
           let mut concate_source = ConcatSource::default();
           if let Some(ref exports) = self.exports {
             let mg = generate_context.compilation.get_module_graph();
-            let unused_exports = get_unused_local_ident(
-              exports,
-              self
-                .local_names
-                .as_ref()
-                .expect("local names must be set when self.exports is set"),
-              module.identifier(),
-              generate_context.runtime,
-              &mg,
-            );
-            generate_context.data.insert(unused_exports);
+            if let Some(local_names) = &self.local_names {
+              let unused_exports = get_unused_local_ident(
+                exports,
+                local_names,
+                module.identifier(),
+                generate_context.runtime,
+                &mg,
+              );
+              generate_context.data.insert(unused_exports);
+            }
             let exports =
               get_used_exports(exports, module.identifier(), generate_context.runtime, &mg);
 
@@ -578,17 +593,16 @@ impl ParserAndGenerator for CssParserAndGenerator {
             ("", "", "")
           };
           if let Some(exports) = &self.exports {
-            let unused_exports = get_unused_local_ident(
-              exports,
-              self
-                .local_names
-                .as_ref()
-                .expect("local names must be set when self.exports is set"),
-              module.identifier(),
-              generate_context.runtime,
-              &mg,
-            );
-            generate_context.data.insert(unused_exports);
+            if let Some(local_names) = &self.local_names {
+              let unused_exports = get_unused_local_ident(
+                exports,
+                local_names,
+                module.identifier(),
+                generate_context.runtime,
+                &mg,
+              );
+              generate_context.data.insert(unused_exports);
+            }
 
             let exports =
               get_used_exports(exports, module.identifier(), generate_context.runtime, &mg);
@@ -649,15 +663,15 @@ impl ParserAndGenerator for CssParserAndGenerator {
     }
   }
 
-  fn update_hash(
+  async fn get_runtime_hash(
     &self,
     _module: &NormalModule,
-    hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
+    compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Result<()> {
-    self.es_module.dyn_hash(hasher);
-    Ok(())
+  ) -> Result<RspackHashDigest> {
+    let mut hasher = RspackHash::from(&compilation.options.output);
+    self.es_module.dyn_hash(&mut hasher);
+    Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 }
 

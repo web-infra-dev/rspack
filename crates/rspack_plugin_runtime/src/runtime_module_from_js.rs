@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use derive_more::Debug;
+use futures::future::BoxFuture;
 use rspack_cacheable::with::Unsupported;
 use rspack_collections::Identifier;
 use rspack_core::{
@@ -9,7 +10,7 @@ use rspack_core::{
   Compilation, RuntimeModule, RuntimeModuleStage,
 };
 
-type GenerateFn = Arc<dyn Fn() -> rspack_error::Result<String> + Send + Sync>;
+type GenerateFn = Arc<dyn Fn() -> BoxFuture<'static, rspack_error::Result<String>> + Send + Sync>;
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -31,7 +32,7 @@ impl RuntimeModule for RuntimeModuleFromJs {
   }
 
   async fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
-    let res = (self.generator)()?;
+    let res = (self.generator)().await?;
     Ok(RawStringSource::from(res).boxed())
   }
 

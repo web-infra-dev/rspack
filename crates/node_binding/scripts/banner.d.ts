@@ -6,13 +6,14 @@ export type JsFilename =
 	| string
 	| ((pathData: JsPathData, assetInfo?: AssetInfo) => string);
 
-export type LocalJsFilename = JsFilename;
-
 export type RawLazyCompilationTest = RegExp | ((module: Module) => boolean);
 
 export type AssetInfo = KnownAssetInfo & Record<string, any>;
 
+export const MODULE_IDENTIFIER_SYMBOL: unique symbol;
+
 export interface Module {
+	[MODULE_IDENTIFIER_SYMBOL]: string;
 	readonly type: string;
 	get context(): string | undefined;
 	get layer(): string | undefined;
@@ -24,19 +25,19 @@ export interface Module {
 }
 
 interface NormalModuleConstructor {
-	new (): NormalModule;
+	new(): NormalModule;
 	readonly prototype: NormalModule;
 }
 
 export var NormalModule: NormalModuleConstructor;
 
 export interface NormalModule extends Module {
-	get resource(): string | undefined;
-	get request(): string | undefined
-	get userRequest(): string | undefined
-	set userRequest(val: string | undefined)
-	get rawRequest(): string | undefined
-	get loaders(): Array<JsLoaderItem> | undefined
+	get resource(): string;
+	get request(): string
+	get userRequest(): string
+	set userRequest(val: string)
+	get rawRequest(): string
+	get loaders(): Array<JsLoaderItem>
 	get resourceResolveData(): JsResourceData | undefined
 	get matchResource(): string | undefined
 	set matchResource(val: string | undefined)

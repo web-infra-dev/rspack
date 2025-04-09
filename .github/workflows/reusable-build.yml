@@ -58,12 +58,6 @@ jobs:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
 
-      - name: Clean
-        if: ${{ !inputs.skipable && runner.environment == 'self-hosted' }}
-        uses: ./.github/actions/clean
-        with:
-          target: ${{ inputs.target }}
-
       - name: Pnpm Setup
         if: ${{ !inputs.skipable }}
         uses: ./.github/actions/pnpm/setup
@@ -82,7 +76,7 @@ jobs:
         if: ${{ !inputs.skipable }}
         uses: ./.github/actions/rustup
         with:
-          shared-key: build-${{ inputs.target }}-${{ inputs.profile }}
+          key: build-${{ inputs.target }}-${{ inputs.profile }}
 
       - name: Trim paths
         if: ${{ !inputs.skipable }}
@@ -113,9 +107,16 @@ jobs:
           tool-cache: false
 
       # Linux
+      - name: Build x86_64-unknown-linux-gnu native
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && inputs.profile == 'ci' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
+        shell: bash
+        run: |
+          unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
+          rustup target add x86_64-unknown-linux-gnu
+          RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:ci
       - name: Build x86_64-unknown-linux-gnu in Docker
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
-        uses: ./.github/actions/docker-build
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && inputs.profile != 'ci' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
+        uses: ./.github/actions/docker/linux-build
         with:
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
           target: ${{ inputs.target }}
@@ -124,7 +125,7 @@ jobs:
       # runner these build in docker since we don't have github runner machine for it
       - name: Build aarch64-unknown-linux-gnu in Docker
         if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
-        uses: ./.github/actions/docker-build
+        uses: ./.github/actions/docker/linux-build
         with:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
@@ -134,12 +135,17 @@ jobs:
 
       - name: Build x86_64-unknown-linux-musl in Docker
         if: ${{ inputs.target == 'x86_64-unknown-linux-musl' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
-        uses: ./.github/actions/docker-build
+        uses: ./.github/actions/docker/linux-build
         with:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
           profile: ${{ inputs.profile }}
           pre: |
+            # set apk repositories to stable release branch
+            rm /etc/apk/repositories
+            echo "https://dl-cdn.alpinelinux.org/alpine/v3.21/main" >> /etc/apk/repositories
+            echo "https://dl-cdn.alpinelinux.org/alpine/v3.21/community" >> /etc/apk/repositories
+            apk update
             # musl will enable clang-sys static linking
             # https://github.com/KyleMayes/clang-sys?tab=readme-ov-file#static
             # llvm19-dev is used to install llvm-config
@@ -148,13 +154,18 @@ jobs:
 
       - name: Build aarch64-unknown-linux-musl in Docker
         if: ${{ inputs.target == 'aarch64-unknown-linux-musl' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
-        uses: ./.github/actions/docker-build
+        uses: ./.github/actions/docker/linux-build
         with:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
           profile: ${{ inputs.profile }}
           pre: |
             export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc
+            # set apk repositories to stable release branch
+            rm /etc/apk/repositories
+            echo "https://dl-cdn.alpinelinux.org/alpine/v3.21/main" >> /etc/apk/repositories
+            echo "https://dl-cdn.alpinelinux.org/alpine/v3.21/community" >> /etc/apk/repositories
+            apk update
             # musl will enable clang-sys static linking
             # https://github.com/KyleMayes/clang-sys?tab=readme-ov-file#static
             # llvm19-dev is used to install llvm-config
@@ -205,13 +216,11 @@ jobs:
         with:
           name: bindings-${{ inputs.target }}
           path: crates/node_binding/*.node
-          try-local-cache: ${{ inputs.profile == 'ci' }}
-          mv-when-local: true
 
       # WASM
       - name: Build wasm32-wasip1-threads with linux in Docker
         if: ${{ inputs.target == 'wasm32-wasip1-threads' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
-        uses: ./.github/actions/docker-build
+        uses: ./.github/actions/docker/linux-build
         with:
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
           target: ${{ inputs.target }}
@@ -226,8 +235,6 @@ jobs:
         with:
           name: bindings-wasm32-wasi
           path: crates/node_binding/rspack.wasm32-wasi.wasm
-          try-local-cache: ${{ inputs.profile == 'ci' }}
-          mv-when-local: true
 
   e2e:
     name: E2E Testing
@@ -240,12 +247,6 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
-
-      - name: Clean
-        if: ${{ runner.environment == 'self-hosted' }}
-        uses: ./.github/actions/clean
-        with:
-          target: ${{ inputs.target }}
 
       - name: Download bindings
         uses: ./.github/actions/artifact/download
@@ -269,12 +270,12 @@ jobs:
           echo "path=$NODE_BIN_PATH" >> $GITHUB_OUTPUT
 
       - name: Run e2e
-        uses: ./.github/actions/docker-run
+        uses: ./.github/actions/docker/run
         with:
           # Jammy uses ubuntu 22.04
           # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
           image: mcr.microsoft.com/playwright:v1.47.0-jammy
-          # .cache is required by download artifact, and mount in ./.github/actions/docker-run
+          # .cache is required by download artifact, and mount in ./.github/actions/docker/run
           # .tool_cache is required by pnpm
           options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
           script: |
@@ -303,12 +304,6 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
-
-      - name: Clean
-        if: ${{ !inputs.skipable && runner.environment == 'self-hosted' }}
-        uses: ./.github/actions/clean
-        with:
-          target: ${{ inputs.target }}
 
       - name: Download bindings
         if: ${{ !inputs.skipable }}
@@ -393,20 +388,14 @@ jobs:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
 
-      - name: Clean
-        if: ${{ runner.environment == 'self-hosted' }}
-        uses: ./.github/actions/clean
-        with:
-          target: ${{ inputs.target }}
-
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
-          save-cache: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
-          shared-key: build-bench-${{ inputs.target }}-${{ inputs.profile }}
+          save-if: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
+          key: build-bench-${{ inputs.target }}-${{ inputs.profile }}
 
       - name: Install cargo-codspeed binary
-        uses: taiki-e/install-action@03351cfd91ee8253b66020be1ad81991e6ba3502 # v2
+        uses: taiki-e/install-action@5651179950649c44da31d346537e20c0534f0f25 # v2
         with:
           tool: cargo-codspeed@2.7.2
 
@@ -443,7 +432,7 @@ jobs:
         run: pnpm run build:js
 
       - name: Run benchmark
-        uses: CodSpeedHQ/action@63ae6025a0ffee97d7736a37c9192dbd6ed4e75f # v3
+        uses: CodSpeedHQ/action@0010eb0ca6e89b80c88e8edaaa07cfe5f3e6664d # v3
         timeout-minutes: 30
         with:
           run: pnpm run bench:ci

@@ -111,7 +111,7 @@ pub fn get_all_chunks(
   chunks
 }
 
-pub fn get_runtime_chunk_output_name(
+pub async fn get_runtime_chunk_output_name(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
 ) -> Result<String> {
@@ -132,7 +132,7 @@ pub fn get_runtime_chunk_output_name(
     .chunk_by_ukey
     .expect_get(&entry_point.get_runtime_chunk(&compilation.chunk_group_by_ukey));
 
-  get_chunk_output_name(runtime_chunk, compilation)
+  get_chunk_output_name(runtime_chunk, compilation).await
 }
 
 pub fn generate_entry_startup(
@@ -148,10 +148,8 @@ pub fn generate_entry_startup(
     if let Some(module_id) = compilation
       .get_module_graph()
       .module_graph_module_by_identifier(module)
-      .map(|module| {
+      .and_then(|module| {
         ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.module_identifier)
-          .map(|s| s.as_str())
-          .unwrap_or("null")
       })
     {
       let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
@@ -245,7 +243,7 @@ pub fn get_relative_path(base_chunk_output_name: &str, other_chunk_output_name: 
   format!("{path}{}", other_chunk_output_name_arr.join("/"))
 }
 
-pub fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> Result<String> {
+pub async fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> Result<String> {
   let hash = chunk.rendered_hash(
     &compilation.chunk_hashes_artifact,
     compilation.options.output.hash_digest_length,
@@ -255,26 +253,28 @@ pub fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> Result
     &compilation.options.output,
     &compilation.chunk_group_by_ukey,
   );
-  compilation.get_path(
-    &filename,
-    PathData::default()
-      .chunk_id_optional(
-        chunk
-          .id(&compilation.chunk_ids_artifact)
-          .map(|id| id.as_str()),
-      )
-      .chunk_hash_optional(chunk.rendered_hash(
-        &compilation.chunk_hashes_artifact,
-        compilation.options.output.hash_digest_length,
-      ))
-      .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
-      .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-        &compilation.chunk_hashes_artifact,
-        &SourceType::JavaScript,
-        compilation.options.output.hash_digest_length,
-      ))
-      .hash_optional(hash),
-  )
+  compilation
+    .get_path(
+      &filename,
+      PathData::default()
+        .chunk_id_optional(
+          chunk
+            .id(&compilation.chunk_ids_artifact)
+            .map(|id| id.as_str()),
+        )
+        .chunk_hash_optional(chunk.rendered_hash(
+          &compilation.chunk_hashes_artifact,
+          compilation.options.output.hash_digest_length,
+        ))
+        .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+        .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+          &compilation.chunk_hashes_artifact,
+          &SourceType::JavaScript,
+          compilation.options.output.hash_digest_length,
+        ))
+        .hash_optional(hash),
+    )
+    .await
 }
 
 pub fn get_chunk_runtime_requirements<'a>(

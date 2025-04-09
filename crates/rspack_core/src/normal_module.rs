@@ -35,13 +35,12 @@ use crate::{
   contextify,
   diagnostics::{CapturedLoaderError, ModuleBuildError},
   get_context, impl_module_meta_info, module_update_hash, AsyncDependenciesBlockIdentifier,
-  BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph,
-  CodeGenerationResult, Compilation, ConcatenationScope, ConnectionState, Context,
-  DependenciesBlock, DependencyId, DependencyTemplate, FactoryMeta, GenerateContext,
-  GeneratorOptions, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  ModuleLayer, ModuleType, OutputOptions, ParseContext, ParseResult, ParserAndGenerator,
-  ParserOptions, Resolve, RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec,
-  SourceType,
+  BoxDependencyTemplate, BoxLoader, BoxModule, BoxModuleDependency, BuildContext, BuildInfo,
+  BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ConcatenationScope,
+  ConnectionState, Context, DependenciesBlock, DependencyId, FactoryMeta, GenerateContext,
+  GeneratorOptions, LibIdentOptions, Module, ModuleGraph, ModuleIdentifier, ModuleLayer,
+  ModuleType, OutputOptions, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
+  RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[cacheable]
@@ -78,12 +77,12 @@ impl ModuleIssuer {
   }
 }
 
-define_hook!(NormalModuleReadResource: AsyncSeriesBail(resource_data: &ResourceData) -> Content);
-define_hook!(NormalModuleLoader: SyncSeries(loader_context: &mut LoaderContext<RunnerContext>));
-define_hook!(NormalModuleLoaderShouldYield: SyncSeriesBail(loader_context: &LoaderContext<RunnerContext>) -> bool);
-define_hook!(NormalModuleLoaderStartYielding: AsyncSeries(loader_context: &mut LoaderContext<RunnerContext>));
-define_hook!(NormalModuleBeforeLoaders: SyncSeries(module: &mut NormalModule));
-define_hook!(NormalModuleAdditionalData: AsyncSeries(additional_data: &mut Option<&mut AdditionalData>));
+define_hook!(NormalModuleReadResource: SeriesBail(resource_data: &ResourceData) -> Content);
+define_hook!(NormalModuleLoader: Series(loader_context: &mut LoaderContext<RunnerContext>));
+define_hook!(NormalModuleLoaderShouldYield: SeriesBail(loader_context: &LoaderContext<RunnerContext>) -> bool);
+define_hook!(NormalModuleLoaderStartYielding: Series(loader_context: &mut LoaderContext<RunnerContext>));
+define_hook!(NormalModuleBeforeLoaders: Series(module: &mut NormalModule));
+define_hook!(NormalModuleAdditionalData: Series(additional_data: &mut Option<&mut AdditionalData>));
 
 #[derive(Debug, Default)]
 pub struct NormalModuleHooks {
@@ -143,8 +142,8 @@ pub struct NormalModule {
   #[cacheable(with=Skip)]
   diagnostics: Vec<Diagnostic>,
 
-  code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
-  presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
+  code_generation_dependencies: Option<Vec<BoxModuleDependency>>,
+  presentational_dependencies: Option<Vec<BoxDependencyTemplate>>,
 
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
@@ -262,23 +261,19 @@ impl NormalModule {
     &mut self.parser_and_generator
   }
 
-  pub fn code_generation_dependencies(&self) -> &Option<Vec<Box<dyn ModuleDependency>>> {
+  pub fn code_generation_dependencies(&self) -> &Option<Vec<BoxModuleDependency>> {
     &self.code_generation_dependencies
   }
 
-  pub fn code_generation_dependencies_mut(
-    &mut self,
-  ) -> &mut Option<Vec<Box<dyn ModuleDependency>>> {
+  pub fn code_generation_dependencies_mut(&mut self) -> &mut Option<Vec<BoxModuleDependency>> {
     &mut self.code_generation_dependencies
   }
 
-  pub fn presentational_dependencies(&self) -> &Option<Vec<Box<dyn DependencyTemplate>>> {
+  pub fn presentational_dependencies(&self) -> &Option<Vec<BoxDependencyTemplate>> {
     &self.presentational_dependencies
   }
 
-  pub fn presentational_dependencies_mut(
-    &mut self,
-  ) -> &mut Option<Vec<Box<dyn DependencyTemplate>>> {
+  pub fn presentational_dependencies_mut(&mut self) -> &mut Option<Vec<BoxDependencyTemplate>> {
     &mut self.presentational_dependencies
   }
 
@@ -388,7 +383,8 @@ impl Module for NormalModule {
       .plugin_driver
       .normal_module_hooks
       .before_loaders
-      .call(self)?;
+      .call(self)
+      .await?;
 
     let plugin = Arc::new(RspackLoaderRunnerPlugin {
       plugin_driver: build_context.plugin_driver.clone(),
@@ -562,7 +558,8 @@ impl Module for NormalModule {
         build_info: &mut self.build_info,
         build_meta: &mut self.build_meta,
         parse_meta: loader_result.parse_meta,
-      })?
+      })
+      .await?
       .split_into_parts();
     if diagnostics.iter().any(|d| d.severity() == Severity::Error) {
       self.build_meta = Default::default();
@@ -659,21 +656,23 @@ impl Module for NormalModule {
     Ok(code_generation_result)
   }
 
-  fn update_hash(
+  async fn get_runtime_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
-  ) -> Result<()> {
-    self.build_info.hash.dyn_hash(hasher);
+  ) -> Result<RspackHashDigest> {
+    let mut hasher = RspackHash::from(&compilation.options.output);
+    self.build_info.hash.dyn_hash(&mut hasher);
     // For built failed NormalModule, hash will be calculated by build_info.hash, which contains error message
     if self.source.is_some() {
       self
         .parser_and_generator
-        .update_hash(self, hasher, compilation, runtime)?;
+        .get_runtime_hash(self, compilation, runtime)
+        .await?
+        .dyn_hash(&mut hasher);
     }
-    module_update_hash(self, hasher, compilation, runtime);
-    Ok(())
+    module_update_hash(self, &mut hasher, compilation, runtime);
+    Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 
   fn name_for_condition(&self) -> Option<Box<str>> {
@@ -702,7 +701,7 @@ impl Module for NormalModule {
     self.resolve_options.clone()
   }
 
-  fn get_code_generation_dependencies(&self) -> Option<&[Box<dyn ModuleDependency>]> {
+  fn get_code_generation_dependencies(&self) -> Option<&[BoxModuleDependency]> {
     if let Some(deps) = self.code_generation_dependencies.as_deref()
       && !deps.is_empty()
     {
@@ -712,7 +711,7 @@ impl Module for NormalModule {
     }
   }
 
-  fn get_presentational_dependencies(&self) -> Option<&[Box<dyn DependencyTemplate>]> {
+  fn get_presentational_dependencies(&self) -> Option<&[BoxDependencyTemplate]> {
     if let Some(deps) = self.presentational_dependencies.as_deref()
       && !deps.is_empty()
     {

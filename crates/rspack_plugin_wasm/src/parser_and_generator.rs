@@ -11,12 +11,12 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
   AssetInfo, BoxDependency, BuildMetaExportsType, ChunkGraph, Compilation,
   DependencyType::WasmImport,
-  FilenameTemplate, GenerateContext, Module, ModuleDependency, ModuleGraph, ModuleId,
-  ModuleIdentifier, NormalModule, ParseContext, ParseResult, ParserAndGenerator, PathData,
-  RuntimeGlobals, SourceType, StaticExportsDependency, StaticExportsSpec, UsedName,
+  Filename, GenerateContext, Module, ModuleDependency, ModuleGraph, ModuleId, ModuleIdentifier,
+  NormalModule, ParseContext, ParseResult, ParserAndGenerator, PathData, RuntimeGlobals,
+  SourceType, StaticExportsDependency, StaticExportsSpec, UsedName,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use rspack_util::{infallible::ResultInfallibleExt as _, itoa};
+use rspack_util::itoa;
 use swc_core::atoms::Atom;
 use wasmparser::{Import, Parser, Payload};
 
@@ -38,7 +38,10 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     WASM_SOURCE_TYPE
   }
 
-  fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
+  async fn parse<'a>(
+    &mut self,
+    parse_context: ParseContext<'a>,
+  ) -> Result<TWithDiagnosticArray<ParseResult>> {
     parse_context.build_info.strict = true;
     parse_context.build_meta.has_top_level_await = true;
     parse_context.build_meta.exports_type = BuildMetaExportsType::Namespace;
@@ -140,7 +143,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
       .as_normal_module()
       .expect("module should be a NormalModule in AsyncWasmParserAndGenerator::generate");
     let wasm_path_with_info =
-      render_wasm_name(compilation, normal_module, wasm_filename_template, &hash);
+      render_wasm_name(compilation, normal_module, wasm_filename_template, &hash).await?;
 
     self
       .module_id_to_filename
@@ -305,12 +308,12 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
   }
 }
 
-fn render_wasm_name(
+async fn render_wasm_name(
   compilation: &Compilation,
   normal_module: &NormalModule,
-  wasm_filename_template: &FilenameTemplate,
+  wasm_filename_template: &Filename,
   hash: &str,
-) -> (String, AssetInfo) {
+) -> Result<(String, AssetInfo)> {
   compilation
     .get_asset_path_with_info(
       wasm_filename_template,
@@ -324,7 +327,7 @@ fn render_wasm_name(
         .content_hash(hash)
         .hash(hash),
     )
-    .always_ok()
+    .await
 }
 
 fn render_import_stmt(import_var: &str, module_id: &ModuleId) -> String {

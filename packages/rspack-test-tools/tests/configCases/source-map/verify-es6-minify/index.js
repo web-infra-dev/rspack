@@ -27,7 +27,7 @@ it("verify es6 (esmodule) minify bundle source map", async () => {
 			// "*b0*", "*b1*" is eliminate by minify
 			['"*b2*"']: checkColumn("webpack:///b-dir/b.js"),
 			// "*c0*" is eliminate by minify
-			['"*c1*"']: "webpack:///b-dir/c-dir/c.js",
+			// "*c1*" is eliminate by minify
 			['"*c2*"']: "webpack:///b-dir/c-dir/c.js"
 		})
 	).toBe(true);

@@ -14,7 +14,9 @@ use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
-  dependency::{ESMExportImportedSpecifierDependency, ImportDependency},
+  dependency::{
+    ESMExportImportedSpecifierDependency, ESMImportSideEffectDependency, ImportDependency,
+  },
   ConcatConfiguration, JavascriptModulesChunkHash, JavascriptModulesRenderStartup, JsPlugin,
   ModuleConcatenationPlugin, RenderSource,
 };
@@ -225,28 +227,27 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
         let block_dep = mg.dependency_by_id(block_dep_id);
         if let Some(block_dep) = block_dep {
           if let Some(import_dependency) = block_dep.as_any().downcast_ref::<ImportDependency>() {
-            let import_dep_connection = mg
-              .connection_by_dependency_id(block_dep_id)
-              .expect("should have dependency");
+            let import_dep_connection = mg.connection_by_dependency_id(block_dep_id);
+            if let Some(import_dep_connection) = import_dep_connection {
+              // Try find the connection with a import dependency pointing to an external module.
+              // If found, remove the connection and add a new import dependency to performs the external module ID replacement.
+              let import_module_id = import_dep_connection.module_identifier();
+              let import_module = mg
+                .module_by_identifier(import_module_id)
+                .expect("should have mgm");
 
-            // Try find the connection with a import dependency pointing to an external module.
-            // If found, remove the connection and add a new import dependency to performs the external module ID replacement.
-            let import_module_id = import_dep_connection.module_identifier();
-            let import_module = mg
-              .module_by_identifier(import_module_id)
-              .expect("should have mgm");
+              if let Some(external_module) = import_module.as_external_module() {
+                let new_dep = ModernModuleImportDependency::new(
+                  *block_dep.id(),
+                  import_dependency.request.as_str().into(),
+                  external_module.request.clone(),
+                  external_module.external_type.clone(),
+                  import_dependency.range.clone(),
+                  import_dependency.get_attributes().cloned(),
+                );
 
-            if let Some(external_module) = import_module.as_external_module() {
-              let new_dep = ModernModuleImportDependency::new(
-                *block_dep.id(),
-                import_dependency.request.as_str().into(),
-                external_module.request.clone(),
-                external_module.external_type.clone(),
-                import_dependency.range.clone(),
-                import_dependency.get_attributes().cloned(),
-              );
-
-              deps_to_replace.push(Box::new(new_dep));
+                deps_to_replace.push(Box::new(new_dep));
+              }
             }
           }
         }
@@ -289,7 +290,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
                   if let Some(connections) =
                     module_id_to_connections.get(reexport_connection.module_identifier())
                   {
-                    let non_reexport_star = connections
+                    let reexport_star_count = connections
                       .iter()
                       .filter(|c| {
                         if let Some(dep) = mg.dependency_by_id(c) {
@@ -297,7 +298,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
                             .as_any()
                             .downcast_ref::<ESMExportImportedSpecifierDependency>()
                           {
-                            return !self.reexport_star_from_external_module(dep, &mg);
+                            return self.reexport_star_from_external_module(dep, &mg);
                           }
                         }
 
@@ -305,9 +306,29 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
                       })
                       .count();
 
-                    // If an module's ESMExportImportedSpecifierDependency are all star reexports, it's
-                    // safe to remove the connection to clean up.
-                    if non_reexport_star == 0 {
+                    let side_effect_count = connections
+                      .iter()
+                      .filter(|c| {
+                        if let Some(dep) = mg.dependency_by_id(c) {
+                          if dep
+                            .as_any()
+                            .downcast_ref::<ESMImportSideEffectDependency>()
+                            .is_some()
+                          {
+                            return true;
+                          }
+                        }
+
+                        false
+                      })
+                      .count();
+
+                    // Every ESMExportImportedSpecifierDependency comes along with an ESMImportSideEffectDependency.
+                    // So if there are an equal number of ESMExportImportedSpecifierDependency (export star) and ESMImportSideEffectDependency,
+                    // we can consider that it only contains reexport star, and safely remove it.
+                    if side_effect_count == reexport_star_count
+                      && side_effect_count + reexport_star_count == connections.len()
+                    {
                       for c in connections.iter() {
                         external_connections.insert(*c);
                       }
@@ -381,7 +402,7 @@ async fn compilation(
 }
 
 #[plugin_hook(ConcatenatedModuleExportsDefinitions for ModernModuleLibraryPlugin)]
-fn exports_definitions(
+async fn exports_definitions(
   &self,
   _exports_definitions: &mut Vec<(String, String)>,
   is_entry_module: bool,

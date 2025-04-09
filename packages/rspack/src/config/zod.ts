@@ -380,12 +380,14 @@ const output = z.strictObject({
 //#endregion
 
 //#region Resolve
-const resolveAlias = z.record(
-	z
-		.literal(false)
-		.or(z.string())
-		.or(z.array(z.string().or(z.literal(false))))
-) satisfies z.ZodType<t.ResolveAlias>;
+const resolveAlias = z
+	.record(
+		z
+			.literal(false)
+			.or(z.string())
+			.or(z.array(z.string().or(z.literal(false))))
+	)
+	.or(z.literal(false)) satisfies z.ZodType<t.ResolveAlias>;
 
 const resolveTsConfigFile = z.string();
 const resolveTsConfig = resolveTsConfigFile.or(
@@ -455,7 +457,8 @@ const ruleSetLoaderOptions = z
 const ruleSetLoaderWithOptions = z.strictObject({
 	ident: z.string().optional(),
 	loader: ruleSetLoader,
-	options: ruleSetLoaderOptions.optional()
+	options: ruleSetLoaderOptions.optional(),
+	parallel: z.boolean().optional()
 }) satisfies z.ZodType<t.RuleSetLoaderWithOptions>;
 
 const ruleSetUseItem = ruleSetLoader.or(
@@ -1303,17 +1306,6 @@ const rspackFutureOptions = z.strictObject({
 		.optional()
 }) satisfies z.ZodType<t.RspackFutureOptions>;
 
-const listenOptions = z.object({
-	port: z.number().optional(),
-	host: z.string().optional(),
-	backlog: z.number().optional(),
-	path: z.string().optional(),
-	exclusive: z.boolean().optional(),
-	readableAll: z.boolean().optional(),
-	writableAll: z.boolean().optional(),
-	ipv6Only: z.boolean().optional()
-});
-
 const experimentCacheOptions = z
 	.object({
 		type: z.enum(["memory"])
@@ -1348,24 +1340,14 @@ const experimentCacheOptions = z
 	);
 
 const lazyCompilationOptions = z.object({
-	backend: z
-		.object({
-			client: z.string().optional(),
-			listen: z
-				.number()
-				.or(listenOptions)
-				.or(z.function().args(z.any()).returns(z.void()))
-				.optional(),
-			protocol: z.enum(["http", "https"]).optional(),
-			server: z.record(z.any()).or(z.function().returns(z.any())).optional()
-		})
-		.optional(),
 	imports: z.boolean().optional(),
 	entries: z.boolean().optional(),
 	test: z
 		.instanceof(RegExp)
 		.or(z.function().args(z.custom<Module>()).returns(z.boolean()))
-		.optional()
+		.optional(),
+	client: z.string().optional(),
+	serverUrl: z.string().optional()
 }) satisfies z.ZodType<t.LazyCompilationOptions>;
 
 const incremental = z.strictObject({
@@ -1386,6 +1368,29 @@ const incremental = z.strictObject({
 	emitAssets: z.boolean().optional()
 }) satisfies z.ZodType<t.Incremental>;
 
+// Define buildHttp options schema
+const buildHttpOptions = z.object({
+	allowedUris: z.array(z.union([z.string(), z.instanceof(RegExp)])),
+	lockfileLocation: z.string().optional(),
+	cacheLocation: z.union([z.string(), z.literal(false)]).optional(),
+	upgrade: z.boolean().optional(),
+	// proxy: z.string().optional(),
+	// frozen: z.boolean().optional(),
+	httpClient: z
+		.function()
+		.args(z.string(), z.record(z.string()))
+		.returns(
+			z.promise(
+				z.object({
+					status: z.number(),
+					headers: z.record(z.string()),
+					body: z.instanceof(Buffer)
+				})
+			)
+		)
+		.optional()
+}) satisfies z.ZodType<t.HttpUriOptions>;
+
 const experiments = z.strictObject({
 	cache: z.boolean().optional().or(experimentCacheOptions),
 	lazyCompilation: z.boolean().optional().or(lazyCompilationOptions),
@@ -1397,7 +1402,9 @@ const experiments = z.strictObject({
 	incremental: z.boolean().or(incremental).optional(),
 	parallelCodeSplitting: z.boolean().optional(),
 	futureDefaults: z.boolean().optional(),
-	rspackFuture: rspackFutureOptions.optional()
+	rspackFuture: rspackFutureOptions.optional(),
+	buildHttp: buildHttpOptions.optional(),
+	parallelLoader: z.boolean().optional()
 }) satisfies z.ZodType<t.Experiments>;
 //#endregion
 

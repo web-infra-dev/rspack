@@ -30,17 +30,17 @@ use crate::{
 };
 
 // should be SyncHook, but rspack need call js hook
-define_hook!(CompilerThisCompilation: AsyncSeries(compilation: &mut Compilation, params: &mut CompilationParams));
+define_hook!(CompilerThisCompilation: Series(compilation: &mut Compilation, params: &mut CompilationParams));
 // should be SyncHook, but rspack need call js hook
-define_hook!(CompilerCompilation: AsyncSeries(compilation: &mut Compilation, params: &mut CompilationParams));
+define_hook!(CompilerCompilation: Series(compilation: &mut Compilation, params: &mut CompilationParams));
 // should be AsyncParallelHook
-define_hook!(CompilerMake: AsyncSeries(compilation: &mut Compilation));
-define_hook!(CompilerFinishMake: AsyncSeries(compilation: &mut Compilation));
+define_hook!(CompilerMake: Series(compilation: &mut Compilation));
+define_hook!(CompilerFinishMake: Series(compilation: &mut Compilation));
 // should be SyncBailHook, but rspack need call js hook
-define_hook!(CompilerShouldEmit: AsyncSeriesBail(compilation: &mut Compilation) -> bool);
-define_hook!(CompilerEmit: AsyncSeries(compilation: &mut Compilation));
-define_hook!(CompilerAfterEmit: AsyncSeries(compilation: &mut Compilation));
-define_hook!(CompilerAssetEmitted: AsyncSeries(compilation: &Compilation, filename: &str, info: &AssetEmittedInfo));
+define_hook!(CompilerShouldEmit: SeriesBail(compilation: &mut Compilation) -> bool);
+define_hook!(CompilerEmit: Series(compilation: &mut Compilation));
+define_hook!(CompilerAfterEmit: Series(compilation: &mut Compilation));
+define_hook!(CompilerAssetEmitted: Series(compilation: &Compilation, filename: &str, info: &AssetEmittedInfo));
 
 #[derive(Debug, Default)]
 pub struct CompilerHooks {
@@ -416,14 +416,11 @@ impl Compiler {
             || include_hash(target_file, &asset.info.full_hash));
       }
 
-      let stat = match self
+      let stat = self
         .output_filesystem
         .stat(file_path.as_path().as_ref())
         .await
-      {
-        Ok(stat) => Some(stat),
-        Err(_) => None,
-      };
+        .ok();
 
       let need_write = if !self.options.output.compare_before_emit {
         // write when compare_before_emit is false

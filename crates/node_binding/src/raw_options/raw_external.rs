@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
-use napi::bindgen_prelude::Either4;
+use napi::bindgen_prelude::{Either4, Promise};
 use napi_derive::napi;
 use rspack_core::{
   ExternalItem, ExternalItemFnCtx, ExternalItemFnResult, ExternalItemValue,
@@ -30,7 +30,7 @@ type RawExternalItem = Either4<
   String,
   RspackRegex,
   HashMap<String, RawExternalItemValue>,
-  ThreadsafeFunction<RawExternalItemFnCtx, RawExternalItemFnResult>,
+  ThreadsafeFunction<RawExternalItemFnCtx, Promise<RawExternalItemFnResult>>,
 >;
 type RawExternalItemValue = Either4<String, bool, Vec<String>, HashMap<String, Vec<String>>>;
 pub(crate) struct RawExternalItemWrapper(pub(crate) RawExternalItem);
@@ -144,7 +144,7 @@ impl TryFrom<RawExternalItemWrapper> for ExternalItem {
       )),
       Either4::D(v) => Ok(Self::Fn(Box::new(move |ctx: ExternalItemFnCtx| {
         let v = v.clone();
-        Box::pin(async move { v.call(ctx.into()).await.map(|r| r.into()) })
+        Box::pin(async move { v.call_with_promise(ctx.into()).await.map(|r| r.into()) })
       }))),
     }
   }

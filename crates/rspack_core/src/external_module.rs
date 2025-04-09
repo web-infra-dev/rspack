@@ -2,8 +2,8 @@ use std::{borrow::Cow, hash::Hash, iter};
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
-use rspack_error::{error, impl_empty_diagnosable_trait, Result};
-use rspack_hash::RspackHash;
+use rspack_error::{impl_empty_diagnosable_trait, Result, ToStringResultToRspackResultExt};
+use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_macros::impl_source_map_config;
 use rspack_util::{ext::DynHash, json_stringify, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
@@ -431,9 +431,8 @@ if(typeof {global} !== "undefined") return resolve();
 "#,
           export = get_namespace_object_export(concatenation_scope, supports_const),
           global = url_and_global.global,
-          global_str =
-            serde_json::to_string(url_and_global.global).map_err(|e| error!(e.to_string()))?,
-          url_str = serde_json::to_string(url_and_global.url).map_err(|e| error!(e.to_string()))?,
+          global_str = serde_json::to_string(url_and_global.global).to_rspack_result()?,
+          url_str = serde_json::to_string(url_and_global.url).to_rspack_result()?,
           load_script = RuntimeGlobals::LOAD_SCRIPT.name()
         )
       }
@@ -495,7 +494,7 @@ impl Module for ExternalModule {
   }
 
   fn module_type(&self) -> &ModuleType {
-    &ModuleType::JsAuto
+    &ModuleType::JsDynamic
   }
 
   fn source_types(&self) -> &[SourceType] {
@@ -586,7 +585,7 @@ impl Module for ExternalModule {
           SourceType::JavaScript,
           RawStringSource::from(format!(
             "module.exports = {};",
-            serde_json::to_string(request.primary()).map_err(|e| error!(e.to_string()))?
+            serde_json::to_string(request.primary()).to_rspack_result()?
           ))
           .boxed(),
         );
@@ -599,7 +598,7 @@ impl Module for ExternalModule {
           SourceType::Css,
           RawStringSource::from(format!(
             "@import url({});",
-            serde_json::to_string(request.primary()).map_err(|e| error!(e.to_string()))?
+            serde_json::to_string(request.primary()).to_rspack_result()?
           ))
           .boxed(),
         );
@@ -627,17 +626,17 @@ impl Module for ExternalModule {
     Some(Cow::Borrowed(self.user_request.as_str()))
   }
 
-  fn update_hash(
+  async fn get_runtime_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
-  ) -> Result<()> {
-    self.id.dyn_hash(hasher);
+  ) -> Result<RspackHashDigest> {
+    let mut hasher = RspackHash::from(&compilation.options.output);
+    self.id.dyn_hash(&mut hasher);
     let is_optional = compilation.get_module_graph().is_optional(&self.id);
-    is_optional.dyn_hash(hasher);
-    module_update_hash(self, hasher, compilation, runtime);
-    Ok(())
+    is_optional.dyn_hash(&mut hasher);
+    module_update_hash(self, &mut hasher, compilation, runtime);
+    Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 }
 

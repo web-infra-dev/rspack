@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt::Formatter, sync::Arc};
 
 use derive_more::Debug;
 use napi::{
-  bindgen_prelude::{Buffer, Either3},
+  bindgen_prelude::{Buffer, Either3, FnArgs},
   Either,
 };
 use napi_derive::napi;
@@ -32,18 +32,10 @@ use crate::{JsFilename, ModuleObject, RawResolveOptions};
 /// and passed to rust side loader in [get_builtin_loader] when using with
 /// `builtin_loader`.
 #[napi(object)]
+#[derive(Debug)]
 pub struct RawModuleRuleUse {
   pub loader: String,
   pub options: Option<String>,
-}
-
-impl Debug for RawModuleRuleUse {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("RawModuleRuleUse")
-      .field("loader", &self.loader)
-      .field("options", &self.options)
-      .finish()
-  }
 }
 
 #[rspack_napi_macros::tagged_union]
@@ -130,7 +122,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
       RawRuleSetCondition::func(f) => Self::Func(Box::new(move |data| {
         let data = data.to_value();
         let f = f.clone();
-        Box::pin(async move { f.call(data).await })
+        Box::pin(async move { f.call_with_sync(data).await })
       })),
     };
 
@@ -466,7 +458,10 @@ pub struct RawJsonParserOptions {
 impl From<RawJsonParserOptions> for JsonParserOptions {
   fn from(value: RawJsonParserOptions) -> Self {
     let parse = match value.parse {
-      Some(f) => ParseOption::Func(Arc::new(move |s: String| f.blocking_call_with_sync(s))),
+      Some(f) => ParseOption::Func(Arc::new(move |s: String| {
+        let f = f.clone();
+        Box::pin(async move { f.call_with_sync(s).await })
+      })),
       _ => ParseOption::None,
     };
 
@@ -629,7 +624,7 @@ impl From<RawAssetResourceGeneratorOptions> for AssetResourceGeneratorOptions {
 
 type RawAssetGeneratorDataUrl = Either<
   RawAssetGeneratorDataUrlOptions,
-  ThreadsafeFunction<(Buffer, RawAssetGeneratorDataUrlFnCtx), String>,
+  ThreadsafeFunction<FnArgs<(Buffer, RawAssetGeneratorDataUrlFnCtx)>, String>,
 >;
 struct RawAssetGeneratorDataUrlWrapper(RawAssetGeneratorDataUrl);
 
@@ -657,7 +652,7 @@ impl From<RawAssetGeneratorDataUrlWrapper> for AssetGeneratorDataUrl {
         let b = b.clone();
         let source = source.into();
         let ctx = ctx.into();
-        Box::pin(async move { b.call((source, ctx)).await })
+        Box::pin(async move { b.call_with_sync((source, ctx).into()).await })
       })),
     }
   }
@@ -803,7 +798,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
         move |ctx: FuncUseCtx| {
           let tsfn = tsfn.clone();
           Box::pin(async move {
-            tsfn.call(ctx.into()).await.map(|uses| {
+            tsfn.call_with_sync(ctx.into()).await.map(|uses| {
               uses
                 .into_iter()
                 .map(|rule_use| ModuleRuleUseLoader {
@@ -954,7 +949,7 @@ fn js_func_to_no_parse_test_func(
 ) -> ModuleNoParseTestFn {
   Box::new(move |s| {
     let v = v.clone();
-    Box::pin(async move { v.call(s).await.map(|v| v.unwrap_or_default()) })
+    Box::pin(async move { v.call_with_sync(s).await.map(|v| v.unwrap_or_default()) })
   })
 }
 

@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_hash::RspackHashDigest;
 use rspack_macros::impl_source_map_config;
 use rspack_sources::BoxSource;
 use rspack_util::source_map::SourceMapKind;
@@ -117,14 +118,16 @@ impl Module for SelfModule {
     Ok(CodeGenerationResult::default())
   }
 
-  fn update_hash(
+  async fn get_runtime_hash(
     &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
+    compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Result<()> {
+  ) -> Result<RspackHashDigest> {
     // do nothing, since this is self reference, the module itself (parent module of this self module) should take effects
-    Ok(())
+    Ok(RspackHashDigest::new(
+      vec![],
+      &compilation.options.output.hash_digest,
+    ))
   }
 }
 

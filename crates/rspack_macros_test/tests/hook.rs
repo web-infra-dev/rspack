@@ -4,7 +4,7 @@ use rspack_hook::{define_hook, plugin, plugin_hook};
 mod simple {
   use super::*;
 
-  define_hook!(Render: AsyncSeriesBail(compilation: &Compilation, source: &mut Source) -> bool);
+  define_hook!(Render: SeriesBail(compilation: &Compilation, source: &mut Source) -> bool);
 
   struct Compilation {
     id: u32,

@@ -110,7 +110,7 @@ mod test_storage_build {
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn test_build() {
+  async fn test_build() -> Result<()> {
     let cases = [
       (
         get_native_path("test_build_native"),
@@ -131,29 +131,27 @@ mod test_storage_build {
         .await
         .expect("should remove temp root");
 
-      let _ = test_initial_build(
+      test_initial_build(
         &root.join(&version),
         fs.clone(),
         create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
 
-      let _ = test_recovery_modify(
+      test_recovery_modify(
         &root.join(&version),
         fs.clone(),
         create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
 
-      let _ = test_recovery_final(
+      test_recovery_final(
         &root.join(&version),
         fs.clone(),
         create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
     }
+    Ok(())
   }
 }

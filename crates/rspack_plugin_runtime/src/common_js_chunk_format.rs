@@ -38,7 +38,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for CommonJsChunkFormatPlugin)]
-fn additional_chunk_runtime_requirements(
+async fn additional_chunk_runtime_requirements(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
@@ -98,7 +98,7 @@ async fn render_chunk(
 ) -> Result<()> {
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-  let base_chunk_output_name = get_chunk_output_name(chunk, compilation)?;
+  let base_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
     "exports.ids = ['{}'];\n",
@@ -117,7 +117,7 @@ async fn render_chunk(
   }
 
   if chunk.has_entry_module(&compilation.chunk_graph) {
-    let runtime_chunk_output_name = get_runtime_chunk_output_name(compilation, chunk_ukey)?;
+    let runtime_chunk_output_name = get_runtime_chunk_output_name(compilation, chunk_ukey).await?;
     sources.add(RawStringSource::from(format!(
       "// load runtime\nvar {} = require({});\n",
       RuntimeGlobals::REQUIRE,
@@ -137,7 +137,7 @@ async fn render_chunk(
     let start_up_source = generate_entry_startup(compilation, chunk_ukey, entries, false);
     let last_entry_module = entries
       .keys()
-      .last()
+      .next_back()
       .expect("should have last entry module");
     let mut startup_render_source = RenderSource {
       source: start_up_source,

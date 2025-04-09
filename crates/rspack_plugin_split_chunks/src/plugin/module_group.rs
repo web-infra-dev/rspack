@@ -11,7 +11,7 @@ use rspack_core::{
   Chunk, ChunkByUkey, ChunkGraph, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier,
   UsageKey,
 };
-use rspack_error::Result;
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap, FxHasher};
 
@@ -350,7 +350,7 @@ impl SplitChunksPlugin {
               CacheGroupTest::Enabled => true,
             };
             let is_match_the_type: bool = (cache_group.r#type)(module);
-            let is_match_the_layer = (cache_group.layer)(module.get_layer().map(ToString::to_string))?;
+            let is_match_the_layer = (cache_group.layer)(module.get_layer().map(ToString::to_string)).await?;
             let is_match = is_match_the_test && is_match_the_type && is_match_the_layer;
             if !is_match {
               tracing::trace!(
@@ -448,7 +448,7 @@ impl SplitChunksPlugin {
       })
     })
     .await
-    .into_iter().map(|res| res.map_err(rspack_error::miette::Error::from_err))
+    .into_iter().map(|r| r.to_rspack_result())
     .collect::<Result<Vec<_>>>()?;
 
     for result in module_group_results {

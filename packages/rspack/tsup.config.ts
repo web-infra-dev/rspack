@@ -18,6 +18,11 @@ const aliasPlugin = {
 			path: "../package.json",
 			external: true
 		}));
+
+		build.onResolve({ filter: /^tinypool$/ }, () => ({
+			path: "../compiled/tinypool",
+			external: true
+		}));
 	}
 };
 
@@ -45,5 +50,11 @@ export default defineConfig([
 			cssExtractHmr: "./src/runtime/cssExtractHmr.ts"
 		},
 		target: ["es2015"]
+	},
+	{
+		...commonConfig,
+		entry: {
+			worker: "./src/loader-runner/worker.ts"
+		}
 	}
 ]);

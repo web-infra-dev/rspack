@@ -13,6 +13,7 @@ use rspack_core::{
   StaticExportsSpec,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::{json_stringify, source_map::ModuleSourceMapConfig};
 
 use super::delegated_source_dependency::DelegatedSourceDependency;
@@ -192,21 +193,21 @@ impl Module for DelegatedModule {
     false
   }
 
-  fn update_hash(
+  async fn get_runtime_hash(
     &self,
-    mut hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
-  ) -> Result<()> {
+  ) -> Result<RspackHashDigest> {
+    let mut hasher = RspackHash::from(&compilation.options.output);
     self.delegation_type.hash(&mut hasher);
 
     if let Some(request) = &self.request {
       request.hash(&mut hasher);
     }
 
-    module_update_hash(self, hasher, compilation, runtime);
+    module_update_hash(self, &mut hasher, compilation, runtime);
 
-    Ok(())
+    Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 }
 

@@ -79,7 +79,10 @@ impl SplitChunksPlugin {
       tracing::trace!("{module_group_key}, get Chunk {:?} with is_reuse_existing_chunk: {is_reuse_existing_chunk:?} and {is_reuse_existing_chunk_with_all_modules:?}", new_chunk_mut.chunk_reason());
 
       if let Some(chunk_reason) = new_chunk_mut.chunk_reason_mut() {
-        chunk_reason.push_str(&format!(" (cache group: {})", cache_group.key.as_str()))
+        chunk_reason.push_str(&format!(" (cache group: {})", cache_group.key.as_str()));
+        if let Some(chunk_name) = &module_group.chunk_name {
+          chunk_reason.push_str(&format!(" (name: {})", chunk_name));
+        }
       }
 
       if let Some(filename) = &cache_group.filename {

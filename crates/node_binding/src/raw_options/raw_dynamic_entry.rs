@@ -1,3 +1,4 @@
+use napi::bindgen_prelude::Promise;
 use napi_derive::napi;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_dynamic_entry::{DynamicEntryPluginOptions, EntryDynamicResult};
@@ -11,7 +12,7 @@ pub struct RawEntryDynamicResult {
   pub options: JsEntryOptions,
 }
 
-pub type RawEntryDynamic = ThreadsafeFunction<(), Vec<RawEntryDynamicResult>>;
+pub type RawEntryDynamic = ThreadsafeFunction<(), Promise<Vec<RawEntryDynamicResult>>>;
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
@@ -28,7 +29,7 @@ impl From<RawDynamicEntryPluginOptions> for DynamicEntryPluginOptions {
       entry: Box::new(move || {
         let f = opts.entry.clone();
         Box::pin(async move {
-          let raw_result = f.call(()).await?;
+          let raw_result = f.call_with_promise(()).await?;
           let result = raw_result
             .into_iter()
             .map(

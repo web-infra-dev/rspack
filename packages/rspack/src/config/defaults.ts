@@ -127,7 +127,8 @@ export const applyRspackOptionsDefaults = (
 	);
 
 	applyExternalsPresetsDefaults(options.externalsPresets, {
-		targetProperties
+		targetProperties,
+		buildHttp: Boolean(options.experiments.buildHttp)
 	});
 
 	F(options, "externalsType", () => {
@@ -216,6 +217,12 @@ const applyExperimentsDefaults = (
 	D(experiments, "layers", false);
 	D(experiments, "topLevelAwait", true);
 
+	D(experiments, "buildHttp", undefined);
+	if (experiments.buildHttp && typeof experiments.buildHttp === "object") {
+		D(experiments.buildHttp, "upgrade", false);
+		// D(experiments.buildHttp, "frozen", false);
+	}
+
 	// IGNORE(experiments.incremental): Rspack specific configuration for incremental
 	D(experiments, "incremental", !production ? {} : false);
 	if (typeof experiments.incremental === "object") {
@@ -240,7 +247,10 @@ const applyExperimentsDefaults = (
 	// rspackFuture.bundlerInfo default value is applied after applyDefaults
 
 	// IGNORE(experiments.parallelCodeSplitting): Rspack specific configuration for new code splitting algorithm
-	D(experiments, "parallelCodeSplitting", false);
+	D(experiments, "parallelCodeSplitting", true);
+
+	// IGNORE(experiments.parallelLoader): Rspack specific configuration for parallel loader execution
+	D(experiments, "parallelLoader", false);
 };
 
 const applybundlerInfoDefaults = (
@@ -844,9 +854,9 @@ const applyOutputDefaults = (
 
 const applyExternalsPresetsDefaults = (
 	externalsPresets: ExternalsPresets,
-	{ targetProperties }: { targetProperties: any }
+	{ targetProperties, buildHttp }: { targetProperties: any; buildHttp: boolean }
 ) => {
-	D(externalsPresets, "web", targetProperties?.web);
+	D(externalsPresets, "web", !buildHttp && targetProperties?.web);
 	D(externalsPresets, "node", targetProperties?.node);
 	D(externalsPresets, "electron", targetProperties?.electron);
 	D(
@@ -933,7 +943,8 @@ const applyOptimizationDefaults = (
 		css
 	}: { production: boolean; development: boolean; css: boolean }
 ) => {
-	D(optimization, "removeAvailableModules", false);
+	// IGNORE(optimization.removeAvailableModules): removeAvailableModules is no use for webpack
+	D(optimization, "removeAvailableModules", true);
 	D(optimization, "removeEmptyChunks", true);
 	D(optimization, "mergeDuplicateChunks", true);
 	F(optimization, "moduleIds", (): "natural" | "named" | "deterministic" => {

@@ -1,9 +1,11 @@
 mod raw_banner;
 mod raw_bundle_info;
+mod raw_circular_dependency;
 mod raw_copy;
 mod raw_css_extract;
 mod raw_dll;
 mod raw_html;
+mod raw_http_uri;
 mod raw_ids;
 mod raw_ignore;
 mod raw_lazy_compilation;
@@ -23,14 +25,14 @@ use raw_ids::RawOccurrenceChunkIdsPluginOptions;
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use raw_sri::RawSubresourceIntegrityPluginOptions;
 use rspack_core::{BoxPlugin, Plugin, PluginExt};
-use rspack_error::Result;
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
   NamedModuleIdsPlugin, NaturalChunkIdsPlugin, NaturalModuleIdsPlugin, OccurrenceChunkIdsPlugin,
 };
-use rspack_napi::NapiResultExt;
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
+use rspack_plugin_circular_dependencies::CircularDependencyRspackPlugin;
 use rspack_plugin_context_replacement::ContextReplacementPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
 use rspack_plugin_css::CssPlugin;
@@ -89,6 +91,7 @@ use rspack_plugin_worker::WorkerPlugin;
 
 pub use self::{
   raw_banner::RawBannerPluginOptions,
+  raw_circular_dependency::RawCircularDependencyRspackPluginOptions,
   raw_copy::RawCopyRspackPluginOptions,
   raw_dll::{RawDllEntryPluginOptions, RawLibManifestPluginOptions},
   raw_html::RawHtmlRspackPluginOptions,
@@ -198,12 +201,14 @@ pub enum BuiltinPluginName {
   CssExtractRspackPlugin,
   SubresourceIntegrityPlugin,
   RsdoctorPlugin,
+  CircularDependencyRspackPlugin,
 
   // rspack js adapter plugins
   // naming format follow XxxRspackPlugin
   JsLoaderRspackPlugin,
   LazyCompilationPlugin,
   ModuleInfoHeaderPlugin,
+  HttpUriPlugin,
 }
 
 #[napi(object)]
@@ -400,6 +405,11 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::DataUriPlugin => plugins.push(DataUriPlugin::default().boxed()),
       BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin::default().boxed()),
+      BuiltinPluginName::HttpUriPlugin => {
+        let plugin_options =
+          downcast_into::<self::raw_http_uri::RawHttpUriPluginOptions>(self.options)?;
+        plugins.push(raw_http_uri::get_http_uri_plugin(plugin_options));
+      }
       BuiltinPluginName::RuntimePlugin => plugins.push(RuntimePlugin::default().boxed()),
       BuiltinPluginName::JsonModulesPlugin => plugins.push(JsonPlugin.boxed()),
       BuiltinPluginName::InferAsyncModulesPlugin => {
@@ -521,6 +531,12 @@ impl BuiltinPlugin {
         .boxed();
         plugins.push(plugin);
       }
+      BuiltinPluginName::CircularDependencyRspackPlugin => plugins.push(
+        CircularDependencyRspackPlugin::new(
+          downcast_into::<RawCircularDependencyRspackPluginOptions>(self.options)?.into(),
+        )
+        .boxed(),
+      ),
       BuiltinPluginName::JsLoaderRspackPlugin => {
         plugins
           .push(JsLoaderRspackPlugin::new(downcast_into::<JsLoaderRunner>(self.options)?).boxed());
@@ -585,5 +601,5 @@ impl BuiltinPlugin {
 }
 
 fn downcast_into<T: FromNapiValue + 'static>(o: JsUnknown) -> Result<T> {
-  rspack_napi::downcast_into(o).into_rspack_result()
+  rspack_napi::downcast_into(o).to_rspack_result()
 }

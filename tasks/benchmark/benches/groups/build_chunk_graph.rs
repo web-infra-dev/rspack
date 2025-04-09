@@ -178,6 +178,7 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
         .compilation_hooks
         .optimize_dependencies
         .call(&mut compiler.compilation)
+        .await
         .unwrap(),
       Some(true)
     ) {}

@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId,
-  DependencyLocation, DependencyRange, DependencyTemplate, DependencyType, RuntimeSpec,
-  SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, AsModuleDependency, Dependency, DependencyId, DependencyLocation,
+  DependencyRange, DependencyTemplate, DependencyType, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource,
 };
 
 // Remove `export` label.
@@ -69,18 +69,6 @@ impl DependencyTemplate for ESMExportHeaderDependency {
       "",
       None,
     );
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }
 

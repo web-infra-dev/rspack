@@ -1,8 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId,
-  DependencyLocation, DependencyRange, DependencyTemplate, RuntimeGlobals, RuntimeSpec,
-  SharedSourceMap, TemplateContext,
+  AsContextDependency, AsModuleDependency, Dependency, DependencyId, DependencyLocation,
+  DependencyRange, DependencyTemplate, RuntimeGlobals, SharedSourceMap, TemplateContext,
 };
 
 #[cacheable]
@@ -60,17 +59,5 @@ impl DependencyTemplate for RequireHeaderDependency {
       RuntimeGlobals::REQUIRE.name(),
       None,
     );
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }

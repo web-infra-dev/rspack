@@ -12,6 +12,7 @@ async-trait              = { workspace = true }
 cow-utils                = { workspace = true }
 dashmap                  = { workspace = true }
 derive_more              = { workspace = true, features = ["debug"] }
+futures                  = { workspace = true }
 indexmap                 = { workspace = true }
 itertools                = { workspace = true }
 rspack_cacheable         = { workspace = true }

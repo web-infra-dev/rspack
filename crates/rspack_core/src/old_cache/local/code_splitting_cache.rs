@@ -1,6 +1,6 @@
 use futures::Future;
 use indexmap::IndexMap;
-use rspack_collections::{IdentifierIndexMap, IdentifierSet};
+use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierSet};
 use rspack_error::Result;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
@@ -35,7 +35,24 @@ impl CodeSplittingCache {
   // we don't need to check if module has changed its incomings
   // if it changes, the incoming module changes its outgoings as well
   fn can_skip_rebuilding(&self, this_compilation: &Compilation) -> bool {
+    if this_compilation.options.experiments.parallel_code_splitting {
+      self.can_skip_rebuilding_new(this_compilation)
+    } else {
+      self.can_skip_rebuilding_legacy(this_compilation)
+    }
+  }
+
+  fn can_skip_rebuilding_legacy(&self, this_compilation: &Compilation) -> bool {
     let logger = this_compilation.get_logger("rspack.Compilation.codeSplittingCache");
+
+    if !this_compilation
+      .entries
+      .keys()
+      .eq(this_compilation.code_splitting_cache.entrypoints.keys())
+    {
+      logger.log("entrypoints change detected, rebuilding chunk graph");
+      return false;
+    }
 
     let Some(mutations) = this_compilation
       .incremental
@@ -129,17 +146,112 @@ impl CodeSplittingCache {
       {
         // we find one module's outgoings has changed
         // we cannot skip rebuilding
-        logger.log("module outgoings change detected");
+        logger.log(format!("module outgoings change detected: {module}"));
         return false;
       }
     }
+
+    true
+  }
+
+  fn can_skip_rebuilding_new(&self, this_compilation: &Compilation) -> bool {
+    let logger = this_compilation.get_logger("rspack.Compilation.codeSplittingCache");
 
     if !this_compilation
       .entries
       .keys()
       .eq(this_compilation.code_splitting_cache.entrypoints.keys())
     {
+      logger.log("entrypoints change detected, rebuilding chunk graph");
       return false;
+    }
+
+    if this_compilation
+      .options
+      .optimization
+      .used_exports
+      .is_enable()
+    {
+      logger.log("used_exports enabled, rebuilding chunk graph for safety");
+      return false;
+    }
+
+    if self.new_code_splitter.module_deps.is_empty()
+      && self
+        .new_code_splitter
+        .module_deps_without_runtime
+        .is_empty()
+    {
+      logger.log("no cache detected, rebuilding chunk graph");
+      return false;
+    }
+
+    let Some(mutations) = this_compilation
+      .incremental
+      .mutations_read(IncrementalPasses::MAKE)
+    else {
+      logger.log("incremental for make disabled, rebuilding chunk graph");
+      // if disable incremental for make phase, we can't skip rebuilding
+      return false;
+    };
+
+    // if we have module removal, we can't skip rebuilding
+    if mutations
+      .iter()
+      .any(|mutation| matches!(mutation, Mutation::ModuleRemove { .. }))
+    {
+      logger.log("module removal detected, rebuilding chunk graph");
+      return false;
+    }
+
+    let module_graph = this_compilation.get_module_graph();
+    let affected_modules = mutations.get_affected_modules_with_module_graph(&module_graph);
+
+    for module in affected_modules.clone() {
+      let outgoings = module_graph
+        .get_outgoing_connections_in_order(&module)
+        .filter_map(|dep| module_graph.connection_by_dependency_id(dep))
+        .filter(|conn| conn.active_state(&module_graph, None).is_not_false())
+        .map(|conn| conn.module_identifier());
+      let mut current_outgoings = IdentifierIndexSet::default();
+
+      for outgoing in outgoings {
+        current_outgoings.insert(*outgoing);
+      }
+
+      let mut previous_outgoings = IdentifierIndexSet::default();
+
+      for module_map in self.new_code_splitter.module_deps.values() {
+        if let Some(outgoings) = module_map.get(&module) {
+          let (outgoings, _blocks) = outgoings.value();
+          for out in outgoings {
+            previous_outgoings.insert(*out);
+          }
+        }
+      }
+
+      if let Some(outgoings) = self
+        .new_code_splitter
+        .module_deps_without_runtime
+        .get(&module)
+      {
+        let (outgoings, _blocks) = outgoings.value();
+        for out in outgoings {
+          previous_outgoings.insert(*out);
+        }
+      }
+
+      if previous_outgoings.len() != current_outgoings.len() {
+        logger.log(format!("module outgoings change detected: {module}"));
+        return false;
+      }
+
+      for (prev, curr) in previous_outgoings.into_iter().zip(current_outgoings) {
+        if prev != curr {
+          logger.log(format!("module outgoings change detected: {module}"));
+          return false;
+        }
+      }
     }
 
     true
@@ -163,17 +275,15 @@ where
     return Ok(());
   }
 
-  let parallel_code_splitting = compilation.options.experiments.parallel_code_splitting;
-  // TODO: parallel_code_splitting is not supported with incremental code splitting for now
-  let incremental_code_splitting = !parallel_code_splitting
-    && compilation
-      .incremental
-      .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH);
+  let incremental_code_splitting = compilation
+    .incremental
+    .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH);
+  let new_code_splitting = compilation.options.experiments.parallel_code_splitting;
   let no_change = compilation
     .code_splitting_cache
     .can_skip_rebuilding(compilation);
 
-  if incremental_code_splitting || no_change {
+  if (incremental_code_splitting && !new_code_splitting) || no_change {
     let cache = &mut compilation.code_splitting_cache;
     rayon::scope(|s| {
       s.spawn(|_| compilation.chunk_by_ukey = cache.chunk_by_ukey.clone());
@@ -185,18 +295,18 @@ where
       s.spawn(|_| compilation.named_chunks = cache.named_chunks.clone());
     });
 
-    let module_idx = cache.module_idx.clone();
-    let mut module_graph = compilation.get_module_graph_mut();
-    for (m, (pre, post)) in module_idx {
-      let Some(mgm) = module_graph.module_graph_module_by_identifier_mut(&m) else {
-        continue;
-      };
+    if no_change {
+      let module_idx = cache.module_idx.clone();
+      let mut module_graph = compilation.get_module_graph_mut();
+      for (m, (pre, post)) in module_idx {
+        let Some(mgm) = module_graph.module_graph_module_by_identifier_mut(&m) else {
+          continue;
+        };
 
-      mgm.pre_order_index = Some(pre);
-      mgm.post_order_index = Some(post);
-    }
+        mgm.pre_order_index = Some(pre);
+        mgm.post_order_index = Some(post);
+      }
 
-    if !incremental_code_splitting && no_change {
       return Ok(());
     }
   }

@@ -1076,7 +1076,7 @@ export default {
   },
   output: {
     library: {
-      // do not specify a `name` here
+      // 不要指定 `name`
       type: 'module',
     },
   },
@@ -1086,6 +1086,27 @@ export default {
 输出 ESM 模块。
 
 但这个特性仍然是实验性的，还没有完全支持，所以在使用之前确保启用了 [`experiments.outputModule`](/config/experiments#experimentsoutputmodule)。此外，你可以在这个 [issue](https://github.com/webpack/webpack/issues/2933#issuecomment-774253975) 中跟踪开发进度。
+
+##### type: 'modern-module'
+
+```js title="rspack.config.mjs"
+export default {
+  // …
+  experiments: {
+    outputModule: true,
+  },
+  output: {
+    library: {
+      // 不要指定 `name`
+      type: 'modern-module',
+    },
+  },
+};
+```
+
+这项配置将生成支持 tree-shaking 的 ES 模块输出。
+
+但这个特性仍然是实验性的，还没有完全支持，所以在使用之前确保启用了 [`experiments.outputModule`](/config/experiments#experimentsoutputmodule)。
 
 ##### type: 'commonjs2'
 

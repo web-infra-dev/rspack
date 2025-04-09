@@ -1,5 +1,5 @@
 use napi_derive::napi;
-use rspack_error::Result;
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_plugin_lightning_css_minimizer::{
   Draft, MinimizerOptions, NonStandard, PluginOptions, PseudoClasses,
 };
@@ -89,7 +89,7 @@ impl TryFrom<RawLightningCssMinimizerRspackPluginOptions> for PluginOptions {
             rspack_loader_lightningcss::lightningcss::targets::Browsers::from_browserslist(t)
           })
           .transpose()
-          .map_err(|e| rspack_error::error!("Failed to parse browserslist: {}", e))?
+          .to_rspack_result_with_message(|e| format!("Failed to parse browserslist: {}", e))?
           .flatten(),
         include: value.minimizer_options.include,
         exclude: value.minimizer_options.exclude,

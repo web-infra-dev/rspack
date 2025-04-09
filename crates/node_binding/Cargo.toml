@@ -55,7 +55,7 @@ rustc-hash         = { workspace = true }
 serde              = { workspace = true }
 serde_json         = { workspace = true }
 swc_core           = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
-tokio              = { workspace = true, features = ["rt", "macros", "test-util", "parking_lot"] }
+tokio              = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "tracing"] }
 
 rayon                                  = { workspace = true }
 rspack_loader_lightningcss             = { workspace = true }
@@ -66,6 +66,7 @@ rspack_loader_swc                      = { workspace = true }
 rspack_loader_testing                  = { workspace = true }
 rspack_plugin_asset                    = { workspace = true }
 rspack_plugin_banner                   = { workspace = true }
+rspack_plugin_circular_dependencies    = { workspace = true }
 rspack_plugin_context_replacement      = { workspace = true }
 rspack_plugin_copy                     = { workspace = true }
 rspack_plugin_css                      = { workspace = true }
@@ -102,7 +103,7 @@ rspack_plugin_web_worker_template      = { workspace = true }
 rspack_plugin_worker                   = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-tokio = { workspace = true, features = ["rt-multi-thread"] }
+tokio = { workspace = true, features = ["parking_lot"] }
 
 rspack_tracing = { workspace = true, features = ["otel"] }
 

@@ -5,7 +5,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   ChunkUkey, Compilation, PathData, RuntimeModule, RuntimeModuleStage,
 };
-use rspack_util::{infallible::ResultInfallibleExt as _, itoa};
+use rspack_util::itoa;
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -59,7 +59,7 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
           .id(&PathData::prepare_id("\" + wasmModuleId + \""))
           .runtime(chunk.runtime().as_str()),
       )
-      .always_ok();
+      .await?;
     Ok(
       RawStringSource::from(get_async_wasm_loading(
         &self

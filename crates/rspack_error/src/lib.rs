@@ -2,6 +2,7 @@
 #![feature(anonymous_lifetime_in_impl_trait)]
 
 mod catch_unwind;
+mod convert;
 mod diagnostic;
 mod error;
 mod ext;
@@ -12,6 +13,7 @@ pub use diagnostic::*;
 pub use error::*;
 pub use ext::*;
 pub mod emitter;
+pub use convert::*;
 
 mod macros;
 

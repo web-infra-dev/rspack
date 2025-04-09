@@ -2,7 +2,7 @@ use std::{borrow::Cow, fs, sync::Arc};
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
-use rspack_error::{error, miette::IntoDiagnostic, Result};
+use rspack_error::{error, miette::IntoDiagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hook::define_hook;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use rspack_regex::RspackRegex;
@@ -75,8 +75,8 @@ pub struct AfterResolveData {
   pub resolve_dependencies: ResolveContextModuleDependencies,
 }
 
-define_hook!(ContextModuleFactoryBeforeResolve: AsyncSeriesWaterfall(data: BeforeResolveResult) -> BeforeResolveResult);
-define_hook!(ContextModuleFactoryAfterResolve: AsyncSeriesWaterfall(data: AfterResolveResult) -> AfterResolveResult);
+define_hook!(ContextModuleFactoryBeforeResolve: SeriesWaterfall(data: BeforeResolveResult) -> BeforeResolveResult);
+define_hook!(ContextModuleFactoryAfterResolve: SeriesWaterfall(data: AfterResolveResult) -> AfterResolveResult);
 
 #[derive(Debug, Default)]
 pub struct ContextModuleFactoryHooks {
@@ -239,9 +239,11 @@ impl ContextModuleFactory {
           let resolve_result = loader_resolver
             .resolve(data.context.as_ref(), loader_request)
             .await
-            .map_err(|err| {
-              let context = data.context.to_string();
-              error!("Failed to resolve loader: {loader_request} in {context} {err:?}")
+            .to_rspack_result_with_message(|e| {
+              format!(
+                "Failed to resolve loader: {loader_request} in {} {e}",
+                data.context
+              )
             })?;
           match resolve_result {
             ResolveResult::Resource(resource) => {
@@ -409,7 +411,6 @@ fn visit_dirs(
       }
     } else if path.file_name().is_some_and(|name| name.starts_with('.')) {
       // ignore hidden files
-      continue;
     } else {
       if let Some(include) = include
         && !include.test(path_str)

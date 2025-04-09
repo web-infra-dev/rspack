@@ -156,7 +156,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
     // replace code_generation_results is the same reason
     compilation.chunk_graph = chunk_graph;
 
-    compilation.create_module_hashes(modules.clone())?;
+    compilation.create_module_hashes(modules.clone()).await?;
 
     compilation
       .code_generation_modules(&mut None, modules.clone())

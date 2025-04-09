@@ -17,8 +17,10 @@ use rspack_cacheable::{
 use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
-use rspack_error::{Diagnosable, Diagnostic, DiagnosticKind, Result, TraceableError};
-use rspack_hash::{HashDigest, HashFunction, RspackHash};
+use rspack_error::{
+  Diagnosable, Diagnostic, DiagnosticKind, Result, ToStringResultToRspackResultExt, TraceableError,
+};
+use rspack_hash::{HashDigest, HashFunction, RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
@@ -41,20 +43,20 @@ use crate::{
   merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   reserved_names::RESERVED_NAMES, returning_function, runtime_condition_expression,
   subtract_runtime_condition, to_identifier, AsyncDependenciesBlockIdentifier, BoxDependency,
-  BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
-  ChunkGraph, ChunkInitFragments, CodeGenerationDataTopLevelDeclarations,
-  CodeGenerationExportsFinalNames, CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
-  Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConnectionState, Context,
-  DependenciesBlock, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
-  ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta, IdentCollector, LibIdentOptions,
-  MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleDependency, ModuleGraph,
+  BoxDependencyTemplate, BoxModuleDependency, BuildContext, BuildInfo, BuildMeta,
+  BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments,
+  CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
+  CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
+  ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId, DependencyType,
+  ErrorSpan, ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta, IdentCollector,
+  LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType, Resolve, RuntimeCondition,
   RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsageState, UsedName, DEFAULT_EXPORT,
   NAMESPACE_OBJECT_EXPORT,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
-define_hook!(ConcatenatedModuleExportsDefinitions: SyncSeriesBail(exports_definitions: &mut ExportsDefinitionArgs, is_entry_module: bool) -> bool);
+define_hook!(ConcatenatedModuleExportsDefinitions: SeriesBail(exports_definitions: &mut ExportsDefinitionArgs, is_entry_module: bool) -> bool);
 
 #[derive(Debug, Default)]
 pub struct ConcatenatedModuleHooks {
@@ -69,8 +71,8 @@ pub struct RootModuleContext {
   pub name_for_condition: Option<Box<str>>,
   pub lib_indent: Option<String>,
   pub resolve_options: Option<Arc<Resolve>>,
-  pub code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
-  pub presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
+  pub code_generation_dependencies: Option<Vec<BoxModuleDependency>>,
+  pub presentational_dependencies: Option<Vec<BoxDependencyTemplate>>,
   pub context: Option<Context>,
   pub layer: Option<ModuleLayer>,
   pub side_effect_connection_state: ConnectionState,
@@ -662,7 +664,7 @@ impl Module for ConcatenatedModule {
     })
     .await
     .into_iter()
-    .map(|res| res.map_err(rspack_error::miette::Error::from_err))
+    .map(|r| r.to_rspack_result())
     .collect::<Result<Vec<_>>>()?;
 
     let mut updated_pairs = vec![];
@@ -1030,7 +1032,8 @@ impl Module for ConcatenatedModule {
         .call(
           &mut exports_final_names,
           compilation.chunk_graph.is_entry_module(&self.id),
-        )?;
+        )
+        .await?;
 
       if !matches!(should_skip_render_definitions, Some(true)) {
         runtime_requirements.insert(RuntimeGlobals::EXPORTS);
@@ -1319,12 +1322,12 @@ impl Module for ConcatenatedModule {
     Ok(code_generation_result)
   }
 
-  fn update_hash(
+  async fn get_runtime_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
     generation_runtime: Option<&RuntimeSpec>,
-  ) -> Result<()> {
+  ) -> Result<RspackHashDigest> {
+    let mut hasher = RspackHash::from(&compilation.options.output);
     let runtime = if let Some(self_runtime) = &self.runtime
       && let Some(generation_runtime) = generation_runtime
     {
@@ -1345,22 +1348,27 @@ impl Module for ConcatenatedModule {
       &compilation.get_module_graph(),
     ) {
       match info {
-        ConcatenationEntry::Concatenated(e) => compilation
-          .get_module_graph()
-          .module_by_identifier(&e.module)
-          .expect("should have module")
-          .update_hash(hasher, compilation, generation_runtime)?,
+        ConcatenationEntry::Concatenated(e) => {
+          compilation
+            .get_module_graph()
+            .module_by_identifier(&e.module)
+            .expect("should have module")
+            .get_runtime_hash(compilation, generation_runtime)
+            .await?
+            .encoded()
+            .dyn_hash(&mut hasher);
+        }
         ConcatenationEntry::External(e) => {
           ChunkGraph::get_module_id(
             &compilation.module_ids_artifact,
             e.module(&compilation.get_module_graph()),
           )
-          .dyn_hash(hasher);
+          .dyn_hash(&mut hasher);
         }
       };
     }
-    module_update_hash(self, hasher, compilation, generation_runtime);
-    Ok(())
+    module_update_hash(self, &mut hasher, compilation, generation_runtime);
+    Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 
   fn name_for_condition(&self) -> Option<Box<str>> {
@@ -1375,7 +1383,7 @@ impl Module for ConcatenatedModule {
     self.root_module_ctxt.resolve_options.clone()
   }
 
-  fn get_code_generation_dependencies(&self) -> Option<&[Box<dyn ModuleDependency>]> {
+  fn get_code_generation_dependencies(&self) -> Option<&[BoxModuleDependency]> {
     if let Some(deps) = self
       .root_module_ctxt
       .code_generation_dependencies
@@ -1388,7 +1396,7 @@ impl Module for ConcatenatedModule {
     }
   }
 
-  fn get_presentational_dependencies(&self) -> Option<&[Box<dyn DependencyTemplate>]> {
+  fn get_presentational_dependencies(&self) -> Option<&[BoxDependencyTemplate]> {
     if let Some(deps) = self.root_module_ctxt.presentational_dependencies.as_deref()
       && !deps.is_empty()
     {

@@ -32,7 +32,7 @@ pub(super) fn normalize_raw_cache_group_test(raw: RawCacheGroupTest) -> CacheGro
     Either3::C(v) => CacheGroupTest::Fn(Arc::new(move |ctx| {
       let ctx = ctx.into();
       let v = v.clone();
-      Box::pin(async move { v.call(ctx).await })
+      Box::pin(async move { v.call_with_sync(ctx).await })
     })),
   }
 }

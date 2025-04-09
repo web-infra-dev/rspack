@@ -1,9 +1,10 @@
+use napi::bindgen_prelude::FnArgs;
 use napi_derive::napi;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_ignore::{CheckResourceContent, IgnorePluginOptions};
 use rspack_regex::RspackRegex;
 
-type RawCheckResource = ThreadsafeFunction<(String, String), bool>;
+type RawCheckResource = ThreadsafeFunction<FnArgs<(String, String)>, bool>;
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
@@ -26,7 +27,10 @@ impl From<RawIgnorePluginOptions> for IgnorePluginOptions {
         CheckResourceContent::Fn(Box::new(move |resource, context| {
           let f = check_resource.clone();
 
-          Box::pin(async move { f.call((resource.to_owned(), context.to_owned())).await })
+          Box::pin(async move {
+            f.call_with_sync((resource.to_owned(), context.to_owned()).into())
+              .await
+          })
         }))
       }),
     }

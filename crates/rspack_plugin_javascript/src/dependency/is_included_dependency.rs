@@ -1,6 +1,6 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, Compilation, Dependency, DependencyId, DependencyTemplate, DependencyType,
+  AsContextDependency, Dependency, DependencyId, DependencyTemplate, DependencyType,
   ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, RuntimeSpec,
   TemplateContext, TemplateReplaceSource,
 };
@@ -92,17 +92,5 @@ impl DependencyTemplate for WebpackIsIncludedDependency {
       .unwrap_or(false);
 
     source.replace(self.start, self.end, included.to_string().as_str(), None);
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }

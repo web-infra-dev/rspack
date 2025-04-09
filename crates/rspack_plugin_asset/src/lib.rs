@@ -12,11 +12,13 @@ use rspack_core::{
   AssetParserDataUrl, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkUkey,
   CodeGenerationDataAssetInfo, CodeGenerationDataFilename, CodeGenerationDataUrl,
   CodeGenerationPublicPathAutoReplace, Compilation, CompilationRenderManifest, CompilerOptions,
-  Filename, GenerateContext, GeneratorOptions, LocalFilenameFn, Module, ModuleGraph, NormalModule,
-  ParseContext, ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry,
-  ResourceData, RuntimeGlobals, RuntimeSpec, SourceType, NAMESPACE_OBJECT_EXPORT,
+  Filename, GenerateContext, GeneratorOptions, Module, ModuleGraph, NormalModule, ParseContext,
+  ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry, ResourceData,
+  RuntimeGlobals, RuntimeSpec, SourceType, NAMESPACE_OBJECT_EXPORT,
 };
-use rspack_error::{error, Diagnostic, IntoTWithDiagnosticArray, Result};
+use rspack_error::{
+  error, Diagnostic, IntoTWithDiagnosticArray, Result, ToStringResultToRspackResultExt,
+};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{ext::DynHash, identifier::make_paths_relative};
@@ -242,7 +244,7 @@ impl AssetParserAndGenerator {
     relative
   }
 
-  fn get_asset_module_filename(
+  async fn get_asset_module_filename(
     &self,
     module: &NormalModule,
     module_generator_options: Option<&GeneratorOptions>,
@@ -264,16 +266,18 @@ impl AssetParserAndGenerator {
       .hash_optional(contenthash)
       .filename(source_file_name);
 
-    let (mut filename, mut asset_info) =
-      compilation.get_asset_path_with_info(asset_filename_template, path_data)?;
+    let (mut filename, mut asset_info) = compilation
+      .get_asset_path_with_info(asset_filename_template, path_data)
+      .await?;
     let original_filename = filename.clone();
 
     if use_output_path {
       let output_path = module_generator_options.and_then(|x| x.asset_output_path());
 
       if let Some(output_path) = output_path {
-        let (output_path, another_asset_info) =
-          compilation.get_asset_path_with_info(output_path, path_data)?;
+        let (output_path, another_asset_info) = compilation
+          .get_asset_path_with_info(output_path, path_data)
+          .await?;
         let output_path = PathBuf::from(output_path);
         let file_path = PathBuf::from(filename);
         filename = output_path.join(file_path).to_string_lossy().to_string();
@@ -284,25 +288,27 @@ impl AssetParserAndGenerator {
     Ok((original_filename, filename, asset_info))
   }
 
-  fn get_public_path<F: LocalFilenameFn>(
+  async fn get_public_path(
     &self,
     module: &NormalModule,
     compilation: &Compilation,
     contenthash: Option<&str>,
     source_file_name: &str,
-    template: &Filename<F>,
-  ) -> Result<(String, AssetInfo), F::Error> {
-    let (public_path, info) = compilation.get_asset_path_with_info(
-      template,
-      PathData::default()
-        .module_id_optional(
-          ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.id())
-            .map(|s| s.as_str()),
-        )
-        .content_hash_optional(contenthash)
-        .hash_optional(contenthash)
-        .filename(source_file_name),
-    )?;
+    template: &Filename,
+  ) -> Result<(String, AssetInfo)> {
+    let (public_path, info) = compilation
+      .get_asset_path_with_info(
+        template,
+        PathData::default()
+          .module_id_optional(
+            ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.id())
+              .map(|s| s.as_str()),
+          )
+          .content_hash_optional(contenthash)
+          .hash_optional(contenthash)
+          .filename(source_file_name),
+      )
+      .await?;
     let public_path = PublicPath::ensure_ends_with_slash(public_path);
     Ok((public_path, info))
   }
@@ -384,9 +390,9 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     }
   }
 
-  fn parse(
+  async fn parse<'a>(
     &mut self,
-    parse_context: rspack_core::ParseContext,
+    parse_context: rspack_core::ParseContext<'a>,
   ) -> Result<rspack_error::TWithDiagnosticArray<rspack_core::ParseResult>> {
     let ParseContext {
       source,
@@ -488,20 +494,22 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             .data
             .insert(CodeGenerationDataUrl::new(encoded_source.clone()));
 
-          serde_json::to_string(&encoded_source).map_err(|e| error!(e.to_string()))?
+          serde_json::to_string(&encoded_source).to_rspack_result()?
         } else if parsed_asset_config.is_resource() {
           let contenthash = self.hash_for_source(source, &compilation.options);
           let contenthash = contenthash.rendered(compilation.options.output.hash_digest_length);
 
           let source_file_name = self.get_source_file_name(normal_module, compilation);
-          let (original_filename, filename, mut asset_info) = self.get_asset_module_filename(
-            normal_module,
-            module_generator_options,
-            compilation,
-            Some(contenthash),
-            &source_file_name,
-            true,
-          )?;
+          let (original_filename, filename, mut asset_info) = self
+            .get_asset_module_filename(
+              normal_module,
+              module_generator_options,
+              compilation,
+              Some(contenthash),
+              &source_file_name,
+              true,
+            )
+            .await?;
 
           let asset_path = if import_mode.is_preserve() {
             generate_context
@@ -510,26 +518,28 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             serde_json::to_string(&format!(
               "{AUTO_PUBLIC_PATH_PLACEHOLDER}{original_filename}"
             ))
-            .map_err(|e| error!(e.to_string()))?
+            .to_rspack_result()?
           } else if let Some(public_path) =
             module_generator_options.and_then(|x| x.asset_public_path())
           {
             let public_path = match public_path {
               PublicPath::Filename(template) => {
-                let (public_path, another_asset_info) = self.get_public_path(
-                  normal_module,
-                  compilation,
-                  Some(contenthash),
-                  &source_file_name,
-                  template,
-                )?;
+                let (public_path, another_asset_info) = self
+                  .get_public_path(
+                    normal_module,
+                    compilation,
+                    Some(contenthash),
+                    &source_file_name,
+                    template,
+                  )
+                  .await?;
                 asset_info.merge_another_asset(another_asset_info);
                 public_path
               }
-              PublicPath::Auto => public_path.render(compilation, &filename),
+              PublicPath::Auto => public_path.render(compilation, &filename).await,
             };
             serde_json::to_string(&format!("{public_path}{original_filename}"))
-              .map_err(|e| error!(e.to_string()))?
+              .to_rspack_result()?
           } else {
             generate_context
               .runtime_requirements
@@ -547,10 +557,13 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             .data
             .insert(CodeGenerationDataFilename::new(
               filename,
-              module_generator_options
+              match module_generator_options
                 .and_then(|x| x.asset_public_path())
                 .unwrap_or_else(|| &compilation.options.output.public_path)
-                .clone(),
+              {
+                PublicPath::Filename(p) => PublicPath::render_filename(compilation, p).await,
+                PublicPath::Auto => AUTO_PUBLIC_PATH_PLACEHOLDER.to_string(),
+              },
             ));
           generate_context
             .data
@@ -640,13 +653,13 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     None
   }
 
-  fn update_hash(
+  async fn get_runtime_hash(
     &self,
     module: &NormalModule,
-    hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Result<()> {
+  ) -> Result<RspackHashDigest> {
+    let mut hasher = RspackHash::from(&compilation.options.output);
     let parsed_asset_config = self
       .parsed_asset_config
       .as_ref()
@@ -656,31 +669,34 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       && let Some(AssetGeneratorDataUrl::Options(data_url_options)) =
         module_generator_options.and_then(|x| x.asset_data_url())
     {
-      data_url_options.dyn_hash(hasher);
+      data_url_options.dyn_hash(&mut hasher);
     } else if parsed_asset_config.is_resource() {
       let source_file_name = self.get_source_file_name(module, compilation);
-      let (filename, _, _) = self.get_asset_module_filename(
-        module,
-        module_generator_options,
-        compilation,
-        None,
-        &source_file_name,
-        false,
-      )?;
-      filename.dyn_hash(hasher);
+      let (filename, _, _) = self
+        .get_asset_module_filename(
+          module,
+          module_generator_options,
+          compilation,
+          None,
+          &source_file_name,
+          false,
+        )
+        .await?;
+      filename.dyn_hash(&mut hasher);
       match module_generator_options.and_then(|x| x.asset_public_path()) {
         Some(public_path) => match public_path {
           PublicPath::Filename(template) => {
-            let (public_path, _) =
-              self.get_public_path(module, compilation, None, &source_file_name, template)?;
-            public_path.dyn_hash(hasher);
+            let (public_path, _) = self
+              .get_public_path(module, compilation, None, &source_file_name, template)
+              .await?;
+            public_path.dyn_hash(&mut hasher);
           }
-          PublicPath::Auto => "auto".dyn_hash(hasher),
+          PublicPath::Auto => "auto".dyn_hash(&mut hasher),
         },
-        None => "no-path".dyn_hash(hasher),
+        None => "no-path".dyn_hash(&mut hasher),
       };
     }
-    Ok(())
+    Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 }
 

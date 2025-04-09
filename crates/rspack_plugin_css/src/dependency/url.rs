@@ -1,9 +1,9 @@
+use cow_utils::CowUtils;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency,
   DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
-  FactorizeInfo, ModuleDependency, ModuleIdentifier, PublicPath, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  FactorizeInfo, ModuleDependency, ModuleIdentifier, TemplateContext, TemplateReplaceSource,
 };
 
 use crate::utils::{css_escape_string, AUTO_PUBLIC_PATH_PLACEHOLDER};
@@ -43,10 +43,10 @@ impl CssUrlDependency {
       Some(url.inner().to_string())
     } else if let Some(data) = code_gen_result.data.get::<CodeGenerationDataFilename>() {
       let filename = data.filename();
-      let public_path = match data.public_path() {
-        PublicPath::Filename(p) => PublicPath::render_filename(compilation, p),
-        PublicPath::Auto => AUTO_PUBLIC_PATH_PLACEHOLDER.to_string(),
-      };
+      let public_path = data.public_path().cow_replace(
+        "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__",
+        AUTO_PUBLIC_PATH_PLACEHOLDER,
+      );
       Some(format!("{public_path}{filename}"))
     } else {
       None
@@ -121,18 +121,6 @@ impl DependencyTemplate for CssUrlDependency {
       };
       source.replace(self.range.start, self.range.end, &content, None);
     }
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }
 

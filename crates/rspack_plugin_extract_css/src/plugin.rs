@@ -501,7 +501,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilationRuntimeRequirementInTree for PluginCssExtract)]
-fn runtime_requirement_in_tree(
+async fn runtime_requirement_in_tree(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
@@ -638,26 +638,28 @@ async fn render_manifest(
   };
 
   let mut asset_info = AssetInfo::default();
-  let filename = compilation.get_path_with_info(
-    filename_template,
-    PathData::default()
-      .chunk_id_optional(
-        chunk
-          .id(&compilation.chunk_ids_artifact)
-          .map(|id| id.as_str()),
-      )
-      .chunk_hash_optional(chunk.rendered_hash(
-        &compilation.chunk_hashes_artifact,
-        compilation.options.output.hash_digest_length,
-      ))
-      .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
-      .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-        &compilation.chunk_hashes_artifact,
-        &SOURCE_TYPE[0],
-        compilation.options.output.hash_digest_length,
-      )),
-    &mut asset_info,
-  )?;
+  let filename = compilation
+    .get_path_with_info(
+      filename_template,
+      PathData::default()
+        .chunk_id_optional(
+          chunk
+            .id(&compilation.chunk_ids_artifact)
+            .map(|id| id.as_str()),
+        )
+        .chunk_hash_optional(chunk.rendered_hash(
+          &compilation.chunk_hashes_artifact,
+          compilation.options.output.hash_digest_length,
+        ))
+        .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+        .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+          &compilation.chunk_hashes_artifact,
+          &SOURCE_TYPE[0],
+          compilation.options.output.hash_digest_length,
+        )),
+      &mut asset_info,
+    )
+    .await?;
 
   let (source, more_diagnostics) = compilation
     .old_cache
@@ -683,7 +685,7 @@ async fn render_manifest(
 }
 
 #[plugin_hook(NormalModuleFactoryParser for PluginCssExtract)]
-fn nmf_parser(
+async fn nmf_parser(
   &self,
   module_type: &ModuleType,
   parser: &mut dyn ParserAndGenerator,

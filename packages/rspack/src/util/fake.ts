@@ -9,13 +9,15 @@ export function createFakeCompilationDependencies(
 	const addDepsCaller = new MergeCaller(addDeps);
 	return {
 		*[Symbol.iterator]() {
-			const deps = getDeps();
+			const deps = new Set([...getDeps(), ...addDepsCaller.pendingData()]);
 			for (const dep of deps) {
 				yield dep;
 			}
 		},
 		has(dep: string): boolean {
-			return getDeps().includes(dep);
+			return (
+				addDepsCaller.pendingData().includes(dep) || getDeps().includes(dep)
+			);
 		},
 		add: (dep: string) => {
 			addDepsCaller.push(dep);

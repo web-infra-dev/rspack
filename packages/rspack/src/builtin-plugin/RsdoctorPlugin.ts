@@ -26,7 +26,7 @@ import {
 } from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
 import { z } from "zod";
-import { Compilation } from "../Compilation";
+import { type Compilation, checkCompilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { CreatePartialRegisters } from "../taps/types";
 import { validate } from "../util/validate";
@@ -122,11 +122,8 @@ const RsdoctorPlugin = RsdoctorPluginImpl as typeof RsdoctorPluginImpl & {
 RsdoctorPlugin.getHooks = RsdoctorPlugin.getCompilationHooks = (
 	compilation: Compilation
 ) => {
-	if (!(compilation instanceof Compilation)) {
-		throw new TypeError(
-			"The 'compilation' argument must be an instance of Compilation"
-		);
-	}
+	checkCompilation(compilation);
+
 	let hooks = compilationHooksMap.get(compilation);
 	if (hooks === undefined) {
 		hooks = {

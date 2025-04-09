@@ -1,0 +1,268 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# CircularDependencyRspackPlugin
+
+<ApiMeta specific={['Rspack']} addedVersion="1.3.0" />
+
+Detects circular import dependencies between modules that will exist at runtime. Import cycles are often _not_ indicative of a bug when used by functions called at runtime, but may cause bugs or errors when the imports are used during initialization. This plugin does not distinguish between the two, but can be used to help identify and resolve cycles after a bug has been encountered.
+
+```js
+new rspack.CircularDependencyRspackPlugin(options);
+```
+
+## Comparison
+
+This plugin is an adaptation of the original [`circular-dependency-plugin`](https://github.com/aackerman/circular-dependency-plugin) for Webpack and diverges in both behavior and features.
+
+### Performance
+
+Because `CircularDependencyRspackPlugin` is implemented in Rust, it is able to integrate directly with the module graph and avoid expensive copying and serialization. On top of that, this plugin operates using a single traversal of the module graph for each entrypoint to identify all cycles rather than checking each module individually. Combined, that means `CircularDependencyRspackPlugin` is able to run fast enough to be part of a hot reload development cycle without any noticeable impact on reload times, even for extremely large projects with hundreds of thousands of modules and imports.
+
+### Features
+
+`CircularDependencyRspackPlugin` aims to be compatible with the features of `circular-dependency-plugin`, with modifications to give finer control over cycle detection and behavior.
+
+One notable difference between the two is the use of module _identifiers_ for cycle entries in Rspack rather than relative paths. Identifiers represent the entire unique name for a bundled module, including the set of loaders that processed it, the absolute module path, and any request parameters that were provided when importing. While matching on just the path of the module is still possible, identifiers allow for matching against loaders and rulesets as well.
+
+This plugin also provides a new option, `ignoredConnections` to allow for more granular control over whether a cycle is ignored. The `exclude` option from the original plugin is still implemented to match existing behavior, but causes any cycle containing the module to be ignored entirely. When only specific cycles are meant to be ignored, `ignoredConnections` allows for specifying both a `from` and a `to` pattern to match against, ignoring only cycles where an explicit dependency between two modules is present.
+
+## Examples
+
+- Detect all cycles present in a compilation, ignoring any that include external packages from `node_modules`, and emitting compilation errors for each cycle.
+
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.CircularDependencyRspackPlugin({
+      failOnError: true,
+      exclude: /node_modules/,
+    }),
+  ],
+};
+```
+
+- Ignore a specific connection between two modules, as well as any connection `to` any module matching a given pattern.
+
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.CircularDependencyRspackPlugin({
+      ignoredConnections: [
+        ['some/module/a.js', 'some/module/b.js'],
+        ['', /modules\/.*Store.js/],
+      ],
+    }),
+  ],
+};
+```
+
+- Allow asynchronous cycles (such as `import('some/module')`) and manually handle all detected cycles.
+
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.CircularDependencyRspackPlugin({
+      allowAsyncCycles: true,
+      onDetected(entrypoint, modules, compilation) {
+        compilation.errors.push(
+          new Error(`Cycle in ${entrypoint}: ${modules.join(' -> ')}`),
+        );
+      },
+    }),
+  ],
+};
+```
+
+## Options
+
+### failOnError
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+When `true`, detected cycles will generate Error level diagnostics rather than Warnings. This will have no noticeable effect in watch mode, but will cause full builds to fail when the errors are emitted.
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.CircularDependencyRspackPlugin({
+      failOnError: true,
+    }),
+  ],
+};
+```
+
+### allowAsyncCycles
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Allow asynchronous imports and connections to cause a detected cycle to be ignored. Asynchronous imports include `import()` function calls, weak imports for lazy compilation, hot module connections, and more.
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.CircularDependencyRspackPlugin({
+      allowAsyncCycles: true,
+    }),
+  ],
+};
+```
+
+### exclude
+
+- **Type:** `RegExp`
+- **Default:** `undefined`
+
+Similar to `exclude` from the original [`circular-dependency-plugin`](https://github.com/aackerman/circular-dependency-plugin), detected cycles containing any module identifier that matches this pattern will be ignored.
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.CircularDependencyRspackPlugin({
+      // Ignore any cycles involving external packages from `node_modules`
+      exclude: /node_modules/,
+    }),
+  ],
+};
+```
+
+### ignoredConnections
+
+- **Type:** `Array<[string | RegExp, string | RegExp]>`
+- **Default:** `[]`
+
+A list of explicit connections that should cause a detected cycle to be ignored. Each entry in the list represents a connection as `[from, to]`, matching any connection where `from` depends on `to`.
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.CircularDependencyRspackPlugin({
+      ignoredConnections: [
+        // Ignore a specific connection between modules
+        ['some/module/a', 'some/module/b'],
+        // Ignore any connection depending on `b`
+        ['', 'some/module/b'],
+        // Ignore any connection between "Store-like" modules
+        [/.*Store\.js/, /.*Store\.js/],
+      ],
+    }),
+  ],
+};
+```
+
+Each pattern can be represented as either a plain string or a `RegExp`. Plain strings will be matched as substrings against the module identifier for that part of a connection, and RegExps will match anywhere in the entire identifier. For example:
+
+- The string `'some/module/'` will match any module in the `some/module` directory, like `some/module/a` and `some/module/b`.
+- The RegExp `!file-loader!.*\.mdx` will match any `.mdx` module processed by `file-loader`.
+- Empty strings effectively match any module, since an empty string is always a substring of any other string.
+
+### onDetected
+
+- **Type:** `(entrypoint: string, modules: string[], compilation: Compilation) => void`
+- **Default:** `undefined`
+
+Handler function called for every detected cycle. Providing this handler overrides the default behavior of adding diagnostics to the compilation, meaning the value of `failOnError` will be effectively unused.
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.CircularDependencyRspackPlugin({
+      onDetected(entrypoint, modules, compilation) {
+        console.log(`Found a cycle in ${entrypoint}: ${modules.join(' -> ')}`);
+      },
+    }),
+  ],
+};
+```
+
+This handler can be used to process detected cycles further before emitting warnings or errors to the compilation, or to handle them in any other way not directly implemented by the plugin.
+
+`entrypoint` is the name of the entry where this cycle was detected. Because of how entrypoints are traversed for cycle detection, it's possible that the same cycle will be detected multiple times, once for each entrypoint.
+
+`modules` is the list of identifiers of module contained in the cycle, where both the first and the last entry of the list will always be the same module, and the only module that is present more than once in the list.
+
+`compilation` is the full Compilation object, allowing the handler to emit errors or inspect any other part of the bundle as needed.
+
+### onIgnored
+
+- **Type:** `(entrypoint: string, modules: string[], compilation: Compilation) => void`
+- **Default:** `undefined`
+
+Handler function called for every detected cycle that was intentionally ignored, whether by the `exclude` pattern, any match of an `ignoredConnection`, or any other possible reason.
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+const ignoredCycles = [];
+export default {
+  plugins: [
+    new rspack.CircularDependencyRspackPlugin({
+      onIgnored(entrypoint, modules, compilation) {
+        ignoredCycles.push({ entrypoint, modules });
+      },
+    }),
+  ],
+};
+```
+
+### onStart
+
+- **Type:** `(compilation: Compilation) => void`
+- **Default:** `undefined`
+
+Hook function called immediately before cycle detection begins, useful for setting up temporary state to use in the `onDetected` handler or logging progress.
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.CircularDependencyRspackPlugin({
+      onStart(compilation) {
+        console.log('Starting circular dependency detection');
+      },
+    }),
+  ],
+};
+```
+
+### onEnd
+
+- **Type:** `(compilation: Compilation) => void`
+- **Default:** `undefined`
+
+Hook function called immediately after cycle detection finishes, useful for cleaning up temporary state or logging progress.
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.CircularDependencyRspackPlugin({
+      onEnd(compilation) {
+        console.log('Finished detecting circular dependencies');
+      },
+    }),
+  ],
+};
+```

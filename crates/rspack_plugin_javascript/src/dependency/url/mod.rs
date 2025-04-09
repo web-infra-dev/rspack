@@ -1,9 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  get_dependency_used_by_exports_condition, module_id, AsContextDependency, Compilation,
-  Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyType, FactorizeInfo, ModuleDependency, RuntimeGlobals, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource, UsedByExports,
+  get_dependency_used_by_exports_condition, module_id, AsContextDependency, Dependency,
+  DependencyCategory, DependencyCondition, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyType, FactorizeInfo, ModuleDependency, RuntimeGlobals, TemplateContext,
+  TemplateReplaceSource, UsedByExports,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -133,18 +133,6 @@ impl DependencyTemplate for URLDependency {
         None,
       );
     }
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }
 

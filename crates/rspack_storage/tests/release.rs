@@ -196,7 +196,7 @@ mod test_storage_release {
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn test_release() {
+  async fn test_release() -> Result<()> {
     let cases = [
       (
         get_native_path("test_release_native"),
@@ -217,17 +217,15 @@ mod test_storage_release {
         .await
         .expect("should remove temp root");
 
-      let _ = test_initial(
+      test_initial(
         &root.join(&version),
         fs.clone(),
         create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
 
-      let _ = test_recovery(create_pack_options(&root, &temp_root, &version, fs.clone()))
-        .await
-        .map_err(|e| panic!("{}", e));
+      test_recovery(create_pack_options(&root, &temp_root, &version, fs.clone())).await?;
     }
+    Ok(())
   }
 }

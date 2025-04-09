@@ -184,7 +184,7 @@ fn compute_affected_modules_with_module_graph(
       };
       match dependency.could_affect_referencing_module() {
         AffectType::True => affected = AffectType::True,
-        AffectType::False => continue,
+        AffectType::False => {}
         AffectType::Transitive => return AffectType::Transitive,
       }
     }
@@ -240,7 +240,7 @@ fn compute_affected_modules_with_module_graph(
           continue;
         }
         match reduce_affect_type(module_graph, &connections) {
-          AffectType::False => continue,
+          AffectType::False => {}
           AffectType::True => {
             direct_affected_modules.insert(referencing_module);
           }

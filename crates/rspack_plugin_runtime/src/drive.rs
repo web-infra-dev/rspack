@@ -30,9 +30,9 @@ pub struct RuntimeModuleChunkWrapper {
 
 unsafe impl Send for RuntimeModuleChunkWrapper {}
 
-define_hook!(RuntimePluginCreateScript: AsyncSeriesWaterfall(data: CreateScriptData) -> CreateScriptData);
-define_hook!(RuntimePluginLinkPreload: AsyncSeriesWaterfall(data: LinkPreloadData) -> LinkPreloadData);
-define_hook!(RuntimePluginLinkPrefetch: AsyncSeriesWaterfall(data: LinkPrefetchData) -> LinkPrefetchData);
+define_hook!(RuntimePluginCreateScript: SeriesWaterfall(data: CreateScriptData) -> CreateScriptData);
+define_hook!(RuntimePluginLinkPreload: SeriesWaterfall(data: LinkPreloadData) -> LinkPreloadData);
+define_hook!(RuntimePluginLinkPrefetch: SeriesWaterfall(data: LinkPrefetchData) -> LinkPrefetchData);
 
 #[derive(Debug, Default)]
 pub struct RuntimePluginHooks {

@@ -202,11 +202,11 @@ impl InnerGraphPlugin {
         if is_terminal {
           keys_to_remove.push(key.clone());
           // We use `""` to represent global_key
-          if key == "" {
+          if key.is_empty() {
             let global_value = state.inner_graph.get(&Atom::from("")).cloned();
             if let Some(global_value) = global_value {
               for (key, value) in state.inner_graph.iter_mut() {
-                if key != "" && value != &InnerGraphMapValue::True {
+                if !key.is_empty() && value != &InnerGraphMapValue::True {
                   if global_value == InnerGraphMapValue::True {
                     *value = InnerGraphMapValue::True;
                   } else {

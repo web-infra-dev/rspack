@@ -521,7 +521,8 @@ mod tests {
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn should_manager_work() {
-    let _ = test_manager().await.map_err(|e| panic!("{:?}", e));
+  async fn should_manager_work() -> Result<()> {
+    test_manager().await?;
+    Ok(())
   }
 }

@@ -13,7 +13,7 @@ pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{Mode, RunnerContext};
-use rspack_error::{error, AnyhowError, Diagnostic, Result};
+use rspack_error::{AnyhowResultToRspackResultExt, Diagnostic, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use rspack_plugin_javascript::{
   ast::{self, SourceMapConfig},
@@ -95,17 +95,17 @@ impl SwcLoader {
 
     let source = content.into_string_lossy();
     let c = SwcCompiler::new(resource_path.into_std_path_buf(), source, swc_options)
-      .map_err(AnyhowError::from)?;
+      .to_rspack_result_from_anyhow()?;
 
     let built = c
       .parse(None, |_| {
         transformer::transform(&self.options_with_additional.rspack_experiments)
       })
-      .map_err(AnyhowError::from)?;
+      .to_rspack_result_from_anyhow()?;
 
     let input_source_map = c
       .input_source_map(&built.input_source_map)
-      .map_err(|e| error!(e.to_string()))?;
+      .to_rspack_result_from_anyhow()?;
     let mut codegen_options = ast::CodegenOptions {
       target: Some(built.target),
       minify: Some(built.minify),

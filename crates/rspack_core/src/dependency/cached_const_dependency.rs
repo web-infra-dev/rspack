@@ -2,8 +2,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_util::ext::DynHash;
 
 use crate::{
-  AsDependency, Compilation, DependencyTemplate, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, NormalInitFragment, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  Compilation, DependencyTemplate, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  NormalInitFragment, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -46,10 +46,6 @@ impl DependencyTemplate for CachedConstDependency {
     source.replace(self.start, self.end, &self.identifier, None);
   }
 
-  fn dependency_id(&self) -> Option<crate::DependencyId> {
-    None
-  }
-
   fn update_hash(
     &self,
     hasher: &mut dyn std::hash::Hasher,
@@ -62,5 +58,3 @@ impl DependencyTemplate for CachedConstDependency {
     self.content.dyn_hash(hasher);
   }
 }
-
-impl AsDependency for CachedConstDependency {}

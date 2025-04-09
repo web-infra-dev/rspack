@@ -3,7 +3,7 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec, Skip},
 };
 use rspack_core::{
-  module_id, property_access, to_normal_comment, AsContextDependency, Compilation, Dependency,
+  module_id, property_access, to_normal_comment, AsContextDependency, Dependency,
   DependencyCategory, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyType, ExportsType, ExtendedReferencedExport, FactorizeInfo, ModuleDependency,
   ModuleGraph, RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext,
@@ -176,18 +176,6 @@ impl DependencyTemplate for CommonJsFullRequireDependency {
     }
 
     source.replace(self.range.start, self.range.end, &require_expr, None);
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }
 

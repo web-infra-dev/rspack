@@ -1,0 +1,1 @@
+module.exports = "This module is from a regex-matched URI";

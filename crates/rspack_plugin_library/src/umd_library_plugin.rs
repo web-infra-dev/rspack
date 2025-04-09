@@ -4,17 +4,15 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, Chunk, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, ExternalRequest,
-  FilenameTemplate, LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName,
-  LibraryNonUmdObject, LibraryOptions, LibraryType, PathData, Plugin, PluginContext,
-  RuntimeGlobals, SourceType,
+  Filename, LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject,
+  LibraryOptions, LibraryType, PathData, Plugin, PluginContext, RuntimeGlobals, SourceType,
 };
-use rspack_error::{error, Result};
+use rspack_error::{error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRender, JsPlugin, RenderSource,
 };
-use rspack_util::infallible::ResultInfallibleExt as _;
 
 use crate::utils::{external_arguments, externals_dep_array, get_options_for_chunk};
 
@@ -143,7 +141,7 @@ async fn render(
   let define = if let (Some(amd), Some(_)) = &(&names.amd, named_define) {
     format!(
       "define({}, {}, {amd_factory});\n",
-      library_name(&[amd.to_string()], chunk, compilation),
+      library_name(&[amd.to_string()], chunk, compilation).await?,
       externals_dep_array(&required_externals)?
     )
   } else {
@@ -153,20 +151,20 @@ async fn render(
     )
   };
 
+  let name = if let Some(commonjs) = &names.commonjs {
+    library_name(&[commonjs.clone()], chunk, compilation).await?
+  } else if let Some(root) = &names.root {
+    library_name(root, chunk, compilation).await?
+  } else {
+    "".to_string()
+  };
+
   let factory = if names.commonjs.is_some() || names.root.is_some() {
     let commonjs_code = format!(
       "{}
       exports[{}] = factory({});\n",
       get_auxiliary_comment("commonjs", auxiliary_comment),
-      names
-        .commonjs
-        .clone()
-        .map(|commonjs| library_name(&[commonjs], chunk, compilation))
-        .or_else(|| names
-          .root
-          .clone()
-          .map(|root| library_name(&root, chunk, compilation)))
-        .unwrap_or_default(),
+      name,
       externals_require_array("commonjs", &externals)?,
     );
     let root_code = format!(
@@ -184,7 +182,8 @@ async fn render(
         ),
         chunk,
         compilation,
-      ),
+      )
+      .await?,
       externals_root_array(&externals)?
     );
     format!(
@@ -261,7 +260,7 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for UmdLibraryPlugin)]
-fn additional_chunk_runtime_requirements(
+async fn additional_chunk_runtime_requirements(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
@@ -295,16 +294,16 @@ impl Plugin for UmdLibraryPlugin {
   }
 }
 
-fn library_name(v: &[String], chunk: &Chunk, compilation: &Compilation) -> String {
+async fn library_name(v: &[String], chunk: &Chunk, compilation: &Compilation) -> Result<String> {
   let value =
     serde_json::to_string(v.last().expect("should have last")).expect("invalid module_id");
-  replace_keys(value, chunk, compilation)
+  replace_keys(value, chunk, compilation).await
 }
 
-fn replace_keys(v: String, chunk: &Chunk, compilation: &Compilation) -> String {
+async fn replace_keys(v: String, chunk: &Chunk, compilation: &Compilation) -> Result<String> {
   compilation
     .get_path(
-      &FilenameTemplate::from(v),
+      &Filename::from(v),
       PathData::default()
         .chunk_id_optional(
           chunk
@@ -322,7 +321,7 @@ fn replace_keys(v: String, chunk: &Chunk, compilation: &Compilation) -> String {
           compilation.options.output.hash_digest_length,
         )),
     )
-    .always_ok()
+    .await
 }
 
 fn externals_require_array(external_type: &str, externals: &[&ExternalModule]) -> Result<String> {
@@ -337,8 +336,7 @@ fn externals_require_array(external_type: &str, externals: &[&ExternalModule]) -
             .ok_or_else(|| error!("Missing external configuration for type: {external_type}"))?,
         };
         // TODO: check if external module is optional
-        let primary =
-          serde_json::to_string(request.primary()).map_err(|e| error!(e.to_string()))?;
+        let primary = serde_json::to_string(request.primary()).to_rspack_result()?;
         let expr = if let Some(rest) = request.rest() {
           format!("require({}){}", primary, &accessor_to_object_access(rest))
         } else {

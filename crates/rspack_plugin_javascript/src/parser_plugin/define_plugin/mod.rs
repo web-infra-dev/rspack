@@ -85,7 +85,7 @@ async fn compilation(
 }
 
 #[plugin_hook(NormalModuleFactoryParser for DefinePlugin)]
-fn nmf_parser(
+async fn nmf_parser(
   &self,
   module_type: &ModuleType,
   parser: &mut dyn ParserAndGenerator,

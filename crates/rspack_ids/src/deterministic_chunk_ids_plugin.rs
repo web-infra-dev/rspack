@@ -22,7 +22,7 @@ impl DeterministicChunkIdsPlugin {
 }
 
 #[plugin_hook(CompilationChunkIds for DeterministicChunkIdsPlugin)]
-fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
+async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
   let mut used_ids = get_used_chunk_ids(compilation);
   let used_ids_len = used_ids.len();
 
@@ -52,6 +52,7 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
       compare_chunks_natural(
         chunk_graph,
         &module_graph,
+        &compilation.chunk_group_by_ukey,
         &compilation.module_ids_artifact,
         a,
         b,

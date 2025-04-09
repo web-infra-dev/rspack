@@ -16,7 +16,6 @@ import type {
 	RspackOptionsNormalized,
 	RspackPluginFunction
 } from ".";
-import type { Module } from "./Module";
 import {
 	APIPlugin,
 	ArrayPushCallbackChunkFormatPlugin,
@@ -42,10 +41,10 @@ import {
 	FlagDependencyExportsPlugin,
 	FlagDependencyUsagePlugin,
 	HttpExternalsRspackPlugin,
+	HttpUriPlugin,
 	InferAsyncModulesPlugin,
 	JavascriptModulesPlugin,
 	JsonModulesPlugin,
-	LazyCompilationPlugin,
 	MangleExportsPlugin,
 	MergeDuplicateChunksPlugin,
 	ModuleChunkFormatPlugin,
@@ -247,6 +246,10 @@ export class RspackOptionsApply {
 		new DataUriPlugin().apply(compiler);
 		new FileUriPlugin().apply(compiler);
 
+		if (options.experiments.buildHttp) {
+			new HttpUriPlugin(options.experiments.buildHttp).apply(compiler);
+		}
+
 		new EnsureChunkConditionsPlugin().apply(compiler);
 		if (options.optimization.mergeDuplicateChunks) {
 			new MergeDuplicateChunksPlugin().apply(compiler);
@@ -271,26 +274,6 @@ export class RspackOptionsApply {
 		if (options.optimization.mangleExports) {
 			new MangleExportsPlugin(
 				options.optimization.mangleExports !== "size"
-			).apply(compiler);
-		}
-
-		if (options.experiments.lazyCompilation) {
-			const lazyOptions = options.experiments.lazyCompilation;
-
-			new LazyCompilationPlugin(
-				// this is only for test
-				// @ts-expect-error cacheable is hide
-				lazyOptions.cacheable ?? true,
-				lazyOptions.entries ?? true,
-				lazyOptions.imports ?? true,
-				typeof lazyOptions.test === "function"
-					? module =>
-							(lazyOptions.test as (module: Module) => boolean)!.call(
-								lazyOptions,
-								module
-							)
-					: lazyOptions.test,
-				lazyOptions.backend
 			).apply(compiler);
 		}
 

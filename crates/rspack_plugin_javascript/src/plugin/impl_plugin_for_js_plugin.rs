@@ -15,7 +15,10 @@ use rspack_hash::RspackHash;
 use rspack_hook::plugin_hook;
 use rustc_hash::FxHashMap;
 
-use crate::{parser_and_generator::JavaScriptParserAndGenerator, JsPlugin, JsPluginInner};
+use crate::{
+  dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
+  JsPlugin, JsPluginInner,
+};
 
 #[plugin_hook(CompilerCompilation for JsPlugin)]
 async fn compilation(
@@ -102,6 +105,10 @@ async fn compilation(
     DependencyType::DynamicImport,
     params.normal_module_factory.clone(),
   );
+  compilation.set_dependency_template(
+    ImportDependencyTemplate::template_type(),
+    Arc::new(ImportDependencyTemplate::default()),
+  );
   compilation.set_dependency_factory(
     DependencyType::DynamicImportEager,
     params.normal_module_factory.clone(),
@@ -167,7 +174,9 @@ async fn chunk_hash(
     .expect_get(chunk_ukey)
     .has_runtime(&compilation.chunk_group_by_ukey)
   {
-    self.update_hash_with_bootstrap(chunk_ukey, compilation, hasher)?;
+    self
+      .update_hash_with_bootstrap(chunk_ukey, compilation, hasher)
+      .await?;
   }
   Ok(())
 }
@@ -185,7 +194,9 @@ async fn content_hash(
     .or_insert_with(|| RspackHash::from(&compilation.options.output));
 
   if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-    self.update_hash_with_bootstrap(chunk_ukey, compilation, hasher)?;
+    self
+      .update_hash_with_bootstrap(chunk_ukey, compilation, hasher)
+      .await?;
   } else {
     chunk.id(&compilation.chunk_ids_artifact).hash(&mut hasher);
   }
@@ -261,27 +272,29 @@ async fn render_manifest(
   );
   let mut asset_info = AssetInfo::default();
   asset_info.set_javascript_module(compilation.options.output.module);
-  let output_path = compilation.get_path_with_info(
-    &filename_template,
-    PathData::default()
-      .chunk_hash_optional(chunk.rendered_hash(
-        &compilation.chunk_hashes_artifact,
-        compilation.options.output.hash_digest_length,
-      ))
-      .chunk_id_optional(
-        chunk
-          .id(&compilation.chunk_ids_artifact)
-          .map(|id| id.as_str()),
-      )
-      .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
-      .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-        &compilation.chunk_hashes_artifact,
-        &SourceType::JavaScript,
-        compilation.options.output.hash_digest_length,
-      ))
-      .runtime(chunk.runtime().as_str()),
-    &mut asset_info,
-  )?;
+  let output_path = compilation
+    .get_path_with_info(
+      &filename_template,
+      PathData::default()
+        .chunk_hash_optional(chunk.rendered_hash(
+          &compilation.chunk_hashes_artifact,
+          compilation.options.output.hash_digest_length,
+        ))
+        .chunk_id_optional(
+          chunk
+            .id(&compilation.chunk_ids_artifact)
+            .map(|id| id.as_str()),
+        )
+        .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+        .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+          &compilation.chunk_hashes_artifact,
+          &SourceType::JavaScript,
+          compilation.options.output.hash_digest_length,
+        ))
+        .runtime(chunk.runtime().as_str()),
+      &mut asset_info,
+    )
+    .await?;
   asset_info.set_javascript_module(compilation.options.output.module);
 
   let (source, _) = compilation
