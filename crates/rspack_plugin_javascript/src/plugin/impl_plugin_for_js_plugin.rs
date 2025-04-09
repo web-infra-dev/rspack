@@ -22,16 +22,17 @@ use crate::{
     amd_require_dependency::AMDRequireDependencyTemplate,
     amd_require_item_dependency::AMDRequireItemDependencyTemplate,
     local_module_dependency::LocalModuleDependencyTemplate,
-    unsupported_dependency::UnsupportedDependencyTemplate, CommonJsExportRequireDependencyTemplate,
-    CommonJsExportsDependencyTemplate, CommonJsFullRequireDependencyTemplate,
-    CommonJsRequireDependencyTemplate, CommonJsSelfReferenceDependencyTemplate,
-    ESMCompatibilityDependencyTemplate, ESMExportExpressionDependencyTemplate,
-    ESMExportHeaderDependencyTemplate, ESMExportImportedSpecifierDependencyTemplate,
-    ESMExportSpecifierDependencyTemplate, ESMImportSideEffectDependencyTemplate,
-    ESMImportSpecifierDependencyTemplate, ExternalModuleDependencyTemplate,
-    ImportDependencyTemplate, ImportEagerDependencyTemplate, ModuleDecoratorDependencyTemplate,
-    ProvideDependencyTemplate, RequireEnsureDependencyTemplate, RequireHeaderDependencyTemplate,
-    RequireResolveDependencyTemplate, RequireResolveHeaderDependencyTemplate,
+    unsupported_dependency::UnsupportedDependencyTemplate, AMDRequireContextDependencyTemplate,
+    CommonJsExportRequireDependencyTemplate, CommonJsExportsDependencyTemplate,
+    CommonJsFullRequireDependencyTemplate, CommonJsRequireDependencyTemplate,
+    CommonJsSelfReferenceDependencyTemplate, ESMCompatibilityDependencyTemplate,
+    ESMExportExpressionDependencyTemplate, ESMExportHeaderDependencyTemplate,
+    ESMExportImportedSpecifierDependencyTemplate, ESMExportSpecifierDependencyTemplate,
+    ESMImportSideEffectDependencyTemplate, ESMImportSpecifierDependencyTemplate,
+    ExternalModuleDependencyTemplate, ImportDependencyTemplate, ImportEagerDependencyTemplate,
+    ModuleDecoratorDependencyTemplate, ProvideDependencyTemplate, RequireEnsureDependencyTemplate,
+    RequireHeaderDependencyTemplate, RequireResolveDependencyTemplate,
+    RequireResolveHeaderDependencyTemplate,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
   JsPlugin, JsPluginInner,
@@ -270,6 +271,12 @@ async fn compilation(
   compilation.set_dependency_template(
     RequireResolveHeaderDependencyTemplate::template_type(),
     Arc::new(RequireResolveHeaderDependencyTemplate::default()),
+  );
+
+  // commonjs context dependency templates
+  compilation.set_dependency_template(
+    AMDRequireContextDependencyTemplate::template_type(),
+    Arc::new(AMDRequireContextDependencyTemplate::default()),
   );
   Ok(())
 }

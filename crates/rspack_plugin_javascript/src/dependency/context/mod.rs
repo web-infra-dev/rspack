@@ -5,7 +5,9 @@ mod import_meta_context_dependency;
 mod require_context_dependency;
 mod require_resolve_context_dependency;
 
-pub use amd_require_context_dependency::AMDRequireContextDependency;
+pub use amd_require_context_dependency::{
+  AMDRequireContextDependency, AMDRequireContextDependencyTemplate,
+};
 pub use common_js_require_context_dependency::CommonJsRequireContextDependency;
 pub use import_context_dependency::ImportContextDependency;
 pub use import_meta_context_dependency::ImportMetaContextDependency;
