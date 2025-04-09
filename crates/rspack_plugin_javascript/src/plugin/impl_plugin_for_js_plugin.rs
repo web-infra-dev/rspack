@@ -38,6 +38,7 @@ use crate::{
     RequireContextDependencyTemplate, RequireEnsureDependencyTemplate,
     RequireHeaderDependencyTemplate, RequireResolveContextDependencyTemplate,
     RequireResolveDependencyTemplate, RequireResolveHeaderDependencyTemplate,
+    URLDependencyTemplate,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
   JsPlugin, JsPluginInner,
@@ -327,6 +328,11 @@ async fn compilation(
   compilation.set_dependency_template(
     ModuleHotDeclineDependencyTemplate::template_type(),
     Arc::new(ModuleHotDeclineDependencyTemplate::default()),
+  );
+  // url dependency templates
+  compilation.set_dependency_template(
+    URLDependencyTemplate::template_type(),
+    Arc::new(URLDependencyTemplate::default()),
   );
   Ok(())
 }
