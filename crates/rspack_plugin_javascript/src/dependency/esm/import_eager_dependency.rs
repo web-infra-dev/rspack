@@ -3,9 +3,9 @@ use rspack_cacheable::{
   with::{AsOption, AsPreset, AsVec},
 };
 use rspack_core::{
-  module_namespace_promise, AsContextDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyType, DynamicDependencyTemplate,
-  DynamicDependencyTemplateType, FactorizeInfo, ImportAttributes, ModuleDependency,
+  module_namespace_promise, AsContextDependency, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, FactorizeInfo, ImportAttributes, ModuleDependency,
   TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
@@ -113,8 +113,8 @@ impl ModuleDependency for ImportEagerDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ImportEagerDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for ImportEagerDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ImportEagerDependencyTemplate::template_type())
   }
 }
@@ -126,15 +126,15 @@ impl AsContextDependency for ImportEagerDependency {}
 pub struct ImportEagerDependencyTemplate;
 
 impl ImportEagerDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::CustomType("ImportEagerDependency")
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("ImportEagerDependency")
   }
 }
 
-impl DynamicDependencyTemplate for ImportEagerDependencyTemplate {
+impl DependencyTemplate for ImportEagerDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

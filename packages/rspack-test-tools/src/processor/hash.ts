@@ -73,5 +73,10 @@ export class HashProcessor<
 		if (!options.entry) {
 			options.entry = "./index.js";
 		}
+		if (!global.printLogger) {
+			options.infrastructureLogging = {
+				level: "error"
+			};
+		}
 	}
 }

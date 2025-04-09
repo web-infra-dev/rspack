@@ -2,7 +2,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_util::ext::DynHash;
 
 use crate::{
-  Compilation, DependencyTemplate, DynamicDependencyTemplate, DynamicDependencyTemplateType,
+  Compilation, DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType,
   InitFragmentExt, InitFragmentKey, InitFragmentStage, NormalInitFragment, RuntimeSpec,
   TemplateContext, TemplateReplaceSource,
 };
@@ -28,8 +28,8 @@ impl CachedConstDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for CachedConstDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for CachedConstDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(CachedConstDependencyTemplate::template_type())
   }
 
@@ -51,15 +51,15 @@ impl DependencyTemplate for CachedConstDependency {
 pub struct CachedConstDependencyTemplate;
 
 impl CachedConstDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::CustomType("CachedConstDependency")
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("CachedConstDependency")
   }
 }
 
-impl DynamicDependencyTemplate for CachedConstDependencyTemplate {
+impl DependencyTemplate for CachedConstDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

@@ -1,9 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType, ExternalRequest,
-  ExternalType, FactorizeInfo, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleDependency, NormalInitFragment, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExternalRequest, ExternalType,
+  FactorizeInfo, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
+  NormalInitFragment, TemplateContext, TemplateReplaceSource,
 };
 use rspack_plugin_javascript::dependency::create_resource_identifier_for_esm_dependency;
 use swc_core::ecma::atoms::Atom;
@@ -86,8 +86,8 @@ impl ModuleDependency for ModernModuleReexportStarExternalDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ModernModuleReexportStarExternalDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for ModernModuleReexportStarExternalDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ModernModuleReexportStarExternalDependencyTemplate::template_type())
   }
 }
@@ -99,15 +99,15 @@ impl AsContextDependency for ModernModuleReexportStarExternalDependency {}
 pub struct ModernModuleReexportStarExternalDependencyTemplate;
 
 impl ModernModuleReexportStarExternalDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::CustomType("ModernModuleReexportStarExternalDependency")
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("ModernModuleReexportStarExternalDependency")
   }
 }
 
-impl DynamicDependencyTemplate for ModernModuleReexportStarExternalDependencyTemplate {
+impl DependencyTemplate for ModernModuleReexportStarExternalDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

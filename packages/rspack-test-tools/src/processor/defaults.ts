@@ -98,4 +98,14 @@ export class DefaultsConfigProcessor<
 		process.chdir(CURRENT_CWD);
 		return normalizedConfig;
 	}
+
+	static overrideOptions<T extends ECompilerType>(
+		options: TCompilerOptions<T>
+	) {
+		if (!global.printLogger) {
+			options.infrastructureLogging = {
+				level: "error"
+			};
+		}
+	}
 }

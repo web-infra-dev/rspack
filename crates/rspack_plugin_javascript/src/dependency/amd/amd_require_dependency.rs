@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   block_promise, AffectType, AsContextDependency, AsModuleDependency, Dependency,
-  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, DynamicDependencyTemplate,
-  DynamicDependencyTemplateType, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyTemplate,
+  DependencyTemplateType, DependencyType, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -11,7 +11,7 @@ pub struct AMDRequireDependency {
   id: DependencyId,
   outer_range: (u32, u32),
   // In the webpack source code, type annotation of `arrayRange` is non-null.
-  // However, `DependencyTemplate` implementation assumes `arrayRange` can be null in some cases.
+  // However, `DependencyCodeGeneration` implementation assumes `arrayRange` can be null in some cases.
   // So I use Option here.
   array_range: Option<(u32, u32)>,
   function_range: Option<(u32, u32)>,
@@ -63,8 +63,8 @@ impl AsModuleDependency for AMDRequireDependency {}
 impl AsContextDependency for AMDRequireDependency {}
 
 #[cacheable_dyn]
-impl DependencyTemplate for AMDRequireDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for AMDRequireDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(AMDRequireDependencyTemplate::template_type())
   }
 }
@@ -74,15 +74,15 @@ impl DependencyTemplate for AMDRequireDependency {
 pub struct AMDRequireDependencyTemplate;
 
 impl AMDRequireDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::AmdRequire)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::AmdRequire)
   }
 }
 
-impl DynamicDependencyTemplate for AMDRequireDependencyTemplate {
+impl DependencyTemplate for AMDRequireDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  import_statement, runtime_condition_expression, DependencyId, DependencyLocation,
-  DependencyRange, DependencyTemplate, DynamicDependencyTemplate, DynamicDependencyTemplateType,
+  import_statement, runtime_condition_expression, DependencyCodeGeneration, DependencyId,
+  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
   RuntimeCondition, SharedSourceMap, TemplateContext, TemplateReplaceSource,
 };
 
@@ -38,8 +38,8 @@ impl ESMAcceptDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ESMAcceptDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for ESMAcceptDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ESMAcceptDependencyTemplate::template_type())
   }
 }
@@ -49,15 +49,15 @@ impl DependencyTemplate for ESMAcceptDependency {
 pub struct ESMAcceptDependencyTemplate;
 
 impl ESMAcceptDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::CustomType("ESMAcceptDependency")
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("ESMAcceptDependency")
   }
 }
 
-impl DynamicDependencyTemplate for ESMAcceptDependencyTemplate {
+impl DependencyTemplate for ESMAcceptDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {

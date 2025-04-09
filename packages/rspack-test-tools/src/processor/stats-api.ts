@@ -34,6 +34,11 @@ export class StatsAPIProcessor<
 				res.experiments!.rspackFuture ??= {};
 				res.experiments!.rspackFuture!.bundlerInfo ??= {};
 				res.experiments!.rspackFuture!.bundlerInfo!.force ??= false;
+				if (!global.printLogger) {
+					res.infrastructureLogging = {
+						level: "error"
+					};
+				}
 				return res as TCompilerOptions<T>;
 			},
 			build: _statsAPIOptions.build,

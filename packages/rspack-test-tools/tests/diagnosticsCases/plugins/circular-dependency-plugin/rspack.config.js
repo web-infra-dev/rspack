@@ -1,4 +1,6 @@
 const { CircularDependencyRspackPlugin } = require("@rspack/core");
+const startFn = jest.fn();
+const endFn = jest.fn();
 
 module.exports = {
 	entry: {
@@ -12,13 +14,19 @@ module.exports = {
 			failOnError: false,
 			exclude: /ignore-circular/,
 			onStart(_compilation) {
-				console.log("[Circular Dependency check] start right now");
-				// compilation.warnings.push(new Error("[Circular Dependency check] start right now"))
+				startFn();
 			},
 			onEnd(_compilation) {
-				console.log("[Circular Dependency check] end right now");
-				// compilation.warnings.push(new Error("[Circular Dependency check] end right now"))
+				endFn();
 			}
-		})
+		}),
+		{
+			apply(compiler) {
+				compiler.hooks.done.tap("done", () => {
+					expect(startFn).toHaveBeenCalled();
+					expect(endFn).toHaveBeenCalled();
+				});
+			}
+		}
 	]
 };

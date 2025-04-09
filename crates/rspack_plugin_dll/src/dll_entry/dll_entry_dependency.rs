@@ -1,6 +1,6 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AffectType, AsContextDependency, AsDependencyTemplate, Context, Dependency, DependencyId,
+  AffectType, AsContextDependency, AsDependencyCodeGeneration, Context, Dependency, DependencyId,
   DependencyType, FactorizeInfo, ModuleDependency,
 };
 
@@ -73,4 +73,4 @@ impl Dependency for DllEntryDependency {
 
 impl AsContextDependency for DllEntryDependency {}
 
-impl AsDependencyTemplate for DllEntryDependency {}
+impl AsDependencyCodeGeneration for DllEntryDependency {}

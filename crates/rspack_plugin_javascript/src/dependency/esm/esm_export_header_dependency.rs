@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Dependency, DependencyId, DependencyLocation,
-  DependencyRange, DependencyTemplate, DependencyType, DynamicDependencyTemplate,
-  DynamicDependencyTemplateType, SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, AsModuleDependency, Dependency, DependencyCodeGeneration, DependencyId,
+  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  SharedSourceMap, TemplateContext, TemplateReplaceSource,
 };
 
 // Remove `export` label.
@@ -53,8 +53,8 @@ impl Dependency for ESMExportHeaderDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ESMExportHeaderDependency {
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+impl DependencyCodeGeneration for ESMExportHeaderDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ESMExportHeaderDependencyTemplate::template_type())
   }
 }
@@ -67,15 +67,15 @@ impl AsContextDependency for ESMExportHeaderDependency {}
 pub struct ESMExportHeaderDependencyTemplate;
 
 impl ESMExportHeaderDependencyTemplate {
-  pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::EsmExportHeader)
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::EsmExportHeader)
   }
 }
 
-impl DynamicDependencyTemplate for ESMExportHeaderDependencyTemplate {
+impl DependencyTemplate for ESMExportHeaderDependencyTemplate {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     _code_generatable_context: &mut TemplateContext,
   ) {

@@ -1,6 +1,6 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  AffectType, AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory,
+  AffectType, AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory,
   DependencyId, DependencyRange, DependencyType, FactorizeInfo, ModuleDependency,
 };
 use rspack_util::atom::Atom;
@@ -64,6 +64,6 @@ impl ModuleDependency for RequireEnsureItemDependency {
   }
 }
 
-impl AsDependencyTemplate for RequireEnsureItemDependency {}
+impl AsDependencyCodeGeneration for RequireEnsureItemDependency {}
 
 impl AsContextDependency for RequireEnsureItemDependency {}

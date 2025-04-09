@@ -7,7 +7,7 @@ use rspack_error::Diagnostic;
 use rspack_util::{atom::Atom, ext::AsAny};
 
 use super::{
-  dependency_template::AsDependencyTemplate, module_dependency::*, DependencyCategory,
+  dependency_template::AsDependencyCodeGeneration, module_dependency::*, DependencyCategory,
   DependencyId, DependencyLocation, DependencyRange, DependencyType, ExportsSpec,
 };
 use crate::{
@@ -24,7 +24,7 @@ pub enum AffectType {
 
 #[cacheable_dyn]
 pub trait Dependency:
-  AsDependencyTemplate
+  AsDependencyCodeGeneration
   + AsContextDependency
   + AsModuleDependency
   + AsAny
