@@ -33,10 +33,10 @@ use crate::{
     ExternalModuleDependencyTemplate, ImportContextDependencyTemplate, ImportDependencyTemplate,
     ImportEagerDependencyTemplate, ImportMetaContextDependencyTemplate,
     ImportMetaHotAcceptDependencyTemplate, ImportMetaHotDeclineDependencyTemplate,
-    ModuleDecoratorDependencyTemplate, ProvideDependencyTemplate, RequireContextDependencyTemplate,
-    RequireEnsureDependencyTemplate, RequireHeaderDependencyTemplate,
-    RequireResolveContextDependencyTemplate, RequireResolveDependencyTemplate,
-    RequireResolveHeaderDependencyTemplate,
+    ModuleDecoratorDependencyTemplate, ModuleHotAcceptDependencyTemplate,
+    ProvideDependencyTemplate, RequireContextDependencyTemplate, RequireEnsureDependencyTemplate,
+    RequireHeaderDependencyTemplate, RequireResolveContextDependencyTemplate,
+    RequireResolveDependencyTemplate, RequireResolveHeaderDependencyTemplate,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
   JsPlugin, JsPluginInner,
@@ -318,6 +318,10 @@ async fn compilation(
   compilation.set_dependency_template(
     ImportMetaHotDeclineDependencyTemplate::template_type(),
     Arc::new(ImportMetaHotDeclineDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ModuleHotAcceptDependencyTemplate::template_type(),
+    Arc::new(ModuleHotAcceptDependencyTemplate::default()),
   );
   Ok(())
 }
