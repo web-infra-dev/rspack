@@ -1,5 +1,7 @@
 mod create_script_url_dependency;
-pub use create_script_url_dependency::CreateScriptUrlDependency;
+pub use create_script_url_dependency::{
+  CreateScriptUrlDependency, CreateScriptUrlDependencyTemplate,
+};
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId, DependencyRange,

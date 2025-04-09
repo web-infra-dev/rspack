@@ -26,16 +26,16 @@ use crate::{
     CommonJsExportRequireDependencyTemplate, CommonJsExportsDependencyTemplate,
     CommonJsFullRequireDependencyTemplate, CommonJsRequireContextDependencyTemplate,
     CommonJsRequireDependencyTemplate, CommonJsSelfReferenceDependencyTemplate,
-    ESMAcceptDependencyTemplate, ESMCompatibilityDependencyTemplate,
-    ESMExportExpressionDependencyTemplate, ESMExportHeaderDependencyTemplate,
-    ESMExportImportedSpecifierDependencyTemplate, ESMExportSpecifierDependencyTemplate,
-    ESMImportSideEffectDependencyTemplate, ESMImportSpecifierDependencyTemplate,
-    ExternalModuleDependencyTemplate, ImportContextDependencyTemplate, ImportDependencyTemplate,
-    ImportEagerDependencyTemplate, ImportMetaContextDependencyTemplate,
-    ImportMetaHotAcceptDependencyTemplate, ImportMetaHotDeclineDependencyTemplate,
-    ModuleDecoratorDependencyTemplate, ModuleHotAcceptDependencyTemplate,
-    ModuleHotDeclineDependencyTemplate, ProvideDependencyTemplate,
-    RequireContextDependencyTemplate, RequireEnsureDependencyTemplate,
+    CreateScriptUrlDependencyTemplate, ESMAcceptDependencyTemplate,
+    ESMCompatibilityDependencyTemplate, ESMExportExpressionDependencyTemplate,
+    ESMExportHeaderDependencyTemplate, ESMExportImportedSpecifierDependencyTemplate,
+    ESMExportSpecifierDependencyTemplate, ESMImportSideEffectDependencyTemplate,
+    ESMImportSpecifierDependencyTemplate, ExternalModuleDependencyTemplate,
+    ImportContextDependencyTemplate, ImportDependencyTemplate, ImportEagerDependencyTemplate,
+    ImportMetaContextDependencyTemplate, ImportMetaHotAcceptDependencyTemplate,
+    ImportMetaHotDeclineDependencyTemplate, ModuleDecoratorDependencyTemplate,
+    ModuleHotAcceptDependencyTemplate, ModuleHotDeclineDependencyTemplate,
+    ProvideDependencyTemplate, RequireContextDependencyTemplate, RequireEnsureDependencyTemplate,
     RequireHeaderDependencyTemplate, RequireResolveContextDependencyTemplate,
     RequireResolveDependencyTemplate, RequireResolveHeaderDependencyTemplate,
     URLDependencyTemplate,
@@ -333,6 +333,11 @@ async fn compilation(
   compilation.set_dependency_template(
     URLDependencyTemplate::template_type(),
     Arc::new(URLDependencyTemplate::default()),
+  );
+  // worker dependency templates
+  compilation.set_dependency_template(
+    CreateScriptUrlDependencyTemplate::template_type(),
+    Arc::new(CreateScriptUrlDependencyTemplate::default()),
   );
   Ok(())
 }
