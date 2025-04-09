@@ -62,7 +62,7 @@ impl Dependency for CommonJsFullRequireDependency {
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::CjsRequire
+    &DependencyType::CjsFullRequire
   }
 
   fn loc(&self) -> Option<DependencyLocation> {
@@ -143,7 +143,7 @@ pub struct CommonJsFullRequireDependencyTemplate;
 
 impl CommonJsFullRequireDependencyTemplate {
   pub fn template_type() -> DynamicDependencyTemplateType {
-    DynamicDependencyTemplateType::DependencyType(DependencyType::CjsRequire)
+    DynamicDependencyTemplateType::DependencyType(DependencyType::CjsFullRequire)
   }
 }
 
