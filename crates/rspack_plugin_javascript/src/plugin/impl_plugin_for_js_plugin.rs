@@ -39,7 +39,7 @@ use crate::{
     RequireContextDependencyTemplate, RequireEnsureDependencyTemplate,
     RequireHeaderDependencyTemplate, RequireResolveContextDependencyTemplate,
     RequireResolveDependencyTemplate, RequireResolveHeaderDependencyTemplate,
-    URLDependencyTemplate, WorkerDependencyTemplate,
+    URLDependencyTemplate, WebpackIsIncludedDependencyTemplate, WorkerDependencyTemplate,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
   JsPlugin, JsPluginInner,
@@ -347,6 +347,10 @@ async fn compilation(
   compilation.set_dependency_template(
     ExportInfoDependencyTemplate::template_type(),
     Arc::new(ExportInfoDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    WebpackIsIncludedDependencyTemplate::template_type(),
+    Arc::new(WebpackIsIncludedDependencyTemplate::default()),
   );
   Ok(())
 }

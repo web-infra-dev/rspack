@@ -1,8 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyId, DependencyTemplate, DependencyType,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  DynamicDependencyTemplate, DynamicDependencyTemplateType, ExtendedReferencedExport,
+  FactorizeInfo, ModuleDependency, ModuleGraph, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -73,16 +74,37 @@ impl ModuleDependency for WebpackIsIncludedDependency {
 
 #[cacheable_dyn]
 impl DependencyTemplate for WebpackIsIncludedDependency {
-  fn apply(
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(WebpackIsIncludedDependencyTemplate::template_type())
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct WebpackIsIncludedDependencyTemplate;
+
+impl WebpackIsIncludedDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::DependencyType(DependencyType::WebpackIsIncluded)
+  }
+}
+
+impl DynamicDependencyTemplate for WebpackIsIncludedDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyTemplate,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<WebpackIsIncludedDependency>()
+      .expect("WebpackIsIncludedDependencyTemplate should be used for WebpackIsIncludedDependency");
     let TemplateContext { compilation, .. } = code_generatable_context;
 
     let included = compilation
       .get_module_graph()
-      .connection_by_dependency_id(&self.id)
+      .connection_by_dependency_id(&dep.id)
       .map(|connection| {
         compilation
           .chunk_graph
@@ -91,6 +113,6 @@ impl DependencyTemplate for WebpackIsIncludedDependency {
       })
       .unwrap_or(false);
 
-    source.replace(self.start, self.end, included.to_string().as_str(), None);
+    source.replace(dep.start, dep.end, included.to_string().as_str(), None);
   }
 }
