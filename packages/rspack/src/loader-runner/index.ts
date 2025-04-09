@@ -629,17 +629,13 @@ export async function runLoaders(
 
 			if (loaderContext.sourceMap) {
 				source = new SourceMapSource(
-					// @ts-expect-error webpack-sources type declaration is wrong
 					content,
 					name,
 					makePathsRelative(contextDirectory!, sourceMap, compiler)
 				);
 			}
 		} else {
-			source = new RawSource(
-				// @ts-expect-error webpack-sources type declaration is wrong
-				content
-			);
+			source = new RawSource(content);
 		}
 		loaderContext._module.emitFile(name, source!, assetInfo!);
 	};
