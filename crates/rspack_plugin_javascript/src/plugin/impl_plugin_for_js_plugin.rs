@@ -36,10 +36,11 @@ use crate::{
     ImportMetaHotAcceptDependencyTemplate, ImportMetaHotDeclineDependencyTemplate,
     ModuleArgumentDependencyTemplate, ModuleDecoratorDependencyTemplate,
     ModuleHotAcceptDependencyTemplate, ModuleHotDeclineDependencyTemplate,
-    ProvideDependencyTemplate, RequireContextDependencyTemplate, RequireEnsureDependencyTemplate,
-    RequireHeaderDependencyTemplate, RequireResolveContextDependencyTemplate,
-    RequireResolveDependencyTemplate, RequireResolveHeaderDependencyTemplate,
-    URLDependencyTemplate, WebpackIsIncludedDependencyTemplate, WorkerDependencyTemplate,
+    ProvideDependencyTemplate, PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
+    RequireEnsureDependencyTemplate, RequireHeaderDependencyTemplate,
+    RequireResolveContextDependencyTemplate, RequireResolveDependencyTemplate,
+    RequireResolveHeaderDependencyTemplate, URLDependencyTemplate,
+    WebpackIsIncludedDependencyTemplate, WorkerDependencyTemplate,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
   JsPlugin, JsPluginInner,
@@ -355,6 +356,10 @@ async fn compilation(
   compilation.set_dependency_template(
     ModuleArgumentDependencyTemplate::template_type(),
     Arc::new(ModuleArgumentDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    PureExpressionDependencyTemplate::template_type(),
+    Arc::new(PureExpressionDependencyTemplate::default()),
   );
   Ok(())
 }
