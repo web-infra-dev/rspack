@@ -34,9 +34,9 @@ use crate::{
     ExternalModuleDependencyTemplate, ImportContextDependencyTemplate, ImportDependencyTemplate,
     ImportEagerDependencyTemplate, ImportMetaContextDependencyTemplate,
     ImportMetaHotAcceptDependencyTemplate, ImportMetaHotDeclineDependencyTemplate,
-    ModuleDecoratorDependencyTemplate, ModuleHotAcceptDependencyTemplate,
-    ModuleHotDeclineDependencyTemplate, ProvideDependencyTemplate,
-    RequireContextDependencyTemplate, RequireEnsureDependencyTemplate,
+    ModuleArgumentDependencyTemplate, ModuleDecoratorDependencyTemplate,
+    ModuleHotAcceptDependencyTemplate, ModuleHotDeclineDependencyTemplate,
+    ProvideDependencyTemplate, RequireContextDependencyTemplate, RequireEnsureDependencyTemplate,
     RequireHeaderDependencyTemplate, RequireResolveContextDependencyTemplate,
     RequireResolveDependencyTemplate, RequireResolveHeaderDependencyTemplate,
     URLDependencyTemplate, WebpackIsIncludedDependencyTemplate, WorkerDependencyTemplate,
@@ -351,6 +351,10 @@ async fn compilation(
   compilation.set_dependency_template(
     WebpackIsIncludedDependencyTemplate::template_type(),
     Arc::new(WebpackIsIncludedDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ModuleArgumentDependencyTemplate::template_type(),
+    Arc::new(ModuleArgumentDependencyTemplate::default()),
   );
   Ok(())
 }

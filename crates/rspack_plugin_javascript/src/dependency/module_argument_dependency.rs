@@ -1,7 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  Compilation, DependencyLocation, DependencyRange, DependencyTemplate, RuntimeGlobals,
-  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  Compilation, DependencyLocation, DependencyRange, DependencyTemplate, DynamicDependencyTemplate,
+  DynamicDependencyTemplateType, RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
@@ -34,11 +35,43 @@ impl ModuleArgumentDependency {
 
 #[cacheable_dyn]
 impl DependencyTemplate for ModuleArgumentDependency {
-  fn apply(
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(ModuleArgumentDependencyTemplate::template_type())
+  }
+
+  fn update_hash(
     &self,
+    hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+    self.id.dyn_hash(hasher);
+    self.range.dyn_hash(hasher);
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ModuleArgumentDependencyTemplate;
+
+impl ModuleArgumentDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::CustomType("ModuleArgumentDependency")
+  }
+}
+
+impl DynamicDependencyTemplate for ModuleArgumentDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyTemplate,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ModuleArgumentDependency>()
+      .expect("ModuleArgumentDependencyTemplate should be used for ModuleArgumentDependency");
+
     let TemplateContext {
       runtime_requirements,
       compilation,
@@ -54,22 +87,12 @@ impl DependencyTemplate for ModuleArgumentDependency {
       .expect("should have mgm")
       .get_module_argument();
 
-    let content = if let Some(id) = &self.id {
+    let content = if let Some(id) = &dep.id {
       format!("{module_argument}.{id}")
     } else {
       format!("{module_argument}")
     };
 
-    source.replace(self.range.start, self.range.end, content.as_str(), None);
-  }
-
-  fn update_hash(
-    &self,
-    hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
-    self.id.dyn_hash(hasher);
-    self.range.dyn_hash(hasher);
+    source.replace(dep.range.start, dep.range.end, content.as_str(), None);
   }
 }
