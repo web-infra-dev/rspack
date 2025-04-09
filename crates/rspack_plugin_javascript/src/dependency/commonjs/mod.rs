@@ -13,7 +13,9 @@ mod require_resolve_header_dependency;
 pub use common_js_export_require_dependency::{
   CommonJsExportRequireDependency, CommonJsExportRequireDependencyTemplate,
 };
-pub use common_js_exports_dependency::{CommonJsExportsDependency, ExportsBase};
+pub use common_js_exports_dependency::{
+  CommonJsExportsDependency, CommonJsExportsDependencyTemplate, ExportsBase,
+};
 pub use common_js_full_require_dependency::CommonJsFullRequireDependency;
 pub use common_js_require_dependency::CommonJsRequireDependency;
 pub use common_js_self_reference_dependency::CommonJsSelfReferenceDependency;
