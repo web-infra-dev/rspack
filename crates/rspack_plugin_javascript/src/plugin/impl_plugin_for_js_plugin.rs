@@ -19,12 +19,13 @@ use crate::{
   dependency::{
     amd_define_dependency::AMDDefineDependencyTemplate,
     amd_require_array_dependency::AMDRequireArrayDependencyTemplate,
-    amd_require_dependency::AMDRequireDependencyTemplate, ESMCompatibilityDependencyTemplate,
-    ESMExportExpressionDependencyTemplate, ESMExportHeaderDependencyTemplate,
-    ESMExportImportedSpecifierDependencyTemplate, ESMExportSpecifierDependencyTemplate,
-    ESMImportSideEffectDependencyTemplate, ESMImportSpecifierDependencyTemplate,
-    ExternalModuleDependencyTemplate, ImportDependencyTemplate, ImportEagerDependencyTemplate,
-    ProvideDependencyTemplate,
+    amd_require_dependency::AMDRequireDependencyTemplate,
+    amd_require_item_dependency::AMDRequireItemDependencyTemplate,
+    ESMCompatibilityDependencyTemplate, ESMExportExpressionDependencyTemplate,
+    ESMExportHeaderDependencyTemplate, ESMExportImportedSpecifierDependencyTemplate,
+    ESMExportSpecifierDependencyTemplate, ESMImportSideEffectDependencyTemplate,
+    ESMImportSpecifierDependencyTemplate, ExternalModuleDependencyTemplate,
+    ImportDependencyTemplate, ImportEagerDependencyTemplate, ProvideDependencyTemplate,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
   JsPlugin, JsPluginInner,
@@ -206,6 +207,10 @@ async fn compilation(
   compilation.set_dependency_template(
     AMDRequireDependencyTemplate::template_type(),
     Arc::new(AMDRequireDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    AMDRequireItemDependencyTemplate::template_type(),
+    Arc::new(AMDRequireItemDependencyTemplate::default()),
   );
   Ok(())
 }

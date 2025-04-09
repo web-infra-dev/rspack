@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   module_raw, AffectType, AsContextDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, FactorizeInfo, ModuleDependency, TemplateContext,
-  TemplateReplaceSource,
+  DependencyTemplate, DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType,
+  FactorizeInfo, ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::atom::Atom;
 
@@ -53,28 +53,6 @@ impl Dependency for AMDRequireItemDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for AMDRequireItemDependency {
-  fn apply(
-    &self,
-    source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    let Some(range) = &self.range else {
-      return;
-    };
-    // ModuleDependencyTemplateAsRequireId
-    let content = module_raw(
-      code_generatable_context.compilation,
-      code_generatable_context.runtime_requirements,
-      &self.id,
-      &self.request,
-      self.weak(),
-    );
-    source.replace(range.0, range.1, &content, None);
-  }
-}
-
-#[cacheable_dyn]
 impl ModuleDependency for AMDRequireItemDependency {
   fn request(&self) -> &str {
     &self.request
@@ -94,3 +72,47 @@ impl ModuleDependency for AMDRequireItemDependency {
 }
 
 impl AsContextDependency for AMDRequireItemDependency {}
+
+#[cacheable_dyn]
+impl DependencyTemplate for AMDRequireItemDependency {
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(AMDRequireItemDependencyTemplate::template_type())
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct AMDRequireItemDependencyTemplate;
+
+impl AMDRequireItemDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::DependencyType(DependencyType::AmdRequireItem)
+  }
+}
+
+impl DynamicDependencyTemplate for AMDRequireItemDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyTemplate,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<AMDRequireItemDependency>()
+      .expect("AMDRequireItemDependencyTemplate should only be used for AMDRequireItemDependency");
+
+    let Some(range) = &dep.range else {
+      return;
+    };
+    // ModuleDependencyTemplateAsRequireId
+    let content = module_raw(
+      code_generatable_context.compilation,
+      code_generatable_context.runtime_requirements,
+      &dep.id,
+      &dep.request,
+      dep.weak(),
+    );
+    source.replace(range.0, range.1, &content, None);
+  }
+}
