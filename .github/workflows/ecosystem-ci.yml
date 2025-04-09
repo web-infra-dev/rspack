@@ -21,6 +21,7 @@ on:
           - examples
           - devserver
           - plugin
+          - lynx-stack
       suiteRef:
         description: "suite ref to use"
         required: true
@@ -115,6 +116,7 @@ jobs:
               "devserver",
               "nuxt",
               "plugin",
+              "lynx-stack",
             ]
             if (suiteName !== "-") {
               suites = suites.filter(suite => suite === suiteName)
