@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use rspack_core::{
   get_js_chunk_filename_template,
   rspack_sources::{BoxSource, CachedSource, SourceExt},
-  AssetInfo, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
+  AssetInfo, CachedConstDependencyTemplate, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationChunkHash, CompilationContentHash,
   CompilationParams, CompilationRenderManifest, CompilerCompilation, CompilerOptions,
   DependencyType, IgnoreErrorModuleFactory, ModuleGraph, ModuleType, ParserAndGenerator, PathData,
@@ -360,6 +360,11 @@ async fn compilation(
   compilation.set_dependency_template(
     PureExpressionDependencyTemplate::template_type(),
     Arc::new(PureExpressionDependencyTemplate::default()),
+  );
+  // core plugins
+  compilation.set_dependency_template(
+    CachedConstDependencyTemplate::template_type(),
+    Arc::new(CachedConstDependencyTemplate::default()),
   );
   Ok(())
 }
