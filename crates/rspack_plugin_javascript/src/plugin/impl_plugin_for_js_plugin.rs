@@ -26,15 +26,16 @@ use crate::{
     CommonJsExportRequireDependencyTemplate, CommonJsExportsDependencyTemplate,
     CommonJsFullRequireDependencyTemplate, CommonJsRequireContextDependencyTemplate,
     CommonJsRequireDependencyTemplate, CommonJsSelfReferenceDependencyTemplate,
-    ESMCompatibilityDependencyTemplate, ESMExportExpressionDependencyTemplate,
-    ESMExportHeaderDependencyTemplate, ESMExportImportedSpecifierDependencyTemplate,
-    ESMExportSpecifierDependencyTemplate, ESMImportSideEffectDependencyTemplate,
-    ESMImportSpecifierDependencyTemplate, ExternalModuleDependencyTemplate,
-    ImportContextDependencyTemplate, ImportDependencyTemplate, ImportEagerDependencyTemplate,
-    ImportMetaContextDependencyTemplate, ModuleDecoratorDependencyTemplate,
-    ProvideDependencyTemplate, RequireContextDependencyTemplate, RequireEnsureDependencyTemplate,
-    RequireHeaderDependencyTemplate, RequireResolveContextDependencyTemplate,
-    RequireResolveDependencyTemplate, RequireResolveHeaderDependencyTemplate,
+    ESMAcceptDependencyTemplate, ESMCompatibilityDependencyTemplate,
+    ESMExportExpressionDependencyTemplate, ESMExportHeaderDependencyTemplate,
+    ESMExportImportedSpecifierDependencyTemplate, ESMExportSpecifierDependencyTemplate,
+    ESMImportSideEffectDependencyTemplate, ESMImportSpecifierDependencyTemplate,
+    ExternalModuleDependencyTemplate, ImportContextDependencyTemplate, ImportDependencyTemplate,
+    ImportEagerDependencyTemplate, ImportMetaContextDependencyTemplate,
+    ModuleDecoratorDependencyTemplate, ProvideDependencyTemplate, RequireContextDependencyTemplate,
+    RequireEnsureDependencyTemplate, RequireHeaderDependencyTemplate,
+    RequireResolveContextDependencyTemplate, RequireResolveDependencyTemplate,
+    RequireResolveHeaderDependencyTemplate,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
   JsPlugin, JsPluginInner,
@@ -303,6 +304,11 @@ async fn compilation(
   compilation.set_dependency_template(
     RequireResolveContextDependencyTemplate::template_type(),
     Arc::new(RequireResolveContextDependencyTemplate::default()),
+  );
+  // hmr dependency templates
+  compilation.set_dependency_template(
+    ESMAcceptDependencyTemplate::template_type(),
+    Arc::new(ESMAcceptDependencyTemplate::default()),
   );
   Ok(())
 }
