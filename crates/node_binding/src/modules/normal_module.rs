@@ -1,33 +1,19 @@
-use std::{
-  hash::{Hash, Hasher},
-  ptr,
-};
-
 use napi::{
   bindgen_prelude::{FromNapiMutRef, Object, ToNapiValue},
-  sys::{self, napi_ref},
-  CallContext, Either, JsSymbol, NapiRaw, NapiValue,
+  CallContext, Either, NapiRaw, NapiValue,
 };
 use rspack_core::{parse_resource, ResourceData, ResourceParsedData};
-use rspack_napi::napi::check_status;
-use rustc_hash::FxHasher;
 
-use crate::{
-  impl_module_methods, plugins::JsLoaderItem, JsResourceData, Module, MODULE_LOADERS_SYMBOL,
-};
+use crate::{impl_module_methods, plugins::JsLoaderItem, JsResourceData, Module};
 
 #[napi]
 pub struct NormalModule {
   pub(crate) module: Module,
-  loaders_ref: Option<(u64, napi_ref)>,
 }
 
 impl NormalModule {
   pub fn new(module: Module) -> Self {
-    Self {
-      module,
-      loaders_ref: None,
-    }
+    Self { module }
   }
 
   pub(crate) fn custom_into_instance(
@@ -50,57 +36,19 @@ impl NormalModule {
         )?,
       )
     };
-
-    #[js_function]
-    pub fn loaders_getter(ctx: CallContext) -> napi::Result<Object> {
-      let mut this = ctx.this_unchecked::<Object>();
-      let env = ctx.env.raw();
-      let wrapped_value = unsafe { NormalModule::from_napi_mut_ref(env, this.raw())? };
-
-      let (_, module) = wrapped_value.as_ref()?;
-
-      let loaders = module
-        .loaders()
-        .iter()
-        .map(JsLoaderItem::from)
-        .collect::<Vec<_>>();
-      let cur_hash = {
-        let mut hasher = FxHasher::default();
-        loaders.hash(&mut hasher);
-        hasher.finish()
-      };
-
-      if let Some((hash, raw_ref)) = wrapped_value.loaders_ref {
-        if hash == cur_hash {
-          let mut napi_val = ptr::null_mut();
-          check_status!(unsafe {
-            crate::sys::napi_get_reference_value(env, raw_ref, &mut napi_val)
-          })?;
-          let object = unsafe { Object::from_raw_unchecked(env, napi_val) };
-          return Ok(object);
-        }
-      }
-
-      let napi_val = unsafe { ToNapiValue::to_napi_value(env, loaders)? };
-      let mut raw_ref = ptr::null_mut();
-      check_status!(unsafe { sys::napi_create_reference(env, napi_val, 1, &mut raw_ref) })?;
-      let mut object = unsafe { Object::from_raw_unchecked(env, napi_val) };
-      object.add_finalizer((), (), move |_ctx| unsafe {
-        sys::napi_delete_reference(env, raw_ref);
-      })?;
-      wrapped_value.loaders_ref = Some((cur_hash, raw_ref));
-
-      let object = unsafe { Object::from_raw_unchecked(env, napi_val) };
-      MODULE_LOADERS_SYMBOL.with(|once_cell| {
-        let symbol = unsafe {
-          #[allow(clippy::unwrap_used)]
-          let napi_val = ToNapiValue::to_napi_value(env, once_cell.get().unwrap())?;
-          JsSymbol::from_raw_unchecked(env, napi_val)
-        };
-        this.set_property(symbol, &object)
-      })?;
-      Ok(object)
-    }
+    let loaders = unsafe {
+      Object::from_raw_unchecked(
+        env.raw(),
+        ToNapiValue::to_napi_value(
+          env.raw(),
+          module
+            .loaders()
+            .iter()
+            .map(JsLoaderItem::from)
+            .collect::<Vec<_>>(),
+        )?,
+      )
+    };
 
     #[js_function]
     pub fn match_resource_getter(ctx: CallContext) -> napi::Result<Either<&String, ()>> {
@@ -148,7 +96,7 @@ impl NormalModule {
       napi::Property::new("userRequest")?.with_value(&user_request),
       napi::Property::new("rawRequest")?.with_value(&raw_request),
       napi::Property::new("resourceResolveData")?.with_value(&resource_resolve_data),
-      napi::Property::new("loaders")?.with_getter(loaders_getter),
+      napi::Property::new("loaders")?.with_value(&loaders),
       napi::Property::new("matchResource")?
         .with_getter(match_resource_getter)
         .with_setter(match_resource_setter),
