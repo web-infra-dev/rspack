@@ -30,6 +30,6 @@ pub use module_decorator_dependency::{
 };
 pub use require_ensure_dependency::{RequireEnsureDependency, RequireEnsureDependencyTemplate};
 pub use require_ensure_item_dependency::RequireEnsureItemDependency;
-pub use require_header_dependency::RequireHeaderDependency;
+pub use require_header_dependency::{RequireHeaderDependency, RequireHeaderDependencyTemplate};
 pub use require_resolve_dependency::RequireResolveDependency;
 pub use require_resolve_header_dependency::RequireResolveHeaderDependency;
