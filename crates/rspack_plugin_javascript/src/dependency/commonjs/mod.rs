@@ -28,7 +28,7 @@ pub use common_js_self_reference_dependency::{
 pub use module_decorator_dependency::{
   ModuleDecoratorDependency, ModuleDecoratorDependencyTemplate,
 };
-pub use require_ensure_dependency::RequireEnsureDependency;
+pub use require_ensure_dependency::{RequireEnsureDependency, RequireEnsureDependencyTemplate};
 pub use require_ensure_item_dependency::RequireEnsureItemDependency;
 pub use require_header_dependency::RequireHeaderDependency;
 pub use require_resolve_dependency::RequireResolveDependency;

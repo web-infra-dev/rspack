@@ -2,7 +2,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   block_promise, AffectType, AsContextDependency, AsModuleDependency, Dependency,
   DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
-  RuntimeGlobals,
+  DynamicDependencyTemplate, DynamicDependencyTemplateType, RuntimeGlobals, TemplateContext,
+  TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -56,43 +57,67 @@ impl AsModuleDependency for RequireEnsureDependency {}
 
 #[cacheable_dyn]
 impl DependencyTemplate for RequireEnsureDependency {
-  fn apply(
+  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+    Some(RequireEnsureDependencyTemplate::template_type())
+  }
+}
+
+impl AsContextDependency for RequireEnsureDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct RequireEnsureDependencyTemplate;
+
+impl RequireEnsureDependencyTemplate {
+  pub fn template_type() -> DynamicDependencyTemplateType {
+    DynamicDependencyTemplateType::DependencyType(DependencyType::RequireEnsure)
+  }
+}
+
+impl DynamicDependencyTemplate for RequireEnsureDependencyTemplate {
+  fn render(
     &self,
-    source: &mut rspack_core::TemplateReplaceSource,
-    code_generatable_context: &mut rspack_core::TemplateContext,
+    dep: &dyn DependencyTemplate,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<RequireEnsureDependency>()
+      .unwrap();
+
     let module_graph = code_generatable_context.compilation.get_module_graph();
-    let block = module_graph.get_parent_block(&self.id);
+    let block = module_graph.get_parent_block(&dep.id);
     let promise = block_promise(
       block,
       code_generatable_context.runtime_requirements,
       code_generatable_context.compilation,
-      self.dependency_type().as_str(),
+      dep.dependency_type().as_str(),
     );
     source.replace(
-      self.range.start,
-      self.content_range.start,
+      dep.range.start,
+      dep.content_range.start,
       &format!("{}.then((", promise),
       None,
     );
     code_generatable_context
       .runtime_requirements
       .insert(RuntimeGlobals::REQUIRE);
-    if let Some(error_handler_range) = &self.error_handler_range {
+    if let Some(error_handler_range) = &dep.error_handler_range {
       source.replace(
-        self.content_range.end,
+        dep.content_range.end,
         error_handler_range.start,
         &format!(").bind(null, {}))['catch'](", RuntimeGlobals::REQUIRE),
         None,
       );
-      source.replace(error_handler_range.end, self.range.end, ")", None);
+      source.replace(error_handler_range.end, dep.range.end, ")", None);
     } else {
       code_generatable_context
         .runtime_requirements
         .insert(RuntimeGlobals::UNCAUGHT_ERROR_HANDLER);
       source.replace(
-        self.content_range.end,
-        self.range.end,
+        dep.content_range.end,
+        dep.range.end,
         &format!(
           ").bind(null, {}))['catch']({})",
           RuntimeGlobals::REQUIRE,
@@ -102,14 +127,4 @@ impl DependencyTemplate for RequireEnsureDependency {
       );
     }
   }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &rspack_core::Compilation,
-    _runtime: Option<&rspack_core::RuntimeSpec>,
-  ) {
-  }
 }
-
-impl AsContextDependency for RequireEnsureDependency {}
