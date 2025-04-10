@@ -5,11 +5,7 @@
 extern crate napi_derive;
 extern crate rspack_allocator;
 
-use std::{
-  cell::RefCell,
-  pin::Pin,
-  sync::{Arc, Mutex},
-};
+use std::{cell::RefCell, pin::Pin, sync::Arc};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use napi::{bindgen_prelude::*, CallContext};
@@ -404,7 +400,7 @@ fn print_error_diagnostic(e: rspack_error::Error, colored: bool) -> String {
 }
 
 thread_local! {
-  static GLOBAL_TRACE_STATE: Mutex<TraceState> = const { Mutex::new(TraceState::Off) };
+  static GLOBAL_TRACE_STATE: RefCell<TraceState> = const { RefCell::new(TraceState::Off) };
 }
 
 /**
@@ -421,7 +417,7 @@ pub fn register_global_trace(
   output: String,
 ) -> anyhow::Result<()> {
   GLOBAL_TRACE_STATE.with(|state| {
-    let mut state = state.lock().expect("Failed to lock GLOBAL_TRACE_STATE");
+    let mut state = state.borrow_mut();
     if let TraceState::Off = *state {
       let mut tracer: Box<dyn Tracer> = match layer.as_str() {
         "chrome" => Box::new(ChromeTracer::default()),
@@ -460,7 +456,7 @@ pub fn register_global_trace(
 #[napi]
 pub fn cleanup_global_trace() {
   GLOBAL_TRACE_STATE.with(|state| {
-    let mut state = state.lock().expect("Failed to lock GLOBAL_TRACE_STATE");
+    let mut state = state.borrow_mut();
     if let TraceState::On(ref mut tracer) = *state {
       tracer.teardown();
     }
