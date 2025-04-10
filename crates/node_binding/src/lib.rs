@@ -387,16 +387,16 @@ fn init() {
     .expect("Create tokio runtime failed");
   create_custom_tokio_runtime(rt);
   // initialize rayon
-  thread::Builder::new()
-    .name("rayon-spawner".to_string())
-    .spawn(|| {
-      // build_global will block until all threads are alive which will hurt performance or cause deadlock, so run it in separate thread
-      rayon::ThreadPoolBuilder::new()
-        .thread_name(|id| format!("rayon-{}", id))
-        .build_global()
-        .expect("Create rayon thread pool failed");
-    })
-    .expect("spawn rayon-spwaner thread failed");
+  // thread::Builder::new()
+  //   .name("rayon-spawner".to_string())
+  //   .spawn(|| {
+  //     // build_global will block until all threads are alive which will hurt performance or cause deadlock, so run it in separate thread
+  //     rayon::ThreadPoolBuilder::new()
+  //       .thread_name(|id| format!("rayon-{}", id))
+  //       .build_global()
+  //       .expect("Create rayon thread pool failed");
+  //   })
+  //   .expect("spawn rayon-spwaner thread failed");
 }
 
 fn print_error_diagnostic(e: rspack_error::Error, colored: bool) -> String {
