@@ -12,9 +12,9 @@ use serde::Serialize;
 use crate::{
   extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  to_identifier, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
-  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey,
-  CodeGenerationDataUrl, CodeGenerationResult, Compilation, ConcatenationScope, Context,
+  throw_missing_module_error_block, to_identifier, AsyncDependenciesBlockIdentifier, BuildContext,
+  BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments,
+  ChunkUkey, CodeGenerationDataUrl, CodeGenerationResult, Compilation, ConcatenationScope, Context,
   DependenciesBlock, DependencyId, ExternalType, FactoryMeta, ImportAttributes, InitFragmentExt,
   InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleGraph, ModuleType,
   NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
@@ -104,7 +104,7 @@ fn get_source_for_global_variable_external(
   format!("{external_type}{object_lookup}")
 }
 
-fn get_source_for_default_case(_optional: bool, request: &ExternalRequestValue) -> String {
+fn get_request_string(request: &ExternalRequestValue) -> String {
   let variable_name = request.primary();
   let object_lookup = property_access(request.iter(), 1);
   format!("{variable_name}{object_lookup}")
@@ -124,22 +124,27 @@ fn get_source_for_import(
   compilation: &Compilation,
   attributes: &Option<ImportAttributes>,
 ) -> String {
-  format!("{}({})", compilation.options.output.import_function_name, {
-    let attributes_str = if let Some(attributes) = attributes {
-      format!(
-        ", {{ with: {} }}",
-        serde_json::to_string(attributes).expect("invalid json to_string")
-      )
-    } else {
-      String::new()
-    };
+  format!(
+    "{}({}).then(function(module) {{ return module{}; }})",
+    compilation.options.output.import_function_name,
+    {
+      let attributes_str = if let Some(attributes) = attributes {
+        format!(
+          ", {{ with: {} }}",
+          serde_json::to_string(attributes).expect("invalid json to_string")
+        )
+      } else {
+        String::new()
+      };
 
-    format!(
-      "{}{}",
-      serde_json::to_string(module_and_specifiers.primary()).expect("invalid json to_string"),
-      attributes_str
-    )
-  })
+      format!(
+        "{}{}",
+        serde_json::to_string(module_and_specifiers.primary()).expect("invalid json to_string"),
+        attributes_str
+      )
+    },
+    property_access(module_and_specifiers.iter(), 1)
+  )
 }
 
 /**
@@ -179,7 +184,7 @@ fn resolve_external_type<'a>(
 pub struct ExternalModule {
   dependencies: Vec<DependencyId>,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  id: Identifier,
+  pub id: Identifier,
   pub request: ExternalRequest,
   pub external_type: ExternalType,
   /// Request intended by user (without loaders from config)
@@ -270,6 +275,7 @@ impl ExternalModule {
     let mut runtime_requirements: RuntimeGlobals = Default::default();
     let supports_const = compilation.options.output.environment.supports_const();
     let resolved_external_type = self.resolve_external_type();
+    let module_graph = compilation.get_module_graph();
 
     let source = match resolved_external_type {
       "this" if let Some(request) = request => format!(
@@ -336,10 +342,21 @@ impl ExternalModule {
         let id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.identifier())
           .map(|s| s.as_str())
           .expect("should have module id");
+        let external_variable = format!("__WEBPACK_EXTERNAL_MODULE_{}__", to_identifier(id));
+        let check_external_variable = if module_graph.is_optional(&self.id) {
+          format!(
+            "if(typeof {} === 'undefined') {{ {} }}\n",
+            external_variable,
+            throw_missing_module_error_block(&self.user_request)
+          )
+        } else {
+          String::new()
+        };
         format!(
-          "{} = __WEBPACK_EXTERNAL_MODULE_{}__;",
+          "{}{} = {};",
+          check_external_variable,
           get_namespace_object_export(concatenation_scope, supports_const),
-          to_identifier(id)
+          external_variable
         )
       }
       "import" if let Some(request) = request => format!(
@@ -347,11 +364,24 @@ impl ExternalModule {
         get_namespace_object_export(concatenation_scope, supports_const),
         get_source_for_import(request, compilation, &self.dependency_meta.attributes)
       ),
-      "var" | "promise" | "const" | "let" | "assign" if let Some(request) = request => format!(
-        "{} = {};",
-        get_namespace_object_export(concatenation_scope, supports_const),
-        get_source_for_default_case(false, request)
-      ),
+      "var" | "promise" | "const" | "let" | "assign" if let Some(request) = request => {
+        let external_variable = get_request_string(request);
+        let check_external_variable = if module_graph.is_optional(&self.id) {
+          format!(
+            "if(typeof {} === 'undefined') {{ {} }}\n",
+            external_variable,
+            throw_missing_module_error_block(&get_request_string(request))
+          )
+        } else {
+          String::new()
+        };
+        format!(
+          "{}{} = {};",
+          check_external_variable,
+          get_namespace_object_export(concatenation_scope, supports_const),
+          external_variable
+        )
+      }
       "module" if let Some(request) = request => {
         if compilation.options.output.module {
           let id: Cow<'_, str> = if to_identifier(&request.primary) != request.primary {
@@ -447,7 +477,28 @@ if(typeof {global} !== "undefined") return resolve();
           load_script = RuntimeGlobals::LOAD_SCRIPT.name()
         )
       }
-      _ => String::new(),
+      _ => {
+        if let Some(request) = request {
+          let external_variable = get_request_string(request);
+          let check_external_variable = if module_graph.is_optional(&self.id) {
+            format!(
+              "if(typeof {} === 'undefined') {{ {} }}\n",
+              external_variable,
+              throw_missing_module_error_block(&get_request_string(request))
+            )
+          } else {
+            String::new()
+          };
+          format!(
+            "{}{} = {};",
+            check_external_variable,
+            get_namespace_object_export(concatenation_scope, supports_const),
+            get_request_string(request)
+          )
+        } else {
+          String::new()
+        }
+      }
     };
     Ok((
       RawStringSource::from(source).boxed(),
