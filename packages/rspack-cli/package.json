@@ -30,7 +30,7 @@
   "scripts": {
     "build": "rslib build",
     "dev": "rslib build -w",
-    "test": "cross-env jest --colors"
+    "test": "cross-env RUST_BACKTRACE=full jest --colors"
   },
   "dependencies": {
     "@discoveryjs/json-ext": "^0.5.7",
