@@ -75,15 +75,14 @@ pub struct Context {
   pub helpers: HelperData,
   pub top_level_mark: Mark,
   pub unresolved_mark: Mark,
-  //  comments: swcComments,
   pub source_map: Arc<SourceMap>,
 }
 
 impl Context {
-  pub fn new(source_map: Arc<SourceMap>) -> Self {
-    let globals: Globals = Default::default();
+  pub fn new(source_map: Arc<SourceMap>, globals: Option<&Globals>) -> Self {
+    let globals = globals.unwrap_or(&Globals::default());
     // generate preset mark & helpers
-    let (top_level_mark, unresolved_mark, helpers) = GLOBALS.set(&globals, || {
+    let (top_level_mark, unresolved_mark, helpers) = GLOBALS.set(globals, || {
       (Mark::new(), Mark::new(), Helpers::new(true).data())
     });
 
@@ -109,7 +108,7 @@ impl std::fmt::Debug for Context {
 
 impl Take for Context {
   fn dummy() -> Self {
-    Self::new(Arc::new(SourceMap::new(Default::default())))
+    Self::new(Arc::new(SourceMap::new(Default::default())), None)
   }
 }
 
@@ -142,10 +141,11 @@ impl Ast {
     program: SwcProgram,
     source_map: Arc<SourceMap>,
     comments: Option<SwcComments>,
+    globals: Option<&Globals>,
   ) -> Self {
     Self {
       program: Program::new(program, comments),
-      context: Arc::new(Context::new(source_map)),
+      context: Arc::new(Context::new(source_map, globals)),
     }
   }
 

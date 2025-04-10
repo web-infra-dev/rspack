@@ -11,6 +11,7 @@ version                 = "0.1.0"
 
 [dependencies]
 anyhow = { workspace = true }
+rustc-hash = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 swc_core = { workspace = true, features = [
@@ -28,11 +29,13 @@ swc_core = { workspace = true, features = [
   "swc_ecma_codegen",
   "swc_ecma_visit",
 ] }
+swc_ecma_minifier = { workspace = true, features = ["concurrent"] }
 swc_error_reporters = { workspace = true }
 swc_node_comments = { workspace = true }
 swc_parallel = { workspace = true, default-features = false }
 
-rspack_util = { path = "../rspack_util" }
+rspack_error = { path = "../rspack_error" }
+rspack_util  = { path = "../rspack_util" }
 
 [package.metadata.cargo-shear]
 ignored = ["swc_parallel"]
