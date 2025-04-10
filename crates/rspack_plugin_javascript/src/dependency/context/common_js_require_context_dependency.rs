@@ -1,8 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsModuleDependency, Compilation, ContextDependency, ContextOptions, Dependency,
-  DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
-  FactorizeInfo, ModuleGraph, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleGraph, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -121,32 +122,42 @@ impl ContextDependency for CommonJsRequireContextDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for CommonJsRequireContextDependency {
-  fn apply(
-    &self,
-    source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    context_dependency_template_as_require_call(
-      self,
-      source,
-      code_generatable_context,
-      &self.range,
-      self.value_range.as_ref(),
-    );
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
+impl DependencyCodeGeneration for CommonJsRequireContextDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(CommonJsRequireContextDependencyTemplate::template_type())
   }
 }
 
 impl AsModuleDependency for CommonJsRequireContextDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct CommonJsRequireContextDependencyTemplate;
+
+impl CommonJsRequireContextDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::CommonJSRequireContext)
+  }
+}
+
+impl DependencyTemplate for CommonJsRequireContextDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<CommonJsRequireContextDependency>()
+      .expect("CommonJsRequireContextDependencyTemplate should be used for CommonJsRequireContextDependency");
+
+    context_dependency_template_as_require_call(
+      dep,
+      source,
+      code_generatable_context,
+      &dep.range,
+      dep.value_range.as_ref(),
+    );
+  }
+}

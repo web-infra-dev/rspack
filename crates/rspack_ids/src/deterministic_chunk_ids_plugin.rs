@@ -52,6 +52,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
       compare_chunks_natural(
         chunk_graph,
         &module_graph,
+        &compilation.chunk_group_by_ukey,
         &compilation.module_ids_artifact,
         a,
         b,

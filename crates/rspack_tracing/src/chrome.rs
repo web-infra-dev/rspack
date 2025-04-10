@@ -15,6 +15,7 @@ impl Tracer for ChromeTracer {
   fn setup(&mut self, output: &str) -> Option<Layered> {
     let trace_writer = TraceWriter::from(output);
     let (chrome_layer, guard) = ChromeLayerBuilder::new()
+      .trace_style(tracing_chrome::TraceStyle::Async)
       .include_args(true)
       .writer(trace_writer.writer())
       .build();

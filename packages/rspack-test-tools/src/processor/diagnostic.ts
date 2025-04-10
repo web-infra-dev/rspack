@@ -80,4 +80,14 @@ export class DiagnosticProcessor<
 			}
 		} as TCompilerOptions<T>;
 	}
+
+	static overrideOptions<T extends ECompilerType>(
+		options: TCompilerOptions<T>
+	) {
+		if (!global.printLogger) {
+			options.infrastructureLogging = {
+				level: "error"
+			};
+		}
+	}
 }

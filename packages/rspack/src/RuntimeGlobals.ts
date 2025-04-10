@@ -10,7 +10,7 @@
 
 import type { JsRuntimeGlobals } from "@rspack/binding";
 
-const REVERSE_RUNTIME_GLOBALS = new Map<string, string>();
+const RESERVED_RUNTIME_GLOBALS = new Map<string, string>();
 
 export function __from_binding_runtime_globals(
 	runtimeRequirements: JsRuntimeGlobals
@@ -36,7 +36,7 @@ export function __to_binding_runtime_globals(
 	};
 
 	for (const flag of Array.from(runtimeRequirements)) {
-		const item = REVERSE_RUNTIME_GLOBALS.get(flag);
+		const item = RESERVED_RUNTIME_GLOBALS.get(flag);
 		if (typeof item === "string") {
 			res.value.push(item);
 		} else {
@@ -430,5 +430,8 @@ export const RuntimeGlobals = {
 } as const;
 
 for (const entry of Object.entries(RuntimeGlobals)) {
-	REVERSE_RUNTIME_GLOBALS.set(entry[1], entry[0]);
+	RESERVED_RUNTIME_GLOBALS.set(entry[1], entry[0]);
 }
+
+export const isReservedRuntimeGlobal = (r: string) =>
+	RESERVED_RUNTIME_GLOBALS.has(r);

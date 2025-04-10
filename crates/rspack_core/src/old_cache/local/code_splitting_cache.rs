@@ -87,7 +87,7 @@ impl CodeSplittingCache {
         let mut visited = IdentifierSet::default();
         let mut active_modules = IdentifierSet::default();
         module_graph
-          .get_outgoing_connections_in_order(&module)
+          .get_outgoing_deps_in_order(&module)
           .filter_map(|dep| module_graph.connection_by_dependency_id(dep))
           .map(|conn| {
             let m = *conn.module_identifier();
@@ -209,7 +209,7 @@ impl CodeSplittingCache {
 
     for module in affected_modules.clone() {
       let outgoings = module_graph
-        .get_outgoing_connections_in_order(&module)
+        .get_outgoing_deps_in_order(&module)
         .filter_map(|dep| module_graph.connection_by_dependency_id(dep))
         .filter(|conn| conn.active_state(&module_graph, None).is_not_false())
         .map(|conn| conn.module_identifier());

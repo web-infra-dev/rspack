@@ -15,8 +15,9 @@ use crate::{
   module_graph::{ModuleGraph, ModuleGraphPartial},
   old_cache::Cache as OldCache,
   utils::task_loop::{run_task_loop, Task},
-  BuildDependency, Compilation, CompilationId, CompilerId, CompilerOptions, DependencyType,
-  ModuleFactory, ModuleProfile, ResolverFactory, SharedPluginDriver,
+  BuildDependency, Compilation, CompilationId, CompilerId, CompilerOptions, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ModuleFactory, ModuleProfile, ResolverFactory,
+  SharedPluginDriver,
 };
 
 pub struct MakeTaskContext {
@@ -34,6 +35,7 @@ pub struct MakeTaskContext {
   pub cache: Arc<dyn Cache>,
   pub old_cache: Arc<OldCache>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
+  pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
 
   pub artifact: MakeArtifact,
 }
@@ -51,6 +53,7 @@ impl MakeTaskContext {
       cache,
       old_cache: compilation.old_cache.clone(),
       dependency_factories: compilation.dependency_factories.clone(),
+      dependency_templates: compilation.dependency_templates.clone(),
       fs: compilation.input_filesystem.clone(),
       intermediate_fs: compilation.intermediate_filesystem.clone(),
       output_fs: compilation.output_filesystem.clone(),
@@ -90,6 +93,7 @@ impl MakeTaskContext {
       false,
     );
     compilation.dependency_factories = self.dependency_factories.clone();
+    compilation.dependency_templates = self.dependency_templates.clone();
     compilation.swap_make_artifact(&mut self.artifact);
     compilation
   }

@@ -600,7 +600,7 @@ fn to_code(code: &Value, asi_safe: Option<bool>, obj_keys: Option<FxHashSet<Stri
       let elements = obj
         .iter()
         .filter_map(|(key, value)| {
-          if obj_keys.as_ref().map_or(true, |keys| keys.contains(key)) {
+          if obj_keys.as_ref().is_none_or(|keys| keys.contains(key)) {
             Some(format!("{}:{}", json!(key), to_code(value, None, None)))
           } else {
             None

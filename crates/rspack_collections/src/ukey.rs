@@ -155,7 +155,7 @@ where
     &mut self,
     ids: [&<Item as DatabaseItem>::ItemUkey; N],
   ) -> [Option<&mut Item>; N] {
-    self.inner.get_many_mut(ids)
+    self.inner.get_disjoint_mut(ids)
   }
 
   pub fn get(&self, id: &<Item as DatabaseItem>::ItemUkey) -> Option<&Item> {

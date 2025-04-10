@@ -176,6 +176,13 @@ export type ContextModuleFactoryAfterResolveResult =
 	| false
 	| ContextModuleFactoryAfterResolveData;
 
+Object.defineProperty(binding.Module.prototype, "identifier", {
+	enumerable: true,
+	configurable: true,
+	value(this: binding.Module): string {
+		return this[binding.MODULE_IDENTIFIER_SYMBOL];
+	}
+});
 Object.defineProperty(binding.Module.prototype, "originalSource", {
 	enumerable: true,
 	configurable: true,
@@ -202,6 +209,7 @@ Object.defineProperty(binding.Module.prototype, "emitFile", {
 
 declare module "@rspack/binding" {
 	interface Module {
+		identifier(): string;
 		originalSource(): Source | null;
 		emitFile(filename: string, source: Source, assetInfo?: AssetInfo): void;
 	}

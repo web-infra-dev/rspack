@@ -6,6 +6,13 @@ pub struct ConcatenatedModule {
 }
 
 impl ConcatenatedModule {
+  pub(crate) fn custom_into_instance(
+    self,
+    env: &napi::Env,
+  ) -> napi::Result<napi::bindgen_prelude::ClassInstance<Self>> {
+    Self::new_inherited(self, env, vec![])
+  }
+
   fn as_ref(
     &mut self,
   ) -> napi::Result<(&rspack_core::Compilation, &rspack_core::ConcatenatedModule)> {

@@ -224,8 +224,31 @@ impl ReadableFileSystem for NativeFileSystem {
   }
 
   fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
-    let path = dunce::canonicalize(path)?;
-    Ok(path.assert_utf8())
+    // Comes from rspack_resolver
+    use std::path::Component;
+    let mut path_buf = path.to_path_buf();
+    loop {
+      let link = fs::read_link(&path_buf)?;
+      path_buf.pop();
+      for component in link.components() {
+        match component {
+          Component::ParentDir => {
+            path_buf.pop();
+          }
+          Component::Normal(seg) => {
+            path_buf.push(seg.to_string_lossy().trim_end_matches('\0'));
+          }
+          Component::RootDir => {
+            path_buf = Utf8PathBuf::from("/");
+          }
+          Component::CurDir | Component::Prefix(_) => {}
+        }
+      }
+      if !fs::symlink_metadata(&path_buf)?.is_symlink() {
+        break;
+      }
+    }
+    Ok(path_buf)
   }
 
   async fn async_read(&self, file: &Utf8Path) -> Result<Vec<u8>> {

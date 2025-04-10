@@ -2,6 +2,13 @@ import * as binding from "@rspack/binding";
 import type { Source } from "webpack-sources";
 import { JsSource } from "./util/source";
 
+Object.defineProperty(binding.ConcatenatedModule.prototype, "identifier", {
+	enumerable: true,
+	configurable: true,
+	value(this: binding.ConcatenatedModule): string {
+		return this[binding.MODULE_IDENTIFIER_SYMBOL];
+	}
+});
 Object.defineProperty(binding.ConcatenatedModule.prototype, "originalSource", {
 	enumerable: true,
 	configurable: true,

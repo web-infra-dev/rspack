@@ -4,7 +4,8 @@ import { CodeGenerationResult, type Module } from "../Module";
 import {
 	RuntimeGlobals,
 	__from_binding_runtime_globals,
-	__to_binding_runtime_globals
+	__to_binding_runtime_globals,
+	isReservedRuntimeGlobal
 } from "../RuntimeGlobals";
 import { tryRunOrWebpackError } from "../lib/HookWebpackError";
 import { toBuffer } from "../util";
@@ -47,15 +48,31 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 			function (queried) {
 				return function ({
 					chunk: chunkBinding,
+					allRuntimeRequirements,
 					runtimeRequirements
-				}: binding.JsRuntimeRequirementInTreeArg) {
+				}: binding.JsRuntimeRequirementInTreeArg): binding.JsRuntimeRequirementInTreeResult {
 					const set = __from_binding_runtime_globals(runtimeRequirements);
+					const all = __from_binding_runtime_globals(allRuntimeRequirements);
 					const chunk = Chunk.__from_binding(chunkBinding);
+					// We don't really pass the custom runtime globals to the rust side, we only pass reserved
+					// runtime globals to the rust side, and iterate over the custom runtime globals in the js side
+					const customRuntimeGlobals = new Set<string>();
+					const originalAdd = all.add.bind(all);
+					const add = function add(r: string) {
+						if (all.has(r)) return all;
+						if (isReservedRuntimeGlobal(r)) return originalAdd(r);
+						customRuntimeGlobals.add(r);
+						return originalAdd(r);
+					};
+					all.add = add.bind(add);
 					for (const r of set) {
-						queried.for(r).call(chunk, set);
+						queried.for(r).call(chunk, all);
+					}
+					for (const r of customRuntimeGlobals) {
+						queried.for(r).call(chunk, all);
 					}
 					return {
-						runtimeRequirements: __to_binding_runtime_globals(set)
+						allRuntimeRequirements: __to_binding_runtime_globals(all)
 					};
 				};
 			}

@@ -108,6 +108,7 @@ pub trait NodePath {
 
   fn node_push_win32(&mut self, path: impl AsRef<Utf8Path>);
 
+  #[must_use]
   fn node_normalize(&self) -> Utf8PathBuf;
 
   fn node_normalize_posix(&self) -> Utf8PathBuf;
@@ -303,7 +304,6 @@ impl NodePath for Utf8PathBuf {
   }
 
   #[inline]
-  #[must_use]
   fn node_normalize(&self) -> Utf8PathBuf {
     if cfg!(windows) {
       self.node_normalize_win32()

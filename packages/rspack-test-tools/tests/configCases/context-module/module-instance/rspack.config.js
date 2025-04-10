@@ -11,13 +11,16 @@ class Plugin {
 			);
 			expect(contextModule.constructor.name).toBe("ContextModule");
 			expect(contextModule.type).toBe("javascript/auto");
-			expect("context" in contextModule).toBe(true);
-			expect("layer" in contextModule).toBe(true);
-			expect("factoryMeta" in contextModule).toBe(true);
 			expect(contextModule.useSourceMap).toBe(false);
 			expect(contextModule.useSimpleSourceMap).toBe(false);
-			expect("buildMeta" in contextModule).toBe(true);
-			expect("buildMeta" in contextModule).toBe(true);
+
+			expect(Object.hasOwn(contextModule, "context")).toBe(true);
+			expect(Object.hasOwn(contextModule, "layer")).toBe(true);
+			expect(Object.hasOwn(contextModule, "factoryMeta")).toBe(true);
+			expect(Object.hasOwn(contextModule, "useSourceMap")).toBe(true);
+			expect(Object.hasOwn(contextModule, "useSimpleSourceMap")).toBe(true);
+			expect(Object.hasOwn(contextModule, "buildMeta")).toBe(true);
+			expect(Object.hasOwn(contextModule, "buildInfo")).toBe(true);
 		});
 	}
 }

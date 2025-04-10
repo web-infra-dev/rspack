@@ -181,5 +181,10 @@ export class CacheProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 				new TestHotUpdatePlugin(this.updateOptions)
 			);
 		}
+		if (!global.printLogger) {
+			options.infrastructureLogging = {
+				level: "error"
+			};
+		}
 	}
 }
