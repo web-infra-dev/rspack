@@ -80,7 +80,7 @@ impl LightningCssLoader {
       filename: filename.clone(),
       css_modules: None,
       source_index: 0,
-      error_recovery: self.config.error_recovery.unwrap_or(true),
+      error_recovery: self.config.error_recovery.unwrap_or(false),
       warnings: None,
       flags: parser_flags,
     };
