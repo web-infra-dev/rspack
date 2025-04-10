@@ -141,13 +141,13 @@ impl ReadableFileSystem for NativeFileSystem {
       let path = path.as_std_path();
       let buffer = match VPath::from(path)? {
         VPath::Zip(info) => self.pnp_lru.read(info.physical_base_path(), info.zip_path),
-        VPath::Virtual(info) => tokio::fs::read(info.physical_base_path()).await,
-        VPath::Native(path) => tokio::fs::read(&path).await,
+        VPath::Virtual(info) => fs::read(info.physical_base_path()),
+        VPath::Native(path) => fs::read(&path),
       };
       return buffer.map_err(Error::from);
     }
 
-    tokio::fs::read(path).await.map_err(Error::from)
+    fs::read(path).map_err(Error::from)
   }
 
   fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
@@ -174,16 +174,16 @@ impl ReadableFileSystem for NativeFileSystem {
           .map_err(Error::from),
 
         VPath::Virtual(info) => {
-          let meta = tokio::fs::metadata(info.physical_base_path()).await?;
+          let meta = fs::metadata(info.physical_base_path())?;
           FileMetadata::try_from(meta)
         }
         VPath::Native(path) => {
-          let meta = tokio::fs::metadata(path).await?;
+          let meta = fs::metadata(path)?;
           FileMetadata::try_from(meta)
         }
       };
     }
-    let meta = tokio::fs::metadata(path).await?;
+    let meta = fs::metadata(path)?;
     meta.try_into()
   }
 
@@ -212,7 +212,7 @@ impl ReadableFileSystem for NativeFileSystem {
   }
 
   async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    let meta = tokio::fs::symlink_metadata(path).await?;
+    let meta = fs::symlink_metadata(path)?;
     meta.try_into()
   }
 
@@ -235,13 +235,7 @@ impl ReadableFileSystem for NativeFileSystem {
   }
 
   async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
-    let mut res = vec![];
-    let mut dir_read = tokio::fs::read_dir(dir).await?;
-
-    while let Some(entry) = dir_read.next_entry().await? {
-      res.push(entry.file_name().to_string_lossy().to_string());
-    }
-    Ok(res)
+    self.read_dir_sync(dir)
   }
   fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     let mut res = vec![];
