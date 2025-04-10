@@ -39,4 +39,4 @@ runs:
       if: ${{ inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' }}
       with:
         path: ${{ steps.store-path.outputs.STORE_PATH }}
-        key: node-cache-${{ runner.os }}-pnpm-binding-${{ hashFiles('pnpm-lock.yaml') }}
+        key: pnpm-cache-binding-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
