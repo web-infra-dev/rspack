@@ -39,6 +39,12 @@ pub struct ExternalRequestValue {
   rest: Option<Vec<String>>,
 }
 
+impl ExternalRequestValue {
+  pub fn has_rest(&self) -> bool {
+    self.rest.as_ref().is_some_and(|r| !r.is_empty())
+  }
+}
+
 impl Serialize for ExternalRequestValue {
   fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
   where
@@ -312,10 +318,11 @@ impl ExternalModule {
             .boxed(),
           );
           format!(
-            "{} = __WEBPACK_EXTERNAL_createRequire({}.url)({});",
+            "{} = __WEBPACK_EXTERNAL_createRequire({}.url)({}){};",
             get_namespace_object_export(concatenation_scope, supports_const),
             compilation.options.output.import_meta_name,
-            json_stringify(request.primary())
+            json_stringify(request.primary()),
+            property_access(request.iter(), 1)
           )
         } else {
           format!(
@@ -388,8 +395,12 @@ impl ExternalModule {
 
           if let Some(concatenation_scope) = concatenation_scope {
             let external_module_id = format!("__WEBPACK_EXTERNAL_MODULE_{id}__");
-            let namespace_export_with_name =
-              format!("{}{}", NAMESPACE_OBJECT_EXPORT, &external_module_id);
+            let namespace_export_with_name = format!(
+              "{}{}{}",
+              NAMESPACE_OBJECT_EXPORT,
+              &external_module_id,
+              &property_access(request.iter(), 1)
+            );
             concatenation_scope.register_namespace_export(&namespace_export_with_name);
             String::new()
           } else {
@@ -541,29 +552,49 @@ impl Module for ExternalModule {
   ) -> Result<BuildResult> {
     self.build_info.module = build_context.compiler_options.output.module;
     let resolved_external_type = self.resolve_external_type();
-
-    // TODO add exports_type for request
+    let request = match &self.request {
+      ExternalRequest::Single(request) => Some(request),
+      ExternalRequest::Map(map) => map.get(&self.external_type),
+    };
+    let mut can_mangle = false;
+    let mut exports_type = BuildMetaExportsType::Dynamic;
     match resolved_external_type {
       "this" => self.build_info.strict = false,
-      "system" => self.build_meta.exports_type = BuildMetaExportsType::Namespace,
+      "system" => {
+        if !request.is_some_and(|r| r.has_rest()) {
+          exports_type = BuildMetaExportsType::Namespace;
+          can_mangle = true;
+        }
+      }
       "module" => {
-        self.build_meta.exports_type = BuildMetaExportsType::Namespace;
-        // align with https://github.com/webpack/webpack/blob/3919c844eca394d73ca930e4fc5506fb86e2b094/lib/ExternalModule.js#L597
-        if !self.build_info.module {
+        if self.build_info.module {
+          if !request.is_some_and(|r| r.has_rest()) {
+            exports_type = BuildMetaExportsType::Namespace;
+            can_mangle = true;
+          }
+        } else {
           self.build_meta.has_top_level_await = true;
+          if !request.is_some_and(|r| r.has_rest()) {
+            exports_type = BuildMetaExportsType::Namespace;
+            can_mangle = false;
+          }
         }
       }
       "script" | "promise" => self.build_meta.has_top_level_await = true,
       "import" => {
         self.build_meta.has_top_level_await = true;
-        self.build_meta.exports_type = BuildMetaExportsType::Namespace;
+        if !request.is_some_and(|r| r.has_rest()) {
+          exports_type = BuildMetaExportsType::Namespace;
+          can_mangle = false;
+        }
       }
-      _ => self.build_meta.exports_type = BuildMetaExportsType::Dynamic,
+      _ => {}
     }
+    self.build_meta.exports_type = exports_type;
     Ok(BuildResult {
       dependencies: vec![Box::new(StaticExportsDependency::new(
         StaticExportsSpec::True,
-        false,
+        can_mangle,
       ))],
       blocks: Vec::new(),
       optimization_bailouts: vec![],
