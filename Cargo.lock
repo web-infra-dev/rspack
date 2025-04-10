@@ -4618,7 +4618,6 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
- "rayon",
  "ropey",
  "rspack_allocator",
  "rspack_cacheable",
