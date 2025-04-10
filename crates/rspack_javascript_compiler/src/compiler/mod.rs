@@ -5,54 +5,33 @@ use std::{
 };
 
 use anyhow::{Context, Error};
+use rspack_error::{BatchErrors, DiagnosticKind, TraceableError};
 use rspack_util::{itoa, swc::minify_file_comments};
 use swc_core::{
-  base::config::{Config, ConfigFile, Options as SwcOptions, Rc},
-  common::{FileName, FilePathMapping, Globals, Mark, SourceMap, GLOBALS},
+  base::config::{Config, ConfigFile, IsModule, Options as SwcOptions, Rc},
+  common::{
+    comments::Comments, FileName, FilePathMapping, Globals, Mark, SourceFile, SourceMap, Span,
+    GLOBALS,
+  },
+  ecma::{
+    ast::{EsVersion, Program as SwcProgram},
+    parser::{self, lexer::Lexer, Parser, Syntax},
+    transforms::base::helpers::{self, Helpers},
+  },
+};
+use swc_ecma_minifier::{
+  self,
+  option::{MinifyOptions, TopLevelOptions},
 };
 
-fn parse_swcrc(s: &str) -> Result<Rc, Error> {
-  fn convert_json_err(e: serde_json::Error) -> Error {
-    let line = e.line();
-    let column = e.column();
-
-    let msg = match e.classify() {
-      Category::Io => "io error",
-      Category::Syntax => "syntax error",
-      Category::Data => "unmatched data",
-      Category::Eof => "unexpected eof",
-    };
-    Error::new(e).context(format!(
-      "failed to deserialize .swcrc (json) file: {}: {}:{}",
-      msg,
-      itoa!(line),
-      itoa!(column)
-    ))
-  }
-
-  let v = parse_to_serde_value(
-    s.trim_start_matches('\u{feff}'),
-    &jsonc_parser::ParseOptions {
-      allow_comments: true,
-      allow_trailing_commas: true,
-      allow_loose_object_property_names: false,
-    },
-  )?
-  .ok_or_else(|| Error::msg("failed to deserialize empty .swcrc (json) file"))?;
-
-  if let Ok(rc) = serde_json::from_value(v.clone()) {
-    return Ok(rc);
-  }
-
-  serde_json::from_value(v)
-    .map(Rc::Single)
-    .map_err(convert_json_err)
-}
-
-use crate::ast::Ast;
+use crate::{
+  ast::Ast,
+  error::{ecma_parse_error_deduped_to_rspack_error, DedupEcmaErrors, ErrorSpan},
+};
 
 pub struct JavaScriptCompiler {
   globals: Globals,
+  cm: Arc<SourceMap>,
 }
 
 impl JavaScriptCompiler {
@@ -60,155 +39,109 @@ impl JavaScriptCompiler {
     // Initialize globals for swc
     let globals = Globals::default();
 
-    Self { globals }
+    Self {
+      globals,
+      cm: Default::default(),
+    }
   }
 
   pub fn parse<S: Into<String>>(
     &self,
+    filename: FileName,
     source: S,
-    resouce_path: PathBuf,
-    mut options: SwcOptions,
-  ) -> Ast {
-    self.run(|| {
-      let top_level_mark = Mark::new();
-      let unresolved_mark = Mark::new();
+    target: EsVersion,
+    syntax: Syntax,
+    is_module: IsModule,
+    comments: Option<&dyn Comments>,
+  ) -> Result<Ast, BatchErrors> {
+    let fm = self.cm.new_source_file(&filename, source.into());
+    let lexer = Lexer::new(syntax, target, SourceFileInput::from(&*fm), comments);
 
-      options.top_level_mark = Some(top_level_mark);
-      options.unresolved_mark = Some(unresolved_mark);
-    });
-
-    let cm = Arc::new(SourceMap::new(FilePathMapping::empty()));
-    let fm = cm.new_source_file(Arc::new(FileName::Real(resouce_path)), source.into());
-
-    // let config = Self::read_swc_config(&options, name)
-
-    todo!("implement parse")
+    parse_with_lexer(lexer, is_module)
+      .map(|program| {
+        let ast = Ast::new(program, self.cm.clone(), comments, Some(&self.globals));
+        ast
+      })
+      .map_err(|errs| {
+        BatchErrors(
+          errs
+            .dedup_ecma_errors()
+            .into_iter()
+            .map(|err| {
+              rspack_error::miette::Error::new(ecma_parse_error_deduped_to_rspack_error(err, &fm))
+            })
+            .collect::<Vec<_>>(),
+        )
+      })
   }
 
   pub fn transform(&self) -> Ast {
     todo!("implement transform")
   }
 
-  pub fn minify(&self) -> Ast {
-    todo!("implement minify")
+  pub fn minify(&self, ast: &mut Ast, options: MinifyOptions) -> Result<Ast, BatchErrors> {
+    let context = ast.get_context();
+    let unresolved_mark = &context.unresolved_mark;
+    let top_level_mark = &context.top_level_mark;
+
+    // TODO: implement minify fork from [crates/rspack_plugin_swc_js_minimizer/src/minify.rs]
+    // let program = helpers::HELPERS.set(&Helpers::new(false), || {});
   }
 
-  pub fn print(&self, ast: Ast) -> Result<PrintResult, Error> {
+  pub fn print(&self, ast: Ast) -> Result<TransformOutput, Error> {
     todo!("implement print")
   }
 
   fn run<R>(&self, op: impl FnOnce() -> R) -> R {
     GLOBALS.set(&self.globals, op)
   }
+}
 
-  fn read_swc_config(opts: &SwcOptions, name: &FileName) -> Result<Option<Config>, Error> {
-    let load_swcrc = |path: &Path| {
-      let content = std::fs::read_to_string(path).context("failed to read config (.swcrc) file")?;
+#[derive(Debug)]
+pub struct TransformOutput {
+  pub code: String,
+  pub map: Option<SourceMap>,
+}
 
-      parse_swcrc(&content)
+fn parse_with_lexer(
+  lexer: Lexer,
+  is_module: IsModule,
+) -> Result<SwcProgram, Vec<parser::error::Error>> {
+  let inner = || {
+    let mut parser = Parser::new_from(lexer);
+    let program_result = match is_module {
+      IsModule::Bool(true) => parser.parse_module().map(Program::Module),
+      IsModule::Bool(false) => parser.parse_script().map(Program::Script),
+      IsModule::Unknown => parser.parse_program(),
     };
-
-    static CUR_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
-      if cfg!(target_arch = "wasm32") {
-        PathBuf::new()
-      } else {
-        ::std::env::current_dir().expect("should be available")
-      }
-    });
-
-    let res: Result<_, Error> = {
-      let SwcOptions {
-        ref root,
-        root_mode,
-        swcrc,
-        config_file,
-        ..
-      } = opts;
-
-      let root = root.as_ref().unwrap_or(&CUR_DIR);
-
-      let swcrc_path = match config_file {
-        Some(ConfigFile::Str(s)) => Some(PathBuf::from(s.clone())),
-        _ => {
-          if *swcrc {
-            if let FileName::Real(ref path) = name {
-              find_swcrc(path, root, *root_mode)
-            } else {
-              None
-            }
-          } else {
-            None
-          }
+    let mut errors = parser.take_errors();
+    // Using combinator will let rustc unhappy.
+    match program_result {
+      Ok(program) => {
+        if !errors.is_empty() {
+          return Err(errors);
         }
-      };
-
-      let config_file = match swcrc_path.as_deref() {
-        Some(s) => Some(load_swcrc(s)?),
-        _ => None,
-      };
-      let filename_path = match name {
-        FileName::Real(p) => Some(&**p),
-        _ => None,
-      };
-
-      if let Some(filename_path) = filename_path {
-        if let Some(config) = config_file {
-          let dir = swcrc_path
-            .as_deref()
-            .and_then(|p| p.parent())
-            .expect(".swcrc path should have parent dir");
-
-          let mut config = config
-            .into_config(Some(filename_path))
-            .context("failed to process config file")?;
-
-          if let Some(c) = &mut config {
-            if c.jsc.base_url != PathBuf::new() {
-              let joined = dir.join(&c.jsc.base_url);
-              c.jsc.base_url = if cfg!(target_os = "windows") && c.jsc.base_url.as_os_str() == "." {
-                dir.canonicalize().with_context(|| {
-                  format!(
-                    "failed to canonicalize base url using the path of \
-                                    .swcrc\nDir: {}\n(Used logic for windows)",
-                    dir.display(),
-                  )
-                })?
-              } else {
-                joined.canonicalize().with_context(|| {
-                  format!(
-                    "failed to canonicalize base url using the path of \
-                                    .swcrc\nPath: {}\nDir: {}\nbaseUrl: {}",
-                    joined.display(),
-                    dir.display(),
-                    c.jsc.base_url.display()
-                  )
-                })?
-              };
-            }
-          }
-
-          return Ok(config);
-        }
-
-        let config_file = config_file.unwrap_or_default();
-        let config = config_file.into_config(Some(filename_path))?;
-
-        return Ok(config);
+        Ok(program)
       }
-
-      let config = match config_file {
-        Some(config_file) => config_file.into_config(None)?,
-        None => Rc::default().into_config(None)?,
-      };
-
-      match config {
-        Some(config) => Ok(Some(config)),
-        None => {
-          anyhow::bail!("no config matched for file ({})", name)
-        }
+      Err(err) => {
+        errors.push(err);
+        Err(errors)
       }
-    };
+    }
+  };
 
-    res.with_context(|| format!("failed to read .swcrc file for input file at `{}`", name))
-  }
+  inner()
+
+  // TODO: add stacker to avoid stack overflow
+  // #[cfg(all(debug_assertions, not(target_family = "wasm")))]
+  // {
+  //   // Adjust stack to avoid stack overflow.
+  //   stacker::maybe_grow(
+  //     2 * 1024 * 1024, /* 2mb */
+  //     4 * 1024 * 1024, /* 4mb */
+  //     inner,
+  //   )
+  // }
+  // #[cfg(any(not(debug_assertions), target_family = "wasm"))]
+  // inner()
 }

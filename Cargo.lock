@@ -4071,10 +4071,13 @@ name = "rspack_javascript_compiler"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "rspack_error",
  "rspack_util",
+ "rustc-hash 2.1.0",
  "serde",
  "serde_json",
  "swc_core",
+ "swc_ecma_minifier",
  "swc_error_reporters",
  "swc_node_comments",
  "swc_parallel",
