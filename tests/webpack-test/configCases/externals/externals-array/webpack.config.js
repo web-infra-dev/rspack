@@ -6,7 +6,7 @@ module.exports = [
 			libraryTarget: "commonjs2"
 		},
 		externals: {
-			external: ["webpack", "version"]
+			external: ["@rspack/core", "version"]
 		},
 		plugins: [
 			new webpack.DefinePlugin({

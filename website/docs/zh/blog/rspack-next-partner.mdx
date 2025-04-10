@@ -11,7 +11,7 @@ Rspack 的核心目标之一，是提供卓越的开发体验，并且能够与�
 
 在 JavaScript 生态中，[Next.js](https://nextjs.org/) 拥有深度定制的 webpack 配置和丰富的插件生态，这使它成为验证 Rspack 兼容性和健壮性的理想选择。通过将 Rspack 集成到 Next.js 中，不仅展示了 Rspack 在复杂项目中的适用性，还为 Next.js 用户提供了一个改善开发体验的替代方案。
 
-## Rspack 正式支持 Next.js
+## Rspack 携手 Next.js
 
 今天，我们很高兴地推出 [next-rspack](https://www.npmjs.com/package/next-rspack)，这是一个社区驱动的插件，让 Next.js 能够直接使用 Rspack 作为打包工具。对于尚未准备好采用 Turbopack 的团队，这个插件提供了一种高性能、且与 webpack 兼容的替代方案。
 
@@ -57,7 +57,7 @@ Page Router 的情况要乐观得多：
 
 ### 它将如何保持支持？
 
-next-rspack 已经集成到 Next.js 的 CI 流程中，帮助我们尽早发现回归问题并保持高兼容性。支持将随着 Next.js 和 Rspack 的发展而持续更新，Rspack 团队、Vercel 团队和开源社区将持续合作。
+next-rspack 已集成至 Next.js 的 CI 流程中，这使我们能够及早发现潜在问题并确保高度兼容性。随着 Next.js 与 Rspack 的共同发展，相关支持将不断得到完善。Rspack 团队、Vercel 团队以及开源社区将通力合作，共同支持这一插件。
 
 ### 谁在维护它？
 
@@ -71,15 +71,13 @@ Rspack 不会替代 Turbopack。它是为那些拥有大量 webpack 配置、且
 
 截至目前，next-rspack 通过了约 96% 的集成测试，进展可在 [arewerspackyet](https://www.arewerspackyet.com/) 上查看。
 
-一些特殊情况和进阶功能可能仍需要临时解决方案或额外支持。即使你没有遇到问题，也欢迎在 [反馈讨论](https://github.com/vercel/next.js/discussions/77800) 中告诉我们你的使用体验。
-
-受当前插件实现方式的限制，App Router 的性能表现不够理想，这方面仍有很大的改进空间。
-
-由于 Rspack 并不完全兼容 webpack 的 API，你的一些 webpack 插件可能无法在 Rspack 上顺畅工作，如果你遇到兼容性问题，请告知我们。
+- 一些特殊情况和进阶功能可能仍需要临时解决方案或额外支持。即使你没有遇到问题，也欢迎在 [反馈讨论](https://github.com/vercel/next.js/discussions/77800) 中告诉我们你的使用体验。
+- 受当前插件实现方式的限制，App Router 的性能表现不够理想，这方面仍有很大的改进空间。
+- 由于 Rspack 不是 100% 兼容 webpack 的 API，你的一些 webpack 插件可能无法在 Rspack 上顺畅工作，如果你遇到兼容性问题，欢迎向我们反馈。
 
 ### 如何参与贡献？
 
-尝试 next-rspack，报告问题，贡献代码或文档，加入社区讨论。你的反馈和贡献都很宝贵。
+欢迎尝试 next-rspack，报告问题、贡献代码或文档、加入社区讨论。你的任何反馈和贡献都很宝贵。
 
 ## 未来计划
 
