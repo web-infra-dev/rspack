@@ -1,0 +1,95 @@
+---
+date: 2025-04-10 10:00:00
+sidebar: false
+---
+
+_2025 年 4 月 10 日_
+
+# Rspack 加入 Next.js 生态
+
+Rspack 的核心目标之一，是提供卓越的开发体验，并且能够与基于 webpack 的项目实现无缝集成，将迁移成本降至最低。
+
+在 JavaScript 生态中，[Next.js](https://nextjs.org/) 拥有深度定制的 webpack 配置和丰富的插件生态，这使它成为验证 Rspack 兼容性和健壮性的理想选择。通过将 Rspack 集成到 Next.js 中，不仅展示了 Rspack 在复杂项目中的适用性，还为 Next.js 用户提供了一个改善开发体验的替代方案。
+
+## Rspack 正式支持 Next.js
+
+今天，我们很高兴地推出 [next-rspack](https://www.npmjs.com/package/next-rspack)，这是一个社区驱动的插件，让 Next.js 能够直接使用 Rspack 作为打包工具。对于尚未准备好采用 Turbopack 的团队，这个插件提供了一种高性能、且与 webpack 兼容的替代方案。
+
+> 访问我们的 [文档](/guide/tech/next) 或查看官方 [Next.js 示例](https://github.com/vercel/next.js/tree/canary/examples/with-rspack) 开始使用。
+
+在开发 next-rspack 之前，我们通过创建 [rsnext](https://github.com/ScriptedAlchemy/rsnext/tree/rspack)（一个 Next.js 的分支）探索了集成的可能性，开发出了解决方案的原型。这一早期分支帮助我们验证了可行性，发现了许多边界 case，也让我们意识到，虽然 Rspack 与 webpack 的高度兼容性为我们提供了良好的起点，但实现稳定的集成仍然需要大量的努力和协作。
+
+## 与 Vercel 的合作
+
+next-rspack 的推出只是我们与 Vercel 广泛合作的一个方面。这种合作关系不仅限于 Next.js 集成，双方团队还致力于共同改进基础技术，如 [SWC](https://swc.rs/) 和 [Lightning CSS](https://lightningcss.dev/) —— 这些工具在 JavaScript 生态中被广泛采用。
+
+我们共同改进这些核心组件，为开发者创造更好的使用体验、性能和可靠性。这些努力不仅使 Rspack 和 Next.js 受益，也有助于提升整个 JavaScript 生态，让所有参与者都能受益。
+
+为了保证长期可靠，next-rspack 已经集成到 Next.js 的持续集成流程中，这有助于主动发现问题并保持兼容性。尽管仍处于实验阶段，它目前通过了约 96% 的集成测试，这使我们有信心正式发布这一插件。你可以通过 [arewerspackyet](https://www.arewerspackyet.com/) 跟踪最新状态，也可以关注 [我们的 Twitter](https://x.com/rspack_dev) 了解 next-rspack 的最新进展。
+
+对于尚未准备好采用 Turbopack 的团队，next-rspack 提供了一个稳定、高性能的替代方案，具有出色的兼容性和简单的接入过程。
+
+我们由衷感谢 Vercel 的深度合作，以及双方对改进开发者工具体验的共同承诺。我们将持续协作，完善这一插件，共同推动现代 JavaScript 开发的未来。
+
+## 当前性能
+
+### App Router 用户
+
+目前，使用 `next-rspack` 的 App Router 实现**比 Turbopack 慢**，甚至可能比 webpack 还慢。这主要是因为某些 **JavaScript 插件** 在 Rust-JavaScript 的跨语言通信中产生了较大的性能开销。
+
+我们已经**实验性地将这些插件移植到 Rust 中**，这极大地提高了性能 —— 大致与 Turbopack 相当。此外，我们正在研究如何解决深度集成带来的长期维护挑战。
+
+### Page Router 用户
+
+Page Router 的情况要乐观得多：
+
+- **开发模式**：比 webpack 快 2 倍
+- **生产模式**：比 webpack 快 1.5 倍
+
+高度依赖 webpack 生态的项目在迁移时将更加容易。
+
+我们已经定位出一些限制性能提升的瓶颈，包括显著的 Rust-JavaScript 通信开销、较慢的 [输出文件追踪](https://nextjs.org/docs/pages/api-reference/config/next-config-js/output#how-it-works) 实现，这些问题将在未来得到解决。随着这些预期内的改进，我们预见：
+
+- **开发环境中构建和 HMR 速度提升 5 倍**
+- **生产构建速度提升 3 倍**
+
+## 常见问题
+
+### 它将如何保持支持？
+
+next-rspack 已经集成到 Next.js 的 CI 流程中，帮助我们尽早发现回归问题并保持高兼容性。支持将随着 Next.js 和 Rspack 的发展而持续更新，Rspack 团队、Vercel 团队和开源社区将持续合作。
+
+### 谁在维护它？
+
+next-rspack 是一个社区插件，但其开发和集成依赖于 Rspack 团队和 Vercel 团队之间的密切合作，以确保持续的支持和进展。
+
+### 这对 Turbopack 有影响吗？Vercel 是否采用了 Rspack？
+
+Rspack 不会替代 Turbopack。它是为那些拥有大量 webpack 配置、且尚未准备好迁移到 Turbopack 的用户提供的替代解决方案。
+
+### 已知的问题有哪些？
+
+截至目前，next-rspack 通过了约 96% 的集成测试，进展可在 [arewerspackyet](https://www.arewerspackyet.com/) 上查看。
+
+一些特殊情况和进阶功能可能仍需要临时解决方案或额外支持。即使你没有遇到问题，也欢迎在 [反馈讨论](https://github.com/vercel/next.js/discussions/77800) 中告诉我们你的使用体验。
+
+受当前插件实现方式的限制，App Router 的性能表现不够理想，这方面仍有很大的改进空间。
+
+由于 Rspack 并不完全兼容 webpack 的 API，你的一些 webpack 插件可能无法在 Rspack 上顺畅工作，如果你遇到兼容性问题，请告知我们。
+
+### 如何参与贡献？
+
+尝试 next-rspack，报告问题，贡献代码或文档，加入社区讨论。你的反馈和贡献都很宝贵。
+
+## 未来计划
+
+- **提高测试覆盖率**：在下一季度，我们计划将测试覆盖率从当前的 96% 提高到接近 100%。
+- **增强性能**：我们将通过原生插件，探索与 Next.js 的更深层次集成，以提升构建性能。
+- **基于用户反馈迭代**：继续支持来自 Next.js 生态系统的更多社区插件。
+- **完善集成工作流**：建立 Rspack 和 Next.js 之间更加健全的 CI/CD 流程，确保 next-rspack 支持的稳定性和可靠性。
+- **更好的 RSC 支持**：Turbopack 的统一模块图解锁了更快、更简单的 RSC 实现。Rspack 将提供类似的 API，为生态带来一流、高性能的 RSC 支持。
+- **模块联邦支持**：我们正在与 Next.js 团队讨论改进对模块联邦的支持。
+
+在 2024 年，稳定性和构建产物完整性是 Rspack 的主要关注点。2025 年，我们将更加关注性能提升和广泛的生态系统。
+
+敬请期待 —— 我们的旅程才刚刚开始。

@@ -617,7 +617,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for immutable 1`] = `
-"asset a618085316d097fd.js xx KiB [emitted] [immutable] (name: main)
+"asset 4bb31e6ebee8d2ca.js xx KiB [emitted] [immutable] (name: main)
 asset cc8bb03cea0d9f6f.js xx bytes [emitted] [immutable]"
 `;
 
@@ -626,7 +626,7 @@ exports[`StatsTestCases should print correct stats for import-context-filter 1`]
 asset 228.js xx bytes [emitted]
 asset 271.js xx bytes [emitted]
 asset 536.js xx bytes [emitted]
-runtime modules xx KiB 9 modules
+runtime modules 7 KiB 9 modules
 cacheable modules xx bytes
   modules by path ./templates/*.js xx bytes
     ./templates/bar.js xx bytes [built] [code generated]
@@ -899,20 +899,20 @@ chunk (runtime: e3) 400.js xx bytes [rendered]
 chunk (runtime: e1, e3) 511.js xx bytes [rendered]
   ./async2.js xx bytes [built] [code generated]
   ./f.js xx bytes [dependent] [built] [code generated]
-chunk (runtime: e1) e1.js (e1) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
+chunk (runtime: e1) e1.js (e1) xx bytes (javascript) 7 KiB (runtime) [entry] [rendered]
   ./b.js xx bytes [dependent] [built] [code generated]
   ./d.js xx bytes [dependent] [built] [code generated]
   ./e1.js + 2 modules xx bytes [code generated]
 chunk (runtime: e2, e3) 637.js xx bytes [rendered]
   ./async1.js xx bytes [built] [code generated]
   ./d.js xx bytes [dependent] [built] [code generated]
-chunk (runtime: e3) e3.js (e3) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
+chunk (runtime: e3) e3.js (e3) xx bytes (javascript) 7 KiB (runtime) [entry] [rendered]
   ./b.js xx bytes [dependent] [built] [code generated]
   ./e3.js + 2 modules xx bytes [code generated]
   ./h.js xx bytes [dependent] [built] [code generated]
 chunk (runtime: e2) 806.js xx bytes [rendered]
   ./async2.js xx bytes [built] [code generated]
-chunk (runtime: e2) e2.js (e2) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
+chunk (runtime: e2) e2.js (e2) xx bytes (javascript) 7 KiB (runtime) [entry] [rendered]
   ./b.js xx bytes [dependent] [built] [code generated]
   ./e2.js + 2 modules xx bytes [code generated]
   ./f.js xx bytes [dependent] [built] [code generated]
@@ -1866,7 +1866,7 @@ Rspack x.x.x compiled successfully in X.23"
 exports[`StatsTestCases should print correct stats for side-effects-issue-7428 1`] = `
 "asset main.js xx KiB [emitted] (name: main)
 asset 0.js xx bytes [emitted]
-runtime modules xx KiB 9 modules
+runtime modules 7 KiB 9 modules
 cacheable modules xx bytes
   modules by path ./components/src/ xx bytes
     orphan modules xx bytes [orphan]
@@ -2077,7 +2077,7 @@ all-chunks:
   all-chunks (Rspack x.x.x) compiled successfully
 
 manual:
-  Entrypoint main 9 KiB = manual/main.js
+  Entrypoint main xx KiB = manual/main.js
   Entrypoint a xx KiB = manual/vendors.js xx bytes manual/a.js xx KiB
   Entrypoint b xx KiB = manual/vendors.js xx bytes manual/b.js xx KiB
   Entrypoint c xx KiB = manual/vendors.js xx bytes manual/c.js xx KiB
