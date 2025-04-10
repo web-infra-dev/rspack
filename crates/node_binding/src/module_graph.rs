@@ -167,7 +167,7 @@ impl JsModuleGraph {
     let (compilation, module_graph) = self.as_ref()?;
     Ok(
       module_graph
-        .get_outgoing_connections_in_order(&module.identifier)
+        .get_outgoing_deps_in_order(&module.identifier)
         .map(|dependency_id| ModuleGraphConnectionWrapper::new(*dependency_id, compilation))
         .collect::<Vec<_>>(),
     )
