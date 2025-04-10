@@ -318,10 +318,11 @@ impl ExternalModule {
             .boxed(),
           );
           format!(
-            "{} = __WEBPACK_EXTERNAL_createRequire({}.url)({});",
+            "{} = __WEBPACK_EXTERNAL_createRequire({}.url)({}){};",
             get_namespace_object_export(concatenation_scope, supports_const),
             compilation.options.output.import_meta_name,
-            json_stringify(request.primary())
+            json_stringify(request.primary()),
+            property_access(request.iter(), 1)
           )
         } else {
           format!(
