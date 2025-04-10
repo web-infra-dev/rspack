@@ -1,8 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ExportNameOrSpec, ExportSpec,
-  ExportsOfExportsSpec, ExportsSpec, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
+  DependencyType, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
@@ -69,13 +70,9 @@ impl Dependency for CssLocalIdentDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for CssLocalIdentDependency {
-  fn apply(
-    &self,
-    source: &mut TemplateReplaceSource,
-    _code_generatable_context: &mut TemplateContext,
-  ) {
-    source.replace(self.start, self.end, &escape_css(&self.local_ident), None);
+impl DependencyCodeGeneration for CssLocalIdentDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(CssLocalIdentDependencyTemplate::template_type())
   }
 
   fn update_hash(
@@ -90,3 +87,29 @@ impl DependencyTemplate for CssLocalIdentDependency {
 
 impl AsContextDependency for CssLocalIdentDependency {}
 impl AsModuleDependency for CssLocalIdentDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct CssLocalIdentDependencyTemplate;
+
+impl CssLocalIdentDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::CssLocalIdent)
+  }
+}
+
+impl DependencyTemplate for CssLocalIdentDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    source: &mut TemplateReplaceSource,
+    _code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<CssLocalIdentDependency>()
+      .expect("CssLocalIdentDependencyTemplate should be used for CssLocalIdentDependency");
+
+    source.replace(dep.start, dep.end, &escape_css(&dep.local_ident), None);
+  }
+}

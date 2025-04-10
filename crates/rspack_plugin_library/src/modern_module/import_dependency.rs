@@ -1,8 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyType, ExternalRequest, ExternalType, FactorizeInfo,
-  ImportAttributes, ModuleDependency, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExternalRequest,
+  ExternalType, FactorizeInfo, ImportAttributes, ModuleDependency, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_plugin_javascript::dependency::create_resource_identifier_for_esm_dependency;
 use swc_core::ecma::atoms::Atom;
@@ -100,19 +101,44 @@ impl ModuleDependency for ModernModuleImportDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ModernModuleImportDependency {
-  fn apply(
+impl DependencyCodeGeneration for ModernModuleImportDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(ModernModuleImportDependencyTemplate::template_type())
+  }
+}
+
+impl AsContextDependency for ModernModuleImportDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ModernModuleImportDependencyTemplate;
+impl ModernModuleImportDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("ModernModuleImportDependency")
+  }
+}
+
+impl DependencyTemplate for ModernModuleImportDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     _code_generatable_context: &mut TemplateContext,
   ) {
-    let request_and_external_type = match &self.target_request {
-      ExternalRequest::Single(request) => (Some(request), &self.external_type),
-      ExternalRequest::Map(map) => (map.get(&self.external_type), &self.external_type),
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ModernModuleImportDependency>()
+      .expect(
+        "ModernModuleImportDependencyTemplate should be used for ModernModuleImportDependency",
+      );
+
+    let request_and_external_type = match &dep.target_request {
+      ExternalRequest::Single(request) => (Some(request), &dep.external_type),
+      ExternalRequest::Map(map) => (map.get(&dep.external_type), &dep.external_type),
     };
 
     if let Some(request_and_external_type) = request_and_external_type.0 {
-      let attributes_str = if let Some(attributes) = &self.attributes {
+      let attributes_str = if let Some(attributes) = &dep.attributes {
         format!(
           ", {{ with: {} }}",
           serde_json::to_string(attributes).expect("invalid json to_string")
@@ -122,8 +148,8 @@ impl DependencyTemplate for ModernModuleImportDependency {
       };
 
       source.replace(
-        self.range.start,
-        self.range.end,
+        dep.range.start,
+        dep.range.end,
         format!(
           "import({}{})",
           serde_json::to_string(request_and_external_type.primary())
@@ -136,5 +162,3 @@ impl DependencyTemplate for ModernModuleImportDependency {
     }
   }
 }
-
-impl AsContextDependency for ModernModuleImportDependency {}

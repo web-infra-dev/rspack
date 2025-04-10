@@ -229,5 +229,10 @@ export class StatsProcessor<
 		if (options.optimization.minimize === undefined) {
 			options.optimization.minimize = false;
 		}
+		if (!global.printLogger) {
+			options.infrastructureLogging = {
+				level: "error"
+			};
+		}
 	}
 }

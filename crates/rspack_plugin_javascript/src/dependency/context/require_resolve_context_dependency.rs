@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AffectType, AsModuleDependency, ContextDependency, ContextOptions, ContextTypePrefix, Dependency,
-  DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
-  FactorizeInfo, TemplateContext, TemplateReplaceSource,
+  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, FactorizeInfo, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -46,7 +46,7 @@ impl Dependency for RequireResolveContextDependency {
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::RequireContext
+    &DependencyType::RequireResolveContext
   }
 
   fn range(&self) -> Option<&DependencyRange> {
@@ -105,14 +105,36 @@ impl ContextDependency for RequireResolveContextDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for RequireResolveContextDependency {
-  fn apply(
-    &self,
-    source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    context_dependency_template_as_id(self, source, code_generatable_context, &self.range);
+impl DependencyCodeGeneration for RequireResolveContextDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(RequireResolveContextDependencyTemplate::template_type())
   }
 }
 
 impl AsModuleDependency for RequireResolveContextDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct RequireResolveContextDependencyTemplate;
+
+impl RequireResolveContextDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::RequireResolveContext)
+  }
+}
+
+impl DependencyTemplate for RequireResolveContextDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<RequireResolveContextDependency>()
+      .expect("RequireResolveContextDependencyTemplate should be used for RequireResolveContextDependency");
+
+    context_dependency_template_as_id(dep, source, code_generatable_context, &dep.range);
+  }
+}

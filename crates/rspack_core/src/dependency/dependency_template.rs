@@ -40,19 +40,11 @@ impl TemplateContext<'_, '_, '_> {
 
 pub type TemplateReplaceSource = ReplaceSource<BoxSource>;
 
-clone_trait_object!(DependencyTemplate);
+clone_trait_object!(DependencyCodeGeneration);
 
-// Align with https://github.com/webpack/webpack/blob/671ac29d462e75a10c3fdfc785a4c153e41e749e/lib/DependencyTemplate.js
+// Align with https://github.com/webpack/webpack/blob/671ac29d462e75a10c3fdfc785a4c153e41e749e/lib/DependencyCodeGeneration.js
 #[cacheable_dyn]
-pub trait DependencyTemplate: Debug + DynClone + Sync + Send + AsAny {
-  fn apply(
-    &self,
-    _source: &mut TemplateReplaceSource,
-    _code_generatable_context: &mut TemplateContext,
-  ) {
-    unimplemented!()
-  }
-
+pub trait DependencyCodeGeneration: Debug + DynClone + Sync + Send + AsAny {
   fn update_hash(
     &self,
     _hasher: &mut dyn std::hash::Hasher,
@@ -61,35 +53,35 @@ pub trait DependencyTemplate: Debug + DynClone + Sync + Send + AsAny {
   ) {
   }
 
-  fn dynamic_dependency_template(&self) -> Option<DynamicDependencyTemplateType> {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     None
   }
 }
 
-pub type BoxDependencyTemplate = Box<dyn DependencyTemplate>;
+pub type BoxDependencyTemplate = Box<dyn DependencyCodeGeneration>;
 
-pub trait AsDependencyTemplate {
-  fn as_dependency_template(&self) -> Option<&dyn DependencyTemplate> {
+pub trait AsDependencyCodeGeneration {
+  fn as_dependency_code_generation(&self) -> Option<&dyn DependencyCodeGeneration> {
     None
   }
 }
 
-impl<T: DependencyTemplate> AsDependencyTemplate for T {
-  fn as_dependency_template(&self) -> Option<&dyn DependencyTemplate> {
+impl<T: DependencyCodeGeneration> AsDependencyCodeGeneration for T {
+  fn as_dependency_code_generation(&self) -> Option<&dyn DependencyCodeGeneration> {
     Some(self)
   }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
-pub enum DynamicDependencyTemplateType {
-  DependencyType(DependencyType),
-  CustomType(String),
+pub enum DependencyTemplateType {
+  Dependency(DependencyType),
+  Custom(&'static str),
 }
 
-pub trait DynamicDependencyTemplate: Debug + Sync + Send {
+pub trait DependencyTemplate: Debug + Sync + Send {
   fn render(
     &self,
-    dep: &dyn DependencyTemplate,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   );

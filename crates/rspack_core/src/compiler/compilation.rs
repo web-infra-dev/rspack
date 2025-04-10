@@ -51,12 +51,12 @@ use crate::{
   ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact,
   ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderResult, ChunkUkey,
   CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyId,
-  DependencyTemplate, DependencyType, DynamicDependencyTemplate, DynamicDependencyTemplateType,
-  Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename,
-  ImportVarMap, Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
-  ModuleIdsArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpecMap,
-  RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats,
+  CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyCodeGeneration,
+  DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, Entry, EntryData,
+  EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap, Logger,
+  ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier, ModuleIdsArtifact, PathData,
+  ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpecMap, RuntimeTemplate,
+  SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats,
 };
 
 define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));
@@ -213,8 +213,7 @@ pub struct Compilation {
   pub global_entry: EntryData,
   other_module_graph: Option<ModuleGraphPartial>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
-  pub dependency_templates:
-    HashMap<DynamicDependencyTemplateType, Arc<dyn DynamicDependencyTemplate>>,
+  pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
   pub runtime_modules_hash: IdentifierMap<RspackHashDigest>,
   pub runtime_modules_code_generation_source: IdentifierMap<BoxSource>,
@@ -2470,18 +2469,18 @@ impl Compilation {
 
   pub fn set_dependency_template(
     &mut self,
-    template_type: DynamicDependencyTemplateType,
-    template: Arc<dyn DynamicDependencyTemplate>,
+    template_type: DependencyTemplateType,
+    template: Arc<dyn DependencyTemplate>,
   ) {
     self.dependency_templates.insert(template_type, template);
   }
 
   pub fn get_dependency_template(
     &self,
-    dep: &dyn DependencyTemplate,
-  ) -> Option<Arc<dyn DynamicDependencyTemplate>> {
+    dep: &dyn DependencyCodeGeneration,
+  ) -> Option<Arc<dyn DependencyTemplate>> {
     dep
-      .dynamic_dependency_template()
+      .dependency_template()
       .and_then(|template_type| self.dependency_templates.get(&template_type).cloned())
   }
 

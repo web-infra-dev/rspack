@@ -4,10 +4,10 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   property_access, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ExportNameOrSpec, ExportSpec,
-  ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleGraph, NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
-  UsedName,
+  DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
+  DependencyType, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, ModuleGraph, NormalInitFragment, RuntimeGlobals,
+  TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::atoms::Atom;
 
@@ -112,12 +112,38 @@ impl Dependency for CommonJsExportsDependency {
 impl AsModuleDependency for CommonJsExportsDependency {}
 
 #[cacheable_dyn]
-impl DependencyTemplate for CommonJsExportsDependency {
-  fn apply(
+impl DependencyCodeGeneration for CommonJsExportsDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(CommonJsExportsDependencyTemplate::template_type())
+  }
+}
+
+impl AsContextDependency for CommonJsExportsDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct CommonJsExportsDependencyTemplate;
+
+impl CommonJsExportsDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::CjsExports)
+  }
+}
+
+impl DependencyTemplate for CommonJsExportsDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<CommonJsExportsDependency>()
+      .expect(
+        "CommonJsExportsDependencyTemplate should only be used for CommonJsExportsDependency",
+      );
+
     let TemplateContext {
       compilation,
       module,
@@ -134,29 +160,29 @@ impl DependencyTemplate for CommonJsExportsDependency {
 
     let used = module_graph
       .get_exports_info(&module.identifier())
-      .get_used_name(&module_graph, *runtime, UsedName::Vec(self.names.clone()));
+      .get_used_name(&module_graph, *runtime, UsedName::Vec(dep.names.clone()));
 
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();
 
-    let base = if self.base.is_exports() {
+    let base = if dep.base.is_exports() {
       runtime_requirements.insert(RuntimeGlobals::EXPORTS);
       exports_argument.to_string()
-    } else if self.base.is_module_exports() {
+    } else if dep.base.is_module_exports() {
       runtime_requirements.insert(RuntimeGlobals::MODULE);
       format!("{}.exports", module_argument)
-    } else if self.base.is_this() {
+    } else if dep.base.is_this() {
       runtime_requirements.insert(RuntimeGlobals::THIS_AS_EXPORTS);
       "this".to_string()
     } else {
       panic!("Unexpected base type");
     };
 
-    if self.base.is_expression() {
+    if dep.base.is_expression() {
       if let Some(used) = used {
         source.replace(
-          self.range.0,
-          self.range.1,
+          dep.range.0,
+          dep.range.1,
           &format!(
             "{}{}",
             base,
@@ -181,19 +207,14 @@ impl DependencyTemplate for CommonJsExportsDependency {
           )
           .boxed(),
         );
-        source.replace(
-          self.range.0,
-          self.range.1,
-          "__webpack_unused_export__",
-          None,
-        );
+        source.replace(dep.range.0, dep.range.1, "__webpack_unused_export__", None);
       }
-    } else if self.base.is_define_property() {
-      if let Some(value_range) = self.value_range {
+    } else if dep.base.is_define_property() {
+      if let Some(value_range) = dep.value_range {
         if let Some(used) = used {
           if let UsedName::Vec(used) = used {
             source.replace(
-              self.range.0,
+              dep.range.0,
               value_range.0,
               &format!(
                 "Object.defineProperty({}{}, {}, (",
@@ -204,7 +225,7 @@ impl DependencyTemplate for CommonJsExportsDependency {
               ),
               None,
             );
-            source.replace(value_range.1, self.range.1, "))", None);
+            source.replace(value_range.1, dep.range.1, "))", None);
           } else {
             panic!("Unexpected base type");
           }
@@ -220,12 +241,12 @@ impl DependencyTemplate for CommonJsExportsDependency {
             .boxed(),
           );
           source.replace(
-            self.range.0,
+            dep.range.0,
             value_range.0,
             "__webpack_unused_export__ = (",
             None,
           );
-          source.replace(value_range.1, self.range.1, ")", None);
+          source.replace(value_range.1, dep.range.1, ")", None);
         }
       } else {
         panic!("Define property need value range");
@@ -235,5 +256,3 @@ impl DependencyTemplate for CommonJsExportsDependency {
     }
   }
 }
-
-impl AsContextDependency for CommonJsExportsDependency {}

@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Dependency, DependencyId, DependencyLocation,
-  DependencyRange, DependencyTemplate, DependencyType, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource,
+  AsContextDependency, AsModuleDependency, Dependency, DependencyCodeGeneration, DependencyId,
+  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  SharedSourceMap, TemplateContext, TemplateReplaceSource,
 };
 
 // Remove `export` label.
@@ -53,24 +53,47 @@ impl Dependency for ESMExportHeaderDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ESMExportHeaderDependency {
-  fn apply(
+impl DependencyCodeGeneration for ESMExportHeaderDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(ESMExportHeaderDependencyTemplate::template_type())
+  }
+}
+
+impl AsModuleDependency for ESMExportHeaderDependency {}
+impl AsContextDependency for ESMExportHeaderDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ESMExportHeaderDependencyTemplate;
+
+impl ESMExportHeaderDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::EsmExportHeader)
+  }
+}
+
+impl DependencyTemplate for ESMExportHeaderDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     _code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ESMExportHeaderDependency>()
+      .expect(
+        "ESMExportHeaderDependencyTemplate should only be used for ESMExportHeaderDependency",
+      );
     source.replace(
-      self.range.start,
-      if let Some(range) = &self.range_decl {
+      dep.range.start,
+      if let Some(range) = &dep.range_decl {
         range.start
       } else {
-        self.range.end
+        dep.range.end
       },
       "",
       None,
     );
   }
 }
-
-impl AsModuleDependency for ESMExportHeaderDependency {}
-impl AsContextDependency for ESMExportHeaderDependency {}

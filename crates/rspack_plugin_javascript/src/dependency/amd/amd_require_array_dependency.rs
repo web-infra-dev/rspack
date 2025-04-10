@@ -4,8 +4,8 @@ use itertools::Itertools;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   module_raw, AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ModuleDependency, TemplateContext,
-  TemplateReplaceSource,
+  DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
+  DependencyType, ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 
 use super::amd_require_item_dependency::AMDRequireItemDependency;
@@ -96,17 +96,41 @@ impl AMDRequireArrayDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for AMDRequireArrayDependency {
-  fn apply(
-    &self,
-    source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    let content = self.get_content(code_generatable_context);
-    source.replace(self.range.0, self.range.1, &content, None);
+impl DependencyCodeGeneration for AMDRequireArrayDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(AMDRequireArrayDependencyTemplate::template_type())
   }
 }
 
 impl AsModuleDependency for AMDRequireArrayDependency {}
 
 impl AsContextDependency for AMDRequireArrayDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct AMDRequireArrayDependencyTemplate;
+
+impl AMDRequireArrayDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::AmdRequireArray)
+  }
+}
+
+impl DependencyTemplate for AMDRequireArrayDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<AMDRequireArrayDependency>()
+      .expect(
+        "AMDRequireArrayDependencyTemplate should only be used for AMDRequireArrayDependency",
+      );
+
+    let content = dep.get_content(code_generatable_context);
+    source.replace(dep.range.0, dep.range.1, &content, None);
+  }
+}

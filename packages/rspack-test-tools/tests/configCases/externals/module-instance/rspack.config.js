@@ -15,17 +15,20 @@ class Plugin {
 			const module = externalModules[0];
 
 			expect(module.constructor.name).toBe("ExternalModule");
-
-			expect(module.userRequest).toBe("external");
-
 			expect(module.type).toBe("javascript/dynamic");
-			expect("context" in module).toBe(true);
-			expect("layer" in module).toBe(true);
-			expect("factoryMeta" in module).toBe(true);
+			expect(module.userRequest).toBe("external");
 			expect(module.useSourceMap).toBe(false);
 			expect(module.useSimpleSourceMap).toBe(false);
-			expect("buildMeta" in module).toBe(true);
-			expect("buildMeta" in module).toBe(true);
+
+			expect(Object.hasOwn(module, "type")).toBe(true);
+			expect(Object.hasOwn(module, "context")).toBe(true);
+			expect(Object.hasOwn(module, "layer")).toBe(true);
+			expect(Object.hasOwn(module, "userRequest")).toBe(true);
+			expect(Object.hasOwn(module, "factoryMeta")).toBe(true);
+			expect(Object.hasOwn(module, "useSourceMap")).toBe(true);
+			expect(Object.hasOwn(module, "useSimpleSourceMap")).toBe(true);
+			expect(Object.hasOwn(module, "buildMeta")).toBe(true);
+			expect(Object.hasOwn(module, "buildMeta")).toBe(true);
 		});
 	}
 }

@@ -62,48 +62,45 @@ jobs:
   test-linux:
     name: Test Linux
     needs: [get-runner-labels, check-changed]
+    if: ${{ needs.check-changed.outputs.changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
       runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
-      skipable: ${{ needs.check-changed.outputs.changed != 'true' }}
+      test: true
       bench: true
-      full-install: false
 
   test-windows:
     name: Test Windows
     needs: [get-runner-labels, check-changed]
+    if: ${{ needs.check-changed.outputs.changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-pc-windows-msvc
       profile: "dev"
       runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
-      skipable: ${{ needs.check-changed.outputs.changed != 'true' }}
-      full-install: false
+      test: true
 
   test-mac:
     name: Test Mac ARM64
     needs: [get-runner-labels, check-changed]
-    if: github.ref_name == 'main' || contains(github.event.pull_request.title, '!macos')
+    if: github.ref_name == 'main' && needs.check-changed.outputs.changed == 'true'
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: aarch64-apple-darwin
       profile: "ci"
       runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
-      skipable: ${{ needs.check-changed.outputs.changed  != 'true' }}
-      full-install: false
+      test: true
 
-  test-wasm:
-    name: Test WASM
-    needs: [get-runner-labels, check-changed]
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      target: wasm32-wasip1-threads
-      profile: "ci"
-      runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
-      skipable: true
-      full-install: false
-      test: false
+#  test-wasm:
+#    name: Test WASM
+#    needs: [get-runner-labels, check-changed]
+#    uses: ./.github/workflows/reusable-build.yml
+#    with:
+#      target: wasm32-wasip1-threads
+#      profile: "ci"
+#      runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+#      test: false
 
   cargo-deny:
     name: Check license of dependencies
@@ -118,7 +115,7 @@ jobs:
               - 'Cargo.lock'
       - name: Install cargo-deny
         if: steps.filter.outputs.src == 'true'
-        uses: taiki-e/install-action@5651179950649c44da31d346537e20c0534f0f25 # v2
+        uses: taiki-e/install-action@2db346588ecc179293df26b2f8dcc61d3b3ecc40 # v2
         with:
           tool: cargo-deny@0.16
       - name: Check licenses
@@ -130,7 +127,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - uses: crate-ci/typos@d08e4083f112e684fb88f6babd9ae60a1f1cd84f # v1.30.3
+      - uses: crate-ci/typos@b1a1ef3893ff35ade0cfa71523852a49bfd05d19 # v1.31.1
         with:
           files: .
 
@@ -217,7 +214,7 @@ jobs:
         with:
           filters: |
             changed:
-              - '.github/workflows/ci.yml'
+              - '.github/workflows/**'
               - 'crates/**'
               - 'Cargo.lock'
               - 'Cargo.toml'
@@ -248,8 +245,6 @@ jobs:
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
-          clippy: true
-          fmt: true
           shared-key: check
 
       - name: Pnpm Setup
@@ -283,7 +278,7 @@ jobs:
       - uses: ./.github/actions/rustup
         with:
           shared-key: check
-      - uses: cargo-bins/cargo-binstall@b9bf4400702f721d469eec4d280125f650c85638 # v1.12.2
+      - uses: cargo-bins/cargo-binstall@63aaa5c1932cebabc34eceda9d92a70215dcead6 # v1.12.3
       - run: cargo binstall --no-confirm cargo-shear --force
       - run: cargo shear
 
@@ -298,7 +293,7 @@ jobs:
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
-          save-cache: ${{ github.ref_name == 'main' }}
+          save-if: ${{ github.ref_name == 'main' }}
           shared-key: check
 
       # Compile test without debug info for reducing the CI cache size
@@ -323,9 +318,8 @@ jobs:
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
-          save-cache: ${{ github.ref_name == 'main' }}
+          save-if: ${{ github.ref_name == 'main' }}
           shared-key: check
-          miri: true
 
       # Compile test without debug info for reducing the CI cache size
       - name: Change profile.test

@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyId,
-  DependencyLocation, DependencyRange, DependencyTemplate, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource,
+  AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCodeGeneration,
+  DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
+  SharedSourceMap, TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -43,17 +43,34 @@ impl AsModuleDependency for RequireResolveHeaderDependency {}
 impl AsContextDependency for RequireResolveHeaderDependency {}
 
 #[cacheable_dyn]
-impl DependencyTemplate for RequireResolveHeaderDependency {
-  fn apply(
+impl DependencyCodeGeneration for RequireResolveHeaderDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(RequireResolveHeaderDependencyTemplate::template_type())
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct RequireResolveHeaderDependencyTemplate;
+
+impl RequireResolveHeaderDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("RequireResolveHeaderDependency")
+  }
+}
+
+impl DependencyTemplate for RequireResolveHeaderDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     _code_generatable_context: &mut TemplateContext,
   ) {
-    source.replace(
-      self.range.start,
-      self.range.end,
-      "/*require.resolve*/",
-      None,
-    );
+    let dep = dep
+      .as_any()
+      .downcast_ref::<RequireResolveHeaderDependency>()
+      .expect("RequireResolveHeaderDependencyTemplate should only be used for RequireResolveHeaderDependency");
+
+    source.replace(dep.range.start, dep.range.end, "/*require.resolve*/", None);
   }
 }

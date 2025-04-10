@@ -2,8 +2,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::AsRefStr};
 use rspack_util::ext::DynHash;
 
 use crate::{
-  Compilation, DependencyTemplate, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  Compilation, DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType,
+  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -33,18 +33,9 @@ impl ConstDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ConstDependency {
-  fn apply(
-    &self,
-    source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    if let Some(runtime_requirements) = &self.runtime_requirements {
-      code_generatable_context
-        .runtime_requirements
-        .insert(*runtime_requirements);
-    }
-    source.replace(self.start, self.end, self.content.as_ref(), None);
+impl DependencyCodeGeneration for ConstDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(ConstDependencyTemplate::template_type())
   }
 
   fn update_hash(
@@ -57,5 +48,36 @@ impl DependencyTemplate for ConstDependency {
     self.end.dyn_hash(hasher);
     self.content.dyn_hash(hasher);
     self.runtime_requirements.dyn_hash(hasher);
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ConstDependencyTemplate;
+
+impl ConstDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("ConstDependency")
+  }
+}
+
+impl DependencyTemplate for ConstDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ConstDependency>()
+      .expect("ConstDependencyTemplate should be used for ConstDependency");
+
+    if let Some(runtime_requirements) = &dep.runtime_requirements {
+      code_generatable_context
+        .runtime_requirements
+        .insert(*runtime_requirements);
+    }
+    source.replace(dep.start, dep.end, dep.content.as_ref(), None);
   }
 }

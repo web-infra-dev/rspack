@@ -6,7 +6,8 @@
   "react",
   "preact",
   "vue",
+  "next",
+  "nestjs",
   "solid",
-  "svelte",
-  "nestjs"
+  "svelte"
 ]

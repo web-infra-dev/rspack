@@ -1,8 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
-  DependencyId, DependencyRange, DependencyTemplate, DependencyType, FactorizeInfo, ModuleGraph,
-  TemplateContext, TemplateReplaceSource,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleGraph, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -114,20 +115,42 @@ impl ContextDependency for AMDRequireContextDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for AMDRequireContextDependency {
-  fn apply(
-    &self,
-    source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    context_dependency_template_as_require_call(
-      self,
-      source,
-      code_generatable_context,
-      &self.range,
-      Some(&self.range),
-    );
+impl DependencyCodeGeneration for AMDRequireContextDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(AMDRequireContextDependencyTemplate::template_type())
   }
 }
 
 impl AsModuleDependency for AMDRequireContextDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct AMDRequireContextDependencyTemplate;
+
+impl AMDRequireContextDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::AmdRequireContext)
+  }
+}
+
+impl DependencyTemplate for AMDRequireContextDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<AMDRequireContextDependency>()
+      .expect("AMDRequireContextDependencyTemplate should be used for AMDRequireContextDependency");
+
+    context_dependency_template_as_require_call(
+      dep,
+      source,
+      code_generatable_context,
+      &dep.range,
+      Some(&dep.range),
+    );
+  }
+}

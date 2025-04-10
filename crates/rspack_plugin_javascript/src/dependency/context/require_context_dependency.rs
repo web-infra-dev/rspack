@@ -1,8 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   module_raw, AsModuleDependency, ContextDependency, ContextOptions, Dependency,
-  DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
-  FactorizeInfo, ModuleGraph, TemplateContext, TemplateReplaceSource,
+  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleGraph, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -112,12 +113,36 @@ impl ContextDependency for RequireContextDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for RequireContextDependency {
-  fn apply(
+impl DependencyCodeGeneration for RequireContextDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(RequireContextDependencyTemplate::template_type())
+  }
+}
+
+impl AsModuleDependency for RequireContextDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct RequireContextDependencyTemplate;
+
+impl RequireContextDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::RequireContext)
+  }
+}
+
+impl DependencyTemplate for RequireContextDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<RequireContextDependency>()
+      .expect("RequireContextDependencyTemplate should be used for RequireContextDependency");
+
     let TemplateContext {
       compilation,
       runtime_requirements,
@@ -127,12 +152,10 @@ impl DependencyTemplate for RequireContextDependency {
     let content = module_raw(
       compilation,
       runtime_requirements,
-      &self.id,
-      &self.options.request,
-      self.optional,
+      &dep.id,
+      &dep.options.request,
+      dep.optional,
     );
-    source.replace(self.range.start, self.range.end, &content, None);
+    source.replace(dep.range.start, dep.range.end, &content, None);
   }
 }
-
-impl AsModuleDependency for RequireContextDependency {}

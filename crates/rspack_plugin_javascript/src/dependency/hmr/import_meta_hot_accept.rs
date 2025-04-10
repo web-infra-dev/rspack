@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyType, FactorizeInfo, ModuleDependency, TemplateContext,
-  TemplateReplaceSource,
+  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  FactorizeInfo, ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -78,25 +78,49 @@ impl ModuleDependency for ImportMetaHotAcceptDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ImportMetaHotAcceptDependency {
-  fn apply(
+impl DependencyCodeGeneration for ImportMetaHotAcceptDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(ImportMetaHotAcceptDependencyTemplate::template_type())
+  }
+}
+
+impl AsContextDependency for ImportMetaHotAcceptDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ImportMetaHotAcceptDependencyTemplate;
+
+impl ImportMetaHotAcceptDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::ImportMetaHotAccept)
+  }
+}
+
+impl DependencyTemplate for ImportMetaHotAcceptDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ImportMetaHotAcceptDependency>()
+      .expect(
+        "ImportMetaHotAcceptDependencyTemplate should be used for ImportMetaHotAcceptDependency",
+      );
+
     source.replace(
-      self.range.start,
-      self.range.end,
+      dep.range.start,
+      dep.range.end,
       module_id(
         code_generatable_context.compilation,
-        &self.id,
-        &self.request,
-        self.weak(),
+        &dep.id,
+        &dep.request,
+        dep.weak(),
       )
       .as_str(),
       None,
     );
   }
 }
-
-impl AsContextDependency for ImportMetaHotAcceptDependency {}

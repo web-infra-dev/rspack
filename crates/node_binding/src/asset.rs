@@ -124,6 +124,7 @@ unsafe fn napi_value_to_json(
     | napi::ValueType::Symbol
     | napi::ValueType::Function
     | napi::ValueType::External
+    | napi::ValueType::BigInt
     | napi::ValueType::Unknown => Ok(None),
   }
 }

@@ -1,9 +1,9 @@
 use json::JsonValue;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId,
-  DependencyTemplate, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCodeGeneration,
+  DependencyId, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
+  RuntimeSpec,
 };
 use rspack_util::{ext::DynHash, itoa};
 
@@ -49,14 +49,7 @@ impl AsModuleDependency for JsonExportsDependency {}
 impl AsContextDependency for JsonExportsDependency {}
 
 #[cacheable_dyn]
-impl DependencyTemplate for JsonExportsDependency {
-  fn apply(
-    &self,
-    _source: &mut TemplateReplaceSource,
-    _code_generatable_context: &mut TemplateContext,
-  ) {
-  }
-
+impl DependencyCodeGeneration for JsonExportsDependency {
   fn update_hash(
     &self,
     hasher: &mut dyn std::hash::Hasher,

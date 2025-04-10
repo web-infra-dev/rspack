@@ -159,4 +159,31 @@ describe("TypeScript React project", () => {
 			}
 		}
 	});
+
+	bench("is css mod", () => {
+		const regexCSS = /\.(css|scss|sass)(\?.*)?$/;
+
+		function isCSSMod(mod: {
+			resource: string
+			type?: string
+			loaders?: { loader: string }[]
+		}): boolean {
+			return !!(
+			  	mod.type === 'css/mini-extract' ||
+			  	(mod.resource && regexCSS.test(mod.resource)) ||
+			 	mod.loaders?.some(
+					({ loader }) =>
+						loader.includes('next-style-loader/index.js') ||
+						loader.includes('rspack.CssExtractRspackPlugin.loader') ||
+						loader.includes('@vanilla-extract/webpack-plugin/loader/')
+			  	)
+			)
+		}
+
+		for (const module of theCompilation.modules) {
+			if (module instanceof NormalModule) {
+				isCSSMod(module);
+			}
+		}
+	});
 });

@@ -686,7 +686,7 @@ function getRawGeneratorOptions(
 		return undefined;
 	}
 
-	throw new Error(`unreachable: unknow module type: ${type}`);
+	throw new Error(`unreachable: unknown module type: ${type}`);
 }
 
 function getRawAssetGeneratorOptions(
