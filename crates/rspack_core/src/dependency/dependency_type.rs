@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display};
 
-use rspack_macros::cacheable;
+use rspack_cacheable::cacheable;
 
 use crate::ContextTypePrefix;
 

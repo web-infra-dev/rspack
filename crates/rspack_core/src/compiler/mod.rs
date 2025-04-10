@@ -5,10 +5,10 @@ mod rebuild;
 use std::sync::{atomic::AtomicU32, Arc};
 
 use futures::future::join_all;
+use rspack_cacheable::cacheable;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hook::define_hook;
-use rspack_macros::cacheable;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
 use rspack_util::node_path::NodePath;

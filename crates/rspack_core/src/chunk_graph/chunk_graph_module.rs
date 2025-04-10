@@ -6,9 +6,9 @@ use std::{
   sync::Arc,
 };
 
+use rspack_cacheable::cacheable;
 use rspack_collections::{IdentifierSet, UkeySet};
 use rspack_hash::RspackHashDigest;
-use rspack_macros::cacheable;
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHasher;
 use serde::{Serialize, Serializer};
