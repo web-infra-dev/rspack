@@ -387,6 +387,14 @@ lto             = "thin"
 split-debuginfo = "off"
 strip           = false
 
+[profile.profiling2]
+debug           = "limited"
+inherits        = "release"
+lto             = "thin"
+split-debuginfo = "off"
+strip           = false
+
+
 [profile.release-wasi]
 codegen-units = 16
 debug         = 'full'
