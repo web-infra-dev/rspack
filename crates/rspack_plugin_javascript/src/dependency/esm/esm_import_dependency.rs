@@ -69,7 +69,6 @@ pub struct ESMImportSideEffectDependency {
   range: DependencyRange,
   range_src: DependencyRange,
   dependency_type: DependencyType,
-  export_all: bool,
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
   #[cacheable(with=Skip)]
@@ -85,7 +84,6 @@ impl ESMImportSideEffectDependency {
     range: DependencyRange,
     range_src: DependencyRange,
     dependency_type: DependencyType,
-    export_all: bool,
     attributes: Option<ImportAttributes>,
     source_map: Option<SharedSourceMap>,
   ) -> Self {
@@ -98,7 +96,6 @@ impl ESMImportSideEffectDependency {
       range,
       range_src,
       dependency_type,
-      export_all,
       attributes,
       resource_identifier,
       source_map,
