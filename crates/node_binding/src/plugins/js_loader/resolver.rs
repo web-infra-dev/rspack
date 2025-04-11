@@ -133,6 +133,7 @@ pub(crate) async fn resolve_loader(
 
   let resolve_result = resolver
     .resolve(context.as_std_path(), prev.as_str())
+    .await
     .to_rspack_result_with_message(|e| {
       format!("Failed to resolve loader: {prev} in {context}, error: {e}")
     })?;

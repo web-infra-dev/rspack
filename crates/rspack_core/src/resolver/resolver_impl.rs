@@ -133,8 +133,12 @@ impl Resolver {
   }
 
   /// Resolve a specifier to a given path.
-  pub fn resolve(&self, path: &Path, request: &str) -> Result<ResolveResult, ResolveInnerError> {
-    match self.resolver.resolve(path, request) {
+  pub async fn resolve(
+    &self,
+    path: &Path,
+    request: &str,
+  ) -> Result<ResolveResult, ResolveInnerError> {
+    match self.resolver.resolve(path, request).await {
       Ok(r) => Ok(ResolveResult::Resource(Resource {
         path: r.path().to_path_buf().assert_utf8(),
         query: r.query().unwrap_or_default().to_string(),
@@ -149,7 +153,7 @@ impl Resolver {
   }
 
   /// Resolve a specifier to a given path.
-  pub fn resolve_with_context(
+  pub async fn resolve_with_context(
     &self,
     path: &Path,
     request: &str,
@@ -157,7 +161,9 @@ impl Resolver {
   ) -> Result<ResolveResult, ResolveInnerError> {
     let resolver = &self.resolver;
     let mut context = Default::default();
-    let result = resolver.resolve_with_context(path, request, &mut context);
+    let result = resolver
+      .resolve_with_context(path, request, &mut context)
+      .await;
     resolve_context
       .file_dependencies
       .extend(context.file_dependencies);
