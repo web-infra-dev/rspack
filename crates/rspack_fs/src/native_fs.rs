@@ -164,27 +164,7 @@ impl ReadableFileSystem for NativeFileSystem {
   }
 
   async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    if self.options.pnp {
-      let path = path.as_std_path();
-      return match VPath::from(path)? {
-        VPath::Zip(info) => self
-          .pnp_lru
-          .file_type(info.physical_base_path(), info.zip_path)
-          .map(FileMetadata::from)
-          .map_err(Error::from),
-
-        VPath::Virtual(info) => {
-          let meta = fs::metadata(info.physical_base_path())?;
-          FileMetadata::try_from(meta)
-        }
-        VPath::Native(path) => {
-          let meta = fs::metadata(path)?;
-          FileMetadata::try_from(meta)
-        }
-      };
-    }
-    let meta = fs::metadata(path)?;
-    meta.try_into()
+    self.metadata_sync(path)
   }
 
   fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata> {
