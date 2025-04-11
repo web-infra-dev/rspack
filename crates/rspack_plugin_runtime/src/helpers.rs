@@ -135,7 +135,7 @@ pub async fn get_runtime_chunk_output_name(
   get_chunk_output_name(runtime_chunk, compilation).await
 }
 
-pub async fn runtime_chunk_has_full_hash(
+pub async fn runtime_chunk_has_hash(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
 ) -> Result<bool> {

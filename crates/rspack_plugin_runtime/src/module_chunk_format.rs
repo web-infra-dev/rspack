@@ -20,7 +20,7 @@ use rustc_hash::FxHashSet as HashSet;
 use super::update_hash_for_entry_startup;
 use crate::{
   chunk_has_js, get_all_chunks, get_chunk_output_name, get_relative_path,
-  get_runtime_chunk_output_name, runtime_chunk_has_full_hash,
+  get_runtime_chunk_output_name, runtime_chunk_has_hash,
 };
 
 const PLUGIN_NAME: &str = "rspack.ModuleChunkFormatPlugin";
@@ -105,7 +105,7 @@ async fn compilation_dependent_full_hash(
 
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   if chunk.has_entry_module(&compilation.chunk_graph)
-    && runtime_chunk_has_full_hash(compilation, chunk_ukey).await?
+    && runtime_chunk_has_hash(compilation, chunk_ukey).await?
   {
     return Ok(Some(true));
   }
