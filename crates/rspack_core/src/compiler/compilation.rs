@@ -1408,6 +1408,7 @@ impl Compilation {
         .compilation_hooks
         .optimize_dependencies
         .call(self)
+        .instrument(info_span!("Compilation:optimize_dependencies"))
         .await?,
       Some(true)
     ) {}
@@ -1445,10 +1446,8 @@ impl Compilation {
       .instrument(info_span!("Compilation:after_optimize_modules"))
       .await?;
     while matches!(
-      plugin_driver
-        .compilation_hooks
-        .optimize_chunks
-        .call(self)
+      tracing::info_span!("Compilation:optimize_chunks")
+        .in_scope(|| { plugin_driver.compilation_hooks.optimize_chunks.call(self) })
         .await?,
       Some(true)
     ) {}

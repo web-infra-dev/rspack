@@ -42,6 +42,6 @@ impl<S> Filter<S> for FilterEvent {
     _cx: &tracing_subscriber::layer::Context<'_, S>,
   ) -> bool {
     // filter out swc related tracing because it's too much noisy for info level now
-    !meta.is_event() && !meta.target().contains("swc")
+    !meta.is_event() && !meta.target().starts_with("swc")
   }
 }
