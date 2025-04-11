@@ -344,6 +344,15 @@ const _: () = {
       .build()
       .expect("Create tokio runtime failed");
     create_custom_tokio_runtime(rt);
+
+    thread::Builder::new()
+      .spawn(|| {
+        rayon::ThreadPoolBuilder::new()
+          .use_current_thread()
+          .build_global()
+          .expect("Create rayon thread pool failed");
+      })
+      .expect("spawn rayon-spwaner thread failed");
   }
 };
 
