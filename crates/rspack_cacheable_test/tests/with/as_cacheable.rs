@@ -1,4 +1,4 @@
-use rspack_cacheable::{cacheable, with::AsCacheable};
+use rspack_cacheable::{enable_cacheable as cacheable, with::AsCacheable};
 
 #[cacheable]
 #[derive(Debug, PartialEq, Eq)]

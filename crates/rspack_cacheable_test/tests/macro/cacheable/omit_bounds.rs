@@ -1,5 +1,5 @@
 use dashmap::DashMap;
-use rspack_cacheable::{cacheable, from_bytes, to_bytes, with::AsMap};
+use rspack_cacheable::{enable_cacheable as cacheable, from_bytes, to_bytes, with::AsMap};
 
 #[cacheable]
 #[derive(Debug, Clone)]

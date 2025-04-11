@@ -1,4 +1,4 @@
-use rspack_cacheable::{cacheable, with::Unsupported, SerializeError};
+use rspack_cacheable::{enable_cacheable as cacheable, with::Unsupported, SerializeError};
 
 struct UnCacheable;
 

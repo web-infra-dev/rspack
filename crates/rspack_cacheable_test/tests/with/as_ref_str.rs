@@ -1,5 +1,5 @@
 use rspack_cacheable::{
-  cacheable,
+  enable_cacheable as cacheable,
   with::{AsRefStr, AsRefStrConverter},
 };
 
