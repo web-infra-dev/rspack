@@ -135,6 +135,47 @@ pub async fn get_runtime_chunk_output_name(
   get_chunk_output_name(runtime_chunk, compilation).await
 }
 
+pub async fn runtime_chunk_has_full_hash(
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+) -> Result<bool> {
+  let entry_point = {
+    let entry_points = compilation
+      .chunk_graph
+      .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
+
+    let (_, entry_point_ukey) = entry_points
+      .iter()
+      .next()
+      .ok_or_else(|| error!("should has entry point ukey"))?;
+
+    compilation.chunk_group_by_ukey.expect_get(entry_point_ukey)
+  };
+
+  let runtime_chunk_ukey = entry_point.get_runtime_chunk(&compilation.chunk_group_by_ukey);
+  let runtime_chunk = compilation.chunk_by_ukey.expect_get(&runtime_chunk_ukey);
+
+  let filename = get_js_chunk_filename_template(
+    runtime_chunk,
+    &compilation.options.output,
+    &compilation.chunk_group_by_ukey,
+  );
+
+  if filename.has_hash_placeholder() {
+    return Ok(true);
+  }
+
+  if filename.has_content_hash_placeholder()
+    && compilation
+      .chunk_graph
+      .has_chunk_full_hash_modules(&runtime_chunk_ukey, &compilation.runtime_modules)
+  {
+    return Ok(true);
+  }
+
+  Ok(false)
+}
+
 pub fn generate_entry_startup(
   compilation: &Compilation,
   chunk: &ChunkUkey,

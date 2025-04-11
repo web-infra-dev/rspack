@@ -88,6 +88,7 @@ define_hook!(CompilationOptimizeCodeGeneration: Series(compilation: &mut Compila
 define_hook!(CompilationAfterCodeGeneration: Series(compilation: &mut Compilation));
 define_hook!(CompilationChunkHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash));
 define_hook!(CompilationContentHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hashes: &mut HashMap<SourceType, RspackHash>));
+define_hook!(CompilationDependentFullHash: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool);
 define_hook!(CompilationRenderManifest: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, manifest: &mut Vec<RenderManifestEntry>, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationChunkAsset: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, filename: &str));
 define_hook!(CompilationProcessAssets: Series(compilation: &mut Compilation));
@@ -123,6 +124,7 @@ pub struct CompilationHooks {
   pub after_code_generation: CompilationAfterCodeGenerationHook,
   pub chunk_hash: CompilationChunkHashHook,
   pub content_hash: CompilationContentHashHook,
+  pub dependent_full_hash: CompilationDependentFullHashHook,
   pub render_manifest: CompilationRenderManifestHook,
   pub chunk_asset: CompilationChunkAssetHook,
   pub process_assets: CompilationProcessAssetsHook,
@@ -2017,20 +2019,25 @@ impl Compilation {
 
     fn try_process_chunk_hash_results(
       compilation: &mut Compilation,
-      chunk_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash))>>,
+      chunk_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash, bool))>>,
+      full_hash_chunks: &mut UkeySet<ChunkUkey>,
     ) -> Result<()> {
       for hash_result in chunk_hash_results {
-        let (chunk_ukey, (chunk_hash, content_hash)) = hash_result?;
+        let (chunk_ukey, (chunk_hash, content_hash, dependent_full_hash)) = hash_result?;
         let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
         chunk.set_hashes(
           &mut compilation.chunk_hashes_artifact,
           chunk_hash,
           content_hash,
         );
+        if dependent_full_hash {
+          full_hash_chunks.insert(chunk_ukey);
+        }
       }
       Ok(())
     }
 
+    let mut full_hash_chunks = UkeySet::default();
     let unordered_runtime_chunks: UkeySet<ChunkUkey> = self.get_chunk_graph_entries().collect();
     let start = logger.time("hashing: hash chunks");
     let other_chunks: Vec<_> = create_hash_chunks
@@ -2048,13 +2055,14 @@ impl Compilation {
       }
     }
     // create hash for other chunks
-    let other_chunks_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash))>> =
-      join_all(other_chunks.into_iter().map(|chunk| async {
-        let hash_result = self.process_chunk_hash(*chunk, &plugin_driver).await?;
-        Ok((*chunk, hash_result))
-      }))
-      .await;
-    try_process_chunk_hash_results(self, other_chunks_hash_results)?;
+    let other_chunks_hash_results: Vec<
+      Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash, bool))>,
+    > = join_all(other_chunks.into_iter().map(|chunk| async {
+      let hash_result = self.process_chunk_hash(*chunk, &plugin_driver).await?;
+      Ok((*chunk, hash_result))
+    }))
+    .await;
+    try_process_chunk_hash_results(self, other_chunks_hash_results, &mut full_hash_chunks)?;
     logger.time_end(start);
 
     // collect references for runtime chunks
@@ -2091,7 +2099,7 @@ impl Compilation {
       }
     }
     let mut ready_chunks = Vec::new();
-    let mut full_hash_chunks = UkeySet::default();
+
     let mut i = 0;
     while i < runtime_chunks.len() {
       let chunk_ukey = runtime_chunks[i];
@@ -2174,7 +2182,7 @@ impl Compilation {
           .runtime_modules_hash
           .insert(*runtime_module_identifier, digest);
       }
-      let (chunk_hash, content_hash) = self
+      let (chunk_hash, content_hash, _) = self
         .process_chunk_hash(runtime_chunk_ukey, &plugin_driver)
         .await?;
       let chunk = self.chunk_by_ukey.expect_get(&runtime_chunk_ukey);
@@ -2196,10 +2204,10 @@ impl Compilation {
 
     // re-create runtime chunk hash that depend on full hash
     let start = logger.time("hashing: process full hash chunks");
-    for runtime_chunk_ukey in full_hash_chunks {
+    for chunk_ukey in full_hash_chunks {
       for runtime_module_identifier in self
         .chunk_graph
-        .get_chunk_runtime_modules_iterable(&runtime_chunk_ukey)
+        .get_chunk_runtime_modules_iterable(&chunk_ukey)
       {
         let runtime_module = &self.runtime_modules[runtime_module_identifier];
         if runtime_module.full_hash() || runtime_module.dependent_hash() {
@@ -2209,7 +2217,7 @@ impl Compilation {
             .insert(*runtime_module_identifier, digest);
         }
       }
-      let chunk = self.chunk_by_ukey.expect_get(&runtime_chunk_ukey);
+      let chunk = self.chunk_by_ukey.expect_get(&chunk_ukey);
       let new_chunk_hash = {
         let chunk_hash = chunk
           .hash(&self.chunk_hashes_artifact)
@@ -2290,7 +2298,7 @@ impl Compilation {
     &self,
     chunk_ukey: ChunkUkey,
     plugin_driver: &SharedPluginDriver,
-  ) -> Result<(RspackHashDigest, ChunkContentHash)> {
+  ) -> Result<(RspackHashDigest, ChunkContentHash, bool)> {
     let mut hasher = RspackHash::from(&self.options.output);
     if let Some(chunk) = self.chunk_by_ukey.get(&chunk_ukey) {
       chunk.update_hash(&mut hasher, self);
@@ -2313,7 +2321,17 @@ impl Compilation {
       .map(|(t, hasher)| (t, hasher.digest(&self.options.output.hash_digest)))
       .collect();
 
-    Ok((chunk_hash, content_hashes))
+    let dependent_full_hash = plugin_driver
+      .compilation_hooks
+      .dependent_full_hash
+      .call(self, &chunk_ukey)
+      .await?;
+
+    Ok((
+      chunk_hash,
+      content_hashes,
+      dependent_full_hash.unwrap_or(false),
+    ))
   }
 
   #[instrument("Compilation:create_module_hashes", skip_all)]

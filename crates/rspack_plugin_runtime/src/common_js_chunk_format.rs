@@ -3,7 +3,8 @@ use std::hash::Hash;
 use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationParams, CompilerCompilation, CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
+  CompilationDependentFullHash, CompilationParams, CompilerCompilation, CompilerOptions, Plugin,
+  PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -16,7 +17,7 @@ use rspack_util::json_stringify;
 
 use crate::{
   generate_entry_startup, get_chunk_output_name, get_relative_path, get_runtime_chunk_output_name,
-  update_hash_for_entry_startup,
+  runtime_chunk_has_full_hash, update_hash_for_entry_startup,
 };
 
 const PLUGIN_NAME: &str = "rspack.CommonJsChunkFormatPlugin";
@@ -87,6 +88,21 @@ async fn js_chunk_hash(
   );
 
   Ok(())
+}
+
+#[plugin_hook(CompilationDependentFullHash for CommonJsChunkFormatPlugin)]
+async fn compilation_dependent_full_hash(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+) -> Result<Option<bool>> {
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  if chunk.has_entry_module(&compilation.chunk_graph)
+    && runtime_chunk_has_full_hash(compilation, chunk_ukey).await?
+  {
+    return Ok(Some(true));
+  }
+  Ok(None)
 }
 
 #[plugin_hook(JavascriptModulesRenderChunk for CommonJsChunkFormatPlugin)]
@@ -180,6 +196,11 @@ impl Plugin for CommonJsChunkFormatPlugin {
       .compilation_hooks
       .additional_chunk_runtime_requirements
       .tap(additional_chunk_runtime_requirements::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .dependent_full_hash
+      .tap(compilation_dependent_full_hash::new(self));
     Ok(())
   }
 }
