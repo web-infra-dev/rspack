@@ -79,7 +79,6 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       import_decl.span.into(),
       import_decl.src.span.into(),
       DependencyType::EsmImport,
-      false,
       attributes,
       Some(parser.source_map.clone()),
     );

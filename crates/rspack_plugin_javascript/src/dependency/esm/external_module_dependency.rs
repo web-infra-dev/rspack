@@ -1,6 +1,6 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  Compilation, DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
+  Compilation, DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType,
   ExternalModuleInitFragment, InitFragmentExt, InitFragmentStage, RuntimeSpec, TemplateContext,
   TemplateReplaceSource,
 };
@@ -9,7 +9,6 @@ use rspack_util::ext::DynHash;
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ExternalModuleDependency {
-  id: DependencyId,
   module: String,
   import_specifier: Vec<(String, String)>,
   default_import: Option<String>,
@@ -22,7 +21,6 @@ impl ExternalModuleDependency {
     default_import: Option<String>,
   ) -> Self {
     Self {
-      id: DependencyId::new(),
       module,
       import_specifier,
       default_import,
