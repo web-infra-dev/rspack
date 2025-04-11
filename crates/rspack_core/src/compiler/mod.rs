@@ -386,8 +386,6 @@ impl Compiler {
       .call(&mut self.compilation)
       .await
   }
-
-  #[instrument(skip_all, fields(filename = filename))]
   async fn emit_asset(
     &self,
     output_path: &Utf8Path,

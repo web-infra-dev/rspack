@@ -702,9 +702,8 @@ impl Compilation {
     );
     Ok(())
   }
-
+  #[instrument("Compilation:emit_asset",skip_all, fields(filename = filename))]
   pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
-    tracing::trace!("Emit asset {}", filename);
     if let Some(mut original) = self.assets.remove(&filename)
       && let Some(original_source) = &original.source
       && let Some(asset_source) = asset.get_source()
