@@ -17,6 +17,7 @@ impl Tracer for ChromeTracer {
     let (chrome_layer, guard) = ChromeLayerBuilder::new()
       .trace_style(tracing_chrome::TraceStyle::Async)
       .include_args(true)
+      .category_fn(Box::new(|_| "rspack".to_string()))
       .writer(trace_writer.writer())
       .build();
     self.guard = Some(guard);
@@ -40,6 +41,7 @@ impl<S> Filter<S> for FilterEvent {
     meta: &tracing::Metadata<'_>,
     _cx: &tracing_subscriber::layer::Context<'_, S>,
   ) -> bool {
-    !meta.is_event()
+    // filter out swc related tracing because it's too much noisy for info level now
+    !meta.is_event() && !meta.target().contains("swc")
   }
 }
