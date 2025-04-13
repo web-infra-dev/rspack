@@ -230,10 +230,6 @@ impl ReadableFileSystem for NativeFileSystem {
     }
   }
 
-  async fn async_read(&self, file: &Utf8Path) -> Result<Vec<u8>> {
-    tokio::fs::read(file).await.to_fs_result()
-  }
-
   async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     let mut res = vec![];
     let mut read_dir = tokio::fs::read_dir(dir).await.to_fs_result()?;

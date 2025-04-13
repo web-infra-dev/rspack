@@ -66,11 +66,7 @@ impl StrategyHelper {
     }
 
     let mut res = None;
-    if let Ok(content) = self
-      .fs
-      .async_read(&path.join("package.json").assert_utf8())
-      .await
-    {
+    if let Ok(content) = self.fs.read(&path.join("package.json").assert_utf8()).await {
       if let Ok(mut package_json) =
         serde_json::from_slice::<serde_json::Map<String, serde_json::Value>>(&content)
       {
