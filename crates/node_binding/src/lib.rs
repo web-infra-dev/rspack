@@ -13,7 +13,7 @@ use rspack_core::{
   BoxDependency, Compilation, CompilerId, EntryOptions, ModuleIdentifier, PluginExt,
 };
 use rspack_error::Diagnostic;
-use rspack_fs::IntermediateFileSystem;
+use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 
 use crate::fs_node::{NodeFileSystem, ThreadsafeNodeFS};
 
@@ -135,6 +135,7 @@ impl JsCompiler {
     register_js_taps: RegisterJsTaps,
     output_filesystem: ThreadsafeNodeFS,
     intermediate_filesystem: Option<ThreadsafeNodeFS>,
+    input_filesystem: Option<ThreadsafeNodeFS>,
     mut resolver_factory_reference: Reference<JsResolverFactory>,
   ) -> Result<Self> {
     tracing::debug!("raw_options: {:#?}", &options);
@@ -160,6 +161,16 @@ impl JsCompiler {
     let compiler_options: rspack_core::CompilerOptions = options.try_into().to_napi_result()?;
 
     tracing::debug!("normalized_options: {:#?}", &compiler_options);
+
+    let input_file_system = input_filesystem.map(|fs| {
+      let binding: Arc<dyn ReadableFileSystem> =
+        Arc::new(NodeFileSystem::new(fs).expect("Failed to create readable filesystem"));
+      binding
+    });
+
+    if let Some(fs) = &input_file_system {
+      resolver_factory_reference.input_filesystem = fs.clone();
+    }
 
     let resolver_factory =
       (*resolver_factory_reference).get_resolver_factory(compiler_options.resolve.clone());
@@ -187,7 +198,7 @@ impl JsCompiler {
           .to_napi_result_with_message(|e| format!("Failed to create writable filesystem: {e}"))?,
       )),
       intermediate_filesystem,
-      None,
+      input_file_system,
       Some(resolver_factory),
       Some(loader_resolver_factory),
     );
