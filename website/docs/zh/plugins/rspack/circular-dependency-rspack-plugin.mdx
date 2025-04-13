@@ -77,9 +77,10 @@ export default {
     new rspack.CircularDependencyRspackPlugin({
       allowAsyncCycles: true,
       onDetected(entrypoint, modules, compilation) {
-        compilation.errors.push(
-          new Error(`Cycle in ${entrypoint}: ${modules.join(' -> ')}`),
-        );
+        compilation.pushDiagnostic({
+          severity: 'Error',
+          message: new Error(`Cycle in ${entrypoint}: ${modules.join(' -> ')}`),
+        })
       },
     }),
   ],

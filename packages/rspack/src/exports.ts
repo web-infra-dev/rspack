@@ -48,8 +48,10 @@ export { RuntimeModule } from "./RuntimeModule";
 export {
 	EntryDependency,
 	Dependency,
-	AsyncDependenciesBlock
+	AsyncDependenciesBlock,
 } from "@rspack/binding";
+
+export type { RspackError, RspackSeverity } from './RspackError';
 
 // API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
 import * as ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";
