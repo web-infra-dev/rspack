@@ -327,7 +327,7 @@ export declare class JsModuleGraph {
 }
 
 export declare class JsResolver {
-  resolveSync(path: string, request: string): JsResourceData | false
+  resolve(path: string, request: string): Promise<JsResourceData | false>
   withOptions(raw?: RawResolveOptionsWithDependencyType | undefined | null): JsResolver
 }
 
