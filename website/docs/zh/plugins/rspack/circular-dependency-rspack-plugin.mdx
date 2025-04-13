@@ -80,7 +80,7 @@ export default {
         compilation.pushDiagnostic({
           severity: 'Error',
           message: new Error(`Cycle in ${entrypoint}: ${modules.join(' -> ')}`),
-        })
+        });
       },
     }),
   ],
