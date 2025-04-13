@@ -113,6 +113,8 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 
 		if (oldWatcher) {
 			oldWatcher.close();
+			// TODO: add comment to explain why to purge the inputFileSystem
+			this.inputFileSystem.purge?.();
 		}
 		return {
 			close: () => {
