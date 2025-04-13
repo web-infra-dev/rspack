@@ -25,6 +25,7 @@ const NOOP_FILESYSTEM: ThreadsafeNodeFS = {
 	readFile: ASYNC_NOOP,
 	stat: ASYNC_NOOP,
 	lstat: ASYNC_NOOP,
+	realpath: ASYNC_NOOP,
 	open: ASYNC_NOOP,
 	rename: ASYNC_NOOP,
 	close: ASYNC_NOOP,
@@ -58,6 +59,7 @@ class ThreadsafeInputNodeFS implements ThreadsafeNodeFS {
 	readFile!: (name: string) => Promise<Buffer | string | void>;
 	stat!: (name: string) => Promise<NodeFsStats | void>;
 	lstat!: (name: string) => Promise<NodeFsStats | void>;
+	realpath!: (name: string) => Promise<string | void>;
 	open!: (name: string, flags: string) => Promise<number | void>;
 	rename!: (from: string, to: string) => Promise<void>;
 	close!: (fd: number) => Promise<void>;
@@ -118,6 +120,22 @@ class ThreadsafeInputNodeFS implements ThreadsafeNodeFS {
 				});
 			};
 		});
+		this.realpath = memoizeFn(() => {
+			return (name: string) => {
+				return new Promise((resolve, reject) => {
+					if (fs.realpath) {
+						fs.realpath(name, (err, path) => {
+							if (err) {
+								return reject(err);
+							}
+							resolve(path);
+						});
+					} else {
+						reject(new Error("fs.realpath is not a function"));
+					}
+				});
+			};
+		});
 	}
 
 	static __to_binding(fs?: InputFileSystem) {
@@ -135,6 +153,7 @@ class ThreadsafeOutputNodeFS implements ThreadsafeNodeFS {
 	readFile!: (name: string) => Promise<Buffer | string | void>;
 	stat!: (name: string) => Promise<NodeFsStats | void>;
 	lstat!: (name: string) => Promise<NodeFsStats | void>;
+	realpath!: (name: string) => Promise<string | void>;
 	open!: (name: string, flags: string) => Promise<number | void>;
 	rename!: (from: string, to: string) => Promise<void>;
 	close!: (fd: number) => Promise<void>;

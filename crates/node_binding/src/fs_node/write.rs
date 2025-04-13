@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use napi::{bindgen_prelude::Either3, Either};
+use napi::{
+  bindgen_prelude::{block_on, Either3},
+  Either,
+};
 use rspack_fs::{
   Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, ReadStream,
   ReadableFileSystem, Result, RspackResultToFsResultExt, WritableFileSystem, WriteStream,
@@ -154,32 +157,91 @@ impl IntermediateFileSystem for NodeFileSystem {}
 #[async_trait]
 impl ReadableFileSystem for NodeFileSystem {
   async fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
-    todo!()
+    self
+      .0
+      .read_file
+      .call_with_promise(path.as_str().to_string())
+      .await
+      .to_fs_result()
+      // TODO: simplify the return value?
+      .map(|result| match result {
+        Either3::A(buf) => buf.into(),
+        Either3::B(str) => str.into(),
+        Either3::C(_) => vec![],
+      })
   }
   fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
-    todo!()
+    block_on(self.read(path))
   }
 
   async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    todo!()
+    let res = self
+      .0
+      .stat
+      .call_with_promise(path.as_str().to_string())
+      .await
+      .to_fs_result()?;
+    match res {
+      Either::A(stats) => Ok(stats.into()),
+      Either::B(_) => Err(Error::new(
+        std::io::ErrorKind::Other,
+        "input file system call stat failed",
+      )),
+    }
   }
   fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    todo!()
+    block_on(self.metadata(path))
   }
 
   async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    todo!()
+    let res = self
+      .0
+      .lstat
+      .call_with_promise(path.as_str().to_string())
+      .await
+      .to_fs_result()?;
+    match res {
+      Either::A(stats) => Ok(stats.into()),
+      Either::B(_) => Err(Error::new(
+        std::io::ErrorKind::Other,
+        "input file system call lstat failed",
+      )),
+    }
   }
 
   async fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
-    todo!()
+    let res = self
+      .0
+      .realpath
+      .call_with_promise(path.as_str().to_string())
+      .await
+      .to_fs_result()?;
+    match res {
+      Either::A(str) => Ok(Utf8PathBuf::from(str)),
+      Either::B(_) => Err(Error::new(
+        std::io::ErrorKind::Other,
+        "input file system call realpath failed",
+      )),
+    }
   }
 
   async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
-    todo!()
+    let res = self
+      .0
+      .read_dir
+      .call_with_promise(dir.as_str().to_string())
+      .await
+      .to_fs_result()?;
+    match res {
+      Either::A(list) => Ok(list),
+      Either::B(_) => Err(Error::new(
+        std::io::ErrorKind::Other,
+        "input file system call read_dir failed",
+      )),
+    }
   }
   fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>> {
-    todo!()
+    block_on(ReadableFileSystem::read_dir(self, dir))
   }
 }
 
