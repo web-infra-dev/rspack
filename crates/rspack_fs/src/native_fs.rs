@@ -1,30 +1,32 @@
 use std::{
   fs::{self, File},
   io::{BufRead, BufReader, BufWriter, Read, Write},
+  sync::Arc,
 };
 
 use pnp::fs::{FileType, LruZipCache, VPath, VPathInfo, ZipCache};
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
+use tokio::task::spawn_blocking;
 
 use crate::{
   Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, IoResultToFsResultExt,
   ReadStream, ReadableFileSystem, Result, WritableFileSystem, WriteStream,
 };
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct NativeFileSystemOptions {
   // enable Yarn PnP feature
   pnp: bool,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NativeFileSystem {
   options: NativeFileSystemOptions,
-  pnp_lru: LruZipCache<Vec<u8>>,
+  pnp_lru: Arc<LruZipCache<Vec<u8>>>,
 }
 impl NativeFileSystem {
   pub fn new(pnp: bool) -> Self {
     Self {
       options: NativeFileSystemOptions { pnp },
-      pnp_lru: LruZipCache::new(50, pnp::fs::open_zip_via_read_p),
+      pnp_lru: Arc::new(LruZipCache::new(50, pnp::fs::open_zip_via_read_p)),
     }
   }
 }
@@ -137,17 +139,15 @@ impl From<FileType> for FileMetadata {
 #[async_trait::async_trait]
 impl ReadableFileSystem for NativeFileSystem {
   async fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
-    if self.options.pnp {
-      let path = path.as_std_path();
-      let buffer = match VPath::from(path)? {
-        VPath::Zip(info) => self.pnp_lru.read(info.physical_base_path(), info.zip_path),
-        VPath::Virtual(info) => fs::read(info.physical_base_path()),
-        VPath::Native(path) => fs::read(&path),
-      };
-      return buffer.map_err(Error::from);
+    let _self = self.clone();
+    let path = path.to_owned();
+    match spawn_blocking(move || _self.read_sync(&path)).await {
+      Ok(res) => res,
+      Err(_) => Err(Error::new(
+        std::io::ErrorKind::Other,
+        "spawn_blocking failed",
+      )),
     }
-
-    fs::read(path).map_err(Error::from)
   }
 
   fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
@@ -164,7 +164,15 @@ impl ReadableFileSystem for NativeFileSystem {
   }
 
   async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    self.metadata_sync(path)
+    let _self = self.clone();
+    let path = path.to_owned();
+    match spawn_blocking(move || _self.metadata_sync(&path)).await {
+      Ok(res) => res,
+      Err(_) => Err(Error::new(
+        std::io::ErrorKind::Other,
+        "spawn_blocking failed",
+      )),
+    }
   }
 
   fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata> {
@@ -192,22 +200,34 @@ impl ReadableFileSystem for NativeFileSystem {
   }
 
   async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    let meta = fs::symlink_metadata(path)?;
+    let meta = tokio::fs::symlink_metadata(path).await.to_fs_result()?;
     meta.try_into()
   }
 
   async fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
-    if self.options.pnp {
-      let path = path.as_std_path();
-      let path = match VPath::from(path)? {
-        VPath::Zip(info) => dunce::canonicalize(info.physical_base_path().join(info.zip_path)),
-        VPath::Virtual(info) => dunce::canonicalize(info.physical_base_path()),
-        VPath::Native(path) => dunce::canonicalize(path),
-      };
-      return path.map(|x| x.assert_utf8()).to_fs_result();
+    let path = path.to_owned();
+    let pnp = self.options.pnp;
+    let sync_canonicalize = move || {
+      if pnp {
+        let path = path.as_std_path();
+        let path = match VPath::from(path)? {
+          VPath::Zip(info) => dunce::canonicalize(info.physical_base_path().join(info.zip_path)),
+          VPath::Virtual(info) => dunce::canonicalize(info.physical_base_path()),
+          VPath::Native(path) => dunce::canonicalize(path),
+        };
+        return path.map(|x| x.assert_utf8()).to_fs_result();
+      }
+      let path = dunce::canonicalize(path)?;
+      Ok(path.assert_utf8())
+    };
+
+    match spawn_blocking(sync_canonicalize).await {
+      Ok(res) => res,
+      Err(_) => Err(Error::new(
+        std::io::ErrorKind::Other,
+        "spawn_blocking failed",
+      )),
     }
-    let path = dunce::canonicalize(path)?;
-    Ok(path.assert_utf8())
   }
 
   async fn async_read(&self, file: &Utf8Path) -> Result<Vec<u8>> {
@@ -215,7 +235,12 @@ impl ReadableFileSystem for NativeFileSystem {
   }
 
   async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
-    self.read_dir_sync(dir)
+    let mut res = vec![];
+    let mut read_dir = tokio::fs::read_dir(dir).await.to_fs_result()?;
+    while let Some(entry) = read_dir.next_entry().await? {
+      res.push(entry.file_name().to_string_lossy().to_string());
+    }
+    Ok(res)
   }
   fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     let mut res = vec![];
