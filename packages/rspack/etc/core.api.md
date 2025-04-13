@@ -3304,6 +3304,7 @@ type InputFileSystem = {
     join?: (path1: string, path2: string) => string;
     relative?: (from: string, to: string) => string;
     dirname?: (path: string) => string;
+    __SKIP_BINDING__?: boolean;
 };
 
 // @public (undocumented)
