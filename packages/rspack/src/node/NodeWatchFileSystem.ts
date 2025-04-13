@@ -113,7 +113,24 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 
 		if (oldWatcher) {
 			oldWatcher.close();
-			// TODO: add comment to explain why to purge the inputFileSystem
+			/**
+			 * NodeEnvironmentPlugin.ts sets `compiler.inputFileSystem` to a `CachedInputFileSystem`,
+			 * which caches the content for 60s, unless `purge` is called.
+			 *
+			 * NodeWatchFileSystem will purge the cached content before read when watched files change.
+			 * However, this doesn't cover some edge cases, which can sometimes lead to stale content being read.
+			 * e.g. packages/rspack-test-tools/tests/watchCases/build-chunk-graph/chunk-modify/test.config.js
+			 *
+			 * > TLDR; in the 2nd step, only `index.js` is changed, cache of `dyn-2.js` is not purged,
+			 * > new `this.watcher` doesn't watch `dyn-2.js`.
+			 * > In the 3rd step, `index.js` and `dyn-2.js` are changed together. Changes to `index.js`
+			 * > is detected, and the cached will be purged. But changes to `dyn-2.js` won't, ...
+			 *
+			 * Currently, Rspack can pass this test case, because the binding doesn't read js inputFileSystem,
+			 * and it doesn't cach the file content.
+			 *
+			 * **This is a short term solution**
+			 */
 			this.inputFileSystem.purge?.();
 		}
 		return {
