@@ -3,6 +3,7 @@ import type { NodeFsStats, ThreadsafeNodeFS } from "@rspack/binding";
 
 import {
 	type IStats,
+	type InputFileSystem,
 	type IntermediateFileSystem,
 	type OutputFileSystem,
 	mkdirp,
@@ -33,6 +34,96 @@ const NOOP_FILESYSTEM: ThreadsafeNodeFS = {
 	readUntil: ASYNC_NOOP,
 	readToEnd: ASYNC_NOOP
 };
+
+function __to_binding_stat(stat: IStats): NodeFsStats {
+	return {
+		isFile: stat.isFile(),
+		isDirectory: stat.isDirectory(),
+		isSymlink: stat.isSymbolicLink(),
+		atimeMs: stat.atimeMs,
+		mtimeMs: stat.atimeMs,
+		ctimeMs: stat.atimeMs,
+		birthtimeMs: stat.birthtimeMs,
+		size: stat.size
+	};
+}
+
+class ThreadsafeInputNodeFS implements ThreadsafeNodeFS {
+	writeFile!: (name: string, content: Buffer) => Promise<void>;
+	removeFile!: (name: string) => Promise<void>;
+	mkdir!: (name: string) => Promise<void>;
+	mkdirp!: (name: string) => Promise<string | void>;
+	removeDirAll!: (name: string) => Promise<string | void>;
+	readDir!: (name: string) => Promise<string[] | void>;
+	readFile!: (name: string) => Promise<Buffer | string | void>;
+	stat!: (name: string) => Promise<NodeFsStats | void>;
+	lstat!: (name: string) => Promise<NodeFsStats | void>;
+	open!: (name: string, flags: string) => Promise<number | void>;
+	rename!: (from: string, to: string) => Promise<void>;
+	close!: (fd: number) => Promise<void>;
+	write!: (
+		fd: number,
+		content: Buffer,
+		position: number
+	) => Promise<number | void>;
+	writeAll!: (fd: number, content: Buffer) => Promise<number | void>;
+	read!: (
+		fd: number,
+		length: number,
+		position: number
+	) => Promise<Buffer | void>;
+	readUntil!: (
+		fd: number,
+		code: number,
+		position: number
+	) => Promise<Buffer | void>;
+	readToEnd!: (fd: number, position: number) => Promise<Buffer | void>;
+
+	constructor(fs?: InputFileSystem) {
+		Object.assign(this, NOOP_FILESYSTEM);
+		if (!fs) {
+			return;
+		}
+		// On the rust side, ReadableFileSystem only uses the readFile and stats
+		// TODO: is `memoizeFn` necessary?
+		this.readDir = memoizeFn(() => {
+			const readDirFn = util.promisify(fs.readdir.bind(fs));
+			return async (filePath: string) => {
+				const res = await readDirFn(filePath);
+				return res as string[];
+			};
+		});
+		this.readFile = memoizeFn(() => util.promisify(fs.readFile.bind(fs)));
+		this.stat = memoizeFn(() => {
+			return (name: string) => {
+				return new Promise((resolve, reject) => {
+					fs.stat(name, (err, stats) => {
+						if (err) {
+							return reject(err);
+						}
+						resolve(stats && __to_binding_stat(stats));
+					});
+				});
+			};
+		});
+		this.lstat = memoizeFn(() => {
+			return (name: string) => {
+				return new Promise((resolve, reject) => {
+					(fs.lstat || fs.stat)(name, (err, stats) => {
+						if (err) {
+							return reject(err);
+						}
+						resolve(stats && __to_binding_stat(stats));
+					});
+				});
+			};
+		});
+	}
+
+	static __to_binding(fs?: InputFileSystem) {
+		return new this(fs);
+	}
+}
 
 class ThreadsafeOutputNodeFS implements ThreadsafeNodeFS {
 	writeFile!: (name: string, content: Buffer) => Promise<void>;
@@ -87,33 +178,20 @@ class ThreadsafeOutputNodeFS implements ThreadsafeNodeFS {
 			const statFn = util.promisify(fs.stat.bind(fs));
 			return async (filePath: string) => {
 				const res = await statFn(filePath);
-				return res && ThreadsafeOutputNodeFS.__to_binding_stat(res);
+				return res && __to_binding_stat(res);
 			};
 		});
 		this.lstat = memoizeFn(() => {
 			const statFn = util.promisify((fs.lstat || fs.stat).bind(fs));
 			return async (filePath: string) => {
 				const res = await statFn(filePath);
-				return res && ThreadsafeOutputNodeFS.__to_binding_stat(res);
+				return res && __to_binding_stat(res);
 			};
 		});
 	}
 
 	static __to_binding(fs?: OutputFileSystem) {
 		return new this(fs);
-	}
-
-	static __to_binding_stat(stat: IStats): NodeFsStats {
-		return {
-			isFile: stat.isFile(),
-			isDirectory: stat.isDirectory(),
-			isSymlink: stat.isSymbolicLink(),
-			atimeMs: stat.atimeMs,
-			mtimeMs: stat.atimeMs,
-			ctimeMs: stat.atimeMs,
-			birthtimeMs: stat.birthtimeMs,
-			size: stat.size
-		};
 	}
 }
 
@@ -203,4 +281,8 @@ class ThreadsafeIntermediateNodeFS extends ThreadsafeOutputNodeFS {
 	}
 }
 
-export { ThreadsafeOutputNodeFS, ThreadsafeIntermediateNodeFS };
+export {
+	ThreadsafeInputNodeFS,
+	ThreadsafeOutputNodeFS,
+	ThreadsafeIntermediateNodeFS
+};

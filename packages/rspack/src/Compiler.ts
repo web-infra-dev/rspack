@@ -19,6 +19,7 @@ import type { Chunk } from "./Chunk";
 import { Compilation } from "./Compilation";
 import { ContextModuleFactory } from "./ContextModuleFactory";
 import {
+	ThreadsafeInputNodeFS,
 	ThreadsafeIntermediateNodeFS,
 	ThreadsafeOutputNodeFS
 } from "./FileSystem";
@@ -823,6 +824,9 @@ class Compiler {
 			ThreadsafeOutputNodeFS.__to_binding(this.outputFileSystem!),
 			this.intermediateFileSystem
 				? ThreadsafeIntermediateNodeFS.__to_binding(this.intermediateFileSystem)
+				: undefined,
+			this.inputFileSystem
+				? ThreadsafeInputNodeFS.__to_binding(this.inputFileSystem)
 				: undefined,
 			ResolverFactory.__to_binding(this.resolverFactory)
 		);

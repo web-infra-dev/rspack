@@ -3,10 +3,10 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use napi::{bindgen_prelude::Either3, Either};
 use rspack_fs::{
-  Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, ReadStream, Result,
-  RspackResultToFsResultExt, WritableFileSystem, WriteStream,
+  Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, ReadStream,
+  ReadableFileSystem, Result, RspackResultToFsResultExt, WritableFileSystem, WriteStream,
 };
-use rspack_paths::Utf8Path;
+use rspack_paths::{Utf8Path, Utf8PathBuf};
 
 use super::node::ThreadsafeNodeFS;
 
@@ -150,6 +150,38 @@ impl IntermediateFileSystemExtras for NodeFileSystem {
 }
 
 impl IntermediateFileSystem for NodeFileSystem {}
+
+#[async_trait]
+impl ReadableFileSystem for NodeFileSystem {
+  async fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+    todo!()
+  }
+  fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+    todo!()
+  }
+
+  async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    todo!()
+  }
+  fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    todo!()
+  }
+
+  async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    todo!()
+  }
+
+  async fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
+    todo!()
+  }
+
+  async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+    todo!()
+  }
+  fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+    todo!()
+  }
+}
 
 #[derive(Debug)]
 pub struct NodeReadStream {
