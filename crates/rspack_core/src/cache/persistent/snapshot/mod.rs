@@ -9,7 +9,6 @@ use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::{ArcPath, AssertUtf8};
 use rustc_hash::FxHashSet as HashSet;
-use tokio::task::spawn_blocking;
 
 pub use self::option::{PathMatcher, SnapshotOptions};
 use self::strategy::{Strategy, StrategyHelper, ValidateResult};
@@ -53,10 +52,7 @@ impl Snapshot {
       // check path exists
       let fs = self.fs.clone();
       let utf8_path_clone = utf8_path.to_owned();
-      let metadata_has_error =
-        spawn_blocking(move || fs.clone().metadata_sync(&utf8_path_clone).is_err())
-          .await
-          .unwrap_or(true);
+      let metadata_has_error = fs.clone().metadata(&utf8_path_clone).await.is_err();
       if metadata_has_error {
         return;
       }
