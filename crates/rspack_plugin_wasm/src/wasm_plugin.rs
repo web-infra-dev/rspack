@@ -70,7 +70,7 @@ async fn render_manifest(
         RenderManifestEntry {
           source: source.clone(),
           filename: output_path,
-          has_filename: false,
+          has_filename: true,
           info: asset_info,
           auxiliary: false,
         }
