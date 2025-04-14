@@ -9,9 +9,9 @@ use std::{borrow::Cow, fmt::Display, rc::Rc, sync::Arc};
 use bitflags::bitflags;
 pub use call_hooks_name::CallHooksName;
 use rspack_core::{
-  AdditionalData, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, CompilerOptions,
-  DependencyTemplate, JavascriptParserOptions, JavascriptParserUrl, ModuleIdentifier, ModuleLayer,
-  ModuleType, ResourceData, SpanExt,
+  AdditionalData, AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo,
+  BuildMeta, CompilerOptions, JavascriptParserOptions, JavascriptParserUrl, ModuleIdentifier,
+  ModuleLayer, ModuleType, ResourceData, SpanExt,
 };
 use rspack_error::miette::Diagnostic;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -209,7 +209,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) errors: Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub(crate) warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub dependencies: Vec<BoxDependency>,
-  pub(crate) presentational_dependencies: Vec<Box<dyn DependencyTemplate>>,
+  pub(crate) presentational_dependencies: Vec<BoxDependencyTemplate>,
   // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
   // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
   #[allow(clippy::vec_box)]

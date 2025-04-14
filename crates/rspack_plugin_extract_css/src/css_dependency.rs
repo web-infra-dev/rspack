@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  AffectType, AsContextDependency, AsDependencyTemplate, ConnectionState, Dependency,
+  AffectType, AsContextDependency, AsDependencyCodeGeneration, ConnectionState, Dependency,
   DependencyCategory, DependencyId, DependencyRange, DependencyType, FactorizeInfo,
   ModuleDependency, ModuleGraph,
 };
@@ -75,7 +75,7 @@ impl CssDependency {
   }
 }
 
-impl AsDependencyTemplate for CssDependency {}
+impl AsDependencyCodeGeneration for CssDependency {}
 impl AsContextDependency for CssDependency {}
 
 #[cacheable_dyn]

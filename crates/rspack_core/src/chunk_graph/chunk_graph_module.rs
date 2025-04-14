@@ -6,9 +6,9 @@ use std::{
   sync::Arc,
 };
 
+use rspack_cacheable::cacheable;
 use rspack_collections::{IdentifierSet, UkeySet};
 use rspack_hash::RspackHashDigest;
-use rspack_macros::cacheable;
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHasher;
 use serde::{Serialize, Serializer};
@@ -283,7 +283,7 @@ impl ChunkGraph {
       .map(|cgm| &cgm.chunks)
   }
 
-  #[instrument("chunk_graph:get_module_graph_hash", skip_all, fields(module = ?module.identifier()))]
+  #[instrument("chunk_graph:get_module_graph_hash", level="trace",skip_all, fields(module = ?module.identifier()))]
   pub fn get_module_graph_hash(
     &self,
     module: &dyn Module,
@@ -299,7 +299,7 @@ impl ChunkGraph {
     let mut visited_modules = IdentifierSet::default();
     visited_modules.insert(module.identifier());
     for connection in mg
-      .get_outgoing_connections_in_order(&module.identifier())
+      .get_outgoing_deps_in_order(&module.identifier())
       .filter_map(|c| mg.connection_by_dependency_id(c))
     {
       let module_identifier = connection.module_identifier();

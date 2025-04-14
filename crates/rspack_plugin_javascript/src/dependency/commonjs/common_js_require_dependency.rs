@@ -1,8 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  module_id, AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId,
-  DependencyLocation, DependencyRange, DependencyTemplate, DependencyType, FactorizeInfo,
-  ModuleDependency, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
+  DependencyType, FactorizeInfo, ModuleDependency, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -93,37 +94,49 @@ impl ModuleDependency for CommonJsRequireDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for CommonJsRequireDependency {
-  fn apply(
+impl DependencyCodeGeneration for CommonJsRequireDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(CommonJsRequireDependencyTemplate::template_type())
+  }
+}
+
+impl AsContextDependency for CommonJsRequireDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct CommonJsRequireDependencyTemplate;
+
+impl CommonJsRequireDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::CjsRequire)
+  }
+}
+
+impl DependencyTemplate for CommonJsRequireDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<CommonJsRequireDependency>()
+      .expect(
+        "CommonJsRequireDependencyTemplate should only be used for CommonJsRequireDependency",
+      );
+
     source.replace(
-      self.range.start,
-      self.range.end - 1,
+      dep.range.start,
+      dep.range.end - 1,
       module_id(
         code_generatable_context.compilation,
-        &self.id,
-        &self.request,
+        &dep.id,
+        &dep.request,
         false,
       )
       .as_str(),
       None,
     );
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
-  }
 }
-
-impl AsContextDependency for CommonJsRequireDependency {}

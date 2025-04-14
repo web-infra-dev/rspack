@@ -14,8 +14,8 @@ use regex::Regex;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
   rspack_sources::{ConcatSource, MapOptions, RawStringSource, Source, SourceExt},
-  AssetInfo, BindingCell, Chunk, ChunkUkey, Compilation, CompilationAsset,
-  CompilationProcessAssets, Filename, Logger, ModuleIdentifier, PathData, Plugin, PluginContext,
+  AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets, Filename,
+  Logger, ModuleIdentifier, PathData, Plugin, PluginContext,
 };
 use rspack_error::{error, miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
@@ -541,7 +541,7 @@ impl SourceMapDevToolPlugin {
             }
             let source_map_asset = CompilationAsset::new(
               Some(RawStringSource::from(source_map_json).boxed()),
-              BindingCell::from(source_map_asset_info),
+              source_map_asset_info,
             );
             Ok(MappedAsset {
               asset: (source_filename, asset),

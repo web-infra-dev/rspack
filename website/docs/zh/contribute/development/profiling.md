@@ -129,7 +129,7 @@ speedscope CPU.20230522.154658.14577.0.001.cpuprofile
 
 ### Rsdoctor timeline
 
-如果我们想要分析 Loader 和 Plugin 耗时或者 Loader 的编译行为，可以利用 Rsdoctor 来查看：
+如果你需要分析 Loader 和 Plugin 耗时或者 Loader 的编译行为，可以利用 Rsdoctor 来查看：
 
 ![image](https://assets.rspack.dev/others/assets/rsdoctor/rsdoctor-loader-timeline.png)
 

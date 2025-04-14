@@ -10,7 +10,10 @@ export type RawLazyCompilationTest = RegExp | ((module: Module) => boolean);
 
 export type AssetInfo = KnownAssetInfo & Record<string, any>;
 
+export const MODULE_IDENTIFIER_SYMBOL: unique symbol;
+
 export interface Module {
+	[MODULE_IDENTIFIER_SYMBOL]: string;
 	readonly type: string;
 	get context(): string | undefined;
 	get layer(): string | undefined;
@@ -29,15 +32,14 @@ interface NormalModuleConstructor {
 export var NormalModule: NormalModuleConstructor;
 
 export interface NormalModule extends Module {
-	get resource(): string;
-	get request(): string
-	get userRequest(): string
-	set userRequest(val: string)
-	get rawRequest(): string
-	get loaders(): Array<JsLoaderItem>
-	get resourceResolveData(): JsResourceData | undefined
-	get matchResource(): string | undefined
-	set matchResource(val: string | undefined)
+	readonly resource: string;
+	readonly request: string;
+	readonly userRequest: string;
+	readonly rawRequest: string;
+	readonly resourceResolveData: JsResourceData | undefined;
+	readonly loaders: ReadonlyArray<JsLoaderItem>;
+	get matchResource(): string | undefined;
+	set matchResource(val: string | undefined);
 }
 
 export interface ConcatenatedModule extends Module {
@@ -47,6 +49,7 @@ export interface ContextModule extends Module {
 }
 
 export interface ExternalModule extends Module {
+	readonly userRequest: string;
 }
 /* -- banner.d.ts end -- */
 

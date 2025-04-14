@@ -135,7 +135,7 @@ impl Module for CssModule {
     self
       .identifier
       .split('!')
-      .last()
+      .next_back()
       .map(|resource| resource.split('?').next().unwrap_or(resource).into())
   }
 

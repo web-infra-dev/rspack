@@ -153,8 +153,8 @@ mod napi_binding {
   unsafe impl<T: ?Sized + Send> Send for BindingCell<T> {}
   unsafe impl<T: ?Sized + Sync> Sync for BindingCell<T> {}
 
-  impl From<AssetInfo> for BindingCell<AssetInfo> {
-    fn from(asset_info: AssetInfo) -> Self {
+  impl BindingCell<AssetInfo> {
+    pub fn new(asset_info: AssetInfo) -> Self {
       let boxed = Box::new(asset_info);
       let ptr = boxed.as_ref() as *const AssetInfo as *mut AssetInfo;
       let heap = Arc::new(Heap {
@@ -162,6 +162,12 @@ mod napi_binding {
         jsobject: Default::default(),
       });
       Self { ptr, heap }
+    }
+  }
+
+  impl From<AssetInfo> for BindingCell<AssetInfo> {
+    fn from(asset_info: AssetInfo) -> Self {
+      Self::new(asset_info)
     }
   }
 

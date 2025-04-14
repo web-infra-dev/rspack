@@ -15,8 +15,7 @@ use napi::{
 
 use crate::{CLEANUP_ENV_HOOK, GLOBAL_CLEANUP_FLAG};
 
-static DELETE_REFERENCE_TS_FN: AtomicPtr<napi_threadsafe_function__> =
-  AtomicPtr::new(ptr::null_mut());
+static DELETE_REF_TS_FN: AtomicPtr<napi_threadsafe_function__> = AtomicPtr::new(ptr::null_mut());
 
 extern "C" fn napi_js_callback(
   env: sys::napi_env,
@@ -24,9 +23,6 @@ extern "C" fn napi_js_callback(
   _context: *mut c_void,
   data: *mut c_void,
 ) {
-  if env.is_null() {
-    return;
-  }
   unsafe { sys::napi_delete_reference(env, data as napi_ref) };
 }
 
@@ -61,18 +57,18 @@ impl ThreadsafeOneShotRef {
       }
     });
 
-    if DELETE_REFERENCE_TS_FN.load(Ordering::Relaxed).is_null() {
+    if DELETE_REF_TS_FN.load(Ordering::Relaxed).is_null() {
       let mut async_resource_name = ptr::null_mut();
       check_status!(
         unsafe {
           sys::napi_create_string_utf8(
             env,
-            c"delete_reference_tsfn".as_ptr(),
+            c"delete_reference_ts_fn".as_ptr(),
             16,
             &mut async_resource_name,
           )
         },
-        "Create async resource name in ThreadsafeOneShotRef failed"
+        "Failed to create async resource name"
       )?;
 
       let mut ts_fn = ptr::null_mut();
@@ -92,9 +88,9 @@ impl ThreadsafeOneShotRef {
             &mut ts_fn,
           )
         },
-        "Create threadsafe function in ThreadsafeOneShotRef failed"
+        "Failed to create threadsafe function"
       )?;
-      DELETE_REFERENCE_TS_FN.store(ts_fn, Ordering::Relaxed);
+      DELETE_REF_TS_FN.store(ts_fn, Ordering::Relaxed);
     }
 
     Ok(Self {
@@ -113,7 +109,7 @@ impl Drop for ThreadsafeOneShotRef {
     if self.thread_id == thread::current().id() {
       unsafe { sys::napi_delete_reference(self.env, self.napi_ref) };
     } else {
-      let ts_fn = DELETE_REFERENCE_TS_FN.load(Ordering::Relaxed);
+      let ts_fn = DELETE_REF_TS_FN.load(Ordering::Relaxed);
       unsafe {
         let _ = napi_call_threadsafe_function(ts_fn, self.napi_ref.cast(), 0);
       }

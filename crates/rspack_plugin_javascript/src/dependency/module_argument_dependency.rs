@@ -1,7 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  AsDependency, Compilation, DependencyLocation, DependencyRange, DependencyTemplate,
-  RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  Compilation, DependencyCodeGeneration, DependencyLocation, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
@@ -33,12 +34,44 @@ impl ModuleArgumentDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ModuleArgumentDependency {
-  fn apply(
+impl DependencyCodeGeneration for ModuleArgumentDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(ModuleArgumentDependencyTemplate::template_type())
+  }
+
+  fn update_hash(
     &self,
+    hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+    self.id.dyn_hash(hasher);
+    self.range.dyn_hash(hasher);
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ModuleArgumentDependencyTemplate;
+
+impl ModuleArgumentDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("ModuleArgumentDependency")
+  }
+}
+
+impl DependencyTemplate for ModuleArgumentDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ModuleArgumentDependency>()
+      .expect("ModuleArgumentDependencyTemplate should be used for ModuleArgumentDependency");
+
     let TemplateContext {
       runtime_requirements,
       compilation,
@@ -54,28 +87,12 @@ impl DependencyTemplate for ModuleArgumentDependency {
       .expect("should have mgm")
       .get_module_argument();
 
-    let content = if let Some(id) = &self.id {
+    let content = if let Some(id) = &dep.id {
       format!("{module_argument}.{id}")
     } else {
       format!("{module_argument}")
     };
 
-    source.replace(self.range.start, self.range.end, content.as_str(), None);
-  }
-
-  fn dependency_id(&self) -> Option<rspack_core::DependencyId> {
-    None
-  }
-
-  fn update_hash(
-    &self,
-    hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
-    self.id.dyn_hash(hasher);
-    self.range.dyn_hash(hasher);
+    source.replace(dep.range.start, dep.range.end, content.as_str(), None);
   }
 }
-
-impl AsDependency for ModuleArgumentDependency {}

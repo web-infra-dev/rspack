@@ -238,6 +238,7 @@ impl ContextModuleFactory {
         for loader_request in loaders {
           let resolve_result = loader_resolver
             .resolve(data.context.as_ref(), loader_request)
+            .await
             .to_rspack_result_with_message(|e| {
               format!(
                 "Failed to resolve loader: {loader_request} in {} {e}",
@@ -410,7 +411,6 @@ fn visit_dirs(
       }
     } else if path.file_name().is_some_and(|name| name.starts_with('.')) {
       // ignore hidden files
-      continue;
     } else {
       if let Some(include) = include
         && !include.test(path_str)

@@ -65,7 +65,7 @@ quote            = { version = "1.0.38" }
 rayon            = { version = "1.10.0" }
 regex            = { version = "1.11.1" }
 ropey            = "1.6.1"
-rspack_resolver  = { features = ["package_json_raw_json_api"], version = "0.5.3" }
+rspack_resolver  = { features = ["package_json_raw_json_api"], version = "0.5.4" }
 rspack_sources   = { version = "0.4.8" }
 rustc-hash       = { version = "2.1.0" }
 serde            = { version = "1.0.217" }
@@ -76,7 +76,7 @@ smol_str         = { version = "0.3.0" }
 stacker          = { version = "0.1.17" }
 sugar_path       = { version = "1.2.0", features = ["cached_current_dir"] }
 syn              = { version = "2.0.95" }
-tokio            = { version = "1.42.0", features = ["rt-multi-thread", "rt"] }
+tokio            = { version = "1.42.0", features = ["rt", "rt-multi-thread"] }
 # don't include debug & trace in release binary to save release binary size
 tracing            = { version = "0.1.41", features = ["max_level_trace", "release_max_level_info"] }
 tracing-subscriber = { version = "0.3.19" }
@@ -192,7 +192,6 @@ rspack_swc_plugin_import               = { version = "0.2.0", path = "crates/swc
 rspack_testing                         = { version = "0.2.0", path = "crates/rspack_testing" }
 rspack_tracing                         = { version = "0.2.0", path = "crates/rspack_tracing" }
 rspack_util                            = { version = "0.2.0", path = "crates/rspack_util" }
-
 
 [workspace.metadata.release]
 rate-limit = { existing-packages = 70, new-packages = 70 }
@@ -386,6 +385,14 @@ inherits        = "release"
 lto             = "thin"
 split-debuginfo = "off"
 strip           = false
+
+[profile.release-wasi]
+codegen-units = 16
+debug         = 'full'
+inherits      = "release"
+lto           = "thin"
+opt-level     = "s"
+strip         = "none"
 
 
 # the following lints rules are from https://github.com/biomejs/biome/blob/4bd3d6f09642952ee14445ed56af81a73796cea1/Cargo.toml#L7C1-L75C1

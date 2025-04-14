@@ -35,7 +35,7 @@ pub fn dependencies_block_update_hash(
   let mg = compilation.get_module_graph();
   for dep_id in deps {
     let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
-    if let Some(dep) = dep.as_dependency_template() {
+    if let Some(dep) = dep.as_dependency_code_generation() {
       dep.update_hash(hasher, compilation, runtime);
     }
   }

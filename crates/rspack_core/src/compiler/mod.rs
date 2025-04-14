@@ -5,10 +5,10 @@ mod rebuild;
 use std::sync::{atomic::AtomicU32, Arc};
 
 use futures::future::join_all;
+use rspack_cacheable::cacheable;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hook::define_hook;
-use rspack_macros::cacheable;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
 use rspack_util::node_path::NodePath;
@@ -93,7 +93,6 @@ pub struct Compiler {
 }
 
 impl Compiler {
-  #[instrument(skip_all)]
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     compiler_path: String,
@@ -386,8 +385,6 @@ impl Compiler {
       .call(&mut self.compilation)
       .await
   }
-
-  #[instrument(skip_all, fields(filename = filename))]
   async fn emit_asset(
     &self,
     output_path: &Utf8Path,
@@ -416,14 +413,11 @@ impl Compiler {
             || include_hash(target_file, &asset.info.full_hash));
       }
 
-      let stat = match self
+      let stat = self
         .output_filesystem
         .stat(file_path.as_path().as_ref())
         .await
-      {
-        Ok(stat) => Some(stat),
-        Err(_) => None,
-      };
+        .ok();
 
       let need_write = if !self.options.output.compare_before_emit {
         // write when compare_before_emit is false

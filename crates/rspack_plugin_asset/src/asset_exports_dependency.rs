@@ -1,8 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId,
-  DependencyTemplate, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, AsDependencyCodeGeneration, AsModuleDependency, Dependency, DependencyId,
+  ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
 };
 
 #[cacheable]
@@ -39,27 +38,6 @@ impl Dependency for AssetExportsDependency {
   }
 }
 
+impl AsDependencyCodeGeneration for AssetExportsDependency {}
 impl AsModuleDependency for AssetExportsDependency {}
 impl AsContextDependency for AssetExportsDependency {}
-
-#[cacheable_dyn]
-impl DependencyTemplate for AssetExportsDependency {
-  fn apply(
-    &self,
-    _source: &mut TemplateReplaceSource,
-    _code_generatable_context: &mut TemplateContext,
-  ) {
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
-  }
-}

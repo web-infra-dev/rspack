@@ -1270,12 +1270,13 @@ impl CompilationRuntimeRequirementInTree for CompilationRuntimeRequirementInTree
     compilation: &mut Compilation,
     chunk_ukey: &ChunkUkey,
     all_runtime_requirements: &RuntimeGlobals,
-    _runtime_requirements: &RuntimeGlobals,
+    runtime_requirements: &RuntimeGlobals,
     runtime_requirements_mut: &mut RuntimeGlobals,
   ) -> rspack_error::Result<Option<()>> {
     let arg = JsRuntimeRequirementInTreeArg {
       chunk: JsChunkWrapper::new(*chunk_ukey, compilation),
-      runtime_requirements: JsRuntimeGlobals::from(*all_runtime_requirements),
+      all_runtime_requirements: JsRuntimeGlobals::from(*all_runtime_requirements),
+      runtime_requirements: JsRuntimeGlobals::from(*runtime_requirements),
     };
     let result = self.function.call_with_sync(arg).await?;
     if let Some(result) = result {

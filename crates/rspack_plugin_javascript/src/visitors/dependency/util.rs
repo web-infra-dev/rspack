@@ -235,13 +235,7 @@ pub fn parse_order_string(x: &str) -> Option<i32> {
   match x {
     "true" => Some(0),
     "false" => None,
-    _ => {
-      if let Ok(order) = x.parse::<i32>() {
-        Some(order)
-      } else {
-        None
-      }
-    }
+    _ => x.parse::<i32>().ok(),
   }
 }
 

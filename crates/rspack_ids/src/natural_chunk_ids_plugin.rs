@@ -21,7 +21,16 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
     .chunk_by_ukey
     .values()
     .map(|chunk| chunk as &Chunk)
-    .sorted_unstable_by(|a, b| compare_chunks_natural(chunk_graph, module_graph, module_ids, a, b))
+    .sorted_unstable_by(|a, b| {
+      compare_chunks_natural(
+        chunk_graph,
+        module_graph,
+        &compilation.chunk_group_by_ukey,
+        module_ids,
+        a,
+        b,
+      )
+    })
     .map(|chunk| chunk.ukey())
     .collect::<Vec<_>>();
 

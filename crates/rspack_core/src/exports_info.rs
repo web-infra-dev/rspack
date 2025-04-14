@@ -837,6 +837,15 @@ impl UsedName {
   }
 }
 
+impl AsRef<[Atom]> for UsedName {
+  fn as_ref(&self) -> &[Atom] {
+    match self {
+      UsedName::Str(atom) => std::slice::from_ref(atom),
+      UsedName::Vec(vec) => vec,
+    }
+  }
+}
+
 pub fn string_of_used_name(used: Option<&UsedName>) -> String {
   match used {
     Some(UsedName::Str(str)) => str.to_string(),

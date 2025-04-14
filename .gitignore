@@ -235,3 +235,6 @@ diff_output
 
 # xcode trace
 *.trace
+
+# rspack trace file
+trace.json

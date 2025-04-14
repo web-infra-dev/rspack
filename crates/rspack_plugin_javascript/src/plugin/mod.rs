@@ -628,7 +628,7 @@ impl JsPlugin {
     if let Some(inlined_modules) = inlined_modules {
       let last_entry_module = inlined_modules
         .keys()
-        .last()
+        .next_back()
         .expect("should have last entry module");
       let mut startup_sources = ConcatSource::default();
 
@@ -757,7 +757,7 @@ impl JsPlugin {
       .chunk_graph
       .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
       .keys()
-      .last()
+      .next_back()
     {
       let mut render_source = RenderSource {
         source: RawStringSource::from(startup.join("\n") + "\n").boxed(),

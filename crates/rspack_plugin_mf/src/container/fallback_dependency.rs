@@ -1,6 +1,6 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
+  AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
   DependencyType, FactorizeInfo, ModuleDependency,
 };
 
@@ -64,4 +64,4 @@ impl ModuleDependency for FallbackDependency {
 }
 
 impl AsContextDependency for FallbackDependency {}
-impl AsDependencyTemplate for FallbackDependency {}
+impl AsDependencyCodeGeneration for FallbackDependency {}

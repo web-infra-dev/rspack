@@ -152,7 +152,7 @@ async fn eval_source_map_devtool_plugin_render_module_content(
         };
         let module_filenames =
           ModuleFilenameHelpers::replace_duplicates(module_filenames, |mut filename, _, n| {
-            filename.extend(std::iter::repeat('*').take(n));
+            filename.extend(std::iter::repeat_n('*', n));
             filename
           });
         map.set_sources(module_filenames);

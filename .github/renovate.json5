@@ -76,6 +76,12 @@
 			matchManagers: ["npm"],
 			matchPackageNames: ["/^@rspack/"]
 		},
+		// opentelemetry npm packages
+		{
+			groupName: "opentelemetry",
+			matchManagers: ["npm"],
+			matchPackageNames: ["/^@opentelemetry/"]
+		},
 		// Babel npm packages
 		{
 			groupName: "babel",

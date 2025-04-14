@@ -66,7 +66,7 @@ pub fn merge_from_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStr
 }
 
 #[proc_macro_attribute]
-pub fn cacheable(
+pub fn enable_cacheable(
   args: proc_macro::TokenStream,
   tokens: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
@@ -75,14 +75,14 @@ pub fn cacheable(
 
 #[proc_macro_attribute]
 pub fn disable_cacheable(
-  _args: proc_macro::TokenStream,
+  args: proc_macro::TokenStream,
   tokens: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-  cacheable::disable_cacheable(tokens)
+  cacheable::disable_cacheable(args, tokens)
 }
 
 #[proc_macro_attribute]
-pub fn cacheable_dyn(
+pub fn enable_cacheable_dyn(
   _args: proc_macro::TokenStream,
   tokens: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {

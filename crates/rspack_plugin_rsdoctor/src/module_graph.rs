@@ -150,7 +150,7 @@ pub fn collect_module_original_sources(
         })
         .or_else(|| {
           let resource = Utf8PathBuf::from(resource);
-          let buffer = ifs.read(&resource).ok()?;
+          let buffer = ifs.read_sync(&resource).ok()?;
           let content = String::from_utf8(buffer).ok()?;
           Some(RsdoctorModuleOriginalSource {
             module: *module_ukey,

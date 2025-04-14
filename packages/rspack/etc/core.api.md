@@ -46,7 +46,6 @@ import type { JsExportsInfo } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
 import type { JsModuleGraph } from '@rspack/binding';
-import type { JsModuleGraphConnection } from '@rspack/binding';
 import { JsRsdoctorAssetPatch } from '@rspack/binding';
 import { JsRsdoctorChunkGraph } from '@rspack/binding';
 import { JsRsdoctorModuleGraph } from '@rspack/binding';
@@ -61,6 +60,7 @@ import * as liteTapable from '@rspack/lite-tapable';
 import { Logger as Logger_2 } from './logging/Logger';
 import type { Middleware } from 'webpack-dev-server';
 import { Module } from '@rspack/binding';
+import type { ModuleGraphConnection } from '@rspack/binding';
 import { NormalModule } from '@rspack/binding';
 import { RawCopyPattern } from '@rspack/binding';
 import { RawCssExtractPluginOption } from '@rspack/binding';
@@ -306,6 +306,7 @@ interface BaseModuleConfig {
     lazy?: boolean | string[];
     // @deprecated (undocumented)
     noInterop?: boolean;
+    outFileExtension?: "js" | "mjs" | "cjs";
     // (undocumented)
     preserveImportMeta?: boolean;
     strict?: boolean;
@@ -3698,22 +3699,6 @@ class ModuleGraph {
 }
 
 // @public (undocumented)
-class ModuleGraphConnection {
-    // (undocumented)
-    static __from_binding(binding: JsModuleGraphConnection): ModuleGraphConnection;
-    // (undocumented)
-    static __to_binding(data: ModuleGraphConnection): JsModuleGraphConnection;
-    // (undocumented)
-    readonly dependency: Dependency;
-    // (undocumented)
-    readonly module: Module | null;
-    // (undocumented)
-    readonly originModule: Module | null;
-    // (undocumented)
-    readonly resolvedModule: Module | null;
-}
-
-// @public (undocumented)
 export type ModuleOptions = {
     defaultRules?: RuleSetRules;
     rules?: RuleSetRules;
@@ -4512,7 +4497,11 @@ interface ReactConfig {
     importSource?: string;
     pragma?: string;
     pragmaFrag?: string;
-    refresh?: boolean;
+    refresh?: boolean | {
+        refreshReg?: string;
+        refreshSig?: string;
+        emitFullSignatures?: boolean;
+    };
     runtime?: "automatic" | "classic";
     throwIfNamespace?: boolean;
     // @deprecated
@@ -4902,10 +4891,10 @@ declare namespace rspackExports {
         RspackOptionsApply as WebpackOptionsApply,
         Chunk,
         ChunkGroup,
-        Module,
         ResolveData,
         ResourceDataWithData,
         MultiStats,
+        Module,
         NormalModule,
         ContextModule,
         ConcatenatedModule,

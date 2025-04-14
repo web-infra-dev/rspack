@@ -2,7 +2,7 @@ import querystring from "node:querystring";
 import { promisify } from "node:util";
 import { type MessagePort, receiveMessageOnPort } from "node:worker_threads";
 
-import { JsLoaderState } from "@rspack/binding";
+import { JsLoaderState, type NormalModule } from "@rspack/binding";
 import type { LoaderContext } from "../config";
 
 import { createHash } from "../util/createHash";
@@ -64,7 +64,7 @@ async function loaderImpl(
 
 	const pendingDependencyRequest: SendRequestResult[] = [];
 
-	// @ts-ignore This option indicates that the loader is in a worker.
+	// @ts-expect-error `loaderContext.parallel` only works with loaders in worker
 	loaderContext.parallel = true;
 	loaderContext.dependency = loaderContext.addDependency =
 		function addDependency(file) {
@@ -96,9 +96,6 @@ async function loaderImpl(
 	};
 	loaderContext.clearDependencies = function clearDependencies() {
 		pendingDependencyRequest.push(sendRequest(RequestType.ClearDependencies));
-	};
-	loaderContext.importModule = function () {
-		throw new Error("importModule is not supported in worker");
 	};
 	loaderContext.resolve = function resolve(context, request, callback) {
 		sendRequest(RequestType.Resolve, context, request).then(
@@ -247,7 +244,7 @@ async function loaderImpl(
 
 	loaderContext._compiler = {
 		...loaderContext._compiler,
-		// @ts-ignore
+		// @ts-expect-error: some properties are missing.
 		webpack: {
 			util: {
 				createHash: require("../util/createHash").createHash,
@@ -256,13 +253,75 @@ async function loaderImpl(
 		}
 	};
 
+	loaderContext._compilation = {
+		...loaderContext._compilation,
+		getPath(filename, data) {
+			return sendRequest(RequestType.CompilationGetPath, filename, data).wait();
+		},
+		getPathWithInfo(filename, data) {
+			return sendRequest(
+				RequestType.CompilationGetPathWithInfo,
+				filename,
+				data
+			).wait();
+		},
+		getAssetPath(filename, data) {
+			return sendRequest(
+				RequestType.CompilationGetAssetPath,
+				filename,
+				data
+			).wait();
+		},
+		getAssetPathWithInfo(filename, data) {
+			return sendRequest(
+				RequestType.CompilationGetAssetPathWithInfo,
+				filename,
+				data
+			).wait();
+		}
+	} as LoaderContext["_compilation"];
+
 	const _module = loaderContext._module as any;
 	loaderContext._module = {
 		type: _module.type,
 		identifier() {
 			return _module.identifier;
+		},
+		matchResource: _module.matchResource,
+		request: _module.request,
+		userRequest: _module.userRequest,
+		rawRequest: _module.rawRequest
+	} as NormalModule;
+
+	// @ts-expect-error
+	loaderContext.importModule = function importModule(
+		request,
+		options,
+		callback
+	) {
+		if (!callback) {
+			return new Promise((resolve, reject) => {
+				sendRequest(RequestType.ImportModule, request, options).then(
+					result => {
+						resolve(result);
+					},
+					err => {
+						reject(err);
+					}
+				);
+			});
 		}
-	} as LoaderContext["_module"];
+		sendRequest(RequestType.ImportModule, request, options).then(
+			result => {
+				callback(null, result);
+			},
+			err => {
+				callback(err);
+			}
+		);
+	};
+
+	loaderContext.fs = require("node:fs");
 
 	Object.defineProperty(loaderContext, "request", {
 		enumerable: true,

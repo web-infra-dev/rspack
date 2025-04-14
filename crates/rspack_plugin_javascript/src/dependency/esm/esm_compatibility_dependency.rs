@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsDependency, Compilation, DependencyTemplate, InitFragmentKey, InitFragmentStage, ModuleGraph,
-  NormalInitFragment, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsageState,
+  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, InitFragmentKey,
+  InitFragmentStage, ModuleGraph, NormalInitFragment, RuntimeGlobals, TemplateContext,
+  TemplateReplaceSource, UsageState,
 };
 use swc_core::atoms::Atom;
 
@@ -13,9 +13,26 @@ use swc_core::atoms::Atom;
 pub struct ESMCompatibilityDependency;
 
 #[cacheable_dyn]
-impl DependencyTemplate for ESMCompatibilityDependency {
-  fn apply(
+impl DependencyCodeGeneration for ESMCompatibilityDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(ESMCompatibilityDependencyTemplate::template_type())
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Default)]
+pub struct ESMCompatibilityDependencyTemplate;
+
+impl ESMCompatibilityDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("ESMCompatibilityDependency")
+  }
+}
+
+impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
+  fn render(
     &self,
+    _dep: &dyn DependencyCodeGeneration,
     _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
@@ -76,17 +93,4 @@ impl DependencyTemplate for ESMCompatibilityDependency {
       )));
     }
   }
-
-  fn dependency_id(&self) -> Option<rspack_core::DependencyId> {
-    None
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
-  }
 }
-impl AsDependency for ESMCompatibilityDependency {}

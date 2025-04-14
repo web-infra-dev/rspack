@@ -9,7 +9,7 @@ use swc_core::ecma::atoms::Atom;
 
 use super::{AffectType, FactorizeInfo};
 use crate::{
-  create_exports_object_referenced, AsContextDependency, AsDependencyTemplate, Context,
+  create_exports_object_referenced, AsContextDependency, AsDependencyCodeGeneration, Context,
   ContextMode, ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyType,
   ExtendedReferencedExport, ImportAttributes, ModuleDependency, ModuleGraph, ModuleLayer,
   ReferencedExport, RuntimeSpec,
@@ -130,5 +130,5 @@ impl ModuleDependency for ContextElementDependency {
   }
 }
 
-impl AsDependencyTemplate for ContextElementDependency {}
+impl AsDependencyCodeGeneration for ContextElementDependency {}
 impl AsContextDependency for ContextElementDependency {}

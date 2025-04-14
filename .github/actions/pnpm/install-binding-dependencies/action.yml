@@ -28,7 +28,6 @@ runs:
           node-cache-${{ runner.os }}-pnpm-binding-
 
     - name: Install binding node dependencies
-      if: ${{ !inputs.skipable && inputs.full-install != 'true' }}
       shell: bash
       run: |
         cd ./crates/node_binding
@@ -40,4 +39,4 @@ runs:
       if: ${{ inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' }}
       with:
         path: ${{ steps.store-path.outputs.STORE_PATH }}
-        key: node-cache-${{ runner.os }}-pnpm-binding-${{ hashFiles('pnpm-lock.yaml') }}
+        key: pnpm-cache-binding-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}

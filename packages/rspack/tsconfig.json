@@ -29,6 +29,9 @@
       ],
       "webpack-sources": [
         "../compiled/webpack-sources"
+      ],
+      "tinypool": [
+        "../compiled/tinypool"
       ]
     }
   },

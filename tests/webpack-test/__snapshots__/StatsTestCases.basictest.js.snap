@@ -149,7 +149,7 @@ vendors:
     > ./c ./index.js 3:0-47
     dependent modules xx bytes [dependent] 4 modules
     ./c.js xx bytes [built] [code generated]
-  chunk (runtime: a, b, c) vendors/vendors.js (vendors) (id hint: vendors) xx bytes [initial] [rendered] split chunk (cache group: vendors)
+  chunk (runtime: a, b, c) vendors/vendors.js (vendors) (id hint: vendors) xx bytes [initial] [rendered] split chunk (cache group: vendors) (name: vendors)
     > ./a a
     > ./b b
     > ./c c
@@ -190,7 +190,7 @@ multiple-vendors:
   Entrypoint a xx KiB = multiple-xxx.js xx KiB
   Entrypoint b xx KiB = multiple-xxx.js xx KiB
   Entrypoint c xx KiB = multiple-xxx.js xx KiB
-  chunk (runtime: a, b, c, main) multiple-xxx.js (libs) (id hint: libs) xx bytes [initial] [rendered] split chunk (cache group: libs)
+  chunk (runtime: a, b, c, main) multiple-xxx.js (libs) (id hint: libs) xx bytes [initial] [rendered] split chunk (cache group: libs) (name: libs)
     > ./a ./index.js 1:0-47
     > ./b ./index.js 2:0-47
     > ./c ./index.js 3:0-47
@@ -396,9 +396,9 @@ cacheable modules xx bytes
   ./entry-xxx.js xx bytes [built] [code generated]
   ./dynamic.js xx bytes [built] [code generated]
 
-ERROR in × It's not allowed to load an initial chunk on demand. The chunk name \\"entry2\\" is already used by an entrypoint.
-
 ERROR in × It's not allowed to load an initial chunk on demand. The chunk name \\"entry3\\" is already used by an entrypoint.
+
+ERROR in × It's not allowed to load an initial chunk on demand. The chunk name \\"entry2\\" is already used by an entrypoint.
 
 Rspack x.x.x compiled with 2 errors in X.23"
 `;
@@ -617,7 +617,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for immutable 1`] = `
-"asset a618085316d097fd.js xx KiB [emitted] [immutable] (name: main)
+"asset 4bb31e6ebee8d2ca.js xx KiB [emitted] [immutable] (name: main)
 asset cc8bb03cea0d9f6f.js xx bytes [emitted] [immutable]"
 `;
 
@@ -626,7 +626,7 @@ exports[`StatsTestCases should print correct stats for import-context-filter 1`]
 asset 228.js xx bytes [emitted]
 asset 271.js xx bytes [emitted]
 asset 536.js xx bytes [emitted]
-runtime modules xx KiB 9 modules
+runtime modules 7 KiB 9 modules
 cacheable modules xx bytes
   modules by path ./templates/*.js xx bytes
     ./templates/bar.js xx bytes [built] [code generated]
@@ -899,20 +899,20 @@ chunk (runtime: e3) 400.js xx bytes [rendered]
 chunk (runtime: e1, e3) 511.js xx bytes [rendered]
   ./async2.js xx bytes [built] [code generated]
   ./f.js xx bytes [dependent] [built] [code generated]
-chunk (runtime: e1) e1.js (e1) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
+chunk (runtime: e1) e1.js (e1) xx bytes (javascript) 7 KiB (runtime) [entry] [rendered]
   ./b.js xx bytes [dependent] [built] [code generated]
   ./d.js xx bytes [dependent] [built] [code generated]
   ./e1.js + 2 modules xx bytes [code generated]
 chunk (runtime: e2, e3) 637.js xx bytes [rendered]
   ./async1.js xx bytes [built] [code generated]
   ./d.js xx bytes [dependent] [built] [code generated]
-chunk (runtime: e3) e3.js (e3) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
+chunk (runtime: e3) e3.js (e3) xx bytes (javascript) 7 KiB (runtime) [entry] [rendered]
   ./b.js xx bytes [dependent] [built] [code generated]
   ./e3.js + 2 modules xx bytes [code generated]
   ./h.js xx bytes [dependent] [built] [code generated]
 chunk (runtime: e2) 806.js xx bytes [rendered]
   ./async2.js xx bytes [built] [code generated]
-chunk (runtime: e2) e2.js (e2) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
+chunk (runtime: e2) e2.js (e2) xx bytes (javascript) 7 KiB (runtime) [entry] [rendered]
   ./b.js xx bytes [dependent] [built] [code generated]
   ./e2.js + 2 modules xx bytes [code generated]
   ./f.js xx bytes [dependent] [built] [code generated]
@@ -1072,7 +1072,7 @@ Chunk Group main xx KiB = a-xxx.js
 chunk (runtime: main) a-xxx.js (async-c) xx bytes [rendered]
   > ./c ./index.js 3:0-47
   ./c.js xx bytes [built] [code generated]
-chunk (runtime: main) a-xxx.js (vendors) (id hint: vendors) xx bytes [rendered] split chunk (cache group: vendors)
+chunk (runtime: main) a-xxx.js (vendors) (id hint: vendors) xx bytes [rendered] split chunk (cache group: vendors) (name: vendors)
   > ./c ./index.js 3:0-47
   ./node_modules/x.js xx bytes [built] [code generated]
   ./node_modules/y.js xx bytes [built] [code generated]
@@ -1098,7 +1098,7 @@ Chunk Group async-xxx.js xx bytes
 chunk (runtime: main) b-xxx.js (async-c) xx bytes [rendered]
   > ./c ./index.js 3:0-47
   ./c.js xx bytes [built] [code generated]
-chunk (runtime: main) b-xxx.js (vendors) (id hint: vendors) xx bytes [rendered] split chunk (cache group: vendors)
+chunk (runtime: main) b-xxx.js (vendors) (id hint: vendors) xx bytes [rendered] split chunk (cache group: vendors) (name: vendors)
   > ./c ./index.js 3:0-47
   ./node_modules/x.js xx bytes [built] [code generated]
   ./node_modules/y.js xx bytes [built] [code generated]
@@ -1866,7 +1866,7 @@ Rspack x.x.x compiled successfully in X.23"
 exports[`StatsTestCases should print correct stats for side-effects-issue-7428 1`] = `
 "asset main.js xx KiB [emitted] (name: main)
 asset 0.js xx bytes [emitted]
-runtime modules xx KiB 9 modules
+runtime modules 7 KiB 9 modules
 cacheable modules xx bytes
   modules by path ./components/src/ xx bytes
     orphan modules xx bytes [orphan]
@@ -2077,7 +2077,7 @@ all-chunks:
   all-chunks (Rspack x.x.x) compiled successfully
 
 manual:
-  Entrypoint main 9 KiB = manual/main.js
+  Entrypoint main xx KiB = manual/main.js
   Entrypoint a xx KiB = manual/vendors.js xx bytes manual/a.js xx KiB
   Entrypoint b xx KiB = manual/vendors.js xx bytes manual/b.js xx KiB
   Entrypoint c xx KiB = manual/vendors.js xx bytes manual/c.js xx KiB
@@ -2085,7 +2085,7 @@ manual:
     > ./c ./index.js 3:0-47
     dependent modules xx bytes [dependent] 2 modules
     ./c.js xx bytes [built] [code generated]
-  chunk (runtime: a, b, c, main) manual/vendors.js (vendors) (id hint: vendors) xx bytes <{909}> ={172}= ={250}= ={262}= ={74}= ={751}= ={76}= >{912}< [initial] [rendered] split chunk (cache group: vendors)
+  chunk (runtime: a, b, c, main) manual/vendors.js (vendors) (id hint: vendors) xx bytes <{909}> ={172}= ={250}= ={262}= ={74}= ={751}= ={76}= >{912}< [initial] [rendered] split chunk (cache group: vendors) (name: vendors)
     > ./a ./index.js 1:0-47
     > ./b ./index.js 2:0-47
     > ./c ./index.js 3:0-47
@@ -2281,7 +2281,7 @@ custom-chunks-filter-in-cache-groups:
     > ./c ./index.js 3:0-47
     dependent modules xx bytes [dependent] 2 modules
     ./c.js xx bytes [built] [code generated]
-  chunk (runtime: b, c, main) custom-xxx.js (vendors) (id hint: vendors) xx bytes <{909}> ={172}= ={250}= ={262}= ={751}= ={76}= >{912}< [initial] [rendered] split chunk (cache group: vendors)
+  chunk (runtime: b, c, main) custom-xxx.js (vendors) (id hint: vendors) xx bytes <{909}> ={172}= ={250}= ={262}= ={751}= ={76}= >{912}< [initial] [rendered] split chunk (cache group: vendors) (name: vendors)
     > ./a ./index.js 1:0-47
     > ./b ./index.js 2:0-47
     > ./c ./index.js 3:0-47
@@ -2387,9 +2387,9 @@ chunk (runtime: main) 727.vendors.js (id hint: vendors) xx bytes [initial] [rend
   ./node_modules/c.js xx bytes [built] [code generated]
 chunk (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
   ./index.js xx bytes [built] [code generated]
-chunk (runtime: main) 961.vendors.js (id hint: vendors) xx bytes [initial] [rendered]
+chunk (runtime: main) 961.vendors.js (id hint: vendors) xx bytes [initial] [rendered] split chunk (cache group: vendors)
   ./node_modules/b.js xx bytes [built] [code generated]
-chunk (runtime: main) 990.vendors.js (id hint: vendors) xx bytes [initial] [rendered]
+chunk (runtime: main) 990.vendors.js (id hint: vendors) xx bytes [initial] [rendered] split chunk (cache group: vendors)
   ./node_modules/a.js xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X.23"
 `;
@@ -2480,7 +2480,7 @@ default (Rspack x.x.x) compiled successfully"
 
 exports[`StatsTestCases should print correct stats for split-chunks-issue-6696 1`] = `
 "Entrypoint main xx KiB = vendors.js xx bytes main.js xx KiB
-chunk (runtime: main) vendors.js (vendors) (id hint: vendors) xx bytes ={909}= >{250}< >{262}< [initial] [rendered] split chunk (cache group: vendors)
+chunk (runtime: main) vendors.js (vendors) (id hint: vendors) xx bytes ={909}= >{250}< >{262}< [initial] [rendered] split chunk (cache group: vendors) (name: vendors)
   > ./ main
   ./node_modules/y.js xx bytes [built] [code generated]
 chunk (runtime: main) async-xxx.js (async-a) xx bytes <{192}> <{909}> [rendered]

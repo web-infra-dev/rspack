@@ -7,7 +7,7 @@ use pnp::fs::{FileType, LruZipCache, VPath, VPathInfo, ZipCache};
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 
 use crate::{
-  FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, IoResultToFsResultExt,
+  Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, IoResultToFsResultExt,
   ReadStream, ReadableFileSystem, Result, WritableFileSystem, WriteStream,
 };
 #[derive(Debug)]
@@ -136,7 +136,21 @@ impl From<FileType> for FileMetadata {
 #[cfg(not(target_family = "wasm"))]
 #[async_trait::async_trait]
 impl ReadableFileSystem for NativeFileSystem {
-  fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+  async fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+    if self.options.pnp {
+      let path = path.as_std_path();
+      let buffer = match VPath::from(path)? {
+        VPath::Zip(info) => self.pnp_lru.read(info.physical_base_path(), info.zip_path),
+        VPath::Virtual(info) => fs::read(info.physical_base_path()),
+        VPath::Native(path) => fs::read(&path),
+      };
+      return buffer.map_err(Error::from);
+    }
+
+    fs::read(path).map_err(Error::from)
+  }
+
+  fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
     if self.options.pnp {
       let path = path.as_std_path();
       let buffer = match VPath::from(path)? {
@@ -149,7 +163,11 @@ impl ReadableFileSystem for NativeFileSystem {
     fs::read(path).to_fs_result()
   }
 
-  fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+  async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    self.metadata_sync(path)
+  }
+
+  fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata> {
     if self.options.pnp {
       let path = path.as_std_path();
       return match VPath::from(path)? {
@@ -173,12 +191,12 @@ impl ReadableFileSystem for NativeFileSystem {
     meta.try_into()
   }
 
-  fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+  async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
     let meta = fs::symlink_metadata(path)?;
     meta.try_into()
   }
 
-  fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
+  async fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
     if self.options.pnp {
       let path = path.as_std_path();
       let path = match VPath::from(path)? {
@@ -196,7 +214,10 @@ impl ReadableFileSystem for NativeFileSystem {
     tokio::fs::read(file).await.to_fs_result()
   }
 
-  fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+  async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+    self.read_dir_sync(dir)
+  }
+  fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     let mut res = vec![];
     for entry in fs::read_dir(dir)? {
       let entry = entry?;
@@ -209,30 +230,71 @@ impl ReadableFileSystem for NativeFileSystem {
 #[cfg(target_family = "wasm")]
 #[async_trait::async_trait]
 impl ReadableFileSystem for NativeFileSystem {
-  fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+  async fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
     fs::read(path).to_fs_result()
   }
 
-  fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+  fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+    fs::read(path).to_fs_result()
+  }
+
+  async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
     let meta = fs::metadata(path)?;
     meta.try_into()
   }
 
-  fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+  fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    let meta = fs::metadata(path)?;
+    meta.try_into()
+  }
+
+  async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
     let meta = fs::symlink_metadata(path)?;
     meta.try_into()
   }
 
-  fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
-    let path = dunce::canonicalize(path)?;
-    Ok(path.assert_utf8())
+  async fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
+    // Comes from rspack_resolver
+    use std::path::Component;
+    let mut path_buf = path.to_path_buf();
+    loop {
+      let link = fs::read_link(&path_buf)?;
+      path_buf.pop();
+      for component in link.components() {
+        match component {
+          Component::ParentDir => {
+            path_buf.pop();
+          }
+          Component::Normal(seg) => {
+            path_buf.push(seg.to_string_lossy().trim_end_matches('\0'));
+          }
+          Component::RootDir => {
+            path_buf = Utf8PathBuf::from("/");
+          }
+          Component::CurDir | Component::Prefix(_) => {}
+        }
+      }
+      if !fs::symlink_metadata(&path_buf)?.is_symlink() {
+        break;
+      }
+    }
+    Ok(path_buf)
   }
 
   async fn async_read(&self, file: &Utf8Path) -> Result<Vec<u8>> {
     fs::read(file).to_fs_result()
   }
 
-  fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+  async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+    let mut res = vec![];
+    for entry in fs::read_dir(dir)? {
+      let entry = entry?;
+      res.push(entry.file_name().to_string_lossy().to_string());
+    }
+    Ok(res)
+  }
+
+  fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     let mut res = vec![];
     for entry in fs::read_dir(dir)? {
       let entry = entry?;

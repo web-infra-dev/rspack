@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use rspack_cacheable::{
-  cacheable,
+  enable_cacheable as cacheable,
   with::{AsCacheable, AsString, AsTuple3},
 };
 

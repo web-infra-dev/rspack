@@ -1,4 +1,3 @@
-#![feature(map_many_mut)]
 #![feature(let_chains)]
 
 mod common;

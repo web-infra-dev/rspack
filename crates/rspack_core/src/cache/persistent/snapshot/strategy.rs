@@ -51,7 +51,7 @@ impl StrategyHelper {
 
   /// get path file modified time
   async fn modified_time(&self, path: &Path) -> Option<u64> {
-    if let Ok(info) = self.fs.metadata(path.assert_utf8()) {
+    if let Ok(info) = self.fs.metadata(path.assert_utf8()).await {
       Some(info.mtime_ms)
     } else {
       None
@@ -176,7 +176,7 @@ mod tests {
     // modified_time
     assert_eq!(
       helper.modified_time(Path::new("/file1")).await,
-      Some(fs.metadata("/file1".into()).unwrap().mtime_ms)
+      Some(fs.metadata("/file1".into()).await.unwrap().mtime_ms)
     );
     assert!(helper.modified_time(Path::new("/file2")).await.is_none());
 

@@ -18,8 +18,8 @@ use rspack_core::{
     ConcatSource, MapOptions, RawStringSource, Source, SourceExt, SourceMapSource,
     SourceMapSourceOptions,
   },
-  AssetInfo, BindingCell, ChunkUkey, Compilation, CompilationAsset, CompilationParams,
-  CompilationProcessAssets, CompilerCompilation, Plugin, PluginContext,
+  AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
+  CompilerCompilation, Plugin, PluginContext,
 };
 use rspack_error::{miette::IntoDiagnostic, Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -170,11 +170,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       Regex::new(condition)
         .unwrap_or_else(|_| panic!("`{condition}` is invalid extractComments condition"))
     });
-
+  let enter_span = tracing::Span::current();
   compilation
     .assets_mut()
     .par_iter_mut()
     .filter(|(filename, original)| {
+      // propagate span in rayon to keep parent relation
       if !JAVASCRIPT_ASSET_REGEXP.is_match(filename) {
         return false
       }
@@ -188,6 +189,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       true
     })
     .try_for_each_with(tx,|tx, (filename, original)| -> Result<()>  {
+      let _guard = enter_span.enter();
       let filename = filename.split('?').next().expect("Should have filename");
       if let Some(original_source) = original.get_source() {
         let input = original_source.source().to_string();
@@ -279,7 +281,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       Ok(())
   })?;
-
   compilation.extend_diagnostics(rx.into_iter().flatten().collect::<Vec<_>>());
 
   // write all extracted comments to assets
@@ -291,13 +292,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .for_each(|(_, comments)| {
       compilation.emit_asset(
         comments.comments_file_name,
-        CompilationAsset {
-          source: Some(comments.source),
-          info: BindingCell::from(AssetInfo {
+        CompilationAsset::new(
+          Some(comments.source),
+          AssetInfo {
             minimized: Some(true),
             ..Default::default()
-          }),
-        },
+          },
+        ),
       )
     });
 

@@ -1,4 +1,4 @@
-use rspack_cacheable::{cacheable, from_bytes, r#dyn::VTablePtr, to_bytes};
+use rspack_cacheable::{enable_cacheable as cacheable, from_bytes, r#dyn::VTablePtr, to_bytes};
 
 #[test]
 #[cfg_attr(miri, ignore)]

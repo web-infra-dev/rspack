@@ -683,10 +683,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       compilation.emit_asset(
         result.filename,
-        CompilationAsset {
-          source: Some(Arc::new(result.source)),
-          info: BindingCell::from(asset_info),
-        },
+        CompilationAsset::new(Some(Arc::new(result.source)), asset_info),
       );
     }
 
