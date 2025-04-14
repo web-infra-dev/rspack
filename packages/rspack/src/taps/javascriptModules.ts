@@ -1,7 +1,6 @@
 import * as binding from "@rspack/binding";
 import { Chunk } from "../Chunk";
 import { JavascriptModulesPlugin } from "../builtin-plugin";
-import { toBuffer } from "../util";
 import { createHash } from "../util/createHash";
 import type { CreatePartialRegisters } from "./types";
 
@@ -25,10 +24,17 @@ export const createJavaScriptModulesHooksRegisters: CreatePartialRegisters<
 					}
 					const hash = createHash(getCompiler().options.output.hashFunction!);
 					queried.call(Chunk.__from_binding(chunk), hash);
-					const digestResult = hash.digest(
-						getCompiler().options.output.hashDigest
-					);
-					return toBuffer(digestResult);
+					let digestResult: Buffer | string;
+					if (getCompiler().options.output.hashDigest) {
+						digestResult = hash.digest(
+							getCompiler().options.output.hashDigest as string
+						);
+					} else {
+						digestResult = hash.digest();
+					}
+					return typeof digestResult === "string"
+						? Buffer.from(digestResult)
+						: digestResult;
 				};
 			}
 		)

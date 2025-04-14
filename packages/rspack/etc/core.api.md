@@ -2232,8 +2232,12 @@ class Hash {
 
 // @public (undocumented)
 class Hash_2 {
-    digest(encoding?: string): string | Buffer;
-    update(data: string | Buffer, inputEncoding?: string): this;
+    digest(): Buffer;
+    digest(encoding: string): string;
+    // (undocumented)
+    update(data: string, inputEncoding: string): this;
+    // (undocumented)
+    update(data: Buffer): this;
 }
 
 // @public (undocumented)
