@@ -4,7 +4,7 @@
 
 ```javascript
 Array [
-  _Chunk {
+  Chunk {
     "auxiliaryFiles": Set {},
     "chunkReason": undefined,
     "contentHash": Object {},
@@ -65593,7 +65593,7 @@ undefined
 
 ```javascript
 Array [
-  _Chunk {
+  Chunk {
     "auxiliaryFiles": Set {},
     "chunkReason": undefined,
     "contentHash": Object {},
