@@ -1,7 +1,7 @@
 use std::{any::Any, sync::Arc};
 
 use rspack_cacheable::{
-  cacheable, from_bytes, to_bytes,
+  enable_cacheable as cacheable, from_bytes, to_bytes,
   with::{As, AsConverter},
   DeserializeError, SerializeError,
 };

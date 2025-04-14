@@ -16,7 +16,7 @@
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json",
     "dev": "tsc -b -w",
-    "test": "pnpm run --stream /^test:.*/",
+    "test": "cross-env RUST_BACKTRACE=full pnpm run --stream /^test:.*/",
     "testu": "pnpm run --stream /^test:.*/ -u",
     "test:base": "cross-env node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.js --passWithNoTests",
     "test:hot": "cross-env RSPACK_HOT_TEST=true node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.hot.js --passWithNoTests",
@@ -72,7 +72,7 @@
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
     "@rspack/plugin-preact-refresh": "1.1.2",
-    "@rspack/plugin-react-refresh": "^1.1.0",
+    "@rspack/plugin-react-refresh": "^1.2.0",
     "@rspack/test-tools": "workspace:*",
     "@swc/helpers": "0.5.15",
     "@swc/plugin-remove-console": "^7.0.0",

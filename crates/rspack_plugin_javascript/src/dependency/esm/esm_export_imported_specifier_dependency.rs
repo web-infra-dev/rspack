@@ -45,7 +45,6 @@ pub struct ESMExportImportedSpecifierDependency {
   pub name: Option<Atom>,
   #[cacheable(with=AsPreset)]
   pub request: Atom,
-  export_all: bool,
   source_order: i32,
   pub other_star_exports: Option<Vec<DependencyId>>,
   range: DependencyRange,
@@ -64,7 +63,6 @@ impl ESMExportImportedSpecifierDependency {
     source_order: i32,
     ids: Vec<Atom>,
     name: Option<Atom>,
-    export_all: bool,
     other_star_exports: Option<Vec<DependencyId>>,
     range: DependencyRange,
     export_presence_mode: ExportPresenceMode,
@@ -80,7 +78,6 @@ impl ESMExportImportedSpecifierDependency {
       request,
       ids,
       resource_identifier,
-      export_all,
       other_star_exports,
       range,
       export_presence_mode,

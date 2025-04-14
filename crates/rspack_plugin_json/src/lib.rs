@@ -34,7 +34,6 @@ mod utils;
 #[derive(Debug)]
 struct JsonParserAndGenerator {
   pub exports_depth: u32,
-  pub parse: ParseOption,
   pub json_parse: bool,
 }
 
@@ -259,7 +258,6 @@ impl Plugin for JsonPlugin {
 
         Box::new(JsonParserAndGenerator {
           exports_depth: p.exports_depth.expect("should have exports_depth"),
-          parse: p.parse.clone(),
           json_parse: g.json_parse.expect("should have json_parse"),
         })
       }),

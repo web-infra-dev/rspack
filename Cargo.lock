@@ -211,9 +211,9 @@ dependencies = [
 
 [[package]]
 name = "async-trait"
-version = "0.1.84"
+version = "0.1.88"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b1244b10dcd56c92219da4e14caa97e312079e185f04ba3eea25061561dc0a0"
+checksum = "e539d3fca749fcee5236ab05e93a52867dd549cc157c8cb7f99595f3cedffdb5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4618,7 +4618,6 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
- "rayon",
  "ropey",
  "rspack_allocator",
  "rspack_cacheable",

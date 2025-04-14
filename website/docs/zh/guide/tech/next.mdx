@@ -2,10 +2,10 @@ import { Tabs, Tab, PackageManagerTabs } from '@theme';
 
 # Next.js
 
-[next-rspack](https://www.npmjs.com/package/next-rspack) 是一个社区驱动的插件，它允许 Next.js 项目使用 Rspack 作为打包工具。
+[next-rspack](https://www.npmjs.com/package/next-rspack) 是一个社区驱动的插件，它允许 Next.js 项目使用 Rspack 作为打包工具（实验性）。
 
 :::tip
-查看 [Rspack joins the Next.js ecosystem](https://rspack.dev/blog/rspack-next-partner) 博客文章了解更多。
+查看 [Rspack 加入 Next.js 生态](/blog/rspack-next-partner) 博客文章了解更多。
 :::
 
 ## 安装
@@ -13,6 +13,10 @@ import { Tabs, Tab, PackageManagerTabs } from '@theme';
 安装 `next-rspack` 包：
 
 <PackageManagerTabs command="add next-rspack -D" />
+
+:::tip
+如果你使用的 Next.js 版本低于 15.3.0，请先升级到 >= 15.3.0 版本，参考 [Next.js - Upgrading](https://nextjs.org/docs/pages/building-your-application/upgrading)。
+:::
 
 ## 使用
 
