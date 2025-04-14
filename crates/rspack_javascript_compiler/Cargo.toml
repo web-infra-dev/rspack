@@ -19,6 +19,7 @@ swc_core = { workspace = true, features = [
   "__visit",
   "__utils",
   "__ecma_transforms",
+  "__parser",
   "ecma_ast",
   "ecma_codegen",
   "ecma_quote",
@@ -34,8 +35,10 @@ swc_error_reporters = { workspace = true }
 swc_node_comments = { workspace = true }
 swc_parallel = { workspace = true, default-features = false }
 
-rspack_error = { path = "../rspack_error" }
-rspack_util  = { path = "../rspack_util" }
+rspack_cacheable = { workspace = true }
+rspack_error     = { workspace = true }
+rspack_sources   = { workspace = true }
+rspack_util      = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["swc_parallel"]

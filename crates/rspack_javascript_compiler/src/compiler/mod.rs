@@ -1,48 +1,41 @@
-use std::{
-  alloc::Global,
-  path::{Path, PathBuf},
-  sync::{Arc, LazyLock},
-};
+use std::sync::Arc;
 
-use anyhow::{Context, Error};
-use rspack_error::{BatchErrors, DiagnosticKind, TraceableError};
-use rspack_util::{itoa, swc::minify_file_comments};
+mod minify;
+mod stringify;
+mod transform;
+
+use rspack_error::BatchErrors;
+use rspack_sources::SourceMap;
 use swc_core::{
-  base::config::{Config, ConfigFile, IsModule, Options as SwcOptions, Rc},
+  base::config::IsModule,
   common::{
-    comments::Comments, FileName, FilePathMapping, Globals, Mark, SourceFile, SourceMap, Span,
-    GLOBALS,
+    comments::Comments, input::SourceFileInput, FileName, Globals, SourceFile,
+    SourceMap as SwcSourceMap, GLOBALS,
   },
   ecma::{
     ast::{EsVersion, Program as SwcProgram},
     parser::{self, lexer::Lexer, Parser, Syntax},
-    transforms::base::helpers::{self, Helpers},
   },
 };
-use swc_ecma_minifier::{
-  self,
-  option::{MinifyOptions, TopLevelOptions},
-};
+use swc_node_comments::SwcComments;
 
 use crate::{
   ast::Ast,
-  error::{ecma_parse_error_deduped_to_rspack_error, DedupEcmaErrors, ErrorSpan},
+  error::{ecma_parse_error_deduped_to_rspack_error, DedupEcmaErrors},
 };
 
 pub struct JavaScriptCompiler {
   globals: Globals,
-  cm: Arc<SourceMap>,
+  cm: Arc<SwcSourceMap>,
 }
 
 impl JavaScriptCompiler {
   pub fn new() -> Self {
     // Initialize globals for swc
     let globals = Globals::default();
+    let cm = Arc::new(SwcSourceMap::default());
 
-    Self {
-      globals,
-      cm: Default::default(),
-    }
+    Self { globals, cm }
   }
 
   pub fn parse<S: Into<String>>(
@@ -52,16 +45,18 @@ impl JavaScriptCompiler {
     target: EsVersion,
     syntax: Syntax,
     is_module: IsModule,
-    comments: Option<&dyn Comments>,
+    comments: Option<SwcComments>,
   ) -> Result<Ast, BatchErrors> {
-    let fm = self.cm.new_source_file(&filename, source.into());
-    let lexer = Lexer::new(syntax, target, SourceFileInput::from(&*fm), comments);
+    let fm = self.cm.new_source_file(Arc::new(filename), source.into());
+    let lexer = Lexer::new(
+      syntax,
+      target,
+      SourceFileInput::from(&*fm),
+      comments.as_ref().map(|c| c as &dyn Comments),
+    );
 
     parse_with_lexer(lexer, is_module)
-      .map(|program| {
-        let ast = Ast::new(program, self.cm.clone(), comments, Some(&self.globals));
-        ast
-      })
+      .map(|program| Ast::new(program, self.cm.clone(), comments))
       .map_err(|errs| {
         BatchErrors(
           errs
@@ -75,21 +70,26 @@ impl JavaScriptCompiler {
       })
   }
 
-  pub fn transform(&self) -> Ast {
-    todo!("implement transform")
-  }
-
-  pub fn minify(&self, ast: &mut Ast, options: MinifyOptions) -> Result<Ast, BatchErrors> {
-    let context = ast.get_context();
-    let unresolved_mark = &context.unresolved_mark;
-    let top_level_mark = &context.top_level_mark;
-
-    // TODO: implement minify fork from [crates/rspack_plugin_swc_js_minimizer/src/minify.rs]
-    // let program = helpers::HELPERS.set(&Helpers::new(false), || {});
-  }
-
-  pub fn print(&self, ast: Ast) -> Result<TransformOutput, Error> {
-    todo!("implement print")
+  pub fn parse_js(
+    &self,
+    fm: Arc<SourceFile>,
+    target: EsVersion,
+    syntax: Syntax,
+    is_module: IsModule,
+    comments: Option<&dyn Comments>,
+  ) -> Result<SwcProgram, BatchErrors> {
+    let lexer = Lexer::new(syntax, target, SourceFileInput::from(&*fm), comments);
+    parse_with_lexer(lexer, is_module).map_err(|errs| {
+      BatchErrors(
+        errs
+          .dedup_ecma_errors()
+          .into_iter()
+          .map(|err| {
+            rspack_error::miette::Error::new(ecma_parse_error_deduped_to_rspack_error(err, &fm))
+          })
+          .collect::<Vec<_>>(),
+      )
+    })
   }
 
   fn run<R>(&self, op: impl FnOnce() -> R) -> R {
@@ -110,8 +110,8 @@ fn parse_with_lexer(
   let inner = || {
     let mut parser = Parser::new_from(lexer);
     let program_result = match is_module {
-      IsModule::Bool(true) => parser.parse_module().map(Program::Module),
-      IsModule::Bool(false) => parser.parse_script().map(Program::Script),
+      IsModule::Bool(true) => parser.parse_module().map(SwcProgram::Module),
+      IsModule::Bool(false) => parser.parse_script().map(SwcProgram::Script),
       IsModule::Unknown => parser.parse_program(),
     };
     let mut errors = parser.take_errors();
