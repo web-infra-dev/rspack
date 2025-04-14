@@ -591,6 +591,8 @@ interface CommonJsConfig extends BaseModuleConfig {
 
 // @public (undocumented)
 export class Compilation {
+    // (undocumented)
+    [binding.COMPILATION_HOOKS_MAP_SYMBOL]: WeakMap<Compilation, NormalModuleCompilationHooks>;
     constructor(compiler: Compiler, inner: JsCompilation);
     // @internal
     __internal__deleteAssetSource(filename: string): void;
@@ -3934,6 +3936,16 @@ type NoParseOptionSingle = string | RegExp | ((request: string) => boolean);
 type NormalizedStatsOptions = KnownNormalizedStatsOptions & Omit<StatsOptions, keyof KnownNormalizedStatsOptions> & Record<string, any>;
 
 export { NormalModule }
+
+// @public (undocumented)
+interface NormalModuleCompilationHooks {
+    // (undocumented)
+    loader: liteTapable.SyncHook<[LoaderContext, Module]>;
+    // (undocumented)
+    readResource: liteTapable.HookMap<liteTapable.AsyncSeriesBailHook<[LoaderContext], string | Buffer>>;
+    // (undocumented)
+    readResourceForScheme: any;
+}
 
 // @public (undocumented)
 type NormalModuleCreateData = binding.JsNormalModuleFactoryCreateModuleArgs & {
