@@ -1,4 +1,5 @@
 use linked_hash_set::LinkedHashSet;
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   incremental::{IncrementalPasses, Mutation, Mutations},
   ApplyContext, Compilation, CompilationFinishModules, CompilerOptions, DependencyType, Logger,
@@ -17,24 +18,25 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     .incremental
     .mutations_read(IncrementalPasses::INFER_ASYNC_MODULES)
   {
-    for mutation in mutations.iter() {
-      match mutation {
-        Mutation::ModuleRemove { module } => {
-          compilation.async_modules_artifact.remove(module);
+    mutations
+      .iter()
+      .filter_map(|mutation| {
+        if let Mutation::ModuleRemove { module } = mutation {
+          Some(module)
+        } else {
+          None
         }
-        _ => {}
-      }
-    }
+      })
+      .for_each(|module| {
+        compilation.async_modules_artifact.remove(module);
+      });
   }
 
   let module_graph = compilation.get_module_graph();
   let modules = module_graph.modules();
-  let mut sync_modules = LinkedHashSet::new();
-  let mut async_modules = LinkedHashSet::new();
-  for (module_identifier, _) in modules {
-    let module = module_graph
-      .module_by_identifier(&module_identifier)
-      .expect("should have module");
+  let mut sync_modules = LinkedHashSet::default();
+  let mut async_modules = LinkedHashSet::default();
+  for (module_identifier, module) in modules {
     let build_meta = module.build_meta();
     if build_meta.has_top_level_await {
       async_modules.insert(module_identifier);
@@ -111,8 +113,8 @@ fn set_sync_modules(
             .unwrap_or_default()
         })
         .for_each(|con| {
-          if let Some(id) = &con.original_module_identifier {
-            queue.insert(*id);
+          if let Some(id) = con.original_module_identifier {
+            queue.insert(id);
           }
         });
     }
@@ -125,6 +127,7 @@ fn set_async_modules(
   mutations: &mut Option<Mutations>,
 ) {
   let mut queue = modules;
+  let mut visited = IdentifierSet::from_iter(queue.iter().copied());
 
   while let Some(module) = queue.pop_front() {
     if ModuleGraph::set_async(compilation, module, true)
@@ -147,8 +150,10 @@ fn set_async_modules(
           .unwrap_or_default()
       })
       .for_each(|con| {
-        if let Some(id) = &con.original_module_identifier {
-          queue.insert(*id);
+        if let Some(id) = con.original_module_identifier
+          && visited.insert(id)
+        {
+          queue.insert(id);
         }
       });
   }
