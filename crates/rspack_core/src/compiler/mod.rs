@@ -93,7 +93,6 @@ pub struct Compiler {
 }
 
 impl Compiler {
-  #[instrument(skip_all)]
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     compiler_path: String,

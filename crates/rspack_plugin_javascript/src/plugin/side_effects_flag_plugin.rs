@@ -833,7 +833,7 @@ fn do_optimize_connection(
   (dependency, target_module)
 }
 
-#[tracing::instrument(skip_all)]
+#[tracing::instrument("can_optimize_connection", level = "trace", skip_all)]
 fn can_optimize_connection(
   connection: &ModuleGraphConnection,
   side_effects_state_map: &IdentifierMap<ConnectionState>,

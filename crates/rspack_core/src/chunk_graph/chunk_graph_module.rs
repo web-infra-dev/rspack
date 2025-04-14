@@ -283,7 +283,7 @@ impl ChunkGraph {
       .map(|cgm| &cgm.chunks)
   }
 
-  #[instrument("chunk_graph:get_module_graph_hash", skip_all, fields(module = ?module.identifier()))]
+  #[instrument("chunk_graph:get_module_graph_hash", level="trace",skip_all, fields(module = ?module.identifier()))]
   pub fn get_module_graph_hash(
     &self,
     module: &dyn Module,
