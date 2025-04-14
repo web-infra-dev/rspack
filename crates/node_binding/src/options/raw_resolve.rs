@@ -136,8 +136,8 @@ impl TryFrom<RawResolveOptions> for Resolve {
     let alias_fields = value
       .alias_fields
       .map(|v| v.into_iter().map(|s| vec![s]).collect());
-    let restrictions = value.restrictions.map(|estriction| {
-      estriction
+    let restrictions = value.restrictions.map(|restrictions| {
+      restrictions
         .into_iter()
         .map(|restriction| match restriction {
           Either::A(s) => Restriction::Path(s),
@@ -265,8 +265,8 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         })
         .transpose()?;
 
-      let restrictions = raw.restrictions.map(|estriction| {
-        estriction
+      let restrictions = raw.restrictions.map(|restrictions| {
+        restrictions
           .into_iter()
           .map(|restriction| match restriction {
             Either::A(s) => Restriction::Path(s),
