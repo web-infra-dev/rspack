@@ -16,40 +16,18 @@ mod napi_binding {
     any::{Any, TypeId},
     hash::{Hash, Hasher},
     ops::{Deref, DerefMut},
-    ptr,
     sync::{Arc, Weak},
   };
 
   use derive_more::Debug;
   use napi::{
-    bindgen_prelude::{check_status, Array, FromNapiValue, Object, ToNapiValue},
-    sys::{self, napi_ref},
-    Env, NapiRaw, NapiValue,
+    bindgen_prelude::{Object, ToNapiValue},
+    Env, NapiValue,
   };
   use once_cell::sync::OnceCell;
-  use rspack_napi::{object_assign, object_clone};
+  use rspack_napi::{object_assign, ThreadsafeOneShotRef};
 
   use crate::{with_thread_local_allocator, AssetInfo};
-
-  fn trace(env: &Env, scope: &mut Object, mut target: Object) -> napi::Result<napi_ref> {
-    let mut raw_ref = ptr::null_mut();
-    check_status!(unsafe { sys::napi_create_reference(env.raw(), target.raw(), 0, &mut raw_ref) })?;
-    target.add_finalizer((), (), move |_ctx| {})?;
-
-    let mut traced = match scope.get::<Array>("$$scope")? {
-      Some(array) => array,
-      None => {
-        let array = env.create_array(0)?;
-        let traced = array.coerce_to_object()?;
-        let napi_val = unsafe { ToNapiValue::to_napi_value(env.raw(), &traced)? };
-        scope.set_named_property("$$scope", napi_val)?;
-        unsafe { FromNapiValue::from_napi_value(env.raw(), traced.raw())? }
-      }
-    };
-    traced.insert(target)?;
-
-    Ok(raw_ref)
-  }
 
   pub struct WeakBindingCell<T: ?Sized> {
     ptr: *mut T,
@@ -71,7 +49,7 @@ mod napi_binding {
   }
 
   impl Reflector {
-    pub fn set_jsobject(&self, env: &Env, scope: &mut Object, object: Object) -> napi::Result<()> {
+    pub fn set_jsobject(&self, env: &Env, object: Object) -> napi::Result<()> {
       let heap = self.heap.upgrade().ok_or_else(|| {
         napi::Error::new(
           napi::Status::GenericFailure,
@@ -80,12 +58,12 @@ mod napi_binding {
       })?;
 
       heap.jsobject.get_or_try_init(|| match &heap.variant {
-        HeapVariant::AssetInfo(_asset_info) => trace(env, scope, object),
+        HeapVariant::AssetInfo(_asset_info) => ThreadsafeOneShotRef::new(env.raw(), object),
       })?;
       Ok(())
     }
 
-    pub fn get_jsobject(&self, env: &Env, scope: &mut Object) -> napi::Result<Object> {
+    pub fn get_jsobject(&self, env: &Env) -> napi::Result<Object> {
       with_thread_local_allocator(|allocator| {
         let heap = self.heap.upgrade().ok_or_else(|| {
           napi::Error::new(
@@ -94,39 +72,36 @@ mod napi_binding {
           )
         })?;
 
+        let raw_env = env.raw();
+
         let raw_ref = heap.jsobject.get_or_try_init(|| match &heap.variant {
           HeapVariant::AssetInfo(asset_info) => {
-            let weak = WeakBindingCell {
+            let binding_cell = BindingCell {
               ptr: asset_info.as_ref() as *const AssetInfo as *mut AssetInfo,
-              heap: self.heap.clone(),
+              heap: heap.clone(),
             };
-            let napi_val = allocator.allocate_asset_info(env.raw(), weak)?;
-            let target = unsafe { Object::from_raw_unchecked(env.raw(), napi_val) };
-            trace(env, scope, target)
+            let napi_val = allocator.allocate_asset_info(raw_env, &binding_cell)?;
+            let target = unsafe { Object::from_raw_unchecked(raw_env, napi_val) };
+            ThreadsafeOneShotRef::new(raw_env, target)
           }
         })?;
 
-        let mut napi_val = ptr::null_mut();
-        check_status!(unsafe {
-          sys::napi_get_reference_value(env.raw(), *raw_ref, &mut napi_val)
-        })?;
-        let result = unsafe { Object::from_raw_unchecked(env.raw(), napi_val) };
+        let napi_val = unsafe { ToNapiValue::to_napi_value(raw_env, raw_ref)? };
+        let mut result = unsafe { Object::from_raw_unchecked(raw_env, napi_val) };
 
         match &heap.variant {
           // AssetInfo is a vanilla object, so the associated JS object needs to be updated
           // every time it is converted to ensure consistency.
           HeapVariant::AssetInfo(asset_info) => {
-            let mut cloned_object = object_clone(env, &result)?;
-            let weak = WeakBindingCell {
+            let binding_cell = BindingCell {
               ptr: asset_info.as_ref() as *const AssetInfo as *mut AssetInfo,
-              heap: self.heap.clone(),
+              heap: heap.clone(),
             };
-            let napi_val = allocator.allocate_asset_info(env.raw(), weak)?;
+            let napi_val = allocator.allocate_asset_info(env.raw(), &binding_cell)?;
             let new_object = unsafe { Object::from_raw_unchecked(env.raw(), napi_val) };
-            object_assign(&mut cloned_object, &new_object)?;
-            Ok(cloned_object)
+            object_assign(&mut result, &new_object)?;
+            Ok(result)
           }
-          _ => Ok(result),
         }
       })
     }
@@ -146,7 +121,8 @@ mod napi_binding {
   #[derive(Debug)]
   struct Heap {
     variant: HeapVariant,
-    jsobject: OnceCell<napi_ref>,
+    #[debug(skip)]
+    jsobject: OnceCell<ThreadsafeOneShotRef>,
   }
 
   unsafe impl Send for Heap {}

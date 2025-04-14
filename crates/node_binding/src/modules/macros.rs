@@ -168,14 +168,13 @@ macro_rules! impl_module_methods {
       pub fn emit_file(
         &mut self,
         env: &napi::Env,
-        this: napi::bindgen_prelude::This,
         filename: String,
         source: $crate::JsCompatSource,
         asset_info: Option<napi::bindgen_prelude::Object>,
       ) -> napi::Result<()> {
         self
           .module
-          .emit_file(env, this, filename, source, asset_info)
+          .emit_file(env, filename, source, asset_info)
       }
     }
   };

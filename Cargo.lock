@@ -4592,6 +4592,8 @@ name = "rspack_napi"
 version = "0.2.0"
 dependencies = [
  "napi",
+ "napi-derive",
+ "once_cell",
  "oneshot",
  "rspack_error",
  "tokio",

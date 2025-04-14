@@ -1,7 +1,8 @@
 use napi::sys::{napi_env, napi_value};
 use once_cell::sync::OnceCell;
 
-use crate::{AssetInfo, WeakBindingCell};
+use super::BindingCell;
+use crate::AssetInfo;
 
 thread_local! {
   static NAPI_ALLOCATOR: OnceCell<Box<dyn NapiAllocator>> = OnceCell::default();
@@ -11,7 +12,7 @@ pub trait NapiAllocator {
   fn allocate_asset_info(
     &self,
     env: napi_env,
-    val: WeakBindingCell<AssetInfo>,
+    val: &BindingCell<AssetInfo>,
   ) -> napi::Result<napi_value>;
 }
 

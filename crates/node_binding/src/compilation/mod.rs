@@ -55,7 +55,6 @@ impl JsCompilation {
   pub fn update_asset(
     &mut self,
     env: &Env,
-    mut this: This,
     filename: String,
     new_source_or_function: Either<JsCompatSource, Function<'_, JsCompatSource, JsCompatSource>>,
     asset_info_update_or_function: Option<Either<Object, Function<'_, Object, Option<Object>>>>,
@@ -88,7 +87,7 @@ impl JsCompilation {
             Either::B(f) => {
               let original_info_object = original_info
                 .reflector()
-                .get_jsobject(env, &mut this.object)
+                .get_jsobject(env)
                 .to_rspack_result()?;
               let result = f.call(original_info_object).to_rspack_result()?;
               match result {
@@ -113,13 +112,13 @@ impl JsCompilation {
   }
 
   #[napi(ts_return_type = "Readonly<JsAsset>[]")]
-  pub fn get_assets(&self, mut this: This, env: &Env) -> Result<Vec<JsAsset>> {
+  pub fn get_assets(&self, env: &Env) -> Result<Vec<JsAsset>> {
     let compilation = self.as_ref()?;
 
     let mut assets = Vec::<JsAsset>::with_capacity(compilation.assets().len());
 
     for (filename, asset) in compilation.assets() {
-      let info = asset.info.reflector().get_jsobject(env, &mut this.object)?;
+      let info = asset.info.reflector().get_jsobject(env)?;
       assets.push(JsAsset {
         name: filename.clone(),
         info,
@@ -130,12 +129,12 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_asset(&self, env: &Env, mut this: This, name: String) -> Result<Option<JsAsset>> {
+  pub fn get_asset(&self, env: &Env, name: String) -> Result<Option<JsAsset>> {
     let compilation = self.as_ref()?;
 
     match compilation.assets().get(&name) {
       Some(asset) => {
-        let info = asset.info.reflector().get_jsobject(env, &mut this.object)?;
+        let info = asset.info.reflector().get_jsobject(env)?;
         Ok(Some(JsAsset { name, info }))
       }
       None => Ok(None),
@@ -316,7 +315,6 @@ impl JsCompilation {
   pub fn emit_asset(
     &mut self,
     env: &Env,
-    mut this: This,
     filename: String,
     source: JsCompatSource,
     object: Option<Object>,
@@ -328,9 +326,7 @@ impl JsCompilation {
         unsafe { FromNapiValue::from_napi_value(env.raw(), object.raw())? };
       let asset_info: rspack_core::AssetInfo = js_asset_info.into();
       let asset_info = BindingCell::from(asset_info);
-      asset_info
-        .reflector()
-        .set_jsobject(env, &mut this.object, object)?;
+      asset_info.reflector().set_jsobject(env, object)?;
 
       asset_info
     } else {
