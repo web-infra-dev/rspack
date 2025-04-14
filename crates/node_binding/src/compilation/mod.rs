@@ -77,47 +77,35 @@ impl JsCompilation {
         };
         let new_source = new_source.to_rspack_result()?;
 
-        let new_info: Option<BindingCell<rspack_core::AssetInfo>> =
-          match asset_info_update_or_function {
-            Some(asset_info_update_or_function) => match asset_info_update_or_function {
-              Either::A(object) => {
-                let js_asset_info: AssetInfo = unsafe {
-                  FromNapiValue::from_napi_value(env.raw(), object.raw()).to_rspack_result()?
-                };
-                let asset_info: rspack_core::AssetInfo = js_asset_info.into();
-                let asset_info = BindingCell::from(asset_info);
-                asset_info
-                  .set_jsobject(env, &mut this.object, object)
-                  .to_rspack_result()?;
-
-                Some(asset_info)
-              }
-              Either::B(f) => {
-                let original_info_object = original_info
-                  .to_jsobject(env, &mut this.object)
-                  .to_rspack_result()?;
-                let result = f.call(original_info_object).to_rspack_result()?;
-                match result {
-                  Some(object) => {
-                    let js_asset_info: AssetInfo = unsafe {
-                      FromNapiValue::from_napi_value(env.raw(), object.raw()).to_rspack_result()?
-                    };
-                    let asset_info: rspack_core::AssetInfo = js_asset_info.into();
-                    let asset_info = BindingCell::from(asset_info);
-                    asset_info
-                      .set_jsobject(env, &mut this.object, object)
-                      .to_rspack_result()?;
-
-                    Some(asset_info)
-                  }
-                  None => None,
+        let new_info: Option<rspack_core::AssetInfo> = match asset_info_update_or_function {
+          Some(asset_info_update_or_function) => match asset_info_update_or_function {
+            Either::A(object) => {
+              let js_asset_info: AssetInfo = unsafe {
+                FromNapiValue::from_napi_value(env.raw(), object.raw()).to_rspack_result()?
+              };
+              Some(js_asset_info.into())
+            }
+            Either::B(f) => {
+              let original_info_object = original_info
+                .reflector()
+                .get_jsobject(env, &mut this.object)
+                .to_rspack_result()?;
+              let result = f.call(original_info_object).to_rspack_result()?;
+              match result {
+                Some(object) => {
+                  let js_asset_info: AssetInfo = unsafe {
+                    FromNapiValue::from_napi_value(env.raw(), object.raw()).to_rspack_result()?
+                  };
+                  Some(js_asset_info.into())
                 }
+                None => None,
               }
-            },
-            None => None,
-          };
+            }
+          },
+          None => None,
+        };
         if let Some(new_info) = new_info {
-          original_info.merge_another_asset(new_info.take());
+          original_info.merge_another_asset(new_info);
         }
         Ok((new_source, original_info))
       })
@@ -131,7 +119,7 @@ impl JsCompilation {
     let mut assets = Vec::<JsAsset>::with_capacity(compilation.assets().len());
 
     for (filename, asset) in compilation.assets() {
-      let info = asset.info.to_jsobject(env, &mut this.object)?;
+      let info = asset.info.reflector().get_jsobject(env, &mut this.object)?;
       assets.push(JsAsset {
         name: filename.clone(),
         info,
@@ -147,7 +135,7 @@ impl JsCompilation {
 
     match compilation.assets().get(&name) {
       Some(asset) => {
-        let info = asset.info.to_jsobject(env, &mut this.object)?;
+        let info = asset.info.reflector().get_jsobject(env, &mut this.object)?;
         Ok(Some(JsAsset { name, info }))
       }
       None => Ok(None),
@@ -340,7 +328,9 @@ impl JsCompilation {
         unsafe { FromNapiValue::from_napi_value(env.raw(), object.raw())? };
       let asset_info: rspack_core::AssetInfo = js_asset_info.into();
       let asset_info = BindingCell::from(asset_info);
-      asset_info.set_jsobject(env, &mut this.object, object)?;
+      asset_info
+        .reflector()
+        .set_jsobject(env, &mut this.object, object)?;
 
       asset_info
     } else {

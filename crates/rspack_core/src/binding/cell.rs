@@ -17,7 +17,7 @@ mod napi_binding {
     hash::{Hash, Hasher},
     ops::{Deref, DerefMut},
     ptr,
-    sync::Arc,
+    sync::{Arc, Weak},
   };
 
   use derive_more::Debug;
@@ -33,7 +33,7 @@ mod napi_binding {
 
   fn trace(env: &Env, scope: &mut Object, mut target: Object) -> napi::Result<napi_ref> {
     let mut raw_ref = ptr::null_mut();
-    check_status!(unsafe { sys::napi_create_reference(env.raw(), target.raw(), 1, &mut raw_ref) })?;
+    check_status!(unsafe { sys::napi_create_reference(env.raw(), target.raw(), 0, &mut raw_ref) })?;
     target.add_finalizer((), (), move |_ctx| {})?;
 
     let mut traced = match scope.get::<Array>("$$scope")? {
@@ -51,63 +51,60 @@ mod napi_binding {
     Ok(raw_ref)
   }
 
-  // 1. The reason Boxed does not use the generic type T is that for types requiring the implementation of the Reflectable trait,
-  // the implementation of Reflectable needs to use the concrete type T, which prevents the trait from inheriting the Reflectable trait.
-  //
-  // 2.  The reason Boxed uses Arc, the reference count of Arc will never exceed 1, but on the N-API side, Weak references are used
-  // to determine whether the Rust side has already been released.
-  #[derive(Debug)]
-  enum Boxed {
-    AssetInfo(Arc<AssetInfo>),
-  }
-
-  #[derive(Debug)]
-  struct Heap {
-    boxed: Boxed,
-    jsobject: OnceCell<napi_ref>,
-  }
-
-  #[derive(Debug)]
-  pub struct BindingCell<T: ?Sized> {
+  pub struct WeakBindingCell<T: ?Sized> {
     ptr: *mut T,
-    heap: Heap,
+    heap: Weak<Heap>,
   }
 
-  impl BindingCell<AssetInfo> {
-    pub fn take(self) -> AssetInfo {
-      match self.heap.boxed {
-        Boxed::AssetInfo(asset_info) =>
-        {
-          #[allow(clippy::unwrap_used)]
-          Arc::into_inner(asset_info).unwrap()
-        }
-      }
+  impl<T: ?Sized> WeakBindingCell<T> {
+    pub fn upgrade(&self) -> Option<BindingCell<T>> {
+      self.heap.upgrade().map(|heap| BindingCell {
+        ptr: self.ptr,
+        heap,
+      })
     }
   }
 
-  impl<T: ?Sized> BindingCell<T> {
+  #[derive(Default, Debug, Clone)]
+  pub struct Reflector {
+    heap: Weak<Heap>,
+  }
+
+  impl Reflector {
     pub fn set_jsobject(&self, env: &Env, scope: &mut Object, object: Object) -> napi::Result<()> {
-      let _ = self
-        .heap
-        .jsobject
-        .get_or_try_init(|| match &self.heap.boxed {
-          Boxed::AssetInfo(_asset_info) => trace(env, scope, object),
-        })?;
+      let heap = self.heap.upgrade().ok_or_else(|| {
+        napi::Error::new(
+          napi::Status::GenericFailure,
+          "Failed to upgrade weak reference to heap",
+        )
+      })?;
+
+      heap.jsobject.get_or_try_init(|| match &heap.variant {
+        HeapVariant::AssetInfo(_asset_info) => trace(env, scope, object),
+      })?;
       Ok(())
     }
 
-    pub fn to_jsobject(&self, env: &Env, scope: &mut Object) -> napi::Result<Object> {
+    pub fn get_jsobject(&self, env: &Env, scope: &mut Object) -> napi::Result<Object> {
       with_thread_local_allocator(|allocator| {
-        let raw_ref = self
-          .heap
-          .jsobject
-          .get_or_try_init(|| match &self.heap.boxed {
-            Boxed::AssetInfo(asset_info) => {
-              let napi_val = allocator.allocate_asset_info(env.raw(), asset_info)?;
-              let target = unsafe { Object::from_raw_unchecked(env.raw(), napi_val) };
-              trace(env, scope, target)
-            }
-          })?;
+        let heap = self.heap.upgrade().ok_or_else(|| {
+          napi::Error::new(
+            napi::Status::GenericFailure,
+            "Failed to upgrade weak reference to heap",
+          )
+        })?;
+
+        let raw_ref = heap.jsobject.get_or_try_init(|| match &heap.variant {
+          HeapVariant::AssetInfo(asset_info) => {
+            let weak = WeakBindingCell {
+              ptr: asset_info.as_ref() as *const AssetInfo as *mut AssetInfo,
+              heap: self.heap.clone(),
+            };
+            let napi_val = allocator.allocate_asset_info(env.raw(), weak)?;
+            let target = unsafe { Object::from_raw_unchecked(env.raw(), napi_val) };
+            trace(env, scope, target)
+          }
+        })?;
 
         let mut napi_val = ptr::null_mut();
         check_status!(unsafe {
@@ -115,18 +112,65 @@ mod napi_binding {
         })?;
         let result = unsafe { Object::from_raw_unchecked(env.raw(), napi_val) };
 
-        // AssetInfo is a vanilla object, so the associated JS object needs to be updated
-        // every time it is converted to ensure consistency.
-        match &self.heap.boxed {
-          Boxed::AssetInfo(asset_info) => {
+        match &heap.variant {
+          // AssetInfo is a vanilla object, so the associated JS object needs to be updated
+          // every time it is converted to ensure consistency.
+          HeapVariant::AssetInfo(asset_info) => {
             let mut cloned_object = object_clone(env, &result)?;
-            let napi_val = allocator.allocate_asset_info(env.raw(), asset_info)?;
+            let weak = WeakBindingCell {
+              ptr: asset_info.as_ref() as *const AssetInfo as *mut AssetInfo,
+              heap: self.heap.clone(),
+            };
+            let napi_val = allocator.allocate_asset_info(env.raw(), weak)?;
             let new_object = unsafe { Object::from_raw_unchecked(env.raw(), napi_val) };
             object_assign(&mut cloned_object, &new_object)?;
             Ok(cloned_object)
           }
+          _ => Ok(result),
         }
       })
+    }
+  }
+
+  pub trait Reflectable {
+    fn reflector(&self) -> Reflector;
+  }
+
+  // The reason HeapVariant does not use the generic type T is that for types requiring the implementation of the Reflectable trait,
+  // the implementation of Reflectable needs to use the concrete type T, which prevents the trait from inheriting the Reflectable trait.
+  #[derive(Debug)]
+  enum HeapVariant {
+    AssetInfo(Box<AssetInfo>),
+  }
+
+  #[derive(Debug)]
+  struct Heap {
+    variant: HeapVariant,
+    jsobject: OnceCell<napi_ref>,
+  }
+
+  unsafe impl Send for Heap {}
+  unsafe impl Sync for Heap {}
+
+  #[derive(Debug)]
+  pub struct BindingCell<T: ?Sized> {
+    ptr: *mut T,
+    heap: Arc<Heap>,
+  }
+
+  impl<T: ?Sized> BindingCell<T> {
+    pub fn reflector(&self) -> Reflector {
+      Reflector {
+        heap: Arc::downgrade(&self.heap),
+      }
+    }
+  }
+
+  impl<T: ?Sized> Reflectable for BindingCell<T> {
+    fn reflector(&self) -> Reflector {
+      Reflector {
+        heap: Arc::downgrade(&self.heap),
+      }
     }
   }
 
@@ -135,12 +179,12 @@ mod napi_binding {
 
   impl From<AssetInfo> for BindingCell<AssetInfo> {
     fn from(asset_info: AssetInfo) -> Self {
-      let boxed = Arc::new(asset_info);
-      let ptr = Arc::as_ptr(&boxed).cast_mut();
-      let heap = Heap {
-        boxed: Boxed::AssetInfo(boxed),
+      let boxed = Box::new(asset_info);
+      let ptr = boxed.as_ref() as *const AssetInfo as *mut AssetInfo;
+      let heap = Arc::new(Heap {
+        variant: HeapVariant::AssetInfo(boxed),
         jsobject: Default::default(),
-      };
+      });
       Self { ptr, heap }
     }
   }
@@ -232,13 +276,13 @@ mod napi_binding {
       let type_id = boxed.type_id();
       if type_id == TypeId::of::<Box<AssetInfo>>() {
         let ptr = Box::into_raw(boxed);
-        let boxed = unsafe { Arc::from_raw(ptr as *mut AssetInfo) };
+        let boxed = unsafe { Box::from_raw(ptr as *mut AssetInfo) };
         Ok(BindingCell {
           ptr,
-          heap: Heap {
-            boxed: Boxed::AssetInfo(boxed),
+          heap: Arc::new(Heap {
+            variant: HeapVariant::AssetInfo(boxed),
             jsobject: OnceCell::default(),
-          },
+          }),
         })
       } else {
         unreachable!()

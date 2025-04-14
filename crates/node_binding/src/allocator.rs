@@ -1,6 +1,5 @@
-use std::sync::Arc;
-
 use napi::{bindgen_prelude::ToNapiValue, sys::napi_env, Env};
+use rspack_core::WeakBindingCell;
 
 use crate::AssetInfo;
 
@@ -16,9 +15,10 @@ impl rspack_core::NapiAllocator for NapiAllocatorImpl {
   fn allocate_asset_info(
     &self,
     env: napi_env,
-    val: &Arc<rspack_core::AssetInfo>,
+    val: WeakBindingCell<rspack_core::AssetInfo>,
   ) -> napi::Result<napi::sys::napi_value> {
-    let asset_info: AssetInfo = val.as_ref().clone().into();
-    unsafe { ToNapiValue::to_napi_value(env, asset_info) }
+    todo!()
+    // let asset_info: AssetInfo = val.as_ref().clone().into();
+    // unsafe { ToNapiValue::to_napi_value(env, asset_info) }
   }
 }
