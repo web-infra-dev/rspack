@@ -313,32 +313,6 @@ interface BaseModuleConfig {
     strictMode?: boolean;
 }
 
-// @public (undocumented)
-interface BaseResolveRequest {
-     // (undocumented)
-    __innerRequest?: string;
-     // (undocumented)
-    __innerRequest_relativePath?: string;
-     // (undocumented)
-    __innerRequest_request?: string;
-     // (undocumented)
-    context?: object;
-     // (undocumented)
-    descriptionFileData?: JsonObject;
-     // (undocumented)
-    descriptionFilePath?: string;
-     // (undocumented)
-    descriptionFileRoot?: string;
-     // (undocumented)
-    fullySpecified?: boolean;
-     // (undocumented)
-    ignoreSymlinks?: boolean;
-     // (undocumented)
-    path: string | false;
-     // (undocumented)
-    relativePath?: string;
-}
-
 // @public
 export type BaseUri = string;
 
@@ -2249,11 +2223,11 @@ type GroupOptions = {
 
 // @public (undocumented)
 class Hash {
-     constructor();
+    	constructor();
 
-     digest(encoding?: string): string | Buffer;
+    	digest(encoding?: string): string | Buffer;
 
-     update(data: string | Buffer, inputEncoding?: string): Hash;
+    	update(data: string | Buffer, inputEncoding?: string): Hash;
 }
 
 // @public (undocumented)
@@ -2759,16 +2733,9 @@ interface JsMinifyOptions {
 // @public (undocumented)
 type JsonArray = JsonValue[];
 
-// @public (undocumented)
-type JsonObject = { [index: string]: JsonValue } & {
-     [index: string]:
-      | undefined
-      | null
-      | string
-      | number
-      | boolean
-      | JsonObject
-      | JsonValue[];
+// @public
+export type JsonGeneratorOptions = {
+    JSONParse?: boolean;
 };
 
 // @public (undocumented)
@@ -4317,64 +4284,6 @@ export interface OutputNormalized {
 }
 
 // @public (undocumented)
-interface ParseContext {
-    // (undocumented)
-    readonly common: {
-        readonly issues: ZodIssue[];
-        readonly contextualErrorMap?: ZodErrorMap;
-        readonly async: boolean;
-    };
-    // (undocumented)
-    readonly data: any;
-    // (undocumented)
-    readonly parent: ParseContext | null;
-    // (undocumented)
-    readonly parsedType: ZodParsedType;
-    // (undocumented)
-    readonly path: ParsePath;
-    // (undocumented)
-    readonly schemaErrorMap?: ZodErrorMap;
-}
-
-// @public (undocumented)
-interface ParsedIdentifier {
-     // (undocumented)
-    directory: boolean;
-     // (undocumented)
-    file: boolean;
-     // (undocumented)
-    fragment: string;
-     // (undocumented)
-    internal: boolean;
-     // (undocumented)
-    module: boolean;
-     // (undocumented)
-    query: string;
-     // (undocumented)
-    request: string;
-}
-
-// @public (undocumented)
-type ParseInput = {
-    data: any;
-    path: (string | number)[];
-    parent: ParseContext;
-};
-
-// @public (undocumented)
-type ParseParams = {
-    path: (string | number)[];
-    errorMap: ZodErrorMap;
-    async: boolean;
-};
-
-// @public (undocumented)
-type ParsePath = ParsePathComponent[];
-
-// @public (undocumented)
-type ParsePathComponent = string | number;
-
-// @public (undocumented)
 type ParserConfig = TsParserConfig | EsParserConfig;
 
 // @public
@@ -4577,13 +4486,13 @@ type Purge = (files?: string | string[] | Set<string>) => void;
 
 // @public (undocumented)
 type RawSourceMap = {
-     version: number;
-     sources: string[];
-     names: string[];
-     sourceRoot?: string;
-     sourcesContent?: string[];
-     mappings: string;
-     file: string;
+    	version: number;
+    	sources: string[];
+    	names: string[];
+    	sourceRoot?: string;
+    	sourcesContent?: string[];
+    	mappings: string;
+    	file: string;
 };
 
 // @public (undocumented)
@@ -5788,25 +5697,25 @@ export type SnapshotOptions = {};
 
 // @public (undocumented)
 abstract class Source {
-     // (undocumented)
+    	// (undocumented)
     buffer(): Buffer;
 
-     // (undocumented)
+    	// (undocumented)
     map(options?: MapOptions): RawSourceMap | null;
 
-     // (undocumented)
+    	// (undocumented)
     size(): number;
 
-     // (undocumented)
+    	// (undocumented)
     source(): string | Buffer;
 
-     // (undocumented)
+    	// (undocumented)
     sourceAndMap(options?: MapOptions): {
-          source: string | Buffer;
-          map: Object;
-         };
+        		source: string | Buffer;
+        		map: Object;
+        	};
 
-     // (undocumented)
+    	// (undocumented)
     updateHash(hash: Hash): void;
 }
 

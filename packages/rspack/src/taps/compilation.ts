@@ -325,7 +325,9 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 					} else {
 						digestResult = hash.digest();
 					}
-					return Buffer.from(digestResult);
+					return typeof digestResult === "string"
+						? Buffer.from(digestResult)
+						: digestResult;
 				};
 			}
 		),
