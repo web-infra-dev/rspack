@@ -49,7 +49,7 @@
     "@rspack/tracing": "workspace:*",
     "@swc/core": "1.11.13",
     "@swc/types": "0.1.20",
-    "@rslib/core": "0.6.2",
+    "@rslib/core": "0.6.3",
     "@types/graceful-fs": "4.1.9",
     "@types/watchpack": "^2.4.4",
     "@types/webpack-sources": "3.2.3",

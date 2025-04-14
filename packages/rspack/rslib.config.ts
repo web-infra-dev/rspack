@@ -50,11 +50,13 @@ export default defineConfig({
 				entry: {
 					index: "./src/index.ts"
 				},
+				define: {
+					__webpack_require__: "__webpack_require__"
+				},
 				tsconfigPath: "./tsconfig.build.json"
 			},
 			output: {
 				...commonLibConfig.output,
-				minify: false,
 				externals: [externalAlias, "./moduleFederationDefaultRuntime.js"]
 			},
 			footer: {

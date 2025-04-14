@@ -150,8 +150,8 @@ importers:
         version: 1.4.0
     devDependencies:
       '@rslib/core':
-        specifier: 0.6.2
-        version: 0.6.2(@microsoft/api-extractor@7.49.2(@types/node@20.17.28))(@rspack/tracing@1.3.4)(typescript@5.7.3)
+        specifier: 0.6.3
+        version: 0.6.3(@microsoft/api-extractor@7.49.2(@types/node@20.17.28))(@rspack/tracing@1.3.4)(typescript@5.7.3)
       typescript:
         specifier: ^5.7.3
         version: 5.7.3
@@ -299,8 +299,8 @@ importers:
         version: 1.0.30001707
     devDependencies:
       '@rslib/core':
-        specifier: 0.6.2
-        version: 0.6.2(@microsoft/api-extractor@7.49.2(@types/node@20.17.28))(@rspack/tracing@packages+rspack-tracing)(typescript@5.7.3)
+        specifier: 0.6.3
+        version: 0.6.3(@microsoft/api-extractor@7.49.2(@types/node@20.17.28))(@rspack/tracing@packages+rspack-tracing)(typescript@5.7.3)
       '@rspack/tracing':
         specifier: workspace:*
         version: link:../rspack-tracing
@@ -390,8 +390,8 @@ importers:
         version: 17.7.2
     devDependencies:
       '@rslib/core':
-        specifier: 0.6.2
-        version: 0.6.2(@microsoft/api-extractor@7.49.2(@types/node@20.17.28))(@rspack/tracing@packages+rspack-tracing)(typescript@5.7.3)
+        specifier: 0.6.3
+        version: 0.6.3(@microsoft/api-extractor@7.49.2(@types/node@20.17.28))(@rspack/tracing@packages+rspack-tracing)(typescript@5.7.3)
       '@rspack/core':
         specifier: workspace:*
         version: link:../rspack
@@ -2868,8 +2868,8 @@ packages:
     peerDependencies:
       '@rsbuild/core': 1.x
 
-  '@rslib/core@0.6.2':
-    resolution: {integrity: sha512-c1lqXy+iIrhUMpf5i2YXwWksMKhmZy8wtN9Sj6ySPibQsGoF/67pLvwbHj5vNTuMM7hA6STKL9QzFNS5+EkoYw==}
+  '@rslib/core@0.6.3':
+    resolution: {integrity: sha512-9XoDXKjsl7jN0um+9R6XTXUaUZNoobQuEnQ56iFDTEZ1xG2ksKB7PDkTmI1izfcjOaF9zdPoeo2INFyzL0w7hA==}
     engines: {node: '>=16.7.0'}
     hasBin: true
     peerDependencies:
@@ -7048,8 +7048,8 @@ packages:
   rrweb-cssom@0.8.0:
     resolution: {integrity: sha512-guoltQEx+9aMf2gDZ0s62EcV8lsXR+0w8915TC3ITdn2YueuNjdAYh/levpU9nFaoChh9RUS5ZdQMrKfVEN9tw==}
 
-  rsbuild-plugin-dts@0.6.2:
-    resolution: {integrity: sha512-H5Ymn2ixTBcC9mBIKo4cXD04UVa4WXH7ZQ4UwWRGOWGTJEroWgSb+OadVxFEgP3hgWhigaP2hEVRRe8eWJhH6Q==}
+  rsbuild-plugin-dts@0.6.3:
+    resolution: {integrity: sha512-FYZqdR1mVsBtPFqt6GbNxyDnf1nssS4YCNKP/kBqNA6o4+dGi7qcxO4Bod8EvJaEltKyKh05DZD91oKh99PEXA==}
     engines: {node: '>=16.7.0'}
     peerDependencies:
       '@microsoft/api-extractor': ^7
@@ -10111,10 +10111,10 @@ snapshots:
       reduce-configs: 1.1.0
       sass-embedded: 1.86.1
 
-  '@rslib/core@0.6.2(@microsoft/api-extractor@7.49.2(@types/node@20.17.28))(@rspack/tracing@1.3.4)(typescript@5.7.3)':
+  '@rslib/core@0.6.3(@microsoft/api-extractor@7.49.2(@types/node@20.17.28))(@rspack/tracing@1.3.4)(typescript@5.7.3)':
     dependencies:
       '@rsbuild/core': 1.3.5(@rspack/tracing@1.3.4)
-      rsbuild-plugin-dts: 0.6.2(@microsoft/api-extractor@7.49.2(@types/node@20.17.28))(@rsbuild/core@1.3.5(@rspack/tracing@1.3.4))(typescript@5.7.3)
+      rsbuild-plugin-dts: 0.6.3(@microsoft/api-extractor@7.49.2(@types/node@20.17.28))(@rsbuild/core@1.3.5(@rspack/tracing@1.3.4))(typescript@5.7.3)
       tinyglobby: 0.2.12
     optionalDependencies:
       '@microsoft/api-extractor': 7.49.2(@types/node@20.17.28)
@@ -10122,10 +10122,10 @@ snapshots:
     transitivePeerDependencies:
       - '@rspack/tracing'
 
-  '@rslib/core@0.6.2(@microsoft/api-extractor@7.49.2(@types/node@20.17.28))(@rspack/tracing@packages+rspack-tracing)(typescript@5.7.3)':
+  '@rslib/core@0.6.3(@microsoft/api-extractor@7.49.2(@types/node@20.17.28))(@rspack/tracing@packages+rspack-tracing)(typescript@5.7.3)':
     dependencies:
       '@rsbuild/core': 1.3.5(@rspack/tracing@packages+rspack-tracing)
-      rsbuild-plugin-dts: 0.6.2(@microsoft/api-extractor@7.49.2(@types/node@20.17.28))(@rsbuild/core@1.3.5(@rspack/tracing@packages+rspack-tracing))(typescript@5.7.3)
+      rsbuild-plugin-dts: 0.6.3(@microsoft/api-extractor@7.49.2(@types/node@20.17.28))(@rsbuild/core@1.3.5(@rspack/tracing@packages+rspack-tracing))(typescript@5.7.3)
       tinyglobby: 0.2.12
     optionalDependencies:
       '@microsoft/api-extractor': 7.49.2(@types/node@20.17.28)
@@ -15234,7 +15234,7 @@ snapshots:
 
   rrweb-cssom@0.8.0: {}
 
-  rsbuild-plugin-dts@0.6.2(@microsoft/api-extractor@7.49.2(@types/node@20.17.28))(@rsbuild/core@1.3.5(@rspack/tracing@1.3.4))(typescript@5.7.3):
+  rsbuild-plugin-dts@0.6.3(@microsoft/api-extractor@7.49.2(@types/node@20.17.28))(@rsbuild/core@1.3.5(@rspack/tracing@1.3.4))(typescript@5.7.3):
     dependencies:
       '@ast-grep/napi': 0.36.2
       '@rsbuild/core': 1.3.5(@rspack/tracing@1.3.4)
@@ -15246,7 +15246,7 @@ snapshots:
       '@microsoft/api-extractor': 7.49.2(@types/node@20.17.28)
       typescript: 5.7.3
 
-  rsbuild-plugin-dts@0.6.2(@microsoft/api-extractor@7.49.2(@types/node@20.17.28))(@rsbuild/core@1.3.5(@rspack/tracing@packages+rspack-tracing))(typescript@5.7.3):
+  rsbuild-plugin-dts@0.6.3(@microsoft/api-extractor@7.49.2(@types/node@20.17.28))(@rsbuild/core@1.3.5(@rspack/tracing@packages+rspack-tracing))(typescript@5.7.3):
     dependencies:
       '@ast-grep/napi': 0.36.2
       '@rsbuild/core': 1.3.5(@rspack/tracing@packages+rspack-tracing)
