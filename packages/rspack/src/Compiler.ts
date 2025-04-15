@@ -708,12 +708,8 @@ class Compiler {
 					if (error) {
 						return callback(error);
 					}
-					instance!
-						.close()
-						.then(() => {
-							callback();
-						})
-						.catch(callback);
+					instance!.close();
+					callback();
 				});
 			});
 		});
