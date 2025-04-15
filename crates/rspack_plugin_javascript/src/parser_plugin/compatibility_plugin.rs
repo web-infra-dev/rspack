@@ -219,7 +219,11 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     deps.push(ConstDependency::new(
       ident.span.real_lo(),
       ident.span.real_hi(),
-      name.into(),
+      if parser.in_short_hand {
+        format!("{}: {}", ident.sym, name.clone()).into()
+      } else {
+        name.clone().into()
+      },
       None,
     ));
     for dep in deps {
