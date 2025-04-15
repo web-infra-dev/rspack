@@ -533,10 +533,7 @@ impl ChunkGraph {
       .unwrap_or_else(|| {
         let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
         let cgc = compilation.chunk_graph.expect_chunk_graph_chunk(chunk_ukey);
-        panic!(
-          "Should have runtime requirements for chunk:\n{:#?}\n{:#?}",
-          chunk, cgc
-        )
+        panic!("Should have runtime requirements for chunk:\n{chunk:#?}\n{cgc:#?}")
       })
   }
 
