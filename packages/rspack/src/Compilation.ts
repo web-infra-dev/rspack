@@ -7,7 +7,7 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import type * as binding from "@rspack/binding";
+import * as binding from "@rspack/binding";
 import {
 	type AssetInfo,
 	type Dependency,
@@ -30,6 +30,7 @@ import { Entrypoint } from "./Entrypoint";
 import { cutOffLoaderExecution } from "./ErrorHelpers";
 import type { CodeGenerationResult, Module } from "./Module";
 import ModuleGraph from "./ModuleGraph";
+import type { NormalModuleCompilationHooks } from "./NormalModule";
 import type { NormalModuleFactory } from "./NormalModuleFactory";
 import type { ResolverFactory } from "./ResolverFactory";
 import { JsRspackDiagnostic, type RspackError } from "./RspackError";
@@ -270,6 +271,10 @@ export class Compilation {
 	needAdditionalPass: boolean;
 
 	#addIncludeDispatcher: AddIncludeDispatcher;
+	[binding.COMPILATION_HOOKS_MAP_SYMBOL]: WeakMap<
+		Compilation,
+		NormalModuleCompilationHooks
+	>;
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.#inner = inner;
@@ -391,6 +396,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.#addIncludeDispatcher = new AddIncludeDispatcher(
 			inner.addInclude.bind(inner)
 		);
+		this[binding.COMPILATION_HOOKS_MAP_SYMBOL] = new WeakMap();
 	}
 
 	get hash(): Readonly<string | null> {

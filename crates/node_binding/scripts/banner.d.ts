@@ -12,6 +12,8 @@ export type AssetInfo = KnownAssetInfo & Record<string, any>;
 
 export const MODULE_IDENTIFIER_SYMBOL: unique symbol;
 
+export const COMPILATION_HOOKS_MAP_SYMBOL: unique symbol;
+
 export interface Module {
 	[MODULE_IDENTIFIER_SYMBOL]: string;
 	readonly type: string;
