@@ -7,8 +7,6 @@
 // 2. BindingCell creates a JS Object only when converting a Rust instance to a JS object.
 // 3. The JS Object is hold a weak reference to the Rust instance. If the Rust instance is dropped,
 //    any attempt to access the JS Object will throw an exception indicating that the Rust instance has been dropped.
-// 4. BindingCell holds a napi_ref to the JS Object but does not manage its lifecycle. Instead, the JS Object is associated
-//    with another JS object (e.g., a Compilation JS object), ensuring it is not garbage-collected during that entity’s lifecycle.
 
 #[cfg(feature = "napi")]
 mod napi_binding {

@@ -193,8 +193,8 @@ export declare class JsChunkGroup {
 
 export declare class JsCompilation {
   updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)): void
-  getAssets(this: this): Readonly<JsAsset>[]
-  getAsset(this: this, name: string): JsAsset | null
+  getAssets(): Readonly<JsAsset>[]
+  getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsCompatSource | null
   get modules(): Array<Module>
   get builtModules(): Array<Module>
