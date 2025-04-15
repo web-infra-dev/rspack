@@ -6,4 +6,8 @@ it("compatibility plugin", async () => {
 	const context = require('./c.js');
 	const { __webpack_require__ } = context;
 	expect(__webpack_require__).toBe(1);
+
+	(function f({ __webpack_require__ }) {
+		expect(__webpack_require__).toBe(1);
+	})({ __webpack_require__ })
 });
