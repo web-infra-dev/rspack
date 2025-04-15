@@ -209,6 +209,8 @@ fn read_config(opts: &Options, name: &FileName) -> Result<Option<Config>, Error>
   res.with_context(|| format!("failed to read .swcrc file for input file at `{}`", name))
 }
 
+const SWC_MIETTE_DIAGNOSTIC_CODE: &str = "Builtin swc-loader error";
+
 pub(crate) struct SwcCompiler {
   cm: Arc<SourceMap>,
   fm: Arc<SourceFile>,
@@ -336,6 +338,7 @@ impl SwcCompiler {
 
         Ok(Some(built))
       })
+      .map_err(|e| e.to_pretty_error())
     })?;
 
     match built {
@@ -359,21 +362,37 @@ impl SwcCompiler {
       match result {
         Ok(v) => Ok(v),
         Err(err) => {
-        let error_msg = match err.downcast_ref::<String>(){
-          Some(msg) => {
-            msg
-          },
-          None => "unknown error"
-        };
-        let swc_core_version = env!("RSPACK_SWC_CORE_VERSION");
-        // FIXME: with_help has bugs, use with_help when diagnostic print is fixed
-        let help_msg = formatdoc!{"
-          The version of the SWC Wasm plugin you're using might not be compatible with `builtin:swc-loader`.
-          The `swc_core` version of the current `rspack_core` is {swc_core_version}. 
-          Please check the `swc_core` version of SWC Wasm plugin to make sure these versions are within the compatible range.
-          See this guide as a reference for selecting SWC Wasm plugin versions: https://rspack.dev/errors/swc-plugin-version"};
-        let report: Report = MietteDiagnostic::new(format!("{}{}",error_msg,help_msg)).with_code("Builtin swc-loader error").into();
-        Err(report)
+
+        let swc_diagnostics = err.diagnostics();
+        if swc_diagnostics.iter().any(|d| match &d.code {
+            Some(code) => {
+              // reference to: 
+              //    https://github.com/swc-project/swc/blob/v1.11.21/crates/swc/src/plugin.rs#L187
+              //    https://github.com/swc-project/swc/blob/v1.11.21/crates/swc/src/plugin.rs#L200
+              match code {
+                swc_core::common::errors::DiagnosticId::Error(e) => e.contains("plugin"),
+                swc_core::common::errors::DiagnosticId::Lint(_) => false,
+              }
+            },
+            None => false,
+        }
+      ) {
+          // swc errors includes plugin error;
+          let error_msg = err.to_pretty_string();
+          let swc_core_version = env!("RSPACK_SWC_CORE_VERSION");
+          // FIXME: with_help has bugs, use with_help when diagnostic print is fixed
+          let help_msg = formatdoc!{"
+            The version of the SWC Wasm plugin you're using might not be compatible with `builtin:swc-loader`.
+            The `swc_core` version of the current `rspack_core` is {swc_core_version}. 
+            Please check the `swc_core` version of SWC Wasm plugin to make sure these versions are within the compatible range.
+            See this guide as a reference for selecting SWC Wasm plugin versions: https://rspack.dev/errors/swc-plugin-version"};
+          let report: Report = MietteDiagnostic::new(format!("{}{}",error_msg,help_msg)).with_code(SWC_MIETTE_DIAGNOSTIC_CODE).into();
+          Err(report)
+        } else {
+          let error_msg = err.to_pretty_string();
+          let report: Report = MietteDiagnostic::new(error_msg.to_owned()).with_code(SWC_MIETTE_DIAGNOSTIC_CODE).into();
+          Err(report)
+        }
       }
     }
     })
