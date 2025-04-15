@@ -1,62 +1,22 @@
 # Use Rsdoctor
 
-[Rsdoctor](https://rsdoctor.dev/) is a build analyzer that can visually display the build process, such as compilation time, code changes before and after compilation, module reference relationships, duplicate modules, etc.
+[Rsdoctor](https://rsdoctor.dev/) is a build analyzer tailored for the Rspack ecosystem.
+
+Rsdoctor is committed to being a one-stop, intelligent build analyzer that makes the build process transparent, predictable, and optimizable through visualization and smart analysis, helping development teams precisely identify bottlenecks, optimize performance, and improve engineering quality.
 
 If you need to debug the build outputs or build process, you can use Rsdoctor for troubleshooting.
 
-## 💡 What is Rsdoctor?
+## How to use
 
-- Rsdoctor is a one-stop tool for diagnosing and analyzing the build process and build artifacts.
-- Rsdoctor is a tool that supports **Rspack** or **webpack** build analysis.
-- Rsdoctor is an analysis tool that can display the time-consuming and behavioral details of the compilation.
-- Rsdoctor is a tool that can analyze the time-consuming and compilation process of the rspack builtin:swc-loader.
+In an Rspack project, you can enable Rsdoctor by following these steps:
 
-## 🔥 Features
-
-- **Compilation Visualization**: Rsdoctor visualizes the compilation behavior and time consumption, making it easy to view build issues.
-
-| <img src="https://assets.rspack.dev/others/assets/rsdoctor/rsdoctor-loader-timeline.png"  alt="loader timeline" /> | <img src="https://assets.rspack.dev/others/assets/rsdoctor/rsdoctor-analyze-code.png" alt="loader codes" /> |
-| ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-
-- **Multiple Analysis Capabilities**: Rsdoctor supports build artifact, build-time analysis, and anti-degradation capabilities:
-
-  - Build artifact support for resource lists and module dependencies, etc.
-  - Build-time analysis supports Loader, Plugin, and Resolver building process analysis, including: **Rspack's builtin:swc-loader**.
-  - Build rules support duplicate package detection and ES Version Check, etc.
-
-- **Support Custom Rules**: In addition to built-in build scan rules, Rsdoctor also supports users adding custom component scan rules based on the build data of Rsdoctor.
-
-### More features
-
-You can see more details of features from this wiki: [Rsdoctor Features](https://rsdoctor.dev/guide/start/features).
-
-### Bundle analysis
-
-You can use Rsdoctor for **[Bundle Analysis](/guide/optimization/analysis#rsdoctors-bundle-analysis)** in Rspack.
-
-### Compilation analysis
-
-Rsdoctor is a build analyzer that can visually display the compilation time of each loader and plugin. See [Compilation Analysis](/guide/optimization/profile#rsdoctors-compilation-analysis) for more details.
-
-## Quick start
-
-In an Rspack-based project, you can enable Rsdoctor as follows:
-
-1. Install the Rsdoctor plugin:
+1. Install the `@rsdoctor/rspack-plugin` plugin:
 
 import { PackageManagerTabs } from '@theme';
 
 <PackageManagerTabs command="add @rsdoctor/rspack-plugin -D" />
 
-2. Register the `RsdoctorRspackPlugin` plugin:
-
-:::danger
-
-- Please do not use Rsdoctor in production version.
-
-:::
-
-Initialize the RsdoctorRspackPlugin plugin in the [plugins](/config/plugins.html#plugins) field of Rspack configuration, as shown below:
+2. Register the `RsdoctorRspackPlugin` plugin in the [plugins](/config/plugins) option of Rspack:
 
 ```ts title="rspack.config.mjs"
 import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
@@ -64,6 +24,7 @@ import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
 export default {
   // ...
   plugins: [
+    // Register the plugin only when RSDOCTOR is true, as the plugin increases build time
     process.env.RSDOCTOR &&
       new RsdoctorRspackPlugin({
         // plugin options
@@ -72,7 +33,7 @@ export default {
 };
 ```
 
-3. Add `RSDOCTOR=true` env variable before the CLI command:
+3. Add the `RSDOCTOR=true` variable before the build command:
 
 ```bash
 # dev
@@ -82,8 +43,22 @@ RSDOCTOR=true rspack serve
 RSDOCTOR=true rspack build
 ```
 
-After running the above commands, when the build is completed, it will open the build analysis page. For complete features, please refer to [Rsdoctor document](https://rsdoctor.dev/).
+As Windows does not support the above usage, you can also use [cross-env](https://npmjs.com/package/cross-env) to set environment variables. This ensures compatibility across different systems:
 
-4. **[Optional]** Configure Options
+```bash
+# dev
+cross-env RSDOCTOR=true rspack serve
 
-You can refer to this document [**options**](https://rsdoctor.dev/config/options/options) for parameter configuration of the RsdoctorRspackPlugin.
+# build
+cross-env RSDOCTOR=true rspack build
+```
+
+Rsdoctor will open the build analysis page after the build is complete. For complete features, please refer to [Rsdoctor documentation](https://rsdoctor.dev/).
+
+## Configure Rsdoctor
+
+See the [Options](https://rsdoctor.dev/config/options/options) documentation of Rsdoctor to configure the options of the RsdoctorRspackPlugin.
+
+## More Features
+
+See the [Rsdoctor features](https://rsdoctor.dev/guide/start/features) to learn about all the features of Rsdoctor.
