@@ -713,6 +713,7 @@ impl<'parser> JavascriptParser<'parser> {
           }
           members_optionals.push(in_optional_chain);
           object = *expr.obj.take();
+          in_optional_chain = false;
         }
         Expr::OptChain(expr) => {
           in_optional_chain = expr.optional;
