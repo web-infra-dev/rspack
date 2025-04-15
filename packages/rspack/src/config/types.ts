@@ -1,5 +1,4 @@
 import type { AssetInfo, RawFuncUseCtx } from "@rspack/binding";
-import type * as webpackDevServer from "webpack-dev-server";
 import type { ChunkGraph } from "../ChunkGraph";
 import type { Compilation, PathData } from "../Compilation";
 import type { Compiler } from "../Compiler";
@@ -8,6 +7,7 @@ import type ModuleGraph from "../ModuleGraph";
 import type { HttpUriPluginOptions } from "../builtin-plugin/HttpUriPlugin";
 import type { Chunk } from "../exports";
 import type { ResolveCallback } from "./adapterRuleUse";
+import type { DevServerOptions } from "./devServer";
 
 export type FilenameTemplate = string;
 
@@ -2694,7 +2694,7 @@ export type WatchOptions = {
 /**
  * Options for devServer, it based on `webpack-dev-server@5`
  * */
-export interface DevServer extends webpackDevServer.Configuration {}
+export interface DevServer extends DevServerOptions {}
 //#endregion
 
 //#region IgnoreWarnings
