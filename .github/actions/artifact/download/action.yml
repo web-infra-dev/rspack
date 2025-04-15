@@ -24,7 +24,7 @@ runs:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
     - name: Download artifact from local
-      uses: lynx-infra/download-artifact@e89e0cd9e5b6dcca18e161fb34fb7fe9588999da #dev
+      uses: lynx-infra/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 #dev
       if: ${{ inputs.force-use-github != 'true' && runner.environment == 'self-hosted' }}
       with:
         name: ${{ inputs.name }}
