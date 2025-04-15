@@ -41,7 +41,7 @@ define_hook!(CompilerShouldEmit: SeriesBail(compilation: &mut Compilation) -> bo
 define_hook!(CompilerEmit: Series(compilation: &mut Compilation));
 define_hook!(CompilerAfterEmit: Series(compilation: &mut Compilation));
 define_hook!(CompilerAssetEmitted: Series(compilation: &Compilation, filename: &str, info: &AssetEmittedInfo));
-
+define_hook!(CompilerClose: Series(compilation: &Compilation));
 #[derive(Debug, Default)]
 pub struct CompilerHooks {
   pub this_compilation: CompilerThisCompilationHook,
@@ -52,6 +52,7 @@ pub struct CompilerHooks {
   pub emit: CompilerEmitHook,
   pub after_emit: CompilerAfterEmitHook,
   pub asset_emitted: CompilerAssetEmittedHook,
+  pub close: CompilerCloseHook,
 }
 
 static COMPILER_ID: AtomicU32 = AtomicU32::new(0);
@@ -531,6 +532,17 @@ impl Compiler {
         self.plugin_driver.clone(),
       )),
     }
+  }
+
+  pub async fn close(&self) -> Result<()> {
+    self
+      .plugin_driver
+      .compiler_hooks
+      .close
+      .call(&self.compilation)
+      .await?;
+
+    Ok(())
   }
 }
 

@@ -253,6 +253,7 @@ export declare class JsCompiler {
   build(callback: (err: null | Error) => void): void
   /** Rebuild with the given option passed to the constructor */
   rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
+  close(): Promise<void>
 }
 
 export declare class JsContextModuleFactoryAfterResolveData {

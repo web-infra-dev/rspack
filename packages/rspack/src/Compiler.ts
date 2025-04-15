@@ -713,7 +713,15 @@ class Compiler {
 		}
 		this.hooks.shutdown.callAsync(err => {
 			if (err) return callback(err);
-			this.cache.shutdown(callback);
+			this.cache.shutdown(() => {
+				this.#getInstance((error, instance) => {
+					if (error) {
+						return callback(error);
+					}
+					instance!.close();
+					callback();
+				});
+			});
 		});
 	}
 
