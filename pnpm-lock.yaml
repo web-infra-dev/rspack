@@ -283,8 +283,8 @@ importers:
   packages/rspack:
     dependencies:
       '@module-federation/runtime-tools':
-        specifier: 0.11.4
-        version: 0.11.4
+        specifier: 0.12.0
+        version: 0.12.0
       '@rspack/binding':
         specifier: workspace:*
         version: link:../../crates/node_binding
@@ -2036,38 +2036,38 @@ packages:
   '@module-federation/error-codes@0.11.2':
     resolution: {integrity: sha512-ik1Qnn0I+WyEdprTck9WGlH41vGsVdUg8cfO+ZM02qOb2cZm5Vu3SlxGAobj6g7uAj0g8yINnd7h7Dci40BxQA==}
 
-  '@module-federation/error-codes@0.11.4':
-    resolution: {integrity: sha512-WugZdcNbNVTKuxuArGfnRW1R+siNgMBhad451HniyCG+SjlS0HEO9zIDuVP12l3xJsiTHgLqyutYEvunQ5O1aQ==}
+  '@module-federation/error-codes@0.12.0':
+    resolution: {integrity: sha512-DEXQjopcBuGzp/NA9OVtASO0uZ6grVK5TIe0PjrbDRyZDxVaYQXKrISxBLOE+3nSIELE98tYpfxptm8WC9A8zA==}
 
   '@module-federation/runtime-core@0.11.2':
     resolution: {integrity: sha512-dia5kKybi6MFU0s5PgglJwN27k7n9Sf69Cy5xZ4BWaP0qlaXTsxHKO0PECHNt2Pt8jDdyU29sQ4DwAQfxpnXJQ==}
 
-  '@module-federation/runtime-core@0.11.4':
-    resolution: {integrity: sha512-+n2fWUPj6cCeHXmChZ35RFyNONfBEcNgQ3o7KEmxOBJ6bRh1vr3AO2OPRPYr5WHcvAyjny+l/xhi+sZPNV3uOQ==}
+  '@module-federation/runtime-core@0.12.0':
+    resolution: {integrity: sha512-373zBM54196KHURs/O8lry9trCAM3PPidvsF4YdrtahNc8YaQynml0mE3zdZeBnqP6H0/4OpPqMMjACI80Ht8w==}
 
   '@module-federation/runtime-tools@0.11.2':
     resolution: {integrity: sha512-4MJTGAxVq6vxQRkTtTlH7Mm9AVqgn0X9kdu+7RsL7T/qU+jeYsbrntN2CWG3GVVA8r5JddXyTI1iJ0VXQZLV1w==}
 
-  '@module-federation/runtime-tools@0.11.4':
-    resolution: {integrity: sha512-rNtaY1Eo9PJ9kn6Z9wp+OsPOA6dbJa4zyDVC1Bo+dnKkjoJ+YwGYpBw88vb0btwCtc5gJkK14ZvnYtDyPVrPWQ==}
+  '@module-federation/runtime-tools@0.12.0':
+    resolution: {integrity: sha512-hZ0R1gtHOgMDzM0QQ8WjRxo2DHzXzlTWOYMBdSivDYRTktpEtM/DXZrmJZuRYh9cvVmbIz5D/v9s6M44eLfHMA==}
 
   '@module-federation/runtime@0.11.2':
     resolution: {integrity: sha512-Ya9u/L6z2LvhgpqxuKCB7LcigIIRf1BbaxAZIH7mzbq/A7rZtTP7v+73E433jvgiAlbAfPSZkeoYGele6hfRwA==}
 
-  '@module-federation/runtime@0.11.4':
-    resolution: {integrity: sha512-pUfhsa3iYoXBV3CsUfBJN04Cvckj9gBbs8+sLsYiWxxU+cJYNiJpco0iKxRX1/60O+RAH8fAaNq5ilz2qc204A==}
+  '@module-federation/runtime@0.12.0':
+    resolution: {integrity: sha512-Cz9/7+gSvrdencwA8LXUMKnZdu0/flyN+yk6t3pkxfhvPJi3W65ZcalAKyOgyk2x8rEYrRSyEXu+/2DIFgrzmA==}
 
   '@module-federation/sdk@0.11.2':
     resolution: {integrity: sha512-SBFe5xOamluT900J4AGBx+2/kCH/JbfqXoUwPSAC6PRzb8Y7LB0posnOGzmqYsLZXT37vp3d6AmJDsVoajDqxw==}
 
-  '@module-federation/sdk@0.11.4':
-    resolution: {integrity: sha512-23Poajva/+wye8+66NvEiL/dJDUahOjEgxljLvzmxQXi9x5hdrfJvBDIwLtzyewZ+vA5Nzpwz35sSzEOyPJUqg==}
+  '@module-federation/sdk@0.12.0':
+    resolution: {integrity: sha512-vh3GcG90fxjbkMghK7iSWcMayi/y8U5DxI6mhEFuz11St3y1UgQO2TZYephL8nISFBld7DdiqAkimx+6Hb3hjQ==}
 
   '@module-federation/webpack-bundler-runtime@0.11.2':
     resolution: {integrity: sha512-WdwIE6QF+MKs/PdVu0cKPETF743JB9PZ62/qf7Uo3gU4fjsUMc37RnbJZ/qB60EaHHfjwp1v6NnhZw1r4eVsnw==}
 
-  '@module-federation/webpack-bundler-runtime@0.11.4':
-    resolution: {integrity: sha512-lhY0RGkirPTC5AIdXjyCe4uNYtKQA7A2Oo08sa0XIAhzZUeBzVIAes1jWGS3nvPV5/SZ+ldzoMmTvlrEpgz5vQ==}
+  '@module-federation/webpack-bundler-runtime@0.12.0':
+    resolution: {integrity: sha512-IUAz0BdCGuaKIPcMTSD/dWxGjS0K4j4bBhAupRnDMMMOvJnZivVwj0KvmTeIUfyG+lEDNWLVP2pDVQEvGcCy4Q==}
 
   '@napi-rs/cli@3.0.0-alpha.77':
     resolution: {integrity: sha512-aIZCn/S7/fKyE5v18Ud0HR1RsN/I4LKscrSCW+ExD12yVKF0TAdyX2fVvNEWRU8nKz2GdlyNFVskJM6xtnmIAg==}
@@ -9448,27 +9448,27 @@ snapshots:
 
   '@module-federation/error-codes@0.11.2': {}
 
-  '@module-federation/error-codes@0.11.4': {}
+  '@module-federation/error-codes@0.12.0': {}
 
   '@module-federation/runtime-core@0.11.2':
     dependencies:
       '@module-federation/error-codes': 0.11.2
       '@module-federation/sdk': 0.11.2
 
-  '@module-federation/runtime-core@0.11.4':
+  '@module-federation/runtime-core@0.12.0':
     dependencies:
-      '@module-federation/error-codes': 0.11.4
-      '@module-federation/sdk': 0.11.4
+      '@module-federation/error-codes': 0.12.0
+      '@module-federation/sdk': 0.12.0
 
   '@module-federation/runtime-tools@0.11.2':
     dependencies:
       '@module-federation/runtime': 0.11.2
       '@module-federation/webpack-bundler-runtime': 0.11.2
 
-  '@module-federation/runtime-tools@0.11.4':
+  '@module-federation/runtime-tools@0.12.0':
     dependencies:
-      '@module-federation/runtime': 0.11.4
-      '@module-federation/webpack-bundler-runtime': 0.11.4
+      '@module-federation/runtime': 0.12.0
+      '@module-federation/webpack-bundler-runtime': 0.12.0
 
   '@module-federation/runtime@0.11.2':
     dependencies:
@@ -9476,25 +9476,25 @@ snapshots:
       '@module-federation/runtime-core': 0.11.2
       '@module-federation/sdk': 0.11.2
 
-  '@module-federation/runtime@0.11.4':
+  '@module-federation/runtime@0.12.0':
     dependencies:
-      '@module-federation/error-codes': 0.11.4
-      '@module-federation/runtime-core': 0.11.4
-      '@module-federation/sdk': 0.11.4
+      '@module-federation/error-codes': 0.12.0
+      '@module-federation/runtime-core': 0.12.0
+      '@module-federation/sdk': 0.12.0
 
   '@module-federation/sdk@0.11.2': {}
 
-  '@module-federation/sdk@0.11.4': {}
+  '@module-federation/sdk@0.12.0': {}
 
   '@module-federation/webpack-bundler-runtime@0.11.2':
     dependencies:
       '@module-federation/runtime': 0.11.2
       '@module-federation/sdk': 0.11.2
 
-  '@module-federation/webpack-bundler-runtime@0.11.4':
+  '@module-federation/webpack-bundler-runtime@0.12.0':
     dependencies:
-      '@module-federation/runtime': 0.11.4
-      '@module-federation/sdk': 0.11.4
+      '@module-federation/runtime': 0.12.0
+      '@module-federation/sdk': 0.12.0
 
   '@napi-rs/cli@3.0.0-alpha.77(@emnapi/runtime@1.4.1)(@types/node@20.17.30)(emnapi@1.4.1)':
     dependencies:
