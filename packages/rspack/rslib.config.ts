@@ -57,6 +57,7 @@ export default defineConfig({
 				externals: [externalAlias, "./moduleFederationDefaultRuntime.js"]
 			},
 			footer: {
+				// make default export in cjs work
 				js: "module.exports = __webpack_exports__.default;"
 			}
 		},
@@ -83,6 +84,10 @@ export default defineConfig({
 				entry: {
 					worker: "./src/loader-runner/worker.ts"
 				}
+			},
+			footer: {
+				// make default export in cjs work
+				js: "module.exports = __webpack_exports__.default;"
 			}
 		}
 	]
