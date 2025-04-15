@@ -16,7 +16,7 @@ use glob::{MatchOptions, Pattern as GlobPattern};
 use regex::Regex;
 use rspack_core::{
   rspack_sources::{RawSource, Source},
-  AssetInfo, AssetInfoRelated, BindingCell, Compilation, CompilationAsset, CompilationLogger,
+  AssetInfo, AssetInfoRelated, Compilation, CompilationAsset, CompilationLogger,
   CompilationProcessAssets, Filename, Logger, PathData, Plugin,
 };
 use rspack_error::{Diagnostic, DiagnosticError, Error, ErrorExt, Result};
