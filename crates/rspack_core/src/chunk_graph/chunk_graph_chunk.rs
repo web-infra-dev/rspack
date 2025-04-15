@@ -531,12 +531,11 @@ impl ChunkGraph {
       .cgc_runtime_requirements_artifact
       .get(chunk_ukey)
       .unwrap_or_else(|| {
-        let c = compilation.chunk_graph.expect_chunk_graph_chunk(chunk_ukey);
+        let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+        let cgc = compilation.chunk_graph.expect_chunk_graph_chunk(chunk_ukey);
         panic!(
-          "Chunk({:?} {:?}) should have runtime requirements, {:?}",
-          c,
-          chunk_ukey,
-          &compilation.cgc_runtime_requirements_artifact.keys()
+          "Should have runtime requirements for chunk:\n{:#?}\n{:#?}",
+          chunk, cgc
         )
       })
   }
