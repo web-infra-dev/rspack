@@ -2625,7 +2625,7 @@ interface JscConfig {
         keepImportAttributes?: boolean;
         emitAssertForImportAttributes?: boolean;
         cacheRoot?: string;
-        plugins?: Array<[string, Record<string, any>]>;
+        plugins?: WasmPlugin[];
         runPluginFirst?: boolean;
         disableBuiltinTransformsForInternalTesting?: boolean;
         emitIsolatedDts?: boolean;
@@ -6586,6 +6586,9 @@ export type WasmLoading = false | WasmLoadingType;
 
 // @public
 export type WasmLoadingType = string | "fetch-streaming" | "fetch" | "async-node";
+
+// @public (undocumented)
+type WasmPlugin = [wasmPackage: string, config: Record<string, any>];
 
 // @public (undocumented)
 export type Watch = boolean;
