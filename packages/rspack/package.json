@@ -62,7 +62,6 @@
     "tsx": "^4.19.3",
     "typescript": "^5.7.3",
     "watchpack": "^2.4.2",
-    "webpack-dev-server": "5.2.1",
     "webpack-sources": "3.2.3",
     "zod": "^3.24.2",
     "zod-validation-error": "3.4.0",
