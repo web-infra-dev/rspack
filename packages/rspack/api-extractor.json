@@ -4,6 +4,9 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/api-extractor/v7/api-extractor.schema.json",
   "extends": "../../api-extractor.json",
+  "compiler": {
+    "tsconfigFilePath": "<projectFolder>/tsconfig.api.extractor.json"
+  },
   "docModel": {
     "enabled": true,
     "includeForgottenExports": true

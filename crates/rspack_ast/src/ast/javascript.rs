@@ -9,7 +9,7 @@ use swc_core::{
     visit::{Fold, FoldWith, Visit, VisitMut, VisitMutWith, VisitWith},
   },
 };
-use swc_error_reporters::handler::try_with_handler;
+use swc_error_reporters::{handler::try_with_handler, TWithDiagnosticArray};
 use swc_node_comments::SwcComments;
 
 /// Program is a wrapper for SwcProgram
@@ -177,7 +177,11 @@ impl Ast {
     })
   }
 
-  pub fn transform_with_handler<F, R>(&mut self, cm: Lrc<SourceMap>, f: F) -> Result<R, Error>
+  pub fn transform_with_handler<F, R>(
+    &mut self,
+    cm: Lrc<SourceMap>,
+    f: F,
+  ) -> Result<R, TWithDiagnosticArray<Error>>
   where
     F: FnOnce(&Handler, &mut Program, &Context) -> Result<R, Error>,
   {

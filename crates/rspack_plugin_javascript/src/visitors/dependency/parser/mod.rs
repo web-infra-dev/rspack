@@ -713,6 +713,7 @@ impl<'parser> JavascriptParser<'parser> {
           }
           members_optionals.push(in_optional_chain);
           object = *expr.obj.take();
+          in_optional_chain = false;
         }
         Expr::OptChain(expr) => {
           in_optional_chain = expr.optional;
@@ -773,7 +774,14 @@ impl<'parser> JavascriptParser<'parser> {
     for prop in &obj.props {
       match prop {
         ObjectPatProp::KeyValue(kv) => self.enter_pattern(Cow::Borrowed(&kv.value), on_ident),
-        ObjectPatProp::Assign(assign) => self.enter_ident(&assign.key, on_ident),
+        ObjectPatProp::Assign(assign) => {
+          let old = self.in_short_hand;
+          if assign.value.is_none() {
+            self.in_short_hand = true;
+          }
+          self.enter_ident(&assign.key, on_ident);
+          self.in_short_hand = old;
+        }
         ObjectPatProp::Rest(rest) => self.enter_rest_pattern(rest, on_ident),
       }
     }

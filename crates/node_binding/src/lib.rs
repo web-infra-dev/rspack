@@ -252,6 +252,18 @@ impl JsCompiler {
       })
     }
   }
+
+  #[napi]
+  pub async fn close(&self) -> Result<()> {
+    self
+      .compiler
+      .close()
+      .await
+      .to_napi_result_with_message(|e| {
+        print_error_diagnostic(e, self.compiler.options.stats.colors)
+      })?;
+    Ok(())
+  }
 }
 
 impl JsCompiler {

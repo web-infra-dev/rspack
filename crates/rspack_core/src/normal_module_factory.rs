@@ -527,7 +527,8 @@ impl NormalModuleFactory {
       ));
     }
 
-    let resolved_resolve_options = self.calculate_resolve_options(&resolved_module_rules);
+    let resolved_resolve_options =
+      self.calculate_resolve_options(&resolved_module_rules, dependency_category);
     let (resolved_parser_options, resolved_generator_options) =
       self.calculate_parser_and_generator_options(&resolved_module_rules);
     let (resolved_parser_options, resolved_generator_options) = self
@@ -650,7 +651,11 @@ impl NormalModuleFactory {
     Ok(rules)
   }
 
-  fn calculate_resolve_options(&self, module_rules: &[&ModuleRuleEffect]) -> Option<Arc<Resolve>> {
+  fn calculate_resolve_options(
+    &self,
+    module_rules: &[&ModuleRuleEffect],
+    dependency_type: DependencyCategory,
+  ) -> Option<Arc<Resolve>> {
     let mut resolved: Option<Resolve> = None;
     for rule in module_rules {
       if let Some(rule_resolve) = &rule.resolve {
@@ -661,7 +666,9 @@ impl NormalModuleFactory {
         }
       }
     }
-    resolved.map(Arc::new)
+    resolved
+      .map(|r| r.merge_by_dependency(dependency_type))
+      .map(Arc::new)
   }
 
   fn calculate_side_effects(&self, module_rules: &[&ModuleRuleEffect]) -> Option<bool> {

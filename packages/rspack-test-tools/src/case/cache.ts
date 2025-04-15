@@ -18,9 +18,11 @@ function getCreator(target: TTarget) {
 				clean: true,
 				describe: true,
 				target,
-				steps: ({ name, target }) => [
+				steps: ({ name, src, target, temp }) => [
 					new CacheProcessor({
 						name,
+						sourceDir: src,
+						tempDir: temp!,
 						target: target as TTarget,
 						compilerType: ECompilerType.Rspack,
 						configFiles: ["rspack.config.js", "webpack.config.js"]
@@ -38,8 +40,9 @@ export function createCacheCase(
 	name: string,
 	src: string,
 	dist: string,
-	target: TCompilerOptions<ECompilerType.Rspack>["target"]
+	target: TCompilerOptions<ECompilerType.Rspack>["target"],
+	temp: string
 ) {
 	const creator = getCreator(target);
-	creator.create(name, src, dist);
+	creator.create(name, src, dist, temp);
 }

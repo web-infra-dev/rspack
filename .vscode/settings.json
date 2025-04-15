@@ -35,6 +35,8 @@
     "napi",
     "postcss",
     "pxtorem",
+    "rslib",
+    "Rslib",
     "rspack",
     "threejs",
     "tokio",

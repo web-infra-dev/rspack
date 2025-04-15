@@ -75,7 +75,7 @@ import { RawSubresourceIntegrityPluginOptions } from '@rspack/binding';
 import { Resolver as Resolver_2 } from './Resolver';
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
 import { RawSourceMapDevToolPluginOptions as SourceMapDevToolPluginOptions } from '@rspack/binding';
-import sources = require('../compiled/webpack-sources');
+import sources = require('webpack-sources');
 import { SyncBailHook } from '@rspack/lite-tapable';
 import { SyncHook } from '@rspack/lite-tapable';
 import { SyncWaterfallHook } from '@rspack/lite-tapable';
@@ -591,6 +591,8 @@ interface CommonJsConfig extends BaseModuleConfig {
 
 // @public (undocumented)
 export class Compilation {
+    // (undocumented)
+    [binding.COMPILATION_HOOKS_MAP_SYMBOL]: WeakMap<Compilation, NormalModuleCompilationHooks>;
     constructor(compiler: Compiler, inner: JsCompilation);
     // @internal
     __internal__deleteAssetSource(filename: string): void;
@@ -2232,8 +2234,12 @@ class Hash {
 
 // @public (undocumented)
 class Hash_2 {
-    digest(encoding?: string): string | Buffer;
-    update(data: string | Buffer, inputEncoding?: string): this;
+    digest(): Buffer;
+    digest(encoding: string): string;
+    // (undocumented)
+    update(data: string, inputEncoding: string): this;
+    // (undocumented)
+    update(data: Buffer): this;
 }
 
 // @public (undocumented)
@@ -3934,6 +3940,16 @@ type NoParseOptionSingle = string | RegExp | ((request: string) => boolean);
 type NormalizedStatsOptions = KnownNormalizedStatsOptions & Omit<StatsOptions, keyof KnownNormalizedStatsOptions> & Record<string, any>;
 
 export { NormalModule }
+
+// @public (undocumented)
+interface NormalModuleCompilationHooks {
+    // (undocumented)
+    loader: liteTapable.SyncHook<[LoaderContext, Module]>;
+    // (undocumented)
+    readResource: liteTapable.HookMap<liteTapable.AsyncSeriesBailHook<[LoaderContext], string | Buffer>>;
+    // (undocumented)
+    readResourceForScheme: any;
+}
 
 // @public (undocumented)
 type NormalModuleCreateData = binding.JsNormalModuleFactoryCreateModuleArgs & {

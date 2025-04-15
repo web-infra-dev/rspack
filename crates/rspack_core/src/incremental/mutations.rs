@@ -159,6 +159,9 @@ impl Mutations {
             Mutation::ChunkRemove { chunk } => {
               acc.remove(chunk);
             }
+            Mutation::ChunkSetId { chunk } => {
+              acc.insert(*chunk);
+            }
             _ => {}
           };
           acc
