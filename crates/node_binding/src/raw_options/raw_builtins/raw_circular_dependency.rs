@@ -53,9 +53,10 @@ impl From<RawCircularDependencyRspackPluginOptions> for CircularDependencyRspack
     let on_detected: Option<CycleHandlerFn> = match value.on_detected {
       Some(callback) => Some(Box::new(move |entrypoint, modules, compilation| {
         let callback = callback.clone();
+        let compilation = JsCompilationWrapper::new(compilation);
         Box::pin(async move {
           callback
-            .call_with_sync((entrypoint, modules, JsCompilationWrapper::new(compilation)).into())
+            .call_with_sync((entrypoint, modules, compilation).into())
             .await?;
           Ok(())
         })
@@ -66,9 +67,10 @@ impl From<RawCircularDependencyRspackPluginOptions> for CircularDependencyRspack
       Some(callback) => Some(Box::new(move |entrypoint, modules, compilation| {
         Box::pin({
           let callback = callback.clone();
+          let compilation = JsCompilationWrapper::new(compilation);
           async move {
             callback
-              .call_with_sync((entrypoint, modules, JsCompilationWrapper::new(compilation)).into())
+              .call_with_sync((entrypoint, modules, compilation).into())
               .await?;
             Ok(())
           }
@@ -79,11 +81,10 @@ impl From<RawCircularDependencyRspackPluginOptions> for CircularDependencyRspack
     let on_start: Option<CompilationHookFn> = match value.on_start {
       Some(callback) => Some(Box::new(move |compilation| {
         let callback = callback.clone();
+        let compilation = JsCompilationWrapper::new(compilation);
         Box::pin({
           async move {
-            callback
-              .call_with_sync(JsCompilationWrapper::new(compilation))
-              .await?;
+            callback.call_with_sync(compilation).await?;
             Ok(())
           }
         })
@@ -93,11 +94,10 @@ impl From<RawCircularDependencyRspackPluginOptions> for CircularDependencyRspack
     let on_end: Option<CompilationHookFn> = match value.on_end {
       Some(callback) => Some(Box::new(move |compilation| {
         let callback = callback.clone();
+        let compilation = JsCompilationWrapper::new(compilation);
         Box::pin({
           async move {
-            callback
-              .call_with_sync(JsCompilationWrapper::new(compilation))
-              .await?;
+            callback.call_with_sync(compilation).await?;
             Ok(())
           }
         })
