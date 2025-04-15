@@ -16,7 +16,7 @@ const externalAlias = ({ request }: { request?: string }, callback) => {
 	}
 
 	if (new RegExp(/^tinypool$/).test(request!)) {
-		return callback(null, "../compiled/tinypool");
+		return callback(null, "../compiled/tinypool/dist/index.js");
 	}
 
 	return callback();
