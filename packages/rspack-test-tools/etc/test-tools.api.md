@@ -235,9 +235,6 @@ export function createCompilerCase(name: string, src: string, dist: string, test
 export function createConfigCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
-export function createConfigNewCodeSplittingCase(name: string, src: string, dist: string): void;
-
-// @public (undocumented)
 export function createDefaultsCase(name: string, src: string): void;
 
 // @public (undocumented)
@@ -272,9 +269,6 @@ export function createSerialCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
 export function createStatsAPICase(name: string, src: string, dist: string, testConfig: string): void;
-
-// @public (undocumented)
-export function createStatsAPINewCodeSplittingCase(name: string, src: string, dist: string, testConfig: string): void;
 
 // @public (undocumented)
 export function createStatsOutputCase(name: string, src: string, dist: string): void;
