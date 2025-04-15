@@ -65,6 +65,8 @@ const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule
     worker.onmessage = ({ data }) => {
       __wasmCreateOnMessageForFsProxy(__nodeFs)(data)
     }
+    worker.ref = () => {}
+    worker.unref();
     return worker
   },
   overwriteImports(importObject) {
