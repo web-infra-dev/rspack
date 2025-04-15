@@ -12,7 +12,7 @@ mod eval_unary_expr;
 use bitflags::bitflags;
 use num_bigint::BigInt;
 use rspack_core::DependencyRange;
-use swc_core::{atoms::Atom, common::Span};
+use swc_core::{atoms::Atom, common::Span, ecma::ast::Expr};
 
 pub use self::{
   eval_array_expr::eval_array_expression,
@@ -82,8 +82,8 @@ pub struct BasicEvaluatedExpression {
   postfix: Option<Box<BasicEvaluatedExpression>>,
   wrapped_inner_expressions: Option<Vec<BasicEvaluatedExpression>>,
   template_string_kind: Option<TemplateStringKind>,
-
   options: Option<Vec<BasicEvaluatedExpression>>,
+  expression: Option<Expr>,
 }
 
 impl Default for BasicEvaluatedExpression {
@@ -120,6 +120,7 @@ impl BasicEvaluatedExpression {
       postfix: None,
       prefix: None,
       wrapped_inner_expressions: None,
+      expression: None,
     }
   }
 
@@ -595,6 +596,17 @@ impl BasicEvaluatedExpression {
   pub fn number(&self) -> Number {
     assert!(self.is_number());
     self.number.expect("number must exists in ty::number")
+  }
+
+  pub fn set_expression(&mut self, expression: Option<Expr>) {
+    self.expression = expression;
+  }
+
+  pub fn expression(&self) -> &Expr {
+    self
+      .expression
+      .as_ref()
+      .expect("expression must exists in template string")
   }
 }
 
