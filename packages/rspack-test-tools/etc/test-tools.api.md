@@ -155,9 +155,9 @@ export class CacheProcessor<T extends ECompilerType> extends BasicProcessor<T> {
     // (undocumented)
     afterAll(context: ITestContext): Promise<void>;
     // (undocumented)
-    build(context: ITestContext): Promise<void>;
-    // (undocumented)
     protected _cacheOptions: ICacheProcessorOptions<T>;
+    // (undocumented)
+    config(context: ITestContext): Promise<void>;
     // (undocumented)
     static defaultOptions<T extends ECompilerType>(this: CacheProcessor<T>, context: ITestContext): TCompilerOptions<T>;
     // (undocumented)
@@ -169,7 +169,7 @@ export class CacheProcessor<T extends ECompilerType> extends BasicProcessor<T> {
     // (undocumented)
     protected runner: ITestRunner | null;
     // (undocumented)
-    protected updateOptions: TUpdateOptions;
+    protected updatePlugin: HotUpdatePlugin;
 }
 
 // @public (undocumented)
@@ -226,7 +226,7 @@ export class ConfigProcessor<T extends ECompilerType> extends MultiTaskProcessor
 export function createBuiltinCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
-export function createCacheCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
+export function createCacheCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"], temp: string): void;
 
 // @public (undocumented)
 export function createCompilerCase(name: string, src: string, dist: string, testConfig: string): void;
@@ -597,6 +597,21 @@ export class HotStepRunnerFactory<T extends ECompilerType> extends HotRunnerFact
 }
 
 // @public (undocumented)
+class HotUpdatePlugin {
+    constructor(projectDir: string, tempDir: string);
+    // (undocumented)
+    apply(compiler: Compiler): void;
+    // (undocumented)
+    getTotalUpdates(): number;
+    // (undocumented)
+    getUpdateIndex(): number;
+    // (undocumented)
+    goNext(): Promise<void>;
+    // (undocumented)
+    initialize(): Promise<void>;
+}
+
+// @public (undocumented)
 export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
     // (undocumented)
     [key: string]: unknown;
@@ -694,7 +709,11 @@ export interface IBuiltinProcessorOptions<T extends ECompilerType> extends Omit<
 // @public (undocumented)
 export interface ICacheProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "runable"> {
     // (undocumented)
+    sourceDir: string;
+    // (undocumented)
     target: TCompilerOptions<T>["target"];
+    // (undocumented)
+    tempDir: string;
 }
 
 // @public (undocumented)
