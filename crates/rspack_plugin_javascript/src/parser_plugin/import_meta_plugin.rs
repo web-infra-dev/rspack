@@ -240,24 +240,45 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
           let members = parser
             .get_member_expression_info(expr, AllowedMemberTypes::Expression)
             .and_then(|info| match info {
-              MemberExpressionInfo::Expression(res) => Some(res.members),
+              MemberExpressionInfo::Expression(res) => Some(res),
               _ => None,
             });
-          parser
-            .presentational_dependencies
-            .push(Box::new(ConstDependency::new(
+
+          let dep = if let Some(members) = members {
+            if members.members.get(1).is_some()
+              && members
+                .members_optionals
+                .get(1)
+                .is_some_and(|optional| *optional)
+            {
+              ConstDependency::new(
+                expr.span().real_lo(),
+                expr.span().real_hi(),
+                "undefined".into(),
+                None,
+              )
+            } else {
+              ConstDependency::new(
+                expr.span().real_lo(),
+                expr.span().real_hi(),
+                self
+                  .import_meta_unknown_property(
+                    &members.members.iter().map(|x| x.to_string()).collect_vec(),
+                  )
+                  .into(),
+                None,
+              )
+            }
+          } else {
+            ConstDependency::new(
               expr.span().real_lo(),
               expr.span().real_hi(),
-              members
-                .map(|members| {
-                  self.import_meta_unknown_property(
-                    &members.iter().map(|x| x.to_string()).collect_vec(),
-                  )
-                })
-                .unwrap_or("undefined".to_string())
-                .into(),
+              "undefined".into(),
               None,
-            )));
+            )
+          };
+
+          parser.presentational_dependencies.push(Box::new(dep));
           return Some(true);
         }
       }
