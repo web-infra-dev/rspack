@@ -1,4 +1,4 @@
-import { z } from "zod";
+import z from "zod";
 import { Compilation } from "../../Compilation";
 import { validate } from "../../util/validate";
 

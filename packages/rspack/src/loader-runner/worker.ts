@@ -664,4 +664,4 @@ function getCurrentLoader(
 	return null;
 }
 
-export = worker;
+export default worker;

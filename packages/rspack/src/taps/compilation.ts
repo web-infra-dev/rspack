@@ -184,7 +184,8 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 											codeGenerationResult: new CodeGenerationResult(result),
 											moduleObject
 										},
-										{ __webpack_require__ }
+										// TODO: Simplify this without assignments once https://github.com/web-infra-dev/rspack/pull/10036 is released in Rslib.
+										{ __webpack_require__: __webpack_require__ }
 									),
 								"Compilation.hooks.executeModule"
 							);

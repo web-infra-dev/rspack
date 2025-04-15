@@ -7,31 +7,31 @@
     "emitDeclarationOnly": true,
     "paths": {
       "zod": [
-        "../compiled/zod"
+        "./compiled/zod"
       ],
       "watchpack": [
-        "../compiled/watchpack"
+        "./compiled/watchpack"
       ],
       "@swc/types": [
-        "../compiled/@swc/types"
+        "./compiled/@swc/types"
       ],
       "graceful-fs": [
-        "../compiled/graceful-fs"
+        "./compiled/graceful-fs"
       ],
       "browserslist": [
-        "../compiled/browserslist"
+        "./compiled/browserslist"
       ],
       "enhanced-resolve": [
-        "../compiled/enhanced-resolve"
+        "./compiled/enhanced-resolve"
       ],
       "enhanced-resolve/lib/CachedInputFileSystem": [
-        "../compiled/enhanced-resolve/CachedInputFileSystem"
+        "./compiled/enhanced-resolve/CachedInputFileSystem"
       ],
       "webpack-sources": [
-        "../compiled/webpack-sources"
+        "./compiled/webpack-sources"
       ],
       "tinypool": [
-        "../compiled/tinypool"
+        "./compiled/tinypool"
       ]
     }
   },
