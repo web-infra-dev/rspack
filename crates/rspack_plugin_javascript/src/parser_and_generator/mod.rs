@@ -109,7 +109,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     module.source().map_or(0, |source| source.size()) as f64
   }
 
-  #[tracing::instrument("JavaScriptParser:parse", skip_all)]
+  #[tracing::instrument("JavaScriptParser:parse", skip_all,fields(
+    resource_path =parse_context.resource_data.resource_path.as_ref().map(|p| p.as_str()),
+  ))]
   async fn parse<'a>(
     &mut self,
     parse_context: ParseContext<'a>,

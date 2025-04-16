@@ -23,9 +23,6 @@ export class ChromeTracer {
 	// inspector session for CPU Profiler
 	static session: inspector.Session;
 	static initChromeTrace(layer: string, output: string) {
-		if (!layer.includes("chrome")) {
-			return;
-		}
 		this.session = new inspector.Session();
 		this.layer = layer;
 		this.output = output;
