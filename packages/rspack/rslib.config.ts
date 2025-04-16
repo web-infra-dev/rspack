@@ -26,7 +26,21 @@ const commonLibConfig: LibConfig = {
 	format: "cjs",
 	syntax: ["node 16"],
 	output: {
-		externals: [externalAlias]
+		externals: [externalAlias],
+		minify: {
+			js: true,
+			jsOptions: {
+				minimizerOptions: {
+					// preserve variable name and disable minify for easier debugging
+					mangle: false,
+					minify: false,
+					compress: {
+						// enable to compress import.meta.url shims in top level scope
+						toplevel: true
+					}
+				}
+			}
+		}
 	},
 	tools: {
 		bundlerChain: (chain, { CHAIN_ID }) => {

@@ -59,7 +59,6 @@ ERROR in (./with-multi-byte-char.js!)
         │     at xxx
         │     at xxx
         │     at xxx
-        │     at xxx
 
 ERROR in (./with-multiple-line.js!) 1:0-2:4
   × ModuleError: Multiple line error
@@ -79,7 +78,6 @@ ERROR in (./with-multiple-line.js!) 1:0-2:4
 ERROR in (./with-multiple-line.js!)
   × Module build failed:
   ╰─▶   × Error: Format diagnostic failed: Invalid `length` in location.
-        │     at xxx
         │     at xxx
         │     at xxx
         │     at xxx
