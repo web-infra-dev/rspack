@@ -159,9 +159,33 @@ export type KnownStatsModuleIssuer = {
 
 export type StatsModuleIssuer = KnownStatsModuleIssuer & Record<string, any>;
 
+export enum StatsErrorCode {
+	/**
+	 * Warning generated when either builtin `SwcJsMinimizer` or `LightningcssMinimizer` fails to minify the code.
+	 */
+	ChunkMinificationError = "ChunkMinificationError",
+	/**
+	 * Warning generated when either builtin `SwcJsMinimizer` or `LightningcssMinimizer` fails to minify the code.
+	 */
+	ChunkMinificationWarning = "ChunkMinificationWarning",
+	/**
+	 * Error generated when a module is failed to be parsed
+	 */
+	ModuleParseError = "ModuleParseError",
+	/**
+	 * Warning generated when a module is failed to be parsed
+	 */
+	ModuleParseWarning = "ModuleParseWarning",
+	/**
+	 * Error generated when a module is failed to be built (i.e being built by a
+	 * loader)
+	 */
+	ModuleBuildError = "ModuleBuildError"
+}
+
 export type KnownStatsError = {
 	message: string;
-	code?: string;
+	code?: StatsErrorCode | string;
 	chunkName?: string;
 	chunkEntry?: boolean;
 	chunkInitial?: boolean;
