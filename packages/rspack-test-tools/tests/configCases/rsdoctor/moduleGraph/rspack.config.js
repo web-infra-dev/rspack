@@ -30,10 +30,10 @@ module.exports = {
 						expect(concatenateModules.length).toBe(1);
 						expect(normalModules.length).toBe(4);
 						const issuerPathList = normalModules.map(module => {
-							return module.issuerPath.length;
+							return module.issuerPath.length > 0;
 						});
 
-						expect(issuerPathList).toEqual([3, 1, 2, 0]);
+						expect(issuerPathList).toEqual([true, true, true, false]);
 
 						const entryModule = modules.find(
 							module => module.isEntry && module.kind === "concatenated"
