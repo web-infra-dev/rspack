@@ -30,6 +30,14 @@ module.exports = {
 						expect(concatenateModules.length).toBe(1);
 						expect(normalModules.length).toBe(4);
 
+						// test for issuerPath
+						const issuerPathList = normalModules
+							.filter(module => module.issuerPath.length)
+							.map(module => module.issuerPath.length);
+						[1, 2, 3].forEach(value => {
+							expect(issuerPathList).toContain(value);
+						});
+
 						const entryModule = modules.find(
 							module => module.isEntry && module.kind === "concatenated"
 						);
