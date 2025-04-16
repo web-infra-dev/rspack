@@ -231,7 +231,11 @@ impl ReadableFileSystem for NativeFileSystem {
 #[async_trait::async_trait]
 impl ReadableFileSystem for NativeFileSystem {
   async fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
-    fs::read(path).to_fs_result()
+    self.read_sync(path)
+  }
+
+  async fn async_read(&self, file: &Utf8Path) -> Result<Vec<u8>> {
+    self.read_sync(file)
   }
 
   fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
@@ -281,17 +285,8 @@ impl ReadableFileSystem for NativeFileSystem {
     Ok(path_buf)
   }
 
-  async fn async_read(&self, file: &Utf8Path) -> Result<Vec<u8>> {
-    fs::read(file).to_fs_result()
-  }
-
   async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
-    let mut res = vec![];
-    for entry in fs::read_dir(dir)? {
-      let entry = entry?;
-      res.push(entry.file_name().to_string_lossy().to_string());
-    }
-    Ok(res)
+    self.read_dir_sync(dir)
   }
 
   fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>> {
