@@ -2,6 +2,8 @@
 
 mod hot_module_replacement;
 
+use std::{collections::hash_map, sync::Arc};
+
 use async_trait::async_trait;
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_collections::{DatabaseItem, IdentifierSet, UkeyMap};
@@ -15,7 +17,7 @@ use rspack_core::{
   NormalModuleLoader, ParserAndGenerator, ParserOptions, PathData, Plugin, PluginContext,
   RunnerContext, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec,
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_css::parser_and_generator::CssParserAndGenerator;
 use rspack_plugin_javascript::{
@@ -77,13 +79,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   let mut hot_update_main_content_by_runtime = all_old_runtime
     .iter()
-    .map(|runtime| {
-      (
-        runtime.to_string(),
-        HotUpdateContent::new(RuntimeSpec::from_iter([runtime.clone()])),
-      )
-    })
-    .collect::<HashMap<String, HotUpdateContent>>();
+    .map(|runtime| (runtime.clone(), HotUpdateContent::default()))
+    .collect::<HashMap<Arc<str>, HotUpdateContent>>();
 
   if hot_update_main_content_by_runtime.is_empty() {
     return Ok(());
@@ -185,7 +182,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     for removed in removed_from_runtime.iter() {
-      if let Some(info) = hot_update_main_content_by_runtime.get_mut(removed.as_ref()) {
+      if let Some(info) = hot_update_main_content_by_runtime.get_mut(removed) {
         info.removed_chunk_ids.insert(chunk_id.clone());
       }
     }
@@ -348,7 +345,41 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
   }
 
-  for (_, content) in hot_update_main_content_by_runtime {
+  let mut hot_update_main_content_by_filename = HashMap::default();
+  for (runtime, content) in hot_update_main_content_by_runtime {
+    let filename = compilation
+      .get_path(
+        &compilation.options.output.hot_update_main_filename,
+        PathData::default().runtime(&runtime).hash_optional(
+          old_hash
+            .as_ref()
+            .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
+        ),
+      )
+      .await?;
+    match hot_update_main_content_by_filename.entry(filename) {
+      hash_map::Entry::Occupied(mut occupied_entry) => {
+        let old_content: &mut HotUpdateContent = occupied_entry.get_mut();
+        old_content
+          .updated_chunk_ids
+          .extend(content.updated_chunk_ids);
+        old_content
+          .removed_chunk_ids
+          .extend(content.removed_chunk_ids);
+        old_content.removed_modules.extend(content.removed_modules);
+        compilation.push_diagnostic(Diagnostic::warn(
+          "HotModuleReplacementPlugin".to_string(),
+          r#"The configured output.hotUpdateMainFilename doesn't lead to unique filenames per runtime and HMR update differs between runtimes.
+This might lead to incorrect runtime behavior of the applied update.
+To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename option, or use the default config."#.to_string(),
+        ));
+      }
+      hash_map::Entry::Vacant(vacant_entry) => {
+        vacant_entry.insert(content);
+      }
+    }
+  }
+  for (filename, content) in hot_update_main_content_by_filename {
     let c: Vec<ChunkId> = content.updated_chunk_ids.into_iter().collect();
     let r: Vec<ChunkId> = content.removed_chunk_ids.into_iter().collect();
     let m: Vec<ModuleId> = {
@@ -356,18 +387,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       m.extend(content.removed_modules);
       m.into_iter().collect()
     };
-    let filename = compilation
-      .get_path(
-        &compilation.options.output.hot_update_main_filename,
-        PathData::default()
-          .runtime(content.runtime.as_str())
-          .hash_optional(
-            old_hash
-              .as_ref()
-              .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
-          ),
-      )
-      .await?;
     compilation.emit_asset(
       filename,
       CompilationAsset::new(
@@ -482,17 +501,7 @@ impl Plugin for HotModuleReplacementPlugin {
 
 #[derive(Default)]
 struct HotUpdateContent {
-  runtime: RuntimeSpec,
   updated_chunk_ids: HashSet<ChunkId>,
   removed_chunk_ids: HashSet<ChunkId>,
   removed_modules: HashSet<ModuleId>,
-}
-
-impl HotUpdateContent {
-  fn new(runtime: RuntimeSpec) -> Self {
-    Self {
-      runtime,
-      ..Default::default()
-    }
-  }
 }
