@@ -14,9 +14,9 @@
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
-    "@rspack/plugin-react-refresh": "^1.2.0",
-    "@types/react": "^19.1.0",
-    "@types/react-dom": "^19.1.1",
+    "@rspack/plugin-react-refresh": "^1.2.1",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
     "react-refresh": "^0.17.0"
   }
 }

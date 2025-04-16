@@ -1,4 +1,4 @@
-import {
+import z, {
 	type DIRTY,
 	INVALID,
 	type IssueData,
@@ -17,8 +17,7 @@ import {
 	type ZodTypeDef,
 	ZodUnion,
 	type ZodUnionOptions,
-	addIssueToContext,
-	z
+	addIssueToContext
 } from "zod";
 import type { RspackOptions } from "./types";
 

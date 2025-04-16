@@ -43,7 +43,11 @@ const configCreator = new BasicCaseCreator({
 			name,
 			runable: true,
 			compilerType: ECompilerType.Rspack,
-			configFiles: ["rspack.config.js", "webpack.config.js"]
+			configFiles: [
+				"rspack.config.cjs",
+				"rspack.config.js",
+				"webpack.config.js"
+			]
 		});
 		return [processor];
 	},

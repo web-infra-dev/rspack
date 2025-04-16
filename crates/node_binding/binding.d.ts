@@ -12,6 +12,8 @@ export type AssetInfo = KnownAssetInfo & Record<string, any>;
 
 export const MODULE_IDENTIFIER_SYMBOL: unique symbol;
 
+export const COMPILATION_HOOKS_MAP_SYMBOL: unique symbol;
+
 export interface Module {
 	[MODULE_IDENTIFIER_SYMBOL]: string;
 	readonly type: string;
@@ -251,6 +253,7 @@ export declare class JsCompiler {
   build(callback: (err: null | Error) => void): void
   /** Rebuild with the given option passed to the constructor */
   rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
+  close(): Promise<void>
 }
 
 export declare class JsContextModuleFactoryAfterResolveData {
@@ -2220,7 +2223,7 @@ export interface RawResolveOptions {
   importsFields?: Array<string>
   extensionAlias?: Record<string, Array<string>>
   aliasFields?: Array<string>
-  restrictions?: Array<string>
+  restrictions?: (string | RegExp)[]
   roots?: Array<string>
   pnp?: boolean
 }
@@ -2245,7 +2248,7 @@ export interface RawResolveOptionsWithDependencyType {
   importsFields?: Array<string>
   extensionAlias?: Record<string, Array<string>>
   aliasFields?: Array<string>
-  restrictions?: Array<string>
+  restrictions?: (string | RegExp)[]
   roots?: Array<string>
   dependencyCategory?: string
   resolveToContext?: boolean

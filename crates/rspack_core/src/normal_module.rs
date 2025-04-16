@@ -277,7 +277,7 @@ impl NormalModule {
     &mut self.presentational_dependencies
   }
 
-  #[tracing::instrument("NormalModule:build_hash")]
+  #[tracing::instrument("NormalModule:build_hash", skip_all)]
   fn init_build_hash(
     &self,
     output_options: &OutputOptions,

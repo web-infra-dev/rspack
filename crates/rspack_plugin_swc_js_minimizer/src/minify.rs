@@ -40,6 +40,7 @@ use swc_ecma_minifier::{
   self,
   option::{MinifyOptions, TopLevelOptions},
 };
+use tracing::instrument;
 
 use crate::{JsMinifyOptions, NormalizedExtractComments, PluginOptions};
 
@@ -62,6 +63,7 @@ pub fn match_object(obj: &PluginOptions, str: &str) -> bool {
   true
 }
 
+#[instrument("swc_js_minify",skip_all, fields(filename=filename))]
 pub fn minify(
   opts: &JsMinifyOptions,
   input: String,
@@ -312,7 +314,7 @@ struct RspackErrorEmitter {
 }
 
 impl Emitter for RspackErrorEmitter {
-  fn emit(&mut self, db: &swc_core::common::errors::DiagnosticBuilder<'_>) {
+  fn emit(&mut self, db: &mut swc_core::common::errors::DiagnosticBuilder<'_>) {
     let source_file_and_byte_pos = db
       .span
       .primary_span()

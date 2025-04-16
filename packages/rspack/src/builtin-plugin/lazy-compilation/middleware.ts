@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { Middleware } from "webpack-dev-server";
 import type { Compiler, LazyCompilationOptions } from "../..";
 import type { Module } from "../../Module";
+import type { Middleware } from "../../config/devServer";
 import { BuiltinLazyCompilationPlugin } from "./lazyCompilation";
 
 export const LAZY_COMPILATION_PREFIX = "/lazy-compilation-using-";

@@ -671,6 +671,8 @@ pub type JsBuildMetaDefaultObject = Either<String, JsBuildMetaDefaultObjectRedir
 
 thread_local! {
   pub(crate) static MODULE_IDENTIFIER_SYMBOL: OnceCell<OneShotRef> = Default::default();
+
+  pub(crate) static COMPILATION_HOOKS_MAP_SYMBOL: OnceCell<OneShotRef> = Default::default();
 }
 
 #[module_exports]
@@ -679,6 +681,15 @@ fn init(mut exports: Object, env: Env) -> napi::Result<()> {
   exports.set_named_property("MODULE_IDENTIFIER_SYMBOL", &module_identifier_symbol)?;
   MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
     once_cell.get_or_init(move || module_identifier_symbol);
+  });
+
+  let compilation_hooks_map_symbol = OneShotRef::new(env.raw(), env.create_symbol(None)?)?;
+  exports.set_named_property(
+    "COMPILATION_HOOKS_MAP_SYMBOL",
+    &compilation_hooks_map_symbol,
+  )?;
+  COMPILATION_HOOKS_MAP_SYMBOL.with(|once_cell| {
+    once_cell.get_or_init(move || compilation_hooks_map_symbol);
   });
 
   Ok(())

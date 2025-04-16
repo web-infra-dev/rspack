@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.hot-update.js, size: 7132
+- Update: main.hot-update.js, size: 7115
 
 ## Manifest
 
@@ -37,228 +37,132 @@ self["webpackHotUpdate"]('main', {
 /*!***************************************************!*\
   !*** ../../../../../rspack/dist/cssExtractHmr.js ***!
   \***************************************************/
-(function (module) {
+(function (__unused_webpack_module, exports) {
 
-var __defProp = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
-};
-var __copyProps = (to, from, except, desc) => {
-  if (from && typeof from === "object" || typeof from === "function") {
-    for (let key of __getOwnPropNames(from))
-      if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
-  }
-  return to;
-};
-var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-
-// src/runtime/cssExtractHmr.ts
-var cssExtractHmr_exports = {};
-__export(cssExtractHmr_exports, {
-  cssReload: () => cssReload,
-  normalizeUrl: () => normalizeUrl
-});
-module.exports = __toCommonJS(cssExtractHmr_exports);
-function normalizeUrl(url) {
-  const urlString = url.trim();
-  if (/^data:/i.test(urlString)) {
-    return urlString;
-  }
-  const protocol = urlString.indexOf("//") !== -1 ? `${urlString.split("//")[0]}//` : "";
-  const components = urlString.replace(new RegExp(protocol, "i"), "").split("/");
-  const host = components[0].toLowerCase().replace(/\.$/, "");
-  components[0] = "";
-  const path = components.reduce((accumulator, item) => {
-    switch (item) {
-      case "..":
-        accumulator.pop();
-        break;
-      case ".":
-        break;
-      default:
-        accumulator.push(item);
-    }
-    return accumulator;
-  }, []).join("/");
-  return protocol + host + path;
-}
-var srcByModuleId = /* @__PURE__ */ Object.create(null);
-var noDocument = typeof document === "undefined";
-var { forEach } = Array.prototype;
-function debounce(fn, time) {
-  let timeout = 0;
-  return function(...args) {
-    const self = this;
-    const functionCall = function functionCall2() {
-      return fn.apply(self, args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(functionCall, time);
-  };
-}
-function noop() {
-}
-function getCurrentScriptUrl(moduleId) {
-  let src = srcByModuleId[moduleId];
-  if (!src) {
-    if (document.currentScript) {
-      ({ src } = document.currentScript);
-    } else {
-      const scripts = document.getElementsByTagName("script");
-      const lastScriptTag = scripts[scripts.length - 1];
-      if (lastScriptTag) {
-        ({ src } = lastScriptTag);
-      }
-    }
-    srcByModuleId[moduleId] = src;
-  }
-  return (fileMap) => {
-    if (!src) {
-      return null;
-    }
-    const splitResult = src.match(/([^\\/]+)\.js$/);
-    const filename = splitResult && splitResult[1];
-    if (!filename || !fileMap) {
-      return [src.replace(".js", ".css")];
-    }
-    return fileMap.split(",").map((mapRule) => {
-      const reg = new RegExp(`${filename}\\.js$`, "g");
-      return normalizeUrl(
-        src.replace(reg, `${mapRule.replace(/{fileName}/g, filename)}.css`)
-      );
+var __nested_webpack_require_18_37__ = {};
+__nested_webpack_require_18_37__.d = (exports1, definition)=>{
+    for(var key in definition)__nested_webpack_require_18_37__.o(definition, key) && !__nested_webpack_require_18_37__.o(exports1, key) && Object.defineProperty(exports1, key, {
+        enumerable: !0,
+        get: definition[key]
     });
-  };
+}, __nested_webpack_require_18_37__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop), __nested_webpack_require_18_37__.r = (exports1)=>{
+    'undefined' != typeof Symbol && Symbol.toStringTag && Object.defineProperty(exports1, Symbol.toStringTag, {
+        value: 'Module'
+    }), Object.defineProperty(exports1, '__esModule', {
+        value: !0
+    });
+};
+var __nested_webpack_exports__ = {};
+function normalizeUrl(url) {
+    let urlString = url.trim();
+    if (/^data:/i.test(urlString)) return urlString;
+    let protocol = -1 !== urlString.indexOf("//") ? `${urlString.split("//")[0]}//` : "", components = urlString.replace(RegExp(protocol, "i"), "").split("/"), host = components[0].toLowerCase().replace(/\.$/, "");
+    return components[0] = "", protocol + host + components.reduce((accumulator, item)=>{
+        switch(item){
+            case "..":
+                accumulator.pop();
+                break;
+            case ".":
+                break;
+            default:
+                accumulator.push(item);
+        }
+        return accumulator;
+    }, []).join("/");
 }
+__nested_webpack_require_18_37__.r(__nested_webpack_exports__), __nested_webpack_require_18_37__.d(__nested_webpack_exports__, {
+    cssReload: ()=>cssReload,
+    normalizeUrl: ()=>normalizeUrl
+});
+let srcByModuleId = Object.create(null), noDocument = "undefined" == typeof document, { forEach } = Array.prototype;
+function noop() {}
 function updateCss(el, url) {
-  let normalizedUrl;
-  if (!url) {
-    if (!el.href) {
-      return;
+    let normalizedUrl;
+    if (url) normalizedUrl = url;
+    else {
+        if (!el.href) return;
+        normalizedUrl = el.href.split("?")[0];
     }
-    normalizedUrl = el.href.split("?")[0];
-  } else {
-    normalizedUrl = url;
-  }
-  if (!isUrlRequest(normalizedUrl)) {
-    return;
-  }
-  if (el.isLoaded === false) {
-    return;
-  }
-  if (!normalizedUrl || !(normalizedUrl.indexOf(".css") > -1)) {
-    return;
-  }
-  el.visited = true;
-  const newEl = el.cloneNode();
-  newEl.isLoaded = false;
-  newEl.addEventListener("load", () => {
-    if (newEl.isLoaded) {
-      return;
-    }
-    newEl.isLoaded = true;
-    if (el.parentNode) {
-      el.parentNode.removeChild(el);
-    }
-  });
-  newEl.addEventListener("error", () => {
-    if (newEl.isLoaded) {
-      return;
-    }
-    newEl.isLoaded = true;
-    if (el.parentNode) {
-      el.parentNode.removeChild(el);
-    }
-  });
-  newEl.href = `${normalizedUrl}?${Date.now()}`;
-  const parent = el.parentNode;
-  if (!parent) {
-    return;
-  }
-  if (el.nextSibling) {
-    parent.insertBefore(newEl, el.nextSibling);
-  } else {
-    parent.appendChild(newEl);
-  }
-}
-function getReloadUrl(href, src) {
-  let ret = "";
-  const normalizedHref = normalizeUrl(href);
-  src.some((url) => {
-    if (normalizedHref.indexOf(src) > -1) {
-      ret = url;
-    }
-  });
-  return ret;
-}
-function reloadStyle(src) {
-  if (!src) {
-    return false;
-  }
-  const elements = document.querySelectorAll("link");
-  let loaded = false;
-  forEach.call(elements, (el) => {
-    if (!el.href) {
-      return;
-    }
-    const url = getReloadUrl(el.href, src);
-    if (!isUrlRequest(url)) {
-      return;
-    }
-    if (el.visited === true) {
-      return;
-    }
-    if (url) {
-      updateCss(el, url);
-      loaded = true;
-    }
-  });
-  return loaded;
+    if (!isUrlRequest(normalizedUrl) || !1 === el.isLoaded || !normalizedUrl || !(normalizedUrl.indexOf(".css") > -1)) return;
+    el.visited = !0;
+    let newEl = el.cloneNode();
+    newEl.isLoaded = !1, newEl.addEventListener("load", ()=>{
+        !newEl.isLoaded && (newEl.isLoaded = !0, el.parentNode && el.parentNode.removeChild(el));
+    }), newEl.addEventListener("error", ()=>{
+        !newEl.isLoaded && (newEl.isLoaded = !0, el.parentNode && el.parentNode.removeChild(el));
+    }), newEl.href = `${normalizedUrl}?${Date.now()}`;
+    let parent = el.parentNode;
+    parent && (el.nextSibling ? parent.insertBefore(newEl, el.nextSibling) : parent.appendChild(newEl));
 }
 function reloadAll() {
-  const elements = document.querySelectorAll("link");
-  forEach.call(elements, (el) => {
-    if (el.visited === true) {
-      return;
-    }
-    updateCss(el);
-  });
+    let elements = document.querySelectorAll("link");
+    forEach.call(elements, (el)=>{
+        !0 !== el.visited && updateCss(el);
+    });
 }
 function isUrlRequest(url) {
-  if (!/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(url)) {
-    return false;
-  }
-  return true;
+    return !!/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(url);
 }
 function cssReload(moduleId, options) {
-  if (noDocument) {
-    console.log("[HMR] No `window.document` found, CSS HMR disabled");
-    return noop;
-  }
-  const getScriptSrc = getCurrentScriptUrl(moduleId);
-  function update() {
-    const src = getScriptSrc(options.filename);
-    const reloaded = reloadStyle(src);
-    if (options.locals) {
-      console.log("[HMR] Detected local CSS Modules. Reload all CSS");
-      reloadAll();
-      return;
-    }
-    if (reloaded) {
-      console.log("[HMR] CSS reload %s", src && src.join(" "));
-    } else {
-      console.log("[HMR] Reload all CSS");
-      reloadAll();
-    }
-  }
-  return debounce(update, 50);
+    var fn;
+    let timeout;
+    if (noDocument) return console.log("[HMR] No `window.document` found, CSS HMR disabled"), noop;
+    let getScriptSrc = function(moduleId) {
+        let src = srcByModuleId[moduleId];
+        if (!src) {
+            if (document.currentScript) ({ src } = document.currentScript);
+            else {
+                let scripts = document.getElementsByTagName("script"), lastScriptTag = scripts[scripts.length - 1];
+                lastScriptTag && ({ src } = lastScriptTag);
+            }
+            srcByModuleId[moduleId] = src;
+        }
+        return (fileMap)=>{
+            if (!src) return null;
+            let splitResult = src.match(/([^\\/]+)\.js$/), filename = splitResult && splitResult[1];
+            return filename && fileMap ? fileMap.split(",").map((mapRule)=>{
+                let reg = RegExp(`${filename}\\.js$`, "g");
+                return normalizeUrl(src.replace(reg, `${mapRule.replace(/{fileName}/g, filename)}.css`));
+            }) : [
+                src.replace(".js", ".css")
+            ];
+        };
+    }(moduleId);
+    return fn = function() {
+        let src = getScriptSrc(options.filename), reloaded = function(src) {
+            if (!src) return !1;
+            let elements = document.querySelectorAll("link"), loaded = !1;
+            return forEach.call(elements, (el)=>{
+                if (!el.href) return;
+                let url = function(href, src) {
+                    let ret = "", normalizedHref = normalizeUrl(href);
+                    return src.some((url)=>{
+                        normalizedHref.indexOf(src) > -1 && (ret = url);
+                    }), ret;
+                }(el.href, src);
+                isUrlRequest(url) && !0 !== el.visited && url && (updateCss(el, url), loaded = !0);
+            }), loaded;
+        }(src);
+        if (options.locals) {
+            console.log("[HMR] Detected local CSS Modules. Reload all CSS"), reloadAll();
+            return;
+        }
+        reloaded ? console.log("[HMR] CSS reload %s", src && src.join(" ")) : (console.log("[HMR] Reload all CSS"), reloadAll());
+    }, timeout = 0, function() {
+        for(var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++)args[_key] = arguments[_key];
+        let self = this;
+        clearTimeout(timeout), timeout = setTimeout(function() {
+            return fn.apply(self, args);
+        }, 50);
+    };
 }
-// Annotate the CommonJS export names for ESM import in node:
-0 && 0;
+for(var __webpack_i__ in exports.cssReload = __nested_webpack_exports__.cssReload, exports.normalizeUrl = __nested_webpack_exports__.normalizeUrl, __nested_webpack_exports__)-1 === [
+    "cssReload",
+    "normalizeUrl"
+].indexOf(__webpack_i__) && (exports[__webpack_i__] = __nested_webpack_exports__[__webpack_i__]);
+Object.defineProperty(exports, "__esModule", ({
+    value: !0
+}));
 
 
 }),
