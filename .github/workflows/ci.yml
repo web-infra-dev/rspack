@@ -279,7 +279,7 @@ jobs:
         with:
           shared-key: check
       - uses: cargo-bins/cargo-binstall@63aaa5c1932cebabc34eceda9d92a70215dcead6 # v1.12.3
-      - run: cargo binstall --no-confirm cargo-shear --force
+      - run: cargo binstall --no-confirm cargo-shear@1.1.12 --force
       - run: cargo shear
 
   rust_test:
