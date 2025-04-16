@@ -1,22 +1,31 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
+    "baseUrl": ".",
+    "paths": {
+      "isomorphic-unfetch": ["types/unfetch.d.ts"],
+      "@c/*": ["components/*"],
+      "@lib/*": ["lib/a/*", "lib/b/*"],
+      "@mycomponent": ["components/hello.tsx"],
+      "d-ts-alias": [
+        "components/alias-to-d-ts.d.ts",
+        "components/alias-to-d-ts.tsx"
+      ]
+    },
+    "esModuleInterop": true,
+    "module": "esnext",
+    "jsx": "preserve",
+    "target": "es5",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
+    "forceConsistentCasingInFileNames": true,
     "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
+    "incremental": true,
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "paths": {
-      "@/*": ["./*"]
-    }
+    "isolatedModules": true
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules"],
+  "include": ["next-env.d.ts", "components", "pages"]
 }
