@@ -70,12 +70,16 @@ export class TestCompilerManager<T extends ECompilerType>
 		if (!this.compilerInstance)
 			throw new Error("Compiler should be created before build");
 		return new Promise<TCompilerStats<T>>((resolve, reject) => {
-			this.compilerInstance!.run((error, newStats) => {
-				this.emitter.emit(ECompilerEvent.Build, error, newStats);
-				if (error) return reject(error);
-				this.compilerStats = newStats as TCompilerStats<T>;
-				resolve(newStats as TCompilerStats<T>);
-			});
+			try {
+				this.compilerInstance!.run((error, newStats) => {
+					this.emitter.emit(ECompilerEvent.Build, error, newStats);
+					if (error) return reject(error);
+					this.compilerStats = newStats as TCompilerStats<T>;
+					resolve(newStats as TCompilerStats<T>);
+				});
+			} catch (e) {
+				reject(e);
+			}
 		});
 	}
 

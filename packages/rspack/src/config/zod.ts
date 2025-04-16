@@ -470,7 +470,6 @@ const ruleSetLoaderWithOptions =
 					parallel: z.boolean().optional()
 				}),
 				issue: (res, _, input) => {
-					console.log(input.data);
 					try {
 						const message = validate(input.data.options, ZodSwcLoaderOptions, {
 							output: false,
