@@ -11,7 +11,7 @@ exports.checkChunkModules = function checkChunkModules(
 		const chunkModules = chunk.modules.map(m => m.identifier);
 		if (strict && expectedModules.length !== chunkModules.length) {
 			throw new Error(
-				`expect chunk ${chunkId} has ${chunkModules.length} modules: ${chunkModules}\nbut received ${chunkModules.length} modules`
+				`expect chunk ${chunkId} has ${expectedModules.length} modules: ${expectedModules}\nbut received ${chunkModules.length} modules`
 			);
 		}
 

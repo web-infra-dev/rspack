@@ -271,10 +271,6 @@ impl ReadableFileSystem for MemoryFileSystem {
     Ok(path.assert_utf8())
   }
 
-  async fn async_read(&self, file: &Utf8Path) -> Result<Vec<u8>> {
-    ReadableFileSystem::read(self, file).await
-  }
-
   async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     self._read_dir(dir)
   }
@@ -460,23 +456,23 @@ mod tests {
 
     // read
     assert!(
-      ReadableFileSystem::async_read(&fs, Utf8Path::new("/a/temp/file2"))
+      ReadableFileSystem::read(&fs, Utf8Path::new("/a/temp/file2"))
         .await
         .is_err()
     );
     assert!(
-      ReadableFileSystem::async_read(&fs, Utf8Path::new("/a/file1/file2"))
+      ReadableFileSystem::read(&fs, Utf8Path::new("/a/file1/file2"))
         .await
         .is_err()
     );
     assert_eq!(
-      ReadableFileSystem::async_read(&fs, Utf8Path::new("/a/file1"))
+      ReadableFileSystem::read(&fs, Utf8Path::new("/a/file1"))
         .await
         .unwrap(),
       file_content
     );
     assert_eq!(
-      ReadableFileSystem::async_read(&fs, Utf8Path::new("/a/file2"))
+      ReadableFileSystem::read(&fs, Utf8Path::new("/a/file2"))
         .await
         .unwrap(),
       file_content

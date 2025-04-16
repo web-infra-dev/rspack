@@ -2634,6 +2634,7 @@ type InputFileSystem = {
     join?: (path1: string, path2: string) => string;
     relative?: (from: string, to: string) => string;
     dirname?: (path: string) => string;
+    __SKIP_BINDING__?: boolean;
 };
 
 // @public (undocumented)
@@ -4973,8 +4974,6 @@ class Resolver {
     binding: binding.JsResolver;
     // (undocumented)
     resolve(context: object, path: string, request: string, resolveContext: ResolveContext, callback: ResolveCallback): void;
-    // (undocumented)
-    resolveSync(context: object, path: string, request: string): string | false;
     // (undocumented)
     withOptions({ dependencyCategory, resolveToContext, ...resolve }: ResolveOptionsWithDependencyType_2): Resolver;
 }

@@ -23,12 +23,6 @@ export class Resolver {
 		this.binding = binding;
 	}
 
-	resolveSync(context: object, path: string, request: string): string | false {
-		const data = this.binding.resolveSync(path, request);
-		if (data === false) return data;
-		return data.resource;
-	}
-
 	resolve(
 		context: object,
 		path: string,
@@ -37,12 +31,16 @@ export class Resolver {
 		callback: ResolveCallback
 	): void {
 		try {
-			const data = this.binding.resolveSync(path, request);
-			if (data === false) {
-				callback(null, false);
-				return;
-			}
-			callback(null, data.resource, data);
+			this.binding.resolve(path, request).then(
+				data => {
+					if (data === false) {
+						callback(null, false);
+						return;
+					}
+					callback(null, data.resource, data);
+				},
+				err => callback(err as ErrorWithDetails)
+			);
 		} catch (err) {
 			callback(err as ErrorWithDetails);
 		}

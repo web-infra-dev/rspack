@@ -50,6 +50,7 @@ export default class NodeEnvironmentPlugin {
 			fs,
 			60000
 		);
+		inputFileSystem.__SKIP_BINDING__ = true; // TODO: use env variable?
 		compiler.inputFileSystem = inputFileSystem;
 		compiler.outputFileSystem = fs;
 		compiler.intermediateFileSystem = null;
