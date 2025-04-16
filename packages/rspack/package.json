@@ -47,7 +47,7 @@
   },
   "devDependencies": {
     "@rspack/tracing": "workspace:*",
-    "@swc/core": "1.11.20",
+    "@swc/core": "1.11.21",
     "@swc/types": "0.1.21",
     "@rslib/core": "0.6.3",
     "@types/graceful-fs": "4.1.9",
