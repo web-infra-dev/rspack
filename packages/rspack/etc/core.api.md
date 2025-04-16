@@ -86,6 +86,7 @@ import { ServerOptions as ServerOptions_2 } from 'https';
 import { ServerResponse as ServerResponse_2 } from 'http';
 import { RawSourceMapDevToolPluginOptions as SourceMapDevToolPluginOptions } from '@rspack/binding';
 import sources = require('webpack-sources');
+import { StatSyncFn } from 'fs';
 import { SyncBailHook } from '@rspack/lite-tapable';
 import { SyncHook } from '@rspack/lite-tapable';
 import { SyncWaterfallHook } from '@rspack/lite-tapable';
@@ -2331,11 +2332,11 @@ type GroupOptions = {
 
 // @public (undocumented)
 class Hash {
-     constructor();
+    	constructor();
 
-     digest(encoding?: string): string | Buffer;
+    	digest(encoding?: string): string | Buffer;
 
-     update(data: string | Buffer, inputEncoding?: string): Hash;
+    	update(data: string | Buffer, inputEncoding?: string): Hash;
 }
 
 // @public (undocumented)
@@ -3982,7 +3983,7 @@ class MultiWatching {
 }
 
 // @public (undocumented)
-type MultiWatching_2 = MultiCompiler['watch'];
+type MultiWatching_2 = MultiCompiler["watch"];
 
 // @public
 export type Name = string;
@@ -4696,13 +4697,13 @@ type Purge = (files?: string | string[] | Set<string>) => void;
 
 // @public (undocumented)
 type RawSourceMap = {
-     version: number;
-     sources: string[];
-     names: string[];
-     sourceRoot?: string;
-     sourcesContent?: string[];
-     mappings: string;
-     file: string;
+    	version: number;
+    	sources: string[];
+    	names: string[];
+    	sourceRoot?: string;
+    	sourcesContent?: string[];
+    	mappings: string;
+    	file: string;
 };
 
 // @public (undocumented)
@@ -5970,25 +5971,25 @@ export type SnapshotOptions = {};
 
 // @public (undocumented)
 abstract class Source {
-     // (undocumented)
+    	// (undocumented)
     buffer(): Buffer;
 
-     // (undocumented)
+    	// (undocumented)
     map(options?: MapOptions): RawSourceMap | null;
 
-     // (undocumented)
+    	// (undocumented)
     size(): number;
 
-     // (undocumented)
+    	// (undocumented)
     source(): string | Buffer;
 
-     // (undocumented)
+    	// (undocumented)
     sourceAndMap(options?: MapOptions): {
-          source: string | Buffer;
-          map: Object;
-         };
+        		source: string | Buffer;
+        		map: Object;
+        	};
 
-     // (undocumented)
+    	// (undocumented)
     updateHash(hash: Hash): void;
 }
 
