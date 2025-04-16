@@ -948,8 +948,9 @@ impl<'parser> JavascriptParser<'parser> {
 impl JavascriptParser<'_> {
   pub fn evaluate_expression(&mut self, expr: &Expr) -> BasicEvaluatedExpression {
     match self.evaluating(expr) {
-      Some(evaluated) => evaluated,
-      None => BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span_hi().0),
+      Some(evaluated) => evaluated.with_expression(Some(expr.clone())),
+      None => BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span_hi().0)
+        .with_expression(Some(expr.clone())),
     }
   }
 

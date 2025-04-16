@@ -602,6 +602,11 @@ impl BasicEvaluatedExpression {
     self.expression = expression;
   }
 
+  pub fn with_expression(mut self, expression: Option<Expr>) -> Self {
+    self.expression = expression;
+    self
+  }
+
   pub fn expression(&self) -> &Expr {
     self
       .expression

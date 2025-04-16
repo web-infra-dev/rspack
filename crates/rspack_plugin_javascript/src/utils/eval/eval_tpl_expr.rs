@@ -33,21 +33,16 @@ fn get_simplified_template_result(
     };
     if i > 0 {
       let prev_expr = parts.last_mut().expect("should not empty");
-      let mut expr = scanner.evaluate_expression(&node.exprs[i - 1]);
-      expr.set_expression(Some((*node.exprs[i - 1]).clone()));
+      let expr = scanner.evaluate_expression(&node.exprs[i - 1]);
       if !expr.could_have_side_effects()
         && let Some(str) = expr.as_string()
       {
-        // merge quasi + expr + quasi when expr is a const string
+        // We can merge quasi + expr + quasi when expr
+        // is a const string
         prev_expr.set_string(format!("{}{}{}", prev_expr.string(), str, quasi));
         prev_expr.set_range(prev_expr.range().0, quasi_expr.span_hi().0);
+        // We unset the expression as it doesn't match to a single expression
         prev_expr.set_expression(None);
-
-        // also merge for quasis
-        let prev_expr = quasis.last_mut().expect("should not empty");
-        prev_expr.set_string(format!("{}{}{}", prev_expr.string(), str, quasi));
-        prev_expr.set_range(prev_expr.range().0, quasi_expr.span_hi().0);
-
         continue;
       }
       parts.push(expr);
