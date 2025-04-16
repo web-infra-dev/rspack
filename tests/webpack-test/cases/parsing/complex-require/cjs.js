@@ -1,22 +1,22 @@
 
-// it("should parse template strings in require.ensure requires", function(done) {
-// 	var name = "abc";
-// 	var suffix = "Test";
+it("should parse template strings in require.ensure requires", function (done) {
+	var name = "abc";
+	var suffix = "Test";
 
-// 	require.ensure([], function(require) {
-// 		var imports = [
-// 			require(`./abc/${name}Test`),
-// 			require(`./${name}/${name}Test`),
-// 			require(`./abc/${name}${suffix}`),
-// 			require(String.raw`./${name}/${name}${suffix}`)
-// 		];
+	require.ensure([], function (require) {
+		var imports = [
+			require(`./abc/${name}Test`),
+			require(`./${name}/${name}Test`),
+			require(`./abc/${name}${suffix}`),
+			require(String.raw`./${name}/${name}${suffix}`)
+		];
 
-// 		for (var i = 0; i < imports.length; i++) {
-// 			expect(imports[i].default).toEqual("ok");
-// 		}
-// 		done()
-// 	})
-// })
+		for (var i = 0; i < imports.length; i++) {
+			expect(imports[i].default).toEqual("ok");
+		}
+		done()
+	})
+})
 
 it("should parse template strings in sync requires", function () {
 	var name = "sync";
@@ -25,9 +25,9 @@ it("should parse template strings in sync requires", function () {
 	var imports = [
 		require(`./sync/${name}Test`),
 		require(`./sync/${name}${suffix}`),
-		// require(String.raw`./sync/${name.slice(0, 1)}y${name.slice(2)}${suffix}`),
+		require(String.raw`./sync/${name.slice(0, 1)}y${name.slice(2)}${suffix}`),
 		require(`./sync/sync${"Test"}`),
-		// require(String.raw`./sync/${"sync"}Test`)
+		require(String.raw`./sync/${"sync"}Test`)
 	];
 
 	for (var i = 0; i < imports.length; i++) {
@@ -43,23 +43,23 @@ it("should parse template strings in require.resolve", function () {
 	expect(require.resolve(`./sync/${name}Test`)).toBeDefined();
 })
 
-// it("should parse .concat strings in require.ensure requires", function (done) {
-// 	var name = "abc";
-// 	var suffix = "Test";
+it("should parse .concat strings in require.ensure requires", function (done) {
+	var name = "abc";
+	var suffix = "Test";
 
-// 	require.ensure([], function (require) {
-// 		var imports = [
-// 			require("./abc/".concat(name, "Test")),
-// 			require("./".concat(name, "/").concat(name, "Test")),
-// 			require("./abc/".concat(name).concat(suffix))
-// 		];
+	require.ensure([], function (require) {
+		var imports = [
+			require("./abc/".concat(name, "Test")),
+			require("./".concat(name, "/").concat(name, "Test")),
+			require("./abc/".concat(name).concat(suffix))
+		];
 
-// 		for (var i = 0; i < imports.length; i++) {
-// 			expect(imports[i].default).toEqual("ok");
-// 		}
-// 		done()
-// 	})
-// })
+		for (var i = 0; i < imports.length; i++) {
+			expect(imports[i].default).toEqual("ok");
+		}
+		done()
+	})
+})
 
 it("should parse .concat strings in sync requires", function () {
 	var name = "sync";

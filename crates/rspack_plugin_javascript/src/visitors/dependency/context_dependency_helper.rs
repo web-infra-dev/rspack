@@ -48,14 +48,22 @@ pub fn create_context_dependency(
       None => (postfix_raw.to_string(), String::new(), String::new()),
     };
 
+    // When there are more than two quasis, the generated RegExp can be more precise
+    // We join the quasis with the expression regexp
+    let inner_quasis = if quasis.len() > 1 {
+      quasis[1..quasis.len() - 1]
+        .iter()
+        .map(|q| quote_meta(q.string().as_str()) + wrapped_context_reg_exp)
+        .join("")
+    } else {
+      "".to_string()
+    };
+
     let reg = format!(
       "^{}{}{}{}$",
       quote_meta(&prefix),
       wrapped_context_reg_exp,
-      quasis[1..quasis.len() - 1]
-        .iter()
-        .map(|q| quote_meta(q.string().as_str()) + wrapped_context_reg_exp)
-        .join(""),
+      inner_quasis,
       quote_meta(&postfix)
     );
 
