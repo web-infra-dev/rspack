@@ -28,7 +28,6 @@
     "vue": "^3.5.13",
     "vue-loader": "^17.4.2",
     "css-loader": "^7.1.2",
-    "webpack-dev-server": "5.2.1",
     "ws": "^8.18.1"
   }
 }
