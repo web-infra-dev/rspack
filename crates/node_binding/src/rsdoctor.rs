@@ -45,9 +45,9 @@ impl From<RsdoctorModule> for JsRsdoctorModule {
       belong_modules: value.belong_modules.into_iter().collect::<Vec<_>>(),
       issuer_path: value
         .issuer_path
-        .unwrap_or_default() // Handle the Option
+        .unwrap_or_default()
         .into_iter()
-        .filter_map(|i| i.ukey) // Access the `ukey` field
+        .filter_map(|i| i.ukey)
         .collect::<Vec<_>>(),
     }
   }
