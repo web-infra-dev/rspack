@@ -460,44 +460,41 @@ const ruleSetLoaderWithOptions =
 	new ZodRspackCrossChecker<t.RuleSetLoaderWithOptions>({
 		patterns: [
 			{
-				test: (_, input) => {
-					if (
-						input.data.loader === "builtin:swc-loader" &&
-						typeof input.data.options === "object"
-					) {
-						try {
-							const message = validate(
-								input.data.options,
-								ZodSwcLoaderOptions,
-								false
-							);
-							if (message) {
-								return message;
-							}
-							return false;
-						} catch (error) {
-							return (error as Error).message;
-						}
-					}
-					return false;
-				},
+				test: (_, input) =>
+					input?.data?.loader === "builtin:swc-loader" &&
+					typeof input?.data?.options === "object",
 				type: z.strictObject({
 					ident: z.string().optional(),
 					loader: z.literal("builtin:swc-loader"),
 					options: ZodSwcLoaderOptions,
 					parallel: z.boolean().optional()
 				}),
-				issue: (res, message) => {
-					if ((res as SyncParseReturnType).status === "dirty") {
+				issue: (res, _, input) => {
+					console.log(input.data);
+					try {
+						const message = validate(input.data.options, ZodSwcLoaderOptions, {
+							output: false,
+							strategy: "strict"
+						});
+						if (message) {
+							return [
+								{
+									fatal: true,
+									code: ZodIssueCode.custom,
+									message: `Invalid options of 'builtin:swc-loader': ${message}`
+								}
+							];
+						}
+						return [];
+					} catch (e) {
 						return [
 							{
 								fatal: true,
 								code: ZodIssueCode.custom,
-								message: `Invalid options of 'builtin:swc-loader':\n${message}`
+								message: `Invalid options of 'builtin:swc-loader': ${(e as Error).message}`
 							}
 						];
 					}
-					return [];
 				}
 			}
 		],
@@ -564,39 +561,35 @@ const extendedSwcRuleSetRule: z.ZodType<t.RuleSetRule> = baseRuleSetRule
 const ruleSetRule = new ZodRspackCrossChecker<t.RuleSetRule>({
 	patterns: [
 		{
-			test: (_, input) => {
-				if (
-					input.data.loader === "builtin:swc-loader" &&
-					typeof input.data.options === "object"
-				) {
-					try {
-						const message = validate(
-							input.data.options,
-							ZodSwcLoaderOptions,
-							false
-						);
-						if (message) {
-							return message;
-						}
-						return false;
-					} catch (error) {
-						return (error as Error).message;
-					}
-				}
-				return false;
-			},
+			test: (_, input) =>
+				input?.data?.loader === "builtin:swc-loader" &&
+				typeof input?.data?.options === "object",
 			type: extendedSwcRuleSetRule,
-			issue: (res, message) => {
-				if ((res as SyncParseReturnType).status === "dirty") {
+			issue: (res, _, input) => {
+				try {
+					const message = validate(input.data.options, ZodSwcLoaderOptions, {
+						output: false,
+						strategy: "strict"
+					});
+					if (message) {
+						return [
+							{
+								fatal: true,
+								code: ZodIssueCode.custom,
+								message: `Invalid options of 'builtin:swc-loader': ${message}`
+							}
+						];
+					}
+					return [];
+				} catch (e) {
 					return [
 						{
 							fatal: true,
 							code: ZodIssueCode.custom,
-							message: `Invalid options of 'builtin:swc-loader':\n${message}`
+							message: `Invalid options of 'builtin:swc-loader': ${(e as Error).message}`
 						}
 					];
 				}
-				return [];
 			}
 		}
 	],

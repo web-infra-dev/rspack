@@ -28,7 +28,7 @@ export default defineConfig({
 					{
 						loader: "builtin:swc-loader",
 						options: {
-							sourceMap: true,
+							sourceMaps: true,
 							jsc: {
 								parser: {
 									syntax: "typescript"

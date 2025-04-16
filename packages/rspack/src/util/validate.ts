@@ -11,11 +11,16 @@ export class ValidationError extends Error {
 export function validate<T extends z.ZodType>(
 	opts: any,
 	schema: T,
-	output = true
+	options: {
+		output?: boolean;
+		strategy?: "strict" | "loose-unrecognized-keys" | "loose-silent" | "loose";
+	} = {}
 ): string | null {
 	const res = schema.safeParse(opts);
 	if (!res.success) {
-		const strategy = process.env.RSPACK_CONFIG_VALIDATE ?? "strict";
+		const strategy =
+			options.strategy ?? process.env.RSPACK_CONFIG_VALIDATE ?? "strict";
+		const output = options.output ?? true;
 		if (strategy === "loose-silent") return null;
 
 		let friendlyErr: ValidationError;

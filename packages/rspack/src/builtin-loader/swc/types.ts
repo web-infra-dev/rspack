@@ -90,26 +90,24 @@ const ZodSwcAssumptions = z.strictObject({
 	tsEnumIsReadonly: z.boolean().optional()
 }) satisfies z.ZodType<Assumptions>;
 
-const ZodSwcTsParserConfig = z.strictObject({
-	syntax: z.literal("typescript"),
+const ZodSwcParserConfig = z.strictObject({
+	syntax: z.enum(["typescript", "ecmascript"]),
+	// typescript only
 	tsx: z.boolean().optional(),
 	decorators: z.boolean().optional(),
-	dynamicImport: z.boolean().optional()
-}) satisfies z.ZodType<TsParserConfig>;
-
-const ZodSwcEsParserConfig = z.strictObject({
-	syntax: z.literal("ecmascript"),
+	dynamicImport: z.boolean().optional(),
+	// ecmascript only
 	jsx: z.boolean().optional(),
 	numericSeparator: z.boolean().optional(),
 	classPrivateProperty: z.boolean().optional(),
 	privateMethod: z.boolean().optional(),
 	classProperty: z.boolean().optional(),
 	functionBind: z.boolean().optional(),
-	decorators: z.boolean().optional(),
+	// decorators: z.boolean().optional(),
 	decoratorsBeforeExport: z.boolean().optional(),
 	exportDefaultFrom: z.boolean().optional(),
 	exportNamespaceFrom: z.boolean().optional(),
-	dynamicImport: z.boolean().optional(),
+	// dynamicImport: z.boolean().optional(),
 	nullishCoalescing: z.boolean().optional(),
 	optionalChaining: z.boolean().optional(),
 	importMeta: z.boolean().optional(),
@@ -120,7 +118,7 @@ const ZodSwcEsParserConfig = z.strictObject({
 	allowReturnOutsideFunction: z.boolean().optional(),
 	autoAccessors: z.boolean().optional(),
 	explicitResourceManagement: z.boolean().optional()
-}) satisfies z.ZodType<EsParserConfig>;
+});
 
 const ZodSwcJscTarget = z.enum([
 	"es3",
@@ -310,8 +308,6 @@ const ZodSwcTerserMangleOptions = z.strictObject({
 	safari10: z.boolean().optional(),
 	reserved: z.string().array().optional()
 }) satisfies z.ZodType<TerserMangleOptions>;
-
-const ZodSwcParserConfig = ZodSwcTsParserConfig.or(ZodSwcEsParserConfig);
 
 const ZodSwcReactConfig = z.strictObject({
 	pragma: z.string().optional(),
