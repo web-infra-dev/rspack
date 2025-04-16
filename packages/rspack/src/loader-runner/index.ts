@@ -971,7 +971,7 @@ export async function runLoaders(
 	const isomorphoicRun = async (
 		fn: Function,
 		args: any[],
-		resourceData: any
+		resourceData: JsLoaderContext["resourceData"] // used for tracing for further analysis
 	) => {
 		const currentLoaderObject = getCurrentLoader(loaderContext);
 		const parallelism = enableParallelism(currentLoaderObject);
@@ -1055,7 +1055,7 @@ export async function runLoaders(
 							loaderContext.previousRequest,
 							currentLoaderObject.loaderItem.data
 						],
-						""
+						context.resourceData
 					);
 
 					const hasArg = args.some((value: any) => value !== undefined);
