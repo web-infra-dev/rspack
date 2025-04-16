@@ -85,10 +85,8 @@ pub fn create_context_dependency(
           let range = part.range();
           replaces.push((value, range.0, range.1 - 1));
         }
-      } else {
-        if let Some(expr) = part.expression() {
-          parser.walk_expression(expr);
-        }
+      } else if let Some(expr) = part.expression() {
+        parser.walk_expression(expr);
       }
     }
 

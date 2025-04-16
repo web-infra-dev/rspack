@@ -43,6 +43,12 @@ fn get_simplified_template_result(
         prev_expr.set_range(prev_expr.range().0, quasi_expr.span_hi().0);
         // We unset the expression as it doesn't match to a single expression
         prev_expr.set_expression(None);
+
+        // also merge for quasis
+        let prev_expr = quasis.last_mut().expect("should not empty");
+        prev_expr.set_string(format!("{}{}{}", prev_expr.string(), str, quasi));
+        prev_expr.set_range(prev_expr.range().0, quasi_expr.span_hi().0);
+        prev_expr.set_expression(None);
         continue;
       }
       parts.push(expr);
