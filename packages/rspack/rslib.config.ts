@@ -36,7 +36,9 @@ const commonLibConfig: LibConfig = {
 					minify: false,
 					compress: {
 						// enable to compress import.meta.url shims in top level scope
-						toplevel: true
+						toplevel: true,
+						// keep debugger so we can debug in the debug terminal without need to search in minified dist
+						drop_debugger: false
 					}
 				}
 			}
