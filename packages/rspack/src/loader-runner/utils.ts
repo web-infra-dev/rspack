@@ -1,5 +1,5 @@
-import { promisify } from "node:util";
 import path from "node:path";
+import { promisify } from "node:util";
 import type { LoaderObject } from ".";
 import type {
 	LoaderContext,

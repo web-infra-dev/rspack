@@ -37,6 +37,7 @@ import {
 	isUseSimpleSourceMap,
 	isUseSourceMap
 } from "../config/adapterRuleUse";
+import { ChromeTracer } from "../trace";
 import {
 	concatErrorMsgAndStack,
 	isNil,
@@ -61,7 +62,6 @@ import {
 	loadLoader,
 	runSyncOrAsync
 } from "./utils";
-import { ChromeTracer } from "../trace";
 
 function createLoaderObject(
 	loader: JsLoaderItem,
