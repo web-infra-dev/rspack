@@ -1,0 +1,12 @@
+[
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "json|<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/multi_json_syntax_error/a.json",
+        "moduleName": "./a.json"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "json|<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/multi_json_syntax_error/b.json",
+        "moduleName": "./b.json"
+    }
+]

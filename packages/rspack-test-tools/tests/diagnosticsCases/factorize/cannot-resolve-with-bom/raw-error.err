@@ -1,0 +1,7 @@
+[
+    {
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/cannot-resolve-with-bom/index.js",
+        "moduleName": "./index.js",
+        "loc": "1:8-20"
+    }
+]

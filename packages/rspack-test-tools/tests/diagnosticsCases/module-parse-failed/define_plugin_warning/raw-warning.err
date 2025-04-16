@@ -1,0 +1,7 @@
+[
+    {
+        "code": "ModuleParseWarning",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/define_plugin_warning/index.js",
+        "moduleName": "./index.js"
+    }
+]

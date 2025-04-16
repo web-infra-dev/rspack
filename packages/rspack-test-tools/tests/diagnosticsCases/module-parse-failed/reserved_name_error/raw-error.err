@@ -1,0 +1,7 @@
+[
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/reserved_name_error/index.js",
+        "moduleName": "./index.js"
+    }
+]

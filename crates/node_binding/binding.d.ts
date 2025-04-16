@@ -1198,6 +1198,7 @@ export interface JsStatsCompilation {
 export interface JsStatsError {
   moduleDescriptor?: JsModuleDescriptor
   message: string
+  code?: string
   chunkName?: string
   chunkEntry?: boolean
   chunkInitial?: boolean
@@ -1336,6 +1337,7 @@ export interface JsStatsSize {
 export interface JsStatsWarning {
   moduleDescriptor?: JsModuleDescriptor
   message: string
+  code?: string
   chunkName?: string
   chunkEntry?: boolean
   chunkInitial?: boolean

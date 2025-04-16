@@ -1,0 +1,42 @@
+[
+    {
+        "code": "ModuleParseWarning",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/magic_comment_warning/index.js",
+        "moduleName": "./index.js"
+    },
+    {
+        "code": "ModuleParseWarning",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/magic_comment_warning/index.js",
+        "moduleName": "./index.js"
+    },
+    {
+        "code": "ModuleParseWarning",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/magic_comment_warning/index.js",
+        "moduleName": "./index.js"
+    },
+    {
+        "code": "ModuleParseWarning",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/magic_comment_warning/index.js",
+        "moduleName": "./index.js"
+    },
+    {
+        "code": "ModuleParseWarning",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/magic_comment_warning/index.js",
+        "moduleName": "./index.js"
+    },
+    {
+        "code": "ModuleParseWarning",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/magic_comment_warning/index.js",
+        "moduleName": "./index.js"
+    },
+    {
+        "code": "ModuleParseWarning",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/magic_comment_warning/index.js",
+        "moduleName": "./index.js"
+    },
+    {
+        "code": "ModuleParseWarning",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/magic_comment_warning/index.js",
+        "moduleName": "./index.js"
+    }
+]

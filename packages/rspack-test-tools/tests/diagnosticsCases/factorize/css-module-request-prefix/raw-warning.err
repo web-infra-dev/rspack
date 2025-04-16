@@ -1,0 +1,12 @@
+[
+    {
+        "code": "ModuleParseWarning",
+        "moduleIdentifier": "css/auto|<TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/css-module-request-prefix/index.css",
+        "moduleName": "./index.css"
+    },
+    {
+        "code": "ModuleParseWarning",
+        "moduleIdentifier": "css/auto|<TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/css-module-request-prefix/index.css",
+        "moduleName": "./index.css"
+    }
+]

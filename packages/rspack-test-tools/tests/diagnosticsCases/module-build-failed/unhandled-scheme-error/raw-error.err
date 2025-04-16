@@ -1,0 +1,12 @@
+[
+    {
+        "code": "ModuleBuildError",
+        "moduleIdentifier": "bar:baz",
+        "moduleName": "bar:baz"
+    },
+    {
+        "code": "ModuleBuildError",
+        "moduleIdentifier": "foo:bar",
+        "moduleName": "foo:bar"
+    }
+]

@@ -334,7 +334,7 @@ fn map_rspack_resolver_error(
           try_line_column_length_to_offset_length(&rope, error.line, error.column, 0)
         else {
           return diagnostic!(
-            "JSON parse error: {:?} in '{}'",
+            "JSON parsing error: {:?} in '{}'",
             error,
             error.path.display()
           )
@@ -364,7 +364,7 @@ fn map_rspack_resolver_error(
             content.clone(),
             offset,
             offset,
-            "JSON parse error".to_string(),
+            "JSON parsing error".to_string(),
             format!("BOM character found in '{}'", error.path.display()),
           )
           .boxed();
@@ -374,13 +374,13 @@ fn map_rspack_resolver_error(
           content.clone(),
           offset,
           offset,
-          "JSON parse error".to_string(),
+          "JSON parsing error".to_string(),
           format!("{} in '{}'", error.message, error.path.display()),
         )
         .boxed()
       } else {
         diagnostic!(
-          "JSON parse error: {:?} in '{}'",
+          "JSON parsing error: {:?} in '{}'",
           error,
           error.path.display()
         )

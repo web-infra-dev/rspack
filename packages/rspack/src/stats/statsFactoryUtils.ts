@@ -161,6 +161,7 @@ export type StatsModuleIssuer = KnownStatsModuleIssuer & Record<string, any>;
 
 export type KnownStatsError = {
 	message: string;
+	code?: string;
 	chunkName?: string;
 	chunkEntry?: boolean;
 	chunkInitial?: boolean;

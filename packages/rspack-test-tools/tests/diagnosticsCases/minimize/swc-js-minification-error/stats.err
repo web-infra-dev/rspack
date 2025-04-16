@@ -1,0 +1,11 @@
+ERROR in main.js
+  × Chunk minification failed:
+  ╰─▶   × JavaScript parsing error: 'import', and 'export' cannot be used outside of module code
+          ╭─[8:0]
+        6 │   /******************/
+        7 │ (function (module, exports) {
+        8 │ import "./abc"
+          · ──────
+        9 │
+       10 │
+          ╰────

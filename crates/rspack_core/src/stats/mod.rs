@@ -581,10 +581,12 @@ impl Stats<'_> {
           self.compilation,
           &self.compilation.options,
         );
+        let code = d.code().map(|code| code.to_string());
         StatsError {
           message: diagnostic_displayer
             .emit_diagnostic(d)
             .expect("should print diagnostics"),
+          code,
           module_identifier,
           module_name,
           module_id: module_id.flatten(),
@@ -635,10 +637,13 @@ impl Stats<'_> {
           &self.compilation.options,
         );
 
+        let code = d.code().map(|code| code.to_string());
+
         StatsWarning {
           message: diagnostic_displayer
             .emit_diagnostic(d)
             .expect("should print diagnostics"),
+          code,
           module_identifier,
           module_name,
           module_id: module_id.flatten(),
