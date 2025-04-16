@@ -86,7 +86,9 @@ pub fn create_context_dependency(
           replaces.push((value, range.0, range.1 - 1));
         }
       } else {
-        parser.walk_expression(part.expression());
+        if let Some(expr) = part.expression() {
+          parser.walk_expression(expr);
+        }
       }
     }
 
@@ -180,6 +182,14 @@ pub fn create_context_dependency(
       critical = Some(warn);
     }
 
+    if let Some(inner_expressions) = param.wrapped_inner_expressions() {
+      for part in inner_expressions {
+        if let Some(inner_expression) = part.expression() {
+          parser.walk_expression(inner_expression);
+        }
+      }
+    }
+
     ContextModuleScanResult {
       context,
       reg,
@@ -202,6 +212,10 @@ pub fn create_context_dependency(
       .into();
       let warn = warn.with_module_identifier(Some(*parser.module_identifier));
       critical = Some(warn);
+    }
+
+    if let Some(expr) = param.expression() {
+      parser.walk_expression(expr);
     }
 
     ContextModuleScanResult {

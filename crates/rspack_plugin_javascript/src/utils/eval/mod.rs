@@ -607,11 +607,8 @@ impl BasicEvaluatedExpression {
     self
   }
 
-  pub fn expression(&self) -> &Expr {
-    self
-      .expression
-      .as_ref()
-      .expect("expression must exists in template string")
+  pub fn expression(&self) -> Option<&Expr> {
+    self.expression.as_ref()
   }
 }
 
