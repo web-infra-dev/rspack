@@ -8,11 +8,15 @@ export class ValidationError extends Error {
 	}
 }
 
-export function validate<T extends z.ZodType>(opts: any, schema: T) {
+export function validate<T extends z.ZodType>(
+	opts: any,
+	schema: T,
+	output = true
+): string | null {
 	const res = schema.safeParse(opts);
 	if (!res.success) {
 		const strategy = process.env.RSPACK_CONFIG_VALIDATE ?? "strict";
-		if (strategy === "loose-silent") return;
+		if (strategy === "loose-silent") return null;
 
 		let friendlyErr: ValidationError;
 		const originalIssues = res.error.issues;
@@ -31,7 +35,9 @@ export function validate<T extends z.ZodType>(opts: any, schema: T) {
 			if (unrecognizedKeys.length > 0) {
 				res.error.issues = unrecognizedKeys;
 				friendlyErr = toValidationError(res.error);
-				console.error(friendlyErr.message);
+				if (output) {
+					console.error(friendlyErr.message);
+				}
 				res.error.issues = originalIssues;
 			}
 			res.error.issues = originalIssues.filter(
@@ -40,19 +46,22 @@ export function validate<T extends z.ZodType>(opts: any, schema: T) {
 			if (res.error.issues.length > 0) {
 				throw toValidationError(res.error);
 			}
-			return;
+			return output || !friendlyErr! ? null : friendlyErr.message;
 		}
 
 		if (strategy === "loose-unrecognized-keys" || strategy === "loose") {
 			friendlyErr = toValidationError(res.error);
-			console.error(friendlyErr.message);
-			return;
+			if (output) {
+				console.error(friendlyErr.message);
+			}
+			return output ? null : friendlyErr.message;
 		}
 
 		// strict
 		friendlyErr = toValidationError(res.error);
 		throw friendlyErr;
 	}
+	return null;
 }
 
 function toValidationError(error: z.ZodError): ValidationError {
