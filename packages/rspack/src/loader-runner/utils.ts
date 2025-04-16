@@ -1,4 +1,5 @@
 import { promisify } from "node:util";
+import path from "node:path";
 import type { LoaderObject } from ".";
 import type {
 	LoaderContext,
@@ -107,3 +108,27 @@ export const runSyncOrAsync = promisify(function runSyncOrAsync(
 		callback(e as Error, []);
 	}
 });
+// from rsdoctor https://github.com/web-infra-dev/rsdoctor/blob/02e6cc484320083712ad922c4fff5ed41e960e25/packages/core/src/build-utils/build/utils/loader.ts#L56
+// extract human readable loader name from loader path
+export function extractLoaderName(loaderPath: string, cwd = ""): string {
+	let res = loaderPath.replace(cwd, "");
+
+	if (!path.isAbsolute(res)) return res;
+
+	const nms = "/node_modules/";
+	const idx = res.lastIndexOf(nms);
+
+	if (idx !== -1) {
+		// babel-loader/lib/index.js
+		res = res.slice(idx + nms.length);
+
+		const ln = "loader";
+		const lnIdx = res.lastIndexOf(ln);
+		if (lnIdx > -1) {
+			// babel-loader
+			res = res.slice(0, lnIdx + ln.length);
+		}
+	}
+
+	return res;
+}

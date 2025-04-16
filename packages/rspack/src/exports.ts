@@ -332,6 +332,7 @@ export type { SubresourceIntegrityPluginOptions } from "./builtin-plugin";
 
 ///// Experiments Stuff /////
 import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";
+import { ChromeTracer } from "./trace";
 
 interface Experiments {
 	globalTrace: {
@@ -352,6 +353,7 @@ export const experiments: Experiments = {
 	globalTrace: {
 		async register(filter, layer, output) {
 			registerGlobalTrace(filter, layer, output);
+			ChromeTracer.initChromeTrace(layer, output);
 			if (layer === "otel") {
 				try {
 					const { initOpenTelemetry } = await import("@rspack/tracing");
@@ -365,7 +367,9 @@ export const experiments: Experiments = {
 			}
 		},
 		async cleanup() {
+			// make sure run cleanupGlobalTrace first so we can safely append Node.js trace to it otherwise it will overlap
 			cleanupGlobalTrace();
+			ChromeTracer.cleanupChromeTrace();
 			try {
 				const { shutdownOpenTelemetry } = await import("@rspack/tracing");
 				await shutdownOpenTelemetry();
