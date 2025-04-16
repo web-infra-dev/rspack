@@ -1,0 +1,18 @@
+Array [
+  Object {
+    code: ChunkMinificationWarning,
+    file: main.css,
+  },
+  Object {
+    code: ChunkMinificationWarning,
+    file: main.css,
+  },
+  Object {
+    code: ChunkMinificationWarning,
+    file: main.css,
+  },
+  Object {
+    code: ChunkMinificationWarning,
+    file: main.css,
+  },
+]

@@ -1269,6 +1269,7 @@ export interface JsStatsError {
   moduleDescriptor?: JsModuleDescriptor
   message: string
   chunkName?: string
+  code?: string
   chunkEntry?: boolean
   chunkInitial?: boolean
   loc?: string
@@ -1408,6 +1409,7 @@ export interface JsStatsWarning {
   name?: string
   message: string
   chunkName?: string
+  code?: string
   chunkEntry?: boolean
   chunkInitial?: boolean
   file?: string

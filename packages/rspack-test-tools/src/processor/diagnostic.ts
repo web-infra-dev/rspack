@@ -12,6 +12,8 @@ import { BasicProcessor, type IBasicProcessorOptions } from "./basic";
 export interface IDiagnosticProcessorOptions<T extends ECompilerType>
 	extends Omit<IBasicProcessorOptions<T>, "runable"> {
 	snapshot: string;
+	snapshotErrors: string;
+	snapshotWarning: string;
 	format?: (output: string) => string;
 }
 
@@ -41,14 +43,49 @@ export class DiagnosticProcessor<
 			})
 		).replaceAll("\\", "/"); // stats has some win32 paths that path-serializer can not handle
 
+		const statsJson = stats.toJson({
+			all: false,
+			errors: true,
+			warnings: true
+		});
+		const errors = (statsJson.errors || []).map(e => {
+			// @ts-expect-error error message is already serialized in `stats.err`
+			delete e.message;
+			delete e.stack;
+			return e;
+		});
+		const warnings = (statsJson.warnings || []).map(e => {
+			// @ts-expect-error error message is already serialized in `stats.err`
+			delete e.message;
+			delete e.stack;
+			return e;
+		});
+
 		if (typeof this._diagnosticOptions.format === "function") {
 			output = this._diagnosticOptions.format(output);
 		}
 
+		env.expect.addSnapshotSerializer({
+			test(received) {
+				return typeof received === "string";
+			},
+			serialize(received) {
+				return normalizePlaceholder((received as string).trim());
+			}
+		});
+
 		const errorOutputPath = path.resolve(
 			context.getSource(this._diagnosticOptions.snapshot)
 		);
+		const errorStatsOutputPath = path.resolve(
+			context.getSource(this._diagnosticOptions.snapshotErrors)
+		);
+		const warningStatsOutputPath = path.resolve(
+			context.getSource(this._diagnosticOptions.snapshotWarning)
+		);
 		env.expect(output).toMatchFileSnapshot(errorOutputPath);
+		env.expect(errors).toMatchFileSnapshot(errorStatsOutputPath);
+		env.expect(warnings).toMatchFileSnapshot(warningStatsOutputPath);
 	}
 
 	static defaultOptions<T extends ECompilerType>(

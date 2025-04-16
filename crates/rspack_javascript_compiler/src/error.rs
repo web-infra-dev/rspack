@@ -85,7 +85,7 @@ pub fn ecma_parse_error_deduped_to_rspack_error(
     fm,
     span.start as usize,
     span.end as usize,
-    "JavaScript parsing error".into(),
+    "JavaScript parse error".into(),
     message,
   )
   .with_kind(DiagnosticKind::JavaScript)
