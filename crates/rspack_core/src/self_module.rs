@@ -125,7 +125,7 @@ impl Module for SelfModule {
   ) -> Result<RspackHashDigest> {
     // do nothing, since this is self reference, the module itself (parent module of this self module) should take effects
     Ok(RspackHashDigest::new(
-      vec![],
+      &[],
       &compilation.options.output.hash_digest,
     ))
   }
