@@ -1,7 +1,7 @@
 /*
 The full syntax, remember update this when you change something in this file.
 
-`RSPACK_PROFILE='TRACE=filter=trace&output=./rspack.trace&layer=chrome|JSCPU=output=./rspack.jscpuprofile|LOGGING=output=./rspack.logging' rspack build`
+`RSPACK_PROFILE='TRACE=filter=trace&output=./rspack.trace&layer=chrome
 											 ^----------------------------------------------: querystring syntax trace options
 																																			^: | is a delimiter for different profile options
 																																			 ^---------------------------------: querystring syntax js cpuprofile options
@@ -10,21 +10,10 @@ The full syntax, remember update this when you change something in this file.
 											 ^-----------: trace filter, default to `trace`, more syntax: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#example-syntax
 																		^--------------------: trace output, `stderr`, `stdout`, or a file path, default to `./.rspack-profile-${timestamp}/trace.json` for layer `chrome` and default to `stdout` for layer `logger`
 																													^-----------: trace layer, `chrome` or `logger`, default to `chrome`
-																																						 ^---------------------------: js cpuprofile output, `stderr`, `stdout`, or a file path, default to `./.rspack-profile-${timestamp}/jscpuprofile.json`
-																																																									^----------------------: stats.logging output, default to `./.rspack-profile-${timestamp}/logging.json`
 
 `RSPACK_PROFILE='TRACE=filter=trace&output=./rspack.trace&layer=chrome' rspack build`: only enable trace
 
 `RSPACK_PROFILE=TRACE rspack build`: only enable trace, and use default options for trace
-
-`RSPACK_PROFILE='JSCPU=output=./rspack.jscpuprofile' rspack build`: only enable js cpuprofile
-
-`RSPACK_PROFILE=JSCPU rspack build`: only enable js cpuprofile, and use default options for js cpuprofile
-
-`RSPACK_PROFILE='LOGGING=output=./rspack.logging' rspack build`: only enable stats.logging
-
-`RSPACK_PROFILE=LOGGING rspack build`: only enable stats.logging, and use default options for stats.logging
-
 `RSPACK_PROFILE=ALL rspack build`: enable all, and use default options
 
 `RSPACK_PROFILE=[rspack_node,rspack_core] rspack build`: enable all, but customize trace filter
@@ -32,15 +21,10 @@ The full syntax, remember update this when you change something in this file.
 */
 
 import fs from "node:fs";
-import inspector from "node:inspector";
 import path from "node:path";
 import { URLSearchParams } from "node:url";
-import { type Compiler, type RspackOptions, rspack } from "@rspack/core";
+import { type RspackOptions, rspack } from "@rspack/core";
 
-type JSCPUProfileOptionsOutput = string;
-type JSCPUProfileOptions = {
-	output: JSCPUProfileOptionsOutput;
-};
 type ParametersOfRegisterGlobalTrace = Parameters<
 	typeof rspack.experiments.globalTrace.register
 >;
@@ -58,17 +42,12 @@ type LoggingOptions = {
 };
 type ProfileOptions = {
 	TRACE?: RustTraceOptions;
-	JSCPU?: JSCPUProfileOptions;
 	LOGGING?: LoggingOptions;
 };
 
 const timestamp = Date.now();
 const defaultOutputDirname = path.resolve(
 	`.rspack-profile-${timestamp}-${process.pid}`
-);
-const defaultJSCPUProfileOutput = path.join(
-	defaultOutputDirname,
-	"./jscpuprofile.json"
 );
 const defaultRustTraceChromeOutput = path.join(
 	defaultOutputDirname,
@@ -77,7 +56,6 @@ const defaultRustTraceChromeOutput = path.join(
 const defaultRustTraceLoggerOutput = "stdout";
 const defaultRustTraceFilter = "info";
 const defaultRustTraceLayer = "chrome";
-const defaultLoggingOutput = path.join(defaultOutputDirname, "./logging.json");
 
 function resolveProfile(value: string): ProfileOptions {
 	if (value.toUpperCase() === "ALL") {
@@ -86,40 +64,21 @@ function resolveProfile(value: string): ProfileOptions {
 				filter: defaultRustTraceFilter,
 				layer: defaultRustTraceLayer,
 				output: defaultRustTraceChromeOutput
-			},
-			JSCPU: { output: defaultJSCPUProfileOutput },
-			LOGGING: { output: defaultLoggingOutput }
+			}
 		};
 	}
 	if (value.startsWith("[") && value.endsWith("]")) {
 		return {
-			TRACE: resolveRustTraceOptions(value.slice(1, value.length - 1)),
-			JSCPU: { output: defaultJSCPUProfileOutput },
-			LOGGING: { output: defaultLoggingOutput }
+			TRACE: resolveRustTraceOptions(value.slice(1, value.length - 1))
 		};
 	}
 	return value.split("|").reduce<ProfileOptions>((acc, cur) => {
 		const upperCur = cur.toUpperCase();
 		if (upperCur.startsWith("TRACE")) {
 			acc.TRACE = resolveRustTraceOptions(cur.slice(6));
-		} else if (upperCur.startsWith("JSCPU")) {
-			acc.JSCPU = resolveJSCPUProfileOptions(cur.slice(6));
-		} else if (upperCur.startsWith("LOGGING")) {
-			acc.LOGGING = resolveLoggingOptions(cur.slice(8));
 		}
 		return acc;
 	}, {});
-}
-
-// JSCPU=value
-function resolveJSCPUProfileOptions(value: string): JSCPUProfileOptions {
-	// output=filepath
-	if (value.includes("=")) {
-		const parsed = new URLSearchParams(value);
-		return { output: parsed.get("output") || defaultJSCPUProfileOutput };
-	}
-	// filepath
-	return { output: value || defaultJSCPUProfileOutput };
 }
 
 function isSupportedLayer(layer: string): layer is RustTraceOptionsLayer {
@@ -158,62 +117,6 @@ function resolveRustTraceOptions(value: string): RustTraceOptions {
 	};
 }
 
-// LOGGING=value
-function resolveLoggingOptions(value: string): LoggingOptions {
-	// output=filepath
-	if (value.includes("=")) {
-		const parsed = new URLSearchParams(value);
-		return { output: parsed.get("output") || defaultLoggingOutput };
-	}
-	// filepath
-	return { output: value || defaultLoggingOutput };
-}
-
-class RspackProfileJSCPUProfilePlugin {
-	constructor(private output: string) {}
-
-	apply(compiler: Compiler) {
-		const session = new inspector.Session();
-		session.connect();
-		session.post("Profiler.enable");
-		session.post("Profiler.start");
-		compiler.hooks.done.tapAsync(
-			RspackProfileJSCPUProfilePlugin.name,
-			(_stats, callback) => {
-				if (compiler.watchMode) return callback();
-				session.post("Profiler.stop", (error, param) => {
-					if (error) {
-						console.error("Failed to generate JS CPU profile:", error);
-						return;
-					}
-					fs.writeFileSync(this.output, JSON.stringify(param.profile));
-				});
-				return callback();
-			}
-		);
-	}
-}
-
-class RspackProfileLoggingPlugin {
-	constructor(private output: string) {}
-
-	apply(compiler: Compiler) {
-		compiler.hooks.done.tapAsync(
-			RspackProfileLoggingPlugin.name,
-			(stats, callback) => {
-				if (compiler.watchMode) return callback();
-				const logging = stats.toJson({
-					all: false,
-					logging: "verbose",
-					loggingTrace: true
-				});
-				fs.writeFileSync(this.output, JSON.stringify(logging));
-				return callback();
-			}
-		);
-	}
-}
-
 export async function applyProfile(profileValue: string, item: RspackOptions) {
 	const { asyncExitHook } = await import("exit-hook");
 	const entries = Object.entries(resolveProfile(profileValue));
@@ -230,12 +133,6 @@ export async function applyProfile(profileValue: string, item: RspackOptions) {
 			asyncExitHook(rspack.experiments.globalTrace.cleanup, {
 				wait: 500
 			});
-		} else if (kind === "JSCPU") {
-			(item.plugins ??= []).push(
-				new RspackProfileJSCPUProfilePlugin(value.output)
-			);
-		} else if (kind === "LOGGING") {
-			(item.plugins ??= []).push(new RspackProfileLoggingPlugin(value.output));
 		}
 	}
 }
