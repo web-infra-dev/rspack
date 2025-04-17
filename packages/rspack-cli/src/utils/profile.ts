@@ -123,7 +123,7 @@ function resolveJSCPUProfileOptions(value: string): JSCPUProfileOptions {
 }
 
 function isSupportedLayer(layer: string): layer is RustTraceOptionsLayer {
-	const SUPPORTED_LAYERS = ["chrome", "logger", "otel"];
+	const SUPPORTED_LAYERS = ["chrome", "logger"];
 	return SUPPORTED_LAYERS.includes(layer);
 }
 

@@ -104,7 +104,7 @@ rspack_plugin_worker                   = { workspace = true }
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["parking_lot"] }
 
-rspack_tracing = { workspace = true, features = ["otel"] }
+rspack_tracing = { workspace = true }
 
 
 [build-dependencies]

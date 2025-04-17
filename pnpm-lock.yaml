@@ -300,10 +300,7 @@ importers:
     devDependencies:
       '@rslib/core':
         specifier: 0.6.3
-        version: 0.6.3(@microsoft/api-extractor@7.49.2(@types/node@20.17.30))(@rspack/tracing@packages+rspack-tracing)(typescript@5.7.3)
-      '@rspack/tracing':
-        specifier: workspace:*
-        version: link:../rspack-tracing
+        version: 0.6.3(@microsoft/api-extractor@7.49.2(@types/node@20.17.30))(@rspack/tracing@1.3.5)(typescript@5.7.3)
       '@swc/core':
         specifier: 1.11.21
         version: 1.11.21(@swc/helpers@0.5.15)
@@ -388,13 +385,10 @@ importers:
     devDependencies:
       '@rslib/core':
         specifier: 0.6.3
-        version: 0.6.3(@microsoft/api-extractor@7.49.2(@types/node@20.17.30))(@rspack/tracing@packages+rspack-tracing)(typescript@5.7.3)
+        version: 0.6.3(@microsoft/api-extractor@7.49.2(@types/node@20.17.30))(@rspack/tracing@1.3.5)(typescript@5.7.3)
       '@rspack/core':
         specifier: workspace:*
         version: link:../rspack
-      '@rspack/tracing':
-        specifier: workspace:*
-        version: link:../rspack-tracing
       '@types/interpret':
         specifier: ^1.1.3
         version: 1.1.3
@@ -633,24 +627,6 @@ importers:
       react:
         specifier: ^19.0.0
         version: 19.0.0
-
-  packages/rspack-tracing:
-    dependencies:
-      '@opentelemetry/api':
-        specifier: ^1.9.0
-        version: 1.9.0
-      '@opentelemetry/context-async-hooks':
-        specifier: ^1.30.1
-        version: 1.30.1(@opentelemetry/api@1.9.0)
-      '@opentelemetry/exporter-trace-otlp-proto':
-        specifier: ^0.54.2
-        version: 0.54.2(@opentelemetry/api@1.9.0)
-      '@opentelemetry/resources':
-        specifier: ^1.30.1
-        version: 1.30.1(@opentelemetry/api@1.9.0)
-      '@opentelemetry/sdk-node':
-        specifier: ^0.54.2
-        version: 0.54.2(@opentelemetry/api@1.9.0)
 
   scripts:
     devDependencies:
@@ -8969,6 +8945,7 @@ snapshots:
     dependencies:
       '@grpc/proto-loader': 0.7.13
       '@js-sdsl/ordered-map': 4.4.2
+    optional: true
 
   '@grpc/proto-loader@0.7.13':
     dependencies:
@@ -8976,6 +8953,7 @@ snapshots:
       long: 5.2.3
       protobufjs: 7.4.0
       yargs: 17.7.2
+    optional: true
 
   '@iconify/types@2.0.0': {}
 
@@ -9316,7 +9294,8 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
 
-  '@js-sdsl/ordered-map@4.4.2': {}
+  '@js-sdsl/ordered-map@4.4.2':
+    optional: true
 
   '@jsonjoy.com/base64@1.1.2(tslib@2.8.1)':
     dependencies:
@@ -9795,26 +9774,32 @@ snapshots:
   '@opentelemetry/api-logs@0.54.2':
     dependencies:
       '@opentelemetry/api': 1.9.0
+    optional: true
 
-  '@opentelemetry/api@1.9.0': {}
+  '@opentelemetry/api@1.9.0':
+    optional: true
 
   '@opentelemetry/context-async-hooks@1.27.0(@opentelemetry/api@1.9.0)':
     dependencies:
       '@opentelemetry/api': 1.9.0
+    optional: true
 
   '@opentelemetry/context-async-hooks@1.30.1(@opentelemetry/api@1.9.0)':
     dependencies:
       '@opentelemetry/api': 1.9.0
+    optional: true
 
   '@opentelemetry/core@1.27.0(@opentelemetry/api@1.9.0)':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/semantic-conventions': 1.27.0
+    optional: true
 
   '@opentelemetry/core@1.30.1(@opentelemetry/api@1.9.0)':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/semantic-conventions': 1.28.0
+    optional: true
 
   '@opentelemetry/exporter-logs-otlp-grpc@0.54.2(@opentelemetry/api@1.9.0)':
     dependencies:
@@ -9824,6 +9809,7 @@ snapshots:
       '@opentelemetry/otlp-grpc-exporter-base': 0.54.2(@opentelemetry/api@1.9.0)
       '@opentelemetry/otlp-transformer': 0.54.2(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-logs': 0.54.2(@opentelemetry/api@1.9.0)
+    optional: true
 
   '@opentelemetry/exporter-logs-otlp-http@0.54.2(@opentelemetry/api@1.9.0)':
     dependencies:
@@ -9833,6 +9819,7 @@ snapshots:
       '@opentelemetry/otlp-exporter-base': 0.54.2(@opentelemetry/api@1.9.0)
       '@opentelemetry/otlp-transformer': 0.54.2(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-logs': 0.54.2(@opentelemetry/api@1.9.0)
+    optional: true
 
   '@opentelemetry/exporter-logs-otlp-proto@0.54.2(@opentelemetry/api@1.9.0)':
     dependencies:
@@ -9844,6 +9831,7 @@ snapshots:
       '@opentelemetry/resources': 1.27.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-logs': 0.54.2(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-base': 1.27.0(@opentelemetry/api@1.9.0)
+    optional: true
 
   '@opentelemetry/exporter-trace-otlp-grpc@0.54.2(@opentelemetry/api@1.9.0)':
     dependencies:
@@ -9854,6 +9842,7 @@ snapshots:
       '@opentelemetry/otlp-transformer': 0.54.2(@opentelemetry/api@1.9.0)
       '@opentelemetry/resources': 1.27.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-base': 1.27.0(@opentelemetry/api@1.9.0)
+    optional: true
 
   '@opentelemetry/exporter-trace-otlp-http@0.54.2(@opentelemetry/api@1.9.0)':
     dependencies:
@@ -9863,6 +9852,7 @@ snapshots:
       '@opentelemetry/otlp-transformer': 0.54.2(@opentelemetry/api@1.9.0)
       '@opentelemetry/resources': 1.27.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-base': 1.27.0(@opentelemetry/api@1.9.0)
+    optional: true
 
   '@opentelemetry/exporter-trace-otlp-proto@0.54.2(@opentelemetry/api@1.9.0)':
     dependencies:
@@ -9872,6 +9862,7 @@ snapshots:
       '@opentelemetry/otlp-transformer': 0.54.2(@opentelemetry/api@1.9.0)
       '@opentelemetry/resources': 1.27.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-base': 1.27.0(@opentelemetry/api@1.9.0)
+    optional: true
 
   '@opentelemetry/exporter-zipkin@1.27.0(@opentelemetry/api@1.9.0)':
     dependencies:
@@ -9880,6 +9871,7 @@ snapshots:
       '@opentelemetry/resources': 1.27.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-base': 1.27.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/semantic-conventions': 1.27.0
+    optional: true
 
   '@opentelemetry/instrumentation@0.54.2(@opentelemetry/api@1.9.0)':
     dependencies:
@@ -9892,12 +9884,14 @@ snapshots:
       shimmer: 1.2.1
     transitivePeerDependencies:
       - supports-color
+    optional: true
 
   '@opentelemetry/otlp-exporter-base@0.54.2(@opentelemetry/api@1.9.0)':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/core': 1.27.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/otlp-transformer': 0.54.2(@opentelemetry/api@1.9.0)
+    optional: true
 
   '@opentelemetry/otlp-grpc-exporter-base@0.54.2(@opentelemetry/api@1.9.0)':
     dependencies:
@@ -9906,6 +9900,7 @@ snapshots:
       '@opentelemetry/core': 1.27.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/otlp-exporter-base': 0.54.2(@opentelemetry/api@1.9.0)
       '@opentelemetry/otlp-transformer': 0.54.2(@opentelemetry/api@1.9.0)
+    optional: true
 
   '@opentelemetry/otlp-transformer@0.54.2(@opentelemetry/api@1.9.0)':
     dependencies:
@@ -9917,28 +9912,33 @@ snapshots:
       '@opentelemetry/sdk-metrics': 1.27.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-base': 1.27.0(@opentelemetry/api@1.9.0)
       protobufjs: 7.4.0
+    optional: true
 
   '@opentelemetry/propagator-b3@1.27.0(@opentelemetry/api@1.9.0)':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/core': 1.27.0(@opentelemetry/api@1.9.0)
+    optional: true
 
   '@opentelemetry/propagator-jaeger@1.27.0(@opentelemetry/api@1.9.0)':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/core': 1.27.0(@opentelemetry/api@1.9.0)
+    optional: true
 
   '@opentelemetry/resources@1.27.0(@opentelemetry/api@1.9.0)':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/core': 1.27.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/semantic-conventions': 1.27.0
+    optional: true
 
   '@opentelemetry/resources@1.30.1(@opentelemetry/api@1.9.0)':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/core': 1.30.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/semantic-conventions': 1.28.0
+    optional: true
 
   '@opentelemetry/sdk-logs@0.54.2(@opentelemetry/api@1.9.0)':
     dependencies:
@@ -9946,12 +9946,14 @@ snapshots:
       '@opentelemetry/api-logs': 0.54.2
       '@opentelemetry/core': 1.27.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/resources': 1.27.0(@opentelemetry/api@1.9.0)
+    optional: true
 
   '@opentelemetry/sdk-metrics@1.27.0(@opentelemetry/api@1.9.0)':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/core': 1.27.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/resources': 1.27.0(@opentelemetry/api@1.9.0)
+    optional: true
 
   '@opentelemetry/sdk-node@0.54.2(@opentelemetry/api@1.9.0)':
     dependencies:
@@ -9974,6 +9976,7 @@ snapshots:
       '@opentelemetry/semantic-conventions': 1.27.0
     transitivePeerDependencies:
       - supports-color
+    optional: true
 
   '@opentelemetry/sdk-trace-base@1.27.0(@opentelemetry/api@1.9.0)':
     dependencies:
@@ -9981,6 +9984,7 @@ snapshots:
       '@opentelemetry/core': 1.27.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/resources': 1.27.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/semantic-conventions': 1.27.0
+    optional: true
 
   '@opentelemetry/sdk-trace-node@1.27.0(@opentelemetry/api@1.9.0)':
     dependencies:
@@ -9991,10 +9995,13 @@ snapshots:
       '@opentelemetry/propagator-jaeger': 1.27.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-base': 1.27.0(@opentelemetry/api@1.9.0)
       semver: 7.7.1
+    optional: true
 
-  '@opentelemetry/semantic-conventions@1.27.0': {}
+  '@opentelemetry/semantic-conventions@1.27.0':
+    optional: true
 
-  '@opentelemetry/semantic-conventions@1.28.0': {}
+  '@opentelemetry/semantic-conventions@1.28.0':
+    optional: true
 
   '@pkgjs/parseargs@0.11.0':
     optional: true
@@ -10011,28 +10018,38 @@ snapshots:
 
   '@prefresh/utils@1.2.0': {}
 
-  '@protobufjs/aspromise@1.1.2': {}
+  '@protobufjs/aspromise@1.1.2':
+    optional: true
 
-  '@protobufjs/base64@1.1.2': {}
+  '@protobufjs/base64@1.1.2':
+    optional: true
 
-  '@protobufjs/codegen@2.0.4': {}
+  '@protobufjs/codegen@2.0.4':
+    optional: true
 
-  '@protobufjs/eventemitter@1.1.0': {}
+  '@protobufjs/eventemitter@1.1.0':
+    optional: true
 
   '@protobufjs/fetch@1.1.0':
     dependencies:
       '@protobufjs/aspromise': 1.1.2
       '@protobufjs/inquire': 1.1.0
+    optional: true
 
-  '@protobufjs/float@1.0.2': {}
+  '@protobufjs/float@1.0.2':
+    optional: true
 
-  '@protobufjs/inquire@1.1.0': {}
+  '@protobufjs/inquire@1.1.0':
+    optional: true
 
-  '@protobufjs/path@1.1.2': {}
+  '@protobufjs/path@1.1.2':
+    optional: true
 
-  '@protobufjs/pool@1.1.0': {}
+  '@protobufjs/pool@1.1.0':
+    optional: true
 
-  '@protobufjs/utf8@1.1.0': {}
+  '@protobufjs/utf8@1.1.0':
+    optional: true
 
   '@remix-run/router@1.22.0': {}
 
@@ -10163,16 +10180,6 @@ snapshots:
     transitivePeerDependencies:
       - '@rspack/tracing'
 
-  '@rsbuild/core@1.3.5(@rspack/tracing@packages+rspack-tracing)':
-    dependencies:
-      '@rspack/core': 1.3.3(@rspack/tracing@packages+rspack-tracing)(@swc/helpers@0.5.17)
-      '@rspack/lite-tapable': 1.0.1
-      '@swc/helpers': 0.5.17
-      core-js: 3.41.0
-      jiti: 2.4.2
-    transitivePeerDependencies:
-      - '@rspack/tracing'
-
   '@rsbuild/core@1.3.6(@rspack/tracing@1.3.5)':
     dependencies:
       '@rspack/core': 1.3.4(@rspack/tracing@1.3.5)(@swc/helpers@0.5.17)
@@ -10202,17 +10209,6 @@ snapshots:
     dependencies:
       '@rsbuild/core': 1.3.5(@rspack/tracing@1.3.5)
       rsbuild-plugin-dts: 0.6.3(@microsoft/api-extractor@7.49.2(@types/node@20.17.30))(@rsbuild/core@1.3.5(@rspack/tracing@1.3.5))(typescript@5.7.3)
-      tinyglobby: 0.2.12
-    optionalDependencies:
-      '@microsoft/api-extractor': 7.49.2(@types/node@20.17.30)
-      typescript: 5.7.3
-    transitivePeerDependencies:
-      - '@rspack/tracing'
-
-  '@rslib/core@0.6.3(@microsoft/api-extractor@7.49.2(@types/node@20.17.30))(@rspack/tracing@packages+rspack-tracing)(typescript@5.7.3)':
-    dependencies:
-      '@rsbuild/core': 1.3.5(@rspack/tracing@packages+rspack-tracing)
-      rsbuild-plugin-dts: 0.6.3(@microsoft/api-extractor@7.49.2(@types/node@20.17.30))(@rsbuild/core@1.3.5(@rspack/tracing@packages+rspack-tracing))(typescript@5.7.3)
       tinyglobby: 0.2.12
     optionalDependencies:
       '@microsoft/api-extractor': 7.49.2(@types/node@20.17.30)
@@ -10346,16 +10342,6 @@ snapshots:
       caniuse-lite: 1.0.30001713
     optionalDependencies:
       '@rspack/tracing': 1.3.5
-      '@swc/helpers': 0.5.17
-
-  '@rspack/core@1.3.3(@rspack/tracing@packages+rspack-tracing)(@swc/helpers@0.5.17)':
-    dependencies:
-      '@module-federation/runtime-tools': 0.11.2
-      '@rspack/binding': 1.3.3
-      '@rspack/lite-tapable': 1.0.1
-      caniuse-lite: 1.0.30001713
-    optionalDependencies:
-      '@rspack/tracing': link:packages/rspack-tracing
       '@swc/helpers': 0.5.17
 
   '@rspack/core@1.3.4(@rspack/tracing@1.3.5)(@swc/helpers@0.5.17)':
@@ -11054,7 +11040,8 @@ snapshots:
       '@types/node': 20.17.30
       '@types/send': 0.17.4
 
-  '@types/shimmer@1.2.0': {}
+  '@types/shimmer@1.2.0':
+    optional: true
 
   '@types/sockjs@0.3.36':
     dependencies:
@@ -11335,6 +11322,7 @@ snapshots:
   acorn-import-attributes@1.9.5(acorn@8.14.1):
     dependencies:
       acorn: 8.14.1
+    optional: true
 
   acorn-jsx@5.3.2(acorn@8.14.1):
     dependencies:
@@ -13175,6 +13163,7 @@ snapshots:
       acorn-import-attributes: 1.9.5(acorn@8.14.1)
       cjs-module-lexer: 1.2.3
       module-details-from-path: 1.0.3
+    optional: true
 
   import-lazy@4.0.0: {}
 
@@ -13937,7 +13926,8 @@ snapshots:
 
   lodash-es@4.17.21: {}
 
-  lodash.camelcase@4.3.0: {}
+  lodash.camelcase@4.3.0:
+    optional: true
 
   lodash.memoize@4.1.2: {}
 
@@ -13951,7 +13941,8 @@ snapshots:
       strip-ansi: 7.1.0
       wrap-ansi: 9.0.0
 
-  long@5.2.3: {}
+  long@5.2.3:
+    optional: true
 
   longest-streak@3.1.0: {}
 
@@ -14539,7 +14530,8 @@ snapshots:
       pkg-types: 1.3.1
       ufo: 1.5.4
 
-  module-details-from-path@1.0.3: {}
+  module-details-from-path@1.0.3:
+    optional: true
 
   motion-dom@12.6.5:
     dependencies:
@@ -14963,6 +14955,7 @@ snapshots:
       '@protobufjs/utf8': 1.1.0
       '@types/node': 20.17.30
       long: 5.2.3
+    optional: true
 
   proxy-addr@2.0.7:
     dependencies:
@@ -15288,6 +15281,7 @@ snapshots:
       resolve: 1.22.10
     transitivePeerDependencies:
       - supports-color
+    optional: true
 
   requires-port@1.0.0: {}
 
@@ -15398,18 +15392,6 @@ snapshots:
     dependencies:
       '@ast-grep/napi': 0.36.2
       '@rsbuild/core': 1.3.5(@rspack/tracing@1.3.5)
-      magic-string: 0.30.17
-      picocolors: 1.1.1
-      tinyglobby: 0.2.12
-      tsconfig-paths: 4.2.0
-    optionalDependencies:
-      '@microsoft/api-extractor': 7.49.2(@types/node@20.17.30)
-      typescript: 5.7.3
-
-  rsbuild-plugin-dts@0.6.3(@microsoft/api-extractor@7.49.2(@types/node@20.17.30))(@rsbuild/core@1.3.5(@rspack/tracing@packages+rspack-tracing))(typescript@5.7.3):
-    dependencies:
-      '@ast-grep/napi': 0.36.2
-      '@rsbuild/core': 1.3.5(@rspack/tracing@packages+rspack-tracing)
       magic-string: 0.30.17
       picocolors: 1.1.1
       tinyglobby: 0.2.12
@@ -15697,7 +15679,8 @@ snapshots:
 
   shell-quote@1.8.1: {}
 
-  shimmer@1.2.1: {}
+  shimmer@1.2.1:
+    optional: true
 
   side-channel@1.0.6:
     dependencies:
