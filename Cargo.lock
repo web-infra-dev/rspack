@@ -4463,6 +4463,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -4475,6 +4476,7 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "rspack_loader_runner",
+ "tracing",
 ]
 
 [[package]]
@@ -4487,6 +4489,7 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "rspack_loader_runner",
+ "tracing",
 ]
 
 [[package]]
