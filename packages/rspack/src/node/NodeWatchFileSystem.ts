@@ -46,29 +46,12 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 		) => void,
 		callbackUndelayed: (fileName: string, changeTime: number) => void
 	): Watcher {
-		if (!files || typeof files[Symbol.iterator] !== "function") {
-			throw new Error("Invalid arguments: 'files'");
+		if (this.watcherOptions !== options) {
+			// close old watcher, and create.
+			this.watcher.close();
+			this.watcher = new Watchpack(options);
+			this.watcherOptions = options;
 		}
-		if (!directories || typeof directories[Symbol.iterator] !== "function") {
-			throw new Error("Invalid arguments: 'directories'");
-		}
-		if (!missing || typeof missing[Symbol.iterator] !== "function") {
-			throw new Error("Invalid arguments: 'missing'");
-		}
-		if (typeof callback !== "function") {
-			throw new Error("Invalid arguments: 'callback'");
-		}
-		if (typeof startTime !== "number" && startTime) {
-			throw new Error("Invalid arguments: 'startTime'");
-		}
-		if (typeof options !== "object") {
-			throw new Error("Invalid arguments: 'options'");
-		}
-		if (typeof callbackUndelayed !== "function" && callbackUndelayed) {
-			throw new Error("Invalid arguments: 'callbackUndelayed'");
-		}
-		const oldWatcher = this.watcher;
-		this.watcher = new Watchpack(options);
 
 		if (callbackUndelayed) {
 			this.watcher.once("change", callbackUndelayed);
@@ -111,9 +94,6 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 
 		this.watcher.watch({ files, directories, missing, startTime });
 
-		if (oldWatcher) {
-			oldWatcher.close();
-		}
 		return {
 			close: () => {
 				if (this.watcher) {
