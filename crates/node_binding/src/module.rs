@@ -9,9 +9,8 @@ use napi::{CallContext, JsString, JsSymbol, NapiRaw, NapiValue};
 use napi_derive::napi;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
-  BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation,
-  CompilationAsset, CompilerId, FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier,
-  RuntimeModuleStage, SourceType,
+  BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
+  FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{
   napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotInstanceRef, OneShotRef,
