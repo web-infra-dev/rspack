@@ -40,7 +40,7 @@ export class HotUpdatePlugin {
 		let content =
 			contents[index] === undefined ? contents.at(-1) || "" : contents[index];
 		let command = "";
-		const matchResult = content.match(/^<(.+?)>(.*)/);
+		const matchResult = content.match(/^<(.+?)>([\w\W]*)$/);
 		if (matchResult) {
 			command = matchResult[1];
 			content = matchResult[2];

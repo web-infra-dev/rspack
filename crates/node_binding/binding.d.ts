@@ -975,6 +975,7 @@ export interface JsRsdoctorModule {
   modules: Array<number>
   belongModules: Array<number>
   chunks: Array<number>
+  issuerPath: Array<number>
 }
 
 export interface JsRsdoctorModuleGraph {

@@ -111,6 +111,7 @@ impl MakeArtifact {
     }
 
     self.revoked_modules.insert(*module_identifier);
+    self.built_modules.remove(module_identifier);
     mg.revoke_module(module_identifier)
   }
 

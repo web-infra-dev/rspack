@@ -210,10 +210,6 @@ impl ReadableFileSystem for NativeFileSystem {
     Ok(path.assert_utf8())
   }
 
-  async fn async_read(&self, file: &Utf8Path) -> Result<Vec<u8>> {
-    tokio::fs::read(file).await.to_fs_result()
-  }
-
   async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     self.read_dir_sync(dir)
   }
@@ -279,10 +275,6 @@ impl ReadableFileSystem for NativeFileSystem {
       }
     }
     Ok(path_buf)
-  }
-
-  async fn async_read(&self, file: &Utf8Path) -> Result<Vec<u8>> {
-    fs::read(file).to_fs_result()
   }
 
   async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {

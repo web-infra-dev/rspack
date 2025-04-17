@@ -71,6 +71,7 @@ pub fn collect_modules(
           modules: HashSet::default(),
           belong_modules: HashSet::default(),
           chunks,
+          issuer_path: None,
         },
       )
     })
