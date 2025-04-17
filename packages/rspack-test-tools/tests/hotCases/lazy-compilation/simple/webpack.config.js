@@ -4,8 +4,7 @@
 module.exports = {
 	experiments: {
 		lazyCompilation: {
-			entries: false,
-			cacheable: false
+			entries: false
 		}
 	}
 };

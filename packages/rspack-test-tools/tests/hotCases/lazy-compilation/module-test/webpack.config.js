@@ -5,7 +5,6 @@ module.exports = {
 	experiments: {
 		lazyCompilation: {
 			entries: false,
-			cacheable: false,
 			test: /moduleA/
 		}
 	}
