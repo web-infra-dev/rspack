@@ -73,8 +73,6 @@ JavaScript
 jerrykingxyz
 jkzing
 jscexperimentalplugins
-JSCPU
-jscpuprofile
 jserfeng
 kaffi
 kuaishou
