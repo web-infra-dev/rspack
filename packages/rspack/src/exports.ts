@@ -338,7 +338,7 @@ interface Experiments {
 	globalTrace: {
 		register: (
 			filter: string,
-			layer: "chrome" | "logger" | "otel",
+			layer: "chrome" | "logger",
 			output: string
 		) => Promise<void>;
 		cleanup: () => Promise<void>;
@@ -354,28 +354,11 @@ export const experiments: Experiments = {
 		async register(filter, layer, output) {
 			registerGlobalTrace(filter, layer, output);
 			ChromeTracer.initChromeTrace(layer, output);
-			if (layer === "otel") {
-				try {
-					const { initOpenTelemetry } = await import("@rspack/tracing");
-					await initOpenTelemetry();
-				} catch (error) {
-					console.error(
-						"Failed to import `@rspack/tracing` package. Please install `@rspack/tracing` to enable OpenTelemetry tracing.",
-						error
-					);
-				}
-			}
 		},
 		async cleanup() {
 			// make sure run cleanupGlobalTrace first so we can safely append Node.js trace to it otherwise it will overlap
 			cleanupGlobalTrace();
 			ChromeTracer.cleanupChromeTrace();
-			try {
-				const { shutdownOpenTelemetry } = await import("@rspack/tracing");
-				await shutdownOpenTelemetry();
-			} catch (error) {
-				// ignore cleanup tracing error
-			}
 		}
 	},
 	RemoveDuplicateModulesPlugin,

@@ -46,7 +46,6 @@
     "directory": "packages/rspack"
   },
   "devDependencies": {
-    "@rspack/tracing": "workspace:*",
     "@swc/core": "1.11.21",
     "@swc/types": "0.1.21",
     "@rslib/core": "0.6.3",
@@ -74,14 +73,10 @@
     "caniuse-lite": "^1.0.30001713"
   },
   "peerDependencies": {
-    "@rspack/tracing": "^1.x",
     "@swc/helpers": ">=0.5.1"
   },
   "peerDependenciesMeta": {
     "@swc/helpers": {
-      "optional": true
-    },
-    "@rspack/tracing": {
       "optional": true
     }
   }

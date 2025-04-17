@@ -238,8 +238,6 @@ opt-level = "s"
 [profile.release.package.swc_ecma_compat_es3]
 opt-level = "s"
 
-[profile.release.package.h2]
-opt-level = "s"
 
 [profile.release.package.backtrace]
 opt-level = "s"
@@ -256,8 +254,6 @@ opt-level = "s"
 [profile.release.package.pnp]
 opt-level = "s"
 
-[profile.release.package.opentelemetry-otlp]
-opt-level = "s"
 
 [profile.release.package.fancy-regex]
 opt-level = "s"
@@ -289,8 +285,6 @@ opt-level = "s"
 [profile.release.package.rspack_error]
 opt-level = "s"
 
-[profile.release.package.opentelemetry_sdk]
-opt-level = "s"
 
 [profile.release.package.rspack_plugin_progress]
 opt-level = "s"
@@ -298,8 +292,6 @@ opt-level = "s"
 [profile.release.package.num-bigint]
 opt-level = "s"
 
-[profile.release.package.tonic]
-opt-level = "s"
 
 [profile.release.package.swc_error_reporters]
 opt-level = "s"
@@ -319,17 +311,12 @@ opt-level = "s"
 [profile.release.package.glob]
 opt-level = "s"
 
-[profile.release.package.hyper-util]
-opt-level = "s"
-
 [profile.release.package.wasmparser]
 opt-level = "s"
 
 [profile.release.package.jsonc-parser]
 opt-level = "s"
 
-[profile.release.package.opentelemetry]
-opt-level = "s"
 
 [profile.release.package.textwrap]
 opt-level = "s"
@@ -340,17 +327,10 @@ opt-level = "s"
 [profile.release.package.hashlink]
 opt-level = "s"
 
-[profile.release.package.hyper]
-opt-level = "s"
-
-[profile.release.package.opentelemetry-proto]
-opt-level = "s"
 
 [profile.release.package.swc_ecma_ext_transforms]
 opt-level = "s"
 
-[profile.release.package.tracing-opentelemetry]
-opt-level = "s"
 
 [profile.release.package.icu_normalizer]
 opt-level = "s"

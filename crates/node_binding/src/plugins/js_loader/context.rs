@@ -127,17 +127,6 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
     #[allow(unused_mut)]
     let mut carrier = HashMap::new();
 
-    #[cfg(not(target_family = "wasm"))]
-    {
-      use rspack_tracing::otel::{opentelemetry::global, tracing::OpenTelemetrySpanExt as _};
-      use tracing::Span;
-
-      global::get_text_map_propagator(|propagator| {
-        let cx = Span::current().context();
-        propagator.inject_context(&cx, &mut carrier);
-      });
-    };
-
     #[allow(clippy::unwrap_used)]
     Ok(JsLoaderContext {
       resource_data: cx.resource_data.as_ref().into(),
