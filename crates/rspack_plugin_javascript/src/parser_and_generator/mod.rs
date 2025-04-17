@@ -110,7 +110,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   }
 
   #[tracing::instrument("JavaScriptParser:parse", skip_all,fields(
-    resource_path =parse_context.resource_data.resource_path.as_ref().map(|p| p.as_str()),
+    resource = parse_context.resource_data.resource.as_str(),
   ))]
   async fn parse<'a>(
     &mut self,
