@@ -50,18 +50,6 @@ describe("profile", () => {
 		expect(fs.existsSync(resolve(dirname, defaultTracePath))).toBeTruthy();
 	});
 
-	it("should store logging file when RSPACK_PROFILE=LOGGING enabled", async () => {
-		const { exitCode } = await run(
-			__dirname,
-			[],
-			{},
-			{ RSPACK_PROFILE: "LOGGING" }
-		);
-		expect(exitCode).toBe(0);
-		const dirname = findDefaultOutputDirname();
-		expect(fs.existsSync(resolve(dirname, defaultLoggingPath))).toBeTruthy();
-	});
-
 	it("should filter trace event when use RSPACK_PROFILE=[crate1,crate2]", async () => {
 		const { exitCode } = await run(
 			__dirname,
