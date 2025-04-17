@@ -87,6 +87,15 @@
     "patchedDependencies": {
       "graceful-fs": "patches/graceful-fs.patch",
       "rollup-plugin-dts": "patches/rollup-plugin-dts.patch"
+    },
+     "overrides": {
+      "rspress": "/Users/bytedance/Documents/codes/rspress/packages/cli",
+      "@rspress/shared": "/Users/bytedance/Documents/codes/rspress/packages/shared",
+      "@rspress/core": "/Users/bytedance/Documents/codes/rspress/packages/core",
+      "@rspress/theme": "/Users/bytedance/Documents/codes/rspress/packages/theme",
+      "@rspress/plugin-auto-nav-sidebar": "/Users/bytedance/Documents/codes/rspress/packages/plugin-auto-nav-sidebar",
+      "@rspress/plugin-client-redirect": "/Users/bytedance/Documents/codes/rspress/packages/plugin-auto-nav-sidebar",
+      "@rspress/plugin-llms": "/Users/bytedance/Documents/codes/rspress/packages/plugin-llms"
     }
   }
 }

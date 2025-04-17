@@ -2,12 +2,12 @@
   {
     "text": "指南",
     "link": "/guide/start/introduction",
-    "activeMatch": "/guide"
+    "activeMatch": "/zh/guide"
   },
   {
     "text": "配置",
     "link": "/config/",
-    "activeMatch": "/config"
+    "activeMatch": "/zh/config"
   },
   {
     "text": "插件",
@@ -17,22 +17,22 @@
   {
     "text": "API",
     "link": "/api/",
-    "activeMatch": "/api"
+    "activeMatch": "/zh/api"
   },
   {
     "text": "博客",
     "link": "/blog/index",
-    "activeMatch": "/blog"
+    "activeMatch": "/zh/blog"
   },
   {
     "text": "关于",
     "link": "/misc/faq",
-    "activeMatch": "/misc"
+    "activeMatch": "/zh/misc"
   },
   {
     "text": "贡献",
     "link": "/contribute/index",
-    "activeMatch": "/contribute"
+    "activeMatch": "/zh/contribute"
   },
   {
     "text": "版本",
