@@ -2466,11 +2466,13 @@ export type RspackFutureOptions = {
  */
 export type LazyCompilationOptions = {
 	/**
-	 * Enable lazy compilation for imports.
+	 * Enable lazy compilation for dynamic imports.
+	 * @default true
 	 */
 	imports?: boolean;
 	/**
 	 * Enable lazy compilation for entries.
+	 * @default true
 	 */
 	entries?: boolean;
 	/**
