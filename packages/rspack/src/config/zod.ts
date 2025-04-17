@@ -1305,6 +1305,7 @@ const sharedOptimizationSplitChunksCacheGroup = {
 	name: optimizationSplitChunksName.optional(),
 	filename: filename.optional(),
 	minSize: optimizationSplitChunksSizes.optional(),
+	minSizeReduction: optimizationSplitChunksSizes.optional(),
 	maxSize: optimizationSplitChunksSizes.optional(),
 	maxAsyncSize: optimizationSplitChunksSizes.optional(),
 	maxInitialSize: optimizationSplitChunksSizes.optional(),
