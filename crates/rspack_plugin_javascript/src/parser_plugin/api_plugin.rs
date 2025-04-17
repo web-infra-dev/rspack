@@ -69,12 +69,12 @@ fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
 }
 
 impl JavascriptParserPlugin for APIPlugin {
-  fn evaluate_typeof(
+  fn evaluate_typeof<'a>(
     &self,
     parser: &mut JavascriptParser,
-    expr: &UnaryExpr,
+    expr: &'a UnaryExpr,
     for_name: &str,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     if for_name == WEBPACK_LAYER {
       let value = if parser.module_layer.is_none() {
         "object"
@@ -319,7 +319,7 @@ impl JavascriptParserPlugin for APIPlugin {
     ident: &str,
     start: u32,
     end: u32,
-  ) -> Option<eval::BasicEvaluatedExpression> {
+  ) -> Option<eval::BasicEvaluatedExpression<'static>> {
     if ident == WEBPACK_LAYER {
       if let Some(layer) = parser.module_layer {
         Some(eval::evaluate_to_string(layer.into(), start, end))

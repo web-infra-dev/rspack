@@ -120,12 +120,12 @@ impl JavascriptParserPlugin for AMDParserPlugin {
     None
   }
 
-  fn evaluate_typeof(
+  fn evaluate_typeof<'a>(
     &self,
     _parser: &mut JavascriptParser,
-    expr: &UnaryExpr,
+    expr: &'a UnaryExpr,
     for_name: &str,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     if for_name == DEFINE || for_name == REQUIRE {
       return Some(evaluate_to_string(
         "function".to_string(),
@@ -171,7 +171,7 @@ impl JavascriptParserPlugin for AMDParserPlugin {
     ident: &str,
     start: u32,
     end: u32,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'static>> {
     if ident == DEFINE_AMD {
       return Some(evaluate_to_identifier(
         ident.to_string(),

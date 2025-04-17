@@ -830,10 +830,15 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn enter_optional_chain<C, M, R>(&mut self, expr: &OptChainExpr, on_call: C, on_member: M) -> R
+  fn enter_optional_chain<'a, C, M, R>(
+    &mut self,
+    expr: &'a OptChainExpr,
+    on_call: C,
+    on_member: M,
+  ) -> R
   where
-    C: FnOnce(&mut Self, &OptCall) -> R,
-    M: FnOnce(&mut Self, &MemberExpr) -> R,
+    C: FnOnce(&mut Self, &'a OptCall) -> R,
+    M: FnOnce(&mut Self, &'a MemberExpr) -> R,
   {
     let member_expr_in_optional_chain = self.member_expr_in_optional_chain;
     let ret = match &*expr.base {
@@ -954,10 +959,11 @@ impl<'parser> JavascriptParser<'parser> {
 }
 
 impl JavascriptParser<'_> {
-  pub fn evaluate_expression(&mut self, expr: &Expr) -> BasicEvaluatedExpression {
+  pub fn evaluate_expression<'a>(&mut self, expr: &'a Expr) -> BasicEvaluatedExpression<'a> {
     match self.evaluating(expr) {
-      Some(evaluated) => evaluated,
-      None => BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span_hi().0),
+      Some(evaluated) => evaluated.with_expression(Some(expr)),
+      None => BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span_hi().0)
+        .with_expression(Some(expr)),
     }
   }
 
@@ -965,13 +971,13 @@ impl JavascriptParser<'_> {
     &mut self,
     source: String,
     error_title: T,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'static>> {
     eval::eval_source(self, source, error_title)
   }
 
   // same as `JavascriptParser._initializeEvaluating` in webpack
   // FIXME: should mv it to plugin(for example `parse.hooks.evaluate for`)
-  fn evaluating(&mut self, expr: &Expr) -> Option<BasicEvaluatedExpression> {
+  fn evaluating<'a>(&mut self, expr: &'a Expr) -> Option<BasicEvaluatedExpression<'a>> {
     match expr {
       Expr::Tpl(tpl) => eval::eval_tpl_expression(self, tpl),
       Expr::TaggedTpl(tagged_tpl) => eval::eval_tagged_tpl_expression(self, tagged_tpl),
@@ -986,16 +992,18 @@ impl JavascriptParser<'_> {
       Expr::OptChain(opt_chain) => self.enter_optional_chain(
         opt_chain,
         |parser, call| {
-          eval::eval_call_expression(
-            parser,
-            &CallExpr {
-              ctxt: call.ctxt,
-              span: call.span,
-              callee: call.callee.clone().as_callee(),
-              args: call.args.clone(),
-              type_args: None,
-            },
-          )
+          let expr = Expr::Call(CallExpr {
+            ctxt: call.ctxt,
+            span: call.span,
+            callee: call.callee.clone().as_callee(),
+            args: call.args.clone(),
+            type_args: None,
+          });
+          BasicEvaluatedExpression::with_owned_expression(expr, |expr| {
+            #[allow(clippy::unwrap_used)]
+            let call_expr = expr.as_call().unwrap();
+            eval::eval_call_expression(parser, call_expr)
+          })
         },
         |parser, member| eval::eval_member_expression(parser, member),
       ),

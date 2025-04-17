@@ -29,7 +29,6 @@ fn create_commonjs_require_context_dependency(
   arg_expr: &Expr,
 ) -> CommonJsRequireContextDependency {
   let result = create_context_dependency(param, parser);
-  parser.walk_expression(arg_expr);
 
   let options = ContextOptions {
     mode: ContextMode::Sync,
@@ -61,7 +60,6 @@ fn create_commonjs_require_context_dependency(
 fn create_require_resolve_context_dependency(
   parser: &mut JavascriptParser,
   param: &BasicEvaluatedExpression,
-  expr: &Expr,
   range: DependencyRange,
   weak: bool,
 ) -> RequireResolveContextDependency {
@@ -69,7 +67,6 @@ fn create_require_resolve_context_dependency(
   let end = range.end;
 
   let result = create_context_dependency(param, parser);
-  parser.walk_expression(expr);
 
   let options = ContextOptions {
     mode: if weak {
@@ -145,13 +142,13 @@ impl CommonJsImportsParserPlugin {
     if param.is_conditional() {
       for option in param.options() {
         if !self.process_resolve_item(parser, option, weak) {
-          self.process_resolve_context(parser, option, argument_expr, weak);
+          self.process_resolve_context(parser, option, weak);
         }
       }
       parser.dependencies.push(require_resolve_header_dependency);
     } else {
       if !self.process_resolve_item(parser, &param, weak) {
-        self.process_resolve_context(parser, &param, argument_expr, weak);
+        self.process_resolve_context(parser, &param, weak);
       }
       parser.dependencies.push(require_resolve_header_dependency);
     }
@@ -184,17 +181,11 @@ impl CommonJsImportsParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     param: &BasicEvaluatedExpression,
-    argument_expr: &Expr,
     weak: bool,
   ) {
     let (start, end) = param.range();
-    let dep = create_require_resolve_context_dependency(
-      parser,
-      param,
-      argument_expr,
-      (start, end - 1).into(),
-      weak,
-    );
+    let dep =
+      create_require_resolve_context_dependency(parser, param, (start, end - 1).into(), weak);
 
     parser.dependencies.push(Box::new(dep));
   }
@@ -411,12 +402,12 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     }
   }
 
-  fn evaluate_typeof(
+  fn evaluate_typeof<'a>(
     &self,
     _parser: &mut JavascriptParser,
-    expr: &UnaryExpr,
+    expr: &'a UnaryExpr,
     for_name: &str,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     (for_name == expr_name::REQUIRE
       || for_name == expr_name::REQUIRE_RESOLVE
       || for_name == expr_name::REQUIRE_RESOLVE_WEAK)
@@ -435,7 +426,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     ident: &str,
     start: u32,
     end: u32,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'static>> {
     match ident {
       expr_name::REQUIRE => Some(eval::evaluate_to_identifier(
         expr_name::REQUIRE.to_string(),

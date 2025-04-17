@@ -39,12 +39,12 @@ impl ImportMetaPlugin {
 }
 
 impl JavascriptParserPlugin for ImportMetaPlugin {
-  fn evaluate_typeof(
+  fn evaluate_typeof<'a>(
     &self,
     _parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::UnaryExpr,
+    expr: &'a swc_core::ecma::ast::UnaryExpr,
     for_name: &str,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression> {
+  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'a>> {
     let mut evaluated = None;
     if for_name == expr_name::IMPORT_META {
       evaluated = Some("object".to_string());
@@ -74,7 +74,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     ident: &str,
     start: u32,
     end: u32,
-  ) -> Option<eval::BasicEvaluatedExpression> {
+  ) -> Option<eval::BasicEvaluatedExpression<'static>> {
     if ident == expr_name::IMPORT_META_WEBPACK {
       Some(eval::evaluate_to_number(5_f64, start, end))
     } else if ident == expr_name::IMPORT_META_URL {
