@@ -78,7 +78,7 @@ sugar_path       = { version = "1.2.0", features = ["cached_current_dir"] }
 syn              = { version = "2.0.95" }
 tokio            = { version = "1.42.0", features = ["rt", "rt-multi-thread"] }
 # don't include debug & trace in release binary to save release binary size
-tracing            = { version = "0.1.41", features = ["max_level_trace", "release_max_level_info"] }
+tracing            = { version = "0.1.41", features = ["max_level_trace", "release_max_level_trace"] }
 tracing-subscriber = { version = "0.3.19" }
 unicase            = { version = "2.8.1" }
 url                = { version = "2.5.4" }

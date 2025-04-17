@@ -37,6 +37,7 @@ import {
 	isUseSimpleSourceMap,
 	isUseSourceMap
 } from "../config/adapterRuleUse";
+import { ChromeTracer } from "../trace";
 import {
 	concatErrorMsgAndStack,
 	isNil,
@@ -55,7 +56,12 @@ import {
 import { memoize } from "../util/memoize";
 import * as pool from "./service";
 import { type HandleIncomingRequest, RequestType } from "./service";
-import { convertArgs, loadLoader, runSyncOrAsync } from "./utils";
+import {
+	convertArgs,
+	extractLoaderName,
+	loadLoader,
+	runSyncOrAsync
+} from "./utils";
 
 function createLoaderObject(
 	loader: JsLoaderItem,
@@ -962,13 +968,25 @@ export async function runLoaders(
 		);
 	};
 
-	const isomorphoicRun = async (fn: Function, args: any[]) => {
+	const isomorphoicRun = async (
+		fn: Function,
+		args: any[],
+		resourceData: JsLoaderContext["resourceData"] // used for tracing for further analysis
+	) => {
 		const currentLoaderObject = getCurrentLoader(loaderContext);
 		const parallelism = enableParallelism(currentLoaderObject);
 		const pitch = loaderState === JsLoaderState.Pitching;
 		const worker = parallelism;
-
+		const loaderName = extractLoaderName(currentLoaderObject!.request);
 		let result: any;
+		ChromeTracer.startAsync({
+			name: `loader:${pitch ? "pitch" : ""}:${loaderName}`,
+			args: {
+				resourceData: resourceData,
+				"loader.request": currentLoaderObject?.request
+			},
+			cat: "rspack"
+		});
 		const span = tracer?.startSpan(
 			`LoaderRunner:${pitch ? "pitch" : "normal"}${worker ? " (worker)" : ""}`,
 			{
@@ -993,6 +1011,16 @@ export async function runLoaders(
 				convertArgs(args, !!currentLoaderObject?.raw);
 			result = (await runSyncOrAsync(fn, loaderContext, args)) || [];
 		}
+
+		ChromeTracer.endAsync({
+			name: `loader:${pitch ? "pitch" : ""}:${loaderName}`,
+			args: {
+				resourceData,
+				"loader.request": currentLoaderObject?.request
+			},
+			cat: "rspack"
+		});
+
 		span?.end();
 		return result;
 	};
@@ -1020,11 +1048,15 @@ export async function runLoaders(
 					}
 					if (!fn) continue;
 
-					const args = await isomorphoicRun(fn, [
-						loaderContext.remainingRequest,
-						loaderContext.previousRequest,
-						currentLoaderObject.loaderItem.data
-					]);
+					const args = await isomorphoicRun(
+						fn,
+						[
+							loaderContext.remainingRequest,
+							loaderContext.previousRequest,
+							currentLoaderObject.loaderItem.data
+						],
+						context.resourceData
+					);
 
 					const hasArg = args.some((value: any) => value !== undefined);
 
@@ -1063,11 +1095,11 @@ export async function runLoaders(
 						currentLoaderObject.normalExecuted = true;
 					}
 					if (!fn) continue;
-					[content, sourceMap, additionalData] = await isomorphoicRun(fn, [
-						content,
-						sourceMap,
-						additionalData
-					]);
+					[content, sourceMap, additionalData] = await isomorphoicRun(
+						fn,
+						[content, sourceMap, additionalData],
+						context.resourceData
+					);
 				}
 
 				context.content = isNil(content) ? null : toBuffer(content);

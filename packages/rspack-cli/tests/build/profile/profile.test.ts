@@ -98,7 +98,13 @@ describe("profile", () => {
 		expect(fs.existsSync(trace)).toBeTruthy();
 		const out: { cat?: string }[] = JSON.parse(fs.readFileSync(trace, "utf-8"));
 		expect(
-			out.filter(line => line.cat).every(line => line.cat!.startsWith("rspack"))
+			out
+				.filter(line => line.cat)
+				.every(
+					line =>
+						line.cat!.startsWith("rspack") ||
+						line.cat!.startsWith("disabled-by-default-v8.cpu_profiler")
+				)
 		).toBe(true);
 	});
 

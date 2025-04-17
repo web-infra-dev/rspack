@@ -1437,7 +1437,7 @@ impl Compilation {
         .compilation_hooks
         .optimize_modules
         .call(self)
-        .instrument(info_span!("Compilation:optimize_modules"))
+        .instrument(info_span!("hook:optimize_modules"))
         .await?,
       Some(true)
     ) {}
@@ -1445,11 +1445,14 @@ impl Compilation {
       .compilation_hooks
       .after_optimize_modules
       .call(self)
-      .instrument(info_span!("Compilation:after_optimize_modules"))
+      .instrument(info_span!("hook:after_optimize_modules"))
       .await?;
     while matches!(
-      tracing::info_span!("Compilation:optimize_chunks")
-        .in_scope(|| { plugin_driver.compilation_hooks.optimize_chunks.call(self) })
+      plugin_driver
+        .compilation_hooks
+        .optimize_chunks
+        .call(self)
+        .instrument(info_span!("hook:optimize_chunks"))
         .await?,
       Some(true)
     ) {}
@@ -1460,14 +1463,14 @@ impl Compilation {
       .compilation_hooks
       .optimize_tree
       .call(self)
-      .instrument(info_span!("Compilation:optimize_tree"))
+      .instrument(info_span!("hook:optimize_tree"))
       .await?;
 
     plugin_driver
       .compilation_hooks
       .optimize_chunk_modules
       .call(self)
-      .instrument(info_span!("Compilation:optimize_chunk_modules"))
+      .instrument(info_span!("hook:optimize_chunk_modules"))
       .await?;
     logger.time_end(start);
 
@@ -1475,14 +1478,21 @@ impl Compilation {
     // so now we can start to generate assets based on the chunk graph
 
     let start = logger.time("module ids");
-    tracing::info_span!("Compilation:module_ids")
-      .in_scope(|| plugin_driver.compilation_hooks.module_ids.call(self))
+
+    plugin_driver
+      .compilation_hooks
+      .module_ids
+      .call(self)
+      .instrument(tracing::info_span!("hook:module_ids"))
       .await?;
     logger.time_end(start);
 
     let start = logger.time("chunk ids");
-    tracing::info_span!("Compilation:chunk_ids")
-      .in_scope(|| plugin_driver.compilation_hooks.chunk_ids.call(self))
+    plugin_driver
+      .compilation_hooks
+      .chunk_ids
+      .call(self)
+      .instrument(tracing::info_span!("hook:chunk_ids"))
       .await?;
     logger.time_end(start);
 
@@ -1548,13 +1558,11 @@ impl Compilation {
       .await?;
 
     let start = logger.time("optimize code generation");
-    tracing::info_span!("Compilation::optimize_code_generation")
-      .in_scope(|| {
-        plugin_driver
-          .compilation_hooks
-          .optimize_code_generation
-          .call(self)
-      })
+    plugin_driver
+      .compilation_hooks
+      .optimize_code_generation
+      .call(self)
+      .instrument(info_span!("hook:optimize_code_generation"))
       .await?;
     logger.time_end(start);
 
