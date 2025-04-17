@@ -527,6 +527,8 @@ class ChunkGraph {
     getModuleId(module: Module): string | number | null;
     // (undocumented)
     getNumberOfEntryModules(chunk: Chunk): number;
+    // (undocumented)
+    getOrderedChunkModulesIterable(chunk: Chunk, compareFn: (a: Module, b: Module) => number): Iterable<Module>;
 }
 
 // @public (undocumented)
