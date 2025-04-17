@@ -25,9 +25,4 @@ pub trait ReadableFileSystem: Debug + Send + Sync {
   /// Returns a Vec of entry names in the directory
   async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>>;
   fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>>;
-
-  /// Read the entire contents of a file into a bytes vector.
-  ///
-  /// Error: This function will return an error if path does not already exist.
-  async fn async_read(&self, file: &Utf8Path) -> Result<Vec<u8>>;
 }
