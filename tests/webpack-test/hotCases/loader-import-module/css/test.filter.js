@@ -1,3 +1,2 @@
-
-// TODO: Should create a issue for this test
+// TODO: it just stucked...
 module.exports = () => { return false }
