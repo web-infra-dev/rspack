@@ -325,9 +325,6 @@ opt-level = "s"
 [profile.release.package.wasmparser]
 opt-level = "s"
 
-[profile.release.package.data-encoding]
-opt-level = "s"
-
 [profile.release.package.jsonc-parser]
 opt-level = "s"
 
