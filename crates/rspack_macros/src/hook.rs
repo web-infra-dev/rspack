@@ -73,15 +73,18 @@ impl DefineHookInput {
         _ => Err(Error::new_spanned(arg, "unexpected arg")),
       })
       .collect::<Result<Punctuated<&Ident, Comma>>>()?;
-    let call_body = exec_kind.body(arg_names);
-    let call_fn = quote! {
-      fn call(&self, #args) -> #ret {
-        #call_body
-      }
-    };
-    let call_fn = quote! { async #call_fn };
     let hook_name = Ident::new(&format!("{trait_name}Hook"), trait_name.span());
     let hook_name_lit_str = LitStr::new(&hook_name.to_string(), trait_name.span());
+    let tracing_span_name = LitStr::new(&format!("hook:{trait_name}"), trait_name.span());
+    let call_body = exec_kind.body(arg_names);
+    let call_fn = quote! {
+      async fn call(&self, #args) -> #ret {
+        tracing::Instrument::instrument(
+          async { #call_body },
+          tracing::info_span!(#tracing_span_name),
+        ).await
+      }
+    };
     Ok(quote! {
       #attr
       pub trait #trait_name {
