@@ -92,9 +92,7 @@ impl JsCompilation {
               let result = f.call(original_info_object).to_rspack_result()?;
               match result {
                 Some(object) => {
-                  let js_asset_info: AssetInfo = unsafe {
-                    FromNapiValue::from_napi_value(env.raw(), object.raw()).to_rspack_result()?
-                  };
+                  let js_asset_info = AssetInfo::from_jsobject(env, &object).to_rspack_result()?;
                   Some(js_asset_info.into())
                 }
                 None => None,
@@ -322,8 +320,7 @@ impl JsCompilation {
     let compilation = self.as_mut()?;
 
     let asset_info = if let Some(object) = object {
-      let js_asset_info: AssetInfo =
-        unsafe { FromNapiValue::from_napi_value(env.raw(), object.raw())? };
+      let js_asset_info = AssetInfo::from_jsobject(env, &object)?;
       let asset_info: rspack_core::AssetInfo = js_asset_info.into();
       let asset_info = BindingCell::from(asset_info);
       asset_info.reflector().set_jsobject(env, object)?;
