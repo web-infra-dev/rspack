@@ -123,6 +123,15 @@ type LazyCompilationOptions =
        * Specify which imported modules should be lazily compiled.
        */
       test?: RegExp | ((m: Module) => boolean);
+      /**
+       * The path to a custom runtime code that overrides the default lazy
+       * compilation client.
+       */
+      client?: string;
+      /**
+       * Tells the client the server path that needs to be requested.
+       */
+      serverUrl?: string;
     };
 ```
 
@@ -155,7 +164,7 @@ The current lazy compilation **is still in the experimental stage**. In some sce
 
 - **Type:** `string`
 
-Used to override the default lazy compilation client runtime. If you want to customize the logic of the client runtime, you can specify it through this configuration option.
+The path to a custom runtime code that overrides the default lazy compilation client. If you want to customize the logic of the client runtime, you can specify it through this option.
 
 - [Client for web](https://github.com/web-infra-dev/rspack/blob/699229b9e7c33b7db7968c2f803f750e0367fe8a/packages/rspack/hot/lazy-compilation-web.js)
 - [Client for node](https://github.com/web-infra-dev/rspack/blob/699229b9e7c33b7db7968c2f803f750e0367fe8a/packages/rspack/hot/lazy-compilation-node.js)
