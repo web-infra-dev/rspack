@@ -292,13 +292,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .for_each(|(_, comments)| {
       compilation.emit_asset(
         comments.comments_file_name,
-        CompilationAsset {
-          source: Some(comments.source),
-          info: AssetInfo {
+        CompilationAsset::new(
+          Some(comments.source),
+          AssetInfo {
             minimized: Some(true),
             ..Default::default()
           },
-        },
+        ),
       )
     });
 

@@ -23,11 +23,13 @@ indoc = { workspace = true }
 itertools = { workspace = true }
 json = { workspace = true }
 mime_guess = { workspace = true }
+napi = { workspace = true, optional = true }
 num-bigint = "0.4.6"
 once_cell = { workspace = true }
 paste = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
+rkyv = { workspace = true, optional = true }
 ropey = { workspace = true }
 rspack_ast = { workspace = true }
 rspack_cacheable = { workspace = true }
@@ -40,6 +42,7 @@ rspack_hash = { workspace = true }
 rspack_hook = { workspace = true }
 rspack_loader_runner = { workspace = true }
 rspack_macros = { workspace = true }
+rspack_napi = { workspace = true, optional = true }
 rspack_paths = { workspace = true }
 rspack_regex = { workspace = true }
 rspack_resolver = { workspace = true }
@@ -76,7 +79,11 @@ ustr = { workspace = true }
 pretty_assertions = { version = "1.4.1" }
 
 [lints]
-
 workspace = true
+
 [package.metadata.cargo-shear]
 ignored = ["swc_parallel"]
+
+[features]
+default = []
+napi    = ["dep:napi", "dep:rspack_napi", "dep:rkyv"]

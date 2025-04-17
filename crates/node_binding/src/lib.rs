@@ -18,6 +18,7 @@ use rspack_fs::IntermediateFileSystem;
 
 use crate::fs_node::{NodeFileSystem, ThreadsafeNodeFS};
 
+mod allocator;
 mod asset;
 mod asset_condition;
 mod async_dependency_block;
@@ -463,6 +464,12 @@ pub fn cleanup_global_trace() {
     }
     *state = TraceState::Off;
   });
+}
+
+#[module_exports]
+fn node_init(mut _exports: Object, env: Env) -> Result<()> {
+  rspack_core::set_thread_local_allocator(Box::new(allocator::NapiAllocatorImpl::new(env)));
+  Ok(())
 }
 
 #[napi]
