@@ -602,9 +602,26 @@ impl<'a> BasicEvaluatedExpression<'a> {
     self.expression = expression;
   }
 
-  pub fn with_expression(mut self, expression: Option<&'a Expr>) -> Self {
-    self.expression = expression;
-    self
+  pub fn with_expression_ref<'b>(
+    mut self,
+    expression: Option<&'b Expr>,
+  ) -> BasicEvaluatedExpression<'b> {
+    // self.expression = expression;
+    // self
+    todo!()
+  }
+
+  pub fn with_expression<F>(
+    mut self,
+    expression: Box<Expr>,
+    f: F,
+  ) -> BasicEvaluatedExpression<'static>
+  where
+    F: FnOnce(&'a Expr) -> BasicEvaluatedExpression<'a>,
+  {
+    let mut result = BasicEvaluatedExpression::new();
+    result.expression = Some(Cow::Owned(expression));
+    todo!()
   }
 
   pub fn expression(&self) -> Option<&'a Expr> {

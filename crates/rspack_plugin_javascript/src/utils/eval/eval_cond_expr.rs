@@ -5,10 +5,10 @@ use super::BasicEvaluatedExpression;
 use crate::visitors::JavascriptParser;
 
 #[inline]
-pub fn eval_cond_expression(
+pub fn eval_cond_expression<'a>(
   scanner: &mut JavascriptParser,
-  cond: &CondExpr,
-) -> Option<BasicEvaluatedExpression> {
+  cond: &'a CondExpr,
+) -> Option<BasicEvaluatedExpression<'a>> {
   let condition = scanner.evaluate_expression(&cond.test);
   let condition_value = condition.as_bool();
   let mut res;

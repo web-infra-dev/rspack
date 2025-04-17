@@ -15,11 +15,14 @@ pub enum TemplateStringKind {
 }
 
 #[inline]
-fn get_simplified_template_result(
+fn get_simplified_template_result<'a>(
   scanner: &mut JavascriptParser,
   kind: TemplateStringKind,
-  node: &Tpl,
-) -> (Vec<BasicEvaluatedExpression>, Vec<BasicEvaluatedExpression>) {
+  node: &'a Tpl,
+) -> (
+  Vec<BasicEvaluatedExpression<'a>>,
+  Vec<BasicEvaluatedExpression<'a>>,
+) {
   let mut quasis: Vec<BasicEvaluatedExpression> = vec![];
   let mut parts: Vec<BasicEvaluatedExpression> = vec![];
   for i in 0..node.quasis.len() {
@@ -69,10 +72,10 @@ fn get_simplified_template_result(
 }
 
 #[inline]
-pub fn eval_tpl_expression(
+pub fn eval_tpl_expression<'a>(
   scanner: &mut JavascriptParser,
-  tpl: &Tpl,
-) -> Option<BasicEvaluatedExpression> {
+  tpl: &'a Tpl,
+) -> Option<BasicEvaluatedExpression<'a>> {
   let kind = TemplateStringKind::Cooked;
   let (quasis, mut parts) = get_simplified_template_result(scanner, kind, tpl);
   if parts.len() == 1 {
@@ -87,10 +90,10 @@ pub fn eval_tpl_expression(
 }
 
 #[inline]
-pub fn eval_tagged_tpl_expression(
+pub fn eval_tagged_tpl_expression<'a>(
   scanner: &mut JavascriptParser,
-  tagged_tpl: &TaggedTpl,
-) -> Option<BasicEvaluatedExpression> {
+  tagged_tpl: &'a TaggedTpl,
+) -> Option<BasicEvaluatedExpression<'a>> {
   let tag = scanner.evaluate_expression(&tagged_tpl.tag);
   if !tag.is_identifier() || tag.identifier() != "String.raw" {
     return None;

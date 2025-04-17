@@ -954,11 +954,11 @@ impl<'parser> JavascriptParser<'parser> {
 }
 
 impl JavascriptParser<'_> {
-  pub fn evaluate_expression(&mut self, expr: &Expr) -> BasicEvaluatedExpression {
+  pub fn evaluate_expression<'a>(&mut self, expr: &'a Expr) -> BasicEvaluatedExpression<'a> {
     match self.evaluating(expr) {
-      Some(evaluated) => evaluated.with_expression(Some(expr.clone())),
+      Some(evaluated) => evaluated.with_expression_ref(Some(expr)),
       None => BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span_hi().0)
-        .with_expression(Some(expr.clone())),
+        .with_expression_ref(Some(expr)),
     }
   }
 
@@ -966,13 +966,13 @@ impl JavascriptParser<'_> {
     &mut self,
     source: String,
     error_title: T,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'static>> {
     eval::eval_source(self, source, error_title)
   }
 
   // same as `JavascriptParser._initializeEvaluating` in webpack
   // FIXME: should mv it to plugin(for example `parse.hooks.evaluate for`)
-  fn evaluating(&mut self, expr: &Expr) -> Option<BasicEvaluatedExpression> {
+  fn evaluating<'a>(&mut self, expr: &'a Expr) -> Option<BasicEvaluatedExpression<'a>> {
     match expr {
       Expr::Tpl(tpl) => eval::eval_tpl_expression(self, tpl),
       Expr::TaggedTpl(tagged_tpl) => eval::eval_tagged_tpl_expression(self, tagged_tpl),
@@ -987,16 +987,16 @@ impl JavascriptParser<'_> {
       Expr::OptChain(opt_chain) => self.enter_optional_chain(
         opt_chain,
         |parser, call| {
-          eval::eval_call_expression(
-            parser,
-            &CallExpr {
-              ctxt: call.ctxt,
-              span: call.span,
-              callee: call.callee.clone().as_callee(),
-              args: call.args.clone(),
-              type_args: None,
-            },
-          )
+          let expr = Box::new(Expr::Call(CallExpr {
+            ctxt: call.ctxt,
+            span: call.span,
+            callee: call.callee.clone().as_callee(),
+            args: call.args.clone(),
+            type_args: None,
+          }));
+          let call_expr = expr.call().unwrap();
+          let result = eval::eval_call_expression(parser, &call_expr);
+          result.map(|r| r.with_expression(Some(expr)))
         },
         |parser, member| eval::eval_member_expression(parser, member),
       ),

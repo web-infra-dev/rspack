@@ -402,12 +402,12 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     }
   }
 
-  fn evaluate_typeof(
+  fn evaluate_typeof<'a>(
     &self,
     _parser: &mut JavascriptParser,
-    expr: &UnaryExpr,
+    expr: &'a UnaryExpr,
     for_name: &str,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     (for_name == expr_name::REQUIRE
       || for_name == expr_name::REQUIRE_RESOLVE
       || for_name == expr_name::REQUIRE_RESOLVE_WEAK)
@@ -426,7 +426,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     ident: &str,
     start: u32,
     end: u32,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'static>> {
     match ident {
       expr_name::REQUIRE => Some(eval::evaluate_to_identifier(
         expr_name::REQUIRE.to_string(),

@@ -14,13 +14,13 @@ const SPLIT_METHOD_NAME: &str = "split";
 pub struct InitializeEvaluating;
 
 impl JavascriptParserPlugin for InitializeEvaluating {
-  fn evaluate_call_expression_member(
+  fn evaluate_call_expression_member<'a>(
     &self,
     parser: &mut crate::visitors::JavascriptParser,
     property: &str,
-    expr: &swc_core::ecma::ast::CallExpr,
-    param: &BasicEvaluatedExpression,
-  ) -> Option<BasicEvaluatedExpression> {
+    expr: &'a swc_core::ecma::ast::CallExpr,
+    param: &'a BasicEvaluatedExpression<'a>,
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     if property == INDEXOF_METHOD_NAME && param.is_string() {
       let arg1 = (!expr.args.is_empty()).then_some(true).and_then(|_| {
         if expr.args[0].spread.is_some() {

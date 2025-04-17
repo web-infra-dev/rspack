@@ -123,7 +123,7 @@ impl JavascriptParserPlugin for ConstPlugin {
     ident: &str,
     start: u32,
     end: u32,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression> {
+  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
     match ident {
       WEBPACK_RESOURCE_QUERY => Some(evaluate_to_string(
         parser

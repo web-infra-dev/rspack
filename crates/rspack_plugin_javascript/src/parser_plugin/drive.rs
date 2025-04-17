@@ -412,12 +412,12 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn evaluate_typeof(
+  fn evaluate_typeof<'a>(
     &self,
     parser: &mut JavascriptParser,
-    expr: &UnaryExpr,
+    expr: &'a UnaryExpr,
     for_name: &str,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     for plugin in &self.plugins {
       let res = plugin.evaluate_typeof(parser, expr, for_name);
       // `SyncBailHook`
@@ -428,13 +428,13 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn evaluate_call_expression_member(
+  fn evaluate_call_expression_member<'a>(
     &self,
     parser: &mut JavascriptParser,
     property: &str,
-    expr: &CallExpr,
-    param: &BasicEvaluatedExpression,
-  ) -> Option<BasicEvaluatedExpression> {
+    expr: &'a CallExpr,
+    param: &'a BasicEvaluatedExpression<'a>,
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     for plugin in &self.plugins {
       let res = plugin.evaluate_call_expression_member(parser, property, expr, param);
       // `SyncBailHook`
@@ -451,7 +451,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     ident: &str,
     start: u32,
     end: u32,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'static>> {
     for plugin in &self.plugins {
       let res = plugin.evaluate_identifier(parser, ident, start, end);
       // `SyncBailHook`

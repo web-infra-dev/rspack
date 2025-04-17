@@ -18,7 +18,7 @@ pub fn eval_source<T: Display>(
   parser: &mut JavascriptParser,
   source: String,
   error_title: T,
-) -> Option<BasicEvaluatedExpression> {
+) -> Option<BasicEvaluatedExpression<'static>> {
   let cm: Arc<swc_core::common::SourceMap> = Default::default();
   let fm = cm.new_source_file(Arc::new(FileName::Anon), source);
   let result = parse_file_as_expr(

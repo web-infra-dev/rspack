@@ -4,10 +4,10 @@ use super::BasicEvaluatedExpression;
 use crate::{parser_plugin::JavascriptParserPlugin, visitors::JavascriptParser};
 
 #[inline]
-pub fn eval_call_expression(
+pub fn eval_call_expression<'a>(
   parser: &mut JavascriptParser,
-  expr: &CallExpr,
-) -> Option<BasicEvaluatedExpression> {
+  expr: &'a CallExpr,
+) -> Option<BasicEvaluatedExpression<'a>> {
   if let Some(member) = expr.callee.as_expr().and_then(|expr| expr.as_member()) {
     if let MemberProp::Ident(ident) = &member.prop {
       let param = parser.evaluate_expression(&member.obj);

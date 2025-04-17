@@ -174,7 +174,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     ident: &str,
     start: u32,
     end: u32,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression> {
+  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
     if ident == DIR_NAME {
       Some(eval::evaluate_to_string(
         get_context(parser.resource_data).as_str().to_string(),
