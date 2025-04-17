@@ -58,6 +58,10 @@ type Regexp = (String, String); // (expr, flags)
 // parse finished.
 #[derive(Debug, Clone)]
 pub struct BasicEvaluatedExpression<'a> {
+  // For 'static-lifetime usage, any reference fields must originate from this owned expression.
+  owned_expression: Option<Box<Expr>>,
+  // During Tpl parsing, this may switch from Some(...) to None, hence separate from owned_expression.
+  expression: Option<&'a Expr>,
   ty: Ty,
   range: Option<DependencyRange>,
   falsy: bool,
@@ -83,7 +87,6 @@ pub struct BasicEvaluatedExpression<'a> {
   wrapped_inner_expressions: Option<Vec<BasicEvaluatedExpression<'a>>>,
   template_string_kind: Option<TemplateStringKind>,
   options: Option<Vec<BasicEvaluatedExpression<'a>>>,
-  expression: Option<&'a Expr>,
 }
 
 impl Default for BasicEvaluatedExpression<'_> {
@@ -95,6 +98,8 @@ impl Default for BasicEvaluatedExpression<'_> {
 impl<'a> BasicEvaluatedExpression<'a> {
   pub fn new() -> Self {
     Self {
+      owned_expression: None,
+      expression: None,
       ty: Ty::Unknown,
       range: None,
       falsy: false,
@@ -120,7 +125,6 @@ impl<'a> BasicEvaluatedExpression<'a> {
       postfix: None,
       prefix: None,
       wrapped_inner_expressions: None,
-      expression: None,
     }
   }
 
@@ -539,17 +543,17 @@ impl<'a> BasicEvaluatedExpression<'a> {
     (range.start, range.end)
   }
 
-  pub fn prefix(&self) -> Option<&BasicEvaluatedExpression> {
+  pub fn prefix(&self) -> Option<&BasicEvaluatedExpression<'a>> {
     assert!(self.is_wrapped(), "prefix is only used in wrapped");
     self.prefix.as_deref()
   }
 
-  pub fn postfix(&self) -> Option<&BasicEvaluatedExpression> {
+  pub fn postfix(&self) -> Option<&BasicEvaluatedExpression<'a>> {
     assert!(self.is_wrapped(), "postfix is only used in wrapped");
     self.postfix.as_deref()
   }
 
-  pub fn wrapped_inner_expressions(&self) -> Option<&[BasicEvaluatedExpression]> {
+  pub fn wrapped_inner_expressions(&self) -> Option<&[BasicEvaluatedExpression<'a>]> {
     assert!(
       self.is_wrapped(),
       "wrapped_inner_expressions is only used in wrapped"
@@ -564,7 +568,7 @@ impl<'a> BasicEvaluatedExpression<'a> {
       .expect("make sure template string exist")
   }
 
-  pub fn parts(&self) -> &Vec<BasicEvaluatedExpression> {
+  pub fn parts(&self) -> &Vec<BasicEvaluatedExpression<'a>> {
     assert!(self.is_template_string());
     self
       .parts
@@ -572,7 +576,7 @@ impl<'a> BasicEvaluatedExpression<'a> {
       .expect("make sure template string exist")
   }
 
-  pub fn quasis(&self) -> &Vec<BasicEvaluatedExpression> {
+  pub fn quasis(&self) -> &Vec<BasicEvaluatedExpression<'a>> {
     assert!(self.is_template_string(),);
     self
       .quasis
@@ -602,30 +606,30 @@ impl<'a> BasicEvaluatedExpression<'a> {
     self.expression = expression;
   }
 
-  pub fn with_expression_ref<'b>(
-    mut self,
-    expression: Option<&'b Expr>,
-  ) -> BasicEvaluatedExpression<'b> {
-    // self.expression = expression;
-    // self
-    todo!()
-  }
-
-  pub fn with_expression<F>(
-    mut self,
-    expression: Box<Expr>,
-    f: F,
-  ) -> BasicEvaluatedExpression<'static>
-  where
-    F: FnOnce(&'a Expr) -> BasicEvaluatedExpression<'a>,
-  {
-    let mut result = BasicEvaluatedExpression::new();
-    result.expression = Some(Cow::Owned(expression));
-    todo!()
+  pub fn with_expression(mut self, expression: Option<&'a Expr>) -> Self {
+    self.expression = expression;
+    self
   }
 
   pub fn expression(&self) -> Option<&'a Expr> {
     self.expression
+  }
+
+  pub fn with_owned_expression<F>(expr: Expr, f: F) -> Option<BasicEvaluatedExpression<'static>>
+  where
+    F: FnOnce(&Expr) -> Option<BasicEvaluatedExpression<'_>>,
+  {
+    let expr = Box::new(expr);
+    let raw_ptr = Box::into_raw(expr);
+    // SAFETY: We are the only owner of the Box, and we are converting it to a raw pointer
+    let mut basic_evaluated_expression = f(unsafe { &*raw_ptr })?;
+
+    if basic_evaluated_expression.owned_expression.is_none() {
+      // SAFETY: If reference fields exist, they must originate from this owned expression.
+      basic_evaluated_expression.owned_expression = Some(unsafe { Box::from_raw(raw_ptr) });
+    }
+
+    Some(basic_evaluated_expression)
   }
 }
 

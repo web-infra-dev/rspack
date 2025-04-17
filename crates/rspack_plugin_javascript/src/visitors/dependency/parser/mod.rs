@@ -830,10 +830,15 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn enter_optional_chain<C, M, R>(&mut self, expr: &OptChainExpr, on_call: C, on_member: M) -> R
+  fn enter_optional_chain<'a, C, M, R>(
+    &mut self,
+    expr: &'a OptChainExpr,
+    on_call: C,
+    on_member: M,
+  ) -> R
   where
-    C: FnOnce(&mut Self, &OptCall) -> R,
-    M: FnOnce(&mut Self, &MemberExpr) -> R,
+    C: FnOnce(&mut Self, &'a OptCall) -> R,
+    M: FnOnce(&mut Self, &'a MemberExpr) -> R,
   {
     let member_expr_in_optional_chain = self.member_expr_in_optional_chain;
     let ret = match &*expr.base {
@@ -956,9 +961,9 @@ impl<'parser> JavascriptParser<'parser> {
 impl JavascriptParser<'_> {
   pub fn evaluate_expression<'a>(&mut self, expr: &'a Expr) -> BasicEvaluatedExpression<'a> {
     match self.evaluating(expr) {
-      Some(evaluated) => evaluated.with_expression_ref(Some(expr)),
+      Some(evaluated) => evaluated.with_expression(Some(expr)),
       None => BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span_hi().0)
-        .with_expression_ref(Some(expr)),
+        .with_expression(Some(expr)),
     }
   }
 
@@ -987,16 +992,18 @@ impl JavascriptParser<'_> {
       Expr::OptChain(opt_chain) => self.enter_optional_chain(
         opt_chain,
         |parser, call| {
-          let expr = Box::new(Expr::Call(CallExpr {
+          let expr = Expr::Call(CallExpr {
             ctxt: call.ctxt,
             span: call.span,
             callee: call.callee.clone().as_callee(),
             args: call.args.clone(),
             type_args: None,
-          }));
-          let call_expr = expr.call().unwrap();
-          let result = eval::eval_call_expression(parser, &call_expr);
-          result.map(|r| r.with_expression(Some(expr)))
+          });
+          BasicEvaluatedExpression::with_owned_expression(expr, |expr| {
+            #[allow(clippy::unwrap_used)]
+            let call_expr = expr.as_call().unwrap();
+            eval::eval_call_expression(parser, call_expr)
+          })
         },
         |parser, member| eval::eval_member_expression(parser, member),
       ),

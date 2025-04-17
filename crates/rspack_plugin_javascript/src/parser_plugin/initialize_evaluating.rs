@@ -19,7 +19,7 @@ impl JavascriptParserPlugin for InitializeEvaluating {
     parser: &mut crate::visitors::JavascriptParser,
     property: &str,
     expr: &'a swc_core::ecma::ast::CallExpr,
-    param: &'a BasicEvaluatedExpression<'a>,
+    param: BasicEvaluatedExpression<'a>,
   ) -> Option<BasicEvaluatedExpression<'a>> {
     if property == INDEXOF_METHOD_NAME && param.is_string() {
       let arg1 = (!expr.args.is_empty()).then_some(true).and_then(|_| {
@@ -111,7 +111,7 @@ impl JavascriptParserPlugin for InitializeEvaluating {
           continue;
         }
         let mut new_string = if arg_expr.is_string() {
-          arg_expr.string().to_owned()
+          arg_expr.string().to_string()
         } else {
           format!("{}", arg_expr.number())
         };
@@ -133,11 +133,10 @@ impl JavascriptParserPlugin for InitializeEvaluating {
       }
       if has_unknown_params {
         let prefix = if param.is_string() {
-          Some(param)
+          Some(param.clone())
         } else {
-          param.prefix()
-        }
-        .cloned();
+          param.prefix().cloned()
+        };
         inner_exprs.reverse();
         let inner = if param.is_wrapped()
           && let Some(wrapped_inner_expressions) = param.wrapped_inner_expressions()

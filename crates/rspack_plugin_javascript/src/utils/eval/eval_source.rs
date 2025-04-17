@@ -44,6 +44,8 @@ pub fn eval_source<T: Display>(
       ));
       None
     }
-    Ok(expr) => Some(parser.evaluate_expression(&expr)),
+    Ok(expr) => BasicEvaluatedExpression::with_owned_expression(*expr, |expr| {
+      Some(parser.evaluate_expression(expr))
+    }),
   }
 }

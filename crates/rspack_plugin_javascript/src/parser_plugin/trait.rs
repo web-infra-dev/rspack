@@ -103,7 +103,7 @@ pub trait JavascriptParserPlugin {
     _parser: &mut JavascriptParser,
     _property: &str,
     _expr: &'a CallExpr,
-    _param: &'a BasicEvaluatedExpression<'a>,
+    _param: BasicEvaluatedExpression<'a>,
   ) -> Option<BasicEvaluatedExpression<'a>> {
     None
   }

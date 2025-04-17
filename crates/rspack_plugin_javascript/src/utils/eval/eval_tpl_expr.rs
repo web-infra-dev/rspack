@@ -23,8 +23,8 @@ fn get_simplified_template_result<'a>(
   Vec<BasicEvaluatedExpression<'a>>,
   Vec<BasicEvaluatedExpression<'a>>,
 ) {
-  let mut quasis: Vec<BasicEvaluatedExpression> = vec![];
-  let mut parts: Vec<BasicEvaluatedExpression> = vec![];
+  let mut quasis: Vec<BasicEvaluatedExpression<'a>> = vec![];
+  let mut parts: Vec<BasicEvaluatedExpression<'a>> = vec![];
   for i in 0..node.quasis.len() {
     let quasi_expr = &node.quasis[i];
     let quasi = match kind {

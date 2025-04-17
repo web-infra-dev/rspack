@@ -15,7 +15,7 @@ pub fn eval_call_expression<'a>(
         parser,
         ident.sym.as_str(),
         expr,
-        &param,
+        param.clone(),
       )
     } else {
       None
