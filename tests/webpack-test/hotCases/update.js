@@ -4,6 +4,7 @@ module.exports = function (done, options, callback) {
 		module.hot
 			.check(options || true)
 			.then(updatedModules => {
+				console.log(__webpack_hash__);
 				if (!updatedModules) return done(new Error("No update available"));
 				if (callback) callback(stats);
 			})

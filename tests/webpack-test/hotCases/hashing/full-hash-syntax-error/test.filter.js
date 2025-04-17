@@ -1,3 +1,3 @@
 
-// TODO: Should create a issue for this test
-module.exports = () => { return false }
+// TODO: NoEmitOnErrorsPlugin should also control shouldRecord
+module.exports = () => { return false; };
