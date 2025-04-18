@@ -13,7 +13,7 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
 use rspack_util::node_path::NodePath;
 use rustc_hash::FxHashMap as HashMap;
-use tracing::instrument;
+use tracing::{info_span, instrument, Instrument};
 
 pub use self::{
   compilation::*,
@@ -249,12 +249,14 @@ impl Compiler {
       .compiler_hooks
       .this_compilation
       .call(&mut self.compilation, &mut compilation_params)
+      .instrument(info_span!("hook:this_compilation"))
       .await?;
     self
       .plugin_driver
       .compiler_hooks
       .compilation
       .call(&mut self.compilation, &mut compilation_params)
+      .instrument(info_span!("hook:compilation"))
       .await?;
 
     let logger = self.compilation.get_logger("rspack.Compiler");
@@ -267,11 +269,13 @@ impl Compiler {
     {
       self.compilation.push_diagnostic(err.into());
     }
+
     if let Some(e) = self
       .plugin_driver
       .compiler_hooks
       .make
       .call(&mut self.compilation)
+      .instrument(info_span!("hook:make"))
       .await
       .err()
     {
@@ -287,6 +291,7 @@ impl Compiler {
       .compiler_hooks
       .finish_make
       .call(&mut self.compilation)
+      .instrument(info_span!("hook:finish_make"))
       .await?;
     logger.time_end(start);
 
@@ -319,6 +324,7 @@ impl Compiler {
         .compiler_hooks
         .should_emit
         .call(&mut self.compilation)
+        .instrument(info_span!("hook:should_emit"))
         .await?,
       Some(false)
     ) {
@@ -341,6 +347,7 @@ impl Compiler {
       .compiler_hooks
       .emit
       .call(&mut self.compilation)
+      .instrument(info_span!("hook:emit"))
       .await?;
 
     let mut new_emitted_asset_versions = HashMap::default();

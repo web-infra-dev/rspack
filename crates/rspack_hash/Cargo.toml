@@ -7,7 +7,6 @@ repository  = "https://github.com/web-infra-dev/rspack"
 version     = "0.2.0"
 
 [dependencies]
-data-encoding    = { version = "2.6.0" }
 md4              = "0.10.2"
 rspack_cacheable = { workspace = true }
 smol_str         = { workspace = true }

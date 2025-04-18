@@ -30,6 +30,7 @@ use rspack_util::{
 };
 use rustc_hash::FxHasher;
 use serde_json::json;
+use tracing::{info_span, Instrument};
 
 use crate::{
   contextify,
@@ -406,6 +407,7 @@ impl Module for NormalModule {
       },
       build_context.fs.clone(),
     )
+    .instrument(info_span!("NormalModule:run_loaders"))
     .await;
     let (mut loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),

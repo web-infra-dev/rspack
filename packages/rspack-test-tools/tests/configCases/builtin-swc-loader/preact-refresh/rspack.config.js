@@ -18,8 +18,7 @@ module.exports = {
 					jsc: {
 						parser: {
 							syntax: "ecmascript",
-							jsx: true,
-							sourceMap: true
+							jsx: true
 						},
 						transform: {
 							react: {

@@ -4,9 +4,15 @@ import type { TUpdateOptions } from "../../type";
 export class TestHotUpdatePlugin {
 	constructor(private updateOptions: TUpdateOptions) {}
 	apply(compiler: Compiler) {
+		let isRebuild = false;
 		compiler.hooks.beforeRun.tap("TestHotUpdatePlugin", () => {
-			compiler.modifiedFiles = new Set(this.updateOptions.changedFiles);
+			if (isRebuild) {
+				compiler.modifiedFiles = new Set(this.updateOptions.changedFiles);
+			} else {
+				compiler.modifiedFiles = new Set();
+			}
 			this.updateOptions.changedFiles = [];
+			isRebuild = true;
 		});
 
 		compiler.hooks.compilation.tap("TestHotUpdatePlugin", compilation => {

@@ -34,7 +34,7 @@ type OnEvaluateIdentifier = dyn Fn(
     &str, /* Ident */
     u32,  /* start */
     u32,  /* end */
-  ) -> Option<BasicEvaluatedExpression>
+  ) -> Option<BasicEvaluatedExpression<'static>>
   + Send
   + Sync;
 
@@ -43,7 +43,7 @@ type OnEvaluateTypeof = dyn Fn(
     &mut JavascriptParser,
     u32, /* start */
     u32, /* end */
-  ) -> Option<BasicEvaluatedExpression>
+  ) -> Option<BasicEvaluatedExpression<'static>>
   + Send
   + Sync;
 
@@ -134,7 +134,7 @@ type OnObjectEvaluateIdentifier = dyn Fn(
     &str, /* Ident */
     u32,  /* start */
     u32,  /* end */
-  ) -> Option<BasicEvaluatedExpression>
+  ) -> Option<BasicEvaluatedExpression<'static>>
   + Send
   + Sync;
 
@@ -289,7 +289,7 @@ pub(super) fn walk_definitions(definitions: &DefineValue) -> WalkData {
     walk_data.define_record.insert(key, define_record);
   }
 
-  fn object_evaluate_identifier(start: u32, end: u32) -> BasicEvaluatedExpression {
+  fn object_evaluate_identifier(start: u32, end: u32) -> BasicEvaluatedExpression<'static> {
     let mut evaluated = BasicEvaluatedExpression::new();
     evaluated.set_truthy();
     evaluated.set_side_effects(false);
@@ -380,12 +380,12 @@ impl JavascriptParserPlugin for DefineParserPlugin {
     self.walk_data.can_rename.contains(str).then_some(true)
   }
 
-  fn evaluate_typeof(
+  fn evaluate_typeof<'a>(
     &self,
     parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::UnaryExpr,
+    expr: &'a swc_core::ecma::ast::UnaryExpr,
     for_name: &str,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     if let Some(record) = self.walk_data.define_record.get(for_name)
       && let Some(on_evaluate_typeof) = &record.on_evaluate_typeof
     {
@@ -406,7 +406,7 @@ impl JavascriptParserPlugin for DefineParserPlugin {
     ident: &str,
     start: u32,
     end: u32,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression> {
+  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
     if let Some(record) = self.walk_data.define_record.get(ident)
       && let Some(on_evaluate_identifier) = &record.on_evaluate_identifier
     {

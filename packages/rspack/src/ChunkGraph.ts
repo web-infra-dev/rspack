@@ -25,6 +25,15 @@ export class ChunkGraph {
 		return this.#inner.getChunkModules(Chunk.__to_binding(chunk));
 	}
 
+	getOrderedChunkModulesIterable(
+		chunk: Chunk,
+		compareFn: (a: Module, b: Module) => number
+	): Iterable<Module> {
+		const res = this.#inner.getChunkModules(Chunk.__to_binding(chunk));
+		res.sort(compareFn);
+		return res;
+	}
+
 	getChunkEntryModulesIterable(chunk: Chunk): Iterable<Module> {
 		return this.#inner.getChunkEntryModules(Chunk.__to_binding(chunk));
 	}

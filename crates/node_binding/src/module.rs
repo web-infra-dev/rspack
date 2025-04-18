@@ -9,8 +9,8 @@ use napi::{CallContext, JsString, JsSymbol, NapiRaw, NapiValue};
 use napi_derive::napi;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
-  BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilationAsset,
-  CompilerId, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage, SourceType,
+  BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
+  FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{
   napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotInstanceRef, OneShotRef,
@@ -34,6 +34,14 @@ pub struct JsLibIdentOptions {
 #[napi(object)]
 pub struct JsFactoryMeta {
   pub side_effect_free: Option<bool>,
+}
+
+impl From<JsFactoryMeta> for FactoryMeta {
+  fn from(value: JsFactoryMeta) -> Self {
+    Self {
+      side_effect_free: value.side_effect_free,
+    }
+  }
 }
 
 #[napi]
@@ -90,19 +98,46 @@ impl Module {
     }
 
     #[js_function]
-    fn factory_meta_getter(ctx: CallContext) -> napi::Result<Either<JsFactoryMeta, ()>> {
+    fn factory_meta_getter(ctx: CallContext) -> napi::Result<JsFactoryMeta> {
       let this = ctx.this_unchecked::<Object>();
       let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
       let (_, module) = wrapped_value.as_ref()?;
       Ok(match module.as_normal_module() {
         Some(normal_module) => match normal_module.factory_meta() {
-          Some(meta) => Either::A(JsFactoryMeta {
+          Some(meta) => JsFactoryMeta {
             side_effect_free: meta.side_effect_free,
-          }),
-          None => Either::B(()),
+          },
+          None => JsFactoryMeta {
+            side_effect_free: None,
+          },
         },
-        None => Either::B(()),
+        None => JsFactoryMeta {
+          side_effect_free: None,
+        },
       })
+    }
+
+    #[js_function(1)]
+    fn factory_meta_setter(ctx: CallContext) -> napi::Result<()> {
+      let this = ctx.this_unchecked::<Object>();
+      let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
+      let module = wrapped_value.as_mut()?;
+      let factory_meta = ctx.get::<JsFactoryMeta>(0)?;
+      module.set_factory_meta(factory_meta.into());
+      Ok(())
+    }
+
+    #[js_function]
+    fn readable_identifier_getter(ctx: napi::CallContext) -> napi::Result<String> {
+      let this = ctx.this::<Object>()?;
+      let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
+      let (_, module) = wrapped_value.as_ref()?;
+      Ok(
+        module
+          .get_context()
+          .map(|ctx| module.readable_identifier(ctx.as_ref()).to_string())
+          .unwrap_or_default(),
+      )
     }
 
     object.define_properties(&[
@@ -111,7 +146,10 @@ impl Module {
       Property::new("layer")?.with_getter(layer_getter),
       Property::new("useSourceMap")?.with_getter(use_source_map_getter),
       Property::new("useSimpleSourceMap")?.with_getter(use_simple_source_map_getter),
-      Property::new("factoryMeta")?.with_getter(factory_meta_getter),
+      Property::new("factoryMeta")?
+        .with_getter(factory_meta_getter)
+        .with_setter(factory_meta_setter),
+      Property::new("_readableIdentifier")?.with_getter(readable_identifier_getter),
       Property::new("buildInfo")?.with_value(&env.create_object()?),
       Property::new("buildMeta")?.with_value(&env.create_object()?),
     ])?;
@@ -260,20 +298,38 @@ impl Module {
     )
   }
 
-  #[napi(js_name = "_emitFile", enumerable = false)]
+  #[napi(
+    js_name = "_emitFile",
+    enumerable = false,
+    ts_args_type = "filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null"
+  )]
   pub fn emit_file(
     &mut self,
+    env: &Env,
     filename: String,
     source: JsCompatSource,
-    js_asset_info: Option<AssetInfo>,
+    object: Option<Object>,
   ) -> napi::Result<()> {
     let module = self.as_mut()?;
 
-    let asset_info = js_asset_info.map(Into::into).unwrap_or_default();
+    let asset_info = match object {
+      Some(object) => {
+        let js_info: AssetInfo =
+          unsafe { FromNapiValue::from_napi_value(env.raw(), object.raw())? };
+        let info: rspack_core::AssetInfo = js_info.into();
+        let info = BindingCell::from(info);
+        info.reflector().set_jsobject(env, object)?;
+        info
+      }
+      None => Default::default(),
+    };
 
     module.build_info_mut().assets.insert(
       filename,
-      CompilationAsset::new(Some(source.into()), asset_info),
+      rspack_core::CompilationAsset {
+        source: Some(source.into()),
+        info: asset_info,
+      },
     );
     Ok(())
   }

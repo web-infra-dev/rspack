@@ -560,12 +560,12 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     }
   }
 
-  fn evaluate_typeof(
+  fn evaluate_typeof<'a>(
     &self,
     _parser: &mut JavascriptParser,
-    expr: &UnaryExpr,
+    expr: &'a UnaryExpr,
     for_name: &str,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     (for_name == "module" || for_name == "exports").then(|| {
       eval::evaluate_to_string(
         "object".to_string(),

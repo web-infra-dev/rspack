@@ -104,27 +104,6 @@ Rspack’s Rust code usually runs in the tokio thread. Select the tokio thread t
 
 ![Rust Profiling](https://assets.rspack.dev/rspack/assets/profiling-rust.png)
 
-### Node.js profiling
-
-If we find that the performance bottleneck is on the JS side (e.g. js loader), then we need to further analyse the js side, and we can use Nodejs Profiling to analyse. for example
-
-```bash
-node --cpu-prof {rspack_bin_path} -c rspack.config.js
-```
-
-or
-
-```bash
-RSPACK_PROFILE=JSCPU rspack build
-```
-
-this will generates a cpu profile like `CPU.20230522.154658.14577.0.001.cpuprofile`, and we can use speedscope to visualize the profile, for example
-
-```bash
-npm install -g speedscope
-speedscope CPU.20230522.154658.14577.0.001.cpuprofile
-```
-
 ### Rsdoctor timeline
 
 If we want to analyze the time cost of loaders and plugins or the compilation behavior of loaders, we can use Rsdoctor to view:
