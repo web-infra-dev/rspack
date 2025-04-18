@@ -112,6 +112,9 @@ type LightningcssLoaderOptions = {
 
 ### targets
 
+- **类型：** `string | string[]`
+- **默认值：** `undefined`
+
 browserslist 查询字符串。
 
 下面是一些 targets 的用法示例。
@@ -140,20 +143,33 @@ const loader = {
 };
 ```
 
+
 ### errorRecovery
 
-Lightning CSS 对 CSS 的解析非常严格。Rspack 默认启用 `errorRecovery`，在遇到无效规则或声明时会跳过它们，产生警告，但不会中断编译。
+- **类型：** `boolean`
+- **默认值：** `true`
 
-如果你确认这些警告可以忽略，可使用 `ignoreWarnings` 过滤掉来自 LightningCSS 的提示：
+控制 Lightning CSS 如何处理无效的 CSS 语法。
+
+默认情况下启用，这意味着当遇到无效的 CSS 规则或声明时，Lightning CSS 会跳过这些内容，并产生警告，同时将这些无效部分从最终输出中移除，而不会中断编译过程。
+
+当使用第三方库且无法轻易修改其源码时，保持此选项启用可能会很有用，特别是当这些库包含实验性语法或特定浏览器的 hack 写法时。
+
+#### 忽略警告
+
+如果你确认这些警告可以忽略，可以使用 [ignoreWarnings](/config/other-options#ignorewarnings) 过滤掉来自 LightningCSS 的提示。
+
+比如：
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
-  ignoreWarnings: [warning => (warning.title = 'builtin:lightningcss-loader')],
+  ignoreWarnings: [warning => warning.title === 'builtin:lightningcss-loader'],
 };
 ```
 
-若希望在遇到无效规则时报错并**中断编译**，可在 loader 配置中关闭 `errorRecovery`：
+#### 关闭 errorRecovery
+
+如果将 `errorRecovery` 设置为 `false`，Lightning CSS 在遇到任何无效的 CSS 语法时，都会抛出编译错误并中断构建过程：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -169,7 +185,6 @@ export default {
               errorRecovery: false,
             },
           },
-          // ... other loader
         ],
       },
     ],
