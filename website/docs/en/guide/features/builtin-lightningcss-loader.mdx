@@ -112,7 +112,9 @@ type LightningcssLoaderOptions = {
 
 ### targets
 
-browserslist query string.
+- **Type:** `string | string[]`
+
+Browserslist query string.
 
 Here are some examples of setting targets.
 
@@ -140,20 +142,33 @@ const loader = {
 };
 ```
 
+
 ### errorRecovery
 
-Lightning CSS is strict, and will error when parsing an invalid rule or declaration. However, Rspack enables `errorRecovery` by default. When it encounters invalid rules or declarations, it will skip them and emit a warning, but will not abort the build.
+- **Type:** `boolean`
+- **Default:** `true`
 
-If you’re okay with skipping these warnings, you can filter them out using `ignoreWarnings`:
+Control how Lightning CSS handles invalid CSS syntax.
+
+By default, this option is enabled, meaning that when invalid CSS rules or declarations are parsed, Lightning CSS will skip them and emit warnings, while omitting them from the final output without interrupting the compilation process.
+
+#### Ignoring warnings
+
+If you confirm that these warnings can be ignored, you can use [ignoreWarnings](/config/other-options#ignorewarnings) to filter out the warnings from LightningCSS.
+
+For example, ignore all warnings:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
-  ignoreWarnings: [warning => (warning.title = 'builtin:lightningcss-loader')],
+  ignoreWarnings: [warning => warning.title === 'builtin:lightningcss-loader'],
 };
 ```
 
-If you prefer to treat invalid rules as errors and **abort the build**, disable `errorRecovery` in your loader options:
+You can also use regular expressions to ignore specific warnings.
+
+#### Disabling
+
+If you set `errorRecovery` to `false`, Lightning CSS will throw a compilation error and interrupt the build process when parsing any invalid CSS syntax:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -169,7 +184,6 @@ export default {
               errorRecovery: false,
             },
           },
-          // ... other loader
         ],
       },
     ],
