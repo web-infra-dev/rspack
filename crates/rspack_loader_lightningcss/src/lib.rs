@@ -97,6 +97,7 @@ impl LightningCssLoader {
     let stylesheet = StyleSheet::parse(&content_str, option.clone()).to_rspack_result()?;
 
     if let Some(warnings) = warnings {
+      #[allow(clippy::unwrap_used)]
       let warnings = warnings.read().unwrap();
       for warning in warnings.iter() {
         loader_context.emit_diagnostic(Diagnostic::warn(
