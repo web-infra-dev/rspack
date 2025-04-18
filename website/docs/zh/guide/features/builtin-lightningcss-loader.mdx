@@ -139,3 +139,40 @@ const loader = {
   },
 };
 ```
+
+### errorRecovery
+
+Lightning CSS 对 CSS 的解析非常严格。Rspack 默认启用 `errorRecovery`，在遇到无效规则或声明时会跳过它们，产生警告，但不会中断编译。
+
+如果你确认这些警告可以忽略，可使用 `ignoreWarnings` 过滤掉来自 LightningCSS 的提示：
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  ignoreWarnings: [warning => (warning.title = 'builtin:lightningcss-loader')],
+};
+```
+
+若希望在遇到无效规则时报错并**中断编译**，可在 loader 配置中关闭 `errorRecovery`：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: [
+          {
+            loader: 'builtin:lightningcss-loader',
+            /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+            options: {
+              errorRecovery: false,
+            },
+          },
+          // ... other loader
+        ],
+      },
+    ],
+  },
+};
+```
