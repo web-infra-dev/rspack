@@ -13,7 +13,9 @@ export interface ChromeEvent {
 		[key: string]: any;
 	};
 }
-export class ChromeTracer {
+// this is a tracer for nodejs
+// FIXME: currently we only support chrome layer and do nothing for logger layer
+export class JavaScriptTracer {
 	// baseline time, we use offset time for tracing to align with rust side time
 	static startTime: number;
 	static events: ChromeEvent[];
@@ -22,18 +24,21 @@ export class ChromeTracer {
 	static output: string;
 	// inspector session for CPU Profiler
 	static session: inspector.Session;
-	static initChromeTrace(layer: string, output: string) {
+	static initJavaScriptTrace(layer: string, output: string) {
 		this.session = new inspector.Session();
 		this.layer = layer;
 		this.output = output;
 		this.events = [];
 		const hrtime = process.hrtime();
-		this.session.connect();
-		this.session.post("Profiler.enable");
-		this.session.post("Profiler.start");
+		if (this.layer === "chrome") {
+			this.session.connect();
+			this.session.post("Profiler.enable");
+			this.session.post("Profiler.start");
+		}
+
 		this.startTime = hrtime[0] * 1000000 + Math.round(hrtime[1] / 1000); // use microseconds
 	}
-	static async cleanupChromeTrace() {
+	static async cleanupJavaScriptTrace() {
 		if (!this.layer.includes("chrome")) {
 			return;
 		}
@@ -73,16 +78,17 @@ export class ChromeTracer {
 					}
 				});
 			}
-
-			// ensure file write to disk
+			const originTrace = fs.readFileSync(this.output, "utf-8");
+			// this is hack, [] is empty and [{}] is not empty
+			const originTraceIsEmpty = !originTrace.includes("{");
 			const eventMsg =
-				(this.events.length > 0 ? "," : "") +
+				(this.events.length > 0 && !originTraceIsEmpty ? "," : "") +
 				this.events
 					.map(x => {
 						return JSON.stringify(x);
 					})
 					.join(",\n");
-			const originTrace = fs.readFileSync(this.output, "utf-8");
+
 			// a naive implementation to merge rust & Node.js trace, we can't use JSON.parse because sometime the trace file is too big to parse
 			const newTrace = originTrace.replace(/]$/, `${eventMsg}\n]`);
 			fs.writeFileSync(this.output, newTrace, {

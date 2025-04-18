@@ -31,10 +31,6 @@ describe("profile", () => {
 		);
 		expect(exitCode).toBe(0);
 		const dirname = findDefaultOutputDirname();
-		console.log(
-			resolve(dirname, defaultTracePath),
-			fs.existsSync(resolve(dirname, defaultTracePath))
-		);
 		expect(fs.existsSync(resolve(dirname, defaultTracePath))).toBeTruthy();
 	});
 
@@ -50,12 +46,12 @@ describe("profile", () => {
 		expect(fs.existsSync(resolve(dirname, defaultTracePath))).toBeTruthy();
 	});
 
-	it("should filter trace event when use RSPACK_PROFILE=[crate1,crate2]", async () => {
+	it("should filter trace event when use RSPACK_PROFILE=rspack_resolver,rspack", async () => {
 		const { exitCode } = await run(
 			__dirname,
 			[],
 			{},
-			{ RSPACK_PROFILE: "[rspack_core]" }
+			{ RSPACK_PROFILE: "rspack,respack_resolver" }
 		);
 		expect(exitCode).toBe(0);
 		const dirname = findDefaultOutputDirname();
@@ -79,6 +75,7 @@ describe("profile", () => {
 			[],
 			{},
 			{
+				RSPACK_PROFILE: "ALL",
 				RSPACK_TRACE_OUTPUT: customTracePath
 			}
 		);
