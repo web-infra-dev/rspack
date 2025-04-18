@@ -50,7 +50,11 @@ pub struct JsRspackError {
 }
 
 impl JsRspackError {
-  pub fn try_from_diagnostic(diagnostic: &Diagnostic, colored: bool) -> Result<Self> {
+  pub fn try_from_diagnostic(diagnostic: &Diagnostic, colored: bool) -> napi::Result<Self> {
+    let message = diagnostic
+      .render_report(colored)
+      .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+
     Ok(Self {
       name: diagnostic.code().map(|n| n.to_string()).unwrap_or_else(|| {
         match diagnostic.severity() {
@@ -58,7 +62,7 @@ impl JsRspackError {
           rspack_error::RspackSeverity::Warn => "Warn".to_string(),
         }
       }),
-      message: diagnostic.render_report(colored)?,
+      message,
       module_identifier: diagnostic.module_identifier().map(|d| d.to_string()),
       loc: diagnostic.loc(),
       file: diagnostic.file().map(|f| f.as_str().to_string()),

@@ -5,7 +5,7 @@
 extern crate napi_derive;
 extern crate rspack_allocator;
 
-use std::{cell::RefCell, pin::Pin, sync::Arc};
+use std::{cell::RefCell, sync::Arc};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use napi::{bindgen_prelude::*, CallContext};
@@ -116,7 +116,7 @@ fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
 #[napi(custom_finalize)]
 pub struct JsCompiler {
   js_hooks_plugin: JsHooksAdapterPlugin,
-  compiler: Pin<Box<Compiler>>,
+  compiler: Compiler,
   state: CompilerState,
   include_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
 }
@@ -191,7 +191,7 @@ impl JsCompiler {
     );
 
     Ok(Self {
-      compiler: Box::pin(Compiler::from(rspack)),
+      compiler: Compiler::from(rspack),
       state: CompilerState::init(),
       js_hooks_plugin,
       include_dependencies_map: Default::default(),
@@ -289,10 +289,7 @@ impl JsCompiler {
       return Err(concurrent_compiler_error());
     }
     let _guard = self.state.enter();
-    let mut compiler = reference.share_with(env, |s| {
-      // SAFETY: The mutable reference to `Compiler` is exclusive. It's guaranteed by the running state guard.
-      Ok(unsafe { s.compiler.as_mut().get_unchecked_mut() })
-    })?;
+    let mut compiler = reference.share_with(env, |s| Ok(&mut s.compiler))?;
 
     self.cleanup_last_compilation(&compiler.compilation);
 
@@ -300,7 +297,7 @@ impl JsCompiler {
     // 1. `Compiler` is pinned and stored on the heap.
     // 2. `JsReference` (NAPI internal mechanism) keeps `Compiler` alive until its instance getting garbage collected.
     f(
-      unsafe { std::mem::transmute::<&mut Compiler, &'static mut Compiler>(*compiler) },
+      unsafe { std::mem::transmute::<&mut Compiler, &'static mut Compiler>(&mut *compiler) },
       _guard,
     )
   }

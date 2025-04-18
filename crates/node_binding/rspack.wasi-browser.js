@@ -64,6 +64,7 @@ export const AsyncDependenciesBlock = __napiModule.exports.AsyncDependenciesBloc
 export const ConcatenatedModule = __napiModule.exports.ConcatenatedModule
 export const ContextModule = __napiModule.exports.ContextModule
 export const Dependency = __napiModule.exports.Dependency
+export const Diagnostics = __napiModule.exports.Diagnostics
 export const EntryDataDto = __napiModule.exports.EntryDataDto
 export const EntryDataDTO = __napiModule.exports.EntryDataDTO
 export const EntryDependency = __napiModule.exports.EntryDependency

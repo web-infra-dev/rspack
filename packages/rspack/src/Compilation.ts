@@ -60,6 +60,9 @@ import { createFakeCompilationDependencies } from "./util/fake";
 import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
 import { JsSource } from "./util/source";
+// patch binding Diagnostics
+import "./Diagnostics";
+import type Diagnostics from "./Diagnostics";
 
 export type Assets = Record<string, Source>;
 export interface Asset {
@@ -690,91 +693,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.#inner.pushNativeDiagnostics(diagnostics);
 	}
 
-	get errors(): RspackError[] {
-		const inner = this.#inner;
-		type ErrorType = RspackError;
-		const errors = inner.getErrors();
-		const proxyMethod = [
-			{
-				method: "push",
-				handler(
-					target: typeof Array.prototype.push,
-					thisArg: Array<ErrorType>,
-					errs: ErrorType[]
-				) {
-					for (let i = 0; i < errs.length; i++) {
-						const error = errs[i];
-						inner.pushDiagnostic(
-							JsRspackDiagnostic.__to_binding(error, JsRspackSeverity.Error)
-						);
-					}
-					return Reflect.apply(target, thisArg, errs);
-				}
-			},
-			{
-				method: "pop",
-				handler(target: typeof Array.prototype.pop, thisArg: Array<ErrorType>) {
-					inner.spliceDiagnostic(errors.length - 1, errors.length, []);
-					return Reflect.apply(target, thisArg, []);
-				}
-			},
-			{
-				method: "shift",
-				handler(
-					target: typeof Array.prototype.shift,
-					thisArg: Array<ErrorType>
-				) {
-					inner.spliceDiagnostic(0, 1, []);
-					return Reflect.apply(target, thisArg, []);
-				}
-			},
-			{
-				method: "unshift",
-				handler(
-					target: typeof Array.prototype.unshift,
-					thisArg: Array<ErrorType>,
-					errs: ErrorType[]
-				) {
-					const errList = errs.map(error => {
-						return JsRspackDiagnostic.__to_binding(
-							error,
-							JsRspackSeverity.Error
-						);
-					});
-					inner.spliceDiagnostic(0, 0, errList);
-					return Reflect.apply(target, thisArg, errs);
-				}
-			},
-			{
-				method: "splice",
-				handler(
-					target: typeof Array.prototype.splice,
-					thisArg: Array<ErrorType>,
-					[startIdx, delCount, ...errors]: [number, number, ...ErrorType[]]
-				) {
-					const errList = errors.map(error => {
-						return JsRspackDiagnostic.__to_binding(
-							error,
-							JsRspackSeverity.Error
-						);
-					});
-					inner.spliceDiagnostic(startIdx, startIdx + delCount, errList);
-					return Reflect.apply(target, thisArg, [
-						startIdx,
-						delCount,
-						...errors
-					]);
-				}
-			}
-		];
-
-		for (const item of proxyMethod) {
-			const proxiedMethod = new Proxy(errors[item.method as any], {
-				apply: item.handler as any
-			});
-			errors[item.method as any] = proxiedMethod;
-		}
-		return errors;
+	get errors(): Diagnostics {
+		return this.#inner.errors;
 	}
 
 	set errors(errors: RspackError[]) {

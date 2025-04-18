@@ -89,6 +89,7 @@ module.exports.AsyncDependenciesBlock = __napiModule.exports.AsyncDependenciesBl
 module.exports.ConcatenatedModule = __napiModule.exports.ConcatenatedModule
 module.exports.ContextModule = __napiModule.exports.ContextModule
 module.exports.Dependency = __napiModule.exports.Dependency
+module.exports.Diagnostics = __napiModule.exports.Diagnostics
 module.exports.EntryDataDto = __napiModule.exports.EntryDataDto
 module.exports.EntryDataDTO = __napiModule.exports.EntryDataDTO
 module.exports.EntryDependency = __napiModule.exports.EntryDependency
