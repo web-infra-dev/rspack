@@ -1,21 +1,18 @@
-import withRspack from "next-rspack";
-import { JsConfigPathsPlugin } from "./jsconfigpathsplugin.js";
-import tsconfig from "./tsconfig.json" with { type: "json" };
-import path from "node:path";
+process.env.NEXT_RSPACK = "true";
+process.env.RSPACK_CONFIG_VALIDATE = "loose-silent";
 
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-	/* config options here */
-	reactStrictMode: true,
-	webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
-		config.resolve.plugins = config.resolve.plugins || [];
-		config.resolve.plugins.push(
-			new JsConfigPathsPlugin(tsconfig.compilerOptions.paths, {
-				baseUrl: tsconfig.compilerOptions.baseUrl
-			})
-		);
+module.exports = {
+	webpack(config) {
+		config.plugins.push(c => {
+			c.hooks.compilation.tap("next.config.js", compilation => {
+				compilation.hooks.processAssets.tap("next.config.js", () => {
+					function f() {
+						f();
+					}
+					f();
+				});
+			});
+		});
 		return config;
 	}
 };
-
-export default withRspack(nextConfig);
