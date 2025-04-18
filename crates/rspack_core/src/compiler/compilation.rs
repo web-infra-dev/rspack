@@ -622,7 +622,8 @@ impl Compilation {
       .compilation_hooks
       .add_entry
       .call(self, entry_name.as_deref())
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.addEntry"))?;
     Ok(())
   }
 
@@ -1142,7 +1143,7 @@ impl Compilation {
             },
           ))
         });
-      })
+      });
     })
     .await;
 
@@ -1190,7 +1191,8 @@ impl Compilation {
 
         _ = self
           .chunk_asset(chunk_ukey, &filename, plugin_driver.clone())
-          .await;
+          .await
+          .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.chunkAsset"))?;
       }
     }
 
@@ -1204,6 +1206,8 @@ impl Compilation {
       .process_assets
       .call(self)
       .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.processAssets"))?;
+    Ok(())
   }
 
   #[instrument("Compilation:after_process_asssets", skip_all)]
@@ -1213,11 +1217,19 @@ impl Compilation {
       .after_process_assets
       .call(self)
       .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.afterProcessAssets"))?;
+    Ok(())
   }
 
   #[instrument("Compilation:after_seal", skip_all)]
   async fn after_seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    plugin_driver.compilation_hooks.after_seal.call(self).await
+    plugin_driver
+      .compilation_hooks
+      .after_seal
+      .call(self)
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.afterSeal"))?;
+    Ok(())
   }
 
   // #[instrument(
@@ -1234,7 +1246,8 @@ impl Compilation {
       .compilation_hooks
       .chunk_asset
       .call(self, &chunk_ukey, filename)
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.chunkAsset"))?;
     Ok(())
   }
 
@@ -1317,7 +1330,8 @@ impl Compilation {
       .compilation_hooks
       .finish_modules
       .call(self)
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.finishModules"))?;
 
     // sync assets to compilation from module_executor
     if let Some(module_executor) = &mut self.module_executor {
@@ -1401,19 +1415,24 @@ impl Compilation {
     let logger = self.get_logger("rspack.Compilation");
 
     // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L2809
-    plugin_driver.compilation_hooks.seal.call(self).await?;
+    plugin_driver
+      .compilation_hooks
+      .seal
+      .call(self)
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.seal"))?;
 
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
-    while matches!(
-      plugin_driver
-        .compilation_hooks
-        .optimize_dependencies
-        .call(self)
-        .instrument(info_span!("Compilation:optimize_dependencies"))
-        .await?,
-      Some(true)
-    ) {}
+    let optimize_deps_result = plugin_driver
+      .compilation_hooks
+      .optimize_dependencies
+      .call(self)
+      .instrument(info_span!("Compilation:optimize_dependencies"))
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeDependencies"))?;
+
+    while matches!(optimize_deps_result, Some(true)) {}
     logger.time_end(start);
 
     // ModuleGraph is frozen for now on, we have a module graph that won't change
@@ -1432,25 +1451,27 @@ impl Compilation {
     })
     .await?;
 
-    while matches!(
-      plugin_driver
-        .compilation_hooks
-        .optimize_modules
-        .call(self)
-        .instrument(info_span!("Compilation:optimize_modules"))
-        .await?,
-      Some(true)
-    ) {}
+    let optimize_modules_result = plugin_driver
+      .compilation_hooks
+      .optimize_modules
+      .call(self)
+      .instrument(info_span!("Compilation:optimize_modules"))
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeModules"))?;
+
+    while matches!(optimize_modules_result, Some(true)) {}
     plugin_driver
       .compilation_hooks
       .after_optimize_modules
       .call(self)
       .instrument(info_span!("Compilation:after_optimize_modules"))
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.afterOptimizeModules"))?;
     while matches!(
       tracing::info_span!("Compilation:optimize_chunks")
         .in_scope(|| { plugin_driver.compilation_hooks.optimize_chunks.call(self) })
-        .await?,
+        .await
+        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeChunks"))?,
       Some(true)
     ) {}
     logger.time_end(start);
@@ -1461,14 +1482,16 @@ impl Compilation {
       .optimize_tree
       .call(self)
       .instrument(info_span!("Compilation:optimize_tree"))
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeTree"))?;
 
     plugin_driver
       .compilation_hooks
       .optimize_chunk_modules
       .call(self)
       .instrument(info_span!("Compilation:optimize_chunk_modules"))
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeChunkModules"))?;
     logger.time_end(start);
 
     // ChunkGraph is frozen for now on, we have a chunk graph that won't change
@@ -1477,13 +1500,15 @@ impl Compilation {
     let start = logger.time("module ids");
     tracing::info_span!("Compilation:module_ids")
       .in_scope(|| plugin_driver.compilation_hooks.module_ids.call(self))
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.moduleIds"))?;
     logger.time_end(start);
 
     let start = logger.time("chunk ids");
     tracing::info_span!("Compilation:chunk_ids")
       .in_scope(|| plugin_driver.compilation_hooks.chunk_ids.call(self))
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.chunkIds"))?;
     logger.time_end(start);
 
     self.assign_runtime_ids();
@@ -1555,7 +1580,8 @@ impl Compilation {
           .optimize_code_generation
           .call(self)
       })
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeCodeGeneration"))?;
     logger.time_end(start);
 
     let start = logger.time("code generation");
@@ -1594,7 +1620,8 @@ impl Compilation {
       .compilation_hooks
       .after_code_generation
       .call(self)
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.afterCodeGeneration"))?;
     logger.time_end(start);
 
     let start = logger.time("runtime requirements");
@@ -1824,7 +1851,8 @@ impl Compilation {
                     .compilation_hooks
                     .additional_module_runtime_requirements
                     .call(compilation, &module, &mut runtime_requirements)
-                    .await?;
+                    .await
+                    .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.additionalModuleRuntimeRequirements"))?;
 
                   compilation
                     .process_runtime_requirement_hook(&mut runtime_requirements, {
@@ -1843,7 +1871,8 @@ impl Compilation {
                             runtime_requirements,
                             runtime_requirements_mut,
                           )
-                          .await?;
+                          .await
+                          .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInModule"))?;
                         Ok(())
                       }
                     })
@@ -1900,7 +1929,10 @@ impl Compilation {
         .compilation_hooks
         .additional_chunk_runtime_requirements
         .call(self, &chunk_ukey, &mut set)
-        .await?;
+        .await
+        .map_err(|e| {
+          e.wrap_err("caused by plugins in Compilation.hooks.additionalChunkRuntimeRequirements")
+        })?;
 
       self
         .process_runtime_requirement_hook_mut(&mut set, {
@@ -1919,7 +1951,10 @@ impl Compilation {
                 runtime_requirements,
                 runtime_requirements_mut,
               )
-              .await?;
+              .await
+              .map_err(|e| {
+                e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInChunk")
+              })?;
             Ok(())
           }
         })
@@ -1945,7 +1980,10 @@ impl Compilation {
         .compilation_hooks
         .additional_tree_runtime_requirements
         .call(self, &entry_ukey, &mut set)
-        .await?;
+        .await
+        .map_err(|e| {
+          e.wrap_err("caused by plugins in Compilation.hooks.additionalTreeRuntimeRequirements")
+        })?;
 
       self
         .process_runtime_requirement_hook_mut(&mut set, {
@@ -1964,7 +2002,10 @@ impl Compilation {
                 runtime_requirements,
                 runtime_requirements_mut,
               )
-              .await?;
+              .await
+              .map_err(|e| {
+                e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInTree")
+              })?;
             Ok(())
           }
         })
@@ -1987,7 +2028,8 @@ impl Compilation {
           .compilation_hooks
           .runtime_module
           .call(self, &runtime_module_id, entry_ukey)
-          .await?;
+          .await
+          .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.runtimeModule"))?;
       }
     }
 
@@ -2308,7 +2350,8 @@ impl Compilation {
       .compilation_hooks
       .chunk_hash
       .call(self, &chunk_ukey, &mut hasher)
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.chunkHash"))?;
     let chunk_hash = hasher.digest(&self.options.output.hash_digest);
 
     let mut content_hashes = HashMap::default();
@@ -2316,7 +2359,8 @@ impl Compilation {
       .compilation_hooks
       .content_hash
       .call(self, &chunk_ukey, &mut content_hashes)
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.contentHash"))?;
     let content_hashes = content_hashes
       .into_iter()
       .map(|(t, hasher)| (t, hasher.digest(&self.options.output.hash_digest)))
@@ -2326,7 +2370,8 @@ impl Compilation {
       .compilation_hooks
       .dependent_full_hash
       .call(self, &chunk_ukey)
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.dependentFullHash"))?;
 
     Ok(ChunkHashResult {
       hash: chunk_hash,
