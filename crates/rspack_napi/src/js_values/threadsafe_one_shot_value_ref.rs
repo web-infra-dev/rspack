@@ -90,6 +90,7 @@ impl ThreadsafeOneShotRef {
         },
         "Failed to create threadsafe function"
       )?;
+      check_status!(unsafe { sys::napi_unref_threadsafe_function(env, ts_fn) })?;
       DELETE_REF_TS_FN.store(ts_fn, Ordering::Relaxed);
     }
 
@@ -111,7 +112,11 @@ impl Drop for ThreadsafeOneShotRef {
     } else {
       let ts_fn = DELETE_REF_TS_FN.load(Ordering::Relaxed);
       unsafe {
-        let _ = napi_call_threadsafe_function(ts_fn, self.napi_ref.cast(), 0);
+        let _ = napi_call_threadsafe_function(
+          ts_fn,
+          self.napi_ref.cast(),
+          sys::ThreadsafeFunctionCallMode::nonblocking,
+        );
       }
     }
   }
