@@ -1,5 +1,5 @@
 import * as path from "path";
-import { type Compilation, rspack, NormalModule } from "@rspack/core";
+import { type Compilation, rspack, NormalModule, type ChunkGroup } from "@rspack/core";
 import { beforeAll, bench, describe } from "vitest";
 import rspackConfig from "./fixtures/ts-react/rspack.config";
 
@@ -166,7 +166,7 @@ describe("TypeScript React project", () => {
 		function isCSSMod(mod: {
 			resource: string
 			type?: string
-			loaders?: { loader: string }[]
+			loaders?: readonly { loader: string }[]
 		}): boolean {
 			return !!(
 			  	mod.type === 'css/mini-extract' ||
@@ -184,6 +184,37 @@ describe("TypeScript React project", () => {
 			if (module instanceof NormalModule) {
 				isCSSMod(module);
 			}
+		}
+	});
+
+	bench("get app path required chunks", () => {
+		const rootMainFiles: Set<string> = new Set()
+		
+		function getAppPathRequiredChunks(
+			chunkGroup: ChunkGroup,
+			excludedFiles: Set<string>
+		  ) {
+			const chunks: Array<string> = []
+			chunkGroup.chunks.forEach(chunk => {
+				if (chunk.id != null) {
+					const chunkId = '' + chunk.id
+					chunk.files.forEach(file => {
+						if (!file.endsWith('.js')) return null
+						if (file.endsWith('.hot-update.js')) return null
+						if (excludedFiles.has(file)) return null
+
+						return chunks.push(
+							chunkId,
+							file
+						)
+					})
+				}
+			})
+			return chunks
+		}
+
+		for (let [_, entrypoint] of theCompilation.entrypoints) {
+			const requiredChunks = getAppPathRequiredChunks(entrypoint, rootMainFiles)
 		}
 	});
 });
