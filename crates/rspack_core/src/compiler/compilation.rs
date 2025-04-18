@@ -1143,7 +1143,7 @@ impl Compilation {
             },
           ))
         });
-      });
+      })
     })
     .await;
 
@@ -1424,15 +1424,16 @@ impl Compilation {
 
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
-    let optimize_deps_result = plugin_driver
-      .compilation_hooks
-      .optimize_dependencies
-      .call(self)
-      .instrument(info_span!("Compilation:optimize_dependencies"))
-      .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeDependencies"))?;
-
-    while matches!(optimize_deps_result, Some(true)) {}
+    while matches!(
+      plugin_driver
+        .compilation_hooks
+        .optimize_dependencies
+        .call(self)
+        .instrument(info_span!("Compilation:optimize_dependencies"))
+        .await
+        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeDependencies"))?,
+      Some(true)
+    ) {}
     logger.time_end(start);
 
     // ModuleGraph is frozen for now on, we have a module graph that won't change
@@ -1451,15 +1452,16 @@ impl Compilation {
     })
     .await?;
 
-    let optimize_modules_result = plugin_driver
-      .compilation_hooks
-      .optimize_modules
-      .call(self)
-      .instrument(info_span!("Compilation:optimize_modules"))
-      .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeModules"))?;
-
-    while matches!(optimize_modules_result, Some(true)) {}
+    while matches!(
+      plugin_driver
+        .compilation_hooks
+        .optimize_modules
+        .call(self)
+        .instrument(info_span!("Compilation:optimize_modules"))
+        .await
+        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeModules"))?,
+      Some(true)
+    ) {}
     plugin_driver
       .compilation_hooks
       .after_optimize_modules
