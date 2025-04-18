@@ -1,4 +1,7 @@
-use std::borrow::Cow;
+use std::{
+  borrow::Cow,
+  sync::{Arc, RwLock},
+};
 
 use config::Config;
 use derive_more::Debug;
@@ -14,7 +17,7 @@ use rspack_core::{
   rspack_sources::{encode_mappings, Mapping, OriginalLocation, SourceMap},
   Loader, LoaderContext, RunnerContext,
 };
-use rspack_error::{Result, ToStringResultToRspackResultExt};
+use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_loader_runner::{Identifiable, Identifier};
 use tokio::sync::Mutex;
 
@@ -76,15 +79,33 @@ impl LightningCssLoader {
       matches!(&self.config.non_standard, Some(non_standard) if non_standard.deep_selector_combinator),
     );
 
+    let error_recovery = self.config.error_recovery.unwrap_or(true);
+    let warnings = if error_recovery {
+      Some(Arc::new(RwLock::new(Vec::new())))
+    } else {
+      None
+    };
+
     let option = ParserOptions {
       filename: filename.clone(),
       css_modules: None,
       source_index: 0,
-      error_recovery: self.config.error_recovery.unwrap_or(false),
-      warnings: None,
+      error_recovery,
+      warnings: warnings.clone(),
       flags: parser_flags,
     };
     let stylesheet = StyleSheet::parse(&content_str, option.clone()).to_rspack_result()?;
+
+    if let Some(warnings) = warnings {
+      #[allow(clippy::unwrap_used)]
+      let warnings = warnings.read().unwrap();
+      for warning in warnings.iter() {
+        loader_context.emit_diagnostic(Diagnostic::warn(
+          "LightningCSS parse warning".to_string(),
+          format!("{}", warning),
+        ));
+      }
+    }
 
     let mut stylesheet = to_static(
       stylesheet,
