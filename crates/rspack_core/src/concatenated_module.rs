@@ -57,10 +57,12 @@ use crate::{
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
 define_hook!(ConcatenatedModuleExportsDefinitions: SeriesBail(exports_definitions: &mut ExportsDefinitionArgs, is_entry_module: bool) -> bool);
+define_hook!(ConcatenatedModuleConcatenatedInfo: Series(compilation: &Compilation, module: ModuleIdentifier, runtime: Option<&RuntimeSpec>, info: &mut ConcatenatedModuleInfo, all_used_names: &mut HashSet<Atom>));
 
 #[derive(Debug, Default)]
 pub struct ConcatenatedModuleHooks {
   pub exports_definitions: ConcatenatedModuleExportsDefinitionsHook,
+  pub concatenated_info: ConcatenatedModuleConcatenatedInfoHook,
 }
 
 #[cacheable]
@@ -638,7 +640,7 @@ impl Module for ConcatenatedModule {
     let runtime = runtime.as_deref();
     let context = compilation.options.context.clone();
 
-    let (modules_with_info, module_to_info_map) =
+    let (modules_with_info, mut module_to_info_map) =
       self.get_modules_with_info(&compilation.get_module_graph(), runtime);
 
     // Set with modules that need a generated namespace object
@@ -647,19 +649,37 @@ impl Module for ConcatenatedModule {
     // Generate source code and analyze scopes
     // Prepare a ReplaceSource for the final source
     //
+    let mut all_used_names: HashSet<Atom> = RESERVED_NAMES.iter().map(|s| Atom::new(*s)).collect();
+    for (id, info) in module_to_info_map.iter_mut() {
+      if let ModuleInfo::Concatenated(info) = info {
+        compilation
+          .plugin_driver
+          .concatenated_module_hooks
+          .concatenated_info
+          .call(compilation, *id, runtime, info, &mut all_used_names)
+          .await?;
+      }
+    }
+
     let arc_map = Arc::new(module_to_info_map);
 
     let tmp = rspack_futures::scope::<_, Result<_>>(|token| {
       arc_map.iter().for_each(|(id, info)| {
-        let s = unsafe { token.used((&self, &compilation, &arc_map, runtime, id, info)) };
-        s.spawn(
-          |(module, compilation, arc_map, runtime, id, info)| async move {
-            let updated_module_info = module
-              .analyze_module(compilation, Arc::clone(arc_map), info.clone(), runtime)
-              .await?;
-            Ok((*id, updated_module_info))
-          },
-        );
+        let concatenation_scope = if let ModuleInfo::Concatenated(info) = &info {
+          let concatenation_scope = ConcatenationScope::new(arc_map.clone(), info.as_ref().clone());
+
+          Some(concatenation_scope)
+        } else {
+          None
+        };
+
+        let s = unsafe { token.used((&self, &compilation, runtime, id, info)) };
+        s.spawn(|(module, compilation, runtime, id, info)| async move {
+          let updated_module_info = module
+            .analyze_module(compilation, info.clone(), runtime, concatenation_scope)
+            .await?;
+          Ok((*id, updated_module_info))
+        });
       })
     })
     .await
@@ -678,7 +698,6 @@ impl Module for ConcatenatedModule {
       module_to_info_map.insert(id, module_info);
     }
 
-    let mut all_used_names: HashSet<Atom> = RESERVED_NAMES.iter().map(|s| Atom::new(*s)).collect();
     let mut top_level_declarations: HashSet<Atom> = HashSet::default();
     let mut public_path_auto_replace: bool = false;
 
@@ -1701,14 +1720,15 @@ impl ConcatenatedModule {
   async fn analyze_module(
     &self,
     compilation: &Compilation,
-    module_info_map: Arc<IdentifierIndexMap<ModuleInfo>>,
     info: ModuleInfo,
     runtime: Option<&RuntimeSpec>,
+    concatenation_scope: Option<ConcatenationScope>,
   ) -> Result<ModuleInfo> {
     if let ModuleInfo::Concatenated(box info) = info {
       let module_id = info.module;
+      let concatenation_scope =
+        concatenation_scope.expect("should have concatenation scope for concatenated module");
 
-      let concatenation_scope = ConcatenationScope::new(module_info_map, info);
       let module_graph = compilation.get_module_graph();
       let module = module_graph
         .module_by_identifier(&module_id)
@@ -2138,7 +2158,7 @@ impl ConcatenatedModule {
           return Binding::Raw(RawBinding {
             info_id: info.module,
             raw_name: raw_export.as_str().into(),
-            ids: export_name.clone(),
+            ids: export_name[1..].to_vec(),
             export_name,
             comment: None,
           });
@@ -2204,8 +2224,9 @@ impl ConcatenatedModule {
         }
 
         panic!(
-          "Cannot get final name for export '{}'",
-          join_atom(export_name.iter(), ".")
+          "Cannot get final name for export '{}' of module '{}'",
+          join_atom(export_name.iter(), "."),
+          module.identifier()
         );
       }
       ModuleInfo::External(info) => {
