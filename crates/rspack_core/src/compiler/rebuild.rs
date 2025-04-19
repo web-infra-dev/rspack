@@ -9,7 +9,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use crate::{
   chunk_graph_chunk::ChunkId, chunk_graph_module::ModuleId, fast_set,
   incremental::IncrementalPasses, ChunkGraph, ChunkKind, Compilation, Compiler, ModuleExecutor,
-  RuntimeSpec, RuntimeSpecMap,
+  RuntimeSpec,
 };
 
 impl Compiler {
@@ -182,7 +182,7 @@ pub struct CompilationRecords {
   pub runtimes: RuntimeSpec,
   pub runtime_modules: IdentifierMap<RspackHashDigest>,
   pub chunks: FxHashMap<ChunkId, (RuntimeSpec, FxHashSet<ModuleId>)>,
-  pub modules: FxHashMap<ModuleId, RuntimeSpecMap<RspackHashDigest>>,
+  pub modules: FxHashMap<ModuleId, FxHashMap<ChunkId, RspackHashDigest>>,
   pub hash: Option<RspackHashDigest>,
 }
 
@@ -203,7 +203,7 @@ impl CompilationRecords {
 
   fn record_modules(
     compilation: &Compilation,
-  ) -> FxHashMap<ModuleId, RuntimeSpecMap<RspackHashDigest>> {
+  ) -> FxHashMap<ModuleId, FxHashMap<ChunkId, RspackHashDigest>> {
     compilation
       .chunk_graph
       .chunk_graph_module_by_module_identifier
@@ -211,16 +211,18 @@ impl CompilationRecords {
       .filter_map(|identifier| {
         let module_id =
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, *identifier)?.clone();
-        let mut hashes = RuntimeSpecMap::new();
-        for runtime in compilation
-          .chunk_graph
-          .get_module_runtimes_iter(*identifier, &compilation.chunk_by_ukey)
-        {
+        let mut hashes = FxHashMap::default();
+        for chunk in compilation.chunk_graph.get_module_chunks(*identifier) {
+          let chunk = compilation.chunk_by_ukey.expect_get(chunk);
+          let chunk_id = chunk
+            .id(&compilation.chunk_ids_artifact)
+            .expect("should have chunk_id")
+            .clone();
           let hash = compilation
             .code_generation_results
-            .get_hash(identifier, Some(runtime))
+            .get_hash(identifier, Some(chunk.runtime()))
             .expect("should have hash");
-          hashes.set(runtime.clone(), hash.clone());
+          hashes.insert(chunk_id, hash.clone());
         }
         Some((module_id, hashes))
       })

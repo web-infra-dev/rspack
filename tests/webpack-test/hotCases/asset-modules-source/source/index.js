@@ -1,9 +1,10 @@
 it("should regenerate contenthash", function(done) {
-	const value = new URL("./file.text", import.meta.url);
-	expect(/file\.7eff7665bf7fc2696232\.text/.test(value.toString())).toBe(true);
+	const value1 = new URL("./file.text", import.meta.url);
+	expect(/file\.[\da-f]{16}\.text/.test(value1.toString())).toBe(true);
 	module.hot.accept("./file.text", function() {
-		const value = new URL("./file.text", import.meta.url);
-		expect(/file\.402033be7494a9255415\.text/.test(value.toString())).toBe(true);
+		const value2 = new URL("./file.text", import.meta.url);
+		expect(/file\.[\da-f]{16}\.text/.test(value2.toString())).toBe(true);
+		expect(value1.toString()).not.toBe(value2.toString());
 		done();
 	});
 	NEXT(require("../../update")(done));

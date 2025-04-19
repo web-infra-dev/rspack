@@ -153,13 +153,13 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 		}
 		options.module.rules ??= [];
 		options.module.rules.push({
-			test: /\.(js|css|json)/,
 			use: [
 				{
 					loader: path.resolve(__dirname, "../helper/loaders/hot-update.js"),
 					options: this.updateOptions
 				}
-			]
+			],
+			enforce: "pre"
 		});
 		if (this._hotOptions.compilerType === ECompilerType.Rspack) {
 			options.plugins ??= [];

@@ -157,7 +157,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           let Some(old_module_hashes) = old_all_modules.get(module_id) else {
             return Some(module);
           };
-          let old_hash = old_module_hashes.get(current_chunk.runtime());
+          let old_hash = old_module_hashes.get(&chunk_id);
           let new_hash = compilation
             .code_generation_results
             .get_hash(&module, Some(current_chunk.runtime()));
@@ -194,7 +194,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       let old_hashes = old_all_modules
         .get(&old_module_id)
         .expect("should have module");
-      let old_hash = old_hashes.get(old_runtime);
+      let old_hash = old_hashes.get(&chunk_id);
       let runtimes = compilation
         .chunk_graph
         .get_module_runtimes(*module_identifier, &compilation.chunk_by_ukey);
