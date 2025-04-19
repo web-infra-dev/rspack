@@ -465,8 +465,8 @@ importers:
         specifier: ^26.1.0
         version: 26.1.0
       loader-utils:
-        specifier: ^2.0.4
-        version: 2.0.4
+        specifier: ^3.3.1
+        version: 3.3.1
       memfs:
         specifier: 4.17.0
         version: 4.17.0
@@ -897,8 +897,8 @@ importers:
         specifier: ^12.2.0
         version: 12.2.0(@rspack/core@packages+rspack)(less@4.3.0)(webpack@5.99.5(@swc/core@1.11.21(@swc/helpers@0.5.17))(webpack-cli@5.1.4(webpack@5.99.5)))
       loader-utils:
-        specifier: ^2.0.4
-        version: 2.0.4
+        specifier: ^3.3.1
+        version: 3.3.1
       memfs:
         specifier: ^4.17.0
         version: 4.17.0
@@ -6000,6 +6000,10 @@ packages:
   loader-utils@2.0.4:
     resolution: {integrity: sha512-xXqpXoINfFhgua9xiqD8fPFHgkoq1mmmpE92WlDbm9rNRd/EbRb+Gqf908T2DMfuHjjJlksiK2RbHVOdD/MqSw==}
     engines: {node: '>=8.9.0'}
+
+  loader-utils@3.3.1:
+    resolution: {integrity: sha512-FMJTLMXfCLMLfJxcX9PFqX5qD88Z5MRGaZCVzfuqeZSPsyiBzs+pahDQjbIWz2QIzPZz0NX9Zy4FX3lmK6YHIg==}
+    engines: {node: '>= 12.13.0'}
 
   local-pkg@1.0.0:
     resolution: {integrity: sha512-bbgPw/wmroJsil/GgL4qjDzs5YLTBMQ99weRsok1XCDccQeehbHA/I1oRvk2NPtr7KGZgT/Y5tPRnAtMqeG2Kg==}
@@ -13940,6 +13944,8 @@ snapshots:
       big.js: 5.2.2
       emojis-list: 3.0.0
       json5: 2.2.3
+
+  loader-utils@3.3.1: {}
 
   local-pkg@1.0.0:
     dependencies:
