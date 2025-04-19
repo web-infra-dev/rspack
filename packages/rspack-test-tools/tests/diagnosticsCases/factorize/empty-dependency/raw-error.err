@@ -1,0 +1,12 @@
+[
+    {
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/empty-dependency/index.js",
+        "moduleName": "./index.js",
+        "loc": "1:8-11"
+    },
+    {
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/empty-dependency/index.js",
+        "moduleName": "./index.js",
+        "loc": "2:0-9"
+    }
+]

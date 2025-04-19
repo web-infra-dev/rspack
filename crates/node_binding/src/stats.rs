@@ -73,6 +73,7 @@ pub struct JsStatsError {
   #[napi(ts_type = "JsModuleDescriptor")]
   pub module_descriptor: Option<JsModuleDescriptorWrapper>,
   pub message: String,
+  pub code: Option<String>,
   pub chunk_name: Option<String>,
   pub chunk_entry: Option<bool>,
   pub chunk_initial: Option<bool>,
@@ -96,6 +97,7 @@ impl From<rspack_core::StatsError<'_>> for JsStatsError {
         .into()
       }),
       message: stats.message,
+      code: stats.code,
       loc: stats.loc,
       file: stats.file.map(|f| f.as_str().to_string()),
       chunk_name: stats.chunk_name,
@@ -118,6 +120,7 @@ pub struct JsStatsWarning {
   #[napi(ts_type = "JsModuleDescriptor")]
   pub module_descriptor: Option<JsModuleDescriptorWrapper>,
   pub message: String,
+  pub code: Option<String>,
   pub chunk_name: Option<String>,
   pub chunk_entry: Option<bool>,
   pub chunk_initial: Option<bool>,
@@ -140,6 +143,7 @@ impl From<rspack_core::StatsWarning<'_>> for JsStatsWarning {
         .into()
       }),
       message: stats.message,
+      code: stats.code,
       file: stats.file.map(|f| f.as_str().to_string()),
       chunk_name: stats.chunk_name,
       chunk_entry: stats.chunk_entry,

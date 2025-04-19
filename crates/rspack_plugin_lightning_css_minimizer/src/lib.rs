@@ -15,12 +15,15 @@ use lightningcss::{
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
+  diagnostics::MinifyError,
   rspack_sources::{
     MapOptions, RawStringSource, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,
   },
   ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets, Plugin,
 };
-use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
+use rspack_error::{
+  miette::MietteDiagnostic, Diagnostic, DiagnosticExt, Result, ToStringResultToRspackResultExt,
+};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::AssetConditions;
@@ -250,7 +253,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           let warnings = warnings.read().expect("should lock");
           all_warnings.write().expect("should lock").extend(
             warnings.iter().map(|e| {
-              Diagnostic::warn("LightningCSS minimize warning".to_string(), e.to_string())
+              Diagnostic::from(MinifyError(MietteDiagnostic::new(format!("LightningCSS minification warning: {e}")).with_severity(rspack_error::miette::Severity::Warning).into()).boxed()).with_file(Some(filename.as_str().into()))
             }),
           );
           result
@@ -279,7 +282,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
       original.get_info_mut().minimized.replace(true);
       Ok(())
-    })?;
+    }).map_err(MinifyError)?;
 
   compilation.extend_diagnostics(all_warnings.into_inner().expect("should lock"));
 

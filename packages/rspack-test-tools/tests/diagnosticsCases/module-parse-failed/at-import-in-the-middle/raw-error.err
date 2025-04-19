@@ -1,0 +1,17 @@
+[
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "css/auto|<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/at-import-in-the-middle/b.css",
+        "moduleName": "./b.css"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "css/auto|<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/at-import-in-the-middle/c.css",
+        "moduleName": "./c.css"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "css/auto|<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/at-import-in-the-middle/c.css",
+        "moduleName": "./c.css"
+    }
+]

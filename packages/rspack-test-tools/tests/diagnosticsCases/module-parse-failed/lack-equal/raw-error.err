@@ -1,0 +1,17 @@
+[
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/lack-equal/index.js",
+        "moduleName": "./index.js"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/lack-equal/index.js",
+        "moduleName": "./index.js"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/lack-equal/index.js",
+        "moduleName": "./index.js"
+    }
+]

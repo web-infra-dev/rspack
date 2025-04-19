@@ -1,7 +1,15 @@
-WARNING in ⚠ Unknown at rule: @apply at main.css<LINE_COL>
+WARNING in main.css
+  ⚠ Chunk minification failed:
+  ╰─▶   ⚠ LightningCSS minification warning: Unknown at rule: @apply at main.css<LINE_COL>
 
-WARNING in ⚠ Unexpected end of input at main.css<LINE_COL>
+WARNING in main.css
+  ⚠ Chunk minification failed:
+  ╰─▶   ⚠ LightningCSS minification warning: Unexpected end of input at main.css<LINE_COL>
 
-WARNING in ⚠ Unexpected end of input at main.css<LINE_COL>
+WARNING in main.css
+  ⚠ Chunk minification failed:
+  ╰─▶   ⚠ LightningCSS minification warning: Unexpected end of input at main.css<LINE_COL>
 
-WARNING in ⚠ Unexpected token Delim('<') at main.css<LINE_COL>
+WARNING in main.css
+  ⚠ Chunk minification failed:
+  ╰─▶   ⚠ LightningCSS minification warning: Unexpected token Delim('<') at main.css<LINE_COL>

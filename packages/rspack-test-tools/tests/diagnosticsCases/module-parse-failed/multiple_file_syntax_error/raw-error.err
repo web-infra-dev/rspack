@@ -1,0 +1,107 @@
+[
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/multiple_file_syntax_error/a.js",
+        "moduleName": "./a.js"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/multiple_file_syntax_error/a.js",
+        "moduleName": "./a.js"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/multiple_file_syntax_error/a.js",
+        "moduleName": "./a.js"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/multiple_file_syntax_error/b.js",
+        "moduleName": "./b.js"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/multiple_file_syntax_error/b.js",
+        "moduleName": "./b.js"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/multiple_file_syntax_error/b.js",
+        "moduleName": "./b.js"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/multiple_file_syntax_error/c.js",
+        "moduleName": "./c.js"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/multiple_file_syntax_error/c.js",
+        "moduleName": "./c.js"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/multiple_file_syntax_error/c.js",
+        "moduleName": "./c.js"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/multiple_file_syntax_error/d.js",
+        "moduleName": "./d.js"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/multiple_file_syntax_error/d.js",
+        "moduleName": "./d.js"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/multiple_file_syntax_error/d.js",
+        "moduleName": "./d.js"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/multiple_file_syntax_error/e.js",
+        "moduleName": "./e.js"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/multiple_file_syntax_error/e.js",
+        "moduleName": "./e.js"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/multiple_file_syntax_error/e.js",
+        "moduleName": "./e.js"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/multiple_file_syntax_error/f.js",
+        "moduleName": "./f.js"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/multiple_file_syntax_error/f.js",
+        "moduleName": "./f.js"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/multiple_file_syntax_error/f.js",
+        "moduleName": "./f.js"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/multiple_file_syntax_error/g.js",
+        "moduleName": "./g.js"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/multiple_file_syntax_error/g.js",
+        "moduleName": "./g.js"
+    },
+    {
+        "code": "ModuleParseError",
+        "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/multiple_file_syntax_error/g.js",
+        "moduleName": "./g.js"
+    }
+]
