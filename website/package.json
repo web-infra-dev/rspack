@@ -23,7 +23,7 @@
     "markdown-to-jsx": "^7.7.4",
     "mermaid": "^11.6.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react-dom": "^19.1.0",
     "semver": "^7.7.1",
     "tailwindcss": "^3.4.17"
   },
