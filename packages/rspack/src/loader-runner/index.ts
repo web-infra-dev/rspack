@@ -36,7 +36,7 @@ import {
 	isUseSimpleSourceMap,
 	isUseSourceMap
 } from "../config/adapterRuleUse";
-import { ChromeTracer } from "../trace";
+import { JavaScriptTracer } from "../trace";
 import {
 	concatErrorMsgAndStack,
 	isNil,
@@ -923,7 +923,7 @@ export async function runLoaders(
 		const pitch = loaderState === JsLoaderState.Pitching;
 		const loaderName = extractLoaderName(currentLoaderObject!.request);
 		let result: any;
-		ChromeTracer.startAsync({
+		JavaScriptTracer.startAsync({
 			name: `loader:${pitch ? "pitch" : ""}:${loaderName}`,
 			args: {
 				resourceData: resourceData,
@@ -947,7 +947,7 @@ export async function runLoaders(
 			result = (await runSyncOrAsync(fn, loaderContext, args)) || [];
 		}
 
-		ChromeTracer.endAsync({
+		JavaScriptTracer.endAsync({
 			name: `loader:${pitch ? "pitch" : ""}:${loaderName}`,
 			args: {
 				resourceData,

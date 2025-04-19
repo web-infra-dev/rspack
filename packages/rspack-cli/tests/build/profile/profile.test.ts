@@ -31,31 +31,27 @@ describe("profile", () => {
 		);
 		expect(exitCode).toBe(0);
 		const dirname = findDefaultOutputDirname();
-		console.log(
-			resolve(dirname, defaultTracePath),
-			fs.existsSync(resolve(dirname, defaultTracePath))
-		);
 		expect(fs.existsSync(resolve(dirname, defaultTracePath))).toBeTruthy();
 	});
 
-	it("should store rust trace file when RSPACK_PROFILE=TRACE enabled", async () => {
+	it("should store rust trace file when RSPACK_PROFILE=OVERVIEW enabled", async () => {
 		const { exitCode } = await run(
 			__dirname,
 			[],
 			{},
-			{ RSPACK_PROFILE: "TRACE" }
+			{ RSPACK_PROFILE: "OVERVIEW" }
 		);
 		expect(exitCode).toBe(0);
 		const dirname = findDefaultOutputDirname();
 		expect(fs.existsSync(resolve(dirname, defaultTracePath))).toBeTruthy();
 	});
 
-	it("should filter trace event when use RSPACK_PROFILE=[crate1,crate2]", async () => {
+	it("should filter trace event when use RSPACK_PROFILE=rspack_resolver,rspack", async () => {
 		const { exitCode } = await run(
 			__dirname,
 			[],
 			{},
-			{ RSPACK_PROFILE: "[rspack_core]" }
+			{ RSPACK_PROFILE: "rspack,respack_resolver" }
 		);
 		expect(exitCode).toBe(0);
 		const dirname = findDefaultOutputDirname();
@@ -79,7 +75,8 @@ describe("profile", () => {
 			[],
 			{},
 			{
-				RSPACK_PROFILE: `TRACE=output=${customTracePath}`
+				RSPACK_PROFILE: "ALL",
+				RSPACK_TRACE_OUTPUT: customTracePath
 			}
 		);
 		expect(exitCode).toBe(0);
@@ -91,7 +88,10 @@ describe("profile", () => {
 			__dirname,
 			[],
 			{},
-			{ RSPACK_PROFILE: `TRACE=layer=logger&filter=rspack_core::compiler` }
+			{
+				RSPACK_PROFILE: `rspack_core::compiler`,
+				RSPACK_TRACE_LAYER: "logger"
+			}
 		);
 		expect(exitCode).toBe(0);
 		expect(stdout.includes("rspack_core::compiler")).toBe(true);
