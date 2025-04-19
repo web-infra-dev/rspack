@@ -4175,6 +4175,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_javascript_compiler"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "rspack_cacheable",
+ "rspack_error",
+ "rspack_sources",
+ "rspack_util",
+ "rustc-hash 2.1.0",
+ "serde",
+ "serde_json",
+ "swc_core",
+ "swc_ecma_minifier",
+ "swc_error_reporters",
+ "swc_node_comments",
+ "swc_parallel",
+]
+
+[[package]]
 name = "rspack_loader_lightningcss"
 version = "0.2.0"
 dependencies = [

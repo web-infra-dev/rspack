@@ -1,0 +1,47 @@
+[package]
+authors.workspace       = true
+categories.workspace    = true
+documentation.workspace = true
+edition                 = "2024"
+homepage.workspace      = true
+license.workspace       = true
+name                    = "rspack_javascript_compiler"
+repository.workspace    = true
+version                 = "0.1.0"
+
+[dependencies]
+anyhow = { workspace = true }
+rustc-hash = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+swc_core = { workspace = true, features = [
+  "__ecma",
+  "__visit",
+  "__utils",
+  "__ecma_transforms",
+  "__parser",
+  "ecma_ast",
+  "ecma_codegen",
+  "ecma_quote",
+  "common_concurrent",
+  "swc_ecma_ast",
+  "ecma_transforms_react",
+  "ecma_transforms_module",
+  "swc_ecma_codegen",
+  "swc_ecma_visit",
+] }
+swc_ecma_minifier = { workspace = true, features = ["concurrent"] }
+swc_error_reporters = { workspace = true }
+swc_node_comments = { workspace = true }
+swc_parallel = { workspace = true, default-features = false }
+
+rspack_cacheable = { workspace = true }
+rspack_error     = { workspace = true }
+rspack_sources   = { workspace = true }
+rspack_util      = { workspace = true }
+
+[package.metadata.cargo-shear]
+ignored = ["swc_parallel"]
+
+[lints]
+workspace = true
