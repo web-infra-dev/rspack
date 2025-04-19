@@ -57,7 +57,7 @@
     "jest-diff": "^29.7.0",
     "jest-snapshot": "29.7.0",
     "jsdom": "^26.1.0",
-    "loader-utils": "^2.0.4",
+    "loader-utils": "^3.3.1",
     "memfs": "4.17.0",
     "path-serializer": "0.3.4",
     "pretty-format": "29.7.0",
