@@ -29,7 +29,7 @@
     "less-loader": "^12.2.0",
     "loader-utils": "^2.0.4",
     "memfs": "^4.17.0",
-    "mime-types": "^2.1.35",
+    "mime-types": "^3.0.1",
     "mini-svg-data-uri": "^1.4.4",
     "raw-loader": "^4.0.2",
     "bundle-loader": "^0.5.6",
