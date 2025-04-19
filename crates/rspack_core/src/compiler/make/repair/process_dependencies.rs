@@ -14,12 +14,12 @@ pub struct ProcessDependenciesTask {
   pub dependencies: Vec<DependencyId>,
 }
 #[async_trait::async_trait]
-impl Task<MakeTaskContext> for ProcessDependenciesTask {
+impl Task for ProcessDependenciesTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
 
-  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult {
     let Self {
       original_module_identifier,
       dependencies,
@@ -65,7 +65,7 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
       .module_by_identifier(&original_module_identifier)
       .expect("Module expected");
 
-    let mut res: Vec<Box<dyn Task<MakeTaskContext>>> = vec![];
+    let mut res: Vec<Box<dyn Task>> = vec![];
     for dependencies in sorted_dependencies.into_values() {
       let current_profile = context
         .compiler_options
