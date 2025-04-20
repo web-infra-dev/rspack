@@ -22,11 +22,11 @@ pub struct BuildTask {
 }
 
 #[async_trait::async_trait]
-impl Task<MakeTaskContext> for BuildTask {
+impl Task for BuildTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Async
   }
-  async fn background_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {
+  async fn background_run(self: Box<Self>) -> TaskResult {
     let Self {
       compiler_id,
       compilation_id,
@@ -65,7 +65,7 @@ impl Task<MakeTaskContext> for BuildTask {
       current_profile.mark_building_end();
     }
 
-    result.map::<Vec<Box<dyn Task<MakeTaskContext>>>, _>(|build_result| {
+    result.map::<Vec<Box<dyn Task>>, _>(|build_result| {
       vec![Box::new(BuildResultTask {
         module,
         build_result: Box::new(build_result),
@@ -84,11 +84,11 @@ struct BuildResultTask {
   pub current_profile: Option<Box<ModuleProfile>>,
 }
 #[async_trait::async_trait]
-impl Task<MakeTaskContext> for BuildResultTask {
+impl Task for BuildResultTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
-  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult {
     let BuildResultTask {
       mut module,
       build_result,

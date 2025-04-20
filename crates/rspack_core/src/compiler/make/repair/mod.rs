@@ -20,7 +20,7 @@ use crate::{
   SharedPluginDriver,
 };
 
-pub struct MakeTaskContext {
+pub struct MakeTaskContext<'a> {
   pub compiler_id: CompilerId,
   // compilation info
   pub compilation_id: CompilationId,
@@ -37,11 +37,11 @@ pub struct MakeTaskContext {
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
 
-  pub artifact: MakeArtifact,
+  pub artifact: &'a mut MakeArtifact,
 }
 
-impl MakeTaskContext {
-  pub fn new(compilation: &Compilation, artifact: MakeArtifact, cache: Arc<dyn Cache>) -> Self {
+impl<'a> MakeTaskContext<'a> {
+  pub fn new(compilation: &'a mut Compilation, cache: Arc<dyn Cache>) -> Self {
     Self {
       compiler_id: compilation.compiler_id(),
       compilation_id: compilation.id(),
@@ -57,13 +57,14 @@ impl MakeTaskContext {
       fs: compilation.input_filesystem.clone(),
       intermediate_fs: compilation.intermediate_filesystem.clone(),
       output_fs: compilation.output_filesystem.clone(),
-      artifact,
+      artifact: &mut compilation.make_artifact,
     }
   }
 
   pub fn transform_to_make_artifact(self) -> MakeArtifact {
-    let Self { artifact, .. } = self;
-    artifact
+    // let Self { artifact, .. } = self;
+    // artifact
+    todo!()
   }
 
   // TODO use module graph with make artifact
@@ -104,11 +105,10 @@ impl MakeTaskContext {
 }
 
 pub async fn repair(
-  compilation: &Compilation,
-  mut artifact: MakeArtifact,
+  compilation: &mut Compilation,
   build_dependencies: HashSet<BuildDependency>,
-) -> Result<MakeArtifact> {
-  let module_graph = artifact.get_module_graph_mut();
+) -> Result<()> {
+  let module_graph = compilation.make_artifact.get_module_graph();
   let mut grouped_deps = HashMap::default();
   for (dep_id, parent_module_identifier) in build_dependencies {
     grouped_deps
@@ -123,7 +123,7 @@ pub async fn repair(
         return vec![Box::new(process_dependencies::ProcessDependenciesTask {
           original_module_identifier,
           dependencies,
-        }) as Box<dyn Task<MakeTaskContext>>];
+        }) as Box<dyn Task>];
       }
       // entry dependencies
       dependencies
@@ -150,13 +150,13 @@ pub async fn repair(
             options: compilation.options.clone(),
             current_profile,
             resolver_factory: compilation.resolver_factory.clone(),
-          }) as Box<dyn Task<MakeTaskContext>>
+          }) as Box<dyn Task>
         })
         .collect::<Vec<_>>()
     })
     .collect::<Vec<_>>();
 
-  let mut ctx = MakeTaskContext::new(compilation, artifact, compilation.cache.clone());
+  let mut ctx = MakeTaskContext::new(compilation, compilation.cache.clone());
   run_task_loop(&mut ctx, init_tasks).await?;
-  Ok(ctx.transform_to_make_artifact())
+  Ok(())
 }

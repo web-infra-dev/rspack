@@ -17,11 +17,11 @@ pub struct AddTask {
 }
 
 #[async_trait::async_trait]
-impl Task<MakeTaskContext> for AddTask {
+impl Task for AddTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
-  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult {
     let module_identifier = self.module.identifier();
     let artifact = &mut context.artifact;
     let module_graph =

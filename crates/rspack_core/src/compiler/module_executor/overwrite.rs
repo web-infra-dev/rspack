@@ -11,17 +11,17 @@ use crate::{
 
 #[derive(Debug)]
 pub struct OverwriteTask {
-  pub origin_task: Box<dyn Task<MakeTaskContext>>,
+  pub origin_task: Box<dyn Task>,
   pub event_sender: UnboundedSender<Event>,
 }
 
 #[async_trait::async_trait]
-impl Task<MakeTaskContext> for OverwriteTask {
+impl Task for OverwriteTask {
   fn get_task_type(&self) -> TaskType {
     self.origin_task.get_task_type()
   }
 
-  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult {
     let Self {
       origin_task,
       event_sender,
@@ -79,7 +79,7 @@ impl Task<MakeTaskContext> for OverwriteTask {
     origin_task.main_run(context).await
   }
 
-  async fn background_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {
+  async fn background_run(self: Box<Self>) -> TaskResult {
     self.origin_task.background_run().await
   }
 }
