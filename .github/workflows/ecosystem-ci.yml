@@ -94,7 +94,7 @@ jobs:
             return comment.id
 
   calculate-eco-ci-suite:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     outputs:
       suites: ${{ steps.calculate.outputs.result }}
     steps:
