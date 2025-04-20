@@ -10,8 +10,8 @@
   "dependencies": {
     "@arco-design/web-react": "^2.66.1",
     "@monaco-editor/react": "^4.7.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "react-refresh": "^0.17.0",
     "prettier": "^3.5.3",
     "monaco-editor": "0.52.2",
