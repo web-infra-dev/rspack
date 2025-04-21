@@ -104,7 +104,8 @@ export const checkVersion = () => {
 		);
 
 		const isLocal = readdirSync(BINDING_PKG_DIR).some(
-			item => item === `rspack.${platformArchAbi}.node`
+			item =>
+				item === `rspack.${platformArchAbi}.node` || "rspack.wasm32-wasi.wasm"
 		);
 
 		if (isLocal) {
@@ -112,11 +113,20 @@ export const checkVersion = () => {
 			ADDON_VERSION = BINDING_VERSION;
 		} else {
 			// Fetch addon package if installed from remote
-			ADDON_VERSION = require(
-				require.resolve(`@rspack/binding-${platformArchAbi}/package.json`, {
-					paths: [BINDING_PKG_DIR]
-				})
-			).version;
+			try {
+				ADDON_VERSION = require(
+					require.resolve(`@rspack/binding-${platformArchAbi}/package.json`, {
+						paths: [BINDING_PKG_DIR]
+					})
+				).version;
+			} catch {
+				// Wasm fallback
+				ADDON_VERSION = require(
+					require.resolve("@rspack/binding-wasm32-wasi/package.json", {
+						paths: [BINDING_PKG_DIR]
+					})
+				).version;
+			}
 		}
 	} catch (error: any) {
 		if (error instanceof Error) {
