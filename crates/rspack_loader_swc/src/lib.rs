@@ -109,6 +109,7 @@ impl SwcLoader {
     let mut codegen_options = ast::CodegenOptions {
       target: Some(built.target),
       minify: Some(built.minify),
+      emit_assert_for_import_attributes: Some(built.emit_assert_for_import_attributes),
       input_source_map: input_source_map.as_ref(),
       ascii_only: built
         .output
