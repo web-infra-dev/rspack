@@ -1,8 +1,8 @@
-## Tracing
+# Tracing
 
 [`tracing`](https://crates.io/crates/tracing) 用于记录 Rspack 编译的内部流程，既可用于性能分析，也可用于定位 Bug。
 
-### 开启 Tracing
+## 开启 Tracing
 
 可以通过以下两种方式开启 tracing：
 
@@ -11,7 +11,7 @@
 
 生成的 `trace.json` 文件可以在 [ui.perfetto.dev](https://ui.perfetto.dev/) 中查看和分析。
 
-### Tracing Layer
+## Tracing Layer
 
 Rspack 支持 `chrome` 和 `logger` 两种 layer：
 
@@ -26,7 +26,7 @@ RSPACK_TRACE_LAYER=logger
 RSPACK_TRACE_LAYER=chrome
 ```
 
-### Tracing Output
+## Tracing Output
 
 可以指定 trace 的输出位置：
 
@@ -40,7 +40,7 @@ RSPACK_TRACE_LAYER=logger RSPACK_TRACE_OUTPUT=log.txt rspack dev
 RSPACK_TRACE_LAYER=chrome RSPACK_TRACE_OUTPUT=perfetto.json rspack dev
 ```
 
-### Tracing Filter
+## Tracing Filter
 
 通过 `RSPACK_PROFILE` 可以配置需要过滤的数据。Rspack 提供了两个预设的 `preset`：
 
@@ -49,7 +49,7 @@ RSPACK_TRACE_LAYER=chrome RSPACK_TRACE_OUTPUT=perfetto.json rspack dev
 
 除了预设外，其他字符串都会透传给 [Env Filter](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#example-syntax)，支持更复杂的过滤策略：
 
-#### Tracing Level Filter
+### Tracing Level Filter
 
 支持的 tracing 等级有：`TRACE`、`DEBUG`、`INFO`、`WARN` 和 `ERROR`。可以通过等级进行过滤：
 
@@ -60,14 +60,14 @@ RSPACK_PROFILE=trace
 RSPACK_PROFILE=info
 ```
 
-#### 模块级别过滤
+### 模块级别过滤
 
 ```sh
 # 查看 rspack_resolver 的日志，并输出到终端
 RSPACK_TRACE_LAYER=logger RSPACK_PROFILE=rspack_resolver
 ```
 
-#### 混合过滤
+### 混合过滤
 
 EnvFilter 支持混合使用多种过滤条件，实现更复杂的过滤策略：
 
