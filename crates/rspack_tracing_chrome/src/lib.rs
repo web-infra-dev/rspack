@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 // fork of https://github.com/thoren-d/tracing-chrome/blob/7e2625ab4aeeef2f0ef9bde9d6258dd181c04472/src/lib.rs#L3 to add better perfetto support for rspack
 use std::{
   cell::{Cell, RefCell},
