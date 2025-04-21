@@ -648,8 +648,6 @@ export class Compilation {
     // @internal
     __internal__getAssetSource(filename: string): Source | void;
     // @internal
-    __internal__getChunks(): Chunk[];
-    // @internal
     __internal__hasAsset(name: string): boolean;
     // @internal
     __internal__pushDiagnostic(diagnostic: ExternalObject<"Diagnostic">): void;
