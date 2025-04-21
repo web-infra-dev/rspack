@@ -36,36 +36,6 @@ just build release-debug
 pnpm install
 ```
 
-## Tracing
-
-[`tracing`](https://crates.io/crates/tracing) 被用于度量（instrumenting） Rspack。
-
-被支持 tracing 等级有：
-
-- release 版本是 `INFO`, `WARN` and `ERROR`
-- debug 版本是 `TRACE`, `DEBUG`, `INFO`, `WARN` and `ERROR`
-
-两种方式开启 tracing:
-
-- 如果你正在使用 `@rspack/cli`，你可以通过 `RSPACK_PROFILE` 环境变量来开启它。
-- 如果你正在使用 `@rspack/core` 而不是 `@rspack/cli`，你可以通过 `rspack.experiments.globalTrace.register` 和 `rspack.experiments.globalTrace.cleanup` 开启，查看 [我们如何使用这两个函数在 `@rspack/cli` 中实现 `RSPACK_PROFILE`](https://github.com/web-infra-dev/rspack/blob/9be47217b5179186b0825ca79990ab2808aa1a0f/packages/rspack-cli/src/utils/profile.ts#L219-L224) 获取更多信息。
-
-### Chrome
-
-[`tracing-chrome`](https://crates.io/crates/tracing-chrome) 支持以图形方式查看 tracing 信息。
-
-![image](https://github.com/SyMind/rspack-dev-guide/assets/19852293/1af08ba1-a2e9-4e3e-99ab-87c1e62e067b)
-
-在运行 Rspack 之前设置环境变量 `RSPACK_PROFILE=TRACE=layer=chrome`，例如
-
-```bash
-RSPACK_PROFILE=TRACE=layer=chrome rspack build
-```
-
-产生了一个 trace 文件 (`.rspack-profile-${timestamp}-${pid}/trace.json`) 在目前的工作目录。
-
-JSON 跟踪文件可以在 `chrome://tracing` 或者 [ui.perfetto.dev](https://ui.perfetto.dev) 查看。
-
 ### Terminal
 
 可以通过 `RSPACK_PROFILE=TRACE=layer=logger` 在终端内查看细粒度的 tracing 事件数值，例如
