@@ -755,6 +755,7 @@ export class Compilation {
         additionalAssets: any;
         optimizeModules: liteTapable.SyncBailHook<Iterable<Module>, void>;
         afterOptimizeModules: liteTapable.SyncHook<Iterable<Module>, void>;
+        optimizeChunks: liteTapable.SyncBailHook<Iterable<Chunk>, void>;
         optimizeTree: liteTapable.AsyncSeriesHook<[
         Iterable<Chunk>,
         Iterable<Module>

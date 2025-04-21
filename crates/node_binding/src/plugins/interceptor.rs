@@ -21,17 +21,17 @@ use rspack_core::{
   CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
   CompilationExecuteModule, CompilationExecuteModuleHook, CompilationFinishModules,
   CompilationFinishModulesHook, CompilationId, CompilationOptimizeChunkModules,
-  CompilationOptimizeChunkModulesHook, CompilationOptimizeModules, CompilationOptimizeModulesHook,
-  CompilationOptimizeTree, CompilationOptimizeTreeHook, CompilationParams,
-  CompilationProcessAssets, CompilationProcessAssetsHook, CompilationRuntimeModule,
-  CompilationRuntimeModuleHook, CompilationRuntimeRequirementInTree,
-  CompilationRuntimeRequirementInTreeHook, CompilationSeal, CompilationSealHook,
-  CompilationStillValidModule, CompilationStillValidModuleHook, CompilationSucceedModule,
-  CompilationSucceedModuleHook, CompilerAfterEmit, CompilerAfterEmitHook, CompilerAssetEmitted,
-  CompilerAssetEmittedHook, CompilerCompilation, CompilerCompilationHook, CompilerEmit,
-  CompilerEmitHook, CompilerFinishMake, CompilerFinishMakeHook, CompilerId, CompilerMake,
-  CompilerMakeHook, CompilerShouldEmit, CompilerShouldEmitHook, CompilerThisCompilation,
-  CompilerThisCompilationHook, ContextModuleFactoryAfterResolve,
+  CompilationOptimizeChunkModulesHook, CompilationOptimizeChunks, CompilationOptimizeChunksHook,
+  CompilationOptimizeModules, CompilationOptimizeModulesHook, CompilationOptimizeTree,
+  CompilationOptimizeTreeHook, CompilationParams, CompilationProcessAssets,
+  CompilationProcessAssetsHook, CompilationRuntimeModule, CompilationRuntimeModuleHook,
+  CompilationRuntimeRequirementInTree, CompilationRuntimeRequirementInTreeHook, CompilationSeal,
+  CompilationSealHook, CompilationStillValidModule, CompilationStillValidModuleHook,
+  CompilationSucceedModule, CompilationSucceedModuleHook, CompilerAfterEmit, CompilerAfterEmitHook,
+  CompilerAssetEmitted, CompilerAssetEmittedHook, CompilerCompilation, CompilerCompilationHook,
+  CompilerEmit, CompilerEmitHook, CompilerFinishMake, CompilerFinishMakeHook, CompilerId,
+  CompilerMake, CompilerMakeHook, CompilerShouldEmit, CompilerShouldEmitHook,
+  CompilerThisCompilation, CompilerThisCompilationHook, ContextModuleFactoryAfterResolve,
   ContextModuleFactoryAfterResolveHook, ContextModuleFactoryBeforeResolve,
   ContextModuleFactoryBeforeResolveHook, ExecuteModuleId, Module, ModuleFactoryCreateData,
   ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
@@ -323,6 +323,7 @@ pub enum RegisterJsTapKind {
   CompilationFinishModules,
   CompilationOptimizeModules,
   CompilationAfterOptimizeModules,
+  CompilationOptimizeChunks,
   CompilationOptimizeTree,
   CompilationOptimizeChunkModules,
   CompilationAdditionalTreeRuntimeRequirements,
@@ -452,6 +453,10 @@ pub struct RegisterJsTaps {
   pub register_compilation_optimize_modules_taps: RegisterFunction<(), Option<bool>>,
   #[napi(ts_type = "(stages: Array<number>) => Array<{ function: (() => void); stage: number; }>")]
   pub register_compilation_after_optimize_modules_taps: RegisterFunction<(), ()>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: (() => boolean | undefined); stage: number; }>"
+  )]
+  pub register_compilation_optimize_chunks_taps: RegisterFunction<(), Option<bool>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>"
   )]
@@ -704,6 +709,13 @@ define_register!(
   tap = CompilationOptimizeModulesTap<(), Option<bool>> @ CompilationOptimizeModulesHook,
   cache = true,
   kind = RegisterJsTapKind::CompilationOptimizeModules,
+  skip = true,
+);
+define_register!(
+  RegisterCompilationOptimizeChunksTaps,
+  tap = CompilationOptimizeChunksTap<(), Option<bool>> @ CompilationOptimizeChunksHook,
+  cache = false,
+  kind = RegisterJsTapKind::CompilationOptimizeChunks,
   skip = true,
 );
 define_register!(
@@ -1207,6 +1219,17 @@ impl CompilationOptimizeModules for CompilationOptimizeModulesTap {
 #[async_trait]
 impl CompilationAfterOptimizeModules for CompilationAfterOptimizeModulesTap {
   async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+    self.function.call_with_sync(()).await
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl CompilationOptimizeChunks for CompilationOptimizeChunksTap {
+  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<Option<bool>> {
     self.function.call_with_sync(()).await
   }
 

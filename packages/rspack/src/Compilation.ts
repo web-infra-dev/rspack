@@ -207,6 +207,7 @@ export class Compilation {
 		additionalAssets: any;
 		optimizeModules: liteTapable.SyncBailHook<Iterable<Module>, void>;
 		afterOptimizeModules: liteTapable.SyncHook<Iterable<Module>, void>;
+		optimizeChunks: liteTapable.SyncBailHook<Iterable<Chunk>, void>;
 		optimizeTree: liteTapable.AsyncSeriesHook<
 			[Iterable<Chunk>, Iterable<Module>]
 		>;
@@ -349,6 +350,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			log: new liteTapable.SyncBailHook(["origin", "logEntry"]),
 			optimizeModules: new liteTapable.SyncBailHook(["modules"]),
 			afterOptimizeModules: new liteTapable.SyncBailHook(["modules"]),
+			optimizeChunks: new liteTapable.SyncBailHook(["chunks"]),
 			optimizeTree: new liteTapable.AsyncSeriesHook(["chunks", "modules"]),
 			optimizeChunkModules: new liteTapable.AsyncSeriesBailHook([
 				"chunks",

@@ -255,6 +255,22 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 				};
 			}
 		),
+		registerCompilationOptimizeChunksTaps: createTap(
+			binding.RegisterJsTapKind.CompilationOptimizeChunks,
+
+			function () {
+				return getCompiler().__internal__get_compilation()!.hooks
+					.optimizeChunks;
+			},
+
+			function (queried) {
+				return function () {
+					return queried.call(
+						getCompiler().__internal__get_compilation()!.chunks.values()
+					);
+				};
+			}
+		),
 		registerCompilationAfterOptimizeModulesTaps: createTap(
 			binding.RegisterJsTapKind.CompilationAfterOptimizeModules,
 

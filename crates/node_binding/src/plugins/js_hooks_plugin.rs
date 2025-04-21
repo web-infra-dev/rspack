@@ -32,6 +32,7 @@ pub struct JsHooksAdapterPlugin {
   register_compilation_finish_modules_taps: RegisterCompilationFinishModulesTaps,
   register_compilation_optimize_modules_taps: RegisterCompilationOptimizeModulesTaps,
   register_compilation_after_optimize_modules_taps: RegisterCompilationAfterOptimizeModulesTaps,
+  register_compilation_optimize_chunks_taps: RegisterCompilationOptimizeChunksTaps,
   register_compilation_optimize_tree_taps: RegisterCompilationOptimizeTreeTaps,
   register_compilation_optimize_chunk_modules_taps: RegisterCompilationOptimizeChunkModulesTaps,
   register_compilation_additional_tree_runtime_requirements_taps:
@@ -170,6 +171,11 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
           .register_compilation_after_optimize_modules_taps
           .clone(),
       );
+    ctx
+      .context
+      .compilation_hooks
+      .optimize_chunks
+      .intercept(self.register_compilation_optimize_chunks_taps.clone());
     ctx
       .context
       .compilation_hooks
@@ -352,6 +358,7 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     self
       .register_compilation_after_optimize_modules_taps
       .clear_cache();
+    self.register_compilation_optimize_chunks_taps.clear_cache();
     self.register_compilation_optimize_tree_taps.clear_cache();
     self
       .register_compilation_optimize_chunk_modules_taps
@@ -591,6 +598,10 @@ impl JsHooksAdapterPlugin {
             register_js_taps.register_compilation_after_optimize_modules_taps,
             non_skippable_registers.clone(),
           ),
+        register_compilation_optimize_chunks_taps: RegisterCompilationOptimizeChunksTaps::new(
+          register_js_taps.register_compilation_optimize_chunks_taps,
+          non_skippable_registers.clone(),
+        ),
         register_compilation_optimize_tree_taps: RegisterCompilationOptimizeTreeTaps::new(
           register_js_taps.register_compilation_optimize_tree_taps,
           non_skippable_registers.clone(),
