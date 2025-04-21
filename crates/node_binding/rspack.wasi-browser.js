@@ -61,6 +61,7 @@ const {
   },
 })
 export const AsyncDependenciesBlock = __napiModule.exports.AsyncDependenciesBlock
+export const Chunks = __napiModule.exports.Chunks
 export const ConcatenatedModule = __napiModule.exports.ConcatenatedModule
 export const ContextModule = __napiModule.exports.ContextModule
 export const Dependency = __napiModule.exports.Dependency

@@ -4347,6 +4347,7 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
+ "once_cell",
  "ropey",
  "rspack_allocator",
  "rspack_cacheable",

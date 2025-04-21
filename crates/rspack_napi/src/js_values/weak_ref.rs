@@ -16,12 +16,11 @@ pub struct WeakRef {
 impl WeakRef {
   pub fn new(env: napi_env, object: &mut Object) -> Result<Self> {
     let mut raw_ref = ptr::null_mut();
-    check_status!(unsafe { sys::napi_create_reference(env, object.raw(), 1, &mut raw_ref) })?;
+    check_status!(unsafe { sys::napi_create_reference(env, object.raw(), 0, &mut raw_ref) })?;
 
     let deleted = Rc::new(Cell::new(false));
     let deleted_clone = deleted.clone();
-    object.add_finalizer((), (), move |_ctx| unsafe {
-      sys::napi_delete_reference(env, raw_ref);
+    object.add_finalizer((), (), move |_ctx| {
       deleted_clone.set(true);
     })?;
 
