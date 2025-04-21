@@ -264,6 +264,7 @@ const describeCases = config => {
 													getStatsJson(),
 													"error",
 													"Error",
+													options,
 													compilationFinished
 												)
 											)
@@ -275,6 +276,7 @@ const describeCases = config => {
 													getStatsJson(),
 													"warning",
 													"Warning",
+													options,
 													compilationFinished
 												)
 											)
@@ -402,6 +404,7 @@ const describeCases = config => {
 																{ deprecations },
 																"deprecation",
 																"Deprecation",
+																options,
 																done
 															)
 														) {
