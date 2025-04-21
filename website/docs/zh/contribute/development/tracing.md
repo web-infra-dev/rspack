@@ -37,7 +37,7 @@ RSPACK_TRACE_LAYER=chrome RSPACK_TRACE_OUTPUT=perfetto.json rspack dev
 可以通过 `RSPACK_PROFILE` 来配置需要过滤的数据，`Rspack` 默认提供了两个预置的 `preset`
 
 - `RSPACK_PROFILE=OVERVIEW`: 默认值，只展示核心的构建流程，生成的 json 文件较小
-- `RSPACK_PROFIE=ALL`: 包含所有的 trace event，用于较为复杂的分析，生成的 json 文件较大
+- `RSPACK_PROFILE=ALL`: 包含所有的 trace event，用于较为复杂的分析，生成的 json 文件较大
   除了预设 `preset` 之外的其他字符串都会透传给 [Env Filter](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#example-syntax) 支持更复杂的过滤策略。一些常用的 Filter 如下
 
 #### Tracing Level Filter
@@ -45,8 +45,8 @@ RSPACK_TRACE_LAYER=chrome RSPACK_TRACE_OUTPUT=perfetto.json rspack dev
 支持 tracing 的等级有： `TRACE`, `DEBUG`, `INFO`, `WARN` and `ERROR`, envFilter 支持通过 level 进行过滤。
 
 ```sh
-RSPACK_PROFIE=trace  # trace level 是最大的level，输出所有日志
-RSPACK_PROFIE=info # 只输出小于等于 INFO level的日志
+RSPACK_PROFILE=trace  # trace level 是最大的level，输出所有日志
+RSPACK_PROFILE=info # 只输出小于等于 INFO level的日志
 ```
 
 #### Module Level filter
@@ -61,6 +61,6 @@ EnvFilter 还可以将上面几种 filter 进行混用，支持更复杂的过�
 
 ```sh
 
- RSPACK_PROFIE=rspack_core=warn # 查看 rspack_core crate 里的 WARN level 的日志
+ RSPACK_PROFILE=rspack_core=warn # 查看 rspack_core crate 里的 WARN level 的日志
  RSPACK_PROFILE=info,rspack_core=off # 保留其他 crate 的INFO level 日志但是关闭 rspack_resolver 的日志
 ```
