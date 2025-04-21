@@ -5259,8 +5259,17 @@ dependencies = [
 name = "rspack_tracing"
 version = "0.2.0"
 dependencies = [
+ "rspack_tracing_chrome",
  "tracing",
- "tracing-chrome",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "rspack_tracing_chrome"
+version = "0.2.0"
+dependencies = [
+ "serde_json",
+ "tracing-core",
  "tracing-subscriber",
 ]
 
@@ -7473,17 +7482,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.95",
-]
-
-[[package]]
-name = "tracing-chrome"
-version = "0.7.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf0a738ed5d6450a9fb96e86a23ad808de2b727fd1394585da5cdd6788ffe724"
-dependencies = [
- "serde_json",
- "tracing-core",
- "tracing-subscriber",
 ]
 
 [[package]]
