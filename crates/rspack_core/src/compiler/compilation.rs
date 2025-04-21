@@ -1440,7 +1440,6 @@ impl Compilation {
         .compilation_hooks
         .optimize_modules
         .call(self)
-        .instrument(info_span!("hook:optimize_modules"))
         .await?,
       Some(true)
     ) {}
@@ -1448,14 +1447,12 @@ impl Compilation {
       .compilation_hooks
       .after_optimize_modules
       .call(self)
-      .instrument(info_span!("hook:after_optimize_modules"))
       .await?;
     while matches!(
       plugin_driver
         .compilation_hooks
         .optimize_chunks
         .call(self)
-        .instrument(info_span!("hook:optimize_chunks"))
         .await?,
       Some(true)
     ) {}
@@ -1466,14 +1463,12 @@ impl Compilation {
       .compilation_hooks
       .optimize_tree
       .call(self)
-      .instrument(info_span!("hook:optimize_tree"))
       .await?;
 
     plugin_driver
       .compilation_hooks
       .optimize_chunk_modules
       .call(self)
-      .instrument(info_span!("hook:optimize_chunk_modules"))
       .await?;
     logger.time_end(start);
 
@@ -1486,17 +1481,11 @@ impl Compilation {
       .compilation_hooks
       .module_ids
       .call(self)
-      .instrument(tracing::info_span!("hook:module_ids"))
       .await?;
     logger.time_end(start);
 
     let start = logger.time("chunk ids");
-    plugin_driver
-      .compilation_hooks
-      .chunk_ids
-      .call(self)
-      .instrument(tracing::info_span!("hook:chunk_ids"))
-      .await?;
+    plugin_driver.compilation_hooks.chunk_ids.call(self).await?;
     logger.time_end(start);
 
     self.assign_runtime_ids();
@@ -1565,7 +1554,6 @@ impl Compilation {
       .compilation_hooks
       .optimize_code_generation
       .call(self)
-      .instrument(info_span!("hook:optimize_code_generation"))
       .await?;
     logger.time_end(start);
 

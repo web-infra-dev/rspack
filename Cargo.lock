@@ -4156,6 +4156,7 @@ dependencies = [
  "rspack_error",
  "rspack_macros",
  "rustc-hash 2.1.0",
+ "tracing",
 ]
 
 [[package]]
@@ -4825,6 +4826,7 @@ dependencies = [
  "parcel_sourcemap",
  "rayon",
  "regex",
+ "ropey",
  "rspack_core",
  "rspack_error",
  "rspack_hash",

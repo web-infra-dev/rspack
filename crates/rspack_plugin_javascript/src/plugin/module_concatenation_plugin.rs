@@ -12,13 +12,14 @@ use rspack_core::{
     is_esm_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
   },
   filter_runtime, merge_runtime, ApplyContext, Compilation, CompilationOptimizeChunkModules,
-  CompilerOptions, ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module,
-  ModuleExt, ModuleGraph, ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
+  CompilerOptions, ConcatenatedModuleConcatenatedInfo, ConcatenatedModuleInfo, ExportInfoProvided,
+  ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph,
+  ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext, ProvidedExports, RuntimeCondition,
+  RuntimeSpec, SourceType, UsedExports,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::itoa;
+use rspack_util::{atom::Atom, itoa};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 fn format_bailout_reason(msg: &str) -> String {
@@ -1027,6 +1028,54 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   Ok(None)
 }
 
+#[plugin_hook(ConcatenatedModuleConcatenatedInfo for ModuleConcatenationPlugin)]
+async fn concatenated_info(
+  &self,
+  compilation: &Compilation,
+  curr_module: ModuleIdentifier,
+  runtime: Option<&RuntimeSpec>,
+  info: &mut ConcatenatedModuleInfo,
+  all_used_names: &mut HashSet<Atom>,
+) -> rspack_error::Result<()> {
+  let module_graph = compilation.get_module_graph();
+  let module = module_graph
+    .module_by_identifier(&curr_module)
+    .expect("should have module");
+
+  if module.as_external_module().is_some() {
+    if let UsedExports::Vec(atoms) = module_graph.get_used_exports(&curr_module, runtime) {
+      for atom in atoms {
+        let name = if atom == "default" {
+          module_graph
+            .get_read_only_export_info(&curr_module, atom.clone())
+            .map_or("default".to_string(), |export_info| {
+              export_info
+                .get_used_name(&module_graph, None, runtime)
+                .unwrap_or("default".into())
+                .to_string()
+            })
+        } else {
+          atom.to_string()
+        };
+        let mut final_name = name.clone();
+
+        let mut idx = 0;
+
+        // import { v } from 'externals1';
+        // import { v as v_0 } from 'externals2';
+        while !all_used_names.insert(final_name.clone().into()) {
+          final_name = format!("{}_{}", &name, idx);
+          idx += 1;
+        }
+
+        info.internal_names.insert(atom, final_name.into());
+      }
+    }
+  }
+
+  Ok(())
+}
+
 impl Plugin for ModuleConcatenationPlugin {
   fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
@@ -1034,6 +1083,12 @@ impl Plugin for ModuleConcatenationPlugin {
       .compilation_hooks
       .optimize_chunk_modules
       .tap(optimize_chunk_modules::new(self));
+
+    ctx
+      .context
+      .concatenated_module_hooks
+      .concatenated_info
+      .tap(concatenated_info::new(self));
     Ok(())
   }
 }
