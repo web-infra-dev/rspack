@@ -4825,6 +4825,7 @@ dependencies = [
  "parcel_sourcemap",
  "rayon",
  "regex",
+ "ropey",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
