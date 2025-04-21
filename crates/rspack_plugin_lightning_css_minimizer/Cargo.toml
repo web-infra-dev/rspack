@@ -12,6 +12,7 @@ lightningcss     = { workspace = true, features = ["sourcemap", "browserslist"] 
 parcel_sourcemap = { workspace = true }
 rayon            = { workspace = true }
 regex            = { workspace = true }
+ropey            = { workspace = true }
 tracing          = { workspace = true }
 
 rspack_core  = { workspace = true }
