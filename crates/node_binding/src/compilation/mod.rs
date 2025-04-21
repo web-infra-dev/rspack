@@ -5,10 +5,11 @@ use std::{cell::RefCell, collections::HashMap, path::Path, ptr::NonNull};
 
 use dependencies::JsDependencies;
 use entries::JsEntries;
+use napi::NapiRaw;
 use napi_derive::napi;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{
-  rspack_sources::BoxSource, BoxDependency, Compilation, CompilationId, EntryOptions,
+  rspack_sources::BoxSource, BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions,
   FactorizeInfo, ModuleIdentifier,
 };
 use rspack_error::{Diagnostic, ToStringResultToRspackResultExt};
@@ -56,9 +57,7 @@ impl JsCompilation {
     env: &Env,
     filename: String,
     new_source_or_function: Either<JsCompatSource, Function<'_, JsCompatSource, JsCompatSource>>,
-    asset_info_update_or_function: Option<
-      Either<AssetInfo, Function<'_, AssetInfo, Option<AssetInfo>>>,
-    >,
+    asset_info_update_or_function: Option<Either<Object, Function<'_, Object, Option<Object>>>>,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
@@ -77,20 +76,32 @@ impl JsCompilation {
         };
         let new_source = new_source.to_rspack_result()?;
 
-        let new_info: napi::Result<Option<rspack_core::AssetInfo>> = asset_info_update_or_function
-          .map(
-            |asset_info_update_or_function| match asset_info_update_or_function {
-              Either::A(asset_info) => Ok(asset_info.into()),
-              Either::B(asset_info_fn) => Ok(
-                asset_info_fn
-                  .call(original_info.clone().into())?
-                  .map(Into::into)
-                  .unwrap_or_default(),
-              ),
-            },
-          )
-          .transpose();
-        if let Some(new_info) = new_info.to_rspack_result()? {
+        let new_info: Option<rspack_core::AssetInfo> = match asset_info_update_or_function {
+          Some(asset_info_update_or_function) => match asset_info_update_or_function {
+            Either::A(object) => {
+              let js_asset_info: AssetInfo = unsafe {
+                FromNapiValue::from_napi_value(env.raw(), object.raw()).to_rspack_result()?
+              };
+              Some(js_asset_info.into())
+            }
+            Either::B(f) => {
+              let original_info_object = original_info
+                .reflector()
+                .get_jsobject(env)
+                .to_rspack_result()?;
+              let result = f.call(original_info_object).to_rspack_result()?;
+              match result {
+                Some(object) => {
+                  let js_asset_info = AssetInfo::from_jsobject(env, &object).to_rspack_result()?;
+                  Some(js_asset_info.into())
+                }
+                None => None,
+              }
+            }
+          },
+          None => None,
+        };
+        if let Some(new_info) = new_info {
           original_info.merge_another_asset(new_info);
         }
         Ok((new_source, original_info))
@@ -99,15 +110,16 @@ impl JsCompilation {
   }
 
   #[napi(ts_return_type = "Readonly<JsAsset>[]")]
-  pub fn get_assets(&self) -> Result<Vec<JsAsset>> {
+  pub fn get_assets(&self, env: &Env) -> Result<Vec<JsAsset>> {
     let compilation = self.as_ref()?;
 
     let mut assets = Vec::<JsAsset>::with_capacity(compilation.assets().len());
 
     for (filename, asset) in compilation.assets() {
+      let info = asset.info.reflector().get_jsobject(env)?;
       assets.push(JsAsset {
         name: filename.clone(),
-        info: asset.info.clone().into(),
+        info,
       });
     }
 
@@ -115,14 +127,14 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_asset(&self, name: String) -> Result<Option<JsAsset>> {
+  pub fn get_asset(&self, env: &Env, name: String) -> Result<Option<JsAsset>> {
     let compilation = self.as_ref()?;
 
     match compilation.assets().get(&name) {
-      Some(asset) => Ok(Some(JsAsset {
-        name,
-        info: asset.info.clone().into(),
-      })),
+      Some(asset) => {
+        let info = asset.info.reflector().get_jsobject(env)?;
+        Ok(Some(JsAsset { name, info }))
+      }
       None => Ok(None),
     }
   }
@@ -295,20 +307,35 @@ impl JsCompilation {
     Ok(compilation.assets().contains_key(&name))
   }
 
-  #[napi]
+  #[napi(
+    ts_args_type = "filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null"
+  )]
   pub fn emit_asset(
     &mut self,
+    env: &Env,
     filename: String,
     source: JsCompatSource,
-    js_asset_info: Option<AssetInfo>,
+    object: Option<Object>,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
-    let asset_info: rspack_core::AssetInfo = js_asset_info.map(Into::into).unwrap_or_default();
+    let asset_info = if let Some(object) = object {
+      let js_asset_info = AssetInfo::from_jsobject(env, &object)?;
+      let asset_info: rspack_core::AssetInfo = js_asset_info.into();
+      let asset_info = BindingCell::from(asset_info);
+      asset_info.reflector().set_jsobject(env, object)?;
+
+      asset_info
+    } else {
+      BindingCell::from(rspack_core::AssetInfo::default())
+    };
 
     compilation.emit_asset(
       filename,
-      rspack_core::CompilationAsset::new(Some(source.into()), asset_info),
+      rspack_core::CompilationAsset {
+        source: Some(source.into()),
+        info: asset_info,
+      },
     );
     Ok(())
   }

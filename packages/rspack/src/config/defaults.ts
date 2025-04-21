@@ -1094,6 +1094,7 @@ const getResolveDefaults = ({
 		byDependency: {
 			wasm: esmDeps(),
 			esm: esmDeps(),
+			loaderImport: esmDeps(),
 			url: {
 				preferRelative: true
 			},
@@ -1104,7 +1105,7 @@ const getResolveDefaults = ({
 			commonjs: cjsDeps(),
 			amd: cjsDeps(),
 			// for backward-compat: loadModule
-			// loader: cjsDeps(),
+			loader: cjsDeps(),
 			// for backward-compat: Custom Dependency and getResolve without dependencyType
 			unknown: cjsDeps()
 		}

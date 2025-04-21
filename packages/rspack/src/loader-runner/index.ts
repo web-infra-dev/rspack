@@ -25,7 +25,6 @@ import {
 	SourceMapSource
 } from "webpack-sources";
 
-import type { ContextAPI, PropagationAPI, TraceAPI } from "@rspack/tracing";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import { NormalModule } from "../NormalModule";
@@ -37,7 +36,7 @@ import {
 	isUseSimpleSourceMap,
 	isUseSourceMap
 } from "../config/adapterRuleUse";
-import { ChromeTracer } from "../trace";
+import { JavaScriptTracer } from "../trace";
 import {
 	concatErrorMsgAndStack,
 	isNil,
@@ -252,64 +251,10 @@ function getCurrentLoader(
 	return null;
 }
 
-// FIXME: a temporary fix, we may need to change @rspack/tracing to commonjs really fix it
-let cachedTracing:
-	| {
-			trace: TraceAPI;
-			propagation: PropagationAPI;
-			context: ContextAPI;
-	  }
-	| null
-	| undefined;
-
-async function getCachedTracing() {
-	// disable tracing in non-profile mode
-	if (!process.env.RSPACK_PROFILE) {
-		cachedTracing = null;
-		return cachedTracing;
-	}
-	if (cachedTracing) {
-		return cachedTracing;
-	}
-	if (cachedTracing === undefined) {
-		try {
-			const tracing = await import("@rspack/tracing");
-			cachedTracing = {
-				trace: tracing.trace,
-				propagation: tracing.propagation,
-				context: tracing.context
-			};
-			return cachedTracing;
-		} catch (e) {
-			cachedTracing = null;
-			return cachedTracing;
-		}
-	} else {
-		cachedTracing = null;
-		return cachedTracing;
-	}
-}
-
-async function tryTrace(context: JsLoaderContext) {
-	const cachedTracing = await getCachedTracing();
-	if (cachedTracing) {
-		const { trace, propagation, context: tracingContext } = cachedTracing;
-		const tracer = trace.getTracer("rspack-loader-runner");
-		const activeContext = propagation.extract(
-			tracingContext.active(),
-			context.__internal__tracingCarrier
-		);
-		return { trace, tracer, activeContext };
-	}
-	return null;
-}
-
 export async function runLoaders(
 	compiler: Compiler,
 	context: JsLoaderContext
 ): Promise<JsLoaderContext> {
-	const { tracer, activeContext } = (await tryTrace(context)) ?? {};
-
 	const loaderState = context.loaderState;
 
 	//
@@ -976,10 +921,9 @@ export async function runLoaders(
 		const currentLoaderObject = getCurrentLoader(loaderContext);
 		const parallelism = enableParallelism(currentLoaderObject);
 		const pitch = loaderState === JsLoaderState.Pitching;
-		const worker = parallelism;
 		const loaderName = extractLoaderName(currentLoaderObject!.request);
 		let result: any;
-		ChromeTracer.startAsync({
+		JavaScriptTracer.startAsync({
 			name: `loader:${pitch ? "pitch" : ""}:${loaderName}`,
 			args: {
 				resourceData: resourceData,
@@ -987,15 +931,6 @@ export async function runLoaders(
 			},
 			cat: "rspack"
 		});
-		const span = tracer?.startSpan(
-			`LoaderRunner:${pitch ? "pitch" : "normal"}${worker ? " (worker)" : ""}`,
-			{
-				attributes: {
-					"loader.identifier": currentLoaderObject?.request
-				}
-			},
-			activeContext
-		);
 		if (parallelism) {
 			result =
 				(await pool.run(
@@ -1012,7 +947,7 @@ export async function runLoaders(
 			result = (await runSyncOrAsync(fn, loaderContext, args)) || [];
 		}
 
-		ChromeTracer.endAsync({
+		JavaScriptTracer.endAsync({
 			name: `loader:${pitch ? "pitch" : ""}:${loaderName}`,
 			args: {
 				resourceData,
@@ -1020,8 +955,6 @@ export async function runLoaders(
 			},
 			cat: "rspack"
 		});
-
-		span?.end();
 		return result;
 	};
 

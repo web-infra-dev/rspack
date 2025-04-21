@@ -46,11 +46,11 @@ use crate::{
   incremental::{Incremental, IncrementalPasses, Mutation},
   is_source_equal,
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
-  to_identifier, AsyncModulesArtifact, BoxDependency, BoxModule, CacheCount, CacheOptions,
-  CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact, Chunk,
-  ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact,
-  ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderResult, ChunkUkey,
-  CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
+  to_identifier, AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, CacheCount,
+  CacheOptions, CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact,
+  Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
+  ChunkHashesArtifact, ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderResult,
+  ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyCodeGeneration,
   DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, Entry, EntryData,
   EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap, Logger,
@@ -680,7 +680,10 @@ impl Compilation {
   pub fn update_asset(
     &mut self,
     filename: &str,
-    updater: impl FnOnce(BoxSource, AssetInfo) -> Result<(BoxSource, AssetInfo)>,
+    updater: impl FnOnce(
+      BoxSource,
+      BindingCell<AssetInfo>,
+    ) -> Result<(BoxSource, BindingCell<AssetInfo>)>,
   ) -> Result<()> {
     let assets = &mut self.assets;
 
@@ -738,8 +741,8 @@ impl Compilation {
 
   pub fn delete_asset(&mut self, filename: &str) {
     if let Some(asset) = self.assets.remove(filename) {
-      if let Some(source_map) = asset.info.related.source_map {
-        self.delete_asset(&source_map);
+      if let Some(source_map) = &asset.info.related.source_map {
+        self.delete_asset(source_map);
       }
       self.chunk_by_ukey.iter_mut().for_each(|(_, chunk)| {
         chunk.remove_file(filename);
@@ -2523,7 +2526,7 @@ pub type CompilationAssets = HashMap<String, CompilationAsset>;
 pub struct CompilationAsset {
   #[cacheable(with=AsOption<AsPreset>)]
   pub source: Option<BoxSource>,
-  pub info: AssetInfo,
+  pub info: BindingCell<AssetInfo>,
 }
 
 impl From<BoxSource> for CompilationAsset {
@@ -2534,7 +2537,10 @@ impl From<BoxSource> for CompilationAsset {
 
 impl CompilationAsset {
   pub fn new(source: Option<BoxSource>, info: AssetInfo) -> Self {
-    Self { source, info }
+    Self {
+      source,
+      info: BindingCell::from(info),
+    }
   }
 
   pub fn get_source(&self) -> Option<&BoxSource> {
@@ -2558,7 +2564,7 @@ impl CompilationAsset {
   }
 
   pub fn set_info(&mut self, info: AssetInfo) {
-    self.info = info;
+    self.info = BindingCell::from(info);
   }
 }
 

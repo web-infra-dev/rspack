@@ -106,27 +106,6 @@ Rspack 的 Rust 代码通常执行在 tokio 线程里，选择 tokio 线程就�
 
 ![Rust Profiling](https://assets.rspack.dev/rspack/assets/profiling-rust.png)
 
-### Nodejs profiling
-
-如果我们发现性能瓶颈在 JS 端（比如 js loader），那么我们需要进一步分析 js 端，可以使用 Nodejs Profiling 来分析。例如
-
-```bash
-node --cpu-prof {rspack_bin_path} -c rspack.config.js
-```
-
-或者
-
-```bash
-RSPACK_PROFILE=JSCPU rspack build
-```
-
-这将生成一个 cpu 配置文件，例如 `CPU.20230522.154658.14577.0.001.cpuprofile`，并且我们可以使用 speedscope 来可视化 profile，例如
-
-```bash
-npm install -g speedscope
-speedscope CPU.20230522.154658.14577.0.001.cpuprofile
-```
-
 ### Rsdoctor timeline
 
 如果你需要分析 Loader 和 Plugin 耗时或者 Loader 的编译行为，可以利用 Rsdoctor 来查看：

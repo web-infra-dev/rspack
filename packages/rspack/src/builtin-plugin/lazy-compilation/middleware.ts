@@ -23,6 +23,18 @@ const noop = (
 	}
 };
 
+const getFullServerUrl = ({ serverUrl }: LazyCompilationOptions) => {
+	if (!serverUrl) {
+		return LAZY_COMPILATION_PREFIX;
+	}
+	return (
+		serverUrl +
+		(serverUrl.endsWith("/")
+			? LAZY_COMPILATION_PREFIX.slice(1)
+			: LAZY_COMPILATION_PREFIX)
+	);
+};
+
 export const lazyCompilationMiddleware = (
 	compiler: Compiler,
 	userOptions: LazyCompilationOptions | boolean = {}
@@ -45,8 +57,9 @@ export const lazyCompilationMiddleware = (
 				.replace(/%(2F|3A|24|26|2B|2C|3B|3D)/g, decodeURIComponent);
 			filesByKey.set(key, path);
 			const active = activeModules.get(key) === true;
+
 			return {
-				client: `${options.client || getDefaultClient(compiler)}?${encodeURIComponent((options.serverUrl ?? "") + LAZY_COMPILATION_PREFIX)}`,
+				client: `${options.client || getDefaultClient(compiler)}?${encodeURIComponent(getFullServerUrl(options))}`,
 				data: key,
 				active
 			};

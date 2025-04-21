@@ -18,6 +18,7 @@ use rspack_fs::IntermediateFileSystem;
 
 use crate::fs_node::{NodeFileSystem, ThreadsafeNodeFS};
 
+mod allocator;
 mod asset;
 mod asset_condition;
 mod async_dependency_block;
@@ -414,7 +415,7 @@ thread_local! {
 #[napi]
 pub fn register_global_trace(
   filter: String,
-  #[napi(ts_arg_type = "\"chrome\" | \"logger\" | \"otel\"")] layer: String,
+  #[napi(ts_arg_type = "\"chrome\" | \"logger\" ")] layer: String,
   output: String,
 ) -> anyhow::Result<()> {
   GLOBAL_TRACE_STATE.with(|state| {
@@ -422,15 +423,9 @@ pub fn register_global_trace(
     if let TraceState::Off = *state {
       let mut tracer: Box<dyn Tracer> = match layer.as_str() {
         "chrome" => Box::new(ChromeTracer::default()),
-        #[cfg(not(target_family = "wasm"))]
-        "otel" => {
-          use rspack_tracing::OtelTracer;
-          use rspack_napi::napi::bindgen_prelude::within_runtime_if_available;
-          Box::new(within_runtime_if_available(OtelTracer::default))
-        },
         "logger" => Box::new(StdoutTracer),
         _ => anyhow::bail!(
-          "Unexpected layer: {}, supported layers: 'chrome', 'logger', 'console' and 'otel' ",
+          "Unexpected layer: {}, supported layers: 'chrome', 'logger', 'console' ",
           layer
         ),
       };
@@ -463,6 +458,12 @@ pub fn cleanup_global_trace() {
     }
     *state = TraceState::Off;
   });
+}
+
+#[module_exports]
+fn node_init(mut _exports: Object, env: Env) -> Result<()> {
+  rspack_core::set_thread_local_allocator(Box::new(allocator::NapiAllocatorImpl::new(env)));
+  Ok(())
 }
 
 #[napi]

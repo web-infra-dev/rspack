@@ -1341,6 +1341,7 @@ fn get_resolve_defaults(
   let mut by_dependency: Vec<(Cow<'static, str>, Resolve)> = vec![
     ("wasm".into(), esm_deps()),
     ("esm".into(), esm_deps()),
+    ("loaderImport".into(), esm_deps()),
     (
       "url".into(),
       Resolve {
@@ -1357,6 +1358,7 @@ fn get_resolve_defaults(
     ),
     ("commonjs".into(), cjs_deps()),
     ("amd".into(), cjs_deps()),
+    ("loader".into(), cjs_deps()),
     ("unknown".into(), cjs_deps()),
   ];
 

@@ -6,12 +6,7 @@ module.exports = {
 		lazyCompilation: {
 			cacheable: false,
 			entries: false,
-			imports: true,
-			backend: {
-				listen: {
-					host: "127.0.0.1"
-				}
-			}
+			imports: true
 		}
 	}
 };
