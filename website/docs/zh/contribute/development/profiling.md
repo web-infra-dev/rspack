@@ -36,16 +36,6 @@ just build release-debug
 pnpm install
 ```
 
-### Terminal
-
-可以通过 `RSPACK_PROFILE=TRACE=layer=logger` 在终端内查看细粒度的 tracing 事件数值，例如
-
-```bash
-RSPACK_PROFILE=TRACE=layer=logger rspack build
-```
-
-将打印传递给 Rspack 的选项以及每个单独的 tracing 事件.
-
 ## CPU profiling
 
 ### Samply
@@ -96,7 +86,7 @@ Rspack 的 Rust 代码通常执行在 tokio 线程里，选择 tokio 线程就�
 xcode-select --install
 ```
 
-对于普通 Rust 构建, [`cargo instruments`](https://github.com/cmyr/cargo-instruments) 可以用作胶水用于分析和创建 tracing 文件。
+对于普通 Rust 构建, [`cargo instruments`](https://github.com/cmyr/cargo-instruments) 可以用作胶水用于分析和创建 instruments 文件。
 
 由于 Rspack 需要相当长的时间来构建，因此你可以使用以下过程而无需调用 `cargo Instruments`。
 它具有相同的效果。
