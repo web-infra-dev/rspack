@@ -1,39 +1,79 @@
-# Tracing
+## Tracing
 
-[`tracing`](https://crates.io/crates/tracing) is used to instrumenting Rspack.
+[`tracing`](https://crates.io/crates/tracing) is used to record the internal processes of Rspack compilation, which can be used for performance analysis as well as narrow down the location of a bug.
 
-The supported tracing levels for
+### Enabling Tracing
 
-- release builds are `INFO`, `WARN` and `ERROR`
-- debug builds are `TRACE`, `DEBUG`, `INFO`, `WARN` and `ERROR`
+Tracing can be enabled in two ways:
 
-Two ways to enable tracing:
+- If using `@rspack/cli`: Enable it by setting the `RSPACK_PROFILE` environment variable
+- If directly using `@rspack/core`: Enable it through `rspack.experiments.globalTrace.register` and `rspack.experiments.globalTrace.cleanup`. You can check [how we implement `RSPACK_PROFILE` in `@rspack/cli`](https://github.com/web-infra-dev/rspack/blob/9be47217b5179186b0825ca79990ab2808aa1a0f/packages/rspack-cli/src/utils/profile.ts#L219-L224) for more information.
 
-- if you are using `@rspack/cli`, you can enable it by `RSPACK_PROFILE` environment variable.
-- if you are using `@rspack/core` without `@rspack/cli`, you can enable it by `rspack.experiments.globalTrace.register` and `rspack.experiments.globalTrace.cleanup`, checkout [how we implement `RSPACK_PROFILE` in `@rspack/cli` with these two function](https://github.com/web-infra-dev/rspack/blob/9be47217b5179186b0825ca79990ab2808aa1a0f/packages/rspack-cli/src/utils/profile.ts#L219-L224) for more details.
+The generated `trace.json` file can be viewed and analyzed in [ui.perfetto.dev](https://ui.perfetto.dev/).
 
-### Chrome
+### Tracing Layer
 
-[`tracing-chrome`](https://crates.io/crates/tracing-chrome) is supported for viewing tracing information graphically.
+Rspack supports two types of layers: `chrome` and `logger`:
 
-![image](https://github.com/SyMind/rspack-dev-guide/assets/19852293/1af08ba1-a2e9-4e3e-99ab-87c1e62e067b)
+- `chrome`: The default value, generates a trace.json file conforming to the [`chrome trace event`](https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU/preview?tab=t.0#heading=h.yr4qxyxotyw) format, which can be exported to perfetto for complex performance analysis
+- `logger`: Outputs logs directly to the terminal, suitable for simple log analysis or viewing compilation processes in CI environments
 
-Setting the environment variable `RSPACK_PROFILE=TRACE=layer=chrome` before running Rspack, for example
+You can specify the layer through the `RSPACK_TRACE_LAYER` environment variable:
 
-```bash
-RSPACK_PROFILE=TRACE=layer=chrome rspack build
+```sh
+RSPACK_TRACE_LAYER=logger
+# or
+RSPACK_TRACE_LAYER=chrome
 ```
 
-produces a trace file (`.rspack-profile-${timestamp}-${pid}/trace.json`) in the current working directory.
+### Tracing Output
 
-The JSON trace file can be viewed in either `chrome://tracing` or [ui.perfetto.dev](https://ui.perfetto.dev).
+You can specify the output location for traces:
 
-### Terminal
+- The default output for the `logger` layer is `stdout`
+- The default output for the `chrome` layer is `trace.json`
 
-Granular tracing event values can be viewed inside the terminal via `RSPACK_PROFILE=TRACE=layer=logger`, for example
+You can customize the output location through the `RSPACK_TRACE_OUTPUT` environment variable:
 
-```bash
-RSPACK_PROFILE=TRACE=layer=logger rspack build
+```sh
+RSPACK_TRACE_LAYER=logger RSPACK_TRACE_OUTPUT=./log.txt rspack dev
+RSPACK_TRACE_LAYER=chrome RSPACK_TRACE_OUTPUT=./perfetto.json rspack dev
 ```
 
-will print the options passed to Rspack as well as each individual tracing event.
+### Tracing Filter
+
+You can configure the data to be filtered through `RSPACK_PROFILE`. Rspack provides two preset options:
+
+- `RSPACK_PROFILE=OVERVIEW`: The default value, only shows the core build process, generating a smaller JSON file
+- `RSPACK_PROFILE=ALL`: Includes all trace events, used for more complex analysis, generating a larger JSON file
+
+Apart from the presets, other strings will be passed directly to [Env Filter](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#example-syntax), supporting more complex filtering strategies:
+
+#### Tracing Level Filter
+
+The supported tracing levels are: `TRACE`, `DEBUG`, `INFO`, `WARN`, and `ERROR`. You can filter by level:
+
+```sh
+# trace level is the highest level, outputting all logs
+RSPACK_PROFILE=trace
+# only output logs less than or equal to INFO level
+RSPACK_PROFILE=info
+```
+
+#### Module Level Filtering
+
+```sh
+# View rspack_resolver logs and output to terminal
+RSPACK_TRACE_LAYER=logger RSPACK_PROFILE=rspack_resolver
+```
+
+#### Mixed Filtering
+
+EnvFilter supports mixed use of multiple filtering conditions to implement more complex filtering strategies:
+
+```sh
+# View WARN level logs in the rspack_core crate
+RSPACK_PROFILE=rspack_core=warn
+# Keep INFO level logs for other crates but turn off logs for rspack_resolver
+RSPACK_PROFILE=info,rspack_core=off
+```

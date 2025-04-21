@@ -1,39 +1,39 @@
 ## Tracing
 
-[`tracing`](https://crates.io/crates/tracing) 用于记录 Rspack 编译的内部流程，既可用于性能分析，也可用于定位 Bug。
+[`tracing`](https://crates.io/crates/tracing) is used to record the internal processes of Rspack compilation, which can be used for performance analysis as well as bug localization.
 
-### 开启 Tracing
+### Enabling Tracing
 
-可以通过以下两种方式开启 tracing：
+Tracing can be enabled in two ways:
 
-- 如果使用 `@rspack/cli`：通过设置 `RSPACK_PROFILE` 环境变量来开启
-- 如果直接使用 `@rspack/core`：可通过 `rspack.experiments.globalTrace.register` 和 `rspack.experiments.globalTrace.cleanup` 开启。可以查看[我们如何在 `@rspack/cli` 中实现 `RSPACK_PROFILE`](https://github.com/web-infra-dev/rspack/blob/9be47217b5179186b0825ca79990ab2808aa1a0f/packages/rspack-cli/src/utils/profile.ts#L219-L224)获取更多信息。
+- If using `@rspack/cli`: Enable it by setting the `RSPACK_PROFILE` environment variable
+- If directly using `@rspack/core`: Enable it through `rspack.experiments.globalTrace.register` and `rspack.experiments.globalTrace.cleanup`. You can check [how we implement `RSPACK_PROFILE` in `@rspack/cli`](https://github.com/web-infra-dev/rspack/blob/9be47217b5179186b0825ca79990ab2808aa1a0f/packages/rspack-cli/src/utils/profile.ts#L219-L224) for more information.
 
-生成的 `trace.json` 文件可以在 [ui.perfetto.dev](https://ui.perfetto.dev/) 中查看和分析。
+The generated `trace.json` file can be viewed and analyzed in [ui.perfetto.dev](https://ui.perfetto.dev/).
 
 ### Tracing Layer
 
-Rspack 支持 `chrome` 和 `logger` 两种 layer：
+Rspack supports two types of layers: `chrome` and `logger`:
 
-- `chrome`：默认值，生成符合 [`chrome trace event`](https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU/preview?tab=t.0#heading=h.yr4qxyxotyw) 格式的 trace.json 文件，可导出到 perfetto 进行复杂的性能分析
-- `logger`：直接在终端输出日志，适用于简单的日志分析或在 CI 环境中查看编译流程
+- `chrome`: The default value, generates a trace.json file conforming to the [`chrome trace event`](https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU/preview?tab=t.0#heading=h.yr4qxyxotyw) format, which can be exported to perfetto for complex performance analysis
+- `logger`: Outputs logs directly to the terminal, suitable for simple log analysis or viewing compilation processes in CI environments
 
-可以通过 `RSPACK_TRACE_LAYER` 环境变量指定 layer：
+You can specify the layer through the `RSPACK_TRACE_LAYER` environment variable:
 
 ```sh
 RSPACK_TRACE_LAYER=logger
-# 或
+# or
 RSPACK_TRACE_LAYER=chrome
 ```
 
 ### Tracing Output
 
-可以指定 trace 的输出位置：
+You can specify the output location for traces:
 
-- `logger` layer 的默认输出为 `stdout`
-- `chrome` layer 的默认输出为 `trace.json`
+- The default output for the `logger` layer is `stdout`
+- The default output for the `chrome` layer is `trace.json`
 
-通过 `RSPACK_TRACE_OUTPUT` 环境变量可以自定义输出位置：
+You can customize the output location through the `RSPACK_TRACE_OUTPUT` environment variable:
 
 ```sh
 RSPACK_TRACE_LAYER=logger RSPACK_TRACE_OUTPUT=log.txt rspack dev
@@ -42,38 +42,38 @@ RSPACK_TRACE_LAYER=chrome RSPACK_TRACE_OUTPUT=perfetto.json rspack dev
 
 ### Tracing Filter
 
-通过 `RSPACK_PROFILE` 可以配置需要过滤的数据。Rspack 提供了两个预设的 `preset`：
+You can configure the data to be filtered through `RSPACK_PROFILE`. Rspack provides two preset options:
 
-- `RSPACK_PROFILE=OVERVIEW`：默认值，只展示核心的构建流程，生成的 JSON 文件较小
-- `RSPACK_PROFILE=ALL`：包含所有的 trace event，用于较为复杂的分析，生成的 JSON 文件较大
+- `RSPACK_PROFILE=OVERVIEW`: The default value, only shows the core build process, generating a smaller JSON file
+- `RSPACK_PROFILE=ALL`: Includes all trace events, used for more complex analysis, generating a larger JSON file
 
-除了预设外，其他字符串都会透传给 [Env Filter](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#example-syntax)，支持更复杂的过滤策略：
+Apart from the presets, other strings will be passed directly to [Env Filter](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#example-syntax), supporting more complex filtering strategies:
 
 #### Tracing Level Filter
 
-支持的 tracing 等级有：`TRACE`、`DEBUG`、`INFO`、`WARN` 和 `ERROR`。可以通过等级进行过滤：
+The supported tracing levels are: `TRACE`, `DEBUG`, `INFO`, `WARN`, and `ERROR`. You can filter by level:
 
 ```sh
-# trace level 是最高级别，输出所有日志
+# trace level is the highest level, outputting all logs
 RSPACK_PROFILE=trace
-# 只输出小于等于 INFO level 的日志
+# only output logs less than or equal to INFO level
 RSPACK_PROFILE=info
 ```
 
-#### 模块级别过滤
+#### Module Level Filtering
 
 ```sh
-# 查看 rspack_resolver 的日志，并输出到终端
+# View rspack_resolver logs and output to terminal
 RSPACK_TRACE_LAYER=logger RSPACK_PROFILE=rspack_resolver
 ```
 
-#### 混合过滤
+#### Mixed Filtering
 
-EnvFilter 支持混合使用多种过滤条件，实现更复杂的过滤策略：
+EnvFilter supports mixed use of multiple filtering conditions to implement more complex filtering strategies:
 
 ```sh
-# 查看 rspack_core crate 里的 WARN level 的日志
+# View WARN level logs in the rspack_core crate
 RSPACK_PROFILE=rspack_core=warn
-# 保留其他 crate 的 INFO level 日志但关闭 rspack_resolver 的日志
+# Keep INFO level logs for other crates but turn off logs for rspack_resolver
 RSPACK_PROFILE=info,rspack_core=off
 ```
