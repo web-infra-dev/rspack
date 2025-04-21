@@ -3378,9 +3378,9 @@ checksum = "953ec861398dccce10c670dfeaf3ec4911ca479e9c02154b3a215178c5f566f2"
 
 [[package]]
 name = "pnp"
-version = "0.9.1"
+version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96cda59e692c332a953b19dcfe863b45344ce8bfc9027e229f3a732e3d61c50a"
+checksum = "b4efb966c09f2fd5359294a357e14819277b4f0ce5981449b289bdd334b86699"
 dependencies = [
  "arca",
  "byteorder",
@@ -5189,9 +5189,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_resolver"
-version = "0.5.4"
+version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0b92170acee801d0d79f73efafd8e51c4d039161e4c3152889dbd7f032d996c"
+checksum = "b7026b3b6b4d18ad1896163a15db0202f0fe99fd26b4601dc4945e6142b2a1cd"
 dependencies = [
  "async-trait",
  "cfg-if",
