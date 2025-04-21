@@ -7,8 +7,8 @@ it("modern-module-dynamic-import-runtime", () => {
 
 	expect(initialChunk).toContain('import * as __WEBPACK_EXTERNAL_MODULE_lit_alias_9f8ad874__ from "lit-alias"');
 	expect(initialChunk).toContain('import * as __WEBPACK_EXTERNAL_MODULE_svelte_alias_b2b3c54d__ from "svelte-alias"');
-	expect(initialChunk).toContain('import * as __WEBPACK_EXTERNAL_MODULE_react_alias_fd8b3826__ from "react-alias"');
-	expect(initialChunk).toContain('import * as __WEBPACK_EXTERNAL_MODULE_angular_alias_7d25287d__ from "angular-alias"');
+	expect(initialChunk).toContain('import { react } from "react-alias"');
+	expect(initialChunk).toContain('import { angular } from "angular-alias";');
 	expect(initialChunk).toContain('const reactNs = await import("react-alias")');
 	expect(initialChunk).toContain('const vueNs = await import("vue-alias")');
 	expect(initialChunk).toContain('const jqueryNs = await import("jquery-alias", { with: {"type":"url"} })');
