@@ -4156,6 +4156,7 @@ dependencies = [
  "rspack_error",
  "rspack_macros",
  "rustc-hash 2.1.0",
+ "tracing",
 ]
 
 [[package]]
