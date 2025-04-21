@@ -1,8 +1,8 @@
-## Tracing
+# Tracing
 
 [`tracing`](https://crates.io/crates/tracing) is used to record the internal processes of Rspack compilation, which can be used for performance analysis as well as narrow down the location of a bug.
 
-### Enabling Tracing
+## Enabling Tracing
 
 Tracing can be enabled in two ways:
 
@@ -11,7 +11,7 @@ Tracing can be enabled in two ways:
 
 The generated `trace.json` file can be viewed and analyzed in [ui.perfetto.dev](https://ui.perfetto.dev/).
 
-### Tracing Layer
+## Tracing Layer
 
 Rspack supports two types of layers: `chrome` and `logger`:
 
@@ -26,7 +26,7 @@ RSPACK_TRACE_LAYER=logger
 RSPACK_TRACE_LAYER=chrome
 ```
 
-### Tracing Output
+## Tracing Output
 
 You can specify the output location for traces:
 
@@ -40,7 +40,7 @@ RSPACK_TRACE_LAYER=logger RSPACK_TRACE_OUTPUT=./log.txt rspack dev
 RSPACK_TRACE_LAYER=chrome RSPACK_TRACE_OUTPUT=./perfetto.json rspack dev
 ```
 
-### Tracing Filter
+## Tracing Filter
 
 You can configure the data to be filtered through `RSPACK_PROFILE`. Rspack provides two preset options:
 
@@ -49,7 +49,7 @@ You can configure the data to be filtered through `RSPACK_PROFILE`. Rspack provi
 
 Apart from the presets, other strings will be passed directly to [Env Filter](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#example-syntax), supporting more complex filtering strategies:
 
-#### Tracing Level Filter
+### Tracing Level Filter
 
 The supported tracing levels are: `TRACE`, `DEBUG`, `INFO`, `WARN`, and `ERROR`. You can filter by level:
 
@@ -60,14 +60,14 @@ RSPACK_PROFILE=trace
 RSPACK_PROFILE=info
 ```
 
-#### Module Level Filtering
+### Module Level Filtering
 
 ```sh
 # View rspack_resolver logs and output to terminal
 RSPACK_TRACE_LAYER=logger RSPACK_PROFILE=rspack_resolver
 ```
 
-#### Mixed Filtering
+### Mixed Filtering
 
 EnvFilter supports mixed use of multiple filtering conditions to implement more complex filtering strategies:
 
