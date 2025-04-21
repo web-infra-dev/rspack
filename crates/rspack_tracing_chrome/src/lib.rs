@@ -105,7 +105,7 @@ where
   /// # Examples
   ///
   /// ```rust
-  /// # use tracing_chrome::ChromeLayerBuilder;
+  /// # use rspack_tracing_chrome::ChromeLayerBuilder;
   /// # use tracing_subscriber::prelude::*;
   /// let (layer, guard) = ChromeLayerBuilder::new().writer(std::io::sink()).build();
   /// # tracing_subscriber::registry().with(layer).init();
@@ -151,7 +151,7 @@ where
   ///
   /// # Example
   /// ```
-  /// use tracing_chrome::{ChromeLayerBuilder, EventOrSpan};
+  /// use rspack_tracing_chrome::{ChromeLayerBuilder, EventOrSpan};
   /// use tracing_subscriber::{prelude::*, registry::Registry};
   ///
   /// let (chrome_layer, _guard) = ChromeLayerBuilder::new()
@@ -173,7 +173,7 @@ where
   ///
   /// # Example
   /// ```
-  /// use tracing_chrome::{ChromeLayerBuilder, EventOrSpan};
+  /// use rspack_tracing_chrome::{ChromeLayerBuilder, EventOrSpan};
   /// use tracing_subscriber::{prelude::*, registry::Registry};
   ///
   /// let (chrome_layer, _guard) = ChromeLayerBuilder::new()
