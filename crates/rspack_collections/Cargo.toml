@@ -16,3 +16,9 @@ rayon            = { workspace = true }
 rspack_cacheable = { workspace = true }
 serde            = { workspace = true, features = ["derive"] }
 ustr             = { workspace = true, features = ["serde"] }
+allocative       = { workspace = true, optional = true }
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+check-cfg = ['cfg(allocative)']
+
