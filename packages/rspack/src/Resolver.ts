@@ -37,15 +37,16 @@ export class Resolver {
 		callback: ResolveCallback
 	): void {
 		try {
-			this.binding.resolve(path, request).then(
-				data => {
+			this.binding
+				.resolve(path, request)
+				.then(data => {
 					if (data === false) {
 						callback(null, false);
 						return;
 					}
 					callback(null, data.resource, data);
-				}
-			).catch(callback);
+				})
+				.catch(callback);
 		} catch (err) {
 			callback(err as ErrorWithDetails);
 		}

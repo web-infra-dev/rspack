@@ -6077,6 +6077,8 @@ class Resolver {
     // (undocumented)
     resolve(context: object, path: string, request: string, resolveContext: ResolveContext, callback: ResolveCallback): void;
     // (undocumented)
+    resolveSync(context: object, path: string, request: string): string | false;
+    // (undocumented)
     withOptions({ dependencyCategory, resolveToContext, ...resolve }: ResolveOptionsWithDependencyType_2): Resolver;
 }
 
