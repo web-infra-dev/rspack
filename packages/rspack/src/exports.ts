@@ -332,7 +332,7 @@ export type { SubresourceIntegrityPluginOptions } from "./builtin-plugin";
 
 ///// Experiments Stuff /////
 import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";
-import { ChromeTracer } from "./trace";
+import { JavaScriptTracer } from "./trace";
 
 interface Experiments {
 	globalTrace: {
@@ -353,12 +353,14 @@ export const experiments: Experiments = {
 	globalTrace: {
 		async register(filter, layer, output) {
 			registerGlobalTrace(filter, layer, output);
-			ChromeTracer.initChromeTrace(layer, output);
+
+			JavaScriptTracer.initJavaScriptTrace(layer, output);
 		},
 		async cleanup() {
 			// make sure run cleanupGlobalTrace first so we can safely append Node.js trace to it otherwise it will overlap
 			cleanupGlobalTrace();
-			ChromeTracer.cleanupChromeTrace();
+
+			JavaScriptTracer.cleanupJavaScriptTrace();
 		}
 	},
 	RemoveDuplicateModulesPlugin,
