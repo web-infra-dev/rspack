@@ -53,6 +53,8 @@ export async function applyProfile(
 		traceOutput = defaultTraceOutput;
 	}
 	const filter = resolveLayer(filterValue);
+	const entries = Object.entries(resolveLayer(filterValue));
+	if (entries.length <= 0) return;
 	await fs.promises.mkdir(defaultOutputDirname);
 
 	await ensureFileDir(traceOutput);
