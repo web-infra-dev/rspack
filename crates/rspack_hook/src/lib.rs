@@ -33,6 +33,7 @@ pub mod __macro_helper {
   pub use futures_concurrency;
   pub use rspack_error::Result;
   pub use rustc_hash::FxHashSet;
+  pub use tracing;
 }
 
 pub use rspack_macros::{define_hook, plugin, plugin_hook};
