@@ -19,18 +19,6 @@ module.exports = {
 			}
 		},
 		{
-			files: "*.mts",
-			options: {
-				parser: "typescript"
-			}
-		},
-		{
-			files: "*.cts",
-			options: {
-				parser: "typescript"
-			}
-		},
-		{
 			files: "website/**",
 			options: {
 				printWidth: 80,
