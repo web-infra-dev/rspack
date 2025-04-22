@@ -78,7 +78,7 @@
     "rimraf": "^5.0.10",
     "ts-jest": "29.3.2",
     "typescript": "^5.7.3",
-    "webpack": "5.99.5",
+    "webpack": "5.99.6",
     "webpack-cli": "5.1.4",
     "zx": "8.5.2"
   },
