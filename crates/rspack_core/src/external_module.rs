@@ -18,7 +18,7 @@ use crate::{
   DependenciesBlock, DependencyId, ExternalType, FactoryMeta, ImportAttributes, InitFragmentExt,
   InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleGraph, ModuleType,
   NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, UsedExports, NAMESPACE_OBJECT_EXPORT,
+  StaticExportsSpec, NAMESPACE_OBJECT_EXPORT,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -264,12 +264,11 @@ impl ExternalModule {
     resolve_external_type(self.external_type.as_str(), &self.dependency_meta)
   }
 
-  async fn get_source(
+  fn get_source(
     &self,
     compilation: &Compilation,
     request: Option<&ExternalRequestValue>,
     external_type: &ExternalType,
-    runtime: Option<&RuntimeSpec>,
     concatenation_scope: Option<&mut ConcatenationScope>,
   ) -> Result<(BoxSource, ChunkInitFragments, RuntimeGlobals)> {
     let mut chunk_init_fragments: ChunkInitFragments = Default::default();
@@ -398,174 +397,43 @@ impl ExternalModule {
             to_identifier(&request.primary)
           };
 
-          if let Some(concatenation_scope) = concatenation_scope {
-            let exports_info = module_graph.get_exports_info(&self.identifier());
-            let used_exports = exports_info.get_used_exports(&module_graph, runtime);
-            let meta = &self.dependency_meta.attributes;
-            let attributes = if let Some(meta) = meta {
+          chunk_init_fragments.push(
+            NormalInitFragment::new(
               format!(
-                " with {}",
-                serde_json::to_string(meta).expect("json stringify failed"),
-              )
-            } else {
-              String::new()
-            };
-            match used_exports {
-              UsedExports::Bool(true) | UsedExports::Null => {
-                chunk_init_fragments.push(
-                  NormalInitFragment::new(
+                "import * as __WEBPACK_EXTERNAL_MODULE_{}__ from {}{};\n",
+                id.clone(),
+                json_stringify(request.primary()),
+                {
+                  let meta = &self.dependency_meta.attributes;
+                  if let Some(meta) = meta {
                     format!(
-                      "import * as __WEBPACK_EXTERNAL_MODULE_{}__ from {}{};\n",
-                      id.clone(),
-                      json_stringify(request.primary()),
-                      attributes
-                    ),
-                    InitFragmentStage::StageESMImports,
-                    module_graph
-                      .get_pre_order_index(&self.identifier())
-                      .map_or(0, |num| num as i32),
-                    InitFragmentKey::ModuleExternal(request.primary().into()),
-                    None,
-                  )
-                  .boxed(),
-                );
-                let external_module_id = format!("__WEBPACK_EXTERNAL_MODULE_{id}__");
-                let namespace_export_with_name = format!(
-                  "{}{}{}",
-                  NAMESPACE_OBJECT_EXPORT,
-                  &external_module_id,
-                  &property_access(request.iter(), 1)
-                );
-                concatenation_scope.register_namespace_export(&namespace_export_with_name);
-              }
-              UsedExports::Bool(false) => {
-                let content = format!(
-                  "import {}{};\n",
-                  json_stringify(request.primary()),
-                  attributes
-                );
-                chunk_init_fragments.push(
-                  NormalInitFragment::new(
-                    content.clone(),
-                    InitFragmentStage::StageESMImports,
-                    module_graph
-                      .get_pre_order_index(&self.identifier())
-                      .map_or(0, |num| num as i32),
-                    InitFragmentKey::ModuleExternal(content),
-                    None,
-                  )
-                  .boxed(),
-                );
-              }
-              UsedExports::Vec(atoms) => {
-                let info = concatenation_scope
-                  .modules_map
-                  .get(&concatenation_scope.current_module.module)
-                  .expect("should have info")
-                  .as_concatenated();
-                let mut import_default = None;
-                let imported = atoms
-                  .iter()
-                  .map(|atom| {
-                    let final_name = info
-                      .internal_names
-                      .get(atom)
-                      .expect("atom is registered already");
-                    (atom.clone(), final_name.clone())
-                  })
-                  .filter(|(atom, final_name)| {
-                    let is_default_import = atom == "default";
-                    if is_default_import {
-                      import_default = Some(final_name.to_string());
-                    }
-                    !is_default_import
-                  })
-                  .collect::<Vec<_>>();
+                      " with {}",
+                      serde_json::to_string(meta).expect("json stringify failed"),
+                    )
+                  } else {
+                    String::new()
+                  }
+                },
+              ),
+              InitFragmentStage::StageESMImports,
+              0,
+              InitFragmentKey::ModuleExternal(request.primary().into()),
+              None,
+            )
+            .boxed(),
+          );
 
-                for (atom, final_name) in &imported {
-                  concatenation_scope.register_raw_export(atom.clone(), final_name.to_string());
-                }
-
-                if let Some(final_name) = &import_default {
-                  concatenation_scope.register_raw_export("default".into(), final_name.to_string());
-                }
-                let content = if imported.is_empty() {
-                  format!(
-                    "import {}{}{};\n",
-                    if let Some(default_value) = import_default {
-                      Cow::Owned(format!("{default_value} from "))
-                    } else {
-                      Cow::Borrowed("")
-                    },
-                    json_stringify(request.primary()),
-                    attributes
-                  )
-                } else {
-                  format!(
-                    "import {}{{ {} }} from {}{};\n",
-                    if let Some(default_value) = import_default {
-                      Cow::Owned(format!("{default_value}, "))
-                    } else {
-                      Cow::Borrowed("")
-                    },
-                    imported
-                      .iter()
-                      .map(|(imported, final_name)| {
-                        if imported == final_name {
-                          imported.to_string()
-                        } else {
-                          format!("{imported} as {final_name}")
-                        }
-                      })
-                      .collect::<Vec<_>>()
-                      .join(", "),
-                    json_stringify(request.primary()),
-                    attributes
-                  )
-                };
-
-                chunk_init_fragments.push(
-                  NormalInitFragment::new(
-                    content.clone(),
-                    InitFragmentStage::StageESMImports,
-                    module_graph
-                      .get_pre_order_index(&self.identifier())
-                      .map_or(0, |num| num as i32),
-                    InitFragmentKey::ModuleExternal(content),
-                    None,
-                  )
-                  .boxed(),
-                );
-              }
-            }
-
+          if let Some(concatenation_scope) = concatenation_scope {
+            let external_module_id = format!("__WEBPACK_EXTERNAL_MODULE_{id}__");
+            let namespace_export_with_name = format!(
+              "{}{}{}",
+              NAMESPACE_OBJECT_EXPORT,
+              &external_module_id,
+              &property_access(request.iter(), 1)
+            );
+            concatenation_scope.register_namespace_export(&namespace_export_with_name);
             String::new()
           } else {
-            chunk_init_fragments.push(
-              NormalInitFragment::new(
-                format!(
-                  "import * as __WEBPACK_EXTERNAL_MODULE_{}__ from {}{};\n",
-                  id.clone(),
-                  json_stringify(request.primary()),
-                  {
-                    let meta = &self.dependency_meta.attributes;
-                    if let Some(meta) = meta {
-                      format!(
-                        " with {}",
-                        serde_json::to_string(meta).expect("json stringify failed"),
-                      )
-                    } else {
-                      String::new()
-                    }
-                  },
-                ),
-                InitFragmentStage::StageESMImports,
-                0,
-                InitFragmentKey::ModuleExternal(request.primary().into()),
-                None,
-              )
-              .boxed(),
-            );
             format!(
               r#"
 {} = __WEBPACK_EXTERNAL_MODULE_{}__;
@@ -788,7 +656,7 @@ impl Module for ExternalModule {
   async fn code_generation(
     &self,
     compilation: &Compilation,
-    runtime: Option<&RuntimeSpec>,
+    _runtime: Option<&RuntimeSpec>,
     mut concatenation_scope: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
@@ -818,15 +686,12 @@ impl Module for ExternalModule {
         );
       }
       _ => {
-        let (source, chunk_init_fragments, runtime_requirements) = self
-          .get_source(
-            compilation,
-            request,
-            external_type,
-            runtime,
-            concatenation_scope.as_mut(),
-          )
-          .await?;
+        let (source, chunk_init_fragments, runtime_requirements) = self.get_source(
+          compilation,
+          request,
+          external_type,
+          concatenation_scope.as_mut(),
+        )?;
         cgr.add(SourceType::JavaScript, source);
         cgr.chunk_init_fragments = chunk_init_fragments;
         cgr.runtime_requirements.insert(runtime_requirements);

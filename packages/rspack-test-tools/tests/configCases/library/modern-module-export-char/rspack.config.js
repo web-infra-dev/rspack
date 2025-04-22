@@ -31,10 +31,8 @@ module.exports = {
 					const bundle = Object.values(assets)[0]._value;
 					expect(bundle)
 						.toContain(`var __webpack_exports__cjsInterop = (foo_default());
-export { default_0 as defaultImport, namedImport, __webpack_exports__cjsInterop as cjsInterop };`);
-					expect(bundle).toContain(
-						'import default_0, { namedImport } from "external-module";'
-					);
+var __webpack_exports__defaultImport = __WEBPACK_EXTERNAL_MODULE_external_module_43054e33__["default"];
+var __webpack_exports__namedImport = __WEBPACK_EXTERNAL_MODULE_external_module_43054e33__.namedImport;`);
 				});
 			};
 			this.hooks.compilation.tap("testcase", handler);
