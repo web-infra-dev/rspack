@@ -9,7 +9,7 @@ use swc_core::{
 use super::JavascriptParserPlugin;
 use crate::visitors::{create_traceable_error, JavascriptParser};
 
-static STRICT_MODE_RESERVED_WORDS: LazyLock<FxHashSet<String>> = LazyLock::new(|| {
+static STRICT_MODE_RESERVED_WORDS: LazyLock<FxHashSet<&'static str>> = LazyLock::new(|| {
   [
     "implements",
     "interface",
@@ -23,8 +23,8 @@ static STRICT_MODE_RESERVED_WORDS: LazyLock<FxHashSet<String>> = LazyLock::new(|
     "await",
   ]
   .iter()
-  .map(|i| i.to_string())
-  .collect::<FxHashSet<String>>()
+  .copied()
+  .collect()
 });
 
 fn is_reserved_word_in_strict(word: &str) -> bool {

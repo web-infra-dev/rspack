@@ -30,7 +30,6 @@ pub trait Hook {
 #[doc(hidden)]
 pub mod __macro_helper {
   pub use async_trait::async_trait;
-  pub use futures_concurrency;
   pub use rspack_error::Result;
   pub use rustc_hash::FxHashSet;
   pub use tracing;
