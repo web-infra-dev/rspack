@@ -42,6 +42,7 @@ define_hook!(CompilerEmit: Series(compilation: &mut Compilation));
 define_hook!(CompilerAfterEmit: Series(compilation: &mut Compilation));
 define_hook!(CompilerAssetEmitted: Series(compilation: &Compilation, filename: &str, info: &AssetEmittedInfo));
 define_hook!(CompilerClose: Series(compilation: &Compilation));
+
 #[derive(Debug, Default)]
 pub struct CompilerHooks {
   pub this_compilation: CompilerThisCompilationHook,
@@ -267,6 +268,7 @@ impl Compiler {
     {
       self.compilation.push_diagnostic(err.into());
     }
+
     if let Some(e) = self
       .plugin_driver
       .compiler_hooks

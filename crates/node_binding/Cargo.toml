@@ -18,7 +18,7 @@ anyhow                   = { workspace = true }
 ropey                    = { workspace = true }
 rspack_allocator         = { workspace = true }
 rspack_collections       = { workspace = true }
-rspack_core              = { workspace = true }
+rspack_core              = { workspace = true, features = ["napi"] }
 rspack_error             = { workspace = true }
 rspack_fs                = { workspace = true }
 rspack_hash              = { workspace = true }
@@ -47,6 +47,7 @@ derive_more        = { workspace = true, features = ["debug"] }
 futures            = { workspace = true }
 glob               = { workspace = true }
 heck               = { workspace = true }
+once_cell          = { workspace = true }
 rspack_cacheable   = { workspace = true }
 rspack_ids         = { workspace = true }
 rspack_napi_macros = { workspace = true }
@@ -104,7 +105,7 @@ rspack_plugin_worker                   = { workspace = true }
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["parking_lot"] }
 
-rspack_tracing = { workspace = true, features = ["otel"] }
+rspack_tracing = { workspace = true }
 
 
 [build-dependencies]

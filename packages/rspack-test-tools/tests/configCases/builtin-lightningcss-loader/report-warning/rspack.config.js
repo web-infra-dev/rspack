@@ -5,8 +5,8 @@ class Plugin {
     apply(compiler) {
         compiler.hooks.done.tap("PLUGIN", stats => {
             const json = stats.toJson();
-            expect(json.errors).toHaveLength(1);
-            expect(json.errors[0].message).toMatch(/Unexpected end of input at/);
+            expect(json.warnings).toHaveLength(1);
+            expect(json.warnings[0].message).toMatch(/Unexpected end of input at/);
         });
     }
 }

@@ -527,6 +527,8 @@ class ChunkGraph {
     getModuleId(module: Module): string | number | null;
     // (undocumented)
     getNumberOfEntryModules(chunk: Chunk): number;
+    // (undocumented)
+    getOrderedChunkModulesIterable(chunk: Chunk, compareFn: (a: Module, b: Module) => number): Iterable<Module>;
 }
 
 // @public (undocumented)
@@ -645,8 +647,6 @@ export class Compilation {
     __internal__getAssetFilenames(): string[];
     // @internal
     __internal__getAssetSource(filename: string): Source | void;
-    // @internal
-    __internal__getChunks(): Chunk[];
     // @internal
     __internal__hasAsset(name: string): boolean;
     // @internal
@@ -2060,7 +2060,7 @@ export const experiments: Experiments_2;
 interface Experiments_2 {
     // (undocumented)
     globalTrace: {
-        register: (filter: string, layer: "chrome" | "logger" | "otel", output: string) => Promise<void>;
+        register: (filter: string, layer: "chrome" | "logger", output: string) => Promise<void>;
         cleanup: () => Promise<void>;
     };
     // (undocumented)

@@ -20,12 +20,12 @@ use crate::{
 pub struct RequireEnsureDependenciesBlockParserPlugin;
 
 impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
-  fn evaluate_typeof(
+  fn evaluate_typeof<'a>(
     &self,
     _parser: &mut JavascriptParser,
-    expr: &UnaryExpr,
+    expr: &'a UnaryExpr,
     for_name: &str,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     (for_name == "require.ensure").then(|| {
       eval::evaluate_to_string(
         "function".to_string(),

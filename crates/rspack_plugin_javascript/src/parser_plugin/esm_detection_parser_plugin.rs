@@ -100,12 +100,12 @@ impl JavascriptParserPlugin for ESMDetectionParserPlugin {
     parser.handle_top_level_await(self.top_level_await, span);
   }
 
-  fn evaluate_typeof(
+  fn evaluate_typeof<'a>(
     &self,
     parser: &mut JavascriptParser,
-    expr: &UnaryExpr,
+    expr: &'a UnaryExpr,
     for_name: &str,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     (parser.is_esm && is_non_esm_identifier(for_name))
       .then(|| BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span_hi().0))
   }

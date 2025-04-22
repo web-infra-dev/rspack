@@ -86,6 +86,7 @@ const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule
 })
 
 module.exports.AsyncDependenciesBlock = __napiModule.exports.AsyncDependenciesBlock
+module.exports.Chunks = __napiModule.exports.Chunks
 module.exports.ConcatenatedModule = __napiModule.exports.ConcatenatedModule
 module.exports.ContextModule = __napiModule.exports.ContextModule
 module.exports.Dependency = __napiModule.exports.Dependency
