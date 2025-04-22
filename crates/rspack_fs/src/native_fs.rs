@@ -230,10 +230,6 @@ impl ReadableFileSystem for NativeFileSystem {
     self.read_sync(path)
   }
 
-  async fn async_read(&self, file: &Utf8Path) -> Result<Vec<u8>> {
-    self.read_sync(file)
-  }
-
   fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
     fs::read(path).to_fs_result()
   }
