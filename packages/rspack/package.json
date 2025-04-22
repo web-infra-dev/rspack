@@ -53,7 +53,6 @@
     "@types/watchpack": "^2.4.4",
     "@types/webpack-sources": "3.2.3",
     "browserslist": "^4.24.4",
-    "cross-env": "^7.0.3",
     "enhanced-resolve": "5.18.1",
     "graceful-fs": "^4.2.11",
     "prebundle": "^1.3.3",
