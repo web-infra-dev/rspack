@@ -6,20 +6,20 @@ use std::{
   marker::PhantomData,
   path::Path,
   sync::{
+    Arc, Mutex,
     atomic::{AtomicUsize, Ordering},
     mpsc,
     mpsc::Sender,
-    Arc, Mutex,
   },
   thread::JoinHandle,
 };
 
-use serde_json::{json, Value as JsonValue};
-use tracing_core::{field::Field, span, Event, Subscriber};
+use serde_json::{Value as JsonValue, json};
+use tracing_core::{Event, Subscriber, field::Field, span};
 use tracing_subscriber::{
+  Layer,
   layer::Context,
   registry::{LookupSpan, SpanRef},
-  Layer,
 };
 
 thread_local! {
