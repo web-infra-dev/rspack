@@ -293,6 +293,37 @@ where
       let mut write = BufWriter::new(out_writer);
       write.write_all(b"[\n").unwrap();
 
+      // Add metadata event to set track title for perfetto track
+      let entry_list = [
+        json!({
+          "ph": "M",
+          "pid": 1,
+          "name": "process_name",
+          "args": {
+              "name": "Build Overview",
+          },
+        }),
+        json!({
+          "ph": "M",
+          "pid": 2,
+          "name": "process_name",
+          "args": {
+              "name": "Build Detail",
+          },
+        }),
+        json!({
+          "ph": "M",
+          "pid": 3,
+          "name": "process_name",
+          "args": {
+              "name": "CPU Profile",
+          },
+        }),
+      ];
+      for entry in entry_list.iter() {
+        serde_json::to_writer(&mut write, entry).unwrap();
+        write.write_all(b",\n").unwrap();
+      }
       let mut has_started = false;
       let mut thread_names: Vec<(usize, String)> = Vec::new();
       for msg in rx {
@@ -360,14 +391,15 @@ where
           entry["args"] = json!({ "name": name });
         } else {
           let ts = ts.unwrap();
-          let callsite = callsite.unwrap();
+          let callsite: &Callsite = callsite.unwrap();
           entry["ts"] = (*ts).into();
           entry["name"] = callsite.name.clone().into();
           entry["cat"] = callsite.target.clone().into();
           entry["tid"] = callsite.tid.into();
+          entry["id2"] = json!({});
 
           if let Some(&id) = id {
-            entry["id"] = id.into();
+            entry["id2"]["global"] = id.into();
           }
 
           if ph == "i" {
@@ -381,6 +413,14 @@ where
 
           if let Some(call_args) = &callsite.args {
             if !call_args.is_empty() {
+              // use id2 for perfetto to split span
+              if let Some(id2) = call_args.get("id2") {
+                entry["pid"] = json!(2);
+                entry["id2"]["local"] = id2.clone();
+                if let Some(obj) = entry["id2"].as_object_mut() {
+                  obj.remove("global");
+                }
+              }
               entry["args"] = (**call_args).clone().into();
             }
           }
@@ -602,6 +642,9 @@ impl<'a> tracing_subscriber::field::Visit for JsonVisitor<'a> {
     self
       .object
       .insert(field.name().to_owned(), format!("{value:?}").into());
+  }
+  fn record_str(&mut self, field: &Field, value: &str) {
+    self.object.insert(field.name().to_owned(), value.into());
   }
 }
 
