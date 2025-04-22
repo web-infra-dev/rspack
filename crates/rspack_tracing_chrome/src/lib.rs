@@ -6,20 +6,20 @@ use std::{
   marker::PhantomData,
   path::Path,
   sync::{
-    Arc, Mutex,
     atomic::{AtomicUsize, Ordering},
     mpsc,
     mpsc::Sender,
+    Arc, Mutex,
   },
   thread::JoinHandle,
 };
 
-use serde_json::{Value as JsonValue, json};
-use tracing_core::{Event, Subscriber, field::Field, span};
+use serde_json::{json, Value as JsonValue};
+use tracing_core::{field::Field, span, Event, Subscriber};
 use tracing_subscriber::{
-  Layer,
   layer::Context,
   registry::{LookupSpan, SpanRef},
+  Layer,
 };
 
 thread_local! {
@@ -347,7 +347,7 @@ where
           for (tid, name) in thread_names.iter() {
             let entry = json!({
                 "ph": "M",
-                "pid": 1,
+                "pid": 1, // fake pid for separate perfetto overview track
                 "name": "thread_name",
                 "tid": *tid,
                 "args": {
@@ -415,7 +415,7 @@ where
             if !call_args.is_empty() {
               // use id2 for perfetto to split span
               if let Some(id2) = call_args.get("id2") {
-                entry["pid"] = json!(2);
+                entry["pid"] = json!(2); // fake pid for separate perfetto detail track
                 entry["id2"]["local"] = id2.clone();
                 if let Some(obj) = entry["id2"].as_object_mut() {
                   obj.remove("global");
