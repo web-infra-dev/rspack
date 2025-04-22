@@ -25,6 +25,12 @@ const externalAlias = ({ request }: { request?: string }, callback) => {
 const commonLibConfig: LibConfig = {
 	format: "cjs",
 	syntax: ["node 16"],
+	source: {
+		define: {
+			WEBPACK_VERSION: JSON.stringify(require("./package.json").webpackVersion),
+			RSPACK_VERSION: JSON.stringify(require("./package.json").version)
+		}
+	},
 	output: {
 		externals: [externalAlias],
 		minify: {
@@ -63,6 +69,7 @@ export default defineConfig({
 				build: true
 			},
 			source: {
+				...commonLibConfig.source,
 				entry: {
 					index: "./src/index.ts"
 				},
