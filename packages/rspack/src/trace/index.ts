@@ -111,7 +111,7 @@ export class JavaScriptTracer {
 	static getCommonEv() {
 		return {
 			tid: 1,
-			pid: 1,
+			pid: 2, // fake pid for detailed track
 			ts: this.getTs()
 		};
 	}
