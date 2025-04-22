@@ -31,10 +31,14 @@ Object.defineProperty(Chunks.prototype, "forEach", {
 	enumerable: true,
 	configurable: true,
 	value(
+		this: Chunks,
 		callbackfn: (value: Chunk, value2: Chunk, set: ReadonlySet<Chunk>) => void,
 		thisArg?: any
 	): void {
-		return this.values().forEach(callbackfn, thisArg);
+		for (const binding of this._values()) {
+			const chunk = Chunk.__from_binding(binding);
+			callbackfn.call(thisArg, chunk, chunk, this);
+		}
 	}
 });
 
