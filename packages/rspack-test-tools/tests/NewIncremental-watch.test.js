@@ -1,3 +1,4 @@
+process.env.RSPACK_INCREMENTAL_WATCH_TEST = true;
 // Need to run some webpack-test
 process.env.RSPACK_CONFIG_VALIDATE = "loose-silent";
 
@@ -20,8 +21,6 @@ describeByWalk(
 	},
 	{
 		source: path.resolve(__dirname, "./watchCases"),
-		dist: path.resolve(__dirname, `./js/new-incremental/watch`),
-		// TODO: fix this test case
-		exclude: [/runtimeChunkFullHash/]
+		dist: path.resolve(__dirname, `./js/new-incremental/watch`)
 	}
 );

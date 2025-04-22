@@ -132,6 +132,7 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
       None,
       compiler.cache.clone(),
       compiler.old_cache.clone(),
+      compiler.options.experiments.incremental,
       Some(Default::default()),
       Default::default(),
       Default::default(),

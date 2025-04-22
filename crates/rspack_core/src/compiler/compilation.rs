@@ -326,6 +326,7 @@ impl Compilation {
     records: Option<CompilationRecords>,
     cache: Arc<dyn Cache>,
     old_cache: Arc<OldCache>,
+    incremental_passes: IncrementalPasses,
     module_executor: Option<ModuleExecutor>,
     modified_files: HashSet<ArcPath>,
     removed_files: HashSet<ArcPath>,
@@ -334,7 +335,6 @@ impl Compilation {
     output_filesystem: Arc<dyn WritableFileSystem>,
     is_rebuild: bool,
   ) -> Self {
-    let incremental = Incremental::new(options.experiments.incremental);
     Self {
       id: CompilationId::new(),
       compiler_id,
@@ -381,7 +381,7 @@ impl Compilation {
       build_time_executed_modules: Default::default(),
       cache,
       old_cache,
-      incremental,
+      incremental: Incremental::new(incremental_passes),
       code_splitting_cache: Default::default(),
 
       hash: None,
@@ -2071,7 +2071,7 @@ impl Compilation {
       ).boxed().into());
       self
         .incremental
-        .disable_passes(IncrementalPasses::CHUNKS_HASHES);
+        .disable_passes(IncrementalPasses::CHUNKS_HASHES | IncrementalPasses::CHUNKS_RENDER);
     }
     logger.time_end(start);
 

@@ -38,6 +38,10 @@ impl Incremental {
     }
   }
 
+  pub fn passes(&self) -> IncrementalPasses {
+    self.passes
+  }
+
   pub fn disable_passes(&mut self, passes: IncrementalPasses) {
     self.passes.remove(passes);
   }
