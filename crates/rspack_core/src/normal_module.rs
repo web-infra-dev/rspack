@@ -278,7 +278,11 @@ impl NormalModule {
     &mut self.presentational_dependencies
   }
 
-  #[tracing::instrument("NormalModule:build_hash", skip_all)]
+  #[tracing::instrument(
+    "NormalModule:build_hash", skip_all,fields(
+    id2 = self.resource_data.resource.as_str()
+  )
+)]
   fn init_build_hash(
     &self,
     output_options: &OutputOptions,
@@ -364,6 +368,7 @@ impl Module for NormalModule {
   #[tracing::instrument("NormalModule:build", skip_all, fields(
     module.resource = self.resource_resolved_data().resource.as_str(),
     module.identifier = self.identifier().as_str(),
+    id2 = self.resource_data.resource.as_str(),
     module.loaders = ?self.loaders.iter().map(|l| l.identifier().as_str()).collect::<Vec<_>>())
   )]
   async fn build(
@@ -407,7 +412,10 @@ impl Module for NormalModule {
       },
       build_context.fs.clone(),
     )
-    .instrument(info_span!("NormalModule:run_loaders"))
+    .instrument(info_span!(
+      "NormalModule:run_loaders",
+      id2 = self.resource_data.resource.as_str(),
+    ))
     .await;
     let (mut loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
