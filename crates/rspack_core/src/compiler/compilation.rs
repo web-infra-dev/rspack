@@ -1111,8 +1111,13 @@ impl Compilation {
       self
         .chunk_render_artifact
         .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
-      let mut chunks = mutations.get_affected_chunks_with_chunk_graph(self);
-      chunks.extend(self.get_chunk_graph_entries());
+      let chunks: UkeySet<ChunkUkey> = mutations
+        .iter()
+        .filter_map(|mutation| match mutation {
+          Mutation::ChunkSetHashes { chunk } => Some(*chunk),
+          _ => None,
+        })
+        .collect();
       let logger = self.get_logger("rspack.incremental.chunksRender");
       logger.log(format!(
         "{} chunks are affected, {} in total",
@@ -2022,11 +2027,14 @@ impl Compilation {
       for hash_result in chunk_hash_results {
         let (chunk_ukey, chunk_hash_result) = hash_result?;
         let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
-        chunk.set_hashes(
+        let chunk_hashes_changed = chunk.set_hashes(
           &mut compilation.chunk_hashes_artifact,
           chunk_hash_result.hash,
           chunk_hash_result.content_hash,
         );
+        if chunk_hashes_changed && let Some(mutations) = compilation.incremental.mutations_write() {
+          mutations.add(Mutation::ChunkSetHashes { chunk: chunk_ukey });
+        }
         if chunk_hash_result.dependent_full_hash {
           full_hash_chunks.insert(chunk_ukey);
         }
@@ -2196,11 +2204,16 @@ impl Compilation {
         .process_chunk_hash(runtime_chunk_ukey, &plugin_driver)
         .await?;
       let chunk = self.chunk_by_ukey.expect_get(&runtime_chunk_ukey);
-      chunk.set_hashes(
+      let chunk_hashes_changed = chunk.set_hashes(
         &mut self.chunk_hashes_artifact,
         chunk_hash_result.hash,
         chunk_hash_result.content_hash,
       );
+      if chunk_hashes_changed && let Some(mutations) = self.incremental.mutations_write() {
+        mutations.add(Mutation::ChunkSetHashes {
+          chunk: runtime_chunk_ukey,
+        });
+      }
     }
     logger.time_end(start);
 
@@ -2258,11 +2271,14 @@ impl Compilation {
           })
           .collect()
       };
-      chunk.set_hashes(
+      let chunk_hashes_changed = chunk.set_hashes(
         &mut self.chunk_hashes_artifact,
         new_chunk_hash,
         new_content_hash,
       );
+      if chunk_hashes_changed && let Some(mutations) = self.incremental.mutations_write() {
+        mutations.add(Mutation::ChunkSetHashes { chunk: chunk_ukey });
+      }
     }
     logger.time_end(start);
     Ok(())

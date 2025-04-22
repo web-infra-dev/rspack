@@ -259,8 +259,8 @@ impl Chunk {
     chunk_hashes_results: &mut ChunkHashesArtifact,
     chunk_hash: RspackHashDigest,
     content_hash: ChunkContentHash,
-  ) {
-    chunk_hashes_results.set_hashes(self.ukey, ChunkHashesResult::new(chunk_hash, content_hash));
+  ) -> bool {
+    chunk_hashes_results.set_hashes(self.ukey, ChunkHashesResult::new(chunk_hash, content_hash))
   }
 
   pub fn rendered(&self) -> bool {
