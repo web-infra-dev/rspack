@@ -925,12 +925,15 @@ export async function runLoaders(
 		const loaderName = extractLoaderName(currentLoaderObject!.request);
 		let result: any;
 		JavaScriptTracer.startAsync({
-			name: `loader:${pitch ? "pitch" : ""}:${loaderName}`,
-			args: {
-				resourceData: resourceData,
-				"loader.request": currentLoaderObject?.request
+			name: `loader:${pitch ? "pitch:" : ""}${loaderName}`,
+			id2: {
+				local: resource // use id2.local to bind to span for same module
 			},
-			cat: "rspack"
+			cat: "rspack",
+			args: {
+				resource: resource,
+				"loader.request": currentLoaderObject?.request
+			}
 		});
 		if (parallelism) {
 			result =
@@ -947,14 +950,16 @@ export async function runLoaders(
 				convertArgs(args, !!currentLoaderObject?.raw);
 			result = (await runSyncOrAsync(fn, loaderContext, args)) || [];
 		}
-
 		JavaScriptTracer.endAsync({
-			name: `loader:${pitch ? "pitch" : ""}:${loaderName}`,
+			name: `loader:${pitch ? "pitch:" : ""}${loaderName}`,
 			args: {
-				resourceData,
+				resource: resource,
 				"loader.request": currentLoaderObject?.request
 			},
-			cat: "rspack"
+			cat: "rspack",
+			id2: {
+				local: resource
+			}
 		});
 		return result;
 	};

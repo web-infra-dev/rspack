@@ -8,9 +8,13 @@ export interface ChromeEvent {
 	ts?: number;
 	pid?: number;
 	tid?: number;
-	id?: number;
+	id?: number; // updated to allow string id
 	args?: {
 		[key: string]: any;
+	};
+	id2?: {
+		local?: string;
+		global?: string;
 	};
 }
 // this is a tracer for nodejs
@@ -56,8 +60,9 @@ export class JavaScriptTracer {
 					name: "Profile",
 					cat: "disabled-by-default-v8.cpu_profiler",
 					ph: "P",
+					id: 1,
 					...this.getCommonEv(),
-					pid: process.pid,
+					pid: 3, // separate process id for cpu profile
 					args: {
 						data: {
 							startTime: 0 // use offset time to align with other trace data
@@ -67,9 +72,10 @@ export class JavaScriptTracer {
 				this.pushEvent({
 					name: "ProfileChunk",
 					ph: "P",
+					id: 1,
 					cat: "disabled-by-default-v8.cpu_profiler",
 					...this.getCommonEv(),
-					pid: process.pid,
+					pid: 3,
 					args: {
 						data: {
 							cpuProfile: cpu_profile,
@@ -104,9 +110,8 @@ export class JavaScriptTracer {
 	// get common chrome event
 	static getCommonEv() {
 		return {
-			tid: process.pid, // node doesn't expose tid so use pid
-			pid: process.pid,
-			id: 1,
+			tid: 1,
+			pid: 2, // fake pid for detailed track
 			ts: this.getTs()
 		};
 	}
