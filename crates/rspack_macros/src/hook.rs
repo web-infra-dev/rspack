@@ -11,6 +11,7 @@ pub struct DefineHookInput {
   trait_name: Ident,
   args: Punctuated<PatType, Comma>,
   exec_kind: ExecKind,
+  tracing: Option<syn::LitBool>,
 }
 
 impl Parse for DefineHookInput {
@@ -47,10 +48,26 @@ impl Parse for DefineHookInput {
         ))
       }
     };
+
+    let mut tracing = None;
+    while input.peek(Token![,]) {
+      input.parse::<Token![,]>()?;
+      let ident = input.parse::<syn::Ident>()?;
+      input.parse::<Token![=]>()?;
+
+      match ident.to_string().as_str() {
+        "tracing" => {
+          tracing = Some(input.parse()?);
+        }
+        _ => return Err(input.error("expected \"tracing\" or end of attribute")),
+      }
+    }
+
     Ok(Self {
       trait_name,
       args,
       exec_kind,
+      tracing,
     })
   }
 }
@@ -61,6 +78,7 @@ impl DefineHookInput {
       trait_name,
       args,
       exec_kind,
+      tracing,
     } = self;
     let ret = exec_kind.return_type();
     let attr = quote! { #[::rspack_hook::__macro_helper::async_trait] };
@@ -75,14 +93,21 @@ impl DefineHookInput {
       .collect::<Result<Punctuated<&Ident, Comma>>>()?;
     let hook_name = Ident::new(&format!("{trait_name}Hook"), trait_name.span());
     let hook_name_lit_str = LitStr::new(&hook_name.to_string(), trait_name.span());
-    let tracing_span_name = LitStr::new(&format!("hook:{trait_name}"), trait_name.span());
     let call_body = exec_kind.body(arg_names);
-    let call_fn = quote! {
-      async fn call(&self, #args) -> #ret {
+    let call_body = if tracing.map(|bool_lit| bool_lit.value).unwrap_or_default() {
+      let tracing_span_name = LitStr::new(&format!("hook:{trait_name}"), trait_name.span());
+      quote! {
         ::rspack_hook::__macro_helper::tracing::Instrument::instrument(
           async { #call_body },
           ::rspack_hook::__macro_helper::tracing::info_span!(#tracing_span_name),
         ).await
+      }
+    } else {
+      call_body
+    };
+    let call_fn = quote! {
+      async fn call(&self, #args) -> #ret {
+        #call_body
       }
     };
     Ok(quote! {
