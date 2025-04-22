@@ -65,7 +65,7 @@
     "tinypool": "^1.0.2"
   },
   "dependencies": {
-    "@module-federation/runtime-tools": "0.12.0",
+    "@module-federation/runtime-tools": "0.13.0",
     "@rspack/binding": "workspace:*",
     "@rspack/lite-tapable": "1.0.1",
     "caniuse-lite": "^1.0.30001713"
