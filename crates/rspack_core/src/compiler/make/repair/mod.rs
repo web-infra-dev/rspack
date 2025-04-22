@@ -12,6 +12,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use super::MakeArtifact;
 use crate::{
   cache::Cache,
+  incremental::IncrementalPasses,
   module_graph::{ModuleGraph, ModuleGraphPartial},
   old_cache::Cache as OldCache,
   utils::task_loop::{run_task_loop, Task},
@@ -34,6 +35,7 @@ pub struct MakeTaskContext {
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub cache: Arc<dyn Cache>,
   pub old_cache: Arc<OldCache>,
+  pub incremental_passes: IncrementalPasses,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
 
@@ -52,6 +54,7 @@ impl MakeTaskContext {
       loader_resolver_factory: compilation.loader_resolver_factory.clone(),
       cache,
       old_cache: compilation.old_cache.clone(),
+      incremental_passes: compilation.incremental.passes(),
       dependency_factories: compilation.dependency_factories.clone(),
       dependency_templates: compilation.dependency_templates.clone(),
       fs: compilation.input_filesystem.clone(),
@@ -83,6 +86,7 @@ impl MakeTaskContext {
       None,
       self.cache.clone(),
       self.old_cache.clone(),
+      self.incremental_passes,
       None,
       Default::default(),
       Default::default(),

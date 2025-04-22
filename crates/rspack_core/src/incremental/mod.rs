@@ -38,6 +38,14 @@ impl Incremental {
     }
   }
 
+  pub fn passes(&self) -> IncrementalPasses {
+    self.passes
+  }
+
+  pub fn disable_passes(&mut self, passes: IncrementalPasses) {
+    self.passes.remove(passes);
+  }
+
   pub fn can_write_mutations(&self) -> bool {
     !self.passes.is_empty()
   }

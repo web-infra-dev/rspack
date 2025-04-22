@@ -51,6 +51,7 @@ impl Compiler {
         Some(records),
         self.cache.clone(),
         self.old_cache.clone(),
+        self.compilation.incremental.passes(),
         Some(ModuleExecutor::default()),
         modified_files,
         removed_files,
