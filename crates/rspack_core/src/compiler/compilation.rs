@@ -31,7 +31,7 @@ use rspack_paths::ArcPath;
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rspack_util::itoa;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
-use tracing::{info_span, instrument, Instrument};
+use tracing::instrument;
 
 use super::{
   make::{make_module_graph, update_module_graph, MakeArtifact, MakeParam},
@@ -60,12 +60,12 @@ use crate::{
 };
 
 define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));
-define_hook!(CompilationBuildModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
+define_hook!(CompilationBuildModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 // NOTE: This is a Rspack-specific hook and has not been standardized yet. Do not expose it to the JS side.
 define_hook!(CompilationUpdateModuleGraph: Series(params: &mut Vec<MakeParam>, artifact: &MakeArtifact));
 define_hook!(CompilationRevokedModules: Series(revoked_modules: &IdentifierSet));
 define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
-define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
+define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationExecuteModule:
   Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, codegen_results: &CodeGenerationResults, execute_module_id: &ExecuteModuleId));
 define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation));
@@ -94,7 +94,7 @@ define_hook!(CompilationRenderManifest: Series(compilation: &Compilation, chunk_
 define_hook!(CompilationChunkAsset: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, filename: &str));
 define_hook!(CompilationProcessAssets: Series(compilation: &mut Compilation));
 define_hook!(CompilationAfterProcessAssets: Series(compilation: &mut Compilation));
-define_hook!(CompilationAfterSeal: Series(compilation: &mut Compilation));
+define_hook!(CompilationAfterSeal: Series(compilation: &mut Compilation),tracing=true);
 
 #[derive(Debug, Default)]
 pub struct CompilationHooks {
@@ -1424,15 +1424,16 @@ impl Compilation {
 
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
+
     while matches!(
       plugin_driver
         .compilation_hooks
         .optimize_dependencies
         .call(self)
-        .instrument(info_span!("Compilation:optimize_dependencies"))
         .await?,
       Some(true)
     ) {}
+
     logger.time_end(start);
 
     // ModuleGraph is frozen for now on, we have a module graph that won't change
@@ -1459,11 +1460,13 @@ impl Compilation {
         .await?,
       Some(true)
     ) {}
+
     plugin_driver
       .compilation_hooks
       .after_optimize_modules
       .call(self)
       .await?;
+
     while matches!(
       plugin_driver
         .compilation_hooks
@@ -1472,6 +1475,7 @@ impl Compilation {
         .await?,
       Some(true)
     ) {}
+
     logger.time_end(start);
 
     let start = logger.time("optimize");
