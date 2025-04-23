@@ -1485,6 +1485,7 @@ impl Compilation {
       ) {}
       Ok(())
     }
+    .instrument(info_span!("Compilation:optimize_chunks_loop"))
     .await;
 
     logger.time_end(start);
