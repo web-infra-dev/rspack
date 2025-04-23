@@ -1424,19 +1424,15 @@ impl Compilation {
 
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
-    let _: Result<()> = async {
-      while matches!(
-        plugin_driver
-          .compilation_hooks
-          .optimize_dependencies
-          .call(self)
-          .await?,
-        Some(true)
-      ) {}
-      Ok(())
-    }
-    .instrument(info_span!("Compilation:optimize_dependencies_loop"))
-    .await;
+
+    while matches!(
+      plugin_driver
+        .compilation_hooks
+        .optimize_dependencies
+        .call(self)
+        .await?,
+      Some(true)
+    ) {}
 
     logger.time_end(start);
 
@@ -1455,38 +1451,30 @@ impl Compilation {
       Ok(compilation)
     })
     .await?;
-    let _: Result<()> = async {
-      while matches!(
-        plugin_driver
-          .compilation_hooks
-          .optimize_modules
-          .call(self)
-          .await?,
-        Some(true)
-      ) {}
-      Ok(())
-    }
-    .instrument(info_span!("Compilation:optimize_modules_loop"))
-    .await;
+
+    while matches!(
+      plugin_driver
+        .compilation_hooks
+        .optimize_modules
+        .call(self)
+        .await?,
+      Some(true)
+    ) {}
 
     plugin_driver
       .compilation_hooks
       .after_optimize_modules
       .call(self)
       .await?;
-    let _: Result<()> = async {
-      while matches!(
-        plugin_driver
-          .compilation_hooks
-          .optimize_chunks
-          .call(self)
-          .await?,
-        Some(true)
-      ) {}
-      Ok(())
-    }
-    .instrument(info_span!("Compilation:optimize_chunks_loop"))
-    .await;
+
+    while matches!(
+      plugin_driver
+        .compilation_hooks
+        .optimize_chunks
+        .call(self)
+        .await?,
+      Some(true)
+    ) {}
 
     logger.time_end(start);
 
