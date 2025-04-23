@@ -551,4 +551,8 @@ impl Plugin for RuntimePlugin {
       .tap(runtime_requirements_in_tree::new(self));
     Ok(())
   }
+
+  fn clear_cache(&self, id: CompilationId) {
+    COMPILATION_HOOKS_MAP.remove(&id);
+  }
 }
