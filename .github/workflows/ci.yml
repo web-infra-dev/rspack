@@ -73,7 +73,7 @@ jobs:
     with:
       target: x86_64-pc-windows-msvc
       profile: "dev"
-      runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+      runner: ${{ vars.WINDOWS_RUNNER_LABELS }}
       test: true
 
   test-mac:
@@ -84,7 +84,7 @@ jobs:
     with:
       target: aarch64-apple-darwin
       profile: "ci"
-      runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
+      runner: ${{ vars.MACOS_RUNNER_LABELS }}
       test: true
 
   test-wasm:
@@ -95,7 +95,7 @@ jobs:
     with:
       target: wasm32-wasip1-threads
       profile: "ci"
-      runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS }}
       test: false
 
   failure_notification:
