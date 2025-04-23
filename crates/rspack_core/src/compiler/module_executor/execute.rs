@@ -72,6 +72,45 @@ impl Task<MakeTaskContext> for ExecuteTask {
     compilation.plugin_driver = compilation.buildtime_plugin_driver.clone();
 
     let id = EXECUTE_MODULE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let diagnostics = compilation.make_artifact.diagnostics();
+
+    if !diagnostics.is_empty() {
+      let execute_result = compilation.get_module_graph().modules().iter().fold(
+        ExecuteModuleResult {
+          cacheable: false,
+          id,
+          error: Some(diagnostics.iter().map(|d| d.to_string()).join("\n")),
+          ..Default::default()
+        },
+        |mut res, (_, module)| {
+          let build_info = &module.build_info();
+          res
+            .file_dependencies
+            .extend(build_info.file_dependencies.iter().cloned());
+          res
+            .context_dependencies
+            .extend(build_info.context_dependencies.iter().cloned());
+          res
+            .missing_dependencies
+            .extend(build_info.missing_dependencies.iter().cloned());
+          res
+            .build_dependencies
+            .extend(build_info.build_dependencies.iter().cloned());
+          res
+        },
+      );
+
+      result_sender
+        .send((
+          execute_result,
+          CompilationAssets::default(),
+          IdentifierSet::default(),
+          vec![],
+        ))
+        .expect("should send result success");
+
+      return Ok(vec![]);
+    }
 
     let mg = compilation.get_module_graph_mut();
     // TODO remove expect and return Err
