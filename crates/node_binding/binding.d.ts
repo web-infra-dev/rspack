@@ -1513,10 +1513,10 @@ export interface RawCircularDependencyRspackPluginOptions {
   allowAsyncCycles?: boolean
   exclude?: RegExp
   ignoredConnections?: Array<[string | RegExp, string | RegExp]>
-  onDetected?: (entrypoint: Module, modules: string[], compilation: JsCompilation) => void
-  onIgnored?: (entrypoint: Module, modules: string[], compilation: JsCompilation) => void
-  onStart?: (compilation: JsCompilation) => void
-  onEnd?: (compilation: JsCompilation) => void
+  onDetected?: (entrypoint: Module, modules: string[]) => void
+  onIgnored?: (entrypoint: Module, modules: string[]) => void
+  onStart?: () => void
+  onEnd?: () => void
 }
 
 export interface RawConsumeOptions {

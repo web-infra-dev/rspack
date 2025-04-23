@@ -5153,6 +5153,8 @@ declare namespace rspackExports {
         EntryDependency,
         Dependency,
         AsyncDependenciesBlock,
+        RspackError,
+        RspackSeverity,
         ModuleFilenameHelpers,
         Template,
         WebpackError,
@@ -5586,6 +5588,9 @@ export interface RspackPluginInstance {
     // (undocumented)
     apply: (compiler: Compiler) => void;
 }
+
+// @public (undocumented)
+export type RspackSeverity = binding.JsRspackSeverity;
 
 // @public (undocumented)
 export const rspackVersion: string;
