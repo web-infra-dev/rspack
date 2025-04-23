@@ -31,7 +31,7 @@ use rspack_paths::ArcPath;
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rspack_util::itoa;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
-use tracing::{info_span, instrument, Instrument};
+use tracing::instrument;
 
 use super::{
   make::{make_module_graph, update_module_graph, MakeArtifact, MakeParam},
