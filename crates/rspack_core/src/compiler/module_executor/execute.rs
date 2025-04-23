@@ -40,6 +40,41 @@ pub struct ExecuteModuleResult {
 }
 
 #[derive(Debug)]
+pub struct BeforeExecuteBuildTask {
+  pub entry_dep_id: DependencyId,
+}
+
+#[async_trait::async_trait]
+impl Task<MakeTaskContext> for BeforeExecuteBuildTask {
+  fn get_task_type(&self) -> TaskType {
+    TaskType::Sync
+  }
+
+  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+    let Self { entry_dep_id } = *self;
+    let mut mg = MakeTaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
+    let entry_module_identifier = *mg
+      .module_identifier_by_dependency_id(&entry_dep_id)
+      .expect("should have module");
+
+    let mut queue = vec![entry_module_identifier];
+    let mut visited = IdentifierSet::default();
+    while let Some(module_identifier) = queue.pop() {
+      queue.extend(
+        mg.get_ordered_outgoing_connections(&module_identifier)
+          .map(|c| *c.module_identifier())
+          .filter(|id| !visited.contains(id)),
+      );
+      visited.insert(module_identifier);
+    }
+    for module_identifier in visited {
+      mg.revoke_module(&module_identifier);
+    }
+    Ok(vec![])
+  }
+}
+
+#[derive(Debug)]
 pub struct ExecuteTask {
   pub entry_dep_id: DependencyId,
   pub layer: Option<String>,
