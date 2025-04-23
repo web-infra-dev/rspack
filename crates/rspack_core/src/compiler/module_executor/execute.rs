@@ -73,14 +73,13 @@ impl Task<MakeTaskContext> for ExecuteTask {
     compilation.plugin_driver = compilation.buildtime_plugin_driver.clone();
 
     let id = EXECUTE_MODULE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    let errors = compilation
+
+    if compilation
       .make_artifact
       .diagnostics()
-      .into_iter()
-      .filter(|d| matches!(d.severity(), RspackSeverity::Error))
-      .collect_vec();
-
-    if !errors.is_empty() {
+      .iter()
+      .any(|d| matches!(d.severity(), RspackSeverity::Error))
+    {
       let execute_result = compilation.get_module_graph().modules().iter().fold(
         ExecuteModuleResult {
           cacheable: false,
