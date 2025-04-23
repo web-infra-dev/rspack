@@ -23,15 +23,16 @@ const noop = (
 	}
 };
 
-const getFullServerUrl = ({ serverUrl }: LazyCompilationOptions) => {
+const getFullServerUrl = ({ serverUrl, prefix }: LazyCompilationOptions) => {
+	const lazyCompilationPrefix = prefix || LAZY_COMPILATION_PREFIX;
 	if (!serverUrl) {
-		return LAZY_COMPILATION_PREFIX;
+		return lazyCompilationPrefix;
 	}
 	return (
 		serverUrl +
 		(serverUrl.endsWith("/")
-			? LAZY_COMPILATION_PREFIX.slice(1)
-			: LAZY_COMPILATION_PREFIX)
+			? lazyCompilationPrefix.slice(1)
+			: lazyCompilationPrefix)
 	);
 };
 
@@ -46,6 +47,8 @@ export const lazyCompilationMiddleware = (
 	const options = userOptions === true ? {} : userOptions;
 	const activeModules: Map<string, boolean> = new Map();
 	const filesByKey: Map<string, string> = new Map();
+	const lazyCompilationPrefix = options.prefix || LAZY_COMPILATION_PREFIX;
+
 	new BuiltinLazyCompilationPlugin(
 		({ module, path }) => {
 			const key = encodeURIComponent(
@@ -76,24 +79,25 @@ export const lazyCompilationMiddleware = (
 			: options.test
 	).apply(compiler);
 
-	return lazyCompilationMiddlewareInternal(compiler, activeModules, filesByKey);
+	return lazyCompilationMiddlewareInternal(compiler, activeModules, filesByKey, lazyCompilationPrefix);
 };
 
 // used for reuse code, do not export this
 const lazyCompilationMiddlewareInternal = (
 	compiler: Compiler,
 	activeModules: Map<string, boolean>,
-	filesByKey: Map<string, string>
+	filesByKey: Map<string, string>,
+	lazyCompilationPrefix: string
 ) => {
 	const logger = compiler.getInfrastructureLogger("LazyCompilation");
 
 	return (req: IncomingMessage, res: ServerResponse, next?: () => void) => {
-		if (!req.url?.startsWith(LAZY_COMPILATION_PREFIX)) {
+		if (!req.url?.startsWith(lazyCompilationPrefix)) {
 			// only handle requests that are come from lazyCompilation
 			return next?.();
 		}
 
-		const keys = req.url.slice(LAZY_COMPILATION_PREFIX.length).split("@");
+		const keys = req.url.slice(lazyCompilationPrefix.length).split("@");
 		req.socket.setNoDelay(true);
 
 		res.setHeader("content-type", "text/event-stream");
