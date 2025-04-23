@@ -37,7 +37,7 @@
 
 #### Changed Content
 ```js
-self["webpackHotUpdate"]('a', {
+self["webpackHotUpdate"]("a", {
 "./file.js": 
 /*!*****************!*\
   !*** ./file.js ***!
@@ -63,7 +63,7 @@ module.exports = 3;
 
 #### Changed Content
 ```js
-self["webpackHotUpdate"]('b', {
+self["webpackHotUpdate"]("b", {
 "./file.js": 
 /*!*****************!*\
   !*** ./file.js ***!
@@ -89,7 +89,7 @@ module.exports = 3;
 
 #### Changed Content
 ```js
-self["webpackHotUpdate"]('main', {
+self["webpackHotUpdate"]("main", {
 "./file.js": 
 /*!*****************!*\
   !*** ./file.js ***!
@@ -116,7 +116,7 @@ module.exports = 3;
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]('runtime', {},function(__webpack_require__) {
+self["webpackHotUpdate"]("runtime", {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
