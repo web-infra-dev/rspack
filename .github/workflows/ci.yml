@@ -38,8 +38,8 @@ jobs:
     runs-on: ubuntu-latest
     name: Check Source Changed
     outputs:
-      changed: ${{ steps.filter.outputs.changed == 'true' }}
-      document_changed: ${{ steps.document_filter.outputs.changed == 'true' }}
+      code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
+      document_changed: ${{ steps.filter.outputs.document_changed == 'true' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
@@ -47,21 +47,17 @@ jobs:
         with:
           predicate-quantifier: "every"
           filters: |
-            changed:
+            code_changed:
               - "!**/*.md"
               - "!**/*.mdx"
               - "!website/**"
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
-        id: document_filter
-        with:
-          predicate-quantifier: "every"
-          filters: |
-            changed:
+            document_changed:
               - "website/**"
 
   test-linux:
     name: Test Linux
     needs: [ get-runner-labels, check-changed ]
+    if: ${{ needs.check-changed.outputs.code_changed }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
@@ -72,6 +68,7 @@ jobs:
   test-windows:
     name: Test Windows
     needs: [ get-runner-labels, check-changed ]
+    if: ${{ needs.check-changed.outputs.code_changed }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-pc-windows-msvc
@@ -81,7 +78,8 @@ jobs:
 
   test-mac:
     name: Test Mac ARM64
-    if: github.ref_name == 'main' && needs.check-changed.outputs.changed == 'true'
+    needs: [ get-runner-labels, check-changed ]
+    if: ${{ needs.check-changed.outputs.code_changed }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: aarch64-apple-darwin
@@ -92,6 +90,7 @@ jobs:
   test-wasm:
     name: Test WASM
     needs: [ get-runner-labels, check-changed ]
+    if: ${{ needs.check-changed.outputs.code_changed }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: wasm32-wasip1-threads
@@ -117,6 +116,18 @@ jobs:
             commitID: [${{github.sha}}](${{github.server_url}}/${{github.repository}}/commit/${{github.sha}})
           URL: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
           LARK_WEBHOOK_URL: ${{secrets.LARK_WEBHOOK_URL}}
+
+  test_required_check:
+    name: Test Required Check
+    needs: [ test-linux, test-windows, test-mac, check-changed ]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: Test check
+        if: ${{ needs.check-changed.outputs.code_changed && contains(join(needs.*.result, ','), 'failure') }}
+        run: echo "Tess Failed" && exit 1
+
 
   # TODO: enable it after self hosted runners are ready
   # pkg-preview:
