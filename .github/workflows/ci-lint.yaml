@@ -1,4 +1,4 @@
-name: CI-Rust
+name: CI-Lint
 
 on:
   pull_request:

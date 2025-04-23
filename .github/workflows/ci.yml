@@ -118,16 +118,19 @@ jobs:
           LARK_WEBHOOK_URL: ${{secrets.LARK_WEBHOOK_URL}}
 
   test_required_check:
+    # this job will be used for GitHub actions to determine required job success or not;
+    # When code changed, it will check if any of the test jobs failed.
+    # When *only* doc changed, it will run as success directly
     name: Test Required Check
     needs: [ test-linux, test-windows, test-mac, check-changed ]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed && contains(join(needs.*.result, ','), 'failure') }}
         run: echo "Tess Failed" && exit 1
-
+      - name: No check to Run test
+        run: echo "Success"
 
   # TODO: enable it after self hosted runners are ready
   # pkg-preview:
