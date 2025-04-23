@@ -13,7 +13,6 @@
 		"**/share-plugin-dual-mode/**",
 		"**/resolve-plugin-context/**"
 	],
-	assignees: ["@SoonIter"],
 	packageRules: [
 		// manually update peer dependencies
 		{
