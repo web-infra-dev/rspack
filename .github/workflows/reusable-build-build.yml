@@ -41,12 +41,14 @@ jobs:
       - name: Install Binding Dependencies
         uses: ./.github/actions/pnpm/install-binding-dependencies
         with:
-          save-if: ${{ github.ref_name == 'main' }}
+          # binding dependencies so small that we don't need to cache them
+          # a fresh new installation takes about 5s
+          save-if: false
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
-          key: build-${{ inputs.target }}-${{ inputs.profile }}
+          key: ${{ inputs.target }}-${{ inputs.profile }}
           save-if: 'true'
 
       # setup rust target for native runner
