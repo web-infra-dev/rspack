@@ -38,7 +38,7 @@ jobs:
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
-          save-if: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
+          save-if: true
           key: build-bench-${{ inputs.target }}
 
       - name: Install cargo-codspeed binary
