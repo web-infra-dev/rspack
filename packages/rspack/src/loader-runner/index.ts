@@ -256,9 +256,16 @@ export async function runLoaders(
 	context: JsLoaderContext
 ): Promise<JsLoaderContext> {
 	const loaderState = context.loaderState;
+	const pitch = loaderState === JsLoaderState.Pitching;
 
 	//
 	const { resource } = context.resourceData;
+	JavaScriptTracer.startAsync({
+		name: `run_js_loaders${pitch ? ":pitch" : ":normal"}`,
+		args: {
+			id2: resource
+		}
+	});
 	const splittedResource = resource && parsePathQueryFragment(resource);
 	const resourcePath = splittedResource ? splittedResource.path : undefined;
 	const resourceQuery = splittedResource ? splittedResource.query : undefined;
@@ -320,6 +327,12 @@ export async function runLoaders(
 		userOptions,
 		callback
 	) {
+		JavaScriptTracer.startAsync({
+			name: "importModule",
+			args: {
+				id2: resource
+			}
+		});
 		const options = userOptions ? userOptions : {};
 		const context = loaderContext;
 		function finalCallback(
@@ -328,6 +341,12 @@ export async function runLoaders(
 		) {
 			return function (err?: Error, res?: any) {
 				if (err) {
+					JavaScriptTracer.endAsync({
+						name: "importModule",
+						args: {
+							id2: resource
+						}
+					});
 					onError(err);
 				} else {
 					for (const dep of res.buildDependencies) {
@@ -345,7 +364,12 @@ export async function runLoaders(
 					if (res.cacheable === false) {
 						context.cacheable(false);
 					}
-
+					JavaScriptTracer.endAsync({
+						name: "importModule",
+						args: {
+							id2: resource
+						}
+					});
 					if (res.error) {
 						onError(
 							compiler.__internal__getModuleExecutionResult(res.id) ??
@@ -925,13 +949,10 @@ export async function runLoaders(
 		const loaderName = extractLoaderName(currentLoaderObject!.request);
 		let result: any;
 		JavaScriptTracer.startAsync({
-			name: `loader:${pitch ? "pitch:" : ""}${loaderName}`,
-			id2: {
-				local: resource // use id2.local to bind to span for same module
-			},
+			name: `js_loader:${pitch ? "pitch:" : ""}${loaderName}`,
 			cat: "rspack",
 			args: {
-				resource: resource,
+				id2: resource,
 				"loader.request": currentLoaderObject?.request
 			}
 		});
@@ -951,14 +972,10 @@ export async function runLoaders(
 			result = (await runSyncOrAsync(fn, loaderContext, args)) || [];
 		}
 		JavaScriptTracer.endAsync({
-			name: `loader:${pitch ? "pitch:" : ""}${loaderName}`,
+			name: `js_loader:${pitch ? "pitch:" : ""}${loaderName}`,
 			args: {
-				resource: resource,
+				id2: resource,
 				"loader.request": currentLoaderObject?.request
-			},
-			cat: "rspack",
-			id2: {
-				local: resource
 			}
 		});
 		return result;
@@ -1073,6 +1090,12 @@ export async function runLoaders(
 								: undefined
 					};
 	}
+	JavaScriptTracer.endAsync({
+		name: `run_js_loaders${pitch ? ":pitch" : ":normal"}`,
+		args: {
+			id2: resource
+		}
+	});
 	return context;
 }
 

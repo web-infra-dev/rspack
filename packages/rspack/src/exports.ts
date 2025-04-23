@@ -352,9 +352,10 @@ interface Experiments {
 export const experiments: Experiments = {
 	globalTrace: {
 		async register(filter, layer, output) {
-			registerGlobalTrace(filter, layer, output);
-
 			JavaScriptTracer.initJavaScriptTrace(layer, output);
+			registerGlobalTrace(filter, layer, output);
+			// lazy init cpuProfiler to make sure js and rust's timestamp is much aligned
+			JavaScriptTracer.initCpuProfiler();
 		},
 		async cleanup() {
 			// make sure run cleanupGlobalTrace first so we can safely append Node.js trace to it otherwise it will overlap
