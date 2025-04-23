@@ -62,14 +62,12 @@ impl Compiler {
         self.output_filesystem.clone(),
         true,
       );
-      dbg!(&new_compilation.incremental);
       new_compilation.hot_index = self.compilation.hot_index + 1;
 
       if new_compilation
         .incremental
         .can_read_mutations(IncrementalPasses::MAKE)
       {
-        dbg!("??");
         // copy field from old compilation
         // make stage used
         self

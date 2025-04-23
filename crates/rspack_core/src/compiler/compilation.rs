@@ -1304,7 +1304,7 @@ impl Compilation {
     self.in_finish_make.store(false, Ordering::Release);
 
     // take built_modules
-    if let Some(mutations) = dbg!(self.incremental.mutations_write()) {
+    if let Some(mutations) = self.incremental.mutations_write() {
       mutations.extend(
         self
           .make_artifact
@@ -1313,7 +1313,9 @@ impl Compilation {
           .map(|&module| Mutation::ModuleRemove { module }),
       );
       mutations.extend(
-        dbg!(&self.make_artifact.built_modules)
+        self
+          .make_artifact
+          .built_modules
           .intersection(&self.make_artifact.revoked_modules)
           .map(|&module| Mutation::ModuleUpdate { module }),
       );
@@ -1659,7 +1661,6 @@ impl Compilation {
       .mutations_read(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
       && !self.cgc_runtime_requirements_artifact.is_empty()
     {
-      dbg!(&mutations);
       let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
         Mutation::ChunkRemove { chunk } => Some(chunk),
         _ => None,
