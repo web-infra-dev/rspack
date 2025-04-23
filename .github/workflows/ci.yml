@@ -30,9 +30,6 @@ permissions:
   issues: write
 
 jobs:
-  get-runner-labels:
-    name: Get Runner Labels
-    uses: ./.github/workflows/get-runner-labels.yml
 
   check-changed:
     runs-on: ubuntu-latest
@@ -56,7 +53,7 @@ jobs:
 
   test-linux:
     name: Test Linux
-    needs: [ get-runner-labels, check-changed ]
+    needs: [ check-changed ]
     if: ${{ needs.check-changed.outputs.code_changed }}
     uses: ./.github/workflows/reusable-build.yml
     with:
@@ -67,7 +64,7 @@ jobs:
 
   test-windows:
     name: Test Windows
-    needs: [ get-runner-labels, check-changed ]
+    needs: [ check-changed ]
     if: ${{ needs.check-changed.outputs.code_changed }}
     uses: ./.github/workflows/reusable-build.yml
     with:
@@ -78,7 +75,7 @@ jobs:
 
   test-mac:
     name: Test Mac ARM64
-    needs: [ get-runner-labels, check-changed ]
+    needs: [ check-changed ]
     if: ${{ needs.check-changed.outputs.code_changed }}
     uses: ./.github/workflows/reusable-build.yml
     with:
@@ -89,7 +86,7 @@ jobs:
 
   test-wasm:
     name: Test WASM
-    needs: [ get-runner-labels, check-changed ]
+    needs: [  check-changed ]
     if: ${{ needs.check-changed.outputs.code_changed }}
     uses: ./.github/workflows/reusable-build.yml
     with:
