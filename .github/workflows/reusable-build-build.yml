@@ -49,7 +49,7 @@ jobs:
         uses: ./.github/actions/rustup
         with:
           key: ${{ inputs.target }}-${{ inputs.profile }}
-          save-if: 'true'
+          save-if: true
 
       # setup rust target for native runner
       - name: Setup Rust Target

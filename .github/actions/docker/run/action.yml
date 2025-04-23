@@ -31,7 +31,7 @@ runs:
         docker run \
           --rm \
           --privileged \
-          --user 0:0 \
+          --user $(id -u):$(id -g) \
           ${{ inputs.options }} \
           -e CI=1 \
           -v ${{ github.workspace }}:/rspack \
