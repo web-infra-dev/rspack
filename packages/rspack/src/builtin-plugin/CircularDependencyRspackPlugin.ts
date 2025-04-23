@@ -4,7 +4,7 @@ import {
 	type RawCircularDependencyRspackPluginOptions
 } from "@rspack/binding";
 import type { Compilation } from "../Compilation";
-import type { Compiler } from '../Compiler';
+import type { Compiler } from "../Compiler";
 import type { Module } from "../Module";
 import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 
@@ -68,33 +68,49 @@ export type CircularDependencyRspackPluginOptions = {
 export class CircularDependencyRspackPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.CircularDependencyRspackPlugin;
 	_options: CircularDependencyRspackPluginOptions;
-	
+
 	constructor(options: CircularDependencyRspackPluginOptions) {
 		super();
 		this._options = options;
 	}
 
 	raw(compiler: Compiler): BuiltinPlugin {
-		const compilation: Compilation = compiler.__internal__get_compilation()!;
-		const { failOnError, allowAsyncCycles, exclude, ignoredConnections } = this._options;
+		const { failOnError, allowAsyncCycles, exclude, ignoredConnections } =
+			this._options;
 
 		const rawOptions: RawCircularDependencyRspackPluginOptions = {
 			failOnError,
 			allowAsyncCycles,
 			exclude,
 			ignoredConnections,
-			onDetected: this._options.onDetected ? (entripoint: Module, modules: string[]) => {
-				this._options.onDetected!(entripoint, modules, compilation);
-			} : undefined,
-			onIgnored: this._options.onIgnored ? (entripoint: Module, modules: string[]) => {
-				this._options.onIgnored!(entripoint, modules, compilation);
-			}: undefined,
-			onStart: this._options.onStart ? () => {
-				this._options.onStart!(compilation);
-			}: undefined,
-			onEnd: this._options.onEnd ? () => {
-				this._options.onEnd!(compilation);
-			}: undefined
+			onDetected: this._options.onDetected
+				? (entripoint: Module, modules: string[]) => {
+						const compilation: Compilation =
+							compiler.__internal__get_compilation()!;
+						this._options.onDetected!(entripoint, modules, compilation);
+					}
+				: undefined,
+			onIgnored: this._options.onIgnored
+				? (entripoint: Module, modules: string[]) => {
+						const compilation: Compilation =
+							compiler.__internal__get_compilation()!;
+						this._options.onIgnored!(entripoint, modules, compilation);
+					}
+				: undefined,
+			onStart: this._options.onStart
+				? () => {
+						const compilation: Compilation =
+							compiler.__internal__get_compilation()!;
+						this._options.onStart!(compilation);
+					}
+				: undefined,
+			onEnd: this._options.onEnd
+				? () => {
+						const compilation: Compilation =
+							compiler.__internal__get_compilation()!;
+						this._options.onEnd!(compilation);
+					}
+				: undefined
 		};
 
 		return createBuiltinPlugin(this.name, rawOptions);
