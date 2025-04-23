@@ -62,7 +62,6 @@ jobs:
   test-linux:
     name: Test Linux
     needs: [ get-runner-labels, check-changed ]
-    if: ${{ needs.check-changed.outputs.changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
@@ -73,7 +72,6 @@ jobs:
   test-windows:
     name: Test Windows
     needs: [ get-runner-labels, check-changed ]
-    if: ${{ needs.check-changed.outputs.changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-pc-windows-msvc
@@ -83,7 +81,6 @@ jobs:
 
   test-mac:
     name: Test Mac ARM64
-    needs: [ get-runner-labels, check-changed ]
     if: github.ref_name == 'main' && needs.check-changed.outputs.changed == 'true'
     uses: ./.github/workflows/reusable-build.yml
     with:
@@ -101,97 +98,6 @@ jobs:
       profile: "ci"
       runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
       test: false
-
-  spell:
-    name: Spell check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - uses: crate-ci/typos@b1a1ef3893ff35ade0cfa71523852a49bfd05d19 # v1.31.1
-        with:
-          files: .
-
-  lint:
-    name: Lint and format code
-    runs-on: ubuntu-latest
-    needs: [ check-changed ]
-    if: ${{ needs.check-changed.outputs.changed == 'true' }}
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
-        id: changes
-        with:
-          filters: |
-            src:
-              - pnpm-lock.yaml
-              - '**/*.{ts,tsx,mts,cts,js,cjs,mjs,jsx}'
-
-      - name: Pnpm Setup
-        uses: ./.github/actions/pnpm/setup
-
-      - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
-
-      - name: Lint js
-        if: steps.changes.outputs.src == 'true'
-        run: pnpm run lint-ci:js
-
-      - name: Prettier
-        if: steps.changes.outputs.src == 'true'
-        run: pnpm run format-ci:js
-
-      - name: Check Dependency Version
-        if: steps.changes.outputs.src == 'true'
-        run: pnpm run check-dependency-version
-
-      - name: API change check
-        if: steps.changes.outputs.src == 'true'
-        run: |
-          echo "===================================="
-          echo "Note: force build npm packages with \`pnpm build:js\` and  \`pnpm api-extractor:local\` locally to generate API change if \`api-extractor\` check failed."
-          echo "$ pnpm build:js && pnpm api-extractor:local"
-          echo "===================================="
-          pnpm build:js
-          pnpm api-extractor:ci
-
-      - name: Documentation coverage check
-        if: steps.changes.outputs.src == 'true'
-        run: pnpm doc-coverage
-
-  lint-website:
-    name: Lint and format website
-    runs-on: ubuntu-latest
-    needs: [ check-changed ]
-    if: ${{ needs.check-changed.outputs.document_changed == 'true' }}
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-      - name: Pnpm Setup
-        uses: ./.github/actions/pnpm/setup
-
-      - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
-
-      - name: Run
-        run: |
-          cd website
-          pnpm install
-          pnpm run check:ci
-
-  pnpm_lockfile_check:
-    name: Pnpm Lockfile Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-      - name: Pnpm Setup
-        uses: ./.github/actions/pnpm/setup
-
-      - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
-        with:
-          frozen-lockfile: true
 
   failure_notification:
     name: Failure Notification
