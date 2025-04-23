@@ -2,6 +2,7 @@ use std::{iter::once, sync::atomic::AtomicU32};
 
 use itertools::Itertools;
 use rspack_collections::{DatabaseItem, Identifier, IdentifierSet, UkeySet};
+use rspack_error::RspackSeverity;
 use rspack_paths::ArcPath;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::oneshot::Sender;
@@ -72,14 +73,18 @@ impl Task<MakeTaskContext> for ExecuteTask {
     compilation.plugin_driver = compilation.buildtime_plugin_driver.clone();
 
     let id = EXECUTE_MODULE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    let diagnostics = compilation.make_artifact.diagnostics();
+    let errors = compilation
+      .make_artifact
+      .diagnostics()
+      .into_iter()
+      .filter(|d| matches!(d.severity(), RspackSeverity::Error))
+      .collect_vec();
 
-    if !diagnostics.is_empty() {
+    if !errors.is_empty() {
       let execute_result = compilation.get_module_graph().modules().iter().fold(
         ExecuteModuleResult {
           cacheable: false,
           id,
-          error: Some(diagnostics.iter().map(|d| d.to_string()).join("\n")),
           ..Default::default()
         },
         |mut res, (_, module)| {
@@ -100,6 +105,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
         },
       );
 
+      context.recovery_from_temp_compilation(compilation);
       result_sender
         .send((
           execute_result,

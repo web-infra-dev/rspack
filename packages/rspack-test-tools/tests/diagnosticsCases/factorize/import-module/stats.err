@@ -1,4 +1,1 @@
-ERROR in ./index.js
-  × Module build failed:
-  ╰─▶   × Error: import-module-example!./non-existent-module
-        │     at xxx
+ERROR in × Module not found: Can't resolve './non-existent-module' in '<TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/import-module'
