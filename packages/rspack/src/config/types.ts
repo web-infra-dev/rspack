@@ -2497,82 +2497,84 @@ export type LazyCompilationOptions = {
 /**
  * Options for incremental builds.
  */
-export type Incremental = {
-	/**
-	 * Enable incremental make.
-	 */
-	make?: boolean;
+export type Incremental =
+	| "old-default"
+	| {
+			/**
+			 * Enable incremental make.
+			 */
+			make?: boolean;
 
-	/**
-	 * Enable inference of async modules.
-	 */
-	inferAsyncModules?: boolean;
+			/**
+			 * Enable inference of async modules.
+			 */
+			inferAsyncModules?: boolean;
 
-	/**
-	 * Enable incremental provided exports.
-	 */
-	providedExports?: boolean;
+			/**
+			 * Enable incremental provided exports.
+			 */
+			providedExports?: boolean;
 
-	/**
-	 * Enables diagnostics for dependencies.
-	 */
-	dependenciesDiagnostics?: boolean;
+			/**
+			 * Enables diagnostics for dependencies.
+			 */
+			dependenciesDiagnostics?: boolean;
 
-	/**
-	 * Enables incremental side effects optimization.
-	 */
-	sideEffects?: boolean;
+			/**
+			 * Enables incremental side effects optimization.
+			 */
+			sideEffects?: boolean;
 
-	/**
-	 * Enable incremental build chunk graph.
-	 */
-	buildChunkGraph?: boolean;
+			/**
+			 * Enable incremental build chunk graph.
+			 */
+			buildChunkGraph?: boolean;
 
-	/**
-	 * Enable incremental module ids.
-	 */
-	moduleIds?: boolean;
+			/**
+			 * Enable incremental module ids.
+			 */
+			moduleIds?: boolean;
 
-	/**
-	 * Enable incremental chunk ids.
-	 */
-	chunkIds?: boolean;
+			/**
+			 * Enable incremental chunk ids.
+			 */
+			chunkIds?: boolean;
 
-	/**
-	 * Enable incremental module hashes.
-	 */
-	modulesHashes?: boolean;
+			/**
+			 * Enable incremental module hashes.
+			 */
+			modulesHashes?: boolean;
 
-	/**
-	 * Enable incremental module code generation.
-	 */
-	modulesCodegen?: boolean;
+			/**
+			 * Enable incremental module code generation.
+			 */
+			modulesCodegen?: boolean;
 
-	/**
-	 * Enable incremental module runtime requirements.
-	 */
-	modulesRuntimeRequirements?: boolean;
+			/**
+			 * Enable incremental module runtime requirements.
+			 */
+			modulesRuntimeRequirements?: boolean;
 
-	/**
-	 * Enable incremental chunk runtime requirements.
-	 */
-	chunksRuntimeRequirements?: boolean;
+			/**
+			 * Enable incremental chunk runtime requirements.
+			 */
+			chunksRuntimeRequirements?: boolean;
 
-	/**
-	 * Enable incremental chunk hashes.
-	 */
-	chunksHashes?: boolean;
+			/**
+			 * Enable incremental chunk hashes.
+			 */
+			chunksHashes?: boolean;
 
-	/**
-	 * Enable incremental chunk render.
-	 */
-	chunksRender?: boolean;
+			/**
+			 * Enable incremental chunk render.
+			 */
+			chunksRender?: boolean;
 
-	/**
-	 * Enable incremental asset emission.
-	 */
-	emitAssets?: boolean;
-};
+			/**
+			 * Enable incremental asset emission.
+			 */
+			emitAssets?: boolean;
+	  };
 
 /**
  * Options for experiments.buildHttp

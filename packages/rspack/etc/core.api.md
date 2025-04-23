@@ -2086,7 +2086,7 @@ export interface ExperimentsNormalized {
     // (undocumented)
     futureDefaults?: boolean;
     // (undocumented)
-    incremental?: false | Incremental;
+    incremental?: false | IncrementalNormalized;
     // (undocumented)
     layers?: boolean;
     // (undocumented)
@@ -2586,7 +2586,26 @@ interface ImportModuleOptions {
 type IncomingMessage = IncomingMessage_2;
 
 // @public
-export type Incremental = {
+export type Incremental = "old-default" | {
+    make?: boolean;
+    inferAsyncModules?: boolean;
+    providedExports?: boolean;
+    dependenciesDiagnostics?: boolean;
+    sideEffects?: boolean;
+    buildChunkGraph?: boolean;
+    moduleIds?: boolean;
+    chunkIds?: boolean;
+    modulesHashes?: boolean;
+    modulesCodegen?: boolean;
+    modulesRuntimeRequirements?: boolean;
+    chunksRuntimeRequirements?: boolean;
+    chunksHashes?: boolean;
+    chunksRender?: boolean;
+    emitAssets?: boolean;
+};
+
+// @public (undocumented)
+export type IncrementalNormalized = {
     make?: boolean;
     inferAsyncModules?: boolean;
     providedExports?: boolean;
@@ -5280,6 +5299,7 @@ declare namespace rspackExports {
         OutputNormalized,
         ModuleOptionsNormalized,
         ExperimentCacheNormalized,
+        IncrementalNormalized,
         ExperimentsNormalized,
         IgnoreWarningsNormalized,
         OptimizationRuntimeChunkNormalized,

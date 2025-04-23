@@ -1444,23 +1444,25 @@ const lazyCompilationOptions = z.object({
 	serverUrl: z.string().optional()
 }) satisfies z.ZodType<t.LazyCompilationOptions>;
 
-const incremental = z.strictObject({
-	make: z.boolean().optional(),
-	inferAsyncModules: z.boolean().optional(),
-	providedExports: z.boolean().optional(),
-	dependenciesDiagnostics: z.boolean().optional(),
-	sideEffects: z.boolean().optional(),
-	buildChunkGraph: z.boolean().optional(),
-	moduleIds: z.boolean().optional(),
-	chunkIds: z.boolean().optional(),
-	modulesHashes: z.boolean().optional(),
-	modulesCodegen: z.boolean().optional(),
-	modulesRuntimeRequirements: z.boolean().optional(),
-	chunksRuntimeRequirements: z.boolean().optional(),
-	chunksHashes: z.boolean().optional(),
-	chunksRender: z.boolean().optional(),
-	emitAssets: z.boolean().optional()
-}) satisfies z.ZodType<t.Incremental>;
+const incremental = z
+	.strictObject({
+		make: z.boolean().optional(),
+		inferAsyncModules: z.boolean().optional(),
+		providedExports: z.boolean().optional(),
+		dependenciesDiagnostics: z.boolean().optional(),
+		sideEffects: z.boolean().optional(),
+		buildChunkGraph: z.boolean().optional(),
+		moduleIds: z.boolean().optional(),
+		chunkIds: z.boolean().optional(),
+		modulesHashes: z.boolean().optional(),
+		modulesCodegen: z.boolean().optional(),
+		modulesRuntimeRequirements: z.boolean().optional(),
+		chunksRuntimeRequirements: z.boolean().optional(),
+		chunksHashes: z.boolean().optional(),
+		chunksRender: z.boolean().optional(),
+		emitAssets: z.boolean().optional()
+	})
+	.or(z.literal("old-default")) satisfies z.ZodType<t.Incremental>;
 
 // Define buildHttp options schema
 const buildHttpOptions = z.object({

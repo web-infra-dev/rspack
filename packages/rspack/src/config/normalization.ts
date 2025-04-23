@@ -52,7 +52,6 @@ import type {
 	Iife,
 	ImportFunctionName,
 	ImportMetaName,
-	Incremental,
 	InfrastructureLogging,
 	LazyCompilationOptions,
 	LibraryOptions,
@@ -350,24 +349,10 @@ export const getNormalizedRspackOptions = (
 			),
 			incremental: optionalNestedConfig(experiments.incremental, options =>
 				options === true
-					? ({
-							make: true,
-							inferAsyncModules: true,
-							providedExports: true,
-							dependenciesDiagnostics: true,
-							sideEffects: true,
-							buildChunkGraph: true,
-							moduleIds: true,
-							chunkIds: true,
-							modulesHashes: true,
-							modulesCodegen: true,
-							modulesRuntimeRequirements: true,
-							chunksRuntimeRequirements: true,
-							chunksHashes: true,
-							chunksRender: true,
-							emitAssets: true
-						} satisfies Incremental)
-					: options
+					? {}
+					: options === "old-default"
+						? { make: true, emitAssets: true }
+						: options
 			),
 			parallelCodeSplitting: experiments.parallelCodeSplitting,
 			buildHttp: experiments.buildHttp,
@@ -599,6 +584,24 @@ export type ExperimentCacheNormalized =
 			};
 	  };
 
+export type IncrementalNormalized = {
+	make?: boolean;
+	inferAsyncModules?: boolean;
+	providedExports?: boolean;
+	dependenciesDiagnostics?: boolean;
+	sideEffects?: boolean;
+	buildChunkGraph?: boolean;
+	moduleIds?: boolean;
+	chunkIds?: boolean;
+	modulesHashes?: boolean;
+	modulesCodegen?: boolean;
+	modulesRuntimeRequirements?: boolean;
+	chunksRuntimeRequirements?: boolean;
+	chunksHashes?: boolean;
+	chunksRender?: boolean;
+	emitAssets?: boolean;
+};
+
 export interface ExperimentsNormalized {
 	cache?: ExperimentCacheNormalized;
 	lazyCompilation?: false | LazyCompilationOptions;
@@ -607,7 +610,7 @@ export interface ExperimentsNormalized {
 	topLevelAwait?: boolean;
 	css?: boolean;
 	layers?: boolean;
-	incremental?: false | Incremental;
+	incremental?: false | IncrementalNormalized;
 	parallelCodeSplitting?: boolean;
 	futureDefaults?: boolean;
 	rspackFuture?: RspackFutureOptions;

@@ -34,7 +34,10 @@ const creator = new BasicCaseCreator({
 							tempDir: temp!,
 							runable: true,
 							compilerType: ECompilerType.Rspack,
-							configFiles: ["rspack.config.js", "webpack.config.js"]
+							configFiles: ["rspack.config.js", "webpack.config.js"],
+							experiments: {
+								incremental: "old-default"
+							}
 						},
 						watchState
 					)
