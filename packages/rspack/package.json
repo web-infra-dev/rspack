@@ -48,7 +48,7 @@
   "devDependencies": {
     "@swc/core": "1.11.21",
     "@swc/types": "0.1.21",
-    "@rslib/core": "0.6.6",
+    "@rslib/core": "0.6.7",
     "@types/graceful-fs": "4.1.9",
     "@types/watchpack": "^2.4.4",
     "@types/webpack-sources": "3.2.3",
