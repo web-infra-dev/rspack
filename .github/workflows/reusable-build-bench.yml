@@ -28,6 +28,8 @@ jobs:
     defaults:
       run:
         shell: bash
+    env:
+      CODSPEED_DEBUG: "true"
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -80,8 +82,6 @@ jobs:
       - name: Run benchmark
         uses: CodSpeedHQ/action@0010eb0ca6e89b80c88e8edaaa07cfe5f3e6664d # v3
         timeout-minutes: 30
-        env:
-          CODSPEED_DEBUG: true
         with:
           run: pnpm run bench:ci
           token: ${{ secrets.CODSPEED_TOKEN }}
