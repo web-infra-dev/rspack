@@ -6,10 +6,10 @@ use rspack_core::{
   rspack_sources::{BoxSource, CachedSource, SourceExt},
   AssetInfo, CachedConstDependencyTemplate, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationChunkHash, CompilationContentHash,
-  CompilationParams, CompilationRenderManifest, CompilerCompilation, CompilerOptions,
-  ConstDependencyTemplate, DependencyType, IgnoreErrorModuleFactory, ModuleGraph, ModuleType,
-  ParserAndGenerator, PathData, Plugin, PluginContext, RenderManifestEntry, RuntimeGlobals,
-  RuntimeRequirementsDependencyTemplate, SelfModuleFactory, SourceType,
+  CompilationId, CompilationParams, CompilationRenderManifest, CompilerCompilation,
+  CompilerOptions, ConstDependencyTemplate, DependencyType, IgnoreErrorModuleFactory, ModuleGraph,
+  ModuleType, ParserAndGenerator, PathData, Plugin, PluginContext, RenderManifestEntry,
+  RuntimeGlobals, RuntimeRequirementsDependencyTemplate, SelfModuleFactory, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -622,6 +622,10 @@ impl Plugin for JsPlugin {
       });
 
     Ok(())
+  }
+
+  fn clear_cache(&self, id: CompilationId) {
+    crate::plugin::COMPILATION_HOOKS_MAP.remove(&id);
   }
 }
 

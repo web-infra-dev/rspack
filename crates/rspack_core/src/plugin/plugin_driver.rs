@@ -5,9 +5,9 @@ use rspack_error::Diagnostic;
 use rspack_util::fx_hash::FxDashMap;
 
 use crate::{
-  ApplyContext, BoxedParserAndGeneratorBuilder, CompilationHooks, CompilerHooks, CompilerOptions,
-  ConcatenatedModuleHooks, ContextModuleFactoryHooks, ModuleType, NormalModuleFactoryHooks,
-  NormalModuleHooks, Plugin, PluginContext, ResolverFactory,
+  ApplyContext, BoxedParserAndGeneratorBuilder, CompilationHooks, CompilationId, CompilerHooks,
+  CompilerOptions, ConcatenatedModuleHooks, ContextModuleFactoryHooks, ModuleType,
+  NormalModuleFactoryHooks, NormalModuleHooks, Plugin, PluginContext, ResolverFactory,
 };
 
 #[derive(Debug)]
@@ -76,10 +76,10 @@ impl PluginDriver {
     std::mem::take(&mut diagnostic)
   }
 
-  pub fn clear_cache(&self) {
+  pub fn clear_cache(&self, id: CompilationId) {
     self.resolver_factory.clear_cache();
     for plugin in &self.plugins {
-      plugin.clear_cache();
+      plugin.clear_cache(id);
     }
   }
 }
