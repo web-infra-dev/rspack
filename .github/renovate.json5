@@ -9,7 +9,6 @@
 	},
 	ignorePaths: [
 		"**/fixtures/**",
-		"npm/**",
 		"**/no-override-loaded/**",
 		"**/share-plugin-dual-mode/**",
 		"**/resolve-plugin-context/**"
