@@ -17,7 +17,7 @@ static URI_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 #[derive(Debug, Default)]
 pub struct DataUriPlugin;
 
-#[plugin_hook(NormalModuleFactoryResolveForScheme for DataUriPlugin)]
+#[plugin_hook(NormalModuleFactoryResolveForScheme for DataUriPlugin,tracing=false)]
 async fn resolve_for_scheme(
   &self,
   _data: &mut ModuleFactoryCreateData,
@@ -56,7 +56,7 @@ async fn resolve_for_scheme(
   Ok(None)
 }
 
-#[plugin_hook(NormalModuleReadResource for DataUriPlugin)]
+#[plugin_hook(NormalModuleReadResource for DataUriPlugin,tracing=false)]
 async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
   if resource_data.get_scheme().is_data()
     && let Some(captures) = URI_REGEX.captures(&resource_data.resource)
