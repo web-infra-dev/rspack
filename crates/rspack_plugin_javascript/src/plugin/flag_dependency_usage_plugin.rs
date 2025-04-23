@@ -2,13 +2,15 @@ use std::collections::{hash_map::Entry, VecDeque};
 
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
-  get_entry_runtime, is_exports_object_referenced, is_no_exports_referenced, merge_runtime,
+  get_entry_runtime,
+  incremental::{IncrementalPasses, NotFriendlyForIncremental},
+  is_exports_object_referenced, is_no_exports_referenced, merge_runtime,
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation,
   CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfo,
   ExtendedReferencedExport, GroupOptions, ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec,
   UsageState,
 };
-use rspack_error::Result;
+use rspack_error::{DiagnosticExt, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{queue::Queue, swc::join_atom};
 use rustc_hash::FxHashMap as HashMap;
@@ -414,6 +416,22 @@ impl FlagDependencyUsagePlugin {
 
 #[plugin_hook(CompilationOptimizeDependencies for FlagDependencyUsagePlugin)]
 async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  if compilation
+    .incremental
+    .disable_passes(IncrementalPasses::MODULES_HASHES)
+  {
+    compilation.push_diagnostic(
+      NotFriendlyForIncremental {
+        thing: "FlagDependencyUsagePlugin (optimization.usedExports = true)",
+        reason:
+          "it requires calculating the used exports based on all modules, which is a global effect",
+        passes: IncrementalPasses::MODULES_HASHES,
+      }
+      .boxed()
+      .into(),
+    );
+  }
+
   let mut proxy = FlagDependencyUsagePluginProxy::new(self.global, compilation);
   proxy.apply();
   Ok(None)

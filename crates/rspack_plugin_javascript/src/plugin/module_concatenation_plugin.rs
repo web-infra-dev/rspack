@@ -11,12 +11,14 @@ use rspack_core::{
   concatenated_module::{
     is_esm_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
   },
-  filter_runtime, merge_runtime, ApplyContext, Compilation, CompilationOptimizeChunkModules,
-  CompilerOptions, ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module,
-  ModuleExt, ModuleGraph, ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
+  filter_runtime,
+  incremental::{IncrementalPasses, NotFriendlyForIncremental},
+  merge_runtime, ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions,
+  ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
+  ModuleGraph, ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext, ProvidedExports,
+  RuntimeCondition, RuntimeSpec, SourceType,
 };
-use rspack_error::Result;
+use rspack_error::{DiagnosticExt, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::itoa;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -1023,6 +1025,23 @@ impl ModuleConcatenationPlugin {
 
 #[plugin_hook(CompilationOptimizeChunkModules for ModuleConcatenationPlugin)]
 async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  let passes = IncrementalPasses::MODULES_HASHES
+    | IncrementalPasses::MODULE_IDS
+    | IncrementalPasses::CHUNK_IDS
+    | IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS
+    | IncrementalPasses::CHUNKS_HASHES;
+  if compilation.incremental.disable_passes(passes) {
+    compilation.push_diagnostic(
+      NotFriendlyForIncremental {
+        thing: "ModuleConcatenationPlugin (optimization.concatenateModules = true)",
+        reason: "it requires calculating the modules that can be concatenated based on all the modules, which is a global effect",
+        passes,
+      }
+      .boxed()
+      .into(),
+    );
+  }
+
   self.optimize_chunk_modules_impl(compilation).await?;
   Ok(None)
 }

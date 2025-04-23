@@ -7,9 +7,11 @@ use rspack_paths::ArcPath;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  chunk_graph_chunk::ChunkId, chunk_graph_module::ModuleId, fast_set,
-  incremental::IncrementalPasses, ChunkGraph, ChunkKind, Compilation, Compiler, ModuleExecutor,
-  RuntimeSpec,
+  chunk_graph_chunk::ChunkId,
+  chunk_graph_module::ModuleId,
+  fast_set,
+  incremental::{Incremental, IncrementalPasses},
+  ChunkGraph, ChunkKind, Compilation, Compiler, ModuleExecutor, RuntimeSpec,
 };
 
 impl Compiler {
@@ -51,7 +53,7 @@ impl Compiler {
         Some(records),
         self.cache.clone(),
         self.old_cache.clone(),
-        self.compilation.incremental.passes(),
+        Incremental::new_rebuild(self.options.experiments.incremental),
         Some(ModuleExecutor::default()),
         modified_files,
         removed_files,
@@ -60,13 +62,14 @@ impl Compiler {
         self.output_filesystem.clone(),
         true,
       );
-
+      dbg!(&new_compilation.incremental);
       new_compilation.hot_index = self.compilation.hot_index + 1;
 
       if new_compilation
         .incremental
         .can_read_mutations(IncrementalPasses::MAKE)
       {
+        dbg!("??");
         // copy field from old compilation
         // make stage used
         self

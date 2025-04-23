@@ -43,7 +43,7 @@ use crate::{
   build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
   cache::Cache,
   get_runtime_key,
-  incremental::{Incremental, IncrementalPasses, Mutation},
+  incremental::{Incremental, IncrementalPasses, Mutation, NotFriendlyForIncremental},
   is_source_equal,
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
   to_identifier, AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, CacheCount,
@@ -328,7 +328,7 @@ impl Compilation {
     records: Option<CompilationRecords>,
     cache: Arc<dyn Cache>,
     old_cache: Arc<OldCache>,
-    incremental_passes: IncrementalPasses,
+    incremental: Incremental,
     module_executor: Option<ModuleExecutor>,
     modified_files: HashSet<ArcPath>,
     removed_files: HashSet<ArcPath>,
@@ -383,7 +383,7 @@ impl Compilation {
       build_time_executed_modules: Default::default(),
       cache,
       old_cache,
-      incremental: Incremental::new(incremental_passes),
+      incremental,
       code_splitting_cache: Default::default(),
 
       hash: None,
@@ -783,6 +783,7 @@ impl Compilation {
   pub fn push_diagnostic(&mut self, diagnostic: Diagnostic) {
     self.diagnostics.push(diagnostic);
   }
+
   pub fn splice_diagnostic(
     &mut self,
     s: usize,
@@ -1303,7 +1304,7 @@ impl Compilation {
     self.in_finish_make.store(false, Ordering::Release);
 
     // take built_modules
-    if let Some(mutations) = self.incremental.mutations_write() {
+    if let Some(mutations) = dbg!(self.incremental.mutations_write()) {
       mutations.extend(
         self
           .make_artifact
@@ -1312,9 +1313,7 @@ impl Compilation {
           .map(|&module| Mutation::ModuleRemove { module }),
       );
       mutations.extend(
-        self
-          .make_artifact
-          .built_modules
+        dbg!(&self.make_artifact.built_modules)
           .intersection(&self.make_artifact.revoked_modules)
           .map(|&module| Mutation::ModuleUpdate { module }),
       );
@@ -1660,6 +1659,7 @@ impl Compilation {
       .mutations_read(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
       && !self.cgc_runtime_requirements_artifact.is_empty()
     {
+      dbg!(&mutations);
       let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
         Mutation::ChunkRemove { chunk } => Some(chunk),
         _ => None,
@@ -2085,16 +2085,17 @@ impl Compilation {
     if !full_hash_chunks.is_empty()
       && self
         .incremental
-        .mutations_read(IncrementalPasses::CHUNKS_HASHES)
-        .is_some()
+        .disable_passes(IncrementalPasses::CHUNKS_HASHES | IncrementalPasses::CHUNKS_RENDER)
     {
-      self.push_diagnostic(diagnostic!(
-        severity = Severity::Warn,
-        "Chunks that dependent on full hash requires calculating the hashes of all chunks, which is a global effect.\n`incremental.chunksHashes` has been overridden to false."
-      ).boxed().into());
-      self
-        .incremental
-        .disable_passes(IncrementalPasses::CHUNKS_HASHES | IncrementalPasses::CHUNKS_RENDER);
+      self.push_diagnostic(
+        NotFriendlyForIncremental {
+          thing: "Chunks that dependent on full hash",
+          reason: "it requires calculating the hashes of all the chunks, which is a global effect",
+          passes: IncrementalPasses::CHUNKS_HASHES,
+        }
+        .boxed()
+        .into(),
+      );
     }
     logger.time_end(start);
 

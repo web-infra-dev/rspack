@@ -1,8 +1,10 @@
 use itertools::Itertools;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
+  incremental::{IncrementalPasses, NotFriendlyForIncremental},
   ApplyContext, Chunk, CompilationChunkIds, CompilerOptions, Plugin, PluginContext,
 };
+use rspack_error::DiagnosticExt;
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::id_helpers::{assign_ascending_chunk_ids, compare_chunks_natural};
@@ -13,6 +15,21 @@ pub struct NaturalChunkIdsPlugin;
 
 #[plugin_hook(CompilationChunkIds for NaturalChunkIdsPlugin)]
 async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
+  if compilation
+    .incremental
+    .disable_passes(IncrementalPasses::CHUNK_IDS)
+  {
+    compilation.push_diagnostic(
+      NotFriendlyForIncremental {
+        thing: "NaturalChunkIdsPlugin (optimization.chunkIds = \"natural\")",
+        reason: "it requires calculating the id of all the chunks, which is a global effect",
+        passes: IncrementalPasses::CHUNK_IDS,
+      }
+      .boxed()
+      .into(),
+    );
+  }
+
   let module_ids = &compilation.module_ids_artifact;
   let chunk_graph = &compilation.chunk_graph;
   let module_graph = &compilation.get_module_graph();

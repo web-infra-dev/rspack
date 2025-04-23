@@ -1,8 +1,9 @@
 use rspack_core::{
+  incremental::{IncrementalPasses, NotFriendlyForIncremental},
   ApplyContext, ChunkGraph, Compilation, CompilationModuleIds, CompilerOptions, Plugin,
   PluginContext,
 };
-use rspack_error::Result;
+use rspack_error::{DiagnosticExt, Result};
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::id_helpers::{
@@ -16,6 +17,20 @@ pub struct DeterministicModuleIdsPlugin;
 
 #[plugin_hook(CompilationModuleIds for DeterministicModuleIdsPlugin)]
 async fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
+  if compilation
+    .incremental
+    .disable_passes(IncrementalPasses::MODULE_IDS)
+  {
+    compilation.push_diagnostic(
+      NotFriendlyForIncremental {
+        thing: "DeterministicModuleIdsPlugin (optimization.moduleIds = \"deterministic\")",
+        reason: "it requires calculating the id of all the modules, which is a global effect",
+        passes: IncrementalPasses::MODULE_IDS,
+      }
+      .boxed()
+      .into(),
+    );
+  }
   let (mut used_ids, modules) = get_used_module_ids_and_modules(compilation, None);
 
   let mut module_ids = std::mem::take(&mut compilation.module_ids_artifact);

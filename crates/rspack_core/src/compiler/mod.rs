@@ -23,7 +23,7 @@ pub use self::{
 use crate::{
   cache::{new_cache, Cache},
   fast_set, include_hash,
-  incremental::IncrementalPasses,
+  incremental::{Incremental, IncrementalPasses},
   old_cache::Cache as OldCache,
   trim_dir, BoxPlugin, CleanOptions, CompilerOptions, ContextModuleFactory, Logger,
   NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
@@ -148,7 +148,7 @@ impl Compiler {
       intermediate_filesystem.clone(),
     );
     let old_cache = Arc::new(OldCache::new(options.clone()));
-    let incremental_passes = options.experiments.incremental;
+    let incremental = Incremental::new_build();
     let module_executor = ModuleExecutor::default();
 
     let id = CompilerId::new();
@@ -167,7 +167,7 @@ impl Compiler {
         None,
         cache.clone(),
         old_cache.clone(),
-        incremental_passes,
+        incremental,
         Some(module_executor),
         Default::default(),
         Default::default(),
@@ -217,7 +217,7 @@ impl Compiler {
         None,
         self.cache.clone(),
         self.old_cache.clone(),
-        self.options.experiments.incremental,
+        Incremental::new_build(),
         Some(Default::default()),
         Default::default(),
         Default::default(),
