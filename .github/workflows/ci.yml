@@ -126,6 +126,8 @@ jobs:
     if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
+      - name: Log
+        run: echo ${{ join(needs.*.result, ',') }}
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed && contains(join(needs.*.result, ','), 'failure') }}
         run: echo "Tess Failed" && exit 1
