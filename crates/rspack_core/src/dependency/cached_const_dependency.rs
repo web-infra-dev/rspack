@@ -1,6 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_util::ext::DynHash;
 
+use super::DependencyRange;
 use crate::{
   Compilation, DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType,
   InitFragmentExt, InitFragmentKey, InitFragmentStage, NormalInitFragment, RuntimeSpec,
@@ -10,17 +11,15 @@ use crate::{
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct CachedConstDependency {
-  pub start: u32,
-  pub end: u32,
+  pub range: DependencyRange,
   pub identifier: Box<str>,
   pub content: Box<str>,
 }
 
 impl CachedConstDependency {
-  pub fn new(start: u32, end: u32, identifier: Box<str>, content: Box<str>) -> Self {
+  pub fn new(range: DependencyRange, identifier: Box<str>, content: Box<str>) -> Self {
     Self {
-      start,
-      end,
+      range,
       identifier,
       content,
     }
@@ -40,8 +39,7 @@ impl DependencyCodeGeneration for CachedConstDependency {
     _runtime: Option<&RuntimeSpec>,
   ) {
     self.identifier.dyn_hash(hasher);
-    self.start.dyn_hash(hasher);
-    self.end.dyn_hash(hasher);
+    self.range.dyn_hash(hasher);
     self.content.dyn_hash(hasher);
   }
 }
@@ -78,6 +76,6 @@ impl DependencyTemplate for CachedConstDependencyTemplate {
       )
       .boxed(),
     );
-    source.replace(dep.start, dep.end, &dep.identifier, None);
+    source.replace(dep.range.start, dep.range.end, &dep.identifier, None);
   }
 }

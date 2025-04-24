@@ -140,8 +140,7 @@ pub fn statement_if(scanner: &mut JavascriptParser, stmt: &IfStmt) -> Option<boo
     scanner
       .presentational_dependencies
       .push(Box::new(ConstDependency::new(
-        param.range().0,
-        param.range().1 - 1,
+        (param.range().0, param.range().1 - 1).into(),
         boolean.to_string().into_boxed_str(),
         None,
       )));
@@ -173,8 +172,11 @@ pub fn statement_if(scanner: &mut JavascriptParser, stmt: &IfStmt) -> Option<boo
     scanner
       .presentational_dependencies
       .push(Box::new(ConstDependency::new(
-        branch_to_remove.span().real_lo(),
-        branch_to_remove.span().hi().0 - 1,
+        (
+          branch_to_remove.span().real_lo(),
+          branch_to_remove.span().hi().0 - 1,
+        )
+          .into(),
         replacement.into_boxed_str(),
         None,
       )))

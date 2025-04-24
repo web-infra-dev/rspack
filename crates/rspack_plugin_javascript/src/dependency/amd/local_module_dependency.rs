@@ -1,7 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCodeGeneration,
-  DependencyId, DependencyTemplate, DependencyTemplateType, TemplateContext, TemplateReplaceSource,
+  DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, TemplateContext,
+  TemplateReplaceSource,
 };
 
 use super::local_module::LocalModule;
@@ -11,12 +12,12 @@ use super::local_module::LocalModule;
 pub struct LocalModuleDependency {
   id: DependencyId,
   local_module: LocalModule,
-  range: Option<(u32, u32)>,
+  range: Option<DependencyRange>,
   call_new: bool,
 }
 
 impl LocalModuleDependency {
-  pub fn new(local_module: LocalModule, range: Option<(u32, u32)>, call_new: bool) -> Self {
+  pub fn new(local_module: LocalModule, range: Option<DependencyRange>, call_new: bool) -> Self {
     Self {
       id: DependencyId::new(),
       local_module,
@@ -34,6 +35,10 @@ impl LocalModuleDependency {
 impl Dependency for LocalModuleDependency {
   fn id(&self) -> &DependencyId {
     &self.id
+  }
+
+  fn range(&self) -> Option<&DependencyRange> {
+    self.range.as_ref()
   }
 
   fn could_affect_referencing_module(&self) -> AffectType {
@@ -74,7 +79,7 @@ impl DependencyTemplate for LocalModuleDependencyTemplate {
       .downcast_ref::<LocalModuleDependency>()
       .expect("LocalModuleDependencyTemplate should only be used for LocalModuleDependency");
 
-    if let Some(range) = dep.range {
+    if let Some(range) = &dep.range {
       let module_instance = if dep.call_new {
         format!(
           "new (function () {{ return {}; }})()",
@@ -83,7 +88,7 @@ impl DependencyTemplate for LocalModuleDependencyTemplate {
       } else {
         dep.local_module.variable_name()
       };
-      source.replace(range.0, range.1, &module_instance, None);
+      source.replace(range.start, range.end, &module_instance, None);
     }
   }
 }
