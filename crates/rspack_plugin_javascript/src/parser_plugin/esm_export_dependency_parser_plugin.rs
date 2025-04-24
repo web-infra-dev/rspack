@@ -44,7 +44,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
   ) -> Option<bool> {
     parser.last_esm_import_order += 1;
     let span = statement.span();
-    let clean_dep = ConstDependency::new(span.real_lo(), span.real_hi(), "".into(), None);
+    let clean_dep = ConstDependency::new(span.into(), "".into(), None);
     parser.presentational_dependencies.push(Box::new(clean_dep));
     let side_effect_dep = ESMImportSideEffectDependency::new(
       source.clone(),

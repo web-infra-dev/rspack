@@ -197,22 +197,19 @@ impl AMDDefineDependencyParserPlugin {
 
       let dep = if param_str == "require" {
         Box::new(ConstDependency::new(
-          range.0,
-          range.1,
+          range.into(),
           RuntimeGlobals::REQUIRE.name().into(),
           Some(RuntimeGlobals::REQUIRE),
         ))
       } else if param_str == "exports" {
         Box::new(ConstDependency::new(
-          range.0,
-          range.1,
+          range.into(),
           EXPORTS.into(),
           Some(RuntimeGlobals::EXPORTS),
         ))
       } else if param_str == "module" {
         Box::new(ConstDependency::new(
-          range.0,
-          range.1,
+          range.into(),
           MODULE.into(),
           Some(RuntimeGlobals::MODULE),
         ))

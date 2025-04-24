@@ -128,24 +128,21 @@ impl AMDRequireDependenciesBlockParserPlugin {
 
       if param_str == "require" {
         let dep = Box::new(ConstDependency::new(
-          range.0,
-          range.1,
+          range.into(),
           RuntimeGlobals::REQUIRE.name().into(),
           Some(RuntimeGlobals::REQUIRE),
         ));
         parser.presentational_dependencies.push(dep);
       } else if param_str == "module" {
         let dep = Box::new(ConstDependency::new(
-          range.0,
-          range.1,
+          range.into(),
           "module".into(),
           Some(RuntimeGlobals::MODULE),
         ));
         parser.presentational_dependencies.push(dep);
       } else if param_str == "exports" {
         let dep = Box::new(ConstDependency::new(
-          range.0,
-          range.1,
+          range.into(),
           "exports".into(),
           Some(RuntimeGlobals::EXPORTS),
         ));

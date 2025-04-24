@@ -193,8 +193,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         } => {
           if request.is_empty() {
             presentational_dependencies.push(Box::new(ConstDependency::new(
-              range.start,
-              range.end,
+              (range.start, range.end).into(),
               "".into(),
               None,
             )));
@@ -223,8 +222,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         }
         css_module_lexer::Dependency::Replace { content, range } => presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            range.start,
-            range.end,
+            (range.start, range.end).into(),
             content.into(),
             None,
           ))),
@@ -304,8 +302,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             convention_names,
             vec![CssSelfReferenceLocalIdentReplacement {
               local_ident: local_ident.clone(),
-              start: range.start,
-              end: range.end,
+              range: (range.start, range.end).into(),
             }],
           )));
         }
