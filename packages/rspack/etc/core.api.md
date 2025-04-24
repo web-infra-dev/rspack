@@ -90,7 +90,11 @@ import { StatSyncFn } from 'fs';
 import { SyncBailHook } from '@rspack/lite-tapable';
 import { SyncHook } from '@rspack/lite-tapable';
 import { SyncWaterfallHook } from '@rspack/lite-tapable';
+import type { TransformOutput } from '@rspack/binding';
 import { Url } from 'url';
+
+// @public (undocumented)
+type Accessibility = "public" | "protected" | "private";
 
 // @public (undocumented)
 interface AdditionalData {
@@ -123,6 +127,50 @@ export const applyRspackOptionsBaseDefaults: (options: RspackOptionsNormalized) 
 
 // @public (undocumented)
 export const applyRspackOptionsDefaults: (options: RspackOptionsNormalized) => void;
+
+// @public (undocumented)
+interface Argument {
+    // (undocumented)
+    expression: Expression;
+    // (undocumented)
+    spread?: Span;
+}
+
+// @public (undocumented)
+interface ArrayExpression extends ExpressionBase {
+    // (undocumented)
+    elements: (ExprOrSpread | undefined)[];
+    // (undocumented)
+    type: "ArrayExpression";
+}
+
+// @public (undocumented)
+interface ArrayPattern extends PatternBase {
+    // (undocumented)
+    elements: (Pattern | undefined)[];
+    // (undocumented)
+    optional: boolean;
+    // (undocumented)
+    type: "ArrayPattern";
+}
+
+// @public (undocumented)
+interface ArrowFunctionExpression extends ExpressionBase {
+    // (undocumented)
+    async: boolean;
+    // (undocumented)
+    body: BlockStatement | Expression;
+    // (undocumented)
+    generator: boolean;
+    // (undocumented)
+    params: Pattern[];
+    // (undocumented)
+    returnType?: TsTypeAnnotation;
+    // (undocumented)
+    type: "ArrowFunctionExpression";
+    // (undocumented)
+    typeParameters?: TsTypeParameterDeclaration;
+}
 
 // @public
 const asRegExp: (test: string | RegExp) => RegExp;
@@ -220,6 +268,51 @@ export type AssetResourceGeneratorOptions = {
 export type Assets = Record<string, Source>;
 
 // @public (undocumented)
+interface AssignmentExpression extends ExpressionBase {
+    // (undocumented)
+    left: Expression | Pattern;
+    // (undocumented)
+    operator: AssignmentOperator;
+    // (undocumented)
+    right: Expression;
+    // (undocumented)
+    type: "AssignmentExpression";
+}
+
+// @public (undocumented)
+type AssignmentOperator = "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<<=" | ">>=" | ">>>=" | "|=" | "^=" | "&=" | "**=" | "&&=" | "||=" | "??=";
+
+// @public (undocumented)
+interface AssignmentPattern extends PatternBase {
+    // (undocumented)
+    left: Pattern;
+    // (undocumented)
+    right: Expression;
+    // (undocumented)
+    type: "AssignmentPattern";
+}
+
+// @public
+interface AssignmentPatternProperty extends Node_4, HasSpan {
+    // (undocumented)
+    key: Identifier;
+    // (undocumented)
+    type: "AssignmentPatternProperty";
+    // (undocumented)
+    value?: Expression;
+}
+
+// @public (undocumented)
+interface AssignmentProperty extends Node_4 {
+    // (undocumented)
+    key: Identifier;
+    // (undocumented)
+    type: "AssignmentProperty";
+    // (undocumented)
+    value: Expression;
+}
+
+// @public (undocumented)
 interface Assumptions {
     arrayLikeIsIterable?: boolean;
     constantReexports?: boolean;
@@ -255,6 +348,14 @@ export { AsyncDependenciesBlock }
 
 // @public
 export type AuxiliaryComment = string | LibraryCustomUmdCommentObject;
+
+// @public (undocumented)
+interface AwaitExpression extends ExpressionBase {
+    // (undocumented)
+    argument: Expression;
+    // (undocumented)
+    type: "AwaitExpression";
+}
 
 // @public
 export type Bail = boolean;
@@ -334,10 +435,69 @@ type BasicApplication = any;
 type BasicServer = Server | Server_2;
 
 // @public (undocumented)
+interface BigIntLiteral extends Node_4, HasSpan {
+    // (undocumented)
+    raw?: string;
+    // (undocumented)
+    type: "BigIntLiteral";
+    // (undocumented)
+    value: bigint;
+}
+
+// @public (undocumented)
 type BigIntStatsCallback = (err: NodeJS.ErrnoException | null, stats?: IBigIntStats) => void;
 
 // @public (undocumented)
+interface BinaryExpression extends ExpressionBase {
+    // (undocumented)
+    left: Expression;
+    // (undocumented)
+    operator: BinaryOperator;
+    // (undocumented)
+    right: Expression;
+    // (undocumented)
+    type: "BinaryExpression";
+}
+
+// @public (undocumented)
+type BinaryOperator = "==" | "!=" | "===" | "!==" | "<" | "<=" | ">" | ">=" | "<<" | ">>" | ">>>" | "+" | "-" | "*" | "/" | "%" | "|" | "^" | "&" | "||" | "&&" | "in" | "instanceof" | "**" | "??";
+
+// @public (undocumented)
+interface BindingIdentifier extends PatternBase {
+    // (undocumented)
+    optional: boolean;
+    // (undocumented)
+    type: "Identifier";
+    // (undocumented)
+    value: string;
+}
+
+// @public (undocumented)
+interface BlockStatement extends Node_4, HasSpan {
+    // (undocumented)
+    stmts: Statement[];
+    // (undocumented)
+    type: "BlockStatement";
+}
+
+// @public (undocumented)
 type BonjourServer = any;
+
+// @public (undocumented)
+interface BooleanLiteral extends Node_4, HasSpan {
+    // (undocumented)
+    type: "BooleanLiteral";
+    // (undocumented)
+    value: boolean;
+}
+
+// @public (undocumented)
+interface BreakStatement extends Node_4, HasSpan {
+    // (undocumented)
+    label?: Identifier;
+    // (undocumented)
+    type: "BreakStatement";
+}
 
 // @public (undocumented)
 type BufferCallback = (err: NodeJS.ErrnoException | null, data?: Buffer) => void;
@@ -430,7 +590,36 @@ type CallbackCache<T> = (err?: WebpackError_2 | null, result?: T) => void;
 type CallbackNormalErrorCache<T> = (err?: WebpackError_2 | null, result?: T) => void;
 
 // @public (undocumented)
+interface CallerOptions {
+    // (undocumented)
+    [key: string]: any;
+    // (undocumented)
+    name: string;
+}
+
+// @public (undocumented)
+interface CallExpression extends ExpressionBase {
+    // (undocumented)
+    arguments: Argument[];
+    // (undocumented)
+    callee: Super | Import | Expression;
+    // (undocumented)
+    type: "CallExpression";
+    // (undocumented)
+    typeArguments?: TsTypeParameterInstantiation;
+}
+
+// @public (undocumented)
 type CallFn = (...args: any[]) => any;
+
+// @public (undocumented)
+interface CatchClause extends Node_4, HasSpan {
+    // (undocumented)
+    body: BlockStatement;
+    param?: Pattern;
+    // (undocumented)
+    type: "CatchClause";
+}
 
 // @public (undocumented)
 type ChokidarWatchOptions = {
@@ -597,6 +786,101 @@ export type CircularDependencyRspackPluginOptions = {
     onStart?(compilation: Compilation): void;
     onEnd?(compilation: Compilation): void;
 };
+
+// @public (undocumented)
+interface Class extends HasSpan, HasDecorator {
+    // (undocumented)
+    body: ClassMember[];
+    // (undocumented)
+    implements: TsExpressionWithTypeArguments[];
+    // (undocumented)
+    isAbstract: boolean;
+    // (undocumented)
+    superClass?: Expression;
+    // (undocumented)
+    superTypeParams?: TsTypeParameterInstantiation;
+    // (undocumented)
+    typeParams?: TsTypeParameterDeclaration;
+}
+
+// @public (undocumented)
+interface ClassDeclaration extends Class, Node_4 {
+    // (undocumented)
+    declare: boolean;
+    // (undocumented)
+    identifier: Identifier;
+    // (undocumented)
+    type: "ClassDeclaration";
+}
+
+// @public (undocumented)
+interface ClassExpression extends Class, ExpressionBase {
+    // (undocumented)
+    identifier?: Identifier;
+    // (undocumented)
+    type: "ClassExpression";
+}
+
+// @public (undocumented)
+type ClassMember = Constructor | ClassMethod | PrivateMethod | ClassProperty | PrivateProperty | TsIndexSignature | EmptyStatement | StaticBlock;
+
+// @public (undocumented)
+interface ClassMethod extends ClassMethodBase {
+    // (undocumented)
+    key: PropertyName;
+    // (undocumented)
+    type: "ClassMethod";
+}
+
+// @public (undocumented)
+interface ClassMethodBase extends Node_4, HasSpan {
+    // (undocumented)
+    accessibility?: Accessibility;
+    // (undocumented)
+    function: Fn;
+    // (undocumented)
+    isAbstract: boolean;
+    // (undocumented)
+    isOptional: boolean;
+    // (undocumented)
+    isOverride: boolean;
+    // (undocumented)
+    isStatic: boolean;
+    // (undocumented)
+    kind: MethodKind;
+}
+
+// @public (undocumented)
+interface ClassProperty extends ClassPropertyBase {
+    // (undocumented)
+    declare: boolean;
+    // (undocumented)
+    isAbstract: boolean;
+    // (undocumented)
+    key: PropertyName;
+    // (undocumented)
+    type: "ClassProperty";
+}
+
+// @public (undocumented)
+interface ClassPropertyBase extends Node_4, HasSpan, HasDecorator {
+    // (undocumented)
+    accessibility?: Accessibility;
+    // (undocumented)
+    definite: boolean;
+    // (undocumented)
+    isOptional: boolean;
+    // (undocumented)
+    isOverride: boolean;
+    // (undocumented)
+    isStatic: boolean;
+    // (undocumented)
+    readonly: boolean;
+    // (undocumented)
+    typeAnnotation?: TsTypeAnnotation;
+    // (undocumented)
+    value?: Expression;
+}
 
 // @public
 export type Clean = boolean | {
@@ -1022,7 +1306,27 @@ export class Compiler {
     webpack: typeof rspack;
 }
 
+// @public (undocumented)
+interface ComputedPropName extends Node_4, HasSpan {
+    // (undocumented)
+    expression: Expression;
+    // (undocumented)
+    type: "Computed";
+}
+
 export { ConcatenatedModule }
+
+// @public (undocumented)
+interface ConditionalExpression extends ExpressionBase {
+    // (undocumented)
+    alternate: Expression;
+    // (undocumented)
+    consequent: Expression;
+    // (undocumented)
+    test: Expression;
+    // (undocumented)
+    type: "ConditionalExpression";
+}
 
 // @public (undocumented)
 type Config = {
@@ -1063,6 +1367,22 @@ interface ConstModulesConfig {
             [name: string]: string;
         };
     };
+}
+
+// @public (undocumented)
+interface Constructor extends Node_4, HasSpan {
+    // (undocumented)
+    accessibility?: Accessibility;
+    // (undocumented)
+    body?: BlockStatement;
+    // (undocumented)
+    isOptional: boolean;
+    // (undocumented)
+    key: PropertyName;
+    // (undocumented)
+    params: (TsParameterProperty | Param)[];
+    // (undocumented)
+    type: "Constructor";
 }
 
 // @public (undocumented)
@@ -1264,6 +1584,14 @@ export const ContextReplacementPlugin: {
 };
 
 // @public (undocumented)
+interface ContinueStatement extends Node_4, HasSpan {
+    // (undocumented)
+    label?: Identifier;
+    // (undocumented)
+    type: "ContinueStatement";
+}
+
+// @public (undocumented)
 export const CopyRspackPlugin: {
     new (copy: CopyRspackPluginOptions): {
         name: BuiltinPluginName;
@@ -1393,6 +1721,26 @@ export type CssParserNamedExports = boolean;
 export type CssParserOptions = {
     namedExports?: CssParserNamedExports;
 };
+
+// @public (undocumented)
+interface DebuggerStatement extends Node_4, HasSpan {
+    // (undocumented)
+    type: "DebuggerStatement";
+}
+
+// @public (undocumented)
+type Declaration = ClassDeclaration | FunctionDeclaration | VariableDeclaration | TsInterfaceDeclaration | TsTypeAliasDeclaration | TsEnumDeclaration | TsModuleDeclaration;
+
+// @public (undocumented)
+interface Decorator extends Node_4, HasSpan {
+    // (undocumented)
+    expression: Expression;
+    // (undocumented)
+    type: "Decorator";
+}
+
+// @public (undocumented)
+type DefaultDecl = ClassExpression | FunctionExpression | TsInterfaceDeclaration;
 
 // @public (undocumented)
 export const DefinePlugin: {
@@ -1641,6 +1989,16 @@ export interface DllReferencePluginOptionsManifest {
 export type DllReferencePluginOptionsSourceType = "var" | "assign" | "this" | "window" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "amd" | "amd-require" | "umd" | "umd2" | "jsonp" | "system";
 
 // @public (undocumented)
+interface DoWhileStatement extends Node_4, HasSpan {
+    // (undocumented)
+    body: Statement;
+    // (undocumented)
+    test: Expression;
+    // (undocumented)
+    type: "DoWhileStatement";
+}
+
+// @public (undocumented)
 interface Drafts {
     customMedia?: boolean;
 }
@@ -1675,6 +2033,12 @@ const ElectronTargetPlugin: {
         apply(compiler: Compiler_2): void;
     };
 };
+
+// @public (undocumented)
+interface EmptyStatement extends Node_4, HasSpan {
+    // (undocumented)
+    type: "EmptyStatement";
+}
 
 // @public (undocumented)
 class EnableChunkLoadingPlugin extends EnableChunkLoadingPluginInner {
@@ -2071,6 +2435,11 @@ interface Experiments_2 {
     RsdoctorPlugin: typeof RsdoctorPlugin;
     // (undocumented)
     SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
+    // (undocumented)
+    swc: {
+        minify: typeof minify;
+        transform: typeof transform;
+    };
 }
 
 // @public (undocumented)
@@ -2104,6 +2473,70 @@ export interface ExperimentsNormalized {
 }
 
 // @public (undocumented)
+interface ExportAllDeclaration extends Node_4, HasSpan {
+    // (undocumented)
+    asserts?: ObjectExpression;
+    // (undocumented)
+    source: StringLiteral;
+    // (undocumented)
+    type: "ExportAllDeclaration";
+}
+
+// @public (undocumented)
+interface ExportDeclaration extends Node_4, HasSpan {
+    // (undocumented)
+    declaration: Declaration;
+    // (undocumented)
+    type: "ExportDeclaration";
+}
+
+// @public (undocumented)
+interface ExportDefaultDeclaration extends Node_4, HasSpan {
+    // (undocumented)
+    decl: DefaultDecl;
+    // (undocumented)
+    type: "ExportDefaultDeclaration";
+}
+
+// @public (undocumented)
+interface ExportDefaultExpression extends Node_4, HasSpan {
+    // (undocumented)
+    expression: Expression;
+    // (undocumented)
+    type: "ExportDefaultExpression";
+}
+
+// @public (undocumented)
+interface ExportDefaultSpecifier extends Node_4, HasSpan {
+    // (undocumented)
+    exported: Identifier;
+    // (undocumented)
+    type: "ExportDefaultSpecifier";
+}
+
+// @public
+interface ExportNamedDeclaration extends Node_4, HasSpan {
+    // (undocumented)
+    asserts?: ObjectExpression;
+    // (undocumented)
+    source?: StringLiteral;
+    // (undocumented)
+    specifiers: ExportSpecifier[];
+    // (undocumented)
+    type: "ExportNamedDeclaration";
+    // (undocumented)
+    typeOnly: boolean;
+}
+
+// @public
+interface ExportNamespaceSpecifier extends Node_4, HasSpan {
+    // (undocumented)
+    name: ModuleExportName;
+    // (undocumented)
+    type: "ExportNamespaceSpecifier";
+}
+
+// @public (undocumented)
 class ExportsInfo {
     // (undocumented)
     static __from_binding(binding: JsExportsInfo): ExportsInfo;
@@ -2116,6 +2549,9 @@ class ExportsInfo {
     // (undocumented)
     setUsedInUnknownWay(runtime: RuntimeSpec): boolean;
 }
+
+// @public (undocumented)
+type ExportSpecifier = ExportNamespaceSpecifier | ExportDefaultSpecifier | NamedExportSpecifier;
 
 // @public (undocumented)
 type ExportsPresence = "error" | "warn" | "auto" | false;
@@ -2139,6 +2575,29 @@ export type ExposesItems = ExposesItem[];
 export type ExposesObject = {
     [k: string]: ExposesConfig | ExposesItem | ExposesItems;
 };
+
+// @public (undocumented)
+type Expression = ThisExpression | ArrayExpression | ObjectExpression | FunctionExpression | UnaryExpression | UpdateExpression | BinaryExpression | AssignmentExpression | MemberExpression | SuperPropExpression | ConditionalExpression | CallExpression | NewExpression | SequenceExpression | Identifier | Literal | TemplateLiteral | TaggedTemplateExpression | ArrowFunctionExpression | ClassExpression | YieldExpression | MetaProperty | AwaitExpression | ParenthesisExpression | JSXMemberExpression | JSXNamespacedName | JSXEmptyExpression | JSXElement | JSXFragment | TsTypeAssertion | TsConstAssertion | TsNonNullExpression | TsAsExpression | TsSatisfiesExpression | TsInstantiation | PrivateName | OptionalChainingExpression | Invalid;
+
+// @public (undocumented)
+interface ExpressionBase extends Node_4, HasSpan {
+}
+
+// @public (undocumented)
+interface ExpressionStatement extends Node_4, HasSpan {
+    // (undocumented)
+    expression: Expression;
+    // (undocumented)
+    type: "ExpressionStatement";
+}
+
+// @public (undocumented)
+interface ExprOrSpread {
+    // (undocumented)
+    expression: Expression;
+    // (undocumented)
+    spread?: Span;
+}
 
 // @public
 export type ExternalItem = string | RegExp | ExternalItemObjectUnknown | ((data: ExternalItemFunctionData) => ExternalItemValue) | ((data: ExternalItemFunctionData, callback: (err?: Error, result?: ExternalItemValue, type?: ExternalsType) => void) => void) | ((data: ExternalItemFunctionData) => Promise<ExternalItemValue>);
@@ -2271,6 +2730,79 @@ export type FilterItemTypes = RegExp | string | ((value: string) => boolean);
 // @public
 export type FilterTypes = FilterItemTypes | FilterItemTypes[];
 
+// @public (undocumented)
+interface Fn extends HasSpan, HasDecorator {
+    // (undocumented)
+    async: boolean;
+    // (undocumented)
+    body?: BlockStatement;
+    // (undocumented)
+    generator: boolean;
+    // (undocumented)
+    params: Param[];
+    // (undocumented)
+    returnType?: TsTypeAnnotation;
+    // (undocumented)
+    typeParameters?: TsTypeParameterDeclaration;
+}
+
+// @public (undocumented)
+interface ForInStatement extends Node_4, HasSpan {
+    // (undocumented)
+    body: Statement;
+    // (undocumented)
+    left: VariableDeclaration | Pattern;
+    // (undocumented)
+    right: Expression;
+    // (undocumented)
+    type: "ForInStatement";
+}
+
+// @public (undocumented)
+interface ForOfStatement extends Node_4, HasSpan {
+    await?: Span;
+    // (undocumented)
+    body: Statement;
+    // (undocumented)
+    left: VariableDeclaration | Pattern;
+    // (undocumented)
+    right: Expression;
+    // (undocumented)
+    type: "ForOfStatement";
+}
+
+// @public (undocumented)
+interface ForStatement extends Node_4, HasSpan {
+    // (undocumented)
+    body: Statement;
+    // (undocumented)
+    init?: VariableDeclaration | Expression;
+    // (undocumented)
+    test?: Expression;
+    // (undocumented)
+    type: "ForStatement";
+    // (undocumented)
+    update?: Expression;
+}
+
+// @public (undocumented)
+interface FunctionDeclaration extends Fn {
+    // (undocumented)
+    declare: boolean;
+    // (undocumented)
+    identifier: Identifier;
+    // (undocumented)
+    type: "FunctionDeclaration";
+}
+
+// @public (undocumented)
+interface FunctionExpression extends Fn, ExpressionBase {
+    // (undocumented)
+    identifier?: Identifier;
+    // (undocumented)
+    type: "FunctionExpression";
+}
+
 // @public
 export type GeneratorOptionsByModuleType = GeneratorOptionsByModuleTypeKnown | GeneratorOptionsByModuleTypeUnknown;
 
@@ -2303,6 +2835,16 @@ export const getRawOptions: (options: RspackOptionsNormalized, compiler: Compile
 // @public (undocumented)
 export function getRawResolve(resolve: Resolve): RawOptions["resolve"];
 
+// @public (undocumented)
+interface GetterProperty extends PropBase, HasSpan {
+    // (undocumented)
+    body?: BlockStatement;
+    // (undocumented)
+    type: "GetterProperty";
+    // (undocumented)
+    typeAnnotation?: TsTypeAnnotation;
+}
+
 // @public
 export type GlobalObject = string;
 
@@ -2329,6 +2871,12 @@ type GroupOptions = {
     force?: boolean | undefined;
     targetGroupCount?: number | undefined;
 };
+
+// @public (undocumented)
+interface HasDecorator {
+    // (undocumented)
+    decorators?: Decorator[];
+}
 
 // @public (undocumented)
 class Hash {
@@ -2369,6 +2917,17 @@ export type HashFunction = "md4" | "xxhash64";
 
 // @public
 export type HashSalt = string;
+
+// @public (undocumented)
+interface HasInterpreter {
+    interpreter: string;
+}
+
+// @public (undocumented)
+interface HasSpan {
+    // (undocumented)
+    span: Span;
+}
 
 // @public (undocumented)
 type Headers_2 = Array<{
@@ -2522,6 +3081,16 @@ type IBigIntStats = IStatsBase<bigint> & {
 };
 
 // @public (undocumented)
+interface Identifier extends ExpressionBase {
+    // (undocumented)
+    optional: boolean;
+    // (undocumented)
+    type: "Identifier";
+    // (undocumented)
+    value: string;
+}
+
+// @public (undocumented)
 interface IDirent {
     // (undocumented)
     isBlockDevice: () => boolean;
@@ -2539,6 +3108,18 @@ interface IDirent {
     isSymbolicLink: () => boolean;
     // (undocumented)
     name: string | Buffer;
+}
+
+// @public (undocumented)
+interface IfStatement extends Node_4, HasSpan {
+    // (undocumented)
+    alternate?: Statement;
+    // (undocumented)
+    consequent: Statement;
+    // (undocumented)
+    test: Expression;
+    // (undocumented)
+    type: "IfStatement";
 }
 
 // @public (undocumented)
@@ -2569,6 +3150,34 @@ export type IgnoreWarningsNormalized = ((warning: Error, compilation: Compilatio
 // @public
 export type Iife = boolean;
 
+// @public (undocumented)
+interface Import extends Node_4, HasSpan {
+    // (undocumented)
+    type: "Import";
+}
+
+// @public (undocumented)
+interface ImportDeclaration extends Node_4, HasSpan {
+    // (undocumented)
+    asserts?: ObjectExpression;
+    // (undocumented)
+    source: StringLiteral;
+    // (undocumented)
+    specifiers: ImportSpecifier[];
+    // (undocumented)
+    type: "ImportDeclaration";
+    // (undocumented)
+    typeOnly: boolean;
+}
+
+// @public
+interface ImportDefaultSpecifier extends Node_4, HasSpan {
+    // (undocumented)
+    local: Identifier;
+    // (undocumented)
+    type: "ImportDefaultSpecifier";
+}
+
 // @public
 export type ImportFunctionName = string;
 
@@ -2581,6 +3190,17 @@ interface ImportModuleOptions {
     layer?: string;
     publicPath?: PublicPath;
 }
+
+// @public
+interface ImportNamespaceSpecifier extends Node_4, HasSpan {
+    // (undocumented)
+    local: Identifier;
+    // (undocumented)
+    type: "ImportNamespaceSpecifier";
+}
+
+// @public (undocumented)
+type ImportSpecifier = NamedImportSpecifier | ImportDefaultSpecifier | ImportNamespaceSpecifier;
 
 // @public (undocumented)
 type IncomingMessage = IncomingMessage_2;
@@ -2648,6 +3268,12 @@ type IntermediateFileSystemExtras = {
     read: Read<Buffer>;
     close: (arg0: number, arg1: (arg0: null | NodeJS.ErrnoException) => void) => void;
 };
+
+// @public (undocumented)
+interface Invalid extends Node_4, HasSpan {
+    // (undocumented)
+    type: "Invalid";
+}
 
 // @public (undocumented)
 type IStats = IStatsBase<number>;
@@ -2894,6 +3520,165 @@ type JsonPrimitive = string | number | boolean | null;
 
 // @public (undocumented)
 type JsonValue = JsonPrimitive | JsonObject | JsonArray;
+
+// @public (undocumented)
+interface JSXAttribute extends Node_4, HasSpan {
+    // (undocumented)
+    name: JSXAttributeName;
+    // (undocumented)
+    type: "JSXAttribute";
+    // (undocumented)
+    value?: JSXAttrValue;
+}
+
+// @public (undocumented)
+type JSXAttributeName = Identifier | JSXNamespacedName;
+
+// @public (undocumented)
+type JSXAttributeOrSpread = JSXAttribute | SpreadElement;
+
+// @public (undocumented)
+type JSXAttrValue = Literal | JSXExpressionContainer | JSXElement | JSXFragment;
+
+// @public (undocumented)
+interface JSXClosingElement extends Node_4, HasSpan {
+    // (undocumented)
+    name: JSXElementName;
+    // (undocumented)
+    type: "JSXClosingElement";
+}
+
+// @public (undocumented)
+interface JSXClosingFragment extends Node_4, HasSpan {
+    // (undocumented)
+    type: "JSXClosingFragment";
+}
+
+// @public (undocumented)
+interface JSXElement extends Node_4, HasSpan {
+    // (undocumented)
+    children: JSXElementChild[];
+    // (undocumented)
+    closing?: JSXClosingElement;
+    // (undocumented)
+    opening: JSXOpeningElement;
+    // (undocumented)
+    type: "JSXElement";
+}
+
+// @public (undocumented)
+type JSXElementChild = JSXText | JSXExpressionContainer | JSXSpreadChild | JSXElement | JSXFragment;
+
+// @public (undocumented)
+type JSXElementName = Identifier | JSXMemberExpression | JSXNamespacedName;
+
+// @public (undocumented)
+interface JSXEmptyExpression extends Node_4, HasSpan {
+    // (undocumented)
+    type: "JSXEmptyExpression";
+}
+
+// @public (undocumented)
+type JSXExpression = JSXEmptyExpression | Expression;
+
+// @public (undocumented)
+interface JSXExpressionContainer extends Node_4, HasSpan {
+    // (undocumented)
+    expression: JSXExpression;
+    // (undocumented)
+    type: "JSXExpressionContainer";
+}
+
+// @public (undocumented)
+interface JSXFragment extends Node_4, HasSpan {
+    // (undocumented)
+    children: JSXElementChild[];
+    // (undocumented)
+    closing: JSXClosingFragment;
+    // (undocumented)
+    opening: JSXOpeningFragment;
+    // (undocumented)
+    type: "JSXFragment";
+}
+
+// @public (undocumented)
+interface JSXMemberExpression extends Node_4 {
+    // (undocumented)
+    object: JSXObject;
+    // (undocumented)
+    property: Identifier;
+    // (undocumented)
+    type: "JSXMemberExpression";
+}
+
+// @public
+interface JSXNamespacedName extends Node_4 {
+    // (undocumented)
+    name: Identifier;
+    // (undocumented)
+    namespace: Identifier;
+    // (undocumented)
+    type: "JSXNamespacedName";
+}
+
+// @public (undocumented)
+type JSXObject = JSXMemberExpression | Identifier;
+
+// @public (undocumented)
+interface JSXOpeningElement extends Node_4, HasSpan {
+    // (undocumented)
+    attributes: JSXAttributeOrSpread[];
+    // (undocumented)
+    name: JSXElementName;
+    // (undocumented)
+    selfClosing: boolean;
+    // (undocumented)
+    type: "JSXOpeningElement";
+    // (undocumented)
+    typeArguments?: TsTypeParameterInstantiation;
+}
+
+// @public (undocumented)
+interface JSXOpeningFragment extends Node_4, HasSpan {
+    // (undocumented)
+    type: "JSXOpeningFragment";
+}
+
+// @public (undocumented)
+interface JSXSpreadChild extends Node_4, HasSpan {
+    // (undocumented)
+    expression: Expression;
+    // (undocumented)
+    type: "JSXSpreadChild";
+}
+
+// @public (undocumented)
+interface JSXText extends Node_4, HasSpan {
+    // (undocumented)
+    raw: string;
+    // (undocumented)
+    type: "JSXText";
+    // (undocumented)
+    value: string;
+}
+
+// @public
+interface KeyValuePatternProperty extends Node_4 {
+    // (undocumented)
+    key: PropertyName;
+    // (undocumented)
+    type: "KeyValuePatternProperty";
+    // (undocumented)
+    value: Pattern;
+}
+
+// @public (undocumented)
+interface KeyValueProperty extends PropBase {
+    // (undocumented)
+    type: "KeyValueProperty";
+    // (undocumented)
+    value: Expression;
+}
 
 // @public (undocumented)
 type KnownAssetInfo = {
@@ -3283,6 +4068,16 @@ type KnownStatsProfile = {
     building: number;
 };
 
+// @public (undocumented)
+interface LabeledStatement extends Node_4, HasSpan {
+    // (undocumented)
+    body: Statement;
+    // (undocumented)
+    label: Identifier;
+    // (undocumented)
+    type: "LabeledStatement";
+}
+
 // @public
 export type Layer = string | null;
 
@@ -3432,6 +4227,9 @@ const LimitChunkCountPlugin: {
         apply(compiler: Compiler_2): void;
     };
 };
+
+// @public (undocumented)
+type Literal = StringLiteral | BooleanLiteral | NullLiteral | NumericLiteral | BigIntLiteral | RegExpLiteral | JSXText;
 
 // @public (undocumented)
 export type Loader = Record<string, any>;
@@ -3740,6 +4538,37 @@ const matchObject: (obj: MatchObject, str: string) => boolean;
 const matchPart: (str: string, test: Matcher) => boolean;
 
 // @public (undocumented)
+interface MatchPattern {
+}
+
+// @public (undocumented)
+interface MemberExpression extends ExpressionBase {
+    // (undocumented)
+    object: Expression;
+    // (undocumented)
+    property: Identifier | PrivateName | ComputedPropName;
+    // (undocumented)
+    type: "MemberExpression";
+}
+
+// @public (undocumented)
+interface MetaProperty extends Node_4, HasSpan {
+    // (undocumented)
+    kind: "new.target" | "import.meta";
+    // (undocumented)
+    type: "MetaProperty";
+}
+
+// @public (undocumented)
+type MethodKind = "method" | "getter" | "setter";
+
+// @public (undocumented)
+interface MethodProperty extends PropBase, Fn {
+    // (undocumented)
+    type: "MethodProperty";
+}
+
+// @public (undocumented)
 type Middleware = MiddlewareObject | MiddlewareHandler;
 
 // @public (undocumented)
@@ -3753,6 +4582,9 @@ type MiddlewareObject = {
 };
 
 // @public (undocumented)
+function minify(source: string, options?: JsMinifyOptions): Promise<TransformOutput>;
+
+// @public (undocumented)
 type MkdirSync = (path: PathLike, options: MakeDirectoryOptions) => undefined | string;
 
 // @public
@@ -3764,7 +4596,21 @@ type ModifyResponseData<RequestInternal extends IncomingMessage = IncomingMessag
 export { Module }
 
 // @public (undocumented)
+interface Module_2 extends Node_4, HasSpan, HasInterpreter {
+    // (undocumented)
+    body: ModuleItem[];
+    // (undocumented)
+    type: "Module";
+}
+
+// @public (undocumented)
 type ModuleConfig = Es6Config | CommonJsConfig | UmdConfig | AmdConfig | NodeNextConfig | SystemjsConfig;
+
+// @public (undocumented)
+type ModuleDeclaration = ImportDeclaration | ExportDeclaration | ExportNamedDeclaration | ExportDefaultDeclaration | ExportDefaultExpression | ExportAllDeclaration | TsImportEqualsDeclaration | TsExportAssignment | TsNamespaceExportDeclaration;
+
+// @public (undocumented)
+type ModuleExportName = Identifier | StringLiteral;
 
 // @public (undocumented)
 class ModuleFederationPlugin {
@@ -3858,6 +4704,9 @@ class ModuleGraph {
     // (undocumented)
     isAsync(module: Module): boolean;
 }
+
+// @public (undocumented)
+type ModuleItem = ModuleDeclaration | Statement;
 
 // @public (undocumented)
 export type ModuleOptions = {
@@ -3988,6 +4837,29 @@ type MultiWatching_2 = MultiCompiler["watch"];
 // @public
 export type Name = string;
 
+// @public (undocumented)
+interface NamedExportSpecifier extends Node_4, HasSpan {
+    exported?: ModuleExportName;
+    // (undocumented)
+    isTypeOnly: boolean;
+    // (undocumented)
+    orig: ModuleExportName;
+    // (undocumented)
+    type: "ExportSpecifier";
+}
+
+// @public
+interface NamedImportSpecifier extends Node_4, HasSpan {
+    // (undocumented)
+    imported?: ModuleExportName;
+    // (undocumented)
+    isTypeOnly: boolean;
+    // (undocumented)
+    local: Identifier;
+    // (undocumented)
+    type: "ImportSpecifier";
+}
+
 // @internal
 const NativeSubresourceIntegrityPlugin: {
     new (options: NativeSubresourceIntegrityPluginOptions): {
@@ -4003,6 +4875,18 @@ const NativeSubresourceIntegrityPlugin: {
 type NativeSubresourceIntegrityPluginOptions = Omit<RawSubresourceIntegrityPluginOptions, "htmlPlugin"> & {
     htmlPlugin: string | false;
 };
+
+// @public (undocumented)
+interface NewExpression extends ExpressionBase {
+    // (undocumented)
+    arguments?: Argument[];
+    // (undocumented)
+    callee: Expression;
+    // (undocumented)
+    type: "NewExpression";
+    // (undocumented)
+    typeArguments?: TsTypeParameterInstantiation;
+}
 
 // @public (undocumented)
 type NextFunction = (err?: any) => void;
@@ -4022,6 +4906,12 @@ interface Node_3 {
     NodeTargetPlugin: typeof NodeTargetPlugin;
     // (undocumented)
     NodeTemplatePlugin: typeof NodeTemplatePlugin;
+}
+
+// @public (undocumented)
+interface Node_4 {
+    // (undocumented)
+    type: string;
 }
 
 // @public (undocumented)
@@ -4149,9 +5039,46 @@ export class NormalModuleReplacementPlugin {
 }
 
 // @public (undocumented)
+interface NullLiteral extends Node_4, HasSpan {
+    // (undocumented)
+    type: "NullLiteral";
+}
+
+// @public (undocumented)
+interface NumericLiteral extends Node_4, HasSpan {
+    // (undocumented)
+    raw?: string;
+    // (undocumented)
+    type: "NumericLiteral";
+    // (undocumented)
+    value: number;
+}
+
+// @public (undocumented)
 type ObjectEncodingOptions = {
     encoding?: BufferEncoding | null;
 };
+
+// @public (undocumented)
+interface ObjectExpression extends ExpressionBase {
+    // (undocumented)
+    properties: (SpreadElement | Property)[];
+    // (undocumented)
+    type: "ObjectExpression";
+}
+
+// @public (undocumented)
+interface ObjectPattern extends PatternBase {
+    // (undocumented)
+    optional: boolean;
+    // (undocumented)
+    properties: ObjectPatternProperty[];
+    // (undocumented)
+    type: "ObjectPattern";
+}
+
+// @public (undocumented)
+type ObjectPatternProperty = KeyValuePatternProperty | AssignmentPatternProperty | RestElement;
 
 // @public (undocumented)
 type Open = (file: PathLike, flags: undefined | string | number, callback: (arg0: null | NodeJS.ErrnoException, arg1?: number) => void) => void;
@@ -4271,6 +5198,50 @@ interface OptimizerConfig {
     };
     // (undocumented)
     simplify?: boolean;
+}
+
+// @public (undocumented)
+interface OptionalChainingCall extends ExpressionBase {
+    // (undocumented)
+    arguments: ExprOrSpread[];
+    // (undocumented)
+    callee: Expression;
+    // (undocumented)
+    type: "CallExpression";
+    // (undocumented)
+    typeArguments?: TsTypeParameterInstantiation;
+}
+
+// @public (undocumented)
+interface OptionalChainingExpression extends ExpressionBase {
+    base: MemberExpression | OptionalChainingCall;
+    // (undocumented)
+    questionDotToken: Span;
+    // (undocumented)
+    type: "OptionalChainingExpression";
+}
+
+// @public
+interface Options extends Config_2 {
+    // (undocumented)
+    caller?: CallerOptions;
+    configFile?: string | boolean;
+    cwd?: string;
+    envName?: string;
+    filename?: string;
+    inputSourceMap?: boolean | string;
+    // (undocumented)
+    isModule?: boolean | "unknown";
+    outputPath?: string;
+    // (undocumented)
+    plugin?: Plugin_3;
+    root?: string;
+    rootMode?: "root" | "upward" | "upward-optional";
+    script?: boolean;
+    sourceFileName?: string;
+    sourceRoot?: string;
+    swcrc?: boolean;
+    swcrcRoots?: boolean | MatchPattern | MatchPattern[];
 }
 
 // @public
@@ -4479,6 +5450,22 @@ export interface OutputNormalized {
 type OverlayMessageOptions = boolean | ((error: Error) => void);
 
 // @public (undocumented)
+interface Param extends Node_4, HasSpan, HasDecorator {
+    // (undocumented)
+    pat: Pattern;
+    // (undocumented)
+    type: "Parameter";
+}
+
+// @public (undocumented)
+interface ParenthesisExpression extends ExpressionBase {
+    // (undocumented)
+    expression: Expression;
+    // (undocumented)
+    type: "ParenthesisExpression";
+}
+
+// @public (undocumented)
 type ParserConfig = TsParserConfig | EsParserConfig;
 
 // @public
@@ -4534,6 +5521,15 @@ type PathLike = string | Buffer | URL;
 // @public (undocumented)
 type PathOrFileDescriptor = PathLike | number;
 
+// @public (undocumented)
+type Pattern = BindingIdentifier | ArrayPattern | RestElement | ObjectPattern | AssignmentPattern | Invalid | Expression;
+
+// @public (undocumented)
+interface PatternBase extends Node_4, HasSpan {
+    // (undocumented)
+    typeAnnotation?: TsTypeAnnotation;
+}
+
 // @public
 type Performance_2 = false | {
     assetFilter?: (assetFilename: string) => boolean;
@@ -4549,6 +5545,12 @@ type PitchLoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (t
 // @public (undocumented)
 type Plugin_2 = RspackPluginInstance | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction | Falsy;
 export { Plugin_2 as Plugin }
+
+// @public (undocumented)
+interface Plugin_3 {
+    // (undocumented)
+    (module: Program): Program;
+}
 
 // @public (undocumented)
 type PluginImportConfig = {
@@ -4579,8 +5581,35 @@ type PrintedElement = {
     content: string;
 };
 
+// @public (undocumented)
+interface PrivateMethod extends ClassMethodBase {
+    // (undocumented)
+    key: PrivateName;
+    // (undocumented)
+    type: "PrivateMethod";
+}
+
+// @public (undocumented)
+interface PrivateName extends ExpressionBase {
+    // (undocumented)
+    id: Identifier;
+    // (undocumented)
+    type: "PrivateName";
+}
+
+// @public (undocumented)
+interface PrivateProperty extends ClassPropertyBase {
+    // (undocumented)
+    key: PrivateName;
+    // (undocumented)
+    type: "PrivateProperty";
+}
+
 // @public
 export type Profile = boolean;
+
+// @public (undocumented)
+type Program = Module_2 | Script;
 
 // @public (undocumented)
 export const ProgressPlugin: {
@@ -4595,6 +5624,18 @@ export const ProgressPlugin: {
 
 // @public (undocumented)
 export type ProgressPluginArgument = Partial<Omit<RawProgressPluginOptions, "handler">> | ((percentage: number, msg: string, ...args: string[]) => void) | undefined;
+
+// @public (undocumented)
+interface PropBase extends Node_4 {
+    // (undocumented)
+    key: PropertyName;
+}
+
+// @public
+type Property = Identifier | KeyValueProperty | AssignmentProperty | GetterProperty | SetterProperty | MethodProperty;
+
+// @public (undocumented)
+type PropertyName = Identifier | StringLiteral | NumericLiteral | ComputedPropName | BigIntLiteral;
 
 // @public (undocumented)
 export const ProvidePlugin: {
@@ -4870,6 +5911,16 @@ type RecursiveArrayOrRecord<T> = {
 } | Array<RecursiveArrayOrRecord<T>> | T;
 
 // @public (undocumented)
+interface RegExpLiteral extends Node_4, HasSpan {
+    // (undocumented)
+    flags: string;
+    // (undocumented)
+    pattern: string;
+    // (undocumented)
+    type: "RegExpLiteral";
+}
+
+// @public (undocumented)
 export type Remotes = (RemotesItem | RemotesObject)[] | RemotesObject;
 
 // @public (undocumented)
@@ -5013,6 +6064,24 @@ type ResponseData = {
     data: Buffer | ReadStream;
     byteLength: number;
 };
+
+// @public (undocumented)
+interface RestElement extends PatternBase {
+    // (undocumented)
+    argument: Pattern;
+    // (undocumented)
+    rest: Span;
+    // (undocumented)
+    type: "RestElement";
+}
+
+// @public (undocumented)
+interface ReturnStatement extends Node_4, HasSpan {
+    // (undocumented)
+    argument?: Expression;
+    // (undocumented)
+    type: "ReturnStatement";
+}
 
 // @public (undocumented)
 type Rewrite = {
@@ -5841,7 +6910,23 @@ type RuntimePlugins = string[];
 type RuntimeSpec = string | Set<string> | undefined;
 
 // @public (undocumented)
+interface Script extends Node_4, HasSpan, HasInterpreter {
+    // (undocumented)
+    body: Statement[];
+    // (undocumented)
+    type: "Script";
+}
+
+// @public (undocumented)
 export type ScriptType = false | "text/javascript" | "module";
+
+// @public (undocumented)
+interface SequenceExpression extends ExpressionBase {
+    // (undocumented)
+    expressions: Expression[];
+    // (undocumented)
+    type: "SequenceExpression";
+}
 
 // @public (undocumented)
 type ServeIndexOptions = {
@@ -5878,6 +6963,16 @@ type ServerType<A extends BasicApplication = BasicApplication, S extends BasicSe
 type ServeStaticOptions = {
     [key: string]: any;
 };
+
+// @public (undocumented)
+interface SetterProperty extends PropBase, HasSpan {
+    // (undocumented)
+    body?: BlockStatement;
+    // (undocumented)
+    param: Pattern;
+    // (undocumented)
+    type: "SetterProperty";
+}
 
 // @public (undocumented)
 export type Shared = (SharedItem | SharedObject)[] | SharedObject;
@@ -6035,6 +7130,16 @@ export type SourceMapFilename = string;
 export { sources }
 
 // @public (undocumented)
+interface Span {
+    // (undocumented)
+    ctxt: number;
+    // (undocumented)
+    end: number;
+    // (undocumented)
+    start: number;
+}
+
+// @public (undocumented)
 class SplitChunksPlugin extends RspackBuiltinPlugin {
     constructor(options: OptimizationSplitChunksOptions);
     // (undocumented)
@@ -6043,6 +7148,16 @@ class SplitChunksPlugin extends RspackBuiltinPlugin {
     name: BuiltinPluginName;
     // (undocumented)
     raw(compiler: Compiler): BuiltinPlugin;
+}
+
+// @public (undocumented)
+interface SpreadElement extends Node_4 {
+    // (undocumented)
+    arguments: Expression;
+    // (undocumented)
+    spread: Span;
+    // (undocumented)
+    type: "SpreadElement";
 }
 
 // @public (undocumented)
@@ -6058,6 +7173,9 @@ type Stat = {
 };
 
 // @public (undocumented)
+type Statement = BlockStatement | EmptyStatement | DebuggerStatement | WithStatement | ReturnStatement | LabeledStatement | BreakStatement | ContinueStatement | IfStatement | SwitchStatement | ThrowStatement | TryStatement | WhileStatement | DoWhileStatement | ForStatement | ForInStatement | ForOfStatement | Declaration | ExpressionStatement;
+
+// @public (undocumented)
 type Static = {
     directory?: string | undefined;
     publicPath?: string | string[] | undefined;
@@ -6069,6 +7187,14 @@ type Static = {
         poll?: number | boolean;
     }) | undefined;
 };
+
+// @public (undocumented)
+interface StaticBlock extends Node_4, HasSpan {
+    // (undocumented)
+    body: BlockStatement;
+    // (undocumented)
+    type: "StaticBlock";
+}
 
 // @public (undocumented)
 type StatOptions = {
@@ -6322,6 +7448,16 @@ export type StrictModuleExceptionHandling = boolean;
 type StringCallback = (err: NodeJS.ErrnoException | null, data?: string) => void;
 
 // @public (undocumented)
+interface StringLiteral extends Node_4, HasSpan {
+    // (undocumented)
+    raw?: string;
+    // (undocumented)
+    type: "StringLiteral";
+    // (undocumented)
+    value: string;
+}
+
+// @public (undocumented)
 type StringOrBufferCallback = (err: NodeJS.ErrnoException | null, data?: string | Buffer) => void;
 
 // @public (undocumented)
@@ -6343,6 +7479,22 @@ export type SubresourceIntegrityPluginOptions = {
     htmlPlugin?: string | false;
     enabled?: "auto" | boolean;
 };
+
+// @public (undocumented)
+interface Super extends Node_4, HasSpan {
+    // (undocumented)
+    type: "Super";
+}
+
+// @public (undocumented)
+interface SuperPropExpression extends ExpressionBase {
+    // (undocumented)
+    obj: Super;
+    // (undocumented)
+    property: Identifier | ComputedPropName;
+    // (undocumented)
+    type: "SuperPropExpression";
+}
 
 // @public (undocumented)
 export const SwcJsMinimizerRspackPlugin: {
@@ -6400,11 +7552,42 @@ export type SwcLoaderTransformConfig = TransformConfig;
 export type SwcLoaderTsParserConfig = TsParserConfig;
 
 // @public (undocumented)
+interface SwitchCase extends Node_4, HasSpan {
+    // (undocumented)
+    consequent: Statement[];
+    test?: Expression;
+    // (undocumented)
+    type: "SwitchCase";
+}
+
+// @public (undocumented)
+interface SwitchStatement extends Node_4, HasSpan {
+    // (undocumented)
+    cases: SwitchCase[];
+    // (undocumented)
+    discriminant: Expression;
+    // (undocumented)
+    type: "SwitchStatement";
+}
+
+// @public (undocumented)
 interface SystemjsConfig {
     // (undocumented)
     allowTopLevelThis?: boolean;
     // (undocumented)
     type: "systemjs";
+}
+
+// @public (undocumented)
+interface TaggedTemplateExpression extends ExpressionBase {
+    // (undocumented)
+    tag: Expression;
+    // (undocumented)
+    template: TemplateLiteral;
+    // (undocumented)
+    type: "TaggedTemplateExpression";
+    // (undocumented)
+    typeParameters?: TsTypeParameterInstantiation;
 }
 
 // @public
@@ -6458,6 +7641,28 @@ export class Template {
     static toNormalComment(str: string): string;
     // (undocumented)
     static toPath(str: string): string;
+}
+
+// @public (undocumented)
+interface TemplateElement extends ExpressionBase {
+    // (undocumented)
+    cooked?: string;
+    // (undocumented)
+    raw: string;
+    // (undocumented)
+    tail: boolean;
+    // (undocumented)
+    type: "TemplateElement";
+}
+
+// @public (undocumented)
+interface TemplateLiteral extends ExpressionBase {
+    // (undocumented)
+    expressions: Expression[];
+    // (undocumented)
+    quasis: TemplateElement[];
+    // (undocumented)
+    type: "TemplateLiteral";
 }
 
 // @public (undocumented)
@@ -6756,6 +7961,20 @@ interface TerserManglePropertiesOptions_2 {
 }
 
 // @public (undocumented)
+interface ThisExpression extends ExpressionBase {
+    // (undocumented)
+    type: "ThisExpression";
+}
+
+// @public (undocumented)
+interface ThrowStatement extends Node_4, HasSpan {
+    // (undocumented)
+    argument: Expression;
+    // (undocumented)
+    type: "ThrowStatement";
+}
+
+// @public (undocumented)
 const TIMERS_AGGREGATES_SYMBOL: unique symbol;
 
 // @public (undocumented)
@@ -6777,6 +7996,9 @@ type ToSnakeCaseProperties_2<T> = {
     [K in keyof T as K extends string ? ToSnakeCase_2<K> : K]: T[K];
 };
 
+// @public (undocumented)
+function transform(source: string, options?: Options): Promise<TransformOutput>;
+
 // @public
 interface TransformConfig {
     // (undocumented)
@@ -6792,11 +8014,450 @@ interface TransformConfig {
     verbatimModuleSyntax?: boolean;
 }
 
+// @public (undocumented)
+type TruePlusMinus = true | "+" | "-";
+
 // @public
 export type TrustedTypes = {
     policyName?: string;
     onPolicyCreationFailure?: "continue" | "stop";
 };
+
+// @public (undocumented)
+interface TryStatement extends Node_4, HasSpan {
+    // (undocumented)
+    block: BlockStatement;
+    // (undocumented)
+    finalizer?: BlockStatement;
+    // (undocumented)
+    handler?: CatchClause;
+    // (undocumented)
+    type: "TryStatement";
+}
+
+// @public (undocumented)
+interface TsArrayType extends Node_4, HasSpan {
+    // (undocumented)
+    elemType: TsType;
+    // (undocumented)
+    type: "TsArrayType";
+}
+
+// @public (undocumented)
+interface TsAsExpression extends ExpressionBase {
+    // (undocumented)
+    expression: Expression;
+    // (undocumented)
+    type: "TsAsExpression";
+    // (undocumented)
+    typeAnnotation: TsType;
+}
+
+// @public (undocumented)
+interface TsCallSignatureDeclaration extends Node_4, HasSpan {
+    // (undocumented)
+    params: TsFnParameter[];
+    // (undocumented)
+    type: "TsCallSignatureDeclaration";
+    // (undocumented)
+    typeAnnotation?: TsTypeAnnotation;
+    // (undocumented)
+    typeParams?: TsTypeParameterDeclaration;
+}
+
+// @public (undocumented)
+interface TsConditionalType extends Node_4, HasSpan {
+    // (undocumented)
+    checkType: TsType;
+    // (undocumented)
+    extendsType: TsType;
+    // (undocumented)
+    falseType: TsType;
+    // (undocumented)
+    trueType: TsType;
+    // (undocumented)
+    type: "TsConditionalType";
+}
+
+// @public (undocumented)
+interface TsConstAssertion extends ExpressionBase {
+    // (undocumented)
+    expression: Expression;
+    // (undocumented)
+    type: "TsConstAssertion";
+}
+
+// @public (undocumented)
+interface TsConstructorType extends Node_4, HasSpan {
+    // (undocumented)
+    isAbstract: boolean;
+    // (undocumented)
+    params: TsFnParameter[];
+    // (undocumented)
+    type: "TsConstructorType";
+    // (undocumented)
+    typeAnnotation: TsTypeAnnotation;
+    // (undocumented)
+    typeParams?: TsTypeParameterDeclaration;
+}
+
+// @public (undocumented)
+interface TsConstructSignatureDeclaration extends Node_4, HasSpan {
+    // (undocumented)
+    params: TsFnParameter[];
+    // (undocumented)
+    type: "TsConstructSignatureDeclaration";
+    // (undocumented)
+    typeAnnotation?: TsTypeAnnotation;
+    // (undocumented)
+    typeParams?: TsTypeParameterDeclaration;
+}
+
+// @public (undocumented)
+type TsEntityName = TsQualifiedName | Identifier;
+
+// @public (undocumented)
+interface TsEnumDeclaration extends Node_4, HasSpan {
+    // (undocumented)
+    declare: boolean;
+    // (undocumented)
+    id: Identifier;
+    // (undocumented)
+    isConst: boolean;
+    // (undocumented)
+    members: TsEnumMember[];
+    // (undocumented)
+    type: "TsEnumDeclaration";
+}
+
+// @public (undocumented)
+interface TsEnumMember extends Node_4, HasSpan {
+    // (undocumented)
+    id: TsEnumMemberId;
+    // (undocumented)
+    init?: Expression;
+    // (undocumented)
+    type: "TsEnumMember";
+}
+
+// @public (undocumented)
+type TsEnumMemberId = Identifier | StringLiteral;
+
+// @public (undocumented)
+interface TsExportAssignment extends Node_4, HasSpan {
+    // (undocumented)
+    expression: Expression;
+    // (undocumented)
+    type: "TsExportAssignment";
+}
+
+// @public (undocumented)
+interface TsExpressionWithTypeArguments extends Node_4, HasSpan {
+    // (undocumented)
+    expression: Expression;
+    // (undocumented)
+    type: "TsExpressionWithTypeArguments";
+    // (undocumented)
+    typeArguments?: TsTypeParameterInstantiation;
+}
+
+// @public (undocumented)
+interface TsExternalModuleReference extends Node_4, HasSpan {
+    // (undocumented)
+    expression: StringLiteral;
+    // (undocumented)
+    type: "TsExternalModuleReference";
+}
+
+// @public (undocumented)
+type TsFnOrConstructorType = TsFunctionType | TsConstructorType;
+
+// @public (undocumented)
+type TsFnParameter = BindingIdentifier | ArrayPattern | RestElement | ObjectPattern;
+
+// @public (undocumented)
+interface TsFunctionType extends Node_4, HasSpan {
+    // (undocumented)
+    params: TsFnParameter[];
+    // (undocumented)
+    type: "TsFunctionType";
+    // (undocumented)
+    typeAnnotation: TsTypeAnnotation;
+    // (undocumented)
+    typeParams?: TsTypeParameterDeclaration;
+}
+
+// @public (undocumented)
+interface TsGetterSignature extends Node_4, HasSpan {
+    // (undocumented)
+    computed: boolean;
+    // (undocumented)
+    key: Expression;
+    // (undocumented)
+    optional: boolean;
+    // (undocumented)
+    readonly: boolean;
+    // (undocumented)
+    type: "TsGetterSignature";
+    // (undocumented)
+    typeAnnotation?: TsTypeAnnotation;
+}
+
+// @public (undocumented)
+interface TsImportEqualsDeclaration extends Node_4, HasSpan {
+    // (undocumented)
+    declare: boolean;
+    // (undocumented)
+    id: Identifier;
+    // (undocumented)
+    isExport: boolean;
+    // (undocumented)
+    isTypeOnly: boolean;
+    // (undocumented)
+    moduleRef: TsModuleReference;
+    // (undocumented)
+    type: "TsImportEqualsDeclaration";
+}
+
+// @public (undocumented)
+interface TsImportType extends Node_4, HasSpan {
+    // (undocumented)
+    argument: StringLiteral;
+    // (undocumented)
+    qualifier?: TsEntityName;
+    // (undocumented)
+    type: "TsImportType";
+    // (undocumented)
+    typeArguments?: TsTypeParameterInstantiation;
+}
+
+// @public (undocumented)
+interface TsIndexedAccessType extends Node_4, HasSpan {
+    // (undocumented)
+    indexType: TsType;
+    // (undocumented)
+    objectType: TsType;
+    // (undocumented)
+    readonly: boolean;
+    // (undocumented)
+    type: "TsIndexedAccessType";
+}
+
+// @public (undocumented)
+interface TsIndexSignature extends Node_4, HasSpan {
+    // (undocumented)
+    params: TsFnParameter[];
+    // (undocumented)
+    readonly: boolean;
+    // (undocumented)
+    static: boolean;
+    // (undocumented)
+    type: "TsIndexSignature";
+    // (undocumented)
+    typeAnnotation?: TsTypeAnnotation;
+}
+
+// @public (undocumented)
+interface TsInferType extends Node_4, HasSpan {
+    // (undocumented)
+    type: "TsInferType";
+    // (undocumented)
+    typeParam: TsTypeParameter;
+}
+
+// @public (undocumented)
+interface TsInstantiation extends Node_4, HasSpan {
+    // (undocumented)
+    expression: Expression;
+    // (undocumented)
+    type: "TsInstantiation";
+    // (undocumented)
+    typeArguments: TsTypeParameterInstantiation;
+}
+
+// @public (undocumented)
+interface TsInterfaceBody extends Node_4, HasSpan {
+    // (undocumented)
+    body: TsTypeElement[];
+    // (undocumented)
+    type: "TsInterfaceBody";
+}
+
+// @public (undocumented)
+interface TsInterfaceDeclaration extends Node_4, HasSpan {
+    // (undocumented)
+    body: TsInterfaceBody;
+    // (undocumented)
+    declare: boolean;
+    // (undocumented)
+    extends: TsExpressionWithTypeArguments[];
+    // (undocumented)
+    id: Identifier;
+    // (undocumented)
+    type: "TsInterfaceDeclaration";
+    // (undocumented)
+    typeParams?: TsTypeParameterDeclaration;
+}
+
+// @public (undocumented)
+interface TsIntersectionType extends Node_4, HasSpan {
+    // (undocumented)
+    type: "TsIntersectionType";
+    // (undocumented)
+    types: TsType[];
+}
+
+// @public (undocumented)
+interface TsKeywordType extends Node_4, HasSpan {
+    // (undocumented)
+    kind: TsKeywordTypeKind;
+    // (undocumented)
+    type: "TsKeywordType";
+}
+
+// @public (undocumented)
+type TsKeywordTypeKind = "any" | "unknown" | "number" | "object" | "boolean" | "bigint" | "string" | "symbol" | "void" | "undefined" | "null" | "never" | "intrinsic";
+
+// @public (undocumented)
+type TsLiteral = NumericLiteral | StringLiteral | BooleanLiteral | BigIntLiteral | TsTemplateLiteralType;
+
+// @public (undocumented)
+interface TsLiteralType extends Node_4, HasSpan {
+    // (undocumented)
+    literal: TsLiteral;
+    // (undocumented)
+    type: "TsLiteralType";
+}
+
+// @public (undocumented)
+interface TsMappedType extends Node_4, HasSpan {
+    // (undocumented)
+    nameType?: TsType;
+    // (undocumented)
+    optional?: TruePlusMinus;
+    // (undocumented)
+    readonly?: TruePlusMinus;
+    // (undocumented)
+    type: "TsMappedType";
+    // (undocumented)
+    typeAnnotation?: TsType;
+    // (undocumented)
+    typeParam: TsTypeParameter;
+}
+
+// @public (undocumented)
+interface TsMethodSignature extends Node_4, HasSpan {
+    // (undocumented)
+    computed: boolean;
+    // (undocumented)
+    key: Expression;
+    // (undocumented)
+    optional: boolean;
+    // (undocumented)
+    params: TsFnParameter[];
+    // (undocumented)
+    readonly: boolean;
+    // (undocumented)
+    type: "TsMethodSignature";
+    // (undocumented)
+    typeAnn?: TsTypeAnnotation;
+    // (undocumented)
+    typeParams?: TsTypeParameterDeclaration;
+}
+
+// @public (undocumented)
+interface TsModuleBlock extends Node_4, HasSpan {
+    // (undocumented)
+    body: ModuleItem[];
+    // (undocumented)
+    type: "TsModuleBlock";
+}
+
+// @public (undocumented)
+interface TsModuleDeclaration extends Node_4, HasSpan {
+    // (undocumented)
+    body?: TsNamespaceBody;
+    // (undocumented)
+    declare: boolean;
+    // (undocumented)
+    global: boolean;
+    // (undocumented)
+    id: TsModuleName;
+    // (undocumented)
+    type: "TsModuleDeclaration";
+}
+
+// @public (undocumented)
+type TsModuleName = Identifier | StringLiteral;
+
+// @public (undocumented)
+type TsModuleReference = TsEntityName | TsExternalModuleReference;
+
+// @public
+type TsNamespaceBody = TsModuleBlock | TsNamespaceDeclaration;
+
+// @public (undocumented)
+interface TsNamespaceDeclaration extends Node_4, HasSpan {
+    // (undocumented)
+    body: TsNamespaceBody;
+    // (undocumented)
+    declare: boolean;
+    // (undocumented)
+    global: boolean;
+    // (undocumented)
+    id: Identifier;
+    // (undocumented)
+    type: "TsNamespaceDeclaration";
+}
+
+// @public (undocumented)
+interface TsNamespaceExportDeclaration extends Node_4, HasSpan {
+    // (undocumented)
+    id: Identifier;
+    // (undocumented)
+    type: "TsNamespaceExportDeclaration";
+}
+
+// @public (undocumented)
+interface TsNonNullExpression extends ExpressionBase {
+    // (undocumented)
+    expression: Expression;
+    // (undocumented)
+    type: "TsNonNullExpression";
+}
+
+// @public (undocumented)
+interface TsOptionalType extends Node_4, HasSpan {
+    // (undocumented)
+    type: "TsOptionalType";
+    // (undocumented)
+    typeAnnotation: TsType;
+}
+
+// @public (undocumented)
+interface TsParameterProperty extends Node_4, HasSpan, HasDecorator {
+    // (undocumented)
+    accessibility?: Accessibility;
+    // (undocumented)
+    override: boolean;
+    // (undocumented)
+    param: TsParameterPropertyParameter;
+    // (undocumented)
+    readonly: boolean;
+    // (undocumented)
+    type: "TsParameterProperty";
+}
+
+// @public (undocumented)
+type TsParameterPropertyParameter = BindingIdentifier | AssignmentPattern;
+
+// @public (undocumented)
+interface TsParenthesizedType extends Node_4, HasSpan {
+    // (undocumented)
+    type: "TsParenthesizedType";
+    // (undocumented)
+    typeAnnotation: TsType;
+}
 
 // @public (undocumented)
 interface TsParserConfig {
@@ -6806,6 +8467,240 @@ interface TsParserConfig {
     // (undocumented)
     syntax: "typescript";
     tsx?: boolean;
+}
+
+// @public (undocumented)
+interface TsPropertySignature extends Node_4, HasSpan {
+    // (undocumented)
+    computed: boolean;
+    // (undocumented)
+    key: Expression;
+    // (undocumented)
+    optional: boolean;
+    // (undocumented)
+    readonly: boolean;
+    // (undocumented)
+    type: "TsPropertySignature";
+    // (undocumented)
+    typeAnnotation?: TsTypeAnnotation;
+}
+
+// @public (undocumented)
+interface TsQualifiedName extends Node_4 {
+    // (undocumented)
+    left: TsEntityName;
+    // (undocumented)
+    right: Identifier;
+    // (undocumented)
+    type: "TsQualifiedName";
+}
+
+// @public (undocumented)
+interface TsRestType extends Node_4, HasSpan {
+    // (undocumented)
+    type: "TsRestType";
+    // (undocumented)
+    typeAnnotation: TsType;
+}
+
+// @public (undocumented)
+interface TsSatisfiesExpression extends ExpressionBase {
+    // (undocumented)
+    expression: Expression;
+    // (undocumented)
+    type: "TsSatisfiesExpression";
+    // (undocumented)
+    typeAnnotation: TsType;
+}
+
+// @public (undocumented)
+interface TsSetterSignature extends Node_4, HasSpan {
+    // (undocumented)
+    computed: boolean;
+    // (undocumented)
+    key: Expression;
+    // (undocumented)
+    optional: boolean;
+    // (undocumented)
+    param: TsFnParameter;
+    // (undocumented)
+    readonly: boolean;
+    // (undocumented)
+    type: "TsSetterSignature";
+}
+
+// @public (undocumented)
+interface TsTemplateLiteralType extends Node_4, HasSpan {
+    // (undocumented)
+    quasis: TemplateElement[];
+    // (undocumented)
+    type: "TemplateLiteral";
+    // (undocumented)
+    types: TsType[];
+}
+
+// @public (undocumented)
+interface TsThisType extends Node_4, HasSpan {
+    // (undocumented)
+    type: "TsThisType";
+}
+
+// @public (undocumented)
+type TsThisTypeOrIdent = TsThisType | Identifier;
+
+// @public (undocumented)
+interface TsTupleElement extends Node_4, HasSpan {
+    // (undocumented)
+    label?: Pattern;
+    // (undocumented)
+    ty: TsType;
+    // (undocumented)
+    type: "TsTupleElement";
+}
+
+// @public (undocumented)
+interface TsTupleType extends Node_4, HasSpan {
+    // (undocumented)
+    elemTypes: TsTupleElement[];
+    // (undocumented)
+    type: "TsTupleType";
+}
+
+// @public (undocumented)
+type TsType = TsKeywordType | TsThisType | TsFnOrConstructorType | TsTypeReference | TsTypeQuery | TsTypeLiteral | TsArrayType | TsTupleType | TsOptionalType | TsRestType | TsUnionOrIntersectionType | TsConditionalType | TsInferType | TsParenthesizedType | TsTypeOperator | TsIndexedAccessType | TsMappedType | TsLiteralType | TsTypePredicate | TsImportType;
+
+// @public (undocumented)
+interface TsTypeAliasDeclaration extends Node_4, HasSpan {
+    // (undocumented)
+    declare: boolean;
+    // (undocumented)
+    id: Identifier;
+    // (undocumented)
+    type: "TsTypeAliasDeclaration";
+    // (undocumented)
+    typeAnnotation: TsType;
+    // (undocumented)
+    typeParams?: TsTypeParameterDeclaration;
+}
+
+// @public (undocumented)
+interface TsTypeAnnotation extends Node_4, HasSpan {
+    // (undocumented)
+    type: "TsTypeAnnotation";
+    // (undocumented)
+    typeAnnotation: TsType;
+}
+
+// @public (undocumented)
+interface TsTypeAssertion extends ExpressionBase {
+    // (undocumented)
+    expression: Expression;
+    // (undocumented)
+    type: "TsTypeAssertion";
+    // (undocumented)
+    typeAnnotation: TsType;
+}
+
+// @public (undocumented)
+type TsTypeElement = TsCallSignatureDeclaration | TsConstructSignatureDeclaration | TsPropertySignature | TsGetterSignature | TsSetterSignature | TsMethodSignature | TsIndexSignature;
+
+// @public (undocumented)
+interface TsTypeLiteral extends Node_4, HasSpan {
+    // (undocumented)
+    members: TsTypeElement[];
+    // (undocumented)
+    type: "TsTypeLiteral";
+}
+
+// @public (undocumented)
+interface TsTypeOperator extends Node_4, HasSpan {
+    // (undocumented)
+    op: TsTypeOperatorOp;
+    // (undocumented)
+    type: "TsTypeOperator";
+    // (undocumented)
+    typeAnnotation: TsType;
+}
+
+// @public (undocumented)
+type TsTypeOperatorOp = "keyof" | "unique" | "readonly";
+
+// @public (undocumented)
+interface TsTypeParameter extends Node_4, HasSpan {
+    // (undocumented)
+    constraint?: TsType;
+    // (undocumented)
+    default?: TsType;
+    // (undocumented)
+    in: boolean;
+    // (undocumented)
+    name: Identifier;
+    // (undocumented)
+    out: boolean;
+    // (undocumented)
+    type: "TsTypeParameter";
+}
+
+// @public (undocumented)
+interface TsTypeParameterDeclaration extends Node_4, HasSpan {
+    // (undocumented)
+    parameters: TsTypeParameter[];
+    // (undocumented)
+    type: "TsTypeParameterDeclaration";
+}
+
+// @public (undocumented)
+interface TsTypeParameterInstantiation extends Node_4, HasSpan {
+    // (undocumented)
+    params: TsType[];
+    // (undocumented)
+    type: "TsTypeParameterInstantiation";
+}
+
+// @public (undocumented)
+interface TsTypePredicate extends Node_4, HasSpan {
+    // (undocumented)
+    asserts: boolean;
+    // (undocumented)
+    paramName: TsThisTypeOrIdent;
+    // (undocumented)
+    type: "TsTypePredicate";
+    // (undocumented)
+    typeAnnotation?: TsTypeAnnotation;
+}
+
+// @public
+interface TsTypeQuery extends Node_4, HasSpan {
+    // (undocumented)
+    exprName: TsTypeQueryExpr;
+    // (undocumented)
+    type: "TsTypeQuery";
+    // (undocumented)
+    typeArguments?: TsTypeParameterInstantiation;
+}
+
+// @public (undocumented)
+type TsTypeQueryExpr = TsEntityName | TsImportType;
+
+// @public (undocumented)
+interface TsTypeReference extends Node_4, HasSpan {
+    // (undocumented)
+    type: "TsTypeReference";
+    // (undocumented)
+    typeName: TsEntityName;
+    // (undocumented)
+    typeParams?: TsTypeParameterInstantiation;
+}
+
+// @public (undocumented)
+type TsUnionOrIntersectionType = TsUnionType | TsIntersectionType;
+
+// @public (undocumented)
+interface TsUnionType extends Node_4, HasSpan {
+    // (undocumented)
+    type: "TsUnionType";
+    // (undocumented)
+    types: TsType[];
 }
 
 // @public (undocumented)
@@ -6821,8 +8716,36 @@ interface UmdConfig extends BaseModuleConfig {
 // @public
 export type UmdNamedDefine = boolean;
 
+// @public (undocumented)
+interface UnaryExpression extends ExpressionBase {
+    // (undocumented)
+    argument: Expression;
+    // (undocumented)
+    operator: UnaryOperator;
+    // (undocumented)
+    type: "UnaryExpression";
+}
+
+// @public (undocumented)
+type UnaryOperator = "-" | "+" | "!" | "~" | "typeof" | "void" | "delete";
+
 // @public
 export type UniqueName = string;
+
+// @public (undocumented)
+interface UpdateExpression extends ExpressionBase {
+    // (undocumented)
+    argument: Expression;
+    // (undocumented)
+    operator: UpdateOperator;
+    // (undocumented)
+    prefix: boolean;
+    // (undocumented)
+    type: "UpdateExpression";
+}
+
+// @public (undocumented)
+type UpdateOperator = "++" | "--";
 
 // @public
 type UsageStateType = 0 | 1 | 2 | 3 | 4;
@@ -6836,6 +8759,33 @@ export const util: {
 // @public (undocumented)
 export class ValidationError extends Error {
     constructor(message: string);
+}
+
+// @public (undocumented)
+interface VariableDeclaration extends Node_4, HasSpan {
+    // (undocumented)
+    declarations: VariableDeclarator[];
+    // (undocumented)
+    declare: boolean;
+    // (undocumented)
+    kind: VariableDeclarationKind;
+    // (undocumented)
+    type: "VariableDeclaration";
+}
+
+// @public (undocumented)
+type VariableDeclarationKind = "var" | "let" | "const";
+
+// @public (undocumented)
+interface VariableDeclarator extends Node_4, HasSpan {
+    // (undocumented)
+    definite: boolean;
+    // (undocumented)
+    id: Pattern;
+    // (undocumented)
+    init?: Expression;
+    // (undocumented)
+    type: "VariableDeclarator";
 }
 
 // @public (undocumented)
@@ -7165,6 +9115,26 @@ class WebWorkerTemplatePlugin extends RspackBuiltinPlugin {
     raw(compiler: Compiler): BuiltinPlugin | undefined;
 }
 
+// @public (undocumented)
+interface WhileStatement extends Node_4, HasSpan {
+    // (undocumented)
+    body: Statement;
+    // (undocumented)
+    test: Expression;
+    // (undocumented)
+    type: "WhileStatement";
+}
+
+// @public (undocumented)
+interface WithStatement extends Node_4, HasSpan {
+    // (undocumented)
+    body: Statement;
+    // (undocumented)
+    object: Expression;
+    // (undocumented)
+    type: "WithStatement";
+}
+
 // @public
 export type WorkerPublicPath = string;
 
@@ -7178,6 +9148,16 @@ type WriteAsyncOptions<TBuffer extends ArrayBufferView = Buffer> = {
     position?: null | number | bigint;
     buffer?: TBuffer;
 };
+
+// @public (undocumented)
+interface YieldExpression extends ExpressionBase {
+    // (undocumented)
+    argument?: Expression;
+    // (undocumented)
+    delegate: boolean;
+    // (undocumented)
+    type: "YieldExpression";
+}
 
 // (No @packageDocumentation comment for this package)
 

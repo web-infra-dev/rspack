@@ -11,9 +11,13 @@ version                 = "0.1.0"
 
 [dependencies]
 anyhow = { workspace = true }
+base64 = { version = "0.22.1" }
+indoc = { workspace = true }
+jsonc-parser = { version = "0.26.2", features = ["serde"] }
 rustc-hash = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+swc_config = { workspace = true }
 swc_core = { workspace = true, features = [
   "__ecma",
   "__visit",
@@ -31,9 +35,9 @@ swc_core = { workspace = true, features = [
   "swc_ecma_visit",
 ] }
 swc_ecma_minifier = { workspace = true, features = ["concurrent"] }
-swc_error_reporters = { workspace = true }
 swc_node_comments = { workspace = true }
 swc_parallel = { workspace = true, default-features = false }
+url = "2.5.0"
 
 rspack_cacheable = { workspace = true }
 rspack_error     = { workspace = true }
@@ -45,3 +49,9 @@ ignored = ["swc_parallel"]
 
 [lints]
 workspace = true
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+stacker = { workspace = true }
+
+[build-dependencies]
+cargo_toml = { version = "0.21.0" }

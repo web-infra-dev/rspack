@@ -3832,17 +3832,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack_ast"
-version = "0.2.0"
-dependencies = [
- "anyhow",
- "swc_core",
- "swc_error_reporters",
- "swc_node_comments",
- "swc_parallel",
-]
-
-[[package]]
 name = "rspack_base64"
 version = "0.2.0"
 dependencies = [
@@ -3947,7 +3936,6 @@ dependencies = [
  "regex",
  "rkyv 0.8.8",
  "ropey",
- "rspack_ast",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_dojang",
@@ -3956,6 +3944,7 @@ dependencies = [
  "rspack_futures",
  "rspack_hash",
  "rspack_hook",
+ "rspack_javascript_compiler",
  "rspack_loader_runner",
  "rspack_macros",
  "rspack_napi",
@@ -4071,6 +4060,10 @@ name = "rspack_javascript_compiler"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "base64",
+ "cargo_toml",
+ "indoc",
+ "jsonc-parser",
  "rspack_cacheable",
  "rspack_error",
  "rspack_sources",
@@ -4078,11 +4071,13 @@ dependencies = [
  "rustc-hash 2.1.0",
  "serde",
  "serde_json",
+ "stacker",
+ "swc_config",
  "swc_core",
  "swc_ecma_minifier",
- "swc_error_reporters",
  "swc_node_comments",
  "swc_parallel",
+ "url",
 ]
 
 [[package]]
@@ -4156,22 +4151,16 @@ dependencies = [
 name = "rspack_loader_swc"
 version = "0.2.0"
 dependencies = [
- "anyhow",
  "async-trait",
- "base64",
  "cargo_toml",
  "either",
- "indoc",
- "jsonc-parser",
- "rspack_ast",
  "rspack_cacheable",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
+ "rspack_javascript_compiler",
  "rspack_loader_runner",
- "rspack_plugin_javascript",
  "rspack_swc_plugin_import",
- "rspack_util",
  "rustc-hash 2.1.0",
  "serde",
  "serde_json",
@@ -4181,7 +4170,6 @@ dependencies = [
  "swc_core",
  "tokio",
  "tracing",
- "url",
 ]
 
 [[package]]
@@ -4269,6 +4257,7 @@ dependencies = [
  "rspack_hash",
  "rspack_hook",
  "rspack_ids",
+ "rspack_javascript_compiler",
  "rspack_loader_lightningcss",
  "rspack_loader_preact_refresh",
  "rspack_loader_react_refresh",
@@ -4653,7 +4642,6 @@ dependencies = [
  "rayon",
  "regex",
  "ropey",
- "rspack_ast",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
@@ -4662,6 +4650,7 @@ dependencies = [
  "rspack_hash",
  "rspack_hook",
  "rspack_ids",
+ "rspack_javascript_compiler",
  "rspack_paths",
  "rspack_regex",
  "rspack_util",
@@ -5019,6 +5008,7 @@ dependencies = [
  "rspack_error",
  "rspack_hash",
  "rspack_hook",
+ "rspack_javascript_compiler",
  "rspack_plugin_javascript",
  "rspack_util",
  "rustc-hash 2.1.0",

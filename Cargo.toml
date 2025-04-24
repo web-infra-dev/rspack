@@ -114,7 +114,6 @@ rspack_dojang = { version = "0.1.11" }
 # all rspack workspace dependencies
 rspack                                 = { version = "0.2.0", path = "crates/rspack" }
 rspack_allocator                       = { version = "0.2.0", path = "crates/rspack_allocator" }
-rspack_ast                             = { version = "0.2.0", path = "crates/rspack_ast" }
 rspack_base64                          = { version = "0.2.0", path = "crates/rspack_base64" }
 rspack_binding                         = { version = "0.2.0", path = "crates/rspack_binding" }
 rspack_builtin                         = { version = "0.2.0", path = "crates/rspack_builtin" }
@@ -130,6 +129,7 @@ rspack_hash                            = { version = "0.2.0", path = "crates/rsp
 rspack_hook                            = { version = "0.2.0", path = "crates/rspack_hook" }
 rspack_identifier                      = { version = "0.2.0", path = "crates/rspack_identifier" }
 rspack_ids                             = { version = "0.2.0", path = "crates/rspack_ids" }
+rspack_javascript_compiler             = { version = "*", path = "crates/rspack_javascript_compiler" }
 rspack_loader                          = { version = "0.2.0", path = "crates/rspack_loader" }
 rspack_loader_lightningcss             = { version = "0.2.0", path = "crates/rspack_loader_lightningcss" }
 rspack_loader_preact_refresh           = { version = "0.2.0", path = "crates/rspack_loader_preact_refresh" }

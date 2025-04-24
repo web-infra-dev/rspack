@@ -1,6 +1,6 @@
 #![feature(let_chains)]
 
-mod minify;
+// mod minify;
 
 use std::{
   collections::HashMap,
@@ -24,16 +24,18 @@ use rspack_core::{
 use rspack_error::{miette::IntoDiagnostic, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_plugin_javascript::{JavascriptModulesChunkHash, JsPlugin};
+use rspack_javascript_compiler::JavaScriptCompiler;
+use rspack_plugin_javascript::{ExtractedCommentsInfo, JavascriptModulesChunkHash, JsPlugin};
 use rspack_util::asset_condition::AssetConditions;
 use swc_config::config_types::BoolOrDataConfig;
-use swc_core::base::config::JsMinifyFormatOptions;
+use swc_core::{
+  base::config::JsMinifyFormatOptions,
+  common::comments::{CommentKind, SingleThreadedComments},
+};
 pub use swc_ecma_minifier::option::{
   terser::{TerserCompressorOptions, TerserEcmaVersion},
   MangleOptions,
 };
-
-use self::minify::{match_object, minify};
 
 const PLUGIN_NAME: &str = "rspack.SwcJsMinimizerRspackPlugin";
 
@@ -207,7 +209,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           None
         };
 
-        let js_minify_options = JsMinifyOptions {
+        let js_minify_options = rspack_javascript_compiler::minify::JsMinifyOptions {
           minify: minimizer_options.minify.unwrap_or(true),
           compress: minimizer_options.compress.clone(),
           mangle: minimizer_options.mangle.clone(),
@@ -235,19 +237,80 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             banner
           }
         });
-        let output = match minify(
-          &js_minify_options,
-          input,
-          filename,
-          &all_extracted_comments,
-          &extract_comments_option,
-        ) {
-          Ok(r) => r,
-          Err(e) => {
-            tx.send(e.into()).into_diagnostic()?;
-            return Ok(())
+
+        let javascript_compiler = JavaScriptCompiler::new();
+        let comments_op = |comments: &SingleThreadedComments| {
+          if let Some(ref extract_comments) = extract_comments_option {
+            let mut extracted_comments = vec![];
+            // add all matched comments to source
+
+            let (leading_trivial, trailing_trivial) = comments.borrow_all();
+
+            leading_trivial.iter().for_each(|(_, comments)| {
+              comments.iter().for_each(|c| {
+                if extract_comments.condition.is_match(&c.text) {
+                  let comment = match c.kind {
+                    CommentKind::Line => {
+                      format!("//{}", c.text)
+                    }
+                    CommentKind::Block => {
+                      format!("/*{}*/", c.text)
+                    }
+                  };
+                  if !extracted_comments.contains(&comment) {
+                    extracted_comments.push(comment);
+                  }
+                }
+              });
+            });
+            trailing_trivial.iter().for_each(|(_, comments)| {
+              comments.iter().for_each(|c| {
+                if extract_comments.condition.is_match(&c.text) {
+                  let comment = match c.kind {
+                    CommentKind::Line => {
+                      format!("//{}", c.text)
+                    }
+                    CommentKind::Block => {
+                      format!("/*{}*/", c.text)
+                    }
+                  };
+                  if !extracted_comments.contains(&comment) {
+                    extracted_comments.push(comment);
+                  }
+                }
+              });
+            });
+
+            // if not matched comments, we don't need to emit .License.txt file
+            if !extracted_comments.is_empty() {
+              extracted_comments.sort();
+              all_extracted_comments
+                .lock()
+                .expect("all_extract_comments lock failed")
+                .insert(
+                  filename.to_string(),
+                  ExtractedCommentsInfo {
+                    source: RawStringSource::from(extracted_comments.join("\n\n")).boxed(),
+                    comments_file_name: extract_comments.filename.to_string(),
+                  },
+                );
+            }
           }
         };
+
+        let output = match javascript_compiler.minify(
+          swc_core::common::FileName::Custom(filename.to_string()),
+          input,
+          js_minify_options,
+          Some(comments_op),
+        ) {
+            Ok(r) => r,
+            Err(e) => {
+              tx.send(e.into()).into_diagnostic()?;
+              return Ok(())
+            },
+        };
+
         let source = if let Some(source_map) = output.map {
           SourceMapSource::new(SourceMapSourceOptions {
             value: output.code,
@@ -305,6 +368,25 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
+pub fn match_object(obj: &PluginOptions, str: &str) -> bool {
+  if let Some(condition) = &obj.test {
+    if !condition.try_match(str) {
+      return false;
+    }
+  }
+  if let Some(condition) = &obj.include {
+    if !condition.try_match(str) {
+      return false;
+    }
+  }
+  if let Some(condition) = &obj.exclude {
+    if condition.try_match(str) {
+      return false;
+    }
+  }
+  true
+}
+
 impl Plugin for SwcJsMinimizerRspackPlugin {
   fn name(&self) -> &'static str {
     PLUGIN_NAME
@@ -329,22 +411,22 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
   }
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct JsMinifyOptions {
-  pub minify: bool,
-  pub compress: BoolOrDataConfig<TerserCompressorOptions>,
-  pub mangle: BoolOrDataConfig<MangleOptions>,
-  pub format: JsMinifyFormatOptions,
-  pub ecma: TerserEcmaVersion,
-  pub keep_class_names: bool,
-  pub keep_fn_names: bool,
-  pub module: Option<bool>,
-  pub safari10: bool,
-  pub toplevel: bool,
-  pub source_map: BoolOrDataConfig<TerserSourceMapKind>,
-  pub output_path: Option<String>,
-  pub inline_sources_content: bool,
-}
+// #[derive(Debug, Clone, Default)]
+// pub struct JsMinifyOptions {
+//   pub minify: bool,
+//   pub compress: BoolOrDataConfig<TerserCompressorOptions>,
+//   pub mangle: BoolOrDataConfig<MangleOptions>,
+//   pub format: JsMinifyFormatOptions,
+//   pub ecma: TerserEcmaVersion,
+//   pub keep_class_names: bool,
+//   pub keep_fn_names: bool,
+//   pub module: Option<bool>,
+//   pub safari10: bool,
+//   pub toplevel: bool,
+//   pub source_map: BoolOrDataConfig<TerserSourceMapKind>,
+//   pub output_path: Option<String>,
+//   pub inline_sources_content: bool,
+// }
 
 #[derive(Debug, Clone, Default)]
 pub struct TerserSourceMapKind {

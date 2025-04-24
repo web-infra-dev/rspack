@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use rspack_ast::javascript::Ast;
 use rspack_core::ModuleType;
 use rspack_error::TraceableError;
+use rspack_javascript_compiler::ast::Ast;
 use swc_core::{
   common::{comments::Comments, input::SourceFileInput, SourceFile, SourceMap},
   ecma::{

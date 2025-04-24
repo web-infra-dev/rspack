@@ -3,40 +3,49 @@ use std::sync::Arc;
 use rspack_error::{BatchErrors, DiagnosticKind};
 use rspack_util::swc::minify_file_comments;
 use rustc_hash::FxHashMap;
+use serde::{Deserialize, Serialize};
+pub use swc_core::base::BoolOrDataConfig;
 use swc_core::{
   atoms::Atom,
   base::{
     config::{IsModule, JsMinifyCommentOption, JsMinifyFormatOptions, SourceMapsConfig},
-    BoolOr, BoolOrDataConfig,
+    BoolOr,
   },
   common::{comments::SingleThreadedComments, BytePos, FileName},
   ecma::{
     ast::Ident,
     parser::{EsSyntax, Syntax},
-    visit::{noop_visit_type, Visit, VisitWith},
+    visit::{noop_visit_type, Visit},
   },
 };
-use swc_ecma_minifier::option::{
+pub use swc_ecma_minifier::option::{
   terser::{TerserCompressorOptions, TerserEcmaVersion},
   MangleOptions, MinifyOptions, TopLevelOptions,
 };
 
-use super::{stringify::SourceMapConfig, JavaScriptCompiler, TransformOutput};
+use super::{
+  stringify::{PrintOptions, SourceMapConfig},
+  JavaScriptCompiler, TransformOutput,
+};
 use crate::error::with_rspack_error_handler;
 
 impl JavaScriptCompiler {
-  pub fn minify<S: Into<String>>(
+  pub fn minify<S: Into<String>, F>(
     &self,
     filename: FileName,
     source: S,
     opts: JsMinifyOptions,
-  ) -> Result<TransformOutput, BatchErrors> {
+    comments_op: Option<F>,
+  ) -> Result<TransformOutput, BatchErrors>
+  where
+    F: for<'a> FnOnce(&'a SingleThreadedComments),
+  {
     self.run(|| -> Result<TransformOutput, BatchErrors> {
       with_rspack_error_handler(
         "Minify Error".to_string(),
         DiagnosticKind::JavaScript,
         self.cm.clone(),
-        |handler| {
+        |_handler| {
           let fm = self.cm.new_source_file(Arc::new(filename), source.into());
 
           let source_map = opts
@@ -103,17 +112,9 @@ impl JavaScriptCompiler {
             Some(&comments),
           )?;
 
-          let source_map_names = if source_map.enabled() {
-            let mut v = IdentCollector {
-              names: Default::default(),
-            };
-
-            program.visit_with(&mut v);
-
-            v.names
-          } else {
-            Default::default()
-          };
+          if let Some(op) = comments_op {
+            op(&comments);
+          }
 
           minify_file_comments(
             &comments,
@@ -126,45 +127,64 @@ impl JavaScriptCompiler {
             opts.format.preserve_annotations,
           );
 
-          self.print(
-            &program,
-            self.cm.clone(),
+          let print_options = PrintOptions {
+            source_map: self.cm.clone(),
             target,
-            SourceMapConfig {
+            source_map_config: SourceMapConfig {
               enable: source_map.enabled(),
               inline_sources_content: opts.inline_sources_content,
               emit_columns: true,
-              names: source_map_names,
+              names: Default::default(),
             },
-            None,
-            opts.minify,
-            Some(&comments),
-            &opts.format,
-          )
+            input_source_map: None,
+            minify: opts.minify,
+            comments: Some(&comments),
+            format: &opts.format,
+          };
+
+          self.print(&program, print_options).map_err(|e| e.into())
         },
       )
     })
   }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct JsMinifyOptions {
+  #[serde(default = "true_as_default")]
   pub minify: bool,
+  #[serde(default)]
   pub compress: BoolOrDataConfig<TerserCompressorOptions>,
+  #[serde(default)]
   pub mangle: BoolOrDataConfig<MangleOptions>,
+  #[serde(default)]
   pub format: JsMinifyFormatOptions,
+  #[serde(default)]
   pub ecma: TerserEcmaVersion,
+  #[serde(default, rename = "keep_classnames")]
   pub keep_class_names: bool,
+  #[serde(default, rename = "keep_fnames")]
   pub keep_fn_names: bool,
+  #[serde(default)]
   pub module: Option<bool>,
+  #[serde(default)]
   pub safari10: bool,
+  #[serde(default)]
   pub toplevel: bool,
+  #[serde(default)]
   pub source_map: BoolOrDataConfig<TerserSourceMapKind>,
+  #[serde(default)]
   pub output_path: Option<String>,
+  #[serde(default = "true_as_default")]
   pub inline_sources_content: bool,
 }
 
-#[derive(Debug, Clone, Default)]
+const fn true_as_default() -> bool {
+  true
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct TerserSourceMapKind {
   pub filename: Option<String>,
   pub url: Option<String>,

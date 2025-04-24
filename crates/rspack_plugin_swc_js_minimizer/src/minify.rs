@@ -8,6 +8,7 @@ use rspack_core::{
   ModuleType,
 };
 use rspack_error::{error, BatchErrors, DiagnosticKind, TraceableError};
+use rspack_javascript_compiler::minify::JsMinifyOptions;
 use rspack_plugin_javascript::{
   ast::{parse_js, print, SourceMapConfig},
   utils::{ecma_parse_error_deduped_to_rspack_error, DedupEcmaErrors},
@@ -42,7 +43,7 @@ use swc_ecma_minifier::{
 };
 use tracing::instrument;
 
-use crate::{JsMinifyOptions, NormalizedExtractComments, PluginOptions};
+use crate::{NormalizedExtractComments, PluginOptions};
 
 pub fn match_object(obj: &PluginOptions, str: &str) -> bool {
   if let Some(condition) = &obj.test {

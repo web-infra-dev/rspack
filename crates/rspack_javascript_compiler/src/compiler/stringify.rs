@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rspack_error::{miette::IntoDiagnostic, BatchErrors};
+use rspack_error::{miette::IntoDiagnostic, Error};
 use rspack_sources::{encode_mappings, Mapping, OriginalLocation};
 use rustc_hash::FxHashMap;
 use swc_core::{
@@ -10,25 +10,75 @@ use swc_core::{
     SourceMap as SwcSourceMap,
   },
   ecma::{
-    ast::{EsVersion, Program as SwcProgram},
+    ast::{EsVersion, Ident, Program as SwcProgram},
     atoms::Atom,
     codegen::{
       self,
       text_writer::{self, WriteJs},
       Emitter, Node,
     },
+    visit::{noop_visit_type, Visit, VisitWith},
   },
 };
 
 use super::{JavaScriptCompiler, TransformOutput};
 use crate::ast::Ast;
 
+#[derive(Default, Clone, Debug)]
+pub struct CodegenOptions<'a> {
+  pub target: Option<EsVersion>,
+  pub source_map_config: SourceMapConfig,
+  pub input_source_map: Option<&'a sourcemap::SourceMap>,
+  pub keep_comments: Option<bool>,
+  pub minify: Option<bool>,
+  pub ascii_only: Option<bool>,
+  pub inline_script: Option<bool>,
+  pub emit_assert_for_import_attributes: Option<bool>,
+}
+
+#[derive(Default, Clone, Debug)]
+pub struct SourceMapConfig {
+  pub enable: bool,
+  pub inline_sources_content: bool,
+  pub emit_columns: bool,
+  pub names: FxHashMap<BytePos, Atom>,
+}
+
+impl SourceMapGenConfig for SourceMapConfig {
+  fn file_name_to_source(&self, f: &FileName) -> String {
+    let f = f.to_string();
+    if f.starts_with('<') && f.ends_with('>') {
+      f[1..f.len() - 1].to_string()
+    } else {
+      f
+    }
+  }
+
+  fn inline_sources_content(&self, _: &FileName) -> bool {
+    self.inline_sources_content
+  }
+
+  fn emit_columns(&self, _f: &FileName) -> bool {
+    self.emit_columns
+  }
+
+  fn name_for_bytepos(&self, pos: BytePos) -> Option<&str> {
+    self.names.get(&pos).map(|v| &**v)
+  }
+}
+
+pub struct PrintOptions<'a> {
+  pub source_map: Arc<SwcSourceMap>,
+  pub target: EsVersion,
+  pub source_map_config: SourceMapConfig,
+  pub input_source_map: Option<&'a sourcemap::SourceMap>,
+  pub minify: bool,
+  pub comments: Option<&'a dyn Comments>,
+  pub format: &'a JsMinifyFormatOptions,
+}
+
 impl JavaScriptCompiler {
-  pub fn stringify(
-    &self,
-    ast: &Ast,
-    options: CodegenOptions,
-  ) -> Result<TransformOutput, BatchErrors> {
+  pub fn stringify(&self, ast: &Ast, options: CodegenOptions) -> Result<TransformOutput, Error> {
     ast.visit(|program, context| {
       let keep_comments = options.keep_comments;
       let target = options.target.unwrap_or(EsVersion::latest());
@@ -37,59 +87,52 @@ impl JavaScriptCompiler {
       let format_opt = JsMinifyFormatOptions {
         inline_script: options.inline_script.unwrap_or(true),
         ascii_only: options.ascii_only.unwrap_or_default(),
+        emit_assert_for_import_attributes: options
+          .emit_assert_for_import_attributes
+          .unwrap_or_default(),
         ..Default::default()
       };
-      self.print(
-        program.get_inner_program(),
-        context.source_map.clone(),
+      let print_options = PrintOptions {
+        source_map: context.source_map.clone(),
         target,
         source_map_config,
-        options.input_source_map,
+        input_source_map: options.input_source_map,
         minify,
-        keep_comments
+        comments: keep_comments
           .unwrap_or_default()
           .then(|| program.comments.as_ref().map(|c| c as &dyn Comments))
           .flatten(),
-        &format_opt,
-      )
+        format: &format_opt,
+      };
+      self.print(program.get_inner_program(), print_options)
     })
-
-    // let keep_comments = options.keep_comments;
-    // let target = options.target.unwrap_or(EsVersion::latest());
-    // let source_map_config = &options.source_map_config;
-    // let minify = options.minify.unwrap_or_default();
-    // let format_opt = JsMinifyFormatOptions {
-    //   inline_script: options.inline_script.unwrap_or(true),
-    //   ascii_only: options.ascii_only.unwrap_or_default(),
-    //   ..Default::default()
-    // };
-    // self.print(
-    //   ast.get_inner_program(),
-    //   self.source_map.clone(),
-    //   target,
-    //   source_map_config,
-    //   options.input_source_map,
-    //   minify,
-    //   keep_comments
-    //     .unwrap_or_default()
-    //     .then(|| ast.comments.as_ref().map(|c| c as &dyn Comments))
-    //     .flatten(),
-    //   &format_opt,
-    // )
   }
 
   pub fn print(
     &self,
     node: &SwcProgram,
-    source_map: Arc<SwcSourceMap>,
-    target: EsVersion,
-    source_map_config: SourceMapConfig,
-    input_source_map: Option<&sourcemap::SourceMap>,
-    minify: bool,
-    comments: Option<&dyn Comments>,
-    format: &JsMinifyFormatOptions,
-  ) -> Result<TransformOutput, BatchErrors> {
+    options: PrintOptions<'_>,
+  ) -> Result<TransformOutput, Error> {
+    let PrintOptions {
+      source_map,
+      target,
+      mut source_map_config,
+      input_source_map,
+      minify,
+      comments,
+      format,
+    } = options;
     let mut src_map_buf = vec![];
+
+    if source_map_config.enable {
+      let mut v = IdentCollector {
+        names: Default::default(),
+      };
+
+      node.visit_with(&mut v);
+
+      source_map_config.names = v.names;
+    }
 
     let src = {
       let mut buf = vec![];
@@ -167,48 +210,18 @@ impl JavaScriptCompiler {
       None
     };
 
-    todo!("implment")
+    Ok(TransformOutput { code: src, map })
   }
 }
 
-#[derive(Default, Clone, Debug)]
-pub struct CodegenOptions<'a> {
-  pub target: Option<EsVersion>,
-  pub source_map_config: SourceMapConfig,
-  pub input_source_map: Option<&'a sourcemap::SourceMap>,
-  pub keep_comments: Option<bool>,
-  pub minify: Option<bool>,
-  pub ascii_only: Option<bool>,
-  pub inline_script: Option<bool>,
-}
-
-#[derive(Default, Clone, Debug)]
-pub struct SourceMapConfig {
-  pub enable: bool,
-  pub inline_sources_content: bool,
-  pub emit_columns: bool,
+struct IdentCollector {
   pub names: FxHashMap<BytePos, Atom>,
 }
 
-impl SourceMapGenConfig for SourceMapConfig {
-  fn file_name_to_source(&self, f: &FileName) -> String {
-    let f = f.to_string();
-    if f.starts_with('<') && f.ends_with('>') {
-      f[1..f.len() - 1].to_string()
-    } else {
-      f
-    }
-  }
+impl Visit for IdentCollector {
+  noop_visit_type!();
 
-  fn inline_sources_content(&self, _: &FileName) -> bool {
-    self.inline_sources_content
-  }
-
-  fn emit_columns(&self, _f: &FileName) -> bool {
-    self.emit_columns
-  }
-
-  fn name_for_bytepos(&self, pos: BytePos) -> Option<&str> {
-    self.names.get(&pos).map(|v| &**v)
+  fn visit_ident(&mut self, ident: &Ident) {
+    self.names.insert(ident.span.lo, ident.sym.clone());
   }
 }

@@ -56,6 +56,7 @@ mod rsdoctor;
 mod runtime;
 mod source;
 mod stats;
+mod swc;
 mod utils;
 
 pub use asset::*;
@@ -94,6 +95,7 @@ pub use runtime::*;
 use rustc_hash::FxHashMap;
 pub use source::*;
 pub use stats::*;
+pub use swc::*;
 use swc_core::common::util::take::Take;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{

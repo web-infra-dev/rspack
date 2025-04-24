@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use rspack_ast::javascript::Ast;
 use rspack_core::rspack_sources::{self, encode_mappings, Mapping, OriginalLocation};
 use rspack_error::{miette::IntoDiagnostic, Result};
+use rspack_javascript_compiler::ast::Ast;
 use rustc_hash::FxHashMap;
 use swc_core::{
   base::{config::JsMinifyFormatOptions, sourcemap},
