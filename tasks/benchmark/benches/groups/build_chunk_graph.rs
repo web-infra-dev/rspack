@@ -102,6 +102,7 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
   let rt = Builder::new_multi_thread()
     .build()
     .expect("should not fail to build tokio runtime");
+  let _guard = rt.enter();
 
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table =

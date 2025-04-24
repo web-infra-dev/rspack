@@ -14,7 +14,7 @@ use rspack_plugin_javascript::{
   runtime::render_chunk_runtime_modules, JavascriptModulesChunkHash, JavascriptModulesRenderChunk,
   JsPlugin, RenderSource,
 };
-use rspack_util::itoa;
+use rspack_util::{itoa, json_stringify};
 use rustc_hash::FxHashSet as HashSet;
 
 use super::update_hash_for_entry_startup;
@@ -133,8 +133,8 @@ async fn render_chunk(
 
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
-    "export const __webpack_ids__ = ['{}'];\n",
-    &chunk.expect_id(&compilation.chunk_ids_artifact)
+    "export const __webpack_ids__ = [{}];\n",
+    json_stringify(chunk.expect_id(&compilation.chunk_ids_artifact))
   )));
   sources.add(RawStringSource::from_static(
     "export const __webpack_modules__ = ",

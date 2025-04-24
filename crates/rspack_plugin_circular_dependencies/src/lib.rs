@@ -209,13 +209,9 @@ impl CircularDependencyIgnoredConnection {
   }
 }
 
-pub type CycleHandlerFn = Box<
-  dyn for<'a> Fn(String, Vec<String>, &'a mut Compilation) -> BoxFuture<'a, Result<()>>
-    + Sync
-    + Send,
->;
-pub type CompilationHookFn =
-  Box<dyn for<'a> Fn(&'a mut Compilation) -> BoxFuture<'a, Result<()>> + Sync + Send>;
+pub type CycleHandlerFn =
+  Box<dyn Fn(String, Vec<String>) -> BoxFuture<'static, Result<()>> + Sync + Send>;
+pub type CompilationHookFn = Box<dyn Fn() -> BoxFuture<'static, Result<()>> + Sync + Send>;
 
 #[derive(Debug)]
 pub struct CircularDependencyRspackPluginOptions {
@@ -296,17 +292,10 @@ impl CircularDependencyRspackPlugin {
     &self,
     entrypoint: String,
     cycle: Vec<ModuleIdentifier>,
-    compilation: &mut Compilation,
+    _compilation: &mut Compilation,
   ) -> Result<()> {
     match &self.options.on_ignored {
-      Some(callback) => {
-        callback(
-          entrypoint,
-          cycle.iter().map(ToString::to_string).collect(),
-          compilation,
-        )
-        .await
-      }
+      Some(callback) => callback(entrypoint, cycle.iter().map(ToString::to_string).collect()).await,
       _ => Ok(()),
     }
   }
@@ -318,12 +307,7 @@ impl CircularDependencyRspackPlugin {
     compilation: &mut Compilation,
   ) -> Result<()> {
     if let Some(callback) = &self.options.on_detected {
-      return callback(
-        entrypoint,
-        cycle.iter().map(ToString::to_string).collect(),
-        compilation,
-      )
-      .await;
+      return callback(entrypoint, cycle.iter().map(ToString::to_string).collect()).await;
     }
 
     let diagnostic_factory = if self.options.fail_on_error {
@@ -362,7 +346,7 @@ impl CircularDependencyRspackPlugin {
 #[plugin_hook(CompilationOptimizeModules for CircularDependencyRspackPlugin)]
 async fn optimize_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   if let Some(on_start) = &self.options.on_start {
-    on_start(compilation).await?;
+    on_start().await?;
   };
 
   let module_map = build_module_map(compilation);
@@ -400,7 +384,7 @@ async fn optimize_modules(&self, compilation: &mut Compilation) -> Result<Option
   }
 
   if let Some(on_end) = &self.options.on_end {
-    on_end(compilation).await?;
+    on_end().await?;
   }
   Ok(None)
 }

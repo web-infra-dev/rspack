@@ -194,6 +194,15 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         &chunk_map,
         compilation,
       );
+      let chunk_runtime = stringify_dynamic_chunk_map(
+        |c| {
+          let runtime = c.runtime().as_str();
+          Some(runtime.to_string())
+        },
+        &chunks,
+        &chunk_map,
+        compilation,
+      );
       let chunk_hash = stringify_dynamic_chunk_map(
         |c| {
           let hash = c
@@ -250,7 +259,8 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
               .chunk_hash(&chunk_hash)
               .chunk_name(&chunk_name)
               .hash(&full_hash)
-              .content_hash(&content_hash),
+              .content_hash(&content_hash)
+              .runtime(&chunk_runtime),
           )
           .await?,
       )
@@ -318,6 +328,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           ),
           None => format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH),
         };
+        let chunk_runtime = chunk.runtime().as_str();
 
         let filename = compilation
           .get_path(
@@ -344,7 +355,8 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
               .chunk_hash_optional(chunk_hash.as_deref())
               .chunk_name_optional(chunk_name.as_deref())
               .hash(&full_hash)
-              .content_hash_optional(content_hash.as_deref()),
+              .content_hash_optional(content_hash.as_deref())
+              .runtime(chunk_runtime),
           )
           .await?;
 

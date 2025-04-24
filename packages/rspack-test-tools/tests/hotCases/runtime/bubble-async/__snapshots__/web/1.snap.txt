@@ -32,7 +32,7 @@
 
 #### Changed Content
 ```js
-self["webpackHotUpdate"]('file_js', {
+self["webpackHotUpdate"]("file_js", {
 "./file.js": 
 /*!*****************!*\
   !*** ./file.js ***!
@@ -59,7 +59,7 @@ module.exports = 2;
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]('main', {},function(__webpack_require__) {
+self["webpackHotUpdate"]("main", {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")

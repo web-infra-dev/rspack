@@ -192,7 +192,7 @@ async fn js_chunk_hash(
   Ok(())
 }
 
-#[plugin_hook(CompilationRuntimeRequirementInModule for RuntimePlugin)]
+#[plugin_hook(CompilationRuntimeRequirementInModule for RuntimePlugin,tracing=false)]
 async fn runtime_requirements_in_module(
   &self,
   _compilation: &Compilation,
@@ -550,5 +550,9 @@ impl Plugin for RuntimePlugin {
       .runtime_requirement_in_tree
       .tap(runtime_requirements_in_tree::new(self));
     Ok(())
+  }
+
+  fn clear_cache(&self, id: CompilationId) {
+    COMPILATION_HOOKS_MAP.remove(&id);
   }
 }
