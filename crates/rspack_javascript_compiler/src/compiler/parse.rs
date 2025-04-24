@@ -18,6 +18,23 @@ use crate::{
 };
 
 impl JavaScriptCompiler {
+  /// Parses JavaScript source code into an AST.
+  ///
+  /// This method takes the filename, source code, target ECMAScript version, syntax, module type, and optional comments.
+  /// It returns a `Result` containing the parsed AST if successful, or a `BatchErrors` if an error occurs.
+  ///
+  /// # Parameters
+  ///
+  /// - `filename`: The name of the file being parsed.
+  /// - `source`: The source code to parse.
+  /// - `target`: The target ECMAScript version.
+  /// - `syntax`: The syntax to use for parsing.
+  /// - `is_module`: Indicates if the source code is a module.
+  /// - `comments`: Optional comments to include in the parsing process.
+  ///
+  /// # Returns
+  ///
+  /// A `Result` containing the parsed AST if successful, or a `BatchErrors` if an error occurs.
   pub fn parse<S: Into<String>>(
     self,
     filename: FileName,
@@ -78,6 +95,7 @@ impl JavaScriptCompiler {
       })
   }
 
+  /// Parses JavaScript code from a source file into an [SwcProgram].
   pub fn parse_js(
     &self,
     fm: Arc<SourceFile>,

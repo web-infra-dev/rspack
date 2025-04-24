@@ -9,6 +9,12 @@ use rspack_sources::SourceMap;
 use swc_core::common::{Globals, SourceMap as SwcSourceMap, GLOBALS};
 
 #[derive(Default)]
+/// JavaScriptCompiler is a struct that represents a JavaScript compiler instance.
+///
+/// It holds the global configuration and a reference to the source map.
+/// You can use the JavaScript compiler to parse, transform, minify, and stringify JavaScript code.
+///
+/// Thanks to swc as lower tools, it is fast and efficient.
 pub struct JavaScriptCompiler {
   globals: Globals,
   cm: Arc<SwcSourceMap>,

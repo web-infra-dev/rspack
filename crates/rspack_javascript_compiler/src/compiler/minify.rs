@@ -40,6 +40,21 @@ use super::{
 use crate::error::with_rspack_error_handler;
 
 impl JavaScriptCompiler {
+  /// Minifies the given JavaScript source code.
+  ///
+  /// This method takes a filename, the source code to minify, minification options, and an optional function to operate on comments.
+  /// It returns a `TransformOutput` containing the minified code and an optional source map.
+  ///
+  /// # Parameters
+  ///
+  /// - `filename`: The name of the file being minified.
+  /// - `source`: The source code to minify.
+  /// - `opts`: The options for minification.
+  /// - `comments_op`: An optional function to operate on the comments in the source code.
+  ///
+  /// # Returns
+  ///
+  /// A `Result` containing a `TransformOutput` if the minification is successful, or a `BatchErrors` if an error occurs.
   pub fn minify<S: Into<String>, F>(
     &self,
     filename: FileName,
@@ -191,32 +206,58 @@ impl JavaScriptCompiler {
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
+/// Represents the options for minifying JavaScript code.
 pub struct JsMinifyOptions {
   #[serde(default = "true_as_default")]
+  /// Indicates whether to minify the code.
   pub minify: bool,
+
   #[serde(default)]
+  /// Configuration for compressing the code.
   pub compress: BoolOrDataConfig<TerserCompressorOptions>,
+
   #[serde(default)]
+  /// Configuration for mangling names in the code.
   pub mangle: BoolOrDataConfig<MangleOptions>,
+
   #[serde(default)]
+  /// Options for formatting the minified code.
   pub format: JsMinifyFormatOptions,
+
   #[serde(default)]
+  /// The ECMAScript version to target.
   pub ecma: TerserEcmaVersion,
+
   #[serde(default, rename = "keep_classnames")]
+  /// Indicates whether to keep class names unchanged.
   pub keep_class_names: bool,
+
   #[serde(default, rename = "keep_fnames")]
+  /// Indicates whether to keep function names unchanged.
   pub keep_fn_names: bool,
+
   #[serde(default)]
+  /// Indicates whether to wrap the code in a module.
   pub module: Option<bool>,
+
   #[serde(default)]
+  /// Indicates whether to support Safari 10.
   pub safari10: bool,
+
   #[serde(default)]
+  /// Indicates whether to scope the top level to the global object.
   pub toplevel: bool,
+
   #[serde(default)]
+  /// Configuration for source maps.
   pub source_map: BoolOrDataConfig<TerserSourceMapKind>,
+
   #[serde(default)]
+  /// The path where the minified output will be written.
   pub output_path: Option<String>,
+
   #[serde(default = "true_as_default")]
+  /// Indicates whether to inline the source content in the source map.
   pub inline_sources_content: bool,
 }
 

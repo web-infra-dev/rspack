@@ -49,6 +49,7 @@ use super::{
 };
 
 impl JavaScriptCompiler {
+  /// Transforms the given JavaScript source code according to the provided options and source map kind.
   pub fn transform<'a, S, P>(
     &self,
     source: S,
