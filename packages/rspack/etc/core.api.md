@@ -3296,6 +3296,7 @@ export type LazyCompilationOptions = {
     test?: RegExp | ((module: Module) => boolean);
     client?: string;
     serverUrl?: string;
+    prefix?: string;
 };
 
 // @public
