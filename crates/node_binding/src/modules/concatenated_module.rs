@@ -29,6 +29,18 @@ impl ConcatenatedModule {
 
 #[napi]
 impl ConcatenatedModule {
+  #[napi(getter, ts_return_type = "Module")]
+  pub fn root_module(&mut self) -> napi::Result<ModuleObject> {
+    let (compilation, module) = self.as_ref()?;
+    let root_module = compilation
+      .module_by_identifier(&module.get_root())
+      .expect("Root module should exist");
+    Ok(ModuleObject::with_ref(
+      root_module.as_ref(),
+      compilation.compiler_id(),
+    ))
+  }
+
   #[napi(getter, ts_return_type = "Module[]")]
   pub fn modules(&mut self) -> napi::Result<Vec<ModuleObject>> {
     let (compilation, module) = self.as_ref()?;
