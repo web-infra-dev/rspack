@@ -129,7 +129,7 @@ impl RuntimeSpec {
     }
     let mut ordered = self.inner.iter().cloned().collect::<Vec<_>>();
     ordered.sort_unstable();
-    self.key = ordered.join("\n")
+    self.key = ordered.join("_")
   }
 
   pub fn as_str(&self) -> &str {

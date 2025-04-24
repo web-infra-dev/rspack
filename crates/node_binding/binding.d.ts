@@ -77,6 +77,7 @@ export declare class Chunks {
 }
 
 export declare class ConcatenatedModule {
+  get rootModule(): Module
   get modules(): Module[]
   _originalSource(): JsCompatSource | undefined
   nameForCondition(): string | undefined
@@ -98,6 +99,7 @@ export declare class ContextModule {
 }
 
 export declare class Dependency {
+  get _parentModule(): Module | undefined
   get type(): string
   get category(): string
   get request(): string | undefined
@@ -1513,10 +1515,10 @@ export interface RawCircularDependencyRspackPluginOptions {
   allowAsyncCycles?: boolean
   exclude?: RegExp
   ignoredConnections?: Array<[string | RegExp, string | RegExp]>
-  onDetected?: (entrypoint: Module, modules: string[], compilation: JsCompilation) => void
-  onIgnored?: (entrypoint: Module, modules: string[], compilation: JsCompilation) => void
-  onStart?: (compilation: JsCompilation) => void
-  onEnd?: (compilation: JsCompilation) => void
+  onDetected?: (entrypoint: Module, modules: string[]) => void
+  onIgnored?: (entrypoint: Module, modules: string[]) => void
+  onStart?: () => void
+  onEnd?: () => void
 }
 
 export interface RawConsumeOptions {

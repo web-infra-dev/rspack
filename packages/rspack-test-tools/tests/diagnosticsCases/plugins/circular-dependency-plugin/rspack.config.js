@@ -14,6 +14,8 @@ module.exports = {
 			failOnError: false,
 			exclude: /ignore-circular/,
 			onStart(_compilation) {
+				expect(typeof _compilation.errors === "object").toBeTruthy();
+				expect(typeof _compilation.errors.push === "function").toBeTruthy();
 				startFn();
 			},
 			onEnd(_compilation) {

@@ -39,7 +39,7 @@ impl Compiler {
       //   .old_cache
       //   .set_modified_files(all_files.into_iter().collect());
 
-      self.plugin_driver.clear_cache();
+      self.plugin_driver.clear_cache(self.compilation.id());
 
       let mut new_compilation = Compilation::new(
         self.id,

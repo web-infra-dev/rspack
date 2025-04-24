@@ -134,7 +134,7 @@ impl ExternalsPlugin {
   }
 }
 
-#[plugin_hook(NormalModuleFactoryFactorize for ExternalsPlugin)]
+#[plugin_hook(NormalModuleFactoryFactorize for ExternalsPlugin, tracing=false)]
 async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<BoxModule>> {
   let dependency = data.dependencies[0]
     .as_module_dependency()

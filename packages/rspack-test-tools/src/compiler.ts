@@ -92,6 +92,9 @@ export class TestCompilerManager<T extends ECompilerType>
 				// This is a workaround for the issue that watchpack cannot detect the file change in time
 				// so we set the poll to 300ms to make it more sensitive to the file change
 				poll: 300,
+				// Rspack ignored node_modules and .git by default for better performance, but for tests we
+				// want to watch all files, which aligns with webpack's default behavior
+				ignored: [],
 				aggregateTimeout: timeout
 			},
 			(error, newStats) => {
