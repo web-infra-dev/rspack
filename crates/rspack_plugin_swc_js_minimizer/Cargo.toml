@@ -20,7 +20,6 @@ rspack_hook = { workspace = true }
 rspack_javascript_compiler = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
 rspack_util = { workspace = true }
-rustc-hash = { workspace = true }
 serde_json = { workspace = true }
 swc_config = { workspace = true }
 swc_core = { workspace = true, features = [

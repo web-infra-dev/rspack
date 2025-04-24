@@ -53,8 +53,6 @@ swc_node_comments = { workspace = true }
 tracing = { workspace = true }
 url = { workspace = true }
 
-[target.'cfg(not(target_family = "wasm"))'.dependencies]
-stacker = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing"]
