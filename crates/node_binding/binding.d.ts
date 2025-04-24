@@ -77,6 +77,7 @@ export declare class Chunks {
 }
 
 export declare class ConcatenatedModule {
+  get rootModule(): Module
   get modules(): Module[]
   _originalSource(): JsCompatSource | undefined
   nameForCondition(): string | undefined
@@ -98,6 +99,7 @@ export declare class ContextModule {
 }
 
 export declare class Dependency {
+  get _parentModule(): Module | undefined
   get type(): string
   get category(): string
   get request(): string | undefined

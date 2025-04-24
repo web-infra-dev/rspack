@@ -10,6 +10,8 @@ use rspack_plugin_javascript::dependency::{
 };
 use rustc_hash::FxHashMap as HashMap;
 
+use crate::ModuleObject;
+
 // allows JS-side access to a Dependency instance that has already
 // been processed and stored in the Compilation.
 #[napi]
@@ -56,6 +58,24 @@ impl Dependency {
 
 #[napi]
 impl Dependency {
+  #[napi(
+    getter,
+    js_name = "_parentModule",
+    ts_return_type = "Module | undefined"
+  )]
+  pub fn parent_module(&mut self) -> napi::Result<Option<ModuleObject>> {
+    let (dependency, compilation) = self.as_ref()?;
+    let Some(compilation) = compilation else {
+      return Ok(None);
+    };
+    let module_graph = compilation.get_module_graph();
+    let parent_module = module_graph
+      .get_parent_module(dependency.id())
+      .and_then(|m| compilation.module_by_identifier(&m))
+      .map(|m| ModuleObject::with_ref(m.as_ref(), compilation.compiler_id()));
+    Ok(parent_module)
+  }
+
   #[napi(getter)]
   pub fn get_type(&mut self) -> napi::Result<&str> {
     let (dependency, _) = self.as_ref()?;
