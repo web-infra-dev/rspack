@@ -384,4 +384,10 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
   fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk);
   }
+
+  // different with webpack
+  // webpack use dependentHash
+  fn full_hash(&self) -> bool {
+    true
+  }
 }
