@@ -7,16 +7,5 @@ module.exports = {
 	output: {
 		filename: "[name].js",
 		chunkFilename: "[runtime].[contenthash].[name].js"
-	},
-	optimization: {
-		splitChunks: {
-			cacheGroups: {
-				async: {
-					test: /common/,
-					chunks: "async",
-					reuseExistingChunk: false
-				}
-			}
-		}
 	}
 };
