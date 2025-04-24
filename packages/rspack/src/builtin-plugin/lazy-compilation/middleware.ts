@@ -79,7 +79,12 @@ export const lazyCompilationMiddleware = (
 			: options.test
 	).apply(compiler);
 
-	return lazyCompilationMiddlewareInternal(compiler, activeModules, filesByKey, lazyCompilationPrefix);
+	return lazyCompilationMiddlewareInternal(
+		compiler,
+		activeModules,
+		filesByKey,
+		lazyCompilationPrefix
+	);
 };
 
 // used for reuse code, do not export this
