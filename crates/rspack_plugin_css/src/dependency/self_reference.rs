@@ -1,8 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyTemplate, DependencyTemplateType, DependencyType, ExtendedReferencedExport,
-  FactorizeInfo, ModuleDependency, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_util::atom::Atom;
 
@@ -12,8 +13,7 @@ use crate::utils::escape_css;
 #[derive(Debug, Clone)]
 pub struct CssSelfReferenceLocalIdentReplacement {
   pub local_ident: String,
-  pub start: u32,
-  pub end: u32,
+  pub range: DependencyRange,
 }
 
 #[cacheable]
@@ -119,8 +119,8 @@ impl DependencyTemplate for CssSelfReferenceLocalIdentDependencyTemplate {
 
     for replace in &dep.replaces {
       source.replace(
-        replace.start,
-        replace.end,
+        replace.range.start,
+        replace.range.end,
         &escape_css(&replace.local_ident),
         None,
       );

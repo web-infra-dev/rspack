@@ -1,4 +1,4 @@
-use rspack_core::{ConstDependency, SpanExt};
+use rspack_core::ConstDependency;
 
 use super::JavascriptParserPlugin;
 use crate::visitors::{JavascriptParser, TopLevelScope};
@@ -16,8 +16,7 @@ impl JavascriptParserPlugin for ESMTopLevelThisParserPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          expr.span.real_lo(),
-          expr.span.real_hi(),
+          expr.span.into(),
           "undefined".into(),
           None,
         )));

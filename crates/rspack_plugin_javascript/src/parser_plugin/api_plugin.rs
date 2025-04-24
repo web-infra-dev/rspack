@@ -104,8 +104,7 @@ impl JavascriptParserPlugin for APIPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             RuntimeGlobals::REQUIRE.name().into(),
             Some(RuntimeGlobals::REQUIRE),
           )));
@@ -115,8 +114,7 @@ impl JavascriptParserPlugin for APIPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             format!("{}()", RuntimeGlobals::GET_FULL_HASH).into(),
             Some(RuntimeGlobals::GET_FULL_HASH),
           )));
@@ -126,8 +124,7 @@ impl JavascriptParserPlugin for APIPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             serde_json::to_string(&parser.module_layer)
               .expect("should stringify JSON")
               .into(),
@@ -139,8 +136,7 @@ impl JavascriptParserPlugin for APIPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             RuntimeGlobals::PUBLIC_PATH.name().into(),
             Some(RuntimeGlobals::PUBLIC_PATH),
           )));
@@ -150,8 +146,7 @@ impl JavascriptParserPlugin for APIPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             RuntimeGlobals::MODULE_FACTORIES.name().into(),
             Some(RuntimeGlobals::MODULE_FACTORIES),
           )));
@@ -161,8 +156,7 @@ impl JavascriptParserPlugin for APIPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             RuntimeGlobals::ENSURE_CHUNK.name().into(),
             Some(RuntimeGlobals::ENSURE_CHUNK),
           )));
@@ -182,8 +176,7 @@ impl JavascriptParserPlugin for APIPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             RuntimeGlobals::BASE_URI.name().into(),
             Some(RuntimeGlobals::BASE_URI),
           )));
@@ -193,8 +186,7 @@ impl JavascriptParserPlugin for APIPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             if self.options.module {
               parser.build_info.need_create_require = true;
               format!(
@@ -213,8 +205,7 @@ impl JavascriptParserPlugin for APIPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             RuntimeGlobals::SYSTEM_CONTEXT.name().into(),
             Some(RuntimeGlobals::SYSTEM_CONTEXT),
           )));
@@ -224,8 +215,7 @@ impl JavascriptParserPlugin for APIPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             RuntimeGlobals::SHARE_SCOPE_MAP.name().into(),
             Some(RuntimeGlobals::SHARE_SCOPE_MAP),
           )));
@@ -235,8 +225,7 @@ impl JavascriptParserPlugin for APIPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             RuntimeGlobals::INITIALIZE_SHARING.name().into(),
             Some(RuntimeGlobals::INITIALIZE_SHARING),
           )));
@@ -246,8 +235,7 @@ impl JavascriptParserPlugin for APIPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             RuntimeGlobals::SCRIPT_NONCE.name().into(),
             Some(RuntimeGlobals::SCRIPT_NONCE),
           )));
@@ -257,8 +245,7 @@ impl JavascriptParserPlugin for APIPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             RuntimeGlobals::CHUNK_NAME.name().into(),
             Some(RuntimeGlobals::CHUNK_NAME),
           )));
@@ -268,8 +255,7 @@ impl JavascriptParserPlugin for APIPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             RuntimeGlobals::RUNTIME_ID.name().into(),
             Some(RuntimeGlobals::RUNTIME_ID),
           )));
@@ -279,8 +265,7 @@ impl JavascriptParserPlugin for APIPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME.name().into(),
             Some(RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
           )));
@@ -291,8 +276,7 @@ impl JavascriptParserPlugin for APIPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             format!("{}()", RuntimeGlobals::RSPACK_VERSION).into(),
             Some(RuntimeGlobals::RSPACK_VERSION),
           )));
@@ -302,8 +286,7 @@ impl JavascriptParserPlugin for APIPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             format!("{}", RuntimeGlobals::RSPACK_UNIQUE_ID).into(),
             Some(RuntimeGlobals::RSPACK_UNIQUE_ID),
           )));
@@ -370,8 +353,7 @@ impl JavascriptParserPlugin for APIPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          expr.span().real_lo(),
-          expr.span().real_hi(),
+          expr.span().into(),
           RuntimeGlobals::MODULE_CACHE.name().into(),
           Some(RuntimeGlobals::MODULE_CACHE),
         )));
@@ -383,8 +365,7 @@ impl JavascriptParserPlugin for APIPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          expr.span().real_lo(),
-          expr.span().real_hi(),
+          expr.span().into(),
           format!(
             "{}[{}]",
             RuntimeGlobals::MODULE_CACHE,

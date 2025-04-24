@@ -1,4 +1,4 @@
-use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency, SpanExt};
+use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency};
 use swc_core::ecma::ast::{Expr, MemberExpr};
 
 use super::JavascriptParserPlugin;
@@ -17,8 +17,7 @@ impl JavascriptParserPlugin for CommonJsPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          expr.span.real_lo(),
-          expr.span.real_hi(),
+          expr.span.into(),
           "'object'".into(),
           None,
         )));
