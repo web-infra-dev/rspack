@@ -42,10 +42,6 @@ impl Dependency for CssSelfReferenceLocalIdentDependency {
     &self.id
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
-  }
-
   fn resource_identifier(&self) -> Option<&str> {
     Some("self")
   }
