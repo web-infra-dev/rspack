@@ -58,10 +58,11 @@ impl JavaScriptCompiler {
     fm: &SourceFile,
     lexer: Lexer,
     is_module: IsModule,
+    comments: Option<SwcComments>,
   ) -> Result<Ast, BatchErrors> {
     parse_with_lexer(lexer, is_module)
       .map(|program| {
-        Ast::new(program, self.cm.clone(), None)
+        Ast::new(program, self.cm.clone(), comments)
           .with_context(ast::Context::new(self.cm.clone(), Some(self.globals)))
       })
       .map_err(|errs| {

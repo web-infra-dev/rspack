@@ -24,8 +24,8 @@ impl From<CompilerTransformOutput> for TransformOutput {
 #[napi]
 pub async fn transform(source: String, options: String) -> napi::Result<TransformOutput> {
   let options: SwcOptions = serde_json::from_str(&options)?;
-  let javascropt_compiler = JavaScriptCompiler::new();
-  javascropt_compiler
+  let js_compiler = JavaScriptCompiler::new();
+  js_compiler
     .transform(
       source,
       Some(swc_core::common::FileName::Anon),
@@ -40,8 +40,8 @@ pub async fn transform(source: String, options: String) -> napi::Result<Transfor
 #[napi]
 pub async fn minify(source: String, options: String) -> napi::Result<TransformOutput> {
   let options: JsMinifyOptions = serde_json::from_str(&options)?;
-  let javascropt_compiler = JavaScriptCompiler::new();
-  javascropt_compiler
+  let js_compiler = JavaScriptCompiler::new();
+  js_compiler
     .minify(
       swc_core::common::FileName::Anon,
       source,
@@ -57,6 +57,6 @@ pub async fn minify(source: String, options: String) -> napi::Result<TransformOu
         .collect::<Vec<_>>()
         .join("\n");
 
-      napi::Error::new(napi::Status::GenericFailure, format!("{err}"))
+      napi::Error::new(napi::Status::GenericFailure, err)
     })
 }

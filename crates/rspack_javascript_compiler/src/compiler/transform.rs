@@ -16,9 +16,7 @@ use anyhow::{bail, Context};
 use base64::prelude::*;
 use indoc::formatdoc;
 use jsonc_parser::parse_to_serde_value;
-use rspack_error::{
-  miette::MietteDiagnostic, AnyhowResultToRspackResultExt, Error, ToStringResultToRspackResultExt,
-};
+use rspack_error::{miette::MietteDiagnostic, AnyhowResultToRspackResultExt, Error};
 use rspack_util::{itoa, source_map::SourceMapKind, swc::minify_file_comments};
 use serde_json::error::Category;
 use swc_config::{merge::Merge, IsModule};
@@ -29,7 +27,7 @@ use swc_core::{
       BuiltInput, Config, ConfigFile, InputSourceMap, JsMinifyCommentOption, JsMinifyFormatOptions,
       Rc, RootMode, SourceMapsConfig,
     },
-    sourcemap, try_with_handler, BoolOr,
+    sourcemap, BoolOr,
   },
   common::{
     comments::{Comments, SingleThreadedComments},
@@ -42,6 +40,7 @@ use swc_core::{
     transforms::base::helpers::{self, Helpers},
   },
 };
+use swc_error_reporters::handler::try_with_handler;
 use url::Url;
 
 use super::{
@@ -407,8 +406,8 @@ impl<'a> JavaScriptTransformer<'a> {
           before_pass,
         )
       })
-      .map_err(|e| e.to_pretty_string())
-      .to_rspack_result()
+      .map_err(|e| e.to_pretty_error())
+      .to_rspack_result_from_anyhow()
     })
   }
 

@@ -2,7 +2,7 @@ use rspack_javascript_compiler::JavaScriptCompiler;
 use swc_core::ecma::ast::noop_pass;
 
 fn main() {
-  let source = "const a = ";
+  let source = "const a = 10;";
 
   let compiler = JavaScriptCompiler::new();
   let s = compiler.transform(
@@ -15,10 +15,10 @@ fn main() {
 
   match s {
     Ok(output) => {
-      println!("Transformed output: {:?}", output);
+      println!("Transformed output: {output:?}");
     }
     Err(err) => {
-      eprintln!("{}", err);
+      eprintln!("{err}");
     }
   }
 }

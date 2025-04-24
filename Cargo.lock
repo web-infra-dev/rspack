@@ -4075,6 +4075,7 @@ dependencies = [
  "swc_config",
  "swc_core",
  "swc_ecma_minifier",
+ "swc_error_reporters",
  "swc_node_comments",
  "swc_parallel",
  "url",

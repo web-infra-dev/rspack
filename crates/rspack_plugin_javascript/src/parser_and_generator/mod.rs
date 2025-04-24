@@ -195,6 +195,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       &fm,
       lexer.clone(),
       module_type_to_is_module(module_type),
+      Some(comments.clone()),
     ) {
       Ok(ast) => ast,
       Err(e) => {

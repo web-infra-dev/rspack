@@ -11,11 +11,21 @@ use swc_core::{
     config::{IsModule, JsMinifyCommentOption, JsMinifyFormatOptions, SourceMapsConfig},
     BoolOr,
   },
-  common::{comments::SingleThreadedComments, BytePos, FileName},
+  common::{
+    comments::{Comments, SingleThreadedComments},
+    errors::HANDLER,
+    BytePos, FileName, Mark,
+  },
   ecma::{
     ast::Ident,
     parser::{EsSyntax, Syntax},
-    visit::{noop_visit_type, Visit},
+    transforms::base::{
+      fixer::{fixer, paren_remover},
+      helpers::{self, Helpers},
+      hygiene::hygiene,
+      resolver,
+    },
+    visit::{noop_visit_type, Visit, VisitMutWith},
   },
 };
 pub use swc_ecma_minifier::option::{
@@ -45,7 +55,7 @@ impl JavaScriptCompiler {
         "Minify Error".to_string(),
         DiagnosticKind::JavaScript,
         self.cm.clone(),
-        |_handler| {
+        |handler| {
           let fm = self.cm.new_source_file(Arc::new(filename), source.into());
 
           let source_map = opts
@@ -111,6 +121,36 @@ impl JavaScriptCompiler {
               .map_or_else(|| IsModule::Unknown, IsModule::Bool),
             Some(&comments),
           )?;
+
+          let unresolved_mark = Mark::new();
+          let top_level_mark = Mark::new();
+
+          let is_mangler_enabled = min_opts.mangle.is_some();
+
+          let program = helpers::HELPERS.set(&Helpers::new(false), || {
+            HANDLER.set(handler, || {
+              let program = program
+                .apply(&mut resolver(unresolved_mark, top_level_mark, false))
+                .apply(&mut paren_remover(Some(&comments as &dyn Comments)));
+              let mut program = swc_ecma_minifier::optimize(
+                program,
+                self.cm.clone(),
+                Some(&comments),
+                None,
+                &min_opts,
+                &swc_ecma_minifier::option::ExtraOptions {
+                  unresolved_mark,
+                  top_level_mark,
+                  mangle_name_cache: None,
+                },
+              );
+
+              if !is_mangler_enabled {
+                program.visit_mut_with(&mut hygiene())
+              }
+              program.apply(&mut fixer(Some(&comments as &dyn Comments)))
+            })
+          });
 
           if let Some(op) = comments_op {
             op(&comments);
