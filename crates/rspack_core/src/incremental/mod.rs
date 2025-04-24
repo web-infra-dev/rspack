@@ -91,11 +91,11 @@ enum IncrementalInner {
 }
 
 impl Incremental {
-  pub fn new_build(passes: IncrementalPasses) -> Self {
+  pub fn new_cold(passes: IncrementalPasses) -> Self {
     Self(IncrementalInner::Cold { passes })
   }
 
-  pub fn new_rebuild(passes: IncrementalPasses) -> Self {
+  pub fn new_hot(passes: IncrementalPasses) -> Self {
     Self(IncrementalInner::Hot {
       passes,
       mutations: Mutations::default(),

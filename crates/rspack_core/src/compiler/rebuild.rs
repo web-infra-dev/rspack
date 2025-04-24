@@ -53,7 +53,7 @@ impl Compiler {
         Some(records),
         self.cache.clone(),
         self.old_cache.clone(),
-        Incremental::new_rebuild(self.options.experiments.incremental),
+        Incremental::new_hot(self.options.experiments.incremental),
         Some(ModuleExecutor::default()),
         modified_files,
         removed_files,
