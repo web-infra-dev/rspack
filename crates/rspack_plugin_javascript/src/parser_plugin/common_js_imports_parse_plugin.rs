@@ -301,7 +301,7 @@ impl CommonJsImportsParserPlugin {
       let span = expr.span();
       let dep = Box::new(LocalModuleDependency::new(
         local_module.clone(),
-        Some((span.real_lo(), span.real_hi())),
+        Some(span.into()),
         matches!(expr, CallOrNewExpr::New(_)),
       ));
       parser.presentational_dependencies.push(dep);
