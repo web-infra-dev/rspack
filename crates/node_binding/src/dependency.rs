@@ -71,7 +71,7 @@ impl Dependency {
     let module_graph = compilation.get_module_graph();
     let parent_module = module_graph
       .get_parent_module(dependency.id())
-      .and_then(|m| compilation.module_by_identifier(&m))
+      .and_then(|m| compilation.module_by_identifier(m))
       .map(|m| ModuleObject::with_ref(m.as_ref(), compilation.compiler_id()));
     Ok(parent_module)
   }
