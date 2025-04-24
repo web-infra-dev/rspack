@@ -1,6 +1,6 @@
 ERROR in ./index.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Unexpected token `let`. Expected let is reserved in const, let, class declaration
+  ╰─▶   × JavaScript parse error: Unexpected token `let`. Expected let is reserved in const, let, class declaration
          ╭────
        1 │ let let = let;
          ·     ───

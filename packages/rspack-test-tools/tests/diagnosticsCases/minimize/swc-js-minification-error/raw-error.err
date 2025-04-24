@@ -1,0 +1,6 @@
+Array [
+  Object {
+    code: ChunkMinificationError,
+    file: main.js,
+  },
+]

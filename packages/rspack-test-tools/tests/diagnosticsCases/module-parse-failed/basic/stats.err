@@ -1,6 +1,6 @@
 ERROR in ./index.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected ',', got ':'
+  ╰─▶   × JavaScript parse error: Expected ',', got ':'
          ╭─[1:14]
        1 │ function add(a: number, b: number): number {
          ·               ─

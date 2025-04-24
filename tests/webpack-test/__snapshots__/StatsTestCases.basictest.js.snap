@@ -999,7 +999,7 @@ ERROR in ./not-xxx.js 1:8-25
 
 ERROR in ./parse-xxx.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expression expected
+  ╰─▶   × JavaScript parse error: Expression expected
          ╭─[3:4]
        1 │ Here
        2 │ could
@@ -1034,7 +1034,7 @@ ERROR in ./not-xxx.js 1:8-25
 
 ERROR in ./parse-xxx.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expression expected
+  ╰─▶   × JavaScript parse error: Expression expected
          ╭─[3:4]
        1 │ Here
        2 │ could
@@ -1198,7 +1198,7 @@ cacheable modules xx bytes
 
 ERROR in ./b.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected ';', '}' or <eof>
+  ╰─▶   × JavaScript parse error: Expected ';', '}' or <eof>
          ╭─[6:7]
        4 │ includes
        5 │ a

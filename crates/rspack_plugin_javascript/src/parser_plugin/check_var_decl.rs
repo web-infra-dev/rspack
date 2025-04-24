@@ -38,14 +38,14 @@ impl CheckVarDeclaratorIdent {
     if is_reserved_word_in_strict(ident.sym.as_str()) {
       if parser.is_strict() {
         parser.errors.push(Box::new(create_traceable_error(
-          "JavaScript parsing error".into(),
+          "JavaScript parse error".into(),
           format!("The keyword '{}' is reserved in strict mode", ident.sym),
           parser.source_file,
           ident.span().into(),
         )));
       } else {
         parser.errors.push(Box::new(create_traceable_error(
-          "JavaScript parsing error".into(),
+          "JavaScript parse error".into(),
           format!("{} is disallowed as a lexically bound name", ident.sym),
           parser.source_file,
           ident.span().into(),

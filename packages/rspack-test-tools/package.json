@@ -59,7 +59,7 @@
     "jsdom": "^26.1.0",
     "loader-utils": "^2.0.4",
     "memfs": "4.17.0",
-    "path-serializer": "0.3.4",
+    "path-serializer": "0.4.0",
     "pretty-format": "29.7.0",
     "rimraf": "^5.0.10",
     "source-map": "^0.7.4",

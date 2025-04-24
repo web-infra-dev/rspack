@@ -58,21 +58,6 @@ impl miette::Diagnostic for ModuleBuildError {
   fn severity(&self) -> Option<miette::Severity> {
     self.0.severity()
   }
-  fn help<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-    self.0.help()
-  }
-  fn url<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-    self.0.url()
-  }
-  fn source_code(&self) -> Option<&dyn miette::SourceCode> {
-    self.0.source_code()
-  }
-  fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
-    self.0.labels()
-  }
-  fn related<'a>(&'a self) -> Option<Box<dyn Iterator<Item = &'a dyn miette::Diagnostic> + 'a>> {
-    self.0.related()
-  }
   fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
     Some(self.0.as_ref())
   }
@@ -257,4 +242,37 @@ pub fn map_box_diagnostics_to_module_parse_diagnostics(
       diagnostic.with_hide_stack(hide_stack)
     })
     .collect()
+}
+
+/////////////// Minify error
+
+#[derive(Debug)]
+pub struct MinifyError(pub Error);
+
+impl std::error::Error for MinifyError {
+  fn source(&self) -> ::core::option::Option<&(dyn std::error::Error + 'static)> {
+    Some(<Error as AsRef<dyn std::error::Error>>::as_ref(&self.0))
+  }
+}
+
+impl std::fmt::Display for MinifyError {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "Chunk minification failed:")
+  }
+}
+
+impl miette::Diagnostic for MinifyError {
+  fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+    match self.severity().unwrap_or(miette::Severity::Error) {
+      miette::Severity::Advice => unreachable!("miette::Severity::Advice should not be used"),
+      miette::Severity::Warning => Some(Box::new("ChunkMinificationWarning")),
+      miette::Severity::Error => Some(Box::new("ChunkMinificationError")),
+    }
+  }
+  fn severity(&self) -> Option<miette::Severity> {
+    self.0.severity()
+  }
+  fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
+    Some(self.0.as_ref())
+  }
 }

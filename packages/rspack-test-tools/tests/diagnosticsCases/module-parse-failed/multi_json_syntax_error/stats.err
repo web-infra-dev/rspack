@@ -1,6 +1,6 @@
 ERROR in ./a.json
   × Module parse failed:
-  ╰─▶   × Json parsing error: Unexpected character }
+  ╰─▶   × JSON parse error: Unexpected character }
          ╭─[3:0]
        1 │ {
        2 │   "a"
@@ -13,7 +13,7 @@ ERROR in ./a.json
 
 ERROR in ./b.json
   × Module parse failed:
-  ╰─▶   × Json parsing error: Unexpected end of JSON
+  ╰─▶   × JSON parse error: Unexpected end of JSON
          ╭────
        1 │ "测试utf8/"
          ·           ▲

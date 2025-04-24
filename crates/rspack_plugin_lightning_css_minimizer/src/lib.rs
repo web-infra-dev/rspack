@@ -15,14 +15,15 @@ use lightningcss::{
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
+  diagnostics::MinifyError,
   rspack_sources::{
     MapOptions, RawStringSource, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,
   },
   ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets, Plugin,
 };
 use rspack_error::{
-  miette, Diagnostic, DiagnosticKind, Result, RspackSeverity, ToStringResultToRspackResultExt,
-  TraceableError,
+  miette::MietteDiagnostic, Diagnostic, DiagnosticExt, DiagnosticKind, Result, RspackSeverity,
+  ToStringResultToRspackResultExt, TraceableError,
 };
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
@@ -257,7 +258,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                 let rope = ropey::Rope::from_str(&input);
                 let start = rope.line_to_byte(loc.line as usize) + loc.column as usize - 1;
                 let end = start;
-                Diagnostic::from(Box::new(TraceableError::from_file(
+                Diagnostic::from(MinifyError(TraceableError::from_file(
                   input.clone(),
                   start,
                   end,
@@ -265,9 +266,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                   e.to_string(),
                 )
                 .with_kind(DiagnosticKind::Css)
-                .with_severity(RspackSeverity::Warn)) as Box<dyn miette::Diagnostic + Send + Sync>)
+                .with_severity(RspackSeverity::Warn).into()).boxed())
+                .with_file(Some(filename.as_str().into()))
               } else {
-                Diagnostic::warn("LightningCSS minimize warning".to_string(), e.to_string())
+                Diagnostic::from(
+                  MinifyError(
+                    MietteDiagnostic::new(format!("LightningCSS minification warning: {e}"))
+                      .with_severity(rspack_error::miette::Severity::Warning).into()
+                  ).boxed()
+                ).with_file(Some(filename.as_str().into()))
               }
             }),
           );
@@ -297,7 +304,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
       original.get_info_mut().minimized.replace(true);
       Ok(())
-    })?;
+    }).map_err(MinifyError)?;
 
   compilation.extend_diagnostics(all_warnings.into_inner().expect("should lock"));
 

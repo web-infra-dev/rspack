@@ -244,7 +244,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         ) {
           Ok(r) => r,
           Err(e) => {
-            tx.send(e.into()).into_diagnostic()?;
+            tx.send(<Vec<Diagnostic>>::from(e).into_iter().map(|e| {
+              e.with_file(Some(filename.into()))
+            }).collect()).into_diagnostic()?;
             return Ok(())
           }
         };

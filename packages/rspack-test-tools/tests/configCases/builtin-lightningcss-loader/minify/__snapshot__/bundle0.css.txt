@@ -1,1 +1,1 @@
-.foo{-webkit-transition:all .5s;transition:all .5s}.bar{padding:0}
+.foo{-webkit-transition:all .Xs;transition:all .Xs}.bar{padding:0}

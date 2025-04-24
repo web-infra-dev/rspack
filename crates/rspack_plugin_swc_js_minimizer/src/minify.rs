@@ -4,10 +4,11 @@ use std::{
 };
 
 use rspack_core::{
+  diagnostics::MinifyError,
   rspack_sources::{RawStringSource, SourceExt},
   ModuleType,
 };
-use rspack_error::{error, BatchErrors, DiagnosticKind, TraceableError};
+use rspack_error::{miette::diagnostic, BatchErrors, DiagnosticKind, TraceableError};
 use rspack_plugin_javascript::{
   ast::{parse_js, print, SourceMapConfig},
   utils::{ecma_parse_error_deduped_to_rspack_error, DedupEcmaErrors},
@@ -75,220 +76,214 @@ pub fn minify(
   GLOBALS.set(
     &Default::default(),
     || -> std::result::Result<TransformOutput, BatchErrors> {
-      with_rspack_error_handler(
-        "Minify Error".to_string(),
-        DiagnosticKind::JavaScript,
-        cm.clone(),
-        |handler| {
-          let fm = cm.new_source_file(Arc::new(FileName::Custom(filename.to_string())), input);
-          let target = opts.ecma.clone().into();
+      with_rspack_error_handler(DiagnosticKind::JavaScript, cm.clone(), |handler| {
+        let fm = cm.new_source_file(Arc::new(FileName::Custom(filename.to_string())), input);
+        let target = opts.ecma.clone().into();
 
-          let source_map = opts
-            .source_map
-            .as_ref()
-            .map(|_| SourceMapsConfig::Bool(true))
-            .unwrap_as_option(|v| {
-              Some(match v {
-                Some(true) => SourceMapsConfig::Bool(true),
-                _ => SourceMapsConfig::Bool(false),
-              })
+        let source_map = opts
+          .source_map
+          .as_ref()
+          .map(|_| SourceMapsConfig::Bool(true))
+          .unwrap_as_option(|v| {
+            Some(match v {
+              Some(true) => SourceMapsConfig::Bool(true),
+              _ => SourceMapsConfig::Bool(false),
             })
-            .expect("TODO:");
+          })
+          .expect("TODO:");
 
-          let mut min_opts = MinifyOptions {
-            compress: opts
-              .compress
-              .clone()
-              .unwrap_as_option(|default| match default {
-                Some(true) | None => Some(Default::default()),
-                _ => None,
-              })
-              .map(|v| v.into_config(cm.clone())),
-            mangle: opts
-              .mangle
-              .clone()
-              .unwrap_as_option(|default| match default {
-                Some(true) | None => Some(Default::default()),
-                _ => None,
-              }),
-            ..Default::default()
-          };
+        let mut min_opts = MinifyOptions {
+          compress: opts
+            .compress
+            .clone()
+            .unwrap_as_option(|default| match default {
+              Some(true) | None => Some(Default::default()),
+              _ => None,
+            })
+            .map(|v| v.into_config(cm.clone())),
+          mangle: opts
+            .mangle
+            .clone()
+            .unwrap_as_option(|default| match default {
+              Some(true) | None => Some(Default::default()),
+              _ => None,
+            }),
+          ..Default::default()
+        };
 
-          // top_level defaults to true if module is true
+        // top_level defaults to true if module is true
 
-          // https://github.com/swc-project/swc/issues/2254
-          if opts.module.unwrap_or(false) {
-            if let Some(opts) = &mut min_opts.compress {
-              if opts.top_level.is_none() {
-                opts.top_level = Some(TopLevelOptions { functions: true });
-              }
-            }
-
-            if let Some(opts) = &mut min_opts.mangle {
-              opts.top_level = Some(true);
+        // https://github.com/swc-project/swc/issues/2254
+        if opts.module.unwrap_or(false) {
+          if let Some(opts) = &mut min_opts.compress {
+            if opts.top_level.is_none() {
+              opts.top_level = Some(TopLevelOptions { functions: true });
             }
           }
 
-          let comments = SingleThreadedComments::default();
+          if let Some(opts) = &mut min_opts.mangle {
+            opts.top_level = Some(true);
+          }
+        }
 
-          let program = parse_js(
-            fm.clone(),
-            target,
-            Syntax::Es(EsSyntax {
-              jsx: true,
-              decorators: true,
-              decorators_before_export: true,
-              ..Default::default()
-            }),
-            opts
-              .module
-              .map_or_else(|| IsModule::Unknown, IsModule::Bool),
-            Some(&comments),
+        let comments = SingleThreadedComments::default();
+
+        let program = parse_js(
+          fm.clone(),
+          target,
+          Syntax::Es(EsSyntax {
+            jsx: true,
+            decorators: true,
+            decorators_before_export: true,
+            ..Default::default()
+          }),
+          opts
+            .module
+            .map_or_else(|| IsModule::Unknown, IsModule::Bool),
+          Some(&comments),
+        )
+        .map_err(|errs| {
+          BatchErrors(
+            errs
+              .dedup_ecma_errors()
+              .into_iter()
+              .map(|err| {
+                MinifyError(
+                  ecma_parse_error_deduped_to_rspack_error(err, &fm, &ModuleType::JsAuto).into(),
+                )
+                .into()
+              })
+              .collect::<Vec<_>>(),
           )
-          .map_err(|errs| {
-            BatchErrors(
-              errs
-                .dedup_ecma_errors()
-                .into_iter()
-                .map(|err| {
-                  rspack_error::miette::Error::new(ecma_parse_error_deduped_to_rspack_error(
-                    err,
-                    &fm,
-                    &ModuleType::JsAuto,
-                  ))
-                })
-                .collect::<Vec<_>>(),
-            )
-          })?;
+        })?;
 
-          let source_map_names = if source_map.enabled() {
-            let mut v = IdentCollector {
-              names: Default::default(),
-            };
-
-            program.visit_with(&mut v);
-
-            v.names
-          } else {
-            Default::default()
+        let source_map_names = if source_map.enabled() {
+          let mut v = IdentCollector {
+            names: Default::default(),
           };
 
-          let unresolved_mark = Mark::new();
-          let top_level_mark = Mark::new();
+          program.visit_with(&mut v);
 
-          let is_mangler_enabled = min_opts.mangle.is_some();
+          v.names
+        } else {
+          Default::default()
+        };
 
-          let program = helpers::HELPERS.set(&Helpers::new(false), || {
-            HANDLER.set(handler, || {
-              let program = program
-                .apply(&mut resolver(unresolved_mark, top_level_mark, false))
-                .apply(&mut paren_remover(Some(&comments as &dyn Comments)));
-              let mut program = swc_ecma_minifier::optimize(
-                program,
-                cm.clone(),
-                Some(&comments),
-                None,
-                &min_opts,
-                &swc_ecma_minifier::option::ExtraOptions {
-                  unresolved_mark,
-                  top_level_mark,
-                  mangle_name_cache: None,
-                },
-              );
+        let unresolved_mark = Mark::new();
+        let top_level_mark = Mark::new();
 
-              if !is_mangler_enabled {
-                program.visit_mut_with(&mut hygiene())
+        let is_mangler_enabled = min_opts.mangle.is_some();
+
+        let program = helpers::HELPERS.set(&Helpers::new(false), || {
+          HANDLER.set(handler, || {
+            let program = program
+              .apply(&mut resolver(unresolved_mark, top_level_mark, false))
+              .apply(&mut paren_remover(Some(&comments as &dyn Comments)));
+            let mut program = swc_ecma_minifier::optimize(
+              program,
+              cm.clone(),
+              Some(&comments),
+              None,
+              &min_opts,
+              &swc_ecma_minifier::option::ExtraOptions {
+                unresolved_mark,
+                top_level_mark,
+                mangle_name_cache: None,
+              },
+            );
+
+            if !is_mangler_enabled {
+              program.visit_mut_with(&mut hygiene())
+            }
+            program.apply(&mut fixer(Some(&comments as &dyn Comments)))
+          })
+        });
+
+        if let Some(extract_comments) = extract_comments {
+          let mut extracted_comments = vec![];
+          // add all matched comments to source
+
+          let (leading_trivial, trailing_trivial) = comments.borrow_all();
+
+          leading_trivial.iter().for_each(|(_, comments)| {
+            comments.iter().for_each(|c| {
+              if extract_comments.condition.is_match(&c.text) {
+                let comment = match c.kind {
+                  CommentKind::Line => {
+                    format!("//{}", c.text)
+                  }
+                  CommentKind::Block => {
+                    format!("/*{}*/", c.text)
+                  }
+                };
+                if !extracted_comments.contains(&comment) {
+                  extracted_comments.push(comment);
+                }
               }
-              program.apply(&mut fixer(Some(&comments as &dyn Comments)))
-            })
+            });
+          });
+          trailing_trivial.iter().for_each(|(_, comments)| {
+            comments.iter().for_each(|c| {
+              if extract_comments.condition.is_match(&c.text) {
+                let comment = match c.kind {
+                  CommentKind::Line => {
+                    format!("//{}", c.text)
+                  }
+                  CommentKind::Block => {
+                    format!("/*{}*/", c.text)
+                  }
+                };
+                if !extracted_comments.contains(&comment) {
+                  extracted_comments.push(comment);
+                }
+              }
+            });
           });
 
-          if let Some(extract_comments) = extract_comments {
-            let mut extracted_comments = vec![];
-            // add all matched comments to source
-
-            let (leading_trivial, trailing_trivial) = comments.borrow_all();
-
-            leading_trivial.iter().for_each(|(_, comments)| {
-              comments.iter().for_each(|c| {
-                if extract_comments.condition.is_match(&c.text) {
-                  let comment = match c.kind {
-                    CommentKind::Line => {
-                      format!("//{}", c.text)
-                    }
-                    CommentKind::Block => {
-                      format!("/*{}*/", c.text)
-                    }
-                  };
-                  if !extracted_comments.contains(&comment) {
-                    extracted_comments.push(comment);
-                  }
-                }
-              });
-            });
-            trailing_trivial.iter().for_each(|(_, comments)| {
-              comments.iter().for_each(|c| {
-                if extract_comments.condition.is_match(&c.text) {
-                  let comment = match c.kind {
-                    CommentKind::Line => {
-                      format!("//{}", c.text)
-                    }
-                    CommentKind::Block => {
-                      format!("/*{}*/", c.text)
-                    }
-                  };
-                  if !extracted_comments.contains(&comment) {
-                    extracted_comments.push(comment);
-                  }
-                }
-              });
-            });
-
-            // if not matched comments, we don't need to emit .License.txt file
-            if !extracted_comments.is_empty() {
-              extracted_comments.sort();
-              all_extract_comments
-                .lock()
-                .expect("all_extract_comments lock failed")
-                .insert(
-                  filename.to_string(),
-                  ExtractedCommentsInfo {
-                    source: RawStringSource::from(extracted_comments.join("\n\n")).boxed(),
-                    comments_file_name: extract_comments.filename.to_string(),
-                  },
-                );
-            }
+          // if not matched comments, we don't need to emit .License.txt file
+          if !extracted_comments.is_empty() {
+            extracted_comments.sort();
+            all_extract_comments
+              .lock()
+              .expect("all_extract_comments lock failed")
+              .insert(
+                filename.to_string(),
+                ExtractedCommentsInfo {
+                  source: RawStringSource::from(extracted_comments.join("\n\n")).boxed(),
+                  comments_file_name: extract_comments.filename.to_string(),
+                },
+              );
           }
+        }
 
-          minify_file_comments(
-            &comments,
-            opts
-              .format
-              .comments
-              .clone()
-              .into_inner()
-              .unwrap_or(BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments)),
-            opts.format.preserve_annotations,
-          );
+        minify_file_comments(
+          &comments,
+          opts
+            .format
+            .comments
+            .clone()
+            .into_inner()
+            .unwrap_or(BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments)),
+          opts.format.preserve_annotations,
+        );
 
-          print(
-            &program,
-            cm.clone(),
-            target,
-            SourceMapConfig {
-              enable: source_map.enabled(),
-              inline_sources_content: opts.inline_sources_content,
-              emit_columns: true,
-              names: source_map_names,
-            },
-            None,
-            opts.minify,
-            Some(&comments),
-            &opts.format,
-          )
-          .map_err(BatchErrors::from)
-        },
-      )
+        print(
+          &program,
+          cm.clone(),
+          target,
+          SourceMapConfig {
+            enable: source_map.enabled(),
+            inline_sources_content: opts.inline_sources_content,
+            emit_columns: true,
+            names: source_map_names,
+          },
+          None,
+          opts.minify,
+          Some(&comments),
+          &opts.format,
+        )
+        .map_err(BatchErrors::from)
+      })
     },
   )
 }
@@ -309,7 +304,6 @@ impl Visit for IdentCollector {
 struct RspackErrorEmitter {
   tx: mpsc::Sender<rspack_error::Error>,
   source_map: Arc<SourceMap>,
-  title: String,
   kind: DiagnosticKind,
 }
 
@@ -323,28 +317,30 @@ impl Emitter for RspackErrorEmitter {
       self
         .tx
         .send(
-          TraceableError::from_source_file(
-            &source_file_and_byte_pos.sf,
-            source_file_and_byte_pos.pos.0 as usize,
-            source_file_and_byte_pos.pos.0 as usize,
-            self.title.to_string(),
-            db.message(),
+          MinifyError(
+            TraceableError::from_source_file(
+              &source_file_and_byte_pos.sf,
+              source_file_and_byte_pos.pos.0 as usize,
+              source_file_and_byte_pos.pos.0 as usize,
+              "JavaScript minification error".to_string(),
+              db.message(),
+            )
+            .with_kind(self.kind)
+            .into(),
           )
-          .with_kind(self.kind)
           .into(),
         )
         .expect("Sender should drop after emit called");
     } else {
       self
         .tx
-        .send(error!(db.message()))
+        .send(MinifyError(diagnostic!("{}", db.message()).into()).into())
         .expect("Sender should drop after emit called");
     }
   }
 }
 
 pub fn with_rspack_error_handler<F, Ret>(
-  title: String,
   kind: DiagnosticKind,
   cm: Arc<SourceMap>,
   op: F,
@@ -354,7 +350,6 @@ where
 {
   let (tx, rx) = mpsc::channel();
   let emitter = RspackErrorEmitter {
-    title,
     kind,
     source_map: cm,
     tx,

@@ -1,6 +1,6 @@
 ERROR in ./b.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Return statement is not allowed here
+  ╰─▶   × JavaScript parse error: Return statement is not allowed here
          ╭────
        1 │ return
          · ──────

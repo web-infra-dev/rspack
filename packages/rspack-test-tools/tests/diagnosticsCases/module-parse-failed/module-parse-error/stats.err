@@ -1,6 +1,6 @@
 ERROR in ./non-recoverable.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected ident
+  ╰─▶   × JavaScript parse error: Expected ident
          ╭────
        1 │ ##$$
          ·  ─
@@ -11,7 +11,7 @@ ERROR in ./non-recoverable.js
 
 ERROR in ./recoverable.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: 'const' declarations must be initialized
+  ╰─▶   × JavaScript parse error: 'const' declarations must be initialized
          ╭────
        1 │ const foo {};
          ·       ───
@@ -22,7 +22,7 @@ ERROR in ./recoverable.js
 
 ERROR in ./recoverable.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected a semicolon
+  ╰─▶   × JavaScript parse error: Expected a semicolon
          ╭────
        1 │ const foo {};
          ·           ─

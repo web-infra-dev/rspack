@@ -1,39 +1,47 @@
-WARNING in ⚠ LightningCSS minimize warning: Unknown at rule: @apply at main.css<LINE_COL>
-   ╭─[5:6]
- 3 │ - type: css/auto
- 4 │ */
- 5 │ @apply {
-   ·       ▲
- 6 │ }
- 7 │ 
-   ╰────
+WARNING in main.css
+  ⚠ Chunk minification failed:
+  ╰─▶   ⚠ LightningCSS minimize warning: Unknown at rule: @apply at main.css<LINE_COL>
+         ╭─[5:6]
+       3 │ - type: css/auto
+       4 │ */
+       5 │ @apply {
+         ·       ▲
+       6 │ }
+       7 │
+         ╰────
 
-WARNING in ⚠ LightningCSS minimize warning: Unexpected end of input at main.css<LINE_COL>
-    ╭─[13:7]
- 11 │ 
- 12 │ .b {
- 13 │   color; blue;
-    ·        ▲
- 14 │ }
- 15 │ 
-    ╰────
+WARNING in main.css
+  ⚠ Chunk minification failed:
+  ╰─▶   ⚠ LightningCSS minimize warning: Unexpected end of input at main.css<LINE_COL>
+          ╭─[13:7]
+       11 │
+       12 │ .b {
+       13 │   color; blue;
+          ·        ▲
+       14 │ }
+       15 │
+          ╰────
 
-WARNING in ⚠ LightningCSS minimize warning: Unexpected end of input at main.css<LINE_COL>
-    ╭─[13:13]
- 11 │ 
- 12 │ .b {
- 13 │   color; blue;
-    ·              ▲
- 14 │ }
- 15 │ 
-    ╰────
+WARNING in main.css
+  ⚠ Chunk minification failed:
+  ╰─▶   ⚠ LightningCSS minimize warning: Unexpected end of input at main.css<LINE_COL>
+          ╭─[13:13]
+       11 │
+       12 │ .b {
+       13 │   color; blue;
+          ·              ▲
+       14 │ }
+       15 │
+          ╰────
 
-WARNING in ⚠ LightningCSS minimize warning: Unexpected token Delim('<') at main.css<LINE_COL>
-    ╭─[16:2]
- 14 │ }
- 15 │ 
- 16 │ .c<>c {
-    ·   ▲
- 17 │   color: green;
- 18 │ }
-    ╰────
+WARNING in main.css
+  ⚠ Chunk minification failed:
+  ╰─▶   ⚠ LightningCSS minimize warning: Unexpected token Delim('<') at main.css<LINE_COL>
+          ╭─[16:2]
+       14 │ }
+       15 │
+       16 │ .c<>c {
+          ·   ▲
+       17 │   color: green;
+       18 │ }
+          ╰────

@@ -1,6 +1,6 @@
 ERROR in ./empty.json
   × Module parse failed:
-  ╰─▶   × Json parsing error: Unexpected end of JSON
+  ╰─▶   × JSON parse error: Unexpected end of JSON
          ╭────
          ╰────
       

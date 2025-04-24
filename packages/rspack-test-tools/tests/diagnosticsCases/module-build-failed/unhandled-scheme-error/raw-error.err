@@ -1,0 +1,12 @@
+Array [
+  Object {
+    code: ModuleBuildError,
+    moduleIdentifier: bar:baz,
+    moduleName: bar:baz,
+  },
+  Object {
+    code: ModuleBuildError,
+    moduleIdentifier: foo:bar,
+    moduleName: foo:bar,
+  },
+]
