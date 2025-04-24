@@ -1060,7 +1060,7 @@ export async function runLoaders(
 
 				context.content = isNil(content) ? null : toBuffer(content);
 				context.sourceMap = JsSourceMap.__to_binding(sourceMap);
-				context.additionalData = additionalData;
+				context.additionalData = additionalData || undefined;
 
 				break;
 			}
