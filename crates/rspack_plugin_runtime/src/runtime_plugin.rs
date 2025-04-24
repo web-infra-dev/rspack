@@ -192,7 +192,7 @@ async fn js_chunk_hash(
   Ok(())
 }
 
-#[plugin_hook(CompilationRuntimeRequirementInModule for RuntimePlugin)]
+#[plugin_hook(CompilationRuntimeRequirementInModule for RuntimePlugin,tracing=false)]
 async fn runtime_requirements_in_module(
   &self,
   _compilation: &Compilation,
