@@ -77,11 +77,14 @@ impl IncrementalPasses {
 }
 
 #[derive(Debug)]
-pub enum Incremental {
-  Build {
-    passes: IncrementalPasses,
-  },
-  Rebuild {
+pub struct Incremental(IncrementalInner);
+
+#[derive(Debug)]
+enum IncrementalInner {
+  /// For cold build and cold start
+  Cold { passes: IncrementalPasses },
+  /// For hot build, hot start, and rebuild
+  Hot {
     passes: IncrementalPasses,
     mutations: Mutations,
   },
@@ -89,14 +92,14 @@ pub enum Incremental {
 
 impl Incremental {
   pub fn new_build(passes: IncrementalPasses) -> Self {
-    Self::Build { passes }
+    Self(IncrementalInner::Cold { passes })
   }
 
   pub fn new_rebuild(passes: IncrementalPasses) -> Self {
-    Self::Rebuild {
+    Self(IncrementalInner::Hot {
       passes,
       mutations: Mutations::default(),
-    }
+    })
   }
 
   pub fn disable_passes(
@@ -105,7 +108,7 @@ impl Incremental {
     thing: &'static str,
     reason: &'static str,
   ) -> Option<Diagnostic> {
-    if let Self::Rebuild { passes: p, .. } = self
+    if let IncrementalInner::Hot { passes: p, .. } = &mut self.0
       && let passes = p.intersection(passes)
       && !passes.is_empty()
     {
@@ -124,45 +127,45 @@ impl Incremental {
   }
 
   pub fn enabled(&self) -> bool {
-    match self {
-      Self::Build { passes } => passes.allow_write(),
-      Self::Rebuild { passes, .. } => passes.allow_write(),
+    match self.0 {
+      IncrementalInner::Cold { passes } => passes.allow_write(),
+      IncrementalInner::Hot { passes, .. } => passes.allow_write(),
     }
   }
 
   pub fn passes_enabled(&self, passes: IncrementalPasses) -> bool {
-    match self {
-      Self::Build { passes: p } => p.allow_read(passes),
-      Self::Rebuild { passes: p, .. } => p.allow_read(passes),
+    match self.0 {
+      IncrementalInner::Cold { passes: p } => p.allow_read(passes),
+      IncrementalInner::Hot { passes: p, .. } => p.allow_read(passes),
     }
   }
 
   pub fn mutations_writeable(&self) -> bool {
-    if let Self::Rebuild { passes, .. } = self {
+    if let IncrementalInner::Hot { passes, .. } = self.0 {
       return passes.allow_write();
     }
     false
   }
 
   pub fn mutations_readable(&self, passes: IncrementalPasses) -> bool {
-    if let Self::Rebuild { passes: p, .. } = self {
+    if let IncrementalInner::Hot { passes: p, .. } = self.0 {
       return p.allow_read(passes);
     }
     false
   }
 
   pub fn mutations_write(&mut self) -> Option<&mut Mutations> {
-    if let Self::Rebuild { passes, mutations } = self {
+    if let IncrementalInner::Hot { passes, mutations } = &mut self.0 {
       return passes.allow_write().then_some(mutations);
     }
     None
   }
 
   pub fn mutations_read(&self, passes: IncrementalPasses) -> Option<&Mutations> {
-    if let Self::Rebuild {
+    if let IncrementalInner::Hot {
       passes: p,
       mutations,
-    } = self
+    } = &self.0
     {
       return p.allow_read(passes).then_some(mutations);
     }
