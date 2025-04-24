@@ -212,7 +212,9 @@ mod tests {
       .await
       .unwrap();
 
-    let (modified_paths, deleted_paths) = snapshot.calc_modified_paths().await.unwrap();
+    let (is_hot_start, modified_paths, deleted_paths) =
+      snapshot.calc_modified_paths().await.unwrap();
+    assert!(is_hot_start);
     assert!(deleted_paths.is_empty());
     assert!(!modified_paths.contains(&p!("/constant")));
     assert!(modified_paths.contains(&p!("/file1")));
@@ -226,7 +228,9 @@ mod tests {
     .await
     .unwrap();
     snapshot.add([p!("/file1")].into_iter()).await;
-    let (modified_paths, deleted_paths) = snapshot.calc_modified_paths().await.unwrap();
+    let (is_hot_start, modified_paths, deleted_paths) =
+      snapshot.calc_modified_paths().await.unwrap();
+    assert!(is_hot_start);
     assert!(deleted_paths.is_empty());
     assert!(!modified_paths.contains(&p!("/constant")));
     assert!(!modified_paths.contains(&p!("/file1")));
