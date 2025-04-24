@@ -24,8 +24,9 @@ use crate::{make::MakeArtifact, Compilation, CompilerOptions, ExperimentCacheOpt
 /// We can consider change to Hook when we need to open the API to js side.
 #[async_trait::async_trait]
 pub trait Cache: Debug + Send + Sync {
-  async fn before_compile(&self, _compilation: &mut Compilation) -> Result<()> {
-    Ok(())
+  /// before compile return is_hot_start
+  async fn before_compile(&self, _compilation: &mut Compilation) -> Result<bool> {
+    Ok(false)
   }
   async fn after_compile(&self, _compilation: &Compilation) -> Result<()> {
     Ok(())

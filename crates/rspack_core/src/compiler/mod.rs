@@ -227,6 +227,7 @@ impl Compiler {
         false,
       ),
     );
+    // TODO use is_hot_start
     if let Err(err) = self.cache.before_compile(&mut self.compilation).await {
       self.compilation.push_diagnostic(err.into());
     }
