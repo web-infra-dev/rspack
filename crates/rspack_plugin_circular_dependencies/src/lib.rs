@@ -42,6 +42,8 @@ impl<'a> CycleDetector<'a> {
       &mut vec![initial_module_id],
       &mut cycles,
     );
+    // sort to keep output stable
+    cycles.sort();
     cycles
   }
 
