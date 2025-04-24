@@ -129,7 +129,7 @@ jobs:
       - name: Log
         run: echo ${{ join(needs.*.result, ',') }}
       - name: Test check
-        if: ${{ needs.check-changed.outputs.code_changed && contains(join(needs.*.result, ','), 'failure') }}
+        if: ${{ needs.check-changed.outputs.code_changed && join(needs.*.result, ',')!='success,success,success,success' }}
         run: echo "Tess Failed" && exit 1
       - name: No check to Run test
         run: echo "Success"
