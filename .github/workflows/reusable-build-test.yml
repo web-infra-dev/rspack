@@ -63,7 +63,7 @@ jobs:
             pnpm run test:e2e
 
   test:
-    runs-on: ${{ fromJSON(inputs.runner) }}
+    runs-on: rspack-ubuntu-22.04-large
     timeout-minutes: 60
     strategy:
       fail-fast: false # Build and test everything so we can look at all the errors

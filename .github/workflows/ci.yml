@@ -30,6 +30,15 @@ permissions:
   issues: write
 
 jobs:
+  check-self-linux-runner:
+    # See context at https://github.com/web-infra-dev/rspack/discussions/2760
+    name: check self linux runner
+    runs-on: rspack-ubuntu-22.04-large
+    steps:
+      - name: say hello
+        run: |
+          echo "hello"
+
   get-runner-labels:
     name: Get Runner Labels
     uses: ./.github/workflows/get-runner-labels.yml
