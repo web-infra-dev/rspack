@@ -1441,7 +1441,8 @@ const lazyCompilationOptions = z.object({
 		.or(z.function().args(z.custom<Module>()).returns(z.boolean()))
 		.optional(),
 	client: z.string().optional(),
-	serverUrl: z.string().optional()
+	serverUrl: z.string().optional(),
+	prefix: z.string().optional()
 }) satisfies z.ZodType<t.LazyCompilationOptions>;
 
 const incremental = z.strictObject({
