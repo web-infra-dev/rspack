@@ -230,18 +230,43 @@ export default function (env, argv) {
 
 ## 合并配置
 
-使用 `webpack-merge` 导出的 `merge` 函数来合并多个配置。
+使用 Rspack 的 [extends](/config/extends) 选项或者 [webpack-merge](https://npmjs.com/package/webpack-merge) 包来合并多个 Rspack 配置。
+
+### extends 选项
+
+在使用 [@rspack/cli](/api/cli) 时，Rspack 提供了 `extends` 选项，允许你从其他文件或包中扩展配置。
+
+```js title="rspack.config.mjs"
+export default {
+  extends: './base.rspack.config.mjs',
+  output: {
+    filename: '[name].bundle.js',
+  },
+};
+```
+
+> 该选项仅在 `@rspack/cli` 中有效，查看 [extends](/config/extends) 了解更多用法。
+
+### webpack-merge
+
+`webpack-merge` 是一个社区库，用于合并多个 webpack 配置，也能用于合并 Rspack 配置。
+
+首先安装 `webpack-merge`：
+
+<PackageManagerTabs command="add webpack-merge -D" />
+
+然后你就可以使用它的 `merge` 函数来合并配置：
 
 ```js title="rspack.config.mjs"
 import { merge } from 'webpack-merge';
 
+const isDev = process.env.NODE_ENV === 'development';
 const base = {};
-
 const dev = {
-  plugins: [new DevelopmentSpecifiedPlugin()],
+  plugins: [new SomeDevPlugin()],
 };
 
-export default process.env.NODE_ENV === 'development' ? merge(base, dev) : base;
+export default isDev ? merge(base, dev) : base;
 ```
 
-关于 `merge` 的更多信息请查看 [webpack-merge 文档](https://npmjs.com/package/webpack-merge)。
+> 查看 [webpack-merge 文档](https://npmjs.com/package/webpack-merge) 了解更多。
