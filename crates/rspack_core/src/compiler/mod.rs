@@ -148,7 +148,7 @@ impl Compiler {
       intermediate_filesystem.clone(),
     );
     let old_cache = Arc::new(OldCache::new(options.clone()));
-    let incremental = Incremental::new_build();
+    let incremental = Incremental::new_build(options.experiments.incremental);
     let module_executor = ModuleExecutor::default();
 
     let id = CompilerId::new();
@@ -217,7 +217,7 @@ impl Compiler {
         None,
         self.cache.clone(),
         self.old_cache.clone(),
-        Incremental::new_build(),
+        Incremental::new_build(self.options.experiments.incremental),
         Some(Default::default()),
         Default::default(),
         Default::default(),

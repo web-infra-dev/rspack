@@ -2,11 +2,11 @@ use std::sync::LazyLock;
 
 use regex::Regex;
 use rspack_core::{
-  incremental::{IncrementalPasses, NotFriendlyForIncremental},
-  ApplyContext, BuildMetaExportsType, Compilation, CompilationOptimizeCodeGeneration,
-  CompilerOptions, ExportInfoProvided, ExportsInfo, ModuleGraph, Plugin, PluginContext, UsageState,
+  incremental::IncrementalPasses, ApplyContext, BuildMetaExportsType, Compilation,
+  CompilationOptimizeCodeGeneration, CompilerOptions, ExportInfoProvided, ExportsInfo, ModuleGraph,
+  Plugin, PluginContext, UsageState,
 };
-use rspack_error::{DiagnosticExt, Result};
+use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_ids::id_helpers::assign_deterministic_ids;
 use rspack_util::atom::Atom;
@@ -44,20 +44,13 @@ impl MangleExportsPlugin {
 
 #[plugin_hook(CompilationOptimizeCodeGeneration for MangleExportsPlugin)]
 async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Result<()> {
-  if compilation
-    .incremental
-    .disable_passes(IncrementalPasses::MODULES_HASHES)
-  {
-    compilation.push_diagnostic(
-      NotFriendlyForIncremental {
-        thing: "MangleExportsPlugin (optimization.mangleExports = true)",
-        reason:
-          "it requires calculating the export names of all the modules, which is a global effect",
-        passes: IncrementalPasses::MODULES_HASHES,
-      }
-      .boxed()
-      .into(),
-    );
+  if let Some(diagnostic) = compilation.incremental.disable_passes(
+    IncrementalPasses::MODULES_HASHES,
+    "MangleExportsPlugin (optimization.mangleExports = true)",
+    "it requires calculating the export names of all the modules, which is a global effect",
+  ) {
+    compilation.push_diagnostic(diagnostic);
+    compilation.cgm_hash_artifact.clear();
   }
 
   // TODO: should bailout if compilation.moduleMemCache is enable, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/MangleExportsPlugin.js#L160-L164

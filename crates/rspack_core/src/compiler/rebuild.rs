@@ -66,7 +66,7 @@ impl Compiler {
 
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::MAKE)
+        .mutations_readable(IncrementalPasses::MAKE)
       {
         // copy field from old compilation
         // make stage used
@@ -83,76 +83,76 @@ impl Compiler {
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::INFER_ASYNC_MODULES)
+        .mutations_readable(IncrementalPasses::INFER_ASYNC_MODULES)
       {
         new_compilation.async_modules_artifact =
           std::mem::take(&mut self.compilation.async_modules_artifact);
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS)
+        .mutations_readable(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS)
       {
         new_compilation.dependencies_diagnostics_artifact =
           std::mem::take(&mut self.compilation.dependencies_diagnostics_artifact);
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::SIDE_EFFECTS)
+        .mutations_readable(IncrementalPasses::SIDE_EFFECTS)
       {
         new_compilation.side_effects_optimize_artifact =
           std::mem::take(&mut self.compilation.side_effects_optimize_artifact);
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::MODULE_IDS)
+        .mutations_readable(IncrementalPasses::MODULE_IDS)
       {
         new_compilation.module_ids_artifact =
           std::mem::take(&mut self.compilation.module_ids_artifact);
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::CHUNK_IDS)
+        .mutations_readable(IncrementalPasses::CHUNK_IDS)
       {
         new_compilation.chunk_ids_artifact =
           std::mem::take(&mut self.compilation.chunk_ids_artifact);
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::MODULES_HASHES)
+        .mutations_readable(IncrementalPasses::MODULES_HASHES)
       {
         new_compilation.cgm_hash_artifact = std::mem::take(&mut self.compilation.cgm_hash_artifact);
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::MODULES_CODEGEN)
+        .mutations_readable(IncrementalPasses::MODULES_CODEGEN)
       {
         new_compilation.code_generation_results =
           std::mem::take(&mut self.compilation.code_generation_results);
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS)
+        .mutations_readable(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS)
       {
         new_compilation.cgm_runtime_requirements_artifact =
           std::mem::take(&mut self.compilation.cgm_runtime_requirements_artifact);
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
+        .mutations_readable(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
       {
         new_compilation.cgc_runtime_requirements_artifact =
           std::mem::take(&mut self.compilation.cgc_runtime_requirements_artifact);
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::CHUNKS_HASHES)
+        .mutations_readable(IncrementalPasses::CHUNKS_HASHES)
       {
         new_compilation.chunk_hashes_artifact =
           std::mem::take(&mut self.compilation.chunk_hashes_artifact);
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::CHUNKS_RENDER)
+        .mutations_readable(IncrementalPasses::CHUNKS_RENDER)
       {
         new_compilation.chunk_render_artifact =
           std::mem::take(&mut self.compilation.chunk_render_artifact);

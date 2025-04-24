@@ -1036,7 +1036,7 @@ impl CodeSplitter {
 
     let enable_incremental: bool = compilation
       .incremental
-      .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH);
+      .passes_enabled(IncrementalPasses::BUILD_CHUNK_GRAPH);
 
     let reused = if enable_incremental {
       // lets see if any of them are from cache

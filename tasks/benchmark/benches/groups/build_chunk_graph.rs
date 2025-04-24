@@ -5,8 +5,9 @@ use criterion::criterion_group;
 use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_core::{
-  build_chunk_graph, fast_set, incremental::IncrementalPasses, Compilation, Compiler, Experiments,
-  Optimization,
+  build_chunk_graph, fast_set,
+  incremental::{Incremental, IncrementalPasses},
+  Compilation, Compiler, Experiments, Optimization,
 };
 use rspack_fs::{MemoryFileSystem, WritableFileSystem};
 use tokio::runtime::Builder;
@@ -133,7 +134,7 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
       None,
       compiler.cache.clone(),
       compiler.old_cache.clone(),
-      compiler.options.experiments.incremental,
+      Incremental::new_build(compiler.options.experiments.incremental),
       Some(Default::default()),
       Default::default(),
       Default::default(),

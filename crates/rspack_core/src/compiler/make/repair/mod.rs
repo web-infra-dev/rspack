@@ -84,7 +84,7 @@ impl MakeTaskContext {
       None,
       self.cache.clone(),
       self.old_cache.clone(),
-      Incremental::new_build(),
+      Incremental::new_build(self.compiler_options.experiments.incremental),
       None,
       Default::default(),
       Default::default(),

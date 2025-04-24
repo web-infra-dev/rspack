@@ -4,7 +4,7 @@ use std::fmt;
 
 use bitflags::bitflags;
 pub use mutations::{Mutation, Mutations};
-use rspack_error::{miette, miette::Diagnostic, thiserror, thiserror::Error};
+use rspack_error::{miette, thiserror, Diagnostic, DiagnosticExt};
 
 bitflags! {
   #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -67,18 +67,20 @@ impl fmt::Display for IncrementalPasses {
 }
 
 impl IncrementalPasses {
-  pub fn can_write_mutations(&self) -> bool {
+  pub fn allow_write(&self) -> bool {
     !self.is_empty()
   }
 
-  pub fn can_read_mutations(&self, pass: IncrementalPasses) -> bool {
+  pub fn allow_read(&self, pass: IncrementalPasses) -> bool {
     self.contains(pass)
   }
 }
 
 #[derive(Debug)]
 pub enum Incremental {
-  Build,
+  Build {
+    passes: IncrementalPasses,
+  },
   Rebuild {
     passes: IncrementalPasses,
     mutations: Mutations,
@@ -86,8 +88,8 @@ pub enum Incremental {
 }
 
 impl Incremental {
-  pub fn new_build() -> Self {
-    Self::Build
+  pub fn new_build(passes: IncrementalPasses) -> Self {
+    Self::Build { passes }
   }
 
   pub fn new_rebuild(passes: IncrementalPasses) -> Self {
@@ -97,33 +99,61 @@ impl Incremental {
     }
   }
 
-  pub fn disable_passes(&mut self, passes: IncrementalPasses) -> bool {
+  pub fn disable_passes(
+    &mut self,
+    passes: IncrementalPasses,
+    thing: &'static str,
+    reason: &'static str,
+  ) -> Option<Diagnostic> {
     if let Self::Rebuild { passes: p, .. } = self
-      && p.contains(passes)
+      && let passes = p.intersection(passes)
+      && !passes.is_empty()
     {
       p.remove(passes);
-      return true;
+      return Some(
+        NotFriendlyForIncremental {
+          thing,
+          reason,
+          passes,
+        }
+        .boxed()
+        .into(),
+      );
     }
-    false
+    None
   }
 
-  pub fn can_write_mutations(&self) -> bool {
+  pub fn enabled(&self) -> bool {
+    match self {
+      Self::Build { passes } => passes.allow_write(),
+      Self::Rebuild { passes, .. } => passes.allow_write(),
+    }
+  }
+
+  pub fn passes_enabled(&self, passes: IncrementalPasses) -> bool {
+    match self {
+      Self::Build { passes: p } => p.allow_read(passes),
+      Self::Rebuild { passes: p, .. } => p.allow_read(passes),
+    }
+  }
+
+  pub fn mutations_writeable(&self) -> bool {
     if let Self::Rebuild { passes, .. } = self {
-      return passes.can_write_mutations();
+      return passes.allow_write();
     }
     false
   }
 
-  pub fn can_read_mutations(&self, passes: IncrementalPasses) -> bool {
+  pub fn mutations_readable(&self, passes: IncrementalPasses) -> bool {
     if let Self::Rebuild { passes: p, .. } = self {
-      return p.can_read_mutations(passes);
+      return p.allow_read(passes);
     }
     false
   }
 
   pub fn mutations_write(&mut self) -> Option<&mut Mutations> {
     if let Self::Rebuild { passes, mutations } = self {
-      return passes.can_write_mutations().then_some(mutations);
+      return passes.allow_write().then_some(mutations);
     }
     None
   }
@@ -134,17 +164,17 @@ impl Incremental {
       mutations,
     } = self
     {
-      return p.can_read_mutations(passes).then_some(mutations);
+      return p.allow_read(passes).then_some(mutations);
     }
     None
   }
 }
 
-#[derive(Debug, Error, Diagnostic)]
+#[derive(Debug, thiserror::Error, miette::Diagnostic)]
 #[diagnostic(code(NotFriendlyForIncremental))]
 #[diagnostic(severity(Warning))]
 #[error(
-  r#"{thing} is not friendly for incremental, {reason}. For the last compilation {passes} is fallback to non-incremental."#
+  r#"{thing} is not friendly for incremental, {reason}. For this rebuild {passes} are fallback to non-incremental."#
 )]
 pub struct NotFriendlyForIncremental {
   pub thing: &'static str,

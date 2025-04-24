@@ -43,7 +43,7 @@ use crate::{
   build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
   cache::Cache,
   get_runtime_key,
-  incremental::{Incremental, IncrementalPasses, Mutation, NotFriendlyForIncremental},
+  incremental::{Incremental, IncrementalPasses, Mutation},
   is_source_equal,
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
   to_identifier, AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, CacheCount,
@@ -1700,35 +1700,7 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("hashing");
-    let create_hash_chunks = if let Some(mutations) = self
-      .incremental
-      .mutations_read(IncrementalPasses::CHUNKS_HASHES)
-      && !self.chunk_hashes_artifact.is_empty()
-    {
-      let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ChunkRemove { chunk } => Some(*chunk),
-        _ => None,
-      });
-      for removed_chunk in removed_chunks {
-        self.chunk_hashes_artifact.remove(&removed_chunk);
-      }
-      self
-        .chunk_hashes_artifact
-        .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
-      let chunks = mutations.get_affected_chunks_with_chunk_graph(self);
-      let logger = self.get_logger("rspack.incremental.chunksHashes");
-      logger.log(format!(
-        "{} chunks are affected, {} in total",
-        chunks.len(),
-        self.chunk_by_ukey.len(),
-      ));
-      chunks
-    } else {
-      self.chunk_by_ukey.keys().copied().collect()
-    };
-    self
-      .create_hash(create_hash_chunks, plugin_driver.clone())
-      .await?;
+    self.create_hash(plugin_driver.clone()).await?;
     self.runtime_modules_code_generation().await?;
     logger.time_end(start);
 
@@ -2027,18 +1999,68 @@ impl Compilation {
   );
 
   #[instrument(name = "Compilation:create_hash", skip_all)]
-  pub async fn create_hash(
-    &mut self,
-    create_hash_chunks: UkeySet<ChunkUkey>,
-    plugin_driver: SharedPluginDriver,
-  ) -> Result<()> {
+  pub async fn create_hash(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
+
+    // Check if there are any chunks that depend on full hash, usually only runtime chunks are
+    // possible to depend on full hash, but for library type commonjs/module, it's possible to
+    // have non-runtime chunks depend on full hash, the library format plugin is using
+    // dependent_full_hash hook to declare it.
+    let mut full_hash_chunks = UkeySet::default();
+    for chunk_ukey in self.chunk_by_ukey.keys() {
+      let chunk_dependent_full_hash = plugin_driver
+        .compilation_hooks
+        .dependent_full_hash
+        .call(self, chunk_ukey)
+        .await?
+        .unwrap_or_default();
+      if chunk_dependent_full_hash {
+        full_hash_chunks.insert(*chunk_ukey);
+      }
+    }
+    if !full_hash_chunks.is_empty()
+      && let Some(diagnostic) = self.incremental.disable_passes(
+        IncrementalPasses::CHUNKS_HASHES,
+        "Chunks that dependent on full hash",
+        "it requires calculating the hashes of all the chunks, which is a global effect",
+      )
+    {
+      self.push_diagnostic(diagnostic);
+      self.chunk_hashes_artifact.clear();
+    }
+
+    let create_hash_chunks = if let Some(mutations) = self
+      .incremental
+      .mutations_read(IncrementalPasses::CHUNKS_HASHES)
+      && !self.chunk_hashes_artifact.is_empty()
+    {
+      let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
+        Mutation::ChunkRemove { chunk } => Some(*chunk),
+        _ => None,
+      });
+      for removed_chunk in removed_chunks {
+        self.chunk_hashes_artifact.remove(&removed_chunk);
+      }
+      self
+        .chunk_hashes_artifact
+        .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
+      let chunks = mutations.get_affected_chunks_with_chunk_graph(self);
+      let logger = self.get_logger("rspack.incremental.chunksHashes");
+      logger.log(format!(
+        "{} chunks are affected, {} in total",
+        chunks.len(),
+        self.chunk_by_ukey.len(),
+      ));
+      chunks
+    } else {
+      self.chunk_by_ukey.keys().copied().collect()
+    };
+
     let mut compilation_hasher = RspackHash::from(&self.options.output);
 
     fn try_process_chunk_hash_results(
       compilation: &mut Compilation,
       chunk_hash_results: Vec<Result<(ChunkUkey, ChunkHashResult)>>,
-      full_hash_chunks: &mut UkeySet<ChunkUkey>,
     ) -> Result<()> {
       for hash_result in chunk_hash_results {
         let (chunk_ukey, chunk_hash_result) = hash_result?;
@@ -2051,14 +2073,10 @@ impl Compilation {
         if chunk_hashes_changed && let Some(mutations) = compilation.incremental.mutations_write() {
           mutations.add(Mutation::ChunkSetHashes { chunk: chunk_ukey });
         }
-        if chunk_hash_result.dependent_full_hash {
-          full_hash_chunks.insert(chunk_ukey);
-        }
       }
       Ok(())
     }
 
-    let mut full_hash_chunks = UkeySet::default();
     let unordered_runtime_chunks: UkeySet<ChunkUkey> = self.get_chunk_graph_entries().collect();
     let start = logger.time("hashing: hash chunks");
     let other_chunks: Vec<_> = create_hash_chunks
@@ -2082,22 +2100,7 @@ impl Compilation {
         Ok((*chunk, hash_result))
       }))
       .await;
-    try_process_chunk_hash_results(self, other_chunks_hash_results, &mut full_hash_chunks)?;
-    if !full_hash_chunks.is_empty()
-      && self
-        .incremental
-        .disable_passes(IncrementalPasses::CHUNKS_HASHES | IncrementalPasses::CHUNKS_RENDER)
-    {
-      self.push_diagnostic(
-        NotFriendlyForIncremental {
-          thing: "Chunks that dependent on full hash",
-          reason: "it requires calculating the hashes of all the chunks, which is a global effect",
-          passes: IncrementalPasses::CHUNKS_HASHES,
-        }
-        .boxed()
-        .into(),
-      );
-    }
+    try_process_chunk_hash_results(self, other_chunks_hash_results)?;
     logger.time_end(start);
 
     // collect references for runtime chunks
@@ -2368,16 +2371,9 @@ impl Compilation {
       .map(|(t, hasher)| (t, hasher.digest(&self.options.output.hash_digest)))
       .collect();
 
-    let dependent_full_hash = plugin_driver
-      .compilation_hooks
-      .dependent_full_hash
-      .call(self, &chunk_ukey)
-      .await?;
-
     Ok(ChunkHashResult {
       hash: chunk_hash,
       content_hash: content_hashes,
-      dependent_full_hash: dependent_full_hash.unwrap_or(false),
     })
   }
 
@@ -2837,5 +2833,4 @@ pub struct RenderManifestEntry {
 pub struct ChunkHashResult {
   pub hash: RspackHashDigest,
   pub content_hash: ChunkContentHash,
-  pub dependent_full_hash: bool,
 }
