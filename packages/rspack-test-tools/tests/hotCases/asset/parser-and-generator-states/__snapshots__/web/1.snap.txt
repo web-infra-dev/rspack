@@ -33,7 +33,7 @@
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]('main', {
+self["webpackHotUpdate"]("main", {
 "./file.js": 
 /*!*****************!*\
   !*** ./file.js ***!

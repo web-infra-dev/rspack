@@ -85,7 +85,7 @@ async fn eval_devtool_plugin_compilation(
   Ok(())
 }
 
-#[plugin_hook(JavascriptModulesRenderModuleContent for EvalDevToolModulePlugin)]
+#[plugin_hook(JavascriptModulesRenderModuleContent for EvalDevToolModulePlugin,tracing=false)]
 async fn eval_devtool_plugin_render_module_content(
   &self,
   compilation: &Compilation,
@@ -194,7 +194,7 @@ impl Plugin for EvalDevToolModulePlugin {
   }
 }
 
-#[plugin_hook(CompilationAdditionalModuleRuntimeRequirements for EvalDevToolModulePlugin)]
+#[plugin_hook(CompilationAdditionalModuleRuntimeRequirements for EvalDevToolModulePlugin,tracing=false)]
 async fn eval_devtool_plugin_additional_module_runtime_requirements(
   &self,
   compilation: &Compilation,

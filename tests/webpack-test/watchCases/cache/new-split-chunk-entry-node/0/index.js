@@ -19,7 +19,8 @@ it("should include the correct split chunk ids in entry", async () => {
 		for (const id of STATE.allIds) {
 			const expected = expectedIds.includes(id);
 			(expected ? expect(entryCode) : expect(entryCode).not).toMatch(
-				new RegExp(`[\\[,]${id}[\\],]`)
+				// CHANGE: Rspack chunkId currently doesn't support render as number
+				new RegExp(`[\\[,]"${id}"[\\],]`)
 			);
 		}
 	} catch (e) {

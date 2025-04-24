@@ -77,6 +77,10 @@ impl Plugin for RealContentHashPlugin {
       .tap(process_assets::new(self));
     Ok(())
   }
+
+  fn clear_cache(&self, id: CompilationId) {
+    COMPILATION_HOOKS_MAP.remove(&id);
+  }
 }
 
 async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
