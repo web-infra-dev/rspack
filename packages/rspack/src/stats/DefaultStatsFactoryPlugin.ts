@@ -833,8 +833,8 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.hash = statsCompilation.hash;
 		},
 		version: object => {
-			object.version = RSPACK_VERSION;
-			object.rspackVersion = WEBPACK_VERSION;
+			object.version = WEBPACK_VERSION;
+			object.rspackVersion = RSPACK_VERSION;
 		},
 		env: (object, _compilation, _context, { _env }) => {
 			object.env = _env;
