@@ -137,7 +137,7 @@ impl JsCompiler {
   ) -> Result<Self> {
     tracing::info!("raw_options: {:#?}", &options);
 
-    let mut plugins = Vec::new();
+    let mut plugins = Vec::with_capacity(builtin_plugins.len());
     let js_hooks_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
     plugins.push(js_hooks_plugin.clone().boxed());
 
