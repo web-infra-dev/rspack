@@ -1,6 +1,6 @@
 use rspack_core::{
-  compare_modules_by_pre_order_index_or_identifier, ApplyContext, CompilationModuleIds,
-  CompilerOptions, Plugin, PluginContext,
+  compare_modules_by_pre_order_index_or_identifier, incremental::IncrementalPasses, ApplyContext,
+  CompilationModuleIds, CompilerOptions, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -13,6 +13,15 @@ pub struct NaturalModuleIdsPlugin;
 
 #[plugin_hook(CompilationModuleIds for NaturalModuleIdsPlugin)]
 async fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
+  if let Some(diagnostic) = compilation.incremental.disable_passes(
+    IncrementalPasses::MODULE_IDS,
+    "NaturalModuleIdsPlugin (optimization.moduleIds = \"natural\")",
+    "it requires calculating the id of all the modules, which is a global effect",
+  ) {
+    compilation.push_diagnostic(diagnostic);
+    compilation.module_ids_artifact.clear();
+  }
+
   let (used_ids, mut modules_in_natural_order) = get_used_module_ids_and_modules(compilation, None);
 
   let mut module_ids = std::mem::take(&mut compilation.module_ids_artifact);
