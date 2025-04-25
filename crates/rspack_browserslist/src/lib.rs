@@ -9,12 +9,8 @@ pub fn from_browserslist<S: AsRef<str>, I: IntoIterator<Item = S>>(
 }
 
 fn parse_version(version: &str) -> Option<u32> {
-  let version = version.split('-').next();
-  if version.is_none() {
-    return None;
-  }
-
-  let mut version = version.unwrap().split('.');
+  let version = version.split('-').next()?;
+  let mut version = version.split('.');
   let major = version.next().and_then(|v| v.parse::<u32>().ok());
   if let Some(major) = major {
     let minor = version
