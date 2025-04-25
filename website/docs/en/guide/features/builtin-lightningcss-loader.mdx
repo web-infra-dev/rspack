@@ -159,7 +159,9 @@ For example, ignore all warnings:
 
 ```js title="rspack.config.mjs"
 export default {
-  ignoreWarnings: [warning => warning.title === 'builtin:lightningcss-loader'],
+  ignoreWarnings: [
+    warning => /LightningCSS parse warning/.test(warning.message),
+  ],
 };
 ```
 
