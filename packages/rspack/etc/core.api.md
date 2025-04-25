@@ -2045,7 +2045,7 @@ export type Experiments = {
     topLevelAwait?: boolean;
     css?: boolean;
     layers?: boolean;
-    incremental?: boolean | Incremental;
+    incremental?: boolean | "old-default" | Incremental;
     parallelCodeSplitting?: boolean;
     futureDefaults?: boolean;
     rspackFuture?: RspackFutureOptions;
