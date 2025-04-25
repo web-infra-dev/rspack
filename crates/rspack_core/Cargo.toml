@@ -32,7 +32,6 @@ rayon = { workspace = true }
 regex = { workspace = true }
 rkyv = { workspace = true, optional = true }
 ropey = { workspace = true }
-rspack_ast = { workspace = true }
 rspack_cacheable = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_dojang = { workspace = true }
@@ -41,6 +40,7 @@ rspack_fs = { workspace = true }
 rspack_futures = { workspace = true }
 rspack_hash = { workspace = true }
 rspack_hook = { workspace = true }
+rspack_javascript_compiler = { workspace = true }
 rspack_loader_runner = { workspace = true }
 rspack_macros = { workspace = true }
 rspack_napi = { workspace = true, optional = true }
