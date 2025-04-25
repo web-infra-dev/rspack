@@ -38,12 +38,12 @@ jobs:
     runs-on: ubuntu-latest
     name: Check Source Changed
     outputs:
-      code_changed: ${{ steps.code_filter.outputs.code_changed }}
-      document_changed: ${{ steps.document_filter.outputs.document_changed }}
+      code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
+      document_changed: ${{ steps.filter.outputs.document_changed == 'true' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
-        id: code_filter
+        id: filter
         with:
           predicate-quantifier: "every"
           filters: |
@@ -51,11 +51,6 @@ jobs:
               - "!**/*.md"
               - "!**/*.mdx"
               - "!website/**"
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
-        id: document_filter
-        with:
-          predicate-quantifier: "every"
-          filters: |
             document_changed:
               - "website/**"
 
