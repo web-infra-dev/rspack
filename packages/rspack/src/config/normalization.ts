@@ -367,7 +367,9 @@ export const getNormalizedRspackOptions = (
 							chunksRender: true,
 							emitAssets: true
 						} satisfies Incremental)
-					: options
+					: options === "old-default"
+						? ({ make: true, emitAssets: true } satisfies Incremental)
+						: options
 			),
 			parallelCodeSplitting: experiments.parallelCodeSplitting,
 			buildHttp: experiments.buildHttp,

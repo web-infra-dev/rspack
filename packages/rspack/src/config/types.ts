@@ -2634,7 +2634,7 @@ export type Experiments = {
 	/**
 	 * Enable incremental builds.
 	 */
-	incremental?: boolean | Incremental;
+	incremental?: boolean | "old-default" | Incremental;
 	/**
 	 * Enable multi-threaded code splitting algorithm.
 	 */
