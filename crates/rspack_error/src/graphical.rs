@@ -696,12 +696,9 @@ impl GraphicalReportHandler {
         let num_left = vbar_offset - start;
         let num_right = end - vbar_offset - 1;
         if start < end {
-          let width = start.saturating_sub(highest);
           // CHANGE:
           // Rust PR https://github.com/rust-lang/rust/issues/99012 limited format string width and precision to 16 bits, causing panics when dynamic padding exceeds `u16::MAX`.
-          // This fixes exessively large width that exceeds `u16::MAX` by directly printing exceeded width.
-          let pre_width = width.saturating_sub(u16::MAX as usize);
-          underlines.push_str(&format!("{:width$}", "", width = pre_width));
+          let width = start.saturating_sub(highest).min(u16::MAX as usize);
           underlines.push_str(
             &format!(
               "{:width$}{}{}{}",
@@ -715,7 +712,6 @@ impl GraphicalReportHandler {
                 chars.underline
               },
               chars.underline.to_string().repeat(num_right),
-              width = width.min(u16::MAX as usize),
             )
             .style(hl.style)
             .to_string(),
