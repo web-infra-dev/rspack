@@ -289,34 +289,34 @@ Whether to perform the rebuild incrementally to speed up the rebuild and HMR. Tw
 2. Detailed object configuration: `Incremental`, which enables fine-grained control over whether the incremental of each stage is enabled.
 
    <details>
-  <summary style={{ display: 'list-item' }}>`Incremental` 详细类型</summary>
-  <blockquote>
-    <p>
-    ```ts
-    type Incremental = {
-      // Whether to throw a warning when encountering situations that are not friendly for incremental.
-      silent?: boolean;
-      // The following configuration is used to control whether the incremental of each stage is enabled.
-      make?: boolean;
-      inferAsyncModules?: boolean;
-      providedExports?: boolean;
-      dependenciesDiagnostics?: boolean;
-      sideEffects?: boolean;
-      buildChunkGraph?: boolean;
-      moduleIds?: boolean;
-      chunkIds?: boolean;
-      modulesHashes?: boolean;
-      modulesCodegen?: boolean;
-      modulesRuntimeRequirements?: boolean;
-      chunksRuntimeRequirements?: boolean;
-      chunksHashes?: boolean;
-      chunksRender?: boolean;
-      emitAssets?: boolean;
-    };
-    ```
-    </p>
-  </blockquote>
-</details>
+   <summary style={{ display: 'list-item' }}>`Incremental` 详细类型</summary>
+   <blockquote>
+     <p>
+     ```ts
+     type Incremental = {
+       // Whether to throw a warning when encountering situations that are not friendly for incremental.
+       silent?: boolean;
+       // The following configuration is used to control whether the incremental of each stage is enabled.
+       make?: boolean;
+       inferAsyncModules?: boolean;
+       providedExports?: boolean;
+       dependenciesDiagnostics?: boolean;
+       sideEffects?: boolean;
+       buildChunkGraph?: boolean;
+       moduleIds?: boolean;
+       chunkIds?: boolean;
+       modulesHashes?: boolean;
+       modulesCodegen?: boolean;
+       modulesRuntimeRequirements?: boolean;
+       chunksRuntimeRequirements?: boolean;
+       chunksHashes?: boolean;
+       chunksRender?: boolean;
+       emitAssets?: boolean;
+     };
+     ```
+     </p>
+   </blockquote>
+ </details>
 
 Usually, we recommend configuring in the preset way, and the detailed object configuration is only provided to facilitate bug troubleshooting.
 
