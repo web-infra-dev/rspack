@@ -330,8 +330,6 @@ export type { SubresourceIntegrityPluginOptions } from "./builtin-plugin";
 import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";
 import { JavaScriptTracer } from "./trace";
 
-///// Experiments swc api ////
-import { minify, transform } from "./swc";
 
 interface Experiments {
 	globalTrace: {
@@ -346,10 +344,6 @@ interface Experiments {
 	RsdoctorPlugin: typeof RsdoctorPlugin;
 	SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
 	lazyCompilationMiddleware: typeof lazyCompilationMiddleware;
-	swc: {
-		minify: typeof minify;
-		transform: typeof transform;
-	};
 }
 
 export const experiments: Experiments = {
@@ -376,8 +370,4 @@ export const experiments: Experiments = {
 	RsdoctorPlugin,
 	SubresourceIntegrityPlugin,
 	lazyCompilationMiddleware,
-	swc: {
-		minify,
-		transform
-	}
 };
