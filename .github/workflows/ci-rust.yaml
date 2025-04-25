@@ -20,7 +20,7 @@ on:
 jobs:
   rust_check:
     name: Rust check
-    runs-on: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS ||  'ubuntu-22.04' }}
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS) ||  'ubuntu-22.04' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
@@ -53,7 +53,7 @@ jobs:
 
   rust_unused_dependencies:
     name: Check Rust Dependencies
-    runs-on: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS ||  'ubuntu-22.04' }}
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS) ||  'ubuntu-22.04' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - uses: ./.github/actions/rustup
@@ -73,7 +73,7 @@ jobs:
 
   rust_test:
     name: Rust test
-    runs-on: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS ||  'ubuntu-22.04' }}
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS) ||  'ubuntu-22.04' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
