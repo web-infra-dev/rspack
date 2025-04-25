@@ -11,8 +11,10 @@ import { Tabs, Tab } from '@theme';
 - **类型：** `string | string[]`
 - **默认值：** `undefined`
 
-:::warning
-**此选项在 JavaScript API 中不受支持**：在使用 JavaScript API 时，`extends` 选项将不会生效。使用此功能需要 `@rspack/cli`。
+:::info
+该选项仅在 [@rspack/cli](/api/cli) 中有效。
+
+如果你在使用 JavaScript API，或是其他基于 Rspack 的工具，`extends` 将不会生效，请使用 [webpack-merge](/config/#webpack-merge) 代替。
 :::
 
 ## 基本用法
