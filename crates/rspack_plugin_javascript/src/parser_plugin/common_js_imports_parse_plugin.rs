@@ -301,7 +301,7 @@ impl CommonJsImportsParserPlugin {
       let span = expr.span();
       let dep = Box::new(LocalModuleDependency::new(
         local_module.clone(),
-        Some((span.real_lo(), span.real_hi())),
+        Some(span.into()),
         matches!(expr, CallOrNewExpr::New(_)),
       ));
       parser.presentational_dependencies.push(dep);
@@ -394,8 +394,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          expr.span().real_lo(),
-          expr.span().real_hi(),
+          expr.span().into(),
           "undefined".into(),
           None,
         )));
@@ -470,8 +469,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          expr.span().real_lo(),
-          expr.span().real_hi(),
+          expr.span().into(),
           "'function'".into(),
           None,
         )));
@@ -573,8 +571,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          0,
-          0,
+          (0, 0).into(),
           "var require;".into(),
           None,
         )));

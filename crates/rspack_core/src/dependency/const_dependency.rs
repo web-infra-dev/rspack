@@ -1,6 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsRefStr};
 use rspack_util::ext::DynHash;
 
+use super::DependencyRange;
 use crate::{
   Compilation, DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType,
   RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
@@ -9,8 +10,7 @@ use crate::{
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ConstDependency {
-  pub start: u32,
-  pub end: u32,
+  pub range: DependencyRange,
   #[cacheable(with=AsRefStr)]
   pub content: Box<str>,
   pub runtime_requirements: Option<RuntimeGlobals>,
@@ -18,14 +18,12 @@ pub struct ConstDependency {
 
 impl ConstDependency {
   pub fn new(
-    start: u32,
-    end: u32,
+    range: DependencyRange,
     content: Box<str>,
     runtime_requirements: Option<RuntimeGlobals>,
   ) -> Self {
     Self {
-      start,
-      end,
+      range,
       content,
       runtime_requirements,
     }
@@ -44,8 +42,7 @@ impl DependencyCodeGeneration for ConstDependency {
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    self.start.dyn_hash(hasher);
-    self.end.dyn_hash(hasher);
+    self.range.dyn_hash(hasher);
     self.content.dyn_hash(hasher);
     self.runtime_requirements.dyn_hash(hasher);
   }
@@ -78,6 +75,6 @@ impl DependencyTemplate for ConstDependencyTemplate {
         .runtime_requirements
         .insert(*runtime_requirements);
     }
-    source.replace(dep.start, dep.end, dep.content.as_ref(), None);
+    source.replace(dep.range.start, dep.range.end, dep.content.as_ref(), None);
   }
 }

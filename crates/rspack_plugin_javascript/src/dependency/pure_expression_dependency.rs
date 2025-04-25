@@ -3,26 +3,25 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   filter_runtime, runtime_condition_expression, AsContextDependency, AsModuleDependency,
   Compilation, ConnectionState, Dependency, DependencyCodeGeneration, DependencyId,
-  DependencyTemplate, DependencyTemplateType, ModuleGraph, ModuleIdentifier, RuntimeCondition,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedByExports, UsedName,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, ModuleGraph, ModuleIdentifier,
+  RuntimeCondition, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedByExports,
+  UsedName,
 };
 use rspack_util::ext::DynHash;
 
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct PureExpressionDependency {
-  pub start: u32,
-  pub end: u32,
+  pub range: DependencyRange,
   used_by_exports: Option<UsedByExports>,
   id: DependencyId,
   pub module_identifier: ModuleIdentifier,
 }
 
 impl PureExpressionDependency {
-  pub fn new(start: u32, end: u32, module_identifier: ModuleIdentifier) -> Self {
+  pub fn new(range: DependencyRange, module_identifier: ModuleIdentifier) -> Self {
     Self {
-      start,
-      end,
+      range,
       used_by_exports: None,
       id: DependencyId::default(),
       module_identifier,
@@ -62,6 +61,10 @@ impl PureExpressionDependency {
 impl Dependency for PureExpressionDependency {
   fn id(&self) -> &rspack_core::DependencyId {
     &self.id
+  }
+
+  fn range(&self) -> Option<&DependencyRange> {
+    Some(&self.range)
   }
 
   fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
@@ -141,18 +144,18 @@ impl DependencyTemplate for PureExpressionDependencyTemplate {
 
     if let Some(condition) = condition {
       source.insert(
-        dep.start,
+        dep.range.start,
         &format!("(/* runtime-dependent pure expression or super */ {condition} ? ("),
         None,
       );
-      source.insert(dep.end, ") : null)", None);
+      source.insert(dep.range.end, ") : null)", None);
     } else {
       source.insert(
-        dep.start,
+        dep.range.start,
         "(/* unused pure expression or super */ null && (",
         None,
       );
-      source.insert(dep.end, "))", None);
+      source.insert(dep.range.end, "))", None);
     }
   }
 }

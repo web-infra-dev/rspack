@@ -7,7 +7,8 @@ module.exports = {
 		aa: "./require-circular/d.js",
 		bb: "./import-circular/index.js",
 		cc: "./no-cycle/index.js",
-		dd: "./ignore-circular/a.js"
+		dd: "./ignore-circular/a.js",
+		ee: "./multiple-circular/a.js"
 	},
 	plugins: [
 		new CircularDependencyRspackPlugin({

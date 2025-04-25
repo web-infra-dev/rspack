@@ -101,15 +101,14 @@ impl Snapshot {
   }
 
   #[tracing::instrument("Cache::Snapshot::calc_modified_path", skip_all)]
-  pub async fn calc_modified_paths(&self) -> Result<(HashSet<ArcPath>, HashSet<ArcPath>)> {
+  pub async fn calc_modified_paths(&self) -> Result<(bool, HashSet<ArcPath>, HashSet<ArcPath>)> {
     let mut modified_path = HashSet::default();
     let mut deleted_path = HashSet::default();
     let helper = Arc::new(StrategyHelper::new(self.fs.clone()));
 
-    self
-      .storage
-      .load(SCOPE)
-      .await?
+    let data = self.storage.load(SCOPE).await?;
+    let is_hot_start = !data.is_empty();
+    data
       .into_iter()
       .map(|(key, value)| {
         let helper = helper.clone();
@@ -132,7 +131,7 @@ impl Snapshot {
       })
       .await;
 
-    Ok((modified_path, deleted_path))
+    Ok((is_hot_start, modified_path, deleted_path))
   }
 }
 
@@ -213,7 +212,9 @@ mod tests {
       .await
       .unwrap();
 
-    let (modified_paths, deleted_paths) = snapshot.calc_modified_paths().await.unwrap();
+    let (is_hot_start, modified_paths, deleted_paths) =
+      snapshot.calc_modified_paths().await.unwrap();
+    assert!(is_hot_start);
     assert!(deleted_paths.is_empty());
     assert!(!modified_paths.contains(&p!("/constant")));
     assert!(modified_paths.contains(&p!("/file1")));
@@ -227,7 +228,9 @@ mod tests {
     .await
     .unwrap();
     snapshot.add([p!("/file1")].into_iter()).await;
-    let (modified_paths, deleted_paths) = snapshot.calc_modified_paths().await.unwrap();
+    let (is_hot_start, modified_paths, deleted_paths) =
+      snapshot.calc_modified_paths().await.unwrap();
+    assert!(is_hot_start);
     assert!(deleted_paths.is_empty());
     assert!(!modified_paths.contains(&p!("/constant")));
     assert!(!modified_paths.contains(&p!("/file1")));

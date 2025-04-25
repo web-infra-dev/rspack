@@ -1,25 +1,24 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCodeGeneration, DependencyId, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExtendedReferencedExport, FactorizeInfo,
-  ModuleDependency, ModuleGraph, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, Dependency, DependencyCodeGeneration, DependencyId, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExtendedReferencedExport,
+  FactorizeInfo, ModuleDependency, ModuleGraph, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
 
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct WebpackIsIncludedDependency {
-  pub start: u32,
-  pub end: u32,
+  pub range: DependencyRange,
   pub id: DependencyId,
   pub request: String,
   factorize_info: FactorizeInfo,
 }
 
 impl WebpackIsIncludedDependency {
-  pub fn new(start: u32, end: u32, request: String) -> Self {
+  pub fn new(range: DependencyRange, request: String) -> Self {
     Self {
-      start,
-      end,
+      range,
       id: DependencyId::default(),
       request,
       factorize_info: Default::default(),
@@ -33,6 +32,10 @@ impl AsContextDependency for WebpackIsIncludedDependency {}
 impl Dependency for WebpackIsIncludedDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::WebpackIsIncluded
+  }
+
+  fn range(&self) -> Option<&DependencyRange> {
+    Some(&self.range)
   }
 
   fn id(&self) -> &DependencyId {
@@ -112,6 +115,11 @@ impl DependencyTemplate for WebpackIsIncludedDependencyTemplate {
       })
       .unwrap_or(false);
 
-    source.replace(dep.start, dep.end, included.to_string().as_str(), None);
+    source.replace(
+      dep.range.start,
+      dep.range.end,
+      included.to_string().as_str(),
+      None,
+    );
   }
 }
