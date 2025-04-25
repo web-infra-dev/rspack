@@ -1,7 +1,5 @@
 #![feature(let_chains)]
 
-// mod minify;
-
 use std::{
   collections::HashMap,
   hash::Hash,
@@ -409,29 +407,4 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
       .tap(process_assets::new(self));
     Ok(())
   }
-}
-
-// #[derive(Debug, Clone, Default)]
-// pub struct JsMinifyOptions {
-//   pub minify: bool,
-//   pub compress: BoolOrDataConfig<TerserCompressorOptions>,
-//   pub mangle: BoolOrDataConfig<MangleOptions>,
-//   pub format: JsMinifyFormatOptions,
-//   pub ecma: TerserEcmaVersion,
-//   pub keep_class_names: bool,
-//   pub keep_fn_names: bool,
-//   pub module: Option<bool>,
-//   pub safari10: bool,
-//   pub toplevel: bool,
-//   pub source_map: BoolOrDataConfig<TerserSourceMapKind>,
-//   pub output_path: Option<String>,
-//   pub inline_sources_content: bool,
-// }
-
-#[derive(Debug, Clone, Default)]
-pub struct TerserSourceMapKind {
-  pub filename: Option<String>,
-  pub url: Option<String>,
-  pub root: Option<String>,
-  pub content: Option<String>,
 }
