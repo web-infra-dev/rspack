@@ -2,8 +2,9 @@ use std::sync::LazyLock;
 
 use regex::Regex;
 use rspack_core::{
-  ApplyContext, BuildMetaExportsType, Compilation, CompilationOptimizeCodeGeneration,
-  CompilerOptions, ExportInfoProvided, ExportsInfo, ModuleGraph, Plugin, PluginContext, UsageState,
+  incremental::IncrementalPasses, ApplyContext, BuildMetaExportsType, Compilation,
+  CompilationOptimizeCodeGeneration, CompilerOptions, ExportInfoProvided, ExportsInfo, ModuleGraph,
+  Plugin, PluginContext, UsageState,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -43,6 +44,15 @@ impl MangleExportsPlugin {
 
 #[plugin_hook(CompilationOptimizeCodeGeneration for MangleExportsPlugin)]
 async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Result<()> {
+  if let Some(diagnostic) = compilation.incremental.disable_passes(
+    IncrementalPasses::MODULES_HASHES,
+    "MangleExportsPlugin (optimization.mangleExports = true)",
+    "it requires calculating the export names of all the modules, which is a global effect",
+  ) {
+    compilation.push_diagnostic(diagnostic);
+    compilation.cgm_hash_artifact.clear();
+  }
+
   // TODO: should bailout if compilation.moduleMemCache is enable, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/MangleExportsPlugin.js#L160-L164
   // We don't do that cause we don't have this option
   let mut mg = compilation.get_module_graph_mut();

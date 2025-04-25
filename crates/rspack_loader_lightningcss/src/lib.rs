@@ -100,9 +100,19 @@ impl LightningCssLoader {
       #[allow(clippy::unwrap_used)]
       let warnings = warnings.read().unwrap();
       for warning in warnings.iter() {
+        if let lightningcss::error::ParserError::SelectorError(
+          lightningcss::error::SelectorError::UnsupportedPseudoClass(pseudo_class),
+        ) = &warning.kind
+        {
+          // By default, ignore parsing errors on CSS modules from lightningcss-loader.
+          // CSS modules will be handled by downstream loaders.
+          if pseudo_class.as_ref() == "global" || pseudo_class.as_ref() == "local" {
+            continue;
+          }
+        }
         loader_context.emit_diagnostic(Diagnostic::warn(
-          "LightningCSS parse warning".to_string(),
-          format!("{}", warning),
+          "builtin:lightningcss-loader".to_string(),
+          format!("LightningCSS parse warning: {}", warning),
         ));
       }
     }

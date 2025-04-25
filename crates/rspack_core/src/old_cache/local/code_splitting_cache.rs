@@ -304,17 +304,14 @@ where
   T: Fn(&'a mut Compilation) -> F,
   F: Future<Output = Result<&'a mut Compilation>>,
 {
-  if !compilation
-    .incremental
-    .can_read_mutations(IncrementalPasses::MAKE)
-  {
+  if !compilation.incremental.enabled() {
     task(compilation).await?;
     return Ok(());
   }
 
   let incremental_code_splitting = compilation
     .incremental
-    .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH);
+    .passes_enabled(IncrementalPasses::BUILD_CHUNK_GRAPH);
   let new_code_splitting = compilation.options.experiments.parallel_code_splitting;
   let no_change = compilation
     .code_splitting_cache

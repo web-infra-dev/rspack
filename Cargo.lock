@@ -2421,7 +2421,6 @@ checksum = "a296273515b1036d06fce6c1d6bfc11347083458e1765ae4a70d6288cdb15521"
 dependencies = [
  "ahash 0.8.11",
  "bitflags 2.6.0",
- "browserslist-rs",
  "const-str",
  "cssparser",
  "cssparser-color",
@@ -3852,6 +3851,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_browserslist"
+version = "0.2.0"
+dependencies = [
+ "browserslist-rs",
+ "lightningcss",
+]
+
+[[package]]
 name = "rspack_cacheable"
 version = "0.2.0"
 dependencies = [
@@ -4089,6 +4096,7 @@ dependencies = [
  "derive_more 1.0.0",
  "lightningcss",
  "parcel_sourcemap",
+ "rspack_browserslist",
  "rspack_cacheable",
  "rspack_core",
  "rspack_error",
@@ -4250,6 +4258,7 @@ dependencies = [
  "once_cell",
  "ropey",
  "rspack_allocator",
+ "rspack_browserslist",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_core",

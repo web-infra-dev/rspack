@@ -744,8 +744,17 @@ export async function runLoaders(
 			rootContext: loaderContext.context!,
 			loaderIndex: loaderContext.loaderIndex,
 			loaders: loaderContext.loaders.map(item => {
+				let options = item.options;
+				// Do not pass options into worker, if it's not prepared to be executed
+				// in the worker thread.
+				//
+				// Aligns yielding strategy within the worker.
+				if (!item.parallel || item.request.startsWith(BUILTIN_LOADER_PREFIX)) {
+					options = undefined;
+				}
 				return {
 					...item,
+					options,
 					pitch: undefined,
 					normal: undefined,
 					normalExecuted: item.normalExecuted,
@@ -1060,7 +1069,7 @@ export async function runLoaders(
 
 				context.content = isNil(content) ? null : toBuffer(content);
 				context.sourceMap = JsSourceMap.__to_binding(sourceMap);
-				context.additionalData = additionalData;
+				context.additionalData = additionalData || undefined;
 
 				break;
 			}

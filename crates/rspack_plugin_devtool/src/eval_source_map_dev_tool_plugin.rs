@@ -81,7 +81,7 @@ async fn eval_source_map_devtool_plugin_compilation(
   Ok(())
 }
 
-#[plugin_hook(JavascriptModulesRenderModuleContent for EvalSourceMapDevToolPlugin)]
+#[plugin_hook(JavascriptModulesRenderModuleContent for EvalSourceMapDevToolPlugin,tracing=false)]
 async fn eval_source_map_devtool_plugin_render_module_content(
   &self,
   compilation: &Compilation,
@@ -218,7 +218,7 @@ async fn eval_source_map_devtool_plugin_inline_in_runtime_bailout(
   Ok(Some("the eval-source-map devtool is used.".to_string()))
 }
 
-#[plugin_hook(CompilationAdditionalModuleRuntimeRequirements for EvalSourceMapDevToolPlugin)]
+#[plugin_hook(CompilationAdditionalModuleRuntimeRequirements for EvalSourceMapDevToolPlugin,tracing=false)]
 async fn eval_source_map_devtool_plugin_additional_module_runtime_requirements(
   &self,
   compilation: &Compilation,
