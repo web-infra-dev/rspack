@@ -364,10 +364,9 @@ impl Compiler {
         .for_each(|(filename, asset)| {
           // collect version info to new_emitted_asset_versions
           if self
-            .options
-            .experiments
+            .compilation
             .incremental
-            .contains(IncrementalPasses::EMIT_ASSETS)
+            .passes_enabled(IncrementalPasses::EMIT_ASSETS)
           {
             new_emitted_asset_versions.insert(filename.to_string(), asset.info.version.clone());
           }

@@ -1,6 +1,7 @@
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import WebpackLicense from '@components/WebpackLicense';
 import PropertyType from '@components/PropertyType';
+import { Table } from '@builtIns';
 
 <WebpackLicense from="https://webpack.js.org/configuration/experiments/" />
 
@@ -275,69 +276,64 @@ export default {
 
 <ApiMeta addedVersion="1.1.0-beta.0" />
 
-<PropertyType
-  type="boolean | Incremental"
-  defaultValueList={[
-    { defaultValue: 'false', mode: 'production' },
-    { defaultValue: '{ make: true, emitAssets: true }', mode: 'development' },
-  ]}
-/>
+- **类型：** `boolean | 'none' | 'safe' | 'advance' | 'advance-silent' | Incremental`
+- **默认值：** `'safe'`
 
-```ts
-type Incremental = {
-  make?: boolean;
-  inferAsyncModules?: boolean;
-  providedExports?: boolean;
-  dependenciesDiagnostics?: boolean;
-  sideEffects?: boolean;
-  buildChunkGraph?: boolean;
-  moduleIds?: boolean;
-  chunkIds?: boolean;
-  modulesHashes?: boolean;
-  modulesCodegen?: boolean;
-  modulesRuntimeRequirements?: boolean;
-  chunksRuntimeRequirements?: boolean;
-  chunksHashes?: boolean;
-  chunksRender?: boolean;
-  emitAssets?: boolean;
-};
-```
+是否增量地进行重构建，加快重构建和 HMR 的速度。提供两种配置方式：
 
-是否增量地进行重构建，加快重构建或 HMR 的速度，建议仅在开发时启用：
+1. 预设配置：包括 `boolean | 'none' | 'safe' | 'advance' | 'advance-silent'`
+   - `false | 'none'`：关闭增量，不对任何阶段开启
+   - `'safe'`：开启 `make` 和 `emitAssets` 阶段的增量，这也是 Rspack 目前的默认行为
+   - `true | 'advance-silent'`：开启所有阶段的增量，最大优化 rebuild 和 HMR 的性能，在未来这些阶段稳定后，我们会将此选项作为 Rspack 的默认行为
+   - `'advance'`：同上，但对于增量不友好的情况会抛出警告提示用户，该选项作为 `true | 'advance-silent'` 的补充帮助用户排查潜在可能影响增量构建性能的配置
+2. 详细的对象配置：`Incremental`，细粒度控制各个阶段的增量是否开启
 
-```js title="rspack.config.mjs"
-const isDev = process.env.NODE_ENV === 'development';
+   <details>
+  <summary style={{ display: 'list-item' }}>`Incremental` 详细类型</summary>
+  <blockquote>
+    <p>
+    ```ts
+    type Incremental = {
+      // 是否在遇到对增量不友好的情况下抛出警告
+      silent?: boolean;
+      // 以下配置用来控制各个阶段的增量是否开启
+      make?: boolean;
+      inferAsyncModules?: boolean;
+      providedExports?: boolean;
+      dependenciesDiagnostics?: boolean;
+      sideEffects?: boolean;
+      buildChunkGraph?: boolean;
+      moduleIds?: boolean;
+      chunkIds?: boolean;
+      modulesHashes?: boolean;
+      modulesCodegen?: boolean;
+      modulesRuntimeRequirements?: boolean;
+      chunksRuntimeRequirements?: boolean;
+      chunksHashes?: boolean;
+      chunksRender?: boolean;
+      emitAssets?: boolean;
+    };
+    ```
+    </p>
+  </blockquote>
+</details>
 
-export default {
-  mode: isDev ? 'development' : 'production',
-  experiments: {
-    incremental: isDev,
-  },
-};
-```
+通常情况下我们推荐使用预设的方式进行配置，详细的对象配置仅作为方便排查 bug 提供。
 
-`true` 表示对全部阶段启用增量，`false` 表示对全部阶段关闭增量，也可以仅对指定的部分阶段开启增量：
+增量仅会提升重构建的速度，对于初次构建不会有任何影响，但对于持久化缓存可用时的初次构建也会被视为重构建，以利用增量加快构建速度：
 
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    // 对全部阶段启用增量
-    incremental: true,
-    // 对全部阶段关闭增量
-    incremental: false,
-    // 仅对指定的部分阶段开启增量
-    incremental: {
-      make: true,
-      emitAssets: true,
-    },
-  },
-};
-```
+|  构建方式  | 增量提速 |
+| :--------: | :------: |
+|   热构建   |    ✅    |
+|   冷构建   |    ❌    |
+|   热启动   |    ✅    |
+|   冷启动   |    ❌    |
+| 重构建/HMR |    ✅    |
 
-目前 Rspack 默认开启 `make` 和 `emitAssets` 阶段的增量，这也是之前 Rspack v1.0 的默认行为。随着该特性的进一步稳定，我们会默认开启更多阶段的增量，直到完全启用。
+目前 Rspack 默认仅开启 `make` 和 `emitAssets` 阶段的增量，这也是之前 Rspack v1.0 的默认行为。随着该特性的进一步稳定，我们会默认开启更多阶段的增量，直到完全启用。
 
 :::tip
-该特性属于实验性特性，可前往 [rspack#8106](https://github.com/web-infra-dev/rspack/issues/8106) 查看其相关进度，也可在此 issue 中反馈 bugs 以及任何与之相关的反馈信息。
+该特性的 `'advance'` 和 `'advance-silent'` 选项属于实验性特性，可前往 [rspack#8106](https://github.com/web-infra-dev/rspack/issues/8106) 查看其相关进度，也可在此 issue 中反馈 bugs 以及任何与之相关的反馈信息。
 :::
 
 ## experiments.parallelCodeSplitting

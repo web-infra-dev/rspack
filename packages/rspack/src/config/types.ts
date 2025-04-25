@@ -2504,6 +2504,10 @@ export type LazyCompilationOptions = {
  */
 export type Incremental = {
 	/**
+	 * Warning if there are cases that not friendly for incremental
+	 */
+	silent?: boolean;
+	/**
 	 * Enable incremental make.
 	 */
 	make?: boolean;
@@ -2580,6 +2584,16 @@ export type Incremental = {
 };
 
 /**
+ * Presets for incremental
+ */
+export type IncrementalPresets =
+	| boolean
+	| "none"
+	| "safe"
+	| "advance"
+	| "advance-silent";
+
+/**
  * Options for experiments.buildHttp
  */
 export type HttpUriOptions = HttpUriPluginOptions;
@@ -2634,7 +2648,7 @@ export type Experiments = {
 	/**
 	 * Enable incremental builds.
 	 */
-	incremental?: boolean | "old-default" | Incremental;
+	incremental?: IncrementalPresets | Incremental;
 	/**
 	 * Enable multi-threaded code splitting algorithm.
 	 */

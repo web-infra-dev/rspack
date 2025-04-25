@@ -6,7 +6,10 @@ use napi_derive::napi;
 use raw_cache::{normalize_raw_experiment_cache_options, RawExperimentCacheOptions};
 use raw_incremental::RawIncremental;
 use raw_rspack_future::RawRspackFuture;
-use rspack_core::{incremental::IncrementalPasses, Experiments};
+use rspack_core::{
+  incremental::{IncrementalOptions, IncrementalPasses},
+  Experiments,
+};
 
 use super::WithFalse;
 
@@ -31,9 +34,15 @@ impl From<RawExperiments> for Experiments {
       incremental: match value.incremental {
         Some(value) => match value {
           WithFalse::True(value) => value.into(),
-          WithFalse::False => IncrementalPasses::empty(),
+          WithFalse::False => IncrementalOptions {
+            passes: IncrementalPasses::empty(),
+            silent: false,
+          },
         },
-        None => IncrementalPasses::empty(),
+        None => IncrementalOptions {
+          passes: IncrementalPasses::empty(),
+          silent: false,
+        },
       },
       parallel_code_splitting: value.parallel_code_splitting,
       layers: value.layers,

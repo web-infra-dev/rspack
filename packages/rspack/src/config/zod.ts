@@ -1496,7 +1496,9 @@ const experiments = z.strictObject({
 	layers: z.boolean().optional(),
 	incremental: z
 		.boolean()
-		.or(z.literal("old-default"))
+		.or(z.literal("safe"))
+		.or(z.literal("advance"))
+		.or(z.literal("advance-silent"))
 		.or(incremental)
 		.optional(),
 	parallelCodeSplitting: z.boolean().optional(),

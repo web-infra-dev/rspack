@@ -1847,6 +1847,7 @@ export interface RawIgnorePluginOptions {
 }
 
 export interface RawIncremental {
+  silent: boolean
   make: boolean
   inferAsyncModules: boolean
   providedExports: boolean

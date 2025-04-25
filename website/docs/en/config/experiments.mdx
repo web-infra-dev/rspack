@@ -276,69 +276,64 @@ export default {
 
 <ApiMeta addedVersion="1.1.0-beta.0" />
 
-<PropertyType
-  type="boolean | Incremental"
-  defaultValueList={[
-    { defaultValue: 'false', mode: 'production' },
-    { defaultValue: '{ make: true, emitAssets: true }', mode: 'development' },
-  ]}
-/>
+- **Type:** `boolean | 'none' | 'safe' | 'advance' | 'advance-silent' | Incremental`
+- **Default:** `'safe'`
 
-```ts
-type Incremental = {
-  make?: boolean;
-  inferAsyncModules?: boolean;
-  providedExports?: boolean;
-  dependenciesDiagnostics?: boolean;
-  sideEffects?: boolean;
-  buildChunkGraph?: boolean;
-  moduleIds?: boolean;
-  chunkIds?: boolean;
-  modulesHashes?: boolean;
-  modulesCodegen?: boolean;
-  modulesRuntimeRequirements?: boolean;
-  chunksRuntimeRequirements?: boolean;
-  chunksHashes?: boolean;
-  chunksRender?: boolean;
-  emitAssets?: boolean;
-};
-```
+Whether to perform the rebuild incrementally to speed up the rebuild and HMR. Two configuration ways are provided:
 
-Whether to enable incremental rebuild to speed up the rebuild speed. It is recommended to enable it only during development.
+1. Preset: including `boolean | 'none' | 'safe' | 'advance' | 'advance-silent'`
+   - `false | 'none'`: Turn off, and it will not be enabled for any stage.
+   - `'safe'`: Enable incremental for `make` and `emitAssets` stages, This is also the current default behavior of Rspack.
+   - `true | 'advance-silent'`: Enable incremental for all stages to maximize the performance of rebuilds and HMR. After these stages become stable in the future, we will set this option as the default behavior of Rspack.
+   - `'advance'`: The same as the above, but it will throw a warning to prompt the user in cases where incremental is not friendly. This option serves as a supplement to `true | 'advance-silent'` to help users troubleshoot configurations that may potentially affect the performance of incremental rebuilds.
+2. Detailed object configuration: `Incremental`, which enables fine-grained control over whether the incremental of each stage is enabled.
 
-```js title="rspack.config.mjs"
-const isDev = process.env.NODE_ENV === 'development';
+   <details>
+  <summary style={{ display: 'list-item' }}>`Incremental` 详细类型</summary>
+  <blockquote>
+    <p>
+    ```ts
+    type Incremental = {
+      // Whether to throw a warning when encountering situations that are not friendly for incremental.
+      silent?: boolean;
+      // The following configuration is used to control whether the incremental of each stage is enabled.
+      make?: boolean;
+      inferAsyncModules?: boolean;
+      providedExports?: boolean;
+      dependenciesDiagnostics?: boolean;
+      sideEffects?: boolean;
+      buildChunkGraph?: boolean;
+      moduleIds?: boolean;
+      chunkIds?: boolean;
+      modulesHashes?: boolean;
+      modulesCodegen?: boolean;
+      modulesRuntimeRequirements?: boolean;
+      chunksRuntimeRequirements?: boolean;
+      chunksHashes?: boolean;
+      chunksRender?: boolean;
+      emitAssets?: boolean;
+    };
+    ```
+    </p>
+  </blockquote>
+</details>
 
-export default {
-  mode: isDev ? 'development' : 'production',
-  experiments: {
-    incremental: isDev,
-  },
-};
-```
+Usually, we recommend configuring in the preset way, and the detailed object configuration is only provided to facilitate bug troubleshooting.
 
-`true` means enable incremental for all stages. `false` means disable incremental for all stages. Incremental can also be enabled only for specified partial stages:
+Incremental will only improve the speed of subsequent rebuilds and have no impact on the initial build. However, the initial build when the persistent cache is available will also be regarded as a rebuild, so as to use the incremental feature to speed up the build:
 
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    // enable incremental for all stages
-    incremental: true,
-    // disable incremental for all stages
-    incremental: false,
-    // enable only for specified partial stages
-    incremental: {
-      make: true,
-      emitAssets: true,
-    },
-  },
-};
-```
+| how to build | incremental speed up |
+| :----------: | :------------------: |
+|  hot build   |          ✅          |
+|  cold build  |          ❌          |
+|  hot start   |          ✅          |
+|  cold start  |          ❌          |
+| rebuild/HMR  |          ✅          |
 
 Currently, incremental for the `make` and `emitAssets` stages is enabled by default. This is also the default behavior since Rspack v1.0. As this feature further stabilizes, we will enable incremental for more stages by default.
 
 :::tip
-This feature is experimental. You can check its relevant progress at [rspack#8106](https://github.com/web-infra-dev/rspack/issues/8106). You can also report bugs and any related feedback here.
+The 'advance' and 'advance-silent' options of this feature are experimental. You can check its relevant progress at [rspack#8106](https://github.com/web-infra-dev/rspack/issues/8106). You can also report bugs and any related feedback here.
 :::
 
 ## experiments.parallelCodeSplitting

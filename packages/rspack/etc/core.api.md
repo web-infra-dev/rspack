@@ -2045,7 +2045,7 @@ export type Experiments = {
     topLevelAwait?: boolean;
     css?: boolean;
     layers?: boolean;
-    incremental?: boolean | "old-default" | Incremental;
+    incremental?: IncrementalPresets | Incremental;
     parallelCodeSplitting?: boolean;
     futureDefaults?: boolean;
     rspackFuture?: RspackFutureOptions;
@@ -2587,6 +2587,7 @@ type IncomingMessage = IncomingMessage_2;
 
 // @public
 export type Incremental = {
+    silent?: boolean;
     make?: boolean;
     inferAsyncModules?: boolean;
     providedExports?: boolean;
@@ -2603,6 +2604,9 @@ export type Incremental = {
     chunksRender?: boolean;
     emitAssets?: boolean;
 };
+
+// @public
+export type IncrementalPresets = boolean | "none" | "safe" | "advance" | "advance-silent";
 
 // @public
 export type InfrastructureLogging = {
@@ -5445,6 +5449,7 @@ declare namespace rspackExports {
         RspackFutureOptions,
         LazyCompilationOptions,
         Incremental,
+        IncrementalPresets,
         HttpUriOptions,
         Experiments,
         Watch,
