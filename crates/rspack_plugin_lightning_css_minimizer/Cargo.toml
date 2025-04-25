@@ -8,7 +8,7 @@ version     = "0.2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-lightningcss     = { workspace = true, features = ["sourcemap", "browserslist"] }
+lightningcss     = { workspace = true, features = ["sourcemap"] }
 parcel_sourcemap = { workspace = true }
 rayon            = { workspace = true }
 regex            = { workspace = true }

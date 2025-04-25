@@ -1,0 +1,17 @@
+[package]
+authors.workspace       = true
+categories.workspace    = true
+documentation.workspace = true
+edition                 = "2024"
+homepage.workspace      = true
+license.workspace       = true
+name                    = "rspack_browserslist"
+repository.workspace    = true
+version                 = "0.2.0"
+
+[dependencies]
+browserslist-rs = { workspace = true }
+lightningcss    = { workspace = true }
+
+[lints]
+workspace = true
