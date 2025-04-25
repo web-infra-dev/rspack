@@ -386,15 +386,15 @@ impl CompilerBuilder {
   ///
   /// ```rust
   /// use rspack::builder::{Builder as _, ExperimentsBuilder};
-  /// use rspack_core::{incremental::IncrementalPasses, Compiler, Experiments};
+  /// use rspack_core::{incremental::IncrementalOptions, Compiler, Experiments};
   ///
   /// // Using builder without calling `build()`
   /// let compiler = Compiler::builder()
-  ///   .experiments(ExperimentsBuilder::default().incremental(IncrementalPasses::empty()));
+  ///   .experiments(ExperimentsBuilder::default().incremental(IncrementalOptions::empty_passes()));
   ///
   /// // `Experiments::builder` equals to `ExperimentsBuilder::default()`
-  /// let compiler =
-  ///   Compiler::builder().experiments(Experiments::builder().incremental(IncrementalPasses::empty()));
+  /// let compiler = Compiler::builder()
+  ///   .experiments(Experiments::builder().incremental(IncrementalOptions::empty_passes()));
   ///
   /// // Or directly passing `Experiments`
   /// // let compiler = Compiler::builder().experiments(Experiments { ... });
@@ -857,15 +857,15 @@ impl CompilerOptionsBuilder {
   ///
   /// ```rust
   /// use rspack::builder::{Builder as _, ExperimentsBuilder};
-  /// use rspack_core::{incremental::IncrementalPasses, Compiler, Experiments};
+  /// use rspack_core::{incremental::IncrementalOptions, Compiler, Experiments};
   ///
   /// // Using builder without calling `build()`
   /// let compiler = Compiler::builder()
-  ///   .experiments(ExperimentsBuilder::default().incremental(IncrementalPasses::empty()));
+  ///   .experiments(ExperimentsBuilder::default().incremental(IncrementalOptions::empty_passes()));
   ///
   /// // `Experiments::builder` equals to `ExperimentsBuilder::default()`
-  /// let compiler =
-  ///   Compiler::builder().experiments(Experiments::builder().incremental(IncrementalPasses::empty()));
+  /// let compiler = Compiler::builder()
+  ///   .experiments(Experiments::builder().incremental(IncrementalOptions::empty_passes()));
   ///
   /// // Or directly passing `Experiments`
   /// // let compiler = Compiler::builder().experiments(Experiments { ... });
