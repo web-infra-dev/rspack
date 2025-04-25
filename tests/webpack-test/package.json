@@ -40,7 +40,7 @@
     "source-map": "^0.7.4",
     "terser": "5.39.0",
     "terser-webpack-plugin": "^5.3.14",
-    "typescript": "^5.7.3"
+    "typescript": "^5.8.3"
   },
   "dependencies": {
     "@rspack/binding": "workspace:*",

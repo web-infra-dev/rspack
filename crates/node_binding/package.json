@@ -30,7 +30,7 @@
     "@napi-rs/cli": "3.0.0-alpha.78",
     "@napi-rs/wasm-runtime": "^0.2.9",
     "emnapi": "^1.4.3",
-    "typescript": "^5.7.3",
+    "typescript": "^5.8.3",
     "@emnapi/core": "^1.4.3"
   },
   "napi": {
