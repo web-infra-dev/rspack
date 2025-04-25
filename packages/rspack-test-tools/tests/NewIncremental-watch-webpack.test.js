@@ -19,7 +19,9 @@ describeByWalk(
 			__dirname,
 			`./js/new-incremental/webpack-test/temp`
 		);
-		createWatchNewIncrementalCase(name, src, dist, path.join(tempDir, name));
+		createWatchNewIncrementalCase(name, src, dist, path.join(tempDir, name), {
+			ignoreNotFriendlyForIncrementalWarnings: true
+		});
 	},
 	{
 		source: path.resolve(__dirname, "../../../tests/webpack-test/watchCases"),

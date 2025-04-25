@@ -2492,6 +2492,11 @@ export type LazyCompilationOptions = {
 	 * environment you need to explicitly specify a specific path.
 	 */
 	serverUrl?: string;
+	/**
+	 * Customize the prefix used for lazy compilation endpoint.
+	 * @default "/lazy-compilation-using-"
+	 */
+	prefix?: string;
 };
 
 /**
