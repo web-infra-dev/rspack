@@ -82,6 +82,15 @@ pub struct IncrementalOptions {
   pub passes: IncrementalPasses,
 }
 
+impl IncrementalOptions {
+  pub fn empty_passes() -> Self {
+    Self {
+      silent: true,
+      passes: IncrementalPasses::empty(),
+    }
+  }
+}
+
 #[derive(Debug)]
 pub struct Incremental {
   silent: bool,
