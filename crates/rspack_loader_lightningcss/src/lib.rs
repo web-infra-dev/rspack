@@ -100,10 +100,14 @@ impl LightningCssLoader {
       #[allow(clippy::unwrap_used)]
       let warnings = warnings.read().unwrap();
       for warning in warnings.iter() {
-        if let lightningcss::error::ParserError::SelectorError(
-          lightningcss::error::SelectorError::UnsupportedPseudoClass(pseudo_class),
-        ) = &warning.kind
-        {
+        if matches!(
+          warning.kind,
+          lightningcss::error::ParserError::SelectorError(
+            lightningcss::error::SelectorError::UnsupportedPseudoClass(_)
+          ) | lightningcss::error::ParserError::SelectorError(
+            lightningcss::error::SelectorError::UnsupportedPseudoElement(_)
+          )
+        ) {
           // ignore parsing errors on pseudo class from lightningcss-loader
           // to allow pseudo class in CSS modules and Vue.
           continue;
