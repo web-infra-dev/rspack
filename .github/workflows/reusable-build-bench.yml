@@ -28,8 +28,6 @@ jobs:
     defaults:
       run:
         shell: bash
-    env:
-      CODSPEED_DEBUG: "true"
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
