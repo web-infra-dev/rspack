@@ -1,0 +1,19 @@
+:global(.foo) {
+    background-color: red;
+}
+
+:local(.bar) {
+    background-color: blue;
+}
+
+:global {
+    .foo {
+        background-color: red;
+    }
+}
+
+:local {
+    .bar {
+        background-color: blue;
+    }
+}
