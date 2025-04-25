@@ -1,7 +1,7 @@
 use rspack_core::{
-  ApplyContext, BoxModule, ChunkInitFragments, Compilation, CompilationParams, CompilerCompilation,
-  CompilerOptions, InitFragmentExt, InitFragmentKey, InitFragmentStage, NormalInitFragment, Plugin,
-  PluginContext,
+  ApplyContext, BoxModule, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
+  CompilerCompilation, CompilerOptions, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  NormalInitFragment, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -25,10 +25,11 @@ async fn compilation(
   Ok(())
 }
 
-#[plugin_hook(JavascriptModulesRenderModuleContent for APIPlugin)]
+#[plugin_hook(JavascriptModulesRenderModuleContent for APIPlugin,tracing=false)]
 async fn render_module_content(
   &self,
   compilation: &Compilation,
+  _chunk_ukey: &ChunkUkey,
   module: &BoxModule,
   _source: &mut RenderSource,
   init_fragments: &mut ChunkInitFragments,

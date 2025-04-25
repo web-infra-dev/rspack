@@ -1,5 +1,5 @@
 const path = require("path");
-const { describeByWalk, createHotCase } = require("../dist");
+const { describeByWalk, createHotCase } = require("@rspack/test-tools");
 
 describeByWalk(
 	__filename,

@@ -1,4 +1,4 @@
-use rspack_cacheable::{cacheable, from_bytes, to_bytes};
+use rspack_cacheable::{enable_cacheable as cacheable, from_bytes, to_bytes};
 
 #[cacheable]
 #[derive(Debug, PartialEq, Eq)]

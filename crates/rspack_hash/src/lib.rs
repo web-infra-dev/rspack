@@ -3,7 +3,6 @@ use std::{
   hash::{Hash, Hasher},
 };
 
-use data_encoding::HEXLOWER_PERMISSIVE;
 use md4::Digest;
 use rspack_cacheable::{cacheable, with::AsPreset};
 use smol_str::SmolStr;
@@ -86,11 +85,24 @@ impl RspackHash {
   }
 
   pub fn digest(self, digest: &HashDigest) -> RspackHashDigest {
-    let inner = match self {
-      RspackHash::Xxhash64(hasher) => hasher.finish().to_be_bytes().to_vec(),
-      RspackHash::MD4(hash) => hash.finalize().to_vec(),
-    };
-    RspackHashDigest::new(inner, digest)
+    // The maximum value of xxhash and md4 output
+    let mut result = [0; 16];
+    let len;
+
+    match self {
+      RspackHash::Xxhash64(hasher) => {
+        let buf = hasher.finish().to_be_bytes();
+        len = buf.len();
+        result[..len].copy_from_slice(&buf);
+      }
+      RspackHash::MD4(hash) => {
+        let buf = hash.finalize();
+        len = buf.len();
+        result[..len].copy_from_slice(&buf);
+      }
+    }
+
+    RspackHashDigest::new(&result[..len], digest)
   }
 }
 
@@ -100,7 +112,7 @@ impl Hasher for RspackHash {
       RspackHash::Xxhash64(hasher) => hasher.finish(),
       RspackHash::MD4(hasher) => {
         // finalize take ownership, so we need to clone it
-        let hash = hasher.clone().finalize();
+        let hash = (**hasher).clone().finalize();
         let msb_u64: u64 = ((hash[0] as u64) << 56)
           | ((hash[1] as u64) << 48)
           | ((hash[2] as u64) << 40)
@@ -138,9 +150,14 @@ impl From<&str> for RspackHashDigest {
 }
 
 impl RspackHashDigest {
-  pub fn new(inner: Vec<u8>, digest: &HashDigest) -> Self {
+  /// `inner ` must be empty or come from a short hash output (< 128bit)
+  pub fn new(inner: &[u8], digest: &HashDigest) -> Self {
     let encoded = match digest {
-      HashDigest::Hex => HEXLOWER_PERMISSIVE.encode(&inner).into(),
+      HashDigest::Hex => {
+        let mut buf = [0; 32];
+        let s = hex(inner, &mut buf);
+        s.into()
+      }
     };
     Self { encoded }
   }
@@ -165,4 +182,26 @@ impl PartialEq for RspackHashDigest {
   fn eq(&self, other: &Self) -> bool {
     self.encoded == other.encoded
   }
+}
+
+/// Implement our own hex that is guaranteed to be inlined.
+///
+/// This will have good performance as it is simple enough to be understood by compiler.
+#[inline]
+fn hex<'a>(data: &[u8], output: &'a mut [u8]) -> &'a str {
+  const HEX_TABLE: &[u8; 16] = b"0123456789abcdef";
+
+  assert!(data.len() * 2 <= output.len());
+
+  let mut i = 0;
+  for byte in data {
+    output[i] = HEX_TABLE[(byte >> 4) as usize];
+    output[i + 1] = HEX_TABLE[(byte & 0x0f) as usize];
+    i += 2;
+  }
+
+  // # Safety
+  //
+  // hex is always ascii
+  unsafe { std::str::from_utf8_unchecked(&output[..i]) }
 }

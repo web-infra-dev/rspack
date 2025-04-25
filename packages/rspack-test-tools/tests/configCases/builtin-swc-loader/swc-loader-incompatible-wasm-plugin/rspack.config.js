@@ -22,9 +22,9 @@ const config = {
 					loader: "builtin:swc-loader",
 					options: {
 						// Enable source map
-						sourceMap: true,
-						target: "es5",
+						sourceMaps: true,
 						jsc: {
+							target: "es5",
 							parser: {
 								syntax: "ecmascript",
 								jsx: true

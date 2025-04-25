@@ -14,15 +14,18 @@ export function isNil(value: unknown): value is null | undefined {
 	return value === null || value === undefined;
 }
 
-export const toBuffer = (bufLike: string | Buffer): Buffer => {
+export const toBuffer = (bufLike: string | Buffer | Uint8Array): Buffer => {
 	if (Buffer.isBuffer(bufLike)) {
 		return bufLike;
 	}
 	if (typeof bufLike === "string") {
 		return Buffer.from(bufLike);
 	}
+	if (bufLike instanceof Uint8Array) {
+		return Buffer.from(bufLike.buffer);
+	}
 
-	throw new Error("Buffer or string expected");
+	throw new Error("Buffer, Uint8Array or string expected");
 };
 
 export const toObject = (input: string | Buffer | object): object => {

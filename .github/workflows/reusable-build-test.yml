@@ -1,0 +1,144 @@
+name: Run Test
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        required: true
+        type: string
+      runner: # Runner labels
+        required: true
+        type: string
+      ref: # Git reference to checkout
+        required: false
+        type: string
+
+jobs:
+  e2e:
+    name: E2E Testing
+    if: inputs.target == 'x86_64-unknown-linux-gnu'
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          ref: ${{ inputs.ref }}
+          clean: ${{ runner.environment == 'github-hosted' }}
+
+      - name: Download bindings
+        uses: ./.github/actions/artifact/download
+        with:
+          name: bindings-${{ inputs.target }}
+          path: crates/node_binding/
+
+      - name: Setup Pnpm
+        uses: ./.github/actions/pnpm/setup
+        with:
+          node-version: 20
+
+      - name: Pnpm Install
+        uses: ./.github/actions/pnpm/install-dependencies
+
+      - name: Calculate Node Bin Path
+        id: calculate-node-bin-path
+        run: |
+          NODE_BIN_PATH=$(dirname $(which node))
+          echo "path=$NODE_BIN_PATH" >> $GITHUB_OUTPUT
+
+      - name: Run e2e
+        uses: ./.github/actions/docker/run
+        with:
+          # Jammy uses ubuntu 22.04
+          # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
+          image: mcr.microsoft.com/playwright:v1.47.0-jammy
+          # .cache is required by download artifact, and mount in ./.github/actions/docker/run
+          # .tool_cache is required by pnpm
+          options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
+          script: |
+            export PATH=${{ steps.calculate-node-bin-path.outputs.path }}:$PATH
+            pnpm run build:js
+            pnpm run test:e2e
+
+  test:
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false # Build and test everything so we can look at all the errors
+      matrix:
+        node: ${{ fromJSON(contains(inputs.target, 'linux') && github.ref_name == 'main' && '[16, 18, 20]' || '[18]' )}}
+    name: Test Node ${{ matrix.node }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
+      PUPPETEER_SKIP_DOWNLOAD: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          ref: ${{ inputs.ref }}
+          clean: ${{ runner.environment == 'github-hosted' }}
+
+      - name: Download bindings
+        uses: ./.github/actions/artifact/download
+        with:
+          name: bindings-${{ inputs.target }}
+          path: crates/node_binding/
+
+      - name: Show restored binding
+        run: ls -lah crates/node_binding/*.node
+
+      - name: Setup Pnpm
+        uses: ./.github/actions/pnpm/setup
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Pnpm Install
+        uses: ./.github/actions/pnpm/install-dependencies
+        with:
+          save-if: ${{ github.ref_name == 'main' && matrix.node == '18' }}
+
+      ### x86_64-unknown-linux-gnu
+      - name: Test x86_64-unknown-linux-gnu
+        timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
+        run: pnpm run test:ci
+
+      ### *-apple-darwin
+      - name: Test apple-darwin
+        timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
+        if: ${{ contains(inputs.target, 'apple-darwin') }}
+        run: |
+          # arch is ARM and target is ARM
+          if [[ '${{ runner.arch }}' == ARM* && '${{ inputs.target }}' == 'aarch64-apple-darwin' ]]; then
+            pnpm run test:ci
+          fi
+          # arch is x64 and target is x64
+          if [[ '${{ runner.arch }}' != ARM* && '${{ inputs.target }}' != 'aarch64-apple-darwin' ]]; then
+            pnpm run test:ci
+          fi
+
+      ### x86_64-pc-windows-msvc
+      - name: Test x86_64-pc-windows-msvc
+        timeout-minutes: 20 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
+        if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
+        run: pnpm run test:ci
+
+      ### write the latest metric into branch gh-pages
+      ### Note that, We can't merge this script, because this script only runs on main branch
+      ### [Note] This step requires push permission and should be refactored.
+      # - name: Update main branch test compatibility metric
+      #   if: ${{ github.repository_owner == 'web-infra-dev' && inputs.target == 'x86_64-unknown-linux-gnu' && github.ref_name == 'main' && matrix.node == '18' }}
+      #   run: node ./tests/webpack-test/scripts/generate.js ${{ github.sha }}
+
+      # ### update metric diff against main branch when pull request change
+      - name: Update
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && github.event_name == 'pull_request' && matrix.node == '18' }}
+        uses: ./.github/actions/webpack-test-metric-diff
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          sha: ${{ github.sha }}

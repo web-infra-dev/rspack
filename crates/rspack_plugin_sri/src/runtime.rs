@@ -21,9 +21,7 @@ use crate::{
 fn add_attribute(tag: &str, code: &str, cross_origin_loading: &CrossOriginLoading) -> String {
   format!(
     "{}\n{tag}.integrity = {}[chunkId];\n{tag}.crossOrigin = {};",
-    code,
-    SRI_HASH_VARIABLE_REFERENCE.as_str(),
-    cross_origin_loading
+    code, SRI_HASH_VARIABLE_REFERENCE, cross_origin_loading
   )
 }
 
@@ -89,7 +87,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
         r#"
         {} = {};
         "#,
-        SRI_HASH_VARIABLE_REFERENCE.as_str(),
+        SRI_HASH_VARIABLE_REFERENCE,
         generate_sri_hash_placeholders(all_chunks, &self.hash_funcs, compilation),
       ))
       .boxed(),

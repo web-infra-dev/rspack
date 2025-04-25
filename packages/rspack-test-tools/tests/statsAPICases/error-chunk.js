@@ -1,4 +1,4 @@
-/** @type {import('../../dist').TStatsAPICaseConfig} */
+/** @type {import('@rspack/test-tools').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should output error chunk info",
 	options(context) {

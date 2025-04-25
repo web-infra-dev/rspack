@@ -1,5 +1,4 @@
 import type { AssetInfo, RawFuncUseCtx } from "@rspack/binding";
-import type * as webpackDevServer from "webpack-dev-server";
 import type { ChunkGraph } from "../ChunkGraph";
 import type { Compilation, PathData } from "../Compilation";
 import type { Compiler } from "../Compiler";
@@ -8,6 +7,7 @@ import type ModuleGraph from "../ModuleGraph";
 import type { HttpUriPluginOptions } from "../builtin-plugin/HttpUriPlugin";
 import type { Chunk } from "../exports";
 import type { ResolveCallback } from "./adapterRuleUse";
+import type { DevServerOptions } from "./devServer";
 
 export type FilenameTemplate = string;
 
@@ -2466,27 +2466,37 @@ export type RspackFutureOptions = {
  */
 export type LazyCompilationOptions = {
 	/**
-	 * Enable lazy compilation for imports.
+	 * Enable lazy compilation for dynamic imports.
+	 * @default true
 	 */
 	imports?: boolean;
 	/**
 	 * Enable lazy compilation for entries.
+	 * @default true
 	 */
 	entries?: boolean;
 	/**
 	 * Test function or regex to determine which modules to include.
 	 */
 	test?: RegExp | ((module: Module) => boolean);
-
 	/**
-	 * The runtime code path for client
+	 * The path to a custom runtime code that overrides the default lazy
+	 * compilation client. If you want to customize the logic of the client
+	 * runtime, you can specify it through this option.
 	 */
 	client?: string;
-
 	/**
-	 * The server url
+	 * Tells the client the server URL that needs to be requested.
+	 * By default it is empty, in a browser environment it will find
+	 * the server path where the page is located, but in a node
+	 * environment you need to explicitly specify a specific path.
 	 */
 	serverUrl?: string;
+	/**
+	 * Customize the prefix used for lazy compilation endpoint.
+	 * @default "/lazy-compilation-using-"
+	 */
+	prefix?: string;
 };
 
 /**
@@ -2694,7 +2704,7 @@ export type WatchOptions = {
 /**
  * Options for devServer, it based on `webpack-dev-server@5`
  * */
-export interface DevServer extends webpackDevServer.Configuration {}
+export interface DevServer extends DevServerOptions {}
 //#endregion
 
 //#region IgnoreWarnings

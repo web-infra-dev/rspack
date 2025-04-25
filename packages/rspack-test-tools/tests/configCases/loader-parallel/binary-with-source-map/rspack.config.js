@@ -1,3 +1,4 @@
+const { supportsImportFn } = require("@rspack/test-tools");
 const path = require("path");
 
 /**
@@ -16,6 +17,6 @@ module.exports = {
 		]
 	},
 	experiments: {
-		parallelLoader: true
+		parallelLoader: supportsImportFn()
 	}
 };

@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  AffectType, AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::atom::Atom;
 
@@ -12,11 +12,11 @@ pub struct UnsupportedDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
   request: Atom,
-  range: (u32, u32),
+  range: DependencyRange,
 }
 
 impl UnsupportedDependency {
-  pub fn new(request: Atom, range: (u32, u32)) -> Self {
+  pub fn new(request: Atom, range: DependencyRange) -> Self {
     Self {
       id: DependencyId::new(),
       request,
@@ -29,6 +29,10 @@ impl UnsupportedDependency {
 impl Dependency for UnsupportedDependency {
   fn id(&self) -> &DependencyId {
     &self.id
+  }
+
+  fn range(&self) -> Option<&DependencyRange> {
+    Some(&self.range)
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -45,32 +49,42 @@ impl Dependency for UnsupportedDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for UnsupportedDependency {
-  fn apply(
-    &self,
-    source: &mut TemplateReplaceSource,
-    _code_generatable_context: &mut TemplateContext,
-  ) {
-    let content = format!(
-      "Object(function webpackMissingModule() {{var e = new Error(\"Cannot find module '{}'\"); e.code = 'MODULE_NOT_FOUND'; throw e;}}())",
-      self.request
-    );
-    source.replace(self.range.0, self.range.1, &content, None);
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
+impl DependencyCodeGeneration for UnsupportedDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(UnsupportedDependencyTemplate::template_type())
   }
 }
 
 impl AsModuleDependency for UnsupportedDependency {}
 
 impl AsContextDependency for UnsupportedDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct UnsupportedDependencyTemplate;
+
+impl UnsupportedDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("UnsupportedDependency")
+  }
+}
+
+impl DependencyTemplate for UnsupportedDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    source: &mut TemplateReplaceSource,
+    _code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<UnsupportedDependency>()
+      .expect("UnsupportedDependencyTemplate should only be used for UnsupportedDependency");
+
+    let content = format!(
+      "Object(function webpackMissingModule() {{var e = new Error(\"Cannot find module '{}'\"); e.code = 'MODULE_NOT_FOUND'; throw e;}}())",
+      dep.request
+    );
+    source.replace(dep.range.start, dep.range.end, &content, None);
+  }
+}

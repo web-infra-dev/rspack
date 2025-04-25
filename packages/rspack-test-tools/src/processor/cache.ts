@@ -1,33 +1,28 @@
 import path from "node:path";
 import { rspack } from "@rspack/core";
-import { removeSync } from "fs-extra";
 
-import { TestHotUpdatePlugin } from "../helper/plugins";
+import { HotUpdatePlugin } from "../helper/hot-update";
 import {
 	ECompilerType,
 	type ITestContext,
 	type ITestEnv,
 	type ITestRunner,
-	type TCompilerOptions,
-	type TUpdateOptions
+	type TCompilerOptions
 } from "../type";
 import { BasicProcessor, type IBasicProcessorOptions } from "./basic";
 
 export interface ICacheProcessorOptions<T extends ECompilerType>
 	extends Omit<IBasicProcessorOptions<T>, "runable"> {
 	target: TCompilerOptions<T>["target"];
+	tempDir: string;
+	sourceDir: string;
 }
 
 export class CacheProcessor<T extends ECompilerType> extends BasicProcessor<T> {
-	protected updateOptions: TUpdateOptions;
+	protected updatePlugin: HotUpdatePlugin;
 	protected runner: ITestRunner | null = null;
 
 	constructor(protected _cacheOptions: ICacheProcessorOptions<T>) {
-		const fakeUpdateLoaderOptions: TUpdateOptions = {
-			updateIndex: 0,
-			totalUpdates: 1,
-			changedFiles: []
-		};
 		super({
 			defaultOptions: CacheProcessor.defaultOptions,
 			overrideOptions: CacheProcessor.overrideOptions,
@@ -35,34 +30,22 @@ export class CacheProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 			runable: true,
 			..._cacheOptions
 		});
-		this.updateOptions = fakeUpdateLoaderOptions;
+		this.updatePlugin = new HotUpdatePlugin(
+			_cacheOptions.sourceDir,
+			_cacheOptions.tempDir
+		);
 	}
 
-	async build(context: ITestContext): Promise<void> {
-		// clear cache directory first time.
-		const experiments =
-			this.getCompiler(context).getOptions().experiments || {};
-		let directory = "";
-		if (
-			"cache" in experiments &&
-			typeof experiments.cache === "object" &&
-			experiments.cache.type === "persistent"
-		) {
-			directory = experiments.cache.storage?.directory || directory;
-		}
-		removeSync(
-			path.resolve(context.getSource(), directory || "node_modules/.cache")
-		);
-
-		await super.build(context);
+	async config(context: ITestContext) {
+		await this.updatePlugin.initialize();
+		this._options.configFiles = this._options.configFiles?.map(item => {
+			return path.resolve(this._cacheOptions.tempDir, item);
+		});
+		super.config(context);
 	}
 
 	async run(env: ITestEnv, context: ITestContext) {
-		context.setValue(
-			this._options.name,
-			"hotUpdateContext",
-			this.updateOptions
-		);
+		context.setValue(this._options.name, "hotUpdateContext", this.updatePlugin);
 		await super.run(env, context);
 	}
 
@@ -99,12 +82,11 @@ export class CacheProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 
 	async afterAll(context: ITestContext) {
 		await super.afterAll(context);
-		if (
-			this.updateOptions.updateIndex + 1 !==
-			this.updateOptions.totalUpdates
-		) {
+		const updateIndex = this.updatePlugin.getUpdateIndex();
+		const totalUpdates = this.updatePlugin.getTotalUpdates();
+		if (updateIndex + 1 !== totalUpdates) {
 			throw new Error(
-				`Should run all hot steps (${this.updateOptions.updateIndex + 1} / ${this.updateOptions.totalUpdates}): ${this._options.name}`
+				`Should run all hot steps (${updateIndex + 1} / ${totalUpdates}): ${this._options.name}`
 			);
 		}
 	}
@@ -114,7 +96,7 @@ export class CacheProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 		context: ITestContext
 	): TCompilerOptions<T> {
 		const options = {
-			context: context.getSource(),
+			context: this._cacheOptions.tempDir,
 			mode: "production",
 			cache: true,
 			devtool: false,
@@ -158,6 +140,8 @@ export class CacheProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 			options.entry = "./index.js";
 		}
 
+		// rewrite context to temp dir
+		options.context = this._cacheOptions.tempDir;
 		options.module ??= {};
 		for (const cssModuleType of ["css/auto", "css/module", "css"] as const) {
 			options.module!.generator ??= {};
@@ -165,21 +149,16 @@ export class CacheProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 			options.module!.generator[cssModuleType]!.exportsOnly ??=
 				this._cacheOptions.target === "async-node";
 		}
-		options.module.rules ??= [];
-		options.module.rules.push({
-			test: /\.(js|css|json)/,
-			use: [
-				{
-					loader: path.resolve(__dirname, "../helper/loaders/hot-update.js"),
-					options: this.updateOptions
-				}
-			]
-		});
 		if (this._cacheOptions.compilerType === ECompilerType.Rspack) {
 			options.plugins ??= [];
 			(options as TCompilerOptions<ECompilerType.Rspack>).plugins!.push(
-				new TestHotUpdatePlugin(this.updateOptions)
+				this.updatePlugin
 			);
+		}
+		if (!global.printLogger) {
+			options.infrastructureLogging = {
+				level: "error"
+			};
 		}
 	}
 }

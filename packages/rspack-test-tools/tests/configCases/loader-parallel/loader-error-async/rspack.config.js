@@ -1,3 +1,4 @@
+const { supportsImportFn } = require("@rspack/test-tools");
 const path = require("path");
 const file = path.resolve(__dirname, "lib.js");
 
@@ -33,6 +34,6 @@ module.exports = {
 		]
 	},
 	experiments: {
-		parallelLoader: true
+		parallelLoader: supportsImportFn()
 	}
 };

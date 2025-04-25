@@ -224,7 +224,7 @@ const applyExperimentsDefaults = (
 	}
 
 	// IGNORE(experiments.incremental): Rspack specific configuration for incremental
-	D(experiments, "incremental", !production ? {} : false);
+	D(experiments, "incremental", development ? {} : false);
 	if (typeof experiments.incremental === "object") {
 		D(experiments.incremental, "make", true);
 		D(experiments.incremental, "inferAsyncModules", false);
@@ -260,11 +260,7 @@ const applybundlerInfoDefaults = (
 	if (typeof rspackFuture === "object") {
 		D(rspackFuture, "bundlerInfo", {});
 		if (typeof rspackFuture.bundlerInfo === "object") {
-			D(
-				rspackFuture.bundlerInfo,
-				"version",
-				require("../../package.json").version
-			);
+			D(rspackFuture.bundlerInfo, "version", RSPACK_VERSION);
 			D(rspackFuture.bundlerInfo, "bundler", "rspack");
 			// don't inject for library mode
 			D(rspackFuture.bundlerInfo, "force", !library);
@@ -1094,6 +1090,7 @@ const getResolveDefaults = ({
 		byDependency: {
 			wasm: esmDeps(),
 			esm: esmDeps(),
+			loaderImport: esmDeps(),
 			url: {
 				preferRelative: true
 			},
@@ -1104,7 +1101,7 @@ const getResolveDefaults = ({
 			commonjs: cjsDeps(),
 			amd: cjsDeps(),
 			// for backward-compat: loadModule
-			// loader: cjsDeps(),
+			loader: cjsDeps(),
 			// for backward-compat: Custom Dependency and getResolve without dependencyType
 			unknown: cjsDeps()
 		}

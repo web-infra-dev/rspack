@@ -6,6 +6,13 @@ pub struct ConcatenatedModule {
 }
 
 impl ConcatenatedModule {
+  pub(crate) fn custom_into_instance(
+    self,
+    env: &napi::Env,
+  ) -> napi::Result<napi::bindgen_prelude::ClassInstance<Self>> {
+    Self::new_inherited(self, env, vec![])
+  }
+
   fn as_ref(
     &mut self,
   ) -> napi::Result<(&rspack_core::Compilation, &rspack_core::ConcatenatedModule)> {
@@ -22,6 +29,18 @@ impl ConcatenatedModule {
 
 #[napi]
 impl ConcatenatedModule {
+  #[napi(getter, ts_return_type = "Module")]
+  pub fn root_module(&mut self) -> napi::Result<ModuleObject> {
+    let (compilation, module) = self.as_ref()?;
+    let root_module = compilation
+      .module_by_identifier(&module.get_root())
+      .expect("Root module should exist");
+    Ok(ModuleObject::with_ref(
+      root_module.as_ref(),
+      compilation.compiler_id(),
+    ))
+  }
+
   #[napi(getter, ts_return_type = "Module[]")]
   pub fn modules(&mut self) -> napi::Result<Vec<ModuleObject>> {
     let (compilation, module) = self.as_ref()?;

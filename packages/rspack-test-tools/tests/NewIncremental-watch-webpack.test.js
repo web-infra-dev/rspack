@@ -2,7 +2,10 @@
 process.env.RSPACK_CONFIG_VALIDATE = "loose-silent";
 
 const path = require("path");
-const { describeByWalk, createWatchNewIncrementalCase } = require("../dist");
+const {
+	describeByWalk,
+	createWatchNewIncrementalCase
+} = require("@rspack/test-tools");
 
 function v(name) {
 	return path.join(__dirname, `new-incremental ${name}`);
@@ -16,7 +19,9 @@ describeByWalk(
 			__dirname,
 			`./js/new-incremental/webpack-test/temp`
 		);
-		createWatchNewIncrementalCase(name, src, dist, path.join(tempDir, name));
+		createWatchNewIncrementalCase(name, src, dist, path.join(tempDir, name), {
+			ignoreNotFriendlyForIncrementalWarnings: true
+		});
 	},
 	{
 		source: path.resolve(__dirname, "../../../tests/webpack-test/watchCases"),

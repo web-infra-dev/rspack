@@ -7,4 +7,4 @@ pub use import_meta_hot_accept::*;
 mod import_meta_hot_decline;
 pub use import_meta_hot_decline::*;
 mod esm_accept_dependency;
-pub use esm_accept_dependency::ESMAcceptDependency;
+pub use esm_accept_dependency::*;

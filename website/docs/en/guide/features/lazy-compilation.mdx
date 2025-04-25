@@ -112,12 +112,15 @@ const middleware = experiments.lazyCompilationMiddleware(
   config.experiments.lazyCompilation,
 );
 
-const server = new DevServer(compiler, {
-  port: 3000,
-  setupMiddlewares(other) {
-    return [middleware, ...other];
+const server = new DevServer(
+  {
+    port: 3000,
+    setupMiddlewares(other) {
+      return [middleware, ...other];
+    },
   },
-});
+  compiler,
+);
 
 server.start();
 ```
@@ -126,3 +129,24 @@ server.start();
 
 - `compiler`: The current [Compiler](/api/javascript-api/compiler) instance
 - `options`: The lazy compilation options, same as [experiments.lazyCompilation](/config/experiments#experimentslazycompilation)
+
+## Customizing lazy compilation endpoint
+
+By default, the lazy compilation middleware uses the `/lazy-compilation-using-` prefix for handling requests. If you need to customize this prefix, you can use the `prefix` option:
+
+```js title="rspack.config.mjs"
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  experiments: {
+    lazyCompilation: {
+      entries: true,
+      imports: true,
+      // Customize the lazy compilation endpoint prefix
+      prefix: '/custom-lazy-endpoint-',
+    },
+  },
+});
+```
+
+This is particularly useful when you're integrating with an existing system that has specific routing requirements or when you need to avoid prefix conflicts.

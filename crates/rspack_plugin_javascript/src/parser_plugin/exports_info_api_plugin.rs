@@ -54,12 +54,7 @@ impl JavascriptParserPlugin for ExportsInfoApiPlugin {
     _for_name: &str,
   ) -> Option<bool> {
     if expr.sym == WEBPACK_EXPORTS_INFO {
-      let dep = Box::new(ConstDependency::new(
-        expr.span.real_lo(),
-        expr.span.real_hi(),
-        "true".into(),
-        None,
-      ));
+      let dep = Box::new(ConstDependency::new(expr.span.into(), "true".into(), None));
       parser.presentational_dependencies.push(dep);
       Some(true)
     } else {

@@ -6,13 +6,14 @@ use rspack_core::{
   CompilationAdditionalChunkRuntimeRequirements, CompilationParams, CompilerCompilation,
   CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
 };
-use rspack_error::{error, Result};
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   runtime::{render_chunk_runtime_modules, render_runtime_modules},
   JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JsPlugin, RenderSource,
 };
+use rspack_util::json_stringify;
 
 use super::{generate_entry_startup, update_hash_for_entry_startup};
 
@@ -109,10 +110,10 @@ async fn render_chunk(
 
   if matches!(chunk.kind(), ChunkKind::HotUpdate) {
     source.add(RawStringSource::from(format!(
-      "{}[{}]('{}', ",
+      "{}[{}]({}, ",
       global_object,
-      serde_json::to_string(hot_update_global).map_err(|e| error!(e.to_string()))?,
-      chunk.expect_id(&compilation.chunk_ids_artifact)
+      serde_json::to_string(hot_update_global).to_rspack_result()?,
+      json_stringify(chunk.expect_id(&compilation.chunk_ids_artifact))
     )));
     source.add(render_source.source.clone());
     if has_runtime_modules {
@@ -150,7 +151,7 @@ async fn render_chunk(
         let start_up_source = generate_entry_startup(compilation, chunk_ukey, entries, true);
         let last_entry_module = entries
           .keys()
-          .last()
+          .next_back()
           .expect("should have last entry module");
         let mut render_source = RenderSource {
           source: start_up_source,

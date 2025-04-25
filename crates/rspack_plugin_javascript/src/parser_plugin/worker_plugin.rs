@@ -131,16 +131,14 @@ fn add_dependencies(
     parser
       .presentational_dependencies
       .push(Box::new(ConstDependency::new(
-        range.0,
-        range.0,
+        (range.0, range.0).into(),
         "Object.assign({}, ".into(),
         None,
       )));
     parser
       .presentational_dependencies
       .push(Box::new(ConstDependency::new(
-        range.1,
-        range.1,
+        (range.1, range.1).into(),
         format!(
           ", {{ type: {} }})",
           if output_module {
@@ -347,6 +345,9 @@ impl JavascriptParserPlugin for WorkerPlugin {
           if let Some(callee) = call_expr.callee.as_expr() {
             parser.walk_expression(callee);
           }
+          if let Some(arg) = call_expr.args.get(1) {
+            parser.walk_expression(&arg.expr);
+          }
           true
         },
       );
@@ -382,6 +383,9 @@ impl JavascriptParserPlugin for WorkerPlugin {
             if let Some(callee) = call_expr.callee.as_expr() {
               parser.walk_expression(callee);
             }
+            if let Some(arg) = call_expr.args.get(1) {
+              parser.walk_expression(&arg.expr);
+            }
             true
           },
         );
@@ -402,6 +406,9 @@ impl JavascriptParserPlugin for WorkerPlugin {
         );
         if let Some(callee) = call_expr.callee.as_expr() {
           parser.walk_expression(callee);
+        }
+        if let Some(arg) = call_expr.args.get(1) {
+          parser.walk_expression(&arg.expr);
         }
         true
       },
@@ -437,6 +444,11 @@ impl JavascriptParserPlugin for WorkerPlugin {
               parsed_options,
             );
             parser.walk_expression(&new_expr.callee);
+            if let Some(args) = &new_expr.args
+              && let Some(arg) = args.get(1)
+            {
+              parser.walk_expression(&arg.expr);
+            }
             true
           });
       }
@@ -458,6 +470,11 @@ impl JavascriptParserPlugin for WorkerPlugin {
           parsed_options,
         );
         parser.walk_expression(&new_expr.callee);
+        if let Some(args) = &new_expr.args
+          && let Some(arg) = args.get(1)
+        {
+          parser.walk_expression(&arg.expr);
+        }
         true
       })
   }

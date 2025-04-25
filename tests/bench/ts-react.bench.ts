@@ -1,7 +1,11 @@
-import { type Compilation, rspack } from "@rspack/core";
+import * as path from "path";
+import { type Compilation, rspack, NormalModule } from "@rspack/core";
 import { beforeAll, bench, describe } from "vitest";
 import rspackConfig from "./fixtures/ts-react/rspack.config";
 
+const BARREL_OPTIMIZATION_PREFIX = '__barrel_optimize__';
+
+let context: string;
 let theCompilation: Compilation;
 
 beforeAll(() => {
@@ -13,6 +17,8 @@ beforeAll(() => {
 				plugins: [
 					...(rspackConfig.plugins ?? []),
 					compiler => {
+						context = compiler.context;
+
 						compiler.hooks.compilation.tap("PLUGIN", compilation => {
 							theCompilation = compilation;
 						});
@@ -94,5 +100,90 @@ describe("TypeScript React project", () => {
 
 	bench("stats.toJson()", () => {
 		const json = theCompilation.getStats().toJson();
+	});
+
+	bench("collect imported identifiers", () => {
+		for (const [_, entry] of theCompilation.entries.entries()) {
+			const entryDependency = entry.dependencies?.[0];
+			if (!entryDependency || !entryDependency.request) continue;
+
+			const entryModule = theCompilation.moduleGraph.getResolvedModule(entryDependency);
+			if (!entryModule) continue;
+
+			for (const connection of theCompilation.moduleGraph.getOutgoingConnectionsInOrder(entryModule)) {
+				let importedIdentifiers: string[] = []
+				if (connection.dependency?.ids) {
+					importedIdentifiers.push(...connection.dependency.ids)
+				} else {
+					importedIdentifiers = ['*']
+				}
+			}
+		}
+	});
+
+	bench("record module", () => {
+		function recordModule(mod: NormalModule) {
+			let resource =
+				mod.type === 'css/mini-extract'
+				? mod.identifier().slice(mod.identifier().lastIndexOf('!') + 1)
+				: mod.resource
+	
+			if (!resource) {
+				return
+			}
+
+			let ssrNamedModuleId = path.relative(
+				context,
+				mod.resourceResolveData?.path || resource
+			);
+
+			const rscNamedModuleId = path.relative(
+				context,
+				mod.resourceResolveData?.path || resource
+			);
+
+			const esmResource = /[\\/]next[\\/]dist[\\/]/.test(resource)
+				? resource.replace(
+					/[\\/]next[\\/]dist[\\/]/,
+					'/next/dist/esm/'.replace(/\//g, path.sep)
+				)
+				: null
+
+			if (mod.matchResource?.startsWith(BARREL_OPTIMIZATION_PREFIX)) {
+			}
+		}
+
+		for (const module of theCompilation.modules) {
+			if (module instanceof NormalModule) {
+				recordModule(module);
+			}
+		}
+	});
+
+	bench("is css mod", () => {
+		const regexCSS = /\.(css|scss|sass)(\?.*)?$/;
+
+		function isCSSMod(mod: {
+			resource: string
+			type?: string
+			loaders?: { loader: string }[]
+		}): boolean {
+			return !!(
+			  	mod.type === 'css/mini-extract' ||
+			  	(mod.resource && regexCSS.test(mod.resource)) ||
+			 	mod.loaders?.some(
+					({ loader }) =>
+						loader.includes('next-style-loader/index.js') ||
+						loader.includes('rspack.CssExtractRspackPlugin.loader') ||
+						loader.includes('@vanilla-extract/webpack-plugin/loader/')
+			  	)
+			)
+		}
+
+		for (const module of theCompilation.modules) {
+			if (module instanceof NormalModule) {
+				isCSSMod(module);
+			}
+		}
 	});
 });

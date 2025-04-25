@@ -1,4 +1,3 @@
-#![feature(trait_upcasting)]
 #![allow(clippy::unwrap_used)]
 
 use criterion::criterion_main;

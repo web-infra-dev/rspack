@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
-  CompilationAdditionalChunkRuntimeRequirements, CompilationParams, CompilerCompilation,
-  CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
+  CompilationAdditionalChunkRuntimeRequirements, CompilationDependentFullHash, CompilationParams,
+  CompilerCompilation, CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -14,13 +14,13 @@ use rspack_plugin_javascript::{
   runtime::render_chunk_runtime_modules, JavascriptModulesChunkHash, JavascriptModulesRenderChunk,
   JsPlugin, RenderSource,
 };
-use rspack_util::itoa;
+use rspack_util::{itoa, json_stringify};
 use rustc_hash::FxHashSet as HashSet;
 
 use super::update_hash_for_entry_startup;
 use crate::{
   chunk_has_js, get_all_chunks, get_chunk_output_name, get_relative_path,
-  get_runtime_chunk_output_name,
+  get_runtime_chunk_output_name, runtime_chunk_has_hash,
 };
 
 const PLUGIN_NAME: &str = "rspack.ModuleChunkFormatPlugin";
@@ -93,6 +93,29 @@ async fn js_chunk_hash(
   Ok(())
 }
 
+#[plugin_hook(CompilationDependentFullHash for ModuleChunkFormatPlugin)]
+async fn compilation_dependent_full_hash(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+) -> Result<Option<bool>> {
+  if !chunk_has_js(chunk_ukey, compilation) {
+    return Ok(None);
+  }
+
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+
+  if !chunk.has_entry_module(&compilation.chunk_graph) {
+    return Ok(None);
+  }
+
+  if runtime_chunk_has_hash(compilation, chunk_ukey).await? {
+    return Ok(Some(true));
+  }
+
+  Ok(None)
+}
+
 #[plugin_hook(JavascriptModulesRenderChunk for ModuleChunkFormatPlugin)]
 async fn render_chunk(
   &self,
@@ -114,8 +137,8 @@ async fn render_chunk(
 
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
-    "export const __webpack_ids__ = ['{}'];\n",
-    &chunk.expect_id(&compilation.chunk_ids_artifact)
+    "export const __webpack_ids__ = [{}];\n",
+    json_stringify(chunk.expect_id(&compilation.chunk_ids_artifact))
   )));
   sources.add(RawStringSource::from_static(
     "export const __webpack_modules__ = ",
@@ -205,7 +228,7 @@ async fn render_chunk(
 
     let last_entry_module = entries
       .keys()
-      .last()
+      .next_back()
       .expect("should have last entry module");
     let mut render_source = RenderSource {
       source: RawStringSource::from(startup_source.join("\n")).boxed(),
@@ -242,6 +265,11 @@ impl Plugin for ModuleChunkFormatPlugin {
       .compilation_hooks
       .additional_chunk_runtime_requirements
       .tap(additional_chunk_runtime_requirements::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .dependent_full_hash
+      .tap(compilation_dependent_full_hash::new(self));
     Ok(())
   }
 }

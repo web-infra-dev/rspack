@@ -1,0 +1,187 @@
+name: Build Binding
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        required: true
+        type: string
+      runner: # Runner labels
+        required: true
+        type: string
+      profile: # Rust profile, "ci" or "production" or "profiling"
+        default: "ci"
+        required: false
+        type: string
+      ref: # Git reference to checkout
+        required: false
+        type: string
+env:
+  # Since CI builds are more akin to from-scratch builds, incremental compilation adds unnecessary dependency-tracking and IO overhead, reducing caching effectiveness.
+  # https://github.com/rust-lang/rust-analyzer/blob/25368d24308d6a94ffe8b99f0122bcf5a2175322/.github/workflows/ci.yaml#L11
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  build:
+    name: Build
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          ref: ${{ inputs.ref }}
+          clean: ${{ runner.environment == 'github-hosted' }}
+
+      - name: Pnpm Setup
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Install Binding Dependencies
+        uses: ./.github/actions/pnpm/install-binding-dependencies
+        with:
+          # binding dependencies so small that we don't need to cache them
+          # a fresh new installation takes about 5s
+          save-if: false
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          key: ${{ inputs.target }}-${{ inputs.profile }}
+          save-if: true
+
+      # setup rust target for native runner
+      - name: Setup Rust Target
+        run: rustup target add ${{ inputs.target }}
+
+      - name: Trim paths
+        run: |
+          echo $'\n' >> .cargo/config.toml
+          echo '[unstable]' >> .cargo/config.toml
+          echo 'trim-paths = true' >> .cargo/config.toml
+
+      # Fix: Resolve disk space error "ENOSPC: no space left on device" on GitHub Actions runners
+      - name: Free disk cache
+        if: ${{ runner.environment == 'github-hosted' && inputs.target == 'x86_64-unknown-linux-gnu' }}
+        uses: xc2/free-disk-space@fbe203b3788f2bebe2c835a15925da303eaa5efe # v1.0.0
+        with:
+          tool-cache: false
+
+      # Linux
+      - name: Build x86_64-unknown-linux-gnu native
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && inputs.profile == 'ci' }}
+        run: |
+          unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
+          rustup target add x86_64-unknown-linux-gnu
+          RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:ci
+
+      - name: Build x86_64-unknown-linux-gnu in Docker
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && inputs.profile != 'ci' }}
+        uses: ./.github/actions/docker/linux-build
+        with:
+          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
+          target: ${{ inputs.target }}
+          profile: ${{ inputs.profile }}
+          pre: unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
+
+      # runner these build in docker since we don't have github runner machine for it
+      - name: Build aarch64-unknown-linux-gnu in Docker
+        if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' }}
+        uses: ./.github/actions/docker/linux-build
+        with:
+          target: ${{ inputs.target }}
+          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
+          profile: ${{ inputs.profile }}
+          pre: |
+            export CC_aarch64_unknown_linux_gnu=clang
+
+      - name: Build x86_64-unknown-linux-musl in Docker
+        if: ${{ inputs.target == 'x86_64-unknown-linux-musl' }}
+        uses: ./.github/actions/docker/linux-build
+        with:
+          target: ${{ inputs.target }}
+          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+          profile: ${{ inputs.profile }}
+          pre: |
+            # set apk repositories to stable release branch
+            rm /etc/apk/repositories
+            echo "https://dl-cdn.alpinelinux.org/alpine/v3.21/main" >> /etc/apk/repositories
+            echo "https://dl-cdn.alpinelinux.org/alpine/v3.21/community" >> /etc/apk/repositories
+            apk update
+            # musl will enable clang-sys static linking
+            # https://github.com/KyleMayes/clang-sys?tab=readme-ov-file#static
+            # llvm19-dev is used to install llvm-config
+            # clang19-static is used to install libclang.a
+            apk add llvm19-dev clang19-static
+
+      - name: Build aarch64-unknown-linux-musl in Docker
+        if: ${{ inputs.target == 'aarch64-unknown-linux-musl' }}
+        uses: ./.github/actions/docker/linux-build
+        with:
+          target: ${{ inputs.target }}
+          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+          profile: ${{ inputs.profile }}
+          pre: |
+            export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc
+            # set apk repositories to stable release branch
+            rm /etc/apk/repositories
+            echo "https://dl-cdn.alpinelinux.org/alpine/v3.21/main" >> /etc/apk/repositories
+            echo "https://dl-cdn.alpinelinux.org/alpine/v3.21/community" >> /etc/apk/repositories
+            apk update
+            # musl will enable clang-sys static linking
+            # https://github.com/KyleMayes/clang-sys?tab=readme-ov-file#static
+            # llvm19-dev is used to install llvm-config
+            # clang19-static is used to install libclang.a
+            apk add llvm19-dev clang19-static
+
+      # Windows
+      - name: Build i686-pc-windows-msvc
+        if: ${{ inputs.target == 'i686-pc-windows-msvc' }}
+        run: RUST_TARGET=${{ inputs.target }} DISABLE_PLUGIN=1 pnpm build:binding:${{ inputs.profile }}
+
+      - name: Build x86_64-pc-windows-msvc
+        if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
+        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
+
+      - name: Build aarch64-pc-windows-msvc
+        if: ${{ inputs.target == 'aarch64-pc-windows-msvc' }}
+        run: RUST_TARGET=${{ inputs.target }} DISABLE_PLUGIN=1 pnpm build:binding:${{ inputs.profile }}
+
+      # Mac
+      - name: Build x86_64-apple-darwin
+        if: ${{ inputs.target == 'x86_64-apple-darwin' }}
+        run: |
+          RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
+
+      - name: Build aarch64-apple-darwin
+        if: ${{ inputs.target == 'aarch64-apple-darwin' }}
+        run: |
+          if [[ "${{ runner.environment == 'github-hosted' }}" == "true" ]]; then
+            # Github runner
+            sudo rm -Rf /Library/Developer/CommandLineTools/SDKs/*;
+          fi
+          export CC=$(xcrun -f clang);
+          export CXX=$(xcrun -f clang++);
+          SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
+          export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
+          RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
+
+      # WASM
+      - name: Build wasm32-wasip1-threads with linux in Docker
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
+        uses: ./.github/actions/docker/linux-build
+        with:
+          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
+          target: ${{ inputs.target }}
+          profile: ${{ inputs.profile }}
+          plugin: false
+          pre: unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
+
+      - name: Upload artifact
+        uses: ./.github/actions/artifact/upload
+        with:
+          name: bindings-${{ inputs.target }}
+          path: |
+            crates/node_binding/*.node
+            crates/node_binding/*.wasm

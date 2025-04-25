@@ -78,3 +78,17 @@ impl JsRspackError {
     .with_hide_stack(self.hide_stack)
   }
 }
+
+pub trait RspackResultToNapiResultExt<T, E: ToString> {
+  fn to_napi_result(self) -> napi::Result<T>;
+  fn to_napi_result_with_message(self, f: impl FnOnce(E) -> String) -> napi::Result<T>;
+}
+
+impl<T, E: ToString> RspackResultToNapiResultExt<T, E> for Result<T, E> {
+  fn to_napi_result(self) -> napi::Result<T> {
+    self.map_err(|e| napi::Error::from_reason(e.to_string()))
+  }
+  fn to_napi_result_with_message(self, f: impl FnOnce(E) -> String) -> napi::Result<T> {
+    self.map_err(|e| napi::Error::from_reason(f(e)))
+  }
+}

@@ -11,7 +11,7 @@ use rspack_core::{
   Chunk, ChunkByUkey, ChunkGraph, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier,
   UsageKey,
 };
-use rspack_error::Result;
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap, FxHasher};
 
@@ -448,7 +448,7 @@ impl SplitChunksPlugin {
       })
     })
     .await
-    .into_iter().map(|res| res.map_err(rspack_error::miette::Error::from_err))
+    .into_iter().map(|r| r.to_rspack_result())
     .collect::<Result<Vec<_>>>()?;
 
     for result in module_group_results {

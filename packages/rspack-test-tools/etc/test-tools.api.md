@@ -155,9 +155,9 @@ export class CacheProcessor<T extends ECompilerType> extends BasicProcessor<T> {
     // (undocumented)
     afterAll(context: ITestContext): Promise<void>;
     // (undocumented)
-    build(context: ITestContext): Promise<void>;
-    // (undocumented)
     protected _cacheOptions: ICacheProcessorOptions<T>;
+    // (undocumented)
+    config(context: ITestContext): Promise<void>;
     // (undocumented)
     static defaultOptions<T extends ECompilerType>(this: CacheProcessor<T>, context: ITestContext): TCompilerOptions<T>;
     // (undocumented)
@@ -169,7 +169,7 @@ export class CacheProcessor<T extends ECompilerType> extends BasicProcessor<T> {
     // (undocumented)
     protected runner: ITestRunner | null;
     // (undocumented)
-    protected updateOptions: TUpdateOptions;
+    protected updatePlugin: HotUpdatePlugin;
 }
 
 // @public (undocumented)
@@ -226,7 +226,7 @@ export class ConfigProcessor<T extends ECompilerType> extends MultiTaskProcessor
 export function createBuiltinCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
-export function createCacheCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
+export function createCacheCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"], temp: string): void;
 
 // @public (undocumented)
 export function createCompilerCase(name: string, src: string, dist: string, testConfig: string): void;
@@ -286,7 +286,7 @@ export function createTreeShakingCase(name: string, src: string, dist: string): 
 export function createWatchCase(name: string, src: string, dist: string, temp: string): void;
 
 // @public (undocumented)
-export function createWatchNewIncrementalCase(name: string, src: string, dist: string, temp: string): void;
+export function createWatchNewIncrementalCase(name: string, src: string, dist: string, temp: string, options?: WatchNewIncrementalOptions): void;
 
 // @public (undocumented)
 export class DefaultsConfigProcessor<T extends ECompilerType> extends SimpleTaskProcessor<T> {
@@ -312,6 +312,8 @@ export class DefaultsConfigProcessor<T extends ECompilerType> extends SimpleTask
     // (undocumented)
     static getDefaultConfig(cwd: string, config: TCompilerOptions<ECompilerType>): TCompilerOptions<ECompilerType>;
     // (undocumented)
+    static overrideOptions<T extends ECompilerType>(options: TCompilerOptions<T>): void;
+    // (undocumented)
     run(env: ITestEnv, context: ITestContext): Promise<void>;
 }
 
@@ -335,6 +337,8 @@ export class DiagnosticProcessor<T extends ECompilerType> extends BasicProcessor
     static defaultOptions<T extends ECompilerType>(context: ITestContext): TCompilerOptions<T>;
     // (undocumented)
     protected _diagnosticOptions: IDiagnosticProcessorOptions<T>;
+    // (undocumented)
+    static overrideOptions<T extends ECompilerType>(options: TCompilerOptions<T>): void;
 }
 
 // @public (undocumented)
@@ -529,6 +533,8 @@ export class HookTaskProcessor<T extends ECompilerType> extends SnapshotProcesso
     static defaultOptions<T extends ECompilerType>(context: ITestContext): TCompilerOptions<T>;
     // (undocumented)
     protected _hookOptions: IHookProcessorOptions<T>;
+    // (undocumented)
+    static overrideOptions<T extends ECompilerType>(options: TCompilerOptions<T>): void;
 }
 
 // @public (undocumented)
@@ -588,6 +594,21 @@ export class HotSnapshotProcessor<T extends ECompilerType> extends HotProcessor<
 export class HotStepRunnerFactory<T extends ECompilerType> extends HotRunnerFactory<T> {
     // (undocumented)
     protected createRunner(file: string, stats: TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
+}
+
+// @public (undocumented)
+class HotUpdatePlugin {
+    constructor(projectDir: string, tempDir: string);
+    // (undocumented)
+    apply(compiler: Compiler): void;
+    // (undocumented)
+    getTotalUpdates(): number;
+    // (undocumented)
+    getUpdateIndex(): number;
+    // (undocumented)
+    goNext(): Promise<void>;
+    // (undocumented)
+    initialize(): Promise<void>;
 }
 
 // @public (undocumented)
@@ -688,7 +709,11 @@ export interface IBuiltinProcessorOptions<T extends ECompilerType> extends Omit<
 // @public (undocumented)
 export interface ICacheProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "runable"> {
     // (undocumented)
+    sourceDir: string;
+    // (undocumented)
     target: TCompilerOptions<T>["target"];
+    // (undocumented)
+    tempDir: string;
 }
 
 // @public (undocumented)
@@ -1150,10 +1175,6 @@ export interface ITestRunner {
 // @public (undocumented)
 export interface IWatchProcessorOptions<T extends ECompilerType> extends IMultiTaskProcessorOptions<T> {
     // (undocumented)
-    experiments?: TRspackExperiments;
-    // (undocumented)
-    optimization?: TRspackOptimization;
-    // (undocumented)
     stepName: string;
     // (undocumented)
     tempDir: string;
@@ -1248,6 +1269,8 @@ export class NormalProcessor<T extends ECompilerType> extends BasicProcessor<T> 
     static defaultOptions<T extends ECompilerType>(this: NormalProcessor<T>, context: ITestContext): TCompilerOptions<T>;
     // (undocumented)
     protected _normalOptions: INormalProcessorOptions<T>;
+    // (undocumented)
+    static overrideOptions<T extends ECompilerType>(options: TCompilerOptions<T>): void;
 }
 
 // @public (undocumented)
@@ -1376,6 +1399,9 @@ export class StatsProcessor<T extends ECompilerType> extends MultiTaskProcessor<
     // (undocumented)
     static overrideOptions<T extends ECompilerType>(index: number, context: ITestContext, options: TCompilerOptions<T>): void;
 }
+
+// @public (undocumented)
+export function supportsImportFn(): boolean;
 
 // @public (undocumented)
 export type TBasicRunnerFile = {
@@ -1585,12 +1611,6 @@ export type TModuleObject = {
 export type TModuleTypeId = "normal" | "runtime";
 
 // @public (undocumented)
-type TRspackExperiments = TCompilerOptions<ECompilerType>["experiments"];
-
-// @public (undocumented)
-type TRspackOptimization = TCompilerOptions<ECompilerType>["optimization"];
-
-// @public (undocumented)
 export interface TRunnerFactory<T extends ECompilerType> {
     // (undocumented)
     create(file: string, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
@@ -1647,6 +1667,11 @@ export type TUpdateOptions = {
 };
 
 // @public (undocumented)
+export type WatchNewIncrementalOptions = {
+    ignoreNotFriendlyForIncrementalWarnings?: boolean;
+};
+
+// @public (undocumented)
 export class WatchProcessor<T extends ECompilerType> extends MultiTaskProcessor<T> {
     constructor(_watchOptions: IWatchProcessorOptions<T>, _watchState: Record<string, any>);
     // (undocumented)
@@ -1664,7 +1689,7 @@ export class WatchProcessor<T extends ECompilerType> extends MultiTaskProcessor<
     // (undocumented)
     protected lastHash: string | null;
     // (undocumented)
-    static overrideOptions<T extends ECompilerType>({ tempDir, name, experiments, optimization }: IWatchProcessorOptions<T>): (index: number, context: ITestContext, options: TCompilerOptions<ECompilerType>) => void;
+    static overrideOptions<T extends ECompilerType>({ tempDir, name }: IWatchProcessorOptions<T>): (index: number, context: ITestContext, options: TCompilerOptions<ECompilerType>) => void;
     // (undocumented)
     run(env: ITestEnv, context: ITestContext): Promise<void>;
     // (undocumented)

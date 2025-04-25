@@ -3,7 +3,7 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
+  AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
   DependencyRange, DependencyType, ExtendedReferencedExport, FactorizeInfo, ModuleDependency,
   RuntimeSpec,
 };
@@ -90,5 +90,5 @@ impl ModuleDependency for CssComposeDependency {
   }
 }
 
-impl AsDependencyTemplate for CssComposeDependency {}
+impl AsDependencyCodeGeneration for CssComposeDependency {}
 impl AsContextDependency for CssComposeDependency {}

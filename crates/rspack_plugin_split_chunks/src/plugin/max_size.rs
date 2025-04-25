@@ -16,7 +16,7 @@ use rspack_core::{
   incremental::Mutation, ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier,
   SourceType, DEFAULT_DELIMITER,
 };
-use rspack_error::Result;
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::identifier::make_paths_relative;
 use rustc_hash::FxHashSet;
@@ -582,7 +582,7 @@ impl SplitChunksPlugin {
     })
     .await
     .into_iter()
-    .map(|res| res.map_err(rspack_error::miette::Error::from_err))
+    .map(|r| r.to_rspack_result())
     .collect::<Result<Vec<_>>>()?;
 
     let mut chunks_with_size_info = vec![];
@@ -683,6 +683,10 @@ impl SplitChunksPlugin {
           };
           let new_part_ukey = new_part.ukey();
           chunk.split(new_part, &mut compilation.chunk_group_by_ukey);
+          *new_part.chunk_reason_mut() = chunk.chunk_reason().map(ToString::to_string);
+          if chunk.filename_template().is_some() {
+            new_part.set_filename_template(chunk.filename_template().cloned());
+          }
           if let Some(mutations) = compilation.incremental.mutations_write() {
             mutations.add(Mutation::ChunkSplit {
               from: old_chunk,

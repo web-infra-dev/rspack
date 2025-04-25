@@ -576,25 +576,23 @@ mod tests {
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn should_write_pack() {
+  async fn should_write_pack() -> Result<()> {
     for strategy in create_strategies("write_pack") {
       clean_strategy(&strategy).await;
 
-      let _ = test_write_pack(&strategy)
-        .await
-        .map_err(|e| panic!("{}", e));
+      test_write_pack(&strategy).await?;
     }
+    Ok(())
   }
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn should_update_packs() {
+  async fn should_update_packs() -> Result<()> {
     for strategy in create_strategies("update_packs") {
       clean_strategy(&strategy).await;
 
-      let _ = test_update_packs(&strategy)
-        .await
-        .map_err(|e| panic!("{}", e));
+      test_update_packs(&strategy).await?;
     }
+    Ok(())
   }
 }

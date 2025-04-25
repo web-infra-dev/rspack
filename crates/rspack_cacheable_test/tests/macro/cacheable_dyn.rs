@@ -1,4 +1,6 @@
-use rspack_cacheable::{cacheable, cacheable_dyn, from_bytes, to_bytes};
+use rspack_cacheable::{
+  enable_cacheable as cacheable, enable_cacheable_dyn as cacheable_dyn, from_bytes, to_bytes,
+};
 
 #[test]
 #[cfg_attr(miri, ignore)]

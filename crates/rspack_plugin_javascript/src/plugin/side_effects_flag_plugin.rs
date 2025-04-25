@@ -621,7 +621,7 @@ impl ClassExt for ClassMember {
 #[derive(Debug, Default)]
 pub struct SideEffectsFlagPlugin;
 
-#[plugin_hook(NormalModuleFactoryModule for SideEffectsFlagPlugin)]
+#[plugin_hook(NormalModuleFactoryModule for SideEffectsFlagPlugin,tracing=false)]
 async fn nmf_module(
   &self,
   _data: &mut ModuleFactoryCreateData,
@@ -656,7 +656,7 @@ async fn nmf_module(
   Ok(())
 }
 
-#[plugin_hook(CompilationOptimizeDependencies for SideEffectsFlagPlugin)]
+#[plugin_hook(CompilationOptimizeDependencies for SideEffectsFlagPlugin,tracing=false)]
 async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   let logger = compilation.get_logger("rspack.SideEffectsFlagPlugin");
   let start = logger.time("update connections");
@@ -760,7 +760,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
 
   let mut do_optimizes: Vec<(DependencyId, SideEffectsDoOptimize)> = if compilation
     .incremental
-    .can_read_mutations(IncrementalPasses::SIDE_EFFECTS)
+    .mutations_readable(IncrementalPasses::SIDE_EFFECTS)
   {
     side_effects_optimize_artifact.extend(artifact);
     side_effects_optimize_artifact.clone()
@@ -833,7 +833,7 @@ fn do_optimize_connection(
   (dependency, target_module)
 }
 
-#[tracing::instrument(skip_all)]
+#[tracing::instrument("can_optimize_connection", level = "trace", skip_all)]
 fn can_optimize_connection(
   connection: &ModuleGraphConnection,
   side_effects_state_map: &IdentifierMap<ConnectionState>,

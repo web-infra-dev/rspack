@@ -25,10 +25,6 @@ import {
 import { NormalModuleFactory } from "./NormalModuleFactory";
 import { ResolverFactory } from "./ResolverFactory";
 import { RuleSetCompiler } from "./RuleSetCompiler";
-import {
-	__from_binding_runtime_globals,
-	__to_binding_runtime_globals
-} from "./RuntimeGlobals";
 import { Stats } from "./Stats";
 import { Watching } from "./Watching";
 import {
@@ -442,6 +438,13 @@ class Compiler {
 		const startTime = Date.now();
 		this.running = true;
 
+		const instanceBinding: typeof binding = require("@rspack/binding");
+		let isRuntimeShutdown = false;
+		if (isRuntimeShutdown) {
+			instanceBinding.startAsyncRuntime();
+			isRuntimeShutdown = false;
+		}
+
 		const finalCallback = (err: Error | null, stats?: Stats) => {
 			this.idle = true;
 			this.cache.beginIdle();
@@ -454,6 +457,9 @@ class Compiler {
 				callback(err, stats);
 			}
 			this.hooks.afterDone.call(stats!);
+
+			instanceBinding.shutdownAsyncRuntime();
+			isRuntimeShutdown = true;
 		};
 
 		const onCompiled = (
@@ -707,7 +713,15 @@ class Compiler {
 		}
 		this.hooks.shutdown.callAsync(err => {
 			if (err) return callback(err);
-			this.cache.shutdown(callback);
+			this.cache.shutdown(() => {
+				this.#getInstance((error, instance) => {
+					if (error) {
+						return callback(error);
+					}
+					instance!.close();
+					callback();
+				});
+			});
 		});
 	}
 

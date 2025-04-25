@@ -18,7 +18,9 @@ import { CacheFacade as CacheFacade_2 } from './lib/CacheFacade';
 import type { Callback } from '@rspack/lite-tapable';
 import { Compiler as Compiler_2 } from '..';
 import { ConcatenatedModule } from '@rspack/binding';
+import { Configuration as Configuration_2 } from '..';
 import { ContextModule } from '@rspack/binding';
+import { createReadStream } from 'fs';
 import { default as default_2 } from './util/hash';
 import { Dependency } from '@rspack/binding';
 import { EntryDependency } from '@rspack/binding';
@@ -26,9 +28,10 @@ import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } f
 import { EventEmitter } from 'events';
 import { ExternalModule } from '@rspack/binding';
 import { ExternalObject } from '@rspack/binding';
-import fs from 'graceful-fs';
-import { fs as fs_2 } from 'fs';
+import { fs } from 'fs';
+import { default as fs_2 } from 'graceful-fs';
 import { HookMap } from '@rspack/lite-tapable';
+import { IncomingMessage as IncomingMessage_2 } from 'http';
 import { inspect } from 'node:util';
 import type { JsAddingRuntimeModule } from '@rspack/binding';
 import type { JsAfterEmitData } from '@rspack/binding';
@@ -46,7 +49,6 @@ import type { JsExportsInfo } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
 import type { JsModuleGraph } from '@rspack/binding';
-import type { JsModuleGraphConnection } from '@rspack/binding';
 import { JsRsdoctorAssetPatch } from '@rspack/binding';
 import { JsRsdoctorChunkGraph } from '@rspack/binding';
 import { JsRsdoctorModuleGraph } from '@rspack/binding';
@@ -58,10 +60,11 @@ import type { JsStatsCompilation } from '@rspack/binding';
 import type { JsStatsError } from '@rspack/binding';
 import type { JsStatsWarning } from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
-import { Logger as Logger_2 } from './logging/Logger';
-import type { Middleware } from 'webpack-dev-server';
+import { Logger } from './logging/Logger';
 import { Module } from '@rspack/binding';
+import type { ModuleGraphConnection } from '@rspack/binding';
 import { NormalModule } from '@rspack/binding';
+import { OutputFileSystem as OutputFileSystem_3 } from '..';
 import { RawCopyPattern } from '@rspack/binding';
 import { RawCssExtractPluginOption } from '@rspack/binding';
 import type { RawFuncUseCtx } from '@rspack/binding';
@@ -72,14 +75,22 @@ import { RawProgressPluginOptions } from '@rspack/binding';
 import { RawProvideOptions } from '@rspack/binding';
 import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { RawSubresourceIntegrityPluginOptions } from '@rspack/binding';
+import { readFileSync } from 'fs';
+import { ReadStream as ReadStream_2 } from 'fs';
 import { Resolver as Resolver_2 } from './Resolver';
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
+import { Server } from 'net';
+import { Server as Server_2 } from 'tls';
+import { Server as Server_3 } from 'http';
+import { ServerOptions as ServerOptions_2 } from 'https';
+import { ServerResponse as ServerResponse_2 } from 'http';
 import { RawSourceMapDevToolPluginOptions as SourceMapDevToolPluginOptions } from '@rspack/binding';
 import sources = require('../compiled/webpack-sources');
+import { StatSyncFn } from 'fs';
 import { SyncBailHook } from '@rspack/lite-tapable';
 import { SyncHook } from '@rspack/lite-tapable';
 import { SyncWaterfallHook } from '@rspack/lite-tapable';
-import type * as webpackDevServer from 'webpack-dev-server';
+import { Url } from 'url';
 
 // @public (undocumented)
 interface AdditionalData {
@@ -306,6 +317,7 @@ interface BaseModuleConfig {
     lazy?: boolean | string[];
     // @deprecated (undocumented)
     noInterop?: boolean;
+    outFileExtension?: "js" | "mjs" | "cjs";
     // (undocumented)
     preserveImportMeta?: boolean;
     strict?: boolean;
@@ -316,7 +328,16 @@ interface BaseModuleConfig {
 export type BaseUri = string;
 
 // @public (undocumented)
+type BasicApplication = any;
+
+// @public (undocumented)
+type BasicServer = Server | Server_2;
+
+// @public (undocumented)
 type BigIntStatsCallback = (err: NodeJS.ErrnoException | null, stats?: IBigIntStats) => void;
+
+// @public (undocumented)
+type BonjourServer = any;
 
 // @public (undocumented)
 type BufferCallback = (err: NodeJS.ErrnoException | null, data?: Buffer) => void;
@@ -325,6 +346,9 @@ type BufferCallback = (err: NodeJS.ErrnoException | null, data?: Buffer) => void
 type BufferEncodingOption = "buffer" | {
     encoding: "buffer";
 };
+
+// @public (undocumented)
+type ByPass = (req: Request_2, res: Response_2, proxyConfig: ProxyConfigArrayItem) => any;
 
 // @public (undocumented)
 class Cache_2 {
@@ -397,6 +421,9 @@ type CacheHookMap = Map<string, SyncBailHook<[any[], StatsFactoryContext], any>[
 export type CacheOptions = boolean;
 
 // @public (undocumented)
+type Callback_2 = (stats?: Stats | MultiStats | undefined) => any;
+
+// @public (undocumented)
 type CallbackCache<T> = (err?: WebpackError_2 | null, result?: T) => void;
 
 // @public (undocumented)
@@ -404,6 +431,11 @@ type CallbackNormalErrorCache<T> = (err?: WebpackError_2 | null, result?: T) => 
 
 // @public (undocumented)
 type CallFn = (...args: any[]) => any;
+
+// @public (undocumented)
+type ChokidarWatchOptions = {
+    [key: string]: any;
+};
 
 // @public (undocumented)
 export class Chunk {
@@ -495,6 +527,8 @@ class ChunkGraph {
     getModuleId(module: Module): string | number | null;
     // (undocumented)
     getNumberOfEntryModules(chunk: Chunk): number;
+    // (undocumented)
+    getOrderedChunkModulesIterable(chunk: Chunk, compareFn: (a: Module, b: Module) => number): Iterable<Module>;
 }
 
 // @public (undocumented)
@@ -542,15 +576,15 @@ export type ChunkLoadingGlobal = string;
 export type ChunkLoadingType = string | "jsonp" | "import-scripts" | "require" | "async-node" | "import";
 
 // @public (undocumented)
-export const CircularDependencyRspackPlugin: {
-    new (options: CircularDependencyRspackPluginOptions): {
-        name: BuiltinPluginName;
-        _args: [options: CircularDependencyRspackPluginOptions];
-        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
-        raw(compiler: Compiler_2): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
+export class CircularDependencyRspackPlugin extends RspackBuiltinPlugin {
+    constructor(options: CircularDependencyRspackPluginOptions);
+    // (undocumented)
+    name: BuiltinPluginName;
+    // (undocumented)
+    _options: CircularDependencyRspackPluginOptions;
+    // (undocumented)
+    raw(compiler: Compiler): BuiltinPlugin;
+}
 
 // @public (undocumented)
 export type CircularDependencyRspackPluginOptions = {
@@ -558,15 +592,29 @@ export type CircularDependencyRspackPluginOptions = {
     allowAsyncCycles?: boolean;
     exclude?: RegExp;
     ignoredConnections?: Array<[string | RegExp, string | RegExp]>;
-    onDetected?(entrypoint: Module, modules: string[], compilation: JsCompilation): void;
-    onIgnored?(entrypoint: Module, modules: string[], compilation: JsCompilation): void;
-    onStart?(compilation: JsCompilation): void;
-    onEnd?(compilation: JsCompilation): void;
+    onDetected?(entrypoint: Module, modules: string[], compilation: Compilation): void;
+    onIgnored?(entrypoint: Module, modules: string[], compilation: Compilation): void;
+    onStart?(compilation: Compilation): void;
+    onEnd?(compilation: Compilation): void;
 };
 
 // @public
 export type Clean = boolean | {
     keep?: string;
+};
+
+// @public (undocumented)
+type ClientConfiguration = {
+    logging?: "none" | "error" | "warn" | "info" | "log" | "verbose" | undefined;
+    overlay?: boolean | {
+        warnings?: OverlayMessageOptions;
+        errors?: OverlayMessageOptions;
+        runtimeErrors?: OverlayMessageOptions;
+    } | undefined;
+    progress?: boolean | undefined;
+    reconnect?: number | boolean | undefined;
+    webSocketTransport?: string | undefined;
+    webSocketURL?: string | WebSocketURL | undefined;
 };
 
 // @public (undocumented)
@@ -590,6 +638,8 @@ interface CommonJsConfig extends BaseModuleConfig {
 
 // @public (undocumented)
 export class Compilation {
+    // (undocumented)
+    [binding.COMPILATION_HOOKS_MAP_SYMBOL]: WeakMap<Compilation, NormalModuleCompilationHooks>;
     constructor(compiler: Compiler, inner: JsCompilation);
     // @internal
     __internal__deleteAssetSource(filename: string): void;
@@ -597,8 +647,6 @@ export class Compilation {
     __internal__getAssetFilenames(): string[];
     // @internal
     __internal__getAssetSource(filename: string): Source | void;
-    // @internal
-    __internal__getChunks(): Chunk[];
     // @internal
     __internal__hasAsset(name: string): boolean;
     // @internal
@@ -689,7 +737,7 @@ export class Compilation {
     // (undocumented)
     getCache(name: string): CacheFacade_2;
     // (undocumented)
-    getLogger(name: string | (() => string)): Logger;
+    getLogger(name: string | (() => string)): Logger_3;
     // (undocumented)
     getPath(filename: Filename, data?: PathData): string;
     // (undocumented)
@@ -875,7 +923,7 @@ export class Compiler {
     // (undocumented)
     getCache(name: string): CacheFacade;
     // (undocumented)
-    getInfrastructureLogger(name: string | (() => string)): Logger;
+    getInfrastructureLogger(name: string | (() => string)): Logger_3;
     // (undocumented)
     hooks: {
         done: liteTapable.AsyncSeriesHook<Stats>;
@@ -1368,9 +1416,71 @@ export { Dependency }
 // @public (undocumented)
 type DependencyLocation = any;
 
+// @public (undocumented)
+type DevMiddlewareContext<RequestInternal extends IncomingMessage = IncomingMessage, ResponseInternal extends ServerResponse = ServerResponse> = {
+    state: boolean;
+    stats: Stats | MultiStats | undefined;
+    callbacks: Callback_2[];
+    options: any;
+    compiler: Compiler | MultiCompiler;
+    watching: Watching | MultiWatching_2 | undefined;
+    logger: Logger_2;
+    outputFileSystem: OutputFileSystem_2;
+};
+
+// @public (undocumented)
+type DevMiddlewareOptions<RequestInternal extends IncomingMessage = IncomingMessage, ResponseInternal extends ServerResponse = ServerResponse> = {
+    mimeTypes?: {
+        [key: string]: string;
+    } | undefined;
+    mimeTypeDefault?: string | undefined;
+    writeToDisk?: boolean | ((targetPath: string) => boolean) | undefined;
+    methods?: string[] | undefined;
+    headers?: any;
+    publicPath?: NonNullable<RspackConfiguration["output"]>["publicPath"];
+    stats?: RspackConfiguration["stats"];
+    serverSideRender?: boolean | undefined;
+    outputFileSystem?: OutputFileSystem_2 | undefined;
+    index?: string | boolean | undefined;
+    modifyResponseData?: ModifyResponseData<RequestInternal, ResponseInternal> | undefined;
+    etag?: "strong" | "weak" | undefined;
+    lastModified?: boolean | undefined;
+    cacheControl?: string | number | boolean | {
+        maxAge?: number;
+        immutable?: boolean;
+    } | undefined;
+    cacheImmutable?: boolean | undefined;
+};
+
 // @public
-export interface DevServer extends webpackDevServer.Configuration {
+export interface DevServer extends DevServerOptions {
 }
+
+// @public (undocumented)
+type DevServerOptions<A extends BasicApplication = BasicApplication, S extends BasicServer = Server_3<IncomingMessage, ServerResponse>> = {
+    ipc?: string | boolean | undefined;
+    host?: string | undefined;
+    port?: Port | undefined;
+    hot?: boolean | "only" | undefined;
+    liveReload?: boolean | undefined;
+    devMiddleware?: DevMiddlewareOptions | undefined;
+    compress?: boolean | undefined;
+    allowedHosts?: string | string[] | undefined;
+    historyApiFallback?: boolean | HistoryApiFallbackOptions | undefined;
+    bonjour?: boolean | Record<string, never> | BonjourServer | undefined;
+    watchFiles?: string | string[] | WatchFiles | (string | WatchFiles)[] | undefined;
+    static?: string | boolean | Static | (string | Static)[] | undefined;
+    server?: ServerType<A, S> | ServerConfiguration<A, S> | undefined;
+    app?: (() => Promise<A>) | undefined;
+    webSocketServer?: string | boolean | WebSocketServerConfiguration | undefined;
+    proxy?: ProxyConfigArray | undefined;
+    open?: string | boolean | Open_2 | (string | Open_2)[] | undefined;
+    setupExitSignals?: boolean | undefined;
+    client?: boolean | ClientConfiguration | undefined;
+    headers?: Headers_2 | ((req: Request_2, res: Response_2, context: DevMiddlewareContext<Request_2, Response_2> | undefined) => Headers_2) | undefined;
+    onListening?: ((devServer: Server_4) => void) | undefined;
+    setupMiddlewares?: ((middlewares: Middleware[], devServer: Server_4) => Middleware[]) | undefined;
+};
 
 // @public
 export type DevTool = false | "eval" | "cheap-source-map" | "cheap-module-source-map" | "source-map" | "inline-cheap-source-map" | "inline-cheap-module-source-map" | "inline-source-map" | "inline-nosources-cheap-source-map" | "inline-nosources-cheap-module-source-map" | "inline-nosources-source-map" | "nosources-cheap-source-map" | "nosources-cheap-module-source-map" | "nosources-source-map" | "hidden-nosources-cheap-source-map" | "hidden-nosources-cheap-module-source-map" | "hidden-nosources-source-map" | "hidden-cheap-source-map" | "hidden-cheap-module-source-map" | "hidden-source-map" | "eval-cheap-source-map" | "eval-cheap-module-source-map" | "eval-source-map" | "eval-nosources-cheap-source-map" | "eval-nosources-cheap-module-source-map" | "eval-nosources-source-map";
@@ -1435,13 +1545,13 @@ class DirectoryWatcher extends EventEmitter {
     // (undocumented)
     nestedWatching: boolean;
     // (undocumented)
-    onChange(filePath: string, stat: fs.Stats): void;
+    onChange(filePath: string, stat: fs_2.Stats): void;
     // (undocumented)
     onDirectoryAdded(directoryPath: string): void;
     // (undocumented)
     onDirectoryUnlinked(directoryPath: string): void;
     // (undocumented)
-    onFileAdded(filePath: string, stat: fs.Stats): void;
+    onFileAdded(filePath: string, stat: fs_2.Stats): void;
     // (undocumented)
     onFileUnlinked(filePath: string): void;
     // (undocumented)
@@ -1461,7 +1571,7 @@ class DirectoryWatcher extends EventEmitter {
     // (undocumented)
     watch(filePath: string, startTime: number): Watcher_2;
     // (undocumented)
-    watcher: fs.FSWatcher;
+    watcher: fs_2.FSWatcher;
     // (undocumented)
     watchers: {
         [path: string]: Watcher_2[];
@@ -1950,7 +2060,7 @@ export const experiments: Experiments_2;
 interface Experiments_2 {
     // (undocumented)
     globalTrace: {
-        register: (filter: string, layer: "chrome" | "logger" | "otel", output: string) => Promise<void>;
+        register: (filter: string, layer: "chrome" | "logger", output: string) => Promise<void>;
         cleanup: () => Promise<void>;
     };
     // (undocumented)
@@ -2179,7 +2289,7 @@ export type GeneratorOptionsByModuleTypeKnown = {
 export type GeneratorOptionsByModuleTypeUnknown = Record<string, Record<string, any>>;
 
 // @public (undocumented)
-type GetChildLogger = (name: string | (() => string)) => Logger;
+type GetChildLogger = (name: string | (() => string)) => Logger_3;
 
 // @public (undocumented)
 export const getNormalizedRspackOptions: (config: RspackOptions) => RspackOptionsNormalized;
@@ -2231,8 +2341,12 @@ class Hash {
 
 // @public (undocumented)
 class Hash_2 {
-    digest(encoding?: string): string | Buffer;
-    update(data: string | Buffer, inputEncoding?: string): this;
+    digest(): Buffer;
+    digest(encoding: string): string;
+    // (undocumented)
+    update(data: string, inputEncoding: string): this;
+    // (undocumented)
+    update(data: Buffer): this;
 }
 
 // @public (undocumented)
@@ -2255,6 +2369,29 @@ export type HashFunction = "md4" | "xxhash64";
 
 // @public
 export type HashSalt = string;
+
+// @public (undocumented)
+type Headers_2 = Array<{
+    key: string;
+    value: string;
+}> | Record<string, string | string[]>;
+
+// @public (undocumented)
+type HistoryApiFallbackOptions = {
+    readonly disableDotRule?: true | undefined;
+    readonly htmlAcceptHeaders?: readonly string[] | undefined;
+    readonly index?: string | undefined;
+    readonly logger?: typeof console.log | undefined;
+    readonly rewrites?: readonly Rewrite[] | undefined;
+    readonly verbose?: boolean | undefined;
+};
+
+// @public (undocumented)
+type HistoryContext = {
+    readonly match: RegExpMatchArray;
+    readonly parsedUrl: Url;
+    readonly request: any;
+};
 
 // @public (undocumented)
 type Hooks = Readonly<{
@@ -2358,6 +2495,9 @@ export type HtmlRspackPluginOptions = {
     hash?: boolean;
 };
 
+// @public (undocumented)
+type HttpProxyMiddlewareOptionsFilter = any;
+
 // @public
 export type HttpUriOptions = HttpUriPluginOptions;
 
@@ -2441,6 +2581,9 @@ interface ImportModuleOptions {
     layer?: string;
     publicPath?: PublicPath;
 }
+
+// @public (undocumented)
+type IncomingMessage = IncomingMessage_2;
 
 // @public
 export type Incremental = {
@@ -2618,7 +2761,7 @@ interface JscConfig {
         keepImportAttributes?: boolean;
         emitAssertForImportAttributes?: boolean;
         cacheRoot?: string;
-        plugins?: Array<[string, Record<string, any>]>;
+        plugins?: WasmPlugin[];
         runPluginFirst?: boolean;
         disableBuiltinTransformsForInternalTesting?: boolean;
         emitIsolatedDts?: boolean;
@@ -3153,6 +3296,7 @@ export type LazyCompilationOptions = {
     test?: RegExp | ((module: Module) => boolean);
     client?: string;
     serverUrl?: string;
+    prefix?: string;
 };
 
 // @public
@@ -3322,7 +3466,7 @@ export interface LoaderContext<OptionsType = {}> {
     getContextDependencies(): string[];
     // (undocumented)
     getDependencies(): string[];
-    getLogger(name: string): Logger;
+    getLogger(name: string): Logger_3;
     // (undocumented)
     getMissingDependencies(): string[];
     getOptions(schema?: any): OptionsType;
@@ -3457,7 +3601,10 @@ export interface LogEntry {
 type LogFunction = (type: LogTypeEnum, args: any[]) => void;
 
 // @public (undocumented)
-class Logger {
+type Logger_2 = ReturnType<Compiler["getInfrastructureLogger"]>;
+
+// @public (undocumented)
+class Logger_3 {
     // (undocumented)
     [LOG_SYMBOL]: any;
     // (undocumented)
@@ -3594,10 +3741,26 @@ const matchObject: (obj: MatchObject, str: string) => boolean;
 const matchPart: (str: string, test: Matcher) => boolean;
 
 // @public (undocumented)
+type Middleware = MiddlewareObject | MiddlewareHandler;
+
+// @public (undocumented)
+type MiddlewareHandler = any;
+
+// @public (undocumented)
+type MiddlewareObject = {
+    name?: string;
+    path?: string;
+    middleware: MiddlewareHandler;
+};
+
+// @public (undocumented)
 type MkdirSync = (path: PathLike, options: MakeDirectoryOptions) => undefined | string;
 
 // @public
 export type Mode = "development" | "production" | "none";
+
+// @public (undocumented)
+type ModifyResponseData<RequestInternal extends IncomingMessage = IncomingMessage, ResponseInternal extends ServerResponse = ServerResponse> = (req: RequestInternal, res: ResponseInternal, data: Buffer | ReadStream, byteLength: number) => ResponseData;
 
 export { Module }
 
@@ -3698,22 +3861,6 @@ class ModuleGraph {
 }
 
 // @public (undocumented)
-class ModuleGraphConnection {
-    // (undocumented)
-    static __from_binding(binding: JsModuleGraphConnection): ModuleGraphConnection;
-    // (undocumented)
-    static __to_binding(data: ModuleGraphConnection): JsModuleGraphConnection;
-    // (undocumented)
-    readonly dependency: Dependency;
-    // (undocumented)
-    readonly module: Module | null;
-    // (undocumented)
-    readonly originModule: Module | null;
-    // (undocumented)
-    readonly resolvedModule: Module | null;
-}
-
-// @public (undocumented)
 export type ModuleOptions = {
     defaultRules?: RuleSetRules;
     rules?: RuleSetRules;
@@ -3749,7 +3896,7 @@ export class MultiCompiler {
     // (undocumented)
     dependencies: WeakMap<Compiler, string[]>;
     // (undocumented)
-    getInfrastructureLogger(name: string): Logger_2;
+    getInfrastructureLogger(name: string): Logger;
     // (undocumented)
     hooks: {
         done: liteTapable.SyncHook<MultiStats>;
@@ -3770,8 +3917,8 @@ export class MultiCompiler {
     // (undocumented)
     _options: MultiCompilerOptions;
     // (undocumented)
-    get outputFileSystem(): fs_2;
-    set outputFileSystem(value: fs_2);
+    get outputFileSystem(): fs;
+    set outputFileSystem(value: fs);
     // (undocumented)
     get outputPath(): string;
     // (undocumented)
@@ -3836,6 +3983,9 @@ class MultiWatching {
     watchings: Watching[];
 }
 
+// @public (undocumented)
+type MultiWatching_2 = MultiCompiler["watch"];
+
 // @public
 export type Name = string;
 
@@ -3854,6 +4004,9 @@ const NativeSubresourceIntegrityPlugin: {
 type NativeSubresourceIntegrityPluginOptions = Omit<RawSubresourceIntegrityPluginOptions, "htmlPlugin"> & {
     htmlPlugin: string | false;
 };
+
+// @public (undocumented)
+type NextFunction = (err?: any) => void;
 
 // @public (undocumented)
 export const node: Node_3;
@@ -3951,6 +4104,16 @@ type NormalizedStatsOptions = KnownNormalizedStatsOptions & Omit<StatsOptions, k
 export { NormalModule }
 
 // @public (undocumented)
+interface NormalModuleCompilationHooks {
+    // (undocumented)
+    loader: liteTapable.SyncHook<[LoaderContext, Module]>;
+    // (undocumented)
+    readResource: liteTapable.HookMap<liteTapable.AsyncSeriesBailHook<[LoaderContext], string | Buffer>>;
+    // (undocumented)
+    readResourceForScheme: any;
+}
+
+// @public (undocumented)
 type NormalModuleCreateData = binding.JsNormalModuleFactoryCreateModuleArgs & {
     settings: {};
 };
@@ -3993,6 +4156,18 @@ type ObjectEncodingOptions = {
 
 // @public (undocumented)
 type Open = (file: PathLike, flags: undefined | string | number, callback: (arg0: null | NodeJS.ErrnoException, arg1?: number) => void) => void;
+
+// @public (undocumented)
+type Open_2 = {
+    app?: string | string[] | OpenApp | undefined;
+    target?: string | string[] | undefined;
+};
+
+// @public (undocumented)
+type OpenApp = {
+    name?: string | undefined;
+    arguments?: string[] | undefined;
+};
 
 // @public (undocumented)
 export type Optimization = {
@@ -4193,6 +4368,13 @@ export interface OutputFileSystem {
     writeFile: (arg0: string | number, arg1: string | Buffer, arg2: (arg0?: null | NodeJS.ErrnoException) => void) => void;
 }
 
+// @public (undocumented)
+type OutputFileSystem_2 = OutputFileSystem_3 & {
+    createReadStream?: createReadStream;
+    statSync: StatSyncFn;
+    readFileSync: readFileSync;
+};
+
 // @public
 export type OutputModule = boolean;
 
@@ -4295,6 +4477,9 @@ export interface OutputNormalized {
 }
 
 // @public (undocumented)
+type OverlayMessageOptions = boolean | ((error: Error) => void);
+
+// @public (undocumented)
 type ParserConfig = TsParserConfig | EsParserConfig;
 
 // @public
@@ -4387,6 +4572,9 @@ type PluginImportOptions = PluginImportConfig[] | undefined;
 export type Plugins = Plugin_2[];
 
 // @public (undocumented)
+type Port = number | string | "auto";
+
+// @public (undocumented)
 type PrintedElement = {
     element: string;
     content: string;
@@ -4476,6 +4664,19 @@ type ProvidesV1Config = {
 };
 
 // @public (undocumented)
+type ProxyConfigArray = (ProxyConfigArrayItem | ((req?: Request_2 | undefined, res?: Response_2 | undefined, next?: NextFunction | undefined) => ProxyConfigArrayItem))[];
+
+// @public (undocumented)
+type ProxyConfigArrayItem = {
+    path?: HttpProxyMiddlewareOptionsFilter | undefined;
+    context?: HttpProxyMiddlewareOptionsFilter | undefined;
+} & {
+    bypass?: ByPass;
+} & {
+    [key: string]: any;
+};
+
+// @public (undocumented)
 interface PseudoClasses {
     // (undocumented)
     active?: string;
@@ -4512,7 +4713,11 @@ interface ReactConfig {
     importSource?: string;
     pragma?: string;
     pragmaFrag?: string;
-    refresh?: boolean;
+    refresh?: boolean | {
+        refreshReg?: string;
+        refreshSig?: string;
+        emitFullSignatures?: boolean;
+    };
     runtime?: "automatic" | "classic";
     throwIfNamespace?: boolean;
     // @deprecated
@@ -4643,6 +4848,9 @@ type ReadlinkSync = {
 };
 
 // @public (undocumented)
+type ReadStream = ReadStream_2;
+
+// @public (undocumented)
 type RealPath = {
     (path: PathLike, options: EncodingOption, callback: StringCallback): void;
     (path: PathLike, options: BufferEncodingOption, callback: BufferCallback): void;
@@ -4692,6 +4900,9 @@ const RemoveDuplicateModulesPlugin: {
         apply(compiler: Compiler_2): void;
     };
 };
+
+// @public (undocumented)
+type Request_2 = IncomingMessage;
 
 // @public
 export type Resolve = ResolveOptions;
@@ -4796,6 +5007,24 @@ export type ResourceDataWithData = ResourceData & {
 };
 
 // @public (undocumented)
+type Response_2 = ServerResponse;
+
+// @public (undocumented)
+type ResponseData = {
+    data: Buffer | ReadStream;
+    byteLength: number;
+};
+
+// @public (undocumented)
+type Rewrite = {
+    readonly from: RegExp;
+    readonly to: string | RegExp | RewriteTo;
+};
+
+// @public (undocumented)
+type RewriteTo = (context: HistoryContext) => string;
+
+// @public (undocumented)
 const RsdoctorPlugin: typeof RsdoctorPluginImpl & {
     getHooks: (compilation: Compilation) => RsdoctorPluginHooks;
     getCompilationHooks: (compilation: Compilation) => RsdoctorPluginHooks;
@@ -4882,7 +5111,10 @@ abstract class RspackBuiltinPlugin implements RspackPluginInstance {
 }
 
 // @public (undocumented)
-type RspackError = binding.JsRspackError;
+type RspackConfiguration = Configuration_2;
+
+// @public (undocumented)
+export type RspackError = binding.JsRspackError;
 
 declare namespace rspackExports {
     export {
@@ -4902,10 +5134,10 @@ declare namespace rspackExports {
         RspackOptionsApply as WebpackOptionsApply,
         Chunk,
         ChunkGroup,
-        Module,
         ResolveData,
         ResourceDataWithData,
         MultiStats,
+        Module,
         NormalModule,
         ContextModule,
         ConcatenatedModule,
@@ -4922,6 +5154,8 @@ declare namespace rspackExports {
         EntryDependency,
         Dependency,
         AsyncDependenciesBlock,
+        RspackError,
+        RspackSeverity,
         ModuleFilenameHelpers,
         Template,
         WebpackError,
@@ -5357,6 +5591,9 @@ export interface RspackPluginInstance {
 }
 
 // @public (undocumented)
+export type RspackSeverity = binding.JsRspackSeverity;
+
+// @public (undocumented)
 export const rspackVersion: string;
 
 // @public (undocumented)
@@ -5608,6 +5845,42 @@ type RuntimeSpec = string | Set<string> | undefined;
 export type ScriptType = false | "text/javascript" | "module";
 
 // @public (undocumented)
+type ServeIndexOptions = {
+    [key: string]: any;
+};
+
+// @public (undocumented)
+type Server_4 = any;
+
+// @public (undocumented)
+type ServerConfiguration<A extends BasicApplication = BasicApplication, S extends BasicServer = Server_3<IncomingMessage, ServerResponse>> = {
+    type?: ServerType<A, S> | undefined;
+    options?: ServerOptions | undefined;
+};
+
+// @public (undocumented)
+type ServerOptions = ServerOptions_2 & {
+    spdy?: {
+        plain?: boolean | undefined;
+        ssl?: boolean | undefined;
+        "x-forwarded-for"?: string | undefined;
+        protocol?: string | undefined;
+        protocols?: string[] | undefined;
+    };
+};
+
+// @public (undocumented)
+type ServerResponse = ServerResponse_2;
+
+// @public (undocumented)
+type ServerType<A extends BasicApplication = BasicApplication, S extends BasicServer = Server_3<IncomingMessage, ServerResponse>> = "http" | "https" | "spdy" | "http2" | string | ((arg0: ServerOptions, arg1: A) => S);
+
+// @public (undocumented)
+type ServeStaticOptions = {
+    [key: string]: any;
+};
+
+// @public (undocumented)
 export type Shared = (SharedItem | SharedObject)[] | SharedObject;
 
 // @public (undocumented)
@@ -5783,6 +6056,19 @@ type Stat = {
         bigint: true;
     }, callback: BigIntStatsCallback): void;
     (path: PathLike, options: StatOptions | undefined, callback: StatsOrBigIntStatsCallback): void;
+};
+
+// @public (undocumented)
+type Static = {
+    directory?: string | undefined;
+    publicPath?: string | string[] | undefined;
+    serveIndex?: boolean | ServeIndexOptions | undefined;
+    staticOptions?: ServeStaticOptions | undefined;
+    watch?: boolean | (ChokidarWatchOptions & {
+        aggregateTimeout?: number;
+        ignored?: ChokidarWatchOptions["ignored"];
+        poll?: number | boolean;
+    }) | undefined;
 };
 
 // @public (undocumented)
@@ -6583,6 +6869,9 @@ export type WasmLoading = false | WasmLoadingType;
 export type WasmLoadingType = string | "fetch-streaming" | "fetch" | "async-node";
 
 // @public (undocumented)
+type WasmPlugin = [wasmPackage: string, config: Record<string, any>];
+
+// @public (undocumented)
 export type Watch = boolean;
 
 // @public (undocumented)
@@ -6631,6 +6920,16 @@ interface WatcherInfo {
     // (undocumented)
     removals: Set<string>;
 }
+
+// @public (undocumented)
+type WatchFiles = {
+    paths: string | string[];
+    options?: (ChokidarWatchOptions & {
+        aggregateTimeout?: number;
+        ignored?: ChokidarWatchOptions["ignored"];
+        poll?: number | boolean;
+    }) | undefined;
+};
 
 // @public (undocumented)
 interface WatchFileSystem {
@@ -6833,6 +7132,22 @@ export interface WebpackPluginInstance {
     // (undocumented)
     apply: (compiler: WebpackCompiler) => void;
 }
+
+// @public (undocumented)
+type WebSocketServerConfiguration = {
+    type?: string | Function | undefined;
+    options?: Record<string, any> | undefined;
+};
+
+// @public (undocumented)
+type WebSocketURL = {
+    hostname?: string | undefined;
+    password?: string | undefined;
+    pathname?: string | undefined;
+    port?: string | number | undefined;
+    protocol?: string | undefined;
+    username?: string | undefined;
+};
 
 // @public (undocumented)
 interface Webworker {

@@ -25,7 +25,6 @@ import {
 	SourceMapSource
 } from "webpack-sources";
 
-import type { ContextAPI, PropagationAPI, TraceAPI } from "@rspack/tracing";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import { NormalModule } from "../NormalModule";
@@ -37,6 +36,7 @@ import {
 	isUseSimpleSourceMap,
 	isUseSourceMap
 } from "../config/adapterRuleUse";
+import { JavaScriptTracer } from "../trace";
 import {
 	concatErrorMsgAndStack,
 	isNil,
@@ -55,7 +55,12 @@ import {
 import { memoize } from "../util/memoize";
 import * as pool from "./service";
 import { type HandleIncomingRequest, RequestType } from "./service";
-import { convertArgs, loadLoader, runSyncOrAsync } from "./utils";
+import {
+	convertArgs,
+	extractLoaderName,
+	loadLoader,
+	runSyncOrAsync
+} from "./utils";
 
 function createLoaderObject(
 	loader: JsLoaderItem,
@@ -246,68 +251,21 @@ function getCurrentLoader(
 	return null;
 }
 
-// FIXME: a temporary fix, we may need to change @rspack/tracing to commonjs really fix it
-let cachedTracing:
-	| {
-			trace: TraceAPI;
-			propagation: PropagationAPI;
-			context: ContextAPI;
-	  }
-	| null
-	| undefined;
-
-async function getCachedTracing() {
-	// disable tracing in non-profile mode
-	if (!process.env.RSPACK_PROFILE) {
-		cachedTracing = null;
-		return cachedTracing;
-	}
-	if (cachedTracing) {
-		return cachedTracing;
-	}
-	if (cachedTracing === undefined) {
-		try {
-			const tracing = await import("@rspack/tracing");
-			cachedTracing = {
-				trace: tracing.trace,
-				propagation: tracing.propagation,
-				context: tracing.context
-			};
-			return cachedTracing;
-		} catch (e) {
-			cachedTracing = null;
-			return cachedTracing;
-		}
-	} else {
-		cachedTracing = null;
-		return cachedTracing;
-	}
-}
-
-async function tryTrace(context: JsLoaderContext) {
-	const cachedTracing = await getCachedTracing();
-	if (cachedTracing) {
-		const { trace, propagation, context: tracingContext } = cachedTracing;
-		const tracer = trace.getTracer("rspack-loader-runner");
-		const activeContext = propagation.extract(
-			tracingContext.active(),
-			context.__internal__tracingCarrier
-		);
-		return { trace, tracer, activeContext };
-	}
-	return null;
-}
-
 export async function runLoaders(
 	compiler: Compiler,
 	context: JsLoaderContext
 ): Promise<JsLoaderContext> {
-	const { tracer, activeContext } = (await tryTrace(context)) ?? {};
-
 	const loaderState = context.loaderState;
+	const pitch = loaderState === JsLoaderState.Pitching;
 
 	//
 	const { resource } = context.resourceData;
+	JavaScriptTracer.startAsync({
+		name: `run_js_loaders${pitch ? ":pitch" : ":normal"}`,
+		args: {
+			id2: resource
+		}
+	});
 	const splittedResource = resource && parsePathQueryFragment(resource);
 	const resourcePath = splittedResource ? splittedResource.path : undefined;
 	const resourceQuery = splittedResource ? splittedResource.query : undefined;
@@ -369,6 +327,12 @@ export async function runLoaders(
 		userOptions,
 		callback
 	) {
+		JavaScriptTracer.startAsync({
+			name: "importModule",
+			args: {
+				id2: resource
+			}
+		});
 		const options = userOptions ? userOptions : {};
 		const context = loaderContext;
 		function finalCallback(
@@ -377,6 +341,12 @@ export async function runLoaders(
 		) {
 			return function (err?: Error, res?: any) {
 				if (err) {
+					JavaScriptTracer.endAsync({
+						name: "importModule",
+						args: {
+							id2: resource
+						}
+					});
 					onError(err);
 				} else {
 					for (const dep of res.buildDependencies) {
@@ -394,7 +364,12 @@ export async function runLoaders(
 					if (res.cacheable === false) {
 						context.cacheable(false);
 					}
-
+					JavaScriptTracer.endAsync({
+						name: "importModule",
+						args: {
+							id2: resource
+						}
+					});
 					if (res.error) {
 						onError(
 							compiler.__internal__getModuleExecutionResult(res.id) ??
@@ -629,17 +604,13 @@ export async function runLoaders(
 
 			if (loaderContext.sourceMap) {
 				source = new SourceMapSource(
-					// @ts-expect-error webpack-sources type declaration is wrong
 					content,
 					name,
 					makePathsRelative(contextDirectory!, sourceMap, compiler)
 				);
 			}
 		} else {
-			source = new RawSource(
-				// @ts-expect-error webpack-sources type declaration is wrong
-				content
-			);
+			source = new RawSource(content);
 		}
 		loaderContext._module.emitFile(name, source!, assetInfo!);
 	};
@@ -697,10 +668,11 @@ export async function runLoaders(
 		if (typeof options === "string") {
 			if (options.startsWith("{") && options.endsWith("}")) {
 				try {
-					const parseJson = require("json-parse-even-better-errors");
-					options = parseJson(options);
+					options = JSON.parse(options);
 				} catch (e: any) {
-					throw new Error(`Cannot parse string options: ${e.message}`);
+					throw new Error(
+						`JSON parsing failed for loader's string options: ${e.message}`
+					);
 				}
 			} else {
 				options = querystring.parse(options);
@@ -756,6 +728,10 @@ export async function runLoaders(
 	});
 
 	const getWorkerLoaderContext = () => {
+		const normalModule =
+			loaderContext._module instanceof NormalModule
+				? loaderContext._module
+				: undefined;
 		const workerLoaderContext = {
 			hot: loaderContext.hot,
 			context: loaderContext.context,
@@ -768,8 +744,19 @@ export async function runLoaders(
 			rootContext: loaderContext.context!,
 			loaderIndex: loaderContext.loaderIndex,
 			loaders: loaderContext.loaders.map(item => {
+				let options = item.options;
+				// Do not pass options into worker, if it's not prepared to be executed
+				// in the worker thread.
+				//
+				// Aligns yielding strategy within the worker.
+				if (!item.parallel || item.request.startsWith(BUILTIN_LOADER_PREFIX)) {
+					options = undefined;
+				}
 				return {
 					...item,
+					options,
+					pitch: undefined,
+					normal: undefined,
 					normalExecuted: item.normalExecuted,
 					pitchExecuted: item.pitchExecuted
 				};
@@ -786,11 +773,28 @@ export async function runLoaders(
 				}
 			},
 			_compilation: {
-				outputOptions: compiler._lastCompilation!.outputOptions
+				options: {
+					output: {
+						// css-loader
+						environment: compiler._lastCompilation!.outputOptions.environment
+					}
+				},
+				// css-loader
+				outputOptions: {
+					hashSalt: compiler._lastCompilation!.outputOptions.hashSalt,
+					hashFunction: compiler._lastCompilation!.outputOptions.hashFunction,
+					hashDigest: compiler._lastCompilation!.outputOptions.hashDigest,
+					hashDigestLength:
+						compiler._lastCompilation!.outputOptions.hashDigestLength
+				}
 			},
 			_module: {
 				type: loaderContext._module.type,
-				identifier: loaderContext._module.identifier()
+				identifier: loaderContext._module.identifier(),
+				matchResource: normalModule?.matchResource,
+				request: normalModule?.request,
+				userRequest: normalModule?.userRequest,
+				rawRequest: normalModule?.rawRequest
 			}
 		} as any;
 		Object.assign(workerLoaderContext, compiler.options.loader);
@@ -887,6 +891,9 @@ export async function runLoaders(
 						loaderContext.cacheable(cacheable);
 						break;
 					}
+					case RequestType.ImportModule: {
+						return loaderContext.importModule(args[0], args[1]);
+					}
 					case RequestType.UpdateLoaderObjects: {
 						const updates = args[0];
 						loaderContext.loaders = loaderContext.loaders.map((item, index) => {
@@ -901,6 +908,29 @@ export async function runLoaders(
 							return item;
 						});
 						break;
+					}
+					case RequestType.CompilationGetPath: {
+						const filename = args[0];
+						const data = args[1];
+						return compiler._lastCompilation!.getPath(filename, data);
+					}
+					case RequestType.CompilationGetPathWithInfo: {
+						const filename = args[0];
+						const data = args[1];
+						return compiler._lastCompilation!.getPathWithInfo(filename, data);
+					}
+					case RequestType.CompilationGetAssetPath: {
+						const filename = args[0];
+						const data = args[1];
+						return compiler._lastCompilation!.getAssetPath(filename, data);
+					}
+					case RequestType.CompilationGetAssetPathWithInfo: {
+						const filename = args[0];
+						const data = args[1];
+						return compiler._lastCompilation!.getAssetPathWithInfo(
+							filename,
+							data
+						);
 					}
 					default: {
 						throw new Error(`Unknown request type: ${requestType}`);
@@ -917,25 +947,25 @@ export async function runLoaders(
 		);
 	};
 
-	const isomorphoicRun = async (fn: Function, args: any[]) => {
+	const isomorphoicRun = async (
+		fn: Function,
+		args: any[],
+		resourceData: JsLoaderContext["resourceData"] // used for tracing for further analysis
+	) => {
 		const currentLoaderObject = getCurrentLoader(loaderContext);
 		const parallelism = enableParallelism(currentLoaderObject);
 		const pitch = loaderState === JsLoaderState.Pitching;
-		const worker = parallelism;
-
+		const loaderName = extractLoaderName(currentLoaderObject!.request);
 		let result: any;
-		const span = tracer?.startSpan(
-			`LoaderRunner:${pitch ? "pitch" : "normal"}${worker ? " (worker)" : ""}`,
-			{
-				attributes: {
-					"loader.identifier": currentLoaderObject?.request
-				}
-			},
-			activeContext
-		);
+		JavaScriptTracer.startAsync({
+			name: `js_loader:${pitch ? "pitch:" : ""}${loaderName}`,
+			cat: "rspack",
+			args: {
+				id2: resource,
+				"loader.request": currentLoaderObject?.request
+			}
+		});
 		if (parallelism) {
-			delete currentLoaderObject?.pitch;
-			delete currentLoaderObject?.normal;
 			result =
 				(await pool.run(
 					{
@@ -950,7 +980,13 @@ export async function runLoaders(
 				convertArgs(args, !!currentLoaderObject?.raw);
 			result = (await runSyncOrAsync(fn, loaderContext, args)) || [];
 		}
-		span?.end();
+		JavaScriptTracer.endAsync({
+			name: `js_loader:${pitch ? "pitch:" : ""}${loaderName}`,
+			args: {
+				id2: resource,
+				"loader.request": currentLoaderObject?.request
+			}
+		});
 		return result;
 	};
 
@@ -977,11 +1013,15 @@ export async function runLoaders(
 					}
 					if (!fn) continue;
 
-					const args = await isomorphoicRun(fn, [
-						loaderContext.remainingRequest,
-						loaderContext.previousRequest,
-						currentLoaderObject.loaderItem.data
-					]);
+					const args = await isomorphoicRun(
+						fn,
+						[
+							loaderContext.remainingRequest,
+							loaderContext.previousRequest,
+							currentLoaderObject.loaderItem.data
+						],
+						context.resourceData
+					);
 
 					const hasArg = args.some((value: any) => value !== undefined);
 
@@ -1020,16 +1060,16 @@ export async function runLoaders(
 						currentLoaderObject.normalExecuted = true;
 					}
 					if (!fn) continue;
-					[content, sourceMap, additionalData] = await isomorphoicRun(fn, [
-						content,
-						sourceMap,
-						additionalData
-					]);
+					[content, sourceMap, additionalData] = await isomorphoicRun(
+						fn,
+						[content, sourceMap, additionalData],
+						context.resourceData
+					);
 				}
 
 				context.content = isNil(content) ? null : toBuffer(content);
 				context.sourceMap = JsSourceMap.__to_binding(sourceMap);
-				context.additionalData = additionalData;
+				context.additionalData = additionalData || undefined;
 
 				break;
 			}
@@ -1059,6 +1099,12 @@ export async function runLoaders(
 								: undefined
 					};
 	}
+	JavaScriptTracer.endAsync({
+		name: `run_js_loaders${pitch ? ":pitch" : ":normal"}`,
+		args: {
+			id2: resource
+		}
+	});
 	return context;
 }
 

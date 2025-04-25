@@ -113,16 +113,32 @@ type LazyCompilationOptions =
   | {
       /**
        * Enable lazy compilation for entries.
+       * @default true
        */
       entries?: boolean;
       /**
        * Enable lazy compilation for dynamic imports.
+       * @default true
        */
       imports?: boolean;
       /**
        * Specify which imported modules should be lazily compiled.
        */
       test?: RegExp | ((m: Module) => boolean);
+      /**
+       * The path to a custom runtime code that overrides the default lazy
+       * compilation client.
+       */
+      client?: string;
+      /**
+       * Tells the client the server path that needs to be requested.
+       */
+      serverUrl?: string;
+      /**
+       * Customize the prefix used for lazy compilation endpoint.
+       * @default "/lazy-compilation-using-"
+       */
+      prefix?: string;
     };
 ```
 
@@ -155,7 +171,7 @@ The current lazy compilation **is still in the experimental stage**. In some sce
 
 - **Type:** `string`
 
-Used to override the default lazy compilation client runtime. If you want to customize the logic of the client runtime, you can specify it through this configuration option.
+The path to a custom runtime code that overrides the default lazy compilation client. If you want to customize the logic of the client runtime, you can specify it through this option.
 
 - [Client for web](https://github.com/web-infra-dev/rspack/blob/699229b9e7c33b7db7968c2f803f750e0367fe8a/packages/rspack/hot/lazy-compilation-web.js)
 - [Client for node](https://github.com/web-infra-dev/rspack/blob/699229b9e7c33b7db7968c2f803f750e0367fe8a/packages/rspack/hot/lazy-compilation-node.js)
@@ -183,6 +199,23 @@ export default {
   experiments: {
     lazyCompilation: {
       serverUrl: 'http://localhost:3000',
+    },
+  },
+};
+```
+
+### lazyCompilation.prefix
+
+- **Type:** `string`
+- **Default:** `'/lazy-compilation-using-'`
+
+Customize the prefix used for lazy compilation endpoint. By default, the lazy compilation middleware uses the `/lazy-compilation-using-` prefix for handling requests.
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    lazyCompilation: {
+      prefix: '/custom-lazy-endpoint-',
     },
   },
 };

@@ -199,7 +199,9 @@ const describeCases = config => {
 									);
 									compiler.watch(
 										{
-											aggregateTimeout: 1000
+											aggregateTimeout: 1000,
+											// CHANGE: Rspack ignored node_modules and .git by default for better performance
+											ignored: [],
 										},
 										(err, stats) => {
 											if (err) return compilationFinished(err);
@@ -264,6 +266,7 @@ const describeCases = config => {
 													getStatsJson(),
 													"error",
 													"Error",
+													options,
 													compilationFinished
 												)
 											)
@@ -275,6 +278,7 @@ const describeCases = config => {
 													getStatsJson(),
 													"warning",
 													"Warning",
+													options,
 													compilationFinished
 												)
 											)
@@ -402,6 +406,7 @@ const describeCases = config => {
 																{ deprecations },
 																"deprecation",
 																"Deprecation",
+																options,
 																done
 															)
 														) {

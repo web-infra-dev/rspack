@@ -14,9 +14,9 @@ use rspack_core::{
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, Compilation, ConstDependency,
-  CssExportsConvention, Dependency, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyType, GenerateContext, LocalIdentName, Module, ModuleDependency, ModuleGraph,
+  BoxDependencyTemplate, BoxModuleDependency, BuildMetaDefaultObject, BuildMetaExportsType,
+  ChunkGraph, Compilation, ConstDependency, CssExportsConvention, Dependency, DependencyId,
+  DependencyRange, DependencyType, GenerateContext, LocalIdentName, Module, ModuleGraph,
   ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext, ParseResult,
   ParserAndGenerator, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext, UsageState,
 };
@@ -154,8 +154,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync + 'static>> = vec![];
     let mut dependencies: Vec<Box<dyn Dependency>> = vec![];
-    let mut presentational_dependencies: Vec<Box<dyn DependencyTemplate>> = vec![];
-    let mut code_generation_dependencies: Vec<Box<dyn ModuleDependency>> = vec![];
+    let mut presentational_dependencies: Vec<BoxDependencyTemplate> = vec![];
+    let mut code_generation_dependencies: Vec<BoxModuleDependency> = vec![];
 
     let (deps, warnings) = css_module_lexer::collect_dependencies(&source_code, mode);
     for dependency in deps {
@@ -193,8 +193,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         } => {
           if request.is_empty() {
             presentational_dependencies.push(Box::new(ConstDependency::new(
-              range.start,
-              range.end,
+              (range.start, range.end).into(),
               "".into(),
               None,
             )));
@@ -223,8 +222,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         }
         css_module_lexer::Dependency::Replace { content, range } => presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            range.start,
-            range.end,
+            (range.start, range.end).into(),
             content.into(),
             None,
           ))),
@@ -304,8 +302,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             convention_names,
             vec![CssSelfReferenceLocalIdentReplacement {
               local_ident: local_ident.clone(),
-              start: range.start,
-              end: range.end,
+              range: (range.start, range.end).into(),
             }],
           )));
         }
@@ -499,8 +496,16 @@ impl ParserAndGenerator for CssParserAndGenerator {
           let dep = module_graph
             .dependency_by_id(id)
             .expect("should have dependency");
-          if let Some(dependency) = dep.as_dependency_template() {
-            dependency.apply(&mut source, &mut context)
+
+          if let Some(dependency) = dep.as_dependency_code_generation() {
+            if let Some(template) = compilation.get_dependency_template(dependency) {
+              template.render(dependency, &mut source, &mut context)
+            } else {
+              panic!(
+                "Can not find dependency template of {:?}",
+                dependency.dependency_template()
+              );
+            }
           }
         });
 
@@ -533,9 +538,16 @@ impl ParserAndGenerator for CssParserAndGenerator {
         }
 
         if let Some(dependencies) = module.get_presentational_dependencies() {
-          dependencies
-            .iter()
-            .for_each(|dependency| dependency.apply(&mut source, &mut context));
+          dependencies.iter().for_each(|dependency| {
+            if let Some(template) = compilation.get_dependency_template(dependency.as_ref()) {
+              template.render(dependency.as_ref(), &mut source, &mut context)
+            } else {
+              panic!(
+                "Can not find dependency template of {:?}",
+                dependency.dependency_template()
+              );
+            }
+          });
         };
 
         generate_context.concatenation_scope = context.concatenation_scope.take();

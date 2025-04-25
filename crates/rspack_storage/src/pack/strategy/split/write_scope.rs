@@ -579,7 +579,7 @@ mod tests {
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn should_write_single_bucket_scope() {
+  async fn should_write_single_bucket_scope() -> Result<()> {
     for strategy in create_strategies("write_single") {
       let options = Arc::new(PackOptions {
         bucket_size: 1,
@@ -592,17 +592,14 @@ mod tests {
       );
       clean_strategy(&strategy).await;
 
-      let _ = test_single_bucket(&mut scope, &strategy)
-        .await
-        .map_err(|e| {
-          panic!("{}", e);
-        });
+      test_single_bucket(&mut scope, &strategy).await?;
     }
+    Ok(())
   }
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn should_write_multi_bucket_scope() {
+  async fn should_write_multi_bucket_scope() -> Result<()> {
     for strategy in create_strategies("write_multi") {
       let options = Arc::new(PackOptions {
         bucket_size: 10,
@@ -615,15 +612,14 @@ mod tests {
       );
       clean_strategy(&strategy).await;
 
-      let _ = test_multi_bucket(&mut scope, &strategy).await.map_err(|e| {
-        panic!("{}", e);
-      });
+      test_multi_bucket(&mut scope, &strategy).await?;
     }
+    Ok(())
   }
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn should_write_big_bucket_scope() {
+  async fn should_write_big_bucket_scope() -> Result<()> {
     for strategy in create_strategies("write_big") {
       let options = Arc::new(PackOptions {
         bucket_size: 1,
@@ -636,9 +632,8 @@ mod tests {
       );
       clean_strategy(&strategy).await;
 
-      let _ = test_big_bucket(&mut scope, &strategy).await.map_err(|e| {
-        panic!("{}", e);
-      });
+      test_big_bucket(&mut scope, &strategy).await?;
     }
+    Ok(())
   }
 }

@@ -77,9 +77,8 @@ pub static HOT_TEST_UPDATED: LazyLock<String> = LazyLock::new(|| {
 });
 
 pub static HOT_TEST_RUNTIME: LazyLock<String> = LazyLock::new(|| {
-  is_hot_test()
-    .then(|| {
-      r#"
+  if is_hot_test() {
+    r#"
       currentUpdateRuntime[i](new Proxy(__webpack_require__, {
         set(target, prop, value, receiver) {
           self.__HMR_UPDATED_RUNTIME__.javascript.updatedRuntime.push(`__webpack_require__.${prop}`);
@@ -88,8 +87,9 @@ pub static HOT_TEST_RUNTIME: LazyLock<String> = LazyLock::new(|| {
       }));
       "#
       .to_string()
-    })
-    .unwrap_or_else(|| "currentUpdateRuntime[i](__webpack_require__);".to_string())
+  } else {
+    "currentUpdateRuntime[i](__webpack_require__);".to_string()
+  }
 });
 
 pub static HOT_TEST_ACCEPT: LazyLock<String> = LazyLock::new(|| {

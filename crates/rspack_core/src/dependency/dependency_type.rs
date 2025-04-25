@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display};
 
-use rspack_macros::cacheable;
+use rspack_cacheable::cacheable;
 
 use crate::ContextTypePrefix;
 
@@ -80,6 +80,8 @@ pub enum DependencyType {
   RequireContext,
   // require.resolve
   RequireResolve,
+  // require.resolve context
+  RequireResolveContext,
   // require.ensure
   RequireEnsure,
   // require.ensure item
@@ -163,6 +165,7 @@ impl DependencyType {
       DependencyType::CommonJSRequireContext => "commonjs require context",
       DependencyType::RequireContext => "require.context",
       DependencyType::RequireResolve => "require.resolve",
+      DependencyType::RequireResolveContext => "require.resolve context",
       DependencyType::RequireEnsure => "require.ensure",
       DependencyType::RequireEnsureItem => "require.ensure item",
       DependencyType::WasmImport => "wasm import",

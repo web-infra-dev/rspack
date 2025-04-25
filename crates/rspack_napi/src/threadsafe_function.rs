@@ -13,7 +13,7 @@ use napi::{
 use oneshot::Receiver;
 use rspack_error::{miette::IntoDiagnostic, Error, Result};
 
-use crate::{JsCallback, NapiErrorExt};
+use crate::{JsCallback, NapiErrorToRspackErrorExt};
 
 type ErrorResolver = dyn FnOnce(Env);
 
@@ -69,7 +69,7 @@ impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
       // SAFETY: The error resolver is initialized in `FromNapiValue::from_napi_value` and it's the only way to create a tsfn.
       .expect("should have error resolver initialized")
       .call(Box::new(move |env| {
-        let err = err.into_rspack_error_with_detail(&env);
+        let err = err.to_rspack_error(&env);
         tx.send(err).expect("failed to resolve js error");
       }));
     rx.await.expect("failed to resolve js error")
@@ -82,7 +82,7 @@ impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
       .call_with_return_value(value, ThreadsafeFunctionCallMode::NonBlocking, {
         move |r: napi::Result<Unknown>, env| {
           let r = match r {
-            Err(err) => Err(err.into_rspack_error_with_detail(&env)),
+            Err(err) => Err(err.to_rspack_error(&env)),
             Ok(o) => unsafe { D::from_napi_value(env.raw(), o.raw()) }.into_diagnostic(),
           };
           tx.send(r)

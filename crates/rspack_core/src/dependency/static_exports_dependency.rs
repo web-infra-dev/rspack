@@ -6,7 +6,7 @@ use swc_core::ecma::atoms::Atom;
 
 use super::AffectType;
 use crate::{
-  AsContextDependency, AsDependencyTemplate, AsModuleDependency, Dependency, DependencyId,
+  AsContextDependency, AsDependencyCodeGeneration, AsModuleDependency, Dependency, DependencyId,
   DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
 };
 
@@ -66,7 +66,7 @@ impl Dependency for StaticExportsDependency {
   }
 }
 
-impl AsDependencyTemplate for StaticExportsDependency {}
+impl AsDependencyCodeGeneration for StaticExportsDependency {}
 impl AsModuleDependency for StaticExportsDependency {}
 
 impl AsContextDependency for StaticExportsDependency {}

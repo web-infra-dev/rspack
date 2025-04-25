@@ -1,8 +1,12 @@
-use std::{fmt, ops::Deref, path::Path};
+use std::{
+  fmt,
+  ops::Deref,
+  path::{Path, PathBuf},
+};
 
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_loader_runner::ResourceData;
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use rspack_util::atom::Atom;
 
 use crate::{contextify, parse_resource};
@@ -79,6 +83,18 @@ impl From<&Utf8Path> for Context {
     Self {
       inner: v.as_str().into(),
     }
+  }
+}
+
+impl From<PathBuf> for Context {
+  fn from(value: PathBuf) -> Self {
+    value.assert_utf8().into()
+  }
+}
+
+impl From<&Path> for Context {
+  fn from(value: &Path) -> Self {
+    value.assert_utf8().into()
   }
 }
 

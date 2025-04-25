@@ -82,9 +82,16 @@ impl JavaScriptParserAndGenerator {
       .get_module_graph()
       .dependency_by_id(dependency_id)
       .expect("should have dependency")
-      .as_dependency_template()
+      .as_dependency_code_generation()
     {
-      dependency.apply(source, context)
+      if let Some(template) = compilation.get_dependency_template(dependency) {
+        template.render(dependency, source, context)
+      } else {
+        panic!(
+          "Can not find dependency template of {:?}",
+          dependency.dependency_template()
+        );
+      }
     }
   }
 }
@@ -102,7 +109,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     module.source().map_or(0, |source| source.size()) as f64
   }
 
-  #[tracing::instrument("JavaScriptParser:parse", skip_all)]
+  #[tracing::instrument("JavaScriptParser:parse", skip_all,fields(
+    resource = parse_context.resource_data.resource.as_str(),
+    id2 = parse_context.resource_data.resource.as_str(),
+  ))]
   async fn parse<'a>(
     &mut self,
     parse_context: ParseContext<'a>,
@@ -301,9 +311,16 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       });
 
       if let Some(dependencies) = module.get_presentational_dependencies() {
-        dependencies
-          .iter()
-          .for_each(|dependency| dependency.apply(&mut source, &mut context));
+        dependencies.iter().for_each(|dependency| {
+          if let Some(template) = compilation.get_dependency_template(dependency.as_ref()) {
+            template.render(dependency.as_ref(), &mut source, &mut context)
+          } else {
+            panic!(
+              "Can not find dependency template of {:?}",
+              dependency.dependency_template()
+            );
+          }
+        });
       };
 
       module

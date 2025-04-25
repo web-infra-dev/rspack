@@ -104,6 +104,7 @@ fn assign_named_chunk_ids(
         compare_chunks_natural(
           chunk_graph,
           &module_graph,
+          &compilation.chunk_group_by_ukey,
           &compilation.module_ids_artifact,
           a,
           b,
@@ -135,6 +136,7 @@ fn assign_named_chunk_ids(
     compare_chunks_natural(
       chunk_graph,
       &module_graph,
+      &compilation.chunk_group_by_ukey,
       &compilation.module_ids_artifact,
       a,
       b,
@@ -193,7 +195,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
 
   let mut mutations = compilation
     .incremental
-    .can_write_mutations()
+    .mutations_writeable()
     .then(Mutations::default);
 
   // Use chunk name as default chunk id
@@ -249,7 +251,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
 
   if compilation
     .incremental
-    .can_read_mutations(IncrementalPasses::CHUNK_IDS)
+    .mutations_readable(IncrementalPasses::CHUNK_IDS)
     && let Some(mutations) = &mutations
   {
     let logger = compilation.get_logger("rspack.incremental.chunkIds");

@@ -2,27 +2,26 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   filter_runtime, runtime_condition_expression, AsContextDependency, AsModuleDependency,
-  Compilation, ConnectionState, Dependency, DependencyId, DependencyTemplate, ModuleGraph,
-  ModuleIdentifier, RuntimeCondition, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedByExports, UsedName,
+  Compilation, ConnectionState, Dependency, DependencyCodeGeneration, DependencyId,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, ModuleGraph, ModuleIdentifier,
+  RuntimeCondition, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedByExports,
+  UsedName,
 };
 use rspack_util::ext::DynHash;
 
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct PureExpressionDependency {
-  pub start: u32,
-  pub end: u32,
+  pub range: DependencyRange,
   used_by_exports: Option<UsedByExports>,
   id: DependencyId,
   pub module_identifier: ModuleIdentifier,
 }
 
 impl PureExpressionDependency {
-  pub fn new(start: u32, end: u32, module_identifier: ModuleIdentifier) -> Self {
+  pub fn new(range: DependencyRange, module_identifier: ModuleIdentifier) -> Self {
     Self {
-      start,
-      end,
+      range,
       used_by_exports: None,
       id: DependencyId::default(),
       module_identifier,
@@ -64,6 +63,10 @@ impl Dependency for PureExpressionDependency {
     &self.id
   }
 
+  fn range(&self) -> Option<&DependencyRange> {
+    Some(&self.range)
+  }
+
   fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
     self.used_by_exports = used_by_exports;
   }
@@ -84,39 +87,9 @@ impl Dependency for PureExpressionDependency {
 impl AsModuleDependency for PureExpressionDependency {}
 
 #[cacheable_dyn]
-impl DependencyTemplate for PureExpressionDependency {
-  fn apply(&self, source: &mut TemplateReplaceSource, ctx: &mut TemplateContext) {
-    let runtime_condition = self.get_runtime_condition(ctx.compilation, ctx.runtime);
-    let condition = match &runtime_condition {
-      rspack_core::RuntimeCondition::Boolean(true) => return,
-      rspack_core::RuntimeCondition::Boolean(false) => None,
-      rspack_core::RuntimeCondition::Spec(_spec) => Some(runtime_condition_expression(
-        &ctx.compilation.chunk_graph,
-        Some(&runtime_condition),
-        ctx.runtime,
-        ctx.runtime_requirements,
-      )),
-    };
-
-    if let Some(condition) = condition {
-      source.insert(
-        self.start,
-        &format!("(/* runtime-dependent pure expression or super */ {condition} ? ("),
-        None,
-      );
-      source.insert(self.end, ") : null)", None);
-    } else {
-      source.insert(
-        self.start,
-        "(/* unused pure expression or super */ null && (",
-        None,
-      );
-      source.insert(self.end, "))", None);
-    }
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
+impl DependencyCodeGeneration for PureExpressionDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(PureExpressionDependencyTemplate::template_type())
   }
 
   fn update_hash(
@@ -131,3 +104,58 @@ impl DependencyTemplate for PureExpressionDependency {
 }
 
 impl AsContextDependency for PureExpressionDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct PureExpressionDependencyTemplate;
+
+impl PureExpressionDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("PureExpressionDependency")
+  }
+}
+
+impl DependencyTemplate for PureExpressionDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<PureExpressionDependency>()
+      .expect("PureExpressionDependencyTemplate should be used for PureExpressionDependency");
+
+    let runtime_condition = dep.get_runtime_condition(
+      code_generatable_context.compilation,
+      code_generatable_context.runtime,
+    );
+    let condition = match &runtime_condition {
+      rspack_core::RuntimeCondition::Boolean(true) => return,
+      rspack_core::RuntimeCondition::Boolean(false) => None,
+      rspack_core::RuntimeCondition::Spec(_spec) => Some(runtime_condition_expression(
+        &code_generatable_context.compilation.chunk_graph,
+        Some(&runtime_condition),
+        code_generatable_context.runtime,
+        code_generatable_context.runtime_requirements,
+      )),
+    };
+
+    if let Some(condition) = condition {
+      source.insert(
+        dep.range.start,
+        &format!("(/* runtime-dependent pure expression or super */ {condition} ? ("),
+        None,
+      );
+      source.insert(dep.range.end, ") : null)", None);
+    } else {
+      source.insert(
+        dep.range.start,
+        "(/* unused pure expression or super */ null && (",
+        None,
+      );
+      source.insert(dep.range.end, "))", None);
+    }
+  }
+}

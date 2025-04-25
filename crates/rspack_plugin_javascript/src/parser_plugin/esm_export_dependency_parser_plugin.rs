@@ -44,7 +44,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
   ) -> Option<bool> {
     parser.last_esm_import_order += 1;
     let span = statement.span();
-    let clean_dep = ConstDependency::new(span.real_lo(), span.real_hi(), "".into(), None);
+    let clean_dep = ConstDependency::new(span.into(), "".into(), None);
     parser.presentational_dependencies.push(Box::new(clean_dep));
     let side_effect_dep = ESMImportSideEffectDependency::new(
       source.clone(),
@@ -52,7 +52,6 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       span.into(),
       statement.source_span().into(),
       DependencyType::EsmExport,
-      matches!(statement, ExportImport::All(_)),
       statement.get_with_obj().map(get_attributes),
       Some(parser.source_map.clone()),
     );
@@ -83,7 +82,6 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         settings.source_order,
         settings.ids,
         Some(export_name.clone()),
-        false,
         None,
         statement.span().into(),
         ESMExportImportedSpecifierDependency::create_export_presence_mode(
@@ -130,7 +128,6 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       parser.last_esm_import_order,
       local_id.map(|id| vec![id.clone()]).unwrap_or_default(),
       export_name.cloned(),
-      local_id.is_some(),
       star_exports,
       statement.span().into(),
       ESMExportImportedSpecifierDependency::create_export_presence_mode(parser.javascript_options),

@@ -1,4 +1,4 @@
-# Lazy compilation
+# 按需编译
 
 Lazy compilation 是一个提升开发阶段启动性能的有效手段，它采用按需编译模块的方式，而非在启动时编译全部模块。这意味着开发者在启动 dev server 时，可以很快看到应用运行，并分次构建所需的模块。
 
@@ -112,12 +112,15 @@ const middleware = experiments.lazyCompilationMiddleware(
   config.experiments.lazyCompilation,
 );
 
-const server = new DevServer(compiler, {
-  port: 3000,
-  setupMiddlewares(other) {
-    return [middleware, ...other];
+const server = new DevServer(
+  {
+    port: 3000,
+    setupMiddlewares(other) {
+      return [middleware, ...other];
+    },
   },
-});
+  compiler,
+);
 
 server.start();
 ```
@@ -126,3 +129,24 @@ server.start();
 
 - `compiler`: 当前的 [Compiler](/api/javascript-api/compiler) 实例
 - `options`: 懒编译的配置，与 [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) 相同
+
+## 自定义懒编译端点
+
+默认情况下，懒编译中间件使用 `/lazy-compilation-using-` 前缀来处理请求。如果你需要自定义这个前缀，可以使用 `prefix` 选项：
+
+```js title="rspack.config.mjs"
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  experiments: {
+    lazyCompilation: {
+      entries: true,
+      imports: true,
+      // 自定义懒编译端点前缀
+      prefix: '/custom-lazy-endpoint-',
+    },
+  },
+});
+```
+
+这在你需要与具有特定路由要求的现有系统集成，或者需要避免前缀冲突时特别有用。

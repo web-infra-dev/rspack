@@ -7,9 +7,11 @@ use rspack_paths::ArcPath;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  chunk_graph_chunk::ChunkId, chunk_graph_module::ModuleId, fast_set,
-  incremental::IncrementalPasses, ChunkGraph, ChunkKind, Compilation, Compiler, ModuleExecutor,
-  RuntimeSpec, RuntimeSpecMap,
+  chunk_graph_chunk::ChunkId,
+  chunk_graph_module::ModuleId,
+  fast_set,
+  incremental::{Incremental, IncrementalPasses},
+  ChunkGraph, ChunkKind, Compilation, Compiler, ModuleExecutor, RuntimeSpec,
 };
 
 impl Compiler {
@@ -39,7 +41,7 @@ impl Compiler {
       //   .old_cache
       //   .set_modified_files(all_files.into_iter().collect());
 
-      self.plugin_driver.clear_cache();
+      self.plugin_driver.clear_cache(self.compilation.id());
 
       let mut new_compilation = Compilation::new(
         self.id,
@@ -51,6 +53,7 @@ impl Compiler {
         Some(records),
         self.cache.clone(),
         self.old_cache.clone(),
+        Incremental::new_hot(self.options.experiments.incremental),
         Some(ModuleExecutor::default()),
         modified_files,
         removed_files,
@@ -59,12 +62,11 @@ impl Compiler {
         self.output_filesystem.clone(),
         true,
       );
-
       new_compilation.hot_index = self.compilation.hot_index + 1;
 
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::MAKE)
+        .mutations_readable(IncrementalPasses::MAKE)
       {
         // copy field from old compilation
         // make stage used
@@ -81,76 +83,76 @@ impl Compiler {
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::INFER_ASYNC_MODULES)
+        .mutations_readable(IncrementalPasses::INFER_ASYNC_MODULES)
       {
         new_compilation.async_modules_artifact =
           std::mem::take(&mut self.compilation.async_modules_artifact);
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS)
+        .mutations_readable(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS)
       {
         new_compilation.dependencies_diagnostics_artifact =
           std::mem::take(&mut self.compilation.dependencies_diagnostics_artifact);
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::SIDE_EFFECTS)
+        .mutations_readable(IncrementalPasses::SIDE_EFFECTS)
       {
         new_compilation.side_effects_optimize_artifact =
           std::mem::take(&mut self.compilation.side_effects_optimize_artifact);
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::MODULE_IDS)
+        .mutations_readable(IncrementalPasses::MODULE_IDS)
       {
         new_compilation.module_ids_artifact =
           std::mem::take(&mut self.compilation.module_ids_artifact);
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::CHUNK_IDS)
+        .mutations_readable(IncrementalPasses::CHUNK_IDS)
       {
         new_compilation.chunk_ids_artifact =
           std::mem::take(&mut self.compilation.chunk_ids_artifact);
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::MODULES_HASHES)
+        .mutations_readable(IncrementalPasses::MODULES_HASHES)
       {
         new_compilation.cgm_hash_artifact = std::mem::take(&mut self.compilation.cgm_hash_artifact);
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::MODULES_CODEGEN)
+        .mutations_readable(IncrementalPasses::MODULES_CODEGEN)
       {
         new_compilation.code_generation_results =
           std::mem::take(&mut self.compilation.code_generation_results);
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS)
+        .mutations_readable(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS)
       {
         new_compilation.cgm_runtime_requirements_artifact =
           std::mem::take(&mut self.compilation.cgm_runtime_requirements_artifact);
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
+        .mutations_readable(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
       {
         new_compilation.cgc_runtime_requirements_artifact =
           std::mem::take(&mut self.compilation.cgc_runtime_requirements_artifact);
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::CHUNKS_HASHES)
+        .mutations_readable(IncrementalPasses::CHUNKS_HASHES)
       {
         new_compilation.chunk_hashes_artifact =
           std::mem::take(&mut self.compilation.chunk_hashes_artifact);
       }
       if new_compilation
         .incremental
-        .can_read_mutations(IncrementalPasses::CHUNKS_RENDER)
+        .mutations_readable(IncrementalPasses::CHUNKS_RENDER)
       {
         new_compilation.chunk_render_artifact =
           std::mem::take(&mut self.compilation.chunk_render_artifact);
@@ -182,7 +184,7 @@ pub struct CompilationRecords {
   pub runtimes: RuntimeSpec,
   pub runtime_modules: IdentifierMap<RspackHashDigest>,
   pub chunks: FxHashMap<ChunkId, (RuntimeSpec, FxHashSet<ModuleId>)>,
-  pub modules: FxHashMap<ModuleId, RuntimeSpecMap<RspackHashDigest>>,
+  pub modules: FxHashMap<ModuleId, FxHashMap<ChunkId, RspackHashDigest>>,
   pub hash: Option<RspackHashDigest>,
 }
 
@@ -203,7 +205,7 @@ impl CompilationRecords {
 
   fn record_modules(
     compilation: &Compilation,
-  ) -> FxHashMap<ModuleId, RuntimeSpecMap<RspackHashDigest>> {
+  ) -> FxHashMap<ModuleId, FxHashMap<ChunkId, RspackHashDigest>> {
     compilation
       .chunk_graph
       .chunk_graph_module_by_module_identifier
@@ -211,16 +213,18 @@ impl CompilationRecords {
       .filter_map(|identifier| {
         let module_id =
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, *identifier)?.clone();
-        let mut hashes = RuntimeSpecMap::new();
-        for runtime in compilation
-          .chunk_graph
-          .get_module_runtimes_iter(*identifier, &compilation.chunk_by_ukey)
-        {
+        let mut hashes = FxHashMap::default();
+        for chunk in compilation.chunk_graph.get_module_chunks(*identifier) {
+          let chunk = compilation.chunk_by_ukey.expect_get(chunk);
+          let chunk_id = chunk
+            .id(&compilation.chunk_ids_artifact)
+            .expect("should have chunk_id")
+            .clone();
           let hash = compilation
             .code_generation_results
-            .get_hash(identifier, Some(runtime))
+            .get_hash(identifier, Some(chunk.runtime()))
             .expect("should have hash");
-          hashes.set(runtime.clone(), hash.clone());
+          hashes.insert(chunk_id, hash.clone());
         }
         Some((module_id, hashes))
       })

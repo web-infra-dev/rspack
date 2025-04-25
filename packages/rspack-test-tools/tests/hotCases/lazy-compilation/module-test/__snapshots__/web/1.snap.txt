@@ -35,7 +35,7 @@
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]('main', {},function(__webpack_require__) {
+self["webpackHotUpdate"]("main", {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
@@ -57,7 +57,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 
 #### Changed Content
 ```js
-self["webpackHotUpdate"]('moduleA_js_lazy-compilation-proxy', {
+self["webpackHotUpdate"]("moduleA_js_lazy-compilation-proxy", {
 "./moduleA.js!lazy-compilation-proxy": 
 /*!*********************************************************************************************************************!*\
   !*** lazy-compilation-proxy|../../../../dist/helper/loaders/hot-update.js??ruleSet[1].rules[0].use[0]!./moduleA.js ***!

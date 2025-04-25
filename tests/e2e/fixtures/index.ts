@@ -5,8 +5,7 @@ import { fileActionFixtures } from "./fileAction";
 
 const test = base
 	.extend(pathInfoFixtures)
-	.extend(rspackFixtures(true))
-	.extend(rspackFixtures(false))
+	.extend(rspackFixtures())
 	.extend(fileActionFixtures);
 
 export type { RspackOptions };

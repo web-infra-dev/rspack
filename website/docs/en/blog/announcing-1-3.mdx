@@ -100,11 +100,14 @@ const middleware = rspack.experiments.lazyCompilationMiddleware(
   config.experiments.lazyCompilation,
 );
 
-const server = new DevServer(compiler, {
-  setupMiddlewares(other) {
-    return [middleware, ...other];
+const server = new DevServer(
+  {
+    setupMiddlewares(other) {
+      return [middleware, ...other];
+    },
   },
-});
+  compiler,
+);
 ```
 
 ### AMD supports
@@ -231,11 +234,11 @@ More information will be released soon, stay tuned 🌟
 
 [Lynx](https://lynxjs.org/) is a family of technologies empowering developers to use their existing web skills to create truly native UIs for both mobile and web from a single codebase. Lynx was originally developed by an engineering team of ByteDance, which continues to drive its development.
 
-Lynx has built a modern toolchain called [Rspeedy](https://lynxjs.org/zh/rspeedy/) based on Rspack, Rsbuild, and Rsdoctor to enable fast builds. Lynx also features a speedy, versatile rendering engine and performance-driven dual-threaded UI programming.
+Lynx has built a modern toolchain called [Rspeedy](https://lynxjs.org/rspeedy/) based on Rspack, Rsbuild, and Rsdoctor to enable fast builds. Lynx also features a speedy, versatile rendering engine and performance-driven dual-threaded UI programming.
 
 ![](https://lf-lynx.tiktok-cdns.com/obj/lynx-artifacts-oss-sg/lynx-website/assets/blog/lynx-unlock-native-for-more.png)
 
-> Read the [Introductory Blog of Lynx](https://lynxjs.org/zh/blog/lynx-unlock-native-for-more.html) for more.
+> Read the [Introductory Blog of Lynx](https://lynxjs.org/blog/lynx-unlock-native-for-more.html) for more.
 
 ### Re.Pack 5
 

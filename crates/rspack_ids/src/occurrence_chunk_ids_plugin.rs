@@ -3,7 +3,8 @@ use std::collections::HashMap;
 use itertools::Itertools;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  ApplyContext, Chunk, CompilationChunkIds, CompilerOptions, Plugin, PluginContext,
+  incremental::IncrementalPasses, ApplyContext, Chunk, CompilationChunkIds, CompilerOptions,
+  Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -29,6 +30,15 @@ impl OccurrenceChunkIdsPlugin {
 
 #[plugin_hook(CompilationChunkIds for OccurrenceChunkIdsPlugin)]
 async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
+  if let Some(diagnostic) = compilation.incremental.disable_passes(
+    IncrementalPasses::CHUNK_IDS,
+    "OccurrenceChunkIdsPlugin (optimization.chunkIds = \"size\")",
+    "it requires calculating the id of all the chunks, which is a global effect",
+  ) {
+    compilation.push_diagnostic(diagnostic);
+    compilation.chunk_ids_artifact.clear();
+  }
+
   let chunk_graph = &compilation.chunk_graph;
   let module_graph = &compilation.get_module_graph();
   let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
@@ -72,6 +82,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<
       compare_chunks_natural(
         chunk_graph,
         module_graph,
+        &compilation.chunk_group_by_ukey,
         &compilation.module_ids_artifact,
         a,
         b,

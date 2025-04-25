@@ -28,10 +28,10 @@ use serde::Serialize;
 
 use crate::{
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
-  AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
-  CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
-  ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, DependencyTemplate,
-  ExportInfoProvided, ExternalModule, ModuleDependency, ModuleGraph, ModuleLayer, ModuleType,
+  AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BoxModuleDependency, ChunkGraph,
+  ChunkUkey, CodeGenerationResult, Compilation, CompilationAsset, CompilationId, CompilerId,
+  CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule, DependenciesBlock,
+  DependencyId, ExportInfoProvided, ExternalModule, ModuleGraph, ModuleLayer, ModuleType,
   NormalModule, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver,
   SourceType,
 };
@@ -327,11 +327,11 @@ pub trait Module:
   /// depends on the code generation results of dependencies which are returned by this function.
   /// e.g `Css` module may rely on the code generation result of `CssUrlDependency` to re-direct
   /// the url of the referenced assets.
-  fn get_code_generation_dependencies(&self) -> Option<&[Box<dyn ModuleDependency>]> {
+  fn get_code_generation_dependencies(&self) -> Option<&[BoxModuleDependency]> {
     None
   }
 
-  fn get_presentational_dependencies(&self) -> Option<&[Box<dyn DependencyTemplate>]> {
+  fn get_presentational_dependencies(&self) -> Option<&[BoxDependencyTemplate]> {
     None
   }
 

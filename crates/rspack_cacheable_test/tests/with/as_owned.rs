@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use rspack_cacheable::{cacheable, with::AsOwned};
+use rspack_cacheable::{enable_cacheable as cacheable, with::AsOwned};
 
 #[cacheable]
 #[derive(Debug, PartialEq, Eq, Clone)]

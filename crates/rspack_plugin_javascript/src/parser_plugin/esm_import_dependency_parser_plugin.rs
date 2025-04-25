@@ -1,4 +1,4 @@
-use rspack_core::{ConstDependency, Dependency, DependencyType, ImportAttributes, SpanExt};
+use rspack_core::{ConstDependency, Dependency, DependencyType, ImportAttributes};
 use swc_core::{
   atoms::Atom,
   common::{Span, Spanned},
@@ -79,7 +79,6 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       import_decl.span.into(),
       import_decl.src.span.into(),
       DependencyType::EsmImport,
-      false,
       attributes,
       Some(parser.source_map.clone()),
     );
@@ -88,8 +87,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     parser
       .presentational_dependencies
       .push(Box::new(ConstDependency::new(
-        import_decl.span.real_lo(),
-        import_decl.span.real_hi(),
+        import_decl.span.into(),
         if parser.is_asi_position(import_decl.span_lo()) {
           ";".into()
         } else {

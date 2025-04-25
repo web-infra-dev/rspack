@@ -177,7 +177,7 @@ async fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result
   let context: &str = compilation.options.context.as_ref();
   let mut mutations = compilation
     .incremental
-    .can_write_mutations()
+    .mutations_writeable()
     .then(Mutations::default);
 
   let unnamed_modules = assign_named_module_ids(
@@ -209,7 +209,7 @@ async fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result
 
   if compilation
     .incremental
-    .can_read_mutations(IncrementalPasses::MODULE_IDS)
+    .mutations_readable(IncrementalPasses::MODULE_IDS)
     && let Some(mutations) = &mutations
   {
     let logger = compilation.get_logger("rspack.incremental.moduleIds");

@@ -9,12 +9,10 @@
 	},
 	ignorePaths: [
 		"**/fixtures/**",
-		"npm/**",
 		"**/no-override-loaded/**",
 		"**/share-plugin-dual-mode/**",
 		"**/resolve-plugin-context/**"
 	],
-	assignees: ["@SoonIter"],
 	packageRules: [
 		// manually update peer dependencies
 		{
@@ -76,6 +74,12 @@
 			matchManagers: ["npm"],
 			matchPackageNames: ["/^@rspack/"]
 		},
+		// opentelemetry npm packages
+		{
+			groupName: "opentelemetry",
+			matchManagers: ["npm"],
+			matchPackageNames: ["/^@opentelemetry/"]
+		},
 		// Babel npm packages
 		{
 			groupName: "babel",
@@ -93,6 +97,12 @@
 			groupName: "SWC",
 			matchManagers: ["npm"],
 			matchPackageNames: ["/^@swc/"]
+		},
+		// React npm packages
+		{
+			groupName: "React",
+			matchManagers: ["npm"],
+			matchPackageNames: ["/^react/"]
 		},
 		// Rspack crates
 		{

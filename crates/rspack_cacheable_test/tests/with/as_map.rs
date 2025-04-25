@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use dashmap::DashMap;
 use rspack_cacheable::{
-  cacheable,
+  enable_cacheable as cacheable,
   with::{AsCacheable, AsMap, AsString},
 };
 use rustc_hash::FxHashMap;

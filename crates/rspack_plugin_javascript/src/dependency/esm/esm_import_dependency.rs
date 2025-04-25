@@ -7,13 +7,13 @@ use rspack_cacheable::{
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   filter_runtime, import_statement, merge_runtime, AsContextDependency,
-  AwaitDependenciesInitFragment, BuildMetaDefaultObject, Compilation, ConditionalInitFragment,
-  ConnectionState, Dependency, DependencyCategory, DependencyCondition, DependencyConditionFn,
-  DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyType, ErrorSpan,
-  ExportInfoProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource,
+  AwaitDependenciesInitFragment, BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState,
+  Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
+  DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ErrorSpan, ExportInfoProvided, ExportsType,
+  ExtendedReferencedExport, FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, ModuleDependency, ModuleGraph, ProvidedExports, RuntimeCondition, RuntimeSpec,
+  SharedSourceMap, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -63,13 +63,12 @@ pub mod import_emitted_runtime {
 #[derive(Debug, Clone)]
 pub struct ESMImportSideEffectDependency {
   #[cacheable(with=AsPreset)]
-  pub request: Atom,
-  pub source_order: i32,
-  pub id: DependencyId,
-  pub range: DependencyRange,
-  pub range_src: DependencyRange,
-  pub dependency_type: DependencyType,
-  pub export_all: bool,
+  request: Atom,
+  source_order: i32,
+  id: DependencyId,
+  range: DependencyRange,
+  range_src: DependencyRange,
+  dependency_type: DependencyType,
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
   #[cacheable(with=Skip)]
@@ -85,7 +84,6 @@ impl ESMImportSideEffectDependency {
     range: DependencyRange,
     range_src: DependencyRange,
     dependency_type: DependencyType,
-    export_all: bool,
     attributes: Option<ImportAttributes>,
     source_map: Option<SharedSourceMap>,
   ) -> Self {
@@ -98,7 +96,6 @@ impl ESMImportSideEffectDependency {
       range,
       range_src,
       dependency_type,
-      export_all,
       attributes,
       resource_identifier,
       source_map,
@@ -502,13 +499,36 @@ impl ModuleDependency for ESMImportSideEffectDependency {
   }
 }
 
+impl AsContextDependency for ESMImportSideEffectDependency {}
+
 #[cacheable_dyn]
-impl DependencyTemplate for ESMImportSideEffectDependency {
-  fn apply(
+impl DependencyCodeGeneration for ESMImportSideEffectDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(ESMImportSideEffectDependencyTemplate::template_type())
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ESMImportSideEffectDependencyTemplate;
+
+impl ESMImportSideEffectDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::EsmImport)
+  }
+}
+
+impl DependencyTemplate for ESMImportSideEffectDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyCodeGeneration,
     _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ESMImportSideEffectDependency>()
+      .expect("ESMImportSideEffectDependencyTemplate should only be used for ESMImportSideEffectDependency");
     let TemplateContext {
       compilation,
       concatenation_scope,
@@ -516,25 +536,11 @@ impl DependencyTemplate for ESMImportSideEffectDependency {
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
     if let Some(scope) = concatenation_scope {
-      let module = module_graph.get_module_by_dependency_id(&self.id);
+      let module = module_graph.get_module_by_dependency_id(&dep.id);
       if module.is_some_and(|m| scope.is_module_in_scope(&m.identifier())) {
         return;
       }
     }
-    esm_import_dependency_apply(self, self.source_order, code_generatable_context);
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
+    esm_import_dependency_apply(dep, dep.source_order, code_generatable_context);
   }
 }
-
-impl AsContextDependency for ESMImportSideEffectDependency {}

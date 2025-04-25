@@ -18,7 +18,7 @@ anyhow                   = { workspace = true }
 ropey                    = { workspace = true }
 rspack_allocator         = { workspace = true }
 rspack_collections       = { workspace = true }
-rspack_core              = { workspace = true }
+rspack_core              = { workspace = true, features = ["napi"] }
 rspack_error             = { workspace = true }
 rspack_fs                = { workspace = true }
 rspack_hash              = { workspace = true }
@@ -38,7 +38,7 @@ cow-utils          = { workspace = true }
 tracing            = { workspace = true }
 tracing-subscriber = { workspace = true }
 
-napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
+napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow", "napi7"] }
 napi-derive = { workspace = true }
 
 color-backtrace = "0.6.1"
@@ -47,6 +47,7 @@ derive_more        = { workspace = true, features = ["debug"] }
 futures            = { workspace = true }
 glob               = { workspace = true }
 heck               = { workspace = true }
+once_cell          = { workspace = true }
 rspack_cacheable   = { workspace = true }
 rspack_ids         = { workspace = true }
 rspack_napi_macros = { workspace = true }
@@ -55,9 +56,8 @@ rustc-hash         = { workspace = true }
 serde              = { workspace = true }
 serde_json         = { workspace = true }
 swc_core           = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
-tokio              = { workspace = true, features = ["rt", "macros", "test-util", "parking_lot"] }
+tokio              = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "tracing"] }
 
-rayon                                  = { workspace = true }
 rspack_loader_lightningcss             = { workspace = true }
 rspack_loader_preact_refresh           = { workspace = true }
 rspack_loader_react_refresh            = { workspace = true }
@@ -103,9 +103,9 @@ rspack_plugin_web_worker_template      = { workspace = true }
 rspack_plugin_worker                   = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-tokio = { workspace = true, features = ["rt-multi-thread"] }
+tokio = { workspace = true, features = ["parking_lot"] }
 
-rspack_tracing = { workspace = true, features = ["otel"] }
+rspack_tracing = { workspace = true }
 
 
 [build-dependencies]

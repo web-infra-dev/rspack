@@ -40,6 +40,7 @@ pub enum Mutation {
   ChunkSplit { from: ChunkUkey, to: ChunkUkey },
   ChunksIntegrate { to: ChunkUkey },
   ChunkRemove { chunk: ChunkUkey },
+  ChunkSetHashes { chunk: ChunkUkey },
 }
 
 impl fmt::Display for Mutation {
@@ -58,6 +59,7 @@ impl fmt::Display for Mutation {
       }
       Mutation::ChunksIntegrate { to } => write!(f, "integrate chunks to {}", to.as_u32()),
       Mutation::ChunkRemove { chunk } => write!(f, "remove chunk {}", chunk.as_u32()),
+      Mutation::ChunkSetHashes { chunk } => write!(f, "set hashes chunk {}", chunk.as_u32()),
     }
   }
 }
@@ -159,6 +161,9 @@ impl Mutations {
             Mutation::ChunkRemove { chunk } => {
               acc.remove(chunk);
             }
+            Mutation::ChunkSetId { chunk } => {
+              acc.insert(*chunk);
+            }
             _ => {}
           };
           acc
@@ -184,7 +189,7 @@ fn compute_affected_modules_with_module_graph(
       };
       match dependency.could_affect_referencing_module() {
         AffectType::True => affected = AffectType::True,
-        AffectType::False => continue,
+        AffectType::False => {}
         AffectType::Transitive => return AffectType::Transitive,
       }
     }
@@ -240,7 +245,7 @@ fn compute_affected_modules_with_module_graph(
           continue;
         }
         match reduce_affect_type(module_graph, &connections) {
-          AffectType::False => continue,
+          AffectType::False => {}
           AffectType::True => {
             direct_affected_modules.insert(referencing_module);
           }

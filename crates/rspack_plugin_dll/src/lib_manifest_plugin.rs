@@ -3,7 +3,7 @@ use rspack_core::{
   ApplyContext, ChunkGraph, Compilation, CompilerEmit, CompilerOptions, Context, EntryDependency,
   Filename, LibIdentOptions, PathData, Plugin, PluginContext, ProvidedExports, SourceType,
 };
-use rspack_error::{Error, Result};
+use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::Utf8Path;
 use rustc_hash::FxHashMap as HashMap;
@@ -170,9 +170,9 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
     let format = self.options.format.unwrap_or_default();
 
     let manifest_json = if format {
-      serde_json::to_string_pretty(&manifest).map_err(|e| Error::msg(format!("{e}")))?
+      serde_json::to_string_pretty(&manifest).to_rspack_result()?
     } else {
-      serde_json::to_string(&manifest).map_err(|e| Error::msg(format!("{e}")))?
+      serde_json::to_string(&manifest).to_rspack_result()?
     };
 
     manifests.insert(target_path, manifest_json);

@@ -61,6 +61,7 @@ const {
   },
 })
 export const AsyncDependenciesBlock = __napiModule.exports.AsyncDependenciesBlock
+export const Chunks = __napiModule.exports.Chunks
 export const ConcatenatedModule = __napiModule.exports.ConcatenatedModule
 export const ContextModule = __napiModule.exports.ContextModule
 export const Dependency = __napiModule.exports.Dependency
@@ -81,11 +82,11 @@ export const JsDependencies = __napiModule.exports.JsDependencies
 export const JsEntries = __napiModule.exports.JsEntries
 export const JsExportsInfo = __napiModule.exports.JsExportsInfo
 export const JsModuleGraph = __napiModule.exports.JsModuleGraph
-export const JsModuleGraphConnection = __napiModule.exports.JsModuleGraphConnection
 export const JsResolver = __napiModule.exports.JsResolver
 export const JsResolverFactory = __napiModule.exports.JsResolverFactory
 export const JsStats = __napiModule.exports.JsStats
 export const Module = __napiModule.exports.Module
+export const ModuleGraphConnection = __napiModule.exports.ModuleGraphConnection
 export const NormalModule = __napiModule.exports.NormalModule
 export const RawExternalItemFnCtx = __napiModule.exports.RawExternalItemFnCtx
 export const BuiltinPluginName = __napiModule.exports.BuiltinPluginName
@@ -96,3 +97,5 @@ export const JsRspackSeverity = __napiModule.exports.JsRspackSeverity
 export const RawRuleSetConditionType = __napiModule.exports.RawRuleSetConditionType
 export const registerGlobalTrace = __napiModule.exports.registerGlobalTrace
 export const RegisterJsTapKind = __napiModule.exports.RegisterJsTapKind
+export const shutdownAsyncRuntime = __napiModule.exports.shutdownAsyncRuntime
+export const startAsyncRuntime = __napiModule.exports.startAsyncRuntime

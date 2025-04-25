@@ -5,12 +5,7 @@
 extern crate napi_derive;
 extern crate rspack_allocator;
 
-use std::{
-  cell::RefCell,
-  pin::Pin,
-  str::FromStr,
-  sync::{Arc, Mutex},
-};
+use std::{cell::RefCell, pin::Pin, sync::Arc};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use napi::{bindgen_prelude::*, CallContext};
@@ -23,6 +18,7 @@ use rspack_fs::IntermediateFileSystem;
 
 use crate::fs_node::{NodeFileSystem, ThreadsafeNodeFS};
 
+mod allocator;
 mod asset;
 mod asset_condition;
 mod async_dependency_block;
@@ -99,7 +95,7 @@ use rustc_hash::FxHashMap;
 pub use source::*;
 pub use stats::*;
 use swc_core::common::util::take::Take;
-use tracing::Level;
+use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{
   layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
 };
@@ -156,13 +152,10 @@ impl JsCompiler {
     plugins.push(js_cleanup_plugin.boxed());
 
     for bp in builtin_plugins {
-      bp.append_to(env, &mut plugins)
-        .map_err(|e| Error::from_reason(format!("{e}")))?;
+      bp.append_to(env, &mut plugins).to_napi_result()?;
     }
 
-    let compiler_options: rspack_core::CompilerOptions = options
-      .try_into()
-      .map_err(|e| Error::from_reason(format!("{e}")))?;
+    let compiler_options: rspack_core::CompilerOptions = options.try_into().to_napi_result()?;
 
     tracing::info!("normalized_options: {:#?}", &compiler_options);
 
@@ -173,9 +166,11 @@ impl JsCompiler {
 
     let intermediate_filesystem: Option<Arc<dyn IntermediateFileSystem>> =
       if let Some(fs) = intermediate_filesystem {
-        Some(Arc::new(NodeFileSystem::new(fs).map_err(|e| {
-          Error::from_reason(format!("Failed to create intermediate filesystem: {e}",))
-        })?))
+        Some(Arc::new(
+          NodeFileSystem::new(fs).to_napi_result_with_message(|e| {
+            format!("Failed to create intermediate filesystem: {e}")
+          })?,
+        ))
       } else {
         None
       };
@@ -185,9 +180,10 @@ impl JsCompiler {
       compiler_options,
       plugins,
       buildtime_plugins::buildtime_plugins(),
-      Some(Arc::new(NodeFileSystem::new(output_filesystem).map_err(
-        |e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)),
-      )?)),
+      Some(Arc::new(
+        NodeFileSystem::new(output_filesystem)
+          .to_napi_result_with_message(|e| format!("Failed to create writable filesystem: {e}"))?,
+      )),
       intermediate_filesystem,
       None,
       Some(resolver_factory),
@@ -213,11 +209,8 @@ impl JsCompiler {
     unsafe {
       self.run(env, reference, |compiler, _guard| {
         callbackify(env, f, async move {
-          compiler.build().await.map_err(|e| {
-            Error::new(
-              napi::Status::GenericFailure,
-              print_error_diagnostic(e, compiler.options.stats.colors),
-            )
+          compiler.build().await.to_napi_result_with_message(|e| {
+            print_error_diagnostic(e, compiler.options.stats.colors)
           })?;
           tracing::info!("build ok");
           drop(_guard);
@@ -250,11 +243,8 @@ impl JsCompiler {
               HashSet::from_iter(removed_files.into_iter()),
             )
             .await
-            .map_err(|e| {
-              Error::new(
-                napi::Status::GenericFailure,
-                print_error_diagnostic(e, compiler.options.stats.colors),
-              )
+            .to_napi_result_with_message(|e| {
+              print_error_diagnostic(e, compiler.options.stats.colors)
             })?;
           tracing::info!("rebuild ok");
           drop(_guard);
@@ -262,6 +252,18 @@ impl JsCompiler {
         })
       })
     }
+  }
+
+  #[napi]
+  pub async fn close(&self) -> Result<()> {
+    self
+      .compiler
+      .close()
+      .await
+      .to_napi_result_with_message(|e| {
+        print_error_diagnostic(e, self.compiler.options.stats.colors)
+      })?;
+    Ok(())
   }
 }
 
@@ -342,8 +344,24 @@ enum TraceState {
   Off,
 }
 
+#[cfg(target_family = "wasm")]
+const _: () = {
+  #[used]
+  #[link_section = ".init_array"]
+  static __CTOR: unsafe extern "C" fn() = init;
+
+  unsafe extern "C" fn init() {
+    let rt = tokio::runtime::Builder::new_multi_thread()
+      .max_blocking_threads(1)
+      .enable_all()
+      .build()
+      .expect("Create tokio runtime failed");
+    create_custom_tokio_runtime(rt);
+  }
+};
+
 #[cfg(not(target_family = "wasm"))]
-#[ctor]
+#[napi::ctor::ctor(crate_path = ::napi::ctor)]
 fn init() {
   use std::{
     sync::atomic::{AtomicUsize, Ordering},
@@ -375,17 +393,6 @@ fn init() {
     .build()
     .expect("Create tokio runtime failed");
   create_custom_tokio_runtime(rt);
-  // initialize rayon
-  thread::Builder::new()
-    .name("rayon-spawner".to_string())
-    .spawn(|| {
-      // build_global will block until all threads are alive which will hurt performance or cause deadlock, so run it in separate thread
-      rayon::ThreadPoolBuilder::new()
-        .thread_name(|id| format!("rayon-{}", id))
-        .build_global()
-        .expect("Create rayon thread pool failed");
-    })
-    .expect("spawn rayon-spwaner thread failed");
 }
 
 fn print_error_diagnostic(e: rspack_error::Error, colored: bool) -> String {
@@ -395,7 +402,7 @@ fn print_error_diagnostic(e: rspack_error::Error, colored: bool) -> String {
 }
 
 thread_local! {
-  static GLOBAL_TRACE_STATE: Mutex<TraceState> = const { Mutex::new(TraceState::Off) };
+  static GLOBAL_TRACE_STATE: RefCell<TraceState> = const { RefCell::new(TraceState::Off) };
 }
 
 /**
@@ -408,50 +415,32 @@ thread_local! {
 #[napi]
 pub fn register_global_trace(
   filter: String,
-  #[napi(ts_arg_type = "\"chrome\" | \"logger\" | \"otel\"")] layer: String,
+  #[napi(ts_arg_type = "\"chrome\" | \"logger\" ")] layer: String,
   output: String,
 ) -> anyhow::Result<()> {
   GLOBAL_TRACE_STATE.with(|state| {
-    let mut state = state.lock().expect("Failed to lock GLOBAL_TRACE_STATE");
+    let mut state = state.borrow_mut();
     if let TraceState::Off = *state {
       let mut tracer: Box<dyn Tracer> = match layer.as_str() {
         "chrome" => Box::new(ChromeTracer::default()),
-        #[cfg(not(target_family = "wasm"))]
-        "otel" => {
-          use rspack_tracing::OtelTracer;
-          use rspack_napi::napi::bindgen_prelude::within_runtime_if_available;
-          Box::new(within_runtime_if_available(OtelTracer::default))
-        },
         "logger" => Box::new(StdoutTracer),
         _ => anyhow::bail!(
-          "Unexpected layer: {}, supported layers: 'chrome', 'logger', 'console' and 'otel' ",
+          "Unexpected layer: {}, supported layers: 'chrome', 'logger', 'console' ",
           layer
         ),
       };
       if let Some(layer) = tracer.setup(&output) {
-        if let Ok(default_level) = Level::from_str(&filter) {
-          let filter = tracing_subscriber::filter::Targets::new()
-            .with_target("rspack_core", default_level)
-            .with_target("node_binding", default_level)
-            .with_target("rspack_loader_swc", default_level)
-            .with_target("rspack_loader_runner", default_level)
-            .with_target("rspack_plugin_javascript", default_level)
-            .with_target("rspack_resolver", Level::WARN);
-          tracing_subscriber::registry()
-            .with(<_ as Layer<Registry>>::with_filter(layer, filter))
-            .init();
-        } else {
-          // SAFETY: we know that trace_var is `Ok(String)` now,
-          // for the second unwrap, if we can't parse the directive, then the tracing result would be
-          // unexpected, then panic is reasonable
-          let filter = EnvFilter::builder()
-            .with_regex(true)
-            .parse(filter)
-            .expect("Parse tracing directive syntax failed, for details about the directive syntax you could refer https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives");
-          tracing_subscriber::registry()
-            .with(<_ as Layer<Registry>>::with_filter(layer, filter))
-            .init();
-        }
+        // SAFETY: we know that trace_var is `Ok(String)` now,
+        // for the second unwrap, if we can't parse the directive, then the tracing result would be
+        // unexpected, then panic is reasonable
+        let filter = EnvFilter::builder()
+          .with_default_directive(LevelFilter::INFO.into())
+          .with_regex(true)
+          .parse(filter)
+          .expect("Parse tracing directive syntax failed, for details about the directive syntax you could refer https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives");
+        tracing_subscriber::registry()
+          .with(<_ as Layer<Registry>>::with_filter(layer, filter))
+          .init();
       }
       let new_state = TraceState::On(tracer);
       *state = new_state;
@@ -463,10 +452,36 @@ pub fn register_global_trace(
 #[napi]
 pub fn cleanup_global_trace() {
   GLOBAL_TRACE_STATE.with(|state| {
-    let mut state = state.lock().expect("Failed to lock GLOBAL_TRACE_STATE");
+    let mut state = state.borrow_mut();
     if let TraceState::On(ref mut tracer) = *state {
       tracer.teardown();
     }
     *state = TraceState::Off;
   });
+}
+
+#[module_exports]
+fn node_init(mut _exports: Object, env: Env) -> Result<()> {
+  rspack_core::set_thread_local_allocator(Box::new(allocator::NapiAllocatorImpl::new(env)));
+  Ok(())
+}
+
+#[napi]
+/// Shutdown the tokio runtime manually.
+///
+/// This is required for the wasm target with `tokio_unstable` cfg.
+/// In the wasm runtime, the `park` threads will hang there until the tokio::Runtime is shutdown.
+pub fn shutdown_async_runtime() {
+  #[cfg(all(target_family = "wasm", tokio_unstable))]
+  napi::bindgen_prelude::shutdown_async_runtime();
+}
+
+#[napi]
+/// Start the async runtime manually.
+///
+/// This is required when the async runtime is shutdown manually.
+/// Usually it's used in test.
+pub fn start_async_runtime() {
+  #[cfg(all(target_family = "wasm", tokio_unstable))]
+  napi::bindgen_prelude::start_async_runtime();
 }

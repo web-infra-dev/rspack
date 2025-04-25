@@ -19,10 +19,9 @@
   "rust-analyzer.procMacro.enable": true,
   "rust-analyzer.procMacro.attributes.enable": true,
   "rust-analyzer.linkedProjects": [
-    "Cargo.toml",
-    "crates/node_binding/Cargo.toml",
-    "./crates/rspack_plugin_ensure_chunk_conditions/Cargo.toml"
+    "Cargo.toml"
   ],
+  "rust-analyzer.cargo.features": ["rspack_cacheable/noop"],
   "files.associations": {
     "*.snap": "markdown",
     "*.snap.txt": "markdown",
@@ -36,6 +35,8 @@
     "napi",
     "postcss",
     "pxtorem",
+    "rslib",
+    "Rslib",
     "rspack",
     "threejs",
     "tokio",

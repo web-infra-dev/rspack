@@ -1,6 +1,6 @@
 use futures::Future;
 use indexmap::IndexMap;
-use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierSet};
+use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet};
 use rspack_error::Result;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
@@ -84,25 +84,34 @@ impl CodeSplittingCache {
     for module in affected_modules {
       let outgoings: Vec<ModuleIdentifier> = {
         let mut res = vec![];
-        let mut visited = IdentifierSet::default();
-        let mut active_modules = IdentifierSet::default();
-        module_graph
-          .get_outgoing_connections_in_order(&module)
-          .filter_map(|dep| module_graph.connection_by_dependency_id(dep))
-          .map(|conn| {
-            let m = *conn.module_identifier();
-            if conn.active_state(&module_graph, None).is_not_false() {
-              active_modules.insert(m);
-            }
-            m
+        let mut active_modules = IdentifierIndexMap::<Vec<_>>::default();
+        let module = module_graph
+          .module_graph_module_by_identifier(&module)
+          .expect("should have module");
+        module
+          .all_dependencies
+          .iter()
+          .filter(|dep_id| {
+            module_graph
+              .dependency_by_id(dep_id)
+              .expect("should have dep")
+              .as_module_dependency()
+              .is_none_or(|module_dep| !module_dep.weak())
           })
-          .collect::<Vec<_>>()
-          .into_iter()
-          .for_each(|m| {
-            if active_modules.contains(&m) && visited.insert(m) {
-              res.push(m);
-            }
+          .filter_map(|dep| module_graph.connection_by_dependency_id(dep))
+          .for_each(|conn| {
+            let m = *conn.module_identifier();
+            active_modules.entry(m).or_default().push(conn);
           });
+
+        'outer: for (m, connections) in active_modules {
+          for conn in connections {
+            if conn.active_state(&module_graph, None).is_not_false() {
+              res.push(m);
+              continue 'outer;
+            }
+          }
+        }
 
         res
       };
@@ -208,21 +217,41 @@ impl CodeSplittingCache {
     let affected_modules = mutations.get_affected_modules_with_module_graph(&module_graph);
 
     for module in affected_modules.clone() {
-      let outgoings = module_graph
-        .get_outgoing_connections_in_order(&module)
+      let mut current_outgoings_map = IdentifierIndexMap::<Vec<_>>::default();
+      let curr_module = module_graph
+        .module_graph_module_by_identifier(&module)
+        .expect("module should exist");
+
+      curr_module
+        .all_dependencies
+        .iter()
+        .filter(|dep_id| {
+          module_graph
+            .dependency_by_id(dep_id)
+            .expect("should have dep")
+            .as_module_dependency()
+            .is_none_or(|module_dep| !module_dep.weak())
+        })
         .filter_map(|dep| module_graph.connection_by_dependency_id(dep))
-        .filter(|conn| conn.active_state(&module_graph, None).is_not_false())
-        .map(|conn| conn.module_identifier());
+        .map(|conn| (conn.module_identifier(), conn))
+        .for_each(|(module, conn)| current_outgoings_map.entry(*module).or_default().push(conn));
       let mut current_outgoings = IdentifierIndexSet::default();
 
-      for outgoing in outgoings {
-        current_outgoings.insert(*outgoing);
+      'outer: for (m, conns) in current_outgoings_map.iter() {
+        for conn in conns {
+          let conn_state = conn.active_state(&module_graph, None);
+          if conn_state.is_not_false() {
+            current_outgoings.insert(*m);
+            continue 'outer;
+          }
+        }
       }
 
       let mut previous_outgoings = IdentifierIndexSet::default();
-
+      let mut newly_added_module = true;
       for module_map in self.new_code_splitter.module_deps.values() {
         if let Some(outgoings) = module_map.get(&module) {
+          newly_added_module = false;
           let (outgoings, _blocks) = outgoings.value();
           for out in outgoings {
             previous_outgoings.insert(*out);
@@ -235,20 +264,28 @@ impl CodeSplittingCache {
         .module_deps_without_runtime
         .get(&module)
       {
+        newly_added_module = false;
         let (outgoings, _blocks) = outgoings.value();
         for out in outgoings {
           previous_outgoings.insert(*out);
         }
       }
 
+      if newly_added_module {
+        logger.log(format!("new module: {module}"));
+        return false;
+      }
+
       if previous_outgoings.len() != current_outgoings.len() {
-        logger.log(format!("module outgoings change detected: {module}"));
+        logger.log(format!(
+          "module outgoings change detected (outgoings length change): {module}"
+        ));
         return false;
       }
 
       for (prev, curr) in previous_outgoings.into_iter().zip(current_outgoings) {
         if prev != curr {
-          logger.log(format!("module outgoings change detected: {module}"));
+          logger.log(format!("module outgoings change detected {module}"));
           return false;
         }
       }
@@ -267,17 +304,14 @@ where
   T: Fn(&'a mut Compilation) -> F,
   F: Future<Output = Result<&'a mut Compilation>>,
 {
-  if !compilation
-    .incremental
-    .can_read_mutations(IncrementalPasses::MAKE)
-  {
+  if !compilation.incremental.enabled() {
     task(compilation).await?;
     return Ok(());
   }
 
   let incremental_code_splitting = compilation
     .incremental
-    .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH);
+    .passes_enabled(IncrementalPasses::BUILD_CHUNK_GRAPH);
   let new_code_splitting = compilation.options.experiments.parallel_code_splitting;
   let no_change = compilation
     .code_splitting_cache

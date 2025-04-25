@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "1.3.0",
+  "version": "1.3.6",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
@@ -21,12 +21,9 @@
     "./module": "./module.d.ts"
   },
   "scripts": {
-    "build": "tsc -b ./tsconfig.build.json && tsc-alias -p tsconfig.build.json && tsup && npm run prepare-container-runtime",
-    "build:force": "tsc -b ./tsconfig.build.json --force && tsc-alias -p tsconfig.build.json && tsup && npm run prepare-container-runtime",
-    "dev": "pnpm run --stream /^dev:.*/",
-    "dev:types": "tsc -w",
-    "dev:js": "tsup --watch",
-    "prepare": "prebundle",
+    "prepare": "prebundle && node ./move-tinypool.js",
+    "build": "rslib build && npm run prepare-container-runtime",
+    "dev": "rslib build --watch",
     "prepare-container-runtime": "node ./scripts/prepare-container-runtime.js",
     "doc-coverage": "tsx ./scripts/check-documentation-coverage.ts",
     "api-extractor": "api-extractor run --verbose",
@@ -49,44 +46,35 @@
     "directory": "packages/rspack"
   },
   "devDependencies": {
-    "@rspack/tracing": "workspace:*",
-    "@swc/core": "1.11.11",
-    "@swc/types": "0.1.19",
+    "@swc/core": "1.11.21",
+    "@swc/types": "0.1.21",
+    "@rslib/core": "0.6.7",
     "@types/graceful-fs": "4.1.9",
     "@types/watchpack": "^2.4.4",
     "@types/webpack-sources": "3.2.3",
     "browserslist": "^4.24.4",
-    "cross-env": "^7.0.3",
     "enhanced-resolve": "5.18.1",
     "graceful-fs": "^4.2.11",
-    "json-parse-even-better-errors": "^3.0.2",
-    "prebundle": "^1.2.7",
-    "tsc-alias": "^1.8.11",
-    "tsup": "^8.4.0",
+    "prebundle": "^1.3.3",
     "tsx": "^4.19.3",
     "typescript": "^5.7.3",
     "watchpack": "^2.4.2",
-    "webpack-dev-server": "5.2.0",
     "webpack-sources": "3.2.3",
-    "zod": "^3.24.2",
-    "zod-validation-error": "3.4.0"
-  },
-  "dependencies": {
-    "@module-federation/runtime-tools": "0.11.1",
-    "@rspack/binding": "workspace:*",
-    "@rspack/lite-tapable": "1.0.1",
-    "caniuse-lite": "^1.0.30001706",
+    "zod": "^3.24.3",
+    "zod-validation-error": "3.4.0",
     "tinypool": "^1.0.2"
   },
+  "dependencies": {
+    "@module-federation/runtime-tools": "0.13.0",
+    "@rspack/binding": "workspace:*",
+    "@rspack/lite-tapable": "1.0.1",
+    "caniuse-lite": "^1.0.30001715"
+  },
   "peerDependencies": {
-    "@rspack/tracing": "^1.x",
     "@swc/helpers": ">=0.5.1"
   },
   "peerDependenciesMeta": {
     "@swc/helpers": {
-      "optional": true
-    },
-    "@rspack/tracing": {
       "optional": true
     }
   }
