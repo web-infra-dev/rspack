@@ -58,7 +58,7 @@
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]('main', {},function(__webpack_require__) {
+self["webpackHotUpdate"]("main", {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
@@ -83,7 +83,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]('shared', {
+self["webpackHotUpdate"]("shared", {
 "./moduleAs.js": 
 /*!*********************!*\
   !*** ./moduleAs.js ***!
@@ -143,7 +143,7 @@ __webpack_require__.d(__webpack_exports__, {
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]('workerA_js', {
+self["webpackHotUpdate"]("workerA_js", {
 "./module.js": 
 /*!*******************!*\
   !*** ./module.js ***!
@@ -196,7 +196,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]('workerB_js', {
+self["webpackHotUpdate"]("workerB_js", {
 "./moduleB.js": 
 /*!********************!*\
   !*** ./moduleB.js ***!

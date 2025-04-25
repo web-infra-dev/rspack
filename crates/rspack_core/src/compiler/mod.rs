@@ -203,7 +203,7 @@ impl Compiler {
     self.old_cache.end_idle();
     // TODO: clear the outdated cache entries in resolver,
     // TODO: maybe it's better to use external entries.
-    self.plugin_driver.clear_cache();
+    self.plugin_driver.clear_cache(self.compilation.id());
 
     fast_set(
       &mut self.compilation,

@@ -184,7 +184,7 @@ pub fn expand_fn(args: HookArgs, input: syn::ItemFn) -> proc_macro::TokenStream 
   let tracing_name = syn::LitStr::new(&format!("{}:{}", &name, &fn_ident), name.span());
   let tracing_annotation = tracing
     .map(|bool_lit| bool_lit.value)
-    .unwrap_or_default()
+    .unwrap_or(true)
     .then(|| {
       quote! {
         #[::rspack_hook::__macro_helper::tracing::instrument(name = #tracing_name, skip_all)]

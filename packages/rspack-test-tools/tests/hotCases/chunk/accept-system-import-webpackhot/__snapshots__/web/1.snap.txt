@@ -35,7 +35,7 @@
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]('chunk2_js', {
+self["webpackHotUpdate"]("chunk2_js", {
 "./file.js": 
 /*!*****************!*\
   !*** ./file.js ***!
@@ -66,7 +66,7 @@ var value = 2;
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]('chunk_js', {
+self["webpackHotUpdate"]("chunk_js", {
 "./file.js": 
 /*!*****************!*\
   !*** ./file.js ***!
@@ -97,7 +97,7 @@ var value = 2;
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]('main', {},function(__webpack_require__) {
+self["webpackHotUpdate"]("main", {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")

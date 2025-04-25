@@ -9,7 +9,7 @@ use rspack_loader_runner::State as LoaderState;
 
 use super::{JsLoaderContext, JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 
-#[plugin_hook(NormalModuleLoaderShouldYield for JsLoaderRspackPlugin)]
+#[plugin_hook(NormalModuleLoaderShouldYield for JsLoaderRspackPlugin, tracing=false)]
 pub(crate) async fn loader_should_yield(
   &self,
   loader_context: &LoaderContext<RunnerContext>,
@@ -27,7 +27,7 @@ pub(crate) async fn loader_should_yield(
   }
 }
 
-#[plugin_hook(NormalModuleLoaderStartYielding for JsLoaderRspackPlugin)]
+#[plugin_hook(NormalModuleLoaderStartYielding for JsLoaderRspackPlugin,tracing=false)]
 pub(crate) async fn loader_yield(
   &self,
   loader_context: &mut LoaderContext<RunnerContext>,

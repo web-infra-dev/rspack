@@ -34,14 +34,16 @@ export class JavaScriptTracer {
 		this.output = output;
 		this.events = [];
 		const hrtime = process.hrtime();
+		this.startTime = hrtime[0] * 1000000 + Math.round(hrtime[1] / 1000); // use microseconds
+	}
+	static initCpuProfiler() {
 		if (this.layer === "chrome") {
 			this.session.connect();
 			this.session.post("Profiler.enable");
 			this.session.post("Profiler.start");
 		}
-
-		this.startTime = hrtime[0] * 1000000 + Math.round(hrtime[1] / 1000); // use microseconds
 	}
+
 	static async cleanupJavaScriptTrace() {
 		if (!this.layer.includes("chrome")) {
 			return;
@@ -58,10 +60,10 @@ export class JavaScriptTracer {
 				// more info in https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU/preview?tab=t.0#heading=h.yr4qxyxotyw
 				this.pushEvent({
 					name: "Profile",
-					cat: "disabled-by-default-v8.cpu_profiler",
 					ph: "P",
 					id: 1,
 					...this.getCommonEv(),
+					cat: "disabled-by-default-v8.cpu_profiler",
 					pid: 3, // separate process id for cpu profile
 					args: {
 						data: {
@@ -73,8 +75,8 @@ export class JavaScriptTracer {
 					name: "ProfileChunk",
 					ph: "P",
 					id: 1,
-					cat: "disabled-by-default-v8.cpu_profiler",
 					...this.getCommonEv(),
+					cat: "disabled-by-default-v8.cpu_profiler",
 					pid: 3,
 					args: {
 						data: {
@@ -112,10 +114,18 @@ export class JavaScriptTracer {
 		return {
 			tid: 1,
 			pid: 2, // fake pid for detailed track
-			ts: this.getTs()
+			ts: this.getTs(),
+			cat: "rspack"
 		};
 	}
 	static pushEvent(event: ChromeEvent) {
+		// set id2 as perfetto track id
+		if (!event.id2 && event.args?.id2) {
+			event.id2 = {
+				local: event.args.id2
+			};
+		}
+
 		this.events.push(event);
 	}
 	// start an chrome async event
@@ -126,6 +136,7 @@ export class JavaScriptTracer {
 		this.pushEvent({
 			...this.getCommonEv(),
 			ph: "b",
+
 			...events
 		});
 	}

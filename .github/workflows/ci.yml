@@ -120,7 +120,6 @@ jobs:
     # When *only* doc changed, it will run as success directly
     name: Test Required Check
     needs: [ test-linux, test-windows, test-mac, check-changed ]
-    if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
       - name: Log

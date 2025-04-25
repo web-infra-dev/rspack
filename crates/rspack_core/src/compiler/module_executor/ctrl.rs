@@ -4,7 +4,10 @@ use rspack_collections::IdentifierMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::mpsc::{error::TryRecvError, UnboundedReceiver};
 
-use super::{entry::EntryTask, execute::ExecuteTask};
+use super::{
+  entry::EntryTask,
+  execute::{BeforeExecuteBuildTask, ExecuteTask},
+};
 use crate::{
   compiler::make::repair::MakeTaskContext,
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -77,7 +80,7 @@ pub enum Event {
   ),
   // current_module_identifier and sub dependency count
   FinishModule(ModuleIdentifier, usize),
-  ExecuteModule(ExecuteParam, ExecuteTask),
+  ExecuteModule(ExecuteParam, ExecuteTask, Option<BeforeExecuteBuildTask>),
   Stop(),
 }
 
@@ -159,7 +162,7 @@ impl Task<MakeTaskContext> for CtrlTask {
             })]);
           }
         }
-        Event::ExecuteModule(param, execute_task) => {
+        Event::ExecuteModule(param, execute_task, before_execute_task) => {
           match param {
             ExecuteParam::Entry(dep, layer) => {
               let dep_id = dep.id();
@@ -169,14 +172,26 @@ impl Task<MakeTaskContext> for CtrlTask {
                 let mut list = ExecuteTaskList::default();
                 list.add_task(execute_task);
                 self.execute_task_map.insert(*dep_id, list);
-                return Ok(vec![Box::new(EntryTask { dep, layer }), self]);
+                return Ok(if let Some(before_execute_task) = before_execute_task {
+                  vec![
+                    Box::new(before_execute_task),
+                    Box::new(EntryTask { dep, layer }),
+                    self,
+                  ]
+                } else {
+                  vec![Box::new(EntryTask { dep, layer }), self]
+                });
               }
             }
             ExecuteParam::DependencyId(dep_id) => {
               if let Some(tasks) = self.execute_task_map.get_mut(&dep_id) {
                 tasks.add_task(execute_task)
               } else {
-                return Ok(vec![Box::new(execute_task), self]);
+                return Ok(if let Some(before_execute_task) = before_execute_task {
+                  vec![Box::new(before_execute_task), Box::new(execute_task), self]
+                } else {
+                  vec![Box::new(execute_task), self]
+                });
               }
             }
           };
@@ -273,7 +288,7 @@ impl Task<MakeTaskContext> for FinishModuleTask {
             queue.push_back(mid);
           }
         }
-        Event::ExecuteModule(param, execute_task) => {
+        Event::ExecuteModule(param, execute_task, before_execute_build_task) => {
           match param {
             ExecuteParam::Entry(dep, layer) => {
               let dep_id = dep.id();
@@ -283,6 +298,9 @@ impl Task<MakeTaskContext> for FinishModuleTask {
                 let mut list = ExecuteTaskList::default();
                 list.add_task(execute_task);
                 ctrl_task.execute_task_map.insert(*dep_id, list);
+                if let Some(before_execute_build_task) = before_execute_build_task {
+                  res.push(Box::new(before_execute_build_task));
+                }
                 res.push(Box::new(EntryTask { dep, layer }));
               }
             }
@@ -290,6 +308,9 @@ impl Task<MakeTaskContext> for FinishModuleTask {
               if let Some(tasks) = ctrl_task.execute_task_map.get_mut(&dep_id) {
                 tasks.add_task(execute_task)
               } else {
+                if let Some(before_execute_build_task) = before_execute_build_task {
+                  res.push(Box::new(before_execute_build_task));
+                }
                 res.push(Box::new(execute_task));
               }
             }

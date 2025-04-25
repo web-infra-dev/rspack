@@ -122,18 +122,12 @@ export class BuildCommand implements RspackCommand {
 
 				compiler.run(
 					(error: Error | null, stats: Stats | MultiStats | undefined) => {
-						// If there is a compilation error, the close method should not be called,
-						// Otherwise Rspack may generate invalid caches.
-						if (error || stats?.hasErrors()) {
+						compiler.close(closeErr => {
+							if (closeErr) {
+								logger.error(closeErr);
+							}
 							errorHandler(error, stats);
-						} else {
-							compiler.close(closeErr => {
-								if (closeErr) {
-									logger.error(closeErr);
-								}
-								errorHandler(error, stats);
-							});
-						}
+						});
 					}
 				);
 			}

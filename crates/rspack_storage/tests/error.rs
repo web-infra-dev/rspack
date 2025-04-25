@@ -140,17 +140,34 @@ mod test_storage_error {
   }
 
   async fn test_recovery_modified_pack(
-    _root: &Utf8PathBuf,
-    _fs: Arc<dyn FileSystem>,
+    root: &Utf8PathBuf,
+    fs: Arc<dyn FileSystem>,
     options: PackStorageOptions,
   ) -> Result<()> {
     let storage = PackStorage::new(options);
+    let meta_file = root.join("test_scope/scope_meta");
+    let first_pack_file = root.join(&get_first_pack("test_scope", &meta_file, fs.as_ref()).await?);
+    let first_pack_content = fs.read_file(&first_pack_file).await?.read_to_end().await?;
+
+    // mock
+    let fake_pack_content = &first_pack_content[0..first_pack_content.len() - 1];
+    let mut writer = fs.write_file(&first_pack_file).await?;
+    writer.write_all(fake_pack_content).await?;
+    writer.flush().await?;
 
     // test
     assert!(storage.load("test_scope").await.is_err_and(|e| {
       e.to_string()
         .contains("validate scope `test_scope` failed due to some packs are modified")
     }));
+
+    // resume
+    let mut writer = fs.write_file(&first_pack_file).await?;
+    writer.write_all(&first_pack_content).await?;
+    writer.flush().await?;
+
+    // test
+    assert!(storage.load("test_scope").await.is_ok());
 
     Ok(())
   }

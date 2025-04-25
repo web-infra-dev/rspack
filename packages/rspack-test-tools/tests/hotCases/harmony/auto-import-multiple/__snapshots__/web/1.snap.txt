@@ -32,7 +32,7 @@
 
 #### Changed Content
 ```js
-self["webpackHotUpdate"]('main', {
+self["webpackHotUpdate"]("main", {
 "./commonjs.js": 
 /*!*********************!*\
   !*** ./commonjs.js ***!
