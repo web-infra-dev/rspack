@@ -330,7 +330,6 @@ export type { SubresourceIntegrityPluginOptions } from "./builtin-plugin";
 import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";
 import { JavaScriptTracer } from "./trace";
 
-
 interface Experiments {
 	globalTrace: {
 		register: (
@@ -369,5 +368,5 @@ export const experiments: Experiments = {
 	 */
 	RsdoctorPlugin,
 	SubresourceIntegrityPlugin,
-	lazyCompilationMiddleware,
+	lazyCompilationMiddleware
 };
