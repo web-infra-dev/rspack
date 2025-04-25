@@ -50,5 +50,5 @@ jobs:
     if: inputs.bench
     with:
       target: ${{ inputs.target }}
-      runner: ${{ inputs.runner }}
+      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS }}
       ref: ${{ inputs.ref }}
