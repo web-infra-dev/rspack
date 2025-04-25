@@ -34,4 +34,8 @@ impl ChunkHashesArtifact {
   pub fn retain(&mut self, f: impl FnMut(&ChunkUkey, &mut ChunkHashesResult) -> bool) {
     self.chunk_to_hashes.retain(f)
   }
+
+  pub fn clear(&mut self) {
+    self.chunk_to_hashes.clear();
+  }
 }

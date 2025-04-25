@@ -286,7 +286,7 @@ export function createTreeShakingCase(name: string, src: string, dist: string): 
 export function createWatchCase(name: string, src: string, dist: string, temp: string): void;
 
 // @public (undocumented)
-export function createWatchNewIncrementalCase(name: string, src: string, dist: string, temp: string): void;
+export function createWatchNewIncrementalCase(name: string, src: string, dist: string, temp: string, options?: WatchNewIncrementalOptions): void;
 
 // @public (undocumented)
 export class DefaultsConfigProcessor<T extends ECompilerType> extends SimpleTaskProcessor<T> {
@@ -1175,10 +1175,6 @@ export interface ITestRunner {
 // @public (undocumented)
 export interface IWatchProcessorOptions<T extends ECompilerType> extends IMultiTaskProcessorOptions<T> {
     // (undocumented)
-    experiments?: TRspackExperiments;
-    // (undocumented)
-    optimization?: TRspackOptimization;
-    // (undocumented)
     stepName: string;
     // (undocumented)
     tempDir: string;
@@ -1615,12 +1611,6 @@ export type TModuleObject = {
 export type TModuleTypeId = "normal" | "runtime";
 
 // @public (undocumented)
-type TRspackExperiments = TCompilerOptions<ECompilerType>["experiments"];
-
-// @public (undocumented)
-type TRspackOptimization = TCompilerOptions<ECompilerType>["optimization"];
-
-// @public (undocumented)
 export interface TRunnerFactory<T extends ECompilerType> {
     // (undocumented)
     create(file: string, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
@@ -1677,6 +1667,11 @@ export type TUpdateOptions = {
 };
 
 // @public (undocumented)
+export type WatchNewIncrementalOptions = {
+    ignoreNotFriendlyForIncrementalWarnings?: boolean;
+};
+
+// @public (undocumented)
 export class WatchProcessor<T extends ECompilerType> extends MultiTaskProcessor<T> {
     constructor(_watchOptions: IWatchProcessorOptions<T>, _watchState: Record<string, any>);
     // (undocumented)
@@ -1694,7 +1689,7 @@ export class WatchProcessor<T extends ECompilerType> extends MultiTaskProcessor<
     // (undocumented)
     protected lastHash: string | null;
     // (undocumented)
-    static overrideOptions<T extends ECompilerType>({ tempDir, name, experiments, optimization }: IWatchProcessorOptions<T>): (index: number, context: ITestContext, options: TCompilerOptions<ECompilerType>) => void;
+    static overrideOptions<T extends ECompilerType>({ tempDir, name }: IWatchProcessorOptions<T>): (index: number, context: ITestContext, options: TCompilerOptions<ECompilerType>) => void;
     // (undocumented)
     run(env: ITestEnv, context: ITestContext): Promise<void>;
     // (undocumented)

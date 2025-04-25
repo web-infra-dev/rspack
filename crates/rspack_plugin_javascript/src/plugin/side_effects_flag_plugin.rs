@@ -760,7 +760,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
 
   let mut do_optimizes: Vec<(DependencyId, SideEffectsDoOptimize)> = if compilation
     .incremental
-    .can_read_mutations(IncrementalPasses::SIDE_EFFECTS)
+    .mutations_readable(IncrementalPasses::SIDE_EFFECTS)
   {
     side_effects_optimize_artifact.extend(artifact);
     side_effects_optimize_artifact.clone()

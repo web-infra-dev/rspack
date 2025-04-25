@@ -315,7 +315,7 @@ impl CodeSplitter {
   pub fn recover_from_cache(&mut self, cgi_ukey: CgiUkey, compilation: &mut Compilation) -> bool {
     if !compilation
       .incremental
-      .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH)
+      .mutations_readable(IncrementalPasses::BUILD_CHUNK_GRAPH)
     {
       return false;
     }
@@ -410,7 +410,7 @@ impl CodeSplitter {
   pub fn update_with_compilation(&mut self, compilation: &mut Compilation) -> Result<()> {
     let enable_incremental = compilation
       .incremental
-      .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH);
+      .mutations_readable(IncrementalPasses::BUILD_CHUNK_GRAPH);
 
     // This optimization is from  https://github.com/webpack/webpack/pull/18090 by https://github.com/dmichon-msft
     // Thanks!

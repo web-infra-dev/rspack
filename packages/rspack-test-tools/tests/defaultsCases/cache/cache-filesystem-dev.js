@@ -19,6 +19,25 @@ module.exports = {
 		-     "cache": false,
 		+     "cache": true,
 		@@ ... @@
+		-     "incremental": false,
+		+     "incremental": Object {
+		+       "buildChunkGraph": false,
+		+       "chunkIds": false,
+		+       "chunksHashes": false,
+		+       "chunksRender": false,
+		+       "chunksRuntimeRequirements": false,
+		+       "dependenciesDiagnostics": false,
+		+       "emitAssets": true,
+		+       "inferAsyncModules": false,
+		+       "make": true,
+		+       "moduleIds": false,
+		+       "modulesCodegen": false,
+		+       "modulesHashes": false,
+		+       "modulesRuntimeRequirements": false,
+		+       "providedExports": false,
+		+       "sideEffects": false,
+		+     },
+		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "development",
 		@@ ... @@
