@@ -14,7 +14,7 @@ export default defineConfig({
   root: path.join(__dirname, 'docs'),
   title: 'Rspack',
   description:
-    'Rspack is a high performance JavaScript bundler written in Rust. It offers strong compatibility with the webpack ecosystem, allowing for seamless replacement of webpack, and provides lightning fast build speeds.',
+    'Rspack is a high performance JavaScript bundler written in Rust. It offers strong compatibility with the webpack ecosystem, and lightning fast build speeds.',
   logo: {
     light: 'https://assets.rspack.dev/rspack/navbar-logo-light.png',
     dark: 'https://assets.rspack.dev/rspack/navbar-logo-dark.png',
