@@ -57,7 +57,7 @@ jobs:
   test-linux:
     name: Test Linux
     needs: [ get-runner-labels, check-changed ]
-    if: ${{ needs.check-changed.outputs.code_changed }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
@@ -68,7 +68,7 @@ jobs:
   test-windows:
     name: Test Windows
     needs: [ get-runner-labels, check-changed ]
-    if: ${{ needs.check-changed.outputs.code_changed }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-pc-windows-msvc
@@ -79,7 +79,7 @@ jobs:
   test-mac:
     name: Test Mac ARM64
     needs: [ get-runner-labels, check-changed ]
-    if: ${{ needs.check-changed.outputs.code_changed }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: aarch64-apple-darwin
@@ -90,7 +90,7 @@ jobs:
   test-wasm:
     name: Test WASM
     needs: [ get-runner-labels, check-changed ]
-    if: ${{ needs.check-changed.outputs.code_changed }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: wasm32-wasip1-threads
@@ -123,12 +123,13 @@ jobs:
     # When *only* doc changed, it will run as success directly
     name: Test Required Check
     needs: [ test-linux, test-windows, test-mac, check-changed ]
+    if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - name: Log
         run: echo ${{ join(needs.*.result, ',') }}
       - name: Test check
-        if: ${{ needs.check-changed.outputs.code_changed && join(needs.*.result, ',')!='success,success,success,success' }}
+        if: ${{ needs.check-changed.outputs.code_changed == 'true' && join(needs.*.result, ',')!='success,success,success,success' }}
         run: echo "Tess Failed" && exit 1
       - name: No check to Run test
         run: echo "Success"
