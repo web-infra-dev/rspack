@@ -1,4 +1,5 @@
 use lightningcss::targets::Browsers;
+use rspack_browserslist::from_browserslist;
 use rspack_cacheable::{
   cacheable,
   with::{AsOption, AsPreset},
@@ -70,7 +71,7 @@ impl TryFrom<RawConfig> for Config {
       error_recovery: value.error_recovery,
       targets: value
         .targets
-        .map(lightningcss::targets::Browsers::from_browserslist)
+        .map(from_browserslist)
         .transpose()
         .to_rspack_result_with_message(|e| format!("Failed to parse browserslist: {}", e))?
         .flatten(),
