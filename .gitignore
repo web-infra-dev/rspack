@@ -238,3 +238,6 @@ diff_output
 
 # rspack trace file
 trace.json
+
+# Rsapck bench
+.bench
