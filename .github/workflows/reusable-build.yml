@@ -50,5 +50,5 @@ jobs:
     if: inputs.bench
     with:
       target: ${{ inputs.target }}
-      runner: ubuntu-22.04
+      runner: '"ubuntu-22.04"'
       ref: ${{ inputs.ref }}
