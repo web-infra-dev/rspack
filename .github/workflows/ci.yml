@@ -38,8 +38,8 @@ jobs:
     runs-on: ubuntu-latest
     name: Check Source Changed
     outputs:
-      code_changed: ${{ steps.code_filter.outputs.code_changed == 'true' }}
-      document_changed: ${{ steps.document_filter.outputs.document_changed == 'true' }}
+      code_changed: ${{ steps.code_filter.outputs.code_changed }}
+      document_changed: ${{ steps.document_filter.outputs.document_changed }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
@@ -62,7 +62,7 @@ jobs:
   test-linux:
     name: Test Linux
     needs: [ get-runner-labels, check-changed ]
-    if: ${{ needs.check-changed.outputs.code_changed }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
@@ -73,7 +73,7 @@ jobs:
   test-windows:
     name: Test Windows
     needs: [ get-runner-labels, check-changed ]
-    if: ${{ needs.check-changed.outputs.code_changed }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-pc-windows-msvc
@@ -84,7 +84,7 @@ jobs:
   test-mac:
     name: Test Mac ARM64
     needs: [ get-runner-labels, check-changed ]
-    if: ${{ needs.check-changed.outputs.code_changed }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: aarch64-apple-darwin
@@ -95,7 +95,7 @@ jobs:
   test-wasm:
     name: Test WASM
     needs: [ get-runner-labels, check-changed ]
-    if: ${{ needs.check-changed.outputs.code_changed }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: wasm32-wasip1-threads
