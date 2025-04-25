@@ -288,35 +288,36 @@ export default {
    - `'advance'`：同上，但对于增量不友好的情况会抛出警告提示用户，该选项作为 `true | 'advance-silent'` 的补充帮助用户排查潜在可能影响增量构建性能的配置
 2. 详细的对象配置：`Incremental`，细粒度控制各个阶段的增量是否开启
 
+   {/* prettier-ignore */}
    <details>
-   <summary style={{ display: 'list-item' }}>`Incremental` 详细类型</summary>
-   <blockquote>
-     <p>
-     ```ts
-     type Incremental = {
-       // 是否在遇到对增量不友好的情况下抛出警告
-       silent?: boolean;
-       // 以下配置用来控制各个阶段的增量是否开启
-       make?: boolean;
-       inferAsyncModules?: boolean;
-       providedExports?: boolean;
-       dependenciesDiagnostics?: boolean;
-       sideEffects?: boolean;
-       buildChunkGraph?: boolean;
-       moduleIds?: boolean;
-       chunkIds?: boolean;
-       modulesHashes?: boolean;
-       modulesCodegen?: boolean;
-       modulesRuntimeRequirements?: boolean;
-       chunksRuntimeRequirements?: boolean;
-       chunksHashes?: boolean;
-       chunksRender?: boolean;
-       emitAssets?: boolean;
-     };
-     ```
-     </p>
-   </blockquote>
- </details>
+      <summary style={{ display: 'list-item' }}>`Incremental` 详细类型</summary>
+      <blockquote>
+        <p>
+        ```ts
+        type Incremental = {
+          // 是否在遇到对增量不友好的情况下抛出警告
+          silent?: boolean;
+          // 以下配置用来控制各个阶段的增量是否开启
+          make?: boolean;
+          inferAsyncModules?: boolean;
+          providedExports?: boolean;
+          dependenciesDiagnostics?: boolean;
+          sideEffects?: boolean;
+          buildChunkGraph?: boolean;
+          moduleIds?: boolean;
+          chunkIds?: boolean;
+          modulesHashes?: boolean;
+          modulesCodegen?: boolean;
+          modulesRuntimeRequirements?: boolean;
+          chunksRuntimeRequirements?: boolean;
+          chunksHashes?: boolean;
+          chunksRender?: boolean;
+          emitAssets?: boolean;
+        };
+        ```
+        </p>
+      </blockquote>
+    </details>
 
 通常情况下我们推荐使用预设的方式进行配置，详细的对象配置仅作为方便排查 bug 提供。
 
