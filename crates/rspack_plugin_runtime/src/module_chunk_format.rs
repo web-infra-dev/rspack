@@ -104,11 +104,15 @@ async fn compilation_dependent_full_hash(
   }
 
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-  if chunk.has_entry_module(&compilation.chunk_graph)
-    && runtime_chunk_has_hash(compilation, chunk_ukey).await?
-  {
+
+  if !chunk.has_entry_module(&compilation.chunk_graph) {
+    return Ok(None);
+  }
+
+  if runtime_chunk_has_hash(compilation, chunk_ukey).await? {
     return Ok(Some(true));
   }
+
   Ok(None)
 }
 

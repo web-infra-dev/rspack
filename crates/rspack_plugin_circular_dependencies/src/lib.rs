@@ -42,17 +42,19 @@ impl<'a> CycleDetector<'a> {
       &mut vec![initial_module_id],
       &mut cycles,
     );
+    // sort to keep output stable
+    cycles.sort();
     cycles
   }
 
   fn recurse_dependencies(
     &self,
     current_module_id: ModuleIdentifier,
-    seen_set: &mut IdentifierSet,
+    _seen_set: &mut IdentifierSet,
     current_path: &mut Vec<ModuleIdentifier>,
     found_cycles: &mut Vec<Vec<ModuleIdentifier>>,
   ) {
-    seen_set.insert(current_module_id);
+    // seen_set.insert(current_module_id);
     current_path.push(current_module_id);
     for target_id in self.get_module(&current_module_id).dependencies.keys() {
       // If the current path already contains the dependent module, then it
@@ -72,16 +74,7 @@ impl<'a> CycleDetector<'a> {
         continue;
       }
 
-      // If a module has already been encountered in this traversal, then by
-      // necessity it is either already part of a cycle being detected as
-      // captured above, or it _and all of its dependencies_ are not part of
-      // any cycles involving the current module. If that were not true, then
-      // this module would have already been encountered previously.
-      if seen_set.contains(target_id) {
-        continue;
-      }
-
-      self.recurse_dependencies(*target_id, seen_set, current_path, found_cycles);
+      self.recurse_dependencies(*target_id, _seen_set, current_path, found_cycles);
     }
     current_path.pop();
   }
@@ -320,6 +313,8 @@ impl CircularDependencyRspackPlugin {
       .expect("cwd should be available")
       .to_string_lossy()
       .to_string();
+
+    // remove the root path here.
     let cycle_without_root: Vec<String> = cycle
       .iter()
       .map(|module_path| {

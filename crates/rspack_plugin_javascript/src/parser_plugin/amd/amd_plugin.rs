@@ -28,8 +28,7 @@ impl JavascriptParserPlugin for AMDParserPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          call_expr.span.real_lo(),
-          call_expr.span.real_hi(),
+          call_expr.span.into(),
           "undefined".into(),
           None,
         )));
@@ -48,8 +47,7 @@ impl JavascriptParserPlugin for AMDParserPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          expr.span.real_lo(),
-          expr.span.real_hi(),
+          expr.span.into(),
           "\"0.0.0\"".into(),
           None,
         )));
@@ -59,8 +57,7 @@ impl JavascriptParserPlugin for AMDParserPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          expr.span.real_lo(),
-          expr.span.real_hi(),
+          expr.span.into(),
           RuntimeGlobals::UNCAUGHT_ERROR_HANDLER.name().into(),
           Some(RuntimeGlobals::UNCAUGHT_ERROR_HANDLER),
         )));
@@ -72,8 +69,7 @@ impl JavascriptParserPlugin for AMDParserPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          expr.span.real_lo(),
-          expr.span.real_hi(),
+          expr.span.into(),
           RuntimeGlobals::AMD_OPTIONS.name().into(),
           Some(RuntimeGlobals::AMD_OPTIONS),
         )));
@@ -97,8 +93,7 @@ impl JavascriptParserPlugin for AMDParserPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          expr.span.real_lo(),
-          expr.span.real_hi(),
+          expr.span.into(),
           "\"function\"".into(),
           None,
         )));
@@ -109,8 +104,7 @@ impl JavascriptParserPlugin for AMDParserPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          expr.span.real_lo(),
-          expr.span.real_hi(),
+          expr.span.into(),
           "\"object\"".into(),
           None,
         )));
@@ -155,8 +149,7 @@ impl JavascriptParserPlugin for AMDParserPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          ident.span().real_lo(),
-          ident.span().real_hi(),
+          ident.span().into(),
           RuntimeGlobals::AMD_DEFINE.name().into(),
           Some(RuntimeGlobals::AMD_DEFINE),
         )));
@@ -207,8 +200,7 @@ impl JavascriptParserPlugin for AMDParserPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          expr.span().real_lo(),
-          expr.span().real_hi(),
+          expr.span().into(),
           RuntimeGlobals::AMD_DEFINE.name().into(),
           Some(RuntimeGlobals::AMD_DEFINE),
         )));
