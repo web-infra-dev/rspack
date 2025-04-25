@@ -1,19 +1,22 @@
+mod chunks;
 mod dependencies;
 pub mod entries;
 
 use std::{cell::RefCell, collections::HashMap, path::Path, ptr::NonNull};
 
+use chunks::Chunks;
 use dependencies::JsDependencies;
 use entries::JsEntries;
-use napi::NapiRaw;
+use napi::{NapiRaw, NapiValue};
 use napi_derive::napi;
+use once_cell::sync::OnceCell;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{
   rspack_sources::BoxSource, BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions,
   FactorizeInfo, ModuleIdentifier,
 };
 use rspack_error::{Diagnostic, ToStringResultToRspackResultExt};
-use rspack_napi::{napi::bindgen_prelude::*, OneShotRef};
+use rspack_napi::{napi::bindgen_prelude::*, OneShotRef, WeakRef};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rustc_hash::FxHashMap;
 
@@ -26,11 +29,16 @@ use crate::{
   COMPILER_REFERENCES,
 };
 
+thread_local! {
+  static CHUNKS_SYMBOL: OnceCell<OneShotRef> = const { OnceCell::new() };
+}
+
 #[napi]
 pub struct JsCompilation {
   #[allow(dead_code)]
   pub(crate) id: CompilationId,
   pub(crate) inner: NonNull<Compilation>,
+  chunks_ref: OnceCell<WeakRef>,
 }
 
 impl JsCompilation {
@@ -204,17 +212,30 @@ impl JsCompilation {
     )
   }
 
-  #[napi(ts_return_type = "JsChunk[]")]
-  pub fn get_chunks(&self) -> Result<Vec<JsChunkWrapper>> {
-    let compilation = self.as_ref()?;
+  #[napi(getter, ts_return_type = "Chunks")]
+  pub fn chunks(
+    &self,
+    env: &Env,
+    mut this: This,
+    reference: Reference<JsCompilation>,
+  ) -> Result<&WeakRef> {
+    let raw_env = env.raw();
 
-    Ok(
-      compilation
-        .chunk_by_ukey
-        .keys()
-        .map(|ukey| JsChunkWrapper::new(*ukey, compilation))
-        .collect::<Vec<_>>(),
-    )
+    self.chunks_ref.get_or_try_init(move || {
+      let symbol: napi::Result<napi::JsObject> = CHUNKS_SYMBOL.with(move |once_cell| {
+        let r = once_cell.get_or_try_init(move || {
+          let symbol = env.create_symbol(Some("chunks"))?;
+          OneShotRef::new(raw_env, symbol)
+        })?;
+
+        let napi_val = unsafe { ToNapiValue::to_napi_value(raw_env, r)? };
+        Ok(unsafe { Object::from_raw_unchecked(raw_env, napi_val) })
+      });
+
+      let mut jsobject = Chunks::new(reference.downgrade()).get_jsobject(env)?;
+      this.object.set_property(symbol?, &jsobject)?;
+      WeakRef::new(env.raw(), &mut jsobject)
+    })
   }
 
   #[napi]
@@ -859,6 +880,7 @@ impl ToNapiValue for JsCompilationWrapper {
           let js_compilation = JsCompilation {
             id: val.id,
             inner: val.inner,
+            chunks_ref: OnceCell::new(),
           };
           let r = OneShotRef::new(env, js_compilation)?;
           let r = entry.insert(r);

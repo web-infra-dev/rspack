@@ -17,6 +17,12 @@ module.exports = {
 		}
 	},
 	devServer: {
-		hot: true
+		hot: true,
+		client: {
+			overlay: {
+				// hide warnings for incremental
+				warnings: false,
+			}
+		}
 	}
 };

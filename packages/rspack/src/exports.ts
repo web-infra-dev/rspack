@@ -1,12 +1,6 @@
-import {
-	version as _version,
-	webpackVersion as _webpackVersion
-	// @ts-ignore 'package.json' is not under 'rootDir'
-} from "../package.json";
-
 // this is a hack to be compatible with plugin which detect webpack's version
-const rspackVersion = _version as string;
-const version = _webpackVersion as string;
+const rspackVersion = RSPACK_VERSION as string;
+const version = WEBPACK_VERSION as string;
 
 export { rspackVersion, version };
 
@@ -50,6 +44,8 @@ export {
 	Dependency,
 	AsyncDependenciesBlock
 } from "@rspack/binding";
+
+export type { RspackError, RspackSeverity } from "./RspackError";
 
 // API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
 import * as ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";
@@ -332,7 +328,7 @@ export type { SubresourceIntegrityPluginOptions } from "./builtin-plugin";
 
 ///// Experiments Stuff /////
 import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";
-import { ChromeTracer } from "./trace";
+import { JavaScriptTracer } from "./trace";
 
 interface Experiments {
 	globalTrace: {
@@ -352,13 +348,16 @@ interface Experiments {
 export const experiments: Experiments = {
 	globalTrace: {
 		async register(filter, layer, output) {
+			JavaScriptTracer.initJavaScriptTrace(layer, output);
 			registerGlobalTrace(filter, layer, output);
-			ChromeTracer.initChromeTrace(layer, output);
+			// lazy init cpuProfiler to make sure js and rust's timestamp is much aligned
+			JavaScriptTracer.initCpuProfiler();
 		},
 		async cleanup() {
 			// make sure run cleanupGlobalTrace first so we can safely append Node.js trace to it otherwise it will overlap
 			cleanupGlobalTrace();
-			ChromeTracer.cleanupChromeTrace();
+
+			JavaScriptTracer.cleanupJavaScriptTrace();
 		}
 	},
 	RemoveDuplicateModulesPlugin,

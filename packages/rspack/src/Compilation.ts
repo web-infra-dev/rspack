@@ -60,6 +60,8 @@ import { createFakeCompilationDependencies } from "./util/fake";
 import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
 import { JsSource } from "./util/source";
+// patch chunks
+import "./Chunks";
 
 export type Assets = Record<string, Source>;
 export interface Asset {
@@ -461,7 +463,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	get chunks(): ReadonlySet<Chunk> {
-		return new Set(this.__internal__getChunks());
+		return this.#inner.chunks;
 	}
 
 	/**
@@ -1177,17 +1179,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 */
 	__internal__hasAsset(name: string): boolean {
 		return this.#inner.hasAsset(name);
-	}
-
-	/**
-	 * Note: This is not a webpack public API, maybe removed in future.
-	 *
-	 * @internal
-	 */
-	__internal__getChunks(): Chunk[] {
-		return this.#inner
-			.getChunks()
-			.map(binding => Chunk.__from_binding(binding));
 	}
 
 	/**

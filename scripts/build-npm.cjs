@@ -159,8 +159,7 @@ for (const binding of bindings) {
 	fs.writeFileSync(`${output}/${pkgJson.main}`, binary);
 
 	const README = `<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://assets.rspack.dev/rspack/rspack-banner-plain-dark.png">
-  <img alt="Rspack Banner" src="https://assets.rspack.dev/rspack/rspack-banner-plain-light.png">
+  <img alt="Rspack Banner" src="https://assets.rspack.dev/rspack/rspack-banner.png">
 </picture>
 
 # ${pkgJson.name}

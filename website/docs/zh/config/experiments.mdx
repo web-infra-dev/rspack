@@ -133,6 +133,11 @@ type LazyCompilationOptions =
        * 自定义服务端路径
        */
       serverUrl?: string;
+      /**
+       * 自定义懒编译端点的前缀
+       * @default "/lazy-compilation-using-"
+       */
+      prefix?: string;
     };
 ```
 
@@ -195,6 +200,23 @@ export default {
   experiments: {
     lazyCompilation: {
       serverUrl: 'http://localhost:3000',
+    },
+  },
+};
+```
+
+### lazyCompilation.prefix
+
+- **类型：** `string`
+- **默认值：** `'/lazy-compilation-using-'`
+
+自定义懒编译请求前缀。默认情况下，懒编译中间件使用 `/lazy-compilation-using-` 前缀来处理请求。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    lazyCompilation: {
+      prefix: '/custom-lazy-endpoint-',
     },
   },
 };

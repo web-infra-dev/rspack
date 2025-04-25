@@ -6,7 +6,7 @@ class Plugin {
         compiler.hooks.done.tap("PLUGIN", stats => {
             const json = stats.toJson();
             expect(json.warnings).toHaveLength(1);
-            expect(json.warnings[0].message).toMatch(/Unexpected end of input at/);
+            expect(json.warnings[0].message).toMatch(/LightningCSS parse warning: Unexpected end of input at/);
         });
     }
 }

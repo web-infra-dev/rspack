@@ -1,5 +1,7 @@
-import { type LibConfig, defineConfig } from "@rslib/core";
+import { type LibConfig, defineConfig, rsbuild } from "@rslib/core";
 import prebundleConfig from "./prebundle.config.mjs";
+
+const merge = rsbuild.mergeRsbuildConfig;
 
 const externalAlias = ({ request }: { request?: string }, callback) => {
 	const { dependencies } = prebundleConfig;
@@ -25,6 +27,12 @@ const externalAlias = ({ request }: { request?: string }, callback) => {
 const commonLibConfig: LibConfig = {
 	format: "cjs",
 	syntax: ["node 16"],
+	source: {
+		define: {
+			WEBPACK_VERSION: JSON.stringify(require("./package.json").webpackVersion),
+			RSPACK_VERSION: JSON.stringify(require("./package.json").version)
+		}
+	},
 	output: {
 		externals: [externalAlias],
 		minify: {
@@ -57,8 +65,7 @@ const commonLibConfig: LibConfig = {
 
 export default defineConfig({
 	lib: [
-		{
-			...commonLibConfig,
+		merge(commonLibConfig, {
 			dts: {
 				build: true
 			},
@@ -69,33 +76,29 @@ export default defineConfig({
 				tsconfigPath: "./tsconfig.build.json"
 			},
 			output: {
-				...commonLibConfig.output,
 				externals: [externalAlias, "./moduleFederationDefaultRuntime.js"]
 			},
 			footer: {
 				// make default export in cjs work
 				js: "module.exports = __webpack_exports__.default;"
 			}
-		},
-		{
-			...commonLibConfig,
+		}),
+		merge(commonLibConfig, {
 			source: {
 				entry: {
 					cssExtractLoader: "./src/builtin-plugin/css-extract/loader.ts"
 				}
 			}
-		},
-		{
-			...commonLibConfig,
+		}),
+		merge(commonLibConfig, {
 			syntax: "es2015",
 			source: {
 				entry: {
 					cssExtractHmr: "./src/runtime/cssExtractHmr.ts"
 				}
 			}
-		},
-		{
-			...commonLibConfig,
+		}),
+		merge(commonLibConfig, {
 			source: {
 				entry: {
 					worker: "./src/loader-runner/worker.ts"
@@ -105,6 +108,6 @@ export default defineConfig({
 				// make default export in cjs work
 				js: "module.exports = __webpack_exports__.default;"
 			}
-		}
+		})
 	]
 });

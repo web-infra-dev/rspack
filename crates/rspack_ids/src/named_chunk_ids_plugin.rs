@@ -195,7 +195,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
 
   let mut mutations = compilation
     .incremental
-    .can_write_mutations()
+    .mutations_writeable()
     .then(Mutations::default);
 
   // Use chunk name as default chunk id
@@ -251,7 +251,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
 
   if compilation
     .incremental
-    .can_read_mutations(IncrementalPasses::CHUNK_IDS)
+    .mutations_readable(IncrementalPasses::CHUNK_IDS)
     && let Some(mutations) = &mutations
   {
     let logger = compilation.get_logger("rspack.incremental.chunkIds");

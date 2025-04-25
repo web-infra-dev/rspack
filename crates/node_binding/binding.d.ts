@@ -70,7 +70,14 @@ export declare class AsyncDependenciesBlock {
   get blocks(): AsyncDependenciesBlock[]
 }
 
+export declare class Chunks {
+  get size(): number
+  _values(): JsChunk[]
+  _has(chunk: JsChunk): boolean
+}
+
 export declare class ConcatenatedModule {
+  get rootModule(): Module
   get modules(): Module[]
   _originalSource(): JsCompatSource | undefined
   nameForCondition(): string | undefined
@@ -92,6 +99,7 @@ export declare class ContextModule {
 }
 
 export declare class Dependency {
+  get _parentModule(): Module | undefined
   get type(): string
   get category(): string
   get request(): string | undefined
@@ -203,7 +211,7 @@ export declare class JsCompilation {
   get modules(): Array<Module>
   get builtModules(): Array<Module>
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
-  getChunks(): JsChunk[]
+  get chunks(): Chunks
   getNamedChunkKeys(): Array<string>
   getNamedChunk(name: string): JsChunk | null
   getNamedChunkGroupKeys(): Array<string>
@@ -1507,10 +1515,10 @@ export interface RawCircularDependencyRspackPluginOptions {
   allowAsyncCycles?: boolean
   exclude?: RegExp
   ignoredConnections?: Array<[string | RegExp, string | RegExp]>
-  onDetected?: (entrypoint: Module, modules: string[], compilation: JsCompilation) => void
-  onIgnored?: (entrypoint: Module, modules: string[], compilation: JsCompilation) => void
-  onStart?: (compilation: JsCompilation) => void
-  onEnd?: (compilation: JsCompilation) => void
+  onDetected?: (entrypoint: Module, modules: string[]) => void
+  onIgnored?: (entrypoint: Module, modules: string[]) => void
+  onStart?: () => void
+  onEnd?: () => void
 }
 
 export interface RawConsumeOptions {

@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
-  DependencyType, TemplateContext, TemplateReplaceSource,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::atom::Atom;
 
@@ -12,11 +12,11 @@ pub struct UnsupportedDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
   request: Atom,
-  range: (u32, u32),
+  range: DependencyRange,
 }
 
 impl UnsupportedDependency {
-  pub fn new(request: Atom, range: (u32, u32)) -> Self {
+  pub fn new(request: Atom, range: DependencyRange) -> Self {
     Self {
       id: DependencyId::new(),
       request,
@@ -29,6 +29,10 @@ impl UnsupportedDependency {
 impl Dependency for UnsupportedDependency {
   fn id(&self) -> &DependencyId {
     &self.id
+  }
+
+  fn range(&self) -> Option<&DependencyRange> {
+    Some(&self.range)
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -81,6 +85,6 @@ impl DependencyTemplate for UnsupportedDependencyTemplate {
       "Object(function webpackMissingModule() {{var e = new Error(\"Cannot find module '{}'\"); e.code = 'MODULE_NOT_FOUND'; throw e;}}())",
       dep.request
     );
-    source.replace(dep.range.0, dep.range.1, &content, None);
+    source.replace(dep.range.start, dep.range.end, &content, None);
   }
 }

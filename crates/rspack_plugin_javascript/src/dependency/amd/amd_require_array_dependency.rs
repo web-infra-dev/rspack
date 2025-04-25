@@ -4,8 +4,8 @@ use itertools::Itertools;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   module_raw, AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
-  DependencyType, ModuleDependency, TemplateContext, TemplateReplaceSource,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 
 use super::amd_require_item_dependency::AMDRequireItemDependency;
@@ -23,11 +23,11 @@ pub enum AMDRequireArrayItem {
 pub struct AMDRequireArrayDependency {
   id: DependencyId,
   deps_array: Vec<AMDRequireArrayItem>,
-  range: (u32, u32),
+  range: DependencyRange,
 }
 
 impl AMDRequireArrayDependency {
-  pub fn new(deps_array: Vec<AMDRequireArrayItem>, range: (u32, u32)) -> Self {
+  pub fn new(deps_array: Vec<AMDRequireArrayItem>, range: DependencyRange) -> Self {
     Self {
       id: DependencyId::new(),
       deps_array,
@@ -40,6 +40,10 @@ impl AMDRequireArrayDependency {
 impl Dependency for AMDRequireArrayDependency {
   fn id(&self) -> &DependencyId {
     &self.id
+  }
+
+  fn range(&self) -> Option<&DependencyRange> {
+    Some(&self.range)
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -131,6 +135,6 @@ impl DependencyTemplate for AMDRequireArrayDependencyTemplate {
       );
 
     let content = dep.get_content(code_generatable_context);
-    source.replace(dep.range.0, dep.range.1, &content, None);
+    source.replace(dep.range.start, dep.range.end, &content, None);
   }
 }

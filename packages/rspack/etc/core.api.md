@@ -85,7 +85,7 @@ import { Server as Server_3 } from 'http';
 import { ServerOptions as ServerOptions_2 } from 'https';
 import { ServerResponse as ServerResponse_2 } from 'http';
 import { RawSourceMapDevToolPluginOptions as SourceMapDevToolPluginOptions } from '@rspack/binding';
-import sources = require('webpack-sources');
+import sources = require('../compiled/webpack-sources');
 import { StatSyncFn } from 'fs';
 import { SyncBailHook } from '@rspack/lite-tapable';
 import { SyncHook } from '@rspack/lite-tapable';
@@ -576,15 +576,15 @@ export type ChunkLoadingGlobal = string;
 export type ChunkLoadingType = string | "jsonp" | "import-scripts" | "require" | "async-node" | "import";
 
 // @public (undocumented)
-export const CircularDependencyRspackPlugin: {
-    new (options: CircularDependencyRspackPluginOptions): {
-        name: BuiltinPluginName;
-        _args: [options: CircularDependencyRspackPluginOptions];
-        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
-        raw(compiler: Compiler_2): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
+export class CircularDependencyRspackPlugin extends RspackBuiltinPlugin {
+    constructor(options: CircularDependencyRspackPluginOptions);
+    // (undocumented)
+    name: BuiltinPluginName;
+    // (undocumented)
+    _options: CircularDependencyRspackPluginOptions;
+    // (undocumented)
+    raw(compiler: Compiler): BuiltinPlugin;
+}
 
 // @public (undocumented)
 export type CircularDependencyRspackPluginOptions = {
@@ -592,10 +592,10 @@ export type CircularDependencyRspackPluginOptions = {
     allowAsyncCycles?: boolean;
     exclude?: RegExp;
     ignoredConnections?: Array<[string | RegExp, string | RegExp]>;
-    onDetected?(entrypoint: Module, modules: string[], compilation: JsCompilation): void;
-    onIgnored?(entrypoint: Module, modules: string[], compilation: JsCompilation): void;
-    onStart?(compilation: JsCompilation): void;
-    onEnd?(compilation: JsCompilation): void;
+    onDetected?(entrypoint: Module, modules: string[], compilation: Compilation): void;
+    onIgnored?(entrypoint: Module, modules: string[], compilation: Compilation): void;
+    onStart?(compilation: Compilation): void;
+    onEnd?(compilation: Compilation): void;
 };
 
 // @public
@@ -647,8 +647,6 @@ export class Compilation {
     __internal__getAssetFilenames(): string[];
     // @internal
     __internal__getAssetSource(filename: string): Source | void;
-    // @internal
-    __internal__getChunks(): Chunk[];
     // @internal
     __internal__hasAsset(name: string): boolean;
     // @internal
@@ -3298,6 +3296,7 @@ export type LazyCompilationOptions = {
     test?: RegExp | ((module: Module) => boolean);
     client?: string;
     serverUrl?: string;
+    prefix?: string;
 };
 
 // @public
@@ -5115,7 +5114,7 @@ abstract class RspackBuiltinPlugin implements RspackPluginInstance {
 type RspackConfiguration = Configuration_2;
 
 // @public (undocumented)
-type RspackError = binding.JsRspackError;
+export type RspackError = binding.JsRspackError;
 
 declare namespace rspackExports {
     export {
@@ -5155,6 +5154,8 @@ declare namespace rspackExports {
         EntryDependency,
         Dependency,
         AsyncDependenciesBlock,
+        RspackError,
+        RspackSeverity,
         ModuleFilenameHelpers,
         Template,
         WebpackError,
@@ -5588,6 +5589,9 @@ export interface RspackPluginInstance {
     // (undocumented)
     apply: (compiler: Compiler) => void;
 }
+
+// @public (undocumented)
+export type RspackSeverity = binding.JsRspackSeverity;
 
 // @public (undocumented)
 export const rspackVersion: string;

@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "1.3.5",
+  "version": "1.3.6",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "private": true,
@@ -11,6 +11,7 @@
     "clean": "pnpm --filter @rspack/cli run clean",
     "check-dependency-version": "pnpx check-dependency-version-consistency@5 . --ignore-dep chalk --ignore-package webpack-test --ignore-package webpack-examples",
     "build:js": "pnpm --filter \"@rspack/core\" build && pnpm --parallel --filter \"@rspack/*\" --filter \"create-rspack\" --filter \"!@rspack/core\" build",
+    "build:js:canary": "pnpm --filter \"@rspack-canary/core\" build && pnpm --parallel --filter \"@rspack-canary/*\" --filter \"create-rspack-canary\" --filter \"!@rspack-canary/core\" build",
     "build:cli:dev": "npm run build:binding:dev && npm run build:js",
     "build:cli:dev:wasm": "pnpm --filter @rspack/binding build:dev:wasm && npm run build:js",
     "build:cli:release": "npm run build:binding:release && npm run build:js",
@@ -23,7 +24,7 @@
     "test:js": "pnpm -r run test",
     "format:rs": "cargo fmt --all",
     "format:js": "pnpm run format-ci:js --write",
-    "format-ci:js": "node ./node_modules/prettier/bin/prettier.cjs \"packages/**/src/**/*.{ts,tsx,js}\" \"crates/rspack_plugin_runtime/**/*.{ts,js}\" \"scripts/**/*.{cjs,mjs,js}\"  \"*.mjs\" \"x\" --check",
+    "format-ci:js": "node ./node_modules/prettier/bin/prettier.cjs \"packages/**/src/**/*.{ts,tsx,mts,cts,js,mjs,cjs,jsx}\" \"crates/rspack_plugin_runtime/**/*.{ts,js}\" \"scripts/**/*.{cjs,mjs,js}\"  \"*.mjs\" \"x\" --check",
     "format-ci:toml": "npx @taplo/cli format --check '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
     "format:toml": "npx @taplo/cli format '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
     "lint:js": "pnpm run lint-ci:js --write",
@@ -78,9 +79,9 @@
     "rimraf": "^5.0.10",
     "ts-jest": "29.3.2",
     "typescript": "^5.7.3",
-    "webpack": "5.99.5",
+    "webpack": "5.99.6",
     "webpack-cli": "5.1.4",
-    "zx": "8.5.2"
+    "zx": "8.5.3"
   },
   "packageManager": "pnpm@9.15.9",
   "pnpm": {

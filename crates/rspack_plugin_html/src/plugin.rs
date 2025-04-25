@@ -290,6 +290,10 @@ impl Plugin for HtmlRspackPlugin {
       .tap(process_assets::new(self));
     Ok(())
   }
+
+  fn clear_cache(&self, id: CompilationId) {
+    COMPILATION_HOOKS_MAP.remove(&id);
+  }
 }
 
 fn create_error_html(err: &str) -> String {

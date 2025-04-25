@@ -1,4 +1,4 @@
-use tracing_chrome::{ChromeLayerBuilder, FlushGuard};
+use rspack_tracing_chrome::{ChromeLayerBuilder, FlushGuard, TraceStyle};
 use tracing_subscriber::layer::{Filter, Layer};
 
 use crate::{
@@ -15,7 +15,7 @@ impl Tracer for ChromeTracer {
   fn setup(&mut self, output: &str) -> Option<Layered> {
     let trace_writer = TraceWriter::from(output);
     let (chrome_layer, guard) = ChromeLayerBuilder::new()
-      .trace_style(tracing_chrome::TraceStyle::Async)
+      .trace_style(TraceStyle::Async)
       .include_args(true)
       .category_fn(Box::new(|_| "rspack".to_string()))
       .writer(trace_writer.writer())

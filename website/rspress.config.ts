@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { pluginSass } from '@rsbuild/plugin-sass';
+import { pluginLlms } from '@rspress/plugin-llms';
 import { pluginRss } from '@rspress/plugin-rss';
 import { pluginGoogleAnalytics } from 'rsbuild-plugin-google-analytics';
 import { pluginOpenGraph } from 'rsbuild-plugin-open-graph';
@@ -29,11 +30,10 @@ export default defineConfig({
   },
   route: {
     cleanUrls: true,
-  },
-  ssg: {
-    strict: true,
+    exclude: ['**/types/*.mdx'],
   },
   plugins: [
+    pluginLlms(),
     pluginSitemap({
       domain: PUBLISH_URL,
     }),

@@ -2,7 +2,7 @@ name: CI
 
 on:
   merge_group:
-    types: [checks_requested]
+    types: [ checks_requested ]
   workflow_dispatch:
     inputs:
       debug_enabled:
@@ -11,7 +11,7 @@ on:
         required: false
         default: false
   pull_request:
-    types: [opened, synchronize]
+    types: [ opened, synchronize ]
   push:
     branches:
       - main
@@ -38,8 +38,8 @@ jobs:
     runs-on: ubuntu-latest
     name: Check Source Changed
     outputs:
-      changed: ${{ steps.filter.outputs.changed == 'true' }}
-      document_changed: ${{ steps.document_filter.outputs.changed == 'true' }}
+      code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
+      document_changed: ${{ steps.filter.outputs.document_changed == 'true' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
@@ -47,22 +47,17 @@ jobs:
         with:
           predicate-quantifier: "every"
           filters: |
-            changed:
+            code_changed:
               - "!**/*.md"
               - "!**/*.mdx"
               - "!website/**"
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
-        id: document_filter
-        with:
-          predicate-quantifier: "every"
-          filters: |
-            changed:
+            document_changed:
               - "website/**"
 
   test-linux:
     name: Test Linux
-    needs: [get-runner-labels, check-changed]
-    if: ${{ needs.check-changed.outputs.changed == 'true' }}
+    needs: [ get-runner-labels, check-changed ]
+    if: ${{ needs.check-changed.outputs.code_changed }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
@@ -72,8 +67,8 @@ jobs:
 
   test-windows:
     name: Test Windows
-    needs: [get-runner-labels, check-changed]
-    if: ${{ needs.check-changed.outputs.changed == 'true' }}
+    needs: [ get-runner-labels, check-changed ]
+    if: ${{ needs.check-changed.outputs.code_changed }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-pc-windows-msvc
@@ -83,8 +78,8 @@ jobs:
 
   test-mac:
     name: Test Mac ARM64
-    needs: [get-runner-labels, check-changed]
-    if: github.ref_name == 'main' && needs.check-changed.outputs.changed == 'true'
+    needs: [ get-runner-labels, check-changed ]
+    if: ${{ needs.check-changed.outputs.code_changed }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: aarch64-apple-darwin
@@ -92,251 +87,20 @@ jobs:
       runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
       test: true
 
-#  test-wasm:
-#    name: Test WASM
-#    needs: [get-runner-labels, check-changed]
-#    uses: ./.github/workflows/reusable-build.yml
-#    with:
-#      target: wasm32-wasip1-threads
-#      profile: "ci"
-#      runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
-#      test: false
-
-  cargo-deny:
-    name: Check license of dependencies
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
-        id: filter
-        with:
-          filters: |
-            src:
-              - 'Cargo.lock'
-      - name: Install cargo-deny
-        if: steps.filter.outputs.src == 'true'
-        uses: taiki-e/install-action@be7c31b6745feec79dec5eb79178466c0670bb2d # v2
-        with:
-          tool: cargo-deny@0.16
-      - name: Check licenses
-        if: steps.filter.outputs.src == 'true'
-        run: cargo deny check license
-
-  spell:
-    name: Spell check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - uses: crate-ci/typos@b1a1ef3893ff35ade0cfa71523852a49bfd05d19 # v1.31.1
-        with:
-          files: .
-
-  lint:
-    name: Lint and format code
-    runs-on: ubuntu-latest
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.changed == 'true' }}
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
-        id: changes
-        with:
-          filters: |
-            src:
-              - pnpm-lock.yaml
-              - '**/*.{ts,js,mjs,tsx,jsx}'
-
-      - name: Pnpm Setup
-        uses: ./.github/actions/pnpm/setup
-
-      - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
-
-      - name: Lint js
-        if: steps.changes.outputs.src == 'true'
-        run: pnpm run lint-ci:js
-
-      - name: Prettier
-        if: steps.changes.outputs.src == 'true'
-        run: pnpm run format-ci:js
-
-      - name: Check Dependency Version
-        if: steps.changes.outputs.src == 'true'
-        run: pnpm run check-dependency-version
-
-      - name: API change check
-        if: steps.changes.outputs.src == 'true'
-        run: |
-          echo "===================================="
-          echo "Note: force build npm packages with \`pnpm build:js\` and  \`pnpm api-extractor:local\` locally to generate API change if \`api-extractor\` check failed."
-          echo "$ pnpm build:js && pnpm api-extractor:local"
-          echo "===================================="
-          pnpm build:js
-          pnpm api-extractor:ci
-
-      - name: Documentation coverage check
-        if: steps.changes.outputs.src == 'true'
-        run: pnpm doc-coverage
-
-  lint-website:
-    name: Lint and format website
-    runs-on: ubuntu-latest
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.document_changed == 'true' }}
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-      - name: Pnpm Setup
-        uses: ./.github/actions/pnpm/setup
-
-      - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
-
-      - name: Run
-        run: |
-          cd website
-          pnpm install
-          pnpm run check:ci
-
-  rust_changes:
-    name: Rust Changes
-    runs-on: ubuntu-latest
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.changed == 'true' }}
-    outputs:
-      changed: ${{ steps.filter.outputs.changed }}
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
-        id: filter
-        with:
-          filters: |
-            changed:
-              - '.github/workflows/**'
-              - 'crates/**'
-              - 'Cargo.lock'
-              - 'Cargo.toml'
-              - 'rust-toolchain.toml'
-
-  pnpm_lockfile_check:
-    name: Pnpm Lockfile Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-      - name: Pnpm Setup
-        uses: ./.github/actions/pnpm/setup
-
-      - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
-        with:
-          frozen-lockfile: true
-
-  rust_check:
-    name: Rust check
-    needs: [get-runner-labels, rust_changes]
-    if: ${{ needs.rust_changes.outputs.changed == 'true' }}
-    runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-      - name: Install Rust Toolchain
-        uses: ./.github/actions/rustup
-        with:
-          shared-key: check
-
-      - name: Pnpm Setup
-        uses: ./.github/actions/pnpm/setup
-
-      - name: Run Cargo Check
-        run: cargo check --workspace --all-targets --locked # Not using --release because it uses too much cache, and is also slow.
-
-      - name: Run Clippy
-        uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505 # v1
-        with:
-          command: clippy
-          args: --workspace --all-targets --tests -- -D warnings
-
-      - name: Run rustfmt
-        uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505 # v1
-        with:
-          command: fmt
-          args: --all -- --check
-
-      - name: Run toml format check
-        run: npm run format-ci:toml
-
-  rust_unused_dependencies:
-    name: Check Rust Unused Dependencies
-    needs: [get-runner-labels, rust_changes]
-    if: ${{ needs.rust_changes.outputs.changed == 'true' }}
-    runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - uses: ./.github/actions/rustup
-        with:
-          shared-key: check
-      - uses: cargo-bins/cargo-binstall@63aaa5c1932cebabc34eceda9d92a70215dcead6 # v1.12.3
-      - run: cargo binstall --no-confirm cargo-shear@1.1.12 --force
-      - run: cargo shear
-
-  rust_test:
-    name: Rust test
-    needs: [get-runner-labels, rust_changes]
-    if: ${{ needs.rust_changes.outputs.changed == 'true' }}
-    runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-      - name: Install Rust Toolchain
-        uses: ./.github/actions/rustup
-        with:
-          save-if: ${{ github.ref_name == 'main' }}
-          shared-key: check
-
-      # Compile test without debug info for reducing the CI cache size
-      - name: Change profile.test
-        shell: bash
-        run: |
-          echo '[profile.test]' >> Cargo.toml
-          echo 'debug = false' >> Cargo.toml
-      - name: Run rspack test
-        run: cargo test --workspace --exclude rspack_node -- --nocapture
-
-  rust_test_miri:
-    name: Rust test miri
-    needs: [get-runner-labels, rust_changes]
-    # TODO: enable it after self hosted runners are ready
-    # if: needs.rust_changes.outputs.changed == 'true' && github.ref_name == 'main' && github.repository_owner == 'web-infra-dev'
-    if: false
-    runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-      - name: Install Rust Toolchain
-        uses: ./.github/actions/rustup
-        with:
-          save-if: ${{ github.ref_name == 'main' }}
-          shared-key: check
-
-      # Compile test without debug info for reducing the CI cache size
-      - name: Change profile.test
-        shell: bash
-        run: |
-          echo '[profile.test]' >> Cargo.toml
-          echo 'debug = false' >> Cargo.toml
-
-      - name: Run test
-        env:
-          MIRIFLAGS: -Zmiri-tree-borrows -Zmiri-disable-isolation
-        # reason for excluding https://github.com/napi-rs/napi-rs/issues/2200
-        run: cargo miri test --workspace --exclude rspack_node -- --nocapture
+  test-wasm:
+    name: Test WASM
+    needs: [ get-runner-labels, check-changed ]
+    if: ${{ needs.check-changed.outputs.code_changed }}
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      target: wasm32-wasip1-threads
+      profile: "ci"
+      runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+      test: false
 
   failure_notification:
     name: Failure Notification
-    needs: [test-linux, test-windows, test-mac, rust_check, rust_test]
+    needs: [ test-linux, test-windows, test-mac ]
     if: ${{ failure() && !cancelled() && github.ref_name == 'main' && github.repository_owner == 'web-infra-dev' }}
     runs-on: ubuntu-latest
     steps:
@@ -352,6 +116,22 @@ jobs:
             commitID: [${{github.sha}}](${{github.server_url}}/${{github.repository}}/commit/${{github.sha}})
           URL: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
           LARK_WEBHOOK_URL: ${{secrets.LARK_WEBHOOK_URL}}
+
+  test_required_check:
+    # this job will be used for GitHub actions to determine required job success or not;
+    # When code changed, it will check if any of the test jobs failed.
+    # When *only* doc changed, it will run as success directly
+    name: Test Required Check
+    needs: [ test-linux, test-windows, test-mac, check-changed ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log
+        run: echo ${{ join(needs.*.result, ',') }}
+      - name: Test check
+        if: ${{ needs.check-changed.outputs.code_changed && join(needs.*.result, ',')!='success,success,success,success' }}
+        run: echo "Tess Failed" && exit 1
+      - name: No check to Run test
+        run: echo "Success"
 
   # TODO: enable it after self hosted runners are ready
   # pkg-preview:

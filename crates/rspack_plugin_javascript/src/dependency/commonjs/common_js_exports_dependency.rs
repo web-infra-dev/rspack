@@ -4,10 +4,10 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   property_access, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
-  DependencyType, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, ModuleGraph, NormalInitFragment, RuntimeGlobals,
-  TemplateContext, TemplateReplaceSource, UsedName,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec,
+  ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph,
+  NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::atoms::Atom;
 
@@ -54,8 +54,8 @@ impl ExportsBase {
 #[derive(Debug, Clone)]
 pub struct CommonJsExportsDependency {
   id: DependencyId,
-  range: (u32, u32),
-  value_range: Option<(u32, u32)>,
+  range: DependencyRange,
+  value_range: Option<DependencyRange>,
   base: ExportsBase,
   #[cacheable(with=AsVec<AsPreset>)]
   names: Vec<Atom>,
@@ -63,8 +63,8 @@ pub struct CommonJsExportsDependency {
 
 impl CommonJsExportsDependency {
   pub fn new(
-    range: (u32, u32),
-    value_range: Option<(u32, u32)>,
+    range: DependencyRange,
+    value_range: Option<DependencyRange>,
     base: ExportsBase,
     names: Vec<Atom>,
   ) -> Self {
@@ -82,6 +82,10 @@ impl CommonJsExportsDependency {
 impl Dependency for CommonJsExportsDependency {
   fn id(&self) -> &DependencyId {
     &self.id
+  }
+
+  fn range(&self) -> Option<&DependencyRange> {
+    Some(&self.range)
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -181,8 +185,8 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
     if dep.base.is_expression() {
       if let Some(used) = used {
         source.replace(
-          dep.range.0,
-          dep.range.1,
+          dep.range.start,
+          dep.range.end,
           &format!(
             "{}{}",
             base,
@@ -207,15 +211,20 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
           )
           .boxed(),
         );
-        source.replace(dep.range.0, dep.range.1, "__webpack_unused_export__", None);
+        source.replace(
+          dep.range.start,
+          dep.range.end,
+          "__webpack_unused_export__",
+          None,
+        );
       }
     } else if dep.base.is_define_property() {
-      if let Some(value_range) = dep.value_range {
+      if let Some(value_range) = &dep.value_range {
         if let Some(used) = used {
           if let UsedName::Vec(used) = used {
             source.replace(
-              dep.range.0,
-              value_range.0,
+              dep.range.start,
+              value_range.start,
               &format!(
                 "Object.defineProperty({}{}, {}, (",
                 base,
@@ -225,7 +234,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
               ),
               None,
             );
-            source.replace(value_range.1, dep.range.1, "))", None);
+            source.replace(value_range.end, dep.range.end, "))", None);
           } else {
             panic!("Unexpected base type");
           }
@@ -241,12 +250,12 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
             .boxed(),
           );
           source.replace(
-            dep.range.0,
-            value_range.0,
+            dep.range.start,
+            value_range.start,
             "__webpack_unused_export__ = (",
             None,
           );
-          source.replace(value_range.1, dep.range.1, ")", None);
+          source.replace(value_range.end, dep.range.end, ")", None);
         }
       } else {
         panic!("Define property need value range");

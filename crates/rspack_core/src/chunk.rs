@@ -6,15 +6,16 @@ use std::{
 
 use indexmap::IndexMap;
 use itertools::Itertools;
-use rspack_collections::{DatabaseItem, UkeyIndexMap, UkeyIndexSet, UkeyMap, UkeySet};
+use rspack_collections::{DatabaseItem, UkeyIndexMap, UkeyIndexSet, UkeySet};
 use rspack_error::Diagnostic;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use crate::{
   chunk_graph_chunk::ChunkId, compare_chunk_group, merge_runtime, sort_group_by_index, ChunkGraph,
-  ChunkGroupByUkey, ChunkGroupOrderKey, ChunkGroupUkey, ChunkIdsArtifact, ChunkUkey, Compilation,
-  EntryOptions, Filename, ModuleGraph, RenderManifestEntry, RuntimeSpec, SourceType,
+  ChunkGroupByUkey, ChunkGroupOrderKey, ChunkGroupUkey, ChunkHashesArtifact, ChunkIdsArtifact,
+  ChunkUkey, Compilation, EntryOptions, Filename, ModuleGraph, RenderManifestEntry, RuntimeSpec,
+  SourceType,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -25,7 +26,7 @@ pub enum ChunkKind {
 
 pub type ChunkContentHash = HashMap<SourceType, RspackHashDigest>;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ChunkHashesResult {
   hash: RspackHashDigest,
   content_hash: ChunkContentHash,
@@ -205,7 +206,7 @@ impl Chunk {
 
   pub fn hash<'a>(
     &self,
-    chunk_hashes_results: &'a UkeyMap<ChunkUkey, ChunkHashesResult>,
+    chunk_hashes_results: &'a ChunkHashesArtifact,
   ) -> Option<&'a RspackHashDigest> {
     chunk_hashes_results
       .get(&self.ukey)
@@ -214,7 +215,7 @@ impl Chunk {
 
   pub fn rendered_hash<'a>(
     &self,
-    chunk_hashes_results: &'a UkeyMap<ChunkUkey, ChunkHashesResult>,
+    chunk_hashes_results: &'a ChunkHashesArtifact,
     len: usize,
   ) -> Option<&'a str> {
     chunk_hashes_results
@@ -224,7 +225,7 @@ impl Chunk {
 
   pub fn content_hash<'a>(
     &self,
-    chunk_hashes_results: &'a UkeyMap<ChunkUkey, ChunkHashesResult>,
+    chunk_hashes_results: &'a ChunkHashesArtifact,
   ) -> Option<&'a ChunkContentHash> {
     chunk_hashes_results
       .get(&self.ukey)
@@ -233,7 +234,7 @@ impl Chunk {
 
   pub fn content_hash_by_source_type<'a>(
     &self,
-    chunk_hashes_results: &'a UkeyMap<ChunkUkey, ChunkHashesResult>,
+    chunk_hashes_results: &'a ChunkHashesArtifact,
     source_type: &SourceType,
   ) -> Option<&'a RspackHashDigest> {
     self
@@ -243,7 +244,7 @@ impl Chunk {
 
   pub fn rendered_content_hash_by_source_type<'a>(
     &self,
-    chunk_hashes_results: &'a UkeyMap<ChunkUkey, ChunkHashesResult>,
+    chunk_hashes_results: &'a ChunkHashesArtifact,
     source_type: &SourceType,
     len: usize,
   ) -> Option<&'a str> {
@@ -255,11 +256,11 @@ impl Chunk {
 
   pub fn set_hashes(
     &self,
-    chunk_hashes_results: &mut UkeyMap<ChunkUkey, ChunkHashesResult>,
+    chunk_hashes_results: &mut ChunkHashesArtifact,
     chunk_hash: RspackHashDigest,
     content_hash: ChunkContentHash,
-  ) {
-    chunk_hashes_results.insert(self.ukey, ChunkHashesResult::new(chunk_hash, content_hash));
+  ) -> bool {
+    chunk_hashes_results.set_hashes(self.ukey, ChunkHashesResult::new(chunk_hash, content_hash))
   }
 
   pub fn rendered(&self) -> bool {

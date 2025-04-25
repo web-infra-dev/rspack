@@ -12,10 +12,12 @@ use rustc_hash::FxHashMap;
 
 use crate::JsChunkWrapper;
 
-static RUNTIME_GLOBAL_MAP: LazyLock<(
+type RuntimeGlobalMap = (
   FxHashMap<RuntimeGlobals, String>,
-  FxHashMap<String, RuntimeGlobals>,
-)> = LazyLock::new(|| {
+  FxHashMap<&'static str, RuntimeGlobals>,
+);
+
+static RUNTIME_GLOBAL_MAP: LazyLock<RuntimeGlobalMap> = LazyLock::new(|| {
   let mut to_js_map = FxHashMap::default();
   let mut from_js_map = FxHashMap::default();
 
@@ -25,7 +27,7 @@ static RUNTIME_GLOBAL_MAP: LazyLock<(
         RuntimeGlobals::$name,
         stringify!($name).to_lower_camel_case().into(),
       );
-      from_js_map.insert(stringify!($name).into(), RuntimeGlobals::$name);
+      from_js_map.insert(stringify!($name), RuntimeGlobals::$name);
     };
   }
 
@@ -92,6 +94,8 @@ static RUNTIME_GLOBAL_MAP: LazyLock<(
   declare_runtime_global!(RSPACK_VERSION);
   declare_runtime_global!(HAS_CSS_MODULES);
 
+  to_js_map.shrink_to_fit();
+  from_js_map.shrink_to_fit();
   (to_js_map, from_js_map)
 });
 

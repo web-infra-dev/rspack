@@ -9,12 +9,10 @@
 	},
 	ignorePaths: [
 		"**/fixtures/**",
-		"npm/**",
 		"**/no-override-loaded/**",
 		"**/share-plugin-dual-mode/**",
 		"**/resolve-plugin-context/**"
 	],
-	assignees: ["@SoonIter"],
 	packageRules: [
 		// manually update peer dependencies
 		{
@@ -99,6 +97,12 @@
 			groupName: "SWC",
 			matchManagers: ["npm"],
 			matchPackageNames: ["/^@swc/"]
+		},
+		// React npm packages
+		{
+			groupName: "React",
+			matchManagers: ["npm"],
+			matchPackageNames: ["/^react/"]
 		},
 		// Rspack crates
 		{

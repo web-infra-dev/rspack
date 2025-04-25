@@ -36,7 +36,7 @@ import {
 	isUseSimpleSourceMap,
 	isUseSourceMap
 } from "../config/adapterRuleUse";
-import { ChromeTracer } from "../trace";
+import { JavaScriptTracer } from "../trace";
 import {
 	concatErrorMsgAndStack,
 	isNil,
@@ -256,9 +256,16 @@ export async function runLoaders(
 	context: JsLoaderContext
 ): Promise<JsLoaderContext> {
 	const loaderState = context.loaderState;
+	const pitch = loaderState === JsLoaderState.Pitching;
 
 	//
 	const { resource } = context.resourceData;
+	JavaScriptTracer.startAsync({
+		name: `run_js_loaders${pitch ? ":pitch" : ":normal"}`,
+		args: {
+			id2: resource
+		}
+	});
 	const splittedResource = resource && parsePathQueryFragment(resource);
 	const resourcePath = splittedResource ? splittedResource.path : undefined;
 	const resourceQuery = splittedResource ? splittedResource.query : undefined;
@@ -320,6 +327,12 @@ export async function runLoaders(
 		userOptions,
 		callback
 	) {
+		JavaScriptTracer.startAsync({
+			name: "importModule",
+			args: {
+				id2: resource
+			}
+		});
 		const options = userOptions ? userOptions : {};
 		const context = loaderContext;
 		function finalCallback(
@@ -328,6 +341,12 @@ export async function runLoaders(
 		) {
 			return function (err?: Error, res?: any) {
 				if (err) {
+					JavaScriptTracer.endAsync({
+						name: "importModule",
+						args: {
+							id2: resource
+						}
+					});
 					onError(err);
 				} else {
 					for (const dep of res.buildDependencies) {
@@ -345,7 +364,12 @@ export async function runLoaders(
 					if (res.cacheable === false) {
 						context.cacheable(false);
 					}
-
+					JavaScriptTracer.endAsync({
+						name: "importModule",
+						args: {
+							id2: resource
+						}
+					});
 					if (res.error) {
 						onError(
 							compiler.__internal__getModuleExecutionResult(res.id) ??
@@ -644,10 +668,11 @@ export async function runLoaders(
 		if (typeof options === "string") {
 			if (options.startsWith("{") && options.endsWith("}")) {
 				try {
-					const parseJson = require("json-parse-even-better-errors");
-					options = parseJson(options);
+					options = JSON.parse(options);
 				} catch (e: any) {
-					throw new Error(`Cannot parse string options: ${e.message}`);
+					throw new Error(
+						`JSON parsing failed for loader's string options: ${e.message}`
+					);
 				}
 			} else {
 				options = querystring.parse(options);
@@ -719,8 +744,17 @@ export async function runLoaders(
 			rootContext: loaderContext.context!,
 			loaderIndex: loaderContext.loaderIndex,
 			loaders: loaderContext.loaders.map(item => {
+				let options = item.options;
+				// Do not pass options into worker, if it's not prepared to be executed
+				// in the worker thread.
+				//
+				// Aligns yielding strategy within the worker.
+				if (!item.parallel || item.request.startsWith(BUILTIN_LOADER_PREFIX)) {
+					options = undefined;
+				}
 				return {
 					...item,
+					options,
 					pitch: undefined,
 					normal: undefined,
 					normalExecuted: item.normalExecuted,
@@ -923,13 +957,13 @@ export async function runLoaders(
 		const pitch = loaderState === JsLoaderState.Pitching;
 		const loaderName = extractLoaderName(currentLoaderObject!.request);
 		let result: any;
-		ChromeTracer.startAsync({
-			name: `loader:${pitch ? "pitch" : ""}:${loaderName}`,
+		JavaScriptTracer.startAsync({
+			name: `js_loader:${pitch ? "pitch:" : ""}${loaderName}`,
+			cat: "rspack",
 			args: {
-				resourceData: resourceData,
+				id2: resource,
 				"loader.request": currentLoaderObject?.request
-			},
-			cat: "rspack"
+			}
 		});
 		if (parallelism) {
 			result =
@@ -946,14 +980,12 @@ export async function runLoaders(
 				convertArgs(args, !!currentLoaderObject?.raw);
 			result = (await runSyncOrAsync(fn, loaderContext, args)) || [];
 		}
-
-		ChromeTracer.endAsync({
-			name: `loader:${pitch ? "pitch" : ""}:${loaderName}`,
+		JavaScriptTracer.endAsync({
+			name: `js_loader:${pitch ? "pitch:" : ""}${loaderName}`,
 			args: {
-				resourceData,
+				id2: resource,
 				"loader.request": currentLoaderObject?.request
-			},
-			cat: "rspack"
+			}
 		});
 		return result;
 	};
@@ -1037,7 +1069,7 @@ export async function runLoaders(
 
 				context.content = isNil(content) ? null : toBuffer(content);
 				context.sourceMap = JsSourceMap.__to_binding(sourceMap);
-				context.additionalData = additionalData;
+				context.additionalData = additionalData || undefined;
 
 				break;
 			}
@@ -1067,6 +1099,12 @@ export async function runLoaders(
 								: undefined
 					};
 	}
+	JavaScriptTracer.endAsync({
+		name: `run_js_loaders${pitch ? ":pitch" : ":normal"}`,
+		args: {
+			id2: resource
+		}
+	});
 	return context;
 }
 

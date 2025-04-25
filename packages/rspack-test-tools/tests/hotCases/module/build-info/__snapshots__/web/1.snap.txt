@@ -31,7 +31,7 @@
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]('main', {
+self["webpackHotUpdate"]("main", {
 "./loader.js!./a.js": 
 /*!**************************!*\
   !*** ./loader.js!./a.js ***!

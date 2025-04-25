@@ -78,12 +78,12 @@ impl ModuleIssuer {
   }
 }
 
-define_hook!(NormalModuleReadResource: SeriesBail(resource_data: &ResourceData) -> Content);
-define_hook!(NormalModuleLoader: Series(loader_context: &mut LoaderContext<RunnerContext>));
-define_hook!(NormalModuleLoaderShouldYield: SeriesBail(loader_context: &LoaderContext<RunnerContext>) -> bool);
-define_hook!(NormalModuleLoaderStartYielding: Series(loader_context: &mut LoaderContext<RunnerContext>));
-define_hook!(NormalModuleBeforeLoaders: Series(module: &mut NormalModule));
-define_hook!(NormalModuleAdditionalData: Series(additional_data: &mut Option<&mut AdditionalData>));
+define_hook!(NormalModuleReadResource: SeriesBail(resource_data: &ResourceData) -> Content,tracing=false);
+define_hook!(NormalModuleLoader: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
+define_hook!(NormalModuleLoaderShouldYield: SeriesBail(loader_context: &LoaderContext<RunnerContext>) -> bool,tracing=false);
+define_hook!(NormalModuleLoaderStartYielding: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
+define_hook!(NormalModuleBeforeLoaders: Series(module: &mut NormalModule),tracing=false);
+define_hook!(NormalModuleAdditionalData: Series(additional_data: &mut Option<&mut AdditionalData>),tracing=false);
 
 #[derive(Debug, Default)]
 pub struct NormalModuleHooks {
@@ -278,7 +278,11 @@ impl NormalModule {
     &mut self.presentational_dependencies
   }
 
-  #[tracing::instrument("NormalModule:build_hash", skip_all)]
+  #[tracing::instrument(
+    "NormalModule:build_hash", skip_all,fields(
+    id2 = self.resource_data.resource.as_str()
+  )
+)]
   fn init_build_hash(
     &self,
     output_options: &OutputOptions,
@@ -364,6 +368,7 @@ impl Module for NormalModule {
   #[tracing::instrument("NormalModule:build", skip_all, fields(
     module.resource = self.resource_resolved_data().resource.as_str(),
     module.identifier = self.identifier().as_str(),
+    id2 = self.resource_data.resource.as_str(),
     module.loaders = ?self.loaders.iter().map(|l| l.identifier().as_str()).collect::<Vec<_>>())
   )]
   async fn build(
@@ -407,7 +412,10 @@ impl Module for NormalModule {
       },
       build_context.fs.clone(),
     )
-    .instrument(info_span!("NormalModule:run_loaders"))
+    .instrument(info_span!(
+      "NormalModule:run_loaders",
+      id2 = self.resource_data.resource.as_str(),
+    ))
     .await;
     let (mut loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),

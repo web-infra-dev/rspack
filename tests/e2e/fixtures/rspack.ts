@@ -1,5 +1,5 @@
 import path from "node:path";
-import type { Fixtures, PlaywrightTestArgs, TestFixture, WorkerFixture } from "@playwright/test";
+import type { Fixtures, PlaywrightTestArgs } from "@playwright/test";
 import {
 	type Compiler,
 	type Configuration,

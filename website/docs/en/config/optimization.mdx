@@ -156,6 +156,26 @@ export default {
 };
 ```
 
+## optimization.removeAvailableModules
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Whether to detect and remove modules from chunks when these modules are already included in parent chunks. This optimization helps to reduce duplicated modules in the bundle.
+
+This optimization is enabled by default and setting `optimization.removeAvailableModules` to `false` will disable this optimization:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    removeAvailableModules: false,
+  },
+};
+```
+
+:::tip
+It is not recommended to disable this optimization as it may lead to a larger bundle size.
+:::
+
 ## optimization.removeEmptyChunks
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
