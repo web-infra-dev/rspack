@@ -153,7 +153,7 @@ fn add_magic_comment_warning(
 // _8 for identifier
 // _9 for item value as a whole
 static WEBPACK_MAGIC_COMMENT_REGEXP: LazyLock<regex::Regex> = LazyLock::new(|| {
-  regex::Regex::new(r#"(?P<_0>webpack[a-zA-Z\d_-]+)\s*:\s*(?P<_9>"(?P<_1>[^"]+)"|'(?P<_2>[^']+)'|`(?P<_3>[^`]+)`|(?P<_4>[\d.-]+)|(?P<_5>true|false)|(?P<_6>/((?:[^/\\]|\\.)*)/([dgimsuvy]*))|\[(?P<_7>[^\]]+)|(?P<_8>([^,]+)))"#)
+  regex::Regex::new(r#"(?P<_0>webpack[a-zA-Z\d_-]+)\s*:\s*(?P<_9>"(?P<_1>[^"]+)"|'(?P<_2>[^']+)'|`(?P<_3>[^`]+)`|(?P<_4>[\d.-]+)|(?P<_5>true|false)|(?P<_6>/((?:(?:[^\\/\]\[]+)|(?:\[[^\]]+\])|(?:\\/)|(?:\\.))*)/([dgimsuvy]*))|\[(?P<_7>[^\]]+)|(?P<_8>([^,]+)))"#)
     .expect("invalid regex")
 });
 
@@ -607,6 +607,22 @@ mod tests_extract_regex {
         "webpackInclude".to_string(),
         "a\\/b\\/c".to_string(),
         "ig".to_string()
+      ))
+    );
+    assert_eq!(
+      try_match_regex("webpackInclude: /components[\\/][^\\/]+\\.vue$/"),
+      Some((
+        "webpackInclude".to_string(),
+        "components[\\/][^\\/]+\\.vue$".to_string(),
+        "".to_string()
+      ))
+    );
+    assert_eq!(
+      try_match_regex("webpackInclude: /components[/\\][^/\\]+\\.vue$/"),
+      Some((
+        "webpackInclude".to_string(),
+        "components[/\\][^/\\]+\\.vue$".to_string(),
+        "".to_string()
       ))
     );
     assert_eq!(
