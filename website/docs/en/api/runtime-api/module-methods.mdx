@@ -370,6 +370,22 @@ Similar to `require.resolve`, but this method won't pull the module into the fin
 require.resolveWeak(dependency: string);
 ```
 
+example:
+
+```js
+if (__webpack_modules__[require.resolveWeak('module')]) {
+  // Do something when module is available...
+}
+if (require.cache[require.resolveWeak('module')]) {
+  // Do something when module was loaded before...
+}
+
+// You can perform dynamic resolves ("context")
+// similarly to other require/import methods.
+const page = 'Foo';
+__webpack_modules__[require.resolveWeak(`./page/${page}`)];
+```
+
 ## Data URI module
 
 Rspack supports importing Data URI modules using the `import` and `require` syntax.

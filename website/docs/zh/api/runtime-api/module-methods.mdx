@@ -220,7 +220,7 @@ require(dependency: string);
 
 ### require.resolve
 
-以同步的方式获取模块的 ID。此方法会将模块被打包进最终的 bundle 中，但不会执行模块代码。返回的模块 ID 主要用于与 `require.cache[id]` 或 Rspack 内部的 `__webpack_require__(id)` 一起使用，在大多数应用场景中应避免直接使用此方法。
+以同步的方式获取模块的 ID。此方法会将模块打包进最终的 bundle 中，但不会执行模块代码。返回的模块 ID 主要用于与 `require.cache[id]` 或 Rspack 内部的 `__webpack_require__(id)` 一起使用，在大多数应用场景中应避免直接使用此方法。
 
 ```js
 require.resolve(dependency: string);
@@ -367,6 +367,22 @@ if (module.hot) {
 
 ```js
 require.resolveWeak(dependency: string);
+```
+
+示例：
+
+```
+if (__webpack_modules__[require.resolveWeak('module')]) {
+  // 当模块可用时，执行一些操作……
+}
+if (require.cache[require.resolveWeak('module')]) {
+  // 在模块加载完成之前，执行一些操作……
+}
+
+// 你可以像执行其他 require/import 方法一样，
+// 执行动态解析上下文 resolves ("context")。
+const page = 'Foo';
+__webpack_modules__[require.resolveWeak(`./page/${page}`)];
 ```
 
 ## Data URI 模块
