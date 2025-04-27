@@ -363,7 +363,7 @@ if (module.hot) {
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
-与 `require.resolve` 类似，但是不会把 module 引入到 bundle 中。是 "弱（weak）" 依赖。
+与 `require.resolve` 类似，但是不会把 module 打包到最终的 bundle 中。是 "弱（weak）" 依赖。
 
 ```js
 require.resolveWeak(dependency: string);
