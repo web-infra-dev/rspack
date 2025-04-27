@@ -88,8 +88,7 @@ pub async fn trim_dir<'a>(
 
   visited.reverse();
   for dir in visited {
-    let readed = fs.read_dir(&dir).await?;
-    if readed.is_empty() {
+    if fs.read_dir(&dir).await?.is_empty() {
       fs.remove_dir_all(&dir).await?;
     }
   }
