@@ -221,7 +221,7 @@ require(dependency: string);
 
 ### require.resolve
 
-Synchronously retrieve a module's ID. The compiler will ensure that the dependency is available in the output bundle. It is recommended to treat it as an opaque value which can only be used with `require.cache[id]` or `__webpack_require__(id)` (best to avoid such usage).
+Synchronously retrieves the module ID without executing the module code. This method will include the module in the final bundle. The returned module ID is primarily intended for use with `require.cache[id]` or the Rspack internal `__webpack_require__(id)` function. Direct use of this method should be avoided in most application scenarios.
 
 ```js
 require.resolve(dependency: string);
