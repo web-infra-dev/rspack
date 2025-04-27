@@ -41,31 +41,39 @@ pub(crate) async fn loader_yield(
         .into_diagnostic()?
         .await
         .into_diagnostic()?;
+      drop(read_guard);
+
       merge_loader_context(loader_context, new_cx)?;
     }
     None => {
       drop(read_guard);
 
-      let mut write_guard = self.runner.write().await;
+      {
+        let mut write_guard = self.runner.write().await;
+        #[allow(clippy::unwrap_used)]
+        let compiler_id = self.compiler_id.get().unwrap();
+        #[allow(clippy::unwrap_used)]
+        let runner = self
+          .runner_getter
+          .call(compiler_id)
+          .await
+          .into_diagnostic()?;
+        *write_guard = Some(runner);
+      };
 
+      let read_guard = self.runner.read().await;
       #[allow(clippy::unwrap_used)]
-      let compiler_id = self.compiler_id.get().unwrap();
-      #[allow(clippy::unwrap_used)]
-      let runner = self
-        .runner_getter
-        .call(compiler_id)
-        .await
-        .into_diagnostic()?;
-
-      let new_cx = runner
+      let new_cx = read_guard
+        .as_ref()
+        .unwrap()
         .call_async(loader_context.try_into()?)
         .await
         .into_diagnostic()?
         .await
         .into_diagnostic()?;
-      merge_loader_context(loader_context, new_cx)?;
+      drop(read_guard);
 
-      *write_guard = Some(runner);
+      merge_loader_context(loader_context, new_cx)?;
     }
   };
   Ok(())
