@@ -14,7 +14,7 @@ pub enum KeepPattern<'a> {
 impl<'a> KeepPattern<'a> {
   pub async fn try_match(&self, path: &'a Utf8Path) -> Result<bool> {
     match self {
-      KeepPattern::Path(p) => Ok(p.starts_with(path)),
+      KeepPattern::Path(p) => Ok(path.starts_with(p)),
       KeepPattern::Regex(r) => Ok(r.test(path.as_str())),
       KeepPattern::Func(f) => f(path.to_string()).await,
     }
@@ -67,8 +67,7 @@ pub async fn trim_dir<'a>(
 ) -> FsResult<()> {
   let mut queue = vec![dir.to_owned()];
   let mut visited = vec![];
-  while !queue.is_empty() {
-    let current_dir = queue.pop().expect("queue is not empty");
+  while let Some(current_dir) = queue.pop() {
     if keep.try_match(&current_dir).await? {
       visited.push(current_dir);
       continue;
@@ -79,18 +78,18 @@ pub async fn trim_dir<'a>(
       let path = current_dir.join(item);
       if fs.stat(&path).await?.is_directory {
         queue.push(path);
-      } else {
-        if !keep.try_match(&path).await? {
-          fs.remove_file(&path).await?;
-        }
+      } else if !keep.try_match(&path).await? {
+        fs.remove_file(&path).await?;
       }
     }
+
     visited.push(current_dir);
   }
 
   visited.reverse();
   for dir in visited {
-    if fs.read_dir(&dir).await?.is_empty() {
+    let readed = fs.read_dir(&dir).await?;
+    if readed.is_empty() {
       fs.remove_dir_all(&dir).await?;
     }
   }
@@ -135,7 +134,7 @@ mod test {
     assert!(trim_dir(
       &fs,
       Utf8Path::new("/ex"),
-      &KeepPattern::Path(Utf8Path::new("/ex/a2"))
+      KeepPattern::Path(Utf8Path::new("/ex/a2"))
     )
     .await
     .is_ok());
