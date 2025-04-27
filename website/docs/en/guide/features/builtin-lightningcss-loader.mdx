@@ -8,6 +8,10 @@ import { ApiMeta, Stability } from '@components/ApiMeta';
 
 Rspack provides a built-in `builtin:lightningcss-loader`, which is based on Lightning CSS to transform CSS. It can replace the [postcss-loader](https://github.com/postcss/postcss-loader) and [autoprefixer](https://github.com/postcss/autoprefixer) for CSS syntax downgrading, prefixing, and other functionalities, offering better performance.
 
+::: warning
+Please note that Lightning CSS strictly requires standards-compliant CSS input. Using `builtin:lightningcss-loader` to process non-standard CSS may result in styles being ignored or unexpected output (Undefined Behavior). Please ensure your CSS input conforms to the specification.
+:::
+
 ## Example
 
 To use `builtin:lightningcss-loader` in your project, you need to configure it as follows.
