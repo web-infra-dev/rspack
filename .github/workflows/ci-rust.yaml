@@ -27,7 +27,7 @@ jobs:
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
-          save-if: false
+          save-if: true
           key: check
 
       - name: Pnpm Setup
