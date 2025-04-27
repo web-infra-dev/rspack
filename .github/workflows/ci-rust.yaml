@@ -45,8 +45,10 @@ jobs:
           command: fmt
           args: --all -- --check
 
+      - name: Install tapo
+        run: cargo install taplo-cli --locked
       - name: Run toml format check
-        run: npm run format-ci:toml
+        run: taplo format --check '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'
 
   rust_unused_dependencies:
     name: Check Rust Dependencies
