@@ -4,10 +4,9 @@
 #[macro_use]
 extern crate napi_derive;
 extern crate rspack_allocator;
-
 use std::{cell::RefCell, sync::Arc};
 
-use compiler::{Compiler, CompilerState};
+use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use napi::{bindgen_prelude::*, CallContext};
 use rspack_collections::UkeyMap;
 use rspack_core::{
@@ -90,7 +89,6 @@ use resolver_factory::*;
 pub use resource_data::*;
 pub use rsdoctor::*;
 use rspack_tracing::{ChromeTracer, StdoutTracer, Tracer};
-use rspack_util::{defer, DeferGuard};
 pub use runtime::*;
 use rustc_hash::FxHashMap;
 pub use source::*;
@@ -209,7 +207,7 @@ impl JsCompiler {
   #[napi(ts_args_type = "callback: (err: null | Error) => void")]
   pub fn build(&mut self, reference: Reference<JsCompiler>, f: Function) -> Result<()> {
     unsafe {
-      self.run(reference, |compiler, defer_guard| {
+      self.run(reference, |compiler, guard| {
         callbackify(
           f,
           async move {
@@ -219,7 +217,7 @@ impl JsCompiler {
             tracing::info!("build ok");
             Ok(())
           },
-          || drop(defer_guard),
+          || drop(guard),
         )
       })
     }
@@ -239,7 +237,7 @@ impl JsCompiler {
     use std::collections::HashSet;
 
     unsafe {
-      self.run(reference, |compiler, defer_guard| {
+      self.run(reference, |compiler, guard| {
         callbackify(
           f,
           async move {
@@ -255,7 +253,7 @@ impl JsCompiler {
             tracing::info!("rebuild ok");
             Ok(())
           },
-          || drop(defer_guard),
+          || drop(guard),
         )
       })
     }
@@ -274,6 +272,11 @@ impl JsCompiler {
   }
 }
 
+struct RunGuard {
+  _compiler_state_guard: CompilerStateGuard,
+  _reference: Reference<JsCompiler>,
+}
+
 impl JsCompiler {
   /// Run the given function with the compiler.
   ///
@@ -284,7 +287,7 @@ impl JsCompiler {
   unsafe fn run<R>(
     &mut self,
     mut reference: Reference<JsCompiler>,
-    f: impl FnOnce(&'static mut Compiler, DeferGuard) -> Result<R>,
+    f: impl FnOnce(&'static mut Compiler, RunGuard) -> Result<R>,
   ) -> Result<R> {
     if self.state.running() {
       return Err(concurrent_compiler_error());
@@ -298,11 +301,10 @@ impl JsCompiler {
     let compiler = unsafe {
       std::mem::transmute::<&mut Compiler, &'static mut Compiler>(&mut reference.compiler)
     };
-    let defer_guard = defer(move || {
-      drop(compiler_state_guard);
-      drop(reference);
-    });
-
+    let guard = RunGuard {
+      _compiler_state_guard: compiler_state_guard,
+      _reference: reference,
+    };
     COMPILER_REFERENCES.with(|ref_cell| {
       let mut references = ref_cell.borrow_mut();
       references.insert(compiler.id(), weak_reference);
@@ -310,7 +312,7 @@ impl JsCompiler {
 
     self.cleanup_last_compilation(&compiler.compilation);
 
-    f(compiler, defer_guard)
+    f(compiler, guard)
   }
 
   fn cleanup_last_compilation(&self, compilation: &Compilation) {

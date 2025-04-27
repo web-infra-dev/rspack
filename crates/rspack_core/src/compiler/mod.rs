@@ -11,7 +11,7 @@ use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, Wr
 use rspack_hook::define_hook;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
-use rspack_util::{node_path::NodePath, sendable_defer};
+use rspack_util::node_path::NodePath;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
@@ -205,7 +205,7 @@ impl Compiler {
     // TODO: maybe it's better to use external entries.
     let plugin_driver_clone = self.plugin_driver.clone();
     let compilation_id = self.compilation.id();
-    let _defer_guard = sendable_defer(move || plugin_driver_clone.clear_cache(compilation_id));
+    let _guard = scopeguard::guard((), move |_| plugin_driver_clone.clear_cache(compilation_id));
 
     fast_set(
       &mut self.compilation,
