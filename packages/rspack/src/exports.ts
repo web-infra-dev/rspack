@@ -331,7 +331,7 @@ import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";
 import { JavaScriptTracer } from "./trace";
 
 ///// Experiments SWC /////
-import { transform, minify } from './swc'
+import { transform, minify } from "./swc";
 
 interface Experiments {
 	globalTrace: {
@@ -349,7 +349,7 @@ interface Experiments {
 	swc: {
 		transform: typeof transform;
 		minify: typeof minify;
-	}
+	};
 }
 
 export const experiments: Experiments = {
@@ -378,6 +378,6 @@ export const experiments: Experiments = {
 	lazyCompilationMiddleware,
 	swc: {
 		minify,
-		transform,
+		transform
 	}
 };
