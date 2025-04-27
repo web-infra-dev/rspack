@@ -22,7 +22,7 @@ runs:
         save-if: ${{ inputs.save-if }}
 
     - name: Cache to local
-      uses: stormslowly/rust-cache@dev
+      uses: stormslowly/rust-cache@v0.0.1
       if: ${{ runner.environment == 'self-hosted' }}
       with:
         prefix-key: 'RCache-L-1'
