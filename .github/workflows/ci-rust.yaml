@@ -77,7 +77,7 @@ jobs:
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
-          save-if: ${{ github.ref_name == 'main' }}
+          save-if: true
           key: test
 
       # Compile test without debug info for reducing the CI cache size
