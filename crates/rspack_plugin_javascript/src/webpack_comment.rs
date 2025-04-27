@@ -641,6 +641,16 @@ mod tests_extract_regex {
         "".to_string()
       ))
     );
+    assert_eq!(
+      try_match_regex(
+        "webpackInclude: /(?!.*node_modules)(?:\\/src\\/(?!\\.)(?=.)[^/]*?\\.stories\\.tsx)$/"
+      ),
+      Some((
+        "webpackInclude".to_string(),
+        "(?!.*node_modules)(?:\\/src\\/(?!\\.)(?=.)[^/]*?\\.stories\\.tsx)$".to_string(),
+        "".to_string()
+      ))
+    );
   }
 
   #[test]
