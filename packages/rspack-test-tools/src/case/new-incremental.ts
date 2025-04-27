@@ -75,7 +75,7 @@ function getWatchCreator(options: WatchNewIncrementalOptions) {
 				description: (name, index) => {
 					return index === 0
 						? `${name} should compile`
-						: `should compile the next step ${index}`;
+						: `should compile step ${index}`;
 				},
 				describe: false,
 				steps: ({ name, src, temp }) => {
@@ -101,7 +101,7 @@ function getWatchCreator(options: WatchNewIncrementalOptions) {
 										defaultOptions(index, context) {
 											return {
 												experiments: {
-													incremental: true
+													incremental: "advance"
 												},
 												ignoreWarnings:
 													options.ignoreNotFriendlyForIncrementalWarnings

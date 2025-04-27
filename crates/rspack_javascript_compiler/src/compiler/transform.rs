@@ -5,32 +5,34 @@
  * Author Donny/강동윤
  * Copyright (c)
  */
-use std::env;
 use std::{
+  env,
   fs::File,
   path::{Path, PathBuf},
   sync::{Arc, LazyLock},
 };
 
-use anyhow::{anyhow, bail, Context, Error};
+use anyhow::{bail, Context};
 use base64::prelude::*;
 use indoc::formatdoc;
 use jsonc_parser::parse_to_serde_value;
-use rspack_ast::javascript::{Ast as JsAst, Context as JsAstContext, Program as JsProgram};
-use rspack_error::miette::{self, MietteDiagnostic};
-use rspack_util::{itoa, swc::minify_file_comments};
+use rspack_error::{miette::MietteDiagnostic, AnyhowResultToRspackResultExt, Error};
+use rspack_util::{itoa, source_map::SourceMapKind, swc::minify_file_comments};
 use serde_json::error::Category;
-use swc::{config::JsMinifyCommentOption, BoolOr};
-use swc_config::merge::Merge;
+use swc_config::{merge::Merge, IsModule};
+pub use swc_core::base::config::Options as SwcOptions;
 use swc_core::{
   base::{
-    config::{BuiltInput, Config, ConfigFile, InputSourceMap, IsModule, Options, Rc, RootMode},
-    sourcemap, try_with_handler, SwcComments,
+    config::{
+      BuiltInput, Config, ConfigFile, InputSourceMap, JsMinifyCommentOption, JsMinifyFormatOptions,
+      Rc, RootMode, SourceMapsConfig,
+    },
+    sourcemap, BoolOr,
   },
   common::{
     comments::{Comments, SingleThreadedComments},
     errors::Handler,
-    FileName, FilePathMapping, Globals, Mark, SourceFile, SourceMap, GLOBALS,
+    FileName, Mark, SourceFile, SourceMap, GLOBALS,
   },
   ecma::{
     ast::{EsVersion, Pass, Program},
@@ -38,12 +40,39 @@ use swc_core::{
     transforms::base::helpers::{self, Helpers},
   },
 };
+use swc_error_reporters::handler::try_with_handler;
 use url::Url;
 
-use crate::compiler::miette::Report;
+use super::{
+  stringify::{PrintOptions, SourceMapConfig},
+  JavaScriptCompiler, TransformOutput,
+};
 
-fn parse_swcrc(s: &str) -> Result<Rc, Error> {
-  fn convert_json_err(e: serde_json::Error) -> Error {
+impl JavaScriptCompiler {
+  /// Transforms the given JavaScript source code according to the provided options and source map kind.
+  pub fn transform<'a, S, P>(
+    &self,
+    source: S,
+    filename: Option<FileName>,
+    options: SwcOptions,
+    module_source_map_kind: Option<SourceMapKind>,
+    before_pass: impl FnOnce(&Program) -> P + 'a,
+  ) -> Result<TransformOutput, Error>
+  where
+    P: Pass + 'a,
+    S: Into<String>,
+  {
+    let fm = self
+      .cm
+      .new_source_file(filename.unwrap_or(FileName::Anon).into(), source.into());
+    let javascript_transformer = JavaScriptTransformer::new(self.cm.clone(), fm, self, options)?;
+
+    javascript_transformer.transform(before_pass, module_source_map_kind)
+  }
+}
+
+fn parse_swcrc(s: &str) -> Result<Rc, anyhow::Error> {
+  fn convert_json_err(e: serde_json::Error) -> anyhow::Error {
     let line = e.line();
     let column = e.column();
 
@@ -53,7 +82,7 @@ fn parse_swcrc(s: &str) -> Result<Rc, Error> {
       Category::Data => "unmatched data",
       Category::Eof => "unexpected eof",
     };
-    Error::new(e).context(format!(
+    anyhow::Error::new(e).context(format!(
       "failed to deserialize .swcrc (json) file: {}: {}:{}",
       msg,
       itoa!(line),
@@ -69,7 +98,7 @@ fn parse_swcrc(s: &str) -> Result<Rc, Error> {
       allow_loose_object_property_names: false,
     },
   )?
-  .ok_or_else(|| Error::msg("failed to deserialize empty .swcrc (json) file"))?;
+  .ok_or_else(|| anyhow::Error::msg("failed to deserialize empty .swcrc (json) file"))?;
 
   if let Ok(rc) = serde_json::from_value(v.clone()) {
     return Ok(rc);
@@ -98,13 +127,13 @@ fn find_swcrc(path: &Path, root: &Path, root_mode: RootMode) -> Option<PathBuf> 
   None
 }
 
-fn load_swcrc(path: &Path) -> Result<Rc, Error> {
+fn load_swcrc(path: &Path) -> Result<Rc, anyhow::Error> {
   let content = std::fs::read_to_string(path).context("failed to read config (.swcrc) file")?;
 
   parse_swcrc(&content)
 }
 
-fn read_config(opts: &Options, name: &FileName) -> Result<Option<Config>, Error> {
+fn read_config(opts: &SwcOptions, name: &FileName) -> Result<Option<Config>, anyhow::Error> {
   static CUR_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
     if cfg!(target_arch = "wasm32") {
       PathBuf::new()
@@ -113,9 +142,9 @@ fn read_config(opts: &Options, name: &FileName) -> Result<Option<Config>, Error>
     }
   });
 
-  let res: Result<_, Error> = {
-    let Options {
-      ref root,
+  let res: Result<_, anyhow::Error> = {
+    let SwcOptions {
+      root,
       root_mode,
       swcrc,
       config_file,
@@ -128,7 +157,7 @@ fn read_config(opts: &Options, name: &FileName) -> Result<Option<Config>, Error>
       Some(ConfigFile::Str(s)) => Some(PathBuf::from(s.clone())),
       _ => {
         if *swcrc {
-          if let FileName::Real(ref path) = name {
+          if let FileName::Real(path) = name {
             find_swcrc(path, root, *root_mode)
           } else {
             None
@@ -201,27 +230,109 @@ fn read_config(opts: &Options, name: &FileName) -> Result<Option<Config>, Error>
     match config {
       Some(config) => Ok(Some(config)),
       None => {
-        anyhow::bail!("no config matched for file ({})", name)
+        anyhow::bail!("no config matched for file ({name})")
       }
     }
   };
 
-  res.with_context(|| format!("failed to read .swcrc file for input file at `{}`", name))
+  res.with_context(|| format!("failed to read .swcrc file for input file at `{name}`"))
 }
 
-const SWC_MIETTE_DIAGNOSTIC_CODE: &str = "Builtin swc-loader error";
-
-pub(crate) struct SwcCompiler {
+struct JavaScriptTransformer<'a> {
   cm: Arc<SourceMap>,
   fm: Arc<SourceFile>,
   comments: SingleThreadedComments,
-  options: Options,
-  globals: Globals,
+  options: SwcOptions,
+  javascript_compiler: &'a JavaScriptCompiler,
   helpers: Helpers,
   config: Config,
 }
 
-impl SwcCompiler {
+const SWC_MIETTE_DIAGNOSTIC_CODE: &str = "Builtin swc-loader error";
+
+impl<'a> JavaScriptTransformer<'a> {
+  pub fn new(
+    cm: Arc<SourceMap>,
+    fm: Arc<SourceFile>,
+    compiler: &'a JavaScriptCompiler,
+    mut options: SwcOptions,
+  ) -> Result<Self, Error> {
+    GLOBALS.set(&compiler.globals, || {
+      let top_level_mark = Mark::new();
+      let unresolved_mark = Mark::new();
+      options.top_level_mark = Some(top_level_mark);
+      options.unresolved_mark = Some(unresolved_mark);
+    });
+
+    let comments = SingleThreadedComments::default();
+    let config = read_config(&options, &fm.name)
+      .to_rspack_result_from_anyhow()?
+      .ok_or_else(|| rspack_error::error!("cannot process file because it's ignored by .swcrc"))?;
+
+    let helpers = GLOBALS.set(&compiler.globals, || {
+      let mut external_helpers = options.config.jsc.external_helpers;
+      external_helpers.merge(config.jsc.external_helpers);
+      Helpers::new(external_helpers.into())
+    });
+
+    Ok(Self {
+      cm,
+      fm,
+      javascript_compiler: compiler,
+      options,
+      helpers,
+      config,
+      comments,
+    })
+  }
+
+  fn transform<P>(
+    self,
+    before_pass: impl FnOnce(&Program) -> P + 'a,
+    module_source_map_kind: Option<SourceMapKind>,
+  ) -> Result<TransformOutput, Error>
+  where
+    P: Pass + 'a,
+  {
+    let built_input = self.parse_built_input(before_pass)?;
+
+    let target = built_input.target;
+    let source_map_kind: SourceMapKind = match self.options.config.source_maps {
+      Some(SourceMapsConfig::Bool(false)) => SourceMapKind::empty(),
+      _ => module_source_map_kind.unwrap_or_default(),
+    };
+    let minify = built_input.minify;
+    let source_map_config = SourceMapConfig {
+      enable: source_map_kind.source_map(),
+      inline_sources_content: source_map_kind.source_map(),
+      emit_columns: !source_map_kind.cheap(),
+      names: Default::default(),
+    };
+
+    let input_source_map = self
+      .input_source_map(&built_input.input_source_map)
+      .to_rspack_result_from_anyhow()?;
+
+    let program = self.transform_with_built_input(built_input)?;
+    let format_opt = JsMinifyFormatOptions {
+      inline_script: false,
+      ascii_only: true,
+      ..Default::default()
+    };
+
+    let print_options = PrintOptions {
+      source_map: self.cm.clone(),
+      target,
+      source_map_config,
+      input_source_map: input_source_map.as_ref(),
+      minify,
+      comments: Some(&self.comments as &dyn Comments),
+      format: &format_opt,
+    };
+
+    self.javascript_compiler.print(&program, print_options)
+  }
+
   fn parse_js(
     &self,
     fm: Arc<SourceFile>,
@@ -230,10 +341,10 @@ impl SwcCompiler {
     syntax: Syntax,
     is_module: IsModule,
     comments: Option<&dyn Comments>,
-  ) -> Result<Program, Error> {
+  ) -> Result<Program, anyhow::Error> {
     let mut error = false;
-
     let mut errors = vec![];
+
     let program_result = match is_module {
       IsModule::Bool(true) => {
         parse_file_as_module(&fm, syntax, target, comments, &mut errors).map(Program::Module)
@@ -251,7 +362,7 @@ impl SwcCompiler {
 
     let mut res = program_result.map_err(|e| {
       e.into_diagnostic(handler).emit();
-      Error::msg("Syntax Error")
+      anyhow::Error::msg("Syntax Error")
     });
 
     if error {
@@ -259,73 +370,33 @@ impl SwcCompiler {
     }
 
     if env::var("SWC_DEBUG").unwrap_or_default() == "1" {
-      res = res.with_context(|| format!("Parser config: {:?}", syntax));
+      res = res.with_context(|| format!("Parser config: {syntax:?}"));
     }
 
     res
   }
-}
 
-impl SwcCompiler {
-  pub fn new(resource_path: PathBuf, source: String, mut options: Options) -> Result<Self, Error> {
-    let cm = Arc::new(SourceMap::new(FilePathMapping::empty()));
-    let globals = Globals::default();
-    GLOBALS.set(&globals, || {
-      let top_level_mark = Mark::new();
-      let unresolved_mark = Mark::new();
-      options.top_level_mark = Some(top_level_mark);
-      options.unresolved_mark = Some(unresolved_mark);
-    });
-
-    let fm = cm.new_source_file(Arc::new(FileName::Real(resource_path)), source);
-    let comments = SingleThreadedComments::default();
-    let config = read_config(&options, &fm.name)?
-      .ok_or_else(|| anyhow!("cannot process file because it's ignored by .swcrc"))?;
-
-    let helpers = GLOBALS.set(&globals, || {
-      let mut external_helpers = options.config.jsc.external_helpers;
-      external_helpers.merge(config.jsc.external_helpers);
-      Helpers::new(external_helpers.into())
-    });
-
-    Ok(Self {
-      cm,
-      fm,
-      comments,
-      options,
-      globals,
-      helpers,
-      config,
-    })
-  }
-
-  pub fn run<R>(&self, op: impl FnOnce() -> R) -> R {
-    GLOBALS.set(&self.globals, op)
-  }
-
-  pub fn parse<'a, P>(
+  fn parse_built_input<P>(
     &'a self,
-    program: Option<Program>,
     before_pass: impl FnOnce(&Program) -> P + 'a,
   ) -> Result<BuiltInput<impl Pass + 'a>, Error>
   where
     P: Pass + 'a,
   {
-    let built = self.run(|| {
+    self.run(|| {
       try_with_handler(self.cm.clone(), Default::default(), |handler| {
-        let built = self.options.build_as_input(
-          &self.cm,
+        self.options.build_as_input(
+          &self.cm.clone(),
           &self.fm.name,
-          move |syntax, target, is_module| match program {
-            Some(v) => Ok(v),
-            _ => self.parse_js(
+          move |syntax, target, is_module| {
+            self.parse_js(
               self.fm.clone(),
               handler,
               target,
               syntax,
               is_module,
-              Some(&self.comments),
-            ),
+              Some(&self.comments).map(|c| c as &dyn Comments),
+            )
           },
           self.options.output_path.as_deref(),
           self.options.source_root.clone(),
@@ -334,97 +405,91 @@ impl SwcCompiler {
           Some(self.config.clone()),
           Some(&self.comments),
           before_pass,
-        )?;
-
-        Ok(Some(built))
+        )
       })
       .map_err(|e| e.to_pretty_error())
-    })?;
-
-    match built {
-      Some(v) => Ok(v),
-      None => {
-        anyhow::bail!("cannot process file because it's ignored by .swcrc")
-      }
-    }
+      .to_rspack_result_from_anyhow()
+    })
   }
 
-  pub fn transform(&self, config: BuiltInput<impl Pass>) -> Result<Program, miette::Report> {
-    let program = config.program;
-    let mut pass = config.pass;
+  fn run<R>(&self, op: impl FnOnce() -> R) -> R {
+    GLOBALS.set(&self.javascript_compiler.globals, op)
+  }
 
+  fn transform_with_built_input(
+    &self,
+    built_input: BuiltInput<impl Pass>,
+  ) -> Result<Program, Error> {
+    let program = built_input.program;
+    let mut pass = built_input.pass;
     let program = self.run(|| {
       helpers::HELPERS.set(&self.helpers, || {
-      let result = try_with_handler(self.cm.clone(), Default::default(), |_handler| {
-        let result = program.apply(&mut pass);
-        Ok(result)
-      });
-      match result {
-        Ok(v) => Ok(v),
-        Err(err) => {
+        let result = try_with_handler(self.cm.clone(), Default::default(), |_handler| {
+          Ok(program.apply(&mut pass))
+        });
 
-        let swc_diagnostics = err.diagnostics();
-        if swc_diagnostics.iter().any(|d| match &d.code {
+        result.map_err(|err| {
+          let swc_diagnostics = err.diagnostics();
+
+          if swc_diagnostics.iter().any(|d| match &d.code {
             Some(code) => {
-              // reference to: 
+              // reference to:
               //    https://github.com/swc-project/swc/blob/v1.11.21/crates/swc/src/plugin.rs#L187
               //    https://github.com/swc-project/swc/blob/v1.11.21/crates/swc/src/plugin.rs#L200
               match code {
                 swc_core::common::errors::DiagnosticId::Error(e) => e.contains("plugin"),
                 swc_core::common::errors::DiagnosticId::Lint(_) => false,
               }
-            },
+            }
             None => false,
-        }
-      ) {
-          // swc errors includes plugin error;
-          let error_msg = err.to_pretty_string();
-          let swc_core_version = env!("RSPACK_SWC_CORE_VERSION");
-          // FIXME: with_help has bugs, use with_help when diagnostic print is fixed
-          let help_msg = formatdoc!{"
-            The version of the SWC Wasm plugin you're using might not be compatible with `builtin:swc-loader`.
-            The `swc_core` version of the current `rspack_core` is {swc_core_version}. 
-            Please check the `swc_core` version of SWC Wasm plugin to make sure these versions are within the compatible range.
-            See this guide as a reference for selecting SWC Wasm plugin versions: https://rspack.dev/errors/swc-plugin-version"};
-          let report: Report = MietteDiagnostic::new(format!("{}{}",error_msg,help_msg)).with_code(SWC_MIETTE_DIAGNOSTIC_CODE).into();
-          Err(report)
-        } else {
-          let error_msg = err.to_pretty_string();
-          let report: Report = MietteDiagnostic::new(error_msg.to_owned()).with_code(SWC_MIETTE_DIAGNOSTIC_CODE).into();
-          Err(report)
-        }
-      }
-    }
-    })
+          }) {
+            // swc errors includes plugin error;
+            let error_msg = err.to_pretty_string();
+            let swc_core_version = env!("RSPACK_SWC_CORE_VERSION");
+            // FIXME: with_help has bugs, use with_help when diagnostic print is fixed
+            let help_msg = formatdoc!{"
+              The version of the SWC Wasm plugin you're using might not be compatible with `builtin:swc-loader`.
+              The `swc_core` version of the current `rspack_core` is {swc_core_version}. 
+              Please check the `swc_core` version of SWC Wasm plugin to make sure these versions are within the compatible range.
+              See this guide as a reference for selecting SWC Wasm plugin versions: https://rspack.dev/errors/swc-plugin-version"};
+            MietteDiagnostic::new(format!("{error_msg}{help_msg}")).with_code(SWC_MIETTE_DIAGNOSTIC_CODE)
+          } else {
+            let error_msg = err.to_pretty_string();
+            MietteDiagnostic::new(error_msg).with_code(SWC_MIETTE_DIAGNOSTIC_CODE)
+          }
+        })
+      })
     });
 
-    if let Some(comments) = &config.comments {
-      // TODO: Wait for https://github.com/swc-project/swc/blob/e6fc5327b1a309eae840fe1ec3a2367adab37430/crates/swc/src/config/mod.rs#L808 to land.
-      let preserve_annotations = match &config.preserve_comments {
+    if let Some(comments) = &built_input.comments {
+      let preserve_annotations = match &built_input.preserve_comments {
         BoolOr::Bool(true) | BoolOr::Data(JsMinifyCommentOption::PreserveAllComments) => true,
         BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments) => false,
         BoolOr::Bool(false) => false,
       };
 
-      minify_file_comments(comments, config.preserve_comments, preserve_annotations);
-    };
+      minify_file_comments(
+        comments,
+        built_input.preserve_comments,
+        preserve_annotations,
+      );
+    }
 
-    program
+    program.map_err(|e| e.into())
   }
 
   pub fn input_source_map(
     &self,
     input_src_map: &InputSourceMap,
-  ) -> Result<Option<sourcemap::SourceMap>, Error> {
+  ) -> Result<Option<sourcemap::SourceMap>, anyhow::Error> {
     let fm = &self.fm;
     let name = &self.fm.name;
-
     let read_inline_sourcemap =
-      |data_url: Option<&str>| -> Result<Option<sourcemap::SourceMap>, Error> {
+      |data_url: Option<&str>| -> Result<Option<sourcemap::SourceMap>, anyhow::Error> {
         match data_url {
           Some(data_url) => {
             let url = Url::parse(data_url)
-              .with_context(|| format!("failed to parse inline source map url\n{}", data_url))?;
+              .with_context(|| format!("failed to parse inline source map url\n{data_url}"))?;
 
             let idx = match url.path().find("base64,") {
               Some(v) => v,
@@ -441,7 +506,7 @@ impl SwcCompiler {
 
             Ok(Some(sourcemap::SourceMap::from_slice(&res).context(
               "failed to read input source map from inlined base64 encoded \
-                                 string",
+                                string",
             )?))
           }
           None => {
@@ -451,7 +516,7 @@ impl SwcCompiler {
       };
 
     let read_file_sourcemap =
-      |data_url: Option<&str>| -> Result<Option<sourcemap::SourceMap>, Error> {
+      |data_url: Option<&str>| -> Result<Option<sourcemap::SourceMap>, anyhow::Error> {
         match name.as_ref() {
           FileName::Real(filename) => {
             let dir = match filename.parent() {
@@ -476,7 +541,7 @@ impl SwcCompiler {
                   if !map_path.exists() {
                     bail!(
                       "failed to find input source map file {:?} in \
-                                                 {:?} file",
+                                                  {:?} file",
                       map_path.display(),
                       filename.display()
                     )
@@ -508,8 +573,7 @@ impl SwcCompiler {
                   || {
                     format!(
                       "failed to read input source map
-                                from file at {}",
-                      path
+                                  from file at {path}"
                     )
                   },
                 )?))
@@ -547,7 +611,7 @@ impl SwcCompiler {
     match input_src_map {
       InputSourceMap::Bool(false) => Ok(None),
       InputSourceMap::Bool(true) => Ok(read_sourcemap()),
-      InputSourceMap::Str(ref s) => {
+      InputSourceMap::Str(s) => {
         if s == "inline" {
           Ok(read_sourcemap())
         } else {
@@ -558,50 +622,6 @@ impl SwcCompiler {
           ))
         }
       }
-    }
-  }
-}
-
-pub(crate) trait IntoJsAst {
-  fn into_js_ast(self, program: Program) -> JsAst;
-}
-
-impl IntoJsAst for SwcCompiler {
-  fn into_js_ast(self, program: Program) -> JsAst {
-    JsAst::default()
-      .with_program(JsProgram::new(
-        program,
-        Some(self.comments.into_swc_comments()),
-      ))
-      .with_context(JsAstContext {
-        globals: self.globals,
-        helpers: self.helpers.data(),
-        source_map: self.cm,
-        top_level_mark: self
-          .options
-          .top_level_mark
-          .expect("`top_level_mark` should be initialized"),
-        unresolved_mark: self
-          .options
-          .unresolved_mark
-          .expect("`unresolved_mark` should be initialized"),
-      })
-  }
-}
-
-trait IntoSwcComments {
-  fn into_swc_comments(self) -> SwcComments;
-}
-
-impl IntoSwcComments for SingleThreadedComments {
-  fn into_swc_comments(self) -> SwcComments {
-    let (l, t) = {
-      let (l, t) = self.take_all();
-      (l.take(), t.take())
-    };
-    SwcComments {
-      leading: Arc::new(FromIterator::<_>::from_iter(l)),
-      trailing: Arc::new(FromIterator::<_>::from_iter(t)),
     }
   }
 }

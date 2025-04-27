@@ -1,6 +1,6 @@
 use std::{hash::Hash, sync::Arc};
 
-use anyhow::Error;
+use rspack_error::BatchErrors;
 use swc_core::{
   common::{errors::Handler, sync::Lrc, util::take::Take, Globals, Mark, SourceMap, GLOBALS},
   ecma::{
@@ -9,8 +9,9 @@ use swc_core::{
     visit::{Fold, FoldWith, Visit, VisitMut, VisitMutWith, VisitWith},
   },
 };
-use swc_error_reporters::{handler::try_with_handler, TWithDiagnosticArray};
 use swc_node_comments::SwcComments;
+
+use crate::error::with_rspack_error_handler;
 
 /// Program is a wrapper for SwcProgram
 ///
@@ -75,13 +76,12 @@ pub struct Context {
   pub helpers: HelperData,
   pub top_level_mark: Mark,
   pub unresolved_mark: Mark,
-  //  comments: swcComments,
   pub source_map: Arc<SourceMap>,
 }
 
 impl Context {
-  pub fn new(source_map: Arc<SourceMap>) -> Self {
-    let globals: Globals = Default::default();
+  pub fn new(source_map: Arc<SourceMap>, globals: Option<Globals>) -> Self {
+    let globals = globals.unwrap_or_default();
     // generate preset mark & helpers
     let (top_level_mark, unresolved_mark, helpers) = GLOBALS.set(&globals, || {
       (Mark::new(), Mark::new(), Helpers::new(true).data())
@@ -109,7 +109,7 @@ impl std::fmt::Debug for Context {
 
 impl Take for Context {
   fn dummy() -> Self {
-    Self::new(Arc::new(SourceMap::new(Default::default())))
+    Self::new(Arc::new(SourceMap::new(Default::default())), None)
   }
 }
 
@@ -145,7 +145,7 @@ impl Ast {
   ) -> Self {
     Self {
       program: Program::new(program, comments),
-      context: Arc::new(Context::new(source_map)),
+      context: Arc::new(Context::new(source_map, None)),
     }
   }
 
@@ -177,18 +177,17 @@ impl Ast {
     })
   }
 
-  pub fn transform_with_handler<F, R>(
-    &mut self,
-    cm: Lrc<SourceMap>,
-    f: F,
-  ) -> Result<R, TWithDiagnosticArray<Error>>
+  pub fn transform_with_handler<F, R>(&mut self, cm: Lrc<SourceMap>, f: F) -> Result<R, BatchErrors>
   where
-    F: FnOnce(&Handler, &mut Program, &Context) -> Result<R, Error>,
+    F: FnOnce(&Handler, &mut Program, &Context) -> Result<R, BatchErrors>,
   {
     self.transform(|program, context| {
-      try_with_handler(cm, Default::default(), |handler| {
-        f(handler, program, context)
-      })
+      with_rspack_error_handler(
+        "Ast Transform Error".to_string(),
+        rspack_error::DiagnosticKind::JavaScript,
+        cm,
+        |handler| f(handler, program, context),
+      )
     })
   }
 

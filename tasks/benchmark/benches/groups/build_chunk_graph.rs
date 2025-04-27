@@ -6,7 +6,7 @@ use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_core::{
   build_chunk_graph, fast_set,
-  incremental::{Incremental, IncrementalPasses},
+  incremental::{Incremental, IncrementalOptions},
   Compilation, Compiler, Experiments, Optimization,
 };
 use rspack_fs::{MemoryFileSystem, WritableFileSystem};
@@ -116,7 +116,7 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
     .input_filesystem(fs.clone())
     .output_filesystem(fs.clone())
     .optimization(Optimization::builder().remove_available_modules(true))
-    .experiments(Experiments::builder().incremental(IncrementalPasses::empty()))
+    .experiments(Experiments::builder().incremental(IncrementalOptions::empty_passes()))
     .build()
     .unwrap();
 

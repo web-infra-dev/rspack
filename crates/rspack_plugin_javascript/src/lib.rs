@@ -3,7 +3,6 @@
 #![feature(box_patterns)]
 #![recursion_limit = "256"]
 
-pub mod ast;
 pub mod dependency;
 pub mod parser_and_generator;
 mod parser_plugin;

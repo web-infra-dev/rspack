@@ -9,7 +9,6 @@ use std::{
 use dashmap::DashMap;
 use indexmap::IndexMap;
 use regex::Regex;
-use rspack_ast::javascript::Ast;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsMap, Skip},
@@ -22,6 +21,7 @@ use rspack_error::{
 };
 use rspack_hash::{HashDigest, HashFunction, RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
+use rspack_javascript_compiler::ast::Ast;
 use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
 };
