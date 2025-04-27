@@ -95,10 +95,10 @@ pub fn get_chunk_group_oreded_child_assets(
     .collect::<Vec<_>>()
 }
 
-pub fn get_chunk_relations(
+pub fn get_chunk_relations<'a>(
   chunk: &Chunk,
-  compilation: &Compilation,
-) -> (Vec<String>, Vec<String>, Vec<String>) {
+  compilation: &'a Compilation,
+) -> (Vec<&'a str>, Vec<&'a str>, Vec<&'a str>) {
   let mut parents = HashSet::default();
   let mut children = HashSet::default();
   let mut siblings = HashSet::default();
@@ -111,7 +111,7 @@ pub fn get_chunk_relations(
             if let Some(c) = compilation.chunk_by_ukey.get(c)
               && let Some(id) = c.id(&compilation.chunk_ids_artifact)
             {
-              parents.insert(id.to_string());
+              parents.insert(id.as_str());
             }
           }
         }
@@ -123,7 +123,7 @@ pub fn get_chunk_relations(
             if let Some(c) = compilation.chunk_by_ukey.get(c)
               && let Some(id) = c.id(&compilation.chunk_ids_artifact)
             {
-              children.insert(id.to_string());
+              children.insert(id.as_str());
             }
           }
         }
@@ -134,7 +134,7 @@ pub fn get_chunk_relations(
           && c.id(&compilation.chunk_ids_artifact) != chunk.id(&compilation.chunk_ids_artifact)
           && let Some(id) = c.id(&compilation.chunk_ids_artifact)
         {
-          siblings.insert(id.to_string());
+          siblings.insert(id.as_str());
         }
       }
     }
@@ -144,19 +144,19 @@ pub fn get_chunk_relations(
   let mut children = Vec::from_iter(children);
   let mut siblings = Vec::from_iter(siblings);
 
-  parents.sort();
-  children.sort();
-  siblings.sort();
+  parents.sort_unstable();
+  children.sort_unstable();
+  siblings.sort_unstable();
 
   (parents, children, siblings)
 }
 
-pub fn get_module_trace(
+pub fn get_module_trace<'a>(
   module_identifier: Option<Identifier>,
-  module_graph: &ModuleGraph,
-  compilation: &Compilation,
+  module_graph: &'a ModuleGraph,
+  compilation: &'a Compilation,
   options: &CompilerOptions,
-) -> Vec<StatsModuleTrace> {
+) -> Vec<StatsModuleTrace<'a>> {
   let mut module_trace = vec![];
   let mut visited_modules = HashSet::<Identifier>::default();
   let mut current_module_identifier = module_identifier;
@@ -168,23 +168,19 @@ pub fn get_module_trace(
     let Some(origin_module) = module_graph.get_issuer(&module_identifier) else {
       break;
     };
-    let Some(current_module) = module_graph.module_by_identifier(&module_identifier) else {
+    let Some(current_module) = compilation.module_by_identifier(&module_identifier) else {
       break;
     };
     let origin_stats_module = StatsErrorModuleTraceModule {
       identifier: origin_module.identifier(),
-      name: origin_module
-        .readable_identifier(&options.context)
-        .to_string(),
+      name: origin_module.readable_identifier(&options.context),
       id: ChunkGraph::get_module_id(&compilation.module_ids_artifact, origin_module.identifier())
         .cloned(),
     };
 
     let current_stats_module = StatsErrorModuleTraceModule {
       identifier: current_module.identifier(),
-      name: current_module
-        .readable_identifier(&options.context)
-        .to_string(),
+      name: current_module.readable_identifier(&options.context),
       id: ChunkGraph::get_module_id(
         &compilation.module_ids_artifact,
         current_module.identifier(),
