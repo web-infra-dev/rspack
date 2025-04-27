@@ -30,9 +30,6 @@ jobs:
           save-if: true
           key: check
 
-      - name: Pnpm Setup
-        uses: ./.github/actions/pnpm/setup
-
       - name: Run Cargo Check
         run: cargo check --workspace --all-targets --locked # Not using --release because it uses too much cache, and is also slow.
 
@@ -81,7 +78,7 @@ jobs:
         uses: ./.github/actions/rustup
         with:
           save-if: ${{ github.ref_name == 'main' }}
-          key: 'check'
+          key: test
 
       # Compile test without debug info for reducing the CI cache size
       - name: Change profile.test
