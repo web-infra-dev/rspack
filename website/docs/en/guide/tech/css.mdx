@@ -8,9 +8,9 @@ CSS is a first-class citizen in Rspack, and Rspack has several built-in features
 
 You can choose from the following options:
 
-### Native CSS support
+### Built-in CSS support
 
-Rspack provides the [experiment.css](/config/experiments#experimentscss) option, an experimental feature introduced in webpack 5 to enable native CSS support. Rspack has improved this feature and plans to enable it by default in Rspack 2.0.
+Rspack provides the [experiment.css](/config/experiments#experimentscss) option, an experimental feature introduced in webpack 5 to enable built-in CSS support. Rspack has improved this feature and plans to enable it by default in Rspack 2.0.
 
 > If you create a new project based on Rspack, it is recommended to use this method.
 
@@ -111,9 +111,9 @@ style-loader cannot be used with `type: 'css'`, `type: 'css/auto'`, or `type: 'c
 
 [CSS Modules](https://github.com/css-modules/css-modules) is a way of organizing CSS files that localizes the scope of CSS by automatically generating unique identifiers for class names. This allows you to use the same class name in different files without worrying about collisions.
 
-### Native support
+### Built-in support
 
-If you enable [Native CSS support](#native-css-support), Rspack will treat files with a `*.module.css` extension as CSS Modules by default. You can import them into your JavaScript files, and then access each class defined in the CSS file as an export from the module.
+If you enable [Built-in CSS support](#built-in-css-support), Rspack will treat files with a `*.module.css` extension as CSS Modules by default. You can import them into your JavaScript files, and then access each class defined in the CSS file as an export from the module.
 
 ```css title="index.module.css"
 .red {
@@ -167,7 +167,7 @@ Rspack provides options to customize the parsing and generation of CSS Modules:
 
 ### Using css-loader
 
-If you do not enable Rspack's native CSS support, you can use [css-loader](https://github.com/webpack-contrib/css-loader) to provide CSS Modules support.
+If you do not enable Rspack's built-in CSS support, you can use [css-loader](https://github.com/webpack-contrib/css-loader) to provide CSS Modules support.
 
 Enable the `modules` option of `css-loader`:
 
