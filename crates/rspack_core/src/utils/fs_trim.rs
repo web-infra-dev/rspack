@@ -2,6 +2,7 @@ use rspack_error::Result;
 use rspack_fs::{Result as FsResult, WritableFileSystem};
 use rspack_paths::Utf8Path;
 use rspack_regex::RspackRegex;
+use rspack_util::node_path::NodePath;
 
 use crate::KeepFunc;
 
@@ -15,8 +16,8 @@ impl<'a> KeepPattern<'a> {
   pub async fn try_match(&self, path: &'a Utf8Path) -> Result<bool> {
     match self {
       KeepPattern::Path(p) => Ok(path.starts_with(p)),
-      KeepPattern::Regex(r) => Ok(r.test(path.as_str())),
-      KeepPattern::Func(f) => f(path.to_string()).await,
+      KeepPattern::Regex(r) => Ok(r.test(path.node_normalize_posix().as_str())),
+      KeepPattern::Func(f) => f(path.node_normalize_posix().to_string()).await,
     }
   }
 
