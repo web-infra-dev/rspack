@@ -11,16 +11,16 @@ where
   let mut call_js_back = Some(Box::new(call_js_back));
 
   let tsfn = f
-    .build_threadsafe_function::<Result<R>>()
-    .callee_handled::<false>()
+    .build_threadsafe_function::<R>()
+    .callee_handled::<true>()
     .max_queue_size::<1>()
     .weak::<false>()
     .build_callback(
-      move |_ctx: napi::threadsafe_function::ThreadsafeCallContext<_>| {
+      move |ctx: napi::threadsafe_function::ThreadsafeCallContext<_>| {
         if let Some(call_js_back) = call_js_back.take() {
           call_js_back();
         }
-        Ok(())
+        Ok(ctx.value)
       },
     )?;
 

@@ -19,15 +19,15 @@ mod raw_sri;
 mod raw_swc_js_minimizer;
 
 use napi::{
-  bindgen_prelude::{External, FromNapiValue, Function, Object, Promise, ToNapiValue},
-  CallContext, Env, JsUnknown,
+  bindgen_prelude::{FromNapiValue, Object},
+  Env, JsUnknown,
 };
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
 use raw_ids::RawOccurrenceChunkIdsPluginOptions;
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use raw_sri::RawSubresourceIntegrityPluginOptions;
-use rspack_core::{BoxPlugin, CompilerId, Plugin, PluginExt};
+use rspack_core::{BoxPlugin, Plugin, PluginExt};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
@@ -113,40 +113,12 @@ use self::{
   raw_size_limits::RawSizeLimitsPluginOptions,
 };
 use crate::{
-  entry::JsEntryPluginOptions,
-  plugins::{JsLoaderContext, JsLoaderRspackPlugin},
-  JsLoaderRunner, JsLoaderRunnerGetter, RawContextReplacementPluginOptions,
-  RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
-  RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawRsdoctorPluginOptions,
-  RawSourceMapDevToolPluginOptions, RawSplitChunksOptions, COMPILER_REFERENCES,
+  entry::JsEntryPluginOptions, plugins::JsLoaderRspackPlugin, JsLoaderRunnerGetter,
+  RawContextReplacementPluginOptions, RawDynamicEntryPluginOptions,
+  RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
+  RawHttpExternalsRspackPluginOptions, RawRsdoctorPluginOptions, RawSourceMapDevToolPluginOptions,
+  RawSplitChunksOptions,
 };
-
-#[js_function(1)]
-fn get_loader_runner(ctx: CallContext) -> napi::Result<External<Option<JsLoaderRunner>>> {
-  let external = ctx.get::<&mut External<CompilerId>>(0)?;
-  let compiler_id = &**external;
-  COMPILER_REFERENCES.with(|ref_cell| {
-    if let Some(weak_reference) = ref_cell.borrow().get(compiler_id) {
-      let compiler_object = unsafe {
-        let napi_value = ToNapiValue::to_napi_value(ctx.env.raw(), weak_reference.clone())?;
-        Object::from_napi_value(ctx.env.raw(), napi_value)?
-      };
-      let run_loader = compiler_object
-        .get_named_property::<Function<JsLoaderContext, Promise<JsLoaderContext>>>("_runLoader")?;
-      let ts_fn: JsLoaderRunner = run_loader
-        .build_threadsafe_function::<JsLoaderContext>()
-        .weak::<true>()
-        .callee_handled::<false>()
-        .max_queue_size::<0>()
-        .build()?;
-      Ok(External::new(Some(ts_fn)))
-    } else {
-      Err(napi::Error::from_reason(
-        "Failed to get loader runner: the Compiler has been garbage collected by JavaScript.",
-      ))
-    }
-  })
-}
 
 #[napi(string_enum)]
 #[derive(Debug)]
@@ -670,14 +642,7 @@ impl BuiltinPlugin {
         // Set the compiler._runLoader property on the JsObject to ensure that the runLoader
         // is not garbage collected by JS while the stats Object holds a reference to JsLoaderPlugin.
         compiler_object.set_named_property("_runLoader", self.options)?;
-
-        let loader_runner_getter: JsLoaderRunnerGetter = env
-          .create_function("get_loader_runner", get_loader_runner)?
-          .build_threadsafe_function::<External<CompilerId>>()
-          .weak::<true>()
-          .callee_handled::<false>()
-          .max_queue_size::<1>()
-          .build()?;
+        let loader_runner_getter = JsLoaderRunnerGetter::new(&env)?;
         plugins.push(JsLoaderRspackPlugin::new(loader_runner_getter).boxed());
       }
       BuiltinPluginName::LazyCompilationPlugin => {

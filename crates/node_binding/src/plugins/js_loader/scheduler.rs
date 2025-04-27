@@ -1,4 +1,4 @@
-use napi::{bindgen_prelude::External, Either};
+use napi::Either;
 use rspack_core::{
   diagnostics::CapturedLoaderError, AdditionalData, LoaderContext, NormalModuleLoaderShouldYield,
   NormalModuleLoaderStartYielding, RunnerContext, BUILTIN_LOADER_PREFIX,
@@ -53,11 +53,9 @@ pub(crate) async fn loader_yield(
       #[allow(clippy::unwrap_used)]
       let runner = self
         .runner_getter
-        .call_async(External::new(*compiler_id))
+        .call(compiler_id)
         .await
-        .into_diagnostic()?
-        .take()
-        .unwrap();
+        .into_diagnostic()?;
 
       let new_cx = runner
         .call_async(loader_context.try_into()?)

@@ -18,6 +18,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, ToStringResultToRspackResultExt};
 use rspack_napi::{napi::bindgen_prelude::*, OneShotRef, WeakRef};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
+use rspack_util::defer;
 use rustc_hash::FxHashMap;
 
 use super::{JsFilename, PathWithInfo};
@@ -593,8 +594,16 @@ impl JsCompilation {
   /// Please don't use this at the moment.
   /// Using async and mutable reference to `Compilation` at the same time would likely to cause data races.
   #[napi]
-  pub fn rebuild_module(&mut self, module_identifiers: Vec<String>, f: Function) -> Result<()> {
+  pub fn rebuild_module(
+    &mut self,
+    reference: Reference<JsCompilation>,
+    module_identifiers: Vec<String>,
+    f: Function,
+  ) -> Result<()> {
     let compilation = self.as_mut()?;
+    let defer_guard = defer(move || {
+      drop(reference);
+    });
 
     callbackify(
       f,
@@ -616,7 +625,7 @@ impl JsCompilation {
 
         Ok(modules)
       },
-      || {},
+      || drop(defer_guard),
     )
   }
 
@@ -624,6 +633,7 @@ impl JsCompilation {
   #[napi]
   pub fn import_module(
     &self,
+    reference: Reference<JsCompilation>,
     request: String,
     layer: Option<String>,
     public_path: Option<JsFilename>,
@@ -633,6 +643,9 @@ impl JsCompilation {
     callback: Function,
   ) -> Result<()> {
     let compilation = self.as_ref()?;
+    let defer_guard = defer(move || {
+      drop(reference);
+    });
 
     callbackify(
       callback,
@@ -679,7 +692,9 @@ impl JsCompilation {
         };
         Ok(js_result)
       },
-      || {},
+      || {
+        drop(defer_guard);
+      },
     )
   }
 
@@ -723,10 +738,14 @@ impl JsCompilation {
   )]
   pub fn add_include(
     &mut self,
+    reference: Reference<JsCompilation>,
     js_args: Vec<(String, &mut EntryDependency, Option<JsEntryOptions>)>,
     f: Function,
   ) -> napi::Result<()> {
     let compilation = self.as_mut()?;
+    let defer_guard = defer(move || {
+      drop(reference);
+    });
 
     let Some(mut compiler_reference) = COMPILER_REFERENCES.with(|ref_cell| {
       let references = ref_cell.borrow_mut();
@@ -808,7 +827,9 @@ impl JsCompilation {
 
         Ok(JsAddIncludeCallbackArgs(results))
       },
-      || {},
+      || {
+        drop(defer_guard);
+      },
     )
   }
 }
