@@ -59,7 +59,7 @@ runs:
       uses: ./.github/actions/cache/save
       if: ${{ inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' }}
       with:
-        path: ~/.rustup/toolchains/${{ steps.get-toolchain.outputs.toolchain }}*
+        path: ~/.rustup/toolchains
         key: rustup-cache-${{ runner.os }}-${{ steps.get-toolchain.outputs.toolchain }}
 
     - name: Cargo cache
