@@ -1,6 +1,8 @@
+use ::napi::bindgen_prelude::Either3;
 use napi_derive::napi;
 use rspack_core::CleanOptions;
-use rspack_napi::napi;
+use rspack_napi::{napi, threadsafe_function::ThreadsafeFunction};
+use rspack_regex::RspackRegex;
 
 /// File clean options
 ///
@@ -10,22 +12,17 @@ use rspack_napi::napi;
 #[napi(object, object_to_js = false)]
 #[derive(Debug)]
 pub struct JsCleanOptions {
-  pub keep: Option<String>,
-  // todo:
-  // - support RegExp type
-  //   if path match the RegExp, keep the file
-  // - support function type
-  //    if the fn returns true on path str, keep the file
+  #[napi(ts_type = "string | RegExp | ((path: string) => boolean)")]
+  pub keep: Option<Either3<String, RspackRegex, ThreadsafeFunction<String, bool>>>,
 }
 
-impl JsCleanOptions {
-  pub fn to_clean_options(&self) -> CleanOptions {
-    let keep = self.keep.as_ref();
-    if let Some(path) = keep {
-      let p = path.as_str();
-      CleanOptions::from(p)
-    } else {
-      CleanOptions::CleanAll(false)
+impl From<JsCleanOptions> for CleanOptions {
+  fn from(value: JsCleanOptions) -> Self {
+    match value.keep {
+      Some(Either3::A(path)) => CleanOptions::from(path),
+      Some(Either3::B(reg_exp)) => CleanOptions::from(reg_exp),
+      Some(Either3::C(func)) => CleanOptions::from(func),
+      None => CleanOptions::CleanAll(false),
     }
   }
 }
