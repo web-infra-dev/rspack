@@ -117,6 +117,17 @@ export default defineConfig({
           text: '📝 在 GitHub 上编辑此页',
         },
       },
+      {
+        lang: 'ptBR',
+        title: 'Rspack',
+        description: 'O bundler web rápido em Rust',
+        label: 'Português',
+        editLink: {
+          docRepoBaseUrl:
+            'https://github.com/web-infra-dev/rspack/tree/main/website/docs',
+          text: '📝 Edite esta página no GitHub',
+        },
+      },
     ],
   },
   head: [
