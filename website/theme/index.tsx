@@ -55,7 +55,7 @@ function announcementMessage(lang: LangTypes) {
     zh: 'Rspack 1.0 正式发布！',
     ptBR: 'O Rspack 1.0 foi lançado!',
   };
-  return message[lang];
+  return message[lang] ?? 'Rspack 1.0 has been released!';
 }
 
 export { Layout, HomeLayout };
