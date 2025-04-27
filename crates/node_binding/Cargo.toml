@@ -51,6 +51,7 @@ once_cell                              = { workspace = true }
 rspack_browserslist                    = { workspace = true }
 rspack_cacheable                       = { workspace = true }
 rspack_ids                             = { workspace = true }
+rspack_javascript_compiler             = { workspace = true }
 rspack_loader_lightningcss             = { workspace = true }
 rspack_loader_preact_refresh           = { workspace = true }
 rspack_loader_react_refresh            = { workspace = true }
