@@ -607,6 +607,7 @@ export interface JsChunkAssetArgs {
 export interface JsChunkGroupOrigin {
   module?: Module | undefined
   request?: string
+  loc?: string | JsRealDependencyLocation
 }
 
 export interface JsChunkOptionNameCtx {
@@ -883,6 +884,11 @@ export interface JsPathDataChunkLike {
   id?: string
 }
 
+export interface JsRealDependencyLocation {
+  start: JsSourcePosition
+  end?: JsSourcePosition
+}
+
 export interface JsResolveArgs {
   request: string
   context: string
@@ -1104,6 +1110,11 @@ export interface JsRuntimeRequirementInTreeArg {
 
 export interface JsRuntimeRequirementInTreeResult {
   allRuntimeRequirements: JsRuntimeGlobals
+}
+
+export interface JsSourcePosition {
+  line: number
+  column: number
 }
 
 export interface JsStatsAsset {
