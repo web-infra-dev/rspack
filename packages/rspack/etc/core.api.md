@@ -750,6 +750,17 @@ export class ChunkGroup {
 // @public (undocumented)
 interface ChunkGroupOrigin {
     // (undocumented)
+    loc?: {
+        start: {
+            line: number;
+            column: number;
+        };
+        end?: {
+            line: number;
+            column: number;
+        };
+    } | string;
+    // (undocumented)
     module?: Module;
     // (undocumented)
     request?: string;
