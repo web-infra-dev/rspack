@@ -8,7 +8,6 @@ module.exports = {
 	output: {
 		clean: {
 			keep(asset) {
-				console.log("windows keep asset", asset);
 				return asset.includes(`ignored/dir`);
 			}
 		}
