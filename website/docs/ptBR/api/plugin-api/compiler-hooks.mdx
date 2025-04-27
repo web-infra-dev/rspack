@@ -1,0 +1,592 @@
+import Mermaid from '@components/Mermaid';
+import CompilerType from '../../types/compiler.mdx';
+import CompilationType from '../../types/compilation.mdx';
+import StatsType from '../../types/stats.mdx';
+import { Collapse, CollapsePanel } from '@components/Collapse';
+import Columns from '@components/Columns';
+import { NoSSR } from 'rspress/runtime';
+
+# Compiler hooks
+
+## Overview
+
+<NoSSR>
+
+<Columns>
+
+<div>
+
+<Mermaid title="rspack()" style={{width: '20rem'}}>
+{`
+flowchart TD
+  CallRspack("rspack()") --> CreateCompiler("new Compiler()")
+  CreateCompiler --> ApplyNodeEnvPlugin(Apply NodeEnvironmentPlugin)
+  ApplyNodeEnvPlugin --> ApplyDefaultOptions(Apply default options)
+  ApplyDefaultOptions --> ApplyCustomPlugins(Apply custom plugins)
+  ApplyCustomPlugins --> HookEnvironment(<a href="#environment">hooks.environment</a>)
+  HookEnvironment --> HookAfterEnvironment(<a href="#afterenvironment">hooks.afterEnvironment</a>)
+  HookAfterEnvironment --> ApplyRspackPlugins(Apply internal plugins)
+  ApplyRspackPlugins <--> HookEntryOptions(<a href="#entryoption">hooks.entryOption</a>)
+  ApplyRspackPlugins --> HookAfterPlugins(<a href="#afterplugins">hooks.afterPlugins</a>)
+  HookAfterPlugins --> ResolveOptions(Generate resolve options)
+  ResolveOptions --> HookAfterResolvers(<a href="#afterresolvers">hooks.afterResolvers</a>)
+  HookAfterResolvers --> HookInitialize(<a href="#initialize">hooks.initialize</a>)
+  HookInitialize --> compiler("return compiler")
+
+class CallRspack flow-start
+class compiler flow-end
+class CreateCompiler,ApplyNodeEnvPlugin,ApplyDefaultOptions,ApplyCustomPlugins,ApplyRspackPlugins,ResolveOptions flow-process
+class HookEnvironment,HookAfterEnvironment,HookEntryOptions,HookAfterPlugins,HookAfterResolvers,HookInitialize flow-hook
+`}
+
+</Mermaid>
+
+<br />
+
+<Mermaid title="compiler.compile()">
+
+{`
+flowchart TD
+Compile("compiler.compile(callback)") --> CompilationParams("Create module factories")
+CompilationParams --> HookNormalModuleFactory(hooks.normalModuleFactory)
+CompilationParams --> HookContextModuleFactory(hooks.contextModuleFactory)
+CompilationParams --> HookBeforeCompile(<a href="#beforecompile">hooks.beforeCompile</a>)
+HookBeforeCompile --> HookCompile(<a href="#compile">hooks.compile</a>)
+HookCompile --> Compilation("new Compilation()")
+Compilation --> HookThisCompilation(<a href="#thiscompilation">hooks.thisCompilation</a>)
+HookThisCompilation --> HookCompilation(<a href="#compilation">hooks.compilation</a>)
+HookCompilation --> HookMake(<a href="#make">hooks.make</a>)
+HookMake --> CreateModuleGraph(Create module graph)
+CreateModuleGraph <--> RunLoaders(Run loaders on modules)
+CreateModuleGraph --> HookFinishMake(<a href="#finishmake">hooks.finishMake</a>)
+HookFinishMake --> CompilationFinish("compilation.finish()")
+CompilationFinish --> CompilationSeal("compilation.seal()")
+CompilationSeal --> HookAfterCompile(<a href="#aftercompile">hooks.afterCompile</a>)
+HookAfterCompile --> Callback("callback()")
+
+class Compile flow-start
+class Callback,CloseCallback flow-end
+class CompilationParams,Compilation,CreateModuleGraph,RunLoaders,CompilationFinish,CompilationSeal flow-process
+class HookBeforeCompile,HookCompile,HookThisCompilation,HookCompilation,HookMake,HookFinishMake,HookAfterCompile flow-hook
+class HookNormalModuleFactory,HookContextModuleFactory flow-hook-non-support
+`}
+
+</Mermaid>
+
+</div>
+
+<Mermaid title="compiler.watch/run/close()">
+
+{`
+flowchart TD
+WatchCompiler("compiler.watch(options, callback)") --> CreateWatching("new Watching()")
+RunCompiler("compiler.run(callback)") --> HookBeforeRun(<a href="#beforerun">hooks.beforeRun</a>)
+HookBeforeRun --> HookRun(<a href="#run">hooks.run</a>)
+HookRun --> HookReadRecords(hooks.readRecords)
+CreateWatching --> HookReadRecords
+HookReadRecords --> Compile("compiler.compile()")
+HookWatchRun --> Compile
+HookReadRecords --> HookWatchRun(<a href="#watchrun">hooks.watchRun</a>)
+Compile --> HookShouldEmit{<a href="#shouldemit">hooks.shouldEmit</a>}
+HookShouldEmit --> |true| HookEmit(<a href="#emit">hooks.emit</a>)
+HookShouldEmit --> |false| HookDone(<a href="#done">hooks.done</a>)
+HookEmit --> EmitAssets(Emit asset files)
+EmitAssets <--> HookAssetEmitted(hooks.assetEmitted)
+EmitAssets --> HookAfterEmit(<a href="#afteremit">hooks.afterEmit</a>)
+HookAfterEmit --> HookNeedAdditionalPass{hooks.needAdditionalPass}
+HookNeedAdditionalPass --> |true| HookAdditionalDone(hooks.done)
+HookAdditionalDone --> HookAdditionPass(hooks.additionalPass)
+HookAdditionPass --> Compile
+HookNeedAdditionalPass --> |false| HookEmitRecords(hooks.emitRecords)
+HookEmitRecords --> HookDone
+HookDone --> HookFailed(<a href="#failed">hooks.failed</a>)
+HookFailed --> Callback("callback(err, stats)")
+Callback --> WatchingWatch("watching.watch()")
+WatchingWatch --> HookAfterDone(<a href="#afterdone">hooks.afterDone</a>)
+WatchingWatch --> CollectFileChanges("Collect file changes")
+CollectFileChanges --> HookReadRecords
+Callback --> HookAfterDone
+
+HookAfterDone -.-> CloseCompile("compiler.close(callback)")
+CloseCompile --> WatchingClose("watching.close()")
+WatchingClose --> HookWatchClose(<a href="#watchclose">hooks.watchClose</a>)
+HookWatchClose --> CloseCallback("callback()")
+CloseCallback --> HookShutdown(<a href="#shutdown">hooks.shutdown</a>)
+
+class RunCompiler,WatchCompiler flow-start
+class Callback flow-end
+class Compile,EmitAssets,CollectFileChanges,CreateWatching,WatchingWatch flow-process
+class HookBeforeRun,HookRun,HookShouldEmit,HookEmit,HookAfterEmit,HookDone,HookFailed,HookAfterDone,HookWatchRun flow-hook
+class HookReadRecords,HookAssetEmitted,HookNeedAdditionalPass,HookAdditionPass,HookAdditionalDone,HookEmitRecords flow-hook-non-support
+
+class CloseCompile flow-start
+class CloseCallback flow-end
+class WatchingClose flow-process
+class HookWatchClose,HookShutdown flow-hook
+`}
+
+</Mermaid>
+
+</Columns>
+
+</NoSSR>
+
+## `environment`
+
+Called while preparing the compiler environment, right after initializing the plugins in the configuration file.
+
+- **Type:** `SyncHook<[]>`
+
+## `afterEnvironment`
+
+Called right after the `environment` hook, when the compiler environment setup is complete.
+
+- **Type:** `SyncHook<[]>`
+
+## `entryOption`
+
+Called after the [`entry`](/config/entry) configuration from Rspack options has been processed.
+
+- **Type:** `SyncBailHook<[string, EntryNormalized]>`
+- **Arguments:**
+  - `string`: same with [`context`](/config/context)
+  - `EntryNormalized`: normalized [`entry`](/config/entry)
+
+## `afterPlugins`
+
+Called after setting up initial set of internal plugins.
+
+- **Type:** `SyncHook<[Compiler]>`
+- **Arguments:**
+  - `Compiler`: current compiler instance
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
+## `afterResolvers`
+
+Triggered after resolver setup is complete.
+
+- **Type:** `SyncHook<[Compiler]>`
+- **Arguments:**
+  - `Compiler`: current compiler instance
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
+## `initialize`
+
+Called when a compiler object is initialized.
+
+- **Type:** `SyncHook<[]>`
+
+## `beforeRun`
+
+Adds a hook right before running the compiler.
+
+:::note
+
+This hook is only triggered when calling [compiler.run()](/api/javascript-api/index#compilerrun) (which is used by the `rspack build` command), and will not be executed in watch mode. You can use the [watchRun](#watchrun) hook in watch mode.
+
+:::
+
+- **Type:** `AsyncSeriesHook<[Compiler]>`
+- **Arguments:**
+  - `Compiler`: current compiler instance
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
+- **Example:** Sync operation
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.beforeRun.tap('ExamplePlugin', compiler => {
+      console.log('Build is about to start...');
+    });
+  }
+}
+```
+
+- **Example:** Async operation
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.beforeRun.tapPromise(
+      'ExamplePlugin',
+      (compiler) => {
+        console.log('Build is about to start...');
+
+        await someAsyncOperation();
+      },
+    );
+  }
+}
+```
+
+## `run`
+
+Called at the beginning of a build execution.
+
+:::note
+
+This hook is only triggered when calling [compiler.run()](/api/javascript-api/index#compilerrun) (which is used by the `rspack build` command), and will not be executed in watch mode. You can use the [watchRun](#watchrun) hook in watch mode.
+
+:::
+
+- **Type:** `AsyncSeriesHook<[Compiler]>`
+- **Arguments:**
+  - `Compiler`: current compiler instance
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
+- **Example:** Sync operation
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.beforeRun.tap('ExamplePlugin', compiler => {
+      console.log('Build start...');
+    });
+  }
+}
+```
+
+- **Example:** Async operation
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.beforeRun.tapPromise(
+      'ExamplePlugin',
+      (compiler) => {
+        console.log('Build start...');
+
+        await someAsyncOperation();
+      },
+    );
+  }
+}
+```
+
+## `watchRun`
+
+Executes a plugin during watch mode after a new compilation is triggered but before the compilation is actually started.
+
+You can use `compiler.modifiedFiles` and `compiler.removedFiles` to get the changed file paths and removed file paths.
+
+:::note
+
+This hook is only triggered when calling [compiler.watch()](/api/javascript-api/index#compilerwatch), and will not be called in non-watch mode. You can use the [run](#run) or [beforeRun](#beforerun) hook in non-watch mode.
+
+:::
+
+- **Type:** `AsyncSeriesHook<[Compiler]>`
+- **Arguments:**
+  - `Compiler`: current compiler instance
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
+- **Example:** Sync operation
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.watchRun.tap('ExamplePlugin', compiler => {
+      const { modifiedFiles, removedFiles } = compiler;
+      if (modifiedFiles) {
+        console.log('Changed files:', Array.from(modifiedFiles));
+      }
+      if (removedFiles) {
+        console.log('Removed files:', Array.from(removedFiles));
+      }
+    });
+  }
+}
+```
+
+- **Example:** Async operation
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.watchRun.tapPromise('ExamplePlugin', compiler => {
+      await someAsyncOperation();
+    });
+  }
+}
+```
+
+## `beforeCompile`
+
+Executes a plugin after compilation parameters are created.
+
+- **Type:** `AsyncSeriesHook<[]>`
+
+## `compile`
+
+Called right after `beforeCompile`, before a new compilation is created.
+
+- **Type:** `SyncHook<[]>`
+
+## `thisCompilation`
+
+Called while initializing the compilation, right before calling the `compilation` hook.
+
+- **Type:** `SyncHook<[Compilation]>`
+- **Arguments:**
+  - `Compilation`: created [compilation](/api/javascript-api/compilation) object
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compilation.ts"
+    key="Compilation"
+  >
+    <CompilationType />
+  </CollapsePanel>
+</Collapse>
+
+## `compilation`
+
+Runs a plugin after a compilation has been created.
+
+- **Type:** `SyncHook<[Compilation]>`
+- **Arguments:**
+  - `Compilation`: created [compilation](/api/javascript-api/compilation) object
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compilation.ts"
+    key="Compilation"
+  >
+    <CompilationType />
+  </CollapsePanel>
+</Collapse>
+
+## `make`
+
+Called before the make phase.
+
+In the make phase, Rspack will build the module graph starting from the entry, and use the loader to handle each module.
+
+- **Type:** `AsyncParallelHook<[Compilation]>`
+- **Arguments:**
+  - `Compilation`: current [compilation](/api/javascript-api/compilation) object
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compilation.ts"
+    key="Compilation"
+  >
+    <CompilationType />
+  </CollapsePanel>
+</Collapse>
+
+## `finishMake`
+
+Called after finishing the make phase.
+
+In the make phase, Rspack builds the module graph starting from the entry and uses loaders to handle each module. This hook is called when that process completes.
+
+- **Type:** `AsyncSeriesHook<[Compilation]>`
+- **Arguments:**
+  - `Compilation`: current [compilation](/api/javascript-api/compilation) object
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compilation.ts"
+    key="Compilation"
+  >
+    <CompilationType />
+  </CollapsePanel>
+</Collapse>
+
+## `afterCompile`
+
+Called after the make phase and before the seal phase.
+
+In the seal phase, Rspack will create chunk graph from the module graph and then generate the assets.
+
+- **Type:** `AsyncSeriesHook<[Compilation]>`
+- **Arguments:**
+  - `Compilation`: current [compilation](/api/javascript-api/compilation) object
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compilation.ts"
+    key="Compilation"
+  >
+    <CompilationType />
+  </CollapsePanel>
+</Collapse>
+
+## `shouldEmit`
+
+Called before emitting assets. Should return a boolean telling whether to emit.
+
+- **Type:** `SyncBailHook<[Compilation], boolean>`
+- **Arguments:**
+  - `Compilation`: current [compilation](/api/javascript-api/compilation) object
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compilation.ts"
+    key="Compilation"
+  >
+    <CompilationType />
+  </CollapsePanel>
+</Collapse>
+
+- **Example:**
+
+```js
+compiler.hooks.shouldEmit.tap('MyPlugin', compilation => {
+  // return true to emit the output, otherwise false
+  return true;
+});
+```
+
+## `emit`
+
+Called right before emitting assets to output dir.
+
+- **Type:** `AsyncSeriesHook<[Compilation]>`
+- **Arguments:**
+  - `Compilation`: current [compilation](/api/javascript-api/compilation) object
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compilation.ts"
+    key="Compilation"
+  >
+    <CompilationType />
+  </CollapsePanel>
+</Collapse>
+
+## `afterEmit`
+
+Called after emitting assets to output directory.
+
+- **Type:** `AsyncSeriesHook<[Compilation]>`
+- **Arguments:**
+  - `Compilation`: current [compilation](/api/javascript-api/compilation) object
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compilation.ts"
+    key="Compilation"
+  >
+    <CompilationType />
+  </CollapsePanel>
+</Collapse>
+
+## `done`
+
+Called when the compilation has completed.
+
+- **Type:** `AsyncSeriesHook<Stats>`
+- **Arguments:**
+  - `Stats`: generated stats object
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Stats.ts" key="Stats">
+    <StatsType />
+  </CollapsePanel>
+</Collapse>
+
+## `afterDone`
+
+Called after `done` hook.
+
+- **Type:** `SyncHook<Stats>`
+- **Arguments:**
+  - `Stats`: generated stats object
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Stats.ts" key="Stats">
+    <StatsType />
+  </CollapsePanel>
+</Collapse>
+
+## `failed`
+
+Called if the compilation fails.
+
+- **Type:** `SyncHook<[Error]>`
+
+## `invalid`
+
+Executed when a watching compilation has been invalidated. This hook is not copied to child compilers.
+
+- **Type:** `SyncHook<[string | null, number]>`
+- **Arguments:**
+
+  - `fileName`: the file path of the invalid file
+  - `changeTime`: the change time of the invalid file
+
+When triggering a re-compilation, this hook can be used to get the changed file path and change time, for example:
+
+```ts
+compiler.hooks.invalid.tap('MyPlugin', (fileName, changeTime) => {
+  console.log(`Changed file: ${fileName}, change time: ${changeTime}`);
+});
+```
+
+## `watchClose`
+
+Called when a watching compilation has stopped.
+
+- **Type:** `SyncHook<[]>`
+
+## `shutdown`
+
+Called when the compiler is closing.
+
+- **Type:** `AsyncSeriesHook<[]>`

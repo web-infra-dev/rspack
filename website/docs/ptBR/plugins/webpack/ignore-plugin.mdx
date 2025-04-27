@@ -1,0 +1,45 @@
+# IgnorePlugin
+
+This plugin will prevent the generation of modules for `import` or `require` calls matching the regular expressions.
+
+```js
+new rspack.IgnorePlugin(options);
+```
+
+## Options
+
+- **Type:**
+
+```ts
+| {
+    /** A RegExp to test the resource against. */
+    resourceRegExp: RegExp;
+    /** A RegExp to test the context (directory) against. */
+    contextRegExp?: RegExp;
+  }
+| {
+    /** A Filter function that receives `resource` and `context` as arguments, must return boolean. */
+    checkResource: (resource: string, context: string) => boolean;
+  }
+```
+
+- **Default:** `undefined`
+
+## Example
+
+When using the following configuration:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.IgnorePlugin({
+      resourceRegExp: /^\.\/locale$/,
+      contextRegExp: /moment$/,
+    });
+  ],
+};
+```
+
+which means any require statement matching './locale' from any directories ending with 'moment' will be ignored.

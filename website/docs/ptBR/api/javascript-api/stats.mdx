@@ -1,0 +1,214 @@
+import Columns from '@components/Columns';
+import { Collapse, CollapsePanel } from '@components/Collapse';
+import CompilationType from '../../types/compilation.mdx';
+import { Badge } from '@theme';
+
+# Stats
+
+The `stats` object that is passed as a second argument of the [`rspack()`](/api/javascript-api/index#rspack) callback, is a good source of information about the code compilation process. It includes:
+
+- Errors and Warnings (if any)
+- Timings
+- Module and Chunk information
+
+The `Stats` object provides two important methods:
+
+- `toJson()`: Output information in the form of a [Stats JSON](/api/javascript-api/stats-json) object, which is often used in analysis tools.
+- `toString()`: Output information in the form of a string, which is often used in the CLI tools.
+
+Rspack also provides `StatsFactory` and `StatsPrinter` to fine-grained control the output object or string.
+
+```txt title=Stats Output
+Compilation ===============> Stats JSON =================> Stats Output
+           ╰─ StatsFactory ─╯           ╰─ StatsPrinter ─╯
+╰─────────── stats.toJson() ───────────╯
+╰───────────────────────── stats.toString() ──────────────────────────╯
+```
+
+Create a stats object related to a compilation through [`compilation.getStats()`](/api/javascript-api/compilation#getstats) or `new Stats(compilation)`.
+
+## Stats methods
+
+### hasErrors
+
+Can be used to check if there were errors while compiling.
+
+```ts
+hasErrors(): boolean;
+```
+
+### hasWarnings
+
+Can be used to check if there were warnings while compiling.
+
+```ts
+hasWarnings(): boolean;
+```
+
+### toJson
+
+Return the compilation information in the form of a [Stats JSON](/api/javascript-api/stats-json) object. The [Stats configuration](/config/stats) can be a string (preset value) or an object for granular control:
+
+```js
+stats.toJson('minimal');
+```
+
+```js
+stats.toJson({
+  assets: false,
+  hash: true,
+});
+```
+
+### toString
+
+Return the compilation information in the form of a formatted string (similar to the output of [CLI](/api/cli)).
+
+```ts
+toJson(opts?: StatsValue): string;
+```
+
+Options are the same as `stats.toJson(options)` with one addition:
+
+```js
+stats.toString({
+  // Add console colors
+  colors: true,
+});
+```
+
+Here's an example of `stats.toString()` usage:
+
+```js
+import { rspack } from '@rspack/core';
+
+rspack(
+  {
+    // ...
+  },
+  (err, stats) => {
+    if (err) {
+      console.error(err);
+      return;
+    }
+
+    console.log(
+      stats.toString({
+        chunks: false, // Makes the build much quieter
+        colors: true, // Shows colors in the console
+      }),
+    );
+  },
+);
+```
+
+## Stats properties
+
+### compilation
+
+**Type:** `Compilation`
+
+Get the related compilation object.
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Stats.ts" key="stats">
+    <CompilationType />
+  </CollapsePanel>
+</Collapse>
+
+### hash
+
+**Type:** `string`
+
+Get the hash of this compilation, same as [`Compilation.hash`](/api/javascript-api/compilation#hashfullhash).
+
+## MultiStats
+
+When using `MultiCompiler` to execute multiple compilation tasks, their compilation stats will be packaged as a `MultiStats` object, which provides similar methods and properties as `Stats`.
+
+### hash
+
+<Badge text="ReadOnly" type="info" />
+
+**Type:** `string`
+
+Get the unique hash after merging the hashes of all compilations.
+
+### hasErrors
+
+Used to check if there are errors during the compilation period, and only if there are no errors in all compilations will it return `false`.
+
+```ts
+hasErrors(): boolean;
+```
+
+### hasWarnings
+
+Used to check if there are warnings during the compilation period, and only if there are no warnings in all compilations will it return `false`.
+
+```ts
+hasWarnings(): boolean;
+```
+
+### toJson
+
+According to the [stats configuration](/config/stats), generate all the [stats json](/api/javascript-api/stats-json) objects, wrap them in the `children` field, and also summarize the `errors` and `warnings`.
+
+```ts
+toJson(options?: StatsValue): {
+  hash: string;
+  errorsCount: number;
+  warningsCount: number;
+  errors: StatsError[];
+  warnings: StatsError[];
+  children: StatsCompilation[];
+};
+```
+
+### toString
+
+Concatenate the stats output strings of all compilations according to the [stats configuration](/config/stats).
+
+```ts
+toString(options?: StatsValue): string;
+```
+
+## Stats factory
+
+Used to generate the stats json object from the Compilation, and provides hooks for fine-grained control during the generation process.
+
+It can be got through [`compilation.hooks.statsFactory`](/api/plugin-api/compilation-hooks#statsfactory). Or create a new one by `new StatsFactory()`.
+
+### Hooks
+
+See [StatsFactory hooks](/api/plugin-api/stats-hooks#statsfactory) for more details.
+
+### create
+
+The core method of `StatsFactory`, according to the `type` to specify the current data structure, find and run the corresponding generator to generate the stats json item.
+
+```ts
+stats = statsFactory.create('compilation', compilation, {});
+```
+
+> The `StatsFactory` object only handles the calling of hooks, and the processing code of the corresponding type can be found in [`DefaultStatsFactoryPlugin`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/stats/DefaultStatsFactoryPlugin.ts).
+
+## Stats printer
+
+Used to generate the output string from the stats json object, and provides hooks for fine-grained control during the generation process.
+
+It can be got through [`compilation.hooks.statsPrinter`](/api/plugin-api/compilation-hooks#statsprinter). Or create a new one by `new StatsPrinter()`.
+
+### Hooks
+
+See [StatsPrinter hooks](/api/plugin-api/stats-hooks#statsprinter) for more details.
+
+### print
+
+The core method of `StatsPrinter`, according to the type to specify the current data structure, find and run the corresponding generator to generate the output string of the stats item.
+
+```ts
+stats = statsPrinter.print('compilation', stats, {});
+```
+
+> The `StatsPrinter` object only handles the calling of hooks, and the processing code of the corresponding type can be found in [`DefaultStatsPrinterPlugin`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/stats/DefaultStatsPrinterPlugin.ts).

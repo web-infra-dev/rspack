@@ -1,0 +1,189 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# SubresourceIntegrityPlugin
+
+<ApiMeta specific={['Rspack']} addedVersion="1.2.4" />
+
+The `rspack.experiments.SubresourceIntegrityPlugin` is a plugin for enabling Subresource Integrity in Rspack.
+
+## What is SRI
+
+Subresource Integrity (SRI) is a security feature that enables browsers to verify that resources they fetch (for example, from a CDN) are delivered without unexpected manipulation. It works by allowing you to provide a cryptographic hash that a fetched resource must match.
+
+For `<script>` tags, the result is to refuse to execute the code; for CSS links, the result is not to load the styles.
+
+For more on subresource integrity, see [Subresource Integrity - MDN](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity).
+
+## Features
+
+### Support for HTML plugin
+
+The plugin supports integration with [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin) and [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin). It will automatically set the `integrity` and `crossorigin` attributes for the injected tags.
+
+### Support for code splitting
+
+The plugin supports code splitting. When you use dynamic imports, the plugin will automatically set the `integrity` and `crossorigin` attributes for the generated chunk loading tags.
+
+## Usage
+
+You can use the plugin by importing it as an experimental plugin from `@rspack/core`:
+
+```js title="rspack.config.mjs"
+import { experiments } from '@rspack/core';
+const { SubresourceIntegrityPlugin } = experiments;
+```
+
+Or:
+
+```js title="rspack.config.cjs"
+const {
+  experiments: { SubresourceIntegrityPlugin },
+} = require('@rspack/core');
+```
+
+### Recommended Rspack configuration
+
+The [output.crossOriginLoading](/config/output#outputcrossoriginloading) option is required for SRI to work:
+
+```js title="rspack.config.mjs"
+import { experiments } from '@rspack/core';
+const { SubresourceIntegrityPlugin } = experiments;
+
+export default {
+  output: {
+    crossOriginLoading: 'anonymous',
+  },
+  plugins: [new SubresourceIntegrityPlugin()],
+};
+```
+
+### With HTML plugin
+
+When the HTML plugin([`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin.mdx) or [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin)) is used, the `integrity` and `crossorigin` attributes will be set automatically.
+
+The SubresourceIntegrityPlugin will interact with [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin.mdx) by default:
+
+```js title="rspack.config.mjs"
+import { experiments, HtmlRspackPlugin } from '@rspack/core';
+const { SubresourceIntegrityPlugin } = experiments;
+
+export default {
+  plugins: [new SubresourceIntegrityPlugin(), new HtmlRspackPlugin()],
+};
+```
+
+If [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin) is used, the `htmlPlugin` option should be specified to the path of it:
+
+```js title="rspack.config.mjs"
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import { experiments } from '@rspack/core';
+const { SubresourceIntegrityPlugin } = experiments;
+
+export default {
+  plugins: [
+    new SubresourceIntegrityPlugin({
+      // the path to the html-webpack-plugin
+      htmlPlugin: import.meta.resolve('html-webpack-plugin'),
+    }),
+    new HtmlWebpackPlugin(),
+  ],
+};
+```
+
+### With HTML plugin and `inject: false`
+
+If you use the HTML plugin with `inject: false`, you need to set the `integrity` and `crossorigin` attributes in your template manually.
+
+With [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin.mdx), the grammar of the template is a bit different with `.ejs`(see [here](/plugins/rspack/html-rspack-plugin#supported-ejs-syntax)), you can inject them like this:
+
+```ejs title="index.ejs"
+<% for src in htmlRspackPlugin.files.js { %>
+  <script src="<%= src %>"
+    integrity="<%= htmlRspackPlugin.files.jsIntegrity[index] %>"
+    crossorigin="<%= rspackConfig.output.crossOriginLoading %>"
+  ></script>
+<% } %>
+
+<% for _ in htmlRspackPlugin.files.css { %>
+  <link href="<%= htmlRspackPlugin.files.css[index] %>"
+    integrity="<%= htmlRspackPlugin.files.cssIntegrity[index] %>"
+    crossorigin="<%= rspackConfig.output.crossOriginLoading %>"
+    rel="stylesheet"
+  />
+<% } %>
+```
+
+With [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin), you can inject them like this:
+
+```ejs title="index.ejs"
+<% for (let index in htmlWebpackPlugin.files.js) { %>
+  <script
+    src="<%= htmlWebpackPlugin.files.js[index] %>"
+    integrity="<%= htmlWebpackPlugin.files.jsIntegrity[index] %>"
+    crossorigin="<%= webpackConfig.output.crossOriginLoading %>"
+  ></script>
+<% } %>
+
+<% for (let index in htmlWebpackPlugin.files.css) { %>
+  <link
+    rel="stylesheet"
+    href="<%= htmlWebpackPlugin.files.css[index] %>"
+    integrity="<%= htmlWebpackPlugin.files.cssIntegrity[index] %>"
+    crossorigin="<%= webpackConfig.output.crossOriginLoading %>"
+  />
+<% } %>
+```
+
+### Without HTML plugin
+
+The `integrity` can also be obtained from `stats.assets`. For example:
+
+```js
+compiler.plugin('done', stats => {
+  const integrityValues = stats
+    .toJson()
+    .assets.map(asset => [asset.name, asset.integrity]);
+});
+```
+
+:::tip
+Note that when you add the `integrity` attribute on your `link` and
+`script` tags, you're also required to set the `crossorigin`
+attribute. It is recommended to set this attribute to the same value
+as the Rspack `output.crossOriginLoading` configuration option.
+:::
+
+## Options
+
+### hashFuncNames
+
+- **Type:** `Array<"sha256" | "sha384" | "sha512">`
+- **Default:** `["sha384"]`
+
+An array of strings, each specifying the name of a hash function to be
+used for calculating integrity hash values. Only supports `sha256`, `sha384`, and `sha512` yet.
+
+> See [SRI: Cryptographic hash functions](http://www.w3.org/TR/SRI/#cryptographic-hash-functions) for more details.
+
+### enabled
+
+- **Type:** `"auto" | boolean`
+- **Default:** `"auto"`
+
+- `auto` is the default value, which means the plugin is enabled when [Rspack mode](/config/mode) is `production` or `none`, and disabled when it is `development`.
+- `true` means the plugin is enabled in any mode.
+- `false` means the plugin is disabled in any mode.
+
+### htmlPlugin
+
+- **Type:** `string`
+- **Default:** `"HtmlRspackPlugin"`
+
+The path to the HTML plugin, defaults to `"HtmlRspackPlugin"` which means the native HTML plugin of Rspack. If you are using the `html-webpack-plugin`, you can set this option to the path of it. It is recommended to set the absolute path to make sure the plugin can be found.
+
+## More information
+
+You can find more information about Subresource Integrity in the following resources:
+
+- [webpack-subresource-integrity](https://github.com/waysact/webpack-subresource-integrity/blob/main/webpack-subresource-integrity/README.md)
+- [MDN: Subresource Integrity](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity)

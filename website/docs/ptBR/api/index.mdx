@@ -1,0 +1,37 @@
+# Introduction
+
+Rspack provides a variety of APIs and command line interface (CLI) to customize the build process.
+
+There are some features overlap between APIs and CLI, e.g. some configuration options may be available via CLI flags, while some others are only available through specific APIs.
+
+The following concepts will help you get started.
+
+## CLI
+
+The Command Line Interface (CLI) to configure and interact with your build process. For the most part, the CLI is used to kick off the process using a [configuration file](/config/index) and a few flags (e.g. `--env`).
+
+[Learn more about the CLI →](/api/cli)
+
+## Runtime API
+
+When processing modules with rspack, it is important to understand the different module syntaxes – specifically the methods and variables - that are supported. And also the runtime HMR improves the development experience by updating modules in the browser at runtime without needing a whole page refresh.
+
+[Learn more about the Runtime API →](/api/runtime-api/module-methods)
+
+## JavaScript API
+
+While most users can get away with using the CLI along with a configuration file, more fine-grained control of the compilation can be achieved via the Node interface. This includes passing multiple configurations, programmatically running or watching, and collecting stats.
+
+[Learn more about the JavaScript API →](/api/javascript-api/index)
+
+## Loader API
+
+Loaders are transformations that are applied to the source code of a module. They are written as functions that accept source code as a parameter and return a new version of that code with transformations applied.
+
+[Learn more about the loaders →](/api/loader-api/index)
+
+## Plugin API
+
+The plugin interface allows users to tap directly into the compilation process. Plugins can register handlers on lifecycle hooks that run at different points throughout a compilation. When each hook is executed, the plugin will have full access to the current state of the compilation.
+
+[Learn more about the plugins →](/api/plugin-api/index)

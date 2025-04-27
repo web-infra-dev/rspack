@@ -1,0 +1,45 @@
+# EnableChunkLoadingPlugin
+
+Enable runtime module bundling for this chunkLoadingType, and is used by [output.enabledChunkLoadingTypes](/config/output#outputenabledchunkloadingtypes) under the hood.
+
+## Examples
+
+### Use built-in chunk loading
+
+Available values: `"jsonp" | "import-scripts" | "require" | "async-node" | "import"`
+
+```js
+new rspack.javascript.EnableChunkLoadingPlugin('import');
+```
+
+See [output.chunkLoading](/config/output#outputchunkloading) for details.
+
+### Use custom chunk loading
+
+Implement a custom chunk loading plugin using `EnableChunkLoadingPlugin.setEnabled`:
+
+```js title="CustomChunkLoadingPlugin.mjs"
+import { rspack } from '@rspack/core';
+
+export class CustomChunkLoadingPlugin {
+  apply(compiler) {
+    rspack.javascript.EnableChunkLoadingPlugin.setEnabled(
+      compiler,
+      'custom-chunk-loading',
+    );
+  }
+}
+```
+
+Then use `output.chunkLoading: 'custom-chunk-loading'` in Rspack config:
+
+```js title="rspack.config.mjs"
+import { CustomChunkLoadingPlugin } from './CustomChunkLoadingPlugin.mjs';
+
+export default {
+  output: {
+    chunkLoading: 'custom-chunk-loading',
+  },
+  plugins: [new CustomChunkLoadingPlugin()],
+};
+```

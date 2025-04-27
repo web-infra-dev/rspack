@@ -1,0 +1,284 @@
+# Migrating from Rspack 0.x
+
+The document lists all breaking changes from Rspack v0.7 to v1.0. You can refer to this document for migration.
+
+> See [Breaking changes in Rspack v1.0.0](https://github.com/web-infra-dev/rspack/discussions/6626) for details.
+
+## Configuration default value adjustments
+
+In Rspack 1.x, we have aligned the default configuration values with those of Webpack.
+
+### [Important] experiments.css
+
+The default value of [experiments.css](/config/experiments#experimentscss) has been changed from `true` to `false`.
+
+In Rspack 0.x, `experiments.css` was enabled by default, which means files ending with`*.css`were automatically treated as`type: 'css/auto'` without needing to manually include other loaders to process CSS files.
+
+If you rely on the built-in feature to handle CSS files without using any loaders, or if you have used the following configuration to handle CSS files:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        type: 'css/auto', // 👈
+        use: ['less-loader'],
+      },
+    ],
+  },
+};
+```
+
+Please note that you now need to manually enable `experiments.css`.
+
+### [Important] optimization.concatenateModules
+
+The default value of [optimization.concatenateModules](/config/optimization#optimizationconcatenatemodules) has been changed from `false` to:
+
+- `true` when `mode` is `'production'`.
+- `false` for other values of `mode`.
+
+In Rspack 1.x, module concatenation optimization has become more stable. Thus, it's now enabled by default in production mode, allowing multiple modules to be concatenated into a single module to reduce output size and improve compression efficiency.
+
+### devtool
+
+The default value of [devtool](/config/devtool) has been changed from `false` to:
+
+- `eval` when `mode` is `'development'`.
+- `false` for other values of `mode`.
+
+> `@rspack/cli` overrides the default `devtool` value from `@rspack/core`. Therefore, if you are using `@rspack/cli`, this change will not affect you.
+
+### experiments.asyncWebAssembly
+
+The default value of [experiments.asyncWebAssembly](/config/experiments#experimentsasyncwebassembly) has been changed from `false` to depend on the `experiments.futureDefaults` configuration. It is enabled by default only when `experiments.futureDefaults` is set to `true`.
+
+If you are using WebAssembly modules as asynchronous modules, you now need to manually set `experiments.asyncWebAssembly` to `true`.
+
+### splitChunks.cacheGroups.\{cacheGroup\}.reuseExistingChunk
+
+The default value of [splitChunks.cacheGroups.\{cacheGroup\}.reuseExistingChunk](/plugins/webpack/split-chunks-plugin#splitchunkscachegroupscachegroupreuseexistingchunk) has been changed from `true` to `false`.
+
+### optimization.moduleIds
+
+The default value of [optimization.moduleIds](/config/optimization#optimizationmoduleids) has been changed to `'natural'` when `mode` is `none`.
+
+### optimization.chunkIds
+
+The default value of [optimization.chunkIds](/config/optimization#optimizationchunkids) has been changed to `'natural'` when `mode` is `none`.
+
+## Removed configurations
+
+### [Important] Removed resolve.tsConfigPath
+
+Please use [resolve.tsConfig](/config/resolve#resolvetsconfig) instead.
+
+```diff
+export default {
+  resolve: {
+-   tsConfigPath: path.resolve(__dirname, './tsconfig.json'),
++   tsConfig: path.resolve(__dirname, './tsconfig.json'),
+  },
+};
+```
+
+### output.amdContainer
+
+Please use [output.library.amdContainer](/config/output#outputlibraryamdcontainer) instead.
+
+## Adjustments to builtin:swc-loader
+
+To streamline the core, Rspack 1.x has removed the built-in SWC plugins. You now need to manually include them.
+
+### [Important] Removed rspackExperiments.styledComponents
+
+Use [@swc/plugin-styled-components](https://www.npmjs.com/package/@swc/plugin-styled-components) instead.
+
+```diff
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        loader: "builtin:swc-loader",
+        options: {
+-         rspackExperiments: {
+-           styledComponents: true,
+-         },
+          jsc: {
++           experimental: {
++             plugins: [["@swc/plugin-styled-components", {}]],
++           },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### [Important] Removed rspackExperiments.emotion
+
+Use [@swc/plugin-emotion](https://www.npmjs.com/package/@swc/plugin-emotion) instead.
+
+```diff
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        loader: "builtin:swc-loader",
+        options: {
+-         rspackExperiments: {
+-           emotion: true,
+-         },
+          jsc: {
++           experimental: {
++             plugins: [["@swc/plugin-emotion", {}]],
++           },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### [Important] Removed rspackExperiments.relay
+
+Use [@swc/plugin-relay](https://www.npmjs.com/package/@swc/plugin-relay) instead.
+
+```diff
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        loader: "builtin:swc-loader",
+        options: {
+-         rspackExperiments: {
+-           relay: true,
+-         },
+          jsc: {
++           experimental: {
++             plugins: [["@swc/plugin-relay", {}]],
++           },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### [Important] Removed rspackExperiments.preact
+
+Use [@swc/plugin-prefresh](https://www.npmjs.com/package/@swc/plugin-prefresh) instead.
+
+```diff
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        loader: "builtin:swc-loader",
+        options: {
+-         rspackExperiments: {
+-           preact: true,
+-         },
+          jsc: {
++           experimental: {
++             plugins: [["@swc/plugin-prefresh", {}]],
++           },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+## Adjustments to built-in plugins
+
+### [Important] CSS minimizer plugin adjustment
+
+In Rspack 0.x, we used the built-in `rspack.SwcCssMinimizerRspackPlugin` to compress CSS size.
+Now, we have removed it and replaced it with [rspack.LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) to handle the same functionality.
+
+If you previously manually registered and configured `rspack.SwcCssMinimizerRspackPlugin`, you should to switch to `rspack.LightningCssMinimizerRspackPlugin`:
+
+```diff
+import { rspack } from '@rspack/core';
+
+export default {
+  optimization: {
+    minimizer: [
+-     new rspack.SwcCssMinimizerRspackPlugin({
++     new rspack.LightningCssMinimizerRspackPlugin({
+        // options
+      }),
+    ],
+  },
+};
+```
+
+### rspack.SwcJsMinimizerRspackPlugin
+
+Rspack's built-in and default-enabled JavaScript minimizer plugin has had its configuration aligned with [SWC's minification configuration](https://swc.rs/docs/configuration/minification). The breaking changes are as follows:
+
+- `minimizerOptions.passes`: moved to `minimizerOptions.compress.passes`
+- `minimizerOptions.dropConsole`: moved to `minimizerOptions.compress.drop_console`
+- `minimizerOptions.pureFuncs`: moved to `minimizerOptions.compress.pure_funcs`
+- `minimizerOptions.keepClassNames`: moved to `minimizerOptions.mangle.keep_classnames`
+- `minimizerOptions.keepFnNames`: moved to `minimizerOptions.mangle.keep_fnames`
+- `minimizerOptions.comments`: moved to `minimizerOptions.format.comments`
+- `minimizerOptions.asciiOnly`: moved to `minimizerOptions.format.ascii_only`
+
+Default value changes:
+
+- `comments` (`options.format.comments`): changed from `false` to `"some"`
+
+### rspack.HtmlRspackPlugin
+
+We have aligned its configuration with [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin), with the following breaking changes:
+
+- `excludedChunks` has been renamed to `excludeChunks`
+- When `mode` is `'production'`, `minify` is now `true` by default
+
+## Other changes
+
+### [Important] @rspack/cli
+
+`@rspack/cli` has upgraded its dependency on `webpack-dev-server` from v4 to v5. If you are using `@rspack/cli`, please be aware of the following breaking changes:
+
+- The minimum supported Node.js version for webpack-dev-server v5 is 18.12.0.
+- Several configuration options have changed. Please refer to the [webpack-dev-server v5 migration guide](https://github.com/webpack/webpack-dev-server/blob/master/migration-v5.md).
+
+### [Important] `ResolverFactory` and `Resolver` refactoring with Rust
+
+`ResolverFactory` and `Resolver` have been refactored with Rust to unify the implementations on the JS and Rust sides. Due to this change, `ResolverFactory` and `Resolver` currently do not support any hooks.
+
+Additionally, `Resolver` now only supports the following methods:
+
+- `resolveSync`
+- `resolve`
+- `withOptions`
+
+This change might cause some plugins to become unusable.
+
+:::tip
+Rspack supports the [NormalModuleFactory](/api/plugin-api/normal-module-factory-hooks)'s [resolve](/api/plugin-api/normal-module-factory-hooks#resolve) hook. In most cases, you can use this hook as a replacement for the `Resolver`'s `resolve` hook to achieve the same functionality.
+
+```js
+compiler.hooks.normalModuleFactory.tap('PLUGIN', normalModuleFactory => {
+  normalModuleFactory.hooks.resolve.tap('PLUGIN', data => {
+    // Redirect the module
+    if (data.request === './foo.js') {
+      data.request = './bar.js';
+    }
+  });
+});
+```
+
+:::

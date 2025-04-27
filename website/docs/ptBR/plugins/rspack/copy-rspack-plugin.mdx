@@ -1,0 +1,467 @@
+import { Table } from '@builtIns';
+import WebpackLicense from '@components/WebpackLicense';
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+<WebpackLicense from="https://webpack.js.org/plugins/copy-webpack-plugin/#root" />
+
+# CopyRspackPlugin
+
+<ApiMeta specific={['Rspack']} />
+
+Copies individual files or entire directories, which already exist, to the build directory.
+
+```js
+new rspack.CopyRspackPlugin(options);
+```
+
+## Examples
+
+- Copy a single file. If the file does not exist, the plugin will throw an error.
+
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      // `./src/file.txt` -> `./dist/file.txt`
+      patterns: [{ from: 'src/file.txt' }],
+    }),
+  ],
+};
+```
+
+- `patterns` can be a string, or an array of objects.
+
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      // This is equivalent to `patterns: [{ from: 'src/file.txt' }]`
+      patterns: 'src/file.txt',
+    }),
+  ],
+};
+```
+
+- Copy a directory. If there are no files in the directory, the plugin will throw an error.
+
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      // `./dir/**/*` -> `./dist`
+      // For example, `./dir/foo.txt` -> `./dist/foo.txt`
+      patterns: [{ from: 'dir' }],
+    }),
+  ],
+};
+```
+
+- Use glob pattern to match and copy files.
+
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      // `./src/*.json` -> `./dist/*.json`
+      // 例如 `./src/foo.json` -> `./dist/foo.json`
+      patterns: [
+        {
+          from: '*.json',
+          context: path.join(__dirname, 'src'),
+        },
+      ],
+    }),
+  ],
+};
+```
+
+- Use `to` to specify the destination path.
+
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      // `./dir/**/*` -> `./dist/other-dir`
+      // For example, `./dir/foo.txt` -> `./dist/other-dir/foo.txt`
+      patterns: [{ from: 'dir', to: 'other-dir' }],
+    }),
+  ],
+};
+```
+
+## Options
+
+### from
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+The source path of the copy operation, which can be an absolute path, a relative path, or a glob pattern. It can refer to a file or a directory. If a relative path is passed, it is relative to the [context](#context) option.
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        // relative path
+        { from: 'relative/path/to/file.js' },
+        { from: 'relative/path/to/dir' },
+        // absolute path
+        { from: path.resolve(__dirname, 'src', 'file.js') },
+        { from: path.resolve(__dirname, 'src', 'dir') },
+        // glob
+        { from: 'dir/**/*' },
+        // If absolute path is a `glob` we replace backslashes with forward slashes,
+        // because only forward slashes can be used in the `glob`
+        {
+          from: path.posix.join(
+            path.resolve(__dirname, 'src').replace(/\\/g, '/'),
+            '*.txt',
+          ),
+        },
+      ],
+    }),
+  ],
+};
+```
+
+### to
+
+- **Type:**
+
+```ts
+type To =
+  | string
+  | ((pathData: { context: string; absoluteFilename?: string }) => string);
+```
+
+- **Default:** [output.path](/config/output#outputpath)
+
+The destination path of the copy operation, which can be an absolute path, a relative path, or a template string. If not specified, it is equal to Rspack's [output.path](/config/output#outputpath).
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: 'dir',
+          to: 'relative/path/to/dest/',
+        },
+        {
+          from: 'dir',
+          to: '/absolute/path/to/dest/',
+        },
+        {
+          from: 'dir',
+          to: '[path][name].[contenthash][ext]',
+        },
+      ],
+    }),
+  ],
+};
+```
+
+### context
+
+- **Type:** `string`
+- **Default:** [context](/config/context)
+
+`context` is a path to be prepended to `from` and removed from the start of the result paths.
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      // `./src/*.json` -> `./dist/*.json`
+      patterns: [{ from: '*.json', context: path.join(__dirname, 'src') }],
+    }),
+  ],
+};
+```
+
+`context` can be an absolute path or a relative path. If it is a relative path, then it will be converted to an absolute path based on Rspack's [context](/config/context).
+
+`context` should be explicitly set only when `from` contains a glob. Otherwise, `context` is automatically set based on whether `from` is a file or a directory:
+
+- If `from` is a file, then `context` is its directory. The result path will be the filename alone.
+- If `from` is a directory, then `context` equals `from`. The result paths will be the paths of the directory's contents (including nested contents), relative to the directory.
+
+### toType
+
+- **Type:** `'dir' | 'file' | 'template'`
+- **Default:** `undefined`
+
+Specify the type of [to](#to), which can be a directory, a file, or a template name in Rspack. If not specified, it will be automatically inferred.
+
+The automatic inference rules are as follows:
+
+- `dir`: If `to` has no extension, or ends on `/`.
+- `file`: If `to` is not a directory and is not a template.
+- `template`: If `to` contains a template pattern.
+
+Examples:
+
+- `dir`:
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: 'path/to/file.txt',
+          to: 'directory/with/extension.ext',
+          toType: 'dir',
+        },
+      ],
+    }),
+  ],
+};
+```
+
+- `file`:
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: 'path/to/file.txt',
+          to: 'file/without/extension',
+          toType: 'file',
+        },
+      ],
+    }),
+  ],
+};
+```
+
+- `template`:
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: 'src/',
+          to: 'dest/[name].[contenthash][ext]',
+          toType: 'template',
+        },
+      ],
+    }),
+  ],
+};
+```
+
+### noErrorOnMissing
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Whether to ignore the error if there are missing files or directories.
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: path.resolve(__dirname, 'missing-file.txt'),
+          noErrorOnMissing: true,
+        },
+      ],
+    }),
+  ],
+};
+```
+
+### force
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Whether to overwrite the asset if it already exists.
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [{ from: 'file.txt', force: true }],
+    }),
+  ],
+};
+```
+
+### priority
+
+- **Type:** `number`
+- **Default:** `0`
+
+Allows to specify the priority of copying files with the same destination name.
+
+When [force](#force) is set to `true`, if a matching file is found, the one with higher priority will overwrite the one with lower priority.
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        // Copied first
+        {
+          from: 'dir-1/file.txt',
+          to: 'newfile.txt',
+          priority: 5,
+        },
+        // Copied second and will overwrite "dir-1/file.txt"
+        {
+          from: 'dir-2/file.txt',
+          to: 'newfile.txt',
+          force: true,
+          priority: 10,
+        },
+      ],
+    }),
+  ],
+};
+```
+
+### globOptions
+
+- **Type:**
+
+```ts
+type GlobOptions = {
+  // Whether the match is case sensitive
+  // Default to true
+  caseSensitiveMatch?: boolean;
+  // Whether to match files starting with `.`
+  // Default to true
+  dot?: boolean;
+  // Ignore specific paths
+  // An array of strings in glob format, which can be used to ignore specific paths
+  ignore?: string[];
+};
+```
+
+- **Default:** `undefined`
+
+Glob options.
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: 'public/**/*',
+          globOptions: {
+            dot: false,
+            caseSensitiveMatch: false,
+            ignore: ['**/file.*', '**/ignored-directory/**'],
+          },
+        },
+      ],
+    }),
+  ],
+};
+```
+
+### transform
+
+- **Type:**
+
+```ts
+type transform =
+  | {
+      transformer: (
+        input: string,
+        absoluteFilename: string,
+      ) => string | Buffer | Promise<string> | Promise<Buffer>;
+    }
+  | ((
+      input: string,
+      absoluteFilename: string,
+    ) => string | Buffer | Promise<string> | Promise<Buffer>);
+```
+
+- **Default:** `undefined`
+
+Allows to modify the file contents.
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: 'src/*.png',
+          // The `content` argument is a [`Buffer`](https://nodejs.org/api/buffer.html) object,
+          // it could be converted to a string to be processed using `content.toString()`.
+          // The `absoluteFilename` argument is a string, it is absolute path from where the file is being copied.
+          transform(content, absoluteFilename) {
+            return optimize(content);
+          },
+        },
+      ],
+    }),
+  ],
+};
+```
+
+### copyPermissions
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Whether to copy the file permissions from the source to the destination.
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: 'src/executable.sh',
+          copyPermissions: true, // Preserves the executable permission
+        },
+      ],
+    }),
+  ],
+};
+```
+
+This is particularly useful when copying executable files, scripts, or any files where permissions are important. When set to `true`, the plugin will attempt to set the same permissions on the destination file as the source file has.

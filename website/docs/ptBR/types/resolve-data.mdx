@@ -1,0 +1,21 @@
+<>
+
+```ts
+export type ResolveData = {
+  contextInfo: {
+    issuer: string;
+  };
+  context: string;
+  request: string;
+  fileDependencies: string[];
+  missingDependencies: string[];
+  contextDependencies: string[];
+  createData?: {
+    request?: string;
+    userRequest?: string;
+    resource?: string;
+  };
+};
+```
+
+</>

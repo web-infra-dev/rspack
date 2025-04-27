@@ -1,0 +1,19 @@
+<>
+
+```ts
+type ChunkGroup = {
+  name?: Readonly<string>; // name of this chunk group
+  index?: Readonly<number>; // creating index of chunk group
+  chunks: ReadonlyArray<Chunk>; // chunks in this chunk group
+  origins: ReadonlyArray<{
+    // where this chunk group is imported
+    module?: Module;
+    request?: string;
+  }>;
+  isInitial(): boolean; // whether this chunk group will be loaded on initial page load
+  getFiles(): ReadonlyArray<string>; // the files contained this chunk group
+  getParents(): ReadonlyArray<ChunkGroup>; // returns the parent chunk groups
+};
+```
+
+</>

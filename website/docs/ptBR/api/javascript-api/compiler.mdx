@@ -1,0 +1,590 @@
+import StatsType from '../../types/stats.mdx';
+import CompilerType from '../../types/compiler.mdx';
+import LoggerType from '../../types/logger.mdx';
+import CacheType from '../../types/cache.mdx';
+import ChunkType from '../../types/cache.mdx';
+import InputFileSystemType from '../../types/input-file-system.mdx';
+import OutputFileSystemType from '../../types/output-file-system.mdx';
+import WatchFileSystemType from '../../types/watch-file-system.mdx';
+import CompilationType from '../../types/compilation.mdx';
+import { Collapse, CollapsePanel } from '@components/Collapse';
+import { Badge } from '@theme';
+
+# Compiler
+
+## Compiler methods
+
+### run
+
+Start a compilation, and callbacked when the compilation is completed or aborted due to an error.
+
+```ts
+function run(
+  callback: (
+    error: Error, // Only including compiler-related errors, such as configuration errors, not including compilation errors
+    stats: Stats, // detailed information generated during the compilation
+  ) => void,
+  options?: {
+    modifiedFiles?: ReadonlySet<string>; // Modified files included in this compilation
+    removedFiles?: ReadonlySet<string>; // Deleted files included in this compilation
+  },
+): void;
+```
+
+:::warning
+
+If you need to call the `run` method of the same `compiler` object multiple times, please note the following:
+
+1. This API does not support concurrent compilation. Before starting a new compilation, you must call `compiler.close()` in the callback function of `compiler.run` and wait for it to finish. Only then can you proceed with the next `compiler.run` call. Running multiple compilation processes simultaneously can lead to unexpected results in the output files.
+2. Rspack's cache invalidation detection relies on the `modifiedFiles` and `removedFiles` parameters. When caching is enabled and you're using a custom watcher to watch file changes, you need to pass these values to Rspack via the `options` parameter.
+
+:::
+
+```js
+compiler.run((err, stats) => {
+  // Deal with the compiler errors
+  handlerCompilerError(err);
+  // Deal with the compilation errors
+  handlerModuleErrors(stats.toJson().errors);
+  // Deal with the result
+  handleBuildResult(stats);
+  // End this compilation
+  compiler.close(closeErr => {
+    // Start a new compilation
+    compiler.run((err, stats) => {});
+  });
+});
+```
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Stats.ts" key="Stats">
+    <StatsType />
+  </CollapsePanel>
+</Collapse>
+
+### watch
+
+Watching files and directories, start a compilation process after they change, and callbacked every time the compilation is completed or aborted due to an error.
+
+```ts
+function watch(
+  watchOptions: WatchOptions, // options for starting the watching
+  handler: (error: Error, stats: Stats) => void, // callback when every compilation ends
+): Watching; // watching controller
+```
+
+:::warning Warning
+This API only supports one compilation at a time. Please call `compiler.close` in the `compiler.watch` callback and wait for it to finish before executing `compiler.watch` again. Concurrent compilations will damage the output files.
+:::
+
+```js
+const watching = compiler.watch(
+  {
+    aggregateTimeout: 300,
+    poll: undefined,
+  },
+  (err, stats) => {
+    // Deal with the result
+    handleBuildResult(stats);
+  },
+);
+```
+
+The Watching object provides the following methods:
+
+- `watch`:
+  - **Type**: `(files: string[], dirs: string[], missing: string[]): void`
+  - **Usage**: Add the files and directories that need to be watched.
+- `invalidate`:
+  - **Type**: `(callback: () => void): void`
+  - **Usage**: Immediately end this round of watching and start a compilation with the currently recorded file changes, without stopping the watcher.
+- `suspend`:
+  - **Type**: `(): void`
+  - **Usage**: Enter the state of only watching and will not start a new compilation.
+- `resume`:
+  - **Type**: `(): void`
+  - **Usage**: Exit the state of only watching and start a compilation with the currently recorded file changes.
+- `close`:
+  - **Type**: `(callback: () => void): void`
+  - **Usage**: Stop the watcher.
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="WatchOptions.ts"
+    key="WatchOptions"
+  >
+
+    > See [watch options](/config/watch#watchoptions) for more details.
+
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Stats.ts"
+    key="Stats"
+  >
+    <StatsType />
+  </CollapsePanel>
+</Collapse>
+
+### close
+
+Close the current compiler, and handle low-priority tasks such as caching during this period.
+
+```ts
+function close(
+  callback: (err: Error) => void, // callback after closing
+): void;
+```
+
+### getInfrastructureLogger
+
+Create a [logger object](/api/javascript-api/logger) that is not associated with any compilation, which is used to print global logs.
+
+```ts
+function getInfrastructureLogger(name: string): Logger;
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Logger.ts"
+    key="Logger"
+  >
+    <LoggerType />
+  </CollapsePanel>
+</Collapse>
+
+### getCache
+
+Create a cache object to share data in the build process.
+
+```ts
+function getCache(name: string): CacheFacade;
+```
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Cache.ts" key="Cache">
+    <CacheType />
+  </CollapsePanel>
+</Collapse>
+
+### purgeInputFileSystem
+
+Stop the read loop of the input file system, which internally contains a timer and may cause the process to still not be able to exit after calling `compiler.close`.
+
+```ts
+function purgeInputFileSystem(): void;
+```
+
+### createChildCompiler
+
+Allows running another instance of Rspack inside of Rspack. However, as a child with different settings and configurations applied. It copies all hooks and plugins from the parent (or top-level compiler) and creates a child `Compiler` instance. Returns the created `Compiler`.
+
+```ts
+function createChildCompiler(
+  compilation: Compilation,
+  compilerName: string,
+  compilerIndex: number,
+  outputOptions: OutputOptions,
+  plugins: RspackPlugin[],
+): Compiler;
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compilation.ts"
+    key="Compilation"
+  >
+    <CompilationType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="OutputOptions.ts"
+    key="OutputOptions"
+  >
+
+    > See [output options](/config/output) for more details.
+
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="RspackPlugin.ts"
+    key="RspackPlugin"
+  >
+
+    > See [plugins options](/config/plugins) for more details
+
+  </CollapsePanel>
+</Collapse>
+
+### runAsChild
+
+Running the child compiler, which will doing a complete compiling and generate the assets.
+
+```ts
+function runAsChild(
+  callback(
+    err: Error, // error related to the child compiler
+    entries: Chunk[], // chunks generated by the child compiler
+    compilation: Compilation, // the compilation created by the child compiler
+  ): void;
+): void;
+```
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compilation.ts"
+    key="Compilation"
+  >
+    <CompilationType />
+  </CollapsePanel>
+</Collapse>
+
+### isChild
+
+Whether this compiler is a child compiler.
+
+```ts
+function isChild(): boolean;
+```
+
+## Compiler properties
+
+### hooks
+
+See [compiler hooks](/api/plugin-api/compiler-hooks) for more details.
+
+### rspack
+
+- **Type:** `typeof rspack`
+
+Get the exports of @rspack/core to obtain the associated internal objects. This is especially useful when you cannot directly reference `@rspack/core` or there are multiple Rspack instances.
+
+A common example is accessing the [sources](/api/javascript-api/index#sources-object) object in a Rspack plugin:
+
+```js
+const { RawSource } = compiler.rspack.sources;
+const source = new RawSource('console.log("Hello, world!");');
+```
+
+### webpack
+
+- **Type:** `typeof rspack`
+
+Equivalent to `compiler.rspack`, this property is used for compatibility with webpack plugins.
+
+If the Rspack plugin you are developing needs to be webpack compatible, you can use this property instead of `compiler.rspack`.
+
+```js
+console.log(compiler.webpack === compiler.rspack); // true
+```
+
+### name
+
+- **Type:** `string`
+
+Get the name:
+
+- For the root compiler, it is equivalent to [`name`](/config/other-options#name).
+- For the child compiler, it is the value passed into `createChildCompiler`.
+- For the MultiCompiler and in the KV form, it is the key.
+
+### context
+
+Current project root directory:
+
+- Created through `new Compiler`, it is the value passed in.
+- Created through `rspack({})`, it is [context configuration](/config/context).
+
+### root
+
+- **Type:** `Compiler`
+
+Get the root of the child compiler tree.
+
+### options
+
+- **Type:** `RspackOptionsNormalized`
+
+Get the full options used by this compiler.
+
+### watchMode
+
+- **Type:** `boolean`
+
+Whether started through `compiler.watch`.
+
+### watching
+
+- **Type:** `Watching`
+
+Get the watching object, see [watch method](#watch) for more details.
+
+### running
+
+- **Type:** `boolean`
+
+Whether the compilation is currently being executed.
+
+### inputFileSystem
+
+- **Type:** `InputFileSystem`
+
+Get the proxy object used for reading from the file system, which has optimizations such as caching inside to reduce duplicate reading of the same file.
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="InputFileSystem.ts"
+    key="InputFileSystem"
+  >
+    <InputFileSystemType />
+  </CollapsePanel>
+</Collapse>
+
+### outputFileSystem
+
+- **Type:** `OutputFileSystem`
+
+Get the proxy object used for writing to the file system, `fs` by default.
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="OutputFileSystem.ts"
+    key="OutputFileSystem"
+  >
+    <OutputFileSystemType />
+  </CollapsePanel>
+</Collapse>
+
+### watchFileSystem
+
+- **Type:** `WatchFileSystem`
+
+Get the proxy object used for watching files or directories changes, which provides a `watch` method to start watching, and passes in the changed and removed items in the callback.
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="WatchFileSystem.ts"
+    key="WatchFileSystem"
+  >
+    <WatchFileSystemType />
+  </CollapsePanel>
+</Collapse>
+
+## MultiCompiler
+
+The `MultiCompiler` module allows Rspack to run multiple configurations in separate compilers. If the options parameter in the Rspack's JavaScript API is an array of options, Rspack applies separate compilers and calls the callback after all compilers have been executed.
+
+```js
+const { rspack } = require('@rspack/core');
+
+rspack(
+  [
+    { entry: './index1.js', output: { filename: 'bundle1.js' } },
+    { entry: './index2.js', output: { filename: 'bundle2.js' } },
+  ],
+  (err, stats) => {
+    process.stdout.write(stats.toString() + '\n');
+  },
+);
+```
+
+It can also be created through `new MultiCompiler`:
+
+```js
+const compiler1 = new Compiler({
+  /* */
+});
+const compiler2 = new Compiler({
+  /* */
+});
+
+new MultiCompiler([compiler1, compiler2]);
+
+new MultiCompiler([compiler1, compiler2], {
+  parallelism: 1, // the maximum number of parallel compilers
+});
+
+new MultiCompiler({
+  name1: compiler1,
+  name2: compiler2,
+});
+```
+
+`MultiCompiler` also provides some methods and attributes of the `Compiler`.
+
+### MultiCompiler methods
+
+#### setDependencies
+
+Specify the dependency relationship between the compilers, using `compiler.name` as the identifier, to ensure the execution order of the compilers.
+
+```ts
+setDependencies(compiler: Compiler, dependencies: string[]): void;
+```
+
+#### validateDependencies
+
+Check whether the dependency relationship between the compilers is legal. If there is a cycle or a missing dependency, it will trigger the callback.
+
+```ts
+validateDependencies(
+  callback: (err: Error) => void; // callback when there is an error
+): boolean
+```
+
+#### run
+
+Execute the `run` method of each compiler according to the dependency relationship to start the compilation process.
+
+```ts
+run(
+  callback: (err: Error, stats: MultiStats) => void,
+  options?: {
+    modifiedFiles?: ReadonlySet<string>; // Modified files included in this compilation
+    removedFiles?: ReadonlySet<string>; // Deleted files included in this compilation
+  },
+): void;
+```
+
+#### watch
+
+Execute the `watch` method of each compiler according to the dependency relationship to start watching, and start a compilation process after the file changes.
+
+```ts
+watch(
+  watchOptions: WatchOptions,
+  handler: (err: Error, stats: MultiStats) => void,
+): MultiWatching
+```
+
+#### close
+
+Execute the `close` method of each compiler to close them, and handle low-priority tasks such as caching during this period.
+
+```ts
+close(callback: (err: Error) => void): void;
+```
+
+#### purgeInputFileSystem
+
+Execute the `purgeInputFileSystem` of each compiler to stop the read loop of the file system
+
+```ts
+purgeInputFileSystem(): void;
+```
+
+#### getInfrastructureLogger
+
+Create a [logger object](/api/javascript-api/logger) that is not associated with any compilation, which is used to print global logs.
+
+```ts
+getInfrastructureLogger(name: string): Logger;
+```
+
+> Same with `compilers[0].getInfrastructureLogger()`
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Logger.ts"
+    key="Logger"
+  >
+    <LoggerType />
+  </CollapsePanel>
+</Collapse>
+
+### MultiCompiler properties
+
+#### compilers
+
+- **Type:** `Compiler[]`
+
+Get all included compilers.
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
+#### options
+
+<Badge text="ReadOnly" type="info" />
+
+- **Type:** `RspackOptionsNormalized[]`
+
+Get all the [full options](/config/index) used by the compilers.
+
+#### inputFileSystem
+
+<Badge text="WriteOnly" type="info" />
+
+- **Type:** `InputFileSystem`
+
+Set the proxy object used for reading from the file system for each compiler.
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="InputFileSystem.ts"
+    key="InputFileSystem"
+  >
+    <InputFileSystemType />
+  </CollapsePanel>
+</Collapse>
+
+#### outputFileSystem
+
+<Badge text="WriteOnly" type="info" />
+
+- **Type:** `OutputFileSystem`
+
+Set the proxy object used for writing from the file system for each compiler.
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="OutputFileSystem.ts"
+    key="OutputFileSystem"
+  >
+    <OutputFileSystemType />
+  </CollapsePanel>
+</Collapse>
+
+#### watchFileSystem
+
+<Badge text="WriteOnly" type="info" />
+
+- **Type:** `WatchFileSystem`
+
+Set the proxy object used for watching files or directories changes for each compiler.
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="WatchFileSystem.ts"
+    key="WatchFileSystem"
+  >
+    <WatchFileSystemType />
+  </CollapsePanel>
+</Collapse>
+
+#### running
+
+- **Type:** `boolean`
+
+Whether the compilation is currently being executed.

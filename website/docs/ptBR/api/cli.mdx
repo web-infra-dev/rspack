@@ -1,0 +1,137 @@
+# Command line interface
+
+[@rspack/cli](https://npmjs.com/package/@rspack/cli) is the command line tool for Rspack, providing a variety of commands to make working with Rspack easier.
+
+- If you do not have `@rspack/cli` installed, please read the [Quick start](/guide/start/quick-start) section first.
+- If you are using Rsbuild, please refer to the [Rsbuild CLI](https://rsbuild.dev/guide/basic/cli) section.
+
+:::warning Compatible with webpack-cli
+`@rspack/cli` is not compatible with `webpack-cli`, so there will be some differences between the two.
+:::
+
+## All commands
+
+To view all available CLI commands, run the following command in the project directory:
+
+```bash
+npx rspack -h
+```
+
+## Common flags
+
+Rspack CLI provides several common flags that can be used with all commands:
+
+| Flag                 | Description                                                                                                                                   |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| -c, --config [value] | Specify the path to the configuration file, see [Specify the configuration file](/config/index#specify-the-configuration-file)                |
+| --configLoader       | Specify the loader to load the config file, can be `native` or `register`, defaults to `register`                                             |
+| --configName         | Specify the name of the configuration to use.                                                                                                 |
+| --nodeEnv            | Set the value of `process.env.NODE_ENV`, defaults to `development` for `rspack dev`, and `production` for `rspack build` and `rspack preview` |
+| -h, --help           | Show help information                                                                                                                         |
+| -v, --version        | Show version number                                                                                                                           |
+
+:::tip
+All flags in Rspack CLI support the `camelCase` and `kebab-case`, for example, both `--configLoader` and `--config-loader` are valid.
+:::
+
+## rspack build
+
+`rspack build` is used to run Rspack build, which will generate the output files in the [output.path](/config/output#outputpath) directory.
+
+```bash
+npx rspack build  # Read the `rspack.config.*` configuration file by default
+```
+
+`rspack build` can be abbreviated as `rspack b`:
+
+```bash
+npx rspack b
+```
+
+Use the `-c` or `--config` flag to specify the configuration file path:
+
+```bash
+npx rspack build -c ./your.config.js
+```
+
+The complete flags are as follows:
+
+```
+rspack build
+
+Options:
+      --entry          entry file                                        [array]
+  -o, --outputPath     output path dir                                  [string]
+  -m, --mode           mode                                             [string]
+  -w, --watch          watch                          [boolean] [default: false]
+      --env            env passed to config function                     [array]
+  -d, --devtool        devtool                        [boolean] [default: false]
+      --analyze        analyze                        [boolean] [default: false]
+      --json           emit stats json
+      --profile        capture timing information for each module
+                                                      [boolean] [default: false]
+```
+
+## rspack dev
+
+`rspack dev` is used to run Rspack dev server, which will start a local dev server that will listen for file changes and automatically refresh the browser.
+
+```bash
+npx rspack dev
+```
+
+Use the `-c` or `--config` flag to specify the configuration file path:
+
+```bash
+npx rspack dev -c ./your.config.js
+```
+
+`rspack dev` can be abbreviated as `rspack serve` or `rspack s`:
+
+```bash
+npx rspack s
+npx rspack serve
+```
+
+The complete flags are as follows:
+
+```
+rspack dev
+
+Options:
+      --entry          entry file                                        [array]
+  -o, --outputPath     output path dir                                  [string]
+  -m, --mode           mode                                             [string]
+  -w, --watch          watch                          [boolean] [default: false]
+      --env            env passed to config function                     [array]
+  -d, --devtool        devtool                        [boolean] [default: false]
+      --hot            enables hot module replacement
+      --port           allows to specify a port to use                  [number]
+      --host           allows to specify a hostname to use              [string]
+```
+
+## rspack preview
+
+`rspack preview` is used to preview the production build output locally, note that you need to build the output first by running the `rspack build` command.
+
+```bash
+npx rspack preview
+```
+
+The complete flags are as follows:
+
+```
+rspack preview [dir]
+
+run the rspack server for build output
+
+Positionals:
+  dir  directory want to preview                                        [string]
+
+Options:
+      --publicPath  static resource server path                         [string]
+      --port        preview server port                                 [number]
+      --host        preview server host                                 [string]
+      --open        open browser                                       [boolean]
+      --server      Configuration items for the server.                 [string]
+```

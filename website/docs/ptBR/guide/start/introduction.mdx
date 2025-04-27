@@ -1,0 +1,111 @@
+import compare from '../../../public/compare.png';
+import rspackAudio from '../../../public/rspack.mp3';
+
+<audio id="rspack-audio">
+  <source src={rspackAudio} type="audio/mpeg"></source>
+</audio>
+
+# Introdução
+
+<div>
+  <span>Rspack (pronuncia-se `/'ɑrespæk/`, </span>
+  <button
+    style={{
+      border: 'none',
+      padding: '3px',
+      verticalAlign: 'middle',
+      display: 'inline',
+    }}
+    id="play-rspack-audio"
+    onClick={() => {
+      document.getElementById('rspack-audio').play();
+    }}
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 32 32"
+    >
+      <path
+        fill="currentColor"
+        d="m27.16 8.08l-1.53 1.29a10 10 0 0 1-.29 13.23l1.47 1.4a12 12 0 0 0 .35-15.88Z"
+      />
+      <path
+        fill="currentColor"
+        d="M21.58 12a6 6 0 0 1-.18 7.94l1.47 1.36a8 8 0 0 0 .23-10.59zM18 30a1 1 0 0 1-.71-.3L9.67 22H3a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1h6.67l7.62-7.7a1 1 0 0 1 1.41 0a1 1 0 0 1 .3.7v26a1 1 0 0 1-1 1zM4 20h6.08a1 1 0 0 1 .71.3L17 26.57V5.43l-6.21 6.27a1 1 0 0 1-.71.3H4z"
+      />
+    </svg>
+  </button>
+  <p style={{ display: 'inline', lineHeight: '1.75rem' }}>
+    <span>) é um empacotador JavaScript de alta performance</span>
+    <span> escrito em Rust. Ele oferece forte</span>
+    <span>compatibilidade com o ecossistema webpack,</span>
+    <span>permitindo substituí-lo sem problemas,</span>
+    <span>
+      além de proporcionar velocidades de construção extremamente rápidas.
+    </span>
+  </p>
+</div>
+
+## Por que o Rspack?
+
+O Rspack foi criado inicialmente para resolver problemas de performance encontrados na ByteDance, uma empresa de tecnologia que mantém muitos projetos grandes de aplicativos monolíticos com requisitos complexos de empacotamento. Os tempos de construção em produção chegavam a dez minutos ou mesmo meia hora em alguns casos, e os tempos de inicialização a frio podiam exceder vários minutos. Após experimentar vários empacotadores e ideias de otimização, surgiu um conjunto comum de requisitos:
+
+- **Performance na inicialização do modo de desenvolvimento.** `npm run dev` é um comando que desenvolvedores podem executar muitas vezes por hora. A produtividade da equipe é prejudicada se o tempo de inicialização exceder 10-15 segundos.
+- **Construções rápidas.** `npm run build` é usado em pipelines de CI/CD e impacta diretamente a produtividade de merge e o tempo de entrega da aplicação. Aplicações grandes podem gastar 20-30 minutos executando esses pipelines, e o tempo de empacotamento é frequentemente um dos principais contribuintes.
+- **Configuração flexível.** Ao experimentar com vários empacotadores populares, descobrimos que configurações únicas para todos os casos encontravam muitos problemas ao tentar acomodar projetos do mundo real. Uma grande vantagem do webpack é sua flexibilidade e facilidade em acomodar requisitos personalizados para cada projeto. Isso, por sua vez, pode impor custos significativos de migração para projetos legados que tentam migrar para longe do webpack.
+- **Capacidades de otimização para produção.** Todas as soluções existentes de empacotamento também tinham várias limitações ao otimizar para um ambiente de produção, como divisão de código insuficientemente granular, etc. O Rspack tem a oportunidade de repensar essas otimizações desde o início, aproveitando recursos específicos do Rust, como multithreading.
+
+## Status atual do Rspack
+
+Em agosto de 2024, lançamos [Rspack 1.0](/blog/announcing-1-0), que agora consideramos pronto para produção, pois cobre a maioria das APIs e recursos do webpack.
+
+O Rspack é atualmente compatível com quase todos os loaders da comunidade. Para os 50 [plugins webpack](/guide/compatibility/plugin) mais baixados, mais de 85% podem ser usados no Rspack ou possuem uma alternativa.
+
+:::tip Saiba mais
+
+- Veja [Blogs do Rspack](/blog/index) para as atualizações mais recentes.
+- Veja [Roadmap](/misc/planning/roadmap) para os planos futuros do Rspack.
+
+:::
+
+## Comparações com outras ferramentas
+
+### Comparado com webpack
+
+[webpack](https://webpack.js.org/) é talvez o empacotador moderno mais maduro, com um ecossistema ativo, configuração flexível e recursos ricos.
+
+- **Eficiência da linguagem Rust:** Os concorrentes do webpack frequentemente o desafiam com base em performance, especialmente para projetos maiores. O Rspack resolve isso usando Rust, uma linguagem projetada especificamente para priorizar performance, liderando benchmarks de velocidade e gerenciamento de memória. Rust também fornece muitas garantias em tempo de compilação para evitar armadilhas comuns de outras linguagens nativas como C++.
+
+- **Arquitetura altamente paralelizada:** O webpack é limitado pelo fraco suporte do JavaScript a multithreading. Em contraste, o código nativo do Rspack aproveita totalmente CPUs modernas com múltiplos núcleos.
+
+- **Implementações internas de recursos essenciais:** O sistema de hooks do webpack permite uma vasta paisagem de loaders e plugins contribuídos pela comunidade. Infelizmente, esses pacotes de terceiros podem frequentemente levar a gargalos de performance, talvez porque os autores não tinham conhecimento profundo dos internals do webpack, ou simplesmente porque o sistema de hooks por natureza limita a interação de algoritmos. O Rspack fornece plugins internos para recursos-chave para melhorar a performance.
+
+- **Otimização do Hot Module Replacement (HMR):** Não importa o tamanho do seu projeto, garantir uma ótima experiência para HMR impõe demandas ainda maiores para tempos de construção do que o empacotamento comum. O Rspack incorpora uma estratégia especializada de compilação incremental para atender a esse requisito.
+
+### Comparado com Vite
+
+[Vite](https://vitejs.dev/) oferece uma ótima experiência de desenvolvimento, mas sua dependência no [Rollup](https://rollupjs.org/) para construções de produção enfrenta custos de performance semelhantes a outros algoritmos baseados em JavaScript. As mesmas compensações do webpack versus Rollup também se aplicam, por exemplo, falta de flexibilidade no recurso [optimization.splitChunks](/config/optimization#optimizationsplitchunks).
+
+### Comparado com esbuild
+
+[esbuild](https://esbuild.github.io/) alcança performance muito boa implementando quase todas as operações em Golang, exceto por alguns plugins JavaScript. No entanto, o conjunto de recursos do esbuild não é tão completo quanto o do webpack, por exemplo, faltando HMR e recursos de [optimization.splitChunks](/config/optimization#optimizationsplitchunks).
+
+### Comparado com Turbopack
+
+[Turbopack](https://turbo.build/) é implementado em Rust como o Rspack, mas o Turbopack começou do zero com uma arquitetura e configuração redesenhadas. Isso traz alguns benefícios, mas apresenta um custo de migração maior para projetos que dependem do webpack e seu extenso ecossistema.
+
+### Comparado com Rollup
+
+Rspack e Rollup são ambos ferramentas de empacotamento, mas focam em áreas diferentes. Rollup é mais adequado para empacotar bibliotecas, enquanto Rspack é mais adequado para empacotar aplicações. Portanto, o Rspack otimizou muitos recursos para empacotar aplicações, como HMR e divisão de pacotes. Rollup produz saídas ESM mais amigáveis para bibliotecas do que o Rspack. Há também muitas ferramentas na comunidade que encapsulam o Rollup até certo ponto e fornecem suporte mais amigável para empacotar aplicações, como vite e wmr. Atualmente, o Rspack tem melhor performance de construção em produção do que o Rollup.
+
+### Comparado com Parcel
+
+A arquitetura geral do Rspack compartilha muitas semelhanças com o [Parcel](https://parceljs.org/). Por exemplo, ambos tratam assets CSS como cidadãos de primeira classe e ambos suportam transformadores baseados em filtros. No entanto, o Parcel foca mais em usabilidade pronta para uso, enquanto o Rspack foca mais em fornecer configuração flexível para frameworks e ferramentas de alto nível. O Parcel projetou inovadoramente recursos como o Unified Graph e tornando HTML um cidadão de primeira classe. O Rspack também planeja suportar esses recursos no futuro.
+
+## Próximos passos
+
+Por favor, leia [Início Rápido](/guide/start/quick-start) para começar a usar o Rspack.
+
+Bem-vindo ao [GitHub Discussions](https://github.com/web-infra-dev/rspack/discussions) e [Discord](https://discord.gg/sYK4QjyZ4V) para se comunicar conosco.

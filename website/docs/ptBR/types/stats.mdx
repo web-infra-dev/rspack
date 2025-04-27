@@ -1,0 +1,16 @@
+<>
+
+```ts
+type Stats = {
+  compilation: Compilation;
+  hash: Readonly<string | null>;
+  startTime?: number;
+  endTime?: number;
+  hasErrors(): bool;
+  hasWarnings(): bool;
+  toJson(opts?: StatsValue): StatsCompilation;
+  toString(opts?: StatsValue): string;
+};
+```
+
+</>

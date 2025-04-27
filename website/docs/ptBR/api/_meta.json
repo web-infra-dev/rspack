@@ -1,0 +1,24 @@
+[
+  "index",
+  "cli",
+  {
+    "type": "dir",
+    "name": "runtime-api",
+    "label": "Runtime API"
+  },
+  {
+    "type": "dir",
+    "name": "javascript-api",
+    "label": "JavaScript API"
+  },
+  {
+    "type": "dir",
+    "name": "loader-api",
+    "label": "Loader API"
+  },
+  {
+    "type": "dir",
+    "name": "plugin-api",
+    "label": "Plugin API"
+  }
+]

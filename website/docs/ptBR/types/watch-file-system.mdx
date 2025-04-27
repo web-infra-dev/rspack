@@ -1,0 +1,34 @@
+<>
+
+```ts
+type WatchFileSystem = {
+  watch(
+    files: string[],
+    directories: string[],
+    missing: string[],
+    startTime: number,
+    options: WatchOptions,
+    callback: (
+      err: Error | null,
+      fileEntries: Map<string, FileSystemInfoEntry>,
+      contextEntries: Map<string, FileSystemInfoEntry>,
+      changes: Set<string>,
+      removals: Set<string>
+    ): void,
+    callbackUndelayed: ( // Triggered immediately after the first change
+      file: string,
+      time: number
+    ): void;
+  ): {
+    close(): void,
+    pause(): void,
+    getAggregatedChanges(): Set<string>,
+    getAggregatedRemovals(): Set<string>,
+    getFileTimeInfoEntries():  Map<string, FileSystemInfoEntry | "ignore">,
+    getContextTimeInfoEntries():  Map<string, FileSystemInfoEntry | "ignore">,
+    getInfo: WatcherInfo
+  }
+};
+```
+
+</>

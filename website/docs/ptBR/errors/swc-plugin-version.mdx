@@ -1,0 +1,25 @@
+# SWC plugin version unmatched
+
+## Why this error occurred
+
+The SWC plugin is still an experimental feature, and the SWC Wasm plugin is currently not backward compatible. The version of the SWC plugin is closely tied to the version of `swc_core` that Rspack depends on.
+
+This means that you must to choose an SWC plugin that matches the current version of `swc_core` to ensure that it works properly. If the version of the SWC plugin you are using does not match the version of `swc_core` that Rspack depends on, Rspack will throw the following error during the build process:
+
+```text
+The version of the SWC Wasm plugin you're using might not be compatible with 'builtin:swc-loader'
+```
+
+## Possible ways to fix it
+
+If you encounter the above issues, a common solution is to upgrade both the Rspack and SWC plugins to the latest versions.
+
+Alternatively, you can follow these steps to select a suitable SWC plugin version:
+
+1. Check the current version of [@rspack/core](https://www.npmjs.com/package/@rspack/core) you are using.
+2. Visit [plugins.swc.rs](https://plugins.swc.rs/) and select the version of Rspack you are currently using.
+3. The website will list the range of SWC plugin versions that match to your current Rspack version. Then select the matched version of the SWC plugin to use.
+
+If the SWC plugin you are using is not listed on [plugins.swc.rs](https://plugins.swc.rs/), you can find the version information of `swc_core` in the Cargo.toml file within the Rust code repository.
+
+For example, in the Rspack repository, you can open [Cargo.toml](https://github.com/web-infra-dev/rspack/blob/main/Cargo.toml) and search for the keyword `swc_core` to find the version. Then read [SWC - Selecting the version](https://swc.rs/docs/plugin/selecting-swc-core) for further guidance.

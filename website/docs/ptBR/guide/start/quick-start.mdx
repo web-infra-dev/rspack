@@ -1,0 +1,152 @@
+import { PackageManagerTabs } from '@theme';
+
+# Início Rápido
+
+Atualize-se rapidamente com um novo projeto baseado em Rspack.
+
+- [Criar um novo projeto](#criar-um-novo-projeto): Use a CLI para criar um projeto totalmente novo com Rspack ou Rsbuild.
+- [Migrar de projetos existentes](#migrar-de-projetos-existentes): Migre de um projeto baseado em webpack para Rspack.
+
+## Ecossistema
+
+Como um empacotador de baixo nível, o Rspack possui um ecossistema rico que inclui diversos frameworks, ferramentas e soluções. Esses projetos do ecossistema cobrem diferentes aspectos, desde frameworks até ferramentas de desenvolvimento, atendendo a diversas necessidades de desenvolvimento em diferentes cenários e proporcionando uma experiência pronta para uso.
+
+Consulte a página [Ecossistema](/guide/start/ecosystem) para explorar esses projetos.
+
+## Configurar o ambiente
+
+O Rspack suporta o uso de [Node.js](https://nodejs.org/), [Deno](https://deno.com/) ou [Bun](https://bun.sh/) como ambiente de execução.
+
+### Node.js
+
+Para o Node.js, instale a versão >= 16. Recomenda-se usar a versão LTS do Node.js.
+
+Verifique a versão atual do Node.js com o seguinte comando:
+
+```bash
+node -v
+```
+
+Se você não tem o Node.js instalado no seu ambiente atual, ou a versão instalada está desatualizada, você pode usar [nvm](https://github.com/nvm-sh/nvm) ou [fnm](https://github.com/Schniz/fnm) para instalá-lo.
+
+Aqui está um exemplo de como instalar usando o nvm:
+
+```bash
+# Instala a versão LTS do Node.js
+nvm install --lts
+# Muda para a versão LTS do Node.js
+nvm use --lts
+```
+
+## Criar um novo projeto
+
+### Usando Rsbuild
+
+O Rsbuild é uma ferramenta de construção de alta performance desenvolvida pela equipe do Rspack. Ele oferece configurações padrão cuidadosamente projetadas, proporcionando uma experiência de desenvolvimento pronta para uso e que pode liberar todo o potencial de performance do Rspack.
+
+Recomendamos usar o [Rsbuild](https://rsbuild.dev/) para criar novos projetos. Basta executar o seguinte comando:
+
+<PackageManagerTabs command="create rsbuild@latest" />
+
+> Para mais informações, consulte [Rsbuild - Introdução Rápida](https://rsbuild.dev/guide/start/quick-start).
+
+### Usando a CLI do Rspack
+
+A CLI do Rspack é uma ferramenta comparável à CLI do webpack, oferecendo os comandos básicos `serve` e `build`.
+
+Enquanto o Rsbuild suporta Node.js >= 16, a CLI do Rspack requer Node.js versão >= 18.12.0.
+
+Execute o seguinte comando para criar um projeto com a CLI do Rspack:
+
+<PackageManagerTabs command="create rspack@latest" />
+
+Em seguida, siga as instruções no seu terminal.
+
+### Criação rápida
+
+[create-rspack](https://www.npmjs.com/package/create-rspack) e [create-rsbuild](https://www.npmjs.com/package/create-rsbuild) fornecem alguns flags de CLI. Ao definir esses flags, você pode pular as etapas de seleção interativa e criar o projeto com um único comando.
+
+Por exemplo, para criar um projeto React no diretório `my-project` com um comando:
+
+```bash
+# Rspack CLI
+npx create-rspack --dir my-project --template react
+# Rsbuild
+npx create-rsbuild --dir my-project --template react
+# Usando abreviações
+npx create-rsbuild -d my-project -t react
+```
+
+## Exemplos online
+
+Fornecemos um exemplo online baseado no Rsbuild. O exemplo oferece uma demonstração intuitiva do desempenho de build do Rspack e da experiência de desenvolvimento com o Rsbuild:
+
+- [Exemplo Rsbuild no CodeSandbox](https://codesandbox.io/p/github/rspack-contrib/rsbuild-codesandbox-example)
+
+## Instalação manual
+
+Comece criando um diretório para o projeto e gerando um arquivo `package.json` do npm:
+
+```bash
+mkdir rspack-demo
+cd rspack-demo
+npm init -y
+```
+
+Em seguida, instale [@rspack/core](https://www.npmjs.com/package/@rspack/core) e [@rspack/cli](https://www.npmjs.com/package/@rspack/cli) como dependências de desenvolvimento:
+
+<PackageManagerTabs command="add @rspack/core @rspack/cli -D" />
+
+Atualize seus scripts de build para usar a CLI do Rspack:
+
+```json title="package.json"
+{
+  "scripts": {
+    "dev": "rspack dev",
+    "build": "rspack build"
+  }
+}
+```
+
+Em seguida, consulte [Configurar o Rspack](/config/index) para aprender como configurar o Rspack.
+
+## Migrando de projetos existentes
+
+Se precisar migrar de um projeto existente para a stack Rspack, você pode consultar os seguintes guias:
+
+- [Migrando do webpack para o Rspack](/guide/migration/webpack)
+- [Migrando do webpack para o Rsbuild](https://rsbuild.dev/guide/migration/webpack)
+- [Migrando do Create React App para o Rsbuild](https://rsbuild.dev/guide/migration/cra)
+- [Migrando do Vue CLI para o Rsbuild](https://rsbuild.dev/guide/migration/vue-cli)
+- [Migrando do Vite para o Rsbuild](https://rsbuild.dev/guide/migration/vite)
+- [Migrando do Tsup para o Rslib](https://lib.rsbuild.dev/guide/migration/tsup)
+- [Migrando do Storybook](/guide/migration/storybook)
+
+## Instalar versão canário
+
+Quando você precisa testar ou verificar recursos do Rspack que ainda não foram lançados na versão estável, pode ser necessário usar a versão canário.
+
+A versão canário do Rspack possui o sufixo `-canary` no escopo do pacote. Por exemplo, o nome do pacote canário de `@rspack/core` é `@rspack-canary/core`. Para usar essas versões, você pode configurar os overrides do gerenciador de pacotes (npm/yarn/pnpm/bun).
+
+Aqui está um exemplo de uso de overrides no pnpm:
+
+```json title="package.json"
+{
+  "pnpm": {
+    "overrides": {
+      "@rspack/core": "npm:@rspack-canary/core@latest"
+    },
+    "peerDependencyRules": {
+      "allowAny": ["@rspack/*"]
+    }
+  }
+}
+```
+
+A comunidade Rspack também fornece a ferramenta [install-rspack](https://github.com/rspack-contrib/install-rspack) para instalar facilmente a versão canário:
+
+```bash
+npx install-rspack --version latest # Instala a versão mais recente
+npx install-rspack --version canary # Instala a versão canário
+npx install-rspack --version 1.0.0-canary-d614005-20250101082730 # Instala a versão canário específica
+```

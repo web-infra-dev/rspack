@@ -1,0 +1,98 @@
+import { Table } from '@builtIns';
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.js.org/plugins/dll-plugin/" />
+
+# DllPlugin
+
+The `DllPlugin` is used in a separate rspack configuration exclusively to create a dll-only-bundle.
+
+## Options
+
+- **Type:**
+
+```ts
+type DllPluginOptions = {
+  context?: string;
+  entryOnly?: boolean;
+  format?: boolean;
+  name?: string;
+  path: string;
+  type?: string;
+};
+```
+
+<Table
+  header={[
+    {
+      name: 'Name',
+      key: 'name',
+    },
+    {
+      name: 'Type',
+      key: 'type',
+    },
+    {
+      name: 'Default',
+      key: 'default',
+    },
+    {
+      name: 'Description',
+      key: 'description',
+    },
+  ]}
+  body={[
+    {
+      name: '`context`',
+      type: '`string`',
+      default: `The rspack copmiler context`,
+      description: 'context of requests in the manifest file',
+    },
+    {
+      name: '`path`',
+      type: '`string`',
+      default: `undefined`,
+      description: 'absolute path to the manifest json file ',
+    },
+    {
+      name: '`entryOnly`',
+      type: '`boolean`',
+      default: '`true`',
+      description: 'if `true`, only entry points will be exposed',
+    },
+    {
+      name: '`format`',
+      type: '`boolean`',
+      default: 'undefined',
+      description: 'Whether or not format manifest json',
+    },
+    {
+      name: '`name`',
+      type: '`string`',
+      default: 'undefined',
+      description: 'The expose dll function name',
+    },
+    {
+      name: '`type`',
+      type: '`string`',
+      default: 'undefined',
+      description: 'type of the dll bundle',
+    },
+  ]}
+/>
+
+## Examples
+
+```js
+new rspack.DllPlugin({
+  path: path.resolve(__dirname, 'manifest.json'),
+  name: '[name]_dll_lib',
+});
+```
+
+The Plugin will create a `manifest.json` which is written to the given path.
+It contains mappings from require and import requests to module ids.
+
+The `manifest.json` is used by the [DllReferencePlugin](/plugins/webpack/dll-reference-plugin)
+
+Combine this plugin with `output.library` options to expose the dll function.

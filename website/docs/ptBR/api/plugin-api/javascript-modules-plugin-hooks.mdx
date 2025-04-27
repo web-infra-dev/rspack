@@ -1,0 +1,20 @@
+import ChunkType from '../../types/chunk.mdx';
+import HashType from '../../types/hash.mdx';
+import { Collapse, CollapsePanel } from '@components/Collapse';
+
+# JavascriptModulesPlugin
+
+## `chunkHash`
+
+`SyncHook<[Chunk, Hash]>`
+
+Called when computing the chunk hash for JavaScript chunks.
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+  <CollapsePanel className="collapse-code-panel" header="Hash.ts" key="Hash">
+    <HashType />
+  </CollapsePanel>
+</Collapse>

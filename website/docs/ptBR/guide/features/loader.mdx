@@ -1,0 +1,149 @@
+# Loader
+
+Na terminologia de bundling, um loader funciona como um plugin, mas é responsável por transformar o conteúdo de arquivos. Você pode usar loaders para converter arquivos de entrada arbitrários em tipos de arquivo nativamente suportados pelo Rspack.
+
+:::tip
+
+Um loader realiza o pré-processamento de recursos, enquanto a configuração [Rule.type](/config/module#ruletype) descreve o pós-processamento de recursos cujo tipo é nativamente suportado pelo Rspack.
+
+:::
+
+O Rspack já suporta a maioria dos loaders da comunidade. Se encontrar algum loader não suportado, sinta-se à vontade para nos comunicar através do [GitHub Issues](https://github.com/web-infra-dev/rspack/issues).
+
+## Desenvolvendo um loader
+
+Consulte [Loader API - Exemplos](/api/loader-api/examples) para aprender como desenvolver um loader.
+
+## Exemplo
+
+### Usando Less
+
+CSS é um cidadão de primeira classe no Rspack, portanto o processamento de arquivos CSS é suportado nativamente. Para arquivos `Less`, você precisa usar um [less-loader](https://github.com/webpack-contrib/less-loader) externo para transformar o conteúdo do arquivo adequadamente.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        use: [
+          {
+            loader: 'less-loader',
+          },
+        ],
+        type: 'css',
+      },
+    ],
+  },
+};
+```
+
+O [less-loader](https://github.com/webpack-contrib/less-loader) pode transformar arquivos Less em tipos de módulo CSS suportados pelo Rspack, então você pode definir o tipo como `'css'` para instruir o Rspack a usar o método de manipulação CSS que é nativamente suportado para pós-processamento.
+
+### Combinando vários loaders
+
+Você pode encadear vários loaders para uma correspondência de [Rule](/config/module#rule) específica, com os loaders sendo executados na ordem da direita para a esquerda.
+
+Por exemplo, você pode usar [less-loader](https://github.com/webpack-contrib/less-loader) para fazer a transformação entre tipos Less para CSS e [postcss-loader](https://github.com/webpack-contrib/postcss-loader) para o código-fonte transformado realizar uma transformação secundária, que será então passada para o pós-processador CSS do Rspack para processamento adicional.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        use: [
+          {
+            loader: 'postcss-loader',
+          },
+          {
+            loader: 'less-loader',
+          },
+        ],
+        type: 'css',
+      },
+    ],
+  },
+};
+```
+
+### Passando itens de configuração
+
+Você pode usar [Rule.use](/config/module#ruleuse) para passar a configuração relevante para o loader, por exemplo:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: [
+          {
+            loader: 'postcss-loader',
+            options: {
+              postcssOptions: {
+                // ...
+              },
+            },
+          },
+        ],
+        type: 'css',
+      },
+    ],
+  },
+};
+```
+
+### Usando um loader personalizado
+
+Você pode usar um loader personalizado com o Rspack. No exemplo abaixo, usaremos a API de loader para escrever um simples banner-loader.
+
+O objetivo do banner-loader é adicionar um comentário de banner no cabeçalho de cada módulo, como um aviso de licença:
+
+```js
+/**
+ * MIT Licensed
+ * Copyright (c) 2022-present ByteDance, Inc. and its affiliates.
+ * https://github.com/web-infra-dev/rspack/blob/main/LICENSE
+ */
+```
+
+Crie um novo arquivo `banner-loader.js` na raiz do projeto com o seguinte conteúdo:
+
+```js title="banner-loader.js"
+const BANNER = `/**
+ * MIT Licensed
+ * Copyright (c) 2022-present ByteDance, Inc. and its affiliates.
+ * https://github.com/web-infra-dev/rspack/blob/main/LICENSE
+ */`;
+
+module.exports = function (content) {
+  return `${BANNER}\n${content}`;
+};
+```
+
+A primeira entrada para este loader é o conteúdo do arquivo, permitindo-nos processar o conteúdo do arquivo e retornar o resultado transformado. O arquivo de script deve ser importado usando `require()` do CommonJS.
+
+Por exemplo, para adicionar um banner a todos os arquivos `*.js`, a configuração pode ficar assim:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        loader: './banner-loader.js',
+      },
+    ],
+  },
+};
+```
+
+Para detalhes, você pode consultar a [loader-api](/api/loader-api/index)
+
+### Usando loaders integrados
+
+Os Loaders integrados oferecem desempenho superior em comparação com JS Loaders, sem sacrificar a capacidade de composição dos JS Loaders. Seguem alguns exemplos de loaders integrados:
+
+- [builtin:swc-loader](/guide/features/builtin-swc-loader)
+- [builtin:lightningcss-loader](/guide/features/builtin-lightningcss-loader)

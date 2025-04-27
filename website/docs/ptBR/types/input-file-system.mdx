@@ -1,0 +1,24 @@
+<>
+
+```ts
+import fs from 'fs';
+type InputFileSystem = {
+  readFile: typeof fs.readFile;
+  readFileSync: typeof fs.readFileSync;
+  readlink: typeof fs.readlink;
+  readlinkSync: typeof fs.readlinkSync;
+  readdir: typeof fs.readdir;
+  readdirSync: typeof fs.readdirSync;
+  stat: typeof fs.stat;
+  statSync: typeof fs.statSync;
+  lstat: typeof fs.lstat;
+  lstatSync: typeof fs.lstatSync;
+  realpath: typeof fs.realpath;
+  realpathSync: typeof fs.realpathSync;
+  readJson: typeof fs.readJson;
+  readJsonSync: typeof fs.readJsonSync;
+  purge: (arg0?: (string | string[] | Set<string>) | undefined) => void;
+};
+```
+
+</>

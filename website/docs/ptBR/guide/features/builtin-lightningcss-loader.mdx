@@ -1,0 +1,193 @@
+import { ApiMeta, Stability } from '@components/ApiMeta';
+
+# Builtin lightningcss-loader
+
+<ApiMeta addedVersion="1.0.0" />
+
+[Lightning CSS](https://lightningcss.dev) is a high performance CSS parser, transformer and minifier written in Rust. It supports parsing and transforming many modern CSS features into syntax supported by target browsers, and also provides a better compression ratio.
+
+Rspack provides a built-in `builtin:lightningcss-loader`, which is based on Lightning CSS to transform CSS. It can replace the [postcss-loader](https://github.com/postcss/postcss-loader) and [autoprefixer](https://github.com/postcss/autoprefixer) for CSS syntax downgrading, prefixing, and other functionalities, offering better performance.
+
+## Example
+
+To use `builtin:lightningcss-loader` in your project, you need to configure it as follows.
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: [
+          {
+            loader: 'builtin:lightningcss-loader',
+            options: {
+              targets: 'ie 10',
+            },
+          },
+          // ... other loaders
+        ],
+      },
+    ],
+  },
+};
+```
+
+## Type declarations
+
+You can use the `LightningcssLoaderOptions` type exported by `@rspack/core` to enable type hints:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: [
+          {
+            loader: 'builtin:lightningcss-loader',
+            /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+            options: {
+              targets: 'ie 10',
+            },
+          },
+          // ... other loaders
+        ],
+      },
+    ],
+  },
+};
+```
+
+## Options
+
+Below are the configurations supported by `builtin:lightningcss-loader`. For detailed configuration, please refer to [lightningcss document](https://lightningcss.dev/transpilation.html).
+
+```ts
+type LightningcssFeatureOptions = {
+  nesting?: boolean;
+  notSelectorList?: boolean;
+  dirSelector?: boolean;
+  langSelectorList?: boolean;
+  isSelector?: boolean;
+  textDecorationThicknessPercent?: boolean;
+  mediaIntervalSyntax?: boolean;
+  mediaRangeSyntax?: boolean;
+  customMediaQueries?: boolean;
+  clampFunction?: boolean;
+  colorFunction?: boolean;
+  oklabColors?: boolean;
+  labColors?: boolean;
+  p3Colors?: boolean;
+  hexAlphaColors?: boolean;
+  spaceSeparatedColorNotation?: boolean;
+  fontFamilySystemUi?: boolean;
+  doublePositionGradients?: boolean;
+  vendorPrefixes?: boolean;
+  logicalProperties?: boolean;
+  selectors?: boolean;
+  mediaQueries?: boolean;
+  color?: boolean;
+};
+
+type LightningcssLoaderOptions = {
+  minify?: boolean;
+  errorRecovery?: boolean;
+  targets?: string[] | string;
+  include?: LightningcssFeatureOptions;
+  exclude?: LightningcssFeatureOptions;
+  /**
+   * @deprecated Use `drafts` instead.
+   * This will be removed in the next major version.
+   */
+  draft?: Drafts;
+  drafts?: Drafts;
+  nonStandard?: NonStandard;
+  pseudoClasses?: PseudoClasses;
+  unusedSymbols?: Set<String>;
+};
+```
+
+### targets
+
+- **Type:** `string | string[]`
+
+Browserslist query string.
+
+Here are some examples of setting targets.
+
+- Setting a browserslist query string:
+
+```js
+const loader = {
+  loader: 'builtin:lightningcss-loader',
+  /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+  options: {
+    targets: 'ie 10',
+  },
+};
+```
+
+- Setting an array of browserslist query strings:
+
+```js
+const loader = {
+  loader: 'builtin:lightningcss-loader',
+  /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+  options: {
+    targets: ['chrome >= 87', 'edge >= 88', '> 0.5%'],
+  },
+};
+```
+
+### errorRecovery
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Control how Lightning CSS handles invalid CSS syntax.
+
+By default, this option is enabled, meaning that when invalid CSS rules or declarations are parsed, Lightning CSS will skip them and emit warnings, while omitting them from the final output without interrupting the compilation process.
+
+#### Ignoring warnings
+
+If you confirm that these warnings can be ignored, you can use [ignoreWarnings](/config/other-options#ignorewarnings) to filter out the warnings from LightningCSS.
+
+For example, ignore all warnings:
+
+```js title="rspack.config.mjs"
+export default {
+  ignoreWarnings: [
+    warning => /LightningCSS parse warning/.test(warning.message),
+  ],
+};
+```
+
+You can also use regular expressions to ignore specific warnings.
+
+#### Disabling `errorRecovery`
+
+If you set `errorRecovery` to `false`, Lightning CSS will throw a compilation error and interrupt the build process when parsing any invalid CSS syntax:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: [
+          {
+            loader: 'builtin:lightningcss-loader',
+            /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+            options: {
+              errorRecovery: false,
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```

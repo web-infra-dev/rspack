@@ -1,0 +1,290 @@
+import WebpackLicense from '@components/WebpackLicense';
+import { Collapse, CollapsePanel } from '@components/Collapse';
+import { Tab, Tabs, PackageManagerTabs } from '@theme';
+import { Stability } from '@components/ApiMeta';
+import CompilerType from '../../types/compiler.mdx';
+import WatchingType from '../../types/watching.mdx';
+import StatsType from '../../types/stats.mdx';
+
+<WebpackLicense from="https://webpack.js.org/api/node/" />
+
+# JavaScript API
+
+Rspack provides a set of JavaScript APIs to be used in JavaScript runtimes like Node.js, Deno, or Bun.
+
+The JavaScript API is useful in scenarios in which you need to customize the build or development process since all the reporting and error handling must be done manually and webpack only does the compiling part. For this reason the [`stats`](/config/stats) configuration options will not have any effect in the `rspack()` call.
+
+:::tip
+`@rspack/core` is designed to align with webpack's JavaScript API to ensure functional consistency and a similar user experience.
+:::
+
+## Installation
+
+To start using the Rspack JavaScript API, first install `@rspack/core` if you haven't yet:
+
+<PackageManagerTabs command="add @rspack/core -D" />
+
+Then introduce the `@rspack/core` module in your JavaScript file:
+
+<Tabs>
+  <Tab label="ESM">
+
+```js title="build.mjs"
+import { rspack } from '@rspack/core';
+```
+
+  </Tab>
+  <Tab label="CJS">
+
+```js title="build.cjs"
+const { rspack } = require('@rspack/core');
+```
+
+  </Tab>
+</Tabs>
+
+## rspack()
+
+The imported rspack function is fed a Rspack Configuration Object and runs the Rspack compiler if a callback function is provided:
+
+```js
+import { rspack } from '@rspack/core';
+
+rspack({}, (err, stats) => {
+  if (err || stats.hasErrors()) {
+    // ...
+  }
+  // Done processing
+});
+```
+
+```ts
+function rspack(
+  options: MultiRspackOptions | RspackOptions,
+  callback?: Callback<Error, MultiStats | Stats>,
+): null | MultiCompiler | Compiler;
+```
+
+:::tip
+The `err` object will not include compilation errors. Those must be handled separately using `stats.hasErrors()`, which will be covered in detail in the [Error Handling](/api/javascript-api/index#error-handling) section of this guide. The `err` object will only contain rspack-related issues, such as misconfiguration, etc.
+:::
+
+:::tip
+You can provide the `rspack` function with an array of configurations. See the [MultiCompiler](/api/javascript-api/index#multicompiler) section below for more information.
+:::
+
+## Compiler instance
+
+If you don't pass the `rspack` runner function a callback, it will return a Rspack `Compiler` instance. This instance can be used to manually trigger the Rspack runner or have it build and watch for changes, much like the [CLI](/api/cli). The `Compiler` instance provides the following methods:
+
+- `.run(callback)`
+- `.watch(watchOptions, handler)`
+
+Typically, only one master `Compiler` instance is created, although child compilers can be created in order to delegate specific tasks. The `Compiler` is ultimately a function which performs bare minimum functionality to keep a lifecycle running. It delegates all the loading, bundling, and writing work to registered plugins.
+
+The `hooks` property on a `Compiler` instance is used to register a plugin to any hook event in the `Compiler`'s lifecycle. The [`RspackOptionsApply`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/rspackOptionsApply.ts) utilities are used by Rspack to configure its `Compiler` instance with all the built-in plugins.
+
+> See [Compiler API](/api/javascript-api/compiler) for more details.
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
+## compiler.run
+
+The `run` method is then used to kickstart all compilation work. Upon completion, the given `callback` function is executed. The final logging of stats and errors should be done in this `callback` function.
+
+:::warning
+The API only supports a single concurrent compilation at a time. When using `run` or `watch`, call `close` and wait for it to finish before calling `run` or `watch` again. Concurrent compilations will corrupt the output files.
+:::
+
+```js
+import { rspack } from '@rspack/core';
+
+const compiler = rspack({
+  // ...
+});
+
+compiler.run((err, stats) => {
+  // ...
+
+  compiler.close(closeErr => {
+    // ...
+  });
+});
+```
+
+## compiler.watch
+
+Calling the `watch` method triggers the rspack runner, but then watches for changes (much like CLI: `rspack --watch`), as soon as Rspack detects a change, runs again. Returns an instance of `Watching`.
+
+```js
+import { rspack } from '@rspack/core';
+
+const compiler = rspack({
+  // ...
+});
+
+const watching = compiler.watch(
+  {
+    // Example
+    aggregateTimeout: 300,
+    poll: undefined,
+  },
+  (err, stats) => {
+    // Print watch/build result here...
+    console.log(stats);
+  },
+);
+```
+
+`Watching` options are covered in detail [here](/config/watch#watchoptions).
+
+:::warning
+Filesystem inaccuracies may trigger multiple builds for a single change. In the example above, the `console.log` statement may fire multiple times for a single modification. Users should expect this behavior and may check `stats.hash` to see if the file hash has actually changed.
+:::
+
+> See [`Compiler.watch`](/api/javascript-api/compiler#watch) for more details.
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Watching.ts"
+    key="watching"
+  >
+    <WatchingType />
+  </CollapsePanel>
+</Collapse>
+
+## Stats object
+
+The `stats` object that is passed as a second argument of the [`rspack()`](/api/javascript-api/index#rspack) callback, is a good source of information about the code compilation process. It includes:
+
+- Errors and Warnings (if any)
+- Timings
+- Module and Chunk information
+
+The [Rspack CLI](/api/cli) uses this information to display nicely formatted output in your console.
+
+:::tip
+When using the `MultiCompiler`, a `MultiStats` instance is returned that fulfills the same interface as `stats`, i.e. the methods described below.
+:::
+
+> See [Stats API](/api/javascript-api/stats) for more details.
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Stats.ts" key="stats">
+    <StatsType />
+  </CollapsePanel>
+</Collapse>
+
+## MultiCompiler
+
+The `MultiCompiler` module allows Rspack to run multiple configurations in separate compilers. If the `options` parameter in the Rspack's JavaScript API is an array of options, Rspack applies separate compilers and calls the callback after all compilers have been executed.
+
+```js
+import { rspack } from '@rspack/core';
+
+rspack(
+  [
+    { entry: './index1.js', output: { filename: 'bundle1.js' } },
+    { entry: './index2.js', output: { filename: 'bundle2.js' } },
+  ],
+  (err, stats) => {
+    process.stdout.write(stats.toString() + '\n');
+  },
+);
+```
+
+> See [MultiCompiler API](/api/javascript-api/compiler#multicompiler) for more details.
+
+## Error handling
+
+For good error handling, you need to account for these three types of errors:
+
+- Fatal rspack errors (wrong configuration, etc)
+- Compilation errors (missing modules, syntax errors, etc)
+- Compilation warnings
+
+Here's an example that handles all conditions:
+
+```js
+import { rspack } from '@rspack/core';
+
+rspack(
+  {
+    // ...
+  },
+  (err, stats) => {
+    if (err) {
+      console.error(err.stack || err);
+      if (err.details) {
+        console.error(err.details);
+      }
+      return;
+    }
+
+    const info = stats.toJson();
+
+    if (stats.hasErrors()) {
+      console.error(info.errors);
+    }
+
+    if (stats.hasWarnings()) {
+      console.warn(info.warnings);
+    }
+
+    // Log result...
+  },
+);
+```
+
+## Custom file systems
+
+:::danger Differences with webpack
+
+1. The current support for `inputFileSystem` in Rspack is limited, and the ability to customize the filesystem read capability consistent with webpack has not yet been implemented. Please refer to: [Issue #5091](https://github.com/web-infra-dev/rspack/issues/5091).
+
+2. With Rspack, when using a specified output file system, there's no longer a requirement to supply `mkdirp` and `join` utility methods.
+
+:::
+
+By default, Rspack reads files and writes files to disk using a normal file system. However, it is possible to change the input or output behavior using a different kind of file system (memory, webDAV, etc). To accomplish this, one can change the `inputFileSystem` or `outputFileSystem`. For example, you can replace the default `outputFileSystem` with [`memfs`](https://github.com/streamich/memfs) to write files to memory instead of to disk:
+
+```js
+import { createFsFromVolume, Volume } from 'memfs';
+import { rspack } from '@rspack/core';
+
+const fs = createFsFromVolume(new Volume());
+const compiler = rspack({
+  /* options */
+});
+
+compiler.outputFileSystem = fs;
+compiler.run((err, stats) => {
+  // Read the output later:
+  const content = fs.readFileSync('...');
+  compiler.close(closeErr => {
+    // ...
+  });
+});
+```
+
+## `sources` object
+
+`@rspack/core` exports the [webpack-sources](https://github.com/webpack/webpack-sources) module through `sources`. It provides a set of classes for creating and manipulating source code fragments and source maps. When developing Rspack plugins, you can use these classes to handle and manipulate source code.
+
+```js
+import { sources } from '@rspack/core';
+
+const { RawSource } = sources;
+const source = new RawSource('console.log("Hello, world!");');
+```
+
+For detailed usage, please refer to the [webpack-sources](https://github.com/webpack/webpack-sources) documentation.

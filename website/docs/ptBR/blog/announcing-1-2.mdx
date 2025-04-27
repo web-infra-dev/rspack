@@ -1,0 +1,192 @@
+---
+date: 2025-1-21 16:00:00
+sidebar: false
+---
+
+_January 21, 2025_
+
+# Announcing Rspack 1.2
+
+![Rspack 1.2](https://assets.rspack.dev/rspack/rspack-banner-v1-2.png)
+
+> Posted by [@jerrykingxyz](https://github.com/jerrykingxyz), [@chenjiahan](https://github.com/chenjiahan), [@JSerFeng](https://github.com/JSerFeng), [@ahabhgk](https://github.com/ahabhgk)
+
+---
+
+Rspack v1.2 has been released!
+
+Notable changes:
+
+- New features
+  - [Persistent cache](#persistent-cache): An experimental feature that improves hot start performance by up to **250%**.
+  - [Yarn PnP](#yarn-pnp)
+- Performance improvements
+  - [Faster code splitting](#faster-code-splitting): An experimental flag that significantly improve the code splitting performance.
+  - [Watch scope change](#watch-scope-change)
+  - [Reduced memory usage](#reduced-memory-usage)
+  - [Smaller minification size](#smaller-minification-size)
+  - [Faster side effects optimization](#faster-side-effects-optimization)
+- Ecosystem
+  - [Angular support](#angular-support)
+  - [Rsbuild v1.2](#rsbuild-v1-2)
+
+## New features
+
+### Persistent cache
+
+Rspack v1.2 introduced an experimental cache configuration that supports persistent caching, which can significantly improve hot startup speed.
+
+```js title="rspack.config.mjs"
+export default {
+  cache: true,
+  experiments: {
+    cache: {
+      type: 'persistent',
+    },
+  },
+};
+```
+
+When a build hits the cache, it can bring up to 250% performance improvement in real projects.
+
+| Project type               | Number of modules | Normal dev | Cold dev     | Hot dev       |
+| -------------------------- | ----------------- | ---------- | ------------ | ------------- |
+| Initial project            | 26                | 146 ms     | 149 ms (+2%) | 134 ms (-8%)  |
+| Project with 10000 modules | 10040             | 2.43 s     | 2.43 s (+0%) | 1.16 s (-52%) |
+| Project with Less files    | 1898              | 3.47 s     | 3.55 s (+2%) | 0.92 s (-73%) |
+| Large real project         | 45968             | 93.3 s     | 91.9 s (-1%) | 26 s (-72%)   |
+
+Note that persistent cache is still in an experimental stage and currently only supports the make stage of the build process (including module resolution, transformation, etc.). We will continue to optimize it in the future to further improve cache performance and coverage.
+
+If you encounter any issues while using persistent cache, please feel free to report them via GitHub Issues.
+
+> See [experiments.cache](/config/experiments#experimentscache) for more details.
+
+### Yarn PnP
+
+Rspack has added support for [Yarn PnP](https://yarnpkg.com/features/pnp), which is enabled by default based on `process.versions.pnp` (that is, when the application is running in a Yarn PnP environment), and can also be forced to enable by configuring `resolve.pnp` to `true`.
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    pnp: true,
+  },
+};
+```
+
+Special thanks to [@arcanis](https://x.com/arcanis), the lead maintainer for Yarn, for implementing PnP resolution in the Rspack resolver.
+
+> See [resolve.pnp](/config/resolve#resolvepnp) for more details.
+
+## Performance improvements
+
+### Faster code splitting
+
+In previous versions of Rspack, the code splitting would take up a lot of time under HMR. In Rspack v1.2, we implemented a new code splitting algorithm that supports multithreading and more efficient incremental rebuilds. If your code base contains a lot of dynamic imports, and code splitting will take a lot of time. Enabling this new feature can significantly improve the performance of code splitting.
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    parallelCodeSplitting: true,
+  },
+};
+```
+
+> See [experiments.parallelCodeSplitting](/config/experiments#experimentsparallelcodesplitting) for more details.
+
+### Watch scope change
+
+Rspack v1.2 no longer watching the `node_modules` directory by default. This can greatly reduce the number of files to watch and improve performance.
+
+According to our [benchmark repo](https://github.com/rspack-contrib/build-tools-performance), this change will:
+
+- Reduce memory usage by 120MB
+- Increase dev startup speed by 40%
+- Increase HMR speed by 20~30%
+
+This change will not affect symlinked resources in monorepo, as symlinked resources are resolved to their real path by default.
+
+If you prefer to keep the previous behavior, you can set:
+
+```js title="rspack.config.mjs"
+export default {
+  watchOptions: {
+    ignored: [],
+  },
+};
+```
+
+> See [watchOptions.ignored](/config/watch#watchoptionsignored) for more details.
+
+### Reduced memory usage
+
+We have optimized the data structure used to store strings during the [rspack-sources](https://github.com/web-infra-dev/rspack-sources) computation process. Throughout the computation, all string data points to the string heap memory of the root node, effectively avoiding the generation of new string allocations during the computation.
+
+> See [perf: reduce memory consumption of CachedSource](https://github.com/web-infra-dev/rspack/pull/8666) for more details.
+
+### Smaller minification size
+
+Rspack v1.2 set default SWC minimizer `passes` to `2` to reduce bundle size by 1%-7%.
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  minimizerOptions: {
+    compress: {
+      // Defaults to 1 in previous versions
+      passes: 2,
+    },
+  },
+});
+```
+
+[passes](https://swc.rs/docs/configuration/minification#jscminifycompress) is the the maximum number of times to run compress. In some cases, more than one pass leads to further compressed code. Given Rspack's inherent speed, we've determined that using `2` passes by default strikes an optimal balance between build performance and bundle size.
+
+> See [feat: set default SWC minimizer passes to 2 to reduce bundle size](https://github.com/web-infra-dev/rspack/pull/8853) for more details.
+
+### Faster side effects optimization
+
+The implementation of side effects optimization has been refactored to be simpler and more parallelism-friendly. It can take full advantage of parallelism to improve performance. In tested projects, there is typically a 2x-3x performance improvement at this stage.
+
+> See [perf: parallelize side effects optimization](https://github.com/web-infra-dev/rspack/pull/8781) for more details.
+
+## Ecosystem
+
+### Angular support
+
+Nx team core member [Colum Ferry](https://github.com/Coly010) has brought complete Angular support to the Rspack ecosystem.
+
+With the newly released `@ng-rsbuild/plugin-angular` and `@ng-rspack/build` packages, developers can now use Rspack or Rsbuild to build Angular applications, with faster build performance and module federation support.
+
+Please visit [Angular Rspack](https://github.com/nrwl/angular-rspack) for more information.
+
+### Rsbuild v1.2
+
+Rsbuild v1.2 has been released alongside Rspack v1.2, bringing several new features:
+
+- Customize manifest file generation through [output.manifest.generate](https://rsbuild.dev/config/output/manifest#generate).
+- Specify files to retain in the dist directory using [cleanDistPath.keep](https://rsbuild.dev/config/output/clean-dist-path#keep).
+- [@rsbuild/plugin-assets-retry](https://rsbuild.dev/plugins/list/plugin-assets-retry) now generates smaller runtime code.
+
+> For more details, see [Rsbuild v1.2.0](https://github.com/web-infra-dev/rsbuild/releases/tag/v1.2.0).
+
+## Upgrade guide
+
+### Upgrade SWC plugins
+
+In Rspack v1.2, the Rust crate `swc_core` has been upgraded to `10.1.0`. Users of the SWC Wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
+
+For more details, see [FAQ - SWC plugin version unmatched](https://swc.rs/docs/plugin/selecting-swc-core).
+
+### Disable WarnCaseSensitiveModulesPlugin by default
+
+The [WarnCaseSensitiveModulesPlugin](/plugins/webpack/warn-case-sensitive-modules-plugin) is used to check the paths of modules and issue warnings for modules that conflict when their paths are all in lowercase. Rspack used to enable it by default, but since it is only a "linter" plugin and it has additional performance overhead especially in development mode. So now it is disabled by default.
+
+If you prefer to keep the previous behavior, you can set:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.WarnCaseSensitiveModulesPlugin()],
+};
+```

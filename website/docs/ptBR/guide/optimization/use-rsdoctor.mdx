@@ -1,0 +1,64 @@
+# Use Rsdoctor
+
+[Rsdoctor](https://rsdoctor.dev/) is a build analyzer tailored for the Rspack ecosystem.
+
+Rsdoctor is committed to being a one-stop, intelligent build analyzer that makes the build process transparent, predictable, and optimizable through visualization and smart analysis, helping development teams precisely identify bottlenecks, optimize performance, and improve engineering quality.
+
+If you need to debug the build outputs or build process, you can use Rsdoctor for troubleshooting.
+
+## How to use
+
+In an Rspack project, you can enable Rsdoctor by following these steps:
+
+1. Install the `@rsdoctor/rspack-plugin` plugin:
+
+import { PackageManagerTabs } from '@theme';
+
+<PackageManagerTabs command="add @rsdoctor/rspack-plugin -D" />
+
+2. Register the `RsdoctorRspackPlugin` plugin in the [plugins](/config/plugins) option of Rspack:
+
+```ts title="rspack.config.mjs"
+import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
+
+export default {
+  // ...
+  plugins: [
+    // Register the plugin only when RSDOCTOR is true, as the plugin increases build time
+    process.env.RSDOCTOR &&
+      new RsdoctorRspackPlugin({
+        // plugin options
+      }),
+  ],
+};
+```
+
+3. Add the `RSDOCTOR=true` variable before the build command:
+
+```bash
+# dev
+RSDOCTOR=true rspack serve
+
+# build
+RSDOCTOR=true rspack build
+```
+
+As Windows does not support the above usage, you can also use [cross-env](https://npmjs.com/package/cross-env) to set environment variables. This ensures compatibility across different systems:
+
+```bash
+# dev
+cross-env RSDOCTOR=true rspack serve
+
+# build
+cross-env RSDOCTOR=true rspack build
+```
+
+Rsdoctor will open the build analysis page after the build is complete. For complete features, please refer to [Rsdoctor documentation](https://rsdoctor.dev/).
+
+## Configure Rsdoctor
+
+See the [Options](https://rsdoctor.dev/config/options/options) documentation of Rsdoctor to configure the options of the RsdoctorRspackPlugin.
+
+## More features
+
+See the [Rsdoctor features](https://rsdoctor.dev/guide/start/features) to learn about all the features of Rsdoctor.

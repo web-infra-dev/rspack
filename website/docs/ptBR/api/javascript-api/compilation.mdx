@@ -1,0 +1,806 @@
+import WebpackLicense from '@components/WebpackLicense';
+import AssetInfoType from '../../types/asset-info.mdx';
+import SourceType from '../../types/source.mdx';
+import ChunkGroupType from '../../types/chunk-group.mdx';
+import EntrypointType from '../../types/entrypoint.mdx';
+import ModuleType from '../../types/module.mdx';
+import ChunkType from '../../types/chunk.mdx';
+import FilenameType from '../../types/filename.mdx';
+import PathDataType from '../../types/path-data.mdx';
+import StatsType from '../../types/stats.mdx';
+import LoggerType from '../../types/logger.mdx';
+import CacheType from '../../types/cache.mdx';
+import CompilerType from '../../types/compiler.mdx';
+import RspackErrorType from '../../types/rspack-error.mdx';
+import CompilationDependenciesType from '../../types/compilation-dependencies.mdx';
+import { Collapse, CollapsePanel } from '@components/Collapse';
+import { ApiMeta } from '@components/ApiMeta';
+
+<WebpackLicense from="https://webpack.js.org/api/compilation-object/" />
+
+# Compilation
+
+This page will list the methods and properties available on the compilation object.
+
+:::warning Notice
+In Rspack, the real compilation object runs on the Rust side, and the JavaScript compilation object is only a **proxy object** used to communicate with the Rust compilation object.
+
+Therefore, some complex data structures and methods will not be supported on the JavaScript compilation object, the data is **read-only** and the structure may differ from webpack.
+:::
+
+## Compilation methods
+
+### emitAsset
+
+Emit a new asset, throw an error if the asset has already exists.
+
+```ts
+emitAsset(
+  filename: string, // filename of the new asset
+  source: Source, // content of the new asset
+  info?: AssetInfo // asset info of the new asset
+): void;
+```
+
+The following code will add a new asset named `asset-name.js` and will not be compressed:
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+  const { RawSource } = compiler.webpack.sources;
+  compilation.hooks.processAssets.tap('MyPlugin', () => {
+    const buffer = Buffer.from(
+      'i am content of emit asset, do not minimize me',
+    );
+    const source = new RawSource(buffer, false);
+    compilation.emitAsset('asset-name.js', source, {
+      minimized: true,
+    });
+  });
+});
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="AssetInfo.ts"
+    key="AssetInfo"
+  >
+    <AssetInfoType />
+  </CollapsePanel>
+</Collapse>
+
+### updateAsset
+
+Update an existing asset, throw an error if the asset does not exist.
+
+```ts
+updateAsset(
+  filename: string, // filename of the updating asset
+  source: Source | ((source: Source) => Source), // the new content or a function returns the new content
+  info?:  // the new info or a function returns the new info
+    | AssetInfo
+    | ((assetInfo: AssetInfo) => AssetInfo)
+): void;
+```
+
+The following code replaces the content of `main.js` and not to minimize it:
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+  const { RawSource } = compiler.webpack.sources;
+  compilation.hooks.processAssets.tap('MyPlugin', () => {
+    const updatedSource = new RawSource(
+      `module.exports = "This is the updated"`,
+    );
+    compilation.updateAsset('main.js', updatedSource, {
+      minimized: true,
+    });
+  });
+});
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="AssetInfo.ts"
+    key="AssetInfo"
+  >
+    <AssetInfoType />
+  </CollapsePanel>
+</Collapse>
+
+### renameAsset
+
+Rename an existing asset.
+
+```ts
+renameAsset(
+  filename: string, // filename of the renaming asset
+  newFilename: string // new filename
+): void;
+```
+
+The following code renames the asset named `main.js` to `my-asset-name.js`:
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+  compilation.hooks.processAssets.tap('MyPlugin', () => {
+    compilation.renameAsset('main.js', 'my-asset-name.js');
+  });
+});
+```
+
+### deleteAsset
+
+Delete an existing asset.
+
+```ts
+deleteAsset(
+  filename: string // filename of the deleting asset
+): void;
+```
+
+The following code will delete the asset named `no-need.js`:
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+  compilation.hooks.processAssets.tap('MyPlugin', () => {
+    compilation.deleteAsset('no-need.js');
+  });
+});
+```
+
+### getAssets
+
+Get the list of asset objects.
+
+```ts
+getAssets(): ReadonlyArray<{
+  filename: string;
+  source: Source;
+  info: AssetInfo;
+}>;
+```
+
+The following code will print the total size of all assets:
+
+```js
+compiler.hooks.compilation.tap('MyPlugin', compilation => {
+  compilation.hooks.processAssets.tap('MyPlugin', () => {
+    const assets = compilation.getAssets();
+    const totalSize = assets.reduce(
+      (total, asset) => total + asset.source.size(),
+      0,
+    );
+    console.log(`total size: ${totalSize}`);
+  });
+});
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="AssetInfo.ts"
+    key="AssetInfo"
+  >
+    <AssetInfoType />
+  </CollapsePanel>
+</Collapse>
+
+### getAsset
+
+Get the asset object with the specified name.
+
+```ts
+getAsset(
+  filename: string // filename of the getting asset
+): Readonly<{
+  filename: string;
+  source: Source;
+  info: AssetInfo;
+}> | void;
+```
+
+The following code will print the size of the asset named `main.js`:
+
+```js
+compiler.hooks.compilation.tap('MyPlugin', compilation => {
+  compilation.hooks.processAssets.tap('MyPlugin', () => {
+    const assetSize = compilation.getAsset('main.js')?.source.size();
+    console.log(`main size: ${assetSize}`);
+  });
+});
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="AssetInfo.ts"
+    key="AssetInfo"
+  >
+    <AssetInfoType />
+  </CollapsePanel>
+</Collapse>
+
+### getPath
+
+Generate path string based on the Filename template, see [Template String](/config/output#template-string) for the template rules.
+
+```ts
+getPath(
+  filename: Filename, // filename template
+  data: PathData = {} // generating path data
+): string;
+```
+
+The following code will replace the placeholder in the template to generate the path:
+
+```js
+const path = compilation.getPath('[contenthash]-[fullhash].js', {
+  contentHash: 'some1',
+  hash: 'some2',
+});
+console.log(path); // "some1-some2.js"
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Filename.ts"
+    key="FileName"
+  >
+    <FilenameType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="PathData.ts"
+    key="PathData"
+  >
+    <PathDataType />
+  </CollapsePanel>
+</Collapse>
+
+### getPathWithInfo
+
+Generate path string and asset info based on the Filename template, see [Template String](/config/output#template-string).
+
+```ts
+getPathWithInfo(
+  filename: Filename, // filename template
+  data: PathData = {} // generating path data
+): {
+  path: string;
+  info: AssetInfo;
+};
+```
+
+The following code will replace the placeholder in the template to generate the path and asset info:
+
+```ts
+const { path, info } = compilation.getPathWithInfo(
+  '[contenthash]-[fullhash].js',
+  {
+    contentHash: 'some1',
+    hash: 'some2',
+  },
+);
+console.log(path); // "some1-some2.js"
+console.log(info);
+/* Object {
+  immutable: true,
+  minimized: false,
+  fullhash: [ 'some2' ],
+  chunkhash: [],
+  contenthash: [ 'some1' ],
+  development: false,
+  hotModuleReplacement: false,
+  related: {},
+  extras: {}
+} */
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Filename.ts"
+    key="FileName"
+  >
+    <FilenameType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="PathData.ts"
+    key="PathData"
+  >
+    <PathDataType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="AssetInfo.ts"
+    key="AssetInfo"
+  >
+    <AssetInfoType />
+  </CollapsePanel>
+</Collapse>
+
+### getStats
+
+Get the stats object of current compilation:
+
+```ts
+getStats(): Stats;
+```
+
+The following code prints the total number of modules:
+
+```js
+compiler.hooks.emit.tapAsync('MyPlugin', compilation => {
+  const modules = compilation.getStats().toJson({ modules: true }).modules;
+  console.log(`Total modules: ${modules.length}`);
+});
+```
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Stats.ts" key="Stats">
+    <StatsType />
+  </CollapsePanel>
+</Collapse>
+
+### createChildCompiler
+
+Allows running another instance of Rspack inside of Rspack. However, as a child with different settings and configurations applied. It copies all hooks and plugins from the parent (or top-level compiler) and creates a child `Compiler` instance. Returns the created `Compiler`.
+
+```ts
+createChildCompiler(
+  name: string, // name for the child `Compiler`
+  outputOptions: OutputNormalized, // Output options object
+  plugins: RspackPluginInstance[] // Plugins that will be applied
+): Compiler;
+```
+
+The following code will start a child compiler with `child-entry.js` as the entry, and output to `dist/child`:
+
+```js
+compiler.hooks.make.tap('MyPlugin', compilation => {
+  const childCompiler = compilation.createChildCompiler(
+    'ChildCompiler',
+    {
+      path: 'dist/child',
+    },
+    [new compiler.webpack.EntryPlugin(compiler.context, './child-entry.js')],
+  );
+  childCompiler.compile((err, childCompilation) => {});
+});
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
+### addRuntimeModule
+
+<ApiMeta addedVersion="1.0.6" />
+
+Add a custom runtime module to the compilation.
+
+```ts
+addRuntimeModule(
+  c: Chunk, // the runtime chunk which to add the runtime module
+  m: RuntimeModule, // the runtime module instance to add
+): void;
+```
+
+The following code will add a runtime module which define `__webpack_require__.mock` to the `"main"` chunk:
+
+```js title="rspack.config.mjs"
+export default {
+  entry: './index.js',
+  plugins: [
+    {
+      apply(compiler) {
+        const { RuntimeModule } = compiler.webpack;
+
+        class CustomRuntimeModule extends RuntimeModule {
+          constructor() {
+            super('custom');
+          }
+
+          generate() {
+            const compilation = this.compilation;
+            return `
+            __webpack_require__.mock = function() {
+              // ...
+            };
+          `;
+          }
+        }
+
+        compiler.hooks.thisCompilation.tap('CustomPlugin', compilation => {
+          compilation.hooks.runtimeRequirementInTree
+            .for(RuntimeGlobals.ensureChunkHandlers)
+            .tap('CustomPlugin', (chunk, set) => {
+              if (chunk.name === 'main') {
+                compilation.addRuntimeModule(chunk, new CustomRuntimeModule());
+              }
+            });
+        });
+      },
+    },
+  ],
+};
+```
+
+When implementing a custom runtime module class, the following methods/properties can be overridden to control the behavior of the runtime module:
+
+- Pass the `name` and `stage` parameters in the constructor to specify the module name and the insertion stage.
+- Override the `generate()` method to control the generated code of the module.
+- Override the `shouldIsolate()` method to control whether the module is wrapped in an IIFE.
+- Override the `attach()` method to modify the behavior when the module is added.
+- Modify its `fullHash` or `dependentHash` properties to control whether the module can be cached.
+
+### rebuildModule
+
+Triggers a re-build of the module.
+
+```ts
+rebuildModule(
+  m: Module, // module to be rebuilt
+  f: (err: Error | null, m: Module | null) => void //  function to be invoked when the module finishes rebuilding
+): void;
+```
+
+The following code will rebuild the module ending with `a.js`:
+
+```js
+compiler.hooks.compilation.tap('MyPlugin', compilation => {
+  compilation.hooks.finishModules.tapPromise('MyPlugin', async modules => {
+    const oldModule = Array.from(modules).find(item =>
+      item.resource.endsWith('a.js'),
+    );
+    compilation.rebuildModule(oldModule, (err, m) => {
+      console.log(`Rebuilt ${m.identifier()}.`);
+    });
+  });
+});
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
+### getLogger
+
+Get a log output utility object with the specified name, which can be used to print logs with unified format in the plugin.
+
+```ts
+getLogger(name: string | (() => string)): Logger;
+```
+
+The following code prints the asset to the debug log in `processAssets`:
+
+```js
+compiler.hooks.compilation.tap('MyPlugin', compilation => {
+  const logger = compilation.getLogger('MyPlugin');
+
+  compilation.hooks.processAssets.tap('MyPlugin', () => {
+    for (const asset of compilation.getAssets()) {
+      logger.debug(`asset name: ${asset.name}`);
+      logger.debug(`asset info: ${asset.info}`);
+    }
+  });
+});
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Logger.ts"
+    key="Logger"
+  >
+    <LoggerType />
+  </CollapsePanel>
+</Collapse>
+
+### getCache
+
+Get a cache object with the specified name, which can be used for the plugin to share data during multiple compilations.
+
+```ts
+getCache(name: string): CacheFacade;
+```
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Cache.ts" key="Cache">
+    <CacheType />
+  </CollapsePanel>
+</Collapse>
+
+## Compilation properties
+
+### options
+
+**Type**: `RspackOptionsNormalized`
+
+The normalized options used by this Compilation, see [Configure Rspack](/config/index) for details.
+
+### compiler
+
+**Type**: `Compiler`
+
+Current [compiler object](/api/javascript-api/index).
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
+### hooks
+
+The [Compilation hooks](/api/plugin-api/compilation-hooks).
+
+### hash/fullhash
+
+**Type**: `Readonly<string | null>`
+
+The hash of this compilation.
+
+### assets
+
+**Type**: `Record<string, Source>`
+
+The mapping from asset filenames and content sources.
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+</Collapse>
+
+### chunkGroups
+
+**Type**: `ReadonlyArray<ChunkGroup>`
+
+The list of chunk group objects, with the structure as follows:
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ChunkGroup.ts"
+    key="ChunkGroup"
+  >
+    <ChunkGroupType />
+  </CollapsePanel>
+</Collapse>
+
+### entrypoints
+
+**Type**: `ReadonlyMap<string, Entrypoint>`
+
+The mapping from name to entrypoint, which is a special chunk group and include a runtime chunk.
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Entrypoint.ts"
+    key="entrypoint"
+  >
+    <EntrypointType />
+  </CollapsePanel>
+</Collapse>
+
+### namedChunkGroups
+
+**Type**: `ReadonlyMap<string, Readonly<ChunkGroup>>`
+
+The mapping from names to chunk groups.
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ChunkGroup.ts"
+    key="ChunkGroup"
+  >
+    <ChunkGroupType />
+  </CollapsePanel>
+</Collapse>
+
+### modules
+
+**Type:** `ReadonlySet<Module>`
+
+List of all modules, with the structure as follows:
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
+### builtModules
+
+**Type:** `ReadonlySet<Module>`
+
+List of built modules that were not be cached, with the structure as follows:
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
+### chunks
+
+**Type:** `ReadonlySet<Chunk>`
+
+List of all chunks, with the structure as follows:
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+</Collapse>
+
+### namedChunks
+
+**Type:** `ReadonlyMap<string, Readonly<Chunk>>`
+
+The mapping from names to chunks.
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+</Collapse>
+
+### fileDependencies
+
+**Type:** `CompilationDependencies`
+
+List of files this compilation depends on.
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="CompilationDependencies.ts"
+    key="CompilationDependencies"
+  >
+    <CompilationDependenciesType />
+  </CollapsePanel>
+</Collapse>
+
+### contextDependencies
+
+**Type:** `CompilationDependencies`
+
+List of directories this compilation depends on.
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="CompilationDependencies.ts"
+    key="CompilationDependencies"
+  >
+    <CompilationDependenciesType />
+  </CollapsePanel>
+</Collapse>
+
+### missingDependencies
+
+**Type:** `CompilationDependencies`
+
+List of not existing files this compilation depends on.
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="CompilationDependencies.ts"
+    key="CompilationDependencies"
+  >
+    <CompilationDependenciesType />
+  </CollapsePanel>
+</Collapse>
+
+### buildDependencies
+
+**Type:** `CompilationDependencies`
+
+List of build dependencies this compilation depends on.
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="CompilationDependencies.ts"
+    key="CompilationDependencies"
+  >
+    <CompilationDependenciesType />
+  </CollapsePanel>
+</Collapse>
+
+### errors
+
+**Type:** `RspackError[]`
+
+List of emitted errors during this compilation, with the structure as follows:
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="RspackError.ts"
+    key="RspackError"
+  >
+    <RspackErrorType />
+  </CollapsePanel>
+</Collapse>
+
+### warnings
+
+**Type:** `RspackError[]`
+
+List of emitted warnings during this compilation.
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="RspackError.ts"
+    key="RspackError"
+  >
+    <RspackErrorType />
+  </CollapsePanel>
+</Collapse>

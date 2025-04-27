@@ -1,0 +1,138 @@
+# Módulos de assets
+
+Assets (como imagens, fontes, vídeos etc.) são cidadãos de primeira classe no Rspack, o que significa que você não precisa de nenhum loader para processá-los. Diferente de outros tipos de módulos, os assets normalmente existem de forma independente, sendo gerados na granularidade de um módulo.
+
+:::tip Módulo vs Chunk
+
+Outros tipos de módulos, como módulos JavaScript, são normalmente agrupados em um ou mais chunks para geração do bundle final. No caso dos assets, é quase impossível que sejam agrupados, por isso geralmente existem de forma independente. Esta é uma das razões mais diretas para serem chamados de "módulos de assets".
+
+:::
+
+## Tipos de módulos de assets suportados
+
+- **`'asset/inline'`**: Converte um asset para DataURI usando codificação Base64 (sem suporte a configuração de codificação atualmente)
+- **`'asset/resource'`**: Converte um asset para um arquivo separado e exporta o endereço URL
+- **`'asset'`**:
+  - Seleciona automaticamente `'asset/inline'` ou `'asset/resource'` baseado no tamanho do asset
+  - Por padrão, usa `'asset/inline'` se o asset for menor ou igual a 8096 bytes, caso contrário usa `'asset/resource'`
+- **`'asset/source'`**: Converte e exporta o arquivo de asset como uma string bruta
+
+## Exemplo
+
+### Usando `type: 'asset'`
+
+Usando `type: 'asset'` para selecionar automaticamente um mecanismo baseado em condições:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.png$/,
+        type: 'asset',
+      },
+    ],
+  },
+};
+```
+
+Por padrão, o mecanismo `'asset/inline'` será aplicado se o tamanho do asset for menor ou igual a 8096 bytes, caso contrário será usado o `'asset/resource'`.
+
+Se desejar modificar este comportamento, você pode usar [`module.parser.asset.dataUrlCondition`](/config/module#moduleparserasset) para alterar a configuração global, ou [`Rule.parser.dataUrlCondition`](/config/module#ruleparserdataurlcondition) para configurar separadamente para um módulo específico.
+
+### Substituindo o `url-loader`
+
+Substituindo o `url-loader` por `type: 'asset/inline'`:
+
+```diff title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.png$/,
+-       use: [
+-         {
+-           loader: 'url-loader',
+-         },
+-       ],
++       type: 'asset/inline'
+      },
+    ],
+  },
+};
+```
+
+### Substituindo o `file-loader`
+
+Substituindo o `file-loader` por `type: 'asset/resource'`:
+
+```diff title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.png$/,
+-       use: [
+-         {
+-           loader: 'file-loader',
+-         },
+-       ],
++       type: 'asset/resource'
+      },
+    ],
+  },
+};
+```
+
+### Substituindo o `raw-loader`
+
+Substituindo o `raw-loader` por `type: 'asset/source'`:
+
+```diff title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        resourceQuery: /raw/,
+-       use: [
+-         {
+-           loader: 'raw-loader',
+-         },
+-       ],
++       type: 'asset/source'
+      },
+    ],
+  },
+};
+```
+
+### Usando otimizadores como loaders
+
+Há situações em que queremos otimizar uma imagem específica, como por exemplo comprimindo seu tamanho. Podemos continuar usando esses loaders.
+
+Por exemplo, otimizando todos os arquivos `.png` com o [image-minimizer-webpack-plugin](https://github.com/webpack-contrib/image-minimizer-webpack-plugin):
+
+```js title="rspack.config.mjs"
+import ImageMinimizerPlugin from 'image-minimizer-webpack-plugin';
+
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.png$/,
+        use: [
+          {
+            loader: ImageMinimizerPlugin.loader,
+            options: {
+              // ...
+            },
+          },
+        ],
+        type: 'asset/resource',
+      },
+    ],
+  },
+};
+```
+
+A condição acima usa `type: 'asset/resource'`, que direcionará o Rspack a completar a geração de arquivos individuais para todos os arquivos correspondentes e retornar o endereço URL final do asset.

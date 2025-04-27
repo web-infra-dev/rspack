@@ -1,0 +1,1037 @@
+import Mermaid from '@components/Mermaid';
+import { Badge } from '@theme';
+import ModuleType from '../../types/module.mdx';
+import ChunkType from '../../types/chunk.mdx';
+import RuntimeModuleType from '../../types/runtime-module.mdx';
+import SourceType from '../../types/source.mdx';
+import HashType from '../../types/hash.mdx';
+import CompilerType from '../../types/compiler.mdx';
+import { Collapse, CollapsePanel } from '@components/Collapse';
+import Columns from '@components/Columns';
+import { NoSSR } from 'rspress/runtime';
+import { ApiMeta } from '@components/ApiMeta';
+
+# Compilation hooks
+
+:::info
+The main compilation logic of Rspack runs on the Rust side. For factors such as stability, performance, and architecture, after the Rust side compilation objects are transferred to the JavaScript side when using hooks, the modifications on these objects will not be synchronized to the Rust side. Therefore, most of hooks are "read-only".
+:::
+
+## Overview
+
+<NoSSR>
+
+<Columns styles={[{}, { flex: "0.6" }]}>
+
+<Mermaid title="compilation.addEntry()">
+
+{`
+flowchart TD
+EntryPlugin("EntryPlugin") --> AddEntry("compilation.addEntry(callback)")
+AddEntry --> HookAddEntry(hooks.addEntry)
+subgraph BuildModuleGraph["Create module graph"]
+HookAddEntry --> FactorizeModule("ModuleFactory.create()")
+FactorizeModule <--> SideEffectsResolve(<a href="/config/optimization#optimizationsideeffects">Tree shaking module side effects</a>)
+FactorizeModule <--> Resolve("Resolve module path")
+
+FactorizeModule --> BuildModule("compilation.buildModule()")
+BuildModule --> HookStillValidModule{hooks.stillValidModule}
+HookStillValidModule --> |true| ProcessDependencies("Process dependencies")
+HookStillValidModule --> |false| HookBuildModule(<a href="#buildmodule">hooks.buildModule</a>)
+HookBuildModule --> ModuleBuild("module.build()")
+ModuleBuild --> RunLoaders("Run the loaders")
+RunLoaders --> ParserParse("Parse dependencies")
+ParserParse --> ModuleBuild
+ParserParse <--> InnerGraph(<a href="/config/optimization#optimizationinnergraph">Tree shaking inner graph parsing</a>)
+ParserParse <--> SideEffectsCode(<a href="/config/optimization#optimizationsideeffects">Tree shaking code side effects</a>)
+ModuleBuild --> |success| HookSucceedModule(<a href="#succeedmodule">hooks.succeedModule</a>)
+ModuleBuild --> |failed| HookFailedModule(hooks.failedModule)
+HookSucceedModule --> ProcessDependencies
+HookFailedModule --> ProcessDependencies
+ProcessDependencies --> FactorizeModule
+ProcessDependencies --> |failed| HookFailedEntry(hooks.failedEntry)
+ProcessDependencies --> |success| HookSucceedEntry(hooks.succeedEntry)
+HookFailedEntry --> Callback("callback()")
+HookSucceedEntry --> Callback
+end
+
+class AddEntry flow-start
+class Callback flow-end
+class FactorizeModule,Resolve,BuildModule,ProcessDependencies,RunLoaders,ParserParse,ModuleBuild flow-process
+class InnerGraph,SideEffectsResolve,SideEffectsCode flow-optimization
+class HookBuildModule,HookSucceedModule flow-hook
+class HookStillValidModule,HookAddEntry,HookFailedEntry,HookSucceedEntry,HookFailedModule flow-hook-non-support
+`}
+
+</Mermaid>
+
+<div>
+<Mermaid title="compilation.finish()">
+
+{`
+flowchart TD
+CompilerCompile("compiler.compile()") --> CompilationFinish("compilation.finish(callback)")
+CompilationFinish --> HookFinishModules(<a href="#finishmodules">hooks.finishModules</a>)
+HookFinishModules <--> FlagDependencyExports(<a href="/config/optimization#optimizationprovidedexports">Tree shaking flag module exports</a>)
+HookFinishModules --> Callback("callback()")
+
+class CompilationFinish flow-start
+class Callback flow-end
+class FlagDependencyExports flow-optimization
+class HookFinishModules flow-hook
+`}
+
+</Mermaid>
+
+<br />
+
+<Mermaid title="Stats">
+
+{`
+flowchart TD
+StatsToString("stats.toString()") --> CreateStatsOptions("compilation.createStatsOptions")
+CreateStatsOptions --> HookStatsPreset(<a href="#statspreset">hooks.statsPreset</a>)
+HookStatsPreset --> HookStatsNormalize(<a href="#statsnormalize">hooks.statsNormalize</a>)
+HookStatsNormalize --> CreateStatsOptions
+CreateStatsOptions --> HookStatsFactory(<a href="#statsfactory">hooks.statsFactory</a>)
+HookStatsFactory --> HookStatsPrinter(<a href="#statsprinter">hooks.statsPrinter</a>)
+HookStatsPrinter --> StatsJSON("Generate stats JSON")
+StatsJSON --> StatsOutput("Output stats string")
+
+class StatsToString flow-start
+class StatsOutput flow-end
+class CreateStatsOptions,StatsJSON flow-process
+class HookStatsFactory,HookStatsPrinter,HookStatsPreset,HookStatsNormalize flow-hook
+`}
+
+</Mermaid>
+
+</div>
+
+</Columns>
+
+<br />
+
+<Mermaid title="compilation.seal()">
+
+{`
+flowchart TD
+subgraph Start
+direction LR
+CompilerCompile("compiler.compile()") --> Seal("compilation.seal(callback)")
+Seal --> HookSeal(<a href="#seal">hooks.seal</a>)
+
+class HookSeal flow-hook
+end
+
+Start --> ChunkGraph
+
+subgraph ChunkGraph["Create chunk graph"]
+direction LR
+
+    subgraph OptimizeDependencies["Optimize module graph"]
+    direction TB
+    HooksOptimizationDependencies(hooks.optimizeDependencies) <--> FlagUsedExports(<a href="/config/optimization#optimizationusedexports">Tree shaking flag used exports</a>)
+    HooksOptimizationDependencies --> HookAfterOptimizeDependencies(hooks.afterOptimizeDependencies)
+
+    class HooksOptimizationDependencies,HookAfterOptimizeDependencies flow-hook-non-support
+    class FlagUsedExports flow-optimization
+    end
+
+    OptimizeDependencies --> GenerateChunkGraph
+
+    subgraph GenerateChunkGraph["Generate chunk graph"]
+    direction TB
+    HookBeforeChunks(hooks.beforeChunks) --> CreateEntryChunks("Create entry chunks")
+    CreateEntryChunks --> BuildChunkGraph("Build chunk graph")
+    BuildChunkGraph --> HookAfterChunks(hooks.afterChunks)
+
+    class HookBeforeChunks,HookAfterChunks flow-hook-non-support
+    class CreateEntryChunks,BuildChunkGraph flow-process
+    class FlagUsedExports flow-optimization
+    end
+
+end
+
+ChunkGraph --> Optimization
+
+subgraph Optimization["Optimize modules and chunks"]
+direction LR
+
+    subgraph OptimizeModules["Optimize modules"]
+    direction TB
+    HookOptimize(hooks.optimize) --> HookOptimizeModules(<a href="#optimizemodules">hooks.optimizeModules</a>)
+    HookOptimizeModules --> HookAfterOptimizeModules(<a href="#afteroptimizemodules">hooks.afterOptimizeModules</a>)
+
+    class HookOptimize flow-hook-non-support
+    class HookOptimizeModules,HookAfterOptimizeModules flow-hook-partial-support
+    end
+
+    OptimizeModules --> OptimizeChunks["Optimize chunks"]
+
+    subgraph OptimizeChunks
+    HookOptimizeChunks(hooks.optimizeChunks) <--> SplitChunks(<a href="/config/optimization#optimizationsplitchunks">Split chunks</a>)
+    HookOptimizeChunks --> HookAfterOptimizeChunks(hooks.afterOptimizeChunks)
+
+    class HookOptimizeChunks,HookAfterOptimizeChunks flow-hook-non-support
+    class SplitChunks flow-optimization
+    end
+
+    OptimizeChunks --> OptimizeTree
+
+    subgraph OptimizeTree["Optimize chunk groups"]
+    HookOptimizeTree(<a href="#optimizetree">hooks.optimizeTree</a>) --> HookAfterOptimizeTree(hooks.afterOptimizeTree)
+
+    class HookOptimizeTree flow-hook-partial-support
+    class HookAfterOptimizeTree flow-hook-non-support
+    end
+
+    OptimizeTree --> OptimizeChunkModules
+
+    subgraph OptimizeChunkModules["Optimize modules in chunks"]
+    HookOptimizeChunkModules(<a href="#optimizechunkmodules">hooks.optimizeChunkModules</a>) <--> ModuleConcatenation(<a href="/config/optimization#optimizationconcatenatemodules">Module concatenation</a>)
+    HookOptimizeChunkModules --> HookAfterOptimizeChunkModules(hooks.afterOptimizeChunkModules)
+    HookAfterOptimizeChunkModules --> HookShouldRecord(hooks.shouldRecord)
+
+    class HookOptimizeChunkModules flow-hook-partial-support
+    class HookShouldRecord,HookAfterOptimizeChunkModules flow-hook-non-support
+    class ModuleConcatenation flow-optimization
+    end
+
+end
+
+Optimization --> GenerateIds
+
+subgraph GenerateIds["Generate IDs of modules and chunks"]
+direction LR
+
+    subgraph CreateModuleIds["Generate IDs of modules"]
+    HookReviveModules(hooks.reviveModules) --> HookBeforeModuleIds(hooks.beforeModuleIds)
+    HookBeforeModuleIds --> HookModuleIds(hooks.moduleIds)
+    HookModuleIds --> HookOptimizeModuleIds(hooks.optimizeModuleIds)
+    HookOptimizeModuleIds --> HookAfterOptimizeModuleIds(hooks.afterOptimizeModuleIds)
+
+    class HookReviveModules,HookModuleIds,HookBeforeModuleIds,HookOptimizeModuleIds,HookAfterOptimizeModuleIds flow-hook-non-support
+    end
+
+    CreateModuleIds --> CreateChunkIds
+
+    subgraph CreateChunkIds["Generate IDs of chunks"]
+    HookReviveChunks(hooks.reviveChunks) --> HookBeforeChunkIds(hooks.beforeChunkIds)
+    HookBeforeChunkIds --> HookChunkIds(hooks.moduleIds)
+    HookChunkIds --> HookOptimizeChunkIds(hooks.optimizeChunkIds)
+    HookOptimizeChunkIds --> HookAfterOptimizeChunkIds(hooks.afterOptimizeChunkIds)
+
+    class HookReviveChunks,HookChunkIds,HookBeforeChunkIds,HookOptimizeChunkIds,HookAfterOptimizeChunkIds flow-hook-non-support
+    end
+
+    CreateChunkIds --> CreateRecords
+
+    subgraph CreateRecords["Generate records"]
+    ShouldRecord{"shouldRecord"} --> |true| HookRecordModules(hooks.recordModules)
+    ShouldRecord{"shouldRecord"} --> |false| HookOptimizeCodeGeneration(hooks.optimizeCodeGeneration)
+    HookRecordModules --> HookRecordChunks(hooks.recordChunks)
+    HookRecordChunks --> HookOptimizeCodeGeneration(hooks.optimizeCodeOptions)
+
+    class ShouldRecord,HookRecordModules,HookRecordChunks,HookOptimizeCodeGeneration flow-hook-non-support
+    class SplitChunks flow-optimization
+    end
+
+end
+
+GenerateIds --> CodeGeneration
+
+subgraph CodeGeneration["Generate code of modules"]
+direction LR
+
+    subgraph CreateModuleHashes["Generate hashes of modules"]
+    HookBeforeModuleHash(hooks.beforeModuleHash) --> GenerateModuleHashes("Create module hashes")
+    GenerateModuleHashes --> HookAfterModuleHash(hooks.afterModuleHash)
+
+    class HookBeforeModuleHash,HookAfterModuleHash flow-hook-non-support
+    class GenerateModuleHashes flow-process
+    end
+
+    CreateModuleHashes --> ModuleGeneration
+
+    subgraph ModuleGeneration["Generate code of modules"]
+    HookBeforeModuleCodeGeneration(hooks.beforeModuleCodeGeneration) --> ModuleCodeGeneration("Generate module codes")
+    ModuleCodeGeneration --> HookAfterModuleCodeGeneration(hooks.afterModuleCodeGeneration)
+
+    class HookBeforeModuleCodeGeneration,HookAfterModuleCodeGeneration flow-hook-non-support
+    class ModuleCodeGeneration flow-process
+    end
+
+    ModuleGeneration --> CollectRuntimeRequirements
+
+    subgraph CollectRuntimeRequirements["Collect runtime modules"]
+    HookBeforeRuntime(hooks.beforeRuntimeRequirements) --> HookModuleRuntime(hooks.runtimeRequirementInModule)
+    HookModuleRuntime --> HookAdditionalChunkRuntime(hooks.additionalChunkRuntimeRequirements)
+    HookAdditionalChunkRuntime --> HookChunkRuntime(hooks.runtimeRequirementInChunk)
+    HookChunkRuntime --> HookAdditionalTreeRuntime(<a href="#additionaltreeruntimerequirements">hooks.additionalTreeRuntimeRequirements</a>)
+    HookAdditionalTreeRuntime --> HookTreeRuntime(<a href="#runtimerequirementintree">hooks.runtimeRequirementInTree</a>)
+    HookTreeRuntime --> HookAfterRuntimeRequirements(hooks.afterRuntimeRequirements)
+    HookTreeRuntime <--> HookRuntimeModule(<a href="#runtimemodule">hooks.runtimeModule</a>)
+
+    class HookBeforeRuntime,HookModuleRuntime,HookAdditionalChunkRuntime,HookChunkRuntime,HookAfterRuntimeRequirements, flow-hook-non-support
+    class HookAdditionalTreeRuntime,HookRuntimeModule,HookTreeRuntime flow-hook-partial-support
+    class ModuleCodeGeneration flow-process
+    end
+
+    CollectRuntimeRequirements --> CompilationHash
+
+    subgraph CompilationHash["Generate hash of compilation"]
+    HookBeforeHash(hooks.beforeHash) --> CreateHash("Create compilation hash")
+    CreateHash --> HookChunkHash(<a href="#chunkhash">hooks.chunkHash</a>)
+    HookChunkHash --> HookFullHash(hooks.fullHash)
+    HookFullHash --> CreateHash
+    CreateHash --> HookAfterHash(hooks.afterHash)
+
+    class HookBeforeHash,HookAfterHash,HookFullHash flow-hook-non-support
+    class HookChunkHash flow-hook-partial-support
+    class CreateHash flow-process
+    end
+
+end
+
+CodeGeneration --> Assets
+
+subgraph Assets["Generate assets"]
+direction LR
+subgraph CreateModuleAssets["Generate assets of modules"]
+ShouldRecord2{"shouldRecord"} --> |true| HookRecordHash(hooks.recordHash)
+HookRecordHash --> HookBeforeModuleAssets(hooks.beforeModuleAssets)
+ShouldRecord2{"shouldRecord"} --> |false| HookBeforeModuleAssets
+HookBeforeModuleAssets --> GenerateModuleAssets("Generate module assets")
+GenerateModuleAssets <--> HookModuleAsset(hooks.moduleAsset)
+
+    class ShouldRecord2,HookRecordHash,HookBeforeModuleAssets,HookModuleAsset flow-hook-non-support
+    class GenerateModuleAssets flow-process
+    end
+
+    CreateModuleAssets --> CreateChunkAssets
+
+    subgraph CreateChunkAssets["Generate assets of chunks"]
+    HookShouldGenerateChunkAssets{hooks.shouldGenerateChunkAssets} --> |true| HookBeforeChunkAssets(hooks.beforeChunkAssets)
+    HookBeforeChunkAssets --> GenerateChunkAssets("Generate chunk assets")
+    GenerateChunkAssets --> HookRenderManifest(hooks.renderManifest)
+    HookRenderManifest --> HookChunkAsset(<a href="#chunkasset">hooks.chunkAsset</a>)
+    HookChunkAsset --> GenerateChunkAssets
+    HookShouldGenerateChunkAssets --> |false| HookProcessAssets(<a href="#processassets">hooks.processAssets</a>)
+
+    class HookBeforeChunkAssets,HookShouldGenerateChunkAssets,HookRenderManifest flow-hook-non-support
+    class HookChunkAsset flow-hook-partial-support
+    class HookProcessAssets flow-hook
+    class GenerateChunkAssets flow-process
+    end
+
+    CreateChunkAssets --> ProcessAssets
+
+    subgraph ProcessAssets["Process assets"]
+      HookProcessAssets2(<a href="#processassets">hooks.processAssets</a>) --> HookAfterProcessAssets(<a href="#afterprocessassets">hooks.afterProcessAssets</a>)
+      HookAfterProcessAssets --> |shouldRecord=true| HookRecord(hooks.record)
+
+      class HookProcessAssets2,HookAfterProcessAssets flow-hook
+      class HookRecord flow-hook-non-support
+
+    end
+
+end
+
+Assets --> End
+
+subgraph End
+direction LR
+HookNeedAdditionalSeal --> |true| HookUnseal(hooks.unseal)
+HookNeedAdditionalSeal --> |false| HookAfterSeal
+HookUnseal --> Reseal("compilation.seal()")
+HookAfterSeal(<a href="#afterseal">hooks.afterSeal</a>) --> Callback("callback()")
+
+class HookAfterSeal flow-hook
+class HookNeedAdditionalSeal,HookUnseal flow-hook-non-support
+class Reseal flow-start
+end
+
+End -. additional seal .-> Start
+
+class Seal flow-start
+class Callback flow-end
+
+`}
+
+</Mermaid>
+
+</NoSSR>
+
+## `buildModule`
+
+<Badge text="Read-only" type="info" />
+
+Triggered before a module build has started.
+
+- **Type:** `SyncHook<[Module]>`
+- **Arguments:**
+  - `Module`: module instance
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
+## `executeModule`
+
+<Badge text="Read-only" type="info" />
+
+If there exists compiled-time execution modules, this hook will be called when they are executed.
+
+- **Type:** `SyncHook<[ExecuteModuleArgument, ExecuteModuleContext]>`
+- **Arguments:**
+  - `ExecuteModuleArgument`: arguments of compiled-time execution module
+  - `ExecuteModuleContext`: context of compiled-time execution module
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="ExecuteModuleArgument.ts" key="ExecuteModuleArgument">
+```ts
+type ExecuteModuleArgument = {
+  codeGenerationResult: {
+    get(sourceType: string): string;
+  };
+  moduleObject: {
+    id: string;
+    exports: any;
+    loaded: boolean;
+    error?: Error;
+  };
+};
+```
+  </CollapsePanel>
+    <CollapsePanel className="collapse-code-panel" header="ExecuteModuleContext.ts" key="ExecuteModuleContext">
+```ts
+type ExecuteModuleContext = {
+  __webpack_require__: (id: string) => any;
+};
+```
+  </CollapsePanel>
+</Collapse>
+
+## `succeedModule`
+
+<Badge text="Read-only" type="info" />
+
+Executed when a module has been built successfully.
+
+- **Type:** `SyncHook<[Module]>`
+- **Arguments:**
+  - `Module`: module instance
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
+## `finishModules`
+
+<Badge text="Read-only" type="info" />
+
+Called when all modules have been built without errors.
+
+- **Type:** `AsyncSeriesHook<[Module[]]>`
+- **Arguments:**
+  - `Module[]`: List of module instances
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
+## `seal`
+
+Called when the compilation stops accepting new modules and starts to optimize modules.
+
+- **Type:** `SyncHook<[]>`
+
+## `optimizeModules`
+
+<Badge text="Read-only" type="info" />
+
+Called at the beginning of the module optimization phase.
+
+- **Type:** `SyncBailHook<[Module[]]>`
+- **Arguments:**
+  - `Module[]`: list of module instances
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
+## `afterOptimizeModules`
+
+<Badge text="Read-only" type="info" />
+
+Called after modules optimization has completed.
+
+- **Type:** `SyncBailHook<[Module[]]>`
+- **Arguments:**
+  - `Module[]`: list of module instances
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
+## `optimizeTree`
+
+<Badge text="Read-only" type="info" />
+
+Called before optimizing the dependency tree.
+
+- **Type:** `AsyncSeriesHook<[Chunk[], Module[]]>`
+- **Arguments:**
+  - `Chunk[]`: list of chunk instances
+  - `Module[]`: list of module instances
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
+## `optimizeChunkModules`
+
+<Badge text="Read-only" type="info" />
+
+Called after the tree optimization, at the beginning of the chunk modules optimization.
+
+- **Type:** `AsyncSeriesBailHook<[Chunk[], Module[]]>`
+- **Arguments:**
+  - `Chunk[]`: list of chunk instances
+  - `Module[]`: list of module instances
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
+## `additionalTreeRuntimeRequirements`
+
+Called after the tree runtime requirements collection.
+
+- **Type:** `SyncHook<[Chunk, Set<RuntimeGlobals>]>`
+- **Arguments:**
+  - `Chunk`: chunk instance
+  - `Set<RuntimeGlobals>`: runtime requirements
+
+Additional builtin runtime modules can be added here by modifying the runtime requirements set.
+
+```js title="rspack.config.mjs"
+export default {
+  entry: './index.js',
+  plugins: [
+    {
+      apply(compiler) {
+        const { RuntimeGlobals } = compiler.webpack;
+        compiler.hooks.thisCompilation.tap('CustomPlugin', compilation => {
+          compilation.hooks.additionalTreeRuntimeRequirements.tap(
+            'CustomPlugin',
+            (_, set) => {
+              // add a runtime module which define `__webpack_require__.h`
+              set.add(RuntimeGlobals.getFullHash);
+            },
+          );
+        });
+      },
+    },
+  ],
+};
+```
+
+```js title="index.js"
+// will print hash of this compilation
+console.log(__webpack_require__.h);
+```
+
+## `runtimeRequirementInTree`
+
+<ApiMeta addedVersion="1.0.6" />
+
+Called during adding runtime modules to the compilation.
+
+- **Type:** `HookMap<SyncBailHook<[Chunk, Set<RuntimeGlobals>]>>`
+- **Arguments:**
+  - `Chunk`: chunk instance
+  - `Set<RuntimeGlobals>`: runtime requirements
+
+Additional builtin runtime modules can be added here by modifying the runtime requirements set or calling [`compilation.addRuntimeModule`](/api/javascript-api/compilation#addruntimemodule) to add custom runtime modules.
+
+```js title="rspack.config.mjs"
+export default {
+  entry: './index.js',
+  plugins: [
+    {
+      apply(compiler) {
+        const { RuntimeGlobals, RuntimeModule } = compiler.webpack;
+        class CustomRuntimeModule extends RuntimeModule {
+          constructor() {
+            super('custom');
+          }
+
+          generate() {
+            const compilation = this.compilation;
+            return `
+            __webpack_require__.mock = function(file) {
+              return ${RuntimeGlobals.publicPath} + "/subpath/" + file;
+            };
+          `;
+          }
+        }
+
+        compiler.hooks.thisCompilation.tap('CustomPlugin', compilation => {
+          compilation.hooks.runtimeRequirementInTree
+            .for(RuntimeGlobals.ensureChunkHandlers)
+            .tap('CustomPlugin', (chunk, set) => {
+              // add a runtime module to access public path
+              set.add(RuntimeGlobals.publicPath);
+              compilation.addRuntimeModule(chunk, new CustomRuntimeModule());
+            });
+        });
+      },
+    },
+  ],
+};
+```
+
+```js title="index.js"
+// will print "/subpath/index.js"
+console.log(__webpack_require__.mock('index.js'));
+```
+
+## `runtimeModule`
+
+Called after a runtime module is added into the compilation.
+
+- **Type:** `SyncHook<[RuntimeModule, Chunk]>`
+- **Arguments:**
+  - `RuntimeModule`: runtime module instance
+  - `Chunk`: chunk instance
+
+Generated code of this runtime module can be modified through its `source` property.
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    {
+      apply(compiler) {
+        const { RuntimeGlobals } = compiler.webpack;
+        compiler.hooks.compilation.tap('CustomPlugin', compilation => {
+          compilation.hooks.runtimeModule.tap(
+            'CustomPlugin',
+            (module, chunk) => {
+              if (module.name === 'public_path' && chunk.name === 'main') {
+                const originSource = module.source.source.toString('utf-8');
+                module.source.source = Buffer.from(
+                  `${RuntimeGlobals.publicPath} = "/override/public/path";\n`,
+                  'utf-8',
+                );
+              }
+            },
+          );
+        });
+      },
+    },
+  ],
+};
+```
+
+```js title="index.js"
+// will print "/override/public/path"
+console.log(__webpack_require__.p);
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="RuntimeModule.ts"
+    key="RuntimeModule"
+  >
+    <RuntimeModuleType />
+  </CollapsePanel>
+</Collapse>
+
+## `processAssets`
+
+Process the assets before emit.
+
+- **Type:** `AsyncSeriesHook<Assets>`
+- **Hook parameters:**
+  - `name: string` — a name of the plugin
+  - `stage: Stage` — a stage to tap into (see the [process assets stages](#process-assets-stages) below)
+- **Arguments:**
+  - `Assets: Record<string, Source>`: a plain object, where key is the asset's pathname, and the value is data of the asset represented by the [Source](https://github.com/webpack/webpack-sources#source).
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+</Collapse>
+
+### Process assets examples
+
+- Emit a new asset in the `PROCESS_ASSETS_STAGE_ADDITIONAL` stage:
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+  const { Compilation } = compiler.webpack;
+  compilation.hooks.processAssets.tap(
+    {
+      name: 'MyPlugin',
+      stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+    },
+    assets => {
+      const { RawSource } = compiler.webpack.sources;
+      const source = new RawSource('This is a new asset!');
+      compilation.emitAsset('new-asset.txt', source);
+    },
+  );
+});
+```
+
+- Updating an existing asset:
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+  const { Compilation } = compiler.webpack;
+  compilation.hooks.processAssets.tap(
+    {
+      name: 'MyPlugin',
+      stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONS,
+    },
+    assets => {
+      const asset = assets['foo.js'];
+      if (!asset) {
+        return;
+      }
+
+      const { RawSource } = compiler.webpack.sources;
+      const oldContent = asset.source();
+      const newContent = oldContent + '\nconsole.log("hello world!")';
+      const source = new RawSource(newContent);
+
+      compilation.updateAsset(assetName, source);
+    },
+  );
+});
+```
+
+- Removing an asset:
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+  const { Compilation } = compiler.webpack;
+  compilation.hooks.processAssets.tap(
+    {
+      name: 'MyPlugin',
+      stage: Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE,
+    },
+    assets => {
+      const assetName = 'unwanted-script.js';
+      if (assets[assetName]) {
+        compilation.deleteAsset(assetName);
+      }
+    },
+  );
+});
+```
+
+### Process assets stages
+
+Here's the list of supported stages. Rspack will execute these stages sequentially from top to bottom. Please select the appropriate stage based on the operation you need to perform.
+
+- `PROCESS_ASSETS_STAGE_ADDITIONAL` — add additional assets to the compilation.
+- `PROCESS_ASSETS_STAGE_PRE_PROCESS` — basic preprocessing of the assets.
+- `PROCESS_ASSETS_STAGE_DERIVED` — derive new assets from the existing assets.
+- `PROCESS_ASSETS_STAGE_ADDITIONS` — add additional sections to the existing assets e.g. banner or initialization code.
+- `PROCESS_ASSETS_STAGE_OPTIMIZE` — optimize existing assets in a general way.
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_COUNT` — optimize the count of existing assets, e.g. by merging them.
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_COMPATIBILITY` — optimize the compatibility of existing assets, e.g. add polyfills or vendor prefixes.
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE` — optimize the size of existing assets, e.g. by minimizing or omitting whitespace.
+- `PROCESS_ASSETS_STAGE_DEV_TOOLING` — add development tooling to the assets, e.g. by extracting a source map.
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE` — optimize the numbers of existing assets by inlining assets into other assets.
+- `PROCESS_ASSETS_STAGE_SUMMARIZE` — summarize the list of existing assets.
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_HASH` — optimize the hashes of the assets, e.g. by generating real hashes of the asset content.
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER` — optimize the transfer of existing assets, e.g. by preparing a compressed (gzip) file as separate asset.
+- `PROCESS_ASSETS_STAGE_ANALYSE` — analyze the existing assets.
+- `PROCESS_ASSETS_STAGE_REPORT` — creating assets for the reporting purposes.
+
+## `afterProcessAssets`
+
+<Badge text="Read-only" type="info" />
+
+Called after the [processAssets](#processAssets) hook had finished without error.
+
+- **Type:** `SyncHook<Assets>`
+- **Arguments:**
+  - `Assets: Record<string, Source>`: list of asset instances
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+</Collapse>
+
+- **Example:**
+
+```js
+compilation.hooks.afterProcessAssets.tap('MyPlugin', assets => {
+  console.log('assets', Object.keys(assets));
+});
+```
+
+## `afterSeal`
+
+<Badge text="Read-only" type="info" />
+
+Called after the seal phase.
+
+- **Type:** `AsyncSeriesHook<[]>`
+
+## `chunkHash`
+
+<Badge text="Read-only" type="info" />
+
+Triggered to emit the hash for each chunk.
+
+- **Type:** `SyncHook<[Chunk, Hash]>`
+- **Arguments:**
+  - `Chunk`: chunk instance
+  - `Hash`: chunk hash instance
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+  <CollapsePanel className="collapse-code-panel" header="Hash.ts" key="Hash">
+    <HashType />
+  </CollapsePanel>
+</Collapse>
+
+## `chunkAsset`
+
+<Badge text="Read-only" type="info" />
+
+Triggered when an asset from a chunk was added to the compilation.
+
+- **Type:** `SyncHook<[Chunk, string]>`
+- **Arguments:**
+  - `Chunk`: chunk instance
+  - `string`: asset filename
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+</Collapse>
+
+## `childCompiler`
+
+<Badge text="Read-only" type="info" />
+
+Executed after setting up a child compiler.
+
+- **Type:** `SyncHook<[Compiler, string, number]>`
+- **Arguments:**
+  - `Compiler`: child compiler instance
+  - `string`: child compiler name
+  - `number`: child compiler index
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
+## `statsPreset`
+
+<Badge text="Read-only" type="info" />
+
+This hook is like a list of actions that gets triggered when a preset is used. It takes in an options object. When a plugin manages a preset, it should change settings in this object carefully without replacing existing ones.
+
+- **Type:** `SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>`
+- **Arguments:**
+  - `Partial<StatsOptions>`: stats options
+  - `CreateStatsOptionsContext`: stats context
+
+Here's an illustrative plugin example:
+
+```js
+compilation.hooks.statsPreset.for('my-preset').tap('MyPlugin', options => {
+  if (options.all === undefined) options.all = true;
+});
+```
+
+This plugin ensures that for the preset `"my-preset"`, if the `all` option is undefined, it defaults to `true`.
+
+<Collapse>
+  <CollapsePanel header="StatsOptions.ts" key="StatsOptions">
+See [stats configuration](/config/stats) for details.
+  </CollapsePanel>
+  <CollapsePanel className="collapse-code-panel" header="CreateStatsOptionsContext.ts" key="CreateStatsOptionsContext">
+```ts
+type CreateStatsOptionsContext = {
+  forToString?: boolean;
+  [key: string]: any;
+};
+```
+  </CollapsePanel>
+</Collapse>
+
+## `statsNormalize`
+
+<Badge text="Read-only" type="info" />
+
+This hook is used to transform an options object into a consistent format that can be easily used by subsequent hooks. It also ensures that missing options are set to their default values.
+
+- **Type:** `SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>`
+- **Arguments:**
+  - `Partial<StatsOptions>`: stats options
+  - `CreateStatsOptionsContext`: stats context
+
+Here's an illustrative plugin example:
+
+```js
+compilation.hooks.statsNormalize.tap('MyPlugin', options => {
+  if (options.myOption === undefined) options.myOption = [];
+
+  if (!Array.isArray(options.myOption)) options.myOptions = [options.myOptions];
+});
+```
+
+In this plugin, if the `myOption` is missing, it sets it to `[]`. Additionally, it ensures that `myOption` is always an array even if it was originally defined as a single value.
+
+<Collapse>
+  <CollapsePanel header="StatsOptions.ts" key="StatsOptions">
+See [stats configuration](/config/stats) for details.
+  </CollapsePanel>
+  <CollapsePanel className="collapse-code-panel" header="CreateStatsOptionsContext.ts" key="CreateStatsOptionsContext">
+```ts
+type CreateStatsOptionsContext = {
+  forToString?: boolean;
+  [key: string]: any;
+};
+```
+  </CollapsePanel>
+</Collapse>
+
+## `statsFactory`
+
+<Badge text="Read-only" type="info" />
+
+This hook provides access to the StatsFactory class for specific options.
+
+- **Type:** `SyncHook<[StatsFactory, StatsOptions]>`
+- **Arguments:**
+  - `StatsFactory`: stats factory instance, see [Stats Factory Hooks](/api/plugin-api/stats-hooks#statsfactory) for more details
+  - `StatsOptions`: stats options
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="StatsFactory.ts" key="StatsFactory">
+```ts
+type StatsFactory = {
+  hooks: StatsFactoryHooks;
+  create(
+    type: string,
+    data: any,
+    baseContext: Omit<StatsFactoryContext, 'type'>,
+  ): void;
+};
+```
+  </CollapsePanel>
+  <CollapsePanel header="StatsOptions.ts" key="StatsOptions">
+See [stats configuration](/config/stats) for details.
+  </CollapsePanel>
+</Collapse>
+
+## `statsPrinter`
+
+<Badge text="Read-only" type="info" />
+
+This hook provides access to the StatsPrinter class for specific options.
+
+- **Type:** `SyncHook<[StatsPrinter, StatsOptions]>`
+- **Arguments:**
+  - `StatsPrinter`: stats printer instance, see [Stats Printer Hooks](/api/plugin-api/stats-hooks#statsprinter) for more details.
+  - `StatsOptions`: stats options
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="StatsPrinter.ts" key="StatsPrinter">
+```ts
+type StatsPrinter = {
+  hooks: StatsPrinterHooks;
+  print(
+    type: string,
+    object: {
+      [key: string]: any;
+    },
+    baseContext?: {
+      [key: string]: any;
+    },
+  ): string;
+};
+```
+  </CollapsePanel>
+  <CollapsePanel header="StatsOptions.ts" key="StatsOptions">
+See [stats configuration](/config/stats) for details.
+  </CollapsePanel>
+</Collapse>

@@ -1,0 +1,13 @@
+[
+  "index",
+  {
+    "type": "dir",
+    "name": "development",
+    "label": "Development"
+  },
+  {
+    "type": "dir",
+    "name": "architecture",
+    "label": "Architecture"
+  }
+]

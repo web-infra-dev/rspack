@@ -1,0 +1,175 @@
+import ResolveDataType from '../../types/resolve-data.mdx';
+import { Collapse, CollapsePanel } from '@components/Collapse';
+
+# NormalModuleFactory
+
+`NormalModuleFactory` is used by the [Compiler](/api/javascript-api/compiler) to generate modules (`NormalModule`). Starting from each entry module (`entry`), it resolves the dependency requests of the modules to obtain the final paths of the dependencies. Based on these final paths, it creates `NormalModule` instances. It then further resolves the dependency requests of the newly created modules. This process is recursive, creating each module as a `NormalModule` through `NormalModuleFactory`.
+
+`NormalModuleFactory` provides the following lifecycle hooks. These can be used just like `Compiler` hooks:
+
+```js
+NormalModuleFactory.hooks.someHook.tap(/* ... */);
+```
+
+All hooks inherit from `Tapable`. In addition to `tap()`, you can also use `tapAsync()` and `tapPromise()`, depending on the type of the hook.
+
+## `beforeResolve`
+
+`AsyncSeriesBailHook<[ResolveData]>`
+
+Called when a new dependency request is encountered. A dependency can be ignored by returning `false`. Otherwise, it should return `undefined` to proceed.
+
+The `beforeResolve` hook is called at the very beginning of the module resolution process, allowing the module's request information to be intercepted and modified before the resolution takes place. This hook can be used to pre-process, filter or block the resolution of certain modules.
+
+```js
+compiler.hooks.compilation.tap(
+  'MyPlugin',
+  (compilation, { normalModuleFactory }) => {
+    normalModuleFactory.hooks.beforeResolve.tap('MyPlugin', resolveData => {
+      // access and modify module request information
+      console.log(JSON.stringify(resolveData, null, 2));
+    });
+  },
+);
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ResolveData.ts"
+    key="ResolveData"
+  >
+    <ResolveDataType />
+  </CollapsePanel>
+</Collapse>
+
+## `factorize`
+
+`AsyncSeriesBailHook<[ResolveData]>`
+
+Called before initiating resolve. It should return undefined to proceed.
+
+The `factorize` hook is used to add custom logic before a module is instantiated, modifying the module creation process.
+
+```js
+compiler.hooks.compilation.tap(
+  'MyPlugin',
+  (compilation, { normalModuleFactory }) => {
+    normalModuleFactory.hooks.factorize.tap('MyPlugin', resolveData => {
+      // access and modify module request information
+      console.log(JSON.stringify(resolveData, null, 2));
+    });
+  },
+);
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ResolveData.ts"
+    key="ResolveData"
+  >
+    <ResolveDataType />
+  </CollapsePanel>
+</Collapse>
+
+:::warning
+Returning module instance is not supported for now. This hook will affect the module creation process, so use it with caution.
+:::
+
+## `resolve`
+
+`AsyncSeriesBailHook<[ResolveData]>`
+
+Called before the request is resolved, it should return `undefined` to continue. The `resolve` hook can be used to intercept and modify module request information before module resolution begins. This hook allows for preprocessing of module requests.
+
+```js
+compiler.hooks.compilation.tap(
+  'MyPlugin',
+  (compilation, { normalModuleFactory }) => {
+    normalModuleFactory.hooks.resolve.tap('MyPlugin', resolveData => {
+      // access and modify module request information
+      console.log(JSON.stringify(resolveData, null, 2));
+    });
+  },
+);
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ResolveData.ts"
+    key="ResolveData"
+  >
+    <ResolveDataType />
+  </CollapsePanel>
+</Collapse>
+
+:::warning
+Returning module instance or `false` is not supported for now.
+:::
+
+## `afterResolve`
+
+`AsyncSeriesBailHook<[ResolveData]>`
+
+Called after the module specifier is resolved.
+
+The `afterResolve` hook is used to further process or modify the results after the module has been resolved. It is called at the end of the module resolution process, which means that at this stage, the module's path, request information, etc., have already been determined.
+
+```js
+compiler.hooks.compilation.tap(
+  'MyPlugin',
+  (compilation, { normalModuleFactory }) => {
+    normalModuleFactory.hooks.afterResolve.tap('MyPlugin', resolveData => {
+      // access and modify the resolved module information
+      console.log(JSON.stringify(resolveData, null, 2));
+    });
+  },
+);
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ResolveData.ts"
+    key="ResolveData"
+  >
+    <ResolveDataType />
+  </CollapsePanel>
+</Collapse>
+
+## `resolveForScheme`
+
+`AsyncSeriesBailHook<[ResourceDataWithData]>`
+
+Called before a module specifier with scheme (URI) is resolved.
+
+The `resolveForScheme` is typically used to handle module specifiers that have a specific protocol, such as `file://`, `https://`, etc.
+
+```js
+compiler.hooks.compilation.tap(
+  'MyPlugin',
+  (compilation, { normalModuleFactory }) => {
+    normalModuleFactory.hooks.resolveForScheme
+      .for('https')
+      .tap('MyPlugin', resourceData => {
+        console.log(JSON.stringify(resourceData, null, 2));
+      });
+  },
+);
+```
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="ResourceDataWithData.ts" key="ResourceDataWithData">
+```ts
+type ResourceDataWithData = {
+  resource: string;
+  path: string;
+  query?: string;
+  fragment?: string;
+  data?: Record<string, any>;
+};
+```
+  </CollapsePanel>
+</Collapse>

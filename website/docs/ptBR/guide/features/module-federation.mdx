@@ -1,0 +1,86 @@
+# Module Federation
+
+Module Federation é um padrão de arquitetura para decomposição de aplicações JavaScript (semelhante a microsserviços no lado do servidor), permitindo o compartilhamento de código e recursos entre múltiplas aplicações JavaScript (ou microfrontends).
+
+A equipe da Rspack trabalha em estreita colaboração com a equipe de desenvolvimento da Module Federation e fornece suporte de primeira classe para a Module Federation.
+
+## Casos de Uso
+
+Module Federation possui diversos casos de uso típicos, incluindo:
+
+- Permitir que aplicações independentes (chamadas de "microfrontends" na arquitetura de microfrontends) compartilhem módulos sem recompilar a aplicação inteira.
+- Diferentes equipes trabalhando em diferentes partes da mesma aplicação sem a necessidade de recompilar a aplicação inteira.
+- Carregamento e compartilhamento dinâmico de código entre aplicações em tempo de execução.
+
+Module Federation pode ajudar você a:
+
+- Reduzir a duplicação de código
+- Melhorar a manutenibilidade do código
+- Reduzir o tamanho geral das aplicações
+- Melhorar o desempenho da aplicação
+
+## Como Usar
+
+Atualmente, a Module Federation (MF) possui diversas versões principais, e você pode escolher uma de acordo com suas necessidades.
+
+Aqui estão as características de várias versões:
+
+| Versão                                       | Descrição                                                                                                | Recursos                                                                                                                                                                                                                                                                                                | Casos de Uso                                                                                                              |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| <a href="#module-federation-v20">MF v2.0</a> | - Versão aprimorada do Module Federation <br /> - Implementado com base no Module Federation v1.5 <br /> | - Oferece recursos adicionais prontos para uso, como dicas dinâmicas de tipo TS, Chrome Devtools, pré-carregamento, etc. <br /> - Mais adequado para arquitetura de microfrontend com suporte a aplicativos Web de larga escala <br /> - Inclui todos os recursos do Module Federation 1.5 <br />       | Projetos que precisam usar recursos avançados do Module Federation 2.0                                                    |
+| <a href="#module-federation-v15">MF v1.5</a> | Versão incorporada ao Rspack                                                                             | - Suporta exportação de módulos, carregamento de módulos e recursos de compartilhamento de dependências do Module Federation v1.0<br />- Adicionada a funcionalidade de plugin de tempo de execução, permitindo que os usuários estendam o comportamento e a funcionalidade do Module Federation <br /> | Projetos que não precisam usar os recursos extras do Module Federation 2.0                                                |
+| <a href="#module-federation-v10">MF v1.0</a> | Versão implementada com base em webpack.container.ModuleFederationPlugin                                 | - Não está mais sendo iterado <br /> - Recomendamos o uso das versões do Module Federation v1.5 ou v2.0                                                                                                                                                                                                 | Projetos que estão migrando do Webpack para o Rspack e desejam manter a lógica o mais consistente possível com a original |
+
+### Module Federation v2.0
+
+[Module Federation 2.0](https://module-federation.io/blog/announcement.html) oferece alguns recursos adicionais prontos para uso baseados na Module Federation, como dicas dinâmicas de tipo TS, ferramentas de desenvolvimento do Chrome, plugins de tempo de execução e pré-carregamento, tornando a Module Federation mais adequada para arquiteturas de microfrontend que suportam aplicações web de larga escala. Module Federation v2.0 é implementada com base na v1.5.
+
+Você precisa instalar o plugin adicional `@module-federation/enhanced` para usar a Module Federation v2.0.
+
+```js title="rspack.config.mjs"
+import { ModuleFederationPlugin } from '@module-federation/enhanced/rspack';
+
+export default {
+  plugins: [
+    new ModuleFederationPlugin({
+      // opções
+    }),
+  ],
+};
+```
+
+Consulte a [documentação oficial do Module Federation v2.0](https://module-federation.io/) para obter detalhes específicos de uso.
+
+### Module Federation v1.5
+
+Esta é a versão integrada ao Rspack. Além de oferecer suporte aos recursos do Module Federation v1.0, como exportação de módulos, carregamento de módulos e compartilhamento de dependências, ele também adiciona a funcionalidade de plugin de tempo de execução, permitindo que os usuários estendam o comportamento e a funcionalidade do module federation.
+
+Você pode usá-lo através do [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin) do Rspack sem instalar nenhum plugin adicional.
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  output: {
+    // defina uniqueName explicitamente para que o HMR funcione
+    uniqueName: 'app',
+  },
+  plugins: [
+    new rspack.container.ModuleFederationPlugin({
+      // opções
+    }),
+  ],
+};
+```
+
+> Referência: [Exemplo de Federação de Módulos v1.5](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/module-federation-v1.5).
+
+### Module Federation v1.0
+
+Esta versão foi implementada para compatibilidade com [webpack.container.ModuleFederationPlugin](https://webpack.js.org/plugins/module-federation-plugin/).
+
+Você pode usá-la através do [ModuleFederationPluginV1](/plugins/webpack/module-federation-plugin-v1) do RSPack.
+
+:::tip
+Module Federation v1.0 não está mais sendo iterada, recomendamos usar as versões 1.5 ou 2.0 do Module Federation.
+:::
