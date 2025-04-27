@@ -4,6 +4,24 @@ import { Stability } from '@components/ApiMeta.tsx';
 
 本章节介绍 Rspack 中一些常见的性能瓶颈和性能分析方法。
 
+## 使用 Rsdoctor 分析
+
+[Rsdoctor](https://rsdoctor.dev/) 是一个针对 Rspack 的构建分析工具，可以直观地展示构建过程，例如编译时间、编译前后的代码变化、模块引用关系、重复模块等。
+
+请参考 [使用 Rsdoctor](/guide/optimization/use-rsdoctor) 了解更多。
+
+## Rspack profile
+
+Rspack CLI 支持使用 `RSPACK_PROFILE` 环境变量来进行构建性能分析。
+
+```sh
+$ RSPACK_PROFILE=ALL rspack build
+```
+
+执行该命令后会在当前目录下生成一个 `.rspack-profile-${timestamp}-${pid}` 文件夹，该文件夹下会包含 `trace.json`：
+
+- `trace.json`：使用 [tracing](https://github.com/tokio-rs/tracing) 细粒度地记录了 Rust 侧各个阶段的耗时，可以使用 [ui.perfetto.dev](https://ui.perfetto.dev/) 进行查看
+
 ## 性能瓶颈
 
 尽管 Rspack 本身提供的构建性能已经足够优秀，但在 Rspack 中使用一些 JavaScript 编写的 loaders 和 plugins 时，它们可能会导致整体的构建性能劣化，尤其是在大型项目中。
@@ -39,58 +57,3 @@ import { Stability } from '@components/ApiMeta.tsx';
 ### html-webpack-plugin
 
 [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) 在生成大量 HTML 文件时，性能表现不佳，Rspack 基于 Rust 实现的 [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) 可以提供更好的性能。
-
-## Rspack profile
-
-Rspack CLI 支持使用 `RSPACK_PROFILE` 环境变量来进行构建性能分析。
-
-```sh
-$ RSPACK_PROFILE=ALL rspack build
-```
-
-执行该命令后会在当前目录下生成一个 `.rspack-profile-${timestamp}-${pid}` 文件夹，该文件夹下会包含 `logging.json`、`trace.json` 和 `jscpuprofile.json` 三个文件
-
-- `trace.json`：使用 [tracing](https://github.com/tokio-rs/tracing) 细粒度地记录了 Rust 侧各个阶段的耗时，可以使用 [ui.perfetto.dev](https://ui.perfetto.dev/) 进行查看
-- `jscpuprofile.json`：使用 [Node.js inspector](https://nodejs.org/dist/latest-v18.x/docs/api/inspector.html) 细粒度地记录了 JavaScript 侧的各个阶段的耗时，可以使用 [speedscope.app](https://www.speedscope.app/) 进行查看
-- `logging.json`：包含一些日志信息，粗粒度地记录了构建的各个阶段耗时
-
-## Rsdoctor 的编译分析
-
-你可以通过使用 Rsdoctor 来查看 Loader 和 Plugin 的编译耗时及编译过程。
-
-#### Loader timeline
-
-如果想要分析 Loader 和 Plugin 耗时或者 Loader 的编译行为，可以利用 Rsdoctor 来查看：
-
-![image](https://assets.rspack.dev/others/assets/rsdoctor/rsdoctor-loader-timeline.png)
-
-你可以在时间轴中查看每个 Loader 的执行时间以及编译的文件，以及这个 Loader 编译文件所花费的时间。
-
-参考 [Loader Timeline](https://rsdoctor.dev/guide/usage/loaders-timeline).
-
-#### Loader details
-
-如果你想查看 Loader 对代码编译过程，那么可以利用 [Loader Details](https://rsdoctor.dev/guide/usage/loaders-analysis) 功能:
-
-![image](https://assets.rspack.dev/others/assets/rsdoctor/rsdoctor-analyze-code.png)
-
-在这个报告页面中，你可以查看到 Loader 对每个文件的编译前后的代码的变化。
-
-参考 [Loader Details](https://rsdoctor.dev/guide/usage/loaders-analysis).
-
-#### 开启编译耗时分析
-
-关于如何启用 `RsdoctorRspackPlugin`，可以参考 [使用 Rsdoctor](/guide/optimization/use-rsdoctor)。
-
-- `RsdoctorRspackPlugin` 的 `features.loader` 和 `features.plugins` 参数需要为 `true`，`features.loader` 和 `features.plugins` 是默认开启的。查看参数文档[Rsdoctor options](https://rsdoctor.dev/zh/config/options/options#features)。
-- 使用文档：
-  - Loader Analysis 使用文档可查看 [Loader Timeline](https://rsdoctor.dev/zh/guide/usage/loaders-timeline) 和 [Loader Details](https://rsdoctor.dev/zh/guide/usage/loaders-analysis)。
-  - Plugins Analysis 使用文档可查看 [Plugin Analysis](https://rsdoctor.dev/zh/guide/usage/plugins-analysis)。
-
-#### FAQ
-
-**CssExtractRspackPlugin 的 loader 耗时过长问题**
-
-在使用 Rsdoctor 对 Rspack 项目进行编译耗时分析时，可能会发现 [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) 的 loader 耗时较长，详情及原因请查看：
-
-[> CssExtractRspackPlugin 的 loader 耗时过长问题](https://rsdoctor.dev/zh/guide/more/faq#cssextractrspackplugin-%E7%9A%84-loader-%E8%80%97%E6%97%B6%E8%BF%87%E9%95%BF%E9%97%AE%E9%A2%98)

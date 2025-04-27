@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use derive_more::Debug;
-use napi::Either;
+use napi::{bindgen_prelude::FnArgs, Either};
 use napi_derive::napi;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_progress::{ProgressPluginDisplayOptions, ProgressPluginOptions};
 
-type HandlerFn = ThreadsafeFunction<(f64, String, Vec<String>), ()>;
+type HandlerFn = ThreadsafeFunction<FnArgs<(f64, String, Vec<String>)>, ()>;
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawProgressPluginOptions {
@@ -30,7 +30,8 @@ impl From<RawProgressPluginOptions> for ProgressPluginOptions {
   fn from(value: RawProgressPluginOptions) -> Self {
     if let Some(f) = value.handler {
       Self::Handler(Arc::new(move |percent, msg, items| {
-        f.blocking_call_with_sync((percent, msg, items))
+        let f = f.clone();
+        Box::pin(async move { f.call_with_sync((percent, msg, items).into()).await })
       }))
     } else {
       Self::Default(ProgressPluginDisplayOptions {

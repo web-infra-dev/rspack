@@ -1,3 +1,5 @@
+const path = require("path");
+
 class Plugin {
 	/**
 	 * @param {import("@rspack/core").Compiler} compiler
@@ -24,17 +26,27 @@ class Plugin {
 			expect(module.resourceResolveData.path).toContain("index.js");
 			expect(module.resourceResolveData.query).toBe("");
 			expect(module.resourceResolveData.resource).toContain("index.js");
-			expect("matchResource" in module).toBe(true);
 			expect(module.loaders.length).toBe(1);
-
+			expect(
+				module.loaders.map(({ loader }) =>
+					path.relative(compiler.context, loader)
+				)
+			).toEqual(["passthrough-loader.js"]);
 			expect(module.type).toBe("javascript/auto");
-			expect("context" in module).toBe(true);
-			expect("layer" in module).toBe(true);
-			expect("factoryMeta" in module).toBe(true);
-			expect(module.useSourceMap).toBe(false);
-			expect(module.useSimpleSourceMap).toBe(false);
-			expect("buildMeta" in module).toBe(true);
-			expect("buildMeta" in module).toBe(true);
+
+			expect(Object.hasOwn(module, "type")).toBe(true);
+			expect(Object.hasOwn(module, "resource")).toBe(true);
+			expect(Object.hasOwn(module, "userRequest")).toBe(true);
+			expect(Object.hasOwn(module, "rawRequest")).toBe(true);
+			expect(Object.hasOwn(module, "resourceResolveData")).toBe(true);
+			expect(Object.hasOwn(module, "loaders")).toBe(true);
+			expect(Object.hasOwn(module, "useSourceMap")).toBe(true);
+			expect(Object.hasOwn(module, "useSimpleSourceMap")).toBe(true);
+			expect(Object.hasOwn(module, "matchResource")).toBe(true);
+			expect(Object.hasOwn(module, "layer")).toBe(true);
+			expect(Object.hasOwn(module, "factoryMeta")).toBe(true);
+			expect(Object.hasOwn(module, "buildMeta")).toBe(true);
+			expect(Object.hasOwn(module, "buildMeta")).toBe(true);
 		});
 	}
 }

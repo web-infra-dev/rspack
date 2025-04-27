@@ -97,6 +97,9 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 		}
 
 		for (const bundle of bundles!) {
+			if (!bundle) {
+				continue;
+			}
 			const runnerFactory = context.getRunnerFactory(this._options.name);
 			if (!runnerFactory) {
 				throw new Error(`Test case ${this._options.name} is not runable`);
@@ -166,7 +169,9 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 
 			if (
 				fs.existsSync(context.getSource("errors.js")) ||
-				fs.existsSync(context.getSource("warnings.js"))
+				fs.existsSync(context.getSource("warnings.js")) ||
+				stats.hasErrors() ||
+				stats.hasWarnings()
 			) {
 				const statsJson = stats.toJson({
 					errorDetails: true

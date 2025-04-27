@@ -29,48 +29,6 @@
 
 当使用 `Attach Rust` 将调试器 attach 到 Rspack 所属进程后，点击 Debugger 的 Pause 按钮即可在死锁现场设置断点。
 
-## Tracing
-
-[`tracing`](https://crates.io/crates/tracing) 被用于度量（instrumenting） Rspack。
-
-被支持的 tracing 等级有：
-
-- release 版本是 `INFO`, `WARN` and `ERROR`
-- debug 版本是 `TRACE`, `DEBUG`, `INFO`, `WARN` and `ERROR`
-
-使用 `RSPACK_PROFILE` 环境变量来展示 trace 信息。
-
-```bash
-RSPACK_PROFILE=TRACE=layer=logger rspack build
-# filter for an event
-RSPACK_PROFILE='TRACE=layer=logger&filter=rspack_core::compiler::compilation' rspack build
-# with logger level
-RSPACK_PROFILE='TRACE=layer=logger&filter=rspack_core::compiler::compilation=info' rspack build
-# filter logs across multiple modules
-RSPACK_PROFILE='TRACE=layer=logger&filter=rspack_core::compiler::compilation,rspack_core::build_chunk_graph::code_splitter' rspack build
-# [fn_name] will show:
-# - all functions calls to `fn_name`
-# - the arguments(except for these in the `skip` list)
-# - everything until this function returns
-RSPACK_PROFILE='TRACE=layer=logger&filter=[build_chunk_graph]' rspack build
-# compilation::chunk_asset is a custom instrument name
-RSPACK_PROFILE='TRACE=layer=logger&filter=[compilation:chunk_asset]' rspack build
-# log a specific function by their arguments
-RSPACK_PROFILE='TRACE=layer=logger&filter=[compilation:chunk_asset{filename="main\.js"}]' rspack build
-# It support regexp expression
-RSPACK_PROFILE='TRACE=layer=logger&filter=[compilation:chunk_asset{filename=".*\.js"}]' rspack build
-# disable ansi color escape codes
-NO_COLOR=1 RSPACK_PROFILE=TRACE=layer=logger rspack build
-```
-
-### Resolver
-
-`rspack_resolver` 为了调试也会有一些 tracing 信息。
-
-```bash
-RSPACK_PROFILE='TRACE=filter=rspack_resolver=trace&layer=logger' rspack build
-```
-
 ## rust-lldb
 
 `rust-lldb` 可用于从 debug 版本中获取 panic 信息

@@ -2,17 +2,16 @@
 macro_rules! impl_module_methods {
   ($module:ident) => {
     impl $module {
-      pub(crate) fn custom_into_instance(
+      fn new_inherited<'a>(
         self,
-        env: &napi::Env,
-      ) -> napi::Result<napi::bindgen_prelude::ClassInstance<Self>> {
+        env: &'a napi::Env,
+        mut properties: Vec<napi::Property>,
+      ) -> napi::Result<napi::bindgen_prelude::ClassInstance<'a, Self>> {
         use napi::bindgen_prelude::JavaScriptClassExt;
 
         let mut instance = self.into_instance(env)?;
         let mut object = instance.as_object(env);
         let (_, module) = instance.module.as_ref()?;
-
-        object.set_named_property("type", env.create_string(module.module_type().as_str())?)?;
 
         #[js_function]
         fn context_getter(ctx: napi::CallContext) -> napi::Result<napi::Either<String, ()>> {
@@ -73,9 +72,7 @@ macro_rules! impl_module_methods {
         }
 
         #[js_function]
-        fn factory_meta_getter(
-          ctx: napi::CallContext,
-        ) -> napi::Result<napi::Either<$crate::JsFactoryMeta, ()>> {
+        fn factory_meta_getter(ctx: napi::CallContext) -> napi::Result<$crate::JsFactoryMeta> {
           use rspack_core::Module;
 
           let this = ctx.this_unchecked::<napi::bindgen_prelude::Object>();
@@ -88,25 +85,85 @@ macro_rules! impl_module_methods {
           let (_, module) = wrapped_value.module.as_ref()?;
           Ok(match module.as_normal_module() {
             Some(normal_module) => match normal_module.factory_meta() {
-              Some(meta) => napi::Either::A($crate::JsFactoryMeta {
+              Some(meta) => $crate::JsFactoryMeta {
                 side_effect_free: meta.side_effect_free,
-              }),
-              None => napi::Either::B(()),
+              },
+              None => $crate::JsFactoryMeta {
+                side_effect_free: None,
+              },
             },
-            None => napi::Either::B(()),
+            None => $crate::JsFactoryMeta {
+              side_effect_free: None,
+            },
           })
         }
 
-        object.define_properties(&[
-          napi::Property::new("context")?.with_getter(context_getter),
-          napi::Property::new("layer")?.with_getter(layer_getter),
-          napi::Property::new("useSourceMap")?.with_getter(use_source_map_getter),
-          napi::Property::new("useSimpleSourceMap")?.with_getter(use_simple_source_map_getter),
-          napi::Property::new("factoryMeta")?.with_getter(factory_meta_getter),
-        ])?;
+        #[js_function(1)]
+        fn factory_meta_setter(ctx: napi::CallContext) -> napi::Result<napi::JsUndefined> {
+          let this = ctx.this_unchecked::<napi::bindgen_prelude::Object>();
+          let wrapped_value: &mut $module = unsafe {
+            napi::bindgen_prelude::FromNapiMutRef::from_napi_mut_ref(
+              ctx.env.raw(),
+              napi::NapiRaw::raw(&this),
+            )?
+          };
+          let module = wrapped_value.module.as_mut()?;
+          let factory_meta = ctx.get::<$crate::JsFactoryMeta>(0)?;
+          module.set_factory_meta(factory_meta.into());
+          ctx.env.get_undefined()
+        }
 
-        object.set_named_property("buildInfo", env.create_object()?)?;
-        object.set_named_property("buildMeta", env.create_object()?)?;
+        #[js_function]
+        fn readable_identifier_getter(ctx: napi::CallContext) -> napi::Result<String> {
+          let this = ctx.this::<napi::bindgen_prelude::Object>()?;
+          let wrapped_value: &mut $module = unsafe {
+            napi::bindgen_prelude::FromNapiMutRef::from_napi_mut_ref(
+              ctx.env.raw(),
+              napi::NapiRaw::raw(&this),
+            )?
+          };
+          let (_, module) = wrapped_value.module.as_ref()?;
+          let res = module
+            .get_context()
+            .map(|ctx| module.readable_identifier(ctx.as_ref()).to_string())
+            .unwrap_or_default();
+          Ok(res)
+        }
+
+        properties.push(
+          napi::Property::new("type")?
+            .with_value(&env.create_string(module.module_type().as_str())?),
+        );
+        properties.push(napi::Property::new("context")?.with_getter(context_getter));
+        properties.push(napi::Property::new("layer")?.with_getter(layer_getter));
+        properties.push(napi::Property::new("useSourceMap")?.with_getter(use_source_map_getter));
+        properties.push(
+          napi::Property::new("useSimpleSourceMap")?.with_getter(use_simple_source_map_getter),
+        );
+        properties.push(
+          napi::Property::new("factoryMeta")?
+            .with_getter(factory_meta_getter)
+            .with_setter(factory_meta_setter),
+        );
+        properties.push(napi::Property::new("buildInfo")?.with_value(&env.create_object()?));
+        properties.push(napi::Property::new("buildMeta")?.with_value(&env.create_object()?));
+        properties.push(
+          napi::Property::new("_readableIdentifier")?.with_getter(readable_identifier_getter),
+        );
+        object.define_properties(&properties)?;
+
+        $crate::MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
+          let identifier = env.create_string(module.identifier().as_str())?;
+          let symbol = unsafe {
+            #[allow(clippy::unwrap_used)]
+            let napi_val = napi::bindgen_prelude::ToNapiValue::to_napi_value(
+              env.raw(),
+              once_cell.get().unwrap(),
+            )?;
+            <napi::JsSymbol as napi::NapiValue>::from_raw_unchecked(env.raw(), napi_val)
+          };
+          object.set_property(symbol, identifier)
+        })?;
 
         Ok(instance)
       }
@@ -123,22 +180,16 @@ macro_rules! impl_module_methods {
       }
 
       #[napi]
-      pub fn identifier(&mut self) -> napi::Result<&str> {
-        self.module.identifier()
-      }
-
-      #[napi]
       pub fn name_for_condition(&mut self) -> napi::Result<napi::Either<String, ()>> {
         self.module.name_for_condition()
       }
 
       #[napi(
         getter,
-        js_name = "_blocks",
-        ts_return_type = "JsDependenciesBlock[]",
+        ts_return_type = "AsyncDependenciesBlock[]",
         enumerable = false
       )]
-      pub fn blocks(&mut self) -> napi::Result<Vec<$crate::JsDependenciesBlockWrapper>> {
+      pub fn blocks(&mut self) -> napi::Result<Vec<$crate::AsyncDependenciesBlockWrapper>> {
         self.module.blocks()
       }
 
@@ -161,14 +212,21 @@ macro_rules! impl_module_methods {
         self.module.lib_ident(env, options)
       }
 
-      #[napi(js_name = "_emitFile", enumerable = false)]
+      #[napi(
+        js_name = "_emitFile",
+        enumerable = false,
+        ts_args_type = "filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null"
+      )]
       pub fn emit_file(
         &mut self,
+        env: &napi::Env,
         filename: String,
         source: $crate::JsCompatSource,
-        js_asset_info: Option<$crate::AssetInfo>,
+        asset_info: Option<napi::bindgen_prelude::Object>,
       ) -> napi::Result<()> {
-        self.module.emit_file(filename, source, js_asset_info)
+        self
+          .module
+          .emit_file(env, filename, source, asset_info)
       }
     }
   };

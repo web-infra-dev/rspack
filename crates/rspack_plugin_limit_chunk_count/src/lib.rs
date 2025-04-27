@@ -57,7 +57,7 @@ impl LimitChunkCountPlugin {
 }
 
 #[plugin_hook(CompilationOptimizeChunks for LimitChunkCountPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED)]
-fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   let max_chunks = self.options.max_chunks;
   if max_chunks < 1 {
     return Ok(None);

@@ -25,7 +25,7 @@
   "webpack-filter-warnings-plugin-desc": "使用 [ignoreWarnings](/config/other-options#ignorewarnings) 替代",
   "speed-measure-webpack-plugin-desc": "使用 [Rsdoctor](/guide/optimization/use-rsdoctor) 替代",
   "eslint-webpack-plugin-desc": "使用 [eslint-rspack-plugin](https://github.com/rspack-contrib/eslint-rspack-plugin) 替代",
-  "circular-dependency-plugin-desc": "使用 ESLint [import/no-cycle](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-cycle.md) 规则替代",
+  "circular-dependency-plugin-desc": "使用 [CircularDependencyRspackPlugin](/zh/plugins/rspack/circular-dependency-rspack-plugin) 替代",
   "html-webpack-tags-plugin-desc": "使用 [html-rspack-tags-plugin](https://github.com/rspack-contrib/html-rspack-tags-plugin) 替代",
   "needs-html-webpack-plugin": "该插件依赖了 html-webpack-plugin",
   "webpack-assets-manifest-desc": "仅支持基础用法",

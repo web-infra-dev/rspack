@@ -8,8 +8,8 @@ use std::{
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 
 use crate::{
-  Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, ReadStream,
-  ReadableFileSystem, Result, WritableFileSystem, WriteStream,
+  Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, IoResultToFsResultExt,
+  ReadStream, ReadableFileSystem, Result, WritableFileSystem, WriteStream,
 };
 
 fn current_time() -> u64 {
@@ -20,7 +20,7 @@ fn current_time() -> u64 {
 }
 
 fn new_error(msg: &str) -> Error {
-  Error::Io(std::io::Error::new(std::io::ErrorKind::Other, msg))
+  Error::Io(std::io::Error::other(msg))
 }
 
 #[derive(Debug)]
@@ -113,7 +113,7 @@ impl MemoryFileSystem {
     Ok(())
   }
 
-  fn _remove_dir_all(&self, dir: &Utf8Path) -> Result<()> {
+  async fn _remove_dir_all(&self, dir: &Utf8Path) -> Result<()> {
     if self.contains_dir(dir)? {
       let mut files = self.files.lock().expect("should get lock");
       files.retain(|path, _| !path.starts_with(dir));
@@ -214,7 +214,7 @@ impl WritableFileSystem for MemoryFileSystem {
   }
 
   async fn remove_dir_all(&self, dir: &Utf8Path) -> Result<()> {
-    self._remove_dir_all(dir)
+    self._remove_dir_all(dir).await
   }
 
   async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
@@ -222,17 +222,21 @@ impl WritableFileSystem for MemoryFileSystem {
   }
 
   async fn read_file(&self, file: &Utf8Path) -> Result<Vec<u8>> {
-    ReadableFileSystem::read(self, file)
+    ReadableFileSystem::read(self, file).await
   }
 
   async fn stat(&self, file: &Utf8Path) -> Result<FileMetadata> {
-    ReadableFileSystem::metadata(self, file)
+    ReadableFileSystem::metadata(self, file).await
   }
 }
 
 #[async_trait::async_trait]
 impl ReadableFileSystem for MemoryFileSystem {
-  fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+  async fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+    self.read_sync(path)
+  }
+
+  fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
     let files = self.files.lock().expect("should get lock");
     match files.get(path) {
       Some(FileType::File { content, .. }) => Ok(content.clone()),
@@ -243,7 +247,11 @@ impl ReadableFileSystem for MemoryFileSystem {
     }
   }
 
-  fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+  async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    self.metadata_sync(path)
+  }
+
+  fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata> {
     let files = self.files.lock().expect("should get lock");
     match files.get(path) {
       Some(ft) => Ok(ft.metadata().clone()),
@@ -254,20 +262,20 @@ impl ReadableFileSystem for MemoryFileSystem {
     }
   }
 
-  fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    self.metadata(path)
+  async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    self.metadata(path).await
   }
 
-  fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
+  async fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
     let path = dunce::canonicalize(path)?;
     Ok(path.assert_utf8())
   }
 
-  async fn async_read(&self, file: &Utf8Path) -> Result<Vec<u8>> {
-    ReadableFileSystem::read(self, file)
+  async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+    self._read_dir(dir)
   }
 
-  fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+  fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     self._read_dir(dir)
   }
 }
@@ -280,7 +288,7 @@ impl IntermediateFileSystemExtras for MemoryFileSystem {
   }
 
   async fn create_read_stream(&self, file: &Utf8Path) -> Result<Box<dyn ReadStream>> {
-    let contents = self.read(file)?;
+    let contents = self.read(file).await?;
     let reader = MemoryReadStream::new(contents);
     Ok(Box::new(reader))
   }
@@ -306,13 +314,13 @@ impl MemoryReadStream {
 impl ReadStream for MemoryReadStream {
   async fn read(&mut self, length: usize) -> Result<Vec<u8>> {
     let mut buf = vec![0u8; length];
-    self.0.read_exact(&mut buf).map_err(Error::from)?;
+    self.0.read_exact(&mut buf).to_fs_result()?;
     Ok(buf)
   }
 
   async fn read_until(&mut self, byte: u8) -> Result<Vec<u8>> {
     let mut buf = vec![];
-    self.0.read_until(byte, &mut buf).map_err(Error::from)?;
+    self.0.read_until(byte, &mut buf).to_fs_result()?;
     if buf.last().is_some_and(|b| b == &byte) {
       buf.pop();
     }
@@ -320,11 +328,11 @@ impl ReadStream for MemoryReadStream {
   }
   async fn read_to_end(&mut self) -> Result<Vec<u8>> {
     let mut buf = vec![];
-    self.0.read_to_end(&mut buf).map_err(Error::from)?;
+    self.0.read_to_end(&mut buf).to_fs_result()?;
     Ok(buf)
   }
   async fn skip(&mut self, offset: usize) -> Result<()> {
-    self.0.seek_relative(offset as i64).map_err(Error::from)
+    self.0.seek_relative(offset as i64).to_fs_result()
   }
   async fn close(&mut self) -> Result<()> {
     Ok(())
@@ -448,23 +456,23 @@ mod tests {
 
     // read
     assert!(
-      ReadableFileSystem::async_read(&fs, Utf8Path::new("/a/temp/file2"))
+      ReadableFileSystem::read(&fs, Utf8Path::new("/a/temp/file2"))
         .await
         .is_err()
     );
     assert!(
-      ReadableFileSystem::async_read(&fs, Utf8Path::new("/a/file1/file2"))
+      ReadableFileSystem::read(&fs, Utf8Path::new("/a/file1/file2"))
         .await
         .is_err()
     );
     assert_eq!(
-      ReadableFileSystem::async_read(&fs, Utf8Path::new("/a/file1"))
+      ReadableFileSystem::read(&fs, Utf8Path::new("/a/file1"))
         .await
         .unwrap(),
       file_content
     );
     assert_eq!(
-      ReadableFileSystem::async_read(&fs, Utf8Path::new("/a/file2"))
+      ReadableFileSystem::read(&fs, Utf8Path::new("/a/file2"))
         .await
         .unwrap(),
       file_content

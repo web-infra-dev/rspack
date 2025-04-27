@@ -1,0 +1,105 @@
+# Asset base path
+
+Rspack provides the [output.publicPath](/config/output#outputpublicpath) option, which sets the base URL path prefix for bundled static assets (such as JS, CSS, images, etc.).
+
+## Use cases
+
+Imagine the following scenarios:
+
+- Your static assets need to be deployed to a CDN
+- Your web application is not deployed under the root path of the domain
+- You need to use different assets paths for different environments (development, testing, or production)
+
+In these scenarios, configuring `output.publicPath` can help you load static assets correctly.
+
+## Basic example
+
+Set `output.publicPath` to `/`, then the assets path will be relative to the root path.
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    publicPath: '/',
+  },
+};
+```
+
+With this configuration, the assets access path is `http://[domain]/`, for example `http://localhost:8080/main.js`.
+
+## Subdirectory
+
+If your application needs to be deployed under a subdirectory, you can set `output.publicPath` to the corresponding subdirectory path:
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    publicPath: '/assets/',
+  },
+};
+```
+
+With this configuration, all assets will be loaded from the `/assets/` path, for example `http://localhost:8080/assets/main.js`.
+
+:::tip
+
+- The value of `output.publicPath` usually ends with `/`.
+- Do not set `output.publicPath` to a relative path, such as `./assets/`. Using a relative path may cause assets to load incorrectly when they are located at different path depths.
+- If setting `output.publicPath` to an empty string, the asset URL path will be relative to the HTML page (same directory).
+
+:::
+
+## Use CDN
+
+When deploying static assets using CDN, you can set `output.publicPath` based on the environment variable, and set it to the CDN URL prefix during the production build.
+
+```js title="rspack.config.mjs"
+const isProd = process.env.NODE_ENV === 'production';
+
+export default {
+  output: {
+    publicPath: isProd ? 'https://cdn.example.com/' : '/',
+  },
+};
+```
+
+With this configuration:
+
+- In the development mode, the assets access path is `http://[domain]/`, for example `http://localhost:8080/main.js`.
+- In the production mode, the assets access path is `https://cdn.example.com/`, for example `https://cdn.example.com/main.[hash].js`.
+
+## Dynamically set publicPath
+
+You can set `publicPath` dynamically using `__webpack_public_path__` in your JavaScript code.
+
+The `__webpack_public_path__` will override the `output.publicPath` in the Rspack config, but it will only take effect for dynamically loaded assets, not for assets loaded via `<script src="...">`.
+
+First create a `publicPath.js`:
+
+```js title="publicPath.js"
+__webpack_public_path__ =
+  location.hostname === 'foo.com'
+    ? 'https://cdn1.com/assets/'
+    : 'https://cdn2.com/assets/';
+```
+
+Then import it into the first line of the entry file to ensure that `publicPath` is set before async assets are loaded:
+
+```js title="entry.js"
+import './publicPath.js';
+import './others.js';
+```
+
+## Automatic publicPath
+
+There are chances that you don't know what the `publicPath` will be in advance, and Rspack can automatically calculate the `publicPath` value by parsing some variables like [import.meta.url](/api/runtime-api/module-variables#importmetaurl), [document.currentScript](https://developer.mozilla.org/en-US/docs/Web/API/Document/currentScript), `script.src` or `self.location`.
+
+What you need is to set `output.publicPath` to `'auto'`:
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    // this is the default value when `target` is `'web'` or `'webworker'`
+    publicPath: 'auto',
+  },
+};
+```

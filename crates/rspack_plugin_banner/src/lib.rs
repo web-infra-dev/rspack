@@ -1,20 +1,20 @@
 #![feature(let_chains)]
 
-use std::fmt::{self, Debug};
-use std::sync::LazyLock;
+use std::{
+  fmt::{self, Debug},
+  sync::LazyLock,
+};
 
 use cow_utils::CowUtils;
 use futures::future::BoxFuture;
 use regex::Regex;
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
-  to_comment, Chunk, Compilation, CompilationProcessAssets, FilenameTemplate, Logger, PathData,
-  Plugin,
+  to_comment, Chunk, Compilation, CompilationProcessAssets, Filename, Logger, PathData, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::AssetConditions;
-use rspack_util::infallible::ResultInfallibleExt as _;
 
 #[derive(Debug)]
 pub struct BannerPluginOptions {
@@ -186,7 +186,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       };
       let comment = compilation
         .get_path(
-          &FilenameTemplate::from(banner),
+          &Filename::from(banner),
           PathData::default()
             .chunk_hash_optional(chunk.rendered_hash(
               &compilation.chunk_hashes_artifact,
@@ -201,7 +201,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .hash(&hash)
             .filename(file),
         )
-        .always_ok();
+        .await?;
       updates.push((file.clone(), comment));
     }
   }

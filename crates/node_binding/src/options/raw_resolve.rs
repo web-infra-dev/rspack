@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 
+use napi::Either;
 use napi_derive::napi;
 use rspack_core::{
   Alias, AliasMap, ByDependency, DependencyCategory, Resolve, ResolveOptionsWithDependencyType,
-  TsconfigOptions, TsconfigReferences,
+  Restriction, TsconfigOptions, TsconfigReferences,
 };
 use rspack_error::error;
+use rspack_regex::RspackRegex;
 
 pub type AliasValue = serde_json::Value;
 
@@ -35,8 +37,10 @@ pub struct RawResolveOptions {
   pub main_files: Option<Vec<String>>,
   pub main_fields: Option<Vec<String>>,
   pub condition_names: Option<Vec<String>>,
-  pub alias: Option<Vec<RawAliasOptionItem>>,
-  pub fallback: Option<Vec<RawAliasOptionItem>>,
+  #[napi(ts_type = "Array<RawAliasOptionItem> | false")]
+  pub alias: Option<Either<Vec<RawAliasOptionItem>, bool>>,
+  #[napi(ts_type = "Array<RawAliasOptionItem> | false")]
+  pub fallback: Option<Either<Vec<RawAliasOptionItem>, bool>>,
   pub symlinks: Option<bool>,
   pub tsconfig: Option<RawResolveTsconfigOptions>,
   pub modules: Option<Vec<String>>,
@@ -49,40 +53,50 @@ pub struct RawResolveOptions {
   #[napi(ts_type = "Record<string, Array<string>>")]
   pub extension_alias: Option<HashMap<String, Vec<String>>>,
   pub alias_fields: Option<Vec<String>>,
-  pub restrictions: Option<Vec<String>>,
+  #[napi(ts_type = "(string | RegExp)[]")]
+  pub restrictions: Option<Vec<Either<String, RspackRegex>>>,
   pub roots: Option<Vec<String>>,
   pub pnp: Option<bool>,
 }
 
-fn normalize_alias(alias: Option<Vec<RawAliasOptionItem>>) -> rspack_error::Result<Option<Alias>> {
+fn normalize_alias(
+  alias: Option<Either<Vec<RawAliasOptionItem>, bool>>,
+) -> rspack_error::Result<Option<Alias>> {
   alias
-    .map(|alias| {
-      alias
-        .into_iter()
-        .map(|alias_item| {
-          alias_item
-            .redirect
-            .into_iter()
-            .map(|value| {
-              if let Some(s) = value.as_str() {
-                Ok(AliasMap::Path(s.to_string()))
-              } else if let Some(b) = value.as_bool() {
-                if b {
-                  Err(error!("Alias should not be true in {}", alias_item.path))
+    .map(|alias| match alias {
+      Either::A(alias) => {
+        let alias = alias
+          .into_iter()
+          .map(|alias_item| {
+            alias_item
+              .redirect
+              .into_iter()
+              .map(|value| {
+                if let Some(s) = value.as_str() {
+                  Ok(AliasMap::Path(s.to_string()))
+                } else if let Some(b) = value.as_bool() {
+                  if b {
+                    Err(error!("Alias should not be true in {}", alias_item.path))
+                  } else {
+                    Ok(AliasMap::Ignore)
+                  }
                 } else {
-                  Ok(AliasMap::Ignore)
+                  Err(error!(
+                    "Alias should be false or string in {}",
+                    alias_item.path
+                  ))
                 }
-              } else {
-                Err(error!(
-                  "Alias should be false or string in {}",
-                  alias_item.path
-                ))
-              }
-            })
-            .collect::<rspack_error::Result<_>>()
-            .map(|value| (alias_item.path, value))
-        })
-        .collect::<rspack_error::Result<_>>()
+              })
+              .collect::<rspack_error::Result<Vec<_>>>()
+              .map(|value| (alias_item.path, value))
+          })
+          .collect::<rspack_error::Result<Vec<_>>>();
+        alias.map(Alias::MergeAlias)
+      }
+      Either::B(falsy) => {
+        assert!(!falsy, "Alias should not be true");
+        Ok(Alias::OverwriteToNoAlias)
+      }
     })
     .map_or(Ok(None), |v| v.map(Some))
 }
@@ -122,7 +136,15 @@ impl TryFrom<RawResolveOptions> for Resolve {
     let alias_fields = value
       .alias_fields
       .map(|v| v.into_iter().map(|s| vec![s]).collect());
-    let restrictions = value.restrictions;
+    let restrictions = value.restrictions.map(|restrictions| {
+      restrictions
+        .into_iter()
+        .map(|restriction| match restriction {
+          Either::A(s) => Restriction::Path(s),
+          Either::B(r) => Restriction::Regex(r),
+        })
+        .collect::<Vec<_>>()
+    });
     let roots = value.roots;
     let enforce_extension = value.enforce_extension;
     let description_files = value.description_files;
@@ -177,7 +199,7 @@ impl TryFrom<RawResolveTsconfigOptions> for TsconfigOptions {
 }
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawResolveOptionsWithDependencyType {
   pub prefer_relative: Option<bool>,
   pub prefer_absolute: Option<bool>,
@@ -185,8 +207,10 @@ pub struct RawResolveOptionsWithDependencyType {
   pub main_files: Option<Vec<String>>,
   pub main_fields: Option<Vec<String>>,
   pub condition_names: Option<Vec<String>>,
-  pub alias: Option<Vec<RawAliasOptionItem>>,
-  pub fallback: Option<Vec<RawAliasOptionItem>>,
+  #[napi(ts_type = "Array<RawAliasOptionItem> | false")]
+  pub alias: Option<Either<Vec<RawAliasOptionItem>, bool>>,
+  #[napi(ts_type = "Array<RawAliasOptionItem> | false")]
+  pub fallback: Option<Either<Vec<RawAliasOptionItem>, bool>>,
   pub symlinks: Option<bool>,
   pub tsconfig: Option<RawResolveTsconfigOptions>,
   pub modules: Option<Vec<String>>,
@@ -199,7 +223,8 @@ pub struct RawResolveOptionsWithDependencyType {
   #[napi(ts_type = "Record<string, Array<string>>")]
   pub extension_alias: Option<HashMap<String, Vec<String>>>,
   pub alias_fields: Option<Vec<String>>,
-  pub restrictions: Option<Vec<String>>,
+  #[napi(ts_type = "(string | RegExp)[]")]
+  pub restrictions: Option<Vec<Either<String, RspackRegex>>>,
   pub roots: Option<Vec<String>>,
 
   pub dependency_category: Option<String>,
@@ -240,6 +265,16 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         })
         .transpose()?;
 
+      let restrictions = raw.restrictions.map(|restrictions| {
+        restrictions
+          .into_iter()
+          .map(|restriction| match restriction {
+            Either::A(s) => Restriction::Path(s),
+            Either::B(r) => Restriction::Regex(r),
+          })
+          .collect::<Vec<_>>()
+      });
+
       let resolve_options = Resolve {
         extensions: raw.extensions,
         alias: normalize_alias(raw.alias)?,
@@ -258,7 +293,7 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         extension_alias,
         alias_fields,
         roots: raw.roots,
-        restrictions: raw.restrictions,
+        restrictions,
         imports_fields,
         by_dependency,
         description_files: raw.description_files,

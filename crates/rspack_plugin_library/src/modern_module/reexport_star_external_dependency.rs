@@ -1,11 +1,10 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  AsContextDependency, Dependency, FactorizeInfo, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, NormalInitFragment,
+  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExternalRequest, ExternalType,
+  FactorizeInfo, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
+  NormalInitFragment, TemplateContext, TemplateReplaceSource,
 };
-use rspack_core::{Compilation, DependencyType, ExternalRequest, ExternalType, RuntimeSpec};
-use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
-use rspack_core::{ModuleDependency, TemplateContext, TemplateReplaceSource};
 use rspack_plugin_javascript::dependency::create_resource_identifier_for_esm_dependency;
 use swc_core::ecma::atoms::Atom;
 
@@ -87,15 +86,39 @@ impl ModuleDependency for ModernModuleReexportStarExternalDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ModernModuleReexportStarExternalDependency {
-  fn apply(
+impl DependencyCodeGeneration for ModernModuleReexportStarExternalDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(ModernModuleReexportStarExternalDependencyTemplate::template_type())
+  }
+}
+
+impl AsContextDependency for ModernModuleReexportStarExternalDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ModernModuleReexportStarExternalDependencyTemplate;
+
+impl ModernModuleReexportStarExternalDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("ModernModuleReexportStarExternalDependency")
+  }
+}
+
+impl DependencyTemplate for ModernModuleReexportStarExternalDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyCodeGeneration,
     _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let request = match &self.target_request {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ModernModuleReexportStarExternalDependency>()
+      .expect("ModernModuleReexportStarExternalDependencyTemplate should be used for ModernModuleReexportStarExternalDependency");
+
+    let request = match &dep.target_request {
       ExternalRequest::Single(request) => Some(request),
-      ExternalRequest::Map(map) => map.get(&self.external_type),
+      ExternalRequest::Map(map) => map.get(&dep.external_type),
     };
 
     if let Some(request) = request {
@@ -108,25 +131,11 @@ impl DependencyTemplate for ModernModuleReexportStarExternalDependency {
           ),
           InitFragmentStage::StageESMImports,
           0,
-          InitFragmentKey::Const(format!("modern_module_reexport_star_{}", self.request)),
+          InitFragmentKey::Const(format!("modern_module_reexport_star_{}", dep.request)),
           None,
         )
         .boxed(),
       );
     }
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
-  }
 }
-
-impl AsContextDependency for ModernModuleReexportStarExternalDependency {}

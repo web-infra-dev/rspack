@@ -6,24 +6,29 @@ class Plugin {
 		const { ExternalModule } = compiler.webpack;
 
 		compiler.hooks.afterEmit.tap("AutoExternalPlugin", compilation => {
-			const externalModules = Array.from(compilation.modules).filter(module => module instanceof ExternalModule);
+			const externalModules = Array.from(compilation.modules).filter(
+				module => module instanceof ExternalModule
+			);
 
 			expect(externalModules.length).toBe(1);
 
 			const module = externalModules[0];
 
 			expect(module.constructor.name).toBe("ExternalModule");
-
+			expect(module.type).toBe("javascript/dynamic");
 			expect(module.userRequest).toBe("external");
-
-			expect(module.type).toBe("javascript/auto");
-			expect("context" in module).toBe(true);
-			expect("layer" in module).toBe(true);
-			expect("factoryMeta" in module).toBe(true);
 			expect(module.useSourceMap).toBe(false);
 			expect(module.useSimpleSourceMap).toBe(false);
-			expect("buildMeta" in module).toBe(true);
-			expect("buildMeta" in module).toBe(true);
+
+			expect(Object.hasOwn(module, "type")).toBe(true);
+			expect(Object.hasOwn(module, "context")).toBe(true);
+			expect(Object.hasOwn(module, "layer")).toBe(true);
+			expect(Object.hasOwn(module, "userRequest")).toBe(true);
+			expect(Object.hasOwn(module, "factoryMeta")).toBe(true);
+			expect(Object.hasOwn(module, "useSourceMap")).toBe(true);
+			expect(Object.hasOwn(module, "useSimpleSourceMap")).toBe(true);
+			expect(Object.hasOwn(module, "buildMeta")).toBe(true);
+			expect(Object.hasOwn(module, "buildMeta")).toBe(true);
 		});
 	}
 }

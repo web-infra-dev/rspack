@@ -56,9 +56,8 @@ mod test_storage_error {
       );
     }
     let rx = storage.trigger_save()?;
-    assert_eq!(storage.load("test_scope").await?.len(), 1000);
-
     rx.await.expect("should save")?;
+    assert_eq!(storage.load("test_scope").await?.len(), 1000);
     assert!(fs.exists(&root.join("test_scope/scope_meta")).await?);
     Ok(())
   }
@@ -141,11 +140,20 @@ mod test_storage_error {
   }
 
   async fn test_recovery_modified_pack(
-    _root: &Utf8PathBuf,
-    _fs: Arc<dyn FileSystem>,
+    root: &Utf8PathBuf,
+    fs: Arc<dyn FileSystem>,
     options: PackStorageOptions,
   ) -> Result<()> {
     let storage = PackStorage::new(options);
+    let meta_file = root.join("test_scope/scope_meta");
+    let first_pack_file = root.join(&get_first_pack("test_scope", &meta_file, fs.as_ref()).await?);
+    let first_pack_content = fs.read_file(&first_pack_file).await?.read_to_end().await?;
+
+    // mock
+    let fake_pack_content = &first_pack_content[0..first_pack_content.len() - 1];
+    let mut writer = fs.write_file(&first_pack_file).await?;
+    writer.write_all(fake_pack_content).await?;
+    writer.flush().await?;
 
     // test
     assert!(storage.load("test_scope").await.is_err_and(|e| {
@@ -153,12 +161,20 @@ mod test_storage_error {
         .contains("validate scope `test_scope` failed due to some packs are modified")
     }));
 
+    // resume
+    let mut writer = fs.write_file(&first_pack_file).await?;
+    writer.write_all(&first_pack_content).await?;
+    writer.flush().await?;
+
+    // test
+    assert!(storage.load("test_scope").await.is_ok());
+
     Ok(())
   }
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn test_error() {
+  async fn test_error() -> Result<()> {
     let cases = [
       (
         get_native_path("test_error_native"),
@@ -179,37 +195,34 @@ mod test_storage_error {
         .await
         .expect("should remove temp root");
 
-      let _ = test_initial_error(
+      test_initial_error(
         &root.join(&version),
         fs.clone(),
         create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
 
-      let _ = test_recovery_invalid_meta(
+      test_recovery_invalid_meta(
         &root.join(&version),
         fs.clone(),
         create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
 
-      let _ = test_recovery_remove_pack(
+      test_recovery_remove_pack(
         &root.join(&version),
         fs.clone(),
         create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
 
-      let _ = test_recovery_modified_pack(
+      test_recovery_modified_pack(
         &root.join(&version),
         fs.clone(),
         create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
     }
+    Ok(())
   }
 }

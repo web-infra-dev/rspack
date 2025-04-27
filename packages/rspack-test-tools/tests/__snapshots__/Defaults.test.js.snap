@@ -18,29 +18,15 @@ Object {
   },
   experiments: Object {
     asyncWebAssembly: false,
+    buildHttp: undefined,
     cache: false,
     css: undefined,
     futureDefaults: false,
-    incremental: Object {
-      buildChunkGraph: false,
-      chunkIds: false,
-      chunksHashes: false,
-      chunksRender: false,
-      chunksRuntimeRequirements: false,
-      dependenciesDiagnostics: false,
-      emitAssets: true,
-      inferAsyncModules: false,
-      make: true,
-      moduleIds: false,
-      modulesCodegen: false,
-      modulesHashes: false,
-      modulesRuntimeRequirements: false,
-      providedExports: false,
-      sideEffects: false,
-    },
+    incremental: false,
     layers: false,
     lazyCompilation: false,
-    parallelCodeSplitting: false,
+    parallelCodeSplitting: true,
+    parallelLoader: false,
     rspackFuture: Object {
       bundlerInfo: Object {
         bundler: rspack,
@@ -235,7 +221,7 @@ Object {
     nodeEnv: false,
     providedExports: true,
     realContentHash: false,
-    removeAvailableModules: false,
+    removeAvailableModules: true,
     removeEmptyChunks: true,
     runtimeChunk: false,
     sideEffects: flag,
@@ -385,6 +371,46 @@ Object {
         ],
       },
       esm: Object {
+        aliasFields: Array [
+          browser,
+        ],
+        conditionNames: Array [
+          import,
+          module,
+          ...,
+        ],
+        extensions: Array [
+          .js,
+          .json,
+          .wasm,
+        ],
+        mainFields: Array [
+          browser,
+          module,
+          ...,
+        ],
+      },
+      loader: Object {
+        aliasFields: Array [
+          browser,
+        ],
+        conditionNames: Array [
+          require,
+          module,
+          ...,
+        ],
+        extensions: Array [
+          .js,
+          .json,
+          .wasm,
+        ],
+        mainFields: Array [
+          browser,
+          module,
+          ...,
+        ],
+      },
+      loaderImport: Object {
         aliasFields: Array [
           browser,
         ],

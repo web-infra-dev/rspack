@@ -1,13 +1,17 @@
 use std::ops::Add;
 
 use rspack_core::{BuildMetaExportsType, ExportsArgument, ModuleArgument, ModuleType, SpanExt};
-use swc_core::common::{BytePos, Span, Spanned};
-use swc_core::ecma::ast::{Ident, ModuleItem, Program, UnaryExpr};
+use swc_core::{
+  common::{BytePos, Span, Spanned},
+  ecma::ast::{Ident, ModuleItem, Program, UnaryExpr},
+};
 
 use super::JavascriptParserPlugin;
-use crate::dependency::ESMCompatibilityDependency;
-use crate::utils::eval::BasicEvaluatedExpression;
-use crate::visitors::{create_traceable_error, JavascriptParser};
+use crate::{
+  dependency::ESMCompatibilityDependency,
+  utils::eval::BasicEvaluatedExpression,
+  visitors::{create_traceable_error, JavascriptParser},
+};
 
 impl JavascriptParser<'_> {
   fn throw_top_level_await_error(&mut self, msg: String, span: Span) {
@@ -96,12 +100,12 @@ impl JavascriptParserPlugin for ESMDetectionParserPlugin {
     parser.handle_top_level_await(self.top_level_await, span);
   }
 
-  fn evaluate_typeof(
+  fn evaluate_typeof<'a>(
     &self,
     parser: &mut JavascriptParser,
-    expr: &UnaryExpr,
+    expr: &'a UnaryExpr,
     for_name: &str,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     (parser.is_esm && is_non_esm_identifier(for_name))
       .then(|| BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span_hi().0))
   }

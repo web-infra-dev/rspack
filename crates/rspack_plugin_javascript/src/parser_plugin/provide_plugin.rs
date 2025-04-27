@@ -144,7 +144,7 @@ impl JavascriptParserPlugin for ProvidePlugin {
 }
 
 #[plugin_hook(NormalModuleFactoryParser for ProvidePlugin)]
-fn nmf_parser(
+async fn nmf_parser(
   &self,
   module_type: &ModuleType,
   parser: &mut dyn ParserAndGenerator,

@@ -29,6 +29,11 @@ pub type VariableUkey = i32;
 pub type SideEffectUkey = i32;
 
 #[derive(Debug, Default)]
+pub struct RsdoctorStatsModuleIssuer {
+  pub ukey: Option<ModuleUkey>,
+}
+
+#[derive(Debug, Default)]
 pub struct RsdoctorModule {
   pub ukey: ModuleUkey,
   pub identifier: Identifier,
@@ -41,6 +46,7 @@ pub struct RsdoctorModule {
   pub chunks: HashSet<ChunkUkey>,
   pub modules: HashSet<ModuleUkey>,
   pub belong_modules: HashSet<ModuleUkey>,
+  pub issuer_path: Option<Vec<RsdoctorStatsModuleIssuer>>,
 }
 
 #[derive(Debug, Default)]

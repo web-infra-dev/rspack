@@ -57,8 +57,9 @@ function getRawExternalItem(
 							issuer: data.contextInfo.issuer,
 							issuerLayer: data.contextInfo.issuerLayer ?? null
 						},
-						getResolve: function getResolve(options) {
+						getResolve: options => (context, request, callback) => {
 							const resolver = new Resolver(ctx.getResolver());
+							const child = options ? resolver.withOptions(options) : resolver;
 							const getResolveContext = () => ({
 								fileDependencies: compiler._lastCompilation!.fileDependencies,
 								missingDependencies:
@@ -66,39 +67,28 @@ function getRawExternalItem(
 								contextDependencies:
 									compiler._lastCompilation!.contextDependencies
 							});
-							const child = options ? resolver.withOptions(options) : resolver;
-							return (context, request, callback) => {
-								if (callback) {
+							if (callback) {
+								child.resolve(
+									{},
+									context,
+									request,
+									getResolveContext(),
+									callback
+								);
+							} else {
+								return new Promise((resolve, reject) => {
 									child.resolve(
 										{},
 										context,
 										request,
 										getResolveContext(),
 										(err, result) => {
-											if (err) return callback(err);
-											// Sync with how webpack fixes the type:
-											// https://github.com/webpack/webpack/blob/a2ad76cd50ae780dead395c68ea67d46de9828f3/lib/ExternalModuleFactoryPlugin.js#L276
-											callback(
-												undefined,
-												typeof result === "string" ? result : undefined
-											);
+											if (err) reject(err);
+											else resolve(result);
 										}
 									);
-								} else {
-									return new Promise((resolve, reject) => {
-										child.resolve(
-											{},
-											context,
-											request,
-											getResolveContext(),
-											(err, result) => {
-												if (err) reject(err);
-												else resolve(result);
-											}
-										);
-									});
-								}
-							};
+								});
+							}
 						}
 					},
 					(err, result, type) => {

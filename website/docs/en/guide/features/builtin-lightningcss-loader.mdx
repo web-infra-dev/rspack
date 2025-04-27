@@ -4,7 +4,9 @@ import { ApiMeta, Stability } from '@components/ApiMeta';
 
 <ApiMeta addedVersion="1.0.0" />
 
-The `builtin:lightningcss-loader` uses the builtin [lightningcss](https://github.com/parcel-bundler/lightningcss) from Rspack to process CSS, which can replace the syntax lowering functionality in `postcss-loader` to make the CSS transformation faster.
+[Lightning CSS](https://lightningcss.dev) is a high performance CSS parser, transformer and minifier written in Rust. It supports parsing and transforming many modern CSS features into syntax supported by target browsers, and also provides a better compression ratio.
+
+Rspack provides a built-in `builtin:lightningcss-loader`, which is based on Lightning CSS to transform CSS. It can replace the [postcss-loader](https://github.com/postcss/postcss-loader) and [autoprefixer](https://github.com/postcss/autoprefixer) for CSS syntax downgrading, prefixing, and other functionalities, offering better performance.
 
 ## Example
 
@@ -110,7 +112,9 @@ type LightningcssLoaderOptions = {
 
 ### targets
 
-browserslist query string.
+- **Type:** `string | string[]`
+
+Browserslist query string.
 
 Here are some examples of setting targets.
 
@@ -134,6 +138,56 @@ const loader = {
   /** @type {import('@rspack/core').LightningcssLoaderOptions} */
   options: {
     targets: ['chrome >= 87', 'edge >= 88', '> 0.5%'],
+  },
+};
+```
+
+### errorRecovery
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Control how Lightning CSS handles invalid CSS syntax.
+
+By default, this option is enabled, meaning that when invalid CSS rules or declarations are parsed, Lightning CSS will skip them and emit warnings, while omitting them from the final output without interrupting the compilation process.
+
+#### Ignoring warnings
+
+If you confirm that these warnings can be ignored, you can use [ignoreWarnings](/config/other-options#ignorewarnings) to filter out the warnings from LightningCSS.
+
+For example, ignore all warnings:
+
+```js title="rspack.config.mjs"
+export default {
+  ignoreWarnings: [
+    warning => /LightningCSS parse warning/.test(warning.message),
+  ],
+};
+```
+
+You can also use regular expressions to ignore specific warnings.
+
+#### Disabling `errorRecovery`
+
+If you set `errorRecovery` to `false`, Lightning CSS will throw a compilation error and interrupt the build process when parsing any invalid CSS syntax:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: [
+          {
+            loader: 'builtin:lightningcss-loader',
+            /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+            options: {
+              errorRecovery: false,
+            },
+          },
+        ],
+      },
+    ],
   },
 };
 ```

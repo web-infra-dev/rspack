@@ -1,7 +1,9 @@
-use std::hash::Hasher;
-use std::path::{Component, PathBuf};
-use std::sync::{Arc, LazyLock};
-use std::{borrow::Cow, path::Path};
+use std::{
+  borrow::Cow,
+  hash::Hasher,
+  path::{Component, Path, PathBuf},
+  sync::{Arc, LazyLock},
+};
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
@@ -12,14 +14,13 @@ use regex::Regex;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
   rspack_sources::{ConcatSource, MapOptions, RawStringSource, Source, SourceExt},
-  AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets,
-  FilenameTemplate, Logger, ModuleIdentifier, PathData, Plugin, PluginContext,
+  AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets, Filename,
+  Logger, ModuleIdentifier, PathData, Plugin, PluginContext,
 };
 use rspack_error::{error, miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::asset_condition::AssetConditions;
-use rspack_util::{identifier::make_paths_absolute, infallible::ResultInfallibleExt};
+use rspack_util::{asset_condition::AssetConditions, identifier::make_paths_absolute};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
 
@@ -130,7 +131,7 @@ pub(crate) struct MappedAsset {
 #[plugin]
 #[derive(Debug)]
 pub struct SourceMapDevToolPlugin {
-  source_map_filename: Option<FilenameTemplate>,
+  source_map_filename: Option<Filename>,
   #[debug(skip)]
   source_mapping_url_comment: Option<SourceMappingUrlComment>,
   file_context: Option<String>,
@@ -199,7 +200,7 @@ impl SourceMapDevToolPlugin {
         ));
 
     Self::new_inner(
-      options.filename.map(FilenameTemplate::from),
+      options.filename.map(Filename::from),
       source_mapping_url_comment,
       options.file_context,
       module_filename_template,
@@ -479,7 +480,7 @@ impl SourceMapDevToolPlugin {
             };
             let source_map_filename = compilation
               .get_asset_path(source_map_filename_config, data)
-              .always_ok();
+              .await?;
 
             if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment {
               let source_map_url = if let Some(public_path) = &self.public_path {
@@ -503,14 +504,14 @@ impl SourceMapDevToolPlugin {
               };
               let data = data.url(&source_map_url);
               let current_source_mapping_url_comment = match &current_source_mapping_url_comment {
-                SourceMappingUrlCommentRef::String(s) => compilation
-                  .get_asset_path(&FilenameTemplate::from(s.as_ref()), data)
-                  .always_ok(),
+                SourceMappingUrlCommentRef::String(s) => {
+                  compilation
+                    .get_asset_path(&Filename::from(s.as_ref()), data)
+                    .await?
+                }
                 SourceMappingUrlCommentRef::Fn(f) => {
                   let comment = f(data).await?;
-                  FilenameTemplate::from(comment)
-                    .render(data, None)
-                    .always_ok()
+                  Filename::from(comment).render(data, None).await?
                 }
               };
               let current_source_mapping_url_comment = current_source_mapping_url_comment

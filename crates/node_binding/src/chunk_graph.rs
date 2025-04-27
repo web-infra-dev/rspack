@@ -2,12 +2,22 @@ use std::{ptr::NonNull, sync::Arc};
 
 use napi::{Either, Result};
 use napi_derive::napi;
-use rspack_core::{ChunkGraph, Compilation, SourceType};
+use rspack_core::{ChunkGraph, Compilation, ModuleId, SourceType};
 
 use crate::{
-  JsChunk, JsChunkGroupWrapper, JsChunkWrapper, JsDependenciesBlock, JsRuntimeSpec, ModuleObject,
-  ModuleObjectRef,
+  AsyncDependenciesBlock, JsChunk, JsChunkGroupWrapper, JsChunkWrapper, JsRuntimeSpec,
+  ModuleObject, ModuleObjectRef,
 };
+
+pub type JsModuleId = Either<String, u32>;
+
+pub fn to_js_module_id(module_id: &ModuleId) -> JsModuleId {
+  if let Some(id) = module_id.as_number() {
+    JsModuleId::B(id)
+  } else {
+    JsModuleId::A(module_id.to_string())
+  }
+}
 
 #[napi]
 pub struct JsChunkGraph {
@@ -133,12 +143,15 @@ impl JsChunkGraph {
     )
   }
 
-  #[napi(ts_args_type = "module: Module")]
-  pub fn get_module_id(&self, module: ModuleObjectRef) -> napi::Result<Option<&str>> {
+  #[napi(
+    ts_args_type = "module: Module",
+    ts_return_type = "string | number | null"
+  )]
+  pub fn get_module_id(&self, module: ModuleObjectRef) -> napi::Result<Option<JsModuleId>> {
     let compilation = self.as_ref()?;
     Ok(
       ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier)
-        .map(|module_id| module_id.as_str()),
+        .map(to_js_module_id),
     )
   }
 
@@ -164,7 +177,7 @@ impl JsChunkGraph {
   #[napi(ts_return_type = "JsChunkGroup | null")]
   pub fn get_block_chunk_group(
     &self,
-    js_block: &JsDependenciesBlock,
+    js_block: &AsyncDependenciesBlock,
   ) -> napi::Result<Option<JsChunkGroupWrapper>> {
     let compilation = self.as_ref()?;
     Ok(

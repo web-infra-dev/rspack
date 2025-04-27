@@ -19,7 +19,7 @@ class MyPlugin {
   }
 }
 
-/** @type {import('../../dist').TCompilerCaseConfig} */
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 module.exports = {
   description: "should share cache cross compilations",
   options(context) {

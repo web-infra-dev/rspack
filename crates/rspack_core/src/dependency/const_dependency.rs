@@ -1,16 +1,16 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsRefStr};
 use rspack_util::ext::DynHash;
 
+use super::DependencyRange;
 use crate::{
-  AsDependency, Compilation, DependencyTemplate, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  Compilation, DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType,
+  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ConstDependency {
-  pub start: u32,
-  pub end: u32,
+  pub range: DependencyRange,
   #[cacheable(with=AsRefStr)]
   pub content: Box<str>,
   pub runtime_requirements: Option<RuntimeGlobals>,
@@ -18,14 +18,12 @@ pub struct ConstDependency {
 
 impl ConstDependency {
   pub fn new(
-    start: u32,
-    end: u32,
+    range: DependencyRange,
     content: Box<str>,
     runtime_requirements: Option<RuntimeGlobals>,
   ) -> Self {
     Self {
-      start,
-      end,
+      range,
       content,
       runtime_requirements,
     }
@@ -33,22 +31,9 @@ impl ConstDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ConstDependency {
-  fn apply(
-    &self,
-    source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    if let Some(runtime_requirements) = &self.runtime_requirements {
-      code_generatable_context
-        .runtime_requirements
-        .insert(*runtime_requirements);
-    }
-    source.replace(self.start, self.end, self.content.as_ref(), None);
-  }
-
-  fn dependency_id(&self) -> Option<crate::DependencyId> {
-    None
+impl DependencyCodeGeneration for ConstDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(ConstDependencyTemplate::template_type())
   }
 
   fn update_hash(
@@ -57,11 +42,39 @@ impl DependencyTemplate for ConstDependency {
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    self.start.dyn_hash(hasher);
-    self.end.dyn_hash(hasher);
+    self.range.dyn_hash(hasher);
     self.content.dyn_hash(hasher);
     self.runtime_requirements.dyn_hash(hasher);
   }
 }
 
-impl AsDependency for ConstDependency {}
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ConstDependencyTemplate;
+
+impl ConstDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("ConstDependency")
+  }
+}
+
+impl DependencyTemplate for ConstDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ConstDependency>()
+      .expect("ConstDependencyTemplate should be used for ConstDependency");
+
+    if let Some(runtime_requirements) = &dep.runtime_requirements {
+      code_generatable_context
+        .runtime_requirements
+        .insert(*runtime_requirements);
+    }
+    source.replace(dep.range.start, dep.range.end, dep.content.as_ref(), None);
+  }
+}

@@ -1,7 +1,9 @@
-use std::collections::HashSet;
-use std::sync::LazyLock;
-use std::sync::Mutex;
-use std::{fmt, path::Path, sync::Arc};
+use std::{
+  collections::HashSet,
+  fmt,
+  path::Path,
+  sync::{Arc, LazyLock, Mutex, RwLock},
+};
 
 use async_trait::async_trait;
 use regex::Regex;
@@ -66,7 +68,7 @@ struct MatchedConsumes {
   prefixed: FxHashMap<String, Arc<ConsumeOptions>>,
 }
 
-fn resolve_matched_configs(
+async fn resolve_matched_configs(
   compilation: &mut Compilation,
   resolver: Arc<Resolver>,
   configs: &[(String, Arc<ConsumeOptions>)],
@@ -76,8 +78,9 @@ fn resolve_matched_configs(
   let mut prefixed = FxHashMap::default();
   for (request, config) in configs {
     if RELATIVE_REQUEST.is_match(request) {
-      let Ok(ResolveResult::Resource(resource)) =
-        resolver.resolve(compilation.options.context.as_ref(), request)
+      let Ok(ResolveResult::Resource(resource)) = resolver
+        .resolve(compilation.options.context.as_ref(), request)
+        .await
       else {
         compilation.push_diagnostic(error!("Can't resolve shared module {request}").into());
         continue;
@@ -167,7 +170,7 @@ pub struct ConsumeSharedPlugin {
   options: ConsumeSharedPluginOptions,
   resolver: Mutex<Option<Arc<Resolver>>>,
   compiler_context: Mutex<Option<Context>>,
-  matched_consumes: Mutex<Option<Arc<MatchedConsumes>>>,
+  matched_consumes: RwLock<Option<Arc<MatchedConsumes>>>,
 }
 
 impl ConsumeSharedPlugin {
@@ -208,17 +211,15 @@ impl ConsumeSharedPlugin {
     lock.clone().expect("init_resolver first")
   }
 
-  fn init_matched_consumes(&self, compilation: &mut Compilation, resolver: Arc<Resolver>) {
-    let mut lock = self.matched_consumes.lock().expect("should lock");
-    *lock = Some(Arc::new(resolve_matched_configs(
-      compilation,
-      resolver,
-      &self.options.consumes,
-    )));
+  async fn init_matched_consumes(&self, compilation: &mut Compilation, resolver: Arc<Resolver>) {
+    let config = resolve_matched_configs(compilation, resolver, &self.options.consumes).await;
+    let mut lock = self.matched_consumes.write().expect("should lock");
+
+    *lock = Some(Arc::new(config));
   }
 
   fn get_matched_consumes(&self) -> Arc<MatchedConsumes> {
-    let lock = self.matched_consumes.lock().expect("should lock");
+    let lock = self.matched_consumes.read().expect("should lock");
     lock.clone().expect("init_matched_consumes first")
   }
 
@@ -302,10 +303,9 @@ impl ConsumeSharedPlugin {
     mut add_diagnostic: impl FnMut(Diagnostic),
   ) -> ConsumeSharedModule {
     let direct_fallback = matches!(&config.import, Some(i) if RELATIVE_REQUEST.is_match(i) | ABSOLUTE_REQUEST.is_match(i));
-    let import_resolved = config
-      .import
-      .as_ref()
-      .and_then(|import| {
+    let import_resolved = match &config.import {
+      None => None,
+      Some(import) => {
         let resolver = self.get_resolver();
         resolver
           .resolve(
@@ -317,6 +317,7 @@ impl ConsumeSharedPlugin {
             .as_ref(),
             import,
           )
+          .await
           .map_err(|_e| {
             add_diagnostic(Diagnostic::error(
               "ModuleNotFoundError".into(),
@@ -324,11 +325,12 @@ impl ConsumeSharedPlugin {
             ))
           })
           .ok()
-      })
-      .and_then(|i| match i {
-        ResolveResult::Resource(r) => Some(r.path.as_str().to_string()),
-        ResolveResult::Ignored => None,
-      });
+      }
+    }
+    .and_then(|i| match i {
+      ResolveResult::Resource(r) => Some(r.path.as_str().to_string()),
+      ResolveResult::Ignored => None,
+    });
     let required_version = self
       .get_required_version(context, request, config.clone(), add_diagnostic)
       .await;
@@ -368,7 +370,9 @@ async fn this_compilation(
   );
   self.init_context(compilation);
   self.init_resolver(compilation);
-  self.init_matched_consumes(compilation, self.get_resolver());
+  self
+    .init_matched_consumes(compilation, self.get_resolver())
+    .await;
   Ok(())
 }
 

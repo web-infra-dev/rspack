@@ -1,0 +1,48 @@
+Array [
+  "/* #region \"https://raw.githubusercontent.com/web-infra-dev/rspack/55d5d81/packages/rspack-test-tools/tests/configCases/css/at-import/c.css\" */
+/*
+- type: css/auto
+*/
+.c {
+	color: pink;
+}
+
+/* #endregion \"https://raw.githubusercontent.com/web-infra-dev/rspack/55d5d81/packages/rspack-test-tools/tests/configCases/css/at-import/c.css\" */
+
+/* #region \"./style.css\" */
+/*
+- type: css/auto
+*/
+
+
+div {
+	background: url(0dbf5c303a9fe7ec.jpg)
+}
+
+/* #endregion \"./style.css\" */
+
+",
+  "/* #region \"https://raw.githubusercontent.com/web-infra-dev/rspack/55d5d81/packages/rspack-test-tools/tests/configCases/css/at-import/c.css\" */
+/*
+- type: css/auto
+*/
+.c {
+	color: pink;
+}
+
+/* #endregion \"https://raw.githubusercontent.com/web-infra-dev/rspack/55d5d81/packages/rspack-test-tools/tests/configCases/css/at-import/c.css\" */
+
+/* #region \"./style.css\" */
+/*
+- type: css/auto
+*/
+
+
+div {
+	background: url(0dbf5c303a9fe7ec.jpg)
+}
+
+/* #endregion \"./style.css\" */
+
+",
+]

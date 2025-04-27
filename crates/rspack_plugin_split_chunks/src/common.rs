@@ -1,34 +1,45 @@
-use std::ops::{Deref, DerefMut};
-use std::sync::Arc;
+use std::{
+  ops::{Deref, DerefMut},
+  sync::Arc,
+};
 
 use derive_more::Debug;
+use futures::future::BoxFuture;
 use rspack_core::{Chunk, Compilation, Module, SourceType};
 use rspack_error::Result;
 use rspack_regex::RspackRegex;
 use rustc_hash::{FxHashMap, FxHashSet};
 
-pub type ChunkFilter = Arc<dyn Fn(&Chunk, &Compilation) -> Result<bool> + Send + Sync>;
+pub type ChunkFilter =
+  Arc<dyn Fn(&Chunk, &Compilation) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
 pub type ModuleTypeFilter = Arc<dyn Fn(&dyn Module) -> bool + Send + Sync>;
-pub type ModuleLayerFilter = Arc<dyn Fn(Option<String>) -> Result<bool> + Send + Sync>;
+pub type ModuleLayerFilter =
+  Arc<dyn Fn(Option<String>) -> BoxFuture<'static, Result<bool>> + Send + Sync>;
 
 pub fn create_default_module_type_filter() -> ModuleTypeFilter {
   Arc::new(|_| true)
 }
 
 pub fn create_default_module_layer_filter() -> ModuleLayerFilter {
-  Arc::new(|_| Ok(true))
+  Arc::new(|_| Box::pin(async move { Ok(true) }))
 }
 
 pub fn create_async_chunk_filter() -> ChunkFilter {
-  Arc::new(|chunk, compilation| Ok(!chunk.can_be_initial(&compilation.chunk_group_by_ukey)))
+  Arc::new(|chunk, compilation| {
+    let can_be_initial = chunk.can_be_initial(&compilation.chunk_group_by_ukey);
+    Box::pin(async move { Ok(!can_be_initial) })
+  })
 }
 
 pub fn create_initial_chunk_filter() -> ChunkFilter {
-  Arc::new(|chunk, compilation| Ok(chunk.can_be_initial(&compilation.chunk_group_by_ukey)))
+  Arc::new(|chunk, compilation| {
+    let can_be_initial = chunk.can_be_initial(&compilation.chunk_group_by_ukey);
+    Box::pin(async move { Ok(can_be_initial) })
+  })
 }
 
 pub fn create_all_chunk_filter() -> ChunkFilter {
-  Arc::new(|_chunk, _compilation| Ok(true))
+  Arc::new(|_chunk, _compilation| Box::pin(async move { Ok(true) }))
 }
 
 pub fn create_chunk_filter_from_str(chunks: &str) -> ChunkFilter {
@@ -41,7 +52,10 @@ pub fn create_chunk_filter_from_str(chunks: &str) -> ChunkFilter {
 }
 
 pub fn create_regex_chunk_filter_from_str(re: RspackRegex) -> ChunkFilter {
-  Arc::new(move |chunk, _| Ok(chunk.name().is_some_and(|name| re.test(name))))
+  Arc::new(move |chunk, _| {
+    let res = chunk.name().is_some_and(|name| re.test(name));
+    Box::pin(async move { Ok(res) })
+  })
 }
 
 #[derive(Debug, Default, Clone)]

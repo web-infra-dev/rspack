@@ -6,7 +6,7 @@ use rspack_core::{
   CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, ExternalRequest,
   LibraryName, LibraryNonUmdObject, LibraryOptions, Plugin, PluginContext, RuntimeGlobals,
 };
-use rspack_error::{error, error_bail, Result};
+use rspack_error::{error_bail, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
@@ -78,7 +78,7 @@ async fn compilation(
 }
 
 #[plugin_hook(JavascriptModulesRender for SystemLibraryPlugin)]
-fn render(
+async fn render(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
@@ -92,7 +92,7 @@ fn render(
     .name
     .map(serde_json::to_string)
     .transpose()
-    .map_err(|e| error!(e.to_string()))?
+    .to_rspack_result()?
     .map(|s| format!("{s}, "))
     .unwrap_or_else(|| "".to_string());
 
@@ -115,8 +115,7 @@ fn render(
       ExternalRequest::Map(map) => map.get("amd").map(|request| request.primary()),
     })
     .collect::<Vec<_>>();
-  let external_deps_array =
-    serde_json::to_string(&external_deps_array).map_err(|e| error!(e.to_string()))?;
+  let external_deps_array = serde_json::to_string(&external_deps_array).to_rspack_result()?;
   let external_arguments = external_module_names(&modules, compilation);
 
   // The name of the variable provided by System for exporting
@@ -183,7 +182,7 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for SystemLibraryPlugin)]
-fn additional_chunk_runtime_requirements(
+async fn additional_chunk_runtime_requirements(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,

@@ -1,10 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyLocation,
-  DependencyRange, RuntimeSpec,
+  AsContextDependency, AsModuleDependency, Dependency, DependencyCodeGeneration, DependencyId,
+  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, RuntimeGlobals,
+  SharedSourceMap, TemplateContext, TemplateReplaceSource,
 };
-use rspack_core::{DependencyId, SharedSourceMap};
-use rspack_core::{DependencyTemplate, RuntimeGlobals, TemplateContext};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -44,34 +43,44 @@ impl AsModuleDependency for RequireHeaderDependency {}
 impl AsContextDependency for RequireHeaderDependency {}
 
 #[cacheable_dyn]
-impl DependencyTemplate for RequireHeaderDependency {
-  fn apply(
+impl DependencyCodeGeneration for RequireHeaderDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(RequireHeaderDependencyTemplate::template_type())
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct RequireHeaderDependencyTemplate;
+
+impl RequireHeaderDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("RequireHeaderDependency")
+  }
+}
+
+impl DependencyTemplate for RequireHeaderDependencyTemplate {
+  fn render(
     &self,
-    source: &mut rspack_core::TemplateReplaceSource,
-    code_generatable_context: &mut rspack_core::TemplateContext,
+    dep: &dyn DependencyCodeGeneration,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<RequireHeaderDependency>()
+      .expect("RequireHeaderDependencyTemplate should only be used for RequireHeaderDependency");
+
     let TemplateContext {
       runtime_requirements,
       ..
     } = code_generatable_context;
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     source.replace(
-      self.range.start,
-      self.range.end,
+      dep.range.start,
+      dep.range.end,
       RuntimeGlobals::REQUIRE.name(),
       None,
     );
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
   }
 }

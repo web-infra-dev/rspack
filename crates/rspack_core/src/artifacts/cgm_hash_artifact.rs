@@ -36,4 +36,8 @@ impl CgmHashArtifact {
   pub fn remove(&mut self, module: &ModuleIdentifier) -> Option<RuntimeSpecMap<RspackHashDigest>> {
     self.module_to_hashes.remove(module)
   }
+
+  pub fn clear(&mut self) {
+    self.module_to_hashes.clear();
+  }
 }

@@ -6,7 +6,12 @@ import { PackageManagerTabs } from '@theme';
 
 - [创建新项目](#创建新项目)：使用 CLI 创建一个全新的 Rspack 或 Rsbuild 项目。
 - [从现有项目迁移](#从现有项目迁移)：从一个基于 webpack 的项目迁移到 Rspack。
-- [生态](#生态)：发现 Rspack 社区生态中的项目。
+
+## 生态
+
+作为一个底层打包工具，Rspack 拥有丰富的技术生态，包含多种框架、工具和解决方案。这些生态项目涵盖了从框架到开发工具的各个方面，能够满足不同场景下的开发需求，提供开箱即用的体验。
+
+查看 [生态](/guide/start/ecosystem) 页面来探索这些生态项目。
 
 ## 环境准备
 
@@ -145,61 +150,3 @@ npx install-rspack --version latest # 安装当前的 latest 版本
 npx install-rspack --version canary # 安装当前的 canary 版本
 npx install-rspack --version 1.0.0-canary-d614005-20250101082730 # 安装指定的 canary 版本
 ```
-
-## 生态
-
-### Rspress
-
-[Rspress](https://rspress.dev) 是一个基于 Rsbuild、React 和 MDX 的静态站点生成器，内置了一套默认的文档主题，你可以通过 Rspress 来快速搭建一个文档站点，同时也可以自定义主题，来满足个性化静态站需求，比如博客站、产品主页等。
-
-### Rslib
-
-[Rslib](https://github.com/web-infra-dev/rslib) 是一个基于 Rsbuild 的 npm 库开发工具，它复用了 Rsbuild 精心设计的构建配置和插件系统，使开发者能够以简单直观的方式创建 JavaScript 库。
-
-### Rsdoctor
-
-[Rsdoctor](https://rsdoctor.dev/) 是一个针对 Rspack 的构建分析器，可以直观地展示构建过程，例如编译时间、编译前后的代码变化、模块引用关系、重复模块等。如果你需要排查构建产物或构建时编译问题，可以使用 Rsdoctor。
-
-### Rspeedy
-
-[Rspeedy](https://lynxjs.org/rspeedy/) 是一个基于 Rspack 的构建工具，专门为 Lynx 应用设计。[Lynx](https://lynxjs.org/) 是一套帮助 Web 开发者复用现有经验、通过一份代码同时构建移动端原生界面与 Web 端界面的技术方案。
-
-### Modern.js
-
-[Modern.js](https://modernjs.dev/) 是一个基于 Rspack 实现的渐进式 React 框架，支持嵌套路由、服务器端渲染（SSR）和模块联邦，并提供开箱即用的 CSS 解决方案。
-
-### Nx
-
-[Nx](https://nx.dev/) 是一个强大的开源构建系统，提供了工具来提升生产力、优化 CI 性能和维护代码质量。
-
-Rspack 团队与 Nx 团队合作提供了 [Rspack Nx 插件](https://nx.dev/nx-api/rspack)。该插件包含在 Nx Workspace 中管理 Rspack 项目的执行器、生成器和实用工具。
-
-### Docusaurus
-
-[Docusaurus](https://docusaurus.io/) 是一个用于快速构建、部署和维护开源项目网站的工具。
-
-Docusaurus v3.6 支持使用 Rspack 作为打包工具，详见 [Docusaurus Faster](https://docusaurus.io/blog/releases/3.6#docusaurus-faster)。
-
-### Storybook
-
-[Storybook Rsbuild](https://storybook.rsbuild.dev/) 允许你使用 Rsbuild 作为 Storybook 的构建工具，并提供了 React 和 Vue 等 UI 框架的集成。
-
-### Nuxt
-
-[Nuxt](https://nuxt.com/) 是一个开源框架，提供了直观且可扩展的方式来使用 Vue.js 创建类型安全、高性能和生产级的全栈 Web 应用程序和网站。
-
-Nuxt v3.14 引入了对 Rspack 的官方支持，详见 [Nuxt 3.14](https://nuxt.com/blog/v3-14)。
-
-### Re.Pack
-
-[Re.Pack](https://github.com/callstack/repack) 是一个用于构建 React Native 应用的工具集。
-
-Re.Pack v5 使用 Rspack 和 React Native 社区 CLI 的插件系统，允许你使用 Rspack 打包你的应用，并轻松切换到 Metro。
-
-### Angular Rspack
-
-[Angular Rspack](https://github.com/nrwl/angular-rspack) 是一套工具链和插件集合，能够让你简单直接地使用 Rspack 和 Rsbuild 构建 Angular 应用。
-
-### 更多
-
-访问 [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack) 来发现更多 Rspack 生态中的项目。

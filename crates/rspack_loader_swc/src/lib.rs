@@ -1,28 +1,24 @@
 #![feature(let_chains)]
 
-mod compiler;
 mod options;
 mod plugin;
 mod transformer;
 
 use std::default::Default;
 
-use compiler::{IntoJsAst, SwcCompiler};
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{Mode, RunnerContext};
-use rspack_error::{error, AnyhowError, Diagnostic, Result};
+use rspack_error::{Diagnostic, Result};
+use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
-use rspack_plugin_javascript::ast::{self, SourceMapConfig};
-use rspack_plugin_javascript::TransformOutput;
-use rspack_util::source_map::SourceMapKind;
 use swc_config::{config_types::MergingOption, merge::Merge};
-use swc_core::base::config::SourceMapsConfig;
-use swc_core::base::config::{InputSourceMap, OutputCharset, TransformConfig};
-use swc_core::ecma::visit::VisitWith;
-use transformer::IdentCollector;
+use swc_core::{
+  base::config::{InputSourceMap, TransformConfig},
+  common::FileName,
+};
 
 #[cacheable]
 #[derive(Debug)]
@@ -85,53 +81,19 @@ impl SwcLoader {
       swc_options
     };
 
-    let source_map_kind: SourceMapKind = match swc_options.config.source_maps {
-      Some(SourceMapsConfig::Bool(false)) => SourceMapKind::empty(),
-      _ => loader_context.context.module_source_map_kind,
-    };
+    let javascript_compiler = JavaScriptCompiler::new();
+    let filename = FileName::Real(resource_path.into_std_path_buf());
 
     let source = content.into_string_lossy();
-    let c = SwcCompiler::new(resource_path.into_std_path_buf(), source, swc_options)
-      .map_err(AnyhowError::from)?;
 
-    let built = c
-      .parse(None, |_| {
-        transformer::transform(&self.options_with_additional.rspack_experiments)
-      })
-      .map_err(AnyhowError::from)?;
+    let TransformOutput { code, map } = javascript_compiler.transform(
+      source,
+      Some(filename),
+      swc_options,
+      Some(loader_context.context.module_source_map_kind),
+      |_| transformer::transform(&self.options_with_additional.rspack_experiments),
+    )?;
 
-    let input_source_map = c
-      .input_source_map(&built.input_source_map)
-      .map_err(|e| error!(e.to_string()))?;
-    let mut codegen_options = ast::CodegenOptions {
-      target: Some(built.target),
-      minify: Some(built.minify),
-      input_source_map: input_source_map.as_ref(),
-      ascii_only: built
-        .output
-        .charset
-        .as_ref()
-        .map(|v| matches!(v, OutputCharset::Ascii)),
-      source_map_config: SourceMapConfig {
-        enable: source_map_kind.source_map(),
-        inline_sources_content: source_map_kind.source_map(),
-        emit_columns: !source_map_kind.cheap(),
-        names: Default::default(),
-      },
-      inline_script: Some(false),
-      keep_comments: Some(true),
-    };
-
-    let program = c.transform(built)?;
-    if source_map_kind.enabled() {
-      let mut v = IdentCollector {
-        names: Default::default(),
-      };
-      program.visit_with(&mut v);
-      codegen_options.source_map_config.names = v.names;
-    }
-    let ast = c.into_js_ast(program);
-    let TransformOutput { code, map } = ast::stringify(&ast, codegen_options)?;
     loader_context.finish_with((code, map));
 
     Ok(())
@@ -143,7 +105,9 @@ pub const SWC_LOADER_IDENTIFIER: &str = "builtin:swc-loader";
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Loader<RunnerContext> for SwcLoader {
-  #[tracing::instrument("SwcLoader:run", skip_all)]
+  #[tracing::instrument("loader:builtin-swc", skip_all, fields(
+    id2 =loader_context.resource(),
+  ))]
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
     #[allow(unused_mut)]
     let mut inner = || self.loader_impl(loader_context);

@@ -1,7 +1,6 @@
 use std::{
   fmt::{self, Debug},
   ops::{Deref, DerefMut},
-  str::FromStr,
   sync::Arc,
 };
 
@@ -317,7 +316,7 @@ impl From<CssParserOptions> for CssModuleParserOptions {
   }
 }
 
-pub type JsonParseFn = Arc<dyn Fn(String) -> Result<String> + Sync + Send>;
+pub type JsonParseFn = Arc<dyn Fn(String) -> BoxFuture<'static, Result<String>> + Sync + Send>;
 
 #[cacheable]
 pub enum ParseOption {
@@ -547,8 +546,9 @@ pub struct AssetGeneratorDataUrlFnCtx<'a> {
   pub compilation: &'a Compilation,
 }
 
-pub type AssetGeneratorDataUrlFn =
-  Arc<dyn Fn(Vec<u8>, AssetGeneratorDataUrlFnCtx) -> Result<String> + Sync + Send>;
+pub type AssetGeneratorDataUrlFn = Arc<
+  dyn Fn(Vec<u8>, AssetGeneratorDataUrlFnCtx) -> BoxFuture<'static, Result<String>> + Sync + Send,
+>;
 
 #[cacheable]
 pub enum AssetGeneratorDataUrl {
@@ -667,7 +667,7 @@ pub struct JsonGeneratorOptions {
 #[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct LocalIdentName {
-  pub template: crate::FilenameTemplate,
+  pub template: Filename,
 }
 
 impl From<String> for LocalIdentName {
@@ -681,7 +681,7 @@ impl From<String> for LocalIdentName {
 impl From<&str> for LocalIdentName {
   fn from(value: &str) -> Self {
     Self {
-      template: crate::FilenameTemplate::from_str(value).expect("should be infalliable"),
+      template: crate::Filename::from(value),
     }
   }
 }

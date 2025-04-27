@@ -12,7 +12,7 @@ runs:
   using: composite
   steps:
     - name: Install Node.js
-      uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
       with:
         node-version: ${{ inputs.node-version }}
 
@@ -33,20 +33,8 @@ runs:
     # Uses `packageManagement` field from package.json
     - name: Install pnpm
       if: ${{ inputs.node-version == '16' }}
-      uses: pnpm/action-setup@v4
+      uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4
       with:
         dest: ${{ runner.tool_cache }}/pnpm
         # Use `@pnpm/exe` for Node 16
         standalone: true
-
-    - name: Get pnpm store directory
-      id: pnpm-cache
-      shell: bash
-      run: |
-        # set store-dir to $(pnpm config get store-dir)/$(pnpm -v)
-        global_store_path=$(pnpm config get store-dir)
-        if [ -z "${global_store_path}" ] || [ "${global_store_path}" = "undefined" ]; then
-          global_store_path=~/.cache/pnpm
-        fi
-        pnpm config set store-dir $global_store_path/$(pnpm -v) --location project
-        echo "STORE_PATH is $(pnpm store path)"

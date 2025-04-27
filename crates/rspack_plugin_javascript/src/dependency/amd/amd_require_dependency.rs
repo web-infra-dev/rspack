@@ -1,31 +1,31 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  block_promise, AffectType, AsContextDependency, AsModuleDependency, Compilation, Dependency,
-  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, RuntimeGlobals,
-  RuntimeSpec,
+  block_promise, AffectType, AsContextDependency, AsModuleDependency, Dependency,
+  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct AMDRequireDependency {
   id: DependencyId,
-  outer_range: (u32, u32),
+  outer_range: DependencyRange,
   // In the webpack source code, type annotation of `arrayRange` is non-null.
-  // However, `DependencyTemplate` implementation assumes `arrayRange` can be null in some cases.
+  // However, `DependencyCodeGeneration` implementation assumes `arrayRange` can be null in some cases.
   // So I use Option here.
-  array_range: Option<(u32, u32)>,
-  function_range: Option<(u32, u32)>,
-  error_callback_range: Option<(u32, u32)>,
+  array_range: Option<DependencyRange>,
+  function_range: Option<DependencyRange>,
+  error_callback_range: Option<DependencyRange>,
   pub function_bind_this: bool,
   pub error_callback_bind_this: bool,
 }
 
 impl AMDRequireDependency {
   pub fn new(
-    outer_range: (u32, u32),
-    array_range: Option<(u32, u32)>,
-    function_range: Option<(u32, u32)>,
-    error_callback_range: Option<(u32, u32)>,
+    outer_range: DependencyRange,
+    array_range: Option<DependencyRange>,
+    function_range: Option<DependencyRange>,
+    error_callback_range: Option<DependencyRange>,
   ) -> Self {
     Self {
       id: DependencyId::new(),
@@ -45,6 +45,10 @@ impl Dependency for AMDRequireDependency {
     &self.id
   }
 
+  fn range(&self) -> Option<&DependencyRange> {
+    Some(&self.outer_range)
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Amd
   }
@@ -58,15 +62,41 @@ impl Dependency for AMDRequireDependency {
   }
 }
 
+impl AsModuleDependency for AMDRequireDependency {}
+
+impl AsContextDependency for AMDRequireDependency {}
+
 #[cacheable_dyn]
-impl DependencyTemplate for AMDRequireDependency {
-  fn apply(
+impl DependencyCodeGeneration for AMDRequireDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(AMDRequireDependencyTemplate::template_type())
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct AMDRequireDependencyTemplate;
+
+impl AMDRequireDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::AmdRequire)
+  }
+}
+
+impl DependencyTemplate for AMDRequireDependencyTemplate {
+  fn render(
     &self,
-    source: &mut rspack_core::TemplateReplaceSource,
-    code_generatable_context: &mut rspack_core::TemplateContext,
+    dep: &dyn DependencyCodeGeneration,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
   ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<AMDRequireDependency>()
+      .expect("AMDRequireDependencyTemplate should only be used for AMDRequireDependency");
+
     let module_graph = code_generatable_context.compilation.get_module_graph();
-    let block = module_graph.get_parent_block(&self.id);
+    let block = module_graph.get_parent_block(&dep.id);
 
     let promise = block_promise(
       block,
@@ -76,8 +106,8 @@ impl DependencyTemplate for AMDRequireDependency {
     );
 
     // has array range but no function range
-    if let Some(array_range) = self.array_range
-      && self.function_range.is_none()
+    if let Some(array_range) = &dep.array_range
+      && dep.function_range.is_none()
     {
       let start_block = promise + ".then(function() {";
       let end_block = format!(
@@ -87,14 +117,14 @@ impl DependencyTemplate for AMDRequireDependency {
       code_generatable_context
         .runtime_requirements
         .insert(RuntimeGlobals::UNCAUGHT_ERROR_HANDLER);
-      source.replace(self.outer_range.0, array_range.0, &start_block, None);
-      source.replace(array_range.1, self.outer_range.1, &end_block, None);
+      source.replace(dep.outer_range.start, array_range.start, &start_block, None);
+      source.replace(array_range.end, dep.outer_range.end, &end_block, None);
       return;
     }
 
     // has function range but no array range
-    if let Some(function_range) = self.function_range
-      && self.array_range.is_none()
+    if let Some(function_range) = &dep.function_range
+      && dep.array_range.is_none()
     {
       let start_block = promise + ".then((";
       let end_block = format!(
@@ -105,60 +135,74 @@ impl DependencyTemplate for AMDRequireDependency {
       code_generatable_context
         .runtime_requirements
         .insert(RuntimeGlobals::UNCAUGHT_ERROR_HANDLER);
-      source.replace(self.outer_range.0, function_range.0, &start_block, None);
-      source.replace(function_range.1, self.outer_range.1, &end_block, None);
+      source.replace(
+        dep.outer_range.start,
+        function_range.start,
+        &start_block,
+        None,
+      );
+      source.replace(function_range.end, dep.outer_range.end, &end_block, None);
       return;
     }
 
     // has array range, function range, and errorCallbackRange
-    if let Some(array_range) = self.array_range
-      && let Some(function_range) = self.function_range
-      && let Some(error_callback_range) = self.error_callback_range
+    if let Some(array_range) = &dep.array_range
+      && let Some(function_range) = &dep.function_range
+      && let Some(error_callback_range) = &dep.error_callback_range
     {
       let start_block = promise + ".then(function() { ";
-      let error_range_block = if self.function_bind_this {
+      let error_range_block = if dep.function_bind_this {
         "}.bind(this))['catch']("
       } else {
         "})['catch']("
       };
-      let end_block = if self.error_callback_bind_this {
+      let end_block = if dep.error_callback_bind_this {
         ".bind(this))"
       } else {
         ")"
       };
 
-      source.replace(self.outer_range.0, array_range.0, &start_block, None);
-
-      source.insert(array_range.0, "var __WEBPACK_AMD_REQUIRE_ARRAY__ = ", None);
-
-      source.replace(array_range.1, function_range.0, "; (", None);
+      source.replace(dep.outer_range.start, array_range.start, &start_block, None);
 
       source.insert(
-        function_range.1,
+        array_range.start,
+        "var __WEBPACK_AMD_REQUIRE_ARRAY__ = ",
+        None,
+      );
+
+      source.replace(array_range.end, function_range.start, "; (", None);
+
+      source.insert(
+        function_range.end,
         ").apply(null, __WEBPACK_AMD_REQUIRE_ARRAY__);",
         None,
       );
 
       source.replace(
-        function_range.1,
-        error_callback_range.0,
+        function_range.end,
+        error_callback_range.start,
         error_range_block,
         None,
       );
 
-      source.replace(error_callback_range.1, self.outer_range.1, end_block, None);
+      source.replace(
+        error_callback_range.end,
+        dep.outer_range.end,
+        end_block,
+        None,
+      );
 
       return;
     }
 
     // has array range, function range, but no errorCallbackRange
-    if let Some(array_range) = self.array_range
-      && let Some(function_range) = self.function_range
+    if let Some(array_range) = &dep.array_range
+      && let Some(function_range) = &dep.function_range
     {
       let start_block = promise + ".then(function() { ";
       let end_block = format!(
         "}}{})['catch']({})",
-        if self.function_bind_this {
+        if dep.function_bind_this {
           ".bind(this)"
         } else {
           ""
@@ -169,35 +213,23 @@ impl DependencyTemplate for AMDRequireDependency {
         .runtime_requirements
         .insert(RuntimeGlobals::UNCAUGHT_ERROR_HANDLER);
 
-      source.replace(self.outer_range.0, array_range.0, &start_block, None);
-
-      source.insert(array_range.0, "var __WEBPACK_AMD_REQUIRE_ARRAY__ = ", None);
-
-      source.replace(array_range.1, function_range.0, "; (", None);
+      source.replace(dep.outer_range.start, array_range.start, &start_block, None);
 
       source.insert(
-        function_range.1,
+        array_range.start,
+        "var __WEBPACK_AMD_REQUIRE_ARRAY__ = ",
+        None,
+      );
+
+      source.replace(array_range.end, function_range.start, "; (", None);
+
+      source.insert(
+        function_range.end,
         ").apply(null, __WEBPACK_AMD_REQUIRE_ARRAY__);",
         None,
       );
 
-      source.replace(function_range.1, self.outer_range.1, &end_block, None);
+      source.replace(function_range.end, dep.outer_range.end, &end_block, None);
     };
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
-  }
 }
-
-impl AsModuleDependency for AMDRequireDependency {}
-
-impl AsContextDependency for AMDRequireDependency {}

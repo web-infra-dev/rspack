@@ -4,13 +4,15 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
-  rspack_sources::RawStringSource, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, Dependency, DependencyId, EntryDependency, FactoryMeta, Module, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SourceType,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  rspack_sources::{BoxSource, RawStringSource},
+  AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, Dependency,
+  DependencyId, EntryDependency, FactoryMeta, Module, ModuleType, RuntimeGlobals, RuntimeSpec,
+  SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_hash::{RspackHash, RspackHashDigest};
 
 use super::dll_entry_dependency::DllEntryDependency;
 
@@ -94,7 +96,7 @@ impl Module for DllModule {
     })
   }
 
-  fn code_generation(
+  async fn code_generation(
     &self,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
@@ -126,17 +128,17 @@ impl Module for DllModule {
     12.0
   }
 
-  fn update_hash(
+  async fn get_runtime_hash(
     &self,
-    mut hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
-  ) -> Result<()> {
+  ) -> Result<RspackHashDigest> {
+    let mut hasher = RspackHash::from(&compilation.options.output);
     format!("dll module {}", self.name).hash(&mut hasher);
 
-    module_update_hash(self, hasher, compilation, runtime);
+    module_update_hash(self, &mut hasher, compilation, runtime);
 
-    Ok(())
+    Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 }
 

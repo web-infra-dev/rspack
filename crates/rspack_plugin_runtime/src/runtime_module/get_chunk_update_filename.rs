@@ -2,9 +2,8 @@ use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  ChunkUkey, Compilation, FilenameTemplate, PathData, RuntimeGlobals, RuntimeModule, SourceType,
+  ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule, SourceType,
 };
-use rspack_util::infallible::ResultInfallibleExt;
 
 // TODO workaround for get_chunk_update_filename
 #[impl_runtime_module]
@@ -23,6 +22,7 @@ impl Default for GetChunkUpdateFilenameRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
@@ -35,12 +35,12 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
     )]
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
       let filename = compilation
         .get_path(
-          &FilenameTemplate::from(compilation.options.output.hot_update_chunk_filename.clone()),
+          &compilation.options.output.hot_update_chunk_filename,
           PathData::default()
             .chunk_hash_optional(chunk.rendered_hash(
               &compilation.chunk_hashes_artifact,
@@ -56,7 +56,7 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
             .id("' + chunkId + '")
             .runtime(chunk.runtime().as_str()),
         )
-        .always_ok();
+        .await?;
 
       let source = compilation.runtime_template.render(
         &self.id,

@@ -1,4 +1,4 @@
-use rspack_cacheable::{cacheable, from_bytes, r#dyn::VTablePtr, to_bytes};
+use rspack_cacheable::{enable_cacheable as cacheable, from_bytes, r#dyn::VTablePtr, to_bytes};
 
 #[test]
 #[cfg_attr(miri, ignore)]
@@ -16,13 +16,13 @@ fn test_manual_cacheable_dyn_macro_with_generics() {
   const _: () = {
     use std::alloc::{Layout, LayoutError};
 
-    use rspack_cacheable::__private::rkyv::{
-      bytecheck::CheckBytes,
-      ptr_meta,
-      traits::{ArchivePointee, LayoutRaw},
-      ArchiveUnsized, ArchivedMetadata, DeserializeUnsized, Portable, SerializeUnsized,
-    };
     use rspack_cacheable::{
+      __private::rkyv::{
+        bytecheck::CheckBytes,
+        ptr_meta,
+        traits::{ArchivePointee, LayoutRaw},
+        ArchiveUnsized, ArchivedMetadata, DeserializeUnsized, Portable, SerializeUnsized,
+      },
       r#dyn::{validation::CHECK_BYTES_REGISTRY, ArchivedDynMetadata, DeserializeDyn},
       DeserializeError, Deserializer, SerializeError, Serializer, Validator,
     };
@@ -131,11 +131,11 @@ fn test_manual_cacheable_dyn_macro_with_generics() {
   }
 
   const _: () = {
-    use rspack_cacheable::__private::{
-      inventory,
-      rkyv::{ptr_meta, ArchiveUnsized, Archived, Deserialize, DeserializeUnsized},
-    };
     use rspack_cacheable::{
+      __private::{
+        inventory,
+        rkyv::{ptr_meta, ArchiveUnsized, Archived, Deserialize, DeserializeUnsized},
+      },
       r#dyn::{
         validation::{default_check_bytes_dyn, CheckBytesEntry},
         DeserializeDyn, DynEntry,
@@ -191,11 +191,11 @@ fn test_manual_cacheable_dyn_macro_with_generics() {
   }
 
   const _: () = {
-    use rspack_cacheable::__private::{
-      inventory,
-      rkyv::{ptr_meta, ArchiveUnsized, Archived, Deserialize, DeserializeUnsized},
-    };
     use rspack_cacheable::{
+      __private::{
+        inventory,
+        rkyv::{ptr_meta, ArchiveUnsized, Archived, Deserialize, DeserializeUnsized},
+      },
       r#dyn::{
         validation::{default_check_bytes_dyn, CheckBytesEntry},
         DeserializeDyn, DynEntry,

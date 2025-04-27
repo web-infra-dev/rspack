@@ -15,7 +15,9 @@ use rspack_util::location::try_line_column_length_to_offset_length;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::{boxfs::BoxFS, ResolveResult, Resource};
-use crate::{AliasMap, DependencyCategory, Resolve, ResolveArgs, ResolveOptionsWithDependencyType};
+use crate::{
+  Alias, AliasMap, DependencyCategory, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
+};
 
 #[derive(Debug, Default, Clone)]
 pub struct ResolveContext {
@@ -29,6 +31,14 @@ pub struct ResolveContext {
 #[derive(Debug)]
 pub enum ResolveInnerError {
   RspackResolver(rspack_resolver::ResolveError),
+}
+
+impl fmt::Display for ResolveInnerError {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match self {
+      Self::RspackResolver(error) => write!(f, "{error:?}"),
+    }
+  }
 }
 
 /// Proxy to [rspack_resolver::ResolveOptions]
@@ -123,8 +133,12 @@ impl Resolver {
   }
 
   /// Resolve a specifier to a given path.
-  pub fn resolve(&self, path: &Path, request: &str) -> Result<ResolveResult, ResolveInnerError> {
-    match self.resolver.resolve(path, request) {
+  pub async fn resolve(
+    &self,
+    path: &Path,
+    request: &str,
+  ) -> Result<ResolveResult, ResolveInnerError> {
+    match self.resolver.resolve(path, request).await {
       Ok(r) => Ok(ResolveResult::Resource(Resource {
         path: r.path().to_path_buf().assert_utf8(),
         query: r.query().unwrap_or_default().to_string(),
@@ -139,7 +153,7 @@ impl Resolver {
   }
 
   /// Resolve a specifier to a given path.
-  pub fn resolve_with_context(
+  pub async fn resolve_with_context(
     &self,
     path: &Path,
     request: &str,
@@ -147,7 +161,9 @@ impl Resolver {
   ) -> Result<ResolveResult, ResolveInnerError> {
     let resolver = &self.resolver;
     let mut context = Default::default();
-    let result = resolver.resolve_with_context(path, request, &mut context);
+    let result = resolver
+      .resolve_with_context(path, request, &mut context)
+      .await;
     resolve_context
       .file_dependencies
       .extend(context.file_dependencies);
@@ -200,21 +216,22 @@ fn to_rspack_resolver_options(
   let extensions = options
     .extensions
     .unwrap_or_else(|| vec![".js".to_string(), ".json".to_string(), ".wasm".to_string()]);
-  let alias = options
-    .alias
-    .unwrap_or_default()
-    .into_iter()
-    .map(|(key, value)| {
-      let value = value
-        .into_iter()
-        .map(|x| match x {
-          AliasMap::Path(target) => rspack_resolver::AliasValue::Path(target),
-          AliasMap::Ignore => rspack_resolver::AliasValue::Ignore,
-        })
-        .collect();
-      (key, value)
-    })
-    .collect();
+  let alias = match options.alias.unwrap_or_default() {
+    Alias::OverwriteToNoAlias => vec![],
+    Alias::MergeAlias(alias) => alias
+      .into_iter()
+      .map(|(key, value)| {
+        let value = value
+          .into_iter()
+          .map(|x| match x {
+            AliasMap::Path(target) => rspack_resolver::AliasValue::Path(target),
+            AliasMap::Ignore => rspack_resolver::AliasValue::Ignore,
+          })
+          .collect();
+        (key, value)
+      })
+      .collect(),
+  };
   let prefer_relative = options.prefer_relative.unwrap_or(false);
   let prefer_absolute = options.prefer_absolute.unwrap_or(false);
   let symlinks = options.symlinks.unwrap_or(true);
@@ -230,21 +247,22 @@ fn to_rspack_resolver_options(
   let modules = options
     .modules
     .unwrap_or_else(|| vec!["node_modules".to_string()]);
-  let fallback = options
-    .fallback
-    .unwrap_or_default()
-    .into_iter()
-    .map(|(key, value)| {
-      let value = value
-        .into_iter()
-        .map(|x| match x {
-          AliasMap::Path(target) => rspack_resolver::AliasValue::Path(target),
-          AliasMap::Ignore => rspack_resolver::AliasValue::Ignore,
-        })
-        .collect();
-      (key, value)
-    })
-    .collect();
+  let fallback = match options.fallback.unwrap_or_default() {
+    Alias::OverwriteToNoAlias => vec![],
+    Alias::MergeAlias(items) => items
+      .into_iter()
+      .map(|(key, value)| {
+        let value = value
+          .into_iter()
+          .map(|x| match x {
+            AliasMap::Path(target) => rspack_resolver::AliasValue::Path(target),
+            AliasMap::Ignore => rspack_resolver::AliasValue::Ignore,
+          })
+          .collect();
+        (key, value)
+      })
+      .collect(),
+  };
   let fully_specified = options.fully_specified.unwrap_or_default();
   let exports_fields = options
     .exports_fields
@@ -257,7 +275,15 @@ fn to_rspack_resolver_options(
     .restrictions
     .unwrap_or_default()
     .into_iter()
-    .map(|s| rspack_resolver::Restriction::Path(s.into()))
+    .map(|s| match s {
+      crate::Restriction::Path(s) => rspack_resolver::Restriction::Path(s.into()),
+      crate::Restriction::Regex(r) => {
+        rspack_resolver::Restriction::Fn(Arc::new(move |path| match path.to_str() {
+          Some(path) => r.test(path),
+          None => false,
+        }))
+      }
+    })
     .collect();
   let roots = options
     .roots

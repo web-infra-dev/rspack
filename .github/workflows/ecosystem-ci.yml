@@ -21,6 +21,7 @@ on:
           - examples
           - devserver
           - plugin
+          - lynx-stack
       suiteRef:
         description: "suite ref to use"
         required: true
@@ -115,6 +116,7 @@ jobs:
               "devserver",
               "nuxt",
               "plugin",
+              "lynx-stack",
             ]
             if (suiteName !== "-") {
               suites = suites.filter(suite => suite === suiteName)
@@ -154,6 +156,8 @@ jobs:
 
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm/setup
+        with:
+          node-version: "22"
 
       - name: Pnpm Install
         uses: ./.github/actions/pnpm/install-dependencies

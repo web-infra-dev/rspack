@@ -38,7 +38,7 @@ impl TryFrom<RawBannerContentWrapper> for BannerContent {
         move |ctx: BannerContentFnCtx| {
           let ctx = ctx.into();
           let f = f.clone();
-          Box::pin(async move { f.call(ctx).await })
+          Box::pin(async move { f.call_with_sync(ctx).await })
         },
       ))),
     }
@@ -49,7 +49,9 @@ impl TryFrom<RawBannerContentWrapper> for BannerContent {
 #[napi(object, object_to_js = false)]
 pub struct RawBannerPluginOptions {
   #[debug(skip)]
-  #[napi(ts_type = "string | ((...args: any[]) => any)")]
+  #[napi(
+    ts_type = "string | ((args: { hash: string, chunk: JsChunk, filename: string }) => string)"
+  )]
   pub banner: RawBannerContent,
   pub entry_only: Option<bool>,
   pub footer: Option<bool>,

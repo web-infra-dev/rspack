@@ -1,12 +1,13 @@
 import type { AssetInfo, RawFuncUseCtx } from "@rspack/binding";
-import type * as webpackDevServer from "webpack-dev-server";
 import type { ChunkGraph } from "../ChunkGraph";
 import type { Compilation, PathData } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { Module } from "../Module";
 import type ModuleGraph from "../ModuleGraph";
-import type { LazyCompilationDefaultBackendOptions } from "../builtin-plugin/lazy-compilation/backend";
+import type { HttpUriPluginOptions } from "../builtin-plugin/HttpUriPlugin";
 import type { Chunk } from "../exports";
+import type { ResolveCallback } from "./adapterRuleUse";
+import type { DevServerOptions } from "./devServer";
 
 export type FilenameTemplate = string;
 
@@ -681,9 +682,11 @@ export type Output = {
  * // - require("abc/file.js") will not match, and it will attempt to resolve node_modules/abc/file.js.
  * ```
  * */
-export type ResolveAlias = {
-	[x: string]: string | false | (string | false)[];
-};
+export type ResolveAlias =
+	| {
+			[x: string]: string | false | (string | false)[];
+	  }
+	| false;
 
 /** The replacement of [tsconfig-paths-webpack-plugin](https://www.npmjs.com/package/tsconfig-paths-webpack-plugin) in Rspack. */
 export type ResolveTsConfig =
@@ -833,6 +836,8 @@ export type RuleSetLoaderWithOptions = {
 	ident?: string;
 
 	loader: RuleSetLoader;
+
+	parallel?: boolean;
 
 	options?: RuleSetLoaderOptions;
 };
@@ -1437,11 +1442,7 @@ export type ExternalItemFunctionData = {
 	getResolve?: (
 		options?: ResolveOptions
 	) =>
-		| ((
-				context: string,
-				request: string,
-				callback: (err?: Error, result?: string) => void
-		  ) => void)
+		| ((context: string, request: string, callback: ResolveCallback) => void)
 		| ((context: string, request: string) => Promise<string>);
 };
 
@@ -2465,21 +2466,37 @@ export type RspackFutureOptions = {
  */
 export type LazyCompilationOptions = {
 	/**
-	 * Backend configuration for lazy compilation.
-	 */
-	backend?: LazyCompilationDefaultBackendOptions;
-	/**
-	 * Enable lazy compilation for imports.
+	 * Enable lazy compilation for dynamic imports.
+	 * @default true
 	 */
 	imports?: boolean;
 	/**
 	 * Enable lazy compilation for entries.
+	 * @default true
 	 */
 	entries?: boolean;
 	/**
 	 * Test function or regex to determine which modules to include.
 	 */
 	test?: RegExp | ((module: Module) => boolean);
+	/**
+	 * The path to a custom runtime code that overrides the default lazy
+	 * compilation client. If you want to customize the logic of the client
+	 * runtime, you can specify it through this option.
+	 */
+	client?: string;
+	/**
+	 * Tells the client the server URL that needs to be requested.
+	 * By default it is empty, in a browser environment it will find
+	 * the server path where the page is located, but in a node
+	 * environment you need to explicitly specify a specific path.
+	 */
+	serverUrl?: string;
+	/**
+	 * Customize the prefix used for lazy compilation endpoint.
+	 * @default "/lazy-compilation-using-"
+	 */
+	prefix?: string;
 };
 
 /**
@@ -2563,6 +2580,11 @@ export type Incremental = {
 };
 
 /**
+ * Options for experiments.buildHttp
+ */
+export type HttpUriOptions = HttpUriPluginOptions;
+
+/**
  * Experimental features configuration.
  */
 export type Experiments = {
@@ -2626,6 +2648,16 @@ export type Experiments = {
 	 * Enable future Rspack features default options.
 	 */
 	rspackFuture?: RspackFutureOptions;
+	/**
+	 * Enable loading of modules via HTTP/HTTPS requests.
+	 * @default false
+	 */
+	buildHttp?: HttpUriOptions;
+	/**
+	 * Enable parallel loader
+	 * @default false
+	 */
+	parallelLoader?: boolean;
 };
 //#endregion
 
@@ -2672,7 +2704,7 @@ export type WatchOptions = {
 /**
  * Options for devServer, it based on `webpack-dev-server@5`
  * */
-export interface DevServer extends webpackDevServer.Configuration {}
+export interface DevServer extends DevServerOptions {}
 //#endregion
 
 //#region IgnoreWarnings

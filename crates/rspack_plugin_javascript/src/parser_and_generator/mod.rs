@@ -1,30 +1,42 @@
-use std::borrow::Cow;
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 use itertools::Itertools;
-use rspack_cacheable::with::Skip;
-use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_core::diagnostics::map_box_diagnostics_to_module_parse_diagnostics;
-use rspack_core::rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt};
+use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  remove_bom, render_init_fragments, AsyncDependenciesBlockIdentifier, BuildMetaExportsType,
-  ChunkGraph, Compilation, DependenciesBlock, DependencyId, DependencyRange, GenerateContext,
-  Module, ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
-  SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
+  diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
+  remove_bom, render_init_fragments,
+  rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
+  AsyncDependenciesBlockIdentifier, BuildMetaExportsType, ChunkGraph, Compilation,
+  DependenciesBlock, DependencyId, DependencyRange, GenerateContext, Module, ModuleGraph,
+  ModuleType, ParseContext, ParseResult, ParserAndGenerator, SideEffectsBailoutItem, SourceType,
+  TemplateContext, TemplateReplaceSource,
 };
-use rspack_error::miette::Diagnostic;
-use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use swc_core::common::comments::Comments;
-use swc_core::common::input::SourceFileInput;
-use swc_core::common::{FileName, SyntaxContext};
-use swc_core::ecma::ast;
-use swc_core::ecma::parser::{lexer::Lexer, EsSyntax, Syntax};
+use rspack_error::{miette::Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_javascript_compiler::JavaScriptCompiler;
+use swc_core::{
+  base::config::IsModule,
+  common::{comments::Comments, input::SourceFileInput, FileName, SyntaxContext},
+  ecma::{
+    ast,
+    parser::{lexer::Lexer, EsSyntax, Syntax},
+  },
+};
 use swc_node_comments::SwcComments;
 
-use crate::dependency::ESMCompatibilityDependency;
-use crate::visitors::{scan_dependencies, swc_visitor::resolver};
-use crate::visitors::{semicolon, ScanDependenciesResult};
-use crate::{BoxJavascriptParserPlugin, SideEffectsFlagPluginVisitor, SyntaxContextInfo};
+use crate::{
+  dependency::ESMCompatibilityDependency,
+  visitors::{scan_dependencies, semicolon, swc_visitor::resolver, ScanDependenciesResult},
+  BoxJavascriptParserPlugin, SideEffectsFlagPluginVisitor, SyntaxContextInfo,
+};
+
+fn module_type_to_is_module(value: &ModuleType) -> IsModule {
+  // parser options align with webpack
+  match value {
+    ModuleType::JsEsm => IsModule::Bool(true),
+    ModuleType::JsDynamic => IsModule::Bool(false),
+    _ => IsModule::Unknown,
+  }
+}
 
 #[cacheable]
 #[derive(Default)]
@@ -79,9 +91,16 @@ impl JavaScriptParserAndGenerator {
       .get_module_graph()
       .dependency_by_id(dependency_id)
       .expect("should have dependency")
-      .as_dependency_template()
+      .as_dependency_code_generation()
     {
-      dependency.apply(source, context)
+      if let Some(template) = compilation.get_dependency_template(dependency) {
+        template.render(dependency, source, context)
+      } else {
+        panic!(
+          "Can not find dependency template of {:?}",
+          dependency.dependency_template()
+        );
+      }
     }
   }
 }
@@ -89,6 +108,7 @@ impl JavaScriptParserAndGenerator {
 static SOURCE_TYPES: &[SourceType; 1] = &[SourceType::JavaScript];
 
 #[cacheable_dyn]
+#[async_trait::async_trait]
 impl ParserAndGenerator for JavaScriptParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
     SOURCE_TYPES
@@ -98,8 +118,14 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     module.source().map_or(0, |source| source.size()) as f64
   }
 
-  #[tracing::instrument("JavaScriptParser:parse", skip_all)]
-  fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
+  #[tracing::instrument("JavaScriptParser:parse", skip_all,fields(
+    resource = parse_context.resource_data.resource.as_str(),
+    id2 = parse_context.resource_data.resource.as_str(),
+  ))]
+  async fn parse<'a>(
+    &mut self,
+    parse_context: ParseContext<'a>,
+  ) -> Result<TWithDiagnosticArray<ParseResult>> {
     let ParseContext {
       source,
       module_type,
@@ -163,16 +189,17 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       Some(&comments),
     );
 
-    let mut ast = match crate::ast::parse(
-      lexer.clone(),
+    let javascript_compiler = JavaScriptCompiler::new();
+
+    let mut ast = match javascript_compiler.parse_with_lexer(
       &fm,
-      cm.clone(),
+      lexer.clone(),
+      module_type_to_is_module(module_type),
       Some(comments.clone()),
-      module_type,
     ) {
       Ok(ast) => ast,
       Err(e) => {
-        diagnostics.append(&mut e.into_iter().map(|e| e.boxed()).collect());
+        diagnostics.append(&mut e.into_inner().into_iter().map(|e| e.into()).collect());
         return default_with_diagnostics(source, diagnostics);
       }
     };
@@ -266,7 +293,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     )
   }
 
-  fn generate(
+  async fn generate(
     &self,
     source: &BoxSource,
     module: &dyn Module,
@@ -294,9 +321,16 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       });
 
       if let Some(dependencies) = module.get_presentational_dependencies() {
-        dependencies
-          .iter()
-          .for_each(|dependency| dependency.apply(&mut source, &mut context));
+        dependencies.iter().for_each(|dependency| {
+          if let Some(template) = compilation.get_dependency_template(dependency.as_ref()) {
+            template.render(dependency.as_ref(), &mut source, &mut context)
+          } else {
+            panic!(
+              "Can not find dependency template of {:?}",
+              dependency.dependency_template()
+            );
+          }
+        });
       };
 
       module

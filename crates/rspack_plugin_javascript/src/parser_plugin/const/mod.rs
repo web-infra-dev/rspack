@@ -1,7 +1,7 @@
 mod if_stmt;
 mod logic_expr;
 
-use rspack_core::{CachedConstDependency, ConstDependency, SpanExt};
+use rspack_core::{CachedConstDependency, ConstDependency};
 use swc_core::common::Spanned;
 
 pub use self::logic_expr::is_logic_op;
@@ -33,8 +33,7 @@ impl JavascriptParserPlugin for ConstPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            param.range().0,
-            param.range().1 - 1,
+            (param.range().0, param.range().1 - 1).into(),
             format!(" {bool}").into(),
             None,
           )));
@@ -45,8 +44,7 @@ impl JavascriptParserPlugin for ConstPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            expression.alt.span().real_lo(),
-            expression.alt.span().real_hi(),
+            expression.alt.span().into(),
             "0".into(),
             None,
           )));
@@ -54,8 +52,7 @@ impl JavascriptParserPlugin for ConstPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            expression.cons.span().real_lo(),
-            expression.cons.span().real_hi(),
+            expression.cons.span().into(),
             "0".into(),
             None,
           )));
@@ -90,8 +87,7 @@ impl JavascriptParserPlugin for ConstPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(CachedConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             "__resourceFragment".into(),
             serde_json::to_string(resource_fragment)
               .expect("should render module id")
@@ -104,8 +100,7 @@ impl JavascriptParserPlugin for ConstPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(CachedConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             "__resourceQuery".into(),
             serde_json::to_string(resource_query)
               .expect("should render module id")
@@ -123,7 +118,7 @@ impl JavascriptParserPlugin for ConstPlugin {
     ident: &str,
     start: u32,
     end: u32,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression> {
+  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
     match ident {
       WEBPACK_RESOURCE_QUERY => Some(evaluate_to_string(
         parser

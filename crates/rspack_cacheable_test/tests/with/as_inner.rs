@@ -1,7 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use rspack_cacheable::{
-  cacheable,
+  enable_cacheable as cacheable,
   with::{AsInner, AsString},
 };
 

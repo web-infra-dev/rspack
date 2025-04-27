@@ -2,13 +2,11 @@ use std::fmt;
 
 use async_trait::async_trait;
 use napi::{Env, Result};
-use rspack_core::Compilation;
-use rspack_core::CompilationParams;
-use rspack_core::CompilerCompilation;
-use rspack_core::{ApplyContext, CompilerOptions, PluginContext};
-use rspack_hook::plugin;
-use rspack_hook::plugin_hook;
-use rspack_hook::Hook as _;
+use rspack_core::{
+  ApplyContext, Compilation, CompilationId, CompilationParams, CompilerCompilation,
+  CompilerOptions, PluginContext,
+};
+use rspack_hook::{plugin, plugin_hook, Hook as _};
 use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_javascript::JsPlugin;
 use rspack_plugin_rsdoctor::RsdoctorPlugin;
@@ -333,7 +331,7 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     Ok(())
   }
 
-  fn clear_cache(&self) {
+  fn clear_cache(&self, _id: CompilationId) {
     self.register_compiler_this_compilation_taps.clear_cache();
     self.register_compiler_compilation_taps.clear_cache();
     self.register_compiler_make_taps.clear_cache();

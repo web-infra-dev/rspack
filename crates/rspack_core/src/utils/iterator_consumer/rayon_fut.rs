@@ -1,5 +1,4 @@
-use std::future::Future;
-use std::sync::Arc;
+use std::{future::Future, sync::Arc};
 
 use rayon::iter::ParallelIterator;
 use tokio::sync::mpsc::unbounded_channel;

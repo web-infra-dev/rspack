@@ -5,16 +5,16 @@ use tracing::instrument;
 
 use crate::{incremental::IncrementalPasses, Compilation};
 
+mod available_modules;
 pub(crate) mod code_splitter;
 pub(crate) mod incremental;
 pub(crate) mod new_code_splitter;
-mod remove_available_modules;
 
 #[instrument("Compilation:build_chunk_graph", skip_all)]
 pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<()> {
   let enable_incremental = compilation
     .incremental
-    .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH);
+    .mutations_readable(IncrementalPasses::BUILD_CHUNK_GRAPH);
   let mut splitter = if enable_incremental {
     std::mem::take(&mut compilation.code_splitting_cache.code_splitter)
   } else {

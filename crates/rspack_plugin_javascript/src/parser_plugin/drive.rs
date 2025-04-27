@@ -1,16 +1,20 @@
-use swc_core::atoms::Atom;
-use swc_core::common::Span;
-use swc_core::ecma::ast::{
-  BinExpr, CallExpr, Callee, ClassMember, CondExpr, Expr, OptChainExpr, UnaryExpr,
+use swc_core::{
+  atoms::Atom,
+  common::Span,
+  ecma::ast::{
+    BinExpr, CallExpr, Callee, ClassMember, CondExpr, Expr, IfStmt, MemberExpr, OptChainExpr,
+    UnaryExpr, UnaryOp, VarDecl, VarDeclarator,
+  },
 };
-use swc_core::ecma::ast::{IfStmt, MemberExpr, UnaryOp, VarDecl, VarDeclarator};
 
 use super::{BoxJavascriptParserPlugin, JavascriptParserPlugin};
-use crate::parser_plugin::r#const::is_logic_op;
-use crate::utils::eval::BasicEvaluatedExpression;
-use crate::visitors::{
-  ClassDeclOrExpr, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal,
-  ExportedVariableInfo, JavascriptParser, Statement,
+use crate::{
+  parser_plugin::r#const::is_logic_op,
+  utils::eval::BasicEvaluatedExpression,
+  visitors::{
+    ClassDeclOrExpr, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal,
+    ExportedVariableInfo, JavascriptParser, Statement,
+  },
 };
 
 pub struct JavaScriptParserPluginDrive {
@@ -408,12 +412,12 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn evaluate_typeof(
+  fn evaluate_typeof<'a>(
     &self,
     parser: &mut JavascriptParser,
-    expr: &UnaryExpr,
+    expr: &'a UnaryExpr,
     for_name: &str,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     for plugin in &self.plugins {
       let res = plugin.evaluate_typeof(parser, expr, for_name);
       // `SyncBailHook`
@@ -424,15 +428,15 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn evaluate_call_expression_member(
+  fn evaluate_call_expression_member<'a>(
     &self,
     parser: &mut JavascriptParser,
     property: &str,
-    expr: &CallExpr,
-    param: &BasicEvaluatedExpression,
-  ) -> Option<BasicEvaluatedExpression> {
+    expr: &'a CallExpr,
+    param: BasicEvaluatedExpression<'a>,
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     for plugin in &self.plugins {
-      let res = plugin.evaluate_call_expression_member(parser, property, expr, param);
+      let res = plugin.evaluate_call_expression_member(parser, property, expr, param.clone());
       // `SyncBailHook`
       if res.is_some() {
         return res;
@@ -447,7 +451,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     ident: &str,
     start: u32,
     end: u32,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'static>> {
     for plugin in &self.plugins {
       let res = plugin.evaluate_identifier(parser, ident, start, end);
       // `SyncBailHook`

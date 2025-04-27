@@ -1,27 +1,25 @@
-use std::borrow::Cow;
-use std::fmt::Write;
-use std::hash::Hasher;
-use std::sync::Arc;
-use std::sync::LazyLock;
+use std::{
+  borrow::Cow,
+  fmt::Write,
+  hash::Hasher,
+  sync::{Arc, LazyLock},
+};
 
 use cow_utils::CowUtils;
 use heck::{ToKebabCase, ToLowerCamelCase};
 use indexmap::{IndexMap, IndexSet};
 use regex::{Captures, Regex};
-use rspack_core::rspack_sources::{ConcatSource, RawStringSource};
-use rspack_core::ChunkGraph;
 use rspack_core::{
-  to_identifier, Compilation, CompilerOptions, GenerateContext, PathData, ResourceData,
-  RuntimeGlobals, RESERVED_IDENTIFIER,
+  rspack_sources::{ConcatSource, RawStringSource},
+  to_identifier, ChunkGraph, Compilation, CompilerOptions, CssExportsConvention, GenerateContext,
+  LocalIdentName, PathData, ResourceData, RuntimeGlobals, RESERVED_IDENTIFIER,
 };
-use rspack_core::{CssExportsConvention, LocalIdentName};
-use rspack_error::{error, miette::Diagnostic, Result, TraceableError};
-use rspack_error::{DiagnosticExt, RspackSeverity};
+use rspack_error::{
+  miette::Diagnostic, DiagnosticExt, Result, RspackSeverity, ToStringResultToRspackResultExt,
+  TraceableError,
+};
 use rspack_hash::RspackHash;
-use rspack_util::identifier::make_paths_relative;
-use rspack_util::infallible::ResultInfallibleExt;
-use rspack_util::itoa;
-use rspack_util::json_stringify;
+use rspack_util::{identifier::make_paths_relative, itoa, json_stringify};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::parser_and_generator::CssExport;
@@ -51,7 +49,7 @@ impl<'a> LocalIdentOptions<'a> {
     }
   }
 
-  pub fn get_local_ident(&self, local: &str) -> String {
+  pub async fn get_local_ident(&self, local: &str) -> Result<String> {
     let output = &self.compiler_options.output;
     let hash = {
       let mut hasher = RspackHash::with_salt(&output.hash_function, &output.hash_salt);
@@ -88,6 +86,7 @@ impl<'a> LocalIdentOptions<'a> {
       unique_name: &output.unique_name,
     }
     .render_local_ident_name(self.local_name_ident)
+    .await
   }
 }
 
@@ -98,16 +97,18 @@ struct LocalIdentNameRenderOptions<'a> {
 }
 
 impl LocalIdentNameRenderOptions<'_> {
-  pub fn render_local_ident_name(self, local_ident_name: &LocalIdentName) -> String {
+  pub async fn render_local_ident_name(self, local_ident_name: &LocalIdentName) -> Result<String> {
     let raw = local_ident_name
       .template
       .render(self.path_data, None)
-      .always_ok();
+      .await?;
     let s: &str = raw.as_ref();
 
-    s.cow_replace("[uniqueName]", self.unique_name)
-      .cow_replace("[local]", self.local)
-      .into_owned()
+    Ok(
+      s.cow_replace("[uniqueName]", self.unique_name)
+        .cow_replace("[local]", self.local)
+        .into_owned(),
+    )
   }
 }
 
@@ -228,7 +229,7 @@ pub fn stringified_exports<'a>(
       json_stringify(&key),
       content
     )
-    .map_err(|e| error!(e.to_string()))?;
+    .to_rspack_result()?;
   }
 
   let decl_name = "exports";

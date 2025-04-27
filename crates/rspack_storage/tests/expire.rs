@@ -48,9 +48,8 @@ mod test_storage_expire {
       );
     }
     let rx = storage.trigger_save()?;
-    assert_eq!(storage.load("test_scope").await?.len(), 100);
-
     rx.await.expect("should save")?;
+    assert_eq!(storage.load("test_scope").await?.len(), 100);
     assert!(
       fs.exists(&root.join(version).join("test_scope/scope_meta"))
         .await?
@@ -127,7 +126,7 @@ mod test_storage_expire {
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn test_version_expire() {
+  async fn test_version_expire() -> Result<()> {
     let cases = [
       (
         get_native_path("test_expire_native"),
@@ -147,17 +146,12 @@ mod test_storage_expire {
         .await
         .expect("should remove temp root");
 
-      let _ = test_initial_build("xxx", &root, &temp_root, fs.clone())
-        .await
-        .map_err(|e| panic!("{}", e));
+      test_initial_build("xxx", &root, &temp_root, fs.clone()).await?;
 
-      let _ = test_recovery_expire("xxx", &root, &temp_root, fs.clone())
-        .await
-        .map_err(|e| panic!("{}", e));
+      test_recovery_expire("xxx", &root, &temp_root, fs.clone()).await?;
 
-      let _ = test_remove_expired("xxx", "xxx2", &root, &temp_root, fs.clone())
-        .await
-        .map_err(|e| panic!("{}", e));
+      test_remove_expired("xxx", "xxx2", &root, &temp_root, fs.clone()).await?;
     }
+    Ok(())
   }
 }

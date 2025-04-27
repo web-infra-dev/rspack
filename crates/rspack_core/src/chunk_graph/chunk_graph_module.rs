@@ -1,27 +1,26 @@
 //!  There are methods whose verb is `ChunkGraphModule`
 
-use std::borrow::Borrow;
-use std::fmt;
-use std::hash::{Hash, Hasher};
-use std::sync::Arc;
+use std::{
+  fmt,
+  hash::{Hash, Hasher},
+  sync::Arc,
+};
 
+use rspack_cacheable::cacheable;
 use rspack_collections::{IdentifierSet, UkeySet};
 use rspack_hash::RspackHashDigest;
-use rspack_macros::cacheable;
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHasher;
 use serde::{Serialize, Serializer};
-use tracing::instrument;
 
 use crate::{
-  for_each_runtime, AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGroup, ChunkGroupByUkey,
-  ChunkGroupUkey, ChunkUkey, Compilation, ModuleGraph, ModuleIdentifier, ModuleIdsArtifact,
-  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
+  for_each_runtime, AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGraph, ChunkGroup,
+  ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier,
+  ModuleIdsArtifact, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
 };
-use crate::{ChunkGraph, Module};
 
 #[cacheable]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ModuleId {
   inner: Arc<str>,
 }
@@ -60,12 +59,6 @@ impl Serialize for ModuleId {
     } else {
       serializer.serialize_str(self.as_str())
     }
-  }
-}
-
-impl Borrow<str> for ModuleId {
-  fn borrow(&self) -> &str {
-    self.as_str()
   }
 }
 
@@ -289,7 +282,6 @@ impl ChunkGraph {
       .map(|cgm| &cgm.chunks)
   }
 
-  #[instrument("chunk_graph:get_module_graph_hash", skip_all, fields(module = ?module.identifier()))]
   pub fn get_module_graph_hash(
     &self,
     module: &dyn Module,
@@ -305,7 +297,7 @@ impl ChunkGraph {
     let mut visited_modules = IdentifierSet::default();
     visited_modules.insert(module.identifier());
     for connection in mg
-      .get_outgoing_connections_in_order(&module.identifier())
+      .get_outgoing_deps_in_order(&module.identifier())
       .filter_map(|c| mg.connection_by_dependency_id(c))
     {
       let module_identifier = connection.module_identifier();

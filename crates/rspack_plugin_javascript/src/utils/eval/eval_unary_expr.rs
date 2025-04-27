@@ -1,16 +1,20 @@
 use rspack_core::SpanExt;
-use swc_core::common::Spanned;
-use swc_core::ecma::ast::{Lit, UnaryExpr, UnaryOp};
+use swc_core::{
+  common::Spanned,
+  ecma::ast::{Lit, UnaryExpr, UnaryOp},
+};
 
 use super::BasicEvaluatedExpression;
-use crate::parser_plugin::JavascriptParserPlugin;
-use crate::visitors::{CallHooksName, JavascriptParser, RootName};
+use crate::{
+  parser_plugin::JavascriptParserPlugin,
+  visitors::{CallHooksName, JavascriptParser, RootName},
+};
 
 #[inline]
-fn eval_typeof(
+fn eval_typeof<'a>(
   parser: &mut JavascriptParser,
-  expr: &UnaryExpr,
-) -> Option<BasicEvaluatedExpression> {
+  expr: &'a UnaryExpr,
+) -> Option<BasicEvaluatedExpression<'a>> {
   assert!(expr.op == UnaryOp::TypeOf);
   if let Some(ident) = expr.arg.as_ident()
     && let Some(res) = ident.sym.call_hooks_name(parser, |parser, for_name| {
@@ -105,10 +109,10 @@ fn eval_typeof(
 }
 
 #[inline]
-pub fn eval_unary_expression(
+pub fn eval_unary_expression<'a>(
   scanner: &mut JavascriptParser,
-  expr: &UnaryExpr,
-) -> Option<BasicEvaluatedExpression> {
+  expr: &'a UnaryExpr,
+) -> Option<BasicEvaluatedExpression<'a>> {
   match expr.op {
     UnaryOp::TypeOf => eval_typeof(scanner, expr),
     UnaryOp::Bang => {

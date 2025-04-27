@@ -1,5 +1,3 @@
-use napi::Either;
-
 use crate::{impl_module_methods, Module};
 
 #[napi]
@@ -7,30 +5,27 @@ pub struct ExternalModule {
   pub(crate) module: Module,
 }
 
-#[napi]
 impl ExternalModule {
-  #[napi(getter)]
-  pub fn user_request(&mut self) -> napi::Result<Either<&str, ()>> {
-    let (_, module) = self.module.as_ref()?;
+  pub(crate) fn custom_into_instance(
+    mut self,
+    env: &napi::Env,
+  ) -> napi::Result<napi::bindgen_prelude::ClassInstance<Self>> {
+    let (_, module) = self.as_ref()?;
+    let user_request = env.create_string(module.user_request())?;
 
-    Ok(match module.as_external_module() {
-      Some(external_module) => Either::A(external_module.user_request()),
-      None => Either::B(()),
-    })
+    let properties = vec![napi::Property::new("userRequest")?.with_value(&user_request)];
+    Self::new_inherited(self, env, properties)
   }
 
-  #[napi(setter)]
-  pub fn set_user_request(&mut self, val: Either<String, ()>) -> napi::Result<()> {
-    match val {
-      Either::A(val) => {
-        let module: &mut dyn rspack_core::Module = self.module.as_mut()?;
-        if let Some(external_module) = module.as_external_module_mut() {
-          *external_module.user_request_mut() = val;
-        }
-      }
-      Either::B(_) => {}
+  fn as_ref(&mut self) -> napi::Result<(&rspack_core::Compilation, &rspack_core::ExternalModule)> {
+    let (compilation, module) = self.module.as_ref()?;
+    match module.as_external_module() {
+      Some(external_module) => Ok((compilation, external_module)),
+      None => Err(napi::Error::new(
+        napi::Status::GenericFailure,
+        "Module is not a ExternalModule",
+      )),
     }
-    Ok(())
   }
 }
 

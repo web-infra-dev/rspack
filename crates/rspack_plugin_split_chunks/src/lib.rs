@@ -1,4 +1,3 @@
-#![feature(map_many_mut)]
 #![feature(let_chains)]
 
 mod common;
@@ -12,7 +11,9 @@ pub use common::{
   create_initial_chunk_filter, create_regex_chunk_filter_from_str, ChunkFilter, FallbackCacheGroup,
   ModuleLayerFilter, ModuleTypeFilter, SplitChunkSizes,
 };
-pub use options::cache_group::CacheGroup;
-pub use options::cache_group_test::{CacheGroupTest, CacheGroupTestFnCtx};
-pub use options::chunk_name::{ChunkNameGetter, ChunkNameGetterFnCtx};
+pub use options::{
+  cache_group::CacheGroup,
+  cache_group_test::{CacheGroupTest, CacheGroupTestFnCtx},
+  chunk_name::{ChunkNameGetter, ChunkNameGetterFnCtx},
+};
 pub use plugin::{PluginOptions, SplitChunksPlugin};

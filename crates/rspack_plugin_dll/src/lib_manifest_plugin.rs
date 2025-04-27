@@ -3,7 +3,7 @@ use rspack_core::{
   ApplyContext, ChunkGraph, Compilation, CompilerEmit, CompilerOptions, Context, EntryDependency,
   Filename, LibIdentOptions, PathData, Plugin, PluginContext, ProvidedExports, SourceType,
 };
-use rspack_error::{Error, Result};
+use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::Utf8Path;
 use rustc_hash::FxHashMap as HashMap;
@@ -63,48 +63,56 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
       continue;
     }
 
-    let target_path = compilation.get_path(
-      &self.options.path,
-      PathData::default()
-        .chunk_id_optional(
-          chunk
-            .id(&compilation.chunk_ids_artifact)
-            .map(|id| id.as_str()),
-        )
-        .chunk_hash_optional(chunk.rendered_hash(
-          &compilation.chunk_hashes_artifact,
-          compilation.options.output.hash_digest_length,
-        ))
-        .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact)),
-    )?;
+    let target_path = compilation
+      .get_path(
+        &self.options.path,
+        PathData::default()
+          .chunk_id_optional(
+            chunk
+              .id(&compilation.chunk_ids_artifact)
+              .map(|id| id.as_str()),
+          )
+          .chunk_hash_optional(chunk.rendered_hash(
+            &compilation.chunk_hashes_artifact,
+            compilation.options.output.hash_digest_length,
+          ))
+          .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact)),
+      )
+      .await?;
 
     if manifests.contains_key(&target_path) {
       return Err(Error::msg("each chunk must have a unique path"));
     }
 
-    let name = self.options.name.as_ref().and_then(|name| {
-      compilation
-        .get_path(
-          name,
-          PathData::default()
-            .chunk_id_optional(
-              chunk
-                .id(&compilation.chunk_ids_artifact)
-                .map(|id| id.as_str()),
-            )
-            .chunk_hash_optional(chunk.rendered_hash(
-              &compilation.chunk_hashes_artifact,
-              compilation.options.output.hash_digest_length,
-            ))
-            .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
-            .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-              &compilation.chunk_hashes_artifact,
-              &SourceType::JavaScript,
-              compilation.options.output.hash_digest_length,
-            )),
-        )
-        .ok()
-    });
+    let name = if let Some(name) = self.options.name.as_ref() {
+      Some(
+        compilation
+          .get_path(
+            name,
+            PathData::default()
+              .chunk_id_optional(
+                chunk
+                  .id(&compilation.chunk_ids_artifact)
+                  .map(|id| id.as_str()),
+              )
+              .chunk_hash_optional(chunk.rendered_hash(
+                &compilation.chunk_hashes_artifact,
+                compilation.options.output.hash_digest_length,
+              ))
+              .chunk_name_optional(
+                chunk.name_for_filename_template(&compilation.chunk_ids_artifact),
+              )
+              .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+                &compilation.chunk_hashes_artifact,
+                &SourceType::JavaScript,
+                compilation.options.output.hash_digest_length,
+              )),
+          )
+          .await?,
+      )
+    } else {
+      None
+    };
 
     let mut manifest_content: DllManifestContent = HashMap::default();
 
@@ -162,9 +170,9 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
     let format = self.options.format.unwrap_or_default();
 
     let manifest_json = if format {
-      serde_json::to_string_pretty(&manifest).map_err(|e| Error::msg(format!("{e}")))?
+      serde_json::to_string_pretty(&manifest).to_rspack_result()?
     } else {
-      serde_json::to_string(&manifest).map_err(|e| Error::msg(format!("{e}")))?
+      serde_json::to_string(&manifest).to_rspack_result()?
     };
 
     manifests.insert(target_path, manifest_json);

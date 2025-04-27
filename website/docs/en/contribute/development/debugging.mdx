@@ -7,7 +7,7 @@
 3. build `@rspack/cli` and napi binding by run `pnpm install && pnpm -w build:cli:dev`
 4. In VS Code's `Run and Debug` tab, select `Debug Rspack` to start debugging the initial launch of `@rspack/cli` with a simple rspack project. This task can be configured in `.vscode/launch.json`.
 
-### Common Debugging Scenarios Guide
+### Common debugging scenarios guide
 
 #### Debugging Rust
 
@@ -24,48 +24,6 @@ When Rspack is integrated into other frameworks or tools (such as Nx), it may be
 #### Debugging a Rspack process with a deadlock
 
 When using `Attach Rust` to attach the debugger to the Rspack process, click the Pause button on the Debugger to set breakpoints at the deadlock scene.
-
-## Tracing
-
-[`tracing`](https://crates.io/crates/tracing) is used to instrumenting Rspack.
-
-The supported tracing levels for
-
-- release builds are `INFO`, `WARN` and `ERROR`
-- debug builds are `TRACE`, `DEBUG`, `INFO`, `WARN` and `ERROR`
-
-Use the `RSPACK_PROFILE` environment variable for displaying trace information
-
-```bash
-RSPACK_PROFILE=TRACE=layer=logger rspack build
-# filter for an event
-RSPACK_PROFILE='TRACE=layer=logger&filter=rspack_core::compiler::compilation' rspack build
-# with logger level
-RSPACK_PROFILE='TRACE=layer=logger&filter=rspack_core::compiler::compilation=info' rspack build
-# filter logs across multiple modules
-RSPACK_PROFILE='TRACE=layer=logger&filter=rspack_core::compiler::compilation,rspack_core::build_chunk_graph::code_splitter' rspack build
-# [fn_name] will show:
-# - all functions calls to `fn_name`
-# - the arguments(except for these in the `skip` list)
-# - everything until this function returns
-RSPACK_PROFILE='TRACE=layer=logger&filter=[build_chunk_graph]' rspack build
-# compilation::chunk_asset is a custom instrument name
-RSPACK_PROFILE='TRACE=layer=logger&filter=[compilation:chunk_asset]' rspack build
-# log a specific function by their arguments
-RSPACK_PROFILE='TRACE=layer=logger&filter=[compilation:chunk_asset{filename="main\.js"}]' rspack build
-# It support regexp expression
-RSPACK_PROFILE='TRACE=layer=logger&filter=[compilation:chunk_asset{filename=".*\.js"}]' rspack build
-# disable ansi color escape codes
-NO_COLOR=1 RSPACK_PROFILE=TRACE=layer=logger rspack build
-```
-
-### Resolver
-
-`rspack_resolver` emits some tracing information for debugging purposes.
-
-```bash
-RSPACK_PROFILE='TRACE=filter=rspack_resolver=trace&layer=logger' rspack build
-```
 
 ## rust-lldb
 

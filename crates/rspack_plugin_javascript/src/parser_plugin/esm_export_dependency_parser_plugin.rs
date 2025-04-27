@@ -1,23 +1,26 @@
 use itertools::Itertools;
 use rspack_core::{BoxDependency, ConstDependency, DependencyRange, DependencyType, SpanExt};
-use swc_core::atoms::Atom;
-use swc_core::common::comments::CommentKind;
-use swc_core::common::Spanned;
+use swc_core::{
+  atoms::Atom,
+  common::{comments::CommentKind, Spanned},
+};
 
-use super::esm_import_dependency_parser_plugin::{ESMSpecifierData, ESM_SPECIFIER_TAG};
 use super::{
+  esm_import_dependency_parser_plugin::{ESMSpecifierData, ESM_SPECIFIER_TAG},
   InnerGraphMapUsage, InnerGraphPlugin, JavascriptParserPlugin, DEFAULT_STAR_JS_WORD,
   JS_DEFAULT_KEYWORD,
 };
-use crate::dependency::{
-  DeclarationId, DeclarationInfo, ESMExportExpressionDependency, ESMExportHeaderDependency,
-  ESMExportImportedSpecifierDependency, ESMExportSpecifierDependency,
-  ESMImportSideEffectDependency,
-};
-use crate::utils::object_properties::get_attributes;
-use crate::visitors::{
-  ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal, JavascriptParser,
-  TagInfoData,
+use crate::{
+  dependency::{
+    DeclarationId, DeclarationInfo, ESMExportExpressionDependency, ESMExportHeaderDependency,
+    ESMExportImportedSpecifierDependency, ESMExportSpecifierDependency,
+    ESMImportSideEffectDependency,
+  },
+  utils::object_properties::get_attributes,
+  visitors::{
+    ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal, JavascriptParser,
+    TagInfoData,
+  },
 };
 
 pub struct ESMExportDependencyParserPlugin;
@@ -41,7 +44,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
   ) -> Option<bool> {
     parser.last_esm_import_order += 1;
     let span = statement.span();
-    let clean_dep = ConstDependency::new(span.real_lo(), span.real_hi(), "".into(), None);
+    let clean_dep = ConstDependency::new(span.into(), "".into(), None);
     parser.presentational_dependencies.push(Box::new(clean_dep));
     let side_effect_dep = ESMImportSideEffectDependency::new(
       source.clone(),
@@ -49,7 +52,6 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       span.into(),
       statement.source_span().into(),
       DependencyType::EsmExport,
-      matches!(statement, ExportImport::All(_)),
       statement.get_with_obj().map(get_attributes),
       Some(parser.source_map.clone()),
     );
@@ -80,7 +82,6 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         settings.source_order,
         settings.ids,
         Some(export_name.clone()),
-        false,
         None,
         statement.span().into(),
         ESMExportImportedSpecifierDependency::create_export_presence_mode(
@@ -127,7 +128,6 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       parser.last_esm_import_order,
       local_id.map(|id| vec![id.clone()]).unwrap_or_default(),
       export_name.cloned(),
-      local_id.is_some(),
       star_exports,
       statement.span().into(),
       ESMExportImportedSpecifierDependency::create_export_presence_mode(parser.javascript_options),

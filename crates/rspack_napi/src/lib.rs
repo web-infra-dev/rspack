@@ -6,7 +6,7 @@ mod js_values;
 mod utils;
 
 mod errors;
-pub use errors::{NapiErrorExt, NapiResultExt};
+pub use errors::NapiErrorToRspackErrorExt;
 
 mod callback;
 pub use callback::JsCallback;
@@ -18,12 +18,13 @@ pub mod string {
   pub use crate::ext::js_string_ext::JsStringExt;
 }
 
-pub use crate::utils::downcast_into;
+pub use utils::*;
 
 pub mod napi {
   pub use napi::*;
 }
 
-pub use js_values::one_shot_instance_ref::*;
-pub use js_values::one_shot_value_ref::*;
-pub use js_values::value_ref::*;
+pub use js_values::{
+  one_shot_instance_ref::*, one_shot_value_ref::*, threadsafe_one_shot_value_ref::*, value_ref::*,
+  weak_ref::*,
+};

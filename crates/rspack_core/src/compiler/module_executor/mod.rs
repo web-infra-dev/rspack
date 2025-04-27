@@ -6,28 +6,32 @@ mod overwrite;
 use std::sync::Arc;
 
 use dashmap::{mapref::entry::Entry, DashMap};
+use execute::BeforeExecuteBuildTask;
 pub use execute::{ExecuteModuleId, ExecutedRuntimeModule};
-use rspack_collections::{Identifier, IdentifierDashMap, IdentifierDashSet};
+use rspack_collections::{Identifier, IdentifierDashMap, IdentifierDashSet, IdentifierSet};
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use tokio::sync::{
-  mpsc::{unbounded_channel, UnboundedSender},
-  oneshot,
+use tokio::{
+  sync::{
+    mpsc::{unbounded_channel, UnboundedSender},
+    oneshot,
+  },
+  task,
 };
-use tokio::task;
 
 use self::{
   ctrl::{CtrlTask, Event, ExecuteParam},
   execute::{ExecuteModuleResult, ExecuteTask},
   overwrite::OverwriteTask,
 };
-use super::make::cutout::Cutout;
-use super::make::repair::repair;
-use super::make::{repair::MakeTaskContext, MakeArtifact, MakeParam};
-use crate::cache::MemoryCache;
+use super::make::{
+  cutout::Cutout,
+  repair::{repair, MakeTaskContext},
+  MakeArtifact, MakeParam,
+};
 use crate::{
-  task_loop::run_task_loop_with_event, Compilation, CompilationAsset, Context, Dependency,
-  DependencyId, LoaderImportDependency, PublicPath,
+  cache::MemoryCache, task_loop::run_task_loop_with_event, Compilation, CompilationAsset, Context,
+  Dependency, DependencyId, LoaderImportDependency, PublicPath,
 };
 
 #[derive(Debug)]
@@ -41,6 +45,7 @@ pub struct ModuleExecutor {
   cutout: Cutout,
   request_dep_map: DashMap<(String, Option<String>), DepStatus>,
   pub make_artifact: MakeArtifact,
+  pub rebuild_origins: Option<IdentifierSet>,
 
   event_sender: Option<UnboundedSender<Event>>,
   stop_receiver: Option<oneshot::Receiver<MakeArtifact>>,
@@ -63,6 +68,13 @@ impl ModuleExecutor {
     }
     make_artifact.built_modules = Default::default();
     make_artifact.revoked_modules = Default::default();
+
+    compilation
+      .plugin_driver
+      .compilation_hooks
+      .update_module_graph
+      .call(&mut params, &make_artifact)
+      .await?;
 
     // Modules imported by `importModule` are passively loaded.
     let mut build_dependencies = self.cutout.cutout_artifact(&mut make_artifact, params);
@@ -186,6 +198,11 @@ impl ModuleExecutor {
       .event_sender
       .as_ref()
       .expect("should have event sender");
+    let is_entry_rebuild = self
+      .rebuild_origins
+      .as_ref()
+      .is_some_and(|set| original_module_identifier.is_some_and(|i| set.contains(&i)));
+
     let (param, dep_id) = match self.request_dep_map.entry((request.clone(), layer.clone())) {
       Entry::Vacant(v) => {
         let dep = LoaderImportDependency::new(
@@ -210,6 +227,13 @@ impl ModuleExecutor {
           );
           dep_status.should_update = false;
           (ExecuteParam::Entry(Box::new(dep), layer.clone()), dep_id)
+        } else if is_entry_rebuild {
+          let dep = LoaderImportDependency::new_with_id(
+            dep_id,
+            request.clone(),
+            original_module_context.unwrap_or(Context::from("")),
+          );
+          (ExecuteParam::Entry(Box::new(dep), layer.clone()), dep_id)
         } else {
           (ExecuteParam::DependencyId(dep_id), dep_id)
         }
@@ -226,6 +250,13 @@ impl ModuleExecutor {
           public_path,
           base_uri,
           result_sender: tx,
+        },
+        if is_entry_rebuild {
+          Some(BeforeExecuteBuildTask {
+            entry_dep_id: dep_id,
+          })
+        } else {
+          None
         },
       ))
       .expect("should success");

@@ -3,17 +3,9 @@ name: Reusable Release
 on:
   workflow_call:
     inputs:
-      skipable:
-        required: false
-        type: boolean
-        default: false
       target:
         required: true
         type: string
-      full-install:
-        default: true
-        required: false
-        type: boolean
       runner: # Runner labels
         required: true
         type: string
@@ -24,7 +16,7 @@ on:
       test: # Run tests?
         type: boolean
         required: false
-        default: true
+        default: false
       bench: # Run benchmarks?
         type: boolean
         required: false
@@ -32,10 +24,6 @@ on:
       ref: # Git reference to checkout
         required: false
         type: string
-env:
-  # Since CI builds are more akin to from-scratch builds, incremental compilation adds unnecessary dependency-tracking and IO overhead, reducing caching effectiveness.
-  # https://github.com/rust-lang/rust-analyzer/blob/25368d24308d6a94ffe8b99f0122bcf5a2175322/.github/workflows/ci.yaml#L11
-  CARGO_INCREMENTAL: 0
 
 permissions:
   # Allow commenting on issues
@@ -43,408 +31,24 @@ permissions:
 
 jobs:
   build:
-    name: Build
-    runs-on: ${{ fromJSON(inputs.runner) }}
-    defaults:
-      run:
-        shell: bash
-    outputs:
-      runner-labels: ${{ steps.upload-artifact.outputs.runner-labels || inputs.runner }}
-    steps:
-      - name: Checkout
-        if: ${{ !inputs.skipable }}
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-        with:
-          ref: ${{ inputs.ref }}
-          clean: ${{ runner.environment == 'github-hosted' }}
-
-      - name: Clean
-        if: ${{ !inputs.skipable && runner.environment == 'self-hosted' }}
-        uses: ./.github/actions/clean
-        with:
-          target: ${{ inputs.target }}
-
-      - name: Pnpm Setup
-        if: ${{ !inputs.skipable }}
-        uses: ./.github/actions/pnpm/setup
-
-      - name: Install Full Dependencies
-        if: ${{ !inputs.skipable && inputs.full-install == 'true' }}
-        uses: ./.github/actions/pnpm/install-dependencies
-
-      - name: Install Binding Dependencies
-        if: ${{ !inputs.skipable && inputs.full-install != 'true' }}
-        uses: ./.github/actions/pnpm/install-binding-dependencies
-        with:
-          save-if: ${{ github.ref_name == 'main' && matrix.node == '18' }}
-
-      - name: Install Rust Toolchain
-        if: ${{ !inputs.skipable }}
-        uses: ./.github/actions/rustup
-        with:
-          shared-key: build-${{ inputs.target }}-${{ inputs.profile }}
-
-      - name: Trim paths
-        if: ${{ !inputs.skipable }}
-        shell: bash
-        run: |
-          echo $'\n' >> .cargo/config.toml
-          echo '[unstable]' >> .cargo/config.toml
-          echo 'trim-paths = true' >> .cargo/config.toml
-
-      - name: Check local cache
-        id: check_cache
-        if: ${{ inputs.profile == 'ci' && runner.environment == 'self-hosted' && !inputs.skipable }}
-        shell: bash
-        run: |
-          set -e
-          cache_dir=$HOME/.cache/runner/${{ github.repository_id }}-${{ github.sha }}-bindings-${{ inputs.target }}
-          if [[ -d "$cache_dir" ]]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
-      # Fix: Resolve disk space error "ENOSPC: no space left on device" on GitHub Actions runners
-      - name: Free disk cache
-        if: ${{ runner.environment == 'github-hosted' && inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
-        uses: xc2/free-disk-space@fbe203b3788f2bebe2c835a15925da303eaa5efe # v1.0.0
-        with:
-          tool-cache: false
-
-      # Linux
-      - name: Build x86_64-unknown-linux-gnu in Docker
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
-        uses: ./.github/actions/docker-build
-        with:
-          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
-          target: ${{ inputs.target }}
-          profile: ${{ inputs.profile }}
-          pre: unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
-      # runner these build in docker since we don't have github runner machine for it
-      - name: Build aarch64-unknown-linux-gnu in Docker
-        if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
-        uses: ./.github/actions/docker-build
-        with:
-          target: ${{ inputs.target }}
-          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
-          profile: ${{ inputs.profile }}
-          pre: |
-            export CC_aarch64_unknown_linux_gnu=clang
-
-      - name: Build x86_64-unknown-linux-musl in Docker
-        if: ${{ inputs.target == 'x86_64-unknown-linux-musl' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
-        uses: ./.github/actions/docker-build
-        with:
-          target: ${{ inputs.target }}
-          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
-          profile: ${{ inputs.profile }}
-          pre: |
-            # musl will enable clang-sys static linking
-            # https://github.com/KyleMayes/clang-sys?tab=readme-ov-file#static
-            # llvm19-dev is used to install llvm-config
-            # clang19-static is used to install libclang.a
-            apk add llvm19-dev clang19-static
-
-      - name: Build aarch64-unknown-linux-musl in Docker
-        if: ${{ inputs.target == 'aarch64-unknown-linux-musl' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
-        uses: ./.github/actions/docker-build
-        with:
-          target: ${{ inputs.target }}
-          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
-          profile: ${{ inputs.profile }}
-          pre: |
-            export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc
-            # musl will enable clang-sys static linking
-            # https://github.com/KyleMayes/clang-sys?tab=readme-ov-file#static
-            # llvm19-dev is used to install llvm-config
-            # clang19-static is used to install libclang.a
-            apk add llvm19-dev clang19-static
-
-      # setup rust target for native runner
-      - name: Setup Rust Target
-        if: ${{ !contains(inputs.target, 'linux') && !inputs.skipable }}
-        run: rustup target add ${{ inputs.target }}
-      # runner the following in github runner directly without docker since we have related machine
-      # Windows
-      - name: Build i686-pc-windows-msvc
-        if: ${{ inputs.target == 'i686-pc-windows-msvc' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
-        run: RUST_TARGET=${{ inputs.target }} DISABLE_PLUGIN=1 pnpm build:binding:${{ inputs.profile }}
-
-      - name: Build x86_64-pc-windows-msvc
-        if: ${{ inputs.target == 'x86_64-pc-windows-msvc' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
-        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
-
-      - name: Build aarch64-pc-windows-msvc
-        if: ${{ inputs.target == 'aarch64-pc-windows-msvc' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
-        run: RUST_TARGET=${{ inputs.target }} DISABLE_PLUGIN=1 pnpm build:binding:${{ inputs.profile }}
-
-      # Mac
-      - name: Build x86_64-apple-darwin
-        if: ${{ inputs.target == 'x86_64-apple-darwin' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
-        run: |
-          RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
-
-      - name: Build aarch64-apple-darwin
-        if: ${{ inputs.target == 'aarch64-apple-darwin' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
-        run: |
-          if [[ "${{ runner.environment == 'github-hosted' }}" == "true" ]]; then
-            # Github runner
-            sudo rm -Rf /Library/Developer/CommandLineTools/SDKs/*;
-          fi
-          export CC=$(xcrun -f clang);
-          export CXX=$(xcrun -f clang++);
-          SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
-          export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
-          RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
-
-      - name: Upload artifact
-        id: upload-artifact
-        uses: ./.github/actions/artifact/upload
-        if: ${{ inputs.target != 'wasm32-wasip1-threads' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
-        with:
-          name: bindings-${{ inputs.target }}
-          path: crates/node_binding/*.node
-          try-local-cache: ${{ inputs.profile == 'ci' }}
-          mv-when-local: true
-
-      # WASM
-      - name: Build wasm32-wasip1-threads with linux in Docker
-        if: ${{ inputs.target == 'wasm32-wasip1-threads' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
-        uses: ./.github/actions/docker-build
-        with:
-          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
-          target: ${{ inputs.target }}
-          profile: ${{ inputs.profile }}
-          plugin: false
-          pre: unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
-
-      - name: Upload wasm artifact
-        id: upload-wasm-artifact
-        uses: ./.github/actions/artifact/upload
-        if: ${{ inputs.target == 'wasm32-wasip1-threads' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
-        with:
-          name: bindings-wasm32-wasi
-          path: crates/node_binding/rspack.wasm32-wasi.wasm
-          try-local-cache: ${{ inputs.profile == 'ci' }}
-          mv-when-local: true
-
-  e2e:
-    name: E2E Testing
-    needs: build
-    if: inputs.target == 'x86_64-unknown-linux-gnu' && inputs.test && !inputs.skipable
-    runs-on: ${{ fromJSON(needs.build.outputs.runner-labels) }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-        with:
-          ref: ${{ inputs.ref }}
-          clean: ${{ runner.environment == 'github-hosted' }}
-
-      - name: Clean
-        if: ${{ runner.environment == 'self-hosted' }}
-        uses: ./.github/actions/clean
-        with:
-          target: ${{ inputs.target }}
-
-      - name: Download bindings
-        uses: ./.github/actions/artifact/download
-        with:
-          name: bindings-${{ inputs.target }}
-          path: crates/node_binding/
-
-      - name: Setup Pnpm
-        uses: ./.github/actions/pnpm/setup
-        with:
-          node-version: 20
-
-      - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
-
-      - name: Calculate Node Bin Path
-        id: calculate-node-bin-path
-        shell: bash
-        run: |
-          NODE_BIN_PATH=$(dirname $(which node))
-          echo "path=$NODE_BIN_PATH" >> $GITHUB_OUTPUT
-
-      - name: Run e2e
-        uses: ./.github/actions/docker-run
-        with:
-          # Jammy uses ubuntu 22.04
-          # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
-          image: mcr.microsoft.com/playwright:v1.47.0-jammy
-          # .cache is required by download artifact, and mount in ./.github/actions/docker-run
-          # .tool_cache is required by pnpm
-          options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
-          script: |
-            export PATH=${{ steps.calculate-node-bin-path.outputs.path }}:$PATH
-            pnpm run build:js
-            pnpm run test:e2e
-
+    uses: ./.github/workflows/reusable-build-build.yml
+    with:
+      target: ${{ inputs.target }}
+      runner: ${{ inputs.runner }}
+      profile: ${{ inputs.profile }}
+      ref: ${{ inputs.ref }}
   test:
-    needs: build
     if: inputs.test
-    runs-on: ${{ fromJSON(needs.build.outputs.runner-labels) }}
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false # Build and test everything so we can look at all the errors
-      matrix:
-        node: ${{ fromJSON(contains(inputs.target, 'linux') && github.ref_name == 'main' && '[16, 18, 20]' || '[18]' )}}
-    name: Test Node ${{ matrix.node }}
-    env:
-      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
-      PUPPETEER_SKIP_DOWNLOAD: true
-
-    steps:
-      - name: Checkout
-        if: ${{ !inputs.skipable }}
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-        with:
-          ref: ${{ inputs.ref }}
-          clean: ${{ runner.environment == 'github-hosted' }}
-
-      - name: Clean
-        if: ${{ !inputs.skipable && runner.environment == 'self-hosted' }}
-        uses: ./.github/actions/clean
-        with:
-          target: ${{ inputs.target }}
-
-      - name: Download bindings
-        if: ${{ !inputs.skipable }}
-        uses: ./.github/actions/artifact/download
-        with:
-          name: bindings-${{ inputs.target }}
-          path: crates/node_binding/
-
-      - name: Show restored binding
-        if: ${{ !inputs.skipable }}
-        shell: bash
-        run: ls -lah crates/node_binding/*.node
-
-      - name: Setup Pnpm
-        if: ${{ !inputs.skipable }}
-        uses: ./.github/actions/pnpm/setup
-        with:
-          node-version: ${{ matrix.node }}
-
-      - name: Pnpm Install
-        if: ${{ !inputs.skipable }}
-        uses: ./.github/actions/pnpm/install-dependencies
-        with:
-          save-if: ${{ github.ref_name == 'main' && matrix.node == '18' }}
-      ### x86_64-unknown-linux-gnu
-
-      - name: Test x86_64-unknown-linux-gnu
-        timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && !inputs.skipable }}
-        run: pnpm run test:ci
-
-      ### TODO: diff cases with new runners
-      # - name: Test diff test
-      #   if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && !inputs.skipable }}
-      #   run: node ./scripts/test/diff.cjs
-
-      ### *-apple-darwin
-
-      - name: Test apple-darwin
-        timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
-        if: ${{ contains(inputs.target, 'apple-darwin') && !inputs.skipable }}
-        run: |
-          # arch is ARM and target is ARM
-          if [[ '${{ runner.arch }}' == ARM* && '${{ inputs.target }}' == 'aarch64-apple-darwin' ]]; then
-            pnpm run test:ci
-          fi
-          # arch is x64 and target is x64
-          if [[ '${{ runner.arch }}' != ARM* && '${{ inputs.target }}' != 'aarch64-apple-darwin' ]]; then
-            pnpm run test:ci
-          fi
-
-      ### x86_64-pc-windows-msvc
-
-      - name: Test x86_64-pc-windows-msvc
-        timeout-minutes: 20 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
-        if: ${{ inputs.target == 'x86_64-pc-windows-msvc' && !inputs.skipable }}
-        run: pnpm run test:ci
-
-      ### write the latest metric into branch gh-pages
-      ### Note that, We can't merge this script, because this script only runs on main branch
-      ### [Note] This step requires push permission and should be refactored.
-      # - name: Update main branch test compatibility metric
-      #   if: ${{ github.repository_owner == 'web-infra-dev' && inputs.target == 'x86_64-unknown-linux-gnu' && github.ref_name == 'main' && matrix.node == '18' && !inputs.skipable }}
-      #   run: node ./tests/webpack-test/scripts/generate.js ${{ github.sha }}
-
-      # ### update metric diff against main branch when pull request change
-      - name: Update
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && github.event_name == 'pull_request' && matrix.node == '18' && !inputs.skipable }}
-        uses: ./.github/actions/webpack-test-metric-diff
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          sha: ${{ github.sha }}
-
+    needs: build
+    uses: ./.github/workflows/reusable-build-test.yml
+    with:
+      target: ${{ inputs.target }}
+      runner: ${{ inputs.runner }}
+      ref: ${{ inputs.ref }}
   bench:
-    name: Bench
-    if: ${{ inputs.bench && !inputs.skipable }}
-    runs-on: ${{ fromJSON(inputs.runner) }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-        with:
-          ref: ${{ inputs.ref }}
-          clean: ${{ runner.environment == 'github-hosted' }}
-
-      - name: Clean
-        if: ${{ runner.environment == 'self-hosted' }}
-        uses: ./.github/actions/clean
-        with:
-          target: ${{ inputs.target }}
-
-      - name: Install Rust Toolchain
-        uses: ./.github/actions/rustup
-        with:
-          save-cache: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
-          shared-key: build-bench-${{ inputs.target }}-${{ inputs.profile }}
-
-      - name: Install cargo-codspeed binary
-        uses: taiki-e/install-action@03351cfd91ee8253b66020be1ad81991e6ba3502 # v2
-        with:
-          tool: cargo-codspeed@2.7.2
-
-      - name: Build Benchmark
-        env:
-          RUSTFLAGS: "-C debuginfo=1 -C strip=none -g --cfg codspeed"
-        run: cargo codspeed build -p rspack_benchmark --features codspeed
-
-      - name: Wait for build job
-        uses: lewagon/wait-on-check-action@ccfb013c15c8afb7bf2b7c028fb74dc5a068cccc # v1.3.4
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          check-name: "Test Linux / Build"
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 10
-
-      - name: Download bindings
-        uses: ./.github/actions/artifact/download
-        with:
-          name: bindings-${{ inputs.target }}
-          path: crates/node_binding/
-
-      - name: Show restored binding
-        shell: bash
-        run: ls -lah crates/node_binding/*.node
-
-      - name: Pnpm Setup
-        uses: ./.github/actions/pnpm/setup
-
-      - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
-
-      - name: Build JS
-        run: pnpm run build:js
-
-      - name: Run benchmark
-        uses: CodSpeedHQ/action@63ae6025a0ffee97d7736a37c9192dbd6ed4e75f # v3
-        timeout-minutes: 30
-        with:
-          run: pnpm run bench:ci
-          token: ${{ secrets.CODSPEED_TOKEN }}
+    uses: ./.github/workflows/reusable-build-bench.yml
+    if: inputs.bench
+    with:
+      target: ${{ inputs.target }}
+      runner: ${{ inputs.runner }}
+      ref: ${{ inputs.ref }}

@@ -1,5 +1,8 @@
 use rspack_collections::DatabaseItem;
-use rspack_core::{ApplyContext, CompilationChunkIds, CompilerOptions, Plugin, PluginContext};
+use rspack_core::{
+  incremental::IncrementalPasses, ApplyContext, CompilationChunkIds, CompilerOptions, Plugin,
+  PluginContext,
+};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxBuildHasher, FxHashMap};
@@ -22,7 +25,16 @@ impl DeterministicChunkIdsPlugin {
 }
 
 #[plugin_hook(CompilationChunkIds for DeterministicChunkIdsPlugin)]
-fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
+async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
+  if let Some(diagnostic) = compilation.incremental.disable_passes(
+    IncrementalPasses::CHUNK_IDS,
+    "DeterministicChunkIdsPlugin (optimization.chunkIds = \"deterministic\")",
+    "it requires calculating the id of all the chunks, which is a global effect",
+  ) {
+    compilation.push_diagnostic(diagnostic);
+    compilation.chunk_ids_artifact.clear();
+  }
+
   let mut used_ids = get_used_chunk_ids(compilation);
   let used_ids_len = used_ids.len();
 
@@ -52,6 +64,7 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
       compare_chunks_natural(
         chunk_graph,
         &module_graph,
+        &compilation.chunk_group_by_ukey,
         &compilation.module_ids_artifact,
         a,
         b,

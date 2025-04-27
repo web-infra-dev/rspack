@@ -18,6 +18,12 @@ module.exports = {
 						ignored: false
 					}
 				}
+			},
+			{
+				test: /no-alias/,
+				resolve: {
+					alias: false
+				}
 			}
 		]
 	}

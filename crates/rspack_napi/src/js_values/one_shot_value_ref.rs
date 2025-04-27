@@ -1,17 +1,21 @@
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 
-use std::cell::{Cell, RefCell};
-use std::ptr;
+use std::{
+  cell::{Cell, RefCell},
+  ptr,
+};
 
-use napi::bindgen_prelude::{check_status, ToNapiValue};
-use napi::sys::{self, napi_env};
-use napi::{CleanupEnvHook, Env, Result};
+use napi::{
+  bindgen_prelude::{check_status, ToNapiValue},
+  sys::{self, napi_env},
+  CleanupEnvHook, Env, Result,
+};
 
 thread_local! {
-  static CLEANUP_ENV_HOOK: RefCell<Option<CleanupEnvHook<()>>> = Default::default();
+  pub(crate) static CLEANUP_ENV_HOOK: RefCell<Option<CleanupEnvHook<()>>> = Default::default();
 
   // cleanup references to be executed when the JS thread exits normally
-  static GLOBAL_CLEANUP_FLAG: Cell<bool> = const { Cell::new(false) };
+  pub(crate) static GLOBAL_CLEANUP_FLAG: Cell<bool> = const { Cell::new(false) };
 }
 
 // A RAII (Resource Acquisition Is Initialization) style wrapper around `Ref` that ensures the

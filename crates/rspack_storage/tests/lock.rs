@@ -111,8 +111,6 @@ mod test_storage_lock {
       );
     }
     let rx = storage.trigger_save()?;
-    assert_eq!(storage.load("test_scope").await?.len(), 100);
-
     assert!(rx
       .await
       .expect("should save")
@@ -170,7 +168,7 @@ mod test_storage_lock {
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn test_consume_lock() {
+  async fn test_consume_lock() -> Result<()> {
     let cases = [
       (
         get_native_path("test_lock_native"),
@@ -190,7 +188,7 @@ mod test_storage_lock {
         .await
         .expect("should remove temp root");
 
-      let _ = test_generate_lock(
+      test_generate_lock(
         "xxx",
         &root,
         &temp_root,
@@ -200,10 +198,9 @@ mod test_storage_lock {
           break_on: 3,
         }),
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
 
-      let _ = test_recovery_lock(
+      test_recovery_lock(
         "xxx",
         &root,
         &temp_root,
@@ -213,14 +210,14 @@ mod test_storage_lock {
           break_on: 9999,
         }),
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
     }
+    Ok(())
   }
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn test_consume_lock_failed() {
+  async fn test_consume_lock_failed() -> Result<()> {
     let cases = [
       (
         get_native_path("test_lock_fail_native"),
@@ -240,7 +237,7 @@ mod test_storage_lock {
         .await
         .expect("should remove temp root");
 
-      let _ = test_generate_lock(
+      test_generate_lock(
         "xxx",
         &root,
         &temp_root,
@@ -250,10 +247,9 @@ mod test_storage_lock {
           break_on: 3,
         }),
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
 
-      let _ = test_recovery_lock_failed(
+      test_recovery_lock_failed(
         "xxx",
         &root,
         &temp_root.join("other"),
@@ -263,8 +259,8 @@ mod test_storage_lock {
           break_on: 9999,
         }),
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
     }
+    Ok(())
   }
 }

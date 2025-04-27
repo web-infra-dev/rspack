@@ -4,7 +4,7 @@ description: Run pnpm install
 
 inputs:
   frozen-lockfile:
-    default: false
+    default: true
     required: false
     type: boolean
   save-if:
@@ -45,4 +45,4 @@ runs:
       if: ${{ inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' }}
       with:
         path: ${{ steps.store-path.outputs.STORE_PATH }}
-        key: node-cache-${{ runner.os }}-pnpm-full-${{ hashFiles('pnpm-lock.yaml') }}
+        key: pnpm-cache-full-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}

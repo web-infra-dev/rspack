@@ -3,11 +3,13 @@
 #![feature(iter_intersperse)]
 #![feature(box_patterns)]
 #![feature(anonymous_lifetime_in_impl_trait)]
-#![feature(hash_raw_entry)]
+#![feature(async_trait_bounds)]
 
 use std::{fmt, sync::Arc};
 mod artifacts;
+mod binding;
 pub use artifacts::*;
+pub use binding::*;
 mod dependencies_block;
 pub mod diagnostics;
 pub mod incremental;

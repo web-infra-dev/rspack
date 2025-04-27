@@ -79,7 +79,7 @@ pub fn chunk_has_css(chunk: &ChunkUkey, compilation: &Compilation) -> bool {
     .is_empty()
 }
 
-pub fn get_output_dir(
+pub async fn get_output_dir(
   chunk: &Chunk,
   compilation: &Compilation,
   enforce_relative: bool,
@@ -89,25 +89,27 @@ pub fn get_output_dir(
     &compilation.options.output,
     &compilation.chunk_group_by_ukey,
   );
-  let output_dir = compilation.get_path(
-    &filename,
-    PathData::default()
-      .chunk_id_optional(
-        chunk
-          .id(&compilation.chunk_ids_artifact)
-          .map(|id| id.as_str()),
-      )
-      .chunk_hash_optional(chunk.rendered_hash(
-        &compilation.chunk_hashes_artifact,
-        compilation.options.output.hash_digest_length,
-      ))
-      .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
-      .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-        &compilation.chunk_hashes_artifact,
-        &SourceType::JavaScript,
-        compilation.options.output.hash_digest_length,
-      )),
-  )?;
+  let output_dir = compilation
+    .get_path(
+      &filename,
+      PathData::default()
+        .chunk_id_optional(
+          chunk
+            .id(&compilation.chunk_ids_artifact)
+            .map(|id| id.as_str()),
+        )
+        .chunk_hash_optional(chunk.rendered_hash(
+          &compilation.chunk_hashes_artifact,
+          compilation.options.output.hash_digest_length,
+        ))
+        .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+        .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+          &compilation.chunk_hashes_artifact,
+          &SourceType::JavaScript,
+          compilation.options.output.hash_digest_length,
+        )),
+    )
+    .await?;
   Ok(get_undo_path(
     output_dir.as_str(),
     compilation.options.output.path.as_str().to_string(),

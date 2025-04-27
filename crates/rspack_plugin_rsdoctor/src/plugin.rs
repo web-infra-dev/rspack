@@ -1,5 +1,7 @@
-use std::fmt;
-use std::sync::{Arc, LazyLock};
+use std::{
+  fmt,
+  sync::{Arc, LazyLock},
+};
 
 use async_trait::async_trait;
 use futures::future::BoxFuture;
@@ -15,17 +17,18 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::chunk_graph::{
-  collect_assets, collect_chunk_assets, collect_chunk_dependencies, collect_chunk_modules,
-  collect_chunks, collect_entrypoint_assets, collect_entrypoints,
-};
-use crate::module_graph::{
-  collect_concatenated_modules, collect_module_dependencies, collect_module_ids,
-  collect_module_original_sources, collect_modules,
-};
 use crate::{
+  chunk_graph::{
+    collect_assets, collect_chunk_assets, collect_chunk_dependencies, collect_chunk_modules,
+    collect_chunks, collect_entrypoint_assets, collect_entrypoints,
+  },
+  module_graph::{
+    collect_concatenated_modules, collect_module_dependencies, collect_module_ids,
+    collect_module_original_sources, collect_modules,
+  },
   EntrypointUkey, ModuleUkey, RsdoctorAssetPatch, RsdoctorChunkGraph, RsdoctorModuleGraph,
   RsdoctorModuleIdsPatch, RsdoctorModuleSourcesPatch, RsdoctorPluginHooks,
+  RsdoctorStatsModuleIssuer,
 };
 
 pub type SendModuleGraph =
@@ -178,7 +181,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilationOptimizeChunks for RsdoctorPlugin, stage = 9999)]
-fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   if !self.has_chunk_graph_feature(RsdoctorPluginChunkGraphFeature::ChunkGraph) {
     return Ok(None);
   }
@@ -301,7 +304,30 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     }
   }
 
-  // 5. collect chunk modules
+  // 5. Rsdoctor module add issuer_path
+  for module in module_graph.modules() {
+    let mut issuer_path = Vec::new();
+    let (module_id, _) = module;
+    let mut current_issuer = module_graph.get_issuer(&module_id);
+
+    while let Some(i) = current_issuer {
+      if let Some(rsd_module) = rsd_modules.get_mut(&i.identifier()) {
+        let module_ukey = rsd_module.ukey;
+
+        issuer_path.push(RsdoctorStatsModuleIssuer {
+          ukey: Some(module_ukey),
+        });
+      }
+
+      current_issuer = module_graph.get_issuer(&i.identifier());
+    }
+
+    if let Some(rsd_module) = rsd_modules.get_mut(&module_id) {
+      rsd_module.issuer_path = Some(issuer_path);
+    }
+  }
+
+  // 6. collect chunk modules
   let chunk_modules =
     collect_chunk_modules(chunk_by_ukey, &MODULE_UKEY_MAP, chunk_graph, &module_graph);
 
@@ -324,7 +350,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
 }
 
 #[plugin_hook(CompilationModuleIds for RsdoctorPlugin, stage = 9999)]
-fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
+async fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
   if !self.has_module_graph_feature(RsdoctorPluginModuleGraphFeature::ModuleIds) {
     return Ok(());
   }
@@ -352,7 +378,7 @@ fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationAfterCodeGeneration for RsdoctorPlugin, stage = 9999)]
-fn after_code_generation(&self, compilation: &mut Compilation) -> Result<()> {
+async fn after_code_generation(&self, compilation: &mut Compilation) -> Result<()> {
   if !self.has_module_graph_feature(RsdoctorPluginModuleGraphFeature::ModuleSources) {
     return Ok(());
   }
@@ -459,5 +485,9 @@ impl Plugin for RsdoctorPlugin {
       .tap(after_process_asssets::new(self));
 
     Ok(())
+  }
+
+  fn clear_cache(&self, id: CompilationId) {
+    COMPILATION_HOOKS_MAP.remove(&id);
   }
 }

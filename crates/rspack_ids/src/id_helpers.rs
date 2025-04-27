@@ -1,8 +1,8 @@
-use std::sync::LazyLock;
 use std::{
   borrow::Cow,
   cmp::Ordering,
   hash::{Hash, Hasher},
+  sync::LazyLock,
 };
 
 use itertools::{
@@ -12,13 +12,13 @@ use itertools::{
 use regex::Regex;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  compare_runtime, BoxModule, Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleGraph,
-  ModuleIdentifier, ModuleIdsArtifact,
+  compare_runtime, BoxModule, Chunk, ChunkGraph, ChunkGroupByUkey, ChunkUkey, Compilation,
+  ModuleGraph, ModuleIdentifier, ModuleIdsArtifact,
 };
-use rspack_util::itoa;
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
   identifier::make_paths_relative,
+  itoa,
   number_hash::get_number_hash,
 };
 use rustc_hash::{FxHashSet, FxHasher};
@@ -51,7 +51,7 @@ pub fn get_used_module_ids_and_modules(
       if let Some(module_id) = module_id {
         used_ids.insert(module_id.to_string());
       } else {
-        if filter.as_ref().map_or(true, |f| (f)(module))
+        if filter.as_ref().is_none_or(|f| (f)(module))
           && chunk_graph.get_number_of_module_chunks(module.identifier()) != 0
         {
           modules.push(module.identifier());
@@ -363,7 +363,7 @@ fn compare_chunks_by_modules(
   let a_modules = chunk_graph.get_ordered_chunk_modules(&a.ukey(), module_graph);
   let b_modules = chunk_graph.get_ordered_chunk_modules(&b.ukey(), module_graph);
 
-  let eq = a_modules
+  let ordering = a_modules
     .into_iter()
     .zip_longest(b_modules)
     .find_map(|pair| match pair {
@@ -386,18 +386,27 @@ fn compare_chunks_by_modules(
     })
     .unwrap_or(Ordering::Equal);
 
-  // 2 chunks are exactly the same, we have to compare
-  // the ukey to get stable results
-  if matches!(eq, Ordering::Equal) {
-    return a.ukey().cmp(&b.ukey());
-  }
+  ordering
+}
 
-  eq
+fn compare_chunks_by_groups(
+  chunk_group_by_ukey: &ChunkGroupByUkey,
+  a: &Chunk,
+  b: &Chunk,
+) -> Ordering {
+  let a_groups = a
+    .get_sorted_groups_iter(chunk_group_by_ukey)
+    .map(|group| chunk_group_by_ukey.expect_get(group).index);
+  let b_groups = b
+    .get_sorted_groups_iter(chunk_group_by_ukey)
+    .map(|group| chunk_group_by_ukey.expect_get(group).index);
+  a_groups.cmp_by(b_groups, |a, b| a.cmp(&b))
 }
 
 pub fn compare_chunks_natural(
   chunk_graph: &ChunkGraph,
   module_graph: &ModuleGraph,
+  chunk_group_by_ukey: &ChunkGroupByUkey,
   module_ids: &ModuleIdsArtifact,
   a: &Chunk,
   b: &Chunk,
@@ -412,5 +421,10 @@ pub fn compare_chunks_natural(
     return runtime_ordering;
   }
 
-  compare_chunks_by_modules(chunk_graph, module_graph, module_ids, a, b)
+  let modules_ordering = compare_chunks_by_modules(chunk_graph, module_graph, module_ids, a, b);
+  if modules_ordering != Ordering::Equal {
+    return modules_ordering;
+  }
+
+  compare_chunks_by_groups(chunk_group_by_ukey, a, b)
 }

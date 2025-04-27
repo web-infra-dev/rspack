@@ -1,4 +1,6 @@
-use std::{mem, thread};
+use std::mem;
+
+use tokio::task::spawn_blocking;
 
 /// Fast set `src` into the referenced `dest`, and drop the old value in other thread
 ///
@@ -8,16 +10,7 @@ where
   T: Send + 'static,
 {
   let old = mem::replace(dest, src);
-  thread::spawn(move || {
+  spawn_blocking(|| {
     mem::drop(old);
-  });
-}
-
-pub fn fast_drop<T>(src: T)
-where
-  T: Send + 'static,
-{
-  thread::spawn(move || {
-    mem::drop(src);
   });
 }

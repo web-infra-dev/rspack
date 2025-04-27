@@ -113,7 +113,7 @@ async fn handle_compilation(
   ) {
     compilation.push_diagnostic(Diagnostic::error(
       "SubresourceIntegrity".to_string(),
-      "rspack option output.crossOriginLoading not set, code splitting will not work!".to_string(),
+      "Subresource integrity is not applied to async chunks because the \"output.crossOriginLoading\" option is not set.".to_string(),
     ));
   }
 

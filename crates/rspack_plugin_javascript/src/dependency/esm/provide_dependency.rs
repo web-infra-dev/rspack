@@ -4,13 +4,13 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec, Skip},
 };
 use rspack_core::{
-  create_exports_object_referenced, module_raw, Compilation, DependencyLocation, DependencyRange,
-  DependencyType, ExtendedReferencedExport, FactorizeInfo, ModuleGraph, NormalInitFragment,
-  RuntimeSpec, SharedSourceMap, UsedName,
+  create_exports_object_referenced, module_raw, AsContextDependency, Compilation, Dependency,
+  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExtendedReferencedExport,
+  FactorizeInfo, InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph,
+  NormalInitFragment, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  UsedName,
 };
-use rspack_core::{AsContextDependency, Dependency, InitFragmentKey, InitFragmentStage};
-use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
-use rspack_core::{ModuleDependency, TemplateContext, TemplateReplaceSource};
 use rspack_util::ext::DynHash;
 use swc_core::atoms::Atom;
 
@@ -108,50 +108,9 @@ impl ModuleDependency for ProvideDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ProvideDependency {
-  fn apply(
-    &self,
-    source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    let TemplateContext {
-      compilation,
-      runtime,
-      runtime_requirements,
-      init_fragments,
-      ..
-    } = code_generatable_context;
-    let module_graph = compilation.get_module_graph();
-    let Some(con) = module_graph.connection_by_dependency_id(&self.id) else {
-      // not find connection, maybe because it's not resolved in make phase, and `bail` is false
-      return;
-    };
-    let exports_info = module_graph.get_exports_info(con.module_identifier());
-    let used_name =
-      exports_info.get_used_name(&module_graph, *runtime, UsedName::Vec(self.ids.clone()));
-    init_fragments.push(Box::new(NormalInitFragment::new(
-      format!(
-        "/* provided dependency */ var {} = {}{};\n",
-        self.identifier,
-        module_raw(
-          compilation,
-          runtime_requirements,
-          self.id(),
-          self.request(),
-          self.weak()
-        ),
-        path_to_string(used_name.as_ref())
-      ),
-      InitFragmentStage::StageProvides,
-      1,
-      InitFragmentKey::ModuleExternal(format!("provided {}", self.identifier)),
-      None,
-    )));
-    source.replace(self.range.start, self.range.end, &self.identifier, None);
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
+impl DependencyCodeGeneration for ProvideDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(ProvideDependencyTemplate::template_type())
   }
 
   fn update_hash(
@@ -180,3 +139,62 @@ fn path_to_string(path: Option<&UsedName>) -> String {
 }
 
 impl AsContextDependency for ProvideDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ProvideDependencyTemplate;
+
+impl ProvideDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("ProvideDependency")
+  }
+}
+
+impl DependencyTemplate for ProvideDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ProvideDependency>()
+      .expect("ProvideDependencyTemplate should only be used for ProvideDependency");
+
+    let TemplateContext {
+      compilation,
+      runtime,
+      runtime_requirements,
+      init_fragments,
+      ..
+    } = code_generatable_context;
+    let module_graph = compilation.get_module_graph();
+    let Some(con) = module_graph.connection_by_dependency_id(&dep.id) else {
+      // not find connection, maybe because it's not resolved in make phase, and `bail` is false
+      return;
+    };
+    let exports_info = module_graph.get_exports_info(con.module_identifier());
+    let used_name =
+      exports_info.get_used_name(&module_graph, *runtime, UsedName::Vec(dep.ids.clone()));
+    init_fragments.push(Box::new(NormalInitFragment::new(
+      format!(
+        "/* provided dependency */ var {} = {}{};\n",
+        dep.identifier,
+        module_raw(
+          compilation,
+          runtime_requirements,
+          dep.id(),
+          dep.request(),
+          dep.weak()
+        ),
+        path_to_string(used_name.as_ref())
+      ),
+      InitFragmentStage::StageProvides,
+      1,
+      InitFragmentKey::ModuleExternal(format!("provided {}", dep.identifier)),
+      None,
+    )));
+    source.replace(dep.range.start, dep.range.end, &dep.identifier, None);
+  }
+}

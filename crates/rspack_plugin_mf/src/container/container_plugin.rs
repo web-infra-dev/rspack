@@ -2,12 +2,9 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use rspack_core::{
-  ApplyContext, ChunkUkey, CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerMake,
-  CompilerOptions,
-};
-use rspack_core::{
-  Compilation, CompilationParams, DependencyType, EntryOptions, EntryRuntime, Filename,
-  LibraryOptions, Plugin, PluginContext, RuntimeGlobals,
+  ApplyContext, ChunkUkey, Compilation, CompilationParams, CompilationRuntimeRequirementInTree,
+  CompilerCompilation, CompilerMake, CompilerOptions, DependencyType, EntryOptions, EntryRuntime,
+  Filename, LibraryOptions, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -90,7 +87,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationRuntimeRequirementInTree for ContainerPlugin)]
-fn runtime_requirements_in_tree(
+async fn runtime_requirements_in_tree(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,

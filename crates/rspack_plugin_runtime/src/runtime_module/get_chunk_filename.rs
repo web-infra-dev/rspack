@@ -7,14 +7,13 @@ use rspack_collections::{DatabaseItem, Identifier, UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
   get_filename_without_hash_length, impl_runtime_module,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, FilenameTemplate, NoFilenameFn, PathData,
-  RuntimeGlobals, RuntimeModule, SourceType,
+  Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule,
+  SourceType,
 };
-use rspack_util::{infallible::ResultInfallibleExt, itoa};
+use rspack_util::itoa;
 use rustc_hash::FxHashMap;
 
-use super::stringify_dynamic_chunk_map;
-use super::stringify_static_chunk_map;
+use super::{stringify_dynamic_chunk_map, stringify_static_chunk_map};
 use crate::{get_chunk_runtime_requirements, runtime_module::unquoted_stringify};
 
 type GetChunkFilenameAllChunks = Box<dyn Fn(&RuntimeGlobals) -> bool + Sync + Send>;
@@ -73,6 +72,7 @@ impl GetChunkFilenameRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for GetChunkFilenameRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
@@ -89,7 +89,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     true
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunks = self
       .chunk
       .and_then(|chunk_ukey| compilation.chunk_by_ukey.get(&chunk_ukey))
@@ -170,7 +170,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         });
     }
 
-    let dynamic_url = dynamic_filename.as_ref().map(|dynamic_filename| {
+    let dynamic_url = if let Some(dynamic_filename) = &dynamic_filename {
       let chunks = chunk_filenames
         .iter()
         .filter_map(|(filename, chunk)| {
@@ -182,13 +182,22 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         })
         .collect::<UkeyIndexSet<ChunkUkey>>();
       let (fake_filename, hash_len_map) =
-        get_filename_without_hash_length(&FilenameTemplate::from(dynamic_filename.to_string()));
+        get_filename_without_hash_length(&Filename::from(dynamic_filename.to_string()));
 
       let chunk_id = "\" + chunkId + \"";
       let chunk_name = stringify_dynamic_chunk_map(
         |c| {
           c.name_for_filename_template(&compilation.chunk_ids_artifact)
             .map(|s| s.to_string())
+        },
+        &chunks,
+        &chunk_map,
+        compilation,
+      );
+      let chunk_runtime = stringify_dynamic_chunk_map(
+        |c| {
+          let runtime = c.runtime().as_str();
+          Some(runtime.to_string())
         },
         &chunks,
         &chunk_map,
@@ -239,20 +248,25 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         None => format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH),
       };
 
-      compilation
-        .get_path(
-          &Filename::<NoFilenameFn>::from(
-            serde_json::to_string(fake_filename.as_str()).expect("invalid json to_string"),
-          ),
-          PathData::default()
-            .chunk_id(chunk_id)
-            .chunk_hash(&chunk_hash)
-            .chunk_name(&chunk_name)
-            .hash(&full_hash)
-            .content_hash(&content_hash),
-        )
-        .always_ok()
-    });
+      Some(
+        compilation
+          .get_path(
+            &Filename::from(
+              serde_json::to_string(fake_filename.as_str()).expect("invalid json to_string"),
+            ),
+            PathData::default()
+              .chunk_id(chunk_id)
+              .chunk_hash(&chunk_hash)
+              .chunk_name(&chunk_name)
+              .hash(&full_hash)
+              .content_hash(&content_hash)
+              .runtime(&chunk_runtime),
+          )
+          .await?,
+      )
+    } else {
+      None
+    };
 
     let mut static_urls = IndexMap::new();
     for (filename_template, chunk_ukey) in
@@ -314,10 +328,11 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           ),
           None => format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH),
         };
+        let chunk_runtime = chunk.runtime().as_str();
 
         let filename = compilation
           .get_path(
-            &Filename::<NoFilenameFn>::from(
+            &Filename::from(
               serde_json::to_string(
                 fake_filename
                   .render(
@@ -329,7 +344,8 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                           .map(|id| id.as_str()),
                       ),
                     None,
-                  )?
+                  )
+                  .await?
                   .as_str(),
               )
               .expect("invalid json to_string"),
@@ -339,9 +355,10 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
               .chunk_hash_optional(chunk_hash.as_deref())
               .chunk_name_optional(chunk_name.as_deref())
               .hash(&full_hash)
-              .content_hash_optional(content_hash.as_deref()),
+              .content_hash_optional(content_hash.as_deref())
+              .runtime(chunk_runtime),
           )
-          .always_ok();
+          .await?;
 
         if let Some(chunk_id) = chunk.id(&compilation.chunk_ids_artifact) {
           static_urls

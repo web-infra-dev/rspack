@@ -10,7 +10,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsInner, AsOption, AsPreset, AsString},
 };
-use rspack_error::{Error, Result};
+use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_paths::Utf8PathBuf;
 
 use crate::{get_scheme, Scheme};
@@ -25,7 +25,7 @@ impl Content {
   pub fn try_into_string(self) -> Result<String> {
     match self {
       Content::String(s) => Ok(s),
-      Content::Buffer(b) => String::from_utf8(b).map_err(|e| rspack_error::error!(e.to_string())),
+      Content::Buffer(b) => String::from_utf8(b).to_rspack_result(),
     }
   }
 
@@ -274,6 +274,10 @@ impl DescriptionData {
 
   pub fn json(&self) -> &serde_json::Value {
     self.json.as_ref()
+  }
+
+  pub fn into_parts(self) -> (PathBuf, Arc<serde_json::Value>) {
+    (self.path, self.json)
   }
 }
 

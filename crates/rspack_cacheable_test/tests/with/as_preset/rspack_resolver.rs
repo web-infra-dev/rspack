@@ -1,5 +1,5 @@
 use rspack_cacheable::{
-  cacheable, from_bytes, to_bytes,
+  enable_cacheable as cacheable, from_bytes, to_bytes,
   with::{AsCacheable, AsOption, AsPreset, AsTuple2, AsVec},
 };
 use rspack_resolver::{Alias, AliasValue};

@@ -19,6 +19,7 @@ impl Default for AutoPublicPathRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for AutoPublicPathRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
@@ -39,7 +40,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
     )]
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk = self.chunk.expect("The chunk should be attached");
     let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
     let filename = get_js_chunk_filename_template(
@@ -47,25 +48,27 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
       &compilation.options.output,
       &compilation.chunk_group_by_ukey,
     );
-    let filename = compilation.get_path(
-      &filename,
-      PathData::default()
-        .chunk_id_optional(
-          chunk
-            .id(&compilation.chunk_ids_artifact)
-            .map(|id| id.as_str()),
-        )
-        .chunk_hash_optional(chunk.rendered_hash(
-          &compilation.chunk_hashes_artifact,
-          compilation.options.output.hash_digest_length,
-        ))
-        .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
-        .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-          &compilation.chunk_hashes_artifact,
-          &SourceType::JavaScript,
-          compilation.options.output.hash_digest_length,
-        )),
-    )?;
+    let filename = compilation
+      .get_path(
+        &filename,
+        PathData::default()
+          .chunk_id_optional(
+            chunk
+              .id(&compilation.chunk_ids_artifact)
+              .map(|id| id.as_str()),
+          )
+          .chunk_hash_optional(chunk.rendered_hash(
+            &compilation.chunk_hashes_artifact,
+            compilation.options.output.hash_digest_length,
+          ))
+          .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+          .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+            &compilation.chunk_hashes_artifact,
+            &SourceType::JavaScript,
+            compilation.options.output.hash_digest_length,
+          )),
+      )
+      .await?;
     Ok(
       RawStringSource::from(auto_public_path_template(
         &compilation.runtime_template,

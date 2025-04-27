@@ -148,10 +148,13 @@ function getRawExtensionAlias(
 function getRawAlias(
 	alias: Resolve["alias"] = {}
 ): RawOptions["resolve"]["alias"] {
-	return Object.entries(alias).map(([key, value]) => ({
-		path: key,
-		redirect: Array.isArray(value) ? value : [value]
-	}));
+	if (typeof alias === "object" && alias !== null && !Array.isArray(alias)) {
+		return Object.entries(alias).map(([key, value]) => ({
+			path: key,
+			redirect: Array.isArray(value) ? value : [value]
+		}));
+	}
+	return false;
 }
 
 function getRawResolveByDependency(
@@ -533,7 +536,7 @@ function getRawParserOptions(
 	}
 
 	// FIXME: shouldn't depend on module type, for example: `rules: [{ test: /\.css/, generator: {..} }]` will error
-	throw new Error(`unreachable: unknow module type: ${type}`);
+	throw new Error(`unreachable: unknown module type: ${type}`);
 }
 
 function getRawJavascriptParserOptions(
@@ -683,7 +686,7 @@ function getRawGeneratorOptions(
 		return undefined;
 	}
 
-	throw new Error(`unreachable: unknow module type: ${type}`);
+	throw new Error(`unreachable: unknown module type: ${type}`);
 }
 
 function getRawAssetGeneratorOptions(

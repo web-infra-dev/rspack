@@ -1,30 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`ConfigTestCases css build-http exported tests should work with URLs in CSS 1`] = `
-Array [
-  "/* #region \\"https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/import/print.css\\" */
-/*
-- type: javascript/auto
-*/
-@import url(\\"https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/import/print.css\\");
-/* #endregion \\"https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/import/print.css\\" */
-
-/* #region \\"./style.css\\" */
-/*
-- type: css/auto
-*/
-
-
-div {
-	background: url(https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/url/img.png)
-}
-
-/* #endregion \\"./style.css\\" */
-
-",
-]
-`;
-
 exports[`ConfigTestCases css escape-unescape exported tests should work with URLs in CSS: classes 1`] = `
 Object {
   "#": "-_style_modules_css-#",

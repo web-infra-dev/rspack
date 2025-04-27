@@ -175,7 +175,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_invalid_packs_changed(
+  async fn test_flush_packs_mtime(
     scope_path: Utf8PathBuf,
     strategy: &SplitPackStrategy,
     fs: Arc<dyn FileSystem>,
@@ -183,6 +183,7 @@ mod tests {
     files: HashSet<Utf8PathBuf>,
   ) -> Result<()> {
     let mut scope = PackScope::new("scope_name", scope_path, options);
+    // test refresh mtime
     for file in files {
       if !file.to_string().contains("scope_meta") {
         flush_file_mtime(&file, fs.clone()).await?;
@@ -190,21 +191,14 @@ mod tests {
     }
 
     strategy.ensure_keys(&mut scope).await?;
-    if let ValidateResult::Invalid(detail) = strategy.validate_packs(&mut scope).await? {
-      let error =
-        Error::from_detail(Some(ErrorType::Validate), Some("scope_name"), detail).to_string();
-      assert!(error.contains("validate scope `scope_name` failed due to some packs are modified"));
-      assert_eq!(error.split("\n").count(), 7);
-    } else {
-      panic!("should be invalid");
-    }
+    assert!(strategy.validate_packs(&mut scope).await?.is_valid());
 
     Ok(())
   }
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn should_validate_scope_meta() {
+  async fn should_validate_scope_meta() -> Result<()> {
     for strategy in create_strategies("valid_scope_meta") {
       clean_strategy(&strategy).await;
       mock_root_meta_file(
@@ -228,19 +222,15 @@ mod tests {
       .await
       .expect("should mock meta file");
 
-      let _ = test_valid_meta(scope_path.clone(), &strategy)
-        .await
-        .map_err(|e| panic!("{}", e));
-
-      let _ = test_invalid_option_changed(scope_path.clone(), &strategy)
-        .await
-        .map_err(|e| panic!("{}", e));
+      test_valid_meta(scope_path.clone(), &strategy).await?;
+      test_invalid_option_changed(scope_path.clone(), &strategy).await?;
     }
+    Ok(())
   }
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn should_validate_scope_packs() {
+  async fn should_validate_scope_packs() -> Result<()> {
     for strategy in create_strategies("validate_scope_packs") {
       clean_strategy(&strategy).await;
       mock_root_meta_file(
@@ -280,19 +270,17 @@ mod tests {
 
       flag_scope_wrote(&mut mock_scope);
 
-      let _ = test_valid_packs(scope_path.clone(), &strategy, pack_options.clone())
-        .await
-        .map_err(|e| panic!("{}", e));
+      test_valid_packs(scope_path.clone(), &strategy, pack_options.clone()).await?;
 
-      let _ = test_invalid_packs_changed(
+      test_flush_packs_mtime(
         scope_path.clone(),
         &strategy,
         strategy.fs.clone(),
         pack_options.clone(),
         changed.wrote_files,
       )
-      .await
-      .map_err(|e| panic!("{}", e));
+      .await?;
     }
+    Ok(())
   }
 }

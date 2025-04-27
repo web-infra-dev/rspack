@@ -1,5 +1,7 @@
-use std::fmt::{Debug, Display};
-use std::hash::Hash;
+use std::{
+  fmt::{Debug, Display},
+  hash::Hash,
+};
 
 #[rspack_cacheable::cacheable]
 #[derive(Default, Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -30,6 +32,7 @@ impl From<&str> for DependencyCategory {
       "css-export" => Self::CssExport,
       "css-compose" => Self::CssCompose,
       "css-local-ident" => Self::CssLocalIdent,
+      "loaderImport" => Self::LoaderImport,
       "worker" => Self::Worker,
       "unknown" => Self::Unknown,
       _ => unimplemented!("DependencyCategory {}", value),
@@ -51,7 +54,7 @@ impl DependencyCategory {
       DependencyCategory::CssLocalIdent => "css-local-ident",
       DependencyCategory::Wasm => "wasm",
       DependencyCategory::Worker => "worker",
-      DependencyCategory::LoaderImport => "loader import",
+      DependencyCategory::LoaderImport => "loaderImport",
     }
   }
 }

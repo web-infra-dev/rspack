@@ -1,10 +1,13 @@
 use itertools::Itertools;
 use rspack_core::{ConstDependency, SpanExt};
 use rustc_hash::FxHashSet;
-use swc_core::common::Spanned;
-use swc_core::ecma::ast::{BlockStmt, DoWhileStmt, ForHead, ForInStmt, ForOfStmt, Ident, IfStmt};
-use swc_core::ecma::ast::{LabeledStmt, ObjectPatProp, Pat, Stmt, VarDeclOrExpr, WhileStmt};
-use swc_core::ecma::ast::{VarDecl, VarDeclKind, VarDeclarator};
+use swc_core::{
+  common::Spanned,
+  ecma::ast::{
+    BlockStmt, DoWhileStmt, ForHead, ForInStmt, ForOfStmt, Ident, IfStmt, LabeledStmt,
+    ObjectPatProp, Pat, Stmt, VarDecl, VarDeclKind, VarDeclOrExpr, VarDeclarator, WhileStmt,
+  },
+};
 
 use crate::visitors::JavascriptParser;
 
@@ -137,8 +140,7 @@ pub fn statement_if(scanner: &mut JavascriptParser, stmt: &IfStmt) -> Option<boo
     scanner
       .presentational_dependencies
       .push(Box::new(ConstDependency::new(
-        param.range().0,
-        param.range().1 - 1,
+        (param.range().0, param.range().1 - 1).into(),
         boolean.to_string().into_boxed_str(),
         None,
       )));
@@ -170,8 +172,11 @@ pub fn statement_if(scanner: &mut JavascriptParser, stmt: &IfStmt) -> Option<boo
     scanner
       .presentational_dependencies
       .push(Box::new(ConstDependency::new(
-        branch_to_remove.span().real_lo(),
-        branch_to_remove.span().hi().0 - 1,
+        (
+          branch_to_remove.span().real_lo(),
+          branch_to_remove.span().hi().0 - 1,
+        )
+          .into(),
         replacement.into_boxed_str(),
         None,
       )))

@@ -1,60 +1,22 @@
 # 使用 Rsdoctor
 
-[Rsdoctor](https://rsdoctor.dev/) 是一个针对 Rspack 的构建分析器，可以直观地展示构建过程，例如编译时间、编译前后的代码变化、模块引用关系、重复模块等。如果你需要排查构建产物或构建时编译问题，可以使用 Rsdoctor。
+[Rsdoctor](https://rsdoctor.dev/) 是一款为 Rspack 生态量身打造的构建分析工具。
 
-## 💡 什么是 Rsdoctor？
+Rsdoctor 致力于成为一站式、智能化的构建分析工具，通过可视化与智能分析，使整个构建流程变得透明、可预测和可优化，从而帮助开发团队精准定位瓶颈、优化性能并提升工程质量。
 
-- Rsdoctor 是一个面向构建过程与构建产物提供诊断和分析的一站式工具。
-- Rsdoctor 是一个支持 **Rspack** 或 **webpack** 构建分析工具。
-- Rsdoctor 是一个可以展示编译耗时及编译行为细节的分析工具。
-- Rsdoctor 是一个可以支持 **Rspack builtin:swc-loader** 构建耗时及构建行为分析的工具
+当你需要调试构建产物或构建过程时，可以借助 Rsdoctor 来提升排查问题的效率。
 
-## 🔥 特性
+## 如何使用
 
-- **编译可视化**：Rsdoctor 将编译行为及耗时进行可视化展示，方便开发者查看构建问题。
+在使用 Rspack 的项目中，你可以通过以下方式开启 Rsdoctor：
 
-| <img src="https://assets.rspack.dev/others/assets/rsdoctor/rsdoctor-loader-timeline.png?raw=true"  alt="loader timeline" /> | <img src="https://assets.rspack.dev/others/assets/rsdoctor/rsdoctor-analyze-code.png" alt="loader codes" /> |
-| --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-
-- **多种分析能力**：支持构建产物、构建时分析能力：
-  - 构建产物支持资源列表及模块依赖等。
-  - 构建时分析支持 Loader、Plugin、Resolver 构建过程分析。
-  - 支持 Rspack 的 builtin:swc-loader 分析。
-  - 构建规则支持重复包检测及 ES Version Check 检查等。
-- **支持自定义规则**：除了内置构建扫描规则外，还支持用户根据 Rsdoctor 的构建数据添加自定义构建扫描规则。
-- **框架无关**：支持所有基于 **Rspack** 或 **webpack** 构建的项目。
-
-### 特性详情
-
-更详细的特性使用介绍你可以查看这篇文档 [Rsdoctor Features](https://rsdoctor.dev/zh/guide/start/features)。
-
-### 产物分析
-
-你可以利用 Rsdoctor **[分析 Rspack 的构建产物](/guide/optimization/analysis#rsdoctor-%E7%9A%84%E4%BA%A7%E7%89%A9%E5%88%86%E6%9E%90)**.
-
-### 编译分析
-
-Rsdoctor 是一个构建分析工具，可以直观地展示每个 loader 和 plugin 的编译时间。详细信息请参阅[编译分析](/guide/optimization/profile#rsdoctor-%E7%9A%84%E7%BC%96%E8%AF%91%E5%88%86%E6%9E%90)。
-
-## 快速开始
-
-在使用 Rspack 的项目中，你可以使用以下方式开启 Rsdoctor：
-
-1. 安装 `RsdoctorRspackPlugin` 插件：
+1. 安装 `@rsdoctor/rspack-plugin` 插件：
 
 import { PackageManagerTabs } from '@theme';
 
 <PackageManagerTabs command="add @rsdoctor/rspack-plugin -D" />
 
-2. 注册 `RsdoctorRspackPlugin` 插件：
-
-:::danger
-
-- 请不要在线上版本构建时使用 Rsdoctor。
-
-:::
-
-在 Rspack 配置的 [plugins](/config/plugins.html#plugins) 中初始化 RsdoctorRspackPlugin 插件，参考：
+2. 在 Rspack 的 [plugins](/config/plugins) 选项中注册 `RsdoctorRspackPlugin` 插件：
 
 ```ts title="rspack.config.mjs"
 import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
@@ -81,8 +43,22 @@ RSDOCTOR=true rspack serve
 RSDOCTOR=true rspack build
 ```
 
-运行上述命令后，会在构建完成后打开构建分析页面。完整功能请参考 [Rsdoctor 文档](https://rsdoctor.dev/)。
+由于 Windows 不支持上述用法，你也可以使用 [cross-env](https://npmjs.com/package/cross-env) 来设置环境变量，这可以确保在不同的操作系统中都能正常使用：
 
-4. **[可选]** 配置 Options
+```bash
+# dev
+cross-env RSDOCTOR=true rspack serve
 
-你可以参照这篇文档 [**options**](https://rsdoctor.dev/config/options/options) 对 RsdoctorRspackPlugin 进行参数配置。
+# build
+cross-env RSDOCTOR=true rspack build
+```
+
+在构建完成后，Rsdoctor 会打开构建分析页面。请参考 [Rsdoctor 文档](https://rsdoctor.dev/) 来了解完整功能。
+
+## 配置 Rsdoctor
+
+查看 Rsdoctor 的 [Options](https://rsdoctor.dev/zh/config/options/options) 文档来配置 RsdoctorRspackPlugin 的选项。
+
+## 更多特性
+
+查看 [Rsdoctor 功能导航](https://rsdoctor.dev/zh/guide/start/features) 来了解 Rsdoctor 的所有特性。

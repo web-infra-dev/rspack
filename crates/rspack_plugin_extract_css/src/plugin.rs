@@ -1,21 +1,26 @@
-use std::sync::LazyLock;
-use std::{borrow::Cow, hash::Hash, sync::Arc};
+use std::{
+  borrow::Cow,
+  hash::Hash,
+  sync::{Arc, LazyLock},
+};
 
 use cow_utils::CowUtils;
 use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet, UkeySet};
-use rspack_core::rspack_sources::{BoxSource, CachedSource, SourceExt};
-use rspack_core::{get_undo_path, AssetInfo, ChunkGraph};
 use rspack_core::{
+  get_undo_path,
+  make::{MakeArtifact, MakeParam},
   rspack_sources::{
-    ConcatSource, RawStringSource, SourceMap, SourceMapSource, WithoutOriginalOptions,
+    BoxSource, CachedSource, ConcatSource, RawStringSource, SourceExt, SourceMap, SourceMapSource,
+    WithoutOriginalOptions,
   },
-  ApplyContext, Chunk, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation, CompilationContentHash,
-  CompilationParams, CompilationRenderManifest, CompilationRuntimeRequirementInTree,
-  CompilerCompilation, CompilerOptions, DependencyType, Filename, Module, ModuleGraph,
-  ModuleIdentifier, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
-  PathData, Plugin, PluginContext, RenderManifestEntry, RuntimeGlobals, SourceType,
+  ApplyContext, AssetInfo, Chunk, ChunkGraph, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
+  CompilationContentHash, CompilationParams, CompilationRenderManifest,
+  CompilationRuntimeRequirementInTree, CompilationUpdateModuleGraph, CompilerCompilation,
+  CompilerOptions, DependencyType, Filename, Module, ModuleGraph, ModuleIdentifier, ModuleType,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData, Plugin, PluginContext,
+  RenderManifestEntry, RuntimeGlobals, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -497,7 +502,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilationRuntimeRequirementInTree for PluginCssExtract)]
-fn runtime_requirement_in_tree(
+async fn runtime_requirement_in_tree(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
@@ -634,26 +639,28 @@ async fn render_manifest(
   };
 
   let mut asset_info = AssetInfo::default();
-  let filename = compilation.get_path_with_info(
-    filename_template,
-    PathData::default()
-      .chunk_id_optional(
-        chunk
-          .id(&compilation.chunk_ids_artifact)
-          .map(|id| id.as_str()),
-      )
-      .chunk_hash_optional(chunk.rendered_hash(
-        &compilation.chunk_hashes_artifact,
-        compilation.options.output.hash_digest_length,
-      ))
-      .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
-      .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-        &compilation.chunk_hashes_artifact,
-        &SOURCE_TYPE[0],
-        compilation.options.output.hash_digest_length,
-      )),
-    &mut asset_info,
-  )?;
+  let filename = compilation
+    .get_path_with_info(
+      filename_template,
+      PathData::default()
+        .chunk_id_optional(
+          chunk
+            .id(&compilation.chunk_ids_artifact)
+            .map(|id| id.as_str()),
+        )
+        .chunk_hash_optional(chunk.rendered_hash(
+          &compilation.chunk_hashes_artifact,
+          compilation.options.output.hash_digest_length,
+        ))
+        .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+        .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+          &compilation.chunk_hashes_artifact,
+          &SOURCE_TYPE[0],
+          compilation.options.output.hash_digest_length,
+        )),
+      &mut asset_info,
+    )
+    .await?;
 
   let (source, more_diagnostics) = compilation
     .old_cache
@@ -679,7 +686,7 @@ async fn render_manifest(
 }
 
 #[plugin_hook(NormalModuleFactoryParser for PluginCssExtract)]
-fn nmf_parser(
+async fn nmf_parser(
   &self,
   module_type: &ModuleType,
   parser: &mut dyn ParserAndGenerator,
@@ -692,6 +699,36 @@ fn nmf_parser(
       Box::<PluginCssExtractParserPlugin>::default() as BoxJavascriptParserPlugin
     );
   }
+  Ok(())
+}
+
+#[plugin_hook(CompilationUpdateModuleGraph for PluginCssExtract)]
+async fn update_module_graph(
+  &self,
+  params: &mut Vec<MakeParam>,
+  make_artifact: &MakeArtifact,
+) -> rspack_error::Result<()> {
+  let mg = make_artifact.get_module_graph();
+  let mut css_modules = IdentifierSet::default();
+  for param in params.iter() {
+    if let MakeParam::ForceBuildModules(module_identifiers) = &param {
+      css_modules.extend(
+        module_identifiers
+          .iter()
+          .flat_map(|m| mg.get_outgoing_connections(m))
+          .filter_map(|c| {
+            let module_identifier = c.module_identifier();
+            let module = mg.module_by_identifier(module_identifier)?;
+            if *module.module_type() == *MODULE_TYPE {
+              Some(*module_identifier)
+            } else {
+              None
+            }
+          }),
+      );
+    }
+  }
+  params.push(MakeParam::ForceBuildModules(css_modules));
   Ok(())
 }
 
@@ -724,6 +761,12 @@ impl Plugin for PluginCssExtract {
       .normal_module_factory_hooks
       .parser
       .tap(nmf_parser::new(self));
+
+    ctx
+      .context
+      .compilation_hooks
+      .update_module_graph
+      .tap(update_module_graph::new(self));
 
     Ok(())
   }

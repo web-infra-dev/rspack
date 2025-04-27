@@ -5,10 +5,7 @@ use std::{
 };
 
 use cow_utils::CowUtils;
-use rspack_core::{
-  Compilation, CompilationId, CompilationProcessAssets, Filename, FilenameTemplate, NoFilenameFn,
-  Plugin,
-};
+use rspack_core::{Compilation, CompilationId, CompilationProcessAssets, Filename, Plugin};
 use rspack_error::{miette, Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::FxDashMap;
@@ -59,12 +56,12 @@ impl HtmlRspackPlugin {
 
 async fn generate_html(
   filename: &str,
-  html_file_name: &Filename<NoFilenameFn>,
+  html_file_name: &Filename,
   config: &HtmlRspackPluginOptions,
   compilation: &mut Compilation,
   hooks: &HtmlPluginHooks,
 ) -> Result<(String, String, Vec<PathBuf>), miette::Error> {
-  let public_path = config.get_public_path(compilation, filename);
+  let public_path = config.get_public_path(compilation, filename).await;
 
   let mut template = HtmlTemplate::new(config, compilation)?;
 
@@ -80,7 +77,8 @@ async fn generate_html(
     &public_path,
     &template_file_name,
     html_file_name,
-  );
+  )
+  .await?;
 
   let before_generation_data = hooks
     .before_asset_tag_generation
@@ -209,7 +207,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
     };
 
-    let output_file_name = FilenameTemplate::from(filename.to_string());
+    let output_file_name = Filename::from(filename.to_string());
 
     let (template_file_name, html) = match generate_html(
       filename.as_ref(),
@@ -258,7 +256,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       &before_emit_data.html,
       &template_file_name,
       compilation,
-    );
+    )
+    .await?;
 
     compilation.emit_asset(html_asset.0.clone(), html_asset.1);
 
@@ -290,6 +289,10 @@ impl Plugin for HtmlRspackPlugin {
       .process_assets
       .tap(process_assets::new(self));
     Ok(())
+  }
+
+  fn clear_cache(&self, id: CompilationId) {
+    COMPILATION_HOOKS_MAP.remove(&id);
   }
 }
 

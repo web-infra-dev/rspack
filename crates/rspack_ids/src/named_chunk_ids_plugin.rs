@@ -104,6 +104,7 @@ fn assign_named_chunk_ids(
         compare_chunks_natural(
           chunk_graph,
           &module_graph,
+          &compilation.chunk_group_by_ukey,
           &compilation.module_ids_artifact,
           a,
           b,
@@ -135,6 +136,7 @@ fn assign_named_chunk_ids(
     compare_chunks_natural(
       chunk_graph,
       &module_graph,
+      &compilation.chunk_group_by_ukey,
       &compilation.module_ids_artifact,
       a,
       b,
@@ -157,7 +159,7 @@ impl NamedChunkIdsPlugin {
 }
 
 #[plugin_hook(CompilationChunkIds for NamedChunkIdsPlugin)]
-fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
+async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
   let more_chunks = if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::CHUNK_IDS)
@@ -193,7 +195,7 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
 
   let mut mutations = compilation
     .incremental
-    .can_write_mutations()
+    .mutations_writeable()
     .then(Mutations::default);
 
   // Use chunk name as default chunk id
@@ -249,7 +251,7 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
 
   if compilation
     .incremental
-    .can_read_mutations(IncrementalPasses::CHUNK_IDS)
+    .mutations_readable(IncrementalPasses::CHUNK_IDS)
     && let Some(mutations) = &mutations
   {
     let logger = compilation.get_logger("rspack.incremental.chunkIds");

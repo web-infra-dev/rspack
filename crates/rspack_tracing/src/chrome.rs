@@ -1,4 +1,4 @@
-use tracing_chrome::{ChromeLayerBuilder, FlushGuard};
+use rspack_tracing_chrome::{ChromeLayerBuilder, FlushGuard, TraceStyle};
 use tracing_subscriber::layer::{Filter, Layer};
 
 use crate::{
@@ -15,7 +15,9 @@ impl Tracer for ChromeTracer {
   fn setup(&mut self, output: &str) -> Option<Layered> {
     let trace_writer = TraceWriter::from(output);
     let (chrome_layer, guard) = ChromeLayerBuilder::new()
+      .trace_style(TraceStyle::Async)
       .include_args(true)
+      .category_fn(Box::new(|_| "rspack".to_string()))
       .writer(trace_writer.writer())
       .build();
     self.guard = Some(guard);
@@ -39,6 +41,7 @@ impl<S> Filter<S> for FilterEvent {
     meta: &tracing::Metadata<'_>,
     _cx: &tracing_subscriber::layer::Context<'_, S>,
   ) -> bool {
-    !meta.is_event()
+    // filter out swc related tracing because it's too much noisy for info level now
+    !meta.is_event() && !meta.target().starts_with("swc")
   }
 }

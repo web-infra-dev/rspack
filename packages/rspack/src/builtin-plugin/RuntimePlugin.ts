@@ -2,7 +2,7 @@ import * as binding from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
 
 import { Chunk } from "../Chunk";
-import { Compilation } from "../Compilation";
+import { type Compilation, checkCompilation } from "../Compilation";
 import type { CreatePartialRegisters } from "../taps/types";
 import { create } from "./base";
 
@@ -32,11 +32,8 @@ const compilationHooksMap: WeakMap<Compilation, RuntimePluginHooks> =
 RuntimePlugin.getHooks = RuntimePlugin.getCompilationHooks = (
 	compilation: Compilation
 ) => {
-	if (!(compilation instanceof Compilation)) {
-		throw new TypeError(
-			"The 'compilation' argument must be an instance of Compilation"
-		);
-	}
+	checkCompilation(compilation);
+
 	let hooks = compilationHooksMap.get(compilation);
 	if (hooks === undefined) {
 		hooks = {

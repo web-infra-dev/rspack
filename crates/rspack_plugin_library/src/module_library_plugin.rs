@@ -1,10 +1,11 @@
 use std::hash::Hash;
 
-use rspack_core::rspack_sources::{ConcatSource, RawStringSource, SourceExt};
 use rspack_core::{
-  property_access, to_identifier, ApplyContext, ChunkUkey, Compilation, CompilationParams,
-  CompilerCompilation, CompilerOptions, ExportInfoProvided, LibraryOptions, ModuleGraph,
-  ModuleIdentifier, Plugin, PluginContext,
+  property_access,
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
+  to_identifier, ApplyContext, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
+  CompilerOptions, ExportInfoProvided, ExportsType, LibraryOptions, ModuleGraph, ModuleIdentifier,
+  Plugin, PluginContext,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
@@ -54,7 +55,7 @@ async fn compilation(
 }
 
 #[plugin_hook(JavascriptModulesRenderStartup for ModuleLibraryPlugin)]
-fn render_startup(
+async fn render_startup(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
@@ -75,11 +76,15 @@ fn render_startup(
     ));
   }
   let exports_info = module_graph.get_exports_info(module);
+  let boxed_module = module_graph
+    .module_by_identifier(module)
+    .expect("should have build meta");
+  let exports_type = boxed_module.get_exports_type(&module_graph, boxed_module.build_info().strict);
   for export_info in exports_info.ordered_exports(&module_graph) {
-    if !(matches!(
+    if matches!(
       export_info.provided(&module_graph),
-      Some(ExportInfoProvided::True)
-    )) {
+      Some(ExportInfoProvided::False)
+    ) {
       continue;
     };
 
@@ -89,10 +94,22 @@ fn render_startup(
       .get_used_name(&module_graph, Some(info_name), Some(chunk.runtime()))
       .expect("name can't be empty");
     let var_name = format!("__webpack_exports__{}", to_identifier(info_name));
-    source.add(RawStringSource::from(format!(
-      "var {var_name} = __webpack_exports__{};\n",
-      property_access(vec![used_name], 0)
-    )));
+
+    if info_name == "default"
+      && matches!(
+        exports_type,
+        ExportsType::DefaultOnly | ExportsType::DefaultWithNamed | ExportsType::Dynamic
+      )
+    {
+      source.add(RawStringSource::from(format!(
+        "var {var_name} = __webpack_exports__;\n",
+      )));
+    } else {
+      source.add(RawStringSource::from(format!(
+        "var {var_name} = __webpack_exports__{};\n",
+        property_access(vec![used_name], 0)
+      )));
+    }
     exports.push(format!("{var_name} as {}", info_name));
   }
   if !exports.is_empty() {

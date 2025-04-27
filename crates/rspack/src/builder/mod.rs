@@ -33,29 +33,27 @@ macro_rules! expect {
   };
 }
 
-use std::borrow::Cow;
-use std::future::ready;
-use std::sync::Arc;
+use std::{borrow::Cow, future::ready, sync::Arc};
 
 use builder_context::BuiltinPluginOptions;
 use devtool::DevtoolFlags;
 use externals::ExternalsPresets;
 use indexmap::IndexMap;
-use rspack_core::{incremental::IncrementalPasses, ModuleType};
 use rspack_core::{
-  AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions, BoxPlugin, ByDependency,
-  CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, Compiler, CompilerOptions, Context,
-  CrossOriginLoading, CssAutoGeneratorOptions, CssAutoParserOptions, CssExportsConvention,
-  CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions, CssParserOptions,
-  DynamicImportMode, EntryDescription, EntryOptions, EntryRuntime, Environment,
-  ExperimentCacheOptions, Experiments, ExternalItem, ExternalType, Filename, FilenameTemplate,
-  GeneratorOptions, GeneratorOptionsMap, JavascriptParserOptions, JavascriptParserOrder,
+  incremental::IncrementalPasses, AssetParserDataUrl, AssetParserDataUrlOptions,
+  AssetParserOptions, BoxPlugin, ByDependency, CacheOptions, ChunkLoading, ChunkLoadingType,
+  CleanOptions, Compiler, CompilerOptions, Context, CrossOriginLoading, CssAutoGeneratorOptions,
+  CssAutoParserOptions, CssExportsConvention, CssGeneratorOptions, CssModuleGeneratorOptions,
+  CssModuleParserOptions, CssParserOptions, DynamicImportMode, EntryDescription, EntryOptions,
+  EntryRuntime, Environment, ExperimentCacheOptions, Experiments, ExternalItem, ExternalType,
+  Filename, GeneratorOptions, GeneratorOptionsMap, JavascriptParserOptions, JavascriptParserOrder,
   JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName, LibraryNonUmdObject,
   LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions,
-  ModuleRule, ModuleRuleEffect, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption,
-  NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo,
-  PublicPath, Resolve, RspackFuture, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption,
-  StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
+  ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
+  NodeGlobalOption, NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions,
+  ParserOptionsMap, PathInfo, PublicPath, Resolve, RspackFuture, RuleSetCondition,
+  RuleSetLogicalConditions, SideEffectOption, StatsOptions, TrustedTypes, UsedExportsOption,
+  WasmLoading, WasmLoadingType,
 };
 use rspack_error::{
   miette::{self, Diagnostic},
@@ -388,8 +386,7 @@ impl CompilerBuilder {
   ///
   /// ```rust
   /// use rspack::builder::{Builder as _, ExperimentsBuilder};
-  /// use rspack_core::incremental::IncrementalPasses;
-  /// use rspack_core::{Compiler, Experiments};
+  /// use rspack_core::{incremental::IncrementalPasses, Compiler, Experiments};
   ///
   /// // Using builder without calling `build()`
   /// let compiler = Compiler::builder()
@@ -860,8 +857,7 @@ impl CompilerOptionsBuilder {
   ///
   /// ```rust
   /// use rspack::builder::{Builder as _, ExperimentsBuilder};
-  /// use rspack_core::incremental::IncrementalPasses;
-  /// use rspack_core::{Compiler, Experiments};
+  /// use rspack_core::{incremental::IncrementalPasses, Compiler, Experiments};
   ///
   /// // Using builder without calling `build()`
   /// let compiler = Compiler::builder()
@@ -1195,10 +1191,10 @@ impl CompilerOptionsBuilder {
         expect!(desc.import).into_iter().for_each(|import| {
           builder_context
             .plugins
-            .push(BuiltinPluginOptions::EntryPlugin((
+            .push(BuiltinPluginOptions::EntryPlugin(Box::new((
               import,
               entry_options.clone(),
-            )));
+            ))));
         });
       });
 
@@ -1345,6 +1341,7 @@ fn get_resolve_defaults(
   let mut by_dependency: Vec<(Cow<'static, str>, Resolve)> = vec![
     ("wasm".into(), esm_deps()),
     ("esm".into(), esm_deps()),
+    ("loaderImport".into(), esm_deps()),
     (
       "url".into(),
       Resolve {
@@ -1361,6 +1358,7 @@ fn get_resolve_defaults(
     ),
     ("commonjs".into(), cjs_deps()),
     ("amd".into(), cjs_deps()),
+    ("loader".into(), cjs_deps()),
     ("unknown".into(), cjs_deps()),
   ];
 
@@ -2117,7 +2115,7 @@ pub struct OutputOptionsBuilder {
   /// Set the wasm loading.
   wasm_loading: Option<WasmLoading>,
   /// Set the wasm module filename.
-  webassembly_module_filename: Option<FilenameTemplate>,
+  webassembly_module_filename: Option<Filename>,
   /// Set the unique name.
   unique_name: Option<String>,
   /// Set the chunk loading.
@@ -2141,9 +2139,9 @@ pub struct OutputOptionsBuilder {
   /// Set the css chunk filename.
   css_chunk_filename: Option<Filename>,
   /// Set the hot update main filename.
-  hot_update_main_filename: Option<FilenameTemplate>,
+  hot_update_main_filename: Option<Filename>,
   /// Set the hot update chunk filename.
-  hot_update_chunk_filename: Option<FilenameTemplate>,
+  hot_update_chunk_filename: Option<Filename>,
   /// Set the hot update global.
   hot_update_global: Option<String>,
   /// Set the library.
@@ -2169,7 +2167,7 @@ pub struct OutputOptionsBuilder {
   /// Set the trusted types.
   trusted_types: Option<TrustedTypes>,
   /// Set the source map filename.
-  source_map_filename: Option<FilenameTemplate>,
+  source_map_filename: Option<Filename>,
   /// Set the hash function.
   hash_function: Option<HashFunction>,
   /// Set the hash digest.
@@ -2191,9 +2189,9 @@ pub struct OutputOptionsBuilder {
   /// Set the devtool namespace.
   devtool_namespace: Option<String>,
   /// Set the devtool module filename template.
-  devtool_module_filename_template: Option<FilenameTemplate>,
+  devtool_module_filename_template: Option<Filename>,
   /// Set the devtool fallback module filename template.
-  devtool_fallback_module_filename_template: Option<FilenameTemplate>,
+  devtool_fallback_module_filename_template: Option<Filename>,
   /// Set the environment.
   environment: Option<Environment>,
   /// Set the compare before emit.
@@ -2365,7 +2363,7 @@ impl OutputOptionsBuilder {
   /// This option determines the name of each output wasm bundle.
   ///
   /// Default set to `"[hash].module.wasm"`.
-  pub fn webassembly_module_filename(&mut self, filename: FilenameTemplate) -> &mut Self {
+  pub fn webassembly_module_filename(&mut self, filename: Filename) -> &mut Self {
     self.webassembly_module_filename = Some(filename);
     self
   }
@@ -2445,7 +2443,7 @@ impl OutputOptionsBuilder {
   /// Customize the main hot update filename. [fullhash] and [runtime] are available as placeholder.
   ///
   /// Default set to `"[runtime].[fullhash].hot-update.json"`.
-  pub fn hot_update_main_filename(&mut self, filename: FilenameTemplate) -> &mut Self {
+  pub fn hot_update_main_filename(&mut self, filename: Filename) -> &mut Self {
     self.hot_update_main_filename = Some(filename);
     self
   }
@@ -2453,7 +2451,7 @@ impl OutputOptionsBuilder {
   /// Customize the filenames of hot update chunks.
   ///
   /// Default set to `"[id].[fullhash].hot-update.js"`.
-  pub fn hot_update_chunk_filename(&mut self, filename: FilenameTemplate) -> &mut Self {
+  pub fn hot_update_chunk_filename(&mut self, filename: Filename) -> &mut Self {
     self.hot_update_chunk_filename = Some(filename);
     self
   }
@@ -2533,7 +2531,7 @@ impl OutputOptionsBuilder {
   }
 
   /// Set the name of the source map file.
-  pub fn source_map_filename(&mut self, filename: FilenameTemplate) -> &mut Self {
+  pub fn source_map_filename(&mut self, filename: Filename) -> &mut Self {
     self.source_map_filename = Some(filename);
     self
   }
@@ -2599,16 +2597,13 @@ impl OutputOptionsBuilder {
   }
 
   /// Set the template of the devtool module filename.
-  pub fn devtool_module_filename_template(&mut self, filename: FilenameTemplate) -> &mut Self {
+  pub fn devtool_module_filename_template(&mut self, filename: Filename) -> &mut Self {
     self.devtool_module_filename_template = Some(filename);
     self
   }
 
   /// Set the template of the devtool fallback module filename.
-  pub fn devtool_fallback_module_filename_template(
-    &mut self,
-    filename: FilenameTemplate,
-  ) -> &mut Self {
+  pub fn devtool_fallback_module_filename_template(&mut self, filename: Filename) -> &mut Self {
     self.devtool_fallback_module_filename_template = Some(filename);
     self
   }

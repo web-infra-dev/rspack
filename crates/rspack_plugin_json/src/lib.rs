@@ -34,11 +34,11 @@ mod utils;
 #[derive(Debug)]
 struct JsonParserAndGenerator {
   pub exports_depth: u32,
-  pub parse: ParseOption,
   pub json_parse: bool,
 }
 
 #[cacheable_dyn]
+#[async_trait::async_trait]
 impl ParserAndGenerator for JsonParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
     &[SourceType::JavaScript]
@@ -48,9 +48,9 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     module.source().map_or(0, |source| source.size()) as f64
   }
 
-  fn parse(
+  async fn parse<'a>(
     &mut self,
-    parse_context: rspack_core::ParseContext,
+    parse_context: rspack_core::ParseContext<'a>,
   ) -> Result<TWithDiagnosticArray<rspack_core::ParseResult>> {
     let rspack_core::ParseContext {
       source: box_source,
@@ -66,15 +66,17 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     let strip_bom_source = strip_bom_source.unwrap_or(&source);
 
     // If there is a custom parse, execute it to obtain the returned string.
-    let parse_result_str = module_parser_options
-      .and_then(|p| p.get_json())
-      .and_then(|p| match &p.parse {
-        ParseOption::Func(p) => {
-          let parse_result = p(strip_bom_source.to_string());
+    let parse_result_str = if let Some(p) = module_parser_options.and_then(|p| p.get_json()) {
+      match &p.parse {
+        ParseOption::Func(f) => {
+          let parse_result = f(strip_bom_source.to_string()).await;
           parse_result.ok()
         }
         _ => None,
-      });
+      }
+    } else {
+      None
+    };
 
     let parse_result = json::parse(parse_result_str.as_deref().unwrap_or(strip_bom_source))
       .map_err(|e| {
@@ -155,7 +157,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
 
   // Safety: `ast_and_source` is available in code generation.
   #[allow(clippy::unwrap_in_result)]
-  fn generate(
+  async fn generate(
     &self,
     _source: &BoxSource,
     module: &dyn rspack_core::Module,
@@ -256,7 +258,6 @@ impl Plugin for JsonPlugin {
 
         Box::new(JsonParserAndGenerator {
           exports_depth: p.exports_depth.expect("should have exports_depth"),
-          parse: p.parse.clone(),
           json_parse: g.json_parse.expect("should have json_parse"),
         })
       }),

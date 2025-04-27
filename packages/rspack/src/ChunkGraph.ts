@@ -1,9 +1,8 @@
-import type { JsChunkGraph } from "@rspack/binding";
+import type { AsyncDependenciesBlock, JsChunkGraph } from "@rspack/binding";
 import type { RuntimeSpec } from "./util/runtime";
 
 import { Chunk } from "./Chunk";
 import { ChunkGroup } from "./ChunkGroup";
-import { DependenciesBlock } from "./DependenciesBlock";
 import type { Module } from "./Module";
 import { toJsRuntimeSpec } from "./util/runtime";
 
@@ -24,6 +23,15 @@ export class ChunkGraph {
 
 	getChunkModulesIterable(chunk: Chunk): Iterable<Module> {
 		return this.#inner.getChunkModules(Chunk.__to_binding(chunk));
+	}
+
+	getOrderedChunkModulesIterable(
+		chunk: Chunk,
+		compareFn: (a: Module, b: Module) => number
+	): Iterable<Module> {
+		const res = this.#inner.getChunkModules(Chunk.__to_binding(chunk));
+		res.sort(compareFn);
+		return res;
 	}
 
 	getChunkEntryModulesIterable(chunk: Chunk): Iterable<Module> {
@@ -62,7 +70,7 @@ export class ChunkGraph {
 			.map(binding => Chunk.__from_binding(binding));
 	}
 
-	getModuleId(module: Module): string | null {
+	getModuleId(module: Module): string | number | null {
 		return this.#inner.getModuleId(module);
 	}
 
@@ -70,10 +78,8 @@ export class ChunkGraph {
 		return this.#inner.getModuleHash(module, toJsRuntimeSpec(runtime));
 	}
 
-	getBlockChunkGroup(depBlock: DependenciesBlock): ChunkGroup | null {
-		const binding = this.#inner.getBlockChunkGroup(
-			DependenciesBlock.__to_binding(depBlock)
-		);
+	getBlockChunkGroup(depBlock: AsyncDependenciesBlock): ChunkGroup | null {
+		const binding = this.#inner.getBlockChunkGroup(depBlock);
 		return binding ? ChunkGroup.__from_binding(binding) : null;
 	}
 }

@@ -85,6 +85,8 @@ const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule
   },
 })
 
+module.exports.AsyncDependenciesBlock = __napiModule.exports.AsyncDependenciesBlock
+module.exports.Chunks = __napiModule.exports.Chunks
 module.exports.ConcatenatedModule = __napiModule.exports.ConcatenatedModule
 module.exports.ContextModule = __napiModule.exports.ContextModule
 module.exports.Dependency = __napiModule.exports.Dependency
@@ -102,15 +104,14 @@ module.exports.JsCompiler = __napiModule.exports.JsCompiler
 module.exports.JsContextModuleFactoryAfterResolveData = __napiModule.exports.JsContextModuleFactoryAfterResolveData
 module.exports.JsContextModuleFactoryBeforeResolveData = __napiModule.exports.JsContextModuleFactoryBeforeResolveData
 module.exports.JsDependencies = __napiModule.exports.JsDependencies
-module.exports.JsDependenciesBlock = __napiModule.exports.JsDependenciesBlock
 module.exports.JsEntries = __napiModule.exports.JsEntries
 module.exports.JsExportsInfo = __napiModule.exports.JsExportsInfo
 module.exports.JsModuleGraph = __napiModule.exports.JsModuleGraph
-module.exports.JsModuleGraphConnection = __napiModule.exports.JsModuleGraphConnection
 module.exports.JsResolver = __napiModule.exports.JsResolver
 module.exports.JsResolverFactory = __napiModule.exports.JsResolverFactory
 module.exports.JsStats = __napiModule.exports.JsStats
 module.exports.Module = __napiModule.exports.Module
+module.exports.ModuleGraphConnection = __napiModule.exports.ModuleGraphConnection
 module.exports.NormalModule = __napiModule.exports.NormalModule
 module.exports.RawExternalItemFnCtx = __napiModule.exports.RawExternalItemFnCtx
 module.exports.BuiltinPluginName = __napiModule.exports.BuiltinPluginName
@@ -121,3 +122,5 @@ module.exports.JsRspackSeverity = __napiModule.exports.JsRspackSeverity
 module.exports.RawRuleSetConditionType = __napiModule.exports.RawRuleSetConditionType
 module.exports.registerGlobalTrace = __napiModule.exports.registerGlobalTrace
 module.exports.RegisterJsTapKind = __napiModule.exports.RegisterJsTapKind
+module.exports.shutdownAsyncRuntime = __napiModule.exports.shutdownAsyncRuntime
+module.exports.startAsyncRuntime = __napiModule.exports.startAsyncRuntime

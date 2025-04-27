@@ -127,7 +127,8 @@ export const applyRspackOptionsDefaults = (
 	);
 
 	applyExternalsPresetsDefaults(options.externalsPresets, {
-		targetProperties
+		targetProperties,
+		buildHttp: Boolean(options.experiments.buildHttp)
 	});
 
 	F(options, "externalsType", () => {
@@ -216,8 +217,14 @@ const applyExperimentsDefaults = (
 	D(experiments, "layers", false);
 	D(experiments, "topLevelAwait", true);
 
+	D(experiments, "buildHttp", undefined);
+	if (experiments.buildHttp && typeof experiments.buildHttp === "object") {
+		D(experiments.buildHttp, "upgrade", false);
+		// D(experiments.buildHttp, "frozen", false);
+	}
+
 	// IGNORE(experiments.incremental): Rspack specific configuration for incremental
-	D(experiments, "incremental", !production ? {} : false);
+	D(experiments, "incremental", development ? {} : false);
 	if (typeof experiments.incremental === "object") {
 		D(experiments.incremental, "make", true);
 		D(experiments.incremental, "inferAsyncModules", false);
@@ -240,7 +247,10 @@ const applyExperimentsDefaults = (
 	// rspackFuture.bundlerInfo default value is applied after applyDefaults
 
 	// IGNORE(experiments.parallelCodeSplitting): Rspack specific configuration for new code splitting algorithm
-	D(experiments, "parallelCodeSplitting", false);
+	D(experiments, "parallelCodeSplitting", true);
+
+	// IGNORE(experiments.parallelLoader): Rspack specific configuration for parallel loader execution
+	D(experiments, "parallelLoader", false);
 };
 
 const applybundlerInfoDefaults = (
@@ -250,11 +260,7 @@ const applybundlerInfoDefaults = (
 	if (typeof rspackFuture === "object") {
 		D(rspackFuture, "bundlerInfo", {});
 		if (typeof rspackFuture.bundlerInfo === "object") {
-			D(
-				rspackFuture.bundlerInfo,
-				"version",
-				require("../../package.json").version
-			);
+			D(rspackFuture.bundlerInfo, "version", RSPACK_VERSION);
 			D(rspackFuture.bundlerInfo, "bundler", "rspack");
 			// don't inject for library mode
 			D(rspackFuture.bundlerInfo, "force", !library);
@@ -844,9 +850,9 @@ const applyOutputDefaults = (
 
 const applyExternalsPresetsDefaults = (
 	externalsPresets: ExternalsPresets,
-	{ targetProperties }: { targetProperties: any }
+	{ targetProperties, buildHttp }: { targetProperties: any; buildHttp: boolean }
 ) => {
-	D(externalsPresets, "web", targetProperties?.web);
+	D(externalsPresets, "web", !buildHttp && targetProperties?.web);
 	D(externalsPresets, "node", targetProperties?.node);
 	D(externalsPresets, "electron", targetProperties?.electron);
 	D(
@@ -933,7 +939,8 @@ const applyOptimizationDefaults = (
 		css
 	}: { production: boolean; development: boolean; css: boolean }
 ) => {
-	D(optimization, "removeAvailableModules", false);
+	// IGNORE(optimization.removeAvailableModules): removeAvailableModules is no use for webpack
+	D(optimization, "removeAvailableModules", true);
 	D(optimization, "removeEmptyChunks", true);
 	D(optimization, "mergeDuplicateChunks", true);
 	F(optimization, "moduleIds", (): "natural" | "named" | "deterministic" => {
@@ -1083,6 +1090,7 @@ const getResolveDefaults = ({
 		byDependency: {
 			wasm: esmDeps(),
 			esm: esmDeps(),
+			loaderImport: esmDeps(),
 			url: {
 				preferRelative: true
 			},
@@ -1093,7 +1101,7 @@ const getResolveDefaults = ({
 			commonjs: cjsDeps(),
 			amd: cjsDeps(),
 			// for backward-compat: loadModule
-			// loader: cjsDeps(),
+			loader: cjsDeps(),
 			// for backward-compat: Custom Dependency and getResolve without dependencyType
 			unknown: cjsDeps()
 		}

@@ -1,5 +1,4 @@
-use std::sync::Arc;
-use std::{borrow::Cow, hash::Hash};
+use std::{borrow::Cow, hash::Hash, sync::Arc};
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
@@ -11,12 +10,12 @@ use rspack_cacheable::{
 };
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_macros::impl_source_map_config;
 use rspack_paths::{ArcPath, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt};
-use rspack_util::itoa;
-use rspack_util::{fx_hash::FxIndexMap, json_stringify, source_map::SourceMapKind};
+use rspack_util::{fx_hash::FxIndexMap, itoa, json_stringify, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::atoms::Atom;
 
@@ -985,7 +984,7 @@ impl Module for ContextModule {
   }
 
   // #[tracing::instrument("ContextModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
-  fn code_generation(
+  async fn code_generation(
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
@@ -1043,14 +1042,14 @@ impl Module for ContextModule {
     Ok(code_generation_result)
   }
 
-  fn update_hash(
+  async fn get_runtime_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
-  ) -> Result<()> {
-    module_update_hash(self, hasher, compilation, runtime);
-    Ok(())
+  ) -> Result<RspackHashDigest> {
+    let mut hasher = RspackHash::from(&compilation.options.output);
+    module_update_hash(self, &mut hasher, compilation, runtime);
+    Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 }
 

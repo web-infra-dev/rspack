@@ -1,24 +1,21 @@
 #![allow(clippy::comparison_chain)]
 
-use std::borrow::Cow;
-use std::hash::Hash;
-use std::sync::Arc;
+use std::{borrow::Cow, hash::Hash, sync::Arc};
 
 use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_collections::DatabaseItem;
-use rspack_core::rspack_sources::{BoxSource, CachedSource, RawSource, ReplaceSource};
 use rspack_core::{
   get_css_chunk_filename_template,
-  rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
-  Chunk, ChunkKind, Module, ModuleType, ParserAndGenerator, PathData, Plugin, RenderManifestEntry,
-  SourceType,
-};
-use rspack_core::{
-  AssetInfo, ChunkGraph, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
+  rspack_sources::{
+    BoxSource, CachedSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, Source,
+    SourceExt,
+  },
+  AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
   CompilationContentHash, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, DependencyType,
-  LibIdentOptions, ModuleGraph, PublicPath, RuntimeGlobals, SelfModuleFactory,
+  LibIdentOptions, Module, ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin,
+  PublicPath, RenderManifestEntry, RuntimeGlobals, SelfModuleFactory, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -26,11 +23,17 @@ use rspack_hook::plugin_hook;
 use rspack_plugin_runtime::is_enabled_for_chunk;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::dependency::{CssLayer, CssMedia, CssSupports};
-use crate::parser_and_generator::{CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator};
-use crate::runtime::CssLoadingRuntimeModule;
-use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER;
-use crate::{plugin::CssPluginInner, CssPlugin};
+use crate::{
+  dependency::{
+    CssImportDependencyTemplate, CssLayer, CssLocalIdentDependencyTemplate, CssMedia,
+    CssSelfReferenceLocalIdentDependencyTemplate, CssSupports, CssUrlDependencyTemplate,
+  },
+  parser_and_generator::{CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator},
+  plugin::CssPluginInner,
+  runtime::CssLoadingRuntimeModule,
+  utils::AUTO_PUBLIC_PATH_PLACEHOLDER,
+  CssPlugin,
+};
 
 struct CssModuleDebugInfo<'a> {
   pub module: &'a dyn Module,
@@ -254,11 +257,27 @@ async fn compilation(
     DependencyType::CssSelfReferenceLocalIdent,
     Arc::new(SelfModuleFactory {}),
   );
+  compilation.set_dependency_template(
+    CssImportDependencyTemplate::template_type(),
+    Arc::new(CssImportDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    CssLocalIdentDependencyTemplate::template_type(),
+    Arc::new(CssLocalIdentDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    CssSelfReferenceLocalIdentDependencyTemplate::template_type(),
+    Arc::new(CssSelfReferenceLocalIdentDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    CssUrlDependencyTemplate::template_type(),
+    Arc::new(CssUrlDependencyTemplate::default()),
+  );
   Ok(())
 }
 
 #[plugin_hook(CompilationRuntimeRequirementInTree for CssPlugin)]
-fn runtime_requirements_in_tree(
+async fn runtime_requirements_in_tree(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
@@ -368,27 +387,29 @@ async fn render_manifest(
   let mut asset_info = AssetInfo::default();
   let unused_idents = Self::get_chunk_unused_local_idents(compilation, chunk, &css_modules);
   asset_info.set_css_unused_idents(unused_idents);
-  let output_path = compilation.get_path_with_info(
-    filename_template,
-    PathData::default()
-      .chunk_id_optional(
-        chunk
-          .id(&compilation.chunk_ids_artifact)
-          .map(|id| id.as_str()),
-      )
-      .chunk_hash_optional(chunk.rendered_hash(
-        &compilation.chunk_hashes_artifact,
-        compilation.options.output.hash_digest_length,
-      ))
-      .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
-      .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-        &compilation.chunk_hashes_artifact,
-        &SourceType::Css,
-        compilation.options.output.hash_digest_length,
-      ))
-      .runtime(chunk.runtime().as_str()),
-    &mut asset_info,
-  )?;
+  let output_path = compilation
+    .get_path_with_info(
+      filename_template,
+      PathData::default()
+        .chunk_id_optional(
+          chunk
+            .id(&compilation.chunk_ids_artifact)
+            .map(|id| id.as_str()),
+        )
+        .chunk_hash_optional(chunk.rendered_hash(
+          &compilation.chunk_hashes_artifact,
+          compilation.options.output.hash_digest_length,
+        ))
+        .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+        .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+          &compilation.chunk_hashes_artifact,
+          &SourceType::Css,
+          compilation.options.output.hash_digest_length,
+        ))
+        .runtime(chunk.runtime().as_str()),
+      &mut asset_info,
+    )
+    .await?;
 
   let (source, more_diagnostics) = compilation
     .old_cache

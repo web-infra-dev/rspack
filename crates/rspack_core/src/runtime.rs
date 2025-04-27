@@ -1,7 +1,10 @@
-use std::collections::hash_map;
-use std::collections::hash_set;
-use std::ops::Deref;
-use std::{cmp::Ordering, fmt::Debug, sync::Arc};
+use std::{
+  cmp::Ordering,
+  collections::{hash_map, hash_set},
+  fmt::Debug,
+  ops::Deref,
+  sync::Arc,
+};
 
 use rspack_cacheable::{
   cacheable,
@@ -126,7 +129,7 @@ impl RuntimeSpec {
     }
     let mut ordered = self.inner.iter().cloned().collect::<Vec<_>>();
     ordered.sort_unstable();
-    self.key = ordered.join("\n")
+    self.key = ordered.join("_")
   }
 
   pub fn as_str(&self) -> &str {

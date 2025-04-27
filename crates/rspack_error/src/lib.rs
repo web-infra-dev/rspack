@@ -2,6 +2,7 @@
 #![feature(anonymous_lifetime_in_impl_trait)]
 
 mod catch_unwind;
+mod convert;
 mod diagnostic;
 mod error;
 mod ext;
@@ -12,6 +13,7 @@ pub use diagnostic::*;
 pub use error::*;
 pub use ext::*;
 pub mod emitter;
+pub use convert::*;
 
 mod macros;
 
@@ -94,10 +96,7 @@ impl<T: Sized + std::fmt::Debug> IntoTWithDiagnosticArray for T {
 pub mod __private {
   pub use core::result::Result::Err;
 
-  pub use miette::miette;
-  pub use miette::Severity;
+  pub use miette::{miette, Severity};
 
-  pub use crate::diagnostic::Severity as RspackSeverity;
-  pub use crate::error;
-  pub use crate::error::InternalError;
+  pub use crate::{diagnostic::Severity as RspackSeverity, error, error::InternalError};
 }

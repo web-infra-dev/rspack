@@ -25,12 +25,13 @@ impl ShareRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for ShareRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk_ukey = self
       .chunk
       .expect("should have chunk in <ShareRuntimeModule as RuntimeModule>::generate");
@@ -54,10 +55,7 @@ impl RuntimeModule for ShareRuntimeModule {
           continue;
         };
         for item in &data.items {
-          let (_, stages) = init_per_scope
-            .raw_entry_mut()
-            .from_key(&item.share_scope)
-            .or_insert_with(|| (item.share_scope.to_owned(), LinkedHashMap::default()));
+          let stages = init_per_scope.entry(item.share_scope.clone()).or_default();
           let list = stages
             .entry(item.init_stage)
             .or_insert_with(LinkedHashSet::default);

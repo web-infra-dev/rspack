@@ -41,7 +41,7 @@ fn assign_named_module_ids(
       invalid_and_repeat_names.insert(name);
     }
     // Also rename the conflicting modules in used_ids
-    else if let Some(item) = used_ids.get(name.as_str()) {
+    else if let Some(item) = used_ids.get(&name.as_str().into()) {
       items.insert(*item);
       invalid_and_repeat_names.insert(name);
     }
@@ -69,7 +69,7 @@ fn assign_named_module_ids(
     let items = name_to_items.entry(name.clone()).or_default();
     items.insert(item);
     // Also rename the conflicting modules in used_ids
-    if let Some(item) = used_ids.get(name.as_str()) {
+    if let Some(item) = used_ids.get(&name.as_str().into()) {
       items.insert(*item);
     }
   }
@@ -82,7 +82,7 @@ fn assign_named_module_ids(
       for item in items {
         unnamed_items.push(item)
       }
-    } else if items.len() == 1 && !used_ids.contains_key(name.as_str()) {
+    } else if items.len() == 1 && !used_ids.contains_key(&name.as_str().into()) {
       let item = items[0];
       let name: ModuleId = name.into();
       if ChunkGraph::set_module_id(module_ids, item, name.clone())
@@ -97,7 +97,7 @@ fn assign_named_module_ids(
       for item in items {
         let mut formatted_name = format!("{name}{}", itoa!(i));
         while name_to_items_keys.contains(&formatted_name)
-          && used_ids.contains_key(formatted_name.as_str())
+          && used_ids.contains_key(&formatted_name.as_str().into())
         {
           i += 1;
           formatted_name = format!("{name}{}", itoa!(i));
@@ -122,7 +122,7 @@ fn assign_named_module_ids(
 pub struct NamedModuleIdsPlugin;
 
 #[plugin_hook(CompilationModuleIds for NamedModuleIdsPlugin)]
-fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
+async fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
   let mut module_ids = std::mem::take(&mut compilation.module_ids_artifact);
   let mut used_ids: FxHashMap<ModuleId, ModuleIdentifier> = module_ids
     .iter()
@@ -159,7 +159,7 @@ fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
     .filter(|&(module_identifier, module)| {
       let not_used =
         if let Some(module_id) = ChunkGraph::get_module_id(&module_ids, *module_identifier) {
-          !used_ids.contains_key(module_id.as_str())
+          !used_ids.contains_key(module_id)
         } else {
           true
         };
@@ -177,7 +177,7 @@ fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
   let context: &str = compilation.options.context.as_ref();
   let mut mutations = compilation
     .incremental
-    .can_write_mutations()
+    .mutations_writeable()
     .then(Mutations::default);
 
   let unnamed_modules = assign_named_module_ids(
@@ -194,7 +194,7 @@ fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
     let mut next_id = 0;
     for module in unnamed_modules {
       let mut id = next_id.to_string();
-      while used_ids.contains_key(id.as_str()) {
+      while used_ids.contains_key(&id.as_str().into()) {
         next_id += 1;
         id = next_id.to_string();
       }
@@ -209,7 +209,7 @@ fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
 
   if compilation
     .incremental
-    .can_read_mutations(IncrementalPasses::MODULE_IDS)
+    .mutations_readable(IncrementalPasses::MODULE_IDS)
     && let Some(mutations) = &mutations
   {
     let logger = compilation.get_logger("rspack.incremental.moduleIds");

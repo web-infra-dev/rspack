@@ -6,24 +6,22 @@ mod raw_split_chunk_size;
 use std::sync::Arc;
 
 use derive_more::Debug;
-use napi::bindgen_prelude::Either3;
-use napi::{Either, JsString};
+use napi::{bindgen_prelude::Either3, Either, JsString};
 use napi_derive::napi;
-use raw_split_chunk_name::normalize_raw_chunk_name;
-use raw_split_chunk_name::RawChunkOptionName;
-use rspack_core::Filename;
-use rspack_core::SourceType;
-use rspack_core::DEFAULT_DELIMITER;
+use raw_split_chunk_name::{normalize_raw_chunk_name, RawChunkOptionName};
+use rspack_core::{Filename, SourceType, DEFAULT_DELIMITER};
 use rspack_napi::{string::JsStringExt, threadsafe_function::ThreadsafeFunction};
 use rspack_plugin_split_chunks::ChunkNameGetter;
 use rspack_regex::RspackRegex;
 
-use self::raw_split_chunk_cache_group_test::default_cache_group_test;
-use self::raw_split_chunk_cache_group_test::normalize_raw_cache_group_test;
-use self::raw_split_chunk_cache_group_test::RawCacheGroupTest;
-use self::raw_split_chunk_chunks::{create_chunks_filter, Chunks};
-use self::raw_split_chunk_name::default_chunk_option_name;
-use self::raw_split_chunk_size::RawSplitChunkSizes;
+use self::{
+  raw_split_chunk_cache_group_test::{
+    default_cache_group_test, normalize_raw_cache_group_test, RawCacheGroupTest,
+  },
+  raw_split_chunk_chunks::{create_chunks_filter, Chunks},
+  raw_split_chunk_name::default_chunk_option_name,
+  raw_split_chunk_size::RawSplitChunkSizes,
+};
 use crate::JsFilename;
 
 #[napi(object, object_to_js = false)]
@@ -314,19 +312,26 @@ fn create_module_layer_filter(
   raw: Either3<RspackRegex, JsString, ThreadsafeFunction<Option<String>, bool>>,
 ) -> rspack_plugin_split_chunks::ModuleLayerFilter {
   match raw {
-    Either3::A(regex) => {
-      Arc::new(move |layer| Ok(layer.map(|layer| regex.test(&layer)).unwrap_or_default()))
-    }
+    Either3::A(regex) => Arc::new(move |layer| {
+      let regex = regex.clone();
+      Box::pin(async move { Ok(layer.map(|layer| regex.test(&layer)).unwrap_or_default()) })
+    }),
     Either3::B(js_str) => {
       let test = js_str.into_string();
       Arc::new(move |layer| {
-        Ok(if let Some(layer) = layer {
-          layer.starts_with(&test)
-        } else {
-          test.is_empty()
+        let test = test.clone();
+        Box::pin(async move {
+          Ok(if let Some(layer) = layer {
+            layer.starts_with(&test)
+          } else {
+            test.is_empty()
+          })
         })
       })
     }
-    Either3::C(ts_fn) => Arc::new(move |layer| ts_fn.blocking_call_with_sync(layer)),
+    Either3::C(f) => Arc::new(move |layer| {
+      let f = f.clone();
+      Box::pin(async move { f.call_with_sync(layer).await })
+    }),
   }
 }

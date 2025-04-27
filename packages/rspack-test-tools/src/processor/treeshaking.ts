@@ -27,6 +27,12 @@ export class TreeShakingProcessor<
 		options.optimization.providedExports = true;
 		options.optimization.innerGraph = true;
 		options.optimization.usedExports = true;
+
+		if (!global.printLogger) {
+			options.infrastructureLogging = {
+				level: "error"
+			};
+		}
 	}
 
 	serializeEachFile(content: string): string {

@@ -4,12 +4,13 @@ use rkyv::{
   with::{ArchiveWith, DeserializeWith, SerializeWith},
   Archive, Archived, Deserialize, Place, Resolver, Serialize,
 };
+use rspack_macros::enable_cacheable as cacheable;
 use rspack_sources::{
   BoxSource, RawBufferSource, Source, SourceExt, SourceMap, SourceMapSource, WithoutOriginalOptions,
 };
 
 use super::AsPreset;
-use crate::{cacheable, DeserializeError, SerializeError};
+use crate::{DeserializeError, SerializeError};
 
 #[cacheable(crate=crate)]
 pub struct CacheableSource {

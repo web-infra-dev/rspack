@@ -2,13 +2,15 @@ use rspack_core::SpanExt;
 use swc_core::ecma::ast::MemberExpr;
 
 use super::BasicEvaluatedExpression;
-use crate::parser_plugin::JavascriptParserPlugin;
-use crate::visitors::{AllowedMemberTypes, JavascriptParser, MemberExpressionInfo};
+use crate::{
+  parser_plugin::JavascriptParserPlugin,
+  visitors::{AllowedMemberTypes, JavascriptParser, MemberExpressionInfo},
+};
 
-pub fn eval_member_expression(
+pub fn eval_member_expression<'a>(
   parser: &mut JavascriptParser,
-  member: &MemberExpr,
-) -> Option<BasicEvaluatedExpression> {
+  member: &'a MemberExpr,
+) -> Option<BasicEvaluatedExpression<'a>> {
   let ret = if let Some(MemberExpressionInfo::Expression(info)) =
     parser.get_member_expression_info(member, AllowedMemberTypes::Expression)
   {

@@ -1,5 +1,4 @@
-use std::sync::LazyLock;
-use std::{borrow::Cow, fmt::Debug, hash::Hash, str::FromStr, string::ParseError};
+use std::{borrow::Cow, fmt::Debug, hash::Hash, str::FromStr, string::ParseError, sync::LazyLock};
 
 use regex::Regex;
 use rspack_cacheable::cacheable;
@@ -9,7 +8,7 @@ use rspack_macros::MergeFrom;
 use rspack_paths::Utf8PathBuf;
 
 use super::CleanOptions;
-use crate::{Chunk, ChunkGroupByUkey, ChunkKind, Compilation, Filename, FilenameTemplate};
+use crate::{Chunk, ChunkGroupByUkey, ChunkKind, Compilation, Filename};
 
 #[derive(Debug)]
 pub enum PathInfo {
@@ -28,7 +27,7 @@ pub struct OutputOptions {
   pub public_path: PublicPath,
   pub asset_module_filename: Filename,
   pub wasm_loading: WasmLoading,
-  pub webassembly_module_filename: FilenameTemplate,
+  pub webassembly_module_filename: Filename,
   pub unique_name: String,
   pub chunk_loading: ChunkLoading,
   pub chunk_loading_global: String,
@@ -39,8 +38,8 @@ pub struct OutputOptions {
   pub cross_origin_loading: CrossOriginLoading,
   pub css_filename: Filename,
   pub css_chunk_filename: Filename,
-  pub hot_update_main_filename: FilenameTemplate,
-  pub hot_update_chunk_filename: FilenameTemplate,
+  pub hot_update_main_filename: Filename,
+  pub hot_update_chunk_filename: Filename,
   pub hot_update_global: String,
   pub library: Option<LibraryOptions>,
   pub enabled_library_types: Option<Vec<String>>,
@@ -51,7 +50,7 @@ pub struct OutputOptions {
   pub iife: bool,
   pub module: bool,
   pub trusted_types: Option<TrustedTypes>,
-  pub source_map_filename: FilenameTemplate,
+  pub source_map_filename: Filename,
   pub hash_function: HashFunction,
   pub hash_digest: HashDigest,
   pub hash_digest_length: usize,
@@ -370,21 +369,21 @@ fn test_get_undo_path() {
 }
 
 impl PublicPath {
-  pub fn render(&self, compilation: &Compilation, filename: &str) -> String {
+  pub async fn render(&self, compilation: &Compilation, filename: &str) -> String {
     match self {
-      Self::Filename(f) => Self::ensure_ends_with_slash(Self::render_filename(compilation, f)),
+      Self::Filename(f) => {
+        Self::ensure_ends_with_slash(Self::render_filename(compilation, f).await)
+      }
       Self::Auto => Self::render_auto_public_path(compilation, filename),
     }
   }
 
-  pub fn render_filename(compilation: &Compilation, template: &Filename) -> String {
-    compilation
-      .get_path(
-        template,
-        // @{link https://github.com/webpack/webpack/blob/a642809846deefdb9db05214718af5ab78c0ab94/lib/runtime/PublicPathRuntimeModule.js#L30-L32}
-        PathData::default().hash(compilation.get_hash().unwrap_or("XXXX")),
-      )
-      .expect("failed to render public")
+  pub async fn render_filename(compilation: &Compilation, template: &Filename) -> String {
+    let path_data = PathData::default().hash(compilation.get_hash().unwrap_or("XXXX"));
+    template
+      .render(path_data, None)
+      .await
+      .expect("failed to render public path")
   }
 
   pub fn ensure_ends_with_slash(public_path: String) -> String {
@@ -413,7 +412,7 @@ impl FromStr for PublicPath {
     if s.eq("auto") {
       Ok(Self::Auto)
     } else {
-      Ok(Self::Filename(Filename::from_str(s)?))
+      Ok(Self::Filename(Filename::from(s)))
     }
   }
 }
@@ -452,7 +451,7 @@ pub fn get_js_chunk_filename_template(
   if let Some(filename_template) = chunk.filename_template() {
     filename_template.clone()
   } else if matches!(chunk.kind(), ChunkKind::HotUpdate) {
-    output_options.hot_update_chunk_filename.clone().into()
+    output_options.hot_update_chunk_filename.clone()
   } else if chunk.can_be_initial(chunk_group_by_ukey) {
     output_options.filename.clone()
   } else {

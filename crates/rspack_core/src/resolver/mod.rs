@@ -1,24 +1,25 @@
 mod boxfs;
 mod factory;
 mod resolver_impl;
-use std::borrow::Borrow;
-use std::fmt;
-use std::fs;
-use std::path::PathBuf;
-use std::sync::Arc;
-use std::sync::LazyLock;
+use std::{
+  borrow::Borrow,
+  fmt, fs,
+  path::PathBuf,
+  sync::{Arc, LazyLock},
+};
 
 use regex::Regex;
 use rspack_error::{Error, MietteExt};
-use rspack_loader_runner::DescriptionData;
-use rspack_paths::AssertUtf8;
-use rspack_paths::Utf8PathBuf;
+use rspack_loader_runner::{DescriptionData, ResourceData};
+use rspack_paths::{AssertUtf8, Utf8PathBuf};
 use rspack_util::identifier::insert_zero_width_space_for_fragment;
 use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
 
-pub use self::factory::{ResolveOptionsWithDependencyType, ResolverFactory};
-pub use self::resolver_impl::{ResolveInnerOptions, Resolver};
+pub use self::{
+  factory::{ResolveOptionsWithDependencyType, ResolverFactory},
+  resolver_impl::{ResolveInnerOptions, Resolver},
+};
 use crate::{
   Context, DependencyCategory, DependencyType, ErrorSpan, ModuleIdentifier, Resolve,
   SharedPluginDriver,
@@ -90,7 +91,17 @@ impl Resource {
   }
 }
 
-pub fn resolve_for_error_hints(
+impl From<Resource> for ResourceData {
+  fn from(resource: Resource) -> Self {
+    Self::new(resource.full_path())
+      .path(resource.path)
+      .query(resource.query)
+      .fragment(resource.fragment)
+      .description_optional(resource.description_data)
+  }
+}
+
+pub async fn resolve_for_error_hints(
   args: ResolveArgs<'_>,
   plugin_driver: &SharedPluginDriver,
 ) -> Option<String> {
@@ -125,7 +136,8 @@ pub fn resolve_for_error_hints(
       options
     });
     let resolver = plugin_driver.resolver_factory.get(dep);
-    if let Ok(ResolveResult::Resource(resource)) = resolver.resolve(base_dir, args.specifier) {
+    if let Ok(ResolveResult::Resource(resource)) = resolver.resolve(base_dir, args.specifier).await
+    {
       let relative_path = resource
         .path
         .as_std_path()
@@ -176,7 +188,7 @@ Add the extension to the request.", suggestion, args.specifier));
     };
     let resolver = plugin_driver.resolver_factory.get(dep);
     let request = format!("./{}", args.specifier);
-    if resolver.resolve(base_dir, &request).is_ok() {
+    if resolver.resolve(base_dir, &request).await.is_ok() {
       return Some(format!(
           "Did you mean './{}'?
 
@@ -308,6 +320,7 @@ pub async fn resolve(
   let resolver = plugin_driver.resolver_factory.get(dep);
   let mut result = resolver
     .resolve_with_context(args.context.as_ref(), args.specifier, &mut context)
+    .await
     .map_err(|error| error.into_resolve_error(&args));
 
   if let Err(ref err) = result {
@@ -328,7 +341,7 @@ pub async fn resolve(
     .extend(context.missing_dependencies);
 
   if result.is_err()
-    && let Some(hint) = resolve_for_error_hints(args, plugin_driver)
+    && let Some(hint) = resolve_for_error_hints(args, plugin_driver).await
   {
     result = result.map_err(|err| err.with_help(hint))
   };

@@ -1,14 +1,16 @@
-use std::fmt::{Display, Formatter};
-use std::hash::Hash;
-use std::sync::Arc;
-use std::{any::Any, borrow::Cow, fmt::Debug};
+use std::{
+  any::Any,
+  borrow::Cow,
+  fmt::{Debug, Display, Formatter},
+  hash::Hash,
+  sync::Arc,
+};
 
 use async_trait::async_trait;
 use json::JsonValue;
-use rspack_cacheable::with::AsPreset;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsOption, AsVec},
+  with::{AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
@@ -16,19 +18,20 @@ use rspack_fs::ReadableFileSystem;
 use rspack_hash::RspackHashDigest;
 use rspack_paths::ArcPath;
 use rspack_sources::BoxSource;
-use rspack_util::atom::Atom;
-use rspack_util::ext::{AsAny, DynHash};
-use rspack_util::source_map::ModuleSourceMapConfig;
+use rspack_util::{
+  atom::Atom,
+  ext::{AsAny, DynHash},
+  source_map::ModuleSourceMapConfig,
+};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
 
-use crate::concatenated_module::ConcatenatedModule;
-use crate::dependencies_block::dependencies_block_update_hash;
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
-  CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
-  ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, DependencyTemplate,
-  ExportInfoProvided, ExternalModule, ModuleDependency, ModuleGraph, ModuleLayer, ModuleType,
+  concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
+  AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BoxModuleDependency, ChunkGraph,
+  ChunkUkey, CodeGenerationResult, Compilation, CompilationAsset, CompilationId, CompilerId,
+  CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule, DependenciesBlock,
+  DependencyId, ExportInfoProvided, ExternalModule, ModuleGraph, ModuleLayer, ModuleType,
   NormalModule, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver,
   SourceType,
 };
@@ -292,7 +295,7 @@ pub trait Module:
   ///
   /// Code generation will often iterate through every `source_types` given by the module
   /// to provide multiple code generation results for different `source_type`s.
-  fn code_generation(
+  async fn code_generation(
     &self,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
@@ -309,12 +312,11 @@ pub trait Module:
   /// Different cgm code generation result should have different cgm.hash,
   /// so this also accept compilation (mainly chunk graph) and runtime as args.
   /// (Difference with `impl Hash for Module`: this is just a part for calculating cgm.hash, not for Module itself)
-  fn update_hash(
+  async fn get_runtime_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
-  ) -> Result<()>;
+  ) -> Result<RspackHashDigest>;
 
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
     // Align with https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L845
@@ -325,11 +327,11 @@ pub trait Module:
   /// depends on the code generation results of dependencies which are returned by this function.
   /// e.g `Css` module may rely on the code generation result of `CssUrlDependency` to re-direct
   /// the url of the referenced assets.
-  fn get_code_generation_dependencies(&self) -> Option<&[Box<dyn ModuleDependency>]> {
+  fn get_code_generation_dependencies(&self) -> Option<&[BoxModuleDependency]> {
     None
   }
 
-  fn get_presentational_dependencies(&self) -> Option<&[Box<dyn DependencyTemplate>]> {
+  fn get_presentational_dependencies(&self) -> Option<&[BoxDependencyTemplate]> {
     None
   }
 
@@ -625,6 +627,7 @@ mod test {
   use rspack_cacheable::cacheable;
   use rspack_collections::{Identifiable, Identifier};
   use rspack_error::{impl_empty_diagnosable_trait, Result};
+  use rspack_hash::RspackHashDigest;
   use rspack_sources::BoxSource;
   use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
@@ -710,16 +713,15 @@ mod test {
           unreachable!()
         }
 
-        fn update_hash(
+        async fn get_runtime_hash(
           &self,
-          _hasher: &mut dyn std::hash::Hasher,
           _compilation: &Compilation,
           _runtime: Option<&RuntimeSpec>,
-        ) -> Result<()> {
+        ) -> Result<RspackHashDigest> {
           unreachable!()
         }
 
-        fn code_generation(
+        async fn code_generation(
           &self,
           _compilation: &Compilation,
           _runtime: Option<&RuntimeSpec>,

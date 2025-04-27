@@ -1,7 +1,7 @@
-use std::sync::LazyLock;
 use std::{
   borrow::Cow,
   hash::{Hash, Hasher},
+  sync::LazyLock,
 };
 
 use cow_utils::CowUtils;
@@ -82,7 +82,11 @@ impl ModuleFilenameHelpers {
 
         let hash = get_hash(&identifier, output_options);
 
-        let resource = short_identifier.split('!').last().unwrap_or("").to_string();
+        let resource = short_identifier
+          .split('!')
+          .next_back()
+          .unwrap_or("")
+          .to_string();
 
         let loaders = get_before(&short_identifier, "!");
         let all_loaders = get_before(&identifier, "!");
@@ -118,7 +122,7 @@ impl ModuleFilenameHelpers {
         let resource = short_identifier
           .clone()
           .split('!')
-          .last()
+          .next_back()
           .unwrap_or("")
           .to_string();
 
@@ -137,7 +141,7 @@ impl ModuleFilenameHelpers {
           short_identifier,
           identifier,
           module_id: "".to_string(),
-          absolute_resource_path: source.split('!').last().unwrap_or("").to_string(),
+          absolute_resource_path: source.split('!').next_back().unwrap_or("").to_string(),
           hash,
           resource,
           loaders,

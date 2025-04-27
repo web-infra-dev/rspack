@@ -1,22 +1,23 @@
 use std::hash::Hash;
 
-use rspack_core::rspack_sources::{ConcatSource, RawStringSource, SourceExt};
 use rspack_core::{
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationParams, CompilerCompilation, CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
+  CompilationDependentFullHash, CompilationParams, CompilerCompilation, CompilerOptions, Plugin,
+  PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_plugin_javascript::runtime::render_chunk_runtime_modules;
 use rspack_plugin_javascript::{
-  JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JsPlugin, RenderSource,
+  runtime::render_chunk_runtime_modules, JavascriptModulesChunkHash, JavascriptModulesRenderChunk,
+  JsPlugin, RenderSource,
 };
 use rspack_util::json_stringify;
 
 use crate::{
   generate_entry_startup, get_chunk_output_name, get_relative_path, get_runtime_chunk_output_name,
-  update_hash_for_entry_startup,
+  runtime_chunk_has_hash, update_hash_for_entry_startup,
 };
 
 const PLUGIN_NAME: &str = "rspack.CommonJsChunkFormatPlugin";
@@ -38,7 +39,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for CommonJsChunkFormatPlugin)]
-fn additional_chunk_runtime_requirements(
+async fn additional_chunk_runtime_requirements(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
@@ -89,8 +90,23 @@ async fn js_chunk_hash(
   Ok(())
 }
 
+#[plugin_hook(CompilationDependentFullHash for CommonJsChunkFormatPlugin)]
+async fn compilation_dependent_full_hash(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+) -> Result<Option<bool>> {
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  if chunk.has_entry_module(&compilation.chunk_graph)
+    && runtime_chunk_has_hash(compilation, chunk_ukey).await?
+  {
+    return Ok(Some(true));
+  }
+  Ok(None)
+}
+
 #[plugin_hook(JavascriptModulesRenderChunk for CommonJsChunkFormatPlugin)]
-fn render_chunk(
+async fn render_chunk(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
@@ -98,11 +114,11 @@ fn render_chunk(
 ) -> Result<()> {
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-  let base_chunk_output_name = get_chunk_output_name(chunk, compilation)?;
+  let base_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
-    "exports.ids = ['{}'];\n",
-    &chunk.expect_id(&compilation.chunk_ids_artifact)
+    "exports.ids = [{}];\n",
+    json_stringify(chunk.expect_id(&compilation.chunk_ids_artifact))
   )));
   sources.add(RawStringSource::from_static("exports.modules = "));
   sources.add(render_source.source.clone());
@@ -112,12 +128,12 @@ fn render_chunk(
     .has_chunk_runtime_modules(chunk_ukey)
   {
     sources.add(RawStringSource::from_static("exports.runtime = "));
-    sources.add(render_chunk_runtime_modules(compilation, chunk_ukey)?);
+    sources.add(render_chunk_runtime_modules(compilation, chunk_ukey).await?);
     sources.add(RawStringSource::from_static(";\n"));
   }
 
   if chunk.has_entry_module(&compilation.chunk_graph) {
-    let runtime_chunk_output_name = get_runtime_chunk_output_name(compilation, chunk_ukey)?;
+    let runtime_chunk_output_name = get_runtime_chunk_output_name(compilation, chunk_ukey).await?;
     sources.add(RawStringSource::from(format!(
       "// load runtime\nvar {} = require({});\n",
       RuntimeGlobals::REQUIRE,
@@ -137,17 +153,20 @@ fn render_chunk(
     let start_up_source = generate_entry_startup(compilation, chunk_ukey, entries, false);
     let last_entry_module = entries
       .keys()
-      .last()
+      .next_back()
       .expect("should have last entry module");
     let mut startup_render_source = RenderSource {
       source: start_up_source,
     };
-    hooks.render_startup.call(
-      compilation,
-      chunk_ukey,
-      last_entry_module,
-      &mut startup_render_source,
-    )?;
+    hooks
+      .render_startup
+      .call(
+        compilation,
+        chunk_ukey,
+        last_entry_module,
+        &mut startup_render_source,
+      )
+      .await?;
     sources.add(startup_render_source.source);
     render_source.source = ConcatSource::new([
       RawStringSource::from_static("(function() {\n").boxed(),
@@ -177,6 +196,11 @@ impl Plugin for CommonJsChunkFormatPlugin {
       .compilation_hooks
       .additional_chunk_runtime_requirements
       .tap(additional_chunk_runtime_requirements::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .dependent_full_hash
+      .tap(compilation_dependent_full_hash::new(self));
     Ok(())
   }
 }

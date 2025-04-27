@@ -9,13 +9,11 @@ use swc_core::ecma::atoms::Atom;
 
 use super::{AffectType, FactorizeInfo};
 use crate::{
-  create_exports_object_referenced, AsContextDependency, AsDependencyTemplate, Context,
-  ImportAttributes, ModuleLayer,
+  create_exports_object_referenced, AsContextDependency, AsDependencyCodeGeneration, Context,
+  ContextMode, ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyType,
+  ExtendedReferencedExport, ImportAttributes, ModuleDependency, ModuleGraph, ModuleLayer,
+  ReferencedExport, RuntimeSpec,
 };
-use crate::{ContextMode, ContextOptions, Dependency};
-use crate::{DependencyCategory, DependencyId, DependencyType};
-use crate::{ExtendedReferencedExport, ModuleDependency};
-use crate::{ModuleGraph, ReferencedExport, RuntimeSpec};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -132,5 +130,5 @@ impl ModuleDependency for ContextElementDependency {
   }
 }
 
-impl AsDependencyTemplate for ContextElementDependency {}
+impl AsDependencyCodeGeneration for ContextElementDependency {}
 impl AsContextDependency for ContextElementDependency {}

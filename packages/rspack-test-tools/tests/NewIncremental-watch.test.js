@@ -1,8 +1,12 @@
+process.env.RSPACK_INCREMENTAL_WATCH_TEST = true;
 // Need to run some webpack-test
 process.env.RSPACK_CONFIG_VALIDATE = "loose-silent";
 
 const path = require("path");
-const { describeByWalk, createWatchNewIncrementalCase } = require("../dist");
+const {
+	describeByWalk,
+	createWatchNewIncrementalCase
+} = require("@rspack/test-tools");
 
 function v(name) {
 	return path.join(__dirname, `new-incremental ${name}`);

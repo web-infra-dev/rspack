@@ -1,9 +1,11 @@
 mod raw_banner;
 mod raw_bundle_info;
+mod raw_circular_dependency;
 mod raw_copy;
 mod raw_css_extract;
 mod raw_dll;
 mod raw_html;
+mod raw_http_uri;
 mod raw_ids;
 mod raw_ignore;
 mod raw_lazy_compilation;
@@ -26,14 +28,14 @@ use raw_ids::RawOccurrenceChunkIdsPluginOptions;
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use raw_sri::RawSubresourceIntegrityPluginOptions;
 use rspack_core::{BoxPlugin, CompilerId, Plugin, PluginExt};
-use rspack_error::Result;
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
   NamedModuleIdsPlugin, NaturalChunkIdsPlugin, NaturalModuleIdsPlugin, OccurrenceChunkIdsPlugin,
 };
-use rspack_napi::NapiResultExt;
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
+use rspack_plugin_circular_dependencies::CircularDependencyRspackPlugin;
 use rspack_plugin_context_replacement::ContextReplacementPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
 use rspack_plugin_css::CssPlugin;
@@ -92,6 +94,7 @@ use rspack_plugin_worker::WorkerPlugin;
 
 pub use self::{
   raw_banner::RawBannerPluginOptions,
+  raw_circular_dependency::RawCircularDependencyRspackPluginOptions,
   raw_copy::RawCopyRspackPluginOptions,
   raw_dll::{RawDllEntryPluginOptions, RawLibManifestPluginOptions},
   raw_html::RawHtmlRspackPluginOptions,
@@ -109,12 +112,13 @@ use self::{
   raw_runtime_chunk::RawRuntimeChunkOptions,
   raw_size_limits::RawSizeLimitsPluginOptions,
 };
-use crate::{entry::JsEntryPluginOptions, RawRsdoctorPluginOptions, COMPILER_REFERENCES};
 use crate::{
-  plugins::JsLoaderRspackPlugin, JsLoaderContext, JsLoaderRunner, JsLoaderRunnerGetter,
-  RawContextReplacementPluginOptions, RawDynamicEntryPluginOptions,
-  RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
-  RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions, RawSplitChunksOptions,
+  entry::JsEntryPluginOptions,
+  plugins::{JsLoaderContext, JsLoaderRspackPlugin},
+  JsLoaderRunner, JsLoaderRunnerGetter, RawContextReplacementPluginOptions,
+  RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
+  RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawRsdoctorPluginOptions,
+  RawSourceMapDevToolPluginOptions, RawSplitChunksOptions, COMPILER_REFERENCES,
 };
 
 #[js_function(1)]
@@ -228,12 +232,14 @@ pub enum BuiltinPluginName {
   CssExtractRspackPlugin,
   SubresourceIntegrityPlugin,
   RsdoctorPlugin,
+  CircularDependencyRspackPlugin,
 
   // rspack js adapter plugins
   // naming format follow XxxRspackPlugin
   JsLoaderRspackPlugin,
   LazyCompilationPlugin,
   ModuleInfoHeaderPlugin,
+  HttpUriPlugin,
 }
 
 #[napi(object)]
@@ -484,6 +490,12 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::DataUriPlugin => plugins.push(DataUriPlugin::default().boxed()),
       BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin::default().boxed()),
+      BuiltinPluginName::HttpUriPlugin => {
+        let plugin_options =
+          downcast_into::<self::raw_http_uri::RawHttpUriPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+        plugins.push(raw_http_uri::get_http_uri_plugin(plugin_options));
+      }
       BuiltinPluginName::RuntimePlugin => plugins.push(RuntimePlugin::default().boxed()),
       BuiltinPluginName::JsonModulesPlugin => plugins.push(JsonPlugin.boxed()),
       BuiltinPluginName::InferAsyncModulesPlugin => {
@@ -646,6 +658,14 @@ impl BuiltinPlugin {
         .boxed();
         plugins.push(plugin);
       }
+      BuiltinPluginName::CircularDependencyRspackPlugin => plugins.push(
+        CircularDependencyRspackPlugin::new(
+          downcast_into::<RawCircularDependencyRspackPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into(),
+        )
+        .boxed(),
+      ),
       BuiltinPluginName::JsLoaderRspackPlugin => {
         // Set the compiler._runLoader property on the JsObject to ensure that the runLoader
         // is not garbage collected by JS while the stats Object holds a reference to JsLoaderPlugin.
@@ -733,5 +753,5 @@ impl BuiltinPlugin {
 }
 
 fn downcast_into<T: FromNapiValue + 'static>(o: JsUnknown) -> Result<T> {
-  rspack_napi::downcast_into(o).into_rspack_result()
+  rspack_napi::downcast_into(o).to_rspack_result()
 }

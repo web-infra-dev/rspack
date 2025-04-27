@@ -1,17 +1,13 @@
-use std::sync::LazyLock;
 use std::{borrow::Cow, hash::Hash};
 
 use cow_utils::CowUtils;
 use dashmap::DashMap;
 use derive_more::Debug;
-use rspack_collections::UkeySet;
 use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
-  ApplyContext, BoxModule, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
-  CompilerCompilation, CompilerOptions, Plugin, PluginContext,
-};
-use rspack_core::{
-  CompilationAdditionalModuleRuntimeRequirements, ModuleIdentifier, RuntimeGlobals,
+  ApplyContext, BoxModule, ChunkInitFragments, ChunkUkey, Compilation,
+  CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation,
+  CompilerOptions, ModuleIdentifier, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -89,10 +85,11 @@ async fn eval_devtool_plugin_compilation(
   Ok(())
 }
 
-#[plugin_hook(JavascriptModulesRenderModuleContent for EvalDevToolModulePlugin)]
-fn eval_devtool_plugin_render_module_content(
+#[plugin_hook(JavascriptModulesRenderModuleContent for EvalDevToolModulePlugin,tracing=false)]
+async fn eval_devtool_plugin_render_module_content(
   &self,
   compilation: &Compilation,
+  _chunk_ukey: &ChunkUkey,
   module: &BoxModule,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
@@ -115,13 +112,14 @@ fn eval_devtool_plugin_render_module_content(
       &self.namespace,
     ),
     ModuleFilenameTemplate::Fn(f) => {
-      futures::executor::block_on(ModuleFilenameHelpers::create_filename_of_fn_template(
+      ModuleFilenameHelpers::create_filename_of_fn_template(
         &ModuleOrSource::Module(module.identifier()),
         compilation,
         f,
         output_options,
         &self.namespace,
-      ))?
+      )
+      .await?
     }
   };
   let source = {
@@ -169,7 +167,7 @@ async fn eval_devtool_plugin_js_chunk_hash(
 }
 
 #[plugin_hook(JavascriptModulesInlineInRuntimeBailout for EvalDevToolModulePlugin)]
-fn eval_devtool_plugin_inline_in_runtime_bailout(
+async fn eval_devtool_plugin_inline_in_runtime_bailout(
   &self,
   _compilation: &Compilation,
 ) -> Result<Option<String>> {
@@ -196,8 +194,8 @@ impl Plugin for EvalDevToolModulePlugin {
   }
 }
 
-#[plugin_hook(CompilationAdditionalModuleRuntimeRequirements for EvalDevToolModulePlugin)]
-fn eval_devtool_plugin_additional_module_runtime_requirements(
+#[plugin_hook(CompilationAdditionalModuleRuntimeRequirements for EvalDevToolModulePlugin,tracing=false)]
+async fn eval_devtool_plugin_additional_module_runtime_requirements(
   &self,
   compilation: &Compilation,
   _module: &ModuleIdentifier,
@@ -212,20 +210,44 @@ fn eval_devtool_plugin_additional_module_runtime_requirements(
 
 // https://tc39.es/ecma262/#sec-encode
 // UNESCAPED is combined by ALWAYS_UNESCAPED and ";/?:@&=+$,#"
-static UNESCAPED: LazyLock<UkeySet<u32>> = LazyLock::new(|| {
-  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~!*'();/?:@&=+$,#"
-    .chars()
-    .map(|c| c as u32)
-    .collect()
-});
+const fn is_unescape(c: u8) -> bool {
+  const TABLE: &[u8] =
+    b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~!*'();/?:@&=+$,#";
+
+  const TABLE_BIT: u128 = {
+    let mut table: u128 = 0;
+
+    let mut i = 0;
+    while i < TABLE.len() {
+      let c = TABLE[i];
+      table |= 1 << c;
+      i += 1;
+    }
+
+    if i > u128::BITS as usize {
+      panic!("bitset overflow");
+    }
+
+    table
+  };
+
+  (TABLE_BIT & (1 << c)) != 0
+}
 
 // https://tc39.es/ecma262/#sec-encode
 fn encode_uri(string: &str) -> Cow<str> {
+  use std::fmt::Write;
+
   // Let R be the empty String.
   let mut r = Cow::Borrowed(string);
   // Let alwaysUnescaped be the string-concatenation of the ASCII word characters and "-.!~*'()".
   for (byte_idx, c) in string.char_indices() {
-    if UNESCAPED.contains(&(c as u32)) {
+    let is_unescape = c
+      .try_into()
+      .ok()
+      .filter(|&ascii| is_unescape(ascii))
+      .is_some();
+    if is_unescape {
       match r {
         Cow::Borrowed(_) => {
           continue;
@@ -236,24 +258,16 @@ fn encode_uri(string: &str) -> Cow<str> {
         }
       }
     } else {
-      match r {
-        Cow::Borrowed(_) => {
-          let mut s = string[0..byte_idx].to_string();
-          let mut b = [0u8; 4];
-          let octets = c.encode_utf8(&mut b).as_bytes().to_vec();
-          for octet in octets {
-            s.push_str(&format!("%{:02X}", octet));
-          }
-          r = Cow::Owned(s);
+      if let Cow::Borrowed(_) = r {
+        r = Cow::Owned(string[0..byte_idx].to_owned());
+      }
+
+      if let Cow::Owned(mut inner) = r {
+        let mut b = [0u8; 4];
+        for &octet in c.encode_utf8(&mut b).as_bytes() {
+          write!(&mut inner, "%{:02X}", octet).unwrap();
         }
-        Cow::Owned(mut inner) => {
-          let mut b = [0u8; 4];
-          let octets = c.encode_utf8(&mut b).as_bytes().to_vec();
-          for octet in octets {
-            inner.push_str(&format!("%{:02X}", octet));
-          }
-          r = Cow::Owned(inner);
-        }
+        r = Cow::Owned(inner);
       }
     }
   }

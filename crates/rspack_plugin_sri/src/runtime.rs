@@ -21,9 +21,7 @@ use crate::{
 fn add_attribute(tag: &str, code: &str, cross_origin_loading: &CrossOriginLoading) -> String {
   format!(
     "{}\n{tag}.integrity = {}[chunkId];\n{tag}.crossOrigin = {};",
-    code,
-    SRI_HASH_VARIABLE_REFERENCE.as_str(),
-    cross_origin_loading
+    code, SRI_HASH_VARIABLE_REFERENCE, cross_origin_loading
   )
 }
 
@@ -45,12 +43,13 @@ impl SRIHashVariableRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for SRIHashVariableRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> Result<BoxSource> {
     let Some(chunk) = compilation.chunk_by_ukey.get(&self.chunk) else {
       return Err(error!(
         "Generate sri runtime module failed: chunk not found"
@@ -88,7 +87,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
         r#"
         {} = {};
         "#,
-        SRI_HASH_VARIABLE_REFERENCE.as_str(),
+        SRI_HASH_VARIABLE_REFERENCE,
         generate_sri_hash_placeholders(all_chunks, &self.hash_funcs, compilation),
       ))
       .boxed(),

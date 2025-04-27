@@ -1,10 +1,8 @@
 use std::sync::{Arc, Mutex};
 
-use napi::bindgen_prelude::*;
-use napi::NapiValue;
+use napi::{bindgen_prelude::*, NapiValue};
 
-use crate::js_values::js_value_ref::JsValueRef;
-use crate::JsCallback;
+use crate::{js_values::js_value_ref::JsValueRef, JsCallback};
 
 struct ThreadsafeJsValueRefHandle<T: NapiValue> {
   value_ref: Arc<Mutex<JsValueRef<T>>>,

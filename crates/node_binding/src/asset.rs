@@ -2,7 +2,7 @@ use napi::{
   bindgen_prelude::{
     Array, Either, FromNapiValue, Object, ToNapiValue, TypeName, Unknown, ValidateNapiValue,
   },
-  sys, NapiRaw,
+  sys, Env, NapiRaw,
 };
 use napi_derive::napi;
 use rspack_napi::string::JsStringExt;
@@ -67,6 +67,25 @@ unsafe fn napi_value_to_json(
   env: sys::napi_env,
   value: Unknown,
 ) -> napi::Result<Option<serde_json::Value>> {
+  if value.is_array()? {
+    let js_array = Array::from_unknown(value)?;
+    let mut array = Vec::with_capacity(js_array.len() as usize);
+
+    for index in 0..js_array.len() {
+      if let Some(item) = js_array.get::<Unknown>(index)? {
+        if let Some(json_val) = napi_value_to_json(env, item)? {
+          array.push(json_val);
+        } else {
+          array.push(serde_json::Value::Null);
+        }
+      } else {
+        array.push(serde_json::Value::Null);
+      }
+    }
+
+    return Ok(Some(serde_json::Value::Array(array)));
+  }
+
   match value.get_type()? {
     napi::ValueType::Null => Ok(Some(serde_json::Value::Null)),
     napi::ValueType::Boolean => {
@@ -105,6 +124,7 @@ unsafe fn napi_value_to_json(
     | napi::ValueType::Symbol
     | napi::ValueType::Function
     | napi::ValueType::External
+    | napi::ValueType::BigInt
     | napi::ValueType::Unknown => Ok(None),
   }
 }
@@ -215,10 +235,18 @@ impl From<AssetInfo> for rspack_core::AssetInfo {
   }
 }
 
+impl AssetInfo {
+  pub fn from_jsobject(env: &Env, object: &Object) -> napi::Result<Self> {
+    // Safety: The Env and Object should be valid NAPI value
+    unsafe { FromNapiValue::from_napi_value(env.raw(), object.raw()) }
+  }
+}
+
 #[napi(object)]
 pub struct JsAsset {
   pub name: String,
-  pub info: AssetInfo,
+  #[napi(ts_type = "AssetInfo")]
+  pub info: Object,
 }
 
 impl From<rspack_core::AssetInfoRelated> for JsAssetInfoRelated {

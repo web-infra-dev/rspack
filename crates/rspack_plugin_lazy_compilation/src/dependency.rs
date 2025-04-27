@@ -1,6 +1,6 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
+  AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
   DependencyType, FactorizeInfo, ModuleDependency, ModuleFactoryCreateData,
 };
 
@@ -44,7 +44,7 @@ impl ModuleDependency for LazyCompilationDependency {
   }
 }
 
-impl AsDependencyTemplate for LazyCompilationDependency {}
+impl AsDependencyCodeGeneration for LazyCompilationDependency {}
 impl AsContextDependency for LazyCompilationDependency {}
 
 #[cacheable_dyn]

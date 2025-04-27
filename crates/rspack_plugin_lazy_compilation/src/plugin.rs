@@ -1,5 +1,7 @@
-use std::sync::LazyLock;
-use std::{fmt::Debug, sync::Arc};
+use std::{
+  fmt::Debug,
+  sync::{Arc, LazyLock},
+};
 
 use rspack_core::{
   ApplyContext, BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation,
@@ -29,8 +31,9 @@ pub enum LazyCompilationTest<F: LazyCompilationTestCheck> {
   Fn(F),
 }
 
+#[async_trait::async_trait]
 pub trait LazyCompilationTestCheck: Send + Sync + Debug {
-  fn test(
+  async fn test(
     &self,
     compiler_id: CompilerId,
     compilation_id: CompilationId,
@@ -39,7 +42,7 @@ pub trait LazyCompilationTestCheck: Send + Sync + Debug {
 }
 
 impl<F: LazyCompilationTestCheck> LazyCompilationTest<F> {
-  fn test(
+  async fn test(
     &self,
     compiler_id: CompilerId,
     compilation_id: CompilationId,
@@ -49,7 +52,7 @@ impl<F: LazyCompilationTestCheck> LazyCompilationTest<F> {
       LazyCompilationTest::Regex(regex) => {
         regex.test(&module.name_for_condition().unwrap_or("".into()))
       }
-      LazyCompilationTest::Fn(f) => f.test(compiler_id, compilation_id, module),
+      LazyCompilationTest::Fn(f) => f.test(compiler_id, compilation_id, module).await,
     }
   }
 }
@@ -75,14 +78,16 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
     Self::new_inner(Mutex::new(backend), entries, imports, test, cacheable)
   }
 
-  fn check_test(
+  async fn check_test(
     &self,
     compiler_id: CompilerId,
     compilation_id: CompilationId,
     module: &BoxModule,
   ) -> bool {
     if let Some(test) = &self.inner.test {
-      test.test(compiler_id, compilation_id, module.as_ref())
+      test
+        .test(compiler_id, compilation_id, module.as_ref())
+        .await
     } else {
       true
     }
@@ -165,11 +170,13 @@ async fn normal_module_factory_module(
   }
 
   if WEBPACK_DEV_SERVER_CLIENT_RE.test(&create_data.resource_resolve_data.resource)
-    || !self.check_test(
-      module_factory_create_data.compiler_id,
-      module_factory_create_data.compilation_id,
-      module,
-    )
+    || !self
+      .check_test(
+        module_factory_create_data.compiler_id,
+        module_factory_create_data.compilation_id,
+        module,
+      )
+      .await
   {
     return Ok(());
   }

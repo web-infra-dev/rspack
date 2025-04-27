@@ -66,7 +66,7 @@ Note that Rspack will first search JS configuration file and then TS configurati
 
 > See [ES modules](https://nodejs.org/api/esm.html#modules-ecmascript-modules) and [CommonJS](https://nodejs.org/api/modules.html) for the difference between `CommonJS` and `ES modules`.
 
-## Extending Configurations
+## Extending configurations
 
 See [Extending Configurations](./extends.mdx) for details on how to extend configurations from other files or packages.
 
@@ -230,18 +230,43 @@ export default function (env, argv) {
 
 ## Merge configurations
 
-Use the `merge` function exported by `webpack-merge` to merge multiple configurations.
+Use Rspack's [extends](/config/extends) option or [webpack-merge](https://npmjs.com/package/webpack-merge) package to merge multiple Rspack configurations.
+
+### extends option
+
+When using [@rspack/cli](/api/cli), Rspack provides the `extends` option, allowing you to extend configurations from other files or packages.
+
+```js title="rspack.config.mjs"
+export default {
+  extends: './base.rspack.config.mjs',
+  output: {
+    filename: '[name].bundle.js',
+  },
+};
+```
+
+> This option is only supported in `@rspack/cli`, see [extends](/config/extends) for more usage.
+
+### webpack-merge
+
+`webpack-merge` is a community library for merging multiple webpack configurations, and it can also be used to merge Rspack configurations.
+
+First install `webpack-merge`:
+
+<PackageManagerTabs command="add webpack-merge -D" />
+
+Then you can use its `merge` function to merge configurations:
 
 ```js title="rspack.config.mjs"
 import { merge } from 'webpack-merge';
 
+const isDev = process.env.NODE_ENV === 'development';
 const base = {};
-
 const dev = {
-  plugins: [new DevelopmentSpecifiedPlugin()],
+  plugins: [new SomeDevPlugin()],
 };
 
-export default process.env.NODE_ENV === 'development' ? merge(base, dev) : base;
+export default isDev ? merge(base, dev) : base;
 ```
 
-For more information of `merge`, please refer to [webpack-merge documentation](https://npmjs.com/package/webpack-merge).
+> See [webpack-merge documentation](https://npmjs.com/package/webpack-merge) for more details.

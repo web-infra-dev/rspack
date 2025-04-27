@@ -17,30 +17,24 @@ plugin = [
 ]
 
 [dependencies]
-anyhow                   = { workspace = true }
-async-trait              = { workspace = true }
-base64                   = { version = "0.22.1" }
-either                   = { workspace = true }
-indoc                    = { workspace = true }
-jsonc-parser             = { version = "0.26.2", features = ["serde"] }
-rspack_ast               = { workspace = true }
-rspack_cacheable         = { workspace = true }
-rspack_core              = { workspace = true }
-rspack_error             = { workspace = true }
-rspack_hook              = { workspace = true }
-rspack_loader_runner     = { workspace = true }
-rspack_plugin_javascript = { workspace = true }
-rspack_swc_plugin_import = { workspace = true }
-rspack_util              = { workspace = true }
-rustc-hash               = { workspace = true }
-serde                    = { workspace = true, features = ["derive"] }
-serde_json               = { workspace = true }
-swc                      = { workspace = true, features = ["manual-tokio-runtime"] }
-swc_config               = { workspace = true }
-swc_core                 = { workspace = true, features = ["base", "ecma_ast", "common"] }
-tokio                    = { workspace = true }
-tracing                  = { workspace = true }
-url                      = "2.5.0"
+async-trait                = { workspace = true }
+either                     = { workspace = true }
+rspack_cacheable           = { workspace = true }
+rspack_core                = { workspace = true }
+rspack_error               = { workspace = true }
+rspack_hook                = { workspace = true }
+rspack_javascript_compiler = { workspace = true }
+rspack_loader_runner       = { workspace = true }
+rspack_swc_plugin_import   = { workspace = true }
+rustc-hash                 = { workspace = true }
+serde                      = { workspace = true, features = ["derive"] }
+serde_json                 = { workspace = true }
+swc                        = { workspace = true, features = ["manual-tokio-runtime"] }
+swc_config                 = { workspace = true }
+swc_core                   = { workspace = true, features = ["base", "ecma_ast", "common"] }
+tokio                      = { workspace = true }
+tracing                    = { workspace = true }
+
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 stacker = { workspace = true }

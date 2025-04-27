@@ -1966,7 +1966,9 @@ type RuleSetUse =
   | RuleSetUseItem[]
   | RuleSetUseItem
   | ((ctx: RawFuncUseCtx) => RuleSetUseItem[]);
-type RuleSetUseItem = { loader: string; options: Record<string, any> } | string;
+type RuleSetUseItem =
+  | { loader: string; options: Record<string, any>; parallel?: boolean }
+  | string;
 interface RawFuncUseCtx {
   resource?: string;
   realResource?: string;
@@ -2024,6 +2026,49 @@ export default {
   },
 };
 ```
+
+#### Rule.use.parallel
+
+<ApiMeta addedVersion="1.3.1" />
+
+- **类型**: `boolean`
+- **默认值:** `false`
+
+在 1.3.1 版本中支持了 `Rule.use.parallel` 配置项，当对对应 loader 开启并配置 `experiments.parallelLoader = true` 后，对应的 loader 会被发送到 worker threads 执行：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        use: [
+          {
+            loader: 'less-loader',
+            parallel: true,
+            options: {
+              // loader options
+            },
+          },
+        ],
+      },
+    ],
+  },
+  experiments: {
+    parallelLoader: true,
+  },
+};
+```
+
+对于当前 `Rule` 中有多个 loader 同时配置了 `Rule.use.parallel = true`，rspack 会在同个 worker 中执行所有 loader 任务，直到下一个没有标记 `parallel` 的 loader 或下一个 loader 为一个 Rust 的 `builtin:` loader。这样做可以提升 loader 的并行性能。
+
+:::warning
+只有开启 [experiments.parallelLoader](/config/experiments#experimentsparallelloader) 时该配置才会生效。
+
+loader 的配置需要满足 [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist)，否则会发送失败。
+
+目前 rspack 不支持大多数 `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module` 上的方法。
+:::
 
 ### Rule.resolve
 

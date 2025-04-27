@@ -1,35 +1,27 @@
-use std::fmt::Debug;
-use std::rc::Rc;
-use std::sync::LazyLock;
+use std::{fmt::Debug, rc::Rc, sync::LazyLock};
 
 use rayon::prelude::*;
-use rspack_collections::IdentifierMap;
-use rspack_collections::IdentifierSet;
-use rspack_core::incremental::IncrementalPasses;
-use rspack_core::incremental::Mutation;
-use rspack_core::DependencyExtraMeta;
-use rspack_core::DependencyId;
-use rspack_core::Logger;
-use rspack_core::MaybeDynamicTargetExportInfo;
-use rspack_core::ModuleGraphConnection;
-use rspack_core::SideEffectsDoOptimize;
-use rspack_core::SideEffectsDoOptimizeMoveTarget;
-use rspack_core::SideEffectsOptimizeArtifact;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, FactoryMeta,
-  ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, NormalModuleCreateData,
+  incremental::{IncrementalPasses, Mutation},
+  BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta,
+  DependencyId, FactoryMeta, Logger, MaybeDynamicTargetExportInfo, ModuleFactoryCreateData,
+  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData,
   NormalModuleFactoryModule, Plugin, ResolvedExportInfoTarget, SideEffectsBailoutItemWithSpan,
+  SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_paths::AssertUtf8;
-use rspack_paths::Utf8Path;
+use rspack_paths::{AssertUtf8, Utf8Path};
 use sugar_path::SugarPath;
-use swc_core::common::comments::Comments;
-use swc_core::common::{comments, Span, Spanned, SyntaxContext, GLOBALS};
-use swc_core::ecma::ast::*;
-use swc_core::ecma::utils::{ExprCtx, ExprExt};
-use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
+use swc_core::{
+  common::{comments, comments::Comments, Span, Spanned, SyntaxContext, GLOBALS},
+  ecma::{
+    ast::*,
+    utils::{ExprCtx, ExprExt},
+    visit::{noop_visit_type, Visit, VisitWith},
+  },
+};
 
 use crate::dependency::{ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency};
 
@@ -629,7 +621,7 @@ impl ClassExt for ClassMember {
 #[derive(Debug, Default)]
 pub struct SideEffectsFlagPlugin;
 
-#[plugin_hook(NormalModuleFactoryModule for SideEffectsFlagPlugin)]
+#[plugin_hook(NormalModuleFactoryModule for SideEffectsFlagPlugin,tracing=false)]
 async fn nmf_module(
   &self,
   _data: &mut ModuleFactoryCreateData,
@@ -664,8 +656,8 @@ async fn nmf_module(
   Ok(())
 }
 
-#[plugin_hook(CompilationOptimizeDependencies for SideEffectsFlagPlugin)]
-fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+#[plugin_hook(CompilationOptimizeDependencies for SideEffectsFlagPlugin,tracing=false)]
+async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   let logger = compilation.get_logger("rspack.SideEffectsFlagPlugin");
   let start = logger.time("update connections");
 
@@ -768,7 +760,7 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
 
   let mut do_optimizes: Vec<(DependencyId, SideEffectsDoOptimize)> = if compilation
     .incremental
-    .can_read_mutations(IncrementalPasses::SIDE_EFFECTS)
+    .mutations_readable(IncrementalPasses::SIDE_EFFECTS)
   {
     side_effects_optimize_artifact.extend(artifact);
     side_effects_optimize_artifact.clone()
@@ -841,7 +833,7 @@ fn do_optimize_connection(
   (dependency, target_module)
 }
 
-#[tracing::instrument(skip_all)]
+#[tracing::instrument("can_optimize_connection", level = "trace", skip_all)]
 fn can_optimize_connection(
   connection: &ModuleGraphConnection,
   side_effects_state_map: &IdentifierMap<ConnectionState>,

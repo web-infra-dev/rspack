@@ -1,11 +1,14 @@
 import nodePath from "node:path";
 import type { AssetInfo, RawFuncUseCtx } from "@rspack/binding";
-import { type SyncParseReturnType, ZodIssueCode, z } from "zod";
+import z, { type SyncParseReturnType, ZodIssueCode } from "zod";
 import { Chunk } from "../Chunk";
 import { ChunkGraph } from "../ChunkGraph";
 import type { Compilation, PathData } from "../Compilation";
 import { Module } from "../Module";
 import ModuleGraph from "../ModuleGraph";
+import { ZodSwcLoaderOptions } from "../builtin-loader/swc/types";
+import { validate } from "../util/validate";
+import type { ResolveCallback } from "./adapterRuleUse";
 import type * as t from "./types";
 import { ZodRspackCrossChecker } from "./utils";
 
@@ -379,12 +382,14 @@ const output = z.strictObject({
 //#endregion
 
 //#region Resolve
-const resolveAlias = z.record(
-	z
-		.literal(false)
-		.or(z.string())
-		.or(z.array(z.string().or(z.literal(false))))
-) satisfies z.ZodType<t.ResolveAlias>;
+const resolveAlias = z
+	.record(
+		z
+			.literal(false)
+			.or(z.string())
+			.or(z.array(z.string().or(z.literal(false))))
+	)
+	.or(z.literal(false)) satisfies z.ZodType<t.ResolveAlias>;
 
 const resolveTsConfigFile = z.string();
 const resolveTsConfig = resolveTsConfigFile.or(
@@ -451,11 +456,54 @@ const ruleSetLoaderOptions = z
 	.string()
 	.or(z.record(z.any())) satisfies z.ZodType<t.RuleSetLoaderOptions>;
 
-const ruleSetLoaderWithOptions = z.strictObject({
-	ident: z.string().optional(),
-	loader: ruleSetLoader,
-	options: ruleSetLoaderOptions.optional()
-}) satisfies z.ZodType<t.RuleSetLoaderWithOptions>;
+const ruleSetLoaderWithOptions =
+	new ZodRspackCrossChecker<t.RuleSetLoaderWithOptions>({
+		patterns: [
+			{
+				test: (_, input) =>
+					input?.data?.loader === "builtin:swc-loader" &&
+					typeof input?.data?.options === "object",
+				type: z.strictObject({
+					ident: z.string().optional(),
+					loader: z.literal("builtin:swc-loader"),
+					options: ZodSwcLoaderOptions,
+					parallel: z.boolean().optional()
+				}),
+				issue: (res, _, input) => {
+					try {
+						const message = validate(input.data.options, ZodSwcLoaderOptions, {
+							output: false,
+							strategy: "strict"
+						});
+						if (message) {
+							return [
+								{
+									fatal: true,
+									code: ZodIssueCode.custom,
+									message: `Invalid options of 'builtin:swc-loader': ${message}`
+								}
+							];
+						}
+						return [];
+					} catch (e) {
+						return [
+							{
+								fatal: true,
+								code: ZodIssueCode.custom,
+								message: `Invalid options of 'builtin:swc-loader': ${(e as Error).message}`
+							}
+						];
+					}
+				}
+			}
+		],
+		default: z.strictObject({
+			ident: z.string().optional(),
+			loader: ruleSetLoader,
+			options: ruleSetLoaderOptions.optional(),
+			parallel: z.boolean().optional()
+		})
+	}) satisfies z.ZodType<t.RuleSetLoaderWithOptions>;
 
 const ruleSetUseItem = ruleSetLoader.or(
 	ruleSetLoaderWithOptions
@@ -493,9 +541,58 @@ const baseRuleSetRule = z.strictObject({
 	enforce: z.literal("pre").or(z.literal("post")).optional()
 }) satisfies z.ZodType<t.RuleSetRule>;
 
-const ruleSetRule: z.ZodType<t.RuleSetRule> = baseRuleSetRule.extend({
-	oneOf: z.lazy(() => ruleSetRule.or(falsy).array()).optional(),
-	rules: z.lazy(() => ruleSetRule.or(falsy).array()).optional()
+const extendedBaseRuleSetRule: z.ZodType<t.RuleSetRule> =
+	baseRuleSetRule.extend({
+		oneOf: z.lazy(() => ruleSetRule.or(falsy).array()).optional(),
+		rules: z.lazy(() => ruleSetRule.or(falsy).array()).optional()
+	});
+
+const extendedSwcRuleSetRule: z.ZodType<t.RuleSetRule> = baseRuleSetRule
+	.extend({
+		loader: z.literal("builtin:swc-loader"),
+		options: ZodSwcLoaderOptions
+	})
+	.extend({
+		oneOf: z.lazy(() => ruleSetRule.or(falsy).array()).optional(),
+		rules: z.lazy(() => ruleSetRule.or(falsy).array()).optional()
+	});
+
+const ruleSetRule = new ZodRspackCrossChecker<t.RuleSetRule>({
+	patterns: [
+		{
+			test: (_, input) =>
+				input?.data?.loader === "builtin:swc-loader" &&
+				typeof input?.data?.options === "object",
+			type: extendedSwcRuleSetRule,
+			issue: (res, _, input) => {
+				try {
+					const message = validate(input.data.options, ZodSwcLoaderOptions, {
+						output: false,
+						strategy: "strict"
+					});
+					if (message) {
+						return [
+							{
+								fatal: true,
+								code: ZodIssueCode.custom,
+								message: `Invalid options of 'builtin:swc-loader': ${message}`
+							}
+						];
+					}
+					return [];
+				} catch (e) {
+					return [
+						{
+							fatal: true,
+							code: ZodIssueCode.custom,
+							message: `Invalid options of 'builtin:swc-loader': ${(e as Error).message}`
+						}
+					];
+				}
+			}
+		}
+	],
+	default: extendedBaseRuleSetRule
 });
 
 const ruleSetRules = z.array(
@@ -886,14 +983,7 @@ const externalItemFunctionData = z.strictObject({
 				.or(
 					z
 						.function()
-						.args(
-							z.string(),
-							z.string(),
-							z
-								.function()
-								.args(z.instanceof(Error).optional(), z.string().optional())
-								.returns(z.void())
-						)
+						.args(z.string(), z.string(), z.custom<ResolveCallback>())
 						.returns(z.void())
 				)
 		)
@@ -1215,6 +1305,7 @@ const sharedOptimizationSplitChunksCacheGroup = {
 	name: optimizationSplitChunksName.optional(),
 	filename: filename.optional(),
 	minSize: optimizationSplitChunksSizes.optional(),
+	minSizeReduction: optimizationSplitChunksSizes.optional(),
 	maxSize: optimizationSplitChunksSizes.optional(),
 	maxAsyncSize: optimizationSplitChunksSizes.optional(),
 	maxInitialSize: optimizationSplitChunksSizes.optional(),
@@ -1309,17 +1400,6 @@ const rspackFutureOptions = z.strictObject({
 		.optional()
 }) satisfies z.ZodType<t.RspackFutureOptions>;
 
-const listenOptions = z.object({
-	port: z.number().optional(),
-	host: z.string().optional(),
-	backlog: z.number().optional(),
-	path: z.string().optional(),
-	exclusive: z.boolean().optional(),
-	readableAll: z.boolean().optional(),
-	writableAll: z.boolean().optional(),
-	ipv6Only: z.boolean().optional()
-});
-
 const experimentCacheOptions = z
 	.object({
 		type: z.enum(["memory"])
@@ -1354,24 +1434,15 @@ const experimentCacheOptions = z
 	);
 
 const lazyCompilationOptions = z.object({
-	backend: z
-		.object({
-			client: z.string().optional(),
-			listen: z
-				.number()
-				.or(listenOptions)
-				.or(z.function().args(z.any()).returns(z.void()))
-				.optional(),
-			protocol: z.enum(["http", "https"]).optional(),
-			server: z.record(z.any()).or(z.function().returns(z.any())).optional()
-		})
-		.optional(),
 	imports: z.boolean().optional(),
 	entries: z.boolean().optional(),
 	test: z
 		.instanceof(RegExp)
 		.or(z.function().args(z.custom<Module>()).returns(z.boolean()))
-		.optional()
+		.optional(),
+	client: z.string().optional(),
+	serverUrl: z.string().optional(),
+	prefix: z.string().optional()
 }) satisfies z.ZodType<t.LazyCompilationOptions>;
 
 const incremental = z.strictObject({
@@ -1392,6 +1463,29 @@ const incremental = z.strictObject({
 	emitAssets: z.boolean().optional()
 }) satisfies z.ZodType<t.Incremental>;
 
+// Define buildHttp options schema
+const buildHttpOptions = z.object({
+	allowedUris: z.array(z.union([z.string(), z.instanceof(RegExp)])),
+	lockfileLocation: z.string().optional(),
+	cacheLocation: z.union([z.string(), z.literal(false)]).optional(),
+	upgrade: z.boolean().optional(),
+	// proxy: z.string().optional(),
+	// frozen: z.boolean().optional(),
+	httpClient: z
+		.function()
+		.args(z.string(), z.record(z.string()))
+		.returns(
+			z.promise(
+				z.object({
+					status: z.number(),
+					headers: z.record(z.string()),
+					body: z.instanceof(Buffer)
+				})
+			)
+		)
+		.optional()
+}) satisfies z.ZodType<t.HttpUriOptions>;
+
 const experiments = z.strictObject({
 	cache: z.boolean().optional().or(experimentCacheOptions),
 	lazyCompilation: z.boolean().optional().or(lazyCompilationOptions),
@@ -1403,7 +1497,9 @@ const experiments = z.strictObject({
 	incremental: z.boolean().or(incremental).optional(),
 	parallelCodeSplitting: z.boolean().optional(),
 	futureDefaults: z.boolean().optional(),
-	rspackFuture: rspackFutureOptions.optional()
+	rspackFuture: rspackFutureOptions.optional(),
+	buildHttp: buildHttpOptions.optional(),
+	parallelLoader: z.boolean().optional()
 }) satisfies z.ZodType<t.Experiments>;
 //#endregion
 

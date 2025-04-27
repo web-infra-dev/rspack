@@ -1,12 +1,14 @@
-use std::path::Path;
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
-use napi::Either;
+use napi::{bindgen_prelude::block_on, Either};
 use napi_derive::napi;
-use rspack_core::{ResolveOptionsWithDependencyType, Resolver, ResolverFactory};
+use rspack_core::{ResolveOptionsWithDependencyType, Resolver, ResolverFactory, ResourceData};
 
-use crate::raw_resolve::{
-  normalize_raw_resolve_options_with_dependency_type, RawResolveOptionsWithDependencyType,
+use crate::{
+  raw_resolve::{
+    normalize_raw_resolve_options_with_dependency_type, RawResolveOptionsWithDependencyType,
+  },
+  JsResourceData,
 };
 
 #[napi]
@@ -30,16 +32,23 @@ impl JsResolver {
     }
   }
 }
-
 #[napi]
 impl JsResolver {
-  #[napi(ts_return_type = "string | false")]
-  pub fn resolve_sync(&self, path: String, request: String) -> napi::Result<Either<String, bool>> {
-    match self.resolver.resolve(Path::new(&path), &request) {
-      Ok(rspack_core::ResolveResult::Resource(resource)) => Ok(Either::A(resource.full_path())),
-      Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(false)),
-      Err(err) => Err(napi::Error::from_reason(format!("{:?}", err))),
-    }
+  #[napi(ts_return_type = "JsResourceData | false")]
+  pub fn resolve_sync(
+    &self,
+    path: String,
+    request: String,
+  ) -> napi::Result<Either<JsResourceData, bool>> {
+    block_on(async move {
+      match self.resolver.resolve(Path::new(&path), &request).await {
+        Ok(rspack_core::ResolveResult::Resource(resource)) => {
+          Ok(Either::A(ResourceData::from(resource).into()))
+        }
+        Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(false)),
+        Err(err) => Err(napi::Error::from_reason(format!("{:?}", err))),
+      }
+    })
   }
 
   #[napi]
@@ -53,14 +62,13 @@ impl JsResolver {
       Ok(mut options) => {
         options.resolve_options = match options.resolve_options.take() {
           Some(resolve_options) => match &self.options.resolve_options {
-            Some(origin_resolve_options) => Some(Box::new(
-              resolve_options.merge(*origin_resolve_options.clone()),
+            Some(base_resolve_options) => Some(Box::new(
+              base_resolve_options.clone().merge(*resolve_options),
             )),
             None => Some(resolve_options),
           },
           None => self.options.resolve_options.clone(),
         };
-
         Ok(Self::new(self.resolver_factory.clone(), options))
       }
       Err(e) => Err(napi::Error::from_reason(format!("{e}"))),

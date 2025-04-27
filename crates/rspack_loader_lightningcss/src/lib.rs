@@ -1,4 +1,7 @@
-use std::borrow::Cow;
+use std::{
+  borrow::Cow,
+  sync::{Arc, RwLock},
+};
 
 use config::Config;
 use derive_more::Debug;
@@ -14,7 +17,7 @@ use rspack_core::{
   rspack_sources::{encode_mappings, Mapping, OriginalLocation, SourceMap},
   Loader, LoaderContext, RunnerContext,
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_loader_runner::{Identifiable, Identifier};
 use tokio::sync::Mutex;
 
@@ -76,16 +79,45 @@ impl LightningCssLoader {
       matches!(&self.config.non_standard, Some(non_standard) if non_standard.deep_selector_combinator),
     );
 
+    let error_recovery = self.config.error_recovery.unwrap_or(true);
+    let warnings = if error_recovery {
+      Some(Arc::new(RwLock::new(Vec::new())))
+    } else {
+      None
+    };
+
     let option = ParserOptions {
       filename: filename.clone(),
       css_modules: None,
       source_index: 0,
-      error_recovery: self.config.error_recovery.unwrap_or(true),
-      warnings: None,
+      error_recovery,
+      warnings: warnings.clone(),
       flags: parser_flags,
     };
-    let stylesheet = StyleSheet::parse(&content_str, option.clone())
-      .map_err(|e| rspack_error::error!(e.to_string()))?;
+    let stylesheet = StyleSheet::parse(&content_str, option.clone()).to_rspack_result()?;
+
+    if let Some(warnings) = warnings {
+      #[allow(clippy::unwrap_used)]
+      let warnings = warnings.read().unwrap();
+      for warning in warnings.iter() {
+        if matches!(
+          warning.kind,
+          lightningcss::error::ParserError::SelectorError(
+            lightningcss::error::SelectorError::UnsupportedPseudoClass(_)
+          ) | lightningcss::error::ParserError::SelectorError(
+            lightningcss::error::SelectorError::UnsupportedPseudoElement(_)
+          )
+        ) {
+          // ignore parsing errors on pseudo class from lightningcss-loader
+          // to allow pseudo class in CSS modules and Vue.
+          continue;
+        }
+        loader_context.emit_diagnostic(Diagnostic::warn(
+          "builtin:lightningcss-loader".to_string(),
+          format!("LightningCSS parse warning: {}", warning),
+        ));
+      }
+    }
 
     let mut stylesheet = to_static(
       stylesheet,
@@ -134,7 +166,7 @@ impl LightningCssLoader {
         targets,
         unused_symbols,
       })
-      .map_err(|e| rspack_error::error!(e))?;
+      .to_rspack_result()?;
 
     let enable_sourcemap = loader_context.context.module_source_map_kind.enabled();
 
@@ -147,8 +179,7 @@ impl LightningCssLoader {
             .unwrap_or(&loader_context.context.options.context),
         );
         sm.add_source(&filename);
-        sm.set_source_content(0, &content_str)
-          .map_err(|e| rspack_error::error!(e))?;
+        sm.set_source_content(0, &content_str).to_rspack_result()?;
         Ok(sm)
       })
       .transpose()?
@@ -185,7 +216,7 @@ impl LightningCssLoader {
             focus_within: pseudo_classes.focus_within.as_deref(),
           }),
       })
-      .map_err(|_| rspack_error::error!("failed to generate css"))?;
+      .to_rspack_result_with_message(|e| format!("failed to generate css: {e}"))?;
 
     if enable_sourcemap {
       let mappings = encode_mappings(source_map.get_mappings().iter().map(|mapping| Mapping {

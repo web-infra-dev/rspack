@@ -1,15 +1,14 @@
 import type { StatsCompilation } from "@rspack/core";
 
+import type { HotUpdatePlugin } from "../helper/hot-update";
 import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
-import { refreshModifyTime } from "../helper/util/refreshModifyTime";
 import {
 	type ECompilerType,
 	EDocumentType,
 	type ITestEnv,
 	type ITestRunner,
 	type TCompilerOptions,
-	type TCompilerStatsCompilation,
-	type TUpdateOptions
+	type TCompilerStatsCompilation
 } from "../type";
 import { BasicRunnerFactory } from "./basic";
 import { WebRunner } from "./runner/web";
@@ -30,7 +29,7 @@ export class CacheRunnerFactory<
 		const testConfig = this.context.getTestConfig();
 		const source = this.context.getSource();
 		const dist = this.context.getDist();
-		const hotUpdateContext = this.context.getValue<TUpdateOptions>(
+		const updatePlugin = this.context.getValue<HotUpdatePlugin>(
 			this.name,
 			"hotUpdateContext"
 		)!;
@@ -67,7 +66,7 @@ export class CacheRunnerFactory<
 			m: any,
 			options?: any
 		): Promise<TCompilerStatsCompilation<T>> => {
-			hotUpdateContext.updateIndex++;
+			await updatePlugin.goNext();
 			const stats = await compiler.build();
 			if (!stats) {
 				throw new Error("Should generate stats during build");
@@ -76,18 +75,19 @@ export class CacheRunnerFactory<
 				// errorDetails: true
 			});
 
+			const updateIndex = updatePlugin.getUpdateIndex();
 			await checkArrayExpectation(
 				source,
 				jsonStats,
 				"error",
-				`errors${hotUpdateContext.updateIndex}`,
+				`errors${updateIndex}`,
 				"Error"
 			);
 			await checkArrayExpectation(
 				source,
 				jsonStats,
 				"warning",
-				`warnings${hotUpdateContext.updateIndex}`,
+				`warnings${updateIndex}`,
 				"Warning"
 			);
 
@@ -102,17 +102,8 @@ export class CacheRunnerFactory<
 		const nextStart = async (): Promise<TCompilerStatsCompilation<T>> => {
 			await compiler.close();
 			compiler.createCompiler();
-
-			const oldChangedFiles = hotUpdateContext.changedFiles;
-			await Promise.all(
-				oldChangedFiles.map(async file => {
-					await refreshModifyTime(file);
-				})
-			);
-			hotUpdateContext.changedFiles = [];
-			hotUpdateContext.updateIndex++;
+			await updatePlugin.goNext();
 			const stats = await compiler.build();
-			hotUpdateContext.changedFiles = oldChangedFiles;
 			if (!stats) {
 				throw new Error("Should generate stats during build");
 			}
@@ -120,18 +111,19 @@ export class CacheRunnerFactory<
 				// errorDetails: true
 			});
 
+			const updateIndex = updatePlugin.getUpdateIndex();
 			await checkArrayExpectation(
 				source,
 				jsonStats,
 				"error",
-				`errors${hotUpdateContext.updateIndex}`,
+				`errors${updateIndex}`,
 				"Error"
 			);
 			await checkArrayExpectation(
 				source,
 				jsonStats,
 				"warning",
-				`warnings${hotUpdateContext.updateIndex}`,
+				`warnings${updateIndex}`,
 				"Warning"
 			);
 			env.it(

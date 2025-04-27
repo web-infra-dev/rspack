@@ -1,10 +1,8 @@
 #![feature(if_let_guard)]
 #![feature(let_chains)]
 #![feature(box_patterns)]
-#![feature(trait_upcasting)]
 #![recursion_limit = "256"]
 
-pub mod ast;
 pub mod dependency;
 pub mod parser_and_generator;
 mod parser_plugin;
@@ -16,8 +14,7 @@ mod webpack_comment;
 pub use parser_plugin::*;
 use rspack_core::rspack_sources::SourceMap;
 
-pub use crate::plugin::infer_async_modules_plugin::InferAsyncModulesPlugin;
-pub use crate::plugin::*;
+pub use crate::plugin::{infer_async_modules_plugin::InferAsyncModulesPlugin, *};
 
 #[derive(Debug)]
 pub struct TransformOutput {

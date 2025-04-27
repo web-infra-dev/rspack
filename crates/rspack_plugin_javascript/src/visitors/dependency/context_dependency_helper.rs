@@ -1,5 +1,4 @@
-use std::borrow::Cow;
-use std::sync::LazyLock;
+use std::{borrow::Cow, sync::LazyLock};
 
 use itertools::Itertools;
 use regex::Regex;
@@ -49,14 +48,22 @@ pub fn create_context_dependency(
       None => (postfix_raw.to_string(), String::new(), String::new()),
     };
 
+    // When there are more than two quasis, the generated RegExp can be more precise
+    // We join the quasis with the expression regexp
+    let inner_quasis = if quasis.len() > 1 {
+      quasis[1..quasis.len() - 1]
+        .iter()
+        .map(|q| quote_meta(q.string().as_str()) + wrapped_context_reg_exp)
+        .join("")
+    } else {
+      "".to_string()
+    };
+
     let reg = format!(
       "^{}{}{}{}$",
       quote_meta(&prefix),
       wrapped_context_reg_exp,
-      quasis[1..quasis.len() - 1]
-        .iter()
-        .map(|q| quote_meta(q.string().as_str()) + wrapped_context_reg_exp)
-        .join(""),
+      inner_quasis,
       quote_meta(&postfix)
     );
 
@@ -86,6 +93,8 @@ pub fn create_context_dependency(
           let range = part.range();
           replaces.push((value, range.0, range.1 - 1));
         }
+      } else if let Some(expr) = part.expression() {
+        parser.walk_expression(expr);
       }
     }
 
@@ -179,6 +188,14 @@ pub fn create_context_dependency(
       critical = Some(warn);
     }
 
+    if let Some(inner_expressions) = param.wrapped_inner_expressions() {
+      for part in inner_expressions {
+        if let Some(inner_expression) = part.expression() {
+          parser.walk_expression(inner_expression);
+        }
+      }
+    }
+
     ContextModuleScanResult {
       context,
       reg,
@@ -201,6 +218,10 @@ pub fn create_context_dependency(
       .into();
       let warn = warn.with_module_identifier(Some(*parser.module_identifier));
       critical = Some(warn);
+    }
+
+    if let Some(expr) = param.expression() {
+      parser.walk_expression(expr);
     }
 
     ContextModuleScanResult {

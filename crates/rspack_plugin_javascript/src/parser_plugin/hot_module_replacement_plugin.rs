@@ -1,37 +1,47 @@
 use rspack_core::{BoxDependency, DependencyRange, SpanExt};
-use swc_core::common::{Span, Spanned};
-use swc_core::ecma::ast::{CallExpr, Expr, Lit};
-use swc_core::ecma::atoms::Atom;
-
-use crate::dependency::{
-  import_emitted_runtime, ESMAcceptDependency, ImportMetaHotAcceptDependency,
-  ImportMetaHotDeclineDependency, ModuleArgumentDependency, ModuleHotAcceptDependency,
-  ModuleHotDeclineDependency,
+use swc_core::{
+  common::{Span, Spanned},
+  ecma::{ast::CallExpr, atoms::Atom},
 };
-use crate::parser_plugin::JavascriptParserPlugin;
-use crate::utils::eval;
-use crate::visitors::{expr_name, JavascriptParser};
+
+use crate::{
+  dependency::{
+    import_emitted_runtime, ESMAcceptDependency, ImportMetaHotAcceptDependency,
+    ImportMetaHotDeclineDependency, ModuleArgumentDependency, ModuleHotAcceptDependency,
+    ModuleHotDeclineDependency,
+  },
+  parser_plugin::JavascriptParserPlugin,
+  utils::eval,
+  visitors::{expr_name, JavascriptParser},
+};
 
 type CreateDependency = fn(Atom, DependencyRange) -> BoxDependency;
 
-fn extract_deps(call_expr: &CallExpr, create_dependency: CreateDependency) -> Vec<BoxDependency> {
+fn extract_deps(
+  parser: &mut JavascriptParser,
+  call_expr: &CallExpr,
+  create_dependency: CreateDependency,
+) -> Vec<BoxDependency> {
   let mut dependencies: Vec<BoxDependency> = vec![];
 
   if let Some(first_arg) = call_expr.args.first() {
-    match &*first_arg.expr {
-      Expr::Lit(Lit::Str(s)) => {
-        dependencies.push(create_dependency(s.value.clone(), s.span.into()));
-      }
-      Expr::Array(array_lit) => {
-        array_lit.elems.iter().for_each(|e| {
-          if let Some(expr) = e {
-            if let Expr::Lit(Lit::Str(s)) = &*expr.expr {
-              dependencies.push(create_dependency(s.value.clone(), s.span.into()));
-            }
-          }
+    let expr = parser.evaluate_expression(&first_arg.expr);
+    if expr.is_string() {
+      dependencies.push(create_dependency(
+        expr.string().as_str().into(),
+        (expr.range().0, expr.range().1 - 1).into(),
+      ));
+    } else if expr.is_array() {
+      expr
+        .items()
+        .iter()
+        .filter(|item| item.is_string())
+        .for_each(|expr| {
+          dependencies.push(create_dependency(
+            expr.string().as_str().into(),
+            (expr.range().0, expr.range().1 - 1).into(),
+          ));
         });
-      }
-      _ => {}
     }
   }
 
@@ -63,8 +73,8 @@ impl JavascriptParser<'_> {
         call_expr.callee.span().into(),
         Some(self.source_map.clone()),
       )));
-    let dependencies = extract_deps(call_expr, create_dependency);
-    if self.build_meta.esm && !call_expr.args.is_empty() {
+    let dependencies = extract_deps(self, call_expr, create_dependency);
+    if !dependencies.is_empty() {
       let dependency_ids = dependencies.iter().map(|dep| *dep.id()).collect::<Vec<_>>();
       let callback_arg = call_expr.args.get(1);
       let range = if let Some(callback) = callback_arg {
@@ -80,8 +90,12 @@ impl JavascriptParser<'_> {
           dependency_ids,
           Some(self.source_map.clone()),
         )));
+      self.dependencies.extend(dependencies);
+      for arg in call_expr.args.iter().skip(1) {
+        self.walk_expression(&arg.expr);
+      }
+      return Some(true);
     }
-    self.dependencies.extend(dependencies);
     self.walk_expr_or_spread(&call_expr.args);
     Some(true)
   }
@@ -99,7 +113,7 @@ impl JavascriptParser<'_> {
         call_expr.callee.span().into(),
         Some(self.source_map.clone()),
       )));
-    let dependencies = extract_deps(call_expr, create_dependency);
+    let dependencies = extract_deps(self, call_expr, create_dependency);
     self.dependencies.extend(dependencies);
     Some(true)
   }
@@ -124,7 +138,7 @@ impl JavascriptParserPlugin for ModuleHotReplacementParserPlugin {
     ident: &str,
     start: u32,
     end: u32,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression> {
+  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
     if ident == expr_name::MODULE_HOT {
       Some(eval::evaluate_to_identifier(
         expr_name::MODULE_HOT.to_string(),
@@ -191,7 +205,7 @@ impl JavascriptParserPlugin for ImportMetaHotReplacementParserPlugin {
     ident: &str,
     start: u32,
     end: u32,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression> {
+  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
     if ident == expr_name::IMPORT_META_WEBPACK_HOT {
       Some(eval::evaluate_to_identifier(
         expr_name::IMPORT_META_WEBPACK_HOT.to_string(),

@@ -12,9 +12,9 @@ type ResolveOptionsWithDependencyType = Resolve & {
 	resolveToContext?: boolean;
 };
 
-function isString(value: string | RegExp): value is string {
-	return typeof value === "string";
-}
+export type ResourceData = binding.JsResourceData;
+
+export type ResolveRequest = ResourceData;
 
 export class Resolver {
 	binding: binding.JsResolver;
@@ -24,7 +24,9 @@ export class Resolver {
 	}
 
 	resolveSync(context: object, path: string, request: string): string | false {
-		return this.binding.resolveSync(path, request);
+		const data = this.binding.resolveSync(path, request);
+		if (data === false) return data;
+		return data.resource;
 	}
 
 	resolve(
@@ -35,8 +37,12 @@ export class Resolver {
 		callback: ResolveCallback
 	): void {
 		try {
-			const res = this.binding.resolveSync(path, request);
-			callback(null, res);
+			const data = this.binding.resolveSync(path, request);
+			if (data === false) {
+				callback(null, false);
+				return;
+			}
+			callback(null, data.resource, data);
 		} catch (err) {
 			callback(err as ErrorWithDetails);
 		}
@@ -48,12 +54,6 @@ export class Resolver {
 		...resolve
 	}: ResolveOptionsWithDependencyType): Resolver {
 		const rawResolve = getRawResolve(resolve);
-
-		// TODO: rspack_resolver is unimplemented regex
-		if (Array.isArray(rawResolve.restrictions)) {
-			rawResolve.restrictions =
-				rawResolve.restrictions.filter<string>(isString);
-		}
 
 		const binding = this.binding.withOptions({
 			dependencyCategory,

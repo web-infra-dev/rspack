@@ -40,7 +40,7 @@ impl DefinePlugin {
 #[diagnostic(severity(Warning))]
 struct ConflictingValuesError(String, String, String);
 
-#[plugin_hook(CompilerCompilation for DefinePlugin)]
+#[plugin_hook(CompilerCompilation for DefinePlugin, tracing=false)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,
@@ -84,8 +84,8 @@ async fn compilation(
   Ok(())
 }
 
-#[plugin_hook(NormalModuleFactoryParser for DefinePlugin)]
-fn nmf_parser(
+#[plugin_hook(NormalModuleFactoryParser for DefinePlugin, tracing=false)]
+async fn nmf_parser(
   &self,
   module_type: &ModuleType,
   parser: &mut dyn ParserAndGenerator,

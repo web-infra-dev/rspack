@@ -1,6 +1,10 @@
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::LazyLock;
-use std::{borrow::Cow, sync::Arc};
+use std::{
+  borrow::Cow,
+  sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, LazyLock,
+  },
+};
 
 use itertools::Itertools as _;
 use regex::Regex;
@@ -30,7 +34,7 @@ type OnEvaluateIdentifier = dyn Fn(
     &str, /* Ident */
     u32,  /* start */
     u32,  /* end */
-  ) -> Option<BasicEvaluatedExpression>
+  ) -> Option<BasicEvaluatedExpression<'static>>
   + Send
   + Sync;
 
@@ -39,7 +43,7 @@ type OnEvaluateTypeof = dyn Fn(
     &mut JavascriptParser,
     u32, /* start */
     u32, /* end */
-  ) -> Option<BasicEvaluatedExpression>
+  ) -> Option<BasicEvaluatedExpression<'static>>
   + Send
   + Sync;
 
@@ -130,7 +134,7 @@ type OnObjectEvaluateIdentifier = dyn Fn(
     &str, /* Ident */
     u32,  /* start */
     u32,  /* end */
-  ) -> Option<BasicEvaluatedExpression>
+  ) -> Option<BasicEvaluatedExpression<'static>>
   + Send
   + Sync;
 
@@ -285,7 +289,7 @@ pub(super) fn walk_definitions(definitions: &DefineValue) -> WalkData {
     walk_data.define_record.insert(key, define_record);
   }
 
-  fn object_evaluate_identifier(start: u32, end: u32) -> BasicEvaluatedExpression {
+  fn object_evaluate_identifier(start: u32, end: u32) -> BasicEvaluatedExpression<'static> {
     let mut evaluated = BasicEvaluatedExpression::new();
     evaluated.set_truthy();
     evaluated.set_side_effects(false);
@@ -376,12 +380,12 @@ impl JavascriptParserPlugin for DefineParserPlugin {
     self.walk_data.can_rename.contains(str).then_some(true)
   }
 
-  fn evaluate_typeof(
+  fn evaluate_typeof<'a>(
     &self,
     parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::UnaryExpr,
+    expr: &'a swc_core::ecma::ast::UnaryExpr,
     for_name: &str,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     if let Some(record) = self.walk_data.define_record.get(for_name)
       && let Some(on_evaluate_typeof) = &record.on_evaluate_typeof
     {
@@ -402,7 +406,7 @@ impl JavascriptParserPlugin for DefineParserPlugin {
     ident: &str,
     start: u32,
     end: u32,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression> {
+  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
     if let Some(record) = self.walk_data.define_record.get(ident)
       && let Some(on_evaluate_identifier) = &record.on_evaluate_identifier
     {
@@ -560,7 +564,11 @@ fn dep(
   };
 
   let to_const_dep = |requirements: Option<RuntimeGlobals>| {
-    ConstDependency::new(start, end, code.clone().into_boxed_str(), requirements)
+    ConstDependency::new(
+      (start, end).into(),
+      code.clone().into_boxed_str(),
+      requirements,
+    )
   };
 
   if WEBPACK_REQUIRE_FUNCTION_REGEXP.is_match(&code) {
@@ -596,7 +604,7 @@ fn to_code(code: &Value, asi_safe: Option<bool>, obj_keys: Option<FxHashSet<Stri
       let elements = obj
         .iter()
         .filter_map(|(key, value)| {
-          if obj_keys.as_ref().map_or(true, |keys| keys.contains(key)) {
+          if obj_keys.as_ref().is_none_or(|keys| keys.contains(key)) {
             Some(format!("{}:{}", json!(key), to_code(value, None, None)))
           } else {
             None

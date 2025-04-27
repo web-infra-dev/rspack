@@ -3,16 +3,17 @@ use std::borrow::Cow;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_collections::Identifiable;
 use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_macros::impl_source_map_config;
 use rspack_sources::{BoxSource, RawStringSource, Source, SourceExt};
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{
-  dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info, BuildInfo,
-  BuildMeta, CodeGenerationResult, Context, DependenciesBlock, DependencyId, Module,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info, module_update_hash,
+  BuildInfo, BuildMeta, CodeGenerationResult, Compilation, ConcatenationScope, Context,
+  DependenciesBlock, DependencyId, FactoryMeta, Module, ModuleIdentifier, ModuleType,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
-use crate::{module_update_hash, Compilation, ConcatenationScope, FactoryMeta};
 
 #[impl_source_map_config]
 #[cacheable]
@@ -113,7 +114,7 @@ impl Module for RawModule {
   }
 
   // #[tracing::instrument("RawModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
-  fn code_generation(
+  async fn code_generation(
     &self,
     _compilation: &crate::Compilation,
     _runtime: Option<&RuntimeSpec>,
@@ -125,15 +126,15 @@ impl Module for RawModule {
     Ok(cgr)
   }
 
-  fn update_hash(
+  async fn get_runtime_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
-  ) -> Result<()> {
-    self.source.dyn_hash(hasher);
-    module_update_hash(self, hasher, compilation, runtime);
-    Ok(())
+  ) -> Result<RspackHashDigest> {
+    let mut hasher = RspackHash::from(&compilation.options.output);
+    self.source.dyn_hash(&mut hasher);
+    module_update_hash(self, &mut hasher, compilation, runtime);
+    Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 }
 

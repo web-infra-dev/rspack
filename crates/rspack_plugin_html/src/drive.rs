@@ -52,12 +52,12 @@ pub struct AfterEmitData {
   pub compilation_id: CompilationId,
 }
 
-define_hook!(HtmlPluginBeforeAssetTagGeneration: AsyncSeriesWaterfall(data: BeforeAssetTagGenerationData) -> BeforeAssetTagGenerationData);
-define_hook!(HtmlPluginAlterAssetTags: AsyncSeriesWaterfall(data: AlterAssetTagsData) -> AlterAssetTagsData);
-define_hook!(HtmlPluginAlterAssetTagGroups: AsyncSeriesWaterfall(data: AlterAssetTagGroupsData) -> AlterAssetTagGroupsData);
-define_hook!(HtmlPluginAfterTemplateExecution: AsyncSeriesWaterfall(data: AfterTemplateExecutionData) -> AfterTemplateExecutionData);
-define_hook!(HtmlPluginBeforeEmit: AsyncSeriesWaterfall(data: BeforeEmitData) -> BeforeEmitData);
-define_hook!(HtmlPluginAfterEmit: AsyncSeriesWaterfall(data: AfterEmitData) -> AfterEmitData);
+define_hook!(HtmlPluginBeforeAssetTagGeneration: SeriesWaterfall(data: BeforeAssetTagGenerationData) -> BeforeAssetTagGenerationData);
+define_hook!(HtmlPluginAlterAssetTags: SeriesWaterfall(data: AlterAssetTagsData) -> AlterAssetTagsData);
+define_hook!(HtmlPluginAlterAssetTagGroups: SeriesWaterfall(data: AlterAssetTagGroupsData) -> AlterAssetTagGroupsData);
+define_hook!(HtmlPluginAfterTemplateExecution: SeriesWaterfall(data: AfterTemplateExecutionData) -> AfterTemplateExecutionData);
+define_hook!(HtmlPluginBeforeEmit: SeriesWaterfall(data: BeforeEmitData) -> BeforeEmitData);
+define_hook!(HtmlPluginAfterEmit: SeriesWaterfall(data: AfterEmitData) -> AfterEmitData);
 
 #[derive(Debug, Default)]
 pub struct HtmlPluginHooks {

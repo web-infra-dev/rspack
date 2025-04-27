@@ -13,9 +13,7 @@ module.exports = {
 			{
 				test: /\.(j|t)s$/,
 				loader: "builtin:swc-loader",
-				options: {
-					target: "es5"
-				},
+				options: {},
 				type: "javascript/auto"
 			}
 		]

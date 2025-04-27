@@ -1,13 +1,19 @@
 import * as binding from "@rspack/binding";
 import type { Source } from "webpack-sources";
-import { DependenciesBlock } from "./DependenciesBlock";
 import { JsSource } from "./util/source";
 
-Object.defineProperty(binding.ExternalModule.prototype, "blocks", {
+Object.defineProperty(binding.ExternalModule.prototype, "identifier", {
 	enumerable: true,
 	configurable: true,
-	get(this: binding.ExternalModule) {
-		return this._blocks.map(block => DependenciesBlock.__from_binding(block));
+	value(this: binding.ExternalModule): string {
+		return this[binding.MODULE_IDENTIFIER_SYMBOL];
+	}
+});
+Object.defineProperty(binding.ExternalModule.prototype, "readableIdentifier", {
+	enumerable: true,
+	configurable: true,
+	value(this: binding.ExternalModule) {
+		return this._readableIdentifier;
 	}
 });
 Object.defineProperty(binding.ExternalModule.prototype, "originalSource", {

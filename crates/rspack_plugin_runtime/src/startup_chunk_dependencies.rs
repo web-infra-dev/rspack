@@ -49,7 +49,7 @@ async fn additional_tree_runtime_requirements(
 }
 
 #[plugin_hook(CompilationRuntimeRequirementInTree for StartupChunkDependenciesPlugin)]
-fn runtime_requirements_in_tree(
+async fn runtime_requirements_in_tree(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,

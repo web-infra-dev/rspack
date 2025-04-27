@@ -99,13 +99,13 @@ export class HotRunnerFactory<
 			name: this.name,
 			runInNewContext: false,
 			testConfig: {
+				documentType: testConfig.documentType || EDocumentType.Fake,
 				...testConfig,
 				moduleScope(ms, stats) {
-					const moduleScope =
-						typeof testConfig.moduleScope === "function"
-							? testConfig.moduleScope(ms, stats)
-							: ms;
-
+					const moduleScope = ms;
+					if (typeof testConfig.moduleScope === "function") {
+						testConfig.moduleScope(moduleScope, stats);
+					}
 					moduleScope.NEXT = next;
 					moduleScope.NEXT_HMR = nextHMR;
 					return moduleScope;

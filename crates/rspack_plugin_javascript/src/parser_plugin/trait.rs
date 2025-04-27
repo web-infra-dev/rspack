@@ -1,15 +1,19 @@
-use swc_core::atoms::Atom;
-use swc_core::common::Span;
-use swc_core::ecma::ast::{
-  AssignExpr, AwaitExpr, BinExpr, CallExpr, ClassMember, CondExpr, Expr, ForOfStmt, Ident, IfStmt,
-  ImportDecl, MemberExpr, ModuleDecl, OptChainExpr,
+use swc_core::{
+  atoms::Atom,
+  common::Span,
+  ecma::ast::{
+    AssignExpr, AwaitExpr, BinExpr, CallExpr, ClassMember, CondExpr, Expr, ForOfStmt, Ident,
+    IfStmt, ImportDecl, MemberExpr, ModuleDecl, NewExpr, OptChainExpr, Program, ThisExpr,
+    UnaryExpr, VarDecl, VarDeclarator,
+  },
 };
-use swc_core::ecma::ast::{NewExpr, Program, ThisExpr, UnaryExpr, VarDecl, VarDeclarator};
 
-use crate::utils::eval::BasicEvaluatedExpression;
-use crate::visitors::{
-  ClassDeclOrExpr, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal,
-  ExportedVariableInfo, JavascriptParser, Statement,
+use crate::{
+  utils::eval::BasicEvaluatedExpression,
+  visitors::{
+    ClassDeclOrExpr, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal,
+    ExportedVariableInfo, JavascriptParser, Statement,
+  },
 };
 
 type KeepRight = bool;
@@ -75,12 +79,12 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  fn evaluate_typeof(
+  fn evaluate_typeof<'a>(
     &self,
     _parser: &mut JavascriptParser,
-    _expr: &UnaryExpr,
+    _expr: &'a UnaryExpr,
     _for_name: &str,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     None
   }
 
@@ -90,17 +94,17 @@ pub trait JavascriptParserPlugin {
     _ident: &str,
     _start: u32,
     _end: u32,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'static>> {
     None
   }
 
-  fn evaluate_call_expression_member(
+  fn evaluate_call_expression_member<'a>(
     &self,
     _parser: &mut JavascriptParser,
     _property: &str,
-    _expr: &CallExpr,
-    _param: &BasicEvaluatedExpression,
-  ) -> Option<BasicEvaluatedExpression> {
+    _expr: &'a CallExpr,
+    _param: BasicEvaluatedExpression<'a>,
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     None
   }
 

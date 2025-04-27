@@ -6,40 +6,44 @@ export type JsFilename =
 	| string
 	| ((pathData: JsPathData, assetInfo?: AssetInfo) => string);
 
-export type LocalJsFilename = JsFilename;
-
 export type RawLazyCompilationTest = RegExp | ((module: Module) => boolean);
 
 export type AssetInfo = KnownAssetInfo & Record<string, any>;
 
+export const MODULE_IDENTIFIER_SYMBOL: unique symbol;
+
+export const COMPILATION_HOOKS_MAP_SYMBOL: unique symbol;
+
 export interface Module {
+	[MODULE_IDENTIFIER_SYMBOL]: string;
 	readonly type: string;
 	get context(): string | undefined;
 	get layer(): string | undefined;
-	get factoryMeta(): JsFactoryMeta | undefined
+	get factoryMeta(): JsFactoryMeta
+	set factoryMeta(factoryMeta: JsFactoryMeta);
 	get useSourceMap(): boolean;
 	get useSimpleSourceMap(): boolean;
+	get _readableIdentifier(): string;
 	buildInfo: Record<string, any>;
 	buildMeta: Record<string, any>;
 }
 
 interface NormalModuleConstructor {
-	new (): NormalModule;
+	new(): NormalModule;
 	readonly prototype: NormalModule;
 }
 
 export var NormalModule: NormalModuleConstructor;
 
 export interface NormalModule extends Module {
-	get resource(): string | undefined;
-	get request(): string | undefined
-	get userRequest(): string | undefined
-	set userRequest(val: string | undefined)
-	get rawRequest(): string | undefined
-	get loaders(): Array<JsLoaderItem> | undefined
-	get resourceResolveData(): JsResourceData | undefined
-	get matchResource(): string | undefined
-	set matchResource(val: string | undefined)
+	readonly resource: string;
+	readonly request: string;
+	readonly userRequest: string;
+	readonly rawRequest: string;
+	readonly resourceResolveData: JsResourceData | undefined;
+	readonly loaders: ReadonlyArray<JsLoaderItem>;
+	get matchResource(): string | undefined;
+	set matchResource(val: string | undefined);
 }
 
 export interface ConcatenatedModule extends Module {
@@ -49,6 +53,7 @@ export interface ContextModule extends Module {
 }
 
 export interface ExternalModule extends Module {
+	readonly userRequest: string;
 }
 /* -- banner.d.ts end -- */
 

@@ -1,0 +1,272 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# CircularDependencyRspackPlugin
+
+<ApiMeta specific={['Rspack']} addedVersion="1.3.0" />
+
+检测运行时模块之间的循环导入依赖关系。当运行时调用的函数使用时，循环引用通常不表示存在错误，但当在初始化期间使用导入时，可能会导致错误或错误。此插件不会区分这两者，但可用于在遇到错误后帮助识别和解决循环。
+
+```js
+new rspack.CircularDependencyRspackPlugin(options);
+```
+
+## 对比
+
+在使用 `rspack.CircularDependencyRspackPlugin` 之前，请注意 `rspack.CircularDependencyRspackPlugin` 和社区 [`circular-dependency-plugin`](https://github.com/aackerman/circular-dependency-plugin) 存在一些差异。
+
+### 性能
+
+由于 `rspack.CircularDependencyRspackPlugin` 是基于 Rust 实现的，因此他能直接直接和 rspack 模块图进行集成，避免了昂贵的复制以及序列化成本。最重要的是，`rspack.CircularDependencyRspackPlugin` 这个插件对每个 entry 的模块图进行一次遍历来识别所有的循环引用，而不是单独去检查每个模块。
+
+综合来看，这意味着 `rspack.CircularDependencyRspackPlugin` 性能要更好，甚至可以成为 hot reload 周期的一部分，而不会对 hot reload 时间产生任何的影响，即使对于拥有数十万个模块和导入的超大项目来说也是如此。
+
+### 功能
+
+`rspack.CircularDependencyRspackPlugin` 尽量保证与 `circular-dependency-plugin` 功能兼容，并进行了修改用于更精细地去控制循环依赖的检测与行为。
+
+两者之间的显著区别在于 Rspack 中的循环依赖项使用了模块标识符而非相对路径。其中模块标识符代表整个 bundle module 的唯一名称，包括处理该模块的 loader 集合、绝对路径以及导入时提供的任何请求参数。
+
+虽然仍然可以只匹配对应 module 的路径，但标识符同样也允许匹配 loader 以及对应的 loader rule 集合。
+
+本插件还提供了一个新的配置项 `ignoredConnections`, 用来更加精细地控制是否忽略循环依赖。原始 webpack 插件中的 `exclude` 配置项同样支持，但会导致完全忽略包含模块的循环依赖。当只需要忽略特定的循环依赖时，`ignoredConnections` 可以指定需要匹配的 `from` 和 `to` 配置，用于忽略两个模块之间存在的明确的循环依赖引入。
+
+## 示例
+
+- 检测构建编译中存在的所有循环依赖，忽略掉 `node_modules` 中的一些包，并且为每个循环依赖都抛出编译报错。
+
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.CircularDependencyRspackPlugin({
+      failOnError: true,
+      exclude: /node_modules/,
+    }),
+  ],
+};
+```
+
+- 忽略两个模块之间的特定循环依赖，类似通过 `to` 的方式配置。
+
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.CircularDependencyRspackPlugin({
+      ignoredConnections: [
+        ['some/module/a.js', 'some/module/b.js'],
+        ['', /modules\/.*Store.js/],
+      ],
+    }),
+  ],
+};
+```
+
+- 允许异步循环(例如 `import('some/module')`) 并手动处理所有检测到的循环
+
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.CircularDependencyRspackPlugin({
+      allowAsyncCycles: true,
+      onDetected(entrypoint, modules, compilation) {
+        compilation.errors.push(
+          new Error(`Cycle in ${entrypoint}: ${modules.join(' -> ')}`),
+        );
+      },
+    }),
+  ],
+};
+```
+
+## 选项
+
+### failOnError
+
+- **类型:** `boolean`
+- **默认值:** `false`
+
+当设置为 `true` 时，检测到的循环依赖将生成错误级别的诊断而不是警告。在 `dev` 模式下不会产生明显的影响，在 `build` 模式下触发会直接导致构建失败。
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.CircularDependencyRspackPlugin({
+      failOnError: true,
+    }),
+  ],
+};
+```
+
+### allowAsyncCycles
+
+- **类型:** `boolean`
+- **默认值:** `false`
+
+允许异步导入造成的循环依赖被忽略。异步导入包括 `import()` 调用、以及用于 lazy compilation 的弱引入、热模块连接等等。
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.CircularDependencyRspackPlugin({
+      allowAsyncCycles: true,
+    }),
+  ],
+};
+```
+
+### exclude
+
+- **类型:** `RegExp`
+- **默认值:** `undefined`
+
+和 webpack 插件 [`circular-dependency-plugin`](https://github.com/aackerman/circular-dependency-plugin) 里的 `exclude` 配置类似，检测到的任何包含该模式匹配的模块标识符的循环依赖都会被忽略。
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.CircularDependencyRspackPlugin({
+      // Ignore any cycles involving external packages from `node_modules`
+      exclude: /node_modules/,
+    }),
+  ],
+};
+```
+
+### ignoredConnections
+
+- **类型:** `Array<[string | RegExp, string | RegExp]>`
+- **默认值:** `[]`
+
+忽略该配置中列出的显示循环依赖模块的循环依赖。该配置数组中的每个条目都通过 `[from, to]` 的方式来形成，匹配所有的 `from` 依赖于 `to` 的连接。
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.CircularDependencyRspackPlugin({
+      ignoredConnections: [
+        // Ignore a specific connection between modules
+        ['some/module/a', 'some/module/b'],
+        // Ignore any connection depending on `b`
+        ['', 'some/module/b'],
+        // Ignore any connection between "Store-like" modules
+        [/.*Store\.js/, /.*Store\.js/],
+      ],
+    }),
+  ],
+};
+```
+
+每个 pattern 都可以写成纯字符串或者 `RegExp`。纯字符串将作为子字符串与连接部分的模块标识符去做匹配，而 `RegExp` 则会匹配整个标识符中的任何位置。例如:
+
+- 字符串 `'some/module/'` 将匹配 `some/module` 目录中的任何模块，如 `some/module/a` 和 `some/module/b`。
+- 正则表达式 `!file-loader!.*\.mdx` 将匹配由 `file-loader` 处理的任何 `.mdx` 模块。
+- 空字符串实际上可以匹配任何模块，因为空字符串始终是其他任何字符串的子串
+
+### onDetected
+
+- **类型:** `(entrypoint: string, modules: string[], compilation: Compilation) => void`
+- **默认值:** `undefined`
+
+每次检测到循环时都会调用该处理函数。该处理函数实际上会覆盖掉添加诊断的默认行为，意味着 `failOnError` 的值实际上不会被使用。
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.CircularDependencyRspackPlugin({
+      onDetected(entrypoint, modules, compilation) {
+        console.log(`Found a cycle in ${entrypoint}: ${modules.join(' -> ')}`);
+      },
+    }),
+  ],
+};
+```
+
+`onDetected` 函数可用于在向编译发出警告或错误之前进一步处理检测到的循环，或以插件未直接实现的任何其他方式处理它们。
+
+`entrypoint` 是检测到此循环的条目的名称。由于循环检测的入口点遍历方式，可能会多次检测同一循环，每个入口点检测一次。
+
+`modules` 是循环中包含的模块标识符列表，其中列表的第一个和最后一个条目始终是同一个模块，并且是列表中出现多次的唯一模块。
+
+`compilation` 是完整的 Compilation 对象，允许处理程序根据需要发出错误或检查包的任何其他部分。
+
+### onIgnored
+
+- **类型:** `(entrypoint: string, modules: string[], compilation: Compilation) => void`
+- **默认值:** `undefined`
+
+处理每个被故意忽略的检测到的循环，无论是通过 `exclude` 模式、`ignoredConnection` 的任何匹配，还是任何其他可能的原因。
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+const ignoredCycles = [];
+export default {
+  plugins: [
+    new rspack.CircularDependencyRspackPlugin({
+      onIgnored(entrypoint, modules, compilation) {
+        ignoredCycles.push({ entrypoint, modules });
+      },
+    }),
+  ],
+};
+```
+
+### onStart
+
+- **类型:** `(compilation: Compilation) => void`
+- **默认值:** `undefined`
+
+在循环检测开始之前立即调用的 hook 函数，用于设置在 `onDetected` 处理程序或记录进度中使用的临时状态。
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.CircularDependencyRspackPlugin({
+      onStart(compilation) {
+        console.log('Starting circular dependency detection');
+      },
+    }),
+  ],
+};
+```
+
+### onEnd
+
+- **类型:** `(compilation: Compilation) => void`
+- **默认值:** `undefined`
+
+循环检测完成后立即调用的钩子函数，用于清理临时状态或记录进度。
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.CircularDependencyRspackPlugin({
+      onEnd(compilation) {
+        console.log('Finished detecting circular dependencies');
+      },
+    }),
+  ],
+};
+```

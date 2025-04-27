@@ -2,13 +2,12 @@ use std::borrow::Cow;
 
 use cow_utils::CowUtils;
 use indexmap::IndexMap;
-use rustc_hash::FxHashMap as HashMap;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::extract_hash_pattern;
-use crate::{merge_runtime, EntryData, EntryOptions, Filename, RuntimeSpec};
 use crate::{
-  CHUNK_HASH_PLACEHOLDER, CONTENT_HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER, HASH_PLACEHOLDER,
+  merge_runtime, EntryData, EntryOptions, Filename, RuntimeSpec, CHUNK_HASH_PLACEHOLDER,
+  CONTENT_HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER, HASH_PLACEHOLDER,
 };
 
 pub fn get_entry_runtime(
@@ -49,9 +48,7 @@ pub fn get_entry_runtime(
   }
 }
 
-pub fn get_filename_without_hash_length<F: Clone>(
-  filename: &Filename<F>,
-) -> (Filename<F>, HashMap<String, usize>) {
+pub fn get_filename_without_hash_length(filename: &Filename) -> (Filename, HashMap<String, usize>) {
   let mut hash_len_map = HashMap::default();
   let Some(template) = filename.template() else {
     return (filename.clone(), hash_len_map);
