@@ -14,9 +14,9 @@ pub fn defer(f: impl FnOnce() + 'static) -> DeferGuard {
   DeferGuard(ManuallyDrop::new(Box::new(f)))
 }
 
-pub struct AsyncDeferGuard(ManuallyDrop<Box<dyn FnOnce() + Send>>);
+pub struct SendableDeferGuard(ManuallyDrop<Box<dyn FnOnce() + Send>>);
 
-impl Drop for AsyncDeferGuard {
+impl Drop for SendableDeferGuard {
   fn drop(&mut self) {
     let f = unsafe { ManuallyDrop::take(&mut self.0) };
     f();
@@ -24,6 +24,6 @@ impl Drop for AsyncDeferGuard {
 }
 
 #[inline(always)]
-pub fn async_defer(f: impl FnOnce() + Send + 'static) -> AsyncDeferGuard {
-  AsyncDeferGuard(ManuallyDrop::new(Box::new(f)))
+pub fn sendable_defer(f: impl FnOnce() + Send + 'static) -> SendableDeferGuard {
+  SendableDeferGuard(ManuallyDrop::new(Box::new(f)))
 }
