@@ -224,8 +224,9 @@ const applyExperimentsDefaults = (
 	}
 
 	// IGNORE(experiments.incremental): Rspack specific configuration for incremental
-	D(experiments, "incremental", development ? {} : false);
+	D(experiments, "incremental", {});
 	if (typeof experiments.incremental === "object") {
+		D(experiments.incremental, "silent", true);
 		D(experiments.incremental, "make", true);
 		D(experiments.incremental, "inferAsyncModules", false);
 		D(experiments.incremental, "providedExports", false);

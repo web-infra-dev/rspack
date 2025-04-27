@@ -1034,7 +1034,9 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     "ModuleConcatenationPlugin (optimization.concatenateModules = true)",
     "it requires calculating the modules that can be concatenated based on all the modules, which is a global effect",
   ) {
-    compilation.push_diagnostic(diagnostic);
+    if let Some(diagnostic) = diagnostic {
+      compilation.push_diagnostic(diagnostic);
+    }
     compilation.cgm_hash_artifact.clear();
     compilation.module_ids_artifact.clear();
     compilation.chunk_ids_artifact.clear();

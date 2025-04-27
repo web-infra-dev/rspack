@@ -419,7 +419,9 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
     "FlagDependencyUsagePlugin (optimization.usedExports = true)",
     "it requires calculating the used exports based on all modules, which is a global effect",
   ) {
-    compilation.push_diagnostic(diagnostic);
+    if let Some(diagnostic) = diagnostic {
+      compilation.push_diagnostic(diagnostic);
+    }
     compilation.cgm_hash_artifact.clear();
   }
 

@@ -2025,7 +2025,9 @@ impl Compilation {
         "it requires calculating the hashes of all the chunks, which is a global effect",
       )
     {
-      self.push_diagnostic(diagnostic);
+      if let Some(diagnostic) = diagnostic {
+        self.push_diagnostic(diagnostic);
+      }
       self.chunk_hashes_artifact.clear();
     }
 

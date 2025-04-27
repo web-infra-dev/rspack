@@ -40,20 +40,20 @@ use devtool::DevtoolFlags;
 use externals::ExternalsPresets;
 use indexmap::IndexMap;
 use rspack_core::{
-  incremental::IncrementalPasses, AssetParserDataUrl, AssetParserDataUrlOptions,
-  AssetParserOptions, BoxPlugin, ByDependency, CacheOptions, ChunkLoading, ChunkLoadingType,
-  CleanOptions, Compiler, CompilerOptions, Context, CrossOriginLoading, CssAutoGeneratorOptions,
-  CssAutoParserOptions, CssExportsConvention, CssGeneratorOptions, CssModuleGeneratorOptions,
-  CssModuleParserOptions, CssParserOptions, DynamicImportMode, EntryDescription, EntryOptions,
-  EntryRuntime, Environment, ExperimentCacheOptions, Experiments, ExternalItem, ExternalType,
-  Filename, GeneratorOptions, GeneratorOptionsMap, JavascriptParserOptions, JavascriptParserOrder,
-  JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName, LibraryNonUmdObject,
-  LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions,
-  ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
-  NodeGlobalOption, NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions,
-  ParserOptionsMap, PathInfo, PublicPath, Resolve, RspackFuture, RuleSetCondition,
-  RuleSetLogicalConditions, SideEffectOption, StatsOptions, TrustedTypes, UsedExportsOption,
-  WasmLoading, WasmLoadingType,
+  incremental::{IncrementalOptions, IncrementalPasses},
+  AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions, BoxPlugin, ByDependency,
+  CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, Compiler, CompilerOptions, Context,
+  CrossOriginLoading, CssAutoGeneratorOptions, CssAutoParserOptions, CssExportsConvention,
+  CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions, CssParserOptions,
+  DynamicImportMode, EntryDescription, EntryOptions, EntryRuntime, Environment,
+  ExperimentCacheOptions, Experiments, ExternalItem, ExternalType, Filename, GeneratorOptions,
+  GeneratorOptionsMap, JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl,
+  JsonGeneratorOptions, JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions,
+  LibraryType, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule,
+  ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption,
+  NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo,
+  PublicPath, Resolve, RspackFuture, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption,
+  StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
 };
 use rspack_error::{
   miette::{self, Diagnostic},
@@ -386,15 +386,15 @@ impl CompilerBuilder {
   ///
   /// ```rust
   /// use rspack::builder::{Builder as _, ExperimentsBuilder};
-  /// use rspack_core::{incremental::IncrementalPasses, Compiler, Experiments};
+  /// use rspack_core::{incremental::IncrementalOptions, Compiler, Experiments};
   ///
   /// // Using builder without calling `build()`
   /// let compiler = Compiler::builder()
-  ///   .experiments(ExperimentsBuilder::default().incremental(IncrementalPasses::empty()));
+  ///   .experiments(ExperimentsBuilder::default().incremental(IncrementalOptions::empty_passes()));
   ///
   /// // `Experiments::builder` equals to `ExperimentsBuilder::default()`
-  /// let compiler =
-  ///   Compiler::builder().experiments(Experiments::builder().incremental(IncrementalPasses::empty()));
+  /// let compiler = Compiler::builder()
+  ///   .experiments(Experiments::builder().incremental(IncrementalOptions::empty_passes()));
   ///
   /// // Or directly passing `Experiments`
   /// // let compiler = Compiler::builder().experiments(Experiments { ... });
@@ -857,15 +857,15 @@ impl CompilerOptionsBuilder {
   ///
   /// ```rust
   /// use rspack::builder::{Builder as _, ExperimentsBuilder};
-  /// use rspack_core::{incremental::IncrementalPasses, Compiler, Experiments};
+  /// use rspack_core::{incremental::IncrementalOptions, Compiler, Experiments};
   ///
   /// // Using builder without calling `build()`
   /// let compiler = Compiler::builder()
-  ///   .experiments(ExperimentsBuilder::default().incremental(IncrementalPasses::empty()));
+  ///   .experiments(ExperimentsBuilder::default().incremental(IncrementalOptions::empty_passes()));
   ///
   /// // `Experiments::builder` equals to `ExperimentsBuilder::default()`
-  /// let compiler =
-  ///   Compiler::builder().experiments(Experiments::builder().incremental(IncrementalPasses::empty()));
+  /// let compiler = Compiler::builder()
+  ///   .experiments(Experiments::builder().incremental(IncrementalOptions::empty_passes()));
   ///
   /// // Or directly passing `Experiments`
   /// // let compiler = Compiler::builder().experiments(Experiments { ... });
@@ -3634,7 +3634,7 @@ pub struct ExperimentsBuilder {
   /// Whether to enable module layers feature.  
   layers: Option<bool>,
   /// Incremental passes.
-  incremental: Option<IncrementalPasses>,
+  incremental: Option<IncrementalOptions>,
   /// Whether to enable top level await.
   top_level_await: Option<bool>,
   /// Rspack future.
@@ -3696,7 +3696,7 @@ impl ExperimentsBuilder {
   }
 
   /// Set the incremental passes.
-  pub fn incremental(&mut self, incremental: IncrementalPasses) -> &mut Self {
+  pub fn incremental(&mut self, incremental: IncrementalOptions) -> &mut Self {
     self.incremental = Some(incremental);
     self
   }
@@ -3748,10 +3748,14 @@ impl ExperimentsBuilder {
   ) -> Result<Experiments> {
     let layers = d!(self.layers, false);
     let incremental = f!(self.incremental.take(), || {
-      if !production {
+      let passes = if !production {
         IncrementalPasses::MAKE | IncrementalPasses::EMIT_ASSETS
       } else {
         IncrementalPasses::empty()
+      };
+      IncrementalOptions {
+        silent: true,
+        passes,
       }
     });
     let top_level_await = d!(self.top_level_await, true);
