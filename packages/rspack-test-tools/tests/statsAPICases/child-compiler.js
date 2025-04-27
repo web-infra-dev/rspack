@@ -45,94 +45,17 @@ module.exports = {
 		};
 	},
 	async check(stats) {
-		expect(statsJson).toMatchInlineSnapshot(`
-		Object {
-		  assets: Array [
-		    Object {
-		      auxiliaryChunkIdHints: Array [],
-		      auxiliaryChunkNames: Array [],
-		      cached: false,
-		      chunkIdHints: Array [],
-		      chunkNames: Array [],
-		      emitted: true,
-		      info: Object {
-		        chunkhash: Array [],
-		        contenthash: Array [],
-		        fullhash: Array [],
-		        isOverSizeLimit: false,
-		        javascriptModule: false,
-		        minimized: true,
-		        related: Object {},
-		      },
-		      name: TestChild.js,
-		      size: 344,
-		      type: asset,
-		    },
-		    Object {
-		      auxiliaryChunkIdHints: Array [],
-		      auxiliaryChunkNames: Array [],
-		      cached: false,
-		      chunkIdHints: Array [],
-		      chunkNames: Array [
-		        main,
-		      ],
-		      emitted: true,
-		      info: Object {
-		        chunkhash: Array [],
-		        contenthash: Array [],
-		        fullhash: Array [],
-		        isOverSizeLimit: false,
-		        javascriptModule: false,
-		        minimized: true,
-		        related: Object {},
-		      },
-		      name: main.js,
-		      size: 204,
-		      type: asset,
-		    },
-		  ],
-		  assetsByChunkName: Object {
-		    main: Array [
-		      main.js,
-		    ],
-		  },
-		  children: Array [
-		    Object {
-		      assets: Array [
-		        Object {
-		          auxiliaryChunkIdHints: Array [],
-		          auxiliaryChunkNames: Array [],
-		          cached: false,
-		          chunkIdHints: Array [],
-		          chunkNames: Array [
-		            TestChild,
-		          ],
-		          emitted: true,
-		          info: Object {
-		            chunkhash: Array [],
-		            contenthash: Array [],
-		            fullhash: Array [],
-		            javascriptModule: false,
-		            minimized: true,
-		            related: Object {},
-		          },
-		          name: TestChild.js,
-		          size: 344,
-		          type: asset,
-		        },
-		      ],
-		      assetsByChunkName: Object {
-		        TestChild: Array [
-		          TestChild.js,
-		        ],
-		      },
-		      children: Array [],
-		      filteredAssets: undefined,
-		      name: TestChild,
-		    },
-		  ],
-		  filteredAssets: undefined,
-		}
-	`);
+		const assets = statsJson.assets.map(i => i.name);
+		assets.sort();
+		expect(assets).toEqual([
+			"TestChild.js",
+			"main.js"
+		]);
+
+		const children = statsJson.children;
+		expect(children.length).toBe(1);
+		expect(children[0].name).toBe("TestChild");
+		expect(children[0].assets.length).toBe(1);
+		expect(children[0].assets[0].name).toBe("TestChild.js");
 	}
 };

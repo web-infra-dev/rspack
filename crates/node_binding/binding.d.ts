@@ -607,6 +607,7 @@ export interface JsChunkAssetArgs {
 export interface JsChunkGroupOrigin {
   module?: Module | undefined
   request?: string
+  loc?: string | JsRealDependencyLocation
 }
 
 export interface JsChunkOptionNameCtx {
@@ -883,6 +884,11 @@ export interface JsPathDataChunkLike {
   id?: string
 }
 
+export interface JsRealDependencyLocation {
+  start: JsSourcePosition
+  end?: JsSourcePosition
+}
+
 export interface JsResolveArgs {
   request: string
   context: string
@@ -1104,6 +1110,11 @@ export interface JsRuntimeRequirementInTreeArg {
 
 export interface JsRuntimeRequirementInTreeResult {
   allRuntimeRequirements: JsRuntimeGlobals
+}
+
+export interface JsSourcePosition {
+  line: number
+  column: number
 }
 
 export interface JsStatsAsset {
@@ -1397,6 +1408,8 @@ export interface KnownAssetInfo {
   /** whether this asset is over the size limit */
   isOverSizeLimit?: boolean
 }
+
+export declare function minify(source: string, options: string): Promise<TransformOutput>
 
 export interface NodeFsStats {
   isFile: boolean
@@ -1847,6 +1860,7 @@ export interface RawIgnorePluginOptions {
 }
 
 export interface RawIncremental {
+  silent: boolean
   make: boolean
   inferAsyncModules: boolean
   providedExports: boolean
@@ -2556,4 +2570,11 @@ export interface ThreadsafeNodeFS {
   read: (fd: number, length: number, position: number) => Promise<Buffer | void>
   readUntil: (fd: number, code: number, position: number) => Promise<Buffer | void>
   readToEnd: (fd: number, position: number) => Promise<Buffer | void>
+}
+
+export declare function transform(source: string, options: string): Promise<TransformOutput>
+
+export interface TransformOutput {
+  code: string
+  map?: string
 }

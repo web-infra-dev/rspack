@@ -101,7 +101,7 @@ function getWatchCreator(options: WatchNewIncrementalOptions) {
 										defaultOptions(index, context) {
 											return {
 												experiments: {
-													incremental: true
+													incremental: "advance"
 												},
 												ignoreWarnings:
 													options.ignoreNotFriendlyForIncrementalWarnings

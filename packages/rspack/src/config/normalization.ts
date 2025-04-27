@@ -53,6 +53,7 @@ import type {
 	ImportFunctionName,
 	ImportMetaName,
 	Incremental,
+	IncrementalPresets,
 	InfrastructureLogging,
 	LazyCompilationOptions,
 	LibraryOptions,
@@ -349,25 +350,7 @@ export const getNormalizedRspackOptions = (
 				options => (options === true ? {} : options)
 			),
 			incremental: optionalNestedConfig(experiments.incremental, options =>
-				options === true
-					? ({
-							make: true,
-							inferAsyncModules: true,
-							providedExports: true,
-							dependenciesDiagnostics: true,
-							sideEffects: true,
-							buildChunkGraph: true,
-							moduleIds: true,
-							chunkIds: true,
-							modulesHashes: true,
-							modulesCodegen: true,
-							modulesRuntimeRequirements: true,
-							chunksRuntimeRequirements: true,
-							chunksHashes: true,
-							chunksRender: true,
-							emitAssets: true
-						} satisfies Incremental)
-					: options
+				getNormalizedIncrementalOptions(options)
 			),
 			parallelCodeSplitting: experiments.parallelCodeSplitting,
 			buildHttp: experiments.buildHttp,
@@ -451,6 +434,38 @@ const getNormalizedOptimizationRuntimeChunk = (
 		};
 		return opts;
 	}
+};
+
+const getNormalizedIncrementalOptions = (
+	incremental: IncrementalPresets | Incremental
+): false | Incremental => {
+	if (incremental === false || incremental === "none") return false;
+	if (incremental === "safe") return { make: true, emitAssets: true };
+	const advanceSilent = {
+		silent: true,
+		make: true,
+		inferAsyncModules: true,
+		providedExports: true,
+		dependenciesDiagnostics: true,
+		sideEffects: true,
+		buildChunkGraph: true,
+		moduleIds: true,
+		chunkIds: true,
+		modulesHashes: true,
+		modulesCodegen: true,
+		modulesRuntimeRequirements: true,
+		chunksRuntimeRequirements: true,
+		chunksHashes: true,
+		chunksRender: true,
+		emitAssets: true
+	};
+	if (incremental === true || incremental === "advance-silent")
+		return advanceSilent;
+	if (incremental === "advance") {
+		advanceSilent.silent = false;
+		return advanceSilent;
+	}
+	return incremental;
 };
 
 const nestedConfig = <T, R>(value: T | undefined, fn: (value: T) => R) =>

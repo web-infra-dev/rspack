@@ -1494,7 +1494,13 @@ const experiments = z.strictObject({
 	topLevelAwait: z.boolean().optional(),
 	css: z.boolean().optional(),
 	layers: z.boolean().optional(),
-	incremental: z.boolean().or(incremental).optional(),
+	incremental: z
+		.boolean()
+		.or(z.literal("safe"))
+		.or(z.literal("advance"))
+		.or(z.literal("advance-silent"))
+		.or(incremental)
+		.optional(),
 	parallelCodeSplitting: z.boolean().optional(),
 	futureDefaults: z.boolean().optional(),
 	rspackFuture: rspackFutureOptions.optional(),

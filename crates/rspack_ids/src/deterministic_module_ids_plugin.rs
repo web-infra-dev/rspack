@@ -21,7 +21,9 @@ async fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
     "DeterministicModuleIdsPlugin (optimization.moduleIds = \"deterministic\")",
     "it requires calculating the id of all the modules, which is a global effect",
   ) {
-    compilation.push_diagnostic(diagnostic);
+    if let Some(diagnostic) = diagnostic {
+      compilation.push_diagnostic(diagnostic);
+    }
     compilation.module_ids_artifact.clear();
   }
 

@@ -76,30 +76,53 @@ impl IncrementalPasses {
   }
 }
 
-#[derive(Debug)]
-pub struct Incremental(IncrementalInner);
+#[derive(Debug, Clone, Copy)]
+pub struct IncrementalOptions {
+  pub silent: bool,
+  pub passes: IncrementalPasses,
+}
+
+impl IncrementalOptions {
+  pub fn empty_passes() -> Self {
+    Self {
+      silent: true,
+      passes: IncrementalPasses::empty(),
+    }
+  }
+}
 
 #[derive(Debug)]
-enum IncrementalInner {
+pub struct Incremental {
+  silent: bool,
+  passes: IncrementalPasses,
+  state: IncrementalState,
+}
+
+#[derive(Debug)]
+enum IncrementalState {
   /// For cold build and cold start
-  Cold { passes: IncrementalPasses },
+  Cold,
   /// For hot build, hot start, and rebuild
-  Hot {
-    passes: IncrementalPasses,
-    mutations: Mutations,
-  },
+  Hot { mutations: Mutations },
 }
 
 impl Incremental {
-  pub fn new_cold(passes: IncrementalPasses) -> Self {
-    Self(IncrementalInner::Cold { passes })
+  pub fn new_cold(options: IncrementalOptions) -> Self {
+    Self {
+      silent: options.silent,
+      passes: options.passes,
+      state: IncrementalState::Cold,
+    }
   }
 
-  pub fn new_hot(passes: IncrementalPasses) -> Self {
-    Self(IncrementalInner::Hot {
-      passes,
-      mutations: Mutations::default(),
-    })
+  pub fn new_hot(options: IncrementalOptions) -> Self {
+    Self {
+      silent: options.silent,
+      passes: options.passes,
+      state: IncrementalState::Hot {
+        mutations: Mutations::default(),
+      },
+    }
   }
 
   pub fn disable_passes(
@@ -107,13 +130,16 @@ impl Incremental {
     passes: IncrementalPasses,
     thing: &'static str,
     reason: &'static str,
-  ) -> Option<Diagnostic> {
-    if let IncrementalInner::Hot { passes: p, .. } = &mut self.0
-      && let passes = p.intersection(passes)
+  ) -> Option<Option<Diagnostic>> {
+    if matches!(self.state, IncrementalState::Hot { .. })
+      && let passes = self.passes.intersection(passes)
       && !passes.is_empty()
     {
-      p.remove(passes);
-      return Some(
+      self.passes.remove(passes);
+      if self.silent {
+        return Some(None);
+      }
+      return Some(Some(
         NotFriendlyForIncremental {
           thing,
           reason,
@@ -121,53 +147,43 @@ impl Incremental {
         }
         .boxed()
         .into(),
-      );
+      ));
     }
     None
   }
 
   pub fn enabled(&self) -> bool {
-    match self.0 {
-      IncrementalInner::Cold { passes } => passes.allow_write(),
-      IncrementalInner::Hot { passes, .. } => passes.allow_write(),
-    }
+    self.passes.allow_write()
   }
 
   pub fn passes_enabled(&self, passes: IncrementalPasses) -> bool {
-    match self.0 {
-      IncrementalInner::Cold { passes: p } => p.allow_read(passes),
-      IncrementalInner::Hot { passes: p, .. } => p.allow_read(passes),
-    }
+    self.passes.allow_read(passes)
   }
 
   pub fn mutations_writeable(&self) -> bool {
-    if let IncrementalInner::Hot { passes, .. } = self.0 {
-      return passes.allow_write();
+    if matches!(self.state, IncrementalState::Hot { .. }) {
+      return self.passes.allow_write();
     }
     false
   }
 
   pub fn mutations_readable(&self, passes: IncrementalPasses) -> bool {
-    if let IncrementalInner::Hot { passes: p, .. } = self.0 {
-      return p.allow_read(passes);
+    if matches!(self.state, IncrementalState::Hot { .. }) {
+      return self.passes.allow_read(passes);
     }
     false
   }
 
   pub fn mutations_write(&mut self) -> Option<&mut Mutations> {
-    if let IncrementalInner::Hot { passes, mutations } = &mut self.0 {
-      return passes.allow_write().then_some(mutations);
+    if let IncrementalState::Hot { mutations } = &mut self.state {
+      return self.passes.allow_write().then_some(mutations);
     }
     None
   }
 
   pub fn mutations_read(&self, passes: IncrementalPasses) -> Option<&Mutations> {
-    if let IncrementalInner::Hot {
-      passes: p,
-      mutations,
-    } = &self.0
-    {
-      return p.allow_read(passes).then_some(mutations);
+    if let IncrementalState::Hot { mutations } = &self.state {
+      return self.passes.allow_read(passes).then_some(mutations);
     }
     None
   }
