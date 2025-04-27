@@ -641,6 +641,7 @@ mod tests_extract_regex {
         "".to_string()
       ))
     );
+    // https://github.com/web-infra-dev/rspack/issues/10195
     assert_eq!(
       try_match_regex(
         "webpackInclude: /(?!.*node_modules)(?:\\/src\\/(?!\\.)(?=.)[^/]*?\\.stories\\.tsx)$/"
