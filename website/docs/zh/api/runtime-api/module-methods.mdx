@@ -220,7 +220,7 @@ require(dependency: string);
 
 ### require.resolve
 
-以同步的方式获取模块的 ID。编译器（compiler）会把 module 引入到最终输出的 bundle 中。可视为只能与 require.cache[id] 或 **webpack_require**(id) 配合使用（最好避免这种用法）。
+以同步的方式获取模块的 ID。此方法会将模块被打包进最终的 bundle 中，但不会执行模块代码。返回的模块 ID 主要用于与 `require.cache[id]` 或 Rspack 内部的 `__webpack_require__(id)` 一起使用，在大多数应用场景中应避免直接使用此方法。
 
 ```js
 require.resolve(dependency: string);
