@@ -150,9 +150,9 @@ impl Compiler {
         new_compilation.chunk_hashes_artifact =
           std::mem::take(&mut self.compilation.chunk_hashes_artifact);
       }
-      if new_compilation
+      if dbg!(new_compilation
         .incremental
-        .mutations_readable(IncrementalPasses::CHUNKS_RENDER)
+        .mutations_readable(IncrementalPasses::CHUNKS_RENDER))
       {
         new_compilation.chunk_render_artifact =
           std::mem::take(&mut self.compilation.chunk_render_artifact);
