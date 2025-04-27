@@ -288,3 +288,65 @@ const source = new RawSource('console.log("Hello, world!");');
 ```
 
 For detailed usage, please refer to the [webpack-sources](https://github.com/webpack/webpack-sources) documentation.
+
+## javascript minify and transform
+
+Rspack supports JavaScript minify and transform. You can use Rspack's JavaScript API to compile and transform JavaScript code. Here's a simple example demonstrating how to transform JavaScript code using Rspack:
+
+```js
+import { rspack } from '@rspack/core';
+
+const swc = rspack.experiments.swc;
+
+swc
+  .transform('const a = 10;', {
+    filename: 'index.js',
+    jsc: {
+      parser: {
+        syntax: 'ecmascript',
+        decorators: true,
+        dynamicImport: true,
+      },
+      target: 'es5',
+    },
+  })
+  .then(result => {
+    console.log(result.code);
+  });
+
+swc
+  .minify('const a = 10;', {
+    keep_classnames: true,
+    mangle: {
+      top_level: true,
+      reserved: ['a'],
+    },
+  })
+  .then(result => {
+    console.log(result.code);
+  });
+```
+
+Rspack uses SWC under the hood to transform and minify JavaScript code. The options accepted by these APIs are passed to SWC. You can learn more about the configuration options in the SWC official documentation:
+
+- [SWC Transform API](https://swc.rs/docs/usage/core#transform) - Code transform options
+- [SWC Minify API](https://swc.rs/docs/usage/core#minify) - Code minify options
+
+```ts
+declare namespace rspack {
+  namespace experimental {
+    declare const swc: {
+      transform(
+        code: string,
+        options?: TransformOptions,
+      ): Promise<TransformOutput>;
+      minify(code: string, options?: MinifyOptions): Promise<TransformOutput>;
+    };
+
+    declare interface TransformOutput {
+      code: string;
+      map?: string;
+    }
+  }
+}
+```

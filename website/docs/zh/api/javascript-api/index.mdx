@@ -288,3 +288,65 @@ const source = new RawSource('console.log("Hello, world!");');
 ```
 
 详细用法请参考 [webpack-sources](https://github.com/webpack/webpack-sources) 文档。
+
+## javascript 压缩和转换
+
+Rspack 支持 JavaScript 的压缩和转换。你可以使用 Rspack 的 JavaScript API 来编译和转换 JavaScript 代码。以下是一个简单的示例，演示如何使用 Rspack 转换 JavaScript 代码：
+
+```js
+import { rspack } from '@rspack/core';
+
+const swc = rspack.experiments.swc;
+
+swc
+  .transform('const a = 10;', {
+    filename: 'index.js',
+    jsc: {
+      parser: {
+        syntax: 'ecmascript',
+        decorators: true,
+        dynamicImport: true,
+      },
+      target: 'es5',
+    },
+  })
+  .then(result => {
+    console.log(result.code);
+  });
+
+swc
+  .minify('const a = 10;', {
+    keep_classnames: true,
+    mangle: {
+      top_level: true,
+      reserved: ['a'],
+    },
+  })
+  .then(result => {
+    console.log(result.code);
+  });
+```
+
+Rspack 底层使用 SWC 来转换和压缩 JavaScript 代码。上述 API 接受的选项会传递给 SWC。你可以在 SWC 官方文档中了解更多配置选项：
+
+- [SWC Transform API](https://swc.rs/docs/usage/core#transform) - 代码转换选项
+- [SWC Minify API](https://swc.rs/docs/usage/core#minify) - 代码压缩选项
+
+```ts
+declare namespace rspack {
+  namespace experimental {
+    declare const swc: {
+      transform(
+        code: string,
+        options?: TransformOptions,
+      ): Promise<TransformOutput>;
+      minify(code: string, options?: MinifyOptions): Promise<TransformOutput>;
+    };
+
+    declare interface TransformOutput {
+      code: string;
+      map?: string;
+    }
+  }
+}
+```
