@@ -25,7 +25,7 @@ export default {
 After enabling `experiment.css`, Rspack will support the following three module types, which you can set on the `rule` using `type`:
 
 - `css`: Used to handle normal CSS files.
-- `css/module`: Used to handle [CSS Modules](https://github.com/css-modules/css-modules).
+- `css/module`: Used to handle [CSS Modules](#css-modules).
 - `css/auto`: Automatically determines whether a file is a normal CSS file or CSS Modules based on the file extension. Files ending with `*.module.css` are treated as CSS Modules.
 
 For files ending in `*.css`, Rspack will treat them as `type: 'css/auto'` by default. You can also configure `type: 'css/auto'` to customize which files are treated as CSS files. For example, treat `.less` files as CSS files:
@@ -109,7 +109,11 @@ style-loader cannot be used with `type: 'css'`, `type: 'css/auto'`, or `type: 'c
 
 ## CSS Modules
 
-By default, Rspack treats files with a `*.module.css` extension as [CSS Modules](https://github.com/css-modules/css-modules). You can import them into your JavaScript files, and then access each class defined in the CSS file as an export from the module.
+[CSS Modules](https://github.com/css-modules/css-modules) is a way of organizing CSS files that localizes the scope of CSS by automatically generating unique identifiers for class names. This allows you to use the same class name in different files without worrying about collisions.
+
+### Native support
+
+If you enable [Native CSS support](#native-css-support), Rspack will treat files with a `*.module.css` extension as CSS Modules by default. You can import them into your JavaScript files, and then access each class defined in the CSS file as an export from the module.
 
 ```css title="index.module.css"
 .red {
@@ -152,7 +156,39 @@ import styles from './index.module.css';
 document.getElementById('element').className = styles.red;
 ```
 
-For more on CSS Modules configuration, please refer to [module.parser.css](/config/module#moduleparsercss).
+:::tip
+
+Rspack provides options to customize the parsing and generation of CSS Modules:
+
+- [module.parser.css](/config/module#moduleparsercss)：Configure the parsing of CSS Modules.
+- [module.generator.css](/config/module#modulegeneratorcss)：Configure the generation of CSS Modules.
+
+:::
+
+### Using css-loader
+
+If you do not enable Rspack's native CSS support, you can use [css-loader](https://github.com/webpack-contrib/css-loader) to provide CSS Modules support.
+
+Enable the `modules` option of `css-loader`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        loader: 'css-loader',
+        type: 'javascript/auto',
+        options: {
+          modules: true,
+        },
+      },
+    ],
+  },
+};
+```
+
+For more usage, please refer to [css-loader - modules](https://github.com/webpack-contrib/css-loader#modules).
 
 ## PostCSS
 
