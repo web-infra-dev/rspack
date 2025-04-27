@@ -80,7 +80,6 @@
     "ts-jest": "29.3.2",
     "typescript": "^5.8.3",
     "webpack": "5.99.6",
-    "webpack-cli": "6.0.1",
     "zx": "8.5.3"
   },
   "packageManager": "pnpm@9.15.9",
