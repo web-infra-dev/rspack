@@ -40,7 +40,7 @@ runs:
       uses: ./.github/actions/cache/restore
       with:
         path: ~/.rustup/toolchains
-        key: rustup-cache-${{ runner.os }}-${{ steps.get-toolchain.outputs.toolchain }}
+        key: rustup-cache-v2-${{ runner.os }}-${{ steps.get-toolchain.outputs.toolchain }}
 
     # install components for nightly toolchain
     - name: Install
@@ -59,8 +59,8 @@ runs:
       uses: ./.github/actions/cache/save
       if: ${{ inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' }}
       with:
-        path: ~/.rustup/toolchains/${{ steps.get-toolchain.outputs.toolchain }}*
-        key: rustup-cache-${{ runner.os }}-${{ steps.get-toolchain.outputs.toolchain }}
+        path: ~/.rustup/toolchains
+        key: rustup-cache-v2-${{ runner.os }}-${{ steps.get-toolchain.outputs.toolchain }}
 
     - name: Cargo cache
       uses: ./.github/actions/rustup/cargo
