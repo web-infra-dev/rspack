@@ -331,7 +331,7 @@ import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";
 import { JavaScriptTracer } from "./trace";
 
 ///// Experiments SWC /////
-import { transform, minify } from "./swc";
+import { minify, transform } from "./swc";
 
 interface Experiments {
 	globalTrace: {
