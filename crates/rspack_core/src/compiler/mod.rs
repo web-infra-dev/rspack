@@ -203,7 +203,9 @@ impl Compiler {
     self.old_cache.end_idle();
     // TODO: clear the outdated cache entries in resolver,
     // TODO: maybe it's better to use external entries.
-    self.plugin_driver.clear_cache(self.compilation.id());
+    let plugin_driver_clone = self.plugin_driver.clone();
+    let compilation_id = self.compilation.id();
+    let _guard = scopeguard::guard((), move |_| plugin_driver_clone.clear_cache(compilation_id));
 
     fast_set(
       &mut self.compilation,
