@@ -8,7 +8,7 @@ pub use context::{JsLoaderContext, JsLoaderItem};
 use napi::{bindgen_prelude::*, threadsafe_function::ThreadsafeFunction};
 use once_cell::sync::OnceCell;
 use rspack_core::{
-  ApplyContext, Compilation, CompilationParams, CompilerId, CompilerOptions,
+  ApplyContext, Compilation, CompilationParams, CompilerEmit, CompilerId, CompilerOptions,
   CompilerThisCompilation, Plugin, PluginContext,
 };
 use rspack_error::Result;
@@ -57,6 +57,13 @@ async fn this_compilation(
   Ok(())
 }
 
+#[plugin_hook(CompilerEmit for JsLoaderRspackPlugin)]
+async fn done(&self, _compilation: &mut Compilation) -> Result<()> {
+  let mut write_guard = self.runner.write().await;
+  *write_guard = None;
+  Ok(())
+}
+
 impl Plugin for JsLoaderRspackPlugin {
   fn name(&self) -> &'static str {
     "rspack.JsLoaderRspackPlugin"
@@ -86,6 +93,9 @@ impl Plugin for JsLoaderRspackPlugin {
       .normal_module_hooks
       .loader_yield
       .tap(scheduler::loader_yield::new(self));
+
+    // TODO: tap compiler done hook will be better.
+    ctx.context.compiler_hooks.emit.tap(done::new(self));
     Ok(())
   }
 }
