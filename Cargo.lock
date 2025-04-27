@@ -4385,6 +4385,7 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "rspack_regex",
+ "rustc-hash 2.1.0",
  "tracing",
 ]
 
