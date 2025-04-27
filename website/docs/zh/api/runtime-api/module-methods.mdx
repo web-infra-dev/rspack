@@ -220,7 +220,7 @@ require(dependency: string);
 
 ### require.resolve
 
-以同步的方式获取模块的 ID。可视为只能与 require.cache[id] 或 **webpack_require**(id) 配合使用（最好避免这种用法）。
+以同步的方式获取模块的 ID。编译器（compiler）会把 module 引入到最终输出的 bundle 中。可视为只能与 require.cache[id] 或 **webpack_require**(id) 配合使用（最好避免这种用法）。
 
 ```js
 require.resolve(dependency: string);
@@ -357,6 +357,16 @@ if (module.hot) {
     // Do something special...
   });
 }
+```
+
+### require.resolveWeak
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+与 `require.resolve` 类似，但是不会把 module 引入到 bundle 中。是 "弱（weak）" 依赖。
+
+```js
+require.resolveWeak(dependency: string);
 ```
 
 ## Data URI 模块

@@ -221,7 +221,7 @@ require(dependency: string);
 
 ### require.resolve
 
-Synchronously retrieve a module's ID. It is recommended to treat it as an opaque value which can only be used with `require.cache[id]` or `__webpack_require__(id)` (best to avoid such usage).
+Synchronously retrieve a module's ID. The compiler will ensure that the dependency is available in the output bundle. It is recommended to treat it as an opaque value which can only be used with `require.cache[id]` or `__webpack_require__(id)` (best to avoid such usage).
 
 ```js
 require.resolve(dependency: string);
@@ -358,6 +358,16 @@ if (module.hot) {
     // Do something special...
   });
 }
+```
+
+### require.resolveWeak
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+Similar to `require.resolve`, but this won't pull the module into the bundle. It's what is considered a "weak" dependency.
+
+```js
+require.resolveWeak(dependency: string);
 ```
 
 ## Data URI module
