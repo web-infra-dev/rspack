@@ -293,7 +293,7 @@ interface AssignmentPattern extends PatternBase {
 }
 
 // @public
-interface AssignmentPatternProperty extends Node_4, HasSpan {
+interface AssignmentPatternProperty extends Node_3, HasSpan {
     // (undocumented)
     key: Identifier;
     // (undocumented)
@@ -303,7 +303,7 @@ interface AssignmentPatternProperty extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface AssignmentProperty extends Node_4 {
+interface AssignmentProperty extends Node_3 {
     // (undocumented)
     key: Identifier;
     // (undocumented)
@@ -435,7 +435,7 @@ type BasicApplication = any;
 type BasicServer = Server | Server_2;
 
 // @public (undocumented)
-interface BigIntLiteral extends Node_4, HasSpan {
+interface BigIntLiteral extends Node_3, HasSpan {
     // (undocumented)
     raw?: string;
     // (undocumented)
@@ -473,7 +473,7 @@ interface BindingIdentifier extends PatternBase {
 }
 
 // @public (undocumented)
-interface BlockStatement extends Node_4, HasSpan {
+interface BlockStatement extends Node_3, HasSpan {
     // (undocumented)
     stmts: Statement[];
     // (undocumented)
@@ -484,7 +484,7 @@ interface BlockStatement extends Node_4, HasSpan {
 type BonjourServer = any;
 
 // @public (undocumented)
-interface BooleanLiteral extends Node_4, HasSpan {
+interface BooleanLiteral extends Node_3, HasSpan {
     // (undocumented)
     type: "BooleanLiteral";
     // (undocumented)
@@ -492,7 +492,7 @@ interface BooleanLiteral extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface BreakStatement extends Node_4, HasSpan {
+interface BreakStatement extends Node_3, HasSpan {
     // (undocumented)
     label?: Identifier;
     // (undocumented)
@@ -613,7 +613,7 @@ interface CallExpression extends ExpressionBase {
 type CallFn = (...args: any[]) => any;
 
 // @public (undocumented)
-interface CatchClause extends Node_4, HasSpan {
+interface CatchClause extends Node_3, HasSpan {
     // (undocumented)
     body: BlockStatement;
     param?: Pattern;
@@ -815,7 +815,7 @@ interface Class extends HasSpan, HasDecorator {
 }
 
 // @public (undocumented)
-interface ClassDeclaration extends Class, Node_4 {
+interface ClassDeclaration extends Class, Node_3 {
     // (undocumented)
     declare: boolean;
     // (undocumented)
@@ -844,7 +844,7 @@ interface ClassMethod extends ClassMethodBase {
 }
 
 // @public (undocumented)
-interface ClassMethodBase extends Node_4, HasSpan {
+interface ClassMethodBase extends Node_3, HasSpan {
     // (undocumented)
     accessibility?: Accessibility;
     // (undocumented)
@@ -874,7 +874,7 @@ interface ClassProperty extends ClassPropertyBase {
 }
 
 // @public (undocumented)
-interface ClassPropertyBase extends Node_4, HasSpan, HasDecorator {
+interface ClassPropertyBase extends Node_3, HasSpan, HasDecorator {
     // (undocumented)
     accessibility?: Accessibility;
     // (undocumented)
@@ -1318,7 +1318,7 @@ export class Compiler {
 }
 
 // @public (undocumented)
-interface ComputedPropName extends Node_4, HasSpan {
+interface ComputedPropName extends Node_3, HasSpan {
     // (undocumented)
     expression: Expression;
     // (undocumented)
@@ -1339,19 +1339,8 @@ interface ConditionalExpression extends ExpressionBase {
     type: "ConditionalExpression";
 }
 
-// @public (undocumented)
-type Config = {
-    getNormalizedRspackOptions: typeof getNormalizedRspackOptions;
-    applyRspackOptionsDefaults: typeof applyRspackOptionsDefaults;
-    getNormalizedWebpackOptions: typeof getNormalizedRspackOptions;
-    applyWebpackOptionsDefaults: typeof applyRspackOptionsDefaults;
-};
-
-// @public (undocumented)
-export const config: Config;
-
 // @public
-interface Config_2 {
+interface Config {
     // (undocumented)
     env?: EnvConfig;
     exclude?: string | string[];
@@ -1367,6 +1356,17 @@ interface Config_2 {
     test?: string | string[];
 }
 
+// @public (undocumented)
+export const config: Config_2;
+
+// @public (undocumented)
+type Config_2 = {
+    getNormalizedRspackOptions: typeof getNormalizedRspackOptions;
+    applyRspackOptionsDefaults: typeof applyRspackOptionsDefaults;
+    getNormalizedWebpackOptions: typeof getNormalizedRspackOptions;
+    applyWebpackOptionsDefaults: typeof applyRspackOptionsDefaults;
+};
+
 // @public
 export type Configuration = RspackOptions;
 
@@ -1381,7 +1381,7 @@ interface ConstModulesConfig {
 }
 
 // @public (undocumented)
-interface Constructor extends Node_4, HasSpan {
+interface Constructor extends Node_3, HasSpan {
     // (undocumented)
     accessibility?: Accessibility;
     // (undocumented)
@@ -1595,7 +1595,7 @@ export const ContextReplacementPlugin: {
 };
 
 // @public (undocumented)
-interface ContinueStatement extends Node_4, HasSpan {
+interface ContinueStatement extends Node_3, HasSpan {
     // (undocumented)
     label?: Identifier;
     // (undocumented)
@@ -1734,7 +1734,7 @@ export type CssParserOptions = {
 };
 
 // @public (undocumented)
-interface DebuggerStatement extends Node_4, HasSpan {
+interface DebuggerStatement extends Node_3, HasSpan {
     // (undocumented)
     type: "DebuggerStatement";
 }
@@ -1743,7 +1743,7 @@ interface DebuggerStatement extends Node_4, HasSpan {
 type Declaration = ClassDeclaration | FunctionDeclaration | VariableDeclaration | TsInterfaceDeclaration | TsTypeAliasDeclaration | TsEnumDeclaration | TsModuleDeclaration;
 
 // @public (undocumented)
-interface Decorator extends Node_4, HasSpan {
+interface Decorator extends Node_3, HasSpan {
     // (undocumented)
     expression: Expression;
     // (undocumented)
@@ -2000,7 +2000,7 @@ export interface DllReferencePluginOptionsManifest {
 export type DllReferencePluginOptionsSourceType = "var" | "assign" | "this" | "window" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "amd" | "amd-require" | "umd" | "umd2" | "jsonp" | "system";
 
 // @public (undocumented)
-interface DoWhileStatement extends Node_4, HasSpan {
+interface DoWhileStatement extends Node_3, HasSpan {
     // (undocumented)
     body: Statement;
     // (undocumented)
@@ -2046,7 +2046,7 @@ const ElectronTargetPlugin: {
 };
 
 // @public (undocumented)
-interface EmptyStatement extends Node_4, HasSpan {
+interface EmptyStatement extends Node_3, HasSpan {
     // (undocumented)
     type: "EmptyStatement";
 }
@@ -2484,7 +2484,7 @@ export interface ExperimentsNormalized {
 }
 
 // @public (undocumented)
-interface ExportAllDeclaration extends Node_4, HasSpan {
+interface ExportAllDeclaration extends Node_3, HasSpan {
     // (undocumented)
     asserts?: ObjectExpression;
     // (undocumented)
@@ -2494,7 +2494,7 @@ interface ExportAllDeclaration extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface ExportDeclaration extends Node_4, HasSpan {
+interface ExportDeclaration extends Node_3, HasSpan {
     // (undocumented)
     declaration: Declaration;
     // (undocumented)
@@ -2502,7 +2502,7 @@ interface ExportDeclaration extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface ExportDefaultDeclaration extends Node_4, HasSpan {
+interface ExportDefaultDeclaration extends Node_3, HasSpan {
     // (undocumented)
     decl: DefaultDecl;
     // (undocumented)
@@ -2510,7 +2510,7 @@ interface ExportDefaultDeclaration extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface ExportDefaultExpression extends Node_4, HasSpan {
+interface ExportDefaultExpression extends Node_3, HasSpan {
     // (undocumented)
     expression: Expression;
     // (undocumented)
@@ -2518,7 +2518,7 @@ interface ExportDefaultExpression extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface ExportDefaultSpecifier extends Node_4, HasSpan {
+interface ExportDefaultSpecifier extends Node_3, HasSpan {
     // (undocumented)
     exported: Identifier;
     // (undocumented)
@@ -2526,7 +2526,7 @@ interface ExportDefaultSpecifier extends Node_4, HasSpan {
 }
 
 // @public
-interface ExportNamedDeclaration extends Node_4, HasSpan {
+interface ExportNamedDeclaration extends Node_3, HasSpan {
     // (undocumented)
     asserts?: ObjectExpression;
     // (undocumented)
@@ -2540,7 +2540,7 @@ interface ExportNamedDeclaration extends Node_4, HasSpan {
 }
 
 // @public
-interface ExportNamespaceSpecifier extends Node_4, HasSpan {
+interface ExportNamespaceSpecifier extends Node_3, HasSpan {
     // (undocumented)
     name: ModuleExportName;
     // (undocumented)
@@ -2591,11 +2591,11 @@ export type ExposesObject = {
 type Expression = ThisExpression | ArrayExpression | ObjectExpression | FunctionExpression | UnaryExpression | UpdateExpression | BinaryExpression | AssignmentExpression | MemberExpression | SuperPropExpression | ConditionalExpression | CallExpression | NewExpression | SequenceExpression | Identifier | Literal | TemplateLiteral | TaggedTemplateExpression | ArrowFunctionExpression | ClassExpression | YieldExpression | MetaProperty | AwaitExpression | ParenthesisExpression | JSXMemberExpression | JSXNamespacedName | JSXEmptyExpression | JSXElement | JSXFragment | TsTypeAssertion | TsConstAssertion | TsNonNullExpression | TsAsExpression | TsSatisfiesExpression | TsInstantiation | PrivateName | OptionalChainingExpression | Invalid;
 
 // @public (undocumented)
-interface ExpressionBase extends Node_4, HasSpan {
+interface ExpressionBase extends Node_3, HasSpan {
 }
 
 // @public (undocumented)
-interface ExpressionStatement extends Node_4, HasSpan {
+interface ExpressionStatement extends Node_3, HasSpan {
     // (undocumented)
     expression: Expression;
     // (undocumented)
@@ -2758,7 +2758,7 @@ interface Fn extends HasSpan, HasDecorator {
 }
 
 // @public (undocumented)
-interface ForInStatement extends Node_4, HasSpan {
+interface ForInStatement extends Node_3, HasSpan {
     // (undocumented)
     body: Statement;
     // (undocumented)
@@ -2770,7 +2770,7 @@ interface ForInStatement extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface ForOfStatement extends Node_4, HasSpan {
+interface ForOfStatement extends Node_3, HasSpan {
     await?: Span;
     // (undocumented)
     body: Statement;
@@ -2783,7 +2783,7 @@ interface ForOfStatement extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface ForStatement extends Node_4, HasSpan {
+interface ForStatement extends Node_3, HasSpan {
     // (undocumented)
     body: Statement;
     // (undocumented)
@@ -3122,7 +3122,7 @@ interface IDirent {
 }
 
 // @public (undocumented)
-interface IfStatement extends Node_4, HasSpan {
+interface IfStatement extends Node_3, HasSpan {
     // (undocumented)
     alternate?: Statement;
     // (undocumented)
@@ -3162,13 +3162,13 @@ export type IgnoreWarningsNormalized = ((warning: Error, compilation: Compilatio
 export type Iife = boolean;
 
 // @public (undocumented)
-interface Import extends Node_4, HasSpan {
+interface Import extends Node_3, HasSpan {
     // (undocumented)
     type: "Import";
 }
 
 // @public (undocumented)
-interface ImportDeclaration extends Node_4, HasSpan {
+interface ImportDeclaration extends Node_3, HasSpan {
     // (undocumented)
     asserts?: ObjectExpression;
     // (undocumented)
@@ -3182,7 +3182,7 @@ interface ImportDeclaration extends Node_4, HasSpan {
 }
 
 // @public
-interface ImportDefaultSpecifier extends Node_4, HasSpan {
+interface ImportDefaultSpecifier extends Node_3, HasSpan {
     // (undocumented)
     local: Identifier;
     // (undocumented)
@@ -3203,7 +3203,7 @@ interface ImportModuleOptions {
 }
 
 // @public
-interface ImportNamespaceSpecifier extends Node_4, HasSpan {
+interface ImportNamespaceSpecifier extends Node_3, HasSpan {
     // (undocumented)
     local: Identifier;
     // (undocumented)
@@ -3285,7 +3285,7 @@ type IntermediateFileSystemExtras = {
 };
 
 // @public (undocumented)
-interface Invalid extends Node_4, HasSpan {
+interface Invalid extends Node_3, HasSpan {
     // (undocumented)
     type: "Invalid";
 }
@@ -3430,39 +3430,13 @@ interface JscConfig {
 // @public (undocumented)
 type JscTarget = "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "es2023" | "es2024" | "esnext";
 
-// @public (undocumented)
+// @public
 interface JsFormatOptions {
     asciiOnly?: boolean;
     beautify?: boolean;
     braces?: boolean;
     comments?: false | "some" | "all";
     ecma?: TerserEcmaVersion;
-    indentLevel?: number;
-    indentStart?: number;
-    // (undocumented)
-    inlineScript?: number;
-    keepNumbers?: number;
-    keepQuotedProps?: boolean;
-    maxLineLen?: number | false;
-    preamble?: string;
-    preserveAnnotations?: boolean;
-    quoteKeys?: boolean;
-    quoteStyle?: boolean;
-    safari10?: boolean;
-    semicolons?: boolean;
-    shebang?: boolean;
-    webkit?: boolean;
-    wrapFuncArgs?: boolean;
-    wrapIife?: boolean;
-}
-
-// @public
-interface JsFormatOptions_2 {
-    asciiOnly?: boolean;
-    beautify?: boolean;
-    braces?: boolean;
-    comments?: false | "some" | "all";
-    ecma?: TerserEcmaVersion_2;
     indentLevel?: number;
     indentStart?: number;
     inlineScript?: boolean;
@@ -3482,13 +3456,39 @@ interface JsFormatOptions_2 {
 }
 
 // @public (undocumented)
+interface JsFormatOptions_2 {
+    asciiOnly?: boolean;
+    beautify?: boolean;
+    braces?: boolean;
+    comments?: false | "some" | "all";
+    ecma?: TerserEcmaVersion_2;
+    indentLevel?: number;
+    indentStart?: number;
+    // (undocumented)
+    inlineScript?: number;
+    keepNumbers?: number;
+    keepQuotedProps?: boolean;
+    maxLineLen?: number | false;
+    preamble?: string;
+    preserveAnnotations?: boolean;
+    quoteKeys?: boolean;
+    quoteStyle?: boolean;
+    safari10?: boolean;
+    semicolons?: boolean;
+    shebang?: boolean;
+    webkit?: boolean;
+    wrapFuncArgs?: boolean;
+    wrapIife?: boolean;
+}
+
+// @public (undocumented)
 interface JsMinifyOptions {
     // (undocumented)
-    compress?: TerserCompressOptions_2 | boolean;
+    compress?: TerserCompressOptions | boolean;
     // (undocumented)
-    ecma?: TerserEcmaVersion_2;
+    ecma?: TerserEcmaVersion;
     // (undocumented)
-    format?: JsFormatOptions_2 & ToSnakeCaseProperties_2<JsFormatOptions_2>;
+    format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
     // (undocumented)
     inlineSourcesContent?: boolean;
     // (undocumented)
@@ -3496,7 +3496,7 @@ interface JsMinifyOptions {
     // (undocumented)
     keep_fnames?: boolean;
     // (undocumented)
-    mangle?: TerserMangleOptions_2 | boolean;
+    mangle?: TerserMangleOptions | boolean;
     // (undocumented)
     module?: boolean | "unknown";
     // (undocumented)
@@ -3537,7 +3537,7 @@ type JsonPrimitive = string | number | boolean | null;
 type JsonValue = JsonPrimitive | JsonObject | JsonArray;
 
 // @public (undocumented)
-interface JSXAttribute extends Node_4, HasSpan {
+interface JSXAttribute extends Node_3, HasSpan {
     // (undocumented)
     name: JSXAttributeName;
     // (undocumented)
@@ -3556,7 +3556,7 @@ type JSXAttributeOrSpread = JSXAttribute | SpreadElement;
 type JSXAttrValue = Literal | JSXExpressionContainer | JSXElement | JSXFragment;
 
 // @public (undocumented)
-interface JSXClosingElement extends Node_4, HasSpan {
+interface JSXClosingElement extends Node_3, HasSpan {
     // (undocumented)
     name: JSXElementName;
     // (undocumented)
@@ -3564,13 +3564,13 @@ interface JSXClosingElement extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface JSXClosingFragment extends Node_4, HasSpan {
+interface JSXClosingFragment extends Node_3, HasSpan {
     // (undocumented)
     type: "JSXClosingFragment";
 }
 
 // @public (undocumented)
-interface JSXElement extends Node_4, HasSpan {
+interface JSXElement extends Node_3, HasSpan {
     // (undocumented)
     children: JSXElementChild[];
     // (undocumented)
@@ -3588,7 +3588,7 @@ type JSXElementChild = JSXText | JSXExpressionContainer | JSXSpreadChild | JSXEl
 type JSXElementName = Identifier | JSXMemberExpression | JSXNamespacedName;
 
 // @public (undocumented)
-interface JSXEmptyExpression extends Node_4, HasSpan {
+interface JSXEmptyExpression extends Node_3, HasSpan {
     // (undocumented)
     type: "JSXEmptyExpression";
 }
@@ -3597,7 +3597,7 @@ interface JSXEmptyExpression extends Node_4, HasSpan {
 type JSXExpression = JSXEmptyExpression | Expression;
 
 // @public (undocumented)
-interface JSXExpressionContainer extends Node_4, HasSpan {
+interface JSXExpressionContainer extends Node_3, HasSpan {
     // (undocumented)
     expression: JSXExpression;
     // (undocumented)
@@ -3605,7 +3605,7 @@ interface JSXExpressionContainer extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface JSXFragment extends Node_4, HasSpan {
+interface JSXFragment extends Node_3, HasSpan {
     // (undocumented)
     children: JSXElementChild[];
     // (undocumented)
@@ -3617,7 +3617,7 @@ interface JSXFragment extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface JSXMemberExpression extends Node_4 {
+interface JSXMemberExpression extends Node_3 {
     // (undocumented)
     object: JSXObject;
     // (undocumented)
@@ -3627,7 +3627,7 @@ interface JSXMemberExpression extends Node_4 {
 }
 
 // @public
-interface JSXNamespacedName extends Node_4 {
+interface JSXNamespacedName extends Node_3 {
     // (undocumented)
     name: Identifier;
     // (undocumented)
@@ -3640,7 +3640,7 @@ interface JSXNamespacedName extends Node_4 {
 type JSXObject = JSXMemberExpression | Identifier;
 
 // @public (undocumented)
-interface JSXOpeningElement extends Node_4, HasSpan {
+interface JSXOpeningElement extends Node_3, HasSpan {
     // (undocumented)
     attributes: JSXAttributeOrSpread[];
     // (undocumented)
@@ -3654,13 +3654,13 @@ interface JSXOpeningElement extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface JSXOpeningFragment extends Node_4, HasSpan {
+interface JSXOpeningFragment extends Node_3, HasSpan {
     // (undocumented)
     type: "JSXOpeningFragment";
 }
 
 // @public (undocumented)
-interface JSXSpreadChild extends Node_4, HasSpan {
+interface JSXSpreadChild extends Node_3, HasSpan {
     // (undocumented)
     expression: Expression;
     // (undocumented)
@@ -3668,7 +3668,7 @@ interface JSXSpreadChild extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface JSXText extends Node_4, HasSpan {
+interface JSXText extends Node_3, HasSpan {
     // (undocumented)
     raw: string;
     // (undocumented)
@@ -3678,7 +3678,7 @@ interface JSXText extends Node_4, HasSpan {
 }
 
 // @public
-interface KeyValuePatternProperty extends Node_4 {
+interface KeyValuePatternProperty extends Node_3 {
     // (undocumented)
     key: PropertyName;
     // (undocumented)
@@ -4084,7 +4084,7 @@ type KnownStatsProfile = {
 };
 
 // @public (undocumented)
-interface LabeledStatement extends Node_4, HasSpan {
+interface LabeledStatement extends Node_3, HasSpan {
     // (undocumented)
     body: Statement;
     // (undocumented)
@@ -4311,6 +4311,10 @@ export interface LoaderContext<OptionsType = {}> {
         absolutify: (context: string, request: string) => string;
         contextify: (context: string, request: string) => string;
         createHash: (algorithm?: string) => Hash_2;
+        swc: {
+            transform: typeof transform;
+            minify: typeof minify;
+        };
     };
     version: 2;
 }
@@ -4568,7 +4572,7 @@ interface MemberExpression extends ExpressionBase {
 }
 
 // @public (undocumented)
-interface MetaProperty extends Node_4, HasSpan {
+interface MetaProperty extends Node_3, HasSpan {
     // (undocumented)
     kind: "new.target" | "import.meta";
     // (undocumented)
@@ -4612,7 +4616,7 @@ type ModifyResponseData<RequestInternal extends IncomingMessage = IncomingMessag
 export { Module }
 
 // @public (undocumented)
-interface Module_2 extends Node_4, HasSpan, HasInterpreter {
+interface Module_2 extends Node_3, HasSpan, HasInterpreter {
     // (undocumented)
     body: ModuleItem[];
     // (undocumented)
@@ -4854,7 +4858,7 @@ type MultiWatching_2 = MultiCompiler["watch"];
 export type Name = string;
 
 // @public (undocumented)
-interface NamedExportSpecifier extends Node_4, HasSpan {
+interface NamedExportSpecifier extends Node_3, HasSpan {
     exported?: ModuleExportName;
     // (undocumented)
     isTypeOnly: boolean;
@@ -4865,7 +4869,7 @@ interface NamedExportSpecifier extends Node_4, HasSpan {
 }
 
 // @public
-interface NamedImportSpecifier extends Node_4, HasSpan {
+interface NamedImportSpecifier extends Node_3, HasSpan {
     // (undocumented)
     imported?: ModuleExportName;
     // (undocumented)
@@ -4908,7 +4912,7 @@ interface NewExpression extends ExpressionBase {
 type NextFunction = (err?: any) => void;
 
 // @public (undocumented)
-export const node: Node_3;
+export const node: Node_4;
 
 // @public
 type Node_2 = false | NodeOptions;
@@ -4917,17 +4921,17 @@ export { Node_2 as Node }
 // @public (undocumented)
 interface Node_3 {
     // (undocumented)
-    NodeEnvironmentPlugin: typeof NodeEnvironmentPlugin;
-    // (undocumented)
-    NodeTargetPlugin: typeof NodeTargetPlugin;
-    // (undocumented)
-    NodeTemplatePlugin: typeof NodeTemplatePlugin;
+    type: string;
 }
 
 // @public (undocumented)
 interface Node_4 {
     // (undocumented)
-    type: string;
+    NodeEnvironmentPlugin: typeof NodeEnvironmentPlugin;
+    // (undocumented)
+    NodeTargetPlugin: typeof NodeTargetPlugin;
+    // (undocumented)
+    NodeTemplatePlugin: typeof NodeTemplatePlugin;
 }
 
 // @public (undocumented)
@@ -5055,13 +5059,13 @@ export class NormalModuleReplacementPlugin {
 }
 
 // @public (undocumented)
-interface NullLiteral extends Node_4, HasSpan {
+interface NullLiteral extends Node_3, HasSpan {
     // (undocumented)
     type: "NullLiteral";
 }
 
 // @public (undocumented)
-interface NumericLiteral extends Node_4, HasSpan {
+interface NumericLiteral extends Node_3, HasSpan {
     // (undocumented)
     raw?: string;
     // (undocumented)
@@ -5238,7 +5242,7 @@ interface OptionalChainingExpression extends ExpressionBase {
 }
 
 // @public
-interface Options extends Config_2 {
+interface Options extends Config {
     // (undocumented)
     caller?: CallerOptions;
     configFile?: string | boolean;
@@ -5466,7 +5470,7 @@ export interface OutputNormalized {
 type OverlayMessageOptions = boolean | ((error: Error) => void);
 
 // @public (undocumented)
-interface Param extends Node_4, HasSpan, HasDecorator {
+interface Param extends Node_3, HasSpan, HasDecorator {
     // (undocumented)
     pat: Pattern;
     // (undocumented)
@@ -5541,7 +5545,7 @@ type PathOrFileDescriptor = PathLike | number;
 type Pattern = BindingIdentifier | ArrayPattern | RestElement | ObjectPattern | AssignmentPattern | Invalid | Expression;
 
 // @public (undocumented)
-interface PatternBase extends Node_4, HasSpan {
+interface PatternBase extends Node_3, HasSpan {
     // (undocumented)
     typeAnnotation?: TsTypeAnnotation;
 }
@@ -5642,7 +5646,7 @@ export const ProgressPlugin: {
 export type ProgressPluginArgument = Partial<Omit<RawProgressPluginOptions, "handler">> | ((percentage: number, msg: string, ...args: string[]) => void) | undefined;
 
 // @public (undocumented)
-interface PropBase extends Node_4 {
+interface PropBase extends Node_3 {
     // (undocumented)
     key: PropertyName;
 }
@@ -5927,7 +5931,7 @@ type RecursiveArrayOrRecord<T> = {
 } | Array<RecursiveArrayOrRecord<T>> | T;
 
 // @public (undocumented)
-interface RegExpLiteral extends Node_4, HasSpan {
+interface RegExpLiteral extends Node_3, HasSpan {
     // (undocumented)
     flags: string;
     // (undocumented)
@@ -6092,7 +6096,7 @@ interface RestElement extends PatternBase {
 }
 
 // @public (undocumented)
-interface ReturnStatement extends Node_4, HasSpan {
+interface ReturnStatement extends Node_3, HasSpan {
     // (undocumented)
     argument?: Expression;
     // (undocumented)
@@ -6927,7 +6931,7 @@ type RuntimePlugins = string[];
 type RuntimeSpec = string | Set<string> | undefined;
 
 // @public (undocumented)
-interface Script extends Node_4, HasSpan, HasInterpreter {
+interface Script extends Node_3, HasSpan, HasInterpreter {
     // (undocumented)
     body: Statement[];
     // (undocumented)
@@ -7168,7 +7172,7 @@ class SplitChunksPlugin extends RspackBuiltinPlugin {
 }
 
 // @public (undocumented)
-interface SpreadElement extends Node_4 {
+interface SpreadElement extends Node_3 {
     // (undocumented)
     arguments: Expression;
     // (undocumented)
@@ -7206,7 +7210,7 @@ type Static = {
 };
 
 // @public (undocumented)
-interface StaticBlock extends Node_4, HasSpan {
+interface StaticBlock extends Node_3, HasSpan {
     // (undocumented)
     body: BlockStatement;
     // (undocumented)
@@ -7465,7 +7469,7 @@ export type StrictModuleExceptionHandling = boolean;
 type StringCallback = (err: NodeJS.ErrnoException | null, data?: string) => void;
 
 // @public (undocumented)
-interface StringLiteral extends Node_4, HasSpan {
+interface StringLiteral extends Node_3, HasSpan {
     // (undocumented)
     raw?: string;
     // (undocumented)
@@ -7498,7 +7502,7 @@ export type SubresourceIntegrityPluginOptions = {
 };
 
 // @public (undocumented)
-interface Super extends Node_4, HasSpan {
+interface Super extends Node_3, HasSpan {
     // (undocumented)
     type: "Super";
 }
@@ -7532,9 +7536,9 @@ export type SwcJsMinimizerRspackPluginOptions = {
     extractComments?: ExtractCommentsOptions | undefined;
     minimizerOptions?: {
         minify?: boolean;
-        compress?: TerserCompressOptions | boolean;
-        mangle?: TerserMangleOptions | boolean;
-        format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
+        compress?: TerserCompressOptions_2 | boolean;
+        mangle?: TerserMangleOptions_2 | boolean;
+        format?: JsFormatOptions_2 & ToSnakeCaseProperties_2<JsFormatOptions_2>;
         module?: boolean;
     };
 };
@@ -7552,7 +7556,7 @@ export type SwcLoaderJscConfig = JscConfig;
 export type SwcLoaderModuleConfig = ModuleConfig;
 
 // @public (undocumented)
-export type SwcLoaderOptions = Config_2 & {
+export type SwcLoaderOptions = Config & {
     isModule?: boolean | "unknown";
     rspackExperiments?: {
         import?: PluginImportOptions;
@@ -7569,7 +7573,7 @@ export type SwcLoaderTransformConfig = TransformConfig;
 export type SwcLoaderTsParserConfig = TsParserConfig;
 
 // @public (undocumented)
-interface SwitchCase extends Node_4, HasSpan {
+interface SwitchCase extends Node_3, HasSpan {
     // (undocumented)
     consequent: Statement[];
     test?: Expression;
@@ -7578,7 +7582,7 @@ interface SwitchCase extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface SwitchStatement extends Node_4, HasSpan {
+interface SwitchStatement extends Node_3, HasSpan {
     // (undocumented)
     cases: SwitchCase[];
     // (undocumented)
@@ -7930,26 +7934,6 @@ type TerserEcmaVersion_2 = 5 | 2015 | 2016 | string | number;
 interface TerserMangleOptions {
     // (undocumented)
     ie8?: boolean;
-    // (undocumented)
-    keep_classnames?: boolean;
-    // (undocumented)
-    keep_fnames?: boolean;
-    // (undocumented)
-    keep_private_props?: boolean;
-    // (undocumented)
-    props?: TerserManglePropertiesOptions;
-    // (undocumented)
-    reserved?: string[];
-    // (undocumented)
-    safari10?: boolean;
-    // (undocumented)
-    toplevel?: boolean;
-}
-
-// @public (undocumented)
-interface TerserMangleOptions_2 {
-    // (undocumented)
-    ie8?: boolean;
     // @deprecated (undocumented)
     keep_classnames?: boolean;
     // @deprecated (undocumented)
@@ -7960,7 +7944,7 @@ interface TerserMangleOptions_2 {
     keepFnNames?: boolean;
     keepPrivateProps?: boolean;
     // (undocumented)
-    props?: TerserManglePropertiesOptions_2;
+    props?: TerserManglePropertiesOptions;
     // (undocumented)
     reserved?: string[];
     // (undocumented)
@@ -7971,11 +7955,31 @@ interface TerserMangleOptions_2 {
 }
 
 // @public (undocumented)
-type TerserManglePropertiesOptions = {};
+interface TerserMangleOptions_2 {
+    // (undocumented)
+    ie8?: boolean;
+    // (undocumented)
+    keep_classnames?: boolean;
+    // (undocumented)
+    keep_fnames?: boolean;
+    // (undocumented)
+    keep_private_props?: boolean;
+    // (undocumented)
+    props?: TerserManglePropertiesOptions_2;
+    // (undocumented)
+    reserved?: string[];
+    // (undocumented)
+    safari10?: boolean;
+    // (undocumented)
+    toplevel?: boolean;
+}
 
 // @public (undocumented)
-interface TerserManglePropertiesOptions_2 {
+interface TerserManglePropertiesOptions {
 }
+
+// @public (undocumented)
+type TerserManglePropertiesOptions_2 = {};
 
 // @public (undocumented)
 interface ThisExpression extends ExpressionBase {
@@ -7984,7 +7988,7 @@ interface ThisExpression extends ExpressionBase {
 }
 
 // @public (undocumented)
-interface ThrowStatement extends Node_4, HasSpan {
+interface ThrowStatement extends Node_3, HasSpan {
     // (undocumented)
     argument: Expression;
     // (undocumented)
@@ -8041,7 +8045,7 @@ export type TrustedTypes = {
 };
 
 // @public (undocumented)
-interface TryStatement extends Node_4, HasSpan {
+interface TryStatement extends Node_3, HasSpan {
     // (undocumented)
     block: BlockStatement;
     // (undocumented)
@@ -8053,7 +8057,7 @@ interface TryStatement extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsArrayType extends Node_4, HasSpan {
+interface TsArrayType extends Node_3, HasSpan {
     // (undocumented)
     elemType: TsType;
     // (undocumented)
@@ -8071,7 +8075,7 @@ interface TsAsExpression extends ExpressionBase {
 }
 
 // @public (undocumented)
-interface TsCallSignatureDeclaration extends Node_4, HasSpan {
+interface TsCallSignatureDeclaration extends Node_3, HasSpan {
     // (undocumented)
     params: TsFnParameter[];
     // (undocumented)
@@ -8083,7 +8087,7 @@ interface TsCallSignatureDeclaration extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsConditionalType extends Node_4, HasSpan {
+interface TsConditionalType extends Node_3, HasSpan {
     // (undocumented)
     checkType: TsType;
     // (undocumented)
@@ -8105,7 +8109,7 @@ interface TsConstAssertion extends ExpressionBase {
 }
 
 // @public (undocumented)
-interface TsConstructorType extends Node_4, HasSpan {
+interface TsConstructorType extends Node_3, HasSpan {
     // (undocumented)
     isAbstract: boolean;
     // (undocumented)
@@ -8119,7 +8123,7 @@ interface TsConstructorType extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsConstructSignatureDeclaration extends Node_4, HasSpan {
+interface TsConstructSignatureDeclaration extends Node_3, HasSpan {
     // (undocumented)
     params: TsFnParameter[];
     // (undocumented)
@@ -8134,7 +8138,7 @@ interface TsConstructSignatureDeclaration extends Node_4, HasSpan {
 type TsEntityName = TsQualifiedName | Identifier;
 
 // @public (undocumented)
-interface TsEnumDeclaration extends Node_4, HasSpan {
+interface TsEnumDeclaration extends Node_3, HasSpan {
     // (undocumented)
     declare: boolean;
     // (undocumented)
@@ -8148,7 +8152,7 @@ interface TsEnumDeclaration extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsEnumMember extends Node_4, HasSpan {
+interface TsEnumMember extends Node_3, HasSpan {
     // (undocumented)
     id: TsEnumMemberId;
     // (undocumented)
@@ -8161,7 +8165,7 @@ interface TsEnumMember extends Node_4, HasSpan {
 type TsEnumMemberId = Identifier | StringLiteral;
 
 // @public (undocumented)
-interface TsExportAssignment extends Node_4, HasSpan {
+interface TsExportAssignment extends Node_3, HasSpan {
     // (undocumented)
     expression: Expression;
     // (undocumented)
@@ -8169,7 +8173,7 @@ interface TsExportAssignment extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsExpressionWithTypeArguments extends Node_4, HasSpan {
+interface TsExpressionWithTypeArguments extends Node_3, HasSpan {
     // (undocumented)
     expression: Expression;
     // (undocumented)
@@ -8179,7 +8183,7 @@ interface TsExpressionWithTypeArguments extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsExternalModuleReference extends Node_4, HasSpan {
+interface TsExternalModuleReference extends Node_3, HasSpan {
     // (undocumented)
     expression: StringLiteral;
     // (undocumented)
@@ -8193,7 +8197,7 @@ type TsFnOrConstructorType = TsFunctionType | TsConstructorType;
 type TsFnParameter = BindingIdentifier | ArrayPattern | RestElement | ObjectPattern;
 
 // @public (undocumented)
-interface TsFunctionType extends Node_4, HasSpan {
+interface TsFunctionType extends Node_3, HasSpan {
     // (undocumented)
     params: TsFnParameter[];
     // (undocumented)
@@ -8205,7 +8209,7 @@ interface TsFunctionType extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsGetterSignature extends Node_4, HasSpan {
+interface TsGetterSignature extends Node_3, HasSpan {
     // (undocumented)
     computed: boolean;
     // (undocumented)
@@ -8221,7 +8225,7 @@ interface TsGetterSignature extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsImportEqualsDeclaration extends Node_4, HasSpan {
+interface TsImportEqualsDeclaration extends Node_3, HasSpan {
     // (undocumented)
     declare: boolean;
     // (undocumented)
@@ -8237,7 +8241,7 @@ interface TsImportEqualsDeclaration extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsImportType extends Node_4, HasSpan {
+interface TsImportType extends Node_3, HasSpan {
     // (undocumented)
     argument: StringLiteral;
     // (undocumented)
@@ -8249,7 +8253,7 @@ interface TsImportType extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsIndexedAccessType extends Node_4, HasSpan {
+interface TsIndexedAccessType extends Node_3, HasSpan {
     // (undocumented)
     indexType: TsType;
     // (undocumented)
@@ -8261,7 +8265,7 @@ interface TsIndexedAccessType extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsIndexSignature extends Node_4, HasSpan {
+interface TsIndexSignature extends Node_3, HasSpan {
     // (undocumented)
     params: TsFnParameter[];
     // (undocumented)
@@ -8275,7 +8279,7 @@ interface TsIndexSignature extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsInferType extends Node_4, HasSpan {
+interface TsInferType extends Node_3, HasSpan {
     // (undocumented)
     type: "TsInferType";
     // (undocumented)
@@ -8283,7 +8287,7 @@ interface TsInferType extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsInstantiation extends Node_4, HasSpan {
+interface TsInstantiation extends Node_3, HasSpan {
     // (undocumented)
     expression: Expression;
     // (undocumented)
@@ -8293,7 +8297,7 @@ interface TsInstantiation extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsInterfaceBody extends Node_4, HasSpan {
+interface TsInterfaceBody extends Node_3, HasSpan {
     // (undocumented)
     body: TsTypeElement[];
     // (undocumented)
@@ -8301,7 +8305,7 @@ interface TsInterfaceBody extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsInterfaceDeclaration extends Node_4, HasSpan {
+interface TsInterfaceDeclaration extends Node_3, HasSpan {
     // (undocumented)
     body: TsInterfaceBody;
     // (undocumented)
@@ -8317,7 +8321,7 @@ interface TsInterfaceDeclaration extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsIntersectionType extends Node_4, HasSpan {
+interface TsIntersectionType extends Node_3, HasSpan {
     // (undocumented)
     type: "TsIntersectionType";
     // (undocumented)
@@ -8325,7 +8329,7 @@ interface TsIntersectionType extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsKeywordType extends Node_4, HasSpan {
+interface TsKeywordType extends Node_3, HasSpan {
     // (undocumented)
     kind: TsKeywordTypeKind;
     // (undocumented)
@@ -8339,7 +8343,7 @@ type TsKeywordTypeKind = "any" | "unknown" | "number" | "object" | "boolean" | "
 type TsLiteral = NumericLiteral | StringLiteral | BooleanLiteral | BigIntLiteral | TsTemplateLiteralType;
 
 // @public (undocumented)
-interface TsLiteralType extends Node_4, HasSpan {
+interface TsLiteralType extends Node_3, HasSpan {
     // (undocumented)
     literal: TsLiteral;
     // (undocumented)
@@ -8347,7 +8351,7 @@ interface TsLiteralType extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsMappedType extends Node_4, HasSpan {
+interface TsMappedType extends Node_3, HasSpan {
     // (undocumented)
     nameType?: TsType;
     // (undocumented)
@@ -8363,7 +8367,7 @@ interface TsMappedType extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsMethodSignature extends Node_4, HasSpan {
+interface TsMethodSignature extends Node_3, HasSpan {
     // (undocumented)
     computed: boolean;
     // (undocumented)
@@ -8383,7 +8387,7 @@ interface TsMethodSignature extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsModuleBlock extends Node_4, HasSpan {
+interface TsModuleBlock extends Node_3, HasSpan {
     // (undocumented)
     body: ModuleItem[];
     // (undocumented)
@@ -8391,7 +8395,7 @@ interface TsModuleBlock extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsModuleDeclaration extends Node_4, HasSpan {
+interface TsModuleDeclaration extends Node_3, HasSpan {
     // (undocumented)
     body?: TsNamespaceBody;
     // (undocumented)
@@ -8414,7 +8418,7 @@ type TsModuleReference = TsEntityName | TsExternalModuleReference;
 type TsNamespaceBody = TsModuleBlock | TsNamespaceDeclaration;
 
 // @public (undocumented)
-interface TsNamespaceDeclaration extends Node_4, HasSpan {
+interface TsNamespaceDeclaration extends Node_3, HasSpan {
     // (undocumented)
     body: TsNamespaceBody;
     // (undocumented)
@@ -8428,7 +8432,7 @@ interface TsNamespaceDeclaration extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsNamespaceExportDeclaration extends Node_4, HasSpan {
+interface TsNamespaceExportDeclaration extends Node_3, HasSpan {
     // (undocumented)
     id: Identifier;
     // (undocumented)
@@ -8444,7 +8448,7 @@ interface TsNonNullExpression extends ExpressionBase {
 }
 
 // @public (undocumented)
-interface TsOptionalType extends Node_4, HasSpan {
+interface TsOptionalType extends Node_3, HasSpan {
     // (undocumented)
     type: "TsOptionalType";
     // (undocumented)
@@ -8452,7 +8456,7 @@ interface TsOptionalType extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsParameterProperty extends Node_4, HasSpan, HasDecorator {
+interface TsParameterProperty extends Node_3, HasSpan, HasDecorator {
     // (undocumented)
     accessibility?: Accessibility;
     // (undocumented)
@@ -8469,7 +8473,7 @@ interface TsParameterProperty extends Node_4, HasSpan, HasDecorator {
 type TsParameterPropertyParameter = BindingIdentifier | AssignmentPattern;
 
 // @public (undocumented)
-interface TsParenthesizedType extends Node_4, HasSpan {
+interface TsParenthesizedType extends Node_3, HasSpan {
     // (undocumented)
     type: "TsParenthesizedType";
     // (undocumented)
@@ -8487,7 +8491,7 @@ interface TsParserConfig {
 }
 
 // @public (undocumented)
-interface TsPropertySignature extends Node_4, HasSpan {
+interface TsPropertySignature extends Node_3, HasSpan {
     // (undocumented)
     computed: boolean;
     // (undocumented)
@@ -8503,7 +8507,7 @@ interface TsPropertySignature extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsQualifiedName extends Node_4 {
+interface TsQualifiedName extends Node_3 {
     // (undocumented)
     left: TsEntityName;
     // (undocumented)
@@ -8513,7 +8517,7 @@ interface TsQualifiedName extends Node_4 {
 }
 
 // @public (undocumented)
-interface TsRestType extends Node_4, HasSpan {
+interface TsRestType extends Node_3, HasSpan {
     // (undocumented)
     type: "TsRestType";
     // (undocumented)
@@ -8531,7 +8535,7 @@ interface TsSatisfiesExpression extends ExpressionBase {
 }
 
 // @public (undocumented)
-interface TsSetterSignature extends Node_4, HasSpan {
+interface TsSetterSignature extends Node_3, HasSpan {
     // (undocumented)
     computed: boolean;
     // (undocumented)
@@ -8547,7 +8551,7 @@ interface TsSetterSignature extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsTemplateLiteralType extends Node_4, HasSpan {
+interface TsTemplateLiteralType extends Node_3, HasSpan {
     // (undocumented)
     quasis: TemplateElement[];
     // (undocumented)
@@ -8557,7 +8561,7 @@ interface TsTemplateLiteralType extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsThisType extends Node_4, HasSpan {
+interface TsThisType extends Node_3, HasSpan {
     // (undocumented)
     type: "TsThisType";
 }
@@ -8566,7 +8570,7 @@ interface TsThisType extends Node_4, HasSpan {
 type TsThisTypeOrIdent = TsThisType | Identifier;
 
 // @public (undocumented)
-interface TsTupleElement extends Node_4, HasSpan {
+interface TsTupleElement extends Node_3, HasSpan {
     // (undocumented)
     label?: Pattern;
     // (undocumented)
@@ -8576,7 +8580,7 @@ interface TsTupleElement extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsTupleType extends Node_4, HasSpan {
+interface TsTupleType extends Node_3, HasSpan {
     // (undocumented)
     elemTypes: TsTupleElement[];
     // (undocumented)
@@ -8587,7 +8591,7 @@ interface TsTupleType extends Node_4, HasSpan {
 type TsType = TsKeywordType | TsThisType | TsFnOrConstructorType | TsTypeReference | TsTypeQuery | TsTypeLiteral | TsArrayType | TsTupleType | TsOptionalType | TsRestType | TsUnionOrIntersectionType | TsConditionalType | TsInferType | TsParenthesizedType | TsTypeOperator | TsIndexedAccessType | TsMappedType | TsLiteralType | TsTypePredicate | TsImportType;
 
 // @public (undocumented)
-interface TsTypeAliasDeclaration extends Node_4, HasSpan {
+interface TsTypeAliasDeclaration extends Node_3, HasSpan {
     // (undocumented)
     declare: boolean;
     // (undocumented)
@@ -8601,7 +8605,7 @@ interface TsTypeAliasDeclaration extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsTypeAnnotation extends Node_4, HasSpan {
+interface TsTypeAnnotation extends Node_3, HasSpan {
     // (undocumented)
     type: "TsTypeAnnotation";
     // (undocumented)
@@ -8622,7 +8626,7 @@ interface TsTypeAssertion extends ExpressionBase {
 type TsTypeElement = TsCallSignatureDeclaration | TsConstructSignatureDeclaration | TsPropertySignature | TsGetterSignature | TsSetterSignature | TsMethodSignature | TsIndexSignature;
 
 // @public (undocumented)
-interface TsTypeLiteral extends Node_4, HasSpan {
+interface TsTypeLiteral extends Node_3, HasSpan {
     // (undocumented)
     members: TsTypeElement[];
     // (undocumented)
@@ -8630,7 +8634,7 @@ interface TsTypeLiteral extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsTypeOperator extends Node_4, HasSpan {
+interface TsTypeOperator extends Node_3, HasSpan {
     // (undocumented)
     op: TsTypeOperatorOp;
     // (undocumented)
@@ -8643,7 +8647,7 @@ interface TsTypeOperator extends Node_4, HasSpan {
 type TsTypeOperatorOp = "keyof" | "unique" | "readonly";
 
 // @public (undocumented)
-interface TsTypeParameter extends Node_4, HasSpan {
+interface TsTypeParameter extends Node_3, HasSpan {
     // (undocumented)
     constraint?: TsType;
     // (undocumented)
@@ -8659,7 +8663,7 @@ interface TsTypeParameter extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsTypeParameterDeclaration extends Node_4, HasSpan {
+interface TsTypeParameterDeclaration extends Node_3, HasSpan {
     // (undocumented)
     parameters: TsTypeParameter[];
     // (undocumented)
@@ -8667,7 +8671,7 @@ interface TsTypeParameterDeclaration extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsTypeParameterInstantiation extends Node_4, HasSpan {
+interface TsTypeParameterInstantiation extends Node_3, HasSpan {
     // (undocumented)
     params: TsType[];
     // (undocumented)
@@ -8675,7 +8679,7 @@ interface TsTypeParameterInstantiation extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface TsTypePredicate extends Node_4, HasSpan {
+interface TsTypePredicate extends Node_3, HasSpan {
     // (undocumented)
     asserts: boolean;
     // (undocumented)
@@ -8687,7 +8691,7 @@ interface TsTypePredicate extends Node_4, HasSpan {
 }
 
 // @public
-interface TsTypeQuery extends Node_4, HasSpan {
+interface TsTypeQuery extends Node_3, HasSpan {
     // (undocumented)
     exprName: TsTypeQueryExpr;
     // (undocumented)
@@ -8700,7 +8704,7 @@ interface TsTypeQuery extends Node_4, HasSpan {
 type TsTypeQueryExpr = TsEntityName | TsImportType;
 
 // @public (undocumented)
-interface TsTypeReference extends Node_4, HasSpan {
+interface TsTypeReference extends Node_3, HasSpan {
     // (undocumented)
     type: "TsTypeReference";
     // (undocumented)
@@ -8713,7 +8717,7 @@ interface TsTypeReference extends Node_4, HasSpan {
 type TsUnionOrIntersectionType = TsUnionType | TsIntersectionType;
 
 // @public (undocumented)
-interface TsUnionType extends Node_4, HasSpan {
+interface TsUnionType extends Node_3, HasSpan {
     // (undocumented)
     type: "TsUnionType";
     // (undocumented)
@@ -8779,7 +8783,7 @@ export class ValidationError extends Error {
 }
 
 // @public (undocumented)
-interface VariableDeclaration extends Node_4, HasSpan {
+interface VariableDeclaration extends Node_3, HasSpan {
     // (undocumented)
     declarations: VariableDeclarator[];
     // (undocumented)
@@ -8794,7 +8798,7 @@ interface VariableDeclaration extends Node_4, HasSpan {
 type VariableDeclarationKind = "var" | "let" | "const";
 
 // @public (undocumented)
-interface VariableDeclarator extends Node_4, HasSpan {
+interface VariableDeclarator extends Node_3, HasSpan {
     // (undocumented)
     definite: boolean;
     // (undocumented)
@@ -9133,7 +9137,7 @@ class WebWorkerTemplatePlugin extends RspackBuiltinPlugin {
 }
 
 // @public (undocumented)
-interface WhileStatement extends Node_4, HasSpan {
+interface WhileStatement extends Node_3, HasSpan {
     // (undocumented)
     body: Statement;
     // (undocumented)
@@ -9143,7 +9147,7 @@ interface WhileStatement extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-interface WithStatement extends Node_4, HasSpan {
+interface WithStatement extends Node_3, HasSpan {
     // (undocumented)
     body: Statement;
     // (undocumented)
