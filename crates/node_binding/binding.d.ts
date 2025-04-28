@@ -624,7 +624,7 @@ export interface JsChunkOptionNameCtx {
  *   - If a string, keep the files under this path
  */
 export interface JsCleanOptions {
-  keep?: string
+  keep?: string | RegExp | ((path: string) => boolean)
 }
 
 export interface JsCodegenerationResult {

@@ -43,7 +43,7 @@ use crate::{
   build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
   cache::Cache,
   get_runtime_key,
-  incremental::{Incremental, IncrementalPasses, Mutation},
+  incremental::{self, Incremental, IncrementalPasses, Mutation},
   is_source_equal,
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
   to_identifier, AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, CacheCount,
@@ -1107,10 +1107,9 @@ impl Compilation {
 
   #[instrument("Compilation::create_chunk_assets", skip_all)]
   async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    let mutations = self
+    let chunks = if let Some(mutations) = self
       .incremental
-      .mutations_read(IncrementalPasses::CHUNKS_RENDER);
-    let chunks = if let Some(mutations) = mutations
+      .mutations_read(IncrementalPasses::CHUNKS_RENDER)
       && !self.chunk_render_artifact.is_empty()
     {
       let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
@@ -1130,6 +1129,7 @@ impl Compilation {
           _ => None,
         })
         .collect();
+      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::CHUNKS_RENDER, %mutations);
       let logger = self.get_logger("rspack.incremental.chunksRender");
       logger.log(format!(
         "{} chunks are affected, {} in total",
@@ -1172,7 +1172,10 @@ impl Compilation {
       let (key, value) = item?;
       chunk_render_results.insert(key, value);
     }
-    let chunk_ukey_and_manifest = if mutations.is_some() {
+    let chunk_ukey_and_manifest = if self
+      .incremental
+      .passes_enabled(IncrementalPasses::CHUNKS_RENDER)
+    {
       self.chunk_render_artifact.extend(chunk_render_results);
       self.chunk_render_artifact.clone()
     } else {
@@ -1326,6 +1329,7 @@ impl Compilation {
           .difference(&self.make_artifact.revoked_modules)
           .map(|&module| Mutation::ModuleAdd { module }),
       );
+      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MAKE, %mutations);
     }
 
     let start = logger.time("finish modules");
@@ -1358,7 +1362,7 @@ impl Compilation {
     Ok(())
   }
 
-  // #[tracing::instrument(skip_all)]
+  #[tracing::instrument("Compilation:collect_dependencies_diagnostics", skip_all)]
   fn collect_dependencies_diagnostics(&mut self) {
     let mutations = self
       .incremental
@@ -1524,25 +1528,25 @@ impl Compilation {
         self.cgm_hash_artifact.remove(&revoked_module);
       }
       let mg = self.get_module_graph();
-      let mut affected_modules = mutations.get_affected_modules_with_module_graph(&mg);
+      let mut modules = mutations.get_affected_modules_with_module_graph(&mg);
       for mutation in mutations.iter() {
         match mutation {
           Mutation::ModuleSetAsync { module } => {
-            affected_modules.insert(*module);
+            modules.insert(*module);
           }
           Mutation::ModuleSetId { module } => {
-            affected_modules.insert(*module);
-            affected_modules.extend(
+            modules.insert(*module);
+            modules.extend(
               mg.get_incoming_connections(module)
                 .filter_map(|c| c.original_module_identifier),
             );
           }
           Mutation::ChunkAdd { chunk } => {
-            affected_modules.extend(self.chunk_graph.get_chunk_modules_identifier(chunk));
+            modules.extend(self.chunk_graph.get_chunk_modules_identifier(chunk));
           }
           Mutation::ChunkSetId { chunk } => {
             let chunk = self.chunk_by_ukey.expect_get(chunk);
-            affected_modules.extend(
+            modules.extend(
               chunk
                 .groups()
                 .iter()
@@ -1556,13 +1560,14 @@ impl Compilation {
           _ => {}
         }
       }
+      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MODULES_HASHES, %mutations, ?modules);
       let logger = self.get_logger("rspack.incremental.modulesHashes");
       logger.log(format!(
         "{} modules are affected, {} in total",
-        affected_modules.len(),
+        modules.len(),
         mg.modules().len()
       ));
-      affected_modules
+      modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
@@ -1598,6 +1603,7 @@ impl Compilation {
           _ => None,
         })
         .collect();
+      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MODULES_CODEGEN, %mutations);
       let logger = self.get_logger("rspack.incremental.modulesCodegen");
       logger.log(format!(
         "{} modules are affected, {} in total",
@@ -2047,6 +2053,7 @@ impl Compilation {
         .chunk_hashes_artifact
         .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
       let chunks = mutations.get_affected_chunks_with_chunk_graph(self);
+      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::CHUNKS_HASHES, %mutations, ?chunks);
       let logger = self.get_logger("rspack.incremental.chunksHashes");
       logger.log(format!(
         "{} chunks are affected, {} in total",

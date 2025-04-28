@@ -1,6 +1,6 @@
 import nodePath from "node:path";
 import type { AssetInfo, RawFuncUseCtx } from "@rspack/binding";
-import z, { type SyncParseReturnType, ZodIssueCode } from "zod";
+import { type SyncParseReturnType, ZodIssueCode, z } from "zod";
 import { Chunk } from "../Chunk";
 import { ChunkGraph } from "../ChunkGraph";
 import type { Compilation, PathData } from "../Compilation";
@@ -244,7 +244,11 @@ const enabledLibraryTypes = z.array(
 const clean = z.union([
 	z.boolean(),
 	z.strictObject({
-		keep: z.string().optional()
+		keep: z
+			.instanceof(RegExp)
+			.or(z.string())
+			.or(z.function().args(z.string()).returns(z.boolean()))
+			.optional()
 	})
 ]) satisfies z.ZodType<t.Clean>;
 

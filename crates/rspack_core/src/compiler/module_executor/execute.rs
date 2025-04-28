@@ -176,7 +176,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
       }
     }
 
-    tracing::info!("modules: {:?}", &modules);
+    tracing::debug!("modules: {:?}", &modules);
 
     let mut chunk_graph = ChunkGraph::default();
 
@@ -256,7 +256,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
       .copied()
       .collect::<IdentifierSet>();
 
-    tracing::info!(
+    tracing::debug!(
       "runtime modules: {:?}",
       &runtime_modules.iter().collect::<Vec<_>>()
     );

@@ -9,7 +9,10 @@ const __dirname = dirname(__filename);
 /** @type {import('prebundle').Config} */
 export default {
 	dependencies: [
-		"zod",
+		{
+			name: "zod",
+			copyDts: true
+		},
 		"graceful-fs",
 		{
 			name: "watchpack",
