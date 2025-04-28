@@ -10,8 +10,8 @@ pub fn contextify(context: impl AsRef<Utf8Path>, request: &str) -> String {
   let context = context.as_ref();
   request
     .split('!')
-    .map(|r| absolute_to_request(context.as_str(), r))
-    .collect::<Vec<Cow<str>>>()
+    .map(|r| absolute_to_request(context.to_string(), r.to_string()))
+    .collect::<Vec<_>>()
     .join("!")
 }
 

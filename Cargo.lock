@@ -514,6 +514,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "cached"
+version = "0.55.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0839c297f8783316fcca9d90344424e968395413f0662a5481f79c6648bbc14"
+dependencies = [
+ "ahash 0.8.11",
+ "cached_proc_macro",
+ "cached_proc_macro_types",
+ "hashbrown 0.14.5",
+ "once_cell",
+ "thiserror 2.0.9",
+ "web-time",
+]
+
+[[package]]
+name = "cached_proc_macro"
+version = "0.24.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "673992d934f0711b68ebb3e1b79cdc4be31634b37c98f26867ced0438ca5c603"
+dependencies = [
+ "darling 0.20.10",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.95",
+]
+
+[[package]]
+name = "cached_proc_macro_types"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ade8366b8bd5ba243f0a58f036cc0ca8a2f069cff1a2351ef1cac6b083e16fc0"
+
+[[package]]
 name = "camino"
 version = "1.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3921,6 +3954,7 @@ dependencies = [
  "async-recursion",
  "async-trait",
  "bitflags 2.6.0",
+ "cached",
  "cow-utils",
  "dashmap 6.1.0",
  "derive_more 1.0.0",
@@ -5189,6 +5223,7 @@ name = "rspack_util"
 version = "0.2.0"
 dependencies = [
  "bitflags 2.6.0",
+ "cached",
  "concat-string",
  "cow-utils",
  "dashmap 6.1.0",

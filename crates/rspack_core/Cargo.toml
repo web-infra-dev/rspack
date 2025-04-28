@@ -11,6 +11,7 @@ anymap = { workspace = true }
 async-recursion = { workspace = true }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
+cached = { workspace = true }
 cow-utils = { workspace = true }
 dashmap = { workspace = true, features = ["rayon"] }
 derive_more = { workspace = true, features = ["debug"] }
