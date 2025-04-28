@@ -9,7 +9,7 @@ Rspack 支持 JavaScript 的压缩和转换。Rspack 底层使用 SWC 来转换�
 ```js
 import { rspack } from '@rspack/core';
 
-const swc = rspack.experiments.swc;
+const { swc } = rspack.experiments;
 
 swc
   .transform('const a:number = 10;', {
