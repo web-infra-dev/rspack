@@ -10,15 +10,16 @@ Rspack 底层使用 [SWC](https://swc.rs/) 来转换和压缩 JavaScript 代码�
 import { rspack } from '@rspack/core';
 
 const { swc } = rspack.experiments;
+const sourceCode = 'const a: number = 10;';
 
 swc
-  .transform('const a: number = 10;', {
+  .transform(sourceCode, {
     filename: 'main.ts',
     jsc: {
       parser: {
         syntax: 'typescript',
       },
-      target: 'es5',
+      // ...other options
     },
   })
   .then(result => {
@@ -29,7 +30,7 @@ swc
 你也可以在 loader 或 plugin 中使用这些 API，来帮助你进行代码转换或压缩。
 
 ```js title="my-loader.mjs"
-export default function (source) {
+export default function myLoader(source) {
   const { swc } = this._compiler.rspack.experiments;
   const customCode = `
     const a = 10;
@@ -42,12 +43,11 @@ export default function (source) {
   swc
     .minify(customCode, {
       compress: true,
-      keep_classnames: true,
-      safari10: true,
       sourceMap: true,
+      // ...other options
     })
-    .then(minifiedCode => {
-      callback(null, `${minifiedCode}\n${source}`);
+    .then(result => {
+      callback(null, `${result.code}\n${source}`);
     });
 }
 ```
