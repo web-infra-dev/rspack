@@ -25,7 +25,7 @@ use crate::{
   fast_set, include_hash,
   incremental::{Incremental, IncrementalPasses},
   old_cache::Cache as OldCache,
-  trim_dir, BoxPlugin, CleanOptions, CompilerOptions, ContextModuleFactory, Logger,
+  trim_dir, BoxPlugin, CleanOptions, CompilerOptions, ContextModuleFactory, KeepPattern, Logger,
   NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
 };
 
@@ -486,24 +486,43 @@ impl Compiler {
     }
 
     if self.emitted_asset_versions.is_empty() {
-      if let CleanOptions::KeepPath(p) = clean_options {
-        let path_to_keep = self.options.output.path.join(Utf8Path::new(p));
-        trim_dir(
-          &*self.output_filesystem,
-          &self.options.output.path,
-          &path_to_keep,
-        )
-        .await?;
-        return Ok(());
+      match clean_options {
+        CleanOptions::CleanAll(true) => {
+          self
+            .output_filesystem
+            .remove_dir_all(&self.options.output.path)
+            .await?;
+        }
+        CleanOptions::KeepPath(p) => {
+          let path = self.options.output.path.join(p);
+          trim_dir(
+            &*self.output_filesystem,
+            &self.options.output.path,
+            KeepPattern::Path(&path),
+          )
+          .await?;
+        }
+        CleanOptions::KeepRegex(r) => {
+          let keep_pattern = KeepPattern::Regex(r);
+          trim_dir(
+            &*self.output_filesystem,
+            &self.options.output.path,
+            keep_pattern,
+          )
+          .await?;
+        }
+        CleanOptions::KeepFunc(f) => {
+          let keep_pattern = KeepPattern::Func(f);
+          trim_dir(
+            &*self.output_filesystem,
+            &self.options.output.path,
+            keep_pattern,
+          )
+          .await?;
+        }
+        _ => {}
       }
 
-      // CleanOptions::CleanAll(true) only
-      debug_assert!(matches!(clean_options, CleanOptions::CleanAll(true)));
-
-      self
-        .output_filesystem
-        .remove_dir_all(&self.options.output.path)
-        .await?;
       return Ok(());
     }
 
@@ -516,7 +535,7 @@ impl Compiler {
           if !assets.contains_key(filename) {
             let filename = filename.to_owned();
             Some(async {
-              if !clean_options.keep(filename.as_str()) {
+              if !clean_options.keep(&filename).await {
                 let filename = Utf8Path::new(&self.options.output.path).join(filename);
                 let _ = self.output_filesystem.remove_file(&filename).await;
               }

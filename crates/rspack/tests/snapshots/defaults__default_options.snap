@@ -12,9 +12,7 @@ CompilerOptions {
         pathinfo: Bool(
             false,
         ),
-        clean: CleanAll(
-            false,
-        ),
+        clean: CleanAll(false),
         public_path: Auto,
         asset_module_filename: Filename(
             Template(

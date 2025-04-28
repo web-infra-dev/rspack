@@ -895,7 +895,7 @@ interface ClassPropertyBase extends Node_4, HasSpan, HasDecorator {
 
 // @public
 export type Clean = boolean | {
-    keep?: string;
+    keep?: string | RegExp | ((path: string) => boolean);
 };
 
 // @public (undocumented)
