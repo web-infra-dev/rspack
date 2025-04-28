@@ -1,0 +1,121 @@
+# SWC API
+
+Rspack 底层使用 [SWC](https://swc.rs/) 来转换和压缩 JavaScript 代码，并通过 `rspack.experiments.swc` 实验性地开放一部分 SWC JavaScript API。这使你能够直接调用 SWC 的 `transform` 或 `minify` 等功能，无须额外安装 [@swc/core](https://www.npmjs.com/package/@swc/core) 包。
+
+## 示例
+
+以下是一个简单的示例，演示如何使用 Rspack 转换 JavaScript 代码：
+
+```js
+import { rspack } from '@rspack/core';
+
+const { swc } = rspack.experiments;
+
+swc
+  .transform('const a: number = 10;', {
+    filename: 'main.ts',
+    jsc: {
+      parser: {
+        syntax: 'typescript',
+      },
+      target: 'es5',
+    },
+  })
+  .then(result => {
+    console.log(result.code);
+  });
+```
+
+你也可以在 loader 或 plugin 中使用这些 API，来帮助你进行代码转换或压缩。
+
+```js title="my-loader.mjs"
+export default function (source) {
+  const { swc } = this._compiler.rspack.experiments;
+  const customCode = `
+    const a = 10;
+    const b = 20;
+    // custom code
+  `;
+
+  const callback = this.async();
+
+  swc
+    .minify(customCode, {
+      compress: true,
+      keep_classnames: true,
+      safari10: true,
+      sourceMap: true,
+    })
+    .then(minifiedCode => {
+      callback(null, `${minifiedCode}\n${source}`);
+    });
+}
+```
+
+## 选项
+
+Rspack 底层使用 SWC 来转换和压缩 JavaScript 代码。上述 API 接受的选项会传递给 SWC。
+
+你可以在 SWC 官方文档中了解更多配置选项：
+
+- [SWC Transform API](https://swc.rs/docs/usage/core#transform) - 代码转换选项
+- [SWC Minify API](https://swc.rs/docs/usage/core#minify) - 代码压缩选项
+
+```ts
+declare namespace rspack {
+  namespace experimental {
+    declare const swc: {
+      transform(
+        code: string,
+        options?: TransformOptions,
+      ): Promise<TransformOutput>;
+      minify(code: string, options?: JsMinifyOptions): Promise<TransformOutput>;
+    };
+
+    declare interface JsMinifyOptions {
+      compress?: TerserCompressOptions | boolean;
+      format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
+      mangle?: TerserMangleOptions | boolean;
+      ecma?: TerserEcmaVersion;
+      keep_classnames?: boolean;
+      keep_fnames?: boolean;
+      module?: boolean | 'unknown';
+      safari10?: boolean;
+      toplevel?: boolean;
+      sourceMap?: boolean;
+      outputPath?: string;
+      inlineSourcesContent?: boolean;
+    }
+
+    declare interface TransformOptions {
+      filename?: string;
+      sourceMaps?: boolean;
+      jsc?: {
+        parser?: {
+          syntax?: 'ecmascript' | 'typescript';
+          decorators?: boolean;
+          dynamicImport?: boolean;
+          exportDefaultFrom?: boolean;
+          exportNamespaceFrom?: boolean;
+          importAssertions?: boolean;
+          tsx?: boolean;
+        };
+        target?: string;
+        loose?: boolean;
+        externalHelpers?: boolean;
+        keepClassNames?: boolean;
+        keepFnName?: boolean;
+        minifySyntax?: boolean;
+        minifyWhitespace?: boolean;
+        minifyIdentifiers?: boolean;
+      };
+      // ...
+    }
+
+    declare interface TransformOutput {
+      code: string;
+      map?: string;
+    }
+  }
+}
+```

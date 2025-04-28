@@ -1,1 +1,10 @@
-["index", "compiler", "compilation", "stats", "stats-json", "logger", "cache"]
+[
+  "index",
+  "compiler",
+  "compilation",
+  "stats",
+  "stats-json",
+  "logger",
+  "cache",
+  "swc"
+]
