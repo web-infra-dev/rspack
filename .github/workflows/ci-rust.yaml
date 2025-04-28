@@ -41,18 +41,15 @@ jobs:
     name: Rust check
     needs: [ check-changed ]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    runs-on: ubuntu-22.04
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS) ||  'ubuntu-22.04' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
-          save-if: false
+          save-if: true
           key: check
-
-      - name: Pnpm Setup
-        uses: ./.github/actions/pnpm/setup
 
       - name: Run Cargo Check
         run: cargo check --workspace --all-targets --locked # Not using --release because it uses too much cache, and is also slow.
@@ -69,14 +66,16 @@ jobs:
           command: fmt
           args: --all -- --check
 
+      - name: Install tapo
+        run: cargo install taplo-cli --locked
       - name: Run toml format check
-        run: npm run format-ci:toml
+        run: taplo format --check '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'
 
   rust_unused_dependencies:
     needs: [ check-changed ]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     name: Check Rust Dependencies
-    runs-on: ubuntu-22.04
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS) ||  'ubuntu-22.04' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - uses: ./.github/actions/rustup
@@ -96,7 +95,7 @@ jobs:
 
   rust_test:
     name: Rust test
-    runs-on: ubuntu-22.04
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS) ||  'ubuntu-22.04' }}
     needs: [ check-changed ]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     steps:
@@ -105,8 +104,8 @@ jobs:
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
-          save-if: ${{ github.ref_name == 'main' }}
-          key: 'check'
+          save-if: true
+          key: test
 
       # Compile test without debug info for reducing the CI cache size
       - name: Change profile.test
