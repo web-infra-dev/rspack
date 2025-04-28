@@ -12,7 +12,7 @@ import { rspack } from '@rspack/core';
 const { swc } = rspack.experiments;
 
 swc
-  .transform('const a:number = 10;', {
+  .transform('const a: number = 10;', {
     filename: 'main.ts',
     jsc: {
       parser: {
@@ -28,7 +28,7 @@ swc
 
 In addition to using the `swc` API directly, you can also use it in loaders or plugins to help with code transform or minify.
 
-```js
+```js title="my-loader.mjs"
 export default function (source) {
   const { swc } = this._compiler.rspack.experiments;
   const customCode = `
