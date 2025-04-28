@@ -896,13 +896,13 @@ impl<'a> TryFrom<StatsChunk<'a>> for JsStatsChunk<'a> {
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsChunkGroupAsset {
-  pub name: String,
+pub struct JsStatsChunkGroupAsset<'a> {
+  pub name: &'a str,
   pub size: f64,
 }
 
-impl From<rspack_core::StatsChunkGroupAsset> for JsStatsChunkGroupAsset {
-  fn from(stats: rspack_core::StatsChunkGroupAsset) -> Self {
+impl<'a> From<rspack_core::StatsChunkGroupAsset<'a>> for JsStatsChunkGroupAsset<'a> {
+  fn from(stats: rspack_core::StatsChunkGroupAsset<'a>) -> Self {
     Self {
       name: stats.name,
       size: stats.size as f64,
@@ -911,20 +911,20 @@ impl From<rspack_core::StatsChunkGroupAsset> for JsStatsChunkGroupAsset {
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsChunkGroup {
-  pub name: String,
-  pub chunks: Vec<String>,
-  pub assets: Vec<JsStatsChunkGroupAsset>,
+pub struct JsStatsChunkGroup<'a> {
+  pub name: &'a str,
+  pub chunks: Vec<&'a str>,
+  pub assets: Vec<JsStatsChunkGroupAsset<'a>>,
   pub assets_size: f64,
-  pub auxiliary_assets: Option<Vec<JsStatsChunkGroupAsset>>,
+  pub auxiliary_assets: Option<Vec<JsStatsChunkGroupAsset<'a>>>,
   pub auxiliary_assets_size: Option<f64>,
   pub is_over_size_limit: Option<bool>,
-  pub children: Option<JsStatsChunkGroupChildren>,
-  pub child_assets: Option<JsStatsChildGroupChildAssets>,
+  pub children: Option<JsStatsChunkGroupChildren<'a>>,
+  pub child_assets: Option<JsStatsChildGroupChildAssets<'a>>,
 }
 
-impl From<rspack_core::StatsChunkGroup> for JsStatsChunkGroup {
-  fn from(stats: rspack_core::StatsChunkGroup) -> Self {
+impl<'a> From<rspack_core::StatsChunkGroup<'a>> for JsStatsChunkGroup<'a> {
+  fn from(stats: rspack_core::StatsChunkGroup<'a>) -> Self {
     Self {
       name: stats.name,
       chunks: stats.chunks,
@@ -942,13 +942,13 @@ impl From<rspack_core::StatsChunkGroup> for JsStatsChunkGroup {
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsChildGroupChildAssets {
-  pub preload: Option<Vec<String>>,
-  pub prefetch: Option<Vec<String>>,
+pub struct JsStatsChildGroupChildAssets<'a> {
+  pub preload: Option<Vec<&'a str>>,
+  pub prefetch: Option<Vec<&'a str>>,
 }
 
-impl From<rspack_core::StatschunkGroupChildAssets> for JsStatsChildGroupChildAssets {
-  fn from(stats: rspack_core::StatschunkGroupChildAssets) -> Self {
+impl<'a> From<rspack_core::StatschunkGroupChildAssets<'a>> for JsStatsChildGroupChildAssets<'a> {
+  fn from(stats: rspack_core::StatschunkGroupChildAssets<'a>) -> Self {
     Self {
       preload: (!stats.preload.is_empty()).then_some(stats.preload),
       prefetch: (!stats.prefetch.is_empty()).then_some(stats.prefetch),
@@ -957,13 +957,13 @@ impl From<rspack_core::StatschunkGroupChildAssets> for JsStatsChildGroupChildAss
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsChunkGroupChildren {
-  pub preload: Option<Vec<JsStatsChunkGroup>>,
-  pub prefetch: Option<Vec<JsStatsChunkGroup>>,
+pub struct JsStatsChunkGroupChildren<'a> {
+  pub preload: Option<Vec<JsStatsChunkGroup<'a>>>,
+  pub prefetch: Option<Vec<JsStatsChunkGroup<'a>>>,
 }
 
-impl From<rspack_core::StatsChunkGroupChildren> for JsStatsChunkGroupChildren {
-  fn from(stats: rspack_core::StatsChunkGroupChildren) -> Self {
+impl<'a> From<rspack_core::StatsChunkGroupChildren<'a>> for JsStatsChunkGroupChildren<'a> {
+  fn from(stats: rspack_core::StatsChunkGroupChildren<'a>) -> Self {
     Self {
       preload: (!stats.preload.is_empty())
         .then(|| stats.preload.into_iter().map(Into::into).collect()),
@@ -1065,13 +1065,13 @@ pub struct JsStatsCompilation<'a> {
   pub assets_by_chunk_name: Option<Vec<JsStatsAssetsByChunkName<'a>>>,
   #[napi(ts_type = "Array<JsStatsChunk>")]
   pub chunks: Option<napi_value>,
-  pub entrypoints: Option<Vec<JsStatsChunkGroup>>,
+  pub entrypoints: Option<Vec<JsStatsChunkGroup<'a>>>,
   #[napi(ts_type = "Array<JsStatsError>")]
   pub errors: napi_value,
   pub hash: Option<&'a str>,
   #[napi(ts_type = "Array<JsStatsModule>")]
   pub modules: Option<napi_value>,
-  pub named_chunk_groups: Option<Vec<JsStatsChunkGroup>>,
+  pub named_chunk_groups: Option<Vec<JsStatsChunkGroup<'a>>>,
   #[napi(ts_type = "Array<JsStatsWarning>")]
   pub warnings: napi_value,
 }

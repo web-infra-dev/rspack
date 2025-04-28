@@ -442,15 +442,15 @@ impl Stats<'_> {
     Ok(f(chunks))
   }
 
-  fn get_chunk_group(
-    &self,
-    name: &str,
+  fn get_chunk_group<'a>(
+    &'a self,
+    name: &'a str,
     ukey: &ChunkGroupUkey,
     chunk_group_auxiliary: bool,
     chunk_group_children: bool,
-  ) -> StatsChunkGroup {
+  ) -> StatsChunkGroup<'a> {
     let cg = self.compilation.chunk_group_by_ukey.expect_get(ukey);
-    let chunks: Vec<String> = cg
+    let chunks: Vec<&'a str> = cg
       .chunks
       .iter()
       .filter_map(|c| {
@@ -459,7 +459,7 @@ impl Stats<'_> {
           .chunk_by_ukey
           .expect_get(c)
           .id(&self.compilation.chunk_ids_artifact)
-          .map(|id| id.to_string())
+          .map(|id| id.as_str())
       })
       .collect();
 
@@ -469,7 +469,7 @@ impl Stats<'_> {
       .map(|c| {
         let chunk = self.compilation.chunk_by_ukey.expect_get(c);
         chunk.files().par_iter().map(|file| StatsChunkGroupAsset {
-          name: file.clone(),
+          name: file.as_str(),
           size: get_asset_size(file, self.compilation),
         })
       })
@@ -485,7 +485,7 @@ impl Stats<'_> {
             .auxiliary_files()
             .par_iter()
             .map(|file| StatsChunkGroupAsset {
-              name: file.clone(),
+              name: file.as_str(),
               size: get_asset_size(file, self.compilation),
             })
         })
@@ -537,7 +537,7 @@ impl Stats<'_> {
     };
 
     StatsChunkGroup {
-      name: name.to_string(),
+      name,
       chunks,
       assets_size: assets.iter().map(|i| i.size).sum(),
       assets,

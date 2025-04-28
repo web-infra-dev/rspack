@@ -223,34 +223,34 @@ pub struct StatsChunk<'a> {
 }
 
 #[derive(Debug)]
-pub struct StatsChunkGroupAsset {
-  pub name: String,
+pub struct StatsChunkGroupAsset<'a> {
+  pub name: &'a str,
   pub size: usize,
 }
 
 #[derive(Debug)]
-pub struct StatsChunkGroup {
-  pub name: String,
-  pub chunks: Vec<String>,
-  pub assets: Vec<StatsChunkGroupAsset>,
+pub struct StatsChunkGroup<'a> {
+  pub name: &'a str,
+  pub chunks: Vec<&'a str>,
+  pub assets: Vec<StatsChunkGroupAsset<'a>>,
   pub assets_size: usize,
-  pub auxiliary_assets: Option<Vec<StatsChunkGroupAsset>>,
+  pub auxiliary_assets: Option<Vec<StatsChunkGroupAsset<'a>>>,
   pub auxiliary_assets_size: Option<usize>,
-  pub children: Option<StatsChunkGroupChildren>,
+  pub children: Option<StatsChunkGroupChildren<'a>>,
   pub is_over_size_limit: Option<bool>,
-  pub child_assets: Option<StatschunkGroupChildAssets>,
+  pub child_assets: Option<StatschunkGroupChildAssets<'a>>,
 }
 
 #[derive(Debug)]
-pub struct StatsChunkGroupChildren {
-  pub preload: Vec<StatsChunkGroup>,
-  pub prefetch: Vec<StatsChunkGroup>,
+pub struct StatsChunkGroupChildren<'a> {
+  pub preload: Vec<StatsChunkGroup<'a>>,
+  pub prefetch: Vec<StatsChunkGroup<'a>>,
 }
 
 #[derive(Debug)]
-pub struct StatschunkGroupChildAssets {
-  pub preload: Vec<String>,
-  pub prefetch: Vec<String>,
+pub struct StatschunkGroupChildAssets<'a> {
+  pub preload: Vec<&'a str>,
+  pub prefetch: Vec<&'a str>,
 }
 
 #[derive(Debug)]

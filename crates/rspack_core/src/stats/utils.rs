@@ -50,13 +50,13 @@ pub fn get_stats_module_name_and_id<'s>(
   (name, id)
 }
 
-pub fn get_chunk_group_ordered_children(
-  stats: &Stats,
+pub fn get_chunk_group_ordered_children<'a>(
+  stats: &'a Stats,
   ordered_children: &HashMap<ChunkGroupOrderKey, Vec<ChunkGroupUkey>>,
-  order_key: &ChunkGroupOrderKey,
-  chunk_group_by_ukey: &ChunkGroupByUkey,
+  order_key: &'a ChunkGroupOrderKey,
+  chunk_group_by_ukey: &'a ChunkGroupByUkey,
   chunk_group_auxiliary: bool,
-) -> Vec<StatsChunkGroup> {
+) -> Vec<StatsChunkGroup<'a>> {
   ordered_children
     .get(order_key)
     .unwrap_or_else(|| panic!("should have {order_key} chunk groups"))
@@ -73,12 +73,12 @@ pub fn get_chunk_group_ordered_children(
     .collect::<Vec<_>>()
 }
 
-pub fn get_chunk_group_oreded_child_assets(
+pub fn get_chunk_group_oreded_child_assets<'a>(
   ordered_children: &HashMap<ChunkGroupOrderKey, Vec<ChunkGroupUkey>>,
   order_key: &ChunkGroupOrderKey,
   chunk_group_by_ukey: &ChunkGroupByUkey,
-  chunk_by_ukey: &ChunkByUkey,
-) -> Vec<String> {
+  chunk_by_ukey: &'a ChunkByUkey,
+) -> Vec<&'a str> {
   ordered_children
     .get(&ChunkGroupOrderKey::Preload)
     .unwrap_or_else(|| panic!("should have {order_key} chunk groups"))
@@ -88,7 +88,13 @@ pub fn get_chunk_group_oreded_child_assets(
         .expect_get(ukey)
         .chunks
         .iter()
-        .flat_map(|c| chunk_by_ukey.expect_get(c).files().clone())
+        .flat_map(|c| {
+          chunk_by_ukey
+            .expect_get(c)
+            .files()
+            .iter()
+            .map(|file| file.as_str())
+        })
         .collect::<Vec<_>>()
     })
     .unique()
