@@ -2312,10 +2312,14 @@ mod test {
   #[test]
   fn test_merge_resolver_options_20() {
     let first = Resolve {
+      alias: Some(vec![].into()),
+      fallback: Some(vec![].into()),
       extension_alias: Some(vec![]),
       by_dependency: Some(ByDependency::from_iter([(
         "x".into(),
         Resolve {
+          alias: Some(vec![].into()),
+          fallback: Some(vec![].into()),
           extension_alias: Some(vec![]),
           ..Default::default()
         },
@@ -2324,6 +2328,14 @@ mod test {
     };
 
     let second = Resolve {
+      alias: Some(vec![("fakemodule".to_string(), vec!["realmodule".into()])].into()),
+      fallback: Some(
+        vec![(
+          "fallbackmodule".to_string(),
+          vec!["fallbacktomodule".into()],
+        )]
+        .into(),
+      ),
       extension_alias: Some(vec![(".js".to_string(), vec![".ts".to_string()])]),
       ..Default::default()
     };
@@ -2331,6 +2343,14 @@ mod test {
     pretty_assertions::assert_eq!(
       merge_resolve(first, second),
       Resolve {
+        alias: Some(vec![("fakemodule".to_string(), vec!["realmodule".into()])].into()),
+        fallback: Some(
+          vec![(
+            "fallbackmodule".to_string(),
+            vec!["fallbacktomodule".into()],
+          )]
+          .into(),
+        ),
         extension_alias: Some(vec![(".js".to_string(), vec![".ts".to_string()])]),
         ..Default::default()
       }
