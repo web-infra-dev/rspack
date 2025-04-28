@@ -32,7 +32,8 @@ In addition to using the `swc` API directly, you can also use it in loaders or p
 
 ```js
 import { rspack } from '@rspack/core';
-const swc = rspack.experiments.swc;
+
+const { swc } = rspack.experiments;
 
 export default async function (content) {
   const customCode = `
