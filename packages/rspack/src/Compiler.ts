@@ -833,8 +833,6 @@ class Compiler {
 
 		this.#registers = this.#createHooksRegisters();
 
-		console.log("Compiler(ts) parser option ", rawOptions.module.parser);
-
 		this.#instance = new instanceBinding.JsCompiler(
 			this.compilerPath,
 			rawOptions,
