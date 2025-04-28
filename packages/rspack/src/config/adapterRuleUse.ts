@@ -11,6 +11,7 @@ import {
 } from "../builtin-loader/lightningcss";
 import { type LoaderObject, parsePathQueryFragment } from "../loader-runner";
 import type { Logger } from "../logging/Logger";
+import type { minify, transform } from "../swc";
 import { isNil } from "../util";
 import type Hash from "../util/hash";
 import type { RspackOptionsNormalized } from "./normalization";
@@ -350,6 +351,21 @@ export interface LoaderContext<OptionsType = {}> {
 		 * Return a new Hash object from provided hash function.
 		 */
 		createHash: (algorithm?: string) => Hash;
+		/**
+		 * Access to swc compiler api
+		 */
+		swc: {
+			/**
+			 * Transforms source code and returns the output.
+			 * Return transform output and source map.
+			 */
+			transform: typeof transform;
+			/**
+			 * Minifies source code and returns the output.
+			 * Return minify output and sourcemap
+			 */
+			minify: typeof minify;
+		};
 	};
 	/**
 	 * The value depends on the loader configuration:

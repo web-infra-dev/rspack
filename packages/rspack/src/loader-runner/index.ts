@@ -36,6 +36,7 @@ import {
 	isUseSimpleSourceMap,
 	isUseSourceMap
 } from "../config/adapterRuleUse";
+import * as swc from "../swc";
 import { JavaScriptTracer } from "../trace";
 import {
 	concatErrorMsgAndStack,
@@ -654,6 +655,10 @@ export async function runLoaders(
 			return createHash(
 				type || compiler._lastCompilation!.outputOptions.hashFunction!
 			);
+		},
+		swc: {
+			transform: swc.transform,
+			minify: swc.minify
 		}
 	};
 

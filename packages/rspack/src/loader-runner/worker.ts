@@ -5,6 +5,7 @@ import { type MessagePort, receiveMessageOnPort } from "node:worker_threads";
 import { JsLoaderState, type NormalModule } from "@rspack/binding";
 import type { LoaderContext } from "../config";
 
+import * as swc from "../swc";
 import { createHash } from "../util/createHash";
 import { absolutify, contextify } from "../util/identifier";
 import { memoize } from "../util/memoize";
@@ -239,6 +240,10 @@ async function loaderImpl(
 			return createHash(
 				type || loaderContext._compilation.outputOptions!.hashFunction!
 			);
+		},
+		swc: {
+			transform: swc.transform,
+			minify: swc.minify
 		}
 	};
 
