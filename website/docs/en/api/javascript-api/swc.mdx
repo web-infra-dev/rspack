@@ -1,8 +1,6 @@
 # SWC API
 
-Rspack supports JavaScript minify and transform.
-
-Rspack uses SWC under the hood to transform and minify JavaScript code, you can access these functions using the `rspack.experiments.swc` API.
+Rspack uses [SWC](https://swc.rs/) under the hood to transform and minify JavaScript code, and experimentally exposes some SWC JavaScript APIs through `rspack.experiments.swc`. This allows you to directly call SWC functions like `transform` or `minify` without installing the additional [@swc/core](https://www.npmjs.com/package/@swc/core) package.
 
 ## Examples
 
