@@ -40,7 +40,7 @@ jobs:
   rust_check:
     name: Rust check
     needs: [ check-changed ]
-    if: ${{ needs.check-changed.outputs.code_changed }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -74,7 +74,7 @@ jobs:
 
   rust_unused_dependencies:
     needs: [ check-changed ]
-    if: ${{ needs.check-changed.outputs.code_changed }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     name: Check Rust Dependencies
     runs-on: ubuntu-22.04
     steps:
@@ -98,7 +98,7 @@ jobs:
     name: Rust test
     runs-on: ubuntu-22.04
     needs: [ check-changed ]
-    if: ${{ needs.check-changed.outputs.code_changed}}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
