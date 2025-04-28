@@ -1,6 +1,6 @@
 # SWC API
 
-Rspack 支持 JavaScript 的压缩和转换。Rspack 底层使用 SWC 来转换和压缩 JavaScript 代码，你可以使用 `rspack.experiments.swc` API 来访问这些函数。
+Rspack 底层使用 [SWC](https://swc.rs/) 来转换和压缩 JavaScript 代码，并通过 `rspack.experiments.swc` 实验性地开放一部分 SWC JavaScript API。这使你能够直接调用 SWC 的 `transform` 或 `minify` 等功能，无须额外安装 [@swc/core](https://www.npmjs.com/package/@swc/core) 包。
 
 ## 示例
 
