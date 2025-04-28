@@ -29,10 +29,8 @@ swc
 你也可以在 loader 或 plugin 中使用这些 API，来帮助你进行代码转换或压缩。
 
 ```js
-import { rspack } from '@rspack/core';
-const swc = rspack.experiments.swc;
-
-export default async function (content) {
+export default async function (source) {
+  const { swc } = this._compiler.rspack.experiments;
   const customCode = `
     const a = 10;
     const b = 20;
@@ -46,7 +44,7 @@ export default async function (content) {
     sourceMap: true,
   });
 
-  return `${minifiedCode}\n${content}`;
+  return `${minifiedCode}\n${source}`;
 }
 ```
 
