@@ -11,7 +11,7 @@ Here is a simple example demonstrating how to transform JavaScript code using Rs
 ```js
 import { rspack } from '@rspack/core';
 
-const swc = rspack.experiments.swc;
+const { swc } = rspack.experiments;
 
 swc
   .transform('const a:number = 10;', {
