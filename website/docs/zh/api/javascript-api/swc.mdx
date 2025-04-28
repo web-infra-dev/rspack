@@ -29,7 +29,7 @@ swc
 你也可以在 loader 或 plugin 中使用这些 API，来帮助你进行代码转换或压缩。
 
 ```js
-export default async function (source) {
+export default function (source) {
   const { swc } = this._compiler.rspack.experiments;
   const customCode = `
     const a = 10;
@@ -37,14 +37,18 @@ export default async function (source) {
     // custom code
   `;
 
-  const minifiedCode = await swc.minify(customCode, {
-    compress: true,
-    keep_classnames: true,
-    safari10: true,
-    sourceMap: true,
-  });
+  const callback = this.async();
 
-  return `${minifiedCode}\n${source}`;
+  swc
+    .minify(customCode, {
+      compress: true,
+      keep_classnames: true,
+      safari10: true,
+      sourceMap: true,
+    })
+    .then(minifiedCode => {
+      callback(null, `${minifiedCode}\n${source}`);
+    });
 }
 ```
 
