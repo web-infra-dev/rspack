@@ -962,6 +962,7 @@ export type AssetParserOptions = {
 };
 
 export type CssParserNamedExports = boolean;
+export type CssParserUrl = boolean;
 
 /** Options object for `css` modules. */
 export type CssParserOptions = {
@@ -970,6 +971,12 @@ export type CssParserOptions = {
 	 * @default true
 	 * */
 	namedExports?: CssParserNamedExports;
+
+	/**
+	 * Allow to enable/disables handling the CSS functions url.
+	 * @default true
+	 * */
+	url?: CssParserUrl;
 };
 
 /** Options object for `css/auto` modules. */
@@ -979,6 +986,12 @@ export type CssAutoParserOptions = {
 	 * @default true
 	 * */
 	namedExports?: CssParserNamedExports;
+
+	/**
+	 * Allow to enable/disables handling the CSS functions url.
+	 * @default true
+	 * */
+	url?: CssParserUrl;
 };
 
 /** Options object for `css/module` modules. */
@@ -988,6 +1001,12 @@ export type CssModuleParserOptions = {
 	 * @default true
 	 * */
 	namedExports?: CssParserNamedExports;
+
+	/**
+	 * Allow to enable/disables handling the CSS functions url.
+	 * @default true
+	 * */
+	url?: CssParserUrl;
 };
 
 type ExportsPresence = "error" | "warn" | "auto" | false;
