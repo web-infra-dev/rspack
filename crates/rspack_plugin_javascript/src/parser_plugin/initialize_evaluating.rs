@@ -14,13 +14,13 @@ const SPLIT_METHOD_NAME: &str = "split";
 pub struct InitializeEvaluating;
 
 impl JavascriptParserPlugin for InitializeEvaluating {
-  fn evaluate_call_expression_member(
+  fn evaluate_call_expression_member<'a>(
     &self,
     parser: &mut crate::visitors::JavascriptParser,
     property: &str,
-    expr: &swc_core::ecma::ast::CallExpr,
-    param: &BasicEvaluatedExpression,
-  ) -> Option<BasicEvaluatedExpression> {
+    expr: &'a swc_core::ecma::ast::CallExpr,
+    param: BasicEvaluatedExpression<'a>,
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     if property == INDEXOF_METHOD_NAME && param.is_string() {
       let arg1 = (!expr.args.is_empty()).then_some(true).and_then(|_| {
         if expr.args[0].spread.is_some() {
@@ -111,7 +111,7 @@ impl JavascriptParserPlugin for InitializeEvaluating {
           continue;
         }
         let mut new_string = if arg_expr.is_string() {
-          arg_expr.string().to_owned()
+          arg_expr.string().to_string()
         } else {
           format!("{}", arg_expr.number())
         };
@@ -133,11 +133,10 @@ impl JavascriptParserPlugin for InitializeEvaluating {
       }
       if has_unknown_params {
         let prefix = if param.is_string() {
-          Some(param)
+          Some(param.clone())
         } else {
-          param.prefix()
-        }
-        .cloned();
+          param.prefix().cloned()
+        };
         inner_exprs.reverse();
         let inner = if param.is_wrapped()
           && let Some(wrapped_inner_expressions) = param.wrapped_inner_expressions()

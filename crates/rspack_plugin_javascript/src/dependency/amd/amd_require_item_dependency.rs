@@ -1,8 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   module_raw, AffectType, AsContextDependency, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
-  DependencyType, FactorizeInfo, ModuleDependency, TemplateContext, TemplateReplaceSource,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleDependency, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_util::atom::Atom;
 
@@ -12,13 +13,13 @@ pub struct AMDRequireItemDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
   request: Atom,
-  range: Option<(u32, u32)>,
+  range: Option<DependencyRange>,
   optional: bool,
   factorize_info: FactorizeInfo,
 }
 
 impl AMDRequireItemDependency {
-  pub fn new(request: Atom, range: Option<(u32, u32)>) -> Self {
+  pub fn new(request: Atom, range: Option<DependencyRange>) -> Self {
     Self {
       id: DependencyId::new(),
       request,
@@ -37,6 +38,10 @@ impl AMDRequireItemDependency {
 impl Dependency for AMDRequireItemDependency {
   fn id(&self) -> &DependencyId {
     &self.id
+  }
+
+  fn range(&self) -> Option<&DependencyRange> {
+    self.range.as_ref()
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -113,6 +118,6 @@ impl DependencyTemplate for AMDRequireItemDependencyTemplate {
       &dep.request,
       dep.weak(),
     );
-    source.replace(range.0, range.1, &content, None);
+    source.replace(range.start, range.end, &content, None);
   }
 }

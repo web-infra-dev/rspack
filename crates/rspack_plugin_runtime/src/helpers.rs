@@ -166,9 +166,12 @@ pub async fn runtime_chunk_has_hash(
   }
 
   if filename.has_content_hash_placeholder()
-    && compilation
+    && (compilation
       .chunk_graph
       .has_chunk_full_hash_modules(&runtime_chunk_ukey, &compilation.runtime_modules)
+      || compilation
+        .chunk_graph
+        .has_chunk_dependent_hash_modules(&runtime_chunk_ukey, &compilation.runtime_modules))
   {
     return Ok(true);
   }

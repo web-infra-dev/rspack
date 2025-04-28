@@ -9,6 +9,17 @@ Object.defineProperty(binding.ConcatenatedModule.prototype, "identifier", {
 		return this[binding.MODULE_IDENTIFIER_SYMBOL];
 	}
 });
+Object.defineProperty(
+	binding.ConcatenatedModule.prototype,
+	"readableIdentifier",
+	{
+		enumerable: true,
+		configurable: true,
+		value(this: binding.ConcatenatedModule) {
+			return this._readableIdentifier;
+		}
+	}
+);
 Object.defineProperty(binding.ConcatenatedModule.prototype, "originalSource", {
 	enumerable: true,
 	configurable: true,

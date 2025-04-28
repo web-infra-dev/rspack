@@ -283,7 +283,7 @@ pub async fn detect_unresolved_integrity(&self, compilation: &mut Compilation) -
   for chunk in compilation.chunk_by_ukey.values() {
     for file in chunk.files() {
       if let Some(source) = compilation.assets().get(file).and_then(|a| a.get_source()) {
-        if source.source().contains(PLACEHOLDER_PREFIX.as_str()) {
+        if source.source().contains(PLACEHOLDER_PREFIX) {
           contain_unresolved_files.push(file.to_string());
         }
       }

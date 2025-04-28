@@ -154,6 +154,26 @@ export default {
 };
 ```
 
+## optimization.removeAvailableModules
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否检测并移除那些已经存在于父 chunks 中的模块。这项优化有助于减少打包产物中的重复模块。
+
+这项优化默认开启，如果需要禁用，可以将 `optimization.removeAvailableModules` 设置为 `false`：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    removeAvailableModules: false,
+  },
+};
+```
+
+:::tip
+不建议禁用这项优化，因为这可能会导致打包产物体积显著增加。
+:::
+
 ## optimization.removeEmptyChunks
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />

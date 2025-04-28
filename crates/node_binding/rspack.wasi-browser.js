@@ -61,6 +61,7 @@ const {
   },
 })
 export const AsyncDependenciesBlock = __napiModule.exports.AsyncDependenciesBlock
+export const Chunks = __napiModule.exports.Chunks
 export const ConcatenatedModule = __napiModule.exports.ConcatenatedModule
 export const ContextModule = __napiModule.exports.ContextModule
 export const Dependency = __napiModule.exports.Dependency
@@ -93,8 +94,10 @@ export const cleanupGlobalTrace = __napiModule.exports.cleanupGlobalTrace
 export const formatDiagnostic = __napiModule.exports.formatDiagnostic
 export const JsLoaderState = __napiModule.exports.JsLoaderState
 export const JsRspackSeverity = __napiModule.exports.JsRspackSeverity
+export const minify = __napiModule.exports.minify
 export const RawRuleSetConditionType = __napiModule.exports.RawRuleSetConditionType
 export const registerGlobalTrace = __napiModule.exports.registerGlobalTrace
 export const RegisterJsTapKind = __napiModule.exports.RegisterJsTapKind
 export const shutdownAsyncRuntime = __napiModule.exports.shutdownAsyncRuntime
 export const startAsyncRuntime = __napiModule.exports.startAsyncRuntime
+export const transform = __napiModule.exports.transform

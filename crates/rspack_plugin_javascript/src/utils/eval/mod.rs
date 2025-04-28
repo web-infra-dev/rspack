@@ -12,7 +12,7 @@ mod eval_unary_expr;
 use bitflags::bitflags;
 use num_bigint::BigInt;
 use rspack_core::DependencyRange;
-use swc_core::{atoms::Atom, common::Span};
+use swc_core::{atoms::Atom, common::Span, ecma::ast::Expr};
 
 pub use self::{
   eval_array_expr::eval_array_expression,
@@ -57,7 +57,11 @@ type Regexp = (String, String); // (expr, flags)
 // I really don't want there has many alloc, maybe this can be optimized after
 // parse finished.
 #[derive(Debug, Clone)]
-pub struct BasicEvaluatedExpression {
+pub struct BasicEvaluatedExpression<'a> {
+  // For 'static-lifetime usage, any reference fields must originate from this owned expression.
+  owned_expression: Option<Box<Expr>>,
+  // During Tpl parsing, this may switch from Some(...) to None, hence separate from owned_expression.
+  expression: Option<&'a Expr>,
   ty: Ty,
   range: Option<DependencyRange>,
   falsy: bool,
@@ -75,26 +79,27 @@ pub struct BasicEvaluatedExpression {
   members: Option<Vec<Atom>>,
   members_optionals: Option<Vec<bool>>,
   member_ranges: Option<Vec<Span>>,
-  items: Option<Vec<BasicEvaluatedExpression>>,
-  quasis: Option<Vec<BasicEvaluatedExpression>>,
-  parts: Option<Vec<BasicEvaluatedExpression>>,
-  prefix: Option<Box<BasicEvaluatedExpression>>,
-  postfix: Option<Box<BasicEvaluatedExpression>>,
-  wrapped_inner_expressions: Option<Vec<BasicEvaluatedExpression>>,
+  items: Option<Vec<BasicEvaluatedExpression<'a>>>,
+  quasis: Option<Vec<BasicEvaluatedExpression<'a>>>,
+  parts: Option<Vec<BasicEvaluatedExpression<'a>>>,
+  prefix: Option<Box<BasicEvaluatedExpression<'a>>>,
+  postfix: Option<Box<BasicEvaluatedExpression<'a>>>,
+  wrapped_inner_expressions: Option<Vec<BasicEvaluatedExpression<'a>>>,
   template_string_kind: Option<TemplateStringKind>,
-
-  options: Option<Vec<BasicEvaluatedExpression>>,
+  options: Option<Vec<BasicEvaluatedExpression<'a>>>,
 }
 
-impl Default for BasicEvaluatedExpression {
+impl Default for BasicEvaluatedExpression<'_> {
   fn default() -> Self {
     Self::new()
   }
 }
 
-impl BasicEvaluatedExpression {
+impl<'a> BasicEvaluatedExpression<'a> {
   pub fn new() -> Self {
     Self {
+      owned_expression: None,
+      expression: None,
       ty: Ty::Unknown,
       range: None,
       falsy: false,
@@ -396,7 +401,7 @@ impl BasicEvaluatedExpression {
     }
   }
 
-  pub fn set_items(&mut self, items: Vec<BasicEvaluatedExpression>) {
+  pub fn set_items(&mut self, items: Vec<BasicEvaluatedExpression<'a>>) {
     self.ty = Ty::Array;
     self.side_effects = items.iter().any(|item| item.could_have_side_effects());
     self.items = Some(items);
@@ -412,13 +417,13 @@ impl BasicEvaluatedExpression {
     self.options.as_ref().expect("options should not empty")
   }
 
-  pub fn set_options(&mut self, options: Option<Vec<BasicEvaluatedExpression>>) {
+  pub fn set_options(&mut self, options: Option<Vec<BasicEvaluatedExpression<'a>>>) {
     self.ty = Ty::Conditional;
     self.options = options;
     self.side_effects = true;
   }
 
-  pub fn add_options(&mut self, options: Vec<BasicEvaluatedExpression>) {
+  pub fn add_options(&mut self, options: Vec<BasicEvaluatedExpression<'a>>) {
     if let Some(old) = &mut self.options {
       old.extend(options);
     } else {
@@ -457,8 +462,8 @@ impl BasicEvaluatedExpression {
 
   pub fn set_template_string(
     &mut self,
-    quasis: Vec<BasicEvaluatedExpression>,
-    parts: Vec<BasicEvaluatedExpression>,
+    quasis: Vec<BasicEvaluatedExpression<'a>>,
+    parts: Vec<BasicEvaluatedExpression<'a>>,
     kind: TemplateStringKind,
   ) {
     self.ty = Ty::TemplateString;
@@ -482,9 +487,9 @@ impl BasicEvaluatedExpression {
 
   pub fn set_wrapped(
     &mut self,
-    prefix: Option<BasicEvaluatedExpression>,
-    postfix: Option<BasicEvaluatedExpression>,
-    inner_expressions: Vec<BasicEvaluatedExpression>,
+    prefix: Option<BasicEvaluatedExpression<'a>>,
+    postfix: Option<BasicEvaluatedExpression<'a>>,
+    inner_expressions: Vec<BasicEvaluatedExpression<'a>>,
   ) {
     self.ty = Ty::Wrapped;
     self.prefix = prefix.map(Box::new);
@@ -538,17 +543,17 @@ impl BasicEvaluatedExpression {
     (range.start, range.end)
   }
 
-  pub fn prefix(&self) -> Option<&BasicEvaluatedExpression> {
+  pub fn prefix(&self) -> Option<&BasicEvaluatedExpression<'a>> {
     assert!(self.is_wrapped(), "prefix is only used in wrapped");
     self.prefix.as_deref()
   }
 
-  pub fn postfix(&self) -> Option<&BasicEvaluatedExpression> {
+  pub fn postfix(&self) -> Option<&BasicEvaluatedExpression<'a>> {
     assert!(self.is_wrapped(), "postfix is only used in wrapped");
     self.postfix.as_deref()
   }
 
-  pub fn wrapped_inner_expressions(&self) -> Option<&[BasicEvaluatedExpression]> {
+  pub fn wrapped_inner_expressions(&self) -> Option<&[BasicEvaluatedExpression<'a>]> {
     assert!(
       self.is_wrapped(),
       "wrapped_inner_expressions is only used in wrapped"
@@ -563,7 +568,7 @@ impl BasicEvaluatedExpression {
       .expect("make sure template string exist")
   }
 
-  pub fn parts(&self) -> &Vec<BasicEvaluatedExpression> {
+  pub fn parts(&self) -> &Vec<BasicEvaluatedExpression<'a>> {
     assert!(self.is_template_string());
     self
       .parts
@@ -571,7 +576,7 @@ impl BasicEvaluatedExpression {
       .expect("make sure template string exist")
   }
 
-  pub fn quasis(&self) -> &Vec<BasicEvaluatedExpression> {
+  pub fn quasis(&self) -> &Vec<BasicEvaluatedExpression<'a>> {
     assert!(self.is_template_string(),);
     self
       .quasis
@@ -596,33 +601,63 @@ impl BasicEvaluatedExpression {
     assert!(self.is_number());
     self.number.expect("number must exists in ty::number")
   }
+
+  pub fn set_expression(&mut self, expression: Option<&'a Expr>) {
+    self.expression = expression;
+  }
+
+  pub fn with_expression(mut self, expression: Option<&'a Expr>) -> Self {
+    self.expression = expression;
+    self
+  }
+
+  pub fn expression(&self) -> Option<&'a Expr> {
+    self.expression
+  }
+
+  pub fn with_owned_expression<F>(expr: Expr, f: F) -> Option<BasicEvaluatedExpression<'static>>
+  where
+    F: FnOnce(&Expr) -> Option<BasicEvaluatedExpression<'_>>,
+  {
+    let expr = Box::new(expr);
+    let raw_ptr = Box::into_raw(expr);
+    // SAFETY: We are the only owner of the Box, and we are converting it to a raw pointer
+    let mut basic_evaluated_expression = f(unsafe { &*raw_ptr })?;
+
+    if basic_evaluated_expression.owned_expression.is_none() {
+      // SAFETY: If reference fields exist, they must originate from this owned expression.
+      basic_evaluated_expression.owned_expression = Some(unsafe { Box::from_raw(raw_ptr) });
+    }
+
+    Some(basic_evaluated_expression)
+  }
 }
 
-pub fn evaluate_to_string(value: String, start: u32, end: u32) -> BasicEvaluatedExpression {
+pub fn evaluate_to_string<'a>(value: String, start: u32, end: u32) -> BasicEvaluatedExpression<'a> {
   let mut eval = BasicEvaluatedExpression::with_range(start, end);
   eval.set_string(value);
   eval
 }
 
-pub fn evaluate_to_number(value: f64, start: u32, end: u32) -> BasicEvaluatedExpression {
+pub fn evaluate_to_number<'a>(value: f64, start: u32, end: u32) -> BasicEvaluatedExpression<'a> {
   let mut eval = BasicEvaluatedExpression::with_range(start, end);
   eval.set_number(value);
   eval
 }
 
-pub fn evaluate_to_null(start: u32, end: u32) -> BasicEvaluatedExpression {
+pub fn evaluate_to_null<'a>(start: u32, end: u32) -> BasicEvaluatedExpression<'a> {
   let mut eval = BasicEvaluatedExpression::with_range(start, end);
   eval.set_null();
   eval
 }
 
-pub fn evaluate_to_identifier(
+pub fn evaluate_to_identifier<'a>(
   identifier: String,
   root_info: String,
   truthy: Option<bool>,
   start: u32,
   end: u32,
-) -> BasicEvaluatedExpression {
+) -> BasicEvaluatedExpression<'a> {
   let mut eval = BasicEvaluatedExpression::with_range(start, end);
   eval.set_identifier(
     identifier,

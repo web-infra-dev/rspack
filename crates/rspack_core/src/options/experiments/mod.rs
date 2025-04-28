@@ -2,7 +2,7 @@ mod cache;
 
 pub use cache::CacheOptions as ExperimentCacheOptions;
 
-use crate::incremental::IncrementalPasses;
+use crate::incremental::IncrementalOptions;
 
 // BE CAREFUL:
 // Add more fields to this struct should result in adding new fields to options builder.
@@ -10,7 +10,7 @@ use crate::incremental::IncrementalPasses;
 #[derive(Debug)]
 pub struct Experiments {
   pub layers: bool,
-  pub incremental: IncrementalPasses,
+  pub incremental: IncrementalOptions,
   pub parallel_code_splitting: bool,
   pub top_level_await: bool,
   pub rspack_future: RspackFuture,

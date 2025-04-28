@@ -117,7 +117,7 @@ pub fn save_module_graph(
     .collect::<Vec<_>>();
 
   let saved = nodes.len();
-  tracing::info!("save info {}/{}", saved, built_modules.len());
+  tracing::debug!("save info {}/{}", saved, built_modules.len());
 
   for (id, bytes) in nodes {
     storage.set(SCOPE, id, bytes)
@@ -182,7 +182,7 @@ pub async fn recovery_module_graph(
     }
   }
 
-  tracing::info!("recovery {} module", mg.modules().len());
-  tracing::info!("recovery failed {} deps", force_build_dependencies.len());
+  tracing::debug!("recovery {} module", mg.modules().len());
+  tracing::debug!("recovery failed {} deps", force_build_dependencies.len());
   Ok((partial, force_build_dependencies))
 }

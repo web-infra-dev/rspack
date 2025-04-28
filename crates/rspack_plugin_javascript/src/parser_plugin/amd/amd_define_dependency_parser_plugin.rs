@@ -7,7 +7,7 @@ use rspack_core::{
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap;
 use swc_core::{
-  common::{Span, Spanned},
+  common::Spanned,
   ecma::{
     ast::{BlockStmtOrExpr, CallExpr, Callee, Expr, Lit, Pat},
     utils::ExprExt,
@@ -97,10 +97,6 @@ const MODULE: &str = "module";
 const EXPORTS: &str = "exports";
 const RESERVED_NAMES: [&str; 3] = [REQUIRE, MODULE, EXPORTS];
 
-fn span_to_range(span: Span) -> (u32, u32) {
-  (span.real_lo(), span.real_hi())
-}
-
 fn get_lit_str(expr: &Expr) -> Option<Atom> {
   expr.as_lit().and_then(|lit| match lit {
     Lit::Str(s) => Some(s.value.clone()),
@@ -167,7 +163,7 @@ impl AMDDefineDependencyParserPlugin {
         }
       }
       let range = param.range();
-      let dep = AMDRequireArrayDependency::new(deps, (range.0, range.1 - 1));
+      let dep = AMDRequireArrayDependency::new(deps, (range.0, range.1 - 1).into());
       parser.presentational_dependencies.push(Box::new(dep));
       return Some(true);
     }
@@ -201,22 +197,19 @@ impl AMDDefineDependencyParserPlugin {
 
       let dep = if param_str == "require" {
         Box::new(ConstDependency::new(
-          range.0,
-          range.1,
+          range.into(),
           RuntimeGlobals::REQUIRE.name().into(),
           Some(RuntimeGlobals::REQUIRE),
         ))
       } else if param_str == "exports" {
         Box::new(ConstDependency::new(
-          range.0,
-          range.1,
+          range.into(),
           EXPORTS.into(),
           Some(RuntimeGlobals::EXPORTS),
         ))
       } else if param_str == "module" {
         Box::new(ConstDependency::new(
-          range.0,
-          range.1,
+          range.into(),
           MODULE.into(),
           Some(RuntimeGlobals::MODULE),
         ))
@@ -229,7 +222,7 @@ impl AMDDefineDependencyParserPlugin {
         local_module.flag_used();
         let dep = Box::new(LocalModuleDependency::new(
           local_module.clone(),
-          Some((range.0, range.1)),
+          Some(range.into()),
           false,
         ));
         parser.presentational_dependencies.push(dep);
@@ -237,7 +230,7 @@ impl AMDDefineDependencyParserPlugin {
       } else {
         let mut dep = Box::new(AMDRequireItemDependency::new(
           Atom::new(param_str.as_str()),
-          Some(range),
+          Some(range.into()),
         ));
         dep.set_optional(parser.in_try);
         parser.dependencies.push(dep);
@@ -598,10 +591,10 @@ impl AMDDefineDependencyParserPlugin {
       .map(|name| parser.add_local_module(name.as_str()));
 
     let dep = Box::new(AMDDefineDependency::new(
-      (call_expr.span.real_lo(), call_expr.span.real_hi()),
-      array.map(|expr| span_to_range(expr.span())),
-      func.map(|expr| span_to_range(expr.span())),
-      obj.map(|expr| span_to_range(expr.span())),
+      call_expr.span.into(),
+      array.map(|expr| expr.span().into()),
+      func.map(|expr| expr.span().into()),
+      obj.map(|expr| expr.span().into()),
       named_module,
       local_module,
     ));

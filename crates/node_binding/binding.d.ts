@@ -19,9 +19,11 @@ export interface Module {
 	readonly type: string;
 	get context(): string | undefined;
 	get layer(): string | undefined;
-	get factoryMeta(): JsFactoryMeta | undefined
+	get factoryMeta(): JsFactoryMeta
+	set factoryMeta(factoryMeta: JsFactoryMeta);
 	get useSourceMap(): boolean;
 	get useSimpleSourceMap(): boolean;
+	get _readableIdentifier(): string;
 	buildInfo: Record<string, any>;
 	buildMeta: Record<string, any>;
 }
@@ -68,7 +70,14 @@ export declare class AsyncDependenciesBlock {
   get blocks(): AsyncDependenciesBlock[]
 }
 
+export declare class Chunks {
+  get size(): number
+  _values(): JsChunk[]
+  _has(chunk: JsChunk): boolean
+}
+
 export declare class ConcatenatedModule {
+  get rootModule(): Module
   get modules(): Module[]
   _originalSource(): JsCompatSource | undefined
   nameForCondition(): string | undefined
@@ -76,7 +85,7 @@ export declare class ConcatenatedModule {
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
+  _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class ContextModule {
@@ -86,10 +95,11 @@ export declare class ContextModule {
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
+  _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class Dependency {
+  get _parentModule(): Module | undefined
   get type(): string
   get category(): string
   get request(): string | undefined
@@ -139,7 +149,7 @@ export declare class ExternalModule {
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
+  _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class JsChunk {
@@ -201,7 +211,7 @@ export declare class JsCompilation {
   get modules(): Array<Module>
   get builtModules(): Array<Module>
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
-  getChunks(): JsChunk[]
+  get chunks(): Chunks
   getNamedChunkKeys(): Array<string>
   getNamedChunk(name: string): JsChunk | null
   getNamedChunkGroupKeys(): Array<string>
@@ -210,7 +220,7 @@ export declare class JsCompilation {
   deleteAssetSource(name: string): void
   getAssetFilenames(): Array<string>
   hasAsset(name: string): boolean
-  emitAsset(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
+  emitAsset(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
   deleteAsset(filename: string): void
   renameAsset(filename: string, newName: string): void
   get entrypoints(): JsChunkGroup[]
@@ -353,7 +363,7 @@ export declare class Module {
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
+  _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class ModuleGraphConnection {
@@ -597,6 +607,7 @@ export interface JsChunkAssetArgs {
 export interface JsChunkGroupOrigin {
   module?: Module | undefined
   request?: string
+  loc?: string | JsRealDependencyLocation
 }
 
 export interface JsChunkOptionNameCtx {
@@ -613,7 +624,7 @@ export interface JsChunkOptionNameCtx {
  *   - If a string, keep the files under this path
  */
 export interface JsCleanOptions {
-  keep?: string
+  keep?: string | RegExp | ((path: string) => boolean)
 }
 
 export interface JsCodegenerationResult {
@@ -873,6 +884,11 @@ export interface JsPathDataChunkLike {
   id?: string
 }
 
+export interface JsRealDependencyLocation {
+  start: JsSourcePosition
+  end?: JsSourcePosition
+}
+
 export interface JsResolveArgs {
   request: string
   context: string
@@ -1094,6 +1110,11 @@ export interface JsRuntimeRequirementInTreeArg {
 
 export interface JsRuntimeRequirementInTreeResult {
   allRuntimeRequirements: JsRuntimeGlobals
+}
+
+export interface JsSourcePosition {
+  line: number
+  column: number
 }
 
 export interface JsStatsAsset {
@@ -1388,6 +1409,8 @@ export interface KnownAssetInfo {
   isOverSizeLimit?: boolean
 }
 
+export declare function minify(source: string, options: string): Promise<TransformOutput>
+
 export interface NodeFsStats {
   isFile: boolean
   isDirectory: boolean
@@ -1505,10 +1528,10 @@ export interface RawCircularDependencyRspackPluginOptions {
   allowAsyncCycles?: boolean
   exclude?: RegExp
   ignoredConnections?: Array<[string | RegExp, string | RegExp]>
-  onDetected?: (entrypoint: Module, modules: string[], compilation: JsCompilation) => void
-  onIgnored?: (entrypoint: Module, modules: string[], compilation: JsCompilation) => void
-  onStart?: (compilation: JsCompilation) => void
-  onEnd?: (compilation: JsCompilation) => void
+  onDetected?: (entrypoint: Module, modules: string[]) => void
+  onIgnored?: (entrypoint: Module, modules: string[]) => void
+  onStart?: () => void
+  onEnd?: () => void
 }
 
 export interface RawConsumeOptions {
@@ -1837,6 +1860,7 @@ export interface RawIgnorePluginOptions {
 }
 
 export interface RawIncremental {
+  silent: boolean
   make: boolean
   inferAsyncModules: boolean
   providedExports: boolean
@@ -2406,7 +2430,7 @@ export interface RawTrustedTypes {
  * Author Donny/강동윤
  * Copyright (c)
  */
-export declare function registerGlobalTrace(filter: string, layer: "chrome" | "logger" | "otel", output: string): void
+export declare function registerGlobalTrace(filter: string, layer: "chrome" | "logger" , output: string): void
 
 export declare enum RegisterJsTapKind {
   CompilerThisCompilation = 0,
@@ -2546,4 +2570,11 @@ export interface ThreadsafeNodeFS {
   read: (fd: number, length: number, position: number) => Promise<Buffer | void>
   readUntil: (fd: number, code: number, position: number) => Promise<Buffer | void>
   readToEnd: (fd: number, position: number) => Promise<Buffer | void>
+}
+
+export declare function transform(source: string, options: string): Promise<TransformOutput>
+
+export interface TransformOutput {
+  code: string
+  map?: string
 }

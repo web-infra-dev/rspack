@@ -2,7 +2,7 @@ use napi::{
   bindgen_prelude::{
     Array, Either, FromNapiValue, Object, ToNapiValue, TypeName, Unknown, ValidateNapiValue,
   },
-  sys, NapiRaw,
+  sys, Env, NapiRaw,
 };
 use napi_derive::napi;
 use rspack_napi::string::JsStringExt;
@@ -235,10 +235,18 @@ impl From<AssetInfo> for rspack_core::AssetInfo {
   }
 }
 
+impl AssetInfo {
+  pub fn from_jsobject(env: &Env, object: &Object) -> napi::Result<Self> {
+    // Safety: The Env and Object should be valid NAPI value
+    unsafe { FromNapiValue::from_napi_value(env.raw(), object.raw()) }
+  }
+}
+
 #[napi(object)]
 pub struct JsAsset {
   pub name: String,
-  pub info: AssetInfo,
+  #[napi(ts_type = "AssetInfo")]
+  pub info: Object,
 }
 
 impl From<rspack_core::AssetInfoRelated> for JsAssetInfoRelated {

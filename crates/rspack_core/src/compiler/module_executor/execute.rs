@@ -2,6 +2,7 @@ use std::{iter::once, sync::atomic::AtomicU32};
 
 use itertools::Itertools;
 use rspack_collections::{DatabaseItem, Identifier, IdentifierSet, UkeySet};
+use rspack_error::RspackSeverity;
 use rspack_paths::ArcPath;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::oneshot::Sender;
@@ -40,6 +41,41 @@ pub struct ExecuteModuleResult {
 }
 
 #[derive(Debug)]
+pub struct BeforeExecuteBuildTask {
+  pub entry_dep_id: DependencyId,
+}
+
+#[async_trait::async_trait]
+impl Task<MakeTaskContext> for BeforeExecuteBuildTask {
+  fn get_task_type(&self) -> TaskType {
+    TaskType::Sync
+  }
+
+  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+    let Self { entry_dep_id } = *self;
+    let mut mg = MakeTaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
+    let entry_module_identifier = *mg
+      .module_identifier_by_dependency_id(&entry_dep_id)
+      .expect("should have module");
+
+    let mut queue = vec![entry_module_identifier];
+    let mut visited = IdentifierSet::default();
+    while let Some(module_identifier) = queue.pop() {
+      queue.extend(
+        mg.get_ordered_outgoing_connections(&module_identifier)
+          .map(|c| *c.module_identifier())
+          .filter(|id| !visited.contains(id)),
+      );
+      visited.insert(module_identifier);
+    }
+    for module_identifier in visited {
+      mg.revoke_module(&module_identifier);
+    }
+    Ok(vec![])
+  }
+}
+
+#[derive(Debug)]
 pub struct ExecuteTask {
   pub entry_dep_id: DependencyId,
   pub layer: Option<String>,
@@ -73,6 +109,49 @@ impl Task<MakeTaskContext> for ExecuteTask {
 
     let id = EXECUTE_MODULE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
+    if compilation
+      .make_artifact
+      .diagnostics()
+      .iter()
+      .any(|d| matches!(d.severity(), RspackSeverity::Error))
+    {
+      let execute_result = compilation.get_module_graph().modules().iter().fold(
+        ExecuteModuleResult {
+          cacheable: false,
+          id,
+          ..Default::default()
+        },
+        |mut res, (_, module)| {
+          let build_info = &module.build_info();
+          res
+            .file_dependencies
+            .extend(build_info.file_dependencies.iter().cloned());
+          res
+            .context_dependencies
+            .extend(build_info.context_dependencies.iter().cloned());
+          res
+            .missing_dependencies
+            .extend(build_info.missing_dependencies.iter().cloned());
+          res
+            .build_dependencies
+            .extend(build_info.build_dependencies.iter().cloned());
+          res
+        },
+      );
+
+      context.recovery_from_temp_compilation(compilation);
+      result_sender
+        .send((
+          execute_result,
+          CompilationAssets::default(),
+          IdentifierSet::default(),
+          vec![],
+        ))
+        .expect("should send result success");
+
+      return Ok(vec![]);
+    }
+
     let mg = compilation.get_module_graph_mut();
     // TODO remove expect and return Err
     let entry_module_identifier = mg
@@ -97,7 +176,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
       }
     }
 
-    tracing::info!("modules: {:?}", &modules);
+    tracing::debug!("modules: {:?}", &modules);
 
     let mut chunk_graph = ChunkGraph::default();
 
@@ -177,7 +256,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
       .copied()
       .collect::<IdentifierSet>();
 
-    tracing::info!(
+    tracing::debug!(
       "runtime modules: {:?}",
       &runtime_modules.iter().collect::<Vec<_>>()
     );

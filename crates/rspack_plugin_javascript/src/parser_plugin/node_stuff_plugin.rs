@@ -1,6 +1,6 @@
 use rspack_core::{
   get_context, CachedConstDependency, ConstDependency, NodeDirnameOption, NodeFilenameOption,
-  NodeGlobalOption, RuntimeGlobals, SpanExt,
+  NodeGlobalOption, RuntimeGlobals,
 };
 use sugar_path::SugarPath;
 
@@ -50,8 +50,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           );
 
           let const_dep = CachedConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             DIR_NAME.into(),
             "__webpack_dirname__(__webpack_fileURLToPath__(import.meta.url))"
               .to_string()
@@ -84,8 +83,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             serde_json::to_string(&dirname)
               .expect("should render dirname")
               .into(),
@@ -110,8 +108,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           );
 
           let const_dep = CachedConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             FILE_NAME.into(),
             "__webpack_fileURLToPath__(import.meta.url)"
               .to_string()
@@ -140,8 +137,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             serde_json::to_string(&filename)
               .expect("should render filename")
               .into(),
@@ -158,8 +154,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          ident.span.real_lo(),
-          ident.span.real_hi(),
+          ident.span.into(),
           RuntimeGlobals::GLOBAL.name().into(),
           Some(RuntimeGlobals::GLOBAL),
         )));
@@ -174,7 +169,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     ident: &str,
     start: u32,
     end: u32,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression> {
+  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
     if ident == DIR_NAME {
       Some(eval::evaluate_to_string(
         get_context(parser.resource_data).as_str().to_string(),
