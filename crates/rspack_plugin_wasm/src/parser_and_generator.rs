@@ -59,10 +59,9 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             for export in s {
               match export {
                 Ok(export) => exports.push(export.name.to_string()),
-                Err(err) => diagnostic.push(Diagnostic::error(
-                  "Wasm Export Parse Error".into(),
-                  err.to_string(),
-                )),
+                Err(err) => {
+                  diagnostic.push(Diagnostic::error("WasmParser".into(), err.to_string()))
+                }
               };
             }
           }
@@ -76,20 +75,16 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                     ty,
                   )));
                 }
-                Err(err) => diagnostic.push(Diagnostic::error(
-                  "Wasm Import Parse Error".into(),
-                  err.to_string(),
-                )),
+                Err(err) => {
+                  diagnostic.push(Diagnostic::error("WasmParser".into(), err.to_string()))
+                }
               }
             }
           }
           _ => {}
         },
         Err(err) => {
-          diagnostic.push(Diagnostic::error(
-            "Wasm Parse Error".into(),
-            err.to_string(),
-          ));
+          diagnostic.push(Diagnostic::error("WasmParser".into(), err.to_string()));
         }
       }
     }

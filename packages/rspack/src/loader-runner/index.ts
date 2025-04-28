@@ -618,10 +618,7 @@ export async function runLoaders(
 	loaderContext.experiments = {
 		emitDiagnostic: (diagnostic: Diagnostic) => {
 			const d = Object.assign({}, diagnostic, {
-				message:
-					diagnostic.severity === "warning"
-						? `ModuleWarning: ${diagnostic.message}`
-						: `ModuleError: ${diagnostic.message}`,
+				message: diagnostic.message,
 				moduleIdentifier: context._module.identifier()
 			});
 			compiler._lastCompilation!.__internal__pushDiagnostic(

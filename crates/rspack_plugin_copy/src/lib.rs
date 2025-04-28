@@ -202,10 +202,7 @@ impl CopyRspackPlugin {
               diagnostics
                 .lock()
                 .expect("failed to obtain lock of `diagnostics`")
-                .push(Diagnostic::error(
-                  "Run copy to fn error".into(),
-                  e.to_string(),
-                ));
+                .push(Diagnostic::error("CopyPlugin".into(), e.to_string()));
               "".to_string()
             }
           };
@@ -526,7 +523,7 @@ impl CopyRspackPlugin {
             .lock()
             .expect("failed to obtain lock of `diagnostics`")
             .push(Diagnostic::error(
-              "CopyRspackPlugin Error".into(),
+              "CopyPlugin".into(),
               format!("unable to locate '{glob_query}' glob"),
             ));
         }
@@ -562,7 +559,7 @@ impl CopyRspackPlugin {
             .lock()
             .expect("failed to obtain lock of `diagnostics`")
             .push(Diagnostic::error(
-              "CopyRspackPlugin Error".into(),
+              "CopyPlugin".into(),
               format!("unable to locate '{glob_query}' glob"),
             ));
           return Ok(None);
@@ -594,7 +591,10 @@ impl CopyRspackPlugin {
         diagnostics
           .lock()
           .expect("failed to obtain lock of `diagnostics`")
-          .push(Diagnostic::error("Glob Error".into(), e.msg.to_string()));
+          .push(Diagnostic::error(
+            "CopyPlugin".into(),
+            format!("glob error, {}", e.msg),
+          ));
 
         Ok(None)
       }
@@ -821,10 +821,7 @@ async fn handle_transform(
       diagnostics
         .lock()
         .expect("failed to obtain lock of `diagnostics`")
-        .push(Diagnostic::error(
-          "Run copy transform fn error".into(),
-          e.to_string(),
-        ));
+        .push(Diagnostic::error("CopyPlugin".into(), e.to_string()));
     }
   }
 }

@@ -90,7 +90,7 @@ async fn seal(&self, compilation: &mut Compilation) -> Result<()> {
     let mut case_modules = set.iter().copied().collect::<Vec<_>>();
     case_modules.sort_unstable();
     diagnostics.push(Diagnostic::warn(
-      "Sensitive Modules Warn".to_string(),
+      "WarnCaseSensitive".to_string(),
       self.create_sensitive_modules_warning(case_modules, &compilation.get_module_graph()),
     ));
   }

@@ -103,7 +103,7 @@ impl CssPlugin {
           .expect("should have module");
 
         Diagnostic::warn(
-          "Conflicting order".into(),
+          "CssPlugin".into(),
           format!(
             "chunk {}\nConflicting order between {} and {}",
             chunk.name().unwrap_or(

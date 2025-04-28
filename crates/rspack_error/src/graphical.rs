@@ -222,7 +222,15 @@ impl GraphicalReportHandler {
       .initial_indent(&initial_indent)
       .subsequent_indent(&rest_indent);
 
-    writeln!(f, "{}", textwrap::fill(&diagnostic.to_string(), opts))?;
+    let cause = format!(
+      "{}{}",
+      diagnostic
+        .code()
+        .map(|c| format!("{}: ", c.style(severity_style)))
+        .unwrap_or_default(),
+      diagnostic
+    );
+    writeln!(f, "{}", textwrap::fill(&cause, opts))?;
 
     if !self.with_cause_chain {
       return Ok(());
@@ -303,11 +311,6 @@ impl GraphicalReportHandler {
     if let Some(related) = diagnostic.related() {
       writeln!(f)?;
       for rel in related {
-        match rel.severity() {
-          Some(Severity::Error) | None => write!(f, "Error: ")?,
-          Some(Severity::Warning) => write!(f, "Warning: ")?,
-          Some(Severity::Advice) => write!(f, "Advice: ")?,
-        };
         self.render_header(f, rel)?;
         self.render_causes(f, rel)?;
         let src = rel.source_code().or(parent_src);

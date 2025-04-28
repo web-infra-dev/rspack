@@ -333,11 +333,11 @@ cacheable modules xx KiB
   ./d.js 22 bytes [built] [code generated]
   ./e.js 22 bytes [built] [code generated]
 
-ERROR in × asset size limit: The following asset(s) exceed the recommended size limit (xx KiB). This can impact web performance.Assets:
+ERROR in × SizeLimits: asset size limit: The following asset(s) exceed the recommended size limit (xx KiB). This can impact web performance.Assets:
   │   main.js (xx KiB)
 
 
-ERROR in × entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (xx KiB). This can impact web performance.Entrypoints:
+ERROR in × SizeLimits: entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (xx KiB). This can impact web performance.Entrypoints:
   │   main (xx KiB)
   │       main.js
 

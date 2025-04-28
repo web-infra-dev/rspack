@@ -1,13 +1,13 @@
-WARNING in ⚠ Circular dependency detected:
+WARNING in ⚠ CircularDependency: detected:
   │  tests/diagnosticsCases/plugins/circular-dependency-plugin/require-circular/d.js -> tests/diagnosticsCases/plugins/circular-dependency-plugin/require-circular/e.js -> tests/diagnosticsCases/plugins/circular-dependency-plugin/require-circular/f.js -> tests/diagnosticsCases/plugins/circular-dependency-plugin/require-circular/a.js -> tests/diagnosticsCases/plugins/circular-dependency-plugin/require-circular/b.js -> tests/diagnosticsCases/plugins/circular-dependency-plugin/require-circular/c.js -> tests/diagnosticsCases/plugins/circular-dependency-plugin/require-circular/d.js
 
-WARNING in ⚠ Circular dependency detected:
+WARNING in ⚠ CircularDependency: detected:
   │  tests/diagnosticsCases/plugins/circular-dependency-plugin/import-circular/a.js -> tests/diagnosticsCases/plugins/circular-dependency-plugin/import-circular/b.js -> tests/diagnosticsCases/plugins/circular-dependency-plugin/import-circular/a.js
 
-WARNING in ⚠ Circular dependency detected:
+WARNING in ⚠ CircularDependency: detected:
   │  tests/diagnosticsCases/plugins/circular-dependency-plugin/multiple-circular/a.js -> tests/diagnosticsCases/plugins/circular-dependency-plugin/multiple-circular/b.js -> tests/diagnosticsCases/plugins/circular-dependency-plugin/multiple-circular/c.js -> tests/diagnosticsCases/plugins/circular-dependency-plugin/multiple-circular/d.js -> tests/diagnosticsCases/plugins/circular-dependency-plugin/multiple-circular/a.js
 
-WARNING in ⚠ Circular dependency detected:
+WARNING in ⚠ CircularDependency: detected:
   │  tests/diagnosticsCases/plugins/circular-dependency-plugin/multiple-circular/a.js -> tests/diagnosticsCases/plugins/circular-dependency-plugin/multiple-circular/b.js -> tests/diagnosticsCases/plugins/circular-dependency-plugin/multiple-circular/c.js -> tests/diagnosticsCases/plugins/circular-dependency-plugin/multiple-circular/e.js -> tests/diagnosticsCases/plugins/circular-dependency-plugin/multiple-circular/a.js
 
 ERROR in × Module not found: Can't resolve './' in '<TEST_TOOLS_ROOT>/tests/diagnosticsCases/plugins/circular-dependency-plugin'

@@ -338,11 +338,8 @@ impl CircularDependencyRspackPlugin {
       .collect();
 
     compilation.push_diagnostic(diagnostic_factory(
-      "Circular Dependency".to_string(),
-      format!(
-        "Circular dependency detected:\n {}",
-        cycle_without_root.iter().join(" -> ")
-      ),
+      "CircularDependency".to_string(),
+      format!("detected:\n {}", cycle_without_root.iter().join(" -> ")),
     ));
     Ok(())
   }

@@ -46,14 +46,14 @@ impl std::error::Error for ModuleBuildError {
 }
 
 impl std::fmt::Display for ModuleBuildError {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    write!(f, "Module build failed:")
+  fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    Ok(())
   }
 }
 
 impl miette::Diagnostic for ModuleBuildError {
   fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-    Some(Box::new("ModuleBuildError"))
+    Some(Box::new("Module build failed"))
   }
   fn severity(&self) -> Option<miette::Severity> {
     self.0.severity()
@@ -83,13 +83,16 @@ impl miette::Diagnostic for ModuleBuildError {
 /// This does NOT aligned with webpack as webpack does not have parse warning.
 /// However, rspack may create warning during parsing stage, taking CSS as an example.
 #[derive(Debug, Error)]
-#[error("{title}")]
 pub struct ModuleParseError {
-  message: String,
-  title: &'static str,
   help: String,
   #[source]
   source: Box<dyn Diagnostic + Send + Sync>,
+}
+
+impl std::fmt::Display for ModuleParseError {
+  fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    Ok(())
+  }
 }
 
 impl miette::Diagnostic for ModuleParseError {
@@ -101,8 +104,8 @@ impl miette::Diagnostic for ModuleParseError {
   fn code<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
     match self.severity().unwrap_or(miette::Severity::Error) {
       miette::Severity::Advice => unreachable!("miette::Severity::Advice should not be used"),
-      miette::Severity::Warning => Some(Box::new("ModuleParseWarning")),
-      miette::Severity::Error => Some(Box::new("ModuleParseError")),
+      miette::Severity::Warning => Some(Box::new("Module parse warning")),
+      miette::Severity::Error => Some(Box::new("Module parse failed")),
     }
   }
 
@@ -120,9 +123,7 @@ impl miette::Diagnostic for ModuleParseError {
 
 impl ModuleParseError {
   pub fn new(source: Box<dyn Diagnostic + Send + Sync>, loaders: &[BoxLoader]) -> Self {
-    let message = source.to_string();
     let mut help = String::new();
-    let mut title = "Module parse failed:";
     if source.severity().unwrap_or(miette::Severity::Error) >= miette::Severity::Error {
       if loaders.is_empty() {
         help = format!("{help}\nYou may need an appropriate loader to handle this file type.");
@@ -136,15 +137,8 @@ impl ModuleParseError {
           .join("");
         help = format!("{help}\nFile was processed with these loaders:{s}\nYou may need an additional loader to handle the result of these loaders.");
       }
-    } else {
-      title = "Module parse warning:"
     }
-    Self {
-      message,
-      title,
-      help,
-      source,
-    }
+    Self { help, source }
   }
 }
 

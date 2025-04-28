@@ -114,7 +114,7 @@ impl ProvideSharedPlugin {
     resource_data: &ResourceData,
     mut add_diagnostic: impl FnMut(Diagnostic),
   ) {
-    let title = "rspack.ProvideSharedPlugin";
+    let title = "ProvideShared";
     let error_header = "No version specified and unable to automatically determine one.";
     if let Some(version) = version {
       self.resolved_provide_map.write().await.insert(

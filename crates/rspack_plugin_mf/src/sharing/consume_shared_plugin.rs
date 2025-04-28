@@ -320,7 +320,7 @@ impl ConsumeSharedPlugin {
           .await
           .map_err(|_e| {
             add_diagnostic(Diagnostic::error(
-              "ModuleNotFoundError".into(),
+              "ConsumeShared".into(),
               format!("resolving fallback for shared module {request}"),
             ))
           })
@@ -472,7 +472,7 @@ async fn additional_tree_runtime_requirements(
 #[async_trait]
 impl Plugin for ConsumeSharedPlugin {
   fn name(&self) -> &'static str {
-    "rspack.ConsumeSharedPlugin"
+    "CosumeShared"
   }
 
   fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
