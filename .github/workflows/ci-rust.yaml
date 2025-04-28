@@ -18,8 +18,29 @@ on:
     tags-ignore:
       - "**"
 jobs:
+  check-changed:
+    runs-on: ubuntu-latest
+    name: Check Source Changed
+    outputs:
+      code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
+      document_changed: ${{ steps.filter.outputs.document_changed == 'true' }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
+        id: filter
+        with:
+          predicate-quantifier: "every"
+          filters: |
+            code_changed:
+              - "!**/*.md"
+              - "!**/*.mdx"
+              - "!website/**"
+            document_changed:
+              - "website/**"
   rust_check:
     name: Rust check
+    needs: [ check-changed ]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS) ||  'ubuntu-22.04' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -51,6 +72,8 @@ jobs:
         run: taplo format --check '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'
 
   rust_unused_dependencies:
+    needs: [ check-changed ]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     name: Check Rust Dependencies
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS) ||  'ubuntu-22.04' }}
     steps:
@@ -73,6 +96,8 @@ jobs:
   rust_test:
     name: Rust test
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS) ||  'ubuntu-22.04' }}
+    needs: [ check-changed ]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
@@ -119,15 +144,20 @@ jobs:
         # reason for excluding https://github.com/napi-rs/napi-rs/issues/2200
         run: cargo miri test --workspace --exclude rspack_node -- --nocapture
 
-  cargo-deny:
-    name: Check license of dependencies
+  test_required_check:
+    # this job will be used for GitHub actions to determine required job success or not;
+    # When code changed, it will check if any of the test jobs failed.
+    # When *only* doc changed, it will run as success directly
+    name: Rust Test Required Check
+    needs: [ rust_test, rust_check, check-changed ]
+    if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
-        id: filter
-        with:
-          filters: |
-            src:
-              - 'Cargo.lock'
+      - name: Log
+        run: echo ${{ join(needs.*.result, ',') }}
+      - name: Test check
+        if: ${{ needs.check-changed.outputs.code_changed == 'true' && join(needs.*.result, ',')!='success,success,success' }}
+        run: echo "Tess Failed" && exit 1
+      - name: No check to Run test
+        run: echo "Success"
 

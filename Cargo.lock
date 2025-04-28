@@ -3962,6 +3962,7 @@ dependencies = [
  "rspack_storage",
  "rspack_util",
  "rustc-hash 2.1.0",
+ "scopeguard",
  "serde",
  "serde_json",
  "sugar_path",
@@ -4384,6 +4385,7 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "rspack_regex",
+ "rustc-hash 2.1.0",
  "tracing",
 ]
 

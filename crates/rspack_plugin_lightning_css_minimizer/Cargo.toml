@@ -22,4 +22,4 @@ rspack_hook  = { workspace = true }
 rspack_util  = { workspace = true }
 
 [package.metadata.cargo-shear]
-ignored = ["tracing"]
+ignored = ["tracing", "ropey"]

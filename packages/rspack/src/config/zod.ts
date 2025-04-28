@@ -244,7 +244,11 @@ const enabledLibraryTypes = z.array(
 const clean = z.union([
 	z.boolean(),
 	z.strictObject({
-		keep: z.string().optional()
+		keep: z
+			.instanceof(RegExp)
+			.or(z.string())
+			.or(z.function().args(z.string()).returns(z.boolean()))
+			.optional()
 	})
 ]) satisfies z.ZodType<t.Clean>;
 
