@@ -1,21 +1,15 @@
-use std::{borrow::Cow, cell::RefCell, ptr};
+use std::{borrow::Cow, cell::RefCell};
 
-use napi::{
-  sys::{self, napi_value},
-  Env,
-};
+use napi::{sys::napi_value, Env};
 use napi_derive::napi;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
   rspack_sources::{RawBufferSource, RawSource, Source},
   EntrypointsStatsOption, ExtendedStatsOptions, Stats, StatsChunk, StatsModule, StatsUsedExports,
 };
-use rspack_napi::{
-  napi::{
-    bindgen_prelude::{Buffer, Result, SharedReference, ToNapiValue},
-    check_status, Either,
-  },
-  OneShotRef,
+use rspack_napi::napi::{
+  bindgen_prelude::{Buffer, Result, SharedReference, ToNapiValue},
+  Either,
 };
 use rspack_util::{atom::Atom, itoa};
 use rustc_hash::FxHashMap as HashMap;
@@ -24,9 +18,11 @@ use crate::{
   identifier::JsIdentifier, to_js_module_id, JsCompilation, JsModuleId, RspackResultToNapiResultExt,
 };
 
+// These handles are only used during the `to_json` call,
+// so we can store raw `napi_value` here.
 thread_local! {
-  static MODULE_DESCRIPTOR_REFS: RefCell<IdentifierMap<OneShotRef>> = Default::default();
-  static MODULE_COMMON_ATTRIBUTES_REFS: RefCell<IdentifierMap<OneShotRef>> = Default::default();
+  static MODULE_DESCRIPTOR_REFS: RefCell<IdentifierMap<napi_value>> = Default::default();
+  static MODULE_COMMON_ATTRIBUTES_REFS: RefCell<IdentifierMap<napi_value>> = Default::default();
 }
 
 pub struct CowStrWrapper<'a>(Cow<'a, str>);
@@ -120,20 +116,15 @@ impl<'a> ToNapiValue for JsModuleDescriptorWrapper<'a> {
     MODULE_DESCRIPTOR_REFS.with(|ref_cell| {
       let id = val.0.identifier.raw();
       {
-        if let Some(r) = ref_cell.borrow().get(&id) {
-          return ToNapiValue::to_napi_value(env, r);
+        if let Some(raw_value) = ref_cell.borrow().get(&id) {
+          return Ok(*raw_value);
         }
       }
-
-      let napi_value = unsafe { ToNapiValue::to_napi_value(env, val.0)? };
-      let mut napi_ref = ptr::null_mut();
-      check_status!(unsafe { sys::napi_create_reference(env, napi_value, 1, &mut napi_ref) })?;
-
-      let r = OneShotRef::from_napi_ref(env, napi_ref)?;
+      let raw_value = unsafe { ToNapiValue::to_napi_value(env, val.0)? };
       {
-        ref_cell.borrow_mut().insert(id, r);
+        ref_cell.borrow_mut().insert(id, raw_value);
       }
-      Ok(napi_value)
+      Ok(raw_value)
     })
   }
 }
@@ -564,19 +555,15 @@ impl<'a> ToNapiValue for JsStatsModuleCommonAttributesWrapper<'a> {
       {
         Some(id) => {
           {
-            if let Some(r) = ref_cell.borrow().get(id) {
-              return ToNapiValue::to_napi_value(env, r);
+            if let Some(raw_value) = ref_cell.borrow().get(id) {
+              return ToNapiValue::to_napi_value(env, *raw_value);
             }
           }
-          let napi_value = unsafe { ToNapiValue::to_napi_value(env, val.0)? };
-          let mut napi_ref = ptr::null_mut();
-          check_status!(unsafe { sys::napi_create_reference(env, napi_value, 1, &mut napi_ref) })?;
-
-          let r = OneShotRef::from_napi_ref(env, napi_ref)?;
+          let raw_value = unsafe { ToNapiValue::to_napi_value(env, val.0)? };
           {
-            ref_cell.borrow_mut().insert(*id, r);
+            ref_cell.borrow_mut().insert(*id, raw_value);
           }
-          Ok(napi_value)
+          Ok(raw_value)
         }
         None => ToNapiValue::to_napi_value(env, val.0),
       }
