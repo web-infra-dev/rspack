@@ -3,10 +3,11 @@ use std::collections::hash_map::Entry;
 use indexmap::IndexMap;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  incremental::IncrementalPasses, ApplyContext, BuildMetaExportsType, Compilation,
-  CompilationFinishModules, CompilerOptions, DependenciesBlock, DependencyId, ExportInfoProvided,
-  ExportNameOrSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, Logger, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, Plugin, PluginContext,
+  incremental::{self, IncrementalPasses},
+  ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
+  DependenciesBlock, DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfo,
+  ExportsOfExportsSpec, ExportsSpec, Logger, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -351,6 +352,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     .mutations_read(IncrementalPasses::PROVIDED_EXPORTS)
   {
     let modules = mutations.get_affected_modules_with_module_graph(&compilation.get_module_graph());
+    tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::PROVIDED_EXPORTS, %mutations, ?modules);
     let logger = compilation.get_logger("rspack.incremental.providedExports");
     logger.log(format!(
       "{} modules are affected, {} in total",
