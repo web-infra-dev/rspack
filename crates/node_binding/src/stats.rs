@@ -1,103 +1,170 @@
-use std::cell::RefCell;
+use std::{borrow::Cow, cell::RefCell};
 
+use napi::{sys::napi_value, Env};
 use napi_derive::napi;
-use rspack_collections::Identifier;
+use rspack_collections::IdentifierMap;
 use rspack_core::{
   rspack_sources::{RawBufferSource, RawSource, Source},
   EntrypointsStatsOption, ExtendedStatsOptions, Stats, StatsChunk, StatsModule, StatsUsedExports,
 };
-use rspack_napi::{
-  napi::{
-    bindgen_prelude::{Buffer, Result, SharedReference, ToNapiValue},
-    Either,
-  },
-  OneShotRef,
+use rspack_napi::napi::{
+  bindgen_prelude::{Buffer, Result, SharedReference, ToNapiValue},
+  Either,
 };
-use rspack_util::itoa;
+use rspack_util::{atom::Atom, itoa};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   identifier::JsIdentifier, to_js_module_id, JsCompilation, JsModuleId, RspackResultToNapiResultExt,
 };
 
+// These handles are only used during the `to_json` call,
+// so we can store raw `napi_value` here.
 thread_local! {
-  static MODULE_DESCRIPTOR_REFS: RefCell<HashMap<Identifier, OneShotRef>> = Default::default();
-  static MODULE_COMMON_ATTRIBUTES_REFS: RefCell<HashMap<Identifier, OneShotRef>> = Default::default();
+  static MODULE_DESCRIPTOR_REFS: RefCell<IdentifierMap<napi_value>> = Default::default();
+  static MODULE_COMMON_ATTRIBUTES_REFS: RefCell<IdentifierMap<napi_value>> = Default::default();
+}
+
+pub struct CowStrWrapper<'a>(Cow<'a, str>);
+
+impl<'a> CowStrWrapper<'a> {
+  pub fn new(s: Cow<'a, str>) -> Self {
+    Self(s)
+  }
+}
+
+impl<'a> ToNapiValue for CowStrWrapper<'a> {
+  unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> Result<napi::sys::napi_value> {
+    ToNapiValue::to_napi_value(env, val.0.as_ref())
+  }
+}
+
+pub struct StringSliceWrapper<'a>(&'a [String]);
+
+impl<'a> StringSliceWrapper<'a> {
+  pub fn new(slice: &'a [String]) -> Self {
+    Self(slice)
+  }
+}
+
+impl<'a> ToNapiValue for StringSliceWrapper<'a> {
+  unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> Result<napi::sys::napi_value> {
+    let env_wrapper = Env::from_raw(env);
+    let mut array = env_wrapper.create_array(val.0.len() as u32)?;
+    for (i, item) in val.0.iter().enumerate() {
+      let s = env_wrapper.create_string(item)?;
+      array.set(i as u32, s)?;
+    }
+    ToNapiValue::to_napi_value(env, array)
+  }
+}
+
+pub struct AtomWrapper(Atom);
+
+impl AtomWrapper {
+  pub fn new(atom: Atom) -> Self {
+    Self(atom)
+  }
+}
+
+impl ToNapiValue for AtomWrapper {
+  unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> Result<napi::sys::napi_value> {
+    ToNapiValue::to_napi_value(env, val.0.as_str())
+  }
+}
+
+pub struct AtomVecWrapper(Vec<Atom>);
+
+impl AtomVecWrapper {
+  pub fn new(atom_vec: Vec<Atom>) -> Self {
+    Self(atom_vec)
+  }
+}
+
+impl ToNapiValue for AtomVecWrapper {
+  unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> Result<napi::sys::napi_value> {
+    let env_wrapper = Env::from_raw(env);
+    let mut array = env_wrapper.create_array(val.0.len() as u32)?;
+    for (i, item) in val.0.iter().enumerate() {
+      let s = env_wrapper.create_string(item.as_str())?;
+      array.set(i as u32, s)?;
+    }
+    ToNapiValue::to_napi_value(env, array)
+  }
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsModuleDescriptor {
+pub struct JsModuleDescriptor<'a> {
   #[napi(ts_type = "string")]
   pub identifier: JsIdentifier,
-  pub name: String,
+  #[napi(ts_type = "string")]
+  pub name: CowStrWrapper<'a>,
   #[napi(ts_type = "string | number | null")]
   pub id: Option<JsModuleId>,
 }
 
-pub struct JsModuleDescriptorWrapper(JsModuleDescriptor);
+pub struct JsModuleDescriptorWrapper<'a>(JsModuleDescriptor<'a>);
 
-impl JsModuleDescriptorWrapper {
+impl<'a> JsModuleDescriptorWrapper<'a> {
   pub fn raw(&self) -> &JsModuleDescriptor {
     &self.0
   }
 }
 
-impl ToNapiValue for JsModuleDescriptorWrapper {
+impl<'a> ToNapiValue for JsModuleDescriptorWrapper<'a> {
   unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> Result<napi::sys::napi_value> {
-    MODULE_DESCRIPTOR_REFS.with(|refs| {
+    MODULE_DESCRIPTOR_REFS.with(|ref_cell| {
       let id = val.0.identifier.raw();
-      let mut refs = refs.borrow_mut();
-      match refs.entry(id) {
-        std::collections::hash_map::Entry::Occupied(entry) => {
-          let r = entry.get();
-          ToNapiValue::to_napi_value(env, r)
-        }
-        std::collections::hash_map::Entry::Vacant(entry) => {
-          let r = OneShotRef::new(env, val.0)?;
-          let r = entry.insert(r);
-          ToNapiValue::to_napi_value(env, r)
+      {
+        if let Some(raw_value) = ref_cell.borrow().get(&id) {
+          return Ok(*raw_value);
         }
       }
+      let raw_value = unsafe { ToNapiValue::to_napi_value(env, val.0)? };
+      {
+        ref_cell.borrow_mut().insert(id, raw_value);
+      }
+      Ok(raw_value)
     })
   }
 }
 
-impl From<JsModuleDescriptor> for JsModuleDescriptorWrapper {
-  fn from(value: JsModuleDescriptor) -> Self {
+impl<'a> From<JsModuleDescriptor<'a>> for JsModuleDescriptorWrapper<'a> {
+  fn from(value: JsModuleDescriptor<'a>) -> Self {
     Self(value)
   }
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsError {
+pub struct JsStatsError<'a> {
   #[napi(ts_type = "JsModuleDescriptor")]
-  pub module_descriptor: Option<JsModuleDescriptorWrapper>,
+  pub module_descriptor: Option<JsModuleDescriptorWrapper<'a>>,
   pub message: String,
-  pub chunk_name: Option<String>,
+  pub chunk_name: Option<&'a str>,
   pub chunk_entry: Option<bool>,
   pub chunk_initial: Option<bool>,
   pub loc: Option<String>,
-  pub file: Option<String>,
-  pub chunk_id: Option<String>,
+  pub file: Option<&'a str>,
+  pub chunk_id: Option<&'a str>,
   pub details: Option<String>,
   pub stack: Option<String>,
-  pub module_trace: Vec<JsStatsModuleTrace>,
+  pub module_trace: Vec<JsStatsModuleTrace<'a>>,
 }
 
-impl From<rspack_core::StatsError<'_>> for JsStatsError {
-  fn from(stats: rspack_core::StatsError) -> Self {
+impl<'a> From<rspack_core::StatsError<'a>> for JsStatsError<'a> {
+  fn from(stats: rspack_core::StatsError<'a>) -> Self {
     Self {
       module_descriptor: stats.module_identifier.map(|identifier| {
         JsModuleDescriptor {
           identifier: identifier.into(),
-          name: stats.module_name.unwrap_or_default().into_owned(),
+          name: CowStrWrapper::new(stats.module_name.unwrap_or_default()),
           id: stats.module_id.map(|s| to_js_module_id(&s)),
         }
         .into()
       }),
       message: stats.message,
       loc: stats.loc,
-      file: stats.file.map(|f| f.as_str().to_string()),
+      file: stats.file.map(|f| f.as_str()),
       chunk_name: stats.chunk_name,
       chunk_entry: stats.chunk_entry,
       chunk_initial: stats.chunk_initial,
@@ -114,33 +181,33 @@ impl From<rspack_core::StatsError<'_>> for JsStatsError {
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsWarning {
+pub struct JsStatsWarning<'a> {
   #[napi(ts_type = "JsModuleDescriptor")]
-  pub module_descriptor: Option<JsModuleDescriptorWrapper>,
+  pub module_descriptor: Option<JsModuleDescriptorWrapper<'a>>,
   pub message: String,
-  pub chunk_name: Option<String>,
+  pub chunk_name: Option<&'a str>,
   pub chunk_entry: Option<bool>,
   pub chunk_initial: Option<bool>,
-  pub file: Option<String>,
-  pub chunk_id: Option<String>,
+  pub file: Option<&'a str>,
+  pub chunk_id: Option<&'a str>,
   pub details: Option<String>,
   pub stack: Option<String>,
-  pub module_trace: Vec<JsStatsModuleTrace>,
+  pub module_trace: Vec<JsStatsModuleTrace<'a>>,
 }
 
-impl From<rspack_core::StatsWarning<'_>> for JsStatsWarning {
-  fn from(stats: rspack_core::StatsWarning) -> Self {
+impl<'a> From<rspack_core::StatsWarning<'a>> for JsStatsWarning<'a> {
+  fn from(stats: rspack_core::StatsWarning<'a>) -> Self {
     Self {
       module_descriptor: stats.module_identifier.map(|identifier| {
         JsModuleDescriptor {
           identifier: identifier.into(),
-          name: stats.module_name.unwrap_or_default().into_owned(),
+          name: CowStrWrapper::new(stats.module_name.unwrap_or_default()),
           id: stats.module_id.map(|s| to_js_module_id(&s)),
         }
         .into()
       }),
       message: stats.message,
-      file: stats.file.map(|f| f.as_str().to_string()),
+      file: stats.file.map(|f| f.as_str()),
       chunk_name: stats.chunk_name,
       chunk_entry: stats.chunk_entry,
       chunk_initial: stats.chunk_initial,
@@ -157,14 +224,14 @@ impl From<rspack_core::StatsWarning<'_>> for JsStatsWarning {
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsModuleTrace {
-  pub origin: JsStatsModuleTraceModule,
-  pub module: JsStatsModuleTraceModule,
+pub struct JsStatsModuleTrace<'a> {
+  pub origin: JsStatsModuleTraceModule<'a>,
+  pub module: JsStatsModuleTraceModule<'a>,
   pub dependencies: Vec<JsStatsModuleTraceDependency>,
 }
 
-impl From<rspack_core::StatsModuleTrace> for JsStatsModuleTrace {
-  fn from(stats: rspack_core::StatsModuleTrace) -> Self {
+impl<'a> From<rspack_core::StatsModuleTrace<'a>> for JsStatsModuleTrace<'a> {
+  fn from(stats: rspack_core::StatsModuleTrace<'a>) -> Self {
     Self {
       origin: stats.origin.into(),
       module: stats.module.into(),
@@ -174,17 +241,17 @@ impl From<rspack_core::StatsModuleTrace> for JsStatsModuleTrace {
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsModuleTraceModule {
+pub struct JsStatsModuleTraceModule<'a> {
   #[napi(ts_type = "JsModuleDescriptor")]
-  pub module_descriptor: JsModuleDescriptorWrapper,
+  pub module_descriptor: JsModuleDescriptorWrapper<'a>,
 }
 
-impl From<rspack_core::StatsErrorModuleTraceModule> for JsStatsModuleTraceModule {
-  fn from(stats: rspack_core::StatsErrorModuleTraceModule) -> Self {
+impl<'a> From<rspack_core::StatsErrorModuleTraceModule<'a>> for JsStatsModuleTraceModule<'a> {
+  fn from(stats: rspack_core::StatsErrorModuleTraceModule<'a>) -> Self {
     Self {
       module_descriptor: JsModuleDescriptor {
         identifier: stats.identifier.into(),
-        name: stats.name,
+        name: CowStrWrapper::new(stats.name),
         id: stats.id.map(|s| to_js_module_id(&s)),
       }
       .into(),
@@ -204,79 +271,79 @@ impl From<rspack_core::StatsErrorModuleTraceDependency> for JsStatsModuleTraceDe
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsLogging {
+pub struct JsStatsLogging<'a> {
   pub name: String,
-  pub r#type: String,
+  pub r#type: &'a str,
   pub args: Option<Vec<String>>,
   pub trace: Option<Vec<String>>,
 }
 
-impl From<(String, rspack_core::LogType)> for JsStatsLogging {
+impl<'a> From<(String, rspack_core::LogType)> for JsStatsLogging<'a> {
   fn from(value: (String, rspack_core::LogType)) -> Self {
     match value.1 {
       rspack_core::LogType::Error { message, trace } => Self {
         name: value.0,
-        r#type: "error".to_string(),
+        r#type: "error",
         args: Some(vec![message]),
         trace: Some(trace),
       },
       rspack_core::LogType::Warn { message, trace } => Self {
         name: value.0,
-        r#type: "warn".to_string(),
+        r#type: "warn",
         args: Some(vec![message]),
         trace: Some(trace),
       },
       rspack_core::LogType::Info { message } => Self {
         name: value.0,
-        r#type: "info".to_string(),
+        r#type: "info",
         args: Some(vec![message]),
         trace: None,
       },
       rspack_core::LogType::Log { message } => Self {
         name: value.0,
-        r#type: "log".to_string(),
+        r#type: "log",
         args: Some(vec![message]),
         trace: None,
       },
       rspack_core::LogType::Debug { message } => Self {
         name: value.0,
-        r#type: "debug".to_string(),
+        r#type: "debug",
         args: Some(vec![message]),
         trace: None,
       },
       rspack_core::LogType::Trace { message, trace } => Self {
         name: value.0,
-        r#type: "trace".to_string(),
+        r#type: "trace",
         args: Some(vec![message]),
         trace: Some(trace),
       },
       rspack_core::LogType::Group { message } => Self {
         name: value.0,
-        r#type: "group".to_string(),
+        r#type: "group",
         args: Some(vec![message]),
         trace: None,
       },
       rspack_core::LogType::GroupCollapsed { message } => Self {
         name: value.0,
-        r#type: "groupCollapsed".to_string(),
+        r#type: "groupCollapsed",
         args: Some(vec![message]),
         trace: None,
       },
       rspack_core::LogType::GroupEnd => Self {
         name: value.0,
-        r#type: "groupEnd".to_string(),
+        r#type: "groupEnd",
         args: None,
         trace: None,
       },
       rspack_core::LogType::Profile { label } => Self {
         name: value.0,
-        r#type: "profile".to_string(),
+        r#type: "profile",
         args: Some(vec![label.to_string()]),
         trace: None,
       },
       rspack_core::LogType::ProfileEnd { label } => Self {
         name: value.0,
-        r#type: "profileEnd".to_string(),
+        r#type: "profileEnd",
         args: Some(vec![label.to_string()]),
         trace: None,
       },
@@ -286,7 +353,7 @@ impl From<(String, rspack_core::LogType)> for JsStatsLogging {
         subsec_nanos,
       } => Self {
         name: value.0,
-        r#type: "time".to_string(),
+        r#type: "time",
         args: Some(vec![format!(
           "{}: {} ms",
           label,
@@ -296,19 +363,19 @@ impl From<(String, rspack_core::LogType)> for JsStatsLogging {
       },
       rspack_core::LogType::Clear => Self {
         name: value.0,
-        r#type: "clear".to_string(),
+        r#type: "clear",
         args: None,
         trace: None,
       },
       rspack_core::LogType::Status { message } => Self {
         name: value.0,
-        r#type: "status".to_string(),
+        r#type: "status",
         args: Some(vec![message]),
         trace: None,
       },
       rspack_core::LogType::Cache { label, hit, total } => Self {
         name: value.0,
-        r#type: "cache".to_string(),
+        r#type: "cache",
         args: Some(vec![format!(
           "{}: {:.1}% ({}/{})",
           label,
@@ -327,22 +394,22 @@ impl From<(String, rspack_core::LogType)> for JsStatsLogging {
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsAsset {
-  pub r#type: &'static str,
-  pub name: String,
-  pub info: JsStatsAssetInfo,
+pub struct JsStatsAsset<'a> {
+  pub r#type: &'a str,
+  pub name: &'a str,
+  pub info: JsStatsAssetInfo<'a>,
   pub size: f64,
   pub emitted: bool,
-  pub chunk_names: Vec<String>,
-  pub chunk_id_hints: Vec<String>,
-  pub chunks: Vec<Option<String>>,
-  pub auxiliary_chunk_names: Vec<String>,
-  pub auxiliary_chunk_id_hints: Vec<String>,
-  pub auxiliary_chunks: Vec<Option<String>>,
+  pub chunk_names: Vec<&'a str>,
+  pub chunk_id_hints: Vec<&'a str>,
+  pub chunks: Vec<Option<&'a str>>,
+  pub auxiliary_chunk_names: Vec<&'a str>,
+  pub auxiliary_chunk_id_hints: Vec<&'a str>,
+  pub auxiliary_chunks: Vec<Option<&'a str>>,
 }
 
-impl From<rspack_core::StatsAsset> for JsStatsAsset {
-  fn from(stats: rspack_core::StatsAsset) -> Self {
+impl<'a> From<rspack_core::StatsAsset<'a>> for JsStatsAsset<'a> {
+  fn from(stats: rspack_core::StatsAsset<'a>) -> Self {
     Self {
       r#type: stats.r#type,
       name: stats.name,
@@ -360,23 +427,23 @@ impl From<rspack_core::StatsAsset> for JsStatsAsset {
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsAssetInfo {
+pub struct JsStatsAssetInfo<'a> {
   pub minimized: Option<bool>,
   pub development: Option<bool>,
   pub hot_module_replacement: Option<bool>,
-  pub source_filename: Option<String>,
+  pub source_filename: Option<&'a str>,
   pub copied: Option<bool>,
   pub immutable: Option<bool>,
   pub javascript_module: Option<bool>,
-  pub chunkhash: Vec<String>,
-  pub contenthash: Vec<String>,
-  pub fullhash: Vec<String>,
-  pub related: Vec<JsStatsAssetInfoRelated>,
+  pub chunkhash: Vec<&'a str>,
+  pub contenthash: Vec<&'a str>,
+  pub fullhash: Vec<&'a str>,
+  pub related: Vec<JsStatsAssetInfoRelated<'a>>,
   pub is_over_size_limit: Option<bool>,
 }
 
-impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
-  fn from(stats: rspack_core::StatsAssetInfo) -> Self {
+impl<'a> From<rspack_core::StatsAssetInfo<'a>> for JsStatsAssetInfo<'a> {
+  fn from(stats: rspack_core::StatsAssetInfo<'a>) -> Self {
     Self {
       minimized: stats.minimized,
       development: stats.development,
@@ -399,13 +466,13 @@ impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsAssetInfoRelated {
-  pub name: String,
-  pub value: Vec<String>,
+pub struct JsStatsAssetInfoRelated<'a> {
+  pub name: &'a str,
+  pub value: Vec<&'a str>,
 }
 
-impl From<rspack_core::StatsAssetInfoRelated> for JsStatsAssetInfoRelated {
-  fn from(stats: rspack_core::StatsAssetInfoRelated) -> Self {
+impl<'a> From<rspack_core::StatsAssetInfoRelated<'a>> for JsStatsAssetInfoRelated<'a> {
+  fn from(stats: rspack_core::StatsAssetInfoRelated<'a>) -> Self {
     Self {
       name: stats.name,
       value: stats.value,
@@ -413,14 +480,15 @@ impl From<rspack_core::StatsAssetInfoRelated> for JsStatsAssetInfoRelated {
   }
 }
 
-type JsStatsModuleSource = Either<String, Buffer>;
-type JsStatsUsedExports = Either<String, Vec<String>>;
+type JsStatsModuleSource<'a> = Either<CowStrWrapper<'a>, Buffer>;
+type JsStatsUsedExports = Either<AtomWrapper, AtomVecWrapper>;
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsModuleCommonAttributes {
+pub struct JsStatsModuleCommonAttributes<'a> {
   pub r#type: &'static str,
   pub module_type: &'static str,
-  pub layer: Option<String>,
+  #[napi(ts_type = "string")]
+  pub layer: Option<CowStrWrapper<'a>>,
   pub size: f64,
   pub sizes: Vec<JsStatsSize>,
   pub built: bool,
@@ -430,7 +498,7 @@ pub struct JsStatsModuleCommonAttributes {
 
   // module$visible
   #[napi(ts_type = "JsModuleDescriptor")]
-  pub module_descriptor: Option<JsModuleDescriptorWrapper>,
+  pub module_descriptor: Option<JsModuleDescriptorWrapper<'a>>,
   pub name_for_condition: Option<String>,
   pub pre_order_index: Option<u32>,
   pub post_order_index: Option<u32>,
@@ -443,38 +511,41 @@ pub struct JsStatsModuleCommonAttributes {
   pub profile: Option<JsStatsModuleProfile>,
 
   // ids
-  pub chunks: Option<Vec<String>>,
+  pub chunks: Option<Vec<&'a str>>,
 
   // moduleAssets
-  pub assets: Option<Vec<String>>,
+  pub assets: Option<Vec<&'a str>>,
 
   // reasons
-  pub reasons: Option<Vec<JsStatsModuleReason>>,
+  pub reasons: Option<Vec<JsStatsModuleReason<'a>>>,
 
   // providedExports
-  pub provided_exports: Option<Vec<String>>,
+  #[napi(ts_type = "Array<string>")]
+  pub provided_exports: Option<AtomVecWrapper>,
 
   // optimizationBailout
-  pub optimization_bailout: Option<Vec<String>>,
+  #[napi(ts_type = "Array<string>")]
+  pub optimization_bailout: Option<StringSliceWrapper<'a>>,
 
   // depth
   pub depth: Option<u32>,
 
   // source
-  pub source: Option<Either<String, Buffer>>,
+  #[napi(ts_type = "string | Buffer")]
+  pub source: Option<Either<CowStrWrapper<'a>, Buffer>>,
 }
 
-pub struct JsStatsModuleCommonAttributesWrapper(JsStatsModuleCommonAttributes);
+pub struct JsStatsModuleCommonAttributesWrapper<'a>(JsStatsModuleCommonAttributes<'a>);
 
-impl From<JsStatsModuleCommonAttributes> for JsStatsModuleCommonAttributesWrapper {
-  fn from(value: JsStatsModuleCommonAttributes) -> Self {
+impl<'a> From<JsStatsModuleCommonAttributes<'a>> for JsStatsModuleCommonAttributesWrapper<'a> {
+  fn from(value: JsStatsModuleCommonAttributes<'a>) -> Self {
     JsStatsModuleCommonAttributesWrapper(value)
   }
 }
 
-impl ToNapiValue for JsStatsModuleCommonAttributesWrapper {
+impl<'a> ToNapiValue for JsStatsModuleCommonAttributesWrapper<'a> {
   unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> Result<napi::sys::napi_value> {
-    MODULE_COMMON_ATTRIBUTES_REFS.with(|refs| {
+    MODULE_COMMON_ATTRIBUTES_REFS.with(|ref_cell| {
       match val
         .0
         .module_descriptor
@@ -483,18 +554,16 @@ impl ToNapiValue for JsStatsModuleCommonAttributesWrapper {
         .as_ref()
       {
         Some(id) => {
-          let mut refs = refs.borrow_mut();
-          match refs.entry(*id) {
-            std::collections::hash_map::Entry::Occupied(entry) => {
-              let r = entry.get();
-              ToNapiValue::to_napi_value(env, r)
-            }
-            std::collections::hash_map::Entry::Vacant(entry) => {
-              let r = OneShotRef::new(env, val.0)?;
-              let r = entry.insert(r);
-              ToNapiValue::to_napi_value(env, r)
+          {
+            if let Some(raw_value) = ref_cell.borrow().get(id) {
+              return ToNapiValue::to_napi_value(env, *raw_value);
             }
           }
+          let raw_value = unsafe { ToNapiValue::to_napi_value(env, val.0)? };
+          {
+            ref_cell.borrow_mut().insert(*id, raw_value);
+          }
+          Ok(raw_value)
         }
         None => ToNapiValue::to_napi_value(env, val.0),
       }
@@ -503,21 +572,22 @@ impl ToNapiValue for JsStatsModuleCommonAttributesWrapper {
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsModule {
+pub struct JsStatsModule<'a> {
   #[napi(ts_type = "JsStatsModuleCommonAttributes")]
-  pub common_attributes: JsStatsModuleCommonAttributesWrapper,
+  pub common_attributes: JsStatsModuleCommonAttributesWrapper<'a>,
   pub dependent: Option<bool>,
   #[napi(ts_type = "JsModuleDescriptor")]
-  pub issuer_descriptor: Option<JsModuleDescriptorWrapper>,
-  pub issuer_path: Option<Vec<JsStatsModuleIssuer>>,
-  pub used_exports: Option<Either<String, Vec<String>>>,
-  pub modules: Option<Vec<JsStatsModule>>,
+  pub issuer_descriptor: Option<JsModuleDescriptorWrapper<'a>>,
+  pub issuer_path: Option<Vec<JsStatsModuleIssuer<'a>>>,
+  #[napi(ts_type = "string | Array<string>")]
+  pub used_exports: Option<Either<AtomWrapper, AtomVecWrapper>>,
+  pub modules: Option<Vec<JsStatsModule<'a>>>,
 }
 
-impl TryFrom<StatsModule<'_>> for JsStatsModule {
+impl<'a> TryFrom<StatsModule<'a>> for JsStatsModule<'a> {
   type Error = napi::Error;
 
-  fn try_from(stats: StatsModule) -> std::result::Result<Self, Self::Error> {
+  fn try_from(stats: StatsModule<'a>) -> std::result::Result<Self, Self::Error> {
     let source = stats.source.map(|source| {
       if let Some(raw_source) = source.as_any().downcast_ref::<RawBufferSource>() {
         return JsStatsModuleSource::B(Buffer::from(raw_source.buffer().to_vec()));
@@ -527,7 +597,7 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
           return JsStatsModuleSource::B(Buffer::from(raw_source.buffer().to_vec()));
         }
       }
-      JsStatsModuleSource::A(source.source().to_string())
+      JsStatsModuleSource::A(CowStrWrapper::new(source.source()))
     });
 
     let mut sizes = stats
@@ -564,7 +634,7 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
     let module_descriptor: Option<JsModuleDescriptorWrapper> = stats.identifier.map(|identifier| {
       JsModuleDescriptor {
         identifier: identifier.into(),
-        name: stats.name.unwrap_or_default().into_owned(),
+        name: CowStrWrapper::new(stats.name.unwrap_or_default()),
         id: stats.id.map(|s| to_js_module_id(&s)),
       }
       .into()
@@ -573,7 +643,7 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
     let common_attributes: JsStatsModuleCommonAttributesWrapper = JsStatsModuleCommonAttributes {
       r#type: stats.r#type,
       module_type: stats.module_type.as_str(),
-      layer: stats.layer.map(|i| i.into_owned()),
+      layer: stats.layer.map(CowStrWrapper::new),
       size: stats.size,
       sizes,
       built: stats.built,
@@ -588,10 +658,8 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
       source,
       profile: stats.profile.map(|p| p.into()),
       orphan: stats.orphan,
-      provided_exports: stats
-        .provided_exports
-        .map(|exports| exports.into_iter().map(|i| i.to_string()).collect()),
-      optimization_bailout: stats.optimization_bailout.map(|bailout| bailout.to_vec()),
+      provided_exports: stats.provided_exports.map(AtomVecWrapper::new),
+      optimization_bailout: stats.optimization_bailout.map(StringSliceWrapper::new),
       pre_order_index: stats.pre_order_index,
       post_order_index: stats.post_order_index,
       cached: stats.cached,
@@ -603,10 +671,10 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
     }
     .into();
 
-    let issuer_descriptor: Option<JsModuleDescriptorWrapper> = stats.issuer.map(|identifier| {
+    let issuer_descriptor: Option<JsModuleDescriptorWrapper<'a>> = stats.issuer.map(|identifier| {
       JsModuleDescriptor {
         identifier: identifier.into(),
-        name: stats.issuer_name.unwrap_or_default().into_owned(),
+        name: CowStrWrapper::new(stats.issuer_name.unwrap_or_default()),
         id: stats.issuer_id.map(|s| to_js_module_id(&s)),
       }
       .into()
@@ -620,11 +688,9 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
         .issuer_path
         .map(|path| path.into_iter().map(Into::into).collect()),
       used_exports: stats.used_exports.map(|used_exports| match used_exports {
-        StatsUsedExports::Bool(b) => JsStatsUsedExports::A(b.to_string()),
-        StatsUsedExports::Vec(v) => {
-          JsStatsUsedExports::B(v.into_iter().map(|i| i.to_string()).collect())
-        }
-        StatsUsedExports::Null => JsStatsUsedExports::A("null".to_string()),
+        StatsUsedExports::Bool(b) => JsStatsUsedExports::A(AtomWrapper::new(b.to_string().into())),
+        StatsUsedExports::Vec(v) => JsStatsUsedExports::B(AtomVecWrapper::new(v)),
+        StatsUsedExports::Null => JsStatsUsedExports::A(AtomWrapper::new("null".into())),
       }),
       modules,
     })
@@ -662,17 +728,17 @@ impl From<rspack_core::StatsMillisecond> for JsStatsMillisecond {
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsModuleIssuer {
+pub struct JsStatsModuleIssuer<'a> {
   #[napi(ts_type = "JsModuleDescriptor")]
-  pub module_descriptor: JsModuleDescriptorWrapper,
+  pub module_descriptor: JsModuleDescriptorWrapper<'a>,
 }
 
-impl From<rspack_core::StatsModuleIssuer<'_>> for JsStatsModuleIssuer {
-  fn from(stats: rspack_core::StatsModuleIssuer) -> Self {
+impl<'a> From<rspack_core::StatsModuleIssuer<'a>> for JsStatsModuleIssuer<'a> {
+  fn from(stats: rspack_core::StatsModuleIssuer<'a>) -> Self {
     Self {
       module_descriptor: JsModuleDescriptor {
         identifier: stats.identifier.into(),
-        name: stats.name.into_owned(),
+        name: CowStrWrapper::new(stats.name),
         id: stats.id.map(|s| to_js_module_id(&s)),
       }
       .into(),
@@ -681,26 +747,26 @@ impl From<rspack_core::StatsModuleIssuer<'_>> for JsStatsModuleIssuer {
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsModuleReason {
+pub struct JsStatsModuleReason<'a> {
   #[napi(ts_type = "JsModuleDescriptor")]
-  pub module_descriptor: Option<JsModuleDescriptorWrapper>,
+  pub module_descriptor: Option<JsModuleDescriptorWrapper<'a>>,
   #[napi(ts_type = "JsModuleDescriptor")]
-  pub resolved_module_descriptor: Option<JsModuleDescriptorWrapper>,
+  pub resolved_module_descriptor: Option<JsModuleDescriptorWrapper<'a>>,
   pub module_chunks: Option<u32>,
   pub r#type: Option<&'static str>,
-  pub user_request: Option<String>,
+  pub user_request: Option<&'a str>,
   pub explanation: Option<&'static str>,
   pub active: bool,
   pub loc: Option<String>,
 }
 
-impl From<rspack_core::StatsModuleReason<'_>> for JsStatsModuleReason {
-  fn from(stats: rspack_core::StatsModuleReason) -> Self {
+impl<'a> From<rspack_core::StatsModuleReason<'a>> for JsStatsModuleReason<'a> {
+  fn from(stats: rspack_core::StatsModuleReason<'a>) -> Self {
     Self {
       module_descriptor: stats.module_identifier.map(|identifier| {
         JsModuleDescriptor {
           identifier: identifier.into(),
-          name: stats.module_name.unwrap_or_default().into_owned(),
+          name: CowStrWrapper::new(stats.module_name.clone().unwrap_or_default()),
           id: stats.module_id.map(|s| to_js_module_id(&s)),
         }
         .into()
@@ -708,14 +774,14 @@ impl From<rspack_core::StatsModuleReason<'_>> for JsStatsModuleReason {
       resolved_module_descriptor: stats.resolved_module_identifier.map(|identifier| {
         JsModuleDescriptor {
           identifier: identifier.into(),
-          name: stats.resolved_module_name.unwrap_or_default().into_owned(),
+          name: CowStrWrapper::new(stats.module_name.unwrap_or_default()),
           id: stats.resolved_module_id.map(|s| to_js_module_id(&s)),
         }
         .into()
       }),
       module_chunks: stats.module_chunks,
       r#type: stats.r#type,
-      user_request: stats.user_request.map(|i| i.to_owned()),
+      user_request: stats.user_request,
       explanation: stats.explanation,
       active: stats.active,
       loc: stats.loc,
@@ -724,11 +790,11 @@ impl From<rspack_core::StatsModuleReason<'_>> for JsStatsModuleReason {
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsOriginRecord {
+pub struct JsOriginRecord<'a> {
   #[napi(ts_type = "JsModuleDescriptor")]
-  pub module_descriptor: Option<JsModuleDescriptorWrapper>,
+  pub module_descriptor: Option<JsModuleDescriptorWrapper<'a>>,
   pub loc: String,
-  pub request: String,
+  pub request: &'a str,
 }
 
 #[napi(object, object_from_js = false)]
@@ -738,38 +804,34 @@ pub struct JsStatsSize {
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsChunk {
-  pub r#type: String,
-  pub files: Vec<String>,
-  pub auxiliary_files: Vec<String>,
-  pub id: Option<String>,
-  pub id_hints: Vec<String>,
-  pub hash: Option<String>,
+pub struct JsStatsChunk<'a> {
+  pub r#type: &'a str,
+  pub files: Vec<&'a str>,
+  pub auxiliary_files: Vec<&'a str>,
+  pub id: Option<&'a str>,
+  pub id_hints: Vec<&'a str>,
+  pub hash: Option<&'a str>,
   pub entry: bool,
   pub initial: bool,
-  pub names: Vec<String>,
+  pub names: Vec<&'a str>,
   pub size: f64,
-  pub parents: Option<Vec<String>>,
-  pub children: Option<Vec<String>>,
-  pub siblings: Option<Vec<String>>,
+  pub parents: Option<Vec<&'a str>>,
+  pub children: Option<Vec<&'a str>>,
+  pub siblings: Option<Vec<&'a str>>,
   pub children_by_order: HashMap<String, Vec<String>>,
-  pub runtime: Vec<String>,
-  pub reason: Option<String>,
+  pub runtime: Vec<&'a str>,
+  pub reason: Option<&'a str>,
   pub rendered: bool,
   pub sizes: Vec<JsStatsSize>,
-  pub origins: Vec<JsOriginRecord>,
-  pub modules: Option<Vec<JsStatsModule>>,
+  pub origins: Vec<JsOriginRecord<'a>>,
+  pub modules: Option<Vec<JsStatsModule<'a>>>,
 }
 
-impl TryFrom<StatsChunk<'_>> for JsStatsChunk {
+impl<'a> TryFrom<StatsChunk<'a>> for JsStatsChunk<'a> {
   type Error = napi::Error;
 
-  fn try_from(stats: StatsChunk<'_>) -> std::result::Result<Self, Self::Error> {
-    let mut runtime = stats
-      .runtime
-      .iter()
-      .map(|r| r.to_string())
-      .collect::<Vec<_>>();
+  fn try_from(stats: StatsChunk<'a>) -> std::result::Result<Self, Self::Error> {
+    let mut runtime = stats.runtime.iter().map(|r| r.as_ref()).collect::<Vec<_>>();
     runtime.sort();
 
     let mut sizes = stats
@@ -783,7 +845,7 @@ impl TryFrom<StatsChunk<'_>> for JsStatsChunk {
     sizes.sort_by(|a, b| a.source_type.cmp(&b.source_type));
 
     Ok(JsStatsChunk {
-      r#type: stats.r#type.to_string(),
+      r#type: stats.r#type,
       files: stats.files,
       auxiliary_files: stats.auxiliary_files,
       id: stats.id,
@@ -804,8 +866,8 @@ impl TryFrom<StatsChunk<'_>> for JsStatsChunk {
       siblings: stats.siblings,
       children_by_order: stats
         .children_by_order
-        .iter()
-        .map(|(order, children)| (order.to_string(), children.to_owned()))
+        .into_iter()
+        .map(|(order, children)| (order.to_string(), children))
         .collect(),
       runtime,
       sizes,
@@ -818,7 +880,7 @@ impl TryFrom<StatsChunk<'_>> for JsStatsChunk {
           module_descriptor: origin.module_identifier.map(|identifier| {
             JsModuleDescriptor {
               identifier: identifier.into(),
-              name: origin.module_name,
+              name: CowStrWrapper::new(origin.module_name),
               id: origin.module_id.map(|s| to_js_module_id(&s)),
             }
             .into()
@@ -834,13 +896,13 @@ impl TryFrom<StatsChunk<'_>> for JsStatsChunk {
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsChunkGroupAsset {
-  pub name: String,
+pub struct JsStatsChunkGroupAsset<'a> {
+  pub name: &'a str,
   pub size: f64,
 }
 
-impl From<rspack_core::StatsChunkGroupAsset> for JsStatsChunkGroupAsset {
-  fn from(stats: rspack_core::StatsChunkGroupAsset) -> Self {
+impl<'a> From<rspack_core::StatsChunkGroupAsset<'a>> for JsStatsChunkGroupAsset<'a> {
+  fn from(stats: rspack_core::StatsChunkGroupAsset<'a>) -> Self {
     Self {
       name: stats.name,
       size: stats.size as f64,
@@ -849,20 +911,20 @@ impl From<rspack_core::StatsChunkGroupAsset> for JsStatsChunkGroupAsset {
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsChunkGroup {
-  pub name: String,
-  pub chunks: Vec<String>,
-  pub assets: Vec<JsStatsChunkGroupAsset>,
+pub struct JsStatsChunkGroup<'a> {
+  pub name: &'a str,
+  pub chunks: Vec<&'a str>,
+  pub assets: Vec<JsStatsChunkGroupAsset<'a>>,
   pub assets_size: f64,
-  pub auxiliary_assets: Option<Vec<JsStatsChunkGroupAsset>>,
+  pub auxiliary_assets: Option<Vec<JsStatsChunkGroupAsset<'a>>>,
   pub auxiliary_assets_size: Option<f64>,
   pub is_over_size_limit: Option<bool>,
-  pub children: Option<JsStatsChunkGroupChildren>,
-  pub child_assets: Option<JsStatsChildGroupChildAssets>,
+  pub children: Option<JsStatsChunkGroupChildren<'a>>,
+  pub child_assets: Option<JsStatsChildGroupChildAssets<'a>>,
 }
 
-impl From<rspack_core::StatsChunkGroup> for JsStatsChunkGroup {
-  fn from(stats: rspack_core::StatsChunkGroup) -> Self {
+impl<'a> From<rspack_core::StatsChunkGroup<'a>> for JsStatsChunkGroup<'a> {
+  fn from(stats: rspack_core::StatsChunkGroup<'a>) -> Self {
     Self {
       name: stats.name,
       chunks: stats.chunks,
@@ -880,13 +942,13 @@ impl From<rspack_core::StatsChunkGroup> for JsStatsChunkGroup {
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsChildGroupChildAssets {
-  pub preload: Option<Vec<String>>,
-  pub prefetch: Option<Vec<String>>,
+pub struct JsStatsChildGroupChildAssets<'a> {
+  pub preload: Option<Vec<&'a str>>,
+  pub prefetch: Option<Vec<&'a str>>,
 }
 
-impl From<rspack_core::StatschunkGroupChildAssets> for JsStatsChildGroupChildAssets {
-  fn from(stats: rspack_core::StatschunkGroupChildAssets) -> Self {
+impl<'a> From<rspack_core::StatschunkGroupChildAssets<'a>> for JsStatsChildGroupChildAssets<'a> {
+  fn from(stats: rspack_core::StatschunkGroupChildAssets<'a>) -> Self {
     Self {
       preload: (!stats.preload.is_empty()).then_some(stats.preload),
       prefetch: (!stats.prefetch.is_empty()).then_some(stats.prefetch),
@@ -895,13 +957,13 @@ impl From<rspack_core::StatschunkGroupChildAssets> for JsStatsChildGroupChildAss
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsChunkGroupChildren {
-  pub preload: Option<Vec<JsStatsChunkGroup>>,
-  pub prefetch: Option<Vec<JsStatsChunkGroup>>,
+pub struct JsStatsChunkGroupChildren<'a> {
+  pub preload: Option<Vec<JsStatsChunkGroup<'a>>>,
+  pub prefetch: Option<Vec<JsStatsChunkGroup<'a>>>,
 }
 
-impl From<rspack_core::StatsChunkGroupChildren> for JsStatsChunkGroupChildren {
-  fn from(stats: rspack_core::StatsChunkGroupChildren) -> Self {
+impl<'a> From<rspack_core::StatsChunkGroupChildren<'a>> for JsStatsChunkGroupChildren<'a> {
+  fn from(stats: rspack_core::StatsChunkGroupChildren<'a>) -> Self {
     Self {
       preload: (!stats.preload.is_empty())
         .then(|| stats.preload.into_iter().map(Into::into).collect()),
@@ -917,13 +979,13 @@ pub struct JsStatsOptimizationBailout {
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsAssetsByChunkName {
-  pub name: String,
-  pub files: Vec<String>,
+pub struct JsStatsAssetsByChunkName<'a> {
+  pub name: &'a str,
+  pub files: Vec<&'a str>,
 }
 
-impl From<rspack_core::StatsAssetsByChunkName> for JsStatsAssetsByChunkName {
-  fn from(stats: rspack_core::StatsAssetsByChunkName) -> Self {
+impl<'a> From<rspack_core::StatsAssetsByChunkName<'a>> for JsStatsAssetsByChunkName<'a> {
+  fn from(stats: rspack_core::StatsAssetsByChunkName<'a>) -> Self {
     Self {
       name: stats.name,
       files: stats.files,
@@ -992,27 +1054,31 @@ impl From<JsStatsOptions> for ExtendedStatsOptions {
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsGetAssets {
-  pub assets: Vec<JsStatsAsset>,
-  pub assets_by_chunk_name: Vec<JsStatsAssetsByChunkName>,
+pub struct JsStatsGetAssets<'a> {
+  pub assets: Vec<JsStatsAsset<'a>>,
+  pub assets_by_chunk_name: Vec<JsStatsAssetsByChunkName<'a>>,
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsStatsCompilation {
-  pub assets: Option<Vec<JsStatsAsset>>,
-  pub assets_by_chunk_name: Option<Vec<JsStatsAssetsByChunkName>>,
-  pub chunks: Option<Vec<JsStatsChunk>>,
-  pub entrypoints: Option<Vec<JsStatsChunkGroup>>,
-  pub errors: Vec<JsStatsError>,
-  pub hash: Option<String>,
-  pub modules: Option<Vec<JsStatsModule>>,
-  pub named_chunk_groups: Option<Vec<JsStatsChunkGroup>>,
-  pub warnings: Vec<JsStatsWarning>,
+pub struct JsStatsCompilation<'a> {
+  pub assets: Option<Vec<JsStatsAsset<'a>>>,
+  pub assets_by_chunk_name: Option<Vec<JsStatsAssetsByChunkName<'a>>>,
+  #[napi(ts_type = "Array<JsStatsChunk>")]
+  pub chunks: Option<napi_value>,
+  pub entrypoints: Option<Vec<JsStatsChunkGroup<'a>>>,
+  #[napi(ts_type = "Array<JsStatsError>")]
+  pub errors: napi_value,
+  pub hash: Option<&'a str>,
+  #[napi(ts_type = "Array<JsStatsModule>")]
+  pub modules: Option<napi_value>,
+  pub named_chunk_groups: Option<Vec<JsStatsChunkGroup<'a>>>,
+  #[napi(ts_type = "Array<JsStatsWarning>")]
+  pub warnings: napi_value,
 }
 
-pub struct JsStatsCompilationWrapper(JsStatsCompilation);
+pub struct JsStatsCompilationWrapper<'a>(JsStatsCompilation<'a>);
 
-impl ToNapiValue for JsStatsCompilationWrapper {
+impl<'a> ToNapiValue for JsStatsCompilationWrapper<'a> {
   unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> Result<napi::sys::napi_value> {
     let napi_value = ToNapiValue::to_napi_value(env, val.0);
 
@@ -1044,7 +1110,11 @@ impl JsStats {
 #[napi]
 impl JsStats {
   #[napi(ts_return_type = "JsStatsCompilation")]
-  pub fn to_json(&self, js_options: JsStatsOptions) -> Result<JsStatsCompilationWrapper> {
+  pub fn to_json(
+    &self,
+    env: &Env,
+    js_options: JsStatsOptions,
+  ) -> Result<JsStatsCompilationWrapper> {
     let options = ExtendedStatsOptions::from(js_options);
 
     let hash = options.hash.then(|| self.hash()).flatten();
@@ -1057,14 +1127,14 @@ impl JsStats {
     };
 
     let modules = if options.modules {
-      let mds = self.modules(&options)?;
+      let mds = self.modules(env, &options)?;
       Some(mds)
     } else {
       None
     };
 
     let chunks = if options.chunks {
-      let chks = self.chunks(&options)?;
+      let chks = self.chunks(env, &options)?;
       Some(chks)
     } else {
       None
@@ -1081,9 +1151,9 @@ impl JsStats {
       self.named_chunk_groups(options.chunk_group_auxiliary, options.chunk_group_children)
     });
 
-    let errors = self.errors();
+    let errors = self.errors(env)?;
 
-    let warnings = self.warnings();
+    let warnings = self.warnings(env)?;
 
     Ok(JsStatsCompilationWrapper(JsStatsCompilation {
       assets,
@@ -1108,20 +1178,28 @@ impl JsStats {
     }
   }
 
-  fn modules(&self, options: &ExtendedStatsOptions) -> Result<Vec<JsStatsModule>> {
+  fn modules(&self, env: &Env, options: &ExtendedStatsOptions) -> Result<napi_value> {
     self
       .inner
       .get_modules(options, |res| {
-        res.into_iter().map(JsStatsModule::try_from).collect()
+        let val = res
+          .into_iter()
+          .map(JsStatsModule::try_from)
+          .collect::<Result<Vec<_>>>()?;
+        unsafe { ToNapiValue::to_napi_value(env.raw(), val) }
       })
       .to_napi_result()?
   }
 
-  fn chunks(&self, options: &ExtendedStatsOptions) -> Result<Vec<JsStatsChunk>> {
+  fn chunks(&self, env: &Env, options: &ExtendedStatsOptions) -> Result<napi_value> {
     self
       .inner
       .get_chunks(options, |res| {
-        res.into_iter().map(JsStatsChunk::try_from).collect()
+        let val = res
+          .into_iter()
+          .map(JsStatsChunk::try_from)
+          .collect::<Result<Vec<_>>>()?;
+        unsafe { ToNapiValue::to_napi_value(env.raw(), val) }
       })
       .to_napi_result()?
   }
@@ -1152,32 +1230,34 @@ impl JsStats {
       .collect()
   }
 
-  fn errors(&self) -> Vec<JsStatsError> {
-    self
-      .inner
-      .get_errors()
-      .into_iter()
-      .map(Into::into)
-      .collect()
+  fn errors(&self, env: &Env) -> napi::Result<napi_value> {
+    self.inner.get_errors(|errors| {
+      let val = errors
+        .into_iter()
+        .map(JsStatsError::from)
+        .collect::<Vec<_>>();
+      unsafe { ToNapiValue::to_napi_value(env.raw(), val) }
+    })
   }
 
-  fn warnings(&self) -> Vec<JsStatsWarning> {
-    self
-      .inner
-      .get_warnings()
-      .into_iter()
-      .map(Into::into)
-      .collect()
+  fn warnings(&self, env: &Env) -> napi::Result<napi_value> {
+    self.inner.get_warnings(|warnings| {
+      let val = warnings
+        .into_iter()
+        .map(JsStatsWarning::from)
+        .collect::<Vec<_>>();
+      unsafe { ToNapiValue::to_napi_value(env.raw(), val) }
+    })
   }
 
   #[napi]
   pub fn has_warnings(&self) -> bool {
-    !self.inner.get_warnings().is_empty()
+    !self.inner.get_warnings(|warnings| warnings.is_empty())
   }
 
   #[napi]
   pub fn has_errors(&self) -> bool {
-    !self.inner.get_errors().is_empty()
+    !self.inner.get_errors(|warnings| warnings.is_empty())
   }
 
   #[napi]
@@ -1194,7 +1274,7 @@ impl JsStats {
       .collect()
   }
 
-  fn hash(&self) -> Option<String> {
-    self.inner.get_hash().map(|hash| hash.to_string())
+  fn hash(&self) -> Option<&str> {
+    self.inner.get_hash()
   }
 }

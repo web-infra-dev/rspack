@@ -1,6 +1,6 @@
 use std::{borrow::Cow, fmt::Debug};
 
-use rspack_paths::Utf8PathBuf;
+use rspack_paths::Utf8Path;
 use rspack_sources::BoxSource;
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
@@ -38,52 +38,52 @@ pub struct ExtendedStatsOptions {
 }
 
 #[derive(Debug)]
-pub struct StatsError<'s> {
+pub struct StatsError<'a> {
   pub message: String,
   pub module_identifier: Option<ModuleIdentifier>,
-  pub module_name: Option<Cow<'s, str>>,
+  pub module_name: Option<Cow<'a, str>>,
   pub module_id: Option<ModuleId>,
   pub loc: Option<String>,
-  pub file: Option<Utf8PathBuf>,
+  pub file: Option<&'a Utf8Path>,
 
-  pub chunk_name: Option<String>,
+  pub chunk_name: Option<&'a str>,
   pub chunk_entry: Option<bool>,
   pub chunk_initial: Option<bool>,
-  pub chunk_id: Option<String>,
+  pub chunk_id: Option<&'a str>,
   pub details: Option<String>,
   pub stack: Option<String>,
-  pub module_trace: Vec<StatsModuleTrace>,
+  pub module_trace: Vec<StatsModuleTrace<'a>>,
 }
 
 #[derive(Debug)]
-pub struct StatsWarning<'s> {
+pub struct StatsWarning<'a> {
   pub message: String,
   pub module_identifier: Option<ModuleIdentifier>,
-  pub module_name: Option<Cow<'s, str>>,
+  pub module_name: Option<Cow<'a, str>>,
   pub module_id: Option<ModuleId>,
   pub loc: Option<String>,
-  pub file: Option<Utf8PathBuf>,
+  pub file: Option<&'a Utf8Path>,
 
-  pub chunk_name: Option<String>,
+  pub chunk_name: Option<&'a str>,
   pub chunk_entry: Option<bool>,
   pub chunk_initial: Option<bool>,
-  pub chunk_id: Option<String>,
+  pub chunk_id: Option<&'a str>,
   pub details: Option<String>,
   pub stack: Option<String>,
-  pub module_trace: Vec<StatsModuleTrace>,
+  pub module_trace: Vec<StatsModuleTrace<'a>>,
 }
 
 #[derive(Debug)]
-pub struct StatsModuleTrace {
-  pub origin: StatsErrorModuleTraceModule,
-  pub module: StatsErrorModuleTraceModule,
+pub struct StatsModuleTrace<'a> {
+  pub origin: StatsErrorModuleTraceModule<'a>,
+  pub module: StatsErrorModuleTraceModule<'a>,
   pub dependencies: Vec<StatsErrorModuleTraceDependency>,
 }
 
 #[derive(Debug)]
-pub struct StatsErrorModuleTraceModule {
+pub struct StatsErrorModuleTraceModule<'a> {
   pub identifier: ModuleIdentifier,
-  pub name: String,
+  pub name: Cow<'a, str>,
   pub id: Option<ModuleId>,
 }
 
@@ -93,74 +93,74 @@ pub struct StatsErrorModuleTraceDependency {
 }
 
 #[derive(Debug)]
-pub struct StatsAsset {
+pub struct StatsAsset<'a> {
   pub r#type: &'static str,
-  pub name: String,
+  pub name: &'a str,
   pub size: f64,
-  pub chunks: Vec<Option<String>>,
-  pub chunk_names: Vec<String>,
-  pub chunk_id_hints: Vec<String>,
-  pub info: StatsAssetInfo,
+  pub chunks: Vec<Option<&'a str>>,
+  pub chunk_names: Vec<&'a str>,
+  pub chunk_id_hints: Vec<&'a str>,
+  pub info: StatsAssetInfo<'a>,
   pub emitted: bool,
-  pub auxiliary_chunk_names: Vec<String>,
-  pub auxiliary_chunk_id_hints: Vec<String>,
-  pub auxiliary_chunks: Vec<Option<String>>,
+  pub auxiliary_chunk_names: Vec<&'a str>,
+  pub auxiliary_chunk_id_hints: Vec<&'a str>,
+  pub auxiliary_chunks: Vec<Option<&'a str>>,
 }
 
 #[derive(Debug)]
-pub struct StatsAssetsByChunkName {
-  pub name: String,
-  pub files: Vec<String>,
+pub struct StatsAssetsByChunkName<'a> {
+  pub name: &'a str,
+  pub files: Vec<&'a str>,
 }
 
 #[derive(Debug)]
-pub struct StatsAssetInfo {
+pub struct StatsAssetInfo<'a> {
   pub minimized: Option<bool>,
   pub development: Option<bool>,
   pub hot_module_replacement: Option<bool>,
-  pub source_filename: Option<String>,
+  pub source_filename: Option<&'a str>,
   pub copied: Option<bool>,
   pub immutable: Option<bool>,
   pub javascript_module: Option<bool>,
-  pub chunk_hash: Vec<String>,
-  pub content_hash: Vec<String>,
-  pub full_hash: Vec<String>,
-  pub related: Vec<StatsAssetInfoRelated>,
+  pub chunk_hash: Vec<&'a str>,
+  pub content_hash: Vec<&'a str>,
+  pub full_hash: Vec<&'a str>,
+  pub related: Vec<StatsAssetInfoRelated<'a>>,
   pub is_over_size_limit: Option<bool>,
 }
 
 #[derive(Debug)]
-pub struct StatsAssetInfoRelated {
-  pub name: String,
-  pub value: Vec<String>,
+pub struct StatsAssetInfoRelated<'a> {
+  pub name: &'a str,
+  pub value: Vec<&'a str>,
 }
 
 #[derive(Debug)]
-pub struct StatsModule<'s> {
+pub struct StatsModule<'a> {
   pub r#type: &'static str,
   pub module_type: ModuleType,
-  pub layer: Option<Cow<'s, str>>,
+  pub layer: Option<Cow<'a, str>>,
   pub identifier: Option<ModuleIdentifier>,
-  pub name: Option<Cow<'s, str>>,
+  pub name: Option<Cow<'a, str>>,
   pub name_for_condition: Option<String>,
   pub id: Option<ModuleId>,
-  pub chunks: Option<Vec<String>>, // has id after the call of chunkIds hook
+  pub chunks: Option<Vec<&'a str>>, // has id after the call of chunkIds hook
   pub size: f64,
   pub sizes: Vec<StatsSourceTypeSize>,
   pub dependent: Option<bool>,
   pub issuer: Option<ModuleIdentifier>,
-  pub issuer_name: Option<Cow<'s, str>>,
+  pub issuer_name: Option<Cow<'a, str>>,
   pub issuer_id: Option<ModuleId>,
-  pub issuer_path: Option<Vec<StatsModuleIssuer<'s>>>,
-  pub reasons: Option<Vec<StatsModuleReason<'s>>>,
-  pub assets: Option<Vec<String>>,
-  pub modules: Option<Vec<StatsModule<'s>>>,
-  pub source: Option<&'s BoxSource>,
+  pub issuer_path: Option<Vec<StatsModuleIssuer<'a>>>,
+  pub reasons: Option<Vec<StatsModuleReason<'a>>>,
+  pub assets: Option<Vec<&'a str>>,
+  pub modules: Option<Vec<StatsModule<'a>>>,
+  pub source: Option<&'a BoxSource>,
   pub profile: Option<StatsModuleProfile>,
   pub orphan: Option<bool>,
   pub provided_exports: Option<Vec<Atom>>,
   pub used_exports: Option<StatsUsedExports>,
-  pub optimization_bailout: Option<&'s [String]>,
+  pub optimization_bailout: Option<&'a [String]>,
   pub depth: Option<usize>,
   pub pre_order_index: Option<u32>,
   pub post_order_index: Option<u32>,
@@ -189,68 +189,68 @@ pub struct StatsModuleProfile {
 }
 
 #[derive(Debug)]
-pub struct StatsOriginRecord {
+pub struct StatsOriginRecord<'a> {
   pub module: Option<ModuleIdentifier>,
   pub module_id: Option<ModuleId>,
   pub module_identifier: Option<ModuleIdentifier>,
-  pub module_name: String,
+  pub module_name: Cow<'a, str>,
   pub loc: String,
-  pub request: String,
+  pub request: &'a str,
 }
 
 #[derive(Debug)]
 pub struct StatsChunk<'a> {
   pub r#type: &'static str,
-  pub files: Vec<String>,
-  pub auxiliary_files: Vec<String>,
-  pub id: Option<String>,
+  pub files: Vec<&'a str>,
+  pub auxiliary_files: Vec<&'a str>,
+  pub id: Option<&'a str>,
   pub entry: bool,
   pub initial: bool,
-  pub names: Vec<String>,
+  pub names: Vec<&'a str>,
   pub size: f64,
   pub modules: Option<Vec<StatsModule<'a>>>,
-  pub parents: Option<Vec<String>>,
-  pub children: Option<Vec<String>>,
-  pub siblings: Option<Vec<String>>,
+  pub parents: Option<Vec<&'a str>>,
+  pub children: Option<Vec<&'a str>>,
+  pub siblings: Option<Vec<&'a str>>,
   pub children_by_order: HashMap<ChunkGroupOrderKey, Vec<String>>,
-  pub runtime: RuntimeSpec,
+  pub runtime: &'a RuntimeSpec,
   pub sizes: HashMap<SourceType, f64>,
-  pub reason: Option<String>,
+  pub reason: Option<&'a str>,
   pub rendered: bool,
-  pub origins: Vec<StatsOriginRecord>,
-  pub id_hints: Vec<String>,
-  pub hash: Option<String>,
+  pub origins: Vec<StatsOriginRecord<'a>>,
+  pub id_hints: Vec<&'a str>,
+  pub hash: Option<&'a str>,
 }
 
 #[derive(Debug)]
-pub struct StatsChunkGroupAsset {
-  pub name: String,
+pub struct StatsChunkGroupAsset<'a> {
+  pub name: &'a str,
   pub size: usize,
 }
 
 #[derive(Debug)]
-pub struct StatsChunkGroup {
-  pub name: String,
-  pub chunks: Vec<String>,
-  pub assets: Vec<StatsChunkGroupAsset>,
+pub struct StatsChunkGroup<'a> {
+  pub name: &'a str,
+  pub chunks: Vec<&'a str>,
+  pub assets: Vec<StatsChunkGroupAsset<'a>>,
   pub assets_size: usize,
-  pub auxiliary_assets: Option<Vec<StatsChunkGroupAsset>>,
+  pub auxiliary_assets: Option<Vec<StatsChunkGroupAsset<'a>>>,
   pub auxiliary_assets_size: Option<usize>,
-  pub children: Option<StatsChunkGroupChildren>,
+  pub children: Option<StatsChunkGroupChildren<'a>>,
   pub is_over_size_limit: Option<bool>,
-  pub child_assets: Option<StatschunkGroupChildAssets>,
+  pub child_assets: Option<StatschunkGroupChildAssets<'a>>,
 }
 
 #[derive(Debug)]
-pub struct StatsChunkGroupChildren {
-  pub preload: Vec<StatsChunkGroup>,
-  pub prefetch: Vec<StatsChunkGroup>,
+pub struct StatsChunkGroupChildren<'a> {
+  pub preload: Vec<StatsChunkGroup<'a>>,
+  pub prefetch: Vec<StatsChunkGroup<'a>>,
 }
 
 #[derive(Debug)]
-pub struct StatschunkGroupChildAssets {
-  pub preload: Vec<String>,
-  pub prefetch: Vec<String>,
+pub struct StatschunkGroupChildAssets<'a> {
+  pub preload: Vec<&'a str>,
+  pub prefetch: Vec<&'a str>,
 }
 
 #[derive(Debug)]
