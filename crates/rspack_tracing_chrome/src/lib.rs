@@ -288,7 +288,7 @@ where
     let out_writer = builder.out_writer;
 
     let handle = std::thread::spawn(move || {
-      let out_writer = out_writer.map_or_else(|| create_default_writer(), |f| f());
+      let out_writer = out_writer.map_or_else(|| create_default_writer() as _, |f| f());
       let mut write = BufWriter::new(out_writer);
       write.write_all(b"[\n").unwrap();
 
