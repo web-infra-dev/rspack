@@ -358,7 +358,9 @@ pub async fn render_runtime_modules(
           if !(module.full_hash() || module.dependent_hash()) {
             sources.add(source.clone());
           } else {
-            sources.add(module.generate_with_custom(compilation).await?);
+            let result = module.code_generation(compilation, None, None).await?;
+            let source = result.get(&SourceType::Runtime).unwrap();
+            sources.add(source.clone());
           }
           if module.should_isolate() {
             sources.add(RawStringSource::from(if supports_arrow_function {

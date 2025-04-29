@@ -1,8 +1,6 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  Compilation, RuntimeGlobals, RuntimeModule,
+  impl_runtime_module, rspack_sources::SourceExt, Compilation, RuntimeGlobals, RuntimeModule,
 };
 
 #[impl_runtime_module]
@@ -24,14 +22,11 @@ impl RuntimeModule for AmdOptionsRuntimeModule {
     self.id
   }
 
-  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(
-      RawStringSource::from(format!(
-        "{} = {}",
-        RuntimeGlobals::AMD_OPTIONS.name(),
-        self.options
-      ))
-      .boxed(),
-    )
+  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
+    Ok(format!(
+      "{} = {}",
+      RuntimeGlobals::AMD_OPTIONS.name(),
+      self.options
+    ))
   }
 }

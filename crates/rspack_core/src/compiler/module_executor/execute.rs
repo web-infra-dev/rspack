@@ -268,12 +268,15 @@ impl Task<MakeTaskContext> for ExecuteTask {
         .get(runtime_id)
         .expect("runtime module exist");
 
-      let runtime_module_source = runtime_module.generate(&compilation).await?;
+      let result = runtime_module
+        .code_generation(&compilation, None, None)
+        .await?;
+      let runtime_module_source = result.get(&SourceType::Runtime).unwrap();
       runtime_module_size.insert(
         runtime_module.identifier(),
         runtime_module_source.size() as f64,
       );
-      let result = CodeGenerationResult::default().with_javascript(runtime_module_source);
+      let result = CodeGenerationResult::default().with_javascript(runtime_module_source.clone());
 
       compilation.code_generation_results.insert(
         *runtime_id,

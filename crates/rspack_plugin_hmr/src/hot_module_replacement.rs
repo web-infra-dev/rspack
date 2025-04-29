@@ -25,15 +25,12 @@ impl RuntimeModule for HotModuleReplacementRuntimeModule {
     self.id
   }
 
-  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
     Ok(
-      RawStringSource::from(
-        include_str!("runtime/hot_module_replacement.js")
-          .cow_replace("$HOT_TEST_GLOBAL$", &HOT_TEST_DEFINE_GLOBAL)
-          .cow_replace("$HOT_TEST_STATUS$", &HOT_TEST_STATUS_CHANGE)
-          .into_owned(),
-      )
-      .boxed(),
+      include_str!("runtime/hot_module_replacement.js")
+        .cow_replace("$HOT_TEST_GLOBAL$", &HOT_TEST_DEFINE_GLOBAL)
+        .cow_replace("$HOT_TEST_STATUS$", &HOT_TEST_STATUS_CHANGE)
+        .into_owned(),
     )
   }
 }

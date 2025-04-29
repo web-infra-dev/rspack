@@ -1331,7 +1331,7 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
         .runtime_modules
         .get_mut(m)
         .expect("should have module");
-      module.set_custom_source(source.into())
+      module.set_custom_source(source)
     }
     Ok(())
   }

@@ -19,10 +19,7 @@ fn with_generic() {
       todo!()
     }
 
-    async fn generate(
-      &self,
-      _: &Compilation,
-    ) -> rspack_error::Result<rspack_core::rspack_sources::BoxSource> {
+    async fn generate(&self, _: &Compilation) -> rspack_error::Result<String> {
       todo!()
     }
   }

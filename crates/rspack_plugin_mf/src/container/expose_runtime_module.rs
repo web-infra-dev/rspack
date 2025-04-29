@@ -1,7 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
+  rspack_sources::{RawStringSource, SourceExt},
   ChunkUkey, Compilation, RuntimeModule, RuntimeModuleStage, SourceType,
 };
 
@@ -58,12 +58,12 @@ impl RuntimeModule for ExposeRuntimeModule {
     RuntimeModuleStage::Attach
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunk_ukey = self
       .chunk
       .expect("should have chunk in <ExposeRuntimeModule as RuntimeModule>::generate");
     let Some(data) = self.find_expose_data(&chunk_ukey, compilation) else {
-      return Ok(RawStringSource::from_static("").boxed());
+      return Ok("".to_string());
     };
     let module_map = data.module_map.render(compilation);
     let mut source = format!(
@@ -78,7 +78,7 @@ __webpack_require__.initializeExposesData = {{
     );
     source += "__webpack_require__.getContainer = __webpack_require__.getContainer || function() { throw new Error(\"should have __webpack_require__.getContainer\") };";
     source += "__webpack_require__.initContainer = __webpack_require__.initContainer || function() { throw new Error(\"should have __webpack_require__.initContainer\") };";
-    Ok(RawStringSource::from(source).boxed())
+    Ok(source)
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {
