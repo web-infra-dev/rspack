@@ -767,6 +767,7 @@ export interface JsHttpResponseRaw {
   status: number
   headers: Record<string, string>
   body: Buffer
+  url: string
 }
 
 export interface JsLibIdentOptions {

@@ -13,7 +13,7 @@ use rspack_core::{
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveInScheme,
   NormalModuleReadResource, Plugin, PluginContext, ResourceData, Scheme,
 };
-use rspack_error::{AnyhowResultToRspackResultExt, Result};
+use rspack_error::{AnyhowResultToRspackResultExt, IntoTWithDiagnosticArray, Result};
 use rspack_fs::WritableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::{AssetCondition, AssetConditions};
@@ -38,6 +38,21 @@ impl HttpUriPlugin {
     url: &Url,
     mimetype: Option<String>,
   ) -> Result<bool> {
+    async fn resolve_entry_resolved(
+      url: &str,
+      options: &HttpUriPluginOptions,
+    ) -> anyhow::Result<String> {
+      let result = fetch_content(url, options).await?;
+      match result {
+        FetchResultType::Content(content) => Ok(content.entry.resolved),
+        FetchResultType::Redirect(redirect) => {
+          Box::pin(resolve_entry_resolved(&redirect.location, options)).await
+        }
+      }
+    }
+    let context = dbg!(resolve_entry_resolved(url.as_str(), &self.options).await).unwrap();
+    // url remove slash
+    resource_data.set_context(context);
     resource_data.set_resource(url.to_string());
     resource_data.set_path(url.origin().ascii_serialization() + url.path());
     if let Some(query) = url.query() {

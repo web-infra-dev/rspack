@@ -564,9 +564,10 @@ impl NormalModuleFactory {
         raw_request,
         request,
         user_request,
-        resource_resolve_data: resource_data,
         match_resource: match_resource_data.as_ref().map(|d| d.resource.clone()),
         side_effects: resolved_side_effects,
+        context: resource_data.context.clone(),
+        resource_resolve_data: resource_data,
       };
       if let Some(plugin_result) = self
         .plugin_driver
@@ -934,6 +935,7 @@ pub struct NormalModuleCreateData {
   pub resource_resolve_data: ResourceData,
   pub match_resource: Option<String>,
   pub side_effects: Option<bool>,
+  pub context: Option<String>,
 }
 
 #[test]

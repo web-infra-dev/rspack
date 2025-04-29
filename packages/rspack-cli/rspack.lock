@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "entries": {
+    "https://www.unpkg.com/react@^18": {
+      "resolved": "https://www.unpkg.com/react@^18",
+      "integrity": "sha512-JUEuiJdLg1gvpH7JB8tNKjC5AnoZIVYJlXmiRCWIK+hLklSMB/hzCb4NCfD1w/GE2FbcMjr29/I2o8Pz274c9A==",
+      "content_type": "text/javascript; charset=utf-8",
+      "valid_until": 1777462671684,
+      "etag": null
+    },
+    "https://www.unpkg.com/react-dom@^18": {
+      "resolved": "https://www.unpkg.com/react-dom@^18",
+      "integrity": "sha512-vYLi95VDZ1ZCaQ483UtGkp+YuAyxl1lSHLqakv3jdkAI7bbKBv/cd4ao6EVo6a6tmUs7XGmUHEr9Hna6ErgkTA==",
+      "content_type": "text/javascript; charset=utf-8",
+      "valid_until": 1777462671684,
+      "etag": null
+    },
+    "https://www.unpkg.com/lodash-es@^4.17.21": {
+      "resolved": "https://www.unpkg.com/lodash-es@4.17.21/lodash.js",
+      "integrity": "sha512-eMr62HE3NP1oS5CfsYAeko++2SIIV6amMhLIP1M8I12TQrA79jr1IqZFiy2BLBlDvisK1uB2suY2Cq27LSjBBQ==",
+      "content_type": "text/javascript; charset=utf-8",
+      "valid_until": 1777462671684,
+      "etag": null
+    }
+  }
+}

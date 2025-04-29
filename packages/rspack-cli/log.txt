@@ -1,0 +1,587 @@
+Debugger attached.
+pkg {
+  'lodash-es': { import: 'https://www.unpkg.com/lodash-es@^4.17.21' },
+  react: { import: 'https://www.unpkg.com/react@^18' },
+  'react-dom': { import: 'https://www.unpkg.com/react-dom@^18' }
+}
+[crates/rspack_plugin_schemes/src/http_uri/mod.rs:53:19] resolve_entry_resolved(url.as_str(), &self.options).await = Ok(
+    "https://www.unpkg.com/react@^18",
+)
+[crates/rspack_plugin_schemes/src/http_uri/mod.rs:53:19] resolve_entry_resolved(url.as_str(), &self.options).await = Ok(
+    "https://www.unpkg.com/lodash-es@^4.17.21",
+)
+[crates/rspack_plugin_schemes/src/http_uri/mod.rs:53:19] resolve_entry_resolved(url.as_str(), &self.options).await = Ok(
+    "https://www.unpkg.com/react-dom@^18",
+)
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+err: TypeError: fetch failed
+    at node:internal/deps/undici/undici:12345:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async defaultHttpClient (/Users/bytedance/github/rspack/packages/rspack/dist/index.js:5049:26) {
+  cause: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:217:20)
+      at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    errno: -54,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+[crates/rspack_plugin_schemes/src/http_uri/mod.rs:53:19] resolve_entry_resolved(url.as_str(), &self.options).await = Err(
+    "Error calling JavaScript HTTP client: TypeError: Cannot convert undefined or null to object\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n",
+)
+[crates/rspack_plugin_schemes/src/http_uri/mod.rs:53:19] resolve_entry_resolved(url.as_str(), &self.options).await = Err(
+    "Error calling JavaScript HTTP client: TypeError: Cannot convert undefined or null to object\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n",
+)
+[crates/rspack_plugin_schemes/src/http_uri/mod.rs:53:19] resolve_entry_resolved(url.as_str(), &self.options).await = Err(
+    "Error calling JavaScript HTTP client: TypeError: Cannot convert undefined or null to object\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n",
+)
+[crates/rspack_plugin_schemes/src/http_uri/mod.rs:53:19] resolve_entry_resolved(url.as_str(), &self.options).await = Err(
+    "Error calling JavaScript HTTP client: TypeError: Cannot convert undefined or null to object\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n",
+)
+[crates/rspack_plugin_schemes/src/http_uri/mod.rs:53:19] resolve_entry_resolved(url.as_str(), &self.options).await = Err(
+    "Error calling JavaScript HTTP client: TypeError: Cannot convert undefined or null to object\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n",
+)
+[crates/rspack_plugin_schemes/src/http_uri/mod.rs:53:19] resolve_entry_resolved(url.as_str(), &self.options).await = Err(
+    "Error calling JavaScript HTTP client: TypeError: Cannot convert undefined or null to object\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n",
+)
+[crates/rspack_plugin_schemes/src/http_uri/mod.rs:53:19] resolve_entry_resolved(url.as_str(), &self.options).await = Err(
+    "Error calling JavaScript HTTP client: TypeError: Cannot convert undefined or null to object\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n",
+)
+[crates/rspack_plugin_schemes/src/http_uri/mod.rs:53:19] resolve_entry_resolved(url.as_str(), &self.options).await = Err(
+    "Error calling JavaScript HTTP client: TypeError: Cannot convert undefined or null to object\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n",
+)
+[crates/rspack_plugin_schemes/src/http_uri/mod.rs:53:19] resolve_entry_resolved(url.as_str(), &self.options).await = Err(
+    "Error calling JavaScript HTTP client: TypeError: Cannot convert undefined or null to object\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n",
+)
+[crates/rspack_plugin_schemes/src/http_uri/mod.rs:53:19] resolve_entry_resolved(url.as_str(), &self.options).await = Err(
+    "Error calling JavaScript HTTP client: TypeError: Cannot convert undefined or null to object\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n",
+)
+[crates/rspack_plugin_schemes/src/http_uri/mod.rs:53:19] resolve_entry_resolved(url.as_str(), &self.options).await = Err(
+    "Error calling JavaScript HTTP client: TypeError: Cannot convert undefined or null to object\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n",
+)
+[crates/rspack_plugin_schemes/src/http_uri/mod.rs:53:19] resolve_entry_resolved(url.as_str(), &self.options).await = Err(
+    "Error calling JavaScript HTTP client: TypeError: Cannot convert undefined or null to object\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n",
+)
+[crates/rspack_plugin_schemes/src/http_uri/mod.rs:53:19] resolve_entry_resolved(url.as_str(), &self.options).await = Err(
+    "Error calling JavaScript HTTP client: TypeError: Cannot convert undefined or null to object\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n",
+)
+DebugInfo:
+
+[1m[33mcontext[0m: /Users/bytedance/github/rspack/packages/rspack-cli
+
+[crates/rspack_plugin_schemes/src/http_uri/mod.rs:53:19] resolve_entry_resolved(url.as_str(), &self.options).await = Err(
+    "Error calling JavaScript HTTP client: TypeError: Cannot convert undefined or null to object\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n",
+)
+DebugInfo:
+
+[1m[33mcontext[0m: /Users/bytedance/github/rspack/packages/rspack-cli
+
+Panic occurred at runtime. Please file an issue on GitHub with the backtrace below: https://github.com/web-infra-dev/rspack/issues
+DebugInfo:
+
+[1m[33mcontext[0m: /Users/bytedance/github/rspack/packages/rspack-cli
+
+Message:  called `Result::unwrap()` on an `Err` value: Error calling JavaScript HTTP client: TypeError: Cannot convert undefined or null to object
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+
+Location: DebugInfo:
+
+[1m[33mcontext[0m: /Users/bytedance/github/rspack/packages/rspack-cli
+
+crates/rspack_plugin_schemes/src/http_uri/mod.rs:DebugInfo:
+
+[1m[33mcontext[0m: /Users/bytedance/github/rspack/packages/rspack-cli
+
+DebugInfo:
+
+[1m[33mcontext[0m: /Users/bytedance/github/rspack/packages/rspack-cli
+
+53
+
+Backtrace omitted.
+
+Run with RUST_BACKTRACE=1 environment variable to display it.
+Run with RUST_BACKTRACE=full to include source snippets.
+DebugInfo:
+
+[1m[33mcontext[0m: /Users/bytedance/github/rspack/packages/rspack-cli
+

@@ -33,6 +33,7 @@ pub struct JsHttpResponseRaw {
   pub status: u16,
   pub headers: HashMap<String, String>,
   pub body: Buffer,
+  pub url: String,
 }
 
 type JsHttpClientFunction =
@@ -62,6 +63,7 @@ impl HttpClient for JsHttpClient {
     Ok(HttpResponse {
       status: result.status,
       headers: result.headers,
+      url: result.url,
       body: result.body.to_vec(),
     })
   }
