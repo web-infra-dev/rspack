@@ -665,6 +665,28 @@ import classes from './index.module.css';
 import classes, { class1, class2 } from './index.module.css';
 ```
 
+### module.parser["css/auto"].url
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Allow to enable/disables handling the CSS functions url.
+
+When using `url: true`, Rspack will resolve the path in `url` function, the resolve file will be treated as an asset.
+When using `url: false`, Rspack will ignore the path in the `url` function, keep the content unchanged.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        url: true,
+      },
+    },
+  },
+};
+```
+
 ### module.parser.css
 
 Parser options for `css` modules.
@@ -701,6 +723,22 @@ export default {
 };
 ```
 
+### module.parser.css.namedExports
+
+Same as [`module.parser["css/auto"].url`](#moduleparsercssautourl).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        url: true,
+      },
+    },
+  },
+};
+```
+
 ### module.parser["css/module"]
 
 Parser options for `css/module` modules.
@@ -731,6 +769,22 @@ export default {
     parser: {
       'css/module': {
         namedExports: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].url
+
+Same as [`module.parser["css/auto"].url`](#moduleparsercssautourl).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        url: true,
       },
     },
   },
