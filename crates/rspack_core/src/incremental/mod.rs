@@ -6,6 +6,8 @@ use bitflags::bitflags;
 pub use mutations::{Mutation, Mutations};
 use rspack_error::{miette, thiserror, Diagnostic, DiagnosticExt};
 
+pub const TRACING_TARGET: &str = "rspack_incremental";
+
 bitflags! {
   #[derive(Debug, Clone, Copy, Eq, PartialEq)]
   pub struct IncrementalPasses: u16 {
@@ -92,18 +94,18 @@ impl IncrementalOptions {
 }
 
 #[derive(Debug)]
-pub struct Incremental {
-  silent: bool,
-  passes: IncrementalPasses,
-  state: IncrementalState,
-}
-
-#[derive(Debug)]
 enum IncrementalState {
   /// For cold build and cold start
   Cold,
   /// For hot build, hot start, and rebuild
   Hot { mutations: Mutations },
+}
+
+#[derive(Debug)]
+pub struct Incremental {
+  silent: bool,
+  passes: IncrementalPasses,
+  state: IncrementalState,
 }
 
 impl Incremental {

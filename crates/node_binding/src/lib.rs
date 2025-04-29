@@ -137,7 +137,7 @@ impl JsCompiler {
     intermediate_filesystem: Option<ThreadsafeNodeFS>,
     mut resolver_factory_reference: Reference<JsResolverFactory>,
   ) -> Result<Self> {
-    tracing::info!("raw_options: {:#?}", &options);
+    tracing::debug!("raw_options: {:#?}", &options);
 
     let mut plugins = Vec::with_capacity(builtin_plugins.len());
     let js_hooks_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
@@ -159,7 +159,7 @@ impl JsCompiler {
 
     let compiler_options: rspack_core::CompilerOptions = options.try_into().to_napi_result()?;
 
-    tracing::info!("normalized_options: {:#?}", &compiler_options);
+    tracing::debug!("normalized_options: {:#?}", &compiler_options);
 
     let resolver_factory =
       (*resolver_factory_reference).get_resolver_factory(compiler_options.resolve.clone());
@@ -216,7 +216,7 @@ impl JsCompiler {
             compiler.build().await.to_napi_result_with_message(|e| {
               print_error_diagnostic(e, compiler.options.stats.colors)
             })?;
-            tracing::info!("build ok");
+            tracing::debug!("build ok");
             Ok(())
           },
           || drop(guard),
@@ -252,7 +252,7 @@ impl JsCompiler {
               .to_napi_result_with_message(|e| {
                 print_error_diagnostic(e, compiler.options.stats.colors)
               })?;
-            tracing::info!("rebuild ok");
+            tracing::debug!("rebuild ok");
             Ok(())
           },
           || drop(guard),
