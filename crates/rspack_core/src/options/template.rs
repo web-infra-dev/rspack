@@ -38,8 +38,8 @@ static DATA_URI_REGEX: LazyLock<Regex> =
 
 #[cacheable]
 #[derive(PartialEq, Debug, Hash, Eq, Clone, PartialOrd, Ord)]
-enum FilenameKind {
-  Template(#[cacheable(with=AsPreset)] Atom),
+pub enum Template {
+  Static(#[cacheable(with=AsPreset)] Atom),
   Fn(#[cacheable(with=Unsupported)] Arc<dyn FilenameFn>),
 }
 
@@ -51,27 +51,30 @@ enum FilenameKind {
 /// Other possible function types are `NoFilenameFn` and `LocalJsFilenameFn`
 #[cacheable]
 #[derive(PartialEq, Debug, Hash, Eq, Clone, PartialOrd, Ord)]
-pub struct Filename(FilenameKind);
+pub struct Filename(Template);
 
 impl Filename {
   pub fn as_str(&self) -> &str {
     self.template().unwrap_or("")
   }
+
   pub fn has_hash_placeholder(&self) -> bool {
     match &self.0 {
-      FilenameKind::Template(atom) => has_hash_placeholder(atom.as_str()),
-      FilenameKind::Fn(_) => true,
+      Template::Static(atom) => has_hash_placeholder(atom.as_str()),
+      Template::Fn(_) => true,
     }
   }
+
   pub fn has_content_hash_placeholder(&self) -> bool {
     match &self.0 {
-      FilenameKind::Template(atom) => has_content_hash_placeholder(atom.as_str()),
-      FilenameKind::Fn(_) => true,
+      Template::Static(atom) => has_content_hash_placeholder(atom.as_str()),
+      Template::Fn(_) => true,
     }
   }
+
   pub fn template(&self) -> Option<&str> {
     match &self.0 {
-      FilenameKind::Template(template) => Some(template.as_str()),
+      Template::Static(template) => Some(template.as_str()),
       _ => None,
     }
   }
@@ -82,8 +85,8 @@ impl Filename {
     asset_info: Option<&mut AssetInfo>,
   ) -> rspack_error::Result<String> {
     let template = match &self.0 {
-      FilenameKind::Template(template) => Cow::Borrowed(template.as_str()),
-      FilenameKind::Fn(filename_fn) => {
+      Template::Static(template) => Cow::Borrowed(template.as_str()),
+      Template::Fn(filename_fn) => {
         Cow::Owned(filename_fn.call(&options, asset_info.as_deref()).await?)
       }
     };
@@ -99,17 +102,19 @@ impl MergeFrom for Filename {
 
 impl From<String> for Filename {
   fn from(value: String) -> Self {
-    Self(FilenameKind::Template(Atom::from(value)))
+    Self(Template::Static(Atom::from(value)))
   }
 }
+
 impl From<&str> for Filename {
   fn from(value: &str) -> Self {
-    Self(FilenameKind::Template(Atom::from(value)))
+    Self(Template::Static(Atom::from(value)))
   }
 }
+
 impl From<Arc<dyn FilenameFn>> for Filename {
   fn from(value: Arc<dyn FilenameFn>) -> Self {
-    Self(FilenameKind::Fn(value))
+    Self(Template::Fn(value))
   }
 }
 
@@ -129,11 +134,13 @@ pub trait FilenameFn: LocalFilenameFn + Debug + Send + Sync {}
 impl Hash for dyn FilenameFn + '_ {
   fn hash<H: Hasher>(&self, _: &mut H) {}
 }
+
 impl PartialEq for dyn FilenameFn + '_ {
   fn eq(&self, other: &Self) -> bool {
     ptr::eq(self, other)
   }
 }
+
 impl Eq for dyn FilenameFn + '_ {}
 
 impl PartialOrd for dyn FilenameFn + '_ {
@@ -141,6 +148,7 @@ impl PartialOrd for dyn FilenameFn + '_ {
     Some(self.cmp(other))
   }
 }
+
 impl Ord for dyn FilenameFn + '_ {
   fn cmp(&self, _: &Self) -> std::cmp::Ordering {
     std::cmp::Ordering::Equal
@@ -161,6 +169,34 @@ impl LocalFilenameFn for Arc<dyn FilenameFn> {
       .to_rspack_result_with_message(|e| {
         format!("Failed to render filename function: {e}. Did you return the correct filename?")
       })
+  }
+}
+
+#[cacheable]
+#[derive(PartialEq, Debug, Hash, Eq, Clone, PartialOrd, Ord)]
+pub struct GlobalPropName(Template);
+
+impl MergeFrom for GlobalPropName {
+  fn merge_from(self, other: &Self) -> Self {
+    other.clone()
+  }
+}
+
+impl From<String> for GlobalPropName {
+  fn from(value: String) -> Self {
+    Self(Template::Static(Atom::from(value)))
+  }
+}
+
+impl GlobalPropName {
+  pub async fn render(&self, options: PathData<'_>) -> rspack_error::Result<String> {
+    let template = match &self.0 {
+      Template::Static(template) => Cow::Borrowed(template.as_str()),
+      Template::Fn(_) => {
+        unreachable!("GlobalIdentName should not be a function")
+      }
+    };
+    Ok(render_template(template, options, None))
   }
 }
 

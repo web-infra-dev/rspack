@@ -47,13 +47,14 @@ use rspack_core::{
   CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions, CssParserOptions,
   DynamicImportMode, EntryDescription, EntryOptions, EntryRuntime, Environment,
   ExperimentCacheOptions, Experiments, ExternalItem, ExternalType, Filename, GeneratorOptions,
-  GeneratorOptionsMap, JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl,
-  JsonGeneratorOptions, JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions,
-  LibraryType, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule,
-  ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption,
-  NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo,
-  PublicPath, Resolve, RspackFuture, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption,
-  StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
+  GeneratorOptionsMap, GlobalPropName, JavascriptParserOptions, JavascriptParserOrder,
+  JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName, LibraryNonUmdObject,
+  LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions,
+  ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
+  NodeGlobalOption, NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions,
+  ParserOptionsMap, PathInfo, PublicPath, Resolve, RspackFuture, RuleSetCondition,
+  RuleSetLogicalConditions, SideEffectOption, StatsOptions, TrustedTypes, UsedExportsOption,
+  WasmLoading, WasmLoadingType,
 };
 use rspack_error::{
   miette::{self, Diagnostic},
@@ -2121,7 +2122,7 @@ pub struct OutputOptionsBuilder {
   /// Set the chunk loading.
   chunk_loading: Option<ChunkLoading>,
   /// Set the chunk loading global.
-  chunk_loading_global: Option<String>,
+  chunk_loading_global: Option<GlobalPropName>,
   /// Set the chunk load timeout.
   chunk_load_timeout: Option<u32>,
   /// Set the chunk format.
@@ -2143,7 +2144,7 @@ pub struct OutputOptionsBuilder {
   /// Set the hot update chunk filename.
   hot_update_chunk_filename: Option<Filename>,
   /// Set the hot update global.
-  hot_update_global: Option<String>,
+  hot_update_global: Option<GlobalPropName>,
   /// Set the library.
   library: Option<LibraryOptions>,
   /// Set the enabled library types.
@@ -2383,7 +2384,7 @@ impl OutputOptionsBuilder {
   /// The global variable is used by Rspack for loading chunks.
   ///
   /// Determined by output.uniqueName default.
-  pub fn chunk_loading_global(&mut self, global: String) -> &mut Self {
+  pub fn chunk_loading_global(&mut self, global: GlobalPropName) -> &mut Self {
     self.chunk_loading_global = Some(global);
     self
   }
@@ -2459,7 +2460,7 @@ impl OutputOptionsBuilder {
   /// Set the global variable is used by Rspack for loading hot updates.
   ///
   /// Determined by output.uniqueName default.
-  pub fn hot_update_global(&mut self, global: String) -> &mut Self {
+  pub fn hot_update_global(&mut self, global: GlobalPropName) -> &mut Self {
     self.hot_update_global = Some(global);
     self
   }
@@ -2791,7 +2792,7 @@ impl OutputOptionsBuilder {
     });
 
     let chunk_loading_global = f!(self.chunk_loading_global.take(), || {
-      format!("webpackChunk{}", rspack_core::to_identifier(&unique_name))
+      format!("webpackChunk{}", rspack_core::to_identifier(&unique_name)).into()
     });
 
     let chunk_load_timeout = d!(self.chunk_load_timeout.take(), 120_000);
@@ -2803,6 +2804,7 @@ impl OutputOptionsBuilder {
         "webpackHotUpdate{}",
         rspack_core::to_identifier(&unique_name)
       )
+      .into()
     });
 
     let chunk_format = if let Some(chunk_format) = self.chunk_format.take() {

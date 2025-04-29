@@ -4,6 +4,7 @@
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
+    "checkJs": false,
     "paths": {
       "@/*": ["./*"]
     }

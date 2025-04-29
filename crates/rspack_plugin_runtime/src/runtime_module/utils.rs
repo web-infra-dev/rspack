@@ -251,3 +251,24 @@ pub fn generate_javascript_hmr_runtime(method: &str) -> String {
     .cow_replace("$HOT_TEST_ACCEPT$", &HOT_TEST_ACCEPT)
     .into_owned()
 }
+
+pub fn runtime_chunk_runtime_id(chunk: &Chunk, compilation: &Compilation) -> String {
+  let runtime = chunk.runtime();
+
+  if runtime.len() != 1 {
+    panic!("runtime chunk must be in a single runtime, chunk: {chunk:?}");
+  }
+
+  let id = compilation
+    .chunk_graph
+    .get_runtime_id(
+      runtime
+        .iter()
+        .next()
+        .expect("At least one runtime")
+        .to_string(),
+    )
+    .unwrap_or_else(|| panic!("runtime({runtime}) should have runtime id"));
+
+  id
+}

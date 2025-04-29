@@ -2,11 +2,13 @@ use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
-  BooleanMatcher, Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  BooleanMatcher, Chunk, ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleStage,
 };
+use rspack_util::json_stringify;
 
 use super::{
-  generate_javascript_hmr_runtime,
+  generate_javascript_hmr_runtime, runtime_chunk_runtime_id,
   utils::{chunk_has_js, get_output_dir},
 };
 use crate::{
@@ -140,9 +142,16 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     }
 
     if with_loading {
+      let chunk_loading_global_name = compilation
+        .options
+        .output
+        .chunk_loading_global
+        .render(PathData::default().runtime(&runtime_chunk_runtime_id(chunk, compilation)))
+        .await?;
       let chunk_loading_global_expr = format!(
-        "{}[\"{}\"]",
-        &compilation.options.output.global_object, &compilation.options.output.chunk_loading_global
+        "{}[{}]",
+        &compilation.options.output.global_object,
+        json_stringify(&chunk_loading_global_name)
       );
 
       let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
@@ -204,11 +213,20 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
         )
       };
 
-      let source_with_hmr = compilation.runtime_template.render(&self.template_id(TemplateId::WithHmr), Some(serde_json::json!({
-        "_url": &url,
-        "_global_object": &compilation.options.output.global_object.as_str(),
-        "_hot_update_global": &serde_json::to_string(&compilation.options.output.hot_update_global).expect("failed to serde_json::to_string(hot_update_global)"),
-      })))?;
+      let hot_update_global_name = compilation
+        .options
+        .output
+        .hot_update_global
+        .render(PathData::default().runtime(&runtime_chunk_runtime_id(chunk, compilation)))
+        .await?;
+      let source_with_hmr = compilation.runtime_template.render(
+        &self.template_id(TemplateId::WithHmr),
+        Some(serde_json::json!({
+          "_url": &url,
+          "_global_object": &compilation.options.output.global_object.as_str(),
+          "_hot_update_global": &json_stringify(&hot_update_global_name),
+        })),
+      )?;
 
       source.add(RawStringSource::from(source_with_hmr));
       source.add(RawStringSource::from(generate_javascript_hmr_runtime(

@@ -1,10 +1,11 @@
-use itertools::Itertools;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
 };
+
+use super::runtime_chunk_runtime_id;
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -32,21 +33,7 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
-
-      let runtime = chunk.runtime();
-
-      if runtime.len() > 1 {
-        panic!("RuntimeIdRuntimeModule must be in a single runtime");
-      }
-
-      let id = compilation.chunk_graph.get_runtime_id(
-        runtime
-          .iter()
-          .collect_vec()
-          .first()
-          .expect("At least one runtime")
-          .to_string(),
-      );
+      let id = runtime_chunk_runtime_id(chunk, compilation);
 
       Ok(
         RawStringSource::from(format!(

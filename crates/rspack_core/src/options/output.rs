@@ -7,7 +7,7 @@ pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_macros::MergeFrom;
 use rspack_paths::Utf8PathBuf;
 
-use super::CleanOptions;
+use super::{CleanOptions, GlobalPropName};
 use crate::{Chunk, ChunkGroupByUkey, ChunkKind, Compilation, Filename};
 
 #[derive(Debug)]
@@ -30,7 +30,7 @@ pub struct OutputOptions {
   pub webassembly_module_filename: Filename,
   pub unique_name: String,
   pub chunk_loading: ChunkLoading,
-  pub chunk_loading_global: String,
+  pub chunk_loading_global: GlobalPropName,
   pub chunk_load_timeout: u32,
   pub charset: bool,
   pub filename: Filename,
@@ -40,7 +40,7 @@ pub struct OutputOptions {
   pub css_chunk_filename: Filename,
   pub hot_update_main_filename: Filename,
   pub hot_update_chunk_filename: Filename,
-  pub hot_update_global: String,
+  pub hot_update_global: GlobalPropName,
   pub library: Option<LibraryOptions>,
   pub enabled_library_types: Option<Vec<String>>,
   pub strict_module_error_handling: bool,

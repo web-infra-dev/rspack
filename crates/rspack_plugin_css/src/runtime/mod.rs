@@ -5,10 +5,13 @@ use rspack_collections::Identifier;
 use rspack_core::{
   basic_function, compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
-  BooleanMatcher, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage,
+  BooleanMatcher, ChunkUkey, Compilation, CrossOriginLoading, PathData, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleStage,
 };
-use rspack_plugin_runtime::{chunk_has_css, get_chunk_runtime_requirements, stringify_chunks};
+use rspack_plugin_runtime::{
+  chunk_has_css, get_chunk_runtime_requirements, runtime_chunk_runtime_id, stringify_chunks,
+};
+use rspack_util::json_stringify;
 use rustc_hash::FxHashSet as HashSet;
 
 #[impl_runtime_module]
@@ -158,10 +161,16 @@ installedChunks[chunkId] = 0;
       ));
 
       if with_loading {
+        let chunk_loading_global = compilation
+          .options
+          .output
+          .chunk_loading_global
+          .render(PathData::default().runtime(&runtime_chunk_runtime_id(chunk, compilation)))
+          .await?;
         let chunk_loading_global_expr = format!(
-          "{}['{}']",
+          "{}[{}]",
           &compilation.options.output.global_object,
-          &compilation.options.output.chunk_loading_global
+          json_stringify(&chunk_loading_global),
         );
         source.add(RawStringSource::from(
           include_str!("./css_loading_with_loading.js")

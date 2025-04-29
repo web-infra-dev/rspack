@@ -4,9 +4,9 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationParams, CompilerCompilation,
-  CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
+  CompilerOptions, PathData, Plugin, PluginContext, RuntimeGlobals,
 };
-use rspack_error::{Result, ToStringResultToRspackResultExt};
+use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
@@ -16,6 +16,7 @@ use rspack_plugin_javascript::{
 use rspack_util::json_stringify;
 
 use super::{generate_entry_startup, update_hash_for_entry_startup};
+use crate::runtime_module::runtime_chunk_runtime_id;
 
 const PLUGIN_NAME: &str = "rspack.ArrayPushCallbackChunkFormatPlugin";
 
@@ -105,14 +106,19 @@ async fn render_chunk(
     .chunk_graph
     .has_chunk_runtime_modules(chunk_ukey);
   let global_object = &compilation.options.output.global_object;
-  let hot_update_global = &compilation.options.output.hot_update_global;
+  let hot_update_global = &compilation
+    .options
+    .output
+    .hot_update_global
+    .render(PathData::default().runtime(&runtime_chunk_runtime_id(chunk, compilation)))
+    .await?;
   let mut source = ConcatSource::default();
 
   if matches!(chunk.kind(), ChunkKind::HotUpdate) {
     source.add(RawStringSource::from(format!(
       "{}[{}]({}, ",
       global_object,
-      serde_json::to_string(hot_update_global).to_rspack_result()?,
+      json_stringify(hot_update_global),
       json_stringify(chunk.expect_id(&compilation.chunk_ids_artifact))
     )));
     source.add(render_source.source.clone());
@@ -122,14 +128,20 @@ async fn render_chunk(
     }
     source.add(RawStringSource::from_static(")"));
   } else {
-    let chunk_loading_global = &compilation.options.output.chunk_loading_global;
+    let chunk_loading_global = compilation
+      .options
+      .output
+      .chunk_loading_global
+      .render(PathData::default().runtime(&runtime_chunk_runtime_id(chunk, compilation)))
+      .await?;
+    let chunk_loading_global = json_stringify(&chunk_loading_global);
 
     source.add(RawStringSource::from(format!(
-      r#"({}["{}"] = {}["{}"] || []).push([[{}], "#,
+      r#"({}[{}] = {}[{}] || []).push([[{}], "#,
       global_object,
-      chunk_loading_global,
+      &chunk_loading_global,
       global_object,
-      chunk_loading_global,
+      &chunk_loading_global,
       serde_json::to_string(chunk.expect_id(&compilation.chunk_ids_artifact))
         .expect("json stringify failed"),
     )));
