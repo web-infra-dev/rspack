@@ -1,8 +1,8 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  chunk_graph_chunk::ChunkId, impl_runtime_module, rspack_sources::SourceExt, ChunkUkey,
-  Compilation, CompilationAdditionalTreeRuntimeRequirements, CrossOriginLoading, RuntimeGlobals,
-  RuntimeModule, RuntimeModuleExt,
+  chunk_graph_chunk::ChunkId, impl_runtime_module, ChunkUkey, Compilation,
+  CompilationAdditionalTreeRuntimeRequirements, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleExt,
 };
 use rspack_error::{error, Result};
 use rspack_hook::plugin_hook;

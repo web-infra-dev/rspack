@@ -2,8 +2,7 @@ use hashlink::{LinkedHashMap, LinkedHashSet};
 use itertools::Itertools;
 use rspack_collections::Identifier;
 use rspack_core::{
-  impl_runtime_module, rspack_sources::SourceExt, ChunkUkey, Compilation, ModuleId, RuntimeGlobals,
-  RuntimeModule, SourceType,
+  impl_runtime_module, ChunkUkey, Compilation, ModuleId, RuntimeGlobals, RuntimeModule, SourceType,
 };
 use rustc_hash::FxHashMap;
 

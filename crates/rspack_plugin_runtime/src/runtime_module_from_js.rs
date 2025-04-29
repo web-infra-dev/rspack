@@ -4,9 +4,7 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_cacheable::with::Unsupported;
 use rspack_collections::Identifier;
-use rspack_core::{
-  impl_runtime_module, rspack_sources::SourceExt, Compilation, RuntimeModule, RuntimeModuleStage,
-};
+use rspack_core::{impl_runtime_module, Compilation, RuntimeModule, RuntimeModuleStage};
 
 type GenerateFn = Arc<dyn Fn() -> BoxFuture<'static, rspack_error::Result<String>> + Send + Sync>;
 

@@ -3,9 +3,8 @@ use std::borrow::Cow;
 use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
-  basic_function, compile_boolean_matcher, impl_runtime_module, rspack_sources::SourceExt,
-  BooleanMatcher, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage,
+  basic_function, compile_boolean_matcher, impl_runtime_module, BooleanMatcher, ChunkUkey,
+  Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_plugin_runtime::{chunk_has_css, get_chunk_runtime_requirements, stringify_chunks};
 use rustc_hash::FxHashSet as HashSet;
@@ -152,8 +151,7 @@ installedChunks[chunkId] = 0;
           .cow_replace("__CSS_CHUNK_DATA__", &load_css_chunk_data)
           .cow_replace("__CHUNK_LOAD_TIMEOUT_PLACEHOLDER__", &chunk_load_timeout)
           .cow_replace("__UNIQUE_NAME__", unique_name)
-          .cow_replace("__INITIAL_CSS_CHUNK_DATA__", &load_initial_chunk_data)
-          .into_owned(),
+          .cow_replace("__INITIAL_CSS_CHUNK_DATA__", &load_initial_chunk_data),
       );
 
       if with_loading {
@@ -173,8 +171,7 @@ installedChunks[chunkId] = 0;
               } else {
                 ""
               },
-            )
-            .into_owned(),
+            ),
         );
       }
 

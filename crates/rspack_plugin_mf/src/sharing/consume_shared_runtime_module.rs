@@ -1,7 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  impl_runtime_module, rspack_sources::SourceExt, Chunk, ChunkGraph, ChunkUkey, Compilation,
-  ModuleIdentifier, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, SourceType,
+  impl_runtime_module, Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleIdentifier, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleStage, SourceType,
 };
 use rustc_hash::FxHashMap;
 

@@ -271,6 +271,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
       let result = runtime_module
         .code_generation(&compilation, None, None)
         .await?;
+      #[allow(clippy::unwrap_used)]
       let runtime_module_source = result.get(&SourceType::Runtime).unwrap();
       runtime_module_size.insert(
         runtime_module.identifier(),

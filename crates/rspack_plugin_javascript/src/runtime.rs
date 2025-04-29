@@ -359,6 +359,7 @@ pub async fn render_runtime_modules(
             sources.add(source.clone());
           } else {
             let result = module.code_generation(compilation, None, None).await?;
+            #[allow(clippy::unwrap_used)]
             let source = result.get(&SourceType::Runtime).unwrap();
             sources.add(source.clone());
           }

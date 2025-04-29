@@ -12,13 +12,13 @@ use napi::{
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  parse_resource, AfterResolveResult, AssetEmittedInfo, BeforeResolveResult, BoxModule, ChunkUkey,
-  CodeGenerationResults, Compilation, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationAdditionalTreeRuntimeRequirementsHook, CompilationAfterOptimizeModules,
-  CompilationAfterOptimizeModulesHook, CompilationAfterProcessAssets,
-  CompilationAfterProcessAssetsHook, CompilationAfterSeal, CompilationAfterSealHook,
-  CompilationBuildModule, CompilationBuildModuleHook, CompilationChunkAsset,
-  CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
+  parse_resource, rspack_sources::RawSource, AfterResolveResult, AssetEmittedInfo,
+  BeforeResolveResult, BoxModule, ChunkUkey, CodeGenerationResults, Compilation,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirementsHook,
+  CompilationAfterOptimizeModules, CompilationAfterOptimizeModulesHook,
+  CompilationAfterProcessAssets, CompilationAfterProcessAssetsHook, CompilationAfterSeal,
+  CompilationAfterSealHook, CompilationBuildModule, CompilationBuildModuleHook,
+  CompilationChunkAsset, CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
   CompilationExecuteModule, CompilationExecuteModuleHook, CompilationFinishModules,
   CompilationFinishModulesHook, CompilationId, CompilationOptimizeChunkModules,
   CompilationOptimizeChunkModulesHook, CompilationOptimizeModules, CompilationOptimizeModulesHook,
@@ -1305,12 +1305,11 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
     let Some(module) = compilation.runtime_modules.get(m) else {
       return Ok(());
     };
+    let source_str = module.generate(compilation).await?;
     let arg = JsRuntimeModuleArg {
       module: JsRuntimeModule {
         source: Some(
-          module
-            .generate(compilation)
-            .await?
+          RawSource::from(source_str)
             .to_js_compat_source_owned()
             .unwrap_or_else(|err| panic!("Failed to generate runtime module source: {err}")),
         ),
@@ -1331,7 +1330,9 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
         .runtime_modules
         .get_mut(m)
         .expect("should have module");
-      module.set_custom_source(source)
+      if let napi::Either::A(string) = source.source {
+        module.set_custom_source(string);
+      }
     }
     Ok(())
   }
