@@ -547,8 +547,8 @@ importers:
         specifier: ^4.1.2
         version: 4.1.2
       core-js:
-        specifier: 3.41.0
-        version: 3.41.0
+        specifier: 3.42.0
+        version: 3.42.0
       css-loader:
         specifier: ^7.1.2
         version: 7.1.2(@rspack/core@packages+rspack)(webpack@5.99.6(@swc/core@1.11.24(@swc/helpers@0.5.17)))
@@ -707,8 +707,8 @@ importers:
         specifier: ^10.0.0
         version: 10.0.0(@babel/core@7.26.10)(webpack@5.99.6(@swc/core@1.11.24(@swc/helpers@0.5.17)))
       core-js:
-        specifier: 3.41.0
-        version: 3.41.0
+        specifier: 3.42.0
+        version: 3.42.0
       css-loader:
         specifier: ^7.1.2
         version: 7.1.2(@rspack/core@packages+rspack)(webpack@5.99.6(@swc/core@1.11.24(@swc/helpers@0.5.17)))
@@ -773,8 +773,8 @@ importers:
         specifier: ^2.7.0
         version: 2.7.0
       core-js:
-        specifier: 3.41.0
-        version: 3.41.0
+        specifier: 3.42.0
+        version: 3.42.0
       css-loader:
         specifier: ^7.1.2
         version: 7.1.2(@rspack/core@1.3.8(@swc/helpers@0.5.17))(webpack@5.99.6(@swc/core@1.11.24(@swc/helpers@0.5.17)))
@@ -4154,6 +4154,9 @@ packages:
 
   core-js@3.41.0:
     resolution: {integrity: sha512-SJ4/EHwS36QMJd6h/Rg+GyR4A5xE0FSI3eZ+iBVpfqf1x0eTSg1smWLHrA+2jQThZSh97fmSgFSU8B61nxosxA==}
+
+  core-js@3.42.0:
+    resolution: {integrity: sha512-Sz4PP4ZA+Rq4II21qkNqOEDTDrCvcANId3xpIgB34NDkWc3UduWj2dqEtN9yZIq8Dk3HyPI33x9sqqU5C8sr0g==}
 
   core-util-is@1.0.3:
     resolution: {integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==}
@@ -11543,6 +11546,8 @@ snapshots:
       toggle-selection: 1.0.6
 
   core-js@3.41.0: {}
+
+  core-js@3.42.0: {}
 
   core-util-is@1.0.3: {}
 
