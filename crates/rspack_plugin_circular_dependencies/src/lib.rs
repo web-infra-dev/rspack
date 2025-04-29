@@ -77,14 +77,8 @@ impl<'a> CycleDetector<'a> {
       if seen_relations.contains(&(current_module_id, *target_id)) {
         continue;
       }
-      let mut branch_seen_relations = seen_relations.clone();
-      branch_seen_relations.insert((current_module_id, *target_id));
-      self.recurse_dependencies(
-        *target_id,
-        &mut branch_seen_relations,
-        current_path,
-        found_cycles,
-      );
+      seen_relations.insert((current_module_id, *target_id));
+      self.recurse_dependencies(*target_id, seen_relations, current_path, found_cycles);
     }
     current_path.pop();
   }
