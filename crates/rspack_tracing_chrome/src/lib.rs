@@ -6,20 +6,20 @@ use std::{
   marker::PhantomData,
   path::Path,
   sync::{
-    Arc, Mutex,
     atomic::{AtomicUsize, Ordering},
     mpsc,
     mpsc::Sender,
+    Arc, Mutex,
   },
   thread::JoinHandle,
 };
 
-use serde_json::{Value as JsonValue, json};
-use tracing_core::{Event, Subscriber, field::Field, span};
+use serde_json::{json, Value as JsonValue};
+use tracing_core::{field::Field, span, Event, Subscriber};
 use tracing_subscriber::{
-  Layer,
   layer::Context,
   registry::{LookupSpan, SpanRef},
+  Layer,
 };
 
 thread_local! {
@@ -52,7 +52,7 @@ pub struct ChromeLayerBuilder<S>
 where
   S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
 {
-  out_writer: Option<Box<dyn Write + Send>>,
+  out_writer: Option<Box<dyn FnOnce() -> Box<dyn Write> + Send>>,
   name_fn: Option<NameFn<S>>,
   cat_fn: Option<NameFn<S>>,
   include_args: bool,
@@ -97,8 +97,8 @@ where
   ///
   /// If `file` could not be opened/created. To handle errors,
   /// open a file and pass it to [`writer`](crate::ChromeLayerBuilder::writer) instead.
-  pub fn file<P: AsRef<Path>>(self, file: P) -> Self {
-    self.writer(std::fs::File::create(file).expect("Failed to create trace file."))
+  pub fn file<P: AsRef<Path> + Send + 'static>(self, file: P) -> Self {
+    self.writer(|| Box::new(std::fs::File::create(file).expect("Failed to create trace file.")))
   }
 
   /// Supply an arbitrary writer to which to write trace contents.
@@ -111,7 +111,7 @@ where
   /// let (layer, guard) = ChromeLayerBuilder::new().writer(std::io::sink()).build();
   /// # tracing_subscriber::registry().with(layer).init();
   /// ```
-  pub fn writer<W: Write + Send + 'static>(mut self, writer: W) -> Self {
+  pub fn writer<W: FnOnce() -> Box<dyn Write> + Send + 'static>(mut self, writer: W) -> Self {
     self.out_writer = Some(Box::new(writer));
     self
   }
@@ -285,11 +285,13 @@ where
     let (tx, rx) = mpsc::channel();
     OUT.with(|val| val.replace(Some(tx.clone())));
 
-    let out_writer = builder
-      .out_writer
-      .unwrap_or_else(|| create_default_writer());
+    let out_writer = builder.out_writer;
 
     let handle = std::thread::spawn(move || {
+      let out_writer = out_writer.map(|f| f()).unwrap_or_else(|| {
+        let writer = create_default_writer();
+        writer
+      });
       let mut write = BufWriter::new(out_writer);
       write.write_all(b"[\n").unwrap();
 

@@ -13,12 +13,12 @@ pub struct ChromeTracer {
 
 impl Tracer for ChromeTracer {
   fn setup(&mut self, output: &str) -> Option<Layered> {
-    let trace_writer = TraceWriter::from(output);
+    let trace_writer = TraceWriter::from(output.to_owned());
     let (chrome_layer, guard) = ChromeLayerBuilder::new()
       .trace_style(TraceStyle::Async)
       .include_args(true)
       .category_fn(Box::new(|_| "rspack".to_string()))
-      .writer(trace_writer.writer())
+      .writer(move || trace_writer.writer())
       .build();
     self.guard = Some(guard);
 
