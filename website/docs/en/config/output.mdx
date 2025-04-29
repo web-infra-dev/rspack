@@ -133,6 +133,12 @@ export default {
 };
 ```
 
+:::tip
+Rspack version 1.3.9 and above supports the `[runtime]` placeholder to avoid the problem of `chunkLoadingGlobal` being overwritten when multiple entry script tags are included in the same HTML. For example, `chunkLoadingGlobal: "myCustomFunc_[runtime]"`.
+
+If your application is a Multi-Page Application (MPA) and you encounter this problem, generally you need to add [`chunks` or `excludeChunks`](https://github.com/jantimon/html-webpack-plugin?tab=readme-ov-file#filtering-chunks) to your HTML plugin to ensure that each HTML corresponds to one entry, instead of using the `[runtime]` placeholder.
+:::
+
 ## output.chunkLoading
 
 - **Type:** `false | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import' | string`
@@ -714,6 +720,12 @@ Only used when [`target`](/config/target) is set to `'web'`, which uses JSONP fo
 A JSONP function is used to asynchronously load hot-update chunks.
 
 For details see [`output.chunkLoadingGlobal`](#outputchunkloadingglobal).
+
+:::tip
+Rspack version 1.3.9 and above supports the `[runtime]` placeholder to avoid the problem of `hotUpdateGlobal` being overwritten when multiple entry script tags are included in the same HTML. For example, `hotUpdateGlobal: "myCustomFunc_[runtime]"`.
+
+If your application is a Multi-Page Application (MPA) and you encounter this problem, generally you need to add [`chunks` or `excludeChunks`](https://github.com/jantimon/html-webpack-plugin?tab=readme-ov-file#filtering-chunks) to your HTML plugin to ensure that each HTML corresponds to one entry, instead of using the `[runtime]` placeholder.
+:::
 
 ## output.hotUpdateMainFilename
 

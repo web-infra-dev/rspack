@@ -131,6 +131,12 @@ export default {
 };
 ```
 
+:::tip
+Rspack v1.3.9 及以上版本支持了 `[runtime]` 占位符，来避免同一 HTML 下包含多个入口 script 标签导致的 `chunkLoadingGlobal` 被覆盖的问题，比如 `chunkLoadingGlobal: "myCustomFunc_[runtime]"`。
+
+如果你的应用是多页面应用（MPA）但遇到了这个问题，通常你需要给你的 HTML 插件添加 [`chunks` 或 `excludeChunks`](https://github.com/jantimon/html-webpack-plugin?tab=readme-ov-file#filtering-chunks)，来确保每个 HTML 对应一个入口，而不是使用 `[runtime]` 占位符。
+:::
+
 ## output.chunkLoading
 
 - **类型：** `false | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import' | string`
@@ -706,6 +712,12 @@ export default {
 JSONP 函数用于异步加载热更新块。
 
 具体可以参阅 [output.chunkLoadingGlobal](#outputchunkLoadingGlobal)。
+
+:::tip
+Rspack v1.3.9 及以上版本支持了 `[runtime]` 占位符，来避免同一 HTML 下包含多个入口 script 标签导致的 `hotUpdateGlobal` 被覆盖的问题，比如 `hotUpdateGlobal: "myCustomFunc_[runtime]"`。
+
+如果你的应用是多页面应用（MPA）但遇到了这个问题，通常你需要给你的 HTML 插件添加 [`chunks` 或 `excludeChunks`](https://github.com/jantimon/html-webpack-plugin?tab=readme-ov-file#filtering-chunks)，来确保每个 HTML 对应一个入口，而不是使用 `[runtime]` 占位符。
+:::
 
 ## output.hotUpdateMainFilename
 
