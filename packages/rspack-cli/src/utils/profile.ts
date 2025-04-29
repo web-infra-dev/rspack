@@ -38,7 +38,7 @@ export async function applyProfile(
 	traceLayer: string = defaultRustTraceLayer,
 	traceOutput?: string
 ) {
-	const { asyncExitHook } = await import("exit-hook");
+	const { default: exitHook } = await import("exit-hook");
 	if (traceLayer !== "chrome" && traceLayer !== "logger") {
 		throw new Error(`unsupported trace layer: ${traceLayer}`);
 	}
@@ -64,9 +64,7 @@ export async function applyProfile(
 		traceLayer,
 		traceOutput
 	);
-	asyncExitHook(rspack.experiments.globalTrace.cleanup, {
-		wait: 500
-	});
+	exitHook(rspack.experiments.globalTrace.cleanup);
 }
 
 async function ensureFileDir(outputFilePath: string) {
