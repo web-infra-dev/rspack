@@ -35,7 +35,9 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<
     "OccurrenceChunkIdsPlugin (optimization.chunkIds = \"size\")",
     "it requires calculating the id of all the chunks, which is a global effect",
   ) {
-    compilation.push_diagnostic(diagnostic);
+    if let Some(diagnostic) = diagnostic {
+      compilation.push_diagnostic(diagnostic);
+    }
     compilation.chunk_ids_artifact.clear();
   }
 

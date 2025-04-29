@@ -30,9 +30,6 @@ permissions:
   issues: write
 
 jobs:
-  get-runner-labels:
-    name: Get Runner Labels
-    uses: ./.github/workflows/get-runner-labels.yml
 
   check-changed:
     runs-on: ubuntu-latest
@@ -56,46 +53,46 @@ jobs:
 
   test-linux:
     name: Test Linux
-    needs: [ get-runner-labels, check-changed ]
-    if: ${{ needs.check-changed.outputs.code_changed }}
+    needs: [ check-changed ]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
-      runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
       test: true
       bench: true
 
   test-windows:
     name: Test Windows
-    needs: [ get-runner-labels, check-changed ]
-    if: ${{ needs.check-changed.outputs.code_changed }}
+    needs: [ check-changed ]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-pc-windows-msvc
       profile: "dev"
-      runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+      runner: ${{ vars.WINDOWS_RUNNER_LABELS || '"windows-latest"' }}
       test: true
 
   test-mac:
     name: Test Mac ARM64
-    needs: [ get-runner-labels, check-changed ]
-    if: ${{ needs.check-changed.outputs.code_changed }}
+    needs: [ check-changed ]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: aarch64-apple-darwin
       profile: "ci"
-      runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
+      runner: ${{ vars.MACOS_RUNNER_LABELS || '"macos-latest"' }}
       test: true
 
   test-wasm:
     name: Test WASM
-    needs: [ get-runner-labels, check-changed ]
-    if: ${{ needs.check-changed.outputs.code_changed }}
+    needs: [  check-changed ]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: wasm32-wasip1-threads
       profile: "ci"
-      runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
       test: false
 
   failure_notification:
@@ -123,12 +120,13 @@ jobs:
     # When *only* doc changed, it will run as success directly
     name: Test Required Check
     needs: [ test-linux, test-windows, test-mac, check-changed ]
+    if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - name: Log
         run: echo ${{ join(needs.*.result, ',') }}
       - name: Test check
-        if: ${{ needs.check-changed.outputs.code_changed && join(needs.*.result, ',')!='success,success,success,success' }}
+        if: ${{ needs.check-changed.outputs.code_changed == 'true' && join(needs.*.result, ',')!='success,success,success,success' }}
         run: echo "Tess Failed" && exit 1
       - name: No check to Run test
         run: echo "Success"

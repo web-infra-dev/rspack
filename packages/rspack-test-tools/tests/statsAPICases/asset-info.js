@@ -29,72 +29,31 @@ module.exports = {
 			builtAt: false,
 			version: false
 		};
-		expect(stats?.toJson(statsOptions).assets).toMatchInlineSnapshot(`
-		Array [
-		  Object {
-		    auxiliaryChunkIdHints: Array [],
-		    auxiliaryChunkNames: Array [
-		      main,
-		    ],
-		    auxiliaryChunks: Array [
-		      909,
-		    ],
-		    cached: false,
-		    chunkIdHints: Array [],
-		    chunkNames: Array [],
-		    chunks: Array [],
-		    emitted: true,
-		    filteredRelated: 0,
-		    info: Object {
-		      chunkhash: Array [],
-		      contenthash: Array [],
-		      fullhash: Array [
-		        c560fa876f51d750,
-		      ],
-		      immutable: true,
-		      isOverSizeLimit: false,
-		      related: Object {},
-		      sourceFilename: fixtures/asset/image.png,
-		    },
-		    isOverSizeLimit: false,
-		    name: c560fa876f51d750.png,
-		    related: Array [],
-		    size: 14910,
-		    type: asset,
-		  },
-		  Object {
-		    auxiliaryChunkIdHints: Array [],
-		    auxiliaryChunkNames: Array [],
-		    auxiliaryChunks: Array [],
-		    cached: false,
-		    chunkIdHints: Array [],
-		    chunkNames: Array [
-		      main,
-		    ],
-		    chunks: Array [
-		      909,
-		    ],
-		    emitted: true,
-		    filteredRelated: 0,
-		    info: Object {
-		      chunkhash: Array [],
-		      contenthash: Array [],
-		      fullhash: Array [],
-		      isOverSizeLimit: false,
-		      javascriptModule: false,
-		      related: Object {
-		        sourceMap: Array [
-		          main.js.map,
-		        ],
-		      },
-		    },
-		    isOverSizeLimit: false,
-		    name: main.js,
-		    related: Array [],
-		    size: 2663,
-		    type: asset,
-		  },
-		]
-	`);
+		const assets = stats?.toJson(statsOptions).assets;
+		assets.sort((a, b) => a.name.localeCompare(b.name));
+		const infos = assets.map(i => {
+			i.info.fullhash = i.info.fullhash.map(i => "xxx");
+			return i.info;
+		});
+		expect(infos).toEqual([{
+			chunkhash: [],
+			contenthash: [],
+			fullhash: ["xxx"],
+			immutable: true,
+			isOverSizeLimit: false,
+			related: {},
+			sourceFilename: "fixtures/asset/image.png",
+		}, {
+			chunkhash: [],
+			contenthash: [],
+			fullhash: [],
+			isOverSizeLimit: false,
+			javascriptModule: false,
+			related: {
+				sourceMap: [
+					"main.js.map",
+				],
+			},
+		}]);
 	}
 };

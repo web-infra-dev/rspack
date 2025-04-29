@@ -151,7 +151,7 @@ export default {
 
 ## output.clean
 
-- **类型：** `boolean | { keep?: string }`
+- **类型：** `boolean | { keep?: string | RegExp | ((path: string) => boolean) }`
 - **默认值：** `false`
 
 在生成产物前，删除输出目录下的所有文件。
@@ -167,6 +167,20 @@ export default {
   output: {
     clean: {
       keep: 'ignored/dir', // keep these assets under 'dist/ignored/dir'.
+    },
+  },
+
+  // or
+  output: {
+    clean: {
+      keep: /ignored\/dir/, // keep these assets under 'dist/ignored/dir'.
+    },
+  },
+
+  // or
+  output: {
+    clean: {
+      keep: path => path.includes('ignored/dir'), // keep these assets under 'dist/ignored/dir'.
     },
   },
 };

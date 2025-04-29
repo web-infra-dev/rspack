@@ -155,7 +155,7 @@ export default {
 
 ## output.clean
 
-- **Type:** `boolean | { keep?: string }`
+- **Type:** `boolean | { keep?: string | RegExp | ((path: string) => boolean) }`
 - **Default:** `false`
 
 Before generating the products, delete all files in the output directory.
@@ -171,6 +171,20 @@ export default {
   output: {
     clean: {
       keep: 'ignored/dir', // keep these assets under 'dist/ignored/dir'.
+    },
+  },
+
+  // or
+  output: {
+    clean: {
+      keep: /ignored\/dir/, // keep these assets under 'dist/ignored/dir'.
+    },
+  },
+
+  // or
+  output: {
+    clean: {
+      keep: path => path.includes('ignored/dir'), // keep these assets under 'dist/ignored/dir'.
     },
   },
 };

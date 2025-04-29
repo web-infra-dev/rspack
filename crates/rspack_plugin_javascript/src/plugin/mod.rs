@@ -25,7 +25,6 @@ use indoc::indoc;
 pub use mangle_exports_plugin::*;
 pub use module_concatenation_plugin::*;
 pub use module_info_header_plugin::*;
-use rspack_ast::javascript::Ast;
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, IdentifierMap};
 use rspack_core::{
   basic_function,
@@ -40,6 +39,7 @@ use rspack_core::{
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::plugin;
+use rspack_javascript_compiler::ast::Ast;
 use rspack_util::{diff_mode, fx_hash::FxDashMap};
 pub use side_effects_flag_plugin::*;
 use swc_core::{

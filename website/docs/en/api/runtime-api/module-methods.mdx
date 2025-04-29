@@ -221,7 +221,7 @@ require(dependency: string);
 
 ### require.resolve
 
-Synchronously retrieve a module's ID. It is recommended to treat it as an opaque value which can only be used with `require.cache[id]` or `__webpack_require__(id)` (best to avoid such usage).
+Synchronously retrieves the module ID without executing the module code. This method will include the module in the final bundle. The returned module ID is primarily intended for use with `require.cache[id]` or the Rspack internal `__webpack_require__(id)` function. Direct use of this method should be avoided in most application scenarios.
 
 ```js
 require.resolve(dependency: string);
@@ -358,6 +358,32 @@ if (module.hot) {
     // Do something special...
   });
 }
+```
+
+### require.resolveWeak
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+Similar to `require.resolve`, but this method won't pull the module into the final bundle. It's what is considered a "weak" dependency.
+
+```js
+require.resolveWeak(dependency: string);
+```
+
+For example:
+
+```js
+if (__webpack_modules__[require.resolveWeak('module')]) {
+  // Do something when module is available...
+}
+if (require.cache[require.resolveWeak('module')]) {
+  // Do something when module was loaded before...
+}
+
+// You can perform dynamic resolves ("context")
+// similarly to other require/import methods.
+const page = 'Foo';
+__webpack_modules__[require.resolveWeak(`./page/${page}`)];
 ```
 
 ## Data URI module

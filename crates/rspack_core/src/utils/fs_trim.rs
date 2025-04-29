@@ -1,5 +1,26 @@
-use rspack_fs::{Result, WritableFileSystem};
+use cow_utils::CowUtils;
+use rspack_error::Result;
+use rspack_fs::{Result as FsResult, WritableFileSystem};
 use rspack_paths::Utf8Path;
+use rspack_regex::RspackRegex;
+
+use crate::KeepFunc;
+
+pub enum KeepPattern<'a> {
+  Path(&'a Utf8Path),
+  Regex(&'a RspackRegex),
+  Func(&'a KeepFunc),
+}
+
+impl<'a> KeepPattern<'a> {
+  pub async fn try_match(&self, path: &'a Utf8Path) -> Result<bool> {
+    match self {
+      KeepPattern::Path(p) => Ok(path.starts_with(p)),
+      KeepPattern::Regex(r) => Ok(r.test(path.as_str().cow_replace("\\", "/").as_ref())),
+      KeepPattern::Func(f) => f(path.as_str().cow_replace("\\", "/").to_string()).await,
+    }
+  }
+}
 
 /// Remove all files and directories in the given directory except the given directory
 ///
@@ -39,34 +60,34 @@ use rspack_paths::Utf8Path;
 pub async fn trim_dir<'a>(
   fs: &'a dyn WritableFileSystem,
   dir: &'a Utf8Path,
-  except: &'a Utf8Path,
-) -> Result<()> {
-  if dir.starts_with(except) {
-    return Ok(());
-  }
-  if !except.starts_with(dir) {
-    return fs.remove_dir_all(dir).await;
-  }
+  keep: KeepPattern<'a>,
+) -> FsResult<()> {
+  let mut queue = vec![dir.to_owned()];
+  let mut visited = vec![];
+  while let Some(current_dir) = queue.pop() {
+    if keep.try_match(&current_dir).await? {
+      visited.push(current_dir);
+      continue;
+    }
 
-  let mut to_clean = dir;
-  while to_clean != except {
-    let mut matched = None;
-    for entry in fs.read_dir(dir).await? {
-      let path = dir.join(entry);
-      if except.starts_with(&path) {
-        matched = Some(except);
-        continue;
-      }
+    let items = fs.read_dir(&current_dir).await?;
+    for item in &items {
+      let path = current_dir.join(item);
       if fs.stat(&path).await?.is_directory {
-        fs.remove_dir_all(&path).await?;
-      } else {
+        queue.push(path);
+      } else if !keep.try_match(&path).await? {
         fs.remove_file(&path).await?;
       }
     }
-    let Some(child_to_clean) = matched else {
-      break;
-    };
-    to_clean = child_to_clean;
+
+    visited.push(current_dir);
+  }
+
+  visited.reverse();
+  for dir in visited {
+    if fs.read_dir(&dir).await?.is_empty() {
+      fs.remove_dir_all(&dir).await?;
+    }
   }
 
   Ok(())
@@ -77,7 +98,7 @@ mod test {
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
   use rspack_paths::Utf8Path;
 
-  use crate::trim_dir;
+  use crate::{trim_dir, KeepPattern};
 
   #[tokio::test]
   async fn async_fs_test() {
@@ -106,9 +127,13 @@ mod test {
         .is_ok()
     );
 
-    assert!(trim_dir(&fs, Utf8Path::new("/ex"), Utf8Path::new("/ex/a2"))
-      .await
-      .is_ok());
+    assert!(trim_dir(
+      &fs,
+      Utf8Path::new("/ex"),
+      KeepPattern::Path(Utf8Path::new("/ex/a2"))
+    )
+    .await
+    .is_ok());
 
     let children = WritableFileSystem::read_dir(&fs, Utf8Path::new("/ex"))
       .await

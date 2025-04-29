@@ -4,7 +4,7 @@ use cow_utils::CowUtils;
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use itertools::Itertools;
-use rspack_collections::{Identifier, IdentifierMap, IdentifierSet};
+use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
   ApplyContext, Compilation, CompilationOptimizeModules, CompilerOptions, DependencyType,
   ModuleIdentifier, Plugin, PluginContext,
@@ -12,6 +12,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_regex::RspackRegex;
+use rustc_hash::FxHashSet as HashSet;
 
 struct CycleDetector<'a> {
   module_map: &'a IdentifierMap<GraphModule>,
@@ -38,7 +39,7 @@ impl<'a> CycleDetector<'a> {
     let mut cycles = vec![];
     self.recurse_dependencies(
       initial_module_id,
-      &mut IdentifierSet::default(),
+      &mut HashSet::default(),
       &mut vec![initial_module_id],
       &mut cycles,
     );
@@ -50,11 +51,10 @@ impl<'a> CycleDetector<'a> {
   fn recurse_dependencies(
     &self,
     current_module_id: ModuleIdentifier,
-    _seen_set: &mut IdentifierSet,
+    seen_relations: &mut HashSet<(ModuleIdentifier, ModuleIdentifier)>,
     current_path: &mut Vec<ModuleIdentifier>,
     found_cycles: &mut Vec<Vec<ModuleIdentifier>>,
   ) {
-    // seen_set.insert(current_module_id);
     current_path.push(current_module_id);
     for target_id in self.get_module(&current_module_id).dependencies.keys() {
       // If the current path already contains the dependent module, then it
@@ -74,7 +74,17 @@ impl<'a> CycleDetector<'a> {
         continue;
       }
 
-      self.recurse_dependencies(*target_id, _seen_set, current_path, found_cycles);
+      if seen_relations.contains(&(current_module_id, *target_id)) {
+        continue;
+      }
+      let mut branch_seen_relations = seen_relations.clone();
+      branch_seen_relations.insert((current_module_id, *target_id));
+      self.recurse_dependencies(
+        *target_id,
+        &mut branch_seen_relations,
+        current_path,
+        found_cycles,
+      );
     }
     current_path.pop();
   }

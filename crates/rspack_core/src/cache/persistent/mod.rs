@@ -83,7 +83,7 @@ impl Cache for PersistentCache {
     if !compilation.is_rebuild {
       let (is_hot_start, modified_paths, removed_paths) =
         self.snapshot.calc_modified_paths().await?;
-      tracing::info!("cache::snapshot recovery {modified_paths:?} {removed_paths:?}",);
+      tracing::debug!("cache::snapshot recovery {modified_paths:?} {removed_paths:?}",);
       compilation.modified_files.extend(modified_paths);
       compilation.removed_files.extend(removed_paths);
       return Ok(is_hot_start);

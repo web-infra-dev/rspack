@@ -11,10 +11,10 @@ use rspack_core::{
   ModuleType, ParseContext, ParseResult, ParserAndGenerator, SideEffectsBailoutItem, SourceType,
   TemplateContext, TemplateReplaceSource,
 };
-use rspack_error::{
-  miette::Diagnostic, DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-};
+use rspack_error::{miette::Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_javascript_compiler::JavaScriptCompiler;
 use swc_core::{
+  base::config::IsModule,
   common::{comments::Comments, input::SourceFileInput, FileName, SyntaxContext},
   ecma::{
     ast,
@@ -28,6 +28,15 @@ use crate::{
   visitors::{scan_dependencies, semicolon, swc_visitor::resolver, ScanDependenciesResult},
   BoxJavascriptParserPlugin, SideEffectsFlagPluginVisitor, SyntaxContextInfo,
 };
+
+fn module_type_to_is_module(value: &ModuleType) -> IsModule {
+  // parser options align with webpack
+  match value {
+    ModuleType::JsEsm => IsModule::Bool(true),
+    ModuleType::JsDynamic => IsModule::Bool(false),
+    _ => IsModule::Unknown,
+  }
+}
 
 #[cacheable]
 #[derive(Default)]
@@ -180,16 +189,17 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       Some(&comments),
     );
 
-    let mut ast = match crate::ast::parse(
-      lexer.clone(),
+    let javascript_compiler = JavaScriptCompiler::new();
+
+    let mut ast = match javascript_compiler.parse_with_lexer(
       &fm,
-      cm.clone(),
+      lexer.clone(),
+      module_type_to_is_module(module_type),
       Some(comments.clone()),
-      module_type,
     ) {
       Ok(ast) => ast,
       Err(e) => {
-        diagnostics.append(&mut e.into_iter().map(|e| e.boxed()).collect());
+        diagnostics.append(&mut e.into_inner().into_iter().map(|e| e.into()).collect());
         return default_with_diagnostics(source, diagnostics);
       }
     };
