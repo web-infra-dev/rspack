@@ -43,7 +43,7 @@
 			enabled: false
 		},
 		{
-			groupName: "crates",
+			groupName: "patch crates",
 			matchManagers: ["cargo"],
 			excludePackagePrefixes: ["swc", "napi"],
 			excludePackageNames: [
@@ -55,7 +55,8 @@
 				"rkyv",
 				"rspack_resolver",
 				"inventory"
-			]
+			],
+			matchUpdateTypes: ["patch"]
 		},
 		{
 			groupName: "swc",
@@ -131,7 +132,7 @@
 			enabled: false
 		},
 		{
-			groupName: "npm dependencies",
+			groupName: "patch npm dependencies",
 			matchManagers: ["npm"],
 			matchDepTypes: ["dependencies", "devDependencies"],
 			excludePackagePrefixes: ["webpack"],
