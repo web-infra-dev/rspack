@@ -9,6 +9,6 @@ version     = "0.2.0"
 
 [dependencies]
 napi         = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow", "napi7"] }
-oneshot      = "0.1.8"
+oneshot      = "0.1.11"
 rspack_error = { workspace = true }
 tokio        = { workspace = true, features = ["sync"] }

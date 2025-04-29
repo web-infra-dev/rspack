@@ -25,7 +25,7 @@ serde_json         = { workspace = true }
 swc_core           = { workspace = true, features = ["__ecma"] }
 tokio              = { workspace = true }
 tracing            = { workspace = true }
-wasmparser         = "0.222.0"
+wasmparser         = "0.229.0"
 
 [package.metadata.cargo-shear]
 ignored = ["tracing", "rspack_hash", "tokio"]

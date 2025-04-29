@@ -10,7 +10,7 @@ version     = "0.2.0"
 [dependencies]
 async-trait        = { workspace = true }
 futures            = { workspace = true }
-indicatif          = "0.17.9"
+indicatif          = "0.17.11"
 rspack_collections = { workspace = true }
 rspack_core        = { workspace = true }
 rspack_error       = { workspace = true }
