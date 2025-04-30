@@ -4265,6 +4265,7 @@ dependencies = [
  "rspack_plugin_context_replacement",
  "rspack_plugin_copy",
  "rspack_plugin_css",
+ "rspack_plugin_css_chunking",
  "rspack_plugin_devtool",
  "rspack_plugin_dll",
  "rspack_plugin_dynamic_entry",

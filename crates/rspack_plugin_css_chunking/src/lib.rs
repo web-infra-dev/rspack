@@ -43,6 +43,7 @@ async fn compilation(
   Ok(())
 }
 
+#[derive(Debug)]
 struct ChunkState {
   chunk: ChunkUkey,
   modules: Vec<ModuleIdentifier>,
@@ -327,17 +328,17 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         cont = true;
         break 'outer;
       }
-      let new_chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
-      #[allow(clippy::unwrap_used)]
-      let new_chunk = compilation.chunk_by_ukey.get_mut(&new_chunk_ukey).unwrap();
-      new_chunk.prevent_integration();
-      new_chunk.add_id_name_hints("css".to_string());
-      let chunk_graph = &mut compilation.chunk_graph;
-      for module_identifier in &new_chunk_modules {
-        remaining_modules.remove(module_identifier);
-        chunk_graph.connect_chunk_and_module(new_chunk_ukey, *module_identifier);
-        new_chunks_by_module.insert(*module_identifier, new_chunk_ukey);
-      }
+    }
+    let new_chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
+    #[allow(clippy::unwrap_used)]
+    let new_chunk = compilation.chunk_by_ukey.get_mut(&new_chunk_ukey).unwrap();
+    new_chunk.prevent_integration();
+    new_chunk.add_id_name_hints("css".to_string());
+    let chunk_graph = &mut compilation.chunk_graph;
+    for module_identifier in &new_chunk_modules {
+      remaining_modules.remove(module_identifier);
+      chunk_graph.connect_chunk_and_module(new_chunk_ukey, *module_identifier);
+      new_chunks_by_module.insert(*module_identifier, new_chunk_ukey);
     }
   }
 

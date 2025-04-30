@@ -147,6 +147,7 @@ rspack_plugin_circular_dependencies    = { version = "0.2.0", path = "crates/rsp
 rspack_plugin_context_replacement      = { version = "0.2.0", path = "crates/rspack_plugin_context_replacement" }
 rspack_plugin_copy                     = { version = "0.2.0", path = "crates/rspack_plugin_copy" }
 rspack_plugin_css                      = { version = "0.2.0", path = "crates/rspack_plugin_css" }
+rspack_plugin_css_chunking             = { version = "0.2.0", path = "crates/rspack_plugin_css_chunking" }
 rspack_plugin_devtool                  = { version = "0.2.0", path = "crates/rspack_plugin_devtool" }
 rspack_plugin_dll                      = { version = "0.2.0", path = "crates/rspack_plugin_dll" }
 rspack_plugin_dynamic                  = { version = "0.2.0", path = "crates/rspack_plugin_dynamic" }

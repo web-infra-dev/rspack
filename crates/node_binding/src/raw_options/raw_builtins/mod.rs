@@ -36,6 +36,7 @@ use rspack_plugin_circular_dependencies::CircularDependencyRspackPlugin;
 use rspack_plugin_context_replacement::ContextReplacementPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
 use rspack_plugin_css::CssPlugin;
+use rspack_plugin_css_chunking::CssChunkingPlugin;
 use rspack_plugin_devtool::{
   EvalDevToolModulePlugin, EvalSourceMapDevToolPlugin, SourceMapDevToolModuleOptionsPlugin,
   SourceMapDevToolModuleOptionsPluginOptions, SourceMapDevToolPlugin,
@@ -209,6 +210,7 @@ pub enum BuiltinPluginName {
   LazyCompilationPlugin,
   ModuleInfoHeaderPlugin,
   HttpUriPlugin,
+  CssChunkingPlugin,
 }
 
 #[napi(object)]
@@ -594,6 +596,10 @@ impl BuiltinPlugin {
       BuiltinPluginName::ModuleInfoHeaderPlugin => {
         let verbose = downcast_into::<bool>(self.options)?;
         plugins.push(ModuleInfoHeaderPlugin::new(verbose).boxed());
+      }
+      BuiltinPluginName::CssChunkingPlugin => {
+        let strict = downcast_into::<bool>(self.options)?;
+        plugins.push(CssChunkingPlugin::new(strict).boxed());
       }
     }
     Ok(())

@@ -207,6 +207,7 @@ import { RuntimeChunkPlugin } from "./builtin-plugin";
 import { SplitChunksPlugin } from "./builtin-plugin";
 import { RemoveDuplicateModulesPlugin } from "./builtin-plugin";
 import { RsdoctorPlugin } from "./builtin-plugin";
+import { CssChunkingPlugin } from "./builtin-plugin";
 
 interface Optimize {
 	LimitChunkCountPlugin: typeof LimitChunkCountPlugin;
@@ -343,6 +344,7 @@ interface Experiments {
 	RsdoctorPlugin: typeof RsdoctorPlugin;
 	SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
 	lazyCompilationMiddleware: typeof lazyCompilationMiddleware;
+	CssChunkingPlugin: typeof CssChunkingPlugin;
 }
 
 export const experiments: Experiments = {
@@ -368,5 +370,6 @@ export const experiments: Experiments = {
 	 */
 	RsdoctorPlugin,
 	SubresourceIntegrityPlugin,
-	lazyCompilationMiddleware
+	lazyCompilationMiddleware,
+	CssChunkingPlugin
 };

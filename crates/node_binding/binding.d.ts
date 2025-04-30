@@ -467,7 +467,8 @@ export declare enum BuiltinPluginName {
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin',
   ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin',
-  HttpUriPlugin = 'HttpUriPlugin'
+  HttpUriPlugin = 'HttpUriPlugin',
+  CssChunkingPlugin = 'CssChunkingPlugin'
 }
 
 export declare function cleanupGlobalTrace(): void
