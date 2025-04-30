@@ -13,7 +13,6 @@ async-trait        = { workspace = true }
 cow-utils          = { workspace = true }
 dashmap            = { workspace = true }
 indexmap           = { workspace = true }
-once_cell          = { workspace = true }
 rayon              = { workspace = true }
 rspack_cacheable   = { workspace = true }
 rspack_collections = { workspace = true }

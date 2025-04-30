@@ -1335,7 +1335,7 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
           module.set_custom_source(string);
         }
         napi::Either::B(buffer) => {
-          module.set_custom_source(String::from_utf8_lossy(&buffer.to_vec()).into_owned());
+          module.set_custom_source(String::from_utf8_lossy(&buffer).into_owned());
         }
       }
     }

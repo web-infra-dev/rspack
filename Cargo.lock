@@ -5052,7 +5052,6 @@ dependencies = [
  "cow-utils",
  "dashmap 6.1.0",
  "indexmap 2.7.1",
- "once_cell",
  "rayon",
  "rspack_cacheable",
  "rspack_collections",

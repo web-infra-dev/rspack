@@ -617,7 +617,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for immutable 1`] = `
-"asset 4bb31e6ebee8d2ca.js xx KiB [emitted] [immutable] (name: main)
+"asset 39070086cb7cbb92.js xx KiB [emitted] [immutable] (name: main)
 asset cc8bb03cea0d9f6f.js xx bytes [emitted] [immutable]"
 `;
 
@@ -1461,13 +1461,13 @@ Rspack x.x.x compiled successfully"
 exports[`StatsTestCases should print correct stats for related-assets 1`] = `
 "default:
   assets by path *.br xx KiB
+    asset default-xxx.js.map.br xx KiB [emitted]
     asset default-xxx.js.br xx KiB [emitted]
-    asset default-xxx.js.br xx bytes [emitted]
     + 6 assets
   assets by path *.gz xx KiB
+    asset default-xxx.js.map.gz xx KiB [emitted]
     asset default-xxx.js.gz xx KiB [emitted]
     asset default-xxx.js.gz xx bytes [emitted]
-    asset default-xxx.js.map.gz xx bytes [emitted]
     + 5 assets
   assets by path *.js xx KiB
     asset default-xxx.js xx KiB [emitted] (name: main)
@@ -1478,13 +1478,13 @@ exports[`StatsTestCases should print correct stats for related-assets 1`] = `
 
 relatedAssets:
   assets by path *.br xx KiB
+    asset relatedAssets-xxx.js.map.br xx KiB [emitted]
     asset relatedAssets-xxx.js.br xx KiB [emitted]
-    asset relatedAssets-xxx.js.br xx bytes [emitted]
     + 6 assets
   assets by path *.gz xx KiB
+    asset relatedAssets-xxx.js.map.gz xx KiB [emitted]
     asset relatedAssets-xxx.js.gz xx KiB [emitted]
     asset relatedAssets-xxx.js.gz xx bytes [emitted]
-    asset relatedAssets-xxx.js.map.gz xx bytes [emitted]
     + 5 assets
   assets by path *.js xx KiB
     asset relatedAssets-xxx.js xx KiB [emitted] (name: main)
@@ -1505,13 +1505,13 @@ exclude1:
 
 exclude2:
   assets by path *.br xx KiB
+    asset exclude2-xxx.js.map.br xx KiB [emitted]
     asset exclude2-xxx.js.br xx KiB [emitted]
-    asset exclude2-xxx.js.br xx bytes [emitted]
     + 6 assets
   assets by path *.gz xx KiB
+    asset exclude2-xxx.js.map.gz xx KiB [emitted]
     asset exclude2-xxx.js.gz xx KiB [emitted]
     asset exclude2-xxx.js.gz xx bytes [emitted]
-    asset exclude2-xxx.js.map.gz xx bytes [emitted]
     + 5 assets
   assets by path *.js xx KiB
     asset exclude2-xxx.js xx KiB [emitted] (name: main)
@@ -1524,13 +1524,13 @@ exclude3:
   hidden assets xx KiB 10 assets
   assets by status xx KiB [emitted]
     assets by path *.br xx KiB
+      asset exclude3-xxx.js.map.br xx KiB [emitted]
       asset exclude3-xxx.js.br xx KiB [emitted]
-      asset exclude3-xxx.js.map.br xx bytes [emitted]
       asset exclude3-main.css.map.br xx bytes [emitted]
       asset exclude3-main.css.br xx bytes [emitted]
     assets by path *.gz xx KiB
+      asset exclude3-xxx.js.map.gz xx KiB [emitted]
       asset exclude3-xxx.js.gz xx KiB [emitted]
-      asset exclude3-xxx.js.map.gz xx bytes [emitted]
       asset exclude3-main.css.map.gz xx bytes [emitted]
       asset exclude3-main.css.gz xx bytes [emitted]
     assets by chunk xx KiB (name: main)
