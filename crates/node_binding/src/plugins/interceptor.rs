@@ -12,7 +12,7 @@ use napi::{
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  parse_resource, rspack_sources::RawSource, AfterResolveResult, AssetEmittedInfo,
+  parse_resource, rspack_sources::RawStringSource, AfterResolveResult, AssetEmittedInfo,
   BeforeResolveResult, BoxModule, ChunkUkey, CodeGenerationResults, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirementsHook,
   CompilationAfterOptimizeModules, CompilationAfterOptimizeModulesHook,
@@ -1309,7 +1309,7 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
     let arg = JsRuntimeModuleArg {
       module: JsRuntimeModule {
         source: Some(
-          RawSource::from(source_str)
+          RawStringSource::from(source_str)
             .to_js_compat_source_owned()
             .unwrap_or_else(|err| panic!("Failed to generate runtime module source: {err}")),
         ),
@@ -1330,8 +1330,13 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
         .runtime_modules
         .get_mut(m)
         .expect("should have module");
-      if let napi::Either::A(string) = source.source {
-        module.set_custom_source(string);
+      match source.source {
+        napi::Either::A(string) => {
+          module.set_custom_source(string);
+        }
+        napi::Either::B(buffer) => {
+          module.set_custom_source(String::from_utf8_lossy(&buffer.to_vec()).into_owned());
+        }
       }
     }
     Ok(())
