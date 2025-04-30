@@ -15,7 +15,7 @@ const MIN_CSS_CHUNK_SIZE: f64 = 30_f64 * 1024_f64;
 const MAX_CSS_CHUNK_SIZE: f64 = 100_f64 * 1024_f64;
 
 fn is_global_css(name_for_condition: &Option<Box<str>>) -> bool {
-  name_for_condition.as_ref().map_or(false, |s| {
+  name_for_condition.as_ref().is_some_and(|s| {
     !s.ends_with(".module.css") && !s.ends_with(".module.scss") && !s.ends_with(".module.sass")
   })
 }
@@ -108,7 +108,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let module_infos: IdentifierMap<(f64, Option<Box<str>>)> = {
     let module_graph = compilation.get_module_graph();
     let mut result = IdentifierMap::default();
-    for (module_identifier, _) in &chunk_states_by_module {
+    for module_identifier in chunk_states_by_module.keys() {
+      #[allow(clippy::unwrap_used)]
       let module = module_graph
         .module_by_identifier(module_identifier)
         .unwrap();
@@ -143,8 +144,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         if a == b {
           continue;
         }
-        let a_states = &chunk_states_by_module[&a];
-        let b_states = &chunk_states_by_module[&b];
+        let a_states = &chunk_states_by_module[a];
+        let b_states = &chunk_states_by_module[b];
         // check if a depends on b
         for (&chunk_state, &ia) in a_states {
           match b_states.get(&chunk_state) {
@@ -173,9 +174,11 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     };
     remaining_modules.remove(&start_module_identifier);
 
+    #[allow(clippy::unwrap_used)]
     let mut global_css_mode = is_global_css(&module_infos.get(&start_module_identifier).unwrap().1);
 
     // The current position of processing in all selected chunks
+    #[allow(clippy::unwrap_used)]
     let all_chunk_states = chunk_states_by_module
       .get(&start_module_identifier)
       .unwrap();
@@ -185,6 +188,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     new_chunk_modules.insert(start_module_identifier);
 
     // The current size of the new chunk
+    #[allow(clippy::unwrap_used)]
     let mut current_size = module_infos.get(&start_module_identifier).unwrap().0;
 
     // A pool of potential modules where the next module is selected from.
@@ -192,9 +196,11 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     // It also keeps some metadata to improve performance [size, chunkStates].
     let mut potential_next_modules: IdentifierMap<f64> = IdentifierMap::default();
     for (chunk_ukey, i) in all_chunk_states {
+      #[allow(clippy::unwrap_used)]
       let chunk_state = chunk_states.get(chunk_ukey).unwrap();
       if let Some(next_module_identifier) = chunk_state.modules.get(i + 1) {
         if remaining_modules.contains(next_module_identifier) {
+          #[allow(clippy::unwrap_used)]
           let next_module_size = module_infos.get(next_module_identifier).unwrap().0;
           potential_next_modules.insert(*next_module_identifier, next_module_size);
         }
@@ -208,6 +214,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
       // We try to select a module that reduces request count and
       // has the highest number of requests
+      #[allow(clippy::unwrap_used)]
       let all_chunk_states = chunk_states_by_module
         .get(&start_module_identifier)
         .unwrap();
@@ -215,12 +222,14 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         potential_next_modules
           .iter()
           .map(|(next_module_identifier, size)| {
+            #[allow(clippy::unwrap_used)]
             let next_chunk_states = chunk_states_by_module.get(next_module_identifier).unwrap();
             let mut max_requests = 0;
-            for (next_chunk_ukey, _) in next_chunk_states {
+            for next_chunk_ukey in next_chunk_states.keys() {
               // There is always some overlap
-              if all_chunk_states.contains_key(&next_chunk_ukey) {
-                let chunk_state = chunk_states.get(&next_chunk_ukey).unwrap();
+              if all_chunk_states.contains_key(next_chunk_ukey) {
+                #[allow(clippy::unwrap_used)]
+                let chunk_state = chunk_states.get(next_chunk_ukey).unwrap();
                 max_requests = max_requests.max(chunk_state.requests);
               }
             }
@@ -235,6 +244,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           // Chunk would be too large
           continue;
         }
+        #[allow(clippy::unwrap_used)]
         let next_chunk_states = chunk_states_by_module
           .get(&next_module_identifier)
           .cloned()
@@ -267,35 +277,36 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         }
 
         // Global CSS must not leak into unrelated chunks
+        #[allow(clippy::unwrap_used)]
         let is_global = is_global_css(&module_infos.get(&next_module_identifier).unwrap().1);
         if is_global && global_css_mode && all_chunk_states.len() != chunk_states.len() {
           continue 'outer;
         }
-        if global_css_mode {
-          if chunk_states
+        if global_css_mode
+          && chunk_states
             .keys()
             .any(|cs| !all_chunk_states.contains_key(cs))
-          {
-            continue 'outer;
-          }
+        {
+          continue 'outer;
         }
-        if is_global {
-          if all_chunk_states
+        if is_global
+          && all_chunk_states
             .keys()
             .any(|cs| !chunk_states.contains_key(cs))
-          {
-            continue 'outer;
-          }
+        {
+          continue 'outer;
         }
         potential_next_modules.remove(&next_module_identifier);
         current_size += size;
         if is_global {
           global_css_mode = true;
         }
+        #[allow(clippy::unwrap_used)]
         let all_chunk_states = chunk_states_by_module
           .get_mut(&start_module_identifier)
           .unwrap();
         for (chunk_ukey, i) in next_chunk_states {
+          #[allow(clippy::unwrap_used)]
           let chunk_state = chunk_states.get_mut(&chunk_ukey).unwrap();
           if all_chunk_states.contains_key(&chunk_ukey) {
             // This reduces the request count of the chunk group
@@ -303,9 +314,10 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           }
           all_chunk_states.insert(chunk_ukey, i);
           if let Some(next_module_identifier) = chunk_state.modules.get(i + 1) {
-            if remaining_modules.contains(&next_module_identifier)
-              && !new_chunk_modules.contains(&next_module_identifier)
+            if remaining_modules.contains(next_module_identifier)
+              && !new_chunk_modules.contains(next_module_identifier)
             {
+              #[allow(clippy::unwrap_used)]
               let next_module_size = module_infos.get(next_module_identifier).unwrap().0;
               potential_next_modules.insert(*next_module_identifier, next_module_size);
             }
@@ -316,12 +328,13 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         break 'outer;
       }
       let new_chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
+      #[allow(clippy::unwrap_used)]
       let new_chunk = compilation.chunk_by_ukey.get_mut(&new_chunk_ukey).unwrap();
       new_chunk.prevent_integration();
       new_chunk.add_id_name_hints("css".to_string());
       let chunk_graph = &mut compilation.chunk_graph;
       for module_identifier in &new_chunk_modules {
-        remaining_modules.remove(&module_identifier);
+        remaining_modules.remove(module_identifier);
         chunk_graph.connect_chunk_and_module(new_chunk_ukey, *module_identifier);
         new_chunks_by_module.insert(*module_identifier, new_chunk_ukey);
       }
@@ -340,6 +353,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         chunks.insert(*new_chunk_ukey);
         let chunk_by_ukey = &mut compilation.chunk_by_ukey;
         let [chunk, new_chunk] = chunk_by_ukey.get_many_mut([&chunk_state.chunk, new_chunk_ukey]);
+        #[allow(clippy::unwrap_used)]
         chunk
           .unwrap()
           .split(new_chunk.unwrap(), &mut compilation.chunk_group_by_ukey);
