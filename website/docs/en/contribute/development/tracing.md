@@ -6,8 +6,17 @@
 
 Tracing can be enabled in two ways:
 
-- If using `@rspack/cli` or Rsbuild: Enable it by setting the `RSPACK_PROFILE` environment variable
-- If directly using `@rspack/core`: Enable it through `rspack.experiments.globalTrace.register` and `rspack.experiments.globalTrace.cleanup`. You can check [how we implement `RSPACK_PROFILE` in `@rspack/cli`](https://github.com/web-infra-dev/rspack/blob/9be47217b5179186b0825ca79990ab2808aa1a0f/packages/rspack-cli/src/utils/profile.ts#L219-L224) for more information.
+- If using [@rspack/cli](/api/cli) or Rsbuild: Enable it by setting the `RSPACK_PROFILE` environment variable:
+
+```sh
+# Rspack CLI
+RSPACK_PROFILE=ALL rspack build
+
+# Rsbuild
+RSPACK_PROFILE=ALL rsbuild build
+```
+
+- If directly using `@rspack/core`: Enable it through `rspack.experiments.globalTrace.register` and `rspack.experiments.globalTrace.cleanup`. You can check how we implement [`RSPACK_PROFILE` in `@rspack/cli`](https://github.com/web-infra-dev/rspack/blob/9be47217b5179186b0825ca79990ab2808aa1a0f/packages/rspack-cli/src/utils/profile.ts#L219-L224) for more information.
 
 The generated `trace.json` file can be viewed and analyzed in [ui.perfetto.dev](https://ui.perfetto.dev/).
 
