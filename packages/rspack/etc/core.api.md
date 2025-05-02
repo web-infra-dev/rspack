@@ -958,6 +958,8 @@ export class Compilation {
     // @internal
     __internal_getInner(): binding.JsCompilation;
     // (undocumented)
+    addEntry(context: string, dependency: ReturnType<typeof EntryPlugin.createDependency>, optionsOrName: EntryOptions | string, callback: (err?: null | WebpackError_2, module?: Module) => void): void;
+    // (undocumented)
     addInclude(context: string, dependency: ReturnType<typeof EntryPlugin.createDependency>, options: EntryOptions, callback: (err?: null | WebpackError_2, module?: Module) => void): void;
     // (undocumented)
     addRuntimeModule(chunk: Chunk, runtimeModule: RuntimeModule): void;

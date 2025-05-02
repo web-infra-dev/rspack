@@ -625,6 +625,31 @@ impl Compilation {
       .add_entry
       .call(self, entry_name.as_deref())
       .await?;
+
+    Ok(())
+  }
+
+  pub async fn add_entry_batch(&mut self, args: Vec<(BoxDependency, EntryOptions)>) -> Result<()> {
+    for (entry, options) in args {
+      self.add_entry(entry, options).await?;
+    }
+
+    let make_artifact = std::mem::take(&mut self.make_artifact);
+    self.make_artifact = update_module_graph(
+      self,
+      make_artifact,
+      vec![MakeParam::BuildEntry(
+        self
+          .entries
+          .values()
+          .flat_map(|item| item.all_dependencies())
+          .chain(self.global_entry.all_dependencies())
+          .copied()
+          .collect(),
+      )],
+    )
+    .await?;
+
     Ok(())
   }
 
