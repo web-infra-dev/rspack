@@ -4,7 +4,7 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   property_access, AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
-  DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType,
+  DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, RuntimeGlobals,
   RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName,
 };
@@ -16,7 +16,7 @@ use super::ExportsBase;
 #[derive(Debug, Clone)]
 pub struct CommonJsSelfReferenceDependency {
   id: DependencyId,
-  range: (u32, u32),
+  range: DependencyRange,
   base: ExportsBase,
   #[cacheable(with=AsVec<AsPreset>)]
   names: Vec<Atom>,
@@ -25,7 +25,7 @@ pub struct CommonJsSelfReferenceDependency {
 }
 
 impl CommonJsSelfReferenceDependency {
-  pub fn new(range: (u32, u32), base: ExportsBase, names: Vec<Atom>, is_call: bool) -> Self {
+  pub fn new(range: DependencyRange, base: ExportsBase, names: Vec<Atom>, is_call: bool) -> Self {
     Self {
       id: DependencyId::new(),
       range,
@@ -41,6 +41,10 @@ impl CommonJsSelfReferenceDependency {
 impl Dependency for CommonJsSelfReferenceDependency {
   fn id(&self) -> &DependencyId {
     &self.id
+  }
+
+  fn range(&self) -> Option<&DependencyRange> {
+    Some(&self.range)
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -162,8 +166,8 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
     };
 
     source.replace(
-      dep.range.0,
-      dep.range.1,
+      dep.range.start,
+      dep.range.end,
       &format!(
         "{}{}",
         base,

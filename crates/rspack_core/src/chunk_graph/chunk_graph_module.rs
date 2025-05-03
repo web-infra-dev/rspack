@@ -12,7 +12,6 @@ use rspack_hash::RspackHashDigest;
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHasher;
 use serde::{Serialize, Serializer};
-use tracing::instrument;
 
 use crate::{
   for_each_runtime, AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGraph, ChunkGroup,
@@ -283,7 +282,6 @@ impl ChunkGraph {
       .map(|cgm| &cgm.chunks)
   }
 
-  #[instrument("chunk_graph:get_module_graph_hash", level="trace",skip_all, fields(module = ?module.identifier()))]
   pub fn get_module_graph_hash(
     &self,
     module: &dyn Module,

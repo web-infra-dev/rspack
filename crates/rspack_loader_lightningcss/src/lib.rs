@@ -1,4 +1,7 @@
-use std::borrow::Cow;
+use std::{
+  borrow::Cow,
+  sync::{Arc, RwLock},
+};
 
 use config::Config;
 use derive_more::Debug;
@@ -76,15 +79,47 @@ impl LightningCssLoader {
       matches!(&self.config.non_standard, Some(non_standard) if non_standard.deep_selector_combinator),
     );
 
+    let error_recovery = self.config.error_recovery.unwrap_or(true);
+    let warnings = if error_recovery {
+      Some(Arc::new(RwLock::new(Vec::new())))
+    } else {
+      None
+    };
+
     let option = ParserOptions {
       filename: filename.clone(),
       css_modules: None,
       source_index: 0,
-      error_recovery: self.config.error_recovery.unwrap_or(false),
-      warnings: None,
+      error_recovery,
+      warnings: warnings.clone(),
       flags: parser_flags,
     };
     let stylesheet = StyleSheet::parse(&content_str, option.clone()).to_rspack_result()?;
+    // FIXME: Disable the warnings for now, cause it cause too much positive-negative warnings,
+    // enable when we have a better way to handle it.
+
+    // if let Some(warnings) = warnings {
+    //   #[allow(clippy::unwrap_used)]
+    //   let warnings = warnings.read().unwrap();
+    //   for warning in warnings.iter() {
+    //     if matches!(
+    //       warning.kind,
+    //       lightningcss::error::ParserError::SelectorError(
+    //         lightningcss::error::SelectorError::UnsupportedPseudoClass(_)
+    //       ) | lightningcss::error::ParserError::SelectorError(
+    //         lightningcss::error::SelectorError::UnsupportedPseudoElement(_)
+    //       )
+    //     ) {
+    //       // ignore parsing errors on pseudo class from lightningcss-loader
+    //       // to allow pseudo class in CSS modules and Vue.
+    //       continue;
+    //     }
+    //     loader_context.emit_diagnostic(Diagnostic::warn(
+    //       "builtin:lightningcss-loader".to_string(),
+    //       format!("LightningCSS parse warning: {}", warning),
+    //     ));
+    //   }
+    // }
 
     let mut stylesheet = to_static(
       stylesheet,

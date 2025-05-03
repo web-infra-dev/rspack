@@ -12,6 +12,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use super::MakeArtifact;
 use crate::{
   cache::Cache,
+  incremental::Incremental,
   module_graph::{ModuleGraph, ModuleGraphPartial},
   old_cache::Cache as OldCache,
   utils::task_loop::{run_task_loop, Task},
@@ -83,6 +84,7 @@ impl MakeTaskContext {
       None,
       self.cache.clone(),
       self.old_cache.clone(),
+      Incremental::new_cold(self.compiler_options.experiments.incremental),
       None,
       Default::default(),
       Default::default(),

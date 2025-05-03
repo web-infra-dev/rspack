@@ -380,10 +380,11 @@ async function loaderImpl(
 		if (typeof options === "string") {
 			if (options.startsWith("{") && options.endsWith("}")) {
 				try {
-					const parseJson = require("json-parse-even-better-errors");
-					options = parseJson(options);
+					options = JSON.parse(options);
 				} catch (e: any) {
-					throw new Error(`Cannot parse string options: ${e.message}`);
+					throw new Error(
+						`JSON parsing failed for loader's string options: ${e.message}`
+					);
 				}
 			} else {
 				options = querystring.parse(options);
@@ -664,4 +665,4 @@ function getCurrentLoader(
 	return null;
 }
 
-export = worker;
+export default worker;

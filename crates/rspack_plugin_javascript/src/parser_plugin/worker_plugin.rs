@@ -131,16 +131,14 @@ fn add_dependencies(
     parser
       .presentational_dependencies
       .push(Box::new(ConstDependency::new(
-        range.0,
-        range.0,
+        (range.0, range.0).into(),
         "Object.assign({}, ".into(),
         None,
       )));
     parser
       .presentational_dependencies
       .push(Box::new(ConstDependency::new(
-        range.1,
-        range.1,
+        (range.1, range.1).into(),
         format!(
           ", {{ type: {} }})",
           if output_module {

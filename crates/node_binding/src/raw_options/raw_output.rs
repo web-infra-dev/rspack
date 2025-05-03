@@ -165,7 +165,7 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
 
     let clean = match value.clean {
       Either::A(b) => CleanOptions::CleanAll(b),
-      Either::B(cop) => cop.to_clean_options(),
+      Either::B(cop) => cop.into(),
     };
 
     Ok(OutputOptions {

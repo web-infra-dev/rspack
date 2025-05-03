@@ -39,12 +39,12 @@ impl ImportMetaPlugin {
 }
 
 impl JavascriptParserPlugin for ImportMetaPlugin {
-  fn evaluate_typeof(
+  fn evaluate_typeof<'a>(
     &self,
     _parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::UnaryExpr,
+    expr: &'a swc_core::ecma::ast::UnaryExpr,
     for_name: &str,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression> {
+  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'a>> {
     let mut evaluated = None;
     if for_name == expr_name::IMPORT_META {
       evaluated = Some("object".to_string());
@@ -74,7 +74,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     ident: &str,
     start: u32,
     end: u32,
-  ) -> Option<eval::BasicEvaluatedExpression> {
+  ) -> Option<eval::BasicEvaluatedExpression<'static>> {
     if ident == expr_name::IMPORT_META_WEBPACK {
       Some(eval::evaluate_to_number(5_f64, start, end))
     } else if ident == expr_name::IMPORT_META_URL {
@@ -98,8 +98,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          unary_expr.span().real_lo(),
-          unary_expr.span().real_hi(),
+          unary_expr.span().into(),
           "'object'".into(),
           None,
         )));
@@ -108,8 +107,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          unary_expr.span().real_lo(),
-          unary_expr.span().real_hi(),
+          unary_expr.span().into(),
           "'string'".into(),
           None,
         )));
@@ -118,8 +116,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          unary_expr.span().real_lo(),
-          unary_expr.span().real_hi(),
+          unary_expr.span().into(),
           "'number'".into(),
           None,
         )));
@@ -159,8 +156,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            span.real_lo(),
-            span.real_hi(),
+            span.into(),
             format!("({{{}}})", content.join(",")).into(),
             None,
           )));
@@ -183,8 +179,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            span.real_lo(),
-            span.real_hi(),
+            span.into(),
             content.into(),
             None,
           )));
@@ -206,8 +201,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          member_expr.span().real_lo(),
-          member_expr.span().real_hi(),
+          member_expr.span().into(),
           format!("'{}'", self.import_meta_url(parser)).into(),
           None,
         )));
@@ -217,8 +211,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          member_expr.span().real_lo(),
-          member_expr.span().real_hi(),
+          member_expr.span().into(),
           self.import_meta_webpack_version().into(),
           None,
         )));
@@ -240,24 +233,34 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
           let members = parser
             .get_member_expression_info(expr, AllowedMemberTypes::Expression)
             .and_then(|info| match info {
-              MemberExpressionInfo::Expression(res) => Some(res.members),
+              MemberExpressionInfo::Expression(res) => Some(res),
               _ => None,
             });
-          parser
-            .presentational_dependencies
-            .push(Box::new(ConstDependency::new(
-              expr.span().real_lo(),
-              expr.span().real_hi(),
-              members
-                .map(|members| {
-                  self.import_meta_unknown_property(
-                    &members.iter().map(|x| x.to_string()).collect_vec(),
+
+          let dep = if let Some(members) = members {
+            if members.members.get(1).is_some()
+              && members
+                .members_optionals
+                .get(1)
+                .is_some_and(|optional| *optional)
+            {
+              ConstDependency::new(expr.span().into(), "undefined".into(), None)
+            } else {
+              ConstDependency::new(
+                expr.span().into(),
+                self
+                  .import_meta_unknown_property(
+                    &members.members.iter().map(|x| x.to_string()).collect_vec(),
                   )
-                })
-                .unwrap_or("undefined".to_string())
-                .into(),
-              None,
-            )));
+                  .into(),
+                None,
+              )
+            }
+          } else {
+            ConstDependency::new(expr.span().into(), "undefined".into(), None)
+          };
+
+          parser.presentational_dependencies.push(Box::new(dep));
           return Some(true);
         }
       }
@@ -284,8 +287,7 @@ impl JavascriptParserPlugin for ImportMetaDisabledPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          span.real_lo(),
-          span.real_hi(),
+          span.into(),
           import_meta_name.into(),
           None,
         )));

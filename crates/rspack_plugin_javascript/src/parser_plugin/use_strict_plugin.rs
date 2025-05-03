@@ -1,4 +1,4 @@
-use rspack_core::{ConstDependency, SpanExt};
+use rspack_core::ConstDependency;
 
 use super::JavascriptParserPlugin;
 use crate::visitors::JavascriptParser;
@@ -27,7 +27,7 @@ impl JavascriptParserPlugin for UseStrictPlugin {
     {
       // Remove "use strict" expression. It will be added later by the renderer again.
       // This is necessary in order to not break the strict mode when webpack prepends code.
-      let dep = ConstDependency::new(first.span.real_lo(), first.span.real_hi(), "".into(), None);
+      let dep = ConstDependency::new(first.span.into(), "".into(), None);
       parser.presentational_dependencies.push(Box::new(dep));
       parser.build_info.strict = true;
     }

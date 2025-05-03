@@ -117,7 +117,7 @@ pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
     _runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
     Ok(RspackHashDigest::new(
-      vec![],
+      &[],
       &compilation.options.output.hash_digest,
     ))
   }

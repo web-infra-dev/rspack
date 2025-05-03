@@ -1,5 +1,5 @@
 {
-  "name": "rspack-pnp-test",
+  "name": "rspack-pnp-enable",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -9,5 +9,5 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "yarn@3.8.7"
+  "packageManager": "yarn@4.9.1"
 }

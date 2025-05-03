@@ -21,7 +21,10 @@
   "rust-analyzer.linkedProjects": [
     "Cargo.toml"
   ],
-  "rust-analyzer.cargo.features": ["rspack_cacheable/noop"],
+  "rust-analyzer.cargo.targetDir": true, // Don't let RA blocking cargo build
+  "rust-analyzer.cargo.features": [
+    "rspack_cacheable/noop"
+  ],
   "files.associations": {
     "*.snap": "markdown",
     "*.snap.txt": "markdown",
@@ -35,6 +38,8 @@
     "napi",
     "postcss",
     "pxtorem",
+    "rslib",
+    "Rslib",
     "rspack",
     "threejs",
     "tokio",

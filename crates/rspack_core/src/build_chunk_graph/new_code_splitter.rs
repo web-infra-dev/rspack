@@ -503,6 +503,7 @@ impl CodeSplitter {
         let entry_options = block
           .get_group_options()
           .and_then(|option| option.entry_options());
+        let is_entry = entry_options.is_some();
         let should_create = chunk_loading || entry_options.is_some();
         let block = module_graph
           .block_by_id(&block_id)
@@ -525,9 +526,15 @@ impl CodeSplitter {
           {
             // already created with name, let old_runtime = root.get_runtime();
             let old_runtime = root.get_runtime();
-            let new_runtime = merge_runtime(&runtime, old_runtime);
-            self.module_deps.entry(new_runtime.clone()).or_default();
-            root.set_runtime(new_runtime.clone());
+            let new_runtime = if is_entry {
+              // async entrypoint has unique runtime, do not merge runtime
+              old_runtime.clone()
+            } else {
+              let new_runtime = merge_runtime(&runtime, old_runtime);
+              self.module_deps.entry(new_runtime.clone()).or_default();
+              root.set_runtime(new_runtime.clone());
+              new_runtime
+            };
 
             match root {
               CreateChunkRoot::Entry(_, options, _) => {
@@ -577,9 +584,15 @@ impl CodeSplitter {
           } else if let Some(root) = roots.get_mut(&block_id) {
             // already created
             let old_runtime = root.get_runtime();
-            let new_runtime = merge_runtime(&runtime, old_runtime);
-            self.module_deps.entry(new_runtime.clone()).or_default();
-            root.set_runtime(new_runtime.clone());
+            let new_runtime = if is_entry {
+              // async entrypoint has unique runtime, do not merge runtime
+              old_runtime.clone()
+            } else {
+              let new_runtime = merge_runtime(&runtime, old_runtime);
+              self.module_deps.entry(new_runtime.clone()).or_default();
+              root.set_runtime(new_runtime.clone());
+              new_runtime
+            };
             Cow::Owned(new_runtime)
           } else {
             let rt = if let Some(entry_options) = entry_options {
@@ -1023,7 +1036,7 @@ impl CodeSplitter {
 
     let enable_incremental: bool = compilation
       .incremental
-      .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH);
+      .passes_enabled(IncrementalPasses::BUILD_CHUNK_GRAPH);
 
     let reused = if enable_incremental {
       // lets see if any of them are from cache
@@ -1516,6 +1529,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
     self.set_order_index_and_group_index(compilation);
 
     errors.sort_unstable_by_key(|err| err.message());
+
     compilation.extend_diagnostics(errors);
 
     if enable_incremental {

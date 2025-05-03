@@ -3,7 +3,7 @@ use std::{fmt::Debug, rc::Rc, sync::LazyLock};
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  incremental::{IncrementalPasses, Mutation},
+  incremental::{self, IncrementalPasses, Mutation},
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta,
   DependencyId, FactoryMeta, Logger, MaybeDynamicTargetExportInfo, ModuleFactoryCreateData,
   ModuleGraph, ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData,
@@ -621,7 +621,7 @@ impl ClassExt for ClassMember {
 #[derive(Debug, Default)]
 pub struct SideEffectsFlagPlugin;
 
-#[plugin_hook(NormalModuleFactoryModule for SideEffectsFlagPlugin)]
+#[plugin_hook(NormalModuleFactoryModule for SideEffectsFlagPlugin,tracing=false)]
 async fn nmf_module(
   &self,
   _data: &mut ModuleFactoryCreateData,
@@ -656,7 +656,7 @@ async fn nmf_module(
   Ok(())
 }
 
-#[plugin_hook(CompilationOptimizeDependencies for SideEffectsFlagPlugin)]
+#[plugin_hook(CompilationOptimizeDependencies for SideEffectsFlagPlugin,tracing=false)]
 async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   let logger = compilation.get_logger("rspack.SideEffectsFlagPlugin");
   let start = logger.time("update connections");
@@ -727,6 +727,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
       },
     );
 
+    tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::SIDE_EFFECTS, %mutations, ?modules);
     let logger = compilation.get_logger("rspack.incremental.sideEffects");
     logger.log(format!(
       "{} modules are affected, {} in total",
@@ -760,7 +761,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
 
   let mut do_optimizes: Vec<(DependencyId, SideEffectsDoOptimize)> = if compilation
     .incremental
-    .can_read_mutations(IncrementalPasses::SIDE_EFFECTS)
+    .passes_enabled(IncrementalPasses::SIDE_EFFECTS)
   {
     side_effects_optimize_artifact.extend(artifact);
     side_effects_optimize_artifact.clone()

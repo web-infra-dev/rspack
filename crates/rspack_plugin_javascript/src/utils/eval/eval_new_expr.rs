@@ -5,10 +5,10 @@ use super::BasicEvaluatedExpression;
 use crate::{utils::eval, visitors::JavascriptParser};
 
 #[inline]
-pub fn eval_new_expression(
+pub fn eval_new_expression<'a>(
   scanner: &mut JavascriptParser,
-  expr: &NewExpr,
-) -> Option<BasicEvaluatedExpression> {
+  expr: &'a NewExpr,
+) -> Option<BasicEvaluatedExpression<'a>> {
   let ident = expr.callee.as_ident()?;
   if ident.sym.as_str() != "RegExp" {
     // FIXME: call hooks

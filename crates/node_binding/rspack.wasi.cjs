@@ -86,6 +86,7 @@ const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule
 })
 
 module.exports.AsyncDependenciesBlock = __napiModule.exports.AsyncDependenciesBlock
+module.exports.Chunks = __napiModule.exports.Chunks
 module.exports.ConcatenatedModule = __napiModule.exports.ConcatenatedModule
 module.exports.ContextModule = __napiModule.exports.ContextModule
 module.exports.Dependency = __napiModule.exports.Dependency
@@ -118,8 +119,10 @@ module.exports.cleanupGlobalTrace = __napiModule.exports.cleanupGlobalTrace
 module.exports.formatDiagnostic = __napiModule.exports.formatDiagnostic
 module.exports.JsLoaderState = __napiModule.exports.JsLoaderState
 module.exports.JsRspackSeverity = __napiModule.exports.JsRspackSeverity
+module.exports.minify = __napiModule.exports.minify
 module.exports.RawRuleSetConditionType = __napiModule.exports.RawRuleSetConditionType
 module.exports.registerGlobalTrace = __napiModule.exports.registerGlobalTrace
 module.exports.RegisterJsTapKind = __napiModule.exports.RegisterJsTapKind
 module.exports.shutdownAsyncRuntime = __napiModule.exports.shutdownAsyncRuntime
 module.exports.startAsyncRuntime = __napiModule.exports.startAsyncRuntime
+module.exports.transform = __napiModule.exports.transform

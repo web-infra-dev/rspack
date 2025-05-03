@@ -11,10 +11,10 @@ use crate::{
 };
 
 #[inline]
-fn eval_typeof(
+fn eval_typeof<'a>(
   parser: &mut JavascriptParser,
-  expr: &UnaryExpr,
-) -> Option<BasicEvaluatedExpression> {
+  expr: &'a UnaryExpr,
+) -> Option<BasicEvaluatedExpression<'a>> {
   assert!(expr.op == UnaryOp::TypeOf);
   if let Some(ident) = expr.arg.as_ident()
     && let Some(res) = ident.sym.call_hooks_name(parser, |parser, for_name| {
@@ -109,10 +109,10 @@ fn eval_typeof(
 }
 
 #[inline]
-pub fn eval_unary_expression(
+pub fn eval_unary_expression<'a>(
   scanner: &mut JavascriptParser,
-  expr: &UnaryExpr,
-) -> Option<BasicEvaluatedExpression> {
+  expr: &'a UnaryExpr,
+) -> Option<BasicEvaluatedExpression<'a>> {
   match expr.op {
     UnaryOp::TypeOf => eval_typeof(scanner, expr),
     UnaryOp::Bang => {

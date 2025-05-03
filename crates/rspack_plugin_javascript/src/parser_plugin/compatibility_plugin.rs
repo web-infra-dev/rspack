@@ -15,6 +15,7 @@ struct NestedRequireData {
   name: String,
   update: bool,
   loc: DependencyRange,
+  in_short_hand: bool,
 }
 
 pub struct CompatibilityPlugin;
@@ -32,12 +33,7 @@ impl CompatibilityPlugin {
     if !second.is_bool() || !matches!(second.as_bool(), Some(true)) {
       return None;
     }
-    let dep = ConstDependency::new(
-      expr.callee.span().real_lo(),
-      expr.callee.span().real_hi(),
-      "require".into(),
-      None,
-    );
+    let dep = ConstDependency::new(expr.callee.span().into(), "require".into(), None);
     if let Some(last) = parser.dependencies.last()
       && let Some(last) = last.downcast_ref::<CommonJsRequireContextDependency>()
       && let options = last.options()
@@ -57,6 +53,7 @@ impl CompatibilityPlugin {
     parser: &mut JavascriptParser,
     name: String,
     rename: String,
+    in_short_hand: bool,
     start: u32,
     end: u32,
   ) {
@@ -67,6 +64,7 @@ impl CompatibilityPlugin {
         name: rename,
         update: false,
         loc: DependencyRange::new(start, end),
+        in_short_hand,
       }),
     );
   }
@@ -86,7 +84,11 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     {
       parser
         .presentational_dependencies
-        .push(Box::new(ConstDependency::new(0, 0, "//".into(), None)));
+        .push(Box::new(ConstDependency::new(
+          (0, 0).into(),
+          "//".into(),
+          None,
+        )));
     }
 
     None
@@ -107,6 +109,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
         parser,
         ident.sym.to_string(),
         format!("__nested_webpack_require_{}_{}__", itoa!(start), itoa!(end),),
+        parser.in_short_hand,
         start,
         end,
       );
@@ -116,6 +119,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
         parser,
         ident.sym.to_string(),
         "__nested_webpack_exports__".to_string(),
+        parser.in_short_hand,
         ident.span().real_lo(),
         ident.span().real_hi(),
       );
@@ -136,6 +140,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
         parser,
         ident.sym.to_string(),
         "__nested_webpack_exports__".to_string(),
+        parser.in_short_hand,
         ident.span().real_lo(),
         ident.span().real_hi(),
       );
@@ -147,6 +152,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
         parser,
         ident.sym.to_string(),
         format!("__nested_webpack_require_{}_{}__", itoa!(start), itoa!(end),),
+        parser.in_short_hand,
         start,
         end,
       );
@@ -169,6 +175,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
           "__nested_webpack_require_{}__",
           itoa!(fn_decl.span().real_lo())
         ),
+        parser.in_short_hand,
         ident.span().real_lo(),
         ident.span().real_hi(),
       );
@@ -193,10 +200,14 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     let mut deps = Vec::with_capacity(2);
     let name = nested_require_data.name.clone();
     if !nested_require_data.update {
+      let shorthand = nested_require_data.in_short_hand;
       deps.push(ConstDependency::new(
-        nested_require_data.loc.start,
-        nested_require_data.loc.end,
-        name.clone().into(),
+        nested_require_data.loc.clone(),
+        if shorthand {
+          format!("{}: {}", ident.sym, name.clone()).into()
+        } else {
+          name.clone().into()
+        },
         None,
       ));
       nested_require_data.update = true;
@@ -204,9 +215,12 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     tag_info.data = Some(NestedRequireData::into_any(nested_require_data));
 
     deps.push(ConstDependency::new(
-      ident.span.real_lo(),
-      ident.span.real_hi(),
-      name.into(),
+      ident.span.into(),
+      if parser.in_short_hand {
+        format!("{}: {}", ident.sym, name.clone()).into()
+      } else {
+        name.clone().into()
+      },
       None,
     ));
     for dep in deps {

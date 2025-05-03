@@ -12,14 +12,18 @@ export type AssetInfo = KnownAssetInfo & Record<string, any>;
 
 export const MODULE_IDENTIFIER_SYMBOL: unique symbol;
 
+export const COMPILATION_HOOKS_MAP_SYMBOL: unique symbol;
+
 export interface Module {
 	[MODULE_IDENTIFIER_SYMBOL]: string;
 	readonly type: string;
 	get context(): string | undefined;
 	get layer(): string | undefined;
-	get factoryMeta(): JsFactoryMeta | undefined
+	get factoryMeta(): JsFactoryMeta
+	set factoryMeta(factoryMeta: JsFactoryMeta);
 	get useSourceMap(): boolean;
 	get useSimpleSourceMap(): boolean;
+	get _readableIdentifier(): string;
 	buildInfo: Record<string, any>;
 	buildMeta: Record<string, any>;
 }

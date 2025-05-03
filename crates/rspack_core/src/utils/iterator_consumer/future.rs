@@ -9,18 +9,18 @@ pub trait FutureConsumer {
   /// Use to immediately consume the data produced by the future in the iterator
   /// without waiting for all the data to be processed.
   /// The closures runs in the current thread.
-  async fn fut_consume(self, func: impl FnMut(Self::Item) + Send);
+  fn fut_consume(self, func: impl FnMut(Self::Item) + Send) -> impl Future<Output = ()>;
 }
 
 #[async_trait::async_trait]
 impl<I, Fut> FutureConsumer for I
 where
-  I: Iterator<Item = Fut> + Send,
+  I: Iterator<Item = Fut>,
   Fut: Future + Send + 'static,
-  Fut::Output: Send + 'static,
+  Fut::Output: Send,
 {
   type Item = Fut::Output;
-  async fn fut_consume(self, mut func: impl FnMut(Self::Item) + Send) {
+  fn fut_consume(self, mut func: impl FnMut(Self::Item) + Send) -> impl Future<Output = ()> {
     let mut rx = {
       // Create the channel in the closure to ensure all sender are dropped when iterator completes
       // This ensures that the receiver does not get stuck in an infinite loop.
@@ -35,9 +35,10 @@ where
       });
       rx
     };
-
-    while let Some(data) = rx.recv().await {
-      func(data);
+    async move {
+      while let Some(data) = rx.recv().await {
+        func(data);
+      }
     }
   }
 }

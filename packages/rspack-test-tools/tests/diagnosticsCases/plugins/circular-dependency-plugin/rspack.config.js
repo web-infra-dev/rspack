@@ -7,13 +7,16 @@ module.exports = {
 		aa: "./require-circular/d.js",
 		bb: "./import-circular/index.js",
 		cc: "./no-cycle/index.js",
-		dd: "./ignore-circular/a.js"
+		dd: "./ignore-circular/a.js",
+		ee: "./multiple-circular/a.js"
 	},
 	plugins: [
 		new CircularDependencyRspackPlugin({
 			failOnError: false,
 			exclude: /ignore-circular/,
 			onStart(_compilation) {
+				expect(typeof _compilation.errors === "object").toBeTruthy();
+				expect(typeof _compilation.errors.push === "function").toBeTruthy();
 				startFn();
 			},
 			onEnd(_compilation) {

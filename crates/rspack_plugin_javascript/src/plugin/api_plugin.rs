@@ -25,7 +25,7 @@ async fn compilation(
   Ok(())
 }
 
-#[plugin_hook(JavascriptModulesRenderModuleContent for APIPlugin)]
+#[plugin_hook(JavascriptModulesRenderModuleContent for APIPlugin,tracing=false)]
 async fn render_module_content(
   &self,
   compilation: &Compilation,

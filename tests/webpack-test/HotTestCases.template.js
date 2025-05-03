@@ -5,33 +5,35 @@ require("./helpers/warmup-webpack");
 const path = require("path");
 const fs = require("graceful-fs");
 const vm = require("vm");
-const { rimrafSync } = require("rimraf");
+const rimraf = require("rimraf");
 const checkArrayExpectation = require("./checkArrayExpectation");
 const createLazyTestEnv = require("./helpers/createLazyTestEnv");
-const { createFilteredDescribe } = require("./lib/util/filterUtil");
+const FakeDocument = require("./helpers/FakeDocument");
 
 const casesPath = path.join(__dirname, "hotCases");
 let categories = fs
 	.readdirSync(casesPath)
 	.filter(dir => fs.statSync(path.join(casesPath, dir)).isDirectory());
-categories = categories.map(cat => {
-	return {
-		name: cat,
-		tests: fs
-			.readdirSync(path.join(casesPath, cat))
-			.filter(folder => folder.indexOf("_") < 0)
-	};
-});
+categories = categories.map(cat => ({
+	name: cat,
+	tests: fs
+		.readdirSync(path.join(casesPath, cat))
+		.filter(folder => !folder.includes("_"))
+}));
 
 const describeCases = config => {
 	describe(config.name, () => {
-		categories.forEach(category => {
+		for (const category of categories) {
 			describe(category.name, () => {
-				category.tests.forEach(testName => {
+				for (const testName of category.tests) {
 					const testDirectory = path.join(casesPath, category.name, testName);
 					const filterPath = path.join(testDirectory, "test.filter.js");
-					if (!createFilteredDescribe(testName, filterPath, config)) {
-						return;
+					if (fs.existsSync(filterPath) && !require(filterPath)(config)) {
+						// eslint-disable-next-line jest/no-disabled-tests
+						describe.skip(testName, () => {
+							it("filtered", () => {});
+						});
+						continue;
 					}
 					describe(testName, () => {
 						let compiler;
@@ -40,9 +42,7 @@ const describeCases = config => {
 							compiler = undefined;
 						});
 
-						it(
-							testName + " should compile",
-							done => {
+							it(`${testName} should compile`, done => {
 								const webpack = require("@rspack/core");
 								const outputDirectory = path.join(
 									__dirname,
@@ -51,15 +51,12 @@ const describeCases = config => {
 									category.name,
 									testName
 								);
-								rimrafSync(outputDirectory);
+								rimraf.sync(outputDirectory);
 								const recordsPath = path.join(outputDirectory, "records.json");
 								const fakeUpdateLoaderOptions = {
 									updateIndex: 0
 								};
-								const configPath = path.join(
-									testDirectory,
-									"webpack.config.js"
-								);
+								const configPath = path.join(testDirectory, "webpack.config.js");
 								let options = {};
 								if (fs.existsSync(configPath)) options = require(configPath);
 								if (typeof options === "function") {
@@ -86,9 +83,6 @@ const describeCases = config => {
 									options.optimization.moduleIds = "named";
 								if (!options.module) options.module = {};
 								if (!options.module.rules) options.module.rules = [];
-								// CHANGE: turn off default experiments.css
-								options.experiments ??= {}
-								options.experiments.css ??= false
 								options.module.rules.push({
 									loader: path.join(
 										__dirname,
@@ -104,8 +98,18 @@ const describeCases = config => {
 									new webpack.LoaderOptionsPlugin(fakeUpdateLoaderOptions)
 								);
 								if (!options.recordsPath) options.recordsPath = recordsPath;
-								compiler = webpack(options);
-								compiler.run((err, stats) => {
+								let testConfig = {};
+								try {
+									// try to load a test file
+									testConfig = Object.assign(
+										testConfig,
+										require(path.join(testDirectory, "test.config.js"))
+									);
+								} catch (_err) {
+									// ignored
+								}
+
+								const onCompiled = (err, stats) => {
 									if (err) return done(err);
 									const jsonStats = stats.toJson({
 										errorDetails: true
@@ -116,6 +120,7 @@ const describeCases = config => {
 											jsonStats,
 											"error",
 											"Error",
+											options,
 											done
 										)
 									) {
@@ -127,6 +132,7 @@ const describeCases = config => {
 											jsonStats,
 											"warning",
 											"Warning",
+											options,
 											done
 										)
 									) {
@@ -144,13 +150,14 @@ const describeCases = config => {
 										return `./${url}`;
 									};
 									const window = {
+										_elements: [],
 										fetch: async url => {
 											try {
-												const buffer = await new Promise((resolve, reject) =>
+												const buffer = await new Promise((resolve, reject) => {
 													fs.readFile(urlToPath(url), (err, b) =>
 														err ? reject(err) : resolve(b)
-													)
-												);
+													);
+												});
 												return {
 													status: 200,
 													ok: true,
@@ -172,32 +179,73 @@ const describeCases = config => {
 										},
 										document: {
 											createElement(type) {
-												return {
+												const ele = {
 													_type: type,
-													_attrs: {},
+													getAttribute(name) {
+														return this[name];
+													},
 													setAttribute(name, value) {
-														this._attrs[name] = value;
+														this[name] = value;
+													},
+													removeAttribute(name) {
+														delete this[name];
 													},
 													parentNode: {
 														removeChild(node) {
-															// ok
+															window._elements = window._elements.filter(
+																item => item !== node
+															);
 														}
 													}
 												};
+												ele.sheet =
+													type === "link"
+														? new FakeDocument.FakeSheet(ele, outputDirectory)
+														: {};
+												return ele;
 											},
 											head: {
 												appendChild(element) {
+													window._elements.push(element);
+
 													if (element._type === "script") {
 														// run it
 														Promise.resolve().then(() => {
 															_require(urlToRelativePath(element.src));
+														});
+													} else if (element._type === "link") {
+														Promise.resolve().then(() => {
+															if (element.onload) {
+																// run it
+																element.onload({ type: "load" });
+															}
+														});
+													}
+												},
+												insertBefore(element, before) {
+													window._elements.push(element);
+
+													if (element._type === "script") {
+														// run it
+														Promise.resolve().then(() => {
+															_require(urlToRelativePath(element.src));
+														});
+													} else if (element._type === "link") {
+														// run it
+														Promise.resolve().then(() => {
+															element.onload({ type: "load" });
 														});
 													}
 												}
 											},
 											getElementsByTagName(name) {
 												if (name === "head") return [this.head];
-												if (name === "script") return [];
+												if (name === "script" || name === "link") {
+													return window._elements.filter(
+														item => item._type === name
+													);
+												}
+
 												throw new Error("Not supported");
 											}
 										},
@@ -214,6 +262,14 @@ const describeCases = config => {
 										}
 									};
 
+									const moduleScope = {
+										window
+									};
+
+									if (testConfig.moduleScope) {
+										testConfig.moduleScope(moduleScope, options);
+									}
+
 									function _next(callback) {
 										fakeUpdateLoaderOptions.updateIndex++;
 										compiler.run((err, stats) => {
@@ -226,8 +282,9 @@ const describeCases = config => {
 													testDirectory,
 													jsonStats,
 													"error",
-													"errors" + fakeUpdateLoaderOptions.updateIndex,
+													`errors${fakeUpdateLoaderOptions.updateIndex}`,
 													"Error",
+													options,
 													callback
 												)
 											) {
@@ -238,8 +295,9 @@ const describeCases = config => {
 													testDirectory,
 													jsonStats,
 													"warning",
-													"warnings" + fakeUpdateLoaderOptions.updateIndex,
+													`warnings${fakeUpdateLoaderOptions.updateIndex}`,
 													"Warning",
+													options,
 													callback
 												)
 											) {
@@ -252,51 +310,62 @@ const describeCases = config => {
 									function _require(module) {
 										if (module.startsWith("./")) {
 											const p = path.join(outputDirectory, module);
+											if (module.endsWith(".css")) {
+												return fs.readFileSync(p, "utf-8");
+											}
 											if (module.endsWith(".json")) {
 												return JSON.parse(fs.readFileSync(p, "utf-8"));
-											} else {
-												const fn = vm.runInThisContext(
-													"(function(require, module, exports, __dirname, __filename, it, beforeEach, afterEach, expect, jest, self, window, fetch, document, importScripts, Worker, EventSource, NEXT, STATS) {" +
-													"global.expect = expect;" +
-													'function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }' +
-													fs.readFileSync(p, "utf-8") +
-													"\n})",
-													p
-												);
-												const m = {
-													exports: {}
-												};
-												fn.call(
-													m.exports,
-													_require,
-													m,
-													m.exports,
-													outputDirectory,
-													p,
-													_it,
-													_beforeEach,
-													_afterEach,
-													expect,
-													jest,
-													window,
-													window,
-													window.fetch,
-													window.document,
-													window.importScripts,
-													window.Worker,
-													window.EventSource,
-													_next,
-													jsonStats
-												);
-												return m.exports;
 											}
-										} else return require(module);
+											const fn = vm.runInThisContext(
+												"(function(require, module, exports, __dirname, __filename, it, beforeEach, afterEach, expect, jest, self, window, fetch, document, importScripts, Worker, EventSource, NEXT, STATS) {" +
+													"global.expect = expect;" +
+													`function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }${fs.readFileSync(
+														p,
+														"utf-8"
+													)}\n})`,
+												p
+											);
+											const m = {
+												exports: {}
+											};
+											fn.call(
+												m.exports,
+												_require,
+												m,
+												m.exports,
+												outputDirectory,
+												p,
+												_it,
+												_beforeEach,
+												_afterEach,
+												expect,
+												jest,
+												window,
+												window,
+												window.fetch,
+												window.document,
+												window.importScripts,
+												window.Worker,
+												window.EventSource,
+												_next,
+												jsonStats
+											);
+											return m.exports;
+										}
+										return require(module);
 									}
 									let promise = Promise.resolve();
 									const info = stats.toJson({ all: false, entrypoints: true });
 									if (config.target === "web") {
-										for (const file of info.entrypoints.main.assets)
-											_require(`./${file.name}`);
+										for (const file of info.entrypoints.main.assets) {
+											if (file.name.endsWith(".css")) {
+												const link = window.document.createElement("link");
+												link.href = path.join(outputDirectory, file.name);
+												window.document.head.appendChild(link);
+											} else {
+												_require(`./${file.name}`);
+											}
+										}
 									} else {
 										const assets = info.entrypoints.main.assets;
 										const result = _require(
@@ -308,9 +377,7 @@ const describeCases = config => {
 									promise.then(
 										() => {
 											if (getNumberOfTests() < 1)
-												return done(
-													new Error("No tests exported by test case")
-												);
+												return done(new Error("No tests exported by test case"));
 
 											done();
 										},
@@ -319,10 +386,10 @@ const describeCases = config => {
 											done(err);
 										}
 									);
-								});
-							},
-							20000
-						);
+								};
+								compiler = webpack(options);
+								compiler.run(onCompiled);
+							}, 20000);
 
 						const {
 							it: _it,
@@ -331,9 +398,9 @@ const describeCases = config => {
 							getNumberOfTests
 						} = createLazyTestEnv(20000);
 					});
-				});
+				}
 			});
-		});
+		}
 	});
 };
 

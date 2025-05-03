@@ -46,5 +46,6 @@ pub static CHECK_BYTES_REGISTRY: std::sync::LazyLock<HashMap<VTablePtr, CheckByt
         panic!("vtable conflict, a trait implementation was likely added twice (but it's possible there was a hash collision)")
       }
     }
+    result.shrink_to_fit();
     result
   });

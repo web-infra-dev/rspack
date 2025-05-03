@@ -9,7 +9,10 @@ const __dirname = dirname(__filename);
 /** @type {import('prebundle').Config} */
 export default {
 	dependencies: [
-		"zod",
+		{
+			name: "zod",
+			copyDts: true
+		},
 		"graceful-fs",
 		{
 			name: "watchpack",
@@ -53,16 +56,8 @@ export default {
 				// so we can remove the index chunk because it is not used
 				unlinkSync(join(distPath, "index.js"));
 
-				// ResolveRequest type is used by Rspack but not exported
-				const dtsFile = join(distPath, "index.d.ts");
-				const content = readFileSync(dtsFile, "utf-8");
-				writeFileSync(
-					dtsFile,
-					content.replace(
-						"type ResolveRequest =",
-						"export type ResolveRequest ="
-					)
-				);
+				// add an empty CachedInputFileSystem.d.ts file to prevent ts error
+				writeFileSync(join(distPath, "CachedInputFileSystem.d.ts"), "");
 			}
 		},
 		{

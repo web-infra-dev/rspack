@@ -143,7 +143,7 @@ async fn chunk_hash(
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let options = &self.options;
   let minimizer_options = &self.options.minimizer_options;
-  let all_warnings: RwLock<Vec<_>> = Default::default();
+  let all_warnings: RwLock<Vec<Diagnostic>> = Default::default();
   compilation
     .assets_mut()
     .par_iter_mut()
@@ -247,12 +247,30 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               }),
             })
             .to_rspack_result()?;
-          let warnings = warnings.read().expect("should lock");
-          all_warnings.write().expect("should lock").extend(
-            warnings.iter().map(|e| {
-              Diagnostic::warn("LightningCSS minimize warning".to_string(), e.to_string())
-            }),
-          );
+          // FIXME: Disable the warnings for now, cause it cause too much positive-negative warnings,
+          // enable when we have a better way to handle it.
+
+          // let warnings = warnings.read().expect("should lock");
+          // all_warnings.write().expect("should lock").extend(
+          //   warnings.iter().map(|e| {
+          //     if let Some(loc) = &e.loc {
+          //       let rope = ropey::Rope::from_str(&input);
+          //       let start = rope.line_to_byte(loc.line as usize) + loc.column as usize - 1;
+          //       let end = start;
+          //       Diagnostic::from(Box::new(TraceableError::from_file(
+          //         input.clone(),
+          //         start,
+          //         end,
+          //         "LightningCSS minimize warning".to_string(),
+          //         e.to_string(),
+          //       )
+          //       .with_kind(DiagnosticKind::Css)
+          //       .with_severity(RspackSeverity::Warn)) as Box<dyn miette::Diagnostic + Send + Sync>)
+          //     } else {
+          //       Diagnostic::warn("LightningCSS minimize warning".to_string(), e.to_string())
+          //     }
+          //   }),
+          // );
           result
         };
 

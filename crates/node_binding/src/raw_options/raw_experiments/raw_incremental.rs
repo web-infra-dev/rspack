@@ -1,9 +1,11 @@
 use napi_derive::napi;
-use rspack_core::incremental::IncrementalPasses;
+use rspack_core::incremental::{IncrementalOptions, IncrementalPasses};
 
 #[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawIncremental {
+  pub silent: bool,
+  // passes
   pub make: bool,
   pub infer_async_modules: bool,
   pub provided_exports: bool,
@@ -21,7 +23,7 @@ pub struct RawIncremental {
   pub emit_assets: bool,
 }
 
-impl From<RawIncremental> for IncrementalPasses {
+impl From<RawIncremental> for IncrementalOptions {
   fn from(value: RawIncremental) -> Self {
     let mut passes = IncrementalPasses::empty();
     if value.make {
@@ -69,6 +71,9 @@ impl From<RawIncremental> for IncrementalPasses {
     if value.emit_assets {
       passes.insert(IncrementalPasses::EMIT_ASSETS);
     }
-    passes
+    Self {
+      silent: value.silent,
+      passes,
+    }
   }
 }

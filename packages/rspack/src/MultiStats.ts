@@ -88,8 +88,8 @@ export default class MultiStats {
 			return obj;
 		});
 		if (childOptions.version) {
-			obj.rspackVersion = require("../package.json").version;
-			obj.version = require("../package.json").webpackVersion;
+			obj.rspackVersion = RSPACK_VERSION;
+			obj.version = WEBPACK_VERSION;
 		}
 		if (childOptions.hash) {
 			obj.hash = obj.children.map(j => j.hash).join("");

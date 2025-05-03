@@ -46,8 +46,6 @@ export class RspackCLI {
 		callback?: (e: Error | null, res?: Stats | MultiStats) => void
 	) {
 		process.env.RSPACK_CONFIG_VALIDATE ??= "loose";
-		process.env.WATCHPACK_WATCHER_LIMIT =
-			process.env.WATCHPACK_WATCHER_LIMIT || "20";
 
 		let config = await this.loadConfig(options);
 		config = await this.buildConfig(config, options, rspackCommand);
@@ -151,7 +149,11 @@ export class RspackCLI {
 			}
 			if (process.env.RSPACK_PROFILE) {
 				const { applyProfile } = await import("./utils/profile.js");
-				await applyProfile(process.env.RSPACK_PROFILE, item);
+				await applyProfile(
+					process.env.RSPACK_PROFILE,
+					process.env.RSPACK_TRACE_LAYER,
+					process.env.RSPACK_TRACE_OUTPUT
+				);
 			}
 			// cli --watch overrides the watch config
 			if (options.watch) {

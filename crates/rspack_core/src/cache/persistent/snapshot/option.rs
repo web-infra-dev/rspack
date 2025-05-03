@@ -1,7 +1,7 @@
 use rspack_regex::RspackRegex;
 
 /// Use string or regex to match path
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub enum PathMatcher {
   String(String),
   Regexp(RspackRegex),
@@ -17,7 +17,7 @@ impl PathMatcher {
 }
 
 /// Snapshot options
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Hash)]
 pub struct SnapshotOptions {
   /// immutable paths, snapshot will ignore them
   immutable_paths: Vec<PathMatcher>,

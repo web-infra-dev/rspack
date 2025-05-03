@@ -174,5 +174,6 @@ static DYN_REGISTRY: std::sync::LazyLock<HashMap<u64, VTablePtr>> =
         panic!("cacheable_dyn init global REGISTRY error, duplicate implementation.")
       }
     }
+    result.shrink_to_fit();
     result
   });

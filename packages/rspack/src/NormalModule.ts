@@ -2,7 +2,7 @@ import util from "node:util";
 import * as binding from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
 import type { Source } from "webpack-sources";
-import { type Compilation, checkCompilation } from "./Compilation";
+import type { Compilation } from "./Compilation";
 import type { Module } from "./Module";
 import type { LoaderContext } from "./config";
 import { JsSource } from "./util/source";
@@ -12,6 +12,13 @@ Object.defineProperty(binding.NormalModule.prototype, "identifier", {
 	configurable: true,
 	value(this: binding.NormalModule): string {
 		return this[binding.MODULE_IDENTIFIER_SYMBOL];
+	}
+});
+Object.defineProperty(binding.NormalModule.prototype, "readableIdentifier", {
+	enumerable: true,
+	configurable: true,
+	value(this: binding.NormalModule) {
+		return this._readableIdentifier;
 	}
 });
 Object.defineProperty(binding.NormalModule.prototype, "originalSource", {
@@ -38,18 +45,13 @@ Object.defineProperty(binding.NormalModule.prototype, "emitFile", {
 	}
 });
 
-interface NormalModuleCompilationHooks {
+export interface NormalModuleCompilationHooks {
 	loader: liteTapable.SyncHook<[LoaderContext, Module]>;
 	readResourceForScheme: any;
 	readResource: liteTapable.HookMap<
 		liteTapable.AsyncSeriesBailHook<[LoaderContext], string | Buffer>
 	>;
 }
-
-const compilationHooksMap = new WeakMap<
-	Compilation,
-	NormalModuleCompilationHooks
->();
 
 const createFakeHook = <T extends Record<string, any>>(
 	fakeHook: T,
@@ -107,8 +109,14 @@ Object.defineProperty(binding.NormalModule, "getCompilationHooks", {
 	enumerable: true,
 	configurable: true,
 	value(compilation: Compilation): NormalModuleCompilationHooks {
-		checkCompilation(compilation);
+		if (!(binding.COMPILATION_HOOKS_MAP_SYMBOL in compilation)) {
+			throw new TypeError(
+				"The 'compilation' argument must be an instance of Compilation"
+			);
+		}
 
+		const compilationHooksMap =
+			compilation[binding.COMPILATION_HOOKS_MAP_SYMBOL];
 		let hooks = compilationHooksMap.get(compilation);
 		if (hooks === undefined) {
 			hooks = {

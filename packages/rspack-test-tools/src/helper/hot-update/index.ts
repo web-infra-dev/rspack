@@ -1,0 +1,1 @@
+export { HotUpdatePlugin } from "./plugin";

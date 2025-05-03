@@ -240,7 +240,9 @@ pub mod test_pack_utils {
 
   pub async fn flush_file_mtime(path: &Utf8Path, fs: Arc<dyn FileSystem>) -> Result<()> {
     let content = fs.read_file(path).await?.read_to_end().await?;
-    fs.write_file(path).await?.write_all(&content).await?;
+    let mut writer = fs.write_file(path).await?;
+    writer.write_all(&content).await?;
+    writer.flush().await?;
 
     Ok(())
   }

@@ -35,99 +35,86 @@ use crate::{
 static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, Box<RuntimePluginHooks>>> =
   LazyLock::new(Default::default);
 
-static GLOBALS_ON_REQUIRE: LazyLock<Vec<RuntimeGlobals>> = LazyLock::new(|| {
-  vec![
-    RuntimeGlobals::CHUNK_NAME,
-    RuntimeGlobals::RUNTIME_ID,
+const GLOBALS_ON_REQUIRE: &[RuntimeGlobals] = &[
+  RuntimeGlobals::CHUNK_NAME,
+  RuntimeGlobals::RUNTIME_ID,
+  RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
+  RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+  RuntimeGlobals::CREATE_SCRIPT,
+  RuntimeGlobals::CREATE_SCRIPT_URL,
+  RuntimeGlobals::GET_TRUSTED_TYPES_POLICY,
+  RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+  RuntimeGlobals::ENSURE_CHUNK,
+  RuntimeGlobals::ENTRY_MODULE_ID,
+  RuntimeGlobals::GET_FULL_HASH,
+  RuntimeGlobals::GLOBAL,
+  RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
+  RuntimeGlobals::MODULE_CACHE,
+  RuntimeGlobals::MODULE_FACTORIES,
+  RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY,
+  RuntimeGlobals::INTERCEPT_MODULE_EXECUTION,
+  RuntimeGlobals::PUBLIC_PATH,
+  RuntimeGlobals::BASE_URI,
+  RuntimeGlobals::RELATIVE_URL,
+  RuntimeGlobals::SCRIPT_NONCE,
+  RuntimeGlobals::UNCAUGHT_ERROR_HANDLER,
+  RuntimeGlobals::ASYNC_MODULE,
+  // RuntimeGlobals::WASM_INSTANCES,
+  RuntimeGlobals::INSTANTIATE_WASM,
+  RuntimeGlobals::SHARE_SCOPE_MAP,
+  RuntimeGlobals::INITIALIZE_SHARING,
+  RuntimeGlobals::LOAD_SCRIPT,
+  RuntimeGlobals::SYSTEM_CONTEXT,
+  RuntimeGlobals::ON_CHUNKS_LOADED,
+];
+
+const MODULE_DEPENDENCIES: &[(RuntimeGlobals, RuntimeGlobals)] = &[
+  (RuntimeGlobals::MODULE_LOADED, RuntimeGlobals::MODULE),
+  (RuntimeGlobals::MODULE_ID, RuntimeGlobals::MODULE),
+  (
+    RuntimeGlobals::ESM_MODULE_DECORATOR,
+    RuntimeGlobals::MODULE.union(RuntimeGlobals::REQUIRE_SCOPE),
+  ),
+  (
+    RuntimeGlobals::NODE_MODULE_DECORATOR,
+    RuntimeGlobals::MODULE.union(RuntimeGlobals::REQUIRE_SCOPE),
+  ),
+  (RuntimeGlobals::AMD_DEFINE, RuntimeGlobals::REQUIRE),
+  (RuntimeGlobals::AMD_OPTIONS, RuntimeGlobals::REQUIRE_SCOPE),
+];
+
+const TREE_DEPENDENCIES: &[(RuntimeGlobals, RuntimeGlobals)] = &[
+  (
     RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
-    RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
-    RuntimeGlobals::CREATE_SCRIPT,
-    RuntimeGlobals::CREATE_SCRIPT_URL,
-    RuntimeGlobals::GET_TRUSTED_TYPES_POLICY,
     RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-    RuntimeGlobals::ENSURE_CHUNK,
-    RuntimeGlobals::ENTRY_MODULE_ID,
-    RuntimeGlobals::GET_FULL_HASH,
-    RuntimeGlobals::GLOBAL,
-    RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
-    RuntimeGlobals::MODULE_CACHE,
-    RuntimeGlobals::MODULE_FACTORIES,
-    RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY,
-    RuntimeGlobals::INTERCEPT_MODULE_EXECUTION,
-    RuntimeGlobals::PUBLIC_PATH,
-    RuntimeGlobals::BASE_URI,
-    RuntimeGlobals::RELATIVE_URL,
-    RuntimeGlobals::SCRIPT_NONCE,
-    RuntimeGlobals::UNCAUGHT_ERROR_HANDLER,
-    RuntimeGlobals::ASYNC_MODULE,
-    // RuntimeGlobals::WASM_INSTANCES,
-    RuntimeGlobals::INSTANTIATE_WASM,
-    RuntimeGlobals::SHARE_SCOPE_MAP,
+  ),
+  (
+    RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+    RuntimeGlobals::DEFINE_PROPERTY_GETTERS
+      .union(RuntimeGlobals::MAKE_NAMESPACE_OBJECT)
+      .union(RuntimeGlobals::REQUIRE),
+  ),
+  (
+    RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+    RuntimeGlobals::HAS_OWN_PROPERTY,
+  ),
+  (
     RuntimeGlobals::INITIALIZE_SHARING,
-    RuntimeGlobals::LOAD_SCRIPT,
-    RuntimeGlobals::SYSTEM_CONTEXT,
-    RuntimeGlobals::ON_CHUNKS_LOADED,
-  ]
-});
-
-static MODULE_DEPENDENCIES: LazyLock<Vec<(RuntimeGlobals, Vec<RuntimeGlobals>)>> =
-  LazyLock::new(|| {
-    vec![
-      (RuntimeGlobals::MODULE_LOADED, vec![RuntimeGlobals::MODULE]),
-      (RuntimeGlobals::MODULE_ID, vec![RuntimeGlobals::MODULE]),
-      (
-        RuntimeGlobals::ESM_MODULE_DECORATOR,
-        vec![RuntimeGlobals::MODULE, RuntimeGlobals::REQUIRE_SCOPE],
-      ),
-      (
-        RuntimeGlobals::NODE_MODULE_DECORATOR,
-        vec![RuntimeGlobals::MODULE, RuntimeGlobals::REQUIRE_SCOPE],
-      ),
-      (RuntimeGlobals::AMD_DEFINE, vec![RuntimeGlobals::REQUIRE]),
-      (
-        RuntimeGlobals::AMD_OPTIONS,
-        vec![RuntimeGlobals::REQUIRE_SCOPE],
-      ),
-    ]
-  });
-
-static TREE_DEPENDENCIES: LazyLock<Vec<(RuntimeGlobals, Vec<RuntimeGlobals>)>> =
-  LazyLock::new(|| {
-    vec![
-      (
-        RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
-        vec![RuntimeGlobals::DEFINE_PROPERTY_GETTERS],
-      ),
-      (
-        RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
-        vec![
-          RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-          RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
-          RuntimeGlobals::REQUIRE,
-        ],
-      ),
-      (
-        RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-        vec![RuntimeGlobals::HAS_OWN_PROPERTY],
-      ),
-      (
-        RuntimeGlobals::INITIALIZE_SHARING,
-        vec![RuntimeGlobals::SHARE_SCOPE_MAP],
-      ),
-      (
-        RuntimeGlobals::SHARE_SCOPE_MAP,
-        vec![RuntimeGlobals::HAS_OWN_PROPERTY],
-      ),
-      (
-        RuntimeGlobals::ESM_MODULE_DECORATOR,
-        vec![RuntimeGlobals::MODULE, RuntimeGlobals::REQUIRE_SCOPE],
-      ),
-      (
-        RuntimeGlobals::NODE_MODULE_DECORATOR,
-        vec![RuntimeGlobals::MODULE, RuntimeGlobals::REQUIRE_SCOPE],
-      ),
-    ]
-  });
+    RuntimeGlobals::SHARE_SCOPE_MAP,
+  ),
+  (
+    RuntimeGlobals::SHARE_SCOPE_MAP,
+    RuntimeGlobals::HAS_OWN_PROPERTY,
+  ),
+  (
+    RuntimeGlobals::ESM_MODULE_DECORATOR,
+    RuntimeGlobals::MODULE.union(RuntimeGlobals::REQUIRE_SCOPE),
+  ),
+  (
+    RuntimeGlobals::NODE_MODULE_DECORATOR,
+    RuntimeGlobals::MODULE.union(RuntimeGlobals::REQUIRE_SCOPE),
+  ),
+];
 
 fn handle_require_scope_globals(
   runtime_requirements: &RuntimeGlobals,
@@ -144,11 +131,11 @@ fn handle_require_scope_globals(
 fn handle_dependency_globals(
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
-  dependencies: &[(RuntimeGlobals, Vec<RuntimeGlobals>)],
+  dependencies: &[(RuntimeGlobals, RuntimeGlobals)],
 ) {
-  for (requirement, dependencies) in dependencies.iter() {
-    if runtime_requirements.contains(*requirement) {
-      runtime_requirements_mut.extend(dependencies.clone());
+  for &(requirement, dependencies) in dependencies.iter() {
+    if runtime_requirements.contains(requirement) {
+      *runtime_requirements_mut |= dependencies;
     }
   }
 }
@@ -205,7 +192,7 @@ async fn js_chunk_hash(
   Ok(())
 }
 
-#[plugin_hook(CompilationRuntimeRequirementInModule for RuntimePlugin)]
+#[plugin_hook(CompilationRuntimeRequirementInModule for RuntimePlugin,tracing=false)]
 async fn runtime_requirements_in_module(
   &self,
   _compilation: &Compilation,
@@ -218,7 +205,7 @@ async fn runtime_requirements_in_module(
   handle_dependency_globals(
     runtime_requirements,
     runtime_requirements_mut,
-    &MODULE_DEPENDENCIES,
+    MODULE_DEPENDENCIES,
   );
 
   Ok(None)
@@ -262,7 +249,7 @@ async fn runtime_requirements_in_tree(
   handle_dependency_globals(
     runtime_requirements,
     runtime_requirements_mut,
-    &TREE_DEPENDENCIES,
+    TREE_DEPENDENCIES,
   );
 
   let public_path = compilation
@@ -563,5 +550,9 @@ impl Plugin for RuntimePlugin {
       .runtime_requirement_in_tree
       .tap(runtime_requirements_in_tree::new(self));
     Ok(())
+  }
+
+  fn clear_cache(&self, id: CompilationId) {
+    COMPILATION_HOOKS_MAP.remove(&id);
   }
 }
