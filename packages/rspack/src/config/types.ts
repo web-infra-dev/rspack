@@ -880,7 +880,7 @@ export type RuleSetRule = {
 	/** Matches all modules that match this resource against the Resource's query. */
 	resourceQuery?: RuleSetCondition;
 
-	/** Matches all modules that match this resource, and will match against the Resource's mimetype. */
+	/** Matches modules based on [MIME type](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/MIME_types) instead of file extension. It's primarily useful for data URI module */
 	mimetype?: RuleSetCondition;
 
 	/** Matches all modules that match this resource, and will match against the Resource's scheme. */
