@@ -196,6 +196,7 @@ jobs:
       - name: Failure
         if: ${{ failure() }}
         run: |
+          SUITE='${{ matrix.suite }}'
           RSPACK_DIR=$(pwd)
           echo "{\"conclusion\":\"failure\"}" >> "$RSPACK_DIR/$SUITE.json"
 
