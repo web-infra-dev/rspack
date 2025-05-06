@@ -63,12 +63,21 @@ export class Stats {
 		return this.compilation.endTime;
 	}
 
-	hasErrors() {
-		return this.#inner.hasErrors();
+	hasErrors(): boolean {
+		return (
+			this.#compilation.errors.length > 0 ||
+			this.#compilation.children.some(child => child.getStats().hasErrors())
+		);
 	}
 
-	hasWarnings() {
-		return this.#inner.hasWarnings();
+	hasWarnings(): boolean {
+		const warnings = this.#compilation.hooks.processWarnings.call(
+			this.#compilation.warnings
+		);
+		return (
+			warnings.length > 0 ||
+			this.#compilation.children.some(child => child.getStats().hasWarnings())
+		);
 	}
 
 	toJson(opts?: StatsValue, forToString?: boolean): StatsCompilation {

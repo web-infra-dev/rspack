@@ -351,8 +351,6 @@ export declare class JsResolverFactory {
 
 export declare class JsStats {
   toJson(jsOptions: JsStatsOptions): JsStatsCompilation
-  hasWarnings(): boolean
-  hasErrors(): boolean
   getLogging(acceptedTypes: number): Array<JsStatsLogging>
 }
 
@@ -1358,6 +1356,7 @@ export interface JsStatsSize {
 
 export interface JsStatsWarning {
   moduleDescriptor?: JsModuleDescriptor
+  name?: string
   message: string
   chunkName?: string
   chunkEntry?: boolean
