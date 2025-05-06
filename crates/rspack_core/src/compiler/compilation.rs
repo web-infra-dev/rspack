@@ -1227,6 +1227,7 @@ impl Compilation {
       .process_assets
       .call(self)
       .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.processAssets"))
   }
 
   #[instrument("Compilation:after_process_asssets", skip_all)]
@@ -1425,7 +1426,12 @@ impl Compilation {
     let logger = self.get_logger("rspack.Compilation");
 
     // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L2809
-    plugin_driver.compilation_hooks.seal.call(self).await?;
+    plugin_driver
+      .compilation_hooks
+      .seal
+      .call(self)
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.seal"))?;
 
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
@@ -1435,7 +1441,8 @@ impl Compilation {
         .compilation_hooks
         .optimize_dependencies
         .call(self)
-        .await?,
+        .await
+        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeDependencies"))?,
       Some(true)
     ) {}
 
@@ -1462,7 +1469,8 @@ impl Compilation {
         .compilation_hooks
         .optimize_modules
         .call(self)
-        .await?,
+        .await
+        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeModules"))?,
       Some(true)
     ) {}
 
@@ -1470,14 +1478,16 @@ impl Compilation {
       .compilation_hooks
       .after_optimize_modules
       .call(self)
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.afterOptimizeModules"))?;
 
     while matches!(
       plugin_driver
         .compilation_hooks
         .optimize_chunks
         .call(self)
-        .await?,
+        .await
+        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeChunks"))?,
       Some(true)
     ) {}
 
@@ -1488,13 +1498,15 @@ impl Compilation {
       .compilation_hooks
       .optimize_tree
       .call(self)
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeTree"))?;
 
     plugin_driver
       .compilation_hooks
       .optimize_chunk_modules
       .call(self)
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeChunkModules"))?;
     logger.time_end(start);
 
     // ChunkGraph is frozen for now on, we have a chunk graph that won't change
@@ -1506,11 +1518,17 @@ impl Compilation {
       .compilation_hooks
       .module_ids
       .call(self)
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.moduleIds"))?;
     logger.time_end(start);
 
     let start = logger.time("chunk ids");
-    plugin_driver.compilation_hooks.chunk_ids.call(self).await?;
+    plugin_driver
+      .compilation_hooks
+      .chunk_ids
+      .call(self)
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.chunkIds"))?;
     logger.time_end(start);
 
     self.assign_runtime_ids();
@@ -1580,7 +1598,8 @@ impl Compilation {
       .compilation_hooks
       .optimize_code_generation
       .call(self)
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeCodeGeneration"))?;
     logger.time_end(start);
 
     let start = logger.time("code generation");
@@ -1620,7 +1639,8 @@ impl Compilation {
       .compilation_hooks
       .after_code_generation
       .call(self)
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.afterCodeGeneration"))?;
     logger.time_end(start);
 
     let start = logger.time("runtime requirements");
@@ -1822,7 +1842,8 @@ impl Compilation {
                     .compilation_hooks
                     .additional_module_runtime_requirements
                     .call(compilation, &module, &mut runtime_requirements)
-                    .await?;
+                    .await
+                    .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.additionalModuleRuntimeRequirements"))?;
 
                   compilation
                     .process_runtime_requirement_hook(&mut runtime_requirements, {
@@ -1841,7 +1862,8 @@ impl Compilation {
                             runtime_requirements,
                             runtime_requirements_mut,
                           )
-                          .await?;
+                          .await
+                          .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInModule"))?;
                         Ok(())
                       }
                     })
@@ -1898,7 +1920,10 @@ impl Compilation {
         .compilation_hooks
         .additional_chunk_runtime_requirements
         .call(self, &chunk_ukey, &mut set)
-        .await?;
+        .await
+        .map_err(|e| {
+          e.wrap_err("caused by plugins in Compilation.hooks.additionalChunkRuntimeRequirements")
+        })?;
 
       self
         .process_runtime_requirement_hook_mut(&mut set, {
@@ -1917,7 +1942,10 @@ impl Compilation {
                 runtime_requirements,
                 runtime_requirements_mut,
               )
-              .await?;
+              .await
+              .map_err(|e| {
+                e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInChunk")
+              })?;
             Ok(())
           }
         })
@@ -1943,7 +1971,10 @@ impl Compilation {
         .compilation_hooks
         .additional_tree_runtime_requirements
         .call(self, &entry_ukey, &mut set)
-        .await?;
+        .await
+        .map_err(|e| {
+          e.wrap_err("caused by plugins in Compilation.hooks.additionalTreeRuntimeRequirements")
+        })?;
 
       self
         .process_runtime_requirement_hook_mut(&mut set, {
@@ -1962,7 +1993,10 @@ impl Compilation {
                 runtime_requirements,
                 runtime_requirements_mut,
               )
-              .await?;
+              .await
+              .map_err(|e| {
+                e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInTree")
+              })?;
             Ok(())
           }
         })
@@ -1985,7 +2019,8 @@ impl Compilation {
           .compilation_hooks
           .runtime_module
           .call(self, &runtime_module_id, entry_ukey)
-          .await?;
+          .await
+          .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.runtimeModule"))?;
       }
     }
 

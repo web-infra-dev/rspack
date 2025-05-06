@@ -1729,7 +1729,22 @@ export default {
 - **Type:** [`Condition`](/config/module#condition)
 - **Default:** `undefined`
 
-Matches all modules that match this resource, and will match against the Resource's mimetype.
+Matches modules based on [MIME type](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/MIME_types) instead of file extension. It's primarily useful for [data URI module](/api/runtime-api/module-methods#data-uri-module).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        mimetype: 'text/javascript',
+        use: [
+          // ...
+        ],
+      },
+    ],
+  },
+};
+```
 
 ### Rule.descriptionData
 
