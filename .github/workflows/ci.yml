@@ -86,7 +86,7 @@ jobs:
 
   test-wasm:
     name: Test WASM
-    needs: [  check-changed ]
+    needs: [ check-changed ]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
