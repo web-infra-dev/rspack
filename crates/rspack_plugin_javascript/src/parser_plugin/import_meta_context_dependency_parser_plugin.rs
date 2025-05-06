@@ -115,7 +115,7 @@ impl JavascriptParserPlugin for ImportMetaContextDependencyParserPlugin {
     ident: &str,
     start: u32,
     end: u32,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'static>> {
     if ident == expr_name::IMPORT_META_WEBPACK_CONTEXT {
       Some(eval::evaluate_to_identifier(
         expr_name::IMPORT_META_WEBPACK_CONTEXT.to_string(),

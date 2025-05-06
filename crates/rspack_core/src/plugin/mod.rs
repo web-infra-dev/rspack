@@ -7,7 +7,7 @@ pub use context::*;
 pub use plugin_driver::*;
 use rspack_error::Result;
 
-use crate::CompilerOptions;
+use crate::{compiler::CompilationId, CompilerOptions};
 
 #[async_trait::async_trait]
 pub trait Plugin: fmt::Debug + Send + Sync {
@@ -23,7 +23,7 @@ pub trait Plugin: fmt::Debug + Send + Sync {
     Ok(())
   }
 
-  fn clear_cache(&self) {}
+  fn clear_cache(&self, _id: CompilationId) {}
 }
 
 pub type BoxPlugin = Box<dyn Plugin>;

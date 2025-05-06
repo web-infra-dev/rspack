@@ -12,7 +12,7 @@ use rspack_storage::{BridgeFileSystem, PackStorage, PackStorageOptions};
 ///
 /// This enum contains all of supported storage options.
 /// Since MemoryStorage is only used in unit test, there is no need to add it here.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub enum StorageOptions {
   FileSystem { directory: PathBuf },
 }

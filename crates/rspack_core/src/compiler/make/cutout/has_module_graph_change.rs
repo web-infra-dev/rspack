@@ -155,9 +155,9 @@ mod t {
   use crate::{
     compiler::make::cutout::has_module_graph_change::ModuleDeps, AffectType, AsContextDependency,
     BuildInfo, BuildMeta, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-    DependenciesBlock, Dependency, DependencyId, DependencyTemplate, ExportsInfo, FactorizeInfo,
-    FactoryMeta, Module, ModuleDependency, ModuleGraph, ModuleGraphModule, ModuleGraphPartial,
-    ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+    DependenciesBlock, Dependency, DependencyCodeGeneration, DependencyId, ExportsInfo,
+    FactorizeInfo, FactoryMeta, Module, ModuleDependency, ModuleGraph, ModuleGraphModule,
+    ModuleGraphPartial, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
   };
 
   #[cacheable]
@@ -201,17 +201,13 @@ mod t {
   }
 
   #[cacheable_dyn]
-  impl DependencyTemplate for TestDep {
+  impl DependencyCodeGeneration for TestDep {
     fn apply(
       &self,
       _source: &mut crate::TemplateReplaceSource,
       _code_generatable_context: &mut crate::TemplateContext,
     ) {
       todo!()
-    }
-
-    fn dependency_id(&self) -> Option<DependencyId> {
-      None
     }
 
     fn update_hash(

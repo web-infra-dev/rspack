@@ -1,12 +1,11 @@
 use std::{fmt::Debug, path::PathBuf, sync::Arc};
 
-use rspack_error::{
-  error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, ToStringResultToRspackResultExt,
-};
+use rspack_error::{error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_fs::ReadableFileSystem;
 use rspack_sources::SourceMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::task::spawn_blocking;
+use tracing::{info_span, Instrument};
 
 use crate::{
   content::{AdditionalData, Content, ResourceData},
@@ -27,11 +26,10 @@ impl<Context> LoaderContext<Context> {
   }
 }
 
-// #[tracing::instrument("LoaderRunner:process_resource",
-//   skip_all,
-//   fields(module.resource = loader_context.resource_data.resource),
-//   level = "trace"
-// )]
+#[tracing::instrument("LoaderRunner:process_resource",
+  skip_all,
+  fields(id2 = loader_context.resource_data.resource)
+)]
 async fn process_resource<Context: Send>(
   loader_context: &mut LoaderContext<Context>,
   fs: Arc<dyn ReadableFileSystem>,
@@ -51,11 +49,10 @@ async fn process_resource<Context: Send>(
     {
       let resource_path_owned = resource_path.to_owned();
       // use spawn_blocking to avoid block,see https://docs.rs/tokio/latest/src/tokio/fs/read.rs.html#48
-      let result = spawn_blocking(move || fs.read(resource_path_owned.as_path()))
+      let result = spawn_blocking(move || fs.read_sync(resource_path_owned.as_path()))
         .await
-        .to_rspack_result_with_message(|e| format!("{e}, spawn task failed"))?;
-      let result =
-        result.to_rspack_result_with_message(|e| format!("{e}, failed to read {resource_path}"))?;
+        .map_err(|e| error!("{e}, spawn task failed"))?;
+      let result = result.map_err(|e| error!("{e}, failed to read {resource_path}"))?;
       loader_context.content = Some(Content::from(result));
     } else if !resource_data.get_scheme().is_none() {
       let resource = &resource_data.resource;
@@ -125,7 +122,8 @@ pub async fn run_loaders<Context: Send>(
     .collect::<Vec<LoaderItem<Context>>>();
 
   let mut cx = create_loader_context(loaders, resource_data, plugin, context).await?;
-
+  let resource = cx.resource().to_owned();
+  let resource = resource.as_str();
   loop {
     match cx.state {
       State::Init => {
@@ -136,8 +134,8 @@ pub async fn run_loaders<Context: Send>(
           cx.state.transition(State::ProcessResource);
           continue;
         }
-
-        if cx.start_yielding().await? {
+        let span = info_span!("run_loader:pitch:yield_to_js", id2 = resource);
+        if cx.start_yielding().instrument(span).await? {
           if cx.content.is_some() {
             cx.state.transition(State::Normal);
             cx.loader_index -= 1;
@@ -152,7 +150,8 @@ pub async fn run_loaders<Context: Send>(
 
         cx.current_loader().set_pitch_executed();
         let loader = cx.current_loader().loader().clone();
-        loader.pitch(&mut cx).await?;
+        let span = info_span!("run_loader:pitch", id2 = resource);
+        loader.pitch(&mut cx).instrument(span).await?;
         if cx.content.is_some() {
           cx.state.transition(State::Normal);
           cx.loader_index -= 1;
@@ -160,7 +159,10 @@ pub async fn run_loaders<Context: Send>(
         }
       }
       State::ProcessResource => {
-        process_resource(&mut cx, fs.clone()).await?;
+        let span = info_span!("run_loader:process_resource", id2 = resource);
+        process_resource(&mut cx, fs.clone())
+          .instrument(span)
+          .await?;
         cx.loader_index = cx.loader_items.len() as i32 - 1;
         cx.state.transition(State::Normal);
       }
@@ -174,8 +176,8 @@ pub async fn run_loaders<Context: Send>(
           cx.state.transition(State::Finished);
           continue;
         }
-
-        if cx.start_yielding().await? {
+        let span = info_span!("run_loader:yield_to_js", id2 = resource);
+        if cx.start_yielding().instrument(span).await? {
           continue;
         }
 
@@ -186,7 +188,9 @@ pub async fn run_loaders<Context: Send>(
 
         cx.current_loader().set_normal_executed();
         let loader = cx.current_loader().loader().clone();
-        loader.run(&mut cx).await?;
+
+        let span = info_span!("run_loader:normal", id2 = resource);
+        loader.run(&mut cx).instrument(span).await?;
         if !cx.current_loader().finish_called() {
           // If nothing is returned from this loader,
           // we set everything to [None] and move to the next loader.

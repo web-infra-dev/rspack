@@ -505,6 +505,23 @@ impl ChunkGraph {
     false
   }
 
+  pub fn has_chunk_dependent_hash_modules(
+    &self,
+    chunk: &ChunkUkey,
+    runtime_modules: &IdentifierMap<Box<dyn RuntimeModule>>,
+  ) -> bool {
+    let cgc = self.expect_chunk_graph_chunk(chunk);
+    for runtime_module in &cgc.runtime_modules {
+      let runtime_module = runtime_modules
+        .get(runtime_module)
+        .expect("should have runtime_module");
+      if runtime_module.dependent_hash() {
+        return true;
+      }
+    }
+    false
+  }
+
   pub fn set_chunk_runtime_requirements(
     compilation: &mut Compilation,
     chunk_ukey: ChunkUkey,
@@ -531,13 +548,9 @@ impl ChunkGraph {
       .cgc_runtime_requirements_artifact
       .get(chunk_ukey)
       .unwrap_or_else(|| {
-        let c = compilation.chunk_graph.expect_chunk_graph_chunk(chunk_ukey);
-        panic!(
-          "Chunk({:?} {:?}) should have runtime requirements, {:?}",
-          c,
-          chunk_ukey,
-          &compilation.cgc_runtime_requirements_artifact.keys()
-        )
+        let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+        let cgc = compilation.chunk_graph.expect_chunk_graph_chunk(chunk_ukey);
+        panic!("Should have runtime requirements for chunk:\n{chunk:#?}\n{cgc:#?}")
       })
   }
 

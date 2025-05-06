@@ -9,14 +9,15 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
   process_export_info, property_access, property_name, string_of_used_name, AsContextDependency,
-  Compilation, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
-  DependencyCondition, DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange,
-  DependencyTemplate, DependencyType, ESMExportInitFragment, ExportInfo, ExportInfoProvided,
-  ExportNameOrSpec, ExportPresenceMode, ExportSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec,
-  ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, JavascriptParserOptions, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, NormalInitFragment, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  SharedSourceMap, Template, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
+  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  ESMExportInitFragment, ExportInfo, ExportInfoProvided, ExportNameOrSpec, ExportPresenceMode,
+  ExportSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, ExportsType,
+  ExtendedReferencedExport, FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  NormalInitFragment, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap, Template,
+  TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -39,13 +40,12 @@ use super::{
 pub struct ESMExportImportedSpecifierDependency {
   pub id: DependencyId,
   #[cacheable(with=AsVec<AsPreset>)]
-  pub ids: Vec<Atom>,
+  ids: Vec<Atom>,
   #[cacheable(with=AsOption<AsPreset>)]
   pub name: Option<Atom>,
   #[cacheable(with=AsPreset)]
   pub request: Atom,
-  pub export_all: bool,
-  pub source_order: i32,
+  source_order: i32,
   pub other_star_exports: Option<Vec<DependencyId>>,
   range: DependencyRange,
   attributes: Option<ImportAttributes>,
@@ -63,7 +63,6 @@ impl ESMExportImportedSpecifierDependency {
     source_order: i32,
     ids: Vec<Atom>,
     name: Option<Atom>,
-    export_all: bool,
     other_star_exports: Option<Vec<DependencyId>>,
     range: DependencyRange,
     export_presence_mode: ExportPresenceMode,
@@ -79,7 +78,6 @@ impl ESMExportImportedSpecifierDependency {
       request,
       ids,
       resource_identifier,
-      export_all,
       other_star_exports,
       range,
       export_presence_mode,
@@ -123,7 +121,7 @@ impl ESMExportImportedSpecifierDependency {
   }
 
   // TODO cache get_mode result
-  fn get_mode(
+  pub fn get_mode(
     &self,
     name: Option<Atom>,
     module_graph: &ModuleGraph,
@@ -475,7 +473,7 @@ impl ESMExportImportedSpecifierDependency {
     None
   }
 
-  fn add_export_fragments(&self, ctxt: &mut TemplateContext, mut mode: ExportMode) {
+  pub fn add_export_fragments(&self, ctxt: &mut TemplateContext, mut mode: ExportMode) {
     let TemplateContext {
       module,
       runtime_requirements,
@@ -1007,48 +1005,9 @@ pub struct DiscoverActiveExportsFromOtherStarExportsRet<'a> {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ESMExportImportedSpecifierDependency {
-  fn apply(
-    &self,
-    _source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    let TemplateContext {
-      compilation,
-      runtime,
-      concatenation_scope,
-      ..
-    } = code_generatable_context;
-
-    let module_graph = compilation.get_module_graph();
-    let mode = self.get_mode(self.name.clone(), &module_graph, &self.id, *runtime);
-
-    if let Some(ref mut scope) = concatenation_scope {
-      if matches!(mode.ty, ExportModeType::ReexportUndefined) {
-        scope.register_raw_export(
-          mode.name.clone().expect("should have name"),
-          String::from("/* reexport non-default export from non-ESM */ undefined"),
-        );
-      }
-      return;
-    }
-
-    if !matches!(mode.ty, ExportModeType::Unused | ExportModeType::EmptyStar) {
-      esm_import_dependency_apply(self, self.source_order, code_generatable_context);
-      self.add_export_fragments(code_generatable_context, mode);
-    }
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
+impl DependencyCodeGeneration for ESMExportImportedSpecifierDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(ESMExportImportedSpecifierDependencyTemplate::template_type())
   }
 }
 
@@ -1535,4 +1494,52 @@ fn find_dependency_for_name<'a>(
     }
   }
   None
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ESMExportImportedSpecifierDependencyTemplate;
+
+impl ESMExportImportedSpecifierDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::EsmExportImportedSpecifier)
+  }
+}
+
+impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    _source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ESMExportImportedSpecifierDependency>()
+      .expect("ESMExportImportedSpecifierDependencyTemplate should only be used for ESMExportImportedSpecifierDependency");
+    let TemplateContext {
+      compilation,
+      runtime,
+      concatenation_scope,
+      ..
+    } = code_generatable_context;
+
+    let module_graph = compilation.get_module_graph();
+    let mode = dep.get_mode(dep.name.clone(), &module_graph, &dep.id, *runtime);
+
+    if let Some(ref mut scope) = concatenation_scope {
+      if matches!(mode.ty, ExportModeType::ReexportUndefined) {
+        scope.register_raw_export(
+          mode.name.clone().expect("should have name"),
+          String::from("/* reexport non-default export from non-ESM */ undefined"),
+        );
+      }
+      return;
+    }
+
+    if !matches!(mode.ty, ExportModeType::Unused | ExportModeType::EmptyStar) {
+      esm_import_dependency_apply(dep, dep.source_order, code_generatable_context);
+      dep.add_export_fragments(code_generatable_context, mode);
+    }
+  }
 }

@@ -3,13 +3,13 @@ use rspack_core::{
   diagnostics::CapturedLoaderError, AdditionalData, LoaderContext, NormalModuleLoaderShouldYield,
   NormalModuleLoaderStartYielding, RunnerContext, BUILTIN_LOADER_PREFIX,
 };
-use rspack_error::{Result, ToStringResultToRspackResultExt};
+use rspack_error::{miette::IntoDiagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
 
 use super::{JsLoaderContext, JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 
-#[plugin_hook(NormalModuleLoaderShouldYield for JsLoaderRspackPlugin)]
+#[plugin_hook(NormalModuleLoaderShouldYield for JsLoaderRspackPlugin, tracing=false)]
 pub(crate) async fn loader_should_yield(
   &self,
   loader_context: &LoaderContext<RunnerContext>,
@@ -27,16 +27,55 @@ pub(crate) async fn loader_should_yield(
   }
 }
 
-#[plugin_hook(NormalModuleLoaderStartYielding for JsLoaderRspackPlugin)]
+#[plugin_hook(NormalModuleLoaderStartYielding for JsLoaderRspackPlugin,tracing=false)]
 pub(crate) async fn loader_yield(
   &self,
   loader_context: &mut LoaderContext<RunnerContext>,
 ) -> Result<()> {
-  let new_cx = self
-    .runner
-    .call_with_promise(loader_context.try_into()?)
-    .await?;
-  merge_loader_context(loader_context, new_cx)?;
+  let read_guard = self.runner.read().await;
+  match &*read_guard {
+    Some(runner) => {
+      let new_cx = runner
+        .call_async(loader_context.try_into()?)
+        .await
+        .into_diagnostic()?
+        .await
+        .into_diagnostic()?;
+      drop(read_guard);
+
+      merge_loader_context(loader_context, new_cx)?;
+    }
+    None => {
+      drop(read_guard);
+
+      {
+        let mut write_guard = self.runner.write().await;
+        #[allow(clippy::unwrap_used)]
+        let compiler_id = self.compiler_id.get().unwrap();
+        #[allow(clippy::unwrap_used)]
+        let runner = self
+          .runner_getter
+          .call(compiler_id)
+          .await
+          .into_diagnostic()?;
+        *write_guard = Some(runner);
+      };
+
+      let read_guard = self.runner.read().await;
+      #[allow(clippy::unwrap_used)]
+      let new_cx = read_guard
+        .as_ref()
+        .unwrap()
+        .call_async(loader_context.try_into()?)
+        .await
+        .into_diagnostic()?
+        .await
+        .into_diagnostic()?;
+      drop(read_guard);
+
+      merge_loader_context(loader_context, new_cx)?;
+    }
+  };
   Ok(())
 }
 

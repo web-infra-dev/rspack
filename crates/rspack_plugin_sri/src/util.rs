@@ -6,14 +6,12 @@ use rspack_core::{AssetInfo, ChunkGroupUkey, ChunkUkey, Compilation};
 
 use crate::{integrity::compute_integrity, SubresourceIntegrityHashFunction};
 
-pub static SRI_HASH_VARIABLE_REFERENCE: LazyLock<String> =
-  LazyLock::new(|| "__webpack_require__.sriHashes".to_string());
+pub const SRI_HASH_VARIABLE_REFERENCE: &str = "__webpack_require__.sriHashes";
 
-pub static PLACEHOLDER_PREFIX: LazyLock<String> =
-  LazyLock::new(|| "*-*-*-CHUNK-SRI-HASH-".to_string());
+pub const PLACEHOLDER_PREFIX: &str = "*-*-*-CHUNK-SRI-HASH-";
 
 pub static PLACEHOLDER_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
-  let escaped_prefix = regex::escape(PLACEHOLDER_PREFIX.as_str());
+  let escaped_prefix = regex::escape(PLACEHOLDER_PREFIX);
   regex::Regex::new(&format!(
     r"{}[a-zA-Z0-9=/+]+(\s+sha\d{{3}}-[a-zA-Z0-9=/+]+)*",
     escaped_prefix
@@ -68,11 +66,11 @@ fn recurse_chunk(
 }
 
 pub fn make_placeholder(hash_funcs: &Vec<SubresourceIntegrityHashFunction>, id: &str) -> String {
-  let placeholder_source = format!("{}{}", PLACEHOLDER_PREFIX.as_str(), id);
+  let placeholder_source = format!("{}{}", PLACEHOLDER_PREFIX, id);
   let filler = compute_integrity(hash_funcs, &placeholder_source);
   format!(
     "{}{}",
-    PLACEHOLDER_PREFIX.as_str(),
+    PLACEHOLDER_PREFIX,
     &filler[PLACEHOLDER_PREFIX.len()..]
   )
 }

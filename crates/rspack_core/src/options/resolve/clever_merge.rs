@@ -111,12 +111,13 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
   let mut by_dependency = by_dependency;
 
   macro_rules! update_by_value {
-    ($ident: ident) => {
+    ($ident: ident, $should_insert_by_value_key: expr) => {
       let mut $ident = LinkedHashMap::new();
       let by_values_key: Vec<_> = by_dependency.0.keys().cloned().collect();
       for by_value_key in &by_values_key {
         let obj = by_dependency.0.get_mut(by_value_key).expect("");
-        if obj.$ident.is_some() {
+        let should_insert_by_value_key = $should_insert_by_value_key(obj.$ident.as_ref());
+        if should_insert_by_value_key {
           $ident.insert(by_value_key.clone(), std::mem::take(&mut obj.$ident));
         }
         if by_value_key == "default" {
@@ -132,26 +133,35 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
       }
     };
   }
-  update_by_value!(extensions);
-  update_by_value!(alias);
-  update_by_value!(prefer_relative);
-  update_by_value!(prefer_absolute);
-  update_by_value!(symlinks);
-  update_by_value!(main_files);
-  update_by_value!(main_fields);
-  update_by_value!(condition_names);
-  update_by_value!(modules);
-  update_by_value!(fallback);
-  update_by_value!(fully_specified);
-  update_by_value!(exports_fields);
-  update_by_value!(imports_fields);
-  update_by_value!(description_files);
-  update_by_value!(enforce_extension);
-  update_by_value!(extension_alias);
-  update_by_value!(alias_fields);
-  update_by_value!(restrictions);
-  update_by_value!(roots);
-  update_by_value!(tsconfig);
+  update_by_value!(extensions, |i: Option<&_>| i.is_some());
+  update_by_value!(
+    alias,
+    |i: Option<&Alias>| matches!(i, Some(Alias::MergeAlias(i)) if !i.is_empty())
+  );
+  update_by_value!(prefer_relative, |i: Option<&_>| i.is_some());
+  update_by_value!(prefer_absolute, |i: Option<&_>| i.is_some());
+  update_by_value!(symlinks, |i: Option<&_>| i.is_some());
+  update_by_value!(main_files, |i: Option<&_>| i.is_some());
+  update_by_value!(main_fields, |i: Option<&_>| i.is_some());
+  update_by_value!(condition_names, |i: Option<&_>| i.is_some());
+  update_by_value!(modules, |i: Option<&_>| i.is_some());
+  update_by_value!(
+    fallback,
+    |i: Option<&Alias>| matches!(i, Some(Alias::MergeAlias(i)) if !i.is_empty())
+  );
+  update_by_value!(fully_specified, |i: Option<&_>| i.is_some());
+  update_by_value!(exports_fields, |i: Option<&_>| i.is_some());
+  update_by_value!(imports_fields, |i: Option<&_>| i.is_some());
+  update_by_value!(description_files, |i: Option<&_>| i.is_some());
+  update_by_value!(enforce_extension, |i: Option<&_>| i.is_some());
+  update_by_value!(
+    extension_alias,
+    |i: Option<&ExtensionAlias>| matches!(i, Some(i) if !i.is_empty())
+  );
+  update_by_value!(alias_fields, |i: Option<&_>| i.is_some());
+  update_by_value!(restrictions, |i: Option<&_>| i.is_some());
+  update_by_value!(roots, |i: Option<&_>| i.is_some());
+  update_by_value!(tsconfig, |i: Option<&_>| i.is_some());
 
   res
 }
@@ -2294,6 +2304,54 @@ mod test {
       merge_resolve(first, second),
       Resolve {
         extensions: string_list(&[]),
+        ..Default::default()
+      }
+    )
+  }
+
+  #[test]
+  fn test_merge_resolver_options_20() {
+    let first = Resolve {
+      alias: Some(vec![].into()),
+      fallback: Some(vec![].into()),
+      extension_alias: Some(vec![]),
+      by_dependency: Some(ByDependency::from_iter([(
+        "x".into(),
+        Resolve {
+          alias: Some(vec![].into()),
+          fallback: Some(vec![].into()),
+          extension_alias: Some(vec![]),
+          ..Default::default()
+        },
+      )])),
+      ..Default::default()
+    };
+
+    let second = Resolve {
+      alias: Some(vec![("fakemodule".to_string(), vec!["realmodule".into()])].into()),
+      fallback: Some(
+        vec![(
+          "fallbackmodule".to_string(),
+          vec!["fallbacktomodule".into()],
+        )]
+        .into(),
+      ),
+      extension_alias: Some(vec![(".js".to_string(), vec![".ts".to_string()])]),
+      ..Default::default()
+    };
+
+    pretty_assertions::assert_eq!(
+      merge_resolve(first, second),
+      Resolve {
+        alias: Some(vec![("fakemodule".to_string(), vec!["realmodule".into()])].into()),
+        fallback: Some(
+          vec![(
+            "fallbackmodule".to_string(),
+            vec!["fallbacktomodule".into()],
+          )]
+          .into(),
+        ),
+        extension_alias: Some(vec![(".js".to_string(), vec![".ts".to_string()])]),
         ..Default::default()
       }
     )

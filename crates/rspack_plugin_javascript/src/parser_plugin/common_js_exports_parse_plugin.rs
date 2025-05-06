@@ -291,7 +291,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       parser
         .dependencies
         .push(Box::new(CommonJsSelfReferenceDependency::new(
-          (ident.span().real_lo(), ident.span().real_hi()),
+          ident.span().into(),
           ExportsBase::Exports,
           vec![],
           false,
@@ -314,7 +314,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       parser
         .dependencies
         .push(Box::new(CommonJsSelfReferenceDependency::new(
-          (expr.span().real_lo(), expr.span().real_hi()),
+          expr.span().into(),
           ExportsBase::This,
           vec![],
           false,
@@ -341,7 +341,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
         parser
           .dependencies
           .push(Box::new(CommonJsSelfReferenceDependency::new(
-            (expr.span().real_lo(), expr.span().real_hi()),
+            expr.span().into(),
             base,
             remaining,
             false,
@@ -437,7 +437,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       parser
         .dependencies
         .push(Box::new(CommonJsExportsDependency::new(
-          (left_expr.span().real_lo(), left_expr.span().real_hi()),
+          left_expr.span().into(),
           None,
           base,
           remaining.to_owned(),
@@ -483,7 +483,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
           parser
             .dependencies
             .push(Box::new(CommonJsSelfReferenceDependency::new(
-              (expr.span().real_lo(), expr.span().real_hi()),
+              expr.span().into(),
               base,
               remaining,
               true,
@@ -534,8 +534,8 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
         parser
           .dependencies
           .push(Box::new(CommonJsExportsDependency::new(
-            (call_expr.span.real_lo(), call_expr.span.real_hi()),
-            Some((arg2.span().real_lo(), arg2.span().real_hi())),
+            call_expr.span.into(),
+            Some(arg2.span().into()),
             base,
             vec![str.value.clone()],
           )));
@@ -560,12 +560,12 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     }
   }
 
-  fn evaluate_typeof(
+  fn evaluate_typeof<'a>(
     &self,
     _parser: &mut JavascriptParser,
-    expr: &UnaryExpr,
+    expr: &'a UnaryExpr,
     for_name: &str,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     (for_name == "module" || for_name == "exports").then(|| {
       eval::evaluate_to_string(
         "object".to_string(),

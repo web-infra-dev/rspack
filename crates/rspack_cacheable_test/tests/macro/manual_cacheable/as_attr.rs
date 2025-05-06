@@ -1,5 +1,5 @@
 use rspack_cacheable::{
-  cacheable_dyn, from_bytes, to_bytes,
+  enable_cacheable_dyn as cacheable_dyn, from_bytes, to_bytes,
   with::{AsOption, AsTuple2, AsVec, Inline},
 };
 

@@ -16,8 +16,7 @@ inputs:
 outputs:
   cache-hit:
     description: 'A boolean value to indicate an exact match was found for the primary key'
-    value: ${{ steps.github-cache.outputs.cache-hit }}
-#    value: ${{ steps.github-cache.outputs.cache-hit || steps.local-cache.outputs.cache-hit }}
+    value: ${{ steps.github-cache.outputs.cache-hit == 'true' || steps.local-cache.outputs.cache-hit == 'true' }}
 
 runs:
   using: composite
@@ -30,11 +29,11 @@ runs:
         key: ${{ inputs.key }}
         path: ${{ inputs.path }}
         restore-keys: ${{ inputs.restore-keys }}
-#    - name: Restore cache to local
-#      id: local-cache
-#      if: ${{ runner.environment == 'self-hosted' }}
-#      uses: lynx-infra/cache/restore@ad9f115f5b15348eb208a52ec6f7ffa82e8108df # main
-#      with:
-#        key: ${{ inputs.key }}
-#        path: ${{ inputs.path }}
-#        restore-keys: ${{ inputs.restore-keys }}
+    - name: Restore cache to local
+      id: local-cache
+      if: ${{ runner.environment == 'self-hosted' }}
+      uses: lynx-infra/cache/restore@558d7c999f9f97ac02ed7e711503bb81d82ff8ee # main
+      with:
+        key: ${{ inputs.key }}
+        path: ${{ inputs.path }}
+        restore-keys: ${{ inputs.restore-keys }}

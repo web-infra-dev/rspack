@@ -2,13 +2,21 @@ import { Tabs, Tab, PackageManagerTabs } from '@theme';
 
 # Next.js
 
-[next-rspack](https://www.npmjs.com/package/next-rspack) is a community-driven plugin that enables Next.js projects to use Rspack as the bundler.
+[next-rspack](https://www.npmjs.com/package/next-rspack) is a community-driven plugin that enables Next.js projects to use Rspack as the bundler (experimental).
 
-> Example: [next.js/examples/with-rspack](https://github.com/vercel/next.js/tree/canary/examples/with-rspack).
+:::tip
+See the [Rspack joins the Next.js ecosystem](/blog/rspack-next-partner) blog post to learn more details.
+:::
 
 ## Installation
 
+Install the `next-rspack` package:
+
 <PackageManagerTabs command="add next-rspack -D" />
+
+:::tip
+If you are using a Next.js version below 15.3.0, please upgrade to >= 15.3.0 first, see [Next.js - Upgrading](https://nextjs.org/docs/pages/building-your-application/upgrading).
+:::
 
 ## Usage
 
@@ -45,7 +53,9 @@ module.exports = withRspack(nextConfig);
   </Tab>
 </Tabs>
 
-## Customizing Rspack Configuration
+> Example: [next.js/examples/with-rspack](https://github.com/vercel/next.js/tree/canary/examples/with-rspack).
+
+## Customizing Rspack configuration
 
 Through Rspack's compatibility with webpack, when using `next-rspack`, you can customize configurations in the same way as you would with webpack.
 

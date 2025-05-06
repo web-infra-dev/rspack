@@ -76,7 +76,7 @@ impl TryFrom<RawOptions> for CompilerOptions {
     let cache = value.cache.into();
     let mut experiments: Experiments = value.experiments.into();
     if let CacheOptions::Disabled = cache {
-      experiments.incremental = IncrementalPasses::empty();
+      experiments.incremental.passes = IncrementalPasses::empty();
     }
     let optimization = value.optimization.try_into()?;
     let stats = value.stats.into();

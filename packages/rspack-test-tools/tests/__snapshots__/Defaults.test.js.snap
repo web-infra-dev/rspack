@@ -38,6 +38,7 @@ Object {
       modulesRuntimeRequirements: false,
       providedExports: false,
       sideEffects: false,
+      silent: true,
     },
     layers: false,
     lazyCompilation: false,
@@ -387,6 +388,46 @@ Object {
         ],
       },
       esm: Object {
+        aliasFields: Array [
+          browser,
+        ],
+        conditionNames: Array [
+          import,
+          module,
+          ...,
+        ],
+        extensions: Array [
+          .js,
+          .json,
+          .wasm,
+        ],
+        mainFields: Array [
+          browser,
+          module,
+          ...,
+        ],
+      },
+      loader: Object {
+        aliasFields: Array [
+          browser,
+        ],
+        conditionNames: Array [
+          require,
+          module,
+          ...,
+        ],
+        extensions: Array [
+          .js,
+          .json,
+          .wasm,
+        ],
+        mainFields: Array [
+          browser,
+          module,
+          ...,
+        ],
+      },
+      loaderImport: Object {
         aliasFields: Array [
           browser,
         ],

@@ -4,8 +4,8 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  Compilation, DependencyTemplate, ExportProvided, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsageState, UsedExports, UsedName,
+  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportProvided,
+  TemplateContext, TemplateReplaceSource, UsageState, UsedExports, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -32,27 +32,9 @@ impl ExportInfoDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for ExportInfoDependency {
-  fn apply(&self, source: &mut TemplateReplaceSource, context: &mut TemplateContext) {
-    let value = self.get_property(context);
-    source.replace(
-      self.start,
-      self.end,
-      value.unwrap_or("undefined".to_owned()).as_str(),
-      None,
-    );
-  }
-
-  fn dependency_id(&self) -> Option<rspack_core::DependencyId> {
-    None
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
+impl DependencyCodeGeneration for ExportInfoDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(ExportInfoDependencyTemplate::template_type())
   }
 }
 
@@ -135,5 +117,37 @@ impl ExportInfoDependency {
         }),
       _ => None,
     }
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ExportInfoDependencyTemplate;
+
+impl ExportInfoDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("ExportInfoDependency")
+  }
+}
+
+impl DependencyTemplate for ExportInfoDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ExportInfoDependency>()
+      .expect("ExportInfoDependencyTemplate should be used for ExportInfoDependency");
+
+    let value = dep.get_property(code_generatable_context);
+    source.replace(
+      dep.start,
+      dep.end,
+      value.unwrap_or("undefined".to_owned()).as_str(),
+      None,
+    );
   }
 }

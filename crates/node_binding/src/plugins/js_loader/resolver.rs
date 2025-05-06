@@ -106,7 +106,7 @@ pub async fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<
   unreachable!("Unexpected builtin loader: {builtin}")
 }
 
-#[plugin_hook(NormalModuleFactoryResolveLoader for JsLoaderRspackPlugin)]
+#[plugin_hook(NormalModuleFactoryResolveLoader for JsLoaderRspackPlugin,tracing=false)]
 pub(crate) async fn resolve_loader(
   &self,
   context: &Context,
@@ -133,6 +133,7 @@ pub(crate) async fn resolve_loader(
 
   let resolve_result = resolver
     .resolve(context.as_std_path(), prev.as_str())
+    .await
     .to_rspack_result_with_message(|e| {
       format!("Failed to resolve loader: {prev} in {context}, error: {e}")
     })?;

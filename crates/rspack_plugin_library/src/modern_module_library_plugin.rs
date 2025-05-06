@@ -1,4 +1,4 @@
-use std::hash::Hash;
+use std::{hash::Hash, sync::Arc};
 
 use rspack_collections::IdentifierMap;
 use rspack_core::{
@@ -24,7 +24,10 @@ use rustc_hash::FxHashSet as HashSet;
 
 use super::modern_module::ModernModuleReexportStarExternalDependency;
 use crate::{
-  modern_module::ModernModuleImportDependency,
+  modern_module::{
+    ModernModuleImportDependency, ModernModuleImportDependencyTemplate,
+    ModernModuleReexportStarExternalDependencyTemplate,
+  },
   utils::{get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE},
 };
 
@@ -227,28 +230,27 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
         let block_dep = mg.dependency_by_id(block_dep_id);
         if let Some(block_dep) = block_dep {
           if let Some(import_dependency) = block_dep.as_any().downcast_ref::<ImportDependency>() {
-            let import_dep_connection = mg
-              .connection_by_dependency_id(block_dep_id)
-              .expect("should have dependency");
+            let import_dep_connection = mg.connection_by_dependency_id(block_dep_id);
+            if let Some(import_dep_connection) = import_dep_connection {
+              // Try find the connection with a import dependency pointing to an external module.
+              // If found, remove the connection and add a new import dependency to performs the external module ID replacement.
+              let import_module_id = import_dep_connection.module_identifier();
+              let import_module = mg
+                .module_by_identifier(import_module_id)
+                .expect("should have mgm");
 
-            // Try find the connection with a import dependency pointing to an external module.
-            // If found, remove the connection and add a new import dependency to performs the external module ID replacement.
-            let import_module_id = import_dep_connection.module_identifier();
-            let import_module = mg
-              .module_by_identifier(import_module_id)
-              .expect("should have mgm");
+              if let Some(external_module) = import_module.as_external_module() {
+                let new_dep = ModernModuleImportDependency::new(
+                  *block_dep.id(),
+                  import_dependency.request.as_str().into(),
+                  external_module.request.clone(),
+                  external_module.external_type.clone(),
+                  import_dependency.range.clone(),
+                  import_dependency.get_attributes().cloned(),
+                );
 
-            if let Some(external_module) = import_module.as_external_module() {
-              let new_dep = ModernModuleImportDependency::new(
-                *block_dep.id(),
-                import_dependency.request.as_str().into(),
-                external_module.request.clone(),
-                external_module.external_type.clone(),
-                import_dependency.range.clone(),
-                import_dependency.get_attributes().cloned(),
-              );
-
-              deps_to_replace.push(Box::new(new_dep));
+                deps_to_replace.push(Box::new(new_dep));
+              }
             }
           }
         }
@@ -399,6 +401,15 @@ async fn compilation(
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
   hooks.render_startup.tap(render_startup::new(self));
   hooks.chunk_hash.tap(js_chunk_hash::new(self));
+
+  compilation.set_dependency_template(
+    ModernModuleImportDependencyTemplate::template_type(),
+    Arc::new(ModernModuleImportDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ModernModuleReexportStarExternalDependencyTemplate::template_type(),
+    Arc::new(ModernModuleReexportStarExternalDependencyTemplate::default()),
+  );
   Ok(())
 }
 

@@ -15,13 +15,16 @@ pub enum TemplateStringKind {
 }
 
 #[inline]
-fn get_simplified_template_result(
+fn get_simplified_template_result<'a>(
   scanner: &mut JavascriptParser,
   kind: TemplateStringKind,
-  node: &Tpl,
-) -> (Vec<BasicEvaluatedExpression>, Vec<BasicEvaluatedExpression>) {
-  let mut quasis: Vec<BasicEvaluatedExpression> = vec![];
-  let mut parts: Vec<BasicEvaluatedExpression> = vec![];
+  node: &'a Tpl,
+) -> (
+  Vec<BasicEvaluatedExpression<'a>>,
+  Vec<BasicEvaluatedExpression<'a>>,
+) {
+  let mut quasis: Vec<BasicEvaluatedExpression<'a>> = vec![];
+  let mut parts: Vec<BasicEvaluatedExpression<'a>> = vec![];
   for i in 0..node.quasis.len() {
     let quasi_expr = &node.quasis[i];
     let quasi = match kind {
@@ -37,16 +40,18 @@ fn get_simplified_template_result(
       if !expr.could_have_side_effects()
         && let Some(str) = expr.as_string()
       {
-        // merge quasi + expr + quasi when expr is a const string
+        // We can merge quasi + expr + quasi when expr
+        // is a const string
         prev_expr.set_string(format!("{}{}{}", prev_expr.string(), str, quasi));
         prev_expr.set_range(prev_expr.range().0, quasi_expr.span_hi().0);
-        // prev_expr.set_expression(None);
+        // We unset the expression as it doesn't match to a single expression
+        prev_expr.set_expression(None);
 
         // also merge for quasis
         let prev_expr = quasis.last_mut().expect("should not empty");
         prev_expr.set_string(format!("{}{}{}", prev_expr.string(), str, quasi));
         prev_expr.set_range(prev_expr.range().0, quasi_expr.span_hi().0);
-
+        prev_expr.set_expression(None);
         continue;
       }
       parts.push(expr);
@@ -67,10 +72,10 @@ fn get_simplified_template_result(
 }
 
 #[inline]
-pub fn eval_tpl_expression(
+pub fn eval_tpl_expression<'a>(
   scanner: &mut JavascriptParser,
-  tpl: &Tpl,
-) -> Option<BasicEvaluatedExpression> {
+  tpl: &'a Tpl,
+) -> Option<BasicEvaluatedExpression<'a>> {
   let kind = TemplateStringKind::Cooked;
   let (quasis, mut parts) = get_simplified_template_result(scanner, kind, tpl);
   if parts.len() == 1 {
@@ -85,10 +90,10 @@ pub fn eval_tpl_expression(
 }
 
 #[inline]
-pub fn eval_tagged_tpl_expression(
+pub fn eval_tagged_tpl_expression<'a>(
   scanner: &mut JavascriptParser,
-  tagged_tpl: &TaggedTpl,
-) -> Option<BasicEvaluatedExpression> {
+  tagged_tpl: &'a TaggedTpl,
+) -> Option<BasicEvaluatedExpression<'a>> {
   let tag = scanner.evaluate_expression(&tagged_tpl.tag);
   if !tag.is_identifier() || tag.identifier() != "String.raw" {
     return None;

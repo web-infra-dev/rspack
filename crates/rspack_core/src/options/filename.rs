@@ -57,6 +57,18 @@ impl Filename {
   pub fn as_str(&self) -> &str {
     self.template().unwrap_or("")
   }
+  pub fn has_hash_placeholder(&self) -> bool {
+    match &self.0 {
+      FilenameKind::Template(atom) => has_hash_placeholder(atom.as_str()),
+      FilenameKind::Fn(_) => true,
+    }
+  }
+  pub fn has_content_hash_placeholder(&self) -> bool {
+    match &self.0 {
+      FilenameKind::Template(atom) => has_content_hash_placeholder(atom.as_str()),
+      FilenameKind::Fn(_) => true,
+    }
+  }
   pub fn template(&self) -> Option<&str> {
     match &self.0 {
       FilenameKind::Template(template) => Some(template.as_str()),
@@ -165,6 +177,16 @@ pub fn has_hash_placeholder(template: &str) -> bool {
       if template[start + offset..].find(']').is_some() {
         return true;
       }
+    }
+  }
+  false
+}
+
+pub fn has_content_hash_placeholder(template: &str) -> bool {
+  let offset = CONTENT_HASH_PLACEHOLDER.len() - 1;
+  if let Some(start) = template.find(&CONTENT_HASH_PLACEHOLDER[..offset]) {
+    if template[start + offset..].find(']').is_some() {
+      return true;
     }
   }
   false

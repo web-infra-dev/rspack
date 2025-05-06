@@ -1,15 +1,16 @@
-use std::{collections::HashMap, ptr::NonNull};
+use std::{collections::HashMap, ptr::NonNull, sync::Arc};
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{LoaderContext, Module, RunnerContext};
 use rspack_error::ToStringResultToRspackResultExt;
-use rspack_loader_runner::{LoaderItem, State as LoaderState};
+use rspack_loader_runner::State as LoaderState;
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
 
 use crate::{JsResourceData, JsRspackError, ModuleObject};
 
 #[napi(object)]
+#[derive(Hash)]
 pub struct JsLoaderItem {
   pub loader: String,
   pub r#type: String,
@@ -22,8 +23,8 @@ pub struct JsLoaderItem {
   pub pitch_executed: bool,
 }
 
-impl From<&LoaderItem<RunnerContext>> for JsLoaderItem {
-  fn from(value: &LoaderItem<RunnerContext>) -> Self {
+impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
+  fn from(value: &rspack_loader_runner::LoaderItem<RunnerContext>) -> Self {
     JsLoaderItem {
       loader: value.request().to_string(),
       r#type: value.r#type().to_string(),
@@ -31,6 +32,32 @@ impl From<&LoaderItem<RunnerContext>> for JsLoaderItem {
       data: value.data().clone(),
       normal_executed: value.normal_executed(),
       pitch_executed: value.pitch_executed(),
+    }
+  }
+}
+
+impl<C> From<&Arc<dyn rspack_core::Loader<C>>> for JsLoaderItem
+where
+  C: Send,
+{
+  fn from(loader: &Arc<dyn rspack_core::Loader<C>>) -> Self {
+    let identifier = loader.identifier();
+
+    if let Some((r#type, ident)) = identifier.split_once('|') {
+      return Self {
+        loader: ident.to_string(),
+        data: serde_json::Value::Null,
+        r#type: r#type.to_string(),
+        pitch_executed: false,
+        normal_executed: false,
+      };
+    }
+    Self {
+      loader: identifier.to_string(),
+      data: serde_json::Value::Null,
+      r#type: String::default(),
+      pitch_executed: false,
+      normal_executed: false,
     }
   }
 }
@@ -99,17 +126,6 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
 
     #[allow(unused_mut)]
     let mut carrier = HashMap::new();
-
-    #[cfg(not(target_family = "wasm"))]
-    {
-      use rspack_tracing::otel::{opentelemetry::global, tracing::OpenTelemetrySpanExt as _};
-      use tracing::Span;
-
-      global::get_text_map_propagator(|propagator| {
-        let cx = Span::current().context();
-        propagator.inject_context(&cx, &mut carrier);
-      });
-    };
 
     #[allow(clippy::unwrap_used)]
     Ok(JsLoaderContext {

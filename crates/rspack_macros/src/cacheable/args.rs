@@ -11,8 +11,8 @@ mod kw {
 /// #[cacheable] type-only args
 pub struct CacheableArgs {
   pub crate_path: syn::Path,
-  pub r#as: Option<syn::Path>,
-  pub with: Option<syn::Path>,
+  pub r#as: Option<syn::Type>,
+  pub with: Option<syn::Type>,
   pub hashable: bool,
 }
 
@@ -36,7 +36,7 @@ impl Parse for CacheableArgs {
       } else if input.peek(syn::token::As) {
         input.parse::<syn::token::As>()?;
         input.parse::<Token![=]>()?;
-        r#as = Some(input.parse::<syn::Path>()?);
+        r#as = Some(input.parse::<syn::Type>()?);
       } else if input.peek(kw::with) {
         if with.is_some() {
           return Err(input.error("duplicate with argument"));
@@ -44,7 +44,7 @@ impl Parse for CacheableArgs {
 
         input.parse::<kw::with>()?;
         input.parse::<Token![=]>()?;
-        with = Some(input.parse::<syn::Path>()?);
+        with = Some(input.parse::<syn::Type>()?);
       } else if input.peek(kw::hashable) {
         input.parse::<kw::hashable>()?;
         hashable = true;

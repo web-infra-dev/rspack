@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
-  DependencyId, DependencyRange, DependencyTemplate, DependencyType, RuntimeGlobals, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -47,36 +47,46 @@ impl Dependency for CreateScriptUrlDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for CreateScriptUrlDependency {
-  fn apply(
-    &self,
-    source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    code_generatable_context
-      .runtime_requirements
-      .insert(RuntimeGlobals::CREATE_SCRIPT_URL);
-
-    source.insert(
-      self.range_path.start,
-      format!("{}(", RuntimeGlobals::CREATE_SCRIPT_URL).as_str(),
-      None,
-    );
-    source.insert(self.range_path.end, ")", None);
-  }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
+impl DependencyCodeGeneration for CreateScriptUrlDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(CreateScriptUrlDependencyTemplate::template_type())
   }
 }
 
 impl AsModuleDependency for CreateScriptUrlDependency {}
 impl AsContextDependency for CreateScriptUrlDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct CreateScriptUrlDependencyTemplate;
+
+impl CreateScriptUrlDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::CreateScriptUrl)
+  }
+}
+
+impl DependencyTemplate for CreateScriptUrlDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<CreateScriptUrlDependency>()
+      .expect("CreateScriptUrlDependencyTemplate should be used for CreateScriptUrlDependency");
+
+    code_generatable_context
+      .runtime_requirements
+      .insert(RuntimeGlobals::CREATE_SCRIPT_URL);
+
+    source.insert(
+      dep.range_path.start,
+      format!("{}(", RuntimeGlobals::CREATE_SCRIPT_URL).as_str(),
+      None,
+    );
+    source.insert(dep.range_path.end, ")", None);
+  }
+}

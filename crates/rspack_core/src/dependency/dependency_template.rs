@@ -6,7 +6,7 @@ use rspack_sources::{BoxSource, ReplaceSource};
 use rspack_util::ext::AsAny;
 
 use crate::{
-  ChunkInitFragments, CodeGenerationData, Compilation, ConcatenationScope, DependencyId, Module,
+  ChunkInitFragments, CodeGenerationData, Compilation, ConcatenationScope, DependencyType, Module,
   ModuleInitFragments, RuntimeGlobals, RuntimeSpec,
 };
 
@@ -40,37 +40,49 @@ impl TemplateContext<'_, '_, '_> {
 
 pub type TemplateReplaceSource = ReplaceSource<BoxSource>;
 
-clone_trait_object!(DependencyTemplate);
+clone_trait_object!(DependencyCodeGeneration);
 
-// Align with https://github.com/webpack/webpack/blob/671ac29d462e75a10c3fdfc785a4c153e41e749e/lib/DependencyTemplate.js
+// Align with https://github.com/webpack/webpack/blob/671ac29d462e75a10c3fdfc785a4c153e41e749e/lib/DependencyCodeGeneration.js
 #[cacheable_dyn]
-pub trait DependencyTemplate: Debug + DynClone + Sync + Send + AsAny {
-  fn apply(
-    &self,
-    source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  );
-
-  fn dependency_id(&self) -> Option<DependencyId>;
-
+pub trait DependencyCodeGeneration: Debug + DynClone + Sync + Send + AsAny {
   fn update_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
-    compilation: &Compilation,
-    runtime: Option<&RuntimeSpec>,
-  );
-}
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+  }
 
-pub type BoxDependencyTemplate = Box<dyn DependencyTemplate>;
-
-pub trait AsDependencyTemplate {
-  fn as_dependency_template(&self) -> Option<&dyn DependencyTemplate> {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
     None
   }
 }
 
-impl<T: DependencyTemplate> AsDependencyTemplate for T {
-  fn as_dependency_template(&self) -> Option<&dyn DependencyTemplate> {
+pub type BoxDependencyTemplate = Box<dyn DependencyCodeGeneration>;
+
+pub trait AsDependencyCodeGeneration {
+  fn as_dependency_code_generation(&self) -> Option<&dyn DependencyCodeGeneration> {
+    None
+  }
+}
+
+impl<T: DependencyCodeGeneration> AsDependencyCodeGeneration for T {
+  fn as_dependency_code_generation(&self) -> Option<&dyn DependencyCodeGeneration> {
     Some(self)
   }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum DependencyTemplateType {
+  Dependency(DependencyType),
+  Custom(&'static str),
+}
+
+pub trait DependencyTemplate: Debug + Sync + Send {
+  fn render(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  );
 }

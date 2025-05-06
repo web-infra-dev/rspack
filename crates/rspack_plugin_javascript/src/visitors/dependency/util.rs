@@ -1,4 +1,4 @@
-use rspack_core::{ConstDependency, ErrorSpan, SpanExt};
+use rspack_core::{ConstDependency, ErrorSpan};
 use rspack_error::{
   miette::{diagnostic, Severity},
   DiagnosticKind, TraceableError,
@@ -306,8 +306,7 @@ pub fn expression_not_supported(
       .with_hide_stack(Some(true)),
     ),
     Box::new(ConstDependency::new(
-      expr.span().real_lo(),
-      expr.span().real_hi(),
+      expr.span().into(),
       "(void 0)".into(),
       None,
     )),

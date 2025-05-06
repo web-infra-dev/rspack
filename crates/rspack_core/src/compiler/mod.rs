@@ -5,10 +5,10 @@ mod rebuild;
 use std::sync::{atomic::AtomicU32, Arc};
 
 use futures::future::join_all;
+use rspack_cacheable::cacheable;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hook::define_hook;
-use rspack_macros::cacheable;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
 use rspack_util::node_path::NodePath;
@@ -23,9 +23,9 @@ pub use self::{
 use crate::{
   cache::{new_cache, Cache},
   fast_set, include_hash,
-  incremental::IncrementalPasses,
+  incremental::{Incremental, IncrementalPasses},
   old_cache::Cache as OldCache,
-  trim_dir, BoxPlugin, CleanOptions, CompilerOptions, ContextModuleFactory, Logger,
+  trim_dir, BoxPlugin, CleanOptions, CompilerOptions, ContextModuleFactory, KeepPattern, Logger,
   NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
 };
 
@@ -41,6 +41,7 @@ define_hook!(CompilerShouldEmit: SeriesBail(compilation: &mut Compilation) -> bo
 define_hook!(CompilerEmit: Series(compilation: &mut Compilation));
 define_hook!(CompilerAfterEmit: Series(compilation: &mut Compilation));
 define_hook!(CompilerAssetEmitted: Series(compilation: &Compilation, filename: &str, info: &AssetEmittedInfo));
+define_hook!(CompilerClose: Series(compilation: &Compilation));
 
 #[derive(Debug, Default)]
 pub struct CompilerHooks {
@@ -52,6 +53,7 @@ pub struct CompilerHooks {
   pub emit: CompilerEmitHook,
   pub after_emit: CompilerAfterEmitHook,
   pub asset_emitted: CompilerAssetEmittedHook,
+  pub close: CompilerCloseHook,
 }
 
 static COMPILER_ID: AtomicU32 = AtomicU32::new(0);
@@ -93,7 +95,6 @@ pub struct Compiler {
 }
 
 impl Compiler {
-  #[instrument(skip_all)]
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     compiler_path: String,
@@ -147,6 +148,7 @@ impl Compiler {
       intermediate_filesystem.clone(),
     );
     let old_cache = Arc::new(OldCache::new(options.clone()));
+    let incremental = Incremental::new_cold(options.experiments.incremental);
     let module_executor = ModuleExecutor::default();
 
     let id = CompilerId::new();
@@ -165,6 +167,7 @@ impl Compiler {
         None,
         cache.clone(),
         old_cache.clone(),
+        incremental,
         Some(module_executor),
         Default::default(),
         Default::default(),
@@ -200,7 +203,9 @@ impl Compiler {
     self.old_cache.end_idle();
     // TODO: clear the outdated cache entries in resolver,
     // TODO: maybe it's better to use external entries.
-    self.plugin_driver.clear_cache();
+    let plugin_driver_clone = self.plugin_driver.clone();
+    let compilation_id = self.compilation.id();
+    let _guard = scopeguard::guard((), move |_| plugin_driver_clone.clear_cache(compilation_id));
 
     fast_set(
       &mut self.compilation,
@@ -214,6 +219,7 @@ impl Compiler {
         None,
         self.cache.clone(),
         self.old_cache.clone(),
+        Incremental::new_cold(self.options.experiments.incremental),
         Some(Default::default()),
         Default::default(),
         Default::default(),
@@ -223,8 +229,14 @@ impl Compiler {
         false,
       ),
     );
-    if let Err(err) = self.cache.before_compile(&mut self.compilation).await {
-      self.compilation.push_diagnostic(err.into());
+    match self.cache.before_compile(&mut self.compilation).await {
+      Ok(is_hot) => {
+        if is_hot {
+          // If it's a hot start, we can use incremental
+          self.compilation.incremental = Incremental::new_hot(self.options.experiments.incremental);
+        }
+      }
+      Err(err) => self.compilation.push_diagnostic(err.into()),
     }
 
     self.compile().await?;
@@ -267,6 +279,7 @@ impl Compiler {
     {
       self.compilation.push_diagnostic(err.into());
     }
+
     if let Some(e) = self
       .plugin_driver
       .compiler_hooks
@@ -353,10 +366,9 @@ impl Compiler {
         .for_each(|(filename, asset)| {
           // collect version info to new_emitted_asset_versions
           if self
-            .options
-            .experiments
+            .compilation
             .incremental
-            .contains(IncrementalPasses::EMIT_ASSETS)
+            .passes_enabled(IncrementalPasses::EMIT_ASSETS)
           {
             new_emitted_asset_versions.insert(filename.to_string(), asset.info.version.clone());
           }
@@ -386,8 +398,6 @@ impl Compiler {
       .call(&mut self.compilation)
       .await
   }
-
-  #[instrument(skip_all, fields(filename = filename))]
   async fn emit_asset(
     &self,
     output_path: &Utf8Path,
@@ -476,24 +486,43 @@ impl Compiler {
     }
 
     if self.emitted_asset_versions.is_empty() {
-      if let CleanOptions::KeepPath(p) = clean_options {
-        let path_to_keep = self.options.output.path.join(Utf8Path::new(p));
-        trim_dir(
-          &*self.output_filesystem,
-          &self.options.output.path,
-          &path_to_keep,
-        )
-        .await?;
-        return Ok(());
+      match clean_options {
+        CleanOptions::CleanAll(true) => {
+          self
+            .output_filesystem
+            .remove_dir_all(&self.options.output.path)
+            .await?;
+        }
+        CleanOptions::KeepPath(p) => {
+          let path = self.options.output.path.join(p);
+          trim_dir(
+            &*self.output_filesystem,
+            &self.options.output.path,
+            KeepPattern::Path(&path),
+          )
+          .await?;
+        }
+        CleanOptions::KeepRegex(r) => {
+          let keep_pattern = KeepPattern::Regex(r);
+          trim_dir(
+            &*self.output_filesystem,
+            &self.options.output.path,
+            keep_pattern,
+          )
+          .await?;
+        }
+        CleanOptions::KeepFunc(f) => {
+          let keep_pattern = KeepPattern::Func(f);
+          trim_dir(
+            &*self.output_filesystem,
+            &self.options.output.path,
+            keep_pattern,
+          )
+          .await?;
+        }
+        _ => {}
       }
 
-      // CleanOptions::CleanAll(true) only
-      debug_assert!(matches!(clean_options, CleanOptions::CleanAll(true)));
-
-      self
-        .output_filesystem
-        .remove_dir_all(&self.options.output.path)
-        .await?;
       return Ok(());
     }
 
@@ -506,7 +535,7 @@ impl Compiler {
           if !assets.contains_key(filename) {
             let filename = filename.to_owned();
             Some(async {
-              if !clean_options.keep(filename.as_str()) {
+              if !clean_options.keep(&filename).await {
                 let filename = Utf8Path::new(&self.options.output.path).join(filename);
                 let _ = self.output_filesystem.remove_file(&filename).await;
               }
@@ -534,6 +563,17 @@ impl Compiler {
         self.plugin_driver.clone(),
       )),
     }
+  }
+
+  pub async fn close(&self) -> Result<()> {
+    self
+      .plugin_driver
+      .compiler_hooks
+      .close
+      .call(&self.compilation)
+      .await?;
+
+    Ok(())
   }
 }
 

@@ -64,8 +64,7 @@ Rspack compiled successfully (27eddb11e03f28d2)
 exports[`statsOutput statsOutput/builtin-swc-loader-parse-error should print correct stats for 1`] = `
 ERROR in ./index.ts
   × Module build failed:
-  ├─▶   ×
-  │     │   x Expected '{', got 'error'
+  ├─▶   ×   x Expected '{', got 'error'
   │     │    ,-[<TEST_TOOLS_ROOT>/tests/statsOutputCases/builtin-swc-loader-parse-error/index.ts<LINE_COL>]
   │     │  1 | export error;
   │     │    :        ^^^^^

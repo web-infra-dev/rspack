@@ -40,6 +40,7 @@ pub enum Mutation {
   ChunkSplit { from: ChunkUkey, to: ChunkUkey },
   ChunksIntegrate { to: ChunkUkey },
   ChunkRemove { chunk: ChunkUkey },
+  ChunkSetHashes { chunk: ChunkUkey },
 }
 
 impl fmt::Display for Mutation {
@@ -58,6 +59,7 @@ impl fmt::Display for Mutation {
       }
       Mutation::ChunksIntegrate { to } => write!(f, "integrate chunks to {}", to.as_u32()),
       Mutation::ChunkRemove { chunk } => write!(f, "remove chunk {}", chunk.as_u32()),
+      Mutation::ChunkSetHashes { chunk } => write!(f, "set hashes chunk {}", chunk.as_u32()),
     }
   }
 }
@@ -158,6 +160,9 @@ impl Mutations {
             }
             Mutation::ChunkRemove { chunk } => {
               acc.remove(chunk);
+            }
+            Mutation::ChunkSetId { chunk } => {
+              acc.insert(*chunk);
             }
             _ => {}
           };

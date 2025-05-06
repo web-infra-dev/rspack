@@ -1,7 +1,12 @@
 mod mutations;
 
+use std::fmt;
+
 use bitflags::bitflags;
 pub use mutations::{Mutation, Mutations};
+use rspack_error::{miette, thiserror, Diagnostic, DiagnosticExt};
+
+pub const TRACING_TARGET: &str = "rspack_incremental";
 
 bitflags! {
   #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -24,33 +29,176 @@ bitflags! {
   }
 }
 
+impl IncrementalPasses {
+  pub fn pass_name(&self) -> &str {
+    match *self {
+      Self::MAKE => "make",
+      Self::INFER_ASYNC_MODULES => "inferAsyncModules",
+      Self::PROVIDED_EXPORTS => "providedExports",
+      Self::DEPENDENCIES_DIAGNOSTICS => "dependenciesDiagnostics",
+      Self::SIDE_EFFECTS => "sideEffects",
+      Self::BUILD_CHUNK_GRAPH => "buildChunkGraph",
+      Self::MODULE_IDS => "moduleIds",
+      Self::CHUNK_IDS => "chunkIds",
+      Self::MODULES_HASHES => "modulesHashes",
+      Self::MODULES_CODEGEN => "modulesCodegen",
+      Self::MODULES_RUNTIME_REQUIREMENTS => "modulesRuntimeRequirements",
+      Self::CHUNKS_RUNTIME_REQUIREMENTS => "chunksRuntimeRequirements",
+      Self::CHUNKS_HASHES => "chunksHashes",
+      Self::CHUNKS_RENDER => "chunksRender",
+      Self::EMIT_ASSETS => "emitAssets",
+      _ => unreachable!(),
+    }
+  }
+}
+
+impl fmt::Display for IncrementalPasses {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    let mut first = true;
+    for pass in IncrementalPasses::all().iter() {
+      if self.contains(pass) {
+        if !first {
+          write!(f, ", ")?;
+        }
+        first = false;
+        write!(f, "incremental.{}", pass.pass_name())?;
+      }
+    }
+    Ok(())
+  }
+}
+
+impl IncrementalPasses {
+  pub fn allow_write(&self) -> bool {
+    !self.is_empty()
+  }
+
+  pub fn allow_read(&self, pass: IncrementalPasses) -> bool {
+    self.contains(pass)
+  }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct IncrementalOptions {
+  pub silent: bool,
+  pub passes: IncrementalPasses,
+}
+
+impl IncrementalOptions {
+  pub fn empty_passes() -> Self {
+    Self {
+      silent: true,
+      passes: IncrementalPasses::empty(),
+    }
+  }
+}
+
+#[derive(Debug)]
+enum IncrementalState {
+  /// For cold build and cold start
+  Cold,
+  /// For hot build, hot start, and rebuild
+  Hot { mutations: Mutations },
+}
+
 #[derive(Debug)]
 pub struct Incremental {
+  silent: bool,
   passes: IncrementalPasses,
-  mutations: Mutations,
+  state: IncrementalState,
 }
 
 impl Incremental {
-  pub fn new(passes: IncrementalPasses) -> Self {
+  pub fn new_cold(options: IncrementalOptions) -> Self {
     Self {
-      passes,
-      mutations: Mutations::default(),
+      silent: options.silent,
+      passes: options.passes,
+      state: IncrementalState::Cold,
     }
   }
 
-  pub fn can_write_mutations(&self) -> bool {
-    !self.passes.is_empty()
+  pub fn new_hot(options: IncrementalOptions) -> Self {
+    Self {
+      silent: options.silent,
+      passes: options.passes,
+      state: IncrementalState::Hot {
+        mutations: Mutations::default(),
+      },
+    }
   }
 
-  pub fn can_read_mutations(&self, pass: IncrementalPasses) -> bool {
-    self.passes.contains(pass)
+  pub fn disable_passes(
+    &mut self,
+    passes: IncrementalPasses,
+    thing: &'static str,
+    reason: &'static str,
+  ) -> Option<Option<Diagnostic>> {
+    if matches!(self.state, IncrementalState::Hot { .. })
+      && let passes = self.passes.intersection(passes)
+      && !passes.is_empty()
+    {
+      self.passes.remove(passes);
+      if self.silent {
+        return Some(None);
+      }
+      return Some(Some(
+        NotFriendlyForIncremental {
+          thing,
+          reason,
+          passes,
+        }
+        .boxed()
+        .into(),
+      ));
+    }
+    None
+  }
+
+  pub fn enabled(&self) -> bool {
+    self.passes.allow_write()
+  }
+
+  pub fn passes_enabled(&self, passes: IncrementalPasses) -> bool {
+    self.passes.allow_read(passes)
+  }
+
+  pub fn mutations_writeable(&self) -> bool {
+    if matches!(self.state, IncrementalState::Hot { .. }) {
+      return self.passes.allow_write();
+    }
+    false
+  }
+
+  pub fn mutations_readable(&self, passes: IncrementalPasses) -> bool {
+    if matches!(self.state, IncrementalState::Hot { .. }) {
+      return self.passes.allow_read(passes);
+    }
+    false
   }
 
   pub fn mutations_write(&mut self) -> Option<&mut Mutations> {
-    self.can_write_mutations().then_some(&mut self.mutations)
+    if let IncrementalState::Hot { mutations } = &mut self.state {
+      return self.passes.allow_write().then_some(mutations);
+    }
+    None
   }
 
-  pub fn mutations_read(&self, pass: IncrementalPasses) -> Option<&Mutations> {
-    self.can_read_mutations(pass).then_some(&self.mutations)
+  pub fn mutations_read(&self, passes: IncrementalPasses) -> Option<&Mutations> {
+    if let IncrementalState::Hot { mutations } = &self.state {
+      return self.passes.allow_read(passes).then_some(mutations);
+    }
+    None
   }
+}
+
+#[derive(Debug, thiserror::Error, miette::Diagnostic)]
+#[diagnostic(code(NotFriendlyForIncremental))]
+#[diagnostic(severity(Warning))]
+#[error(
+  r#"{thing} is not friendly for incremental, {reason}. For this rebuild {passes} are fallback to non-incremental."#
+)]
+pub struct NotFriendlyForIncremental {
+  pub thing: &'static str,
+  pub reason: &'static str,
+  pub passes: IncrementalPasses,
 }

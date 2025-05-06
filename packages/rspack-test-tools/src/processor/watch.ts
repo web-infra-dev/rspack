@@ -21,15 +21,10 @@ const currentWatchStepModulePath = path.resolve(
 	"../helper/util/currentWatchStep"
 );
 
-type TRspackExperiments = TCompilerOptions<ECompilerType>["experiments"];
-type TRspackOptimization = TCompilerOptions<ECompilerType>["optimization"];
-
 export interface IWatchProcessorOptions<T extends ECompilerType>
 	extends IMultiTaskProcessorOptions<T> {
 	stepName: string;
 	tempDir: string;
-	experiments?: TRspackExperiments;
-	optimization?: TRspackOptimization;
 }
 
 export class WatchProcessor<
@@ -255,9 +250,7 @@ export class WatchProcessor<
 
 	static overrideOptions<T extends ECompilerType>({
 		tempDir,
-		name,
-		experiments,
-		optimization
+		name
 	}: IWatchProcessorOptions<T>) {
 		return (
 			index: number,
@@ -279,28 +272,9 @@ export class WatchProcessor<
 				(options.cache as any).cacheDirectory = cacheDirectory;
 				(options.cache as any).name = `config-${index}`;
 			}
-			if (experiments) {
-				if (!options.experiments) options.experiments = {};
-				for (const key of Object.keys(experiments) as Array<
-					keyof TRspackExperiments
-				>) {
-					if (options.experiments[key] === undefined)
-						options.experiments[key] = experiments[key];
-				}
-			}
-			if (optimization) {
-				if (!options.optimization) options.optimization = {};
-				for (const key of Object.keys(optimization) as Array<
-					keyof TRspackOptimization
-				>) {
-					if (options.optimization[key] === undefined)
-						options.optimization[key] = optimization[key];
-				}
-			}
-
-			(options as TCompilerOptions<ECompilerType.Rspack>).experiments ??= {};
-			(options as TCompilerOptions<ECompilerType.Rspack>).experiments!.css ??=
-				true;
+			options.optimization ??= {};
+			options.experiments ??= {};
+			options.experiments.css ??= true;
 			(
 				options as TCompilerOptions<ECompilerType.Rspack>
 			).experiments!.rspackFuture ??= {};

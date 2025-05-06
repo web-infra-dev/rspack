@@ -117,8 +117,7 @@ impl InnerGraphPlugin {
           Box::new(move |parser, used_by_exports| {
             if !matches!(used_by_exports, Some(UsedByExports::Bool(true)) | None) {
               let mut dep = PureExpressionDependency::new(
-                pure_part_start,
-                pure_part_end,
+                (pure_part_start, pure_part_end).into(),
                 *parser.module_identifier,
               );
               dep.set_used_by_exports(used_by_exports);
@@ -526,8 +525,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
           Box::new(move |parser, used_by_exports| {
             if !matches!(used_by_exports, Some(UsedByExports::Bool(true)) | None) {
               let mut dep = PureExpressionDependency::new(
-                pure_part_start,
-                pure_part_end,
+                (pure_part_start, pure_part_end).into(),
                 *parser.module_identifier,
               );
               dep.set_used_by_exports(used_by_exports);
@@ -579,11 +577,8 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
         parser,
         Box::new(move |parser, used_by_exports| {
           if !matches!(used_by_exports, Some(UsedByExports::Bool(true)) | None) {
-            let mut dep = PureExpressionDependency::new(
-              expr_span.real_lo(),
-              expr_span.real_hi(),
-              *parser.module_identifier,
-            );
+            let mut dep =
+              PureExpressionDependency::new(expr_span.into(), *parser.module_identifier);
             dep.set_used_by_exports(used_by_exports);
             parser.dependencies.push(Box::new(dep));
           }
@@ -640,11 +635,8 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
             parser,
             Box::new(move |parser, used_by_exports| {
               if !matches!(used_by_exports, Some(UsedByExports::Bool(true)) | None) {
-                let mut dep = PureExpressionDependency::new(
-                  expr_span.real_lo(),
-                  expr_span.real_hi(),
-                  *parser.module_identifier,
-                );
+                let mut dep =
+                  PureExpressionDependency::new(expr_span.into(), *parser.module_identifier);
                 dep.set_used_by_exports(used_by_exports);
                 parser.dependencies.push(Box::new(dep));
               }
@@ -690,11 +682,8 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
             parser,
             Box::new(move |parser, used_by_exports| {
               if !matches!(used_by_exports, Some(UsedByExports::Bool(true)) | None) {
-                let mut dep = PureExpressionDependency::new(
-                  super_span.real_lo(),
-                  super_span.real_hi(),
-                  *parser.module_identifier,
-                );
+                let mut dep =
+                  PureExpressionDependency::new(super_span.into(), *parser.module_identifier);
                 dep.set_used_by_exports(used_by_exports);
                 parser.dependencies.push(Box::new(dep));
               }
@@ -708,11 +697,8 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
             parser,
             Box::new(move |parser, used_by_exports| {
               if !matches!(used_by_exports, Some(UsedByExports::Bool(true)) | None) {
-                let mut dep = PureExpressionDependency::new(
-                  init_span.real_lo(),
-                  init_span.real_hi(),
-                  *parser.module_identifier,
-                );
+                let mut dep =
+                  PureExpressionDependency::new(init_span.into(), *parser.module_identifier);
                 dep.set_used_by_exports(used_by_exports);
                 parser.dependencies.push(Box::new(dep));
               }

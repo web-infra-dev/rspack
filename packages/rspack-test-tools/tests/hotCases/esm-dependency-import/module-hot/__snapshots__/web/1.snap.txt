@@ -31,7 +31,7 @@
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]('main', {
+self["webpackHotUpdate"]("main", {
 "./node_modules/dep1/file.js": 
 /*!***********************************!*\
   !*** ./node_modules/dep1/file.js ***!

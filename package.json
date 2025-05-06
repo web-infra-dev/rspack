@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "1.3.2",
+  "version": "1.3.8",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "private": true,
@@ -10,7 +10,8 @@
     "dev": "pnpm --filter @rspack/cli run dev",
     "clean": "pnpm --filter @rspack/cli run clean",
     "check-dependency-version": "pnpx check-dependency-version-consistency@5 . --ignore-dep chalk --ignore-package webpack-test --ignore-package webpack-examples",
-    "build:js": "pnpm --filter \"@rspack/core\" build:force && pnpm --parallel --filter \"@rspack/*\" --filter \"create-rspack\" --filter \"!@rspack/core\" build",
+    "build:js": "pnpm --filter \"@rspack/core\" build && pnpm --parallel --filter \"@rspack/*\" --filter \"create-rspack\" --filter \"!@rspack/core\" build",
+    "build:js:canary": "pnpm --filter \"@rspack-canary/core\" build && pnpm --parallel --filter \"@rspack-canary/*\" --filter \"create-rspack-canary\" --filter \"!@rspack-canary/core\" build",
     "build:cli:dev": "npm run build:binding:dev && npm run build:js",
     "build:cli:dev:wasm": "pnpm --filter @rspack/binding build:dev:wasm && npm run build:js",
     "build:cli:release": "npm run build:binding:release && npm run build:js",
@@ -23,7 +24,7 @@
     "test:js": "pnpm -r run test",
     "format:rs": "cargo fmt --all",
     "format:js": "pnpm run format-ci:js --write",
-    "format-ci:js": "node ./node_modules/prettier/bin/prettier.cjs \"packages/**/src/**/*.{ts,tsx,js}\" \"crates/rspack_plugin_runtime/**/*.{ts,js}\" \"scripts/**/*.{cjs,mjs,js}\"  \"*.mjs\" \"x\" --check",
+    "format-ci:js": "node ./node_modules/prettier/bin/prettier.cjs \"packages/**/src/**/*.{ts,tsx,mts,cts,js,mjs,cjs,jsx}\" \"crates/rspack_plugin_runtime/**/*.{ts,js}\" \"scripts/**/*.{cjs,mjs,js}\"  \"*.mjs\" \"x\" --check",
     "format-ci:toml": "npx @taplo/cli format --check '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
     "format:toml": "npx @taplo/cli format '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
     "lint:js": "pnpm run lint-ci:js --write",
@@ -52,19 +53,19 @@
     "url": "https://github.com/web-infra-dev/rspack"
   },
   "engines": {
-    "pnpm": "9.15.9"
+    "pnpm": "10.10.0"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@continuous-auth/client": "^2.3.2",
     "@jest/reporters": "29.7.0",
-    "@microsoft/api-extractor": "7.49.2",
-    "@microsoft/api-extractor-model": "7.30.3",
+    "@microsoft/api-extractor": "7.52.5",
+    "@microsoft/api-extractor-model": "7.30.5",
     "@rspack/cli": "workspace:*",
     "@taplo/cli": "^0.7.0",
     "@types/is-ci": "^3.0.4",
     "@types/jest": "29.5.14",
-    "@types/node": "^20.17.28",
+    "@types/node": "^20.17.32",
     "commander": "13.1.0",
     "cross-env": "^7.0.3",
     "husky": "^9.1.7",
@@ -72,17 +73,16 @@
     "jest": "29.7.0",
     "jest-cli": "29.7.0",
     "jest-environment-node": "29.7.0",
-    "lint-staged": "^15.5.0",
+    "lint-staged": "^15.5.1",
     "prettier": "3.5.3",
     "prettier-2": "npm:prettier@2.8.8",
     "rimraf": "^5.0.10",
-    "ts-jest": "29.3.1",
-    "typescript": "^5.7.3",
-    "webpack": "5.98.0",
-    "webpack-cli": "5.1.4",
-    "zx": "8.5.0"
+    "ts-jest": "29.3.2",
+    "typescript": "^5.8.3",
+    "webpack": "5.99.7",
+    "zx": "8.5.3"
   },
-  "packageManager": "pnpm@9.15.9",
+  "packageManager": "pnpm@10.10.0",
   "pnpm": {
     "patchedDependencies": {
       "graceful-fs": "patches/graceful-fs.patch",

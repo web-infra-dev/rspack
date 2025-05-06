@@ -10,7 +10,7 @@ inputs:
     description: "A file, directory or wildcard pattern that describes what to upload"
     required: true
   force-use-github:
-    description: "force upload to github"
+    description: "Force upload to github"
     default: false
     require: false
 
@@ -25,9 +25,11 @@ runs:
         path: ${{ inputs.path }}
         if-no-files-found: error
         overwrite: true
-#    - name: Upload artifact to local
-#      uses: lynx-infra/upload-artifact
-#      if: ${{ inputs.force-use-github != 'true' && runner.environment == 'self-hosted' }}
-#      with:
-#        name: ${{ inputs.name }}
-#        path: ${{ inputs.path }}
+    - name: Upload artifact to local
+      uses: lynx-infra/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 #dev
+      if: ${{ runner.environment == 'self-hosted' }}
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ inputs.path }}
+        if-no-files-found: error
+        overwrite: true

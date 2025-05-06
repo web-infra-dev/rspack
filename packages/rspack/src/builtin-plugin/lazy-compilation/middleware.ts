@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { Middleware } from "webpack-dev-server";
 import type { Compiler, LazyCompilationOptions } from "../..";
 import type { Module } from "../../Module";
+import type { Middleware } from "../../config/devServer";
 import { BuiltinLazyCompilationPlugin } from "./lazyCompilation";
 
 export const LAZY_COMPILATION_PREFIX = "/lazy-compilation-using-";
@@ -23,6 +23,19 @@ const noop = (
 	}
 };
 
+const getFullServerUrl = ({ serverUrl, prefix }: LazyCompilationOptions) => {
+	const lazyCompilationPrefix = prefix || LAZY_COMPILATION_PREFIX;
+	if (!serverUrl) {
+		return lazyCompilationPrefix;
+	}
+	return (
+		serverUrl +
+		(serverUrl.endsWith("/")
+			? lazyCompilationPrefix.slice(1)
+			: lazyCompilationPrefix)
+	);
+};
+
 export const lazyCompilationMiddleware = (
 	compiler: Compiler,
 	userOptions: LazyCompilationOptions | boolean = {}
@@ -34,6 +47,8 @@ export const lazyCompilationMiddleware = (
 	const options = userOptions === true ? {} : userOptions;
 	const activeModules: Map<string, boolean> = new Map();
 	const filesByKey: Map<string, string> = new Map();
+	const lazyCompilationPrefix = options.prefix || LAZY_COMPILATION_PREFIX;
+
 	new BuiltinLazyCompilationPlugin(
 		({ module, path }) => {
 			const key = encodeURIComponent(
@@ -45,8 +60,9 @@ export const lazyCompilationMiddleware = (
 				.replace(/%(2F|3A|24|26|2B|2C|3B|3D)/g, decodeURIComponent);
 			filesByKey.set(key, path);
 			const active = activeModules.get(key) === true;
+
 			return {
-				client: `${options.client || getDefaultClient(compiler)}?${encodeURIComponent((options.serverUrl ?? "") + LAZY_COMPILATION_PREFIX)}`,
+				client: `${options.client || getDefaultClient(compiler)}?${encodeURIComponent(getFullServerUrl(options))}`,
 				data: key,
 				active
 			};
@@ -63,24 +79,30 @@ export const lazyCompilationMiddleware = (
 			: options.test
 	).apply(compiler);
 
-	return lazyCompilationMiddlewareInternal(compiler, activeModules, filesByKey);
+	return lazyCompilationMiddlewareInternal(
+		compiler,
+		activeModules,
+		filesByKey,
+		lazyCompilationPrefix
+	);
 };
 
 // used for reuse code, do not export this
 const lazyCompilationMiddlewareInternal = (
 	compiler: Compiler,
 	activeModules: Map<string, boolean>,
-	filesByKey: Map<string, string>
+	filesByKey: Map<string, string>,
+	lazyCompilationPrefix: string
 ) => {
 	const logger = compiler.getInfrastructureLogger("LazyCompilation");
 
 	return (req: IncomingMessage, res: ServerResponse, next?: () => void) => {
-		if (!req.url?.startsWith(LAZY_COMPILATION_PREFIX)) {
+		if (!req.url?.startsWith(lazyCompilationPrefix)) {
 			// only handle requests that are come from lazyCompilation
 			return next?.();
 		}
 
-		const keys = req.url.slice(LAZY_COMPILATION_PREFIX.length).split("@");
+		const keys = req.url.slice(lazyCompilationPrefix.length).split("@");
 		req.socket.setNoDelay(true);
 
 		res.setHeader("content-type", "text/event-stream");

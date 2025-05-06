@@ -5,7 +5,8 @@ use rspack_core::{
   ApplyContext, Chunk, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, ExternalRequest,
   Filename, LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject,
-  LibraryOptions, LibraryType, PathData, Plugin, PluginContext, RuntimeGlobals, SourceType,
+  LibraryOptions, LibraryType, ModuleGraph, PathData, Plugin, PluginContext, RuntimeGlobals,
+  SourceType,
 };
 use rspack_error::{error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
@@ -28,7 +29,7 @@ struct UmdLibraryPluginParsed<'a> {
 #[plugin]
 #[derive(Debug)]
 pub struct UmdLibraryPlugin {
-  _optional_amd_external_as_global: bool,
+  optional_amd_external_as_global: bool,
   library_type: LibraryType,
 }
 
@@ -121,15 +122,41 @@ async fn render(
         })
     })
     .collect::<Vec<&ExternalModule>>();
-  // TODO check if external module is optional
-  let optional_externals: Vec<&ExternalModule> = vec![];
+  let mut optional_externals: Vec<&ExternalModule> = vec![];
+  let mut required_externals = vec![];
   let externals = modules.clone();
-  let required_externals = modules.clone();
+
+  if self.optional_amd_external_as_global {
+    for module in &externals {
+      if module_graph.is_optional(&module.id) {
+        optional_externals.push(*module);
+      } else {
+        required_externals.push(*module);
+      }
+    }
+  } else {
+    required_externals = externals.clone();
+  }
 
   let amd_factory = if optional_externals.is_empty() {
-    "factory"
+    "factory".to_string()
   } else {
-    ""
+    let wrapper_arguments = external_arguments(&required_externals, compilation);
+    let factory_arguments = if required_externals.is_empty() {
+      externals_root_array(&optional_externals)?
+    } else {
+      format!(
+        "{}, {}",
+        external_arguments(&required_externals, compilation),
+        externals_root_array(&optional_externals)?
+      )
+    };
+    format!(
+      r#"function webpackLoadOptionalExternalModuleAmd({}) {{
+      return factory({});
+    }}"#,
+      wrapper_arguments, factory_arguments
+    )
   };
 
   let UmdLibraryPluginParsed {
@@ -165,7 +192,7 @@ async fn render(
       exports[{}] = factory({});\n",
       get_auxiliary_comment("commonjs", auxiliary_comment),
       name,
-      externals_require_array("commonjs", &externals)?,
+      externals_require_array("commonjs", &externals, &module_graph)?,
     );
     let root_code = format!(
       "{}
@@ -199,7 +226,7 @@ async fn render(
     } else {
       format!(
         "var a = typeof exports === 'object' ? factory({}) : factory({});\n",
-        externals_require_array("commonjs", &externals)?,
+        externals_require_array("commonjs", &externals, &module_graph)?,
         externals_root_array(&externals)?
       )
     };
@@ -221,7 +248,7 @@ async fn render(
           module.exports = factory({});
       }}"#,
     get_auxiliary_comment("commonjs2", auxiliary_comment),
-    externals_require_array("commonjs2", &externals)?
+    externals_require_array("commonjs2", &externals, &module_graph)?
   )));
   source.add(RawStringSource::from(format!(
     "else if(typeof define === 'function' && define.amd) {{
@@ -324,7 +351,11 @@ async fn replace_keys(v: String, chunk: &Chunk, compilation: &Compilation) -> Re
     .await
 }
 
-fn externals_require_array(external_type: &str, externals: &[&ExternalModule]) -> Result<String> {
+fn externals_require_array(
+  external_type: &str,
+  externals: &[&ExternalModule],
+  module_graph: &ModuleGraph,
+) -> Result<String> {
   Ok(
     externals
       .iter()
@@ -335,13 +366,15 @@ fn externals_require_array(external_type: &str, externals: &[&ExternalModule]) -
             .get(external_type)
             .ok_or_else(|| error!("Missing external configuration for type: {external_type}"))?,
         };
-        // TODO: check if external module is optional
         let primary = serde_json::to_string(request.primary()).to_rspack_result()?;
-        let expr = if let Some(rest) = request.rest() {
+        let mut expr = if let Some(rest) = request.rest() {
           format!("require({}){}", primary, &accessor_to_object_access(rest))
         } else {
           format!("require({})", primary)
         };
+        if module_graph.is_optional(&m.id) {
+          expr = format!("(function webpackLoadOptionalExternalModule() {{ try {{ return {expr}; }} catch(e) {{}} }}())");
+        }
         Ok(expr)
       })
       .collect::<Result<Vec<_>>>()?

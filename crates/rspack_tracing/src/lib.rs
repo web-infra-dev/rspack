@@ -8,12 +8,6 @@ pub use chrome::ChromeTracer;
 pub use stdout::StdoutTracer;
 pub use tracer::Tracer;
 use tracing_subscriber::fmt::writer::BoxMakeWriter;
-
-#[cfg(feature = "otel")]
-mod opentelemetry;
-#[cfg(feature = "otel")]
-pub use opentelemetry::*;
-
 pub(crate) enum TraceWriter<'a> {
   Stdout,
   Stderr,

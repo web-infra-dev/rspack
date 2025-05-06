@@ -11,6 +11,7 @@ pub struct DefineHookInput {
   trait_name: Ident,
   args: Punctuated<PatType, Comma>,
   exec_kind: ExecKind,
+  tracing: Option<syn::LitBool>,
 }
 
 impl Parse for DefineHookInput {
@@ -47,10 +48,26 @@ impl Parse for DefineHookInput {
         ))
       }
     };
+
+    let mut tracing = None;
+    while input.peek(Token![,]) {
+      input.parse::<Token![,]>()?;
+      let ident = input.parse::<syn::Ident>()?;
+      input.parse::<Token![=]>()?;
+
+      match ident.to_string().as_str() {
+        "tracing" => {
+          tracing = Some(input.parse()?);
+        }
+        _ => return Err(input.error("expected \"tracing\" or end of attribute")),
+      }
+    }
+
     Ok(Self {
       trait_name,
       args,
       exec_kind,
+      tracing,
     })
   }
 }
@@ -61,6 +78,7 @@ impl DefineHookInput {
       trait_name,
       args,
       exec_kind,
+      tracing,
     } = self;
     let ret = exec_kind.return_type();
     let attr = quote! { #[::rspack_hook::__macro_helper::async_trait] };
@@ -73,15 +91,25 @@ impl DefineHookInput {
         _ => Err(Error::new_spanned(arg, "unexpected arg")),
       })
       .collect::<Result<Punctuated<&Ident, Comma>>>()?;
+    let hook_name = Ident::new(&format!("{trait_name}Hook"), trait_name.span());
+    let hook_name_lit_str = LitStr::new(&hook_name.to_string(), trait_name.span());
     let call_body = exec_kind.body(arg_names);
+    let call_body = if tracing.map(|bool_lit| bool_lit.value).unwrap_or(true) {
+      let tracing_span_name = LitStr::new(&format!("hook:{trait_name}"), trait_name.span());
+      quote! {
+        ::rspack_hook::__macro_helper::tracing::Instrument::instrument(
+          async { #call_body },
+          ::rspack_hook::__macro_helper::tracing::info_span!(#tracing_span_name),
+        ).await
+      }
+    } else {
+      call_body
+    };
     let call_fn = quote! {
-      fn call(&self, #args) -> #ret {
+      async fn call(&self, #args) -> #ret {
         #call_body
       }
     };
-    let call_fn = quote! { async #call_fn };
-    let hook_name = Ident::new(&format!("{trait_name}Hook"), trait_name.span());
-    let hook_name_lit_str = LitStr::new(&hook_name.to_string(), trait_name.span());
     Ok(quote! {
       #attr
       pub trait #trait_name {
@@ -93,17 +121,17 @@ impl DefineHookInput {
 
       pub struct #hook_name {
         taps: Vec<Box<dyn #trait_name + Send + Sync>>,
-        interceptors: Vec<Box<dyn rspack_hook::Interceptor<Self> + Send + Sync>>,
+        interceptors: Vec<Box<dyn ::rspack_hook::Interceptor<Self> + Send + Sync>>,
       }
 
-      impl rspack_hook::Hook for #hook_name {
+      impl ::rspack_hook::Hook for #hook_name {
         type Tap = Box<dyn #trait_name + Send + Sync>;
 
-        fn used_stages(&self) -> rspack_hook::__macro_helper::FxHashSet<i32> {
-          rspack_hook::__macro_helper::FxHashSet::from_iter(self.taps.iter().map(|h| h.stage()))
+        fn used_stages(&self) -> ::rspack_hook::__macro_helper::FxHashSet<i32> {
+          ::rspack_hook::__macro_helper::FxHashSet::from_iter(self.taps.iter().map(|h| h.stage()))
         }
 
-        fn intercept(&mut self, interceptor: impl rspack_hook::Interceptor<Self> + Send + Sync + 'static) {
+        fn intercept(&mut self, interceptor: impl ::rspack_hook::Interceptor<Self> + Send + Sync + 'static) {
           self.interceptors.push(Box::new(interceptor));
         }
       }
@@ -156,15 +184,15 @@ impl ExecKind {
     match self {
       Self::SeriesBail { ret } => {
         if let Some(ret) = ret {
-          quote! { rspack_hook::__macro_helper::Result<std::option::Option<#ret>> }
+          quote! { ::rspack_hook::__macro_helper::Result<std::option::Option<#ret>> }
         } else {
-          quote! { rspack_hook::__macro_helper::Result<std::option::Option<()>> }
+          quote! { ::rspack_hook::__macro_helper::Result<std::option::Option<()>> }
         }
       }
       Self::SeriesWaterfall { ret } => {
-        quote! { rspack_hook::__macro_helper::Result<#ret> }
+        quote! { ::rspack_hook::__macro_helper::Result<#ret> }
       }
-      _ => quote! { rspack_hook::__macro_helper::Result<()> },
+      _ => quote! { ::rspack_hook::__macro_helper::Result<()> },
     }
   }
 
@@ -175,7 +203,7 @@ impl ExecKind {
       for interceptor in self.interceptors.iter() {
         #call
       }
-      let mut all_taps = std::vec::Vec::new();
+      let mut all_taps = std::vec::Vec::with_capacity(self.taps.len() + additional_taps.len());
       all_taps.extend(&self.taps);
       all_taps.extend(&additional_taps);
       all_taps.sort_by_key(|hook| hook.stage());

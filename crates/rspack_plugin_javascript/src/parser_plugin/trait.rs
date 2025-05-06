@@ -79,12 +79,12 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  fn evaluate_typeof(
+  fn evaluate_typeof<'a>(
     &self,
     _parser: &mut JavascriptParser,
-    _expr: &UnaryExpr,
+    _expr: &'a UnaryExpr,
     _for_name: &str,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     None
   }
 
@@ -94,17 +94,17 @@ pub trait JavascriptParserPlugin {
     _ident: &str,
     _start: u32,
     _end: u32,
-  ) -> Option<BasicEvaluatedExpression> {
+  ) -> Option<BasicEvaluatedExpression<'static>> {
     None
   }
 
-  fn evaluate_call_expression_member(
+  fn evaluate_call_expression_member<'a>(
     &self,
     _parser: &mut JavascriptParser,
     _property: &str,
-    _expr: &CallExpr,
-    _param: &BasicEvaluatedExpression,
-  ) -> Option<BasicEvaluatedExpression> {
+    _expr: &'a CallExpr,
+    _param: BasicEvaluatedExpression<'a>,
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     None
   }
 

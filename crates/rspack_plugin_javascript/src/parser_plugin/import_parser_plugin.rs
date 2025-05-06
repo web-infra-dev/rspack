@@ -156,7 +156,6 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         replaces,
         critical,
       } = create_context_dependency(&param, parser);
-      parser.walk_expression(&dyn_imported.expr);
 
       let reg_exp = context_reg_exp(&reg, "", Some(dyn_imported.span().into()), parser);
       let mut dep = ImportContextDependency::new(

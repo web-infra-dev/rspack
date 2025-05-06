@@ -28,6 +28,7 @@ use crate::{
   },
   EntrypointUkey, ModuleUkey, RsdoctorAssetPatch, RsdoctorChunkGraph, RsdoctorModuleGraph,
   RsdoctorModuleIdsPatch, RsdoctorModuleSourcesPatch, RsdoctorPluginHooks,
+  RsdoctorStatsModuleIssuer,
 };
 
 pub type SendModuleGraph =
@@ -303,7 +304,30 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     }
   }
 
-  // 5. collect chunk modules
+  // 5. Rsdoctor module add issuer_path
+  for module in module_graph.modules() {
+    let mut issuer_path = Vec::new();
+    let (module_id, _) = module;
+    let mut current_issuer = module_graph.get_issuer(&module_id);
+
+    while let Some(i) = current_issuer {
+      if let Some(rsd_module) = rsd_modules.get_mut(&i.identifier()) {
+        let module_ukey = rsd_module.ukey;
+
+        issuer_path.push(RsdoctorStatsModuleIssuer {
+          ukey: Some(module_ukey),
+        });
+      }
+
+      current_issuer = module_graph.get_issuer(&i.identifier());
+    }
+
+    if let Some(rsd_module) = rsd_modules.get_mut(&module_id) {
+      rsd_module.issuer_path = Some(issuer_path);
+    }
+  }
+
+  // 6. collect chunk modules
   let chunk_modules =
     collect_chunk_modules(chunk_by_ukey, &MODULE_UKEY_MAP, chunk_graph, &module_graph);
 
@@ -461,5 +485,9 @@ impl Plugin for RsdoctorPlugin {
       .tap(after_process_asssets::new(self));
 
     Ok(())
+  }
+
+  fn clear_cache(&self, id: CompilationId) {
+    COMPILATION_HOOKS_MAP.remove(&id);
   }
 }

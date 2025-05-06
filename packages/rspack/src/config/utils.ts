@@ -180,9 +180,13 @@ ZodUnion.create = RspackZodUnion.create;
 
 export type ZodCrossFieldsOptions = ZodTypeDef & {
 	patterns: Array<{
-		test: (root: RspackOptions) => boolean;
+		test: (root: RspackOptions, input: z.ParseInput) => boolean;
 		type: ZodType;
-		issue?: (res: ParseReturnType<any>) => Array<IssueData>;
+		issue?: (
+			res: ParseReturnType<any>,
+			root: RspackOptions,
+			input: z.ParseInput
+		) => Array<IssueData>;
 	}>;
 	default: ZodType;
 };
@@ -196,10 +200,12 @@ export class ZodRspackCrossChecker<T> extends ZodType<T> {
 		const root = this._getRootData(ctx);
 
 		for (const pattern of this.params.patterns) {
-			if (pattern.test(root)) {
+			if (pattern.test(root, input)) {
 				const res = pattern.type._parse(input);
 				const issues =
-					typeof pattern.issue === "function" ? pattern.issue(res) : [];
+					typeof pattern.issue === "function"
+						? pattern.issue(res, root, input)
+						: [];
 				for (const issue of issues) {
 					addIssueToContext(ctx, issue);
 				}

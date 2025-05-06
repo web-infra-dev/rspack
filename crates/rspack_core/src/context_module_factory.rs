@@ -238,6 +238,7 @@ impl ContextModuleFactory {
         for loader_request in loaders {
           let resolve_result = loader_resolver
             .resolve(data.context.as_ref(), loader_request)
+            .await
             .to_rspack_result_with_message(|e| {
               format!(
                 "Failed to resolve loader: {loader_request} in {} {e}",
@@ -319,9 +320,13 @@ impl ContextModuleFactory {
           Default::default(),
         )
         .boxed();
+        data.add_file_dependencies(file_dependencies);
+        data.add_missing_dependencies(missing_dependencies);
         return Ok((ModuleFactoryResult::new_with_module(raw_module), None));
       }
       Err(err) => {
+        data.add_file_dependencies(file_dependencies);
+        data.add_missing_dependencies(missing_dependencies);
         return Err(err);
       }
     };

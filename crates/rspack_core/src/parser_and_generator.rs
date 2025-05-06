@@ -11,10 +11,10 @@ use rustc_hash::FxHashMap;
 use swc_core::common::Span;
 
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, BoxLoader, BuildInfo, BuildMeta, ChunkGraph,
-  CodeGenerationData, Compilation, CompilerOptions, ConcatenationScope, Context,
-  DependencyTemplate, Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleLayer,
-  ModuleType, NormalModule, ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
+  AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BoxLoader, BoxModuleDependency,
+  BuildInfo, BuildMeta, ChunkGraph, CodeGenerationData, Compilation, CompilerOptions,
+  ConcatenationScope, Context, Module, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType,
+  NormalModule, ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -67,8 +67,8 @@ impl SideEffectsBailoutItemWithSpan {
 pub struct ParseResult {
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<Box<AsyncDependenciesBlock>>,
-  pub presentational_dependencies: Vec<Box<dyn DependencyTemplate>>,
-  pub code_generation_dependencies: Vec<Box<dyn ModuleDependency>>,
+  pub presentational_dependencies: Vec<BoxDependencyTemplate>,
+  pub code_generation_dependencies: Vec<BoxModuleDependency>,
   pub source: BoxSource,
   pub side_effects_bailout: Option<SideEffectsBailoutItem>,
 }
@@ -117,7 +117,7 @@ pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
     _runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
     Ok(RspackHashDigest::new(
-      vec![],
+      &[],
       &compilation.options.output.hash_digest,
     ))
   }

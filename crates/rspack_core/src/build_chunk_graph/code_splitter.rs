@@ -899,7 +899,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     if compilation
       .incremental
-      .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH)
+      .mutations_readable(IncrementalPasses::BUILD_CHUNK_GRAPH)
     {
       let logger = compilation.get_logger("rspack.incremental.buildChunkGraph");
       logger.log(format!(
@@ -1598,7 +1598,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       Vec<DependencyId>,
     > = IndexMap::default();
 
-    for dep_id in module_graph.get_outgoing_connections_in_order(&module) {
+    for dep_id in module_graph.get_outgoing_deps_in_order(&module) {
       let dep = module_graph
         .dependency_by_id(dep_id)
         .expect("should have dep");

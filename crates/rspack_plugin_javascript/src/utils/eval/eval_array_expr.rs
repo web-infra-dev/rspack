@@ -5,10 +5,10 @@ use super::BasicEvaluatedExpression;
 use crate::visitors::JavascriptParser;
 
 #[inline]
-pub fn eval_array_expression(
+pub fn eval_array_expression<'a>(
   scanner: &mut JavascriptParser,
-  expr: &ArrayLit,
-) -> Option<BasicEvaluatedExpression> {
+  expr: &'a ArrayLit,
+) -> Option<BasicEvaluatedExpression<'a>> {
   let mut items = vec![];
 
   for elem in &expr.elems {

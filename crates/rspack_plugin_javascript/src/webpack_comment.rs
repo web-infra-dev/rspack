@@ -153,7 +153,7 @@ fn add_magic_comment_warning(
 // _8 for identifier
 // _9 for item value as a whole
 static WEBPACK_MAGIC_COMMENT_REGEXP: LazyLock<regex::Regex> = LazyLock::new(|| {
-  regex::Regex::new(r#"(?P<_0>webpack[a-zA-Z\d_-]+)\s*:\s*(?P<_9>"(?P<_1>[^"]+)"|'(?P<_2>[^']+)'|`(?P<_3>[^`]+)`|(?P<_4>[\d.-]+)|(?P<_5>true|false)|(?P<_6>/([^,]+)/([dgimsuvy]*))|\[(?P<_7>[^\]]+)|(?P<_8>([^,]+)))"#)
+  regex::Regex::new(r#"(?P<_0>webpack[a-zA-Z\d_-]+)\s*:\s*(?P<_9>"(?P<_1>[^"]+)"|'(?P<_2>[^']+)'|`(?P<_3>[^`]+)`|(?P<_4>[\d.-]+)|(?P<_5>true|false)|(?P<_6>/((?:(?:[^\\/\]\[]+)|(?:\[[^\]]+\])|(?:\\/)|(?:\\.))*)/([dgimsuvy]*))|\[(?P<_7>[^\]]+)|(?P<_8>([^,]+)))"#)
     .expect("invalid regex")
 });
 
@@ -497,5 +497,169 @@ fn analyze_comments(
         }
       }
     }
+  }
+}
+
+#[cfg(test)]
+mod tests_extract_regex {
+  use super::*;
+
+  fn try_match(raw: &str, index: usize) -> Option<(String, String)> {
+    let captures = WEBPACK_MAGIC_COMMENT_REGEXP.captures(raw)?;
+    let item_name = captures.name("_0").map(|x| x.as_str().to_string())?;
+    let item_value = captures
+      .name(&format!("_{}", index))
+      .map(|x| x.as_str().to_string())?;
+    Some((item_name, item_value))
+  }
+
+  fn try_match_regex(raw: &str) -> Option<(String, String, String)> {
+    let captures = WEBPACK_MAGIC_COMMENT_REGEXP.captures(raw)?;
+    let item_name = captures.name("_0").map(|x| x.as_str().to_string())?;
+    if let Some(regexp) = captures.get(9).map(|x| x.as_str()) {
+      let flags = captures.get(10).map(|x| x.as_str()).unwrap_or_default();
+      Some((item_name, regexp.to_string(), flags.to_string()))
+    } else {
+      None
+    }
+  }
+
+  fn test_extract_string() {
+    assert_eq!(
+      try_match("webpackInclude: \"abc\"", 1),
+      Some(("webpackInclude".to_string(), "abc".to_string()))
+    );
+    assert_eq!(
+      try_match("webpackInclude: 'abc'", 2),
+      Some(("webpackInclude".to_string(), "abc".to_string()))
+    );
+    assert_eq!(
+      try_match("webpackInclude: `abc`", 3),
+      Some(("webpackInclude".to_string(), "abc".to_string()))
+    );
+    assert_eq!(
+      try_match("webpackInclude: \"abc_-|123\"", 1),
+      Some(("webpackInclude".to_string(), "abc_-|123".to_string()))
+    );
+  }
+
+  fn test_extract_number() {
+    assert_eq!(
+      try_match("webpackInclude: 123", 4),
+      Some(("webpackInclude".to_string(), "123".to_string()))
+    );
+    assert_eq!(
+      try_match("webpackInclude: 123.456", 4),
+      Some(("webpackInclude".to_string(), "123.456".to_string()))
+    );
+    assert_eq!(
+      try_match("webpackInclude: -123.456", 4),
+      Some(("webpackInclude".to_string(), "-123.456".to_string()))
+    );
+  }
+
+  fn test_extract_boolean() {
+    assert_eq!(
+      try_match("webpackInclude: true", 5),
+      Some(("webpackInclude".to_string(), "true".to_string()))
+    );
+    assert_eq!(
+      try_match("webpackInclude: false", 5),
+      Some(("webpackInclude".to_string(), "false".to_string()))
+    );
+  }
+
+  fn test_extract_array() {
+    assert_eq!(
+      try_match("webpackInclude: [\"a\", `b`, 'c']", 7),
+      Some(("webpackInclude".to_string(), "\"a\", `b`, 'c'".to_string()))
+    );
+  }
+
+  fn test_extract_regexp() {
+    assert_eq!(
+      try_match_regex("webpackInclude: /abc/"),
+      Some((
+        "webpackInclude".to_string(),
+        "abc".to_string(),
+        "".to_string()
+      ))
+    );
+    assert_eq!(
+      try_match_regex("webpackInclude: /abc/ig"),
+      Some((
+        "webpackInclude".to_string(),
+        "abc".to_string(),
+        "ig".to_string()
+      ))
+    );
+    assert_eq!(
+      try_match_regex("webpackInclude: /[^,+]/ig"),
+      Some((
+        "webpackInclude".to_string(),
+        "[^,+]".to_string(),
+        "ig".to_string()
+      ))
+    );
+    assert_eq!(
+      try_match_regex("webpackInclude: /a\\/b\\/c/ig"),
+      Some((
+        "webpackInclude".to_string(),
+        "a\\/b\\/c".to_string(),
+        "ig".to_string()
+      ))
+    );
+    assert_eq!(
+      try_match_regex("webpackInclude: /components[\\/][^\\/]+\\.vue$/"),
+      Some((
+        "webpackInclude".to_string(),
+        "components[\\/][^\\/]+\\.vue$".to_string(),
+        "".to_string()
+      ))
+    );
+    assert_eq!(
+      try_match_regex("webpackInclude: /components[/\\][^/\\]+\\.vue$/"),
+      Some((
+        "webpackInclude".to_string(),
+        "components[/\\][^/\\]+\\.vue$".to_string(),
+        "".to_string()
+      ))
+    );
+    assert_eq!(
+      try_match_regex("webpackInclude: /^.{2,}$/"),
+      Some((
+        "webpackInclude".to_string(),
+        "^.{2,}$".to_string(),
+        "".to_string()
+      ))
+    );
+    assert_eq!(
+      try_match_regex("webpackInclude: /^.{2,}$/, webpackExclude: /^.{3,}$/"),
+      Some((
+        "webpackInclude".to_string(),
+        "^.{2,}$".to_string(),
+        "".to_string()
+      ))
+    );
+    // https://github.com/web-infra-dev/rspack/issues/10195
+    assert_eq!(
+      try_match_regex(
+        "webpackInclude: /(?!.*node_modules)(?:\\/src\\/(?!\\.)(?=.)[^/]*?\\.stories\\.tsx)$/"
+      ),
+      Some((
+        "webpackInclude".to_string(),
+        "(?!.*node_modules)(?:\\/src\\/(?!\\.)(?=.)[^/]*?\\.stories\\.tsx)$".to_string(),
+        "".to_string()
+      ))
+    );
+  }
+
+  #[test]
+  fn test_extract_regex() {
+    test_extract_string();
+    test_extract_number();
+    test_extract_boolean();
+    test_extract_array();
+    test_extract_regexp();
   }
 }

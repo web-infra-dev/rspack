@@ -2,8 +2,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_util::ext::DynHash;
 
 use crate::{
-  Compilation, DependencyTemplate, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  Compilation, DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType,
+  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -13,19 +13,9 @@ pub struct RuntimeRequirementsDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for RuntimeRequirementsDependency {
-  fn apply(
-    &self,
-    _source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    code_generatable_context
-      .runtime_requirements
-      .insert(self.runtime_requirements);
-  }
-
-  fn dependency_id(&self) -> Option<crate::DependencyId> {
-    None
+impl DependencyCodeGeneration for RuntimeRequirementsDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(RuntimeRequirementsDependencyTemplate::template_type())
   }
 
   fn update_hash(
@@ -43,5 +33,35 @@ impl RuntimeRequirementsDependency {
     Self {
       runtime_requirements,
     }
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct RuntimeRequirementsDependencyTemplate;
+
+impl RuntimeRequirementsDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("RuntimeRequirementsDependency")
+  }
+}
+
+impl DependencyTemplate for RuntimeRequirementsDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    _source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<RuntimeRequirementsDependency>()
+      .expect(
+        "RuntimeRequirementsDependencyTemplate should be used for RuntimeRequirementsDependency",
+      );
+
+    code_generatable_context
+      .runtime_requirements
+      .insert(dep.runtime_requirements);
   }
 }

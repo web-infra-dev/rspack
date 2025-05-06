@@ -10,7 +10,7 @@ inputs:
     description: "Destination path"
     required: true
   force-use-github:
-    description: "force download from github"
+    description: "Force download from github"
     default: false
     required: false
 
@@ -23,9 +23,9 @@ runs:
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
-#    - name: Download artifact from local
-#      uses: lynx-infra/download-artifact
-#      if: ${{ input.force-use-github != 'true' && runner.environment == 'self-hosted' }}
-#      with:
-#        name: ${{ inputs.name }}
-#        path: ${{ inputs.path }}
+    - name: Download artifact from local
+      uses: lynx-infra/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 #dev
+      if: ${{ inputs.force-use-github != 'true' && runner.environment == 'self-hosted' }}
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ inputs.path }}

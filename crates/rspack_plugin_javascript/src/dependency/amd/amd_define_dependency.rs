@@ -4,9 +4,9 @@ use rspack_cacheable::{
   with::{AsOption, AsPreset},
 };
 use rspack_core::{
-  AffectType, AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::{atom::Atom, json_stringify};
 
@@ -166,10 +166,10 @@ impl Branch {
 #[derive(Debug, Clone)]
 pub struct AMDDefineDependency {
   id: DependencyId,
-  range: (u32, u32),
-  array_range: Option<(u32, u32)>,
-  function_range: Option<(u32, u32)>,
-  object_range: Option<(u32, u32)>,
+  range: DependencyRange,
+  array_range: Option<DependencyRange>,
+  function_range: Option<DependencyRange>,
+  object_range: Option<DependencyRange>,
   #[cacheable(with=AsOption<AsPreset>)]
   named_module: Option<Atom>,
   local_module: Option<LocalModule>,
@@ -177,10 +177,10 @@ pub struct AMDDefineDependency {
 
 impl AMDDefineDependency {
   pub fn new(
-    range: (u32, u32),
-    array_range: Option<(u32, u32)>,
-    function_range: Option<(u32, u32)>,
-    object_range: Option<(u32, u32)>,
+    range: DependencyRange,
+    array_range: Option<DependencyRange>,
+    function_range: Option<DependencyRange>,
+    object_range: Option<DependencyRange>,
     named_module: Option<Atom>,
     local_module: Option<LocalModule>,
   ) -> Self {
@@ -204,6 +204,10 @@ impl AMDDefineDependency {
 impl Dependency for AMDDefineDependency {
   fn id(&self) -> &DependencyId {
     &self.id
+  }
+
+  fn range(&self) -> Option<&DependencyRange> {
+    Some(&self.range)
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -248,21 +252,47 @@ impl AMDDefineDependency {
   }
 }
 
+impl AsModuleDependency for AMDDefineDependency {}
+
+impl AsContextDependency for AMDDefineDependency {}
+
 #[cacheable_dyn]
-impl DependencyTemplate for AMDDefineDependency {
-  fn apply(
+impl DependencyCodeGeneration for AMDDefineDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(AMDDefineDependencyTemplate::template_type())
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct AMDDefineDependencyTemplate;
+
+impl AMDDefineDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::AmdDefine)
+  }
+}
+
+impl DependencyTemplate for AMDDefineDependencyTemplate {
+  fn render(
     &self,
+    dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let branch = self.branch();
+    let dep = dep
+      .as_any()
+      .downcast_ref::<AMDDefineDependency>()
+      .expect("AMDDefineDependencyTemplate should only be used for AMDDefineDependency");
+
+    let branch = dep.branch();
     code_generatable_context
       .runtime_requirements
       .insert(branch.get_requests());
 
-    let local_module_var = self.local_module_var();
+    let local_module_var = dep.local_module_var();
 
-    let text = branch.get_content(&local_module_var, &self.named_module);
+    let text = branch.get_content(&local_module_var, &dep.named_module);
     let definition = branch.get_definition(&local_module_var);
 
     let mut texts = text.split('#');
@@ -271,40 +301,34 @@ impl DependencyTemplate for AMDDefineDependency {
       source.insert(0, &definition, None);
     }
 
-    let mut current = self.range.0;
-    if let Some(array_range) = self.array_range {
-      source.replace(current, array_range.0, texts.next().unwrap_or(""), None);
-      current = array_range.1;
+    let mut current = dep.range.start;
+    if let Some(array_range) = &dep.array_range {
+      source.replace(current, array_range.start, texts.next().unwrap_or(""), None);
+      current = array_range.end;
     }
 
-    if let Some(object_range) = self.object_range {
-      source.replace(current, object_range.0, texts.next().unwrap_or(""), None);
-      current = object_range.1;
-    } else if let Some(function_range) = self.function_range {
-      source.replace(current, function_range.0, texts.next().unwrap_or(""), None);
-      current = function_range.1;
+    if let Some(object_range) = &dep.object_range {
+      source.replace(
+        current,
+        object_range.start,
+        texts.next().unwrap_or(""),
+        None,
+      );
+      current = object_range.end;
+    } else if let Some(function_range) = &dep.function_range {
+      source.replace(
+        current,
+        function_range.start,
+        texts.next().unwrap_or(""),
+        None,
+      );
+      current = function_range.end;
     }
 
-    source.replace(current, self.range.1, texts.next().unwrap_or(""), None);
+    source.replace(current, dep.range.end, texts.next().unwrap_or(""), None);
 
     if texts.next().is_some() {
       panic!("Implementation error");
     }
   }
-
-  fn dependency_id(&self) -> Option<DependencyId> {
-    Some(self.id)
-  }
-
-  fn update_hash(
-    &self,
-    _hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-  ) {
-  }
 }
-
-impl AsModuleDependency for AMDDefineDependency {}
-
-impl AsContextDependency for AMDDefineDependency {}

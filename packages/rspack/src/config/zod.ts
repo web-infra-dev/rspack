@@ -6,6 +6,8 @@ import { ChunkGraph } from "../ChunkGraph";
 import type { Compilation, PathData } from "../Compilation";
 import { Module } from "../Module";
 import ModuleGraph from "../ModuleGraph";
+import { ZodSwcLoaderOptions } from "../builtin-loader/swc/types";
+import { validate } from "../util/validate";
 import type { ResolveCallback } from "./adapterRuleUse";
 import type * as t from "./types";
 import { ZodRspackCrossChecker } from "./utils";
@@ -242,7 +244,11 @@ const enabledLibraryTypes = z.array(
 const clean = z.union([
 	z.boolean(),
 	z.strictObject({
-		keep: z.string().optional()
+		keep: z
+			.instanceof(RegExp)
+			.or(z.string())
+			.or(z.function().args(z.string()).returns(z.boolean()))
+			.optional()
 	})
 ]) satisfies z.ZodType<t.Clean>;
 
@@ -454,12 +460,54 @@ const ruleSetLoaderOptions = z
 	.string()
 	.or(z.record(z.any())) satisfies z.ZodType<t.RuleSetLoaderOptions>;
 
-const ruleSetLoaderWithOptions = z.strictObject({
-	ident: z.string().optional(),
-	loader: ruleSetLoader,
-	options: ruleSetLoaderOptions.optional(),
-	parallel: z.boolean().optional()
-}) satisfies z.ZodType<t.RuleSetLoaderWithOptions>;
+const ruleSetLoaderWithOptions =
+	new ZodRspackCrossChecker<t.RuleSetLoaderWithOptions>({
+		patterns: [
+			{
+				test: (_, input) =>
+					input?.data?.loader === "builtin:swc-loader" &&
+					typeof input?.data?.options === "object",
+				type: z.strictObject({
+					ident: z.string().optional(),
+					loader: z.literal("builtin:swc-loader"),
+					options: ZodSwcLoaderOptions,
+					parallel: z.boolean().optional()
+				}),
+				issue: (res, _, input) => {
+					try {
+						const message = validate(input.data.options, ZodSwcLoaderOptions, {
+							output: false,
+							strategy: "strict"
+						});
+						if (message) {
+							return [
+								{
+									fatal: true,
+									code: ZodIssueCode.custom,
+									message: `Invalid options of 'builtin:swc-loader': ${message}`
+								}
+							];
+						}
+						return [];
+					} catch (e) {
+						return [
+							{
+								fatal: true,
+								code: ZodIssueCode.custom,
+								message: `Invalid options of 'builtin:swc-loader': ${(e as Error).message}`
+							}
+						];
+					}
+				}
+			}
+		],
+		default: z.strictObject({
+			ident: z.string().optional(),
+			loader: ruleSetLoader,
+			options: ruleSetLoaderOptions.optional(),
+			parallel: z.boolean().optional()
+		})
+	}) satisfies z.ZodType<t.RuleSetLoaderWithOptions>;
 
 const ruleSetUseItem = ruleSetLoader.or(
 	ruleSetLoaderWithOptions
@@ -497,9 +545,58 @@ const baseRuleSetRule = z.strictObject({
 	enforce: z.literal("pre").or(z.literal("post")).optional()
 }) satisfies z.ZodType<t.RuleSetRule>;
 
-const ruleSetRule: z.ZodType<t.RuleSetRule> = baseRuleSetRule.extend({
-	oneOf: z.lazy(() => ruleSetRule.or(falsy).array()).optional(),
-	rules: z.lazy(() => ruleSetRule.or(falsy).array()).optional()
+const extendedBaseRuleSetRule: z.ZodType<t.RuleSetRule> =
+	baseRuleSetRule.extend({
+		oneOf: z.lazy(() => ruleSetRule.or(falsy).array()).optional(),
+		rules: z.lazy(() => ruleSetRule.or(falsy).array()).optional()
+	});
+
+const extendedSwcRuleSetRule: z.ZodType<t.RuleSetRule> = baseRuleSetRule
+	.extend({
+		loader: z.literal("builtin:swc-loader"),
+		options: ZodSwcLoaderOptions
+	})
+	.extend({
+		oneOf: z.lazy(() => ruleSetRule.or(falsy).array()).optional(),
+		rules: z.lazy(() => ruleSetRule.or(falsy).array()).optional()
+	});
+
+const ruleSetRule = new ZodRspackCrossChecker<t.RuleSetRule>({
+	patterns: [
+		{
+			test: (_, input) =>
+				input?.data?.loader === "builtin:swc-loader" &&
+				typeof input?.data?.options === "object",
+			type: extendedSwcRuleSetRule,
+			issue: (res, _, input) => {
+				try {
+					const message = validate(input.data.options, ZodSwcLoaderOptions, {
+						output: false,
+						strategy: "strict"
+					});
+					if (message) {
+						return [
+							{
+								fatal: true,
+								code: ZodIssueCode.custom,
+								message: `Invalid options of 'builtin:swc-loader': ${message}`
+							}
+						];
+					}
+					return [];
+				} catch (e) {
+					return [
+						{
+							fatal: true,
+							code: ZodIssueCode.custom,
+							message: `Invalid options of 'builtin:swc-loader': ${(e as Error).message}`
+						}
+					];
+				}
+			}
+		}
+	],
+	default: extendedBaseRuleSetRule
 });
 
 const ruleSetRules = z.array(
@@ -1212,6 +1309,7 @@ const sharedOptimizationSplitChunksCacheGroup = {
 	name: optimizationSplitChunksName.optional(),
 	filename: filename.optional(),
 	minSize: optimizationSplitChunksSizes.optional(),
+	minSizeReduction: optimizationSplitChunksSizes.optional(),
 	maxSize: optimizationSplitChunksSizes.optional(),
 	maxAsyncSize: optimizationSplitChunksSizes.optional(),
 	maxInitialSize: optimizationSplitChunksSizes.optional(),
@@ -1347,7 +1445,8 @@ const lazyCompilationOptions = z.object({
 		.or(z.function().args(z.custom<Module>()).returns(z.boolean()))
 		.optional(),
 	client: z.string().optional(),
-	serverUrl: z.string().optional()
+	serverUrl: z.string().optional(),
+	prefix: z.string().optional()
 }) satisfies z.ZodType<t.LazyCompilationOptions>;
 
 const incremental = z.strictObject({
@@ -1399,7 +1498,13 @@ const experiments = z.strictObject({
 	topLevelAwait: z.boolean().optional(),
 	css: z.boolean().optional(),
 	layers: z.boolean().optional(),
-	incremental: z.boolean().or(incremental).optional(),
+	incremental: z
+		.boolean()
+		.or(z.literal("safe"))
+		.or(z.literal("advance"))
+		.or(z.literal("advance-silent"))
+		.or(incremental)
+		.optional(),
 	parallelCodeSplitting: z.boolean().optional(),
 	futureDefaults: z.boolean().optional(),
 	rspackFuture: rspackFutureOptions.optional(),

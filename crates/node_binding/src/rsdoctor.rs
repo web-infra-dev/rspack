@@ -26,6 +26,7 @@ pub struct JsRsdoctorModule {
   pub modules: Vec<i32>,
   pub belong_modules: Vec<i32>,
   pub chunks: Vec<i32>,
+  pub issuer_path: Vec<i32>,
 }
 
 impl From<RsdoctorModule> for JsRsdoctorModule {
@@ -42,6 +43,12 @@ impl From<RsdoctorModule> for JsRsdoctorModule {
       modules: value.modules.into_iter().collect::<Vec<_>>(),
       chunks: value.chunks.into_iter().collect::<Vec<_>>(),
       belong_modules: value.belong_modules.into_iter().collect::<Vec<_>>(),
+      issuer_path: value
+        .issuer_path
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|i| i.ukey)
+        .collect::<Vec<_>>(),
     }
   }
 }

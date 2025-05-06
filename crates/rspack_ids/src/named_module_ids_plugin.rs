@@ -1,7 +1,7 @@
 use rayon::prelude::*;
 use rspack_collections::{IdentifierIndexSet, IdentifierSet};
 use rspack_core::{
-  incremental::{IncrementalPasses, Mutation, Mutations},
+  incremental::{self, IncrementalPasses, Mutation, Mutations},
   ApplyContext, ChunkGraph, CompilationModuleIds, CompilerOptions, Logger, ModuleGraph, ModuleId,
   ModuleIdentifier, ModuleIdsArtifact, Plugin, PluginContext,
 };
@@ -134,6 +134,7 @@ async fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result
     .mutations_read(IncrementalPasses::MODULE_IDS)
     && !module_ids.is_empty()
   {
+    tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MODULE_IDS, %mutations);
     mutations.iter().for_each(|mutation| {
       match mutation {
         Mutation::ModuleUpdate { module } => {
@@ -177,7 +178,7 @@ async fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result
   let context: &str = compilation.options.context.as_ref();
   let mut mutations = compilation
     .incremental
-    .can_write_mutations()
+    .mutations_writeable()
     .then(Mutations::default);
 
   let unnamed_modules = assign_named_module_ids(
@@ -209,7 +210,7 @@ async fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result
 
   if compilation
     .incremental
-    .can_read_mutations(IncrementalPasses::MODULE_IDS)
+    .mutations_readable(IncrementalPasses::MODULE_IDS)
     && let Some(mutations) = &mutations
   {
     let logger = compilation.get_logger("rspack.incremental.moduleIds");

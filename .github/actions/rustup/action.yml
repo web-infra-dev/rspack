@@ -8,52 +8,62 @@ name: Rustup
 description: Install Rust with cache
 
 inputs:
-  # See https://rust-lang.github.io/rustup/concepts/components.html
-  clippy:
-    default: false
-    required: false
-    type: boolean
-  fmt:
-    default: false
-    required: false
-    type: boolean
-  docs:
-    default: false
-    required: false
-    type: boolean
-  miri:
-    default: false
-    required: false
-    type: boolean
-  save-cache:
-    default: false
-    required: false
-    type: boolean
-  shared-key:
-    default: "check"
-    required: false
+  key:
+    required: true
     type: string
+  save-if:
+    default: false
+    required: false
+    type: boolean
 
 runs:
   using: composite
   steps:
-    - name: Print Inputs
+    - name: Install rustup, if needed
+      if: runner.os != 'Windows'
       shell: bash
       run: |
-        echo 'clippy: ${{ inputs.clippy }}'
-        echo 'fmt: ${{ inputs.fmt }}'
-        echo 'docs: ${{ inputs.docs }}'
-        echo 'save-cache: ${{ inputs.save-cache }}'
-        echo 'shared-key: ${{ inputs.shared-key }}'
+        if ! command -v rustup &> /dev/null ; then
+          curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y
+          echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
+        fi
+
+    - name: Get toolchain
+      id: get-toolchain
+      shell: bash
+      run: |
+        toolchain=$(grep -E "^channel\s*=" rust-toolchain.toml | sed -n -E 's/^[ \t]*channel[ \t]*=[ \t]*"([^"]*)"[^#]*.*$/\1/p' | tr -d '[:space:]')
+        echo "toolchain=${toolchain}" >> $GITHUB_OUTPUT
+
+    - name: Restore rustup cache
+      id: restore
+      uses: ./.github/actions/cache/restore
+      with:
+        path: ~/.rustup/toolchains
+        key: rustup-cache-v2-${{ runner.os }}-${{ steps.get-toolchain.outputs.toolchain }}
 
     # install components for nightly toolchain
     - name: Install
       shell: bash
       run: |
-        channel=$(grep -E "^channel\s*=" rust-toolchain.toml | sed -n -E 's/^[ \t]*channel[ \t]*=[ \t]*"([^"]*)"[^#]*.*$/\1/p' | tr -d '[:space:]')
-        rustup toolchain install $channel -c rustc -c cargo -c rust-std ${{ inputs.clippy == 'true' && '-c clippy' || '' }} ${{ inputs.fmt == 'true' && '-c rustfmt' || '' }} ${{ inputs.docs == 'true' && '-c rust-docs' || '' }} ${{ inputs.miri == 'true' && '-c miri' || '' }}
+        toolchain='${{ steps.get-toolchain.outputs.toolchain }}'
+        rustup toolchain install $toolchain \
+          -c rustc \
+          -c cargo \
+          -c rust-std \
+          -c clippy \
+          -c rustfmt \
+          -c miri
 
-    - name: Cache on ${{ github.ref_name }}
-      uses: ./.github/actions/rustup/cache
+    - name: Save rustup cache
+      uses: ./.github/actions/cache/save
+      if: ${{ inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' }}
       with:
-        key: ${{ inputs.shared-key }}
+        path: ~/.rustup/toolchains
+        key: rustup-cache-v2-${{ runner.os }}-${{ steps.get-toolchain.outputs.toolchain }}
+
+    - name: Cargo cache
+      uses: ./.github/actions/rustup/cargo
+      with:
+        key: ${{ inputs.key }}
+        save-if: ${{ inputs.save-if }}

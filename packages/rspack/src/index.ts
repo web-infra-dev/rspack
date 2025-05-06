@@ -1,3 +1,4 @@
+import "./setupEnv";
 import * as rspackExports from "./exports";
 import { rspack as rspackFn } from "./rspack";
 // add exports on rspack() function
@@ -11,4 +12,3 @@ const rspack: Rspack = fn;
 export * from "./exports";
 export default rspack;
 export { rspack };
-module.exports = rspack;
