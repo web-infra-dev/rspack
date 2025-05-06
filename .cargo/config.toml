@@ -38,7 +38,7 @@ rustflags = [
 
 [target.'cfg(target_arch = "x86_64")']
 rustflags = [
-  "-Ctarget_cpu=x86-64-v2",
+  "-Ctarget_cpu=x86-64-v3",
 ]
 
 # Fix napi breaking in test environment <https://github.com/napi-rs/napi-rs/issues/1005#issuecomment-1011034770>
