@@ -184,15 +184,23 @@ jobs:
           CONCLUSION='success'
           if [[ "$SUITE_REF" != "-" ]]; then
             # run test suite with suiteRef
-            pnpm tsx ecosystem-ci.ts run-suites --suite-commit "$SUITE_REF" "$SUITE" || CONCLUSION='failure'
+            pnpm tsx ecosystem-ci.ts run-suites --suite-commit "$SUITE_REF" "$SUITE"
             echo "finish run $SUITE with $SUITE_REF"
           else
             # run test suite
-            pnpm tsx ecosystem-ci.ts run-suites "$SUITE" || CONCLUSION='failure'
+            pnpm tsx ecosystem-ci.ts run-suites "$SUITE"
             echo "finish run $SUITE"
           fi
-          echo "{\"conclusion\":\"$CONCLUSION\"}" >> "$RSPACK_DIR/$SUITE.json"
+          echo "{\"conclusion\":\"success\"}" >> "$RSPACK_DIR/$SUITE.json"
+
+      - name: Failure
+        if: ${{ failure() }}
+        run: |
+          RSPACK_DIR=$(pwd)
+          echo "{\"conclusion\":\"failure\"}" >> "$RSPACK_DIR/$SUITE.json"
+
       - name: Upload Result
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: eco-ci-result-${{ matrix.suite }}
