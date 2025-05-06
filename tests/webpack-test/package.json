@@ -27,7 +27,6 @@
     "is-ci": "4.1.0",
     "less": "4.3.0",
     "less-loader": "^12.2.0",
-    "loader-utils": "^2.0.4",
     "memfs": "^4.17.0",
     "mime-types": "^3.0.1",
     "mini-svg-data-uri": "^1.4.4",

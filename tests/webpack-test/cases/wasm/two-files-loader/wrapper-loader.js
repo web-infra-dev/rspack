@@ -1,12 +1,7 @@
-const stringifyRequest = require("loader-utils").stringifyRequest;
-
 /** @type {import("@rspack/core").PitchLoaderDefinitionFunction} */
 module.exports.pitch = function (remainingRequest) {
 	return `
-	import { getString as _getString, memory } from ${stringifyRequest(
-		this,
-		`${this.resourcePath}.wat!=!${remainingRequest}`
-	)};
+	import { getString as _getString, memory } from ${JSON.stringify(this.utils.contextify(this.context, `${this.resourcePath}.wat!=!${remainingRequest}`))};
 
 	export function getString() {
 		const strBuf = new Uint8Array(memory.buffer, _getString());

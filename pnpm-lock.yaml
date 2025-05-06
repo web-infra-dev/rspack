@@ -455,9 +455,6 @@ importers:
       jsdom:
         specifier: ^26.1.0
         version: 26.1.0
-      loader-utils:
-        specifier: ^2.0.4
-        version: 2.0.4
       memfs:
         specifier: 4.17.0
         version: 4.17.0
@@ -887,9 +884,6 @@ importers:
       less-loader:
         specifier: ^12.2.0
         version: 12.2.0(@rspack/core@packages+rspack)(less@4.3.0)(webpack@5.99.7(@swc/core@1.11.24(@swc/helpers@0.5.17)))
-      loader-utils:
-        specifier: ^2.0.4
-        version: 2.0.4
       memfs:
         specifier: ^4.17.0
         version: 4.17.0
