@@ -73,6 +73,8 @@ module.exports = function loader(source) {
 
 Tells Rspack that this loader will be called asynchronously. Returns [this.callback](#thiscallback).
 
+> See [Async loader](/api/loader-api/types#async-loader) for more details.
+
 ## this.cacheable()
 
 - **Type:**
@@ -111,6 +113,8 @@ A function that can be called synchronously or asynchronously in order to return
 2. The second argument is a `string` or `Buffer`, which indicates the contents of the file after the module has been processed by the loader.
 3. The third parameter is a source map that can be processed by the loader.
 4. The fourth parameter is ignored by Rspack and can be anything (e.g. some metadata).
+
+> See [Sync loader](/api/loader-api/types#sync-loader) for more details.
 
 :::warning
 In case this function is called, you should return `undefined` to avoid ambiguous loader results.
