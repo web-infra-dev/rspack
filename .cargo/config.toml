@@ -36,6 +36,11 @@ rustflags = [
   
 ]
 
+[target.'cfg(target_arch = "x86_64")']
+rustflags = [
+  "-Ctarget_cpu=x86-64-v2",
+]
+
 # Fix napi breaking in test environment <https://github.com/napi-rs/napi-rs/issues/1005#issuecomment-1011034770>
 # To be able to run unit tests on macOS, support compilation to 'x86_64-apple-darwin'.
 # -all_load is related to https://github.com/web-infra-dev/rspack/pull/9337
