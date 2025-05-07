@@ -221,6 +221,10 @@ function emitDiagnostic(diagnostic: Diagnostic): void;
 
 格式化并输出一个诊断信息（错误或警告日志），支持显示模块路径、源代码片段和行列号。
 
+::: info
+与在 loader 中 `throw` 和 `this.callback(err)` 不同，它不会标记当前模块为编译失败，只会在 Rspack 的 Compilation 上添加一个错误，并在此次编译结束后显示在命令行中。
+:::
+
 - 基础示例：
 
 当仅使用 `message` 和 `severity` 时，仅会打印基础的模块错误信息。
@@ -243,10 +247,10 @@ module.exports = function () {
 将会打印：
 
 ```
-ERROR in (./basic.js!)
+ERROR in (./loader.js!)
   × ModuleError: `React` is not defined
 
-WARNING in (./basic.js!)
+WARNING in (./loader.js!)
   ⚠ ModuleWarning: `React` is not defined
 ```
 
@@ -274,7 +278,7 @@ module.exports = function () {
 
 ```
 ERROR in ./some-file.js
- (./with-file.js!) 1:1-4
+ (./loader.js!) 1:1-4
   × ModuleError: `React` is not defined
    ╭────
  1 │ <div></div>
@@ -282,7 +286,7 @@ ERROR in ./some-file.js
    ╰────
 ```
 
-其中 `./some-file.js` 为传入的 `file` 字段，当不填写时，则使用当前模块的 module identifier 作为错误输出标识，在这个示例中为 `./with-file.js!`。
+其中 `./some-file.js` 为传入的 `file` 字段，当不填写时，则使用当前模块的 module identifier 作为错误输出标识，在这个示例中为 `./loader.js!`。
 
 ## this.emitFile()
 

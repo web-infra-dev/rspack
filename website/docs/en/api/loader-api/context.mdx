@@ -177,7 +177,11 @@ Alias of [this.addDependency()](#thisadddependency).
 function emitError(error: Error): void;
 ```
 
-Emit an error. Unlike `throw` and `this.callback(err)` in the loader, it does not mark the current module as a compilation failure, it just adds an error to Rspack's Compilation and displays it on the command line at the end of this compilation.
+Emit an error.
+
+::: info
+Unlike `throw` and `this.callback(err)` in the loader, it does not mark the current module as a compilation failure, it just adds an error to Rspack's Compilation and displays it on the command line at the end of this compilation.
+:::
 
 ## this.emitWarning()
 
@@ -226,6 +230,10 @@ function emitDiagnostic(diagnostic: Diagnostic): void;
 
 Formats and emits a diagnostic message (error or warning log). Supports the display of module paths, source code snippets and line/column numbers.
 
+::: info
+Unlike `throw` and `this.callback(err)` in the loader, it does not mark the current module as a compilation failure, it just adds an error to Rspack's Compilation and displays it on the command line at the end of this compilation.
+:::
+
 - Basic example:
 
 When only `message` and `severity` are provided, only the basic module error information will be printed.
@@ -248,10 +256,10 @@ module.exports = function () {
 This will print:
 
 ```
-ERROR in (./basic.js!)
+ERROR in (./loader.js!)
   × ModuleError: `React` is not defined
 
-WARNING in (./basic.js!)
+WARNING in (./loader.js!)
   ⚠ ModuleWarning: `React` is not defined
 ```
 
@@ -279,7 +287,7 @@ This will print:
 
 ```
 ERROR in ./some-file.js
- (./with-file.js!) 1:1-4
+ (./loader.js!) 1:1-4
   × ModuleError: `React` is not defined
    ╭────
  1 │ <div></div>
@@ -287,7 +295,7 @@ ERROR in ./some-file.js
    ╰────
 ```
 
-Here, `./some-file.js` is the value passed to the `file` field. If this field is not provided, the current module's identifier will be used as the error output marker, which in this example is `./with-file.js!`.
+Here, `./some-file.js` is the value passed to the `file` field. If this field is not provided, the current module's identifier will be used as the error output marker, which in this example is `./loader.js!`.
 
 ## this.emitFile()
 
