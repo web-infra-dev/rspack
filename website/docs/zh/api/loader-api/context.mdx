@@ -1,3 +1,4 @@
+import { ApiMeta, Stability } from '@components/ApiMeta';
 import WebpackLicense from '@components/WebpackLicense';
 
 <WebpackLicense from="https://webpack.docschina.org/api/loaders/#the-loader-context" />
@@ -186,6 +187,110 @@ function emitWarning(warning: Error): void;
 ```
 
 发出一个警告。
+
+## this.experiments.emitDiagnostic()
+
+<ApiMeta stability={Stability.Experimental} />
+
+- **类型：**
+
+```ts
+interface DiagnosticLocation {
+  /** Text for highlighting the location */
+  text?: string;
+  /** 1-based line */
+  line: number;
+  /** 0-based column in bytes */
+  column: number;
+  /** Length in bytes */
+  length: number;
+}
+
+interface Diagnostic {
+  message: string;
+  help?: string;
+  sourceCode?: string;
+  /**
+   * Location to the source code.
+   *
+   * If `sourceCode` is not provided, location will be omitted.
+   */
+  location?: DiagnosticLocation;
+  file?: string;
+  severity: 'error' | 'warning';
+}
+
+function emitDiagnostic(diagnostic: Diagnostic): void;
+```
+
+格式化并输出一个诊断信息（错误或警告日志），支持显示模块路径、源代码片段和行列号。
+
+::: info
+与在 loader 中 `throw` 和 `this.callback(err)` 不同，它不会标记当前模块为编译失败，只会在 Rspack 的 Compilation 上添加一个错误，并在此次编译结束后显示在命令行中。
+:::
+
+- 基础示例：
+
+当仅使用 `message` 和 `severity` 时，仅会打印基础的模块错误信息。
+
+```js title="loader.js"
+/** @type {import("@rspack/core").LoaderDefinition} */
+module.exports = function () {
+  this.experiments.emitDiagnostic({
+    message: '`React` is not defined',
+    severity: 'error',
+  });
+  this.experiments.emitDiagnostic({
+    message: '`React` is not defined',
+    severity: 'warning',
+  });
+  return '';
+};
+```
+
+将会打印：
+
+```
+ERROR in (./loader.js!)
+  × ModuleError: `React` is not defined
+
+WARNING in (./loader.js!)
+  ⚠ ModuleWarning: `React` is not defined
+```
+
+- 打印代码片段：
+
+```js title="loader.js"
+/** @type {import("@rspack/core").LoaderDefinition} */
+module.exports = function () {
+  this.experiments.emitDiagnostic({
+    message: '`React` is not defined',
+    severity: 'error',
+    sourceCode: `<div></div>`,
+    location: {
+      line: 1,
+      column: 1,
+      length: 3,
+    },
+    file: './some-file.js',
+  });
+  return '';
+};
+```
+
+将会打印：
+
+```
+ERROR in ./some-file.js
+ ./file.js 1:1-4
+  × ModuleError: `React` is not defined
+   ╭────
+ 1 │ <div></div>
+   ·  ───
+   ╰────
+```
+
+其中 `./some-file.js` 为传入的 `file` 字段。
 
 ## this.emitFile()
 
