@@ -58,6 +58,7 @@ pub struct RawHtmlRspackPluginOptions {
   pub meta: Option<HashMap<String, HashMap<String, String>>>,
   pub hash: Option<bool>,
   pub base: Option<RawHtmlRspackPluginBaseOptions>,
+  pub uid: Option<u32>,
 }
 
 impl From<RawHtmlRspackPluginOptions> for HtmlRspackPluginOptions {
@@ -118,6 +119,7 @@ impl From<RawHtmlRspackPluginOptions> for HtmlRspackPluginOptions {
       meta: value.meta,
       hash: value.hash,
       base: value.base.map(|v| v.into()),
+      uid: value.uid,
     }
   }
 }
