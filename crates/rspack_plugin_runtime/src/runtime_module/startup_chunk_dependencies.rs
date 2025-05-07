@@ -2,11 +2,7 @@ use std::iter;
 
 use itertools::Itertools;
 use rspack_collections::Identifier;
-use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
-};
+use rspack_core::{impl_runtime_module, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -39,7 +35,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk_ids = compilation
         .chunk_graph
@@ -93,7 +89,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
         })),
       )?;
 
-      Ok(RawStringSource::from(source).boxed())
+      Ok(source)
     } else {
       unreachable!("should have chunk for StartupChunkDependenciesRuntimeModule")
     }

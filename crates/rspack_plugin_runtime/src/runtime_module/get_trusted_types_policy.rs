@@ -1,8 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  ChunkUkey, Compilation, OnPolicyCreationFailure, RuntimeGlobals, RuntimeModule,
+  impl_runtime_module, ChunkUkey, Compilation, OnPolicyCreationFailure, RuntimeGlobals,
+  RuntimeModule,
 };
 
 use crate::get_chunk_runtime_requirements;
@@ -36,7 +35,7 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let trusted_types = compilation
       .options
       .output
@@ -102,7 +101,7 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
       })),
     )?;
 
-    Ok(RawStringSource::from(source).boxed())
+    Ok(source)
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

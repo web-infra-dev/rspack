@@ -1,9 +1,8 @@
 use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
-  get_filename_without_hash_length, impl_runtime_module,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  ChunkUkey, Compilation, PathData, RuntimeModule, RuntimeModuleStage,
+  get_filename_without_hash_length, impl_runtime_module, ChunkUkey, Compilation, PathData,
+  RuntimeModule, RuntimeModuleStage,
 };
 use rspack_util::itoa;
 
@@ -36,7 +35,7 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let (fake_filename, hash_len_map) =
       get_filename_without_hash_length(&compilation.options.output.webassembly_module_filename);
 
@@ -60,19 +59,16 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
           .runtime(chunk.runtime().as_str()),
       )
       .await?;
-    Ok(
-      RawStringSource::from(get_async_wasm_loading(
-        &self
-          .generate_load_binary_code
-          .cow_replace("$PATH", &format!("\"{}\"", path))
-          .cow_replace(
-            "$IMPORT_META_NAME",
-            compilation.options.output.import_meta_name.as_str(),
-          ),
-        self.supports_streaming,
-      ))
-      .boxed(),
-    )
+    Ok(get_async_wasm_loading(
+      &self
+        .generate_load_binary_code
+        .cow_replace("$PATH", &format!("\"{}\"", path))
+        .cow_replace(
+          "$IMPORT_META_NAME",
+          compilation.options.output.import_meta_name.as_str(),
+        ),
+      self.supports_streaming,
+    ))
   }
 
   fn stage(&self) -> RuntimeModuleStage {

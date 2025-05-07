@@ -1,8 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  has_hash_placeholder, impl_runtime_module,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  Compilation, Filename, PublicPath, RuntimeGlobals, RuntimeModule,
+  has_hash_placeholder, impl_runtime_module, Compilation, Filename, PublicPath, RuntimeGlobals,
+  RuntimeModule,
 };
 
 #[impl_runtime_module]
@@ -24,15 +23,12 @@ impl RuntimeModule for PublicPathRuntimeModule {
     self.id
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(
-      RawStringSource::from(format!(
-        "{} = \"{}\";",
-        RuntimeGlobals::PUBLIC_PATH.name(),
-        &PublicPath::render_filename(compilation, &self.public_path).await
-      ))
-      .boxed(),
-    )
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+    Ok(format!(
+      "{} = \"{}\";",
+      RuntimeGlobals::PUBLIC_PATH.name(),
+      &PublicPath::render_filename(compilation, &self.public_path).await
+    ))
   }
 
   // be cacheable only when the template does not contain a hash placeholder
