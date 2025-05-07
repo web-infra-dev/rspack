@@ -1,3 +1,4 @@
+import { ApiMeta, Stability } from '@components/ApiMeta';
 import WebpackLicense from '@components/WebpackLicense';
 
 <WebpackLicense from="https://webpack.docschina.org/api/loaders/#the-loader-context" />
@@ -182,6 +183,106 @@ function emitWarning(warning: Error): void;
 ```
 
 发出一个警告。
+
+## this.experiments.emitDiagnostic()
+
+<ApiMeta stability={Stability.Experimental} />
+
+- **类型：**
+
+```ts
+interface DiagnosticLocation {
+  /** Text for highlighting the location */
+  text?: string;
+  /** 1-based line */
+  line: number;
+  /** 0-based column in bytes */
+  column: number;
+  /** Length in bytes */
+  length: number;
+}
+
+interface Diagnostic {
+  message: string;
+  help?: string;
+  sourceCode?: string;
+  /**
+   * Location to the source code.
+   *
+   * If `sourceCode` is not provided, location will be omitted.
+   */
+  location?: DiagnosticLocation;
+  file?: string;
+  severity: 'error' | 'warning';
+}
+
+function emitDiagnostic(diagnostic: Diagnostic): void;
+```
+
+发出一个诊断信息。
+
+- 基础实例：
+
+当仅使用 `message` 和 `severity` 时，仅会打印基础的模块错误信息。
+
+```js title="loader.js"
+/** @type {import("@rspack/core").LoaderDefinition} */
+module.exports = function () {
+  this.experiments.emitDiagnostic({
+    message: '`React` is not defined',
+    severity: 'error',
+  });
+  this.experiments.emitDiagnostic({
+    message: '`React` is not defined',
+    severity: 'warning',
+  });
+  return '';
+};
+```
+
+将会打印：
+
+```
+ERROR in (./basic.js!)
+  × ModuleError: `React` is not defined
+
+WARNING in (./basic.js!)
+  ⚠ ModuleWarning: `React` is not defined
+```
+
+- 打印代码片段：
+
+```js title="loader.js"
+/** @type {import("@rspack/core").LoaderDefinition} */
+module.exports = function () {
+  this.experiments.emitDiagnostic({
+    message: '`React` is not defined',
+    severity: 'error',
+    sourceCode: `<div></div>`,
+    location: {
+      line: 1,
+      column: 1,
+      length: 3,
+    },
+    file: './some-file.js',
+  });
+  return '';
+};
+```
+
+将会打印：
+
+```
+ERROR in ./some-file.js
+ (./with-file.js!) 1:1-4
+  × ModuleError: `React` is not defined
+   ╭────
+ 1 │ <div></div>
+   ·  ───
+   ╰────
+```
+
+其中 `./some-file.js` 为传入的 `file` 字段，当不填写时则使用当前模块的 module identifier 作为错误输出标识，在这个示例中为 `./with-file.js!`。
 
 ## this.emitFile()
 
