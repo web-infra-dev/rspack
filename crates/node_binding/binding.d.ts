@@ -1621,6 +1621,7 @@ export interface RawCssAutoGeneratorOptions {
 
 export interface RawCssAutoParserOptions {
   namedExports?: boolean
+  url?: boolean
 }
 
 export interface RawCssExtractPluginOption {
@@ -1649,10 +1650,12 @@ export interface RawCssModuleGeneratorOptions {
 
 export interface RawCssModuleParserOptions {
   namedExports?: boolean
+  url?: boolean
 }
 
 export interface RawCssParserOptions {
   namedExports?: boolean
+  url?: boolean
 }
 
 export interface RawDllEntryPluginOptions {

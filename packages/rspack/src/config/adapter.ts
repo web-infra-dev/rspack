@@ -607,7 +607,8 @@ function getRawCssParserOptions(
 	parser: CssParserOptions
 ): RawCssParserOptions | RawCssAutoParserOptions | RawCssModuleParserOptions {
 	return {
-		namedExports: parser.namedExports
+		namedExports: parser.namedExports,
+		url: parser.url
 	};
 }
 

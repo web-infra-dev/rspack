@@ -286,18 +286,21 @@ pub struct AssetParserDataUrlOptions {
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssParserOptions {
   pub named_exports: Option<bool>,
+  pub url: Option<bool>,
 }
 
 #[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssAutoParserOptions {
   pub named_exports: Option<bool>,
+  pub url: Option<bool>,
 }
 
 impl From<CssParserOptions> for CssAutoParserOptions {
   fn from(value: CssParserOptions) -> Self {
     Self {
       named_exports: value.named_exports,
+      url: value.url,
     }
   }
 }
@@ -306,12 +309,14 @@ impl From<CssParserOptions> for CssAutoParserOptions {
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssModuleParserOptions {
   pub named_exports: Option<bool>,
+  pub url: Option<bool>,
 }
 
 impl From<CssParserOptions> for CssModuleParserOptions {
   fn from(value: CssParserOptions) -> Self {
     Self {
       named_exports: value.named_exports,
+      url: value.url,
     }
   }
 }

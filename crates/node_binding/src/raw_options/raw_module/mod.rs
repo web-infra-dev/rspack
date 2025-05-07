@@ -409,12 +409,14 @@ impl From<RawAssetParserDataUrlOptions> for AssetParserDataUrlOptions {
 #[napi(object)]
 pub struct RawCssParserOptions {
   pub named_exports: Option<bool>,
+  pub url: Option<bool>,
 }
 
 impl From<RawCssParserOptions> for CssParserOptions {
   fn from(value: RawCssParserOptions) -> Self {
     Self {
       named_exports: value.named_exports,
+      url: value.url,
     }
   }
 }
@@ -423,12 +425,14 @@ impl From<RawCssParserOptions> for CssParserOptions {
 #[napi(object)]
 pub struct RawCssAutoParserOptions {
   pub named_exports: Option<bool>,
+  pub url: Option<bool>,
 }
 
 impl From<RawCssAutoParserOptions> for CssAutoParserOptions {
   fn from(value: RawCssAutoParserOptions) -> Self {
     Self {
       named_exports: value.named_exports,
+      url: value.url,
     }
   }
 }
@@ -437,12 +441,14 @@ impl From<RawCssAutoParserOptions> for CssAutoParserOptions {
 #[napi(object)]
 pub struct RawCssModuleParserOptions {
   pub named_exports: Option<bool>,
+  pub url: Option<bool>,
 }
 
 impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
   fn from(value: RawCssModuleParserOptions) -> Self {
     Self {
       named_exports: value.named_exports,
+      url: value.url,
     }
   }
 }
