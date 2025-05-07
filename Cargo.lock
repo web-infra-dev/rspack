@@ -4449,6 +4449,7 @@ dependencies = [
  "rspack_error",
  "rspack_hash",
  "rspack_hook",
+ "rspack_plugin_css",
  "rspack_plugin_runtime",
  "rspack_util",
  "rustc-hash 2.1.0",

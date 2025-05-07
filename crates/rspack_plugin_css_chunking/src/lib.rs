@@ -6,10 +6,11 @@ use std::{
 use rspack_collections::{Identifier, IdentifierMap, IdentifierSet, UkeyMap, UkeySet};
 use rspack_core::{
   ApplyContext, ChunkUkey, Compilation, CompilationOptimizeChunks, CompilationParams,
-  CompilerCompilation, ModuleIdentifier, Plugin, PluginContext, SourceType,
+  CompilerCompilation, Module, ModuleIdentifier, Plugin, PluginContext, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_plugin_css::CssPlugin;
 
 const MIN_CSS_CHUNK_SIZE: f64 = 30_f64 * 1024_f64;
 const MAX_CSS_CHUNK_SIZE: f64 = 100_f64 * 1024_f64;
@@ -69,22 +70,28 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let module_graph = compilation.get_module_graph();
 
   for chunk_ukey in chunks.keys() {
-    let modules: Vec<ModuleIdentifier> = chunk_graph
+    let modules: Vec<&dyn Module> = chunk_graph
       .get_chunk_modules(chunk_ukey, &module_graph)
-      .iter()
+      .into_iter()
       .filter(|module| {
         module
           .source_types()
           .iter()
           .any(|t| matches!(t, SourceType::Css))
       })
-      .map(|module| module.identifier())
+      .map(|module| module.as_ref())
       .collect();
     if modules.is_empty() {
       continue;
     }
-    for (i, module_identifier) in modules.iter().enumerate() {
-      match chunk_states_by_module.entry(*module_identifier) {
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+    let (ordered_modules, _) = CssPlugin::get_modules_in_order(chunk, modules, compilation);
+    let mut module_identifiers: Vec<ModuleIdentifier> = Vec::with_capacity(ordered_modules.len());
+    for (i, module) in ordered_modules.iter().enumerate() {
+      let module_identifier = module.identifier();
+      module_identifiers.push(module_identifier);
+
+      match chunk_states_by_module.entry(module_identifier) {
         std::collections::hash_map::Entry::Occupied(mut occupied_entry) => {
           let module_chunk_states = occupied_entry.get_mut();
           module_chunk_states.insert(*chunk_ukey, i);
@@ -96,10 +103,10 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         }
       };
     }
-    let requests = modules.len();
+    let requests = module_identifiers.len();
     let chunk_state = ChunkState {
       chunk: *chunk_ukey,
-      modules,
+      modules: module_identifiers,
       requests,
     };
     chunk_states.insert(*chunk_ukey, chunk_state);
@@ -148,12 +155,12 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         let a_states = &chunk_states_by_module[a];
         let b_states = &chunk_states_by_module[b];
         // check if a depends on b
-        for (&chunk_state, &ia) in a_states {
-          match b_states.get(&chunk_state) {
+        for (chunk_ukey, ia) in a_states {
+          match b_states.get(chunk_ukey) {
             // If a would depend on b, it would be included in that chunk group too
             None => continue 'outer,
             // If a would depend on b, b would be before a in order
-            Some(&ib) if ib > ia => continue 'outer,
+            Some(&ib) if ib > *ia => continue 'outer,
             _ => {}
           }
         }
