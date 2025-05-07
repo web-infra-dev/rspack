@@ -665,6 +665,28 @@ import classes from './index.module.css';
 import classes, { class1, class2 } from './index.module.css';
 ```
 
+### module.parser["css/auto"].url
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+开启或者关闭对 CSS 中的 `url` 的处理。
+
+当开启该选项 `url: true`, Rspack 将 `url` 函数中的路径解析成资源路径。
+当关闭该选项 `url: false`, Rspack 忽略 `url` 函数，保持内容不变。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        url: true,
+      },
+    },
+  },
+};
+```
+
 ### module.parser.css
 
 `css` 模块的解析器选项。
@@ -701,6 +723,22 @@ export default {
 };
 ```
 
+### module.parser.css.url
+
+和 [`module.parser["css/auto"].url`](#moduleparsercssautourl) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        url: true,
+      },
+    },
+  },
+};
+```
+
 ### module.parser["css/module"]
 
 `css/module` 模块的解析器选项。
@@ -731,6 +769,22 @@ export default {
     parser: {
       'css/module': {
         namedExports: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].url
+
+和 [`module.parser["css/auto"].url`](#moduleparsercssautourl) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        url: true,
       },
     },
   },
