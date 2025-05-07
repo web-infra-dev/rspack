@@ -219,7 +219,7 @@ interface Diagnostic {
 function emitDiagnostic(diagnostic: Diagnostic): void;
 ```
 
-发出一个诊断信息。
+格式化并输出一个诊断信息（错误或警告日志），支持显示模块路径、源代码片段和行列号。
 
 - 基础示例：
 
