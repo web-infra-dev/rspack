@@ -38,10 +38,10 @@ struct FilterEvent;
 impl<S> Filter<S> for FilterEvent {
   fn enabled(
     &self,
-    meta: &tracing::Metadata<'_>,
+    _meta: &tracing::Metadata<'_>,
     _cx: &tracing_subscriber::layer::Context<'_, S>,
   ) -> bool {
     // filter out swc related tracing because it's too much noisy for info level now
-    !meta.target().starts_with("swc")
+    true
   }
 }
