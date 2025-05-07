@@ -11,6 +11,7 @@ pub struct BeforeAssetTagGenerationData {
   pub assets: HtmlPluginAssets,
   pub output_name: String,
   pub compilation_id: CompilationId,
+  pub uid: Option<u32>,
 }
 
 #[derive(Clone, Debug)]
@@ -19,6 +20,7 @@ pub struct AlterAssetTagsData {
   pub output_name: String,
   pub public_path: String,
   pub compilation_id: CompilationId,
+  pub uid: Option<u32>,
 }
 
 #[derive(Clone, Debug)]
@@ -28,6 +30,7 @@ pub struct AlterAssetTagGroupsData {
   pub public_path: String,
   pub output_name: String,
   pub compilation_id: CompilationId,
+  pub uid: Option<u32>,
 }
 
 #[derive(Clone, Debug)]
@@ -37,6 +40,7 @@ pub struct AfterTemplateExecutionData {
   pub body_tags: Vec<HtmlPluginTag>,
   pub output_name: String,
   pub compilation_id: CompilationId,
+  pub uid: Option<u32>,
 }
 
 #[derive(Clone, Debug)]
@@ -44,12 +48,14 @@ pub struct BeforeEmitData {
   pub html: String,
   pub output_name: String,
   pub compilation_id: CompilationId,
+  pub uid: Option<u32>,
 }
 
 #[derive(Clone, Debug)]
 pub struct AfterEmitData {
   pub output_name: String,
   pub compilation_id: CompilationId,
+  pub uid: Option<u32>,
 }
 
 define_hook!(HtmlPluginBeforeAssetTagGeneration: SeriesWaterfall(data: BeforeAssetTagGenerationData) -> BeforeAssetTagGenerationData);

@@ -17,7 +17,6 @@ import {
 import {
 	type HtmlRspackPluginOptions,
 	cleanPluginOptions,
-	getPluginOptions,
 	setPluginOptions,
 	validateHtmlPluginOptions
 } from "./options";
@@ -30,6 +29,8 @@ type HtmlPluginTag = {
 	toString?: () => string;
 };
 
+let HTML_PLUGIN_UID = 0;
+
 const HtmlRspackPluginImpl = create(
 	BuiltinPluginName.HtmlRspackPlugin,
 	function (
@@ -37,6 +38,7 @@ const HtmlRspackPluginImpl = create(
 		c: HtmlRspackPluginOptions = {}
 	): RawHtmlRspackPluginOptions {
 		validateHtmlPluginOptions(c);
+		const uid = HTML_PLUGIN_UID++;
 		const meta: Record<string, Record<string, string>> = {};
 		for (const key in c.meta) {
 			const value = c.meta[key];
@@ -68,11 +70,11 @@ const HtmlRspackPluginImpl = create(
 		let compilation: Compilation | null = null;
 		this.hooks.compilation.tap("HtmlRspackPlugin", compilationInstance => {
 			compilation = compilationInstance;
-			setPluginOptions(compilation, c);
+			setPluginOptions(compilation, uid, c);
 		});
 		this.hooks.done.tap("HtmlRspackPlugin", stats => {
 			cleanPluginHooks(stats.compilation);
-			cleanPluginOptions(stats.compilation);
+			cleanPluginOptions(stats.compilation, uid);
 		});
 
 		function generateRenderData(data: string): Record<string, unknown> {
@@ -214,7 +216,8 @@ const HtmlRspackPluginImpl = create(
 			base,
 			templateFn,
 			templateContent,
-			templateParameters
+			templateParameters,
+			uid
 		};
 	}
 );
@@ -246,9 +249,6 @@ const HtmlRspackPlugin = HtmlRspackPluginImpl as typeof HtmlRspackPluginImpl & {
 	 */
 	getHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
 	getCompilationHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
-	getCompilationOptions: (
-		compilation: Compilation
-	) => HtmlRspackPluginOptions | void;
 	createHtmlTagObject: (
 		tagName: string,
 		attributes?: Record<string, string | boolean>,
@@ -288,7 +288,6 @@ HtmlRspackPlugin.createHtmlTagObject = (
 	};
 };
 
-HtmlRspackPlugin.getCompilationOptions = getPluginOptions;
 HtmlRspackPlugin.getHooks = HtmlRspackPlugin.getCompilationHooks =
 	getPluginHooks;
 HtmlRspackPlugin.version = 5;

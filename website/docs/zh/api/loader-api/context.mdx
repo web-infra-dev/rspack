@@ -73,6 +73,8 @@ module.exports = function loader(source) {
 
 告诉 Rspack 这个 loader 将会异步被调用。返回值为 [this.callback](#thiscallback)。
 
+> 查看 [异步 loader](/api/loader-api/types#异步-loader) 了解如何使用。
+
 ## this.cacheable()
 
 - **类型：**
@@ -89,16 +91,6 @@ module.exports = function loader(source) {
   return source;
 };
 ```
-
-## this.clearDependencies()
-
-- **类型：**
-
-```ts
-function clearDependencies(): void;
-```
-
-移除 loader 结果的所有依赖。
 
 ## this.callback()
 
@@ -117,12 +109,24 @@ function callback(
 
 第一个参数必须是 `Error` 或者 `null`，会标记当前模块为编译失败，第二个参数是一个 `string` 或者 `Buffer`，表示模块被该 Loader 处理后的文件内容，第三个参数是一个可以该 Loader 处理后的 source map，第四个参数会被 Rspack 忽略，可以是任何东西（例如一些元数据）。
 
+> 查看 [同步 loader](/api/loader-api/types#同步-loader) 了解如何使用。
+
 :::warning
 当这个函数被调用时，你应该返回 `undefined` 以避免 loader 结果的歧义。
 
 传递给 `this.callback` 的值会传递给下一个 loader。
 `sourceMap` 和 `meta` 参数是可选的，如果没有传递，那么下一个 loader 将不会收到它们。
 :::
+
+## this.clearDependencies()
+
+- **类型：**
+
+```ts
+function clearDependencies(): void;
+```
+
+移除 loader 结果的所有依赖。
 
 ## this.context
 
