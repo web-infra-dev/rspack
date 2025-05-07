@@ -6,7 +6,7 @@ use std::{
 use rspack_collections::{Identifier, IdentifierMap, IdentifierSet, UkeyMap, UkeySet};
 use rspack_core::{
   ApplyContext, ChunkUkey, Compilation, CompilationOptimizeChunks, CompilationParams,
-  CompilerCompilation, Module, ModuleIdentifier, Plugin, PluginContext, SourceType,
+  CompilerCompilation, Logger, Module, ModuleIdentifier, Plugin, PluginContext, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -60,6 +60,9 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   }
   self.once.store(true, Ordering::Relaxed);
 
+  let logger = compilation.get_logger("rspack.CssChunkingPlugin");
+
+  let start = logger.time("collect all css modules and the execpted order of them");
   let mut chunk_states: UkeyMap<ChunkUkey, ChunkState> = UkeyMap::default();
   let mut chunk_states_by_module: IdentifierMap<UkeyMap<ChunkUkey, usize>> =
     IdentifierMap::default();
@@ -112,7 +115,6 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     chunk_states.insert(*chunk_ukey, chunk_state);
   }
 
-  // TODO: module.size(None, None)
   let module_infos: IdentifierMap<(f64, Option<Box<str>>)> = {
     let module_graph = compilation.get_module_graph();
     let mut result = IdentifierMap::default();
@@ -126,8 +128,10 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     }
     result
   };
+  logger.time_end(start);
 
   // Sort modules by their index sum
+  let start = logger.time("sort modules by their index sum");
   let mut ordered_modules: Vec<(ModuleIdentifier, usize)> = chunk_states_by_module
     .iter()
     .map(|(module_identifier, module_states)| {
@@ -140,12 +144,14 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     .into_iter()
     .map(|(module_identifier, _)| module_identifier)
     .collect();
+  logger.time_end(start);
 
   // In loose mode we guess the dependents of modules from the order
   // assuming that when a module is a dependency of another module
   // it will always appear before it in every chunk.
   let mut all_dependents: IdentifierMap<HashSet<ModuleIdentifier>> = IdentifierMap::default();
   if !self.strict {
+    let start = logger.time("guess the dependents of modules from the order");
     for b in &remaining_modules {
       let mut dependents = HashSet::new();
       'outer: for a in &remaining_modules {
@@ -170,12 +176,14 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         all_dependents.insert(*b, dependents);
       }
     }
+    logger.time_end(start);
   }
 
   // Stores the new chunk for every module
   let mut new_chunks_by_module: IdentifierMap<ChunkUkey> = IdentifierMap::default();
 
   // Process through all modules
+  let start = logger.time("process through all modules");
   loop {
     let Some(start_module_identifier) = remaining_modules.iter().next().cloned() else {
       break;
@@ -348,7 +356,9 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       new_chunks_by_module.insert(*module_identifier, new_chunk_ukey);
     }
   }
+  logger.time_end(start);
 
+  let start = logger.time("apply split chunks");
   let chunk_graph = &mut compilation.chunk_graph;
   for chunk_state in chunk_states.values() {
     let mut chunks: UkeySet<ChunkUkey> = UkeySet::default();
@@ -368,6 +378,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       }
     }
   }
+  logger.time_end(start);
 
   Ok(None)
 }
