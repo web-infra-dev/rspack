@@ -500,6 +500,7 @@ export interface JsAdditionalTreeRuntimeRequirementsResult {
 export interface JsAfterEmitData {
   outputName: string
   compilationId: number
+  uid?: number
 }
 
 export interface JsAfterResolveData {
@@ -519,6 +520,7 @@ export interface JsAfterTemplateExecutionData {
   bodyTags: Array<JsHtmlPluginTag>
   outputName: string
   compilationId: number
+  uid?: number
 }
 
 export interface JsAlterAssetTagGroupsData {
@@ -527,6 +529,7 @@ export interface JsAlterAssetTagGroupsData {
   publicPath: string
   outputName: string
   compilationId: number
+  uid?: number
 }
 
 export interface JsAlterAssetTagsData {
@@ -534,6 +537,7 @@ export interface JsAlterAssetTagsData {
   outputName: string
   publicPath: string
   compilationId: number
+  uid?: number
 }
 
 export interface JsAsset {
@@ -561,12 +565,14 @@ export interface JsBeforeAssetTagGenerationData {
   assets: JsHtmlPluginAssets
   outputName: string
   compilationId: number
+  uid?: number
 }
 
 export interface JsBeforeEmitData {
   html: string
   outputName: string
   compilationId: number
+  uid?: number
 }
 
 export interface JsBeforeResolveArgs {
@@ -1838,6 +1844,7 @@ export interface RawHtmlRspackPluginOptions {
   meta?: Record<string, Record<string, string>>
   hash?: boolean
   base?: RawHtmlRspackPluginBaseOptions
+  uid?: number
 }
 
 export interface RawHttpExternalsRspackPluginOptions {
