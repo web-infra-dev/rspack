@@ -287,7 +287,7 @@ This will print:
 
 ```
 ERROR in ./some-file.js
- (./loader.js!) 1:1-4
+ ./file.js 1:1-4
   × ModuleError: `React` is not defined
    ╭────
  1 │ <div></div>
@@ -295,7 +295,7 @@ ERROR in ./some-file.js
    ╰────
 ```
 
-Here, `./some-file.js` is the value passed to the `file` field. If this field is not provided, the current module's identifier will be used as the error output marker, which in this example is `./loader.js!`.
+Here, `./some-file.js` is the value passed to the `file` field.
 
 ## this.emitFile()
 

@@ -278,7 +278,7 @@ module.exports = function () {
 
 ```
 ERROR in ./some-file.js
- (./loader.js!) 1:1-4
+ ./file.js 1:1-4
   × ModuleError: `React` is not defined
    ╭────
  1 │ <div></div>
@@ -286,7 +286,7 @@ ERROR in ./some-file.js
    ╰────
 ```
 
-其中 `./some-file.js` 为传入的 `file` 字段，当不填写时，则使用当前模块的 module identifier 作为错误输出标识，在这个示例中为 `./loader.js!`。
+其中 `./some-file.js` 为传入的 `file` 字段。
 
 ## this.emitFile()
 
