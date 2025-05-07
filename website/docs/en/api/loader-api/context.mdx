@@ -224,7 +224,7 @@ interface Diagnostic {
 function emitDiagnostic(diagnostic: Diagnostic): void;
 ```
 
-Emits a diagnostic message.
+Formats and emits a diagnostic message (error or warning log). Supports the display of module paths, source code snippets and line/column numbers.
 
 - Basic Example:
 
