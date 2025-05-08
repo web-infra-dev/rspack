@@ -327,4 +327,5 @@ pub struct CodeGenerationJob {
   pub hash: RspackHashDigest,
   pub runtime: RuntimeSpec,
   pub runtimes: Vec<RuntimeSpec>,
+  pub scope: Option<ConcatenationScope>,
 }
