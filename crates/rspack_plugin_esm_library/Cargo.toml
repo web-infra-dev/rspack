@@ -1,0 +1,25 @@
+[package]
+authors.workspace       = true
+categories.workspace    = true
+documentation.workspace = true
+edition                 = "2024"
+homepage.workspace      = true
+license.workspace       = true
+name                    = "rspack_plugin_esm_library"
+repository.workspace    = true
+version                 = "0.2.0"
+
+[dependencies]
+rayon                      = { workspace = true }
+rspack_collections         = { workspace = true }
+rspack_core                = { workspace = true }
+rspack_error               = { workspace = true }
+rspack_hook                = { workspace = true }
+rspack_javascript_compiler = { workspace = true }
+rspack_plugin_javascript   = { workspace = true }
+rspack_util                = { workspace = true }
+swc_core                   = { workspace = true }
+tokio                      = { workspace = true }
+tracing                    = { workspace = true }
+[lints]
+workspace = true

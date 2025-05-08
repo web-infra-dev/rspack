@@ -96,7 +96,7 @@ pub async fn render_module(
   output_path: &str,
 ) -> Result<Option<(BoxSource, ChunkInitFragments, ChunkInitFragments)>> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-  let code_gen_result = compilation
+  let code_gen_result: &rspack_core::CodeGenerationResult = compilation
     .code_generation_results
     .get(&module.identifier(), Some(chunk.runtime()));
   let Some(origin_source) = code_gen_result.get(&SourceType::JavaScript) else {
