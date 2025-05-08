@@ -5,8 +5,7 @@ it("should allow to dynamic import a css module", done => {
 				nsObj({
 					a: "a",
 					abc: "a b c",
-					// DIFF: comments are removed in rspack
-					comments: "abc      def",
+					comments: "abc/****/   /* hello world *//****/   def",
 					whitespace: "abc\n\tdef",
 					default: "default"
 				})

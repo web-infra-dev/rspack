@@ -171,9 +171,9 @@ const describeCases = config => {
 						});
 						afterAll(() => {
 							// cleanup
-							// options = undefined;
-							// optionsArr = undefined;
-							// testConfig = undefined;
+							options = undefined;
+							optionsArr = undefined;
+							testConfig = undefined;
 						});
 						beforeAll(() => {
 							rimrafSync(cacheDirectory);
@@ -470,8 +470,7 @@ const describeCases = config => {
 														value: "Module"
 													});
 													return m;
-												},
-												__STATS_I__: i,
+												}
 											};
 
 											let runInNewContext = false;
@@ -482,8 +481,6 @@ const describeCases = config => {
 												baseModuleScope.window = globalContext;
 												baseModuleScope.self = globalContext;
 												baseModuleScope.document = globalContext.document;
-												baseModuleScope.getComputedStyle =
-													globalContext.getComputedStyle;
 												baseModuleScope.URL = URL;
 												if (typeof Blob !== "undefined") {
 													baseModuleScope.Blob = Blob;
@@ -495,7 +492,7 @@ const describeCases = config => {
 												runInNewContext = true;
 											}
 											if (testConfig.moduleScope) {
-												testConfig.moduleScope(baseModuleScope, options);
+												testConfig.moduleScope(baseModuleScope);
 											}
 											const esmContext = vm.createContext(baseModuleScope, {
 												name: "context for esm"
@@ -671,7 +668,7 @@ const describeCases = config => {
 														moduleScope.__STATS__ = getStatsJson();
 													}
 													if (testConfig.moduleScope) {
-														testConfig.moduleScope(moduleScope, options);
+														testConfig.moduleScope(moduleScope);
 													}
 													if (!runInNewContext)
 														content = `Object.assign(global, _globalAssign); ${content}`;
