@@ -5,7 +5,7 @@ use std::{
 
 use regex::Regex;
 use rspack_collections::IdentifierIndexMap;
-use rspack_util::itoa;
+use rspack_util::{fx_hash::FxIndexSet, itoa};
 use swc_core::atoms::Atom;
 
 use crate::{
@@ -36,6 +36,7 @@ pub struct ModuleReferenceOptions {
 pub struct ConcatenationScope {
   pub current_module: ConcatenatedModuleInfo,
   pub modules_map: Arc<IdentifierIndexMap<ModuleInfo>>,
+  refs: IdentifierIndexMap<FxIndexSet<String>>,
 }
 
 #[allow(unused)]
@@ -47,6 +48,7 @@ impl ConcatenationScope {
     ConcatenationScope {
       current_module,
       modules_map,
+      refs: IdentifierIndexMap::default(),
     }
   }
 
@@ -83,7 +85,7 @@ impl ConcatenationScope {
   }
 
   pub fn create_module_reference(
-    &self,
+    &mut self,
     module: &ModuleIdentifier,
     options: &ModuleReferenceOptions,
   ) -> String {
@@ -112,14 +114,19 @@ impl ConcatenationScope {
       "ns".to_string()
     };
 
-    format!(
+    let module_ref = format!(
       "__WEBPACK_MODULE_REFERENCE__{}_{}{}{}{}__._",
       itoa!(info.index()),
       export_data,
       call_flag,
       direct_import_flag,
       asi_safe_flag
-    )
+    );
+
+    let entry = self.refs.entry(*module).or_default();
+    entry.insert(module_ref.clone());
+
+    module_ref
   }
 
   pub fn is_module_reference(name: &str) -> bool {

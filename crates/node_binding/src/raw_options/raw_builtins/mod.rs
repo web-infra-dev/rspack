@@ -50,6 +50,7 @@ use rspack_plugin_dll::{
 use rspack_plugin_dynamic_entry::DynamicEntryPlugin;
 use rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin;
 use rspack_plugin_entry::EntryPlugin;
+use rspack_plugin_esm_library::EsmLibraryPlugin;
 use rspack_plugin_externals::{
   electron_target_plugin, http_externals_rspack_plugin, node_target_plugin, ExternalsPlugin,
 };
@@ -142,6 +143,7 @@ pub enum BuiltinPluginName {
   CommonJsChunkFormatPlugin,
   ArrayPushCallbackChunkFormatPlugin,
   ModuleChunkFormatPlugin,
+  EsmLibraryPlugin,
   HotModuleReplacementPlugin,
   LimitChunkCountPlugin,
   WorkerPlugin,
@@ -337,6 +339,9 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::CommonJsChunkFormatPlugin => {
         plugins.push(CommonJsChunkFormatPlugin::default().boxed());
+      }
+      BuiltinPluginName::EsmLibraryPlugin => {
+        plugins.push(EsmLibraryPlugin::default().boxed());
       }
       BuiltinPluginName::ArrayPushCallbackChunkFormatPlugin => {
         plugins.push(ArrayPushCallbackChunkFormatPlugin::default().boxed());
