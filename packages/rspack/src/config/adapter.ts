@@ -37,6 +37,7 @@ import {
 	type LoaderContext,
 	type LoaderDefinition,
 	type LoaderDefinitionFunction,
+	type PitchLoaderDefinitionFunction,
 	createRawModuleRuleUses
 } from "./adapterRuleUse";
 import type {
@@ -70,7 +71,12 @@ import type {
 	StatsValue
 } from "./types";
 
-export type { LoaderContext, LoaderDefinition, LoaderDefinitionFunction };
+export type {
+	LoaderContext,
+	LoaderDefinition,
+	LoaderDefinitionFunction,
+	PitchLoaderDefinitionFunction
+};
 
 // invariant: `options` is normalized with default value applied
 export const getRawOptions = (
