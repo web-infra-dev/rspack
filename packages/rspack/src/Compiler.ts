@@ -70,6 +70,8 @@ import type {
 	WatchFileSystem
 } from "./util/fs";
 
+import NodeFS from "node:fs";
+
 export interface AssetEmittedInfo {
 	content: Buffer;
 	source: Source;
@@ -816,6 +818,10 @@ class Compiler {
 
 		this.#registers = this.#createHooksRegisters();
 
+		const inputFileSystem = process.env.NODE_FS
+			? ThreadsafeInputNodeFS.__to_binding(NodeFS as unknown as any)
+			: null;
+
 		this.#instance = new instanceBinding.JsCompiler(
 			this.compilerPath,
 			rawOptions,
@@ -825,9 +831,7 @@ class Compiler {
 			this.intermediateFileSystem
 				? ThreadsafeIntermediateNodeFS.__to_binding(this.intermediateFileSystem)
 				: undefined,
-			this.inputFileSystem && !this.inputFileSystem.__SKIP_BINDING__
-				? ThreadsafeInputNodeFS.__to_binding(this.inputFileSystem)
-				: undefined,
+			inputFileSystem,
 			ResolverFactory.__to_binding(this.resolverFactory)
 		);
 

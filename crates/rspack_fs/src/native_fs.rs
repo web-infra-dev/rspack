@@ -251,21 +251,26 @@ impl ReadableFileSystem for NativeFileSystem {
 #[cfg(target_family = "wasm")]
 #[async_trait::async_trait]
 impl ReadableFileSystem for NativeFileSystem {
-  fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+  async fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
     fs::read(path).to_fs_result()
   }
 
-  fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+  async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
     let meta = fs::metadata(path)?;
     meta.try_into()
   }
 
-  fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+  fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    let meta = fs::metadata(path)?;
+    meta.try_into()
+  }
+
+  async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
     let meta = fs::symlink_metadata(path)?;
     meta.try_into()
   }
 
-  fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
+  async fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
     // Comes from rspack_resolver
     use std::path::Component;
     let mut path_buf = path.to_path_buf();
@@ -293,11 +298,15 @@ impl ReadableFileSystem for NativeFileSystem {
     Ok(path_buf)
   }
 
-  async fn async_read(&self, file: &Utf8Path) -> Result<Vec<u8>> {
+  fn read_sync(&self, file: &Utf8Path) -> Result<Vec<u8>> {
     fs::read(file).to_fs_result()
   }
 
-  fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+  async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+    self.read_dir_sync(dir)
+  }
+
+  fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     let mut res = vec![];
     for entry in fs::read_dir(dir)? {
       let entry = entry?;
