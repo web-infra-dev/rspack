@@ -867,6 +867,26 @@ export default {
 };
 ```
 
+### module.generator.asset.binary
+
+- **Type:** `boolean | undefined`
+- **Default:** `undefined`
+
+Whether or not this asset module should be considered binary. This can be set to `false` to treat this asset module as text.
+If not set, the module type will be used to determine if the module is binary.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      asset: {
+        binary: false,
+      },
+    },
+  },
+};
+```
+
 ### module.generator.asset.dataUrl
 
 - **Type:** `Object | (source: Buffer, context: { filename: string, module: Module }) => string`
@@ -1104,6 +1124,22 @@ export default {
 };
 ```
 
+### module.generator["asset/inline"].binary
+
+Same as [`module.generator["asset"].binary`](#modulegeneratorassetbinary).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/inline': {
+        binary: false,
+      },
+    },
+  },
+};
+```
+
 ### module.generator["asset/inline"].dataUrl
 
 Same as [`module.generator["asset"].dataUrl`](#modulegeneratorassetdataurl).
@@ -1168,6 +1204,22 @@ export default {
     generator: {
       'asset/resource': {
         // options
+      },
+    },
+  },
+};
+```
+
+### module.generator["asset/resource"].binary
+
+Same as [`module.generator["asset"].binary`](#modulegeneratorassetbinary).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/resource': {
+        binary: false,
       },
     },
   },

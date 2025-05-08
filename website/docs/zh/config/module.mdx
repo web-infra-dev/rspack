@@ -867,6 +867,25 @@ export default {
 };
 ```
 
+### module.generator.asset.binary
+
+- **类型：** `boolean | undefined`
+- **默认值：** `undefined`
+
+是否将 asset 视为二进制文件，设置为 `false` 时模块会被当作文本处理。不设置将根据模块类型自动判断。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      asset: {
+        binary: false,
+      },
+    },
+  },
+};
+```
+
 ### module.generator.asset.dataUrl
 
 - **类型：** `Object | (source: Buffer, context: { filename: string, module: Module }) => string`
@@ -1104,6 +1123,22 @@ export default {
 };
 ```
 
+### module.generator["asset/inline"].binary
+
+和 [`module.generator["asset"].binary`](#modulegeneratorassetbinary) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/inline': {
+        binary: false,
+      },
+    },
+  },
+};
+```
+
 ### module.generator["asset/inline"].dataUrl
 
 和 [`module.generator["asset"].dataUrl`](#modulegeneratorassetdataurl) 一样。
@@ -1168,6 +1203,22 @@ export default {
     generator: {
       'asset/resource': {
         // options
+      },
+    },
+  },
+};
+```
+
+### module.generator["asset/resource"].binary
+
+和 [`module.generator["asset"].binary`](#modulegeneratorassetbinary) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/resource': {
+        binary: false,
       },
     },
   },
