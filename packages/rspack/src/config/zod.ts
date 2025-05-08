@@ -692,13 +692,7 @@ const parserOptionsByModuleTypeKnown = z.strictObject({
 	"javascript/esm": javascriptParserOptions.optional()
 }) satisfies z.ZodType<t.ParserOptionsByModuleTypeKnown>;
 
-const parserOptionsByModuleTypeUnknown = z.record(
-	z.record(z.any())
-) satisfies z.ZodType<t.ParserOptionsByModuleTypeUnknown>;
-
-const parserOptionsByModuleType = parserOptionsByModuleTypeKnown.or(
-	parserOptionsByModuleTypeUnknown
-) satisfies z.ZodType<t.ParserOptionsByModuleType>;
+const parserOptionsByModuleType = parserOptionsByModuleTypeKnown;
 
 const assetGeneratorDataUrlOptions = z.strictObject({
 	encoding: z.literal(false).or(z.literal("base64")).optional(),
@@ -784,13 +778,7 @@ const generatorOptionsByModuleTypeKnown = z.strictObject({
 	json: jsonGeneratorOptions.optional()
 }) satisfies z.ZodType<t.GeneratorOptionsByModuleTypeKnown>;
 
-const generatorOptionsByModuleTypeUnknown = z.record(
-	z.record(z.any())
-) satisfies z.ZodType<t.GeneratorOptionsByModuleTypeUnknown>;
-
-const generatorOptionsByModuleType = generatorOptionsByModuleTypeKnown.or(
-	generatorOptionsByModuleTypeUnknown
-) satisfies z.ZodType<t.GeneratorOptionsByModuleType>;
+const generatorOptionsByModuleType = generatorOptionsByModuleTypeKnown;
 
 const noParseOptionSingle = z
 	.string()
