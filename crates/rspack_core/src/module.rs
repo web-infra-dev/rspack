@@ -45,13 +45,6 @@ pub struct BuildContext {
   pub fs: Arc<dyn ReadableFileSystem>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub enum BuildExtraDataType {
-  CssParserAndGenerator,
-  AssetParserAndGenerator,
-  JavaScriptParserAndGenerator,
-}
-
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct BuildInfo {
