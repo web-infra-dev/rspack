@@ -2,6 +2,7 @@ export * from "./builtin";
 export * from "./cache";
 export * from "./compiler";
 export * from "./config";
+export * from "./esm-output";
 export * from "./defaults";
 export * from "./diagnostic";
 export * from "./diff";
