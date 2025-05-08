@@ -665,6 +665,28 @@ import classes from './index.module.css';
 import classes, { class1, class2 } from './index.module.css';
 ```
 
+### module.parser["css/auto"].url
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Allow to enable/disables handling the CSS functions url.
+
+When using `url: true`, Rspack will resolve the path in `url` function, the resolve file will be treated as an asset.
+When using `url: false`, Rspack will ignore the path in the `url` function, keep the content unchanged.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        url: true,
+      },
+    },
+  },
+};
+```
+
 ### module.parser.css
 
 Parser options for `css` modules.
@@ -701,6 +723,22 @@ export default {
 };
 ```
 
+### module.parser.css.url
+
+Same as [`module.parser["css/auto"].url`](#moduleparsercssautourl).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        url: true,
+      },
+    },
+  },
+};
+```
+
 ### module.parser["css/module"]
 
 Parser options for `css/module` modules.
@@ -731,6 +769,22 @@ export default {
     parser: {
       'css/module': {
         namedExports: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].url
+
+Same as [`module.parser["css/auto"].url`](#moduleparsercssautourl).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        url: true,
       },
     },
   },
@@ -1675,7 +1729,22 @@ export default {
 - **Type:** [`Condition`](/config/module#condition)
 - **Default:** `undefined`
 
-Matches all modules that match this resource, and will match against the Resource's mimetype.
+Matches modules based on [MIME type](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/MIME_types) instead of file extension. It's primarily useful for [data URI module](/api/runtime-api/module-methods#data-uri-module).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        mimetype: 'text/javascript',
+        use: [
+          // ...
+        ],
+      },
+    ],
+  },
+};
+```
 
 ### Rule.descriptionData
 
@@ -1897,7 +1966,7 @@ export default {
 
 There are two phases that all loaders enter one after the other:
 
-- **Pitching phase:** the `pitch` method on loaders is called in the order `post, inline, normal, pre`. See [Pitching Loader](/api/loader-api/examples#pitching-loader) for details.
+- **Pitching phase:** the `pitch` method on loaders is called in the order `post, inline, normal, pre`. See [Pitching Loader](/api/loader-api/types#pitching-loader) for details.
 - **Normal phase:** the default method on loaders is executed in the order `pre, normal, inline, post`. Transformation on the source code of a module happens in this phase.
 
 ### Rule.type

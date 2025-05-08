@@ -2,31 +2,29 @@ mod chrome;
 mod stdout;
 mod tracer;
 
-use std::{fs, io, path::Path};
+use std::{fs, io, path::PathBuf};
 
 pub use chrome::ChromeTracer;
 pub use stdout::StdoutTracer;
 pub use tracer::Tracer;
 use tracing_subscriber::fmt::writer::BoxMakeWriter;
-pub(crate) enum TraceWriter<'a> {
+pub(crate) enum TraceWriter {
   Stdout,
   Stderr,
-  File { path: &'a Path },
+  File { path: PathBuf },
 }
 
-impl<'a> From<&'a str> for TraceWriter<'a> {
-  fn from(s: &'a str) -> Self {
-    match s {
+impl From<String> for TraceWriter {
+  fn from(s: String) -> Self {
+    match s.as_str() {
       "stdout" => Self::Stdout,
       "stderr" => Self::Stderr,
-      path => Self::File {
-        path: Path::new(path),
-      },
+      _ => Self::File { path: s.into() },
     }
   }
 }
 
-impl TraceWriter<'_> {
+impl TraceWriter {
   pub fn make_writer(&self) -> BoxMakeWriter {
     match self {
       TraceWriter::Stdout => BoxMakeWriter::new(io::stdout),

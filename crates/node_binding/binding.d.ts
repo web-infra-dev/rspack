@@ -177,6 +177,7 @@ export declare class JsChunk {
 }
 
 export declare class JsChunkGraph {
+  hasChunkEntryDependentChunks(chunk: JsChunk): boolean
   getChunkModules(chunk: JsChunk): Module[]
   getChunkEntryModules(chunk: JsChunk): Module[]
   getNumberOfEntryModules(chunk: JsChunk): number
@@ -352,8 +353,6 @@ export declare class JsResolverFactory {
 
 export declare class JsStats {
   toJson(jsOptions: JsStatsOptions): JsStatsCompilation
-  hasWarnings(): boolean
-  hasErrors(): boolean
   getLogging(acceptedTypes: number): Array<JsStatsLogging>
 }
 
@@ -501,6 +500,7 @@ export interface JsAdditionalTreeRuntimeRequirementsResult {
 export interface JsAfterEmitData {
   outputName: string
   compilationId: number
+  uid?: number
 }
 
 export interface JsAfterResolveData {
@@ -520,6 +520,7 @@ export interface JsAfterTemplateExecutionData {
   bodyTags: Array<JsHtmlPluginTag>
   outputName: string
   compilationId: number
+  uid?: number
 }
 
 export interface JsAlterAssetTagGroupsData {
@@ -528,6 +529,7 @@ export interface JsAlterAssetTagGroupsData {
   publicPath: string
   outputName: string
   compilationId: number
+  uid?: number
 }
 
 export interface JsAlterAssetTagsData {
@@ -535,6 +537,7 @@ export interface JsAlterAssetTagsData {
   outputName: string
   publicPath: string
   compilationId: number
+  uid?: number
 }
 
 export interface JsAsset {
@@ -562,12 +565,14 @@ export interface JsBeforeAssetTagGenerationData {
   assets: JsHtmlPluginAssets
   outputName: string
   compilationId: number
+  uid?: number
 }
 
 export interface JsBeforeEmitData {
   html: string
   outputName: string
   compilationId: number
+  uid?: number
 }
 
 export interface JsBeforeResolveArgs {
@@ -1359,6 +1364,7 @@ export interface JsStatsSize {
 
 export interface JsStatsWarning {
   moduleDescriptor?: JsModuleDescriptor
+  name?: string
   message: string
   chunkName?: string
   chunkEntry?: boolean
@@ -1617,6 +1623,7 @@ export interface RawCssAutoGeneratorOptions {
 
 export interface RawCssAutoParserOptions {
   namedExports?: boolean
+  url?: boolean
 }
 
 export interface RawCssExtractPluginOption {
@@ -1645,10 +1652,12 @@ export interface RawCssModuleGeneratorOptions {
 
 export interface RawCssModuleParserOptions {
   namedExports?: boolean
+  url?: boolean
 }
 
 export interface RawCssParserOptions {
   namedExports?: boolean
+  url?: boolean
 }
 
 export interface RawDllEntryPluginOptions {
@@ -1839,6 +1848,7 @@ export interface RawHtmlRspackPluginOptions {
   meta?: Record<string, Record<string, string>>
   hash?: boolean
   base?: RawHtmlRspackPluginBaseOptions
+  uid?: number
 }
 
 export interface RawHttpExternalsRspackPluginOptions {

@@ -23,7 +23,9 @@ export type HtmlRspackPluginHooks = {
 	beforeAssetTagGeneration: liteTapable.AsyncSeriesWaterfallHook<
 		[JsBeforeAssetTagGenerationData & ExtraPluginHookData]
 	>;
-	alterAssetTags: liteTapable.AsyncSeriesWaterfallHook<[JsAlterAssetTagsData]>;
+	alterAssetTags: liteTapable.AsyncSeriesWaterfallHook<
+		[JsAlterAssetTagsData & ExtraPluginHookData]
+	>;
 	alterAssetTagGroups: liteTapable.AsyncSeriesWaterfallHook<
 		[JsAlterAssetTagGroupsData & ExtraPluginHookData]
 	>;

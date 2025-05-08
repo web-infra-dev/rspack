@@ -665,6 +665,28 @@ import classes from './index.module.css';
 import classes, { class1, class2 } from './index.module.css';
 ```
 
+### module.parser["css/auto"].url
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+开启或者关闭对 CSS 中的 `url` 的处理。
+
+当开启该选项 `url: true`, Rspack 将 `url` 函数中的路径解析成资源路径。
+当关闭该选项 `url: false`, Rspack 忽略 `url` 函数，保持内容不变。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        url: true,
+      },
+    },
+  },
+};
+```
+
 ### module.parser.css
 
 `css` 模块的解析器选项。
@@ -701,6 +723,22 @@ export default {
 };
 ```
 
+### module.parser.css.url
+
+和 [`module.parser["css/auto"].url`](#moduleparsercssautourl) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        url: true,
+      },
+    },
+  },
+};
+```
+
 ### module.parser["css/module"]
 
 `css/module` 模块的解析器选项。
@@ -731,6 +769,22 @@ export default {
     parser: {
       'css/module': {
         namedExports: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].url
+
+和 [`module.parser["css/auto"].url`](#moduleparsercssautourl) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        url: true,
       },
     },
   },
@@ -1673,7 +1727,22 @@ export default {
 - **类型：** [`Condition`](/config/module#condition)
 - **默认值：** `undefined`
 
-匹配所有符合这个资源的模块，会和 Resource 的 mimetype 进行匹配。
+根据 [MIME 类型](https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Guides/MIME_types)（而非文件扩展名）匹配模块。主要用于 [data URI 模块](/api/runtime-api/module-methods#data-uri-模块)（例如 `data:text/javascript,...`）。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        mimetype: 'text/javascript',
+        use: [
+          // ...
+        ],
+      },
+    ],
+  },
+};
+```
 
 ### Rule.descriptionData
 
@@ -1893,7 +1962,7 @@ export default {
 
 所有 loader 都会进入以下两个阶段：
 
-- **Pitching 阶段:** loader 导出的 `pitch` 方法在 `post, inline, normal, pre` 顺序下被调用。详见 [Pitching Loader](/api/loader-api/examples#pitching-loader)。
+- **Pitching 阶段:** loader 导出的 `pitch` 方法在 `post, inline, normal, pre` 顺序下被调用。详见 [Pitching Loader](/api/loader-api/types#pitching-loader)。
 - **Normal 阶段:** loader 导出的默认方法在 `pre, normal, inline, post` 顺序下被执行。模块的源码转换发生在该阶段。
 
 ### Rule.type

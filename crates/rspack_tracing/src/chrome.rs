@@ -13,7 +13,7 @@ pub struct ChromeTracer {
 
 impl Tracer for ChromeTracer {
   fn setup(&mut self, output: &str) -> Option<Layered> {
-    let trace_writer = TraceWriter::from(output);
+    let trace_writer = TraceWriter::from(output.to_owned());
     let (chrome_layer, guard) = ChromeLayerBuilder::new()
       .trace_style(TraceStyle::Async)
       .include_args(true)
@@ -38,10 +38,10 @@ struct FilterEvent;
 impl<S> Filter<S> for FilterEvent {
   fn enabled(
     &self,
-    meta: &tracing::Metadata<'_>,
+    _meta: &tracing::Metadata<'_>,
     _cx: &tracing_subscriber::layer::Context<'_, S>,
   ) -> bool {
     // filter out swc related tracing because it's too much noisy for info level now
-    !meta.target().starts_with("swc")
+    true
   }
 }

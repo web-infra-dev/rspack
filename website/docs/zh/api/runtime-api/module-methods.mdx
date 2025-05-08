@@ -389,13 +389,13 @@ __webpack_modules__[require.resolveWeak(`./page/${page}`)];
 
 Rspack 支持使用 `import` 和 `require` 语法导入 Data URI 模块。
 
-**import**
+- **import**
 
 ```js
 import DataURI from 'data:text/javascript,export default 42';
 ```
 
-**require**
+- **require**
 
 ```js
 require('data:text/javascript,module.exports = 42');
@@ -413,3 +413,53 @@ const {
 ::: tip
 Data URI 模块可以被用作虚拟模块（Virtual Modules）的实现方式，如：配合 loader 完成运行时动态加载自定义模块。
 :::
+
+### 自定义 Rules
+
+Rspack 默认支持这些 [MIME 类型](https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Guides/MIME_types) 的 data URI 模块：`application/json`、`text/javascript`、`application/javascript`、`application/node` 和 `application/wasm`。这意味着当你使用这些 MIME 类型创建 data URI 模块时，Rspack 会自动识别他们。
+
+Rspack 内置的 MIME rules 如下：
+
+```js
+const defaultMimeRules = [
+  {
+    mimetype: 'application/node',
+    type: 'javascript/auto',
+  },
+  {
+    mimetype: 'application/json',
+    type: 'json',
+  },
+  {
+    mimetype: {
+      or: ['text/javascript', 'application/javascript'],
+    },
+    type: 'javascript/esm',
+    // ...
+  },
+  {
+    mimetype: 'application/wasm',
+    type: 'webassembly/async',
+    // ...
+  },
+];
+```
+
+### 自定义 Rules
+
+你可以也使用 [Rule.mimetype](/config/module#rulemimetype) 来扩展 Data URI 模块的匹配规则，例如为 `text/javascript` 添加自定义的 loaders：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        mimetype: 'text/javascript',
+        use: [
+          // ...
+        ],
+      },
+    ],
+  },
+};
+```
