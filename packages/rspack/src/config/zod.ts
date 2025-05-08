@@ -721,7 +721,8 @@ const assetInlineGeneratorOptions = z.strictObject({
 const assetResourceGeneratorOptions = z.strictObject({
 	emit: z.boolean().optional(),
 	filename: filename.optional(),
-	publicPath: publicPath.optional()
+	publicPath: publicPath.optional(),
+	outputPath: filename.optional()
 }) satisfies z.ZodType<t.AssetResourceGeneratorOptions>;
 
 const assetGeneratorOptions = assetInlineGeneratorOptions.merge(
