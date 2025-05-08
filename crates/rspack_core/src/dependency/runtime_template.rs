@@ -468,6 +468,7 @@ pub fn module_namespace_promise(
   };
   let mut fake_type = FakeNamespaceObjectMode::PROMISE_LIKE;
   let mut appending;
+
   match exports_type {
     ExportsType::Namespace => {
       if let Some(header) = header {

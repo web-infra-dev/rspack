@@ -20,10 +20,11 @@ export class EsmRunner<
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}
 
-			if (
-				file.path.endsWith(".mjs") &&
-				this._options.compilerOptions.experiments?.outputModule
-			) {
+			const options = Array.isArray(this._options.compilerOptions)
+				? this._options.compilerOptions[0]
+				: this._options.compilerOptions.experiments;
+
+			if (file.path.endsWith(".mjs") && options.experiments?.outputModule) {
 				return this.requirers.get("esm")!(currentDirectory, modulePath, {
 					...context,
 					file
@@ -61,8 +62,12 @@ export class EsmRunner<
 					// no attribute
 					url: `${pathToFileURL(file.path).href}?${esmIdentifier}`,
 					context: esmContext,
-					initializeImportMeta: (meta: { url: string }, _: any) => {
+					initializeImportMeta: (
+						meta: { url: string; dirname: string },
+						_: any
+					) => {
 						meta.url = pathToFileURL(file!.path).href;
+						meta.dirname = path.dirname(file.path);
 					},
 					importModuleDynamically: async (
 						specifier: any,
@@ -78,23 +83,28 @@ export class EsmRunner<
 			}
 			if (context.esmMode === EEsmMode.Unlinked) return esm;
 			return (async () => {
-				await esm.link(async (specifier, referencingModule) => {
-					return await asModule(
-						await _require(
-							path.dirname(
-								referencingModule.identifier
-									? referencingModule.identifier.slice(esmIdentifier.length + 1)
-									: fileURLToPath((referencingModule as any).url)
+				if (esm.status === "unlinked") {
+					await esm.link(async (specifier, referencingModule) => {
+						return await asModule(
+							await _require(
+								path.dirname(
+									referencingModule.identifier
+										? referencingModule.identifier.slice(
+												esmIdentifier.length + 1
+											)
+										: fileURLToPath((referencingModule as any).url)
+								),
+								specifier,
+								{
+									esmMode: EEsmMode.Unlinked
+								}
 							),
-							specifier,
-							{
-								esmMode: EEsmMode.Unlinked
-							}
-						),
-						referencingModule.context,
-						true
-					);
-				});
+							referencingModule.context,
+							true
+						);
+					});
+				}
+
 				if ((esm as any).instantiate) (esm as any).instantiate();
 				await esm.evaluate();
 				if (context.esmMode === EEsmMode.Evaluated) {
