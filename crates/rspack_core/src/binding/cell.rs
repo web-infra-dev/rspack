@@ -24,8 +24,12 @@ mod napi_binding {
   };
   use once_cell::sync::OnceCell;
   use rspack_napi::{object_assign, ThreadsafeOneShotRef};
+  use rspack_sources::BoxSource;
+  use rustc_hash::FxHashMap;
 
-  use crate::{with_thread_local_allocator, AssetInfo, CodeGenerationResult};
+  use crate::{
+    with_thread_local_allocator, AssetInfo, CodeGenerationResult, CodeGenerationResults, SourceType,
+  };
 
   pub struct WeakBindingCell<T: ?Sized> {
     ptr: *mut T,
@@ -61,17 +65,20 @@ mod napi_binding {
       })?;
       Ok(())
     }
+  }
 
-    pub fn get_jsobject(&self, env: &Env) -> napi::Result<Object> {
+  impl ToNapiValue for Reflector {
+    unsafe fn to_napi_value(
+      raw_env: napi::sys::napi_env,
+      val: Self,
+    ) -> napi::Result<napi::sys::napi_value> {
       with_thread_local_allocator(|allocator| {
-        let heap = self.heap.upgrade().ok_or_else(|| {
+        let heap = val.heap.upgrade().ok_or_else(|| {
           napi::Error::new(
             napi::Status::GenericFailure,
             "Failed to upgrade weak reference to heap",
           )
         })?;
-
-        let raw_env = env.raw();
 
         let raw_ref = heap.jsobject.get_or_try_init(|| match &heap.variant {
           HeapVariant::AssetInfo(asset_info) => {
@@ -93,10 +100,29 @@ mod napi_binding {
             let target = unsafe { Object::from_raw_unchecked(raw_env, napi_val) };
             ThreadsafeOneShotRef::new(raw_env, target)
           }
+          HeapVariant::Sources(sources) => {
+            let binding_cell = BindingCell {
+              ptr: sources.as_ref() as *const FxHashMap<SourceType, BoxSource>
+                as *mut FxHashMap<SourceType, BoxSource>,
+              heap: heap.clone(),
+            };
+            let napi_val = allocator.allocate_sources(raw_env, &binding_cell)?;
+            let target = unsafe { Object::from_raw_unchecked(raw_env, napi_val) };
+            ThreadsafeOneShotRef::new(raw_env, target)
+          }
+          HeapVariant::CodeGenerationResults(code_generation_results) => {
+            let binding_cell = BindingCell {
+              ptr: code_generation_results.as_ref() as *const CodeGenerationResults
+                as *mut CodeGenerationResults,
+              heap: heap.clone(),
+            };
+            let napi_val = allocator.allocate_code_generation_results(raw_env, &binding_cell)?;
+            let target = unsafe { Object::from_raw_unchecked(raw_env, napi_val) };
+            ThreadsafeOneShotRef::new(raw_env, target)
+          }
         })?;
 
-        let napi_val = unsafe { ToNapiValue::to_napi_value(raw_env, raw_ref)? };
-        let mut result = unsafe { Object::from_raw_unchecked(raw_env, napi_val) };
+        let result = unsafe { ToNapiValue::to_napi_value(raw_env, raw_ref)? };
 
         match &heap.variant {
           HeapVariant::AssetInfo(asset_info) => {
@@ -104,9 +130,10 @@ mod napi_binding {
               ptr: asset_info.as_ref() as *const AssetInfo as *mut AssetInfo,
               heap: heap.clone(),
             };
-            let napi_val = allocator.allocate_asset_info(env.raw(), &binding_cell)?;
-            let new_object = unsafe { Object::from_raw_unchecked(env.raw(), napi_val) };
-            object_assign(&mut result, &new_object)?;
+            let napi_val = allocator.allocate_asset_info(raw_env, &binding_cell)?;
+            let new_object = unsafe { Object::from_raw_unchecked(raw_env, napi_val) };
+            let mut object = unsafe { Object::from_raw_unchecked(raw_env, napi_val) };
+            object_assign(&mut object, &new_object)?;
             Ok(result)
           }
           _ => Ok(result),
@@ -124,7 +151,9 @@ mod napi_binding {
   #[derive(Debug)]
   enum HeapVariant {
     AssetInfo(Box<AssetInfo>),
+    CodeGenerationResults(Box<CodeGenerationResults>),
     CodeGenerationResult(Box<CodeGenerationResult>),
+    Sources(Box<FxHashMap<SourceType, BoxSource>>),
   }
 
   #[derive(Debug)]
@@ -180,6 +209,24 @@ mod napi_binding {
     }
   }
 
+  impl BindingCell<CodeGenerationResults> {
+    pub fn new(code_generation_results: CodeGenerationResults) -> Self {
+      let boxed = Box::new(code_generation_results);
+      let ptr = boxed.as_ref() as *const CodeGenerationResults as *mut CodeGenerationResults;
+      let heap = Arc::new(Heap {
+        variant: HeapVariant::CodeGenerationResults(boxed),
+        jsobject: Default::default(),
+      });
+      Self { ptr, heap }
+    }
+  }
+
+  impl From<CodeGenerationResults> for BindingCell<CodeGenerationResults> {
+    fn from(code_generation_results: CodeGenerationResults) -> Self {
+      Self::new(code_generation_results)
+    }
+  }
+
   impl BindingCell<CodeGenerationResult> {
     pub fn new(code_generation_result: CodeGenerationResult) -> Self {
       let boxed = Box::new(code_generation_result);
@@ -195,6 +242,34 @@ mod napi_binding {
   impl From<CodeGenerationResult> for BindingCell<CodeGenerationResult> {
     fn from(code_generation_result: CodeGenerationResult) -> Self {
       Self::new(code_generation_result)
+    }
+  }
+
+  impl BindingCell<FxHashMap<SourceType, BoxSource>> {
+    pub fn new(sources: FxHashMap<SourceType, BoxSource>) -> Self {
+      let boxed = Box::new(sources);
+      let ptr = boxed.as_ref() as *const FxHashMap<SourceType, BoxSource>
+        as *mut FxHashMap<SourceType, BoxSource>;
+      let heap = Arc::new(Heap {
+        variant: HeapVariant::Sources(boxed),
+        jsobject: Default::default(),
+      });
+      Self { ptr, heap }
+    }
+  }
+
+  impl From<FxHashMap<SourceType, BoxSource>> for BindingCell<FxHashMap<SourceType, BoxSource>> {
+    fn from(sources: FxHashMap<SourceType, BoxSource>) -> Self {
+      Self::new(sources)
+    }
+  }
+
+  impl<T: ?Sized> BindingCell<T> {
+    pub fn downgrade(&self) -> WeakBindingCell<T> {
+      WeakBindingCell {
+        ptr: self.ptr,
+        heap: Arc::downgrade(&self.heap),
+      }
     }
   }
 

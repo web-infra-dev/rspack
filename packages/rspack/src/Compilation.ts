@@ -16,7 +16,8 @@ import {
 	type JsCompilation,
 	type JsPathData,
 	JsRspackSeverity,
-	type JsRuntimeModule
+	type JsRuntimeModule,
+	type CodeGenerationResult
 } from "@rspack/binding";
 export type { AssetInfo } from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
@@ -28,7 +29,7 @@ import type { Compiler } from "./Compiler";
 import type { ContextModuleFactory } from "./ContextModuleFactory";
 import { Entrypoint } from "./Entrypoint";
 import { cutOffLoaderExecution } from "./ErrorHelpers";
-import type { CodeGenerationResult, Module } from "./Module";
+import type { Module } from "./Module";
 import ModuleGraph from "./ModuleGraph";
 import type { NormalModuleCompilationHooks } from "./NormalModule";
 import type { NormalModuleFactory } from "./NormalModuleFactory";

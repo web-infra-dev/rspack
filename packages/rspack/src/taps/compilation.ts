@@ -1,6 +1,6 @@
 import * as binding from "@rspack/binding";
 import { Chunk } from "../Chunk";
-import { CodeGenerationResult, type Module } from "../Module";
+import { type Module } from "../Module";
 import {
 	RuntimeGlobals,
 	__from_binding_runtime_globals,
@@ -146,7 +146,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 				return function ({
 					entry,
 					id,
-					codegenResults,
+					codeGenerationResult,
 					runtimeModules
 				}: binding.JsExecuteModuleArg) {
 					try {
@@ -172,7 +172,6 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 								handler(execOptions);
 							}
 
-							const result = codegenResults.map[id]["build time"];
 							const moduleObject = execOptions.module;
 
 							if (id) moduleCache[id] = moduleObject;
@@ -181,7 +180,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 								() =>
 									queried.call(
 										{
-											codeGenerationResult: new CodeGenerationResult(result),
+											codeGenerationResult,
 											moduleObject
 										},
 										// TODO: Simplify this without assignments once https://github.com/web-infra-dev/rspack/pull/10036 is released in Rslib.

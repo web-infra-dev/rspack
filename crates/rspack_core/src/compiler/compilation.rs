@@ -67,7 +67,7 @@ define_hook!(CompilationRevokedModules: Series(revoked_modules: &IdentifierSet))
 define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
 define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationExecuteModule:
-  Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, codegen_results: &CodeGenerationResults, execute_module_id: &ExecuteModuleId));
+  Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, code_generation_result: &BindingCell<CodeGenerationResult>, execute_module_id: &ExecuteModuleId));
 define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation));
 define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
 define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &mut Compilation) -> bool);
@@ -249,7 +249,7 @@ pub struct Compilation {
   // artifact for chunk_ids
   pub chunk_ids_artifact: ChunkIdsArtifact,
   // artifact for code_generation
-  pub code_generation_results: CodeGenerationResults,
+  pub code_generation_results: BindingCell<CodeGenerationResults>,
   // artifact for create_module_hashes
   pub cgm_hash_artifact: CgmHashArtifact,
   // artifact for process_modules_runtime_requirements

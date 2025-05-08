@@ -15,7 +15,7 @@ use once_cell::sync::OnceCell;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{
   rspack_sources::BoxSource, BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions,
-  FactorizeInfo, ModuleIdentifier,
+  FactorizeInfo, ModuleIdentifier, Reflector,
 };
 use rspack_error::{Diagnostic, ToStringResultToRspackResultExt};
 use rspack_napi::{napi::bindgen_prelude::*, OneShotRef, WeakRef};
@@ -67,7 +67,7 @@ impl JsCompilation {
     env: &Env,
     filename: String,
     new_source_or_function: Either<JsCompatSource, Function<'_, JsCompatSource, JsCompatSource>>,
-    asset_info_update_or_function: Option<Either<Object, Function<'_, Object, Option<Object>>>>,
+    asset_info_update_or_function: Option<Either<Object, Function<'_, Reflector, Option<Object>>>>,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
@@ -95,10 +95,7 @@ impl JsCompilation {
               Some(js_asset_info.into())
             }
             Either::B(f) => {
-              let original_info_object = original_info
-                .reflector()
-                .get_jsobject(env)
-                .to_rspack_result()?;
+              let original_info_object = original_info.reflector();
               let result = f.call(original_info_object).to_rspack_result()?;
               match result {
                 Some(object) => {
@@ -120,13 +117,13 @@ impl JsCompilation {
   }
 
   #[napi(ts_return_type = "Readonly<JsAsset>[]")]
-  pub fn get_assets(&self, env: &Env) -> Result<Vec<JsAsset>> {
+  pub fn get_assets(&self) -> Result<Vec<JsAsset>> {
     let compilation = self.as_ref()?;
 
     let mut assets = Vec::<JsAsset>::with_capacity(compilation.assets().len());
 
     for (filename, asset) in compilation.assets() {
-      let info = asset.info.reflector().get_jsobject(env)?;
+      let info = asset.info.reflector();
       assets.push(JsAsset {
         name: filename.clone(),
         info,
@@ -137,12 +134,12 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_asset(&self, env: &Env, name: String) -> Result<Option<JsAsset>> {
+  pub fn get_asset(&self, name: String) -> Result<Option<JsAsset>> {
     let compilation = self.as_ref()?;
 
     match compilation.assets().get(&name) {
       Some(asset) => {
-        let info = asset.info.reflector().get_jsobject(env)?;
+        let info = asset.info.reflector();
         Ok(Some(JsAsset { name, info }))
       }
       None => Ok(None),
@@ -825,13 +822,11 @@ impl JsCompilation {
     )
   }
 
-  pub fn code_generation_results(&self, env: &Env) -> Result<Object> {
+  #[napi(getter, ts_return_type = "CodeGenerationResults")]
+  pub fn code_generation_results(&self) -> Result<Reflector> {
     let compilation = self.as_ref()?;
 
-    compilation
-      .code_generation_results
-      .reflector()
-      .get_jsobject(env)
+    Ok(compilation.code_generation_results.reflector())
   }
 }
 

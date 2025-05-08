@@ -14,10 +14,16 @@ export default class ExecuteModulePlugin {
 				"executeModule",
 				(options, context) => {
 					const moduleObject = options.moduleObject;
-					const source = options.codeGenerationResult.get("javascript");
+					const source =
+						options.codeGenerationResult.sources.get("javascript")!;
+					if (source === undefined) return;
+					// TODO:
+					const code = source.source as string;
+					console.log("------ code --------", code);
+
 					try {
 						const fn = vm.runInThisContext(
-							`(function(module, __webpack_module__, __webpack_exports__, exports, ${RuntimeGlobals.require}) {\n${source}\n})`,
+							`(function(module, __webpack_module__, __webpack_exports__, exports, ${RuntimeGlobals.require}) {\n${code}\n})`,
 							{
 								filename: moduleObject.id
 							}
@@ -34,7 +40,7 @@ export default class ExecuteModulePlugin {
 					} catch (e: any) {
 						const err = e instanceof Error ? e : new Error(e);
 
-						err.stack += printGeneratedCodeForStack(moduleObject.id, source);
+						err.stack += printGeneratedCodeForStack(moduleObject.id, code);
 						throw err;
 					}
 				}

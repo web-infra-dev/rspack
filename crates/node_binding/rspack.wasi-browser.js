@@ -62,6 +62,8 @@ const {
 })
 export const AsyncDependenciesBlock = __napiModule.exports.AsyncDependenciesBlock
 export const Chunks = __napiModule.exports.Chunks
+export const CodeGenerationResult = __napiModule.exports.CodeGenerationResult
+export const CodeGenerationResults = __napiModule.exports.CodeGenerationResults
 export const ConcatenatedModule = __napiModule.exports.ConcatenatedModule
 export const ContextModule = __napiModule.exports.ContextModule
 export const Dependency = __napiModule.exports.Dependency
@@ -89,6 +91,7 @@ export const Module = __napiModule.exports.Module
 export const ModuleGraphConnection = __napiModule.exports.ModuleGraphConnection
 export const NormalModule = __napiModule.exports.NormalModule
 export const RawExternalItemFnCtx = __napiModule.exports.RawExternalItemFnCtx
+export const Sources = __napiModule.exports.Sources
 export const BuiltinPluginName = __napiModule.exports.BuiltinPluginName
 export const cleanupGlobalTrace = __napiModule.exports.cleanupGlobalTrace
 export const formatDiagnostic = __napiModule.exports.formatDiagnostic

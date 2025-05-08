@@ -1,7 +1,7 @@
 use napi::{bindgen_prelude::ToNapiValue, sys::napi_env, Env};
 use rspack_core::BindingCell;
 
-use crate::{AssetInfo, CodeGenerationResult};
+use crate::{AssetInfo, CodeGenerationResult, CodeGenerationResults, Sources};
 
 pub(crate) struct NapiAllocatorImpl;
 
@@ -26,7 +26,27 @@ impl rspack_core::NapiAllocator for NapiAllocatorImpl {
     env: napi_env,
     val: &BindingCell<rspack_core::CodeGenerationResult>,
   ) -> napi::Result<napi::sys::napi_value> {
-    let code_generation_result = CodeGenerationResult::new(val);
+    let code_generation_result = CodeGenerationResult::new(val.downgrade());
     unsafe { ToNapiValue::to_napi_value(env, code_generation_result) }
+  }
+
+  fn allocate_sources(
+    &self,
+    env: napi_env,
+    val: &BindingCell<
+      rustc_hash::FxHashMap<rspack_core::SourceType, rspack_core::rspack_sources::BoxSource>,
+    >,
+  ) -> napi::Result<napi::sys::napi_value> {
+    let sources = Sources::new(val.downgrade());
+    unsafe { ToNapiValue::to_napi_value(env, sources) }
+  }
+
+  fn allocate_code_generation_results(
+    &self,
+    env: napi_env,
+    val: &BindingCell<rspack_core::CodeGenerationResults>,
+  ) -> napi::Result<napi::sys::napi_value> {
+    let code_generation_results = CodeGenerationResults::new(val.downgrade());
+    unsafe { ToNapiValue::to_napi_value(env, code_generation_results) }
   }
 }

@@ -76,6 +76,14 @@ export declare class Chunks {
   _has(chunk: JsChunk): boolean
 }
 
+export declare class CodeGenerationResult {
+  get sources(): Sources
+}
+
+export declare class CodeGenerationResults {
+  get(module: ModuleObjectRef, runtime: JsRuntimeSpec): CodeGenerationResult
+}
+
 export declare class ConcatenatedModule {
   get rootModule(): Module
   get modules(): Module[]
@@ -254,6 +262,7 @@ export declare class JsCompilation {
   get moduleGraph(): JsModuleGraph
   get chunkGraph(): JsChunkGraph
   addInclude(args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, Module][]) => void): void
+  get codeGenerationResults(): CodeGenerationResults
 }
 
 export declare class JsCompiler {
@@ -375,6 +384,10 @@ export declare class ModuleGraphConnection {
 export declare class RawExternalItemFnCtx {
   data(): RawExternalItemFnCtxData
   getResolver(): JsResolver
+}
+
+export declare class Sources {
+  get(sourceType: string): JsCompatSourceOwned | null
 }
 
 export interface BuiltinPlugin {
@@ -631,14 +644,6 @@ export interface JsCleanOptions {
   keep?: string | RegExp | ((path: string) => boolean)
 }
 
-export interface JsCodegenerationResult {
-  sources: Record<string, string>
-}
-
-export interface JsCodegenerationResults {
-  map: Record<string, Record<string, JsCodegenerationResult>>
-}
-
 /**
  * Zero copy `JsCompatSource` slice shared between Rust and Node.js if buffer is used.
  *
@@ -719,7 +724,7 @@ export interface JsEntryPluginOptions {
 export interface JsExecuteModuleArg {
   entry: string
   runtimeModules: Array<string>
-  codegenResults: JsCodegenerationResults
+  codeGenerationResult: CodeGenerationResult
   id: number
 }
 

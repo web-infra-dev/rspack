@@ -1,23 +1,32 @@
-use napi::bindgen_prelude::WeakReference;
-use rspack_core::WeakBindingCell;
+use std::sync::Arc;
+
+use napi::Either;
+use rspack_core::{Reflector, WeakBindingCell};
 use rustc_hash::FxHashMap;
 
-use super::JsCompilation;
 use crate::{JsCompatSourceOwned, JsRuntimeSpec, ModuleObjectRef, ToJsCompatSourceOwned};
 
+// Map<string, Source>
+#[napi]
 pub struct Sources {
   i: WeakBindingCell<FxHashMap<rspack_core::SourceType, rspack_core::rspack_sources::BoxSource>>,
 }
 
 impl Sources {
-  pub fn with_ref<T>(
+  pub fn new(
+    i: WeakBindingCell<FxHashMap<rspack_core::SourceType, rspack_core::rspack_sources::BoxSource>>,
+  ) -> Self {
+    Self { i }
+  }
+
+  fn with_ref<T>(
     &self,
     f: impl FnOnce(
       &FxHashMap<rspack_core::SourceType, rspack_core::rspack_sources::BoxSource>,
     ) -> napi::Result<T>,
   ) -> napi::Result<T> {
     match self.i.upgrade() {
-      Some(cell) => f(&*cell),
+      Some(cell) => f(&cell),
       None => Err(napi::Error::from_reason(
         "Unable to access sources now. The sources has been dropped by Rust.",
       )),
@@ -25,7 +34,9 @@ impl Sources {
   }
 }
 
+#[napi]
 impl Sources {
+  #[napi]
   pub fn get(&self, source_type: String) -> napi::Result<Option<JsCompatSourceOwned>> {
     let source_type = rspack_core::SourceType::from(source_type.as_str());
     self.with_ref(|sources| match sources.get(&source_type) {
@@ -47,22 +58,42 @@ impl CodeGenerationResult {
   pub fn new(i: WeakBindingCell<rspack_core::CodeGenerationResult>) -> Self {
     Self { i }
   }
+
+  fn with_ref<T>(
+    &self,
+    f: impl FnOnce(&rspack_core::CodeGenerationResult) -> napi::Result<T>,
+  ) -> napi::Result<T> {
+    match self.i.upgrade() {
+      Some(cell) => f(&cell),
+      None => Err(napi::Error::from_reason(
+        "Unable to access sources now. The sources has been dropped by Rust.",
+      )),
+    }
+  }
+}
+
+#[napi]
+impl CodeGenerationResult {
+  #[napi(getter, ts_return_type = "Sources")]
+  pub fn sources(&self) -> napi::Result<Reflector> {
+    self.with_ref(|i| Ok(i.inner.reflector()))
+  }
 }
 
 #[napi]
 pub struct CodeGenerationResults {
-  compilation_reference: WeakReference<JsCompilation>,
+  i: WeakBindingCell<rspack_core::CodeGenerationResults>,
 }
 
 impl CodeGenerationResults {
   pub fn with_ref<T>(
     &self,
-    f: impl FnOnce(&rspack_core::Compilation) -> napi::Result<T>,
+    f: impl FnOnce(&rspack_core::CodeGenerationResults) -> napi::Result<T>,
   ) -> napi::Result<T> {
-    match self.compilation_reference.get() {
-      Some(reference) => f(reference.as_ref()?),
+    match self.i.upgrade() {
+      Some(cell) => f(&cell),
       None => Err(napi::Error::from_reason(
-        "Unable to access compilation.codeGenerationResults now. The Compilation has been garbage collected by JavaScript."
+        "Unable to access codeGenerationResults now. The codeGenerationResults has been dropped by Rust.",
       )),
     }
   }
@@ -70,23 +101,20 @@ impl CodeGenerationResults {
 
 #[napi]
 impl CodeGenerationResults {
-  pub fn new(compilation_reference: WeakReference<JsCompilation>) -> Self {
-    Self {
-      compilation_reference,
-    }
+  pub fn new(i: WeakBindingCell<rspack_core::CodeGenerationResults>) -> Self {
+    Self { i }
   }
 
-  pub fn get(
-    &self,
-    module: ModuleObjectRef,
-    runtime: JsRuntimeSpec,
-  ) -> napi::Result<Option<rspack_core::CodeGenerationResult>> {
-    self.with_ref(|compilation| {
-      //   let a = compilation
-      //     .code_generation_results
-      //     .get(&module.identifier, Some(&runtime));
+  #[napi(ts_return_type = "CodeGenerationResult")]
+  pub fn get(&self, module: ModuleObjectRef, runtime: JsRuntimeSpec) -> napi::Result<Reflector> {
+    self.with_ref(|code_generation_results| {
+      let rt: Option<rspack_core::RuntimeSpec> = runtime.map(|val| match val {
+        Either::A(str) => std::iter::once(str).map(Arc::from).collect(),
+        Either::B(vec) => vec.into_iter().map(Arc::from).collect(),
+      });
 
-      todo!()
+      let code_generation_result = code_generation_results.get(&module.identifier, rt.as_ref());
+      Ok(code_generation_result.reflector())
     })
   }
 }

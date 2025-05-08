@@ -126,7 +126,7 @@ impl DerefMut for CodeGenerationData {
 
 #[derive(Debug, Default, Clone)]
 pub struct CodeGenerationResult {
-  pub inner: HashMap<SourceType, BoxSource>,
+  pub inner: BindingCell<HashMap<SourceType, BoxSource>>,
   /// [definition in webpack](https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L75)
   pub data: CodeGenerationData,
   pub chunk_init_fragments: ChunkInitFragments,
@@ -172,7 +172,7 @@ impl CodeGenerationResult {
     hash_salt: &HashSalt,
   ) {
     let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
-    for (source_type, source) in &self.inner {
+    for (source_type, source) in self.inner.as_ref() {
       source_type.hash(&mut hasher);
       source.hash(&mut hasher);
     }
@@ -231,7 +231,7 @@ impl CodeGenerationResults {
     &self,
     module_identifier: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
-  ) -> &CodeGenerationResult {
+  ) -> &BindingCell<CodeGenerationResult> {
     if let Some(entry) = self.map.get(module_identifier) {
       if let Some(runtime) = runtime {
         entry
