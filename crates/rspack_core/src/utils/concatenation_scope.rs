@@ -5,12 +5,15 @@ use std::{
 
 use regex::Regex;
 use rspack_collections::IdentifierIndexMap;
-use rspack_util::itoa;
+use rspack_util::{
+  fx_hash::{FxIndexMap, FxIndexSet},
+  itoa,
+};
 use swc_core::atoms::Atom;
 
 use crate::{
   concatenated_module::{ConcatenatedModuleInfo, ModuleInfo},
-  ModuleIdentifier,
+  ExportMode, ModuleIdentifier,
 };
 
 pub const DEFAULT_EXPORT: &str = "__WEBPACK_DEFAULT_EXPORT__";
@@ -23,7 +26,12 @@ static MODULE_REFERENCE_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   .expect("should initialized regex")
 });
 
-#[derive(Default, Debug)]
+static DYN_MODULE_REFERENCE_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(r"^__WEBPACK_MODULE_DYNAMIC_REFERENCE__(\d+)_(true|false)_([\da-f]+|ns)$")
+    .expect("should initialized regex")
+});
+
+#[derive(Default, Debug, Clone)]
 pub struct ModuleReferenceOptions {
   pub ids: Vec<Atom>,
   pub call: bool,
@@ -36,6 +44,9 @@ pub struct ModuleReferenceOptions {
 pub struct ConcatenationScope {
   pub current_module: ConcatenatedModuleInfo,
   pub modules_map: Arc<IdentifierIndexMap<ModuleInfo>>,
+  pub refs: IdentifierIndexMap<FxIndexMap<String, ModuleReferenceOptions>>,
+  pub dyn_refs: IdentifierIndexMap<FxIndexSet<(String, Atom)>>,
+  pub star_exports: IdentifierIndexMap<ExportMode>,
 }
 
 #[allow(unused)]
@@ -47,6 +58,9 @@ impl ConcatenationScope {
     ConcatenationScope {
       current_module,
       modules_map,
+      refs: IdentifierIndexMap::default(),
+      dyn_refs: Default::default(),
+      star_exports: Default::default(),
     }
   }
 
@@ -78,6 +92,10 @@ impl ConcatenationScope {
     }
   }
 
+  pub fn register_star_export(&mut self, module: ModuleIdentifier, mode: ExportMode) {
+    self.star_exports.insert(module, mode);
+  }
+
   pub fn register_import(
     &mut self,
     import_source: String,
@@ -101,7 +119,7 @@ impl ConcatenationScope {
   }
 
   pub fn create_module_reference(
-    &self,
+    &mut self,
     module: &ModuleIdentifier,
     options: &ModuleReferenceOptions,
   ) -> String {
@@ -130,14 +148,19 @@ impl ConcatenationScope {
       "ns".to_string()
     };
 
-    format!(
+    let module_ref = format!(
       "__WEBPACK_MODULE_REFERENCE__{}_{}{}{}{}__._",
       itoa!(info.index()),
       export_data,
       call_flag,
       direct_import_flag,
       asi_safe_flag
-    )
+    );
+
+    let entry = self.refs.entry(*module).or_default();
+    entry.insert(module_ref.clone(), options.clone());
+
+    module_ref
   }
 
   pub fn is_module_reference(name: &str) -> bool {
@@ -166,5 +189,64 @@ impl ConcatenationScope {
     } else {
       None
     }
+  }
+
+  pub fn create_dynamic_module_reference(
+    &mut self,
+    module: &ModuleIdentifier,
+    already_in_chunk: bool,
+    id: &Atom,
+  ) -> String {
+    let info = self
+      .modules_map
+      .get(module)
+      .expect("should have module info");
+
+    let export_data = hex::encode(id.as_str());
+
+    let ref_string = format!(
+      "__WEBPACK_MODULE_DYNAMIC_REFERENCE__{}_{}_{}",
+      itoa!(info.index()),
+      already_in_chunk,
+      export_data
+    );
+
+    let entry = self.dyn_refs.entry(*module).or_default();
+    entry.insert((ref_string.clone(), id.clone()));
+
+    ref_string
+  }
+
+  pub fn is_dynamic_module_reference(name: &str) -> bool {
+    DYN_MODULE_REFERENCE_REGEXP.is_match(name)
+  }
+
+  pub fn match_dynamic_module_reference(name: &str) -> Option<(usize, bool, Atom)> {
+    if let Some(captures) = DYN_MODULE_REFERENCE_REGEXP.captures(name) {
+      let index: usize = captures[1].parse().expect("parse index");
+      let already_in_chunk: bool = captures[2].parse().expect("parse in_chunk");
+      let id: Atom = Atom::from(
+        String::from_utf8(hex::decode(&captures[3]).expect("should parse success"))
+          .expect("should be utf8 string"),
+      );
+      Some((
+        index,
+        already_in_chunk,
+        if id == "default" {
+          DEFAULT_EXPORT.into()
+        } else {
+          id
+        },
+      ))
+    } else {
+      None
+    }
+  }
+
+  pub fn is_module_concatenated(&self, module: &ModuleIdentifier) -> bool {
+    matches!(
+      self.modules_map.get(module).expect("should have module"),
+      ModuleInfo::Concatenated(_)
+    )
   }
 }
