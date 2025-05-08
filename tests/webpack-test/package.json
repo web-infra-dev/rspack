@@ -15,7 +15,6 @@
   ],
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
-    "@babel/preset-react": "^7.27.1",
     "@rspack/core": "workspace:*",
     "@webdiscus/pug-loader": "^2.11.1",
     "babel-loader": "^10.0.0",
@@ -40,7 +39,6 @@
     "source-map": "^0.7.4",
     "terser": "5.39.0",
     "terser-webpack-plugin": "^5.3.14",
-    "ts-loader": "^9.5.2",
     "typescript": "^5.8.3"
   },
   "dependencies": {
