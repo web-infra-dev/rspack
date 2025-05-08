@@ -289,16 +289,13 @@ impl Task<MakeTaskContext> for ExecuteTask {
         .insert(runtime_module.identifier());
     }
 
-    let code_generation_result = compilation
-      .code_generation_results
-      .get(&entry_module_identifier, Some(&runtime));
     let exports = main_compilation_plugin_driver
       .compilation_hooks
       .execute_module
       .call(
         &entry_module_identifier,
         &runtime_modules,
-        code_generation_result,
+        &compilation.code_generation_results,
         &id,
       )
       .await;

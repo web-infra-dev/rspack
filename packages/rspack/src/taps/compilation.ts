@@ -10,6 +10,7 @@ import {
 import { tryRunOrWebpackError } from "../lib/HookWebpackError";
 import { createHash } from "../util/createHash";
 import type { CreatePartialRegisters } from "./types";
+import { ExecuteModuleArgument } from "../Compilation";
 
 export const createCompilationHooksRegisters: CreatePartialRegisters<
 	`Compilation`
@@ -149,6 +150,9 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 					codeGenerationResult,
 					runtimeModules
 				}: binding.JsExecuteModuleArg) {
+					// Prepare execution
+					const moduleArgumentsById = new Map<string, ExecuteModuleArgument>();
+
 					try {
 						const __webpack_require__: any = (id: string) => {
 							const cached = moduleCache[id];

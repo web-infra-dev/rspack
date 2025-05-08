@@ -1162,7 +1162,7 @@ impl CompilationExecuteModule for CompilationExecuteModuleTap {
     &self,
     entry: &ModuleIdentifier,
     runtime_modules: &IdentifierSet,
-    code_generation_result: &BindingCell<rspack_core::CodeGenerationResult>,
+    code_generation_results: &BindingCell<rspack_core::CodeGenerationResults>,
     id: &ExecuteModuleId,
   ) -> rspack_error::Result<()> {
     self
@@ -1170,7 +1170,7 @@ impl CompilationExecuteModule for CompilationExecuteModuleTap {
       .call_with_sync(JsExecuteModuleArg {
         entry: entry.to_string(),
         runtime_modules: runtime_modules.iter().map(|id| id.to_string()).collect(),
-        code_generation_result: code_generation_result.reflector(),
+        code_generation_result: code_generation_results.as_ref().into(),
         id: *id,
       })
       .await

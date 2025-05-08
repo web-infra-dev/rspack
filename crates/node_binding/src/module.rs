@@ -10,8 +10,7 @@ use napi_derive::napi;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
-  FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, Reflector, RuntimeModuleStage,
-  SourceType,
+  FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{
   napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotInstanceRef, OneShotRef,
@@ -22,8 +21,8 @@ use rspack_util::source_map::SourceMapKind;
 use super::JsCompatSourceOwned;
 use crate::{
   AssetInfo, AsyncDependenciesBlockWrapper, ConcatenatedModule, ContextModule, DependencyWrapper,
-  ExternalModule, JsChunkWrapper, JsCompatSource, JsCompiler, NormalModule, ToJsCompatSource,
-  COMPILER_REFERENCES,
+  ExternalModule, JsChunkWrapper, JsCodegenerationResults, JsCompatSource, JsCompiler,
+  NormalModule, ToJsCompatSource, COMPILER_REFERENCES,
 };
 
 #[napi(object)]
@@ -579,8 +578,7 @@ impl FromNapiValue for ModuleObjectRef {
 pub struct JsExecuteModuleArg {
   pub entry: String,
   pub runtime_modules: Vec<String>,
-  #[napi(ts_type = "CodeGenerationResult")]
-  pub code_generation_result: Reflector,
+  pub code_generation_result: JsCodegenerationResults,
   pub id: u32,
 }
 

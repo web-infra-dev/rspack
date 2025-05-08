@@ -310,6 +310,15 @@ impl CodeGenerationResults {
 
     code_generation_result.hash.as_ref()
   }
+
+  pub fn inner(
+    &self,
+  ) -> (
+    &IdentifierMap<RuntimeSpecMap<CodeGenResultId>>,
+    &HashMap<CodeGenResultId, BindingCell<CodeGenerationResult>>,
+  ) {
+    (&self.map, &self.module_generation_result_map)
+  }
 }
 
 #[derive(Debug)]
