@@ -1,10 +1,12 @@
 mod chunks;
+mod code_generation_results;
 mod dependencies;
 pub mod entries;
 
 use std::{cell::RefCell, collections::HashMap, path::Path, ptr::NonNull};
 
 use chunks::Chunks;
+pub use code_generation_results::*;
 use dependencies::JsDependencies;
 use entries::JsEntries;
 use napi::{NapiRaw, NapiValue};
@@ -821,6 +823,15 @@ impl JsCompilation {
         drop(reference);
       },
     )
+  }
+
+  pub fn code_generation_results(&self, env: &Env) -> Result<Object> {
+    let compilation = self.as_ref()?;
+
+    compilation
+      .code_generation_results
+      .reflector()
+      .get_jsobject(env)
   }
 }
 

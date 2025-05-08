@@ -14,8 +14,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
 use crate::{
-  AssetInfo, ChunkInitFragments, ConcatenationScope, ModuleIdentifier, RuntimeGlobals, RuntimeSpec,
-  RuntimeSpecMap, SourceType,
+  AssetInfo, BindingCell, ChunkInitFragments, ConcatenationScope, ModuleIdentifier, RuntimeGlobals,
+  RuntimeSpec, RuntimeSpecMap, SourceType,
 };
 
 #[derive(Clone, Debug)]
@@ -195,7 +195,7 @@ pub static CODE_GEN_RESULT_ID: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Default, Clone)]
 pub struct CodeGenerationResults {
-  module_generation_result_map: HashMap<CodeGenResultId, CodeGenerationResult>,
+  module_generation_result_map: HashMap<CodeGenResultId, BindingCell<CodeGenerationResult>>,
   map: IdentifierMap<RuntimeSpecMap<CodeGenResultId>>,
 }
 
@@ -213,7 +213,7 @@ impl CodeGenerationResults {
     let codegen_res_id = codegen_res.id;
     self
       .module_generation_result_map
-      .insert(codegen_res_id, codegen_res);
+      .insert(codegen_res_id, BindingCell::from(codegen_res));
     for runtime in runtimes {
       self.add(module_identifier, runtime, codegen_res_id);
     }
@@ -309,15 +309,6 @@ impl CodeGenerationResults {
     let code_generation_result = self.get(module_identifier, runtime);
 
     code_generation_result.hash.as_ref()
-  }
-
-  pub fn into_inner(
-    self,
-  ) -> (
-    IdentifierMap<RuntimeSpecMap<CodeGenResultId>>,
-    HashMap<CodeGenResultId, CodeGenerationResult>,
-  ) {
-    (self.map, self.module_generation_result_map)
   }
 }
 

@@ -25,7 +25,7 @@ mod napi_binding {
   use once_cell::sync::OnceCell;
   use rspack_napi::{object_assign, ThreadsafeOneShotRef};
 
-  use crate::{with_thread_local_allocator, AssetInfo};
+  use crate::{with_thread_local_allocator, AssetInfo, CodeGenerationResult};
 
   pub struct WeakBindingCell<T: ?Sized> {
     ptr: *mut T,
@@ -57,6 +57,7 @@ mod napi_binding {
 
       heap.jsobject.get_or_try_init(|| match &heap.variant {
         HeapVariant::AssetInfo(_asset_info) => ThreadsafeOneShotRef::new(env.raw(), object),
+        _ => unreachable!(),
       })?;
       Ok(())
     }
@@ -82,14 +83,22 @@ mod napi_binding {
             let target = unsafe { Object::from_raw_unchecked(raw_env, napi_val) };
             ThreadsafeOneShotRef::new(raw_env, target)
           }
+          HeapVariant::CodeGenerationResult(code_generation_result) => {
+            let binding_cell = BindingCell {
+              ptr: code_generation_result.as_ref() as *const CodeGenerationResult
+                as *mut CodeGenerationResult,
+              heap: heap.clone(),
+            };
+            let napi_val = allocator.allocate_code_generation_result(raw_env, &binding_cell)?;
+            let target = unsafe { Object::from_raw_unchecked(raw_env, napi_val) };
+            ThreadsafeOneShotRef::new(raw_env, target)
+          }
         })?;
 
         let napi_val = unsafe { ToNapiValue::to_napi_value(raw_env, raw_ref)? };
         let mut result = unsafe { Object::from_raw_unchecked(raw_env, napi_val) };
 
         match &heap.variant {
-          // AssetInfo is a vanilla object, so the associated JS object needs to be updated
-          // every time it is converted to ensure consistency.
           HeapVariant::AssetInfo(asset_info) => {
             let binding_cell = BindingCell {
               ptr: asset_info.as_ref() as *const AssetInfo as *mut AssetInfo,
@@ -100,6 +109,7 @@ mod napi_binding {
             object_assign(&mut result, &new_object)?;
             Ok(result)
           }
+          _ => Ok(result),
         }
       })
     }
@@ -114,6 +124,7 @@ mod napi_binding {
   #[derive(Debug)]
   enum HeapVariant {
     AssetInfo(Box<AssetInfo>),
+    CodeGenerationResult(Box<CodeGenerationResult>),
   }
 
   #[derive(Debug)]
@@ -166,6 +177,24 @@ mod napi_binding {
   impl From<AssetInfo> for BindingCell<AssetInfo> {
     fn from(asset_info: AssetInfo) -> Self {
       Self::new(asset_info)
+    }
+  }
+
+  impl BindingCell<CodeGenerationResult> {
+    pub fn new(code_generation_result: CodeGenerationResult) -> Self {
+      let boxed = Box::new(code_generation_result);
+      let ptr = boxed.as_ref() as *const CodeGenerationResult as *mut CodeGenerationResult;
+      let heap = Arc::new(Heap {
+        variant: HeapVariant::CodeGenerationResult(boxed),
+        jsobject: Default::default(),
+      });
+      Self { ptr, heap }
+    }
+  }
+
+  impl From<CodeGenerationResult> for BindingCell<CodeGenerationResult> {
+    fn from(code_generation_result: CodeGenerationResult) -> Self {
+      Self::new(code_generation_result)
     }
   }
 

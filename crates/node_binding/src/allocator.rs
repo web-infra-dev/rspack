@@ -1,7 +1,7 @@
 use napi::{bindgen_prelude::ToNapiValue, sys::napi_env, Env};
 use rspack_core::BindingCell;
 
-use crate::AssetInfo;
+use crate::{AssetInfo, CodeGenerationResult};
 
 pub(crate) struct NapiAllocatorImpl;
 
@@ -19,5 +19,14 @@ impl rspack_core::NapiAllocator for NapiAllocatorImpl {
   ) -> napi::Result<napi::sys::napi_value> {
     let asset_info: AssetInfo = (**val).clone().into();
     unsafe { ToNapiValue::to_napi_value(env, asset_info) }
+  }
+
+  fn allocate_code_generation_result(
+    &self,
+    env: napi_env,
+    val: &BindingCell<rspack_core::CodeGenerationResult>,
+  ) -> napi::Result<napi::sys::napi_value> {
+    let code_generation_result = CodeGenerationResult::new(val);
+    unsafe { ToNapiValue::to_napi_value(env, code_generation_result) }
   }
 }

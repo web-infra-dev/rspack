@@ -2,7 +2,7 @@ use napi::sys::{napi_env, napi_value};
 use once_cell::sync::OnceCell;
 
 use super::BindingCell;
-use crate::AssetInfo;
+use crate::{AssetInfo, CodeGenerationResult};
 
 thread_local! {
   static NAPI_ALLOCATOR: OnceCell<Box<dyn NapiAllocator>> = OnceCell::default();
@@ -13,6 +13,11 @@ pub trait NapiAllocator {
     &self,
     env: napi_env,
     val: &BindingCell<AssetInfo>,
+  ) -> napi::Result<napi_value>;
+  fn allocate_code_generation_result(
+    &self,
+    env: napi_env,
+    val: &BindingCell<CodeGenerationResult>,
   ) -> napi::Result<napi_value>;
 }
 
