@@ -1,0 +1,201 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`esmOutput esmOutput/namespace/re-export-star should pass 1`] = `
+import { createRequire as __WEBPACK_EXTERNAL_createRequire } from "node:module";
+import { __webpack_require__ } from "./runtime.mjs";
+
+Object.assign(__webpack_require__.m, {
+"./bar.js": (function (__unused_webpack_module, exports) {
+exports.bar = 2
+
+
+}),
+});
+// ./foo.js
+const bar = __webpack_require__("./bar.js");
+var bar_1 = bar.bar;
+const foo = 1
+
+
+// ./index.js
+
+
+it('should have correct output for entry re-exports', () => {
+	const fs = __WEBPACK_EXTERNAL_createRequire(import.meta.url)('fs')
+	const path = __WEBPACK_EXTERNAL_createRequire(import.meta.url)('path')
+
+	console.log(path.resolve(import.meta.dirname, './main.mjs'))
+
+	const code = fs.readFileSync(path.resolve(import.meta.dirname, './main.mjs'), 'utf-8')
+
+	expect(code).toMatchSnapshot()
+})
+
+export { bar_1 as bar, foo };
+`;
+
+exports[`esmOutput esmOutput/namespace/re-export-star should pass: /Users/bytedance/libs/rspack/packages/rspack-test-tools/tests/js/esmOutput/re-exports/cjs-entry 1`] = `
+import {fileURLToPath as __webpack_fileURLToPath__} from "node:url";
+import {dirname as __webpack_dirname__} from "node:path";
+import { createRequire as __WEBPACK_EXTERNAL_createRequire } from "node:module";
+import { __webpack_require__ } from "./runtime.mjs";
+
+Object.assign(__webpack_require__.m, {
+"./bar.js": (function (__unused_webpack_module, exports) {
+exports.bar = 2
+
+
+}),
+"./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  bar: () => (/* reexport safe */ _bar__WEBPACK_IMPORTED_MODULE_0__.bar),
+  foo: () => (foo)
+});
+/* ESM import */var _bar__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./bar.js");
+const foo = 1
+
+
+
+}),
+"./index.js": (function (module, exports, __webpack_require__) {
+var __dirname = __webpack_dirname__(__webpack_fileURLToPath__(import.meta.url));
+module.exports = __webpack_require__("./foo.js")
+
+it('should have correct output for entry re-exports', () => {
+	const fs = __WEBPACK_EXTERNAL_createRequire(import.meta.url)('fs')
+	const path = __WEBPACK_EXTERNAL_createRequire(import.meta.url)('path')
+
+	const code = fs.readFileSync(path.resolve(__dirname, './main.mjs'), 'utf-8')
+
+	expect(code).toMatchSnapshot(import.meta.dirname)
+})
+exports.value = 42
+
+
+}),
+});
+const index = __webpack_require__("./index.js");
+var __esModule_0 = index.__esModule;
+var bar_0 = index.bar;
+var foo_0 = index.foo;
+var value_0 = index.value;
+export { bar_0 as bar, foo_0 as foo, __esModule_0 as __esModule, value_0 as value };
+`;
+
+exports[`esmOutput esmOutput/re-exports/cjs-entry should pass 1`] = `
+import {fileURLToPath as __webpack_fileURLToPath__} from "node:url";
+import {dirname as __webpack_dirname__} from "node:path";
+import { createRequire as __WEBPACK_EXTERNAL_createRequire } from "node:module";
+import { __webpack_require__ } from "./runtime.mjs";
+
+Object.assign(__webpack_require__.m, {
+"./bar.js": (function (__unused_webpack_module, exports) {
+exports.bar = 2
+
+
+}),
+"./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  bar: () => (/* reexport safe */ _bar__WEBPACK_IMPORTED_MODULE_0__.bar),
+  foo: () => (foo)
+});
+/* ESM import */var _bar__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./bar.js");
+const foo = 1
+
+
+
+}),
+"./index.js": (function (module, exports, __webpack_require__) {
+var __dirname = __webpack_dirname__(__webpack_fileURLToPath__(import.meta.url));
+module.exports = __webpack_require__("./foo.js")
+
+it('should have correct output for entry re-exports', () => {
+	const fs = __WEBPACK_EXTERNAL_createRequire(import.meta.url)('fs')
+	const path = __WEBPACK_EXTERNAL_createRequire(import.meta.url)('path')
+
+	const code = fs.readFileSync(path.resolve(__dirname, './main.mjs'), 'utf-8')
+
+	expect(code).toMatchSnapshot()
+})
+exports.value = 42
+
+
+}),
+});
+const index = __webpack_require__("./index.js");
+var __esModule_0 = index.__esModule;
+var bar_0 = index.bar;
+var foo_0 = index.foo;
+var value_0 = index.value;
+export { bar_0 as bar, foo_0 as foo, __esModule_0 as __esModule, value_0 as value };
+`;
+
+exports[`esmOutput esmOutput/re-exports/entry-re-exports should pass 1`] = `
+import { createRequire as __WEBPACK_EXTERNAL_createRequire } from "node:module";
+import { __webpack_require__ } from "./runtime.mjs";
+
+Object.assign(__webpack_require__.m, {
+"./bar.js": (function (__unused_webpack_module, exports) {
+exports.bar = 2
+
+
+}),
+});
+// ./foo.js
+const bar = __webpack_require__("./bar.js");
+var bar_1 = bar.bar;
+const foo = 1
+
+
+// ./index.js
+
+
+it('should have correct output for entry re-exports', () => {
+	const fs = __WEBPACK_EXTERNAL_createRequire(import.meta.url)('fs')
+	const path = __WEBPACK_EXTERNAL_createRequire(import.meta.url)('path')
+
+	console.log(path.resolve(import.meta.dirname, './main.mjs'))
+
+	const code = fs.readFileSync(path.resolve(import.meta.dirname, './main.mjs'), 'utf-8')
+
+	expect(code).toMatchSnapshot()
+})
+
+export { bar_1 as bar, foo };
+`;
+
+exports[`esmOutput esmOutput/re-exports/entry-re-exports should pass: /Users/bytedance/libs/rspack/packages/rspack-test-tools/tests/js/esmOutput/re-exports/entry-re-exports 1`] = `
+import { createRequire as __WEBPACK_EXTERNAL_createRequire } from "node:module";
+import { __webpack_require__ } from "./runtime.mjs";
+
+Object.assign(__webpack_require__.m, {
+"./bar.js": (function (__unused_webpack_module, exports) {
+exports.bar = 2
+
+
+}),
+});
+// ./foo.js
+const bar = __webpack_require__("./bar.js");
+var bar_1 = bar.bar;
+const foo = 1
+
+
+// ./index.js
+
+
+it('should have correct output for entry re-exports', () => {
+	const fs = __WEBPACK_EXTERNAL_createRequire(import.meta.url)('fs')
+	const path = __WEBPACK_EXTERNAL_createRequire(import.meta.url)('path')
+
+	console.log(path.resolve(import.meta.dirname, './main.mjs'))
+
+	const code = fs.readFileSync(path.resolve(import.meta.dirname, './main.mjs'), 'utf-8')
+
+	expect(code).toMatchSnapshot(import.meta.dirname)
+})
+
+export { bar_1 as bar, foo };
+`;

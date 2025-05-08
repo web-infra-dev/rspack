@@ -1581,7 +1581,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             item_chunk_group_info.chunk_loading,
             item_chunk_group_info.async_chunks,
           );
-
           let info_ukey = info.ukey;
           let info = self.chunk_group_infos.entry(info_ukey).or_insert(info);
 
