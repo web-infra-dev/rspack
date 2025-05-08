@@ -42,7 +42,7 @@ jobs:
           key: build-bench-${{ inputs.target }}
 
       - name: Install cargo-codspeed binary
-        uses: taiki-e/install-action@ba0a04e0afd83836a25f30f6f33e6ebdd81a8ff1 # v2
+        uses: taiki-e/install-action@97a83ae1347bc407f550a16fb0694d6f446eec88 # v2
         with:
           tool: cargo-codspeed@2.10.1
 
