@@ -617,16 +617,21 @@ const assetParserOptions = z.strictObject({
 const cssParserNamedExports =
 	z.boolean() satisfies z.ZodType<t.CssParserNamedExports>;
 
+const cssParserUrl = z.boolean() satisfies z.ZodType<t.CssParserUrl>;
+
 const cssParserOptions = z.strictObject({
-	namedExports: cssParserNamedExports.optional()
+	namedExports: cssParserNamedExports.optional(),
+	url: cssParserUrl.optional()
 }) satisfies z.ZodType<t.CssParserOptions>;
 
 const cssAutoParserOptions = z.strictObject({
-	namedExports: cssParserNamedExports.optional()
+	namedExports: cssParserNamedExports.optional(),
+	url: cssParserUrl.optional()
 }) satisfies z.ZodType<t.CssAutoParserOptions>;
 
 const cssModuleParserOptions = z.strictObject({
-	namedExports: cssParserNamedExports.optional()
+	namedExports: cssParserNamedExports.optional(),
+	url: cssParserUrl.optional()
 }) satisfies z.ZodType<t.CssModuleParserOptions>;
 
 const dynamicImportMode = z.enum(["eager", "lazy", "weak", "lazy-once"]);

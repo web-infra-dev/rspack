@@ -1,9 +1,8 @@
-use std::{fmt::Debug, sync::Arc};
+use std::fmt::Debug;
 
 use async_trait::async_trait;
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
-use rspack_sources::{BoxSource, Source};
 
 use crate::{ChunkUkey, Compilation, Module};
 
@@ -27,13 +26,10 @@ pub trait RuntimeModule: Module + CustomSourceRuntimeModule {
   fn template(&self) -> Vec<(String, String)> {
     vec![]
   }
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource>;
-  async fn generate_with_custom(
-    &self,
-    compilation: &Compilation,
-  ) -> rspack_error::Result<Arc<dyn Source>> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String>;
+  async fn generate_with_custom(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     if let Some(custom_source) = self.get_custom_source() {
-      Ok(custom_source as Arc<dyn Source>)
+      Ok(custom_source)
     } else {
       self.generate(compilation).await
     }
@@ -42,8 +38,8 @@ pub trait RuntimeModule: Module + CustomSourceRuntimeModule {
 
 #[async_trait]
 pub trait CustomSourceRuntimeModule {
-  fn set_custom_source(&mut self, source: BoxSource);
-  fn get_custom_source(&self) -> Option<BoxSource>;
+  fn set_custom_source(&mut self, source: String);
+  fn get_custom_source(&self) -> Option<String>;
   fn get_constructor_name(&self) -> String;
 }
 

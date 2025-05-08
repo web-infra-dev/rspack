@@ -121,6 +121,7 @@ pub struct JsBeforeAssetTagGenerationData {
   pub assets: JsHtmlPluginAssets,
   pub output_name: String,
   pub compilation_id: u32,
+  pub uid: Option<u32>,
 }
 
 impl From<JsBeforeAssetTagGenerationData> for BeforeAssetTagGenerationData {
@@ -129,6 +130,7 @@ impl From<JsBeforeAssetTagGenerationData> for BeforeAssetTagGenerationData {
       assets: value.assets.into(),
       output_name: value.output_name,
       compilation_id: CompilationId(value.compilation_id),
+      uid: value.uid,
     }
   }
 }
@@ -139,6 +141,7 @@ impl From<BeforeAssetTagGenerationData> for JsBeforeAssetTagGenerationData {
       assets: value.assets.into(),
       output_name: value.output_name,
       compilation_id: value.compilation_id.0,
+      uid: value.uid,
     }
   }
 }
@@ -200,6 +203,7 @@ pub struct JsAlterAssetTagsData {
   pub output_name: String,
   pub public_path: String,
   pub compilation_id: u32,
+  pub uid: Option<u32>,
 }
 
 impl From<AlterAssetTagsData> for JsAlterAssetTagsData {
@@ -209,6 +213,7 @@ impl From<AlterAssetTagsData> for JsAlterAssetTagsData {
       output_name: value.output_name,
       public_path: value.public_path,
       compilation_id: value.compilation_id.0,
+      uid: value.uid,
     }
   }
 }
@@ -220,6 +225,7 @@ impl From<JsAlterAssetTagsData> for AlterAssetTagsData {
       output_name: value.output_name,
       public_path: value.public_path,
       compilation_id: CompilationId(value.compilation_id),
+      uid: value.uid,
     }
   }
 }
@@ -231,6 +237,7 @@ pub struct JsAlterAssetTagGroupsData {
   pub public_path: String,
   pub output_name: String,
   pub compilation_id: u32,
+  pub uid: Option<u32>,
 }
 
 impl From<AlterAssetTagGroupsData> for JsAlterAssetTagGroupsData {
@@ -249,6 +256,7 @@ impl From<AlterAssetTagGroupsData> for JsAlterAssetTagGroupsData {
       public_path: value.public_path,
       output_name: value.output_name,
       compilation_id: value.compilation_id.0,
+      uid: value.uid,
     }
   }
 }
@@ -269,6 +277,7 @@ impl From<JsAlterAssetTagGroupsData> for AlterAssetTagGroupsData {
       public_path: value.public_path,
       output_name: value.output_name,
       compilation_id: CompilationId(value.compilation_id),
+      uid: value.uid,
     }
   }
 }
@@ -280,6 +289,7 @@ pub struct JsAfterTemplateExecutionData {
   pub body_tags: Vec<JsHtmlPluginTag>,
   pub output_name: String,
   pub compilation_id: u32,
+  pub uid: Option<u32>,
 }
 
 impl From<AfterTemplateExecutionData> for JsAfterTemplateExecutionData {
@@ -298,6 +308,7 @@ impl From<AfterTemplateExecutionData> for JsAfterTemplateExecutionData {
         .collect::<Vec<_>>(),
       output_name: value.output_name,
       compilation_id: value.compilation_id.0,
+      uid: value.uid,
     }
   }
 }
@@ -318,6 +329,7 @@ impl From<JsAfterTemplateExecutionData> for AfterTemplateExecutionData {
         .collect::<Vec<_>>(),
       output_name: value.output_name,
       compilation_id: CompilationId(value.compilation_id),
+      uid: value.uid,
     }
   }
 }
@@ -327,6 +339,7 @@ pub struct JsBeforeEmitData {
   pub html: String,
   pub output_name: String,
   pub compilation_id: u32,
+  pub uid: Option<u32>,
 }
 
 impl From<BeforeEmitData> for JsBeforeEmitData {
@@ -335,6 +348,7 @@ impl From<BeforeEmitData> for JsBeforeEmitData {
       html: value.html,
       output_name: value.output_name,
       compilation_id: value.compilation_id.0,
+      uid: value.uid,
     }
   }
 }
@@ -345,6 +359,7 @@ impl From<JsBeforeEmitData> for BeforeEmitData {
       html: value.html,
       output_name: value.output_name,
       compilation_id: CompilationId(value.compilation_id),
+      uid: value.uid,
     }
   }
 }
@@ -353,6 +368,7 @@ impl From<JsBeforeEmitData> for BeforeEmitData {
 pub struct JsAfterEmitData {
   pub output_name: String,
   pub compilation_id: u32,
+  pub uid: Option<u32>,
 }
 
 impl From<AfterEmitData> for JsAfterEmitData {
@@ -360,6 +376,7 @@ impl From<AfterEmitData> for JsAfterEmitData {
     Self {
       output_name: value.output_name,
       compilation_id: value.compilation_id.0,
+      uid: value.uid,
     }
   }
 }
@@ -369,6 +386,7 @@ impl From<JsAfterEmitData> for AfterEmitData {
     Self {
       output_name: value.output_name,
       compilation_id: CompilationId(value.compilation_id),
+      uid: value.uid,
     }
   }
 }

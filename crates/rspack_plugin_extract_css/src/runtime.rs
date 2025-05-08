@@ -1,11 +1,8 @@
-use std::sync::Arc;
-
 use cow_utils::CowUtils;
 use rspack_collections::UkeySet;
 use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{RawStringSource, SourceExt},
-  ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  impl_runtime_module, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleStage,
 };
 use rspack_error::Result;
 use rspack_plugin_runtime::get_chunk_runtime_requirements;
@@ -66,10 +63,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     RuntimeModuleStage::Attach
   }
 
-  async fn generate(
-    &self,
-    compilation: &rspack_core::Compilation,
-  ) -> Result<rspack_core::rspack_sources::BoxSource> {
+  async fn generate(&self, compilation: &rspack_core::Compilation) -> Result<String> {
     let runtime = RUNTIME_CODE;
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &self.chunk);
 
@@ -94,7 +88,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
 
     if !with_hmr && !with_loading {
-      return Ok(RawStringSource::from_static("").boxed());
+      return Ok("".to_string());
     }
 
     let mut attr = String::default();
@@ -202,6 +196,6 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       runtime.cow_replace("__WITH_HMT__", "// no hmr")
     };
 
-    Ok(Arc::new(RawStringSource::from(runtime.into_owned())))
+    Ok(runtime.into_owned())
   }
 }

@@ -1,10 +1,14 @@
 import * as binding from "@rspack/binding";
 import type { CreatePartialRegisters } from "../../taps/types";
+import { type HtmlRspackPluginOptions, getPluginOptions } from "./options";
 import { HtmlRspackPlugin } from "./plugin";
 
 export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
 	`HtmlPlugin`
 > = (getCompiler, createTap, createMapTap) => {
+	const getOptions = (uid: number): HtmlRspackPluginOptions => {
+		return getPluginOptions(getCompiler().__internal__get_compilation()!, uid)!;
+	};
 	return {
 		registerHtmlPluginBeforeAssetTagGenerationTaps: createTap(
 			binding.RegisterJsTapKind.HtmlPluginBeforeAssetTagGeneration,
@@ -15,17 +19,15 @@ export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
 			},
 			function (queried) {
 				return async function (data: binding.JsBeforeAssetTagGenerationData) {
-					const compilationId = data.compilationId;
+					const { compilationId, uid } = data;
 					const res = await queried.promise({
 						...data,
 						plugin: {
-							options:
-								HtmlRspackPlugin.getCompilationOptions(
-									getCompiler().__internal__get_compilation()!
-								) || {}
+							options: getOptions(uid!)
 						}
 					});
 					res.compilationId = compilationId;
+					res.uid = uid;
 					return res;
 				};
 			}
@@ -39,9 +41,15 @@ export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
 			},
 			function (queried) {
 				return async function (data: binding.JsAlterAssetTagsData) {
-					const compilationId = data.compilationId;
-					const res = await queried.promise(data);
+					const { compilationId, uid } = data;
+					const res = await queried.promise({
+						...data,
+						plugin: {
+							options: getOptions(uid!)
+						}
+					});
 					res.compilationId = compilationId;
+					res.uid = uid;
 					return res;
 				};
 			}
@@ -55,17 +63,15 @@ export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
 			},
 			function (queried) {
 				return async function (data: binding.JsAlterAssetTagGroupsData) {
-					const compilationId = data.compilationId;
+					const { compilationId, uid } = data;
 					const res = await queried.promise({
 						...data,
 						plugin: {
-							options:
-								HtmlRspackPlugin.getCompilationOptions(
-									getCompiler().__internal__get_compilation()!
-								) || {}
+							options: getOptions(uid!)
 						}
 					});
 					res.compilationId = compilationId;
+					res.uid = uid;
 					return res;
 				};
 			}
@@ -79,14 +85,11 @@ export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
 			},
 			function (queried) {
 				return async function (data: binding.JsAfterTemplateExecutionData) {
-					const compilationId = data.compilationId;
+					const { compilationId, uid } = data;
 					const res = await queried.promise({
 						...data,
 						plugin: {
-							options:
-								HtmlRspackPlugin.getCompilationOptions(
-									getCompiler().__internal__get_compilation()!
-								) || {}
+							options: getOptions(uid!)
 						}
 					});
 					res.compilationId = compilationId;
@@ -103,17 +106,15 @@ export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
 			},
 			function (queried) {
 				return async function (data: binding.JsBeforeEmitData) {
-					const compilationId = data.compilationId;
+					const { compilationId, uid } = data;
 					const res = await queried.promise({
 						...data,
 						plugin: {
-							options:
-								HtmlRspackPlugin.getCompilationOptions(
-									getCompiler().__internal__get_compilation()!
-								) || {}
+							options: getOptions(uid!)
 						}
 					});
 					res.compilationId = compilationId;
+					res.uid = uid;
 					return res;
 				};
 			}
@@ -127,17 +128,15 @@ export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
 			},
 			function (queried) {
 				return async function (data: binding.JsAfterEmitData) {
-					const compilationId = data.compilationId;
+					const { compilationId, uid } = data;
 					const res = await queried.promise({
 						...data,
 						plugin: {
-							options:
-								HtmlRspackPlugin.getCompilationOptions(
-									getCompiler().__internal__get_compilation()!
-								) || {}
+							options: getOptions(uid!)
 						}
 					});
 					res.compilationId = compilationId;
+					res.uid = uid;
 					return res;
 				};
 			}

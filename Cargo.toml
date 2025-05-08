@@ -66,7 +66,7 @@ quote              = { version = "1.0.38" }
 rayon              = { version = "1.10.0" }
 regex              = { version = "1.11.1" }
 ropey              = { version = "1.6.1" }
-rspack_resolver    = { features = ["package_json_raw_json_api"], version = "0.5.5" }
+rspack_resolver    = { features = ["package_json_raw_json_api"], version = "0.5.6" }
 rspack_sources     = { version = "0.4.8" }
 rustc-hash         = { version = "2.1.0" }
 scopeguard         = "1.2.0"
@@ -99,7 +99,7 @@ rkyv      = { version = "=0.8.8" }
 # Must be pinned with the same swc versions
 swc                 = { version = "=21.0.0" }
 swc_config          = { version = "=2.0.0" }
-swc_core            = { version = "=22.4.0", default-features = false, features = ["parallel_rayon"] }
+swc_core            = { version = "=22.5.3", default-features = false, features = ["parallel_rayon"] }
 swc_ecma_minifier   = { version = "=16.0.1", default-features = false }
 swc_error_reporters = { version = "=10.0.0" }
 swc_html            = { version = "=16.0.0" }

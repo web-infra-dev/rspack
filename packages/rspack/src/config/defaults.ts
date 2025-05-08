@@ -344,14 +344,17 @@ const applyModuleDefaults = (
 		F(module.parser, "css", () => ({}));
 		assertNotNill(module.parser.css);
 		D(module.parser.css, "namedExports", true);
+		D(module.parser.css, "url", true);
 
 		F(module.parser, "css/auto", () => ({}));
 		assertNotNill(module.parser["css/auto"]);
 		D(module.parser["css/auto"], "namedExports", true);
+		D(module.parser["css/auto"], "url", true);
 
 		F(module.parser, "css/module", () => ({}));
 		assertNotNill(module.parser["css/module"]);
 		D(module.parser["css/module"], "namedExports", true);
+		D(module.parser["css/module"], "url", true);
 
 		// IGNORE(module.generator): already check to align in 2024.6.27
 		F(module.generator, "css", () => ({}));

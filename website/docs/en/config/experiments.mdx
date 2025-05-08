@@ -541,7 +541,7 @@ export default {
 
 Cache versions, different versions of caches are isolated from each other.
 
-:::tip title="Persistent cache invalidation"
+:::tip Persistent cache invalidation
 
 In addition to [buildDependencies](#cachebuilddependencies) and [version](#cacheversion) configurations that affect persistent cache invalidation, Rspack also invalidates persistent cache when the following fields change.
 
@@ -792,7 +792,7 @@ After enabling this feature, Rspack can build remote resources that start with t
 
 By default, Rspack will generate `rspack.lock` and `rspack.lock.data` in the [context](/config/context) folder as the locations of the Lockfile and the cache respectively. You can also configure them through `lockfileLocation` and `cacheLocation`.
 
-:::Note
+:::note
 You should commit the files at `lockfileLocation` and `cacheLocation` to the version control system so that no network requests will be made during the production build.
 :::
 

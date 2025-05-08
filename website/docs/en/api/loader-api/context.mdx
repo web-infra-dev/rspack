@@ -1,3 +1,4 @@
+import { ApiMeta, Stability } from '@components/ApiMeta';
 import WebpackLicense from '@components/WebpackLicense';
 
 <WebpackLicense from="https://webpack.js.org/api/loaders/#the-loader-context" />
@@ -73,6 +74,8 @@ module.exports = function loader(source) {
 
 Tells Rspack that this loader will be called asynchronously. Returns [this.callback](#thiscallback).
 
+> See [Async loader](/api/loader-api/types#async-loader) for more details.
+
 ## this.cacheable()
 
 - **Type:**
@@ -111,6 +114,8 @@ A function that can be called synchronously or asynchronously in order to return
 2. The second argument is a `string` or `Buffer`, which indicates the contents of the file after the module has been processed by the loader.
 3. The third parameter is a source map that can be processed by the loader.
 4. The fourth parameter is ignored by Rspack and can be anything (e.g. some metadata).
+
+> See [Sync loader](/api/loader-api/types#sync-loader) for more details.
 
 :::warning
 In case this function is called, you should return `undefined` to avoid ambiguous loader results.
@@ -176,7 +181,11 @@ Alias of [this.addDependency()](#thisadddependency).
 function emitError(error: Error): void;
 ```
 
-Emit an error. Unlike `throw` and `this.callback(err)` in the loader, it does not mark the current module as a compilation failure, it just adds an error to Rspack's Compilation and displays it on the command line at the end of this compilation.
+Emit an error.
+
+::: info
+Unlike `throw` and `this.callback(err)` in the loader, it does not mark the current module as a compilation failure, it just adds an error to Rspack's Compilation and displays it on the command line at the end of this compilation.
+:::
 
 ## this.emitWarning()
 
@@ -187,6 +196,110 @@ function emitWarning(warning: Error): void;
 ```
 
 Emit a warning.
+
+## this.experiments.emitDiagnostic()
+
+<ApiMeta stability={Stability.Experimental} />
+
+- **Type:**
+
+```ts
+interface DiagnosticLocation {
+  /** Text for highlighting the location */
+  text?: string;
+  /** 1-based line */
+  line: number;
+  /** 0-based column in bytes */
+  column: number;
+  /** Length in bytes */
+  length: number;
+}
+
+interface Diagnostic {
+  message: string;
+  help?: string;
+  sourceCode?: string;
+  /**
+   * Location to the source code.
+   *
+   * If `sourceCode` is not provided, location will be omitted.
+   */
+  location?: DiagnosticLocation;
+  file?: string;
+  severity: 'error' | 'warning';
+}
+
+function emitDiagnostic(diagnostic: Diagnostic): void;
+```
+
+Formats and emits a diagnostic message (error or warning log). Supports the display of module paths, source code snippets and line/column numbers.
+
+::: info
+Unlike `throw` and `this.callback(err)` in the loader, it does not mark the current module as a compilation failure, it just adds an error to Rspack's Compilation and displays it on the command line at the end of this compilation.
+:::
+
+- Basic example:
+
+When only `message` and `severity` are provided, only the basic module error information will be printed.
+
+```js title="loader.js"
+/** @type {import("@rspack/core").LoaderDefinition} */
+module.exports = function () {
+  this.experiments.emitDiagnostic({
+    message: '`React` is not defined',
+    severity: 'error',
+  });
+  this.experiments.emitDiagnostic({
+    message: '`React` is not defined',
+    severity: 'warning',
+  });
+  return '';
+};
+```
+
+This will print:
+
+```
+ERROR in (./loader.js!)
+  × ModuleError: `React` is not defined
+
+WARNING in (./loader.js!)
+  ⚠ ModuleWarning: `React` is not defined
+```
+
+- Printing code snippet:
+
+```js title="loader.js"
+/** @type {import("@rspack/core").LoaderDefinition} */
+module.exports = function () {
+  this.experiments.emitDiagnostic({
+    message: '`React` is not defined',
+    severity: 'error',
+    sourceCode: `<div></div>`,
+    location: {
+      line: 1,
+      column: 1,
+      length: 3,
+    },
+    file: './some-file.js',
+  });
+  return '';
+};
+```
+
+This will print:
+
+```
+ERROR in ./some-file.js
+ ./file.js 1:1-4
+  × ModuleError: `React` is not defined
+   ╭────
+ 1 │ <div></div>
+   ·  ───
+   ╰────
+```
+
+Here, `./some-file.js` is the value passed to the `file` field.
 
 ## this.emitFile()
 

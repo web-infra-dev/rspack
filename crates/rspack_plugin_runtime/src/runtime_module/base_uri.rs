@@ -1,9 +1,5 @@
 use rspack_collections::Identifier;
-use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
-};
+use rspack_core::{impl_runtime_module, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -19,7 +15,7 @@ impl Default for BaseUriRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for BaseUriRuntimeModule {
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let base_uri = self
       .chunk
       .and_then(|ukey| compilation.chunk_by_ukey.get(&ukey))
@@ -27,7 +23,7 @@ impl RuntimeModule for BaseUriRuntimeModule {
       .and_then(|options| options.base_uri.as_ref())
       .and_then(|base_uri| serde_json::to_string(base_uri).ok())
       .unwrap_or_else(|| "undefined".to_string());
-    Ok(RawStringSource::from(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)).boxed())
+    Ok(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri))
   }
 
   fn name(&self) -> Identifier {
