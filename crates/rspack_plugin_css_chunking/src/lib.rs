@@ -77,10 +77,12 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       .get_chunk_modules(chunk_ukey, &module_graph)
       .into_iter()
       .filter(|module| {
-        module
-          .source_types()
-          .iter()
-          .any(|t| matches!(t, SourceType::Css))
+        module.source_types().iter().any(|t| match t {
+          SourceType::Css => true,
+          SourceType::CssImport => true,
+          SourceType::Custom(str) => str == "css/mini-extract",
+          _ => false,
+        })
       })
       .map(|module| module.as_ref())
       .collect();
