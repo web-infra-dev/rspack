@@ -1,3 +1,3 @@
 module.exports = () => {
-	return "support AMD require";
+	return "full hash changes on CI";
 };
