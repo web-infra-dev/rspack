@@ -177,6 +177,7 @@ export declare class JsChunk {
 }
 
 export declare class JsChunkGraph {
+  hasChunkEntryDependentChunks(chunk: JsChunk): boolean
   getChunkModules(chunk: JsChunk): Module[]
   getChunkEntryModules(chunk: JsChunk): Module[]
   getNumberOfEntryModules(chunk: JsChunk): number
