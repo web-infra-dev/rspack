@@ -122,11 +122,10 @@ impl JsPlugin {
     COMPILATION_HOOKS_MAP.entry(id).or_default().clone()
   }
 
-  pub fn render_require(
-    &self,
+  pub fn render_require<'me>(
     chunk_ukey: &ChunkUkey,
-    compilation: &Compilation,
-  ) -> Vec<Cow<'_, str>> {
+    compilation: &'me Compilation,
+  ) -> Vec<Cow<'me, str>> {
     let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
 
     let strict_module_error_handling = compilation.options.output.strict_module_error_handling;
@@ -201,11 +200,10 @@ impl JsPlugin {
     sources
   }
 
-  pub async fn render_bootstrap(
-    &self,
+  pub async fn render_bootstrap<'me>(
     chunk_ukey: &ChunkUkey,
-    compilation: &Compilation,
-  ) -> Result<RenderBootstrapResult<'_>> {
+    compilation: &'me Compilation,
+  ) -> Result<RenderBootstrapResult<'me>> {
     let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let module_factories = runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES);
@@ -245,7 +243,7 @@ impl JsPlugin {
         )
         .into(),
       );
-      header.extend(self.render_require(chunk_ukey, compilation));
+      header.extend(Self::render_require(chunk_ukey, compilation));
       header.push("\n}\n".into());
     } else if require_scope_used {
       header.push(
@@ -538,7 +536,7 @@ impl JsPlugin {
       header,
       startup,
       allow_inline_startup,
-    } = self.render_bootstrap(chunk_ukey, compilation).await?;
+    } = Self::render_bootstrap(chunk_ukey, compilation).await?;
     let module_graph = &compilation.get_module_graph();
     let all_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
       chunk_ukey,
@@ -1256,7 +1254,7 @@ impl JsPlugin {
       header,
       startup,
       allow_inline_startup,
-    } = self.render_bootstrap(chunk_ukey, compilation).await?;
+    } = Self::render_bootstrap(chunk_ukey, compilation).await?;
     header.hash(hasher);
     startup.hash(hasher);
     allow_inline_startup.hash(hasher);
@@ -1272,7 +1270,7 @@ pub struct ExtractedCommentsInfo {
 
 #[derive(Debug)]
 pub struct RenderBootstrapResult<'a> {
-  header: Vec<Cow<'a, str>>,
-  startup: Vec<Cow<'a, str>>,
-  allow_inline_startup: bool,
+  pub header: Vec<Cow<'a, str>>,
+  pub startup: Vec<Cow<'a, str>>,
+  pub allow_inline_startup: bool,
 }
