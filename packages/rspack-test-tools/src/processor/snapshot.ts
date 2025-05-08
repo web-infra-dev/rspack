@@ -67,7 +67,9 @@ export class SnapshotProcessor<
 
 		const snapshotFileFilter =
 			this._snapshotOptions.snapshotFileFilter ||
-			((file: string) => file.endsWith(".js") && !file.includes("runtime.js"));
+			((file: string) =>
+				(file.endsWith(".js") || file.endsWith(".mjs")) &&
+				!file.includes("runtime.js"));
 
 		const fileContents = Object.entries(compilation.assets)
 			.filter(([file]) => snapshotFileFilter(file))

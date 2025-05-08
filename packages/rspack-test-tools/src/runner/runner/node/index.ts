@@ -414,8 +414,12 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 					// no attribute
 					url: `${pathToFileURL(file.path).href}?${esmIdentifier}`,
 					context: esmContext,
-					initializeImportMeta: (meta: { url: string }, _: any) => {
+					initializeImportMeta: (
+						meta: { url: string; dirname: string },
+						_: any
+					) => {
 						meta.url = pathToFileURL(file!.path).href;
+						meta.dirname = path.dirname(file.path);
 					},
 					importModuleDynamically: async (
 						specifier: any,
@@ -431,23 +435,28 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 			}
 			if (context.esmMode === EEsmMode.Unlinked) return esm;
 			return (async () => {
-				await esm.link(async (specifier, referencingModule) => {
-					return await asModule(
-						await _require(
-							path.dirname(
-								referencingModule.identifier
-									? referencingModule.identifier.slice(esmIdentifier.length + 1)
-									: fileURLToPath((referencingModule as any).url)
+				if (esm.status === "unlinked") {
+					await esm.link(async (specifier, referencingModule) => {
+						return await asModule(
+							await _require(
+								path.dirname(
+									referencingModule.identifier
+										? referencingModule.identifier.slice(
+												esmIdentifier.length + 1
+											)
+										: fileURLToPath((referencingModule as any).url)
+								),
+								specifier,
+								{
+									esmMode: EEsmMode.Unlinked
+								}
 							),
-							specifier,
-							{
-								esmMode: EEsmMode.Unlinked
-							}
-						),
-						referencingModule.context,
-						true
-					);
-				});
+							referencingModule.context,
+							true
+						);
+					});
+				}
+
 				if ((esm as any).instantiate) (esm as any).instantiate();
 				await esm.evaluate();
 				if (context.esmMode === EEsmMode.Evaluated) {

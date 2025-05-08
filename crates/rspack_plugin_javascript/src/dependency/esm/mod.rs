@@ -22,6 +22,7 @@ pub use self::{
   esm_export_header_dependency::{ESMExportHeaderDependency, ESMExportHeaderDependencyTemplate},
   esm_export_imported_specifier_dependency::{
     ESMExportImportedSpecifierDependency, ESMExportImportedSpecifierDependencyTemplate,
+    ReExportsExternalModule,
   },
   esm_export_specifier_dependency::{
     ESMExportSpecifierDependency, ESMExportSpecifierDependencyTemplate,
