@@ -486,9 +486,16 @@ async fn render_manifest(
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let is_hot_update = matches!(chunk.kind(), ChunkKind::HotUpdate);
-  let is_main_chunk = chunk.has_runtime(&compilation.chunk_group_by_ukey);
+  let is_main_chunk = chunk.groups().iter().any(|group_ukey| {
+    let group = compilation.chunk_group_by_ukey.expect_get(group_ukey);
+
+    group.is_initial() && group.kind.is_entrypoint() && &group.get_entrypoint_chunk() == chunk_ukey
+  });
+  let is_runtime_chunk = chunk.has_runtime(&compilation.chunk_group_by_ukey);
+
   if !is_hot_update
     && !is_main_chunk
+    && !is_runtime_chunk
     && !chunk_has_js(
       chunk_ukey,
       &compilation.chunk_graph,
@@ -528,14 +535,23 @@ async fn render_manifest(
     )
     .await?;
 
+  let hooks = JsPlugin::get_compilation_hooks(compilation.id());
+  let hooks = hooks.read().await;
+
   let (source, _) = compilation
     .chunk_render_cache_artifact
     .use_cache(compilation, chunk, &SourceType::JavaScript, || async {
-      let source = if is_hot_update {
+      let source = if let Some(source) = hooks
+        .render_chunk_content
+        .call(compilation, chunk_ukey, &mut asset_info)
+        .await?
+      {
+        source.source
+      } else if is_hot_update {
         self
           .render_chunk(compilation, chunk_ukey, &output_path)
           .await?
-      } else if is_main_chunk {
+      } else if is_runtime_chunk {
         self
           .render_main(compilation, chunk_ukey, &output_path)
           .await?

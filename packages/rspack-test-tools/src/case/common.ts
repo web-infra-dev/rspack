@@ -252,7 +252,7 @@ export async function checkSnapshot<
 
 	const snapshotFileFilter =
 		filter ||
-		((file: string) => file.endsWith(".js") && !file.includes("runtime.js"));
+		((file: string) => (file.endsWith(".js") || file.endsWith(".mjs")) && !file.includes("runtime.js"));
 
 	const fileContents = Object.entries(compilation.assets)
 		.filter(([file]) => snapshotFileFilter(file))
@@ -338,22 +338,22 @@ export function configMultiCompiler<
 	const multiCompilerOptions: TCompilerOptions<T>[] = [];
 	const caseOptions: TCompilerOptions<T>[] = Array.isArray(configFiles)
 		? readConfigFile(
-				configFiles!.map(i => context.getSource(i)),
-				configs => {
-					return configs.flatMap(c => {
-						if (typeof c === "function") {
-							const options = {
-								testPath: context.getDist(),
-								env: undefined
-							};
+			configFiles!.map(i => context.getSource(i)),
+			configs => {
+				return configs.flatMap(c => {
+					if (typeof c === "function") {
+						const options = {
+							testPath: context.getDist(),
+							env: undefined
+						};
 
-							return c(options.env, options) as TCompilerOptions<T>;
-						}
+						return c(options.env, options) as TCompilerOptions<T>;
+					}
 
-						return c as TCompilerOptions<T>;
-					});
-				}
-			)
+					return c as TCompilerOptions<T>;
+				});
+			}
+		)
 		: [{}];
 
 	for (const [index, options] of caseOptions.entries()) {

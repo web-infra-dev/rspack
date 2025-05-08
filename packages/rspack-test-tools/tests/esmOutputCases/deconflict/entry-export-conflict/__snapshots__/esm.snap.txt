@@ -1,0 +1,46 @@
+```mjs title=bar.js.mjs
+const bar = 'bar';
+
+
+
+export { bar as local };
+
+```
+
+```mjs title=foo.js.mjs
+const foo = 'foo';
+
+
+
+export { foo as bar, foo };
+
+```
+
+```mjs title=main.mjs
+
+
+
+// export foo
+
+
+
+
+it('test exports', async () => {
+	const { local, bar, foo } = await import(/* webpackIgnore: true */ './main.mjs')
+
+	expect(local).toBe('bar')
+	expect(bar).toBe('foo')
+	expect(foo).toBe('foo')
+})
+
+export { bar, foo } from "./foo.js.mjs";
+export { local } from "./bar.js.mjs";
+
+```
+
+```mjs title=runtime.mjs
+
+
+export { __webpack_require__ };
+
+```

@@ -133,6 +133,7 @@ export { LoaderTargetPlugin } from "./lib/LoaderTargetPlugin";
 export type { OutputFileSystem } from "./util/fs";
 
 import {
+	EsmLibraryPlugin,
 	FetchCompileAsyncWasmPlugin,
 	lazyCompilationMiddleware,
 	SubresourceIntegrityPlugin
@@ -368,6 +369,7 @@ interface Experiments {
 		cleanup: () => Promise<void>;
 	};
 	RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
+	EsmLibraryPlugin: typeof EsmLibraryPlugin;
 	RsdoctorPlugin: typeof RsdoctorPlugin;
 	RstestPlugin: typeof RstestPlugin;
 	RslibPlugin: typeof RslibPlugin;
@@ -405,6 +407,7 @@ export const experiments: Experiments = {
 		}
 	},
 	RemoveDuplicateModulesPlugin,
+	EsmLibraryPlugin,
 	/**
 	 * Note: This plugin is unstable yet
 	 *
