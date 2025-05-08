@@ -32,21 +32,103 @@ struct Node {
   pub blocks: Vec<AsyncDependenciesBlock>,
 }
 
-#[cacheable(as=Node)]
+use rspack_cacheable::__private::rkyv::{
+  rancor::Fallible,
+  with::{ArchiveWith, SerializeWith},
+  Archive, Archived, Place, Serialize,
+};
+
 struct NodeRef<'a> {
-  #[cacheable(with=Inline)]
   pub mgm: &'a ModuleGraphModule,
-  #[cacheable(with=Inline)]
   pub module: &'a BoxModule,
-  #[cacheable(with=AsVec<AsTuple2<Inline, AsOption<Inline>>>)]
   pub dependencies: Vec<(
     &'a BoxDependency,
     Option<&'a AsyncDependenciesBlockIdentifier>,
   )>,
-  #[cacheable(with=AsVec<Inline>)]
   pub connections: Vec<&'a ModuleGraphConnection>,
-  #[cacheable(with=AsVec<Inline>)]
   pub blocks: Vec<&'a AsyncDependenciesBlock>,
+}
+
+struct DataRefResolver<'a> {
+    mgm: <Inline as ::rspack_cacheable::__private::rkyv::with::ArchiveWith<
+            &'a ModuleGraphModule,
+        >>::Resolver,
+    module: <Inline as ::rspack_cacheable::__private::rkyv::with::ArchiveWith<
+&'a BoxModule,
+        >>::Resolver,
+   dependencies: <AsVec<AsTuple2<Inline, AsOption<Inline>>> as ArchiveWith<
+      Vec<(&'a BoxDependency, Option<&'a AsyncDependenciesBlockIdentifier>)>,
+    >>::Resolver,
+   connections:  <AsVec<Inline> as ArchiveWith<Vec<&'a ModuleGraphConnection>>>::Resolver,
+    blocks: <AsVec<Inline> as ArchiveWith<Vec<&'a AsyncDependenciesBlock>>>::Resolver
+}
+
+impl<'a> Archive for NodeRef<'a> {
+  type Archived = Archived<Node>;
+  type Resolver = DataRefResolver<'a>;
+
+  #[inline]
+  fn resolve(&self, resolver: Self::Resolver, out: Place<Self::Archived>) {
+    let field_ptr = unsafe { &raw mut (*out.ptr()).mgm };
+    let field_out = unsafe { Place::from_field_unchecked(out, field_ptr) };
+    <Inline as ArchiveWith<&ModuleGraphModule>>::resolve_with(&self.mgm, resolver.mgm, field_out);
+    let field_ptr = unsafe { &raw mut (*out.ptr()).module };
+    let field_out = unsafe { Place::from_field_unchecked(out, field_ptr) };
+    <Inline as ArchiveWith<&BoxModule>>::resolve_with(&self.module, resolver.module, field_out);
+    let field_ptr = unsafe { &raw mut (*out.ptr()).dependencies };
+    let field_out = unsafe { Place::from_field_unchecked(out, field_ptr) };
+    <AsVec<AsTuple2<Inline, AsOption<Inline>>> as ArchiveWith<
+      Vec<(&BoxDependency, Option<&AsyncDependenciesBlockIdentifier>)>,
+    >>::resolve_with(&self.dependencies, resolver.dependencies, field_out);
+    let field_ptr = unsafe { &raw mut (*out.ptr()).connections };
+    let field_out = unsafe { Place::from_field_unchecked(out, field_ptr) };
+    <AsVec<Inline> as ArchiveWith<Vec<&ModuleGraphConnection>>>::resolve_with(
+      &self.connections,
+      resolver.connections,
+      field_out,
+    );
+    let field_ptr = unsafe { &raw mut (*out.ptr()).blocks };
+    let field_out = unsafe { Place::from_field_unchecked(out, field_ptr) };
+    <AsVec<Inline> as ArchiveWith<Vec<&AsyncDependenciesBlock>>>::resolve_with(
+      &self.blocks,
+      resolver.blocks,
+      field_out,
+    );
+  }
+}
+
+impl<'a, S> Serialize<S> for NodeRef<'a>
+where
+  S: Fallible<Error = SerializeError> + ?Sized + rkyv::ser::Allocator + rkyv::ser::Writer,
+  Inline: SerializeWith<&'a BoxModule, S>,
+  AsVec<Inline>: SerializeWith<Vec<&'a AsyncDependenciesBlock>, S>,
+  AsVec<AsTuple2<Inline, AsOption<Inline>>>: SerializeWith<
+    Vec<(
+      &'a BoxDependency,
+      Option<&'a AsyncDependenciesBlockIdentifier>,
+    )>,
+    S,
+  >,
+{
+  fn serialize(&self, serializer: &mut S) -> Result<Self::Resolver, S::Error> {
+    Ok(DataRefResolver {
+      mgm: <Inline as SerializeWith<&ModuleGraphModule, S>>::serialize_with(&self.mgm, serializer)?,
+      module: <Inline as SerializeWith<&BoxModule, S>>::serialize_with(&self.module, serializer)?,
+      dependencies: <AsVec<AsTuple2<Inline, AsOption<Inline>>> as SerializeWith<
+        Vec<(&BoxDependency, Option<&AsyncDependenciesBlockIdentifier>)>,
+        S,
+      >>::serialize_with(&self.dependencies, serializer)?,
+      connections:
+        <AsVec<Inline> as SerializeWith<Vec<&ModuleGraphConnection>, S>>::serialize_with(
+          &self.connections,
+          serializer,
+        )?,
+      blocks: <AsVec<Inline> as SerializeWith<Vec<&AsyncDependenciesBlock>, S>>::serialize_with(
+        &self.blocks,
+        serializer,
+      )?,
+    })
+  }
 }
 
 #[tracing::instrument("Cache::Occasion::Make::ModuleGraph::save", skip_all)]
