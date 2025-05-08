@@ -1,0 +1,69 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`esmOutput esmOutput/namespace/re-export-star should pass 1`] = `
+import { createRequire as __WEBPACK_EXTERNAL_createRequire } from "node:module";
+import { __webpack_require__ } from "./runtime.mjs";
+
+Object.assign(__webpack_require__.m, {
+"./bar.js": (function (__unused_webpack_module, exports) {
+exports.bar = 2
+
+
+}),
+});
+// ./foo.js
+const bar = __webpack_require__("./bar.js");
+var bar_1 = bar.bar;
+const foo = 1
+
+
+// ./index.js
+
+
+it('should have correct output for entry re-exports', () => {
+	const fs = __WEBPACK_EXTERNAL_createRequire(import.meta.url)('fs')
+	const path = __WEBPACK_EXTERNAL_createRequire(import.meta.url)('path')
+
+	console.log(path.resolve(import.meta.dirname, './main.mjs'))
+
+	const code = fs.readFileSync(path.resolve(import.meta.dirname, './main.mjs'), 'utf-8')
+
+	expect(code).toMatchSnapshot()
+})
+
+export { bar_1 as bar, foo };
+`;
+
+exports[`esmOutput esmOutput/re-exports/entry-re-exports should pass 1`] = `
+import { createRequire as __WEBPACK_EXTERNAL_createRequire } from "node:module";
+import { __webpack_require__ } from "./runtime.mjs";
+
+Object.assign(__webpack_require__.m, {
+"./bar.js": (function (__unused_webpack_module, exports) {
+exports.bar = 2
+
+
+}),
+});
+// ./foo.js
+const bar = __webpack_require__("./bar.js");
+var bar_1 = bar.bar;
+const foo = 1
+
+
+// ./index.js
+
+
+it('should have correct output for entry re-exports', () => {
+	const fs = __WEBPACK_EXTERNAL_createRequire(import.meta.url)('fs')
+	const path = __WEBPACK_EXTERNAL_createRequire(import.meta.url)('path')
+
+	console.log(path.resolve(import.meta.dirname, './main.mjs'))
+
+	const code = fs.readFileSync(path.resolve(import.meta.dirname, './main.mjs'), 'utf-8')
+
+	expect(code).toMatchSnapshot()
+})
+
+export { bar_1 as bar, foo };
+`;
