@@ -289,14 +289,13 @@ impl Task<MakeTaskContext> for ExecuteTask {
         .insert(runtime_module.identifier());
     }
 
-    let codegen_results = compilation.code_generation_results.clone();
     let exports = main_compilation_plugin_driver
       .compilation_hooks
       .execute_module
       .call(
         &entry_module_identifier,
         &runtime_modules,
-        &codegen_results,
+        &compilation.code_generation_results,
         &id,
       )
       .await;
@@ -332,7 +331,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
     match exports {
       Ok(_) => {
         for m in modules.iter() {
-          let codegen_result = codegen_results.get(m, Some(&runtime));
+          let codegen_result = compilation.code_generation_results.get(m, Some(&runtime));
 
           if let Some(source) = codegen_result.get(&SourceType::Asset)
             && let Some(filename) = codegen_result.data.get::<CodeGenerationDataFilename>()
