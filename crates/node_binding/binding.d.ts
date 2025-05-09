@@ -81,7 +81,7 @@ export declare class CodeGenerationResult {
 }
 
 export declare class CodeGenerationResults {
-  get(module: ModuleObjectRef, runtime: JsRuntimeSpec): CodeGenerationResult
+  get(module: Module, runtime: string | string[] | undefined): CodeGenerationResult
 }
 
 export declare class ConcatenatedModule {
@@ -387,7 +387,7 @@ export declare class RawExternalItemFnCtx {
 }
 
 export declare class Sources {
-  get(sourceType: string): JsCompatSourceOwned | null
+  _get(sourceType: string): JsCompatSourceOwned | null
 }
 
 export interface BuiltinPlugin {

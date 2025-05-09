@@ -60,8 +60,10 @@ import { createFakeCompilationDependencies } from "./util/fake";
 import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
 import { JsSource } from "./util/source";
-// patch chunks
+// patch Chunks
 import "./Chunks";
+// patch CodeGenerationResults
+import "./CodeGenerationResults";
 import { CodeGenerationResult } from "./taps/compilation";
 
 export type Assets = Record<string, Source>;
@@ -489,6 +491,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 	get entries(): Map<string, EntryData> {
 		return new Entries(this.#inner.entries);
+	}
+
+	get codeGenerationResults(): binding.CodeGenerationResults {
+		return this.#inner.codeGenerationResults;
 	}
 
 	#createCachedAssets() {

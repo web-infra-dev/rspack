@@ -36,7 +36,7 @@ impl Sources {
 
 #[napi]
 impl Sources {
-  #[napi]
+  #[napi(js_name = "_get")]
   pub fn get(&self, source_type: String) -> napi::Result<Option<JsCompatSourceOwned>> {
     let source_type = rspack_core::SourceType::from(source_type.as_str());
     self.with_ref(|sources| match sources.get(&source_type) {
@@ -105,7 +105,10 @@ impl CodeGenerationResults {
     Self { i }
   }
 
-  #[napi(ts_return_type = "CodeGenerationResult")]
+  #[napi(
+    ts_args_type = "module: Module, runtime: string | string[] | undefined",
+    ts_return_type = "CodeGenerationResult"
+  )]
   pub fn get(&self, module: ModuleObjectRef, runtime: JsRuntimeSpec) -> napi::Result<Reflector> {
     self.with_ref(|code_generation_results| {
       let rt: Option<rspack_core::RuntimeSpec> = runtime.map(|val| match val {
