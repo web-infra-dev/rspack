@@ -1,11 +1,13 @@
+use rspack_core::WeakBindingCell;
+
 #[napi]
 pub struct Assets {
-  pub assets: HashMap<String, CompilationAsset>,
+  assets: WeakBindingCell<HashMap<String, CompilationAsset>>,
 }
 
 #[napi]
 pub struct BuildInfo {
-  module_reference: WeakReference<Module>,
+  module_reference: WeakBindingCell<rspack_core::BuildInfo>,
 }
 
 impl BuildInfo {
