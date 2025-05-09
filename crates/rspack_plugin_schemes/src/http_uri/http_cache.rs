@@ -157,13 +157,13 @@ impl HttpCache {
     if let Some(ref location) = location {
       if (301..=308).contains(&status) {
         // Resolve relative redirects like webpack does
-        let absolute_location = match Url::parse(&location) {
+        let absolute_location = match Url::parse(location) {
           Ok(loc) => loc.to_string(), // Already absolute
           Err(_) => {
             // Relative URL, resolve against original
             match Url::parse(url) {
               Ok(base_url) => base_url
-                .join(&location)
+                .join(location)
                 .map(|u| u.to_string())
                 .unwrap_or(location.clone()),
               Err(_) => location.clone(), // Can't resolve, use as is
