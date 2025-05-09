@@ -22,7 +22,16 @@ module.exports = {
 		+       "module": true,
 		@@ ... @@
 		-     "chunkFilename": "[name].js",
+		-     "chunkFormat": "array-push",
 		+     "chunkFilename": "[name].mjs",
+		+     "chunkFormat": "module",
+		@@ ... @@
+		-     "chunkLoading": "jsonp",
+		+     "chunkLoading": "import",
+		@@ ... @@
+		-       "jsonp",
+		-       "import-scripts",
+		+       "import",
 		@@ ... @@
 		-       "dynamicImport": undefined,
 		-       "dynamicImportInWorker": undefined,
@@ -46,5 +55,8 @@ module.exports = {
 		@@ ... @@
 		-     "scriptType": false,
 		+     "scriptType": "module",
+		@@ ... @@
+		-     "workerChunkLoading": "import-scripts",
+		+     "workerChunkLoading": false,
 	`)
 };
