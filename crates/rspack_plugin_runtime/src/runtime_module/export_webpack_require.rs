@@ -1,5 +1,5 @@
 use rspack_collections::Identifier;
-use rspack_core::{impl_runtime_module, Compilation, RuntimeModule};
+use rspack_core::{impl_runtime_module, Compilation, RuntimeGlobals, RuntimeModule};
 
 #[impl_runtime_module]
 #[derive(Debug, Default)]
@@ -20,7 +20,7 @@ impl RuntimeModule for ExportWebpackRequireRuntimeModule {
   }
 
   async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
-    Ok("export default __webpack_require__;".to_string())
+    Ok(format!("export default {};", RuntimeGlobals::REQUIRE))
   }
 
   fn should_isolate(&self) -> bool {
