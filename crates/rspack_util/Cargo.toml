@@ -10,6 +10,7 @@ version     = "0.2.0"
 
 [dependencies]
 bitflags         = { workspace = true }
+cached           = { workspace = true }
 concat-string    = { workspace = true }
 cow-utils        = { workspace = true }
 dashmap          = { workspace = true }
