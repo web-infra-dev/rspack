@@ -76,6 +76,14 @@ export declare class Chunks {
   _has(chunk: JsChunk): boolean
 }
 
+export declare class CodeGenerationResult {
+  get sources(): Sources
+}
+
+export declare class CodeGenerationResults {
+  get(module: Module, runtime: string | string[] | undefined): CodeGenerationResult
+}
+
 export declare class ConcatenatedModule {
   get rootModule(): Module
   get modules(): Module[]
@@ -255,6 +263,7 @@ export declare class JsCompilation {
   get moduleGraph(): JsModuleGraph
   get chunkGraph(): JsChunkGraph
   addInclude(args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, Module][]) => void): void
+  get codeGenerationResults(): CodeGenerationResults
 }
 
 export declare class JsCompiler {
@@ -376,6 +385,10 @@ export declare class ModuleGraphConnection {
 export declare class RawExternalItemFnCtx {
   data(): RawExternalItemFnCtxData
   getResolver(): JsResolver
+}
+
+export declare class Sources {
+  _get(sourceType: string): JsCompatSourceOwned | null
 }
 
 export interface BuiltinPlugin {

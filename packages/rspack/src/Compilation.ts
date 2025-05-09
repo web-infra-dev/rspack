@@ -28,7 +28,7 @@ import type { Compiler } from "./Compiler";
 import type { ContextModuleFactory } from "./ContextModuleFactory";
 import { Entrypoint } from "./Entrypoint";
 import { cutOffLoaderExecution } from "./ErrorHelpers";
-import type { CodeGenerationResult, Module } from "./Module";
+import type { Module } from "./Module";
 import ModuleGraph from "./ModuleGraph";
 import type { NormalModuleCompilationHooks } from "./NormalModule";
 import type { NormalModuleFactory } from "./NormalModuleFactory";
@@ -60,8 +60,11 @@ import { createFakeCompilationDependencies } from "./util/fake";
 import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
 import { JsSource } from "./util/source";
-// patch chunks
+// patch Chunks
 import "./Chunks";
+// patch CodeGenerationResults
+import "./CodeGenerationResults";
+import type { CodeGenerationResult } from "./taps/compilation";
 
 export type Assets = Record<string, Source>;
 export interface Asset {
@@ -488,6 +491,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 	get entries(): Map<string, EntryData> {
 		return new Entries(this.#inner.entries);
+	}
+
+	get codeGenerationResults(): binding.CodeGenerationResults {
+		return this.#inner.codeGenerationResults;
 	}
 
 	#createCachedAssets() {
