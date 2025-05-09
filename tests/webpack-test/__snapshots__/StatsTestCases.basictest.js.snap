@@ -294,6 +294,85 @@ Entrypoint parent xx bytes = parent.js
 Rspack x.x.x compiled successfully in X.23"
 `;
 
+exports[`StatsTestCases should print correct stats for chunks 1`] = `
+"PublicPath: auto
+asset bundle.js xx KiB [emitted] (name: main)
+asset 29.bundle.js xx bytes [emitted]
+asset 345.bundle.js xx bytes [emitted]
+asset 726.bundle.js xx bytes [emitted]
+chunk (runtime: main) 29.bundle.js xx bytes <{909}> >{345}< [rendered]
+  > ./index.js 3:0-16
+  ./c.js xx bytes [built] [code generated]
+    amd require ./c ./index.js
+    X (resolving: X, building: X)
+chunk (runtime: main) 345.bundle.js xx bytes <{29}> [rendered]
+  > ./c.js 1:0-52
+  ./d.js xx bytes [built] [code generated]
+    require.ensure item ./d ./c.js
+    cjs self exports reference self ./d.js
+    X (resolving: X, building: X)
+  ./e.js xx bytes [built] [code generated]
+    require.ensure item ./e ./c.js
+    cjs self exports reference self ./e.js
+    X (resolving: X, building: X)
+chunk (runtime: main) 726.bundle.js xx bytes <{909}> [rendered]
+  > ./index.js 2:0-16
+  ./b.js xx bytes [built] [code generated]
+    cjs self exports reference self ./b.js
+    amd require ./b ./index.js
+    X (resolving: X, building: X)
+chunk (runtime: main) bundle.js (main) xx bytes (javascript) xx KiB (runtime) >{29}< >{726}< [entry] [rendered]
+  > ./index main
+  ./a.js xx bytes [dependent] [built] [code generated]
+    cjs self exports reference self ./a.js
+    cjs require ./a ./index.js 1:8-14
+    X (resolving: X, building: X)
+  ./index.js xx bytes [built] [code generated]
+    entry ./index
+    X (resolving: X, building: X)
+Rspack x.x.x compiled successfully in X.23"
+`;
+
+exports[`StatsTestCases should print correct stats for chunks-development 1`] = `
+"PublicPath: auto
+asset bundle.js xx KiB [emitted] (name: main)
+asset d_js-xxx.js xx bytes [emitted]
+asset c_js.bundle.js xx bytes [emitted]
+asset b_js.bundle.js xx bytes [emitted]
+chunk (runtime: main) b_js.bundle.js xx bytes <{main}> [rendered]
+  > ./index.js 2:0-16
+  ./b.js xx bytes [built] [code generated]
+    cjs self exports reference self ./b.js
+    amd require ./b ./index.js
+    X (resolving: X, building: X)
+chunk (runtime: main) c_js.bundle.js xx bytes <{main}> >{d_js-e_js}< [rendered]
+  > ./index.js 3:0-16
+  ./c.js xx bytes [built] [code generated]
+    amd require ./c ./index.js
+    X (resolving: X, building: X)
+chunk (runtime: main) d_js-xxx.js xx bytes <{c_js}> [rendered]
+  > ./c.js 1:0-52
+  ./d.js xx bytes [built] [code generated]
+    require.ensure item ./d ./c.js
+    cjs self exports reference self ./d.js
+    X (resolving: X, building: X)
+  ./e.js xx bytes [built] [code generated]
+    require.ensure item ./e ./c.js
+    cjs self exports reference self ./e.js
+    X (resolving: X, building: X)
+chunk (runtime: main) bundle.js (main) xx bytes (javascript) xx KiB (runtime) >{b_js}< >{c_js}< [entry] [rendered]
+  > ./index main
+  ./a.js xx bytes [dependent] [built] [code generated]
+    cjs self exports reference self ./a.js
+    cjs require ./a ./e.js 1:8-14
+    cjs require ./a ./index.js 1:8-14
+    X (resolving: X, building: X)
+  ./index.js xx bytes [built] [code generated]
+    entry ./index
+    X (resolving: X, building: X)
+Rspack x.x.x compiled successfully in X.23"
+`;
+
 exports[`StatsTestCases should print correct stats for circular-correctness 1`] = `
 "chunk (runtime: main) 74.bundle.js (a) xx bytes <{76}> <{909}> >{76}< [rendered]
   ./module-xxx.js xx bytes [built] [code generated]
@@ -1279,6 +1358,52 @@ WARNING in ⚠ Rspack performance recommendations:You can limit the size of your
 Rspack x.x.x compiled with 3 warnings in X.23"
 `;
 
+exports[`StatsTestCases should print correct stats for performance-disabled 1`] = `
+"asset <CLR=32,BOLD>main.js</CLR> xx KiB <CLR=32,BOLD>[emitted]</CLR> (name: main)
+asset <CLR=32,BOLD>29.js</CLR> xx bytes <CLR=32,BOLD>[emitted]</CLR>
+asset <CLR=32,BOLD>345.js</CLR> xx bytes <CLR=32,BOLD>[emitted]</CLR>
+asset <CLR=32,BOLD>726.js</CLR> xx bytes <CLR=32,BOLD>[emitted]</CLR>
+Entrypoint <CLR=BOLD>main</CLR> xx KiB = <CLR=32,BOLD>main.js</CLR>
+runtime modules xx KiB 7 modules
+cacheable modules xx KiB
+  <CLR=BOLD>./index.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./a.js</CLR> xx KiB <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./b.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./c.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./d.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./e.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+Rspack x.x.x compiled <CLR=32,BOLD>successfully</CLR> in X s"
+`;
+
+exports[`StatsTestCases should print correct stats for performance-error 1`] = `
+"asset <CLR=33,BOLD>main.js</CLR> <CLR=33,BOLD>xx KiB</CLR> <CLR=32,BOLD>[emitted]</CLR> <CLR=33,BOLD>[big]</CLR> (name: main)
+asset <CLR=32,BOLD>29.js</CLR> xx bytes <CLR=32,BOLD>[emitted]</CLR>
+asset <CLR=32,BOLD>345.js</CLR> xx bytes <CLR=32,BOLD>[emitted]</CLR>
+asset <CLR=32,BOLD>726.js</CLR> xx bytes <CLR=32,BOLD>[emitted]</CLR>
+Entrypoint <CLR=BOLD>main</CLR> <CLR=33,BOLD>[big]</CLR> xx KiB = <CLR=32,BOLD>main.js</CLR>
+runtime modules xx KiB 7 modules
+cacheable modules xx KiB
+  <CLR=BOLD>./index.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./a.js</CLR> xx KiB <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./b.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./c.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./d.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./e.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+
+<CLR=31,BOLD>ERROR</CLR> in <CLR=31>×<CLR=0> asset size limit: The following asset(s) exceed the recommended size limit (xx KiB). This can impact web performance.
+  <CLR=31>│<CLR=0> Assets:
+  <CLR=31>│<CLR=0>   main.js (xx KiB)
+<CLR=0>
+
+<CLR=31,BOLD>ERROR</CLR> in <CLR=31>×<CLR=0> entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (xx KiB). This can impact web performance.
+  <CLR=31>│<CLR=0> Entrypoints:
+  <CLR=31>│<CLR=0>   main (xx KiB)
+  <CLR=31>│<CLR=0>       main.js
+<CLR=0>
+
+Rspack x.x.x compiled with <CLR=31,BOLD>2 errors</CLR> in X s"
+`;
+
 exports[`StatsTestCases should print correct stats for performance-no-async-chunks-shown 1`] = `
 "asset <CLR=33,BOLD>main.js</CLR> <CLR=33,BOLD>xx KiB</CLR> <CLR=32,BOLD>[emitted]</CLR> <CLR=33,BOLD>[big]</CLR> (name: main)
 asset <CLR=32,BOLD>sec.js</CLR> xx KiB <CLR=32,BOLD>[emitted]</CLR> (name: sec)
@@ -1308,6 +1433,23 @@ Entrypoint <CLR=BOLD>sec</CLR> xx KiB = <CLR=32,BOLD>sec.js</CLR>
 <CLR=0>
 
 Rspack x.x.x compiled with <CLR=33,BOLD>3 warnings</CLR> in X s"
+`;
+
+exports[`StatsTestCases should print correct stats for performance-no-hints 1`] = `
+"asset <CLR=33,BOLD>main.js</CLR> <CLR=33,BOLD>xx KiB</CLR> <CLR=32,BOLD>[emitted]</CLR> <CLR=33,BOLD>[big]</CLR> (name: main)
+asset <CLR=32,BOLD>29.js</CLR> xx bytes <CLR=32,BOLD>[emitted]</CLR>
+asset <CLR=32,BOLD>345.js</CLR> xx bytes <CLR=32,BOLD>[emitted]</CLR>
+asset <CLR=32,BOLD>726.js</CLR> xx bytes <CLR=32,BOLD>[emitted]</CLR>
+Entrypoint <CLR=BOLD>main</CLR> <CLR=33,BOLD>[big]</CLR> xx KiB = <CLR=32,BOLD>main.js</CLR>
+runtime modules xx KiB 7 modules
+cacheable modules xx KiB
+  <CLR=BOLD>./index.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./a.js</CLR> xx KiB <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./b.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./c.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./d.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./e.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+Rspack x.x.x compiled <CLR=32,BOLD>successfully</CLR> in X s"
 `;
 
 exports[`StatsTestCases should print correct stats for performance-oversize-limit-error 1`] = `
@@ -1393,6 +1535,96 @@ chunk (runtime: main) inner2.js (inner2) xx bytes [rendered]
 chunk (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) (preload: {577} {154} {551}) [entry] [rendered]"
 `;
 
+exports[`StatsTestCases should print correct stats for preset-detailed 1`] = `
+"<-> [LogTestPlugin] Group
+  <e> [LogTestPlugin] Error
+  <w> [LogTestPlugin] Warning
+  <i> [LogTestPlugin] Info
+      [LogTestPlugin] Log
+  <+> [LogTestPlugin] Collapsed group
+      [LogTestPlugin] Log
+    [LogTestPlugin] End
+PublicPath: auto
+asset main.js xx KiB {909} [emitted] (name: main)
+asset 29.js xx bytes {29} [emitted]
+asset 345.js xx bytes {345} [emitted]
+asset 726.js xx bytes {726} [emitted]
+Entrypoint main xx KiB = main.js
+chunk {29} (runtime: main) 29.js xx bytes <{909}> >{345}< [rendered]
+  > [10] ./index.js 3:0-16
+chunk {345} (runtime: main) 345.js xx bytes <{29}> [rendered]
+  > [460] ./c.js 1:0-52
+chunk {726} (runtime: main) 726.js xx bytes <{909}> [rendered]
+  > [10] ./index.js 2:0-16
+chunk {909} (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) >{29}< >{726}< [entry] [rendered]
+  > ./index main
+runtime modules xx KiB
+  webpack/runtime/auto_public_path xx KiB {909} [code generated]
+    [no exports]
+    [used exports unknown]
+  webpack/runtime/ensure_chunk xx bytes {909} [code generated]
+    [no exports]
+    [used exports unknown]
+  webpack/runtime/get javascript chunk filename xx bytes {909} [not cacheable] [code generated]
+    [no exports]
+    [used exports unknown]
+  webpack/runtime/global xx bytes {909} [code generated]
+    [no exports]
+    [used exports unknown]
+  webpack/runtime/has_own_property xx bytes {909} [code generated]
+    [no exports]
+    [used exports unknown]
+  webpack/runtime/jsonp_chunk_loading xx KiB {909} [code generated]
+    [no exports]
+    [used exports unknown]
+  webpack/runtime/load_script xx KiB {909} [code generated]
+    [no exports]
+    [used exports unknown]
+built modules xx bytes [built]
+  ./index.js [10] xx bytes {909} [depth 0] [built] [code generated]
+    [no exports used]
+    Statement with side_effects in source code at ./index.js:1:0-15
+    ModuleConcatenation bailout: Module is not an ECMAScript module
+  ./a.js [847] xx bytes {909} [depth 1] [built] [code generated]
+    [used exports unknown]
+    Statement with side_effects in source code at ./a.js:1:0-21
+    ModuleConcatenation bailout: Module is not an ECMAScript module
+  ./b.js [996] xx bytes {726} [depth 1] [built] [code generated]
+    [used exports unknown]
+    Statement with side_effects in source code at ./b.js:1:0-21
+    ModuleConcatenation bailout: Module is not an ECMAScript module
+  ./c.js [460] xx bytes {29} [depth 1] [built] [code generated]
+    [used exports unknown]
+    Statement with side_effects in source code at ./c.js:1:0-53
+    ModuleConcatenation bailout: Module is not an ECMAScript module
+  ./d.js [767] xx bytes {345} [depth 2] [built] [code generated]
+    [used exports unknown]
+    Statement with side_effects in source code at ./d.js:1:0-21
+    ModuleConcatenation bailout: Module is not an ECMAScript module
+  ./e.js [390] xx bytes {345} [depth 2] [built] [code generated]
+    [used exports unknown]
+    Statement with side_effects in source code at ./e.js:1:0-21
+    ModuleConcatenation bailout: Module is not an ECMAScript module
+
+LOG from LogTestPlugin
+<-> Group
+  <e> Error
+  <w> Warning
+  <i> Info
+      Log
+  <+> Collapsed group
+      Log
+    End
++ 6 hidden lines
+
+LOG from rspack.SideEffectsFlagPlugin
+    optimized 0 connections
+    optimized 0 connections
++ 4 hidden lines
+
+1970-04-20 12:42:42: Rspack x.x.x compiled successfully in X.23 (a47721182335fa1e)"
+`;
+
 exports[`StatsTestCases should print correct stats for preset-errors-only 1`] = `""`;
 
 exports[`StatsTestCases should print correct stats for preset-errors-only-error 1`] = `
@@ -1420,6 +1652,20 @@ LOG from LogTestPlugin
 + 13 hidden lines
 
 Rspack compiled successfully"
+`;
+
+exports[`StatsTestCases should print correct stats for preset-minimal 1`] = `
+"<e> [LogTestPlugin] Error
+<w> [LogTestPlugin] Warning
+4 assets
+13 modules
+
+LOG from LogTestPlugin
+<e> Error
+<w> Warning
++ 13 hidden lines
+
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for preset-minimal-simple 1`] = `
@@ -1450,6 +1696,88 @@ exports[`StatsTestCases should print correct stats for preset-none 1`] = `
 exports[`StatsTestCases should print correct stats for preset-none-array 1`] = `""`;
 
 exports[`StatsTestCases should print correct stats for preset-none-error 1`] = `""`;
+
+exports[`StatsTestCases should print correct stats for preset-normal 1`] = `
+"<e> [LogTestPlugin] Error
+<w> [LogTestPlugin] Warning
+<i> [LogTestPlugin] Info
+asset main.js xx KiB [emitted] (name: main)
+asset 29.js xx bytes [emitted]
+asset 345.js xx bytes [emitted]
+asset 726.js xx bytes [emitted]
+runtime modules xx KiB 7 modules
+cacheable modules xx bytes
+  ./index.js xx bytes [built] [code generated]
+  ./a.js xx bytes [built] [code generated]
+  ./b.js xx bytes [built] [code generated]
+  ./c.js xx bytes [built] [code generated]
+  ./d.js xx bytes [built] [code generated]
+  ./e.js xx bytes [built] [code generated]
+
+LOG from LogTestPlugin
+<e> Error
+<w> Warning
+<i> Info
++ 12 hidden lines
+
+Rspack x.x.x compiled successfully in X.23"
+`;
+
+exports[`StatsTestCases should print correct stats for preset-normal-performance 1`] = `
+"asset <CLR=33,BOLD>main.js</CLR> <CLR=33,BOLD>xx KiB</CLR> <CLR=32,BOLD>[emitted]</CLR> <CLR=33,BOLD>[big]</CLR> (name: main)
+asset <CLR=32,BOLD>29.js</CLR> xx bytes <CLR=32,BOLD>[emitted]</CLR>
+asset <CLR=32,BOLD>345.js</CLR> xx bytes <CLR=32,BOLD>[emitted]</CLR>
+asset <CLR=32,BOLD>726.js</CLR> xx bytes <CLR=32,BOLD>[emitted]</CLR>
+runtime modules xx KiB 7 modules
+cacheable modules xx KiB
+  <CLR=BOLD>./index.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./a.js</CLR> xx KiB <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./b.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./c.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./d.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./e.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+
+<CLR=33,BOLD>WARNING</CLR> in <CLR=33>⚠<CLR=0> asset size limit: The following asset(s) exceed the recommended size limit (xx KiB). This can impact web performance.
+  <CLR=33>│<CLR=0> Assets:
+  <CLR=33>│<CLR=0>   main.js (xx KiB)
+<CLR=0>
+
+<CLR=33,BOLD>WARNING</CLR> in <CLR=33>⚠<CLR=0> entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (xx KiB). This can impact web performance.
+  <CLR=33>│<CLR=0> Entrypoints:
+  <CLR=33>│<CLR=0>   main (xx KiB)
+  <CLR=33>│<CLR=0>       main.js
+<CLR=0>
+
+Rspack x.x.x compiled with <CLR=33,BOLD>2 warnings</CLR> in X s"
+`;
+
+exports[`StatsTestCases should print correct stats for preset-normal-performance-ensure-filter-sourcemaps 1`] = `
+"asset <CLR=33,BOLD>main.js</CLR> <CLR=33,BOLD>xx KiB</CLR> <CLR=32,BOLD>[emitted]</CLR> <CLR=33,BOLD>[big]</CLR> (name: main)
+asset <CLR=32,BOLD>29.js</CLR> xx bytes <CLR=32,BOLD>[emitted]</CLR>
+asset <CLR=32,BOLD>345.js</CLR> xx bytes <CLR=32,BOLD>[emitted]</CLR>
+asset <CLR=32,BOLD>726.js</CLR> xx bytes <CLR=32,BOLD>[emitted]</CLR>
+runtime modules xx KiB 7 modules
+cacheable modules xx KiB
+  <CLR=BOLD>./index.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./a.js</CLR> xx KiB <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./b.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./c.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./d.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+  <CLR=BOLD>./e.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+
+<CLR=33,BOLD>WARNING</CLR> in <CLR=33>⚠<CLR=0> asset size limit: The following asset(s) exceed the recommended size limit (xx KiB). This can impact web performance.
+  <CLR=33>│<CLR=0> Assets:
+  <CLR=33>│<CLR=0>   main.js (xx KiB)
+<CLR=0>
+
+<CLR=33,BOLD>WARNING</CLR> in <CLR=33>⚠<CLR=0> entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (xx KiB). This can impact web performance.
+  <CLR=33>│<CLR=0> Entrypoints:
+  <CLR=33>│<CLR=0>   main (xx KiB)
+  <CLR=33>│<CLR=0>       main.js
+<CLR=0>
+
+Rspack x.x.x compiled with <CLR=33,BOLD>2 warnings</CLR> in X s"
+`;
 
 exports[`StatsTestCases should print correct stats for preset-summary 1`] = `
 "<e> [LogTestPlugin] Error
