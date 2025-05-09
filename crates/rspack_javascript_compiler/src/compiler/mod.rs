@@ -6,7 +6,7 @@ pub mod stringify;
 pub mod transform;
 
 use rspack_sources::SourceMap;
-use swc_core::common::{GLOBALS, Globals, SourceMap as SwcSourceMap};
+use swc_core::common::{Globals, SourceMap as SwcSourceMap, GLOBALS};
 
 #[derive(Default)]
 /// JavaScriptCompiler is a struct that represents a JavaScript compiler instance.
@@ -32,6 +32,19 @@ impl JavaScriptCompiler {
 
 #[derive(Debug)]
 pub struct TransformOutput {
+  /// The transformed code
   pub code: String,
+
+  /// The source map for the transformed code
   pub map: Option<SourceMap>,
+
+  /// The warning diagnostics for the transformed code
+  pub diagnostics: Vec<String>,
+}
+
+impl TransformOutput {
+  pub fn with_diagnostics(mut self, diagnostics: Vec<String>) -> Self {
+    self.diagnostics = diagnostics;
+    self
+  }
 }
