@@ -75,8 +75,9 @@ impl RuntimeModule for LoadScriptRuntimeModule {
       None
     } else {
       Some(format!(
-        r#"var dataWebpackPrefix = "{}:";"#,
-        self.unique_name
+        r#"var dataWebpackPrefix = {};"#,
+        serde_json::to_string(&format!("{}:", self.unique_name))
+          .expect("failed to serialize unique prefix")
       ))
     };
 
