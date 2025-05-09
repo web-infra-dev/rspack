@@ -651,7 +651,6 @@ const describeCases = config => {
 															path.dirname(p),
 															options
 														),
-														setTimeout: setTimeout,
 														importScripts: url => {
 															expect(url).toMatch(
 																/^https:\/\/test\.cases\/path\//
