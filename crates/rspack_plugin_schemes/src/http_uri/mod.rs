@@ -13,7 +13,7 @@ use rspack_core::{
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveInScheme,
   NormalModuleReadResource, Plugin, PluginContext, ResourceData, Scheme,
 };
-use rspack_error::{AnyhowResultToRspackResultExt, Result};
+use rspack_error::{AnyhowResultToRspackResultExt, IntoTWithDiagnosticArray, Result};
 use rspack_fs::WritableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::{AssetCondition, AssetConditions};
@@ -38,6 +38,46 @@ impl HttpUriPlugin {
     url: &Url,
     mimetype: Option<String>,
   ) -> Result<bool> {
+    async fn resolve_entry_resolved(
+      url: &str,
+      options: &HttpUriPluginOptions,
+    ) -> anyhow::Result<String> {
+      let result = fetch_content(url, options).await?;
+      match result {
+        FetchResultType::Content(content) => Ok(content.entry.resolved),
+        FetchResultType::Redirect(redirect) => {
+          Box::pin(resolve_entry_resolved(&redirect.location, options)).await
+        }
+      }
+    }
+    let resolved_result = resolve_entry_resolved(url.as_str(), &self.options)
+      .await
+      .unwrap();
+    fn get_resource_context(result_entry_resolved: &str) -> Option<String> {
+      // Parse the resolved URL
+      if let Ok(base_url) = Url::parse(result_entry_resolved) {
+        // Resolve the relative path "." against the base URL
+        if let Ok(resolved_url) = base_url.join(".") {
+          // Convert the resolved URL to a string
+          let mut href = resolved_url.to_string();
+
+          // Remove the trailing slash if it exists
+          if href.ends_with('/') {
+            href.pop();
+          }
+
+          // Return the context as a string
+          return Some(href);
+        }
+      }
+
+      // Return None if parsing or joining fails
+      None
+    }
+
+    let context = get_resource_context(&resolved_result);
+    dbg!(&resolved_result, &context);
+    resource_data.set_context(context);
     resource_data.set_resource(url.to_string());
     resource_data.set_path(url.origin().ascii_serialization() + url.path());
     if let Some(query) = url.query() {

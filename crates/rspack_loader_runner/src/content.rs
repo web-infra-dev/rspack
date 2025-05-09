@@ -125,6 +125,7 @@ pub struct ResourceData {
   pub parameters: Option<String>,
   pub encoding: Option<String>,
   pub encoded_content: Option<String>,
+  pub context: Option<String>,
   #[cacheable(with=AsInner)]
   pub(crate) scheme: OnceCell<Scheme>,
 }
@@ -142,7 +143,14 @@ impl ResourceData {
       encoding: None,
       encoded_content: None,
       scheme: OnceCell::new(),
+      context: None,
     }
+  }
+  pub fn set_context(&mut self, context: Option<String>) {
+    self.context = context;
+  }
+  pub fn get_context(&self) -> Option<&String> {
+    self.context.as_ref()
   }
 
   pub fn get_scheme(&self) -> &Scheme {

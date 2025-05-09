@@ -22,6 +22,7 @@ pub struct HttpResponse {
   pub status: u16,
   pub headers: HashMap<String, String>,
   pub body: Vec<u8>,
+  pub url: String,
 }
 
 #[async_trait]
@@ -40,7 +41,7 @@ pub struct FetchResultMeta {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ContentFetchResult {
-  entry: LockfileEntry,
+  pub(crate) entry: LockfileEntry,
   content: Vec<u8>,
   meta: FetchResultMeta,
 }
@@ -53,10 +54,11 @@ impl ContentFetchResult {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RedirectFetchResult {
-  location: String,
+  pub(crate) location: String,
   meta: FetchResultMeta,
 }
 
+#[derive(Debug)]
 pub enum FetchResultType {
   Content(ContentFetchResult),
   #[allow(dead_code)]
@@ -123,13 +125,14 @@ impl HttpCache {
         headers.insert("if-none-match".to_string(), etag.clone());
       }
     }
-
     let response = self.http_client.get(url, &headers).await?;
+
     let status = response.status;
     let headers = response.headers;
     let etag = headers.get("etag").cloned();
     let location = headers.get("location").cloned();
     let cache_control = headers.get("cache-control").cloned();
+    let response_url = response.url.to_string();
 
     let (store_lock, store_cache, valid_until) = parse_cache_control(&cache_control, request_time);
 
@@ -151,7 +154,7 @@ impl HttpCache {
     }
 
     // Improved handling of redirects to match webpack
-    if let Some(location) = location {
+    if let Some(ref location) = location {
       if (301..=308).contains(&status) {
         // Resolve relative redirects like webpack does
         let absolute_location = match Url::parse(&location) {
@@ -219,7 +222,7 @@ impl HttpCache {
       .to_string();
 
     let entry = LockfileEntry {
-      resolved: url.to_string(),
+      resolved: dbg!(response_url.clone()),
       integrity: integrity.clone(),
       content_type,
       valid_until,
@@ -249,7 +252,7 @@ impl HttpCache {
 
       if should_update {
         if store_cache {
-          self.write_to_cache(url, &result.content).await?;
+          self.write_to_cache(&response_url, &result.content).await?;
         }
 
         let lockfile = self.lockfile_cache.get_lockfile().await?;
