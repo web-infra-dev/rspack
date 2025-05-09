@@ -12,31 +12,32 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use base64::prelude::*;
 use indoc::formatdoc;
 use jsonc_parser::parse_to_serde_value;
-use rspack_error::{miette::MietteDiagnostic, AnyhowResultToRspackResultExt, Error};
+use rspack_error::{AnyhowResultToRspackResultExt, Error, miette::MietteDiagnostic};
 use rspack_util::{itoa, source_map::SourceMapKind, swc::minify_file_comments};
 use serde_json::error::Category;
-use swc_config::{merge::Merge, IsModule};
+use swc_config::{IsModule, merge::Merge};
 pub use swc_core::base::config::Options as SwcOptions;
 use swc_core::{
   base::{
+    BoolOr,
     config::{
       BuiltInput, Config, ConfigFile, InputSourceMap, JsMinifyCommentOption, JsMinifyFormatOptions,
       Rc, RootMode, SourceMapsConfig,
     },
-    sourcemap, BoolOr,
+    sourcemap,
   },
   common::{
+    FileName, GLOBALS, Mark, SourceFile, SourceMap,
     comments::{Comments, SingleThreadedComments},
     errors::Handler,
-    FileName, Mark, SourceFile, SourceMap, GLOBALS,
   },
   ecma::{
     ast::{EsVersion, Pass, Program},
-    parser::{parse_file_as_module, parse_file_as_program, parse_file_as_script, Syntax},
+    parser::{Syntax, parse_file_as_module, parse_file_as_program, parse_file_as_script},
     transforms::base::helpers::{self, Helpers},
   },
 };
@@ -44,8 +45,8 @@ use swc_error_reporters::handler::try_with_handler;
 use url::Url;
 
 use super::{
-  stringify::{PrintOptions, SourceMapConfig},
   JavaScriptCompiler, TransformOutput,
+  stringify::{PrintOptions, SourceMapConfig},
 };
 
 impl JavaScriptCompiler {
