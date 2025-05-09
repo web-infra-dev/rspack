@@ -21,7 +21,7 @@ impl From<&CodeGenerationResult> for JsCodegenerationResult {
       sources: result
         .inner
         .as_ref()
-        .into_iter()
+        .iter()
         .map(|(source_type, source)| (source_type.to_string(), source.source().to_string()))
         .collect(),
     }
@@ -34,7 +34,7 @@ impl From<&CodeGenerationResults> for JsCodegenerationResults {
 
     Self {
       map: map
-        .into_iter()
+        .iter()
         .map(|(module_id, runtime_result_map)| {
           let mut runtime_map: HashMap<String, JsCodegenerationResult> = Default::default();
           match &runtime_result_map.mode {
@@ -54,7 +54,7 @@ impl From<&CodeGenerationResults> for JsCodegenerationResults {
               runtime_result_map.map.iter().for_each(|(k, v)| {
                 runtime_map.insert(
                   k.to_string(),
-                  id_result_map.get(&v).expect("TODO").as_ref().into(),
+                  id_result_map.get(v).expect("TODO").as_ref().into(),
                 );
               });
             }

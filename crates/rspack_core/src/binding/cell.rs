@@ -132,8 +132,8 @@ mod napi_binding {
             };
             let napi_val = allocator.allocate_asset_info(raw_env, &binding_cell)?;
             let new_object = unsafe { Object::from_raw_unchecked(raw_env, napi_val) };
-            let mut object = unsafe { Object::from_raw_unchecked(raw_env, napi_val) };
-            object_assign(&mut object, &new_object)?;
+            let mut original_object = unsafe { Object::from_raw_unchecked(raw_env, result) };
+            object_assign(&mut original_object, &new_object)?;
             Ok(result)
           }
           _ => Ok(result),
