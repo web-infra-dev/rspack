@@ -575,7 +575,7 @@ impl FromNapiValue for ModuleObjectRef {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsExecuteModuleArg {
   pub entry: String,
   pub runtime_modules: Vec<String>,

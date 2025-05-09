@@ -470,7 +470,8 @@ const describeCases = config => {
 														value: "Module"
 													});
 													return m;
-												}
+												},
+												__STATS_I__: i,
 											};
 
 											let runInNewContext = false;
@@ -481,6 +482,10 @@ const describeCases = config => {
 												baseModuleScope.window = globalContext;
 												baseModuleScope.self = globalContext;
 												baseModuleScope.document = globalContext.document;
+												baseModuleScope.setTimeout = globalContext.setTimeout;
+												baseModuleScope.clearTimeout = globalContext.clearTimeout;
+												baseModuleScope.getComputedStyle =
+													globalContext.getComputedStyle;
 												baseModuleScope.URL = URL;
 												if (typeof Blob !== "undefined") {
 													baseModuleScope.Blob = Blob;
@@ -492,7 +497,7 @@ const describeCases = config => {
 												runInNewContext = true;
 											}
 											if (testConfig.moduleScope) {
-												testConfig.moduleScope(baseModuleScope);
+												testConfig.moduleScope(baseModuleScope, options);
 											}
 											const esmContext = vm.createContext(baseModuleScope, {
 												name: "context for esm"
@@ -668,7 +673,7 @@ const describeCases = config => {
 														moduleScope.__STATS__ = getStatsJson();
 													}
 													if (testConfig.moduleScope) {
-														testConfig.moduleScope(moduleScope);
+														testConfig.moduleScope(moduleScope, options);
 													}
 													if (!runInNewContext)
 														content = `Object.assign(global, _globalAssign); ${content}`;

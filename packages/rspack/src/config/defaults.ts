@@ -590,6 +590,41 @@ const applyOutputDefaults = (
 	});
 	F(output, "devtoolNamespace", () => output.uniqueName);
 	F(output, "module", () => !!outputModule);
+
+	const environment = output.environment!;
+	const optimistic = (v?: boolean) => v || v === undefined;
+	const conditionallyOptimistic = (v?: boolean, c?: boolean) =>
+		(v === undefined && c) || v;
+
+	F(environment, "globalThis", () => tp?.globalThis);
+	F(environment, "bigIntLiteral", () => tp && optimistic(tp.bigIntLiteral));
+	F(environment, "const", () => tp && optimistic(tp.const));
+	F(environment, "arrowFunction", () => tp && optimistic(tp.arrowFunction));
+	F(environment, "asyncFunction", () => tp && optimistic(tp.asyncFunction));
+	F(environment, "forOf", () => tp && optimistic(tp.forOf));
+	F(environment, "destructuring", () => tp && optimistic(tp.destructuring));
+	F(
+		environment,
+		"optionalChaining",
+		() => tp && optimistic(tp.optionalChaining)
+	);
+	F(
+		environment,
+		"nodePrefixForCoreModules",
+		() => tp && optimistic(tp.nodePrefixForCoreModules)
+	);
+	F(environment, "templateLiteral", () => tp && optimistic(tp.templateLiteral));
+	F(environment, "dynamicImport", () =>
+		conditionallyOptimistic(tp?.dynamicImport, output.module)
+	);
+	F(environment, "dynamicImportInWorker", () =>
+		conditionallyOptimistic(tp?.dynamicImportInWorker, output.module)
+	);
+	F(environment, "module", () =>
+		conditionallyOptimistic(tp?.module, output.module)
+	);
+	F(environment, "document", () => tp && optimistic(tp.document));
+
 	D(output, "filename", output.module ? "[name].mjs" : "[name].js");
 	F(output, "iife", () => !output.module);
 
@@ -688,7 +723,7 @@ const applyOutputDefaults = (
 					if (tp.nodeBuiltins) return "async-node";
 					break;
 				case "module":
-					if (tp.dynamicImport) return "import";
+					if (environment.dynamicImport) return "import";
 					break;
 			}
 			if (
@@ -816,40 +851,6 @@ const applyOutputDefaults = (
 		// });
 		return Array.from(enabledWasmLoadingTypes);
 	});
-
-	const environment = output.environment!;
-	const optimistic = (v?: boolean) => v || v === undefined;
-	const conditionallyOptimistic = (v?: boolean, c?: boolean) =>
-		(v === undefined && c) || v;
-
-	F(environment, "globalThis", () => tp?.globalThis);
-	F(environment, "bigIntLiteral", () => tp && optimistic(tp.bigIntLiteral));
-	F(environment, "const", () => tp && optimistic(tp.const));
-	F(environment, "arrowFunction", () => tp && optimistic(tp.arrowFunction));
-	F(environment, "asyncFunction", () => tp && optimistic(tp.asyncFunction));
-	F(environment, "forOf", () => tp && optimistic(tp.forOf));
-	F(environment, "destructuring", () => tp && optimistic(tp.destructuring));
-	F(
-		environment,
-		"optionalChaining",
-		() => tp && optimistic(tp.optionalChaining)
-	);
-	F(
-		environment,
-		"nodePrefixForCoreModules",
-		() => tp && optimistic(tp.nodePrefixForCoreModules)
-	);
-	F(environment, "templateLiteral", () => tp && optimistic(tp.templateLiteral));
-	F(environment, "dynamicImport", () =>
-		conditionallyOptimistic(tp?.dynamicImport, output.module)
-	);
-	F(environment, "dynamicImportInWorker", () =>
-		conditionallyOptimistic(tp?.dynamicImportInWorker, output.module)
-	);
-	F(environment, "module", () =>
-		conditionallyOptimistic(tp?.module, output.module)
-	);
-	F(environment, "document", () => tp && optimistic(tp.document));
 };
 
 const applyExternalsPresetsDefaults = (
