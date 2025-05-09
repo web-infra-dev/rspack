@@ -57,6 +57,6 @@ module.exports = {
 		+     "scriptType": "module",
 		@@ ... @@
 		-     "workerChunkLoading": "import-scripts",
-		+     "workerChunkLoading": false,
+		+     "workerChunkLoading": "import",
 	`)
 };
