@@ -482,6 +482,8 @@ const describeCases = config => {
 												baseModuleScope.window = globalContext;
 												baseModuleScope.self = globalContext;
 												baseModuleScope.document = globalContext.document;
+												baseModuleScope.setTimeout = globalContext.setTimeout;
+												baseModuleScope.clearTimeout = globalContext.clearTimeout;
 												baseModuleScope.getComputedStyle =
 													globalContext.getComputedStyle;
 												baseModuleScope.URL = URL;
@@ -649,6 +651,7 @@ const describeCases = config => {
 															path.dirname(p),
 															options
 														),
+														setTimeout: setTimeout,
 														importScripts: url => {
 															expect(url).toMatch(
 																/^https:\/\/test\.cases\/path\//
