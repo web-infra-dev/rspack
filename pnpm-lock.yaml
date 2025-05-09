@@ -887,6 +887,9 @@ importers:
       less-loader:
         specifier: ^12.2.0
         version: 12.2.0(@rspack/core@packages+rspack)(less@4.3.0)(webpack@5.99.8(@swc/core@1.11.24(@swc/helpers@0.5.17)))
+      lodash-es:
+        specifier: ^4.17.15
+        version: 4.17.21
       memfs:
         specifier: ^4.17.1
         version: 4.17.1

@@ -692,7 +692,7 @@ const applyOutputDefaults = (
 				? "Make sure that your 'browserslist' includes only platforms that support these features or select an appropriate 'target' to allow selecting a chunk format by default. Alternatively specify the 'output.chunkFormat' directly."
 				: "Select an appropriate 'target' to allow selecting one by default, or specify the 'output.chunkFormat' directly.";
 			if (output.module) {
-				if (tp.dynamicImport) return "module";
+				if (environment.dynamicImport) return "module";
 				if (tp.document) return "array-push";
 				throw new Error(
 					`For the selected environment is no default ESM chunk format available:\nESM exports can be chosen when 'import()' is available.\nJSONP Array push can be chosen when 'document' is available.\n${helpMessage}`
@@ -727,10 +727,12 @@ const applyOutputDefaults = (
 					break;
 			}
 			if (
-				tp.require === null ||
-				tp.nodeBuiltins === null ||
-				tp.document === null ||
-				tp.importScripts === null
+				(tp.require === null ||
+					tp.nodeBuiltins === null ||
+					tp.document === null ||
+					tp.importScripts === null) &&
+				output.module &&
+				environment.dynamicImport
 			) {
 				return "universal";
 			}
@@ -748,13 +750,15 @@ const applyOutputDefaults = (
 					if (tp.nodeBuiltins) return "async-node";
 					break;
 				case "module":
-					if (tp.dynamicImportInWorker) return "import";
+					if (environment.dynamicImportInWorker) return "import";
 					break;
 			}
 			if (
-				tp.require === null ||
-				tp.nodeBuiltins === null ||
-				tp.importScriptsInWorker === null
+				(tp.require === null ||
+					tp.nodeBuiltins === null ||
+					tp.importScriptsInWorker === null) &&
+				output.module &&
+				environment.dynamicImport
 			) {
 				return "universal";
 			}

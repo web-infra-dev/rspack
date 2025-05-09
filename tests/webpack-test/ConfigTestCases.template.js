@@ -566,12 +566,8 @@ const describeCases = config => {
 															);
 														let esm = esmCache.get(p);
 														if (!esm) {
-															let moduleContext = esmContext;
 															if (content.includes("__STATS__")) {
-																moduleContext = vm.createContext({
-																	__STATS__: getStatsJson(),
-																	...moduleContext
-																});
+																esmContext.__STATS__ = getStatsJson();
 															}
 															esm = new vm.SourceTextModule(content, {
 																identifier: esmIdentifier + "-" + p,
