@@ -76,7 +76,6 @@ impl HttpUriPlugin {
     }
 
     let context = get_resource_context(&resolved_result);
-    dbg!(&resolved_result, &context);
     resource_data.set_context(context);
     resource_data.set_resource(url.to_string());
     resource_data.set_path(url.origin().ascii_serialization() + url.path());

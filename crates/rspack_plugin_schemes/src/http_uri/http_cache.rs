@@ -222,7 +222,7 @@ impl HttpCache {
       .to_string();
 
     let entry = LockfileEntry {
-      resolved: dbg!(response_url.clone()),
+      resolved: response_url.clone(),
       integrity: integrity.clone(),
       content_type,
       valid_until,

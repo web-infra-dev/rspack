@@ -569,7 +569,6 @@ impl NormalModuleFactory {
         context: resource_data.context.clone(),
         resource_resolve_data: resource_data,
       };
-      dbg!(&create_data.context);
       if let Some(plugin_result) = self
         .plugin_driver
         .normal_module_factory_hooks

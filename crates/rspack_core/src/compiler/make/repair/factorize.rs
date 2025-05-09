@@ -52,7 +52,6 @@ impl Task<MakeTaskContext> for FactorizeTask {
       &self.options.context
     }
     .clone();
-    dbg!(&context);
     let issuer_layer = dependency
       .get_layer()
       .or(self.issuer_layer.as_ref())
