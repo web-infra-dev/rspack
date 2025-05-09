@@ -16,8 +16,7 @@ import {
 	type JsCompilation,
 	type JsPathData,
 	JsRspackSeverity,
-	type JsRuntimeModule,
-	type CodeGenerationResult
+	type JsRuntimeModule
 } from "@rspack/binding";
 export type { AssetInfo } from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
@@ -63,6 +62,7 @@ import type Hash from "./util/hash";
 import { JsSource } from "./util/source";
 // patch chunks
 import "./Chunks";
+import { CodeGenerationResult } from "./taps/compilation";
 
 export type Assets = Record<string, Source>;
 export interface Asset {

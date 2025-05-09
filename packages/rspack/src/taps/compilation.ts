@@ -10,7 +10,18 @@ import {
 import { tryRunOrWebpackError } from "../lib/HookWebpackError";
 import { createHash } from "../util/createHash";
 import type { CreatePartialRegisters } from "./types";
-import { ExecuteModuleArgument } from "../Compilation";
+
+export class CodeGenerationResult {
+	#inner: binding.JsCodegenerationResult;
+
+	constructor(result: binding.JsCodegenerationResult) {
+		this.#inner = result;
+	}
+
+	get(sourceType: string) {
+		return this.#inner.sources[sourceType];
+	}
+}
 
 export const createCompilationHooksRegisters: CreatePartialRegisters<
 	`Compilation`
@@ -147,12 +158,9 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 				return function ({
 					entry,
 					id,
-					codeGenerationResult,
+					codegenResults,
 					runtimeModules
 				}: binding.JsExecuteModuleArg) {
-					// Prepare execution
-					const moduleArgumentsById = new Map<string, ExecuteModuleArgument>();
-
 					try {
 						const __webpack_require__: any = (id: string) => {
 							const cached = moduleCache[id];
@@ -176,6 +184,8 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 								handler(execOptions);
 							}
 
+							const result = codegenResults.map[id]["build time"];
+
 							const moduleObject = execOptions.module;
 
 							if (id) moduleCache[id] = moduleObject;
@@ -184,7 +194,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 								() =>
 									queried.call(
 										{
-											codeGenerationResult,
+											codeGenerationResult: new CodeGenerationResult(result),
 											moduleObject
 										},
 										// TODO: Simplify this without assignments once https://github.com/web-infra-dev/rspack/pull/10036 is released in Rslib.

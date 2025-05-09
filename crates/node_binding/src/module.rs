@@ -578,7 +578,7 @@ impl FromNapiValue for ModuleObjectRef {
 pub struct JsExecuteModuleArg {
   pub entry: String,
   pub runtime_modules: Vec<String>,
-  pub code_generation_result: JsCodegenerationResults,
+  pub codegen_results: JsCodegenerationResults,
   pub id: u32,
 }
 

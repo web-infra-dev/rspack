@@ -14,12 +14,9 @@ export default class ExecuteModulePlugin {
 				"executeModule",
 				(options, context) => {
 					const moduleObject = options.moduleObject;
-					const source =
-						options.codeGenerationResult.sources.get("javascript")!;
+					const source = options.codeGenerationResult.get("javascript");
 					if (source === undefined) return;
-					// TODO:
-					const code = source.source as string;
-					console.log("------ code --------", code);
+					const code = source as string;
 
 					try {
 						const fn = vm.runInThisContext(

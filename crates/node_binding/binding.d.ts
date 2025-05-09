@@ -644,6 +644,14 @@ export interface JsCleanOptions {
   keep?: string | RegExp | ((path: string) => boolean)
 }
 
+export interface JsCodegenerationResult {
+  sources: Record<string, string>
+}
+
+export interface JsCodegenerationResults {
+  map: Record<string, Record<string, JsCodegenerationResult>>
+}
+
 /**
  * Zero copy `JsCompatSource` slice shared between Rust and Node.js if buffer is used.
  *
@@ -724,7 +732,7 @@ export interface JsEntryPluginOptions {
 export interface JsExecuteModuleArg {
   entry: string
   runtimeModules: Array<string>
-  codeGenerationResult: CodeGenerationResult
+  codegenResults: JsCodegenerationResults
   id: number
 }
 

@@ -1170,7 +1170,7 @@ impl CompilationExecuteModule for CompilationExecuteModuleTap {
       .call_with_sync(JsExecuteModuleArg {
         entry: entry.to_string(),
         runtime_modules: runtime_modules.iter().map(|id| id.to_string()).collect(),
-        code_generation_result: code_generation_results.as_ref().into(),
+        codegen_results: code_generation_results.as_ref().into(),
         id: *id,
       })
       .await
