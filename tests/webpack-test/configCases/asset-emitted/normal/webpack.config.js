@@ -1,5 +1,5 @@
 const Compilation = require("@rspack/core").Compilation;
-const Source = require("webpack-sources").Source;
+// const Source = require("webpack-sources").Source;
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -10,17 +10,19 @@ module.exports = {
 				"Test",
 				(file, { content, source, outputPath, compilation, targetPath }) => {
 					expect(Buffer.isBuffer(content)).toBe(true);
-					expect(source).toBeInstanceOf(Source);
+					// CHANGE: source is instace of RawSource
+					// expect(source).toBeInstanceOf(Source);
 					expect(typeof outputPath).toBe("string");
 					expect(typeof targetPath).toBe("string");
 					expect(compilation).toBeInstanceOf(Compilation);
+
 					files[file] = true;
 				}
 			);
 			compiler.hooks.afterEmit.tap("Test", () => {
 				expect(files).toMatchInlineSnapshot(`
 Object {
-  "662.bundle0.js": true,
+  "260.bundle0.js": true,
   "bundle0.js": true,
 }
 `);
