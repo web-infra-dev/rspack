@@ -13,7 +13,8 @@ use rspack_core::{
   FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{
-  napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotInstanceRef, OneShotRef,
+  napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotInstanceRef,
+  OneShotRef, WeakRef,
 };
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_util::source_map::SourceMapKind;
