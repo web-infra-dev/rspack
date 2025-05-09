@@ -176,6 +176,8 @@ pub struct HtmlRspackPluginOptions {
   pub meta: Option<HashMap<String, HashMap<String, String>>>,
   pub hash: Option<bool>,
   pub base: Option<HtmlRspackPluginBaseOptions>,
+  /// uid is used to identify the plugin instance on javascript side
+  pub uid: Option<u32>,
 }
 
 fn default_filename() -> Vec<String> {
@@ -215,6 +217,7 @@ impl Default for HtmlRspackPluginOptions {
       meta: None,
       hash: None,
       base: None,
+      uid: None,
     }
   }
 }

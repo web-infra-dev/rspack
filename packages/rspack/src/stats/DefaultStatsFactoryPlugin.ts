@@ -62,7 +62,8 @@ import {
 	moduleGroup,
 	resolveStatsMillisecond,
 	sortByField,
-	spaceLimited
+	spaceLimited,
+	warningFromStatsWarning
 } from "./statsFactoryUtils";
 
 const compareIds = _compareIds as <T>(a: T, b: T) => -1 | 0 | 1;
@@ -676,18 +677,28 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				);
 			}
 			if (!context.cachedGetErrors) {
-				context.cachedGetErrors = _compilation => {
-					return statsCompilation.errors;
-				};
+				const map = new WeakMap();
+				context.cachedGetErrors = compilation =>
+					map.get(compilation) ||
+					// eslint-disable-next-line no-sequences
+					(errors => {
+						map.set(compilation, errors);
+						return errors;
+					})(statsCompilation.errors);
 			}
 			if (!context.cachedGetWarnings) {
-				context.cachedGetWarnings = _compilation => {
-					const warnings = statsCompilation.warnings;
-
-					return compilation.hooks.processWarnings.call(
-						warnings as any
-					) as unknown as typeof warnings;
-				};
+				const map = new WeakMap();
+				context.cachedGetWarnings = compilation =>
+					map.get(compilation) ||
+					// eslint-disable-next-line no-sequences
+					(warnings => {
+						map.set(compilation, warnings);
+						return warnings;
+					})(
+						compilation.hooks.processWarnings.call(
+							statsCompilation.warnings.map(warningFromStatsWarning)
+						)
+					);
 			}
 			if (compilation.name) {
 				object.name = compilation.name;

@@ -1,9 +1,5 @@
 use rspack_collections::Identifier;
-use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  Compilation, RuntimeGlobals, RuntimeModule,
-};
+use rspack_core::{impl_runtime_module, Compilation, RuntimeGlobals, RuntimeModule};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -23,13 +19,10 @@ impl RuntimeModule for SystemContextRuntimeModule {
     self.id
   }
 
-  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(
-      RawStringSource::from(format!(
-        "{} = __system_context__",
-        RuntimeGlobals::SYSTEM_CONTEXT
-      ))
-      .boxed(),
-    )
+  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
+    Ok(format!(
+      "{} = __system_context__",
+      RuntimeGlobals::SYSTEM_CONTEXT
+    ))
   }
 }

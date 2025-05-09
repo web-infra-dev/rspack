@@ -799,7 +799,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	get warnings(): RspackError[] {
 		const inner = this.#inner;
 		type WarnType = Error | RspackError;
-		const processWarningsHook = this.hooks.processWarnings;
 		const warnings = inner.getWarnings();
 		const proxyMethod = [
 			{
@@ -809,16 +808,12 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					thisArg: Array<WarnType>,
 					warns: WarnType[]
 				) {
-					return Reflect.apply(
-						target,
-						thisArg,
-						processWarningsHook.call(warns as any).map(warn => {
-							inner.pushDiagnostic(
-								JsRspackDiagnostic.__to_binding(warn, JsRspackSeverity.Warn)
-							);
-							return warn;
-						})
-					);
+					for (const warn of warns) {
+						inner.pushDiagnostic(
+							JsRspackDiagnostic.__to_binding(warn, JsRspackSeverity.Warn)
+						);
+					}
+					return Reflect.apply(target, thisArg, warns);
 				}
 			},
 			{
@@ -845,18 +840,14 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					thisArg: Array<WarnType>,
 					warns: WarnType[]
 				) {
-					const warnings = processWarningsHook.call(warns as any);
 					inner.spliceDiagnostic(
 						0,
 						0,
-						warnings.map(warn => {
-							return JsRspackDiagnostic.__to_binding(
-								warn,
-								JsRspackSeverity.Warn
-							);
-						})
+						warns.map(warn =>
+							JsRspackDiagnostic.__to_binding(warn, JsRspackSeverity.Warn)
+						)
 					);
-					return Reflect.apply(target, thisArg, warnings);
+					return Reflect.apply(target, thisArg, warns);
 				}
 			},
 			{
@@ -866,10 +857,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					thisArg: Array<WarnType>,
 					[startIdx, delCount, ...warns]: [number, number, ...WarnType[]]
 				) {
-					warns = processWarningsHook.call(warns as any);
-					const warnList = warns.map(warn => {
-						return JsRspackDiagnostic.__to_binding(warn, JsRspackSeverity.Warn);
-					});
+					const warnList = warns.map(warn =>
+						JsRspackDiagnostic.__to_binding(warn, JsRspackSeverity.Warn)
+					);
 					inner.spliceDiagnostic(startIdx, startIdx + delCount, warnList);
 					return Reflect.apply(target, thisArg, [
 						startIdx,

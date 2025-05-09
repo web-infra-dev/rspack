@@ -3,9 +3,7 @@ use std::ptr::NonNull;
 use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
+  impl_runtime_module, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
 };
 
 use crate::{
@@ -38,7 +36,7 @@ impl RuntimeModule for LoadScriptRuntimeModule {
     self.id
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &self.chunk_ukey);
     let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
 
@@ -150,7 +148,6 @@ impl RuntimeModule for LoadScriptRuntimeModule {
       .await?;
 
     Ok(
-      RawStringSource::from(
         include_str!("runtime/load_script.js")
           .cow_replace("$CREATE_SCRIPT$", &res.code)
           .cow_replace(
@@ -176,9 +173,7 @@ impl RuntimeModule for LoadScriptRuntimeModule {
             "$UNIQUE_PREFIX$",
             unique_prefix.unwrap_or_default().as_str(),
           )
-          .into_owned(),
-      )
-      .boxed(),
+          .into_owned()
     )
   }
 }

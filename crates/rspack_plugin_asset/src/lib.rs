@@ -7,7 +7,7 @@ use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  rspack_sources::{BoxSource, RawBufferSource, RawStringSource, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorImportMode, AssetInfo,
   AssetParserDataUrl, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkUkey,
   CodeGenerationDataAssetInfo, CodeGenerationDataFilename, CodeGenerationDataUrl,
@@ -632,7 +632,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             "Inline or Source asset does not have source type `asset`"
           ))
         } else {
-          Ok(RawBufferSource::from(source.buffer().to_vec()).boxed())
+          Ok(source.clone().boxed())
         }
       }
       _ => panic!(

@@ -3007,7 +3007,6 @@ export type HotUpdateMainFilename = FilenameTemplate;
 export const HtmlRspackPlugin: typeof HtmlRspackPluginImpl & {
     getHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
     getCompilationHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
-    getCompilationOptions: (compilation: Compilation) => HtmlRspackPluginOptions | void;
     createHtmlTagObject: (tagName: string, attributes?: Record<string, string | boolean>, innerHTML?: string | undefined) => JsHtmlPluginTag;
     version: number;
 };
@@ -3017,7 +3016,9 @@ type HtmlRspackPluginHooks = {
     beforeAssetTagGeneration: liteTapable.AsyncSeriesWaterfallHook<[
     JsBeforeAssetTagGenerationData & ExtraPluginHookData
     ]>;
-    alterAssetTags: liteTapable.AsyncSeriesWaterfallHook<[JsAlterAssetTagsData]>;
+    alterAssetTags: liteTapable.AsyncSeriesWaterfallHook<[
+    JsAlterAssetTagsData & ExtraPluginHookData
+    ]>;
     alterAssetTagGroups: liteTapable.AsyncSeriesWaterfallHook<[
     JsAlterAssetTagGroupsData & ExtraPluginHookData
     ]>;
@@ -3065,6 +3066,7 @@ export type HtmlRspackPluginOptions = {
     favicon?: string;
     meta?: Record<string, string | Record<string, string>>;
     hash?: boolean;
+    [key: string]: any;
 };
 
 // @public (undocumented)
