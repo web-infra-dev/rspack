@@ -236,11 +236,28 @@ impl Stats<'_> {
       .as_ref()
       .map(|executor| executor.make_artifact.get_module_graph());
 
+    let mut concatenated_modules = IdentifierSet::default();
+    for (_, m) in module_graph.modules() {
+      let Some(m) = m.as_concatenated_module() else {
+        continue;
+      };
+      concatenated_modules.extend(m.get_modules().iter().map(|inner_module| inner_module.id));
+    }
+
     let mut modules: Vec<StatsModule> = module_graph
       .modules()
       .values()
       .par_bridge()
-      .map(|module| self.get_module(&module_graph, module, false, None, options))
+      .map(|module| {
+        self.get_module(
+          &module_graph,
+          module,
+          false,
+          concatenated_modules.contains(&module.identifier()),
+          None,
+          options,
+        )
+      })
       .collect::<Result<_>>()?;
 
     let runtime_modules = self
@@ -256,7 +273,7 @@ impl Stats<'_> {
         .modules()
         .values()
         .par_bridge()
-        .map(|module| self.get_module(executor_module_graph, module, true, None, options))
+        .map(|module| self.get_module(executor_module_graph, module, true, false, None, options))
         .collect::<Result<_>>()?;
 
       modules.extend(executed_modules);
@@ -328,7 +345,7 @@ impl Stats<'_> {
             .get_chunk_modules(&c.ukey(), &module_graph);
           let mut chunk_modules = chunk_modules
             .into_iter()
-            .map(|m| self.get_module(&module_graph, m, false, Some(&root_modules), options))
+            .map(|m| self.get_module(&module_graph, m, false, false, Some(&root_modules), options))
             .collect::<Result<Vec<_>>>()?;
           sort_modules(&mut chunk_modules);
           Some(chunk_modules)
@@ -724,6 +741,7 @@ impl Stats<'_> {
     module_graph: &'a ModuleGraph<'a>,
     module: &'a BoxModule,
     executed: bool,
+    concatenated: bool,
     root_modules: Option<&IdentifierSet>,
     options: &ExtendedStatsOptions,
   ) -> Result<StatsModule<'a>> {
@@ -814,6 +832,8 @@ impl Stats<'_> {
     if stats.built || stats.code_generated || options.cached_modules {
       let orphan = if executed {
         true
+      } else if concatenated {
+        false
       } else {
         self
           .compilation
@@ -1073,7 +1093,9 @@ impl Stats<'_> {
           .get_modules()
           .par_iter()
           .filter_map(|m| module_graph.module_by_identifier(&m.id))
-          .map(|module| self.get_module(module_graph, module, executed, root_modules, options))
+          .map(|module| {
+            self.get_module(module_graph, module, executed, true, root_modules, options)
+          })
           .collect::<Result<_>>()?;
         sort_modules(&mut modules);
         stats.modules = Some(modules);
