@@ -209,7 +209,11 @@ impl JavaScriptCompiler {
       None
     };
 
-    Ok(TransformOutput { code: src, map })
+    Ok(TransformOutput {
+      code: src,
+      map,
+      diagnostics: Default::default(),
+    })
   }
 }
 
