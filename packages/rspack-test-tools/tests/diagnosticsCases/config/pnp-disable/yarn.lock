@@ -3,11 +3,11 @@
 
 __metadata:
   version: 8
-  cacheKey: 10
+  cacheKey: 10c0
 
-"rspack-pnp-test@workspace:.":
+"rspack-pnp-disable@workspace:.":
   version: 0.0.0-use.local
-  resolution: "rspack-pnp-test@workspace:."
+  resolution: "rspack-pnp-disable@workspace:."
   dependencies:
     the-answer: "npm:1.0.0"
   languageName: unknown
@@ -16,6 +16,6 @@ __metadata:
 "the-answer@npm:1.0.0":
   version: 1.0.0
   resolution: "the-answer@npm:1.0.0"
-  checksum: 8/5870a78be9e15125cba35f04655c02b5bd859d8d5ad075bfc1b20270a3a0dd76717f4aaa1fc6b8ac7bb8da3f3222acc0276b25f8cd265fa76efdafe04f72a4c1
+  checksum: 10c0/05658ff6b4ac74fdee78621e279e1c7518574b277c0d3c41f56fb8320455a8e1dd60817fcf9046d206b15971eeaea44ce27e34b0491bac2907fa0ef56b8f3afb
   languageName: node
   linkType: hard
