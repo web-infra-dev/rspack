@@ -1,0 +1,42 @@
+# EntryPlugin
+
+Adds an entry chunk on compilation. The chunk is named `options.name` and contains only one module (plus dependencies). The module is resolved from `entry` in `context` (absolute path).
+
+```js
+new rspack.EntryPlugin(context, entry, options);
+```
+
+## Options
+
+### context
+
+The module is resolved from `entry` in `context` (absolute path).
+
+- **Type:** `string`
+
+### entry
+
+The module path for the entry module.
+
+- **Type:** `string`
+
+### options
+
+To adjust settings related to the entry module.
+
+- **Type:**
+
+```ts
+type EntryOptions =
+  | string
+  | (Omit<EntryDescriptionNormalized, 'import'> & {
+      /**
+       * The name of the entry chunk.
+       */
+      name?: string;
+    });
+```
+
+If `options` is a string, its value will be used as `name`.
+
+Please refer to [Entry Description Object](/config/entry#entry-description-object) for all available options.

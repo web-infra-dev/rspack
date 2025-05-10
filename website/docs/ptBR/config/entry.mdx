@@ -1,0 +1,277 @@
+import WebpackLicense from '@components/WebpackLicense';
+import { ApiMeta, Stability } from '../../../components/ApiMeta';
+import PropertyType from '@components/PropertyType';
+
+<WebpackLicense from="https://webpack.js.org/configuration/entry-context/#entry" />
+
+# Entry
+
+<PropertyType
+  type="string | string[] | Record<string, string | string[] | EntryDescription> | Function"
+  defaultValueList={[{ defaultValue: "'./src/index.js'" }]}
+/>
+
+The `entry` configuration is used to set the entry module for Rspack builds.
+
+## Single entry
+
+If you are building a single page application or a library, you will usually only need to set up a single entry point.
+
+To set up a single entry, simply pass the path to the entry module as a string to the `entry` configuration.
+
+```js title="rspack.config.mjs"
+export default {
+  entry: './src/index.js',
+};
+```
+
+The above writing method will automatically set the name of the entry module to `main`, which is equivalent to the following writing method:
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    main: './src/index.js',
+  },
+};
+```
+
+### Path type
+
+The path of the entry module can be a relative path or an absolute path.
+
+If `entry` is set as a relative path, Rspack will use the value set by [context configuration](/config/context.html) as the base path, which by default is the current working directory of the Node.js process, namely `process.cwd ()`.
+
+You can also use the [path module](https://nodejs.org/api/path.html) in Node.js to generate an absolute path and pass it to the `entry` configuration:
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  entry: path.join(__dirname, './src/index.js'),
+};
+```
+
+### Entry array
+
+When setting the value of an entry, in addition to setting it to `string`, you can also pass in a `string[]`, meaning that the entry contains multiple entry modules.
+
+For example, the following example will build `pre.js` and `post.js` into the output of `page`.
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    page: ['./src/pre.js', './src/post.js'],
+  },
+};
+```
+
+Multiple modules will be executed sequentially according to the order defined by the array, so the code in `pre.js` will be executed before the code in `post.js`.
+
+## Multiple entries
+
+If you need to build multiple entries at once, you should set `entry` to an object, and each key of the object corresponds to an entry name.
+
+For example, the following example will build `page1` and `page2` as two entries:
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    page1: './src/page1/index.js',
+    page2: './src/page2/index.js',
+  },
+};
+```
+
+### Entry description object
+
+When you set `entry` to an object, you can set the value of the entry to a description object. A description object can contain the following properties:
+
+#### EntryDescription.import
+
+<PropertyType
+  type="string[] | string"
+  defaultValueList={[{ defaultValue: "'./src/index.js'" }]}
+/>
+
+The path or paths to the entry modules.
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    foo: {
+      import: './src/foo.js',
+    },
+  },
+};
+```
+
+Multiple paths can be set in the `import` property:
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    foo: {
+      import: ['./src/foo.js', './src/bar.js'],
+    },
+  },
+};
+```
+
+#### EntryDescription.runtime
+
+<PropertyType
+  type="false | string"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+The name of the runtime chunk. When `runtime` is set, a new runtime chunk will be created. You can also set it to `false` to avoid a new runtime chunk.
+
+The `runtime` property is used to set the name of the runtime chunk, for example to set the name of the `main` entry chunk to `'foo'`:
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    main: {
+      import: './src/index.js',
+      runtime: 'foo',
+    },
+  },
+};
+```
+
+#### EntryDescription.chunkLoading
+
+<PropertyType
+  type="false | string | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import'"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+How this entry load other chunks. Methods included by default are `'jsonp'` (web), `'import'` (ESM), `'import-scripts'` (WebWorker), `'require'` (sync node.js), `'async-node'` (async node.js), but others might be added by plugins.
+
+#### EntryDescription.asyncChunks
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Whether to create a load-on-demand asynchronous chunk for this entry.
+
+#### EntryDescription.publicPath
+
+<PropertyType
+  type="'auto' | string | (pathData: PathData, assetInfo?: AssetInfo) => string"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+The publicPath of the resource referenced by this entry.
+
+#### EntryDescription.baseUri
+
+<PropertyType
+  type="string"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+The baseURI of the resource referenced by this entry.
+
+#### EntryDescription.filename
+
+<PropertyType
+  type="string"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+The filename of the entry chunk.
+
+#### EntryDescription.library
+
+<PropertyType
+  type="string | string[] | object"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+The format of the chunk generated by this entry as a library, for detailed configuration, see [output.library](/config/output#outputlibrary).
+
+#### EntryDescription.dependOn
+
+<PropertyType
+  type="string[] | string"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+The entry that the current entry depends on. With `dependOn` option you can share the modules from one entry chunk to another.
+
+#### EntryDescription.wasmLoading
+
+<PropertyType
+  type="'fetch' | 'async-node'"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+Option to set the method of loading WebAssembly Modules. Methods included by default are `'fetch'` (web/WebWorker), `'async-node'` (Node.js), but others might be added by plugins.
+
+The default value can be affected by different [target](/config/target):
+
+- Defaults to `'fetch'` if target is set to `'web'`, `'webworker'`, `'electron-renderer'` or `'node-webkit'`.
+- Defaults to `'async-node'` if target is set to `'node'`, `'async-node'`, `'electron-main'` or `'electron-preload'`.
+
+#### EntryDescription.layer
+
+<ApiMeta addedVersion={'1.0.0-beta.1'} />
+
+<PropertyType
+  type="string | null | undefined"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+Specifies the layer in which modules of this entrypoint are placed. Make the corresponding configuration take effect through layer matching in split chunks, [rules](/config/module#ruleissuerlayer), stats, and externals.
+
+:::warning
+This configuration will only take effect when [experiments.layers](/config/experiments#experimentslayers) is `true`.
+:::
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    index: {
+      import: './src/index.js',
+      layer: 'layer-name',
+    },
+  },
+  experiments: {
+    layers: true,
+  },
+};
+```
+
+## Dynamic entry
+
+If a function is passed then it will be invoked on every [make](/api/plugin-api/compiler-hooks#make) event.
+
+> Note that the `make` event triggers when webpack starts and for every invalidation when [watching for file changes](/config/watch).
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  entry: () => './demo',
+};
+```
+
+Or:
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  entry: () => new Promise(resolve => resolve(['./demo', './demo2'])),
+};
+```
+
+For example: you can use dynamic entries to get the actual entries from an external source (remote server, file system content or database):
+
+```js title="rspack.config.mjs"
+export default {
+  entry() {
+    return fetchPathsFromSomeExternalSource(); // returns a promise that will be resolved with something like ['src/main-layout.js', 'src/admin-layout.js']
+  },
+};
+```
+
+When combining with the [output.library](/config/output#outputlibrary) option: If an array is passed only the last item is exported.

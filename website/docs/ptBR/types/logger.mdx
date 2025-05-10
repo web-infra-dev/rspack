@@ -1,0 +1,30 @@
+<>
+
+> See [Logger API](/api/javascript-api/logger) for more details
+
+```ts
+type Logger = {
+  getChildLogger: (name: string | (() => string)) => Logger; // create a child logger
+  error(...args: any[]): void; // display errors
+  warn(...args: any[]): void; //  display warnings
+  info(...args: any[]): void; // display important information
+  log(...args: any[]): void; // display unimportant information
+  debug(...args: string[]): void; // display debug information
+  assert(assertion: any, ...args: any[]): void; // display errors if assertion failed
+  trace(): void; // display a stack trace
+  clear(): void; // clear all logs
+  status(...args: any[]): void; // display status information
+  group(...args: any[]): void; // start a logging group
+  groupEnd(...args: any[]): void; // end a logging group
+  groupCollapsed(...args: any[]): void; // group logs together
+  profile(label: any): void; // start capturing a profile
+  profileEnd(label: any): void; // end capturing a profile
+  time(label: any): void; // start a timer
+  timeLog(label: any): void; // not end the timer and record the time difference
+  timeEnd(label: any): void; // end the timer and record the time difference
+  timeAggregate(label: any): void; // aggregate capture the time difference
+  timeAggregateEnd(label: any): void; // end the aggregate capturing
+};
+```
+
+</>

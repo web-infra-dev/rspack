@@ -1,0 +1,195 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# SwcJsMinimizerRspackPlugin
+
+<ApiMeta specific={['Rspack']} />
+
+This plugin is used to minify JavaScript files using [SWC](https://swc.rs/).
+
+## Example
+
+Use this plugin via [optimization.minimizer](/config/optimization#optimizationminimizer):
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  // ...
+  optimization: {
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin({
+        // options
+      }),
+      new rspack.LightningCssMinimizerRspackPlugin(),
+    ],
+  },
+};
+```
+
+:::tip
+When `optimization.minimizer` is set, the default minimizers are disabled, so we need to add [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) to minify CSS files.
+:::
+
+## Options
+
+### test
+
+- **Type:** `string | RegExp | Array<string | RegExp>`
+- **Default:** `undefined`
+
+Specify the files to be minimized. You can use regular expressions or file path strings, and only the files that match will be minimized.
+
+For example, the build generates `/dist/foo.[hash].js` and some other JS files, we only minify `foo.js`:
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  test: /dist\/foo\.\w+\.js$/,
+});
+```
+
+### include
+
+- **Type:** `string | RegExp | Array<string | RegExp>`
+- **Default:** `undefined`
+
+Same as `test`, specify the files to be minimized.
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  include: /dist\/foo\.\w+\.js$/,
+});
+```
+
+### exclude
+
+- **Type:** `string | RegExp | Array<string | RegExp>`
+- **Default:** `undefined`
+
+Specify the files to be excluded. You can use regular expressions or file path strings, and the files that match will not be minimized.
+
+For example, the build generates `/dist/foo.[hash].js` and some other JS files, we exclude the minimization of `foo.js`:
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  exclude: /dist\/foo\.\w+\.js$/,
+});
+```
+
+### extractComments
+
+- **Type:**
+
+```ts
+type ExtractCommentsOptions =
+  | boolean
+  | RegExp
+  | {
+      condition?: boolean | RegExp | undefined;
+      banner?: string | boolean | undefined;
+    };
+```
+
+- **Default:** `undefined`
+
+Whether comments shall be extracted to a separate file. If the original file is named `foo.js`, then the comments will be stored to `foo.js.LICENSE.txt`.
+
+#### boolean
+
+If value is `true`, it is equivalent to `/@preserve|@lic|@cc_on|^\**!/` regexp condition and remove remaining comments.
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  extractComments: {
+    condition: /@preserve|@lic|@cc_on|^\**!/,
+  },
+});
+```
+
+If value is `false`, all comments will be removed.
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  extractComments: false,
+});
+```
+
+#### RegExp
+
+If value is `RegExp`, all comments that match the given expression will be extracted to the separate file.
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  extractComments: /@preserve|@lic|@cc_on|^\**!/,
+});
+```
+
+#### object
+
+If value is `object`, it can use `condition` and `banner` to customize the extraction.
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  extractComments: {
+    // add comments that match the condition will be extracted
+    condition: /@preserve|@lic|@cc_on|^\**!/,
+    // add banner to the top of the `*.LICENSE.txt` file
+    // If `true`, use the default banner `/*! For license information please see {relative} */`
+    // If `false`, no banner will be added
+    // If `string`, use the given banner
+    banner: true,
+  },
+});
+```
+
+### minimizerOptions
+
+- **Type:**
+
+```ts
+type MinimizerOptions = {
+  minify?: boolean;
+  module?: boolean;
+  mangle?: TerserMangleOptions | boolean;
+  compress?: TerserCompressOptions | boolean;
+  format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
+};
+```
+
+- **Default:**
+
+```js
+const defaultOptions = {
+  minify: true,
+  mangle: true,
+  compress: {
+    passes: 2,
+  }
+  format: {
+    comments: false,
+  },
+};
+```
+
+Similar to the `jsc.minify` option of SWC, please refer to [SWC - Minification](https://swc.rs/docs/configuration/minification) for all available options.
+
+For example, disable `mangle` to avoid mangling variable names:
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  minimizerOptions: {
+    mangle: false,
+  },
+});
+```
+
+For example, set a higher `passes` to run more compression passes. In some cases this may result in a smaller bundle size, but the more passes that are run, the more time it takes to compress.
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  minimizerOptions: {
+    compress: {
+      passes: 4,
+    },
+  },
+});
+```

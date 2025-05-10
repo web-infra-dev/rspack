@@ -1,0 +1,38 @@
+<>
+
+```ts
+type Compiler = {
+  hooks: CompilerHooks;
+  inputFileSystem: InputFileSystem | null;
+  outputFileSystem: OutputFileSystem | null;
+  watchFileSystem: WatchFileSystem | null;
+  options: RspackOptionsNormalized;
+  watching: Watching;
+
+  getInfrastructureLogger(name: string | (() => string)): Logger;
+  getCache(name: string): CacheFacade;
+  watch(
+    watchOptions: Watchpack.WatchOptions,
+    handler: liteTapable.Callback<Error, Stats>,
+  ): Watching;
+  run(callback: liteTapable.Callback<Error, Stats>): void;
+  runAsChild(
+    callback: (
+      err?: null | Error,
+      entries?: Chunk[],
+      compilation?: Compilation,
+    ) => any,
+  ): void;
+  createChildCompiler(
+    compilation: Compilation,
+    compilerName: string,
+    compilerIndex: number,
+    outputOptions: OutputNormalized,
+    plugins: RspackPluginInstance[],
+  ): Compiler;
+  compile(callback: liteTapable.Callback<Error, Compilation>): void;
+  close(callback: (error?: Error | null) => void): void;
+};
+```
+
+</>

@@ -1,0 +1,50 @@
+[
+  {
+    "text": "Guia",
+    "link": "/guide/start/introduction",
+    "activeMatch": "/guide"
+  },
+  {
+    "text": "Configuração",
+    "link": "/config/",
+    "activeMatch": "/config"
+  },
+  {
+    "text": "Plugin",
+    "link": "/plugins/",
+    "activeMatch": "(?!\\/config\\/).*\\/plugins\\/.*"
+  },
+  {
+    "text": "API",
+    "link": "/api/",
+    "activeMatch": "/api"
+  },
+  {
+    "text": "Blog",
+    "link": "/blog/index",
+    "activeMatch": "/blog"
+  },
+  {
+    "text": "Sobre",
+    "link": "/misc/faq",
+    "activeMatch": "/misc"
+  },
+  {
+    "text": "Contribuir",
+    "link": "/contribute/index",
+    "activeMatch": "/contribute"
+  },
+  {
+    "text": "Versão",
+    "items": [
+      {
+        "text": "Changelog",
+        "link": "https://github.com/web-infra-dev/rspack/releases"
+      },
+      {
+        "text": "Documentação Rspack 0.x",
+        "link": "http://v0.rspack.dev/"
+      }
+    ]
+  }
+]

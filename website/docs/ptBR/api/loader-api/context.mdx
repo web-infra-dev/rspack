@@ -1,0 +1,614 @@
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.js.org/api/loaders/#the-loader-context" />
+
+# Loader context
+
+The loader context represents the properties that are available inside of a loader assigned to the `this` property.
+
+## this.addContextDependency()
+
+- **Type:**
+
+```ts
+function addContextDependency(directory: string): void;
+```
+
+Add the directory as a dependency for the loader results so that any changes to the files in the directory can be listened to.
+
+For example, adding `src/static` as a dependency. When the files in the `src/static` directory change, it will trigger a rebuild.
+
+```js title="loader.js"
+const path = require('node:path');
+
+module.exports = function loader(source) {
+  this.addContextDependency(path.resolve(this.rootContext, 'src/static'));
+  return source;
+};
+```
+
+## this.addDependency()
+
+- **Type:**
+
+```ts
+function addDependency(file: string): void;
+```
+
+Add a file as a dependency on the loader results so that any changes to them can be listened to. For example, `sass-loader`, `less-loader` use this trick to recompile when the imported style files change.
+
+```js title="loader.js"
+const path = require('node:path');
+
+module.exports = function loader(source) {
+  this.addDependency(path.resolve(this.rootContext, 'src/styles/foo.scss'));
+  return source;
+};
+```
+
+## this.addMissingDependency()
+
+- **Type:**
+
+```ts
+function addMissingDependency(file: string): void;
+```
+
+Add a currently non-existent file as a dependency of the loader result, so that its creation and any changes can be listened. For example, when a new file is created at that path, it will trigger a rebuild.
+
+```js title="loader.js"
+const path = require('node:path');
+
+module.exports = function loader(source) {
+  this.addMissingDependency(
+    path.resolve(this.rootContext, 'src/dynamic-file.json'),
+  );
+  return source;
+};
+```
+
+## this.async()
+
+- **Type:** `() => LoaderContextCallback`
+
+Tells Rspack that this loader will be called asynchronously. Returns [this.callback](#thiscallback).
+
+## this.cacheable()
+
+- **Type:**
+
+```ts
+function cacheable(flag: boolean = true): void;
+```
+
+A function that sets the cacheable flag.
+
+By default, the processing results of the loader are marked as cacheable. Calling this method and passing `false` turns off the loader's ability to cache processing results.
+
+```js title="loader.js"
+module.exports = function loader(source) {
+  this.cacheable(false);
+  return source;
+};
+```
+
+## this.callback()
+
+- **Type:**
+
+```ts
+function callback(
+  err: Error | null,
+  content: string | Buffer,
+  sourceMap?: SourceMap,
+  meta?: any,
+): void;
+```
+
+A function that can be called synchronously or asynchronously in order to return multiple results. The expected arguments are:
+
+1. The first parameter must be `Error` or `null`, which marks the current module as a compilation failure.
+2. The second argument is a `string` or `Buffer`, which indicates the contents of the file after the module has been processed by the loader.
+3. The third parameter is a source map that can be processed by the loader.
+4. The fourth parameter is ignored by Rspack and can be anything (e.g. some metadata).
+
+:::warning
+In case this function is called, you should return `undefined` to avoid ambiguous loader results.
+
+The value passed to `this.callback` will be passed to the next loader in the chain.
+The `sourceMap` and `meta` parameters are optional. If they are not passed, the next loader will not receive them.
+:::
+
+## this.clearDependencies()
+
+- **Type:**
+
+```ts
+function clearDependencies(): void;
+```
+
+Removes all dependencies of the loader result.
+
+## this.context
+
+- **Type:** `string | null`
+
+The directory path of the currently processed module, which changes with the location of each processed module.
+
+For example, if the loader is processing `/project/src/components/Button.js`, then the value of `this.context` would be `/project/src/components`.
+
+```js title="loader.js"
+module.exports = function loader(source) {
+  console.log(this.context); // '/project/src/components'
+  return source;
+};
+```
+
+If the module being processed is not from the file system, such as a virtual module, then the value of `this.context` is `null`.
+
+## this.loaderIndex
+
+- **Type:** `number`
+
+The index in the loaders array of the current loader.
+
+## this.data
+
+- **Type:** `unknown`
+
+A data object shared between the pitch and the normal phase.
+
+## this.dependency()
+
+- **Type:**
+
+```ts
+function dependency(file: string): void;
+```
+
+Alias of [this.addDependency()](#thisadddependency).
+
+## this.emitError()
+
+- **Type:**
+
+```ts
+function emitError(error: Error): void;
+```
+
+Emit an error. Unlike `throw` and `this.callback(err)` in the loader, it does not mark the current module as a compilation failure, it just adds an error to Rspack's Compilation and displays it on the command line at the end of this compilation.
+
+## this.emitWarning()
+
+- **Type:**
+
+```ts
+function emitWarning(warning: Error): void;
+```
+
+Emit a warning.
+
+## this.emitFile()
+
+- **Type:**
+
+```ts
+function emitFile(
+  name: string,
+  content: string | Buffer,
+  sourceMap?: string,
+  assetInfo?: AssetInfo,
+): void;
+```
+
+Emit a new file. This method allows you to create new files during the loader execution.
+
+- Basic example:
+
+```js title="loader.js"
+module.exports = function loader(source) {
+  // Emit a new file that will be output as `foo.js` in the output directory
+  this.emitFile('foo.js', 'console.log("Hello, world!");');
+  return source;
+};
+```
+
+- Example with asset info:
+
+```js title="loader.js"
+module.exports = function loader(source) {
+  this.emitFile(
+    'foo.js',
+    'console.log("Hello, world!");',
+    undefined, // no sourcemap
+    {
+      sourceFilename: this.resourcePath,
+    },
+  );
+
+  return source;
+};
+```
+
+## this.fs
+
+- **Type:** `InputFileSystem`
+
+Access to the `compilation` object's `inputFileSystem` property.
+
+## this.getOptions()
+
+- **Type:**
+
+```ts
+function getOptions(schema?: any): OptionsType;
+```
+
+Get the options passed in by the loader's user.
+
+For example:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.txt$/,
+        use: {
+          loader: './my-loader.js',
+          options: {
+            foo: 'bar',
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+In `my-loader.js` get the options passed in:
+
+```js title="my-loader.js"
+module.exports = function myLoader(source) {
+  const options = this.getOptions();
+  console.log(options); // { foo: 'bar' }
+  return source;
+};
+```
+
+In TypeScript, you can set the options type through the generic of `LoaderContext`.
+
+```ts title="my-loader.ts"
+import type { LoaderContext } from '@rspack/core';
+
+type MyLoaderOptions = {
+  foo: string;
+};
+
+export default function myLoader(
+  this: LoaderContext<MyLoaderOptions>,
+  source: string,
+) {
+  const options = this.getOptions();
+  console.log(options); // { foo: 'bar' }
+  return source;
+}
+```
+
+:::tip
+The parameter `schema` is optional and will not be used in Rspack.
+
+To provide the best performance, Rspack does not perform the schema validation. If your loader requires schema validation, please call [scheme-utils](https://github.com/webpack/scheme-utils) or other schema validation libraries.
+:::
+
+## this.getResolve()
+
+- **Type:**
+
+```ts
+function getResolve(options: ResolveOptions): resolve;
+```
+
+Create a resolver like `this.resolve`.
+
+## this.hot
+
+- **Type:** `boolean`
+
+Whether HMR is enabled.
+
+```js title="loader.js"
+module.exports = function (source) {
+  console.log(this.hot); // true if HMR is enabled
+  return source;
+};
+```
+
+## this.importModule()
+
+- **Type:**
+
+```ts
+interface ImportModuleOptions {
+  /**
+   * Specify a layer in which this module is placed/compiled
+   */
+  layer?: string;
+  /**
+   * The public path used for the built modules
+   */
+  publicPath?: PublicPath;
+  /**
+   * Target base uri
+   */
+  baseUri?: string;
+}
+
+// with callback
+function importModule<T = any>(
+  request: string,
+  options: ImportModuleOptions | undefined,
+  callback: (err?: null | Error, exports?: T) => any,
+): void;
+// without callback, return Promise
+function importModule<T = any>(
+  request: string,
+  options?: ImportModuleOptions,
+): Promise<T>;
+```
+
+Compile and execute a module at the build time. This is an alternative lightweight solution for the child compiler.
+
+`importModule` will return a Promise if no callback is provided.
+
+```js title="loader.js"
+const path = require('node:path');
+
+module.exports = async function loader(source) {
+  const modulePath = path.resolve(this.rootContext, 'some-module.ts');
+  const moduleExports = await this.importModule(modulePath, {
+    // optional options
+  });
+
+  const result = someProcessing(source, moduleExports);
+  return result;
+};
+```
+
+Or you can pass a callback to it.
+
+```js title="loader.js"
+const path = require('node:path');
+
+module.exports = function loader(source) {
+  const callback = this.async();
+  const modulePath = path.resolve(this.rootContext, 'some-module.ts');
+
+  this.importModule(
+    modulePath,
+    // optional options
+    undefined,
+    (err, moduleExports) => {
+      if (err) {
+        return callback(err);
+      }
+
+      const result = someProcessing(source, moduleExports);
+      callback(null, result);
+    },
+  );
+};
+```
+
+## this.query
+
+- **Type:** `string | OptionsType`
+
+The value depends on the loader configuration:
+
+- If the current loader was configured with an options object, `this.query` will point to that object.
+- If the current loader has no options, but was invoked with a query string, this will be a string starting with `?`.
+
+## this.request
+
+- **Type:** `string`
+
+The module specifier string after being resolved.
+
+For example, if a `resource.js` is processed by `loader1.js` and `loader2.js`, the value of `this.request` will be `/path/to/loader1.js!/path/to/loader2.js!/path/to/resource.js`.
+
+## this.resolve()
+
+- **Type:**
+
+```ts
+function resolve(
+  context: string,
+  request: string,
+  callback: (err: Error | null, result: string) => void,
+): void;
+```
+
+Resolve a module specifier.
+
+- `context` must be the absolute path to a directory. This directory is used as the starting location for resolving.
+- `request` is the module specifier to be resolved.
+- `callback` is a callback function that gives the resolved path.
+
+## this.mode
+
+- **Type:** `Mode`
+
+The value of [`mode`](/config/mode) is read when Rspack is run.
+
+The possible values are: `'production'`, `'development'`, `'none'`
+
+```js title="loader.js"
+module.exports = function loader(source) {
+  console.log(this.mode); // 'production' or other values
+  return source;
+};
+```
+
+## this.target
+
+- **Type:** `Target`
+
+The current compilation target. Passed from [`target`](/config/target) configuration options.
+
+```js title="loader.js"
+module.exports = function loader(source) {
+  console.log(this.target); // 'web' or other values
+  return source;
+};
+```
+
+## this.utils
+
+- **Type:**
+
+```ts
+type Utils = {
+  absolutify: (context: string, request: string) => string;
+  contextify: (context: string, request: string) => string;
+  createHash: (algorithm?: string) => Hash;
+};
+```
+
+Access to the following utilities.
+
+- `absolutify`: Return a new request string using absolute paths when possible.
+- `contextify`: Return a new request string avoiding absolute paths when possible.
+- `createHash`: Return a new Hash object from provided hash function.
+
+```js title="loader.js"
+module.exports = function (content) {
+  this.utils.contextify(
+    this.context,
+    this.utils.absolutify(this.context, './index.js'),
+  );
+
+  this.utils.absolutify(this.context, this.resourcePath);
+
+  const mainHash = this.utils.createHash(
+    this._compilation.outputOptions.hashFunction,
+  );
+  mainHash.update(content);
+  mainHash.digest('hex');
+
+  return content;
+};
+```
+
+## this.resource
+
+- **Type:** `string`
+
+The path string of the current module. For example `'/abc/resource.js?query#hash'`.
+
+```js title="loader.js"
+module.exports = function loader(source) {
+  console.log(this.resource); // '/abc/resource.js?query#hash'
+  return source;
+};
+```
+
+## this.resourcePath
+
+- **Type:** `string`
+
+The path string of the current module, excluding the query and fragment parameters. For example `'/abc/resource.js?query#hash'` in `'/abc/resource.js'`.
+
+```js title="loader.js"
+module.exports = function loader(source) {
+  console.log(this.resourcePath); // '/abc/resource.js'
+  return source;
+};
+```
+
+## this.resourceQuery
+
+- **Type:** `string`
+
+The query parameter for the path string of the current module. For example `'?query'` in `'/abc/resource.js?query#hash'`.
+
+```js title="loader.js"
+module.exports = function loader(source) {
+  console.log(this.resourceQuery); // '?query'
+  return source;
+};
+```
+
+## this.resourceFragment
+
+- **Type:** `string`
+
+The fragment parameter of the current module's path string. For example `'#hash'` in `'/abc/resource.js?query#hash'`.
+
+```js title="loader.js"
+module.exports = function loader(source) {
+  console.log(this.resourceFragment); // '#hash'
+  return source;
+};
+```
+
+## this.rootContext
+
+- **Type:** `string`
+
+The base path configured in Rspack config via [context](/config/context).
+
+```js title="loader.js"
+module.exports = function loader(source) {
+  console.log(this.rootContext); // /path/to/project
+  return source;
+};
+```
+
+## this.sourceMap
+
+- **Type:** `boolean`
+
+Tells if source map should be generated.
+
+Since generating source maps can be an expensive task, you should check if source maps are actually requested.
+
+## this.getLogger()
+
+- **Type:**
+
+```ts
+function getLogger(name?: string): Logger;
+```
+
+Get the logger of this compilation, through which messages can be logged.
+
+## this.version
+
+- **Type:** `number`
+
+The version number of the loader API. Currently 2.
+
+This is useful for providing backwards compatibility. Using the version you can specify custom logic or fallbacks for breaking changes.
+
+## Internal properties
+
+:::warning
+Please note that using internal Rspack properties like `this._compiler` and `this._compilation` will cause your loader to lose its independence.
+
+Ideally, loaders should focus on file transformation logic, with deterministic output for given input, without depending on Rspack's internal state. Relying on these internal objects introduces unpredictable behavior, making testing and maintenance more difficult.
+
+Therefore, it's recommended to consider using these properties only when there are no other alternatives.
+:::
+
+### this.\_compiler
+
+- **Type:** `Compiler`
+
+Access to the current [Compiler](/api/javascript-api/compiler) object of Rspack.
+
+### this.\_compilation
+
+- **Type:** `Compilation`
+
+Access to the current [Compilation](/api/javascript-api/compilation) object of Rspack.

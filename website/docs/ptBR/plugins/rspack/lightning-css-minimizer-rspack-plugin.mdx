@@ -1,0 +1,130 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# LightningCssMinimizerRspackPlugin
+
+<ApiMeta specific={['Rspack']} />
+
+This plugin uses [lightningcss](https://lightningcss.dev/) to minify CSS assets. See [optimization.minimizer](/config/optimization#optimizationminimizer).
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  // ...
+  optimization: {
+    minimizer: [new rspack.LightningCssMinimizerRspackPlugin(options)],
+  },
+};
+```
+
+## Options
+
+### include
+
+- **Type:** `string | RegExp | (string | RegExp)[]`
+- **Default:** `undefined`
+
+Use this to specify which files should be minified, it matches the path of the output files.
+
+### exclude
+
+- **Type:** `string | RegExp | (string | RegExp)[]`
+- **Default:** `undefined`
+
+Use this to specify which files should be excluded from minification, it matches the path of the output files.
+
+### test
+
+- **Type:** `string | RegExp | (string | RegExp)[]`
+- **Default:** `undefined`
+
+Use this to provide a pattern that CSS files are matched against. If the output filename matches the given pattern, it will be minified, otherwise it won't be.
+
+### removeUnusedLocalIdents
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Whether to automatically remove the unused local idents of CSS Modules, including unused CSS class names, ids, and @keyframe names. The declarations of these will be removed.
+
+For example, in the following CSS Modules, class names a and b are exported, but only class name a is used in the js file:
+
+```css title=index.module.css
+.a {
+  color: red;
+}
+
+.b {
+  color: blue;
+}
+```
+
+```js title=index.js
+import * as styles from './index.module.css';
+document.body.className = styles.a;
+```
+
+At this point, the information that class name b is unused will be obtained via Rspack's tree shaking feature and provided to lightningcss. During minimization, the declaration for class name b will be removed from the CSS output, resulting in the following final output:
+
+{/* prettier-ignore */}
+```css
+.a{color: red}
+```
+
+### minimizerOptions
+
+Configuration passed to Lightning CSS for minification.
+
+Below are the configurations supported, `targets` configuration is plain browserslist query, for other detailed usage, please refer to [Lightning CSS documentation](https://lightningcss.dev/transpilation.html)
+
+:::info
+
+1. The default `targets` is set to `"fully supports es6"` to ensure that minification does not introduce advanced syntax that could cause browser incompatibility (minification might turn lower-level syntax into advanced syntax because it is shorter).
+2. The `exclude` option is configured with all features by default. We usually do syntax degradation in [builtin:lightningcss-loader](/guide/features/builtin-lightningcss-loader) or other loaders, so this plugin excludes all features by default to avoid syntax downgrading during the minimize process.
+
+We recommend and encourage users to configure their own `targets` to achieve the best minification results.
+:::
+
+```ts
+type LightningCssMinimizerOptions = {
+  errorRecovery?: boolean;
+  targets?: string[] | string;
+  include?: LightningcssFeatureOptions;
+  exclude?: LightningcssFeatureOptions;
+  /**
+   * @deprecated Use `drafts` instead.
+   * This will be removed in the next major version.
+   */
+  draft?: Drafts;
+  drafts?: Drafts;
+  nonStandard?: NonStandard;
+  pseudoClasses?: PseudoClasses;
+  unusedSymbols?: Set<String>;
+};
+
+type LightningcssFeatureOptions = {
+  nesting?: boolean;
+  notSelectorList?: boolean;
+  dirSelector?: boolean;
+  langSelectorList?: boolean;
+  isSelector?: boolean;
+  textDecorationThicknessPercent?: boolean;
+  mediaIntervalSyntax?: boolean;
+  mediaRangeSyntax?: boolean;
+  customMediaQueries?: boolean;
+  clampFunction?: boolean;
+  colorFunction?: boolean;
+  oklabColors?: boolean;
+  labColors?: boolean;
+  p3Colors?: boolean;
+  hexAlphaColors?: boolean;
+  spaceSeparatedColorNotation?: boolean;
+  fontFamilySystemUi?: boolean;
+  doublePositionGradients?: boolean;
+  vendorPrefixes?: boolean;
+  logicalProperties?: boolean;
+  selectors?: boolean;
+  mediaQueries?: boolean;
+  color?: boolean;
+};
+```

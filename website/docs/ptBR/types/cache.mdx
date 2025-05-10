@@ -1,0 +1,45 @@
+<>
+
+> See [cache object](/api/javascript-api/cache) for more details.
+
+```ts
+type CacheFacade = {
+  getChildCache(name: string): CacheFacade; // create a named child cache object
+  getItemCache(identifier, etag): ItemCacheFacade; // create a cache object for an data item
+  getLazyHashedEtag(obj: HashableObject): Etag; // create a lazy computed etag
+  mergeEtags(a: Etag, b: Etag): Etag; // merge two etags
+  get<T>( // async data getter, callback by function
+    identifier: string,
+    etag: Etag,
+    callback: (err: Error, result: T) => void,
+  ): void;
+  getPromise<T>( // async data getter, callback by promise
+    identifier: string,
+    etag: Etag,
+  ): Promise<T>;
+  store<T>( // async data setter, callback by function
+    identifier: string,
+    etag: Etag,
+    data: T,
+    callback: (err: Error) => void,
+  ): void;
+  storePromise<T>( // async data setter, callback by promise
+    identifier: string,
+    etag: Etag,
+    data: T,
+  ): Promise<void>;
+  provide<T>( // try to get the data, use function to compute if not exists, callback by function
+    identifier: string,
+    etag: Etag,
+    computer: () => T | Promise<T>,
+    callback: (err: Error, result: T) => void,
+  ): void;
+  providePromise<T>( // try to get the data, use function to compute if not exists, callback by function
+    identifier: string,
+    etag: Etag,
+    computer: () => T | Promise<T>,
+  ): Promise<T>;
+};
+```
+
+</>

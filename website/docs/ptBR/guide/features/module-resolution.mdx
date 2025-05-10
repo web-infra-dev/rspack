@@ -1,0 +1,31 @@
+# Resolução de módulo
+
+A resolução de módulo é o processo de conversão de um identificador de módulo no caminho de arquivo de um módulo. A porta Rust do enhanced-resolve é usada para a resolução de caminho de módulo, que é uma extensão do [algoritmo de resolução de módulo do Node](https://nodejs.org/api/modules.html#modules_all_together) com a mesma interface do [enhanced-resolve](https://github.com/webpack/enhanced-resolve). Consulte [configuração do resolve](/config/resolve) para obter mais informações sobre a configuração da resolução de módulo.
+
+## Rspack
+
+O Rspack suporta os três tipos de caminhos de arquivo a seguir:
+
+### Caminhos absolutos
+
+```js
+import '/home/me/file';
+```
+
+Como este caminho já é um caminho absoluto, geralmente não há necessidade de análise adicional; basta retornar o caminho diretamente.
+
+### Caminhos relativos
+
+```js
+import './src/answer';
+```
+
+Neste caso, o diretório onde os arquivos de recursos que usam import e require estão localizados é considerado o diretório de contexto. O caminho relativo fornecido em import/require é escrito junto com o caminho do diretório de contexto para gerar o caminho absoluto para o módulo.
+
+### Caminhos do módulo
+
+```js
+import 'lodash';
+```
+
+Caminhos do módulo são aqueles que não começam com `'./'`, `'../'`, `'/'`. Neste caso, o Rspack resolverá o caminho absoluto do módulo de acordo com as regras de resolução do módulo. O [algoritmo de resolução de módulo do nó](https://nodejs.org/api/modules.html#modules_all_together) possui uma descrição detalhada das regras para resolver módulos.

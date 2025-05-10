@@ -1,0 +1,13 @@
+[
+  "index",
+  {
+    "type": "dir",
+    "name": "webpack",
+    "label": "Webpack-aligned built-in plugins"
+  },
+  {
+    "type": "dir",
+    "name": "rspack",
+    "label": "Rspack-only built-in plugins"
+  }
+]

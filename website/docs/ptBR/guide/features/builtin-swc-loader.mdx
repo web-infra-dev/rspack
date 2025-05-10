@@ -1,0 +1,455 @@
+import { ApiMeta, Stability } from '@components/ApiMeta';
+
+# Builtin swc-loader
+
+[SWC](https://github.com/swc-project/swc) (Speedy Web Compiler) is a transformer and minimizer for JavaScript and TypeScript based on Rust. SWC provides similar functionality to Babel and Terser, and it is 20x faster than Babel on a single thread and 70x faster on four cores.
+
+Rspack provides a built-in loader for SWC, which is the Rust version of [swc-loader](https://github.com/swc-project/pkgs/tree/main/packages/swc-loader), aiming to deliver better performance. The loader's [options](https://swc.rs/docs/configuration/compilation) is aligned with the JS version of `swc-loader`.
+
+## Example
+
+If you need to use `builtin:swc-loader` in your project, configure it as follows:
+
+### TypeScript transpilation
+
+To transpile `.ts` files:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        exclude: [/node_modules/],
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            parser: {
+              syntax: 'typescript',
+            },
+          },
+        },
+        type: 'javascript/auto',
+      },
+    ],
+  },
+};
+```
+
+### JSX transpilation
+
+To transpile React's `.jsx` files:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.jsx$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              parser: {
+                syntax: 'ecmascript',
+                jsx: true,
+              },
+              transform: {
+                react: {
+                  pragma: 'React.createElement',
+                  pragmaFrag: 'React.Fragment',
+                  throwIfNamespace: true,
+                  development: false,
+                  useBuiltins: false,
+                },
+              },
+            },
+          },
+        },
+        type: 'javascript/auto',
+      },
+    ],
+  },
+};
+```
+
+### Syntax lowering
+
+SWC provides [jsc.target](https://swc.rs/docs/configuration/compilation#jsctarget) and [env.targets](https://swc.rs/docs/configuration/compilation#envtargets) to specify the target of JavaScript syntax lowering.
+
+#### jsc.target
+
+[jsc.target](https://swc.rs/docs/configuration/compilation#jsctarget) is used to specify the ECMA version, such as `es5`, `es2015`, `es2016`, etc.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              target: 'es2015',
+            },
+            // ...other options
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+#### env.targets
+
+[env.targets](https://swc.rs/docs/configuration/compilation#envtargets) uses the [browserslist](https://github.com/browserslist/browserslist) syntax to specify browser range, for example:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            env: {
+              targets: [
+                'chrome >= 87',
+                'edge >= 88',
+                'firefox >= 78',
+                'safari >= 14',
+              ],
+            },
+            // ...other options
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+:::tip
+`jsc.target` and `env.targets` cannot be configured at the same time, choose one according to your needs.
+:::
+
+### Polyfill injection
+
+When using higher versions of JavaScript syntax and APIs in your project, to ensure that the compiled code can run in lower version browsers, you will typically need to perform two parts of the downgrade: syntax downgrading and polyfill injection.
+
+SWC supports injecting [core-js](https://github.com/zloirock/core-js) as an API polyfill, which can be configured using [env.mode](https://swc.rs/docs/configuration/compilation#envmode) and [env.coreJs](https://swc.rs/docs/configuration/compilation#envcorejs):
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        exclude: /node_modules[\\/]core-js/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            env: {
+              mode: 'usage',
+              coreJs: '3.26.1',
+              targets: [
+                'chrome >= 87',
+                'edge >= 88',
+                'firefox >= 78',
+                'safari >= 14',
+              ],
+            },
+            isModule: 'unknown',
+            // ...other options
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+Note:
+
+- Make sure to [exclude](/config/module#ruleexclude) the `core-js` package, as `core-js` will not work properly if compiled by SWC.
+- When importing non-ES modules, add [isModule: 'unknown'](https://swc.rs/docs/configuration/compilation#ismodule) to allow SWC to correctly identify the module type.
+
+## Type declaration
+
+You can enable type hints using the `SwcLoaderOptions` type exported by `@rspack/core`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          /** @type {import('@rspack/core').SwcLoaderOptions} */
+          options: {
+            // some options
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+- `rspack.config.ts`:
+
+```ts
+import type { SwcLoaderOptions } from '@rspack/core';
+
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            // some options
+          } satisfies SwcLoaderOptions,
+        },
+      },
+    ],
+  },
+};
+```
+
+## Options
+
+The following is an introduction to some SWC configurations and Rspack specific configurations. Please refer to the [SWC Configurations](https://swc.rs/docs/configuration/swcrc) for the complete options.
+
+### jsc.experimental.plugins
+
+<ApiMeta stability={Stability.Experimental} />
+
+:::warning
+The Wasm plugin is deeply coupled with the version of SWC, you need to choose a Wasm plugin that is compatible with the corresponding version of SWC in order to function normally.
+
+See [FAQ - SWC Plugin Version Unmatched](/errors/swc-plugin-version) for more details.
+:::
+
+Rspack supports load Wasm plugin in `builtin:swc-loader`, you can specify the plugin name like
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              experimental: {
+                plugins: [
+                  [
+                    '@swc/plugin-remove-console',
+                    {
+                      exclude: ['error'],
+                    },
+                  ],
+                ],
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+this is an [example](https://github.com/rspack-contrib/rstack-examples/blob/d4b8aaef9915ed0f540edbe504217c3d1afe8989/rspack/builtin-swc-loader/rspack.config.js#L45) of Wasm plugin usage.
+
+#### Set cache root
+
+When you use SWC's Wasm plugin, SWC will generate cache files in the `.swc` directory of the current project by default. If you want to adjust this directory, you can modify the `cacheRoot` configuration, such as:
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              experimental: {
+                cacheRoot: path.join(__dirname, './node_modules/.cache/swc'),
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### rspackExperiments
+
+Experimental features provided by rspack.
+
+### rspackExperiments.import
+
+<ApiMeta stability={Stability.Experimental} />
+
+Ported from [babel-plugin-import](https://github.com/umijs/babel-plugin-import), configurations are basically the same.
+
+Function can't be used in configurations, such as `customName`, `customStyleName`, they will cause some performance overhead as these functions must be called from `Rust` , inspired by [modularize_imports](https://crates.io/crates/modularize_imports), some simple function can be replaced by template string instead. Therefore, the function type configuration such as `customName`, `customStyleName` can be passed in strings as templates to replace functions and improve performance.
+
+For example:
+
+```ts
+import { MyButton as Btn } from 'foo';
+```
+
+Apply following configurations:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        use: 'builtin:swc-loader',
+        options: {
+          // ...
+          rspackExperiments: {
+            import: [
+              {
+                libraryName: 'foo',
+                customName: 'foo/es/{{ member }}',
+              },
+            ],
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+`{{ member }}` will be replaced by the imported specifier:
+
+```ts
+import Btn from 'foo/es/MyButton';
+```
+
+Template `customName: 'foo/es/{{ member }}'` is the same as ``customName: (member) => `foo/es/${member}` ``, but template string has no performance overhead of Node-API.
+
+The template used here is [handlebars](https://handlebarsjs.com). There are some useful builtin helpers, Take the above import statement as an example:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        use: 'builtin:swc-loader',
+        options: {
+          // ...
+          rspackExperiments: {
+            import: [
+              {
+                libraryName: 'foo',
+                customName: 'foo/es/{{ kebabCase member }}',
+              },
+            ],
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+Transformed to:
+
+```ts
+import Btn from 'foo/es/my-button';
+```
+
+In addition to `kebabCase`, there are `camelCase`, `snakeCase`, `upperCase`, `lowerCase` and `legacyKebabCase`/`legacySnakeCase` can be used as well.
+
+The `legacyKebabCase`/`legacySnakeCase` works as babel-plugin-import versions before 1.13.7.
+
+You can check the document of [babel-plugin-import](https://www.npmjs.com/package/babel-plugin-import) for other configurations.
+
+Taking the classic 4.x version of [ant-design](https://4x.ant.design/) as an example, we only need to configure it as follows:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        use: 'builtin:swc-loader',
+        options: {
+          // ...
+          rspackExperiments: {
+            import: [
+              {
+                libraryName: 'antd',
+                style: '{{member}}/style/index.css',
+              },
+            ],
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+The above configuration will transform `import { Button } from 'antd'`; to:
+
+```ts
+import Button from 'antd/es/button';
+import 'antd/es/button/style/index.css';
+```
+
+Then you can see the style file is automatically imported and applied on the page.
+
+Of course, if you have already configured support for `less`, you can simply use the following configuration:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        use: 'builtin:swc-loader',
+        options: {
+          // ...
+          rspackExperiments: {
+            import: [
+              {
+                libraryName: 'antd',
+                style: true,
+              },
+            ],
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+The above configuration will transform `import { Button } from 'antd';` to:
+
+```ts
+import Button from 'antd/es/button';
+import 'antd/es/button/style';
+```

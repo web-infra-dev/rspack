@@ -20,6 +20,8 @@ module.exports = {
     'pnpm-lock.yaml',
     'rspack.mp3',
     'doc_build',
+    'docs/ptBR/*', //TODO: portuguese language not pass in pnpm check:spell
+    'theme/i18n/ptBR.ts', //TODO: portuguese language not pass in pnpm check:spell
   ],
   flagWords: banWords,
   caseSensitive: true,

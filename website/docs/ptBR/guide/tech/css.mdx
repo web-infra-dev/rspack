@@ -1,0 +1,259 @@
+import { PackageManagerTabs } from '@theme';
+
+# CSS
+
+CSS is a first-class citizen in Rspack, and Rspack has several built-in features to support CSS bundling.
+
+## Enabling CSS support
+
+You can choose from the following options:
+
+### Native CSS support
+
+Rspack provides the [experiment.css](/config/experiments#experimentscss) option, an experimental feature introduced in webpack 5 to enable native CSS support. Rspack has improved this feature and plans to enable it by default in Rspack 2.0.
+
+> If you create a new project based on Rspack, it is recommended to use this method.
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    css: true,
+  },
+};
+```
+
+After enabling `experiment.css`, Rspack will support the following three module types, which you can set on the `rule` using `type`:
+
+- `css`: Used to handle normal CSS files.
+- `css/module`: Used to handle [CSS Modules](https://github.com/css-modules/css-modules).
+- `css/auto`: Automatically determines whether a file is a normal CSS file or CSS Modules based on the file extension. Files ending with `*.module.css` are treated as CSS Modules.
+
+For files ending in `*.css`, Rspack will treat them as `type: 'css/auto'` by default. You can also configure `type: 'css/auto'` to customize which files are treated as CSS files. For example, treat `.less` files as CSS files:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        type: 'css/auto', // 👈
+        use: ['less-loader'],
+      },
+    ],
+  },
+};
+```
+
+### Using CssExtractRspackPlugin
+
+Rspack supports using [css-loader](https://github.com/webpack-contrib/css-loader) and [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) to generate standalone CSS files.
+
+If you are migrating a webpack project that uses [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin), it is recommended to replace it with CssExtractRspackPlugin. Their functionality and options are basically the same.
+
+- Install css-loader:
+
+<PackageManagerTabs command="add css-loader -D" />
+
+- Add configuration:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
+        type: 'javascript/auto',
+      },
+    ],
+  },
+  plugins: [new rspack.CssExtractRspackPlugin({})],
+};
+```
+
+> Refer to the [migration guide](/guide/migration/webpack#mini-css-extract-plugin--rspackcssextractrspackplugin) to learn how to migrate from webpack.
+
+:::tip
+CssExtractRspackPlugin cannot be used with `type: 'css'`, `type: 'css/auto'`, or `type: 'css/module'` as these types are provided by `experiments.css`.
+:::
+
+### Using style-loader
+
+Rspack supports using [css-loader](https://github.com/webpack-contrib/css-loader) and [style-loader](https://github.com/webpack-contrib/style-loader) to inject CSS via `<style>` tags. This method does not generate standalone CSS files but inline the CSS content into JS files.
+
+- Install css-loader and style-loader:
+
+<PackageManagerTabs command="add css-loader style-loader -D" />
+
+- Add configuration:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        use: ['style-loader', 'css-loader'],
+        type: 'javascript/auto',
+      },
+    ],
+  },
+};
+```
+
+:::tip
+style-loader cannot be used with `type: 'css'`, `type: 'css/auto'`, or `type: 'css/module'` as these types are provided by `experiments.css`.
+:::
+
+## CSS Modules
+
+By default, Rspack treats files with a `*.module.css` extension as [CSS Modules](https://github.com/css-modules/css-modules). You can import them into your JavaScript files, and then access each class defined in the CSS file as an export from the module.
+
+```css title="index.module.css"
+.red {
+  color: red;
+}
+```
+
+You can use namespace import:
+
+```ts title="index.js"
+import * as styles from './index.module.css';
+document.getElementById('element').className = styles.red;
+```
+
+You can also use named import:
+
+```ts
+import { red } from './index.module.css';
+document.getElementById('element').className = red;
+```
+
+To enable default imports in Rspack, you need to set `namedExports` to `false` in your Rspack configuration file. This allows you, when using CSS Modules, to import the entire style module by default import, in addition to namespace imports and named imports:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        namedExports: false,
+      },
+    },
+  },
+};
+```
+
+Now you can use default import:
+
+```js
+import styles from './index.module.css';
+document.getElementById('element').className = styles.red;
+```
+
+For more on CSS Modules configuration, please refer to [module.parser.css](/config/module#moduleparsercss).
+
+## PostCSS
+
+Rspack supports [postcss-loader](https://github.com/webpack-contrib/postcss-loader), which you can configure like this:
+
+<PackageManagerTabs command="add postcss postcss-loader -D" />
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: [
+          {
+            loader: 'postcss-loader',
+            options: {
+              postcssOptions: {
+                // ...
+              },
+            },
+          },
+        ],
+        // set to 'css/auto' if you want to support '*.module.css' as CSS Modules, otherwise set type to 'css'
+        type: 'css/auto',
+      },
+    ],
+  },
+};
+```
+
+The above configuration will have all `*.css` files processed by [postcss-loader](https://github.com/webpack-contrib/postcss-loader). The output will be passed to Rspack for CSS post-processing.
+
+## Sass
+
+Rspack supports [sass-loader](https://github.com/webpack-contrib/sass-loader), which you can configure like this:
+
+<PackageManagerTabs command="add sass-embedded sass-loader -D" />
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.(sass|scss)$/,
+        use: [
+          {
+            loader: 'sass-loader',
+            options: {
+              // using `modern-compiler` and `sass-embedded` together significantly improve build performance,
+              // requires `sass-loader >= 14.2.1`
+              api: 'modern-compiler',
+              implementation: require.resolve('sass-embedded'),
+            },
+          },
+        ],
+        // set to 'css/auto' if you want to support '*.module.(scss|sass)' as CSS Modules, otherwise set type to 'css'
+        type: 'css/auto',
+      },
+    ],
+  },
+};
+```
+
+The above configuration runs all `*.sass` and `*.scss` files through the [sass-loader](https://github.com/webpack-contrib/sass-loader) and passes the resulting results to Rspack for CSS post-processing.
+
+## Less
+
+Rspack supports [less-loader](https://github.com/webpack-contrib/less-loader), which you can configure like this:
+
+<PackageManagerTabs command="add less less-loader -D" />
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        use: [
+          {
+            loader: 'less-loader',
+            options: {
+              // ...
+            },
+          },
+        ],
+        // set to 'css/auto' if you want to support '*.module.less' as CSS Modules, otherwise set type to 'css'
+        type: 'css/auto',
+      },
+    ],
+  },
+};
+```
+
+The above configuration runs all `*.less` files through the [less-loader](https://github.com/webpack-contrib/less-loader) and passes the generated results to Rspack for CSS post-processing.
+
+## Tailwind CSS
+
+[Tailwind CSS](https://tailwindcss.com/) is a CSS framework and design system based on utility class, which can quickly add common styles to components, and support flexible extension of theme styles.
+
+Tailwind CSS documentation provides integration guides for Rspack, please refer to:
+
+- [Install Tailwind CSS v4 with Rspack](https://tailwindcss.com/docs/installation/framework-guides/rspack/react)
+- [Install Tailwind CSS v3 with Rspack](https://v3.tailwindcss.com/docs/guides/rspack)

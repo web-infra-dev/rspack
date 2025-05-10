@@ -1,0 +1,58 @@
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.js.org/plugins/context-replacement-plugin/" />
+
+# ContextReplacementPlugin
+
+`Context` refers to a `require` or dynamic `import()` with an expression such as `require('./locale/' + name + '.json')`.
+When encountering such an expression, Rspack infers the directory (`'./locale/'`) and a regular expression (`/^.*\.json$/`).
+Since the name is not known at compile time, Rspack includes every file as module in the bundle.
+
+The `ContextReplacementPlugin` allows you to override the inferred information. There are various ways to configure the plugin:
+
+## Options
+
+- **Type:**
+
+```ts
+new rspack.ContextReplacementPlugin(
+  resourceRegExp: RegExp,
+  newContentResource?: string,
+  newContentRecursive?: boolean,
+  newContentRegExp?: RegExp
+)
+```
+
+If the resource (directory) matches `resourceRegExp`, the plugin replaces the default resource, recursive flag or generated regular expression with `newContentResource`, `newContentRecursive` or `newContextRegExp` respectively.
+If `newContentResource` is relative, it is resolved relative to the previous resource.
+
+## Examples
+
+### Basic use case
+
+```js
+new rspack.ContextReplacementPlugin(/moment[/\\]locale$/, /de|fr|hu/);
+```
+
+The `moment/locale` context is restricted to files matching `/de|fr|hu/`. Thus only those locales are included (see [this issue](https://github.com/moment/moment/issues/2373) for more information).
+
+### Other options
+
+The `newContentResource` and `newContentCreateContextMap` parameters are also available:
+
+```ts
+new rspack.ContextReplacementPlugin(
+  resourceRegExp: RegExp,
+  newContentResource: string,
+  newContentCreateContextMap: object // mapping runtime-request (userRequest) to compile-time-request (request)
+);
+```
+
+These two parameters can be used together to redirect requests in a more targeted way. The `newContentCreateContextMap` allows you to map runtime requests to compile requests in the form of an object:
+
+```js
+new rspack.ContextReplacementPlugin(/selector/, './folder', {
+  './request': './request',
+  './other-request': './new-request',
+});
+```

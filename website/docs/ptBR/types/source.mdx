@@ -1,0 +1,13 @@
+<>
+
+```ts
+type Source = {
+  source(): string | ArrayBuffer;
+  buffer(): Buffer;
+  size(): number;
+  map(options?: MapOptions): RawSourceMap | null;
+  sourceAndMap(options?: MapOptions): SourceAndMapResult;
+};
+```
+
+</>

@@ -1,6 +1,6 @@
-import type { EN_US } from './enUS';
+import type DefaultKeys from './defaultKeys';
 
-export const ZH_CN: Record<keyof typeof EN_US, string> = {
+export const ZH_CN: DefaultKeys = {
   // hero
   heroSlogan: '基于 Rust 的高性能 Web 打包工具',
   heroSubSlogan: '使用兼容 API 无缝替换 webpack',

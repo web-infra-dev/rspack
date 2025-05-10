@@ -1,0 +1,161 @@
+import WebpackLicense from '@components/WebpackLicense';
+import PropertyType from '@components/PropertyType';
+import { ApiMeta } from '@components/ApiMeta';
+
+<WebpackLicense from="https://webpack.js.org/configuration/other-options/" />
+
+# Other options
+
+These are the remaining configuration options supported by rspack.
+
+## amd
+
+<ApiMeta addedVersion="1.3.0" />
+
+<PropertyType
+  type="false | object"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+:::info
+Unlike webpack, where the default value of the `amd` option is `{}` (meaning AMD module dependency analysis is enabled by default), Rspack sets the default value of the `amd` option to `false`. This means AMD module dependency analysis is disabled by default in Rspack. This change was made because the usage of AMD modules is gradually decreasing. If your application requires it, you can enable this option by yourself.
+:::
+
+Enable this option to support dependency analysis for AMD modules, which is helpful for compatibility with some older libraries written according to the AMD specification.
+
+```js title="rspack.config.mjs"
+export default {
+  amd: {}, // enable parsing AMD module dependencies
+};
+```
+
+In addition, you can set the values of `require.amd` or `define.amd` through this configuration:
+
+```js title="rspack.config.mjs"
+export default {
+  amd: {
+    jQuery: true, // `require.amd` and `define.amd` are set to `{ jQuery: true }`.
+  },
+};
+```
+
+## bail
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+Fail out on the first error instead of tolerating it. By default Rspack will log these errors in red in the terminal, as well as the browser console when using HMR, but continue bundling.
+To enable it:
+
+```js title="rspack.config.mjs"
+export default {
+  bail: true,
+};
+```
+
+This will force Rspack to exit its bundling process.
+
+## dependencies
+
+<PropertyType
+  type="string[]"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+A list of [name](#name) defining all sibling configurations it depends on. Dependent configurations need to be compiled first.
+
+In watch mode dependencies will invalidate the compiler when:
+
+1. the dependency has changed
+2. a dependency is currently compiling or invalid
+
+Remember that current configuration will not compile until its dependencies are done.
+
+```js title="rspack.config.mjs"
+export default [
+  {
+    name: 'client',
+    target: 'web',
+    // …
+  },
+  {
+    name: 'server',
+    target: 'node',
+    dependencies: ['client'],
+  },
+];
+```
+
+## ignoreWarnings
+
+<PropertyType
+  type="(RegExp | ((warning: Error, Compilation: Compilation) => boolean))[]"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+Tells Rspack to ignore specific warnings.
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  ignoreWarnings: [/warning from compiler/, warning => true],
+};
+```
+
+## name
+
+<PropertyType
+  type="string"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+Name of the configuration. Used when loading multiple configurations.
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  name: 'admin-app',
+};
+```
+
+## loader
+
+<PropertyType
+  type="Record<string, any>"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+Expose custom values into the [loader context](/api/loader-api/context).
+
+For example, you can define a new variable in the loader context:
+
+```js title="rspack.config.mjs"
+export default {
+  // ...
+  loader: {
+    answer: 42,
+  },
+};
+```
+
+Then use `this.answer` to get its value in the loader:
+
+```js title=custom-loader.js
+module.exports = function (source) {
+  // ...
+  console.log(this.answer); // will log `42` here
+  return source;
+};
+```
+
+:::tip
+You can override properties in the loader context as webpack copies all properties that are defined in the loader to the loader context.
+:::
+
+## profile
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+Capture a "profile" of the application, including statistics and hints, which can then be dissected using the Analyze tool. It will also log out a summary of module timings.

@@ -1,0 +1,24 @@
+<>
+
+```ts
+type Module = {
+  context?: string;
+  resource?: string;
+  request?: string;
+  userRequest?: string;
+  rawRequest?: string;
+  factoryMeta?: JsFactoryMeta;
+  buildInfo: Record<string, any>;
+  buildMeta: Record<string, any>;
+  originalSource(): {
+    isRaw: boolean;
+    isBuffer: boolean;
+    source: Buffer;
+    map?: Buffer;
+  } | null;
+  identifier(): string;
+  nameForCondition(): string | null;
+};
+```
+
+</>

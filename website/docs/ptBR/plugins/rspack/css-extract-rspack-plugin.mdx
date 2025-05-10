@@ -1,0 +1,226 @@
+import { Table } from '@builtIns';
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# CssExtractRspackPlugin
+
+<ApiMeta specific={['Rspack']} />
+
+Rspack is currently incompatible with [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin), but you can use the CssExtractRspackPlugin as a replacement. It can be used with css-loader to extract CSS into separate files.
+
+> If your project does not depend on on css-loader and mini-css-extract-plugin, it is recommended to use Rspack's built-in CSS solution [experiments.css](/config/experiments#experimentscss), which offers better performance.
+
+## Example
+
+When using CssExtractRspackPlugin, you need to register the plugin in the `plugins` section and register `CssExtractRspackPlugin.loader` in [module.rules](/config/module#modulerules).
+
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.CssExtractRspackPlugin({})],
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
+        type: 'javascript/auto',
+      },
+    ],
+  },
+};
+```
+
+## Plugin options
+
+Options for `CssExtractRspackPlugin`.
+
+- **Types:**
+
+```ts
+interface PluginOptions {
+  filename?: string | ((pathData: PathData, assetInfo?: AssetInfo) => string);
+  chunkFilename?:
+    | string
+    | ((pathData: PathData, assetInfo?: AssetInfo) => string);
+  ignoreOrder?: boolean;
+  insert?: string | ((linkTag: HTMLLinkElement) => void);
+  attributes?: Record<string, string>;
+  linkType?: string | 'text/css' | false;
+  runtime?: boolean;
+  pathinfo?: boolean;
+  enforceRelative?: boolean;
+}
+```
+
+<Table
+  header={[
+    {
+      name: 'Name',
+      key: 'name',
+    },
+    {
+      name: 'Type',
+      key: 'type',
+    },
+    {
+      name: 'Default Value',
+      key: 'default',
+    },
+    {
+      name: 'Description',
+      key: 'description',
+    },
+  ]}
+  body={[
+    {
+      name: '`filename`',
+      type: '`string`',
+      default: '"[name].css"',
+      description:
+        'The name of each CSS output file, please refer to `output.filename`',
+    },
+    {
+      name: '`chunkFilename`',
+      type: '`string`',
+      default: '"[name].css"',
+      description:
+        'The name of the asynchronously loaded CSS files. If not set, it will use `filename`; please refer to `output.chunkFilename`',
+    },
+    {
+      name: '`ignoreOrder`',
+      type: '`boolean`',
+      default: 'false',
+      description:
+        'Whether to issue a warning if there are conflicts in the order of some CSS in different chunks. For example, entryA introduces a.css and b.css, entryB introduces b.css and a.css, and the order of a.css and b.css cannot be determined',
+    },
+    {
+      name: '`insert`',
+      type: '`string | ((linkTag: HTMLLinkElement) => void)`',
+      default: 'undefined',
+      description:
+        'Decide how the link tag is inserted into the page. If passed as a string type, it will be regarded as DOM selector, and the link tag will be inserted after element corresponding to that selector. If passed as function type, the function will be converted into a string at runtime for invocation, with link tag as parameter',
+    },
+    {
+      name: '`attributes`',
+      type: '`Record<string, string>`',
+      default: 'undefined',
+      description:
+        'Adds custom attributes to the `link` tag for async CSS chunks',
+    },
+    {
+      name: '`linkType`',
+      type: "`string | 'text/css' | false`",
+      default: '"text/css"',
+      description:
+        'Set the `type` attribute value for link tags to load async CSS chunks',
+    },
+    {
+      name: '`runtime`',
+      type: '`boolean`',
+      default: 'true',
+      description: `Whether to inject runtime code for CSS loading. If disabled, CSS will be still extracted and can be used for a custom loading methods`,
+    },
+    {
+      name: '`pathinfo`',
+      type: '`boolean`',
+      default: 'false',
+      description:
+        'Whether to include comments in CSS bundles with more detailed path information',
+    },
+    {
+      name: '`enforceRelative`',
+      type: '`boolean`',
+      default: 'false',
+      description:
+        'Whether to preserve "\.\/" when generated CSS `url()` is relative',
+    },
+  ]}
+/>
+
+## Loader options
+
+Options for `CssExtractRspackPlugin.loader`.
+
+- **Types:**
+
+```ts
+interface LoaderOptions {
+  publicPath?: string | ((resourcePath: string, context: string) => string);
+  emit?: boolean;
+  esModule?: boolean;
+}
+```
+
+<Table
+  header={[
+    {
+      name: 'Name',
+      key: 'name',
+    },
+    {
+      name: 'Type',
+      key: 'type',
+    },
+    {
+      name: 'Default Value',
+      key: 'default',
+    },
+    {
+      name: 'Description',
+      key: 'description',
+    },
+  ]}
+  body={[
+    {
+      name: '`publicPath`',
+      type: '`string | ((resourcePath: string, context: string) => string)`',
+      default: 'output.publicPath',
+      description:
+        'Specifies a custom public path for the external resources like images, files, etc inside CSS',
+    },
+    {
+      name: '`emit`',
+      type: '`boolean`',
+      default: 'true',
+      description:
+        'If true, emits CSS files. If false, the plugin will extract the CSS but will not emit files',
+    },
+    {
+      name: '`esModule`',
+      type: '`boolean`',
+      default: 'true',
+      description:
+        'whether to use ES modules syntax for CSS Modules class name exports in the generated JavaScript module',
+    },
+  ]}
+/>
+
+## Note
+
+Please note when enabling the built-in CSS support (`experiments.css`), Files ending with `.css` will be automatically treated as `css/auto` modules. If you want to use this plugin, make sure that the rule types with `CssExtractRspackPlugin.loader` set are all overridden by `javascript/auto` instead of the default `css/auto`.
+
+For example:
+
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.CssExtractRspackPlugin({})],
+  module: {
+    rules: [
+      {
+        test: /src\/legacy-project\/.*\.css$/,
+        type: 'javascript/auto', // Cover the default CSS module type and treat it as a regular JS file.
+        use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
+      },
+      {
+        test: /src\/new-project\/.*\.css$/,
+        type: 'css/auto', // Handle with built-in CSS
+      },
+    ],
+  },
+  experiments: {
+    css: true,
+  },
+};
+```

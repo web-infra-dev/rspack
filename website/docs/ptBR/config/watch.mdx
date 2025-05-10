@@ -1,0 +1,174 @@
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.js.org/configuration/watch" />
+
+# Watch
+
+Rspack can watch files and recompile whenever they change.
+
+## watch
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Turn on watch mode. This means that after the initial build, Rspack will continue to watch for changes in any of the resolved files.
+
+```js title="rspack.config.mjs"
+export default {
+  // ...
+  watch: true,
+};
+```
+
+:::tip
+`watch` is enabled by default when using `@rspack/dev-server`.
+:::
+
+## watchOptions
+
+- **Type:** `object`
+
+A set of options used to customize watch mode.
+
+```js title="rspack.config.mjs"
+export default {
+  // ...
+  watchOptions: {
+    ignored: /node_modules/,
+    poll: true,
+  },
+};
+```
+
+### watchOptions.aggregateTimeout
+
+- **Type:** `number`
+- **Default:** `5`
+
+Add a delay before rebuilding once the first file changed. This allows Rspack to aggregate any other changes made during this time period into one rebuild. Pass a value in milliseconds:
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  watchOptions: {
+    aggregateTimeout: 600,
+  },
+};
+```
+
+### watchOptions.ignored
+
+- **Type:** `RegExp | string | string[]`
+- **Default:** `/[\\/](?:\.git|node_modules)[\\/]/`
+
+The path that matches is excluded while watching. Watching many files can result in a lot of CPU or memory usage.
+
+Since Rspack v1.2.0, `node_modules` and `.git` directories are excluded by default. This means that changes to files in these directories will not trigger a rebuild.
+
+If you want to watch the `node_modules` directory, you can set it to only exclude the `.git` directory:
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  watchOptions: {
+    ignored: /\.git/,
+  },
+};
+```
+
+`ignored` can use glob matching:
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  watchOptions: {
+    ignored: '**/.git',
+  },
+};
+```
+
+It is also possible to use multiple glob patterns:
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  watchOptions: {
+    ignored: ['**/files/**/*.js', '**/.git', '**/node_modules'],
+  },
+};
+```
+
+In addition, you can specify one or more absolute paths:
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  //...
+  watchOptions: {
+    ignored: [path.posix.resolve(__dirname, './ignored-dir')],
+  },
+};
+```
+
+When using glob patterns, Rspack convert them to regular expressions with [glob-to-regexp](https://github.com/fitzgen/glob-to-regexp), so make sure to get yourself familiar with it before you use glob patterns for watchOptions.ignored.
+
+### watchOptions.poll
+
+- **Type:** `boolean`, `number`
+- **Default:** `false`
+
+Whether to watch by polling.
+
+When set to `true`, the default polling interval is 5007 milliseconds.
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  watchOptions: {
+    poll: true,
+  },
+};
+```
+
+It can also set a custom polling interval:
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  watchOptions: {
+    poll: 1000, // Check for changes every second
+  },
+};
+```
+
+### watchOptions.followSymlinks
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Follow symbolic links while looking for a file. This is usually not needed as Rspack already resolves symlinks with [resolve.symlinks](/config/resolve#resolvesymlinks).
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  watchOptions: {
+    followSymlinks: true,
+  },
+};
+```
+
+### watchOptions.stdin
+
+- **Type:** `boolean`
+
+Stop watching when stdin stream has ended.
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  watchOptions: {
+    stdin: true,
+  },
+};
+```

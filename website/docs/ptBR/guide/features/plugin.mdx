@@ -1,0 +1,169 @@
+import { Tabs, Tab } from '@theme';
+
+# Plugins
+
+Se os [loaders](/guide/features/loader) são os responsáveis pela transformação de arquivos, os plugins são o coração do processo de build do Rspack. A maioria das implementações nativas do Rspack depende do sistema de plugins no lado Rust.
+
+Para usuários de Node.js, não é preciso se preocupar com problemas de interoperabilidade entre Node.js e Rust, pois o Rspack cuida automaticamente desses detalhes. Você pode focar apenas em como usar os plugins.
+
+## Como usar plugins
+
+O Rspack oferece a configuração [plugins](/config/plugins), usada para registrar um conjunto de plugins do Rspack ou webpack e personalizar o processo de build.
+
+Aqui está um exemplo de uso do [webpack-bundle-analyzer](https://github.com/webpack-contrib/webpack-bundle-analyzer) na configuração do Rspack:
+
+<Tabs>
+  <Tab label="ESM">
+
+```js title="rspack.config.mjs"
+import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
+
+export default {
+  plugins: [
+    new BundleAnalyzerPlugin({
+      // options
+    }),
+  ],
+};
+```
+
+  </Tab>
+  <Tab label="CJS">
+
+```js title="rspack.config.cjs"
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+
+module.exports = {
+  plugins: [
+    new BundleAnalyzerPlugin({
+      // options
+    }),
+  ],
+};
+```
+
+  </Tab>
+</Tabs>
+
+Para encontrar mais plugins do Rspack, consulte a lista de [plugins suportados](/plugins/index).
+
+Você também pode verificar a [compatibilidade de plugins](/guide/compatibility/plugin) para a lista de plugins do webpack que passaram nos testes de compatibilidade do Rspack.
+
+## Outros plugins
+
+### Unplugin
+
+[unplugin](https://github.com/unjs/unplugin) é um sistema unificado de plugins para várias ferramentas de build. Você pode usar plugins baseados no unplugin no Rspack, geralmente importando o subpath `/rspack` do plugin e registrando-o através da configuração `plugins`.
+
+Aqui está um exemplo usando [unplugin-vue-components](https://www.npmjs.com/package/unplugin-vue-components):
+
+<Tabs>
+  <Tab label="ESM">
+
+```js title="rspack.config.mjs"
+import Components from 'unplugin-vue-components/rspack';
+
+export default {
+  plugins: [
+    Components({
+      // options
+    }),
+  ],
+};
+```
+
+  </Tab>
+  <Tab label="CJS">
+
+```js title="rspack.config.cjs"
+const Components = require('unplugin-vue-components/rspack');
+
+module.exports = {
+  plugins: [
+    Components.default({
+      // options
+    }),
+  ],
+};
+```
+
+  </Tab>
+</Tabs>
+
+### Plugins SWC
+
+No [swc-loader integrado](/guide/features/builtin-swc-loader) do Rspack, você pode usar plugins Wasm do SWC. Consulte [jsc.experimental.plugins](/guide/features/builtin-swc-loader#jscexperimentalplugins) para mais detalhes.
+
+### Plugins Rsbuild
+
+[Rsbuild](https://rsbuild.dev) é uma ferramenta de build baseada no Rspack com seu próprio sistema de plugins.
+
+Importante: Plugins do Rsbuild não funcionam no Rspack, pois o Rspack é uma ferramenta de nível mais baixo. Porém, plugins do Rspack podem ser usados no Rsbuild.
+
+Tabela comparativa de compatibilidade de plugins:
+
+| Ferramenta | Plugins Rspack | Plugins webpack | Plugins Rsbuild | Unplugins | Plugins SWC |
+| ---------- | -------------- | --------------- | --------------- | --------- | ----------- |
+| Rspack     | ✅             | ✅              | ❌              | ✅        | ✅          |
+| Rsbuild    | ✅             | ✅              | ✅              | ✅        | ✅          |
+
+> Consulte a [documentação de plugins do Rsbuild](https://rsbuild.dev/plugins/list/index) para mais informações.
+
+## Escrevendo um plugin
+
+### Estrutura do plugin
+
+Para criar um plugin, basta implementar um método `apply` que recebe uma instância do `Compiler`. Este método é chamado durante a inicialização do plugin. A API detalhada está disponível na [Documentação da API de Plugins](/api/plugin-api/index).
+
+<Tabs>
+  <Tab label="ESM">
+
+```js title="MyPlugin.mjs"
+const PLUGIN_NAME = 'MyPlugin';
+
+export class MyPlugin {
+  apply(compiler) {
+    compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
+      console.log('The Rspack build process is starting!');
+    });
+  }
+}
+```
+
+  </Tab>
+  <Tab label="CJS">
+
+```js title="MyPlugin.cjs"
+const PLUGIN_NAME = 'MyPlugin';
+
+class MyPlugin {
+  apply(compiler) {
+    compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
+      console.log('The Rspack build process is starting!');
+    });
+  }
+}
+
+module.exports = MyPlugin;
+```
+
+  </Tab>
+</Tabs>
+
+### Escrevendo com TypeScript
+
+Ao desenvolver plugins para Rspack usando TypeScript, você pode importar os tipos `Compiler` e `RspackPluginInstance` para definir a tipagem dos seus plugins:
+
+```ts title="MyPlugin.ts"
+import type { Compiler, RspackPluginInstance } from '@rspack/core';
+
+const PLUGIN_NAME = 'MyPlugin';
+
+export class MyPlugin implements RspackPluginInstance {
+  apply(compiler: Compiler) {
+    compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
+      console.log('The Rspack build process is starting!');
+    });
+  }
+}
+```

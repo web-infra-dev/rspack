@@ -1,0 +1,152 @@
+# Lazy compilation
+
+Lazy compilation is an effective strategy to improve the startup performance of the development phase. Instead of compiling all modules at initialization, it compiles modules on demand as they're needed. This means that developers can quickly see the application running when starting the dev server, and build the required modules in batches.
+
+By compiling on demand, unnecessary compilation time can be reduced. As the project scales up, compilation time does not significantly increase, which greatly enhances the development experience.
+
+:::tip
+Lazy compilation is only effective for dev builds and does not affect production builds.
+:::
+
+## How to use
+
+### Rspack CLI
+
+For users of `@rspack/cli`, you can enable lazy compilation through [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) configuration. Assuming you are developing a multi-page application (MPA), when developing one of these pages, Rspack will only build the entry point you are currently accessing.
+
+```js title="rspack.config.mjs"
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  entry: {
+    Home: './src/Home.js',
+    About: './src/About.js',
+  },
+  experiments: {
+    lazyCompilation: true,
+  },
+});
+```
+
+`lazyCompilation: true` is equivalent to:
+
+```js title="rspack.config.mjs"
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  entry: {
+    Home: './src/Home.js',
+    About: './src/About.js',
+  },
+  experiments: {
+    lazyCompilation: {
+      // lazy compile entries
+      entries: true,
+      // lazy compile dynamic imports
+      imports: true,
+    },
+  },
+});
+```
+
+> See [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) for more details.
+
+:::info
+When lazy compilation is enabled for entries, entry modules will actually be asynchronously dynamically imported. Therefore if you have configured [splitChunks](/config/optimization#optimizationsplitchunks), entry modules will be treated as async chunk, which may result in slight differences between development and production artifacts.
+:::
+
+### Rsbuild
+
+Use the [dev.lazyCompilation](https://rsbuild.dev/config/dev/lazy-compilation) option to enable lazy compilation with Rsbuild.
+
+## Filtering modules
+
+In addition to two options `entries` and `imports`, you can also use a `test` option to filter out certain modules for lazy compilation.
+
+For example, if you want to disable lazy compilation for the `About` entry point, you can refer to the following configuration:
+
+```js title="rspack.config.mjs"
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  entry: {
+    Home: './src/Home.js',
+    About: './src/About.js',
+  },
+  experiments: {
+    lazyCompilation: {
+      entries: true,
+      imports: true,
+      test(module) {
+        const name = module.nameForCondition();
+        return name && !/src\/About/.test(name);
+      },
+    },
+  },
+});
+```
+
+## Under the hood
+
+The principle of lazy compilation is to proxy the unexecuted entries and dynamically imported modules. When the module is executed during runtime it sends a request to the dev server, triggering rebuild by Compiler along with module hot updates.
+
+Only when corresponding entries and modules are executed will Rspack compile their respective entries and Modules along with all their dependencies.
+
+![image](https://assets.rspack.dev/rspack/assets/lazy-proxy-module.png)
+
+## Integrating with custom server
+
+When using Rspack CLI, the `experiments.lazyCompilation` option is actually processed by `@rspack/cli`. It adds an [Express-style middleware](https://expressjs.com/en/guide/using-middleware.html) to dev server to handle lazy compilation requests from client.
+
+If you are using a custom dev server, you will need to manually integrate `rspack.experiments.lazyCompilationMiddleware` into your dev server.
+
+```js title="start.mjs"
+import { experiments, rspack } from '@rspack/core';
+import config from './rspack.config.mjs';
+import DevServer from 'webpack-dev-server';
+
+const compiler = rspack(config);
+
+const middleware = experiments.lazyCompilationMiddleware(
+  compiler,
+  config.experiments.lazyCompilation,
+);
+
+const server = new DevServer(
+  {
+    port: 3000,
+    setupMiddlewares(other) {
+      return [middleware, ...other];
+    },
+  },
+  compiler,
+);
+
+server.start();
+```
+
+`lazyCompilationMiddleware` accepts two parameters:
+
+- `compiler`: The current [Compiler](/api/javascript-api/compiler) instance
+- `options`: The lazy compilation options, same as [experiments.lazyCompilation](/config/experiments#experimentslazycompilation)
+
+## Customizing lazy compilation endpoint
+
+By default, the lazy compilation middleware uses the `/lazy-compilation-using-` prefix for handling requests. If you need to customize this prefix, you can use the `prefix` option:
+
+```js title="rspack.config.mjs"
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  experiments: {
+    lazyCompilation: {
+      entries: true,
+      imports: true,
+      // Customize the lazy compilation endpoint prefix
+      prefix: '/custom-lazy-endpoint-',
+    },
+  },
+});
+```
+
+This is particularly useful when you're integrating with an existing system that has specific routing requirements or when you need to avoid prefix conflicts.
