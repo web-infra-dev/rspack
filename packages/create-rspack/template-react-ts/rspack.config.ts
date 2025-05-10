@@ -1,6 +1,9 @@
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { defineConfig } from "@rspack/cli";
 import { rspack } from "@rspack/core";
-import * as RefreshPlugin from "@rspack/plugin-react-refresh";
+import RefreshPlugin from "@rspack/plugin-react-refresh";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -8,7 +11,7 @@ const isDev = process.env.NODE_ENV === "development";
 const targets = ["chrome >= 87", "edge >= 88", "firefox >= 78", "safari >= 14"];
 
 export default defineConfig({
-	context: __dirname,
+	context: dirname(fileURLToPath(import.meta.url)),
 	entry: {
 		main: "./src/main.tsx"
 	},
