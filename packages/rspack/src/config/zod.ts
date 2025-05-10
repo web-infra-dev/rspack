@@ -1477,7 +1477,8 @@ const buildHttpOptions = z.object({
 				z.object({
 					status: z.number(),
 					headers: z.record(z.string()),
-					body: z.instanceof(Buffer)
+					body: z.instanceof(Buffer),
+					url: z.string()
 				})
 			)
 		)
