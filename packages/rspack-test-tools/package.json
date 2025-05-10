@@ -94,7 +94,7 @@
     "graceful-fs": "^4.2.11",
     "html-loader": "^5.1.0",
     "html-webpack-plugin": "^5.6.3",
-    "less-loader": "^12.2.0",
+    "less-loader": "^12.3.0",
     "lodash": "^4.17.21",
     "postcss-loader": "^8.1.1",
     "postcss-pxtorem": "^6.1.0",
