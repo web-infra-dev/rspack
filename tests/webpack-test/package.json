@@ -27,7 +27,7 @@
     "file-loader": "^6.2.0",
     "is-ci": "4.1.0",
     "less": "4.3.0",
-    "less-loader": "^12.2.0",
+    "less-loader": "^12.3.0",
     "lodash-es": "^4.17.15",
     "memfs": "^4.17.1",
     "mime-types": "^3.0.1",
