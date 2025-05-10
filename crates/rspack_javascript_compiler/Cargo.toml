@@ -37,16 +37,12 @@ swc_core = { workspace = true, features = [
 swc_ecma_minifier = { workspace = true, features = ["concurrent"] }
 swc_error_reporters = { workspace = true }
 swc_node_comments = { workspace = true }
-swc_parallel = { workspace = true, default-features = false }
 url = "2.5.0"
 
 rspack_cacheable = { workspace = true }
 rspack_error     = { workspace = true }
 rspack_sources   = { workspace = true }
 rspack_util      = { workspace = true }
-
-[package.metadata.cargo-shear]
-ignored = ["swc_parallel"]
 
 [lints]
 workspace = true
