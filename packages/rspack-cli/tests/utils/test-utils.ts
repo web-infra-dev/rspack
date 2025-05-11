@@ -10,7 +10,7 @@ const fs = require("fs");
 const execa = require("execa");
 const { exec } = require("child_process");
 const { node: execaNode } = execa;
-const { Writable } = require("readable-stream");
+const { Writable } = require("node:stream");
 const concat = require("concat-stream");
 
 const RSPACK_PATH = path.resolve(__dirname, "../../bin/rspack.js");
