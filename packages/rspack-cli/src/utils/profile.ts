@@ -44,7 +44,7 @@ export async function applyProfile(
 		);
 		const defaultRustTraceChromeOutput = path.join(
 			defaultOutputDir,
-			"./trace.json"
+			"trace.json"
 		);
 		const defaultRustTraceLoggerOutput = "stdout";
 
@@ -73,5 +73,4 @@ export async function applyProfile(
 async function ensureFileDir(outputFilePath: string) {
 	const dir = path.dirname(outputFilePath);
 	await fs.promises.mkdir(dir, { recursive: true });
-	return dir;
 }
