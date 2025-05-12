@@ -170,15 +170,11 @@ jobs:
       # WASM
       - name: Build wasm32-wasip1-threads with linux in Docker
         if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
-        uses: ./.github/actions/docker/linux-build
-        with:
-          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
-          target: ${{ inputs.target }}
-          profile: ${{ inputs.profile }}
-          plugin: false
-          pre: unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
+        run: |
+          unset CC_x86_64_unknown_linux_gnu && unset CC #
+          RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
-      - name: Build wasm32-wasip1-threads with linux in Docker
+      - name: Build wasm32-wasip1-threads with linux in Debug
         if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
         uses: ./.github/actions/debugger
 
