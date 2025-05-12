@@ -130,6 +130,15 @@ macro_rules! impl_module_methods {
           Ok(res)
         }
 
+        #[js_function]
+        fn build_info_getter(ctx: napi::CallContext) -> napi::Result<$crate::BuildInfo> {
+          use napi::bindgen_prelude::FromNapiValue;
+          use napi::NapiRaw;
+          let this = ctx.this::<napi::bindgen_prelude::Object>()?;
+          let reference: napi::bindgen_prelude::Reference<$crate::Module> = unsafe { napi::bindgen_prelude::Reference::from_napi_value(ctx.env.raw(), this.raw())? };
+          Ok($crate::BuildInfo::new(reference.downgrade()))
+        }
+
         properties.push(
           napi::Property::new("type")?
             .with_value(&env.create_string(module.module_type().as_str())?),
@@ -145,7 +154,7 @@ macro_rules! impl_module_methods {
             .with_getter(factory_meta_getter)
             .with_setter(factory_meta_setter),
         );
-        properties.push(napi::Property::new("buildInfo")?.with_value(&env.create_object()?));
+        properties.push(napi::Property::new("buildInfo")?.with_getter(build_info_getter));
         properties.push(napi::Property::new("buildMeta")?.with_value(&env.create_object()?));
         properties.push(
           napi::Property::new("_readableIdentifier")?.with_getter(readable_identifier_getter),

@@ -176,6 +176,37 @@ export type ContextModuleFactoryAfterResolveResult =
 	| false
 	| ContextModuleFactoryAfterResolveData;
 
+const $assets: unique symbol = Symbol("assets");
+
+declare module "@rspack/binding" {
+	interface Assets {
+		[$assets]: Record<string, Source>;
+	}
+}
+
+Object.defineProperty(binding.BuildInfo.prototype, "assets", {
+	enumerable: true,
+	configurable: true,
+	get(this: binding.BuildInfo): Record<string, Source> {
+		if (this._assets[$assets]) {
+			return this._assets[$assets];
+		}
+		const assets = new Proxy(this._assets, {
+			ownKeys(target: binding.Assets) {
+				return target.keys();
+			},
+			getOwnPropertyDescriptor() {
+				return {
+					enumerable: true,
+					configurable: true
+				};
+			}
+		}) as any as Record<string, Source>;
+		this._assets[$assets] = assets;
+		return assets;
+	}
+});
+
 Object.defineProperty(binding.Module.prototype, "identifier", {
 	enumerable: true,
 	configurable: true,

@@ -7,6 +7,7 @@ use rspack_core::{parse_resource, ResourceData, ResourceParsedData};
 use crate::{impl_module_methods, plugins::JsLoaderItem, JsResourceData, Module};
 
 #[napi]
+#[repr(C)]
 pub struct NormalModule {
   pub(crate) module: Module,
 }

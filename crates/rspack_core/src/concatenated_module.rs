@@ -609,7 +609,7 @@ impl Module for ConcatenatedModule {
       self
         .build_info
         .assets
-        .extend(module_build_info.assets.clone());
+        .extend(module_build_info.assets.as_ref().clone());
     }
     // return a dummy result is enough, since we don't build the ConcatenatedModule in make phase
     Ok(BuildResult::default())

@@ -65,9 +65,17 @@ export declare class ExternalObject<T> {
     [K: symbol]: T
   }
 }
+export declare class Assets {
+  keys(): Array<string>
+}
+
 export declare class AsyncDependenciesBlock {
   get dependencies(): Dependency[]
   get blocks(): AsyncDependenciesBlock[]
+}
+
+export declare class BuildInfo {
+  get _assets(): Assets
 }
 
 export declare class Chunks {
@@ -372,6 +380,7 @@ export declare class Module {
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
+  buildInfo(): BuildInfo
   _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
 }
 

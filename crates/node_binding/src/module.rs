@@ -13,17 +13,16 @@ use rspack_core::{
   FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{
-  napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotInstanceRef,
-  OneShotRef, WeakRef,
+  napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotInstanceRef, OneShotRef,
 };
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_util::source_map::SourceMapKind;
 
 use super::JsCompatSourceOwned;
 use crate::{
-  AssetInfo, AsyncDependenciesBlockWrapper, ConcatenatedModule, ContextModule, DependencyWrapper,
-  ExternalModule, JsChunkWrapper, JsCodegenerationResults, JsCompatSource, JsCompiler,
-  NormalModule, ToJsCompatSource, COMPILER_REFERENCES,
+  AssetInfo, AsyncDependenciesBlockWrapper, BuildInfo, ConcatenatedModule, ContextModule,
+  DependencyWrapper, ExternalModule, JsChunkWrapper, JsCodegenerationResults, JsCompatSource,
+  JsCompiler, NormalModule, ToJsCompatSource, COMPILER_REFERENCES,
 };
 
 #[napi(object)]
@@ -297,6 +296,11 @@ impl Module {
         None => None,
       },
     )
+  }
+
+  #[napi]
+  pub fn build_info(&mut self, reference: Reference<Module>) -> napi::Result<BuildInfo> {
+    Ok(BuildInfo::new(reference.downgrade()))
   }
 
   #[napi(
