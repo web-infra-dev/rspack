@@ -5,7 +5,7 @@ module.exports = function (config) {
   if (supportsOptionalChaining()) {
     return [
       FilteredStatus.PARTIAL_PASS,
-      "should not evaluate new RegExp for redefined RegExp"
+      "TODO: not support moduleIds: 'size'"
     ]
   } else {
     return false;
