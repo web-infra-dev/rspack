@@ -18,7 +18,7 @@ impl Tracer for ChromeTracer {
       .trace_style(TraceStyle::Async)
       .include_args(true)
       .category_fn(Box::new(|_| "rspack".to_string()))
-      .writer(trace_writer.writer())
+      .writer(move || trace_writer.writer())
       .build();
     self.guard = Some(guard);
 
