@@ -183,6 +183,7 @@ impl NormalModule {
     resource_data: Arc<ResourceData>,
     resolve_options: Option<Arc<Resolve>>,
     loaders: Vec<BoxLoader>,
+    context: Option<Context>,
   ) -> Self {
     let module_type = module_type.into();
     let id = Self::create_id(&module_type, layer.as_ref(), &request);
@@ -190,7 +191,7 @@ impl NormalModule {
       blocks: Vec::new(),
       dependencies: Vec::new(),
       id: ModuleIdentifier::from(id.as_ref()),
-      context: Box::new(get_context(&resource_data)),
+      context: Box::new(context.unwrap_or_else(|| get_context(&resource_data))),
       request,
       user_request,
       raw_request,
