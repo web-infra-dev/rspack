@@ -97,22 +97,22 @@ CompilerOptions {
         script_type: "",
         environment: Environment {
             const: Some(
-                true,
+                false,
             ),
             arrow_function: Some(
-                true,
+                false,
             ),
             node_prefix_for_core_modules: Some(
-                true,
+                false,
             ),
             async_function: Some(
-                true,
+                false,
             ),
             big_int_literal: Some(
-                true,
+                false,
             ),
             destructuring: Some(
-                true,
+                false,
             ),
             document: Some(
                 true,
@@ -121,17 +121,19 @@ CompilerOptions {
                 false,
             ),
             for_of: Some(
-                true,
+                false,
             ),
-            global_this: None,
+            global_this: Some(
+                false,
+            ),
             module: Some(
                 false,
             ),
             optional_chaining: Some(
-                true,
+                false,
             ),
             template_literal: Some(
-                true,
+                false,
             ),
             dynamic_import_in_worker: Some(
                 false,
