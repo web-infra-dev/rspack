@@ -391,19 +391,40 @@ mod napi_binding {
     fn deserialize(&self, deserializer: &mut D) -> Result<BindingCell<T>, D::Error> {
       let boxed: Box<T> = self.deserialize(deserializer)?;
       let type_id = boxed.type_id();
-      if type_id == TypeId::of::<Box<AssetInfo>>() {
-        let ptr = Box::into_raw(boxed);
-        let boxed = unsafe { Box::from_raw(ptr as *mut AssetInfo) };
-        Ok(BindingCell {
-          ptr,
-          heap: Arc::new(Heap {
-            variant: HeapVariant::AssetInfo(boxed),
-            jsobject: OnceCell::default(),
-          }),
-        })
-      } else {
-        unreachable!()
+
+      macro_rules! deserialize_variant {
+        ($type_id:expr, $boxed:expr, $variant:path, $target:ty) => {
+          if $type_id == TypeId::of::<Box<$target>>() {
+            let ptr = Box::into_raw($boxed);
+            let boxed = unsafe { Box::from_raw(ptr as *mut $target) };
+            return Ok(BindingCell {
+              ptr,
+              heap: Arc::new(Heap {
+                variant: $variant(boxed),
+                jsobject: OnceCell::default(),
+              }),
+            });
+          }
+        };
       }
+
+      deserialize_variant!(type_id, boxed, HeapVariant::AssetInfo, AssetInfo);
+      deserialize_variant!(
+        type_id,
+        boxed,
+        HeapVariant::CodeGenerationResults,
+        CodeGenerationResults
+      );
+      deserialize_variant!(
+        type_id,
+        boxed,
+        HeapVariant::CodeGenerationResult,
+        CodeGenerationResult
+      );
+      deserialize_variant!(type_id, boxed, HeapVariant::Sources, FxHashMap<SourceType, BoxSource>);
+      deserialize_variant!(type_id, boxed, HeapVariant::Assets, FxHashMap<String, CompilationAsset>);
+
+      unreachable!()
     }
   }
 }
