@@ -2306,6 +2306,7 @@ export interface RawJavascriptParserOptions {
   url?: string
   exprContextCritical?: boolean
   wrappedContextCritical?: boolean
+	unknownContextCritical?: boolean
   wrappedContextRegExp?: RegExp
   exportsPresence?: string
   importExportsPresence?: string
