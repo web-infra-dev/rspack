@@ -55,6 +55,7 @@ jobs:
           # .cache is required by download artifact, and mount in ./.github/actions/docker/run
           # .tool_cache is required by pnpm
         run: |
+          pnpm exec playwright install 
           export PATH=${{ steps.calculate-node-bin-path.outputs.path }}:$PATH
           pnpm run build:js
           pnpm run test:e2e
