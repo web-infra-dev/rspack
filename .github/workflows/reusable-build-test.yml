@@ -48,6 +48,10 @@ jobs:
           NODE_BIN_PATH=$(dirname $(which node))
           echo "path=$NODE_BIN_PATH" >> $GITHUB_OUTPUT
 
+      - name: Run e2e (Self-Hosted) debug
+        uses: ./.github/actions/debugger
+        if: ${{ runner.environment == 'self-hosted' }}
+
       - name: Run e2e (Self-Hosted)
         if: ${{ runner.environment == 'self-hosted' }}
           # Jammy uses ubuntu 22.04
@@ -55,6 +59,7 @@ jobs:
           # .cache is required by download artifact, and mount in ./.github/actions/docker/run
           # .tool_cache is required by pnpm
         run: |
+          pnpm install playwright 
           pnpm exec playwright install 
           export PATH=${{ steps.calculate-node-bin-path.outputs.path }}:$PATH
           pnpm run build:js
