@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.8",
   "scripts": {
+    "prepare:test": "playwright install --with-deps",
     "test": "playwright test",
     "test:CI": "CI=1 npm run test"
   },
