@@ -178,6 +178,10 @@ jobs:
           plugin: false
           pre: unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
 
+      - name: Build wasm32-wasip1-threads with linux in Docker
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
+        uses: ./.github/actions/debugger
+
       - name: Upload artifact
         uses: ./.github/actions/artifact/upload
         with:
