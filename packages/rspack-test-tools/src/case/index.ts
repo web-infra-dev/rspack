@@ -16,5 +16,4 @@ export * from "./treeshaking";
 export * from "./watch";
 export * from "./new-incremental";
 export * from "./cache";
-export * from "./new-code-splitting";
 export * from "./serial";

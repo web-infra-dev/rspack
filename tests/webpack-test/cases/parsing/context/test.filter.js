@@ -1,4 +1,6 @@
+const { FilteredStatus } = require("../../../lib/util/filterUtil");
 
-module.exports = () => {return "https://github.com/web-infra-dev/rspack/issues/3346"}
-
-							
+module.exports = () => [
+	FilteredStatus.PARTIAL_PASS,
+	"not support moduleName of Circular dependency warning yet"
+];

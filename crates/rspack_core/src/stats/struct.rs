@@ -57,6 +57,7 @@ pub struct StatsError<'a> {
 
 #[derive(Debug)]
 pub struct StatsWarning<'a> {
+  pub name: Option<String>,
   pub message: String,
   pub module_identifier: Option<ModuleIdentifier>,
   pub module_name: Option<Cow<'a, str>>,

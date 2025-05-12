@@ -1,8 +1,7 @@
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
-  compile_boolean_matcher, impl_runtime_module,
-  rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
-  BooleanMatcher, Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  compile_boolean_matcher, impl_runtime_module, BooleanMatcher, Chunk, ChunkUkey, Compilation,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 
 use super::{
@@ -36,7 +35,7 @@ impl RequireChunkLoadingRuntimeModule {
     chunk: &Chunk,
     compilation: &Compilation,
     root_output_dir: &str,
-  ) -> BoxSource {
+  ) -> String {
     let base_uri = chunk
       .get_entry_options(&compilation.chunk_group_by_ukey)
       .and_then(|options| options.base_uri.as_ref())
@@ -55,7 +54,7 @@ impl RequireChunkLoadingRuntimeModule {
           }
         )
       });
-    RawStringSource::from(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)).boxed()
+    format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)
   }
 
   fn template_id(&self, id: TemplateId) -> String {
@@ -123,7 +122,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     ]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunk = compilation
       .chunk_by_ukey
       .expect_get(&self.chunk.expect("The chunk should be attached."));
@@ -145,32 +144,32 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
     let root_output_dir = get_output_dir(chunk, compilation, true).await?;
 
-    let mut source = ConcatSource::default();
+    let mut source = String::default();
 
     if with_base_uri {
-      source.add(self.generate_base_uri(chunk, compilation, &root_output_dir));
+      source.push_str(&self.generate_base_uri(chunk, compilation, &root_output_dir));
     }
 
     if with_hmr {
       let state_expression = format!("{}_require", RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
-      source.add(RawStringSource::from(format!(
+      source.push_str(&format!(
         "var installedChunks = {} = {} || {};\n",
         state_expression,
         state_expression,
         &stringify_chunks(&initial_chunks, 1)
-      )));
+      ));
     } else {
-      source.add(RawStringSource::from(format!(
+      source.push_str(&format!(
         "var installedChunks = {};\n",
         &stringify_chunks(&initial_chunks, 1)
-      )));
+      ));
     }
 
     if with_on_chunk_load {
       let source_with_on_chunk_load = compilation
         .runtime_template
         .render(&self.template_id(TemplateId::WithOnChunkLoad), None)?;
-      source.add(RawStringSource::from(source_with_on_chunk_load));
+      source.push_str(&source_with_on_chunk_load);
     }
 
     if with_loading || with_external_install_chunk {
@@ -184,7 +183,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
         })),
       )?;
 
-      source.add(RawStringSource::from(raw_source));
+      source.push_str(&raw_source);
     }
 
     if with_loading {
@@ -193,7 +192,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
           .runtime_template
           .render(&self.template_id(TemplateId::WithLoading), None)?;
 
-        source.add(RawStringSource::from(source_with_loading));
+        source.push_str(&source_with_loading);
       } else {
         let source_with_loading_matcher = compilation.runtime_template.render(
           &self.template_id(TemplateId::WithLoadingMatcher),
@@ -203,7 +202,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
           })),
         )?;
 
-        source.add(RawStringSource::from(source_with_loading_matcher));
+        source.push_str(&source_with_loading_matcher);
       }
     }
 
@@ -213,7 +212,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
         None,
       )?;
 
-      source.add(RawStringSource::from(source_with_external_install_chunk));
+      source.push_str(&source_with_external_install_chunk);
     }
 
     if with_hmr {
@@ -221,10 +220,8 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
         .runtime_template
         .render(&self.template_id(TemplateId::WithHmr), None)?;
 
-      source.add(RawStringSource::from(source_with_hmr));
-      source.add(RawStringSource::from(generate_javascript_hmr_runtime(
-        "require",
-      )));
+      source.push_str(&source_with_hmr);
+      source.push_str(&generate_javascript_hmr_runtime("require"));
     }
 
     if with_hmr_manifest {
@@ -232,10 +229,10 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
         .runtime_template
         .render(&self.template_id(TemplateId::WithHmrManifest), None)?;
 
-      source.add(RawStringSource::from(source_with_hmr_manifest));
+      source.push_str(&source_with_hmr_manifest);
     }
 
-    Ok(source.boxed())
+    Ok(source)
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

@@ -314,7 +314,7 @@ impl<'a> JavaScriptTransformer<'a> {
       .input_source_map(&built_input.input_source_map)
       .to_rspack_result_from_anyhow()?;
 
-    let program = self.transform_with_built_input(built_input)?;
+    let (program, diagnostics) = self.transform_with_built_input(built_input)?;
     let format_opt = JsMinifyFormatOptions {
       inline_script: false,
       ascii_only: true,
@@ -331,7 +331,10 @@ impl<'a> JavaScriptTransformer<'a> {
       format: &format_opt,
     };
 
-    self.javascript_compiler.print(&program, print_options)
+    self
+      .javascript_compiler
+      .print(&program, print_options)
+      .map(|o| o.with_diagnostics(diagnostics))
   }
 
   fn parse_js(
@@ -420,13 +423,20 @@ impl<'a> JavaScriptTransformer<'a> {
   fn transform_with_built_input(
     &self,
     built_input: BuiltInput<impl Pass>,
-  ) -> Result<Program, Error> {
+  ) -> Result<(Program, Vec<String>), Error> {
     let program = built_input.program;
     let mut pass = built_input.pass;
+    let mut diagnostics = vec![];
     let program = self.run(|| {
       helpers::HELPERS.set(&self.helpers, || {
-        let result = try_with_handler(self.cm.clone(), Default::default(), |_handler| {
-          Ok(program.apply(&mut pass))
+        let result = try_with_handler(self.cm.clone(), Default::default(), |handler| {
+          // Apply external plugin passes to the Program AST.
+          // External plugins may emit warnings or inject helpers,
+          // so we need a handler to properly process them.
+          let program = program.apply(&mut pass);
+          diagnostics.extend(handler.take_diagnostics());
+
+          Ok(program)
         });
 
         result.map_err(|err| {
@@ -476,7 +486,9 @@ impl<'a> JavaScriptTransformer<'a> {
       );
     }
 
-    program.map_err(|e| e.into())
+    program
+      .map(|program| (program, diagnostics))
+      .map_err(|e| e.into())
   }
 
   pub fn input_source_map(

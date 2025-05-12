@@ -1,9 +1,5 @@
 use rspack_collections::Identifier;
-use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  Compilation, RuntimeModule,
-};
+use rspack_core::{impl_runtime_module, Compilation, RuntimeModule};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -32,9 +28,9 @@ impl RuntimeModule for CompatGetDefaultExportRuntimeModule {
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let source = compilation.runtime_template.render(&self.id, None)?;
 
-    Ok(RawStringSource::from(source).boxed())
+    Ok(source)
   }
 }

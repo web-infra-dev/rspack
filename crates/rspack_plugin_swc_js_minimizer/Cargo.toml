@@ -34,8 +34,4 @@ swc_core = { workspace = true, features = [
   "ecma_quote",
 ] }
 swc_ecma_minifier = { workspace = true, features = ["concurrent"] }
-swc_parallel = { workspace = true, default-features = false }
 tracing = { workspace = true }
-
-[package.metadata.cargo-shear]
-ignored = ["tracing", "swc_parallel"]

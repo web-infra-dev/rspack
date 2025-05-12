@@ -184,6 +184,7 @@ impl<'a> From<rspack_core::StatsError<'a>> for JsStatsError<'a> {
 pub struct JsStatsWarning<'a> {
   #[napi(ts_type = "JsModuleDescriptor")]
   pub module_descriptor: Option<JsModuleDescriptorWrapper<'a>>,
+  pub name: Option<String>,
   pub message: String,
   pub chunk_name: Option<&'a str>,
   pub chunk_entry: Option<bool>,
@@ -206,6 +207,7 @@ impl<'a> From<rspack_core::StatsWarning<'a>> for JsStatsWarning<'a> {
         }
         .into()
       }),
+      name: stats.name,
       message: stats.message,
       file: stats.file.map(|f| f.as_str()),
       chunk_name: stats.chunk_name,
@@ -1248,16 +1250,6 @@ impl JsStats {
         .collect::<Vec<_>>();
       unsafe { ToNapiValue::to_napi_value(env.raw(), val) }
     })
-  }
-
-  #[napi]
-  pub fn has_warnings(&self) -> bool {
-    !self.inner.get_warnings(|warnings| warnings.is_empty())
-  }
-
-  #[napi]
-  pub fn has_errors(&self) -> bool {
-    !self.inner.get_errors(|warnings| warnings.is_empty())
   }
 
   #[napi]
