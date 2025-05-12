@@ -496,7 +496,7 @@ mod tests {
     let mut results = vec![];
 
     for test_case in tests {
-      let input: Vec<String> = test_case.iter().map(|s| s.to_string()).collect();
+      let input: Vec<String> = test_case.iter().map(|s| (*s).to_string()).collect();
 
       let targets = resolve(input.clone());
 
