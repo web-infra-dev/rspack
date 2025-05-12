@@ -33,13 +33,12 @@ jobs:
 
   test-linux:
     name: Test Linux
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
       test: true
-      bench: true
+      bench: false
 
 
 
