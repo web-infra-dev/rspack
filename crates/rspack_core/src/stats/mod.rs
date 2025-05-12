@@ -673,6 +673,7 @@ impl Stats<'_> {
         );
 
         StatsWarning {
+          name: d.code().map(|c| c.to_string()),
           message: diagnostic_displayer
             .emit_diagnostic(d)
             .expect("should print diagnostics"),

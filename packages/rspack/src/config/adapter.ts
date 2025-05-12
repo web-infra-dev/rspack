@@ -37,6 +37,7 @@ import {
 	type LoaderContext,
 	type LoaderDefinition,
 	type LoaderDefinitionFunction,
+	type PitchLoaderDefinitionFunction,
 	createRawModuleRuleUses
 } from "./adapterRuleUse";
 import type {
@@ -70,7 +71,12 @@ import type {
 	StatsValue
 } from "./types";
 
-export type { LoaderContext, LoaderDefinition, LoaderDefinitionFunction };
+export type {
+	LoaderContext,
+	LoaderDefinition,
+	LoaderDefinitionFunction,
+	PitchLoaderDefinitionFunction
+};
 
 // invariant: `options` is normalized with default value applied
 export const getRawOptions = (
@@ -607,7 +613,8 @@ function getRawCssParserOptions(
 	parser: CssParserOptions
 ): RawCssParserOptions | RawCssAutoParserOptions | RawCssModuleParserOptions {
 	return {
-		namedExports: parser.namedExports
+		namedExports: parser.namedExports,
+		url: parser.url
 	};
 }
 
@@ -704,7 +711,8 @@ function getRawAssetInlineGeneratorOptions(
 	return {
 		dataUrl: options.dataUrl
 			? getRawAssetGeneratorDataUrl(options.dataUrl)
-			: undefined
+			: undefined,
+		binary: options.binary
 	};
 }
 
@@ -716,7 +724,8 @@ function getRawAssetResourceGeneratorOptions(
 		filename: options.filename,
 		outputPath: options.outputPath,
 		publicPath: options.publicPath,
-		importMode: options.importMode
+		importMode: options.importMode,
+		binary: options.binary
 	};
 }
 

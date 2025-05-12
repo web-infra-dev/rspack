@@ -723,3 +723,12 @@ export const errorsSpaceLimit = (errors: StatsError[], max: number) => {
 		filtered
 	};
 };
+
+export const warningFromStatsWarning = (
+	warning: binding.JsStatsWarning
+): Error => {
+	const res = new Error(warning.message);
+	res.name = warning.name || "StatsWarning";
+	Object.assign(res, warning);
+	return res;
+};

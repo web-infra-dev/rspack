@@ -1,8 +1,7 @@
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
-  compile_boolean_matcher, impl_runtime_module,
-  rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
-  BooleanMatcher, Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  compile_boolean_matcher, impl_runtime_module, BooleanMatcher, Chunk, ChunkUkey, Compilation,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 
 use super::{
@@ -36,7 +35,7 @@ impl ReadFileChunkLoadingRuntimeModule {
     chunk: &Chunk,
     compilation: &Compilation,
     root_output_dir: &str,
-  ) -> BoxSource {
+  ) -> String {
     let base_uri = chunk
       .get_entry_options(&compilation.chunk_group_by_ukey)
       .and_then(|options| options.base_uri.as_ref())
@@ -55,7 +54,7 @@ impl ReadFileChunkLoadingRuntimeModule {
           }
         )
       });
-    RawStringSource::from(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)).boxed()
+    format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)
   }
 
   fn template_id(&self, id: TemplateId) -> String {
@@ -117,7 +116,7 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
     ]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunk = compilation
       .chunk_by_ukey
       .expect_get(&self.chunk.expect("The chunk should be attached."));
@@ -139,25 +138,25 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
 
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
     let root_output_dir = get_output_dir(chunk, compilation, false).await?;
-    let mut source = ConcatSource::default();
+    let mut source = String::default();
 
     if with_base_uri {
-      source.add(self.generate_base_uri(chunk, compilation, &root_output_dir));
+      source.push_str(&self.generate_base_uri(chunk, compilation, &root_output_dir));
     }
 
     if with_hmr {
       let state_expression = format!("{}_readFileVm", RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
-      source.add(RawStringSource::from(format!(
+      source.push_str(&format!(
         "var installedChunks = {} = {} || {};\n",
         state_expression,
         state_expression,
         &stringify_chunks(&initial_chunks, 0)
-      )));
+      ));
     } else {
-      source.add(RawStringSource::from(format!(
+      source.push_str(&format!(
         "var installedChunks = {};\n",
         &stringify_chunks(&initial_chunks, 0)
-      )));
+      ));
     }
 
     if with_on_chunk_load {
@@ -165,7 +164,7 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
         .runtime_template
         .render(&self.template_id(TemplateId::WithOnChunkLoad), None)?;
 
-      source.add(RawStringSource::from(source_with_on_chunk_load));
+      source.push_str(&source_with_on_chunk_load);
     }
 
     if with_loading || with_external_install_chunk {
@@ -179,7 +178,7 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
         })),
       )?;
 
-      source.add(RawStringSource::from(raw_source));
+      source.push_str(&raw_source);
     }
 
     if with_loading {
@@ -200,14 +199,14 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
         )?
       };
 
-      source.add(RawStringSource::from(format!(
+      source.push_str(&format!(
         r#"
         // ReadFile + VM.run chunk loading for javascript"
         __webpack_require__.f.readFileVm = function (chunkId, promises) {{
           {body}
         }};
         "#
-      )));
+      ));
     }
 
     if with_external_install_chunk {
@@ -216,17 +215,15 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
         None,
       )?;
 
-      source.add(RawStringSource::from(source_with_external_install_chunk));
+      source.push_str(&source_with_external_install_chunk);
     }
 
     if with_hmr {
       let source_with_hmr = compilation
         .runtime_template
         .render(&self.template_id(TemplateId::WithHmr), None)?;
-      source.add(RawStringSource::from(source_with_hmr));
-      source.add(RawStringSource::from(generate_javascript_hmr_runtime(
-        "readFileVm",
-      )));
+      source.push_str(&source_with_hmr);
+      source.push_str(&generate_javascript_hmr_runtime("readFileVm"));
     }
 
     if with_hmr_manifest {
@@ -237,10 +234,10 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
         })),
       )?;
 
-      source.add(RawStringSource::from(source_with_hmr_manifest));
+      source.push_str(&source_with_hmr_manifest);
     }
 
-    Ok(source.boxed())
+    Ok(source)
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

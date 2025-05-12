@@ -120,6 +120,7 @@ pub struct JsCompiler {
   compiler: Compiler,
   state: CompilerState,
   include_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
+  entry_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
 }
 
 #[napi]
@@ -197,6 +198,7 @@ impl JsCompiler {
       state: CompilerState::init(),
       js_hooks_plugin,
       include_dependencies_map: Default::default(),
+      entry_dependencies_map: Default::default(),
     })
   }
 

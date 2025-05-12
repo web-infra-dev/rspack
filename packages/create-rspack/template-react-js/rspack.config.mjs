@@ -2,13 +2,13 @@ import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "@rspack/cli";
 import { rspack } from "@rspack/core";
-import RefreshPlugin from "@rspack/plugin-react-refresh";
+import { ReactRefreshRspackPlugin } from "@rspack/plugin-react-refresh";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const isDev = process.env.NODE_ENV === "development";
 
 // Target browsers, see: https://github.com/browserslist/browserslist
-const targets = ["chrome >= 87", "edge >= 88", "firefox >= 78", "safari >= 14"];
+const targets = ["last 2 versions", "> 0.2%", "not dead", "Firefox ESR"];
 
 export default defineConfig({
 	context: __dirname,
@@ -54,7 +54,7 @@ export default defineConfig({
 		new rspack.HtmlRspackPlugin({
 			template: "./index.html"
 		}),
-		isDev ? new RefreshPlugin() : null
+		isDev ? new ReactRefreshRspackPlugin() : null
 	].filter(Boolean),
 	optimization: {
 		minimizer: [

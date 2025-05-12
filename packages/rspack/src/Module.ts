@@ -224,17 +224,3 @@ declare module "@rspack/binding" {
 }
 
 export { Module } from "@rspack/binding";
-
-export class CodeGenerationResult {
-	#inner: binding.JsCodegenerationResult;
-
-	constructor(result: binding.JsCodegenerationResult) {
-		this.#inner = result;
-	}
-
-	get(sourceType: string) {
-		return this.#inner.sources[sourceType];
-	}
-}
-
-export class CodeGenerationResults {}

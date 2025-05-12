@@ -14,8 +14,12 @@ use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_macros::impl_source_map_config;
 use rspack_paths::{ArcPath, Utf8PathBuf};
 use rspack_regex::RspackRegex;
-use rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt};
-use rspack_util::{fx_hash::FxIndexMap, itoa, json_stringify, source_map::SourceMapKind};
+use rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt};
+use rspack_util::{
+  fx_hash::FxIndexMap,
+  itoa, json_stringify,
+  source_map::{ModuleSourceMapConfig, SourceMapKind},
+};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::atoms::Atom;
 
@@ -324,8 +328,8 @@ impl ContextModule {
       .collect()
   }
 
-  fn get_source_for_empty_async_context(&self, compilation: &Compilation) -> BoxSource {
-    RawStringSource::from(formatdoc! {r#"
+  fn get_source_for_empty_async_context(&self, compilation: &Compilation) -> String {
+    formatdoc! {r#"
       function webpackEmptyAsyncContext(req) {{
         // Here Promise.resolve().then() is used instead of new Promise() to prevent
         // uncaught exception popping up in devtools
@@ -342,12 +346,11 @@ impl ContextModule {
       "#,
       keys = returning_function(&compilation.options.output.environment, "[]", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
-    })
-    .boxed()
+    }
   }
 
-  fn get_source_for_empty_context(&self, compilation: &Compilation) -> BoxSource {
-    RawStringSource::from(formatdoc! {r#"
+  fn get_source_for_empty_context(&self, compilation: &Compilation) -> String {
+    formatdoc! {r#"
       function webpackEmptyContext(req) {{
         var e = new Error("Cannot find module '" + req + "'");
         e.code = 'MODULE_NOT_FOUND';
@@ -360,8 +363,7 @@ impl ContextModule {
       "#,
       keys = returning_function(&compilation.options.output.environment, "[]", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
-    })
-    .boxed()
+    }
   }
 
   #[inline]
@@ -369,7 +371,7 @@ impl ContextModule {
     &self,
     compilation: &Compilation,
     code_gen_result: &mut CodeGenerationResult,
-  ) -> BoxSource {
+  ) -> String {
     match self.options.context_options.mode {
       ContextMode::Lazy => {
         if !self.get_blocks().is_empty() {
@@ -416,7 +418,7 @@ impl ContextModule {
     }
   }
 
-  fn get_lazy_source(&self, compilation: &Compilation) -> BoxSource {
+  fn get_lazy_source(&self, compilation: &Compilation) -> String {
     let module_graph = compilation.get_module_graph();
     let blocks = self
       .get_blocks()
@@ -516,7 +518,6 @@ impl ContextModule {
       true,
       if short_mode { "invalid" } else { "ids[1]" },
     );
-    let mut source = ConcatSource::default();
     let webpack_async_context = if has_no_chunk {
       formatdoc! {r#"
         function webpackAsyncContext(req) {{
@@ -559,7 +560,7 @@ impl ContextModule {
         RuntimeGlobals::HAS_OWN_PROPERTY,
       }
     };
-    source.add(RawStringSource::from(formatdoc! {r#"
+    formatdoc! {r#"
       var map = {map};
       {webpack_async_context}
       webpackAsyncContext.keys = {keys};
@@ -569,8 +570,7 @@ impl ContextModule {
       map = json_stringify(&map),
       keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
-    }));
-    source.boxed()
+    }
   }
 
   fn get_lazy_once_source(
@@ -578,7 +578,7 @@ impl ContextModule {
     compilation: &Compilation,
     block_id: &AsyncDependenciesBlockIdentifier,
     code_gen_result: &mut CodeGenerationResult,
-  ) -> BoxSource {
+  ) -> String {
     let mg = compilation.get_module_graph();
     let block = mg.block_by_id_expect(block_id);
     let dependencies = block.get_dependencies();
@@ -604,7 +604,7 @@ impl ContextModule {
     } else {
       RuntimeGlobals::REQUIRE.name().to_string()
     };
-    let source = formatdoc! {r#"
+    formatdoc! {r#"
       var map = {map};
       {fake_map_init_statement}
 
@@ -631,16 +631,15 @@ impl ContextModule {
       has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
       keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
-    };
-    RawStringSource::from(source).boxed()
+    }
   }
 
-  fn get_async_weak_source(&self, compilation: &Compilation) -> BoxSource {
+  fn get_async_weak_source(&self, compilation: &Compilation) -> String {
     let dependencies = self.get_dependencies();
     let map = self.get_user_request_map(dependencies, compilation);
     let fake_map = self.get_fake_map(dependencies, compilation);
     let return_module_object = self.get_return_module_object_source(&fake_map, true, "fakeMap[id]");
-    let source = formatdoc! {r#"
+    formatdoc! {r#"
       var map = {map};
       {fake_map_init_statement}
 
@@ -677,16 +676,15 @@ impl ContextModule {
       has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
       keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
-    };
-    RawStringSource::from(source).boxed()
+    }
   }
 
-  fn get_sync_weak_source(&self, compilation: &Compilation) -> BoxSource {
+  fn get_sync_weak_source(&self, compilation: &Compilation) -> String {
     let dependencies = self.get_dependencies();
     let map = self.get_user_request_map(dependencies, compilation);
     let fake_map = self.get_fake_map(dependencies, compilation);
     let return_module_object = self.get_return_module_object_source(&fake_map, true, "fakeMap[id]");
-    let source = formatdoc! {r#"
+    formatdoc! {r#"
       var map = {map};
       {fake_map_init_statement}
 
@@ -718,11 +716,10 @@ impl ContextModule {
       has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
       keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
-    };
-    RawStringSource::from(source).boxed()
+    }
   }
 
-  fn get_eager_source(&self, compilation: &Compilation) -> BoxSource {
+  fn get_eager_source(&self, compilation: &Compilation) -> String {
     let dependencies = self.get_dependencies();
     let map = self.get_user_request_map(dependencies, compilation);
     let fake_map = self.get_fake_map(dependencies, compilation);
@@ -740,7 +737,7 @@ impl ContextModule {
     } else {
       RuntimeGlobals::REQUIRE.name().to_string()
     };
-    let source = formatdoc! {r#"
+    formatdoc! {r#"
       var map = {map};
       {fake_map_init_statement}
 
@@ -769,17 +766,16 @@ impl ContextModule {
       has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
       keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
-    };
-    RawStringSource::from(source).boxed()
+    }
   }
 
-  fn get_sync_source(&self, compilation: &Compilation) -> BoxSource {
+  fn get_sync_source(&self, compilation: &Compilation) -> String {
     let dependencies = self.get_dependencies();
     let map = self.get_user_request_map(dependencies, compilation);
     let fake_map = self.get_fake_map(dependencies, compilation);
     let return_module_object =
       self.get_return_module_object_source(&fake_map, false, "fakeMap[id]");
-    let source = formatdoc! {r#"
+    formatdoc! {r#"
       var map = {map};
       {fake_map_init_statement}
 
@@ -806,8 +802,23 @@ impl ContextModule {
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
-    };
-    RawStringSource::from(source).boxed()
+    }
+  }
+
+  fn get_source(&self, source_string: String, compilation: &Compilation) -> BoxSource {
+    let source_map_kind = self.get_source_map_kind();
+    if source_map_kind.enabled() {
+      OriginalSource::new(
+        source_string,
+        format!(
+          "webpack://{}",
+          contextify(&compilation.options.context, self.identifier.as_str(),)
+        ),
+      )
+      .boxed()
+    } else {
+      RawStringSource::from(source_string).boxed()
+    }
   }
 }
 
@@ -991,7 +1002,10 @@ impl Module for ContextModule {
     _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut code_generation_result = CodeGenerationResult::default();
-    let source = self.get_source_string(compilation, &mut code_generation_result);
+    let source = self.get_source(
+      self.get_source_string(compilation, &mut code_generation_result),
+      compilation,
+    );
     code_generation_result.add(SourceType::JavaScript, source);
     let mut all_deps = self.get_dependencies().to_vec();
     let module_graph = compilation.get_module_graph();

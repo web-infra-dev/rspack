@@ -1,9 +1,8 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  ChunkUkey, Compilation, OutputOptions, PathData, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage, RuntimeTemplate, SourceType,
+  get_js_chunk_filename_template, get_undo_path, impl_runtime_module, ChunkUkey, Compilation,
+  OutputOptions, PathData, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
+  SourceType,
 };
 
 #[impl_runtime_module]
@@ -40,7 +39,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunk = self.chunk.expect("The chunk should be attached");
     let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
     let filename = get_js_chunk_filename_template(
@@ -69,14 +68,11 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
           )),
       )
       .await?;
-    Ok(
-      RawStringSource::from(auto_public_path_template(
-        &compilation.runtime_template,
-        &self.id,
-        &filename,
-        &compilation.options.output,
-      )?)
-      .boxed(),
+    auto_public_path_template(
+      &compilation.runtime_template,
+      &self.id,
+      &filename,
+      &compilation.options.output,
     )
   }
 }

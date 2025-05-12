@@ -1,8 +1,7 @@
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
-  compile_boolean_matcher, impl_runtime_module,
-  rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
-  BooleanMatcher, Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  compile_boolean_matcher, impl_runtime_module, BooleanMatcher, Chunk, ChunkUkey, Compilation,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 
 use super::{
@@ -35,7 +34,7 @@ impl ImportScriptsChunkLoadingRuntimeModule {
     &self,
     chunk: &Chunk,
     compilation: &Compilation,
-  ) -> rspack_error::Result<BoxSource> {
+  ) -> rspack_error::Result<String> {
     let base_uri = if let Some(base_uri) = chunk
       .get_entry_options(&compilation.chunk_group_by_ukey)
       .and_then(|options| options.base_uri.as_ref())
@@ -54,7 +53,7 @@ impl ImportScriptsChunkLoadingRuntimeModule {
         .expect("should able to be serde_json::to_string")
       )
     };
-    Ok(RawStringSource::from(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)).boxed())
+    Ok(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri))
   }
 
   fn template_id(&self, id: TemplateId) -> String {
@@ -97,7 +96,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     ]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunk = compilation
       .chunk_by_ukey
       .expect_get(&self.chunk.expect("The chunk should be attached."));
@@ -116,27 +115,27 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
         .get_chunk_condition_map(&chunk.ukey(), compilation, chunk_has_js);
     let has_js_matcher = compile_boolean_matcher(&condition_map);
 
-    let mut source = ConcatSource::default();
+    let mut source = String::default();
 
     if with_base_uri {
-      source.add(self.generate_base_uri(chunk, compilation).await?);
+      source.push_str(&self.generate_base_uri(chunk, compilation).await?);
     }
 
     // object to store loaded chunks
     // "1" means "already loaded"
     if with_hmr {
       let state_expression = format!("{}_importScripts", RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
-      source.add(RawStringSource::from(format!(
+      source.push_str(&format!(
         "var installedChunks = {} = {} || {};\n",
         state_expression,
         state_expression,
         &stringify_chunks(&initial_chunks, 1)
-      )));
+      ));
     } else {
-      source.add(RawStringSource::from(format!(
+      source.push_str(&format!(
         "var installedChunks = {};\n",
         &stringify_chunks(&initial_chunks, 1)
-      )));
+      ));
     }
 
     if with_loading {
@@ -185,7 +184,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       )?;
 
       // If chunkId not corresponding chunkName will skip load it.
-      source.add(RawStringSource::from(render_source));
+      source.push_str(&render_source);
     }
 
     if with_hmr {
@@ -210,10 +209,8 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
         "_hot_update_global": &serde_json::to_string(&compilation.options.output.hot_update_global).expect("failed to serde_json::to_string(hot_update_global)"),
       })))?;
 
-      source.add(RawStringSource::from(source_with_hmr));
-      source.add(RawStringSource::from(generate_javascript_hmr_runtime(
-        "importScripts",
-      )));
+      source.push_str(&source_with_hmr);
+      source.push_str(&generate_javascript_hmr_runtime("importScripts"));
     }
 
     if with_hmr_manifest {
@@ -222,10 +219,10 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
         .runtime_template
         .render(&self.template_id(TemplateId::WithHmrManifest), None)?;
 
-      source.add(RawStringSource::from(source_with_hmr_manifest));
+      source.push_str(&source_with_hmr_manifest);
     }
 
-    Ok(source.boxed())
+    Ok(source)
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

@@ -13,7 +13,7 @@ pub struct ChromeTracer {
 
 impl Tracer for ChromeTracer {
   fn setup(&mut self, output: &str) -> Option<Layered> {
-    let trace_writer = TraceWriter::from(output);
+    let trace_writer = TraceWriter::from(output.to_owned());
     let (chrome_layer, guard) = ChromeLayerBuilder::new()
       .trace_style(TraceStyle::Async)
       .include_args(true)
