@@ -10,9 +10,12 @@ Tracing can be enabled in two ways:
 
 ```sh
 # Rspack CLI
-RSPACK_PROFILE=ALL rspack build
+RSPACK_PROFILE=OVERVIEW rspack build # recommend
+RSPACK_PROFILE=ALL rspack build # not recommend, may generate too large trace.json for large projects
+
 
 # Rsbuild
+RSPACK_PROFILE=OVERVIEW rspack build
 RSPACK_PROFILE=ALL rsbuild build
 ```
 
