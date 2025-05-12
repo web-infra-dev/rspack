@@ -1,4 +1,7 @@
-use napi::{bindgen_prelude::WeakReference, Env, JsString};
+use napi::{
+  bindgen_prelude::{Object, ToNapiValue, WeakReference},
+  Env, JsString, NapiValue,
+};
 use rspack_core::{Reflector, WeakBindingCell};
 use rustc_hash::FxHashMap;
 
@@ -21,9 +24,9 @@ impl Assets {
   ) -> napi::Result<T> {
     match self.i.upgrade() {
       Some(reference) => f(reference.as_ref()),
-      None => Err(napi::Error::from_reason(format!(
-        "Unable to access assets now. The assets has been dropped by Rust."
-      ))),
+      None => Err(napi::Error::from_reason(
+        "Unable to access assets now. The assets has been dropped by Rust.".to_string(),
+      )),
     }
   }
 }
@@ -51,6 +54,12 @@ impl BuildInfo {
     Self { module_reference }
   }
 
+  pub fn get_jsobject(self, env: &Env) -> napi::Result<Object> {
+    let raw_env = env.raw();
+    let napi_val = unsafe { ToNapiValue::to_napi_value(raw_env, self)? };
+    Ok(unsafe { Object::from_raw_unchecked(raw_env, napi_val) })
+  }
+
   fn with_ref<T>(
     &mut self,
     f: impl FnOnce(&dyn rspack_core::Module) -> napi::Result<T>,
@@ -60,9 +69,10 @@ impl BuildInfo {
         let (_, module) = reference.as_ref()?;
         f(module)
       }
-      None => Err(napi::Error::from_reason(format!(
+      None => Err(napi::Error::from_reason(
         "Unable to access buildInfo now. The Module has been garbage collected by JavaScript."
-      ))),
+          .to_string(),
+      )),
     }
   }
 }

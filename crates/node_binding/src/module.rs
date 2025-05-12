@@ -1,19 +1,16 @@
-use std::{
-  any::TypeId,
-  cell::{OnceCell, RefCell},
-  ptr::NonNull,
-  sync::Arc,
-};
+use std::{any::TypeId, cell::RefCell, ptr::NonNull, sync::Arc};
 
 use napi::{CallContext, JsString, JsSymbol, NapiRaw, NapiValue};
 use napi_derive::napi;
+use once_cell::unsync::OnceCell;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
   FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{
-  napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotInstanceRef, OneShotRef,
+  napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotInstanceRef,
+  OneShotRef, WeakRef,
 };
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_util::source_map::SourceMapKind;
@@ -51,6 +48,7 @@ pub struct Module {
   module: Option<NonNull<dyn rspack_core::Module>>,
   compiler_id: CompilerId,
   compiler_reference: WeakReference<JsCompiler>,
+  pub(crate) build_info_ref: OnceCell<WeakRef>,
 }
 
 impl Module {
@@ -140,6 +138,22 @@ impl Module {
       )
     }
 
+    #[js_function]
+    fn build_info_getter(ctx: CallContext) -> napi::Result<Object> {
+      let mut this = ctx.this::<Object>()?;
+      let env = ctx.env;
+      let raw_env = env.raw();
+      let reference: Reference<Module> =
+        unsafe { Reference::from_napi_value(raw_env, this.raw())? };
+      let r = reference.build_info_ref.get_or_try_init(|| {
+        let mut build_info = BuildInfo::new(reference.downgrade()).get_jsobject(env)?;
+        let build_info_symbol = env.create_symbol(Some("buildInfo"))?;
+        this.set_property(build_info_symbol, &build_info)?;
+        WeakRef::new(raw_env, &mut build_info)
+      });
+      r?.as_object(env)
+    }
+
     object.define_properties(&[
       Property::new("type")?.with_value(&env.create_string(module.module_type().as_str())?),
       Property::new("context")?.with_getter(context_getter),
@@ -150,7 +164,7 @@ impl Module {
         .with_getter(factory_meta_getter)
         .with_setter(factory_meta_setter),
       Property::new("_readableIdentifier")?.with_getter(readable_identifier_getter),
-      Property::new("buildInfo")?.with_value(&env.create_object()?),
+      Property::new("buildInfo")?.with_getter(build_info_getter),
       Property::new("buildMeta")?.with_value(&env.create_object()?),
     ])?;
 
@@ -472,6 +486,7 @@ impl ToNapiValue for ModuleObject {
                 compiler_id: val.compiler_id,
                 module: val.module,
                 compiler_reference,
+                build_info_ref: Default::default(),
               };
               let env_wrapper = Env::from_raw(env);
 

@@ -131,12 +131,20 @@ macro_rules! impl_module_methods {
         }
 
         #[js_function]
-        fn build_info_getter(ctx: napi::CallContext) -> napi::Result<$crate::BuildInfo> {
-          use napi::bindgen_prelude::FromNapiValue;
-          use napi::NapiRaw;
-          let this = ctx.this::<napi::bindgen_prelude::Object>()?;
-          let reference: napi::bindgen_prelude::Reference<$crate::Module> = unsafe { napi::bindgen_prelude::Reference::from_napi_value(ctx.env.raw(), this.raw())? };
-          Ok($crate::BuildInfo::new(reference.downgrade()))
+        fn build_info_getter(ctx: napi::CallContext) -> napi::Result<napi::bindgen_prelude::Object> {
+          use napi::{bindgen_prelude::FromNapiValue, NapiRaw};
+          let mut this = ctx.this::<napi::bindgen_prelude::Object>()?;
+          let env = ctx.env;
+          let raw_env = env.raw();
+          let reference: napi::bindgen_prelude::Reference<$crate::Module> =
+            unsafe { napi::bindgen_prelude::Reference::from_napi_value(raw_env, this.raw())? };
+          let r = reference.build_info_ref.get_or_try_init(|| {
+            let mut build_info = $crate::BuildInfo::new(reference.downgrade()).get_jsobject(env)?;
+            let build_info_symbol = env.create_symbol(Some("buildInfo"))?;
+            this.set_property(build_info_symbol, &build_info)?;
+            rspack_napi::WeakRef::new(raw_env, &mut build_info)
+          });
+          r?.as_object(env)
         }
 
         properties.push(

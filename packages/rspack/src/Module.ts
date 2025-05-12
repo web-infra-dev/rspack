@@ -182,6 +182,10 @@ declare module "@rspack/binding" {
 	interface Assets {
 		[$assets]: Record<string, Source>;
 	}
+
+	interface BuildInfo {
+		assets: Record<string, Source>;
+	}
 }
 
 Object.defineProperty(binding.BuildInfo.prototype, "assets", {
@@ -191,9 +195,9 @@ Object.defineProperty(binding.BuildInfo.prototype, "assets", {
 		if (this._assets[$assets]) {
 			return this._assets[$assets];
 		}
-		const assets = new Proxy(this._assets, {
-			ownKeys(target: binding.Assets) {
-				return target.keys();
+		const assets = new Proxy(Object.create(null), {
+			ownKeys: () => {
+				return this._assets.keys();
 			},
 			getOwnPropertyDescriptor() {
 				return {
@@ -201,8 +205,12 @@ Object.defineProperty(binding.BuildInfo.prototype, "assets", {
 					configurable: true
 				};
 			}
-		}) as any as Record<string, Source>;
-		this._assets[$assets] = assets;
+		}) as Record<string, Source>;
+		Object.defineProperty(this._assets, $assets, {
+			enumerable: false,
+			configurable: true,
+			value: assets
+		});
 		return assets;
 	}
 });
