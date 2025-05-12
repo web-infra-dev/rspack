@@ -530,7 +530,6 @@ async fn render_manifest(
       &mut asset_info,
     )
     .await?;
-  asset_info.set_javascript_module(compilation.options.output.module);
 
   let (source, _) = compilation
     .old_cache
