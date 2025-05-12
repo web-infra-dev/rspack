@@ -312,11 +312,6 @@ impl Module {
     )
   }
 
-  #[napi]
-  pub fn build_info(&mut self, reference: Reference<Module>) -> napi::Result<BuildInfo> {
-    Ok(BuildInfo::new(reference.downgrade()))
-  }
-
   #[napi(
     js_name = "_emitFile",
     enumerable = false,
