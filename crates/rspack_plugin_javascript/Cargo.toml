@@ -12,7 +12,7 @@ bitflags = { workspace = true }
 cow-utils = { workspace = true }
 dashmap = { workspace = true }
 either = { workspace = true }
-fast-glob = "0.4.4"
+fast-glob = "0.4.5"
 indexmap = { workspace = true }
 indoc = { workspace = true }
 itertools = { workspace = true }
