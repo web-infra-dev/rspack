@@ -3,10 +3,9 @@ import { type RspackPluginFunction, rspack } from "@rspack/core";
 import { VueLoaderPlugin } from "vue-loader";
 
 // Target browsers, see: https://github.com/browserslist/browserslist
-const targets = ["last 2 versions", "> 0.2%",  "not dead",  "Firefox ESR"];
+const targets = ["last 2 versions", "> 0.2%", "not dead", "Firefox ESR"];
 
 export default defineConfig({
-	context: __dirname,
 	entry: {
 		main: "./src/main.ts"
 	},
