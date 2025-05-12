@@ -1,6 +1,6 @@
 use rspack_core::{
-  get_context, CachedConstDependency, ConstDependency, NodeDirnameOption, NodeFilenameOption,
-  NodeGlobalOption, RuntimeGlobals,
+  get_context, parse_resource, CachedConstDependency, ConstDependency, NodeDirnameOption,
+  NodeFilenameOption, NodeGlobalOption, RuntimeGlobals,
 };
 use sugar_path::SugarPath;
 
@@ -170,17 +170,32 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     start: u32,
     end: u32,
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
-    if parser
-      .compiler_options
-      .node
-      .as_ref()
-      .is_some_and(|node_option| matches!(node_option.dirname, NodeDirnameOption::False))
-    {
-      return None;
-    }
     if ident == DIR_NAME {
+      if parser
+        .compiler_options
+        .node
+        .as_ref()
+        .is_some_and(|node_option| matches!(node_option.dirname, NodeDirnameOption::False))
+      {
+        return None;
+      }
       Some(eval::evaluate_to_string(
         get_context(parser.resource_data).as_str().to_string(),
+        start,
+        end,
+      ))
+    } else if ident == FILE_NAME {
+      if parser
+        .compiler_options
+        .node
+        .as_ref()
+        .is_some_and(|node_option| matches!(node_option.filename, NodeFilenameOption::False))
+      {
+        return None;
+      }
+      let resource = parse_resource(parser.resource_data.resource_path.as_deref()?.as_str())?;
+      Some(eval::evaluate_to_string(
+        resource.path.to_string(),
         start,
         end,
       ))
