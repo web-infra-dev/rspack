@@ -1,4 +1,5 @@
 var webpack = require("@rspack/core");
+// CHANGE: rspack use 16 length xxhash by default
 /** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
 	{
@@ -21,8 +22,10 @@ module.exports = [
 			chunkFilename: "[id].bundle1.[fullhash].js"
 		},
 		amd: {
-			expectedFilenameLength: 31,
-			expectedChunkFilenameLength: 33
+			// expectedFilenameLength: 31,
+			// expectedChunkFilenameLength: 33
+			expectedFilenameLength: 27,
+			expectedChunkFilenameLength: 29
 		}
 	},
 	{
@@ -43,8 +46,10 @@ module.exports = [
 			chunkFilename: "[id].bundle3.[chunkhash].js"
 		},
 		amd: {
-			expectedFilenameLength: 31,
-			expectedChunkFilenameLength: 33
+			// expectedFilenameLength: 31,
+			// expectedChunkFilenameLength: 33
+			expectedFilenameLength: 27,
+			expectedChunkFilenameLength: 29
 		}
 	},
 	{
@@ -54,7 +59,8 @@ module.exports = [
 			chunkFilename: "[id].bundle4.[fullhash:8].js"
 		},
 		amd: {
-			expectedFilenameLength: 31,
+			// expectedFilenameLength: 31,
+			expectedFilenameLength: 27,
 			expectedChunkFilenameLength: 21
 		}
 	},
@@ -76,7 +82,8 @@ module.exports = [
 			chunkFilename: "[id].bundle6.[chunkhash:7].js"
 		},
 		amd: {
-			expectedFilenameLength: 31,
+			// expectedFilenameLength: 31,
+			expectedFilenameLength: 27,
 			expectedChunkFilenameLength: 20
 		},
 		plugins: [new webpack.HotModuleReplacementPlugin()]
@@ -101,7 +108,8 @@ module.exports = [
 		},
 		target: "node",
 		amd: {
-			expectedFilenameLength: 31,
+			// expectedFilenameLength: 31,
+			expectedFilenameLength: 27,
 			expectedChunkFilenameLength: 20
 		}
 	},
@@ -113,7 +121,8 @@ module.exports = [
 		},
 		target: "node",
 		amd: {
-			expectedFilenameLength: 31,
+			// expectedFilenameLength: 31,
+			expectedFilenameLength: 27,
 			expectedChunkFilenameLength: 20
 		}
 	},
@@ -125,8 +134,10 @@ module.exports = [
 		},
 		target: "node",
 		amd: {
-			expectedFilenameLength: 32,
-			expectedChunkFilenameLength: 34
+			// expectedFilenameLength: 32,
+			// 
+			expectedFilenameLength: 28,
+			expectedChunkFilenameLength: 30
 		}
 	},
 	{
@@ -149,8 +160,10 @@ module.exports = [
 		},
 		target: "async-node",
 		amd: {
-			expectedFilenameLength: 32,
-			expectedChunkFilenameLength: 34
+			// expectedFilenameLength: 32,
+			// expectedChunkFilenameLength: 34
+			expectedFilenameLength: 28,
+			expectedChunkFilenameLength: 30
 		}
 	},
 	{
@@ -175,8 +188,10 @@ module.exports = [
 		},
 		target: "web",
 		amd: {
-			expectedFilenameLength: 32,
-			expectedChunkFilenameLength: 34
+			// expectedFilenameLength: 32,
+			// expectedChunkFilenameLength: 34
+			expectedFilenameLength: 28,
+			expectedChunkFilenameLength: 30
 		}
 	},
 	{
@@ -203,8 +218,10 @@ module.exports = [
 		},
 		target: "webworker",
 		amd: {
-			expectedFilenameLength: 32,
-			expectedChunkFilenameLength: 34
+			// expectedFilenameLength: 32,
+			// expectedChunkFilenameLength: 34
+			expectedFilenameLength: 28,
+			expectedChunkFilenameLength: 30
 		}
 	},
 	{

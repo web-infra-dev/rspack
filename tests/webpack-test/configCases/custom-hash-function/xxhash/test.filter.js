@@ -1,2 +1,1 @@
-// custom function type hash function will hurt performance
-module.exports = () => {return -1}
+module.exports = () => "NOPLAN: custom function type hash function will hurt performance";
