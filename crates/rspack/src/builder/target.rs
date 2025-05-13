@@ -199,7 +199,7 @@ fn merge_target_properties(target_properties: &[TargetProperties]) -> TargetProp
   result
 }
 
-fn get_target_properties(target: &str, _context: &Context) -> TargetProperties {
+fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
   // Parse target string
   if let Some(captures) = regex::Regex::new(r"^(async-)?node((\d+)(?:\.(\d+))?)?$")
     .expect("should initialize `Regex`")
@@ -252,31 +252,21 @@ fn get_target_properties(target: &str, _context: &Context) -> TargetProperties {
     };
   }
 
-  // TODO: Handle browserslist target
-  //if let Some(captures) = regex::Regex::new(r"^browserslist(?::(.+))?$")
-  //  .expect("should initialize `Regex`")
-  //  .captures(target)
-  //{
-  //  let rest = captures.get(1).map(|m| m.as_str().trim());
-  //  // TODO: Implement browserslist handling
-  //  // For now return default web target
-  //  return TargetProperties {
-  //    web: Some(true),
-  //    browser: Some(true),
-  //    webworker: None,
-  //    node: Some(false),
-  //    electron: Some(false),
-  //    nwjs: Some(false),
-  //    document: Some(true),
-  //    import_scripts_in_worker: Some(true),
-  //    fetch_wasm: Some(true),
-  //    node_builtins: Some(false),
-  //    import_scripts: Some(false),
-  //    require: Some(false),
-  //    global: Some(false),
-  //    ..Default::default()
-  //  };
-  //}
+  if let Some(captures) = regex::Regex::new(r"^browserslist(?::(.+))?$")
+    .expect("should initialize `Regex`")
+    .captures(target)
+  {
+    let rest = captures.get(1).map(|m| m.as_str());
+
+    let browsers =
+      super::browserslist_target::load(rest.map(|r| r.trim()), context).unwrap_or_default();
+
+    if browsers.is_empty() {
+      panic!("No browserslist config found for target '{target}'. Please configure browserslist.");
+    }
+
+    return super::browserslist_target::resolve(browsers);
+  }
 
   // Handle web target
   if target == "web" {
