@@ -3,7 +3,10 @@ use std::{
   sync::atomic::{AtomicBool, Ordering},
 };
 
-use rspack_collections::{Identifier, IdentifierMap, IdentifierSet, UkeyMap, UkeySet};
+use rspack_collections::{
+  Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeyMap,
+  UkeySet,
+};
 use rspack_core::{
   ApplyContext, ChunkUkey, Compilation, CompilationOptimizeChunks, CompilationParams,
   CompilerCompilation, Logger, Module, ModuleIdentifier, Plugin, PluginContext, SourceType,
@@ -71,9 +74,9 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let logger = compilation.get_logger("rspack.CssChunkingPlugin");
 
   let start = logger.time("collect all css modules and the execpted order of them");
-  let mut chunk_states: UkeyMap<ChunkUkey, ChunkState> = UkeyMap::default();
-  let mut chunk_states_by_module: IdentifierMap<UkeyMap<ChunkUkey, usize>> =
-    IdentifierMap::default();
+  let mut chunk_states: UkeyMap<ChunkUkey, ChunkState> = Default::default();
+  let mut chunk_states_by_module: IdentifierIndexMap<UkeyMap<ChunkUkey, usize>> =
+    Default::default();
 
   // Collect all css modules in chunks and the execpted order of them
   let chunk_graph = &compilation.chunk_graph;
@@ -113,11 +116,11 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       module_identifiers.push(module_identifier);
 
       match chunk_states_by_module.entry(module_identifier) {
-        std::collections::hash_map::Entry::Occupied(mut occupied_entry) => {
+        indexmap::map::Entry::Occupied(mut occupied_entry) => {
           let module_chunk_states = occupied_entry.get_mut();
           module_chunk_states.insert(*chunk_ukey, i);
         }
-        std::collections::hash_map::Entry::Vacant(vacant_entry) => {
+        indexmap::map::Entry::Vacant(vacant_entry) => {
           let mut module_chunk_states = UkeyMap::default();
           module_chunk_states.insert(*chunk_ukey, i);
           vacant_entry.insert(module_chunk_states);
@@ -158,7 +161,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     })
     .collect();
   ordered_modules.sort_by_key(|&(_module, sum)| sum);
-  let mut remaining_modules: IdentifierSet = ordered_modules
+  let mut remaining_modules: IdentifierIndexSet = ordered_modules
     .into_iter()
     .map(|(module_identifier, _)| module_identifier)
     .collect();
@@ -206,7 +209,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     let Some(start_module_identifier) = remaining_modules.iter().next().cloned() else {
       break;
     };
-    remaining_modules.remove(&start_module_identifier);
+    remaining_modules.shift_remove(&start_module_identifier);
 
     #[allow(clippy::unwrap_used)]
     let mut global_css_mode = is_global_css(&module_infos.get(&start_module_identifier).unwrap().1);
@@ -228,7 +231,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     // A pool of potential modules where the next module is selected from.
     // It's filled from the next module of the selected modules in every chunk.
     // It also keeps some metadata to improve performance [size, chunkStates].
-    let mut potential_next_modules: IdentifierMap<f64> = IdentifierMap::default();
+    let mut potential_next_modules: IdentifierIndexMap<f64> = Default::default();
     for (chunk_ukey, i) in all_chunk_states {
       #[allow(clippy::unwrap_used)]
       let chunk_state = chunk_states.get(chunk_ukey).unwrap();
@@ -288,7 +291,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           if let Some(deps) = all_dependents.get(&next_module_identifier) {
             let new_chunk_modules_ref = &new_chunk_modules;
             if deps.iter().any(|d| new_chunk_modules_ref.contains(d)) {
-              continue 'outer;
+              continue;
             }
           }
         } else {
@@ -314,23 +317,23 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         #[allow(clippy::unwrap_used)]
         let is_global = is_global_css(&module_infos.get(&next_module_identifier).unwrap().1);
         if is_global && global_css_mode && all_chunk_states.len() != chunk_states.len() {
-          continue 'outer;
+          continue;
         }
         if global_css_mode
           && chunk_states
             .keys()
             .any(|cs| !all_chunk_states.contains_key(cs))
         {
-          continue 'outer;
+          continue;
         }
         if is_global
           && all_chunk_states
             .keys()
             .any(|cs| !chunk_states.contains_key(cs))
         {
-          continue 'outer;
+          continue;
         }
-        potential_next_modules.remove(&next_module_identifier);
+        potential_next_modules.shift_remove(&next_module_identifier);
         current_size += size;
         if is_global {
           global_css_mode = true;
@@ -359,7 +362,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         }
         new_chunk_modules.insert(next_module_identifier);
         cont = true;
-        break 'outer;
+        break;
       }
     }
     let new_chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
@@ -369,7 +372,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     new_chunk.add_id_name_hints("css".to_string());
     let chunk_graph = &mut compilation.chunk_graph;
     for module_identifier in &new_chunk_modules {
-      remaining_modules.remove(module_identifier);
+      remaining_modules.shift_remove(module_identifier);
       chunk_graph.connect_chunk_and_module(new_chunk_ukey, *module_identifier);
       new_chunks_by_module.insert(*module_identifier, new_chunk_ukey);
     }
