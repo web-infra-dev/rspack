@@ -112,8 +112,10 @@ pub struct JsLoaderContext {
   #[napi(js_name = "__internal__error")]
   pub error: Option<JsRspackError>,
 
-  #[napi(js_name = "__internal__tracingCarrier")]
-  pub carrier: Option<HashMap<String, String>>,
+  /// UTF-8 hint for `content`
+  /// - Some(true): `content` is a `UTF-8` encoded sequence
+  #[napi(js_name = "__internal__utf8Hint")]
+  pub utf8_hint: Option<bool>,
 }
 
 impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
@@ -123,9 +125,6 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
     cx: &mut rspack_core::LoaderContext<RunnerContext>,
   ) -> std::result::Result<Self, Self::Error> {
     let module = unsafe { cx.context.module.as_ref() };
-
-    #[allow(unused_mut)]
-    let mut carrier = HashMap::new();
 
     #[allow(clippy::unwrap_used)]
     Ok(JsLoaderContext {
@@ -178,7 +177,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       loader_index: cx.loader_index,
       loader_state: cx.state().into(),
       error: None,
-      carrier: Some(carrier),
+      utf8_hint: None,
     })
   }
 }
