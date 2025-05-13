@@ -28,12 +28,12 @@ use serde::Serialize;
 
 use crate::{
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
-  AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BoxModuleDependency, ChunkGraph,
-  ChunkUkey, CodeGenerationResult, Compilation, CompilationAsset, CompilationId, CompilerId,
-  CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule, DependenciesBlock,
-  DependencyId, ExportInfoProvided, ExternalModule, ModuleGraph, ModuleLayer, ModuleType,
-  NormalModule, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver,
-  SourceType,
+  AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
+  ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation, CompilationAsset, CompilationId,
+  CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
+  DependenciesBlock, DependencyId, ExportInfoProvided, ExternalModule, ModuleGraph, ModuleLayer,
+  ModuleType, NormalModule, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
+  SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext {
@@ -67,7 +67,7 @@ pub struct BuildInfo {
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<HashSet<Atom>>,
   pub module_concatenation_bailout: Option<String>,
-  pub assets: HashMap<String, CompilationAsset>,
+  pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
 }
 

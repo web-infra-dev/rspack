@@ -231,6 +231,7 @@ type AssetInfo_2 = KnownAssetInfo & Record<string, any>;
 // @public
 export type AssetInlineGeneratorOptions = {
     dataUrl?: AssetGeneratorDataUrl;
+    binary?: boolean;
 };
 
 // @public
@@ -262,6 +263,7 @@ export type AssetResourceGeneratorOptions = {
     outputPath?: AssetModuleOutputPath;
     publicPath?: PublicPath;
     importMode?: AssetModuleImportMode;
+    binary?: boolean;
 };
 
 // @public (undocumented)
@@ -718,6 +720,8 @@ class ChunkGraph {
     getNumberOfEntryModules(chunk: Chunk): number;
     // (undocumented)
     getOrderedChunkModulesIterable(chunk: Chunk, compareFn: (a: Module, b: Module) => number): Iterable<Module>;
+    // (undocumented)
+    hasChunkEntryDependentChunks(chunk: Chunk): boolean;
 }
 
 // @public (undocumented)
@@ -983,6 +987,8 @@ export class Compilation {
     get chunkGroups(): ReadonlyArray<ChunkGroup>;
     // (undocumented)
     get chunks(): ReadonlySet<Chunk>;
+    // (undocumented)
+    get codeGenerationResults(): binding.CodeGenerationResults;
     // (undocumented)
     compiler: Compiler;
     // (undocumented)
@@ -1642,6 +1648,7 @@ export type CssAutoGeneratorOptions = {
 // @public
 export type CssAutoParserOptions = {
     namedExports?: CssParserNamedExports;
+    url?: CssParserUrl;
 };
 
 // @public
@@ -1725,6 +1732,7 @@ export type CssModuleGeneratorOptions = CssAutoGeneratorOptions;
 // @public
 export type CssModuleParserOptions = {
     namedExports?: CssParserNamedExports;
+    url?: CssParserUrl;
 };
 
 // @public (undocumented)
@@ -1733,7 +1741,11 @@ export type CssParserNamedExports = boolean;
 // @public
 export type CssParserOptions = {
     namedExports?: CssParserNamedExports;
+    url?: CssParserUrl;
 };
+
+// @public (undocumented)
+export type CssParserUrl = boolean;
 
 // @public (undocumented)
 interface DebuggerStatement extends Node_4, HasSpan {
@@ -5560,7 +5572,7 @@ type Performance_2 = false | {
 export { Performance_2 as Performance }
 
 // @public (undocumented)
-type PitchLoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, remainingRequest: string, previousRequest: string, data: object) => string | void | Buffer | Promise<string | Buffer>;
+export type PitchLoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, remainingRequest: string, previousRequest: string, data: object) => string | void | Buffer | Promise<string | Buffer>;
 
 // @public (undocumented)
 type Plugin_2 = RspackPluginInstance | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction | Falsy;
@@ -6359,6 +6371,7 @@ declare namespace rspackExports {
         LoaderContext,
         LoaderDefinition,
         LoaderDefinitionFunction,
+        PitchLoaderDefinitionFunction,
         getRawOptions,
         applyRspackOptionsDefaults,
         applyRspackOptionsBaseDefaults,
@@ -6466,6 +6479,7 @@ declare namespace rspackExports {
         AssetParserDataUrl,
         AssetParserOptions,
         CssParserNamedExports,
+        CssParserUrl,
         CssParserOptions,
         CssAutoParserOptions,
         CssModuleParserOptions,
@@ -7486,7 +7500,7 @@ type SubresourceIntegrityHashFunction = "sha256" | "sha384" | "sha512";
 
 // @public (undocumented)
 class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin {
-    constructor(options: SubresourceIntegrityPluginOptions);
+    constructor(options?: SubresourceIntegrityPluginOptions);
     // (undocumented)
     apply(compiler: Compiler): void;
 }

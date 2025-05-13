@@ -28,7 +28,8 @@ mod napi_binding {
   use rustc_hash::FxHashMap;
 
   use crate::{
-    with_thread_local_allocator, AssetInfo, CodeGenerationResult, CodeGenerationResults, SourceType,
+    with_thread_local_allocator, AssetInfo, CodeGenerationResult, CodeGenerationResults,
+    CompilationAsset, SourceType,
   };
 
   pub struct WeakBindingCell<T: ?Sized> {
@@ -120,6 +121,16 @@ mod napi_binding {
             let target = unsafe { Object::from_raw_unchecked(raw_env, napi_val) };
             ThreadsafeOneShotRef::new(raw_env, target)
           }
+          HeapVariant::Assets(assets) => {
+            let binding_cell = BindingCell {
+              ptr: assets.as_ref() as *const FxHashMap<String, CompilationAsset>
+                as *mut FxHashMap<String, CompilationAsset>,
+              heap: heap.clone(),
+            };
+            let napi_val = allocator.allocate_assets(raw_env, &binding_cell)?;
+            let target = unsafe { Object::from_raw_unchecked(raw_env, napi_val) };
+            ThreadsafeOneShotRef::new(raw_env, target)
+          }
         })?;
 
         let result = unsafe { ToNapiValue::to_napi_value(raw_env, raw_ref)? };
@@ -154,6 +165,7 @@ mod napi_binding {
     CodeGenerationResults(Box<CodeGenerationResults>),
     CodeGenerationResult(Box<CodeGenerationResult>),
     Sources(Box<FxHashMap<SourceType, BoxSource>>),
+    Assets(Box<FxHashMap<String, CompilationAsset>>),
   }
 
   #[derive(Debug)]
@@ -264,6 +276,27 @@ mod napi_binding {
     }
   }
 
+  impl BindingCell<FxHashMap<String, CompilationAsset>> {
+    pub fn new(assets: FxHashMap<String, CompilationAsset>) -> Self {
+      let boxed = Box::new(assets);
+      let ptr = boxed.as_ref() as *const FxHashMap<String, CompilationAsset>
+        as *mut FxHashMap<String, CompilationAsset>;
+      let heap = Arc::new(Heap {
+        variant: HeapVariant::Assets(boxed),
+        jsobject: Default::default(),
+      });
+      Self { ptr, heap }
+    }
+  }
+
+  impl From<FxHashMap<String, CompilationAsset>>
+    for BindingCell<FxHashMap<String, CompilationAsset>>
+  {
+    fn from(assets: FxHashMap<String, CompilationAsset>) -> Self {
+      Self::new(assets)
+    }
+  }
+
   impl<T: ?Sized> BindingCell<T> {
     pub fn downgrade(&self) -> WeakBindingCell<T> {
       WeakBindingCell {
@@ -358,19 +391,40 @@ mod napi_binding {
     fn deserialize(&self, deserializer: &mut D) -> Result<BindingCell<T>, D::Error> {
       let boxed: Box<T> = self.deserialize(deserializer)?;
       let type_id = boxed.type_id();
-      if type_id == TypeId::of::<Box<AssetInfo>>() {
-        let ptr = Box::into_raw(boxed);
-        let boxed = unsafe { Box::from_raw(ptr as *mut AssetInfo) };
-        Ok(BindingCell {
-          ptr,
-          heap: Arc::new(Heap {
-            variant: HeapVariant::AssetInfo(boxed),
-            jsobject: OnceCell::default(),
-          }),
-        })
-      } else {
-        unreachable!()
+
+      macro_rules! deserialize_variant {
+        ($type_id:expr, $boxed:expr, $variant:path, $target:ty) => {
+          if $type_id == TypeId::of::<Box<$target>>() {
+            let ptr = Box::into_raw($boxed);
+            let boxed = unsafe { Box::from_raw(ptr as *mut $target) };
+            return Ok(BindingCell {
+              ptr,
+              heap: Arc::new(Heap {
+                variant: $variant(boxed),
+                jsobject: OnceCell::default(),
+              }),
+            });
+          }
+        };
       }
+
+      deserialize_variant!(type_id, boxed, HeapVariant::AssetInfo, AssetInfo);
+      deserialize_variant!(
+        type_id,
+        boxed,
+        HeapVariant::CodeGenerationResults,
+        CodeGenerationResults
+      );
+      deserialize_variant!(
+        type_id,
+        boxed,
+        HeapVariant::CodeGenerationResult,
+        CodeGenerationResult
+      );
+      deserialize_variant!(type_id, boxed, HeapVariant::Sources, FxHashMap<SourceType, BoxSource>);
+      deserialize_variant!(type_id, boxed, HeapVariant::Assets, FxHashMap<String, CompilationAsset>);
+
+      unreachable!()
     }
   }
 }

@@ -1,28 +1,25 @@
-use std::{
-  any::TypeId,
-  cell::{OnceCell, RefCell},
-  ptr::NonNull,
-  sync::Arc,
-};
+use std::{any::TypeId, cell::RefCell, ptr::NonNull, sync::Arc};
 
 use napi::{CallContext, JsString, JsSymbol, NapiRaw, NapiValue};
 use napi_derive::napi;
+use once_cell::unsync::OnceCell;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
   FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{
-  napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotInstanceRef, OneShotRef,
+  napi::bindgen_prelude::*, string::JsStringExt, threadsafe_function::ThreadsafeFunction,
+  OneShotInstanceRef, OneShotRef, WeakRef,
 };
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_util::source_map::SourceMapKind;
 
 use super::JsCompatSourceOwned;
 use crate::{
-  AssetInfo, AsyncDependenciesBlockWrapper, ConcatenatedModule, ContextModule, DependencyWrapper,
-  ExternalModule, JsChunkWrapper, JsCodegenerationResults, JsCompatSource, JsCompiler,
-  NormalModule, ToJsCompatSource, COMPILER_REFERENCES,
+  AssetInfo, AsyncDependenciesBlockWrapper, BuildInfo, ConcatenatedModule, ContextModule,
+  DependencyWrapper, ExternalModule, JsChunkWrapper, JsCodegenerationResults, JsCompatSource,
+  JsCompiler, NormalModule, ToJsCompatSource, COMPILER_REFERENCES,
 };
 
 #[napi(object)]
@@ -51,6 +48,7 @@ pub struct Module {
   module: Option<NonNull<dyn rspack_core::Module>>,
   compiler_id: CompilerId,
   compiler_reference: WeakReference<JsCompiler>,
+  pub(crate) build_info_ref: Option<WeakRef>,
 }
 
 impl Module {
@@ -140,6 +138,75 @@ impl Module {
       )
     }
 
+    #[js_function]
+    fn build_info_getter(ctx: CallContext) -> napi::Result<Object> {
+      let mut this = ctx.this::<Object>()?;
+      let env = ctx.env;
+      let raw_env = env.raw();
+      let mut reference: Reference<Module> =
+        unsafe { Reference::from_napi_value(raw_env, this.raw())? };
+      if let Some(r) = &reference.build_info_ref {
+        return r.as_object(env);
+      }
+      let mut build_info = BuildInfo::new(reference.downgrade()).get_jsobject(env)?;
+      MODULE_BUILD_INFO_SYMBOL.with(|once_cell| {
+        let sym = unsafe {
+          #[allow(clippy::unwrap_used)]
+          let napi_val = ToNapiValue::to_napi_value(env.raw(), once_cell.get().unwrap())?;
+          JsSymbol::from_raw_unchecked(env.raw(), napi_val)
+        };
+        this.set_property(sym, &build_info)
+      })?;
+      let r = WeakRef::new(raw_env, &mut build_info)?;
+      let result = r.as_object(env);
+      reference.build_info_ref = Some(r);
+      result
+    }
+
+    #[js_function(1)]
+    fn build_info_setter(ctx: CallContext) -> napi::Result<()> {
+      let mut this = ctx.this_unchecked::<Object>();
+      let input_object = ctx.get::<Object>(0)?;
+      let env = ctx.env;
+      let raw_env = env.raw();
+      let mut reference: Reference<Module> =
+        unsafe { Reference::from_napi_value(raw_env, this.raw())? };
+      let new_build_info = BuildInfo::new(reference.downgrade());
+      let mut new_instrance = new_build_info.get_jsobject(env)?;
+
+      let names = input_object.get_all_property_names(
+        napi::KeyCollectionMode::OwnOnly,
+        napi::KeyFilter::AllProperties,
+        napi::KeyConversion::KeepNumbers,
+      )?;
+      let names = Array::from_unknown(names.into_unknown())?;
+      for index in 0..names.len() {
+        if let Some(name) = names.get::<Unknown>(index)? {
+          let name_clone = unsafe { Object::from_raw_unchecked(env.raw(), name.raw()) };
+          let name_str = name_clone.coerce_to_string()?.into_string();
+          // known build info properties
+          if name_str == "assets" {
+            // TODO: Currently, setting assets is not supported.
+            continue;
+          } else {
+            let value = input_object.get_property::<&Unknown, Unknown>(&name)?;
+            new_instrance.set_property::<Unknown, Unknown>(name, value)?;
+          }
+        }
+      }
+
+      MODULE_BUILD_INFO_SYMBOL.with(|once_cell| {
+        let sym = unsafe {
+          #[allow(clippy::unwrap_used)]
+          let napi_val = ToNapiValue::to_napi_value(env.raw(), once_cell.get().unwrap())?;
+          JsSymbol::from_raw_unchecked(env.raw(), napi_val)
+        };
+        this.set_property(sym, &new_instrance)
+      })?;
+      reference.build_info_ref = Some(WeakRef::new(raw_env, &mut new_instrance)?);
+      Ok(())
+    }
+
     object.define_properties(&[
       Property::new("type")?.with_value(&env.create_string(module.module_type().as_str())?),
       Property::new("context")?.with_getter(context_getter),
@@ -150,7 +217,9 @@ impl Module {
         .with_getter(factory_meta_getter)
         .with_setter(factory_meta_setter),
       Property::new("_readableIdentifier")?.with_getter(readable_identifier_getter),
-      Property::new("buildInfo")?.with_value(&env.create_object()?),
+      Property::new("buildInfo")?
+        .with_getter(build_info_getter)
+        .with_setter(build_info_setter),
       Property::new("buildMeta")?.with_value(&env.create_object()?),
     ])?;
 
@@ -467,6 +536,7 @@ impl ToNapiValue for ModuleObject {
                 compiler_id: val.compiler_id,
                 module: val.module,
                 compiler_reference,
+                build_info_ref: Default::default(),
               };
               let env_wrapper = Env::from_raw(env);
 
@@ -728,6 +798,8 @@ pub type JsBuildMetaDefaultObject = Either<String, JsBuildMetaDefaultObjectRedir
 thread_local! {
   pub(crate) static MODULE_IDENTIFIER_SYMBOL: OnceCell<OneShotRef> = Default::default();
 
+  pub(crate) static MODULE_BUILD_INFO_SYMBOL: OnceCell<OneShotRef> = Default::default();
+
   pub(crate) static COMPILATION_HOOKS_MAP_SYMBOL: OnceCell<OneShotRef> = Default::default();
 }
 
@@ -746,6 +818,12 @@ fn init(mut exports: Object, env: Env) -> napi::Result<()> {
   )?;
   COMPILATION_HOOKS_MAP_SYMBOL.with(|once_cell| {
     once_cell.get_or_init(move || compilation_hooks_map_symbol);
+  });
+
+  let module_build_info_symbol = OneShotRef::new(env.raw(), env.create_symbol(None)?)?;
+  exports.set_named_property("MODULE_BUILD_INFO_SYMBOL", &module_build_info_symbol)?;
+  MODULE_BUILD_INFO_SYMBOL.with(|once_cell| {
+    once_cell.get_or_init(move || module_build_info_symbol);
   });
 
   Ok(())

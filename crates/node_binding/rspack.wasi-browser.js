@@ -60,7 +60,9 @@ const {
     }
   },
 })
+export const Assets = __napiModule.exports.Assets
 export const AsyncDependenciesBlock = __napiModule.exports.AsyncDependenciesBlock
+export const BuildInfo = __napiModule.exports.BuildInfo
 export const Chunks = __napiModule.exports.Chunks
 export const CodeGenerationResult = __napiModule.exports.CodeGenerationResult
 export const CodeGenerationResults = __napiModule.exports.CodeGenerationResults

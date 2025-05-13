@@ -4,7 +4,7 @@ use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap;
 
 use super::BindingCell;
-use crate::{AssetInfo, CodeGenerationResult, CodeGenerationResults, SourceType};
+use crate::{AssetInfo, CodeGenerationResult, CodeGenerationResults, CompilationAsset, SourceType};
 
 thread_local! {
   static NAPI_ALLOCATOR: OnceCell<Box<dyn NapiAllocator>> = OnceCell::default();
@@ -30,6 +30,11 @@ pub trait NapiAllocator {
     &self,
     env: napi_env,
     val: &BindingCell<FxHashMap<SourceType, BoxSource>>,
+  ) -> napi::Result<napi_value>;
+  fn allocate_assets(
+    &self,
+    env: napi_env,
+    val: &BindingCell<FxHashMap<String, CompilationAsset>>,
   ) -> napi::Result<napi_value>;
 }
 

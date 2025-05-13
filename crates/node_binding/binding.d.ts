@@ -65,9 +65,17 @@ export declare class ExternalObject<T> {
     [K: symbol]: T
   }
 }
+export declare class Assets {
+  keys(): Array<string>
+}
+
 export declare class AsyncDependenciesBlock {
   get dependencies(): Dependency[]
   get blocks(): AsyncDependenciesBlock[]
+}
+
+export declare class BuildInfo {
+  get _assets(): Assets
 }
 
 export declare class Chunks {
