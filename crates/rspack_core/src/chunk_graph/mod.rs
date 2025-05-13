@@ -1,5 +1,7 @@
-use rspack_collections::{IdentifierMap, UkeyMap};
-use rustc_hash::FxHashMap as HashMap;
+use indexmap::IndexSet;
+use rspack_collections::{IdentifierMap, UkeyIndexMap, UkeyMap};
+use rspack_util::atom::Atom;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, ModuleIdentifier};
 
@@ -7,6 +9,12 @@ pub mod chunk_graph_chunk;
 pub mod chunk_graph_module;
 pub use chunk_graph_chunk::{ChunkGraphChunk, ChunkSizeOptions};
 pub use chunk_graph_module::{ChunkGraphModule, ModuleId};
+
+#[derive(Debug, Clone, Default)]
+pub struct ChunkLink {
+  pub imports: UkeyIndexMap<ChunkUkey, IdentifierMap<IndexSet<Atom>>>,
+  pub exports: IdentifierMap<HashSet<Atom>>,
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraph {
@@ -17,6 +25,9 @@ pub struct ChunkGraph {
   chunk_graph_chunk_by_chunk_ukey: UkeyMap<ChunkUkey, ChunkGraphChunk>,
 
   runtime_ids: HashMap<String, Option<String>>,
+
+  // only used for esm output
+  pub link: Option<UkeyMap<ChunkUkey, ChunkLink>>,
 }
 
 impl ChunkGraph {
