@@ -1,3 +1,4 @@
+mod css_chunking;
 mod raw_banner;
 mod raw_bundle_info;
 mod raw_circular_dependency;
@@ -91,6 +92,7 @@ use rspack_plugin_web_worker_template::web_worker_template_plugin;
 use rspack_plugin_worker::WorkerPlugin;
 
 pub use self::{
+  css_chunking::CssChunkingPluginOptions,
   raw_banner::RawBannerPluginOptions,
   raw_circular_dependency::RawCircularDependencyRspackPluginOptions,
   raw_copy::RawCopyRspackPluginOptions,
@@ -598,8 +600,8 @@ impl BuiltinPlugin {
         plugins.push(ModuleInfoHeaderPlugin::new(verbose).boxed());
       }
       BuiltinPluginName::CssChunkingPlugin => {
-        let strict = downcast_into::<bool>(self.options)?;
-        plugins.push(CssChunkingPlugin::new(strict).boxed());
+        let options = downcast_into::<CssChunkingPluginOptions>(self.options)?;
+        plugins.push(CssChunkingPlugin::new(options.into()).boxed());
       }
     }
     Ok(())

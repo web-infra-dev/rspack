@@ -478,6 +478,11 @@ export interface ContextInfo {
   issuerLayer?: string
 }
 
+export interface CssChunkingPluginOptions {
+  strict?: boolean
+  exclude?: RegExp
+}
+
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
 
 export interface JsAddingRuntimeModule {

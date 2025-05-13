@@ -11,6 +11,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_css::CssPlugin;
+use rspack_regex::RspackRegex;
 
 const MIN_CSS_CHUNK_SIZE: f64 = 30_f64 * 1024_f64;
 const MAX_CSS_CHUNK_SIZE: f64 = 100_f64 * 1024_f64;
@@ -21,16 +22,23 @@ fn is_global_css(name_for_condition: &Option<Box<str>>) -> bool {
   })
 }
 
+#[derive(Debug)]
+pub struct CssChunkingPluginOptions {
+  pub strict: bool,
+  pub exclude: Option<RspackRegex>,
+}
+
 #[plugin]
 #[derive(Debug)]
 pub struct CssChunkingPlugin {
   once: AtomicBool,
   strict: bool,
+  exclude: Option<RspackRegex>,
 }
 
 impl CssChunkingPlugin {
-  pub fn new(strict: bool) -> Self {
-    Self::new_inner(AtomicBool::new(false), strict)
+  pub fn new(options: CssChunkingPluginOptions) -> Self {
+    Self::new_inner(AtomicBool::new(false), options.strict, options.exclude)
   }
 }
 
@@ -72,7 +80,15 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let chunks = &compilation.chunk_by_ukey;
   let module_graph = compilation.get_module_graph();
 
-  for chunk_ukey in chunks.keys() {
+  for (chunk_ukey, chunk) in chunks.iter() {
+    if let Some(name) = chunk.name() {
+      if let Some(exclude) = &self.exclude {
+        if exclude.test(name) {
+          continue;
+        }
+      }
+    }
+
     let modules: Vec<&dyn Module> = chunk_graph
       .get_chunk_modules(chunk_ukey, &module_graph)
       .into_iter()

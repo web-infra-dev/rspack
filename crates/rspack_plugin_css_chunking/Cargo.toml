@@ -23,6 +23,7 @@ rspack_hash           = { workspace = true }
 rspack_hook           = { workspace = true }
 rspack_plugin_css     = { workspace = true }
 rspack_plugin_runtime = { workspace = true }
+rspack_regex          = { workspace = true }
 rspack_util           = { workspace = true }
 rustc-hash            = { workspace = true }
 serde_json            = { workspace = true }
