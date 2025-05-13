@@ -1,1 +1,1 @@
-module.exports = () => { return "FIXME: expect string to be typeof object" }
+module.exports = () => { return "TODO: not support module.strictThisContextOnImports" }

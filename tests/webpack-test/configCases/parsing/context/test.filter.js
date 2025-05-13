@@ -1,2 +1,1 @@
-// TODO: Should create a issue for this test
-module.exports = () => { return "FIXME: missing error" }
+module.exports = () => { return "TODO: not support module.unknownContextRegExp/unknownContextCritical/exprContextRegExp" }
