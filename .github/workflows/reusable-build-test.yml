@@ -17,7 +17,7 @@ jobs:
   e2e:
     name: E2E Testing
     if: inputs.target == 'x86_64-unknown-linux-gnu'
-    runs-on: ${{ fromJSON(inputs.runner) }}
+    runs-on: rspack-ubuntu-22.04-large
     defaults:
       run:
         shell: bash
@@ -59,6 +59,8 @@ jobs:
           options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
           script: |
             export PATH=${{ steps.calculate-node-bin-path.outputs.path }}:$PATH
+            echo $PATH
+            sleep infinity
             pnpm run build:js
             pnpm run test:e2e
 
