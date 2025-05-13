@@ -1033,18 +1033,18 @@ export class Compilation {
     // (undocumented)
     getAsset(name: string): Readonly<Asset> | void;
     // (undocumented)
-    getAssetPath(filename: Filename, data?: PathData): string;
+    getAssetPath(filename: string, data?: PathData): string;
     // (undocumented)
-    getAssetPathWithInfo(filename: Filename, data?: PathData): binding.PathWithInfo;
+    getAssetPathWithInfo(filename: string, data?: PathData): binding.PathWithInfo;
     getAssets(): ReadonlyArray<Asset>;
     // (undocumented)
     getCache(name: string): CacheFacade_2;
     // (undocumented)
     getLogger(name: string | (() => string)): Logger_3;
     // (undocumented)
-    getPath(filename: Filename, data?: PathData): string;
+    getPath(filename: string, data?: PathData): string;
     // (undocumented)
-    getPathWithInfo(filename: Filename, data?: PathData): binding.PathWithInfo;
+    getPathWithInfo(filename: string, data?: PathData): binding.PathWithInfo;
     // (undocumented)
     getStats(): Stats;
     // (undocumented)
