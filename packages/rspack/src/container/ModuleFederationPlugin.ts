@@ -3,7 +3,6 @@ import { EntryPlugin } from "../builtin-plugin";
 import type { ExternalsType } from "../config";
 import { externalsType } from "../config/zod";
 import { isValidate } from "../util/validate";
-import { HoistContainerReferencesPlugin } from "./HoistContainerReferencesPlugin";
 import type { ModuleFederationPluginV1Options } from "./ModuleFederationPluginV1";
 import { ModuleFederationRuntimePlugin } from "./ModuleFederationRuntimePlugin";
 import { parseOptions } from "./options";
@@ -28,8 +27,9 @@ export class ModuleFederationPlugin {
 			...compiler.options.resolve.alias
 		};
 
-		// Use the make hook to add the runtime entry using addInclude
-		compiler.hooks.make.tapAsync(
+		// Use the finishMake hook to add the runtime entry using addInclude
+		// This hook runs during the finish make stage where addInclude is allowed
+		compiler.hooks.finishMake.tapAsync(
 			ModuleFederationPlugin.name,
 			(compilation, callback) => {
 				const entryDependency = EntryPlugin.createDependency(
@@ -40,7 +40,7 @@ export class ModuleFederationPlugin {
 					compiler.context,
 					entryDependency,
 					{ name: undefined },
-					(err, _module) => {
+					err => {
 						if (err) {
 							return callback(err);
 						}
@@ -51,14 +51,6 @@ export class ModuleFederationPlugin {
 		);
 
 		new ModuleFederationRuntimePlugin().apply(compiler);
-
-		// Add HoistContainerReferencesPlugin to ensure container references are in all chunks
-		if (this._options.remotes) {
-			new HoistContainerReferencesPlugin({
-				containerName: this._options.name || compiler.options.output.uniqueName,
-				runtime: this._options.runtime
-			}).apply(compiler);
-		}
 
 		new webpack.container.ModuleFederationPluginV1({
 			...this._options,
