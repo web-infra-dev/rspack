@@ -4853,6 +4853,7 @@ dependencies = [
  "rspack_javascript_compiler",
  "rspack_plugin_javascript",
  "rspack_util",
+ "serde_json",
  "swc_core",
  "tokio",
  "tracing",
