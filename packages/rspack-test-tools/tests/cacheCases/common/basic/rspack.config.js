@@ -6,5 +6,6 @@ module.exports = {
 			type: "persistent"
 		},
 		incremental: true
-	}
+	},
+	ignoreWarnings: [/not friendly for incremental/]
 };

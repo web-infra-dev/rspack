@@ -12,9 +12,7 @@ CompilerOptions {
         pathinfo: Bool(
             false,
         ),
-        clean: CleanAll(
-            false,
-        ),
+        clean: CleanAll(false),
         public_path: Auto,
         asset_module_filename: Filename(
             Template(
@@ -1443,9 +1441,12 @@ CompilerOptions {
     cache: Disabled,
     experiments: Experiments {
         layers: false,
-        incremental: IncrementalPasses(
-            MAKE | EMIT_ASSETS,
-        ),
+        incremental: IncrementalOptions {
+            silent: true,
+            passes: IncrementalPasses(
+                MAKE | EMIT_ASSETS,
+            ),
+        },
         parallel_code_splitting: false,
         top_level_await: true,
         rspack_future: RspackFuture,

@@ -15,25 +15,26 @@ pub struct JsCodegenerationResult {
   pub sources: HashMap<String, String>,
 }
 
-impl From<CodeGenerationResult> for JsCodegenerationResult {
-  fn from(result: CodeGenerationResult) -> Self {
+impl From<&CodeGenerationResult> for JsCodegenerationResult {
+  fn from(result: &CodeGenerationResult) -> Self {
     Self {
       sources: result
         .inner
-        .into_iter()
+        .as_ref()
+        .iter()
         .map(|(source_type, source)| (source_type.to_string(), source.source().to_string()))
         .collect(),
     }
   }
 }
 
-impl From<CodeGenerationResults> for JsCodegenerationResults {
-  fn from(results: CodeGenerationResults) -> Self {
-    let (map, id_result_map) = results.into_inner();
+impl From<&CodeGenerationResults> for JsCodegenerationResults {
+  fn from(results: &CodeGenerationResults) -> Self {
+    let (map, id_result_map) = results.inner();
 
     Self {
       map: map
-        .into_iter()
+        .iter()
         .map(|(module_id, runtime_result_map)| {
           let mut runtime_map: HashMap<String, JsCodegenerationResult> = Default::default();
           match &runtime_result_map.mode {
@@ -45,13 +46,16 @@ impl From<CodeGenerationResults> for JsCodegenerationResults {
                 id_result_map
                   .get(&runtime_result_map.single_value.expect("TODO"))
                   .expect("TODO")
-                  .clone()
+                  .as_ref()
                   .into(),
               );
             }
             rspack_core::RuntimeMode::Map => {
-              runtime_result_map.map.into_iter().for_each(|(k, v)| {
-                runtime_map.insert(k, id_result_map.get(&v).expect("TODO").clone().into());
+              runtime_result_map.map.iter().for_each(|(k, v)| {
+                runtime_map.insert(
+                  k.to_string(),
+                  id_result_map.get(v).expect("TODO").as_ref().into(),
+                );
               });
             }
           };

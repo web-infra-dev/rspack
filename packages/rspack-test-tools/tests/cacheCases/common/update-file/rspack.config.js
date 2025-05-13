@@ -18,6 +18,7 @@ module.exports = {
 		},
 		incremental: true
 	},
+	ignoreWarnings: [/not friendly for incremental/],
 	plugins: [
 		{
 			updateIndex: 0,

@@ -40,25 +40,32 @@ export type HttpUriPluginOptions = {
 	httpClient?: RawHttpUriPluginOptions["httpClient"];
 };
 
-const defaultHttpClient = (url: string, headers: Record<string, string>) => {
+const defaultHttpClient = async (
+	url: string,
+	headers: Record<string, string>
+) => {
 	// Return a promise that resolves to the response
-	return fetch(url, { headers }).then(response => {
-		// Convert the response to the format expected by the HTTP client
-		return response.arrayBuffer().then(buffer => {
-			// Extract headers
-			const responseHeaders: Record<string, string> = {};
-			response.headers.forEach((value, key) => {
-				responseHeaders[key] = value;
+	// setting redirect: "manual" to prevent automatic redirection which will break the redirect logic in rust plugin
+	// webpack use require('http').get while rspack use fetch which treats redirect differently
+	const result = await fetch(url, { headers, redirect: "manual" }).then(
+		response => {
+			// Convert the response to the format expected by the HTTP client
+			return response.arrayBuffer().then(buffer => {
+				// Extract headers
+				const responseHeaders: Record<string, string> = {};
+				response.headers.forEach((value, key) => {
+					responseHeaders[key] = value;
+				});
+				// Return the standardized format
+				return {
+					status: response.status,
+					headers: responseHeaders,
+					body: Buffer.from(buffer)
+				};
 			});
-
-			// Return the standardized format
-			return {
-				status: response.status,
-				headers: responseHeaders,
-				body: Buffer.from(buffer)
-			};
-		});
-	});
+		}
+	);
+	return result;
 };
 
 /**

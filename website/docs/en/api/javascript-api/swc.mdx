@@ -1,0 +1,121 @@
+# SWC API
+
+Rspack uses [SWC](https://swc.rs/) under the hood to transform and minify JavaScript code, and experimentally exposes some SWC JavaScript APIs through `rspack.experiments.swc`. This allows you to directly call SWC methods like `transform` or `minify` without installing the additional [@swc/core](https://www.npmjs.com/package/@swc/core) package.
+
+## Examples
+
+Here is a simple example demonstrating how to transform JavaScript code using Rspack:
+
+```js
+import { rspack } from '@rspack/core';
+
+const { swc } = rspack.experiments;
+const sourceCode = 'const a: number = 10;';
+
+swc
+  .transform(sourceCode, {
+    filename: 'main.ts',
+    jsc: {
+      parser: {
+        syntax: 'typescript',
+      },
+      // ...other options
+    },
+  })
+  .then(result => {
+    console.log(result.code);
+  });
+```
+
+In addition to using the `swc` API directly, you can also use it in loaders or plugins to help with code transform or minify.
+
+```js title="my-loader.mjs"
+export default function myLoader(source) {
+  const { swc } = this._compiler.rspack.experiments;
+  const customCode = `
+    const a = 10;
+    const b = 20;
+    // custom code
+  `;
+
+  const callback = this.async();
+
+  swc
+    .minify(customCode, {
+      compress: true,
+      sourceMap: true,
+      // ...other options
+    })
+    .then(result => {
+      callback(null, `${result.code}\n${source}`);
+    });
+}
+```
+
+## Options
+
+The API options accepted by the above APIs are passed to SWC.
+
+You can learn more about configuration options in the SWC official documentation:
+
+- [SWC Transform API](https://swc.rs/docs/usage/core#transform) - Code transform options
+- [SWC Minify API](https://swc.rs/docs/usage/core#minify) - Code minify options
+
+```ts
+declare namespace rspack {
+  namespace experimental {
+    declare const swc: {
+      transform(
+        code: string,
+        options?: TransformOptions,
+      ): Promise<TransformOutput>;
+      minify(code: string, options?: JsMinifyOptions): Promise<TransformOutput>;
+    };
+
+    declare interface JsMinifyOptions {
+      compress?: TerserCompressOptions | boolean;
+      format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
+      mangle?: TerserMangleOptions | boolean;
+      ecma?: TerserEcmaVersion;
+      keep_classnames?: boolean;
+      keep_fnames?: boolean;
+      module?: boolean | 'unknown';
+      safari10?: boolean;
+      toplevel?: boolean;
+      sourceMap?: boolean;
+      outputPath?: string;
+      inlineSourcesContent?: boolean;
+    }
+
+    declare interface TransformOptions {
+      filename?: string;
+      sourceMaps?: boolean;
+      jsc?: {
+        parser?: {
+          syntax?: 'ecmascript' | 'typescript';
+          decorators?: boolean;
+          dynamicImport?: boolean;
+          exportDefaultFrom?: boolean;
+          exportNamespaceFrom?: boolean;
+          importAssertions?: boolean;
+          tsx?: boolean;
+        };
+        target?: string;
+        loose?: boolean;
+        externalHelpers?: boolean;
+        keepClassNames?: boolean;
+        keepFnName?: boolean;
+        minifySyntax?: boolean;
+        minifyWhitespace?: boolean;
+        minifyIdentifiers?: boolean;
+      };
+      // ...
+    }
+
+    declare interface TransformOutput {
+      code: string;
+      map?: string;
+    }
+  }
+}
+```

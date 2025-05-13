@@ -1,13 +1,13 @@
-it("should write asset file to output directory", function() {
+it("should write asset file to output directory", function () {
 	const fs = require("fs");
 	const path = require("path");
 	const source = fs.readFileSync(path.join(__dirname, "asset.css"), "utf-8");
 	expect(source).toMatch("/*# sourceMappingURL=asset.css.map*/");
 });
 
-it("should write sourcemap file relative to fileContext", function() {
+it("should write sourcemap file relative to fileContext", function () {
 	const fs = require("fs");
-	const	path = require("path");
+	const path = require("path");
 	expect(fs.existsSync(path.join(__dirname, "asset.css.map"))).toBe(true);
 	const source = JSON.parse(fs.readFileSync(path.join(__dirname, "asset.css.map"), "utf-8"));
 	expect(source.sources[0]).toBe("webpack:///asset.scss");

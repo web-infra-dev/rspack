@@ -20,8 +20,7 @@ pub fn impl_runtime_module(
     fields.named.push(
       syn::Field::parse_named
         .parse2(quote! {
-            #[cacheable(with=rspack_cacheable::with::AsOption<rspack_cacheable::with::AsPreset>)]
-            pub custom_source: Option<::rspack_core::rspack_sources::BoxSource>
+            pub custom_source: Option<String>
         })
         .expect("Failed to parse new field for custom_source"),
     );
@@ -29,7 +28,7 @@ pub fn impl_runtime_module(
       syn::Field::parse_named
             .parse2(quote! {
                 #[cacheable(with=rspack_cacheable::with::Skip)]
-                pub cached_generated_code: std::sync::Arc<std::sync::RwLock<Option<::rspack_core::rspack_sources::BoxSource>>>
+                pub cached_generated_code: std::sync::Arc<::tokio::sync::OnceCell<::rspack_core::rspack_sources::BoxSource>>
             })
         .expect("Failed to parse new field for cached_generated_code"),
     );
@@ -63,26 +62,33 @@ pub fn impl_runtime_module(
         &self,
         compilation: &::rspack_core::Compilation,
       ) -> ::rspack_error::Result<std::sync::Arc<dyn ::rspack_core::rspack_sources::Source>> {
-        {
-          let mut cached_generated_code = self.cached_generated_code.read().expect("Failed to acquire read lock on cached_generated_code");
-          if let Some(cached_generated_code) = (*cached_generated_code).as_ref() {
-            return Ok(cached_generated_code.clone());
-          }
-        }
-        let source = self.generate_with_custom(compilation).await?;
-        {
-          let mut cached_generated_code = self.cached_generated_code.write().expect("Failed to acquire write lock on cached_generated_code");
-          *cached_generated_code = Some(source.clone());
-        }
+        let result: ::rspack_error::Result<&::rspack_core::rspack_sources::BoxSource> = self.cached_generated_code.get_or_try_init(|| async {
+          use ::rspack_util::source_map::ModuleSourceMapConfig;
+          use ::rspack_collections::Identifiable;
+          use ::rspack_core::rspack_sources::SourceExt;
+
+          let source_str = self.generate_with_custom(compilation).await?;
+          let source_map_kind = self.get_source_map_kind();
+          Ok(if source_map_kind.enabled() {
+            ::rspack_core::rspack_sources::OriginalSource::new(
+              source_str,
+              self.identifier().as_str(),
+            )
+            .boxed()
+          } else {
+            ::rspack_core::rspack_sources::RawStringSource::from(source_str).boxed()
+          })
+        }).await;
+        let source = result?.clone();
         Ok(source)
       }
     }
 
     impl #impl_generics ::rspack_core::CustomSourceRuntimeModule for #name #ty_generics #where_clause {
-      fn set_custom_source(&mut self, source: ::rspack_core::rspack_sources::BoxSource) -> () {
+      fn set_custom_source(&mut self, source: String) -> () {
         self.custom_source = Some(source);
       }
-      fn get_custom_source(&self) -> Option<::rspack_core::rspack_sources::BoxSource> {
+      fn get_custom_source(&self) -> Option<String> {
         self.custom_source.clone()
       }
       fn get_constructor_name(&self) -> String {
@@ -132,8 +138,8 @@ pub fn impl_runtime_module(
       fn size(&self, _source_type: Option<&::rspack_core::SourceType>, compilation: Option<&::rspack_core::Compilation>) -> f64 {
         match compilation {
           Some(compilation) => {
-            let mut cached_generated_code = self.cached_generated_code.read().expect("Failed to acquire read lock on cached_generated_code");
-            if let Some(cached_generated_code) = (*cached_generated_code).as_ref() {
+            let mut cached_generated_code = self.cached_generated_code.get();
+            if let Some(cached_generated_code) = cached_generated_code {
               cached_generated_code.size() as f64
             } else {
               panic!("get size of runtime module before code generation")
@@ -194,7 +200,8 @@ pub fn impl_runtime_module(
         self.name().dyn_hash(&mut hasher);
         self.stage().dyn_hash(&mut hasher);
         if self.full_hash() || self.dependent_hash() {
-          self.generate_with_custom(compilation).await?.dyn_hash(&mut hasher);
+          use std::hash::Hash;
+          self.generate_with_custom(compilation).await?.hash(&mut hasher);
         } else {
           self.get_generated_code(compilation).await?.dyn_hash(&mut hasher);
         }

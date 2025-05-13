@@ -2,7 +2,7 @@ use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
 use rspack_collections::{DatabaseItem, UkeyIndexSet, UkeySet};
 use rspack_core::{
   chunk_graph_chunk::ChunkId,
-  incremental::{IncrementalPasses, Mutation, Mutations},
+  incremental::{self, IncrementalPasses, Mutation, Mutations},
   ApplyContext, ChunkGraph, ChunkIdsArtifact, ChunkUkey, Compilation, CompilationChunkIds,
   CompilerOptions, Logger, Plugin, PluginContext,
 };
@@ -164,6 +164,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
     .incremental
     .mutations_read(IncrementalPasses::CHUNK_IDS)
   {
+    tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::CHUNK_IDS, %mutations);
     let mut affected_chunks: UkeySet<ChunkUkey> = UkeySet::default();
     for mutation in mutations.iter() {
       match mutation {
@@ -195,7 +196,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
 
   let mut mutations = compilation
     .incremental
-    .can_write_mutations()
+    .mutations_writeable()
     .then(Mutations::default);
 
   // Use chunk name as default chunk id
@@ -251,7 +252,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
 
   if compilation
     .incremental
-    .can_read_mutations(IncrementalPasses::CHUNK_IDS)
+    .mutations_readable(IncrementalPasses::CHUNK_IDS)
     && let Some(mutations) = &mutations
   {
     let logger = compilation.get_logger("rspack.incremental.chunkIds");

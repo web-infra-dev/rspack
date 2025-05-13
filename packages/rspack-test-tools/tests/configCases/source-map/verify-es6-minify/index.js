@@ -10,12 +10,15 @@ it("verify es6 (esmodule) minify bundle source map", async () => {
 	const fs = require("fs");
 	const source = fs.readFileSync(__filename + ".map", "utf-8");
 	const map = JSON.parse(source);
-	expect(map.sources).toEqual([
+	expect(map.sources.sort()).toEqual([
 		"webpack:///../../../../dist/helper/util/checkSourceMap.js",
 		"webpack:///./a.js",
 		"webpack:///./b-dir/b.js",
 		"webpack:///./b-dir/c-dir/c.js",
 		"webpack:///./index.js",
+		"webpack:///webpack/runtime/define_property_getters",
+		"webpack:///webpack/runtime/has_own_property",
+		"webpack:///webpack/runtime/make_namespace_object",
 	]);
 	expect(map.file).toEqual("bundle0.js");
 	const out = fs.readFileSync(__filename, "utf-8");

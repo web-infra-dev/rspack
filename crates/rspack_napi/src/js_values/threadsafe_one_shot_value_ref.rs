@@ -23,6 +23,10 @@ extern "C" fn napi_js_callback(
   _context: *mut c_void,
   data: *mut c_void,
 ) {
+  // env can be null when shutting down
+  if env.is_null() {
+    return;
+  }
   unsafe { sys::napi_delete_reference(env, data as napi_ref) };
 }
 

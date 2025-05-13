@@ -40,6 +40,16 @@ impl JsChunkGraph {
 
 #[napi]
 impl JsChunkGraph {
+  #[napi(ts_return_type = "boolean")]
+  pub fn has_chunk_entry_dependent_chunks(&self, chunk: &JsChunk) -> Result<bool> {
+    let compilation = self.as_ref()?;
+    Ok(
+      compilation
+        .chunk_graph
+        .has_chunk_entry_dependent_chunks(&chunk.chunk_ukey, &compilation.chunk_group_by_ukey),
+    )
+  }
+
   #[napi(ts_return_type = "Module[]")]
   pub fn get_chunk_modules(&self, chunk: &JsChunk) -> Result<Vec<ModuleObject>> {
     let compilation = self.as_ref()?;

@@ -5,10 +5,8 @@ use itertools::Itertools;
 use rspack_cacheable::with::Unsupported;
 use rspack_collections::{DatabaseItem, Identifier, UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
-  get_filename_without_hash_length, impl_runtime_module,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule,
-  SourceType,
+  get_filename_without_hash_length, impl_runtime_module, Chunk, ChunkGraph, ChunkUkey, Compilation,
+  Filename, PathData, RuntimeGlobals, RuntimeModule, SourceType,
 };
 use rspack_util::itoa;
 use rustc_hash::FxHashMap;
@@ -89,7 +87,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     true
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunks = self
       .chunk
       .and_then(|chunk_ukey| compilation.chunk_by_ukey.get(&chunk_ukey))
@@ -378,7 +376,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       "_dynamic_url": dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type))
     })))?;
 
-    Ok(RawStringSource::from(source).boxed())
+    Ok(source)
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

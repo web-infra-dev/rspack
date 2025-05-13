@@ -29,6 +29,9 @@ use crate::{
   ModuleFilenameTemplateFn, ModuleOrSource,
 };
 
+static SCHEMA_SOURCE_REGEXP: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^(data|https?):").expect("failed to compile SCHEMA_SOURCE_REGEXP"));
+
 static CSS_EXTENSION_DETECT_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"\.css($|\?)").expect("failed to compile CSS_EXTENSION_DETECT_REGEXP")
 });
@@ -276,6 +279,12 @@ impl SourceMapDevToolPlugin {
       ModuleFilenameTemplate::String(s) => module_source_names
         .into_par_iter()
         .map(|module_or_source| {
+          if let ModuleOrSource::Source(source) = module_or_source {
+            if SCHEMA_SOURCE_REGEXP.is_match(source) {
+              return (module_or_source, source.to_string());
+            }
+          }
+
           let source_name = ModuleFilenameHelpers::create_filename_of_string_template(
             module_or_source,
             compilation,
@@ -290,6 +299,12 @@ impl SourceMapDevToolPlugin {
         let features = module_source_names
           .into_iter()
           .map(|module_or_source| async move {
+            if let ModuleOrSource::Source(source) = module_or_source {
+              if SCHEMA_SOURCE_REGEXP.is_match(source) {
+                return Ok((module_or_source, source.to_string()));
+              }
+            }
+
             let source_name = ModuleFilenameHelpers::create_filename_of_fn_template(
               module_or_source,
               compilation,

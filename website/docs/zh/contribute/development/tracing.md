@@ -1,13 +1,25 @@
 # Tracing
 
-[`tracing`](https://crates.io/crates/tracing) 用于记录 Rspack 编译的内部流程，既可用于性能分析，也可用于定位 Bug。
+[`tracing`](https://crates.io/crates/tracing) 用于记录 Rspack 内部的编译流程，既可用于性能分析，也可用于定位 Bug。
 
 ## 开启 Tracing
 
 可以通过以下两种方式开启 tracing：
 
-- 如果使用 `@rspack/cli` 或 Rsbuild：通过设置 `RSPACK_PROFILE` 环境变量来开启
-- 如果直接使用 `@rspack/core`：可通过 `rspack.experiments.globalTrace.register` 和 `rspack.experiments.globalTrace.cleanup` 开启。可以查看[我们如何在 `@rspack/cli` 中实现 `RSPACK_PROFILE`](https://github.com/web-infra-dev/rspack/blob/9be47217b5179186b0825ca79990ab2808aa1a0f/packages/rspack-cli/src/utils/profile.ts#L219-L224)获取更多信息。
+- 如果使用 [@rspack/cli](/api/cli) 或 Rsbuild：通过设置 `RSPACK_PROFILE` 环境变量来开启：
+
+```sh
+# Rspack CLI
+RSPACK_PROFILE=OVERVIEW rspack build # 推荐
+RSPACK_PROFILE=ALL rspack build # 不推荐，大项目的 trace.json 体积可能非常大
+
+# Rsbuild
+RSPACK_PROFILE=OVERVIEW rsbuild build
+RSPACK_PROFILE=ALL rsbuild build
+
+```
+
+- 如果直接使用 `@rspack/core`：可通过 `rspack.experiments.globalTrace.register` 和 `rspack.experiments.globalTrace.cleanup` 开启。你可以查看我们如何在 [`@rspack/cli` 中实现 `RSPACK_PROFILE`](https://github.com/web-infra-dev/rspack/blob/9be47217b5179186b0825ca79990ab2808aa1a0f/packages/rspack-cli/src/utils/profile.ts#L219-L224)获取更多信息。
 
 生成的 `trace.json` 文件可以在 [ui.perfetto.dev](https://ui.perfetto.dev/) 中查看和分析。
 

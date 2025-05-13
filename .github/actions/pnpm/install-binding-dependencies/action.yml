@@ -4,9 +4,9 @@ description: Run pnpm install for node_binding
 
 inputs:
   save-if:
-    default: false
+    default: "false"
     required: false
-    type: boolean
+    description: "whether to save pnpm cache"
 
 runs:
   using: composite
@@ -23,9 +23,9 @@ runs:
       uses: ./.github/actions/cache/restore
       with:
         path: ${{ steps.store-path.outputs.STORE_PATH }}
-        key: node-cache-${{ runner.os }}-pnpm-binding-${{ hashFiles('pnpm-lock.yaml') }}
+        key: pnpm-cache-binding-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
         restore-keys: |
-          node-cache-${{ runner.os }}-pnpm-binding-
+          pnpm-cache-binding-${{ runner.os }}-
 
     - name: Install binding node dependencies
       shell: bash

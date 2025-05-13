@@ -20,10 +20,7 @@ use rspack_core::{
   },
   ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets, Plugin,
 };
-use rspack_error::{
-  miette, Diagnostic, DiagnosticKind, Result, RspackSeverity, ToStringResultToRspackResultExt,
-  TraceableError,
-};
+use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::AssetConditions;
@@ -250,27 +247,30 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               }),
             })
             .to_rspack_result()?;
-          let warnings = warnings.read().expect("should lock");
-          all_warnings.write().expect("should lock").extend(
-            warnings.iter().map(|e| {
-              if let Some(loc) = &e.loc {
-                let rope = ropey::Rope::from_str(&input);
-                let start = rope.line_to_byte(loc.line as usize) + loc.column as usize - 1;
-                let end = start;
-                Diagnostic::from(Box::new(TraceableError::from_file(
-                  input.clone(),
-                  start,
-                  end,
-                  "LightningCSS minimize warning".to_string(),
-                  e.to_string(),
-                )
-                .with_kind(DiagnosticKind::Css)
-                .with_severity(RspackSeverity::Warn)) as Box<dyn miette::Diagnostic + Send + Sync>)
-              } else {
-                Diagnostic::warn("LightningCSS minimize warning".to_string(), e.to_string())
-              }
-            }),
-          );
+          // FIXME: Disable the warnings for now, cause it cause too much positive-negative warnings,
+          // enable when we have a better way to handle it.
+
+          // let warnings = warnings.read().expect("should lock");
+          // all_warnings.write().expect("should lock").extend(
+          //   warnings.iter().map(|e| {
+          //     if let Some(loc) = &e.loc {
+          //       let rope = ropey::Rope::from_str(&input);
+          //       let start = rope.line_to_byte(loc.line as usize) + loc.column as usize - 1;
+          //       let end = start;
+          //       Diagnostic::from(Box::new(TraceableError::from_file(
+          //         input.clone(),
+          //         start,
+          //         end,
+          //         "LightningCSS minimize warning".to_string(),
+          //         e.to_string(),
+          //       )
+          //       .with_kind(DiagnosticKind::Css)
+          //       .with_severity(RspackSeverity::Warn)) as Box<dyn miette::Diagnostic + Send + Sync>)
+          //     } else {
+          //       Diagnostic::warn("LightningCSS minimize warning".to_string(), e.to_string())
+          //     }
+          //   }),
+          // );
           result
         };
 
