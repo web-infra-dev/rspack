@@ -19,6 +19,7 @@ import type {
 import type { Chunk } from "../Chunk";
 import type { NormalizedStatsOptions } from "../Compilation";
 import type { Compiler } from "../Compiler";
+import { DeadlockRiskError } from "../RspackError";
 import type { StatsOptions } from "../config";
 import {
 	LogType,
@@ -857,6 +858,11 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.builtAt = compilation.endTime;
 		},
 		publicPath: (object, compilation) => {
+			if (typeof compilation.outputOptions.publicPath === "function") {
+				throw new DeadlockRiskError(
+					"publicPath as function can't be used with stats.publicPath=true, which may cause deadlock risk, consider setting stats.publicPath=false in rspack config"
+				);
+			}
 			object.publicPath = compilation.getPath(
 				compilation.outputOptions.publicPath || ""
 			);

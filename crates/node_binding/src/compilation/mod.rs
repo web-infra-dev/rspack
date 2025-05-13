@@ -22,10 +22,10 @@ use rspack_napi::{napi::bindgen_prelude::*, OneShotRef, WeakRef};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rustc_hash::FxHashMap;
 
-use super::{JsFilename, PathWithInfo};
+use super::PathWithInfo;
 use crate::{
   entry::JsEntryOptions, utils::callbackify, AssetInfo, EntryDependency, JsAddingRuntimeModule,
-  JsAsset, JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper, JsCompatSource,
+  JsAsset, JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper, JsCompatSource, JsFilename,
   JsModuleGraph, JsPathData, JsRspackDiagnostic, JsRspackError, JsStats,
   JsStatsOptimizationBailout, ModuleObject, RspackResultToNapiResultExt, ToJsCompatSource,
   COMPILER_REFERENCES,
@@ -501,7 +501,7 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_asset_path(&self, filename: JsFilename, data: JsPathData) -> Result<String> {
+  pub fn get_asset_path(&self, filename: String, data: JsPathData) -> Result<String> {
     let compilation = self.as_ref()?;
     #[allow(clippy::disallowed_methods)]
     futures::executor::block_on(compilation.get_asset_path(&filename.into(), data.to_path_data()))
@@ -511,7 +511,7 @@ impl JsCompilation {
   #[napi]
   pub fn get_asset_path_with_info(
     &self,
-    filename: JsFilename,
+    filename: String,
     data: JsPathData,
   ) -> Result<PathWithInfo> {
     let compilation = self.as_ref()?;
@@ -525,7 +525,7 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_path(&self, filename: JsFilename, data: JsPathData) -> Result<String> {
+  pub fn get_path(&self, filename: String, data: JsPathData) -> Result<String> {
     let compilation = self.as_ref()?;
     #[allow(clippy::disallowed_methods)]
     futures::executor::block_on(compilation.get_path(&filename.into(), data.to_path_data()))
@@ -533,7 +533,7 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_path_with_info(&self, filename: JsFilename, data: JsPathData) -> Result<PathWithInfo> {
+  pub fn get_path_with_info(&self, filename: String, data: JsPathData) -> Result<PathWithInfo> {
     let compilation = self.as_ref()?;
 
     let mut asset_info = rspack_core::AssetInfo::default();

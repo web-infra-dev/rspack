@@ -43,7 +43,6 @@ import {
 } from "./Stats";
 import type { EntryOptions, EntryPlugin } from "./builtin-plugin";
 import type {
-	Filename,
 	OutputNormalized,
 	RspackOptionsNormalized,
 	RspackPluginInstance,
@@ -898,7 +897,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		);
 	}
 
-	getPath(filename: Filename, data: PathData = {}) {
+	getPath(filename: string, data: PathData = {}) {
 		const pathData: JsPathData = { ...data };
 		if (data.contentHashType && data.chunk?.contentHash) {
 			pathData.contentHash = data.chunk.contentHash[data.contentHashType];
@@ -906,7 +905,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		return this.#inner.getPath(filename, pathData);
 	}
 
-	getPathWithInfo(filename: Filename, data: PathData = {}) {
+	getPathWithInfo(filename: string, data: PathData = {}) {
 		const pathData: JsPathData = { ...data };
 		if (data.contentHashType && data.chunk?.contentHash) {
 			pathData.contentHash = data.chunk.contentHash[data.contentHashType];
@@ -914,7 +913,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		return this.#inner.getPathWithInfo(filename, pathData);
 	}
 
-	getAssetPath(filename: Filename, data: PathData = {}) {
+	getAssetPath(filename: string, data: PathData = {}) {
 		const pathData: JsPathData = { ...data };
 		if (data.contentHashType && data.chunk?.contentHash) {
 			pathData.contentHash = data.chunk.contentHash[data.contentHashType];
@@ -922,7 +921,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		return this.#inner.getAssetPath(filename, pathData);
 	}
 
-	getAssetPathWithInfo(filename: Filename, data: PathData = {}) {
+	getAssetPathWithInfo(filename: string, data: PathData = {}) {
 		const pathData: JsPathData = { ...data };
 		if (data.contentHashType && data.chunk?.contentHash) {
 			pathData.contentHash = data.chunk.contentHash[data.contentHashType];

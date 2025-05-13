@@ -251,10 +251,10 @@ export declare class JsCompilation {
   getErrors(): Array<JsRspackError>
   getWarnings(): Array<JsRspackError>
   getStats(): JsStats
-  getAssetPath(filename: JsFilename, data: JsPathData): string
-  getAssetPathWithInfo(filename: JsFilename, data: JsPathData): PathWithInfo
-  getPath(filename: JsFilename, data: JsPathData): string
-  getPathWithInfo(filename: JsFilename, data: JsPathData): PathWithInfo
+  getAssetPath(filename: string, data: JsPathData): string
+  getAssetPathWithInfo(filename: string, data: JsPathData): PathWithInfo
+  getPath(filename: string, data: JsPathData): string
+  getPathWithInfo(filename: string, data: JsPathData): PathWithInfo
   addFileDependencies(deps: Array<string>): void
   addContextDependencies(deps: Array<string>): void
   addMissingDependencies(deps: Array<string>): void
