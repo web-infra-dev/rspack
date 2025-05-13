@@ -25,7 +25,7 @@ use rustc_hash::FxHashMap;
 use super::PathWithInfo;
 use crate::{
   entry::JsEntryOptions, utils::callbackify, AssetInfo, EntryDependency, JsAddingRuntimeModule,
-  JsAsset, JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper, JsCompatSource,
+  JsAsset, JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper, JsCompatSource, JsFilename,
   JsModuleGraph, JsPathData, JsRspackDiagnostic, JsRspackError, JsStats,
   JsStatsOptimizationBailout, ModuleObject, RspackResultToNapiResultExt, ToJsCompatSource,
   COMPILER_REFERENCES,
@@ -631,7 +631,7 @@ impl JsCompilation {
     reference: Reference<JsCompilation>,
     request: String,
     layer: Option<String>,
-    public_path: Option<String>,
+    public_path: Option<JsFilename>,
     base_uri: Option<String>,
     original_module: Option<String>,
     original_module_context: Option<String>,
