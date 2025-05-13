@@ -1,3 +1,4 @@
+/// A owned-or-ref enum
 #[derive(Debug, Eq)]
 pub enum OwnedOrRef<'a, T> {
   Borrowed(&'a T),
@@ -30,7 +31,7 @@ impl<T> AsRef<T> for OwnedOrRef<'_, T> {
   fn as_ref(&self) -> &T {
     match self {
       Self::Borrowed(b) => b,
-      Self::Owned(o) => &o,
+      Self::Owned(o) => o,
     }
   }
 }

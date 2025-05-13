@@ -22,17 +22,6 @@ use crate::{
 const SCOPE: &str = "occasion_make_module_graph";
 
 /// The value struct of current storage scope
-/*#[cacheable]
-struct Node<'a> {
-  pub mgm: OwnedOrRef<'a, ModuleGraphModule>,
-  pub module: OwnedOrRef<'a, BoxModule>,
-  // (dependency, parent_block)
-  // TODO remove parent block info after connection contains it
-  pub dependencies: Vec<(OwnedOrRef<'a, BoxDependency, Option<AsyncDependenciesBlockIdentifier>)>,
-  pub connections: Vec<ModuleGraphConnection>,
-  pub blocks: Vec<AsyncDependenciesBlock>,
-}*/
-
 #[cacheable]
 struct Node<'a> {
   #[cacheable(with=AsOwned)]
