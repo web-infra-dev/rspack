@@ -28,7 +28,7 @@
     "is-ci": "4.1.0",
     "less": "4.3.0",
     "less-loader": "^12.3.0",
-    "lodash-es": "^4.17.15",
+    "lodash-es": "^4.17.21",
     "memfs": "^4.17.1",
     "mime-types": "^3.0.1",
     "mini-svg-data-uri": "^1.4.4",
@@ -39,7 +39,7 @@
     "rimraf": "^5.0.10",
     "url-loader": "^4.1.1",
     "source-map": "^0.7.4",
-    "terser": "5.39.0",
+    "terser": "5.39.1",
     "terser-webpack-plugin": "^5.3.14",
     "ts-loader": "^9.5.2",
     "typescript": "^5.8.3"
