@@ -717,7 +717,8 @@ impl BuiltinPlugin {
         plugins.push(ModuleInfoHeaderPlugin::new(verbose).boxed());
       }
       BuiltinPluginName::CssChunkingPlugin => {
-        let options = downcast_into::<CssChunkingPluginOptions>(self.options)?;
+        let options = downcast_into::<CssChunkingPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         plugins.push(CssChunkingPlugin::new(options.into()).boxed());
       }
     }
