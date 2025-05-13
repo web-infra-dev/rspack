@@ -36,7 +36,7 @@ pub struct ModuleReferenceOptions {
 pub struct ConcatenationScope {
   pub current_module: ConcatenatedModuleInfo,
   pub modules_map: Arc<IdentifierIndexMap<ModuleInfo>>,
-  refs: IdentifierIndexMap<FxIndexSet<String>>,
+  pub refs: IdentifierIndexMap<FxIndexSet<String>>,
 }
 
 #[allow(unused)]
