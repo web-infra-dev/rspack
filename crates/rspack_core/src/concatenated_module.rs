@@ -195,6 +195,7 @@ pub struct ConcatenatedModuleInfo {
   pub interop_default_access_name: Option<Atom>,
   pub global_scope_ident: Vec<ConcatenatedModuleIdent>,
   pub idents: Vec<ConcatenatedModuleIdent>,
+  pub all_used_names: HashSet<Atom>,
   pub binding_to_ref: HashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>>,
 
   pub public_path_auto_replace: Option<bool>,
@@ -686,42 +687,8 @@ impl Module for ConcatenatedModule {
       let Some(ModuleInfo::Concatenated(info)) = module_to_info_map.get_mut(module_info_id) else {
         continue;
       };
-      if let Some(ref ast) = info.ast {
-        let mut collector = IdentCollector::default();
-        ast.visit(|program, _ctxt| {
-          program.visit_with(&mut collector);
-        });
-        for ident in collector.ids {
-          if ident.id.ctxt == info.global_ctxt {
-            info.global_scope_ident.push(ident.clone());
-            all_used_names.insert(ident.id.sym.clone());
-          }
-          if ident.is_class_expr_with_ident {
-            all_used_names.insert(ident.id.sym.clone());
-            continue;
-          }
-          // deconflict naming from inner scope, the module level deconflict will be finished
-          // you could see tests/webpack-test/cases/scope-hoisting/renaming-4967 as a example
-          // during module eval phase.
-          if ident.id.ctxt != info.module_ctxt {
-            all_used_names.insert(ident.id.sym.clone());
-          }
-          info.idents.push(ident);
-        }
-        let mut binding_to_ref: HashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>> =
-          HashMap::default();
-
-        for ident in info.idents.iter() {
-          match binding_to_ref.entry((ident.id.sym.clone(), ident.id.ctxt)) {
-            Entry::Occupied(mut occ) => {
-              occ.get_mut().push(ident.clone());
-            }
-            Entry::Vacant(vac) => {
-              vac.insert(vec![ident.clone()]);
-            }
-          };
-        }
-        info.binding_to_ref = binding_to_ref;
+      if info.ast.is_some() {
+        all_used_names.extend(info.all_used_names.clone());
       }
     }
 
@@ -1773,9 +1740,10 @@ impl ConcatenatedModule {
         }
       };
       let mut ast = Ast::new(program, cm, Some(comments));
-
+      let mut all_used_names = HashSet::default();
       let mut global_ctxt = SyntaxContext::empty();
       let mut module_ctxt = SyntaxContext::empty();
+      let mut collector = IdentCollector::default();
 
       ast.transform(|program, context| {
         global_ctxt = global_ctxt.apply_mark(context.unresolved_mark);
@@ -1785,11 +1753,45 @@ impl ConcatenatedModule {
           context.top_level_mark,
           false,
         ));
+        program.visit_with(&mut collector);
       });
-
-      let result_source = ReplaceSource::new(source.clone());
       module_info.module_ctxt = module_ctxt;
       module_info.global_ctxt = global_ctxt;
+
+      for ident in collector.ids {
+        if ident.id.ctxt == module_info.global_ctxt {
+          module_info.global_scope_ident.push(ident.clone());
+          all_used_names.insert(ident.id.sym.clone());
+        }
+        if ident.is_class_expr_with_ident {
+          all_used_names.insert(ident.id.sym.clone());
+          continue;
+        }
+        // deconflict naming from inner scope, the module level deconflict will be finished
+        // you could see tests/webpack-test/cases/scope-hoisting/renaming-4967 as a example
+        // during module eval phase.
+        if ident.id.ctxt != module_info.module_ctxt {
+          all_used_names.insert(ident.id.sym.clone());
+        }
+        module_info.idents.push(ident);
+      }
+      module_info.all_used_names = all_used_names;
+
+      let mut binding_to_ref: HashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>> =
+        HashMap::default();
+
+      for ident in module_info.idents.iter() {
+        match binding_to_ref.entry((ident.id.sym.clone(), ident.id.ctxt)) {
+          Entry::Occupied(mut occ) => {
+            occ.get_mut().push(ident.clone());
+          }
+          Entry::Vacant(vac) => {
+            vac.insert(vec![ident.clone()]);
+          }
+        };
+      }
+      module_info.binding_to_ref = binding_to_ref;
+      let result_source = ReplaceSource::new(source.clone());
       module_info.ast = Some(ast);
       module_info.runtime_requirements = runtime_requirements;
       module_info.internal_source = Some(source);
