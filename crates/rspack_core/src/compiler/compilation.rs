@@ -936,20 +936,12 @@ impl Compilation {
   ) -> Result<T> {
     let artifact = std::mem::take(&mut self.make_artifact);
 
-    if let Some(module_executor) = &mut self.module_executor {
-      module_executor.rebuild_origins = Some(module_identifiers.clone());
-    }
-
     self.make_artifact = update_module_graph(
       self,
       artifact,
       vec![MakeParam::ForceBuildModules(module_identifiers.clone())],
     )
     .await?;
-
-    if let Some(module_executor) = &mut self.module_executor {
-      module_executor.rebuild_origins = None;
-    }
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers
@@ -1372,7 +1364,7 @@ impl Compilation {
     // sync assets to compilation from module_executor
     if let Some(module_executor) = &mut self.module_executor {
       let mut module_executor = std::mem::take(module_executor);
-      module_executor.hook_after_finish_modules(self).await;
+      module_executor.hook_after_finish_modules(self).await?;
       self.module_executor = Some(module_executor);
     }
 

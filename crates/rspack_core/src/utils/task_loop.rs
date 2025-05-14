@@ -56,15 +56,6 @@ pub async fn run_task_loop<Ctx: 'static>(
   ctx: &mut Ctx,
   init_tasks: Vec<Box<dyn Task<Ctx>>>,
 ) -> Result<()> {
-  run_task_loop_with_event(ctx, init_tasks, |_, task| task).await
-}
-
-/// Run task loop with event
-pub async fn run_task_loop_with_event<Ctx: 'static>(
-  ctx: &mut Ctx,
-  init_tasks: Vec<Box<dyn Task<Ctx>>>,
-  before_task_run: impl Fn(&mut Ctx, Box<dyn Task<Ctx>>) -> Box<dyn Task<Ctx>>,
-) -> Result<()> {
   // create channel to receive async task result
   let (tx, mut rx) = mpsc::unbounded_channel::<TaskResult<Ctx>>();
   // mark whether the task loop has been returned
@@ -79,7 +70,6 @@ pub async fn run_task_loop_with_event<Ctx: 'static>(
     }
 
     if let Some(task) = task {
-      let task = before_task_run(ctx, task);
       match task.get_task_type() {
         TaskType::Async => {
           let tx = tx.clone();

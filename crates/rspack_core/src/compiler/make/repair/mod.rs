@@ -62,11 +62,6 @@ impl MakeTaskContext {
     }
   }
 
-  pub fn transform_to_make_artifact(self) -> MakeArtifact {
-    let Self { artifact, .. } = self;
-    artifact
-  }
-
   // TODO use module graph with make artifact
   pub fn get_module_graph_mut(partial: &mut ModuleGraphPartial) -> ModuleGraph {
     ModuleGraph::new(vec![], Some(partial))
@@ -160,5 +155,5 @@ pub async fn repair(
 
   let mut ctx = MakeTaskContext::new(compilation, artifact, compilation.cache.clone());
   run_task_loop(&mut ctx, init_tasks).await?;
-  Ok(ctx.transform_to_make_artifact())
+  Ok(ctx.artifact)
 }

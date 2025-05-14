@@ -1,18 +1,18 @@
-use std::{iter::once, sync::atomic::AtomicU32};
+use std::{collections::VecDeque, iter::once, sync::atomic::AtomicU32};
 
 use itertools::Itertools;
 use rspack_collections::{DatabaseItem, Identifier, IdentifierSet, UkeySet};
-use rspack_error::RspackSeverity;
+use rspack_error::{Error, RspackSeverity};
 use rspack_paths::ArcPath;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::oneshot::Sender;
 
+use super::context::{ExecutorTaskContext, ImportModuleMeta};
 use crate::{
-  compiler::make::repair::MakeTaskContext,
   utils::task_loop::{Task, TaskResult, TaskType},
   Chunk, ChunkGraph, ChunkKind, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
-  CodeGenerationResult, CompilationAsset, CompilationAssets, DependencyId, EntryOptions,
-  Entrypoint, ModuleType, PublicPath, RuntimeSpec, SourceType,
+  CodeGenerationResult, CompilationAsset, CompilationAssets, EntryOptions, Entrypoint,
+  FactorizeInfo, ModuleType, PublicPath, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -40,106 +40,136 @@ pub struct ExecuteModuleResult {
   pub id: ExecuteModuleId,
 }
 
-#[derive(Debug)]
-pub struct BeforeExecuteBuildTask {
-  pub entry_dep_id: DependencyId,
-}
-
-#[async_trait::async_trait]
-impl Task<MakeTaskContext> for BeforeExecuteBuildTask {
-  fn get_task_type(&self) -> TaskType {
-    TaskType::Sync
-  }
-
-  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
-    let Self { entry_dep_id } = *self;
-    let mut mg = MakeTaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
-    let entry_module_identifier = *mg
-      .module_identifier_by_dependency_id(&entry_dep_id)
-      .expect("should have module");
-
-    let mut queue = vec![entry_module_identifier];
-    let mut visited = IdentifierSet::default();
-    while let Some(module_identifier) = queue.pop() {
-      queue.extend(
-        mg.get_ordered_outgoing_connections(&module_identifier)
-          .map(|c| *c.module_identifier())
-          .filter(|id| !visited.contains(id)),
-      );
-      visited.insert(module_identifier);
-    }
-    for module_identifier in visited {
-      mg.revoke_module(&module_identifier);
-    }
-    Ok(vec![])
-  }
-}
+pub type ExecuteResultSender = Sender<(
+  ExecuteModuleResult,
+  CompilationAssets,
+  IdentifierSet,
+  Vec<ExecutedRuntimeModule>,
+)>;
 
 #[derive(Debug)]
 pub struct ExecuteTask {
-  pub entry_dep_id: DependencyId,
-  pub layer: Option<String>,
+  pub meta: ImportModuleMeta,
   pub public_path: Option<PublicPath>,
   pub base_uri: Option<String>,
-  pub result_sender: Sender<(
-    ExecuteModuleResult,
-    CompilationAssets,
-    IdentifierSet,
-    Vec<ExecutedRuntimeModule>,
-  )>,
+  pub result_sender: ExecuteResultSender,
 }
+
+impl ExecuteTask {
+  pub fn finish_with_error(self, error: Error) {
+    self
+      .result_sender
+      .send((
+        ExecuteModuleResult {
+          error: Some(error.to_string()),
+          ..Default::default()
+        },
+        Default::default(),
+        Default::default(),
+        Default::default(),
+      ))
+      .expect("should send result success");
+  }
+}
+
 #[async_trait::async_trait]
-impl Task<MakeTaskContext> for ExecuteTask {
+impl Task<ExecutorTaskContext> for ExecuteTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
 
-  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn main_run(
+    self: Box<Self>,
+    context: &mut ExecutorTaskContext,
+  ) -> TaskResult<ExecutorTaskContext> {
     let Self {
-      entry_dep_id,
-      layer,
+      meta,
       public_path,
       base_uri,
       result_sender,
     } = *self;
 
-    let mut compilation = context.transform_to_temp_compilation();
-    let main_compilation_plugin_driver = compilation.plugin_driver.clone();
-    compilation.plugin_driver = compilation.buildtime_plugin_driver.clone();
+    let ExecutorTaskContext {
+      origin_context,
+      entries,
+      ..
+    } = context;
 
     let id = EXECUTE_MODULE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let mut execute_result = ExecuteModuleResult {
+      cacheable: true,
+      id,
+      ..Default::default()
+    };
 
-    if compilation
-      .make_artifact
-      .diagnostics()
-      .iter()
-      .any(|d| matches!(d.severity(), RspackSeverity::Error))
-    {
-      let execute_result = compilation.get_module_graph().modules().iter().fold(
-        ExecuteModuleResult {
-          cacheable: false,
-          id,
-          ..Default::default()
-        },
-        |mut res, (_, module)| {
-          let build_info = &module.build_info();
-          res
-            .file_dependencies
-            .extend(build_info.file_dependencies.iter().cloned());
-          res
-            .context_dependencies
-            .extend(build_info.context_dependencies.iter().cloned());
-          res
-            .missing_dependencies
-            .extend(build_info.missing_dependencies.iter().cloned());
-          res
-            .build_dependencies
-            .extend(build_info.build_dependencies.iter().cloned());
-          res
-        },
-      );
+    let entry_dep_id = entries.get(&meta).expect("should have dep_id");
+    // collect module info
+    let mg = origin_context.artifact.get_module_graph();
+    let entry_module_identifier = mg
+      .get_module_by_dependency_id(&entry_dep_id)
+      .expect("should have module")
+      .identifier();
+    let make_failed_module = &origin_context.artifact.make_failed_module;
+    let make_failed_dependencies = &origin_context.artifact.make_failed_dependencies;
+    let mut queue = VecDeque::from(vec![entry_module_identifier]);
+    let mut assets = CompilationAssets::default();
+    let mut modules = IdentifierSet::default();
+    let mut has_error = false;
 
-      context.recovery_from_temp_compilation(compilation);
+    while let Some(m) = queue.pop_front() {
+      modules.insert(m);
+      let module = mg.module_by_identifier(&m).expect("should have module");
+      let build_info = module.build_info();
+      execute_result
+        .file_dependencies
+        .extend(build_info.file_dependencies.iter().cloned());
+      execute_result
+        .context_dependencies
+        .extend(build_info.context_dependencies.iter().cloned());
+      execute_result
+        .missing_dependencies
+        .extend(build_info.missing_dependencies.iter().cloned());
+      execute_result
+        .build_dependencies
+        .extend(build_info.build_dependencies.iter().cloned());
+      if !build_info.cacheable {
+        execute_result.cacheable = false;
+      }
+      for (name, asset) in build_info.assets.as_ref() {
+        assets.insert(name.clone(), asset.clone());
+      }
+      if !has_error && make_failed_module.contains(&m) {
+        let diagnostics = module.diagnostics();
+        if diagnostics
+          .iter()
+          .any(|d| matches!(d.severity(), RspackSeverity::Error))
+        {
+          has_error = true;
+        }
+      }
+
+      for dep_id in module.get_dependencies() {
+        if !has_error && make_failed_dependencies.contains(dep_id) {
+          let dep = mg.dependency_by_id(dep_id).expect("should dep exist");
+          let diagnostics = FactorizeInfo::get_from(dep)
+            .expect("should have factorize info")
+            .diagnostics();
+          if diagnostics
+            .iter()
+            .any(|d| matches!(d.severity(), RspackSeverity::Error))
+          {
+            has_error = true;
+          }
+        }
+        if let Some(c) = mg.connection_by_dependency_id(dep_id) {
+          if !modules.contains(c.module_identifier()) {
+            queue.push_back(*c.module_identifier());
+          }
+        }
+      }
+    }
+
+    if has_error {
       result_sender
         .send((
           execute_result,
@@ -152,29 +182,9 @@ impl Task<MakeTaskContext> for ExecuteTask {
       return Ok(vec![]);
     }
 
-    let mg = compilation.get_module_graph_mut();
-    // TODO remove expect and return Err
-    let entry_module_identifier = mg
-      .get_module_by_dependency_id(&entry_dep_id)
-      .expect("should have module")
-      .identifier();
-    let mut queue = vec![entry_module_identifier];
-    let mut assets = CompilationAssets::default();
-    let mut modules = IdentifierSet::default();
-
-    while let Some(m) = queue.pop() {
-      modules.insert(m);
-      let module = mg.module_by_identifier(&m).expect("should have module");
-      for (name, asset) in module.build_info().assets.as_ref() {
-        assets.insert(name.clone(), asset.clone());
-      }
-      for c in mg.get_outgoing_connections(&m) {
-        // TODO: handle circle
-        if !modules.contains(c.module_identifier()) {
-          queue.push(*c.module_identifier());
-        }
-      }
-    }
+    let mut compilation = origin_context.transform_to_temp_compilation();
+    let main_compilation_plugin_driver = compilation.plugin_driver.clone();
+    compilation.plugin_driver = compilation.buildtime_plugin_driver.clone();
 
     tracing::debug!("modules: {:?}", &modules);
 
@@ -201,7 +211,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
         filename: None,
         library: None,
         depend_on: None,
-        layer,
+        layer: meta.layer,
       }),
     });
 
@@ -300,34 +310,6 @@ impl Task<MakeTaskContext> for ExecuteTask {
       )
       .await;
 
-    let module_graph = compilation.get_module_graph();
-    let mut execute_result = modules.iter().fold(
-      ExecuteModuleResult {
-        cacheable: true,
-        id,
-        ..Default::default()
-      },
-      |mut res, m| {
-        let module = module_graph.module_by_identifier(m).expect("unreachable");
-        let build_info = &module.build_info();
-        res
-          .file_dependencies
-          .extend(build_info.file_dependencies.iter().cloned());
-        res
-          .context_dependencies
-          .extend(build_info.context_dependencies.iter().cloned());
-        res
-          .missing_dependencies
-          .extend(build_info.missing_dependencies.iter().cloned());
-        res
-          .build_dependencies
-          .extend(build_info.build_dependencies.iter().cloned());
-        if !build_info.cacheable {
-          res.cacheable = false;
-        }
-        res
-      },
-    );
     match exports {
       Ok(_) => {
         for m in modules.iter() {
@@ -373,7 +355,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
         }
       })
       .collect_vec();
-    context.recovery_from_temp_compilation(compilation);
+    origin_context.recovery_from_temp_compilation(compilation);
     result_sender
       .send((
         execute_result,
