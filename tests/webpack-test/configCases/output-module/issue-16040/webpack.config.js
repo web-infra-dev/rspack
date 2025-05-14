@@ -1,4 +1,6 @@
-const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+// CHANGE: use native css extract plugin
+// const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+const MiniCssExtractPlugin = require("@rspack/core").CssExtractRspackPlugin;
 
 module.exports = {
 	mode: "production",

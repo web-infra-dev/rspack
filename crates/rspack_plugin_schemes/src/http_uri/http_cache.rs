@@ -40,7 +40,7 @@ pub struct FetchResultMeta {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ContentFetchResult {
-  entry: LockfileEntry,
+  pub(crate) entry: LockfileEntry,
   content: Vec<u8>,
   meta: FetchResultMeta,
 }
@@ -53,10 +53,11 @@ impl ContentFetchResult {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RedirectFetchResult {
-  location: String,
+  pub(crate) location: String,
   meta: FetchResultMeta,
 }
 
+#[derive(Debug)]
 pub enum FetchResultType {
   Content(ContentFetchResult),
   #[allow(dead_code)]

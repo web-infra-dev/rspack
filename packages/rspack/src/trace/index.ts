@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import inspector from "node:inspector";
+
 // following chrome trace event format https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU/preview?tab=t.0#heading=h.uxpopqvbjezh
 export interface ChromeEvent {
 	name: string;
@@ -17,6 +17,7 @@ export interface ChromeEvent {
 		global?: string;
 	};
 }
+
 // this is a tracer for nodejs
 // FIXME: currently we only support chrome layer and do nothing for logger layer
 export class JavaScriptTracer {
@@ -27,15 +28,18 @@ export class JavaScriptTracer {
 	// tracing file path, same as rust tracing-chrome's
 	static output: string;
 	// inspector session for CPU Profiler
-	static session: inspector.Session;
-	static initJavaScriptTrace(layer: string, output: string) {
-		this.session = new inspector.Session();
+	static session: import("node:inspector").Session;
+
+	static async initJavaScriptTrace(layer: string, output: string) {
+		const { Session } = await import("node:inspector");
+		this.session = new Session();
 		this.layer = layer;
 		this.output = output;
 		this.events = [];
 		const hrtime = process.hrtime();
 		this.startTime = hrtime[0] * 1000000 + Math.round(hrtime[1] / 1000); // use microseconds
 	}
+
 	static initCpuProfiler() {
 		if (this.layer === "chrome") {
 			this.session.connect();
@@ -48,8 +52,9 @@ export class JavaScriptTracer {
 		if (!this.layer.includes("chrome")) {
 			return;
 		}
+
 		this.session.post("Profiler.stop", (err, param) => {
-			let cpu_profile: inspector.Profiler.Profile | undefined;
+			let cpu_profile: import("node:inspector").Profiler.Profile | undefined;
 			if (err) {
 				console.error("Error stopping profiler:", err);
 			} else {

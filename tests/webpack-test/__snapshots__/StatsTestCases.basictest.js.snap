@@ -1260,7 +1260,7 @@ Rspack x.x.x compiled successfully in X.23"
 exports[`StatsTestCases should print correct stats for output-module 1`] = `
 "asset main.mjs xx KiB [emitted] [javascript module] (name: main)
 asset 8.mjs xx bytes [emitted] [javascript module]
-runtime modules xx KiB 8 modules
+runtime modules xx KiB 5 modules
 orphan modules xx bytes [orphan] 2 modules
 cacheable modules xx bytes
   ./index.js + 1 modules xx bytes [code generated]

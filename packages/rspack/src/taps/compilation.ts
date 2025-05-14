@@ -1,6 +1,6 @@
 import * as binding from "@rspack/binding";
 import { Chunk } from "../Chunk";
-import { CodeGenerationResult, type Module } from "../Module";
+import type { Module } from "../Module";
 import {
 	RuntimeGlobals,
 	__from_binding_runtime_globals,
@@ -10,6 +10,18 @@ import {
 import { tryRunOrWebpackError } from "../lib/HookWebpackError";
 import { createHash } from "../util/createHash";
 import type { CreatePartialRegisters } from "./types";
+
+export class CodeGenerationResult {
+	#inner: binding.JsCodegenerationResult;
+
+	constructor(result: binding.JsCodegenerationResult) {
+		this.#inner = result;
+	}
+
+	get(sourceType: string) {
+		return this.#inner.sources[sourceType];
+	}
+}
 
 export const createCompilationHooksRegisters: CreatePartialRegisters<
 	`Compilation`
@@ -173,6 +185,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 							}
 
 							const result = codegenResults.map[id]["build time"];
+
 							const moduleObject = execOptions.module;
 
 							if (id) moduleCache[id] = moduleObject;

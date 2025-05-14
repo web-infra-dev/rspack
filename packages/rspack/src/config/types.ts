@@ -1171,6 +1171,10 @@ export type AssetGeneratorDataUrl =
 export type AssetInlineGeneratorOptions = {
 	/** Only for modules with module type 'asset' or 'asset/inline'. */
 	dataUrl?: AssetGeneratorDataUrl;
+	/**
+	 * Whether or not this asset module should be considered binary. This can be set to 'false' to treat this asset module as text.
+	 */
+	binary?: boolean;
 };
 
 /** Emit the asset in the specified folder relative to 'output.path'. */
@@ -1208,6 +1212,11 @@ export type AssetResourceGeneratorOptions = {
 	 * @default "url"
 	 */
 	importMode?: AssetModuleImportMode;
+
+	/**
+	 * Whether or not this asset module should be considered binary. This can be set to 'false' to treat this asset module as text.
+	 */
+	binary?: boolean;
 };
 
 /** Generator options for asset modules. */

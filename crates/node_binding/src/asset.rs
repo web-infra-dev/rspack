@@ -5,6 +5,7 @@ use napi::{
   sys, Env, NapiRaw,
 };
 use napi_derive::napi;
+use rspack_core::Reflector;
 use rspack_napi::string::JsStringExt;
 use rspack_napi_macros::field_names;
 use rustc_hash::FxHashSet;
@@ -242,11 +243,11 @@ impl AssetInfo {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsAsset {
   pub name: String,
   #[napi(ts_type = "AssetInfo")]
-  pub info: Object,
+  pub info: Reflector,
 }
 
 impl From<rspack_core::AssetInfoRelated> for JsAssetInfoRelated {

@@ -13,7 +13,7 @@ use napi::{
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   parse_resource, rspack_sources::RawStringSource, AfterResolveResult, AssetEmittedInfo,
-  BeforeResolveResult, BoxModule, ChunkUkey, CodeGenerationResults, Compilation,
+  BeforeResolveResult, BindingCell, BoxModule, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirementsHook,
   CompilationAfterOptimizeModules, CompilationAfterOptimizeModulesHook,
   CompilationAfterProcessAssets, CompilationAfterProcessAssetsHook, CompilationAfterSeal,
@@ -1162,7 +1162,7 @@ impl CompilationExecuteModule for CompilationExecuteModuleTap {
     &self,
     entry: &ModuleIdentifier,
     runtime_modules: &IdentifierSet,
-    codegen_results: &CodeGenerationResults,
+    code_generation_results: &BindingCell<rspack_core::CodeGenerationResults>,
     id: &ExecuteModuleId,
   ) -> rspack_error::Result<()> {
     self
@@ -1170,7 +1170,7 @@ impl CompilationExecuteModule for CompilationExecuteModuleTap {
       .call_with_sync(JsExecuteModuleArg {
         entry: entry.to_string(),
         runtime_modules: runtime_modules.iter().map(|id| id.to_string()).collect(),
-        codegen_results: codegen_results.clone().into(),
+        codegen_results: code_generation_results.as_ref().into(),
         id: *id,
       })
       .await

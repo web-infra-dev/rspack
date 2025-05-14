@@ -10,6 +10,7 @@
 import type * as binding from "@rspack/binding";
 
 import type { Compilation } from "./Compilation";
+import { DeadlockRiskError } from "./RspackError";
 import type { StatsOptions, StatsValue } from "./config";
 import type { StatsCompilation } from "./stats/statsFactoryUtils";
 
@@ -114,6 +115,10 @@ export class Stats {
 				getInner: this.#getInnerByCompilation.bind(this)
 			});
 		} catch (e) {
+			if (e instanceof DeadlockRiskError) {
+				throw e;
+			}
+			// FIXME: shouldn't swallow error
 			console.warn(
 				`Failed to get stats due to error: ${(e as Error)?.message}, are you trying to access the stats from the previous compilation?`
 			);
@@ -156,6 +161,10 @@ export class Stats {
 				getInner: this.#getInnerByCompilation.bind(this)
 			});
 		} catch (e) {
+			if (e instanceof DeadlockRiskError) {
+				throw e;
+			}
+			// FIXME: shouldn't swallow error
 			console.warn(
 				`Failed to get stats due to error: ${(e as Error)?.message}, are you trying to access the stats from the previous compilation?`
 			);

@@ -171,9 +171,9 @@ const describeCases = config => {
 						});
 						afterAll(() => {
 							// cleanup
-							// options = undefined;
-							// optionsArr = undefined;
-							// testConfig = undefined;
+							options = undefined;
+							optionsArr = undefined;
+							testConfig = undefined;
 						});
 						beforeAll(() => {
 							rimrafSync(cacheDirectory);
@@ -482,6 +482,8 @@ const describeCases = config => {
 												baseModuleScope.window = globalContext;
 												baseModuleScope.self = globalContext;
 												baseModuleScope.document = globalContext.document;
+												baseModuleScope.setTimeout = globalContext.setTimeout;
+												baseModuleScope.clearTimeout = globalContext.clearTimeout;
 												baseModuleScope.getComputedStyle =
 													globalContext.getComputedStyle;
 												baseModuleScope.URL = URL;
@@ -564,12 +566,8 @@ const describeCases = config => {
 															);
 														let esm = esmCache.get(p);
 														if (!esm) {
-															let moduleContext = esmContext;
 															if (content.includes("__STATS__")) {
-																moduleContext = vm.createContext({
-																	__STATS__: getStatsJson(),
-																	...moduleContext
-																});
+																esmContext.__STATS__ = getStatsJson();
 															}
 															esm = new vm.SourceTextModule(content, {
 																identifier: esmIdentifier + "-" + p,
