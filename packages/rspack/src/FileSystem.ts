@@ -41,10 +41,10 @@ function __to_binding_stat(stat: IStats): NodeFsStats {
 		isFile: stat.isFile(),
 		isDirectory: stat.isDirectory(),
 		isSymlink: stat.isSymbolicLink(),
-		atimeMs: stat.atimeMs,
-		mtimeMs: stat.atimeMs,
-		ctimeMs: stat.atimeMs,
-		birthtimeMs: stat.birthtimeMs,
+		atimeMs: stat.atimeMs ?? (stat.atime?.getTime() || 0),
+		mtimeMs: stat.mtimeMs ?? (stat.mtime?.getTime() || 0),
+		ctimeMs: stat.ctimeMs ?? (stat.ctime?.getTime() || 0),
+		birthtimeMs: stat.birthtimeMs ?? (stat.birthtime?.getTime() || 0),
 		size: stat.size
 	};
 }
