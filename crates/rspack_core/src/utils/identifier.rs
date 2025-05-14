@@ -45,14 +45,12 @@ pub async fn stringify_loaders_and_resource<'a>(
       .collect::<Vec<_>>();
     let resolve_results = futures::future::join_all(features).await;
     let mut s = String::new();
-    for resolve_result in resolve_results {
-      if let Ok(result) = resolve_result {
-        if let ResolveResult::Resource(resource) = result {
-          s.push_str(&resource.full_path());
-        }
+    for resolve_result in resolve_results.into_iter().flatten() {
+      if let ResolveResult::Resource(resource) = resolve_result {
+        s.push_str(&resource.full_path());
       }
     }
-    s.push_str("!");
+    s.push('!');
     s.push_str(resource);
     Cow::Owned(s)
   } else {
