@@ -84,7 +84,7 @@ import { Server as Server_2 } from 'tls';
 import { Server as Server_3 } from 'http';
 import { ServerOptions as ServerOptions_2 } from 'https';
 import { ServerResponse as ServerResponse_2 } from 'http';
-import { RawSourceMapDevToolPluginOptions as SourceMapDevToolPluginOptions } from '@rspack/binding';
+import { SourceMapDevToolPluginOptions } from '@rspack/binding';
 import sources = require('../compiled/webpack-sources');
 import { StatSyncFn } from 'fs';
 import { SyncBailHook } from '@rspack/lite-tapable';
