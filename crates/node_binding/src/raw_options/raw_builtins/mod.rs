@@ -42,7 +42,6 @@ use rspack_plugin_css::CssPlugin;
 use rspack_plugin_devtool::{
   EvalDevToolModulePlugin, EvalSourceMapDevToolPlugin, SourceMapDevToolModuleOptionsPlugin,
   SourceMapDevToolModuleOptionsPluginOptions, SourceMapDevToolPlugin,
-  SourceMapDevToolPluginOptions,
 };
 use rspack_plugin_dll::{
   DllEntryPlugin, DllReferenceAgencyPlugin, FlagAllModulesAsUsedPlugin, LibManifestPlugin,
@@ -116,8 +115,8 @@ use crate::{
   entry::JsEntryPluginOptions, plugins::JsLoaderRspackPlugin, JsLoaderRunnerGetter,
   RawContextReplacementPluginOptions, RawDynamicEntryPluginOptions,
   RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
-  RawHttpExternalsRspackPluginOptions, RawRsdoctorPluginOptions, RawSourceMapDevToolPluginOptions,
-  RawSplitChunksOptions,
+  RawHttpExternalsRspackPluginOptions, RawRsdoctorPluginOptions, RawSplitChunksOptions,
+  SourceMapDevToolPluginOptions,
 };
 
 #[napi(string_enum)]
@@ -479,8 +478,8 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::AssetModulesPlugin => plugins.push(AssetPlugin::default().boxed()),
       BuiltinPluginName::SourceMapDevToolPlugin => {
-        let options: SourceMapDevToolPluginOptions =
-          downcast_into::<RawSourceMapDevToolPluginOptions>(self.options)
+        let options: rspack_plugin_devtool::SourceMapDevToolPluginOptions =
+          downcast_into::<SourceMapDevToolPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .into();
         plugins.push(
@@ -493,8 +492,8 @@ impl BuiltinPlugin {
         plugins.push(SourceMapDevToolPlugin::new(options).boxed());
       }
       BuiltinPluginName::EvalSourceMapDevToolPlugin => {
-        let options: SourceMapDevToolPluginOptions =
-          downcast_into::<RawSourceMapDevToolPluginOptions>(self.options)
+        let options: rspack_plugin_devtool::SourceMapDevToolPluginOptions =
+          downcast_into::<SourceMapDevToolPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .into();
         plugins.push(

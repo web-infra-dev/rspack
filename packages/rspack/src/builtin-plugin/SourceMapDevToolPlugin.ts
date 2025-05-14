@@ -1,14 +1,14 @@
 import {
 	BuiltinPluginName,
-	type RawSourceMapDevToolPluginOptions
+	type SourceMapDevToolPluginOptions
 } from "@rspack/binding";
 
 import { create } from "./base";
 
-export type { RawSourceMapDevToolPluginOptions as SourceMapDevToolPluginOptions };
+export type { SourceMapDevToolPluginOptions };
 
 export const SourceMapDevToolPlugin = create(
 	BuiltinPluginName.SourceMapDevToolPlugin,
-	(options: RawSourceMapDevToolPluginOptions) => options,
+	(options: SourceMapDevToolPluginOptions) => options,
 	"compilation"
 );

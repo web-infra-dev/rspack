@@ -2372,24 +2372,6 @@ export interface RawSizeLimitsPluginOptions {
   maxEntrypointSize?: number
 }
 
-export interface RawSourceMapDevToolPluginOptions {
-  append?: (false | null) | string | Function
-  columns?: boolean
-  fallbackModuleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
-  fileContext?: string
-  filename?: (false | null) | string
-  module?: boolean
-  moduleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
-  namespace?: string
-  noSources?: boolean
-  publicPath?: string
-  sourceRoot?: string
-  test?: string | RegExp | (string | RegExp)[]
-  include?: string | RegExp | (string | RegExp)[]
-  exclude?: string | RegExp | (string | RegExp)[]
-  debugIds?: boolean
-}
-
 export interface RawSplitChunkSizes {
   sizes: Record<string, number>
 }
@@ -2582,6 +2564,24 @@ export interface RegisterJsTaps {
  * In the wasm runtime, the `park` threads will hang there until the tokio::Runtime is shutdown.
  */
 export declare function shutdownAsyncRuntime(): void
+
+export interface SourceMapDevToolPluginOptions {
+  append?: (false | null) | string | Function
+  columns?: boolean
+  fallbackModuleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
+  fileContext?: string
+  filename?: (false | null) | string
+  module?: boolean
+  moduleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
+  namespace?: string
+  noSources?: boolean
+  publicPath?: string
+  sourceRoot?: string
+  test?: string | RegExp | (string | RegExp)[]
+  include?: string | RegExp | (string | RegExp)[]
+  exclude?: string | RegExp | (string | RegExp)[]
+  debugIds?: boolean
+}
 
 /**
  * Start the async runtime manually.
