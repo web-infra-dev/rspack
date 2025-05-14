@@ -1172,16 +1172,15 @@ impl JavascriptParser<'_> {
       self.walk_assign_target_pattern(pat);
     } else if let Some(SimpleAssignTarget::Member(member)) = expr.left.as_simple() {
       let expr_name = self.get_member_expression_info(member, AllowedMemberTypes::Expression);
-      if expr_name.is_some() {
-        if self
+      if expr_name.is_some()
+        && self
           .plugin_drive
           .clone()
           // TODO: assign_member_chain
           .assign(self, expr, None)
           .unwrap_or_default()
-        {
-          return;
-        }
+      {
+        return;
       }
       self.walk_expression(&expr.right);
       match &expr.left {
