@@ -5,7 +5,7 @@ pub mod process_dependencies;
 
 use std::sync::Arc;
 
-use rspack_error::Result;
+use rspack_error::{miette, Result};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -159,6 +159,12 @@ pub async fn repair(
     .collect::<Vec<_>>();
 
   let mut ctx = MakeTaskContext::new(compilation, artifact, compilation.cache.clone());
-  run_task_loop(&mut ctx, init_tasks).await?;
+  if let Err(err) = run_task_loop(&mut ctx, init_tasks).await {
+    if matches!(err.severity(), Some(miette::Severity::Warning)) {
+      ctx.artifact.bailout_diagnostic = Some(err.into());
+    } else {
+      return Err(err);
+    }
+  }
   Ok(ctx.transform_to_make_artifact())
 }
