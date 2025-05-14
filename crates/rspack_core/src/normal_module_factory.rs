@@ -394,7 +394,13 @@ impl NormalModuleFactory {
     };
 
     let user_request = {
-      let suffix = stringify_loaders_and_resource(&inline_loaders, &resource_data.resource);
+      let suffix = stringify_loaders_and_resource(
+        &inline_loaders,
+        &resource_data.resource,
+        &self.options.context,
+        &loader_resolver,
+      )
+      .await;
       if let Some(ResourceData { resource, .. }) = match_resource_data.as_ref() {
         let mut resource = resource.to_owned();
         resource += "!=!";
