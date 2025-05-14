@@ -1429,6 +1429,15 @@ impl JavascriptParser<'_> {
               this.walk_prop_name(&ctor.key);
             }
 
+            if this
+              .plugin_drive
+              .clone()
+              .class_body_value(this, class_element, ctor.span(), class_decl_or_expr)
+              .unwrap_or_default()
+            {
+              continue;
+            }
+
             let was_top_level = this.top_level_scope;
             this.top_level_scope = TopLevelScope::False;
 
@@ -1441,7 +1450,6 @@ impl JavascriptParser<'_> {
                 this.walk_pattern(&param)
               }
 
-              // TODO: `hooks.body_value`;
               if let Some(body) = &ctor.body {
                 this.detect_mode(&body.stmts);
                 let prev = this.prev_statement;
