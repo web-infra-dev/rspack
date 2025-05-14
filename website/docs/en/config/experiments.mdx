@@ -353,8 +353,16 @@ export default {
   experiments: {
     parallelCodeSplitting: true,
   },
+  optimization: {
+    removeAvailableModules: true,
+  },
 };
 ```
+
+:::warning
+When `parallelCodeSplitting` is enabled, make sure to also enable `optimization.removeAvailableModules` (this is also enabled by default since version 1.3.0).
+This ensures consistency with the old code splitting algorithm, which enforced `removeAvailableModules` internally and ignored the `optimization.removeAvailableModules` configuration.
+:::
 
 ## experiments.parallelLoader
 
