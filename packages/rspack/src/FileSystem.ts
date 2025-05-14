@@ -37,16 +37,25 @@ const NOOP_FILESYSTEM: ThreadsafeNodeFS = {
 };
 
 function __to_binding_stat(stat: IStats): NodeFsStats {
+	console.log(stat);
+
 	return {
 		isFile: stat.isFile(),
 		isDirectory: stat.isDirectory(),
 		isSymlink: stat.isSymbolicLink(),
-		atimeMs: stat.atimeMs ?? (stat.atime?.getTime() || 0),
-		mtimeMs: stat.mtimeMs ?? (stat.mtime?.getTime() || 0),
-		ctimeMs: stat.ctimeMs ?? (stat.ctime?.getTime() || 0),
-		birthtimeMs: stat.birthtimeMs ?? (stat.birthtime?.getTime() || 0),
+		atimeMs: stat.atimeMs ?? toMs(stat.atime),
+		mtimeMs: stat.mtimeMs ?? toMs(stat.mtime),
+		ctimeMs: stat.ctimeMs ?? toMs(stat.ctime),
+		birthtimeMs: stat.birthtimeMs ?? toMs(stat.birthtime),
 		size: stat.size
 	};
+}
+
+function toMs(i: Date | number): number {
+	if ((i as Date).getTime) {
+		return (i as Date).getTime();
+	}
+	return i as number;
 }
 
 class ThreadsafeInputNodeFS implements ThreadsafeNodeFS {
