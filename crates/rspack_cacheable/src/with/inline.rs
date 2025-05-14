@@ -6,6 +6,7 @@ use rkyv::{
 
 use crate::with::AsCacheable;
 
+/// port rkyv::with::Inline but with generics support
 pub struct Inline<T = AsCacheable> {
   _inner: T,
 }

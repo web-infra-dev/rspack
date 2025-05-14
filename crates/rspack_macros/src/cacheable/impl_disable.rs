@@ -1,12 +1,11 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, parse_quote, visit_mut::VisitMut, Field, Item, Token, Type};
+use syn::{parse_macro_input, visit_mut::VisitMut, Field, Item, Token, Type};
 
 use super::CacheableArgs;
 
 /// A visitor to collect #[cacheable(with=...)] info on field
 struct FieldAttrVisitor {
-  allow_dead_code: bool,
   /// with info collected
   ///
   /// # Example
@@ -39,19 +38,13 @@ impl VisitMut for FieldAttrVisitor {
         true
       }
     });
-    if self.allow_dead_code {
-      f.attrs.push(parse_quote!(#[allow(dead_code)]));
-    }
   }
 }
 
 /// impl cacheable when disable
 pub fn impl_disable_cacheable(tokens: TokenStream, args: CacheableArgs) -> TokenStream {
   let mut input = parse_macro_input!(tokens as Item);
-  let mut visitor = FieldAttrVisitor {
-    allow_dead_code: args.r#as.is_some(),
-    with_info: vec![],
-  };
+  let mut visitor = FieldAttrVisitor { with_info: vec![] };
   visitor.visit_item_mut(&mut input);
   if let Some(with_path) = args.with {
     visitor.with_info.push(with_path)
