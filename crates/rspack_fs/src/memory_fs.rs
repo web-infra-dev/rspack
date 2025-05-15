@@ -5,6 +5,7 @@ use std::{
   time::{SystemTime, UNIX_EPOCH},
 };
 
+use bytes::Bytes;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 
 use crate::{
@@ -27,7 +28,7 @@ fn new_error(msg: &str) -> Error {
 enum FileType {
   Dir(FileMetadata),
   File {
-    content: Vec<u8>,
+    content: Bytes,
     metadata: FileMetadata,
   },
 }
@@ -58,7 +59,7 @@ impl FileType {
         ctime_ms: now,
         size: content.len() as u64,
       },
-      content,
+      content: content.into(),
     }
   }
 
@@ -187,7 +188,7 @@ impl WritableFileSystem for MemoryFileSystem {
       if let Some(ft) = files.get_mut(file) {
         if let FileType::File { content, metadata } = ft {
           let now = current_time();
-          *content = data.to_vec();
+          *content = data.to_vec().into();
           metadata.mtime_ms = now;
           metadata.atime_ms = now;
           metadata.size = data.len() as u64;
@@ -221,7 +222,7 @@ impl WritableFileSystem for MemoryFileSystem {
     self._read_dir(dir)
   }
 
-  async fn read_file(&self, file: &Utf8Path) -> Result<Vec<u8>> {
+  async fn read_file(&self, file: &Utf8Path) -> Result<Bytes> {
     ReadableFileSystem::read(self, file).await
   }
 
@@ -232,11 +233,11 @@ impl WritableFileSystem for MemoryFileSystem {
 
 #[async_trait::async_trait]
 impl ReadableFileSystem for MemoryFileSystem {
-  async fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+  async fn read(&self, path: &Utf8Path) -> Result<Bytes> {
     self.read_sync(path)
   }
 
-  fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+  fn read_sync(&self, path: &Utf8Path) -> Result<Bytes> {
     let files = self.files.lock().expect("should get lock");
     match files.get(path) {
       Some(FileType::File { content, .. }) => Ok(content.clone()),
@@ -302,10 +303,10 @@ impl IntermediateFileSystemExtras for MemoryFileSystem {
 impl IntermediateFileSystem for MemoryFileSystem {}
 
 #[derive(Debug)]
-pub struct MemoryReadStream(Cursor<Vec<u8>>);
+pub struct MemoryReadStream(Cursor<Bytes>);
 
 impl MemoryReadStream {
-  pub fn new(contents: Vec<u8>) -> Self {
+  pub fn new(contents: Bytes) -> Self {
     Self(Cursor::new(contents))
   }
 }

@@ -3,6 +3,7 @@ use std::{
   io::{BufRead, BufReader, BufWriter, Read, Write},
 };
 
+use bytes::Bytes;
 use pnp::fs::{FileType, LruZipCache, VPath, VPathInfo, ZipCache};
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use tracing::instrument;
@@ -65,8 +66,8 @@ impl WritableFileSystem for NativeFileSystem {
     Ok(res)
   }
   #[instrument(skip(self), level = "debug")]
-  async fn read_file(&self, file: &Utf8Path) -> Result<Vec<u8>> {
-    tokio::fs::read(file).await.to_fs_result()
+  async fn read_file(&self, file: &Utf8Path) -> Result<Bytes> {
+    tokio::fs::read(file).await.to_fs_result().map(Bytes::from)
   }
   #[instrument(skip(self), level = "debug")]
   async fn stat(&self, file: &Utf8Path) -> Result<FileMetadata> {
@@ -140,7 +141,7 @@ impl From<FileType> for FileMetadata {
 #[async_trait::async_trait]
 impl ReadableFileSystem for NativeFileSystem {
   #[instrument(skip(self), level = "debug")]
-  async fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+  async fn read(&self, path: &Utf8Path) -> Result<Bytes> {
     if self.options.pnp {
       let path = path.as_std_path();
       let buffer = match VPath::from(path)? {
@@ -148,13 +149,13 @@ impl ReadableFileSystem for NativeFileSystem {
         VPath::Virtual(info) => fs::read(info.physical_base_path()),
         VPath::Native(path) => fs::read(&path),
       };
-      return buffer.map_err(Error::from);
+      return buffer.map_err(Error::from).map(Bytes::from);
     }
 
-    fs::read(path).map_err(Error::from)
+    fs::read(path).map_err(Error::from).map(Bytes::from)
   }
   #[instrument(skip(self), level = "debug")]
-  fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+  fn read_sync(&self, path: &Utf8Path) -> Result<Bytes> {
     if self.options.pnp {
       let path = path.as_std_path();
       let buffer = match VPath::from(path)? {
@@ -162,9 +163,9 @@ impl ReadableFileSystem for NativeFileSystem {
         VPath::Virtual(info) => std::fs::read(info.physical_base_path()),
         VPath::Native(path) => std::fs::read(&path),
       };
-      return buffer.to_fs_result();
+      return buffer.to_fs_result().map(Bytes::from);
     }
-    fs::read(path).to_fs_result()
+    fs::read(path).to_fs_result().map(Bytes::from)
   }
   #[instrument(skip(self), level = "debug")]
   async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
@@ -232,12 +233,12 @@ impl ReadableFileSystem for NativeFileSystem {
 #[async_trait::async_trait]
 impl ReadableFileSystem for NativeFileSystem {
   #[instrument(skip(self), level = "debug")]
-  async fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+  async fn read(&self, path: &Utf8Path) -> Result<Bytes> {
     self.read_sync(path)
   }
   #[instrument(skip(self), level = "debug")]
-  fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
-    fs::read(path).to_fs_result()
+  fn read_sync(&self, path: &Utf8Path) -> Result<Bytes> {
+    fs::read(path).to_fs_result().map(|v| v.into())
   }
   #[instrument(skip(self), level = "debug")]
   async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {

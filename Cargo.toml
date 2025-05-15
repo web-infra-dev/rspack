@@ -33,6 +33,7 @@ async-recursion    = { version = "1.1.1" }
 async-trait        = { version = "0.1.84" }
 bitflags           = { version = "2.6.0" }
 browserslist-rs    = { version = "0.18.1" }
+bytes              = { version = "1.10.1" }
 camino             = { version = "1.1.9" }
 concat-string      = { version = "1.0.1" }
 cow-utils          = { version = "0.1.3" }

@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 
+use bytes::Bytes;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 
 use crate::{FileMetadata, Result};
@@ -7,8 +8,8 @@ use crate::{FileMetadata, Result};
 #[async_trait::async_trait]
 pub trait ReadableFileSystem: Debug + Send + Sync {
   /// See [std::fs::read]
-  async fn read(&self, path: &Utf8Path) -> Result<Vec<u8>>;
-  fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>>;
+  async fn read(&self, path: &Utf8Path) -> Result<Bytes>;
+  fn read_sync(&self, path: &Utf8Path) -> Result<Bytes>;
 
   /// See [std::fs::metadata]
   async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata>;

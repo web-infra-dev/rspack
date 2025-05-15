@@ -134,8 +134,8 @@ impl LockfileAsync for Lockfile {
       .read_file(utf8_path)
       .await
       .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("{:?}", e)))?;
-    let content_str =
-      String::from_utf8(content).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    let content_str = String::from_utf8(content.to_vec())
+      .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
     Lockfile::parse(&content_str).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
   }
 

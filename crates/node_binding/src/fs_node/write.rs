@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use bytes::Bytes;
 use napi::{
   bindgen_prelude::{block_on, Either3},
   Either,
@@ -96,7 +97,7 @@ impl WritableFileSystem for NodeFileSystem {
   }
 
   // TODO: support read_file options
-  async fn read_file(&self, file: &Utf8Path) -> Result<Vec<u8>> {
+  async fn read_file(&self, file: &Utf8Path) -> Result<Bytes> {
     let file = file.as_str().to_string();
     let res = self
       .0
@@ -106,8 +107,8 @@ impl WritableFileSystem for NodeFileSystem {
       .to_fs_result()?;
 
     match res {
-      Either3::A(data) => Ok(data.to_vec()),
-      Either3::B(str) => Ok(str.into_bytes()),
+      Either3::A(data) => Ok(data.to_vec().into()),
+      Either3::B(str) => Ok(str.into()),
       Either3::C(_) => Err(Error::new(
         std::io::ErrorKind::Other,
         "output file system call read file failed:",
@@ -156,7 +157,7 @@ impl IntermediateFileSystem for NodeFileSystem {}
 
 #[async_trait]
 impl ReadableFileSystem for NodeFileSystem {
-  async fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+  async fn read(&self, path: &Utf8Path) -> Result<Bytes> {
     self
       .0
       .read_file
@@ -165,12 +166,12 @@ impl ReadableFileSystem for NodeFileSystem {
       .to_fs_result()
       // TODO: simplify the return value?
       .map(|result| match result {
-        Either3::A(buf) => buf.into(),
+        Either3::A(buf) => buf.to_vec().into(),
         Either3::B(str) => str.into(),
-        Either3::C(_) => vec![],
+        Either3::C(_) => vec![].into(),
       })
   }
-  fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+  fn read_sync(&self, path: &Utf8Path) -> Result<Bytes> {
     block_on(self.read(path))
   }
 

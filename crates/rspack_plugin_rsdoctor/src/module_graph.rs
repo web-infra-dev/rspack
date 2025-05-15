@@ -152,7 +152,7 @@ pub fn collect_module_original_sources(
         .or_else(|| {
           let resource = Utf8PathBuf::from(resource);
           let buffer = ifs.read_sync(&resource).ok()?;
-          let content = String::from_utf8(buffer).ok()?;
+          let content = String::from_utf8(buffer.to_vec()).ok()?;
           Some(RsdoctorModuleOriginalSource {
             module: *module_ukey,
             size: content.len() as i32,

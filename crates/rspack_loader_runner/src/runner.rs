@@ -53,7 +53,7 @@ async fn process_resource<Context: Send>(
         .await
         .map_err(|e| error!("{e}, spawn task failed"))?;
       let result = result.map_err(|e| error!("{e}, failed to read {resource_path}"))?;
-      loader_context.content = Some(Content::from(result));
+      loader_context.content = Some(Content::from(result.to_vec()));
     } else if !resource_data.get_scheme().is_none() {
       let resource = &resource_data.resource;
       let scheme = resource_data.get_scheme();
