@@ -25,13 +25,13 @@ export const EN_US = {
   // benchmark
   benchmarkTitle: 'Lightning Fast',
   benchmarkDesc:
-    'Combining Rust and TypeScript with a parallelized architecture to bring you the ultimate developer experience.',
+    'Combining Rust and TypeScript with a parallelized architecture to bring you the enjoyable developer experience',
   benchmarkDetail: 'See benchmark details',
 
   // fully featured
   fullyFeaturedTitle: 'Fully Featured',
   fullyFeaturedDesc:
-    'Launched as a drop-in replacement for webpack, with more powerful features and exceptional productivity.',
+    'Launched as a drop-in replacement for webpack, with more powerful features and exceptional productivity',
 
   featureCodeSplitting:
     'Split code into smaller bundles to enable on-demand loading and improve performance.',
@@ -59,11 +59,6 @@ export const EN_US = {
     'Run multiple builds in parallel for different build targets or environments.',
   featureJavaScriptApi:
     'Provides programmatic access to the build API to customize the build processes.',
-
-  // Tool Stack
-  toolStackTitle: 'Rstack',
-  toolStackDesc:
-    'High-performance toolchain built around Rspack to boost modern web development',
 
   // Who is using
   whoIsUsing: 'Trusted By Innovators',
