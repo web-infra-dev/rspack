@@ -40,7 +40,7 @@ impl From<JsRspackSeverity> for miette::Severity {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RspackError {
   pub name: String,
   pub message: String,
@@ -50,6 +50,7 @@ pub struct RspackError {
   pub stack: Option<String>,
   pub hide_stack: Option<bool>,
   pub module: Option<ModuleObject>,
+  pub error: Option<Box<RspackError>>,
 }
 
 impl napi::bindgen_prelude::TypeName for RspackError {
@@ -67,10 +68,7 @@ impl napi::bindgen_prelude::ToNapiValue for RspackError {
     env: napi::bindgen_prelude::sys::napi_env,
     val: RspackError,
   ) -> napi::bindgen_prelude::Result<napi::bindgen_prelude::sys::napi_value> {
-    #[allow(unused_variables)]
     let env_wrapper = napi::bindgen_prelude::Env::from(env);
-    #[allow(unused_mut)]
-    let mut obj = env_wrapper.create_object()?;
     let Self {
       name,
       message,
@@ -80,9 +78,10 @@ impl napi::bindgen_prelude::ToNapiValue for RspackError {
       stack,
       hide_stack,
       module,
+      error,
     } = val;
+    let mut obj = env_wrapper.create_error(napi::Error::from_reason(message))?;
     obj.set("name", name)?;
-    obj.set("message", message)?;
     if module_identifier.is_some() {
       obj.set("moduleIdentifier", module_identifier)?;
     }
@@ -103,6 +102,9 @@ impl napi::bindgen_prelude::ToNapiValue for RspackError {
     }
     if module.is_some() {
       obj.set("module", module)?;
+    }
+    if let Some(error) = error {
+      obj.set("error", *error)?;
     }
     napi::bindgen_prelude::Object::to_napi_value(env, obj)
   }
@@ -125,6 +127,7 @@ impl napi::bindgen_prelude::FromNapiValue for RspackError {
         stack: None,
         hide_stack: None,
         module: None,
+        error: None,
       });
     }
 
@@ -182,6 +185,7 @@ impl napi::bindgen_prelude::FromNapiValue for RspackError {
       stack,
       hide_stack,
       module: None,
+      error: None,
     };
     Ok(val)
   }
@@ -195,6 +199,13 @@ impl RspackError {
     diagnostic: &Diagnostic,
     colored: bool,
   ) -> Result<Self> {
+    let error = match diagnostic.source() {
+      Some(source) => source
+        .downcast_ref::<RspackError>()
+        .map(|rspack_error| Box::new(rspack_error.clone())),
+      None => None,
+    };
+
     Ok(Self {
       name: diagnostic.code().map(|n| n.to_string()).unwrap_or_else(|| {
         match diagnostic.severity() {
@@ -214,6 +225,7 @@ impl RspackError {
           .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id())),
         None => None,
       },
+      error,
     })
   }
 

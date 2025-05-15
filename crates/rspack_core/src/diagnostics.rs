@@ -5,7 +5,7 @@ use rspack_error::{
   error, impl_diagnostic_transparent,
   miette::{self, Diagnostic},
   thiserror::{self, Error},
-  DiagnosticExt, Error, TraceableError,
+  DiagnosticExt, TraceableError,
 };
 use rspack_util::ext::AsAny;
 use rustc_hash::FxHashSet;
@@ -37,11 +37,11 @@ impl_diagnostic_transparent!(EmptyDependency);
 ///////////////////// Module /////////////////////
 
 #[derive(Debug)]
-pub struct ModuleBuildError(pub Error);
+pub struct ModuleBuildError(pub Box<dyn Diagnostic + Sync + Send + 'static>);
 
 impl std::error::Error for ModuleBuildError {
   fn source(&self) -> ::core::option::Option<&(dyn std::error::Error + 'static)> {
-    Some(<Error as AsRef<dyn std::error::Error>>::as_ref(&self.0))
+    Some(self.0.as_ref())
   }
 }
 

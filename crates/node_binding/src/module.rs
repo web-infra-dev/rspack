@@ -440,7 +440,7 @@ thread_local! {
 // ModuleObject maintains a cache to ensure that the corresponding instance of the same Module is unique on the JS side.
 //
 // This means that when transferring a Module from Rust to JS, you must use ModuleObject instead.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ModuleObject {
   type_id: TypeId,
   identifier: ModuleIdentifier,

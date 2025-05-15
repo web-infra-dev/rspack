@@ -15,9 +15,7 @@ use rspack_cacheable::{
   with::{AsMap, AsOption, AsPreset, Skip},
 };
 use rspack_collections::{Identifiable, IdentifierSet};
-use rspack_error::{
-  error, Diagnosable, Diagnostic, DiagnosticExt, Error, NodeError, Result, Severity,
-};
+use rspack_error::{error, Diagnosable, Diagnostic, DiagnosticExt, NodeError, Result, Severity};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{run_loaders, AdditionalData, Content, LoaderContext, ResourceData};
@@ -424,6 +422,7 @@ impl Module for NormalModule {
       Ok(r) => r.split_into_parts(),
       Err(r) => {
         let diagnostic = if r.is::<CapturedLoaderError>() {
+          #[allow(clippy::unwrap_used)]
           let mut captured_error = r.downcast::<CapturedLoaderError>().unwrap();
           self.build_info.cacheable = captured_error.cacheable;
           self.build_info.file_dependencies = captured_error
@@ -448,7 +447,7 @@ impl Module for NormalModule {
             .collect();
 
           let stack = captured_error.take_stack();
-          Diagnostic::from(ModuleBuildError(Error::new_boxed(captured_error.cause)).boxed())
+          Diagnostic::from(ModuleBuildError(captured_error.cause).boxed())
             .with_stack(stack)
             .with_hide_stack(captured_error.hide_stack)
         } else {
@@ -464,7 +463,7 @@ impl Module for NormalModule {
           let node_error = r.downcast_ref::<NodeError>();
           let stack = node_error.and_then(|e| e.stack.clone());
           let hide_stack = node_error.and_then(|e| e.hide_stack);
-          let e = ModuleBuildError(r).boxed();
+          let e = ModuleBuildError(r.into()).boxed();
           Diagnostic::from(e)
             .with_stack(stack)
             .with_hide_stack(hide_stack)
