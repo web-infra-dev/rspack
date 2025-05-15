@@ -204,6 +204,10 @@ impl ContextModule {
     ChunkGraph::get_module_id(module_ids, self.identifier).expect("module id not found")
   }
 
+  pub fn get_context_options(&self) -> &ContextOptions {
+    &self.options.context_options
+  }
+
   fn get_fake_map(
     &self,
     dependencies: impl IntoIterator<Item = &DependencyId>,
