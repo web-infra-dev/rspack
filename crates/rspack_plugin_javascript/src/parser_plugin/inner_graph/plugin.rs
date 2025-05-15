@@ -3,7 +3,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
   atoms::Atom,
   common::{Mark, Span, Spanned, SyntaxContext},
-  ecma::ast::{ClassMember, DefaultDecl, ExportDefaultExpr, Expr, ModuleDecl, Pat},
+  ecma::ast::{AssignOp, ClassMember, DefaultDecl, ExportDefaultExpr, Expr, ModuleDecl, Pat},
 };
 
 use super::state::UsageCallback;
@@ -733,6 +733,22 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     for_name: &str,
   ) -> Option<bool> {
     Self::for_each_expression(parser, for_name);
+    None
+  }
+
+  fn assign(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &swc_core::ecma::ast::AssignExpr,
+    for_name: Option<&str>,
+  ) -> Option<bool> {
+    let for_name = for_name?;
+    if !parser.inner_graph.is_enabled() || for_name != TOP_LEVEL_SYMBOL {
+      return None;
+    }
+    if matches!(expr.op, AssignOp::Assign) {
+      return Some(true);
+    }
     None
   }
 

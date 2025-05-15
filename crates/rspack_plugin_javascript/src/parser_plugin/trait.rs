@@ -285,7 +285,12 @@ pub trait JavascriptParserPlugin {
   }
 
   // FIXME: should remove
-  fn assign(&self, _parser: &mut JavascriptParser, _expr: &AssignExpr) -> Option<bool> {
+  fn assign(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &AssignExpr,
+    _for_name: Option<&str>,
+  ) -> Option<bool> {
     None
   }
 
