@@ -15,6 +15,7 @@ plugin = ["rspack_loader_swc/plugin"]
 
 [dependencies]
 anyhow                   = { workspace = true }
+browserslist-rs          = { workspace = true }
 ropey                    = { workspace = true }
 rspack_allocator         = { workspace = true }
 rspack_collections       = { workspace = true }
