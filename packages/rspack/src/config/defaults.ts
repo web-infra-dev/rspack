@@ -770,7 +770,8 @@ const applyOutputDefaults = (
 			if (tp.fetchWasm) return "fetch";
 			if (tp.nodeBuiltins) return "async-node";
 			if (tp.nodeBuiltins === null || tp.fetchWasm === null) {
-				return "universal";
+				// return "universal";
+				return false;
 			}
 		}
 		return false;
