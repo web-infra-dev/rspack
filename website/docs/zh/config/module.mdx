@@ -1618,7 +1618,7 @@ Condition 代表了匹配一个给定输入的形式，它支持的类型为：
   - `{ and: Condition[] }`：所有条件都匹配，则匹配成功。
   - `{ or: Condition[] }`：其中一个条件匹配，则匹配成功。
   - `{ not: Condition }`：所有条件都不匹配时，则匹配成功。
-- `(value: string) => boolean`：当输入的字符串经函数调用后返回 true 是，则匹配成功。
+- `(value: string) => boolean`：当输入的字符串经函数调用后返回 true 时，则匹配成功。
 
 ### Nested rule
 
