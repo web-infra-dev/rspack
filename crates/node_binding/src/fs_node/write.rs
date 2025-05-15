@@ -107,7 +107,7 @@ impl WritableFileSystem for NodeFileSystem {
       .to_fs_result()?;
 
     match res {
-      Either3::A(data) => Ok(data.to_vec().into()),
+      Either3::A(data) => Ok(Bytes::from_owner(data)),
       Either3::B(str) => Ok(str.into()),
       Either3::C(_) => Err(Error::new(
         std::io::ErrorKind::Other,
@@ -166,8 +166,8 @@ impl ReadableFileSystem for NodeFileSystem {
       .to_fs_result()
       // TODO: simplify the return value?
       .map(|result| match result {
-        Either3::A(buf) => buf.to_vec().into(),
-        Either3::B(str) => str.into(),
+        Either3::A(buf) => Bytes::from_owner(buf),
+        Either3::B(str) => Bytes::from_owner(str),
         Either3::C(_) => vec![].into(),
       })
   }

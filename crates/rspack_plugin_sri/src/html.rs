@@ -193,8 +193,7 @@ async fn compute_file_integrity(
   hash_func_names: &Vec<SubresourceIntegrityHashFunction>,
 ) -> Result<String> {
   let file = fs.read_file(path).await?;
-  let content = String::from_utf8(file.to_vec()).to_rspack_result()?;
-  let integrity = compute_integrity(hash_func_names, &content);
+  let integrity = compute_integrity(hash_func_names, &file);
   Ok(integrity)
 }
 

@@ -67,7 +67,7 @@ fn recurse_chunk(
 
 pub fn make_placeholder(hash_funcs: &Vec<SubresourceIntegrityHashFunction>, id: &str) -> String {
   let placeholder_source = format!("{}{}", PLACEHOLDER_PREFIX, id);
-  let filler = compute_integrity(hash_funcs, &placeholder_source);
+  let filler = compute_integrity(hash_funcs, placeholder_source.as_bytes());
   format!(
     "{}{}",
     PLACEHOLDER_PREFIX,

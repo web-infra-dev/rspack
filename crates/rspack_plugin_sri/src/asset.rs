@@ -180,7 +180,7 @@ fn process_chunk_source(
   }
 
   // compute self integrity and placeholder
-  let integrity = compute_integrity(hash_funcs, new_source.source().as_ref());
+  let integrity = compute_integrity(hash_funcs, new_source.source().as_bytes());
   let placeholder = chunk_id.map(|id| make_placeholder(hash_funcs, id.as_str()));
 
   ProcessChunkResult {
@@ -235,7 +235,7 @@ fn add_minssing_integrities(
       }
       asset.source.as_ref().map(|s| {
         let content = s.source();
-        let integrity = compute_integrity(hash_func_names, &content);
+        let integrity = compute_integrity(hash_func_names, content.as_bytes());
         (src.clone(), integrity)
       })
     })
@@ -320,7 +320,7 @@ pub async fn update_hash(
     .next();
   if let (Some(key), Some(asset)) = (key, assets.first()) {
     let content = asset.source();
-    let new_integrity = compute_integrity(&self.options.hash_func_names, &content);
+    let new_integrity = compute_integrity(&self.options.hash_func_names, content.as_bytes());
     compilation_integrities.insert(key, new_integrity.clone());
     return Ok(Some(new_integrity));
   }

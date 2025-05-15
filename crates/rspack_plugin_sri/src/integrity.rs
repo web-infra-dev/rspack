@@ -23,7 +23,7 @@ impl From<String> for SubresourceIntegrityHashFunction {
 
 pub fn compute_integrity(
   hash_func_names: &Vec<SubresourceIntegrityHashFunction>,
-  source: &str,
+  source: &[u8],
 ) -> String {
   hash_func_names
     .par_iter()
@@ -32,7 +32,7 @@ pub fn compute_integrity(
     .collect()
 }
 
-fn create_hash(hash_func: &SubresourceIntegrityHashFunction, source: &str) -> String {
+fn create_hash(hash_func: &SubresourceIntegrityHashFunction, source: &[u8]) -> String {
   match hash_func {
     SubresourceIntegrityHashFunction::Sha256 => {
       let mut hasher = Sha256::new();

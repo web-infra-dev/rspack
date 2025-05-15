@@ -238,7 +238,7 @@ impl ReadableFileSystem for NativeFileSystem {
   }
   #[instrument(skip(self), level = "debug")]
   fn read_sync(&self, path: &Utf8Path) -> Result<Bytes> {
-    fs::read(path).to_fs_result().map(|v| v.into())
+    fs::read(path).to_fs_result().map(Bytes::from)
   }
   #[instrument(skip(self), level = "debug")]
   async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
