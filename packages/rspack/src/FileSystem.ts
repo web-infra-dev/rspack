@@ -37,8 +37,6 @@ const NOOP_FILESYSTEM: ThreadsafeNodeFS = {
 };
 
 function __to_binding_stat(stat: IStats): NodeFsStats {
-	console.log(stat);
-
 	return {
 		isFile: stat.isFile(),
 		isDirectory: stat.isDirectory(),
