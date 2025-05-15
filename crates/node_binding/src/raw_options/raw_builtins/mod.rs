@@ -1,3 +1,4 @@
+mod css_chunking;
 mod raw_banner;
 mod raw_bundle_info;
 mod raw_circular_dependency;
@@ -39,6 +40,7 @@ use rspack_plugin_circular_dependencies::CircularDependencyRspackPlugin;
 use rspack_plugin_context_replacement::ContextReplacementPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
 use rspack_plugin_css::CssPlugin;
+use rspack_plugin_css_chunking::CssChunkingPlugin;
 use rspack_plugin_devtool::{
   EvalDevToolModulePlugin, EvalSourceMapDevToolPlugin, SourceMapDevToolModuleOptionsPlugin,
   SourceMapDevToolModuleOptionsPluginOptions, SourceMapDevToolPlugin,
@@ -92,6 +94,7 @@ use rspack_plugin_web_worker_template::web_worker_template_plugin;
 use rspack_plugin_worker::WorkerPlugin;
 
 pub use self::{
+  css_chunking::CssChunkingPluginOptions,
   raw_banner::RawBannerPluginOptions,
   raw_circular_dependency::RawCircularDependencyRspackPluginOptions,
   raw_copy::RawCopyRspackPluginOptions,
@@ -211,6 +214,7 @@ pub enum BuiltinPluginName {
   LazyCompilationPlugin,
   ModuleInfoHeaderPlugin,
   HttpUriPlugin,
+  CssChunkingPlugin,
 }
 
 #[napi(object)]
@@ -710,6 +714,11 @@ impl BuiltinPlugin {
         let verbose = downcast_into::<bool>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         plugins.push(ModuleInfoHeaderPlugin::new(verbose).boxed());
+      }
+      BuiltinPluginName::CssChunkingPlugin => {
+        let options = downcast_into::<CssChunkingPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+        plugins.push(CssChunkingPlugin::new(options.into()).boxed());
       }
     }
     Ok(())

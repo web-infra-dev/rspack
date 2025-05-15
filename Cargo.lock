@@ -4509,6 +4509,7 @@ dependencies = [
  "rspack_plugin_context_replacement",
  "rspack_plugin_copy",
  "rspack_plugin_css",
+ "rspack_plugin_css_chunking",
  "rspack_plugin_devtool",
  "rspack_plugin_dll",
  "rspack_plugin_dynamic_entry",
@@ -4673,6 +4674,21 @@ dependencies = [
  "tokio",
  "tracing",
  "urlencoding",
+]
+
+[[package]]
+name = "rspack_plugin_css_chunking"
+version = "0.2.0"
+dependencies = [
+ "indexmap 2.7.1",
+ "rspack_collections",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
+ "rspack_plugin_css",
+ "rspack_regex",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

@@ -207,6 +207,7 @@ import { RuntimeChunkPlugin } from "./builtin-plugin";
 import { SplitChunksPlugin } from "./builtin-plugin";
 import { RemoveDuplicateModulesPlugin } from "./builtin-plugin";
 import { RsdoctorPlugin } from "./builtin-plugin";
+import { CssChunkingPlugin } from "./builtin-plugin";
 
 interface Optimize {
 	LimitChunkCountPlugin: typeof LimitChunkCountPlugin;
@@ -350,6 +351,7 @@ interface Experiments {
 		transform: typeof transform;
 		minify: typeof minify;
 	};
+	CssChunkingPlugin: typeof CssChunkingPlugin;
 }
 
 export const experiments: Experiments = {
@@ -379,5 +381,6 @@ export const experiments: Experiments = {
 	swc: {
 		minify,
 		transform
-	}
+	},
+	CssChunkingPlugin
 };
