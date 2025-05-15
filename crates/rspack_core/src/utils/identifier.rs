@@ -39,15 +39,30 @@ pub async fn stringify_loaders_and_resource<'a>(
   loader_resolve: &Resolver,
 ) -> Cow<'a, str> {
   if !loaders.is_empty() {
-    let features = loaders
+    let resolve_futures = loaders
       .iter()
-      .map(|i| loader_resolve.resolve(context.as_path().as_std_path(), &i.loader))
+      .map(|loader| {
+        let loader_request = &loader.loader;
+        async move {
+          (
+            loader_resolve
+              .resolve(context.as_path().as_std_path(), loader_request)
+              .await,
+            loader_request,
+          )
+        }
+      })
       .collect::<Vec<_>>();
-    let resolve_results = futures::future::join_all(features).await;
+    let resolved_loaders = futures::future::join_all(resolve_futures).await;
     let mut s = String::new();
-    for resolve_result in resolve_results.into_iter().flatten() {
-      if let ResolveResult::Resource(resource) = resolve_result {
+    for (resolve_result, original_request) in resolved_loaders {
+      if !s.is_empty() {
+        s.push('!');
+      }
+      if let Ok(ResolveResult::Resource(resource)) = resolve_result {
         s.push_str(&resource.full_path());
+      } else {
+        s.push_str(original_request);
       }
     }
     s.push('!');

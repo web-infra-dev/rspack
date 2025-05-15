@@ -397,7 +397,7 @@ impl NormalModuleFactory {
       let suffix = stringify_loaders_and_resource(
         &inline_loaders,
         &resource_data.resource,
-        &self.options.context,
+        &data.context,
         &loader_resolver,
       )
       .await;
