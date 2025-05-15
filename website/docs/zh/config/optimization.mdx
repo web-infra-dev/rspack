@@ -158,7 +158,7 @@ export default {
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
-是否检测并移除那些已经存在于父 chunks 中的模块。这项优化有助于减少打包产物中的重复模块。
+是否检测并移除那些已经存在于父 chunks 中的模块。这项优化有助于减少打包产物中的重复模块，这通常可以优化整体的构建性能（通过减小了后续 chunk 优化的计算量）并减小产物体积。
 
 这项优化默认开启，如果需要禁用，可以将 `optimization.removeAvailableModules` 设置为 `false`：
 
@@ -170,8 +170,8 @@ export default {
 };
 ```
 
-:::tip
-不建议禁用这项优化，因为这可能会导致打包产物体积显著增加。
+:::danger
+禁用这项优化是危险的，因为它可能会显著增加包大小，并显著地降低构建速度。
 :::
 
 ## optimization.removeEmptyChunks
