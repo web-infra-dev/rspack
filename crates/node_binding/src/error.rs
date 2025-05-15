@@ -113,6 +113,21 @@ impl napi::bindgen_prelude::FromNapiValue for RspackError {
     env: napi::bindgen_prelude::sys::napi_env,
     napi_val: napi::bindgen_prelude::sys::napi_value,
   ) -> napi::bindgen_prelude::Result<RspackError> {
+    let unknown = napi::bindgen_prelude::Unknown::from_napi_value(env, napi_val)?;
+    if !unknown.is_error()? {
+      let error = unknown.coerce_to_string()?.into_utf8()?.into_owned()?;
+      return Ok(RspackError {
+        name: "NonErrorEmittedError".to_string(),
+        message: format!("(Emitted value instead of an instance of Error) {}", error),
+        module_identifier: None,
+        loc: None,
+        file: None,
+        stack: None,
+        hide_stack: None,
+        module: None,
+      });
+    }
+
     let obj = napi::bindgen_prelude::Object::from_napi_value(env, napi_val)?;
     let name: String = obj
       .get("name")
@@ -180,7 +195,6 @@ impl RspackError {
     diagnostic: &Diagnostic,
     colored: bool,
   ) -> Result<Self> {
-    println!("diagnostic {:#?}", diagnostic);
     Ok(Self {
       name: diagnostic.code().map(|n| n.to_string()).unwrap_or_else(|| {
         match diagnostic.severity() {
@@ -226,6 +240,8 @@ impl std::fmt::Display for RspackError {
 }
 
 impl std::error::Error for RspackError {}
+
+impl miette::Diagnostic for RspackError {}
 
 pub trait RspackResultToNapiResultExt<T, E: ToString> {
   fn to_napi_result(self) -> napi::Result<T>;

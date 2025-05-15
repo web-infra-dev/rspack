@@ -150,7 +150,7 @@ impl ModuleParseError {
 
 #[derive(Debug)]
 pub struct CapturedLoaderError {
-  pub cause: Box<dyn std::error::Error + Sync + Send + 'static>,
+  pub cause: Box<dyn Diagnostic + Sync + Send + 'static>,
   pub message: String,
   pub stack: Option<String>,
   pub hide_stack: Option<bool>,
@@ -164,7 +164,7 @@ pub struct CapturedLoaderError {
 impl CapturedLoaderError {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
-    cause: Box<dyn std::error::Error + Sync + Send + 'static>,
+    cause: Box<dyn Diagnostic + Sync + Send + 'static>,
     message: String,
     stack: Option<String>,
     hide_stack: Option<bool>,

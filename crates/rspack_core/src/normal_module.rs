@@ -15,7 +15,9 @@ use rspack_cacheable::{
   with::{AsMap, AsOption, AsPreset, Skip},
 };
 use rspack_collections::{Identifiable, IdentifierSet};
-use rspack_error::{error, Diagnosable, Diagnostic, DiagnosticExt, NodeError, Result, Severity};
+use rspack_error::{
+  error, Diagnosable, Diagnostic, DiagnosticExt, Error, NodeError, Result, Severity,
+};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{run_loaders, AdditionalData, Content, LoaderContext, ResourceData};
@@ -420,8 +422,9 @@ impl Module for NormalModule {
     .await;
     let (mut loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
-      Err(mut r) => {
-        let diagnostic = if let Some(captured_error) = r.downcast_mut::<CapturedLoaderError>() {
+      Err(r) => {
+        let diagnostic = if r.is::<CapturedLoaderError>() {
+          let mut captured_error = r.downcast::<CapturedLoaderError>().unwrap();
           self.build_info.cacheable = captured_error.cacheable;
           self.build_info.file_dependencies = captured_error
             .take_file_dependencies()
@@ -445,18 +448,9 @@ impl Module for NormalModule {
             .collect();
 
           let stack = captured_error.take_stack();
-          Diagnostic::from(
-            ModuleBuildError(error!(if captured_error.hide_stack.unwrap_or_default() {
-              captured_error.take_message()
-            } else {
-              stack
-                .clone()
-                .unwrap_or_else(|| captured_error.take_message())
-            }))
-            .boxed(),
-          )
-          .with_stack(stack)
-          .with_hide_stack(captured_error.hide_stack)
+          Diagnostic::from(ModuleBuildError(Error::new_boxed(captured_error.cause)).boxed())
+            .with_stack(stack)
+            .with_hide_stack(captured_error.hide_stack)
         } else {
           self.build_info.cacheable = false;
           if let Some(file_path) = &self.resource_data.resource_path {

@@ -109,7 +109,7 @@ pub struct JsLoaderContext {
   pub loader_index: i32,
   #[napi(ts_type = "Readonly<JsLoaderState>")]
   pub loader_state: JsLoaderState,
-  #[napi(js_name = "__internal__error")]
+  #[napi(js_name = "__internal__error", ts_type = "any")]
   pub error: Option<RspackError>,
 
   /// UTF-8 hint for `content`
