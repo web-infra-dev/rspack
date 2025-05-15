@@ -1,12 +1,12 @@
 import type * as binding from "@rspack/binding";
 import { concatErrorMsgAndStack } from "./util";
 
-export type RspackError = binding.JsRspackError;
+export type { RspackError } from "@rspack/binding";
 export type RspackSeverity = binding.JsRspackSeverity;
 
 export class JsRspackDiagnostic {
 	static __to_binding(
-		error: Error | RspackError,
+		error: Error | binding.RspackError,
 		severity: RspackSeverity
 	): binding.JsRspackDiagnostic {
 		return {

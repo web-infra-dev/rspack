@@ -1,4 +1,4 @@
-import type { JsRspackError, JsStatsError } from "@rspack/binding";
+import type { RspackError, JsStatsError } from "@rspack/binding";
 import type { LoaderObject } from "../loader-runner";
 
 export function mapValues(
@@ -73,8 +73,8 @@ export function isJsStatsError(err: any): err is JsStatsError {
 }
 
 export function concatErrorMsgAndStack(
-	err: Error | JsRspackError | string
-): JsRspackError {
+	err: Error | RspackError | string
+): RspackError {
 	if (typeof err === "string") {
 		return new Error(err);
 	}

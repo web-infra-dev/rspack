@@ -150,6 +150,7 @@ impl ModuleParseError {
 
 #[derive(Debug)]
 pub struct CapturedLoaderError {
+  pub cause: Box<dyn std::error::Error + Sync + Send + 'static>,
   pub message: String,
   pub stack: Option<String>,
   pub hide_stack: Option<bool>,
@@ -163,6 +164,7 @@ pub struct CapturedLoaderError {
 impl CapturedLoaderError {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
+    cause: Box<dyn std::error::Error + Sync + Send + 'static>,
     message: String,
     stack: Option<String>,
     hide_stack: Option<bool>,
@@ -173,6 +175,7 @@ impl CapturedLoaderError {
     cacheable: bool,
   ) -> Self {
     Self {
+      cause,
       message,
       stack,
       hide_stack,
@@ -223,7 +226,7 @@ impl CapturedLoaderError {
 
 impl std::error::Error for CapturedLoaderError {
   fn source(&self) -> ::core::option::Option<&(dyn std::error::Error + 'static)> {
-    None
+    Some(self.cause.as_ref())
   }
 }
 

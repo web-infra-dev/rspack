@@ -4551,6 +4551,7 @@ dependencies = [
  "serde",
  "serde_json",
  "swc_core",
+ "thiserror 1.0.69",
  "tokio",
  "tracing",
  "tracing-subscriber",

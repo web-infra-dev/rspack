@@ -26,9 +26,8 @@ use super::PathWithInfo;
 use crate::{
   entry::JsEntryOptions, utils::callbackify, AssetInfo, EntryDependency, JsAddingRuntimeModule,
   JsAsset, JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper, JsCompatSource, JsFilename,
-  JsModuleGraph, JsPathData, JsRspackDiagnostic, JsRspackError, JsStats,
-  JsStatsOptimizationBailout, ModuleObject, RspackResultToNapiResultExt, ToJsCompatSource,
-  COMPILER_REFERENCES,
+  JsModuleGraph, JsPathData, JsRspackDiagnostic, JsStats, JsStatsOptimizationBailout, ModuleObject,
+  RspackError, RspackResultToNapiResultExt, ToJsCompatSource, COMPILER_REFERENCES,
 };
 
 thread_local! {
@@ -460,7 +459,7 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_errors(&self) -> Result<Vec<JsRspackError>> {
+  pub fn get_errors(&self) -> Result<Vec<RspackError>> {
     let compilation = self.as_ref()?;
 
     let colored = compilation.options.stats.colors;
@@ -468,15 +467,15 @@ impl JsCompilation {
       compilation
         .get_errors_sorted()
         .map(|d| {
-          JsRspackError::try_from_diagnostic(d, colored)
-            .expect("should convert diagnostic to `JsRspackError`")
+          RspackError::try_from_diagnostic(compilation, d, colored)
+            .expect("should convert diagnostic to `RspackError`")
         })
         .collect(),
     )
   }
 
   #[napi]
-  pub fn get_warnings(&self) -> Result<Vec<JsRspackError>> {
+  pub fn get_warnings(&self) -> Result<Vec<RspackError>> {
     let compilation = self.as_ref()?;
 
     let colored = compilation.options.stats.colors;
@@ -484,8 +483,8 @@ impl JsCompilation {
       compilation
         .get_warnings_sorted()
         .map(|d| {
-          JsRspackError::try_from_diagnostic(d, colored)
-            .expect("should convert diagnostic to `JsRspackError`")
+          RspackError::try_from_diagnostic(compilation, d, colored)
+            .expect("should convert diagnostic to `RspackError`")
         })
         .collect(),
     )

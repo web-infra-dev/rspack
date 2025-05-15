@@ -55,6 +55,17 @@ export interface ContextModule extends Module {
 export interface ExternalModule extends Module {
 	readonly userRequest: string;
 }
+
+export interface RspackError {
+	name: string
+	message: string
+	moduleIdentifier?: string
+	loc?: string
+	file?: string
+	stack?: string
+	hideStack?: boolean
+	module?: Module
+}
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */
@@ -248,8 +259,8 @@ export declare class JsCompilation {
   spliceDiagnostic(start: number, end: number, replaceWith: Array<JsRspackDiagnostic>): void
   pushNativeDiagnostic(diagnostic: ExternalObject<'Diagnostic'>): void
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
-  getErrors(): Array<JsRspackError>
-  getWarnings(): Array<JsRspackError>
+  getErrors(): Array<RspackError>
+  getWarnings(): Array<RspackError>
   getStats(): JsStats
   getAssetPath(filename: string, data: JsPathData): string
   getAssetPathWithInfo(filename: string, data: JsPathData): PathWithInfo
@@ -858,7 +869,7 @@ export interface JsLoaderContext {
   loaderItems: Array<JsLoaderItem>
   loaderIndex: number
   loaderState: Readonly<JsLoaderState>
-  __internal__error?: JsRspackError
+  __internal__error?: RspackError
   /**
    * UTF-8 hint for `content`
    * - Some(true): `content` is a `UTF-8` encoded sequence
@@ -1099,17 +1110,7 @@ export interface JsRsdoctorVariable {
 
 export interface JsRspackDiagnostic {
   severity: JsRspackSeverity
-  error: JsRspackError
-}
-
-export interface JsRspackError {
-  name: string
-  message: string
-  moduleIdentifier?: string
-  loc?: string
-  file?: string
-  stack?: string
-  hideStack?: boolean
+  error: RspackError
 }
 
 export declare enum JsRspackSeverity {
