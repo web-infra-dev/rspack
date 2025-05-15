@@ -321,7 +321,7 @@ impl CircularDependencyRspackPlugin {
     // remove the root path here.
     let cycle_without_root: Vec<String> = cycle
       .iter()
-      .map(|module_identifier| {
+      .filter_map(|module_identifier| {
         compilation
           .module_by_identifier(module_identifier)
           .map(|module| {
