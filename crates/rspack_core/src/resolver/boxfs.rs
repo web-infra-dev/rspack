@@ -18,11 +18,18 @@ impl BoxFS {
 #[async_trait::async_trait]
 impl ResolverFileSystem for BoxFS {
   async fn read(&self, path: &std::path::Path) -> io::Result<Vec<u8>> {
-    self.0.read(path.assert_utf8()).await.to_io_result()
+    self
+      .0
+      .read(path.assert_utf8())
+      .await
+      .to_io_result()
+      .map(|v| v.into())
   }
   async fn read_to_string(&self, path: &std::path::Path) -> std::io::Result<String> {
     match self.0.read(path.assert_utf8()).await {
-      Ok(x) => String::from_utf8(x).map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err)),
+      Ok(x) => {
+        String::from_utf8(x.into()).map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))
+      }
       Err(Error::Io(e)) => Err(e),
     }
   }

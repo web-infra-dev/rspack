@@ -462,9 +462,9 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "bytes"
-version = "1.9.0"
+version = "1.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "325918d6fe32f23b19878fe4b34794ae41fc19ddbe53b10571a4874d44ffd39b"
+checksum = "d71b6127be86fdcfddb610f7182ac57211d4b18a3e9c82eb2d17662f2227ad6a"
 dependencies = [
  "serde",
 ]
@@ -4237,6 +4237,7 @@ name = "rspack_fs"
 version = "0.2.0"
 dependencies = [
  "async-trait",
+ "bytes",
  "dunce",
  "pnp",
  "rspack_error",
@@ -4472,6 +4473,7 @@ version = "0.2.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "bytes",
  "color-backtrace",
  "cow-utils",
  "derive_more 1.0.0",

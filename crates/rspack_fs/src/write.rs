@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 
+use bytes::Bytes;
 use rspack_paths::Utf8Path;
 
 use super::{FileMetadata, Result};
@@ -35,7 +36,7 @@ pub trait WritableFileSystem: Debug + Send + Sync {
   async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>>;
 
   /// Read the entire contents of a file into a bytes vector.
-  async fn read_file(&self, file: &Utf8Path) -> Result<Vec<u8>>;
+  async fn read_file(&self, file: &Utf8Path) -> Result<Bytes>;
 
   async fn stat(&self, file: &Utf8Path) -> Result<FileMetadata>;
 }

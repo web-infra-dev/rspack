@@ -448,7 +448,7 @@ impl Compiler {
           .await
         {
           // write when content is different
-          Ok(c) => content != c,
+          Ok(c) => content != c.as_ref(),
           // write when file can not be read
           Err(_) => true,
         }

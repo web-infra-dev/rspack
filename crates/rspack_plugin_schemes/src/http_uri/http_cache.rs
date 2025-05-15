@@ -287,7 +287,7 @@ impl HttpCache {
 
           let result = ContentFetchResult {
             entry: entry.clone(),
-            content,
+            content: content.to_vec(),
             meta,
           };
 
