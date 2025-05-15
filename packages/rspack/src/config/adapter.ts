@@ -711,7 +711,8 @@ function getRawAssetInlineGeneratorOptions(
 	return {
 		dataUrl: options.dataUrl
 			? getRawAssetGeneratorDataUrl(options.dataUrl)
-			: undefined
+			: undefined,
+		binary: options.binary
 	};
 }
 
@@ -723,7 +724,8 @@ function getRawAssetResourceGeneratorOptions(
 		filename: options.filename,
 		outputPath: options.outputPath,
 		publicPath: options.publicPath,
-		importMode: options.importMode
+		importMode: options.importMode,
+		binary: options.binary
 	};
 }
 

@@ -4,4 +4,4 @@
 // };
 
 // Expecting warnings `The generated code contains 'async\/await'`
-module.exports = () => false;
+module.exports = () => "FIXME: warnings are missing";

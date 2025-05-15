@@ -1,7 +1,14 @@
-// var supportsOptionalChaining = require("../../../helpers/supportsOptionalChaining");
-// module.exports = function (config) {
-// 	return supportsOptionalChaining();
-// };
+var supportsOptionalChaining = require("../../../helpers/supportsOptionalChaining");
+const { FilteredStatus } = require("../../../lib/util/filterUtil");
 
-// moduleIds: size is not implemented
-module.exports = () => false;
+module.exports = function (config) {
+  // if (supportsOptionalChaining()) {
+  //   return [
+  //     FilteredStatus.PARTIAL_PASS,
+  //     "TODO: not support moduleIds: 'size'"
+  //   ]
+  // } else {
+  return "FIXME: timeout on CI";
+  // }
+};
+

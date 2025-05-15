@@ -567,6 +567,7 @@ pub struct RawAssetGeneratorOptions {
 
   #[napi(ts_type = r#""url" | "preserve""#)]
   pub import_mode: Option<String>,
+  pub binary: Option<bool>,
 }
 
 impl From<RawAssetGeneratorOptions> for AssetGeneratorOptions {
@@ -580,6 +581,7 @@ impl From<RawAssetGeneratorOptions> for AssetGeneratorOptions {
         .data_url
         .map(|i| RawAssetGeneratorDataUrlWrapper(i).into()),
       import_mode: value.import_mode.map(|n| n.into()),
+      binary: value.binary,
     }
   }
 }
@@ -592,6 +594,7 @@ pub struct RawAssetInlineGeneratorOptions {
     ts_type = "RawAssetGeneratorDataUrlOptions | ((source: Buffer, context: RawAssetGeneratorDataUrlFnCtx) => string)"
   )]
   pub data_url: Option<RawAssetGeneratorDataUrl>,
+  pub binary: Option<bool>,
 }
 
 impl From<RawAssetInlineGeneratorOptions> for AssetInlineGeneratorOptions {
@@ -600,6 +603,7 @@ impl From<RawAssetInlineGeneratorOptions> for AssetInlineGeneratorOptions {
       data_url: value
         .data_url
         .map(|i| RawAssetGeneratorDataUrlWrapper(i).into()),
+      binary: value.binary,
     }
   }
 }
@@ -614,6 +618,7 @@ pub struct RawAssetResourceGeneratorOptions {
   pub public_path: Option<JsFilename>,
   #[napi(ts_type = r#""url" | "preserve""#)]
   pub import_mode: Option<String>,
+  pub binary: Option<bool>,
 }
 
 impl From<RawAssetResourceGeneratorOptions> for AssetResourceGeneratorOptions {
@@ -624,6 +629,7 @@ impl From<RawAssetResourceGeneratorOptions> for AssetResourceGeneratorOptions {
       output_path: value.output_path.map(|i| i.into()),
       public_path: value.public_path.map(|i| i.into()),
       import_mode: value.import_mode.map(|i| i.into()),
+      binary: value.binary,
     }
   }
 }

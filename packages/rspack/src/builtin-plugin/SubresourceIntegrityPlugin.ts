@@ -113,7 +113,7 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
 	private integrities: Map<string, string> = new Map();
 	private options: SubresourceIntegrityPluginOptions;
 	private validateError: Error | null = null;
-	constructor(options: SubresourceIntegrityPluginOptions) {
+	constructor(options: SubresourceIntegrityPluginOptions = {}) {
 		let validateError: Error | null = null;
 		if (typeof options !== "object") {
 			throw new Error("SubResourceIntegrity: argument must be an object");

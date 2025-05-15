@@ -65,6 +65,7 @@ rspack_plugin_circular_dependencies    = { workspace = true }
 rspack_plugin_context_replacement      = { workspace = true }
 rspack_plugin_copy                     = { workspace = true }
 rspack_plugin_css                      = { workspace = true }
+rspack_plugin_css_chunking             = { workspace = true }
 rspack_plugin_devtool                  = { workspace = true }
 rspack_plugin_dll                      = { workspace = true }
 rspack_plugin_dynamic_entry            = { workspace = true }

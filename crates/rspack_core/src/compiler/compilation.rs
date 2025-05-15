@@ -67,7 +67,7 @@ define_hook!(CompilationRevokedModules: Series(revoked_modules: &IdentifierSet))
 define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
 define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationExecuteModule:
-  Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, codegen_results: &CodeGenerationResults, execute_module_id: &ExecuteModuleId));
+  Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
 define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation));
 define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
 define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &mut Compilation) -> bool);
@@ -249,7 +249,7 @@ pub struct Compilation {
   // artifact for chunk_ids
   pub chunk_ids_artifact: ChunkIdsArtifact,
   // artifact for code_generation
-  pub code_generation_results: CodeGenerationResults,
+  pub code_generation_results: BindingCell<CodeGenerationResults>,
   // artifact for create_module_hashes
   pub cgm_hash_artifact: CgmHashArtifact,
   // artifact for process_modules_runtime_requirements
@@ -625,6 +625,31 @@ impl Compilation {
       .add_entry
       .call(self, entry_name.as_deref())
       .await?;
+
+    Ok(())
+  }
+
+  pub async fn add_entry_batch(&mut self, args: Vec<(BoxDependency, EntryOptions)>) -> Result<()> {
+    for (entry, options) in args {
+      self.add_entry(entry, options).await?;
+    }
+
+    let make_artifact = std::mem::take(&mut self.make_artifact);
+    self.make_artifact = update_module_graph(
+      self,
+      make_artifact,
+      vec![MakeParam::BuildEntry(
+        self
+          .entries
+          .values()
+          .flat_map(|item| item.all_dependencies())
+          .chain(self.global_entry.all_dependencies())
+          .copied()
+          .collect(),
+      )],
+    )
+    .await?;
+
     Ok(())
   }
 
@@ -1078,7 +1103,7 @@ impl Compilation {
         continue;
       }
 
-      for (name, asset) in assets {
+      for (name, asset) in assets.as_ref() {
         module_assets.push((name.clone(), asset.clone()));
       }
       // assets of executed modules are not in this compilation

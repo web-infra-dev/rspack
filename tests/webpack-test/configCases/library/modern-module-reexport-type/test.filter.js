@@ -1,7 +1,6 @@
 // var supportsOptionalChaining = require("../../../helpers/supportsOptionalChaining");
 // module.exports = function (config) {
-//        return supportsOptionalChaining();
+//   return supportsOptionalChaining();
 // };
 
-// panic: should have mgm
-module.exports = () => false;
+module.exports = () => { return "FIXME: build timeout on CI" }

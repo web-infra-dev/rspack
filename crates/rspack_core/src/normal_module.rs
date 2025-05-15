@@ -183,6 +183,7 @@ impl NormalModule {
     resource_data: Arc<ResourceData>,
     resolve_options: Option<Arc<Resolve>>,
     loaders: Vec<BoxLoader>,
+    context: Option<Context>,
   ) -> Self {
     let module_type = module_type.into();
     let id = Self::create_id(&module_type, layer.as_ref(), &request);
@@ -190,7 +191,7 @@ impl NormalModule {
       blocks: Vec::new(),
       dependencies: Vec::new(),
       id: ModuleIdentifier::from(id.as_ref()),
-      context: Box::new(get_context(&resource_data)),
+      context: Box::new(context.unwrap_or_else(|| get_context(&resource_data))),
       request,
       user_request,
       raw_request,
@@ -495,7 +496,18 @@ impl Module for NormalModule {
       .await?;
     self.add_diagnostics(ds);
 
-    let content = if self.module_type().is_binary() {
+    let is_binary = self
+      .generator_options
+      .as_ref()
+      .and_then(|g| match g {
+        GeneratorOptions::Asset(g) => g.binary,
+        GeneratorOptions::AssetInline(g) => g.binary,
+        GeneratorOptions::AssetResource(g) => g.binary,
+        _ => None,
+      })
+      .unwrap_or(self.module_type().is_binary());
+
+    let content = if is_binary {
       Content::Buffer(loader_result.content.into_bytes())
     } else {
       Content::String(loader_result.content.into_string_lossy())

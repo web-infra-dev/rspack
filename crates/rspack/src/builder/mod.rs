@@ -1,5 +1,6 @@
 //! The Rspack compiler builder.
 
+mod browserslist_target;
 mod builder_context;
 mod devtool;
 mod externals;
@@ -896,8 +897,19 @@ impl CompilerOptionsBuilder {
         .into()
     });
 
-    // TODO: support browserlist default target
-    let target = f!(self.target.take(), || vec!["web".to_string()]);
+    let target = f!(self.target.take(), || {
+      let use_browserlist = browserslist_target::load(None, context.as_str()).is_some();
+
+      // If it's not able to find config with regard to context, then `browserslist_rs` will fallback to default query,
+      // making it always a non-empty value.
+      // In webpack, browserslist exports it's find config to seek config files, if not found, then it fallbacks to web target instead.
+      // We may need to export this on the `browserslist_rs` side.
+      if use_browserlist {
+        return vec!["browserslist".to_string()];
+      }
+
+      vec!["web".to_string()]
+    });
     let target_properties = get_targets_properties(&target, &context);
 
     let development = matches!(self.mode, Some(Mode::Development));

@@ -1,0 +1,21 @@
+[package]
+description = "rspack css chunking plugin"
+edition     = "2021"
+license     = "MIT"
+name        = "rspack_plugin_css_chunking"
+repository  = "https://github.com/web-infra-dev/rspack"
+version     = "0.2.0"
+
+[dependencies]
+indexmap           = { workspace = true }
+rspack_collections = { workspace = true }
+rspack_core        = { workspace = true }
+rspack_error       = { workspace = true }
+rspack_hook        = { workspace = true }
+rspack_plugin_css  = { workspace = true }
+rspack_regex       = { workspace = true }
+tokio              = { workspace = true }
+tracing            = { workspace = true }
+
+[package.metadata.cargo-shear]
+ignored = ["tracing", "tokio"]

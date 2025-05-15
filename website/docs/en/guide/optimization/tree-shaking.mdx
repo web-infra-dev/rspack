@@ -1,19 +1,37 @@
 # Tree shaking
 
-Rspack supports tree shaking, a terminology widely used within the JavaScript ecosystem defined as the removal of unused code, commonly referred to as "dead code." Dead code arises when certain exports from a module are not used and they lack side effects, allowing such pieces to be safely deleted to reduce the final output size.
+Rspack supports [tree shaking](https://developer.mozilla.org/en-US/docs/Glossary/Tree_shaking), a terminology widely used within the JavaScript ecosystem defined as the removal of unused code, commonly referred to as "dead code." Dead code arises when certain exports from a module are not used and they lack side effects, allowing such pieces to be safely deleted to reduce the final output size.
 
-Upon setting the `mode` to `production`, Rspack by default enables a series of optimizations related to tree shaking, including:
+## What is tree shaking
+
+You can imagine your application as a tree. The source code and libraries you actually use represent the green, living leaves of the tree. Dead code represents the brown, dead leaves of the tree that are consumed by autumn. In order to get rid of the dead leaves, you have to shake the tree, causing them to fall.
+
+Note that Rspack does not directly remove dead code but labels unused exports as potential "dead code". These labels can then be recognized and processed by subsequent compression tools. As such, if [minimize](/config/optimization#optimizationminimize) features are disabled, no actual code removal will be observable.
+
+:::tip What is dead code
+[Dead code](https://en.wikipedia.org/wiki/Dead_code) refers to a piece of code that is no longer executed, typically due to refactoring, optimization, or logical errors. These codes may be remnants of previous versions or codes that will never be executed under certain conditions.
+:::
+
+## Prerequisites
+
+To effectively leverage tree shaking, you need to:
+
+- Set Rspack's [mode](/config/mode) to `production` to enable related optimizations.
+  - When performing a production build, `mode` defaults to `production`.
+- Use ES modules syntax (i.e., `import` and `export`).
+  - When using compilers like SWC or Babel, ensure they don't transform ES modules syntax to CommonJS.
+  - For example, in [@babel/preset-env](https://babeljs.io/docs/en/babel-preset-env), set the `modules` option to `false`.
+
+## Configurations
+
+When the [mode](/config/mode) is set to `production`, Rspack enables a series of optimizations related to tree shaking, including:
 
 - [usedExports](/config/optimization#optimizationusedexports): Checks whether module exports are utilized, allowing the removal of unused exports.
 - [sideEffects](/config/optimization#optimizationsideeffects): Assesses modules for side effects. Modules without side effects can be optimized further via re-exports.
 - [providedExports](/config/optimization#optimizationprovidedExports): Analyzes all exports and their sources of re-exportation.
 - [innerGraph](/config/optimization#optimizationsinnergraph): Tracks the transmission of variables, enhancing the accuracy of determining whether exports are indeed used.
 
-Below are examples to illustrate how these configuration options function.
-
-:::info
-Note that Rspack does not directly remove dead code but labels unused exports as potential "dead code." These labels can then be recognized and processed by subsequent compression tools. As such, if compression features are turned off, no actual code removal will be observable. For enhanced readability, pseudocode might be used to demonstrate the effects of code removal.
-:::
+Below are examples to illustrate how these configuration options function. For the sake of clarity, we will use pseudocode to demonstrate the effects of code removal.
 
 Let's understand this mechanism better through an example, assuming `src/main.js` as the project's entry point:
 
@@ -119,3 +137,20 @@ export const foo = 42;
 ```
 
 In this context, because `value` is eventually used, the `foo` it depends on is retained.
+
+## Pure annotation
+
+Using the `/*#__PURE__*/` annotation to tell Rspack that a function call is side-effect-free (pure) . It can be put in front of function calls to mark them as side-effect-free.
+
+When the initial value in a variable declaration of an unused variable is considered as side-effect-free (pure), it is getting marked as dead code, not executed and dropped by the minimizer.
+
+```js
+/*#__PURE__*/ double(55);
+```
+
+:::tip
+
+- Arguments passed to the function are not being marked by the annotation and may need to be marked individually.
+- This behavior is enabled when [optimization.innerGraph](/config/optimization#optimizationinnergraph) is set to true.
+
+:::

@@ -21,6 +21,7 @@ mod allocator;
 mod asset;
 mod asset_condition;
 mod async_dependency_block;
+mod build_info;
 mod chunk;
 mod chunk_graph;
 mod chunk_group;
@@ -61,6 +62,7 @@ mod utils;
 pub use asset::*;
 pub use asset_condition::*;
 pub use async_dependency_block::*;
+pub use build_info::*;
 pub use chunk::*;
 pub use chunk_graph::*;
 pub use chunk_group::*;
@@ -120,6 +122,7 @@ pub struct JsCompiler {
   compiler: Compiler,
   state: CompilerState,
   include_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
+  entry_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
 }
 
 #[napi]
@@ -208,6 +211,7 @@ impl JsCompiler {
       state: CompilerState::init(),
       js_hooks_plugin,
       include_dependencies_map: Default::default(),
+      entry_dependencies_map: Default::default(),
     })
   }
 

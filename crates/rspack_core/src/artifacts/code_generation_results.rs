@@ -14,8 +14,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
 use crate::{
-  AssetInfo, ChunkInitFragments, ConcatenationScope, ModuleIdentifier, RuntimeGlobals, RuntimeSpec,
-  RuntimeSpecMap, SourceType,
+  AssetInfo, BindingCell, ChunkInitFragments, ConcatenationScope, ModuleIdentifier, RuntimeGlobals,
+  RuntimeSpec, RuntimeSpecMap, SourceType,
 };
 
 #[derive(Clone, Debug)]
@@ -126,7 +126,7 @@ impl DerefMut for CodeGenerationData {
 
 #[derive(Debug, Default, Clone)]
 pub struct CodeGenerationResult {
-  pub inner: HashMap<SourceType, BoxSource>,
+  pub inner: BindingCell<HashMap<SourceType, BoxSource>>,
   /// [definition in webpack](https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L75)
   pub data: CodeGenerationData,
   pub chunk_init_fragments: ChunkInitFragments,
@@ -172,7 +172,7 @@ impl CodeGenerationResult {
     hash_salt: &HashSalt,
   ) {
     let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
-    for (source_type, source) in &self.inner {
+    for (source_type, source) in self.inner.as_ref() {
       source_type.hash(&mut hasher);
       source.hash(&mut hasher);
     }
@@ -195,7 +195,7 @@ pub static CODE_GEN_RESULT_ID: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Default, Clone)]
 pub struct CodeGenerationResults {
-  module_generation_result_map: HashMap<CodeGenResultId, CodeGenerationResult>,
+  module_generation_result_map: HashMap<CodeGenResultId, BindingCell<CodeGenerationResult>>,
   map: IdentifierMap<RuntimeSpecMap<CodeGenResultId>>,
 }
 
@@ -213,7 +213,7 @@ impl CodeGenerationResults {
     let codegen_res_id = codegen_res.id;
     self
       .module_generation_result_map
-      .insert(codegen_res_id, codegen_res);
+      .insert(codegen_res_id, BindingCell::from(codegen_res));
     for runtime in runtimes {
       self.add(module_identifier, runtime, codegen_res_id);
     }
@@ -231,7 +231,7 @@ impl CodeGenerationResults {
     &self,
     module_identifier: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
-  ) -> &CodeGenerationResult {
+  ) -> &BindingCell<CodeGenerationResult> {
     if let Some(entry) = self.map.get(module_identifier) {
       if let Some(runtime) = runtime {
         entry
@@ -311,13 +311,13 @@ impl CodeGenerationResults {
     code_generation_result.hash.as_ref()
   }
 
-  pub fn into_inner(
-    self,
+  pub fn inner(
+    &self,
   ) -> (
-    IdentifierMap<RuntimeSpecMap<CodeGenResultId>>,
-    HashMap<CodeGenResultId, CodeGenerationResult>,
+    &IdentifierMap<RuntimeSpecMap<CodeGenResultId>>,
+    &HashMap<CodeGenResultId, BindingCell<CodeGenerationResult>>,
   ) {
-    (self.map, self.module_generation_result_map)
+    (&self.map, &self.module_generation_result_map)
   }
 }
 

@@ -65,15 +65,31 @@ export declare class ExternalObject<T> {
     [K: symbol]: T
   }
 }
+export declare class Assets {
+  keys(): Array<string>
+}
+
 export declare class AsyncDependenciesBlock {
   get dependencies(): Dependency[]
   get blocks(): AsyncDependenciesBlock[]
+}
+
+export declare class BuildInfo {
+  get _assets(): Assets
 }
 
 export declare class Chunks {
   get size(): number
   _values(): JsChunk[]
   _has(chunk: JsChunk): boolean
+}
+
+export declare class CodeGenerationResult {
+  get sources(): Sources
+}
+
+export declare class CodeGenerationResults {
+  get(module: Module, runtime: string | string[] | undefined): CodeGenerationResult
 }
 
 export declare class ConcatenatedModule {
@@ -235,10 +251,10 @@ export declare class JsCompilation {
   getErrors(): Array<JsRspackError>
   getWarnings(): Array<JsRspackError>
   getStats(): JsStats
-  getAssetPath(filename: JsFilename, data: JsPathData): string
-  getAssetPathWithInfo(filename: JsFilename, data: JsPathData): PathWithInfo
-  getPath(filename: JsFilename, data: JsPathData): string
-  getPathWithInfo(filename: JsFilename, data: JsPathData): PathWithInfo
+  getAssetPath(filename: string, data: JsPathData): string
+  getAssetPathWithInfo(filename: string, data: JsPathData): PathWithInfo
+  getPath(filename: string, data: JsPathData): string
+  getPathWithInfo(filename: string, data: JsPathData): PathWithInfo
   addFileDependencies(deps: Array<string>): void
   addContextDependencies(deps: Array<string>): void
   addMissingDependencies(deps: Array<string>): void
@@ -254,7 +270,9 @@ export declare class JsCompilation {
   addRuntimeModule(chunk: JsChunk, runtimeModule: JsAddingRuntimeModule): void
   get moduleGraph(): JsModuleGraph
   get chunkGraph(): JsChunkGraph
+  addEntry(args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, Module][]) => void): void
   addInclude(args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, Module][]) => void): void
+  get codeGenerationResults(): CodeGenerationResults
 }
 
 export declare class JsCompiler {
@@ -379,6 +397,10 @@ export declare class RawExternalItemFnCtx {
   getResolver(): JsResolver
 }
 
+export declare class Sources {
+  _get(sourceType: string): JsCompatSourceOwned | null
+}
+
 export interface BuiltinPlugin {
   name: BuiltinPluginName
   options: unknown
@@ -467,7 +489,8 @@ export declare enum BuiltinPluginName {
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin',
   ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin',
-  HttpUriPlugin = 'HttpUriPlugin'
+  HttpUriPlugin = 'HttpUriPlugin',
+  CssChunkingPlugin = 'CssChunkingPlugin'
 }
 
 export declare function cleanupGlobalTrace(): void
@@ -475,6 +498,11 @@ export declare function cleanupGlobalTrace(): void
 export interface ContextInfo {
   issuer: string
   issuerLayer?: string
+}
+
+export interface CssChunkingPluginOptions {
+  strict?: boolean
+  exclude?: RegExp
 }
 
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
@@ -838,7 +866,11 @@ export interface JsLoaderContext {
   loaderIndex: number
   loaderState: Readonly<JsLoaderState>
   __internal__error?: JsRspackError
-  __internal__tracingCarrier?: Record<string, string>
+  /**
+   * UTF-8 hint for `content`
+   * - Some(true): `content` is a `UTF-8` encoded sequence
+   */
+  __internal__utf8Hint?: boolean
 }
 
 export interface JsLoaderItem {
@@ -1456,10 +1488,12 @@ export interface RawAssetGeneratorOptions {
   publicPath?: "auto" | JsFilename
   dataUrl?: RawAssetGeneratorDataUrlOptions | ((source: Buffer, context: RawAssetGeneratorDataUrlFnCtx) => string)
   importMode?: "url" | "preserve"
+  binary?: boolean
 }
 
 export interface RawAssetInlineGeneratorOptions {
   dataUrl?: RawAssetGeneratorDataUrlOptions | ((source: Buffer, context: RawAssetGeneratorDataUrlFnCtx) => string)
+  binary?: boolean
 }
 
 export interface RawAssetParserDataUrl {
@@ -1481,6 +1515,7 @@ export interface RawAssetResourceGeneratorOptions {
   outputPath?: JsFilename
   publicPath?: "auto" | JsFilename
   importMode?: "url" | "preserve"
+  binary?: boolean
 }
 
 export interface RawBannerPluginOptions {
@@ -2344,24 +2379,6 @@ export interface RawSizeLimitsPluginOptions {
   maxEntrypointSize?: number
 }
 
-export interface RawSourceMapDevToolPluginOptions {
-  append?: (false | null) | string | Function
-  columns?: boolean
-  fallbackModuleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
-  fileContext?: string
-  filename?: (false | null) | string
-  module?: boolean
-  moduleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
-  namespace?: string
-  noSources?: boolean
-  publicPath?: string
-  sourceRoot?: string
-  test?: string | RegExp | (string | RegExp)[]
-  include?: string | RegExp | (string | RegExp)[]
-  exclude?: string | RegExp | (string | RegExp)[]
-  debugIds?: boolean
-}
-
 export interface RawSplitChunkSizes {
   sizes: Record<string, number>
 }
@@ -2554,6 +2571,24 @@ export interface RegisterJsTaps {
  * In the wasm runtime, the `park` threads will hang there until the tokio::Runtime is shutdown.
  */
 export declare function shutdownAsyncRuntime(): void
+
+export interface SourceMapDevToolPluginOptions {
+  append?: (false | null) | string | Function
+  columns?: boolean
+  fallbackModuleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
+  fileContext?: string
+  filename?: (false | null) | string
+  module?: boolean
+  moduleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
+  namespace?: string
+  noSources?: boolean
+  publicPath?: string
+  sourceRoot?: string
+  test?: string | RegExp | (string | RegExp)[]
+  include?: string | RegExp | (string | RegExp)[]
+  exclude?: string | RegExp | (string | RegExp)[]
+  debugIds?: boolean
+}
 
 /**
  * Start the async runtime manually.
