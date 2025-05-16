@@ -1,2 +1,1 @@
-// __webpack_require__.m missing properties
-module.exports = () => false;
+module.exports = () => "FIXME: more png modules than webpack";
