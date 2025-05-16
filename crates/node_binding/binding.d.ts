@@ -124,6 +124,14 @@ export declare class Dependency {
   get ids(): Array<string> | undefined
 }
 
+export declare class Diagnostics {
+  get length(): number
+  values(): Array<JsRspackError>
+  get(index: number): JsRspackError | undefined
+  set(index: number, error: JsRspackError): void
+  spliceWithArray(index: number, deleteCount?: number | undefined | null, newItems?: Array<JsRspackError> | undefined | null): Array<JsRspackError>
+}
+
 export declare class EntryDataDto {
   get dependencies(): Dependency[]
   get includeDependencies(): Dependency[]
@@ -248,6 +256,7 @@ export declare class JsCompilation {
   spliceDiagnostic(start: number, end: number, replaceWith: Array<JsRspackDiagnostic>): void
   pushNativeDiagnostic(diagnostic: ExternalObject<'Diagnostic'>): void
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
+  get errors(): Diagnostics
   getErrors(): Array<JsRspackError>
   getWarnings(): Array<JsRspackError>
   getStats(): JsStats
