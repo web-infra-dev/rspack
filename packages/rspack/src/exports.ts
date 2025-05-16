@@ -1,12 +1,6 @@
-import {
-	version as _version,
-	webpackVersion as _webpackVersion
-	// @ts-ignore 'package.json' is not under 'rootDir'
-} from "../package.json";
-
 // this is a hack to be compatible with plugin which detect webpack's version
-const rspackVersion = _version as string;
-const version = _webpackVersion as string;
+const rspackVersion = RSPACK_VERSION as string;
+const version = WEBPACK_VERSION as string;
 
 export { rspackVersion, version };
 
@@ -50,6 +44,8 @@ export {
 	Dependency,
 	AsyncDependenciesBlock
 } from "@rspack/binding";
+
+export type { RspackError, RspackSeverity } from "./RspackError";
 
 // API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
 import * as ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";
@@ -211,6 +207,7 @@ import { RuntimeChunkPlugin } from "./builtin-plugin";
 import { SplitChunksPlugin } from "./builtin-plugin";
 import { RemoveDuplicateModulesPlugin } from "./builtin-plugin";
 import { RsdoctorPlugin } from "./builtin-plugin";
+import { CssChunkingPlugin } from "./builtin-plugin";
 
 interface Optimize {
 	LimitChunkCountPlugin: typeof LimitChunkCountPlugin;
@@ -332,13 +329,16 @@ export type { SubresourceIntegrityPluginOptions } from "./builtin-plugin";
 
 ///// Experiments Stuff /////
 import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";
-import { ChromeTracer } from "./trace";
+import { JavaScriptTracer } from "./trace";
+
+///// Experiments SWC /////
+import { minify, transform } from "./swc";
 
 interface Experiments {
 	globalTrace: {
 		register: (
 			filter: string,
-			layer: "chrome" | "logger" | "otel",
+			layer: "chrome" | "logger",
 			output: string
 		) => Promise<void>;
 		cleanup: () => Promise<void>;
@@ -347,35 +347,26 @@ interface Experiments {
 	RsdoctorPlugin: typeof RsdoctorPlugin;
 	SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
 	lazyCompilationMiddleware: typeof lazyCompilationMiddleware;
+	swc: {
+		transform: typeof transform;
+		minify: typeof minify;
+	};
+	CssChunkingPlugin: typeof CssChunkingPlugin;
 }
 
 export const experiments: Experiments = {
 	globalTrace: {
 		async register(filter, layer, output) {
+			await JavaScriptTracer.initJavaScriptTrace(layer, output);
 			registerGlobalTrace(filter, layer, output);
-			ChromeTracer.initChromeTrace(layer, output);
-			if (layer === "otel") {
-				try {
-					const { initOpenTelemetry } = await import("@rspack/tracing");
-					await initOpenTelemetry();
-				} catch (error) {
-					console.error(
-						"Failed to import `@rspack/tracing` package. Please install `@rspack/tracing` to enable OpenTelemetry tracing.",
-						error
-					);
-				}
-			}
+			// lazy init cpuProfiler to make sure js and rust's timestamp is much aligned
+			JavaScriptTracer.initCpuProfiler();
 		},
 		async cleanup() {
 			// make sure run cleanupGlobalTrace first so we can safely append Node.js trace to it otherwise it will overlap
 			cleanupGlobalTrace();
-			ChromeTracer.cleanupChromeTrace();
-			try {
-				const { shutdownOpenTelemetry } = await import("@rspack/tracing");
-				await shutdownOpenTelemetry();
-			} catch (error) {
-				// ignore cleanup tracing error
-			}
+
+			JavaScriptTracer.cleanupJavaScriptTrace();
 		}
 	},
 	RemoveDuplicateModulesPlugin,
@@ -386,5 +377,10 @@ export const experiments: Experiments = {
 	 */
 	RsdoctorPlugin,
 	SubresourceIntegrityPlugin,
-	lazyCompilationMiddleware
+	lazyCompilationMiddleware,
+	swc: {
+		minify,
+		transform
+	},
+	CssChunkingPlugin
 };

@@ -23,6 +23,10 @@ extern "C" fn napi_js_callback(
   _context: *mut c_void,
   data: *mut c_void,
 ) {
+  // env can be null when shutting down
+  if env.is_null() {
+    return;
+  }
   unsafe { sys::napi_delete_reference(env, data as napi_ref) };
 }
 
@@ -90,6 +94,7 @@ impl ThreadsafeOneShotRef {
         },
         "Failed to create threadsafe function"
       )?;
+      check_status!(unsafe { sys::napi_unref_threadsafe_function(env, ts_fn) })?;
       DELETE_REF_TS_FN.store(ts_fn, Ordering::Relaxed);
     }
 
@@ -111,7 +116,11 @@ impl Drop for ThreadsafeOneShotRef {
     } else {
       let ts_fn = DELETE_REF_TS_FN.load(Ordering::Relaxed);
       unsafe {
-        let _ = napi_call_threadsafe_function(ts_fn, self.napi_ref.cast(), 0);
+        let _ = napi_call_threadsafe_function(
+          ts_fn,
+          self.napi_ref.cast(),
+          sys::ThreadsafeFunctionCallMode::nonblocking,
+        );
       }
     }
   }

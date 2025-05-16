@@ -10,7 +10,7 @@ pub struct StdoutTracer;
 impl Tracer for StdoutTracer {
   fn setup(&mut self, output: &str) -> Option<Layered> {
     use tracing_subscriber::{fmt, prelude::*};
-    let trace_writer = TraceWriter::from(output);
+    let trace_writer = TraceWriter::from(output.to_owned());
     Some(
       fmt::layer()
         .pretty()

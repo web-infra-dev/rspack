@@ -6,5 +6,6 @@
   "testing-rspack",
   "debugging",
   "profiling",
+  "tracing",
   "releasing"
 ]

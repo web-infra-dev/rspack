@@ -22,7 +22,7 @@ on:
 jobs:
   main:
     name: Get Runner Labels
-    runs-on: [ubuntu-22.04]
+    runs-on: [ubuntu-24.04]
     outputs:
       LINUX_RUNNER_LABELS: ${{ steps.run.outputs.LINUX_RUNNER_LABELS }}
       MACOS_RUNNER_LABELS: ${{ steps.run.outputs.MACOS_RUNNER_LABELS }}

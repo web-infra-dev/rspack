@@ -23,12 +23,12 @@ module.exports = [
 			moduleIds: "deterministic"
 		}
 	},
-	{
-		devtool,
-		optimization: {
-			moduleIds: "size"
-		}
-	},
+	// {
+	// 	devtool,
+	// 	optimization: {
+	// 		moduleIds: "size"
+	// 	}
+	// },
 	{
 		entry: "./index?foo=bar",
 		devtool,

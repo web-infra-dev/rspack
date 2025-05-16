@@ -22,3 +22,22 @@ jobs:
           inactive-day: 14
           body: |
             Since the issue was labeled with `need reproduction`, but no response in 14 days. This issue will be closed. Feel free to comment and reopen it if you have any further questions.
+
+      - name: need more info
+        uses: actions-cool/issues-helper@a610082f8ac0cf03e357eb8dd0d5e2ba075e017e # v3
+        with:
+          actions: "close-issues"
+          labels: "need more info"
+          inactive-day: 14
+          body: |
+            Since the issue was labeled with `need more info`, but no response in 14 days. This issue will be closed. Feel free to comment and reopen it if you have any further questions.
+
+      - name: awaiting feedback
+        uses: actions-cool/issues-helper@a610082f8ac0cf03e357eb8dd0d5e2ba075e017e # v3
+        with:
+          actions: "close-issues"
+          labels: "awaiting more feedback"
+          inactive-day: 14
+          body: |
+            Since the issue was labeled with `awaiting more feedback`, but no response in 14 days. This issue will be closed. Feel free to comment and reopen it if you have any further questions.
+      

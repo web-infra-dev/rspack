@@ -1,9 +1,5 @@
 use rspack_collections::Identifier;
-use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
-};
+use rspack_core::{impl_runtime_module, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule};
 
 use crate::get_chunk_runtime_requirements;
 
@@ -53,7 +49,7 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
     ]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunk_ukey = self.chunk.expect("should have chunk");
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
     let source = if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
@@ -76,7 +72,7 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
         .render(&self.template_id(TemplateId::WithInline), None)?
     };
 
-    Ok(RawStringSource::from(source).boxed())
+    Ok(source)
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

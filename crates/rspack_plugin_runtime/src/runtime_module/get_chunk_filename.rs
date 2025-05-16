@@ -5,10 +5,8 @@ use itertools::Itertools;
 use rspack_cacheable::with::Unsupported;
 use rspack_collections::{DatabaseItem, Identifier, UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
-  get_filename_without_hash_length, impl_runtime_module,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule,
-  SourceType,
+  get_filename_without_hash_length, impl_runtime_module, Chunk, ChunkGraph, ChunkUkey, Compilation,
+  Filename, PathData, RuntimeGlobals, RuntimeModule, SourceType,
 };
 use rspack_util::itoa;
 use rustc_hash::FxHashMap;
@@ -89,7 +87,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     true
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunks = self
       .chunk
       .and_then(|chunk_ukey| compilation.chunk_by_ukey.get(&chunk_ukey))
@@ -194,6 +192,15 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         &chunk_map,
         compilation,
       );
+      let chunk_runtime = stringify_dynamic_chunk_map(
+        |c| {
+          let runtime = c.runtime().as_str();
+          Some(runtime.to_string())
+        },
+        &chunks,
+        &chunk_map,
+        compilation,
+      );
       let chunk_hash = stringify_dynamic_chunk_map(
         |c| {
           let hash = c
@@ -250,7 +257,8 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
               .chunk_hash(&chunk_hash)
               .chunk_name(&chunk_name)
               .hash(&full_hash)
-              .content_hash(&content_hash),
+              .content_hash(&content_hash)
+              .runtime(&chunk_runtime),
           )
           .await?,
       )
@@ -318,6 +326,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           ),
           None => format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH),
         };
+        let chunk_runtime = chunk.runtime().as_str();
 
         let filename = compilation
           .get_path(
@@ -344,7 +353,8 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
               .chunk_hash_optional(chunk_hash.as_deref())
               .chunk_name_optional(chunk_name.as_deref())
               .hash(&full_hash)
-              .content_hash_optional(content_hash.as_deref()),
+              .content_hash_optional(content_hash.as_deref())
+              .runtime(chunk_runtime),
           )
           .await?;
 
@@ -366,7 +376,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       "_dynamic_url": dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type))
     })))?;
 
-    Ok(RawStringSource::from(source).boxed())
+    Ok(source)
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

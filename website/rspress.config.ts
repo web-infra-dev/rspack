@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { pluginSass } from '@rsbuild/plugin-sass';
+import { pluginLlms } from '@rspress/plugin-llms';
 import { pluginRss } from '@rspress/plugin-rss';
 import { pluginGoogleAnalytics } from 'rsbuild-plugin-google-analytics';
 import { pluginOpenGraph } from 'rsbuild-plugin-open-graph';
@@ -12,7 +13,8 @@ const PUBLISH_URL = 'https://rspack.dev';
 export default defineConfig({
   root: path.join(__dirname, 'docs'),
   title: 'Rspack',
-  description: 'The fast Rust-based web bundler',
+  description:
+    'Rspack is a high performance JavaScript bundler written in Rust. It offers strong compatibility with the webpack ecosystem, and lightning fast build speeds.',
   logo: {
     light: 'https://assets.rspack.dev/rspack/navbar-logo-light.png',
     dark: 'https://assets.rspack.dev/rspack/navbar-logo-dark.png',
@@ -29,11 +31,10 @@ export default defineConfig({
   },
   route: {
     cleanUrls: true,
-  },
-  ssg: {
-    strict: true,
+    exclude: ['**/types/*.mdx'],
   },
   plugins: [
+    pluginLlms(),
     pluginSitemap({
       domain: PUBLISH_URL,
     }),

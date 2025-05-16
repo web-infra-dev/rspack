@@ -53,7 +53,8 @@ export class ChunkGroup {
 				get: () => {
 					return this.#inner.origins.map(origin => ({
 						module: origin.module ? origin.module : undefined,
-						request: origin.request
+						request: origin.request,
+						loc: origin.loc
 					}));
 				}
 			},
@@ -94,4 +95,16 @@ export class ChunkGroup {
 interface ChunkGroupOrigin {
 	module?: Module;
 	request?: string;
+	loc?:
+		| {
+				start: {
+					line: number;
+					column: number;
+				};
+				end?: {
+					line: number;
+					column: number;
+				};
+		  }
+		| string;
 }

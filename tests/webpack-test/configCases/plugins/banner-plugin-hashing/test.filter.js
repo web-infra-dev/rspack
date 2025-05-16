@@ -1,1 +1,1 @@
-module.exports = () => {return "Lacking support of chunkhash"}
+module.exports = () => { return "FIXME: expect to have full hash" }

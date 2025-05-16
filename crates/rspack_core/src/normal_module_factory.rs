@@ -25,16 +25,16 @@ use crate::{
   ResolverFactory, ResourceData, ResourceParsedData, RunnerContext, SharedPluginDriver,
 };
 
-define_hook!(NormalModuleFactoryBeforeResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> bool);
-define_hook!(NormalModuleFactoryFactorize: SeriesBail(data: &mut ModuleFactoryCreateData) -> BoxModule);
-define_hook!(NormalModuleFactoryResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> NormalModuleFactoryResolveResult);
-define_hook!(NormalModuleFactoryResolveForScheme: SeriesBail(data: &mut ModuleFactoryCreateData, resource_data: &mut ResourceData, for_name: &Scheme) -> bool);
-define_hook!(NormalModuleFactoryResolveInScheme: SeriesBail(data: &mut ModuleFactoryCreateData, resource_data: &mut ResourceData, for_name: &Scheme) -> bool);
-define_hook!(NormalModuleFactoryAfterResolve: SeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> bool);
-define_hook!(NormalModuleFactoryCreateModule: SeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> BoxModule);
-define_hook!(NormalModuleFactoryModule: Series(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData, module: &mut BoxModule));
-define_hook!(NormalModuleFactoryParser: Series(module_type: &ModuleType, parser: &mut dyn ParserAndGenerator, parser_options: Option<&ParserOptions>));
-define_hook!(NormalModuleFactoryResolveLoader: SeriesBail(context: &Context, resolver: &Resolver, l: &ModuleRuleUseLoader) -> BoxLoader);
+define_hook!(NormalModuleFactoryBeforeResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> bool,tracing=false);
+define_hook!(NormalModuleFactoryFactorize: SeriesBail(data: &mut ModuleFactoryCreateData) -> BoxModule,tracing=false);
+define_hook!(NormalModuleFactoryResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> NormalModuleFactoryResolveResult,tracing=false);
+define_hook!(NormalModuleFactoryResolveForScheme: SeriesBail(data: &mut ModuleFactoryCreateData, resource_data: &mut ResourceData, for_name: &Scheme) -> bool,tracing=false);
+define_hook!(NormalModuleFactoryResolveInScheme: SeriesBail(data: &mut ModuleFactoryCreateData, resource_data: &mut ResourceData, for_name: &Scheme) -> bool,tracing=false);
+define_hook!(NormalModuleFactoryAfterResolve: SeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> bool,tracing=false);
+define_hook!(NormalModuleFactoryCreateModule: SeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> BoxModule,tracing=false);
+define_hook!(NormalModuleFactoryModule: Series(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData, module: &mut BoxModule),tracing=false);
+define_hook!(NormalModuleFactoryParser: Series(module_type: &ModuleType, parser: &mut dyn ParserAndGenerator, parser_options: Option<&ParserOptions>),tracing=false);
+define_hook!(NormalModuleFactoryResolveLoader: SeriesBail(context: &Context, resolver: &Resolver, l: &ModuleRuleUseLoader) -> BoxLoader,tracing=false);
 
 pub enum NormalModuleFactoryResolveResult {
   Module(BoxModule),
@@ -331,8 +331,6 @@ impl NormalModuleFactory {
           dependency_type: &dependency_type,
           dependency_category: &dependency_category,
           span: dependency_source_span,
-          // take the options is safe here, because it
-          // is not used in after_resolve hooks
           resolve_options: data.resolve_options.clone(),
           resolve_to_context: false,
           optional: dependency_optional,
@@ -527,8 +525,7 @@ impl NormalModuleFactory {
       ));
     }
 
-    let resolved_resolve_options =
-      self.calculate_resolve_options(&resolved_module_rules, dependency_category);
+    let resolved_resolve_options = self.calculate_resolve_options(&resolved_module_rules);
     let (resolved_parser_options, resolved_generator_options) =
       self.calculate_parser_and_generator_options(&resolved_module_rules);
     let (resolved_parser_options, resolved_generator_options) = self
@@ -567,9 +564,10 @@ impl NormalModuleFactory {
         raw_request,
         request,
         user_request,
-        resource_resolve_data: resource_data,
         match_resource: match_resource_data.as_ref().map(|d| d.resource.clone()),
         side_effects: resolved_side_effects,
+        context: resource_data.context.clone(),
+        resource_resolve_data: resource_data,
       };
       if let Some(plugin_result) = self
         .plugin_driver
@@ -610,6 +608,7 @@ impl NormalModuleFactory {
         Arc::new(create_data.resource_resolve_data.clone()),
         resolved_resolve_options,
         loaders,
+        create_data.context.clone().map(|x| x.into()),
       )
       .boxed()
     };
@@ -651,11 +650,7 @@ impl NormalModuleFactory {
     Ok(rules)
   }
 
-  fn calculate_resolve_options(
-    &self,
-    module_rules: &[&ModuleRuleEffect],
-    dependency_type: DependencyCategory,
-  ) -> Option<Arc<Resolve>> {
+  fn calculate_resolve_options(&self, module_rules: &[&ModuleRuleEffect]) -> Option<Arc<Resolve>> {
     let mut resolved: Option<Resolve> = None;
     for rule in module_rules {
       if let Some(rule_resolve) = &rule.resolve {
@@ -666,9 +661,7 @@ impl NormalModuleFactory {
         }
       }
     }
-    resolved
-      .map(|r| r.merge_by_dependency(dependency_type))
-      .map(Arc::new)
+    resolved.map(Arc::new)
   }
 
   fn calculate_side_effects(&self, module_rules: &[&ModuleRuleEffect]) -> Option<bool> {
@@ -943,6 +936,7 @@ pub struct NormalModuleCreateData {
   pub resource_resolve_data: ResourceData,
   pub match_resource: Option<String>,
   pub side_effects: Option<bool>,
+  pub context: Option<String>,
 }
 
 #[test]

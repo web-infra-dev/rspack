@@ -1,8 +1,6 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule, SourceType,
+  impl_runtime_module, ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule, SourceType,
 };
 
 // TODO workaround for get_chunk_update_filename
@@ -35,7 +33,7 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
       let filename = compilation
@@ -65,7 +63,7 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
         })),
       )?;
 
-      Ok(RawStringSource::from(source).boxed())
+      Ok(source)
     } else {
       unreachable!("should attach chunk for get_main_filename")
     }

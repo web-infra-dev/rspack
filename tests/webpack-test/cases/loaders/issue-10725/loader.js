@@ -1,5 +1,3 @@
-const { getRemainingRequest, stringifyRequest } = require("loader-utils");
-
 const loaderPath = require.resolve("./loader");
 
 /** @type {import("@rspack/core").LoaderDefinition} */
@@ -14,9 +12,9 @@ export default answer;
 
 	const matchResource = `${this.resourcePath}.js`;
 	const loader = `${loaderPath}?load`;
-	const remaining = getRemainingRequest(this);
+	const remaining = this.remainingRequest;
 	const request = JSON.parse(
-		stringifyRequest(this, `${matchResource}!=!${loader}!${remaining}`)
+		this.utils.contextify(this.context, `${matchResource}!=!${loader}!${remaining}`)
 	);
 
 	this.async();

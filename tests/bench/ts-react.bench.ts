@@ -99,7 +99,9 @@ describe("TypeScript React project", () => {
 	});
 
 	bench("stats.toJson()", () => {
-		const json = theCompilation.getStats().toJson();
+		const json = theCompilation.getStats().toJson({
+			all: true
+		});
 	});
 
 	bench("collect imported identifiers", () => {

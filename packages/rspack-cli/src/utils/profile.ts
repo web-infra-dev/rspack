@@ -1,247 +1,76 @@
-/*
-The full syntax, remember update this when you change something in this file.
-
-`RSPACK_PROFILE='TRACE=filter=trace&output=./rspack.trace&layer=chrome|JSCPU=output=./rspack.jscpuprofile|LOGGING=output=./rspack.logging' rspack build`
-											 ^----------------------------------------------: querystring syntax trace options
-																																			^: | is a delimiter for different profile options
-																																			 ^---------------------------------: querystring syntax js cpuprofile options
-																																																				 ^: | is a delimiter for different profile options
-																																																					^------------------------------: querystring syntax stats.logging options
-											 ^-----------: trace filter, default to `trace`, more syntax: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#example-syntax
-																		^--------------------: trace output, `stderr`, `stdout`, or a file path, default to `./.rspack-profile-${timestamp}/trace.json` for layer `chrome` and default to `stdout` for layer `logger`
-																													^-----------: trace layer, `chrome` or `logger`, default to `chrome`
-																																						 ^---------------------------: js cpuprofile output, `stderr`, `stdout`, or a file path, default to `./.rspack-profile-${timestamp}/jscpuprofile.json`
-																																																									^----------------------: stats.logging output, default to `./.rspack-profile-${timestamp}/logging.json`
-
-`RSPACK_PROFILE='TRACE=filter=trace&output=./rspack.trace&layer=chrome' rspack build`: only enable trace
-
-`RSPACK_PROFILE=TRACE rspack build`: only enable trace, and use default options for trace
-
-`RSPACK_PROFILE='JSCPU=output=./rspack.jscpuprofile' rspack build`: only enable js cpuprofile
-
-`RSPACK_PROFILE=JSCPU rspack build`: only enable js cpuprofile, and use default options for js cpuprofile
-
-`RSPACK_PROFILE='LOGGING=output=./rspack.logging' rspack build`: only enable stats.logging
-
-`RSPACK_PROFILE=LOGGING rspack build`: only enable stats.logging, and use default options for stats.logging
-
-`RSPACK_PROFILE=ALL rspack build`: enable all, and use default options
-
-`RSPACK_PROFILE=[rspack_node,rspack_core] rspack build`: enable all, but customize trace filter
-
-*/
-
+/**
+ * `RSPACK_PROFILE=ALL` // all trace events
+ * `RSPACK_PROFILE=OVERVIEW` // overview trace events
+ * `RSPACK_PROFILE=warn,tokio::net=info` // trace filter from  https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#example-syntax
+ */
 import fs from "node:fs";
-import inspector from "node:inspector";
 import path from "node:path";
-import { URLSearchParams } from "node:url";
-import { type Compiler, type RspackOptions, rspack } from "@rspack/core";
+import { rspack } from "@rspack/core";
 
-type JSCPUProfileOptionsOutput = string;
-type JSCPUProfileOptions = {
-	output: JSCPUProfileOptionsOutput;
-};
-type ParametersOfRegisterGlobalTrace = Parameters<
-	typeof rspack.experiments.globalTrace.register
->;
-type RustTraceOptionsFilter = ParametersOfRegisterGlobalTrace[0];
-type RustTraceOptionsLayer = ParametersOfRegisterGlobalTrace[1];
-type RustTraceOptionsOutput = ParametersOfRegisterGlobalTrace[2];
-type RustTraceOptions = {
-	filter: RustTraceOptionsFilter;
-	layer: RustTraceOptionsLayer;
-	output: RustTraceOptionsOutput;
-};
-type LoggingOutputOptions = string;
-type LoggingOptions = {
-	output: LoggingOutputOptions;
-};
-type ProfileOptions = {
-	TRACE?: RustTraceOptions;
-	JSCPU?: JSCPUProfileOptions;
-	LOGGING?: LoggingOptions;
-};
-
-const timestamp = Date.now();
-const defaultOutputDirname = path.resolve(
-	`.rspack-profile-${timestamp}-${process.pid}`
-);
-const defaultJSCPUProfileOutput = path.join(
-	defaultOutputDirname,
-	"./jscpuprofile.json"
-);
-const defaultRustTraceChromeOutput = path.join(
-	defaultOutputDirname,
-	"./trace.json"
-);
-const defaultRustTraceLoggerOutput = "stdout";
-const defaultRustTraceFilter = "info";
+const overviewTraceFilter = "info";
+const allTraceFilter = "trace";
 const defaultRustTraceLayer = "chrome";
-const defaultLoggingOutput = path.join(defaultOutputDirname, "./logging.json");
 
-function resolveProfile(value: string): ProfileOptions {
-	if (value.toUpperCase() === "ALL") {
-		return {
-			TRACE: {
-				filter: defaultRustTraceFilter,
-				layer: defaultRustTraceLayer,
-				output: defaultRustTraceChromeOutput
-			},
-			JSCPU: { output: defaultJSCPUProfileOutput },
-			LOGGING: { output: defaultLoggingOutput }
-		};
-	}
-	if (value.startsWith("[") && value.endsWith("]")) {
-		return {
-			TRACE: resolveRustTraceOptions(value.slice(1, value.length - 1)),
-			JSCPU: { output: defaultJSCPUProfileOutput },
-			LOGGING: { output: defaultLoggingOutput }
-		};
-	}
-	return value.split("|").reduce<ProfileOptions>((acc, cur) => {
-		const upperCur = cur.toUpperCase();
-		if (upperCur.startsWith("TRACE")) {
-			acc.TRACE = resolveRustTraceOptions(cur.slice(6));
-		} else if (upperCur.startsWith("JSCPU")) {
-			acc.JSCPU = resolveJSCPUProfileOptions(cur.slice(6));
-		} else if (upperCur.startsWith("LOGGING")) {
-			acc.LOGGING = resolveLoggingOptions(cur.slice(8));
-		}
-		return acc;
-	}, {});
+enum TracePreset {
+	OVERVIEW = "OVERVIEW", // contains overview trace events
+	ALL = "ALL" // contains all trace events
 }
 
-// JSCPU=value
-function resolveJSCPUProfileOptions(value: string): JSCPUProfileOptions {
-	// output=filepath
-	if (value.includes("=")) {
-		const parsed = new URLSearchParams(value);
-		return { output: parsed.get("output") || defaultJSCPUProfileOutput };
+function resolveLayer(value: string): string {
+	if (value === TracePreset.OVERVIEW) {
+		return overviewTraceFilter;
 	}
-	// filepath
-	return { output: value || defaultJSCPUProfileOutput };
-}
-
-function isSupportedLayer(layer: string): layer is RustTraceOptionsLayer {
-	const SUPPORTED_LAYERS = ["chrome", "logger", "otel"];
-	return SUPPORTED_LAYERS.includes(layer);
-}
-
-// TRACE=value
-function resolveRustTraceOptions(value: string): RustTraceOptions {
-	// filter=trace&output=stdout&layer=logger
-	if (value.includes("=")) {
-		const parsed = new URLSearchParams(value);
-		const filter = parsed.get("filter") || defaultRustTraceFilter;
-		const layer = parsed.get("layer") || defaultRustTraceLayer;
-		const output =
-			layer === "chrome"
-				? parsed.get("output") || defaultRustTraceChromeOutput
-				: parsed.get("output") || defaultRustTraceLoggerOutput;
-
-		if (!isSupportedLayer(layer)) {
-			throw new Error(
-				`${layer} is not a valid layer, should be chrome or logger`
-			);
-		}
-		return {
-			filter,
-			layer,
-			output
-		};
+	if (value === TracePreset.ALL) {
+		return allTraceFilter;
 	}
-	// trace
-	return {
-		filter: value || defaultRustTraceFilter,
-		layer: defaultRustTraceLayer,
-		output: defaultRustTraceChromeOutput
-	};
+	return value;
 }
 
-// LOGGING=value
-function resolveLoggingOptions(value: string): LoggingOptions {
-	// output=filepath
-	if (value.includes("=")) {
-		const parsed = new URLSearchParams(value);
-		return { output: parsed.get("output") || defaultLoggingOutput };
-	}
-	// filepath
-	return { output: value || defaultLoggingOutput };
-}
-
-class RspackProfileJSCPUProfilePlugin {
-	constructor(private output: string) {}
-
-	apply(compiler: Compiler) {
-		const session = new inspector.Session();
-		session.connect();
-		session.post("Profiler.enable");
-		session.post("Profiler.start");
-		compiler.hooks.done.tapAsync(
-			RspackProfileJSCPUProfilePlugin.name,
-			(_stats, callback) => {
-				if (compiler.watchMode) return callback();
-				session.post("Profiler.stop", (error, param) => {
-					if (error) {
-						console.error("Failed to generate JS CPU profile:", error);
-						return;
-					}
-					fs.writeFileSync(this.output, JSON.stringify(param.profile));
-				});
-				return callback();
-			}
-		);
-	}
-}
-
-class RspackProfileLoggingPlugin {
-	constructor(private output: string) {}
-
-	apply(compiler: Compiler) {
-		compiler.hooks.done.tapAsync(
-			RspackProfileLoggingPlugin.name,
-			(stats, callback) => {
-				if (compiler.watchMode) return callback();
-				const logging = stats.toJson({
-					all: false,
-					logging: "verbose",
-					loggingTrace: true
-				});
-				fs.writeFileSync(this.output, JSON.stringify(logging));
-				return callback();
-			}
-		);
-	}
-}
-
-export async function applyProfile(profileValue: string, item: RspackOptions) {
+export async function applyProfile(
+	filterValue: string,
+	traceLayer: string = defaultRustTraceLayer,
+	traceOutput?: string
+) {
 	const { asyncExitHook } = await import("exit-hook");
-	const entries = Object.entries(resolveProfile(profileValue));
-	if (entries.length <= 0) return;
-	await fs.promises.mkdir(defaultOutputDirname);
-	for (const [kind, value] of entries) {
-		await ensureFileDir(value.output);
-		if (kind === "TRACE" && "filter" in value) {
-			await rspack.experiments.globalTrace.register(
-				value.filter,
-				value.layer,
-				value.output
-			);
-			asyncExitHook(rspack.experiments.globalTrace.cleanup, {
-				wait: 500
-			});
-		} else if (kind === "JSCPU") {
-			(item.plugins ??= []).push(
-				new RspackProfileJSCPUProfilePlugin(value.output)
-			);
-		} else if (kind === "LOGGING") {
-			(item.plugins ??= []).push(new RspackProfileLoggingPlugin(value.output));
-		}
+
+	if (traceLayer !== "chrome" && traceLayer !== "logger") {
+		throw new Error(`unsupported trace layer: ${traceLayer}`);
 	}
+
+	if (!traceOutput) {
+		const timestamp = Date.now();
+		const defaultOutputDir = path.resolve(
+			`.rspack-profile-${timestamp}-${process.pid}`
+		);
+		const defaultRustTraceChromeOutput = path.join(
+			defaultOutputDir,
+			"trace.json"
+		);
+		const defaultRustTraceLoggerOutput = "stdout";
+
+		const defaultTraceOutput =
+			traceLayer === "chrome"
+				? defaultRustTraceChromeOutput
+				: defaultRustTraceLoggerOutput;
+
+		// biome-ignore lint/style/noParameterAssign: setting default value makes sense
+		traceOutput = defaultTraceOutput;
+	}
+
+	const filter = resolveLayer(filterValue);
+
+	await ensureFileDir(traceOutput);
+	await rspack.experiments.globalTrace.register(
+		filter,
+		traceLayer,
+		traceOutput
+	);
+	asyncExitHook(rspack.experiments.globalTrace.cleanup, {
+		wait: 500
+	});
 }
 
 async function ensureFileDir(outputFilePath: string) {
 	const dir = path.dirname(outputFilePath);
 	await fs.promises.mkdir(dir, { recursive: true });
-	return dir;
 }

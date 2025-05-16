@@ -564,7 +564,11 @@ fn dep(
   };
 
   let to_const_dep = |requirements: Option<RuntimeGlobals>| {
-    ConstDependency::new(start, end, code.clone().into_boxed_str(), requirements)
+    ConstDependency::new(
+      (start, end).into(),
+      code.clone().into_boxed_str(),
+      requirements,
+    )
   };
 
   if WEBPACK_REQUIRE_FUNCTION_REGEXP.is_match(&code) {

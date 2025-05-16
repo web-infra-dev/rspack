@@ -1,4 +1,4 @@
-use rspack_core::{ConstDependency, Dependency, DependencyType, ImportAttributes, SpanExt};
+use rspack_core::{ConstDependency, Dependency, DependencyType, ImportAttributes};
 use swc_core::{
   atoms::Atom,
   common::{Span, Spanned},
@@ -87,8 +87,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     parser
       .presentational_dependencies
       .push(Box::new(ConstDependency::new(
-        import_decl.span.real_lo(),
-        import_decl.span.real_hi(),
+        import_decl.span.into(),
         if parser.is_asi_position(import_decl.span_lo()) {
           ";".into()
         } else {
@@ -303,7 +302,12 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
   // collect referenced properties in destructuring
   // import * as a from 'a';
   // const { value } = a;
-  fn assign(&self, parser: &mut JavascriptParser, assign_expr: &AssignExpr) -> Option<bool> {
+  fn assign(
+    &self,
+    parser: &mut JavascriptParser,
+    assign_expr: &AssignExpr,
+    _for_name: Option<&str>,
+  ) -> Option<bool> {
     if let AssignTarget::Pat(AssignTargetPat::Object(object_pat)) = &assign_expr.left
       && assign_expr.op == AssignOp::Assign
       && let box Expr::Ident(ident) = &assign_expr.right

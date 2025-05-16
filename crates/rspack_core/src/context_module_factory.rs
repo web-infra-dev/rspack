@@ -320,9 +320,13 @@ impl ContextModuleFactory {
           Default::default(),
         )
         .boxed();
+        data.add_file_dependencies(file_dependencies);
+        data.add_missing_dependencies(missing_dependencies);
         return Ok((ModuleFactoryResult::new_with_module(raw_module), None));
       }
       Err(err) => {
+        data.add_file_dependencies(file_dependencies);
+        data.add_missing_dependencies(missing_dependencies);
         return Err(err);
       }
     };

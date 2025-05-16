@@ -94,7 +94,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
         }
       }
       let range = param.range();
-      let dep = AMDRequireArrayDependency::new(deps, (range.0, range.1 - 1));
+      let dep = AMDRequireArrayDependency::new(deps, (range.0, range.1 - 1).into());
       parser.presentational_dependencies.push(Box::new(dep));
       return Some(true);
     }
@@ -114,7 +114,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
       for option in options.iter() {
         let result = self.process_item(parser, block_deps, call_expr, option);
         if result.is_none() {
-          self.process_context(parser, block_deps, call_expr, param);
+          self.process_context(parser, block_deps, call_expr, option);
         }
       }
 
@@ -128,24 +128,21 @@ impl AMDRequireDependenciesBlockParserPlugin {
 
       if param_str == "require" {
         let dep = Box::new(ConstDependency::new(
-          range.0,
-          range.1,
+          range.into(),
           RuntimeGlobals::REQUIRE.name().into(),
           Some(RuntimeGlobals::REQUIRE),
         ));
         parser.presentational_dependencies.push(dep);
       } else if param_str == "module" {
         let dep = Box::new(ConstDependency::new(
-          range.0,
-          range.1,
+          range.into(),
           "module".into(),
           Some(RuntimeGlobals::MODULE),
         ));
         parser.presentational_dependencies.push(dep);
       } else if param_str == "exports" {
         let dep = Box::new(ConstDependency::new(
-          range.0,
-          range.1,
+          range.into(),
           "exports".into(),
           Some(RuntimeGlobals::EXPORTS),
         ));
@@ -154,7 +151,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
         local_module.flag_used();
         let dep = Box::new(LocalModuleDependency::new(
           local_module.clone(),
-          Some((range.0, range.1)),
+          Some(range.into()),
           false,
         ));
         parser.presentational_dependencies.push(dep);
@@ -162,7 +159,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
       } else {
         let mut dep = Box::new(AMDRequireItemDependency::new(
           Atom::new(param_str.as_str()),
-          Some(range),
+          Some(range.into()),
         ));
         dep.set_optional(parser.in_try);
         block_deps.push(dep);
@@ -305,13 +302,10 @@ impl AMDRequireDependenciesBlockParserPlugin {
     let param = parser.evaluate_expression(&first_arg.expr);
 
     let mut dep = Box::new(AMDRequireDependency::new(
-      (call_expr.span.real_lo(), call_expr.span.real_hi()),
-      Some((
-        first_arg.expr.span().real_lo(),
-        first_arg.expr.span().real_hi(),
-      )),
-      callback_arg.map(|arg| (arg.expr.span().real_lo(), arg.expr.span().real_hi())),
-      error_callback_arg.map(|arg| (arg.expr.span().real_lo(), arg.expr.span().real_hi())),
+      call_expr.span.into(),
+      Some(first_arg.expr.span().into()),
+      callback_arg.map(|arg| arg.expr.span().into()),
+      error_callback_arg.map(|arg| arg.expr.span().into()),
     ));
 
     let source_map: SharedSourceMap = parser.source_map.clone();
@@ -349,7 +343,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
       if !result.is_some_and(|x| x) {
         let dep = Box::new(UnsupportedDependency::new(
           "unsupported".into(),
-          (call_expr.span.real_lo(), call_expr.span.real_hi()),
+          call_expr.span.into(),
         ));
         parser.presentational_dependencies.push(dep);
         parser.warning_diagnostics.push(Box::new(

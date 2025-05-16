@@ -35,7 +35,7 @@
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]('main', {
+self["webpackHotUpdate"]("main", {
 "./generation.js": 
 /*!***********************!*\
   !*** ./generation.js ***!
@@ -72,7 +72,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 
 #### Changed Content
 ```js
-self["webpackHotUpdate"]('modules_demo_js_lazy-compilation-proxy', {
+self["webpackHotUpdate"]("modules_demo_js_lazy-compilation-proxy", {
 "./modules/demo.js!lazy-compilation-proxy": 
 /*!*********************************************************************************************************************!*\
   !*** lazy-compilation-proxy|../../../../../dist/helper/loaders/hot-update.js??ruleSet[1].rules[0].use[0]!./demo.js ***!

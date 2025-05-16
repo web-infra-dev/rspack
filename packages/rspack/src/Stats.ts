@@ -10,6 +10,7 @@
 import type * as binding from "@rspack/binding";
 
 import type { Compilation } from "./Compilation";
+import { DeadlockRiskError } from "./RspackError";
 import type { StatsOptions, StatsValue } from "./config";
 import type { StatsCompilation } from "./stats/statsFactoryUtils";
 
@@ -63,12 +64,21 @@ export class Stats {
 		return this.compilation.endTime;
 	}
 
-	hasErrors() {
-		return this.#inner.hasErrors();
+	hasErrors(): boolean {
+		return (
+			this.#compilation.errors.length > 0 ||
+			this.#compilation.children.some(child => child.getStats().hasErrors())
+		);
 	}
 
-	hasWarnings() {
-		return this.#inner.hasWarnings();
+	hasWarnings(): boolean {
+		const warnings = this.#compilation.hooks.processWarnings.call(
+			this.#compilation.warnings
+		);
+		return (
+			warnings.length > 0 ||
+			this.#compilation.children.some(child => child.getStats().hasWarnings())
+		);
 	}
 
 	toJson(opts?: StatsValue, forToString?: boolean): StatsCompilation {
@@ -105,6 +115,10 @@ export class Stats {
 				getInner: this.#getInnerByCompilation.bind(this)
 			});
 		} catch (e) {
+			if (e instanceof DeadlockRiskError) {
+				throw e;
+			}
+			// FIXME: shouldn't swallow error
 			console.warn(
 				`Failed to get stats due to error: ${(e as Error)?.message}, are you trying to access the stats from the previous compilation?`
 			);
@@ -147,6 +161,10 @@ export class Stats {
 				getInner: this.#getInnerByCompilation.bind(this)
 			});
 		} catch (e) {
+			if (e instanceof DeadlockRiskError) {
+				throw e;
+			}
+			// FIXME: shouldn't swallow error
 			console.warn(
 				`Failed to get stats due to error: ${(e as Error)?.message}, are you trying to access the stats from the previous compilation?`
 			);

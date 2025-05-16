@@ -5,8 +5,8 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
-  DependencyType, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::{atom::Atom, json_stringify};
 
@@ -166,10 +166,10 @@ impl Branch {
 #[derive(Debug, Clone)]
 pub struct AMDDefineDependency {
   id: DependencyId,
-  range: (u32, u32),
-  array_range: Option<(u32, u32)>,
-  function_range: Option<(u32, u32)>,
-  object_range: Option<(u32, u32)>,
+  range: DependencyRange,
+  array_range: Option<DependencyRange>,
+  function_range: Option<DependencyRange>,
+  object_range: Option<DependencyRange>,
   #[cacheable(with=AsOption<AsPreset>)]
   named_module: Option<Atom>,
   local_module: Option<LocalModule>,
@@ -177,10 +177,10 @@ pub struct AMDDefineDependency {
 
 impl AMDDefineDependency {
   pub fn new(
-    range: (u32, u32),
-    array_range: Option<(u32, u32)>,
-    function_range: Option<(u32, u32)>,
-    object_range: Option<(u32, u32)>,
+    range: DependencyRange,
+    array_range: Option<DependencyRange>,
+    function_range: Option<DependencyRange>,
+    object_range: Option<DependencyRange>,
     named_module: Option<Atom>,
     local_module: Option<LocalModule>,
   ) -> Self {
@@ -204,6 +204,10 @@ impl AMDDefineDependency {
 impl Dependency for AMDDefineDependency {
   fn id(&self) -> &DependencyId {
     &self.id
+  }
+
+  fn range(&self) -> Option<&DependencyRange> {
+    Some(&self.range)
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -297,21 +301,31 @@ impl DependencyTemplate for AMDDefineDependencyTemplate {
       source.insert(0, &definition, None);
     }
 
-    let mut current = dep.range.0;
-    if let Some(array_range) = dep.array_range {
-      source.replace(current, array_range.0, texts.next().unwrap_or(""), None);
-      current = array_range.1;
+    let mut current = dep.range.start;
+    if let Some(array_range) = &dep.array_range {
+      source.replace(current, array_range.start, texts.next().unwrap_or(""), None);
+      current = array_range.end;
     }
 
-    if let Some(object_range) = dep.object_range {
-      source.replace(current, object_range.0, texts.next().unwrap_or(""), None);
-      current = object_range.1;
-    } else if let Some(function_range) = dep.function_range {
-      source.replace(current, function_range.0, texts.next().unwrap_or(""), None);
-      current = function_range.1;
+    if let Some(object_range) = &dep.object_range {
+      source.replace(
+        current,
+        object_range.start,
+        texts.next().unwrap_or(""),
+        None,
+      );
+      current = object_range.end;
+    } else if let Some(function_range) = &dep.function_range {
+      source.replace(
+        current,
+        function_range.start,
+        texts.next().unwrap_or(""),
+        None,
+      );
+      current = function_range.end;
     }
 
-    source.replace(current, dep.range.1, texts.next().unwrap_or(""), None);
+    source.replace(current, dep.range.end, texts.next().unwrap_or(""), None);
 
     if texts.next().is_some() {
       panic!("Implementation error");

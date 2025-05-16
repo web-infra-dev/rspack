@@ -80,6 +80,7 @@ pub struct CssParserAndGenerator {
   pub exports_only: bool,
   pub named_exports: bool,
   pub es_module: bool,
+  pub url: bool,
   #[cacheable(with=AsOption<AsMap<AsCacheable, AsVec>>)]
   pub exports: Option<CssExports>,
   pub local_names: Option<FxHashMap<String, String>>,
@@ -168,6 +169,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
           if request.trim().is_empty() {
             continue;
           }
+          if !self.url {
+            continue;
+          }
+
           let request = replace_module_request_prefix(
             request,
             &mut diagnostics,
@@ -193,8 +198,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         } => {
           if request.is_empty() {
             presentational_dependencies.push(Box::new(ConstDependency::new(
-              range.start,
-              range.end,
+              (range.start, range.end).into(),
               "".into(),
               None,
             )));
@@ -223,8 +227,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         }
         css_module_lexer::Dependency::Replace { content, range } => presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            range.start,
-            range.end,
+            (range.start, range.end).into(),
             content.into(),
             None,
           ))),
@@ -304,8 +307,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             convention_names,
             vec![CssSelfReferenceLocalIdentReplacement {
               local_ident: local_ident.clone(),
-              start: range.start,
-              end: range.end,
+              range: (range.start, range.end).into(),
             }],
           )));
         }

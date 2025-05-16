@@ -47,7 +47,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
 
   let mut mutations = compilation
     .incremental
-    .can_write_mutations()
+    .mutations_writeable()
     .then(Mutations::default);
 
   set_sync_modules(compilation, sync_modules, &mut mutations);
@@ -55,7 +55,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
 
   if compilation
     .incremental
-    .can_read_mutations(IncrementalPasses::INFER_ASYNC_MODULES)
+    .mutations_readable(IncrementalPasses::INFER_ASYNC_MODULES)
     && let Some(mutations) = &mutations
   {
     let logger = compilation.get_logger("rspack.incremental.inferAsyncModules");

@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import inspector from "node:inspector";
+
 // following chrome trace event format https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU/preview?tab=t.0#heading=h.uxpopqvbjezh
 export interface ChromeEvent {
 	name: string;
@@ -8,12 +8,19 @@ export interface ChromeEvent {
 	ts?: number;
 	pid?: number;
 	tid?: number;
-	id?: number;
+	id?: number; // updated to allow string id
 	args?: {
 		[key: string]: any;
 	};
+	id2?: {
+		local?: string;
+		global?: string;
+	};
 }
-export class ChromeTracer {
+
+// this is a tracer for nodejs
+// FIXME: currently we only support chrome layer and do nothing for logger layer
+export class JavaScriptTracer {
 	// baseline time, we use offset time for tracing to align with rust side time
 	static startTime: number;
 	static events: ChromeEvent[];
@@ -21,24 +28,33 @@ export class ChromeTracer {
 	// tracing file path, same as rust tracing-chrome's
 	static output: string;
 	// inspector session for CPU Profiler
-	static session: inspector.Session;
-	static initChromeTrace(layer: string, output: string) {
-		this.session = new inspector.Session();
+	static session: import("node:inspector").Session;
+
+	static async initJavaScriptTrace(layer: string, output: string) {
+		const { Session } = await import("node:inspector");
+		this.session = new Session();
 		this.layer = layer;
 		this.output = output;
 		this.events = [];
 		const hrtime = process.hrtime();
-		this.session.connect();
-		this.session.post("Profiler.enable");
-		this.session.post("Profiler.start");
 		this.startTime = hrtime[0] * 1000000 + Math.round(hrtime[1] / 1000); // use microseconds
 	}
-	static async cleanupChromeTrace() {
+
+	static initCpuProfiler() {
+		if (this.layer === "chrome") {
+			this.session.connect();
+			this.session.post("Profiler.enable");
+			this.session.post("Profiler.start");
+		}
+	}
+
+	static async cleanupJavaScriptTrace() {
 		if (!this.layer.includes("chrome")) {
 			return;
 		}
+
 		this.session.post("Profiler.stop", (err, param) => {
-			let cpu_profile: inspector.Profiler.Profile | undefined;
+			let cpu_profile: import("node:inspector").Profiler.Profile | undefined;
 			if (err) {
 				console.error("Error stopping profiler:", err);
 			} else {
@@ -49,10 +65,11 @@ export class ChromeTracer {
 				// more info in https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU/preview?tab=t.0#heading=h.yr4qxyxotyw
 				this.pushEvent({
 					name: "Profile",
-					cat: "disabled-by-default-v8.cpu_profiler",
 					ph: "P",
+					id: 1,
 					...this.getCommonEv(),
-					pid: process.pid,
+					cat: "disabled-by-default-v8.cpu_profiler",
+					pid: 3, // separate process id for cpu profile
 					args: {
 						data: {
 							startTime: 0 // use offset time to align with other trace data
@@ -62,9 +79,10 @@ export class ChromeTracer {
 				this.pushEvent({
 					name: "ProfileChunk",
 					ph: "P",
-					cat: "disabled-by-default-v8.cpu_profiler",
+					id: 1,
 					...this.getCommonEv(),
-					pid: process.pid,
+					cat: "disabled-by-default-v8.cpu_profiler",
+					pid: 3,
 					args: {
 						data: {
 							cpuProfile: cpu_profile,
@@ -73,16 +91,17 @@ export class ChromeTracer {
 					}
 				});
 			}
-
-			// ensure file write to disk
+			const originTrace = fs.readFileSync(this.output, "utf-8");
+			// this is hack, [] is empty and [{}] is not empty
+			const originTraceIsEmpty = !originTrace.includes("{");
 			const eventMsg =
-				(this.events.length > 0 ? "," : "") +
+				(this.events.length > 0 && !originTraceIsEmpty ? "," : "") +
 				this.events
 					.map(x => {
 						return JSON.stringify(x);
 					})
 					.join(",\n");
-			const originTrace = fs.readFileSync(this.output, "utf-8");
+
 			// a naive implementation to merge rust & Node.js trace, we can't use JSON.parse because sometime the trace file is too big to parse
 			const newTrace = originTrace.replace(/]$/, `${eventMsg}\n]`);
 			fs.writeFileSync(this.output, newTrace, {
@@ -98,13 +117,20 @@ export class ChromeTracer {
 	// get common chrome event
 	static getCommonEv() {
 		return {
-			tid: process.pid, // node doesn't expose tid so use pid
-			pid: process.pid,
-			id: 1,
-			ts: this.getTs()
+			tid: 1,
+			pid: 2, // fake pid for detailed track
+			ts: this.getTs(),
+			cat: "rspack"
 		};
 	}
 	static pushEvent(event: ChromeEvent) {
+		// set id2 as perfetto track id
+		if (!event.id2 && event.args?.id2) {
+			event.id2 = {
+				local: event.args.id2
+			};
+		}
+
 		this.events.push(event);
 	}
 	// start an chrome async event
@@ -115,6 +141,7 @@ export class ChromeTracer {
 		this.pushEvent({
 			...this.getCommonEv(),
 			ph: "b",
+
 			...events
 		});
 	}

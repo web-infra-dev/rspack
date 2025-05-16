@@ -291,7 +291,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       parser
         .dependencies
         .push(Box::new(CommonJsSelfReferenceDependency::new(
-          (ident.span().real_lo(), ident.span().real_hi()),
+          ident.span().into(),
           ExportsBase::Exports,
           vec![],
           false,
@@ -314,7 +314,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       parser
         .dependencies
         .push(Box::new(CommonJsSelfReferenceDependency::new(
-          (expr.span().real_lo(), expr.span().real_hi()),
+          expr.span().into(),
           ExportsBase::This,
           vec![],
           false,
@@ -341,7 +341,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
         parser
           .dependencies
           .push(Box::new(CommonJsSelfReferenceDependency::new(
-            (expr.span().real_lo(), expr.span().real_hi()),
+            expr.span().into(),
             base,
             remaining,
             false,
@@ -366,7 +366,12 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     }
   }
 
-  fn assign(&self, parser: &mut JavascriptParser, assign_expr: &AssignExpr) -> Option<bool> {
+  fn assign(
+    &self,
+    parser: &mut JavascriptParser,
+    assign_expr: &AssignExpr,
+    _for_name: Option<&str>,
+  ) -> Option<bool> {
     if parser.is_esm {
       return None;
     }
@@ -437,7 +442,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       parser
         .dependencies
         .push(Box::new(CommonJsExportsDependency::new(
-          (left_expr.span().real_lo(), left_expr.span().real_hi()),
+          left_expr.span().into(),
           None,
           base,
           remaining.to_owned(),
@@ -483,7 +488,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
           parser
             .dependencies
             .push(Box::new(CommonJsSelfReferenceDependency::new(
-              (expr.span().real_lo(), expr.span().real_hi()),
+              expr.span().into(),
               base,
               remaining,
               true,
@@ -534,8 +539,8 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
         parser
           .dependencies
           .push(Box::new(CommonJsExportsDependency::new(
-            (call_expr.span.real_lo(), call_expr.span.real_hi()),
-            Some((arg2.span().real_lo(), arg2.span().real_hi())),
+            call_expr.span.into(),
+            Some(arg2.span().into()),
             base,
             vec![str.value.clone()],
           )));

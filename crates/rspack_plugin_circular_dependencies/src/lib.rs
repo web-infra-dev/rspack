@@ -4,7 +4,7 @@ use cow_utils::CowUtils;
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use itertools::Itertools;
-use rspack_collections::{Identifier, IdentifierMap, IdentifierSet};
+use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
   ApplyContext, Compilation, CompilationOptimizeModules, CompilerOptions, DependencyType,
   ModuleIdentifier, Plugin, PluginContext,
@@ -12,6 +12,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_regex::RspackRegex;
+use rustc_hash::FxHashSet as HashSet;
 
 struct CycleDetector<'a> {
   module_map: &'a IdentifierMap<GraphModule>,
@@ -38,21 +39,22 @@ impl<'a> CycleDetector<'a> {
     let mut cycles = vec![];
     self.recurse_dependencies(
       initial_module_id,
-      &mut IdentifierSet::default(),
+      &mut HashSet::default(),
       &mut vec![initial_module_id],
       &mut cycles,
     );
+    // sort to keep output stable
+    cycles.sort();
     cycles
   }
 
   fn recurse_dependencies(
     &self,
     current_module_id: ModuleIdentifier,
-    seen_set: &mut IdentifierSet,
+    seen_relations: &mut HashSet<(ModuleIdentifier, ModuleIdentifier)>,
     current_path: &mut Vec<ModuleIdentifier>,
     found_cycles: &mut Vec<Vec<ModuleIdentifier>>,
   ) {
-    seen_set.insert(current_module_id);
     current_path.push(current_module_id);
     for target_id in self.get_module(&current_module_id).dependencies.keys() {
       // If the current path already contains the dependent module, then it
@@ -72,16 +74,11 @@ impl<'a> CycleDetector<'a> {
         continue;
       }
 
-      // If a module has already been encountered in this traversal, then by
-      // necessity it is either already part of a cycle being detected as
-      // captured above, or it _and all of its dependencies_ are not part of
-      // any cycles involving the current module. If that were not true, then
-      // this module would have already been encountered previously.
-      if seen_set.contains(target_id) {
+      if seen_relations.contains(&(current_module_id, *target_id)) {
         continue;
       }
-
-      self.recurse_dependencies(*target_id, seen_set, current_path, found_cycles);
+      seen_relations.insert((current_module_id, *target_id));
+      self.recurse_dependencies(*target_id, seen_relations, current_path, found_cycles);
     }
     current_path.pop();
   }
@@ -209,13 +206,9 @@ impl CircularDependencyIgnoredConnection {
   }
 }
 
-pub type CycleHandlerFn = Box<
-  dyn for<'a> Fn(String, Vec<String>, &'a mut Compilation) -> BoxFuture<'a, Result<()>>
-    + Sync
-    + Send,
->;
-pub type CompilationHookFn =
-  Box<dyn for<'a> Fn(&'a mut Compilation) -> BoxFuture<'a, Result<()>> + Sync + Send>;
+pub type CycleHandlerFn =
+  Box<dyn Fn(String, Vec<String>) -> BoxFuture<'static, Result<()>> + Sync + Send>;
+pub type CompilationHookFn = Box<dyn Fn() -> BoxFuture<'static, Result<()>> + Sync + Send>;
 
 #[derive(Debug)]
 pub struct CircularDependencyRspackPluginOptions {
@@ -296,17 +289,10 @@ impl CircularDependencyRspackPlugin {
     &self,
     entrypoint: String,
     cycle: Vec<ModuleIdentifier>,
-    compilation: &mut Compilation,
+    _compilation: &mut Compilation,
   ) -> Result<()> {
     match &self.options.on_ignored {
-      Some(callback) => {
-        callback(
-          entrypoint,
-          cycle.iter().map(ToString::to_string).collect(),
-          compilation,
-        )
-        .await
-      }
+      Some(callback) => callback(entrypoint, cycle.iter().map(ToString::to_string).collect()).await,
       _ => Ok(()),
     }
   }
@@ -318,12 +304,7 @@ impl CircularDependencyRspackPlugin {
     compilation: &mut Compilation,
   ) -> Result<()> {
     if let Some(callback) = &self.options.on_detected {
-      return callback(
-        entrypoint,
-        cycle.iter().map(ToString::to_string).collect(),
-        compilation,
-      )
-      .await;
+      return callback(entrypoint, cycle.iter().map(ToString::to_string).collect()).await;
     }
 
     let diagnostic_factory = if self.options.fail_on_error {
@@ -336,15 +317,22 @@ impl CircularDependencyRspackPlugin {
       .expect("cwd should be available")
       .to_string_lossy()
       .to_string();
+
+    // remove the root path here.
     let cycle_without_root: Vec<String> = cycle
       .iter()
-      .map(|module_path| {
-        module_path
-          .to_string()
-          .cow_replace(&cwd, "")
-          .trim_start_matches('/')
-          .trim_start_matches('\\')
-          .to_string()
+      .filter_map(|module_identifier| {
+        compilation
+          .module_by_identifier(module_identifier)
+          .map(|module| {
+            module
+              .readable_identifier(&compilation.options.context)
+              .to_string()
+              .cow_replace(&cwd, "")
+              .trim_start_matches('/')
+              .trim_start_matches('\\')
+              .to_string()
+          })
       })
       .collect();
 
@@ -362,7 +350,7 @@ impl CircularDependencyRspackPlugin {
 #[plugin_hook(CompilationOptimizeModules for CircularDependencyRspackPlugin)]
 async fn optimize_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   if let Some(on_start) = &self.options.on_start {
-    on_start(compilation).await?;
+    on_start().await?;
   };
 
   let module_map = build_module_map(compilation);
@@ -400,7 +388,7 @@ async fn optimize_modules(&self, compilation: &mut Compilation) -> Result<Option
   }
 
   if let Some(on_end) = &self.options.on_end {
-    on_end(compilation).await?;
+    on_end().await?;
   }
   Ok(None)
 }

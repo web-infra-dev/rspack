@@ -9,7 +9,6 @@ use std::{
 use dashmap::DashMap;
 use indexmap::IndexMap;
 use regex::Regex;
-use rspack_ast::javascript::Ast;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsMap, Skip},
@@ -22,6 +21,7 @@ use rspack_error::{
 };
 use rspack_hash::{HashDigest, HashFunction, RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
+use rspack_javascript_compiler::ast::Ast;
 use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
 };
@@ -609,7 +609,7 @@ impl Module for ConcatenatedModule {
       self
         .build_info
         .assets
-        .extend(module_build_info.assets.clone());
+        .extend(module_build_info.assets.as_ref().clone());
     }
     // return a dummy result is enough, since we don't build the ConcatenatedModule in make phase
     Ok(BuildResult::default())

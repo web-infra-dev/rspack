@@ -3,13 +3,13 @@ use rspack_core::{
   diagnostics::CapturedLoaderError, AdditionalData, LoaderContext, NormalModuleLoaderShouldYield,
   NormalModuleLoaderStartYielding, RunnerContext, BUILTIN_LOADER_PREFIX,
 };
-use rspack_error::{Result, ToStringResultToRspackResultExt};
+use rspack_error::{miette::IntoDiagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
 
 use super::{JsLoaderContext, JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 
-#[plugin_hook(NormalModuleLoaderShouldYield for JsLoaderRspackPlugin)]
+#[plugin_hook(NormalModuleLoaderShouldYield for JsLoaderRspackPlugin, tracing=false)]
 pub(crate) async fn loader_should_yield(
   &self,
   loader_context: &LoaderContext<RunnerContext>,
@@ -27,16 +27,55 @@ pub(crate) async fn loader_should_yield(
   }
 }
 
-#[plugin_hook(NormalModuleLoaderStartYielding for JsLoaderRspackPlugin)]
+#[plugin_hook(NormalModuleLoaderStartYielding for JsLoaderRspackPlugin,tracing=false)]
 pub(crate) async fn loader_yield(
   &self,
   loader_context: &mut LoaderContext<RunnerContext>,
 ) -> Result<()> {
-  let new_cx = self
-    .runner
-    .call_with_promise(loader_context.try_into()?)
-    .await?;
-  merge_loader_context(loader_context, new_cx)?;
+  let read_guard = self.runner.read().await;
+  match &*read_guard {
+    Some(runner) => {
+      let new_cx = runner
+        .call_async(loader_context.try_into()?)
+        .await
+        .into_diagnostic()?
+        .await
+        .into_diagnostic()?;
+      drop(read_guard);
+
+      merge_loader_context(loader_context, new_cx)?;
+    }
+    None => {
+      drop(read_guard);
+
+      {
+        let mut write_guard = self.runner.write().await;
+        #[allow(clippy::unwrap_used)]
+        let compiler_id = self.compiler_id.get().unwrap();
+        #[allow(clippy::unwrap_used)]
+        let runner = self
+          .runner_getter
+          .call(compiler_id)
+          .await
+          .into_diagnostic()?;
+        *write_guard = Some(runner);
+      };
+
+      let read_guard = self.runner.read().await;
+      #[allow(clippy::unwrap_used)]
+      let new_cx = read_guard
+        .as_ref()
+        .unwrap()
+        .call_async(loader_context.try_into()?)
+        .await
+        .into_diagnostic()?
+        .await
+        .into_diagnostic()?;
+      drop(read_guard);
+
+      merge_loader_context(loader_context, new_cx)?;
+    }
+  };
   Ok(())
 }
 
@@ -80,12 +119,31 @@ pub(crate) fn merge_loader_context(
 
   let content = match from.content {
     Either::A(_) => None,
-    Either::B(c) => Some(rspack_core::Content::from(Into::<Vec<u8>>::into(c))),
+    Either::B(c) => {
+      // perf: Ignore UTF-8 check when JavaScript passed in an UTF-8 encoded value
+      let content = if let Some(utf8_hint) = from.utf8_hint
+        && utf8_hint
+      {
+        rspack_core::Content::from(
+          // SAFETY: UTF-8 passed from JavaScript loader runner should ensure it does not pass non-UTF-8 encoded sequence when `utf_hint` is set to `true`. This invariant should be followed on the JavaScript side.
+          unsafe { String::from_utf8_unchecked(c.into()) },
+        )
+      } else {
+        rspack_core::Content::from(Into::<Vec<u8>>::into(c))
+      };
+
+      Some(content)
+    }
   };
   let source_map = from
     .source_map
     .as_ref()
-    .map(|s| rspack_core::rspack_sources::SourceMap::from_slice(s))
+    .map(|s| {
+      rspack_core::rspack_sources::SourceMap::from_json(
+        // SAFETY: `sourceMap` is serialized by JavaScript from a JSON object. This is an invariant should be followed on the JavaScript side.
+        unsafe { str::from_utf8_unchecked(s) },
+      )
+    })
     .transpose()
     .to_rspack_result()?;
   let additional_data = from.additional_data.take().map(|data| {

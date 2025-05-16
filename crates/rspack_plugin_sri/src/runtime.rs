@@ -1,10 +1,8 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  chunk_graph_chunk::ChunkId,
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements, CrossOriginLoading,
-  RuntimeGlobals, RuntimeModule, RuntimeModuleExt,
+  chunk_graph_chunk::ChunkId, impl_runtime_module, ChunkUkey, Compilation,
+  CompilationAdditionalTreeRuntimeRequirements, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleExt,
 };
 use rspack_error::{error, Result};
 use rspack_hook::plugin_hook;
@@ -21,9 +19,7 @@ use crate::{
 fn add_attribute(tag: &str, code: &str, cross_origin_loading: &CrossOriginLoading) -> String {
   format!(
     "{}\n{tag}.integrity = {}[chunkId];\n{tag}.crossOrigin = {};",
-    code,
-    SRI_HASH_VARIABLE_REFERENCE.as_str(),
-    cross_origin_loading
+    code, SRI_HASH_VARIABLE_REFERENCE, cross_origin_loading
   )
 }
 
@@ -51,7 +47,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
     self.id
   }
 
-  async fn generate(&self, compilation: &Compilation) -> Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> Result<String> {
     let Some(chunk) = compilation.chunk_by_ukey.get(&self.chunk) else {
       return Err(error!(
         "Generate sri runtime module failed: chunk not found"
@@ -84,16 +80,13 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
       })
       .collect::<Vec<_>>();
 
-    Ok(
-      RawStringSource::from(format!(
-        r#"
+    Ok(format!(
+      r#"
         {} = {};
         "#,
-        SRI_HASH_VARIABLE_REFERENCE.as_str(),
-        generate_sri_hash_placeholders(all_chunks, &self.hash_funcs, compilation),
-      ))
-      .boxed(),
-    )
+      SRI_HASH_VARIABLE_REFERENCE,
+      generate_sri_hash_placeholders(all_chunks, &self.hash_funcs, compilation),
+    ))
   }
 }
 

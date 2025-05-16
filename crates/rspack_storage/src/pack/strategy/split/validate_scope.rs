@@ -175,7 +175,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_invalid_packs_changed(
+  async fn test_flush_packs_mtime(
     scope_path: Utf8PathBuf,
     strategy: &SplitPackStrategy,
     fs: Arc<dyn FileSystem>,
@@ -183,6 +183,7 @@ mod tests {
     files: HashSet<Utf8PathBuf>,
   ) -> Result<()> {
     let mut scope = PackScope::new("scope_name", scope_path, options);
+    // test refresh mtime
     for file in files {
       if !file.to_string().contains("scope_meta") {
         flush_file_mtime(&file, fs.clone()).await?;
@@ -190,14 +191,7 @@ mod tests {
     }
 
     strategy.ensure_keys(&mut scope).await?;
-    if let ValidateResult::Invalid(detail) = strategy.validate_packs(&mut scope).await? {
-      let error =
-        Error::from_detail(Some(ErrorType::Validate), Some("scope_name"), detail).to_string();
-      assert!(error.contains("validate scope `scope_name` failed due to some packs are modified"));
-      assert_eq!(error.split("\n").count(), 7);
-    } else {
-      panic!("should be invalid");
-    }
+    assert!(strategy.validate_packs(&mut scope).await?.is_valid());
 
     Ok(())
   }
@@ -278,7 +272,7 @@ mod tests {
 
       test_valid_packs(scope_path.clone(), &strategy, pack_options.clone()).await?;
 
-      test_invalid_packs_changed(
+      test_flush_packs_mtime(
         scope_path.clone(),
         &strategy,
         strategy.fs.clone(),

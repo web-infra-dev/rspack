@@ -4,20 +4,38 @@ import WebpackLicense from '@components/WebpackLicense';
 
 # Tree shaking
 
-Rspack 支持 tree shaking 功能，这是一个在 JavaScript 生态中广泛使用的术语，主要用于去除未被访问的代码，俗称“死代码”。当一个模块的某些导出未被使用且不存在副作用时，这部分代码就可以被安全地删除，以减小最终产物的体积。
+Rspack 支持 [tree shaking](https://developer.mozilla.org/zh-CN/docs/Glossary/Tree_shaking) 功能，这是一个在 JavaScript 生态中广泛使用的术语，主要用于去除未被访问的代码，俗称“死代码”。当一个模块的某些导出未被使用且不存在副作用时，这部分代码就可以被安全地删除，以减小最终产物的体积。
 
-在设置 `mode` 为 `production` 后，Rspack 会默认启用一系列与 tree shaking 相关的优化措施。
+## 什么是 tree shaking
+
+你可以将应用程序想象成一棵树。绿色表示实际用到的源码和库，是树上活的树叶。灰色表示未引用代码，是秋天树上枯萎的树叶。为了除去死去的树叶，你必须摇动（shake）这棵树，使它们落下。
+
+需要注意的是，Rspack 本身不直接删除死代码，而是标记未使用的导出为潜在的"死代码"。这些代码能被后续的压缩工具识别并处理。因此，如果 [压缩功能](/config/optimization#optimizationminimize) 被关闭，你将不会看到代码有任何实际的删除效果。
+
+:::tip 什么是死代码
+[死代码（dead code）](https://en.wikipedia.org/wiki/Dead_code) 是指程序中一段已经不会被执行的代码，通常是因为重构、优化或者逻辑错误导致的。这些代码可能是之前版本的遗留物，或者某些条件下永远不会被执行的代码。
+:::
+
+## 前置条件
+
+为了有效利用 tree shaking 功能，你需要：
+
+- 将 Rspack 的 [mode](/config/mode) 设置为 `production` 以启用相关优化。
+  - 在执行生产环境构建时，`mode` 默认为 `production`。
+- 使用 ES modules 语法（即 `import` 和 `export`）。
+  - 在使用 SWC 或 Babel 等编译器时，确保它们没有将 ES modules 语法转换为 CommonJS。
+  - 例如在 [@babel/preset-env](https://babeljs.io/docs/en/babel-preset-env) 中，需要将 `modules` 选项设置为 `false`。
+
+## 配置项
+
+当 [mode](/config/mode) 被设置为 `production` 时，Rspack 会默认启用一系列与 tree shaking 相关的优化措施，包括：
 
 - [usedExports](/config/optimization#optimizationusedexports) 检查模块导出是否被使用到，没被使用到的导出可以被移除。
 - [sideEffects](/config/optimization#optimizationsideeffects) 检查模块是否包含副作用，如果不包含副作用可以被重导出优化。
 - [providedExports](/config/optimization#optimizationprovidedExports) 分析模块的所有导出和重导出来源。
 - [innerGraph](/config/optimization#optimizationsinnergraph) 追踪变量的传递，更加准确地判断导出是否真的被使用到。
 
-下面有一些例子来说明各个配置项的作用。
-
-:::info
-需要注意的是，Rspack 本身不直接删除死代码，而是标记未使用的导出为可能的“死代码”。这些代码能被后续的压缩工具识别并处理。因此，如果压缩功能被关闭，你将不会看到代码有任何实际的删除效果。为了增强文档的可读性，我们可能会使用伪代码来展示代码的删除效果。
-:::
+下面有一些例子来说明各个配置项的作用，为了增强文档的可读性，我们会使用伪代码来展示代码的删除效果。
 
 让我们通过一个例子来更好地理解这一机制，假设 `src/main.js` 是项目的入口文件：
 
@@ -123,3 +141,20 @@ export const foo = 42;
 ```
 
 在这种情况下，由于 `value` 最终被使用，它所依赖的 `foo` 也得以保留。
+
+## Pure 注解
+
+通过 `/*#__PURE__*/` 注解可以告诉 Rspack 某个函数调用无副作用。它可以被放到函数调用之前，用来标记此函数调用是无副作用的。
+
+如果一个没被使用的变量定义的初始值被认为是无副作用的，它会被标记为死代码，不会被执行且会被压缩工具清除掉。
+
+```js
+/*#__PURE__*/ double(55);
+```
+
+:::tip
+
+- 传入函数的参数无法被这个注释所标记，需要单独对每一个参数进行标记。
+- 当 [optimization.innerGraph](/config/optimization#optimizationinnergraph) 被设置成 `true` 时这个行为将被启用。
+
+:::

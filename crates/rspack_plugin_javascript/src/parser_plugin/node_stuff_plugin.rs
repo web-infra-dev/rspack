@@ -1,6 +1,6 @@
 use rspack_core::{
-  get_context, CachedConstDependency, ConstDependency, NodeDirnameOption, NodeFilenameOption,
-  NodeGlobalOption, RuntimeGlobals, SpanExt,
+  get_context, parse_resource, CachedConstDependency, ConstDependency, NodeDirnameOption,
+  NodeFilenameOption, NodeGlobalOption, RuntimeGlobals,
 };
 use sugar_path::SugarPath;
 
@@ -50,8 +50,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           );
 
           let const_dep = CachedConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             DIR_NAME.into(),
             "__webpack_dirname__(__webpack_fileURLToPath__(import.meta.url))"
               .to_string()
@@ -84,8 +83,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             serde_json::to_string(&dirname)
               .expect("should render dirname")
               .into(),
@@ -110,8 +108,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           );
 
           let const_dep = CachedConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             FILE_NAME.into(),
             "__webpack_fileURLToPath__(import.meta.url)"
               .to_string()
@@ -140,8 +137,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
+            ident.span.into(),
             serde_json::to_string(&filename)
               .expect("should render filename")
               .into(),
@@ -158,8 +154,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          ident.span.real_lo(),
-          ident.span.real_hi(),
+          ident.span.into(),
           RuntimeGlobals::GLOBAL.name().into(),
           Some(RuntimeGlobals::GLOBAL),
         )));
@@ -176,8 +171,31 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     end: u32,
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
     if ident == DIR_NAME {
+      if parser
+        .compiler_options
+        .node
+        .as_ref()
+        .is_some_and(|node_option| matches!(node_option.dirname, NodeDirnameOption::False))
+      {
+        return None;
+      }
       Some(eval::evaluate_to_string(
         get_context(parser.resource_data).as_str().to_string(),
+        start,
+        end,
+      ))
+    } else if ident == FILE_NAME {
+      if parser
+        .compiler_options
+        .node
+        .as_ref()
+        .is_some_and(|node_option| matches!(node_option.filename, NodeFilenameOption::False))
+      {
+        return None;
+      }
+      let resource = parse_resource(parser.resource_data.resource_path.as_deref()?.as_str())?;
+      Some(eval::evaluate_to_string(
+        resource.path.to_string(),
         start,
         end,
       ))

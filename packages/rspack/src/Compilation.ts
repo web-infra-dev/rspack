@@ -28,7 +28,7 @@ import type { Compiler } from "./Compiler";
 import type { ContextModuleFactory } from "./ContextModuleFactory";
 import { Entrypoint } from "./Entrypoint";
 import { cutOffLoaderExecution } from "./ErrorHelpers";
-import type { CodeGenerationResult, Module } from "./Module";
+import type { Module } from "./Module";
 import ModuleGraph from "./ModuleGraph";
 import type { NormalModuleCompilationHooks } from "./NormalModule";
 import type { NormalModuleFactory } from "./NormalModuleFactory";
@@ -43,7 +43,6 @@ import {
 } from "./Stats";
 import type { EntryOptions, EntryPlugin } from "./builtin-plugin";
 import type {
-	Filename,
 	OutputNormalized,
 	RspackOptionsNormalized,
 	RspackPluginInstance,
@@ -63,6 +62,11 @@ import { JsSource } from "./util/source";
 // patch binding Diagnostics
 import "./Diagnostics";
 import type Diagnostics from "./Diagnostics";
+// patch Chunks
+import "./Chunks";
+// patch CodeGenerationResults
+import "./CodeGenerationResults";
+import type { CodeGenerationResult } from "./taps/compilation";
 
 export type Assets = Record<string, Source>;
 export interface Asset {
@@ -273,7 +277,9 @@ export class Compilation {
 	};
 	needAdditionalPass: boolean;
 
-	#addIncludeDispatcher: AddIncludeDispatcher;
+	#addIncludeDispatcher: AddEntryItemDispatcher;
+	#addEntryDispatcher: AddEntryItemDispatcher;
+
 	[binding.COMPILATION_HOOKS_MAP_SYMBOL]: WeakMap<
 		Compilation,
 		NormalModuleCompilationHooks
@@ -396,8 +402,11 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.chunkGraph = ChunkGraph.__from_binding(inner.chunkGraph);
 		this.moduleGraph = ModuleGraph.__from_binding(inner.moduleGraph);
 
-		this.#addIncludeDispatcher = new AddIncludeDispatcher(
+		this.#addIncludeDispatcher = new AddEntryItemDispatcher(
 			inner.addInclude.bind(inner)
+		);
+		this.#addEntryDispatcher = new AddEntryItemDispatcher(
+			inner.addEntry.bind(inner)
 		);
 		this[binding.COMPILATION_HOOKS_MAP_SYMBOL] = new WeakMap();
 	}
@@ -464,7 +473,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	get chunks(): ReadonlySet<Chunk> {
-		return new Set(this.__internal__getChunks());
+		return this.#inner.chunks;
 	}
 
 	/**
@@ -489,6 +498,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 	get entries(): Map<string, EntryData> {
 		return new Entries(this.#inner.entries);
+	}
+
+	get codeGenerationResults(): binding.CodeGenerationResults {
+		return this.#inner.codeGenerationResults;
 	}
 
 	#createCachedAssets() {
@@ -712,7 +725,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	get warnings(): RspackError[] {
 		const inner = this.#inner;
 		type WarnType = Error | RspackError;
-		const processWarningsHook = this.hooks.processWarnings;
 		const warnings = inner.getWarnings();
 		const proxyMethod = [
 			{
@@ -722,16 +734,12 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					thisArg: Array<WarnType>,
 					warns: WarnType[]
 				) {
-					return Reflect.apply(
-						target,
-						thisArg,
-						processWarningsHook.call(warns as any).map(warn => {
-							inner.pushDiagnostic(
-								JsRspackDiagnostic.__to_binding(warn, JsRspackSeverity.Warn)
-							);
-							return warn;
-						})
-					);
+					for (const warn of warns) {
+						inner.pushDiagnostic(
+							JsRspackDiagnostic.__to_binding(warn, JsRspackSeverity.Warn)
+						);
+					}
+					return Reflect.apply(target, thisArg, warns);
 				}
 			},
 			{
@@ -758,18 +766,14 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					thisArg: Array<WarnType>,
 					warns: WarnType[]
 				) {
-					const warnings = processWarningsHook.call(warns as any);
 					inner.spliceDiagnostic(
 						0,
 						0,
-						warnings.map(warn => {
-							return JsRspackDiagnostic.__to_binding(
-								warn,
-								JsRspackSeverity.Warn
-							);
-						})
+						warns.map(warn =>
+							JsRspackDiagnostic.__to_binding(warn, JsRspackSeverity.Warn)
+						)
 					);
-					return Reflect.apply(target, thisArg, warnings);
+					return Reflect.apply(target, thisArg, warns);
 				}
 			},
 			{
@@ -779,10 +783,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					thisArg: Array<WarnType>,
 					[startIdx, delCount, ...warns]: [number, number, ...WarnType[]]
 				) {
-					warns = processWarningsHook.call(warns as any);
-					const warnList = warns.map(warn => {
-						return JsRspackDiagnostic.__to_binding(warn, JsRspackSeverity.Warn);
-					});
+					const warnList = warns.map(warn =>
+						JsRspackDiagnostic.__to_binding(warn, JsRspackSeverity.Warn)
+					);
 					inner.spliceDiagnostic(startIdx, startIdx + delCount, warnList);
 					return Reflect.apply(target, thisArg, [
 						startIdx,
@@ -814,7 +817,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		);
 	}
 
-	getPath(filename: Filename, data: PathData = {}) {
+	getPath(filename: string, data: PathData = {}) {
 		const pathData: JsPathData = { ...data };
 		if (data.contentHashType && data.chunk?.contentHash) {
 			pathData.contentHash = data.chunk.contentHash[data.contentHashType];
@@ -822,7 +825,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		return this.#inner.getPath(filename, pathData);
 	}
 
-	getPathWithInfo(filename: Filename, data: PathData = {}) {
+	getPathWithInfo(filename: string, data: PathData = {}) {
 		const pathData: JsPathData = { ...data };
 		if (data.contentHashType && data.chunk?.contentHash) {
 			pathData.contentHash = data.chunk.contentHash[data.contentHashType];
@@ -830,7 +833,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		return this.#inner.getPathWithInfo(filename, pathData);
 	}
 
-	getAssetPath(filename: Filename, data: PathData = {}) {
+	getAssetPath(filename: string, data: PathData = {}) {
 		const pathData: JsPathData = { ...data };
 		if (data.contentHashType && data.chunk?.contentHash) {
 			pathData.contentHash = data.chunk.contentHash[data.contentHashType];
@@ -838,7 +841,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		return this.#inner.getAssetPath(filename, pathData);
 	}
 
-	getAssetPathWithInfo(filename: Filename, data: PathData = {}) {
+	getAssetPathWithInfo(filename: string, data: PathData = {}) {
 		const pathData: JsPathData = { ...data };
 		if (data.contentHashType && data.chunk?.contentHash) {
 			pathData.contentHash = data.chunk.contentHash[data.contentHashType];
@@ -1040,6 +1043,19 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.#addIncludeDispatcher.call(context, dependency, options, callback);
 	}
 
+	addEntry(
+		context: string,
+		dependency: ReturnType<typeof EntryPlugin.createDependency>,
+		optionsOrName: EntryOptions | string,
+		callback: (err?: null | WebpackError, module?: Module) => void
+	) {
+		const options =
+			typeof optionsOrName === "object"
+				? optionsOrName
+				: { name: optionsOrName };
+		this.#addEntryDispatcher.call(context, dependency, options, callback);
+	}
+
 	/**
 	 * Get the `Source` of a given asset filename.
 	 *
@@ -1104,17 +1120,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 *
 	 * @internal
 	 */
-	__internal__getChunks(): Chunk[] {
-		return this.#inner
-			.getChunks()
-			.map(binding => Chunk.__from_binding(binding));
-	}
-
-	/**
-	 * Note: This is not a webpack public API, maybe removed in future.
-	 *
-	 * @internal
-	 */
 	__internal_getInner() {
 		return this.#inner;
 	}
@@ -1148,15 +1153,17 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	static PROCESS_ASSETS_STAGE_REPORT = 5000;
 }
 
-// The AddIncludeDispatcher class has two responsibilities:
+// The AddEntryItemDispatcher class has two responsibilities:
 //
-// 1. It is responsible for combining multiple addInclude calls that occur within the same event loop.
-// The purpose of this is to send these combined calls to the add_include method on the Rust side in a unified manner, thereby optimizing the call process and avoiding the overhead of multiple scattered calls.
+// 1. It is responsible for combining multiple addInclude/addEntry calls that occur within the same event loop.
+// The purpose of this is to send these combined calls to the add_include/add_entry method on the Rust side in a unified manner, thereby optimizing the call process and avoiding the overhead of multiple scattered calls.
 //
-// 2. It should be noted that the add_include method on the Rust side has a limitation. It does not allow multiple calls to execute in parallel.
-// Based on this limitation, the AddIncludeDispatcher class needs to properly coordinate and schedule the calls to ensure compliance with this execution rule.
-class AddIncludeDispatcher {
-	#inner: binding.JsCompilation["addInclude"];
+// 2. It should be noted that the add_include/add_entry methods on the Rust side has a limitation. It does not allow multiple calls to execute in parallel.
+// Based on this limitation, the AddEntryItemDispatcher class needs to properly coordinate and schedule the calls to ensure compliance with this execution rule.
+class AddEntryItemDispatcher {
+	#inner:
+		| binding.JsCompilation["addInclude"]
+		| binding.JsCompilation["addEntry"];
 	#running: boolean;
 	#args: [
 		string,
@@ -1194,7 +1201,11 @@ class AddIncludeDispatcher {
 		});
 	};
 
-	constructor(binding: binding.JsCompilation["addInclude"]) {
+	constructor(
+		binding:
+			| binding.JsCompilation["addInclude"]
+			| binding.JsCompilation["addEntry"]
+	) {
 		this.#inner = binding;
 		this.#running = false;
 	}

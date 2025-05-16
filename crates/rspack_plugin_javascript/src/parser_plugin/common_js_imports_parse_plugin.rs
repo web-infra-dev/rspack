@@ -5,7 +5,10 @@ use rspack_core::{
 use rspack_error::{DiagnosticExt, Severity};
 use swc_core::{
   common::{Span, Spanned},
-  ecma::ast::{CallExpr, Expr, ExprOrSpread, Ident, MemberExpr, NewExpr, UnaryExpr},
+  ecma::ast::{
+    AssignExpr, AssignTarget, CallExpr, Expr, ExprOrSpread, Ident, MemberExpr, NewExpr,
+    SimpleAssignTarget, UnaryExpr,
+  },
 };
 
 use super::JavascriptParserPlugin;
@@ -298,7 +301,7 @@ impl CommonJsImportsParserPlugin {
       let span = expr.span();
       let dep = Box::new(LocalModuleDependency::new(
         local_module.clone(),
-        Some((span.real_lo(), span.real_hi())),
+        Some(span.into()),
         matches!(expr, CallOrNewExpr::New(_)),
       ));
       parser.presentational_dependencies.push(dep);
@@ -391,8 +394,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          expr.span().real_lo(),
-          expr.span().real_hi(),
+          expr.span().into(),
           "undefined".into(),
           None,
         )));
@@ -467,8 +469,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          expr.span().real_lo(),
-          expr.span().real_hi(),
+          expr.span().into(),
           "'function'".into(),
           None,
         )));
@@ -558,6 +559,30 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     if for_name == expr_name::REQUIRE {
       return self.require_as_expression_handler(parser, ident);
     }
+    None
+  }
+
+  fn assign(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &AssignExpr,
+    _for_name: Option<&str>,
+  ) -> Option<bool> {
+    let AssignTarget::Simple(SimpleAssignTarget::Ident(left_expr)) = &expr.left else {
+      return None;
+    };
+
+    if left_expr.sym == "require" && parser.is_unresolved_ident("require") {
+      parser
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
+          (0, 0).into(),
+          "var require;".into(),
+          None,
+        )));
+      return Some(true);
+    }
+
     None
   }
 }

@@ -1,11 +1,16 @@
 const fs = require("fs");
 const path = require("path");
 
-const getPropertyValue = function (property) {
+/**
+ * @this {FakeDocument}
+ * @param {string} property property
+ * @returns {EXPECTED_ANY} value
+ */
+function getPropertyValue(property) {
 	return this[property];
-};
+}
 
-module.exports = class FakeDocument {
+class FakeDocument {
 	constructor(basePath) {
 		this.head = this.createElement("head");
 		this.body = this.createElement("body");
@@ -33,7 +38,7 @@ module.exports = class FakeDocument {
 
 	_onElementRemoved(element) {
 		const type = element._type;
-		let list = this._elementsByTagName.get(type);
+		const list = this._elementsByTagName.get(type);
 		const idx = list.indexOf(element);
 		list.splice(idx, 1);
 	}
@@ -54,7 +59,7 @@ module.exports = class FakeDocument {
 		}
 		return style;
 	}
-};
+}
 
 class FakeElement {
 	constructor(document, type, basePath) {
@@ -103,9 +108,9 @@ class FakeElement {
 	getAttribute(name) {
 		if (this._type === "link" && name === "href") {
 			return this.href;
-		} else {
-			return this._attributes[name];
 		}
+
+		return this._attributes[name];
 	}
 
 	_toRealUrl(value) {
@@ -119,9 +124,9 @@ class FakeElement {
 			return value;
 		} else if (/^\/\//.test(value)) {
 			return `https:${value}`;
-		} else {
-			return `https://test.cases/path/${value}`;
 		}
+
+		return `https://test.cases/path/${value}`;
 	}
 
 	set src(value) {
@@ -187,7 +192,7 @@ class FakeSheet {
 		const walkCssTokens = require("../lib/css/walkCssTokens");
 		const rules = [];
 		let currentRule = { getPropertyValue };
-		let selector = undefined;
+		let selector;
 		let last = 0;
 		const processDeclaration = str => {
 			const colon = str.indexOf(":");
@@ -208,6 +213,9 @@ class FakeSheet {
 				);
 		let css = fs.readFileSync(filepath, "utf-8");
 		css = css
+			// Remove comments
+			// @ts-expect-error we use es2018 for such tests
+			.replace(/\/\*.*?\*\//gms, "")
 			.replace(/@import url\("([^"]+)"\);/g, (match, url) => {
 				if (!/^https:\/\/test\.cases\/path\//.test(url)) {
 					return url;
@@ -224,13 +232,8 @@ class FakeSheet {
 					),
 					"utf-8"
 				);
-			})
-			.replace(/\/\*[\s\S]*?\*\//g, '');
-
-		walkCssTokens(css, {
-			isSelector() {
-				return selector === undefined;
-			},
+			});
+		walkCssTokens(css, 0, {
 			leftCurlyBracket(source, start, end) {
 				if (selector === undefined) {
 					selector = source.slice(last, start).trim();
@@ -255,3 +258,8 @@ class FakeSheet {
 		return rules;
 	}
 }
+
+FakeDocument.FakeSheet = FakeSheet;
+FakeDocument.FakeElement = FakeDocument;
+
+module.exports = FakeDocument;

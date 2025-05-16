@@ -224,8 +224,9 @@ const applyExperimentsDefaults = (
 	}
 
 	// IGNORE(experiments.incremental): Rspack specific configuration for incremental
-	D(experiments, "incremental", !production ? {} : false);
+	D(experiments, "incremental", {});
 	if (typeof experiments.incremental === "object") {
+		D(experiments.incremental, "silent", true);
 		D(experiments.incremental, "make", true);
 		D(experiments.incremental, "inferAsyncModules", false);
 		D(experiments.incremental, "providedExports", false);
@@ -260,11 +261,7 @@ const applybundlerInfoDefaults = (
 	if (typeof rspackFuture === "object") {
 		D(rspackFuture, "bundlerInfo", {});
 		if (typeof rspackFuture.bundlerInfo === "object") {
-			D(
-				rspackFuture.bundlerInfo,
-				"version",
-				require("../../package.json").version
-			);
+			D(rspackFuture.bundlerInfo, "version", RSPACK_VERSION);
 			D(rspackFuture.bundlerInfo, "bundler", "rspack");
 			// don't inject for library mode
 			D(rspackFuture.bundlerInfo, "force", !library);
@@ -347,14 +344,17 @@ const applyModuleDefaults = (
 		F(module.parser, "css", () => ({}));
 		assertNotNill(module.parser.css);
 		D(module.parser.css, "namedExports", true);
+		D(module.parser.css, "url", true);
 
 		F(module.parser, "css/auto", () => ({}));
 		assertNotNill(module.parser["css/auto"]);
 		D(module.parser["css/auto"], "namedExports", true);
+		D(module.parser["css/auto"], "url", true);
 
 		F(module.parser, "css/module", () => ({}));
 		assertNotNill(module.parser["css/module"]);
 		D(module.parser["css/module"], "namedExports", true);
+		D(module.parser["css/module"], "url", true);
 
 		// IGNORE(module.generator): already check to align in 2024.6.27
 		F(module.generator, "css", () => ({}));
@@ -590,6 +590,41 @@ const applyOutputDefaults = (
 	});
 	F(output, "devtoolNamespace", () => output.uniqueName);
 	F(output, "module", () => !!outputModule);
+
+	const environment = output.environment!;
+	const optimistic = (v?: boolean) => v || v === undefined;
+	const conditionallyOptimistic = (v?: boolean, c?: boolean) =>
+		(v === undefined && c) || v;
+
+	F(environment, "globalThis", () => tp?.globalThis);
+	F(environment, "bigIntLiteral", () => tp && optimistic(tp.bigIntLiteral));
+	F(environment, "const", () => tp && optimistic(tp.const));
+	F(environment, "arrowFunction", () => tp && optimistic(tp.arrowFunction));
+	F(environment, "asyncFunction", () => tp && optimistic(tp.asyncFunction));
+	F(environment, "forOf", () => tp && optimistic(tp.forOf));
+	F(environment, "destructuring", () => tp && optimistic(tp.destructuring));
+	F(
+		environment,
+		"optionalChaining",
+		() => tp && optimistic(tp.optionalChaining)
+	);
+	F(
+		environment,
+		"nodePrefixForCoreModules",
+		() => tp && optimistic(tp.nodePrefixForCoreModules)
+	);
+	F(environment, "templateLiteral", () => tp && optimistic(tp.templateLiteral));
+	F(environment, "dynamicImport", () =>
+		conditionallyOptimistic(tp?.dynamicImport, output.module)
+	);
+	F(environment, "dynamicImportInWorker", () =>
+		conditionallyOptimistic(tp?.dynamicImportInWorker, output.module)
+	);
+	F(environment, "module", () =>
+		conditionallyOptimistic(tp?.module, output.module)
+	);
+	F(environment, "document", () => tp && optimistic(tp.document));
+
 	D(output, "filename", output.module ? "[name].mjs" : "[name].js");
 	F(output, "iife", () => !output.module);
 
@@ -657,7 +692,7 @@ const applyOutputDefaults = (
 				? "Make sure that your 'browserslist' includes only platforms that support these features or select an appropriate 'target' to allow selecting a chunk format by default. Alternatively specify the 'output.chunkFormat' directly."
 				: "Select an appropriate 'target' to allow selecting one by default, or specify the 'output.chunkFormat' directly.";
 			if (output.module) {
-				if (tp.dynamicImport) return "module";
+				if (environment.dynamicImport) return "module";
 				if (tp.document) return "array-push";
 				throw new Error(
 					`For the selected environment is no default ESM chunk format available:\nESM exports can be chosen when 'import()' is available.\nJSONP Array push can be chosen when 'document' is available.\n${helpMessage}`
@@ -688,14 +723,16 @@ const applyOutputDefaults = (
 					if (tp.nodeBuiltins) return "async-node";
 					break;
 				case "module":
-					if (tp.dynamicImport) return "import";
+					if (environment.dynamicImport) return "import";
 					break;
 			}
 			if (
-				tp.require === null ||
-				tp.nodeBuiltins === null ||
-				tp.document === null ||
-				tp.importScripts === null
+				(tp.require === null ||
+					tp.nodeBuiltins === null ||
+					tp.document === null ||
+					tp.importScripts === null) &&
+				output.module &&
+				environment.dynamicImport
 			) {
 				return "universal";
 			}
@@ -713,13 +750,15 @@ const applyOutputDefaults = (
 					if (tp.nodeBuiltins) return "async-node";
 					break;
 				case "module":
-					if (tp.dynamicImportInWorker) return "import";
+					if (environment.dynamicImportInWorker) return "import";
 					break;
 			}
 			if (
-				tp.require === null ||
-				tp.nodeBuiltins === null ||
-				tp.importScriptsInWorker === null
+				(tp.require === null ||
+					tp.nodeBuiltins === null ||
+					tp.importScriptsInWorker === null) &&
+				output.module &&
+				environment.dynamicImport
 			) {
 				return "universal";
 			}
@@ -816,40 +855,6 @@ const applyOutputDefaults = (
 		// });
 		return Array.from(enabledWasmLoadingTypes);
 	});
-
-	const environment = output.environment!;
-	const optimistic = (v?: boolean) => v || v === undefined;
-	const conditionallyOptimistic = (v?: boolean, c?: boolean) =>
-		(v === undefined && c) || v;
-
-	F(environment, "globalThis", () => tp?.globalThis);
-	F(environment, "bigIntLiteral", () => tp && optimistic(tp.bigIntLiteral));
-	F(environment, "const", () => tp && optimistic(tp.const));
-	F(environment, "arrowFunction", () => tp && optimistic(tp.arrowFunction));
-	F(environment, "asyncFunction", () => tp && optimistic(tp.asyncFunction));
-	F(environment, "forOf", () => tp && optimistic(tp.forOf));
-	F(environment, "destructuring", () => tp && optimistic(tp.destructuring));
-	F(
-		environment,
-		"optionalChaining",
-		() => tp && optimistic(tp.optionalChaining)
-	);
-	F(
-		environment,
-		"nodePrefixForCoreModules",
-		() => tp && optimistic(tp.nodePrefixForCoreModules)
-	);
-	F(environment, "templateLiteral", () => tp && optimistic(tp.templateLiteral));
-	F(environment, "dynamicImport", () =>
-		conditionallyOptimistic(tp?.dynamicImport, output.module)
-	);
-	F(environment, "dynamicImportInWorker", () =>
-		conditionallyOptimistic(tp?.dynamicImportInWorker, output.module)
-	);
-	F(environment, "module", () =>
-		conditionallyOptimistic(tp?.module, output.module)
-	);
-	F(environment, "document", () => tp && optimistic(tp.document));
 };
 
 const applyExternalsPresetsDefaults = (
@@ -1094,6 +1099,7 @@ const getResolveDefaults = ({
 		byDependency: {
 			wasm: esmDeps(),
 			esm: esmDeps(),
+			loaderImport: esmDeps(),
 			url: {
 				preferRelative: true
 			},
@@ -1104,7 +1110,7 @@ const getResolveDefaults = ({
 			commonjs: cjsDeps(),
 			amd: cjsDeps(),
 			// for backward-compat: loadModule
-			// loader: cjsDeps(),
+			loader: cjsDeps(),
 			// for backward-compat: Custom Dependency and getResolve without dependencyType
 			unknown: cjsDeps()
 		}

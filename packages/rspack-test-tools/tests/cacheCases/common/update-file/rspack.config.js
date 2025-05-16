@@ -18,13 +18,13 @@ module.exports = {
 		},
 		incremental: true
 	},
+	ignoreWarnings: [/not friendly for incremental/],
 	plugins: [
 		{
 			updateIndex: 0,
 			apply(compiler) {
 				compiler.hooks.done.tap("Test", () => {
 					const options = compiler.options.module.rules[0].options;
-					console.log("options", options.files, this.updateIndex);
 					if (this.updateIndex == 0) {
 						expect(options.files.length).toBe(1);
 					}

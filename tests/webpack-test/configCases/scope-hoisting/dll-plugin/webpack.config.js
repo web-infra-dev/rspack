@@ -1,6 +1,10 @@
 var webpack = require("@rspack/core");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+	// CHANGE: use optimization.concatenateModules instead of ModuleConcatenationPlugin
+	optimization: {
+		concatenateModules: true
+	},
 	plugins: [
 		new webpack.DllReferencePlugin({
 			name: "function(id) { return {default: 'ok'}; }",
@@ -15,6 +19,6 @@ module.exports = {
 				}
 			}
 		}),
-		new webpack.optimize.ModuleConcatenationPlugin()
+		// new webpack.optimize.ModuleConcatenationPlugin()
 	]
 };

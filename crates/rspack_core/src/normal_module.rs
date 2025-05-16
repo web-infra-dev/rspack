@@ -78,12 +78,12 @@ impl ModuleIssuer {
   }
 }
 
-define_hook!(NormalModuleReadResource: SeriesBail(resource_data: &ResourceData) -> Content);
-define_hook!(NormalModuleLoader: Series(loader_context: &mut LoaderContext<RunnerContext>));
-define_hook!(NormalModuleLoaderShouldYield: SeriesBail(loader_context: &LoaderContext<RunnerContext>) -> bool);
-define_hook!(NormalModuleLoaderStartYielding: Series(loader_context: &mut LoaderContext<RunnerContext>));
-define_hook!(NormalModuleBeforeLoaders: Series(module: &mut NormalModule));
-define_hook!(NormalModuleAdditionalData: Series(additional_data: &mut Option<&mut AdditionalData>));
+define_hook!(NormalModuleReadResource: SeriesBail(resource_data: &ResourceData) -> Content,tracing=false);
+define_hook!(NormalModuleLoader: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
+define_hook!(NormalModuleLoaderShouldYield: SeriesBail(loader_context: &LoaderContext<RunnerContext>) -> bool,tracing=false);
+define_hook!(NormalModuleLoaderStartYielding: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
+define_hook!(NormalModuleBeforeLoaders: Series(module: &mut NormalModule),tracing=false);
+define_hook!(NormalModuleAdditionalData: Series(additional_data: &mut Option<&mut AdditionalData>),tracing=false);
 
 #[derive(Debug, Default)]
 pub struct NormalModuleHooks {
@@ -183,6 +183,7 @@ impl NormalModule {
     resource_data: Arc<ResourceData>,
     resolve_options: Option<Arc<Resolve>>,
     loaders: Vec<BoxLoader>,
+    context: Option<Context>,
   ) -> Self {
     let module_type = module_type.into();
     let id = Self::create_id(&module_type, layer.as_ref(), &request);
@@ -190,7 +191,7 @@ impl NormalModule {
       blocks: Vec::new(),
       dependencies: Vec::new(),
       id: ModuleIdentifier::from(id.as_ref()),
-      context: Box::new(get_context(&resource_data)),
+      context: Box::new(context.unwrap_or_else(|| get_context(&resource_data))),
       request,
       user_request,
       raw_request,
@@ -278,7 +279,11 @@ impl NormalModule {
     &mut self.presentational_dependencies
   }
 
-  #[tracing::instrument("NormalModule:build_hash", skip_all)]
+  #[tracing::instrument(
+    "NormalModule:build_hash", skip_all,fields(
+    id2 = self.resource_data.resource.as_str()
+  )
+)]
   fn init_build_hash(
     &self,
     output_options: &OutputOptions,
@@ -364,6 +369,7 @@ impl Module for NormalModule {
   #[tracing::instrument("NormalModule:build", skip_all, fields(
     module.resource = self.resource_resolved_data().resource.as_str(),
     module.identifier = self.identifier().as_str(),
+    id2 = self.resource_data.resource.as_str(),
     module.loaders = ?self.loaders.iter().map(|l| l.identifier().as_str()).collect::<Vec<_>>())
   )]
   async fn build(
@@ -407,7 +413,10 @@ impl Module for NormalModule {
       },
       build_context.fs.clone(),
     )
-    .instrument(info_span!("NormalModule:run_loaders"))
+    .instrument(info_span!(
+      "NormalModule:run_loaders",
+      id2 = self.resource_data.resource.as_str(),
+    ))
     .await;
     let (mut loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
@@ -487,7 +496,18 @@ impl Module for NormalModule {
       .await?;
     self.add_diagnostics(ds);
 
-    let content = if self.module_type().is_binary() {
+    let is_binary = self
+      .generator_options
+      .as_ref()
+      .and_then(|g| match g {
+        GeneratorOptions::Asset(g) => g.binary,
+        GeneratorOptions::AssetInline(g) => g.binary,
+        GeneratorOptions::AssetResource(g) => g.binary,
+        _ => None,
+      })
+      .unwrap_or(self.module_type().is_binary());
+
+    let content = if is_binary {
       Content::Buffer(loader_result.content.into_bytes())
     } else {
       Content::String(loader_result.content.into_string_lossy())

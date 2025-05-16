@@ -8,6 +8,10 @@ import { ApiMeta, Stability } from '@components/ApiMeta';
 
 Rspack 提供了一个内置的 `builtin:lightningcss-loader`，它基于 Lightning CSS 来转换 CSS，可以替代 [postcss-loader](https://github.com/postcss/postcss-loader) 和 [autoprefixer](https://github.com/postcss/autoprefixer) 的 CSS 语法降级、添加前缀等功能，并提供更好的性能。
 
+:::warning
+请注意，Lightning CSS 严格要求输入的代码符合 CSS 规范。使用 `builtin:lightningcss-loader` 处理非标准 CSS 代码时，可能导致样式被忽略或产生不可预期的结果（未定义的行为）。为确保样式正确应用，请避免使用非标准 CSS 语法或特定浏览器的私有语法，而应采用符合 W3C 规范的标准 CSS 写法。
+:::
+
 ## 示例
 
 如果需要在项目中使用 `builtin:lightningcss-loader`，需进行如下配置。
@@ -112,6 +116,8 @@ type LightningcssLoaderOptions = {
 
 ### targets
 
+- **类型：** `string | string[]`
+
 browserslist 查询字符串。
 
 下面是一些 targets 的用法示例。
@@ -136,6 +142,56 @@ const loader = {
   /** @type {import('@rspack/core').LightningcssLoaderOptions} */
   options: {
     targets: ['chrome >= 87', 'edge >= 88', '> 0.5%'],
+  },
+};
+```
+
+### errorRecovery
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+控制 Lightning CSS 如何处理无效的 CSS 语法。
+
+默认情况下启用，这意味着当 Lightning CSS 解析到无效的 CSS 规则或声明时，它会跳过这些内容，并输出警告，同时将这些无效部分从最终产物中移除，而不会中断编译过程。
+
+#### 忽略警告
+
+如果你确认这些警告可以忽略，可以使用 [ignoreWarnings](/config/other-options#ignorewarnings) 过滤掉来自 LightningCSS 的提示。
+
+比如忽略所有警告：
+
+```js title="rspack.config.mjs"
+export default {
+  ignoreWarnings: [
+    warning => /LightningCSS parse warning/.test(warning.message),
+  ],
+};
+```
+
+你也可以使用正则表达式来忽略特定的警告。
+
+#### 关闭 errorRecovery
+
+如果将 `errorRecovery` 设置为 `false`，Lightning CSS 在解析任何无效的 CSS 语法时，都会抛出编译错误并中断构建过程：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: [
+          {
+            loader: 'builtin:lightningcss-loader',
+            /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+            options: {
+              errorRecovery: false,
+            },
+          },
+        ],
+      },
+    ],
   },
 };
 ```

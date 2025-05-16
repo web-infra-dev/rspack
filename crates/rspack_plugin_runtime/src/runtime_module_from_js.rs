@@ -4,11 +4,7 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_cacheable::with::Unsupported;
 use rspack_collections::Identifier;
-use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  Compilation, RuntimeModule, RuntimeModuleStage,
-};
+use rspack_core::{impl_runtime_module, Compilation, RuntimeModule, RuntimeModuleStage};
 
 type GenerateFn = Arc<dyn Fn() -> BoxFuture<'static, rspack_error::Result<String>> + Send + Sync>;
 
@@ -31,9 +27,9 @@ impl RuntimeModule for RuntimeModuleFromJs {
     Identifier::from(format!("webpack/runtime/{}", self.name))
   }
 
-  async fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, _: &Compilation) -> rspack_error::Result<String> {
     let res = (self.generator)().await?;
-    Ok(RawStringSource::from(res).boxed())
+    Ok(res)
   }
 
   fn full_hash(&self) -> bool {

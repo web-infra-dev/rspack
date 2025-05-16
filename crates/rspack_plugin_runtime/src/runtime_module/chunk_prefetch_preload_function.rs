@@ -1,9 +1,5 @@
 use rspack_collections::Identifier;
-use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  Compilation, RuntimeGlobals, RuntimeModule,
-};
+use rspack_core::{impl_runtime_module, Compilation, RuntimeGlobals, RuntimeModule};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -43,7 +39,7 @@ impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let source = compilation.runtime_template.render(
       &self.id,
       Some(serde_json::json!({
@@ -52,6 +48,6 @@ impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
       })),
     )?;
 
-    Ok(RawStringSource::from(source).boxed())
+    Ok(source)
   }
 }

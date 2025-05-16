@@ -486,4 +486,8 @@ impl Plugin for RsdoctorPlugin {
 
     Ok(())
   }
+
+  fn clear_cache(&self, id: CompilationId) {
+    COMPILATION_HOOKS_MAP.remove(&id);
+  }
 }

@@ -19,6 +19,7 @@ import type {
 import type { Chunk } from "../Chunk";
 import type { NormalizedStatsOptions } from "../Compilation";
 import type { Compiler } from "../Compiler";
+import { DeadlockRiskError } from "../RspackError";
 import type { StatsOptions } from "../config";
 import {
 	LogType,
@@ -62,7 +63,8 @@ import {
 	moduleGroup,
 	resolveStatsMillisecond,
 	sortByField,
-	spaceLimited
+	spaceLimited,
+	warningFromStatsWarning
 } from "./statsFactoryUtils";
 
 const compareIds = _compareIds as <T>(a: T, b: T) => -1 | 0 | 1;
@@ -676,18 +678,28 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				);
 			}
 			if (!context.cachedGetErrors) {
-				context.cachedGetErrors = _compilation => {
-					return statsCompilation.errors;
-				};
+				const map = new WeakMap();
+				context.cachedGetErrors = compilation =>
+					map.get(compilation) ||
+					// eslint-disable-next-line no-sequences
+					(errors => {
+						map.set(compilation, errors);
+						return errors;
+					})(statsCompilation.errors);
 			}
 			if (!context.cachedGetWarnings) {
-				context.cachedGetWarnings = _compilation => {
-					const warnings = statsCompilation.warnings;
-
-					return compilation.hooks.processWarnings.call(
-						warnings as any
-					) as unknown as typeof warnings;
-				};
+				const map = new WeakMap();
+				context.cachedGetWarnings = compilation =>
+					map.get(compilation) ||
+					// eslint-disable-next-line no-sequences
+					(warnings => {
+						map.set(compilation, warnings);
+						return warnings;
+					})(
+						compilation.hooks.processWarnings.call(
+							statsCompilation.warnings.map(warningFromStatsWarning)
+						)
+					);
 			}
 			if (compilation.name) {
 				object.name = compilation.name;
@@ -833,9 +845,8 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.hash = statsCompilation.hash;
 		},
 		version: object => {
-			const { version, webpackVersion } = require("../../package.json");
-			object.version = webpackVersion;
-			object.rspackVersion = version;
+			object.version = WEBPACK_VERSION;
+			object.rspackVersion = RSPACK_VERSION;
 		},
 		env: (object, _compilation, _context, { _env }) => {
 			object.env = _env;
@@ -847,6 +858,11 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.builtAt = compilation.endTime;
 		},
 		publicPath: (object, compilation) => {
+			if (typeof compilation.outputOptions.publicPath === "function") {
+				throw new DeadlockRiskError(
+					"publicPath as function can't be used with stats.publicPath=true, which may cause deadlock risk, consider setting stats.publicPath=false in rspack config"
+				);
+			}
 			object.publicPath = compilation.getPath(
 				compilation.outputOptions.publicPath || ""
 			);

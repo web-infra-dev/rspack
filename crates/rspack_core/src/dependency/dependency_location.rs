@@ -58,8 +58,8 @@ impl DependencyRange {
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct RealDependencyLocation {
-  start: SourcePosition,
-  end: Option<SourcePosition>,
+  pub start: SourcePosition,
+  pub end: Option<SourcePosition>,
 }
 
 impl RealDependencyLocation {
@@ -137,8 +137,8 @@ impl fmt::Display for DependencyLocation {
 #[cacheable]
 #[derive(Debug, Clone, Copy)]
 pub struct SourcePosition {
-  line: usize,
-  column: usize,
+  pub line: usize,
+  pub column: usize,
 }
 
 impl From<(u32, u32)> for SourcePosition {

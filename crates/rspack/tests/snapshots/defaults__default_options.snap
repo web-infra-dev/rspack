@@ -12,9 +12,7 @@ CompilerOptions {
         pathinfo: Bool(
             false,
         ),
-        clean: CleanAll(
-            false,
-        ),
+        clean: CleanAll(false),
         public_path: Auto,
         asset_module_filename: Filename(
             Template(
@@ -99,22 +97,22 @@ CompilerOptions {
         script_type: "",
         environment: Environment {
             const: Some(
-                true,
+                false,
             ),
             arrow_function: Some(
-                true,
+                false,
             ),
             node_prefix_for_core_modules: Some(
-                true,
+                false,
             ),
             async_function: Some(
-                true,
+                false,
             ),
             big_int_literal: Some(
-                true,
+                false,
             ),
             destructuring: Some(
-                true,
+                false,
             ),
             document: Some(
                 true,
@@ -123,17 +121,19 @@ CompilerOptions {
                 false,
             ),
             for_of: Some(
-                true,
+                false,
             ),
-            global_this: None,
+            global_this: Some(
+                false,
+            ),
             module: Some(
                 false,
             ),
             optional_chaining: Some(
-                true,
+                false,
             ),
             template_literal: Some(
-                true,
+                false,
             ),
             dynamic_import_in_worker: Some(
                 false,
@@ -251,6 +251,54 @@ CompilerOptions {
                         pnp: None,
                     },
                     "esm": Resolve {
+                        extensions: Some(
+                            [
+                                ".js",
+                                ".json",
+                                ".wasm",
+                            ],
+                        ),
+                        alias: None,
+                        prefer_relative: None,
+                        prefer_absolute: None,
+                        symlinks: None,
+                        main_files: None,
+                        main_fields: Some(
+                            [
+                                "browser",
+                                "module",
+                                "...",
+                            ],
+                        ),
+                        condition_names: Some(
+                            [
+                                "import",
+                                "module",
+                                "...",
+                            ],
+                        ),
+                        tsconfig: None,
+                        modules: None,
+                        fallback: None,
+                        fully_specified: None,
+                        exports_fields: None,
+                        extension_alias: None,
+                        alias_fields: Some(
+                            [
+                                [
+                                    "browser",
+                                ],
+                            ],
+                        ),
+                        roots: None,
+                        restrictions: None,
+                        imports_fields: None,
+                        by_dependency: None,
+                        description_files: None,
+                        enforce_extension: None,
+                        pnp: None,
+                    },
+                    "loaderImport": Resolve {
                         extensions: Some(
                             [
                                 ".js",
@@ -423,6 +471,54 @@ CompilerOptions {
                         pnp: None,
                     },
                     "amd": Resolve {
+                        extensions: Some(
+                            [
+                                ".js",
+                                ".json",
+                                ".wasm",
+                            ],
+                        ),
+                        alias: None,
+                        prefer_relative: None,
+                        prefer_absolute: None,
+                        symlinks: None,
+                        main_files: None,
+                        main_fields: Some(
+                            [
+                                "browser",
+                                "module",
+                                "...",
+                            ],
+                        ),
+                        condition_names: Some(
+                            [
+                                "require",
+                                "module",
+                                "...",
+                            ],
+                        ),
+                        tsconfig: None,
+                        modules: None,
+                        fallback: None,
+                        fully_specified: None,
+                        exports_fields: None,
+                        extension_alias: None,
+                        alias_fields: Some(
+                            [
+                                [
+                                    "browser",
+                                ],
+                            ],
+                        ),
+                        roots: None,
+                        restrictions: None,
+                        imports_fields: None,
+                        by_dependency: None,
+                        description_files: None,
+                        enforce_extension: None,
+                        pnp: None,
+                    },
+                    "loader": Resolve {
                         extensions: Some(
                             [
                                 ".js",
@@ -1347,9 +1443,12 @@ CompilerOptions {
     cache: Disabled,
     experiments: Experiments {
         layers: false,
-        incremental: IncrementalPasses(
-            MAKE | EMIT_ASSETS,
-        ),
+        incremental: IncrementalOptions {
+            silent: true,
+            passes: IncrementalPasses(
+                MAKE | EMIT_ASSETS,
+            ),
+        },
         parallel_code_splitting: false,
         top_level_await: true,
         rspack_future: RspackFuture,

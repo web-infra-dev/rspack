@@ -1,6 +1,7 @@
 use crate::{impl_module_methods, Module};
 
 #[napi]
+#[repr(C)]
 pub struct ExternalModule {
   pub(crate) module: Module,
 }

@@ -33,12 +33,7 @@ impl CompatibilityPlugin {
     if !second.is_bool() || !matches!(second.as_bool(), Some(true)) {
       return None;
     }
-    let dep = ConstDependency::new(
-      expr.callee.span().real_lo(),
-      expr.callee.span().real_hi(),
-      "require".into(),
-      None,
-    );
+    let dep = ConstDependency::new(expr.callee.span().into(), "require".into(), None);
     if let Some(last) = parser.dependencies.last()
       && let Some(last) = last.downcast_ref::<CommonJsRequireContextDependency>()
       && let options = last.options()
@@ -89,7 +84,11 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     {
       parser
         .presentational_dependencies
-        .push(Box::new(ConstDependency::new(0, 0, "//".into(), None)));
+        .push(Box::new(ConstDependency::new(
+          (0, 0).into(),
+          "//".into(),
+          None,
+        )));
     }
 
     None
@@ -203,8 +202,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     if !nested_require_data.update {
       let shorthand = nested_require_data.in_short_hand;
       deps.push(ConstDependency::new(
-        nested_require_data.loc.start,
-        nested_require_data.loc.end,
+        nested_require_data.loc.clone(),
         if shorthand {
           format!("{}: {}", ident.sym, name.clone()).into()
         } else {
@@ -217,8 +215,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     tag_info.data = Some(NestedRequireData::into_any(nested_require_data));
 
     deps.push(ConstDependency::new(
-      ident.span.real_lo(),
-      ident.span.real_hi(),
+      ident.span.into(),
       if parser.in_short_hand {
         format!("{}: {}", ident.sym, name.clone()).into()
       } else {

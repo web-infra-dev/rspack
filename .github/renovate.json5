@@ -9,12 +9,11 @@
 	},
 	ignorePaths: [
 		"**/fixtures/**",
-		"npm/**",
 		"**/no-override-loaded/**",
 		"**/share-plugin-dual-mode/**",
 		"**/resolve-plugin-context/**"
 	],
-	assignees: ["@SoonIter"],
+	labels: ["dependencies"],
 	packageRules: [
 		// manually update peer dependencies
 		{
@@ -45,7 +44,7 @@
 			enabled: false
 		},
 		{
-			groupName: "crates",
+			groupName: "patch crates",
 			matchManagers: ["cargo"],
 			excludePackagePrefixes: ["swc", "napi"],
 			excludePackageNames: [
@@ -57,7 +56,8 @@
 				"rkyv",
 				"rspack_resolver",
 				"inventory"
-			]
+			],
+			matchUpdateTypes: ["patch"]
 		},
 		{
 			groupName: "swc",
@@ -100,6 +100,12 @@
 			matchManagers: ["npm"],
 			matchPackageNames: ["/^@swc/"]
 		},
+		// React npm packages
+		{
+			groupName: "React",
+			matchManagers: ["npm"],
+			matchPackageNames: ["/^react/"]
+		},
 		// Rspack crates
 		{
 			groupName: "crate rspack_resolver",
@@ -127,7 +133,7 @@
 			enabled: false
 		},
 		{
-			groupName: "npm dependencies",
+			groupName: "patch npm dependencies",
 			matchManagers: ["npm"],
 			matchDepTypes: ["dependencies", "devDependencies"],
 			excludePackagePrefixes: ["webpack"],

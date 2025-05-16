@@ -1,12 +1,15 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, hash::Hash};
 
-use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsOption, AsPreset},
+};
 use rspack_collections::Identifiable;
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_macros::impl_source_map_config;
-use rspack_sources::{BoxSource, RawStringSource, Source, SourceExt};
-use rspack_util::source_map::SourceMapKind;
+use rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt};
+use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
   dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info, module_update_hash,
@@ -21,8 +24,9 @@ use crate::{
 pub struct RawModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
-  #[cacheable(with=AsPreset)]
-  source: BoxSource,
+  source_str: String,
+  #[cacheable(with=AsOption<AsPreset>)]
+  source: Option<BoxSource>,
   identifier: ModuleIdentifier,
   readable_identifier: String,
   runtime_requirements: RuntimeGlobals,
@@ -35,7 +39,7 @@ static RAW_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
 
 impl RawModule {
   pub fn new(
-    source: String,
+    source_str: String,
     identifier: ModuleIdentifier,
     readable_identifier: String,
     runtime_requirements: RuntimeGlobals,
@@ -43,8 +47,8 @@ impl RawModule {
     Self {
       blocks: Default::default(),
       dependencies: Default::default(),
-      // TODO: useSourceMap, etc...
-      source: RawStringSource::from(source).boxed(),
+      source_str,
+      source: None,
       identifier,
       readable_identifier,
       runtime_requirements,
@@ -102,7 +106,7 @@ impl Module for RawModule {
   }
 
   fn source(&self) -> Option<&BoxSource> {
-    Some(&self.source)
+    self.source.as_ref()
   }
 
   fn readable_identifier(&self, _context: &Context) -> Cow<str> {
@@ -110,7 +114,7 @@ impl Module for RawModule {
   }
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
-    f64::max(1.0, self.source.size() as f64)
+    f64::max(1.0, self.source_str.len() as f64)
   }
 
   // #[tracing::instrument("RawModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
@@ -122,7 +126,17 @@ impl Module for RawModule {
   ) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
     cgr.runtime_requirements.insert(self.runtime_requirements);
-    cgr.add(SourceType::JavaScript, self.source.clone());
+    if self.get_source_map_kind().enabled() {
+      cgr.add(
+        SourceType::JavaScript,
+        OriginalSource::new(self.source_str.clone(), self.identifier.to_string()).boxed(),
+      );
+    } else {
+      cgr.add(
+        SourceType::JavaScript,
+        RawStringSource::from(self.source_str.clone()).boxed(),
+      );
+    };
     Ok(cgr)
   }
 
@@ -132,7 +146,7 @@ impl Module for RawModule {
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHash::from(&compilation.options.output);
-    self.source.dyn_hash(&mut hasher);
+    self.source_str.hash(&mut hasher);
     module_update_hash(self, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }

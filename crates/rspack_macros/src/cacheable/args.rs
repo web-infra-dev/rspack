@@ -11,7 +11,6 @@ mod kw {
 /// #[cacheable] type-only args
 pub struct CacheableArgs {
   pub crate_path: syn::Path,
-  pub r#as: Option<syn::Type>,
   pub with: Option<syn::Type>,
   pub hashable: bool,
 }
@@ -19,7 +18,6 @@ pub struct CacheableArgs {
 impl Parse for CacheableArgs {
   fn parse(input: ParseStream) -> Result<Self> {
     let mut crate_path = parse_quote! { ::rspack_cacheable };
-    let mut r#as = None;
     let mut with = None;
     let mut hashable = false;
 
@@ -33,10 +31,6 @@ impl Parse for CacheableArgs {
         input.parse::<syn::token::Crate>()?;
         input.parse::<Token![=]>()?;
         crate_path = input.parse::<syn::Path>()?;
-      } else if input.peek(syn::token::As) {
-        input.parse::<syn::token::As>()?;
-        input.parse::<Token![=]>()?;
-        r#as = Some(input.parse::<syn::Type>()?);
       } else if input.peek(kw::with) {
         if with.is_some() {
           return Err(input.error("duplicate with argument"));
@@ -57,7 +51,6 @@ impl Parse for CacheableArgs {
 
     Ok(Self {
       crate_path,
-      r#as,
       with,
       hashable,
     })

@@ -1,4 +1,4 @@
-var MCEP = require("mini-css-extract-plugin");
+var { CssExtractRspackPlugin: MCEP } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -6,7 +6,8 @@ module.exports = {
 		rules: [
 			{
 				test: /\.css$/,
-				use: [MCEP.loader, "css-loader"]
+				use: [MCEP.loader, "css-loader"],
+				type: "javascript/auto",
 			}
 		]
 	},

@@ -31,7 +31,7 @@ use rspack_paths::ArcPath;
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rspack_util::itoa;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
-use tracing::{info_span, instrument, Instrument};
+use tracing::instrument;
 
 use super::{
   make::{make_module_graph, update_module_graph, MakeArtifact, MakeParam},
@@ -43,7 +43,7 @@ use crate::{
   build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
   cache::Cache,
   get_runtime_key,
-  incremental::{Incremental, IncrementalPasses, Mutation},
+  incremental::{self, Incremental, IncrementalPasses, Mutation},
   is_source_equal,
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
   to_identifier, AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, CacheCount,
@@ -60,13 +60,14 @@ use crate::{
 };
 
 define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));
-define_hook!(CompilationBuildModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
+define_hook!(CompilationBuildModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 // NOTE: This is a Rspack-specific hook and has not been standardized yet. Do not expose it to the JS side.
+define_hook!(CompilationUpdateModuleGraph: Series(params: &mut Vec<MakeParam>, artifact: &MakeArtifact));
 define_hook!(CompilationRevokedModules: Series(revoked_modules: &IdentifierSet));
 define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
-define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
+define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationExecuteModule:
-  Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, codegen_results: &CodeGenerationResults, execute_module_id: &ExecuteModuleId));
+  Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
 define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation));
 define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
 define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &mut Compilation) -> bool);
@@ -78,8 +79,8 @@ define_hook!(CompilationOptimizeChunkModules: SeriesBail(compilation: &mut Compi
 define_hook!(CompilationModuleIds: Series(compilation: &mut Compilation));
 define_hook!(CompilationChunkIds: Series(compilation: &mut Compilation));
 define_hook!(CompilationRuntimeModule: Series(compilation: &mut Compilation, module: &ModuleIdentifier, chunk: &ChunkUkey));
-define_hook!(CompilationAdditionalModuleRuntimeRequirements: Series(compilation: &Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &mut RuntimeGlobals));
-define_hook!(CompilationRuntimeRequirementInModule: SeriesBail(compilation: &Compilation, module_identifier: &ModuleIdentifier, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
+define_hook!(CompilationAdditionalModuleRuntimeRequirements: Series(compilation: &Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &mut RuntimeGlobals),tracing=false);
+define_hook!(CompilationRuntimeRequirementInModule: SeriesBail(compilation: &Compilation, module_identifier: &ModuleIdentifier, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals),tracing=false);
 define_hook!(CompilationAdditionalChunkRuntimeRequirements: Series(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
 define_hook!(CompilationRuntimeRequirementInChunk: SeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
 define_hook!(CompilationAdditionalTreeRuntimeRequirements: Series(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
@@ -93,12 +94,13 @@ define_hook!(CompilationRenderManifest: Series(compilation: &Compilation, chunk_
 define_hook!(CompilationChunkAsset: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, filename: &str));
 define_hook!(CompilationProcessAssets: Series(compilation: &mut Compilation));
 define_hook!(CompilationAfterProcessAssets: Series(compilation: &mut Compilation));
-define_hook!(CompilationAfterSeal: Series(compilation: &mut Compilation));
+define_hook!(CompilationAfterSeal: Series(compilation: &mut Compilation),tracing=true);
 
 #[derive(Debug, Default)]
 pub struct CompilationHooks {
   pub add_entry: CompilationAddEntryHook,
   pub build_module: CompilationBuildModuleHook,
+  pub update_module_graph: CompilationUpdateModuleGraphHook,
   pub revoked_modules: CompilationRevokedModulesHook,
   pub still_valid_module: CompilationStillValidModuleHook,
   pub succeed_module: CompilationSucceedModuleHook,
@@ -247,7 +249,7 @@ pub struct Compilation {
   // artifact for chunk_ids
   pub chunk_ids_artifact: ChunkIdsArtifact,
   // artifact for code_generation
-  pub code_generation_results: CodeGenerationResults,
+  pub code_generation_results: BindingCell<CodeGenerationResults>,
   // artifact for create_module_hashes
   pub cgm_hash_artifact: CgmHashArtifact,
   // artifact for process_modules_runtime_requirements
@@ -326,6 +328,7 @@ impl Compilation {
     records: Option<CompilationRecords>,
     cache: Arc<dyn Cache>,
     old_cache: Arc<OldCache>,
+    incremental: Incremental,
     module_executor: Option<ModuleExecutor>,
     modified_files: HashSet<ArcPath>,
     removed_files: HashSet<ArcPath>,
@@ -334,7 +337,6 @@ impl Compilation {
     output_filesystem: Arc<dyn WritableFileSystem>,
     is_rebuild: bool,
   ) -> Self {
-    let incremental = Incremental::new(options.experiments.incremental);
     Self {
       id: CompilationId::new(),
       compiler_id,
@@ -623,6 +625,31 @@ impl Compilation {
       .add_entry
       .call(self, entry_name.as_deref())
       .await?;
+
+    Ok(())
+  }
+
+  pub async fn add_entry_batch(&mut self, args: Vec<(BoxDependency, EntryOptions)>) -> Result<()> {
+    for (entry, options) in args {
+      self.add_entry(entry, options).await?;
+    }
+
+    let make_artifact = std::mem::take(&mut self.make_artifact);
+    self.make_artifact = update_module_graph(
+      self,
+      make_artifact,
+      vec![MakeParam::BuildEntry(
+        self
+          .entries
+          .values()
+          .flat_map(|item| item.all_dependencies())
+          .chain(self.global_entry.all_dependencies())
+          .copied()
+          .collect(),
+      )],
+    )
+    .await?;
+
     Ok(())
   }
 
@@ -781,6 +808,7 @@ impl Compilation {
   pub fn push_diagnostic(&mut self, diagnostic: Diagnostic) {
     self.diagnostics.push(diagnostic);
   }
+
   pub fn splice_diagnostic(
     &mut self,
     s: usize,
@@ -915,12 +943,21 @@ impl Compilation {
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
     let artifact = std::mem::take(&mut self.make_artifact);
+
+    if let Some(module_executor) = &mut self.module_executor {
+      module_executor.rebuild_origins = Some(module_identifiers.clone());
+    }
+
     self.make_artifact = update_module_graph(
       self,
       artifact,
       vec![MakeParam::ForceBuildModules(module_identifiers.clone())],
     )
     .await?;
+
+    if let Some(module_executor) = &mut self.module_executor {
+      module_executor.rebuild_origins = None;
+    }
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers
@@ -1074,7 +1111,7 @@ impl Compilation {
         continue;
       }
 
-      for (name, asset) in assets {
+      for (name, asset) in assets.as_ref() {
         module_assets.push((name.clone(), asset.clone()));
       }
       // assets of executed modules are not in this compilation
@@ -1103,10 +1140,9 @@ impl Compilation {
 
   #[instrument("Compilation::create_chunk_assets", skip_all)]
   async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    let mutations = self
+    let chunks = if let Some(mutations) = self
       .incremental
-      .mutations_read(IncrementalPasses::CHUNKS_RENDER);
-    let chunks = if let Some(mutations) = mutations
+      .mutations_read(IncrementalPasses::CHUNKS_RENDER)
       && !self.chunk_render_artifact.is_empty()
     {
       let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
@@ -1119,8 +1155,14 @@ impl Compilation {
       self
         .chunk_render_artifact
         .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
-      let mut chunks = mutations.get_affected_chunks_with_chunk_graph(self);
-      chunks.extend(self.get_chunk_graph_entries());
+      let chunks: UkeySet<ChunkUkey> = mutations
+        .iter()
+        .filter_map(|mutation| match mutation {
+          Mutation::ChunkSetHashes { chunk } => Some(*chunk),
+          _ => None,
+        })
+        .collect();
+      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::CHUNKS_RENDER, %mutations);
       let logger = self.get_logger("rspack.incremental.chunksRender");
       logger.log(format!(
         "{} chunks are affected, {} in total",
@@ -1163,7 +1205,10 @@ impl Compilation {
       let (key, value) = item?;
       chunk_render_results.insert(key, value);
     }
-    let chunk_ukey_and_manifest = if mutations.is_some() {
+    let chunk_ukey_and_manifest = if self
+      .incremental
+      .passes_enabled(IncrementalPasses::CHUNKS_RENDER)
+    {
       self.chunk_render_artifact.extend(chunk_render_results);
       self.chunk_render_artifact.clone()
     } else {
@@ -1215,6 +1260,7 @@ impl Compilation {
       .process_assets
       .call(self)
       .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.processAssets"))
   }
 
   #[instrument("Compilation:after_process_asssets", skip_all)]
@@ -1317,6 +1363,7 @@ impl Compilation {
           .difference(&self.make_artifact.revoked_modules)
           .map(|&module| Mutation::ModuleAdd { module }),
       );
+      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MAKE, %mutations);
     }
 
     let start = logger.time("finish modules");
@@ -1349,7 +1396,7 @@ impl Compilation {
     Ok(())
   }
 
-  // #[tracing::instrument(skip_all)]
+  #[tracing::instrument("Compilation:collect_dependencies_diagnostics", skip_all)]
   fn collect_dependencies_diagnostics(&mut self) {
     let mutations = self
       .incremental
@@ -1412,19 +1459,26 @@ impl Compilation {
     let logger = self.get_logger("rspack.Compilation");
 
     // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L2809
-    plugin_driver.compilation_hooks.seal.call(self).await?;
+    plugin_driver
+      .compilation_hooks
+      .seal
+      .call(self)
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.seal"))?;
 
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
+
     while matches!(
       plugin_driver
         .compilation_hooks
         .optimize_dependencies
         .call(self)
-        .instrument(info_span!("Compilation:optimize_dependencies"))
-        .await?,
+        .await
+        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeDependencies"))?,
       Some(true)
     ) {}
+
     logger.time_end(start);
 
     // ModuleGraph is frozen for now on, we have a module graph that won't change
@@ -1448,25 +1502,28 @@ impl Compilation {
         .compilation_hooks
         .optimize_modules
         .call(self)
-        .instrument(info_span!("hook:optimize_modules"))
-        .await?,
+        .await
+        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeModules"))?,
       Some(true)
     ) {}
+
     plugin_driver
       .compilation_hooks
       .after_optimize_modules
       .call(self)
-      .instrument(info_span!("hook:after_optimize_modules"))
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.afterOptimizeModules"))?;
+
     while matches!(
       plugin_driver
         .compilation_hooks
         .optimize_chunks
         .call(self)
-        .instrument(info_span!("hook:optimize_chunks"))
-        .await?,
+        .await
+        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeChunks"))?,
       Some(true)
     ) {}
+
     logger.time_end(start);
 
     let start = logger.time("optimize");
@@ -1474,15 +1531,15 @@ impl Compilation {
       .compilation_hooks
       .optimize_tree
       .call(self)
-      .instrument(info_span!("hook:optimize_tree"))
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeTree"))?;
 
     plugin_driver
       .compilation_hooks
       .optimize_chunk_modules
       .call(self)
-      .instrument(info_span!("hook:optimize_chunk_modules"))
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeChunkModules"))?;
     logger.time_end(start);
 
     // ChunkGraph is frozen for now on, we have a chunk graph that won't change
@@ -1494,8 +1551,8 @@ impl Compilation {
       .compilation_hooks
       .module_ids
       .call(self)
-      .instrument(tracing::info_span!("hook:module_ids"))
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.moduleIds"))?;
     logger.time_end(start);
 
     let start = logger.time("chunk ids");
@@ -1503,8 +1560,8 @@ impl Compilation {
       .compilation_hooks
       .chunk_ids
       .call(self)
-      .instrument(tracing::info_span!("hook:chunk_ids"))
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.chunkIds"))?;
     logger.time_end(start);
 
     self.assign_runtime_ids();
@@ -1522,25 +1579,25 @@ impl Compilation {
         self.cgm_hash_artifact.remove(&revoked_module);
       }
       let mg = self.get_module_graph();
-      let mut affected_modules = mutations.get_affected_modules_with_module_graph(&mg);
+      let mut modules = mutations.get_affected_modules_with_module_graph(&mg);
       for mutation in mutations.iter() {
         match mutation {
           Mutation::ModuleSetAsync { module } => {
-            affected_modules.insert(*module);
+            modules.insert(*module);
           }
           Mutation::ModuleSetId { module } => {
-            affected_modules.insert(*module);
-            affected_modules.extend(
+            modules.insert(*module);
+            modules.extend(
               mg.get_incoming_connections(module)
                 .filter_map(|c| c.original_module_identifier),
             );
           }
           Mutation::ChunkAdd { chunk } => {
-            affected_modules.extend(self.chunk_graph.get_chunk_modules_identifier(chunk));
+            modules.extend(self.chunk_graph.get_chunk_modules_identifier(chunk));
           }
           Mutation::ChunkSetId { chunk } => {
             let chunk = self.chunk_by_ukey.expect_get(chunk);
-            affected_modules.extend(
+            modules.extend(
               chunk
                 .groups()
                 .iter()
@@ -1554,13 +1611,14 @@ impl Compilation {
           _ => {}
         }
       }
+      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MODULES_HASHES, %mutations, ?modules);
       let logger = self.get_logger("rspack.incremental.modulesHashes");
       logger.log(format!(
         "{} modules are affected, {} in total",
-        affected_modules.len(),
+        modules.len(),
         mg.modules().len()
       ));
-      affected_modules
+      modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
@@ -1573,8 +1631,8 @@ impl Compilation {
       .compilation_hooks
       .optimize_code_generation
       .call(self)
-      .instrument(info_span!("hook:optimize_code_generation"))
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeCodeGeneration"))?;
     logger.time_end(start);
 
     let start = logger.time("code generation");
@@ -1597,6 +1655,7 @@ impl Compilation {
           _ => None,
         })
         .collect();
+      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MODULES_CODEGEN, %mutations);
       let logger = self.get_logger("rspack.incremental.modulesCodegen");
       logger.log(format!(
         "{} modules are affected, {} in total",
@@ -1613,7 +1672,8 @@ impl Compilation {
       .compilation_hooks
       .after_code_generation
       .call(self)
-      .await?;
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.afterCodeGeneration"))?;
     logger.time_end(start);
 
     let start = logger.time("runtime requirements");
@@ -1699,35 +1759,7 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("hashing");
-    let create_hash_chunks = if let Some(mutations) = self
-      .incremental
-      .mutations_read(IncrementalPasses::CHUNKS_HASHES)
-      && !self.chunk_hashes_artifact.is_empty()
-    {
-      let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ChunkRemove { chunk } => Some(*chunk),
-        _ => None,
-      });
-      for removed_chunk in removed_chunks {
-        self.chunk_hashes_artifact.remove(&removed_chunk);
-      }
-      self
-        .chunk_hashes_artifact
-        .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
-      let chunks = mutations.get_affected_chunks_with_chunk_graph(self);
-      let logger = self.get_logger("rspack.incremental.chunksHashes");
-      logger.log(format!(
-        "{} chunks are affected, {} in total",
-        chunks.len(),
-        self.chunk_by_ukey.len(),
-      ));
-      chunks
-    } else {
-      self.chunk_by_ukey.keys().copied().collect()
-    };
-    self
-      .create_hash(create_hash_chunks, plugin_driver.clone())
-      .await?;
+    self.create_hash(plugin_driver.clone()).await?;
     self.runtime_modules_code_generation().await?;
     logger.time_end(start);
 
@@ -1843,7 +1875,8 @@ impl Compilation {
                     .compilation_hooks
                     .additional_module_runtime_requirements
                     .call(compilation, &module, &mut runtime_requirements)
-                    .await?;
+                    .await
+                    .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.additionalModuleRuntimeRequirements"))?;
 
                   compilation
                     .process_runtime_requirement_hook(&mut runtime_requirements, {
@@ -1862,7 +1895,8 @@ impl Compilation {
                             runtime_requirements,
                             runtime_requirements_mut,
                           )
-                          .await?;
+                          .await
+                          .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInModule"))?;
                         Ok(())
                       }
                     })
@@ -1919,7 +1953,10 @@ impl Compilation {
         .compilation_hooks
         .additional_chunk_runtime_requirements
         .call(self, &chunk_ukey, &mut set)
-        .await?;
+        .await
+        .map_err(|e| {
+          e.wrap_err("caused by plugins in Compilation.hooks.additionalChunkRuntimeRequirements")
+        })?;
 
       self
         .process_runtime_requirement_hook_mut(&mut set, {
@@ -1938,7 +1975,10 @@ impl Compilation {
                 runtime_requirements,
                 runtime_requirements_mut,
               )
-              .await?;
+              .await
+              .map_err(|e| {
+                e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInChunk")
+              })?;
             Ok(())
           }
         })
@@ -1964,7 +2004,10 @@ impl Compilation {
         .compilation_hooks
         .additional_tree_runtime_requirements
         .call(self, &entry_ukey, &mut set)
-        .await?;
+        .await
+        .map_err(|e| {
+          e.wrap_err("caused by plugins in Compilation.hooks.additionalTreeRuntimeRequirements")
+        })?;
 
       self
         .process_runtime_requirement_hook_mut(&mut set, {
@@ -1983,7 +2026,10 @@ impl Compilation {
                 runtime_requirements,
                 runtime_requirements_mut,
               )
-              .await?;
+              .await
+              .map_err(|e| {
+                e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInTree")
+              })?;
             Ok(())
           }
         })
@@ -2006,7 +2052,8 @@ impl Compilation {
           .compilation_hooks
           .runtime_module
           .call(self, &runtime_module_id, entry_ukey)
-          .await?;
+          .await
+          .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.runtimeModule"))?;
       }
     }
 
@@ -2026,35 +2073,87 @@ impl Compilation {
   );
 
   #[instrument(name = "Compilation:create_hash", skip_all)]
-  pub async fn create_hash(
-    &mut self,
-    create_hash_chunks: UkeySet<ChunkUkey>,
-    plugin_driver: SharedPluginDriver,
-  ) -> Result<()> {
+  pub async fn create_hash(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
+
+    // Check if there are any chunks that depend on full hash, usually only runtime chunks are
+    // possible to depend on full hash, but for library type commonjs/module, it's possible to
+    // have non-runtime chunks depend on full hash, the library format plugin is using
+    // dependent_full_hash hook to declare it.
+    let mut full_hash_chunks = UkeySet::default();
+    for chunk_ukey in self.chunk_by_ukey.keys() {
+      let chunk_dependent_full_hash = plugin_driver
+        .compilation_hooks
+        .dependent_full_hash
+        .call(self, chunk_ukey)
+        .await?
+        .unwrap_or_default();
+      if chunk_dependent_full_hash {
+        full_hash_chunks.insert(*chunk_ukey);
+      }
+    }
+    if !full_hash_chunks.is_empty()
+      && let Some(diagnostic) = self.incremental.disable_passes(
+        IncrementalPasses::CHUNKS_HASHES,
+        "Chunks that dependent on full hash",
+        "it requires calculating the hashes of all the chunks, which is a global effect",
+      )
+    {
+      if let Some(diagnostic) = diagnostic {
+        self.push_diagnostic(diagnostic);
+      }
+      self.chunk_hashes_artifact.clear();
+    }
+
+    let create_hash_chunks = if let Some(mutations) = self
+      .incremental
+      .mutations_read(IncrementalPasses::CHUNKS_HASHES)
+      && !self.chunk_hashes_artifact.is_empty()
+    {
+      let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
+        Mutation::ChunkRemove { chunk } => Some(*chunk),
+        _ => None,
+      });
+      for removed_chunk in removed_chunks {
+        self.chunk_hashes_artifact.remove(&removed_chunk);
+      }
+      self
+        .chunk_hashes_artifact
+        .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
+      let chunks = mutations.get_affected_chunks_with_chunk_graph(self);
+      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::CHUNKS_HASHES, %mutations, ?chunks);
+      let logger = self.get_logger("rspack.incremental.chunksHashes");
+      logger.log(format!(
+        "{} chunks are affected, {} in total",
+        chunks.len(),
+        self.chunk_by_ukey.len(),
+      ));
+      chunks
+    } else {
+      self.chunk_by_ukey.keys().copied().collect()
+    };
+
     let mut compilation_hasher = RspackHash::from(&self.options.output);
 
     fn try_process_chunk_hash_results(
       compilation: &mut Compilation,
       chunk_hash_results: Vec<Result<(ChunkUkey, ChunkHashResult)>>,
-      full_hash_chunks: &mut UkeySet<ChunkUkey>,
     ) -> Result<()> {
       for hash_result in chunk_hash_results {
         let (chunk_ukey, chunk_hash_result) = hash_result?;
         let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
-        chunk.set_hashes(
+        let chunk_hashes_changed = chunk.set_hashes(
           &mut compilation.chunk_hashes_artifact,
           chunk_hash_result.hash,
           chunk_hash_result.content_hash,
         );
-        if chunk_hash_result.dependent_full_hash {
-          full_hash_chunks.insert(chunk_ukey);
+        if chunk_hashes_changed && let Some(mutations) = compilation.incremental.mutations_write() {
+          mutations.add(Mutation::ChunkSetHashes { chunk: chunk_ukey });
         }
       }
       Ok(())
     }
 
-    let mut full_hash_chunks = UkeySet::default();
     let unordered_runtime_chunks: UkeySet<ChunkUkey> = self.get_chunk_graph_entries().collect();
     let start = logger.time("hashing: hash chunks");
     let other_chunks: Vec<_> = create_hash_chunks
@@ -2078,7 +2177,7 @@ impl Compilation {
         Ok((*chunk, hash_result))
       }))
       .await;
-    try_process_chunk_hash_results(self, other_chunks_hash_results, &mut full_hash_chunks)?;
+    try_process_chunk_hash_results(self, other_chunks_hash_results)?;
     logger.time_end(start);
 
     // collect references for runtime chunks
@@ -2202,11 +2301,16 @@ impl Compilation {
         .process_chunk_hash(runtime_chunk_ukey, &plugin_driver)
         .await?;
       let chunk = self.chunk_by_ukey.expect_get(&runtime_chunk_ukey);
-      chunk.set_hashes(
+      let chunk_hashes_changed = chunk.set_hashes(
         &mut self.chunk_hashes_artifact,
         chunk_hash_result.hash,
         chunk_hash_result.content_hash,
       );
+      if chunk_hashes_changed && let Some(mutations) = self.incremental.mutations_write() {
+        mutations.add(Mutation::ChunkSetHashes {
+          chunk: runtime_chunk_ukey,
+        });
+      }
     }
     logger.time_end(start);
 
@@ -2264,11 +2368,14 @@ impl Compilation {
           })
           .collect()
       };
-      chunk.set_hashes(
+      let chunk_hashes_changed = chunk.set_hashes(
         &mut self.chunk_hashes_artifact,
         new_chunk_hash,
         new_content_hash,
       );
+      if chunk_hashes_changed && let Some(mutations) = self.incremental.mutations_write() {
+        mutations.add(Mutation::ChunkSetHashes { chunk: chunk_ukey });
+      }
     }
     logger.time_end(start);
     Ok(())
@@ -2341,16 +2448,9 @@ impl Compilation {
       .map(|(t, hasher)| (t, hasher.digest(&self.options.output.hash_digest)))
       .collect();
 
-    let dependent_full_hash = plugin_driver
-      .compilation_hooks
-      .dependent_full_hash
-      .call(self, &chunk_ukey)
-      .await?;
-
     Ok(ChunkHashResult {
       hash: chunk_hash,
       content_hash: content_hashes,
-      dependent_full_hash: dependent_full_hash.unwrap_or(false),
     })
   }
 
@@ -2810,5 +2910,4 @@ pub struct RenderManifestEntry {
 pub struct ChunkHashResult {
   pub hash: RspackHashDigest,
   pub content_hash: ChunkContentHash,
-  pub dependent_full_hash: bool,
 }

@@ -6,7 +6,10 @@ mod validate_scope;
 mod write_pack;
 mod write_scope;
 
-use std::{hash::Hasher, sync::Arc};
+use std::{
+  hash::{Hash, Hasher},
+  sync::Arc,
+};
 
 use handle_file::{
   recovery_move_lock, recovery_remove_lock, remove_expired_versions, remove_unused_scope_files,
@@ -63,9 +66,10 @@ impl SplitPackStrategy {
     let file_name = get_name(keys, contents);
     hasher.write(file_name.as_bytes());
 
-    let meta = self.fs.metadata(path).await?;
-    hasher.write_u64(meta.size);
-    hasher.write_u64(meta.mtime_ms);
+    // TODO read file one time only.
+    let mut reader = self.fs.read_file(path).await?;
+    let content = reader.read_to_end().await?;
+    content.hash(&mut hasher);
 
     Ok(format!("{:016x}", hasher.finish()))
   }
