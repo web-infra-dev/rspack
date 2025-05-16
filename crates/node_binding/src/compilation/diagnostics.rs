@@ -166,7 +166,7 @@ impl Diagnostics {
       None => vec![],
     };
 
-    let mut result = Vec::with_capacity(delete_count);
+    let mut removed = Vec::with_capacity(delete_count);
     let mut new_diagnostics = Vec::with_capacity(len - delete_count + to_insert.len());
     let mut i = 0;
     for diagnostic in diagnostics.drain(..) {
@@ -177,14 +177,13 @@ impl Diagnostics {
 
       if i >= index && delete_count > 0 {
         delete_count -= 1;
-        result.push(diagnostic);
+        removed.push(diagnostic);
       } else {
         new_diagnostics.push(diagnostic);
-        if delete_count == 0 && !to_insert.is_empty() {
-          for diagnostic in to_insert.drain(..) {
-            new_diagnostics.push(diagnostic);
-          }
-        }
+      }
+
+      if i == index && delete_count == 0 && !to_insert.is_empty() {
+        new_diagnostics.append(&mut to_insert);
       }
 
       i += 1;
@@ -196,20 +195,9 @@ impl Diagnostics {
 
     *diagnostics = new_diagnostics;
 
-    result
+    removed
       .into_iter()
       .map(|d| JsRspackError::try_from_diagnostic(&d, colors))
       .collect::<napi::Result<Vec<_>>>()
-  }
-
-  #[napi]
-  pub fn push(&mut self, new_item: JsRspackError) -> napi::Result<()> {
-    let severity = self.severity;
-    let compilation = self.as_mut()?;
-
-    let diagnostics = compilation.diagnostics_mut();
-    diagnostics.push(new_item.into_diagnostic(severity));
-
-    Ok(())
   }
 }

@@ -63,8 +63,8 @@ import { JsSource } from "./util/source";
 import "./Chunks";
 // patch CodeGenerationResults
 import "./CodeGenerationResults";
-import type { CodeGenerationResult } from "./taps/compilation";
 import { createDiagnosticArray } from "./Diagnostics";
+import type { CodeGenerationResult } from "./taps/compilation";
 
 export type Assets = Record<string, Source>;
 export interface Asset {

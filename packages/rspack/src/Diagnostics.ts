@@ -1,6 +1,7 @@
 import util from "node:util";
-import { Diagnostics } from "@rspack/binding";
-import { RspackError } from "./RspackError";
+import type { Diagnostics } from "@rspack/binding";
+import type { RspackError } from "./RspackError";
+import { concatErrorMsgAndStack } from "./util";
 
 const $proxy = Symbol.for("proxy");
 
@@ -24,6 +25,7 @@ export function createDiagnosticArray(
 		deleteCount?: number,
 		...newItems: RspackError[]
 	): RspackError[] {
+		// biome-ignore lint/style/noArguments:
 		switch (arguments.length) {
 			case 0:
 				return [];
@@ -32,7 +34,12 @@ export function createDiagnosticArray(
 			case 2:
 				return adm.spliceWithArray(index, deleteCount);
 		}
-		return adm.spliceWithArray(index, deleteCount, newItems);
+
+		return adm.spliceWithArray(
+			index,
+			deleteCount,
+			newItems.map(item => concatErrorMsgAndStack(item))
+		);
 	};
 
 	const arrayExtensions: Record<string | symbol, any> = {
@@ -41,7 +48,11 @@ export function createDiagnosticArray(
 		},
 		splice,
 		push(...newItems: RspackError[]): number {
-			adm.spliceWithArray(adm.length, 0, newItems);
+			adm.spliceWithArray(
+				adm.length,
+				0,
+				newItems.map(item => concatErrorMsgAndStack(item))
+			);
 			return adm.length;
 		},
 		pop(): RspackError | undefined {
@@ -50,8 +61,12 @@ export function createDiagnosticArray(
 		shift(): RspackError | undefined {
 			return splice(0, 1)[0];
 		},
-		unshift(...items: RspackError[]): number {
-			adm.spliceWithArray(0, 0, items);
+		unshift(...newItems: RspackError[]): number {
+			adm.spliceWithArray(
+				0,
+				0,
+				newItems.map(item => concatErrorMsgAndStack(item))
+			);
 			return adm.length;
 		},
 		reverse(): RspackError[] {
@@ -105,7 +120,6 @@ export function createDiagnosticArray(
 			) => U,
 			thisArg?: any
 		): U[] {
-			[].reduce;
 			return adm.values().map(callbackfn, thisArg);
 		},
 		reduce(
@@ -137,8 +151,8 @@ export function createDiagnosticArray(
 			if (name === "length") {
 				return adm.length;
 			}
-			if (typeof name === "string" && !isNaN(name as any)) {
-				return adm.get(parseInt(name));
+			if (typeof name === "string" && !Number.isNaN(Number.parseInt(name))) {
+				return adm.get(Number.parseInt(name));
 			}
 			if (Object.prototype.hasOwnProperty.call(arrayExtensions, name)) {
 				return arrayExtensions[name];
@@ -151,11 +165,11 @@ export function createDiagnosticArray(
 					"The 'length' property is read-only and cannot be assigned a new value."
 				);
 			}
-			if (typeof name === "symbol" || isNaN(name as any)) {
+			if (typeof name === "symbol" || Number.isNaN(Number.parseInt(name))) {
 				target[name] = value;
 			} else {
 				// numeric string
-				adm.set(parseInt(name), value);
+				adm.set(Number.parseInt(name), concatErrorMsgAndStack(value));
 			}
 			return true;
 		}

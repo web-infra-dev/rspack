@@ -130,7 +130,6 @@ export declare class Diagnostics {
   get(index: number): JsRspackError | undefined
   set(index: number, error: JsRspackError): void
   spliceWithArray(index: number, deleteCount?: number | undefined | null, newItems?: Array<JsRspackError> | undefined | null): Array<JsRspackError>
-  push(newItem: JsRspackError): void
 }
 
 export declare class EntryDataDto {
