@@ -16,7 +16,8 @@ use rustc_hash::FxHashSet as HashSet;
 
 use super::{boxfs::BoxFS, ResolveResult, Resource};
 use crate::{
-  Alias, AliasMap, DependencyCategory, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
+  diagnostics::ModuleNotFoundError, Alias, AliasMap, DependencyCategory, Resolve, ResolveArgs,
+  ResolveOptionsWithDependencyType,
 };
 
 #[derive(Debug, Default, Clone)]
@@ -400,15 +401,18 @@ fn map_resolver_error(
 
   let importer = args.importer;
   if importer.is_none() {
-    return diagnostic!("Module not found: Can't resolve '{request}' in '{context}'").boxed();
+    return ModuleNotFoundError::new(
+      diagnostic!("Can't resolve '{request}' in '{context}'").boxed(),
+    )
+    .boxed();
   }
 
   let span = args.span.unwrap_or_default();
   let message = format!("Can't resolve '{request}' in '{context}'");
-  TraceableError::from_lazy_file(
+  let traceable_error = TraceableError::from_lazy_file(
     span.start as usize,
     span.end as usize,
-    "Module not found".to_string(),
+    "Error".to_string(),
     message,
   )
   .with_help(if is_recursion {
@@ -424,5 +428,6 @@ fn map_resolver_error(
       Severity::Error
     },
   )
-  .boxed()
+  .boxed();
+  ModuleNotFoundError::new(traceable_error).boxed()
 }

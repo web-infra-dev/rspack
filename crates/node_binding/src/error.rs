@@ -200,9 +200,20 @@ impl RspackError {
     colored: bool,
   ) -> Result<Self> {
     let error = match diagnostic.source() {
-      Some(source) => source
-        .downcast_ref::<RspackError>()
-        .map(|rspack_error| Box::new(rspack_error.clone())),
+      Some(source) => match source.downcast_ref::<RspackError>() {
+        Some(rspack_error) => Some(Box::new(rspack_error.clone())),
+        None => Some(Box::new(RspackError {
+          name: "Error".to_string(),
+          message: format!("{}", source),
+          module_identifier: None,
+          loc: None,
+          file: None,
+          stack: None,
+          hide_stack: None,
+          module: None,
+          error: None,
+        })),
+      },
       None => None,
     };
 
