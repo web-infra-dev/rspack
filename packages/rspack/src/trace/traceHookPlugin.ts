@@ -1,4 +1,3 @@
-import {} from "@rspack/lite-tapable";
 import { JavaScriptTracer } from ".";
 // adjust from webpack's ProfilingPlugin https://github.com/webpack/webpack/blob/dec18718be5dfba28f067fb3827dd620a1f33667/lib/debug/ProfilingPlugin.js#L1
 import type { Compiler } from "../exports";
@@ -52,15 +51,17 @@ const makeNewTraceTapFn = (
 	tracer: typeof JavaScriptTracer,
 	{ name: pluginName, type, fn }: { name: string; type: string; fn: Function }
 ) => {
-	const name = `${compilerName}:${pluginName}:${hookName}`;
+	const name = `${pluginName}:${hookName}`;
+	const id = pluginName; // used for track
 	switch (type) {
 		case "promise":
 			return (...args: any[]) => {
-				const id = tracer.counter++;
+				const id2 = tracer.counter++;
 				tracer.startAsync({
 					name,
 					id,
 					args: {
+						id2,
 						compilerName,
 						hookName,
 						pluginName
@@ -74,6 +75,7 @@ const makeNewTraceTapFn = (
 						name,
 						id,
 						args: {
+							id2,
 							compilerName,
 							hookName,
 							pluginName
@@ -84,11 +86,12 @@ const makeNewTraceTapFn = (
 			};
 		case "async":
 			return (...args: any[]) => {
-				const id = tracer.counter++;
+				const id2 = tracer.counter++;
 				tracer.startAsync({
 					name,
 					id,
 					args: {
+						id2,
 						compilerName,
 						hookName,
 						pluginName
@@ -105,6 +108,7 @@ const makeNewTraceTapFn = (
 							name,
 							id,
 							args: {
+								id2,
 								compilerName,
 								hookName,
 								pluginName
@@ -116,7 +120,7 @@ const makeNewTraceTapFn = (
 			};
 		case "sync":
 			return (...args: any[]) => {
-				const id = tracer.counter++;
+				const id2 = tracer.counter++;
 				// Do not instrument ourself due to the CPU
 				// profile needing to be the last event in the trace.
 				if (name === PLUGIN_NAME) {
@@ -127,6 +131,7 @@ const makeNewTraceTapFn = (
 					name,
 					id,
 					args: {
+						id2,
 						compilerName,
 						hookName,
 						pluginName
@@ -140,7 +145,7 @@ const makeNewTraceTapFn = (
 						name,
 						id,
 						args: {
-							compilerName,
+							id2: compilerName,
 							hookName,
 							pluginName
 						}
@@ -149,7 +154,9 @@ const makeNewTraceTapFn = (
 				}
 				tracer.endAsync({
 					name,
+					id,
 					args: {
+						id2,
 						compilerName,
 						hookName,
 						pluginName
@@ -161,6 +168,7 @@ const makeNewTraceTapFn = (
 			return fn;
 	}
 };
+
 let compilerId = 0;
 export class TraceHookPlugin {
 	name = PLUGIN_NAME;

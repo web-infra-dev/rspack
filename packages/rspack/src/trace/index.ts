@@ -6,9 +6,9 @@ export interface ChromeEvent {
 	ph?: string;
 	cat?: string; // cat is used to show different track in perfetto with id
 	ts?: number;
-	pid?: number;
-	tid?: number;
-	id?: number; // updated to allow string id
+	pid?: number | string;
+	tid?: number | string;
+	id?: number | string; // updated to allow string id
 	args?: {
 		[key: string]: any;
 	};
