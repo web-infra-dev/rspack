@@ -162,7 +162,7 @@ async fn render_chunk(
     sources.add(RawStringSource::from(format!(
       "import __webpack_require__ from '{}';\n",
       get_relative_path(
-        &base_chunk_output_name
+        base_chunk_output_name
           .trim_start_matches("/")
           .trim_start_matches("\\"),
         &runtime_chunk_output_name
