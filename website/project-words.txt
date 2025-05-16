@@ -166,6 +166,8 @@ rustup
 samply
 sanyuan
 Shenzhen
+shiki
+shikijs
 shulaoda
 sockjs
 sokra
