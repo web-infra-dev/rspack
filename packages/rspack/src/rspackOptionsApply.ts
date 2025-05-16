@@ -153,7 +153,7 @@ export class RspackOptionsApply {
 					break;
 				}
 				case "esm": {
-					new EsmModuleChunkFormatPlugin().apply(compiler);
+					new EsmLibraryPlugin().apply(compiler);
 					break;
 				}
 				default:
