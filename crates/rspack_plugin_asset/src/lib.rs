@@ -381,7 +381,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       .is_some_and(|x| x.is_source() || x.is_inline())
       || !self.emit
     {
-      if has_js && has_css {
+      return if has_js && has_css {
         JS_AND_CSS_URL_TYPES
       } else if has_js {
         JS_TYPES
@@ -389,17 +389,17 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         CSS_URL_TYPES
       } else {
         NO_TYPES
-      }
+      };
+    }
+
+    if has_js && has_css {
+      ASSET_AND_JS_AND_CSS_URL_TYPES
+    } else if has_js {
+      ASSET_AND_JS_TYPES
+    } else if has_css {
+      ASSET_AND_CSS_URL_TYPES
     } else {
-      if has_js && has_css {
-        ASSET_AND_JS_AND_CSS_URL_TYPES
-      } else if has_js {
-        ASSET_AND_JS_TYPES
-      } else if has_css {
-        ASSET_AND_CSS_URL_TYPES
-      } else {
-        ASSET_TYPES
-      }
+      ASSET_TYPES
     }
   }
 

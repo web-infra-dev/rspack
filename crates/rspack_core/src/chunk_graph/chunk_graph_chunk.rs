@@ -411,7 +411,7 @@ impl ChunkGraph {
         {
           module_source_types.contains(&source_type)
         } else {
-          module.source_types(&module_graph).contains(&source_type)
+          module.source_types(module_graph).contains(&source_type)
         }
       })
       .collect::<Vec<_>>();
@@ -429,7 +429,7 @@ impl ChunkGraph {
       .modules
       .iter()
       .filter_map(|uri| module_graph.module_by_identifier(uri))
-      .filter(move |module| module.source_types(&module_graph).contains(&source_type))
+      .filter(move |module| module.source_types(module_graph).contains(&source_type))
       .map(|m| m.as_ref())
   }
 
