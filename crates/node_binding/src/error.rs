@@ -254,11 +254,16 @@ impl RspackError {
 
 impl std::fmt::Display for RspackError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    if self.name.is_empty() {
-      write!(f, "{}", self.message)
+    if let Some(stack) = &self.stack {
+      if !matches!(self.hide_stack, Some(true)) {
+        write!(f, "{}", stack)?;
+      }
     } else {
-      write!(f, "{}: {}", self.name, self.message)
+      if !self.name.is_empty() {
+        write!(f, "{}: ", self.name)?;
+      }
     }
+    write!(f, "{}", self.message)
   }
 }
 

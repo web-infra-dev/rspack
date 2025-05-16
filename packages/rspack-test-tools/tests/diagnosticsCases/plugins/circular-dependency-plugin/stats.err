@@ -10,4 +10,5 @@ WARNING in ⚠ Circular dependency detected:
 WARNING in ⚠ Circular dependency detected:
   │  tests/diagnosticsCases/plugins/circular-dependency-plugin/multiple-circular/a.js -> tests/diagnosticsCases/plugins/circular-dependency-plugin/multiple-circular/b.js -> tests/diagnosticsCases/plugins/circular-dependency-plugin/multiple-circular/c.js -> tests/diagnosticsCases/plugins/circular-dependency-plugin/multiple-circular/e.js -> tests/diagnosticsCases/plugins/circular-dependency-plugin/multiple-circular/a.js
 
-ERROR in × Module not found: Can't resolve './' in '<TEST_TOOLS_ROOT>/tests/diagnosticsCases/plugins/circular-dependency-plugin'
+ERROR in × Module not found:
+  ╰─▶   × Error: Can't resolve './' in '<TEST_TOOLS_ROOT>/tests/diagnosticsCases/plugins/circular-dependency-plugin'

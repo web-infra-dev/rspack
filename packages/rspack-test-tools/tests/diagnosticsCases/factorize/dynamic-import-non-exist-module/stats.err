@@ -1,5 +1,7 @@
 ERROR in ./index.js
-  × Module not found: Can't resolve './non-exist' in '<TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/dynamic-import-non-exist-module'
+  × Module not found:
+  ╰─▶   × Error: Can't resolve './non-exist' in '<TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/dynamic-import-non-exist-module'
+      
    ╭─[4:14]
  2 │     let errored = false;
  3 │     try {

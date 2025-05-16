@@ -1,1 +1,2 @@
-ERROR in × Module not found: Can't resolve './non-existent-module' in '<TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/import-module'
+ERROR in × Module not found:
+  ╰─▶   × Error: Can't resolve './non-existent-module' in '<TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/import-module'
