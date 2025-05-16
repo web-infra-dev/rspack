@@ -402,7 +402,7 @@ fn map_resolver_error(
   let importer = args.importer;
   if importer.is_none() {
     return ModuleNotFoundError::new(
-      diagnostic!("Can't resolve '{request}' in '{context}'").boxed(),
+      diagnostic!("Error: Can't resolve '{request}' in '{context}'").boxed(),
     )
     .boxed();
   }
