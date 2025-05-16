@@ -1810,7 +1810,7 @@ impl ConcatenatedModule {
   }
 
   #[allow(clippy::too_many_arguments)]
-  fn get_final_name(
+  pub fn get_final_name(
     module_graph: &ModuleGraph,
     info: &ModuleIdentifier,
     export_name: Vec<Atom>,
