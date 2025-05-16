@@ -59,14 +59,12 @@ import { createFakeCompilationDependencies } from "./util/fake";
 import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
 import { JsSource } from "./util/source";
-// patch binding Diagnostics
-import "./Diagnostics";
-import type Diagnostics from "./Diagnostics";
 // patch Chunks
 import "./Chunks";
 // patch CodeGenerationResults
 import "./CodeGenerationResults";
 import type { CodeGenerationResult } from "./taps/compilation";
+import { createDiagnosticArray } from "./Diagnostics";
 
 export type Assets = Record<string, Source>;
 export interface Asset {
@@ -203,6 +201,8 @@ export const checkCompilation = (compilation: Compilation) => {
 export class Compilation {
 	#inner: JsCompilation;
 	#shutdown: boolean;
+	#errors?: RspackError[];
+	#chunks?: ReadonlySet<Chunk>;
 
 	hooks: Readonly<{
 		processAssets: liteTapable.AsyncSeriesHook<Assets>;
@@ -473,7 +473,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	get chunks(): ReadonlySet<Chunk> {
-		return this.#inner.chunks;
+		if (!this.#chunks) {
+			this.#chunks = this.#inner.chunks;
+		}
+		return this.#chunks;
 	}
 
 	/**
@@ -706,8 +709,11 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.#inner.pushNativeDiagnostics(diagnostics);
 	}
 
-	get errors(): Diagnostics {
-		return this.#inner.errors;
+	get errors(): RspackError[] {
+		if (!this.#errors) {
+			this.#errors = createDiagnosticArray(this.#inner.errors);
+		}
+		return this.#errors;
 	}
 
 	set errors(errors: RspackError[]) {

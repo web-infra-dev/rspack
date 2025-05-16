@@ -1,7 +1,4 @@
-use napi::{
-  bindgen_prelude::{FromNapiValue, Object, Reference, ToNapiValue, WeakReference},
-  Env, NapiValue,
-};
+use napi::{bindgen_prelude::WeakReference, Either};
 use rspack_core::Compilation;
 use rspack_error::RspackSeverity;
 
@@ -40,18 +37,6 @@ impl Diagnostics {
       )),
     }
   }
-
-  pub fn to_reference(self, env: &Env) -> napi::Result<Reference<Self>> {
-    let raw_env = env.raw();
-    let napi_val = unsafe { ToNapiValue::to_napi_value(raw_env, self)? };
-    unsafe { Reference::<Self>::from_napi_value(raw_env, napi_val) }
-  }
-
-  pub fn to_jsobject(self, env: &Env) -> napi::Result<Object> {
-    let raw_env = env.raw();
-    let napi_val = unsafe { ToNapiValue::to_napi_value(raw_env, self)? };
-    Ok(unsafe { Object::from_raw_unchecked(raw_env, napi_val) })
-  }
 }
 
 #[napi]
@@ -66,6 +51,80 @@ impl Diagnostics {
       .filter(|diagnostic| diagnostic.severity() == self.severity)
       .count();
     Ok(len as u32)
+  }
+
+  #[napi]
+  pub fn values(&self) -> napi::Result<Vec<JsRspackError>> {
+    let compilation = self.as_ref()?;
+
+    let diagnostics = compilation.diagnostics();
+    diagnostics
+      .iter()
+      .filter(|diagnostic| diagnostic.severity() == self.severity)
+      .map(|diagnostic| {
+        JsRspackError::try_from_diagnostic(diagnostic, compilation.options.stats.colors)
+      })
+      .collect::<napi::Result<Vec<JsRspackError>>>()
+  }
+
+  #[napi]
+  pub fn get(&self, index: f64) -> napi::Result<Either<JsRspackError, ()>> {
+    if index < 0f64 || index.is_infinite() || index.abs() != index {
+      return Ok(Either::B(()));
+    }
+
+    let compilation = self.as_ref()?;
+    let diagnostics = compilation.diagnostics();
+    let diagnostic = diagnostics
+      .iter()
+      .filter(|diagnostic| diagnostic.severity() == self.severity)
+      .nth(index as usize);
+    Ok(match diagnostic {
+      Some(diagnostic) => {
+        let colors = compilation.options.stats.colors;
+        let js_rspack_error = JsRspackError::try_from_diagnostic(diagnostic, colors)?;
+        Either::A(js_rspack_error)
+      }
+      None => Either::B(()),
+    })
+  }
+
+  #[napi]
+  pub fn set(&mut self, index: f64, error: JsRspackError) -> napi::Result<()> {
+    if index < 0f64 || index.is_infinite() || index.abs() != index {
+      return Ok(());
+    }
+
+    let severity = self.severity;
+    let compilation = self.as_mut()?;
+    let diagnostics = compilation.diagnostics_mut();
+    let len = diagnostics
+      .iter()
+      .filter(|diagnostic| diagnostic.severity() == severity)
+      .count();
+
+    let index = index as usize;
+    if index > len {
+      return Ok(());
+    }
+
+    if index == len {
+      diagnostics.push(error.into_diagnostic(severity));
+      return Ok(());
+    }
+
+    let mut i = 0;
+    for diagnostic in diagnostics.iter_mut() {
+      if diagnostic.severity() == severity {
+        if i == index {
+          *diagnostic = error.into_diagnostic(severity);
+          break;
+        }
+        i += 1;
+      }
+    }
+
+    Ok(())
   }
 
   #[napi]
@@ -137,12 +196,10 @@ impl Diagnostics {
 
     *diagnostics = new_diagnostics;
 
-    Ok(
-      result
-        .into_iter()
-        .map(|d| JsRspackError::try_from_diagnostic(&d, colors))
-        .collect::<napi::Result<Vec<_>>>()?,
-    )
+    result
+      .into_iter()
+      .map(|d| JsRspackError::try_from_diagnostic(&d, colors))
+      .collect::<napi::Result<Vec<_>>>()
   }
 
   #[napi]

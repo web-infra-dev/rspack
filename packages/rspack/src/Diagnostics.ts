@@ -1,79 +1,166 @@
-import * as binding from "@rspack/binding";
+import util from "node:util";
+import { Diagnostics } from "@rspack/binding";
 import { RspackError } from "./RspackError";
 
-/*
- * functions that do alter the internal structure of the array, (based on lib.es6.d.ts)
- * since these functions alter the inner structure of the array, the have side effects.
- * Because the have side effects, they should not be used in computed function,
- * and for that reason the do not call dependencyState.notifyObserved
- */
-Object.defineProperty(binding.Diagnostics.prototype, "splice", {
-	enumerable: true,
-	configurable: true,
-	value(
-		this: binding.Diagnostics,
+const $proxy = Symbol.for("proxy");
+
+export function createDiagnosticArray(
+	adm: Diagnostics & { [$proxy]?: RspackError[] }
+): RspackError[] {
+	if ($proxy in adm) {
+		return adm[$proxy] as RspackError[];
+	}
+
+	const array: RspackError[] & {
+		[util.inspect.custom]?: () => RspackError[];
+		[key: string | symbol]: any;
+	} = [];
+	array[util.inspect.custom] = () => {
+		return adm.values();
+	};
+
+	const splice = function splice(
 		index: number,
 		deleteCount?: number,
 		...newItems: RspackError[]
-	) {
+	): RspackError[] {
 		switch (arguments.length) {
 			case 0:
 				return [];
 			case 1:
-				return this.spliceWithArray(index, this.length);
+				return adm.spliceWithArray(index, adm.length);
 			case 2:
-				return this.spliceWithArray(index, deleteCount);
+				return adm.spliceWithArray(index, deleteCount);
 		}
-		return this.spliceWithArray(index, deleteCount, newItems);
-	}
-});
+		return adm.spliceWithArray(index, deleteCount, newItems);
+	};
 
-Object.defineProperty(binding.Diagnostics.prototype, "push", {
-	enumerable: true,
-	configurable: true,
-	value(this: binding.Diagnostics, ...newItems: RspackError[]) {
-		this.spliceWithArray(this.length, 0, newItems);
-		return this.length;
-	}
-});
+	const arrayExtensions: Record<string | symbol, any> = {
+		[Symbol.iterator](): ArrayIterator<RspackError> {
+			return adm.values().values();
+		},
+		splice,
+		push(...newItems: RspackError[]): number {
+			adm.spliceWithArray(adm.length, 0, newItems);
+			return adm.length;
+		},
+		pop(): RspackError | undefined {
+			return splice(Math.max(adm.length - 1, 0), 1)[0];
+		},
+		shift(): RspackError | undefined {
+			return splice(0, 1)[0];
+		},
+		unshift(...items: RspackError[]): number {
+			adm.spliceWithArray(0, 0, items);
+			return adm.length;
+		},
+		reverse(): RspackError[] {
+			return adm.values().reverse();
+		},
+		sort(
+			this: RspackError[],
+			compareFn?: (a: RspackError, b: RspackError) => number
+		): RspackError[] {
+			const copy = adm.values();
+			copy.sort(compareFn);
+			adm.spliceWithArray(0, adm.length, copy);
+			return this;
+		},
+		at(index: number): RspackError | undefined {
+			return adm.get(index);
+		},
+		concat(...items: RspackError[]): RspackError[] {
+			[].includes;
+			return adm.values().concat(...items);
+		},
+		flat(): RspackError[] {
+			return adm.values();
+		},
+		flatMap<U, This = undefined>(
+			callbackfn: (
+				this: This,
+				value: RspackError,
+				index: number,
+				array: RspackError[]
+			) => U | ReadonlyArray<U>,
+			thisArg?: This
+		): U[] {
+			return adm.values().flatMap(callbackfn, thisArg);
+		},
+		forEach(
+			callbackfn: (
+				value: RspackError,
+				index: number,
+				array: RspackError[]
+			) => void,
+			thisArg?: any
+		): void {
+			adm.values().forEach(callbackfn, thisArg);
+		},
+		map<U>(
+			callbackfn: (
+				value: RspackError,
+				index: number,
+				array: RspackError[]
+			) => U,
+			thisArg?: any
+		): U[] {
+			[].reduce;
+			return adm.values().map(callbackfn, thisArg);
+		},
+		reduce(
+			callbackfn: (
+				previousValue: RspackError,
+				currentValue: RspackError,
+				currentIndex: number,
+				array: RspackError[]
+			) => RspackError,
+			initialValue: RspackError
+		): RspackError {
+			return adm.values().reduce(callbackfn, initialValue);
+		},
+		reduceRight(
+			callbackfn: (
+				previousValue: RspackError,
+				currentValue: RspackError,
+				currentIndex: number,
+				array: RspackError[]
+			) => RspackError,
+			initialValue: RspackError
+		): RspackError {
+			return adm.values().reduceRight(callbackfn, initialValue);
+		}
+	};
 
-Object.defineProperty(binding.Diagnostics.prototype, "pop", {
-	enumerable: true,
-	configurable: true,
-	value(this: binding.Diagnostics) {
-		return this.splice(Math.max(this.length - 1, 0), 1)[0];
-	}
-});
+	const proxy = new Proxy(array, {
+		get(target, name) {
+			if (name === "length") {
+				return adm.length;
+			}
+			if (typeof name === "string" && !isNaN(name as any)) {
+				return adm.get(parseInt(name));
+			}
+			if (Object.prototype.hasOwnProperty.call(arrayExtensions, name)) {
+				return arrayExtensions[name];
+			}
+			return target[name];
+		},
+		set(target, name, value): boolean {
+			if (name === "length") {
+				throw new Error(
+					"The 'length' property is read-only and cannot be assigned a new value."
+				);
+			}
+			if (typeof name === "symbol" || isNaN(name as any)) {
+				target[name] = value;
+			} else {
+				// numeric string
+				adm.set(parseInt(name), value);
+			}
+			return true;
+		}
+	});
 
-Object.defineProperty(binding.Diagnostics.prototype, "shift", {
-	enumerable: true,
-	configurable: true,
-	value(this: binding.Diagnostics) {
-		return this.splice(0, 1)[0];
-	}
-});
-
-Object.defineProperty(binding.Diagnostics.prototype, "unshift", {
-	enumerable: true,
-	configurable: true,
-	value(this: binding.Diagnostics, ...items: RspackError[]) {
-		this.spliceWithArray(0, 0, items);
-		return this.length;
-	}
-});
-
-declare module "@rspack/binding" {
-	interface Diagnostics {
-		splice(
-			index: number,
-			deleteCount?: number,
-			...newItems: RspackError[]
-		): RspackError[];
-		push(...newItems: RspackError[]): number;
-		pop(): RspackError | undefined;
-		shift(): RspackError | undefined;
-		unshift(...newItems: RspackError[]): number;
-	}
+	adm[$proxy] = proxy;
+	return proxy;
 }
-
-export default binding.Diagnostics;

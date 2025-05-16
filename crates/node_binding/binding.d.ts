@@ -126,6 +126,9 @@ export declare class Dependency {
 
 export declare class Diagnostics {
   get length(): number
+  values(): Array<JsRspackError>
+  get(index: number): JsRspackError | undefined
+  set(index: number, error: JsRspackError): void
   spliceWithArray(index: number, deleteCount?: number | undefined | null, newItems?: Array<JsRspackError> | undefined | null): Array<JsRspackError>
   push(newItem: JsRspackError): void
 }
