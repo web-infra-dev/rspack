@@ -1,2 +1,3 @@
 // do not support webpack.ids.DeterministicModuleIdsPlugin
-module.exports = () => false;
+// TODO: Should create a issue for this test
+module.exports = () => "TODO: DeterministicModuleIdsPlugin is not exposed";

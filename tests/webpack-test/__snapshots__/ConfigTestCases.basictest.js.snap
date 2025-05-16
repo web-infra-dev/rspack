@@ -1,112 +1,154 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`ConfigTestCases css css-modules-no-space exported tests should allow to create css modules 1`] = `
+Object {
+  "class": "_style_module_css-class",
+}
+`;
+
+exports[`ConfigTestCases css css-modules-no-space exported tests should allow to create css modules 2`] = `
+"/* #region \\"./style.module.css\\" */
+/*
+- type: css/auto
+*/
+._style_module_css-no-space {
+	.class {
+		color: red;
+	}
+
+	.class {
+		color: red;
+	}
+
+	._style_module_css-class {
+		color: red;
+	}
+
+	._style_module_css-class {
+		color: red;
+	}
+
+	#_style_module_css-hash {
+		color: red;
+	}
+
+	{
+		color: red;
+	}
+}
+
+/* #endregion \\"./style.module.css\\" */
+
+"
+`;
+
 exports[`ConfigTestCases css escape-unescape exported tests should work with URLs in CSS: classes 1`] = `
 Object {
-  "#": "-_style_modules_css-#",
-  "##": "-_style_modules_css-##",
-  "#.#.#": "-_style_modules_css-#.#.#",
-  "#fake-id": "-_style_modules_css-#fake-id",
-  "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.": "-_style_modules_css-++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.",
-  "-a-b-c-": "-_style_modules_css--a-b-c-",
-  "-a0-34a___f": "-_style_modules_css--a0-34a___f",
-  ".": "-_style_modules_css-.",
-  "123": "-_style_modules_css-123",
-  "1a2b3c": "-_style_modules_css-1a2b3c",
-  ":)": "-_style_modules_css-:)",
-  ":\`(": "-_style_modules_css-:\`(",
-  ":hover": "-_style_modules_css-:hover",
-  ":hover:focus:active": "-_style_modules_css-:hover:focus:active",
-  "<><<<>><>": "-_style_modules_css-<><<<>><>",
-  "<p>": "-_style_modules_css-<p>",
-  "?": "-_style_modules_css-?",
-  "@": "-_style_modules_css-@",
-  "B&W?": "-_style_modules_css-B&W?",
-  "[attr=value]": "-_style_modules_css-[attr=value]",
-  "_": "-_style_modules_css-_",
-  "_test": "-_style_modules_css-_test",
-  "class": "-_style_modules_css-class",
-  "className": "-_style_modules_css-className",
-  "f!o!o": "-_style_modules_css-f!o!o",
-  "f'o'o": "-_style_modules_css-f'o'o",
-  "f*o*o": "-_style_modules_css-f*o*o",
-  "f+o+o": "-_style_modules_css-f+o+o",
-  "f/o/o": "-_style_modules_css-f/o/o",
-  "f@oo": "-_style_modules_css-f@oo",
-  "f\\\\o\\\\o": "-_style_modules_css-f\\\\o\\\\o",
-  "foo.bar": "-_style_modules_css-foo.bar",
-  "foo/bar": "-_style_modules_css-foo/bar",
-  "foo/bar/baz": "-_style_modules_css-foo/bar/baz",
-  "foo\\\\bar": "-_style_modules_css-foo\\\\bar",
-  "foo\\\\bar\\\\baz": "-_style_modules_css-foo\\\\bar\\\\baz",
-  "f~o~o": "-_style_modules_css-f~o~o",
-  "m_x_@": "-_style_modules_css-m_x_@",
-  "someId": "-_style_modules_css-someId",
-  "subClass": "-_style_modules_css-subClass",
-  "test": "-_style_modules_css-test",
-  "{}": "-_style_modules_css-{}",
-  "©": "-_style_modules_css-©",
-  "“‘’”": "-_style_modules_css-“‘’”",
-  "⌘⌥": "-_style_modules_css-⌘⌥",
-  "☺☃": "-_style_modules_css-☺☃",
-  "♥": "-_style_modules_css-♥",
-  "𝄞♪♩♫♬": "-_style_modules_css-𝄞♪♩♫♬",
-  "💩": "-_style_modules_css-💩",
-  "😍": "-_style_modules_css-😍",
+  "#": "_style_modules_css-#",
+  "##": "_style_modules_css-##",
+  "#.#.#": "_style_modules_css-#.#.#",
+  "#fake-id": "_style_modules_css-#fake-id",
+  "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.": "_style_modules_css-++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.",
+  "-a-b-c-": "_style_modules_css--a-b-c-",
+  "-a0-34a___f": "_style_modules_css--a0-34a___f",
+  ".": "_style_modules_css-.",
+  "123": "_style_modules_css-123",
+  "1a2b3c": "_style_modules_css-1a2b3c",
+  ":)": "_style_modules_css-:)",
+  ":\`(": "_style_modules_css-:\`(",
+  ":hover": "_style_modules_css-:hover",
+  ":hover:focus:active": "_style_modules_css-:hover:focus:active",
+  "<><<<>><>": "_style_modules_css-<><<<>><>",
+  "<p>": "_style_modules_css-<p>",
+  "?": "_style_modules_css-?",
+  "@": "_style_modules_css-@",
+  "B&W?": "_style_modules_css-B&W?",
+  "[attr=value]": "_style_modules_css-[attr=value]",
+  "_": "_style_modules_css-_",
+  "_test": "_style_modules_css-_test",
+  "class": "_style_modules_css-class",
+  "className": "_style_modules_css-className",
+  "f!o!o": "_style_modules_css-f!o!o",
+  "f'o'o": "_style_modules_css-f'o'o",
+  "f*o*o": "_style_modules_css-f*o*o",
+  "f+o+o": "_style_modules_css-f+o+o",
+  "f/o/o": "_style_modules_css-f/o/o",
+  "f@oo": "_style_modules_css-f@oo",
+  "f\\\\o\\\\o": "_style_modules_css-f\\\\o\\\\o",
+  "foo.bar": "_style_modules_css-foo.bar",
+  "foo/bar": "_style_modules_css-foo/bar",
+  "foo/bar/baz": "_style_modules_css-foo/bar/baz",
+  "foo\\\\bar": "_style_modules_css-foo\\\\bar",
+  "foo\\\\bar\\\\baz": "_style_modules_css-foo\\\\bar\\\\baz",
+  "f~o~o": "_style_modules_css-f~o~o",
+  "m_x_@": "_style_modules_css-m_x_@",
+  "someId": "_style_modules_css-someId",
+  "subClass": "_style_modules_css-subClass",
+  "test": "_style_modules_css-test",
+  "{}": "_style_modules_css-{}",
+  "©": "_style_modules_css-©",
+  "“‘’”": "_style_modules_css-“‘’”",
+  "⌘⌥": "_style_modules_css-⌘⌥",
+  "☺☃": "_style_modules_css-☺☃",
+  "♥": "_style_modules_css-♥",
+  "𝄞♪♩♫♬": "_style_modules_css-𝄞♪♩♫♬",
+  "💩": "_style_modules_css-💩",
+  "😍": "_style_modules_css-😍",
 }
 `;
 
 exports[`ConfigTestCases css escape-unescape exported tests should work with URLs in CSS: classes 2`] = `
 Object {
-  "#": "-_style_modules_css-#",
-  "##": "-_style_modules_css-##",
-  "#.#.#": "-_style_modules_css-#.#.#",
-  "#fake-id": "-_style_modules_css-#fake-id",
-  "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.": "-_style_modules_css-++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.",
-  "-a-b-c-": "-_style_modules_css--a-b-c-",
-  "-a0-34a___f": "-_style_modules_css--a0-34a___f",
-  ".": "-_style_modules_css-.",
-  "123": "-_style_modules_css-123",
-  "1a2b3c": "-_style_modules_css-1a2b3c",
-  ":)": "-_style_modules_css-:)",
-  ":\`(": "-_style_modules_css-:\`(",
-  ":hover": "-_style_modules_css-:hover",
-  ":hover:focus:active": "-_style_modules_css-:hover:focus:active",
-  "<><<<>><>": "-_style_modules_css-<><<<>><>",
-  "<p>": "-_style_modules_css-<p>",
-  "?": "-_style_modules_css-?",
-  "@": "-_style_modules_css-@",
-  "B&W?": "-_style_modules_css-B&W?",
-  "[attr=value]": "-_style_modules_css-[attr=value]",
-  "_": "-_style_modules_css-_",
-  "_test": "-_style_modules_css-_test",
-  "class": "-_style_modules_css-class",
-  "className": "-_style_modules_css-className",
-  "f!o!o": "-_style_modules_css-f!o!o",
-  "f'o'o": "-_style_modules_css-f'o'o",
-  "f*o*o": "-_style_modules_css-f*o*o",
-  "f+o+o": "-_style_modules_css-f+o+o",
-  "f/o/o": "-_style_modules_css-f/o/o",
-  "f@oo": "-_style_modules_css-f@oo",
-  "f\\\\o\\\\o": "-_style_modules_css-f\\\\o\\\\o",
-  "foo.bar": "-_style_modules_css-foo.bar",
-  "foo/bar": "-_style_modules_css-foo/bar",
-  "foo/bar/baz": "-_style_modules_css-foo/bar/baz",
-  "foo\\\\bar": "-_style_modules_css-foo\\\\bar",
-  "foo\\\\bar\\\\baz": "-_style_modules_css-foo\\\\bar\\\\baz",
-  "f~o~o": "-_style_modules_css-f~o~o",
-  "m_x_@": "-_style_modules_css-m_x_@",
-  "someId": "-_style_modules_css-someId",
-  "subClass": "-_style_modules_css-subClass",
-  "test": "-_style_modules_css-test",
-  "{}": "-_style_modules_css-{}",
-  "©": "-_style_modules_css-©",
-  "“‘’”": "-_style_modules_css-“‘’”",
-  "⌘⌥": "-_style_modules_css-⌘⌥",
-  "☺☃": "-_style_modules_css-☺☃",
-  "♥": "-_style_modules_css-♥",
-  "𝄞♪♩♫♬": "-_style_modules_css-𝄞♪♩♫♬",
-  "💩": "-_style_modules_css-💩",
-  "😍": "-_style_modules_css-😍",
+  "#": "_style_modules_css-#",
+  "##": "_style_modules_css-##",
+  "#.#.#": "_style_modules_css-#.#.#",
+  "#fake-id": "_style_modules_css-#fake-id",
+  "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.": "_style_modules_css-++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.",
+  "-a-b-c-": "_style_modules_css--a-b-c-",
+  "-a0-34a___f": "_style_modules_css--a0-34a___f",
+  ".": "_style_modules_css-.",
+  "123": "_style_modules_css-123",
+  "1a2b3c": "_style_modules_css-1a2b3c",
+  ":)": "_style_modules_css-:)",
+  ":\`(": "_style_modules_css-:\`(",
+  ":hover": "_style_modules_css-:hover",
+  ":hover:focus:active": "_style_modules_css-:hover:focus:active",
+  "<><<<>><>": "_style_modules_css-<><<<>><>",
+  "<p>": "_style_modules_css-<p>",
+  "?": "_style_modules_css-?",
+  "@": "_style_modules_css-@",
+  "B&W?": "_style_modules_css-B&W?",
+  "[attr=value]": "_style_modules_css-[attr=value]",
+  "_": "_style_modules_css-_",
+  "_test": "_style_modules_css-_test",
+  "class": "_style_modules_css-class",
+  "className": "_style_modules_css-className",
+  "f!o!o": "_style_modules_css-f!o!o",
+  "f'o'o": "_style_modules_css-f'o'o",
+  "f*o*o": "_style_modules_css-f*o*o",
+  "f+o+o": "_style_modules_css-f+o+o",
+  "f/o/o": "_style_modules_css-f/o/o",
+  "f@oo": "_style_modules_css-f@oo",
+  "f\\\\o\\\\o": "_style_modules_css-f\\\\o\\\\o",
+  "foo.bar": "_style_modules_css-foo.bar",
+  "foo/bar": "_style_modules_css-foo/bar",
+  "foo/bar/baz": "_style_modules_css-foo/bar/baz",
+  "foo\\\\bar": "_style_modules_css-foo\\\\bar",
+  "foo\\\\bar\\\\baz": "_style_modules_css-foo\\\\bar\\\\baz",
+  "f~o~o": "_style_modules_css-f~o~o",
+  "m_x_@": "_style_modules_css-m_x_@",
+  "someId": "_style_modules_css-someId",
+  "subClass": "_style_modules_css-subClass",
+  "test": "_style_modules_css-test",
+  "{}": "_style_modules_css-{}",
+  "©": "_style_modules_css-©",
+  "“‘’”": "_style_modules_css-“‘’”",
+  "⌘⌥": "_style_modules_css-⌘⌥",
+  "☺☃": "_style_modules_css-☺☃",
+  "♥": "_style_modules_css-♥",
+  "𝄞♪♩♫♬": "_style_modules_css-𝄞♪♩♫♬",
+  "💩": "_style_modules_css-💩",
+  "😍": "_style_modules_css-😍",
 }
 `;
 
@@ -116,126 +158,126 @@ Array [
 /*
 - type: css/auto
 */
-.-_style_modules_css-class {
+._style_modules_css-class {
 	color: red;
 }
 
-.-_style_modules_css-class {
+._style_modules_css-class {
 	background: blue;
 }
 
-.-_style_modules_css-test {
+._style_modules_css-test {
 	background: red;
 }
 
-.-_style_modules_css-_test {
+._style_modules_css-_test {
 	background: blue;
 }
 
-.-_style_modules_css-className {
+._style_modules_css-className {
 	background: red;
 }
 
-#-_style_modules_css-someId {
+#_style_modules_css-someId {
 	background: green;
 }
 
-.-_style_modules_css-className .-_style_modules_css-subClass {
+._style_modules_css-className ._style_modules_css-subClass {
 	color: green;
 }
 
-#-_style_modules_css-someId .-_style_modules_css-subClass {
+#_style_modules_css-someId ._style_modules_css-subClass {
 	color: blue;
 }
 
-.-_style_modules_css--a0-34a___f {
+._style_modules_css--a0-34a___f {
 	color: red;
 }
 
-.-_style_modules_css-m_x_\\\\@ {
+._style_modules_css-m_x_\\\\@ {
 	margin-left: auto !important;
 	margin-right: auto !important;
 }
 
-.-_style_modules_css-B\\\\&W\\\\? {
+._style_modules_css-B\\\\&W\\\\? {
 	margin-left: auto !important;
 	margin-right: auto !important;
 }
 
 /* matches elements with class=\\":\`(\\" */
-.-_style_modules_css-\\\\:\\\\\`\\\\( {
+._style_modules_css-\\\\:\\\\\`\\\\( {
 	color: aqua;
 }
 
 /* matches elements with class=\\"1a2b3c\\" */
-.-_style_modules_css-1a2b3c {
+._style_modules_css-1a2b3c {
 	color: aliceblue;
 }
 
 /* matches the element with id=\\"#fake-id\\" */
-#-_style_modules_css-\\\\#fake-id {
+#_style_modules_css-\\\\#fake-id {
 	color: antiquewhite;
 }
 
 /* matches the element with id=\\"-a-b-c-\\" */
-#-_style_modules_css--a-b-c- {
+#_style_modules_css--a-b-c- {
 	color: azure;
 }
 
 /* matches the element with id=\\"©\\" */
-#-_style_modules_css-© {
+#_style_modules_css-© {
 	color: black;
 }
 
-.-_style_modules_css-♥ { background: lime; }
-.-_style_modules_css-© { background: lime; }
-.-_style_modules_css-\\\\😍 { background: lime; }
-.-_style_modules_css-“‘’” { background: lime; }
-.-_style_modules_css-☺☃ { background: lime; }
-.-_style_modules_css-⌘⌥ { background: lime; }
-.-_style_modules_css-\\\\𝄞♪♩♫♬ { background: lime; }
-.-_style_modules_css-\\\\💩 { background: lime; }
-.-_style_modules_css-\\\\? { background: lime; }
-.-_style_modules_css-\\\\@ { background: lime; }
-.-_style_modules_css-\\\\. { background: lime; }
-.-_style_modules_css-\\\\:\\\\) { background: lime; }
-.-_style_modules_css-\\\\:\\\\\`\\\\( { background: lime; }
-.-_style_modules_css-123 { background: lime; }
-.-_style_modules_css-1a2b3c { background: lime; }
-.-_style_modules_css-\\\\<p\\\\> { background: lime; }
-.-_style_modules_css-\\\\<\\\\>\\\\<\\\\<\\\\<\\\\>\\\\>\\\\<\\\\> { background: lime; }
-.-_style_modules_css-\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\[\\\\>\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\>\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\>\\\\+\\\\+\\\\+\\\\>\\\\+\\\\<\\\\<\\\\<\\\\<-\\\\]\\\\>\\\\+\\\\+\\\\.\\\\>\\\\+\\\\.\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\.\\\\.\\\\+\\\\+\\\\+\\\\.\\\\>\\\\+\\\\+\\\\.\\\\<\\\\<\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\.\\\\>\\\\.\\\\+\\\\+\\\\+\\\\.------\\\\.--------\\\\.\\\\>\\\\+\\\\.\\\\>\\\\. { background: lime; }
-.-_style_modules_css-\\\\# { background: lime; }
-.-_style_modules_css-\\\\#\\\\# { background: lime; }
-.-_style_modules_css-\\\\#\\\\.\\\\#\\\\.\\\\# { background: lime; }
-.-_style_modules_css-_ { background: lime; }
-.-_style_modules_css-\\\\{\\\\} { background: lime; }
-.-_style_modules_css-\\\\#fake-id { background: lime; }
-.-_style_modules_css-foo\\\\.bar { background: lime; }
-.-_style_modules_css-\\\\:hover { background: lime; }
-.-_style_modules_css-\\\\:hover\\\\:focus\\\\:active { background: lime; }
-.-_style_modules_css-\\\\[attr\\\\=value\\\\] { background: lime; }
-.-_style_modules_css-f\\\\/o\\\\/o { background: lime; }
-.-_style_modules_css-f\\\\\\\\o\\\\\\\\o { background: lime; }
-.-_style_modules_css-f\\\\*o\\\\*o { background: lime; }
-.-_style_modules_css-f\\\\!o\\\\!o { background: lime; }
-.-_style_modules_css-f\\\\'o\\\\'o { background: lime; }
-.-_style_modules_css-f\\\\~o\\\\~o { background: lime; }
-.-_style_modules_css-f\\\\+o\\\\+o { background: lime; }
+._style_modules_css-♥ { background: lime; }
+._style_modules_css-© { background: lime; }
+._style_modules_css-\\\\😍 { background: lime; }
+._style_modules_css-“‘’” { background: lime; }
+._style_modules_css-☺☃ { background: lime; }
+._style_modules_css-⌘⌥ { background: lime; }
+._style_modules_css-\\\\𝄞♪♩♫♬ { background: lime; }
+._style_modules_css-\\\\💩 { background: lime; }
+._style_modules_css-\\\\? { background: lime; }
+._style_modules_css-\\\\@ { background: lime; }
+._style_modules_css-\\\\. { background: lime; }
+._style_modules_css-\\\\:\\\\) { background: lime; }
+._style_modules_css-\\\\:\\\\\`\\\\( { background: lime; }
+._style_modules_css-123 { background: lime; }
+._style_modules_css-1a2b3c { background: lime; }
+._style_modules_css-\\\\<p\\\\> { background: lime; }
+._style_modules_css-\\\\<\\\\>\\\\<\\\\<\\\\<\\\\>\\\\>\\\\<\\\\> { background: lime; }
+._style_modules_css-\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\[\\\\>\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\>\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\>\\\\+\\\\+\\\\+\\\\>\\\\+\\\\<\\\\<\\\\<\\\\<-\\\\]\\\\>\\\\+\\\\+\\\\.\\\\>\\\\+\\\\.\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\.\\\\.\\\\+\\\\+\\\\+\\\\.\\\\>\\\\+\\\\+\\\\.\\\\<\\\\<\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\.\\\\>\\\\.\\\\+\\\\+\\\\+\\\\.------\\\\.--------\\\\.\\\\>\\\\+\\\\.\\\\>\\\\. { background: lime; }
+._style_modules_css-\\\\# { background: lime; }
+._style_modules_css-\\\\#\\\\# { background: lime; }
+._style_modules_css-\\\\#\\\\.\\\\#\\\\.\\\\# { background: lime; }
+._style_modules_css-_ { background: lime; }
+._style_modules_css-\\\\{\\\\} { background: lime; }
+._style_modules_css-\\\\#fake-id { background: lime; }
+._style_modules_css-foo\\\\.bar { background: lime; }
+._style_modules_css-\\\\:hover { background: lime; }
+._style_modules_css-\\\\:hover\\\\:focus\\\\:active { background: lime; }
+._style_modules_css-\\\\[attr\\\\=value\\\\] { background: lime; }
+._style_modules_css-f\\\\/o\\\\/o { background: lime; }
+._style_modules_css-f\\\\\\\\o\\\\\\\\o { background: lime; }
+._style_modules_css-f\\\\*o\\\\*o { background: lime; }
+._style_modules_css-f\\\\!o\\\\!o { background: lime; }
+._style_modules_css-f\\\\'o\\\\'o { background: lime; }
+._style_modules_css-f\\\\~o\\\\~o { background: lime; }
+._style_modules_css-f\\\\+o\\\\+o { background: lime; }
 
-.-_style_modules_css-foo\\\\/bar {
+._style_modules_css-foo\\\\/bar {
 	background: hotpink;
 }
 
-.-_style_modules_css-foo\\\\\\\\bar {
+._style_modules_css-foo\\\\\\\\bar {
 	background: hotpink;
 }
 
-.-_style_modules_css-foo\\\\/bar\\\\/baz {
+._style_modules_css-foo\\\\/bar\\\\/baz {
 	background: hotpink;
 }
 
-.-_style_modules_css-foo\\\\\\\\bar\\\\\\\\baz {
+._style_modules_css-foo\\\\\\\\bar\\\\\\\\baz {
 	background: hotpink;
 }
 
@@ -249,7 +291,7 @@ details {
 	background-color: var(--main-bg-color-\\\\@2);
 }
 
-@keyframes -_style_modules_css-f\\\\@oo { from { color: red; } to { color: blue; } }
+@keyframes _style_modules_css-f\\\\@oo { from { color: red; } to { color: blue; } }
 
 /* #endregion \\"./style.modules.css\\" */
 
@@ -263,126 +305,126 @@ Array [
 /*
 - type: css/auto
 */
-.-_style_modules_css-class {
+._style_modules_css-class {
 	color: red;
 }
 
-.-_style_modules_css-class {
+._style_modules_css-class {
 	background: blue;
 }
 
-.-_style_modules_css-test {
+._style_modules_css-test {
 	background: red;
 }
 
-.-_style_modules_css-_test {
+._style_modules_css-_test {
 	background: blue;
 }
 
-.-_style_modules_css-className {
+._style_modules_css-className {
 	background: red;
 }
 
-#-_style_modules_css-someId {
+#_style_modules_css-someId {
 	background: green;
 }
 
-.-_style_modules_css-className .-_style_modules_css-subClass {
+._style_modules_css-className ._style_modules_css-subClass {
 	color: green;
 }
 
-#-_style_modules_css-someId .-_style_modules_css-subClass {
+#_style_modules_css-someId ._style_modules_css-subClass {
 	color: blue;
 }
 
-.-_style_modules_css--a0-34a___f {
+._style_modules_css--a0-34a___f {
 	color: red;
 }
 
-.-_style_modules_css-m_x_\\\\@ {
+._style_modules_css-m_x_\\\\@ {
 	margin-left: auto !important;
 	margin-right: auto !important;
 }
 
-.-_style_modules_css-B\\\\&W\\\\? {
+._style_modules_css-B\\\\&W\\\\? {
 	margin-left: auto !important;
 	margin-right: auto !important;
 }
 
 /* matches elements with class=\\":\`(\\" */
-.-_style_modules_css-\\\\:\\\\\`\\\\( {
+._style_modules_css-\\\\:\\\\\`\\\\( {
 	color: aqua;
 }
 
 /* matches elements with class=\\"1a2b3c\\" */
-.-_style_modules_css-1a2b3c {
+._style_modules_css-1a2b3c {
 	color: aliceblue;
 }
 
 /* matches the element with id=\\"#fake-id\\" */
-#-_style_modules_css-\\\\#fake-id {
+#_style_modules_css-\\\\#fake-id {
 	color: antiquewhite;
 }
 
 /* matches the element with id=\\"-a-b-c-\\" */
-#-_style_modules_css--a-b-c- {
+#_style_modules_css--a-b-c- {
 	color: azure;
 }
 
 /* matches the element with id=\\"©\\" */
-#-_style_modules_css-© {
+#_style_modules_css-© {
 	color: black;
 }
 
-.-_style_modules_css-♥ { background: lime; }
-.-_style_modules_css-© { background: lime; }
-.-_style_modules_css-\\\\😍 { background: lime; }
-.-_style_modules_css-“‘’” { background: lime; }
-.-_style_modules_css-☺☃ { background: lime; }
-.-_style_modules_css-⌘⌥ { background: lime; }
-.-_style_modules_css-\\\\𝄞♪♩♫♬ { background: lime; }
-.-_style_modules_css-\\\\💩 { background: lime; }
-.-_style_modules_css-\\\\? { background: lime; }
-.-_style_modules_css-\\\\@ { background: lime; }
-.-_style_modules_css-\\\\. { background: lime; }
-.-_style_modules_css-\\\\:\\\\) { background: lime; }
-.-_style_modules_css-\\\\:\\\\\`\\\\( { background: lime; }
-.-_style_modules_css-123 { background: lime; }
-.-_style_modules_css-1a2b3c { background: lime; }
-.-_style_modules_css-\\\\<p\\\\> { background: lime; }
-.-_style_modules_css-\\\\<\\\\>\\\\<\\\\<\\\\<\\\\>\\\\>\\\\<\\\\> { background: lime; }
-.-_style_modules_css-\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\[\\\\>\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\>\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\>\\\\+\\\\+\\\\+\\\\>\\\\+\\\\<\\\\<\\\\<\\\\<-\\\\]\\\\>\\\\+\\\\+\\\\.\\\\>\\\\+\\\\.\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\.\\\\.\\\\+\\\\+\\\\+\\\\.\\\\>\\\\+\\\\+\\\\.\\\\<\\\\<\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\.\\\\>\\\\.\\\\+\\\\+\\\\+\\\\.------\\\\.--------\\\\.\\\\>\\\\+\\\\.\\\\>\\\\. { background: lime; }
-.-_style_modules_css-\\\\# { background: lime; }
-.-_style_modules_css-\\\\#\\\\# { background: lime; }
-.-_style_modules_css-\\\\#\\\\.\\\\#\\\\.\\\\# { background: lime; }
-.-_style_modules_css-_ { background: lime; }
-.-_style_modules_css-\\\\{\\\\} { background: lime; }
-.-_style_modules_css-\\\\#fake-id { background: lime; }
-.-_style_modules_css-foo\\\\.bar { background: lime; }
-.-_style_modules_css-\\\\:hover { background: lime; }
-.-_style_modules_css-\\\\:hover\\\\:focus\\\\:active { background: lime; }
-.-_style_modules_css-\\\\[attr\\\\=value\\\\] { background: lime; }
-.-_style_modules_css-f\\\\/o\\\\/o { background: lime; }
-.-_style_modules_css-f\\\\\\\\o\\\\\\\\o { background: lime; }
-.-_style_modules_css-f\\\\*o\\\\*o { background: lime; }
-.-_style_modules_css-f\\\\!o\\\\!o { background: lime; }
-.-_style_modules_css-f\\\\'o\\\\'o { background: lime; }
-.-_style_modules_css-f\\\\~o\\\\~o { background: lime; }
-.-_style_modules_css-f\\\\+o\\\\+o { background: lime; }
+._style_modules_css-♥ { background: lime; }
+._style_modules_css-© { background: lime; }
+._style_modules_css-\\\\😍 { background: lime; }
+._style_modules_css-“‘’” { background: lime; }
+._style_modules_css-☺☃ { background: lime; }
+._style_modules_css-⌘⌥ { background: lime; }
+._style_modules_css-\\\\𝄞♪♩♫♬ { background: lime; }
+._style_modules_css-\\\\💩 { background: lime; }
+._style_modules_css-\\\\? { background: lime; }
+._style_modules_css-\\\\@ { background: lime; }
+._style_modules_css-\\\\. { background: lime; }
+._style_modules_css-\\\\:\\\\) { background: lime; }
+._style_modules_css-\\\\:\\\\\`\\\\( { background: lime; }
+._style_modules_css-123 { background: lime; }
+._style_modules_css-1a2b3c { background: lime; }
+._style_modules_css-\\\\<p\\\\> { background: lime; }
+._style_modules_css-\\\\<\\\\>\\\\<\\\\<\\\\<\\\\>\\\\>\\\\<\\\\> { background: lime; }
+._style_modules_css-\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\[\\\\>\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\>\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\>\\\\+\\\\+\\\\+\\\\>\\\\+\\\\<\\\\<\\\\<\\\\<-\\\\]\\\\>\\\\+\\\\+\\\\.\\\\>\\\\+\\\\.\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\.\\\\.\\\\+\\\\+\\\\+\\\\.\\\\>\\\\+\\\\+\\\\.\\\\<\\\\<\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\+\\\\.\\\\>\\\\.\\\\+\\\\+\\\\+\\\\.------\\\\.--------\\\\.\\\\>\\\\+\\\\.\\\\>\\\\. { background: lime; }
+._style_modules_css-\\\\# { background: lime; }
+._style_modules_css-\\\\#\\\\# { background: lime; }
+._style_modules_css-\\\\#\\\\.\\\\#\\\\.\\\\# { background: lime; }
+._style_modules_css-_ { background: lime; }
+._style_modules_css-\\\\{\\\\} { background: lime; }
+._style_modules_css-\\\\#fake-id { background: lime; }
+._style_modules_css-foo\\\\.bar { background: lime; }
+._style_modules_css-\\\\:hover { background: lime; }
+._style_modules_css-\\\\:hover\\\\:focus\\\\:active { background: lime; }
+._style_modules_css-\\\\[attr\\\\=value\\\\] { background: lime; }
+._style_modules_css-f\\\\/o\\\\/o { background: lime; }
+._style_modules_css-f\\\\\\\\o\\\\\\\\o { background: lime; }
+._style_modules_css-f\\\\*o\\\\*o { background: lime; }
+._style_modules_css-f\\\\!o\\\\!o { background: lime; }
+._style_modules_css-f\\\\'o\\\\'o { background: lime; }
+._style_modules_css-f\\\\~o\\\\~o { background: lime; }
+._style_modules_css-f\\\\+o\\\\+o { background: lime; }
 
-.-_style_modules_css-foo\\\\/bar {
+._style_modules_css-foo\\\\/bar {
 	background: hotpink;
 }
 
-.-_style_modules_css-foo\\\\\\\\bar {
+._style_modules_css-foo\\\\\\\\bar {
 	background: hotpink;
 }
 
-.-_style_modules_css-foo\\\\/bar\\\\/baz {
+._style_modules_css-foo\\\\/bar\\\\/baz {
 	background: hotpink;
 }
 
-.-_style_modules_css-foo\\\\\\\\bar\\\\\\\\baz {
+._style_modules_css-foo\\\\\\\\bar\\\\\\\\baz {
 	background: hotpink;
 }
 
@@ -396,7 +438,7 @@ details {
 	background-color: var(--main-bg-color-\\\\@2);
 }
 
-@keyframes -_style_modules_css-f\\\\@oo { from { color: red; } to { color: blue; } }
+@keyframes _style_modules_css-f\\\\@oo { from { color: red; } to { color: blue; } }
 
 /* #endregion \\"./style.modules.css\\" */
 
@@ -412,18 +454,18 @@ Object {
 
 exports[`ConfigTestCases css large exported tests should allow to create css modules: prod 1`] = `
 Object {
-  "placeholder": "-_6d72b53b84605386-placeholder-gray-700",
+  "placeholder": "_6d72b53b84605386-placeholder-gray-700",
 }
 `;
 
 exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 1`] = `
 Object {
-  "btn--info_is-disabled_1": "-_style_module_css-btn--info_is-disabled_1",
-  "btn-info_is-disabled": "-_style_module_css-btn-info_is-disabled",
+  "btn--info_is-disabled_1": "_style_module_css-btn--info_is-disabled_1",
+  "btn-info_is-disabled": "_style_module_css-btn-info_is-disabled",
   "foo": "bar",
-  "foo_bar": "-_style_module_css-foo_bar",
+  "foo_bar": "_style_module_css-foo_bar",
   "my-btn-info_is-disabled": "value",
-  "simple": "-_style_module_css-simple",
+  "simple": "_style_module_css-simple",
 }
 `;
 
@@ -506,12 +548,12 @@ Object {
 
 exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 9`] = `
 Object {
-  "btn--info_is-disabled_1": "-_style_module_css-btn--info_is-disabled_1",
-  "btn-info_is-disabled": "-_style_module_css-btn-info_is-disabled",
+  "btn--info_is-disabled_1": "_style_module_css-btn--info_is-disabled_1",
+  "btn-info_is-disabled": "_style_module_css-btn-info_is-disabled",
   "foo": "bar",
-  "foo_bar": "-_style_module_css-foo_bar",
+  "foo_bar": "_style_module_css-foo_bar",
   "my-btn-info_is-disabled": "value",
-  "simple": "-_style_module_css-simple",
+  "simple": "_style_module_css-simple",
 }
 `;
 
