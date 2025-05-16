@@ -51,10 +51,11 @@ impl ModuleGroup {
 
   pub fn add_module(&mut self, module: &dyn Module, compilation: &Compilation) {
     let old_len = self.modules.len();
+    let module_graph = compilation.get_module_graph();
     self.modules.insert(module.identifier());
 
     if self.modules.len() != old_len {
-      module.source_types().iter().for_each(|ty| {
+      module.source_types(&module_graph).iter().for_each(|ty| {
         let size = self.sizes.entry(*ty).or_default();
         *size += module.size(Some(ty), Some(compilation));
       });
@@ -65,8 +66,9 @@ impl ModuleGroup {
     let old_len = self.modules.len();
     self.modules.remove(&module.identifier());
 
+    let module_graph = compilation.get_module_graph();
     if self.modules.len() != old_len {
-      module.source_types().iter().for_each(|ty| {
+      module.source_types(&module_graph).iter().for_each(|ty| {
         let size = self.sizes.entry(*ty).or_default();
         *size -= module.size(Some(ty), Some(compilation));
         *size = size.max(0.0)

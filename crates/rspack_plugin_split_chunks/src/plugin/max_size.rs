@@ -108,9 +108,10 @@ fn sum_size(size: &mut SplitChunkSizes, items: &[GroupItem]) {
 }
 
 fn get_size(module: &dyn Module, compilation: &Compilation) -> SplitChunkSizes {
+  let module_graph = compilation.get_module_graph();
   SplitChunkSizes(
     module
-      .source_types()
+      .source_types(&module_graph)
       .iter()
       .map(|ty| (*ty, module.size(Some(ty), Some(compilation))))
       .collect(),

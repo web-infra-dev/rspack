@@ -23,7 +23,7 @@ use crate::{
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
 static EXTERNAL_MODULE_CSS_SOURCE_TYPES: &[SourceType] = &[SourceType::CssImport];
-
+static EXTERNAL_MODULE_CSS_URL_SOURCE_TYPES: &[SourceType] = &[SourceType::CssUrl];
 #[cacheable]
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
@@ -209,6 +209,7 @@ pub type MetaExternalType = Option<ExternalTypeEnum>;
 pub struct DependencyMeta {
   pub external_type: MetaExternalType,
   pub attributes: Option<ImportAttributes>,
+  pub source_type: Option<SourceType>,
 }
 
 impl ExternalModule {
@@ -559,8 +560,15 @@ impl Module for ExternalModule {
     &ModuleType::JsDynamic
   }
 
-  fn source_types(&self) -> &[SourceType] {
-    if self.external_type == "css-import" {
+  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
+    if self.external_type == "asset"
+      && self
+        .dependency_meta
+        .source_type
+        .is_some_and(|t| t == SourceType::CssUrl)
+    {
+      EXTERNAL_MODULE_CSS_URL_SOURCE_TYPES
+    } else if self.external_type == "css-import" {
       EXTERNAL_MODULE_CSS_SOURCE_TYPES
     } else {
       EXTERNAL_MODULE_JS_SOURCE_TYPES

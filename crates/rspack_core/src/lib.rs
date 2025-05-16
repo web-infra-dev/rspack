@@ -115,6 +115,7 @@ pub mod debug_info;
 pub enum SourceType {
   JavaScript,
   Css,
+  CssUrl,
   Wasm,
   Asset,
   Expose,
@@ -133,6 +134,7 @@ impl std::fmt::Display for SourceType {
     match self {
       SourceType::JavaScript => write!(f, "javascript"),
       SourceType::Css => write!(f, "css"),
+      SourceType::CssUrl => write!(f, "css-url"),
       SourceType::Wasm => write!(f, "wasm"),
       SourceType::Asset => write!(f, "asset"),
       SourceType::Expose => write!(f, "expose"),
@@ -161,6 +163,19 @@ impl From<&str> for SourceType {
       "unknown" => Self::Unknown,
       "css-import" => Self::CssImport,
       other => SourceType::Custom(other.into()),
+    }
+  }
+}
+
+impl From<&ModuleType> for SourceType {
+  fn from(value: &ModuleType) -> Self {
+    match value {
+      ModuleType::JsAuto | ModuleType::JsEsm | ModuleType::JsDynamic => Self::JavaScript,
+      ModuleType::Css | ModuleType::CssModule | ModuleType::CssAuto => Self::Css,
+      ModuleType::WasmSync | ModuleType::WasmAsync => Self::Wasm,
+      ModuleType::Asset | ModuleType::AssetInline | ModuleType::AssetResource => Self::Asset,
+      ModuleType::ConsumeShared => Self::ConsumeShared,
+      _ => Self::Unknown,
     }
   }
 }
