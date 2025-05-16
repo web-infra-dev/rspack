@@ -6,32 +6,27 @@ export const EN_US = {
   learnMore: 'Learn More',
 
   // whyRspack
-  whyRspack: 'Why Rspack?',
-  whyRspackDesc:
-    'Rspack is a high performance JavaScript bundler written in Rust. It offers strong compatibility with the webpack ecosystem, allowing for seamless replacement of webpack, and provides lightning fast build speeds.',
   FastStartup: 'Fast Startup',
   FastStartupDesc:
-    'Combining TypeScript and Rust with a parallelized architecture to bring you the ultimate developer experience.',
+    'Parallelized Rust architecture for ultimate developer experience',
   LightningHMR: 'Lightning HMR',
-  LightningHMRDesc:
-    'A built-in incremental compilation mechanism provides superior Hot Module Replacement performance for large-scale projects.',
+  LightningHMRDesc: 'Built-in incremental build for superior HMR performance',
   FrameworkAgnostic: 'Framework Agnostic',
-  FrameworkAgnosticDesc:
-    'Not bound to any frontend framework. Everyone can use it!',
+  FrameworkAgnosticDesc: 'Works with any frontend UI framework',
   WebpackCompatible: 'Webpack Compatible',
   WebpackCompatibleDesc:
-    'Compatible with plugins and loaders in the webpack ecosystem, seamlessly integrating excellent libraries built by the community.',
+    'Compatible with webpack plugins and loaders from community',
 
   // benchmark
   benchmarkTitle: 'Lightning Fast',
   benchmarkDesc:
-    'Combining Rust and TypeScript with a parallelized architecture to bring you the ultimate developer experience.',
+    'Combining Rust and TypeScript with a parallelized architecture to bring you the enjoyable developer experience',
   benchmarkDetail: 'See benchmark details',
 
   // fully featured
   fullyFeaturedTitle: 'Fully Featured',
   fullyFeaturedDesc:
-    'Launched as a drop-in replacement for webpack, with more powerful features and exceptional productivity.',
+    'Launched as a drop-in replacement for webpack, with more powerful features and exceptional productivity',
 
   featureCodeSplitting:
     'Split code into smaller bundles to enable on-demand loading and improve performance.',
@@ -59,11 +54,6 @@ export const EN_US = {
     'Run multiple builds in parallel for different build targets or environments.',
   featureJavaScriptApi:
     'Provides programmatic access to the build API to customize the build processes.',
-
-  // Tool Stack
-  toolStackTitle: 'Rstack',
-  toolStackDesc:
-    'High-performance toolchain built around Rspack to boost modern web development',
 
   // Who is using
   whoIsUsing: 'Trusted By Innovators',
