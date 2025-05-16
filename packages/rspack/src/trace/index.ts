@@ -29,7 +29,8 @@ export class JavaScriptTracer {
 	static output: string;
 	// inspector session for CPU Profiler
 	static session: import("node:inspector").Session;
-
+	// plugin counter for different channel in trace viewer, choose 100 to avoid conflict with known tracks
+	static counter = 100;
 	static async initJavaScriptTrace(layer: string, output: string) {
 		const { Session } = await import("node:inspector");
 		this.session = new Session();
