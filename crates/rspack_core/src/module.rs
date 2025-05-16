@@ -627,8 +627,8 @@ mod test {
   use super::Module;
   use crate::{
     AsyncDependenciesBlockIdentifier, BuildContext, BuildResult, CodeGenerationResult, Compilation,
-    ConcatenationScope, Context, DependenciesBlock, DependencyId, ModuleExt, ModuleType,
-    RuntimeSpec, SourceType,
+    ConcatenationScope, Context, DependenciesBlock, DependencyId, ModuleExt, ModuleGraph,
+    ModuleType, RuntimeSpec, SourceType,
   };
 
   #[cacheable]
