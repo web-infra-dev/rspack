@@ -1,10 +1,11 @@
 use std::{collections::hash_map::Entry, sync::Arc};
 
 use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, UkeyIndexMap};
+use rspack_collections::{IdentifierIndexSet, IdentifierMap, UkeyIndexMap};
 use rspack_core::{
-  BoxModule, ChunkUkey, Compilation, ConcatenatedModuleIdent, ConcatenationScope, IdentCollector,
-  RuntimeGlobals, SourceType, SpanExt,
+  BoxModule, ChunkUkey, Compilation, ConcatenatedModule, ConcatenatedModuleIdent,
+  ConcatenationScope, IdentCollector, ModuleInfo, NAMESPACE_OBJECT_EXPORT, RuntimeGlobals,
+  SourceType, SpanExt, find_new_name,
   reserved_names::RESERVED_NAMES,
   rspack_sources::{ConcatSource, ReplaceSource, Source},
 };
@@ -24,20 +25,6 @@ use swc_core::{
 };
 
 use crate::EsmLibraryPlugin;
-
-#[derive(Debug)]
-pub struct ConcateInfo {
-  pub ast: Ast,
-  pub all_used_names: FxHashSet<Atom>,
-  pub internal_names: FxHashMap<Atom, Atom>,
-  pub global_ctxt: SyntaxContext,
-  pub module_ctxt: SyntaxContext,
-  pub origin_source: Arc<dyn Source>,
-  pub result_source: ReplaceSource<Arc<dyn Source>>,
-  pub idents: Vec<ConcatenatedModuleIdent>,
-  pub binding_to_ref: FxHashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>>,
-}
-
 impl EsmLibraryPlugin {
   pub(crate) async fn render_chunk(
     &self,
@@ -50,10 +37,11 @@ impl EsmLibraryPlugin {
     let mut concatenated_modules = Vec::new();
     let mut decl_modules: Vec<&BoxModule> = Vec::new();
 
-    let concatenated_modules_map_by_compilation = self.concatenated_modules_map.lock().await;
+    let mut concatenated_modules_map_by_compilation = self.concatenated_modules_map.lock().await;
     let concatenated_modules_map = concatenated_modules_map_by_compilation
-      .get(&compilation.id().0)
+      .get_mut(&compilation.id().0)
       .expect("should have map for compilation");
+
     let chunk_modules: IdentifierMap<&BoxModule> = compilation
       .chunk_graph
       .get_chunk_modules(chunk_ukey, &module_graph)
@@ -62,7 +50,7 @@ impl EsmLibraryPlugin {
       .collect();
 
     for (id, m) in &chunk_modules {
-      if concatenated_modules_map.contains_key(id) {
+      if let Some(ModuleInfo::Concatenated(_)) = concatenated_modules_map.get(id) {
         concatenated_modules.push(*m);
       } else {
         decl_modules.push(*m);
@@ -92,78 +80,10 @@ impl EsmLibraryPlugin {
         let Some(js_source) = codegen_res.get(&SourceType::JavaScript) else {
           return None;
         };
-        let replace_source = ReplaceSource::new(js_source.clone());
-        let compiler = rspack_javascript_compiler::JavaScriptCompiler::new();
-        let cm: Arc<swc_core::common::SourceMap> = Default::default();
-        let readable_identifier = m.readable_identifier(&compilation.options.context);
-        let fm = cm.new_source_file(
-          Arc::new(FileName::Custom(readable_identifier.clone().into_owned())),
-          js_source.source().clone().to_string(),
-        );
-        let mut errors = vec![];
-        let module =
-          parse_file_as_module(&fm, Syntax::default(), EsVersion::EsNext, None, &mut errors)
-            .expect("parse failed");
-        let mut ast = Ast::new(Program::Module(module), cm, None);
 
-        let mut global_ctxt = SyntaxContext::empty();
-        let mut module_ctxt = SyntaxContext::empty();
-        let mut collector = IdentCollector::default();
-        let mut all_used_names = FxHashSet::default();
-        ast.transform(|program, context| {
-          global_ctxt = global_ctxt.apply_mark(context.unresolved_mark);
-          module_ctxt = module_ctxt.apply_mark(context.top_level_mark);
-          program.visit_mut_with(&mut resolver(
-            context.unresolved_mark,
-            context.top_level_mark,
-            false,
-          ));
-          program.visit_with(&mut collector);
-        });
+        let info = concatenated_modules_map.get(&identifier).unwrap();
 
-        let mut idents = vec![];
-        for ident in collector.ids {
-          if ident.id.ctxt == global_ctxt {
-            all_used_names.insert(ident.id.sym.clone());
-          }
-          if ident.is_class_expr_with_ident {
-            all_used_names.insert(ident.id.sym.clone());
-            continue;
-          }
-          if ident.id.ctxt != module_ctxt {
-            all_used_names.insert(ident.id.sym.clone());
-          }
-          idents.push(ident);
-        }
-
-        let mut binding_to_ref: FxHashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>> =
-          FxHashMap::default();
-
-        for ident in &idents {
-          match binding_to_ref.entry((ident.id.sym.clone(), ident.id.ctxt)) {
-            Entry::Occupied(mut occ) => {
-              occ.get_mut().push(ident.clone());
-            }
-            Entry::Vacant(vac) => {
-              vac.insert(vec![ident.clone()]);
-            }
-          };
-        }
-
-        Some((
-          identifier,
-          ConcateInfo {
-            ast,
-            all_used_names,
-            global_ctxt,
-            module_ctxt,
-            origin_source: js_source.clone(),
-            internal_names: FxHashMap::default(),
-            result_source: replace_source,
-            idents,
-            binding_to_ref,
-          },
-        ))
+        Some((identifier, info.as_concatenated().clone()))
       })
       .collect();
 
@@ -195,7 +115,7 @@ impl EsmLibraryPlugin {
             i += 1;
           }
           for ref_symbol in refs {
-            info.result_source.replace(
+            info.source.unwrap().replace(
               ref_symbol.id.span.real_lo(),
               ref_symbol.id.span.real_hi(),
               &new_name,
@@ -204,10 +124,46 @@ impl EsmLibraryPlugin {
           }
           info.internal_names.insert(name.clone(), new_name);
         }
+
+        // Handle the name passed through by namespace_export_symbol
+        if let Some(ref namespace_export_symbol) = info.namespace_export_symbol {
+          if namespace_export_symbol.starts_with(NAMESPACE_OBJECT_EXPORT)
+            && namespace_export_symbol.len() > NAMESPACE_OBJECT_EXPORT.len()
+          {
+            let name =
+              Atom::from(namespace_export_symbol[NAMESPACE_OBJECT_EXPORT.len()..].to_string());
+            all_used_names.insert(name.clone());
+            info
+              .internal_names
+              .insert(namespace_export_symbol.clone(), name.clone());
+            top_level_declarations.insert(name.clone());
+          }
+        }
+
+        // Handle namespaceObjectName for concatenated type
+        let namespace_object_name =
+          if let Some(ref namespace_export_symbol) = info.namespace_export_symbol {
+            info.internal_names.get(namespace_export_symbol).cloned()
+          } else {
+            Some(find_new_name(
+              "namespaceObject",
+              &all_used_names,
+              None,
+              &m.readable_identifier(&compilation.options.context),
+            ))
+          };
+        if let Some(namespace_object_name) = namespace_object_name {
+          all_used_names.insert(namespace_object_name.clone());
+          info.namespace_object_name = Some(namespace_object_name.clone());
+          top_level_declarations.insert(namespace_object_name);
+        }
       }
     }
 
-    // replace cross module ident
+    // Set with modules that need a generated namespace object
+    let mut needed_namespace_objects = IdentifierIndexSet::default();
+
+    // replace import specifier
     for m in &concatenated_modules {
       let info = concate_infos
         .get_mut(&m.identifier())
@@ -228,6 +184,30 @@ impl EsmLibraryPlugin {
             .modules_map
             .get_index(match_module_ref.index)
             .expect("should have module");
+
+          let ref_module_instance = module_graph
+            .module_by_identifier(ref_module)
+            .expect("should have module");
+
+          let final_name = ConcatenatedModule::get_final_name(
+            &module_graph,
+            ref_module,
+            match_module_ref.ids,
+            concatenated_modules_map,
+            None,
+            &mut needed_namespace_objects,
+            match_module_ref.call,
+            !match_module_ref.direct_import,
+            ref_module_instance.build_info().strict,
+            match_module_ref.asi_safe,
+            &compilation.options.context,
+          );
+          let low = ident.id.span.real_lo();
+          let high = ident.id.span.real_hi();
+          info
+            .source
+            .unwrap()
+            .replace(low, high + 2, &final_name, None);
         }
       }
     }
@@ -248,13 +228,26 @@ impl EsmLibraryPlugin {
           chunk.as_u32()
         ));
       } else {
-        for (module, import_atom) in imported {}
+        for (ref_module, import_atoms) in imported {
+          let ref_info = concate_infos.get(ref_module).expect("should have info");
 
-        import_stmts.push(format!(
-          "import {{{}}} from '__WEBPACK_CHUNK_UKEY_{}';\n",
-          todo!(),
-          chunk.as_u32()
-        ));
+          let imported = import_atoms
+            .iter()
+            .map(|atom| {
+              ref_info
+                .internal_names
+                .get(atom)
+                .expect("internal name not found")
+                .to_string()
+            })
+            .collect::<Vec<_>>();
+
+          import_stmts.push(format!(
+            "import {{{}}} from '__WEBPACK_CHUNK_UKEY_{}';\n",
+            imported.join(", "),
+            chunk.as_u32()
+          ));
+        }
       }
     }
 
