@@ -933,8 +933,8 @@ importers:
   website:
     dependencies:
       '@rstack-dev/doc-ui':
-        specifier: 1.9.0
-        version: 1.9.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+        specifier: 1.10.0
+        version: 1.10.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       axios:
         specifier: ^1.9.0
         version: 1.9.0
@@ -2906,8 +2906,8 @@ packages:
     resolution: {integrity: sha512-YfSHzKF/l8e8WhSPPmq9Mt7SUgtcGZ5fRX+QnMSViqnrtRWFbbW+35sDoMJcko02nbqvOMO3N7nNA73up5ihTg==}
     engines: {node: '>=18.0.0'}
 
-  '@rstack-dev/doc-ui@1.9.0':
-    resolution: {integrity: sha512-ybP6NKT+OHtHdF6xIfmAXKpPt/TSTXln205g1+VcqIXeMREzHwza5KJtwYOoOMFLoMbVh9sIq4dYy8OaX4EWFQ==}
+  '@rstack-dev/doc-ui@1.10.0':
+    resolution: {integrity: sha512-PRACISyGl8vnqQ1occngpVIfDT0ShKtpi+Tb/HIG7KK+WBV4DaZeNsN1JC5+LHWObEgYsyemCTwxHA9+i3PKIw==}
 
   '@rushstack/node-core-library@5.13.0':
     resolution: {integrity: sha512-IGVhy+JgUacAdCGXKUrRhwHMTzqhWwZUI+qEPcdzsb80heOw0QPbhhoVsoiMF7Klp8eYsp7hzpScMXmOa3Uhfg==}
@@ -10015,7 +10015,7 @@ snapshots:
       react-dom: 19.1.0(react@19.1.0)
       react-syntax-highlighter: 15.6.1(react@19.1.0)
 
-  '@rstack-dev/doc-ui@1.9.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+  '@rstack-dev/doc-ui@1.10.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
       framer-motion: 12.11.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
     transitivePeerDependencies:
