@@ -1,7 +1,7 @@
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
 
-use super::JavascriptParserPlugin;
+use super::{JavascriptParserPlugin, TopLevelSymbol};
 use crate::visitors::JavascriptParser;
 
 pub struct JavascriptMetaInfoPlugin;
@@ -17,7 +17,7 @@ impl JavascriptParserPlugin for JavascriptMetaInfoPlugin {
       parser.build_info.module_concatenation_bailout = Some("eval()".into());
       if let Some(top_level_symbol) = parser.inner_graph.get_top_level_symbol() {
         parser.inner_graph.add_usage(
-          "".to_string().into(),
+          TopLevelSymbol::global(),
           super::InnerGraphMapUsage::TopLevel(top_level_symbol),
         );
       } else {

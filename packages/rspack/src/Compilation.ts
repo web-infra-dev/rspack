@@ -63,6 +63,7 @@ import { JsSource } from "./util/source";
 import "./Chunks";
 // patch CodeGenerationResults
 import "./CodeGenerationResults";
+import { createDiagnosticArray } from "./Diagnostics";
 import type { CodeGenerationResult } from "./taps/compilation";
 
 export type Assets = Record<string, Source>;
@@ -200,6 +201,8 @@ export const checkCompilation = (compilation: Compilation) => {
 export class Compilation {
 	#inner: JsCompilation;
 	#shutdown: boolean;
+	#errors?: RspackError[];
+	#chunks?: ReadonlySet<Chunk>;
 
 	hooks: Readonly<{
 		processAssets: liteTapable.AsyncSeriesHook<Assets>;
@@ -470,7 +473,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	get chunks(): ReadonlySet<Chunk> {
-		return this.#inner.chunks;
+		if (!this.#chunks) {
+			this.#chunks = this.#inner.chunks;
+		}
+		return this.#chunks;
 	}
 
 	/**
@@ -704,90 +710,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	get errors(): RspackError[] {
-		const inner = this.#inner;
-		type ErrorType = RspackError;
-		const errors = inner.getErrors();
-		const proxyMethod = [
-			{
-				method: "push",
-				handler(
-					target: typeof Array.prototype.push,
-					thisArg: Array<ErrorType>,
-					errs: ErrorType[]
-				) {
-					for (let i = 0; i < errs.length; i++) {
-						const error = errs[i];
-						inner.pushDiagnostic(
-							JsRspackDiagnostic.__to_binding(error, JsRspackSeverity.Error)
-						);
-					}
-					return Reflect.apply(target, thisArg, errs);
-				}
-			},
-			{
-				method: "pop",
-				handler(target: typeof Array.prototype.pop, thisArg: Array<ErrorType>) {
-					inner.spliceDiagnostic(errors.length - 1, errors.length, []);
-					return Reflect.apply(target, thisArg, []);
-				}
-			},
-			{
-				method: "shift",
-				handler(
-					target: typeof Array.prototype.shift,
-					thisArg: Array<ErrorType>
-				) {
-					inner.spliceDiagnostic(0, 1, []);
-					return Reflect.apply(target, thisArg, []);
-				}
-			},
-			{
-				method: "unshift",
-				handler(
-					target: typeof Array.prototype.unshift,
-					thisArg: Array<ErrorType>,
-					errs: ErrorType[]
-				) {
-					const errList = errs.map(error => {
-						return JsRspackDiagnostic.__to_binding(
-							error,
-							JsRspackSeverity.Error
-						);
-					});
-					inner.spliceDiagnostic(0, 0, errList);
-					return Reflect.apply(target, thisArg, errs);
-				}
-			},
-			{
-				method: "splice",
-				handler(
-					target: typeof Array.prototype.splice,
-					thisArg: Array<ErrorType>,
-					[startIdx, delCount, ...errors]: [number, number, ...ErrorType[]]
-				) {
-					const errList = errors.map(error => {
-						return JsRspackDiagnostic.__to_binding(
-							error,
-							JsRspackSeverity.Error
-						);
-					});
-					inner.spliceDiagnostic(startIdx, startIdx + delCount, errList);
-					return Reflect.apply(target, thisArg, [
-						startIdx,
-						delCount,
-						...errors
-					]);
-				}
-			}
-		];
-
-		for (const item of proxyMethod) {
-			const proxiedMethod = new Proxy(errors[item.method as any], {
-				apply: item.handler as any
-			});
-			errors[item.method as any] = proxiedMethod;
+		if (!this.#errors) {
+			this.#errors = createDiagnosticArray(this.#inner.errors);
 		}
-		return errors;
+		return this.#errors;
 	}
 
 	set errors(errors: RspackError[]) {

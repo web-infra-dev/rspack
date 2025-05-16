@@ -353,8 +353,17 @@ export default {
   experiments: {
     parallelCodeSplitting: true,
   },
+  optimization: {
+    removeAvailableModules: true,
+  },
 };
 ```
+
+:::warning
+当启用 `parallelCodeSplitting` 时，请确保 `optimization.removeAvailableModules` 也被启用（从 1.3.0 版本起，这已默认启用）。
+
+这保持了与旧版本的 code splitting 算法的一致性，旧版算法在内部强制开启 `removeAvailableModules`，并且不受到 `optimization.removeAvailableModules` 控制。
+:::
 
 ## experiments.parallelLoader
 

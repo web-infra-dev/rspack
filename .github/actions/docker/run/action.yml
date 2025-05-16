@@ -29,6 +29,7 @@ runs:
       run: |
         code='${{ inputs.script }}'
         docker run \
+          --network=host \
           --rm \
           --privileged \
           --user 0:0 \

@@ -366,7 +366,12 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     }
   }
 
-  fn assign(&self, parser: &mut JavascriptParser, assign_expr: &AssignExpr) -> Option<bool> {
+  fn assign(
+    &self,
+    parser: &mut JavascriptParser,
+    assign_expr: &AssignExpr,
+    _for_name: Option<&str>,
+  ) -> Option<bool> {
     if parser.is_esm {
       return None;
     }

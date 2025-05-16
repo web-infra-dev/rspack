@@ -1,2 +1,1 @@
-// compiler.options.cache.cacheLocation is undefined
-module.exports = () => false;
+module.exports = () => "NOPLAN: cache of rspack is different with webpack";

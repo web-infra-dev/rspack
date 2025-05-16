@@ -135,6 +135,14 @@ export declare class Dependency {
   get ids(): Array<string> | undefined
 }
 
+export declare class Diagnostics {
+  get length(): number
+  values(): Array<RspackError>
+  get(index: number): RspackError | undefined
+  set(index: number, error: RspackError): void
+  spliceWithArray(index: number, deleteCount?: number | undefined | null, newItems?: Array<RspackError> | undefined | null): Array<RspackError>
+}
+
 export declare class EntryDataDto {
   get dependencies(): Dependency[]
   get includeDependencies(): Dependency[]
@@ -259,6 +267,7 @@ export declare class JsCompilation {
   spliceDiagnostic(start: number, end: number, replaceWith: Array<JsRspackDiagnostic>): void
   pushNativeDiagnostic(diagnostic: ExternalObject<'Diagnostic'>): void
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
+  get errors(): Diagnostics
   getErrors(): Array<RspackError>
   getWarnings(): Array<RspackError>
   getStats(): JsStats
@@ -499,7 +508,8 @@ export declare enum BuiltinPluginName {
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin',
   ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin',
-  HttpUriPlugin = 'HttpUriPlugin'
+  HttpUriPlugin = 'HttpUriPlugin',
+  CssChunkingPlugin = 'CssChunkingPlugin'
 }
 
 export declare function cleanupGlobalTrace(): void
@@ -507,6 +517,11 @@ export declare function cleanupGlobalTrace(): void
 export interface ContextInfo {
   issuer: string
   issuerLayer?: string
+}
+
+export interface CssChunkingPluginOptions {
+  strict?: boolean
+  exclude?: RegExp
 }
 
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>

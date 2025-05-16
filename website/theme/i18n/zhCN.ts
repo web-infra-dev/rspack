@@ -8,18 +8,15 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   learnMore: '深入了解',
 
   // whyRspack
-  whyRspack: '什么是 Rspack？',
-  whyRspackDesc:
-    'Rspack 是一个基于 Rust 编写的高性能 JavaScript 打包工具， 它提供对 webpack 生态良好的兼容性，能够无缝替换 webpack， 并提供闪电般的构建速度。',
-  FastStartup: '启动速度极快',
-  FastStartupDesc: '基于 Rust，项目启动速度极快，带给你极致的开发体验。',
-  LightningHMR: '闪电般的 HMR',
-  LightningHMRDesc: '内置增量编译机制，HMR 速度极快，完全胜任大型项目的开发。',
+  FastStartup: '高性能',
+  FastStartupDesc: '基于 Rust 的并行架构，带来极致的开发体验',
+  LightningHMR: 'HMR 极快',
+  LightningHMRDesc: '内置增量构建机制，HMR 速度极快，完美胜任大型项目开发',
   FrameworkAgnostic: '框架无关',
-  FrameworkAgnosticDesc: '不和任何前端框架绑定，保证足够的灵活性。',
+  FrameworkAgnosticDesc: '不和任何前端框架绑定，保证足够的灵活性',
   WebpackCompatible: '兼容 webpack',
   WebpackCompatibleDesc:
-    '兼容 webpack 生态中的 plugin 和 loader，无缝衔接社区中沉淀的优秀库。',
+    '兼容 webpack 插件和 loader，无缝衔接社区中沉淀的优秀库',
 
   // benchmark
   benchmarkTitle: '极快的构建速度',
@@ -51,12 +48,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
     '并发运行多个构建任务，为不同的构建目标或环境输出产物。',
   featureJavaScriptApi: '提供对构建 API 的编程接口，允许自定义整个构建流程。',
 
-  // Tool Stack
-  toolStackTitle: 'Rstack',
-  toolStackDesc: '围绕 Rspack 打造的高性能工具链，助力现代 Web 开发',
-
   // Who is using
-  whoIsUsing: '谁在使用 Rspack',
+  whoIsUsing: '谁在使用',
 
   // HomeFooter
   coldStart: '冷启动（dev）',

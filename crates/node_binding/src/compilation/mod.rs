@@ -1,6 +1,7 @@
 mod chunks;
 mod code_generation_results;
 mod dependencies;
+mod diagnostics;
 pub mod entries;
 
 use std::{cell::RefCell, collections::HashMap, path::Path, ptr::NonNull};
@@ -8,17 +9,17 @@ use std::{cell::RefCell, collections::HashMap, path::Path, ptr::NonNull};
 use chunks::Chunks;
 pub use code_generation_results::*;
 use dependencies::JsDependencies;
+use diagnostics::Diagnostics;
 use entries::JsEntries;
-use napi::{NapiRaw, NapiValue};
+use napi::NapiRaw;
 use napi_derive::napi;
-use once_cell::sync::OnceCell;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{
   rspack_sources::BoxSource, BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions,
   FactorizeInfo, ModuleIdentifier, Reflector,
 };
-use rspack_error::{Diagnostic, ToStringResultToRspackResultExt};
-use rspack_napi::{napi::bindgen_prelude::*, OneShotRef, WeakRef};
+use rspack_error::{Diagnostic, RspackSeverity, ToStringResultToRspackResultExt};
+use rspack_napi::napi::bindgen_prelude::*;
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rustc_hash::FxHashMap;
 
@@ -30,26 +31,26 @@ use crate::{
   RspackError, RspackResultToNapiResultExt, ToJsCompatSource, COMPILER_REFERENCES,
 };
 
-thread_local! {
-  static CHUNKS_SYMBOL: OnceCell<OneShotRef> = const { OnceCell::new() };
-}
-
 #[napi]
 pub struct JsCompilation {
   #[allow(dead_code)]
   pub(crate) id: CompilationId,
   pub(crate) inner: NonNull<Compilation>,
-  chunks_ref: OnceCell<WeakRef>,
 }
 
 impl JsCompilation {
-  fn as_ref(&self) -> napi::Result<&'static Compilation> {
+  pub(crate) fn new(id: CompilationId, inner: NonNull<Compilation>) -> Self {
+    #[allow(clippy::unwrap_used)]
+    Self { id, inner }
+  }
+
+  pub(crate) fn as_ref(&self) -> napi::Result<&'static Compilation> {
     // SAFETY: The memory address of rspack_core::Compilation will not change,
     // so as long as the Compiler is not dropped, we can safely return a 'static reference.
     Ok(unsafe { self.inner.as_ref() })
   }
 
-  fn as_mut(&mut self) -> napi::Result<&'static mut Compilation> {
+  pub(crate) fn as_mut(&mut self) -> napi::Result<&'static mut Compilation> {
     // SAFETY: The memory address of rspack_core::Compilation will not change,
     // so as long as the Compiler is not dropped, we can safely return a 'static reference.
     Ok(unsafe { self.inner.as_mut() })
@@ -211,29 +212,8 @@ impl JsCompilation {
   }
 
   #[napi(getter, ts_return_type = "Chunks")]
-  pub fn chunks(
-    &self,
-    env: &Env,
-    mut this: This,
-    reference: Reference<JsCompilation>,
-  ) -> Result<&WeakRef> {
-    let raw_env = env.raw();
-
-    self.chunks_ref.get_or_try_init(move || {
-      let symbol: napi::Result<napi::JsObject> = CHUNKS_SYMBOL.with(move |once_cell| {
-        let r = once_cell.get_or_try_init(move || {
-          let symbol = env.create_symbol(Some("chunks"))?;
-          OneShotRef::new(raw_env, symbol)
-        })?;
-
-        let napi_val = unsafe { ToNapiValue::to_napi_value(raw_env, r)? };
-        Ok(unsafe { Object::from_raw_unchecked(raw_env, napi_val) })
-      });
-
-      let mut jsobject = Chunks::new(reference.downgrade()).get_jsobject(env)?;
-      this.object.set_property(symbol?, &jsobject)?;
-      WeakRef::new(env.raw(), &mut jsobject)
-    })
+  pub fn chunks(&self, reference: Reference<JsCompilation>) -> Result<Chunks> {
+    Ok(Chunks::new(reference.downgrade()))
   }
 
   #[napi]
@@ -458,36 +438,32 @@ impl JsCompilation {
     Ok(())
   }
 
+  #[napi(getter, ts_return_type = "Diagnostics")]
+  pub fn errors(&self, reference: Reference<JsCompilation>) -> Result<Diagnostics> {
+    Ok(Diagnostics::new(
+      RspackSeverity::Error,
+      reference.downgrade(),
+    ))
+  }
+
   #[napi]
   pub fn get_errors(&self) -> Result<Vec<RspackError>> {
     let compilation = self.as_ref()?;
 
-    let colored = compilation.options.stats.colors;
-    Ok(
-      compilation
-        .get_errors_sorted()
-        .map(|d| {
-          RspackError::try_from_diagnostic(compilation, d, colored)
-            .expect("should convert diagnostic to `RspackError`")
-        })
-        .collect(),
-    )
+    compilation
+      .get_errors_sorted()
+      .map(|d| RspackError::try_from_diagnostic(compilation, d))
+      .collect()
   }
 
   #[napi]
   pub fn get_warnings(&self) -> Result<Vec<RspackError>> {
     let compilation = self.as_ref()?;
 
-    let colored = compilation.options.stats.colors;
-    Ok(
-      compilation
-        .get_warnings_sorted()
-        .map(|d| {
-          RspackError::try_from_diagnostic(compilation, d, colored)
-            .expect("should convert diagnostic to `RspackError`")
-        })
-        .collect(),
-    )
+    compilation
+      .get_warnings_sorted()
+      .map(|d| RspackError::try_from_diagnostic(compilation, d))
+      .collect()
   }
 
   #[napi]
@@ -1002,11 +978,7 @@ impl ToNapiValue for JsCompilationWrapper {
           ToNapiValue::to_napi_value(env, r.clone())
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
-          let js_compilation = JsCompilation {
-            id: val.id,
-            inner: val.inner,
-            chunks_ref: OnceCell::new(),
-          };
+          let js_compilation = JsCompilation::new(val.id, val.inner);
           let napi_value = ToNapiValue::to_napi_value(env, js_compilation)?;
           let reference: Reference<JsCompilation> = Reference::from_napi_value(env, napi_value)?;
           let weak_reference = entry.insert(reference.downgrade());

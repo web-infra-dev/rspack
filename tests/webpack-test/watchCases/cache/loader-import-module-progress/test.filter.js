@@ -1,2 +1,1 @@
-// compiler.getCache("ProgressPlugin").getItemCache("counts", null) returns undefined
-module.exports = () => false;
+module.exports = () => "TODO: progress plugin cache not ported to javascript";

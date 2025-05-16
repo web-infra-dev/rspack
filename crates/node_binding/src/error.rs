@@ -197,8 +197,7 @@ impl RspackError {
   pub fn try_from_diagnostic(
     compilation: &rspack_core::Compilation,
     diagnostic: &Diagnostic,
-    colored: bool,
-  ) -> Result<Self> {
+  ) -> napi::Result<Self> {
     let error = match diagnostic.source() {
       Some(source) => match source.downcast_ref::<RspackError>() {
         Some(rspack_error) => Some(Box::new(rspack_error.clone())),
@@ -217,6 +216,10 @@ impl RspackError {
       None => None,
     };
 
+    let message = diagnostic
+      .render_report(compilation.options.stats.colors)
+      .map_err(|e| napi::Error::from_reason(format!("{}", e)))?;
+
     Ok(Self {
       name: diagnostic.code().map(|n| n.to_string()).unwrap_or_else(|| {
         match diagnostic.severity() {
@@ -224,7 +227,7 @@ impl RspackError {
           rspack_error::RspackSeverity::Warn => "Warn".to_string(),
         }
       }),
-      message: diagnostic.render_report(colored)?,
+      message,
       module_identifier: diagnostic.module_identifier().map(|d| d.to_string()),
       loc: diagnostic.loc(),
       file: diagnostic.file().map(|f| f.as_str().to_string()),
