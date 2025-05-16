@@ -3,7 +3,7 @@ use std::{
   sync::Arc,
 };
 
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rspack_collections::{
   IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeyIndexMap, UkeyMap,
 };
@@ -189,11 +189,13 @@ async fn concatenation_scope(
   let Some(current_module) = modules_map.get(&module) else {
     return Ok(None);
   };
-  let current_module = current_module.as_concatenated().clone();
+  let ModuleInfo::Concatenated(current_module) = current_module else {
+    return Ok(None);
+  };
 
   Ok(Some(ConcatenationScope::new(
     modules_map.clone(),
-    current_module,
+    current_module.as_ref().clone(),
   )))
 }
 
