@@ -91,6 +91,48 @@ export function createDiagnosticArray(
 		flat(): RspackError[] {
 			return adm.values();
 		},
+
+		// map
+		every<S extends RspackError>(
+			predicate: (
+				value: RspackError,
+				index: number,
+				array: RspackError[]
+			) => value is S,
+			thisArg?: any
+		): this is S[] {
+			return adm.values().every(predicate, thisArg);
+		},
+		filter<S extends RspackError>(
+			predicate: (
+				value: RspackError,
+				index: number,
+				array: RspackError[]
+			) => value is S,
+			thisArg?: any
+		): S[] {
+			return adm.values().filter(predicate, thisArg);
+		},
+		find(
+			predicate: (
+				value: RspackError,
+				index: number,
+				obj: RspackError[]
+			) => unknown,
+			thisArg?: any
+		): RspackError | undefined {
+			return adm.values().find(predicate, thisArg);
+		},
+		findIndex(
+			predicate: (
+				value: RspackError,
+				index: number,
+				obj: RspackError[]
+			) => unknown,
+			thisArg?: any
+		): number {
+			return adm.values().findIndex(predicate, thisArg);
+		},
 		flatMap<U, This = undefined>(
 			callbackfn: (
 				this: This,
@@ -122,6 +164,8 @@ export function createDiagnosticArray(
 		): U[] {
 			return adm.values().map(callbackfn, thisArg);
 		},
+
+		// reduce
 		reduce(
 			callbackfn: (
 				previousValue: RspackError,
