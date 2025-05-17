@@ -40,6 +40,7 @@ impl MakeOccasion {
       state: _,
       make_failed_dependencies: _,
       make_failed_module: _,
+      bailout_diagnostic: _,
     } = artifact;
 
     module_graph::save_module_graph(

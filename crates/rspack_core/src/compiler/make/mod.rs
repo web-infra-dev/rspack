@@ -45,6 +45,7 @@ pub struct MakeArtifact {
   pub context_dependencies: FileCounter,
   pub missing_dependencies: FileCounter,
   pub build_dependencies: FileCounter,
+  pub bailout_diagnostic: Option<Diagnostic>,
 }
 
 impl MakeArtifact {
@@ -175,7 +176,12 @@ impl MakeArtifact {
         .map(|d| d.with_module_identifier(origin_module_identifier.copied()))
         .collect::<Vec<_>>()
     });
-    module_diagnostics.chain(dep_diagnostics).collect()
+
+    let bailout_diagnostic = self.bailout_diagnostic.clone().into_iter();
+    module_diagnostics
+      .chain(dep_diagnostics)
+      .chain(bailout_diagnostic)
+      .collect()
   }
 }
 
