@@ -131,7 +131,7 @@ pub struct EntryChunkDesc {
   options: EntryOptions,
   modules_ordinal: AvailableModules,
   entry: Option<String>,
-  entry_modules: Vec<ModuleIdentifier>,
+  pub entry_modules: Vec<ModuleIdentifier>,
   chunk_modules: IdentifierSet,
 
   pre_order_indices: IdentifierMap<usize>,
