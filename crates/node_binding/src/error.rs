@@ -1,6 +1,11 @@
+use std::ops::Deref;
+
 use derive_more::Debug;
 use napi_derive::napi;
-use rspack_error::{miette, Diagnostic, Result, RspackSeverity};
+use rspack_error::{
+  miette::{self, Severity},
+  Diagnostic, Result, RspackSeverity,
+};
 
 use crate::ModuleObject;
 
@@ -44,12 +49,14 @@ impl From<JsRspackSeverity> for miette::Severity {
 pub struct RspackError {
   pub name: String,
   pub message: String,
+  pub severity: Option<Severity>,
+  // TODO: Consider removing `module_identifier` if it is no longer needed.
   pub module_identifier: Option<String>,
+  pub module: Option<ModuleObject>,
   pub loc: Option<String>,
   pub file: Option<String>,
   pub stack: Option<String>,
   pub hide_stack: Option<bool>,
-  pub module: Option<ModuleObject>,
   pub error: Option<Box<RspackError>>,
 }
 
@@ -72,6 +79,7 @@ impl napi::bindgen_prelude::ToNapiValue for RspackError {
     let Self {
       name,
       message,
+      severity,
       module_identifier,
       loc,
       file,
@@ -121,6 +129,7 @@ impl napi::bindgen_prelude::FromNapiValue for RspackError {
       return Ok(RspackError {
         name: "NonErrorEmittedError".to_string(),
         message: format!("(Emitted value instead of an instance of Error) {}", error),
+        severity: None,
         module_identifier: None,
         loc: None,
         file: None,
@@ -179,6 +188,7 @@ impl napi::bindgen_prelude::FromNapiValue for RspackError {
     let val = Self {
       name,
       message,
+      severity: None,
       module_identifier,
       loc,
       file,
@@ -198,12 +208,14 @@ impl RspackError {
     compilation: &rspack_core::Compilation,
     diagnostic: &Diagnostic,
   ) -> napi::Result<Self> {
+    println!("diagnostic {:#?}", diagnostic);
     let error = match diagnostic.source() {
       Some(source) => match source.downcast_ref::<RspackError>() {
         Some(rspack_error) => Some(Box::new(rspack_error.clone())),
         None => Some(Box::new(RspackError {
           name: "Error".to_string(),
           message: format!("{}", source),
+          severity: None,
           module_identifier: None,
           loc: None,
           file: None,
@@ -215,6 +227,13 @@ impl RspackError {
       },
       None => None,
     };
+
+    if let Some(rspack_error) =
+      (diagnostic.deref() as &dyn std::error::Error).downcast_ref::<RspackError>()
+    {
+      println!("try_from_diagnostic");
+      return Ok(rspack_error.clone());
+    }
 
     let message = diagnostic
       .render_report(compilation.options.stats.colors)
@@ -228,6 +247,7 @@ impl RspackError {
         }
       }),
       message,
+      severity: None,
       module_identifier: diagnostic.module_identifier().map(|d| d.to_string()),
       loc: diagnostic.loc(),
       file: diagnostic.file().map(|f| f.as_str().to_string()),
@@ -243,15 +263,18 @@ impl RspackError {
     })
   }
 
-  pub fn into_diagnostic(self, severity: RspackSeverity) -> Diagnostic {
-    (match severity {
-      RspackSeverity::Error => Diagnostic::error,
-      RspackSeverity::Warn => Diagnostic::warn,
-    })(self.name, self.message)
-    .with_file(self.file.map(Into::into))
-    .with_module_identifier(self.module_identifier.map(Into::into))
-    .with_stack(self.stack)
-    .with_hide_stack(self.hide_stack)
+  pub fn into_diagnostic(mut self, severity: RspackSeverity) -> Diagnostic {
+    self.severity = Some(severity.into());
+    let file = self.file.clone();
+    let module_identifier = self.module.as_ref().map(|module| module.identifier());
+    let stack = self.stack.clone();
+    let hide_stack = self.hide_stack;
+    Diagnostic::from(Box::new(self) as Box<dyn miette::Diagnostic + Send + Sync>)
+      .with_file(file.map(Into::into))
+      .with_module_identifier(module_identifier)
+      // Used in
+      .with_stack(stack)
+      .with_hide_stack(hide_stack)
   }
 }
 
@@ -272,7 +295,15 @@ impl std::fmt::Display for RspackError {
 
 impl std::error::Error for RspackError {}
 
-impl miette::Diagnostic for RspackError {}
+impl miette::Diagnostic for RspackError {
+  fn code(&self) -> Option<Box<dyn std::fmt::Display>> {
+    Some(Box::new(self.name.clone()))
+  }
+
+  fn severity(&self) -> Option<Severity> {
+    self.severity
+  }
+}
 
 pub trait RspackResultToNapiResultExt<T, E: ToString> {
   fn to_napi_result(self) -> napi::Result<T>;

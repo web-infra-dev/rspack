@@ -1,22 +1,22 @@
 /** @type {import('../..').TErrorCaseConfig} */
 module.exports = {
-    description: "Testing set errors",
-    options() {
-        return {
-            entry: "./resolve-fail-esm",
-            plugins: [
-                compiler => {
-                    compiler.hooks.afterCompile.tap("set errors", compilation => {
-                        compilation.errors[0] = new Error("error 1");
-                        expect(compilation.errors[0].message).toMatch(/error 1/);
-                        expect(compilation.errors[1]).toBe(undefined);
-                    });
-                }
-            ]
-        };
-    },
-    async check(diagnostics) {
-        expect(diagnostics).toMatchInlineSnapshot(`
+	description: "Testing set errors",
+	options() {
+		return {
+			entry: "./resolve-fail-esm",
+			plugins: [
+				compiler => {
+					compiler.hooks.afterCompile.tap("set errors", compilation => {
+						compilation.errors[0] = new Error("error 1");
+						expect(compilation.errors[0].message).toMatch(/error 1/);
+						expect(compilation.errors[1]).toBe(undefined);
+					});
+				}
+			]
+		};
+	},
+	async check(diagnostics) {
+		expect(diagnostics).toMatchInlineSnapshot(`
 		Object {
 		  "errors": Array [
 		    Object {
@@ -28,5 +28,5 @@ module.exports = {
 		  "warnings": Array [],
 		}
 	`);
-    }
+	}
 };

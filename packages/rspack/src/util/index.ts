@@ -1,4 +1,4 @@
-import type { RspackError, JsStatsError } from "@rspack/binding";
+import type { JsStatsError, RspackError } from "@rspack/binding";
 import type { LoaderObject } from "../loader-runner";
 
 export function mapValues(

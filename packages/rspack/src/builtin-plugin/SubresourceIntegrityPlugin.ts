@@ -3,9 +3,9 @@ import { readFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import {
 	BuiltinPluginName,
-	type RspackError,
 	type RawIntegrityData,
-	type RawSubresourceIntegrityPluginOptions
+	type RawSubresourceIntegrityPluginOptions,
+	type RspackError
 } from "@rspack/binding";
 import type { AsyncSeriesWaterfallHook } from "@rspack/lite-tapable";
 import { z } from "zod";

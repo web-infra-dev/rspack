@@ -448,6 +448,12 @@ pub struct ModuleObject {
   compiler_id: CompilerId,
 }
 
+impl ModuleObject {
+  pub fn identifier(&self) -> ModuleIdentifier {
+    self.identifier
+  }
+}
+
 unsafe impl Send for ModuleObject {}
 unsafe impl Sync for ModuleObject {}
 
