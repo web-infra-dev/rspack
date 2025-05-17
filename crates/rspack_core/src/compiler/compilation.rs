@@ -51,12 +51,12 @@ use crate::{
   Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
   ChunkHashesArtifact, ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderResult,
   ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyCodeGeneration,
-  DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, Entry, EntryData,
-  EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap, Logger,
-  ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier, ModuleIdsArtifact, PathData,
-  ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpecMap, RuntimeTemplate,
-  SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats,
+  CompilationLogging, CompilerOptions, ConcatenationScope, DependenciesDiagnosticsArtifact,
+  DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
+  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
+  Filename, ImportVarMap, Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
+  ModuleIdsArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpecMap,
+  RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats,
 };
 
 define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));
@@ -70,6 +70,7 @@ define_hook!(CompilationExecuteModule:
   Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
 define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation));
 define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
+define_hook!(CompilationConcatenationScope: SeriesBail(compilation: &Compilation, curr_module: ModuleIdentifier) -> ConcatenationScope);
 define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationAfterOptimizeModules: Series(compilation: &mut Compilation));
@@ -102,6 +103,7 @@ pub struct CompilationHooks {
   pub build_module: CompilationBuildModuleHook,
   pub update_module_graph: CompilationUpdateModuleGraphHook,
   pub revoked_modules: CompilationRevokedModulesHook,
+  pub concatenation_scope: CompilationConcatenationScopeHook,
   pub still_valid_module: CompilationStillValidModuleHook,
   pub succeed_module: CompilationSucceedModuleHook,
   pub execute_module: CompilationExecuteModuleHook,
@@ -1015,6 +1017,12 @@ impl Compilation {
       for runtime in chunk_graph.get_module_runtimes_iter(module, &self.chunk_by_ukey) {
         let hash = ChunkGraph::get_module_hash(self, module, runtime)
           .expect("should have cgm.hash in code generation");
+        let scope = self
+          .plugin_driver
+          .compilation_hooks
+          .concatenation_scope
+          .call(self, module)
+          .await?;
         if let Some(job) = map.get_mut(hash) {
           job.runtimes.push(runtime.clone());
         } else {
@@ -1025,6 +1033,7 @@ impl Compilation {
               hash: hash.clone(),
               runtime: runtime.clone(),
               runtimes: vec![runtime.clone()],
+              scope,
             },
           );
         }
@@ -1048,7 +1057,7 @@ impl Compilation {
             .code_generate_occasion
             .use_cache(&job, || async {
               module
-                .code_generation(this, Some(&job.runtime), None)
+                .code_generation(this, Some(&job.runtime), job.scope.clone())
                 .await
                 .map(|mut codegen_res| {
                   codegen_res.set_hash(

@@ -155,6 +155,7 @@ rspack_plugin_dynamic_entry            = { version = "0.2.0", path = "crates/rsp
 rspack_plugin_emit                     = { version = "0.2.0", path = "crates/rspack_plugin_emit" }
 rspack_plugin_ensure_chunk_conditions  = { version = "0.2.0", path = "crates/rspack_plugin_ensure_chunk_conditions" }
 rspack_plugin_entry                    = { version = "0.2.0", path = "crates/rspack_plugin_entry" }
+rspack_plugin_esm_library              = { version = "0.2.0", path = "crates/rspack_plugin_esm_library" }
 rspack_plugin_externals                = { version = "0.2.0", path = "crates/rspack_plugin_externals" }
 rspack_plugin_extract_css              = { version = "0.2.0", path = "crates/rspack_plugin_extract_css" }
 rspack_plugin_hmr                      = { version = "0.2.0", path = "crates/rspack_plugin_hmr" }

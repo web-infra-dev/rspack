@@ -71,6 +71,7 @@ rspack_plugin_dll                      = { workspace = true }
 rspack_plugin_dynamic_entry            = { workspace = true }
 rspack_plugin_ensure_chunk_conditions  = { workspace = true }
 rspack_plugin_entry                    = { workspace = true }
+rspack_plugin_esm_library              = { workspace = true }
 rspack_plugin_externals                = { workspace = true }
 rspack_plugin_extract_css              = { workspace = true }
 rspack_plugin_hmr                      = { workspace = true }
