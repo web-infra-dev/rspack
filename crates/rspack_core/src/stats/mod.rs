@@ -749,7 +749,7 @@ impl Stats<'_> {
       .contains(&identifier);
 
     let sizes = module
-      .source_types()
+      .source_types(module_graph)
       .iter()
       .map(|t| StatsSourceTypeSize {
         source_type: *t,

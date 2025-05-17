@@ -34,7 +34,7 @@ pub(crate) static WASM_SOURCE_TYPE: &[SourceType; 2] = &[SourceType::Wasm, Sourc
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for AsyncWasmParserAndGenerator {
-  fn source_types(&self) -> &[SourceType] {
+  fn source_types(&self, _module: &dyn Module, _module_graph: &ModuleGraph) -> &[SourceType] {
     WASM_SOURCE_TYPE
   }
 

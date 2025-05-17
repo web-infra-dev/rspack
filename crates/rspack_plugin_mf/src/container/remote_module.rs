@@ -8,8 +8,8 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   ChunkGraph, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
-  DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec,
-  SourceType,
+  DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleGraph, ModuleIdentifier, ModuleType,
+  RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -120,7 +120,7 @@ impl Module for RemoteModule {
     &ModuleType::Remote
   }
 
-  fn source_types(&self) -> &[SourceType] {
+  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     &[SourceType::Remote, SourceType::ShareInit]
   }
 

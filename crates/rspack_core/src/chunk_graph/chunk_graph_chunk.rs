@@ -102,8 +102,9 @@ impl ChunkGraphChunk {
 
 fn get_modules_size(modules: &[&BoxModule], compilation: &Compilation) -> f64 {
   let mut size = 0f64;
+  let module_graph = compilation.get_module_graph();
   for module in modules {
-    for source_type in module.source_types() {
+    for source_type in module.source_types(&module_graph) {
       size += module.size(Some(source_type), Some(compilation));
     }
   }
@@ -410,7 +411,7 @@ impl ChunkGraph {
         {
           module_source_types.contains(&source_type)
         } else {
-          module.source_types().contains(&source_type)
+          module.source_types(module_graph).contains(&source_type)
         }
       })
       .collect::<Vec<_>>();
@@ -428,7 +429,7 @@ impl ChunkGraph {
       .modules
       .iter()
       .filter_map(|uri| module_graph.module_by_identifier(uri))
-      .filter(move |module| module.source_types().contains(&source_type))
+      .filter(move |module| module.source_types(module_graph).contains(&source_type))
       .map(|m| m.as_ref())
   }
 
@@ -440,7 +441,7 @@ impl ChunkGraph {
       .fold(0.0, |acc, m| {
         acc
           + m
-            .source_types()
+            .source_types(module_graph)
             .iter()
             .fold(0.0, |acc, t| acc + m.size(Some(t), Some(compilation)))
       })
@@ -457,7 +458,7 @@ impl ChunkGraph {
     for identifier in &cgc.modules {
       let module = module_graph.module_by_identifier(identifier);
       if let Some(module) = module {
-        for source_type in module.source_types() {
+        for source_type in module.source_types(module_graph) {
           let size = module.size(Some(source_type), Some(compilation));
           sizes
             .entry(*source_type)
@@ -967,6 +968,7 @@ impl ChunkGraph {
     &self,
     chunk: &ChunkUkey,
     module: &BoxModule,
+    module_graph: &ModuleGraph,
   ) -> FxHashSet<SourceType> {
     self
       .chunk_graph_chunk_by_chunk_ukey
@@ -978,7 +980,7 @@ impl ChunkGraph {
 
         None
       })
-      .unwrap_or(module.source_types().iter().copied().collect())
+      .unwrap_or(module.source_types(module_graph).iter().copied().collect())
   }
 
   pub fn get_chunk_id<'a>(
