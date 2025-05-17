@@ -1,2 +1,1 @@
-// do not support webpack.ids.DeterministicModuleIdsPlugin
-module.exports = () => false;
+module.exports = () => "TODO: DeterministicModuleIdsPlugin and SyncModuleIdsPlugin are not exposed";

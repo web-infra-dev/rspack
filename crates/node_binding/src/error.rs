@@ -208,7 +208,6 @@ impl RspackError {
     compilation: &rspack_core::Compilation,
     diagnostic: &Diagnostic,
   ) -> napi::Result<Self> {
-    println!("diagnostic {:#?}", diagnostic);
     let error = match diagnostic.source() {
       Some(source) => match source.downcast_ref::<RspackError>() {
         Some(rspack_error) => Some(Box::new(rspack_error.clone())),
@@ -231,7 +230,6 @@ impl RspackError {
     if let Some(rspack_error) =
       (diagnostic.deref() as &dyn std::error::Error).downcast_ref::<RspackError>()
     {
-      println!("try_from_diagnostic");
       return Ok(rspack_error.clone());
     }
 
