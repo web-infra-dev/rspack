@@ -852,7 +852,7 @@ impl Compilation {
     };
     self.get_errors().sorted_by(
       |a, b| match a.module_identifier().cmp(&b.module_identifier()) {
-        std::cmp::Ordering::Equal => get_offset(a.as_ref()).cmp(&get_offset(b.as_ref())),
+        std::cmp::Ordering::Equal => get_offset(&***a).cmp(&get_offset(&***b)),
         other => other,
       },
     )
@@ -880,7 +880,7 @@ impl Compilation {
     };
     self.get_warnings().sorted_by(
       |a, b| match a.module_identifier().cmp(&b.module_identifier()) {
-        std::cmp::Ordering::Equal => get_offset(a.as_ref()).cmp(&get_offset(b.as_ref())),
+        std::cmp::Ordering::Equal => get_offset(&***a).cmp(&get_offset(&***b)),
         other => other,
       },
     )

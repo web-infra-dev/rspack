@@ -5,7 +5,7 @@ use rspack_error::{
   error, impl_diagnostic_transparent,
   miette::{self, Diagnostic},
   thiserror::{self, Error},
-  DiagnosticExt, Error, TraceableError,
+  DiagnosticExt, TraceableError,
 };
 use rspack_util::ext::AsAny;
 use rustc_hash::FxHashSet;
@@ -37,11 +37,11 @@ impl_diagnostic_transparent!(EmptyDependency);
 ///////////////////// Module /////////////////////
 
 #[derive(Debug)]
-pub struct ModuleBuildError(pub Error);
+pub struct ModuleBuildError(pub Box<dyn Diagnostic + Sync + Send + 'static>);
 
 impl std::error::Error for ModuleBuildError {
   fn source(&self) -> ::core::option::Option<&(dyn std::error::Error + 'static)> {
-    Some(<Error as AsRef<dyn std::error::Error>>::as_ref(&self.0))
+    Some(self.0.as_ref())
   }
 }
 
@@ -150,6 +150,7 @@ impl ModuleParseError {
 
 #[derive(Debug)]
 pub struct CapturedLoaderError {
+  pub cause: Box<dyn Diagnostic + Sync + Send + 'static>,
   pub message: String,
   pub stack: Option<String>,
   pub hide_stack: Option<bool>,
@@ -163,6 +164,7 @@ pub struct CapturedLoaderError {
 impl CapturedLoaderError {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
+    cause: Box<dyn Diagnostic + Sync + Send + 'static>,
     message: String,
     stack: Option<String>,
     hide_stack: Option<bool>,
@@ -173,6 +175,7 @@ impl CapturedLoaderError {
     cacheable: bool,
   ) -> Self {
     Self {
+      cause,
       message,
       stack,
       hide_stack,
@@ -223,7 +226,7 @@ impl CapturedLoaderError {
 
 impl std::error::Error for CapturedLoaderError {
   fn source(&self) -> ::core::option::Option<&(dyn std::error::Error + 'static)> {
-    None
+    Some(self.cause.as_ref())
   }
 }
 
@@ -257,4 +260,52 @@ pub fn map_box_diagnostics_to_module_parse_diagnostics(
       diagnostic.with_hide_stack(hide_stack)
     })
     .collect()
+}
+
+#[derive(Debug)]
+pub struct ModuleNotFoundError(Box<dyn Diagnostic + Send + Sync>);
+
+impl ModuleNotFoundError {
+  pub fn new(diagnostic: Box<dyn Diagnostic + Send + Sync>) -> Self {
+    Self(diagnostic)
+  }
+}
+
+impl std::error::Error for ModuleNotFoundError {
+  fn source(&self) -> ::core::option::Option<&(dyn std::error::Error + 'static)> {
+    Some(self.0.as_ref())
+  }
+}
+
+impl std::fmt::Display for ModuleNotFoundError {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "Module not found:")
+  }
+}
+
+impl miette::Diagnostic for ModuleNotFoundError {
+  fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+    Some(Box::new("ModuleNotFoundError"))
+  }
+  fn severity(&self) -> Option<miette::Severity> {
+    self.0.severity()
+  }
+  fn help<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+    self.0.help()
+  }
+  fn url<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+    self.0.url()
+  }
+  fn source_code(&self) -> Option<&dyn miette::SourceCode> {
+    self.0.source_code()
+  }
+  fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
+    self.0.labels()
+  }
+  fn related<'a>(&'a self) -> Option<Box<dyn Iterator<Item = &'a dyn miette::Diagnostic> + 'a>> {
+    self.0.related()
+  }
+  fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
+    Some(self.0.as_ref())
+  }
 }

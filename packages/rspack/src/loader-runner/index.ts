@@ -1083,22 +1083,7 @@ export async function runLoaders(
 			LoaderObject.__to_binding(item)
 		);
 	} catch (e) {
-		const error = e as Error & { hideStack?: boolean | "true" };
-		context.__internal__error =
-			typeof e === "string"
-				? {
-						name: "ModuleBuildError",
-						message: e
-					}
-				: {
-						name: "ModuleBuildError",
-						message: error.message,
-						stack: typeof error.stack === "string" ? error.stack : undefined,
-						hideStack:
-							"hideStack" in error
-								? error.hideStack === true || error.hideStack === "true"
-								: undefined
-					};
+		context.__internal__error = e;
 	}
 	JavaScriptTracer.endAsync({
 		name: `run_js_loaders${pitch ? ":pitch" : ":normal"}`,

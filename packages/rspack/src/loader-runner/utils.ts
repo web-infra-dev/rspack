@@ -94,9 +94,8 @@ export const runSyncOrAsync = promisify(function runSyncOrAsync(
 		}
 	} catch (e: unknown) {
 		// use string for napi getter
-		const err = e as Error;
-		if ("hideStack" in err && err.hideStack) {
-			err.hideStack = "true";
+		if (e instanceof Error && "hideStack" in e && e.hideStack) {
+			e.hideStack = "true";
 		}
 		if (isError) throw e;
 		if (isDone) {

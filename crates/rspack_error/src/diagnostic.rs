@@ -7,7 +7,7 @@ use rspack_collections::Identifier;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use swc_core::common::{SourceMap, Span};
 
-use crate::{graphical::GraphicalReportHandler, Error};
+use crate::graphical::GraphicalReportHandler;
 
 #[derive(Debug, Clone, Default, Copy, PartialEq, Eq, Hash)]
 pub enum RspackSeverity {
@@ -95,7 +95,7 @@ impl ErrorLocation {
 #[cacheable(with=Unsupported)]
 #[derive(Debug, Clone)]
 pub struct Diagnostic {
-  inner: Arc<miette::Error>,
+  inner: Arc<dyn miette::Diagnostic + Send + Sync>,
   module_identifier: Option<Identifier>,
   loc: Option<String>,
   file: Option<Utf8PathBuf>,
@@ -106,14 +106,23 @@ pub struct Diagnostic {
 
 impl From<Box<dyn miette::Diagnostic + Send + Sync>> for Diagnostic {
   fn from(value: Box<dyn miette::Diagnostic + Send + Sync>) -> Self {
-    Diagnostic::from(miette::Error::new_boxed(value))
+    Self {
+      inner: Arc::from(value),
+      module_identifier: None,
+      loc: None,
+      file: None,
+      hide_stack: None,
+      chunk: None,
+      stack: None,
+    }
   }
 }
 
 impl From<miette::Error> for Diagnostic {
   fn from(value: miette::Error) -> Self {
+    let diagnostic: Box<dyn miette::Diagnostic + Send + Sync + 'static> = value.into();
     Self {
-      inner: Arc::new(value),
+      inner: Arc::from(diagnostic),
       module_identifier: None,
       loc: None,
       file: None,
@@ -125,22 +134,21 @@ impl From<miette::Error> for Diagnostic {
 }
 
 impl Deref for Diagnostic {
-  type Target = miette::Error;
+  type Target = dyn miette::Diagnostic + Send + Sync;
 
   fn deref(&self) -> &Self::Target {
-    &self.inner
+    self.inner.as_ref()
   }
 }
 
 impl Diagnostic {
   pub fn warn(title: String, message: String) -> Self {
     Self {
-      inner: Error::from(
+      inner: Arc::new(
         MietteDiagnostic::new(message)
           .with_code(title)
           .with_severity(miette::Severity::Warning),
-      )
-      .into(),
+      ),
       module_identifier: None,
       loc: None,
       file: None,
@@ -152,12 +160,11 @@ impl Diagnostic {
 
   pub fn error(title: String, message: String) -> Self {
     Self {
-      inner: Error::from(
+      inner: Arc::new(
         MietteDiagnostic::new(message)
           .with_code(title)
           .with_severity(miette::Severity::Error),
-      )
-      .into(),
+      ),
       module_identifier: None,
       loc: None,
       file: None,
@@ -179,7 +186,8 @@ impl Diagnostic {
       })
       .with_context_lines(2)
       .with_width(usize::MAX);
-    h.render_report(&mut buf, self.as_ref()).into_diagnostic()?;
+    h.render_report(&mut buf, self.inner.as_ref())
+      .into_diagnostic()?;
     Ok(buf)
   }
 
@@ -298,8 +306,4 @@ macro_rules! impl_empty_diagnosable_trait {
       }
     }
   };
-}
-
-pub fn errors_to_diagnostics(errs: Vec<Error>) -> Vec<Diagnostic> {
-  errs.into_iter().map(Diagnostic::from).collect()
 }
