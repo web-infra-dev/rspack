@@ -363,18 +363,20 @@ impl CommonJsImportsParserPlugin {
       None,
       parser.in_try,
     );
-    *dep.critical_mut() = Some(
-      create_traceable_error(
-        "Critical dependency".into(),
-        "require function is used in a way in which dependencies cannot be statically extracted"
-          .to_string(),
-        parser.source_file,
-        ident.span().into(),
-      )
-      .with_severity(Severity::Warn)
-      .boxed()
-      .into(),
-    );
+    if let Some(true) = parser.javascript_options.unknown_context_critical {
+      *dep.critical_mut() = Some(
+        create_traceable_error(
+          "Critical dependency".into(),
+          "require function is used in a way in which dependencies cannot be statically extracted"
+            .to_string(),
+          parser.source_file,
+          ident.span().into(),
+        )
+        .with_severity(Severity::Warn)
+        .boxed()
+        .into(),
+      );
+    }
     parser.dependencies.push(Box::new(dep));
     Some(true)
   }
