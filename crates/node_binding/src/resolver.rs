@@ -40,15 +40,22 @@ impl JsResolver {
     path: String,
     request: String,
   ) -> napi::Result<Either<JsResourceData, bool>> {
-    block_on(async move {
-      match self.resolver.resolve(Path::new(&path), &request).await {
-        Ok(rspack_core::ResolveResult::Resource(resource)) => {
-          Ok(Either::A(ResourceData::from(resource).into()))
-        }
-        Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(false)),
-        Err(err) => Err(napi::Error::from_reason(format!("{:?}", err))),
+    block_on(self.resolve(path, request))
+  }
+
+  #[napi(ts_return_type = "Promise<JsResourceData | false>")]
+  pub async fn resolve(
+    &self,
+    path: String,
+    request: String,
+  ) -> napi::Result<Either<JsResourceData, bool>> {
+    match self.resolver.resolve(Path::new(&path), &request).await {
+      Ok(rspack_core::ResolveResult::Resource(resource)) => {
+        Ok(Either::A(ResourceData::from(resource).into()))
       }
-    })
+      Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(false)),
+      Err(err) => Err(napi::Error::from_reason(format!("{:?}", err))),
+    }
   }
 
   #[napi]
