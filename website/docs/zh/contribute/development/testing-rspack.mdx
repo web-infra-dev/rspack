@@ -216,7 +216,7 @@ Snapshot 结构如下：
 
 此测试固定使用 `rspack-test-tools/tests/fixtures` 作为构建的源码，因此用例以单文件编写，其输出结构如下：
 
-```js {8-11} title="{case}.js"
+```js title="{case}.js"
 type TStatsAPICaseConfig = {
   description: string, // 用例描述
   options?: (context: ITestContext) => TCompilerOptions<T>, // 用例构建配置
@@ -224,6 +224,7 @@ type TStatsAPICaseConfig = {
   check?: (stats: TCompilerStats<T>, compiler: TCompiler<T>) => Promise<void>, // 用例的 stats 检测函数
 };
 
+// [!code highlight:4]
 /** @type {import('../..').TStatsAPICaseConfig} */
 module.exports = {
   // ...
@@ -252,11 +253,12 @@ module.exports = {
 
 此测试用例与常规的 rspack 项目相同，但额外会在用例目录下添加 `test.config.js` 文件，并指定 `validate()` 方法用于在构建结束后检测 stats 对象中的 hash 信息：
 
-```js {5-8} title="test.config.js"
+```js title="test.config.js"
 type THashCaseConfig = {
   validate?: (stats: TCompilerStats<T>) => void,
 };
 
+// [!code highlight:4]
 /** @type {import('../..').THashCaseConfig} */
 module.exports = {
   // ...
@@ -274,7 +276,7 @@ module.exports = {
 
 此测试固定使用 `rspack-test-tools/tests/fixtures` 作为构建的源码，因此用例以单文件编写，其输出结构如下：
 
-```js {9-12} title="{case.js}"
+```js title="{case.js}"
 interface TCompilerCaseConfig {
   description: string; // 用例描述
   options?: (context: ITestContext) => TCompilerOptions<T>; // 用例构建配置
@@ -287,6 +289,7 @@ interface TCompilerCaseConfig {
   ) => Promise<void>; // 用例的检测函数
 }
 
+// [!code highlight:4]
 /** @type {import('../..').TCompilerCaseConfig} */
 module.exports = {
   // ...
@@ -306,7 +309,7 @@ module.exports = {
 
 此测试固定使用 `rspack-test-tools/tests/fixtures` 作为构建的源码，因此用例以单文件编写，其输出结构如下：
 
-```js {8-11} title="{case}.js"
+```js title="{case}.js"
 interface TDefaultsCaseConfig {
   description: string; // 用例描述
   cwd?: string; // 用例的生成构建配置时的 process.cwd，默认为 `rspack-test-tools` 目录
@@ -317,6 +320,7 @@ interface TDefaultsCaseConfig {
   ) => Promise<void>; // 与默认配置之间的差异
 }
 
+// [!code highlight:4]
 /** @type {import('../..').TDefaultsCaseConfig} */
 module.exports = {
   // ...
@@ -334,7 +338,7 @@ module.exports = {
 
 此测试的用例固定使用 `rspack-test-tools/tests/fixtures` 作为构建的源码，因此测试用例以特定的配置结构编写：
 
-```js {8-11} title="{case}.js"
+```js title="{case}.js"
 interface TErrorCaseConfig {
   description: string; // 用例描述
   options?: (
@@ -345,6 +349,7 @@ interface TErrorCaseConfig {
   check?: (stats: TStatsDiagnostics) => Promise<void>; // 用例的检测函数
 }
 
+// [!code highlight:4]
 /** @type {import('../..').TErrorCaseConfig} */
 module.exports = {
   // ...
@@ -364,7 +369,7 @@ module.exports = {
 
 此测试的用例固定使用 `rspack-test-tools/tests/fixtures` 作为构建的源码，因此测试用例以特定的配置结构编写：
 
-```js {8-11} title="{case}/test.js"
+```js title="{case}/test.js"
 interface THookCaseConfig {
   description: string; // 用例描述
   options?: (
@@ -375,6 +380,7 @@ interface THookCaseConfig {
   check?: (context: ITestContext) => Promise<void>; // 构建完成后回调
 }
 
+// [!code highlight:4]
 /** @type {import("../../../..").THookCaseConfig} */
 module.exports = {
   // ...
