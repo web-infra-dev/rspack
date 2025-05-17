@@ -1,16 +1,12 @@
 module.exports = [
 	[
-		// CHANGE:
-		// { moduleName: /\.\/loaders\/no-string\/loader\.js!\.\/loaders\/no-string\/file\.js/ },
-		{ moduleName: /.\/loader\.js!\.\/loaders\/no-string\/file\.js/ },
+		{ moduleName: /\.\/loaders\/no-string\/loader\.js!\.\/loaders\/no-string\/file\.js/ },
 		// CHANGE:
 		// /Module build failed: Error: Final loader \(\.\/loaders\/no-string\/loader\.js\) didn't return a Buffer or String/
 		/Buffer, Uint8Array or string expected/
 	],
 	[
-		// CHANGE:
-		// { moduleName: /\.\/loaders\/no-string\/loader\.js!\.\/loaders\/no-string\/pitch-loader\.js!\.\/loaders\/no-string\/file\.js/ },
-		{ moduleName: /\.\/loader\.js!\.\/pitch-loader\.js!\.\/loaders\/no-string\/file\.js/ },
+		{ moduleName: /\.\/loaders\/no-string\/loader\.js!\.\/loaders\/no-string\/pitch-loader\.js!\.\/loaders\/no-string\/file\.js/ },
 		// CHANGE:
 		// /Module build failed: Error: Final loader \(\.\/loaders\/no-string\/loader\.js\) didn't return a Buffer or String/
 		/Buffer, Uint8Array or string expected/
