@@ -282,10 +282,8 @@ impl std::fmt::Display for RspackError {
       if !matches!(self.hide_stack, Some(true)) {
         write!(f, "{}", stack)?;
       }
-    } else {
-      if !self.name.is_empty() {
-        write!(f, "{}: ", self.name)?;
-      }
+    } else if !self.name.is_empty() {
+      write!(f, "{}: ", self.name)?;
     }
     write!(f, "{}", self.message)
   }

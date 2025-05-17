@@ -1,5 +1,4 @@
 import type * as binding from "@rspack/binding";
-import { concatErrorMsgAndStack } from "./util";
 
 export type { RspackError } from "@rspack/binding";
 export type RspackSeverity = binding.JsRspackSeverity;
@@ -10,7 +9,7 @@ export class JsRspackDiagnostic {
 		severity: RspackSeverity
 	): binding.JsRspackDiagnostic {
 		return {
-			error: concatErrorMsgAndStack(error),
+			error,
 			severity
 		};
 	}
