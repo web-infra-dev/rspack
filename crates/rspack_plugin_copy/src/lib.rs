@@ -72,14 +72,7 @@ impl Display for ToType {
 }
 
 pub type TransformerFn =
-  Box<dyn for<'a> Fn(Vec<u8>, &'a str) -> BoxFuture<'a, Result<RawSource>> + Sync + Send>;
-
-pub type TransformerOpts = (TransformerFn, Option<bool>);
-
-pub enum Transformer {
-  Fn(TransformerFn),
-  Opt(TransformerOpts),
-}
+  Box<dyn for<'a> Fn(String, &'a str) -> BoxFuture<'a, Result<RawSource>> + Sync + Send>;
 
 pub struct ToFnCtx<'a> {
   pub context: &'a Utf8Path,
@@ -107,7 +100,8 @@ pub struct CopyPattern {
   pub glob_options: CopyGlobOptions,
   pub copy_permissions: Option<bool>,
   #[debug(skip)]
-  pub transform: Option<Transformer>,
+  pub transform_fn: Option<TransformerFn>,
+  pub cache: Option<bool>,
 }
 
 #[derive(Debug, Clone)]
@@ -276,9 +270,9 @@ impl CopyRspackPlugin {
     // TODO inputFileSystem
 
     #[cfg(not(target_family = "wasm"))]
-    let data = tokio::fs::read(absolute_filename.clone()).await;
+    let data = tokio::fs::read_to_string(absolute_filename.clone()).await;
     #[cfg(target_family = "wasm")]
-    let data = std::fs::read(absolute_filename.clone());
+    let data = std::fs::read_to_string(absolute_filename.clone());
 
     let source_vec = match data {
       Ok(data) => {
@@ -298,34 +292,20 @@ impl CopyRspackPlugin {
 
     let mut source = RawSource::from(source_vec.clone());
 
-    if let Some(transform) = &pattern.transform {
+    if let Some(transformer) = &pattern.transform_fn {
       logger.debug(format!(
         "transforming content for '{}'...",
         absolute_filename
       ));
-      match transform {
-        Transformer::Fn(transformer) => {
-          handle_transform(
-            transformer,
-            source_vec,
-            absolute_filename.clone(),
-            &mut source,
-            diagnostics,
-          )
-          .await
-        }
-        // TODO: support cache in the future.
-        Transformer::Opt((transformer, _)) => {
-          handle_transform(
-            transformer,
-            source_vec,
-            absolute_filename.clone(),
-            &mut source,
-            diagnostics,
-          )
-          .await
-        }
-      }
+      // TODO: support cache in the future.
+      handle_transform(
+        transformer,
+        source_vec,
+        absolute_filename.clone(),
+        &mut source,
+        diagnostics,
+      )
+      .await
     }
 
     let filename = if matches!(&to_type, ToType::Template) {
@@ -808,7 +788,7 @@ fn set_info(target: &mut AssetInfo, info: Info) {
 
 async fn handle_transform(
   transformer: &TransformerFn,
-  source_vec: Vec<u8>,
+  source_vec: String,
   absolute_filename: Utf8PathBuf,
   source: &mut RawSource,
   diagnostics: Arc<Mutex<Vec<Diagnostic>>>,
