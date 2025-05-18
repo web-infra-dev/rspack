@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { type Compiler, MultiCompiler } from "../..";
 import type { LazyCompilationOptions } from "../../config";
-import type { Middleware } from "../../config/devServer";
+import type { MiddlewareHandler } from "../../config/devServer";
 import { BuiltinLazyCompilationPlugin } from "./lazyCompilation";
 
 export const LAZY_COMPILATION_PREFIX = "/lazy-compilation-using-";
@@ -37,20 +37,10 @@ const getFullServerUrl = ({ serverUrl, prefix }: LazyCompilationOptions) => {
 };
 
 export const lazyCompilationMiddleware = (
-	compiler: Compiler | MultiCompiler,
-	rawOptions?: LazyCompilationOptions | boolean
-): Middleware => {
-	let userOptions = rawOptions;
-	if (userOptions === false) {
-		return noop;
-	}
-
-	if (userOptions === true) {
-		userOptions = {};
-	}
-
+	compiler: Compiler | MultiCompiler
+): MiddlewareHandler => {
 	if (compiler instanceof MultiCompiler) {
-		const middlewareByCompiler: Map<string, Middleware> = new Map();
+		const middlewareByCompiler: Map<string, MiddlewareHandler> = new Map();
 
 		let i = 0;
 		for (const c of compiler.compilers) {
@@ -59,8 +49,7 @@ export const lazyCompilationMiddleware = (
 			}
 
 			const options = {
-				...c.options.experiments.lazyCompilation,
-				...userOptions
+				...c.options.experiments.lazyCompilation
 			};
 
 			const prefix = options.prefix || LAZY_COMPILATION_PREFIX;
@@ -78,40 +67,11 @@ export const lazyCompilationMiddleware = (
 				)
 			);
 
-			const compilerConfig = c.options.experiments.lazyCompilation
-				? c.options.experiments.lazyCompilation
-				: {};
-
-			const testConfig = compilerConfig.test ?? options.test;
-
-			const plugin = new BuiltinLazyCompilationPlugin(
-				({ module, path }) => {
-					const key = encodeURIComponent(
-						module.replace(/\\/g, "/").replace(/@/g, "_")
-					)
-						// module identifier may contain query, bang(!) or split(|),
-						// should do our best to ensure it's the same with which comes
-						// from server url
-						.replace(/%(2F|3A|24|26|2B|2C|3B|3D)/g, decodeURIComponent);
-					filesByKey.set(key, path);
-					const active = activeModules.get(key) === true;
-					return {
-						client: `${options.client || getDefaultClient(c)}?${encodeURIComponent(getFullServerUrl(options))}`,
-						data: key,
-						active
-					};
-				},
-				// @ts-expect-error internal option
-				compilerConfig.cacheable ?? options.cacheable ?? true,
-				compilerConfig.entries ?? options.entries ?? true,
-				compilerConfig.imports ?? options.imports ?? true,
-				testConfig
-			);
-			plugin.apply(c);
+			applyPlugin(c, options, activeModules, filesByKey);
 		}
 
 		const keys = [...middlewareByCompiler.keys()];
-		return (req: IncomingMessage, res: ServerResponse, next?: () => void) => {
+		return (req: IncomingMessage, res: ServerResponse, next: () => void) => {
 			const key = keys.find(key => req.url?.startsWith(key));
 			if (!key) {
 				return next?.();
@@ -123,7 +83,7 @@ export const lazyCompilationMiddleware = (
 		};
 	}
 
-	if (!compiler.options.experiments.lazyCompilation && !userOptions) {
+	if (!compiler.options.experiments.lazyCompilation) {
 		return noop;
 	}
 
@@ -131,9 +91,25 @@ export const lazyCompilationMiddleware = (
 	const filesByKey: Map<string, string> = new Map();
 
 	const options = {
-		...compiler.options.experiments.lazyCompilation,
-		...userOptions
+		...compiler.options.experiments.lazyCompilation
 	};
+	applyPlugin(compiler, options, activeModules, filesByKey);
+
+	const lazyCompilationPrefix = options.prefix || LAZY_COMPILATION_PREFIX;
+	return lazyCompilationMiddlewareInternal(
+		compiler,
+		activeModules,
+		filesByKey,
+		lazyCompilationPrefix
+	);
+};
+
+function applyPlugin(
+	compiler: Compiler,
+	options: LazyCompilationOptions,
+	activeModules: Map<string, boolean>,
+	filesByKey: Map<string, string>
+) {
 	const plugin = new BuiltinLazyCompilationPlugin(
 		({ module, path }) => {
 			const key = encodeURIComponent(
@@ -158,15 +134,7 @@ export const lazyCompilationMiddleware = (
 		options.test
 	);
 	plugin.apply(compiler);
-
-	const lazyCompilationPrefix = options.prefix || LAZY_COMPILATION_PREFIX;
-	return lazyCompilationMiddlewareInternal(
-		compiler,
-		activeModules,
-		filesByKey,
-		lazyCompilationPrefix
-	);
-};
+}
 
 // used for reuse code, do not export this
 const lazyCompilationMiddlewareInternal = (
@@ -174,7 +142,7 @@ const lazyCompilationMiddlewareInternal = (
 	activeModules: Map<string, boolean>,
 	filesByKey: Map<string, string>,
 	lazyCompilationPrefix: string
-): Middleware => {
+): MiddlewareHandler => {
 	const logger = compiler.getInfrastructureLogger("LazyCompilation");
 
 	return (req: IncomingMessage, res: ServerResponse, next?: () => void) => {

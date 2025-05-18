@@ -4150,7 +4150,7 @@ interface LabeledStatement extends Node_4, HasSpan {
 export type Layer = string | null;
 
 // @public (undocumented)
-const lazyCompilationMiddleware: (compiler: Compiler | MultiCompiler, userOptions?: LazyCompilationOptions | boolean) => Middleware;
+const lazyCompilationMiddleware: (compiler: Compiler | MultiCompiler) => MiddlewareHandler;
 
 // @public
 export type LazyCompilationOptions = {
