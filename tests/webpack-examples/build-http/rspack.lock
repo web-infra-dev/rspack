@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "entries": {
+    "https://cdn.esm.sh/p-map@7.0.3/es2022/p-map.mjs": {
+      "resolved": "https://cdn.esm.sh/p-map@7.0.3/es2022/p-map.mjs",
+      "integrity": "sha512-JZcUXZw5m11qMdvycDR0GkYCYxu8YAXHJW8qboAE4izGQUo0uFP3PeRDKVod3Nuk7BnX5LU1wRf2dXbRARZWpw==",
+      "content_type": "application/javascript; charset=utf-8",
+      "valid_until": 1779129816845,
+      "etag": null
+    },
+    "https://cdn.skypack.dev/p-map": {
+      "resolved": "https://cdn.skypack.dev/p-map",
+      "integrity": "sha512-atjOl8e1pjhZTgxbda654yU0fB52OMxSgzpJ6oULQdSwzjOCWYElYD12vVJwvmAElZv4a4iTUV0KrwPLubFGQQ==",
+      "content_type": "application/javascript; charset=utf-8",
+      "valid_until": 1747594110959,
+      "etag": "W/\"2f5-1pwG0XVgGJM8ZDuV+nzlayuwum8\""
+    },
+    "https://jspm.dev/p-map": {
+      "resolved": "https://jspm.dev/p-map",
+      "integrity": "sha512-oPi7OOl5e/mTsH7fRHbeoZmwJFlbGJmbVpN4Yo3iCoB6sbmg7+ifJGo4UV8ushlmRrrnDM9p6FMAhJ7YoeXUjw==",
+      "content_type": "text/javascript; charset=utf-8",
+      "valid_until": 1747594010978,
+      "etag": "\"7d4e22f2cfb93098b6ae55ba300000ca\""
+    },
+    "https://cdn.skypack.dev/-/p-map@v7.0.3-39IW5BbvyTmGh858LQn2/dist=es2019,mode=imports/optimized/p-map.js": {
+      "resolved": "https://cdn.skypack.dev/-/p-map@v7.0.3-39IW5BbvyTmGh858LQn2/dist=es2019,mode=imports/optimized/p-map.js",
+      "integrity": "sha512-R6J00yIUh1ODEflzZ1k4cq7/Mv9p8h36UiRK+J7JQ0OkHE413AvEcAx/kkBaPj2WE2rk0tqSpyoBzyn5tPJbNw==",
+      "content_type": "application/javascript; charset=utf-8",
+      "valid_until": 1779129812543,
+      "etag": "W/\"1857-442Jr2b8/nGzSJdnERCmZdhJN1Y\""
+    },
+    "https://jspm.dev/npm:p-map@7.0.0": {
+      "resolved": "https://jspm.dev/npm:p-map@7.0.0",
+      "integrity": "sha512-CBSr0VoXgJsHL7wTGi2dNUsttxdYbk1H723kltM4laDRH/Gr4ld6CLQs+lQzwgsXPm0kL+fnee9M3AtGwvvxSg==",
+      "content_type": "text/javascript; charset=utf-8",
+      "valid_until": 1779129812006,
+      "etag": "\"1af45e3335faf08ab334464f962696ce\""
+    },
+    "https://unpkg.com/p-map-series@3.0.0/index.js?module": {
+      "resolved": "https://unpkg.com/p-map-series@3.0.0/index.js?module",
+      "integrity": "sha512-UnMpRjhEJJiuAj9ljbVZ70LztGexa1Blm3Paqmrn9mMkCjXdzeTs1QJ/H1yCQfwn24qFG06dMPyyrCCYAv1yGA==",
+      "content_type": "text/javascript; charset=utf-8",
+      "valid_until": 1779129811457,
+      "etag": null
+    },
+    "https://cdn.esm.sh/p-map": {
+      "resolved": "https://cdn.esm.sh/p-map",
+      "integrity": "sha512-lXS3/nN/n3UwoR6dfb4hFDPw3WhK4EznvlOV+7Ru882YpQedz8/EhahEwgnyhpK6jupTe/ttCyNJ1rEr0RernQ==",
+      "content_type": "application/javascript; charset=utf-8",
+      "valid_until": 1747597410969,
+      "etag": null
+    }
+  }
+}

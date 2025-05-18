@@ -107,10 +107,7 @@ import DevServer from 'webpack-dev-server';
 
 const compiler = rspack(config);
 
-const middleware = experiments.lazyCompilationMiddleware(
-  compiler,
-  config.experiments.lazyCompilation,
-);
+const middleware = experiments.lazyCompilationMiddleware(compiler);
 
 const server = new DevServer(
   {
@@ -125,10 +122,9 @@ const server = new DevServer(
 server.start();
 ```
 
-`lazyCompilationMiddleware` 接受两个参数：
+`lazyCompilationMiddleware` 接受一个参数：
 
 - `compiler`: 当前的 [Compiler](/api/javascript-api/compiler) 实例
-- `options`: 懒编译的配置，与 [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) 相同
 
 ## 自定义懒编译端点
 

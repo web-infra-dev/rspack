@@ -107,10 +107,7 @@ import DevServer from 'webpack-dev-server';
 
 const compiler = rspack(config);
 
-const middleware = experiments.lazyCompilationMiddleware(
-  compiler,
-  config.experiments.lazyCompilation,
-);
+const middleware = experiments.lazyCompilationMiddleware(compiler);
 
 const server = new DevServer(
   {
@@ -125,10 +122,9 @@ const server = new DevServer(
 server.start();
 ```
 
-`lazyCompilationMiddleware` accepts two parameters:
+`lazyCompilationMiddleware` accepts one parameter:
 
 - `compiler`: The current [Compiler](/api/javascript-api/compiler) instance
-- `options`: The lazy compilation options, same as [experiments.lazyCompilation](/config/experiments#experimentslazycompilation)
 
 ## Customizing lazy compilation endpoint
 

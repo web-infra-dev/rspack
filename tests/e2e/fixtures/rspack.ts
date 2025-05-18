@@ -36,7 +36,7 @@ class Rspack {
 		});
 		const DevServerConstructor = RspackDevServer;
 		if (compiler.options.experiments.lazyCompilation) {
-			const middleware = experiments.lazyCompilationMiddleware(compiler, compiler.options.experiments.lazyCompilation)
+			const middleware = experiments.lazyCompilationMiddleware(compiler)
 			compiler.options.devServer ??= {};
 			const setupMiddlewares = compiler.options.devServer.setupMiddlewares;
 			compiler.options.devServer.setupMiddlewares = (middlewares, server) => {
@@ -84,7 +84,7 @@ class Rspack {
 		const DevServerConstructor = RspackDevServer;
 
 		if (compiler.options.experiments.lazyCompilation) {
-			const middleware = experiments.lazyCompilationMiddleware(compiler, compiler.options.experiments.lazyCompilation)
+			const middleware = experiments.lazyCompilationMiddleware(compiler)
 			compiler.options.devServer ??= {};
 			const setupMiddleware = compiler.options.devServer.setupMiddlewares;
 			compiler.options.devServer.setupMiddlewares = (middlewares, server) => {
