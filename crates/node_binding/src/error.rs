@@ -3,6 +3,7 @@ use std::ops::Deref;
 use derive_more::Debug;
 use napi::bindgen_prelude::ToNapiValue;
 use napi_derive::napi;
+use rspack_core::ModuleIdentifier;
 use rspack_error::{
   miette::{self, Severity},
   Diagnostic, Result, RspackSeverity,
@@ -52,7 +53,7 @@ pub struct RspackError {
   pub message: String,
   pub severity: Option<Severity>,
   // TODO: Consider removing `module_identifier` if it is no longer needed.
-  pub module_identifier: Option<String>,
+  pub module_identifier: Option<ModuleIdentifier>,
   pub module: Option<ModuleObject>,
   pub loc: Option<String>,
   pub file: Option<String>,
@@ -91,8 +92,9 @@ impl napi::bindgen_prelude::ToNapiValue for RspackError {
     } = val;
     let mut obj = env_wrapper.create_error(napi::Error::from_reason(message))?;
     obj.set("name", name)?;
-    if module_identifier.is_some() {
-      obj.set("moduleIdentifier", module_identifier)?;
+    if let Some(module) = module {
+      obj.set("moduleIdentifier", module.identifier().as_str())?;
+      obj.set("module", module)?;
     }
     if let Some(loc) = loc {
       obj.set("loc", ToNapiValue::to_napi_value(env, loc)?)?;
@@ -108,9 +110,6 @@ impl napi::bindgen_prelude::ToNapiValue for RspackError {
     }
     if hide_stack.is_some() {
       obj.set("hideStack", hide_stack)?;
-    }
-    if module.is_some() {
-      obj.set("module", module)?;
     }
     if let Some(error) = error {
       obj.set("error", *error)?;
@@ -166,8 +165,8 @@ impl napi::bindgen_prelude::FromNapiValue for RspackError {
           "Missing field `message`",
         )
       })?;
-    let module_identifier: Option<String> = obj.get("moduleIdentifier").map_err(|mut err| {
-      err.reason = format!("{} on {}.{}", err.reason, "RspackError", "moduleIdentifier");
+    let module: Option<ModuleObject> = obj.get("module").map_err(|mut err| {
+      err.reason = format!("{} on {}.{}", err.reason, "RspackError", "module");
       err
     })?;
     let file: Option<String> = obj.get("file").map_err(|mut err| {
@@ -186,13 +185,13 @@ impl napi::bindgen_prelude::FromNapiValue for RspackError {
       name,
       message,
       severity: None,
-      module_identifier,
+      module_identifier: module.as_ref().map(|m| m.identifier()),
       // TODO: Currently, Rspack does not handle `loc` from JavaScript very well.
       loc: None,
       file,
       stack,
       hide_stack,
-      module: None,
+      module,
       error: None,
     };
     Ok(val)
@@ -244,7 +243,7 @@ impl RspackError {
       }),
       message,
       severity: None,
-      module_identifier: diagnostic.module_identifier().map(|d| d.to_string()),
+      module_identifier: diagnostic.module_identifier(),
       loc: diagnostic.loc(),
       file: diagnostic.file().map(|f| f.as_str().to_string()),
       stack: diagnostic.stack(),
@@ -279,6 +278,8 @@ impl std::fmt::Display for RspackError {
     if let Some(stack) = &self.stack {
       if !matches!(self.hide_stack, Some(true)) {
         write!(f, "{}", stack)?;
+      } else {
+        write!(f, "{}: ", self.name)?;
       }
     } else if !self.name.is_empty() {
       write!(f, "{}: ", self.name)?;
