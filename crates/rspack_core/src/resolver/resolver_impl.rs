@@ -5,8 +5,8 @@ use std::{
 };
 
 use rspack_error::{
-  miette::{diagnostic, Diagnostic},
-  DiagnosticExt, Severity, TraceableError,
+  miette::{self, diagnostic, Diagnostic},
+  DiagnosticExt, TraceableError,
 };
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
@@ -324,11 +324,12 @@ fn map_rspack_resolver_error(
   error: rspack_resolver::ResolveError,
   args: &ResolveArgs<'_>,
 ) -> Box<dyn Diagnostic + Send + Sync> {
-  match error {
+  match &error {
     rspack_resolver::ResolveError::IOError(error) => diagnostic!("{}", error).boxed(),
-    rspack_resolver::ResolveError::Recursion => map_resolver_error(true, args),
-    rspack_resolver::ResolveError::NotFound(_) => map_resolver_error(false, args),
+    rspack_resolver::ResolveError::Recursion => map_resolver_error(error, args),
+    rspack_resolver::ResolveError::NotFound(_) => map_resolver_error(error, args),
     rspack_resolver::ResolveError::JSON(error) => {
+      // TODO: JSON parse error should be the sub error of ModuleNotFoundError
       if let Some(content) = &error.content {
         let rope = ropey::Rope::from(&**content);
         let Some((offset, _)) =
@@ -393,7 +394,7 @@ fn map_rspack_resolver_error(
 }
 
 fn map_resolver_error(
-  is_recursion: bool,
+  resolve_error: rspack_resolver::ResolveError,
   args: &ResolveArgs<'_>,
 ) -> Box<dyn Diagnostic + Send + Sync> {
   let request = &args.specifier;
@@ -402,20 +403,21 @@ fn map_resolver_error(
   let importer = args.importer;
   if importer.is_none() {
     return ModuleNotFoundError::new(
-      diagnostic!("Can't resolve '{request}' in '{context}'").boxed(),
+      format!("Can't resolve '{request}' in '{context}'"),
+      resolve_error,
     )
+    .with_severity(miette::Severity::Error)
     .boxed();
   }
 
   let span = args.span.unwrap_or_default();
-  let message = format!("Can't resolve '{request}' in '{context}'");
-  let traceable_error = TraceableError::from_lazy_file(
-    span.start as usize,
-    span.end as usize,
-    "".to_string(),
-    message,
+  let is_recursion_error = matches!(resolve_error, rspack_resolver::ResolveError::Recursion);
+  ModuleNotFoundError::new(
+    format!("Can't resolve '{request}' in '{context}'"),
+    resolve_error,
   )
-  .with_help(if is_recursion {
+  .with_span(span.start as usize, span.end as usize)
+  .with_help(if is_recursion_error {
     Some("maybe it had cyclic aliases")
   } else {
     None
@@ -423,11 +425,10 @@ fn map_resolver_error(
   .with_severity(
     // See: https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/Compilation.js#L1796
     if args.optional {
-      Severity::Warn
+      miette::Severity::Warning
     } else {
-      Severity::Error
+      miette::Severity::Error
     },
   )
-  .boxed();
-  ModuleNotFoundError::new(traceable_error).boxed()
+  .boxed()
 }

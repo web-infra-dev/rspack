@@ -230,9 +230,7 @@ Chunk Group cimanyd 320 bytes = cimanyd.js
 
 exports[`statsOutput statsOutput/nonexistent-import-source-error should print correct stats for 1`] = `
 ERROR in ./index.js 1:0-19
-  × Module not found:
-  ╰─▶   × Error: Can't resolve 'not-exist' in '<TEST_TOOLS_ROOT>/tests/statsOutputCases/nonexistent-import-source-error'
-      
+  × Module not found: Can't resolve 'not-exist' in '<TEST_TOOLS_ROOT>/tests/statsOutputCases/nonexistent-import-source-error'
    ╭────
  1 │ import "not-exist";
    ·        ───────────
@@ -390,10 +388,7 @@ assets by status 348 bytes [cached] 1 asset
 ./index.js 51 bytes [built] [code generated] [1 error]
 
 ERROR in ./index.js 1:0-34
-  × Module not found:
-  ╰─▶   × Error: Can't resolve 'cycle-alias/a' in '<TEST_TOOLS_ROOT>/tests/statsOutputCases/resolve-overflow-error'
-        help: maybe it had cyclic aliases
-      
+  × Module not found: Can't resolve 'cycle-alias/a' in '<TEST_TOOLS_ROOT>/tests/statsOutputCases/resolve-overflow-error'
    ╭─[1:18]
  1 │ import { a } from "cycle-alias/a";
    ·                   ───────────────

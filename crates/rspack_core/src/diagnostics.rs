@@ -3,7 +3,7 @@ use std::{fmt::Display, path::PathBuf};
 use itertools::Itertools;
 use rspack_error::{
   error, impl_diagnostic_transparent,
-  miette::{self, Diagnostic},
+  miette::{self, Diagnostic, SourceSpan},
   thiserror::{self, Error},
   DiagnosticExt, TraceableError,
 };
@@ -263,23 +263,35 @@ pub fn map_box_diagnostics_to_module_parse_diagnostics(
 }
 
 #[derive(Debug)]
-pub struct ModuleNotFoundError(Box<dyn Diagnostic + Send + Sync>);
+pub struct ModuleNotFoundError {
+  message: String,
+  error: rspack_resolver::ResolveError,
+  severity: Option<miette::Severity>,
+  label: Option<SourceSpan>,
+  help: Option<String>,
+}
 
 impl ModuleNotFoundError {
-  pub fn new(diagnostic: Box<dyn Diagnostic + Send + Sync>) -> Self {
-    Self(diagnostic)
+  pub fn new(message: String, error: rspack_resolver::ResolveError) -> Self {
+    Self {
+      message,
+      error,
+      severity: None,
+      label: None,
+      help: None,
+    }
   }
 }
 
 impl std::error::Error for ModuleNotFoundError {
   fn source(&self) -> ::core::option::Option<&(dyn std::error::Error + 'static)> {
-    Some(self.0.as_ref())
+    Some(&self.error)
   }
 }
 
 impl std::fmt::Display for ModuleNotFoundError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    write!(f, "Module not found: {}", self.0)
+    write!(f, "Module not found: {}", self.message)
   }
 }
 
@@ -288,24 +300,47 @@ impl miette::Diagnostic for ModuleNotFoundError {
     Some(Box::new("ModuleNotFoundError"))
   }
   fn severity(&self) -> Option<miette::Severity> {
-    self.0.severity()
+    Some(miette::Severity::Error)
   }
   fn help<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-    self.0.help()
+    self
+      .help
+      .as_ref()
+      .map(|h| Box::new(h) as Box<dyn std::fmt::Display>)
   }
   fn url<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-    self.0.url()
+    None
   }
   fn source_code(&self) -> Option<&dyn miette::SourceCode> {
-    self.0.source_code()
+    None
   }
   fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
-    self.0.labels()
+    self.label.map(|label| {
+      Box::new(vec![miette::LabeledSpan::new_with_span(None, label)].into_iter())
+        as Box<dyn Iterator<Item = miette::LabeledSpan>>
+    })
   }
   fn related<'a>(&'a self) -> Option<Box<dyn Iterator<Item = &'a dyn miette::Diagnostic> + 'a>> {
-    self.0.related()
+    None
   }
   fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
     None
+  }
+}
+
+impl ModuleNotFoundError {
+  pub fn with_help(mut self, help: Option<impl Into<String>>) -> Self {
+    self.help = help.map(|h| h.into());
+    self
+  }
+
+  pub fn with_span(mut self, start: usize, end: usize) -> Self {
+    self.label = Some(SourceSpan::new(start.into(), end.saturating_sub(start)));
+    self
+  }
+
+  pub fn with_severity(mut self, severity: miette::Severity) -> Self {
+    self.severity = Some(severity);
+    self
   }
 }
