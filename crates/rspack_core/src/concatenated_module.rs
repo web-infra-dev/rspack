@@ -523,7 +523,7 @@ impl Module for ConcatenatedModule {
     &mut self.root_module_ctxt.build_meta
   }
 
-  fn source_types(&self) -> &[SourceType] {
+  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     &[SourceType::JavaScript]
   }
 

@@ -231,7 +231,7 @@ pub trait Module:
   fn module_type(&self) -> &ModuleType;
 
   /// Defines what kind of code generation results this module can generate.
-  fn source_types(&self) -> &[SourceType];
+  fn source_types(&self, module_graph: &ModuleGraph) -> &[SourceType];
 
   /// The source of the module. This could be optional, modules like the `NormalModule` can have the corresponding source.
   /// However, modules that is created from "nowhere" (e.g. `ExternalModule` and `MissingModule`) does not have its source.
@@ -627,8 +627,8 @@ mod test {
   use super::Module;
   use crate::{
     AsyncDependenciesBlockIdentifier, BuildContext, BuildResult, CodeGenerationResult, Compilation,
-    ConcatenationScope, Context, DependenciesBlock, DependencyId, ModuleExt, ModuleType,
-    RuntimeSpec, SourceType,
+    ConcatenationScope, Context, DependenciesBlock, DependencyId, ModuleExt, ModuleGraph,
+    ModuleType, RuntimeSpec, SourceType,
   };
 
   #[cacheable]
@@ -678,7 +678,7 @@ mod test {
           unreachable!()
         }
 
-        fn source_types(&self) -> &[SourceType] {
+        fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
           unreachable!()
         }
 
