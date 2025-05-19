@@ -4165,6 +4165,7 @@ dependencies = [
  "num-bigint",
  "once_cell",
  "paste",
+ "petgraph 0.6.5",
  "pretty_assertions",
  "rayon",
  "regex",
