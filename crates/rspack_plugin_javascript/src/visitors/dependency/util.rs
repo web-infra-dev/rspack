@@ -4,39 +4,12 @@ use rspack_error::{
   DiagnosticKind, TraceableError,
 };
 use rspack_regex::RspackRegex;
-use rustc_hash::FxHashSet as HashSet;
 use swc_core::{
   common::{SourceFile, Spanned},
   ecma::{ast::*, atoms::Atom},
 };
 
 use super::{AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo};
-
-pub fn collect_destructuring_assignment_properties(
-  object_pat: &ObjectPat,
-) -> Option<HashSet<Atom>> {
-  let mut properties = HashSet::default();
-
-  for property in &object_pat.props {
-    match property {
-      ObjectPatProp::Assign(assign) => {
-        properties.insert(assign.key.sym.clone());
-      }
-      ObjectPatProp::KeyValue(key_value) => {
-        if let PropName::Ident(ident) = &key_value.key {
-          properties.insert(ident.sym.clone());
-        }
-      }
-      ObjectPatProp::Rest(_) => {}
-    }
-  }
-
-  if properties.is_empty() {
-    None
-  } else {
-    Some(properties)
-  }
-}
 
 #[allow(dead_code)]
 pub(crate) mod expr_like {
