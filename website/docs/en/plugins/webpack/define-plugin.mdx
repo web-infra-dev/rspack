@@ -26,8 +26,7 @@ type CodeValuePrimitive =
   | string
   | number
   | boolean
-  | bigint
-  | undefined;
+  | bigint;
 type RecursiveArrayOrRecord<T> =
   | { [index: string]: RecursiveArrayOrRecord<T> }
   | Array<RecursiveArrayOrRecord<T>>
