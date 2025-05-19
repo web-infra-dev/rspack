@@ -1,0 +1,16 @@
+/*
+ * Skypack CDN - p-map@7.0.3
+ *
+ * Learn more:
+ *   📙 Package Documentation: https://www.skypack.dev/view/p-map
+ *   📘 Skypack Documentation: https://www.skypack.dev/docs
+ *
+ * Pinned URL: (Optimized for Production)
+ *   ▶️ Normal: https://cdn.skypack.dev/pin/p-map@v7.0.3-39IW5BbvyTmGh858LQn2/mode=imports/optimized/p-map.js
+ *   ⏩ Minified: https://cdn.skypack.dev/pin/p-map@v7.0.3-39IW5BbvyTmGh858LQn2/mode=imports,min/optimized/p-map.js
+ *
+ */
+
+// Browser-Optimized Imports (Don't directly import the URLs below in your application!)
+export * from '/-/p-map@v7.0.3-39IW5BbvyTmGh858LQn2/dist=es2019,mode=imports/optimized/p-map.js';
+export {default} from '/-/p-map@v7.0.3-39IW5BbvyTmGh858LQn2/dist=es2019,mode=imports/optimized/p-map.js';
