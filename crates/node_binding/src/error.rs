@@ -1,6 +1,7 @@
 use std::ops::Deref;
 
 use derive_more::Debug;
+use napi::bindgen_prelude::ToNapiValue;
 use napi_derive::napi;
 use rspack_error::{
   miette::{self, Severity},
@@ -93,8 +94,8 @@ impl napi::bindgen_prelude::ToNapiValue for RspackError {
     if module_identifier.is_some() {
       obj.set("moduleIdentifier", module_identifier)?;
     }
-    if loc.is_some() {
-      obj.set("loc", loc)?;
+    if let Some(loc) = loc {
+      obj.set("loc", ToNapiValue::to_napi_value(env, loc)?)?;
     }
     if file.is_some() {
       obj.set("file", file)?;
@@ -169,10 +170,6 @@ impl napi::bindgen_prelude::FromNapiValue for RspackError {
       err.reason = format!("{} on {}.{}", err.reason, "RspackError", "moduleIdentifier");
       err
     })?;
-    let loc: Option<String> = obj.get("loc").map_err(|mut err| {
-      err.reason = format!("{} on {}.{}", err.reason, "RspackError", "loc");
-      err
-    })?;
     let file: Option<String> = obj.get("file").map_err(|mut err| {
       err.reason = format!("{} on {}.{}", err.reason, "RspackError", "file");
       err
@@ -190,7 +187,8 @@ impl napi::bindgen_prelude::FromNapiValue for RspackError {
       message,
       severity: None,
       module_identifier,
-      loc,
+      // TODO: Currently, Rspack does not handle `loc` from JavaScript very well.
+      loc: None,
       file,
       stack,
       hide_stack,

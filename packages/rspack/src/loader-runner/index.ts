@@ -557,13 +557,9 @@ export async function runLoaders(
 		error.message = `${error.message} (from: ${stringifyLoaderObject(
 			loaderContext.loaders[loaderContext.loaderIndex]
 		)})`;
-		error = concatErrorMsgAndStack(error);
 		(error as RspackError).moduleIdentifier =
 			loaderContext._module.identifier();
-		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
-			error,
-			severity: JsRspackSeverity.Error
-		});
+		compiler._lastCompilation!.errors.push(error);
 	};
 	loaderContext.emitWarning = function emitWarning(warn) {
 		let warning = warn;
