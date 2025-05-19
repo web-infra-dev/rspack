@@ -86,7 +86,7 @@ import { foo } from './util.js';
 
 上面 `package.json` 表示该 package 下的所有 module 都没有副作用。
 
-也可以用写 glob 或字符串匹配部分 module ，没有被匹配到的 module 会直接视为没有副作用，因此如果手动标记 side effects ，一定要确保没有标记到的 module 都没有副作用。
+也可以用写 glob 或字符串匹配部分 module，没有被匹配到的 module 会直接视为没有副作用，因此如果手动标记 side effects，一定要确保没有标记到的 module 都没有副作用。
 
 ```json title="package.json"
 {
