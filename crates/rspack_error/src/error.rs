@@ -42,7 +42,6 @@ pub struct AnyhowError(#[from] anyhow::Error);
 /// Because if the source code is missing when you construct a [TraceableError], we could read it from file system later
 /// when convert it into [crate::Diagnostic], but the reverse will not working.
 #[derive(Debug, Clone, Error)]
-#[error("{title}: {message}")]
 pub struct TraceableError {
   title: String,
   kind: DiagnosticKind,
@@ -54,6 +53,16 @@ pub struct TraceableError {
   help: Option<String>,
   url: Option<String>,
   hide_stack: Option<bool>,
+}
+
+impl Display for TraceableError {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    if self.title.is_empty() {
+      return write!(f, "{}", self.message);
+    } else {
+      write!(f, "{}: {}", self.title, self.message)
+    }
+  }
 }
 
 impl Diagnostic for TraceableError {

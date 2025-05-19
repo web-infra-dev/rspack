@@ -402,7 +402,7 @@ fn map_resolver_error(
   let importer = args.importer;
   if importer.is_none() {
     return ModuleNotFoundError::new(
-      diagnostic!("Error: Can't resolve '{request}' in '{context}'").boxed(),
+      diagnostic!("Can't resolve '{request}' in '{context}'").boxed(),
     )
     .boxed();
   }
@@ -412,7 +412,7 @@ fn map_resolver_error(
   let traceable_error = TraceableError::from_lazy_file(
     span.start as usize,
     span.end as usize,
-    "Error".to_string(),
+    "".to_string(),
     message,
   )
   .with_help(if is_recursion {

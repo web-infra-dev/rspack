@@ -279,7 +279,7 @@ impl std::error::Error for ModuleNotFoundError {
 
 impl std::fmt::Display for ModuleNotFoundError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    write!(f, "Module not found:")
+    write!(f, "Module not found: {}", self.0)
   }
 }
 
@@ -306,6 +306,6 @@ impl miette::Diagnostic for ModuleNotFoundError {
     self.0.related()
   }
   fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
-    Some(self.0.as_ref())
+    None
   }
 }
