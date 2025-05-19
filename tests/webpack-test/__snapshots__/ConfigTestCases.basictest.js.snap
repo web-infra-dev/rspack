@@ -7,10 +7,10 @@ Object {
 `;
 
 exports[`ConfigTestCases css css-modules-no-space exported tests should allow to create css modules 2`] = `
-"/* #region \\"./style.module.css\\" */
-/*
-- type: css/auto
-*/
+"
+/*!**************************!*\\\\
+  !*** ./style.module.css ***!
+  \\\\**************************/
 ._style_module_css-no-space {
 	.class {
 		color: red;
@@ -36,8 +36,6 @@ exports[`ConfigTestCases css css-modules-no-space exported tests should allow to
 		color: red;
 	}
 }
-
-/* #endregion \\"./style.module.css\\" */
 
 "
 `;
@@ -154,10 +152,10 @@ Object {
 
 exports[`ConfigTestCases css escape-unescape exported tests should work with URLs in CSS: css 1`] = `
 Array [
-  "/* #region \\"./style.modules.css\\" */
-/*
-- type: css/auto
-*/
+  "
+/*!***************************!*\\\\
+  !*** ./style.modules.css ***!
+  \\\\***************************/
 ._style_modules_css-class {
 	color: red;
 }
@@ -292,8 +290,6 @@ details {
 }
 
 @keyframes _style_modules_css-f\\\\@oo { from { color: red; } to { color: blue; } }
-
-/* #endregion \\"./style.modules.css\\" */
 
 ",
 ]
@@ -301,10 +297,10 @@ details {
 
 exports[`ConfigTestCases css escape-unescape exported tests should work with URLs in CSS: css 2`] = `
 Array [
-  "/* #region \\"./style.modules.css\\" */
-/*
-- type: css/auto
-*/
+  "
+/*!***************************!*\\\\
+  !*** ./style.modules.css ***!
+  \\\\***************************/
 ._style_modules_css-class {
 	color: red;
 }
@@ -439,8 +435,6 @@ details {
 }
 
 @keyframes _style_modules_css-f\\\\@oo { from { color: red; } to { color: blue; } }
-
-/* #endregion \\"./style.modules.css\\" */
 
 ",
 ]
@@ -636,10 +630,10 @@ Object {
 
 exports[`ConfigTestCases css no-extra-runtime-in-js exported tests should compile 1`] = `
 Array [
-  "/* #region \\"./style.css\\" */
-/*
-- type: css/auto
-*/
+  "
+/*!*******************!*\\\\
+  !*** ./style.css ***!
+  \\\\*******************/
 .class {
 	color: red;
 	background:
@@ -669,18 +663,16 @@ Array [
 	background: url(1237b02e54ad8fd3.png);
 }
 
-/* #endregion \\"./style.css\\" */
-
 ",
 ]
 `;
 
 exports[`ConfigTestCases css pure-css exported tests should compile 1`] = `
 Array [
-  "/* #region \\"../css-modules/style.module.css\\" */
-/*
-- type: css
-*/
+  "
+/*!***************************************!*\\\\
+  !*** ../css-modules/style.module.css ***!
+  \\\\***************************************/
 .class {
 	color: red;
 }
@@ -753,12 +745,10 @@ Array [
 	--global-color: red;
 }
 
-/* #endregion \\"../css-modules/style.module.css\\" */
 
-/* #region \\"./style.css\\" */
-/*
-- type: css
-*/
+/*!*******************!*\\\\
+  !*** ./style.css ***!
+  \\\\*******************/
 
 
 .class {
@@ -798,8 +788,6 @@ Array [
 .class {
 	animation: test 1s, test;
 }
-
-/* #endregion \\"./style.css\\" */
 
 ",
 ]

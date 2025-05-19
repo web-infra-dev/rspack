@@ -8,17 +8,20 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_comment_with_nl, ApplyContext, BoxModule, BuildMetaExportsType, ChunkGraph,
   ChunkInitFragments, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
-  CompilerOptions, ExportInfo, ExportInfoProvided, ExportsInfo, ModuleGraph, ModuleIdentifier,
-  Plugin, PluginContext, UsageState,
+  CompilerOptions, ExportInfo, ExportInfoProvided, ExportsInfo, Module, ModuleGraph,
+  ModuleIdentifier, Plugin, PluginContext, UsageState,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rustc_hash::FxHashSet;
-
-use crate::{
+use rspack_plugin_css::{
+  plugin::{CssModulesRenderModulePackage, CssModulesRenderSource},
+  CssPlugin,
+};
+use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderModulePackage, JsPlugin, RenderSource,
 };
+use rustc_hash::FxHashSet;
 
 static COMMENT_END_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\*/").expect("should init regex"));
@@ -149,7 +152,7 @@ impl ModuleInfoHeaderPlugin {
     Self::new_inner(verbose)
   }
 
-  pub fn generate_header(module: &BoxModule, compilation: &Compilation) -> String {
+  pub fn generate_header(module: &dyn Module, compilation: &Compilation) -> String {
     let req = module.readable_identifier(&compilation.options.context);
     let req = COMMENT_END_REGEX.replace_all(&req, "*_/");
 
@@ -165,11 +168,16 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
-  hooks
+  let mut js_hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
+  js_hooks
     .render_module_package
-    .tap(render_module_package::new(self));
-  hooks.chunk_hash.tap(chunk_hash::new(self));
+    .tap(render_js_module_package::new(self));
+  js_hooks.chunk_hash.tap(chunk_hash::new(self));
+
+  let mut css_hooks = CssPlugin::get_compilation_hooks_mut(compilation.id());
+  css_hooks
+    .render_module_package
+    .tap(render_css_module_package::new(self));
 
   Ok(())
 }
@@ -187,8 +195,28 @@ async fn chunk_hash(
   Ok(())
 }
 
+#[plugin_hook(CssModulesRenderModulePackage for ModuleInfoHeaderPlugin,tracing=false)]
+async fn render_css_module_package(
+  &self,
+  compilation: &Compilation,
+  _chunk_key: &ChunkUkey,
+  module: &dyn Module,
+  render_source: &mut CssModulesRenderSource,
+) -> Result<()> {
+  let mut new_source: ConcatSource = Default::default();
+
+  new_source.add(RawStringSource::from(
+    ModuleInfoHeaderPlugin::generate_header(module, compilation),
+  ));
+
+  new_source.add(render_source.source.clone());
+  render_source.source = new_source.boxed();
+
+  Ok(())
+}
+
 #[plugin_hook(JavascriptModulesRenderModulePackage for ModuleInfoHeaderPlugin,tracing=false)]
-async fn render_module_package(
+async fn render_js_module_package(
   &self,
   compilation: &Compilation,
   chunk_key: &ChunkUkey,
@@ -199,7 +227,7 @@ async fn render_module_package(
   let mut new_source: ConcatSource = Default::default();
 
   new_source.add(RawStringSource::from(
-    ModuleInfoHeaderPlugin::generate_header(module, compilation),
+    ModuleInfoHeaderPlugin::generate_header(module.as_ref(), compilation),
   ));
 
   if self.verbose {

@@ -1,7 +1,9 @@
 #![allow(clippy::comparison_chain)]
+mod drive;
 mod impl_plugin_for_css_plugin;
 use std::cmp::{self, Reverse};
 
+pub use drive::*;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{Chunk, ChunkUkey, Compilation, Module, ModuleIdentifier};
 use rspack_hook::plugin;
