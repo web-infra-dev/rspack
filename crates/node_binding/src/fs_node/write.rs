@@ -10,6 +10,7 @@ use rspack_fs::{
   ReadableFileSystem, Result, RspackResultToFsResultExt, WritableFileSystem, WriteStream,
 };
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+use tracing::instrument;
 
 use super::node::ThreadsafeNodeFS;
 
@@ -156,6 +157,7 @@ impl IntermediateFileSystem for NodeFileSystem {}
 
 #[async_trait]
 impl ReadableFileSystem for NodeFileSystem {
+  #[instrument(skip(self), level = "debug")]
   async fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
     self
       .0
@@ -170,10 +172,12 @@ impl ReadableFileSystem for NodeFileSystem {
         Either3::C(_) => vec![],
       })
   }
+  #[instrument(skip(self), level = "debug")]
   fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
     block_on(self.read(path))
   }
 
+  #[instrument(skip(self), level = "debug")]
   async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
     let res = self
       .0
@@ -189,10 +193,13 @@ impl ReadableFileSystem for NodeFileSystem {
       )),
     }
   }
+
+  #[instrument(skip(self), level = "debug")]
   fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata> {
     block_on(self.metadata(path))
   }
 
+  #[instrument(skip(self), level = "debug")]
   async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
     let res = self
       .0
@@ -209,6 +216,7 @@ impl ReadableFileSystem for NodeFileSystem {
     }
   }
 
+  #[instrument(skip(self), level = "debug")]
   async fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
     let res = self
       .0
@@ -225,6 +233,7 @@ impl ReadableFileSystem for NodeFileSystem {
     }
   }
 
+  #[instrument(skip(self), level = "debug")]
   async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     let res = self
       .0
@@ -240,6 +249,7 @@ impl ReadableFileSystem for NodeFileSystem {
       )),
     }
   }
+  #[instrument(skip(self), level = "debug")]
   fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     block_on(ReadableFileSystem::read_dir(self, dir))
   }
