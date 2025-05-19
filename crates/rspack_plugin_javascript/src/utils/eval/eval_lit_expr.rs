@@ -1,7 +1,7 @@
 use rspack_core::SpanExt;
 use swc_core::{
   common::Spanned,
-  ecma::ast::{Lit, PropName, Str},
+  ecma::ast::{Expr, Lit, PropName, Str},
 };
 
 use super::BasicEvaluatedExpression;
@@ -64,6 +64,11 @@ pub fn eval_prop_name(prop_name: &PropName) -> Option<BasicEvaluatedExpression> 
     PropName::BigInt(bigint) => Some(eval_bigint(bigint)),
     // TODO:
     PropName::Ident(_) => None,
-    PropName::Computed(_) => None,
+    PropName::Computed(computed) => match &*computed.expr {
+      Expr::Lit(Lit::Str(str)) => Some(eval_str(str)),
+      Expr::Lit(Lit::Num(num)) => Some(eval_number(num)),
+      // TODO: more computed expr
+      _ => None,
+    },
   }
 }

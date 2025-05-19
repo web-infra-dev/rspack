@@ -236,8 +236,6 @@ pub struct JavascriptParser<'parser> {
   // TODO: delete `enter_call`
   pub(crate) enter_call: u32,
   pub(crate) member_expr_in_optional_chain: bool,
-  // TODO: delete `properties_in_destructuring`
-  pub(crate) properties_in_destructuring: FxHashMap<Atom, FxHashSet<Atom>>,
   pub(crate) destructuring_assignment_properties: Option<FxHashMap<Span, FxHashSet<String>>>,
   pub(crate) semicolons: &'parser mut FxHashSet<BytePos>,
   pub(crate) statement_path: Vec<StatementPath>,
@@ -391,7 +389,6 @@ impl<'parser> JavascriptParser<'parser> {
       worker_index: 0,
       module_identifier,
       member_expr_in_optional_chain: false,
-      properties_in_destructuring: Default::default(),
       destructuring_assignment_properties: None,
       semicolons,
       statement_path: Default::default(),
