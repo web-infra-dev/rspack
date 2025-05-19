@@ -77,7 +77,6 @@ smol_str           = { version = "0.3.0" }
 stacker            = { version = "0.1.17" }
 sugar_path         = { version = "1.2.0", features = ["cached_current_dir"] }
 syn                = { version = "2.0.95" }
-thiserror          = "1.0.69"
 tokio              = { version = "1.42.0", features = ["rt", "rt-multi-thread"] }
 tracing            = { version = "0.1.41", features = ["max_level_trace", "release_max_level_trace"] }
 tracing-subscriber = { version = "0.3.19" }
