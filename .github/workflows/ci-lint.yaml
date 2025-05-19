@@ -2,9 +2,9 @@ name: CI-Lint
 
 on:
   pull_request:
-    types: [ opened, synchronize ]
+    types: [opened, synchronize]
   merge_group:
-    types: [ checks_requested ]
+    types: [checks_requested]
   workflow_dispatch:
   push:
     branches:
@@ -38,7 +38,7 @@ jobs:
   lint:
     name: Lint and format code
     runs-on: ubuntu-latest
-    needs: [ check-changed ]
+    needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -81,7 +81,7 @@ jobs:
   lint-website:
     name: Lint and format website
     runs-on: ubuntu-latest
-    needs: [ check-changed ]
+    needs: [check-changed]
     if: ${{ needs.check-changed.outputs.document_changed == 'true' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -125,7 +125,7 @@ jobs:
     # When code changed, it will check if any of the test jobs failed.
     # When *only* doc changed, it will run as success directly
     name: Lint Required Check
-    needs: [ lint, lint-website, check-changed, spell, pnpm_lockfile_check ]
+    needs: [lint, lint-website, check-changed, spell, pnpm_lockfile_check]
     if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
     steps:
@@ -137,6 +137,6 @@ jobs:
           }}
         run: echo "Code Lint Failed" && exit 1
       - name: Doc Lint Check
-        if: ${{ needs.check-changed.outputs.document_changed == 'true' 
+        if: ${{ needs.check-changed.outputs.document_changed == 'true'
           && needs.lint-website.result != 'success'}}
         run: echo "Website Lint Failed" && exit 1
