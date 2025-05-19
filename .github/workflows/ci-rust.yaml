@@ -87,7 +87,7 @@ jobs:
         with:
           tool: cargo-deny@0.16
       - name: Check licenses
-        run: cargo deny check license
+        run: cargo deny check license bans
 
       - uses: cargo-bins/cargo-binstall@5cbf019d8cb9b9d5b086218c41458ea35d817691 # v1.12.5
       - run: cargo binstall --no-confirm cargo-shear@1.1.12 --force

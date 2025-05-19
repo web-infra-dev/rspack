@@ -72,7 +72,31 @@ import { foo } from './util.js';
 
 此时 `util.js` 文件中的导出都没有被使用，且可以分析出该文件没有副作用，所以 `util.js` 可以被整个删除。
 
-你也可以通过 `package.json` 或 `module.rules` 来手动标记模块是否包含副作用，如何标记请查看 [sideEffects](/config/optimization#optimizationsideeffects)。
+你也可以通过 `package.json` 或 `module.rules` 来手动标记模块是否包含副作用，需要开启配置 [optimization.sideEffects](/config/optimization#optimizationsideeffects)。
+
+在 `package.json` 中，可以用 `true` 或 `false` 标记当前 package 下全部 module 是否包含副作用。
+
+```json title="package.json"
+{
+  "name": "package",
+  "version": "1.0.0",
+  "sideEffects": false
+}
+```
+
+上面 `package.json` 表示该 package 下的所有 module 都没有副作用。
+
+也可以用写 glob 或字符串匹配部分 module，没有被匹配到的 module 会直接视为没有副作用，因此如果手动标记 side effects，一定要确保没有标记到的 module 都没有副作用。
+
+```json title="package.json"
+{
+  "name": "package",
+  "version": "1.0.0",
+  "sideEffects": ["./src/main.js", "*.css"]
+}
+```
+
+上述写法表示除了 `./src/main.js` 和所有的 `.css` 文件外，其他的 module 都没有副作用。
 
 ## 重导出分析
 
