@@ -165,22 +165,34 @@ impl napi::bindgen_prelude::FromNapiValue for RspackError {
           "Missing field `message`",
         )
       })?;
-    let module: Option<ModuleObject> = obj.get("module").map_err(|mut err| {
-      err.reason = format!("{} on {}.{}", err.reason, "RspackError", "module");
-      err
-    })?;
-    let file: Option<String> = obj.get("file").map_err(|mut err| {
-      err.reason = format!("{} on {}.{}", err.reason, "RspackError", "file");
-      err
-    })?;
-    let stack: Option<String> = obj.get("stack").map_err(|mut err| {
-      err.reason = format!("{} on {}.{}", err.reason, "RspackError", "stack");
-      err
-    })?;
-    let hide_stack: Option<bool> = obj.get("hideStack").map_err(|mut err| {
-      err.reason = format!("{} on {}.{}", err.reason, "RspackError", "hideStack");
-      err
-    })?;
+    let module = obj
+      .get::<Option<ModuleObject>>("module")
+      .map_err(|mut err| {
+        err.reason = format!("{} on {}.{}", err.reason, "RspackError", "module");
+        err
+      })?
+      .flatten();
+    let file = obj
+      .get::<Option<String>>("file")
+      .map_err(|mut err| {
+        err.reason = format!("{} on {}.{}", err.reason, "RspackError", "file");
+        err
+      })?
+      .flatten();
+    let stack = obj
+      .get::<Option<String>>("stack")
+      .map_err(|mut err| {
+        err.reason = format!("{} on {}.{}", err.reason, "RspackError", "stack");
+        err
+      })?
+      .flatten();
+    let hide_stack = obj
+      .get::<Option<bool>>("hideStack")
+      .map_err(|mut err| {
+        err.reason = format!("{} on {}.{}", err.reason, "RspackError", "hideStack");
+        err
+      })?
+      .flatten();
     let val = Self {
       name,
       message,
