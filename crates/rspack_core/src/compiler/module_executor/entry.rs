@@ -1,21 +1,23 @@
 use std::collections::hash_map::Entry;
 
+use rspack_error::miette::diagnostic;
+
 use super::{
-  context::{ExecutorTaskContext, ImportModuleMeta},
+  context::{ExecutorTaskContext, ImportModuleEntry, ImportModuleMeta},
   execute::{ExecuteResultSender, ExecuteTask},
   overwrite::overwrite_tasks,
 };
 use crate::{
   compiler::make::repair::{factorize::FactorizeTask, MakeTaskContext},
   utils::task_loop::{Task, TaskResult, TaskType},
-  Context, Dependency, LoaderImportDependency, ModuleProfile, PublicPath,
+  Dependency, LoaderImportDependency, ModuleIdentifier, ModuleProfile, PublicPath,
 };
 
 /// A task for generate import module entry.
 #[derive(Debug)]
 pub struct EntryTask {
   pub meta: ImportModuleMeta,
-  pub origin_module_context: Option<Context>,
+  pub origin_module_identifier: ModuleIdentifier,
   pub public_path: Option<PublicPath>,
   pub base_uri: Option<String>,
   pub result_sender: ExecuteResultSender,
@@ -32,7 +34,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
   ) -> TaskResult<ExecutorTaskContext> {
     let Self {
       meta,
-      origin_module_context,
+      origin_module_identifier,
       public_path,
       base_uri,
       result_sender,
@@ -41,7 +43,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
       entries,
       origin_context,
       tracker,
-      executed_entry_deps,
+      used_entry,
     } = context;
 
     let task = ExecuteTask {
@@ -51,12 +53,12 @@ impl Task<ExecutorTaskContext> for EntryTask {
       result_sender,
     };
     let mut res = vec![];
-    let dep_id = match entries.entry(meta.clone()) {
+    let (dep_id, is_new) = match entries.entry(meta.clone()) {
       Entry::Vacant(v) => {
         // not exist, generate a new dependency
         let dep = Box::new(LoaderImportDependency::new(
           meta.request,
-          origin_module_context.unwrap_or(Context::from("")),
+          meta.origin_module_context,
         ));
         let dep_id = *dep.id();
 
@@ -91,23 +93,34 @@ impl Task<ExecutorTaskContext> for EntryTask {
             .then(Box::<ModuleProfile>::default),
           resolver_factory: origin_context.resolver_factory.clone(),
         })]));
-        *v.insert(dep_id)
+        let value = v.insert(ImportModuleEntry {
+          dep_id,
+          origin_module_identifiers: Default::default(),
+        });
+        value
+          .origin_module_identifiers
+          .insert(origin_module_identifier);
+        (value.dep_id, true)
       }
-      Entry::Occupied(v) => *v.get(),
+      Entry::Occupied(mut v) => {
+        let value = v.get_mut();
+        value
+          .origin_module_identifiers
+          .insert(origin_module_identifier);
+        (value.dep_id, false)
+      }
     };
 
-    // mark as executed
-    executed_entry_deps.insert(dep_id);
+    // mark as used
+    let used_origin_mids = used_entry.entry(dep_id).or_default();
+    if used_origin_mids.contains(&origin_module_identifier) {
+      task.finish_with_error(diagnostic!("module {} use importModule with same path multi times, maybe have a circular build dependency", origin_module_identifier).into());
+      return Ok(vec![]);
+    } else {
+      used_origin_mids.insert(origin_module_identifier);
+    }
 
-    res.extend(
-      tracker.on_entry(origin_context, dep_id, |error| match error {
-        Some(error) => {
-          task.finish_with_error(error);
-          None
-        }
-        None => Some(Box::new(task)),
-      }),
-    );
+    res.extend(tracker.on_entry(dep_id, Box::new(task), is_new));
 
     Ok(res)
   }

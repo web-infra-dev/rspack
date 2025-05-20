@@ -7,7 +7,7 @@ mod overwrite;
 
 use std::sync::Arc;
 
-use context::{ExecutorTaskContext, ImportModuleMeta};
+use context::{ExecutorTaskContext, ImportModuleEntry, ImportModuleMeta};
 use entry::EntryTask;
 pub use execute::{ExecuteModuleId, ExecutedRuntimeModule};
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierDashSet};
@@ -27,15 +27,14 @@ use self::{
 };
 use super::make::{repair::MakeTaskContext, update_module_graph, MakeArtifact, MakeParam};
 use crate::{
-  cache::MemoryCache, task_loop::run_task_loop, Compilation, CompilationAsset, Context,
-  DependencyId, PublicPath,
+  cache::MemoryCache, task_loop::run_task_loop, Compilation, CompilationAsset, Context, PublicPath,
 };
 
 #[derive(Debug, Default)]
 pub struct ModuleExecutor {
   // data
   pub make_artifact: MakeArtifact,
-  pub entries: HashMap<ImportModuleMeta, DependencyId>,
+  pub entries: HashMap<ImportModuleMeta, ImportModuleEntry>,
 
   // temporary data, used by hook_after_finish_modules
   event_sender: Option<UnboundedSender<Event>>,
@@ -48,7 +47,7 @@ pub struct ModuleExecutor {
 impl ModuleExecutor {
   pub async fn hook_before_make(&mut self, compilation: &Compilation) -> Result<()> {
     let mut make_artifact = std::mem::take(&mut self.make_artifact);
-    let mut params = Vec::with_capacity(5);
+    let mut params = Vec::with_capacity(3);
     params.push(MakeParam::CheckNeedBuild);
     if !compilation.modified_files.is_empty() {
       params.push(MakeParam::ModifiedFiles(compilation.modified_files.clone()));
@@ -72,7 +71,7 @@ impl ModuleExecutor {
       origin_context: MakeTaskContext::new(compilation, make_artifact, Arc::new(MemoryCache)),
       tracker: Default::default(),
       entries: std::mem::take(&mut self.entries),
-      executed_entry_deps: Default::default(),
+      used_entry: Default::default(),
     };
     let (event_sender, event_receiver) = unbounded_channel();
     let (stop_sender, stop_receiver) = oneshot::channel();
@@ -111,14 +110,21 @@ impl ModuleExecutor {
       .iter()
       .chain(self.make_artifact.revoked_modules.iter())
       .collect::<HashSet<_>>();
-    self.entries.retain(|k, v| {
-      !removed_module.contains(&k.origin_module_identifier) || ctx.executed_entry_deps.contains(v)
+    self.entries.retain(|_k, v| {
+      let default = Default::default();
+      let used_mid = ctx.used_entry.get(&v.dep_id).unwrap_or(&default);
+      v.origin_module_identifiers.retain(|mid| {
+        // Because some modules may use different importModule when recompiled,
+        // use used_mid instead of artifact.built_module.
+        !removed_module.contains(&mid) || used_mid.contains(mid)
+      });
+      !v.origin_module_identifiers.is_empty()
     });
     self.make_artifact = update_module_graph(
       compilation,
       std::mem::take(&mut self.make_artifact),
       vec![MakeParam::BuildEntryAndClean(
-        self.entries.values().copied().collect(),
+        self.entries.values().map(|item| item.dep_id).collect(),
       )],
     )
     .await?;
@@ -161,7 +167,7 @@ impl ModuleExecutor {
       .expect("should have event sender");
 
     let meta = ImportModuleMeta {
-      origin_module_identifier,
+      origin_module_context: origin_module_context.unwrap_or(Context::from("")),
       request,
       layer,
     };
@@ -169,7 +175,7 @@ impl ModuleExecutor {
     sender
       .send(Event::ImportModule(EntryTask {
         meta,
-        origin_module_context,
+        origin_module_identifier,
         public_path,
         base_uri,
         result_sender: tx,
