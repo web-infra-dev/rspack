@@ -1,4 +1,3 @@
-import "./setupEnv";
 import * as rspackExports from "./exports";
 import { rspack as rspackFn } from "./rspack";
 // add exports on rspack() function
