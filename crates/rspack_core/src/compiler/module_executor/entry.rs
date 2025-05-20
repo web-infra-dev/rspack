@@ -11,6 +11,7 @@ use crate::{
   Context, Dependency, LoaderImportDependency, ModuleProfile, PublicPath,
 };
 
+/// A task for generate import module entry.
 #[derive(Debug)]
 pub struct EntryTask {
   pub meta: ImportModuleMeta,
@@ -52,6 +53,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
     let mut res = vec![];
     let dep_id = match entries.entry(meta.clone()) {
       Entry::Vacant(v) => {
+        // not exist, generate a new dependency
         let dep = Box::new(LoaderImportDependency::new(
           meta.request,
           origin_module_context.unwrap_or(Context::from("")),
@@ -94,6 +96,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
       Entry::Occupied(v) => *v.get(),
     };
 
+    // mark as executed
     executed_entry_deps.insert(dep_id);
 
     res.extend(

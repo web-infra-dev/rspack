@@ -58,6 +58,7 @@ impl ModuleExecutor {
     }
     make_artifact.reset_temporary_data();
 
+    // update the module affected by modified_files
     make_artifact = update_module_graph(compilation, make_artifact, params).await?;
 
     compilation
@@ -111,11 +112,7 @@ impl ModuleExecutor {
       .chain(self.make_artifact.revoked_modules.iter())
       .collect::<HashSet<_>>();
     self.entries.retain(|k, v| {
-      if let Some(mid) = &k.origin_module_identifier {
-        !removed_module.contains(mid) || ctx.executed_entry_deps.contains(v)
-      } else {
-        true
-      }
+      !removed_module.contains(&k.origin_module_identifier) || ctx.executed_entry_deps.contains(v)
     });
     self.make_artifact = update_module_graph(
       compilation,
@@ -156,7 +153,7 @@ impl ModuleExecutor {
     public_path: Option<PublicPath>,
     base_uri: Option<String>,
     origin_module_context: Option<Context>,
-    origin_module_identifier: Option<Identifier>,
+    origin_module_identifier: Identifier,
   ) -> ExecuteModuleResult {
     let sender = self
       .event_sender
@@ -181,12 +178,10 @@ impl ModuleExecutor {
     let (execute_result, assets, code_generated_modules, executed_runtime_modules) =
       rx.await.expect("should receiver success");
 
-    if execute_result.error.is_none()
-      && let Some(original_module_identifier) = origin_module_identifier
-    {
+    if execute_result.error.is_none() {
       self
         .module_assets
-        .entry(original_module_identifier)
+        .entry(origin_module_identifier)
         .or_default()
         .extend(assets);
     }

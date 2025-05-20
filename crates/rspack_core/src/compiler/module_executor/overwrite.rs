@@ -7,6 +7,7 @@ use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
+/// Transform tasks with MakeTaskContext to tasks with ExecutorTaskContext.
 pub fn overwrite_tasks(
   tasks: Vec<Box<dyn Task<MakeTaskContext>>>,
 ) -> Vec<Box<dyn Task<ExecutorTaskContext>>> {
@@ -16,14 +17,11 @@ pub fn overwrite_tasks(
     .collect()
 }
 
+/// A wrapped task to run MakeTaskContext task.
+///
+/// This task will intercept the result of the inner task and trigger tracker.on_*
 #[derive(Debug)]
 pub struct OverwriteTask(Box<dyn Task<MakeTaskContext>>);
-
-impl OverwriteTask {
-  fn into_origin_task(self) -> Box<dyn Task<MakeTaskContext>> {
-    self.0
-  }
-}
 
 #[async_trait::async_trait]
 impl Task<ExecutorTaskContext> for OverwriteTask {
@@ -35,7 +33,7 @@ impl Task<ExecutorTaskContext> for OverwriteTask {
     self: Box<Self>,
     context: &mut ExecutorTaskContext,
   ) -> TaskResult<ExecutorTaskContext> {
-    let origin_task = self.into_origin_task();
+    let origin_task = self.0;
     let ExecutorTaskContext {
       origin_context,
       tracker,
@@ -93,7 +91,7 @@ impl Task<ExecutorTaskContext> for OverwriteTask {
   }
 
   async fn background_run(self: Box<Self>) -> TaskResult<ExecutorTaskContext> {
-    let origin_task = self.into_origin_task();
+    let origin_task = self.0;
     Ok(overwrite_tasks(origin_task.background_run().await?))
   }
 }

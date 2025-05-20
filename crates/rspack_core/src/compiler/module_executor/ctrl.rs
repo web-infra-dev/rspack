@@ -3,12 +3,16 @@ use tokio::sync::mpsc::UnboundedReceiver;
 use super::{context::ExecutorTaskContext, entry::EntryTask};
 use crate::utils::task_loop::{Task, TaskResult, TaskType};
 
+/// Event for CtrlTask
 #[derive(Debug)]
 pub enum Event {
+  /// Trigger a import module task
   ImportModule(EntryTask),
+  /// Stop
   Stop,
 }
 
+/// A background task to make task loop without exit and dynamically add entry tasks.
 #[derive(Debug)]
 pub struct CtrlTask {
   pub event_receiver: UnboundedReceiver<Event>,
@@ -27,6 +31,7 @@ impl Task<ExecutorTaskContext> for CtrlTask {
     };
     tracing::debug!("CtrlTask async receive {:?}", event);
     match event {
+      // return self to keep CtrlTask still run.
       Event::ImportModule(entry_task) => return Ok(vec![Box::new(entry_task), self]),
       Event::Stop => {
         return Ok(vec![]);

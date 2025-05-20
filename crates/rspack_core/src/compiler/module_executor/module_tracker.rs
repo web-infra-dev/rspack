@@ -11,45 +11,50 @@ use crate::{
 
 type BoxTask = Box<dyn Task<ExecutorTaskContext>>;
 
-/// Tracks whether a module and its submodules have been built
+/// Tracks whether a module and its submodules have been built.
 #[derive(Debug, Default)]
 pub struct ModuleTracker {
   /// A map to record unfinished modules and its unfinished submodules count.
   ///
-  /// if a module not in this map, it means the module and its submodules have already been built.
-  /// if the submodules count is usize::MAX means the module is building.
+  /// If a module not in this map, it means the module and its submodules have already been built.
+  /// If the submodules count is usize::MAX means the module is building.
   unfinished_module: IdentifierMap<usize>,
 
-  /// Entry dependency id to target box task
+  /// Entry dependency id to target box task.
   ///
   /// when entry dependency submodules are built,
-  /// 1. if reused_unfinished_module is empty, return box task directly
-  /// 2. if reused_unfinished_module is not empty, add box task to pending_callbacks
+  /// 1. if reused_unfinished_module is empty, return box task directly.
+  /// 2. if reused_unfinished_module is not empty, add box task to pending_callbacks.
   entry_finish_task: HashMap<DependencyId, BoxTask>,
 
-  /// Reused and unfinished modules
+  /// Reused and unfinished modules.
   ///
   /// When cycle use module(B -> A -> B) or multi entries use same module(A -> B, C -> B)
   /// will add the unfinished module(B) to this set.
   /// The box task can be return only when the set is empty.
   reused_unfinished_module: IdentifierSet,
 
-  /// Pending box tasks
+  /// Pending box tasks.
   ///
   /// List the box task waiting for reused_unfinished_module to be cleared.
   pending_tasks: Vec<BoxTask>,
 }
 
 impl ModuleTracker {
-  fn calc_runnable_tasks(&mut self, mut new_tasks: Vec<BoxTask>) -> Vec<BoxTask> {
+  /// Calculate runnable tasks.
+  ///
+  /// This method will determine whether the ready_tasks and self.pending tasks are runnable.
+  /// Return all tasks only if self.reused_unfinished_module is empty, otherwise leave ready tasks pending.
+  fn calc_runnable_tasks(&mut self, mut ready_tasks: Vec<BoxTask>) -> Vec<BoxTask> {
     if self.reused_unfinished_module.is_empty() {
-      new_tasks.extend(std::mem::take(&mut self.pending_tasks));
-      new_tasks
+      ready_tasks.extend(std::mem::take(&mut self.pending_tasks));
+      ready_tasks
     } else {
-      self.pending_tasks.extend(new_tasks);
+      self.pending_tasks.extend(ready_tasks);
       vec![]
     }
   }
+
   /// Set a module as finished. Returns runnable box tasks.
   ///
   /// This method removes the module from the tracker and
@@ -79,7 +84,7 @@ impl ModuleTracker {
           panic!("can not access unset module issuer");
         }
         ModuleIssuer::None => {
-          // no origin module
+          // no origin module, module is a entry module
           for dep_id in mgm.incoming_connections() {
             let connection = module_graph
               .connection_by_dependency_id(dep_id)
@@ -103,6 +108,12 @@ impl ModuleTracker {
     self.calc_runnable_tasks(tasks)
   }
 
+  /// Set a dependency as finished. Returns runnable box tasks.
+  ///
+  /// If origin_mid is None, the method directly returns the runnable box task.
+  /// If origin_mid exists, origin_mid's unfinished submodules will be minus one,
+  /// and trigger self.finish_module if submodules count becomes 0.
+  /// Call this method when a dependency processing is complete.
   fn finish_dep(
     &mut self,
     context: &mut MakeTaskContext,
@@ -112,11 +123,7 @@ impl ModuleTracker {
     let Some(origin_mid) = origin_mid else {
       // entry
       if let Some(task) = self.entry_finish_task.remove(&dep_id) {
-        if self.reused_unfinished_module.is_empty() {
-          return vec![task];
-        } else {
-          self.pending_tasks.push(task);
-        }
+        return self.calc_runnable_tasks(vec![task]);
       }
       return vec![];
     };
@@ -132,6 +139,7 @@ impl ModuleTracker {
     }
   }
 
+  /// Handle factorize task failed.
   pub fn on_factorize_failed(
     &mut self,
     context: &mut MakeTaskContext,
@@ -141,6 +149,7 @@ impl ModuleTracker {
     self.finish_dep(context, origin_mid, dep_id)
   }
 
+  /// Handle add task with resolved module.
   pub fn on_add_resolved_module(
     &mut self,
     context: &mut MakeTaskContext,
@@ -154,11 +163,13 @@ impl ModuleTracker {
     self.finish_dep(context, origin_mid, dep_id)
   }
 
+  /// Handle add task with module need build
   pub fn on_add(&mut self, mid: ModuleIdentifier) {
     // will build module
     self.unfinished_module.insert(mid, usize::MAX);
   }
 
+  /// Handle process dependencies task.
   pub fn on_process_dependencies(
     &mut self,
     context: &mut MakeTaskContext,
@@ -173,6 +184,7 @@ impl ModuleTracker {
     }
   }
 
+  /// Handle entry task.
   pub fn on_entry(
     &mut self,
     context: &mut MakeTaskContext,
