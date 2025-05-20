@@ -12,7 +12,7 @@ use swc_core::{
 
 use super::{
   estree::{MaybeNamedFunctionDecl, Statement},
-  JavascriptParser,
+  DestructuringAssignmentProperty, JavascriptParser,
 };
 use crate::{parser_plugin::JavascriptParserPlugin, utils::eval};
 
@@ -193,24 +193,39 @@ impl JavascriptParser<'_> {
     }
   }
 
-  fn _pre_walk_object_pattern(&mut self, obj_pat: &ObjectPat) -> Option<FxHashSet<String>> {
+  fn _pre_walk_object_pattern(
+    &mut self,
+    obj_pat: &ObjectPat,
+  ) -> Option<FxHashSet<DestructuringAssignmentProperty>> {
     let mut keys = FxHashSet::default();
     for prop in &obj_pat.props {
       match prop {
         ObjectPatProp::KeyValue(prop) => {
           if let Some(ident_key) = prop.key.as_ident() {
-            keys.insert(ident_key.sym.to_string());
+            keys.insert(DestructuringAssignmentProperty {
+              id: ident_key.sym.clone(),
+              range: prop.key.span().into(),
+              shorthand: false,
+            });
           } else {
             let name = eval::eval_prop_name(&prop.key);
             if let Some(id) = name.and_then(|id| id.as_string()) {
-              keys.insert(id);
+              keys.insert(DestructuringAssignmentProperty {
+                id: id.into(),
+                range: prop.key.span().into(),
+                shorthand: false,
+              });
             } else {
               return None;
             }
           }
         }
         ObjectPatProp::Assign(prop) => {
-          keys.insert(prop.key.sym.to_string());
+          keys.insert(DestructuringAssignmentProperty {
+            id: prop.key.sym.clone(),
+            range: prop.key.span().into(),
+            shorthand: true,
+          });
         }
         ObjectPatProp::Rest(_) => return None,
       };

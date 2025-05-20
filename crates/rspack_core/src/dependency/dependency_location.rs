@@ -9,7 +9,7 @@ use rspack_util::itoa;
 /// Represents a range in a dependency, typically used for tracking the span of code in a source file.
 /// It stores the start and end positions (as offsets) of the range, typically using base-0 indexing.
 #[cacheable]
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct DependencyRange {
   pub end: u32,
   pub start: u32,

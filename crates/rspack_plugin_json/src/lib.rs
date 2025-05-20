@@ -202,7 +202,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
             json_str.cow_replace('\\', r"\\").cow_replace('\'', r"\'")
           ))
         } else {
-          json_str
+          json_str.cow_replace("\"__proto__\":", "[\"__proto__\"]:")
         };
         let content = if let Some(ref mut scope) = concatenation_scope {
           scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);

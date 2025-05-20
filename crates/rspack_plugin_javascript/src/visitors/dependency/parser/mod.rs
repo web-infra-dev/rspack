@@ -8,10 +8,11 @@ use std::{borrow::Cow, fmt::Display, rc::Rc, sync::Arc};
 
 use bitflags::bitflags;
 pub use call_hooks_name::CallHooksName;
+use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_core::{
   AdditionalData, AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo,
-  BuildMeta, CompilerOptions, JavascriptParserOptions, JavascriptParserUrl, ModuleIdentifier,
-  ModuleLayer, ModuleType, ResourceData, SpanExt,
+  BuildMeta, CompilerOptions, DependencyRange, JavascriptParserOptions, JavascriptParserUrl,
+  ModuleIdentifier, ModuleLayer, ModuleType, ResourceData, SpanExt,
 };
 use rspack_error::miette::Diagnostic;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -100,6 +101,15 @@ pub struct ExpressionExpressionInfo {
   pub members: Vec<Atom>,
   pub members_optionals: Vec<bool>,
   pub member_ranges: Vec<Span>,
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
+pub struct DestructuringAssignmentProperty {
+  pub range: DependencyRange,
+  #[cacheable(with=AsPreset)]
+  pub id: Atom,
+  pub shorthand: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -236,7 +246,8 @@ pub struct JavascriptParser<'parser> {
   // TODO: delete `enter_call`
   pub(crate) enter_call: u32,
   pub(crate) member_expr_in_optional_chain: bool,
-  pub(crate) destructuring_assignment_properties: Option<FxHashMap<Span, FxHashSet<String>>>,
+  pub(crate) destructuring_assignment_properties:
+    Option<FxHashMap<Span, FxHashSet<DestructuringAssignmentProperty>>>,
   pub(crate) semicolons: &'parser mut FxHashSet<BytePos>,
   pub(crate) statement_path: Vec<StatementPath>,
   pub(crate) prev_statement: Option<StatementPath>,
@@ -947,7 +958,10 @@ impl<'parser> JavascriptParser<'parser> {
     self.definitions_db.get(self.definitions, str).is_none()
   }
 
-  pub fn destructuring_assignment_properties_for(&self, span: &Span) -> Option<FxHashSet<String>> {
+  pub fn destructuring_assignment_properties_for(
+    &self,
+    span: &Span,
+  ) -> Option<FxHashSet<DestructuringAssignmentProperty>> {
     self
       .destructuring_assignment_properties
       .as_ref()
