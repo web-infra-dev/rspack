@@ -85,28 +85,37 @@ pub struct RootModuleContext {
 #[allow(unused)]
 #[derive(Debug, Clone)]
 pub struct RawBinding {
-  info_id: ModuleIdentifier,
-  raw_name: Atom,
-  comment: Option<String>,
-  ids: Vec<Atom>,
-  export_name: Vec<Atom>,
+  pub info_id: ModuleIdentifier,
+  pub raw_name: Atom,
+  pub comment: Option<String>,
+  pub ids: Vec<Atom>,
+  pub export_name: Vec<Atom>,
 }
 
 #[allow(unused)]
 #[derive(Debug, Clone)]
 pub struct SymbolBinding {
   /// corresponding to a ConcatenatedModuleInfo, ref https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L93-L100
-  info_id: ModuleIdentifier,
-  name: Atom,
-  comment: Option<String>,
-  ids: Vec<Atom>,
-  export_name: Vec<Atom>,
+  pub info_id: ModuleIdentifier,
+  pub name: Atom,
+  pub comment: Option<String>,
+  pub ids: Vec<Atom>,
+  pub export_name: Vec<Atom>,
 }
 
 #[derive(Debug, Clone)]
 pub enum Binding {
   Raw(RawBinding),
   Symbol(SymbolBinding),
+}
+
+impl Binding {
+  pub fn identifier(&self) -> ModuleIdentifier {
+    match self {
+      Binding::Raw(raw_binding) => raw_binding.info_id,
+      Binding::Symbol(symbol_binding) => symbol_binding.info_id,
+    }
+  }
 }
 
 #[derive(Debug)]
@@ -1897,7 +1906,7 @@ impl ConcatenatedModule {
   }
 
   #[allow(clippy::too_many_arguments)]
-  fn get_final_binding(
+  pub fn get_final_binding(
     mg: &ModuleGraph,
     info_id: &ModuleIdentifier,
     mut export_name: Vec<Atom>,

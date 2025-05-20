@@ -5,7 +5,7 @@ use std::{
 
 use regex::Regex;
 use rspack_collections::IdentifierIndexMap;
-use rspack_util::{fx_hash::FxIndexSet, itoa};
+use rspack_util::{fx_hash::FxIndexMap, itoa};
 use swc_core::atoms::Atom;
 
 use crate::{
@@ -23,7 +23,7 @@ static MODULE_REFERENCE_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   .expect("should initialized regex")
 });
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct ModuleReferenceOptions {
   pub ids: Vec<Atom>,
   pub call: bool,
@@ -36,7 +36,7 @@ pub struct ModuleReferenceOptions {
 pub struct ConcatenationScope {
   pub current_module: ConcatenatedModuleInfo,
   pub modules_map: Arc<IdentifierIndexMap<ModuleInfo>>,
-  pub refs: IdentifierIndexMap<FxIndexSet<String>>,
+  pub refs: IdentifierIndexMap<FxIndexMap<String, ModuleReferenceOptions>>,
 }
 
 #[allow(unused)]
@@ -124,7 +124,7 @@ impl ConcatenationScope {
     );
 
     let entry = self.refs.entry(*module).or_default();
-    entry.insert(module_ref.clone());
+    entry.insert(module_ref.clone(), options.clone());
 
     module_ref
   }

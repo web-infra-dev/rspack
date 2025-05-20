@@ -1,9 +1,11 @@
 use indexmap::IndexSet;
-use rspack_collections::{IdentifierMap, UkeyIndexMap, UkeyMap};
+use rspack_collections::{IdentifierIndexSet, IdentifierMap, UkeyIndexMap, UkeyMap};
 use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::{AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, ModuleIdentifier};
+use crate::{
+  AsyncDependenciesBlockIdentifier, Binding, ChunkGroupUkey, ChunkUkey, ModuleIdentifier,
+};
 
 pub mod chunk_graph_chunk;
 pub mod chunk_graph_module;
@@ -14,6 +16,16 @@ pub use chunk_graph_module::{ChunkGraphModule, ModuleId};
 pub struct ChunkLink {
   pub imports: UkeyIndexMap<ChunkUkey, IdentifierMap<IndexSet<Atom>>>,
   pub exports: IdentifierMap<HashSet<Atom>>,
+  pub needed_namespace_objects: IdentifierIndexSet,
+  pub hoisted_modules: IdentifierIndexSet,
+  pub ref_to_final_name: HashMap<String, ModuleReference>,
+  pub used_names: HashSet<Atom>,
+}
+
+#[derive(Debug, Clone)]
+pub enum ModuleReference {
+  Binding(Binding),
+  Str(String),
 }
 
 #[derive(Debug, Clone, Default)]

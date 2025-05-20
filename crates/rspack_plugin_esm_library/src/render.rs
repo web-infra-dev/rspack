@@ -1,27 +1,23 @@
-use std::{collections::hash_map::Entry, sync::Arc};
+use std::{borrow::Cow, collections::hash_map::Entry, sync::Arc};
 
 use rayon::prelude::*;
-use rspack_collections::{IdentifierIndexSet, IdentifierMap, UkeyIndexMap};
+use rspack_collections::{IdentifierIndexSet, IdentifierMap, UkeyIndexMap, UkeySet};
 use rspack_core::{
-  BoxModule, ChunkUkey, Compilation, ConcatenatedModule, ConcatenatedModuleIdent,
-  ConcatenationScope, IdentCollector, ModuleInfo, NAMESPACE_OBJECT_EXPORT, RuntimeGlobals,
-  SourceType, SpanExt, find_new_name,
+  AssetInfo, BoxModule, ChunkGraph, ChunkUkey, Compilation, ConcatenatedModule,
+  ConcatenatedModuleIdent, ConcatenatedModuleInfo, ConcatenationScope, IdentCollector, ModuleInfo,
+  NAMESPACE_OBJECT_EXPORT, PathData, PathInfo, RuntimeGlobals, SourceType, SpanExt, find_new_name,
+  get_js_chunk_filename_template, property_access,
   reserved_names::RESERVED_NAMES,
-  rspack_sources::{ConcatSource, ReplaceSource, Source},
+  rspack_sources::{ConcatSource, RawSource, RawStringSource, ReplaceSource, Source},
 };
 use rspack_error::Result;
 use rspack_javascript_compiler::ast::Ast;
-use rspack_plugin_javascript::{RenderSource, visitors::swc_visitor::resolver};
+use rspack_plugin_javascript::{
+  RenderSource, runtime::render_module, visitors::swc_visitor::resolver,
+};
 use rspack_util::{
   atom::Atom,
   fx_hash::{FxHashMap, FxHashSet, FxIndexSet},
-};
-use swc_core::{
-  common::{FileName, SyntaxContext},
-  ecma::{
-    ast::{EsVersion, Program},
-    parser::{Syntax, parse_file_as_module},
-  },
 };
 
 use crate::EsmLibraryPlugin;
@@ -32,9 +28,16 @@ impl EsmLibraryPlugin {
     chunk_ukey: &ChunkUkey,
   ) -> Result<Option<RenderSource>> {
     let module_graph = compilation.get_module_graph();
+    let chunk_link = compilation
+      .chunk_graph
+      .link
+      .as_ref()
+      .unwrap()
+      .get(chunk_ukey)
+      .unwrap();
 
     // modules that can be concatenated
-    let mut concatenated_modules = Vec::new();
+    let mut concatenated_modules = &chunk_link.hoisted_modules;
     let mut decl_modules: Vec<&BoxModule> = Vec::new();
 
     let mut concatenated_modules_map_by_compilation = self.concatenated_modules_map.lock().await;
@@ -50,209 +53,345 @@ impl EsmLibraryPlugin {
       .collect();
 
     for (id, m) in &chunk_modules {
-      if let Some(ModuleInfo::Concatenated(_)) = concatenated_modules_map.get(id) {
-        concatenated_modules.push(*m);
-      } else {
+      if !concatenated_modules.contains(id) {
         decl_modules.push(*m);
       }
     }
 
-    concatenated_modules.sort_by(|m1, m2| {
-      let m1_index = module_graph.get_post_order_index(&m1.identifier());
-      let m2_index = module_graph.get_post_order_index(&m2.identifier());
-      m1_index.cmp(&m2_index)
-    });
-
     decl_modules.sort_by_key(|m| m.identifier());
-
-    let mut imported_chunk: UkeyIndexMap<ChunkUkey, FxIndexSet<String>> = UkeyIndexMap::default();
-
     let mut runtime_requirements = RuntimeGlobals::empty();
 
     // find import
     let mut render_source = ConcatSource::default();
-    let mut concate_infos: IdentifierMap<ConcateInfo> = concatenated_modules
-      .par_iter()
-      .filter_map(|m| {
-        let identifier = m.identifier();
-        let codegen_res = compilation.code_generation_results.get(&identifier, None);
+    let mut runtime_requirements = RuntimeGlobals::empty();
+    // let mut imported = vec![];
 
-        let Some(js_source) = codegen_res.get(&SourceType::JavaScript) else {
-          return None;
+    let chunk = compilation.chunk_by_ukey.get(chunk_ukey).unwrap();
+    let filename_template = get_js_chunk_filename_template(
+      chunk,
+      &compilation.options.output,
+      &compilation.chunk_group_by_ukey,
+    );
+    let mut asset_info = AssetInfo::default();
+    asset_info.set_javascript_module(true);
+    let output_path = compilation
+      .get_path_with_info(
+        &filename_template,
+        PathData::default()
+          .chunk_hash_optional(chunk.rendered_hash(
+            &compilation.chunk_hashes_artifact,
+            compilation.options.output.hash_digest_length,
+          ))
+          .chunk_id_optional(
+            chunk
+              .id(&compilation.chunk_ids_artifact)
+              .map(|id| id.as_str()),
+          )
+          .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+          .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+            &compilation.chunk_hashes_artifact,
+            &SourceType::JavaScript,
+            compilation.options.output.hash_digest_length,
+          ))
+          .runtime(chunk.runtime().as_str()),
+        &mut asset_info,
+      )
+      .await?;
+
+    if !decl_modules.is_empty() {
+      render_source.add(RawSource::from(format!(
+        "{}({}, {{\n",
+        RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+        RuntimeGlobals::MODULE_FACTORIES
+      )));
+
+      for m in &decl_modules {
+        let codegen_res = compilation
+          .code_generation_results
+          .get(&m.identifier(), None);
+
+        runtime_requirements.union(codegen_res.runtime_requirements.clone());
+        let Some((module_source, _, _)) =
+          render_module(compilation, chunk_ukey, m, true, true, &output_path).await?
+        else {
+          continue;
         };
+        render_source.add(module_source.clone());
+      }
 
-        let info = concatenated_modules_map.get(&identifier).unwrap();
+      render_source.add(RawSource::from_static("});\n"));
+    }
 
-        Some((identifier, info.as_concatenated().clone()))
-      })
-      .collect();
+    for m in decl_modules {
+      let ModuleInfo::External(info) = concatenated_modules_map
+        .get(&m.identifier())
+        .expect("should have info")
+      else {
+        unreachable!("should be external module")
+      };
 
-    let mut all_used_names: FxHashSet<Atom> =
-      RESERVED_NAMES.iter().map(|s| Atom::new(*s)).collect();
-    let mut top_level_declarations: FxHashSet<Atom> = FxHashSet::default();
+      render_source.add(RawStringSource::from(format!(
+        "var {} = {}({});\n",
+        info.name.as_ref().expect("should have name"),
+        RuntimeGlobals::REQUIRE,
+        serde_json::to_string(
+          ChunkGraph::get_module_id(&compilation.module_ids_artifact, info.module)
+            .expect("should have module id")
+        )
+        .expect("should json stringify module id")
+      )));
+    }
 
-    for m in &concatenated_modules {
-      let info = concate_infos
-        .get_mut(&m.identifier())
-        .expect("should have info");
+    // present as
+    // a.js -> (imported symbol, local symbol)
+    let mut imported_symbols = IdentifierMap::<FxHashMap<Atom, Atom>>::default();
 
-      let codegen_res = compilation
-        .code_generation_results
-        .get(&m.identifier(), None);
+    // const symbol = __webpack_require__('./main.js')
+    let mut required_symbols = IdentifierMap::<Atom>::default();
 
-      for ((name, stxt), refs) in &info.binding_to_ref {
-        if stxt == &info.global_ctxt {
+    // render cross module links
+    for m in &chunk_link.hoisted_modules {
+      let info = concatenated_modules_map
+        .get(m)
+        .expect("should have info")
+        .as_concatenated();
+
+      let mut source = info.source.clone().unwrap();
+      let codegen_res = compilation.code_generation_results.get(m, None);
+      let mut used_names = info.all_used_names.clone();
+
+      for ((atom, ctxt), refs) in &info.binding_to_ref {
+        if let Some(match_module_ref) = ConcatenationScope::match_module_reference(&atom) {
+          let final_name = chunk_link
+            .ref_to_final_name
+            .get(atom.as_str())
+            .expect("should already set");
+
+          match final_name {
+            rspack_core::ModuleReference::Binding(binding) => {
+              let (reference, is_property_access) = match binding {
+                rspack_core::Binding::Raw(raw_binding) => {
+                  let imported_id = raw_binding.info_id;
+                  let is_property_access = !raw_binding.ids.is_empty();
+                  let symbol = &raw_binding.raw_name;
+                  let local = if let Some(local) = required_symbols.get(&imported_id) {
+                    local.clone()
+                  } else if used_names.contains(symbol) {
+                    let local = find_new_name(&symbol, &chunk_link.used_names, None, "");
+                    used_names.insert(local.clone());
+                    required_symbols.insert(imported_id, local.clone());
+                    local
+                  } else {
+                    used_names.insert(symbol.clone());
+                    required_symbols.insert(imported_id, symbol.clone());
+                    symbol.clone()
+                  };
+
+                  let reference = format!(
+                    "{}{}{}",
+                    &local,
+                    raw_binding.comment.clone().unwrap_or_default(),
+                    property_access(&raw_binding.ids, 0)
+                  );
+                  (reference, is_property_access)
+                }
+
+                rspack_core::Binding::Symbol(symbol_binding) => {
+                  let imported = imported_symbols.entry(symbol_binding.info_id).or_default();
+                  let info = concatenated_modules_map
+                    .get(&symbol_binding.info_id)
+                    .unwrap()
+                    .as_concatenated();
+                  let symbol = info.internal_names.get(&symbol_binding.name).unwrap();
+
+                  let local = if let Some(local) = imported.get(symbol) {
+                    local.clone()
+                  } else if used_names.contains(symbol) {
+                    let local = find_new_name(&symbol, &chunk_link.used_names, None, "");
+                    used_names.insert(local.clone());
+                    imported.insert(symbol.clone(), local.clone());
+                    local
+                  } else {
+                    used_names.insert(symbol.clone());
+                    imported.insert(symbol.clone(), symbol.clone());
+                    symbol.clone()
+                  };
+
+                  let is_property_access = symbol_binding.ids.len() > 1;
+
+                  let reference = format!(
+                    "{}{}{}",
+                    &local,
+                    symbol_binding.comment.clone().unwrap_or_default(),
+                    property_access(&symbol_binding.ids, 0)
+                  );
+                  (reference, is_property_access)
+                }
+              };
+
+              let final_name =
+                if is_property_access && match_module_ref.call && !match_module_ref.direct_import {
+                  if match_module_ref.asi_safe.unwrap_or_default() {
+                    format!("(0,{reference})")
+                  } else if let Some(_asi_safe) = match_module_ref.asi_safe {
+                    format!(";(0,{reference})")
+                  } else {
+                    format!("/*#__PURE__*/Object({reference})")
+                  }
+                } else {
+                  reference
+                };
+
+              for ident in refs {
+                source.replace(
+                  ident.id.span.real_lo(),
+                  ident.id.span.real_hi() + 2,
+                  &final_name,
+                  None,
+                );
+              }
+            }
+            rspack_core::ModuleReference::Str(final_name) => {
+              for ident in refs {
+                source.replace(
+                  ident.id.span.real_lo(),
+                  ident.id.span.real_hi() + 2,
+                  final_name,
+                  None,
+                );
+              }
+            }
+          }
+        }
+      }
+
+      for ident in &info.idents {
+        if ident.id.ctxt != info.module_ctxt {
           continue;
         }
 
-        if all_used_names.insert(name.clone()) {
-          info.internal_names.insert(name.clone(), name.clone());
-        } else {
-          let mut i = 1;
-          let mut new_name: Atom = format!("{}${}", &name, i).into();
-          while all_used_names.insert(new_name.clone()) {
-            new_name = format!("{}${}", name, i).into();
-            i += 1;
-          }
-          for ref_symbol in refs {
-            info.source.unwrap().replace(
-              ref_symbol.id.span.real_lo(),
-              ref_symbol.id.span.real_hi(),
-              &new_name,
-              None,
-            );
-          }
-          info.internal_names.insert(name.clone(), new_name);
-        }
-
-        // Handle the name passed through by namespace_export_symbol
-        if let Some(ref namespace_export_symbol) = info.namespace_export_symbol {
-          if namespace_export_symbol.starts_with(NAMESPACE_OBJECT_EXPORT)
-            && namespace_export_symbol.len() > NAMESPACE_OBJECT_EXPORT.len()
-          {
-            let name =
-              Atom::from(namespace_export_symbol[NAMESPACE_OBJECT_EXPORT.len()..].to_string());
-            all_used_names.insert(name.clone());
-            info
-              .internal_names
-              .insert(namespace_export_symbol.clone(), name.clone());
-            top_level_declarations.insert(name.clone());
-          }
-        }
-
-        // Handle namespaceObjectName for concatenated type
-        let namespace_object_name =
-          if let Some(ref namespace_export_symbol) = info.namespace_export_symbol {
-            info.internal_names.get(namespace_export_symbol).cloned()
-          } else {
-            Some(find_new_name(
-              "namespaceObject",
-              &all_used_names,
-              None,
-              &m.readable_identifier(&compilation.options.context),
-            ))
-          };
-        if let Some(namespace_object_name) = namespace_object_name {
-          all_used_names.insert(namespace_object_name.clone());
-          info.namespace_object_name = Some(namespace_object_name.clone());
-          top_level_declarations.insert(namespace_object_name);
-        }
-      }
-    }
-
-    // Set with modules that need a generated namespace object
-    let mut needed_namespace_objects = IdentifierIndexSet::default();
-
-    // replace import specifier
-    for m in &concatenated_modules {
-      let info = concate_infos
-        .get_mut(&m.identifier())
-        .expect("should have info");
-      for ident in &info.idents {
-        if &ident.id.ctxt == &info.global_ctxt
-          && let Some(match_module_ref) = ConcatenationScope::match_module_reference(&ident.id.sym)
-        {
-          let codegen_res = compilation
-            .code_generation_results
-            .get(&m.identifier(), None);
-          let scope = codegen_res
-            .concatenation_scope
-            .as_ref()
-            .expect("should have scope");
-
-          let (ref_module, ref_info) = scope
-            .modules_map
-            .get_index(match_module_ref.index)
-            .expect("should have module");
-
-          let ref_module_instance = module_graph
-            .module_by_identifier(ref_module)
-            .expect("should have module");
-
-          let final_name = ConcatenatedModule::get_final_name(
-            &module_graph,
-            ref_module,
-            match_module_ref.ids,
-            concatenated_modules_map,
+        if let Some(internal_name) = info.internal_names.get(&ident.id.sym) {
+          source.replace(
+            ident.id.span.real_lo(),
+            ident.id.span.real_hi(),
+            internal_name,
             None,
-            &mut needed_namespace_objects,
-            match_module_ref.call,
-            !match_module_ref.direct_import,
-            ref_module_instance.build_info().strict,
-            match_module_ref.asi_safe,
-            &compilation.options.context,
           );
-          let low = ident.id.span.real_lo();
-          let high = ident.id.span.real_hi();
-          info
-            .source
-            .unwrap()
-            .replace(low, high + 2, &final_name, None);
         }
       }
-    }
 
-    // render import statement
-    let link = compilation
-      .chunk_graph
-      .link
-      .as_ref()
-      .expect("should have chunk link");
-    let link = link.get(chunk_ukey).expect("should have chunk link");
-
-    let mut import_stmts = Vec::with_capacity(link.imports.len());
-    for (chunk, imported) in &link.imports {
-      if imported.is_empty() {
-        import_stmts.push(format!(
-          "import '__WEBPACK_CHUNK_UKEY_{}';\n",
-          chunk.as_u32()
-        ));
-      } else {
-        for (ref_module, import_atoms) in imported {
-          let ref_info = concate_infos.get(ref_module).expect("should have info");
-
-          let imported = import_atoms
-            .iter()
-            .map(|atom| {
-              ref_info
-                .internal_names
-                .get(atom)
-                .expect("internal name not found")
+      if matches!(compilation.options.output.pathinfo, PathInfo::Bool(false)) {
+        render_source.add(RawStringSource::from(format!(
+          "// {}\n",
+          ChunkGraph::get_module_id(&compilation.module_ids_artifact, *m)
+            .map(|id| { id.to_string() })
+            .unwrap_or_else(|| {
+              let module = module_graph.module_by_identifier(m).unwrap();
+              module
+                .readable_identifier(&compilation.options.context)
                 .to_string()
             })
-            .collect::<Vec<_>>();
-
-          import_stmts.push(format!(
-            "import {{{}}} from '__WEBPACK_CHUNK_UKEY_{}';\n",
-            imported.join(", "),
-            chunk.as_u32()
-          ));
-        }
+        )));
       }
+      render_source.add(source);
+      render_source.add(RawSource::from_static("\n"));
+    }
+
+    // render imports and exports to other chunks
+    let mut final_source = ConcatSource::default();
+
+    if !imported_symbols.is_empty() {
+      final_source.add(RawStringSource::from(
+        imported_symbols
+          .iter()
+          .map(|(module_id, imported)| {
+            let specifiers = imported
+              .into_iter()
+              .map(|(imported, local)| {
+                if imported == local {
+                  Cow::Borrowed(imported.as_str())
+                } else {
+                  Cow::Owned(format!("{} as {}", imported, local))
+                }
+              })
+              .collect::<Vec<_>>()
+              .join(", ");
+
+            format!(
+              "import {{ {} }} from \"__WEBPACK_CHUNK_{}\";",
+              specifiers,
+              Self::get_module_chunk(*module_id, compilation).as_u32()
+            )
+          })
+          .collect::<Vec<_>>()
+          .join("\n"),
+      ));
+      final_source.add(RawSource::from_static("\n"));
+    }
+
+    if !required_symbols.is_empty() {
+      let mut already_imported_chunks: UkeySet<ChunkUkey> = imported_symbols
+        .keys()
+        .map(|module_id| Self::get_module_chunk(*module_id, compilation))
+        .collect();
+      let mut extra_imports = vec![];
+
+      let required_str = RawStringSource::from(
+        required_symbols
+          .iter()
+          .map(|(id, atom)| {
+            let ref_chunk = Self::get_module_chunk(*id, &compilation);
+            if &ref_chunk != chunk_ukey && !already_imported_chunks.contains(&ref_chunk) {
+              already_imported_chunks.insert(ref_chunk);
+              extra_imports.push(format!(
+                "import \"__WEBPACK_CHUNK_{}\";\n",
+                ref_chunk.as_u32()
+              ));
+            }
+
+            format!(
+              "const {} = __webpack_require__({});",
+              atom,
+              serde_json::to_string(
+                ChunkGraph::get_module_id(&compilation.module_ids_artifact, *id)
+                  .unwrap()
+                  .as_str()
+              )
+              .unwrap()
+            )
+          })
+          .collect::<Vec<_>>()
+          .join("\n"),
+      );
+
+      final_source.add(RawStringSource::from(extra_imports.join("\n")));
+      final_source.add(RawSource::from_static("\n"));
+      final_source.add(required_str);
+    }
+
+    final_source.add(render_source);
+
+    let mut export_specifiers = vec![];
+    for (id, exports) in &chunk_link.exports {
+      let info = concatenated_modules_map
+        .get(id)
+        .expect("should have info")
+        .as_concatenated();
+      for symbol in exports {
+        let local_symbol = info.internal_names.get(&symbol).unwrap();
+        export_specifiers.push(local_symbol.as_str());
+      }
+    }
+
+    if !export_specifiers.is_empty() {
+      final_source.add(RawStringSource::from(format!(
+        "export {{ {} }};",
+        export_specifiers.join(", ")
+      )));
     }
 
     Ok(Some(RenderSource {
-      source: Arc::new(render_source),
+      source: Arc::new(final_source),
     }))
   }
 }

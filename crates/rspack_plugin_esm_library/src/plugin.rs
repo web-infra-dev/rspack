@@ -8,12 +8,12 @@ use rspack_collections::{
   IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeyIndexMap, UkeyMap,
 };
 use rspack_core::{
-  BoxModule, ChunkLink, ChunkUkey, Compilation, CompilationAfterCodeGeneration,
-  CompilationAfterSeal, CompilationConcatenationScope, CompilationFinishModules, CompilationParams,
-  CompilerCompilation, ConcatenatedModuleIdent, ConcatenatedModuleInfo, ConcatenationScope,
-  DependencyId, ExportInfo, ExportInfoProvided, ExternalModuleInfo, IdentCollector, Module,
-  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleInfo, PathInfo, Plugin,
-  RuntimeCondition, RuntimeGlobals, SourceType,
+  BoxModule, ChunkLink, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  CompilationAfterCodeGeneration, CompilationAfterSeal, CompilationConcatenationScope,
+  CompilationFinishModules, CompilationParams, CompilerCompilation, ConcatenatedModuleIdent,
+  ConcatenatedModuleInfo, ConcatenationScope, DependencyId, ExportInfo, ExportInfoProvided,
+  ExternalModuleInfo, IdentCollector, Module, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  ModuleInfo, PathInfo, Plugin, RuntimeCondition, RuntimeGlobals, SourceType,
   reserved_names::RESERVED_NAMES,
   rspack_sources::{ConcatSource, RawSource, ReplaceSource, Source},
 };
@@ -27,19 +27,13 @@ use rspack_util::{
   atom::Atom,
   fx_hash::{FxHashMap, FxHashSet, FxIndexSet},
 };
-use swc_core::{
-  common::{FileName, SyntaxContext},
-  ecma::{
-    ast::{EsVersion, Program},
-    parser::{Syntax, parse_file_as_module},
-  },
-};
 use tokio::sync::Mutex;
 
 #[plugin]
 #[derive(Debug, Default)]
 pub struct EsmLibraryPlugin {
   pub concatenated_modules_map: Mutex<FxHashMap<u32, Arc<IdentifierIndexMap<ModuleInfo>>>>,
+  pub concatenated_modules_map_ref: Mutex<FxHashMap<u32, Arc<IdentifierIndexMap<ModuleInfo>>>>,
 }
 
 #[plugin_hook(CompilerCompilation for EsmLibraryPlugin)]
@@ -71,10 +65,15 @@ async fn after_seal(&self, compilation: &mut Compilation) -> Result<()> {
     .lock()
     .await
     .remove(&compilation.id().0);
+  self
+    .concatenated_modules_map_ref
+    .lock()
+    .await
+    .remove(&compilation.id().0);
   Ok(())
 }
 
-#[plugin_hook(CompilationFinishModules for EsmLibraryPlugin)]
+#[plugin_hook(CompilationFinishModules for EsmLibraryPlugin, stage = 100)]
 async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   let module_graph = compilation.get_module_graph();
   let mut modules_map = IdentifierIndexMap::default();
@@ -87,18 +86,27 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     let exports_info = module_graph.get_exports_info(&module_identifier);
 
     let mut should_scope_hoisting = true;
-    if module.as_normal_module().is_none() {
+    if module.as_normal_module().is_none()
+      || module
+        .get_concatenation_bailout_reason(&module_graph, &compilation.chunk_graph)
+        .is_some()
+      || ModuleGraph::is_async(compilation, module_identifier)
+      || !module.build_info().strict
+    {
       should_scope_hoisting = false;
-    };
+    }
+
     if should_scope_hoisting {
-      for export_info in exports_info.exports(&module_graph) {
+      for export_info in exports_info.get_relevant_exports(&module_graph, None) {
         if !matches!(
           export_info.provided(&module_graph),
           Some(ExportInfoProvided::True)
         ) {
+          dbg!(module.identifier());
+          dbg!(export_info.provided(&module_graph));
           should_scope_hoisting = false;
           break;
-        };
+        }
 
         if export_info.is_reexport(&module_graph) && export_info.get_target(&module_graph).is_none()
         {
@@ -142,6 +150,11 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
 
   let id = compilation.id();
 
+  // only used for scope
+  // we mutably modify data in `self.concatenated_modules_map`
+  let mut concatenated_modules_map_ref = self.concatenated_modules_map_ref.lock().await;
+  concatenated_modules_map_ref.insert(id.0, Arc::new(modules_map.clone()));
+
   let mut self_modules_map = self.concatenated_modules_map.lock().await;
   self_modules_map.insert(id.0, Arc::new(modules_map));
 
@@ -181,7 +194,7 @@ async fn concatenation_scope(
   compilation: &Compilation,
   module: ModuleIdentifier,
 ) -> Result<Option<ConcatenationScope>> {
-  let modules_map = self.concatenated_modules_map.lock().await;
+  let modules_map = self.concatenated_modules_map_ref.lock().await;
   let modules_map = modules_map
     .get(&compilation.id().0)
     .expect("should has compilation");
@@ -201,7 +214,36 @@ async fn concatenation_scope(
 
 #[plugin_hook(CompilationAfterCodeGeneration for EsmLibraryPlugin)]
 async fn after_code_generation(&self, compilation: &mut Compilation) -> Result<()> {
-  self.calculate_chunk_relation(compilation).await
+  self.calculate_chunk_relation(compilation).await?;
+  self.link(compilation).await
+}
+
+#[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for EsmLibraryPlugin)]
+async fn additional_chunk_runtime_requirements(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  let chunk_link = compilation
+    .chunk_graph
+    .link
+    .as_ref()
+    .unwrap()
+    .get(chunk_ukey)
+    .unwrap();
+
+  let chunk_modules_len = compilation
+    .chunk_graph
+    .get_chunk_modules_identifier(chunk_ukey)
+    .len();
+
+  if chunk_modules_len > chunk_link.hoisted_modules.len() {
+    runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+    runtime_requirements.insert(RuntimeGlobals::MODULE_FACTORIES);
+  }
+
+  Ok(())
 }
 
 impl Plugin for EsmLibraryPlugin {
