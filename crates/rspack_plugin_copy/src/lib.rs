@@ -72,7 +72,7 @@ impl Display for ToType {
 }
 
 pub type TransformerFn =
-  Box<dyn for<'a> Fn(String, &'a str) -> BoxFuture<'a, Result<RawSource>> + Sync + Send>;
+  Box<dyn for<'a> Fn(Vec<u8>, &'a str) -> BoxFuture<'a, Result<RawSource>> + Sync + Send>;
 
 pub struct ToFnCtx<'a> {
   pub context: &'a Utf8Path,
@@ -270,9 +270,9 @@ impl CopyRspackPlugin {
     // TODO inputFileSystem
 
     #[cfg(not(target_family = "wasm"))]
-    let data = tokio::fs::read_to_string(absolute_filename.clone()).await;
+    let data = tokio::fs::read(absolute_filename.clone()).await;
     #[cfg(target_family = "wasm")]
-    let data = std::fs::read_to_string(absolute_filename.clone());
+    let data = std::fs::read(absolute_filename.clone());
 
     let source_vec = match data {
       Ok(data) => {
@@ -788,7 +788,7 @@ fn set_info(target: &mut AssetInfo, info: Info) {
 
 async fn handle_transform(
   transformer: &TransformerFn,
-  source_vec: String,
+  source_vec: Vec<u8>,
   absolute_filename: Utf8PathBuf,
   source: &mut RawSource,
   diagnostics: Arc<Mutex<Vec<Diagnostic>>>,
