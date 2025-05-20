@@ -689,8 +689,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack
       '@rspack/dev-server':
-        specifier: 1.1.1
-        version: 1.1.1(@rspack/core@packages+rspack)(@types/express@4.17.21)(webpack@5.99.8(@swc/core@1.11.24(@swc/helpers@0.5.17)))
+        specifier: 1.1.2
+        version: 1.1.2(@rspack/core@packages+rspack)(@types/express@4.17.21)(webpack@5.99.8(@swc/core@1.11.24(@swc/helpers@0.5.17)))
       '@rspack/plugin-react-refresh':
         specifier: ^1.4.3
         version: 1.4.3(react-refresh@0.17.0)
@@ -2702,12 +2702,6 @@ packages:
     peerDependenciesMeta:
       '@swc/helpers':
         optional: true
-
-  '@rspack/dev-server@1.1.1':
-    resolution: {integrity: sha512-9r7vOml2SrFA8cvbcJdSan9wHEo1TPXezF22+s5jvdyAAywg8w7HqDol6TPVv64NUonP1DOdyLxZ+6UW6WZiwg==}
-    engines: {node: '>= 18.12.0'}
-    peerDependencies:
-      '@rspack/core': '*'
 
   '@rspack/dev-server@1.1.2':
     resolution: {integrity: sha512-YNzXxWn6DV3X9yeJZ9bqX77wuhm2ko3sGavilBGi1MWuNihhWfhh9dlbipudPyoiwLl0lbioxA/hevosr+ajLg==}
@@ -9635,17 +9629,14 @@ snapshots:
     optionalDependencies:
       '@swc/helpers': 0.5.17
 
-  '@rspack/dev-server@1.1.1(@rspack/core@packages+rspack)(@types/express@4.17.21)(webpack@5.99.8(@swc/core@1.11.24(@swc/helpers@0.5.17)))':
+  '@rspack/dev-server@1.1.2(@rspack/core@packages+rspack)(@types/express@4.17.21)(webpack@5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.17)))':
     dependencies:
       '@rspack/core': link:packages/rspack
       chokidar: 3.6.0
-      express: 4.21.2
       http-proxy-middleware: 2.0.7(@types/express@4.17.21)
-      mime-types: 2.1.35
       p-retry: 6.2.0
-      webpack-dev-middleware: 7.4.2(webpack@5.99.8(@swc/core@1.11.24(@swc/helpers@0.5.17)))
-      webpack-dev-server: 5.2.0(webpack@5.99.8(@swc/core@1.11.24(@swc/helpers@0.5.17)))
-      ws: 8.18.1
+      webpack-dev-server: 5.2.0(webpack@5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.17)))
+      ws: 8.18.2
     transitivePeerDependencies:
       - '@types/express'
       - bufferutil
@@ -9655,13 +9646,13 @@ snapshots:
       - webpack
       - webpack-cli
 
-  '@rspack/dev-server@1.1.2(@rspack/core@packages+rspack)(@types/express@4.17.21)(webpack@5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.17)))':
+  '@rspack/dev-server@1.1.2(@rspack/core@packages+rspack)(@types/express@4.17.21)(webpack@5.99.8(@swc/core@1.11.24(@swc/helpers@0.5.17)))':
     dependencies:
       '@rspack/core': link:packages/rspack
       chokidar: 3.6.0
       http-proxy-middleware: 2.0.7(@types/express@4.17.21)
       p-retry: 6.2.0
-      webpack-dev-server: 5.2.0(webpack@5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.17)))
+      webpack-dev-server: 5.2.0(webpack@5.99.8(@swc/core@1.11.24(@swc/helpers@0.5.17)))
       ws: 8.18.2
     transitivePeerDependencies:
       - '@types/express'
@@ -15615,7 +15606,7 @@ snapshots:
       mime-types: 2.1.35
       on-finished: 2.4.1
       range-parser: 1.2.1
-      schema-utils: 4.3.0
+      schema-utils: 4.3.2
     optionalDependencies:
       webpack: 5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.17))
 
@@ -15626,7 +15617,7 @@ snapshots:
       mime-types: 2.1.35
       on-finished: 2.4.1
       range-parser: 1.2.1
-      schema-utils: 4.3.0
+      schema-utils: 4.3.2
     optionalDependencies:
       webpack: 5.99.8(@swc/core@1.11.24(@swc/helpers@0.5.17))
 
