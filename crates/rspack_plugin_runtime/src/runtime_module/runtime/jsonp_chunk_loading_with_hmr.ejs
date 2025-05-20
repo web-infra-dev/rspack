@@ -32,7 +32,8 @@ function loadUpdateChunk(chunkId, updatedModulesList) {
 	});
 }
 
-<%- _global_object %>[<%- _hot_update_global %>] = <%- basicFunction("chunkId, moreModules, runtime") %> {
+var hmrGlobalJsonpLoader = <%- basicFunction("chunkId, moreModules, runtime") %> {
+	if (!currentUpdate) return;
 	for (var moduleId in moreModules) {
 		if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {
 			currentUpdate[moduleId] = moreModules[moduleId];
@@ -44,4 +45,9 @@ function loadUpdateChunk(chunkId, updatedModulesList) {
 		waitingUpdateResolves[chunkId]();
 		waitingUpdateResolves[chunkId] = undefined;
 	}
+};
+var oldHmrGlobalJsonpLoader = <%- _global_object %>[<%- _hot_update_global %>] || (<%- basicFunction("") %> {});
+<%- _global_object %>[<%- _hot_update_global %>] = <%- basicFunction("chunkId, moreModules, runtime") %> {
+	oldHmrGlobalJsonpLoader(chunkId, moreModules, runtime);	
+	hmrGlobalJsonpLoader(chunkId, moreModules, runtime);
 };
