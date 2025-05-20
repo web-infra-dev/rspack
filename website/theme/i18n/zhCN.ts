@@ -61,6 +61,6 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   compatibility: 'webpack 兼容性',
   migration: '迁移指南',
   cli: 'CLI',
-  ecosystem: '生态',
+  toolchain: '工具链',
   community: '社区',
 };
