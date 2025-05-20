@@ -788,7 +788,16 @@ impl ExportsInfo {
 #[derive(Debug, Clone)]
 pub struct ExportsInfoData {
   exports: BTreeMap<Atom, ExportInfo>,
+
+  /// other export info is a strange name and hard to understand
+  /// it has 2 meanings:
+  /// 1. it is used as factory template, so that we can set one property in one exportsInfo,
+  ///    then export info created by it can extends those property
+  /// 2. it is used to flag if the whole exportsInfo can be statically analyzed. In many commonjs
+  ///    case, we can not statically analyze the exportsInfo, its other_export_info.provided will
+  ///    be ExportInfoProvided::Null
   other_exports_info: ExportInfo,
+
   side_effects_only_info: ExportInfo,
   redirect_to: Option<ExportsInfo>,
   id: ExportsInfo,
@@ -1513,9 +1522,13 @@ pub struct ExportInfoData {
 
 #[derive(Debug, Hash, Clone, Copy)]
 pub enum ExportInfoProvided {
+  /// The export can be statically analyzed, and it is provided
   True,
+
+  /// The export can be statically analyzed, and the it is not provided
   False,
-  /// `Null` has real semantic in webpack https://github.com/webpack/webpack/blob/853bfda35a0080605c09e1bdeb0103bcb9367a10/lib/ExportsInfo.js#L830
+
+  /// The export is unknown, we don't know if module really has this export, eg. cjs module
   Null,
 }
 
