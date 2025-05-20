@@ -140,6 +140,7 @@ proxied
 proxying
 px2rem
 pxtorem
+quininer
 recognise
 resolvepnp
 Rollup
