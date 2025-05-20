@@ -60,7 +60,7 @@ use rspack_plugin_ignore::IgnorePlugin;
 use rspack_plugin_javascript::{
   api_plugin::APIPlugin, define_plugin::DefinePlugin, provide_plugin::ProvidePlugin,
   FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin, JsPlugin,
-  MangleExportsPlugin, ModuleConcatenationPlugin, ModuleInfoHeaderPlugin, SideEffectsFlagPlugin,
+  MangleExportsPlugin, ModuleConcatenationPlugin, SideEffectsFlagPlugin,
 };
 use rspack_plugin_json::JsonPlugin;
 use rspack_plugin_library::enable_library_plugin;
@@ -71,6 +71,7 @@ use rspack_plugin_mf::{
   ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin, ModuleFederationRuntimePlugin,
   ProvideSharedPlugin, ShareRuntimePlugin,
 };
+use rspack_plugin_module_info_header::ModuleInfoHeaderPlugin;
 use rspack_plugin_no_emit_on_errors::NoEmitOnErrorsPlugin;
 use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_real_content_hash::RealContentHashPlugin;
