@@ -1523,14 +1523,6 @@ impl Compilation {
         .generate_dot(compilation, "after-code-splitting");
       logger.time_end(start);
 
-      {
-        let mut count = 0;
-        for (ukey, chunk) in compilation.chunk_by_ukey.iter() {
-          let modules = compilation.chunk_graph.get_chunk_modules_identifier(ukey);
-          count += modules.len();
-        }
-        dbg!(count);
-      }
       Ok(compilation)
     })
     .await?;
