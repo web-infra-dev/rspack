@@ -12,7 +12,7 @@ use rspack_plugin_copy::{
   TransformerFn,
 };
 
-type RawTransformer = ThreadsafeFunction<FnArgs<(String, String)>, Promise<Either<String, Buffer>>>;
+type RawTransformer = ThreadsafeFunction<FnArgs<(Buffer, String)>, Promise<Either<String, Buffer>>>;
 
 type RawToFn = ThreadsafeFunction<RawToOptions, String>;
 
@@ -48,7 +48,7 @@ pub struct RawCopyPattern {
   pub copy_permissions: Option<bool>,
   #[debug(skip)]
   #[napi(
-    ts_type = "{ transformer: (input: string, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>  } | ((input: string, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>)"
+    ts_type = "{ transformer: (input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>  } | ((input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>)"
   )]
   pub transform: Option<RawTransformer>,
 }
@@ -150,7 +150,7 @@ impl From<RawCopyPattern> for CopyPattern {
         Box::new(move |input, absolute_filename| {
           let f = transformer.clone();
           Box::pin(async move {
-            f.call_with_promise((input, absolute_filename.to_owned()).into())
+            f.call_with_promise((input.into(), absolute_filename.to_owned()).into())
               .await
               .map(|input| match input {
                 Either::A(s) => RawSource::from(s),
