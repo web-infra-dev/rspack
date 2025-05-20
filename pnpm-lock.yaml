@@ -334,8 +334,8 @@ importers:
         specifier: ^5.8.3
         version: 5.8.3
       watchpack:
-        specifier: ^2.4.3
-        version: 2.4.3
+        specifier: ^2.4.2
+        version: 2.4.2
       webpack-sources:
         specifier: 3.2.3
         version: 3.2.3
@@ -12415,13 +12415,6 @@ packages:
       }
     engines: { node: ">=10.13.0" }
 
-  watchpack@2.4.3:
-    resolution:
-      {
-        integrity: sha512-adBYQLivcg1jbdKEJeqScJJFvgm4qY9+3tXw+jdG6lkVeqRJEtiQmSWjmth8GKmDZuX7sYM4YFxQsf0AzMfGGw==
-      }
-    engines: { node: ">=10.13.0" }
-
   wbuf@1.7.3:
     resolution:
       {
@@ -20480,11 +20473,6 @@ snapshots:
       glob-to-regexp: 0.4.1
       graceful-fs: 4.2.11(patch_hash=68ebc232025360cb3dcd3081f4067f4e9fc022ab6b6f71a3230e86c7a5b337d1)
 
-  watchpack@2.4.3:
-    dependencies:
-      glob-to-regexp: 0.4.1
-      graceful-fs: 4.2.11(patch_hash=68ebc232025360cb3dcd3081f4067f4e9fc022ab6b6f71a3230e86c7a5b337d1)
-
   wbuf@1.7.3:
     dependencies:
       minimalistic-assert: 1.0.1
@@ -20638,7 +20626,7 @@ snapshots:
       schema-utils: 4.3.0
       tapable: 2.2.1
       terser-webpack-plugin: 5.3.14(@swc/core@1.11.24(@swc/helpers@0.5.17))(webpack@5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.17)))
-      watchpack: 2.4.3
+      watchpack: 2.4.2
       webpack-sources: 3.2.3
     transitivePeerDependencies:
       - "@swc/core"
@@ -20669,7 +20657,7 @@ snapshots:
       schema-utils: 4.3.2
       tapable: 2.2.1
       terser-webpack-plugin: 5.3.14(@swc/core@1.11.24(@swc/helpers@0.5.17))(webpack@5.99.8(@swc/core@1.11.24(@swc/helpers@0.5.17)))
-      watchpack: 2.4.3
+      watchpack: 2.4.2
       webpack-sources: 3.2.3
     transitivePeerDependencies:
       - "@swc/core"
