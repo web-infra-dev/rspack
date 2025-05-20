@@ -40,7 +40,8 @@ impl ChunkGraph {
     let mut visited_group_nodes: HashMap<ChunkGroupUkey, String> = HashMap::default();
     let mut visited_group_edges: HashSet<(ChunkGroupUkey, ChunkGroupUkey)> = HashSet::new();
     let mut visiting_groups: Vec<ChunkGroupUkey> = Vec::new();
-    // format chunks into dot record
+    // generate following chunk_group_info as dto record info
+    // <td title="chunk_group_name"></td><td title="chunk1"></td><td title="chunk2"></td>
     let get_debug_chunk_group_info = |chunk_group_ukey: &ChunkGroupUkey| {
       let chunk_group = compilation
         .chunk_group_by_ukey
@@ -52,10 +53,13 @@ impl ChunkGraph {
       let requests = chunk_group
         .origins()
         .iter()
-        .filter_map(|x| x.request.as_ref().map(|x| x.as_str()));
+        .filter_map(|x| x.module.as_ref().map(|x| x.as_str()));
 
-      let request = std::iter::once(name).chain(requests).join(" | ");
-      return request;
+      let request = std::iter::once(name)
+        .chain(requests)
+        .map(|x| format!("<td title=\"{}\"></td>", x))
+        .join("\n");
+      return format!("<{}", request);
     };
 
     // push entry_point chunk group into visiting queue
@@ -89,7 +93,7 @@ impl ChunkGraph {
     // 1 [ label = "1" info = "a | b | c" shape = record ]
     for (node_id, node_info) in visited_group_nodes.iter() {
       write!(&mut dot, "{} {} [\n", INDENT, node_id.as_u32())?;
-      write!(&mut dot, "label=\"{}\"", node_info)?;
+      write!(&mut dot, "label={}", node_info)?;
       write!(&mut dot, "\nshape=record")?;
       write!(&mut dot, "\n];\n")?;
     }
@@ -101,6 +105,11 @@ impl ChunkGraph {
     }
     // write footer
     write!(&mut dot, "}}")?;
-    return Ok(String::from_utf8_lossy(&dot).to_string());
+    let result = String::from_utf8_lossy(&dot).to_string();
+    std::fs::write(
+      format!("{}.dot", compilation.compiler_id().as_u32()),
+      &result,
+    );
+    return Ok(result);
   }
 }
