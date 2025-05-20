@@ -129,6 +129,7 @@ impl JavaScriptCompiler {
               jsx: true,
               decorators: true,
               decorators_before_export: true,
+              import_attributes: true,
               ..Default::default()
             }),
             opts
