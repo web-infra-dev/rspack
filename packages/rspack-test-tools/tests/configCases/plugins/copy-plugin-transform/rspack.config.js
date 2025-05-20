@@ -1,5 +1,6 @@
 const { CopyRspackPlugin } = require("@rspack/core");
 const path = require("path");
+const assert = require("assert");
 
 module.exports = {
 	entry: "./index.js",
@@ -11,6 +12,7 @@ module.exports = {
 					from: path.join(__dirname, "src", "test-sync-fn.txt"),
 					copyPermissions: true,
 					transform: (content, absoluteFilename) => {
+						assert(content instanceof Buffer);
 						return `file: ${absoluteFilename} transformed: ${content} changed`;
 					}
 				},
@@ -18,6 +20,7 @@ module.exports = {
 					from: path.join(__dirname, "src", "test-async-fn.txt"),
 					copyPermissions: true,
 					transform: async (content, absoluteFilename) => {
+						assert(content instanceof Buffer);
 						return `file: ${absoluteFilename} transformed: ${content} changed`;
 					}
 				},
@@ -26,6 +29,7 @@ module.exports = {
 					copyPermissions: true,
 					transform: {
 						transformer: (content, absoluteFilename) => {
+							assert(content instanceof Buffer);
 							return `file: ${absoluteFilename} transformed: ${content} changed`;
 						}
 					}
@@ -35,6 +39,7 @@ module.exports = {
 					copyPermissions: true,
 					transform: {
 						transformer: async (content, absoluteFilename) => {
+							assert(content instanceof Buffer);
 							return `file: ${absoluteFilename} transformed: ${content} changed`;
 						}
 					}
