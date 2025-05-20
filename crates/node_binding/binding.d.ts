@@ -1650,7 +1650,7 @@ export interface RawCopyPattern {
    * @default false
    */
   copyPermissions?: boolean
-  transform?: { transformer: (input: string, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>  } | ((input: string, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>)
+  transform?: { transformer: (input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>  } | ((input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>)
 }
 
 export interface RawCopyRspackPluginOptions {
