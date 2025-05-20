@@ -1,5 +1,15 @@
 # Overview
 
+## Plugin hooks
+
+Rspack plugin hooks are similar to the webpack plugin, mainly including the following categories:
+
+- [Compiler hooks](/api/plugin-api/compiler-hooks): Intervene at various stages of the entire build process
+- [Compilation hooks](/api/plugin-api/compilation-hooks): Intervene at various stages of a single build
+- [RuntimePlugin hooks](/api/plugin-api/runtime-plugin-hooks): Intervene in the generation of runtime code
+- [NormalModuleFactory hooks](/api/plugin-api/normal-module-factory-hooks): Intervene at various stages of the module creation process
+- [Stats hooks](/api/plugin-api/stats-hooks): Intervene in the generation of stats
+
 ## Compatibility status
 
 Rspack is committed to being compatible with the plugins within the webpack ecosystem. We ensure that Rspack is as compatible as possible with the webpack plugin API, allowing more existing webpack plugins to be directly used in Rspack.
