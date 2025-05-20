@@ -77,8 +77,6 @@ pub struct HttpUriPluginOptions {
   pub lockfile_location: Option<String>,
   pub cache_location: Option<String>,
   pub upgrade: bool,
-  // pub proxy: Option<String>,
-  // pub frozen: Option<bool>,
   pub filesystem: Arc<dyn WritableFileSystem>,
   pub http_client: Arc<dyn HttpClient>,
 }
@@ -90,16 +88,17 @@ async fn resolve_for_scheme(
   resource_data: &mut ResourceData,
   _scheme: &Scheme,
 ) -> Result<Option<bool>> {
-  // Try to parse the URL and handle it
   match Url::parse(&resource_data.resource) {
-    Ok(url) => match self
-      .respond_with_url_module(resource_data, &url, None)
-      .await
-    {
-      Ok(true) => Ok(Some(true)),
-      Ok(false) => Ok(None),
-      Err(e) => Err(e),
-    },
+    Ok(url) => {
+      match self
+        .respond_with_url_module(resource_data, &url, None)
+        .await
+      {
+        Ok(true) => Ok(Some(true)),
+        Ok(false) => Ok(None),
+        Err(e) => Err(e),
+      }
+    }
     Err(_) => Ok(None),
   }
 }
@@ -111,40 +110,44 @@ async fn resolve_in_scheme(
   resource_data: &mut ResourceData,
   _scheme: &Scheme,
 ) -> Result<Option<bool>> {
-  // Check if the dependency type is "url", similar to webpack's check
-  let is_not_url_dependency = data
-    .dependencies
-    .first()
-    .and_then(|dep| dep.as_module_dependency())
-    .map(|dep| dep.dependency_type().as_str() != "url")
-    .unwrap_or(true);
-
-  // Only handle relative urls (./xxx, ../xxx, /xxx, //xxx) and non-url dependencies
-  if is_not_url_dependency
-    && (!resource_data.resource.starts_with("./")
-      && !resource_data.resource.starts_with("../")
-      && !resource_data.resource.starts_with("/")
-      && !resource_data.resource.starts_with("//"))
-  {
+  // Skip absolute filesystem paths (that aren't protocol-relative URLs starting with //)
+  // This check is crucial to prevent trying to resolve local paths against an HTTP context.
+  if resource_data.resource.starts_with('/') && !resource_data.resource.starts_with("//") {
     return Ok(None);
   }
 
-  // Parse the base URL from context
+  let is_url_dependency = data
+    .dependencies
+    .first()
+    .map(|dep| dep.category() == &rspack_core::DependencyCategory::Url)
+    .unwrap_or(false);
+
+  let is_relative_url_pattern = resource_data.resource.starts_with("./")
+    || resource_data.resource.starts_with("../")
+    || resource_data.resource.starts_with('/');
+
+  if !is_url_dependency && !is_relative_url_pattern {
+    return Ok(None);
+  }
+
   let base_url = match Url::parse(&format!("{}/", data.context)) {
     Ok(url) => url,
-    Err(_) => return Ok(None),
+    Err(_) => {
+      return Ok(None);
+    }
   };
 
-  // Join the base URL with the resource
   match base_url.join(&resource_data.resource) {
-    Ok(url) => match self
-      .respond_with_url_module(resource_data, &url, None)
-      .await
-    {
-      Ok(true) => Ok(Some(true)),
-      Ok(false) => Ok(None),
-      Err(e) => Err(e),
-    },
+    Ok(url) => {
+      match self
+        .respond_with_url_module(resource_data, &url, None)
+        .await
+      {
+        Ok(true) => Ok(Some(true)),
+        Ok(false) => Ok(None),
+        Err(e) => Err(e),
+      }
+    }
     Err(_) => Ok(None),
   }
 }
