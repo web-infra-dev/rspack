@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fmt::write};
+use std::{collections::HashSet, fmt::write, path::PathBuf};
 
 use itertools::Itertools;
 use rspack_collections::{IdentifierMap, UkeyMap};
@@ -47,19 +47,41 @@ impl ChunkGraph {
         .chunk_group_by_ukey
         .get(&chunk_group_ukey)
         .expect("should have chunk group");
-      let name_id = chunk_group_ukey.as_u32().to_string();
-      let name = chunk_group.name().unwrap_or(name_id.as_str());
+      let chunk_group_name_id = chunk_group_ukey.as_u32().to_string();
+      let chunk_group_name = chunk_group.name().unwrap_or(chunk_group_name_id.as_str());
+      let table_header = format!("<tr><td bgcolor=\"#aaa\">{}</td></tr>", chunk_group_name);
+      let bg_color = if chunk_group.is_initial() {
+        "green"
+      } else {
+        "orange"
+      };
 
       let requests = chunk_group
-        .origins()
+        .chunks
         .iter()
-        .filter_map(|x| x.module.as_ref().map(|x| x.as_str()));
-
-      let request = std::iter::once(name)
-        .chain(requests)
-        .map(|x| format!("<td title=\"{}\"></td>", x))
+        .filter_map(|chunk_ukey| {
+          let chunk: &crate::Chunk = compilation
+            .chunk_by_ukey
+            .get(chunk_ukey)
+            .expect("should have chunk");
+          // let mg = &compilation.get_module_graph();
+          // let mg = self.get_ordered_chunk_modules(chunk_ukey, mg);
+          // let modules = mg.iter().map(|m| m.identifier()).collect::<Vec<_>>();
+          if let Some(name) = chunk.name() {
+            return Some(name.to_string());
+          }
+          let id = chunk_ukey.as_u32().to_string();
+          return Some(id);
+        })
+        .map(|chunk_name| format!("    <tr><td>{}</td></tr>", chunk_name))
         .join("\n");
-      return format!("<{}", request);
+
+      let table_body = format!("{}", requests);
+
+      return format!(
+        "\n<<table bgcolor=\"{}\">\n{}\n{}\n</table>>\n",
+        bg_color, table_header, table_body
+      );
     };
 
     // push entry_point chunk group into visiting queue
@@ -89,12 +111,12 @@ impl ChunkGraph {
     let mut dot = Vec::new();
     // write header
     write!(&mut dot, "digraph G {{\n")?;
+    write!(&mut dot, "node [shape=plaintext];\n")?;
+
     // write all node info
-    // 1 [ label = "1" info = "a | b | c" shape = record ]
     for (node_id, node_info) in visited_group_nodes.iter() {
       write!(&mut dot, "{} {} [\n", INDENT, node_id.as_u32())?;
       write!(&mut dot, "label={}", node_info)?;
-      write!(&mut dot, "\nshape=record")?;
       write!(&mut dot, "\n];\n")?;
     }
     // write all edge info
@@ -106,10 +128,19 @@ impl ChunkGraph {
     // write footer
     write!(&mut dot, "}}")?;
     let result = String::from_utf8_lossy(&dot).to_string();
-    std::fs::write(
-      format!("{}.dot", compilation.compiler_id().as_u32()),
-      &result,
-    );
+
     return Ok(result);
+  }
+  pub fn generate_dot(&self, compilation: &Compilation, dotfile_name: &str) -> std::io::Result<()> {
+    let result = self.to_dot(compilation)?;
+    std::fs::write(
+      format!(
+        "{}-{}.dot",
+        compilation.compiler_id().as_u32(),
+        dotfile_name
+      ),
+      &result,
+    )?;
+    Ok(())
   }
 }
