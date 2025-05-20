@@ -81,7 +81,6 @@
     "@types/jsdom": "^21.1.7",
     "@types/react": "^19.1.4",
     "@types/react-dom": "^19.1.5",
-    "@types/webpack": "5.28.5",
     "@types/webpack-sources": "3.2.3",
     "@webdiscus/pug-loader": "^2.11.1",
     "acorn": "^8.14.1",
