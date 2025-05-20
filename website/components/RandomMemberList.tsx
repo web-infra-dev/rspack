@@ -212,6 +212,7 @@ const coreTeam: Member[] = [
     id: 'quininer',
     avatar: 'https://avatars.githubusercontent.com/u/6286761?v=4',
     desc: 'Rspack core team, creator of io-uring',
+    x: 'https://x.com/quininers',
   },
 ];
 
