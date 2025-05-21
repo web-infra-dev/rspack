@@ -33,7 +33,7 @@ pub async fn transform(source: String, options: String) -> napi::Result<Transfor
       None,
       |_| noop_pass(),
     )
-    .map(|output| TransformOutput::from(output))
+    .map(TransformOutput::from)
     .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("{}", e)))
 }
 
@@ -48,7 +48,7 @@ pub async fn minify(source: String, options: String) -> napi::Result<TransformOu
       options,
       None::<&dyn Fn(&swc_core::common::comments::SingleThreadedComments)>,
     )
-    .map(|output| TransformOutput::from(output))
+    .map(TransformOutput::from)
     .map_err(|e| {
       let v = e.into_inner();
       let err = v
