@@ -1,4 +1,4 @@
-__webpack_require__.H.s = (chunkId) => {
+__webpack_require__.H.s = function (chunkId) {
   if ((!__webpack_require__.o(installedChunks, chunkId) || installedChunks[chunkId] === undefined) && $CSS_MATCHER$) {
     installedChunks[chunkId] = null;
     if (typeof document === 'undefined') return;
