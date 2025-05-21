@@ -537,7 +537,7 @@ async fn render_manifest(
     .use_cache(compilation, chunk, &SourceType::JavaScript, || async {
       let source = if let Some(source) = JsPlugin::get_compilation_hooks(compilation.id())
         .render_chunk_content
-        .call(compilation, chunk_ukey)
+        .call(compilation, chunk_ukey, &mut asset_info)
         .await?
       {
         source.source

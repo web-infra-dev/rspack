@@ -102,6 +102,81 @@ pub struct JsPlugin {
   rename_module_cache: RenameModuleCache,
 }
 
+pub fn render_require(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> Vec<Cow<'static, str>> {
+  let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
+
+  let strict_module_error_handling = compilation.options.output.strict_module_error_handling;
+  let mut sources: Vec<Cow<str>> = Vec::new();
+
+  sources.push(
+    indoc! {r#"
+        // Check if module is in cache
+        var cachedModule = __webpack_module_cache__[moduleId];
+        if (cachedModule !== undefined) {"#}
+    .into(),
+  );
+
+  if strict_module_error_handling {
+    sources.push("if (cachedModule.error !== undefined) throw cachedModule.error;".into());
+  }
+
+  sources.push(
+    indoc! {r#"
+        return cachedModule.exports;
+        }
+        // Create a new module (and put it into the cache)
+        var module = (__webpack_module_cache__[moduleId] = {"#}
+    .into(),
+  );
+
+  if runtime_requirements.contains(RuntimeGlobals::MODULE_ID) {
+    sources.push("id: moduleId,".into());
+  }
+
+  if runtime_requirements.contains(RuntimeGlobals::MODULE_LOADED) {
+    sources.push("loaded: false,".into());
+  }
+
+  sources.push("exports: {}".into());
+  sources.push("});\n// Execute the module function".into());
+
+  let module_execution = if runtime_requirements
+    .contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
+  {
+    indoc!{r#"
+        var execOptions = { id: moduleId, module: module, factory: __webpack_modules__[moduleId], require: __webpack_require__ };
+        __webpack_require__.i.forEach(function(handler) { handler(execOptions); });
+        module = execOptions.module;
+        if (!execOptions.factory) {
+          console.error("undefined factory", moduleId)
+        }
+        execOptions.factory.call(module.exports, module, module.exports, execOptions.require);
+      "#}.into()
+  } else if runtime_requirements.contains(RuntimeGlobals::THIS_AS_EXPORTS) {
+    "__webpack_modules__[moduleId].call(module.exports, module, module.exports, __webpack_require__);\n".into()
+  } else {
+    "__webpack_modules__[moduleId](module, module.exports, __webpack_require__);\n".into()
+  };
+
+  if strict_module_error_handling {
+    sources.push("try {\n".into());
+    sources.push(module_execution);
+    sources.push("} catch (e) {".into());
+    sources.push("module.error = e;\nthrow e;".into());
+    sources.push("}".into());
+  } else {
+    sources.push(module_execution);
+  }
+
+  if runtime_requirements.contains(RuntimeGlobals::MODULE_LOADED) {
+    sources.push("// Flag the module as loaded\nmodule.loaded = true;".into());
+  }
+
+  sources.push("// Return the exports of the module\nreturn module.exports;".into());
+
+  sources
+}
+
 impl JsPlugin {
   pub fn get_compilation_hooks(
     id: CompilationId,
@@ -118,81 +193,6 @@ impl JsPlugin {
     id: CompilationId,
   ) -> dashmap::mapref::one::RefMut<'static, CompilationId, Box<JavascriptModulesPluginHooks>> {
     COMPILATION_HOOKS_MAP.entry(id).or_default()
-  }
-
-  pub fn render_require(&self, chunk_ukey: &ChunkUkey, compilation: &Compilation) -> Vec<Cow<str>> {
-    let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
-
-    let strict_module_error_handling = compilation.options.output.strict_module_error_handling;
-    let mut sources: Vec<Cow<str>> = Vec::new();
-
-    sources.push(
-      indoc! {r#"
-        // Check if module is in cache
-        var cachedModule = __webpack_module_cache__[moduleId];
-        if (cachedModule !== undefined) {"#}
-      .into(),
-    );
-
-    if strict_module_error_handling {
-      sources.push("if (cachedModule.error !== undefined) throw cachedModule.error;".into());
-    }
-
-    sources.push(
-      indoc! {r#"
-        return cachedModule.exports;
-        }
-        // Create a new module (and put it into the cache)
-        var module = (__webpack_module_cache__[moduleId] = {"#}
-      .into(),
-    );
-
-    if runtime_requirements.contains(RuntimeGlobals::MODULE_ID) {
-      sources.push("id: moduleId,".into());
-    }
-
-    if runtime_requirements.contains(RuntimeGlobals::MODULE_LOADED) {
-      sources.push("loaded: false,".into());
-    }
-
-    sources.push("exports: {}".into());
-    sources.push("});\n// Execute the module function".into());
-
-    let module_execution = if runtime_requirements
-      .contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
-    {
-      indoc!{r#"
-        var execOptions = { id: moduleId, module: module, factory: __webpack_modules__[moduleId], require: __webpack_require__ };
-        __webpack_require__.i.forEach(function(handler) { handler(execOptions); });
-        module = execOptions.module;
-        if (!execOptions.factory) {
-          console.error("undefined factory", moduleId)
-        }
-        execOptions.factory.call(module.exports, module, module.exports, execOptions.require);
-      "#}.into()
-    } else if runtime_requirements.contains(RuntimeGlobals::THIS_AS_EXPORTS) {
-      "__webpack_modules__[moduleId].call(module.exports, module, module.exports, __webpack_require__);\n".into()
-    } else {
-      "__webpack_modules__[moduleId](module, module.exports, __webpack_require__);\n".into()
-    };
-
-    if strict_module_error_handling {
-      sources.push("try {\n".into());
-      sources.push(module_execution);
-      sources.push("} catch (e) {".into());
-      sources.push("module.error = e;\nthrow e;".into());
-      sources.push("}".into());
-    } else {
-      sources.push(module_execution);
-    }
-
-    if runtime_requirements.contains(RuntimeGlobals::MODULE_LOADED) {
-      sources.push("// Flag the module as loaded\nmodule.loaded = true;".into());
-    }
-
-    sources.push("// Return the exports of the module\nreturn module.exports;".into());
-
-    sources
   }
 
   pub async fn render_bootstrap(
@@ -239,7 +239,7 @@ impl JsPlugin {
         )
         .into(),
       );
-      header.extend(self.render_require(chunk_ukey, compilation));
+      header.extend(render_require(chunk_ukey, compilation));
       header.push("\n}\n".into());
     } else if require_scope_used {
       header.push(

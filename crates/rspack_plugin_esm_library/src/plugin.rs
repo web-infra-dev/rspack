@@ -1,19 +1,23 @@
 use std::{
+  borrow::Cow,
   collections::hash_map::{Entry, OccupiedEntry},
-  sync::Arc,
+  path::{Path, PathBuf},
+  sync::{Arc, LazyLock},
 };
 
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
+use regex::Regex;
 use rspack_collections::{
   IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeyIndexMap, UkeyMap,
 };
 use rspack_core::{
-  BoxModule, ChunkLink, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationAfterCodeGeneration, CompilationAfterSeal, CompilationConcatenationScope,
-  CompilationFinishModules, CompilationParams, CompilerCompilation, ConcatenatedModuleIdent,
-  ConcatenatedModuleInfo, ConcatenationScope, DependencyId, ExportInfo, ExportInfoProvided,
-  ExternalModuleInfo, IdentCollector, Module, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
-  ModuleInfo, PathInfo, Plugin, RuntimeCondition, RuntimeGlobals, SourceType,
+  AssetInfo, BoxModule, ChunkLink, ChunkUkey, Compilation,
+  CompilationAdditionalChunkRuntimeRequirements, CompilationAfterCodeGeneration,
+  CompilationAfterSeal, CompilationConcatenationScope, CompilationFinishModules, CompilationParams,
+  CompilationProcessAssets, CompilerCompilation, ConcatenatedModuleIdent, ConcatenatedModuleInfo,
+  ConcatenationScope, DependencyId, ExportInfo, ExportInfoProvided, ExternalModuleInfo,
+  IdentCollector, Module, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleInfo, Plugin,
+  RuntimeCondition, RuntimeGlobals, SourceType,
   reserved_names::RESERVED_NAMES,
   rspack_sources::{ConcatSource, RawSource, ReplaceSource, Source},
 };
@@ -27,6 +31,7 @@ use rspack_util::{
   atom::Atom,
   fx_hash::{FxHashMap, FxHashSet, FxIndexSet},
 };
+use sugar_path::SugarPath;
 use tokio::sync::Mutex;
 
 #[plugin]
@@ -54,8 +59,9 @@ async fn render_chunk_content(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
+  asset_info: &mut AssetInfo,
 ) -> Result<Option<RenderSource>> {
-  self.render_chunk(compilation, chunk_ukey).await
+  self.render_chunk(compilation, chunk_ukey, asset_info).await
 }
 
 #[plugin_hook(CompilationAfterSeal for EsmLibraryPlugin)]
@@ -241,6 +247,58 @@ async fn additional_chunk_runtime_requirements(
   if chunk_modules_len > chunk_link.hoisted_modules.len() {
     runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
     runtime_requirements.insert(RuntimeGlobals::MODULE_FACTORIES);
+    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+  }
+
+  Ok(())
+}
+
+static RSPACK_ESM_CHUNK_PLACEHOLDER_RE: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"__RSPACK_ESM_CHUNK_(\d*)").expect("should have regex"));
+
+#[plugin_hook(CompilationProcessAssets for EsmLibraryPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
+async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+  let mut replaced = vec![];
+
+  for (asset_name, asset) in compilation.assets() {
+    if asset.get_info().javascript_module.unwrap_or_default() {
+      let Some(source) = asset.get_source() else {
+        continue;
+      };
+      let mut replace_source = ReplaceSource::new(source.clone());
+      let output_path = compilation.options.output.path.as_std_path();
+      let mut self_path = output_path.join(asset_name);
+
+      // only use the path, pop filename
+      self_path.pop();
+
+      for captures in RSPACK_ESM_CHUNK_PLACEHOLDER_RE.find_iter(&source.source()) {
+        let whole_str = captures.as_str();
+        let chunk_ukey = whole_str.strip_prefix("__RSPACK_ESM_CHUNK_").unwrap();
+        let chunk_ukey = ChunkUkey::from(chunk_ukey.parse::<u32>().unwrap());
+        let start = captures.range().start as u32;
+        let end = captures.range().end as u32;
+        let chunk = compilation.chunk_by_ukey.get(&chunk_ukey).unwrap();
+
+        let chunk_path = output_path.join(chunk.files().iter().next().unwrap().as_str());
+        let relative = chunk_path.relative(self_path.as_path());
+        let import_str = if relative.starts_with(".") {
+          relative.to_string_lossy().to_string()
+        } else {
+          format!("./{}", relative.display())
+        };
+        replace_source.replace(start, end, &import_str, None);
+      }
+
+      replaced.push((asset_name.clone(), replace_source));
+    }
+  }
+  for (replace_name, replace_source) in replaced {
+    compilation
+      .assets_mut()
+      .get_mut(&replace_name)
+      .unwrap()
+      .set_source(Some(Arc::new(replace_source)));
   }
 
   Ok(())
@@ -281,6 +339,18 @@ impl Plugin for EsmLibraryPlugin {
       .compilation_hooks
       .after_seal
       .tap(after_seal::new(self));
+
+    ctx
+      .context
+      .compilation_hooks
+      .process_assets
+      .tap(process_assets::new(self));
+
+    ctx
+      .context
+      .compilation_hooks
+      .additional_chunk_runtime_requirements
+      .tap(additional_chunk_runtime_requirements::new(self));
 
     Ok(())
   }

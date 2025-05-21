@@ -11,6 +11,7 @@ version                 = "0.2.0"
 
 [dependencies]
 rayon                      = { workspace = true }
+regex                      = { workspace = true }
 rspack_collections         = { workspace = true }
 rspack_core                = { workspace = true }
 rspack_error               = { workspace = true }
@@ -19,6 +20,7 @@ rspack_javascript_compiler = { workspace = true }
 rspack_plugin_javascript   = { workspace = true }
 rspack_util                = { workspace = true }
 serde_json                 = { workspace = true }
+sugar_path                 = { workspace = true }
 swc_core                   = { workspace = true, features = ["swc_ecma_transforms_base"] }
 tokio                      = { workspace = true }
 tracing                    = { workspace = true }
