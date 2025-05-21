@@ -11,7 +11,6 @@ pub use code_generation_results::*;
 use dependencies::JsDependencies;
 use diagnostics::Diagnostics;
 use entries::JsEntries;
-use napi::NapiRaw;
 use napi_derive::napi;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{
@@ -575,7 +574,7 @@ impl JsCompilation {
     &mut self,
     reference: Reference<JsCompilation>,
     module_identifiers: Vec<String>,
-    f: Function,
+    f: Function<'static>,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
@@ -614,7 +613,7 @@ impl JsCompilation {
     base_uri: Option<String>,
     original_module: Option<String>,
     original_module_context: Option<String>,
-    callback: Function,
+    callback: Function<'static>,
   ) -> Result<()> {
     let compilation = self.as_ref()?;
 
@@ -711,7 +710,7 @@ impl JsCompilation {
     &mut self,
     reference: Reference<JsCompilation>,
     js_args: Vec<(String, &mut EntryDependency, Option<JsEntryOptions>)>,
-    f: Function,
+    f: Function<'static>,
   ) -> napi::Result<()> {
     let compilation = self.as_mut()?;
 
@@ -808,7 +807,7 @@ impl JsCompilation {
     &mut self,
     reference: Reference<JsCompilation>,
     js_args: Vec<(String, &mut EntryDependency, Option<JsEntryOptions>)>,
-    f: Function,
+    f: Function<'static>,
   ) -> napi::Result<()> {
     let compilation = self.as_mut()?;
 
@@ -913,16 +912,15 @@ impl ToNapiValue for JsAddEntryItemCallbackArgs {
     let env_wrapper = Env::from_raw(env);
     let mut js_array = env_wrapper.create_array(0)?;
 
+    let raw_undefined = Undefined::to_napi_value(env, ())?;
+    let undefined = Unknown::from_napi_value(env, raw_undefined)?;
     for result in val.0 {
       let js_result = match result {
-        Either::A(msg) => vec![
-          env_wrapper.create_string(&msg)?.into_unknown(),
-          env_wrapper.get_undefined()?.into_unknown(),
-        ],
+        Either::A(msg) => vec![env_wrapper.create_string(&msg)?.to_unknown(), undefined],
         Either::B(module) => {
           let napi_val = ToNapiValue::to_napi_value(env, module)?;
           let js_module = Unknown::from_napi_value(env, napi_val)?;
-          vec![env_wrapper.get_undefined()?.into_unknown(), js_module]
+          vec![undefined, js_module]
         }
       };
       js_array.insert(js_result)?;

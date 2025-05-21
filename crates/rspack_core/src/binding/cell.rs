@@ -20,7 +20,7 @@ mod napi_binding {
   use derive_more::Debug;
   use napi::{
     bindgen_prelude::{Object, ToNapiValue},
-    Env, NapiValue,
+    Env,
   };
   use once_cell::sync::OnceCell;
   use rspack_napi::{object_assign, ThreadsafeOneShotRef};
@@ -88,7 +88,7 @@ mod napi_binding {
               heap: heap.clone(),
             };
             let napi_val = allocator.allocate_asset_info(raw_env, &binding_cell)?;
-            let target = unsafe { Object::from_raw_unchecked(raw_env, napi_val) };
+            let target = Object::from_raw(raw_env, napi_val);
             ThreadsafeOneShotRef::new(raw_env, target)
           }
           HeapVariant::CodeGenerationResult(code_generation_result) => {
@@ -98,7 +98,7 @@ mod napi_binding {
               heap: heap.clone(),
             };
             let napi_val = allocator.allocate_code_generation_result(raw_env, &binding_cell)?;
-            let target = unsafe { Object::from_raw_unchecked(raw_env, napi_val) };
+            let target = Object::from_raw(raw_env, napi_val);
             ThreadsafeOneShotRef::new(raw_env, target)
           }
           HeapVariant::Sources(sources) => {
@@ -108,7 +108,7 @@ mod napi_binding {
               heap: heap.clone(),
             };
             let napi_val = allocator.allocate_sources(raw_env, &binding_cell)?;
-            let target = unsafe { Object::from_raw_unchecked(raw_env, napi_val) };
+            let target = Object::from_raw(raw_env, napi_val);
             ThreadsafeOneShotRef::new(raw_env, target)
           }
           HeapVariant::CodeGenerationResults(code_generation_results) => {
@@ -118,7 +118,7 @@ mod napi_binding {
               heap: heap.clone(),
             };
             let napi_val = allocator.allocate_code_generation_results(raw_env, &binding_cell)?;
-            let target = unsafe { Object::from_raw_unchecked(raw_env, napi_val) };
+            let target = Object::from_raw(raw_env, napi_val);
             ThreadsafeOneShotRef::new(raw_env, target)
           }
           HeapVariant::Assets(assets) => {
@@ -128,7 +128,7 @@ mod napi_binding {
               heap: heap.clone(),
             };
             let napi_val = allocator.allocate_assets(raw_env, &binding_cell)?;
-            let target = unsafe { Object::from_raw_unchecked(raw_env, napi_val) };
+            let target = Object::from_raw(raw_env, napi_val);
             ThreadsafeOneShotRef::new(raw_env, target)
           }
         })?;
@@ -142,8 +142,8 @@ mod napi_binding {
               heap: heap.clone(),
             };
             let napi_val = allocator.allocate_asset_info(raw_env, &binding_cell)?;
-            let new_object = unsafe { Object::from_raw_unchecked(raw_env, napi_val) };
-            let mut original_object = unsafe { Object::from_raw_unchecked(raw_env, result) };
+            let new_object = Object::from_raw(raw_env, napi_val);
+            let mut original_object = Object::from_raw(raw_env, result);
             object_assign(&mut original_object, &new_object)?;
             Ok(result)
           }
