@@ -32,7 +32,7 @@ import ModuleGraph from "./ModuleGraph";
 import type { NormalModuleCompilationHooks } from "./NormalModule";
 import type { NormalModuleFactory } from "./NormalModuleFactory";
 import type { ResolverFactory } from "./ResolverFactory";
-import { type RspackError } from "./RspackError";
+import type { RspackError } from "./RspackError";
 import { RuntimeModule } from "./RuntimeModule";
 import {
 	Stats,
@@ -725,16 +725,16 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 	get warnings(): RspackError[] {
 		if (!this.#warnings) {
-			this.#warnings = createDiagnosticArray(this.#inner.errors);
+			this.#warnings = createDiagnosticArray(this.#inner.warnings);
 		}
 		return this.#warnings;
 	}
 
 	set warnings(warnings: RspackError[]) {
-		if (!this.#errors) {
-			this.#errors = createDiagnosticArray(this.#inner.errors);
+		if (!this.#warnings) {
+			this.#warnings = createDiagnosticArray(this.#inner.warnings);
 		}
-		this.#errors.splice(0, this.#errors.length, ...warnings);
+		this.#warnings.splice(0, this.#warnings.length, ...warnings);
 	}
 
 	getPath(filename: string, data: PathData = {}) {

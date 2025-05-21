@@ -424,10 +424,18 @@ impl JsCompilation {
     Ok(())
   }
 
-  #[napi(getter, ts_return_type = "Diagnostics")]
+  #[napi(getter)]
   pub fn errors(&self, reference: Reference<JsCompilation>) -> Result<Diagnostics> {
     Ok(Diagnostics::new(
       RspackSeverity::Error,
+      reference.downgrade(),
+    ))
+  }
+
+  #[napi(getter)]
+  pub fn warnings(&self, reference: Reference<JsCompilation>) -> Result<Diagnostics> {
+    Ok(Diagnostics::new(
+      RspackSeverity::Warn,
       reference.downgrade(),
     ))
   }
