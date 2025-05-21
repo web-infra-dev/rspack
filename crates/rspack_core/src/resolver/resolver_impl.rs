@@ -322,7 +322,7 @@ fn map_rspack_resolver_error(
   args: &ResolveArgs<'_>,
 ) -> ModuleNotFoundError {
   match &error {
-    rspack_resolver::ResolveError::IOError(e) => ModuleNotFoundError::new(format!("{}", e)),
+    rspack_resolver::ResolveError::IOError(e) => ModuleNotFoundError::new(format!("{e}")),
     rspack_resolver::ResolveError::Recursion => map_resolver_error(error, args),
     rspack_resolver::ResolveError::NotFound(_) => map_resolver_error(error, args),
     rspack_resolver::ResolveError::JSON(e) => {
@@ -379,7 +379,7 @@ fn map_rspack_resolver_error(
         ))
       }
     }
-    _ => ModuleNotFoundError::new(format!("{}", error)),
+    _ => ModuleNotFoundError::new(format!("{error}")),
   }
 }
 

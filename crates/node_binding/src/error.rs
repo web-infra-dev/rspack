@@ -215,7 +215,7 @@ impl RspackError {
     compilation: &rspack_core::Compilation,
     diagnostic: &Diagnostic,
   ) -> napi::Result<Self> {
-    let error = match diagnostic.source() {
+    let mut error = match diagnostic.source() {
       Some(source) => match source.downcast_ref::<RspackError>() {
         Some(rspack_error) => Some(Box::new(rspack_error.clone())),
         None => Some(Box::new(RspackError {
@@ -235,7 +235,7 @@ impl RspackError {
     };
 
     if let Some(e) = diagnostic.downcast_ref::<ModuleNotFoundError>() {
-      return Ok(RspackError {
+      error = Some(Box::new(RspackError {
         name: "Error".to_string(),
         message: format!("{}", e).replace("Module not found: ", ""),
         severity: None,
@@ -246,7 +246,7 @@ impl RspackError {
         stack: None,
         hide_stack: None,
         error: None,
-      });
+      }));
     }
 
     if let Some(error) = diagnostic.downcast_ref::<RspackError>() {

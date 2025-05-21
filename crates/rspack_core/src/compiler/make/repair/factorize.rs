@@ -5,7 +5,6 @@ use rspack_sources::BoxSource;
 
 use super::{add::AddTask, MakeTaskContext};
 use crate::{
-  diagnostics::ModuleNotFoundError,
   module_graph::ModuleGraphModule,
   utils::task_loop::{Task, TaskResult, TaskType},
   BoxDependency, CompilationId, CompilerId, CompilerOptions, Context, ExportInfoData,

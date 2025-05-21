@@ -9,7 +9,6 @@ use std::{
 };
 
 use regex::Regex;
-use rspack_error::Error;
 use rspack_loader_runner::{DescriptionData, ResourceData};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
 use rspack_util::identifier::insert_zero_width_space_for_fragment;
@@ -21,8 +20,8 @@ pub use self::{
   resolver_impl::{ResolveInnerOptions, Resolver},
 };
 use crate::{
-  Context, DependencyCategory, DependencyType, ErrorSpan, ModuleIdentifier, Resolve,
-  SharedPluginDriver,
+  diagnostics::ModuleNotFoundError, Context, DependencyCategory, DependencyType, ErrorSpan,
+  ModuleIdentifier, Resolve, SharedPluginDriver,
 };
 
 static RELATIVE_PATH_REGEX: LazyLock<Regex> =
@@ -306,7 +305,7 @@ if its extension was not listed in the `resolve.extensions`. Here're some possib
 pub async fn resolve(
   args: ResolveArgs<'_>,
   plugin_driver: &SharedPluginDriver,
-) -> Result<ResolveResult, Error> {
+) -> Result<ResolveResult, ModuleNotFoundError> {
   let dep = ResolveOptionsWithDependencyType {
     resolve_options: args
       .resolve_options
@@ -346,5 +345,5 @@ pub async fn resolve(
     result = result.map_err(|err| err.with_help(hint))
   };
 
-  result.map_err(|e| Error::from(e))
+  result
 }

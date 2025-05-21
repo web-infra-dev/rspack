@@ -5,7 +5,11 @@ use std::{
 
 use regex::Regex;
 use rspack_cacheable::cacheable;
-use rspack_error::{error, Result};
+use rspack_error::{
+  error,
+  miette::{self, Diagnostic},
+  Result,
+};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{get_scheme, Loader, Scheme};
 use rspack_paths::Utf8PathBuf;
@@ -235,7 +239,16 @@ impl NormalModuleFactory {
 
         if first_char.is_none() {
           let span = dependency.source_span().unwrap_or_default();
-          return Err(EmptyDependency::new(DependencyRange::new(span.start, span.end)).into());
+          return Err(
+            EmptyDependency::new(
+              data
+                .original_module_source
+                .as_ref()
+                .map(|s| s.source().to_string()),
+              DependencyRange::new(span.start, span.end),
+            )
+            .into(),
+          );
         }
 
         // See: https://webpack.js.org/concepts/loaders/#inline
@@ -356,10 +369,15 @@ impl NormalModuleFactory {
 
             return Ok(Some(ModuleFactoryResult::new_with_module(raw_module)));
           }
-          Err(e) => {
+          Err(mut e) => {
             data.add_file_dependencies(file_dependencies);
             data.add_missing_dependencies(missing_dependencies);
-            return Err(e);
+            if e.source_code().is_none() {
+              if let Some(source) = &data.original_module_source {
+                e = e.with_source_code(source.source());
+              }
+            }
+            return Err(miette::Error::from(e));
           }
         }
       }

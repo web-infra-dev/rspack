@@ -1,4 +1,4 @@
-use std::{fmt::Display, path::PathBuf};
+use std::{fmt::Display, path::PathBuf, sync::Arc};
 
 use itertools::Itertools;
 use rspack_error::{
@@ -19,9 +19,10 @@ use crate::{BoxLoader, DependencyRange};
 pub struct EmptyDependency(Box<dyn Diagnostic + Send + Sync>);
 
 impl EmptyDependency {
-  pub fn new(span: DependencyRange) -> Self {
+  pub fn new(source_code: Option<String>, span: DependencyRange) -> Self {
     Self(
-      TraceableError::from_lazy_file(
+      TraceableError::from_arc_string(
+        source_code.map(Arc::new),
         span.start as usize,
         span.end as usize,
         "Empty dependency".to_string(),

@@ -2,7 +2,11 @@ use std::{borrow::Cow, fs, sync::Arc};
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
-use rspack_error::{error, miette::IntoDiagnostic, Result, ToStringResultToRspackResultExt};
+use rspack_error::{
+  error,
+  miette::{self, Diagnostic, IntoDiagnostic},
+  Result, ToStringResultToRspackResultExt,
+};
 use rspack_hook::define_hook;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use rspack_regex::RspackRegex;
@@ -324,10 +328,15 @@ impl ContextModuleFactory {
         data.add_missing_dependencies(missing_dependencies);
         return Ok((ModuleFactoryResult::new_with_module(raw_module), None));
       }
-      Err(err) => {
+      Err(mut e) => {
         data.add_file_dependencies(file_dependencies);
         data.add_missing_dependencies(missing_dependencies);
-        return Err(err);
+        if e.source_code().is_none() {
+          if let Some(source) = &data.original_module_source {
+            e = e.with_source_code(source.source());
+          }
+        }
+        return Err(miette::Error::from(e));
       }
     };
 

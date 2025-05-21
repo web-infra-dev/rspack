@@ -57,11 +57,7 @@ pub struct TraceableError {
 
 impl Display for TraceableError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    if self.title.is_empty() {
-      return write!(f, "{}", self.message);
-    } else {
-      write!(f, "{}: {}", self.title, self.message)
-    }
+    write!(f, "{}: {}", self.title, self.message)
   }
 }
 
