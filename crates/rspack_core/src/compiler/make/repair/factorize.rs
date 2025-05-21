@@ -5,6 +5,7 @@ use rspack_sources::BoxSource;
 
 use super::{add::AddTask, MakeTaskContext};
 use crate::{
+  diagnostics::ModuleNotFoundError,
   module_graph::ModuleGraphModule,
   utils::task_loop::{Task, TaskResult, TaskType},
   BoxDependency, CompilationId, CompilerId, CompilerOptions, Context, ExportInfoData,
@@ -71,6 +72,7 @@ impl Task<MakeTaskContext> for FactorizeTask {
       issuer_identifier: self.original_module_identifier,
       issuer_layer,
       resolver_factory: self.resolver_factory,
+      original_module_source: self.original_module_source.clone(),
 
       file_dependencies: Default::default(),
       missing_dependencies: Default::default(),
@@ -79,14 +81,7 @@ impl Task<MakeTaskContext> for FactorizeTask {
     };
     let factory_result = match self.module_factory.create(&mut create_data).await {
       Ok(result) => Some(result),
-      Err(mut e) => {
-        // Wrap source code if available
-        if let Some(s) = self.original_module_source {
-          let has_source_code = e.source_code().is_some();
-          if !has_source_code {
-            e = e.with_source_code(s.source().to_string());
-          }
-        }
+      Err(e) => {
         // Bail out if `options.bail` set to `true`,
         // which means 'Fail out on the first error instead of tolerating it.'
         if self.options.bail {

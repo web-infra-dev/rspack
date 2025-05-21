@@ -9,9 +9,9 @@ const { WASI: __nodeWASI } = require('node:wasi')
 const { Worker } = require('node:worker_threads')
 
 const {
-  instantiateNapiModuleSync: __emnapiInstantiateNapiModuleSync,
-  getDefaultContext: __emnapiGetDefaultContext,
   createOnMessage: __wasmCreateOnMessageForFsProxy,
+  getDefaultContext: __emnapiGetDefaultContext,
+  instantiateNapiModuleSync: __emnapiInstantiateNapiModuleSync,
 } = require('@napi-rs/wasm-runtime')
 
 const __rootDir = __nodePath.parse(process.cwd()).root
@@ -84,7 +84,7 @@ const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule
     }
   },
 })
-
+module.exports = __napiModule.exports
 module.exports.Assets = __napiModule.exports.Assets
 module.exports.AsyncDependenciesBlock = __napiModule.exports.AsyncDependenciesBlock
 module.exports.BuildInfo = __napiModule.exports.BuildInfo

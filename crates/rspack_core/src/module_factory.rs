@@ -6,6 +6,7 @@ use rspack_cacheable::{
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_paths::ArcPath;
+use rspack_sources::BoxSource;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
@@ -27,6 +28,8 @@ pub struct ModuleFactoryCreateData {
   pub issuer_identifier: Option<ModuleIdentifier>,
   pub issuer_layer: Option<ModuleLayer>,
   pub resolver_factory: Arc<ResolverFactory>,
+  #[cacheable(with=Skip)]
+  pub original_module_source: Option<BoxSource>,
 
   pub file_dependencies: HashSet<ArcPath>,
   pub context_dependencies: HashSet<ArcPath>,

@@ -9,7 +9,7 @@ use std::{
 };
 
 use regex::Regex;
-use rspack_error::{Error, MietteExt};
+use rspack_error::Error;
 use rspack_loader_runner::{DescriptionData, ResourceData};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
 use rspack_util::identifier::insert_zero_width_space_for_fragment;
@@ -346,5 +346,5 @@ pub async fn resolve(
     result = result.map_err(|err| err.with_help(hint))
   };
 
-  result.map_err(Error::new_boxed)
+  result.map_err(|e| Error::from(e))
 }

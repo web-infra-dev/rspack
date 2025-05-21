@@ -1,4 +1,9 @@
-use std::{borrow::Cow, fmt, ops::Deref, sync::Arc};
+use std::{
+  borrow::Cow,
+  fmt::{self, Display},
+  ops::Deref,
+  sync::Arc,
+};
 
 use cow_utils::CowUtils;
 use miette::{GraphicalTheme, IntoDiagnostic, MietteDiagnostic};
@@ -7,7 +12,7 @@ use rspack_collections::Identifier;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use swc_core::common::{SourceMap, Span};
 
-use crate::graphical::GraphicalReportHandler;
+use crate::{graphical::GraphicalReportHandler, Error};
 
 #[derive(Debug, Clone, Default, Copy, PartialEq, Eq, Hash)]
 pub enum RspackSeverity {
@@ -95,7 +100,7 @@ impl ErrorLocation {
 #[cacheable(with=Unsupported)]
 #[derive(Debug, Clone)]
 pub struct Diagnostic {
-  inner: Arc<dyn miette::Diagnostic + Send + Sync>,
+  inner: Arc<miette::Error>,
   module_identifier: Option<Identifier>,
   loc: Option<String>,
   file: Option<Utf8PathBuf>,
@@ -106,23 +111,14 @@ pub struct Diagnostic {
 
 impl From<Box<dyn miette::Diagnostic + Send + Sync>> for Diagnostic {
   fn from(value: Box<dyn miette::Diagnostic + Send + Sync>) -> Self {
-    Self {
-      inner: Arc::from(value),
-      module_identifier: None,
-      loc: None,
-      file: None,
-      hide_stack: None,
-      chunk: None,
-      stack: None,
-    }
+    Diagnostic::from(miette::Error::new_boxed(value))
   }
 }
 
 impl From<miette::Error> for Diagnostic {
   fn from(value: miette::Error) -> Self {
-    let diagnostic: Box<dyn miette::Diagnostic + Send + Sync + 'static> = value.into();
     Self {
-      inner: Arc::from(diagnostic),
+      inner: Arc::new(value),
       module_identifier: None,
       loc: None,
       file: None,
@@ -134,21 +130,22 @@ impl From<miette::Error> for Diagnostic {
 }
 
 impl Deref for Diagnostic {
-  type Target = dyn miette::Diagnostic + Send + Sync;
+  type Target = miette::Error;
 
   fn deref(&self) -> &Self::Target {
-    self.inner.as_ref()
+    &self.inner
   }
 }
 
 impl Diagnostic {
   pub fn warn(title: String, message: String) -> Self {
     Self {
-      inner: Arc::new(
+      inner: Error::from(
         MietteDiagnostic::new(message)
           .with_code(title)
           .with_severity(miette::Severity::Warning),
-      ),
+      )
+      .into(),
       module_identifier: None,
       loc: None,
       file: None,
@@ -160,11 +157,12 @@ impl Diagnostic {
 
   pub fn error(title: String, message: String) -> Self {
     Self {
-      inner: Arc::new(
+      inner: Error::from(
         MietteDiagnostic::new(message)
           .with_code(title)
           .with_severity(miette::Severity::Error),
-      ),
+      )
+      .into(),
       module_identifier: None,
       loc: None,
       file: None,
@@ -172,6 +170,13 @@ impl Diagnostic {
       chunk: None,
       stack: None,
     }
+  }
+
+  pub fn downcast_ref<E>(&self) -> Option<&E>
+  where
+    E: Display + std::fmt::Debug + Send + Sync + 'static,
+  {
+    self.inner.downcast_ref::<E>()
   }
 }
 
@@ -186,8 +191,7 @@ impl Diagnostic {
       })
       .with_context_lines(2)
       .with_width(usize::MAX);
-    h.render_report(&mut buf, self.inner.as_ref())
-      .into_diagnostic()?;
+    h.render_report(&mut buf, self.as_ref()).into_diagnostic()?;
     Ok(buf)
   }
 

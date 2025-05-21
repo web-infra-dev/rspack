@@ -231,6 +231,7 @@ impl GraphicalReportHandler {
     if let Some(mut cause_iter) = diagnostic
       .diagnostic_source()
       .map(DiagnosticChain::from_diagnostic)
+      .or_else(|| diagnostic.source().map(DiagnosticChain::from_stderror))
       .map(|it| it.peekable())
     {
       while let Some(error) = cause_iter.next() {
@@ -937,7 +938,7 @@ impl<'a> DiagnosticChain<'a> {
     }
   }
 
-  pub(crate) fn from_stderror(head: &'a (dyn Diagnostic + 'static)) -> Self {
+  pub(crate) fn from_stderror(head: &'a (dyn std::error::Error + 'static)) -> Self {
     DiagnosticChain {
       state: Some(ErrorKind::StdError(head)),
     }

@@ -4,10 +4,7 @@ use std::{
   sync::Arc,
 };
 
-use rspack_error::{
-  miette::{self, diagnostic, Diagnostic},
-  DiagnosticExt, TraceableError,
-};
+use rspack_error::miette;
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
 use rspack_paths::AssertUtf8;
@@ -187,7 +184,7 @@ impl Resolver {
 }
 
 impl ResolveInnerError {
-  pub fn into_resolve_error(self, args: &ResolveArgs<'_>) -> Box<dyn Diagnostic + Send + Sync> {
+  pub fn into_resolve_error(self, args: &ResolveArgs<'_>) -> ModuleNotFoundError {
     match self {
       Self::RspackResolver(error) => map_rspack_resolver_error(error, args),
     }
@@ -323,24 +320,21 @@ fn to_rspack_resolver_options(
 fn map_rspack_resolver_error(
   error: rspack_resolver::ResolveError,
   args: &ResolveArgs<'_>,
-) -> Box<dyn Diagnostic + Send + Sync> {
+) -> ModuleNotFoundError {
   match &error {
-    rspack_resolver::ResolveError::IOError(error) => diagnostic!("{}", error).boxed(),
+    rspack_resolver::ResolveError::IOError(e) => ModuleNotFoundError::new(format!("{}", e)),
     rspack_resolver::ResolveError::Recursion => map_resolver_error(error, args),
     rspack_resolver::ResolveError::NotFound(_) => map_resolver_error(error, args),
-    rspack_resolver::ResolveError::JSON(error) => {
-      // TODO: JSON parse error should be the sub error of ModuleNotFoundError
-      if let Some(content) = &error.content {
+    rspack_resolver::ResolveError::JSON(e) => {
+      if let Some(content) = &e.content {
         let rope = ropey::Rope::from(&**content);
-        let Some((offset, _)) =
-          try_line_column_length_to_offset_length(&rope, error.line, error.column, 0)
+        let Some((offset, _)) = try_line_column_length_to_offset_length(&rope, e.line, e.column, 0)
         else {
-          return diagnostic!(
+          return ModuleNotFoundError::new(format!(
             "JSON parse error: {:?} in '{}'",
-            error,
-            error.path.display()
-          )
-          .boxed();
+            e,
+            e.path.display()
+          ));
         };
         drop(rope);
 
@@ -362,73 +356,62 @@ fn map_rspack_resolver_error(
         let offset = ceil_char_boundary(content, offset);
 
         if content[offset..].starts_with('\u{feff}') {
-          return TraceableError::from_file(
-            content.clone(),
-            offset,
-            offset,
-            "JSON parse error".to_string(),
-            format!("BOM character found in '{}'", error.path.display()),
-          )
-          .boxed();
+          return ModuleNotFoundError::new(format!(
+            "JSON parse error: BOM character found in '{}'",
+            e.path.display()
+          ))
+          .with_source_code(content.to_string())
+          .with_span(offset, offset);
         }
 
-        TraceableError::from_file(
-          content.clone(),
-          offset,
-          offset,
-          "JSON parse error".to_string(),
-          format!("{} in '{}'", error.message, error.path.display()),
-        )
-        .boxed()
+        ModuleNotFoundError::new(format!(
+          "JSON parse error: {} in '{}'",
+          e.message,
+          e.path.display()
+        ))
+        .with_source_code(content.to_string())
+        .with_span(offset, offset)
       } else {
-        diagnostic!(
+        ModuleNotFoundError::new(format!(
           "JSON parse error: {:?} in '{}'",
-          error,
-          error.path.display()
-        )
-        .boxed()
+          e,
+          e.path.display()
+        ))
       }
     }
-    _ => diagnostic!("{}", error).boxed(),
+    _ => ModuleNotFoundError::new(format!("{}", error)),
   }
 }
 
 fn map_resolver_error(
   resolve_error: rspack_resolver::ResolveError,
   args: &ResolveArgs<'_>,
-) -> Box<dyn Diagnostic + Send + Sync> {
+) -> ModuleNotFoundError {
   let request = &args.specifier;
   let context = &args.context;
 
   let importer = args.importer;
   if importer.is_none() {
-    return ModuleNotFoundError::new(
-      format!("Can't resolve '{request}' in '{context}'"),
-      resolve_error,
-    )
-    .with_severity(miette::Severity::Error)
-    .boxed();
+    return ModuleNotFoundError::new(format!("Can't resolve '{request}' in '{context}'"))
+      .with_severity(miette::Severity::Error);
   }
 
   let span = args.span.unwrap_or_default();
   let is_recursion_error = matches!(resolve_error, rspack_resolver::ResolveError::Recursion);
-  ModuleNotFoundError::new(
-    format!("Can't resolve '{request}' in '{context}'"),
-    resolve_error,
-  )
-  .with_span(span.start as usize, span.end as usize)
-  .with_help(if is_recursion_error {
-    Some("maybe it had cyclic aliases")
+
+  let error = ModuleNotFoundError::new(format!("Can't resolve '{request}' in '{context}'"))
+    .with_span(span.start as usize, span.end as usize)
+    .with_severity(
+      // See: https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/Compilation.js#L1796
+      if args.optional {
+        miette::Severity::Warning
+      } else {
+        miette::Severity::Error
+      },
+    );
+  if is_recursion_error {
+    error.with_help("maybe it had cyclic aliases")
   } else {
-    None
-  })
-  .with_severity(
-    // See: https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/Compilation.js#L1796
-    if args.optional {
-      miette::Severity::Warning
-    } else {
-      miette::Severity::Error
-    },
-  )
-  .boxed()
+    error
+  }
 }

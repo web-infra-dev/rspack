@@ -265,27 +265,27 @@ pub fn map_box_diagnostics_to_module_parse_diagnostics(
 #[derive(Debug)]
 pub struct ModuleNotFoundError {
   message: String,
-  error: rspack_resolver::ResolveError,
   severity: Option<miette::Severity>,
   label: Option<SourceSpan>,
   help: Option<String>,
+  source_code: Option<String>,
 }
 
 impl ModuleNotFoundError {
-  pub fn new(message: String, error: rspack_resolver::ResolveError) -> Self {
+  pub fn new(message: impl Into<String>) -> Self {
     Self {
-      message,
-      error,
+      message: message.into(),
       severity: None,
       label: None,
       help: None,
+      source_code: None,
     }
   }
 }
 
 impl std::error::Error for ModuleNotFoundError {
   fn source(&self) -> ::core::option::Option<&(dyn std::error::Error + 'static)> {
-    Some(&self.error)
+    None
   }
 }
 
@@ -312,7 +312,7 @@ impl miette::Diagnostic for ModuleNotFoundError {
     None
   }
   fn source_code(&self) -> Option<&dyn miette::SourceCode> {
-    None
+    self.source_code.as_ref().map(|s| s as _)
   }
   fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
     self.label.map(|label| {
@@ -329,8 +329,8 @@ impl miette::Diagnostic for ModuleNotFoundError {
 }
 
 impl ModuleNotFoundError {
-  pub fn with_help(mut self, help: Option<impl Into<String>>) -> Self {
-    self.help = help.map(|h| h.into());
+  pub fn with_help(mut self, help: impl Into<String>) -> Self {
+    self.help = Some(help.into());
     self
   }
 
@@ -341,6 +341,11 @@ impl ModuleNotFoundError {
 
   pub fn with_severity(mut self, severity: miette::Severity) -> Self {
     self.severity = Some(severity);
+    self
+  }
+
+  pub fn with_source_code(mut self, source_code: impl Into<String>) -> Self {
+    self.source_code = Some(source_code.into());
     self
   }
 }

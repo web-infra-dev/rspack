@@ -356,10 +356,10 @@ impl NormalModuleFactory {
 
             return Ok(Some(ModuleFactoryResult::new_with_module(raw_module)));
           }
-          Err(err) => {
+          Err(e) => {
             data.add_file_dependencies(file_dependencies);
             data.add_missing_dependencies(missing_dependencies);
-            return Err(err);
+            return Err(e);
           }
         }
       }

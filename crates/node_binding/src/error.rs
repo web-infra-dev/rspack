@@ -1,9 +1,7 @@
-use std::ops::Deref;
-
 use derive_more::Debug;
 use napi::bindgen_prelude::ToNapiValue;
 use napi_derive::napi;
-use rspack_core::ModuleIdentifier;
+use rspack_core::{diagnostics::ModuleNotFoundError, ModuleIdentifier};
 use rspack_error::{
   miette::{self, Severity},
   Diagnostic, Result, RspackSeverity,
@@ -236,10 +234,23 @@ impl RspackError {
       None => None,
     };
 
-    if let Some(rspack_error) =
-      (diagnostic.deref() as &dyn std::error::Error).downcast_ref::<RspackError>()
-    {
-      return Ok(rspack_error.clone());
+    if let Some(e) = diagnostic.downcast_ref::<ModuleNotFoundError>() {
+      return Ok(RspackError {
+        name: "Error".to_string(),
+        message: format!("{}", e).replace("Module not found: ", ""),
+        severity: None,
+        module_identifier: None,
+        module: None,
+        loc: None,
+        file: None,
+        stack: None,
+        hide_stack: None,
+        error: None,
+      });
+    }
+
+    if let Some(error) = diagnostic.downcast_ref::<RspackError>() {
+      return Ok(error.clone());
     }
 
     let message = diagnostic
