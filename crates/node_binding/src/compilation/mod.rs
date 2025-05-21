@@ -403,20 +403,6 @@ impl JsCompilation {
     Ok(())
   }
 
-  #[napi]
-  pub fn splice_diagnostic(
-    &mut self,
-    start: u32,
-    end: u32,
-    replace_with: Vec<crate::JsRspackDiagnostic>,
-  ) -> Result<()> {
-    let compilation = self.as_mut()?;
-
-    let diagnostics = replace_with.into_iter().map(Into::into).collect();
-    compilation.splice_diagnostic(start as usize, end as usize, diagnostics);
-    Ok(())
-  }
-
   #[napi(ts_args_type = r#"diagnostic: ExternalObject<'Diagnostic'>"#)]
   pub fn push_native_diagnostic(&mut self, diagnostic: &External<Diagnostic>) -> Result<()> {
     let compilation = self.as_mut()?;

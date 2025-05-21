@@ -809,15 +809,6 @@ impl Compilation {
     self.diagnostics.push(diagnostic);
   }
 
-  pub fn splice_diagnostic(
-    &mut self,
-    s: usize,
-    e: usize,
-    replace_with: Vec<Diagnostic>,
-  ) -> Vec<Diagnostic> {
-    self.diagnostics.splice(s..e, replace_with).collect()
-  }
-
   pub fn extend_diagnostics(&mut self, diagnostics: impl IntoIterator<Item = Diagnostic>) {
     self.diagnostics.extend(diagnostics);
   }
