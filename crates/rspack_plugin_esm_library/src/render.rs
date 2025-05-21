@@ -1,7 +1,7 @@
 use std::{borrow::Cow, collections::hash_map::Entry, sync::Arc};
 
 use rayon::prelude::*;
-use rspack_collections::{IdentifierIndexSet, IdentifierMap, UkeyIndexMap, UkeySet};
+use rspack_collections::{IdentifierIndexSet, IdentifierMap, UkeyIndexMap, UkeyMap, UkeySet};
 use rspack_core::{
   AssetInfo, BoxModule, ChunkGraph, ChunkUkey, Compilation, ConcatenatedModule,
   ConcatenatedModuleIdent, ConcatenatedModuleInfo, ConcatenationScope, IdentCollector, ModuleInfo,
@@ -13,7 +13,9 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_javascript_compiler::ast::Ast;
 use rspack_plugin_javascript::{
-  RenderSource, runtime::render_module, visitors::swc_visitor::resolver,
+  RenderSource, render_require,
+  runtime::{render_chunk_runtime_modules, render_module, render_runtime_modules},
+  visitors::swc_visitor::resolver,
 };
 use rspack_util::{
   atom::Atom,
@@ -26,6 +28,7 @@ impl EsmLibraryPlugin {
     &self,
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
+    asset_info: &mut AssetInfo,
   ) -> Result<Option<RenderSource>> {
     let module_graph = compilation.get_module_graph();
     let chunk_link = compilation
@@ -145,6 +148,7 @@ impl EsmLibraryPlugin {
     // present as
     // a.js -> (imported symbol, local symbol)
     let mut imported_symbols = IdentifierMap::<FxHashMap<Atom, Atom>>::default();
+    let mut imported_chunks = UkeyMap::<ChunkUkey, FxIndexSet<(Atom, Atom)>>::default();
 
     // const symbol = __webpack_require__('./main.js')
     let mut required_symbols = IdentifierMap::<Atom>::default();
@@ -300,32 +304,44 @@ impl EsmLibraryPlugin {
     // render imports and exports to other chunks
     let mut final_source = ConcatSource::default();
 
-    if !imported_symbols.is_empty() {
-      final_source.add(RawStringSource::from(
-        imported_symbols
-          .iter()
-          .map(|(module_id, imported)| {
-            let specifiers = imported
-              .into_iter()
-              .map(|(imported, local)| {
-                if imported == local {
-                  Cow::Borrowed(imported.as_str())
-                } else {
-                  Cow::Owned(format!("{} as {}", imported, local))
-                }
-              })
-              .collect::<Vec<_>>()
-              .join(", ");
+    let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
+    if !runtime_requirements.is_empty() {
+      let curr_chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+      let group = curr_chunk.groups().into_iter().next().unwrap();
+      let group = compilation.chunk_group_by_ukey.expect_get(group);
+      let runtime_chunk = group.get_runtime_chunk(&compilation.chunk_group_by_ukey);
+      let require_symbol: swc_core::atoms::Atom = RuntimeGlobals::REQUIRE.name().clone().into();
+      imported_chunks.insert(
+        runtime_chunk,
+        std::iter::once((require_symbol.clone(), require_symbol)).collect(),
+      );
+    }
 
-            format!(
-              "import {{ {} }} from \"__WEBPACK_CHUNK_{}\";",
-              specifiers,
-              Self::get_module_chunk(*module_id, compilation).as_u32()
-            )
-          })
-          .collect::<Vec<_>>()
-          .join("\n"),
-      ));
+    if !imported_symbols.is_empty() {
+      imported_symbols.iter().for_each(|(module_id, imported)| {
+        let chunk = Self::get_module_chunk(*module_id, compilation);
+        let imported_atoms = imported_chunks.entry(*chunk_ukey).or_default();
+        imported_atoms.extend(imported.clone().into_iter());
+      });
+
+      for (chunk, imported) in &imported_chunks {
+        final_source.add(RawStringSource::from(format!(
+          "import {{ {} }} from \"__RSPACK_ESM_CHUNK_{}\";\n",
+          imported
+            .iter()
+            .map(|(imported, local)| {
+              if imported == local {
+                Cow::Borrowed(imported.as_str())
+              } else {
+                Cow::Owned(format!("{} as {}", imported, local))
+              }
+            })
+            .collect::<Vec<_>>()
+            .join(", "),
+          chunk.as_u32()
+        )));
+      }
+
       final_source.add(RawSource::from_static("\n"));
     }
 
@@ -344,7 +360,7 @@ impl EsmLibraryPlugin {
             if &ref_chunk != chunk_ukey && !already_imported_chunks.contains(&ref_chunk) {
               already_imported_chunks.insert(ref_chunk);
               extra_imports.push(format!(
-                "import \"__WEBPACK_CHUNK_{}\";\n",
+                "import \"__RSPACK_ESM_CHUNK_{}\";\n",
                 ref_chunk.as_u32()
               ));
             }
@@ -369,9 +385,26 @@ impl EsmLibraryPlugin {
       final_source.add(required_str);
     }
 
+    let runtime_chunk_source = render_runtime_modules(compilation, chunk_ukey).await?;
+    if !runtime_chunk_source.source().is_empty() {
+      final_source.add(RawStringSource::from(format!(
+        "function {}(moduleId) {{\n{}\n}}\n",
+        RuntimeGlobals::REQUIRE,
+        render_require(chunk_ukey, compilation).join("\n")
+      )));
+      final_source.add(runtime_chunk_source);
+    }
     final_source.add(render_source);
 
     let mut export_specifiers = vec![];
+
+    if compilation
+      .chunk_graph
+      .has_chunk_runtime_modules(chunk_ukey)
+    {
+      export_specifiers.push(RuntimeGlobals::REQUIRE.name());
+    }
+
     for (id, exports) in &chunk_link.exports {
       let info = concatenated_modules_map
         .get(id)
