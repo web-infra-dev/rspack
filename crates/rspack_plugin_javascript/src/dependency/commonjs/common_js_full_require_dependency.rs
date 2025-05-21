@@ -177,7 +177,7 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
     if let Some(imported_module) = module_graph.module_graph_module_by_dependency_id(&dep.id) {
       let used = module_graph
         .get_exports_info(&imported_module.module_identifier)
-        .get_used_name(&module_graph, *runtime, UsedName::Vec(dep.names.clone()));
+        .get_used_name(&module_graph, *runtime, &dep.names);
 
       if let Some(used) = used {
         let comment = to_normal_comment(&property_access(dep.names.clone(), 0));
@@ -187,8 +187,7 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
           comment,
           property_access(
             match used {
-              UsedName::Str(name) => vec![name].into_iter(),
-              UsedName::Vec(names) => names.into_iter(),
+              UsedName::Normal(names) => names.into_iter(),
             },
             0
           )
