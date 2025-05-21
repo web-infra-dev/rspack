@@ -1,6 +1,6 @@
 use rspack_core::{
   ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, CompilationRuntimeRequirementInTree,
-  Plugin, PluginContext, RuntimeGlobals, RuntimeModuleExt,
+  Plugin, PluginContext, PublicPath, RuntimeGlobals, RuntimeModuleExt,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -30,6 +30,11 @@ async fn runtime_requirements_in_tree(
     match runtime_requirement {
       RuntimeGlobals::ENSURE_CHUNK_HANDLERS if is_enabled_for_chunk => {
         has_chunk_loading = true;
+
+        if !matches!(compilation.options.output.public_path, PublicPath::Auto) {
+          runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
+        }
+
         runtime_requirements_mut.insert(RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME);
       }
       RuntimeGlobals::EXTERNAL_INSTALL_CHUNK if is_enabled_for_chunk => {
@@ -39,6 +44,11 @@ async fn runtime_requirements_in_tree(
       }
       RuntimeGlobals::ON_CHUNKS_LOADED | RuntimeGlobals::BASE_URI if is_enabled_for_chunk => {
         has_chunk_loading = true;
+      }
+      RuntimeGlobals::PREFETCH_CHUNK_HANDLERS | RuntimeGlobals::PRELOAD_CHUNK_HANDLERS => {
+        if is_enabled_for_chunk {
+          runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
+        }
       }
       _ => {}
     }

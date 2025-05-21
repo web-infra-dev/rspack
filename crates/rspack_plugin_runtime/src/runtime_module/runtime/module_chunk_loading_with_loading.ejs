@@ -7,7 +7,7 @@ if (installedChunkData !== 0) { // 0 means "already installed".'
     } else {
         if (<%- _js_matcher %>) {
             // setup Promise in chunk cache
-            var promise = <%- _import_function_name %>("<%- _output_dir %>" + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId)).then(installChunk, <%- basicFunction("e") %> {
+            var promise = <%- _import_function_name %>(<%- _output_dir %> + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId)).then(installChunk, <%- basicFunction("e") %> {
                 if (installedChunks[chunkId] !== 0) installedChunks[chunkId] = undefined;
                 throw e;
             });

@@ -1,7 +1,7 @@
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module, BooleanMatcher, Chunk, ChunkUkey, Compilation,
-  RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  PublicPath, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 
 use super::utils::{chunk_has_js, get_output_dir};
@@ -142,12 +142,17 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
         "installedChunks[chunkId] = 0;".to_string()
       } else {
+        let output_dir = if matches!(compilation.options.output.public_path, PublicPath::Auto) {
+          serde_json::to_string(&root_output_dir).expect("should able to serde_json::to_string")
+        } else {
+          RuntimeGlobals::PUBLIC_PATH.to_string()
+        };
         compilation.runtime_template.render(
           &self.template(TemplateId::WithLoading),
           Some(serde_json::json!({
             "_js_matcher": &has_js_matcher.render("chunkId"),
             "_import_function_name":&compilation.options.output.import_function_name,
-            "_output_dir": &root_output_dir,
+            "_output_dir": &output_dir,
             "_match_fallback":    if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
               ""
             } else {
