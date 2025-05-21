@@ -25,8 +25,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
 
 use crate::{
-  mapped_assets_cache::MappedAssetsCache, module_filename_helpers::ModuleFilenameHelpers,
-  ModuleFilenameTemplateFn, ModuleOrSource,
+  generate_debug_id::generate_debug_id, mapped_assets_cache::MappedAssetsCache,
+  module_filename_helpers::ModuleFilenameHelpers, ModuleFilenameTemplateFn, ModuleOrSource,
 };
 
 static SCHEMA_SOURCE_REGEXP: LazyLock<Regex> =
@@ -84,35 +84,6 @@ pub struct SourceMapDevToolPluginOptions {
   pub include: Option<AssetConditions>,
   pub exclude: Option<AssetConditions>,
   pub debug_ids: bool,
-}
-
-fn create_debug_id(filename: &str, source: &[u8]) -> String {
-  // We need two 64 bit hashes to give us the 128 bits required for a uuid
-  // The first 64 bit hash is built from the source
-  let mut hasher = RspackHash::new(&rspack_hash::HashFunction::Xxhash64);
-  hasher.write(source);
-  let hash1 = hasher.finish().to_le_bytes();
-
-  // The second 64 bit hash is built from the filename and the source hash
-  let mut hasher = RspackHash::new(&rspack_hash::HashFunction::Xxhash64);
-  hasher.write(filename.as_bytes());
-  hasher.write(&hash1);
-  let hash2 = hasher.finish().to_le_bytes();
-
-  let mut bytes = [hash1, hash2].concat();
-
-  // Build the uuid from the 16 bytes
-  let mut uuid = String::with_capacity(36);
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-
-  for (i, byte) in bytes.iter().enumerate() {
-    if i == 4 || i == 6 || i == 8 || i == 10 {
-      uuid.push('-');
-    }
-    uuid.push_str(&format!("{byte:02x}"));
-  }
-  uuid
 }
 
 enum SourceMappingUrlComment {
@@ -419,7 +390,7 @@ impl SourceMapDevToolPlugin {
           let (source_map_json, debug_id) = match source_map {
             Some(mut map) => {
               let debug_id = self.debug_ids.then(|| {
-                let debug_id = create_debug_id(&source_filename, &source.buffer());
+                let debug_id = generate_debug_id(&source_filename, &source.buffer());
                 map.set_debug_id(Some(debug_id.clone()));
                 debug_id
               });
