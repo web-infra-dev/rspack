@@ -140,13 +140,10 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
 
     let used_name = {
       let exports_info = module_graph.get_exports_info(&module.identifier());
-      let used_name =
-        exports_info.get_used_name(&module_graph, *runtime, UsedName::Str(dep.name.clone()));
+      let used_name = exports_info.get_used_name(&module_graph, *runtime, &[dep.name.clone()]);
       used_name.map(|item| match item {
-        UsedName::Str(name) => name,
-        UsedName::Vec(vec) => {
-          // vec.contains(&dep.name)
-          // TODO: should align webpack
+        UsedName::Normal(vec) => {
+          // only have one value for export specifier dependency
           vec[0].clone()
         }
       })

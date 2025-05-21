@@ -434,11 +434,10 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
           .get_used_name(
             &module_graph,
             code_generatable_context.runtime,
-            UsedName::Vec(concated_ids),
+            &concated_ids,
           )
           .and_then(|used| match used {
-            UsedName::Str(name) => Some(name),
-            UsedName::Vec(names) => names.last().cloned(),
+            UsedName::Normal(names) => names.last().cloned(),
           })
         else {
           return;
