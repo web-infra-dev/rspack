@@ -18,7 +18,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@rstack-dev/doc-ui": "1.10.1",
+    "@rstack-dev/doc-ui": "1.10.2",
     "axios": "^1.9.0",
     "markdown-to-jsx": "^7.7.6",
     "mermaid": "^11.6.0",
@@ -33,7 +33,7 @@
     "@rspress/plugin-rss": "2.0.0-beta.6",
     "@rspress/plugin-llms": "2.0.0-beta.6",
     "@shikijs/transformers": "^3.4.2",
-    "@types/node": "^20.17.46",
+    "@types/node": "^20.17.50",
     "@types/react": "^19.1.4",
     "@types/semver": "^7.7.0",
     "cspell-ban-words": "0.0.4",
