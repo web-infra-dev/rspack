@@ -807,8 +807,7 @@ thread_local! {
   pub(crate) static COMPILATION_HOOKS_MAP_SYMBOL: OnceCell<OneShotRef> = Default::default();
 }
 
-#[module_exports]
-fn init(mut exports: JsObject, env: Env) -> napi::Result<()> {
+pub(super) fn init(mut exports: Object, env: Env) -> napi::Result<()> {
   let module_identifier_symbol = OneShotRef::new(env.raw(), env.create_symbol(None)?)?;
   exports.set_named_property("MODULE_IDENTIFIER_SYMBOL", &module_identifier_symbol)?;
   MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
