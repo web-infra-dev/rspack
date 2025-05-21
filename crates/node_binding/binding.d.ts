@@ -253,10 +253,10 @@ export declare class JsCompilation {
   get hash(): string | null
   dependencies(): JsDependencies
   pushDiagnostic(diagnostic: JsRspackDiagnostic): void
-  spliceDiagnostic(start: number, end: number, replaceWith: Array<JsRspackDiagnostic>): void
   pushNativeDiagnostic(diagnostic: ExternalObject<'Diagnostic'>): void
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
   get errors(): Diagnostics
+  get warnings(): Diagnostics
   getErrors(): Array<JsRspackError>
   getWarnings(): Array<JsRspackError>
   getStats(): JsStats
