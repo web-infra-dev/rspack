@@ -1033,18 +1033,18 @@ export class Compilation {
     // (undocumented)
     getAsset(name: string): Readonly<Asset> | void;
     // (undocumented)
-    getAssetPath(filename: Filename, data?: PathData): string;
+    getAssetPath(filename: string, data?: PathData): string;
     // (undocumented)
-    getAssetPathWithInfo(filename: Filename, data?: PathData): binding.PathWithInfo;
+    getAssetPathWithInfo(filename: string, data?: PathData): binding.PathWithInfo;
     getAssets(): ReadonlyArray<Asset>;
     // (undocumented)
     getCache(name: string): CacheFacade_2;
     // (undocumented)
     getLogger(name: string | (() => string)): Logger_3;
     // (undocumented)
-    getPath(filename: Filename, data?: PathData): string;
+    getPath(filename: string, data?: PathData): string;
     // (undocumented)
-    getPathWithInfo(filename: Filename, data?: PathData): binding.PathWithInfo;
+    getPathWithInfo(filename: string, data?: PathData): binding.PathWithInfo;
     // (undocumented)
     getStats(): Stats;
     // (undocumented)
@@ -1653,6 +1653,24 @@ export type CssAutoParserOptions = {
 
 // @public
 export type CssChunkFilename = Filename;
+
+// @public (undocumented)
+const CssChunkingPlugin: {
+    new (options: CssChunkingPluginOptions): {
+        name: binding.BuiltinPluginName;
+        _args: [options: CssChunkingPluginOptions];
+        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler_2): binding.BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
+
+// @public (undocumented)
+interface CssChunkingPluginOptions {
+    nextjs?: boolean;
+    // (undocumented)
+    strict?: boolean;
+}
 
 // @public (undocumented)
 export interface CssExtractRspackLoaderOptions {
@@ -2447,6 +2465,8 @@ export const experiments: Experiments_2;
 
 // @public (undocumented)
 interface Experiments_2 {
+    // (undocumented)
+    CssChunkingPlugin: typeof CssChunkingPlugin;
     // (undocumented)
     globalTrace: {
         register: (filter: string, layer: "chrome" | "logger", output: string) => Promise<void>;
