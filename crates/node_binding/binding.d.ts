@@ -264,12 +264,12 @@ export declare class JsCompilation {
   get hash(): string | null
   dependencies(): JsDependencies
   pushDiagnostic(diagnostic: JsRspackDiagnostic): void
-  spliceDiagnostic(start: number, end: number, replaceWith: Array<JsRspackDiagnostic>): void
   pushNativeDiagnostic(diagnostic: ExternalObject<'Diagnostic'>): void
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
   get errors(): Diagnostics
-  getErrors(): Array<RspackError>
-  getWarnings(): Array<RspackError>
+  get warnings(): Diagnostics
+  getErrors(): Array<JsRspackError>
+  getWarnings(): Array<JsRspackError>
   getStats(): JsStats
   getAssetPath(filename: string, data: JsPathData): string
   getAssetPathWithInfo(filename: string, data: JsPathData): PathWithInfo
@@ -1651,7 +1651,7 @@ export interface RawCopyPattern {
    * @default false
    */
   copyPermissions?: boolean
-  transform?: { transformer: (input: string, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>  } | ((input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>)
+  transform?: { transformer: (input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>  } | ((input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>)
 }
 
 export interface RawCopyRspackPluginOptions {
@@ -2449,10 +2449,6 @@ export interface RawSwcJsMinimizerRspackPluginOptions {
 export interface RawToOptions {
   context: string
   absoluteFilename?: string
-}
-
-export interface RawTransformOptions {
-transformer: { transformer: (input: string, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>  }
 }
 
 export interface RawTrustedTypes {

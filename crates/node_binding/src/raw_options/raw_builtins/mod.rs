@@ -20,8 +20,8 @@ mod raw_sri;
 mod raw_swc_js_minimizer;
 
 use napi::{
-  bindgen_prelude::{FromNapiValue, Object},
-  Env, JsUnknown,
+  bindgen_prelude::{FromNapiValue, JsObjectValue, Object},
+  Env, Unknown,
 };
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
@@ -60,7 +60,7 @@ use rspack_plugin_ignore::IgnorePlugin;
 use rspack_plugin_javascript::{
   api_plugin::APIPlugin, define_plugin::DefinePlugin, provide_plugin::ProvidePlugin,
   FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin, JsPlugin,
-  MangleExportsPlugin, ModuleConcatenationPlugin, ModuleInfoHeaderPlugin, SideEffectsFlagPlugin,
+  MangleExportsPlugin, ModuleConcatenationPlugin, SideEffectsFlagPlugin,
 };
 use rspack_plugin_json::JsonPlugin;
 use rspack_plugin_library::enable_library_plugin;
@@ -71,6 +71,7 @@ use rspack_plugin_mf::{
   ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin, ModuleFederationRuntimePlugin,
   ProvideSharedPlugin, ShareRuntimePlugin,
 };
+use rspack_plugin_module_info_header::ModuleInfoHeaderPlugin;
 use rspack_plugin_no_emit_on_errors::NoEmitOnErrorsPlugin;
 use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_real_content_hash::RealContentHashPlugin;
@@ -218,13 +219,13 @@ pub enum BuiltinPluginName {
 }
 
 #[napi(object)]
-pub struct BuiltinPlugin {
+pub struct BuiltinPlugin<'a> {
   pub name: BuiltinPluginName,
-  pub options: JsUnknown,
+  pub options: Unknown<'a>,
   pub can_inherent_from_parent: Option<bool>,
 }
 
-impl BuiltinPlugin {
+impl<'a> BuiltinPlugin<'a> {
   pub fn append_to(
     self,
     env: Env,
@@ -725,6 +726,6 @@ impl BuiltinPlugin {
   }
 }
 
-fn downcast_into<T: FromNapiValue + 'static>(o: JsUnknown) -> Result<T> {
+fn downcast_into<T: FromNapiValue + 'static>(o: Unknown) -> Result<T> {
   rspack_napi::downcast_into(o).to_rspack_result()
 }

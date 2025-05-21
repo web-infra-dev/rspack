@@ -102,7 +102,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         referenced_properties_in_destructuring
           .iter()
           .cloned()
-          .map(Atom::from)
+          .map(|x| x.id)
           .collect_vec(),
       );
     }

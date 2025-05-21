@@ -475,48 +475,43 @@ impl ExportsInfo {
     &self,
     mg: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
-    name: UsedName,
+    names: &[Atom],
   ) -> Option<UsedName> {
-    match name {
-      UsedName::Str(name) => {
-        let info = self.get_read_only_export_info(mg, &name);
-        info
-          .get_used_name(mg, Some(&name), runtime)
-          .map(UsedName::Str)
-      }
-      UsedName::Vec(names) => {
-        if names.is_empty() {
-          if !self.is_used(mg, runtime) {
-            return None;
-          }
-          return Some(UsedName::Vec(names));
-        }
-        let export_info = self.get_read_only_export_info(mg, &names[0]);
-        let x = export_info.get_used_name(mg, Some(&names[0]), runtime)?;
-        let names_len = names.len();
-        let mut arr = if x == names[0] && names.len() == 1 {
-          names.clone()
-        } else {
-          vec![x]
-        };
-        if names_len == 1 {
-          return Some(UsedName::Vec(arr));
-        }
-        if let Some(exports_info) = export_info.exports_info(mg)
-          && export_info.get_used(mg, runtime) == UsageState::OnlyPropertiesUsed
-        {
-          let nested = exports_info.get_used_name(mg, runtime, UsedName::Vec(names[1..].to_vec()));
-          let nested = nested?;
-          arr.extend(match nested {
-            UsedName::Str(name) => vec![name],
-            UsedName::Vec(names) => names,
-          });
-          return Some(UsedName::Vec(arr));
-        }
-        arr.extend(names.into_iter().skip(1));
-        Some(UsedName::Vec(arr))
-      }
+    if names.len() == 1 {
+      let name = &names[0];
+      let info = self.get_read_only_export_info(mg, name);
+      return info
+        .get_used_name(mg, Some(name), runtime)
+        .map(|n| UsedName::Normal(vec![n]));
     }
+    if names.is_empty() {
+      if !self.is_used(mg, runtime) {
+        return None;
+      }
+      return Some(UsedName::Normal(names.to_vec()));
+    }
+    let export_info = self.get_read_only_export_info(mg, &names[0]);
+    let x = export_info.get_used_name(mg, Some(&names[0]), runtime)?;
+    let mut arr = if x == names[0] && names.len() == 1 {
+      names.to_vec()
+    } else {
+      vec![x]
+    };
+    if names.len() == 1 {
+      return Some(UsedName::Normal(arr));
+    }
+    if let Some(exports_info) = export_info.exports_info(mg)
+      && export_info.get_used(mg, runtime) == UsageState::OnlyPropertiesUsed
+    {
+      let nested = exports_info.get_used_name(mg, runtime, &names[1..]);
+      let nested = nested?;
+      arr.extend(match nested {
+        UsedName::Normal(names) => names,
+      });
+      return Some(UsedName::Normal(arr));
+    }
+    arr.extend(names.iter().skip(1).cloned());
+    Some(UsedName::Normal(arr))
   }
 
   pub fn get_provided_exports(&self, mg: &ModuleGraph) -> ProvidedExports {
@@ -673,31 +668,24 @@ impl ExportsInfo {
   pub fn get_used(
     &self,
     mg: &ModuleGraph,
-    name: UsedName,
+    names: &[Atom],
     runtime: Option<&RuntimeSpec>,
   ) -> UsageState {
-    match &name {
-      UsedName::Str(value) => {
-        let info = self.get_read_only_export_info(mg, value);
-        info.get_used(mg, runtime)
-      }
-      UsedName::Vec(value) => {
-        if value.is_empty() {
-          return self.other_exports_info(mg).get_used(mg, runtime);
-        }
-        let info = self.get_read_only_export_info(mg, &value[0]);
-        if let Some(exports_info) = info.exports_info(mg)
-          && value.len() > 1
-        {
-          return exports_info.get_used(
-            mg,
-            UsedName::Vec(value.iter().skip(1).cloned().collect::<Vec<_>>()),
-            runtime,
-          );
-        }
-        info.get_used(mg, runtime)
-      }
+    if names.len() == 1 {
+      let value = &names[0];
+      let info = self.get_read_only_export_info(mg, value);
+      return info.get_used(mg, runtime);
     }
+    if names.is_empty() {
+      return self.other_exports_info(mg).get_used(mg, runtime);
+    }
+    let info = self.get_read_only_export_info(mg, &names[0]);
+    if let Some(exports_info) = info.exports_info(mg)
+      && names.len() > 1
+    {
+      return exports_info.get_used(mg, &names[1..], runtime);
+    }
+    info.get_used(mg, runtime)
   }
 
   pub fn get_usage_key(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> UsageKey {
@@ -824,15 +812,13 @@ impl ExportsInfoData {
 
 #[derive(Debug, Clone)]
 pub enum UsedName {
-  Str(Atom),
-  Vec(Vec<Atom>),
+  Normal(Vec<Atom>),
 }
 
 impl UsedName {
   pub fn to_used_name_vec(self) -> Vec<Atom> {
     match self {
-      UsedName::Str(atom) => vec![atom],
-      UsedName::Vec(vec) => vec,
+      UsedName::Normal(vec) => vec,
     }
   }
 }
@@ -840,18 +826,21 @@ impl UsedName {
 impl AsRef<[Atom]> for UsedName {
   fn as_ref(&self) -> &[Atom] {
     match self {
-      UsedName::Str(atom) => std::slice::from_ref(atom),
-      UsedName::Vec(vec) => vec,
+      UsedName::Normal(vec) => vec,
     }
   }
 }
 
 pub fn string_of_used_name(used: Option<&UsedName>) -> String {
   match used {
-    Some(UsedName::Str(str)) => str.to_string(),
-    Some(UsedName::Vec(value_key)) => property_access(value_key, 0)
-      .trim_start_matches('.')
-      .to_string(),
+    Some(UsedName::Normal(value_key)) => {
+      if value_key.len() == 1 {
+        return value_key[0].to_string();
+      }
+      property_access(value_key, 0)
+        .trim_start_matches('.')
+        .to_string()
+    }
     None => "/* unused export */ undefined".to_string(),
   }
 }
@@ -2069,9 +2058,7 @@ impl DependencyConditionFn for UsedByExportsDependencyCondition {
       .expect("should have parent module");
     let exports_info = mg.get_exports_info(module_identifier);
     for export_name in self.used_by_exports.iter() {
-      if exports_info.get_used(mg, UsedName::Str(export_name.clone()), runtime)
-        != UsageState::Unused
-      {
+      if exports_info.get_used(mg, &[export_name.clone()], runtime) != UsageState::Unused {
         return ConnectionState::Bool(true);
       }
     }

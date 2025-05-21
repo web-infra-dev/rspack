@@ -11,7 +11,6 @@ pub use code_generation_results::*;
 use dependencies::JsDependencies;
 use diagnostics::Diagnostics;
 use entries::JsEntries;
-use napi::NapiRaw;
 use napi_derive::napi;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{
@@ -403,20 +402,6 @@ impl JsCompilation {
     Ok(())
   }
 
-  #[napi]
-  pub fn splice_diagnostic(
-    &mut self,
-    start: u32,
-    end: u32,
-    replace_with: Vec<crate::JsRspackDiagnostic>,
-  ) -> Result<()> {
-    let compilation = self.as_mut()?;
-
-    let diagnostics = replace_with.into_iter().map(Into::into).collect();
-    compilation.splice_diagnostic(start as usize, end as usize, diagnostics);
-    Ok(())
-  }
-
   #[napi(ts_args_type = r#"diagnostic: ExternalObject<'Diagnostic'>"#)]
   pub fn push_native_diagnostic(&mut self, diagnostic: &External<Diagnostic>) -> Result<()> {
     let compilation = self.as_mut()?;
@@ -438,10 +423,18 @@ impl JsCompilation {
     Ok(())
   }
 
-  #[napi(getter, ts_return_type = "Diagnostics")]
+  #[napi(getter)]
   pub fn errors(&self, reference: Reference<JsCompilation>) -> Result<Diagnostics> {
     Ok(Diagnostics::new(
       RspackSeverity::Error,
+      reference.downgrade(),
+    ))
+  }
+
+  #[napi(getter)]
+  pub fn warnings(&self, reference: Reference<JsCompilation>) -> Result<Diagnostics> {
+    Ok(Diagnostics::new(
+      RspackSeverity::Warn,
       reference.downgrade(),
     ))
   }
@@ -571,7 +564,7 @@ impl JsCompilation {
     &mut self,
     reference: Reference<JsCompilation>,
     module_identifiers: Vec<String>,
-    f: Function,
+    f: Function<'static>,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
@@ -610,7 +603,7 @@ impl JsCompilation {
     base_uri: Option<String>,
     original_module: Option<String>,
     original_module_context: Option<String>,
-    callback: Function,
+    callback: Function<'static>,
   ) -> Result<()> {
     let compilation = self.as_ref()?;
 
@@ -707,7 +700,7 @@ impl JsCompilation {
     &mut self,
     reference: Reference<JsCompilation>,
     js_args: Vec<(String, &mut EntryDependency, Option<JsEntryOptions>)>,
-    f: Function,
+    f: Function<'static>,
   ) -> napi::Result<()> {
     let compilation = self.as_mut()?;
 
@@ -804,7 +797,7 @@ impl JsCompilation {
     &mut self,
     reference: Reference<JsCompilation>,
     js_args: Vec<(String, &mut EntryDependency, Option<JsEntryOptions>)>,
-    f: Function,
+    f: Function<'static>,
   ) -> napi::Result<()> {
     let compilation = self.as_mut()?;
 
@@ -909,16 +902,15 @@ impl ToNapiValue for JsAddEntryItemCallbackArgs {
     let env_wrapper = Env::from_raw(env);
     let mut js_array = env_wrapper.create_array(0)?;
 
+    let raw_undefined = Undefined::to_napi_value(env, ())?;
+    let undefined = Unknown::from_napi_value(env, raw_undefined)?;
     for result in val.0 {
       let js_result = match result {
-        Either::A(msg) => vec![
-          env_wrapper.create_string(&msg)?.into_unknown(),
-          env_wrapper.get_undefined()?.into_unknown(),
-        ],
+        Either::A(msg) => vec![env_wrapper.create_string(&msg)?.to_unknown(), undefined],
         Either::B(module) => {
           let napi_val = ToNapiValue::to_napi_value(env, module)?;
           let js_module = Unknown::from_napi_value(env, napi_val)?;
-          vec![env_wrapper.get_undefined()?.into_unknown(), js_module]
+          vec![undefined, js_module]
         }
       };
       js_array.insert(js_result)?;

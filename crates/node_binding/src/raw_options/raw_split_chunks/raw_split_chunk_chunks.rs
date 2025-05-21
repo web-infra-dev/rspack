@@ -7,7 +7,7 @@ use rspack_regex::RspackRegex;
 
 use crate::JsChunkWrapper;
 
-pub type Chunks = Either3<RspackRegex, JsString, ThreadsafeFunction<JsChunkWrapper, bool>>;
+pub type Chunks<'a> = Either3<RspackRegex, JsString<'a>, ThreadsafeFunction<JsChunkWrapper, bool>>;
 
 pub fn create_chunks_filter(raw: Chunks) -> rspack_plugin_split_chunks::ChunkFilter {
   match raw {

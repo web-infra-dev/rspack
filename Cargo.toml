@@ -87,9 +87,9 @@ ustr               = { package = "ustr-fxhash", version = "1.0.1" }
 xxhash-rust        = { version = "0.8.14" }
 
 # Pinned
-napi        = { version = "3.0.0-alpha.33" }
-napi-build  = { version = "2.1.6" }
-napi-derive = { version = "3.0.0-alpha.29" }
+napi        = { version = "3.0.0-beta.1" }
+napi-build  = { version = "2.2.0" }
+napi-derive = { version = "3.0.0-beta.1" }
 
 # Serialize and Deserialize
 inventory = { version = "0.3.17" }
@@ -170,6 +170,7 @@ rspack_plugin_merge                    = { version = "0.2.0", path = "crates/rsp
 rspack_plugin_merge_duplicate_chunks   = { version = "0.2.0", path = "crates/rspack_plugin_merge_duplicate_chunks" }
 rspack_plugin_mf                       = { version = "0.2.0", path = "crates/rspack_plugin_mf" }
 rspack_plugin_mini_css_extract         = { version = "0.2.0", path = "crates/rspack_plugin_mini_css_extract" }
+rspack_plugin_module_info_header       = { version = "0.2.0", path = "crates/rspack_plugin_module_info_header" }
 rspack_plugin_no_emit_on_errors        = { version = "0.2.0", path = "crates/rspack_plugin_no_emit_on_errors" }
 rspack_plugin_progress                 = { version = "0.2.0", path = "crates/rspack_plugin_progress" }
 rspack_plugin_real_content_hash        = { version = "0.2.0", path = "crates/rspack_plugin_real_content_hash" }

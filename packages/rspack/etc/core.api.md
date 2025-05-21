@@ -927,7 +927,7 @@ class CodeGenerationResult {
 type CodeValue = RecursiveArrayOrRecord<CodeValuePrimitive>;
 
 // @public (undocumented)
-type CodeValuePrimitive = null | undefined | RegExp | Function | string | number | boolean | bigint | undefined;
+type CodeValuePrimitive = null | undefined | RegExp | Function | string | number | boolean | bigint;
 
 // @public (undocumented)
 interface CommonJsConfig extends BaseModuleConfig {

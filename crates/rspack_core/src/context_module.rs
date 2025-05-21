@@ -31,8 +31,8 @@ use crate::{
   CodeGenerationResult, Compilation, ConcatenationScope, ContextElementDependency,
   DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyLocation,
   DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
-  ImportAttributes, LibIdentOptions, Module, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleType,
-  RealDependencyLocation, Resolve, RuntimeGlobals, RuntimeSpec, SourceType,
+  ImportAttributes, LibIdentOptions, Module, ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer,
+  ModuleType, RealDependencyLocation, Resolve, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 static WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -857,7 +857,7 @@ impl Module for ContextModule {
     &ModuleType::JsAuto
   }
 
-  fn source_types(&self) -> &[SourceType] {
+  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     &[SourceType::JavaScript]
   }
 

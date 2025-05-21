@@ -38,8 +38,8 @@ cow-utils          = { workspace = true }
 tracing            = { workspace = true }
 tracing-subscriber = { workspace = true }
 
-napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow", "napi7"] }
-napi-derive = { workspace = true }
+napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow", "napi7", "compat-mode"] }
+napi-derive = { workspace = true, features = ["compat-mode"] }
 
 color-backtrace = "0.6.1"
 
@@ -82,6 +82,7 @@ rspack_plugin_lightning_css_minimizer  = { workspace = true }
 rspack_plugin_limit_chunk_count        = { workspace = true }
 rspack_plugin_merge_duplicate_chunks   = { workspace = true }
 rspack_plugin_mf                       = { workspace = true }
+rspack_plugin_module_info_header       = { workspace = true }
 rspack_plugin_no_emit_on_errors        = { workspace = true }
 rspack_plugin_progress                 = { workspace = true }
 rspack_plugin_real_content_hash        = { workspace = true }

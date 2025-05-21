@@ -51,7 +51,7 @@ use crate::{
   ErrorSpan, ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta, IdentCollector,
   LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType, Resolve, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsageState, UsedName, DEFAULT_EXPORT,
+  RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsageState, DEFAULT_EXPORT,
   NAMESPACE_OBJECT_EXPORT,
 };
 
@@ -523,7 +523,7 @@ impl Module for ConcatenatedModule {
     &mut self.root_module_ctxt.build_meta
   }
 
-  fn source_types(&self) -> &[SourceType] {
+  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     &[SourceType::JavaScript]
   }
 
@@ -2107,9 +2107,7 @@ impl ConcatenatedModule {
         if let Some(ref export_id) = export_id
           && let Some(direct_export) = info.export_map.as_ref().and_then(|map| map.get(export_id))
         {
-          if let Some(used_name) =
-            exports_info.get_used_name(mg, runtime, UsedName::Vec(export_name.clone()))
-          {
+          if let Some(used_name) = exports_info.get_used_name(mg, runtime, &export_name) {
             // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L402-L404
             let used_name = used_name.to_used_name_vec();
 
@@ -2188,7 +2186,7 @@ impl ConcatenatedModule {
         if info.namespace_export_symbol.is_some() {
           // That's how webpack write https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L463-L471
           let used_name = exports_info
-            .get_used_name(mg, runtime, UsedName::Vec(export_name.clone()))
+            .get_used_name(mg, runtime, &export_name)
             .expect("should have export name");
           let used_name = used_name.to_used_name_vec();
           return Binding::Raw(RawBinding {
@@ -2211,9 +2209,7 @@ impl ConcatenatedModule {
         );
       }
       ModuleInfo::External(info) => {
-        if let Some(used_name) =
-          exports_info.get_used_name(mg, runtime, UsedName::Vec(export_name.clone()))
-        {
+        if let Some(used_name) = exports_info.get_used_name(mg, runtime, &export_name) {
           let used_name = used_name.to_used_name_vec();
           let comment = if used_name == export_name {
             String::new()

@@ -95,7 +95,7 @@ pub struct JsLoaderContext {
   /// Content maybe empty in pitching stage
   pub content: Either<Null, Buffer>,
   #[napi(ts_type = "any")]
-  pub additional_data: Option<ThreadsafeJsValueRef<Unknown>>,
+  pub additional_data: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
   #[napi(js_name = "__internal__parseMeta")]
   pub parse_meta: HashMap<String, String>,
   pub source_map: Option<Buffer>,

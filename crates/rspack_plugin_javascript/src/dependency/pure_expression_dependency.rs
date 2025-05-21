@@ -5,7 +5,6 @@ use rspack_core::{
   Compilation, ConnectionState, Dependency, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, ModuleGraph, ModuleIdentifier,
   RuntimeCondition, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedByExports,
-  UsedName,
 };
 use rspack_util::ext::DynHash;
 
@@ -43,8 +42,7 @@ impl PureExpressionDependency {
         let exports_info = module_graph.get_exports_info(&self.module_identifier);
         filter_runtime(runtime, |cur_runtime| {
           set.iter().any(|id| {
-            exports_info.get_used(&module_graph, UsedName::Str(id.clone()), cur_runtime)
-              != UsageState::Unused
+            exports_info.get_used(&module_graph, &[id.clone()], cur_runtime) != UsageState::Unused
           })
         })
       }

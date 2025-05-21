@@ -1,6 +1,8 @@
 #![recursion_limit = "256"]
 #![feature(let_chains)]
 #![feature(try_blocks)]
+#![allow(deprecated)]
+
 #[macro_use]
 extern crate napi_derive;
 extern crate rspack_allocator;
@@ -211,7 +213,7 @@ impl JsCompiler {
 
   /// Build with the given option passed to the constructor
   #[napi(ts_args_type = "callback: (err: null | Error) => void")]
-  pub fn build(&mut self, reference: Reference<JsCompiler>, f: Function) -> Result<()> {
+  pub fn build(&mut self, reference: Reference<JsCompiler>, f: Function<'static>) -> Result<()> {
     unsafe {
       self.run(reference, |compiler, guard| {
         callbackify(
@@ -238,7 +240,7 @@ impl JsCompiler {
     reference: Reference<JsCompiler>,
     changed_files: Vec<String>,
     removed_files: Vec<String>,
-    f: Function,
+    f: Function<'static>,
   ) -> Result<()> {
     use std::collections::HashSet;
 
@@ -476,9 +478,15 @@ pub fn cleanup_global_trace() {
   });
 }
 
-#[module_exports]
 fn node_init(mut _exports: Object, env: Env) -> Result<()> {
   rspack_core::set_thread_local_allocator(Box::new(allocator::NapiAllocatorImpl::new(env)));
+  Ok(())
+}
+
+#[napi(module_exports)]
+pub fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
+  node_init(exports, env)?;
+  module::init(exports, env)?;
   Ok(())
 }
 
