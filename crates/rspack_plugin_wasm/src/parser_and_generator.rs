@@ -8,6 +8,7 @@ use indexmap::IndexMap;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
 use rspack_collections::Identifier;
 use rspack_core::{
+  property_access,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
   AssetInfo, BoxDependency, BuildMetaExportsType, ChunkGraph, Compilation,
   DependencyType::WasmImport,
@@ -209,7 +210,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
               let val = (
                 mgm.module_identifier,
                 dep_name,
-                serde_json::to_string(&used_name).expect("should convert to json string"),
+                property_access(used_name, 0),
               );
               if let Some(deps) = wasm_deps_by_request.get_mut(&request) {
                 deps.push(val);
@@ -233,7 +234,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
               .map(|(id, name, used_name)| {
                 let import_var = dep_modules.get(&id).expect("should be ok");
                 let import_var = &import_var.0;
-                format!("{name}: {import_var}[{used_name}]")
+                format!("{name}: {import_var}{used_name}")
               })
               .collect::<Vec<_>>()
               .join(",\n");
