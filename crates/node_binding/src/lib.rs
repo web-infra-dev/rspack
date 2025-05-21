@@ -9,7 +9,7 @@ extern crate rspack_allocator;
 use std::{cell::RefCell, sync::Arc};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
-use napi::{bindgen_prelude::*, CallContext, JsObject};
+use napi::{bindgen_prelude::*, CallContext};
 use rspack_collections::UkeyMap;
 use rspack_core::{
   BoxDependency, Compilation, CompilerId, EntryOptions, ModuleIdentifier, PluginExt,
@@ -478,9 +478,15 @@ pub fn cleanup_global_trace() {
   });
 }
 
-#[module_exports]
-fn node_init(mut _exports: JsObject, env: Env) -> Result<()> {
+fn node_init(mut _exports: Object, env: Env) -> Result<()> {
   rspack_core::set_thread_local_allocator(Box::new(allocator::NapiAllocatorImpl::new(env)));
+  Ok(())
+}
+
+#[napi(module_exports)]
+fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
+  node_init(exports, env)?;
+  module::init(exports, env)?;
   Ok(())
 }
 
