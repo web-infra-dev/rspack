@@ -90,22 +90,24 @@ impl ChunkGraph {
     }
     // bfs visit all chunk groups
     while let Some(chunk_group_ukey) = visiting_groups.pop() {
-      if visited_group_nodes.contains_key(&chunk_group_ukey) {
-        continue;
-      }
-      let chunk_group_name = get_debug_chunk_group_info(&chunk_group_ukey);
-      visited_group_nodes.insert(chunk_group_ukey, chunk_group_name.clone());
       let chunk_group = compilation
         .chunk_group_by_ukey
         .get(&chunk_group_ukey)
         .expect("should have chunk group");
+      if visited_group_nodes.contains_key(&chunk_group_ukey) {
+        continue;
+      }
+      let chunk_group_name = get_debug_chunk_group_info(&chunk_group_ukey);
+
+      for parent in &chunk_group.parents {
+        visited_group_edges.insert((chunk_group_ukey, *parent));
+      }
       for child in chunk_group.children.iter() {
-        let chunk_group_name = get_debug_chunk_group_info(&child);
         // calculate every edge
         visited_group_edges.insert((chunk_group_ukey, *child));
-        visited_group_nodes.insert(*child, chunk_group_name);
         visiting_groups.push(*child);
       }
+      visited_group_nodes.insert(chunk_group_ukey, chunk_group_name.clone());
     }
     use std::io::Write;
     let mut dot = Vec::new();
