@@ -38,7 +38,7 @@ impl ChunkGraph {
   // 1. support chunk_group dump visualizer
   pub fn to_dot(&self, compilation: &Compilation) -> std::io::Result<String> {
     let mut visited_group_nodes: HashMap<ChunkGroupUkey, String> = HashMap::default();
-    let mut visited_group_edges: HashSet<(ChunkGroupUkey, ChunkGroupUkey)> = HashSet::new();
+    let mut visited_group_edges: HashSet<(ChunkGroupUkey, ChunkGroupUkey, bool)> = HashSet::new();
     let mut visiting_groups: Vec<ChunkGroupUkey> = Vec::new();
     // generate following chunk_group_info as dto record info
     // <td title="chunk_group_name"></td><td title="chunk1"></td><td title="chunk2"></td>
@@ -100,11 +100,12 @@ impl ChunkGraph {
       let chunk_group_name = get_debug_chunk_group_info(&chunk_group_ukey);
 
       for parent in &chunk_group.parents {
-        visited_group_edges.insert((chunk_group_ukey, *parent));
+        // false means this is a revert link to parent
+        visited_group_edges.insert((chunk_group_ukey, *parent, false));
       }
       for child in chunk_group.children.iter() {
         // calculate every edge
-        visited_group_edges.insert((chunk_group_ukey, *child));
+        visited_group_edges.insert((chunk_group_ukey, *child, true));
         visiting_groups.push(*child);
       }
       visited_group_nodes.insert(chunk_group_ukey, chunk_group_name.clone());
@@ -113,7 +114,11 @@ impl ChunkGraph {
     let mut dot = Vec::new();
     // write header
     write!(&mut dot, "digraph G {{\n")?;
+    // neato layout engine is more readable
+    write!(&mut dot, "layout=neato;\n")?;
+    write!(&mut dot, "overlap=false;\n")?;
     write!(&mut dot, "node [shape=plaintext];\n")?;
+    write!(&mut dot, "edge [arrowsize=0.5];\n")?;
 
     // write all node info
     for (node_id, node_info) in visited_group_nodes.iter() {
@@ -125,6 +130,13 @@ impl ChunkGraph {
     // 1 -> 2, 2 -> 3
     for edge in visited_group_edges.iter() {
       write!(&mut dot, "{} -> {}", edge.0.as_u32(), edge.1.as_u32())?;
+      write!(&mut dot, "[")?;
+      write!(
+        &mut dot,
+        "style=\"{}\"",
+        if edge.2 { "solid" } else { "dotted" }
+      )?;
+      write!(&mut dot, "]")?;
       write!(&mut dot, ";\n")?;
     }
     // write footer
