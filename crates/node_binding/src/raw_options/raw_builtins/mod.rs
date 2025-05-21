@@ -20,8 +20,8 @@ mod raw_sri;
 mod raw_swc_js_minimizer;
 
 use napi::{
-  bindgen_prelude::{FromNapiValue, Object},
-  Env, JsUnknown,
+  bindgen_prelude::{FromNapiValue, JsObjectValue, Object},
+  Env, Unknown,
 };
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
@@ -219,13 +219,13 @@ pub enum BuiltinPluginName {
 }
 
 #[napi(object)]
-pub struct BuiltinPlugin {
+pub struct BuiltinPlugin<'a> {
   pub name: BuiltinPluginName,
-  pub options: JsUnknown,
+  pub options: Unknown<'a>,
   pub can_inherent_from_parent: Option<bool>,
 }
 
-impl BuiltinPlugin {
+impl<'a> BuiltinPlugin<'a> {
   pub fn append_to(
     self,
     env: Env,
@@ -726,6 +726,6 @@ impl BuiltinPlugin {
   }
 }
 
-fn downcast_into<T: FromNapiValue + 'static>(o: JsUnknown) -> Result<T> {
+fn downcast_into<T: FromNapiValue + 'static>(o: Unknown) -> Result<T> {
   rspack_napi::downcast_into(o).to_rspack_result()
 }
