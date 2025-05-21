@@ -3,8 +3,8 @@ use std::ptr::NonNull;
 use cow_utils::CowUtils;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
-  compile_boolean_matcher, impl_runtime_module, BooleanMatcher, Chunk, ChunkUkey, Compilation,
-  CrossOriginLoading, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  compile_boolean_matcher, impl_runtime_module, BooleanMatcher, Chunk, ChunkGroupOrderKey,
+  ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 
 use super::generate_javascript_hmr_runtime;
@@ -117,8 +117,22 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
     let with_hmr_manifest = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
     let with_callback = runtime_requirements.contains(RuntimeGlobals::CHUNK_CALLBACK);
-    let with_prefetch = runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS);
-    let with_preload = runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS);
+    let with_prefetch = runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS)
+      && compilation.options.output.environment.supports_document()
+      && chunk.has_child_by_order(
+        compilation,
+        &ChunkGroupOrderKey::Prefetch,
+        true,
+        &chunk_has_js,
+      );
+    let with_preload = runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS)
+      && compilation.options.output.environment.supports_document()
+      && chunk.has_child_by_order(
+        compilation,
+        &ChunkGroupOrderKey::Preload,
+        true,
+        &chunk_has_js,
+      );
     let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
     let cross_origin_loading = &compilation.options.output.cross_origin_loading;
     let script_type = &compilation.options.output.script_type;
@@ -198,8 +212,8 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     if with_prefetch && !matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
       let cross_origin = match cross_origin_loading {
         CrossOriginLoading::Disable => "".to_string(),
-        CrossOriginLoading::Enable(_) => {
-          format!("link.crossOrigin = {}", cross_origin_loading)
+        CrossOriginLoading::Enable(v) => {
+          format!("link.crossOrigin = '{}';", v)
         }
       };
       let link_prefetch_code = r#"
@@ -209,8 +223,8 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     if (__webpack_require__.nc) {
       link.setAttribute("nonce", __webpack_require__.nc);
     }
-    link.rel = "prefetch";
-    link.as = "script";
+    link.rel = 'prefetch';
+    link.as = 'script';
     link.href = __webpack_require__.p + __webpack_require__.u(chunkId);  
       "#
       .cow_replace(
@@ -251,17 +265,17 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     if with_preload && !matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
       let cross_origin = match cross_origin_loading {
         CrossOriginLoading::Disable => "".to_string(),
-        CrossOriginLoading::Enable(cross_origin_value) => {
-          if cross_origin_value.eq("use-credentials") {
-            "link.crossOrigin = \"use-credentials\";".to_string()
+        CrossOriginLoading::Enable(v) => {
+          if v.eq("use-credentials") {
+            "link.crossOrigin = 'use-credentials';".to_string()
           } else {
             format!(
               r#"
               if (link.href.indexOf(window.location.origin + '/') !== 0) {{
-                link.crossOrigin = {}
+                link.crossOrigin = '{}';
               }}
               "#,
-              cross_origin_loading
+              v
             )
           }
         }
@@ -275,11 +289,11 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         )
       };
       let script_type_link_post = if script_type.eq("module") {
-        "link.rel = \"modulepreload\";"
+        "link.rel = 'modulepreload';"
       } else {
         r#"
-        link.rel = "preload";
-        link.as = "script";
+        link.rel = 'preload';
+        link.as = 'script';
         "#
       };
 
