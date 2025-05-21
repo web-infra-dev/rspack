@@ -268,8 +268,8 @@ export declare class JsCompilation {
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
   get errors(): Diagnostics
   get warnings(): Diagnostics
-  getErrors(): Array<JsRspackError>
-  getWarnings(): Array<JsRspackError>
+  getErrors(): Array<RspackError>
+  getWarnings(): Array<RspackError>
   getStats(): JsStats
   getAssetPath(filename: string, data: JsPathData): string
   getAssetPathWithInfo(filename: string, data: JsPathData): PathWithInfo
