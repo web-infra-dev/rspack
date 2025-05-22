@@ -1,2 +1,1 @@
-// Cannot find module '../../../lib/ModuleTypeConstants'
-module.exports = () => false;
+module.exports = () => "NOPLAN: support webpack.optimize.MergeDuplicateChunksPlugin";
