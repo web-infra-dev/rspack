@@ -60,13 +60,6 @@ impl ModuleExecutor {
     // update the module affected by modified_files
     make_artifact = update_module_graph(compilation, make_artifact, params).await?;
 
-    compilation
-      .plugin_driver
-      .compilation_hooks
-      .revoked_modules
-      .call(&make_artifact.revoked_modules)
-      .await?;
-
     let mut ctx = ExecutorTaskContext {
       origin_context: MakeTaskContext::new(compilation, make_artifact, Arc::new(MemoryCache)),
       tracker: Default::default(),
