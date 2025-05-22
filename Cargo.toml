@@ -177,6 +177,7 @@ rspack_plugin_real_content_hash        = { version = "0.2.0", path = "crates/rsp
 rspack_plugin_remove_duplicate_modules = { version = "0.2.0", path = "crates/rspack_plugin_remove_duplicate_modules" }
 rspack_plugin_remove_empty_chunks      = { version = "0.2.0", path = "crates/rspack_plugin_remove_empty_chunks" }
 rspack_plugin_rsdoctor                 = { version = "0.2.0", path = "crates/rspack_plugin_rsdoctor" }
+rspack_plugin_rstest                   = { version = "0.2.0", path = "crates/rspack_plugin_rstest" }
 rspack_plugin_runtime                  = { version = "0.2.0", path = "crates/rspack_plugin_runtime" }
 rspack_plugin_runtime_chunk            = { version = "0.2.0", path = "crates/rspack_plugin_runtime_chunk" }
 rspack_plugin_schemes                  = { version = "0.2.0", path = "crates/rspack_plugin_schemes" }

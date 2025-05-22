@@ -78,6 +78,7 @@ use rspack_plugin_real_content_hash::RealContentHashPlugin;
 use rspack_plugin_remove_duplicate_modules::RemoveDuplicateModulesPlugin;
 use rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin;
 use rspack_plugin_rsdoctor::RsdoctorPlugin;
+use rspack_plugin_rstest::RstestPlugin;
 use rspack_plugin_runtime::{
   enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, BundlerInfoPlugin,
   ChunkPrefetchPreloadPlugin, CommonJsChunkFormatPlugin, ModuleChunkFormatPlugin, RuntimePlugin,
@@ -119,8 +120,8 @@ use crate::{
   entry::JsEntryPluginOptions, plugins::JsLoaderRspackPlugin, JsLoaderRunnerGetter,
   RawContextReplacementPluginOptions, RawDynamicEntryPluginOptions,
   RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
-  RawHttpExternalsRspackPluginOptions, RawRsdoctorPluginOptions, RawSplitChunksOptions,
-  SourceMapDevToolPluginOptions,
+  RawHttpExternalsRspackPluginOptions, RawRsdoctorPluginOptions, RawRstestPluginOptions,
+  RawSplitChunksOptions, SourceMapDevToolPluginOptions,
 };
 
 #[napi(string_enum)]
@@ -207,6 +208,7 @@ pub enum BuiltinPluginName {
   CssExtractRspackPlugin,
   SubresourceIntegrityPlugin,
   RsdoctorPlugin,
+  RstestPlugin,
   CircularDependencyRspackPlugin,
 
   // rspack js adapter plugins
@@ -704,6 +706,12 @@ impl BuiltinPlugin {
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         let options = raw_options.into();
         plugins.push(RsdoctorPlugin::new(options).boxed());
+      }
+      BuiltinPluginName::RstestPlugin => {
+        let raw_options = downcast_into::<RawRstestPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+        let options = raw_options.into();
+        plugins.push(RstestPlugin::new(options).boxed());
       }
       BuiltinPluginName::SubresourceIntegrityPlugin => {
         let raw_options = downcast_into::<RawSubresourceIntegrityPluginOptions>(self.options)

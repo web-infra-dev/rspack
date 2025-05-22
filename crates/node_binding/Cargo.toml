@@ -28,6 +28,7 @@ rspack_paths             = { workspace = true }
 rspack_plugin_html       = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
 rspack_plugin_rsdoctor   = { workspace = true }
+rspack_plugin_rstest     = { workspace = true }
 rspack_plugin_runtime    = { workspace = true }
 rspack_util              = { workspace = true }
 

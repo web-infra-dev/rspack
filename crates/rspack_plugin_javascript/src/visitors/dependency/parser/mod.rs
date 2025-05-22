@@ -209,7 +209,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) errors: Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub(crate) warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub dependencies: Vec<BoxDependency>,
-  pub(crate) presentational_dependencies: Vec<BoxDependencyTemplate>,
+  pub presentational_dependencies: Vec<BoxDependencyTemplate>,
   // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
   // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
   #[allow(clippy::vec_box)]
