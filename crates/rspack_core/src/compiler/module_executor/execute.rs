@@ -57,10 +57,12 @@ pub struct ExecuteTask {
 
 impl ExecuteTask {
   pub fn finish_with_error(self, error: Error) {
+    let id = EXECUTE_MODULE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     self
       .result_sender
       .send((
         ExecuteModuleResult {
+          id,
           error: Some(error.to_string()),
           ..Default::default()
         },
