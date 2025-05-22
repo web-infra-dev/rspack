@@ -4,7 +4,10 @@ use std::{
   sync::Arc,
 };
 
-use rspack_error::miette;
+use rspack_error::{
+  miette::{self, Diagnostic},
+  DiagnosticExt,
+};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
 use rspack_paths::AssertUtf8;
@@ -184,7 +187,7 @@ impl Resolver {
 }
 
 impl ResolveInnerError {
-  pub fn into_resolve_error(self, args: &ResolveArgs<'_>) -> ModuleNotFoundError {
+  pub fn into_resolve_error(self, args: &ResolveArgs<'_>) -> Box<dyn Diagnostic + Send + Sync> {
     match self {
       Self::RspackResolver(error) => map_rspack_resolver_error(error, args),
     }
@@ -320,9 +323,9 @@ fn to_rspack_resolver_options(
 fn map_rspack_resolver_error(
   error: rspack_resolver::ResolveError,
   args: &ResolveArgs<'_>,
-) -> ModuleNotFoundError {
+) -> Box<dyn Diagnostic + Send + Sync> {
   match &error {
-    rspack_resolver::ResolveError::IOError(e) => ModuleNotFoundError::new(format!("{e}")),
+    rspack_resolver::ResolveError::IOError(e) => ModuleNotFoundError::new(format!("{e}")).boxed(),
     rspack_resolver::ResolveError::Recursion => map_resolver_error(error, args),
     rspack_resolver::ResolveError::NotFound(_) => map_resolver_error(error, args),
     rspack_resolver::ResolveError::JSON(e) => {
@@ -334,7 +337,8 @@ fn map_rspack_resolver_error(
             "JSON parse error: {:?} in '{}'",
             e,
             e.path.display()
-          ));
+          ))
+          .boxed();
         };
         drop(rope);
 
@@ -361,7 +365,8 @@ fn map_rspack_resolver_error(
             e.path.display()
           ))
           .with_source_code(content.to_string())
-          .with_span(offset, offset);
+          .with_span(offset, offset)
+          .boxed();
         }
 
         ModuleNotFoundError::new(format!(
@@ -371,29 +376,32 @@ fn map_rspack_resolver_error(
         ))
         .with_source_code(content.to_string())
         .with_span(offset, offset)
+        .boxed()
       } else {
         ModuleNotFoundError::new(format!(
           "JSON parse error: {:?} in '{}'",
           e,
           e.path.display()
         ))
+        .boxed()
       }
     }
-    _ => ModuleNotFoundError::new(format!("{error}")),
+    _ => ModuleNotFoundError::new(format!("{error}")).boxed(),
   }
 }
 
 fn map_resolver_error(
   resolve_error: rspack_resolver::ResolveError,
   args: &ResolveArgs<'_>,
-) -> ModuleNotFoundError {
+) -> Box<dyn Diagnostic + Send + Sync> {
   let request = &args.specifier;
   let context = &args.context;
 
   let importer = args.importer;
   if importer.is_none() {
     return ModuleNotFoundError::new(format!("Can't resolve '{request}' in '{context}'"))
-      .with_severity(miette::Severity::Error);
+      .with_severity(miette::Severity::Error)
+      .boxed();
   }
 
   let span = args.span.unwrap_or_default();
@@ -410,8 +418,8 @@ fn map_resolver_error(
       },
     );
   if is_recursion_error {
-    error.with_help("maybe it had cyclic aliases")
+    error.with_help("maybe it had cyclic aliases").boxed()
   } else {
-    error
+    error.boxed()
   }
 }

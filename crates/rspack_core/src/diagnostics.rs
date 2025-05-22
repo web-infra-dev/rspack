@@ -1,11 +1,11 @@
-use std::{fmt::Display, path::PathBuf, sync::Arc};
+use std::{fmt::Display, path::PathBuf};
 
 use itertools::Itertools;
 use rspack_error::{
   error, impl_diagnostic_transparent,
   miette::{self, Diagnostic, SourceSpan},
   thiserror::{self, Error},
-  DiagnosticExt, TraceableError,
+  DiagnosticExt, Error, TraceableError,
 };
 use rspack_util::ext::AsAny;
 use rustc_hash::FxHashSet;
@@ -19,10 +19,9 @@ use crate::{BoxLoader, DependencyRange};
 pub struct EmptyDependency(Box<dyn Diagnostic + Send + Sync>);
 
 impl EmptyDependency {
-  pub fn new(source_code: Option<String>, span: DependencyRange) -> Self {
+  pub fn new(span: DependencyRange) -> Self {
     Self(
-      TraceableError::from_arc_string(
-        source_code.map(Arc::new),
+      TraceableError::from_lazy_file(
         span.start as usize,
         span.end as usize,
         "Empty dependency".to_string(),
@@ -38,7 +37,7 @@ impl_diagnostic_transparent!(EmptyDependency);
 ///////////////////// Module /////////////////////
 
 #[derive(Debug)]
-pub struct ModuleBuildError(pub Box<dyn Diagnostic + Sync + Send + 'static>);
+pub struct ModuleBuildError(pub Error);
 
 impl std::error::Error for ModuleBuildError {
   fn source(&self) -> ::core::option::Option<&(dyn std::error::Error + 'static)> {

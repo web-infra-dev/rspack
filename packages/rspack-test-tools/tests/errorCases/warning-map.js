@@ -23,10 +23,12 @@ module.exports = {
 		expect(warnings).toMatchInlineSnapshot(`
 		Array [
 		  Object {
+		    code: GenericFailure,
 		    error: Object {
+		  "code": "GenericFailure",
 		  "message": "Unsupported feature: require.main.require() is not supported by Rspack.",
 		  "name": "Error",
-		  "stack": "Error: Unsupported feature: require.main.require() is not supported by Rspack.\\n    at Compilation.get warnings [as warnings] (<RSPACK_ROOT>/dist/index.js<LINE_COL>)\\n    at <TEST_TOOLS_ROOT>/tests/errorCases/warning-map.js<LINE_COL>\\n    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)\\n    at next (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at AsyncSeriesHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at AsyncSeriesHook.callAsync (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
+		  "stack": "Error: Unsupported feature: require.main.require() is not supported by Rspack.\\n    at Proxy.map (<RSPACK_ROOT>/dist/index.js<LINE_COL>)\\n    at <TEST_TOOLS_ROOT>/tests/errorCases/warning-map.js<LINE_COL>\\n    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)\\n    at next (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at AsyncSeriesHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at AsyncSeriesHook.callAsync (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
 		},
 		    index: 0,
 		    module: NormalModule {

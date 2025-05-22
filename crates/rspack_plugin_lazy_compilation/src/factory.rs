@@ -47,7 +47,6 @@ impl ModuleFactory for LazyCompilationDependencyFactory {
       context_dependencies: proxy_data.context_dependencies.clone(),
       missing_dependencies: proxy_data.missing_dependencies.clone(),
       diagnostics: proxy_data.diagnostics.clone(),
-      original_module_source: proxy_data.original_module_source.clone(),
     };
 
     self.normal_module_factory.create(&mut create_data).await

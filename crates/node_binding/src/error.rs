@@ -234,19 +234,21 @@ impl RspackError {
       None => None,
     };
 
-    if let Some(e) = diagnostic.downcast_ref::<ModuleNotFoundError>() {
-      error = Some(Box::new(RspackError {
-        name: "Error".to_string(),
-        message: format!("{}", e).replace("Module not found: ", ""),
-        severity: None,
-        module_identifier: None,
-        module: None,
-        loc: None,
-        file: None,
-        stack: None,
-        hide_stack: None,
-        error: None,
-      }));
+    if let Some(code) = diagnostic.code() {
+      if code.to_string() == "ModuleNotFoundError" {
+        error = Some(Box::new(RspackError {
+          name: "Error".to_string(),
+          message: diagnostic.to_string().replace("Module not found: ", ""),
+          severity: None,
+          module_identifier: None,
+          module: None,
+          loc: None,
+          file: None,
+          stack: None,
+          hide_stack: None,
+          error: None,
+        }));
+      }
     }
 
     if let Some(error) = diagnostic.downcast_ref::<RspackError>() {
