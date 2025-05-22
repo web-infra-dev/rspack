@@ -7,22 +7,19 @@ module.exports = {
 			) {
 				compiler.hooks.compilation.tap("test", compilation => {
 					compilation.hooks.seal.tap("test", () => {
-						compilation.errors.push([
-							{
-								name: "test error",
-								message: "",
-								loc: {
-									start: {
-										line: 0,
-										column: 0
-									},
-									end: {
-										line: 0,
-										column: 0
-									}
-								}
+						const error = new Error("");
+						error.name = "test error";
+						error.loc = {
+							start: {
+								line: 0,
+								column: 0
+							},
+							end: {
+								line: 0,
+								column: 0
 							}
-						]);
+						};
+						compilation.errors.push([error]);
 					});
 				});
 			}
