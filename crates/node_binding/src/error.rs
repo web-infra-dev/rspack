@@ -49,10 +49,13 @@ impl From<JsRspackSeverity> for miette::Severity {
 pub struct RspackError {
   pub name: String,
   pub message: String,
+  // The severity level is only relevant on the Rust side and is not used in JavaScript.
   pub severity: Option<Severity>,
   // TODO: Consider removing `module_identifier` if it is no longer needed.
   pub module_identifier: Option<ModuleIdentifier>,
   pub module: Option<ModuleObject>,
+  // TODO: Improve handling of `loc` from JavaScript. JavaScript represents `loc` as an object with properties,
+  // while Rust uses a string. This discrepancy needs to be addressed in the future.
   pub loc: Option<String>,
   pub file: Option<String>,
   pub stack: Option<String>,
@@ -102,9 +105,6 @@ impl napi::bindgen_prelude::ToNapiValue for RspackError {
     }
     if stack.is_some() {
       obj.set("stack", stack)?;
-    }
-    if hide_stack.is_some() {
-      obj.set("hideStack", hide_stack)?;
     }
     if hide_stack.is_some() {
       obj.set("hideStack", hide_stack)?;
@@ -163,34 +163,12 @@ impl napi::bindgen_prelude::FromNapiValue for RspackError {
           "Missing field `message`",
         )
       })?;
-    let module = obj
-      .get::<Option<ModuleObject>>("module")
-      .map_err(|mut err| {
-        err.reason = format!("{} on {}.{}", err.reason, "RspackError", "module");
-        err
-      })?
-      .flatten();
-    let file = obj
-      .get::<Option<String>>("file")
-      .map_err(|mut err| {
-        err.reason = format!("{} on {}.{}", err.reason, "RspackError", "file");
-        err
-      })?
-      .flatten();
-    let stack = obj
-      .get::<Option<String>>("stack")
-      .map_err(|mut err| {
-        err.reason = format!("{} on {}.{}", err.reason, "RspackError", "stack");
-        err
-      })?
-      .flatten();
-    let hide_stack = obj
-      .get::<Option<bool>>("hideStack")
-      .map_err(|mut err| {
-        err.reason = format!("{} on {}.{}", err.reason, "RspackError", "hideStack");
-        err
-      })?
-      .flatten();
+    let module = obj.get::<ModuleObject>("module").unwrap_or(None);
+    let file = obj.get::<String>("file").unwrap_or(None);
+    let stack = obj.get::<String>("stack").unwrap_or(None);
+    let hide_stack = obj.get::<bool>("hideStack").unwrap_or(None);
+
+    println!("hide_stack {:#?}", &hide_stack);
     let val = Self {
       name,
       message,
@@ -236,6 +214,11 @@ impl RspackError {
 
     if let Some(code) = diagnostic.code() {
       if code.to_string() == "ModuleNotFoundError" {
+        // TODO: This handling is not ideal because the `ModuleNotFoundError` message
+        // does not include the original error. It only contains `Module not found: <original error message>`.
+        // As a result, the Rust-side `ModuleNotFoundError` does not record the original error.
+        // On the JavaScript side, to maintain compatibility with WebpackError's `error` property,
+        // the original error message is extracted from the `message`
         error = Some(Box::new(RspackError {
           name: "Error".to_string(),
           message: diagnostic.to_string().replace("Module not found: ", ""),
@@ -289,10 +272,9 @@ impl RspackError {
     let module_identifier = self.module.as_ref().map(|module| module.identifier());
     let stack = self.stack.clone();
     let hide_stack = self.hide_stack;
-    Diagnostic::from(Box::new(self) as Box<dyn miette::Diagnostic + Send + Sync>)
+    Diagnostic::from(miette::Error::from(self))
       .with_file(file.map(Into::into))
       .with_module_identifier(module_identifier)
-      // Used in
       .with_stack(stack)
       .with_hide_stack(hide_stack)
   }

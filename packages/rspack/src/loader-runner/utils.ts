@@ -93,10 +93,6 @@ export const runSyncOrAsync = promisify(function runSyncOrAsync(
 			return;
 		}
 	} catch (e: unknown) {
-		// use string for napi getter
-		if (e instanceof Error && "hideStack" in e && e.hideStack) {
-			e.hideStack = "true";
-		}
 		if (isError) throw e;
 		if (isDone) {
 			// loader is already "done", so we cannot use the callback function
