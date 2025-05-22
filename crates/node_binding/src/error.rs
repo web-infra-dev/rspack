@@ -1,7 +1,7 @@
 use derive_more::Debug;
 use napi::{bindgen_prelude::ToNapiValue, JsValue};
 use napi_derive::napi;
-use rspack_core::{diagnostics::ModuleNotFoundError, ModuleIdentifier};
+use rspack_core::ModuleIdentifier;
 use rspack_error::{
   miette::{self, Severity},
   Diagnostic, Result, RspackSeverity,

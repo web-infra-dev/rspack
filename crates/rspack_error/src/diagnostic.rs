@@ -1,9 +1,4 @@
-use std::{
-  borrow::Cow,
-  fmt::{self, Display},
-  ops::Deref,
-  sync::Arc,
-};
+use std::{borrow::Cow, fmt, ops::Deref, sync::Arc};
 
 use cow_utils::CowUtils;
 use miette::{GraphicalTheme, IntoDiagnostic, MietteDiagnostic};
@@ -170,13 +165,6 @@ impl Diagnostic {
       chunk: None,
       stack: None,
     }
-  }
-
-  pub fn downcast_ref<E>(&self) -> Option<&E>
-  where
-    E: Display + std::fmt::Debug + Send + Sync + 'static,
-  {
-    self.inner.downcast_ref::<E>()
   }
 }
 
