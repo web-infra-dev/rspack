@@ -1,11 +1,11 @@
 [package]
-description = "node binding"
-edition     = "2021"
-license     = "MIT"
-name        = "rspack_node"
-publish     = false
-repository  = "https://github.com/web-infra-dev/rspack"
-version     = "0.2.0"
+description       = "node binding"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_node"
+publish           = false
+repository        = "https://github.com/web-infra-dev/rspack"
+version           = "0.2.0"
 
 [lib]
 crate-type = ["cdylib"]
