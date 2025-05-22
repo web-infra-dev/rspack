@@ -467,9 +467,7 @@ Rspack compiled successfully
 
 exports[`statsOutput statsOutput/try-require-module should print correct stats for 1`] = `
 WARNING in ./index.js
-  ⚠ Module not found:
-  ╰─▶   ⚠ Error: Can't resolve './missing-module' in '<TEST_TOOLS_ROOT>/tests/statsOutputCases/try-require-module'
-      
+  ⚠ Module not found: Can't resolve './missing-module' in '<TEST_TOOLS_ROOT>/tests/statsOutputCases/try-require-module'
    ╭─[2:4]
  1 │ try {
  2 │     require('./missing-module')
@@ -483,9 +481,7 @@ Rspack compiled with 1 warning
 
 exports[`statsOutput statsOutput/try-require-resolve-module should print correct stats for 1`] = `
 WARNING in ./index.js
-  ⚠ Module not found:
-  ╰─▶   ⚠ Error: Can't resolve './missing-module' in '<TEST_TOOLS_ROOT>/tests/statsOutputCases/try-require-resolve-module'
-      
+  ⚠ Module not found: Can't resolve './missing-module' in '<TEST_TOOLS_ROOT>/tests/statsOutputCases/try-require-resolve-module'
    ╭─[2:20]
  1 │ try {
  2 │     require.resolve('./missing-module')
@@ -499,9 +495,7 @@ Rspack compiled with 1 warning
 
 exports[`statsOutput statsOutput/try-require-resolve-weak-module should print correct stats for 1`] = `
 WARNING in ./index.js
-  ⚠ Module not found:
-  ╰─▶   ⚠ Error: Can't resolve './missing-module' in '<TEST_TOOLS_ROOT>/tests/statsOutputCases/try-require-resolve-weak-module'
-      
+  ⚠ Module not found: Can't resolve './missing-module' in '<TEST_TOOLS_ROOT>/tests/statsOutputCases/try-require-resolve-weak-module'
    ╭─[2:24]
  1 │ try {
  2 │     require.resolveWeak('./missing-module')

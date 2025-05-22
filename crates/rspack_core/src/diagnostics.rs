@@ -300,7 +300,7 @@ impl miette::Diagnostic for ModuleNotFoundError {
     Some(Box::new("ModuleNotFoundError"))
   }
   fn severity(&self) -> Option<miette::Severity> {
-    Some(miette::Severity::Error)
+    self.severity
   }
   fn help<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
     self
