@@ -9,7 +9,7 @@ use crate::{
   DependencyId, Environment, ExportsArgument, ExportsType, FakeNamespaceObjectMode,
   InitFragmentExt, InitFragmentKey, InitFragmentStage, Module, ModuleGraph, ModuleId,
   ModuleIdentifier, NormalInitFragment, PathInfo, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  TemplateContext,
+  TemplateContext, UsedName,
 };
 
 pub fn runtime_condition_expression(
@@ -211,15 +211,23 @@ pub fn export_from_import(
     let exports_info = compilation
       .get_module_graph()
       .get_exports_info(&module_identifier);
-    let Some(used_name) =
-      exports_info.get_used_name(&compilation.get_module_graph(), *runtime, export_name)
-    else {
-      return format!(
-        "{} undefined",
-        to_normal_comment(&property_access(export_name, 0))
-      );
-    };
-    let used_name = used_name.as_ref();
+    let used_name =
+      match exports_info.get_used_name(&compilation.get_module_graph(), *runtime, export_name) {
+        Some(UsedName::Normal(used_name)) => used_name,
+        Some(UsedName::Inlined(inlined)) => {
+          return format!(
+            "{} {}",
+            to_normal_comment(&property_access(export_name, 0)),
+            inlined.render()
+          )
+        }
+        None => {
+          return format!(
+            "{} undefined",
+            to_normal_comment(&property_access(export_name, 0))
+          )
+        }
+      };
     let comment = if used_name != export_name {
       to_normal_comment(&property_access(export_name, 0))
     } else {

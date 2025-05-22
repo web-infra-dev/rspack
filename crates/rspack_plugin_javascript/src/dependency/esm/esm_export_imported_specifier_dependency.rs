@@ -8,7 +8,7 @@ use rspack_cacheable::{
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
-  process_export_info, property_access, property_name, string_of_used_name, AsContextDependency,
+  process_export_info, property_access, property_name, AsContextDependency,
   ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
@@ -1370,8 +1370,9 @@ enum ValueKey {
 impl From<Option<UsedName>> for ValueKey {
   fn from(value: Option<UsedName>) -> Self {
     match value {
-      Some(UsedName::Normal(atoms)) => Self::Vec(atoms),
       None => Self::False,
+      Some(UsedName::Normal(atoms)) => Self::Vec(atoms),
+      Some(UsedName::Inlined(_)) => unreachable!("inlinable export should not render"),
     }
   }
 }
@@ -1489,6 +1490,16 @@ fn find_dependency_for_name<'a>(
     }
   }
   None
+}
+
+fn string_of_used_name(used: Option<&UsedName>) -> String {
+  match used {
+    None => "/* unused export */ undefined".to_string(),
+    Some(UsedName::Normal(value_key)) if value_key.len() == 1 => {
+      return value_key[0].to_string();
+    }
+    _ => unreachable!("export should only have one name"),
+  }
 }
 
 #[cacheable]

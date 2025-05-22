@@ -5,8 +5,8 @@ use rspack_core::{
   get_entry_runtime, incremental::IncrementalPasses, is_exports_object_referenced,
   is_no_exports_referenced, merge_runtime, AsyncDependenciesBlockIdentifier, BuildMetaExportsType,
   Compilation, CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId,
-  ExportsInfo, ExtendedReferencedExport, GroupOptions, ModuleIdentifier, Plugin, ReferencedExport,
-  RuntimeSpec, UsageState,
+  ExportsInfo, ExtendedReferencedExport, GroupOptions, Inlinable, ModuleIdentifier, Plugin,
+  ReferencedExport, RuntimeSpec, UsageState,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -234,6 +234,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
                         occ.insert(ExtendedReferencedExport::Export(ReferencedExport {
                           name: std::mem::take(&mut export.name),
                           can_mangle: export.can_mangle && old_item.can_mangle,
+                          can_inline: export.can_inline && old_item.can_inline,
                         }));
                       }
                     }
@@ -313,9 +314,11 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       }
 
       for used_export_info in used_exports {
-        let (can_mangle, used_exports) = match used_export_info {
-          ExtendedReferencedExport::Array(used_exports) => (true, used_exports),
-          ExtendedReferencedExport::Export(export) => (export.can_mangle, export.name),
+        let (used_exports, can_mangle, can_inline) = match used_export_info {
+          ExtendedReferencedExport::Array(used_exports) => (used_exports, true, true),
+          ExtendedReferencedExport::Export(export) => {
+            (export.name, export.can_mangle, export.can_inline)
+          }
         };
         if used_exports.is_empty() {
           let flag = mgm_exports_info.set_used_in_unknown_way(&mut module_graph, runtime.as_ref());
@@ -330,6 +333,9 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             let export_info = current_exports_info.get_export_info(&mut module_graph, &used_export);
             if !can_mangle {
               export_info.set_can_mangle_use(&mut module_graph, Some(false));
+            }
+            if !can_inline {
+              export_info.set_inlinable(&mut module_graph, Inlinable::NoInline);
             }
             let last_one = i == len - 1;
             if !last_one {

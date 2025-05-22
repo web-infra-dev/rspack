@@ -44,8 +44,8 @@ pub use static_exports_dependency::{StaticExportsDependency, StaticExportsSpec};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  ConnectionState, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ReferencedExport,
-  RuntimeSpec,
+  ConnectionState, Inlinable, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  ReferencedExport, RuntimeSpec,
 };
 
 #[derive(Debug, Default)]
@@ -59,6 +59,7 @@ pub struct ExportSpec {
   pub hidden: Option<bool>,
   pub from: Option<ModuleGraphConnection>,
   pub from_export: Option<ModuleGraphConnection>,
+  pub inlinable: Inlinable,
 }
 
 #[derive(Debug)]

@@ -1,5 +1,7 @@
 use itertools::Itertools;
-use rspack_core::{BoxDependency, ConstDependency, DependencyRange, DependencyType, SpanExt};
+use rspack_core::{
+  BoxDependency, ConstDependency, DependencyRange, DependencyType, Inlinable, SpanExt,
+};
 use swc_core::{
   atoms::Atom,
   common::{comments::CommentKind, Spanned},
@@ -94,6 +96,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       Box::new(ESMExportSpecifierDependency::new(
         export_name.clone(),
         local_id.clone(),
+        Inlinable::NoInline,
         statement.span().into(),
         Some(parser.source_map.clone()),
       ))

@@ -6,8 +6,8 @@ use rspack_core::{
   incremental::{self, IncrementalPasses},
   ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
   DependenciesBlock, DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfo,
-  ExportsOfExportsSpec, ExportsSpec, Logger, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
-  Plugin, PluginContext,
+  ExportsOfExportsSpec, ExportsSpec, Inlinable, Logger, ModuleGraph, ModuleGraphConnection,
+  ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -209,41 +209,52 @@ impl<'a> FlagDependencyExportsState<'a> {
     dep_id: DependencyId,
   ) {
     for export_name_or_spec in exports {
-      let (name, can_mangle, terminal_binding, exports, from, from_export, priority, hidden) =
-        match export_name_or_spec {
-          ExportNameOrSpec::String(name) => (
-            name.clone(),
-            global_export_info.can_mangle,
-            global_export_info.terminal_binding,
-            None::<&Vec<ExportNameOrSpec>>,
-            global_export_info.from.cloned(),
-            None::<&rspack_core::Nullable<Vec<Atom>>>,
-            global_export_info.priority,
-            false,
-          ),
-          ExportNameOrSpec::ExportSpec(spec) => (
-            spec.name.clone(),
-            match spec.can_mangle {
-              Some(v) => Some(v),
-              None => global_export_info.can_mangle,
-            },
-            spec
-              .terminal_binding
-              .unwrap_or(global_export_info.terminal_binding),
-            spec.exports.as_ref(),
-            if spec.from.is_some() {
-              spec.from.clone()
-            } else {
-              global_export_info.from.cloned()
-            },
-            spec.export.as_ref(),
-            match spec.priority {
-              Some(v) => Some(v),
-              None => global_export_info.priority,
-            },
-            spec.hidden.unwrap_or(false),
-          ),
-        };
+      let (
+        name,
+        can_mangle,
+        terminal_binding,
+        exports,
+        from,
+        from_export,
+        priority,
+        hidden,
+        inlinable,
+      ) = match export_name_or_spec {
+        ExportNameOrSpec::String(name) => (
+          name.clone(),
+          global_export_info.can_mangle,
+          global_export_info.terminal_binding,
+          None::<&Vec<ExportNameOrSpec>>,
+          global_export_info.from.cloned(),
+          None::<&rspack_core::Nullable<Vec<Atom>>>,
+          global_export_info.priority,
+          false,
+          Inlinable::NoInline,
+        ),
+        ExportNameOrSpec::ExportSpec(spec) => (
+          spec.name.clone(),
+          match spec.can_mangle {
+            Some(v) => Some(v),
+            None => global_export_info.can_mangle,
+          },
+          spec
+            .terminal_binding
+            .unwrap_or(global_export_info.terminal_binding),
+          spec.exports.as_ref(),
+          if spec.from.is_some() {
+            spec.from.clone()
+          } else {
+            global_export_info.from.cloned()
+          },
+          spec.export.as_ref(),
+          match spec.priority {
+            Some(v) => Some(v),
+            None => global_export_info.priority,
+          },
+          spec.hidden.unwrap_or(false),
+          spec.inlinable,
+        ),
+      };
       let export_info = exports_info.get_export_info(self.mg, &name);
       if let Some(provided) = export_info.provided(self.mg)
         && matches!(
@@ -257,6 +268,13 @@ impl<'a> FlagDependencyExportsState<'a> {
 
       if Some(false) != export_info.can_mangle_provide(self.mg) && can_mangle == Some(false) {
         export_info.set_can_mangle_provide(self.mg, Some(false));
+        self.changed = true;
+      }
+
+      if matches!(inlinable, Inlinable::Inline(_))
+        && matches!(export_info.inlinable(self.mg), Inlinable::NoInline)
+      {
+        export_info.set_inlinable(self.mg, inlinable);
         self.changed = true;
       }
 

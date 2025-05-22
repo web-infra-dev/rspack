@@ -17,7 +17,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CompilerOptions, ExportsInfo,
   GenerateContext, Module, ModuleGraph, ParseOption, ParserAndGenerator, Plugin, RuntimeGlobals,
-  RuntimeSpec, SourceType, UsageState, NAMESPACE_OBJECT_EXPORT,
+  RuntimeSpec, SourceType, UsageState, UsedNameItem, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::{
   miette::diagnostic, DiagnosticExt, DiagnosticKind, IntoTWithDiagnosticArray, Result,
@@ -300,9 +300,12 @@ fn create_object_for_exports_info(
         } else {
           std::mem::replace(value, JsonValue::Null)
         };
-        let used_name = export_info
+        let UsedNameItem::Str(used_name) = export_info
           .get_used_name(mg, Some(&(key.into())), runtime)
-          .expect("should have used name");
+          .expect("should have used name")
+        else {
+          continue;
+        };
         used_pair.push((used_name, new_value));
       }
       let mut new_obj = Object::new();

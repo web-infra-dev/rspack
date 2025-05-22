@@ -51,8 +51,8 @@ use crate::{
   ErrorSpan, ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta, IdentCollector,
   LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType, Resolve, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsageState, DEFAULT_EXPORT,
-  NAMESPACE_OBJECT_EXPORT,
+  RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsageState, UsedNameItem,
+  DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -904,6 +904,7 @@ impl Module for ConcatenatedModule {
 
     let mut exports_map: HashMap<Atom, String> = HashMap::default();
     let mut unused_exports: HashSet<Atom> = HashSet::default();
+    let mut inlined_exports: HashSet<Atom> = HashSet::default();
 
     let root_info = module_to_info_map
       .get(&self.root_module_ctxt.id)
@@ -934,6 +935,10 @@ impl Module for ConcatenatedModule {
 
       let Some(used_name) = used_name else {
         unused_exports.insert(name);
+        continue;
+      };
+      let UsedNameItem::Str(used_name) = used_name else {
+        inlined_exports.insert(name);
         continue;
       };
       exports_map.insert(used_name.clone(), {
@@ -1077,7 +1082,9 @@ impl Module for ConcatenatedModule {
             continue;
           }
 
-          if let Some(used_name) = export_info.get_used_name(&module_graph, None, runtime) {
+          if let Some(UsedNameItem::Str(used_name)) =
+            export_info.get_used_name(&module_graph, None, runtime)
+          {
             let final_name = Self::get_final_name(
               &compilation.get_module_graph(),
               module_info_id,

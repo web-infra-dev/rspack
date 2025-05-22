@@ -9,8 +9,9 @@ use rspack_core::{
   DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExportPresenceMode, ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes,
-  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleReferenceOptions, RuntimeSpec,
-  SharedSourceMap, Template, TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
+  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleReferenceOptions, ReferencedExport,
+  RuntimeSpec, SharedSourceMap, Template, TemplateContext, TemplateReplaceSource, UsedByExports,
+  UsedName,
 };
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
@@ -113,7 +114,8 @@ impl ESMImportSpecifierDependency {
             vec![prop.id.clone()]
           }
         })
-        .map(ExtendedReferencedExport::Array)
+        // Do not inline if there are any places where used as destructuring
+        .map(|name| ExtendedReferencedExport::Export(ReferencedExport::new(name, true, false)))
         .collect::<Vec<_>>()
     } else if let Some(v) = ids {
       vec![ExtendedReferencedExport::Array(v.to_vec())]
@@ -438,6 +440,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
           )
           .and_then(|used| match used {
             UsedName::Normal(names) => names.last().cloned(),
+            UsedName::Inlined(_) => unreachable!("should not inline for destructuring"),
           })
         else {
           return;

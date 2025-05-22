@@ -86,6 +86,18 @@ impl ExportInfoDependency {
         };
         can_mangle.map(|v| v.to_string())
       }
+      "inlinable" => {
+        let inlinable = if let Some(export_info) =
+          exports_info.get_read_only_export_info_recursive(&module_graph, export_name)
+        {
+          export_info.inlinable(&module_graph)
+        } else {
+          exports_info
+            .other_exports_info(&module_graph)
+            .inlinable(&module_graph)
+        };
+        Some(inlinable.to_string())
+      }
       "used" => {
         let used = exports_info.get_used(&module_graph, &export_name.clone(), *runtime);
         Some((!matches!(used, UsageState::Unused)).to_string())

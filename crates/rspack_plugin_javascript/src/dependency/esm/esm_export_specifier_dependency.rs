@@ -6,8 +6,8 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ESMExportInitFragment, ExportNameOrSpec,
-  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, SharedSourceMap, TemplateContext,
+  DependencyTemplateType, DependencyType, ESMExportInitFragment, ExportNameOrSpec, ExportSpec,
+  ExportsOfExportsSpec, ExportsSpec, Inlinable, ModuleGraph, SharedSourceMap, TemplateContext,
   TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
@@ -24,18 +24,21 @@ pub struct ESMExportSpecifierDependency {
   name: Atom,
   #[cacheable(with=AsPreset)]
   value: Atom, // id
+  inline: Inlinable,
 }
 
 impl ESMExportSpecifierDependency {
   pub fn new(
     name: Atom,
     value: Atom,
+    inline: Inlinable,
     range: DependencyRange,
     source_map: Option<SharedSourceMap>,
   ) -> Self {
     Self {
       name,
       value,
+      inline,
       range,
       source_map,
       id: DependencyId::new(),
@@ -63,7 +66,11 @@ impl Dependency for ESMExportSpecifierDependency {
 
   fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
     Some(ExportsSpec {
-      exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::String(self.name.clone())]),
+      exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
+        name: self.name.clone(),
+        inlinable: self.inline,
+        ..Default::default()
+      })]),
       priority: Some(1),
       can_mangle: None,
       terminal_binding: Some(true),
@@ -138,17 +145,16 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
 
-    let used_name = {
-      let exports_info = module_graph.get_exports_info(&module.identifier());
-      let used_name = exports_info.get_used_name(&module_graph, *runtime, &[dep.name.clone()]);
-      used_name.map(|item| match item {
+    let exports_info = module_graph.get_exports_info(&module.identifier());
+    let used_name = exports_info.get_used_name(&module_graph, *runtime, &[dep.name.clone()]);
+    if let Some(used_name) = used_name {
+      let used_name = match used_name {
         UsedName::Normal(vec) => {
           // only have one value for export specifier dependency
           vec[0].clone()
         }
-      })
-    };
-    if let Some(used_name) = used_name {
+        UsedName::Inlined(_) => return,
+      };
       init_fragments.push(Box::new(ESMExportInitFragment::new(
         module.get_exports_argument(),
         vec![(used_name, dep.value.clone())],

@@ -188,20 +188,22 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         runtime,
         &module.identifier(),
       ) {
-        init_fragments.push(Box::new(ESMExportInitFragment::new(
-          module.get_exports_argument(),
-          vec![(
-            match used {
-              UsedName::Normal(v) => v
+        if let UsedName::Normal(used) = used {
+          init_fragments.push(Box::new(ESMExportInitFragment::new(
+            module.get_exports_argument(),
+            vec![(
+              used
                 .iter()
                 .map(|i| i.to_string())
                 .collect_vec()
                 .join("")
                 .into(),
-            },
-            Atom::from(format!("/* export default binding */ {name}")),
-          )],
-        )));
+              Atom::from(format!("/* export default binding */ {name}")),
+            )],
+          )));
+        } else {
+          // do nothing for inlined declaration
+        }
       }
 
       source.replace(
@@ -225,34 +227,31 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         runtime,
         &module.identifier(),
       ) {
-        runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-        if supports_const {
-          init_fragments.push(Box::new(ESMExportInitFragment::new(
-            module.get_exports_argument(),
-            vec![(
-              match used {
-                UsedName::Normal(v) => v
+        if let UsedName::Normal(used) = used {
+          runtime_requirements.insert(RuntimeGlobals::EXPORTS);
+          if supports_const {
+            init_fragments.push(Box::new(ESMExportInitFragment::new(
+              module.get_exports_argument(),
+              vec![(
+                used
                   .iter()
                   .map(|i| i.to_string())
                   .collect_vec()
                   .join("")
                   .into(),
-              },
-              DEFAULT_EXPORT.into(),
-            )],
-          )));
-          format!("/* ESM default export */ const {DEFAULT_EXPORT} = ")
-        } else {
-          format!(
-            r#"/* ESM default export */ {}{} = "#,
-            module.get_exports_argument(),
-            property_access(
-              match used {
-                UsedName::Normal(names) => names.into_iter(),
-              },
-              0
+                DEFAULT_EXPORT.into(),
+              )],
+            )));
+            format!("/* ESM default export */ const {DEFAULT_EXPORT} = ")
+          } else {
+            format!(
+              r#"/* ESM default export */ {}{} = "#,
+              module.get_exports_argument(),
+              property_access(used, 0)
             )
-          )
+          }
+        } else {
+          format!("/* inlined ESM default export */ var {DEFAULT_EXPORT} = ")
         }
       } else {
         format!("/* unused ESM default export */ var {DEFAULT_EXPORT} = ")

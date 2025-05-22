@@ -1,6 +1,7 @@
 use std::{
   borrow::Cow,
   collections::{hash_map::Entry, BTreeMap, VecDeque},
+  fmt,
   hash::Hash,
   rc::Rc,
   sync::{
@@ -19,11 +20,62 @@ use rspack_collections::{impl_item_ukey, Ukey, UkeySet};
 use rspack_util::{atom::Atom, ext::DynHash};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
+use swc_core::ecma::utils::number::ToJsString;
 
 use crate::{
-  property_access, Compilation, ConnectionState, DependencyCondition, DependencyConditionFn,
-  DependencyId, ModuleGraph, ModuleIdentifier, Nullable, RuntimeSpec,
+  Compilation, ConnectionState, DependencyCondition, DependencyConditionFn, DependencyId,
+  ModuleGraph, ModuleIdentifier, Nullable, RuntimeSpec,
 };
+
+#[cacheable]
+#[derive(Debug, Default, Clone, Copy)]
+pub enum Inlinable {
+  Inline(EvaluatedInlinableValue),
+  #[default]
+  NoInline,
+}
+
+impl fmt::Display for Inlinable {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::Inline(value) => write!(f, "inlined {}", value.render()),
+      Self::NoInline => write!(f, "no inline"),
+    }
+  }
+}
+
+impl Inlinable {
+  pub fn is_inlined(&self) -> bool {
+    matches!(self, Self::Inline(_))
+  }
+
+  pub fn inlined(&self) -> Option<&EvaluatedInlinableValue> {
+    if let Self::Inline(value) = self {
+      return Some(value);
+    }
+    None
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy)]
+pub enum EvaluatedInlinableValue {
+  Null,
+  Undefined,
+  Boolean(bool),
+  ShortNumber(f64),
+}
+
+impl EvaluatedInlinableValue {
+  pub fn render(&self) -> Cow<str> {
+    match self {
+      EvaluatedInlinableValue::Null => "null".into(),
+      EvaluatedInlinableValue::Undefined => "undefined".into(),
+      EvaluatedInlinableValue::Boolean(v) => if *v { "true" } else { "false" }.into(),
+      EvaluatedInlinableValue::ShortNumber(n) => n.to_js_string().into(),
+    }
+  }
+}
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
@@ -482,7 +534,10 @@ impl ExportsInfo {
       let info = self.get_read_only_export_info(mg, name);
       return info
         .get_used_name(mg, Some(name), runtime)
-        .map(|n| UsedName::Normal(vec![n]));
+        .map(|name| match name {
+          UsedNameItem::Str(name) => UsedName::Normal(vec![name]),
+          UsedNameItem::Inlined(inlined) => UsedName::Inlined(inlined),
+        });
     }
     if names.is_empty() {
       if !self.is_used(mg, runtime) {
@@ -491,11 +546,10 @@ impl ExportsInfo {
       return Some(UsedName::Normal(names.to_vec()));
     }
     let export_info = self.get_read_only_export_info(mg, &names[0]);
-    let x = export_info.get_used_name(mg, Some(&names[0]), runtime)?;
-    let mut arr = if x == names[0] && names.len() == 1 {
-      names.to_vec()
-    } else {
-      vec![x]
+    let first = export_info.get_used_name(mg, Some(&names[0]), runtime)?;
+    let mut arr = match first {
+      UsedNameItem::Inlined(inlined) => return Some(UsedName::Inlined(inlined)),
+      UsedNameItem::Str(first) => vec![first],
     };
     if names.len() == 1 {
       return Some(UsedName::Normal(arr));
@@ -503,11 +557,12 @@ impl ExportsInfo {
     if let Some(exports_info) = export_info.exports_info(mg)
       && export_info.get_used(mg, runtime) == UsageState::OnlyPropertiesUsed
     {
-      let nested = exports_info.get_used_name(mg, runtime, &names[1..]);
-      let nested = nested?;
-      arr.extend(match nested {
+      let nested = exports_info.get_used_name(mg, runtime, &names[1..])?;
+      let nested = match nested {
+        UsedName::Inlined(inlined) => return Some(UsedName::Inlined(inlined)),
         UsedName::Normal(names) => names,
-      });
+      };
+      arr.extend(nested);
       return Some(UsedName::Normal(arr));
     }
     arr.extend(names.iter().skip(1).cloned());
@@ -811,37 +866,34 @@ impl ExportsInfoData {
 }
 
 #[derive(Debug, Clone)]
+pub enum UsedNameItem {
+  Str(Atom),
+  Inlined(EvaluatedInlinableValue),
+}
+
+#[derive(Debug, Clone)]
 pub enum UsedName {
   Normal(Vec<Atom>),
+  Inlined(EvaluatedInlinableValue),
 }
 
 impl UsedName {
   pub fn to_used_name_vec(self) -> Vec<Atom> {
     match self {
       UsedName::Normal(vec) => vec,
+      UsedName::Inlined(_) => todo!(),
     }
   }
-}
 
-impl AsRef<[Atom]> for UsedName {
-  fn as_ref(&self) -> &[Atom] {
+  pub fn is_inlined(&self) -> bool {
+    matches!(self, UsedName::Inlined(_))
+  }
+
+  pub fn inlined(&self) -> Option<&EvaluatedInlinableValue> {
     match self {
-      UsedName::Normal(vec) => vec,
+      UsedName::Inlined(inlined) => Some(inlined),
+      _ => None,
     }
-  }
-}
-
-pub fn string_of_used_name(used: Option<&UsedName>) -> String {
-  match used {
-    Some(UsedName::Normal(value_key)) => {
-      if value_key.len() == 1 {
-        return value_key[0].to_string();
-      }
-      property_access(value_key, 0)
-        .trim_start_matches('.')
-        .to_string()
-    }
-    None => "/* unused export */ undefined".to_string(),
   }
 }
 
@@ -921,6 +973,14 @@ impl ExportInfo {
 
   pub fn set_exports_info(&self, mg: &mut ModuleGraph, value: Option<ExportsInfo>) {
     self.as_export_info_mut(mg).exports_info = value;
+  }
+
+  pub fn inlinable(&self, mg: &ModuleGraph) -> Inlinable {
+    self.as_export_info(mg).inlinable
+  }
+
+  pub fn set_inlinable(&self, mg: &mut ModuleGraph, inlinable: Inlinable) {
+    self.as_export_info_mut(mg).inlinable = inlinable;
   }
 
   pub fn as_export_info<'a>(&self, mg: &'a ModuleGraph) -> &'a ExportInfoData {
@@ -1060,8 +1120,11 @@ impl ExportInfo {
     mg: &ModuleGraph,
     fallback_name: Option<&Atom>,
     runtime: Option<&RuntimeSpec>,
-  ) -> Option<Atom> {
+  ) -> Option<UsedNameItem> {
     let info = self.as_export_info(mg);
+    if let Some(inlined) = info.inlinable.inlined() {
+      return Some(UsedNameItem::Inlined(*inlined));
+    }
     if info.has_use_in_runtime_info {
       if let Some(usage) = info.global_used {
         if matches!(usage, UsageState::Unused) {
@@ -1081,12 +1144,12 @@ impl ExportInfo {
       }
     }
     if let Some(used_name) = info.used_name.as_ref() {
-      return Some(used_name.clone());
+      return Some(UsedNameItem::Str(used_name.clone()));
     }
     if let Some(name) = info.name.as_ref() {
-      Some(name.clone())
+      Some(UsedNameItem::Str(name.clone()))
     } else {
-      fallback_name.cloned()
+      fallback_name.map(|n| UsedNameItem::Str(n.clone()))
     }
   }
 
@@ -1498,6 +1561,7 @@ pub struct ExportInfoData {
   can_mangle_use: Option<bool>,
   global_used: Option<UsageState>,
   used_in_runtime: Option<HashMap<Arc<str>, UsageState>>,
+  inlinable: Inlinable,
 }
 
 #[derive(Debug, Hash, Clone, Copy)]
@@ -1625,6 +1689,7 @@ impl ExportInfoData {
       has_use_in_runtime_info,
       can_mangle_use,
       global_used,
+      inlinable: Inlinable::NoInline,
     }
   }
 
@@ -2127,13 +2192,15 @@ impl From<ReferencedExport> for ExtendedReferencedExport {
 pub struct ReferencedExport {
   pub name: Vec<Atom>,
   pub can_mangle: bool,
+  pub can_inline: bool,
 }
 
 impl ReferencedExport {
-  pub fn new(_name: Vec<Atom>, _can_mangle: bool) -> Self {
+  pub fn new(name: Vec<Atom>, can_mangle: bool, can_inline: bool) -> Self {
     Self {
-      name: _name,
-      can_mangle: _can_mangle,
+      name,
+      can_mangle,
+      can_inline,
     }
   }
 }
@@ -2143,6 +2210,7 @@ impl Default for ReferencedExport {
     Self {
       name: vec![],
       can_mangle: true,
+      can_inline: true,
     }
   }
 }
