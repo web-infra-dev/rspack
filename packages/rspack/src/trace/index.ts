@@ -92,20 +92,17 @@ export class JavaScriptTracer {
 					}
 				});
 			}
-			const originTrace = fs.readFileSync(this.output, "utf-8");
 			// this is hack, [] is empty and [{}] is not empty
-			const originTraceIsEmpty = !originTrace.includes("{");
-			const eventMsg =
-				(this.events.length > 0 && !originTraceIsEmpty ? "," : "") +
-				this.events
-					.map(x => {
-						return JSON.stringify(x);
-					})
-					.join(",\n");
+			const eventMsg = this.events
+				.map(x => {
+					return JSON.stringify(x);
+				})
+				.join(",\n");
+			// even lots of tracing tools supports json without ending ], we end it for better compat with other tools
+			const wholeMessage = `${eventMsg ? "," : ""}${eventMsg}\n]`;
 
 			// a naive implementation to merge rust & Node.js trace, we can't use JSON.parse because sometime the trace file is too big to parse
-			const newTrace = originTrace.replace(/]$/, `${eventMsg}\n]`);
-			fs.writeFileSync(this.output, newTrace, {
+			fs.appendFileSync(this.output, wholeMessage, {
 				flush: true
 			});
 		});
