@@ -19,7 +19,7 @@ module.exports = {
 								column: 0
 							}
 						};
-						compilation.errors.push([error]);
+						compilation.errors.push(error);
 					});
 				});
 			}

@@ -1,5 +1,6 @@
+use cow_utils::CowUtils;
 use derive_more::Debug;
-use napi::{bindgen_prelude::ToNapiValue, JsValue};
+use napi::{bindgen_prelude::ToNapiValue, JsValue, ValueType};
 use napi_derive::napi;
 use rspack_core::ModuleIdentifier;
 use rspack_error::{
@@ -124,7 +125,8 @@ impl napi::bindgen_prelude::FromNapiValue for RspackError {
     napi_val: napi::bindgen_prelude::sys::napi_value,
   ) -> napi::bindgen_prelude::Result<RspackError> {
     let unknown = napi::bindgen_prelude::Unknown::from_napi_value(env, napi_val)?;
-    if !unknown.is_error()? {
+    let ty = unknown.get_type()?;
+    if ty != ValueType::Object {
       let error = unknown.coerce_to_string()?.into_utf8()?.into_owned()?;
       return Ok(RspackError {
         name: "NonErrorEmittedError".to_string(),
@@ -141,30 +143,8 @@ impl napi::bindgen_prelude::FromNapiValue for RspackError {
     }
 
     let obj = napi::bindgen_prelude::Object::from_napi_value(env, napi_val)?;
-    let name: String = obj
-      .get("name")
-      .map_err(|mut err| {
-        err.reason = format!("{} on {}.{}", err.reason, "RspackError", "name");
-        err
-      })?
-      .ok_or_else(|| {
-        napi::bindgen_prelude::Error::new(
-          napi::bindgen_prelude::Status::InvalidArg,
-          "Missing field `name`",
-        )
-      })?;
-    let message: String = obj
-      .get("message")
-      .map_err(|mut err| {
-        err.reason = format!("{} on {}.{}", err.reason, "RspackError", "message");
-        err
-      })?
-      .ok_or_else(|| {
-        napi::bindgen_prelude::Error::new(
-          napi::bindgen_prelude::Status::InvalidArg,
-          "Missing field `message`",
-        )
-      })?;
+    let name: String = obj.get("name")?.unwrap_or("Error".to_string());
+    let message: String = obj.get("message")?.unwrap_or("Error".to_string());
     let module = obj.get::<ModuleObject>("module").unwrap_or(None);
     let module_identifier = if let Some(module) = &module {
       Some(module.identifier())
@@ -230,7 +210,10 @@ impl RspackError {
         // the original error message is extracted from the `message`
         error = Some(Box::new(RspackError {
           name: "Error".to_string(),
-          message: diagnostic.to_string().replace("Module not found: ", ""),
+          message: diagnostic
+            .to_string()
+            .cow_replace("Module not found: ", "")
+            .to_string(),
           severity: None,
           module_identifier: None,
           module: None,
