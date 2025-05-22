@@ -433,8 +433,8 @@ where
         serde_json::to_writer(&mut write, &entry).unwrap();
         has_started = true;
       }
-
-      write.write_all(b"\n]").unwrap();
+      // we need to merge tracing with js side, so don't end it early
+      // write.write_all(b"\n]").unwrap();
       write.flush().unwrap();
     });
 

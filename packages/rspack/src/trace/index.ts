@@ -49,6 +49,11 @@ export class JavaScriptTracer {
 		}
 	}
 
+	/**
+	 *
+	 * @param isEnd true means we are at the end of tracing,and can append ']' to close the json
+	 * @returns
+	 */
 	static async cleanupJavaScriptTrace() {
 		if (!this.layer.includes("chrome")) {
 			return;
@@ -92,22 +97,20 @@ export class JavaScriptTracer {
 					}
 				});
 			}
-			const originTrace = fs.readFileSync(this.output, "utf-8");
-			// this is hack, [] is empty and [{}] is not empty
-			const originTraceIsEmpty = !originTrace.includes("{");
-			const eventMsg =
-				(this.events.length > 0 && !originTraceIsEmpty ? "," : "") +
-				this.events
-					.map(x => {
-						return JSON.stringify(x);
-					})
-					.join(",\n");
-
-			// a naive implementation to merge rust & Node.js trace, we can't use JSON.parse because sometime the trace file is too big to parse
-			const newTrace = originTrace.replace(/]$/, `${eventMsg}\n]`);
-			fs.writeFileSync(this.output, newTrace, {
-				flush: true
-			});
+			const is_empty = fs.statSync(this.output).size === 0;
+			const fd = fs.openSync(this.output, "a");
+			// stream write to file to avoid large string memory issue
+			let first = is_empty;
+			for (const event of this.events) {
+				if (!first) {
+					fs.writeFileSync(fd, ",\n");
+				}
+				fs.writeFileSync(fd, JSON.stringify(event));
+				first = false;
+			}
+			// even lots of tracing tools supports json without ending ], we end it for better compat with other tools
+			fs.writeFileSync(fd, "\n]");
+			fs.closeSync(fd);
 		});
 	}
 	// get elapsed time since start(microseconds same as rust side timestamp)
