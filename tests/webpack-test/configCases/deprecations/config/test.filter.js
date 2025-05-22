@@ -1,2 +1,1 @@
-// TODO: Should create a issue for this test
-module.exports = () => { return false }
+module.exports = () => { return "FIXME: missing deprecation DEP_WEBPACK_CONFIGURATION_OPTIMIZATION_NO_EMIT_ON_ERRORS" }

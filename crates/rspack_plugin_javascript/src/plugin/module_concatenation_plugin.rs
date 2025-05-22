@@ -554,7 +554,7 @@ impl ModuleConcatenationPlugin {
     let box_module = module_graph
       .module_by_identifier(&root_module_id)
       .expect("should have module");
-    let root_module_source_types = box_module.source_types();
+    let root_module_source_types = box_module.source_types(&module_graph);
     let is_root_module_asset_module = root_module_source_types.contains(&SourceType::Asset);
 
     let root_module_ctxt = RootModuleContext {
@@ -654,7 +654,8 @@ impl ModuleConcatenationPlugin {
           .module_by_identifier(m)
           .expect("should exist module");
 
-        let source_types = chunk_graph.get_chunk_module_source_types(&chunk_ukey, module);
+        let source_types =
+          chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, &module_graph);
 
         if source_types.len() == 1 {
           chunk_graph.disconnect_chunk_and_module(&chunk_ukey, *m);
@@ -681,7 +682,8 @@ impl ModuleConcatenationPlugin {
           .module_by_identifier(&root_module_id)
           .expect("should exist module");
 
-        let source_types = chunk_graph.get_chunk_module_source_types(&chunk_ukey, module);
+        let source_types =
+          chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, &module_graph);
         let new_source_types = source_types
           .iter()
           .filter(|source_type| !matches!(source_type, SourceType::JavaScript))
@@ -1034,7 +1036,9 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     "ModuleConcatenationPlugin (optimization.concatenateModules = true)",
     "it requires calculating the modules that can be concatenated based on all the modules, which is a global effect",
   ) {
-    compilation.push_diagnostic(diagnostic);
+    if let Some(diagnostic) = diagnostic {
+      compilation.push_diagnostic(diagnostic);
+    }
     compilation.cgm_hash_artifact.clear();
     compilation.module_ids_artifact.clear();
     compilation.chunk_ids_artifact.clear();

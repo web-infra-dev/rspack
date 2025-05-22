@@ -1,6 +1,6 @@
 import nodePath from "node:path";
 import type { AssetInfo, RawFuncUseCtx } from "@rspack/binding";
-import z, { type SyncParseReturnType, ZodIssueCode } from "zod";
+import { type SyncParseReturnType, ZodIssueCode, z } from "zod";
 import { Chunk } from "../Chunk";
 import { ChunkGraph } from "../ChunkGraph";
 import type { Compilation, PathData } from "../Compilation";
@@ -244,7 +244,11 @@ const enabledLibraryTypes = z.array(
 const clean = z.union([
 	z.boolean(),
 	z.strictObject({
-		keep: z.string().optional()
+		keep: z
+			.instanceof(RegExp)
+			.or(z.string())
+			.or(z.function().args(z.string()).returns(z.boolean()))
+			.optional()
 	})
 ]) satisfies z.ZodType<t.Clean>;
 
@@ -613,16 +617,21 @@ const assetParserOptions = z.strictObject({
 const cssParserNamedExports =
 	z.boolean() satisfies z.ZodType<t.CssParserNamedExports>;
 
+const cssParserUrl = z.boolean() satisfies z.ZodType<t.CssParserUrl>;
+
 const cssParserOptions = z.strictObject({
-	namedExports: cssParserNamedExports.optional()
+	namedExports: cssParserNamedExports.optional(),
+	url: cssParserUrl.optional()
 }) satisfies z.ZodType<t.CssParserOptions>;
 
 const cssAutoParserOptions = z.strictObject({
-	namedExports: cssParserNamedExports.optional()
+	namedExports: cssParserNamedExports.optional(),
+	url: cssParserUrl.optional()
 }) satisfies z.ZodType<t.CssAutoParserOptions>;
 
 const cssModuleParserOptions = z.strictObject({
-	namedExports: cssParserNamedExports.optional()
+	namedExports: cssParserNamedExports.optional(),
+	url: cssParserUrl.optional()
 }) satisfies z.ZodType<t.CssModuleParserOptions>;
 
 const dynamicImportMode = z.enum(["eager", "lazy", "weak", "lazy-once"]);
@@ -683,13 +692,7 @@ const parserOptionsByModuleTypeKnown = z.strictObject({
 	"javascript/esm": javascriptParserOptions.optional()
 }) satisfies z.ZodType<t.ParserOptionsByModuleTypeKnown>;
 
-const parserOptionsByModuleTypeUnknown = z.record(
-	z.record(z.any())
-) satisfies z.ZodType<t.ParserOptionsByModuleTypeUnknown>;
-
-const parserOptionsByModuleType = parserOptionsByModuleTypeKnown.or(
-	parserOptionsByModuleTypeUnknown
-) satisfies z.ZodType<t.ParserOptionsByModuleType>;
+const parserOptionsByModuleType = parserOptionsByModuleTypeKnown;
 
 const assetGeneratorDataUrlOptions = z.strictObject({
 	encoding: z.literal(false).or(z.literal("base64")).optional(),
@@ -718,7 +721,8 @@ const assetInlineGeneratorOptions = z.strictObject({
 const assetResourceGeneratorOptions = z.strictObject({
 	emit: z.boolean().optional(),
 	filename: filename.optional(),
-	publicPath: publicPath.optional()
+	publicPath: publicPath.optional(),
+	outputPath: filename.optional()
 }) satisfies z.ZodType<t.AssetResourceGeneratorOptions>;
 
 const assetGeneratorOptions = assetInlineGeneratorOptions.merge(
@@ -775,13 +779,7 @@ const generatorOptionsByModuleTypeKnown = z.strictObject({
 	json: jsonGeneratorOptions.optional()
 }) satisfies z.ZodType<t.GeneratorOptionsByModuleTypeKnown>;
 
-const generatorOptionsByModuleTypeUnknown = z.record(
-	z.record(z.any())
-) satisfies z.ZodType<t.GeneratorOptionsByModuleTypeUnknown>;
-
-const generatorOptionsByModuleType = generatorOptionsByModuleTypeKnown.or(
-	generatorOptionsByModuleTypeUnknown
-) satisfies z.ZodType<t.GeneratorOptionsByModuleType>;
+const generatorOptionsByModuleType = generatorOptionsByModuleTypeKnown;
 
 const noParseOptionSingle = z
 	.string()
@@ -1494,7 +1492,13 @@ const experiments = z.strictObject({
 	topLevelAwait: z.boolean().optional(),
 	css: z.boolean().optional(),
 	layers: z.boolean().optional(),
-	incremental: z.boolean().or(incremental).optional(),
+	incremental: z
+		.boolean()
+		.or(z.literal("safe"))
+		.or(z.literal("advance"))
+		.or(z.literal("advance-silent"))
+		.or(incremental)
+		.optional(),
 	parallelCodeSplitting: z.boolean().optional(),
 	futureDefaults: z.boolean().optional(),
 	rspackFuture: rspackFutureOptions.optional(),

@@ -4,10 +4,7 @@ use indexmap::IndexMap;
 use rspack_cacheable::with::AsMap;
 use rspack_collections::Identifier;
 use rspack_core::{
-  chunk_graph_chunk::ChunkId,
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  Compilation, RuntimeModule, RuntimeModuleStage,
+  chunk_graph_chunk::ChunkId, impl_runtime_module, Compilation, RuntimeModule, RuntimeModuleStage,
 };
 use rustc_hash::FxHasher;
 
@@ -41,14 +38,14 @@ impl RuntimeModule for ChunkPrefetchTriggerRuntimeModule {
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let source = compilation.runtime_template.render(
       &self.id,
       Some(serde_json::json!({
         "CHUNK_MAP": &self.chunk_map,
       })),
     )?;
-    Ok(RawStringSource::from(source).boxed())
+    Ok(source)
   }
 
   fn stage(&self) -> RuntimeModuleStage {

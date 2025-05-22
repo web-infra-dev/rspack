@@ -1,11 +1,12 @@
 #![recursion_limit = "256"]
 #![feature(let_chains)]
 #![feature(try_blocks)]
+#![allow(deprecated)]
+
 #[macro_use]
 extern crate napi_derive;
 extern crate rspack_allocator;
-
-use std::{cell::RefCell, pin::Pin, sync::Arc};
+use std::{cell::RefCell, sync::Arc};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use napi::{bindgen_prelude::*, CallContext};
@@ -22,6 +23,7 @@ mod allocator;
 mod asset;
 mod asset_condition;
 mod async_dependency_block;
+mod build_info;
 mod chunk;
 mod chunk_graph;
 mod chunk_group;
@@ -56,11 +58,13 @@ mod rsdoctor;
 mod runtime;
 mod source;
 mod stats;
+mod swc;
 mod utils;
 
 pub use asset::*;
 pub use asset_condition::*;
 pub use async_dependency_block::*;
+pub use build_info::*;
 pub use chunk::*;
 pub use chunk_graph::*;
 pub use chunk_group::*;
@@ -94,6 +98,7 @@ pub use runtime::*;
 use rustc_hash::FxHashMap;
 pub use source::*;
 pub use stats::*;
+pub use swc::*;
 use swc_core::common::util::take::Take;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{
@@ -116,9 +121,10 @@ fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
 #[napi(custom_finalize)]
 pub struct JsCompiler {
   js_hooks_plugin: JsHooksAdapterPlugin,
-  compiler: Pin<Box<Compiler>>,
+  compiler: Compiler,
   state: CompilerState,
   include_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
+  entry_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
 }
 
 #[napi]
@@ -127,6 +133,7 @@ impl JsCompiler {
   #[napi(constructor)]
   pub fn new(
     env: Env,
+    mut this: This,
     compiler_path: String,
     options: RawOptions,
     builtin_plugins: Vec<BuiltinPlugin>,
@@ -135,9 +142,9 @@ impl JsCompiler {
     intermediate_filesystem: Option<ThreadsafeNodeFS>,
     mut resolver_factory_reference: Reference<JsResolverFactory>,
   ) -> Result<Self> {
-    tracing::info!("raw_options: {:#?}", &options);
+    tracing::debug!("raw_options: {:#?}", &options);
 
-    let mut plugins = Vec::new();
+    let mut plugins = Vec::with_capacity(builtin_plugins.len());
     let js_hooks_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
     plugins.push(js_hooks_plugin.clone().boxed());
 
@@ -152,12 +159,12 @@ impl JsCompiler {
     plugins.push(js_cleanup_plugin.boxed());
 
     for bp in builtin_plugins {
-      bp.append_to(env, &mut plugins).to_napi_result()?;
+      bp.append_to(env, &mut this, &mut plugins)?;
     }
 
     let compiler_options: rspack_core::CompilerOptions = options.try_into().to_napi_result()?;
 
-    tracing::info!("normalized_options: {:#?}", &compiler_options);
+    tracing::debug!("normalized_options: {:#?}", &compiler_options);
 
     let resolver_factory =
       (*resolver_factory_reference).get_resolver_factory(compiler_options.resolve.clone());
@@ -191,10 +198,11 @@ impl JsCompiler {
     );
 
     Ok(Self {
-      compiler: Box::pin(Compiler::from(rspack)),
+      compiler: Compiler::from(rspack),
       state: CompilerState::init(),
       js_hooks_plugin,
       include_dependencies_map: Default::default(),
+      entry_dependencies_map: Default::default(),
     })
   }
 
@@ -205,17 +213,20 @@ impl JsCompiler {
 
   /// Build with the given option passed to the constructor
   #[napi(ts_args_type = "callback: (err: null | Error) => void")]
-  pub fn build(&mut self, env: Env, reference: Reference<JsCompiler>, f: Function) -> Result<()> {
+  pub fn build(&mut self, reference: Reference<JsCompiler>, f: Function<'static>) -> Result<()> {
     unsafe {
-      self.run(env, reference, |compiler, _guard| {
-        callbackify(env, f, async move {
-          compiler.build().await.to_napi_result_with_message(|e| {
-            print_error_diagnostic(e, compiler.options.stats.colors)
-          })?;
-          tracing::info!("build ok");
-          drop(_guard);
-          Ok(())
-        })
+      self.run(reference, |compiler, guard| {
+        callbackify(
+          f,
+          async move {
+            compiler.build().await.to_napi_result_with_message(|e| {
+              print_error_diagnostic(e, compiler.options.stats.colors)
+            })?;
+            tracing::debug!("build ok");
+            Ok(())
+          },
+          || drop(guard),
+        )
       })
     }
   }
@@ -226,30 +237,32 @@ impl JsCompiler {
   )]
   pub fn rebuild(
     &mut self,
-    env: Env,
     reference: Reference<JsCompiler>,
     changed_files: Vec<String>,
     removed_files: Vec<String>,
-    f: Function,
+    f: Function<'static>,
   ) -> Result<()> {
     use std::collections::HashSet;
 
     unsafe {
-      self.run(env, reference, |compiler, _guard| {
-        callbackify(env, f, async move {
-          compiler
-            .rebuild(
-              HashSet::from_iter(changed_files.into_iter()),
-              HashSet::from_iter(removed_files.into_iter()),
-            )
-            .await
-            .to_napi_result_with_message(|e| {
-              print_error_diagnostic(e, compiler.options.stats.colors)
-            })?;
-          tracing::info!("rebuild ok");
-          drop(_guard);
-          Ok(())
-        })
+      self.run(reference, |compiler, guard| {
+        callbackify(
+          f,
+          async move {
+            compiler
+              .rebuild(
+                HashSet::from_iter(changed_files.into_iter()),
+                HashSet::from_iter(removed_files.into_iter()),
+              )
+              .await
+              .to_napi_result_with_message(|e| {
+                print_error_diagnostic(e, compiler.options.stats.colors)
+              })?;
+            tracing::debug!("rebuild ok");
+            Ok(())
+          },
+          || drop(guard),
+        )
       })
     }
   }
@@ -267,6 +280,11 @@ impl JsCompiler {
   }
 }
 
+struct RunGuard {
+  _compiler_state_guard: CompilerStateGuard,
+  _reference: Reference<JsCompiler>,
+}
+
 impl JsCompiler {
   /// Run the given function with the compiler.
   ///
@@ -276,33 +294,33 @@ impl JsCompiler {
   ///    Accessing `Compiler` beyond the lifetime of `CompilerStateGuard` would lead to potential race condition.
   unsafe fn run<R>(
     &mut self,
-    env: Env,
-    reference: Reference<JsCompiler>,
-    f: impl FnOnce(&'static mut Compiler, CompilerStateGuard) -> Result<R>,
+    mut reference: Reference<JsCompiler>,
+    f: impl FnOnce(&'static mut Compiler, RunGuard) -> Result<R>,
   ) -> Result<R> {
-    COMPILER_REFERENCES.with(|ref_cell| {
-      let mut references = ref_cell.borrow_mut();
-      references.insert(reference.compiler.id(), reference.downgrade());
-    });
-
     if self.state.running() {
       return Err(concurrent_compiler_error());
     }
-    let _guard = self.state.enter();
-    let mut compiler = reference.share_with(env, |s| {
-      // SAFETY: The mutable reference to `Compiler` is exclusive. It's guaranteed by the running state guard.
-      Ok(unsafe { s.compiler.as_mut().get_unchecked_mut() })
-    })?;
+
+    let compiler_state_guard = self.state.enter();
+    let weak_reference = reference.downgrade();
+    // SAFETY:
+    // We ensure the lifetime of JsCompiler by holding a Reference<JsCompiler> until the JS callback function completes.
+    // Therefore, we can safely transmute the lifetime of Compiler to 'static here.
+    let compiler = unsafe {
+      std::mem::transmute::<&mut Compiler, &'static mut Compiler>(&mut reference.compiler)
+    };
+    let guard = RunGuard {
+      _compiler_state_guard: compiler_state_guard,
+      _reference: reference,
+    };
+    COMPILER_REFERENCES.with(|ref_cell| {
+      let mut references = ref_cell.borrow_mut();
+      references.insert(compiler.id(), weak_reference);
+    });
 
     self.cleanup_last_compilation(&compiler.compilation);
 
-    // SAFETY:
-    // 1. `Compiler` is pinned and stored on the heap.
-    // 2. `JsReference` (NAPI internal mechanism) keeps `Compiler` alive until its instance getting garbage collected.
-    f(
-      unsafe { std::mem::transmute::<&mut Compiler, &'static mut Compiler>(*compiler) },
-      _guard,
-    )
+    f(compiler, guard)
   }
 
   fn cleanup_last_compilation(&self, compilation: &Compilation) {
@@ -460,9 +478,15 @@ pub fn cleanup_global_trace() {
   });
 }
 
-#[module_exports]
 fn node_init(mut _exports: Object, env: Env) -> Result<()> {
   rspack_core::set_thread_local_allocator(Box::new(allocator::NapiAllocatorImpl::new(env)));
+  Ok(())
+}
+
+#[napi(module_exports)]
+pub fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
+  node_init(exports, env)?;
+  module::init(exports, env)?;
   Ok(())
 }
 

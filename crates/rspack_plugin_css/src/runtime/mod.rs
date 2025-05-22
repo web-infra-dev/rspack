@@ -3,10 +3,8 @@ use std::borrow::Cow;
 use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
-  basic_function, compile_boolean_matcher, impl_runtime_module,
-  rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
-  BooleanMatcher, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage,
+  basic_function, compile_boolean_matcher, impl_runtime_module, BooleanMatcher, ChunkGroupOrderKey,
+  ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_plugin_runtime::{chunk_has_css, get_chunk_runtime_requirements, stringify_chunks};
 use rustc_hash::FxHashSet as HashSet;
@@ -30,7 +28,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     self.id
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
       let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
@@ -62,21 +60,39 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         }
       }
 
+      let environment = &compilation.options.output.environment;
+      let with_prefetch = runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS)
+        && environment.supports_document()
+        && chunk.has_child_by_order(
+          compilation,
+          &ChunkGroupOrderKey::Prefetch,
+          true,
+          &chunk_has_css,
+        );
+      let with_preload = runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS)
+        && environment.supports_document()
+        && chunk.has_child_by_order(
+          compilation,
+          &ChunkGroupOrderKey::Preload,
+          true,
+          &chunk_has_css,
+        );
+
       if !with_hmr && !with_loading {
-        return Ok(RawStringSource::from_static("").boxed());
+        return Ok("".to_string());
       }
 
-      let mut source = ConcatSource::default();
+      let mut source = String::new();
       // object to store loaded and loading chunks
       // undefined = chunk not loaded, null = chunk preloaded/prefetched
       // [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
 
       // One entry initial chunk maybe is other entry dynamic chunk, so here
       // only render chunk without css. See packages/rspack/tests/runtimeCases/runtime/split-css-chunk test.
-      source.add(RawStringSource::from(format!(
+      source.push_str(&format!(
         "var installedChunks = {};\n",
         &stringify_chunks(&initial_chunk_ids, 0)
-      )));
+      ));
 
       let cross_origin_content = if let CrossOriginLoading::Enable(cross_origin) =
         &compilation.options.output.cross_origin_loading
@@ -97,7 +113,6 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       };
 
       let chunk_load_timeout = compilation.options.output.chunk_load_timeout.to_string();
-      let environment = &compilation.options.output.environment;
 
       let load_css_chunk_data = basic_function(
         environment,
@@ -144,8 +159,8 @@ installedChunks[chunkId] = 0;
         Cow::Borrowed("// no initial css")
       };
 
-      source.add(RawStringSource::from(
-        include_str!("./css_loading.js")
+      source.push_str(
+        &include_str!("./css_loading.js")
           .cow_replace(
             "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
             &cross_origin_content,
@@ -153,9 +168,8 @@ installedChunks[chunkId] = 0;
           .cow_replace("__CSS_CHUNK_DATA__", &load_css_chunk_data)
           .cow_replace("__CHUNK_LOAD_TIMEOUT_PLACEHOLDER__", &chunk_load_timeout)
           .cow_replace("__UNIQUE_NAME__", unique_name)
-          .cow_replace("__INITIAL_CSS_CHUNK_DATA__", &load_initial_chunk_data)
-          .into_owned(),
-      ));
+          .cow_replace("__INITIAL_CSS_CHUNK_DATA__", &load_initial_chunk_data),
+      );
 
       if with_loading {
         let chunk_loading_global_expr = format!(
@@ -163,8 +177,8 @@ installedChunks[chunkId] = 0;
           &compilation.options.output.global_object,
           &compilation.options.output.chunk_loading_global
         );
-        source.add(RawStringSource::from(
-          include_str!("./css_loading_with_loading.js")
+        source.push_str(
+          &include_str!("./css_loading_with_loading.js")
             .cow_replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr)
             .cow_replace("CSS_MATCHER", &has_css_matcher.render("chunkId"))
             .cow_replace(
@@ -174,18 +188,64 @@ installedChunks[chunkId] = 0;
               } else {
                 ""
               },
+            ),
+        );
+      }
+
+      let charset_content = if compilation.options.output.charset {
+        "link.charset = 'utf-8';"
+      } else {
+        ""
+      };
+
+      if with_prefetch && !matches!(has_css_matcher, BooleanMatcher::Condition(false)) {
+        let cross_origin_content = if let CrossOriginLoading::Enable(cross_origin) =
+          &compilation.options.output.cross_origin_loading
+        {
+          format!("link.crossOrigin = '{}';", cross_origin)
+        } else {
+          "".to_string()
+        };
+        source.push_str(
+          &include_str!("./css_loading_with_prefetch.js")
+            .cow_replace("$CSS_MATCHER$", &has_css_matcher.render("chunkId"))
+            .cow_replace("$CHARSET_PLACEHOLDER$", charset_content)
+            .cow_replace("$CROSS_ORIGIN_PLACEHOLDER$", &cross_origin_content),
+        );
+      }
+
+      if with_preload && !matches!(has_css_matcher, BooleanMatcher::Condition(false)) {
+        let cross_origin_content = if let CrossOriginLoading::Enable(cross_origin) =
+          &compilation.options.output.cross_origin_loading
+        {
+          if cross_origin == "use-credentials" {
+            format!("link.crossOrigin = '{}';", &cross_origin)
+          } else {
+            format!(
+              r#"
+    if (link.href.indexOf(window.location.origin + '/') !== 0) {{
+      link.crossOrigin = '{}';
+    }}
+    "#,
+              &cross_origin
             )
-            .into_owned(),
-        ));
+          }
+        } else {
+          "".to_string()
+        };
+        source.push_str(
+          &include_str!("./css_loading_with_preload.js")
+            .cow_replace("$CSS_MATCHER$", &has_css_matcher.render("chunkId"))
+            .cow_replace("$CHARSET_PLACEHOLDER$", charset_content)
+            .cow_replace("$CROSS_ORIGIN_PLACEHOLDER$", &cross_origin_content),
+        );
       }
 
       if with_hmr {
-        source.add(RawStringSource::from_static(include_str!(
-          "./css_loading_with_hmr.js"
-        )));
+        source.push_str(include_str!("./css_loading_with_hmr.js"));
       }
 
-      Ok(source.boxed())
+      Ok(source)
     } else {
       unreachable!("should attach chunk for css_loading")
     }

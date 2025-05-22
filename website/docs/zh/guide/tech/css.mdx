@@ -8,9 +8,9 @@ CSS 是 Rspack 的一等公民，Rspack 内置了多种能力来支持 CSS 打�
 
 你可以从以下方式中进行选择：
 
-### 原生 CSS 支持
+### 内置 CSS 支持
 
-Rspack 提供了 [experiment.css](/config/experiments#experimentscss) 选项，这是从 webpack 5 开始引入的实验性功能，用于开启 CSS 原生支持。Rspack 进一步完善了该功能，并计划在 Rspack 2.0 默认开启它。
+Rspack 提供了 [experiment.css](/config/experiments#experimentscss) 选项，这是从 webpack 5 开始引入的实验性功能，用于开启对 CSS 的支持。Rspack 进一步完善了该功能，并计划在 Rspack 2.0 默认开启它。
 
 > 如果你基于 Rspack 创建了一个新项目，那么推荐使用该方式。
 
@@ -25,8 +25,8 @@ export default {
 开启 `experiment.css` 后，Rspack 将支持以下三种模块类型，你可以在 `rule` 上通过 `type` 来设置它们：
 
 - `css`：用于处理普通的 CSS 文件。
-- `css/module`：用于处理 [CSS Modules](https://github.com/css-modules/css-modules)。
-- `css/auto`：基于文件扩展名自动判断是普通 CSS 文件还是 CSS Modules，`*.module.css` 结尾的文件视为 CSS Modules。
+- `css/module`：用于处理 [CSS Modules](#css-modules)。
+- `css/auto`：基于文件扩展名自动判断是普通 CSS 文件还是 CSS Modules，`*.module.css` 结尾的文件会被视为 CSS Modules。
 
 对于 `*.css` 结尾的文件，Rspack 会默认将其视为 `type: 'css/auto'`，你也可以通过配置 `type: 'css/auto'`，自定义将哪些文件视为 CSS 文件。比如，将 `.less` 文件视为 CSS 文件：
 
@@ -109,7 +109,11 @@ style-loader 不能与 `type: 'css'`、`type: 'css/auto'` 或 `type: 'css/module
 
 ## CSS Modules
 
-Rspack 默认将扩展名为 `*.module.css` 的文件视为 [CSS Modules](https://github.com/css-modules/css-modules)，你可以在 JavaScript 文件中导入它，然后将 CSS 文件中定义的每个类作为模块的导出来访问。
+[CSS Modules](https://github.com/css-modules/css-modules) 是一种 CSS 文件的组织方式，它通过为类名自动生成唯一标识符，来局部化 CSS 的作用域，这允许你在不同的文件中使用相同的类名，而不用担心冲突。
+
+### 内置支持
+
+在开启 [内置 CSS 支持](#内置-css-支持) 后，Rspack 默认将扩展名为 `*.module.css` 的文件视为 CSS Modules，你可以在 JavaScript 文件中导入它，然后将 CSS 文件中定义的每个类作为模块的导出来访问。
 
 ```css title="index.module.css"
 .red {
@@ -152,7 +156,39 @@ import styles from './index.module.css';
 document.getElementById('element').className = styles.red;
 ```
 
-更多关于 CSS Modules 的配置请参考 [module.parser.css](/config/module#moduleparsercss)。
+:::tip
+
+Rspack 提供了选项，允许你自定义 CSS Modules 的解析和生成方式：
+
+- [module.parser.css](/config/module#moduleparsercss)：配置 CSS Modules 的解析方式。
+- [module.generator.css](/config/module#modulegeneratorcss)：配置 CSS Modules 的生成方式。
+
+:::
+
+### 使用 css-loader
+
+如果你没有开启 Rspack 的内置 CSS 支持，那么可以使用 [css-loader](https://github.com/webpack-contrib/css-loader) 来提供对 CSS Modules 的支持。
+
+通过 `css-loader` 的 `modules` 选项开启：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        loader: 'css-loader',
+        type: 'javascript/auto',
+        options: {
+          modules: true,
+        },
+      },
+    ],
+  },
+};
+```
+
+更多用法请参考 [css-loader - modules](https://github.com/webpack-contrib/css-loader#modules)。
 
 ## PostCSS
 

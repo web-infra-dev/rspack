@@ -408,12 +408,12 @@ export default {
 type transform =
   | {
       transformer: (
-        input: string,
+        input: Buffer,
         absoluteFilename: string,
       ) => string | Buffer | Promise<string> | Promise<Buffer>;
     }
   | ((
-      input: string,
+      input: Buffer,
       absoluteFilename: string,
     ) => string | Buffer | Promise<string> | Promise<Buffer>);
 ```

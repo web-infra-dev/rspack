@@ -1,9 +1,5 @@
 use rspack_collections::Identifier;
-use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  Compilation, RuntimeModule,
-};
+use rspack_core::{impl_runtime_module, Compilation, RuntimeGlobals, RuntimeModule};
 
 #[impl_runtime_module]
 #[derive(Debug, Default)]
@@ -23,8 +19,8 @@ impl RuntimeModule for ExportWebpackRequireRuntimeModule {
     self.id
   }
 
-  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(RawStringSource::from_static("export default __webpack_require__;").boxed())
+  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
+    Ok(format!("export default {};", RuntimeGlobals::REQUIRE))
   }
 
   fn should_isolate(&self) -> bool {

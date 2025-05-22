@@ -2,7 +2,10 @@ use std::{cell::RefCell, ptr::NonNull};
 
 use napi::{bindgen_prelude::ToNapiValue, Either, Env, JsString};
 use napi_derive::napi;
-use rspack_core::{ChunkGroup, ChunkGroupUkey, Compilation, CompilationId};
+use rspack_core::{
+  ChunkGroup, ChunkGroupUkey, Compilation, CompilationId, DependencyLocation,
+  RealDependencyLocation, SourcePosition,
+};
 use rspack_napi::OneShotRef;
 use rustc_hash::FxHashMap as HashMap;
 
@@ -61,12 +64,23 @@ impl JsChunkGroup {
   }
 
   #[napi(getter)]
-  pub fn origins(&self, env: Env) -> napi::Result<Vec<JsChunkGroupOrigin>> {
+  pub fn origins<'a>(&self, env: &'a Env) -> napi::Result<Vec<JsChunkGroupOrigin<'a>>> {
     let (compilation, chunk_graph) = self.as_ref()?;
     let origins = chunk_graph.origins();
     let mut js_origins = Vec::with_capacity(origins.len());
 
     for origin in origins {
+      let loc = if let Some(loc) = &origin.loc {
+        Some(match loc {
+          DependencyLocation::Real(real) => Either::B(real.clone().into()),
+          DependencyLocation::Synthetic(synthetic) => {
+            Either::A(env.create_string(&synthetic.name)?)
+          }
+        })
+      } else {
+        None
+      };
+
       js_origins.push(JsChunkGroupOrigin {
         module: origin.module.and_then(|module_id| {
           compilation
@@ -77,6 +91,7 @@ impl JsChunkGroup {
           Some(request) => Some(env.create_string(request)?),
           None => None,
         },
+        loc,
       })
     }
 
@@ -229,8 +244,38 @@ impl ToNapiValue for JsChunkGroupWrapper {
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsChunkGroupOrigin {
+pub struct JsChunkGroupOrigin<'a> {
   #[napi(ts_type = "Module | undefined")]
   pub module: Option<ModuleObject>,
-  pub request: Option<JsString>,
+  pub request: Option<JsString<'a>>,
+  pub loc: Option<Either<JsString<'a>, JsRealDependencyLocation>>,
+}
+
+#[napi(object, object_from_js = false)]
+pub struct JsRealDependencyLocation {
+  pub start: JsSourcePosition,
+  pub end: Option<JsSourcePosition>,
+}
+
+impl From<RealDependencyLocation> for JsRealDependencyLocation {
+  fn from(value: RealDependencyLocation) -> Self {
+    Self {
+      start: value.start.into(),
+      end: value.end.map(JsSourcePosition::from),
+    }
+  }
+}
+#[napi(object, object_from_js = false)]
+pub struct JsSourcePosition {
+  pub line: u32,
+  pub column: u32,
+}
+
+impl From<SourcePosition> for JsSourcePosition {
+  fn from(value: SourcePosition) -> Self {
+    Self {
+      line: value.line as u32,
+      column: value.column as u32,
+    }
+  }
 }

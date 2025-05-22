@@ -7,15 +7,18 @@ macro_rules! impl_module_methods {
         env: &'a napi::Env,
         mut properties: Vec<napi::Property>,
       ) -> napi::Result<napi::bindgen_prelude::ClassInstance<'a, Self>> {
-        use napi::bindgen_prelude::JavaScriptClassExt;
+        use napi::bindgen_prelude::{JavaScriptClassExt, JsObjectValue, JsValue};
 
         let mut instance = self.into_instance(env)?;
-        let mut object = instance.as_object(env);
+        // The returned Object's lifetime should be tied to the input Env's lifetime, not the ClassInstance itself.
+        // Fix in: https://github.com/napi-rs/napi-rs/pull/2655
+        let mut object =
+        unsafe { std::mem::transmute::<napi::bindgen_prelude::Object, napi::bindgen_prelude::Object<'static>>(instance.as_object(env)) };
         let (_, module) = instance.module.as_ref()?;
 
         #[js_function]
         fn context_getter(ctx: napi::CallContext) -> napi::Result<napi::Either<String, ()>> {
-          let this = ctx.this::<napi::bindgen_prelude::Object>()?;
+          let this = ctx.this::<napi::JsObject>()?;
           let wrapped_value: &mut $module = unsafe {
             napi::bindgen_prelude::FromNapiMutRef::from_napi_mut_ref(
               ctx.env.raw(),
@@ -31,7 +34,7 @@ macro_rules! impl_module_methods {
 
         #[js_function]
         fn layer_getter(ctx: napi::CallContext) -> napi::Result<napi::Either<&String, ()>> {
-          let this = ctx.this::<napi::bindgen_prelude::Object>()?;
+          let this = ctx.this::<napi::JsObject>()?;
           let wrapped_value: &mut $module = unsafe {
             napi::bindgen_prelude::FromNapiMutRef::from_napi_mut_ref(
               ctx.env.raw(),
@@ -47,7 +50,7 @@ macro_rules! impl_module_methods {
 
         #[js_function]
         fn use_source_map_getter(ctx: napi::CallContext) -> napi::Result<bool> {
-          let this = ctx.this::<napi::bindgen_prelude::Object>()?;
+          let this = ctx.this::<napi::JsObject>()?;
           let wrapped_value: &mut $module = unsafe {
             napi::bindgen_prelude::FromNapiMutRef::from_napi_mut_ref(
               ctx.env.raw(),
@@ -60,7 +63,7 @@ macro_rules! impl_module_methods {
 
         #[js_function]
         fn use_simple_source_map_getter(ctx: napi::CallContext) -> napi::Result<bool> {
-          let this = ctx.this::<napi::bindgen_prelude::Object>()?;
+          let this = ctx.this::<napi::JsObject>()?;
           let wrapped_value: &mut $module = unsafe {
             napi::bindgen_prelude::FromNapiMutRef::from_napi_mut_ref(
               ctx.env.raw(),
@@ -75,7 +78,7 @@ macro_rules! impl_module_methods {
         fn factory_meta_getter(ctx: napi::CallContext) -> napi::Result<$crate::JsFactoryMeta> {
           use rspack_core::Module;
 
-          let this = ctx.this_unchecked::<napi::bindgen_prelude::Object>();
+          let this = ctx.this_unchecked::<napi::JsObject>();
           let wrapped_value: &mut $module = unsafe {
             napi::bindgen_prelude::FromNapiMutRef::from_napi_mut_ref(
               ctx.env.raw(),
@@ -99,8 +102,8 @@ macro_rules! impl_module_methods {
         }
 
         #[js_function(1)]
-        fn factory_meta_setter(ctx: napi::CallContext) -> napi::Result<napi::JsUndefined> {
-          let this = ctx.this_unchecked::<napi::bindgen_prelude::Object>();
+        fn factory_meta_setter(ctx: napi::CallContext) -> napi::Result<()> {
+          let this = ctx.this_unchecked::<napi::JsObject>();
           let wrapped_value: &mut $module = unsafe {
             napi::bindgen_prelude::FromNapiMutRef::from_napi_mut_ref(
               ctx.env.raw(),
@@ -110,12 +113,12 @@ macro_rules! impl_module_methods {
           let module = wrapped_value.module.as_mut()?;
           let factory_meta = ctx.get::<$crate::JsFactoryMeta>(0)?;
           module.set_factory_meta(factory_meta.into());
-          ctx.env.get_undefined()
+          Ok(())
         }
 
         #[js_function]
         fn readable_identifier_getter(ctx: napi::CallContext) -> napi::Result<String> {
-          let this = ctx.this::<napi::bindgen_prelude::Object>()?;
+          let this = ctx.this::<napi::JsObject>()?;
           let wrapped_value: &mut $module = unsafe {
             napi::bindgen_prelude::FromNapiMutRef::from_napi_mut_ref(
               ctx.env.raw(),
@@ -128,6 +131,78 @@ macro_rules! impl_module_methods {
             .map(|ctx| module.readable_identifier(ctx.as_ref()).to_string())
             .unwrap_or_default();
           Ok(res)
+        }
+
+        #[js_function]
+        fn build_info_getter(ctx: napi::CallContext) -> napi::Result<napi::bindgen_prelude::Object> {
+          use napi::{bindgen_prelude::FromNapiValue, NapiRaw};
+          let mut this = ctx.this::<napi::JsObject>()?;
+          let env = ctx.env;
+          let raw_env = env.raw();
+          let mut reference: napi::bindgen_prelude::Reference<$crate::Module> =
+            unsafe { napi::bindgen_prelude::Reference::from_napi_value(raw_env, this.raw())? };
+          if let Some(r) = &reference.build_info_ref {
+            return r.as_object(env);
+          }
+          let mut build_info = $crate::BuildInfo::new(reference.downgrade()).get_jsobject(env)?;
+          $crate::MODULE_BUILD_INFO_SYMBOL.with(|once_cell| {
+            let sym = unsafe {
+              #[allow(clippy::unwrap_used)]
+              let napi_val = napi::bindgen_prelude::ToNapiValue::to_napi_value(env.raw(), once_cell.get().unwrap())?;
+              napi::JsSymbol::from_napi_value(env.raw(), napi_val)
+            };
+            this.set_property(sym, &build_info)
+          })?;
+          let r = rspack_napi::WeakRef::new(raw_env, &mut build_info)?;
+          let result = r.as_object(env);
+          reference.build_info_ref = Some(r);
+          result
+        }
+
+        #[js_function(1)]
+        fn build_info_setter(ctx: napi::CallContext) -> napi::Result<()> {
+          use napi::{bindgen_prelude::FromNapiValue, NapiRaw};
+          use rspack_napi::string::JsStringExt;
+          let mut this = ctx.this_unchecked::<napi::JsObject>();
+          let input_object = ctx.get::<napi::JsObject>(0)?;
+          let env = ctx.env;
+          let raw_env = env.raw();
+          let mut reference: napi::bindgen_prelude::Reference<Module> =
+            unsafe { napi::bindgen_prelude::Reference::from_napi_value(raw_env, this.raw())? };
+          let new_build_info = $crate::BuildInfo::new(reference.downgrade());
+          let mut new_instrance = new_build_info.get_jsobject(env)?;
+
+          let names = input_object.get_all_property_names(
+            napi::KeyCollectionMode::OwnOnly,
+            napi::KeyFilter::AllProperties,
+            napi::KeyConversion::KeepNumbers,
+          )?;
+          let names = napi::bindgen_prelude::Array::from_unknown(names.into_unknown())?;
+          for index in 0..names.len() {
+            if let Some(name) = names.get::<napi::bindgen_prelude::Unknown>(index)? {
+              let name_clone = napi::bindgen_prelude::Object::from_raw(env.raw(), name.raw());
+              let name_str = name_clone.coerce_to_string()?.into_string();
+              // known build info properties
+              if name_str == "assets" {
+                // TODO: Currently, setting assets is not supported.
+                continue;
+              } else {
+                let value = input_object.get_property::<napi::bindgen_prelude::Unknown, napi::bindgen_prelude::Unknown>(name)?;
+                new_instrance.set_property::<napi::bindgen_prelude::Unknown, napi::bindgen_prelude::Unknown>(name, value)?;
+              }
+            }
+          }
+
+          $crate::MODULE_BUILD_INFO_SYMBOL.with(|once_cell| {
+            let sym = unsafe {
+              #[allow(clippy::unwrap_used)]
+              let napi_val = napi::bindgen_prelude::ToNapiValue::to_napi_value(env.raw(), once_cell.get().unwrap())?;
+              napi::JsSymbol::from_napi_value(env.raw(), napi_val)
+            };
+            this.set_property(sym, &new_instrance)
+          })?;
+          reference.build_info_ref = Some(rspack_napi::WeakRef::new(raw_env, &mut new_instrance)?);
+          Ok(())
         }
 
         properties.push(
@@ -145,8 +220,8 @@ macro_rules! impl_module_methods {
             .with_getter(factory_meta_getter)
             .with_setter(factory_meta_setter),
         );
-        properties.push(napi::Property::new("buildInfo")?.with_value(&env.create_object()?));
-        properties.push(napi::Property::new("buildMeta")?.with_value(&env.create_object()?));
+        properties.push(napi::Property::new("buildInfo")?.with_getter(build_info_getter).with_setter(build_info_setter));
+        properties.push(napi::Property::new("buildMeta")?.with_value(&napi::bindgen_prelude::Object::new(env)?));
         properties.push(
           napi::Property::new("_readableIdentifier")?.with_getter(readable_identifier_getter),
         );
@@ -160,7 +235,7 @@ macro_rules! impl_module_methods {
               env.raw(),
               once_cell.get().unwrap(),
             )?;
-            <napi::JsSymbol as napi::NapiValue>::from_raw_unchecked(env.raw(), napi_val)
+            <napi::JsSymbol as napi::bindgen_prelude::FromNapiValue>::from_napi_value(env.raw(), napi_val)?
           };
           object.set_property(symbol, identifier)
         })?;
@@ -204,11 +279,11 @@ macro_rules! impl_module_methods {
       }
 
       #[napi]
-      pub fn lib_ident(
+      pub fn lib_ident<'a>(
         &mut self,
-        env: &napi::Env,
+        env: &'a napi::Env,
         options: $crate::JsLibIdentOptions,
-      ) -> napi::Result<Option<napi::JsString>> {
+      ) -> napi::Result<Option<napi::JsString<'a>>> {
         self.module.lib_ident(env, options)
       }
 

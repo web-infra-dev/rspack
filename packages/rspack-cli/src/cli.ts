@@ -46,8 +46,6 @@ export class RspackCLI {
 		callback?: (e: Error | null, res?: Stats | MultiStats) => void
 	) {
 		process.env.RSPACK_CONFIG_VALIDATE ??= "loose";
-		process.env.WATCHPACK_WATCHER_LIMIT =
-			process.env.WATCHPACK_WATCHER_LIMIT || "20";
 
 		let config = await this.loadConfig(options);
 		config = await this.buildConfig(config, options, rspackCommand);

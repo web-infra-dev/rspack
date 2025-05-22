@@ -8,8 +8,8 @@ use rspack_core::{
   rspack_sources::BoxSource, sync_module_factory, AsyncDependenciesBlock,
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec,
-  SourceType,
+  FactoryMeta, LibIdentOptions, Module, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
+  RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -127,7 +127,7 @@ impl Module for ConsumeSharedModule {
     &ModuleType::ConsumeShared
   }
 
-  fn source_types(&self) -> &[SourceType] {
+  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     &[SourceType::ConsumeShared]
   }
 

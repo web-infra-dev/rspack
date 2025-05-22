@@ -470,17 +470,25 @@ const describeCases = config => {
 														value: "Module"
 													});
 													return m;
-												}
+												},
+												__STATS_I__: i,
 											};
 
 											let runInNewContext = false;
 											if (
 												options.target === "web" ||
-												options.target === "webworker"
+												options.target === "webworker" ||
+												(Array.isArray(options.target) &&
+													(options.target.includes("web") ||
+														options.target.includes("webworker")))
 											) {
 												baseModuleScope.window = globalContext;
 												baseModuleScope.self = globalContext;
 												baseModuleScope.document = globalContext.document;
+												baseModuleScope.setTimeout = globalContext.setTimeout;
+												baseModuleScope.clearTimeout = globalContext.clearTimeout;
+												baseModuleScope.getComputedStyle =
+													globalContext.getComputedStyle;
 												baseModuleScope.URL = URL;
 												if (typeof Blob !== "undefined") {
 													baseModuleScope.Blob = Blob;
@@ -492,7 +500,7 @@ const describeCases = config => {
 												runInNewContext = true;
 											}
 											if (testConfig.moduleScope) {
-												testConfig.moduleScope(baseModuleScope);
+												testConfig.moduleScope(baseModuleScope, options);
 											}
 											const esmContext = vm.createContext(baseModuleScope, {
 												name: "context for esm"
@@ -561,12 +569,8 @@ const describeCases = config => {
 															);
 														let esm = esmCache.get(p);
 														if (!esm) {
-															let moduleContext = esmContext;
 															if (content.includes("__STATS__")) {
-																moduleContext = vm.createContext({
-																	__STATS__: getStatsJson(),
-																	...moduleContext
-																});
+																esmContext.__STATS__ = getStatsJson();
 															}
 															esm = new vm.SourceTextModule(content, {
 																identifier: esmIdentifier + "-" + p,
@@ -668,7 +672,7 @@ const describeCases = config => {
 														moduleScope.__STATS__ = getStatsJson();
 													}
 													if (testConfig.moduleScope) {
-														testConfig.moduleScope(moduleScope);
+														testConfig.moduleScope(moduleScope, options);
 													}
 													if (!runInNewContext)
 														content = `Object.assign(global, _globalAssign); ${content}`;
@@ -738,7 +742,7 @@ const describeCases = config => {
 									}
 									Promise.all(results)
 										.then(() => {
-											if (testConfig.afterExecute) testConfig.afterExecute();
+											if (testConfig.afterExecute) testConfig.afterExecute(options);
 											for (const key of Object.keys(global)) {
 												if (key.includes("webpack")) delete global[key];
 											}

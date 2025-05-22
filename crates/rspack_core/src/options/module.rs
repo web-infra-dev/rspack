@@ -286,18 +286,21 @@ pub struct AssetParserDataUrlOptions {
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssParserOptions {
   pub named_exports: Option<bool>,
+  pub url: Option<bool>,
 }
 
 #[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssAutoParserOptions {
   pub named_exports: Option<bool>,
+  pub url: Option<bool>,
 }
 
 impl From<CssParserOptions> for CssAutoParserOptions {
   fn from(value: CssParserOptions) -> Self {
     Self {
       named_exports: value.named_exports,
+      url: value.url,
     }
   }
 }
@@ -306,12 +309,14 @@ impl From<CssParserOptions> for CssAutoParserOptions {
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssModuleParserOptions {
   pub named_exports: Option<bool>,
+  pub url: Option<bool>,
 }
 
 impl From<CssParserOptions> for CssModuleParserOptions {
   fn from(value: CssParserOptions) -> Self {
     Self {
       named_exports: value.named_exports,
+      url: value.url,
     }
   }
 }
@@ -458,12 +463,14 @@ impl GeneratorOptions {
 #[derive(Debug, Clone, MergeFrom)]
 pub struct AssetInlineGeneratorOptions {
   pub data_url: Option<AssetGeneratorDataUrl>,
+  pub binary: Option<bool>,
 }
 
 impl From<AssetGeneratorOptions> for AssetInlineGeneratorOptions {
   fn from(value: AssetGeneratorOptions) -> Self {
     Self {
       data_url: value.data_url,
+      binary: value.binary,
     }
   }
 }
@@ -515,6 +522,7 @@ pub struct AssetResourceGeneratorOptions {
   pub output_path: Option<Filename>,
   pub public_path: Option<PublicPath>,
   pub import_mode: Option<AssetGeneratorImportMode>,
+  pub binary: Option<bool>,
 }
 
 impl From<AssetGeneratorOptions> for AssetResourceGeneratorOptions {
@@ -525,6 +533,7 @@ impl From<AssetGeneratorOptions> for AssetResourceGeneratorOptions {
       output_path: value.output_path,
       public_path: value.public_path,
       import_mode: value.import_mode,
+      binary: value.binary,
     }
   }
 }
@@ -538,6 +547,7 @@ pub struct AssetGeneratorOptions {
   pub public_path: Option<PublicPath>,
   pub data_url: Option<AssetGeneratorDataUrl>,
   pub import_mode: Option<AssetGeneratorImportMode>,
+  pub binary: Option<bool>,
 }
 
 pub struct AssetGeneratorDataUrlFnCtx<'a> {

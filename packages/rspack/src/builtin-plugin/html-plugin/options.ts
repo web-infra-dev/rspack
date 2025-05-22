@@ -1,4 +1,4 @@
-import z from "zod";
+import { z } from "zod";
 import { Compilation } from "../../Compilation";
 import { validate } from "../../util/validate";
 
@@ -113,6 +113,11 @@ export type HtmlRspackPluginOptions = {
 	 * If `true` then append a unique Rspack compilation hash to all included scripts and CSS files. This is useful for cache busting.
 	 */
 	hash?: boolean;
+
+	/**
+	 * Any other options will be passed by hooks.
+	 */
+	[key: string]: any;
 };
 
 const templateFilenameFunction = z
@@ -120,7 +125,7 @@ const templateFilenameFunction = z
 	.args(z.string())
 	.returns(z.string());
 
-const pluginOptionsSchema = z.strictObject({
+const pluginOptionsSchema = z.object({
 	filename: z.string().or(templateFilenameFunction).optional(),
 	template: z
 		.string()
@@ -167,22 +172,31 @@ export function validateHtmlPluginOptions(options: HtmlRspackPluginOptions) {
 	return validate(options, pluginOptionsSchema);
 }
 
-export const getPluginOptions = (compilation: Compilation) => {
+export const getPluginOptions = (compilation: Compilation, uid: number) => {
 	if (!(compilation instanceof Compilation)) {
 		throw new TypeError(
 			"The 'compilation' argument must be an instance of Compilation"
 		);
 	}
-	return compilationOptionsMap.get(compilation);
+	return compilationOptionsMap.get(compilation)?.[uid];
 };
 
 export const setPluginOptions = (
 	compilation: Compilation,
+	uid: number,
 	options: HtmlRspackPluginOptions
 ) => {
-	compilationOptionsMap.set(compilation, options);
+	const optionsMap = compilationOptionsMap.get(compilation) || {};
+	optionsMap[uid] = options;
+	compilationOptionsMap.set(compilation, optionsMap);
 };
 
-export const cleanPluginOptions = (compilation: Compilation) => {
-	compilationOptionsMap.delete(compilation);
+export const cleanPluginOptions = (compilation: Compilation, uid: number) => {
+	const optionsMap = compilationOptionsMap.get(compilation) || {};
+	delete optionsMap[uid];
+	if (Object.keys(optionsMap).length === 0) {
+		compilationOptionsMap.delete(compilation);
+	} else {
+		compilationOptionsMap.set(compilation, optionsMap);
+	}
 };

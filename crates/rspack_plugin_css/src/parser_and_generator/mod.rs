@@ -80,6 +80,7 @@ pub struct CssParserAndGenerator {
   pub exports_only: bool,
   pub named_exports: bool,
   pub es_module: bool,
+  pub url: bool,
   #[cacheable(with=AsOption<AsMap<AsCacheable, AsVec>>)]
   pub exports: Option<CssExports>,
   pub local_names: Option<FxHashMap<String, String>>,
@@ -89,7 +90,7 @@ pub struct CssParserAndGenerator {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for CssParserAndGenerator {
-  fn source_types(&self) -> &[SourceType] {
+  fn source_types(&self, _module: &dyn Module, _module_graph: &ModuleGraph) -> &[SourceType] {
     if self.exports_only {
       CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST
     } else {
@@ -168,6 +169,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
           if request.trim().is_empty() {
             continue;
           }
+          if !self.url {
+            continue;
+          }
+
           let request = replace_module_request_prefix(
             request,
             &mut diagnostics,

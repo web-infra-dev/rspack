@@ -7,6 +7,9 @@ class Plugin {
 			const entryDependency = entry.dependencies[0];
 			const entryModule = compilation.moduleGraph.getModule(entryDependency);
 			expect(entryModule.buildInfo.loaded).toBe(true);
+
+			// known build info
+			expect(Object.keys(entryModule.buildInfo.assets)).toContain("foo.txt");
 		});
 	}
 }

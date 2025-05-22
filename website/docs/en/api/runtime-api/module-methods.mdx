@@ -221,7 +221,7 @@ require(dependency: string);
 
 ### require.resolve
 
-Synchronously retrieve a module's ID. It is recommended to treat it as an opaque value which can only be used with `require.cache[id]` or `__webpack_require__(id)` (best to avoid such usage).
+Synchronously retrieves the module ID without executing the module code. This method will include the module in the final bundle. The returned module ID is primarily intended for use with `require.cache[id]` or the Rspack internal `__webpack_require__(id)` function. Direct use of this method should be avoided in most application scenarios.
 
 ```js
 require.resolve(dependency: string);
@@ -360,17 +360,43 @@ if (module.hot) {
 }
 ```
 
+### require.resolveWeak
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+Similar to `require.resolve`, but this method won't pull the module into the final bundle. It's what is considered a "weak" dependency.
+
+```js
+require.resolveWeak(dependency: string);
+```
+
+For example:
+
+```js
+if (__webpack_modules__[require.resolveWeak('module')]) {
+  // Do something when module is available...
+}
+if (require.cache[require.resolveWeak('module')]) {
+  // Do something when module was loaded before...
+}
+
+// You can perform dynamic resolves ("context")
+// similarly to other require/import methods.
+const page = 'Foo';
+__webpack_modules__[require.resolveWeak(`./page/${page}`)];
+```
+
 ## Data URI module
 
 Rspack supports importing Data URI modules using the `import` and `require` syntax.
 
-**import**
+- **import**
 
 ```js
 import DataURI from 'data:text/javascript,export default 42';
 ```
 
-**require**
+- **require**
 
 ```js
 require('data:text/javascript,module.exports = 42');
@@ -388,3 +414,53 @@ const {
 ::: tip
 The Data URI module can be used as a method to implement virtual modules, such as combining with a Loader to dynamically load custom modules at runtime.
 :::
+
+### Built-in rules
+
+Rspack supports these [MIME types](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/MIME_types) for data URI modules by default: `application/json`, `text/javascript`, `application/javascript`, `application/node`, and `application/wasm`. This means that when you create data URI modules with these MIME types, Rspack will automatically recognize them.
+
+Rspack's built-in MIME rules are as follows:
+
+```js
+const defaultMimeRules = [
+  {
+    mimetype: 'application/node',
+    type: 'javascript/auto',
+  },
+  {
+    mimetype: 'application/json',
+    type: 'json',
+  },
+  {
+    mimetype: {
+      or: ['text/javascript', 'application/javascript'],
+    },
+    type: 'javascript/esm',
+    // ...
+  },
+  {
+    mimetype: 'application/wasm',
+    type: 'webassembly/async',
+    // ...
+  },
+];
+```
+
+### Custom rules
+
+You can also use [Rule.mimetype](/config/module#rulemimetype) to extend the matching rules for Data URI modules, for example, to add custom loaders for `text/javascript`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        mimetype: 'text/javascript',
+        use: [
+          // ...
+        ],
+      },
+    ],
+  },
+};
+```

@@ -1,54 +1,56 @@
 mod chunks;
+mod code_generation_results;
 mod dependencies;
+mod diagnostics;
 pub mod entries;
 
 use std::{cell::RefCell, collections::HashMap, path::Path, ptr::NonNull};
 
 use chunks::Chunks;
+pub use code_generation_results::*;
 use dependencies::JsDependencies;
+use diagnostics::Diagnostics;
 use entries::JsEntries;
-use napi::{NapiRaw, NapiValue};
 use napi_derive::napi;
-use once_cell::sync::OnceCell;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{
   rspack_sources::BoxSource, BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions,
-  FactorizeInfo, ModuleIdentifier,
+  FactorizeInfo, ModuleIdentifier, Reflector,
 };
-use rspack_error::{Diagnostic, ToStringResultToRspackResultExt};
-use rspack_napi::{napi::bindgen_prelude::*, OneShotRef, WeakRef};
+use rspack_error::{Diagnostic, RspackSeverity, ToStringResultToRspackResultExt};
+use rspack_napi::napi::bindgen_prelude::*;
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rustc_hash::FxHashMap;
 
-use super::{JsFilename, PathWithInfo};
+use super::PathWithInfo;
 use crate::{
   entry::JsEntryOptions, utils::callbackify, AssetInfo, EntryDependency, JsAddingRuntimeModule,
-  JsAsset, JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper, JsCompatSource,
+  JsAsset, JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper, JsCompatSource, JsFilename,
   JsModuleGraph, JsPathData, JsRspackDiagnostic, JsRspackError, JsStats,
   JsStatsOptimizationBailout, ModuleObject, RspackResultToNapiResultExt, ToJsCompatSource,
   COMPILER_REFERENCES,
 };
-
-thread_local! {
-  static CHUNKS_SYMBOL: OnceCell<OneShotRef> = const { OnceCell::new() };
-}
 
 #[napi]
 pub struct JsCompilation {
   #[allow(dead_code)]
   pub(crate) id: CompilationId,
   pub(crate) inner: NonNull<Compilation>,
-  chunks_ref: OnceCell<WeakRef>,
 }
 
 impl JsCompilation {
-  fn as_ref(&self) -> napi::Result<&'static Compilation> {
+  pub(crate) fn new(id: CompilationId, inner: NonNull<Compilation>) -> Self {
+    #[allow(clippy::unwrap_used)]
+    Self { id, inner }
+  }
+
+  pub(crate) fn as_ref(&self) -> napi::Result<&'static Compilation> {
     // SAFETY: The memory address of rspack_core::Compilation will not change,
     // so as long as the Compiler is not dropped, we can safely return a 'static reference.
     Ok(unsafe { self.inner.as_ref() })
   }
 
-  fn as_mut(&mut self) -> napi::Result<&'static mut Compilation> {
+  pub(crate) fn as_mut(&mut self) -> napi::Result<&'static mut Compilation> {
     // SAFETY: The memory address of rspack_core::Compilation will not change,
     // so as long as the Compiler is not dropped, we can safely return a 'static reference.
     Ok(unsafe { self.inner.as_mut() })
@@ -65,7 +67,7 @@ impl JsCompilation {
     env: &Env,
     filename: String,
     new_source_or_function: Either<JsCompatSource, Function<'_, JsCompatSource, JsCompatSource>>,
-    asset_info_update_or_function: Option<Either<Object, Function<'_, Object, Option<Object>>>>,
+    asset_info_update_or_function: Option<Either<Object, Function<'_, Reflector, Option<Object>>>>,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
@@ -93,10 +95,7 @@ impl JsCompilation {
               Some(js_asset_info.into())
             }
             Either::B(f) => {
-              let original_info_object = original_info
-                .reflector()
-                .get_jsobject(env)
-                .to_rspack_result()?;
+              let original_info_object = original_info.reflector();
               let result = f.call(original_info_object).to_rspack_result()?;
               match result {
                 Some(object) => {
@@ -118,13 +117,13 @@ impl JsCompilation {
   }
 
   #[napi(ts_return_type = "Readonly<JsAsset>[]")]
-  pub fn get_assets(&self, env: &Env) -> Result<Vec<JsAsset>> {
+  pub fn get_assets(&self) -> Result<Vec<JsAsset>> {
     let compilation = self.as_ref()?;
 
     let mut assets = Vec::<JsAsset>::with_capacity(compilation.assets().len());
 
     for (filename, asset) in compilation.assets() {
-      let info = asset.info.reflector().get_jsobject(env)?;
+      let info = asset.info.reflector();
       assets.push(JsAsset {
         name: filename.clone(),
         info,
@@ -135,12 +134,12 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_asset(&self, env: &Env, name: String) -> Result<Option<JsAsset>> {
+  pub fn get_asset(&self, name: String) -> Result<Option<JsAsset>> {
     let compilation = self.as_ref()?;
 
     match compilation.assets().get(&name) {
       Some(asset) => {
-        let info = asset.info.reflector().get_jsobject(env)?;
+        let info = asset.info.reflector();
         Ok(Some(JsAsset { name, info }))
       }
       None => Ok(None),
@@ -213,29 +212,8 @@ impl JsCompilation {
   }
 
   #[napi(getter, ts_return_type = "Chunks")]
-  pub fn chunks(
-    &self,
-    env: &Env,
-    mut this: This,
-    reference: Reference<JsCompilation>,
-  ) -> Result<&WeakRef> {
-    let raw_env = env.raw();
-
-    self.chunks_ref.get_or_try_init(move || {
-      let symbol: napi::Result<napi::JsObject> = CHUNKS_SYMBOL.with(move |once_cell| {
-        let r = once_cell.get_or_try_init(move || {
-          let symbol = env.create_symbol(Some("chunks"))?;
-          OneShotRef::new(raw_env, symbol)
-        })?;
-
-        let napi_val = unsafe { ToNapiValue::to_napi_value(raw_env, r)? };
-        Ok(unsafe { Object::from_raw_unchecked(raw_env, napi_val) })
-      });
-
-      let mut jsobject = Chunks::new(reference.downgrade()).get_jsobject(env)?;
-      this.object.set_property(symbol?, &jsobject)?;
-      WeakRef::new(env.raw(), &mut jsobject)
-    })
+  pub fn chunks(&self, reference: Reference<JsCompilation>) -> Result<Chunks> {
+    Ok(Chunks::new(reference.downgrade()))
   }
 
   #[napi]
@@ -425,20 +403,6 @@ impl JsCompilation {
     Ok(())
   }
 
-  #[napi]
-  pub fn splice_diagnostic(
-    &mut self,
-    start: u32,
-    end: u32,
-    replace_with: Vec<crate::JsRspackDiagnostic>,
-  ) -> Result<()> {
-    let compilation = self.as_mut()?;
-
-    let diagnostics = replace_with.into_iter().map(Into::into).collect();
-    compilation.splice_diagnostic(start as usize, end as usize, diagnostics);
-    Ok(())
-  }
-
   #[napi(ts_args_type = r#"diagnostic: ExternalObject<'Diagnostic'>"#)]
   pub fn push_native_diagnostic(&mut self, diagnostic: &External<Diagnostic>) -> Result<()> {
     let compilation = self.as_mut()?;
@@ -460,20 +424,31 @@ impl JsCompilation {
     Ok(())
   }
 
+  #[napi(getter)]
+  pub fn errors(&self, reference: Reference<JsCompilation>) -> Result<Diagnostics> {
+    Ok(Diagnostics::new(
+      RspackSeverity::Error,
+      reference.downgrade(),
+    ))
+  }
+
+  #[napi(getter)]
+  pub fn warnings(&self, reference: Reference<JsCompilation>) -> Result<Diagnostics> {
+    Ok(Diagnostics::new(
+      RspackSeverity::Warn,
+      reference.downgrade(),
+    ))
+  }
+
   #[napi]
   pub fn get_errors(&self) -> Result<Vec<JsRspackError>> {
     let compilation = self.as_ref()?;
 
     let colored = compilation.options.stats.colors;
-    Ok(
-      compilation
-        .get_errors_sorted()
-        .map(|d| {
-          JsRspackError::try_from_diagnostic(d, colored)
-            .expect("should convert diagnostic to `JsRspackError`")
-        })
-        .collect(),
-    )
+    compilation
+      .get_errors_sorted()
+      .map(|d| JsRspackError::try_from_diagnostic(d, colored))
+      .collect()
   }
 
   #[napi]
@@ -481,15 +456,11 @@ impl JsCompilation {
     let compilation = self.as_ref()?;
 
     let colored = compilation.options.stats.colors;
-    Ok(
-      compilation
-        .get_warnings_sorted()
-        .map(|d| {
-          JsRspackError::try_from_diagnostic(d, colored)
-            .expect("should convert diagnostic to `JsRspackError`")
-        })
-        .collect(),
-    )
+
+    compilation
+      .get_warnings_sorted()
+      .map(|d| JsRspackError::try_from_diagnostic(d, colored))
+      .collect()
   }
 
   #[napi]
@@ -502,7 +473,7 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_asset_path(&self, filename: JsFilename, data: JsPathData) -> Result<String> {
+  pub fn get_asset_path(&self, filename: String, data: JsPathData) -> Result<String> {
     let compilation = self.as_ref()?;
     #[allow(clippy::disallowed_methods)]
     futures::executor::block_on(compilation.get_asset_path(&filename.into(), data.to_path_data()))
@@ -512,7 +483,7 @@ impl JsCompilation {
   #[napi]
   pub fn get_asset_path_with_info(
     &self,
-    filename: JsFilename,
+    filename: String,
     data: JsPathData,
   ) -> Result<PathWithInfo> {
     let compilation = self.as_ref()?;
@@ -526,7 +497,7 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_path(&self, filename: JsFilename, data: JsPathData) -> Result<String> {
+  pub fn get_path(&self, filename: String, data: JsPathData) -> Result<String> {
     let compilation = self.as_ref()?;
     #[allow(clippy::disallowed_methods)]
     futures::executor::block_on(compilation.get_path(&filename.into(), data.to_path_data()))
@@ -534,7 +505,7 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_path_with_info(&self, filename: JsFilename, data: JsPathData) -> Result<PathWithInfo> {
+  pub fn get_path_with_info(&self, filename: String, data: JsPathData) -> Result<PathWithInfo> {
     let compilation = self.as_ref()?;
 
     let mut asset_info = rspack_core::AssetInfo::default();
@@ -595,90 +566,100 @@ impl JsCompilation {
   #[napi]
   pub fn rebuild_module(
     &mut self,
-    env: Env,
+    reference: Reference<JsCompilation>,
     module_identifiers: Vec<String>,
-    f: Function,
+    f: Function<'static>,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
-    callbackify(env, f, async {
-      let compiler_id = compilation.compiler_id();
+    callbackify(
+      f,
+      async {
+        let compiler_id = compilation.compiler_id();
 
-      let modules = compilation
-        .rebuild_module(
-          IdentifierSet::from_iter(module_identifiers.into_iter().map(ModuleIdentifier::from)),
-          |modules| {
-            modules
-              .into_iter()
-              .map(|module| ModuleObject::with_ref(module.as_ref(), compiler_id))
-              .collect::<Vec<_>>()
-          },
-        )
-        .await
-        .to_napi_result()?;
+        let modules = compilation
+          .rebuild_module(
+            IdentifierSet::from_iter(module_identifiers.into_iter().map(ModuleIdentifier::from)),
+            |modules| {
+              modules
+                .into_iter()
+                .map(|module| ModuleObject::with_ref(module.as_ref(), compiler_id))
+                .collect::<Vec<_>>()
+            },
+          )
+          .await
+          .to_napi_result()?;
 
-      Ok(modules)
-    })
+        Ok(modules)
+      },
+      || drop(reference),
+    )
   }
 
   #[allow(clippy::too_many_arguments)]
   #[napi]
   pub fn import_module(
     &self,
-    env: Env,
+    reference: Reference<JsCompilation>,
     request: String,
     layer: Option<String>,
     public_path: Option<JsFilename>,
     base_uri: Option<String>,
     original_module: Option<String>,
     original_module_context: Option<String>,
-    callback: Function,
+    callback: Function<'static>,
   ) -> Result<()> {
     let compilation = self.as_ref()?;
 
-    callbackify(env, callback, async {
-      let module_executor = compilation
-        .module_executor
-        .as_ref()
-        .expect("should have module executor");
-      let res = module_executor
-        .import_module(
-          request,
-          layer,
-          public_path.map(|p| p.into()),
-          base_uri,
-          original_module_context.map(rspack_core::Context::from),
-          original_module.map(ModuleIdentifier::from),
-        )
-        .await;
+    callbackify(
+      callback,
+      async {
+        let module_executor = compilation
+          .module_executor
+          .as_ref()
+          .expect("should have module executor");
+        let res = module_executor
+          .import_module(
+            request,
+            layer,
+            public_path.map(|p| p.into()),
+            base_uri,
+            original_module_context.map(rspack_core::Context::from),
+            original_module.map(ModuleIdentifier::from),
+          )
+          .await;
 
-      let js_result = JsExecuteModuleResult {
-        cacheable: res.cacheable,
-        file_dependencies: res
-          .file_dependencies
-          .into_iter()
-          .map(|d| d.to_string_lossy().to_string())
-          .collect(),
-        context_dependencies: res
-          .context_dependencies
-          .into_iter()
-          .map(|d| d.to_string_lossy().to_string())
-          .collect(),
-        build_dependencies: res
-          .build_dependencies
-          .into_iter()
-          .map(|d| d.to_string_lossy().to_string())
-          .collect(),
-        missing_dependencies: res
-          .missing_dependencies
-          .into_iter()
-          .map(|d| d.to_string_lossy().to_string())
-          .collect(),
-        id: res.id,
-        error: res.error,
-      };
-      Ok(js_result)
-    })
+        let js_result = JsExecuteModuleResult {
+          cacheable: res.cacheable,
+          file_dependencies: res
+            .file_dependencies
+            .into_iter()
+            .map(|d| d.to_string_lossy().to_string())
+            .collect(),
+          context_dependencies: res
+            .context_dependencies
+            .into_iter()
+            .map(|d| d.to_string_lossy().to_string())
+            .collect(),
+          build_dependencies: res
+            .build_dependencies
+            .into_iter()
+            .map(|d| d.to_string_lossy().to_string())
+            .collect(),
+          missing_dependencies: res
+            .missing_dependencies
+            .into_iter()
+            .map(|d| d.to_string_lossy().to_string())
+            .collect(),
+          id: res.id,
+          error: res.error,
+        };
+        Ok(js_result)
+      },
+      || {
+        drop(reference);
+      },
+    )
   }
 
   #[napi(getter)]
@@ -719,11 +700,108 @@ impl JsCompilation {
   #[napi(
     ts_args_type = "args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, Module][]) => void"
   )]
+  pub fn add_entry(
+    &mut self,
+    reference: Reference<JsCompilation>,
+    js_args: Vec<(String, &mut EntryDependency, Option<JsEntryOptions>)>,
+    f: Function<'static>,
+  ) -> napi::Result<()> {
+    let compilation = self.as_mut()?;
+
+    let Some(mut compiler_reference) = COMPILER_REFERENCES.with(|ref_cell| {
+      let references = ref_cell.borrow_mut();
+      references.get(&compilation.compiler_id()).cloned()
+    }) else {
+      return Err(napi::Error::from_reason(
+        "Unable to addEntry now. The Compiler has been garbage collected by JavaScript.",
+      ));
+    };
+    let Some(js_compiler) = compiler_reference.get_mut() else {
+      return Err(napi::Error::from_reason(
+        "Unable to addEntry now. The Compiler has been garbage collected by JavaScript.",
+      ));
+    };
+    let entry_dependencies_map = &mut js_compiler.entry_dependencies_map;
+
+    let args = js_args
+      .into_iter()
+      .map(|(js_context, js_dependency, js_options)| {
+        let layer = match &js_options {
+          Some(options) => options.layer.clone(),
+          None => None,
+        };
+        let options = match js_options {
+          Some(js_opts) => js_opts.into(),
+          None => EntryOptions::default(),
+        };
+        let dependency = if let Some(map) = entry_dependencies_map.get(&js_dependency.request)
+          && let Some(dependency) = map.get(&options)
+        {
+          js_dependency.dependency_id = Some(*dependency.id());
+          dependency.clone()
+        } else {
+          let dependency = js_dependency.resolve(js_context.into(), layer)?;
+          if let Some(map) = entry_dependencies_map.get_mut(&js_dependency.request) {
+            map.insert(options.clone(), dependency.clone());
+          } else {
+            let mut map = FxHashMap::default();
+            map.insert(options.clone(), dependency.clone());
+            entry_dependencies_map.insert(js_dependency.request.to_string(), map);
+          }
+          dependency
+        };
+        Ok((dependency, options))
+      })
+      .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()?;
+
+    callbackify(
+      f,
+      async move {
+        let dependency_ids = args
+          .iter()
+          .map(|(dependency, _)| *dependency.id())
+          .collect::<Vec<_>>();
+
+        compilation.add_entry_batch(args).await.to_napi_result()?;
+
+        let module_graph = compilation.get_module_graph();
+        let results = dependency_ids
+          .into_iter()
+          .map(|dependency_id| {
+            if let Some(dependency) = module_graph.dependency_by_id(&dependency_id) {
+              if let Some(factorize_info) = FactorizeInfo::get_from(dependency) {
+                if let Some(diagnostic) = factorize_info.diagnostics().first() {
+                  return Either::A(diagnostic.to_string());
+                }
+              }
+            }
+
+            match module_graph.get_module_by_dependency_id(&dependency_id) {
+              Some(module) => {
+                let js_module = ModuleObject::with_ref(module.as_ref(), compilation.compiler_id());
+                Either::B(js_module)
+              }
+              None => Either::A("build failed with unknown error".to_string()),
+            }
+          })
+          .collect::<Vec<Either<String, ModuleObject>>>();
+
+        Ok(JsAddEntryItemCallbackArgs(results))
+      },
+      || {
+        drop(reference);
+      },
+    )
+  }
+
+  #[napi(
+    ts_args_type = "args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, Module][]) => void"
+  )]
   pub fn add_include(
     &mut self,
-    env: Env,
+    reference: Reference<JsCompilation>,
     js_args: Vec<(String, &mut EntryDependency, Option<JsEntryOptions>)>,
-    f: Function,
+    f: Function<'static>,
   ) -> napi::Result<()> {
     let compilation = self.as_mut()?;
 
@@ -773,58 +851,70 @@ impl JsCompilation {
       })
       .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()?;
 
-    callbackify(env, f, async move {
-      let dependency_ids = args
-        .iter()
-        .map(|(dependency, _)| *dependency.id())
-        .collect::<Vec<_>>();
+    callbackify(
+      f,
+      async move {
+        let dependency_ids = args
+          .iter()
+          .map(|(dependency, _)| *dependency.id())
+          .collect::<Vec<_>>();
 
-      compilation.add_include(args).await.to_napi_result()?;
+        compilation.add_include(args).await.to_napi_result()?;
 
-      let module_graph = compilation.get_module_graph();
-      let results = dependency_ids
-        .into_iter()
-        .map(|dependency_id| {
-          if let Some(dependency) = module_graph.dependency_by_id(&dependency_id) {
-            if let Some(factorize_info) = FactorizeInfo::get_from(dependency) {
-              if let Some(diagnostic) = factorize_info.diagnostics().first() {
-                return Either::A(diagnostic.to_string());
+        let module_graph = compilation.get_module_graph();
+        let results = dependency_ids
+          .into_iter()
+          .map(|dependency_id| {
+            if let Some(dependency) = module_graph.dependency_by_id(&dependency_id) {
+              if let Some(factorize_info) = FactorizeInfo::get_from(dependency) {
+                if let Some(diagnostic) = factorize_info.diagnostics().first() {
+                  return Either::A(diagnostic.to_string());
+                }
               }
             }
-          }
 
-          match module_graph.get_module_by_dependency_id(&dependency_id) {
-            Some(module) => {
-              let js_module = ModuleObject::with_ref(module.as_ref(), compilation.compiler_id());
-              Either::B(js_module)
+            match module_graph.get_module_by_dependency_id(&dependency_id) {
+              Some(module) => {
+                let js_module = ModuleObject::with_ref(module.as_ref(), compilation.compiler_id());
+                Either::B(js_module)
+              }
+              None => Either::A("build failed with unknown error".to_string()),
             }
-            None => Either::A("build failed with unknown error".to_string()),
-          }
-        })
-        .collect::<Vec<Either<String, ModuleObject>>>();
+          })
+          .collect::<Vec<Either<String, ModuleObject>>>();
 
-      Ok(JsAddIncludeCallbackArgs(results))
-    })
+        Ok(JsAddEntryItemCallbackArgs(results))
+      },
+      || {
+        drop(reference);
+      },
+    )
+  }
+
+  #[napi(getter, ts_return_type = "CodeGenerationResults")]
+  pub fn code_generation_results(&self) -> Result<Reflector> {
+    let compilation = self.as_ref()?;
+
+    Ok(compilation.code_generation_results.reflector())
   }
 }
 
-pub struct JsAddIncludeCallbackArgs(Vec<Either<String, ModuleObject>>);
+pub struct JsAddEntryItemCallbackArgs(Vec<Either<String, ModuleObject>>);
 
-impl ToNapiValue for JsAddIncludeCallbackArgs {
+impl ToNapiValue for JsAddEntryItemCallbackArgs {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     let env_wrapper = Env::from_raw(env);
     let mut js_array = env_wrapper.create_array(0)?;
 
+    let raw_undefined = Undefined::to_napi_value(env, ())?;
+    let undefined = Unknown::from_napi_value(env, raw_undefined)?;
     for result in val.0 {
       let js_result = match result {
-        Either::A(msg) => vec![
-          env_wrapper.create_string(&msg)?.into_unknown(),
-          env_wrapper.get_undefined()?.into_unknown(),
-        ],
+        Either::A(msg) => vec![env_wrapper.create_string(&msg)?.to_unknown(), undefined],
         Either::B(module) => {
           let napi_val = ToNapiValue::to_napi_value(env, module)?;
           let js_module = Unknown::from_napi_value(env, napi_val)?;
-          vec![env_wrapper.get_undefined()?.into_unknown(), js_module]
+          vec![undefined, js_module]
         }
       };
       js_array.insert(js_result)?;
@@ -835,7 +925,14 @@ impl ToNapiValue for JsAddIncludeCallbackArgs {
 }
 
 thread_local! {
-  static COMPILATION_INSTANCE_REFS: RefCell<HashMap<CompilationId, OneShotRef>> = Default::default();
+  // The reason for using WeakReference<JsCompilation> to store the Compilation JS Object handle is that,
+  // on the JS side, the Compiler JS Object holds the Compilation through its properties.
+  // Therefore, the lifecycle of the Compilation JS Object is tied to the Compiler JS Object.
+  //
+  // Another point to consider is that when users manually call the build method on Compilation and trigger hooks,
+  // Rust no longer maintains the handle mapping, which can cause issues.
+  // The solution is to avoid passing Compilation from Rust in the hooks within Compilation and handle it on the JS side instead.
+  static COMPILATION_INSTANCE_REFS: RefCell<HashMap<CompilationId, WeakReference<JsCompilation>>> = Default::default();
 }
 
 // The difference between JsCompilationWrapper and JsCompilation is:
@@ -874,17 +971,14 @@ impl ToNapiValue for JsCompilationWrapper {
       match refs.entry(val.id) {
         std::collections::hash_map::Entry::Occupied(entry) => {
           let r = entry.get();
-          ToNapiValue::to_napi_value(env, r)
+          ToNapiValue::to_napi_value(env, r.clone())
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
-          let js_compilation = JsCompilation {
-            id: val.id,
-            inner: val.inner,
-            chunks_ref: OnceCell::new(),
-          };
-          let r = OneShotRef::new(env, js_compilation)?;
-          let r = entry.insert(r);
-          ToNapiValue::to_napi_value(env, r)
+          let js_compilation = JsCompilation::new(val.id, val.inner);
+          let napi_value = ToNapiValue::to_napi_value(env, js_compilation)?;
+          let reference: Reference<JsCompilation> = Reference::from_napi_value(env, napi_value)?;
+          let weak_reference = entry.insert(reference.downgrade());
+          ToNapiValue::to_napi_value(env, weak_reference.clone())
         }
       }
     })

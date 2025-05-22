@@ -93,6 +93,7 @@ static RUNTIME_GLOBAL_MAP: LazyLock<RuntimeGlobalMap> = LazyLock::new(|| {
   declare_runtime_global!(PRELOAD_CHUNK_HANDLERS);
   declare_runtime_global!(RSPACK_VERSION);
   declare_runtime_global!(HAS_CSS_MODULES);
+  declare_runtime_global!(HAS_FETCH_PRIORITY);
 
   to_js_map.shrink_to_fit();
   from_js_map.shrink_to_fit();

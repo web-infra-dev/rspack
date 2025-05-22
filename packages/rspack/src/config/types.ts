@@ -285,7 +285,9 @@ export type ChunkLoadingGlobal = string;
 export type EnabledLibraryTypes = string[];
 
 /** Whether delete all files in the output directory. */
-export type Clean = boolean | { keep?: string };
+export type Clean =
+	| boolean
+	| { keep?: string | RegExp | ((path: string) => boolean) };
 
 /** Output JavaScript files as module type. */
 export type OutputModule = boolean;
@@ -878,7 +880,7 @@ export type RuleSetRule = {
 	/** Matches all modules that match this resource against the Resource's query. */
 	resourceQuery?: RuleSetCondition;
 
-	/** Matches all modules that match this resource, and will match against the Resource's mimetype. */
+	/** Matches modules based on [MIME type](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/MIME_types) instead of file extension. It's primarily useful for data URI module */
 	mimetype?: RuleSetCondition;
 
 	/** Matches all modules that match this resource, and will match against the Resource's scheme. */
@@ -960,6 +962,7 @@ export type AssetParserOptions = {
 };
 
 export type CssParserNamedExports = boolean;
+export type CssParserUrl = boolean;
 
 /** Options object for `css` modules. */
 export type CssParserOptions = {
@@ -968,6 +971,12 @@ export type CssParserOptions = {
 	 * @default true
 	 * */
 	namedExports?: CssParserNamedExports;
+
+	/**
+	 * Allow to enable/disables handling the CSS functions url.
+	 * @default true
+	 * */
+	url?: CssParserUrl;
 };
 
 /** Options object for `css/auto` modules. */
@@ -977,6 +986,12 @@ export type CssAutoParserOptions = {
 	 * @default true
 	 * */
 	namedExports?: CssParserNamedExports;
+
+	/**
+	 * Allow to enable/disables handling the CSS functions url.
+	 * @default true
+	 * */
+	url?: CssParserUrl;
 };
 
 /** Options object for `css/module` modules. */
@@ -986,6 +1001,12 @@ export type CssModuleParserOptions = {
 	 * @default true
 	 * */
 	namedExports?: CssParserNamedExports;
+
+	/**
+	 * Allow to enable/disables handling the CSS functions url.
+	 * @default true
+	 * */
+	url?: CssParserUrl;
 };
 
 type ExportsPresence = "error" | "warn" | "auto" | false;
@@ -1150,6 +1171,10 @@ export type AssetGeneratorDataUrl =
 export type AssetInlineGeneratorOptions = {
 	/** Only for modules with module type 'asset' or 'asset/inline'. */
 	dataUrl?: AssetGeneratorDataUrl;
+	/**
+	 * Whether or not this asset module should be considered binary. This can be set to 'false' to treat this asset module as text.
+	 */
+	binary?: boolean;
 };
 
 /** Emit the asset in the specified folder relative to 'output.path'. */
@@ -1187,6 +1212,11 @@ export type AssetResourceGeneratorOptions = {
 	 * @default "url"
 	 */
 	importMode?: AssetModuleImportMode;
+
+	/**
+	 * Whether or not this asset module should be considered binary. This can be set to 'false' to treat this asset module as text.
+	 */
+	binary?: boolean;
 };
 
 /** Generator options for asset modules. */
@@ -2504,6 +2534,10 @@ export type LazyCompilationOptions = {
  */
 export type Incremental = {
 	/**
+	 * Warning if there are cases that not friendly for incremental
+	 */
+	silent?: boolean;
+	/**
 	 * Enable incremental make.
 	 */
 	make?: boolean;
@@ -2580,6 +2614,16 @@ export type Incremental = {
 };
 
 /**
+ * Presets for incremental
+ */
+export type IncrementalPresets =
+	| boolean
+	| "none"
+	| "safe"
+	| "advance"
+	| "advance-silent";
+
+/**
  * Options for experiments.buildHttp
  */
 export type HttpUriOptions = HttpUriPluginOptions;
@@ -2634,7 +2678,7 @@ export type Experiments = {
 	/**
 	 * Enable incremental builds.
 	 */
-	incremental?: boolean | Incremental;
+	incremental?: IncrementalPresets | Incremental;
 	/**
 	 * Enable multi-threaded code splitting algorithm.
 	 */

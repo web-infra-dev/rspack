@@ -203,7 +203,7 @@ impl ExecKind {
       for interceptor in self.interceptors.iter() {
         #call
       }
-      let mut all_taps = std::vec::Vec::new();
+      let mut all_taps = std::vec::Vec::with_capacity(self.taps.len() + additional_taps.len());
       all_taps.extend(&self.taps);
       all_taps.extend(&additional_taps);
       all_taps.sort_by_key(|hook| hook.stage());

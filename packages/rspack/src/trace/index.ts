@@ -1,14 +1,14 @@
 import fs from "node:fs";
-import inspector from "node:inspector";
+
 // following chrome trace event format https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU/preview?tab=t.0#heading=h.uxpopqvbjezh
 export interface ChromeEvent {
 	name: string;
 	ph?: string;
 	cat?: string; // cat is used to show different track in perfetto with id
 	ts?: number;
-	pid?: number;
-	tid?: number;
-	id?: number; // updated to allow string id
+	pid?: number | string;
+	tid?: number | string;
+	id?: number | string; // updated to allow string id
 	args?: {
 		[key: string]: any;
 	};
@@ -17,6 +17,7 @@ export interface ChromeEvent {
 		global?: string;
 	};
 }
+
 // this is a tracer for nodejs
 // FIXME: currently we only support chrome layer and do nothing for logger layer
 export class JavaScriptTracer {
@@ -27,15 +28,19 @@ export class JavaScriptTracer {
 	// tracing file path, same as rust tracing-chrome's
 	static output: string;
 	// inspector session for CPU Profiler
-	static session: inspector.Session;
-	static initJavaScriptTrace(layer: string, output: string) {
-		this.session = new inspector.Session();
+	static session: import("node:inspector").Session;
+	// plugin counter for different channel in trace viewer, choose 100 to avoid conflict with known tracks
+	static counter = 100;
+	static async initJavaScriptTrace(layer: string, output: string) {
+		const { Session } = await import("node:inspector");
+		this.session = new Session();
 		this.layer = layer;
 		this.output = output;
 		this.events = [];
 		const hrtime = process.hrtime();
 		this.startTime = hrtime[0] * 1000000 + Math.round(hrtime[1] / 1000); // use microseconds
 	}
+
 	static initCpuProfiler() {
 		if (this.layer === "chrome") {
 			this.session.connect();
@@ -44,12 +49,18 @@ export class JavaScriptTracer {
 		}
 	}
 
+	/**
+	 *
+	 * @param isEnd true means we are at the end of tracing,and can append ']' to close the json
+	 * @returns
+	 */
 	static async cleanupJavaScriptTrace() {
 		if (!this.layer.includes("chrome")) {
 			return;
 		}
+
 		this.session.post("Profiler.stop", (err, param) => {
-			let cpu_profile: inspector.Profiler.Profile | undefined;
+			let cpu_profile: import("node:inspector").Profiler.Profile | undefined;
 			if (err) {
 				console.error("Error stopping profiler:", err);
 			} else {
@@ -86,22 +97,20 @@ export class JavaScriptTracer {
 					}
 				});
 			}
-			const originTrace = fs.readFileSync(this.output, "utf-8");
-			// this is hack, [] is empty and [{}] is not empty
-			const originTraceIsEmpty = !originTrace.includes("{");
-			const eventMsg =
-				(this.events.length > 0 && !originTraceIsEmpty ? "," : "") +
-				this.events
-					.map(x => {
-						return JSON.stringify(x);
-					})
-					.join(",\n");
-
-			// a naive implementation to merge rust & Node.js trace, we can't use JSON.parse because sometime the trace file is too big to parse
-			const newTrace = originTrace.replace(/]$/, `${eventMsg}\n]`);
-			fs.writeFileSync(this.output, newTrace, {
-				flush: true
-			});
+			const is_empty = fs.statSync(this.output).size === 0;
+			const fd = fs.openSync(this.output, "a");
+			// stream write to file to avoid large string memory issue
+			let first = is_empty;
+			for (const event of this.events) {
+				if (!first) {
+					fs.writeFileSync(fd, ",\n");
+				}
+				fs.writeFileSync(fd, JSON.stringify(event));
+				first = false;
+			}
+			// even lots of tracing tools supports json without ending ], we end it for better compat with other tools
+			fs.writeFileSync(fd, "\n]");
+			fs.closeSync(fd);
 		});
 	}
 	// get elapsed time since start(microseconds same as rust side timestamp)

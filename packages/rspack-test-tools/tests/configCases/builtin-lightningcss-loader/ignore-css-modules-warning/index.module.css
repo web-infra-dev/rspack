@@ -17,3 +17,7 @@
         background-color: blue;
     }
 }
+
+::v-deep .foo {
+    color: sandybrown;
+}

@@ -41,7 +41,7 @@ module.exports = {
 		+           Object {
 		+             "descriptionData": Object {
 		+               "type": "module",
-		+             },
+		@@ ... @@
 		+             "resolve": Object {
 		+               "fullySpecified": true,
 		+             },
@@ -49,7 +49,7 @@ module.exports = {
 		+         ],
 		+         "type": "webassembly/async",
 		+       },
-		+       Object {
+		@@ ... @@
 		+         "resolve": Object {
 		+           "fullySpecified": true,
 		+           "preferRelative": true,
@@ -72,6 +72,8 @@ module.exports = {
 		+           "preferRelative": true,
 		+         },
 		+         "type": "css",
+		+       },
+		+       Object {
 		@@ ... @@
 		+       "css": Object {
 		+         "esModule": true,
@@ -81,33 +83,34 @@ module.exports = {
 		+         "esModule": true,
 		+         "exportsConvention": "as-is",
 		+         "exportsOnly": false,
-		+         "localIdentName": "[uniqueName]-[id]-[local]",
+		+         "localIdentName": "[id]-[local]",
 		+       },
 		+       "css/module": Object {
 		+         "esModule": true,
 		+         "exportsConvention": "as-is",
 		+         "exportsOnly": false,
-		+         "localIdentName": "[uniqueName]-[id]-[local]",
+		+         "localIdentName": "[id]-[local]",
 		+       },
 		@@ ... @@
 		+         },
 		+       },
 		+       "css": Object {
 		+         "namedExports": true,
-		@@ ... @@
+		+         "url": true,
+		+       },
 		+       "css/auto": Object {
 		+         "namedExports": true,
-		+       },
+		+         "url": true,
+		@@ ... @@
 		+       "css/module": Object {
 		+         "namedExports": true,
+		+         "url": true,
 		@@ ... @@
 		+         "css",
 		@@ ... @@
 		-     "charset": true,
 		+     "charset": false,
 		@@ ... @@
-		+           "...",
-		+         ],
 		+       },
 		+       "css-import": Object {
 		+         "conditionNames": Array [
@@ -120,7 +123,8 @@ module.exports = {
 		+         ],
 		+         "mainFields": Array [
 		+           "style",
-		@@ ... @@
+		+           "...",
+		+         ],
 		+         "mainFiles": Array [],
 		+         "preferRelative": true,
 	`)

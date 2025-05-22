@@ -4,13 +4,13 @@ mod util;
 
 use std::sync::Arc;
 
-use rspack_ast::javascript::Program;
 use rspack_core::{
   AdditionalData, AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo,
   BuildMeta, CompilerOptions, ModuleIdentifier, ModuleLayer, ModuleType, ParserOptions,
   ResourceData,
 };
 use rspack_error::miette::Diagnostic;
+use rspack_javascript_compiler::ast::Program;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   common::{comments::Comments, BytePos, Mark, SourceFile, SourceMap},
@@ -20,8 +20,9 @@ use swc_core::{
 pub use self::{
   context_dependency_helper::{create_context_dependency, ContextModuleScanResult},
   parser::{
-    estree::*, AllowedMemberTypes, CallExpressionInfo, CallHooksName, ExportedVariableInfo,
-    JavascriptParser, MemberExpressionInfo, RootName, TagInfoData, TopLevelScope,
+    estree::*, AllowedMemberTypes, CallExpressionInfo, CallHooksName,
+    DestructuringAssignmentProperty, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo,
+    RootName, TagInfoData, TopLevelScope,
   },
   util::*,
 };

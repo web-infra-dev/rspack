@@ -66,6 +66,7 @@ pub struct ImportDependency {
   pub attributes: Option<ImportAttributes>,
   pub resource_identifier: String,
   pub factorize_info: FactorizeInfo,
+  pub optional: bool,
 }
 
 impl ImportDependency {
@@ -74,6 +75,7 @@ impl ImportDependency {
     range: DependencyRange,
     referenced_exports: Option<Vec<Atom>>,
     attributes: Option<ImportAttributes>,
+    optional: bool,
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(request.as_str(), attributes.as_ref());
@@ -85,6 +87,7 @@ impl ImportDependency {
       attributes,
       resource_identifier,
       factorize_info: Default::default(),
+      optional,
     }
   }
 }
@@ -148,6 +151,10 @@ impl ModuleDependency for ImportDependency {
 
   fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
     &mut self.factorize_info
+  }
+
+  fn get_optional(&self) -> bool {
+    self.optional
   }
 }
 

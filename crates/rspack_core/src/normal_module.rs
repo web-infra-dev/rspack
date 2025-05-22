@@ -183,6 +183,7 @@ impl NormalModule {
     resource_data: Arc<ResourceData>,
     resolve_options: Option<Arc<Resolve>>,
     loaders: Vec<BoxLoader>,
+    context: Option<Context>,
   ) -> Self {
     let module_type = module_type.into();
     let id = Self::create_id(&module_type, layer.as_ref(), &request);
@@ -190,7 +191,7 @@ impl NormalModule {
       blocks: Vec::new(),
       dependencies: Vec::new(),
       id: ModuleIdentifier::from(id.as_ref()),
-      context: Box::new(get_context(&resource_data)),
+      context: Box::new(context.unwrap_or_else(|| get_context(&resource_data))),
       request,
       user_request,
       raw_request,
@@ -343,8 +344,8 @@ impl Module for NormalModule {
     &self.module_type
   }
 
-  fn source_types(&self) -> &[SourceType] {
-    self.parser_and_generator.source_types()
+  fn source_types(&self, module_graph: &ModuleGraph) -> &[SourceType] {
+    self.parser_and_generator.source_types(self, module_graph)
   }
 
   fn source(&self) -> Option<&BoxSource> {
@@ -495,7 +496,18 @@ impl Module for NormalModule {
       .await?;
     self.add_diagnostics(ds);
 
-    let content = if self.module_type().is_binary() {
+    let is_binary = self
+      .generator_options
+      .as_ref()
+      .and_then(|g| match g {
+        GeneratorOptions::Asset(g) => g.binary,
+        GeneratorOptions::AssetInline(g) => g.binary,
+        GeneratorOptions::AssetResource(g) => g.binary,
+        _ => None,
+      })
+      .unwrap_or(self.module_type().is_binary());
+
+    let content = if is_binary {
       Content::Buffer(loader_result.content.into_bytes())
     } else {
       Content::String(loader_result.content.into_string_lossy())
@@ -611,10 +623,14 @@ impl Module for NormalModule {
   ) -> Result<CodeGenerationResult> {
     if let Some(error) = self.first_error() {
       let mut code_generation_result = CodeGenerationResult::default();
+      let module_graph = compilation.get_module_graph();
 
       // If the module build failed and the module is able to emit JavaScript source,
       // we should emit an error message to the runtime, otherwise we do nothing.
-      if self.source_types().contains(&SourceType::JavaScript) {
+      if self
+        .source_types(&module_graph)
+        .contains(&SourceType::JavaScript)
+      {
         let error = error.render_report(compilation.options.stats.colors)?;
         code_generation_result.add(
           SourceType::JavaScript,
@@ -644,7 +660,8 @@ impl Module for NormalModule {
         .insert(RuntimeGlobals::THIS_AS_EXPORTS);
     }
 
-    for source_type in self.source_types() {
+    let module_graph = compilation.get_module_graph();
+    for source_type in self.source_types(&module_graph) {
       let generation_result = self
         .parser_and_generator
         .generate(

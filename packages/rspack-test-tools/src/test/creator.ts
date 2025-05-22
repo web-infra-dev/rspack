@@ -126,13 +126,12 @@ export class BasicCaseCreator<T extends ECompilerType> {
 		});
 		const ender = this.registerConcurrentTask(name, starter!);
 		const env = this.createConcurrentEnv();
-		let bailout = false;
 		for (let index = 0; index < tester.total; index++) {
 			let stepSignalResolve = null;
-			let stepSignalReject = null;
-			const stepSignal = new Promise((resolve, reject) => {
+			const stepSignal = new Promise<Error>((resolve, reject) => {
 				stepSignalResolve = resolve;
-				stepSignalReject = reject;
+			}).catch(e => {
+				// prevent unhandled rejection
 			});
 			const description =
 				typeof this._options.description === "function"
@@ -142,42 +141,53 @@ export class BasicCaseCreator<T extends ECompilerType> {
 						: "should pass";
 			it(
 				description,
-				async () => {
-					await stepSignal;
+				cb => {
+					stepSignal.then((e: Error | void) => {
+						cb(e);
+					});
 				},
 				this._options.timeout || 180000
 			);
 
-			chain = chain.then(async () => {
-				try {
-					if (bailout) {
-						throw `Case "${name}" step ${index + 1} bailout because ${tester.step + 1} failed`;
+			chain = chain.then(
+				async () => {
+					try {
+						env.clear();
+						await tester.compile();
+						await tester.check(env);
+						await env.run();
+						const context = tester.getContext();
+						if (!tester.next() && context.hasError()) {
+							const errors = context
+								.getError()
+								.map(i => `${i.stack}`.split("\n").join("\t\n"))
+								.join("\n\n");
+							throw new Error(
+								`Case "${name}" failed at step ${tester.step + 1}:\n${errors}`
+							);
+						}
+						stepSignalResolve!();
+					} catch (e) {
+						stepSignalResolve!(e);
+						return Promise.reject();
 					}
-					env.clear();
-					await tester.compile();
-					await tester.check(env);
-					await env.run();
-					const context = tester.getContext();
-					if (!tester.next() && context.hasError()) {
-						bailout = true;
-						const errors = context
-							.getError()
-							.map(i => `${i.stack}`.split("\n").join("\t\n"))
-							.join("\n\n");
-						throw new Error(
-							`Case "${name}" failed at step ${tester.step + 1}:\n${errors}`
-						);
-					}
+				},
+				e => {
+					// bailout
 					stepSignalResolve!();
-				} catch (e) {
-					stepSignalReject!(e);
+					return Promise.reject();
 				}
-			});
+			);
 		}
 
-		chain.finally(() => {
-			ender();
-		});
+		chain
+			.catch(e => {
+				// bailout error
+				// prevent unhandled rejection
+			})
+			.finally(() => {
+				ender();
+			});
 
 		afterAll(async () => {
 			await tester.resume();
@@ -334,10 +344,16 @@ export class BasicCaseCreator<T extends ECompilerType> {
 		testConfig: TTestConfig<T>
 	): boolean | string {
 		const filterPath = path.join(src, "test.filter.js");
-		return (
-			fs.existsSync(filterPath) &&
-			!require(filterPath)(this._options, testConfig)
-		);
+		// no test.filter.js, should not skip
+		if (!fs.existsSync(filterPath)) {
+			return false;
+		}
+		// test.filter.js exists, skip if it returns false|string|array
+		const filtered = require(filterPath)(this._options, testConfig);
+		if (typeof filtered === "string" || Array.isArray(filtered)) {
+			return true;
+		}
+		return !filtered;
 	}
 
 	protected createTester(

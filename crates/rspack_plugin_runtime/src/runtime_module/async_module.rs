@@ -1,9 +1,5 @@
 use rspack_collections::Identifier;
-use rspack_core::{
-  impl_runtime_module,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  Compilation, RuntimeModule,
-};
+use rspack_core::{impl_runtime_module, Compilation, RuntimeModule};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -18,10 +14,8 @@ impl Default for AsyncRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for AsyncRuntimeModule {
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    let source = compilation.runtime_template.render(&self.id, None)?;
-
-    Ok(RawStringSource::from(source).boxed())
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+    compilation.runtime_template.render(&self.id, None)
   }
 
   fn name(&self) -> Identifier {

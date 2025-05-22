@@ -207,6 +207,7 @@ import { RuntimeChunkPlugin } from "./builtin-plugin";
 import { SplitChunksPlugin } from "./builtin-plugin";
 import { RemoveDuplicateModulesPlugin } from "./builtin-plugin";
 import { RsdoctorPlugin } from "./builtin-plugin";
+import { CssChunkingPlugin } from "./builtin-plugin";
 
 interface Optimize {
 	LimitChunkCountPlugin: typeof LimitChunkCountPlugin;
@@ -330,6 +331,9 @@ export type { SubresourceIntegrityPluginOptions } from "./builtin-plugin";
 import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";
 import { JavaScriptTracer } from "./trace";
 
+///// Experiments SWC /////
+import { minify, transform } from "./swc";
+
 interface Experiments {
 	globalTrace: {
 		register: (
@@ -343,12 +347,17 @@ interface Experiments {
 	RsdoctorPlugin: typeof RsdoctorPlugin;
 	SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
 	lazyCompilationMiddleware: typeof lazyCompilationMiddleware;
+	swc: {
+		transform: typeof transform;
+		minify: typeof minify;
+	};
+	CssChunkingPlugin: typeof CssChunkingPlugin;
 }
 
 export const experiments: Experiments = {
 	globalTrace: {
 		async register(filter, layer, output) {
-			JavaScriptTracer.initJavaScriptTrace(layer, output);
+			await JavaScriptTracer.initJavaScriptTrace(layer, output);
 			registerGlobalTrace(filter, layer, output);
 			// lazy init cpuProfiler to make sure js and rust's timestamp is much aligned
 			JavaScriptTracer.initCpuProfiler();
@@ -368,5 +377,10 @@ export const experiments: Experiments = {
 	 */
 	RsdoctorPlugin,
 	SubresourceIntegrityPlugin,
-	lazyCompilationMiddleware
+	lazyCompilationMiddleware,
+	swc: {
+		minify,
+		transform
+	},
+	CssChunkingPlugin
 };

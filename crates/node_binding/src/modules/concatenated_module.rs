@@ -1,6 +1,7 @@
 use crate::{impl_module_methods, Module, ModuleObject};
 
 #[napi]
+#[repr(C)]
 pub struct ConcatenatedModule {
   pub(crate) module: Module,
 }

@@ -9,9 +9,9 @@ const { WASI: __nodeWASI } = require('node:wasi')
 const { Worker } = require('node:worker_threads')
 
 const {
-  instantiateNapiModuleSync: __emnapiInstantiateNapiModuleSync,
-  getDefaultContext: __emnapiGetDefaultContext,
   createOnMessage: __wasmCreateOnMessageForFsProxy,
+  getDefaultContext: __emnapiGetDefaultContext,
+  instantiateNapiModuleSync: __emnapiInstantiateNapiModuleSync,
 } = require('@napi-rs/wasm-runtime')
 
 const __rootDir = __nodePath.parse(process.cwd()).root
@@ -84,12 +84,17 @@ const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule
     }
   },
 })
-
+module.exports = __napiModule.exports
+module.exports.Assets = __napiModule.exports.Assets
 module.exports.AsyncDependenciesBlock = __napiModule.exports.AsyncDependenciesBlock
+module.exports.BuildInfo = __napiModule.exports.BuildInfo
 module.exports.Chunks = __napiModule.exports.Chunks
+module.exports.CodeGenerationResult = __napiModule.exports.CodeGenerationResult
+module.exports.CodeGenerationResults = __napiModule.exports.CodeGenerationResults
 module.exports.ConcatenatedModule = __napiModule.exports.ConcatenatedModule
 module.exports.ContextModule = __napiModule.exports.ContextModule
 module.exports.Dependency = __napiModule.exports.Dependency
+module.exports.Diagnostics = __napiModule.exports.Diagnostics
 module.exports.EntryDataDto = __napiModule.exports.EntryDataDto
 module.exports.EntryDataDTO = __napiModule.exports.EntryDataDTO
 module.exports.EntryDependency = __napiModule.exports.EntryDependency
@@ -114,13 +119,16 @@ module.exports.Module = __napiModule.exports.Module
 module.exports.ModuleGraphConnection = __napiModule.exports.ModuleGraphConnection
 module.exports.NormalModule = __napiModule.exports.NormalModule
 module.exports.RawExternalItemFnCtx = __napiModule.exports.RawExternalItemFnCtx
+module.exports.Sources = __napiModule.exports.Sources
 module.exports.BuiltinPluginName = __napiModule.exports.BuiltinPluginName
 module.exports.cleanupGlobalTrace = __napiModule.exports.cleanupGlobalTrace
 module.exports.formatDiagnostic = __napiModule.exports.formatDiagnostic
 module.exports.JsLoaderState = __napiModule.exports.JsLoaderState
 module.exports.JsRspackSeverity = __napiModule.exports.JsRspackSeverity
+module.exports.minify = __napiModule.exports.minify
 module.exports.RawRuleSetConditionType = __napiModule.exports.RawRuleSetConditionType
 module.exports.registerGlobalTrace = __napiModule.exports.registerGlobalTrace
 module.exports.RegisterJsTapKind = __napiModule.exports.RegisterJsTapKind
 module.exports.shutdownAsyncRuntime = __napiModule.exports.shutdownAsyncRuntime
 module.exports.startAsyncRuntime = __napiModule.exports.startAsyncRuntime
+module.exports.transform = __napiModule.exports.transform

@@ -17,9 +17,9 @@ rspack_core = { workspace = true }
 rspack_error = { workspace = true }
 rspack_hash = { workspace = true }
 rspack_hook = { workspace = true }
+rspack_javascript_compiler = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
 rspack_util = { workspace = true }
-rustc-hash = { workspace = true }
 serde_json = { workspace = true }
 swc_config = { workspace = true }
 swc_core = { workspace = true, features = [
@@ -34,8 +34,4 @@ swc_core = { workspace = true, features = [
   "ecma_quote",
 ] }
 swc_ecma_minifier = { workspace = true, features = ["concurrent"] }
-swc_parallel = { workspace = true, default-features = false }
 tracing = { workspace = true }
-
-[package.metadata.cargo-shear]
-ignored = ["tracing", "swc_parallel"]

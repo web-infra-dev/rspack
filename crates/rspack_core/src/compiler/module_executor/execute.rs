@@ -165,7 +165,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
     while let Some(m) = queue.pop() {
       modules.insert(m);
       let module = mg.module_by_identifier(&m).expect("should have module");
-      for (name, asset) in &module.build_info().assets {
+      for (name, asset) in module.build_info().assets.as_ref() {
         assets.insert(name.clone(), asset.clone());
       }
       for c in mg.get_outgoing_connections(&m) {
@@ -176,7 +176,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
       }
     }
 
-    tracing::info!("modules: {:?}", &modules);
+    tracing::debug!("modules: {:?}", &modules);
 
     let mut chunk_graph = ChunkGraph::default();
 
@@ -256,7 +256,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
       .copied()
       .collect::<IdentifierSet>();
 
-    tracing::info!(
+    tracing::debug!(
       "runtime modules: {:?}",
       &runtime_modules.iter().collect::<Vec<_>>()
     );
@@ -268,12 +268,16 @@ impl Task<MakeTaskContext> for ExecuteTask {
         .get(runtime_id)
         .expect("runtime module exist");
 
-      let runtime_module_source = runtime_module.generate(&compilation).await?;
+      let result = runtime_module
+        .code_generation(&compilation, None, None)
+        .await?;
+      #[allow(clippy::unwrap_used)]
+      let runtime_module_source = result.get(&SourceType::Runtime).unwrap();
       runtime_module_size.insert(
         runtime_module.identifier(),
         runtime_module_source.size() as f64,
       );
-      let result = CodeGenerationResult::default().with_javascript(runtime_module_source);
+      let result = CodeGenerationResult::default().with_javascript(runtime_module_source.clone());
 
       compilation.code_generation_results.insert(
         *runtime_id,
@@ -285,14 +289,13 @@ impl Task<MakeTaskContext> for ExecuteTask {
         .insert(runtime_module.identifier());
     }
 
-    let codegen_results = compilation.code_generation_results.clone();
     let exports = main_compilation_plugin_driver
       .compilation_hooks
       .execute_module
       .call(
         &entry_module_identifier,
         &runtime_modules,
-        &codegen_results,
+        &compilation.code_generation_results,
         &id,
       )
       .await;
@@ -328,7 +331,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
     match exports {
       Ok(_) => {
         for m in modules.iter() {
-          let codegen_result = codegen_results.get(m, Some(&runtime));
+          let codegen_result = compilation.code_generation_results.get(m, Some(&runtime));
 
           if let Some(source) = codegen_result.get(&SourceType::Asset)
             && let Some(filename) = codegen_result.data.get::<CodeGenerationDataFilename>()

@@ -1,2 +1,1 @@
-// TODO: Should create a issue for this test
-module.exports = () => { return false }
+module.exports = () => { return "TODO: compilation.mainTemplate.hooks.requireExtensions not supported" }

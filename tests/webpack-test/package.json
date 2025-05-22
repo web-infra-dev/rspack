@@ -6,8 +6,8 @@
   "main": "./dist/index.d.ts",
   "scripts": {
     "test": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096 --trace-deprecation\" jest",
-    "testu": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096 --trace-deprecation\" jest -u",
-    "test:metric": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096 --trace-deprecation\" jest --json --colors | node scripts/test-metric.js",
+    "testu": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096 --trace-deprecation\" jest -u --forceExit",
+    "test:metric": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096 --trace-deprecation\" jest --json --colors --forceExit | node scripts/test-metric.js",
     "test:metric:json": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096 --trace-deprecation\" jest --logHeapUsage --json"
   },
   "files": [
@@ -15,6 +15,7 @@
   ],
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
+    "@babel/preset-react": "^7.27.1",
     "@rspack/core": "workspace:*",
     "@webdiscus/pug-loader": "^2.11.1",
     "babel-loader": "^10.0.0",
@@ -26,9 +27,9 @@
     "file-loader": "^6.2.0",
     "is-ci": "4.1.0",
     "less": "4.3.0",
-    "less-loader": "^12.2.0",
-    "loader-utils": "^2.0.4",
-    "memfs": "^4.17.0",
+    "less-loader": "^12.3.0",
+    "lodash-es": "^4.17.21",
+    "memfs": "^4.17.2",
     "mime-types": "^3.0.1",
     "mini-svg-data-uri": "^1.4.4",
     "raw-loader": "^4.0.2",
@@ -38,21 +39,22 @@
     "rimraf": "^5.0.10",
     "url-loader": "^4.1.1",
     "source-map": "^0.7.4",
-    "terser": "5.39.0",
+    "terser": "5.39.2",
     "terser-webpack-plugin": "^5.3.14",
-    "typescript": "^5.7.3"
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.8.3"
   },
   "dependencies": {
     "@rspack/binding": "workspace:*",
     "@swc/helpers": "0.5.17",
-    "browserslist": "^4.24.4",
+    "browserslist": "^4.24.5",
     "enhanced-resolve": "5.18.1",
     "graceful-fs": "4.2.11",
     "neo-async": "2.6.2",
     "react-refresh": "^0.17.0",
-    "tapable": "2.2.1",
+    "tapable": "2.2.2",
     "wast-loader": "^1.14.1",
-    "watchpack": "^2.4.2",
+    "watchpack": "^2.4.3",
     "webpack-sources": "3.2.3",
     "toml": "^3.0.0"
   }

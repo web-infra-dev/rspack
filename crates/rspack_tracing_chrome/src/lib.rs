@@ -52,7 +52,7 @@ pub struct ChromeLayerBuilder<S>
 where
   S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
 {
-  out_writer: Option<Box<dyn Write + Send>>,
+  out_writer: Option<Box<dyn FnOnce() -> Box<dyn Write> + Send>>,
   name_fn: Option<NameFn<S>>,
   cat_fn: Option<NameFn<S>>,
   include_args: bool,
@@ -97,8 +97,8 @@ where
   ///
   /// If `file` could not be opened/created. To handle errors,
   /// open a file and pass it to [`writer`](crate::ChromeLayerBuilder::writer) instead.
-  pub fn file<P: AsRef<Path>>(self, file: P) -> Self {
-    self.writer(std::fs::File::create(file).expect("Failed to create trace file."))
+  pub fn file<P: AsRef<Path> + Send + 'static>(self, file: P) -> Self {
+    self.writer(|| Box::new(std::fs::File::create(file).expect("Failed to create trace file.")))
   }
 
   /// Supply an arbitrary writer to which to write trace contents.
@@ -108,10 +108,12 @@ where
   /// ```rust
   /// # use rspack_tracing_chrome::ChromeLayerBuilder;
   /// # use tracing_subscriber::prelude::*;
-  /// let (layer, guard) = ChromeLayerBuilder::new().writer(std::io::sink()).build();
+  /// let (layer, guard) = ChromeLayerBuilder::new()
+  ///   .writer(|| Box::new(std::io::sink()))
+  ///   .build();
   /// # tracing_subscriber::registry().with(layer).init();
   /// ```
-  pub fn writer<W: Write + Send + 'static>(mut self, writer: W) -> Self {
+  pub fn writer<W: FnOnce() -> Box<dyn Write> + Send + 'static>(mut self, writer: W) -> Self {
     self.out_writer = Some(Box::new(writer));
     self
   }
@@ -285,11 +287,10 @@ where
     let (tx, rx) = mpsc::channel();
     OUT.with(|val| val.replace(Some(tx.clone())));
 
-    let out_writer = builder
-      .out_writer
-      .unwrap_or_else(|| create_default_writer());
+    let out_writer = builder.out_writer;
 
     let handle = std::thread::spawn(move || {
+      let out_writer = out_writer.map_or_else(|| create_default_writer() as _, |f| f());
       let mut write = BufWriter::new(out_writer);
       write.write_all(b"[\n").unwrap();
 
@@ -432,8 +433,8 @@ where
         serde_json::to_writer(&mut write, &entry).unwrap();
         has_started = true;
       }
-
-      write.write_all(b"\n]").unwrap();
+      // we need to merge tracing with js side, so don't end it early
+      // write.write_all(b"\n]").unwrap();
       write.flush().unwrap();
     });
 

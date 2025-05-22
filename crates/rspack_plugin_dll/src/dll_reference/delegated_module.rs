@@ -9,8 +9,8 @@ use rspack_core::{
   throw_missing_module_error_block, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext,
   BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope,
   Context, DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleDependency,
-  ModuleId, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec,
+  ModuleGraph, ModuleId, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -67,7 +67,7 @@ impl Module for DelegatedModule {
     &ModuleType::JsDynamic
   }
 
-  fn source_types(&self) -> &[SourceType] {
+  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     &[SourceType::JavaScript]
   }
 
