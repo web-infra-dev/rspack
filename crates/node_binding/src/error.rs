@@ -96,7 +96,9 @@ impl napi::bindgen_prelude::ToNapiValue for RspackError {
     if let Some(module) = module {
       obj.set("moduleIdentifier", module.identifier().as_str())?;
       obj.set("module", module)?;
-    }
+    } else if let Some(identifier) = module_identifier {
+      obj.set("moduleIdentifier", identifier.as_str())?;
+    };
     if let Some(loc) = loc {
       obj.set("loc", ToNapiValue::to_napi_value(env, loc)?)?;
     }
@@ -164,6 +166,14 @@ impl napi::bindgen_prelude::FromNapiValue for RspackError {
         )
       })?;
     let module = obj.get::<ModuleObject>("module").unwrap_or(None);
+    let module_identifier = if let Some(module) = &module {
+      Some(module.identifier())
+    } else {
+      obj
+        .get::<String>("moduleIdentifier")
+        .unwrap_or(None)
+        .map(Into::into)
+    };
     let file = obj.get::<String>("file").unwrap_or(None);
     let stack = obj.get::<String>("stack").unwrap_or(None);
     let hide_stack = obj.get::<bool>("hideStack").unwrap_or(None);
@@ -172,7 +182,7 @@ impl napi::bindgen_prelude::FromNapiValue for RspackError {
       name,
       message,
       severity: None,
-      module_identifier: module.as_ref().map(|m| m.identifier()),
+      module_identifier,
       // TODO: Currently, Rspack does not handle `loc` from JavaScript very well.
       loc: None,
       file,
@@ -268,7 +278,10 @@ impl RspackError {
   pub fn into_diagnostic(mut self, severity: RspackSeverity) -> Diagnostic {
     self.severity = Some(severity.into());
     let file = self.file.clone();
-    let module_identifier = self.module.as_ref().map(|module| module.identifier());
+    let mut module_identifier = self.module.as_ref().map(|module| module.identifier());
+    if module_identifier.is_none() {
+      module_identifier = self.module_identifier;
+    }
     let stack = self.stack.clone();
     let hide_stack = self.hide_stack;
 
