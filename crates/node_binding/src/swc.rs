@@ -9,6 +9,7 @@ use swc_core::ecma::ast::noop_pass;
 pub struct TransformOutput {
   pub code: String,
   pub map: Option<String>,
+  pub diagnostics: Vec<String>,
 }
 
 impl From<CompilerTransformOutput> for TransformOutput {
@@ -18,6 +19,7 @@ impl From<CompilerTransformOutput> for TransformOutput {
       map: value
         .map
         .map(|v| serde_json::to_string(&v).expect("failed to serialize transformOutput.map")),
+      diagnostics: value.diagnostics,
     }
   }
 }

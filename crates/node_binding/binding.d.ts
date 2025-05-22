@@ -2627,4 +2627,5 @@ export declare function transform(source: string, options: string): Promise<Tran
 export interface TransformOutput {
   code: string
   map?: string
+  diagnostics: Array<string>
 }
