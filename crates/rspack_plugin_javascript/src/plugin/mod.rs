@@ -177,6 +177,318 @@ pub fn render_require(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> Vec<
   sources
 }
 
+pub async fn render_bootstrap(
+  chunk_ukey: &ChunkUkey,
+  compilation: &Compilation,
+) -> Result<RenderBootstrapResult<'static>> {
+  let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let module_factories = runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES);
+  let require_function = runtime_requirements.contains(RuntimeGlobals::REQUIRE);
+  let module_cache = runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE);
+  let intercept_module_execution =
+    runtime_requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
+  let module_used = runtime_requirements.contains(RuntimeGlobals::MODULE);
+  let require_scope_used = runtime_requirements.contains(RuntimeGlobals::REQUIRE_SCOPE);
+  let use_require = require_function || intercept_module_execution || module_used;
+  let mut header: Vec<Cow<str>> = Vec::new();
+  let mut startup: Vec<Cow<str>> = Vec::new();
+  let mut allow_inline_startup = true;
+
+  if allow_inline_startup && module_factories {
+    startup.push("// module factories are used so entry inlining is disabled".into());
+    allow_inline_startup = false;
+  }
+  if allow_inline_startup && module_cache {
+    startup.push("// module cache are used so entry inlining is disabled".into());
+    allow_inline_startup = false;
+  }
+  if allow_inline_startup && intercept_module_execution {
+    startup.push("// module execution is intercepted so entry inlining is disabled".into());
+    allow_inline_startup = false;
+  }
+
+  if use_require || module_cache {
+    header.push("// The module cache\nvar __webpack_module_cache__ = {};\n".into());
+  }
+
+  if use_require {
+    header.push(
+      format!(
+        "// The require function\nfunction {}(moduleId) {{\n",
+        RuntimeGlobals::REQUIRE
+      )
+      .into(),
+    );
+    header.extend(render_require(chunk_ukey, compilation));
+    header.push("\n}\n".into());
+  } else if require_scope_used {
+    header.push(
+      format!(
+        "// The require scope\nvar {} = {{}};\n",
+        RuntimeGlobals::REQUIRE
+      )
+      .into(),
+    );
+  }
+
+  if module_factories || runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY) {
+    header.push(
+      format!(
+        "// expose the modules object (__webpack_modules__)\n{} = __webpack_modules__;\n",
+        RuntimeGlobals::MODULE_FACTORIES
+      )
+      .into(),
+    );
+  }
+
+  if runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE) {
+    header.push(
+      format!(
+        "// expose the module cache\n{} = __webpack_module_cache__;\n",
+        RuntimeGlobals::MODULE_CACHE
+      )
+      .into(),
+    );
+  }
+
+  if intercept_module_execution {
+    header.push(
+      format!(
+        "// expose the module execution interceptor\n{} = [];\n",
+        RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
+      )
+      .into(),
+    );
+  }
+
+  if !runtime_requirements.contains(RuntimeGlobals::STARTUP_NO_DEFAULT) {
+    if chunk.has_entry_module(&compilation.chunk_graph) {
+      let mut buf2: Vec<Cow<str>> = Vec::new();
+      buf2.push("// Load entry module and return exports".into());
+      let entries = compilation
+        .chunk_graph
+        .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
+      for (i, (module, entry)) in entries.iter().enumerate() {
+        let chunk_group = compilation.chunk_group_by_ukey.expect_get(entry);
+        let chunk_ids = chunk_group
+          .chunks
+          .iter()
+          .filter(|c| *c != chunk_ukey)
+          .map(|chunk_ukey| {
+            compilation
+              .chunk_by_ukey
+              .expect_get(chunk_ukey)
+              .expect_id(&compilation.chunk_ids_artifact)
+              .to_string()
+          })
+          .collect::<Vec<_>>();
+        if allow_inline_startup && !chunk_ids.is_empty() {
+          buf2.push(
+            "// This entry module depends on other loaded chunks and execution need to be delayed"
+              .into(),
+          );
+          allow_inline_startup = false;
+        }
+        if allow_inline_startup && {
+          let module_graph = compilation.get_module_graph();
+          module_graph
+            .get_incoming_connections_by_origin_module(module)
+            .iter()
+            .any(|(origin_module, connections)| {
+              if let Some(origin_module) = origin_module {
+                connections
+                  .iter()
+                  .any(|c| c.is_target_active(&module_graph, Some(chunk.runtime())))
+                  && compilation
+                    .chunk_graph
+                    .get_module_runtimes_iter(*origin_module, &compilation.chunk_by_ukey)
+                    .any(|runtime| runtime.intersection(chunk.runtime()).count() > 0)
+              } else {
+                false
+              }
+            })
+        } {
+          buf2.push(
+            "// This entry module is referenced by other modules so it can't be inlined".into(),
+          );
+          allow_inline_startup = false;
+        }
+        if allow_inline_startup && {
+          let codegen = compilation
+            .code_generation_results
+            .get(module, Some(chunk.runtime()));
+          let module_graph = compilation.get_module_graph();
+          let top_level_decls = codegen
+            .data
+            .get::<CodeGenerationDataTopLevelDeclarations>()
+            .map(|d| d.inner())
+            .or_else(|| {
+              module_graph
+                .module_by_identifier(module)
+                .and_then(|m| m.build_info().top_level_declarations.as_ref())
+            });
+          top_level_decls.is_none()
+        } {
+          buf2.push("// This entry module doesn't tell about it's top-level declarations so it can't be inlined".into());
+          allow_inline_startup = false;
+        }
+        let hooks = JsPlugin::get_compilation_hooks(compilation.id());
+        let bailout = hooks.inline_in_runtime_bailout.call(compilation).await?;
+        if allow_inline_startup && let Some(bailout) = bailout {
+          buf2.push(format!("// This entry module can't be inlined because {bailout}").into());
+          allow_inline_startup = false;
+        }
+        if allow_inline_startup && diff_mode::is_diff_mode() {
+          buf2.push("// This entry module can't be inlined in diff mode".into());
+          allow_inline_startup = false;
+        }
+        let entry_runtime_requirements =
+          ChunkGraph::get_module_runtime_requirements(compilation, *module, chunk.runtime());
+        if allow_inline_startup
+          && let Some(entry_runtime_requirements) = entry_runtime_requirements
+          && entry_runtime_requirements.contains(RuntimeGlobals::MODULE)
+        {
+          allow_inline_startup = false;
+          buf2.push("// This entry module used 'module' so it can't be inlined".into());
+        }
+
+        let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
+          .expect("should have module id");
+        let mut module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
+        if runtime_requirements.contains(RuntimeGlobals::ENTRY_MODULE_ID) {
+          module_id_expr = format!("{} = {module_id_expr}", RuntimeGlobals::ENTRY_MODULE_ID);
+        }
+
+        if !chunk_ids.is_empty() {
+          buf2.push(
+            format!(
+              "{}{}(undefined, {}, function() {{ return {}({module_id_expr}) }});",
+              if i + 1 == entries.len() {
+                format!("var {} = ", RuntimeGlobals::EXPORTS)
+              } else {
+                "".to_string()
+              },
+              RuntimeGlobals::ON_CHUNKS_LOADED,
+              stringify_array(&chunk_ids),
+              RuntimeGlobals::REQUIRE
+            )
+            .into(),
+          );
+        } else if use_require {
+          buf2.push(
+            format!(
+              "{}{}({module_id_expr});",
+              if i + 1 == entries.len() {
+                format!("var {} = ", RuntimeGlobals::EXPORTS)
+              } else {
+                "".to_string()
+              },
+              RuntimeGlobals::REQUIRE
+            )
+            .into(),
+          )
+        } else {
+          let should_exec = i + 1 == entries.len();
+          if should_exec {
+            buf2.push(format!("var {} = {{}}", RuntimeGlobals::EXPORTS).into());
+          }
+          if require_scope_used {
+            buf2.push(
+              format!(
+                "__webpack_modules__[{module_id_expr}](0, {}, {});",
+                if should_exec {
+                  RuntimeGlobals::EXPORTS.name()
+                } else {
+                  "{}"
+                },
+                RuntimeGlobals::REQUIRE
+              )
+              .into(),
+            );
+          } else if let Some(entry_runtime_requirements) = entry_runtime_requirements
+            && entry_runtime_requirements.contains(RuntimeGlobals::EXPORTS)
+          {
+            buf2.push(
+              format!(
+                "__webpack_modules__[{module_id_expr}](0, {});",
+                if should_exec {
+                  RuntimeGlobals::EXPORTS.name()
+                } else {
+                  "{}"
+                }
+              )
+              .into(),
+            );
+          } else {
+            buf2.push(format!("__webpack_modules__[{module_id_expr}]();").into());
+          }
+        }
+      }
+      if runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED) {
+        buf2.push(
+          format!(
+            "__webpack_exports__ = {}(__webpack_exports__);",
+            RuntimeGlobals::ON_CHUNKS_LOADED
+          )
+          .into(),
+        );
+      }
+      if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
+        allow_inline_startup = false;
+        header.push(
+          format!(
+            "// the startup function\n{} = {};\n",
+            RuntimeGlobals::STARTUP,
+            basic_function(
+              &compilation.options.output.environment,
+              "",
+              &format!("{}\nreturn {}", buf2.join("\n"), RuntimeGlobals::EXPORTS)
+            )
+          )
+          .into(),
+        );
+        startup.push("// run startup".into());
+        startup.push(
+          format!(
+            "var {} = {}();",
+            RuntimeGlobals::EXPORTS,
+            RuntimeGlobals::STARTUP
+          )
+          .into(),
+        );
+      } else {
+        startup.push("// startup".into());
+        startup.push(buf2.join("\n").into());
+      }
+    } else if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
+      header.push(
+          format!(
+            "// the startup function\n// It's empty as no entry modules are in this chunk\n{} = function(){{}};",
+            RuntimeGlobals::STARTUP
+          )
+          .into(),
+        );
+    }
+  } else if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
+    header.push(
+        format!(
+          "// the startup function\n// It's empty as some runtime module handles the default behavior\n{} = function(){{}};",
+          RuntimeGlobals::STARTUP
+        )
+        .into(),
+      );
+    startup.push("// run startup".into());
+    startup.push(format!("var __webpack_exports__ = {}();", RuntimeGlobals::STARTUP).into());
+  }
+
+  Ok(RenderBootstrapResult {
+    header,
+    startup,
+    allow_inline_startup,
+  })
+}
+
 impl JsPlugin {
   pub fn get_compilation_hooks(
     id: CompilationId,
@@ -193,317 +505,6 @@ impl JsPlugin {
     id: CompilationId,
   ) -> dashmap::mapref::one::RefMut<'static, CompilationId, Box<JavascriptModulesPluginHooks>> {
     COMPILATION_HOOKS_MAP.entry(id).or_default()
-  }
-
-  pub async fn render_bootstrap(
-    &self,
-    chunk_ukey: &ChunkUkey,
-    compilation: &Compilation,
-  ) -> Result<RenderBootstrapResult> {
-    let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-    let module_factories = runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES);
-    let require_function = runtime_requirements.contains(RuntimeGlobals::REQUIRE);
-    let module_cache = runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE);
-    let intercept_module_execution =
-      runtime_requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
-    let module_used = runtime_requirements.contains(RuntimeGlobals::MODULE);
-    let require_scope_used = runtime_requirements.contains(RuntimeGlobals::REQUIRE_SCOPE);
-    let use_require = require_function || intercept_module_execution || module_used;
-    let mut header: Vec<Cow<str>> = Vec::new();
-    let mut startup: Vec<Cow<str>> = Vec::new();
-    let mut allow_inline_startup = true;
-
-    if allow_inline_startup && module_factories {
-      startup.push("// module factories are used so entry inlining is disabled".into());
-      allow_inline_startup = false;
-    }
-    if allow_inline_startup && module_cache {
-      startup.push("// module cache are used so entry inlining is disabled".into());
-      allow_inline_startup = false;
-    }
-    if allow_inline_startup && intercept_module_execution {
-      startup.push("// module execution is intercepted so entry inlining is disabled".into());
-      allow_inline_startup = false;
-    }
-
-    if use_require || module_cache {
-      header.push("// The module cache\nvar __webpack_module_cache__ = {};\n".into());
-    }
-
-    if use_require {
-      header.push(
-        format!(
-          "// The require function\nfunction {}(moduleId) {{\n",
-          RuntimeGlobals::REQUIRE
-        )
-        .into(),
-      );
-      header.extend(render_require(chunk_ukey, compilation));
-      header.push("\n}\n".into());
-    } else if require_scope_used {
-      header.push(
-        format!(
-          "// The require scope\nvar {} = {{}};\n",
-          RuntimeGlobals::REQUIRE
-        )
-        .into(),
-      );
-    }
-
-    if module_factories || runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY)
-    {
-      header.push(
-        format!(
-          "// expose the modules object (__webpack_modules__)\n{} = __webpack_modules__;\n",
-          RuntimeGlobals::MODULE_FACTORIES
-        )
-        .into(),
-      );
-    }
-
-    if runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE) {
-      header.push(
-        format!(
-          "// expose the module cache\n{} = __webpack_module_cache__;\n",
-          RuntimeGlobals::MODULE_CACHE
-        )
-        .into(),
-      );
-    }
-
-    if intercept_module_execution {
-      header.push(
-        format!(
-          "// expose the module execution interceptor\n{} = [];\n",
-          RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
-        )
-        .into(),
-      );
-    }
-
-    if !runtime_requirements.contains(RuntimeGlobals::STARTUP_NO_DEFAULT) {
-      if chunk.has_entry_module(&compilation.chunk_graph) {
-        let mut buf2: Vec<Cow<str>> = Vec::new();
-        buf2.push("// Load entry module and return exports".into());
-        let entries = compilation
-          .chunk_graph
-          .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
-        for (i, (module, entry)) in entries.iter().enumerate() {
-          let chunk_group = compilation.chunk_group_by_ukey.expect_get(entry);
-          let chunk_ids = chunk_group
-            .chunks
-            .iter()
-            .filter(|c| *c != chunk_ukey)
-            .map(|chunk_ukey| {
-              compilation
-                .chunk_by_ukey
-                .expect_get(chunk_ukey)
-                .expect_id(&compilation.chunk_ids_artifact)
-                .to_string()
-            })
-            .collect::<Vec<_>>();
-          if allow_inline_startup && !chunk_ids.is_empty() {
-            buf2.push("// This entry module depends on other loaded chunks and execution need to be delayed".into());
-            allow_inline_startup = false;
-          }
-          if allow_inline_startup && {
-            let module_graph = compilation.get_module_graph();
-            module_graph
-              .get_incoming_connections_by_origin_module(module)
-              .iter()
-              .any(|(origin_module, connections)| {
-                if let Some(origin_module) = origin_module {
-                  connections
-                    .iter()
-                    .any(|c| c.is_target_active(&module_graph, Some(chunk.runtime())))
-                    && compilation
-                      .chunk_graph
-                      .get_module_runtimes_iter(*origin_module, &compilation.chunk_by_ukey)
-                      .any(|runtime| runtime.intersection(chunk.runtime()).count() > 0)
-                } else {
-                  false
-                }
-              })
-          } {
-            buf2.push(
-              "// This entry module is referenced by other modules so it can't be inlined".into(),
-            );
-            allow_inline_startup = false;
-          }
-          if allow_inline_startup && {
-            let codegen = compilation
-              .code_generation_results
-              .get(module, Some(chunk.runtime()));
-            let module_graph = compilation.get_module_graph();
-            let top_level_decls = codegen
-              .data
-              .get::<CodeGenerationDataTopLevelDeclarations>()
-              .map(|d| d.inner())
-              .or_else(|| {
-                module_graph
-                  .module_by_identifier(module)
-                  .and_then(|m| m.build_info().top_level_declarations.as_ref())
-              });
-            top_level_decls.is_none()
-          } {
-            buf2.push("// This entry module doesn't tell about it's top-level declarations so it can't be inlined".into());
-            allow_inline_startup = false;
-          }
-          let hooks = JsPlugin::get_compilation_hooks(compilation.id());
-          let bailout = hooks.inline_in_runtime_bailout.call(compilation).await?;
-          if allow_inline_startup && let Some(bailout) = bailout {
-            buf2.push(format!("// This entry module can't be inlined because {bailout}").into());
-            allow_inline_startup = false;
-          }
-          if allow_inline_startup && diff_mode::is_diff_mode() {
-            buf2.push("// This entry module can't be inlined in diff mode".into());
-            allow_inline_startup = false;
-          }
-          let entry_runtime_requirements =
-            ChunkGraph::get_module_runtime_requirements(compilation, *module, chunk.runtime());
-          if allow_inline_startup
-            && let Some(entry_runtime_requirements) = entry_runtime_requirements
-            && entry_runtime_requirements.contains(RuntimeGlobals::MODULE)
-          {
-            allow_inline_startup = false;
-            buf2.push("// This entry module used 'module' so it can't be inlined".into());
-          }
-
-          let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
-            .expect("should have module id");
-          let mut module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
-          if runtime_requirements.contains(RuntimeGlobals::ENTRY_MODULE_ID) {
-            module_id_expr = format!("{} = {module_id_expr}", RuntimeGlobals::ENTRY_MODULE_ID);
-          }
-
-          if !chunk_ids.is_empty() {
-            buf2.push(
-              format!(
-                "{}{}(undefined, {}, function() {{ return {}({module_id_expr}) }});",
-                if i + 1 == entries.len() {
-                  format!("var {} = ", RuntimeGlobals::EXPORTS)
-                } else {
-                  "".to_string()
-                },
-                RuntimeGlobals::ON_CHUNKS_LOADED,
-                stringify_array(&chunk_ids),
-                RuntimeGlobals::REQUIRE
-              )
-              .into(),
-            );
-          } else if use_require {
-            buf2.push(
-              format!(
-                "{}{}({module_id_expr});",
-                if i + 1 == entries.len() {
-                  format!("var {} = ", RuntimeGlobals::EXPORTS)
-                } else {
-                  "".to_string()
-                },
-                RuntimeGlobals::REQUIRE
-              )
-              .into(),
-            )
-          } else {
-            let should_exec = i + 1 == entries.len();
-            if should_exec {
-              buf2.push(format!("var {} = {{}}", RuntimeGlobals::EXPORTS).into());
-            }
-            if require_scope_used {
-              buf2.push(
-                format!(
-                  "__webpack_modules__[{module_id_expr}](0, {}, {});",
-                  if should_exec {
-                    RuntimeGlobals::EXPORTS.name()
-                  } else {
-                    "{}"
-                  },
-                  RuntimeGlobals::REQUIRE
-                )
-                .into(),
-              );
-            } else if let Some(entry_runtime_requirements) = entry_runtime_requirements
-              && entry_runtime_requirements.contains(RuntimeGlobals::EXPORTS)
-            {
-              buf2.push(
-                format!(
-                  "__webpack_modules__[{module_id_expr}](0, {});",
-                  if should_exec {
-                    RuntimeGlobals::EXPORTS.name()
-                  } else {
-                    "{}"
-                  }
-                )
-                .into(),
-              );
-            } else {
-              buf2.push(format!("__webpack_modules__[{module_id_expr}]();").into());
-            }
-          }
-        }
-        if runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED) {
-          buf2.push(
-            format!(
-              "__webpack_exports__ = {}(__webpack_exports__);",
-              RuntimeGlobals::ON_CHUNKS_LOADED
-            )
-            .into(),
-          );
-        }
-        if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
-          allow_inline_startup = false;
-          header.push(
-            format!(
-              "// the startup function\n{} = {};\n",
-              RuntimeGlobals::STARTUP,
-              basic_function(
-                &compilation.options.output.environment,
-                "",
-                &format!("{}\nreturn {}", buf2.join("\n"), RuntimeGlobals::EXPORTS)
-              )
-            )
-            .into(),
-          );
-          startup.push("// run startup".into());
-          startup.push(
-            format!(
-              "var {} = {}();",
-              RuntimeGlobals::EXPORTS,
-              RuntimeGlobals::STARTUP
-            )
-            .into(),
-          );
-        } else {
-          startup.push("// startup".into());
-          startup.push(buf2.join("\n").into());
-        }
-      } else if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
-        header.push(
-          format!(
-            "// the startup function\n// It's empty as no entry modules are in this chunk\n{} = function(){{}};",
-            RuntimeGlobals::STARTUP
-          )
-          .into(),
-        );
-      }
-    } else if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
-      header.push(
-        format!(
-          "// the startup function\n// It's empty as some runtime module handles the default behavior\n{} = function(){{}};",
-          RuntimeGlobals::STARTUP
-        )
-        .into(),
-      );
-      startup.push("// run startup".into());
-      startup.push(format!("var __webpack_exports__ = {}();", RuntimeGlobals::STARTUP).into());
-    }
-
-    Ok(RenderBootstrapResult {
-      header,
-      startup,
-      allow_inline_startup,
-    })
   }
 
   pub async fn render_main(
@@ -527,7 +528,7 @@ impl JsPlugin {
       header,
       startup,
       allow_inline_startup,
-    } = self.render_bootstrap(chunk_ukey, compilation).await?;
+    } = render_bootstrap(chunk_ukey, compilation).await?;
     let module_graph = &compilation.get_module_graph();
     let all_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
       chunk_ukey,
@@ -1228,7 +1229,7 @@ impl JsPlugin {
       header,
       startup,
       allow_inline_startup,
-    } = self.render_bootstrap(chunk_ukey, compilation).await?;
+    } = render_bootstrap(chunk_ukey, compilation).await?;
     header.hash(hasher);
     startup.hash(hasher);
     allow_inline_startup.hash(hasher);
@@ -1244,7 +1245,7 @@ pub struct ExtractedCommentsInfo {
 
 #[derive(Debug)]
 pub struct RenderBootstrapResult<'a> {
-  header: Vec<Cow<'a, str>>,
-  startup: Vec<Cow<'a, str>>,
-  allow_inline_startup: bool,
+  pub header: Vec<Cow<'a, str>>,
+  pub startup: Vec<Cow<'a, str>>,
+  pub allow_inline_startup: bool,
 }
