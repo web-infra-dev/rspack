@@ -7,7 +7,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, MapOptions, RawStringSource, Source, SourceExt},
   ApplyContext, BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
   CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation,
-  CompilerOptions, ModuleIdentifier, Plugin, PluginContext, RuntimeGlobals,
+  CompilerOptions, Filename, ModuleIdentifier, PathData, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -123,6 +123,21 @@ async fn eval_source_map_devtool_plugin_render_module_content(
             ModuleOrSource::Source(source.to_string())
           }
         });
+        let path_data = PathData::default()
+          .chunk_id_optional(
+            chunk
+              .id(&compilation.chunk_ids_artifact)
+              .map(|id| id.as_str()),
+          )
+          .chunk_name_optional(chunk.name())
+          .chunk_hash_optional(chunk.rendered_hash(
+            &compilation.chunk_hashes_artifact,
+            compilation.options.output.hash_digest_length,
+          ));
+
+        let filename = Filename::from(self.namespace.as_str());
+        let namespace = compilation.get_path(&filename, path_data).await?;
+
         let module_filenames = match &self.module_filename_template {
           ModuleFilenameTemplate::String(s) => modules
             .map(|module_or_source| {
@@ -131,7 +146,7 @@ async fn eval_source_map_devtool_plugin_render_module_content(
                 compilation,
                 s,
                 output_options,
-                &self.namespace,
+                &namespace,
               )
             })
             .collect::<Vec<_>>(),
@@ -143,7 +158,7 @@ async fn eval_source_map_devtool_plugin_render_module_content(
                 compilation,
                 f,
                 output_options,
-                &self.namespace,
+                &namespace,
               )
             });
             join_all(features)
