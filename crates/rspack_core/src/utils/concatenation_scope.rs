@@ -23,6 +23,11 @@ static MODULE_REFERENCE_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   .expect("should initialized regex")
 });
 
+static DYN_MODULE_REFERENCE_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(r"^__WEBPACK_MODULE_DYNAMIC_REFERENCE__(\d+)_([\da-f]+|ns)$")
+    .expect("should initialized regex")
+});
+
 #[derive(Default, Debug, Clone)]
 pub struct ModuleReferenceOptions {
   pub ids: Vec<Atom>,
@@ -173,5 +178,50 @@ impl ConcatenationScope {
     } else {
       None
     }
+  }
+
+  pub fn create_dynamic_module_reference(
+    &mut self,
+    module: &ModuleIdentifier,
+    ids: Vec<Atom>,
+  ) -> String {
+    let info = self
+      .modules_map
+      .get(module)
+      .expect("should have module info");
+
+    let export_data = if !ids.is_empty() {
+      hex::encode(serde_json::to_string(&ids).expect("should serialize to json string"))
+    } else {
+      "ns".to_string()
+    };
+
+    format!(
+      "__WEBPACK_MODULE_DYNAMIC_REFERENCE__{}_{}",
+      itoa!(info.index()),
+      export_data
+    )
+  }
+
+  pub fn match_dynamic_module_reference(name: &str) -> Option<(usize, Vec<Atom>)> {
+    if let Some(captures) = DYN_MODULE_REFERENCE_REGEXP.captures(name) {
+      let index: usize = captures[1].parse().expect("");
+      let ids: Vec<Atom> = if &captures[2] == "ns" {
+        vec![]
+      } else {
+        serde_json::from_slice(&hex::decode(&captures[2]).expect("should decode hex"))
+          .expect("should have deserialize")
+      };
+      Some((index, ids))
+    } else {
+      None
+    }
+  }
+
+  pub fn is_module_concatenated(&self, module: &ModuleIdentifier) -> bool {
+    matches!(
+      self.modules_map.get(module).expect("should have module"),
+      ModuleInfo::Concatenated(_)
+    )
   }
 }
