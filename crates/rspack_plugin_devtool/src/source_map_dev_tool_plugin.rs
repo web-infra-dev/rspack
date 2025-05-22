@@ -225,9 +225,15 @@ impl SourceMapDevToolPlugin {
 
     let source_map_modules = mapped_sources
       .par_iter()
-      .filter_map(|(_file, _asset, source_map)| source_map.as_ref())
-      .flat_map(|source_map| source_map.sources())
-      .map(|source| {
+      .filter_map(|(file, _asset, source_map)| source_map.as_ref().map(|s| (file, s)))
+      .flat_map(|(file, source_map)| {
+        source_map
+          .sources()
+          .iter()
+          .map(|i| (file, i))
+          .collect::<Vec<_>>()
+      })
+      .map(|(file, source)| {
         let module_or_source = if let Some(stripped) = source.strip_prefix("webpack://") {
           let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
           let identifier = ModuleIdentifier::from(source.as_str());
@@ -241,35 +247,59 @@ impl SourceMapDevToolPlugin {
         } else {
           ModuleOrSource::Source(source.to_string())
         };
-        (source.to_string(), module_or_source)
+
+        (source.to_string(), (file.to_string(), module_or_source))
       })
       .collect::<HashMap<_, _>>();
 
     let module_source_names = source_map_modules.values().collect::<Vec<_>>();
     let mut module_to_source_name = match &self.module_filename_template {
-      ModuleFilenameTemplate::String(s) => module_source_names
-        .into_par_iter()
-        .map(|module_or_source| {
-          if let ModuleOrSource::Source(source) = module_or_source {
-            if SCHEMA_SOURCE_REGEXP.is_match(source) {
-              return (module_or_source, source.to_string());
-            }
-          }
-
-          let source_name = ModuleFilenameHelpers::create_filename_of_string_template(
-            module_or_source,
-            compilation,
-            s,
-            output_options,
-            &self.namespace,
-          );
-          (module_or_source, source_name)
-        })
-        .collect::<HashMap<_, _>>(),
-      ModuleFilenameTemplate::Fn(f) => {
-        let features = module_source_names
+      ModuleFilenameTemplate::String(s) => {
+        let tasks = module_source_names
           .into_iter()
-          .map(|module_or_source| async move {
+          .map(|(file, module_or_source)| async move {
+            if let ModuleOrSource::Source(source) = module_or_source {
+              if SCHEMA_SOURCE_REGEXP.is_match(source) {
+                return Ok((module_or_source, source.to_string()));
+              }
+            }
+
+            let chunk = file_to_chunk.get(file);
+            let path_data = PathData::default()
+              .chunk_id_optional(
+                chunk.and_then(|c| c.id(&compilation.chunk_ids_artifact).map(|id| id.as_str())),
+              )
+              .chunk_name_optional(chunk.and_then(|c| c.name()))
+              .chunk_hash_optional(chunk.and_then(|c| {
+                c.rendered_hash(
+                  &compilation.chunk_hashes_artifact,
+                  compilation.options.output.hash_digest_length,
+                )
+              }));
+
+            let filename = Filename::from(self.namespace.as_str());
+            let namespace = compilation.get_path(&filename, path_data).await?;
+
+            let source_name = ModuleFilenameHelpers::create_filename_of_string_template(
+              module_or_source,
+              compilation,
+              s,
+              output_options,
+              &namespace,
+            );
+            Ok((module_or_source, source_name))
+          })
+          .collect::<Vec<_>>();
+
+        join_all(tasks)
+          .await
+          .into_iter()
+          .collect::<Result<HashMap<_, _>>>()?
+      }
+      ModuleFilenameTemplate::Fn(f) => {
+        let tasks = module_source_names
+          .into_iter()
+          .map(|(_, module_or_source)| async move {
             if let ModuleOrSource::Source(source) = module_or_source {
               if SCHEMA_SOURCE_REGEXP.is_match(source) {
                 return Ok((module_or_source, source.to_string()));
@@ -287,7 +317,7 @@ impl SourceMapDevToolPlugin {
             Ok((module_or_source, source_name))
           })
           .collect::<Vec<_>>();
-        join_all(features)
+        join_all(tasks)
           .await
           .into_iter()
           .collect::<Result<HashMap<_, _>>>()?
@@ -368,7 +398,7 @@ impl SourceMapDevToolPlugin {
                 .get(source)
                 .expect("expected a module or source");
               module_to_source_name
-                .get(module_or_source)
+                .get(&module_or_source.1)
                 .expect("expected a filename at the given index but found None")
                 .clone()
             })
