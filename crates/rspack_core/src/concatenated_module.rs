@@ -196,6 +196,7 @@ pub struct ConcatenatedModuleInfo {
   pub export_map: Option<HashMap<Atom, String>>,
   pub raw_export_map: Option<HashMap<Atom, String>>,
   pub namespace_object_name: Option<Atom>,
+  pub namespace_object_source: Option<String>,
   pub interop_namespace_object_used: bool,
   pub interop_namespace_object_name: Option<Atom>,
   pub interop_namespace_object2_used: bool,
@@ -2056,7 +2057,7 @@ impl ConcatenatedModule {
             raw_name: info
               .namespace_object_name
               .clone()
-              .expect("should have namespace_object_name"),
+              .unwrap_or_else(|| panic!("should have namespace_object_name:{}", info.module)),
             ids: export_name.clone(),
             export_name,
             info_id: info.module,

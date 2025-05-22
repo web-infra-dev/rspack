@@ -1,5 +1,6 @@
-use indexmap::IndexSet;
-use rspack_collections::{IdentifierIndexSet, IdentifierMap, UkeyIndexMap, UkeyMap};
+use std::sync::Arc;
+
+use rspack_collections::{IdentifierIndexSet, IdentifierMap, UkeyMap};
 use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -13,9 +14,10 @@ pub use chunk_graph_chunk::{ChunkGraphChunk, ChunkSizeOptions};
 pub use chunk_graph_module::{ChunkGraphModule, ModuleId};
 
 #[derive(Debug, Clone, Default)]
-pub struct ChunkLink {
-  pub imports: UkeyIndexMap<ChunkUkey, IdentifierMap<IndexSet<Atom>>>,
+pub struct ChunkLinkContext {
+  // specifier order doesn't matter, we can sort them based on name
   pub exports: IdentifierMap<HashSet<Atom>>,
+
   pub needed_namespace_objects: IdentifierIndexSet,
   pub hoisted_modules: IdentifierIndexSet,
   pub ref_to_final_name: HashMap<String, ModuleReference>,
@@ -39,7 +41,7 @@ pub struct ChunkGraph {
   runtime_ids: HashMap<String, Option<String>>,
 
   // only used for esm output
-  pub link: Option<UkeyMap<ChunkUkey, ChunkLink>>,
+  pub link: Option<UkeyMap<ChunkUkey, ChunkLinkContext>>,
 }
 
 impl ChunkGraph {

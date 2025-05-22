@@ -2,20 +2,22 @@ use std::{collections::hash_map::Entry, sync::Arc};
 
 use rayon::prelude::*;
 use rspack_collections::{
-  IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeyMap,
+  IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeyIndexMap, UkeyMap,
+  UkeySet,
 };
 use rspack_core::{
-  Binding, BoxModule, BuildMetaDefaultObject, BuildMetaExportsType, ChunkLink, ChunkUkey,
-  Compilation, ConcatenatedModule, ConcatenatedModuleIdent, ConcatenatedModuleInfo,
-  ConcatenationScope, IdentCollector, ModuleIdentifier, ModuleInfo, SourceType, find_new_name,
-  reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource,
+  Binding, BoxModule, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkLinkContext,
+  ChunkUkey, Compilation, ConcatenatedModule, ConcatenatedModuleIdent, ConcatenatedModuleInfo,
+  ConcatenationScope, ExportInfoProvided, IdentCollector, ModuleIdentifier, ModuleInfo,
+  RuntimeGlobals, SourceType, find_new_name, property_name, reserved_names::RESERVED_NAMES,
+  returning_function, rspack_sources::ReplaceSource,
 };
 use rspack_error::Result;
 use rspack_javascript_compiler::ast::Ast;
 use rspack_plugin_javascript::visitors::swc_visitor::resolver;
 use rspack_util::{
   atom::Atom,
-  fx_hash::{FxHashMap, FxHashSet},
+  fx_hash::{FxHashMap, FxHashSet, FxIndexSet},
 };
 use swc_core::{
   common::{FileName, SyntaxContext},
@@ -28,7 +30,7 @@ use swc_core::{
 use crate::EsmLibraryPlugin;
 
 impl EsmLibraryPlugin {
-  pub(crate) async fn calculate_chunk_relation(&self, compilation: &mut Compilation) -> Result<()> {
+  pub(crate) async fn link(&self, compilation: &mut Compilation) -> Result<()> {
     let module_graph = compilation.get_module_graph();
     let all_chunks: Vec<ChunkUkey> = compilation.chunk_by_ukey.keys().copied().collect();
     let mut concate_modules_map = self.concatenated_modules_map.lock().await;
@@ -38,96 +40,36 @@ impl EsmLibraryPlugin {
         .expect("should has compilation"),
     )
     .unwrap();
-    let mut link = UkeyMap::<ChunkUkey, ChunkLink>::default();
-    let mut record_exports = UkeyMap::<ChunkUkey, IdentifierMap<FxHashSet<Atom>>>::default();
+    let mut link: UkeyMap<ChunkUkey, ChunkLinkContext> = compilation
+      .chunk_by_ukey
+      .keys()
+      .map(|ukey| {
+        let modules = compilation.chunk_graph.get_chunk_modules_identifier(ukey);
 
-    // calculate imports to other chunks
-    for chunk_ukey in &all_chunks {
-      link.entry(*chunk_ukey).or_default();
+        let mut hoisted_modules = modules
+          .into_iter()
+          .copied()
+          .filter(|m| {
+            let info = concate_modules_map
+              .get(m)
+              .expect("should have set module info");
+            matches!(info, ModuleInfo::Concatenated(_))
+          })
+          .collect::<Vec<_>>();
 
-      let all_chunk_concate_modules = compilation
-        .chunk_graph
-        .get_chunk_modules_identifier(&chunk_ukey)
-        .iter()
-        .filter(|m| {
-          concate_modules_map
-            .get(*m)
-            .expect("should have module")
-            .try_as_concatenated()
-            .is_some()
-        })
-        .copied()
-        .collect::<IdentifierSet>();
-
-      let mut concate_chunk_modules = all_chunk_concate_modules
-        .iter()
-        .copied()
-        .collect::<Vec<_>>();
-
-      concate_chunk_modules.sort_by(|m1, m2| {
-        let m1_index = module_graph.get_post_order_index(m1);
-        let m2_index = module_graph.get_post_order_index(m2);
-        m1_index.cmp(&m2_index)
-      });
-
-      let chunk_link = link.get_mut(&chunk_ukey).expect("should have chunk link");
-      chunk_link.hoisted_modules = concate_chunk_modules.iter().copied().collect();
-      let mut errors = vec![];
-
-      for m in &concate_chunk_modules {
-        let module = module_graph
-          .module_by_identifier(&m)
-          .expect("should have module");
-        let codegen_res = compilation.code_generation_results.get(&m, None);
-        let Some(concatenation_scope) = &codegen_res.concatenation_scope else {
-          continue;
+        hoisted_modules.sort_by(|m1, m2| {
+          let m1_index = module_graph.get_post_order_index(m1);
+          let m2_index = module_graph.get_post_order_index(m2);
+          m1_index.cmp(&m2_index)
+        });
+        let chunk_link = ChunkLinkContext {
+          hoisted_modules: hoisted_modules.into_iter().collect(),
+          ..Default::default()
         };
-        let imports = chunk_link.imports.entry(*chunk_ukey).or_default();
 
-        for (imported, refs) in &concatenation_scope.refs {
-          if compilation
-            .chunk_graph
-            .is_module_in_chunk(imported, *chunk_ukey)
-          {
-            continue;
-          }
-
-          let import_refs = imports.entry(*imported).or_default();
-
-          let chunk = compilation.chunk_graph.get_module_chunks(*imported);
-          if chunk.len() > 1 {
-            errors.push(format!("module exist in multiple chunks {}", imported));
-            continue;
-          }
-
-          if chunk.is_empty() {
-            errors.push(format!("module not exist in any chunk {}", imported));
-            continue;
-          }
-
-          let chunk_ukey = chunk
-            .into_iter()
-            .next()
-            .expect("should have at least one chunk");
-          let exports = record_exports.entry(*chunk_ukey).or_default();
-          let exports = exports.entry(*imported).or_default();
-
-          let imported_exports_info = module_graph.get_exports_info(imported);
-
-          for match_ref in refs.values() {
-            let imported_name = &match_ref.ids[0];
-            import_refs.insert(imported_name.clone());
-            exports.insert(imported_name.clone());
-          }
-        }
-      }
-    }
-
-    // record exports
-    for (chunk_ukey, exports) in record_exports {
-      let chunk_link = link.entry(chunk_ukey).or_default();
-      chunk_link.exports = exports;
-    }
+        (*ukey, chunk_link)
+      })
+      .collect();
 
     concate_modules_map
       .par_iter_mut()
@@ -151,8 +93,6 @@ impl EsmLibraryPlugin {
           let m = module_graph
             .module_by_identifier(id)
             .expect("should have module");
-          let replace_source = ReplaceSource::new(js_source.clone());
-          let compiler = rspack_javascript_compiler::JavaScriptCompiler::new();
           let cm: Arc<swc_core::common::SourceMap> = Default::default();
           let readable_identifier = m.readable_identifier(&compilation.options.context);
           let fm = cm.new_source_file(
@@ -254,27 +194,15 @@ impl EsmLibraryPlugin {
       }
     });
 
-    compilation.chunk_graph.link = Some(link);
-    Ok(())
-  }
-
-  pub(crate) async fn link(&self, compilation: &mut Compilation) -> Result<()> {
-    let mut compilation_modules_map = self.concatenated_modules_map.lock().await;
-    let mut modules_map = compilation_modules_map
-      .get_mut(&compilation.id().0)
-      .unwrap();
-    let mut link = std::mem::take(&mut compilation.chunk_graph.link).unwrap();
-    let modules_map = Arc::get_mut(&mut modules_map).unwrap();
-    let module_graph = compilation.get_module_graph();
-
     let mut chunk_used_names = UkeyMap::default();
+
     // for each chunk
     for (chunk_ukey, chunk_link) in &mut link {
       let mut all_used_names: FxHashSet<Atom> = RESERVED_NAMES
         .iter()
         .map(|s| Atom::new(*s))
         .chain(chunk_link.hoisted_modules.iter().flat_map(|m| {
-          let info = modules_map.get(m).unwrap();
+          let info = concate_modules_map.get(m).unwrap();
           info
             .as_concatenated()
             .global_scope_ident
@@ -285,7 +213,7 @@ impl EsmLibraryPlugin {
       let mut top_level_declarations = FxHashSet::default();
 
       for id in &chunk_link.hoisted_modules {
-        let concate_info = modules_map.get_mut(id).unwrap().as_concatenated();
+        let concate_info = concate_modules_map.get_mut(id).unwrap().as_concatenated();
         all_used_names.extend(concate_info.all_used_names.clone());
       }
 
@@ -295,7 +223,7 @@ impl EsmLibraryPlugin {
         let exports_type = module.build_meta().exports_type;
         let default_object = module.build_meta().default_object;
         let readable_identifier = module.readable_identifier(&compilation.options.context);
-        let info = modules_map.get_mut(id).unwrap();
+        let info = concate_modules_map.get_mut(id).unwrap();
 
         let concate_info = info.as_concatenated_mut();
 
@@ -368,10 +296,11 @@ impl EsmLibraryPlugin {
         .into_iter()
         .filter(|m| !chunk_link.hoisted_modules.contains(&m.identifier()))
       {
-        let ModuleInfo::External(info) =
-          modules_map.get_mut(&external_module.identifier()).unwrap()
+        let ModuleInfo::External(info) = concate_modules_map
+          .get_mut(&external_module.identifier())
+          .unwrap()
         else {
-          unreachable!("should be external module");
+          unreachable!("should be un-scope-hoisted module");
         };
         let name = find_new_name(
           "",
@@ -387,15 +316,15 @@ impl EsmLibraryPlugin {
       chunk_used_names.insert(*chunk_ukey, all_used_names);
     }
 
-    // modify cross module references
+    // modify cross chunk imports and exports
     let mut exports = UkeyMap::<ChunkUkey, IdentifierMap<FxHashSet<Atom>>>::default();
+    let mut needed_namespace_objects = IdentifierIndexSet::default();
+
     for (chunk, chunk_link) in &mut link {
       let all_used_names = chunk_used_names
         .get_mut(chunk)
         .expect("should have all_used_names");
       let mut ref_to_final_name = FxHashMap::default();
-
-      let mut needed_namespace_objects = IdentifierIndexSet::default();
 
       for m in chunk_link.hoisted_modules.clone() {
         let codegen_res = compilation.code_generation_results.get(&m, None);
@@ -421,11 +350,11 @@ impl EsmLibraryPlugin {
               // the internal_names is generated based on local symbols in chunk
               // but the module may in other chunks, so this assumption is wrong,
               // we need to deconflict the symbol again
-              let mut binding = ConcatenatedModule::get_final_binding(
+              let binding = ConcatenatedModule::get_final_binding(
                 &module_graph,
                 ref_module,
                 options.ids.clone(),
-                modules_map,
+                concate_modules_map,
                 None,
                 &mut needed_namespace_objects,
                 options.call,
@@ -437,14 +366,22 @@ impl EsmLibraryPlugin {
               let module_id = binding.identifier();
               let ref_chunk = Self::get_module_chunk(module_id, compilation);
 
-              if let Binding::Symbol(symbol_binding) = &binding {
-                exports
-                  .entry(ref_chunk)
-                  .or_default()
-                  .entry(module_id)
-                  .or_default()
-                  .insert(symbol_binding.name.clone());
+              match &binding {
+                Binding::Raw(raw_binding) => {
+                  // import to non-scope-hoisted module
+                  // importer should import the webpack require runtime
+                }
+                Binding::Symbol(symbol_binding) => {
+                  // ref chunk should expose the symbol
+                  exports
+                    .entry(ref_chunk)
+                    .or_default()
+                    .entry(module_id)
+                    .or_default()
+                    .insert(symbol_binding.name.clone());
+                }
               }
+
               ref_to_final_name.insert(
                 ref_string.strip_suffix("._").unwrap().to_string(),
                 rspack_core::ModuleReference::Binding(binding),
@@ -454,7 +391,7 @@ impl EsmLibraryPlugin {
                 &module_graph,
                 ref_module,
                 options.ids.clone(),
-                modules_map,
+                concate_modules_map,
                 None,
                 &mut needed_namespace_objects,
                 options.call,
@@ -479,8 +416,102 @@ impl EsmLibraryPlugin {
     for (chunk, exports) in exports {
       link.entry(chunk).or_default().exports = exports;
     }
-    compilation.chunk_graph.link = Some(link);
 
+    let mut namespace_object_sources: IdentifierMap<String> = IdentifierMap::default();
+    let mut visited = HashSet::default();
+    loop {
+      while let Some(module_info_id) = needed_namespace_objects.pop() {
+        if visited.contains(module_info_id) {
+          continue;
+        }
+        visited.insert(*module_info_id);
+        let module_info = concate_modules_map
+          .get_mut(&module_info_id)
+          .map(|m| m.as_concatenated_mut())
+          .expect("should have module info");
+
+        let module_graph = compilation.get_module_graph();
+        let box_module = module_graph
+          .module_by_identifier(&module_info_id)
+          .expect("should have box module");
+        let module_readable_identifier =
+          box_module.readable_identifier(&compilation.options.context);
+        let strict_esm_module = box_module.build_meta().strict_esm_module;
+        let name_space_name = module_info.namespace_object_name.clone();
+
+        if module_info.namespace_export_symbol.is_some() {
+          continue;
+        }
+
+        let mut ns_obj = Vec::new();
+        let exports_info = module_graph.get_exports_info(&module_info_id);
+
+        for export_info in exports_info.ordered_exports(&module_graph) {
+          if matches!(
+            export_info.provided(&module_graph),
+            Some(ExportInfoProvided::False)
+          ) {
+            continue;
+          }
+
+          if let Some(used_name) = export_info.get_used_name(&module_graph, None, None) {
+            let final_name = ConcatenatedModule::get_final_name(
+              &compilation.get_module_graph(),
+              &module_info_id,
+              vec![
+                export_info
+                  .name(&module_graph)
+                  .cloned()
+                  .unwrap_or("".into()),
+              ],
+              concate_modules_map,
+              None,
+              &mut needed_namespace_objects,
+              false,
+              false,
+              strict_esm_module,
+              Some(true),
+              &compilation.options.context,
+            );
+
+            ns_obj.push(format!(
+              "\n  {}: {}",
+              property_name(&used_name).expect("should have property_name"),
+              returning_function(&compilation.options.output.environment, &final_name, "")
+            ));
+          }
+        }
+
+        let name = name_space_name.expect("should have name_space_name");
+        let define_getters = if !ns_obj.is_empty() {
+          module_info
+            .runtime_requirements
+            .insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
+          format!(
+            "{}({}, {{ {} }});\n",
+            RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+            name,
+            ns_obj.join(",")
+          )
+        } else {
+          String::new()
+        };
+
+        module_info
+          .runtime_requirements
+          .insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
+        module_info.namespace_object_source = Some(format!(
+          "// NAMESPACE OBJECT: {}\nvar {} = {{}};\n{}({});\n{}\n",
+          module_readable_identifier,
+          name,
+          RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
+          name,
+          define_getters
+        ));
+      }
+    }
+
+    compilation.chunk_graph.link = Some(link);
     Ok(())
   }
 
