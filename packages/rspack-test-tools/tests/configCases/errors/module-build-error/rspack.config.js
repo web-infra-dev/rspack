@@ -5,21 +5,25 @@ module.exports = {
         {
             apply(compiler) {
                 compiler.hooks.done.tap("TestPlugin", stats => {
-                    const errors = stats.toJson({
-                        errors: true,
-                        ids: true,
-                        moduleTrace: true
-                    }).errors;
-                    expect(errors.length).toBe(1);
-                    const moduleTrace = errors[0].moduleTrace;
-                    expect(moduleTrace[0].moduleName).toBe("./c.js");
-                    expect(moduleTrace[0].originName).toBe("./b.js");
-                    expect(moduleTrace[1].moduleName).toBe("./b.js");
-                    expect(moduleTrace[1].originName).toBe("./a.js");
-                    expect(moduleTrace[2].moduleName).toBe("./a.js");
-                    expect(moduleTrace[2].originName).toBe("./index.js");
+                    const erros = stats.compilation.errors;
+                    expect(erros.length).toBe(1);
+                    expect(erros[0].name).toBe("ModuleBuildError");
+                    expect(erros[0].message).toContain("CustomError: Custom mesasge");
+
+                    expect(erros[0].error.name).toBe("CustomError");
+                    expect(erros[0].error.message).toContain("Custom mesasge");
                 });
             }
         }
-    ]
+    ],
+    module: {
+        rules: [
+            {
+                test: /\.js$/,
+                use: {
+                    loader: require.resolve("./loader"),
+                }
+            }
+        ]
+    }
 };

@@ -168,7 +168,6 @@ impl napi::bindgen_prelude::FromNapiValue for RspackError {
     let stack = obj.get::<String>("stack").unwrap_or(None);
     let hide_stack = obj.get::<bool>("hideStack").unwrap_or(None);
 
-    println!("hide_stack {:#?}", &hide_stack);
     let val = Self {
       name,
       message,
@@ -272,6 +271,7 @@ impl RspackError {
     let module_identifier = self.module.as_ref().map(|module| module.identifier());
     let stack = self.stack.clone();
     let hide_stack = self.hide_stack;
+
     Diagnostic::from(miette::Error::from(self))
       .with_file(file.map(Into::into))
       .with_module_identifier(module_identifier)
