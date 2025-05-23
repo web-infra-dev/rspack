@@ -401,7 +401,7 @@ impl NormalModuleFactory {
 
     let user_request = {
       let suffix =
-        stringify_loaders_and_resource(&resolved_inline_loaders, &resource_data.resource).await;
+        stringify_loaders_and_resource(&resolved_inline_loaders, &resource_data.resource);
       if let Some(ResourceData { resource, .. }) = match_resource_data.as_ref() {
         let mut resource = resource.to_owned();
         resource += "!=!";

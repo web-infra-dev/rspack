@@ -32,7 +32,7 @@ pub fn to_identifier(v: &str) -> Cow<str> {
   }
 }
 
-pub async fn stringify_loaders_and_resource<'a>(
+pub fn stringify_loaders_and_resource<'a>(
   loaders: &'a [BoxLoader],
   resource: &'a str,
 ) -> Cow<'a, str> {
