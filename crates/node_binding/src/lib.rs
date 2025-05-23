@@ -93,6 +93,7 @@ pub use resolver::*;
 use resolver_factory::*;
 pub use resource_data::*;
 pub use rsdoctor::*;
+use rspack_macros::rspack_version;
 use rspack_tracing::{ChromeTracer, StdoutTracer, Tracer};
 pub use runtime::*;
 use rustc_hash::FxHashMap;
@@ -142,7 +143,8 @@ impl JsCompiler {
     intermediate_filesystem: Option<ThreadsafeNodeFS>,
     mut resolver_factory_reference: Reference<JsResolverFactory>,
   ) -> Result<Self> {
-    tracing::debug!("raw_options: {:#?}", &options);
+    tracing::info!(name:"rspack_version", version = rspack_version!());
+    tracing::info!(name:"raw_options", options=?&options);
 
     let mut plugins = Vec::with_capacity(builtin_plugins.len());
     let js_hooks_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
@@ -164,7 +166,7 @@ impl JsCompiler {
 
     let compiler_options: rspack_core::CompilerOptions = options.try_into().to_napi_result()?;
 
-    tracing::debug!("normalized_options: {:#?}", &compiler_options);
+    tracing::debug!(name:"normalized_options", options=?&compiler_options);
 
     let resolver_factory =
       (*resolver_factory_reference).get_resolver_factory(compiler_options.resolve.clone());
