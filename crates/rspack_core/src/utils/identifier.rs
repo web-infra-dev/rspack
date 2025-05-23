@@ -4,7 +4,7 @@ use regex::Regex;
 use rspack_paths::Utf8Path;
 use rspack_util::identifier::absolute_to_request;
 
-use crate::ModuleRuleUseLoader;
+use crate::BoxLoader;
 
 pub fn contextify(context: impl AsRef<Utf8Path>, request: &str) -> String {
   let context = context.as_ref();
@@ -33,16 +33,22 @@ pub fn to_identifier(v: &str) -> Cow<str> {
 }
 
 pub fn stringify_loaders_and_resource<'a>(
-  loaders: &'a [ModuleRuleUseLoader],
+  loaders: &'a [BoxLoader],
   resource: &'a str,
 ) -> Cow<'a, str> {
   if !loaders.is_empty() {
-    let s = loaders
-      .iter()
-      .map(|i| &*i.loader)
-      .collect::<Vec<_>>()
-      .join("!");
-    Cow::Owned(format!("{s}!{resource}"))
+    let mut s = String::new();
+    for loader in loaders {
+      let identifier = loader.identifier();
+      if let Some((_type, ident)) = identifier.split_once('|') {
+        s.push_str(ident);
+      } else {
+        s.push_str(identifier.as_str());
+      }
+      s.push('!');
+    }
+    s.push_str(resource);
+    Cow::Owned(s)
   } else {
     Cow::Borrowed(resource)
   }

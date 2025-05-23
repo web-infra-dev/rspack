@@ -507,73 +507,73 @@ Rspack x.x.x compiled successfully in X.23"
 
 exports[`StatsTestCases should print correct stats for errors-space-error 1`] = `
 "assets by status xx bytes [cached] 1 asset
-./loader!./index.js xx bytes [built] [code generated] [2 errors]
+./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
   │ stack3
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
 
 Rspack x.x.x compiled with 2 errors in X.23
 
 assets by status xx bytes [cached] 1 asset
-./loader!./index.js xx bytes [built] [code generated] [2 errors]
+./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
   │ stack3
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
 
 Rspack x.x.x compiled with 2 errors in X.23
 
 assets by status xx bytes [cached] 1 asset
-./loader!./index.js xx bytes [built] [code generated] [2 errors]
+./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
   │ stack3
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
 
 Rspack x.x.x compiled with 2 errors in X.23
 
 assets by status xx bytes [cached] 1 asset
-./loader!./index.js xx bytes [built] [code generated] [2 errors]
+./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
   │ stack3
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
 
 Rspack x.x.x compiled with 2 errors in X.23
 
 assets by status xx bytes [cached] 1 asset
-./loader!./index.js xx bytes [built] [code generated] [2 errors]
+./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
   │ stack3
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
 
 Rspack x.x.x compiled with 2 errors in X.23
 
 assets by status xx bytes [cached] 1 asset
-./loader!./index.js xx bytes [built] [code generated] [2 errors]
+./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
   │ stack3
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
 
 Rspack x.x.x compiled with 2 errors in X.23"
