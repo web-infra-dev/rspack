@@ -6,9 +6,9 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ESMExportInitFragment, ExportNameOrSpec, ExportSpec,
-  ExportsOfExportsSpec, ExportsSpec, Inlinable, ModuleGraph, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, UsedName,
+  DependencyTemplateType, DependencyType, ESMExportInitFragment, EvaluatedInlinableValue,
+  ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, SharedSourceMap,
+  TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -24,14 +24,14 @@ pub struct ESMExportSpecifierDependency {
   name: Atom,
   #[cacheable(with=AsPreset)]
   value: Atom, // id
-  inline: Inlinable,
+  inline: Option<EvaluatedInlinableValue>,
 }
 
 impl ESMExportSpecifierDependency {
   pub fn new(
     name: Atom,
     value: Atom,
-    inline: Inlinable,
+    inline: Option<EvaluatedInlinableValue>,
     range: DependencyRange,
     source_map: Option<SharedSourceMap>,
   ) -> Self {

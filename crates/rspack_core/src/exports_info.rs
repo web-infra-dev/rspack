@@ -28,56 +28,6 @@ use crate::{
 };
 
 #[cacheable]
-#[derive(Debug, Default, Clone, Copy)]
-pub enum Inlinable {
-  Inline(EvaluatedInlinableValue),
-  #[default]
-  NoInline,
-}
-
-impl fmt::Display for Inlinable {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self {
-      Self::Inline(value) => write!(f, "inlined {}", value.render()),
-      Self::NoInline => write!(f, "no inline"),
-    }
-  }
-}
-
-impl Inlinable {
-  pub fn is_inlined(&self) -> bool {
-    matches!(self, Self::Inline(_))
-  }
-
-  pub fn inlined(&self) -> Option<&EvaluatedInlinableValue> {
-    if let Self::Inline(value) = self {
-      return Some(value);
-    }
-    None
-  }
-}
-
-#[cacheable]
-#[derive(Debug, Clone, Copy)]
-pub enum EvaluatedInlinableValue {
-  Null,
-  Undefined,
-  Boolean(bool),
-  ShortNumber(f64),
-}
-
-impl EvaluatedInlinableValue {
-  pub fn render(&self) -> Cow<str> {
-    match self {
-      EvaluatedInlinableValue::Null => "null".into(),
-      EvaluatedInlinableValue::Undefined => "undefined".into(),
-      EvaluatedInlinableValue::Boolean(v) => if *v { "true" } else { "false" }.into(),
-      EvaluatedInlinableValue::ShortNumber(n) => n.to_js_string().into(),
-    }
-  }
-}
-
-#[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 pub struct ExportsInfo(Ukey);
 
@@ -975,11 +925,11 @@ impl ExportInfo {
     self.as_export_info_mut(mg).exports_info = value;
   }
 
-  pub fn inlinable(&self, mg: &ModuleGraph) -> Inlinable {
-    self.as_export_info(mg).inlinable
+  pub fn inlinable<'a>(&self, mg: &'a ModuleGraph) -> Option<&'a EvaluatedInlinableValue> {
+    self.as_export_info(mg).inlinable.as_ref()
   }
 
-  pub fn set_inlinable(&self, mg: &mut ModuleGraph, inlinable: Inlinable) {
+  pub fn set_inlinable(&self, mg: &mut ModuleGraph, inlinable: Option<EvaluatedInlinableValue>) {
     self.as_export_info_mut(mg).inlinable = inlinable;
   }
 
@@ -1122,7 +1072,7 @@ impl ExportInfo {
     runtime: Option<&RuntimeSpec>,
   ) -> Option<UsedNameItem> {
     let info = self.as_export_info(mg);
-    if let Some(inlined) = info.inlinable.inlined() {
+    if let Some(inlined) = &info.inlinable {
       return Some(UsedNameItem::Inlined(*inlined));
     }
     if info.has_use_in_runtime_info {
@@ -1561,7 +1511,7 @@ pub struct ExportInfoData {
   can_mangle_use: Option<bool>,
   global_used: Option<UsageState>,
   used_in_runtime: Option<HashMap<Arc<str>, UsageState>>,
-  inlinable: Inlinable,
+  inlinable: Option<EvaluatedInlinableValue>,
 }
 
 #[derive(Debug, Hash, Clone, Copy)]
@@ -1689,7 +1639,7 @@ impl ExportInfoData {
       has_use_in_runtime_info,
       can_mangle_use,
       global_used,
-      inlinable: Inlinable::NoInline,
+      inlinable: None,
     }
   }
 
@@ -2098,62 +2048,6 @@ pub enum RuntimeUsageStateType {
   Used,
 }
 
-#[cacheable]
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum UsedByExports {
-  Set(#[cacheable(with=AsVec<AsPreset>)] HashSet<Atom>),
-  Bool(bool),
-}
-
-#[derive(Clone)]
-pub struct UsedByExportsDependencyCondition {
-  dependency_id: DependencyId,
-  used_by_exports: HashSet<Atom>,
-}
-
-impl DependencyConditionFn for UsedByExportsDependencyCondition {
-  fn get_connection_state(
-    &self,
-    _conn: &crate::ModuleGraphConnection,
-    runtime: Option<&RuntimeSpec>,
-    mg: &ModuleGraph,
-  ) -> ConnectionState {
-    let module_identifier = mg
-      .get_parent_module(&self.dependency_id)
-      .expect("should have parent module");
-    let exports_info = mg.get_exports_info(module_identifier);
-    for export_name in self.used_by_exports.iter() {
-      if exports_info.get_used(mg, &[export_name.clone()], runtime) != UsageState::Unused {
-        return ConnectionState::Bool(true);
-      }
-    }
-    ConnectionState::Bool(false)
-  }
-}
-
-// https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/InnerGraph.js#L319-L338
-pub fn get_dependency_used_by_exports_condition(
-  dependency_id: DependencyId,
-  used_by_exports: Option<&UsedByExports>,
-) -> Option<DependencyCondition> {
-  match used_by_exports {
-    Some(UsedByExports::Set(used_by_exports)) => Some(DependencyCondition::Fn(Arc::new(
-      UsedByExportsDependencyCondition {
-        dependency_id,
-        used_by_exports: used_by_exports.clone(),
-      },
-    ))),
-    Some(UsedByExports::Bool(bool)) => {
-      if *bool {
-        None
-      } else {
-        Some(DependencyCondition::False)
-      }
-    }
-    None => None,
-  }
-}
-
 /// refer https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/FlagDependencyUsagePlugin.js#L64
 #[derive(Clone, Debug)]
 pub enum ExtendedReferencedExport {
@@ -2300,4 +2194,31 @@ macro_rules! debug_exports_info {
       dbg!(&export_info);
     }
   };
+}
+
+#[cacheable]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UsedByExports {
+  Set(#[cacheable(with=AsVec<AsPreset>)] HashSet<Atom>),
+  Bool(bool),
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy)]
+pub enum EvaluatedInlinableValue {
+  Null,
+  Undefined,
+  Boolean(bool),
+  ShortNumber(f64),
+}
+
+impl EvaluatedInlinableValue {
+  pub fn render(&self) -> Cow<str> {
+    match self {
+      EvaluatedInlinableValue::Null => "null".into(),
+      EvaluatedInlinableValue::Undefined => "undefined".into(),
+      EvaluatedInlinableValue::Boolean(v) => if *v { "true" } else { "false" }.into(),
+      EvaluatedInlinableValue::ShortNumber(n) => n.to_js_string().into(),
+    }
+  }
 }

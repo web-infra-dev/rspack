@@ -1346,9 +1346,9 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
 
   fn get_condition(&self) -> Option<DependencyCondition> {
     let id = self.id;
-    Some(DependencyCondition::Fn(Arc::new(
+    Some(DependencyCondition::new_fn(
       ESMExportImportedSpecifierDependencyCondition(id),
-    )))
+    ))
   }
 
   fn factorize_info(&self) -> &FactorizeInfo {

@@ -6,8 +6,8 @@ use rspack_core::{
   incremental::{self, IncrementalPasses},
   ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
   DependenciesBlock, DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfo,
-  ExportsOfExportsSpec, ExportsSpec, Inlinable, Logger, ModuleGraph, ModuleGraphConnection,
-  ModuleIdentifier, Plugin, PluginContext,
+  ExportsOfExportsSpec, ExportsSpec, Logger, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -229,7 +229,7 @@ impl<'a> FlagDependencyExportsState<'a> {
           None::<&rspack_core::Nullable<Vec<Atom>>>,
           global_export_info.priority,
           false,
-          Inlinable::NoInline,
+          None,
         ),
         ExportNameOrSpec::ExportSpec(spec) => (
           spec.name.clone(),
@@ -271,9 +271,7 @@ impl<'a> FlagDependencyExportsState<'a> {
         self.changed = true;
       }
 
-      if matches!(inlinable, Inlinable::Inline(_))
-        && matches!(export_info.inlinable(self.mg), Inlinable::NoInline)
-      {
+      if inlinable.is_some() && export_info.inlinable(self.mg).is_none() {
         export_info.set_inlinable(self.mg, inlinable);
         self.changed = true;
       }

@@ -1,7 +1,5 @@
 use itertools::Itertools;
-use rspack_core::{
-  BoxDependency, ConstDependency, DependencyRange, DependencyType, Inlinable, SpanExt,
-};
+use rspack_core::{BoxDependency, ConstDependency, DependencyRange, DependencyType, SpanExt};
 use swc_core::{
   atoms::Atom,
   common::{comments::CommentKind, Spanned},
@@ -9,6 +7,7 @@ use swc_core::{
 
 use super::{
   esm_import_dependency_parser_plugin::{ESMSpecifierData, ESM_SPECIFIER_TAG},
+  inline_const::{InlinableConstData, INLINABLE_CONST_TAG},
   InnerGraphMapUsage, InnerGraphPlugin, JavascriptParserPlugin, DEFAULT_STAR_JS_WORD,
   JS_DEFAULT_KEYWORD,
 };
@@ -93,10 +92,14 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         Some(parser.source_map.clone()),
       )) as BoxDependency
     } else {
+      let inlinable = parser
+        .get_tag_data(export_name, INLINABLE_CONST_TAG)
+        .map(InlinableConstData::downcast)
+        .map(|data| data.value);
       Box::new(ESMExportSpecifierDependency::new(
         export_name.clone(),
         local_id.clone(),
-        Inlinable::NoInline,
+        inlinable,
         statement.span().into(),
         Some(parser.source_map.clone()),
       ))

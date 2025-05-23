@@ -1124,10 +1124,7 @@ impl<'a> ModuleGraph<'a> {
     let condition = self
       .loop_partials(|p| p.connection_to_condition.get(&connection.dependency_id))
       .expect("should have condition");
-    match condition {
-      DependencyCondition::False => ConnectionState::Bool(false),
-      DependencyCondition::Fn(f) => f.get_connection_state(connection, runtime, self),
-    }
+    condition.get_connection_state(connection, runtime, self)
   }
 
   // returns: Option<bool>

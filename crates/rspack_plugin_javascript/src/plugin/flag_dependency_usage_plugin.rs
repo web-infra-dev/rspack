@@ -5,8 +5,8 @@ use rspack_core::{
   get_entry_runtime, incremental::IncrementalPasses, is_exports_object_referenced,
   is_no_exports_referenced, merge_runtime, AsyncDependenciesBlockIdentifier, BuildMetaExportsType,
   Compilation, CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId,
-  ExportsInfo, ExtendedReferencedExport, GroupOptions, Inlinable, ModuleIdentifier, Plugin,
-  ReferencedExport, RuntimeSpec, UsageState,
+  ExportsInfo, ExtendedReferencedExport, GroupOptions, ModuleIdentifier, Plugin, ReferencedExport,
+  RuntimeSpec, UsageState,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -335,7 +335,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               export_info.set_can_mangle_use(&mut module_graph, Some(false));
             }
             if !can_inline {
-              export_info.set_inlinable(&mut module_graph, Inlinable::NoInline);
+              export_info.set_inlinable(&mut module_graph, None);
             }
             let last_one = i == len - 1;
             if !last_one {

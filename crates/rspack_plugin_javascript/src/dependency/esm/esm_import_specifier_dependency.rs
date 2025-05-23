@@ -4,14 +4,13 @@ use rspack_cacheable::{
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
-  get_exports_type, property_access, AsContextDependency, ConnectionState, Dependency,
-  DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyId,
-  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportPresenceMode, ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes,
-  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleReferenceOptions, ReferencedExport,
-  RuntimeSpec, SharedSourceMap, Template, TemplateContext, TemplateReplaceSource, UsedByExports,
-  UsedName,
+  create_exports_object_referenced, export_from_import, get_exports_type, property_access,
+  AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportPresenceMode, ExportsType,
+  ExtendedReferencedExport, FactorizeInfo, ImportAttributes, JavascriptParserOptions,
+  ModuleDependency, ModuleGraph, ModuleReferenceOptions, ReferencedExport, RuntimeSpec,
+  SharedSourceMap, Template, TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
 };
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
@@ -21,7 +20,10 @@ use super::{
   create_resource_identifier_for_esm_dependency,
   esm_import_dependency::esm_import_dependency_get_linking_error, esm_import_dependency_apply,
 };
-use crate::visitors::DestructuringAssignmentProperty;
+use crate::{
+  get_dependency_used_by_exports_condition, visitors::DestructuringAssignmentProperty,
+  InlineConstDependencyCondition,
+};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -270,8 +272,17 @@ impl ModuleDependency for ESMImportSpecifierDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    // TODO: this part depend on inner graph parser plugin to call set_used_by_exports to update the used_by_exports
-    get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
+    let inline_const_condition = InlineConstDependencyCondition::new(self.id);
+    if let Some(used_by_exports_condition) =
+      get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
+    {
+      Some(DependencyCondition::new_composed(
+        inline_const_condition,
+        used_by_exports_condition,
+      ))
+    } else {
+      Some(DependencyCondition::new_fn(inline_const_condition))
+    }
   }
 
   fn factorize_info(&self) -> &FactorizeInfo {
@@ -322,38 +333,23 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
       ..
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
-    // Only available when module factorization is successful.
-    let reference_mgm = module_graph.module_graph_module_by_dependency_id(&dep.id);
-    let connection = module_graph.connection_by_dependency_id(&dep.id);
-    let is_target_active = if let Some(con) = connection {
-      con.is_target_active(&module_graph, *runtime)
-    } else {
-      true
-    };
-
-    if !is_target_active {
-      return;
-    }
-
-    let used = reference_mgm.is_some();
-    if reference_mgm.is_some() && !used {
-      // TODO do this by PureExpressionDependency.
-      let value = format!("/* \"{}\" unused */null", dep.request);
-      if dep.shorthand {
-        source.insert(dep.range.end, &format!(": {value}"), None);
-      } else {
-        source.replace(dep.range.start, dep.range.end, &value, None)
-      }
-      return;
-    }
-
     let ids = dep.get_ids(&module_graph);
-    let import_var = compilation.get_import_var(&dep.id);
 
     let export_expr = if let Some(scope) = concatenation_scope
       && let Some(con) = module_graph.connection_by_dependency_id(&dep.id)
       && scope.is_module_in_scope(con.module_identifier())
     {
+      // If in the scope of a concatenation, early return if target not active
+      let connection = module_graph.connection_by_dependency_id(&dep.id);
+      let is_target_active = if let Some(con) = connection {
+        con.is_target_active(&module_graph, *runtime)
+      } else {
+        true
+      };
+      if !is_target_active {
+        return;
+      }
+
       if ids.is_empty() {
         scope.create_module_reference(
           con.module_identifier(),
@@ -384,6 +380,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         )
       }
     } else {
+      let import_var = compilation.get_import_var(&dep.id);
       esm_import_dependency_apply(dep, dep.source_order, code_generatable_context);
       export_from_import(
         code_generatable_context,

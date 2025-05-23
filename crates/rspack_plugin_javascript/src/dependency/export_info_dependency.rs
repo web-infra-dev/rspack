@@ -96,7 +96,10 @@ impl ExportInfoDependency {
             .other_exports_info(&module_graph)
             .inlinable(&module_graph)
         };
-        Some(inlinable.to_string())
+        Some(match inlinable {
+          Some(inlined) => format!("inlined {}", inlined.render()),
+          None => "no inline".to_string(),
+        })
       }
       "used" => {
         let used = exports_info.get_used(&module_graph, &export_name.clone(), *runtime);
