@@ -33,7 +33,7 @@
     "test": "cross-env RUST_BACKTRACE=full jest --colors"
   },
   "dependencies": {
-    "@discoveryjs/json-ext": "^0.5.7",
+    "@discoveryjs/json-ext": "^0.6.3",
     "@rspack/dev-server": "1.1.2",
     "colorette": "2.0.20",
     "exit-hook": "^4.0.0",

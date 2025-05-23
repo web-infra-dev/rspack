@@ -350,8 +350,8 @@ importers:
   packages/rspack-cli:
     dependencies:
       '@discoveryjs/json-ext':
-        specifier: ^0.5.7
-        version: 0.5.7
+        specifier: ^0.6.3
+        version: 0.6.3
       '@rspack/dev-server':
         specifier: 1.1.2
         version: 1.1.2(@rspack/core@packages+rspack)(@types/express@4.17.21)(webpack@5.99.9(@swc/core@1.11.24(@swc/helpers@0.5.17)))
@@ -1513,6 +1513,10 @@ packages:
   '@discoveryjs/json-ext@0.5.7':
     resolution: {integrity: sha512-dBVuXR082gk3jsFp7Rd/JI4kytwGHecnCoTtXFb7DB6CNHp4rg5k1bhg0nWdLGLnOV71lmDzGQaLMy8iPLY0pw==}
     engines: {node: '>=10.0.0'}
+
+  '@discoveryjs/json-ext@0.6.3':
+    resolution: {integrity: sha512-4B4OijXeVNOPZlYA2oEwWOTkzyltLao+xbotHQeqN++Rv27Y6s818+n2Qkp8q+Fxhn0t/5lA5X1Mxktud8eayQ==}
+    engines: {node: '>=14.17.0'}
 
   '@docsearch/css@3.9.0':
     resolution: {integrity: sha512-cQbnVbq0rrBwNAKegIac/t6a8nWoUAn8frnkLFW6YARaRmAQr5/Eoe6Ln2fqkUCZ40KpdrKbpSAmgrkviOxuWA==}
@@ -8686,6 +8690,8 @@ snapshots:
   '@csstools/css-tokenizer@3.0.3': {}
 
   '@discoveryjs/json-ext@0.5.7': {}
+
+  '@discoveryjs/json-ext@0.6.3': {}
 
   '@docsearch/css@3.9.0': {}
 
