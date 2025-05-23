@@ -393,14 +393,15 @@ impl NormalModuleFactory {
         .await?
     };
 
+    let mut resolved_inline_loaders = vec![];
+    for l in inline_loaders {
+      resolved_inline_loaders
+        .push(resolve_each(plugin_driver, &data.context, &loader_resolver, &l).await?)
+    }
+
     let user_request = {
-      let suffix = stringify_loaders_and_resource(
-        &inline_loaders,
-        &resource_data.resource,
-        &data.context,
-        &loader_resolver,
-      )
-      .await;
+      let suffix =
+        stringify_loaders_and_resource(&resolved_inline_loaders, &resource_data.resource).await;
       if let Some(ResourceData { resource, .. }) = match_resource_data.as_ref() {
         let mut resource = resource.to_owned();
         resource += "!=!";
@@ -457,7 +458,10 @@ impl NormalModuleFactory {
       }
 
       let mut all_loaders = Vec::with_capacity(
-        pre_loaders.len() + post_loaders.len() + normal_loaders.len() + inline_loaders.len(),
+        pre_loaders.len()
+          + post_loaders.len()
+          + normal_loaders.len()
+          + resolved_inline_loaders.len(),
       );
 
       for l in post_loaders {
@@ -465,14 +469,7 @@ impl NormalModuleFactory {
           .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
       }
 
-      let mut resolved_inline_loaders = vec![];
       let mut resolved_normal_loaders = vec![];
-
-      for l in inline_loaders {
-        resolved_inline_loaders
-          .push(resolve_each(plugin_driver, &data.context, &loader_resolver, &l).await?)
-      }
-
       for l in normal_loaders {
         resolved_normal_loaders
           .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
@@ -489,20 +486,6 @@ impl NormalModuleFactory {
       for l in pre_loaders {
         all_loaders
           .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
-      }
-
-      async fn resolve_each(
-        plugin_driver: &SharedPluginDriver,
-        context: &Context,
-        loader_resolver: &Resolver,
-        l: &ModuleRuleUseLoader,
-      ) -> Result<Arc<dyn Loader<RunnerContext>>> {
-        plugin_driver
-          .normal_module_factory_hooks
-          .resolve_loader
-          .call(context, loader_resolver, l)
-          .await?
-          .ok_or_else(|| error!("Unable to resolve loader {}", l.loader))
       }
 
       all_loaders
@@ -906,6 +889,20 @@ impl NormalModuleFactory {
       "Failed to factorize module, neither hook nor factorize method returns"
     ))
   }
+}
+
+async fn resolve_each(
+  plugin_driver: &SharedPluginDriver,
+  context: &Context,
+  loader_resolver: &Resolver,
+  l: &ModuleRuleUseLoader,
+) -> Result<Arc<dyn Loader<RunnerContext>>> {
+  plugin_driver
+    .normal_module_factory_hooks
+    .resolve_loader
+    .call(context, loader_resolver, l)
+    .await?
+    .ok_or_else(|| error!("Unable to resolve loader {}", l.loader))
 }
 
 /// Using `u32` instead of `usize` to reduce memory usage,

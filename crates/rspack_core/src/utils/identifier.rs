@@ -4,7 +4,7 @@ use regex::Regex;
 use rspack_paths::Utf8Path;
 use rspack_util::identifier::absolute_to_request;
 
-use crate::{Context, ModuleRuleUseLoader, ResolveResult, Resolver};
+use crate::BoxLoader;
 
 pub fn contextify(context: impl AsRef<Utf8Path>, request: &str) -> String {
   let context = context.as_ref();
@@ -33,39 +33,20 @@ pub fn to_identifier(v: &str) -> Cow<str> {
 }
 
 pub async fn stringify_loaders_and_resource<'a>(
-  loaders: &'a [ModuleRuleUseLoader],
+  loaders: &'a [BoxLoader],
   resource: &'a str,
-  context: &Context,
-  loader_resolve: &Resolver,
 ) -> Cow<'a, str> {
   if !loaders.is_empty() {
-    let resolve_futures = loaders
-      .iter()
-      .map(|loader| {
-        let loader_request = &loader.loader;
-        async move {
-          (
-            loader_resolve
-              .resolve(context.as_path().as_std_path(), loader_request)
-              .await,
-            loader_request,
-          )
-        }
-      })
-      .collect::<Vec<_>>();
-    let resolved_loaders = futures::future::join_all(resolve_futures).await;
     let mut s = String::new();
-    for (resolve_result, original_request) in resolved_loaders {
-      if !s.is_empty() {
-        s.push('!');
-      }
-      if let Ok(ResolveResult::Resource(resource)) = resolve_result {
-        s.push_str(&resource.full_path());
+    for loader in loaders {
+      let identifier = loader.identifier();
+      if let Some((_type, ident)) = identifier.split_once('|') {
+        s.push_str(ident);
       } else {
-        s.push_str(original_request);
+        s.push_str(identifier.as_str());
       }
+      s.push('!');
     }
-    s.push('!');
     s.push_str(resource);
     Cow::Owned(s)
   } else {
