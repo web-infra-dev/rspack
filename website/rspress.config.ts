@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { pluginSass } from '@rsbuild/plugin-sass';
+import { pluginAlgolia } from '@rspress/plugin-algolia';
 import { pluginLlms } from '@rspress/plugin-llms';
 import { pluginRss } from '@rspress/plugin-rss';
 import { transformerNotationHighlight } from '@shikijs/transformers';
@@ -40,6 +41,7 @@ export default defineConfig({
     exclude: ['**/types/*.mdx'],
   },
   plugins: [
+    pluginAlgolia(),
     pluginLlms(),
     pluginSitemap({
       domain: PUBLISH_URL,
