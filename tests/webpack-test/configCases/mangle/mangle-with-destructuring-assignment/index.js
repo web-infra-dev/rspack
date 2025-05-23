@@ -66,15 +66,16 @@ it("should mangle when destructuring json", async () => {
 	expect(values[1]).toBe(3);
 
 	const generatedJson = __non_webpack_require__(path.resolve(__dirname, "data.json.js"));
+	// CHANGE: mangled name is different
 	expect(generatedJson).toEqual({
-		"W": {
+		"j": {
 			"arr": [
 				{ "prop1": 1, "prop2": 2 },
 				{ "prop3": 3, "prop4": 4 },
 				{ "prop5": 5, "prop6": 6 }
 			]
 		},
-		"p": "foo"
+		"R": "foo"
 	});
 });
 
@@ -84,10 +85,11 @@ it("should mangle when destructuring json 2", async () => {
 	expect(prop2).toBe(2);
 
 	const generatedJson = __non_webpack_require__(path.resolve(__dirname, "data.json_2.js"));
+	// CHANGE: mangled name is different
 	expect(generatedJson).toEqual({
-		"W": {
-			"Q": [
-				{ "X": 1, "Q": 2 },
+		"j": {
+			"a": [
+				{ "M": 1, "N": 2 },
 			],
 		}
 	});
