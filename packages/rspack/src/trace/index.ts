@@ -58,8 +58,10 @@ export class JavaScriptTracer {
 		if (!this.layer.includes("chrome")) {
 			return;
 		}
-
-		this.session.post("Profiler.stop", (err, param) => {
+		const profileHandler = (
+			err: Error | null,
+			param: import("node:inspector").Profiler.StopReturnType
+		) => {
 			let cpu_profile: import("node:inspector").Profiler.Profile | undefined;
 			if (err) {
 				console.error("Error stopping profiler:", err);
@@ -111,6 +113,20 @@ export class JavaScriptTracer {
 			// even lots of tracing tools supports json without ending ], we end it for better compat with other tools
 			fs.writeFileSync(fd, "\n]");
 			fs.closeSync(fd);
+		};
+		return new Promise<void>((resolve, reject) => {
+			this.session.post("Profiler.stop", (err, params) => {
+				if (err) {
+					reject(err);
+				} else {
+					try {
+						profileHandler(err, params);
+						resolve();
+					} catch (err) {
+						reject(err);
+					}
+				}
+			});
 		});
 	}
 	// get elapsed time since start(microseconds same as rust side timestamp)

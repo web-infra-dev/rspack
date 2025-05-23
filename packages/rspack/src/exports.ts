@@ -366,7 +366,7 @@ export const experiments: Experiments = {
 			// make sure run cleanupGlobalTrace first so we can safely append Node.js trace to it otherwise it will overlap
 			cleanupGlobalTrace();
 
-			JavaScriptTracer.cleanupJavaScriptTrace();
+			await JavaScriptTracer.cleanupJavaScriptTrace();
 		}
 	},
 	RemoveDuplicateModulesPlugin,
