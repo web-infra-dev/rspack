@@ -1,1 +1,1 @@
-module.exports = () => { return "TODO: module.addCacheDependencies not supported" }
+module.exports = () => "TODO: module.addCacheDependencies not supported"

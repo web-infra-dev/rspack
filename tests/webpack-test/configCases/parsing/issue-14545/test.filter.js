@@ -1,1 +1,1 @@
-module.exports = () => { return "TODO: not support module.unknownContextRegExp/unknownContextCritical/exprContextRegExp" }
+module.exports = () => "TODO: not support module.unknownContextRegExp / unknownContextCritical / exprContextRegExp"

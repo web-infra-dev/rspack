@@ -1,1 +1,1 @@
-module.exports = () => { return "FIXME: missing error" }
+module.exports = () => "FIXME: missing error"

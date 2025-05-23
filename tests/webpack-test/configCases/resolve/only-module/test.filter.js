@@ -1,1 +1,1 @@
-module.exports = () => { return "NOPLAN: support alias onlyModule" }
+module.exports = () => "NOPLAN: support alias onlyModule"

@@ -3,4 +3,4 @@
 //   return supportsOptionalChaining();
 // };
 
-module.exports = () => { return "FIXME: build timeout on CI" }
+module.exports = () => "FIXME: build timeout on CI"

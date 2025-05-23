@@ -2,5 +2,5 @@
 // 	return !process.env.CI;
 // };
 
-// TODO: Should create a issue for this test
-module.exports = () => { return "NOPLAN: support ProfilingPlugin" }
+
+module.exports = () => "NOPLAN: support ProfilingPlugin"

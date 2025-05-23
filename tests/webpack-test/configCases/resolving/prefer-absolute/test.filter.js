@@ -1,1 +1,1 @@
-module.exports = () => { return "TODO: support resolve plugins" }
+module.exports = () => "TODO: support resolve plugins"

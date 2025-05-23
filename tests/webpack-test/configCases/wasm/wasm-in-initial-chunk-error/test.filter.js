@@ -4,5 +4,5 @@
 // 	return supportsWebAssembly();
 // };
 
-// TODO: Should create a issue for this test
-module.exports = () => { return "TODO: support sync wasm" }
+
+module.exports = () => "TODO: support sync wasm"

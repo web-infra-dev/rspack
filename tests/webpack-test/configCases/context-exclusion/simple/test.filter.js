@@ -1,1 +1,1 @@
-module.exports = () => { return "NOPLAN: ContextExclusionPlugin already instead of IgnorePlugin" }
+module.exports = () => "NOPLAN: ContextExclusionPlugin already instead of IgnorePlugin" 
