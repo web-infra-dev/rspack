@@ -1,0 +1,7 @@
+{
+  "name": "basic",
+  "scripts": {
+    "build": "pnpm -C ../.. build:cli:dev && clear && node ../../packages/rspack-cli/bin/rspack.js build",
+    "start": "node dist/main.js"
+  }
+}

@@ -4,7 +4,7 @@ use rspack_core::{
   DependencyType, FactorizeInfo, ModuleDependency,
 };
 
-use crate::ExposeOptions;
+use crate::container::container_plugin::ExposeOptions;
 
 #[cacheable]
 #[derive(Debug, Clone)]

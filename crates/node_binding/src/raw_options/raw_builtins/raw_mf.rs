@@ -4,7 +4,8 @@ use napi::Either;
 use napi_derive::napi;
 use rspack_plugin_mf::{
   ConsumeOptions, ConsumeSharedPluginOptions, ConsumeVersion, ContainerPluginOptions,
-  ContainerReferencePluginOptions, ExposeOptions, ProvideOptions, ProvideVersion, RemoteOptions,
+  ContainerReferencePluginOptions, ExposeOptions, ModuleFederationRuntimePluginOptions,
+  ProvideOptions, ProvideVersion, RemoteOptions,
 };
 
 use crate::{
@@ -205,6 +206,21 @@ impl From<RawVersionWrapper> for ConsumeVersion {
     match value.0 {
       Either::A(s) => ConsumeVersion::Version(s),
       Either::B(_) => ConsumeVersion::False,
+    }
+  }
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawModuleFederationRuntimePluginOptions {
+  #[napi(ts_type = "string | undefined")]
+  pub entry_runtime: Option<String>,
+}
+
+impl From<RawModuleFederationRuntimePluginOptions> for ModuleFederationRuntimePluginOptions {
+  fn from(value: RawModuleFederationRuntimePluginOptions) -> Self {
+    Self {
+      entry_runtime: value.entry_runtime,
     }
   }
 }

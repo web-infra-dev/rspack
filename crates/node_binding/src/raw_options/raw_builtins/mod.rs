@@ -26,6 +26,7 @@ use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
 use raw_ids::RawOccurrenceChunkIdsPluginOptions;
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
+use raw_mf::RawModuleFederationRuntimePluginOptions;
 use raw_sri::RawSubresourceIntegrityPluginOptions;
 use rspack_core::{BoxPlugin, Plugin, PluginExt};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -420,7 +421,9 @@ impl BuiltinPlugin {
         .boxed(),
       ),
       BuiltinPluginName::ModuleFederationRuntimePlugin => {
-        plugins.push(ModuleFederationRuntimePlugin::default().boxed())
+        let options = downcast_into::<RawModuleFederationRuntimePluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+        plugins.push(ModuleFederationRuntimePlugin::new(options.into()).boxed())
       }
       BuiltinPluginName::NamedModuleIdsPlugin => {
         plugins.push(NamedModuleIdsPlugin::default().boxed())

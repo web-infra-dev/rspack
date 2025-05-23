@@ -1,5 +1,4 @@
 import type { Compiler } from "../Compiler";
-import { EntryPlugin } from "../builtin-plugin";
 import type { ExternalsType } from "../config";
 import { externalsType } from "../config/zod";
 import { isValidate } from "../util/validate";
@@ -27,30 +26,13 @@ export class ModuleFederationPlugin {
 			...compiler.options.resolve.alias
 		};
 
-		// Use the finishMake hook to add the runtime entry using addInclude
-		// This hook runs during the finish make stage where addInclude is allowed
-		compiler.hooks.finishMake.tapAsync(
-			ModuleFederationPlugin.name,
-			(compilation, callback) => {
-				const entryDependency = EntryPlugin.createDependency(
-					getDefaultEntryRuntime(paths, this._options, compiler)
-				);
+		// Generate the runtime entry content
+		const entryRuntime = getDefaultEntryRuntime(paths, this._options, compiler);
 
-				compilation.addInclude(
-					compiler.context,
-					entryDependency,
-					{ name: undefined },
-					err => {
-						if (err) {
-							return callback(err);
-						}
-						callback();
-					}
-				);
-			}
-		);
-
-		new ModuleFederationRuntimePlugin().apply(compiler);
+		// Pass only the entry runtime to the Rust-side plugin
+		new ModuleFederationRuntimePlugin({
+			entryRuntime
+		}).apply(compiler);
 
 		new webpack.container.ModuleFederationPluginV1({
 			...this._options,
