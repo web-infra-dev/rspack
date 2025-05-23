@@ -84,11 +84,16 @@ pub(crate) fn merge_loader_context(
   mut from: JsLoaderContext,
 ) -> Result<()> {
   if let Some(error) = from.error {
+    let message = error.message.clone();
+    let stack = error.stack.clone();
+    let hide_stack = error.hide_stack;
+
     return Err(
       CapturedLoaderError::new(
-        error.message,
-        error.stack,
-        error.hide_stack,
+        Box::new(error),
+        message,
+        stack,
+        hide_stack,
         from.file_dependencies,
         from.context_dependencies,
         from.missing_dependencies,

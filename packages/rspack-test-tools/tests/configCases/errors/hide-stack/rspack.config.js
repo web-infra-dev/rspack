@@ -16,8 +16,8 @@ module.exports = {
 				});
 				compiler.hooks.done.tap("TestPlugin", stats => {
 					const errors = stats.toJson({ errors: true }).errors;
-					for (let error of errors) {
-						if (error.message.includes("hide")) {
+					for (const error of errors) {
+						if (error.message.replace(/\(from:.*\)/, "").includes("hide")) {
 							expect(typeof error.details).toBe("string");
 							expect(error.message.includes("stack")).toBeFalsy;
 						} else {

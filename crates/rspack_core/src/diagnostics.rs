@@ -3,9 +3,9 @@ use std::{fmt::Display, path::PathBuf};
 use itertools::Itertools;
 use rspack_error::{
   error, impl_diagnostic_transparent,
-  miette::{self, Diagnostic},
+  miette::{self, Diagnostic, SourceSpan},
   thiserror::{self, Error},
-  DiagnosticExt, Error, TraceableError,
+  DiagnosticExt, TraceableError,
 };
 use rspack_util::ext::AsAny;
 use rustc_hash::FxHashSet;
@@ -37,11 +37,11 @@ impl_diagnostic_transparent!(EmptyDependency);
 ///////////////////// Module /////////////////////
 
 #[derive(Debug)]
-pub struct ModuleBuildError(pub Error);
+pub struct ModuleBuildError(pub Box<dyn Diagnostic + Send + Sync>);
 
 impl std::error::Error for ModuleBuildError {
   fn source(&self) -> ::core::option::Option<&(dyn std::error::Error + 'static)> {
-    Some(<Error as AsRef<dyn std::error::Error>>::as_ref(&self.0))
+    Some(self.0.as_ref())
   }
 }
 
@@ -150,6 +150,7 @@ impl ModuleParseError {
 
 #[derive(Debug)]
 pub struct CapturedLoaderError {
+  pub cause: Box<dyn Diagnostic + Sync + Send + 'static>,
   pub message: String,
   pub stack: Option<String>,
   pub hide_stack: Option<bool>,
@@ -163,6 +164,7 @@ pub struct CapturedLoaderError {
 impl CapturedLoaderError {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
+    cause: Box<dyn Diagnostic + Sync + Send + 'static>,
     message: String,
     stack: Option<String>,
     hide_stack: Option<bool>,
@@ -173,6 +175,7 @@ impl CapturedLoaderError {
     cacheable: bool,
   ) -> Self {
     Self {
+      cause,
       message,
       stack,
       hide_stack,
@@ -223,7 +226,7 @@ impl CapturedLoaderError {
 
 impl std::error::Error for CapturedLoaderError {
   fn source(&self) -> ::core::option::Option<&(dyn std::error::Error + 'static)> {
-    None
+    Some(self.cause.as_ref())
   }
 }
 
@@ -257,4 +260,92 @@ pub fn map_box_diagnostics_to_module_parse_diagnostics(
       diagnostic.with_hide_stack(hide_stack)
     })
     .collect()
+}
+
+#[derive(Debug)]
+pub struct ModuleNotFoundError {
+  message: String,
+  severity: Option<miette::Severity>,
+  label: Option<SourceSpan>,
+  help: Option<String>,
+  source_code: Option<String>,
+}
+
+impl ModuleNotFoundError {
+  pub fn new(message: impl Into<String>) -> Self {
+    Self {
+      message: message.into(),
+      severity: None,
+      label: None,
+      help: None,
+      source_code: None,
+    }
+  }
+}
+
+impl std::error::Error for ModuleNotFoundError {
+  fn source(&self) -> ::core::option::Option<&(dyn std::error::Error + 'static)> {
+    None
+  }
+}
+
+impl std::fmt::Display for ModuleNotFoundError {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "Module not found: {}", self.message)
+  }
+}
+
+impl miette::Diagnostic for ModuleNotFoundError {
+  fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+    Some(Box::new("ModuleNotFoundError"))
+  }
+  fn severity(&self) -> Option<miette::Severity> {
+    self.severity
+  }
+  fn help<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+    self
+      .help
+      .as_ref()
+      .map(|h| Box::new(h) as Box<dyn std::fmt::Display>)
+  }
+  fn url<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+    None
+  }
+  fn source_code(&self) -> Option<&dyn miette::SourceCode> {
+    self.source_code.as_ref().map(|s| s as _)
+  }
+  fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
+    self.label.map(|label| {
+      Box::new(vec![miette::LabeledSpan::new_with_span(None, label)].into_iter())
+        as Box<dyn Iterator<Item = miette::LabeledSpan>>
+    })
+  }
+  fn related<'a>(&'a self) -> Option<Box<dyn Iterator<Item = &'a dyn miette::Diagnostic> + 'a>> {
+    None
+  }
+  fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
+    None
+  }
+}
+
+impl ModuleNotFoundError {
+  pub fn with_help(mut self, help: impl Into<String>) -> Self {
+    self.help = Some(help.into());
+    self
+  }
+
+  pub fn with_span(mut self, start: usize, end: usize) -> Self {
+    self.label = Some(SourceSpan::new(start.into(), end.saturating_sub(start)));
+    self
+  }
+
+  pub fn with_severity(mut self, severity: miette::Severity) -> Self {
+    self.severity = Some(severity);
+    self
+  }
+
+  pub fn with_source_code(mut self, source_code: impl Into<String>) -> Self {
+    self.source_code = Some(source_code.into());
+    self
+  }
 }

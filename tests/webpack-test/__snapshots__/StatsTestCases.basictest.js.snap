@@ -511,10 +511,10 @@ exports[`StatsTestCases should print correct stats for errors-space-error 1`] = 
 
 ERROR in ./index.js (./loader!./index.js)
   × stack1stack2
-  │ stack3
+  │ stack3loader error1 (from: Xdir/errors-xxx.js)
 
 ERROR in ./index.js (./loader!./index.js)
-  × stack1stack2
+  × stack1stack2loader error2 (from: Xdir/errors-xxx.js)
 
 Rspack x.x.x compiled with 2 errors in X.23
 
@@ -523,10 +523,10 @@ assets by status xx bytes [cached] 1 asset
 
 ERROR in ./index.js (./loader!./index.js)
   × stack1stack2
-  │ stack3
+  │ stack3loader error1 (from: Xdir/errors-xxx.js)
 
 ERROR in ./index.js (./loader!./index.js)
-  × stack1stack2
+  × stack1stack2loader error2 (from: Xdir/errors-xxx.js)
 
 Rspack x.x.x compiled with 2 errors in X.23
 
@@ -535,10 +535,10 @@ assets by status xx bytes [cached] 1 asset
 
 ERROR in ./index.js (./loader!./index.js)
   × stack1stack2
-  │ stack3
+  │ stack3loader error1 (from: Xdir/errors-xxx.js)
 
 ERROR in ./index.js (./loader!./index.js)
-  × stack1stack2
+  × stack1stack2loader error2 (from: Xdir/errors-xxx.js)
 
 Rspack x.x.x compiled with 2 errors in X.23
 
@@ -547,10 +547,10 @@ assets by status xx bytes [cached] 1 asset
 
 ERROR in ./index.js (./loader!./index.js)
   × stack1stack2
-  │ stack3
+  │ stack3loader error1 (from: Xdir/errors-xxx.js)
 
 ERROR in ./index.js (./loader!./index.js)
-  × stack1stack2
+  × stack1stack2loader error2 (from: Xdir/errors-xxx.js)
 
 Rspack x.x.x compiled with 2 errors in X.23
 
@@ -559,10 +559,10 @@ assets by status xx bytes [cached] 1 asset
 
 ERROR in ./index.js (./loader!./index.js)
   × stack1stack2
-  │ stack3
+  │ stack3loader error1 (from: Xdir/errors-xxx.js)
 
 ERROR in ./index.js (./loader!./index.js)
-  × stack1stack2
+  × stack1stack2loader error2 (from: Xdir/errors-xxx.js)
 
 Rspack x.x.x compiled with 2 errors in X.23
 
@@ -571,10 +571,10 @@ assets by status xx bytes [cached] 1 asset
 
 ERROR in ./index.js (./loader!./index.js)
   × stack1stack2
-  │ stack3
+  │ stack3loader error1 (from: Xdir/errors-xxx.js)
 
 ERROR in ./index.js (./loader!./index.js)
-  × stack1stack2
+  × stack1stack2loader error2 (from: Xdir/errors-xxx.js)
 
 Rspack x.x.x compiled with 2 errors in X.23"
 `;

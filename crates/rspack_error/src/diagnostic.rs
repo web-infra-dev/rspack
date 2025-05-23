@@ -246,7 +246,7 @@ impl Diagnostic {
   }
 
   pub fn details(&self) -> Option<String> {
-    let hide_stack = self.hide_stack.unwrap_or_default();
+    let hide_stack = self.hide_stack.unwrap_or(false);
     if hide_stack {
       // TODO: generate detail content for typed error
       self.stack()
@@ -298,8 +298,4 @@ macro_rules! impl_empty_diagnosable_trait {
       }
     }
   };
-}
-
-pub fn errors_to_diagnostics(errs: Vec<Error>) -> Vec<Diagnostic> {
-  errs.into_iter().map(Diagnostic::from).collect()
 }

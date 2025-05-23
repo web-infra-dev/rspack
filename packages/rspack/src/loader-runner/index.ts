@@ -38,7 +38,6 @@ import {
 } from "../config/adapterRuleUse";
 import { JavaScriptTracer } from "../trace";
 import {
-	concatErrorMsgAndStack,
 	isNil,
 	serializeObject,
 	stringifyLoaderObject,
@@ -557,13 +556,8 @@ export async function runLoaders(
 		error.message = `${error.message} (from: ${stringifyLoaderObject(
 			loaderContext.loaders[loaderContext.loaderIndex]
 		)})`;
-		error = concatErrorMsgAndStack(error);
-		(error as RspackError).moduleIdentifier =
-			loaderContext._module.identifier();
-		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
-			error,
-			severity: JsRspackSeverity.Error
-		});
+		(error as RspackError).module = loaderContext._module;
+		compiler._lastCompilation!.errors.push(error);
 	};
 	loaderContext.emitWarning = function emitWarning(warn) {
 		let warning = warn;
@@ -574,9 +568,7 @@ export async function runLoaders(
 		warning.message = `${warning.message} (from: ${stringifyLoaderObject(
 			loaderContext.loaders[loaderContext.loaderIndex]
 		)})`;
-		warning = concatErrorMsgAndStack(warning);
-		(warning as RspackError).moduleIdentifier =
-			loaderContext._module.identifier();
+		(warning as RspackError).module = loaderContext._module;
 		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
 			error: warning,
 			severity: JsRspackSeverity.Warn
@@ -1083,22 +1075,7 @@ export async function runLoaders(
 			LoaderObject.__to_binding(item)
 		);
 	} catch (e) {
-		const error = e as Error & { hideStack?: boolean | "true" };
-		context.__internal__error =
-			typeof e === "string"
-				? {
-						name: "ModuleBuildError",
-						message: e
-					}
-				: {
-						name: "ModuleBuildError",
-						message: error.message,
-						stack: typeof error.stack === "string" ? error.stack : undefined,
-						hideStack:
-							"hideStack" in error
-								? error.hideStack === true || error.hideStack === "true"
-								: undefined
-					};
+		context.__internal__error = e;
 	}
 	JavaScriptTracer.endAsync({
 		name: `run_js_loaders${pitch ? ":pitch" : ":normal"}`,

@@ -420,8 +420,10 @@ impl Module for NormalModule {
     .await;
     let (mut loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
-      Err(mut r) => {
-        let diagnostic = if let Some(captured_error) = r.downcast_mut::<CapturedLoaderError>() {
+      Err(r) => {
+        let diagnostic = if r.is::<CapturedLoaderError>() {
+          #[allow(clippy::unwrap_used)]
+          let mut captured_error = r.downcast::<CapturedLoaderError>().unwrap();
           self.build_info.cacheable = captured_error.cacheable;
           self.build_info.file_dependencies = captured_error
             .take_file_dependencies()
@@ -445,18 +447,10 @@ impl Module for NormalModule {
             .collect();
 
           let stack = captured_error.take_stack();
-          Diagnostic::from(
-            ModuleBuildError(error!(if captured_error.hide_stack.unwrap_or_default() {
-              captured_error.take_message()
-            } else {
-              stack
-                .clone()
-                .unwrap_or_else(|| captured_error.take_message())
-            }))
-            .boxed(),
-          )
-          .with_stack(stack)
-          .with_hide_stack(captured_error.hide_stack)
+
+          Diagnostic::from(ModuleBuildError(captured_error.cause).boxed())
+            .with_stack(stack)
+            .with_hide_stack(captured_error.hide_stack)
         } else {
           self.build_info.cacheable = false;
           if let Some(file_path) = &self.resource_data.resource_path {
@@ -470,7 +464,7 @@ impl Module for NormalModule {
           let node_error = r.downcast_ref::<NodeError>();
           let stack = node_error.and_then(|e| e.stack.clone());
           let hide_stack = node_error.and_then(|e| e.hide_stack);
-          let e = ModuleBuildError(r).boxed();
+          let e = ModuleBuildError(r.into()).boxed();
           Diagnostic::from(e)
             .with_stack(stack)
             .with_hide_stack(hide_stack)
