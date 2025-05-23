@@ -5,9 +5,9 @@ module.exports = {
 	entry: {
 		main: "./index.js"
 	},
-	optimization: {
-		runtimeChunk: "single"
-	},
+	// optimization: {
+	// 	runtimeChunk: "single"
+	// },
 	mode: "development",
 	target: "node",
 	output: {
@@ -17,9 +17,6 @@ module.exports = {
 		},
 		path: require("node:path").resolve(__dirname, "dist")
 	},
-	// optimization: {
-	// 	runtimeChunk: "single"
-	// },
 	plugins: [
 		new ModuleFederationPlugin({
 			name: "host",

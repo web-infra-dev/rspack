@@ -3,7 +3,6 @@ use std::{
   sync::{Arc, Mutex},
 };
 
-use async_trait::async_trait;
 use rspack_core::{
   ApplyContext, ChunkGraph, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAdditionalTreeRuntimeRequirements, CompilationParams,
@@ -204,7 +203,10 @@ async fn render_startup(
   startup_with_call.add(RawStringSource::from(
     "\n// Entrypoint: appended startup call because none was added automatically\n",
   ));
-  startup_with_call.add(RawStringSource::from("__webpack_require__.x();\n"));
+  startup_with_call.add(RawStringSource::from(format!(
+    "{}();\n",
+    RuntimeGlobals::STARTUP.name()
+  )));
   startup_with_call.add(render_source.source.clone());
   render_source.source = startup_with_call.boxed();
   Ok(())
