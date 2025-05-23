@@ -1,12 +1,32 @@
-use rspack_collections::{IdentifierMap, UkeyMap};
-use rustc_hash::FxHashMap as HashMap;
+use rspack_collections::{IdentifierIndexSet, IdentifierMap, UkeyMap};
+use rspack_util::atom::Atom;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::{AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, ModuleIdentifier};
+use crate::{
+  AsyncDependenciesBlockIdentifier, Binding, ChunkGroupUkey, ChunkUkey, ModuleIdentifier,
+};
 
 pub mod chunk_graph_chunk;
 pub mod chunk_graph_module;
 pub use chunk_graph_chunk::{ChunkGraphChunk, ChunkSizeOptions};
 pub use chunk_graph_module::{ChunkGraphModule, ModuleId};
+
+#[derive(Debug, Clone, Default)]
+pub struct ChunkLinkContext {
+  // specifier order doesn't matter, we can sort them based on name
+  pub exports: IdentifierMap<HashSet<Atom>>,
+
+  pub needed_namespace_objects: IdentifierIndexSet,
+  pub hoisted_modules: IdentifierIndexSet,
+  pub ref_to_final_name: HashMap<String, ModuleReference>,
+  pub used_names: HashSet<Atom>,
+}
+
+#[derive(Debug, Clone)]
+pub enum ModuleReference {
+  Binding(Binding),
+  Str(String),
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraph {
@@ -17,6 +37,9 @@ pub struct ChunkGraph {
   chunk_graph_chunk_by_chunk_ukey: UkeyMap<ChunkUkey, ChunkGraphChunk>,
 
   runtime_ids: HashMap<String, Option<String>>,
+
+  // only used for esm output
+  pub link: Option<UkeyMap<ChunkUkey, ChunkLinkContext>>,
 }
 
 impl ChunkGraph {
