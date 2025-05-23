@@ -1,22 +1,23 @@
 use std::sync::Arc;
 
-use rspack_error::{Error, miette::IntoDiagnostic};
-use rspack_sources::{Mapping, OriginalLocation, encode_mappings};
+use rspack_error::{miette::IntoDiagnostic, Error};
+use rspack_sources::{encode_mappings, Mapping, OriginalLocation};
 use rustc_hash::FxHashMap;
 use swc_core::{
   base::{config::JsMinifyFormatOptions, sourcemap},
   common::{
-    BytePos, FileName, SourceMap as SwcSourceMap, comments::Comments,
-    source_map::SourceMapGenConfig,
+    comments::Comments, source_map::SourceMapGenConfig, BytePos, FileName,
+    SourceMap as SwcSourceMap,
   },
   ecma::{
     ast::{EsVersion, Ident, Program as SwcProgram},
     atoms::Atom,
     codegen::{
-      self, Emitter, Node,
+      self,
       text_writer::{self, WriteJs},
+      Emitter, Node,
     },
-    visit::{Visit, VisitWith, noop_visit_type},
+    visit::{noop_visit_type, Visit, VisitWith},
   },
 };
 
