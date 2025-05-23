@@ -1,10 +1,10 @@
 [package]
-description = "remove duplicate modules"
-edition     = "2021"
-license     = "MIT"
-name        = "rspack_plugin_remove_duplicate_modules"
-repository  = "https://github.com/web-infra-dev/rspack"
-version     = "0.2.0"
+description       = "remove duplicate modules"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_plugin_remove_duplicate_modules"
+repository        = "https://github.com/web-infra-dev/rspack"
+version           = "0.2.0"
 
 [lints]
 workspace = true

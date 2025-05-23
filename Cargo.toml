@@ -6,6 +6,7 @@ resolver = "2"                     # See https://doc.rust-lang.org/cargo/referen
 authors       = ["Rspack Teams"]
 categories    = ["bundler", "development-tools", "web-programming"]
 documentation = "https://rspack.dev/"
+edition       = "2021"
 homepage      = "https://rspack.dev/"
 license       = "MIT"
 repository    = "https://github.com/web-infra-dev/rspack"
