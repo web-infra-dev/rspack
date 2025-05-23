@@ -104,7 +104,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       ..Default::default()
     };
 
-    let entry_dep_id = &entries.get(&meta).expect("should have dep_id").dep_id;
+    let entry_dep_id = entries.get(&meta).expect("should have dep_id");
     // collect module info
     let mg = origin_context.artifact.get_module_graph();
     let Some(entry_module_identifier) =

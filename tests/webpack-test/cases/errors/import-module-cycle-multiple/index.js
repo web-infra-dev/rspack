@@ -16,6 +16,6 @@ it("should error importModule when requesting itself", () => {
 it("should not report a cycle when importModule is used twice", () => {
 	expect(require("./loader!./4/a")).toEqual([
 		["./b.json", [["./c.json", []]]],
-		["./b.json", "err"]
+		["./b.json", [["./c.json", []]]]
 	]);
 });
