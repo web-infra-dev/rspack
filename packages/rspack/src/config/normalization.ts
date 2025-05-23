@@ -628,6 +628,7 @@ export interface ExperimentsNormalized {
 	rspackFuture?: RspackFutureOptions;
 	buildHttp?: HttpUriPluginOptions;
 	parallelLoader?: boolean;
+	useInputFileSystem?: boolean;
 }
 
 export type IgnoreWarningsNormalized = ((
