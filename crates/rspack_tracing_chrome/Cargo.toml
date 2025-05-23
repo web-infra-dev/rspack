@@ -11,7 +11,7 @@ version                 = "0.2.0"
 
 [dependencies]
 serde_json         = { workspace = true }
-tracing-core       = "0.1.32"
+tracing-core       = "0.1.33"
 tracing-subscriber = { workspace = true }
 
 [lints]
