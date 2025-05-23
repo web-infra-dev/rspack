@@ -83,7 +83,7 @@ jobs:
           key: check
 
       - name: Install cargo-deny
-        uses: taiki-e/install-action@13608a19a2204ea4cc0b5888e995ab288684b613 # v2
+        uses: taiki-e/install-action@52039f232923165906a3c824622a332e84ca4560 # v2
         with:
           tool: cargo-deny@0.16
       - name: Check licenses
