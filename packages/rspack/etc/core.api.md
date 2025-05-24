@@ -27,7 +27,7 @@ import { EntryDependency } from '@rspack/binding';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
 import { ExternalModule } from '@rspack/binding';
-import { ExternalObject } from '@rspack/binding';
+import type { ExternalObject } from '@rspack/binding';
 import { fs } from 'fs';
 import { default as fs_2 } from 'graceful-fs';
 import { HookMap } from '@rspack/lite-tapable';
@@ -44,7 +44,7 @@ import type { JsBuildMeta } from '@rspack/binding';
 import { JsChunk } from '@rspack/binding';
 import type { JsChunkGraph } from '@rspack/binding';
 import type { JsChunkGroup } from '@rspack/binding';
-import { JsCompilation } from '@rspack/binding';
+import type { JsCompilation } from '@rspack/binding';
 import type { JsExportsInfo } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
@@ -54,7 +54,7 @@ import { JsRsdoctorChunkGraph } from '@rspack/binding';
 import { JsRsdoctorModuleGraph } from '@rspack/binding';
 import { JsRsdoctorModuleIdsPatch } from '@rspack/binding';
 import { JsRsdoctorModuleSourcesPatch } from '@rspack/binding';
-import { JsRuntimeModule } from '@rspack/binding';
+import type { JsRuntimeModule } from '@rspack/binding';
 import type { JsStats } from '@rspack/binding';
 import type { JsStatsCompilation } from '@rspack/binding';
 import type { JsStatsError } from '@rspack/binding';
@@ -1623,9 +1623,7 @@ export const CopyRspackPlugin: {
 
 // @public (undocumented)
 export type CopyRspackPluginOptions = {
-    patterns: (string | ({
-        from: string;
-    } & Partial<RawCopyPattern>))[];
+    patterns: (string | (Pick<RawCopyPattern, "from"> & Partial<Omit<RawCopyPattern, "from">>))[];
 };
 
 // @public (undocumented)

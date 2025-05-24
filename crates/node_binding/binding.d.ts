@@ -1628,20 +1628,93 @@ export interface RawContextReplacementPluginOptions {
 }
 
 export interface RawCopyGlobOptions {
+  /**
+   * Whether the match is case sensitive
+   * @default true
+   */
   caseSensitiveMatch?: boolean
+  /**
+   * Whether to match files starting with `.`
+   * @default true
+   */
   dot?: boolean
+  /**
+   * An array of strings in glob format, which can be used to ignore specific paths
+   * @default undefined
+   */
   ignore?: Array<string>
 }
 
 export interface RawCopyPattern {
+  /**
+   * The source path of the copy operation, which can be an absolute path, a relative
+   * path, or a glob pattern. It can refer to a file or a directory. If a relative path
+   * is passed, it is relative to the `context` option.
+   * @default undefined
+   */
   from: string
+  /**
+   * The destination path of the copy operation, which can be an absolute path, a
+   * relative path, or a template string. If not specified, it is equal to Rspack's
+   * `output.path`.
+   * @default Rspack's `output.path`
+   */
   to?: string | ((pathData: { context: string; absoluteFilename?: string }) => string | Promise<string>)
+  /**
+   * `context` is a path to be prepended to `from` and removed from the start of the
+   * result paths. `context` can be an absolute path or a relative path. If it is a
+   * relative path, then it will be converted to an absolute path based on Rspack's
+   * `context`.
+   * `context` should be explicitly set only when `from` contains a glob. Otherwise,
+   * `context` is automatically set based on whether `from` is a file or a directory:
+   * - If `from` is a file, then `context` is its directory. The result path will be
+   * the filename alone.
+   * - If `from` is a directory, then `context` equals `from`. The result paths will
+   * be the paths of the directory's contents (including nested contents), relative
+   * to the directory.
+   * @default Rspack's `context`
+   */
   context?: string
+  /**
+   * Specify the type of [to](#to), which can be a directory, a file, or a template
+   * name in Rspack. If not specified, it will be automatically inferred.
+   * The automatic inference rules are as follows:
+   * - `dir`: If `to` has no extension, or ends on `/`.
+   * - `file`: If `to` is not a directory and is not a template.
+   * - `template`: If `to` contains a template pattern.
+   * @default undefined
+   */
   toType?: string
+  /**
+   * Whether to ignore the error if there are missing files or directories.
+   * @default false
+   */
   noErrorOnMissing: boolean
+  /**
+   * Whether to force the copy operation to overwrite the destination file if it
+   * already exists.
+   * @default false
+   */
   force: boolean
+  /**
+   * The priority of the copy operation. The higher the priority, the earlier the copy
+   * operation will be executed. When `force` is set to `true`, if a matching file is
+   * found, the one with higher priority will overwrite the one with lower priority.
+   * @default 0
+   */
   priority: number
+  /**
+   * Set the glob options for the copy operation.
+   * @default undefined
+   */
   globOptions: RawCopyGlobOptions
+  /**
+   * Allows to add some assets info to the copied files, which may affect some behaviors
+   * in the build process. For example, by default, the copied JS and CSS files will be
+   * minified by Rspack's minimizer, if you want to skip minification for copied files,
+   * you can set `info.minimized` to `true`.
+   * @default undefined
+   */
   info?: RawInfo
   /**
    * Determines whether to copy file permissions from the source to the destination.
@@ -1650,10 +1723,15 @@ export interface RawCopyPattern {
    * @default false
    */
   copyPermissions?: boolean
+  /**
+   * Allows to modify the file contents.
+   * @default undefined
+   */
   transform?: { transformer: (input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>  } | ((input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>)
 }
 
 export interface RawCopyRspackPluginOptions {
+  /** An array of objects that describe the copy operations to be performed. */
   patterns: Array<RawCopyPattern>
 }
 
@@ -1934,6 +2012,10 @@ export interface RawIncremental {
 
 export interface RawInfo {
   immutable?: boolean
+  /**
+   * Whether to skip minification for the copied files.
+   * @default false
+   */
   minimized?: boolean
   chunkHash?: Array<string>
   contentHash?: Array<string>
