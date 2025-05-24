@@ -10,17 +10,16 @@ use rspack_cacheable::cacheable;
 use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet, UkeySet};
 use rspack_core::{
   get_undo_path,
-  make::{MakeArtifact, MakeParam},
   rspack_sources::{
     BoxSource, CachedSource, ConcatSource, RawStringSource, SourceExt, SourceMap, SourceMapSource,
     WithoutOriginalOptions,
   },
   ApplyContext, AssetInfo, Chunk, ChunkGraph, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
   CompilationContentHash, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilationUpdateModuleGraph, CompilerCompilation,
-  CompilerOptions, DependencyType, Filename, Module, ModuleGraph, ModuleIdentifier, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData, Plugin, PluginContext,
-  RenderManifestEntry, RuntimeGlobals, SourceType,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, DependencyType,
+  Filename, Module, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
+  ParserAndGenerator, ParserOptions, PathData, Plugin, PluginContext, RenderManifestEntry,
+  RuntimeGlobals, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -702,36 +701,6 @@ async fn nmf_parser(
   Ok(())
 }
 
-#[plugin_hook(CompilationUpdateModuleGraph for PluginCssExtract)]
-async fn update_module_graph(
-  &self,
-  params: &mut Vec<MakeParam>,
-  make_artifact: &MakeArtifact,
-) -> rspack_error::Result<()> {
-  let mg = make_artifact.get_module_graph();
-  let mut css_modules = IdentifierSet::default();
-  for param in params.iter() {
-    if let MakeParam::ForceBuildModules(module_identifiers) = &param {
-      css_modules.extend(
-        module_identifiers
-          .iter()
-          .flat_map(|m| mg.get_outgoing_connections(m))
-          .filter_map(|c| {
-            let module_identifier = c.module_identifier();
-            let module = mg.module_by_identifier(module_identifier)?;
-            if *module.module_type() == *MODULE_TYPE {
-              Some(*module_identifier)
-            } else {
-              None
-            }
-          }),
-      );
-    }
-  }
-  params.push(MakeParam::ForceBuildModules(css_modules));
-  Ok(())
-}
-
 #[async_trait::async_trait]
 impl Plugin for PluginCssExtract {
   fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
@@ -761,12 +730,6 @@ impl Plugin for PluginCssExtract {
       .normal_module_factory_hooks
       .parser
       .tap(nmf_parser::new(self));
-
-    ctx
-      .context
-      .compilation_hooks
-      .update_module_graph
-      .tap(update_module_graph::new(self));
 
     Ok(())
   }
