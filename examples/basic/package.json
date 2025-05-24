@@ -1,7 +1,11 @@
 {
-  "name": "basic",
+  "name": "circular-test",
+  "version": "1.0.0",
+  "private": true,
   "scripts": {
-    "build": "pnpm -C ../.. build:cli:dev && clear && node ../../packages/rspack-cli/bin/rspack.js build",
+    "check-build": "[ ! -f ./.build-marker ] || [ -n \"$(find ../../packages -type f \\( -name '*.js' -o -name '*.ts' -o -name '*.json' -o -name '*.rs' \\) -newer ./.build-marker 2>/dev/null)\" ]",
+    "build-if-needed": "npm run check-build && { echo 'Changes detected in packages/, running build:cli:dev...'; pnpm -C ../.. build:cli:dev && touch ./.build-marker; } || echo 'No changes in packages/, skipping build:cli:dev'",
+    "build": "npm run build-if-needed && clear && node ../../packages/rspack-cli/bin/rspack.js build",
     "start": "node dist/main.js"
   }
 }

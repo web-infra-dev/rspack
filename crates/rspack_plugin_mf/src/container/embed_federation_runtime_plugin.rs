@@ -5,9 +5,8 @@ use std::{
 
 use rspack_core::{
   ApplyContext, ChunkGraph, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationParams,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, DependencyId,
-  ModuleIdentifier, Plugin, PluginContext, RuntimeGlobals,
+  CompilationParams, CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions,
+  DependencyId, ModuleIdentifier, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -61,9 +60,11 @@ impl EmbedFederationRuntimePlugin {
   }
 }
 
-// Helper to check if a chunk is an entrypoint and not a special chunk
+// Helper to check if a chunk should get the federation runtime module
 fn is_enabled_for_chunk(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+
+  // Skip build time chunks
   if chunk.name() == Some("build time chunk") {
     return false;
   }
@@ -71,35 +72,19 @@ fn is_enabled_for_chunk(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bo
   // Get entry modules for the chunk
   let entry_modules = compilation.chunk_graph.get_chunk_entry_modules(chunk_ukey);
 
-  // Find the last entry module (like .reverse()[0] in JS)
+  // Check if this is a container chunk (has ContainerEntryModule)
   if let Some(module_id) = entry_modules.last() {
     let module_graph = compilation.get_module_graph();
     if let Some(module) = module_graph.module_by_identifier(module_id) {
       if module.as_any().is::<ContainerEntryModule>() {
-        return false;
+        // Container chunks NEED the runtime module for initContainer/getContainer functions
+        return true;
       }
     }
   }
 
+  // Regular entry chunks also need the runtime module
   true
-}
-
-#[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for EmbedFederationRuntimePlugin)]
-async fn additional_tree_runtime_requirements(
-  &self,
-  compilation: &mut Compilation,
-  chunk_ukey: &ChunkUkey,
-  runtime_requirements: &mut RuntimeGlobals,
-) -> Result<()> {
-  if is_enabled_for_chunk(compilation, chunk_ukey) {
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-    if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-      runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
-      runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
-      runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES);
-    }
-  }
-  Ok(())
 }
 
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for EmbedFederationRuntimePlugin)]
@@ -223,11 +208,6 @@ impl Plugin for EmbedFederationRuntimePlugin {
       .compiler_hooks
       .compilation
       .tap(compilation::new(self));
-    ctx
-      .context
-      .compilation_hooks
-      .additional_tree_runtime_requirements
-      .tap(additional_tree_runtime_requirements::new(self));
     ctx
       .context
       .compilation_hooks
