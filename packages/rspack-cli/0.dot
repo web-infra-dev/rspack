@@ -1,0 +1,20 @@
+digraph G {
+     0 [
+label="0 | /Users/bytedance/project/jsdemo/src/other.js"
+shape=record
+];
+     2 [
+label="other"
+shape=record
+];
+     1 [
+label="1 | /Users/bytedance/project/jsdemo/src/index.js"
+shape=record
+];
+     3 [
+label="main"
+shape=record
+];
+2 -> 0;
+3 -> 1;
+}

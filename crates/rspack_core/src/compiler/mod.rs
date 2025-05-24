@@ -73,6 +73,11 @@ impl Default for CompilerId {
     Self::new()
   }
 }
+impl CompilerId {
+  pub fn as_u32(&self) -> u32 {
+    self.0
+  }
+}
 
 #[derive(Debug)]
 pub struct Compiler {

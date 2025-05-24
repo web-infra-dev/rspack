@@ -16,6 +16,8 @@ pub mod incremental;
 pub use dependencies_block::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, DependenciesBlock,
 };
+mod debug;
+pub use debug::*;
 mod fake_namespace_object;
 mod template;
 pub use fake_namespace_object::*;

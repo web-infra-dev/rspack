@@ -28,6 +28,7 @@ napi = { workspace = true, optional = true }
 num-bigint = "0.4.6"
 once_cell = { workspace = true }
 paste = { workspace = true }
+petgraph = { workspace = true } ## already used in swc
 rayon = { workspace = true }
 regex = { workspace = true }
 rkyv = { workspace = true, optional = true }
