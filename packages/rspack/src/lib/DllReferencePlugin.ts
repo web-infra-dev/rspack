@@ -144,6 +144,7 @@ const dllReferencePluginOptionsContentItem = z.object({
 });
 
 const dllReferencePluginOptionsContent = z.record(
+	z.string(),
 	dllReferencePluginOptionsContentItem
 ) satisfies z.ZodType<DllReferencePluginOptionsContent>;
 
