@@ -338,8 +338,8 @@ importers:
         specifier: ^2.4.3
         version: 2.4.3
       webpack-sources:
-        specifier: 3.2.3
-        version: 3.2.3
+        specifier: 3.3.0
+        version: 3.3.0
       zod:
         specifier: ^3.24.4
         version: 3.24.4
@@ -480,8 +480,8 @@ importers:
         specifier: 6.0.1
         version: 6.0.1
       webpack-sources:
-        specifier: 3.2.3
-        version: 3.2.3
+        specifier: 3.3.0
+        version: 3.3.0
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
@@ -839,8 +839,8 @@ importers:
         specifier: ^2.4.3
         version: 2.4.3
       webpack-sources:
-        specifier: 3.2.3
-        version: 3.2.3
+        specifier: 3.3.0
+        version: 3.3.0
     devDependencies:
       '@babel/preset-react':
         specifier: ^7.27.1
@@ -7839,6 +7839,10 @@ packages:
 
   webpack-sources@3.2.3:
     resolution: {integrity: sha512-/DyMEOrDgLKKIG0fmvtz+4dUX/3Ghozwgm6iPp8KRhvn+eQf9+Q7GWxVNMk3+uCPWfdXYC4ExGBckIXdFEfH1w==}
+    engines: {node: '>=10.13.0'}
+
+  webpack-sources@3.3.0:
+    resolution: {integrity: sha512-77R0RDmJfj9dyv5p3bM5pOHa+X8/ZkO9c7kpDstigkC4nIDobadsfSGCwB4bKhMVxqAok8tajaoR8rirM7+VFQ==}
     engines: {node: '>=10.13.0'}
 
   webpack@5.99.9:
@@ -15899,6 +15903,8 @@ snapshots:
       wildcard: 2.0.1
 
   webpack-sources@3.2.3: {}
+
+  webpack-sources@3.3.0: {}
 
   webpack@5.99.9(@swc/core@1.11.24(@swc/helpers@0.5.17)):
     dependencies:
