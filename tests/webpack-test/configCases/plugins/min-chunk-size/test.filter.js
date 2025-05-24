@@ -1,2 +1,2 @@
-// TODO: Should create a issue for this test
-module.exports = () => { return "NOPLAN: support MinChunkSizePlugin" }
+
+module.exports = () => "NOPLAN: support MinChunkSizePlugin"

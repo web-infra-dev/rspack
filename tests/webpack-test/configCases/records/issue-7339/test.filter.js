@@ -1,2 +1,2 @@
-// TODO: Should create a issue for this test
-module.exports = () => { return "NOPLAN: support recordsOutputPath" }
+
+module.exports = () => "NOPLAN: support recordsOutputPath"

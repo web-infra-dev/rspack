@@ -1,1 +1,1 @@
-module.exports = () => { return "TODO: DeterministicModuleIdsPlugin is not exposed" }
+module.exports = () => "TODO: DeterministicModuleIdsPlugin is not exposed"

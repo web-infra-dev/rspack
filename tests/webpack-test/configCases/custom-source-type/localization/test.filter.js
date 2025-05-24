@@ -1,1 +1,1 @@
-module.exports = () => { return "NOPLAN: normalModuleFactory.hooks not supported" }
+module.exports = () => "NOPLAN: normalModuleFactory.hooks not supported"

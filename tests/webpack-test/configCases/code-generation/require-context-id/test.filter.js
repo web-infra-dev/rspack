@@ -1,1 +1,1 @@
-module.exports = () => { return "NOPLAN: optimization.moduleIds = 'hashed' is deprecated in webpack" }
+module.exports = () => "NOPLAN: optimization.moduleIds = 'hashed' is deprecated in webpack" 
