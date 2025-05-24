@@ -115,7 +115,9 @@ export default {
 - **Type:** `string`
 - **Default:** `undefined`
 
-The source path of the copy operation, which can be an absolute path, a relative path, or a glob pattern. It can refer to a file or a directory. If a relative path is passed, it is relative to the [context](#context) option.
+The source path of the copy operation, which can be an absolute path, a relative path, or a glob pattern.
+
+It can refer to a file or a directory. If a relative path is passed, it is relative to the [context](#context) option.
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -366,20 +368,20 @@ export default {
 ```ts
 type GlobOptions = {
   // Whether the match is case sensitive
-  // Default to true
+  // @default true
   caseSensitiveMatch?: boolean;
   // Whether to match files starting with `.`
-  // Default to true
+  // @default true
   dot?: boolean;
-  // Ignore specific paths
   // An array of strings in glob format, which can be used to ignore specific paths
+  // @default undefined
   ignore?: string[];
 };
 ```
 
 - **Default:** `undefined`
 
-Glob options.
+Set the glob options for the copy operation.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -465,3 +467,45 @@ export default {
 ```
 
 This is particularly useful when copying executable files, scripts, or any files where permissions are important. When set to `true`, the plugin will attempt to set the same permissions on the destination file as the source file has.
+
+### info
+
+- **Type:**
+
+```ts
+type Info = {
+  immutable?: boolean;
+  // Whether to skip minification for the copied files.
+  // @default false
+  minimized?: boolean;
+  chunkHash?: string[];
+  contentHash?: string[];
+  development?: boolean;
+  hotModuleReplacement?: boolean;
+  related?: {
+    sourceMap?: string;
+  };
+  version?: string;
+};
+```
+
+- **Default:** `undefined`
+
+Allows to add some assets info to the copied files, which may affect some behaviors in the build process.
+
+For example, by default, the copied JS and CSS files will be minified by Rspack's [minimizer](/config/optimization#optimizationminimizer), if you want to skip minification for copied files, you can set `info.minimized` to `true`.
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: 'src/file.js',
+          info: { minimized: true },
+        },
+      ],
+    }),
+  ],
+};
+```
