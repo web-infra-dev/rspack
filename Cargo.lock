@@ -4536,6 +4536,7 @@ dependencies = [
  "rspack_plugin_remove_duplicate_modules",
  "rspack_plugin_remove_empty_chunks",
  "rspack_plugin_rsdoctor",
+ "rspack_plugin_rstest",
  "rspack_plugin_runtime",
  "rspack_plugin_runtime_chunk",
  "rspack_plugin_schemes",
@@ -5136,6 +5137,20 @@ dependencies = [
  "rspack_util",
  "rustc-hash 2.1.0",
  "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_rstest"
+version = "0.2.0"
+dependencies = [
+ "async-trait",
+ "rspack_cacheable",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
+ "rspack_plugin_javascript",
+ "swc_core",
  "tracing",
 ]
 
