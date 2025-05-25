@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync } from "node:fs";
 import path from "node:path";
 
 const NodePlatformArchToAbi: Record<
@@ -35,22 +35,9 @@ const NodePlatformArchToAbi: Record<
 };
 
 function isMusl() {
-	// For Node 10
-	if (!process.report || typeof process.report.getReport !== "function") {
-		try {
-			const lddPath = require("node:child_process")
-				.execSync("which ldd")
-				.toString()
-				.trim();
-			return readFileSync(lddPath, "utf8").includes("musl");
-		} catch (e) {
-			return true;
-		}
-	} else {
-		// @ts-expect-error getReport returns an object containing header object
-		const { glibcVersionRuntime } = process.report.getReport().header;
-		return !glibcVersionRuntime;
-	}
+	// @ts-expect-error getReport returns an object containing header object
+	const { glibcVersionRuntime } = process.report.getReport().header;
+	return !glibcVersionRuntime;
 }
 
 const BINDING_VERSION = require("@rspack/binding/package.json").version;
@@ -88,12 +75,15 @@ let result: Error | undefined | null;
  * `@rspack/core`, `@rspack/binding`, `@rspack/binding-<platform>-<arch>-<abi>`
  */
 export const checkVersion = () => {
+	console.time("checkVersion");
 	if (result !== undefined) {
+		console.timeEnd("checkVersion");
 		return result;
 	}
 
 	const platformArchAbi = getAddonPlatformArchAbi();
 	if (platformArchAbi instanceof Error) {
+		console.timeEnd("checkVersion");
 		return (result = platformArchAbi);
 	}
 
@@ -130,10 +120,12 @@ export const checkVersion = () => {
 		}
 	} catch (error: any) {
 		if (error instanceof Error) {
+			console.timeEnd("checkVersion");
 			return (result = new Error(
 				`${error.toString()}. Maybe you forget to install the correct addon package ${`@rspack/binding-${platformArchAbi}`} or forget to build binding locally?`
 			));
 		}
+		console.timeEnd("checkVersion");
 		return (result = new Error(error));
 	}
 
@@ -142,10 +134,12 @@ export const checkVersion = () => {
 	);
 
 	if (!isMatch) {
+		console.timeEnd("checkVersion");
 		return (result = new Error(
 			`Unmatched version @rspack/core@${CORE_VERSION}, @rspack/binding@${BINDING_VERSION}, @rspack/binding-${platformArchAbi}@${ADDON_VERSION}.\nRspack requires these versions to be the same or you may have installed the wrong version. Otherwise, Rspack may not work properly.`
 		));
 	}
 
+	console.timeEnd("checkVersion");
 	return (result = null);
 };
