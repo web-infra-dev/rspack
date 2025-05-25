@@ -1,5 +1,4 @@
 import path from "node:path";
-import { createBrotliDecompress, createGunzip, createInflate } from "node:zlib";
 import {
 	type BuiltinPlugin,
 	BuiltinPluginName,
@@ -45,10 +44,17 @@ export type HttpUriPluginOptions = {
 
 const getHttp = memoize(() => require("node:http"));
 const getHttps = memoize(() => require("node:https"));
+
 function fetch(url: string, options: { headers: Record<string, string> }) {
 	const parsedURL = new URL(url);
 	const send: typeof import("node:http") =
 		parsedURL.protocol === "https:" ? getHttps() : getHttp();
+	const {
+		createBrotliDecompress,
+		createGunzip,
+		createInflate
+	} = require("node:zlib");
+
 	return new Promise<{ res: IncomingMessage; body: Buffer }>(
 		(resolve, reject) => {
 			send
