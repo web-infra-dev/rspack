@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync } from "node:fs";
 import path from "node:path";
 
 const NodePlatformArchToAbi: Record<
@@ -35,22 +35,9 @@ const NodePlatformArchToAbi: Record<
 };
 
 function isMusl() {
-	// For Node 10
-	if (!process.report || typeof process.report.getReport !== "function") {
-		try {
-			const lddPath = require("node:child_process")
-				.execSync("which ldd")
-				.toString()
-				.trim();
-			return readFileSync(lddPath, "utf8").includes("musl");
-		} catch (e) {
-			return true;
-		}
-	} else {
-		// @ts-expect-error getReport returns an object containing header object
-		const { glibcVersionRuntime } = process.report.getReport().header;
-		return !glibcVersionRuntime;
-	}
+	// @ts-expect-error getReport returns an object containing header object
+	const { glibcVersionRuntime } = process.report.getReport().header;
+	return !glibcVersionRuntime;
 }
 
 const BINDING_VERSION = require("@rspack/binding/package.json").version;
