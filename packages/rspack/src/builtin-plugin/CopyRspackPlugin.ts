@@ -7,11 +7,10 @@ import {
 import { create } from "./base";
 
 export type CopyRspackPluginOptions = {
+	/** An array of objects that describe the copy operations to be performed. */
 	patterns: (
 		| string
-		| ({
-				from: string;
-		  } & Partial<RawCopyPattern>)
+		| (Pick<RawCopyPattern, "from"> & Partial<Omit<RawCopyPattern, "from">>)
 	)[];
 };
 
