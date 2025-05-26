@@ -86,7 +86,8 @@
   "pnpm": {
     "patchedDependencies": {
       "graceful-fs": "patches/graceful-fs.patch",
-      "rollup-plugin-dts": "patches/rollup-plugin-dts.patch"
+      "rollup-plugin-dts": "patches/rollup-plugin-dts.patch",
+      "webpack-sources@3.3.0": "patches/webpack-sources@3.3.0.patch"
     },
     "onlyBuiltDependencies": [
       "@biomejs/biome",
