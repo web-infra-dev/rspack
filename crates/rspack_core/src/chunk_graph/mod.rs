@@ -1,7 +1,6 @@
 use core::fmt;
-use std::{borrow::Cow, collections::HashSet, sync::Arc};
+use std::borrow::Cow;
 
-use indexmap::IndexSet;
 use itertools::Itertools;
 use rspack_collections::{IdentifierIndexSet, IdentifierMap, UkeyIndexMap, UkeyMap};
 use rspack_util::{atom::Atom, env::has_query};
@@ -61,7 +60,8 @@ impl ChunkGraph {
   // 1. support chunk_group dump visualizer
   pub fn to_dot(&self, compilation: &Compilation) -> std::result::Result<String, fmt::Error> {
     let mut visited_group_nodes: HashMap<ChunkGroupUkey, String> = HashMap::default();
-    let mut visited_group_edges: HashSet<(ChunkGroupUkey, ChunkGroupUkey, bool)> = HashSet::new();
+    let mut visited_group_edges: HashSet<(ChunkGroupUkey, ChunkGroupUkey, bool)> =
+      HashSet::default();
     let mut visiting_groups: Vec<ChunkGroupUkey> = Vec::new();
     let module_graph = compilation.get_module_graph();
     // generate following chunk_group_info as dto record info

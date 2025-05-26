@@ -15,7 +15,7 @@ use rspack_core::{
   CompilationAfterCodeGeneration, CompilationAfterSeal, CompilationConcatenationScope,
   CompilationFinishModules, CompilationParams, CompilationProcessAssets, CompilerCompilation,
   ConcatenatedModuleIdent, ConcatenatedModuleInfo, ConcatenationScope, DependencyId, ExportInfo,
-  ExportInfoProvided, ExternalModuleInfo, IdentCollector, Module, ModuleGraph,
+  ExportInfoGetter, ExportProvided, ExternalModuleInfo, IdentCollector, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, ModuleInfo, Plugin, RuntimeCondition, RuntimeGlobals,
   SourceType,
   reserved_names::RESERVED_NAMES,
@@ -35,6 +35,8 @@ use rspack_util::{
 use sugar_path::SugarPath;
 use tokio::sync::Mutex;
 
+use crate::dependency::dyn_import::DynamicImportDependencyTemplate;
+
 #[plugin]
 #[derive(Debug, Default)]
 pub struct EsmLibraryPlugin {
@@ -42,7 +44,7 @@ pub struct EsmLibraryPlugin {
   pub concatenated_modules_map_ref: Mutex<FxHashMap<u32, Arc<IdentifierIndexMap<ModuleInfo>>>>,
 }
 
-#[plugin_hook(CompilerCompilation for EsmLibraryPlugin)]
+#[plugin_hook(CompilerCompilation for EsmLibraryPlugin, stage=100)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,
@@ -55,7 +57,7 @@ async fn compilation(
 
   compilation.set_dependency_template(
     ImportDependencyTemplate::template_type(),
-    Arc::new(ImportDependencyTemplate::default()),
+    Arc::new(DynamicImportDependencyTemplate::default()),
   );
   Ok(())
 }
@@ -109,18 +111,28 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     if should_scope_hoisting {
+      let other_export_info = exports_info
+        .other_exports_info(&module_graph)
+        .as_data(&module_graph);
+      if matches!(
+        ExportInfoGetter::provided(other_export_info),
+        Some(ExportProvided::Unknown)
+      ) {
+        should_scope_hoisting = false;
+      }
+
       for export_info in exports_info.get_relevant_exports(&module_graph, None) {
+        let export_info = export_info.as_data(&module_graph);
         if !matches!(
-          export_info.provided(&module_graph),
-          Some(ExportInfoProvided::True)
+          ExportInfoGetter::provided(export_info),
+          Some(ExportProvided::Provided)
         ) {
-          dbg!(module.identifier());
-          dbg!(export_info.provided(&module_graph));
           should_scope_hoisting = false;
           break;
         }
 
-        if export_info.is_reexport(&module_graph) && export_info.get_target(&module_graph).is_none()
+        if ExportInfoGetter::is_reexport(export_info)
+          && export_info.get_target(&module_graph).is_none()
         {
           should_scope_hoisting = false;
           break;
@@ -230,7 +242,6 @@ async fn additional_chunk_runtime_requirements(
 
   // chunk that has modules which cannot be scope hoisted should have correct runtime
   if chunk_modules_len > chunk_link.hoisted_modules.len() {
-    dbg!(chunk_modules_len, chunk_link.hoisted_modules.len(), modules);
     runtime_requirements.insert(RuntimeGlobals::MODULE_FACTORIES);
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
   }

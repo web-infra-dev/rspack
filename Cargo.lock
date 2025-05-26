@@ -4712,7 +4712,6 @@ dependencies = [
  "rspack_plugin_dynamic_entry",
  "rspack_plugin_ensure_chunk_conditions",
  "rspack_plugin_entry",
- "rspack_plugin_esm_library",
  "rspack_plugin_externals",
  "rspack_plugin_extract_css",
  "rspack_plugin_hmr",
@@ -4975,26 +4974,6 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
- "tracing",
-]
-
-[[package]]
-name = "rspack_plugin_esm_library"
-version = "0.2.0"
-dependencies = [
- "rayon",
- "regex",
- "rspack_collections",
- "rspack_core",
- "rspack_error",
- "rspack_hook",
- "rspack_javascript_compiler",
- "rspack_plugin_javascript",
- "rspack_util",
- "serde_json",
- "sugar_path",
- "swc_core",
- "tokio",
  "tracing",
 ]
 
@@ -6506,6 +6485,7 @@ dependencies = [
 [[package]]
 name = "swc_common"
 <<<<<<< HEAD
+<<<<<<< HEAD
 version = "13.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6865f71f363e63306cedec3f3cf1cb9e80acaa9229261ba2569467a19060c7c8"
@@ -6520,6 +6500,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "44c332906667b0fa98622f19a19e43afa5aa63b652813f80645dd0f33eca1fbb"
 >>>>>>> 8831c62e8 (feat: better esm format)
 >>>>>>> ad43a9b5b6 (feat: better esm format)
+=======
+version = "12.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd2adffdd9f42af6cfefa16b1aaa8a0984a21854637ef9d89332dd29420d4b23"
+>>>>>>> 5439cc997a (feat: support dynamic import call)
 dependencies = [
  "anyhow",
  "ast_node",
@@ -7337,6 +7322,7 @@ dependencies = [
 [[package]]
 name = "swc_ecma_utils"
 <<<<<<< HEAD
+<<<<<<< HEAD
 version = "18.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "938751c806f23256256e6839914ab33e4ac6e79a3fa2e717d004469881d2e3df"
@@ -7351,6 +7337,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d2c29dbfc54e02c14975aff9d2c75ae6fff0808d860d9971a493d37870e282f"
 >>>>>>> 8831c62e8 (feat: better esm format)
 >>>>>>> ad43a9b5b6 (feat: better esm format)
+=======
+version = "16.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a8afc858d9cd7aa2b480d55174ff9c7ee02de003ac5f9e140398206af566b0f"
+>>>>>>> 5439cc997a (feat: support dynamic import call)
 dependencies = [
  "indexmap 2.7.1",
  "num_cpus",
@@ -7653,6 +7644,7 @@ dependencies = [
 [[package]]
 name = "swc_typescript"
 <<<<<<< HEAD
+<<<<<<< HEAD
 version = "17.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "965205aa6b60a2edc9d59369bb5f984221fd7a0c612443f1a0892d56bcfe8889"
@@ -7667,6 +7659,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "520693e220391e003179bed5d1c8e183e7673fb67a446eac8ad650493c279619"
 >>>>>>> 8831c62e8 (feat: better esm format)
 >>>>>>> ad43a9b5b6 (feat: better esm format)
+=======
+version = "15.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2715faf3905cba3600b600b49e1c2a194c110cc331255f8bacb6a7fd81fb7787"
+>>>>>>> 5439cc997a (feat: support dynamic import call)
 dependencies = [
  "bitflags 2.9.1",
  "petgraph 0.7.1",
