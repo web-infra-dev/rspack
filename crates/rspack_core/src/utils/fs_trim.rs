@@ -69,7 +69,9 @@ pub async fn trim_dir<'a>(
       visited.push(current_dir);
       continue;
     }
-
+    if !current_dir.is_dir() {
+      continue;
+    }
     let items = fs.read_dir(&current_dir).await?;
     for item in &items {
       let path = current_dir.join(item);
