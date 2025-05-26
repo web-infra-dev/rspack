@@ -139,7 +139,7 @@ const pluginOptionsSchema = z.object({
 		.optional(),
 	templateContent: z.string().or(templateRenderFunction).optional(),
 	templateParameters: z
-		.record(z.string())
+		.record(z.string(), z.string())
 		.or(z.boolean())
 		.or(templateParamFunction)
 		.optional(),
@@ -164,7 +164,9 @@ const pluginOptionsSchema = z.object({
 	minify: z.boolean().optional(),
 	title: z.string().optional(),
 	favicon: z.string().optional(),
-	meta: z.record(z.string().or(z.record(z.string()))).optional(),
+	meta: z
+		.record(z.string(), z.string().or(z.record(z.string(), z.string())))
+		.optional(),
 	hash: z.boolean().optional()
 }) satisfies z.ZodType<HtmlRspackPluginOptions>;
 
