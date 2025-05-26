@@ -1200,13 +1200,13 @@ export class Compiler {
     // @internal
     __internal__get_module_execution_results_map(): Map<number, any>;
     // @internal
-    __internal__getModuleExecutionResult(id: number): any;
-    // @internal
     __internal__rebuild(modifiedFiles?: ReadonlySet<string>, removedFiles?: ReadonlySet<string>, callback?: (error: Error | null) => void): void;
     // @internal
     __internal__registerBuiltinPlugin(plugin: binding.BuiltinPlugin): void;
     // @internal
     get __internal__ruleSet(): RuleSetCompiler;
+    // @internal
+    __internal__takeModuleExecutionResult(id: number): any;
     // (undocumented)
     cache: Cache_2;
     // (undocumented)
@@ -2514,6 +2514,8 @@ export interface ExperimentsNormalized {
     rspackFuture?: RspackFutureOptions;
     // (undocumented)
     topLevelAwait?: boolean;
+    // (undocumented)
+    useInputFileSystem?: boolean;
 }
 
 // @public (undocumented)
@@ -3304,7 +3306,6 @@ type InputFileSystem = {
     join?: (path1: string, path2: string) => string;
     relative?: (from: string, to: string) => string;
     dirname?: (path: string) => string;
-    __SKIP_BINDING__?: boolean;
 };
 
 // @public (undocumented)
