@@ -9,7 +9,7 @@
  */
 
 import util from "node:util";
-import Watchpack from "watchpack";
+import type Watchpack from "watchpack";
 
 import type {
 	FileSystemInfoEntry,
@@ -21,14 +21,13 @@ import type {
 export default class NodeWatchFileSystem implements WatchFileSystem {
 	inputFileSystem: InputFileSystem;
 	watcherOptions: Watchpack.WatchOptions;
-	watcher: Watchpack;
+	watcher?: Watchpack;
 
 	constructor(inputFileSystem: InputFileSystem) {
 		this.inputFileSystem = inputFileSystem;
 		this.watcherOptions = {
 			aggregateTimeout: 0
 		};
-		this.watcher = new Watchpack(this.watcherOptions);
 	}
 
 	watch(
@@ -67,27 +66,27 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 		if (typeof callbackUndelayed !== "function" && callbackUndelayed) {
 			throw new Error("Invalid arguments: 'callbackUndelayed'");
 		}
+
 		const oldWatcher = this.watcher;
+		const Watchpack = require("watchpack");
 		this.watcher = new Watchpack(options);
 
 		if (callbackUndelayed) {
-			this.watcher.once("change", callbackUndelayed);
+			this.watcher?.once("change", callbackUndelayed);
 		}
 
 		const fetchTimeInfo = () => {
 			const fileTimeInfoEntries = new Map();
 			const contextTimeInfoEntries = new Map();
-			if (this.watcher) {
-				this.watcher.collectTimeInfoEntries(
-					fileTimeInfoEntries,
-					contextTimeInfoEntries
-				);
-			}
+			this.watcher?.collectTimeInfoEntries(
+				fileTimeInfoEntries,
+				contextTimeInfoEntries
+			);
 			return { fileTimeInfoEntries, contextTimeInfoEntries };
 		};
-		this.watcher.once("aggregated", (changes, removals) => {
+		this.watcher?.once("aggregated", (changes, removals) => {
 			// pause emitting events (avoids clearing aggregated changes and removals on timeout)
-			this.watcher.pause();
+			this.watcher?.pause();
 
 			if (this.inputFileSystem?.purge) {
 				const fs = this.inputFileSystem;
@@ -109,7 +108,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 			);
 		});
 
-		this.watcher.watch({ files, directories, missing, startTime });
+		this.watcher?.watch({ files, directories, missing, startTime });
 
 		if (oldWatcher) {
 			oldWatcher.close();
@@ -135,7 +134,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 							fs.purge?.(item);
 						}
 					}
-					return items;
+					return items ?? new Set();
 				},
 				"Watcher.getAggregatedRemovals is deprecated in favor of Watcher.getInfo since that's more performant.",
 				"DEP_WEBPACK_WATCHER_GET_AGGREGATED_REMOVALS"
@@ -149,7 +148,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 							fs.purge?.(item);
 						}
 					}
-					return items;
+					return items ?? new Set();
 				},
 				"Watcher.getAggregatedChanges is deprecated in favor of Watcher.getInfo since that's more performant.",
 				"DEP_WEBPACK_WATCHER_GET_AGGREGATED_CHANGES"
@@ -169,8 +168,8 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 				"DEP_WEBPACK_WATCHER_CONTEXT_TIME_INFO_ENTRIES"
 			),
 			getInfo: () => {
-				const removals = this.watcher?.aggregatedRemovals;
-				const changes = this.watcher?.aggregatedChanges;
+				const removals = this.watcher?.aggregatedRemovals ?? new Set();
+				const changes = this.watcher?.aggregatedChanges ?? new Set();
 				if (this.inputFileSystem?.purge) {
 					const fs = this.inputFileSystem;
 					if (removals) {
