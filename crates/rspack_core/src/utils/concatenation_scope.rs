@@ -5,7 +5,10 @@ use std::{
 
 use regex::Regex;
 use rspack_collections::IdentifierIndexMap;
-use rspack_util::{fx_hash::FxIndexMap, itoa};
+use rspack_util::{
+  fx_hash::{FxIndexMap, FxIndexSet},
+  itoa,
+};
 use swc_core::atoms::Atom;
 
 use crate::{
@@ -24,7 +27,7 @@ static MODULE_REFERENCE_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 static DYN_MODULE_REFERENCE_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(r"^__WEBPACK_MODULE_DYNAMIC_REFERENCE__(\d+)_([\da-f]+|ns)$")
+  Regex::new(r"^__WEBPACK_MODULE_DYNAMIC_REFERENCE__(\d+)_(true|false)_([\da-f]+|ns)$")
     .expect("should initialized regex")
 });
 
@@ -42,6 +45,7 @@ pub struct ConcatenationScope {
   pub current_module: ConcatenatedModuleInfo,
   pub modules_map: Arc<IdentifierIndexMap<ModuleInfo>>,
   pub refs: IdentifierIndexMap<FxIndexMap<String, ModuleReferenceOptions>>,
+  pub dyn_refs: IdentifierIndexMap<FxIndexSet<Atom>>,
 }
 
 #[allow(unused)]
@@ -54,6 +58,7 @@ impl ConcatenationScope {
       current_module,
       modules_map,
       refs: IdentifierIndexMap::default(),
+      dyn_refs: Default::default(),
     }
   }
 
@@ -183,36 +188,36 @@ impl ConcatenationScope {
   pub fn create_dynamic_module_reference(
     &mut self,
     module: &ModuleIdentifier,
-    ids: Vec<Atom>,
+    already_in_chunk: bool,
+    id: &Atom,
   ) -> String {
     let info = self
       .modules_map
       .get(module)
       .expect("should have module info");
 
-    let export_data = if !ids.is_empty() {
-      hex::encode(serde_json::to_string(&ids).expect("should serialize to json string"))
-    } else {
-      "ns".to_string()
-    };
+    let export_data = hex::encode(id.as_str());
+
+    let entry = self.dyn_refs.entry(*module).or_default();
+    entry.insert(id.clone());
 
     format!(
-      "__WEBPACK_MODULE_DYNAMIC_REFERENCE__{}_{}",
+      "__WEBPACK_MODULE_DYNAMIC_REFERENCE__{}_{}_{}",
       itoa!(info.index()),
+      already_in_chunk,
       export_data
     )
   }
 
-  pub fn match_dynamic_module_reference(name: &str) -> Option<(usize, Vec<Atom>)> {
+  pub fn match_dynamic_module_reference(name: &str) -> Option<(usize, bool, Atom)> {
     if let Some(captures) = DYN_MODULE_REFERENCE_REGEXP.captures(name) {
-      let index: usize = captures[1].parse().expect("");
-      let ids: Vec<Atom> = if &captures[2] == "ns" {
-        vec![]
-      } else {
-        serde_json::from_slice(&hex::decode(&captures[2]).expect("should decode hex"))
-          .expect("should have deserialize")
-      };
-      Some((index, ids))
+      let index: usize = captures[1].parse().expect("parse index");
+      let already_in_chunk: bool = captures[2].parse().expect("parse in_chunk");
+      let id: Atom = Atom::from(
+        String::from_utf8(hex::decode(&captures[3]).expect("should parse success"))
+          .expect("should be utf8 string"),
+      );
+      Some((index, already_in_chunk, id))
     } else {
       None
     }

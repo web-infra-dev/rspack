@@ -51,12 +51,21 @@ use crate::{
   Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
   ChunkHashesArtifact, ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderResult,
   ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
+<<<<<<< HEAD
   CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyCodeGeneration,
   DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, Entry, EntryData,
   EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap, Logger,
   ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier,
   ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals,
   RuntimeMode, RuntimeModule, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
+=======
+  CompilationLogging, CompilerOptions, ConcatenationScope, DependenciesDiagnosticsArtifact,
+  DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
+  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
+  Filename, ImportVarMap, Logger, ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphPartial, ModuleIdentifier, ModuleIdsArtifact, PathData, ResolverFactory,
+  RuntimeGlobals, RuntimeMode, RuntimeModule, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
+>>>>>>> 5439cc997a (feat: support dynamic import call)
   SideEffectsOptimizeArtifact, SourceType, Stats,
 };
 
