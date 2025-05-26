@@ -90,7 +90,7 @@ fn capture_trace() -> Vec<String> {
     .filter(|(i, _)| i % 2 != 0) // even line is function name, odd line is code position, only need code positiion
     .skip(5) // remove some useless lines
     .take(8)
-    .map(|(_, line)| line[9..].to_owned()) // remove some empty chars
+    .filter_map(|(_, line)| line.get(9..).map(|x| x.to_string())) // remove some empty chars
     .collect()
 }
 

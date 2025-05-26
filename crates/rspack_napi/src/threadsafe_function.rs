@@ -8,7 +8,7 @@ use napi::{
   bindgen_prelude::{FromNapiValue, JsValuesTupleIntoVec, Promise, TypeName, ValidateNapiValue},
   sys::{self, napi_env},
   threadsafe_function::{ThreadsafeFunction as RawThreadsafeFunction, ThreadsafeFunctionCallMode},
-  Env, JsUnknown as Unknown, NapiRaw, ValueType,
+  Env, JsValue, Unknown, ValueType,
 };
 use oneshot::Receiver;
 use rspack_error::{miette::IntoDiagnostic, Error, Result};
@@ -20,7 +20,7 @@ type ErrorResolver = dyn FnOnce(Env);
 static ERROR_RESOLVER: OnceLock<JsCallback<Box<ErrorResolver>>> = OnceLock::new();
 
 pub struct ThreadsafeFunction<T: 'static + JsValuesTupleIntoVec, R> {
-  inner: Arc<RawThreadsafeFunction<T, Unknown, T, false, true>>,
+  inner: Arc<RawThreadsafeFunction<T, Unknown<'static>, T, false, true>>,
   env: napi_env,
   _data: PhantomData<R>,
 }

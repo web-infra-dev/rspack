@@ -50,25 +50,22 @@ async fn additional_tree_runtime_requirements(
   runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-  let chunk_map = chunk.get_child_ids_by_orders_map(false, compilation);
+  let chunk_filter = |_: &ChunkUkey, __: &Compilation| true;
+  let mut chunk_map = chunk.get_child_ids_by_orders_map(false, compilation, &chunk_filter);
 
-  if let Some(prefetch_map) = chunk_map.get(&ChunkGroupOrderKey::Prefetch) {
+  if let Some(prefetch_map) = chunk_map.remove(&ChunkGroupOrderKey::Prefetch) {
     runtime_requirements.insert(RuntimeGlobals::PREFETCH_CHUNK);
     compilation.add_runtime_module(
       chunk_ukey,
-      Box::new(ChunkPrefetchTriggerRuntimeModule::new(
-        prefetch_map.to_owned(),
-      )),
+      Box::new(ChunkPrefetchTriggerRuntimeModule::new(prefetch_map)),
     )?
   }
 
-  if let Some(preload_map) = chunk_map.get(&ChunkGroupOrderKey::Preload) {
+  if let Some(preload_map) = chunk_map.remove(&ChunkGroupOrderKey::Preload) {
     runtime_requirements.insert(RuntimeGlobals::PRELOAD_CHUNK);
     compilation.add_runtime_module(
       chunk_ukey,
-      Box::new(ChunkPreloadTriggerRuntimeModule::new(
-        preload_map.to_owned(),
-      )),
+      Box::new(ChunkPreloadTriggerRuntimeModule::new(preload_map)),
     )?
   }
 

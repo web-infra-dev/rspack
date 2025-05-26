@@ -3,7 +3,7 @@ use lightningcss::targets::Browsers;
 pub fn from_browserslist<S: AsRef<str>, I: IntoIterator<Item = S>>(
   query: I,
 ) -> Result<Option<Browsers>, browserslist::Error> {
-  use browserslist::{Opts, resolve};
+  use browserslist::{resolve, Opts};
 
   from_distribs(resolve(query, &Opts::default())?)
 }

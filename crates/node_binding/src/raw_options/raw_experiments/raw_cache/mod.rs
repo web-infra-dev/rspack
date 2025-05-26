@@ -4,7 +4,7 @@ mod raw_storage;
 use core::panic;
 
 use napi::{
-  bindgen_prelude::{FromNapiValue, Object, TypeName, ValidateNapiValue},
+  bindgen_prelude::{FromNapiValue, JsObjectValue, Object, TypeName, ValidateNapiValue},
   Either,
 };
 use napi_derive::napi;

@@ -185,6 +185,7 @@ const entryDescription = z.strictObject({
 const entryUnnamed = entryItem satisfies z.ZodType<t.EntryUnnamed>;
 
 const entryObject = z.record(
+	z.string(),
 	entryItem.or(entryDescription)
 ) satisfies z.ZodType<t.EntryObject>;
 
@@ -388,6 +389,7 @@ const output = z.strictObject({
 //#region Resolve
 const resolveAlias = z
 	.record(
+		z.string(),
 		z
 			.literal(false)
 			.or(z.string())
@@ -420,7 +422,9 @@ const baseResolveOptions = z.strictObject({
 	tsConfig: resolveTsConfig.optional(),
 	fullySpecified: z.boolean().optional(),
 	exportsFields: z.array(z.string()).optional(),
-	extensionAlias: z.record(z.string().or(z.array(z.string()))).optional(),
+	extensionAlias: z
+		.record(z.string(), z.string().or(z.array(z.string())))
+		.optional(),
 	aliasFields: z.array(z.string()).optional(),
 	restrictions: z.array(z.string()).optional(),
 	roots: z.array(z.string()).optional(),
@@ -428,7 +432,7 @@ const baseResolveOptions = z.strictObject({
 }) satisfies z.ZodType<t.ResolveOptions>;
 
 const resolveOptions: z.ZodType<t.ResolveOptions> = baseResolveOptions.extend({
-	byDependency: z.lazy(() => z.record(resolveOptions)).optional()
+	byDependency: z.lazy(() => z.record(z.string(), resolveOptions)).optional()
 });
 
 //#endregion
@@ -458,7 +462,9 @@ const ruleSetLoader = z.string() satisfies z.ZodType<t.RuleSetLoader>;
 
 const ruleSetLoaderOptions = z
 	.string()
-	.or(z.record(z.any())) satisfies z.ZodType<t.RuleSetLoaderOptions>;
+	.or(
+		z.record(z.string(), z.any())
+	) satisfies z.ZodType<t.RuleSetLoaderOptions>;
 
 const ruleSetLoaderWithOptions =
 	new ZodRspackCrossChecker<t.RuleSetLoaderWithOptions>({
@@ -531,15 +537,15 @@ const baseRuleSetRule = z.strictObject({
 	resourceQuery: ruleSetCondition.optional(),
 	scheme: ruleSetCondition.optional(),
 	mimetype: ruleSetCondition.optional(),
-	descriptionData: z.record(ruleSetCondition).optional(),
-	with: z.record(ruleSetCondition).optional(),
+	descriptionData: z.record(z.string(), ruleSetCondition).optional(),
+	with: z.record(z.string(), ruleSetCondition).optional(),
 	type: z.string().optional(),
 	layer: z.string().optional(),
 	loader: ruleSetLoader.optional(),
 	options: ruleSetLoaderOptions.optional(),
 	use: ruleSetUse.optional(),
-	parser: z.record(z.any()).optional(),
-	generator: z.record(z.any()).optional(),
+	parser: z.record(z.string(), z.any()).optional(),
+	generator: z.record(z.string(), z.any()).optional(),
 	resolve: resolveOptions.optional(),
 	sideEffects: z.boolean().optional(),
 	enforce: z.literal("pre").or(z.literal("post")).optional()
@@ -947,7 +953,7 @@ const externalObjectValue = new ZodRspackCrossChecker<
 			}
 		}
 	],
-	default: z.record(z.string().or(z.string().array()))
+	default: z.record(z.string(), z.string().or(z.string().array()))
 });
 
 // #region Externals
@@ -958,6 +964,7 @@ const externalItemValue = z
 	.or(externalObjectValue) satisfies z.ZodType<t.ExternalItemValue>;
 
 const externalItemObjectUnknown = z.record(
+	z.string(),
 	externalItemValue
 ) satisfies z.ZodType<t.ExternalItemObjectUnknown>;
 
@@ -1293,7 +1300,9 @@ const optimizationSplitChunksChunks = z
 			.args(z.instanceof(Chunk, { message: "Input not instance of Chunk" }))
 			.returns(z.boolean())
 	);
-const optimizationSplitChunksSizes = z.number().or(z.record(z.number()));
+const optimizationSplitChunksSizes = z
+	.number()
+	.or(z.record(z.string(), z.number()));
 const optimizationSplitChunksDefaultSizeTypes = z.array(z.string());
 const sharedOptimizationSplitChunksCacheGroup = {
 	chunks: optimizationSplitChunksChunks.optional(),
@@ -1471,12 +1480,12 @@ const buildHttpOptions = z.object({
 	// frozen: z.boolean().optional(),
 	httpClient: z
 		.function()
-		.args(z.string(), z.record(z.string()))
+		.args(z.string(), z.record(z.string(), z.string()))
 		.returns(
 			z.promise(
 				z.object({
 					status: z.number(),
-					headers: z.record(z.string()),
+					headers: z.record(z.string(), z.string()),
 					body: z.instanceof(Buffer)
 				})
 			)
@@ -1547,7 +1556,9 @@ const profile = z.boolean() satisfies z.ZodType<t.Profile>;
 //#endregion
 
 //#region Amd
-const amd = z.literal(false).or(z.record(z.any())) satisfies z.ZodType<t.Amd>;
+const amd = z
+	.literal(false)
+	.or(z.record(z.string(), z.any())) satisfies z.ZodType<t.Amd>;
 //#endregion
 
 //#region Bail

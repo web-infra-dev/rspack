@@ -1,2 +1,6 @@
-// unreachable: unknow module type: css/global
-module.exports = () => false;
+const { FilteredStatus } = require("../../../lib/util/filterUtil");
+
+module.exports = () => [
+  FilteredStatus.PARTIAL_PASS,
+  "TODO: not support css/global"
+];

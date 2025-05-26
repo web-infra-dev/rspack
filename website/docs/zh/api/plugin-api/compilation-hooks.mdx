@@ -13,8 +13,16 @@ import { ApiMeta } from '@components/ApiMeta';
 
 # Compilation 钩子
 
+Compilation 钩子是 Rspack 插件的主要扩展方式，为开发者提供了介入构建流程各阶段的能力。
+
+本文档列举了 Rspack 中可用的 Compilation 钩子、它们的触发时机、参数以及使用示例。
+
+:::tip
+查看 [Compilation](/api/javascript-api/compilation) 了解更多关于 Compilation 对象的信息。
+:::
+
 :::info
-Rspack 主要编译逻辑运行在 Rust 侧。出于稳定性、性能、架构等因素，在使用钩子时 Rust 侧编译对象传输到 JavaScript 侧后，对 JavaScript 侧的修改不会被同步到 Rust 侧。因此绝大部分钩子为“只读”。
+Rspack 的主要编译逻辑运行在 Rust 侧。出于稳定性、性能、架构等因素，在使用钩子时，Rust 侧编译对象传输到 JavaScript 侧后，对 JavaScript 侧的修改不会被同步到 Rust 侧。因此绝大部分钩子为“只读”。
 :::
 
 ## Overview

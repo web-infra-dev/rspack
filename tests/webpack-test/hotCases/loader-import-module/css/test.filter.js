@@ -1,2 +1,1 @@
-// TODO: it just stucked...
-module.exports = () => { return false }
+module.exports = () => "FIXME: timeout"

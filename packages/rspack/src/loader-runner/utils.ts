@@ -10,7 +10,10 @@ import loadLoaderRaw from "./loadLoader";
 const decoder = new TextDecoder();
 
 function utf8BufferToString(buf: Uint8Array) {
-	const str = decoder.decode(buf);
+	// The provided ArrayBufferView value must not be shared.
+	const str = decoder.decode(
+		buf.buffer instanceof SharedArrayBuffer ? Buffer.from(buf) : buf
+	);
 	if (str.charCodeAt(0) === 0xfeff) {
 		return str.slice(1);
 	}

@@ -1,2 +1,1 @@
-// oneOf rule not taken into account
-module.exports = () => false;
+module.exports = () => "FIXME: oneOf rule not taken into account";

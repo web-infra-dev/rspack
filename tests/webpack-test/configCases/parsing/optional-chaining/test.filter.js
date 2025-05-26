@@ -5,5 +5,5 @@
 // 	return supportsOptionalChaining();
 // };
 
-// TODO: Should create a issue for this test
-module.exports = () => { return false }
+
+module.exports = () => "FIXME: expect number"

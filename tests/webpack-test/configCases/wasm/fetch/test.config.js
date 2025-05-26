@@ -8,11 +8,11 @@ module.exports = {
 			case 0:
 				return ["bundle0.mjs"];
 			case 1:
-				return ["chunks/93.async.js", "bundle1.js"];
-			case 2:
-				return ["bundle2.mjs"];
-			case 3:
-				return ["chunks/93.sync.js", "bundle3.js"];
+				return ["chunks/260.async.js", "bundle1.js"];
+			// case 2:
+			// 	return ["bundle2.mjs"];
+			// case 3:
+			// 	return ["chunks/260.sync.js", "bundle3.js"];
 		}
 	},
 	moduleScope(scope, options) {

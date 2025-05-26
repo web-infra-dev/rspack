@@ -444,6 +444,7 @@ mod test {
       parameters: None,
       encoding: None,
       encoded_content: None,
+      context: None,
     });
 
     // Ignore error: Final loader didn't return a Buffer or String
@@ -547,6 +548,7 @@ mod test {
       parameters: None,
       encoding: None,
       encoded_content: None,
+      context: None,
     });
 
     run_loaders(
@@ -592,6 +594,7 @@ mod test {
       parameters: None,
       encoding: None,
       encoded_content: None,
+      context: None,
     });
 
     #[cacheable]

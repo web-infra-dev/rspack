@@ -1,0 +1,3248 @@
+---
+source: crates/rspack/src/builder/browserslist_target.rs
+expression: results
+---
+[
+    (
+        [
+            "ie 11",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                false,
+            ),
+            big_int_literal: Some(
+                false,
+            ),
+            const: Some(
+                false,
+            ),
+            arrow_function: Some(
+                false,
+            ),
+            for_of: Some(
+                false,
+            ),
+            destructuring: Some(
+                false,
+            ),
+            dynamic_import: Some(
+                false,
+            ),
+            dynamic_import_in_worker: Some(
+                false,
+            ),
+            module: Some(
+                false,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                false,
+            ),
+            async_function: Some(
+                false,
+            ),
+        },
+    ),
+    (
+        [
+            "ie_mob 11",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                false,
+            ),
+            big_int_literal: Some(
+                false,
+            ),
+            const: Some(
+                false,
+            ),
+            arrow_function: Some(
+                false,
+            ),
+            for_of: Some(
+                false,
+            ),
+            destructuring: Some(
+                false,
+            ),
+            dynamic_import: Some(
+                false,
+            ),
+            dynamic_import_in_worker: Some(
+                false,
+            ),
+            module: Some(
+                false,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                false,
+            ),
+            async_function: Some(
+                false,
+            ),
+        },
+    ),
+    (
+        [
+            "edge 79",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                true,
+            ),
+            big_int_literal: Some(
+                true,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                true,
+            ),
+            dynamic_import_in_worker: Some(
+                true,
+            ),
+            module: Some(
+                true,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                true,
+            ),
+        },
+    ),
+    (
+        [
+            "android 4",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                false,
+            ),
+            big_int_literal: Some(
+                false,
+            ),
+            const: Some(
+                false,
+            ),
+            arrow_function: Some(
+                false,
+            ),
+            for_of: Some(
+                false,
+            ),
+            destructuring: Some(
+                false,
+            ),
+            dynamic_import: Some(
+                false,
+            ),
+            dynamic_import_in_worker: Some(
+                false,
+            ),
+            module: Some(
+                false,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                false,
+            ),
+            async_function: Some(
+                false,
+            ),
+        },
+    ),
+    (
+        [
+            "android 4.1",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                false,
+            ),
+            big_int_literal: Some(
+                false,
+            ),
+            const: Some(
+                false,
+            ),
+            arrow_function: Some(
+                false,
+            ),
+            for_of: Some(
+                false,
+            ),
+            destructuring: Some(
+                false,
+            ),
+            dynamic_import: Some(
+                false,
+            ),
+            dynamic_import_in_worker: Some(
+                false,
+            ),
+            module: Some(
+                false,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                false,
+            ),
+            async_function: Some(
+                false,
+            ),
+        },
+    ),
+    (
+        [
+            "android 4.4.3-4.4.4",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                false,
+            ),
+            big_int_literal: Some(
+                false,
+            ),
+            const: Some(
+                false,
+            ),
+            arrow_function: Some(
+                false,
+            ),
+            for_of: Some(
+                false,
+            ),
+            destructuring: Some(
+                false,
+            ),
+            dynamic_import: Some(
+                false,
+            ),
+            dynamic_import_in_worker: Some(
+                false,
+            ),
+            module: Some(
+                false,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                false,
+            ),
+            async_function: Some(
+                false,
+            ),
+        },
+    ),
+    (
+        [
+            "android 81",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                true,
+            ),
+            big_int_literal: Some(
+                true,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                true,
+            ),
+            dynamic_import_in_worker: Some(
+                true,
+            ),
+            module: Some(
+                true,
+            ),
+            optional_chaining: Some(
+                true,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                true,
+            ),
+        },
+    ),
+    (
+        [
+            "chrome 80",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                true,
+            ),
+            big_int_literal: Some(
+                true,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                true,
+            ),
+            dynamic_import_in_worker: Some(
+                true,
+            ),
+            module: Some(
+                true,
+            ),
+            optional_chaining: Some(
+                true,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                true,
+            ),
+        },
+    ),
+    (
+        [
+            "and_chr 80",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                true,
+            ),
+            big_int_literal: Some(
+                true,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                true,
+            ),
+            dynamic_import_in_worker: Some(
+                true,
+            ),
+            module: Some(
+                true,
+            ),
+            optional_chaining: Some(
+                true,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                true,
+            ),
+        },
+    ),
+    (
+        [
+            "firefox 68",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                true,
+            ),
+            big_int_literal: Some(
+                true,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                true,
+            ),
+            dynamic_import_in_worker: Some(
+                true,
+            ),
+            module: Some(
+                true,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                true,
+            ),
+        },
+    ),
+    (
+        [
+            "and_ff 68",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                true,
+            ),
+            big_int_literal: Some(
+                true,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                true,
+            ),
+            dynamic_import_in_worker: Some(
+                true,
+            ),
+            module: Some(
+                true,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                true,
+            ),
+        },
+    ),
+    (
+        [
+            "opera 54",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                false,
+            ),
+            big_int_literal: Some(
+                true,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                true,
+            ),
+            dynamic_import_in_worker: Some(
+                true,
+            ),
+            module: Some(
+                true,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                true,
+            ),
+        },
+    ),
+    (
+        [
+            "op_mob 54",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                true,
+            ),
+            big_int_literal: Some(
+                true,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                true,
+            ),
+            dynamic_import_in_worker: Some(
+                true,
+            ),
+            module: Some(
+                true,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                false,
+            ),
+            async_function: Some(
+                true,
+            ),
+        },
+    ),
+    (
+        [
+            "safari 10",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                false,
+            ),
+            big_int_literal: Some(
+                false,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                false,
+            ),
+            dynamic_import_in_worker: Some(
+                false,
+            ),
+            module: Some(
+                false,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                false,
+            ),
+        },
+    ),
+    (
+        [
+            "safari TP",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                true,
+            ),
+            big_int_literal: Some(
+                true,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                true,
+            ),
+            dynamic_import_in_worker: Some(
+                true,
+            ),
+            module: Some(
+                true,
+            ),
+            optional_chaining: Some(
+                true,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                true,
+            ),
+        },
+    ),
+    (
+        [
+            "safari 11",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                false,
+            ),
+            big_int_literal: Some(
+                false,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                false,
+            ),
+            dynamic_import_in_worker: Some(
+                false,
+            ),
+            module: Some(
+                true,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                true,
+            ),
+        },
+    ),
+    (
+        [
+            "safari 12.0",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                false,
+            ),
+            big_int_literal: Some(
+                false,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                true,
+            ),
+            dynamic_import_in_worker: Some(
+                true,
+            ),
+            module: Some(
+                true,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                true,
+            ),
+        },
+    ),
+    (
+        [
+            "safari 12.1",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                true,
+            ),
+            big_int_literal: Some(
+                false,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                true,
+            ),
+            dynamic_import_in_worker: Some(
+                true,
+            ),
+            module: Some(
+                true,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                true,
+            ),
+        },
+    ),
+    (
+        [
+            "safari 13",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                true,
+            ),
+            big_int_literal: Some(
+                false,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                true,
+            ),
+            dynamic_import_in_worker: Some(
+                true,
+            ),
+            module: Some(
+                true,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                true,
+            ),
+        },
+    ),
+    (
+        [
+            "ios_saf 12.0-12.1",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                false,
+            ),
+            big_int_literal: Some(
+                false,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                true,
+            ),
+            dynamic_import_in_worker: Some(
+                true,
+            ),
+            module: Some(
+                true,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                true,
+            ),
+        },
+    ),
+    (
+        [
+            "samsung 4",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                false,
+            ),
+            big_int_literal: Some(
+                false,
+            ),
+            const: Some(
+                false,
+            ),
+            arrow_function: Some(
+                false,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                false,
+            ),
+            dynamic_import: Some(
+                false,
+            ),
+            dynamic_import_in_worker: Some(
+                false,
+            ),
+            module: Some(
+                false,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                false,
+            ),
+        },
+    ),
+    (
+        [
+            "samsung 9.2",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                false,
+            ),
+            big_int_literal: Some(
+                true,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                true,
+            ),
+            dynamic_import_in_worker: Some(
+                true,
+            ),
+            module: Some(
+                true,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                true,
+            ),
+        },
+    ),
+    (
+        [
+            "samsung 11.1-11.2",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                true,
+            ),
+            big_int_literal: Some(
+                true,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                true,
+            ),
+            dynamic_import_in_worker: Some(
+                true,
+            ),
+            module: Some(
+                true,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                true,
+            ),
+        },
+    ),
+    (
+        [
+            "op_mini all",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                false,
+            ),
+            big_int_literal: Some(
+                false,
+            ),
+            const: Some(
+                false,
+            ),
+            arrow_function: Some(
+                false,
+            ),
+            for_of: Some(
+                false,
+            ),
+            destructuring: Some(
+                false,
+            ),
+            dynamic_import: Some(
+                false,
+            ),
+            dynamic_import_in_worker: Some(
+                false,
+            ),
+            module: Some(
+                false,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                false,
+            ),
+            async_function: Some(
+                false,
+            ),
+        },
+    ),
+    (
+        [
+            "bb 10",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                false,
+            ),
+            big_int_literal: Some(
+                false,
+            ),
+            const: Some(
+                false,
+            ),
+            arrow_function: Some(
+                false,
+            ),
+            for_of: Some(
+                false,
+            ),
+            destructuring: Some(
+                false,
+            ),
+            dynamic_import: Some(
+                false,
+            ),
+            dynamic_import_in_worker: Some(
+                false,
+            ),
+            module: Some(
+                false,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                false,
+            ),
+            async_function: Some(
+                false,
+            ),
+        },
+    ),
+    (
+        [
+            "node 0.10.0",
+        ],
+        TargetProperties {
+            web: Some(
+                false,
+            ),
+            browser: Some(
+                false,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                true,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                true,
+            ),
+            node_builtins: Some(
+                true,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                false,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                false,
+            ),
+            global: Some(
+                true,
+            ),
+            global_this: Some(
+                false,
+            ),
+            big_int_literal: Some(
+                false,
+            ),
+            const: Some(
+                false,
+            ),
+            arrow_function: Some(
+                false,
+            ),
+            for_of: Some(
+                false,
+            ),
+            destructuring: Some(
+                false,
+            ),
+            dynamic_import: Some(
+                false,
+            ),
+            dynamic_import_in_worker: Some(
+                false,
+            ),
+            module: Some(
+                false,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                false,
+            ),
+            async_function: Some(
+                false,
+            ),
+        },
+    ),
+    (
+        [
+            "node 0.12.0",
+        ],
+        TargetProperties {
+            web: Some(
+                false,
+            ),
+            browser: Some(
+                false,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                true,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                true,
+            ),
+            node_builtins: Some(
+                true,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                false,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                false,
+            ),
+            global: Some(
+                true,
+            ),
+            global_this: Some(
+                false,
+            ),
+            big_int_literal: Some(
+                false,
+            ),
+            const: Some(
+                false,
+            ),
+            arrow_function: Some(
+                false,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                false,
+            ),
+            dynamic_import: Some(
+                false,
+            ),
+            dynamic_import_in_worker: Some(
+                false,
+            ),
+            module: Some(
+                false,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                false,
+            ),
+            async_function: Some(
+                false,
+            ),
+        },
+    ),
+    (
+        [
+            "node 10.0.0",
+        ],
+        TargetProperties {
+            web: Some(
+                false,
+            ),
+            browser: Some(
+                false,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                true,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                true,
+            ),
+            node_builtins: Some(
+                true,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                false,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                false,
+            ),
+            global: Some(
+                true,
+            ),
+            global_this: Some(
+                false,
+            ),
+            big_int_literal: Some(
+                false,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                false,
+            ),
+            dynamic_import_in_worker: Some(
+                false,
+            ),
+            module: Some(
+                false,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                true,
+            ),
+        },
+    ),
+    (
+        [
+            "node 10.17.0",
+        ],
+        TargetProperties {
+            web: Some(
+                false,
+            ),
+            browser: Some(
+                false,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                true,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                true,
+            ),
+            node_builtins: Some(
+                true,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                false,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                false,
+            ),
+            global: Some(
+                true,
+            ),
+            global_this: Some(
+                false,
+            ),
+            big_int_literal: Some(
+                true,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                false,
+            ),
+            dynamic_import_in_worker: Some(
+                false,
+            ),
+            module: Some(
+                false,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                true,
+            ),
+        },
+    ),
+    (
+        [
+            "node 12.19.0",
+        ],
+        TargetProperties {
+            web: Some(
+                false,
+            ),
+            browser: Some(
+                false,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                true,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                true,
+            ),
+            node_builtins: Some(
+                true,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                false,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                false,
+            ),
+            global: Some(
+                true,
+            ),
+            global_this: Some(
+                true,
+            ),
+            big_int_literal: Some(
+                true,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                true,
+            ),
+            dynamic_import_in_worker: Some(
+                false,
+            ),
+            module: Some(
+                true,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                true,
+            ),
+        },
+    ),
+    (
+        [
+            "and_uc 12.12",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                false,
+            ),
+            big_int_literal: Some(
+                false,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                false,
+            ),
+            destructuring: Some(
+                false,
+            ),
+            dynamic_import: Some(
+                false,
+            ),
+            dynamic_import_in_worker: Some(
+                false,
+            ),
+            module: Some(
+                false,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                false,
+            ),
+        },
+    ),
+    (
+        [
+            "and_qq 10.4",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                false,
+            ),
+            big_int_literal: Some(
+                false,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                false,
+            ),
+            destructuring: Some(
+                false,
+            ),
+            dynamic_import: Some(
+                true,
+            ),
+            dynamic_import_in_worker: Some(
+                true,
+            ),
+            module: Some(
+                true,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                false,
+            ),
+        },
+    ),
+    (
+        [
+            "kaios 2.5",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                false,
+            ),
+            big_int_literal: Some(
+                false,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                false,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                false,
+            ),
+            dynamic_import_in_worker: Some(
+                false,
+            ),
+            module: Some(
+                false,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                false,
+            ),
+        },
+    ),
+    (
+        [
+            "baidu 7.12",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                false,
+            ),
+            big_int_literal: Some(
+                false,
+            ),
+            const: Some(
+                false,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                false,
+            ),
+            destructuring: Some(
+                false,
+            ),
+            dynamic_import: Some(
+                false,
+            ),
+            dynamic_import_in_worker: Some(
+                false,
+            ),
+            module: Some(
+                false,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                false,
+            ),
+        },
+    ),
+    (
+        [
+            "firefox 80",
+            "chrome 80",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                true,
+            ),
+            big_int_literal: Some(
+                true,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                true,
+            ),
+            dynamic_import_in_worker: Some(
+                true,
+            ),
+            module: Some(
+                true,
+            ),
+            optional_chaining: Some(
+                true,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                true,
+            ),
+        },
+    ),
+    (
+        [
+            "chrome 80",
+            "node 12.19.0",
+        ],
+        TargetProperties {
+            web: None,
+            browser: None,
+            webworker: Some(
+                false,
+            ),
+            node: None,
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: None,
+            node_builtins: None,
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: None,
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: None,
+            global: None,
+            global_this: Some(
+                true,
+            ),
+            big_int_literal: Some(
+                true,
+            ),
+            const: Some(
+                true,
+            ),
+            arrow_function: Some(
+                true,
+            ),
+            for_of: Some(
+                true,
+            ),
+            destructuring: Some(
+                true,
+            ),
+            dynamic_import: Some(
+                true,
+            ),
+            dynamic_import_in_worker: Some(
+                false,
+            ),
+            module: Some(
+                true,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                true,
+            ),
+            async_function: Some(
+                true,
+            ),
+        },
+    ),
+    (
+        [
+            "unknown 50",
+        ],
+        TargetProperties {
+            web: Some(
+                true,
+            ),
+            browser: Some(
+                true,
+            ),
+            webworker: Some(
+                false,
+            ),
+            node: Some(
+                false,
+            ),
+            electron: Some(
+                false,
+            ),
+            nwjs: Some(
+                false,
+            ),
+            electron_main: None,
+            electron_preload: None,
+            electron_renderer: None,
+            require: Some(
+                false,
+            ),
+            node_builtins: Some(
+                false,
+            ),
+            node_prefix_for_core_modules: Some(
+                false,
+            ),
+            document: Some(
+                true,
+            ),
+            import_scripts: Some(
+                false,
+            ),
+            import_scripts_in_worker: Some(
+                true,
+            ),
+            fetch_wasm: Some(
+                true,
+            ),
+            global: Some(
+                false,
+            ),
+            global_this: Some(
+                false,
+            ),
+            big_int_literal: Some(
+                false,
+            ),
+            const: Some(
+                false,
+            ),
+            arrow_function: Some(
+                false,
+            ),
+            for_of: Some(
+                false,
+            ),
+            destructuring: Some(
+                false,
+            ),
+            dynamic_import: Some(
+                false,
+            ),
+            dynamic_import_in_worker: Some(
+                false,
+            ),
+            module: Some(
+                false,
+            ),
+            optional_chaining: Some(
+                false,
+            ),
+            template_literal: Some(
+                false,
+            ),
+            async_function: Some(
+                false,
+            ),
+        },
+    ),
+]

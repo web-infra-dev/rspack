@@ -1,4 +1,3 @@
-mod as_attr;
 mod basic;
 mod hashable;
 mod omit_bounds;

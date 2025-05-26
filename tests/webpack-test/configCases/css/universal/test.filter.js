@@ -4,4 +4,4 @@
 // };
 
 // For the selected environment is no default ESM chunk format available
-module.exports = () => false;
+module.exports = () => "FIXME: panic ' invalid wasm loading type: universal'";

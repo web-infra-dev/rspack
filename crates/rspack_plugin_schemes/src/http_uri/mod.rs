@@ -4,7 +4,7 @@ mod lockfile;
 use std::{fmt::Debug, sync::Arc};
 
 use async_trait::async_trait;
-use http_cache::{fetch_content, FetchResultType};
+use http_cache::{fetch_content, ContentFetchResult, FetchResultType};
 pub use http_cache::{HttpClient, HttpResponse};
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -13,7 +13,7 @@ use rspack_core::{
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveInScheme,
   NormalModuleReadResource, Plugin, PluginContext, ResourceData, Scheme,
 };
-use rspack_error::{AnyhowResultToRspackResultExt, Result};
+use rspack_error::{miette, AnyhowResultToRspackResultExt, Result};
 use rspack_fs::WritableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::{AssetCondition, AssetConditions};
@@ -27,7 +27,21 @@ static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
 pub struct HttpUriPlugin {
   options: HttpUriPluginOptions,
 }
-
+// recursively handle http redirect
+async fn resolve_content(
+  url: &str,
+  options: &HttpUriPluginOptions,
+) -> miette::Result<ContentFetchResult> {
+  let result = fetch_content(url, options)
+    .await
+    .to_rspack_result_from_anyhow()?;
+  match result {
+    FetchResultType::Content(content) => Ok(content),
+    FetchResultType::Redirect(redirect) => {
+      Box::pin(resolve_content(&redirect.location, options)).await
+    }
+  }
+}
 impl HttpUriPlugin {
   pub fn new(options: HttpUriPluginOptions) -> Self {
     Self::new_inner(options)
@@ -38,6 +52,10 @@ impl HttpUriPlugin {
     url: &Url,
     mimetype: Option<String>,
   ) -> Result<bool> {
+    let resolved_result = resolve_content(url.as_str(), &self.options).await?;
+
+    let context = get_resource_context(&resolved_result.entry.resolved);
+    resource_data.set_context(context);
     resource_data.set_resource(url.to_string());
     resource_data.set_path(url.origin().ascii_serialization() + url.path());
     if let Some(query) = url.query() {
@@ -136,13 +154,9 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
   if (resource_data.get_scheme().is_http() || resource_data.get_scheme().is_https())
     && EXTERNAL_HTTP_REQUEST.is_match(&resource_data.resource)
   {
-    let fetch_result = fetch_content(&resource_data.resource, &self.options)
-      .await
-      .to_rspack_result_from_anyhow()?;
+    let content_result = resolve_content(&resource_data.resource, &self.options).await?;
 
-    if let FetchResultType::Content(content_result) = fetch_result {
-      return Ok(Some(Content::from(content_result.content().to_vec())));
-    }
+    return Ok(Some(Content::from(content_result.content().to_vec())));
   }
   Ok(None)
 }
@@ -203,5 +217,46 @@ impl HttpUriOptionsAllowedUris {
       AssetCondition::String(s) => s.to_string(),
       AssetCondition::Regexp(r) => r.to_source_string(),
     }
+  }
+}
+
+// align with https://github.com/webpack/webpack/blob/dec18718be5dfba28f067fb3827dd620a1f33667/lib/schemes/HttpUriPlugin.js#L1154
+// set
+fn get_resource_context(result_entry_resolved: &str) -> Option<String> {
+  // Parse the resolved URL
+  if let Ok(base_url) = Url::parse(result_entry_resolved) {
+    // Resolve the relative path "." against the base URL
+    if let Ok(resolved_url) = base_url.join(".") {
+      // Convert the resolved URL to a string
+      let mut href = resolved_url.to_string();
+
+      // Remove the trailing slash if it exists
+      if href.ends_with('/') {
+        href.pop();
+      }
+
+      // Return the context as a string
+      return Some(href);
+    }
+  }
+
+  // Return None if parsing or joining fails
+  None
+}
+#[cfg(test)]
+mod test {
+  use crate::http_uri::get_resource_context;
+
+  #[test]
+  fn test_get_resource_context() {
+    assert_eq!(
+      get_resource_context("https://www.unpkg.com/react-dom@18.3.1/index.js"),
+      Some("https://www.unpkg.com/react-dom@18.3.1".to_string())
+    );
+    assert_eq!(
+      get_resource_context("https://www.unpkg.com/react-dom@18.3.1/"),
+      Some("https://www.unpkg.com/react-dom@18.3.1".to_string())
+    );
+    // FIXME: add more test cases
   }
 }

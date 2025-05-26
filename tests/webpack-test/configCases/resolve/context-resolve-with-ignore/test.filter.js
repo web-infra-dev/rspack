@@ -1,2 +1,2 @@
-// TODO: Should create a issue for this test
-module.exports = () => { return false }
+
+module.exports = () => "TODO: suport await import with magic comments"

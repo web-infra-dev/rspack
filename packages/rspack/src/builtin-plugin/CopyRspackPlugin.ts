@@ -7,11 +7,10 @@ import {
 import { create } from "./base";
 
 export type CopyRspackPluginOptions = {
+	/** An array of objects that describe the copy operations to be performed. */
 	patterns: (
 		| string
-		| ({
-				from: string;
-		  } & Partial<RawCopyPattern>)
+		| (Pick<RawCopyPattern, "from"> & Partial<Omit<RawCopyPattern, "from">>)
 	)[];
 };
 
@@ -32,6 +31,21 @@ export const CopyRspackPlugin = create(
 			pattern.priority ??= 0;
 			pattern.globOptions ??= {};
 			pattern.copyPermissions ??= false;
+
+			const originalTransform = pattern.transform;
+			if (originalTransform) {
+				if (typeof originalTransform === "object") {
+					pattern.transform = (input, absoluteFilename) =>
+						Promise.resolve(
+							originalTransform.transformer(input, absoluteFilename)
+						) as Promise<string> | Promise<Buffer>;
+				} else {
+					pattern.transform = (input, absoluteFilename) =>
+						Promise.resolve(originalTransform(input, absoluteFilename)) as
+							| Promise<string>
+							| Promise<Buffer>;
+				}
+			}
 
 			return pattern as RawCopyPattern;
 		});

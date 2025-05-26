@@ -1,6 +1,9 @@
 use napi::{
-  bindgen_prelude::{FromNapiValue, Function, ToNapiValue, TypeName, ValidateNapiValue},
-  Env, JsObject, NapiRaw, NapiValue,
+  bindgen_prelude::{
+    FromNapiValue, Function, JsObjectValue, Object, ToNapiValue, TypeName, Undefined,
+    ValidateNapiValue,
+  },
+  Env, JsValue, Unknown,
 };
 
 use crate::RspackRegex;
@@ -19,26 +22,26 @@ impl TypeName for RspackRegex {
 
 impl FromNapiValue for RspackRegex {
   unsafe fn from_napi_value(
-    env: napi::sys::napi_env,
+    raw_env: napi::sys::napi_env,
     napi_val: napi::sys::napi_value,
   ) -> napi::Result<Self> {
-    let js_object = unsafe { JsObject::from_raw_unchecked(env, napi_val) };
+    let js_object = Object::from_raw(raw_env, napi_val);
 
-    let env = Env::from(env);
+    let env = Env::from(raw_env);
     let global = env.get_global()?;
     let object_prototype_to_string = global
-      .get_named_property_unchecked::<JsObject>("Object")?
-      .get_named_property_unchecked::<JsObject>("prototype")?
+      .get_named_property_unchecked::<Object>("Object")?
+      .get_named_property_unchecked::<Object>("prototype")?
       .get_named_property_unchecked::<Function>("toString")?;
 
-    let js_string = object_prototype_to_string
-      .apply(&js_object, env.get_undefined()?.into_unknown())?
-      // .call_without_args(Some(&js_object))?
-      .coerce_to_string()?
-      .into_utf8()?;
-    let js_object_type = js_string.as_str()?;
+    let raw_undefined = Undefined::to_napi_value(raw_env, ())?;
+    let undefined = Unknown::from_napi_value(raw_env, raw_undefined)?;
+    let js_value = object_prototype_to_string.apply(js_object, undefined)?;
+    let js_string = js_value.coerce_to_string()?;
+    let js_utf8_string = js_string.into_utf8()?;
+    let object_type = js_utf8_string.as_str()?;
 
-    if js_object_type == "[object RegExp]" {
+    if object_type == "[object RegExp]" {
       let source = js_object.get_named_property::<String>("source")?;
       let flags = js_object.get_named_property::<String>("flags")?;
 
@@ -49,7 +52,7 @@ impl FromNapiValue for RspackRegex {
         napi::Status::ObjectExpected,
         format!(
           "Expect value to be '[object RegExp]', but received {}",
-          js_object_type
+          object_type
         ),
       ))
     }

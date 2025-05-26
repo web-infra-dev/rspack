@@ -119,12 +119,31 @@ pub(crate) fn merge_loader_context(
 
   let content = match from.content {
     Either::A(_) => None,
-    Either::B(c) => Some(rspack_core::Content::from(Into::<Vec<u8>>::into(c))),
+    Either::B(c) => {
+      // perf: Ignore UTF-8 check when JavaScript passed in an UTF-8 encoded value
+      let content = if let Some(utf8_hint) = from.utf8_hint
+        && utf8_hint
+      {
+        rspack_core::Content::from(
+          // SAFETY: UTF-8 passed from JavaScript loader runner should ensure it does not pass non-UTF-8 encoded sequence when `utf_hint` is set to `true`. This invariant should be followed on the JavaScript side.
+          unsafe { String::from_utf8_unchecked(c.into()) },
+        )
+      } else {
+        rspack_core::Content::from(Into::<Vec<u8>>::into(c))
+      };
+
+      Some(content)
+    }
   };
   let source_map = from
     .source_map
     .as_ref()
-    .map(|s| rspack_core::rspack_sources::SourceMap::from_slice(s))
+    .map(|s| {
+      rspack_core::rspack_sources::SourceMap::from_json(
+        // SAFETY: `sourceMap` is serialized by JavaScript from a JSON object. This is an invariant should be followed on the JavaScript side.
+        unsafe { str::from_utf8_unchecked(s) },
+      )
+    })
     .transpose()
     .to_rspack_result()?;
   let additional_data = from.additional_data.take().map(|data| {

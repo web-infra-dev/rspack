@@ -3,7 +3,11 @@ use rspack_napi::napi::{
   bindgen_prelude::*, threadsafe_function::ThreadsafeFunctionCallMode, Result,
 };
 
-pub fn callbackify<R, F>(f: Function, fut: F, call_js_back: impl FnOnce() + 'static) -> Result<()>
+pub fn callbackify<R, F>(
+  f: Function<'static>,
+  fut: F,
+  call_js_back: impl FnOnce() + 'static,
+) -> Result<()>
 where
   R: 'static + ToNapiValue,
   F: 'static + Send + Future<Output = Result<R>>,

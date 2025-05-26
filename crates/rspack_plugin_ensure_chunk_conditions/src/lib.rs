@@ -2,6 +2,7 @@ use rspack_core::{Compilation, CompilationOptimizeChunks, Logger, Plugin, Plugin
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use tracing::info;
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -36,9 +37,18 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
   let mut target_module_chunks = HashMap::default();
   let mut visited_chunk_group_keys = HashSet::default();
+
+  // The following algorithm has high risk of performance problem, cause it's complexity is N(adjust_chunk_number) * N(adjust_module_number) * N(chunk_group_number) * N(chunk_in_chunk_group_number)
+  // this is used to calculate the complexity of the adjust_chunk operation
+  let mut adjust_chunk_size: u64 = 0;
+  let mut adjust_module_size: u64 = 0;
+  let mut adjust_chunk_group_size: u64 = 0;
+  let mut adjust_chunk_in_chunk_group_size: u64 = 0;
   for (module_id, chunk_keys) in &source_module_chunks {
+    adjust_module_size += 1;
     let mut target_chunks = HashSet::default();
     for chunk_key in chunk_keys {
+      adjust_chunk_size += 1;
       if let Some(chunk) = compilation.chunk_by_ukey.get(chunk_key) {
         let mut chunk_group_keys = chunk.groups().iter().collect::<Vec<_>>();
         visited_chunk_group_keys.clear();
@@ -48,7 +58,9 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           }
           visited_chunk_group_keys.insert(chunk_group_key);
           if let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group_key) {
+            adjust_chunk_group_size += 1;
             for chunk in &chunk_group.chunks {
+              adjust_chunk_in_chunk_group_size += 1;
               if let Some(module) = compilation
                 .get_module_graph()
                 .module_by_identifier(module_id)
@@ -77,7 +89,14 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     }
     target_module_chunks.insert(*module_id, target_chunks);
   }
+  info!(
+    name:"ensure_chunk_conditions.complexity",
+    adjust_chunk_size = adjust_chunk_size,
+    adjust_module_size = adjust_module_size,
+    adjust_chunk_group_size = adjust_chunk_group_size,
+    adjust_chunk_in_chunk_group_size = adjust_chunk_in_chunk_group_size,
 
+  );
   let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
   for (module_id, chunks) in source_module_chunks {
     for chunk in chunks {

@@ -142,8 +142,8 @@ type LazyCompilationOptions =
     };
 ```
 
-:::Tip
-[参考指南](/guide/features/lazy-compilation)来让你快速上手。
+:::tip
+参考 [指南](/guide/features/lazy-compilation) 来快速上手。
 :::
 
 开启懒编译，这对提高多入口应用（MPA）或大型单页面应用（SPA）的 dev 启动性能会非常有帮助。例如你有二十个入口，只有访问到的入口才会进行构建，或者如果项目中存在非常多的 `import()`，每一个 `import()` 所指向的模块都只有在被真正访问到时，才进行构建。
@@ -353,8 +353,17 @@ export default {
   experiments: {
     parallelCodeSplitting: true,
   },
+  optimization: {
+    removeAvailableModules: true,
+  },
 };
 ```
+
+:::warning
+当启用 `parallelCodeSplitting` 时，请确保 `optimization.removeAvailableModules` 也被启用（从 1.3.0 版本起，这已默认启用）。
+
+这保持了与旧版本的 code splitting 算法的一致性，旧版算法在内部强制开启 `removeAvailableModules`，并且不受到 `optimization.removeAvailableModules` 控制。
+:::
 
 ## experiments.parallelLoader
 
@@ -465,7 +474,7 @@ type ExperimentCacheOptions =
 
 控制实验性的缓存行为，此配置依赖全局开启缓存，需配置 [config.cache](/config/cache) 为 `true` 才有效。
 
-:::info title="Note"
+:::info Note
 production 模式下 `config.cache` 默认值为 `false`，这会导致此配置项失效，建议直接配置 `config.cache` 为 `true`。
 :::
 

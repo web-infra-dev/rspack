@@ -1,2 +1,1 @@
-// missing manifest.json in compilation.getPath(compiler.outputPath, {}); dir
-module.exports = () => false;
+module.exports = () => "FIXME: missing manifest.json in asset files";

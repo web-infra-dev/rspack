@@ -4,11 +4,14 @@ module.exports = {
 	// 	loggingDebug: /HttpUriPlugin/
 	// },
 	experiments: {
-		// buildHttp: [
-		// 	"https://cdn.esm.sh/",
-		// 	"https://cdn.skypack.dev/",
-		// 	"https://jspm.dev/",
-		// 	/^https:\/\/unpkg\.com\/.+\?module$/
-		// ]
+
+		buildHttp: {
+			allowedUris: [
+				"https://cdn.esm.sh/",
+				"https://cdn.skypack.dev/",
+				"https://jspm.dev/",
+				/^https:\/\/unpkg\.com\/.+\?module$/
+			]
+		}
 	}
 };

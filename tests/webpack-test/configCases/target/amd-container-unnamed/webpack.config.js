@@ -15,7 +15,8 @@ module.exports = {
 		new webpack.BannerPlugin({
 			raw: true,
 			banner:
-				"function define(deps, fn) { fn(); }\nconst window = {};\nwindow['clientContainer'] = { define };\n"
+				"function define(fn) { fn(); }\nconst window = {};\nwindow['clientContainer'] = { define };\n"
 		})
 	]
 };
+

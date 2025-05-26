@@ -165,7 +165,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
     while let Some(m) = queue.pop() {
       modules.insert(m);
       let module = mg.module_by_identifier(&m).expect("should have module");
-      for (name, asset) in &module.build_info().assets {
+      for (name, asset) in module.build_info().assets.as_ref() {
         assets.insert(name.clone(), asset.clone());
       }
       for c in mg.get_outgoing_connections(&m) {

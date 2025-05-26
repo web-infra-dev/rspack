@@ -40,4 +40,3 @@ jobs:
           inactive-day: 14
           body: |
             Since the issue was labeled with `awaiting more feedback`, but no response in 14 days. This issue will be closed. Feel free to comment and reopen it if you have any further questions.
-      

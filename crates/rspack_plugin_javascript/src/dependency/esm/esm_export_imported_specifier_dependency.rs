@@ -142,8 +142,7 @@ impl ESMExportImportedSpecifierDependency {
     let exports_info = module_graph.get_exports_info(parent_module);
 
     let is_name_unused = if let Some(ref name) = name {
-      exports_info.get_used(module_graph, UsedName::Str(name.clone()), runtime)
-        == UsageState::Unused
+      exports_info.get_used(module_graph, &[name.clone()], runtime) == UsageState::Unused
     } else {
       !exports_info.is_used(module_graph, runtime)
     };
@@ -514,7 +513,7 @@ impl ESMExportImportedSpecifierDependency {
         let used_name = mg.get_exports_info(&module.identifier()).get_used_name(
           mg,
           None,
-          UsedName::Str(mode.name.expect("should have name")),
+          &[mode.name.expect("should have name")],
         );
         let key = string_of_used_name(used_name.as_ref());
 
@@ -533,7 +532,7 @@ impl ESMExportImportedSpecifierDependency {
         let used_name = mg.get_exports_info(&module.identifier()).get_used_name(
           mg,
           None,
-          UsedName::Str(mode.name.expect("should have name")),
+          &[mode.name.expect("should have name")],
         );
         let key = string_of_used_name(used_name.as_ref());
         let init_fragment = self
@@ -542,7 +541,7 @@ impl ESMExportImportedSpecifierDependency {
             "reexport default export from named module",
             key,
             &import_var,
-            ValueKey::Str("".into()),
+            ValueKey::Name,
           )
           .boxed();
         fragments.push(init_fragment);
@@ -551,7 +550,7 @@ impl ESMExportImportedSpecifierDependency {
         let used_name = mg.get_exports_info(&module.identifier()).get_used_name(
           mg,
           None,
-          UsedName::Str(mode.name.expect("should have name")),
+          &[mode.name.expect("should have name")],
         );
         let key = string_of_used_name(used_name.as_ref());
 
@@ -561,7 +560,7 @@ impl ESMExportImportedSpecifierDependency {
             "reexport module object",
             key,
             &import_var,
-            ValueKey::Str("".into()),
+            ValueKey::Name,
           )
           .boxed();
         fragments.push(init_fragment);
@@ -571,7 +570,7 @@ impl ESMExportImportedSpecifierDependency {
         let used_name = mg.get_exports_info(&module.identifier()).get_used_name(
           mg,
           None,
-          UsedName::Str(mode.name.expect("should have name")),
+          &[mode.name.expect("should have name")],
         );
         let key = string_of_used_name(used_name.as_ref());
         self.get_reexport_fake_namespace_object_fragments(ctxt, key, &import_var, mode.fake_type);
@@ -580,7 +579,7 @@ impl ESMExportImportedSpecifierDependency {
         let used_name = mg.get_exports_info(&module.identifier()).get_used_name(
           mg,
           None,
-          UsedName::Str(mode.name.expect("should have name")),
+          &[mode.name.expect("should have name")],
         );
         let key = string_of_used_name(used_name.as_ref());
 
@@ -590,7 +589,7 @@ impl ESMExportImportedSpecifierDependency {
             "reexport non-default export from non-ESM",
             key,
             "undefined",
-            ValueKey::Str("".into()),
+            ValueKey::Name,
           )
           .boxed();
         fragments.push(init_fragment);
@@ -612,11 +611,9 @@ impl ESMExportImportedSpecifierDependency {
             continue;
           }
 
-          let used_name = mg.get_exports_info(&module_identifier).get_used_name(
-            mg,
-            None,
-            UsedName::Str(name.clone()),
-          );
+          let used_name =
+            mg.get_exports_info(&module_identifier)
+              .get_used_name(mg, None, &[name.clone()]);
           let key = string_of_used_name(used_name.as_ref());
 
           if checked {
@@ -650,9 +647,9 @@ impl ESMExportImportedSpecifierDependency {
               runtime_condition,
             )));
           } else {
-            let used_name =
-              mg.get_exports_info(imported_module)
-                .get_used_name(mg, None, UsedName::Vec(ids));
+            let used_name = mg
+              .get_exports_info(imported_module)
+              .get_used_name(mg, None, &ids);
             let init_fragment = self
               .get_reexport_fragment(ctxt, "reexport safe", key, &import_var, used_name.into())
               .boxed();
@@ -801,8 +798,7 @@ impl ESMExportImportedSpecifierDependency {
     match value_key {
       ValueKey::False => "/* unused export */ undefined".to_string(),
       ValueKey::Null => format!("{}_default.a", name),
-      ValueKey::Str(str) if str.is_empty() => name,
-      ValueKey::Str(str) => format!("{}{}", name, property_access(vec![str], 0)),
+      ValueKey::Name => name,
       ValueKey::Vec(value_key) => format!("{}{}", name, property_access(value_key, 0)),
     }
   }
@@ -1367,15 +1363,14 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
 enum ValueKey {
   False,
   Null,
-  Str(Atom),
+  Name,
   Vec(Vec<Atom>),
 }
 
 impl From<Option<UsedName>> for ValueKey {
   fn from(value: Option<UsedName>) -> Self {
     match value {
-      Some(UsedName::Str(atom)) => Self::Str(atom),
-      Some(UsedName::Vec(atoms)) => Self::Vec(atoms),
+      Some(UsedName::Normal(atoms)) => Self::Vec(atoms),
       None => Self::False,
     }
   }

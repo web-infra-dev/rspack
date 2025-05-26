@@ -1,2 +1,2 @@
-// TODO: Should create a issue for this test
-module.exports = () => { return false }
+const { FilteredStatus } = require("../../../lib/util/filterUtil");
+module.exports = () => { return [FilteredStatus.PARTIAL_PASS, "TODO: support DefinePlugin.runtimeValue"] }

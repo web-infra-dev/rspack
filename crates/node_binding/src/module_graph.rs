@@ -73,12 +73,12 @@ impl JsModuleGraph {
   }
 
   #[napi(ts_args_type = "module: Module, runtime: string | string[]")]
-  pub fn get_used_exports(
+  pub fn get_used_exports<'a>(
     &self,
-    env: Env,
+    env: &'a Env,
     js_module: ModuleObjectRef,
     js_runtime: Either<String, Vec<String>>,
-  ) -> napi::Result<Option<Either<bool, Vec<JsString>>>> {
+  ) -> napi::Result<Option<Either<bool, Vec<JsString<'a>>>>> {
     let (_, module_graph) = self.as_ref()?;
 
     let mut runtime: FxHashSet<Arc<str>> = FxHashSet::default();

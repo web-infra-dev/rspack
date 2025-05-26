@@ -8,7 +8,7 @@ use std::{
 };
 
 use napi::{
-  bindgen_prelude::{check_status, ToNapiValue},
+  bindgen_prelude::{check_status, FromNapiValue, ToNapiValue},
   sys::{self, napi_call_threadsafe_function, napi_env, napi_ref, napi_threadsafe_function__},
   Env, Result,
 };
@@ -37,7 +37,7 @@ pub struct ThreadsafeOneShotRef {
 }
 
 impl ThreadsafeOneShotRef {
-  pub fn new<T: ToNapiValue + 'static>(env: napi_env, val: T) -> Result<Self> {
+  pub fn new<T: ToNapiValue>(env: napi_env, val: T) -> Result<Self> {
     let napi_value = unsafe { ToNapiValue::to_napi_value(env, val)? };
 
     let mut napi_ref = ptr::null_mut();
@@ -145,5 +145,20 @@ impl ToNapiValue for &mut ThreadsafeOneShotRef {
       "Failed to get reference value"
     )?;
     Ok(result)
+  }
+}
+
+impl ToNapiValue for ThreadsafeOneShotRef {
+  unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
+    unsafe { ToNapiValue::to_napi_value(env, &val) }
+  }
+}
+
+impl FromNapiValue for ThreadsafeOneShotRef {
+  unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
+    let mut napi_ref = ptr::null_mut();
+    check_status!(unsafe { sys::napi_create_reference(env, napi_val, 1, &mut napi_ref) })?;
+
+    Self::from_napi_ref(env, napi_ref)
   }
 }

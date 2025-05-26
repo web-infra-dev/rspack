@@ -11,7 +11,7 @@ pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{Mode, RunnerContext};
-use rspack_error::{Diagnostic, Result};
+use rspack_error::{miette, Diagnostic, Result};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use swc_config::{config_types::MergingOption, merge::Merge};
@@ -86,13 +86,23 @@ impl SwcLoader {
 
     let source = content.into_string_lossy();
 
-    let TransformOutput { code, map } = javascript_compiler.transform(
+    let TransformOutput {
+      code,
+      map,
+      diagnostics,
+    } = javascript_compiler.transform(
       source,
       Some(filename),
       swc_options,
       Some(loader_context.context.module_source_map_kind),
       |_| transformer::transform(&self.options_with_additional.rspack_experiments),
     )?;
+
+    for diagnostic in diagnostics {
+      loader_context.emit_diagnostic(
+        miette::miette! { severity = miette::Severity::Warning, "{}", diagnostic }.into(),
+      );
+    }
 
     loader_context.finish_with((code, map));
 

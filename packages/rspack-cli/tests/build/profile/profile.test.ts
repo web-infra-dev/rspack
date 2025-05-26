@@ -3,20 +3,19 @@ import { resolve } from "path";
 import { run } from "../../utils/test-utils";
 
 const defaultTracePath = "./trace.json";
-const customTracePath = "./custom/trace";
+const customTracePath = "./custom/trace.json";
 
 function findDefaultOutputDirname() {
 	const files = fs.readdirSync(__dirname);
 	const file = files.filter(file => file.startsWith(".rspack-profile"));
-	expect(file.length).toBe(1);
-	return resolve(__dirname, file[0]);
+	return file.length > 0 ? resolve(__dirname, file[0]) : null;
 }
 
 describe("profile", () => {
 	afterEach(() => {
 		const dirname = findDefaultOutputDirname();
 		[dirname, resolve(__dirname, customTracePath)].forEach(p => {
-			if (fs.existsSync(p)) {
+			if (p && fs.existsSync(p)) {
 				fs.rmSync(p, { recursive: true });
 			}
 		});

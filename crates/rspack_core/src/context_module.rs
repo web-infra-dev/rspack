@@ -31,8 +31,8 @@ use crate::{
   CodeGenerationResult, Compilation, ConcatenationScope, ContextElementDependency,
   DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyLocation,
   DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
-  ImportAttributes, LibIdentOptions, Module, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleType,
-  RealDependencyLocation, Resolve, RuntimeGlobals, RuntimeSpec, SourceType,
+  ImportAttributes, LibIdentOptions, Module, ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer,
+  ModuleType, RealDependencyLocation, Resolve, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 static WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -202,6 +202,10 @@ impl ContextModule {
 
   pub fn get_module_id<'a>(&self, module_ids: &'a ModuleIdsArtifact) -> &'a ModuleId {
     ChunkGraph::get_module_id(module_ids, self.identifier).expect("module id not found")
+  }
+
+  pub fn get_context_options(&self) -> &ContextOptions {
+    &self.options.context_options
   }
 
   fn get_fake_map(
@@ -853,7 +857,7 @@ impl Module for ContextModule {
     &ModuleType::JsAuto
   }
 
-  fn source_types(&self) -> &[SourceType] {
+  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     &[SourceType::JavaScript]
   }
 

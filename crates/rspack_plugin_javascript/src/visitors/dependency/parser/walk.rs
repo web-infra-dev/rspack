@@ -1111,15 +1111,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_assignment_expression(&mut self, expr: &AssignExpr) {
-    // FIXME: should align to webpack
-    if self
-      .plugin_drive
-      .clone()
-      .assign(self, expr)
-      .unwrap_or_default()
-    {
-      // empty
-    } else if let Some(ident) = expr.left.as_ident() {
+    if let Some(ident) = expr.left.as_ident() {
       if let Some(rename_identifier) = self.get_rename_identifier(&expr.right)
         && let drive = self.plugin_drive.clone()
         && rename_identifier
@@ -1149,18 +1141,52 @@ impl JavascriptParser<'_> {
       self.enter_pattern(
         Cow::Owned(warp_ident_to_pat(ident.clone().into())),
         |this, ident| {
-          // TODO: if (!this.callHooksForName(this.hooks.assign, name, expression)) {
-          // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_identifier`
-          this.walk_identifier(ident);
+          if !ident
+            .sym
+            .call_hooks_name(this, |this, for_name| {
+              this.plugin_drive.clone().assign(this, expr, Some(for_name))
+            })
+            .unwrap_or_default()
+          {
+            // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_identifier`
+            this.walk_identifier(ident);
+          }
         },
       );
     } else if let Some(pat) = expr.left.as_pat() {
       self.walk_expression(&expr.right);
-      self.enter_assign_target_pattern(Cow::Borrowed(pat), |this, ident| {
-        // TODO: if (!this.callHooksForName(this.hooks.assign, name, expression)) {
-        this.define_variable(ident.sym.to_string());
-      });
+      self.enter_assign_target_pattern(
+        Cow::Borrowed(pat),
+        |this: &mut JavascriptParser<'_>, ident| {
+          if !ident
+            .sym
+            .call_hooks_name(this, |this, for_name| {
+              this.plugin_drive.clone().assign(this, expr, Some(for_name))
+            })
+            .unwrap_or_default()
+          {
+            this.define_variable(ident.sym.to_string());
+          }
+        },
+      );
       self.walk_assign_target_pattern(pat);
+    } else if let Some(SimpleAssignTarget::Member(member)) = expr.left.as_simple() {
+      let expr_name = self.get_member_expression_info(member, AllowedMemberTypes::Expression);
+      if expr_name.is_some()
+        && self
+          .plugin_drive
+          .clone()
+          // TODO: assign_member_chain
+          .assign(self, expr, None)
+          .unwrap_or_default()
+      {
+        return;
+      }
+      self.walk_expression(&expr.right);
+      match &expr.left {
+        AssignTarget::Simple(simple) => self.walk_simple_assign_target(simple),
+        AssignTarget::Pat(pat) => self.walk_assign_target_pattern(pat),
+      }
     } else {
       self.walk_expression(&expr.right);
       match &expr.left {
@@ -1402,6 +1428,15 @@ impl JavascriptParser<'_> {
               this.walk_prop_name(&ctor.key);
             }
 
+            if this
+              .plugin_drive
+              .clone()
+              .class_body_value(this, class_element, ctor.span(), class_decl_or_expr)
+              .unwrap_or_default()
+            {
+              continue;
+            }
+
             let was_top_level = this.top_level_scope;
             this.top_level_scope = TopLevelScope::False;
 
@@ -1414,7 +1449,6 @@ impl JavascriptParser<'_> {
                 this.walk_pattern(&param)
               }
 
-              // TODO: `hooks.body_value`;
               if let Some(body) = &ctor.body {
                 this.detect_mode(&body.stmts);
                 let prev = this.prev_statement;

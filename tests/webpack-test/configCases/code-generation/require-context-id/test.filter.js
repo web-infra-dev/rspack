@@ -1,3 +1,1 @@
-// `optimization.moduleIds = "hashed"` is deprecated in webpack.
-// So we do not have to implement in Rspack.
-module.exports = () => { return -1 }
+module.exports = () => "NOPLAN: optimization.moduleIds = 'hashed' is deprecated in webpack" 

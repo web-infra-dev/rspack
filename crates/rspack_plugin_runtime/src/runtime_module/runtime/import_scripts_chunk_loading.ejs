@@ -10,9 +10,11 @@ var installChunk = <%- basicFunction("data") %> {
     while (chunkIds.length) installedChunks[chunkIds.pop()] = 1;
     parentChunkLoadingFunction(data);
 };
+<% if (_with_loading) { %>
 <%- ENSURE_CHUNK_HANDLERS %>.i = <%- basicFunction("chunkId, promises") %> {
     <%- _body %>
 };
+<% } %>
 var chunkLoadingGlobal = <%- _chunk_loading_global_expr %> = <%- _chunk_loading_global_expr %> || [];
 var parentChunkLoadingFunction = chunkLoadingGlobal.push.bind(chunkLoadingGlobal);
 chunkLoadingGlobal.push = installChunk;

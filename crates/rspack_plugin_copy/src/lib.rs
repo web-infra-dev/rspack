@@ -74,13 +74,6 @@ impl Display for ToType {
 pub type TransformerFn =
   Box<dyn for<'a> Fn(Vec<u8>, &'a str) -> BoxFuture<'a, Result<RawSource>> + Sync + Send>;
 
-pub type TransformerOpts = (TransformerFn, Option<bool>);
-
-pub enum Transformer {
-  Fn(TransformerFn),
-  Opt(TransformerOpts),
-}
-
 pub struct ToFnCtx<'a> {
   pub context: &'a Utf8Path,
   pub absolute_filename: &'a Utf8Path,
@@ -107,7 +100,8 @@ pub struct CopyPattern {
   pub glob_options: CopyGlobOptions,
   pub copy_permissions: Option<bool>,
   #[debug(skip)]
-  pub transform: Option<Transformer>,
+  pub transform_fn: Option<TransformerFn>,
+  pub cache: Option<bool>,
 }
 
 #[derive(Debug, Clone)]
@@ -298,34 +292,20 @@ impl CopyRspackPlugin {
 
     let mut source = RawSource::from(source_vec.clone());
 
-    if let Some(transform) = &pattern.transform {
+    if let Some(transformer) = &pattern.transform_fn {
       logger.debug(format!(
         "transforming content for '{}'...",
         absolute_filename
       ));
-      match transform {
-        Transformer::Fn(transformer) => {
-          handle_transform(
-            transformer,
-            source_vec,
-            absolute_filename.clone(),
-            &mut source,
-            diagnostics,
-          )
-          .await
-        }
-        // TODO: support cache in the future.
-        Transformer::Opt((transformer, _)) => {
-          handle_transform(
-            transformer,
-            source_vec,
-            absolute_filename.clone(),
-            &mut source,
-            diagnostics,
-          )
-          .await
-        }
-      }
+      // TODO: support cache in the future.
+      handle_transform(
+        transformer,
+        source_vec,
+        absolute_filename.clone(),
+        &mut source,
+        diagnostics,
+      )
+      .await
     }
 
     let filename = if matches!(&to_type, ToType::Template) {

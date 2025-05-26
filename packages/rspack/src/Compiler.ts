@@ -62,6 +62,7 @@ import {
 	createJavaScriptModulesHooksRegisters,
 	createNormalModuleFactoryHooksRegisters
 } from "./taps";
+import { TraceHookPlugin } from "./trace/traceHookPlugin";
 import type {
 	InputFileSystem,
 	IntermediateFileSystem,
@@ -248,6 +249,7 @@ class Compiler {
 		);
 		new JsLoaderRspackPlugin(this).apply(this);
 		new ExecuteModulePlugin().apply(this);
+		new TraceHookPlugin().apply(this);
 
 		// this.hooks.shutdown.tap("rspack:cleanup", () => {
 		// 	// Delayed rspack cleanup to the next tick.

@@ -6,7 +6,7 @@ use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
 #[napi(object, object_to_js = false)]
-pub struct RawContextReplacementPluginOptions {
+pub struct RawContextReplacementPluginOptions<'a> {
   #[napi(ts_type = "RegExp")]
   pub resource_reg_exp: RspackRegex,
   pub new_content_resource: Option<String>,
@@ -14,11 +14,11 @@ pub struct RawContextReplacementPluginOptions {
   #[napi(ts_type = "RegExp")]
   pub new_content_reg_exp: Option<RspackRegex>,
   #[napi(ts_type = "Record<string, string>")]
-  pub new_content_create_context_map: Option<Object>,
+  pub new_content_create_context_map: Option<Object<'a>>,
   // new_content_callback
 }
 
-impl TryFrom<RawContextReplacementPluginOptions> for ContextReplacementPluginOptions {
+impl<'a> TryFrom<RawContextReplacementPluginOptions<'a>> for ContextReplacementPluginOptions {
   type Error = Error;
 
   fn try_from(val: RawContextReplacementPluginOptions) -> Result<Self, Self::Error> {

@@ -28,12 +28,12 @@ use serde::Serialize;
 
 use crate::{
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
-  AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BoxModuleDependency, ChunkGraph,
-  ChunkUkey, CodeGenerationResult, Compilation, CompilationAsset, CompilationId, CompilerId,
-  CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule, DependenciesBlock,
-  DependencyId, ExportInfoProvided, ExternalModule, ModuleGraph, ModuleLayer, ModuleType,
-  NormalModule, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver,
-  SourceType,
+  AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
+  ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation, CompilationAsset, CompilationId,
+  CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
+  DependenciesBlock, DependencyId, ExportInfoProvided, ExternalModule, ModuleGraph, ModuleLayer,
+  ModuleType, NormalModule, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
+  SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext {
@@ -67,7 +67,7 @@ pub struct BuildInfo {
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<HashSet<Atom>>,
   pub module_concatenation_bailout: Option<String>,
-  pub assets: HashMap<String, CompilationAsset>,
+  pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
 }
 
@@ -231,7 +231,7 @@ pub trait Module:
   fn module_type(&self) -> &ModuleType;
 
   /// Defines what kind of code generation results this module can generate.
-  fn source_types(&self) -> &[SourceType];
+  fn source_types(&self, module_graph: &ModuleGraph) -> &[SourceType];
 
   /// The source of the module. This could be optional, modules like the `NormalModule` can have the corresponding source.
   /// However, modules that is created from "nowhere" (e.g. `ExternalModule` and `MissingModule`) does not have its source.
@@ -627,8 +627,8 @@ mod test {
   use super::Module;
   use crate::{
     AsyncDependenciesBlockIdentifier, BuildContext, BuildResult, CodeGenerationResult, Compilation,
-    ConcatenationScope, Context, DependenciesBlock, DependencyId, ModuleExt, ModuleType,
-    RuntimeSpec, SourceType,
+    ConcatenationScope, Context, DependenciesBlock, DependencyId, ModuleExt, ModuleGraph,
+    ModuleType, RuntimeSpec, SourceType,
   };
 
   #[cacheable]
@@ -678,7 +678,7 @@ mod test {
           unreachable!()
         }
 
-        fn source_types(&self) -> &[SourceType] {
+        fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
           unreachable!()
         }
 

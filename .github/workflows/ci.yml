@@ -2,7 +2,7 @@ name: CI
 
 on:
   merge_group:
-    types: [ checks_requested ]
+    types: [checks_requested]
   workflow_dispatch:
     inputs:
       debug_enabled:
@@ -11,7 +11,7 @@ on:
         required: false
         default: false
   pull_request:
-    types: [ opened, synchronize ]
+    types: [opened, synchronize]
   push:
     branches:
       - main
@@ -30,7 +30,6 @@ permissions:
   issues: write
 
 jobs:
-
   check-changed:
     runs-on: ubuntu-latest
     name: Check Source Changed
@@ -53,7 +52,7 @@ jobs:
 
   test-linux:
     name: Test Linux
-    needs: [ check-changed ]
+    needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
@@ -64,7 +63,7 @@ jobs:
 
   test-windows:
     name: Test Windows
-    needs: [ check-changed ]
+    needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
@@ -75,7 +74,7 @@ jobs:
 
   test-mac:
     name: Test Mac ARM64
-    needs: [ check-changed ]
+    needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
@@ -86,7 +85,7 @@ jobs:
 
   test-wasm:
     name: Test WASM
-    needs: [  check-changed ]
+    needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
@@ -97,7 +96,7 @@ jobs:
 
   failure_notification:
     name: Failure Notification
-    needs: [ test-linux, test-windows, test-mac ]
+    needs: [test-linux, test-windows, test-mac]
     if: ${{ failure() && !cancelled() && github.ref_name == 'main' && github.repository_owner == 'web-infra-dev' }}
     runs-on: ubuntu-latest
     steps:
@@ -119,7 +118,7 @@ jobs:
     # When code changed, it will check if any of the test jobs failed.
     # When *only* doc changed, it will run as success directly
     name: Test Required Check
-    needs: [ test-linux, test-windows, test-mac, check-changed ]
+    needs: [test-linux, test-windows, test-mac, check-changed]
     if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
     steps:

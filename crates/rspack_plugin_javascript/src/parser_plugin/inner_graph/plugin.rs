@@ -1,9 +1,11 @@
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 use rspack_core::{Dependency, SpanExt, UsedByExports};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
   atoms::Atom,
   common::{Mark, Span, Spanned, SyntaxContext},
-  ecma::ast::{ClassMember, DefaultDecl, ExportDefaultExpr, Expr, ModuleDecl, Pat},
+  ecma::ast::{AssignOp, ClassMember, DefaultDecl, ExportDefaultExpr, Expr, ModuleDecl, Pat},
 };
 
 use super::state::UsageCallback;
@@ -17,7 +19,7 @@ use crate::{
 
 #[derive(Hash, PartialEq, Eq, Clone, Debug)]
 pub enum InnerGraphMapSetValue {
-  TopLevel(Atom),
+  TopLevel(TopLevelSymbol),
   Str(Atom),
 }
 
@@ -35,7 +37,7 @@ impl From<InnerGraphMapUsage> for InnerGraphMapSetValue {
 impl InnerGraphMapSetValue {
   pub(crate) fn to_atom(&self) -> &Atom {
     match self {
-      InnerGraphMapSetValue::TopLevel(v) => v,
+      InnerGraphMapSetValue::TopLevel(v) => &v.name,
       InnerGraphMapSetValue::Str(v) => v,
     }
   }
@@ -51,7 +53,7 @@ pub enum InnerGraphMapValue {
 
 #[derive(PartialEq, Eq, Debug)]
 pub enum InnerGraphMapUsage {
-  TopLevel(Atom),
+  TopLevel(TopLevelSymbol),
   Value(Atom),
   True,
 }
@@ -61,15 +63,31 @@ pub struct InnerGraphPlugin {
 }
 
 pub static TOP_LEVEL_SYMBOL: &str = "inner graph top level symbol";
+static TOP_LEVEL_SYMBOL_ID: AtomicUsize = AtomicUsize::new(1);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub(crate) struct TopLevelSymbol {
+  id: usize,
   name: Atom,
 }
 
 impl TopLevelSymbol {
   pub fn new(name: Atom) -> Self {
-    Self { name }
+    Self {
+      name,
+      id: TOP_LEVEL_SYMBOL_ID.fetch_add(1, Ordering::Relaxed),
+    }
+  }
+
+  pub fn global() -> Self {
+    Self {
+      name: Atom::from(""),
+      id: 0,
+    }
+  }
+
+  fn is_global(&self) -> bool {
+    self.name.is_empty() && self.id == 0
   }
 }
 
@@ -90,7 +108,7 @@ impl InnerGraphPlugin {
       let symbol = TopLevelSymbol::downcast(tag_info.data.clone().expect("should have data"));
       let usage = parser.inner_graph.get_top_level_symbol();
       parser.inner_graph.add_usage(
-        symbol.name,
+        symbol,
         match usage {
           Some(atom) => InnerGraphMapUsage::TopLevel(atom),
           None => InnerGraphMapUsage::True,
@@ -105,9 +123,7 @@ impl InnerGraphPlugin {
       .statement_with_top_level_symbol
       .get(stmt_span)
     {
-      parser
-        .inner_graph
-        .set_top_level_symbol(Some(v.name.clone()));
+      parser.inner_graph.set_top_level_symbol(Some(v.clone()));
 
       if let Some(pure_part) = parser.inner_graph.statement_pure_part.get(stmt_span) {
         let pure_part_start = pure_part.real_lo();
@@ -136,7 +152,7 @@ impl InnerGraphPlugin {
     }
     let state: &mut super::state::InnerGraphState = &mut parser.inner_graph;
     let mut non_terminal = HashSet::from_iter(state.inner_graph.keys().cloned());
-    let mut processed: HashMap<Atom, HashSet<InnerGraphMapSetValue>> = HashMap::default();
+    let mut processed: HashMap<TopLevelSymbol, HashSet<InnerGraphMapSetValue>> = HashMap::default();
 
     while !non_terminal.is_empty() {
       let mut keys_to_remove = vec![];
@@ -201,11 +217,11 @@ impl InnerGraphPlugin {
         if is_terminal {
           keys_to_remove.push(key.clone());
           // We use `""` to represent global_key
-          if key.is_empty() {
-            let global_value = state.inner_graph.get(&Atom::from("")).cloned();
+          if key.is_global() {
+            let global_value = state.inner_graph.get(&TopLevelSymbol::global()).cloned();
             if let Some(global_value) = global_value {
               for (key, value) in state.inner_graph.iter_mut() {
-                if !key.is_empty() && value != &InnerGraphMapValue::True {
+                if !key.is_global() && value != &InnerGraphMapValue::True {
                   if global_value == InnerGraphMapValue::True {
                     *value = InnerGraphMapValue::True;
                   } else {
@@ -265,7 +281,7 @@ impl InnerGraphPlugin {
       .map(TopLevelSymbol::downcast)
       .unwrap_or_else(|| Self::tag_top_level_symbol(parser, name));
 
-    parser.inner_graph.add_usage(symbol.name, usage);
+    parser.inner_graph.add_usage(symbol, usage);
   }
 
   pub fn on_usage(parser: &mut JavascriptParser, on_usage_callback: UsageCallback) {
@@ -514,8 +530,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
       .statement_with_top_level_symbol
       .get(&stmt_span)
     {
-      let v = v.clone();
-      parser.inner_graph.set_top_level_symbol(Some(v.name));
+      parser.inner_graph.set_top_level_symbol(Some(v.clone()));
 
       if let Some(pure_part) = parser.inner_graph.statement_pure_part.get(&stmt_span) {
         let pure_part_start = pure_part.real_lo();
@@ -567,9 +582,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
       .get(&class_decl_or_expr.span())
       && is_pure_expression(super_class, self.unresolved_context, parser.comments)
     {
-      parser
-        .inner_graph
-        .set_top_level_symbol(Some(v.name.clone()));
+      parser.inner_graph.set_top_level_symbol(Some(v.clone()));
 
       let expr_span = super_class.span();
 
@@ -628,8 +641,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
       if !element.is_static()
         || is_pure_class_member(element, self.unresolved_context, parser.comments)
       {
-        let atom = v.name.clone();
-        parser.inner_graph.set_top_level_symbol(Some(atom));
+        parser.inner_graph.set_top_level_symbol(Some(v.clone()));
         if !matches!(element, ClassMember::Method(_)) && element.is_static() {
           Self::on_usage(
             parser,
@@ -666,9 +678,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
       .decl_with_top_level_symbol
       .get(&decl.span())
     {
-      parser
-        .inner_graph
-        .set_top_level_symbol(Some(v.name.clone()));
+      parser.inner_graph.set_top_level_symbol(Some(v.clone()));
 
       if parser.inner_graph.pure_declarators.contains(&decl.span) {
         // class Foo extends Bar {}
@@ -733,6 +743,22 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     for_name: &str,
   ) -> Option<bool> {
     Self::for_each_expression(parser, for_name);
+    None
+  }
+
+  fn assign(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &swc_core::ecma::ast::AssignExpr,
+    for_name: Option<&str>,
+  ) -> Option<bool> {
+    let for_name = for_name?;
+    if !parser.inner_graph.is_enabled() || for_name != TOP_LEVEL_SYMBOL {
+      return None;
+    }
+    if matches!(expr.op, AssignOp::Assign) {
+      return Some(true);
+    }
     None
   }
 

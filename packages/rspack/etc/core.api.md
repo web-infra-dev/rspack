@@ -27,7 +27,7 @@ import { EntryDependency } from '@rspack/binding';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
 import { ExternalModule } from '@rspack/binding';
-import { ExternalObject } from '@rspack/binding';
+import type { ExternalObject } from '@rspack/binding';
 import { fs } from 'fs';
 import { default as fs_2 } from 'graceful-fs';
 import { HookMap } from '@rspack/lite-tapable';
@@ -44,7 +44,7 @@ import type { JsBuildMeta } from '@rspack/binding';
 import { JsChunk } from '@rspack/binding';
 import type { JsChunkGraph } from '@rspack/binding';
 import type { JsChunkGroup } from '@rspack/binding';
-import { JsCompilation } from '@rspack/binding';
+import type { JsCompilation } from '@rspack/binding';
 import type { JsExportsInfo } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
@@ -54,7 +54,7 @@ import { JsRsdoctorChunkGraph } from '@rspack/binding';
 import { JsRsdoctorModuleGraph } from '@rspack/binding';
 import { JsRsdoctorModuleIdsPatch } from '@rspack/binding';
 import { JsRsdoctorModuleSourcesPatch } from '@rspack/binding';
-import { JsRuntimeModule } from '@rspack/binding';
+import type { JsRuntimeModule } from '@rspack/binding';
 import type { JsStats } from '@rspack/binding';
 import type { JsStatsCompilation } from '@rspack/binding';
 import type { JsStatsError } from '@rspack/binding';
@@ -84,7 +84,7 @@ import { Server as Server_2 } from 'tls';
 import { Server as Server_3 } from 'http';
 import { ServerOptions as ServerOptions_2 } from 'https';
 import { ServerResponse as ServerResponse_2 } from 'http';
-import { RawSourceMapDevToolPluginOptions as SourceMapDevToolPluginOptions } from '@rspack/binding';
+import { SourceMapDevToolPluginOptions } from '@rspack/binding';
 import sources = require('../compiled/webpack-sources');
 import { StatSyncFn } from 'fs';
 import { SyncBailHook } from '@rspack/lite-tapable';
@@ -231,6 +231,7 @@ type AssetInfo_2 = KnownAssetInfo & Record<string, any>;
 // @public
 export type AssetInlineGeneratorOptions = {
     dataUrl?: AssetGeneratorDataUrl;
+    binary?: boolean;
 };
 
 // @public
@@ -262,6 +263,7 @@ export type AssetResourceGeneratorOptions = {
     outputPath?: AssetModuleOutputPath;
     publicPath?: PublicPath;
     importMode?: AssetModuleImportMode;
+    binary?: boolean;
 };
 
 // @public (undocumented)
@@ -718,6 +720,8 @@ class ChunkGraph {
     getNumberOfEntryModules(chunk: Chunk): number;
     // (undocumented)
     getOrderedChunkModulesIterable(chunk: Chunk, compareFn: (a: Module, b: Module) => number): Iterable<Module>;
+    // (undocumented)
+    hasChunkEntryDependentChunks(chunk: Chunk): boolean;
 }
 
 // @public (undocumented)
@@ -923,7 +927,7 @@ class CodeGenerationResult {
 type CodeValue = RecursiveArrayOrRecord<CodeValuePrimitive>;
 
 // @public (undocumented)
-type CodeValuePrimitive = null | undefined | RegExp | Function | string | number | boolean | bigint | undefined;
+type CodeValuePrimitive = null | undefined | RegExp | Function | string | number | boolean | bigint;
 
 // @public (undocumented)
 interface CommonJsConfig extends BaseModuleConfig {
@@ -984,6 +988,8 @@ export class Compilation {
     // (undocumented)
     get chunks(): ReadonlySet<Chunk>;
     // (undocumented)
+    get codeGenerationResults(): binding.CodeGenerationResults;
+    // (undocumented)
     compiler: Compiler;
     // (undocumented)
     contextDependencies: {
@@ -1027,18 +1033,18 @@ export class Compilation {
     // (undocumented)
     getAsset(name: string): Readonly<Asset> | void;
     // (undocumented)
-    getAssetPath(filename: Filename, data?: PathData): string;
+    getAssetPath(filename: string, data?: PathData): string;
     // (undocumented)
-    getAssetPathWithInfo(filename: Filename, data?: PathData): binding.PathWithInfo;
+    getAssetPathWithInfo(filename: string, data?: PathData): binding.PathWithInfo;
     getAssets(): ReadonlyArray<Asset>;
     // (undocumented)
     getCache(name: string): CacheFacade_2;
     // (undocumented)
     getLogger(name: string | (() => string)): Logger_3;
     // (undocumented)
-    getPath(filename: Filename, data?: PathData): string;
+    getPath(filename: string, data?: PathData): string;
     // (undocumented)
-    getPathWithInfo(filename: Filename, data?: PathData): binding.PathWithInfo;
+    getPathWithInfo(filename: string, data?: PathData): binding.PathWithInfo;
     // (undocumented)
     getStats(): Stats;
     // (undocumented)
@@ -1617,9 +1623,7 @@ export const CopyRspackPlugin: {
 
 // @public (undocumented)
 export type CopyRspackPluginOptions = {
-    patterns: (string | ({
-        from: string;
-    } & Partial<RawCopyPattern>))[];
+    patterns: (string | (Pick<RawCopyPattern, "from"> & Partial<Omit<RawCopyPattern, "from">>))[];
 };
 
 // @public (undocumented)
@@ -1642,10 +1646,29 @@ export type CssAutoGeneratorOptions = {
 // @public
 export type CssAutoParserOptions = {
     namedExports?: CssParserNamedExports;
+    url?: CssParserUrl;
 };
 
 // @public
 export type CssChunkFilename = Filename;
+
+// @public (undocumented)
+const CssChunkingPlugin: {
+    new (options: CssChunkingPluginOptions): {
+        name: binding.BuiltinPluginName;
+        _args: [options: CssChunkingPluginOptions];
+        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler_2): binding.BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
+
+// @public (undocumented)
+interface CssChunkingPluginOptions {
+    nextjs?: boolean;
+    // (undocumented)
+    strict?: boolean;
+}
 
 // @public (undocumented)
 export interface CssExtractRspackLoaderOptions {
@@ -1725,6 +1748,7 @@ export type CssModuleGeneratorOptions = CssAutoGeneratorOptions;
 // @public
 export type CssModuleParserOptions = {
     namedExports?: CssParserNamedExports;
+    url?: CssParserUrl;
 };
 
 // @public (undocumented)
@@ -1733,7 +1757,11 @@ export type CssParserNamedExports = boolean;
 // @public
 export type CssParserOptions = {
     namedExports?: CssParserNamedExports;
+    url?: CssParserUrl;
 };
+
+// @public (undocumented)
+export type CssParserUrl = boolean;
 
 // @public (undocumented)
 interface DebuggerStatement extends Node_4, HasSpan {
@@ -2435,6 +2463,8 @@ export const experiments: Experiments_2;
 
 // @public (undocumented)
 interface Experiments_2 {
+    // (undocumented)
+    CssChunkingPlugin: typeof CssChunkingPlugin;
     // (undocumented)
     globalTrace: {
         register: (filter: string, layer: "chrome" | "logger", output: string) => Promise<void>;
@@ -5560,7 +5590,7 @@ type Performance_2 = false | {
 export { Performance_2 as Performance }
 
 // @public (undocumented)
-type PitchLoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, remainingRequest: string, previousRequest: string, data: object) => string | void | Buffer | Promise<string | Buffer>;
+export type PitchLoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, remainingRequest: string, previousRequest: string, data: object) => string | void | Buffer | Promise<string | Buffer>;
 
 // @public (undocumented)
 type Plugin_2 = RspackPluginInstance | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction | Falsy;
@@ -6359,6 +6389,7 @@ declare namespace rspackExports {
         LoaderContext,
         LoaderDefinition,
         LoaderDefinitionFunction,
+        PitchLoaderDefinitionFunction,
         getRawOptions,
         applyRspackOptionsDefaults,
         applyRspackOptionsBaseDefaults,
@@ -6466,6 +6497,7 @@ declare namespace rspackExports {
         AssetParserDataUrl,
         AssetParserOptions,
         CssParserNamedExports,
+        CssParserUrl,
         CssParserOptions,
         CssAutoParserOptions,
         CssModuleParserOptions,
@@ -7486,7 +7518,7 @@ type SubresourceIntegrityHashFunction = "sha256" | "sha384" | "sha512";
 
 // @public (undocumented)
 class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin {
-    constructor(options: SubresourceIntegrityPluginOptions);
+    constructor(options?: SubresourceIntegrityPluginOptions);
     // (undocumented)
     apply(compiler: Compiler): void;
 }

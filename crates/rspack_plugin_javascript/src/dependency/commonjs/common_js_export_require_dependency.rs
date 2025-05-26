@@ -422,11 +422,9 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();
 
-    let used = mg.get_exports_info(&module.identifier()).get_used_name(
-      mg,
-      *runtime,
-      UsedName::Vec(dep.names.clone()),
-    );
+    let used = mg
+      .get_exports_info(&module.identifier())
+      .get_used_name(mg, *runtime, &dep.names);
 
     let base = if dep.base.is_exports() {
       runtime_requirements.insert(RuntimeGlobals::EXPORTS);
@@ -453,15 +451,14 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
       let ids = dep.get_ids(mg);
       if let Some(used_imported) = mg
         .get_exports_info(&imported_module.identifier())
-        .get_used_name(mg, *runtime, UsedName::Vec(ids.to_vec()))
+        .get_used_name(mg, *runtime, ids)
       {
         require_expr = format!(
           "{}{}",
           require_expr,
           property_access(
             match used_imported {
-              UsedName::Str(name) => vec![name].into_iter(),
-              UsedName::Vec(names) => names.into_iter(),
+              UsedName::Normal(names) => names.into_iter(),
             },
             0
           )
@@ -475,8 +472,7 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
           "{base}{} = {require_expr}",
           property_access(
             match used {
-              UsedName::Str(name) => vec![name].into_iter(),
-              UsedName::Vec(names) => names.into_iter(),
+              UsedName::Normal(names) => names.into_iter(),
             },
             0
           )

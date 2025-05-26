@@ -10,10 +10,13 @@
 
 ```sh
 # Rspack CLI
-RSPACK_PROFILE=ALL rspack build
+RSPACK_PROFILE=OVERVIEW rspack build # 推荐
+RSPACK_PROFILE=ALL rspack build # 不推荐，大项目的 trace.json 体积可能非常大
 
 # Rsbuild
+RSPACK_PROFILE=OVERVIEW rsbuild build
 RSPACK_PROFILE=ALL rsbuild build
+
 ```
 
 - 如果直接使用 `@rspack/core`：可通过 `rspack.experiments.globalTrace.register` 和 `rspack.experiments.globalTrace.cleanup` 开启。你可以查看我们如何在 [`@rspack/cli` 中实现 `RSPACK_PROFILE`](https://github.com/web-infra-dev/rspack/blob/9be47217b5179186b0825ca79990ab2808aa1a0f/packages/rspack-cli/src/utils/profile.ts#L219-L224)获取更多信息。

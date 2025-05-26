@@ -15,6 +15,6 @@ jobs:
   team-labeler:
     runs-on: ubuntu-latest
     steps:
-      - uses: JulienKode/team-labeler-action@2c5f382e5211e2682390133617b9e7f9a05190f5 # v2.0.0
+      - uses: JulienKode/team-labeler-action@2ae7f231625e352b030b6fd25386221454cec899 # v2.0.1
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"

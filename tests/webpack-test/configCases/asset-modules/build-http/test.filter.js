@@ -1,2 +1,1 @@
-// TODO: support function type for buildHttp.allowedUris
-module.exports = () => false;
+module.exports = () => "TODO: support function type for buildHttp.allowedUris";

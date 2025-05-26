@@ -2,17 +2,14 @@ use rspack_core::{ConstDependency, Dependency, DependencyType, ImportAttributes}
 use swc_core::{
   atoms::Atom,
   common::{Span, Spanned},
-  ecma::ast::{
-    AssignExpr, AssignOp, AssignTarget, AssignTargetPat, Callee, Expr, Ident, ImportDecl,
-    MemberExpr, OptChainBase,
-  },
+  ecma::ast::{Callee, Expr, Ident, ImportDecl, MemberExpr, OptChainBase},
 };
 
 use super::{InnerGraphPlugin, JavascriptParserPlugin};
 use crate::{
   dependency::{ESMImportSideEffectDependency, ESMImportSpecifierDependency},
   utils::object_properties::get_attributes,
-  visitors::{collect_destructuring_assignment_properties, JavascriptParser, TagInfoData},
+  visitors::{JavascriptParser, TagInfoData},
 };
 
 fn get_non_optional_part<'a>(members: &'a [Atom], members_optionals: &[bool]) -> &'a [Atom] {
@@ -134,6 +131,8 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       .definitions_db
       .expect_get_tag_info(parser.current_tag_info?);
     let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
+    let referenced_properties_in_destructuring =
+      parser.destructuring_assignment_properties_for(&ident.span());
     let dep = ESMImportSpecifierDependency::new(
       settings.source,
       settings.name,
@@ -145,7 +144,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       parser.in_tagged_template_tag,
       true,
       ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
-      parser.properties_in_destructuring.remove(&ident.sym),
+      referenced_properties_in_destructuring,
       settings.attributes,
       Some(parser.source_map.clone()),
     );
@@ -201,6 +200,8 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
     let direct_import = members.is_empty();
+    let referenced_properties_in_destructuring =
+      parser.destructuring_assignment_properties_for(&call_expr.span());
     let dep = ESMImportSpecifierDependency::new(
       settings.source,
       settings.name,
@@ -212,7 +213,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       true,
       direct_import,
       ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
-      None,
+      referenced_properties_in_destructuring,
       settings.attributes,
       Some(parser.source_map.clone()),
     );
@@ -265,6 +266,8 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     };
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
+    let referenced_properties_in_destructuring =
+      parser.destructuring_assignment_properties_for(&member_expr.span());
     let dep = ESMImportSpecifierDependency::new(
       settings.source,
       settings.name,
@@ -276,7 +279,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       false,
       false, // x.xx()
       ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
-      None,
+      referenced_properties_in_destructuring,
       settings.attributes,
       Some(parser.source_map.clone()),
     );
@@ -297,28 +300,5 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     );
 
     Some(true)
-  }
-
-  // collect referenced properties in destructuring
-  // import * as a from 'a';
-  // const { value } = a;
-  fn assign(&self, parser: &mut JavascriptParser, assign_expr: &AssignExpr) -> Option<bool> {
-    if let AssignTarget::Pat(AssignTargetPat::Object(object_pat)) = &assign_expr.left
-      && assign_expr.op == AssignOp::Assign
-      && let box Expr::Ident(ident) = &assign_expr.right
-      && let Some(settings) = parser.get_tag_data(&ident.sym, ESM_SPECIFIER_TAG)
-      && let settings = ESMSpecifierData::downcast(settings)
-      // import namespace
-      && settings.ids.is_empty()
-    {
-      if let Some(value) = collect_destructuring_assignment_properties(object_pat) {
-        parser
-          .properties_in_destructuring
-          .entry(ident.sym.clone())
-          .and_modify(|v| v.extend(value.clone()))
-          .or_insert(value);
-      }
-    }
-    None
   }
 }

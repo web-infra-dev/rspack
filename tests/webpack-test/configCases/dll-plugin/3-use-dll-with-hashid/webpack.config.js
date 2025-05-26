@@ -19,7 +19,6 @@ module.exports = {
 		]
 	},
 	optimization: {
-		// TODO: moduleIds: "hashed" is not implements
 		moduleIds: "hashed"
 	},
 	plugins: [

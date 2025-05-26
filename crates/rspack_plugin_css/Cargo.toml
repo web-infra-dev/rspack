@@ -1,23 +1,24 @@
 [package]
-description = "rspack css plugin"
-edition     = "2021"
-license     = "MIT"
-name        = "rspack_plugin_css"
-repository  = "https://github.com/web-infra-dev/rspack"
-version     = "0.2.0"
+description       = "rspack css plugin"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_plugin_css"
+repository        = "https://github.com/web-infra-dev/rspack"
+version           = "0.2.0"
 [dependencies]
 async-trait           = { workspace = true }
 cow-utils             = { workspace = true }
 css-module-lexer      = { workspace = true }
+dashmap               = { workspace = true }
 heck                  = { workspace = true }
 indexmap              = { workspace = true }
 once_cell             = { workspace = true }
-rayon                 = { workspace = true }
 regex                 = { workspace = true }
 rspack_cacheable      = { workspace = true }
 rspack_collections    = { workspace = true }
 rspack_core           = { workspace = true }
 rspack_error          = { workspace = true }
+rspack_futures        = { workspace = true }
 rspack_hash           = { workspace = true }
 rspack_hook           = { workspace = true }
 rspack_plugin_runtime = { workspace = true }

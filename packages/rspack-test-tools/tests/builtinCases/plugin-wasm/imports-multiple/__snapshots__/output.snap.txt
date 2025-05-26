@@ -64,10 +64,10 @@ __webpack_async_result__();
 var __webpack_instantiate__ = function ([WEBPACK_IMPORTED_MODULE_0, WEBPACK_IMPORTED_MODULE_1]) {
 return __webpack_require__.v(exports, module.id, "e7320130ff8b397e" , {
 "./module": {
-"getNumber": WEBPACK_IMPORTED_MODULE_0["getNumber"]
+"getNumber": WEBPACK_IMPORTED_MODULE_0.getNumber
 },
 "./module2": {
-"getNumber": WEBPACK_IMPORTED_MODULE_1["getNumber"]
+"getNumber": WEBPACK_IMPORTED_MODULE_1.getNumber
 }
 });
 }
@@ -80,10 +80,10 @@ var WEBPACK_IMPORTED_MODULE_1 = __webpack_require__("./module2.js");
     var [WEBPACK_IMPORTED_MODULE_0, WEBPACK_IMPORTED_MODULE_1] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__;
     await __webpack_require__.v(exports, module.id, "e7320130ff8b397e" , {
 "./module": {
-"getNumber": WEBPACK_IMPORTED_MODULE_0["getNumber"]
+"getNumber": WEBPACK_IMPORTED_MODULE_0.getNumber
 },
 "./module2": {
-"getNumber": WEBPACK_IMPORTED_MODULE_1["getNumber"]
+"getNumber": WEBPACK_IMPORTED_MODULE_1.getNumber
 }
 });
 

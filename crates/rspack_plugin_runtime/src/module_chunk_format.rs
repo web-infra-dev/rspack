@@ -161,7 +161,12 @@ async fn render_chunk(
     let runtime_chunk_output_name = get_runtime_chunk_output_name(compilation, chunk_ukey).await?;
     sources.add(RawStringSource::from(format!(
       "import __webpack_require__ from '{}';\n",
-      get_relative_path(&base_chunk_output_name, &runtime_chunk_output_name)
+      get_relative_path(
+        base_chunk_output_name
+          .trim_start_matches("/")
+          .trim_start_matches("\\"),
+        &runtime_chunk_output_name
+      )
     )));
 
     let entries = compilation

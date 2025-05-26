@@ -63,8 +63,7 @@ type CodeValuePrimitive =
 	| string
 	| number
 	| boolean
-	| bigint
-	| undefined;
+	| bigint;
 type NormalizedCodeValuePrimitive = null | string | number | boolean;
 type NormalizedCodeValue = RecursiveArrayOrRecord<NormalizedCodeValuePrimitive>;
 

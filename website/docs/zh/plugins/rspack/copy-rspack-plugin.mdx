@@ -115,7 +115,9 @@ export default {
 - **类型：** `string`
 - **默认值：** `undefined`
 
-拷贝的源路径，可以是绝对路径、相对路径、glob pattern，可以是文件或目录。若传入相对路径，则是相对于 [context](#context) 选项。
+拷贝的源路径，可以是绝对路径、相对路径、glob pattern，可以是文件或目录。
+
+若传入相对路径，则是相对于 [context](#context) 选项。
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
@@ -370,20 +372,20 @@ export default {
 ```ts
 type GlobOptions = {
   // 是否大小写敏感
-  // 默认 true
+  // @default true
   caseSensitiveMatch?: boolean;
   // 是否匹配以 `.` 开头的文件
-  // 默认 true
+  // @default true
   dot?: boolean;
-  // 忽略特定路径
-  // glob 形式的字符串数组，可以使用该配置忽略部分特定路径
+  // 忽略特定路径，可以是一个 glob 形式的字符串数组
+  // @default undefined
   ignore?: string[];
 };
 ```
 
 - **默认值：** `undefined`
 
-glob 匹配的选项。
+设置拷贝时 glob 匹配的选项。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -412,12 +414,12 @@ export default {
 type transform =
   | {
       transformer: (
-        input: string,
+        input: Buffer,
         absoluteFilename: string,
       ) => string | Buffer | Promise<string> | Promise<Buffer>;
     }
   | ((
-      input: string,
+      input: Buffer,
       absoluteFilename: string,
     ) => string | Buffer | Promise<string> | Promise<Buffer>);
 ```
@@ -469,3 +471,45 @@ export default {
 ```
 
 这对于复制可执行文件、脚本或任何权限重要的文件特别有用。当设置为 `true` 时，插件将尝试在目标文件上设置与源文件相同的权限。
+
+### info
+
+- **类型：**
+
+```ts
+type Info = {
+  immutable?: boolean;
+  // 是否为拷贝的文件跳过压缩
+  // @default false
+  minimized?: boolean;
+  chunkHash?: string[];
+  contentHash?: string[];
+  development?: boolean;
+  hotModuleReplacement?: boolean;
+  related?: {
+    sourceMap?: string;
+  };
+  version?: string;
+};
+```
+
+- **默认值：** `undefined`
+
+允许你为拷贝的文件添加一些 assets info，这些信息可能会影响构建流程中的某些行为。
+
+例如，默认情况下，被拷贝的 JS、CSS 文件会经过 Rspack 的 [minimizer](/config/optimization#optimizationminimizer) 进行压缩，如果你希望被拷贝的文件跳过压缩，可以设置 `info.minimized` 为 `true`。
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: 'src/file.js',
+          info: { minimized: true },
+        },
+      ],
+    }),
+  ],
+};
+```

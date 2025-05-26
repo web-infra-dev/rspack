@@ -53,11 +53,15 @@ function useFooterData() {
       ],
     },
     {
-      title: t('ecosystem'),
+      title: t('toolchain'),
       items: [
         {
           title: 'Rsbuild',
           link: 'https://rsbuild.dev/',
+        },
+        {
+          title: 'Rslib',
+          link: 'https://lib.rsbuild.dev/',
         },
         {
           title: 'Rspress',
@@ -68,8 +72,8 @@ function useFooterData() {
           link: 'https://rsdoctor.dev/',
         },
         {
-          title: 'Rslib',
-          link: 'https://github.com/web-infra-dev/rslib',
+          title: 'Rstest',
+          link: 'https://github.com/web-infra-dev/rstest',
         },
       ],
     },
@@ -87,6 +91,10 @@ function useFooterData() {
         {
           title: 'Twitter (X)',
           link: 'https://twitter.com/rspack_dev',
+        },
+        {
+          title: 'BlueSky',
+          link: 'https://bsky.app/profile/rspack.dev',
         },
         {
           title: 'Awesome Rspack',

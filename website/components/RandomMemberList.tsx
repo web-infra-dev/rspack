@@ -117,6 +117,7 @@ const coreTeam: Member[] = [
     id: 'zackarychapple',
     avatar: 'https://avatars.githubusercontent.com/u/2133184?v=4',
     desc: 'Rspack core team, CEO at ZephyrCloudIO',
+    x: 'https://x.com/Zackary_Chapple',
   },
   {
     id: 'valorkin',
@@ -206,6 +207,12 @@ const coreTeam: Member[] = [
     avatar: 'https://avatars.githubusercontent.com/u/8509934?v=4',
     x: 'https://x.com/c_punisher',
     desc: 'Rspack core team, SWC core team',
+  },
+  {
+    id: 'quininer',
+    avatar: 'https://avatars.githubusercontent.com/u/6286761?v=4',
+    desc: 'Rspack core team, creator of io-uring',
+    x: 'https://x.com/quininers',
   },
 ];
 

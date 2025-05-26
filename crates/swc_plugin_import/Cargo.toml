@@ -1,10 +1,10 @@
 [package]
-description = "babel-plugin-import rewritten in Rust"
-edition     = "2021"
-license     = "MIT"
-name        = "rspack_swc_plugin_import"
-repository  = "https://github.com/web-infra-dev/rspack"
-version     = "0.2.0"
+description       = "babel-plugin-import rewritten in Rust"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_swc_plugin_import"
+repository        = "https://github.com/web-infra-dev/rspack"
+version           = "0.2.0"
 
 [dependencies]
 cow-utils  = { workspace = true }

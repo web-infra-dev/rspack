@@ -3,9 +3,9 @@
 use std::{cell::Cell, ptr, rc::Rc};
 
 use napi::{
-  bindgen_prelude::{check_status, Object, ToNapiValue},
+  bindgen_prelude::{check_status, JsObjectValue, Object, ToNapiValue},
   sys::{self, napi_env},
-  Env, NapiRaw, NapiValue, Result,
+  Env, JsValue, Result,
 };
 
 pub struct WeakRef {
@@ -27,9 +27,9 @@ impl WeakRef {
     Ok(Self { raw_ref, deleted })
   }
 
-  pub fn as_object(&self, env: &Env) -> Result<Object> {
+  pub fn as_object(&self, env: &Env) -> Result<Object<'static>> {
     let napi_val = unsafe { ToNapiValue::to_napi_value(env.raw(), self)? };
-    Ok(unsafe { Object::from_raw_unchecked(env.raw(), napi_val) })
+    Ok(Object::from_raw(env.raw(), napi_val))
   }
 }
 

@@ -64,7 +64,7 @@ impl JsChunkGroup {
   }
 
   #[napi(getter)]
-  pub fn origins(&self, env: Env) -> napi::Result<Vec<JsChunkGroupOrigin>> {
+  pub fn origins<'a>(&self, env: &'a Env) -> napi::Result<Vec<JsChunkGroupOrigin<'a>>> {
     let (compilation, chunk_graph) = self.as_ref()?;
     let origins = chunk_graph.origins();
     let mut js_origins = Vec::with_capacity(origins.len());
@@ -244,11 +244,11 @@ impl ToNapiValue for JsChunkGroupWrapper {
 }
 
 #[napi(object, object_from_js = false)]
-pub struct JsChunkGroupOrigin {
+pub struct JsChunkGroupOrigin<'a> {
   #[napi(ts_type = "Module | undefined")]
   pub module: Option<ModuleObject>,
-  pub request: Option<JsString>,
-  pub loc: Option<Either<JsString, JsRealDependencyLocation>>,
+  pub request: Option<JsString<'a>>,
+  pub loc: Option<Either<JsString<'a>, JsRealDependencyLocation>>,
 }
 
 #[napi(object, object_from_js = false)]

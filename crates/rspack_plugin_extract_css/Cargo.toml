@@ -1,10 +1,10 @@
 [package]
-description = "rspack extract css plugin"
-edition     = "2021"
-license     = "MIT"
-name        = "rspack_plugin_extract_css"
-repository  = "https://github.com/web-infra-dev/rspack"
-version     = "0.2.0"
+description       = "rspack extract css plugin"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_plugin_extract_css"
+repository        = "https://github.com/web-infra-dev/rspack"
+version           = "0.2.0"
 [dependencies]
 async-trait              = { workspace = true }
 cow-utils                = { workspace = true }
@@ -16,7 +16,6 @@ rspack_error             = { workspace = true }
 rspack_hash              = { workspace = true }
 rspack_hook              = { workspace = true }
 rspack_paths             = { workspace = true }
-rspack_plugin_css        = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
 rspack_plugin_runtime    = { workspace = true }
 rspack_util              = { workspace = true }

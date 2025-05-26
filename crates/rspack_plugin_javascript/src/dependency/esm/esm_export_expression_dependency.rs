@@ -163,7 +163,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       let module_graph = compilation.get_module_graph();
       module_graph
         .get_exports_info(module_identifier)
-        .get_used_name(&module_graph, *runtime, UsedName::Str(name.into()))
+        .get_used_name(&module_graph, *runtime, &[name.into()])
     }
 
     if let Some(declaration) = &dep.declaration {
@@ -192,8 +192,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
           module.get_exports_argument(),
           vec![(
             match used {
-              UsedName::Str(s) => s,
-              UsedName::Vec(v) => v
+              UsedName::Normal(v) => v
                 .iter()
                 .map(|i| i.to_string())
                 .collect_vec()
@@ -232,8 +231,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
             module.get_exports_argument(),
             vec![(
               match used {
-                UsedName::Str(s) => s,
-                UsedName::Vec(v) => v
+                UsedName::Normal(v) => v
                   .iter()
                   .map(|i| i.to_string())
                   .collect_vec()
@@ -250,8 +248,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
             module.get_exports_argument(),
             property_access(
               match used {
-                UsedName::Str(name) => vec![name].into_iter(),
-                UsedName::Vec(names) => names.into_iter(),
+                UsedName::Normal(names) => names.into_iter(),
               },
               0
             )

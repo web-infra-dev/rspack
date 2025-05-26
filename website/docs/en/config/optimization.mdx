@@ -172,8 +172,8 @@ export default {
 };
 ```
 
-:::tip
-It is not recommended to disable this optimization as it may lead to a larger bundle size.
+:::danger
+Disabling this optimization is dangerous, as it may significantly increase the bundle size and greatly slow down the build process.
 :::
 
 ## optimization.removeEmptyChunks
@@ -285,33 +285,6 @@ See available options for configuring this behavior in the [SplitChunksPlugin](/
   ]}
 />
 
-```json
-{
-  "name": "npm module",
-  "version": "1.0.0",
-  "sideEffects": ["**/src/*.js"]
-}
-```
-
-Tells Rspack to recognise the sideEffects flag in package.json or rules to skip over modules which are flagged to contain no side effects when exports are not used.
-
-:::tip
-Please note that `sideEffects` should be in the npm module's `package.json` file and doesn't mean that you need to set `sideEffects` to `false` in your own project's `package.json` which requires that npm module.
-:::
-
-`optimization.sideEffects` depends on [`optimization.providedExports`](#optimizationprovidedexports) to be enabled.
-This dependency has a build time cost, but eliminating modules has positive impact on performance because of less code generation.
-Effect of this optimization depends on your codebase, try it for possible performance wins.
-
-```js title="rspack.config.mjs"
-export default {
-  //...
-  optimization: {
-    sideEffects: true,
-  },
-};
-```
-
 If you only want Rspack use the manual `sideEffects` flag via (`package.json` and `module.rule.sideEffects`) and don't analyse source code:
 
 ```js title="rspack.config.mjs"
@@ -323,10 +296,23 @@ export default {
 };
 ```
 
-The `'flag'` value is used by default in non-production builds.
+`flag` tells Rspack to recognise the sideEffects flag in package.json or rules to skip over modules which are flagged to contain no side effects when exports are not used.
+
+`true` tells Rspack not only recognise the sideEffects flag, but also analyse modules which are not flagged explicitly, and determine if they have side effects or not.
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  optimization: {
+    sideEffects: true,
+  },
+};
+```
 
 :::tip
-When `optimization.sideEffects` is true , Rspack will also flag modules as side effect free when they contain only side effect free statements.
+`optimization.sideEffects` depends on [`optimization.providedExports`](#optimizationprovidedexports) to be enabled.
+This dependency has a build time cost, but eliminating modules has positive impact on performance because of less code generation.
+Effect of this optimization depends on your codebase, try it for possible performance wins.
 :::
 
 ## optimization.providedExports

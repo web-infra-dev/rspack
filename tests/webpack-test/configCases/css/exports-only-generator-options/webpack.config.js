@@ -17,13 +17,13 @@ module.exports = [
 					resourceQuery: /\?module/,
 					type: "css/module"
 				},
-				{
-					resourceQuery: /\?exportsOnly/,
-					generator: {
-						exportsOnly: true
-					},
-					type: "css/global"
-				}
+				// {
+				// 	resourceQuery: /\?exportsOnly/,
+				// 	generator: {
+				// 		exportsOnly: true
+				// 	},
+				// 	type: "css/global"
+				// }
 			]
 		},
 		experiments: {

@@ -1,1 +1,1 @@
-module.exports = () => {return "https://github.com/web-infra-dev/rspack/issues/4348"}
+module.exports = () => "TODO: https://github.com/web-infra-dev/rspack/issues/4348"

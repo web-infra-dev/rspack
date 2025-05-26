@@ -27,23 +27,6 @@
 			rangeStrategy: "bump"
 		},
 		{
-			groupName: "github-actions",
-			matchManagers: ["github-actions"],
-			excludePackageNames: [
-				"actions/upload-artifact",
-				"actions/download-artifact"
-			]
-		},
-		{
-			groupName: "ignored github-actions upload-download-actions",
-			matchManagers: ["github-actions"],
-			matchPackageNames: [
-				"actions/upload-artifact",
-				"actions/download-artifact"
-			],
-			enabled: false
-		},
-		{
 			groupName: "patch crates",
 			matchManagers: ["cargo"],
 			excludePackagePrefixes: ["swc", "napi"],
@@ -76,35 +59,17 @@
 			matchManagers: ["npm"],
 			matchPackageNames: ["/^@rspack/"]
 		},
-		// opentelemetry npm packages
-		{
-			groupName: "opentelemetry",
-			matchManagers: ["npm"],
-			matchPackageNames: ["/^@opentelemetry/"]
-		},
 		// Babel npm packages
 		{
 			groupName: "babel",
 			matchManagers: ["npm"],
 			matchPackageNames: ["/babel/"]
 		},
-		// Types npm packages
-		{
-			groupName: "types",
-			matchManagers: ["npm"],
-			matchPackageNames: ["/^@types/"]
-		},
 		// SWC npm packages
 		{
 			groupName: "SWC",
 			matchManagers: ["npm"],
 			matchPackageNames: ["/^@swc/"]
-		},
-		// React npm packages
-		{
-			groupName: "React",
-			matchManagers: ["npm"],
-			matchPackageNames: ["/^react/"]
 		},
 		// Rspack crates
 		{
@@ -147,45 +112,32 @@
 			matchUpdateTypes: ["patch"]
 		},
 		{
-			groupName: "webpack",
-			matchManagers: ["npm"],
-			matchPackagePrefixes: ["webpack"]
-		},
-		{
 			// should update the playwright image in .github/workflows/reusable-build.yml
 			groupName: "playwright",
 			matchManagers: ["npm"],
 			matchPackagePrefixes: ["@playwright/test"]
 		},
-		{
-			groupName: "typescript and @microsoft/api-extractor",
-			matchManagers: ["npm"],
-			matchPackageNames: [
-				"typescript",
-				"@microsoft/api-extractor",
-				"@microsoft/api-extractor-model"
-			],
-			// bump major in a separate PR
-			matchUpdateTypes: ["patch", "minor"]
-		},
-		{
-			// linter and formatter
-			groupName: "@biomejs/biome and prettier",
-			matchManagers: ["npm"],
-			matchPackageNames: ["@biomejs/biome", "prettier"]
-		},
-		// Rspress npm packages
-		{
-			groupName: "rspress",
-			matchManagers: ["npm"],
-			matchFileNames: ["website/package.json"],
-			matchPackagePrefixes: ["@rspress/", "rspress-plugin-", "rsbuild-plugin"],
-			matchPackageNames: ["rspress"]
-		},
 		// Disable Node.js updates
 		{
 			groupName: "node",
 			matchPackageNames: ["node"],
+			enabled: false
+		},
+		{
+			groupName: "github-actions",
+			matchManagers: ["github-actions"],
+			excludePackageNames: [
+				"actions/upload-artifact",
+				"actions/download-artifact"
+			]
+		},
+		{
+			groupName: "ignored github-actions upload-download-actions",
+			matchManagers: ["github-actions"],
+			matchPackageNames: [
+				"actions/upload-artifact",
+				"actions/download-artifact"
+			],
 			enabled: false
 		}
 	]

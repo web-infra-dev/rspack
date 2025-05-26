@@ -6,6 +6,7 @@ resolver = "2"                     # See https://doc.rust-lang.org/cargo/referen
 authors       = ["Rspack Teams"]
 categories    = ["bundler", "development-tools", "web-programming"]
 documentation = "https://rspack.dev/"
+edition       = "2021"
 homepage      = "https://rspack.dev/"
 license       = "MIT"
 repository    = "https://github.com/web-infra-dev/rspack"
@@ -25,7 +26,6 @@ ignored = [
   "rspack_binding",
   "rspack_plugin_merge",
   "rspack",
-  "swc_parallel",
 ]
 [workspace.dependencies]
 anyhow             = { version = "1.0.95", features = ["backtrace"] }
@@ -33,7 +33,7 @@ anymap             = { package = "anymap3", version = "1.0.1" }
 async-recursion    = { version = "1.1.1" }
 async-trait        = { version = "0.1.84" }
 bitflags           = { version = "2.6.0" }
-browserslist-rs    = { version = "0.17.0" }
+browserslist-rs    = { version = "0.18.1" }
 camino             = { version = "1.1.9" }
 concat-string      = { version = "1.0.1" }
 cow-utils          = { version = "0.1.3" }
@@ -88,24 +88,23 @@ ustr               = { package = "ustr-fxhash", version = "1.0.1" }
 xxhash-rust        = { version = "0.8.14" }
 
 # Pinned
-napi        = { version = "3.0.0-alpha.33" }
-napi-build  = { version = "2.1.6" }
-napi-derive = { version = "3.0.0-alpha.29" }
+napi        = { version = "3.0.0-beta.1" }
+napi-build  = { version = "2.2.0" }
+napi-derive = { version = "3.0.0-beta.1" }
 
 # Serialize and Deserialize
 inventory = { version = "0.3.17" }
 rkyv      = { version = "=0.8.8" }
 
 # Must be pinned with the same swc versions
-swc                 = { version = "=21.0.0" }
+swc                 = { version = "=22.0.0" }
 swc_config          = { version = "=2.0.0" }
-swc_core            = { version = "=22.5.3", default-features = false, features = ["parallel_rayon"] }
-swc_ecma_minifier   = { version = "=16.0.1", default-features = false }
-swc_error_reporters = { version = "=10.0.0" }
-swc_html            = { version = "=16.0.0" }
-swc_html_minifier   = { version = "=16.0.0", default-features = false }
-swc_node_comments   = { version = "=8.0.0" }
-swc_parallel        = { version = "1.3.0", default-features = false, features = ["rayon"] }
+swc_core            = { version = "=23.2.0", default-features = false, features = ["parallel_rayon"] }
+swc_ecma_minifier   = { version = "=17.0.0", default-features = false }
+swc_error_reporters = { version = "=11.0.0" }
+swc_html            = { version = "=17.0.0" }
+swc_html_minifier   = { version = "=17.0.0", default-features = false }
+swc_node_comments   = { version = "=9.0.0" }
 
 pnp = { version = "0.9.0" }
 
@@ -149,6 +148,7 @@ rspack_plugin_circular_dependencies    = { version = "0.2.0", path = "crates/rsp
 rspack_plugin_context_replacement      = { version = "0.2.0", path = "crates/rspack_plugin_context_replacement" }
 rspack_plugin_copy                     = { version = "0.2.0", path = "crates/rspack_plugin_copy" }
 rspack_plugin_css                      = { version = "0.2.0", path = "crates/rspack_plugin_css" }
+rspack_plugin_css_chunking             = { version = "0.2.0", path = "crates/rspack_plugin_css_chunking" }
 rspack_plugin_devtool                  = { version = "0.2.0", path = "crates/rspack_plugin_devtool" }
 rspack_plugin_dll                      = { version = "0.2.0", path = "crates/rspack_plugin_dll" }
 rspack_plugin_dynamic                  = { version = "0.2.0", path = "crates/rspack_plugin_dynamic" }
@@ -171,6 +171,7 @@ rspack_plugin_merge                    = { version = "0.2.0", path = "crates/rsp
 rspack_plugin_merge_duplicate_chunks   = { version = "0.2.0", path = "crates/rspack_plugin_merge_duplicate_chunks" }
 rspack_plugin_mf                       = { version = "0.2.0", path = "crates/rspack_plugin_mf" }
 rspack_plugin_mini_css_extract         = { version = "0.2.0", path = "crates/rspack_plugin_mini_css_extract" }
+rspack_plugin_module_info_header       = { version = "0.2.0", path = "crates/rspack_plugin_module_info_header" }
 rspack_plugin_no_emit_on_errors        = { version = "0.2.0", path = "crates/rspack_plugin_no_emit_on_errors" }
 rspack_plugin_progress                 = { version = "0.2.0", path = "crates/rspack_plugin_progress" }
 rspack_plugin_real_content_hash        = { version = "0.2.0", path = "crates/rspack_plugin_real_content_hash" }

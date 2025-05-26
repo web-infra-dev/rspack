@@ -6,6 +6,5 @@ module.exports = function(config) {
 };
 
 */
-module.exports = () => {return "flagIncludedChunks"}
+module.exports = () => "NOPLAN: support flagIncludedChunks"
 
-							

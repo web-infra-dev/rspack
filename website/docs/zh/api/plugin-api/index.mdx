@@ -1,5 +1,15 @@
 # 总览
 
+## 插件钩子
+
+Rspack 插件的钩子与 webpack 插件类似，主要包括以下几类：
+
+- [Compiler 钩子](/api/plugin-api/compiler-hooks)：介入整个构建流程中的各个阶段
+- [Compilation 钩子](/api/plugin-api/compilation-hooks)：介入单次构建中的各个阶段
+- [RuntimePlugin 钩子](/api/plugin-api/runtime-plugin-hooks)：介入运行时代码的生成
+- [NormalModuleFactory 钩子](/api/plugin-api/normal-module-factory-hooks)：介入模块创建过程中的各个阶段
+- [Stats 钩子](/api/plugin-api/stats-hooks)：介入 stats 的生成
+
 ## 兼容情况
 
 Rspack 致力于兼容 webpack 生态中的插件。我们确保 Rspack 尽可能地去兼容 webpack 的插件 API，使更多现有的 webpack 插件能够在 Rspack 中直接使用。

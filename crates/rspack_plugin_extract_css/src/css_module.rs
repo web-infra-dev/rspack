@@ -7,7 +7,7 @@ use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, CompilerOptions, ConcatenationScope, DependenciesBlock,
   DependencyId, FactoryMeta, Module, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  RuntimeSpec, SourceType,
+  ModuleGraph, RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -151,7 +151,7 @@ impl Module for CssModule {
     &MODULE_TYPE
   }
 
-  fn source_types(&self) -> &[SourceType] {
+  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     &*SOURCE_TYPE
   }
 

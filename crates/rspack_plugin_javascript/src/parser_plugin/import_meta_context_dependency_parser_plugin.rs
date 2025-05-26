@@ -53,10 +53,10 @@ fn create_import_meta_context_dependency(
     let regexp = regexp
       .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"))
       .unwrap_or(RspackRegex::new(reg).expect("reg failed"));
-    // let include = get_regex_by_obj_prop(obj, "include")
-    //   .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"));
-    // let exclude = get_regex_by_obj_prop(obj, "include")
-    //   .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"));
+    let include = get_regex_by_obj_prop(obj, "include")
+      .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"));
+    let exclude = get_regex_by_obj_prop(obj, "exclude")
+      .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"));
     let mode = get_literal_str_by_obj_prop(obj, "mode")
       .map(|s| s.value.to_string().as_str().into())
       .unwrap_or(ContextMode::Sync);
@@ -65,8 +65,8 @@ fn create_import_meta_context_dependency(
       .unwrap_or(true);
     ContextOptions {
       reg_exp: clean_regexp_in_context_module(regexp, regexp_span, parser),
-      include: None,
-      exclude: None,
+      include,
+      exclude,
       recursive,
       category: DependencyCategory::Esm,
       request: context.clone(),

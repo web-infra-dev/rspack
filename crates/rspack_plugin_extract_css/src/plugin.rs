@@ -592,10 +592,10 @@ async fn content_hash(
   }
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
-  let used_modules =
-    rspack_plugin_css::CssPlugin::get_modules_in_order(chunk, rendered_modules, compilation)
-      .0
-      .into_iter();
+  let used_modules = self
+    .sort_modules(chunk, &rendered_modules, compilation, &module_graph)
+    .0
+    .into_iter();
 
   let mut hasher = hashes
     .entry(SOURCE_TYPE[0])

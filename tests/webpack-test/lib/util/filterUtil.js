@@ -1,10 +1,11 @@
 const fs = require("fs");
 
 const FilteredStatus = {
-	TODO: "TODO",
+	UNCHECKED: "UNCHECKED", // failed with reason that we don't know
+	TODO: "TODO", // failed by some features that we don't support
+	FIXME: "FIXME", // failed by some bug
+	NO_PLAN: "NO_PLAN", // failed by some features that we won't support
 	PARTIAL_PASS: "PARTIAL_PASS",
-	FAILED: "FAILED",
-	NO_PLAN: "NO_PLAN",
 	PASS: "PASS"
 }
 
@@ -15,7 +16,11 @@ function validateFilteredStatus(status) {
 function createFilteredDescribe(testName, filterPath, config = {}) {
 	let flag = true;
 	if (fs.existsSync(filterPath)) {
-		flag = require(filterPath)(config)
+		try {
+			flag = require(filterPath)(config)
+		} catch (e) {
+			console.error(`get filter flag failed from '${filterPath}': ${e.message}`)
+		}
 	}
 	let shouldRun = flag === true || (Array.isArray(flag) && flag.includes(FilteredStatus.PARTIAL_PASS))
 	let filteredName = normalizeFilteredTestName(flag, testName);
@@ -30,13 +35,20 @@ function normalizeFilterFlag(flag, testName) {
 		return { status: FilteredStatus.PASS, reason: "" };
 	}
 	if (flag === false) {
-		return { status: FilteredStatus.TODO, reason: "TODO" };
-	}
-	if (flag === -1) {
-		return { status: FilteredStatus.NO_PLAN, reason: "No plan" };
+		return { status: FilteredStatus.UNCHECKED, reason: "UNKNOWN" };
 	}
 	if (typeof flag === 'string') {
-		return { status: FilteredStatus.FAILED, reason: flag }
+		let status = flag.split(":")[0] || "FAILED";
+		let reason = flag.split(":")[1] || "UNKNOWN";
+		if (status === "TODO") {
+			return { status: FilteredStatus.TODO, reason }
+		} else if (status === "NOPLAN") {
+			return { status: FilteredStatus.NO_PLAN, reason }
+		} else if (status === "FIXME") {
+			return { status: FilteredStatus.FIXME, reason }
+		} else {
+			return { status: FilteredStatus.UNCHECKED, reason }
+		}
 	}
 	if (Array.isArray(flag)) {
 		const [status, reason = "empty"] = flag;

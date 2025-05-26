@@ -321,13 +321,18 @@ impl CircularDependencyRspackPlugin {
     // remove the root path here.
     let cycle_without_root: Vec<String> = cycle
       .iter()
-      .map(|module_path| {
-        module_path
-          .to_string()
-          .cow_replace(&cwd, "")
-          .trim_start_matches('/')
-          .trim_start_matches('\\')
-          .to_string()
+      .filter_map(|module_identifier| {
+        compilation
+          .module_by_identifier(module_identifier)
+          .map(|module| {
+            module
+              .readable_identifier(&compilation.options.context)
+              .to_string()
+              .cow_replace(&cwd, "")
+              .trim_start_matches('/')
+              .trim_start_matches('\\')
+              .to_string()
+          })
       })
       .collect();
 

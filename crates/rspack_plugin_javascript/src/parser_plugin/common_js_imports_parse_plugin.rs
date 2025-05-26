@@ -562,7 +562,12 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     None
   }
 
-  fn assign(&self, parser: &mut JavascriptParser, expr: &AssignExpr) -> Option<bool> {
+  fn assign(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &AssignExpr,
+    _for_name: Option<&str>,
+  ) -> Option<bool> {
     let AssignTarget::Simple(SimpleAssignTarget::Ident(left_expr)) = &expr.left else {
       return None;
     };

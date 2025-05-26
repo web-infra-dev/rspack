@@ -1,6 +1,8 @@
 #![recursion_limit = "256"]
 #![feature(let_chains)]
 #![feature(try_blocks)]
+#![allow(deprecated)]
+
 #[macro_use]
 extern crate napi_derive;
 extern crate rspack_allocator;
@@ -21,6 +23,7 @@ mod allocator;
 mod asset;
 mod asset_condition;
 mod async_dependency_block;
+mod build_info;
 mod chunk;
 mod chunk_graph;
 mod chunk_group;
@@ -61,6 +64,7 @@ mod utils;
 pub use asset::*;
 pub use asset_condition::*;
 pub use async_dependency_block::*;
+pub use build_info::*;
 pub use chunk::*;
 pub use chunk_graph::*;
 pub use chunk_group::*;
@@ -89,6 +93,7 @@ pub use resolver::*;
 use resolver_factory::*;
 pub use resource_data::*;
 pub use rsdoctor::*;
+use rspack_macros::rspack_version;
 use rspack_tracing::{ChromeTracer, StdoutTracer, Tracer};
 pub use runtime::*;
 use rustc_hash::FxHashMap;
@@ -138,7 +143,8 @@ impl JsCompiler {
     intermediate_filesystem: Option<ThreadsafeNodeFS>,
     mut resolver_factory_reference: Reference<JsResolverFactory>,
   ) -> Result<Self> {
-    tracing::debug!("raw_options: {:#?}", &options);
+    tracing::info!(name:"rspack_version", version = rspack_version!());
+    tracing::info!(name:"raw_options", options=?&options);
 
     let mut plugins = Vec::with_capacity(builtin_plugins.len());
     let js_hooks_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
@@ -160,7 +166,7 @@ impl JsCompiler {
 
     let compiler_options: rspack_core::CompilerOptions = options.try_into().to_napi_result()?;
 
-    tracing::debug!("normalized_options: {:#?}", &compiler_options);
+    tracing::debug!(name:"normalized_options", options=?&compiler_options);
 
     let resolver_factory =
       (*resolver_factory_reference).get_resolver_factory(compiler_options.resolve.clone());
@@ -209,7 +215,7 @@ impl JsCompiler {
 
   /// Build with the given option passed to the constructor
   #[napi(ts_args_type = "callback: (err: null | Error) => void")]
-  pub fn build(&mut self, reference: Reference<JsCompiler>, f: Function) -> Result<()> {
+  pub fn build(&mut self, reference: Reference<JsCompiler>, f: Function<'static>) -> Result<()> {
     unsafe {
       self.run(reference, |compiler, guard| {
         callbackify(
@@ -236,7 +242,7 @@ impl JsCompiler {
     reference: Reference<JsCompiler>,
     changed_files: Vec<String>,
     removed_files: Vec<String>,
-    f: Function,
+    f: Function<'static>,
   ) -> Result<()> {
     use std::collections::HashSet;
 
@@ -474,9 +480,15 @@ pub fn cleanup_global_trace() {
   });
 }
 
-#[module_exports]
 fn node_init(mut _exports: Object, env: Env) -> Result<()> {
   rspack_core::set_thread_local_allocator(Box::new(allocator::NapiAllocatorImpl::new(env)));
+  Ok(())
+}
+
+#[napi(module_exports)]
+pub fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
+  node_init(exports, env)?;
+  module::init(exports, env)?;
   Ok(())
 }
 

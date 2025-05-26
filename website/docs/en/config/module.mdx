@@ -1602,15 +1602,32 @@ Defines the processing behavior of the corresponding matching module, e.g. :
 
 ### Condition
 
-- **Type:** `string | RegExp | Condition[] | LogicalConditions`
+- **Type:**
 
-Defines a module's match conditions, common matches are `resource`, `resourceQuery`, `include`, and `exclude`.
+```ts
+type Condition =
+  | string
+  | RegExp
+  | ((value: string) => boolean)
+  | Conditions
+  | LogicalConditions;
 
-Example: app.js imports `./image.png?inline#foo`
+type Conditions = Condition[];
 
-- `resource` is `/path/to/image.png`, and will match against with `Rule.resource` Condition
-- `resourceQuery` is `?inline`, and will match against with `Rule.resourceQuery` Condition
-- `resourceFragment` is `#foo`, and will match against with `Rule.resourceFragment` Condition
+type LogicalConditions = {
+  and?: Conditions;
+  or?: Conditions;
+  not?: Condition;
+};
+```
+
+Defines a module's match conditions, common matches are [resource](#ruleresource), [resourceQuery](#ruleresourcequery), [include](#ruleinclude), and [exclude](#ruleexclude).
+
+Example: app.js imports `./image.png?inline#foo`:
+
+- `resource` is `/path/to/image.png`, and will match against with [Rule.resource](#ruleresource) Condition
+- `resourceQuery` is `?inline`, and will match against with [Rule.resourceQuery](#ruleresourcequery) Condition
+- `resourceFragment` is `#foo`, and will match against with [Rule.resourceFragment](#ruleresourcefragment) Condition
 
 Condition represents the form of matching a given input, and it supports the following types:
 
@@ -1640,12 +1657,36 @@ The order of evaluation is as follows:
 
 Excludes all modules that match this condition and will match against the absolute path of the resource (without query and fragment). This option cannot be present together with `Rule.resource`.
 
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        exclude: /\.js$/,
+      },
+    ],
+  },
+};
+```
+
 ### Rule.include
 
 - **Type:** [`Condition`](/config/module#condition)
 - **Default:** `undefined`
 
 Matches all modules that match this condition against the absolute path of the resource (without query and fragment). This option cannot be present together with `Rule.resource`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        include: /\.js$/,
+      },
+    ],
+  },
+};
+```
 
 ### Rule.resource
 
@@ -1654,12 +1695,38 @@ Matches all modules that match this condition against the absolute path of the r
 
 Matches all modules that match this resource, and will match against Resource (the absolute path without query and fragment). This option cannot be present together with `Rule.test`.
 
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        resource: /\.js$/,
+      },
+    ],
+  },
+};
+```
+
 ### Rule.resourceQuery
 
 - **Type:** [`Condition`](/config/module#condition)
 - **Default:** `undefined`
 
 Matches all modules that match this resource against the Resource's query. Note: Containing `?`, when `Rule.resourceQuery` is `?raw`, it will match the resource request of `foo?raw`
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        resourceQuery: /inline/,
+        type: 'asset/inline',
+      },
+    ],
+  },
+};
+```
 
 ### Rule.resourceFragment
 
@@ -1668,6 +1735,18 @@ Matches all modules that match this resource against the Resource's query. Note:
 
 Matches all modules that match this resource against the Resource's fragment. Note: Containing `#`, when `Rule.resourceFragment` is `#abc`, it will match the resource request of `foo#abc`
 
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        resourceFragment: '#abc',
+      },
+    ],
+  },
+};
+```
+
 ### Rule.test
 
 - **Type:** [`Condition`](/config/module#condition)
@@ -1675,12 +1754,36 @@ Matches all modules that match this resource against the Resource's fragment. No
 
 Matches all modules that match this resource, and will match against Resource (the absolute path without query and fragment). This option cannot be present together with `Rule.resource`.
 
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+      },
+    ],
+  },
+};
+```
+
 ### Rule.issuer
 
 - **Type:** [`Condition`](/config/module#condition)
 - **Default:** `undefined`
 
 Matches all modules that match this resource, and will match against Resource (the absolute path without query and fragment) of the module that issued the current module.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        issuer: /\.js$/,
+      },
+    ],
+  },
+};
+```
 
 ### Rule.issuerLayer
 
@@ -1752,7 +1855,26 @@ export default {
 - **Type:** [`Condition`](/config/module#condition)
 - **Default:** `undefined`
 
-Matches all modules that match this resource, and will match against the category of the dependency that introduced the current module, for example `esm` for `import` and `import()`, `cjs` for `require()`, `url` for `new URL()` and `url()`.
+Matches all modules that match this resource, and will match against the category of the dependency that introduced the current module, for example:
+
+- `esm` for `import` and `import()`
+- `cjs` for `require()`
+- `url` for `new URL()` and `url()`.
+
+For example, match all `.js` files, but exclude `url` type dependencies (such as `new URL('./path/to/foo.js', import.meta.url)`):
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        dependency: { not: 'url' },
+      },
+    ],
+  },
+};
+```
 
 ### Rule.scheme
 
@@ -2150,7 +2272,7 @@ export default {
 };
 ```
 
-#### Rule.use.parallel
+### Rule.use.parallel
 
 <ApiMeta addedVersion="1.3.1" />
 
@@ -2186,19 +2308,16 @@ export default {
 When multiple loaders in the current `Rule` are configured with `Rule.use.parallel = true`, Rspack will execute all loader tasks in the same worker until it encounters the next loader without the `parallel` flag or a Rust `builtin:` loader. This approach enhances loader parallel performance.
 
 :::warning
-This configuration only takes effect when [experiments.parallelLoader](/config/experiments#experimentsparallelloader) is enabled.
 
-The loader configuration must comply with the [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist), otherwise transmission will fail.
+- This configuration only takes effect when [experiments.parallelLoader](/config/experiments#experimentsparallelloader) is enabled.
+- The loader configuration must comply with the [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist), otherwise transmission will fail.
+- Currently, Rspack does not support most of the methods on `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module`.
 
-Currently, Rspack does not support most of the methods on `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module`.
 :::
 
 ### Rule.resolve
 
-Set specific module resolve options based on the matching modules
-{
-// TODO: Add link to resolve
-}
+Set specific module [resolve](/config/resolve) options based on the matching modules.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -2222,9 +2341,59 @@ export default {
 
 A kind of [Nested Rule](#nested-rule), an array of Rules that is also used when the parent Rule matches.
 
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        // When a CSS file is matched, continue to use these nested rules
+        rules: [
+          {
+            // Handle CSS files with "?raw" query
+            resourceQuery: /raw/,
+            type: 'asset/source',
+          },
+          {
+            // Handle normal CSS files
+            resourceQuery: {
+              not: /raw/,
+            },
+            type: 'css/auto',
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
 ### Rule.oneOf
 
 - **Type:** <code>([Rule](#rule) | Falsy)[]</code>
 - **Default:** `undefined`
 
 A kind of [Nested Rule](#nested-rule), an array of Rules from which only the first matching Rule is used when the parent Rule matches.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.(png|jpg)$/i,
+        oneOf: [
+          {
+            // Handle images with "?raw" query
+            resourceQuery: /raw/,
+            type: 'asset/source',
+          },
+          {
+            // Otherwise, output as a separate file
+            type: 'asset/resource',
+          },
+        ],
+      },
+    ],
+  },
+};
+```

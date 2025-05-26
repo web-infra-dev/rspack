@@ -1,12 +1,15 @@
 import path from "node:path";
+import { createBrotliDecompress, createGunzip, createInflate } from "node:zlib";
 import {
 	type BuiltinPlugin,
 	BuiltinPluginName,
 	type RawHttpUriPluginOptions
 } from "@rspack/binding";
 import type { Compiler } from "../Compiler";
-import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 
+import type { IncomingMessage } from "node:http";
+import { memoize } from "../util/memoize";
+import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 export type HttpUriPluginOptionsAllowedUris = (string | RegExp)[];
 
 export type HttpUriPluginOptions = {
@@ -40,25 +43,72 @@ export type HttpUriPluginOptions = {
 	httpClient?: RawHttpUriPluginOptions["httpClient"];
 };
 
-const defaultHttpClient = (url: string, headers: Record<string, string>) => {
+const getHttp = memoize(() => require("node:http"));
+const getHttps = memoize(() => require("node:https"));
+function fetch(url: string, options: { headers: Record<string, string> }) {
+	const parsedURL = new URL(url);
+	const send: typeof import("node:http") =
+		parsedURL.protocol === "https:" ? getHttps() : getHttp();
+	return new Promise<{ res: IncomingMessage; body: Buffer }>(
+		(resolve, reject) => {
+			send
+				.get(url, options, res => {
+					// align with https://github.com/webpack/webpack/blob/dec18718be5dfba28f067fb3827dd620a1f33667/lib/schemes/HttpUriPlugin.js#L807
+					const contentEncoding = res.headers["content-encoding"];
+					/** @type {Readable} */
+					let stream = res;
+					if (contentEncoding === "gzip") {
+						stream = stream.pipe(createGunzip()) as any as IncomingMessage;
+					} else if (contentEncoding === "br") {
+						stream = stream.pipe(
+							createBrotliDecompress()
+						) as any as IncomingMessage;
+					} else if (contentEncoding === "deflate") {
+						stream = stream.pipe(createInflate()) as any as IncomingMessage;
+					}
+					const chunks: Buffer[] = [];
+					stream.on("data", chunk => {
+						chunks.push(chunk);
+					});
+					stream.on("end", () => {
+						const bodyBuffer = Buffer.concat(chunks);
+						if (!res.complete) {
+							reject(new Error(`${url} request was terminated early`));
+							return;
+						}
+						resolve({
+							res,
+							body: bodyBuffer
+						});
+					});
+				})
+				.on("error", reject);
+		}
+	);
+}
+const defaultHttpClient = async (
+	url: string,
+	headers: Record<string, string>
+) => {
 	// Return a promise that resolves to the response
-	return fetch(url, { headers }).then(response => {
-		// Convert the response to the format expected by the HTTP client
-		return response.arrayBuffer().then(buffer => {
-			// Extract headers
-			const responseHeaders: Record<string, string> = {};
-			response.headers.forEach((value, key) => {
-				responseHeaders[key] = value;
-			});
+	// setting redirect: "manual" to prevent automatic redirection which will break the redirect logic in rust plugin
+	// webpack use require('http').get while rspack use fetch which treats redirect differently
+	const { res, body } = await fetch(url, { headers });
+	const responseHeaders: Record<string, string> = {};
+	for (const [key, value] of Object.entries(res.headers)) {
+		if (Array.isArray(value)) {
+			responseHeaders[key] = value.join(", ");
+		} else {
+			responseHeaders[key] = value!;
+		}
+	}
 
-			// Return the standardized format
-			return {
-				status: response.status,
-				headers: responseHeaders,
-				body: Buffer.from(buffer)
-			};
-		});
-	});
+	// Return the standardized format
+	return {
+		status: res.statusCode!,
+		headers: responseHeaders,
+		body: Buffer.from(body)
+	};
 };
 
 /**

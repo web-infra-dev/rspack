@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use cow_utils::CowUtils;
 use napi::{
   bindgen_prelude::{Buffer, FromNapiValue, Function, JsValuesTupleIntoVec, Promise, ToNapiValue},
-  Env, NapiRaw,
+  Env, JsValue,
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{

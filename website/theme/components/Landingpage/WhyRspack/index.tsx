@@ -64,12 +64,7 @@ const WhyRspack = memo(() => {
   return (
     <section className={containerStyle}>
       <div className={innerContainerStyle}>
-        <BaseWhyRspack
-          features={features}
-          title={t('whyRspack')}
-          description={t('whyRspackDesc')}
-          LinkComp={Link}
-        />
+        <BaseWhyRspack features={features} LinkComp={Link} />
       </div>
     </section>
   );

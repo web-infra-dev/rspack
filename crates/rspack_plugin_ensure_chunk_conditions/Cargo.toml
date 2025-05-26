@@ -1,10 +1,10 @@
 [package]
-description = "rspack ensure chunk conditions plugin"
-edition     = "2021"
-license     = "MIT"
-name        = "rspack_plugin_ensure_chunk_conditions"
-repository  = "https://github.com/web-infra-dev/rspack"
-version     = "0.2.0"
+description       = "rspack ensure chunk conditions plugin"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_plugin_ensure_chunk_conditions"
+repository        = "https://github.com/web-infra-dev/rspack"
+version           = "0.2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]

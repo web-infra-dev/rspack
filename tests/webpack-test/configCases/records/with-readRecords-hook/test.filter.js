@@ -1,2 +1,1 @@
-// compiler.hooks.readRecords is undefined
-module.exports = () => false;
+module.exports = () => "NOPLAN: cache is different with webpack";

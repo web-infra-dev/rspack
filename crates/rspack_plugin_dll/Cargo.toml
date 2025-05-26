@@ -1,6 +1,6 @@
 [package]
 description        = "rspack dynamic entry plugin"
-edition            = "2021"
+edition.workspace  = true
 homepage.workspace = true
 license            = "MIT"
 name               = "rspack_plugin_dll"

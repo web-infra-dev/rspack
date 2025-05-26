@@ -6,20 +6,20 @@ use std::{
   marker::PhantomData,
   path::Path,
   sync::{
-    Arc, Mutex,
     atomic::{AtomicUsize, Ordering},
     mpsc,
     mpsc::Sender,
+    Arc, Mutex,
   },
   thread::JoinHandle,
 };
 
-use serde_json::{Value as JsonValue, json};
-use tracing_core::{Event, Subscriber, field::Field, span};
+use serde_json::{json, Value as JsonValue};
+use tracing_core::{field::Field, span, Event, Subscriber};
 use tracing_subscriber::{
-  Layer,
   layer::Context,
   registry::{LookupSpan, SpanRef},
+  Layer,
 };
 
 thread_local! {
@@ -98,7 +98,7 @@ where
   /// If `file` could not be opened/created. To handle errors,
   /// open a file and pass it to [`writer`](crate::ChromeLayerBuilder::writer) instead.
   pub fn file<P: AsRef<Path> + Send + 'static>(self, file: P) -> Self {
-    self.writer(std::fs::File::create(file).expect("Failed to create trace file."))
+    self.writer(|| Box::new(std::fs::File::create(file).expect("Failed to create trace file.")))
   }
 
   /// Supply an arbitrary writer to which to write trace contents.
@@ -108,11 +108,13 @@ where
   /// ```rust
   /// # use rspack_tracing_chrome::ChromeLayerBuilder;
   /// # use tracing_subscriber::prelude::*;
-  /// let (layer, guard) = ChromeLayerBuilder::new().writer(std::io::sink()).build();
+  /// let (layer, guard) = ChromeLayerBuilder::new()
+  ///   .writer(|| Box::new(std::io::sink()))
+  ///   .build();
   /// # tracing_subscriber::registry().with(layer).init();
   /// ```
-  pub fn writer<W: Write + Send + 'static>(mut self, writer: W) -> Self {
-    self.out_writer = Some(Box::new(|| Box::new(writer)));
+  pub fn writer<W: FnOnce() -> Box<dyn Write> + Send + 'static>(mut self, writer: W) -> Self {
+    self.out_writer = Some(Box::new(writer));
     self
   }
 
@@ -431,8 +433,8 @@ where
         serde_json::to_writer(&mut write, &entry).unwrap();
         has_started = true;
       }
-
-      write.write_all(b"\n]").unwrap();
+      // we need to merge tracing with js side, so don't end it early
+      // write.write_all(b"\n]").unwrap();
       write.flush().unwrap();
     });
 
