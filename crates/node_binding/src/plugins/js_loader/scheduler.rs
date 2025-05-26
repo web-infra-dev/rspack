@@ -35,12 +35,12 @@ pub(crate) async fn loader_yield(
   let read_guard = self.runner.read().await;
   match &*read_guard {
     Some(runner) => {
-      let new_cx = runner
-        .call_async(loader_context.try_into()?)
-        .await
-        .into_diagnostic()?
+      let (tx, rx) = tokio::sync::oneshot::channel::<napi::Result<JsLoaderContext>>();
+      runner
+        .call_async((loader_context.try_into()?, tx))
         .await
         .into_diagnostic()?;
+      let new_cx = rx.await.into_diagnostic()?.into_diagnostic()?;
       drop(read_guard);
 
       merge_loader_context(loader_context, new_cx)?;
@@ -62,15 +62,15 @@ pub(crate) async fn loader_yield(
       };
 
       let read_guard = self.runner.read().await;
+      let (tx, rx) = tokio::sync::oneshot::channel::<napi::Result<JsLoaderContext>>();
       #[allow(clippy::unwrap_used)]
-      let new_cx = read_guard
+      read_guard
         .as_ref()
         .unwrap()
-        .call_async(loader_context.try_into()?)
-        .await
-        .into_diagnostic()?
+        .call_async((loader_context.try_into()?, tx))
         .await
         .into_diagnostic()?;
+      let new_cx = rx.await.into_diagnostic()?.into_diagnostic()?;
       drop(read_guard);
 
       merge_loader_context(loader_context, new_cx)?;

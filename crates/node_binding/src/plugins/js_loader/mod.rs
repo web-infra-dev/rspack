@@ -7,8 +7,8 @@ use std::{ffi::c_void, fmt::Debug, ptr};
 pub use context::{JsLoaderContext, JsLoaderItem};
 use napi::{
   bindgen_prelude::*,
-  sys::{napi_call_threadsafe_function, napi_threadsafe_function},
-  threadsafe_function::ThreadsafeFunction,
+  sys::{napi_call_threadsafe_function, napi_threadsafe_function, napi_value},
+  threadsafe_function::{ThreadsafeCallContext, ThreadsafeFunction},
 };
 use once_cell::sync::OnceCell;
 use rspack_core::{
@@ -21,8 +21,95 @@ use tokio::sync::RwLock;
 
 use crate::{RspackResultToNapiResultExt, COMPILER_REFERENCES};
 
-pub type JsLoaderRunner =
-  ThreadsafeFunction<JsLoaderContext, Promise<JsLoaderContext>, JsLoaderContext, false, true, 0>;
+pub type JsLoaderRunner = ThreadsafeFunction<
+  (
+    JsLoaderContext,
+    tokio::sync::oneshot::Sender<napi::Result<JsLoaderContext>>,
+  ),
+  (),
+  FnArgs<(JsLoaderContext, napi_value)>,
+  false,
+  true,
+  0,
+>;
+
+unsafe extern "C" fn raw_done<Value>(
+  env: sys::napi_env,
+  cbinfo: sys::napi_callback_info,
+) -> sys::napi_value
+where
+  Value: FromNapiValue,
+{
+  handle_done_callback::<Value>(env, cbinfo)
+    .unwrap_or_else(|err| throw_error(env, err, "Error in done"))
+}
+
+#[inline(always)]
+fn handle_done_callback<Value>(
+  env: sys::napi_env,
+  cbinfo: sys::napi_callback_info,
+) -> napi::Result<sys::napi_value>
+where
+  Value: FromNapiValue,
+{
+  let mut callback_values = [ptr::null_mut()];
+  let mut rust_cb = ptr::null_mut();
+  check_status!(
+    unsafe {
+      sys::napi_get_cb_info(
+        env,
+        cbinfo,
+        &mut 1,
+        callback_values.as_mut_ptr(),
+        ptr::null_mut(),
+        &mut rust_cb,
+      )
+    },
+    "Get callback info from finally callback failed"
+  )?;
+
+  let tx: Box<tokio::sync::oneshot::Sender<Value>> = unsafe { Box::from_raw(rust_cb.cast()) };
+
+  let value: Value = unsafe { FromNapiValue::from_napi_value(env, callback_values[0]) }?;
+  let _ = tx.send(value);
+
+  Ok(ptr::null_mut())
+}
+
+#[inline(never)]
+fn throw_error(env: sys::napi_env, err: Error, default_msg: &str) -> sys::napi_value {
+  const GENERIC_FAILURE: &str = "GenericFailure\0";
+  let code = if err.status.as_ref().is_empty() {
+    GENERIC_FAILURE
+  } else {
+    err.status.as_ref()
+  };
+  let mut code_string = ptr::null_mut();
+  let msg = if err.reason.is_empty() {
+    default_msg
+  } else {
+    err.reason.as_ref()
+  };
+  let mut msg_string = ptr::null_mut();
+  let mut err = ptr::null_mut();
+  unsafe {
+    sys::napi_create_string_latin1(
+      env,
+      code.as_ptr().cast(),
+      code.len() as isize,
+      &mut code_string,
+    );
+    sys::napi_create_string_utf8(
+      env,
+      msg.as_ptr().cast(),
+      msg.len() as isize,
+      &mut msg_string,
+    );
+    sys::napi_create_error(env, code_string, msg_string, &mut err);
+    sys::napi_throw(env, err);
+  };
+  ptr::null_mut()
+}
 
 struct JsLoaderRunnerGetterData {
   compiler_id: CompilerId,
@@ -50,13 +137,36 @@ extern "C" fn napi_js_callback(
         Object::from_napi_value(env, napi_value)?
       };
       let run_loader = compiler_object
-        .get_named_property::<Function<JsLoaderContext, Promise<JsLoaderContext>>>("_runLoader")?;
+        .get_named_property::<Function<FnArgs<(JsLoaderContext, napi_value)>, ()>>("_runLoader")?;
       let ts_fn: JsLoaderRunner = run_loader
-        .build_threadsafe_function::<JsLoaderContext>()
+        .build_threadsafe_function()
         .weak::<true>()
         .callee_handled::<false>()
         .max_queue_size::<0>()
-        .build()?;
+        .build_callback(
+          |ctx: ThreadsafeCallContext<(
+            JsLoaderContext,
+            tokio::sync::oneshot::Sender<napi::Result<JsLoaderContext>>,
+          )>| {
+            let (context, sender): (_, _) = ctx.value;
+            let mut done = ptr::null_mut();
+            const DONE: &[u8; 5] = b"done\0";
+            check_status!(
+              unsafe {
+                sys::napi_create_function(
+                  ctx.env.raw(),
+                  DONE.as_ptr().cast(),
+                  4,
+                  Some(raw_done::<JsLoaderContext>),
+                  Box::into_raw(Box::new(sender)).cast(),
+                  &mut done,
+                )
+              },
+              "Create then function for PromiseRaw failed"
+            )?;
+            Ok(FnArgs::from((context, done)))
+          },
+        )?;
       Ok(ts_fn)
     } else {
       Err(napi::Error::from_reason(

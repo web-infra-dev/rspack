@@ -251,7 +251,15 @@ function getCurrentLoader(
 	return null;
 }
 
-export async function runLoaders(
+export function runLoaders(
+	compiler: Compiler,
+	context: JsLoaderContext,
+	callback: (loaderContext: JsLoaderContext) => void
+): void {
+	runLoadersAsync(compiler, context).then(ctx => callback(ctx));
+}
+
+async function runLoadersAsync(
 	compiler: Compiler,
 	context: JsLoaderContext
 ): Promise<JsLoaderContext> {
