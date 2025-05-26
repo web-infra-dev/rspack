@@ -493,6 +493,7 @@ export declare enum BuiltinPluginName {
   CssExtractRspackPlugin = 'CssExtractRspackPlugin',
   SubresourceIntegrityPlugin = 'SubresourceIntegrityPlugin',
   RsdoctorPlugin = 'RsdoctorPlugin',
+  RstestPlugin = 'RstestPlugin',
   CircularDependencyRspackPlugin = 'CircularDependencyRspackPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin',
@@ -2429,6 +2430,10 @@ export interface RawRsdoctorPluginOptions {
 
 export interface RawRspackFuture {
 
+}
+
+export interface RawRstestPluginOptions {
+  injectModulePathName: boolean
 }
 
 export interface RawRuleSetCondition {

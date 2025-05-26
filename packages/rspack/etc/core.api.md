@@ -73,6 +73,7 @@ import { RawIgnorePluginOptions } from '@rspack/binding';
 import { RawOptions } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
 import { RawProvideOptions } from '@rspack/binding';
+import { RawRstestPluginOptions } from '@rspack/binding';
 import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { RawSubresourceIntegrityPluginOptions } from '@rspack/binding';
 import { readFileSync } from 'fs';
@@ -6295,6 +6296,7 @@ declare namespace rspackExports {
         ProvidePlugin,
         DefinePlugin,
         ProgressPlugin,
+        RstestPlugin,
         EntryPlugin,
         DynamicEntryPlugin,
         ExternalsPlugin,
@@ -6716,6 +6718,17 @@ export type RspackSeverity = binding.JsRspackSeverity;
 
 // @public (undocumented)
 export const rspackVersion: string;
+
+// @public (undocumented)
+export const RstestPlugin: {
+    new (rstest: RawRstestPluginOptions): {
+        name: BuiltinPluginName;
+        _args: [rstest: RawRstestPluginOptions];
+        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler_2): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
 
 // @public (undocumented)
 type Rule = string | RegExp;
