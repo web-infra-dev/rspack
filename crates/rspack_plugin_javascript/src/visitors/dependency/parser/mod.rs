@@ -366,6 +366,8 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::InnerGraphPlugin::new(
         unresolved_mark,
       )));
+    }
+    if compiler_options.experiments.inline_constants {
       plugins.push(Box::new(parser_plugin::InlineConstPlugin));
     }
     plugins.append(parser_plugins);
