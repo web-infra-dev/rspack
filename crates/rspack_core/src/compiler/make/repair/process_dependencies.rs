@@ -16,7 +16,7 @@ pub struct ProcessDependenciesTask {
 #[async_trait::async_trait]
 impl Task<MakeTaskContext> for ProcessDependenciesTask {
   fn get_task_type(&self) -> TaskType {
-    TaskType::Sync
+    TaskType::Main
   }
 
   async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {

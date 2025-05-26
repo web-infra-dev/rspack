@@ -21,7 +21,7 @@ pub struct CtrlTask {
 #[async_trait::async_trait]
 impl Task<ExecutorTaskContext> for CtrlTask {
   fn get_task_type(&self) -> TaskType {
-    TaskType::Async
+    TaskType::Background
   }
 
   async fn background_run(mut self: Box<Self>) -> TaskResult<ExecutorTaskContext> {

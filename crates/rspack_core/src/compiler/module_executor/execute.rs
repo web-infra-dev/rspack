@@ -77,7 +77,7 @@ impl ExecuteTask {
 #[async_trait::async_trait]
 impl Task<ExecutorTaskContext> for ExecuteTask {
   fn get_task_type(&self) -> TaskType {
-    TaskType::Sync
+    TaskType::Main
   }
 
   async fn main_run(
