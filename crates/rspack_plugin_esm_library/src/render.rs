@@ -21,13 +21,32 @@ use rspack_util::{
   fx_hash::{FxHashMap, FxHashSet, FxIndexSet},
 };
 
-use crate::EsmLibraryPlugin;
+use crate::{EsmLibraryPlugin, dependency::dyn_import::NAMESPACE_SYMBOL};
 impl EsmLibraryPlugin {
   pub(crate) fn get_runtime_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
     let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
     let group = chunk.groups().into_iter().next().unwrap();
     let group = compilation.chunk_group_by_ukey.expect_get(group);
-    group.get_runtime_chunk(&compilation.chunk_group_by_ukey)
+    let mut stack = vec![group];
+    let mut visited = UkeySet::default();
+
+    while let Some(group) = stack.pop() {
+      if !visited.insert(group.ukey) {
+        continue;
+      }
+
+      if group.kind.is_entrypoint() {
+        return group.get_runtime_chunk(&compilation.chunk_group_by_ukey);
+      }
+
+      stack.extend(
+        group
+          .parents_iterable()
+          .map(|group| compilation.chunk_group_by_ukey.expect_get(group)),
+      );
+    }
+
+    unreachable!("chunk should have at least one ancestor that is entrypoint")
   }
 
   pub(crate) async fn render_chunk(
@@ -69,7 +88,7 @@ impl EsmLibraryPlugin {
 
     decl_modules.sort_by_key(|m| m.identifier());
     // find import
-    let mut render_source = ConcatSource::default();
+    let mut decl_source = ConcatSource::default();
 
     let chunk = compilation.chunk_by_ukey.get(chunk_ukey).unwrap();
     let filename_template = get_js_chunk_filename_template(
@@ -104,7 +123,7 @@ impl EsmLibraryPlugin {
       .await?;
 
     if !decl_modules.is_empty() {
-      render_source.add(RawSource::from(format!(
+      decl_source.add(RawSource::from(format!(
         "Object.assign({}, {{\n",
         RuntimeGlobals::MODULE_FACTORIES
       )));
@@ -119,30 +138,10 @@ impl EsmLibraryPlugin {
         else {
           continue;
         };
-        render_source.add(module_source.clone());
+        decl_source.add(module_source.clone());
       }
 
-      render_source.add(RawSource::from_static("});\n"));
-    }
-
-    for m in decl_modules {
-      let ModuleInfo::External(info) = concatenated_modules_map
-        .get(&m.identifier())
-        .expect("should have info")
-      else {
-        unreachable!("should be external module")
-      };
-
-      // render_source.add(RawStringSource::from(format!(
-      //   "var {} = {}({});\n",
-      //   info.name.as_ref().expect("should have name"),
-      //   RuntimeGlobals::REQUIRE,
-      //   serde_json::to_string(
-      //     ChunkGraph::get_module_id(&compilation.module_ids_artifact, info.module)
-      //       .expect("should have module id")
-      //   )
-      //   .expect("should json stringify module id")
-      // )));
+      decl_source.add(RawSource::from_static("});\n"));
     }
 
     // present as
@@ -154,6 +153,7 @@ impl EsmLibraryPlugin {
     let mut required_symbols = IdentifierMap::<Atom>::default();
 
     // render cross module links
+    let mut render_source = ConcatSource::default();
     for m in &chunk_link.hoisted_modules {
       let info = concatenated_modules_map
         .get(m)
@@ -278,6 +278,32 @@ impl EsmLibraryPlugin {
               }
             }
           }
+        } else if let Some((index, already_in_chunk, atom)) =
+          ConcatenationScope::match_dynamic_module_reference(&atom)
+        {
+          let (ref_module, ref_info) = concatenated_modules_map
+            .get_index(index)
+            .expect("should have module");
+          let internal_names = &ref_info.as_concatenated().internal_names;
+          let internal_symbol = internal_names.get(&atom).unwrap_or_else(|| {
+            panic!(
+              "module {} should have set internal name for: {}, internal_names: {:?}",
+              ref_module, atom, &internal_names
+            )
+          });
+          for ref_atom in refs {
+            let content = if already_in_chunk {
+              Cow::Borrowed(internal_symbol.as_str())
+            } else {
+              Cow::Owned(format!("{}.{}", NAMESPACE_SYMBOL, internal_symbol))
+            };
+            source.replace(
+              ref_atom.id.span.real_lo(),
+              ref_atom.id.span.real_hi(),
+              &content,
+              None,
+            );
+          }
         }
       }
 
@@ -332,6 +358,11 @@ impl EsmLibraryPlugin {
 
     for (module_id, imported) in imported_symbols.iter() {
       let ref_chunk = Self::get_module_chunk(*module_id, compilation);
+
+      if &ref_chunk == chunk_ukey {
+        continue;
+      }
+
       let imported_atoms = imported_chunks.entry(ref_chunk).or_default();
       imported_atoms.extend(imported.clone().into_iter());
     }
@@ -358,12 +389,15 @@ impl EsmLibraryPlugin {
       final_source.add(RawSource::from_static("\n"));
     }
 
+    final_source.add(decl_source);
+
+    // render __webpack_require__ call after decl modules
     if !required_symbols.is_empty() {
       let mut already_imported_chunks: UkeySet<ChunkUkey> = imported_symbols
         .keys()
         .map(|module_id| Self::get_module_chunk(*module_id, compilation))
         .collect();
-      let mut extra_imports = vec![];
+      let mut extra_imports = FxIndexSet::default();
 
       let required_str = RawStringSource::from(
         required_symbols
@@ -372,7 +406,7 @@ impl EsmLibraryPlugin {
             let ref_chunk = Self::get_module_chunk(*id, compilation);
             if &ref_chunk != chunk_ukey && !already_imported_chunks.contains(&ref_chunk) {
               already_imported_chunks.insert(ref_chunk);
-              extra_imports.push(format!(
+              extra_imports.insert(format!(
                 "import \"__RSPACK_ESM_CHUNK_{}\";\n",
                 ref_chunk.as_u32()
               ));
@@ -393,10 +427,14 @@ impl EsmLibraryPlugin {
           .join("\n"),
       );
 
-      final_source.add(RawStringSource::from(extra_imports.join("\n")));
+      final_source.add(RawStringSource::from(
+        extra_imports.into_iter().collect::<Vec<_>>().join("\n"),
+      ));
       final_source.add(RawSource::from_static("\n"));
       final_source.add(required_str);
     }
+
+    final_source.add(render_source);
 
     let mut export_specifiers = vec![];
 
@@ -413,7 +451,6 @@ impl EsmLibraryPlugin {
 
       export_specifiers.push(RuntimeGlobals::REQUIRE.name());
     }
-    final_source.add(render_source);
 
     for (id, exports) in &chunk_link.exports {
       let info = concatenated_modules_map

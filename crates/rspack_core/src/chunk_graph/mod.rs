@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use rspack_collections::{IdentifierIndexSet, IdentifierMap, UkeyMap};
 use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};

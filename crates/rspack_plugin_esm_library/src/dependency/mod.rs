@@ -1,1 +1,1 @@
-mod dyn_import;
+pub mod dyn_import;
