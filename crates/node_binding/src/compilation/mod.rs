@@ -605,7 +605,7 @@ impl JsCompilation {
     layer: Option<String>,
     public_path: Option<JsFilename>,
     base_uri: Option<String>,
-    original_module: Option<String>,
+    original_module: String,
     original_module_context: Option<String>,
     callback: Function<'static>,
   ) -> Result<()> {
@@ -625,7 +625,7 @@ impl JsCompilation {
             public_path.map(|p| p.into()),
             base_uri,
             original_module_context.map(rspack_core::Context::from),
-            original_module.map(ModuleIdentifier::from),
+            ModuleIdentifier::from(original_module),
           )
           .await;
 
