@@ -23,7 +23,7 @@ pub struct EntryTask {
 #[async_trait::async_trait]
 impl Task<ExecutorTaskContext> for EntryTask {
   fn get_task_type(&self) -> TaskType {
-    TaskType::Sync
+    TaskType::Main
   }
 
   async fn main_run(
