@@ -103,6 +103,7 @@ describe("snapshots", () => {
 		    "outputModule": false,
 		    "syncWebAssembly": false,
 		    "topLevelAwait": true,
+				"useInputFileSystem": false,
 		  },
 		  "externals": undefined,
 		  "externalsPresets": Object {
