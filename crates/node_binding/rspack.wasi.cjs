@@ -72,22 +72,22 @@ const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule
     // According to https://github.com/nodejs/node/blob/19e0d472728c79d418b74bddff588bea70a403d0/lib/internal/worker.js#L415,
     // a worker is consist of two handles: kPublicPort and kHandle.
     {
-			const kPublicPort = Object.getOwnPropertySymbols(worker).find(s =>
-				s.toString().includes("kPublicPort")
-			);
-			if (kPublicPort) {
-				worker[kPublicPort].ref = () => {};
-			}
+      const kPublicPort = Object.getOwnPropertySymbols(worker).find(s =>
+        s.toString().includes("kPublicPort")
+      );
+      if (kPublicPort) {
+        worker[kPublicPort].ref = () => {};
+      }
 
-			const kHandle = Object.getOwnPropertySymbols(worker).find(s =>
-				s.toString().includes("kHandle")
-			);
-			if (kPublicPort) {
-				worker[kHandle].ref = () => {};
-			}
+      const kHandle = Object.getOwnPropertySymbols(worker).find(s =>
+        s.toString().includes("kHandle")
+      );
+      if (kPublicPort) {
+        worker[kHandle].ref = () => {};
+      }
 
-			worker.unref();
-		}
+      worker.unref();
+    }
     return worker
   },
   overwriteImports(importObject) {
