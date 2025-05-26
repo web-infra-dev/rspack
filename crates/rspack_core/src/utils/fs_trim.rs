@@ -65,8 +65,8 @@ pub async fn trim_dir<'a>(
   if let Ok(metadata) = fs.stat(dir).await {
     // not a directory, try to remove it
     if !metadata.is_directory {
-      if !keep.try_match(&dir).await? {
-        fs.remove_file(&dir).await?;
+      if !keep.try_match(dir).await? {
+        fs.remove_file(dir).await?;
       }
       return Ok(());
     }
