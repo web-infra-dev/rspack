@@ -1,22 +1,17 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  AsModuleDependency, ChunkGraph, ChunkUkey, Compilation, DependencyTemplate, ExportInfoProvided,
-  ExportProvided, ModuleIdentifier, RuntimeGlobals, missing_module_promise,
+  AsModuleDependency, ChunkGraph, ChunkUkey, Compilation, DependencyTemplate, ExportInfoGetter,
+  ExportProvided, ModuleIdentifier, RuntimeGlobals, UsageState, missing_module_promise,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
 
 use crate::EsmLibraryPlugin;
 
-#[derive(Debug)]
-pub struct DynamicImportDependencyTemplate {
-  // The module that is being imported dynamically
-  module: String,
-  // The context in which the import is made
-  context: String,
-  // The type of the import (e.g., 'import', 'require')
-  import_type: String,
-}
+pub static NAMESPACE_SYMBOL: &'static str = "mod";
+
+#[derive(Debug, Default)]
+pub struct DynamicImportDependencyTemplate;
 
 impl DependencyTemplate for DynamicImportDependencyTemplate {
   fn render(
@@ -72,7 +67,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       b. if refModule is not scope hoisted
         const { a, b } = await import('./ref-chunk').then(() => __webpack_require__(./refModule));
     */
-    let Some(concatenation_scope) = &code_generatable_context.concatenation_scope else {
+    let Some(concatenation_scope) = &mut code_generatable_context.concatenation_scope else {
       // if we are not in a concatenation scope, then all its children are not scope hoisted as well
       // we can safely use __webpack_require__ to fetch module
       source.replace(
@@ -109,48 +104,79 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       return;
     }
 
-    let import_promise = if ref_chunk == orig_chunk {
+    let already_in_chunk = ref_chunk == orig_chunk;
+    let import_promise = if already_in_chunk {
       Cow::Borrowed("Promise.resolve()")
     } else {
-      Cow::Owned(format!("import(__RSPACK_ESM_CHUNK_{})", ref_chunk.as_u32()))
+      Cow::Owned(format!(
+        "import(\"__RSPACK_ESM_CHUNK_{}\")",
+        ref_chunk.as_u32()
+      ))
     };
+
     // importer and importee are both scope hoisted
-    if let Some(ref_exports) = &dep.referenced_exports {
+    let render_exports = if let Some(ref_exports) = &dep.referenced_exports {
       // we only extract the named exports
       // const { a, b } = await import('./refModule');
-      let ref_exports_info = module_graph.get_exports_info(&ref_module.identifier());
-
-      if matches!(
-        ref_exports_info
-          .other_exports_info(&module_graph)
-          .provided(&module_graph),
-        None | Some(ExportInfoProvided::Null)
-      ) {
-        // unknown provided
-        // const { a, b } = await import('./refChunk').then((mod) => { a: mod.a, b: mod.b });
-        // TODO. default interop
-        let refs = ref_exports.iter().map(|ref_symbol| {});
-        source.replace(
-          dep.range.start,
-          dep.range.end,
-          &format!(
-            "{}.then((mod) => ({{  }}))",
-            import_promise,
-            RuntimeGlobals::REQUIRE,
-            serde_json::to_string(
-              ChunkGraph::get_module_id(
-                &code_generatable_context.compilation.module_ids_artifact,
-                ref_module.identifier()
-              )
-              .expect("should have id")
+      // const { a, b } = await import('./refChunk').then(mod => ({ a: __WEBPACK_MODULE_DYNAMIC_REFERENCE__0_a, b: __WEBPACK_MODULE_DYNAMIC_REFERENCE__0_b }));
+      ref_exports
+        .iter()
+        .map(|ref_export| {
+          format!(
+            "{}: {}",
+            ref_export,
+            concatenation_scope.create_dynamic_module_reference(
+              &ref_module.identifier(),
+              already_in_chunk,
+              ref_export
             )
-            .expect("should serde to string"),
-          ),
-          None,
-        );
-        return;
-      }
-    }
+          )
+        })
+        .collect::<Vec<_>>()
+        .join(",")
+    } else {
+      let ref_exports_info = module_graph.get_exports_info(&ref_module.identifier());
+      let all_exports = ref_exports_info.get_relevant_exports(&module_graph, None);
+      all_exports
+        .iter()
+        .map(|export| export.as_data(&module_graph))
+        .filter(|export| {
+          !matches!(
+            ExportInfoGetter::get_used(&export, None),
+            UsageState::Unused
+          )
+        })
+        .filter_map(|export| ExportInfoGetter::name(export))
+        .map(|ref_export| {
+          format!(
+            "{}: {}",
+            ref_export,
+            concatenation_scope.create_dynamic_module_reference(
+              &ref_module.identifier(),
+              already_in_chunk,
+              ref_export
+            )
+          )
+        })
+        .collect::<Vec<_>>()
+        .join(",")
+    };
+
+    source.replace(
+      dep.range.start,
+      dep.range.end,
+      &format!(
+        "{}.then(({}) => ({{ {} }}))",
+        import_promise,
+        if already_in_chunk {
+          ""
+        } else {
+          NAMESPACE_SYMBOL
+        },
+        render_exports
+      ),
+      None,
+    );
   }
 }
 
@@ -165,7 +191,10 @@ fn fetch_raw_module(
     if ref_chunk == orig_chunk {
       Cow::Borrowed("Promise.resolve()")
     } else {
-      Cow::Owned(format!("import(__RSPACK_ESM_CHUNK_{})", ref_chunk.as_u32()))
+      Cow::Owned(format!(
+        "import(\"__RSPACK_ESM_CHUNK_{}\")",
+        ref_chunk.as_u32()
+      ))
     },
     RuntimeGlobals::REQUIRE,
     serde_json::to_string(
