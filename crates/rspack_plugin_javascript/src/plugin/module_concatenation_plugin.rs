@@ -13,7 +13,7 @@ use rspack_core::{
   },
   filter_runtime,
   incremental::IncrementalPasses,
-  merge_runtime, ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions,
+  ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions,
   ExportProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
   ModuleGraph, ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext, ProvidedExports,
   RuntimeCondition, RuntimeSpec, SourceType,
@@ -312,7 +312,7 @@ impl ModuleConcatenationPlugin {
 
         let mut origin_runtime = RuntimeSpec::default();
         for r in chunk_graph.get_module_runtimes_iter(*origin_module, chunk_by_ukey) {
-          origin_runtime = merge_runtime(&origin_runtime, r);
+          origin_runtime.extend(r);
         }
 
         let is_intersect = if let Some(runtime) = runtime {
@@ -455,10 +455,10 @@ impl ModuleConcatenationPlugin {
 
           // here two runtime_condition must be `RuntimeCondition::Spec`
           if current_runtime_condition != RuntimeCondition::Boolean(false) {
-            current_runtime_condition = RuntimeCondition::Spec(merge_runtime(
-              current_runtime_condition.as_spec().expect("should be spec"),
-              runtime_condition.as_spec().expect("should be spec"),
-            ));
+            current_runtime_condition
+              .as_spec_mut()
+              .expect("should be spec")
+              .extend(runtime_condition.as_spec().expect("should be spec"));
           } else {
             current_runtime_condition = runtime_condition;
           }
@@ -901,12 +901,12 @@ impl ModuleConcatenationPlugin {
       if used_as_inner.contains(current_root) {
         continue;
       }
-      let mut chunk_runtime = Default::default();
+      let mut chunk_runtime = RuntimeSpec::default();
       for r in compilation
         .chunk_graph
         .get_module_runtimes_iter(*current_root, &compilation.chunk_by_ukey)
       {
-        chunk_runtime = merge_runtime(&chunk_runtime, r);
+        chunk_runtime.extend(r);
       }
       let module_graph = compilation.get_module_graph();
       let exports_info = module_graph.get_exports_info(current_root);

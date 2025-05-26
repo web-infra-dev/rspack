@@ -1,6 +1,6 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  get_entry_runtime, merge_runtime, ApplyContext, BoxModule, Compilation, CompilationId,
+  get_entry_runtime, ApplyContext, BoxModule, Compilation, CompilationId,
   CompilationOptimizeDependencies, CompilationSucceedModule, CompilerId, CompilerOptions,
   FactoryMeta, Plugin, PluginContext, RuntimeSpec,
 };
@@ -49,7 +49,10 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
     .entries
     .iter()
     .map(|(name, entry_data)| get_entry_runtime(name, &entry_data.options, entries))
-    .fold(RuntimeSpec::default(), |a, b| merge_runtime(&a, &b));
+    .fold(RuntimeSpec::default(), |mut a, b| {
+      a.extend(&b);
+      a
+    });
 
   let mut mg = compilation.get_module_graph_mut();
 

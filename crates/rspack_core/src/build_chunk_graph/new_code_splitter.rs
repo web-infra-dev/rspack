@@ -695,12 +695,12 @@ impl CodeSplitter {
           entry
         ));
       }
-      let mut runtime = None;
+      let mut runtime: Option<RuntimeSpec> = None;
       for dep in depend_on {
         let other_runtime = Self::get_entry_runtime(dep, compilation, entry_runtime, visited)?;
         match &mut runtime {
           Some(runtime) => {
-            *runtime = merge_runtime(runtime, &other_runtime);
+            runtime.extend(&other_runtime);
           }
           None => {
             runtime = Some(other_runtime);
