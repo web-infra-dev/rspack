@@ -217,14 +217,20 @@ pub fn export_from_import(
         Some(UsedName::Inlined(inlined)) => {
           return format!(
             "{} {}",
-            to_normal_comment(&property_access(export_name, 0)),
+            to_normal_comment(&format!(
+              "inlined export {}",
+              property_access(export_name, 0)
+            )),
             inlined.render()
           )
         }
         None => {
           return format!(
             "{} undefined",
-            to_normal_comment(&property_access(export_name, 0))
+            to_normal_comment(&format!(
+              "unused export {}",
+              property_access(export_name, 0)
+            ))
           )
         }
       };

@@ -262,7 +262,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           program.comments.as_ref().map(|c| c as &dyn Comments),
         );
         program.visit_with(&mut visitor);
-        dbg!(&resource_data.resource, &visitor.side_effects_item);
         build_meta.side_effect_free = Some(visitor.side_effects_item.is_none());
         // Take the item from visitor is safe, because the field is only used in this place
         side_effects_bailout = visitor

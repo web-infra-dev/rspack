@@ -1,13 +1,12 @@
 use itertools::Itertools;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
-use rspack_collections::{Identifier, IdentifierSet};
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   property_access, rspack_sources::ReplacementEnforce, AsContextDependency, AsModuleDependency,
-  Compilation, Dependency, DependencyCodeGeneration, DependencyId, DependencyLocation,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ESMExportInitFragment, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
-  RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
-  DEFAULT_EXPORT,
+  Dependency, DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ESMExportInitFragment,
+  ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, RuntimeGlobals,
+  SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
 };
 use swc_core::atoms::Atom;
 

@@ -1,7 +1,6 @@
 use std::{
   borrow::Cow,
   collections::{hash_map::Entry, BTreeMap, VecDeque},
-  fmt,
   hash::Hash,
   rc::Rc,
   sync::{
@@ -20,12 +19,8 @@ use rspack_collections::{impl_item_ukey, Ukey, UkeySet};
 use rspack_util::{atom::Atom, ext::DynHash, json_stringify};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
-use swc_core::ecma::utils::number::ToJsString;
 
-use crate::{
-  Compilation, ConnectionState, DependencyCondition, DependencyConditionFn, DependencyId,
-  ModuleGraph, ModuleIdentifier, Nullable, RuntimeSpec,
-};
+use crate::{Compilation, DependencyId, ModuleGraph, ModuleIdentifier, Nullable, RuntimeSpec};
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
@@ -828,13 +823,6 @@ pub enum UsedName {
 }
 
 impl UsedName {
-  pub fn to_used_name_vec(self) -> Vec<Atom> {
-    match self {
-      UsedName::Normal(vec) => vec,
-      UsedName::Inlined(_) => todo!(),
-    }
-  }
-
   pub fn is_inlined(&self) -> bool {
     matches!(self, UsedName::Inlined(_))
   }
@@ -1484,6 +1472,7 @@ impl ExportInfo {
     self.get_used(mg, runtime).dyn_hash(hasher);
     data.provided.dyn_hash(hasher);
     data.terminal_binding.dyn_hash(hasher);
+    data.inlinable.dyn_hash(hasher);
     if let Some(exports_info) = data.exports_info
       && !visited.contains(&exports_info)
     {
@@ -2203,70 +2192,85 @@ pub enum UsedByExports {
   Bool(bool),
 }
 
+// refer from: https://github.com/rust-analyzer/smol_str/blob/5ffc90069f545c0444447cd08c2a29c6abb97fbb/src/lib.rs#L481-L484
 #[cacheable]
-#[derive(Debug, Clone, Copy)]
-pub enum EvaluatedInlinableValue {
-  Null,
-  Undefined,
-  Boolean(bool),
-  ShortNumber {
-    len: u8,
-    buf: [u8; Self::SHORT_SIZE],
-  },
-  ShortString {
-    len: u8,
-    buf: [u8; Self::SHORT_SIZE],
-  },
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+struct InlineShort {
+  len: u8,
+  buf: [u8; Self::SHORT_SIZE],
 }
 
-impl EvaluatedInlinableValue {
-  pub const SHORT_SIZE: usize = 6;
+impl InlineShort {
+  const SHORT_SIZE: usize = 6;
 
-  pub fn new_null() -> Self {
-    Self::Null
-  }
-
-  pub fn new_undefined() -> Self {
-    Self::Undefined
-  }
-
-  pub fn new_boolean(v: bool) -> Self {
-    Self::Boolean(v)
-  }
-
-  pub fn new_short_number(v: &str) -> Self {
-    let (len, buf) = Self::short_repr(v);
-    Self::ShortNumber { len, buf }
-  }
-
-  pub fn new_short_string(v: &str) -> Self {
-    let (len, buf) = Self::short_repr(v);
-    Self::ShortString { len, buf }
-  }
-
-  fn short_repr(v: &str) -> (u8, [u8; Self::SHORT_SIZE]) {
+  fn from_str(v: &str) -> Self {
     let len = v.len();
     debug_assert!(len <= Self::SHORT_SIZE);
     let mut buf = [0; Self::SHORT_SIZE];
     buf[..len].copy_from_slice(v.as_bytes());
-    (len as u8, buf)
+    Self {
+      len: len as u8,
+      buf,
+    }
   }
 
-  fn short_repr_as_str(len: u8, buf: &[u8; Self::SHORT_SIZE]) -> &str {
-    let len = len as usize;
-    // SAFETY: len is guaranteed to be <= 6
-    let buf = unsafe { buf.get_unchecked(..len) };
+  fn as_str(&self) -> &str {
+    let len: usize = self.len as usize;
+    // SAFETY: len is guaranteed to be <= Self::SHORT_SIZE
+    let buf = unsafe { self.buf.get_unchecked(..len) };
     // SAFETY: buf is guaranteed to be valid utf8 for ..len bytes
     unsafe { ::core::str::from_utf8_unchecked(buf) }
   }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+enum EvaluatedInlinableValueInner {
+  Null,
+  Undefined,
+  Boolean(bool),
+  ShortNumber(InlineShort),
+  ShortString(InlineShort),
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub struct EvaluatedInlinableValue(EvaluatedInlinableValueInner);
+
+impl EvaluatedInlinableValue {
+  pub const SHORT_SIZE: usize = InlineShort::SHORT_SIZE;
+
+  pub fn new_null() -> Self {
+    Self(EvaluatedInlinableValueInner::Null)
+  }
+
+  pub fn new_undefined() -> Self {
+    Self(EvaluatedInlinableValueInner::Undefined)
+  }
+
+  pub fn new_boolean(v: bool) -> Self {
+    Self(EvaluatedInlinableValueInner::Boolean(v))
+  }
+
+  pub fn new_short_number(v: &str) -> Self {
+    Self(EvaluatedInlinableValueInner::ShortNumber(
+      InlineShort::from_str(v),
+    ))
+  }
+
+  pub fn new_short_string(v: &str) -> Self {
+    Self(EvaluatedInlinableValueInner::ShortString(
+      InlineShort::from_str(v),
+    ))
+  }
 
   pub fn render(&self) -> Cow<str> {
-    match self {
-      Self::Null => "null".into(),
-      Self::Undefined => "undefined".into(),
-      Self::Boolean(v) => if *v { "true" } else { "false" }.into(),
-      Self::ShortNumber { len, buf } => Self::short_repr_as_str(*len, buf).into(),
-      Self::ShortString { len, buf } => json_stringify(Self::short_repr_as_str(*len, buf)).into(),
+    match &self.0 {
+      EvaluatedInlinableValueInner::Null => "null".into(),
+      EvaluatedInlinableValueInner::Undefined => "undefined".into(),
+      EvaluatedInlinableValueInner::Boolean(v) => if *v { "true" } else { "false" }.into(),
+      EvaluatedInlinableValueInner::ShortNumber(v) => v.as_str().into(),
+      EvaluatedInlinableValueInner::ShortString(v) => json_stringify(v.as_str()).into(),
     }
   }
 }
