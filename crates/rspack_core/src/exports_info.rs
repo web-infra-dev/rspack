@@ -17,7 +17,7 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_collections::{impl_item_ukey, Ukey, UkeySet};
-use rspack_util::{atom::Atom, ext::DynHash};
+use rspack_util::{atom::Atom, ext::DynHash, json_stringify};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
 use swc_core::ecma::utils::number::ToJsString;
@@ -2209,16 +2209,64 @@ pub enum EvaluatedInlinableValue {
   Null,
   Undefined,
   Boolean(bool),
-  ShortNumber(f64),
+  ShortNumber {
+    len: u8,
+    buf: [u8; Self::SHORT_SIZE],
+  },
+  ShortString {
+    len: u8,
+    buf: [u8; Self::SHORT_SIZE],
+  },
 }
 
 impl EvaluatedInlinableValue {
+  pub const SHORT_SIZE: usize = 6;
+
+  pub fn new_null() -> Self {
+    Self::Null
+  }
+
+  pub fn new_undefined() -> Self {
+    Self::Undefined
+  }
+
+  pub fn new_boolean(v: bool) -> Self {
+    Self::Boolean(v)
+  }
+
+  pub fn new_short_number(v: &str) -> Self {
+    let (len, buf) = Self::short_repr(v);
+    Self::ShortNumber { len, buf }
+  }
+
+  pub fn new_short_string(v: &str) -> Self {
+    let (len, buf) = Self::short_repr(v);
+    Self::ShortString { len, buf }
+  }
+
+  fn short_repr(v: &str) -> (u8, [u8; Self::SHORT_SIZE]) {
+    let len = v.len();
+    debug_assert!(len <= Self::SHORT_SIZE);
+    let mut buf = [0; Self::SHORT_SIZE];
+    buf[..len].copy_from_slice(v.as_bytes());
+    (len as u8, buf)
+  }
+
+  fn short_repr_as_str(len: u8, buf: &[u8; Self::SHORT_SIZE]) -> &str {
+    let len = len as usize;
+    // SAFETY: len is guaranteed to be <= 6
+    let buf = unsafe { buf.get_unchecked(..len) };
+    // SAFETY: buf is guaranteed to be valid utf8 for ..len bytes
+    unsafe { ::core::str::from_utf8_unchecked(buf) }
+  }
+
   pub fn render(&self) -> Cow<str> {
     match self {
-      EvaluatedInlinableValue::Null => "null".into(),
-      EvaluatedInlinableValue::Undefined => "undefined".into(),
-      EvaluatedInlinableValue::Boolean(v) => if *v { "true" } else { "false" }.into(),
-      EvaluatedInlinableValue::ShortNumber(n) => n.to_js_string().into(),
+      Self::Null => "null".into(),
+      Self::Undefined => "undefined".into(),
+      Self::Boolean(v) => if *v { "true" } else { "false" }.into(),
+      Self::ShortNumber { len, buf } => Self::short_repr_as_str(*len, buf).into(),
+      Self::ShortString { len, buf } => json_stringify(Self::short_repr_as_str(*len, buf)).into(),
     }
   }
 }

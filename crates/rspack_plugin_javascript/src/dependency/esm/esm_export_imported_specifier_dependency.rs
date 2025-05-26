@@ -1,4 +1,4 @@
-use std::{hash::BuildHasherDefault, sync::Arc};
+use std::hash::BuildHasherDefault;
 
 use indexmap::{IndexMap, IndexSet};
 use rspack_cacheable::{
@@ -631,7 +631,7 @@ impl ESMExportImportedSpecifierDependency {
               name,
               &import_var,
               ids[0].clone(),
-              ValueKey::Vec(ids),
+              ValueKey::UsedName(UsedName::Normal(ids)),
             );
             let is_async = ModuleGraph::is_async(compilation, &module_identifier);
             fragments.push(Box::new(ConditionalInitFragment::new(
@@ -799,7 +799,10 @@ impl ESMExportImportedSpecifierDependency {
       ValueKey::False => "/* unused export */ undefined".to_string(),
       ValueKey::Null => format!("{}_default.a", name),
       ValueKey::Name => name,
-      ValueKey::Vec(value_key) => format!("{}{}", name, property_access(value_key, 0)),
+      ValueKey::UsedName(used) => match used {
+        UsedName::Normal(used) => format!("{}{}", name, property_access(used, 0)),
+        UsedName::Inlined(inlined) => inlined.render().into_owned(),
+      },
     }
   }
 
@@ -1364,15 +1367,14 @@ enum ValueKey {
   False,
   Null,
   Name,
-  Vec(Vec<Atom>),
+  UsedName(UsedName),
 }
 
 impl From<Option<UsedName>> for ValueKey {
   fn from(value: Option<UsedName>) -> Self {
     match value {
       None => Self::False,
-      Some(UsedName::Normal(atoms)) => Self::Vec(atoms),
-      Some(UsedName::Inlined(_)) => unreachable!("inlinable export should not render"),
+      Some(used) => Self::UsedName(used),
     }
   }
 }

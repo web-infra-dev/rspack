@@ -154,17 +154,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       ..
     } = code_generatable_context;
 
-    fn get_used_name(
-      name: &str,
-      compilation: &Compilation,
-      runtime: &Option<&RuntimeSpec>,
-      module_identifier: &Identifier,
-    ) -> Option<UsedName> {
-      let module_graph = compilation.get_module_graph();
-      module_graph
-        .get_exports_info(module_identifier)
-        .get_used_name(&module_graph, *runtime, &[name.into()])
-    }
+    let mg = compilation.get_module_graph();
 
     if let Some(declaration) = &dep.declaration {
       let name = match declaration {
@@ -182,11 +172,10 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
 
       if let Some(scope) = concatenation_scope {
         scope.register_export(JS_DEFAULT_KEYWORD.clone(), name.to_string());
-      } else if let Some(used) = get_used_name(
-        JS_DEFAULT_KEYWORD.as_str(),
-        compilation,
-        runtime,
-        &module.identifier(),
+      } else if let Some(used) = mg.get_exports_info(&module.identifier()).get_used_name(
+        &mg,
+        *runtime,
+        &[JS_DEFAULT_KEYWORD.clone()],
       ) {
         if let UsedName::Normal(used) = used {
           init_fragments.push(Box::new(ESMExportInitFragment::new(
@@ -221,11 +210,10 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
           "/* ESM default export */ {} {DEFAULT_EXPORT} = ",
           if supports_const { "const" } else { "var" }
         )
-      } else if let Some(used) = get_used_name(
-        JS_DEFAULT_KEYWORD.as_str(),
-        compilation,
-        runtime,
-        &module.identifier(),
+      } else if let Some(used) = mg.get_exports_info(&module.identifier()).get_used_name(
+        &mg,
+        *runtime,
+        &[JS_DEFAULT_KEYWORD.clone()],
       ) {
         if let UsedName::Normal(used) = used {
           runtime_requirements.insert(RuntimeGlobals::EXPORTS);

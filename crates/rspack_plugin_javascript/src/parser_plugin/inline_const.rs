@@ -1,17 +1,15 @@
-use std::sync::Arc;
-
 use rspack_core::{
-  ConnectionState, DependencyCondition, DependencyConditionFn, DependencyId,
-  EvaluatedInlinableValue, ModuleGraph, ModuleGraphConnection, RuntimeSpec, UsageState, UsedName,
+  ConnectionState, DependencyConditionFn, DependencyId, EvaluatedInlinableValue, ModuleGraph,
+  ModuleGraphConnection, RuntimeSpec, UsedName,
 };
 use swc_core::ecma::{
-  ast::{ExprStmt, ModuleDecl, ModuleItem, Program, VarDecl, VarDeclKind, VarDeclarator},
-  utils::{number::ToJsString, ExprExt},
+  ast::{ModuleDecl, ModuleItem, Program, VarDeclKind},
+  utils::number::ToJsString,
 };
 
 use super::JavascriptParserPlugin;
 use crate::{
-  dependency::{self, ESMImportSpecifierDependency},
+  dependency::ESMImportSpecifierDependency,
   utils::eval::BasicEvaluatedExpression,
   visitors::{JavascriptParser, Statement, TopLevelScope},
 };
@@ -84,16 +82,22 @@ fn to_evaluated_inlinable_value(
   evaluated: &BasicEvaluatedExpression,
 ) -> Option<EvaluatedInlinableValue> {
   if evaluated.is_bool() {
-    Some(EvaluatedInlinableValue::Boolean(evaluated.bool()))
+    Some(EvaluatedInlinableValue::new_boolean(evaluated.bool()))
   } else if evaluated.is_number()
     && let num = evaluated.number()
-    && num.to_js_string().len() <= 8
+    && let num = num.to_js_string()
+    && num.len() <= EvaluatedInlinableValue::SHORT_SIZE
   {
-    Some(EvaluatedInlinableValue::ShortNumber(num))
+    Some(EvaluatedInlinableValue::new_short_number(&num))
+  } else if evaluated.is_string()
+    && let str = evaluated.string()
+    && str.len() <= EvaluatedInlinableValue::SHORT_SIZE
+  {
+    Some(EvaluatedInlinableValue::new_short_string(str))
   } else if evaluated.is_null() {
-    Some(EvaluatedInlinableValue::Null)
+    Some(EvaluatedInlinableValue::new_null())
   } else if evaluated.is_undefined() {
-    Some(EvaluatedInlinableValue::Undefined)
+    Some(EvaluatedInlinableValue::new_undefined())
   } else {
     None
   }
@@ -128,7 +132,6 @@ impl DependencyConditionFn for InlineConstDependencyCondition {
       .expect("should be ESMImportSpecifierDependency");
     let ids = dependency.get_ids(mg);
     let exports_info = mg.get_exports_info(module);
-    // TODO: use get_used
     if matches!(
       exports_info.get_used_name(mg, runtime, ids),
       Some(UsedName::Inlined(_))
