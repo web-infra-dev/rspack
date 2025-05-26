@@ -8,9 +8,9 @@ use rspack_collections::{
 use rspack_core::{
   Binding, BoxModule, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkLinkContext,
   ChunkUkey, Compilation, ConcatenatedModule, ConcatenatedModuleIdent, ConcatenatedModuleInfo,
-  ConcatenationScope, ExportInfoProvided, IdentCollector, ModuleIdentifier, ModuleInfo,
-  RuntimeGlobals, SourceType, find_new_name, property_name, reserved_names::RESERVED_NAMES,
-  returning_function, rspack_sources::ReplaceSource,
+  ConcatenationScope, ExportInfoGetter, ExportProvided, IdentCollector, ModuleIdentifier,
+  ModuleInfo, RuntimeGlobals, SourceType, find_new_name, property_name,
+  reserved_names::RESERVED_NAMES, returning_function, rspack_sources::ReplaceSource,
 };
 use rspack_error::Result;
 use rspack_javascript_compiler::ast::Ast;
@@ -340,38 +340,28 @@ impl EsmLibraryPlugin {
             // the final name is symbol in current chunk
             // if imported specifier is in other chunk
             // the final name is symbol in that chunk
+            let binding = ConcatenatedModule::get_final_binding(
+              &module_graph,
+              ref_module,
+              options.ids.clone(),
+              concate_modules_map,
+              None,
+              &mut needed_namespace_objects,
+              options.call,
+              !options.direct_import,
+              options.asi_safe,
+              &mut Default::default(),
+            );
 
-            if !compilation
-              .chunk_graph
-              .is_module_in_chunk(ref_module, *chunk)
-            {
-              // `get_final_name()` assume the symbol is in the same chunk,
-              // and use `info.internal_names` to get the deconflicted symbol,
-              // the internal_names is generated based on local symbols in chunk
-              // but the module may in other chunks, so this assumption is wrong,
-              // we need to deconflict the symbol again
-              let binding = ConcatenatedModule::get_final_binding(
-                &module_graph,
-                ref_module,
-                options.ids.clone(),
-                concate_modules_map,
-                None,
-                &mut needed_namespace_objects,
-                options.call,
-                !options.direct_import,
-                options.asi_safe,
-                &mut Default::default(),
-              );
-
-              let module_id = binding.identifier();
-              let ref_chunk = Self::get_module_chunk(module_id, compilation);
-
-              match &binding {
-                Binding::Raw(raw_binding) => {
-                  // import to non-scope-hoisted module
-                  // importer should import the webpack require runtime
-                }
-                Binding::Symbol(symbol_binding) => {
+            let module_id = binding.identifier();
+            let ref_chunk = Self::get_module_chunk(module_id, compilation);
+            match &binding {
+              Binding::Raw(raw_binding) => {
+                // import to non-scope-hoisted module
+                // importer should import the webpack require runtime
+              }
+              Binding::Symbol(symbol_binding) => {
+                if &ref_chunk != chunk {
                   // ref chunk should expose the symbol
                   exports
                     .entry(ref_chunk)
@@ -381,35 +371,29 @@ impl EsmLibraryPlugin {
                     .insert(symbol_binding.name.clone());
                 }
               }
-
-              ref_to_final_name.insert(
-                ref_string.strip_suffix("._").unwrap().to_string(),
-                rspack_core::ModuleReference::Binding(binding),
-              );
-            } else {
-              let final_name = ConcatenatedModule::get_final_name(
-                &module_graph,
-                ref_module,
-                options.ids.clone(),
-                concate_modules_map,
-                None,
-                &mut needed_namespace_objects,
-                options.call,
-                !options.direct_import,
-                true,
-                options.asi_safe,
-                &compilation.options.context,
-              );
-              ref_to_final_name.insert(
-                ref_string.strip_suffix("._").unwrap().to_string(),
-                rspack_core::ModuleReference::Str(final_name),
-              );
             }
+
+            ref_to_final_name.insert(
+              ref_string.strip_suffix("._").unwrap().to_string(),
+              rspack_core::ModuleReference::Binding(binding),
+            );
+          }
+        }
+
+        for (ref_module, refs) in &concatenation_scope.dyn_refs {
+          let ref_chunk = Self::get_module_chunk(*ref_module, compilation);
+          if &ref_chunk != chunk {
+            exports
+              .entry(ref_chunk)
+              .or_default()
+              .entry(*ref_module)
+              .or_default()
+              .extend(refs.clone());
           }
         }
       }
 
-      chunk_link.needed_namespace_objects = needed_namespace_objects;
+      chunk_link.needed_namespace_objects = needed_namespace_objects.clone();
       chunk_link.ref_to_final_name = ref_to_final_name;
     }
 
@@ -417,98 +401,100 @@ impl EsmLibraryPlugin {
       link.entry(chunk).or_default().exports = exports;
     }
 
-    let mut namespace_object_sources: IdentifierMap<String> = IdentifierMap::default();
-    let mut visited = HashSet::default();
-    loop {
-      while let Some(module_info_id) = needed_namespace_objects.pop() {
-        if visited.contains(module_info_id) {
+    let namespace_object_sources: IdentifierMap<String> = IdentifierMap::default();
+    let mut visited = FxHashSet::default();
+    while let Some(module_info_id) = needed_namespace_objects.pop() {
+      if visited.contains(&module_info_id) {
+        continue;
+      }
+      visited.insert(module_info_id);
+      let module_info = concate_modules_map
+        .get_mut(&module_info_id)
+        .map(|m| m.as_concatenated_mut())
+        .expect("should have module info");
+
+      let module_graph = compilation.get_module_graph();
+      let box_module = module_graph
+        .module_by_identifier(&module_info_id)
+        .expect("should have box module");
+      let module_readable_identifier = box_module.readable_identifier(&compilation.options.context);
+      let strict_esm_module = box_module.build_meta().strict_esm_module;
+      let name_space_name = module_info.namespace_object_name.clone();
+
+      if module_info.namespace_export_symbol.is_some() {
+        continue;
+      }
+
+      let mut ns_obj = Vec::new();
+      let exports_info = module_graph.get_exports_info(&module_info_id);
+
+      for export_info in exports_info.ordered_exports(&module_graph) {
+        let export_info = export_info.as_data(&module_graph);
+
+        if matches!(
+          ExportInfoGetter::provided(export_info),
+          Some(ExportProvided::NotProvided)
+        ) {
           continue;
         }
-        visited.insert(*module_info_id);
-        let module_info = concate_modules_map
-          .get_mut(&module_info_id)
-          .map(|m| m.as_concatenated_mut())
-          .expect("should have module info");
 
-        let module_graph = compilation.get_module_graph();
-        let box_module = module_graph
-          .module_by_identifier(&module_info_id)
-          .expect("should have box module");
-        let module_readable_identifier =
-          box_module.readable_identifier(&compilation.options.context);
-        let strict_esm_module = box_module.build_meta().strict_esm_module;
-        let name_space_name = module_info.namespace_object_name.clone();
-
-        if module_info.namespace_export_symbol.is_some() {
-          continue;
+        if let Some(used_name) = ExportInfoGetter::get_used_name(export_info, None, None) {
+          let final_name = ConcatenatedModule::get_final_name(
+            &compilation.get_module_graph(),
+            &module_info_id,
+            vec![
+              ExportInfoGetter::name(export_info)
+                .cloned()
+                .unwrap_or("".into()),
+            ],
+            concate_modules_map,
+            None,
+            &mut needed_namespace_objects,
+            false,
+            false,
+            strict_esm_module,
+            Some(true),
+            &compilation.options.context,
+          );
+          ns_obj.push(format!(
+            "\n  {}: {}",
+            property_name(&used_name).expect("should have property_name"),
+            returning_function(&compilation.options.output.environment, &final_name, "")
+          ));
         }
+      }
 
-        let mut ns_obj = Vec::new();
-        let exports_info = module_graph.get_exports_info(&module_info_id);
+      let module_info = concate_modules_map
+        .get_mut(&module_info_id)
+        .map(|m| m.as_concatenated_mut())
+        .expect("should have module info");
 
-        for export_info in exports_info.ordered_exports(&module_graph) {
-          if matches!(
-            export_info.provided(&module_graph),
-            Some(ExportInfoProvided::False)
-          ) {
-            continue;
-          }
-
-          if let Some(used_name) = export_info.get_used_name(&module_graph, None, None) {
-            let final_name = ConcatenatedModule::get_final_name(
-              &compilation.get_module_graph(),
-              &module_info_id,
-              vec![
-                export_info
-                  .name(&module_graph)
-                  .cloned()
-                  .unwrap_or("".into()),
-              ],
-              concate_modules_map,
-              None,
-              &mut needed_namespace_objects,
-              false,
-              false,
-              strict_esm_module,
-              Some(true),
-              &compilation.options.context,
-            );
-
-            ns_obj.push(format!(
-              "\n  {}: {}",
-              property_name(&used_name).expect("should have property_name"),
-              returning_function(&compilation.options.output.environment, &final_name, "")
-            ));
-          }
-        }
-
-        let name = name_space_name.expect("should have name_space_name");
-        let define_getters = if !ns_obj.is_empty() {
-          module_info
-            .runtime_requirements
-            .insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
-          format!(
-            "{}({}, {{ {} }});\n",
-            RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-            name,
-            ns_obj.join(",")
-          )
-        } else {
-          String::new()
-        };
-
+      let name = name_space_name.expect("should have name_space_name");
+      let define_getters = if !ns_obj.is_empty() {
         module_info
           .runtime_requirements
           .insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
-        module_info.namespace_object_source = Some(format!(
-          "// NAMESPACE OBJECT: {}\nvar {} = {{}};\n{}({});\n{}\n",
-          module_readable_identifier,
+        format!(
+          "{}({}, {{ {} }});\n",
+          RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
           name,
-          RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
-          name,
-          define_getters
-        ));
-      }
+          ns_obj.join(",")
+        )
+      } else {
+        String::new()
+      };
+
+      module_info
+        .runtime_requirements
+        .insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
+      module_info.namespace_object_source = Some(format!(
+        "// NAMESPACE OBJECT: {}\nvar {} = {{}};\n{}({});\n{}\n",
+        module_readable_identifier,
+        name,
+        RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
+        name,
+        define_getters
+      ));
     }
 
     compilation.chunk_graph.link = Some(link);
