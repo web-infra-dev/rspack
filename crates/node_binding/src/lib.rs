@@ -215,7 +215,11 @@ impl JsCompiler {
 
   /// Build with the given option passed to the constructor
   #[napi(ts_args_type = "callback: (err: null | Error) => void")]
-  pub fn build(&mut self, reference: Reference<JsCompiler>, f: Function<'static>) -> Result<()> {
+  pub fn build(
+    &mut self,
+    reference: Reference<JsCompiler>,
+    f: Function<'static>,
+  ) -> Result<(), ErrorCode> {
     unsafe {
       self.run(reference, |compiler, guard| {
         callbackify(
@@ -243,7 +247,7 @@ impl JsCompiler {
     changed_files: Vec<String>,
     removed_files: Vec<String>,
     f: Function<'static>,
-  ) -> Result<()> {
+  ) -> Result<(), ErrorCode> {
     use std::collections::HashSet;
 
     unsafe {
@@ -297,8 +301,8 @@ impl JsCompiler {
   unsafe fn run<R>(
     &mut self,
     mut reference: Reference<JsCompiler>,
-    f: impl FnOnce(&'static mut Compiler, RunGuard) -> Result<R>,
-  ) -> Result<R> {
+    f: impl FnOnce(&'static mut Compiler, RunGuard) -> Result<R, ErrorCode>,
+  ) -> Result<R, ErrorCode> {
     if self.state.running() {
       return Err(concurrent_compiler_error());
     }
@@ -350,9 +354,9 @@ impl ObjectFinalize for JsCompiler {
   }
 }
 
-fn concurrent_compiler_error() -> Error {
+fn concurrent_compiler_error() -> Error<ErrorCode> {
   Error::new(
-    napi::Status::GenericFailure,
+    ErrorCode::Napi(Status::GenericFailure),
     "ConcurrentCompilationError: You ran rspack twice. Each instance only supports a single concurrent compilation at a time.",
   )
 }
