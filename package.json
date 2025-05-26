@@ -87,6 +87,13 @@
     "patchedDependencies": {
       "graceful-fs": "patches/graceful-fs.patch",
       "rollup-plugin-dts": "patches/rollup-plugin-dts.patch"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "@biomejs/biome",
+      "@swc/core",
+      "core-js",
+      "es5-ext",
+      "esbuild"
+    ]
   }
 }
