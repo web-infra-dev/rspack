@@ -62,14 +62,24 @@ pub async fn trim_dir<'a>(
   dir: &'a Utf8Path,
   keep: KeepPattern<'a>,
 ) -> FsResult<()> {
+  if let Ok(metadata) = fs.stat(dir).await {
+    // not a directory, try to remove it
+    if !metadata.is_directory {
+      if !keep.try_match(&dir).await? {
+        fs.remove_file(&dir).await?;
+      }
+      return Ok(());
+    }
+  } else {
+    // not exists, no need to trim
+    return Ok(());
+  }
+
   let mut queue = vec![dir.to_owned()];
   let mut visited = vec![];
   while let Some(current_dir) = queue.pop() {
     if keep.try_match(&current_dir).await? {
       visited.push(current_dir);
-      continue;
-    }
-    if !current_dir.is_dir() {
       continue;
     }
     let items = fs.read_dir(&current_dir).await?;
