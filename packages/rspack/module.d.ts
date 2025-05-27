@@ -190,6 +190,12 @@ declare namespace Rspack {
 		<T>(path: string): T;
 		(paths: string[], callback: (...modules: any[]) => void): void;
 		resolve: NodeJS.RequireResolve;
+		ensure(
+			dependencies: string[],
+			callback: (require: (module: string) => void) => void,
+			errorCallback?: (error: Error) => void,
+			chunkName?: string
+		): Rspack.Context;
 		context(
 			request: string,
 			includeSubdirectories?: boolean,
@@ -199,6 +205,13 @@ declare namespace Rspack {
 		resolveWeak(dependency: string): void;
 		cache: {
 			[id: string]: NodeJS.Module | undefined;
+		};
+	}
+
+	interface Process {
+		env: {
+			[key: string]: any;
+			NODE_ENV: 'development' | 'production' | (string & {});
 		};
 	}
 }
@@ -255,7 +268,9 @@ declare namespace NodeJS {
 	interface Module extends Rspack.Module {}
 	interface Require extends Rspack.Require {}
 	interface RequireResolve extends Rspack.RequireResolve {}
+	interface Process extends Rspack.Process {}
 }
 
 declare var module: NodeJS.Module;
 declare var require: NodeJS.Require;
+declare var process: NodeJS.Process;
