@@ -42,8 +42,8 @@ use crate::{
   define_es_module_flag_statement, filter_runtime, impl_source_map_config, merge_runtime_condition,
   merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   reserved_names::RESERVED_NAMES, returning_function, runtime_condition_expression,
-  subtract_runtime_condition, to_identifier, AsyncDependenciesBlockIdentifier, BoxDependency,
-  BoxDependencyTemplate, BoxModuleDependency, BuildContext, BuildInfo, BuildMeta,
+  subtract_runtime_condition, to_identifier, to_normal_comment, AsyncDependenciesBlockIdentifier,
+  BoxDependency, BoxDependencyTemplate, BoxModuleDependency, BuildContext, BuildInfo, BuildMeta,
   BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments,
   CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
   CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
@@ -51,7 +51,7 @@ use crate::{
   ErrorSpan, ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta, IdentCollector,
   LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType, Resolve, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsageState, UsedName, UsedNameItem,
+  RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, UsageState, UsedName, UsedNameItem,
   DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
 
@@ -2135,7 +2135,15 @@ impl ConcatenatedModule {
               }
               UsedName::Inlined(inlined) => {
                 return Binding::Raw(RawBinding {
-                  raw_name: format!("/* inlined export */ {}", inlined.render()).into(),
+                  raw_name: format!(
+                    "{} {}",
+                    to_normal_comment(&format!(
+                      "inlined export {}",
+                      property_access(&export_name, 0)
+                    )),
+                    inlined.render()
+                  )
+                  .into(),
                   // Inlined export is definitely a terminal binding
                   ids: vec![],
                   export_name,
@@ -2222,6 +2230,7 @@ impl ConcatenatedModule {
               export_name,
               comment: None,
             }),
+            // Inlined namespace export symbol is not possible for now but we compat it here
             UsedName::Inlined(inlined) => Binding::Raw(RawBinding {
               info_id: info.module,
               raw_name: inlined.render().into(),
@@ -2235,7 +2244,7 @@ impl ConcatenatedModule {
 
         panic!(
           "Cannot get final name for export '{}'",
-          join_atom(export_name.iter(), ".")
+          property_access(&export_name, 0)
         );
       }
       ModuleInfo::External(info) => {
@@ -2245,7 +2254,7 @@ impl ConcatenatedModule {
               let comment = if used_name == export_name {
                 String::new()
               } else {
-                Template::to_normal_comment(&join_atom(export_name.iter(), ","))
+                to_normal_comment(&property_access(&export_name, 0))
               };
               Binding::Raw(RawBinding {
                 raw_name: format!(
@@ -2261,7 +2270,10 @@ impl ConcatenatedModule {
               })
             }
             UsedName::Inlined(inlined) => {
-              let comment = Template::to_normal_comment(&join_atom(export_name.iter(), ","));
+              let comment = to_normal_comment(&format!(
+                "inlined export {}",
+                property_access(&export_name, 0)
+              ));
               Binding::Raw(RawBinding {
                 raw_name: format!("{}{}", inlined.render(), comment).into(),
                 // Inlined export is definitely a terminal binding

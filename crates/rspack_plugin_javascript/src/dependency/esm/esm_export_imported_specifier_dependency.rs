@@ -8,7 +8,7 @@ use rspack_cacheable::{
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
-  process_export_info, property_access, property_name, AsContextDependency,
+  process_export_info, property_access, property_name, to_normal_comment, AsContextDependency,
   ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
@@ -16,7 +16,7 @@ use rspack_core::{
   ExportSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, ExportsType,
   ExtendedReferencedExport, FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey,
   InitFragmentStage, JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  NormalInitFragment, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap, Template,
+  NormalInitFragment, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap,
   TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rspack_error::{
@@ -498,7 +498,7 @@ impl ESMExportImportedSpecifierDependency {
       }
       ExportModeType::Unused => fragments.push(
         NormalInitFragment::new(
-          Template::to_comment(&format!(
+          to_normal_comment(&format!(
             "unused ESM reexport {}",
             mode.name.unwrap_or_default()
           )),

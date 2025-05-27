@@ -4,7 +4,7 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportProvided,
+  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportProvided, Inlinable,
   TemplateContext, TemplateReplaceSource, UsageState, UsedExports,
 };
 use swc_core::ecma::atoms::Atom;
@@ -97,8 +97,8 @@ impl ExportInfoDependency {
             .inlinable(&module_graph)
         };
         Some(match inlinable {
-          Some(inlined) => format!("inlined {}", inlined.render()),
-          None => "no inline".to_string(),
+          Inlinable::Inlined(inlined) => format!("inlined {}", inlined.render()),
+          _ => "no inline".to_string(),
         })
       }
       "used" => {

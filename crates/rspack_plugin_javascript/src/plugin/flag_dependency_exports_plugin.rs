@@ -6,8 +6,8 @@ use rspack_core::{
   incremental::{self, IncrementalPasses},
   ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
   DependenciesBlock, DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfo,
-  ExportsOfExportsSpec, ExportsSpec, Logger, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
-  Plugin, PluginContext,
+  ExportsOfExportsSpec, ExportsSpec, Inlinable, Logger, ModuleGraph, ModuleGraphConnection,
+  ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -271,8 +271,10 @@ impl<'a> FlagDependencyExportsState<'a> {
         self.changed = true;
       }
 
-      if inlinable.is_some() && export_info.inlinable(self.mg).is_none() {
-        export_info.set_inlinable(self.mg, inlinable);
+      if let Some(inlined) = inlinable
+        && !export_info.inlinable(self.mg).can_inline()
+      {
+        export_info.set_inlinable(self.mg, Inlinable::Inlined(inlined));
         self.changed = true;
       }
 

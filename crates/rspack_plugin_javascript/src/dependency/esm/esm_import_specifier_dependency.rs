@@ -5,12 +5,12 @@ use rspack_cacheable::{
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, export_from_import, get_exports_type, property_access,
-  AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
-  DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportPresenceMode, ExportsType,
+  to_normal_comment, AsContextDependency, ConnectionState, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyCondition, DependencyId, DependencyLocation, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportPresenceMode, ExportsType,
   ExtendedReferencedExport, FactorizeInfo, ImportAttributes, JavascriptParserOptions,
   ModuleDependency, ModuleGraph, ModuleReferenceOptions, ReferencedExport, RuntimeSpec,
-  SharedSourceMap, Template, TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
+  SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
 };
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
@@ -334,22 +334,23 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
     let ids = dep.get_ids(&module_graph);
+    let connection = module_graph.connection_by_dependency_id(&dep.id);
+    // Early return if target is not active and export is not inlined
+    if let Some(con) = connection
+      && !con.is_target_active(&module_graph, *runtime)
+      && !module_graph
+        .get_exports_info(con.module_identifier())
+        .get_used_name(&module_graph, *runtime, ids)
+        .map(|used| used.is_inlined())
+        .unwrap_or_default()
+    {
+      return;
+    }
 
     let export_expr = if let Some(scope) = concatenation_scope
-      && let Some(con) = module_graph.connection_by_dependency_id(&dep.id)
+      && let Some(con) = connection
       && scope.is_module_in_scope(con.module_identifier())
     {
-      // If in the scope of a concatenation, early return if target not active
-      let connection = module_graph.connection_by_dependency_id(&dep.id);
-      let is_target_active = if let Some(con) = connection {
-        con.is_target_active(&module_graph, *runtime)
-      } else {
-        true
-      };
-      if !is_target_active {
-        return;
-      }
-
       if ids.is_empty() {
         scope.create_module_reference(
           con.module_identifier(),
@@ -447,7 +448,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
           continue;
         }
 
-        let comment = Template::to_normal_comment(prop.id.as_str());
+        let comment = to_normal_comment(prop.id.as_str());
         let key = format!("{}{}", comment, new_name);
         let content = if prop.shorthand {
           format!("{key}: {}", prop.id)

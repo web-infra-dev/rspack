@@ -389,7 +389,7 @@ impl ExportsInfo {
       let flag = other_exports_info_id.set_used(mg, UsageState::NoInfo, None);
       changed |= flag;
       let other_export_info = mg.get_export_info_mut_by_id(&other_exports_info_id);
-      if !matches!(other_export_info.can_mangle_use, Some(false)) {
+      if other_export_info.can_mangle_use != Some(false) {
         other_export_info.can_mangle_use = Some(false);
         changed = true;
       }
@@ -858,6 +858,7 @@ impl ExportInfo {
     let data = self.as_export_info_mut(mg);
     data.provided = None;
     data.can_mangle_provide = None;
+    data.inlinable = Inlinable::NoByProvide;
     data.exports_info_owned = false;
     data.exports_info = None;
     data.target_is_set = false;
@@ -913,11 +914,11 @@ impl ExportInfo {
     self.as_export_info_mut(mg).exports_info = value;
   }
 
-  pub fn inlinable<'a>(&self, mg: &'a ModuleGraph) -> Option<&'a EvaluatedInlinableValue> {
-    self.as_export_info(mg).inlinable.as_ref()
+  pub fn inlinable<'a>(&self, mg: &'a ModuleGraph) -> &'a Inlinable {
+    &self.as_export_info(mg).inlinable
   }
 
-  pub fn set_inlinable(&self, mg: &mut ModuleGraph, inlinable: Option<EvaluatedInlinableValue>) {
+  pub fn set_inlinable(&self, mg: &mut ModuleGraph, inlinable: Inlinable) {
     self.as_export_info_mut(mg).inlinable = inlinable;
   }
 
@@ -1060,7 +1061,7 @@ impl ExportInfo {
     runtime: Option<&RuntimeSpec>,
   ) -> Option<UsedNameItem> {
     let info = self.as_export_info(mg);
-    if let Some(inlined) = &info.inlinable {
+    if let Inlinable::Inlined(inlined) = &info.inlinable {
       return Some(UsedNameItem::Inlined(*inlined));
     }
     if info.has_use_in_runtime_info {
@@ -1271,8 +1272,12 @@ impl ExportInfo {
     let flag = self.set_used(mg, UsageState::NoInfo, runtime);
     changed |= flag;
     let export_info = mg.get_export_info_mut_by_id(self);
-    if !matches!(export_info.can_mangle_use, Some(false)) {
+    if export_info.can_mangle_use != Some(false) {
       export_info.can_mangle_use = Some(false);
+      changed = true;
+    }
+    if export_info.inlinable.can_inline() {
+      export_info.inlinable = Inlinable::NoByUse;
       changed = true;
     }
     changed
@@ -1397,6 +1402,10 @@ impl ExportInfo {
       export_info.can_mangle_use = Some(false);
       changed = true;
     }
+    if export_info.inlinable.can_inline() {
+      export_info.inlinable = Inlinable::NoByUse;
+      changed = true;
+    }
     changed
   }
 
@@ -1492,15 +1501,16 @@ pub struct ExportInfoData {
   target_is_set: bool,
   provided: Option<ExportInfoProvided>,
   can_mangle_provide: Option<bool>,
+  can_mangle_use: Option<bool>,
+  // only specific export info can be inlined, so other_export_info.inlinable is always NoByProvide
+  inlinable: Inlinable,
   terminal_binding: bool,
   id: ExportInfo,
   exports_info: Option<ExportsInfo>,
   exports_info_owned: bool,
   has_use_in_runtime_info: bool,
-  can_mangle_use: Option<bool>,
   global_used: Option<UsageState>,
   used_in_runtime: Option<HashMap<Arc<str>, UsageState>>,
-  inlinable: Option<EvaluatedInlinableValue>,
 }
 
 #[derive(Debug, Hash, Clone, Copy)]
@@ -1628,7 +1638,7 @@ impl ExportInfoData {
       has_use_in_runtime_info,
       can_mangle_use,
       global_used,
-      inlinable: None,
+      inlinable: Inlinable::NoByProvide,
     }
   }
 
@@ -2195,18 +2205,16 @@ pub enum UsedByExports {
 // refer from: https://github.com/rust-analyzer/smol_str/blob/5ffc90069f545c0444447cd08c2a29c6abb97fbb/src/lib.rs#L481-L484
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-struct InlineShort {
+struct InlineStr<const S: usize> {
   len: u8,
-  buf: [u8; Self::SHORT_SIZE],
+  buf: [u8; S],
 }
 
-impl InlineShort {
-  const SHORT_SIZE: usize = 6;
-
-  fn from_str(v: &str) -> Self {
+impl<const S: usize> InlineStr<S> {
+  fn new(v: &str) -> Self {
     let len = v.len();
-    debug_assert!(len <= Self::SHORT_SIZE);
-    let mut buf = [0; Self::SHORT_SIZE];
+    debug_assert!(len <= S);
+    let mut buf = [0; S];
     buf[..len].copy_from_slice(v.as_bytes());
     Self {
       len: len as u8,
@@ -2229,8 +2237,8 @@ enum EvaluatedInlinableValueInner {
   Null,
   Undefined,
   Boolean(bool),
-  ShortNumber(InlineShort),
-  ShortString(InlineShort),
+  ShortNumber(InlineStr<{ EvaluatedInlinableValue::SHORT_SIZE }>),
+  ShortString(InlineStr<{ EvaluatedInlinableValue::SHORT_SIZE }>),
 }
 
 #[cacheable]
@@ -2238,7 +2246,7 @@ enum EvaluatedInlinableValueInner {
 pub struct EvaluatedInlinableValue(EvaluatedInlinableValueInner);
 
 impl EvaluatedInlinableValue {
-  pub const SHORT_SIZE: usize = InlineShort::SHORT_SIZE;
+  pub const SHORT_SIZE: usize = 6;
 
   pub fn new_null() -> Self {
     Self(EvaluatedInlinableValueInner::Null)
@@ -2253,15 +2261,11 @@ impl EvaluatedInlinableValue {
   }
 
   pub fn new_short_number(v: &str) -> Self {
-    Self(EvaluatedInlinableValueInner::ShortNumber(
-      InlineShort::from_str(v),
-    ))
+    Self(EvaluatedInlinableValueInner::ShortNumber(InlineStr::new(v)))
   }
 
   pub fn new_short_string(v: &str) -> Self {
-    Self(EvaluatedInlinableValueInner::ShortString(
-      InlineShort::from_str(v),
-    ))
+    Self(EvaluatedInlinableValueInner::ShortString(InlineStr::new(v)))
   }
 
   pub fn render(&self) -> Cow<str> {
@@ -2272,5 +2276,19 @@ impl EvaluatedInlinableValue {
       EvaluatedInlinableValueInner::ShortNumber(v) => v.as_str().into(),
       EvaluatedInlinableValueInner::ShortString(v) => json_stringify(v.as_str()).into(),
     }
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub enum Inlinable {
+  NoByProvide,
+  NoByUse,
+  Inlined(EvaluatedInlinableValue),
+}
+
+impl Inlinable {
+  pub fn can_inline(&self) -> bool {
+    matches!(self, Inlinable::Inlined(_))
   }
 }
