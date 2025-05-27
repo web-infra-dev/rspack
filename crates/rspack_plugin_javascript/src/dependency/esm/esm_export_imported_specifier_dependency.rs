@@ -1497,9 +1497,7 @@ fn find_dependency_for_name<'a>(
 fn string_of_used_name(used: Option<&UsedName>) -> String {
   match used {
     None => "/* unused export */ undefined".to_string(),
-    Some(UsedName::Normal(value_key)) if value_key.len() == 1 => {
-      return value_key[0].to_string();
-    }
+    Some(UsedName::Normal(value_key)) if value_key.len() == 1 => value_key[0].to_string(),
     _ => unreachable!("export should only have one name"),
   }
 }

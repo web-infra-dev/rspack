@@ -175,23 +175,22 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         &mg,
         *runtime,
         &[JS_DEFAULT_KEYWORD.clone()],
-      ) {
-        if let UsedName::Normal(used) = used {
-          init_fragments.push(Box::new(ESMExportInitFragment::new(
-            module.get_exports_argument(),
-            vec![(
-              used
-                .iter()
-                .map(|i| i.to_string())
-                .collect_vec()
-                .join("")
-                .into(),
-              Atom::from(format!("/* export default binding */ {name}")),
-            )],
-          )));
-        } else {
-          // do nothing for inlined declaration
-        }
+      ) && let UsedName::Normal(used) = used
+      {
+        init_fragments.push(Box::new(ESMExportInitFragment::new(
+          module.get_exports_argument(),
+          vec![(
+            used
+              .iter()
+              .map(|i| i.to_string())
+              .collect_vec()
+              .join("")
+              .into(),
+            Atom::from(format!("/* export default binding */ {name}")),
+          )],
+        )));
+      } else {
+        // do nothing for unused or inlined
       }
 
       source.replace(

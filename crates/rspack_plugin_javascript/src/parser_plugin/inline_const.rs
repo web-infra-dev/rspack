@@ -60,7 +60,7 @@ impl JavascriptParserPlugin for InlineConstPlugin {
         if let Some(name) = declarator.name.as_ident()
           && let Some(init) = &declarator.init
         {
-          let evaluated = parser.evaluate_expression(&init);
+          let evaluated = parser.evaluate_expression(init);
           if let Some(inlinable) = to_evaluated_inlinable_value(&evaluated) {
             parser.tag_variable(
               name.id.sym.to_string(),
