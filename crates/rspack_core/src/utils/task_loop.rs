@@ -54,7 +54,7 @@ pub trait Task<Ctx>: Debug + Send + Any + AsAny {
 struct TaskLoop<Ctx> {
   /// Main tasks run sequentially in the queue
   main_task_queue: VecDeque<Box<dyn Task<Ctx>>>,
-  /// The count of the running background tasks which run immediately in tokio thread workers when they are returnt
+  /// The count of the running background tasks which run immediately in tokio thread workers when they are returned
   background_task_count: u32,
   /// Mark whether the task loop has been returned.
   /// The async task should not call `tx.send` after this mark to true
@@ -88,10 +88,13 @@ impl<Ctx: 'static> TaskLoop<Ctx> {
 
     loop {
       let task = self.main_task_queue.pop_front();
+
+      // If there's no main tasks and background tasksm
       if task.is_none() && self.background_task_count == 0 {
         return Ok(());
       }
 
+      // Background tasks are launched as soon as they are returned, so we don't put them into the queue.
       if let Some(task) = task {
         debug_assert!(matches!(task.get_task_type(), TaskType::Main));
         self.handle_task_result(task.main_run(ctx).await)?;
