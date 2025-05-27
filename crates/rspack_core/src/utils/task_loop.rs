@@ -66,10 +66,10 @@ struct TaskLoop<Ctx> {
 }
 
 impl<Ctx: 'static> TaskLoop<Ctx> {
-  fn new(init_tasks: Vec<Box<dyn Task<Ctx>>>) -> Self {
+  fn new(init_main_tasks: Vec<Box<dyn Task<Ctx>>>) -> Self {
     let (tx, rx) = mpsc::unbounded_channel::<TaskResult<Ctx>>();
     Self {
-      main_task_queue: VecDeque::from(init_tasks),
+      main_task_queue: VecDeque::from(init_main_tasks),
       is_expected_shutdown: Arc::new(AtomicBool::new(false)),
       background_task_count: 0,
       task_result_sender: tx,
@@ -77,7 +77,15 @@ impl<Ctx: 'static> TaskLoop<Ctx> {
     }
   }
 
-  async fn run_task_loop(&mut self, ctx: &mut Ctx) -> Result<()> {
+  async fn run_task_loop(
+    &mut self,
+    ctx: &mut Ctx,
+    init_background_tasks: Vec<Box<dyn Task<Ctx>>>,
+  ) -> Result<()> {
+    for background_task in init_background_tasks {
+      self.spawn_background(background_task);
+    }
+
     loop {
       let task = self.main_task_queue.pop_front();
       if task.is_none() && self.background_task_count == 0 {
@@ -120,20 +128,7 @@ impl<Ctx: 'static> TaskLoop<Ctx> {
         for task in tasks {
           match task.get_task_type() {
             TaskType::Main => self.main_task_queue.push_back(task),
-            TaskType::Background => {
-              let tx = self.task_result_sender.clone();
-              let is_expected_shutdown = self.is_expected_shutdown.clone();
-              self.background_task_count += 1;
-              tokio::spawn(task::unconstrained(
-                async move {
-                  let r = task.background_run().await;
-                  if !is_expected_shutdown.load(Ordering::Relaxed) {
-                    tx.send(r).expect("failed to send task result");
-                  }
-                }
-                .in_current_span(),
-              ));
-            }
+            TaskType::Background => self.spawn_background(task),
           }
         }
         Ok(())
@@ -144,14 +139,32 @@ impl<Ctx: 'static> TaskLoop<Ctx> {
       }
     }
   }
+
+  fn spawn_background(&mut self, task: Box<dyn Task<Ctx>>) {
+    let tx = self.task_result_sender.clone();
+    let is_expected_shutdown = self.is_expected_shutdown.clone();
+    self.background_task_count += 1;
+    tokio::spawn(task::unconstrained(
+      async move {
+        let r = task.background_run().await;
+        if !is_expected_shutdown.load(Ordering::Relaxed) {
+          tx.send(r).expect("failed to send task result");
+        }
+      }
+      .in_current_span(),
+    ));
+  }
 }
 
 pub async fn run_task_loop<Ctx: 'static>(
   ctx: &mut Ctx,
   init_tasks: Vec<Box<dyn Task<Ctx>>>,
 ) -> Result<()> {
-  let mut task_loop = TaskLoop::new(init_tasks);
-  task_loop.run_task_loop(ctx).await
+  let (background_tasks, main_tasks) = init_tasks
+    .into_iter()
+    .partition(|task| matches!(task.get_task_type(), TaskType::Background));
+  let mut task_loop = TaskLoop::new(main_tasks);
+  task_loop.run_task_loop(ctx, background_tasks).await
 }
 
 #[cfg(test)]
