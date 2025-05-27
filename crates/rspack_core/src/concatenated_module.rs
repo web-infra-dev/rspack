@@ -2217,7 +2217,7 @@ impl ConcatenatedModule {
           }
         }
 
-        if let Some(namespace_export_symbol) = &info.namespace_export_symbol {
+        if info.namespace_export_symbol.is_some() {
           // That's how webpack write https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L463-L471
           let used_name = exports_info
             .get_used_name(mg, runtime, &export_name)
@@ -2225,7 +2225,12 @@ impl ConcatenatedModule {
           return match used_name {
             UsedName::Normal(used_name) => Binding::Raw(RawBinding {
               info_id: info.module,
-              raw_name: namespace_export_symbol.clone(),
+              raw_name: info
+                .namespace_object_name
+                .as_ref()
+                .expect("should have raw name")
+                .as_str()
+                .into(),
               ids: used_name,
               export_name,
               comment: None,
