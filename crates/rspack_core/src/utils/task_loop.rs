@@ -19,7 +19,7 @@ use tracing::Instrument;
 /// Result returned by task
 ///
 /// The success value will contain the tasks that should run next
-pub type TaskResult<Ctx> = Result<Vec<Box<dyn Task<Ctx>>>>;
+pub type TaskResult<Ctx> = Result<Vec<Box<dyn Task<Ctx> + Send + Sync>>>;
 
 /// Task type
 pub enum TaskType {
@@ -52,77 +52,89 @@ pub trait Task<Ctx>: Debug + Send + Any + AsAny {
 }
 
 /// Run task loop
-pub async fn run_task_loop<Ctx: 'static>(
+pub async fn run_task_loop<Ctx: 'static + Send + Sync>(
   ctx: &mut Ctx,
-  init_tasks: Vec<Box<dyn Task<Ctx>>>,
+  init_tasks: Vec<Box<dyn Task<Ctx> + Send + Sync>>,
 ) -> Result<()> {
   // create channel to receive async task result
-  let (tx, mut rx) = mpsc::unbounded_channel::<TaskResult<Ctx>>();
+  let (res_tx, mut res_rx) = mpsc::unbounded_channel::<TaskResult<Ctx>>();
+  let (sync_tx, mut sync_rx) = mpsc::unbounded_channel::<Box<dyn Task<Ctx>>>();
   // mark whether the task loop has been returned
   // the async task should not call `tx.send` after this mark to true
   let is_expected_shutdown: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
-  let mut queue: VecDeque<Box<dyn Task<Ctx>>> = VecDeque::from(init_tasks);
+  let mut queue: VecDeque<Box<dyn Task<Ctx> + Send + Sync>> = VecDeque::from(init_tasks);
   let mut active_task_count = 0;
-  loop {
-    let task = queue.pop_front();
-    if task.is_none() && active_task_count == 0 {
-      return Ok(());
-    }
 
-    if let Some(task) = task {
-      match task.get_task_type() {
-        TaskType::Background => {
-          let tx = tx.clone();
-          let is_expected_shutdown = is_expected_shutdown.clone();
-          active_task_count += 1;
-          tokio::spawn(task::unconstrained(
-            async move {
-              let r = task.background_run().await;
-              if !is_expected_shutdown.load(Ordering::Relaxed) {
-                tx.send(r).expect("failed to send task result");
+  rspack_futures::scope(|token| {
+    let s = unsafe { token.used(ctx) };
+    let sync_task_res_tx = res_tx.clone();
+    s.spawn(|ctx| async move {
+      while let Some(task) = sync_rx.recv().await {
+        sync_task_res_tx.send(task.main_run(ctx).await).unwrap();
+      }
+      Ok(())
+    });
+
+    let s = unsafe { token.used(&mut active_task_count) };
+    s.spawn(|active_task_count| async move {
+      loop {
+        let task = queue.pop_front();
+        if task.is_none() && *active_task_count == 0 {
+          return Ok(());
+        }
+
+        if let Some(task) = task {
+          match task.get_task_type() {
+            TaskType::Background => {
+              let tx = res_tx.clone();
+              let is_expected_shutdown = is_expected_shutdown.clone();
+              *active_task_count += 1;
+              tokio::spawn(task::unconstrained(
+                async move {
+                  let r = task.background_run().await;
+                  if !is_expected_shutdown.load(Ordering::Relaxed) {
+                    tx.send(r).expect("failed to send task result");
+                  }
+                }
+                .in_current_span(),
+              ));
+            }
+            TaskType::Main => {
+              *active_task_count += 1;
+              sync_tx.send(task).unwrap();
+            }
+          }
+        }
+
+        let data = if queue.is_empty() && *active_task_count != 0 {
+          let res = res_rx.recv().await.expect("should recv success");
+          Ok(res)
+        } else {
+          res_rx.try_recv()
+        };
+
+        match data {
+          Ok(r) => {
+            *active_task_count -= 1;
+            // merge async task result
+            match r {
+              Ok(r) => queue.extend(r),
+              Err(e) => {
+                is_expected_shutdown.store(true, Ordering::Relaxed);
+                return Err(e);
               }
             }
-            .in_current_span(),
-          ));
-        }
-        TaskType::Main => {
-          // merge sync task result directly
-          match task.main_run(ctx).await {
-            Ok(r) => queue.extend(r),
-            Err(e) => {
-              is_expected_shutdown.store(true, Ordering::Relaxed);
-              return Err(e);
-            }
+          }
+          Err(TryRecvError::Empty) => {}
+          _ => {
+            panic!("unexpected recv error")
           }
         }
       }
-    }
-
-    let data = if queue.is_empty() && active_task_count != 0 {
-      let res = rx.recv().await.expect("should recv success");
-      Ok(res)
-    } else {
-      rx.try_recv()
-    };
-
-    match data {
-      Ok(r) => {
-        active_task_count -= 1;
-        // merge async task result
-        match r {
-          Ok(r) => queue.extend(r),
-          Err(e) => {
-            is_expected_shutdown.store(true, Ordering::Relaxed);
-            return Err(e);
-          }
-        }
-      }
-      Err(TryRecvError::Empty) => {}
-      _ => {
-        panic!("unexpected recv error")
-      }
-    }
-  }
+    });
+  })
+  .await;
+  Ok(())
 }
 
 #[cfg(test)]

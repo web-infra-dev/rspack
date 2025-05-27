@@ -9,11 +9,11 @@ use crate::{
 
 /// Transform tasks with MakeTaskContext to tasks with ExecutorTaskContext.
 pub fn overwrite_tasks(
-  tasks: Vec<Box<dyn Task<MakeTaskContext>>>,
-) -> Vec<Box<dyn Task<ExecutorTaskContext>>> {
+  tasks: Vec<Box<dyn Task<MakeTaskContext> + Send + Sync>>,
+) -> Vec<Box<dyn Task<ExecutorTaskContext> + Send + Sync>> {
   tasks
     .into_iter()
-    .map(|task| Box::new(OverwriteTask(task)) as Box<dyn Task<ExecutorTaskContext>>)
+    .map(|task| Box::new(OverwriteTask(task)) as Box<dyn Task<ExecutorTaskContext> + Send + Sync>)
     .collect()
 }
 
@@ -21,7 +21,7 @@ pub fn overwrite_tasks(
 ///
 /// This task will intercept the result of the inner task and trigger tracker.on_*
 #[derive(Debug)]
-pub struct OverwriteTask(Box<dyn Task<MakeTaskContext>>);
+pub struct OverwriteTask(Box<dyn Task<MakeTaskContext> + Send + Sync>);
 
 #[async_trait::async_trait]
 impl Task<ExecutorTaskContext> for OverwriteTask {
