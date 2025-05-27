@@ -58,7 +58,7 @@ pub async fn run_task_loop<Ctx: 'static + Send + Sync>(
 ) -> Result<()> {
   // create channel to receive async task result
   let (res_tx, mut res_rx) = mpsc::unbounded_channel::<TaskResult<Ctx>>();
-  let (main_task_tx, mut main_task_rx) = mpsc::unbounded_channel::<Box<dyn Task<Ctx>>>();
+  let (sync_tx, mut sync_rx) = mpsc::unbounded_channel::<Box<dyn Task<Ctx>>>();
   // mark whether the task loop has been returned
   // the async task should not call `tx.send` after this mark to true
   let is_expected_shutdown: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
@@ -67,10 +67,10 @@ pub async fn run_task_loop<Ctx: 'static + Send + Sync>(
 
   rspack_futures::scope(|token| {
     let s = unsafe { token.used(ctx) };
-    let main_task_res_tx = res_tx.clone();
+    let sync_task_res_tx = res_tx.clone();
     s.spawn(|ctx| async move {
-      while let Some(task) = main_task_rx.recv().await {
-        main_task_res_tx
+      while let Some(task) = sync_rx.recv().await {
+        sync_task_res_tx
           .send(task.main_run(ctx).await)
           .expect("failed to send task result");
       }
@@ -103,7 +103,7 @@ pub async fn run_task_loop<Ctx: 'static + Send + Sync>(
             }
             TaskType::Main => {
               *active_task_count += 1;
-              main_task_tx.send(task).expect("failed to send main task");
+              sync_tx.send(task).expect("failed to send main task");
             }
           }
         }
