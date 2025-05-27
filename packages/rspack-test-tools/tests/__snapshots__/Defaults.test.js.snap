@@ -40,6 +40,7 @@ Object {
       sideEffects: false,
       silent: true,
     },
+    inlineConstants: false,
     layers: false,
     lazyCompilation: false,
     parallelCodeSplitting: true,
