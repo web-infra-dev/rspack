@@ -9,7 +9,6 @@ use rspack_cacheable::{
   cacheable,
   with::{AsRefStr, AsVec},
 };
-use rspack_collections::BstSet;
 use rustc_hash::{ FxHashMap as HashMap, FxHashSet as HashSet };
 use ustr::Ustr;
 
@@ -19,7 +18,7 @@ use crate::{EntryOptions, EntryRuntime};
 #[derive(Debug, Default, Clone)]
 pub struct RuntimeSpec {
   #[cacheable(with=AsVec<AsRefStr>)]
-  inner: BstSet<Ustr>,
+  inner: HashSet<Ustr>,
   key: String,
 }
 
@@ -52,28 +51,29 @@ impl std::cmp::PartialEq for RuntimeSpec {
 impl std::cmp::Eq for RuntimeSpec {}
 
 impl Deref for RuntimeSpec {
-  type Target = BstSet<Ustr>;
+  type Target = HashSet<Ustr>;
 
   fn deref(&self) -> &Self::Target {
     &self.inner
   }
 }
 
-impl From<BstSet<Ustr>> for RuntimeSpec {
-  fn from(value: BstSet<Ustr>) -> Self {
+
+impl From<HashSet<Ustr>> for RuntimeSpec {
+  fn from(value: HashSet<Ustr>) -> Self {
     Self::new(value)
   }
 }
 
 impl FromIterator<Ustr> for RuntimeSpec {
   fn from_iter<T: IntoIterator<Item = Ustr>>(iter: T) -> Self {
-    Self::new(BstSet::from_iter(iter))
+    Self::new(HashSet::from_iter(iter))
   }
 }
 
 impl IntoIterator for RuntimeSpec {
   type Item = Ustr;
-  type IntoIter = <BstSet<Ustr> as IntoIterator>::IntoIter;
+  type IntoIter = <HashSet<Ustr> as IntoIterator>::IntoIter;
 
   fn into_iter(self) -> Self::IntoIter {
     self.inner.into_iter()
@@ -81,7 +81,7 @@ impl IntoIterator for RuntimeSpec {
 }
 
 impl RuntimeSpec {
-  pub fn new(inner: BstSet<Ustr>) -> Self {
+  pub fn new(inner: HashSet<Ustr>) -> Self {
     let mut this = Self {
       inner,
       key: String::new(),
@@ -129,8 +129,6 @@ impl RuntimeSpec {
   }
 
   fn update_key(&mut self) {
-    use itertools::Itertools;
-    
     if self.inner.is_empty() {
       if self.key.is_empty() {
         return;
@@ -138,7 +136,9 @@ impl RuntimeSpec {
       self.key = String::new();
       return;
     }
-    self.key = self.inner.iter().join("_")
+    let mut ordered = self.inner.iter().map(AsRef::as_ref).collect::<Vec<_>>();
+    ordered.sort_unstable();
+    self.key = ordered.join("_");
   }
 
   pub fn as_str(&self) -> &str {
@@ -198,8 +198,8 @@ impl RuntimeCondition {
 }
 
 pub fn merge_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> RuntimeSpec {
-  let mut set = BstSet::with_capacity(a.len() + b.len());
-  set.extend(a.iter().cloned().chain(b.iter().cloned()));
+  let mut set = a.inner.clone();
+  set.extend(b.inner.iter().cloned());
   RuntimeSpec::new(set)
 }
 
@@ -216,7 +216,7 @@ pub fn filter_runtime(
     Some(runtime) => {
       let mut some = false;
       let mut every = true;
-      let mut result = BstSet::default();
+      let mut result = HashSet::default();
 
       for r in runtime.iter() {
         let cur = RuntimeSpec::from_iter([r.clone()]);
@@ -290,13 +290,13 @@ pub fn subtract_runtime_condition(
     (_, RuntimeCondition::Boolean(false)) => return a.clone(),
     (RuntimeCondition::Boolean(false), _) => return RuntimeCondition::Boolean(false),
     (RuntimeCondition::Spec(a), RuntimeCondition::Spec(b)) => {
-      BstSet::from_sorted_and_dedup_iter(a.difference(b).cloned())
+      a.difference(b).cloned().collect()
     }
     (RuntimeCondition::Boolean(true), RuntimeCondition::Spec(b)) => {
       if let Some(a) = runtime {
-        BstSet::from_sorted_and_dedup_iter(a.difference(b).cloned())
+        a.difference(b).cloned().collect()
       } else {
-        BstSet::default()
+        HashSet::default()
       }
     }
   };

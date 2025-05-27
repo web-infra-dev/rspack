@@ -78,11 +78,11 @@ impl JsModuleGraph {
     js_module: ModuleObjectRef,
     js_runtime: Either<String, Vec<String>>,
   ) -> napi::Result<Option<Either<bool, Vec<JsString<'a>>>>> {
-    use rspack_collections::BstSet;
+    use rustc_hash::FxHashSet as HashSet;
     
     let (_, module_graph) = self.as_ref()?;
 
-    let mut runtime: BstSet<ustr::Ustr> = BstSet::default();
+    let mut runtime: HashSet<ustr::Ustr> = Default::default();
     match js_runtime {
       Either::A(s) => {
         runtime.insert(s.into());
