@@ -135,7 +135,7 @@ impl<Ctx: 'static> TaskLoop<Ctx> {
       }
       Err(e) => {
         self.is_expected_shutdown.store(true, Ordering::Relaxed);
-        return Err(e);
+        Err(e)
       }
     }
   }
