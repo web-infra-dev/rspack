@@ -56,9 +56,9 @@ impl ExportInfoDependency {
         .get_exports_info(&module_identifier)
         .get_used_exports(&module_graph, *runtime);
       return Some(match used_exports {
-        UsedExports::Null => "null".to_owned(),
-        UsedExports::Bool(value) => value.to_string(),
-        UsedExports::Vec(exports) => {
+        UsedExports::Unknown => "null".to_owned(),
+        UsedExports::UsedNamespace(value) => value.to_string(),
+        UsedExports::UsedNames(exports) => {
           format!(
             r#"[{}]"#,
             exports
@@ -107,9 +107,9 @@ impl ExportInfoDependency {
         .is_export_provided(&module_graph, export_name)
         .map(|provided| {
           (match provided {
-            ExportProvided::True => "true",
-            ExportProvided::False => "false",
-            ExportProvided::Null => "null",
+            ExportProvided::Provided => "true",
+            ExportProvided::NotProvided => "false",
+            ExportProvided::Unknown => "null",
           })
           .to_owned()
         }),

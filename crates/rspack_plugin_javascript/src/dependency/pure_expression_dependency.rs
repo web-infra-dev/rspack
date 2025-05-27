@@ -74,7 +74,7 @@ impl Dependency for PureExpressionDependency {
     _module_graph: &ModuleGraph,
     _module_chain: &mut IdentifierSet,
   ) -> ConnectionState {
-    ConnectionState::Bool(false)
+    ConnectionState::Active(false)
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

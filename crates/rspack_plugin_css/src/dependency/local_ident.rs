@@ -47,7 +47,7 @@ impl Dependency for CssLocalIdentDependency {
 
   fn get_exports(&self, _mg: &rspack_core::ModuleGraph) -> Option<ExportsSpec> {
     Some(ExportsSpec {
-      exports: ExportsOfExportsSpec::Array(
+      exports: ExportsOfExportsSpec::Names(
         self
           .convention_names
           .iter()

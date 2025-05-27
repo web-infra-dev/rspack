@@ -68,7 +68,7 @@ pub trait Dependency:
     _module_graph: &ModuleGraph,
     _module_chain: &mut IdentifierSet,
   ) -> ConnectionState {
-    ConnectionState::Bool(true)
+    ConnectionState::Active(true)
   }
 
   fn loc(&self) -> Option<DependencyLocation> {

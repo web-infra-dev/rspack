@@ -1038,9 +1038,9 @@ impl Stats<'_> {
           .get_module_graph()
           .get_used_exports(&module.identifier(), None)
         {
-          UsedExports::Null => Some(StatsUsedExports::Null),
-          UsedExports::Vec(v) => Some(StatsUsedExports::Vec(v)),
-          UsedExports::Bool(b) => Some(StatsUsedExports::Bool(b)),
+          UsedExports::Unknown => Some(StatsUsedExports::Null),
+          UsedExports::UsedNames(v) => Some(StatsUsedExports::Vec(v)),
+          UsedExports::UsedNamespace(b) => Some(StatsUsedExports::Bool(b)),
         }
       } else {
         None
@@ -1055,7 +1055,7 @@ impl Stats<'_> {
             .get_module_graph()
             .get_provided_exports(module.identifier())
           {
-            ProvidedExports::Vec(v) => Some(v),
+            ProvidedExports::ProvidedNames(v) => Some(v),
             _ => None,
           }
         } else {
