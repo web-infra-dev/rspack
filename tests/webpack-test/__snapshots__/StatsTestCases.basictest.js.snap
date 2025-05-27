@@ -304,32 +304,26 @@ chunk (runtime: main) 29.bundle.js xx bytes <{909}> >{345}< [rendered]
   > ./index.js 3:0-16
   ./c.js xx bytes [built] [code generated]
     amd require ./c ./index.js
-    X (resolving: X, building: X)
 chunk (runtime: main) 345.bundle.js xx bytes <{29}> [rendered]
   > ./c.js 1:0-52
   ./d.js xx bytes [built] [code generated]
     require.ensure item ./d ./c.js
     cjs self exports reference self ./d.js
-    X (resolving: X, building: X)
   ./e.js xx bytes [built] [code generated]
     require.ensure item ./e ./c.js
     cjs self exports reference self ./e.js
-    X (resolving: X, building: X)
 chunk (runtime: main) 726.bundle.js xx bytes <{909}> [rendered]
   > ./index.js 2:0-16
   ./b.js xx bytes [built] [code generated]
     cjs self exports reference self ./b.js
     amd require ./b ./index.js
-    X (resolving: X, building: X)
 chunk (runtime: main) bundle.js (main) xx bytes (javascript) xx KiB (runtime) >{29}< >{726}< [entry] [rendered]
   > ./index main
   ./a.js xx bytes [dependent] [built] [code generated]
     cjs self exports reference self ./a.js
     cjs require ./a ./index.js 1:8-14
-    X (resolving: X, building: X)
   ./index.js xx bytes [built] [code generated]
     entry ./index
-    X (resolving: X, building: X)
 Rspack x.x.x compiled successfully in X.23"
 `;
 
@@ -344,32 +338,26 @@ chunk (runtime: main) b_js.bundle.js xx bytes <{main}> [rendered]
   ./b.js xx bytes [built] [code generated]
     cjs self exports reference self ./b.js
     amd require ./b ./index.js
-    X (resolving: X, building: X)
 chunk (runtime: main) c_js.bundle.js xx bytes <{main}> >{d_js-e_js}< [rendered]
   > ./index.js 3:0-16
   ./c.js xx bytes [built] [code generated]
     amd require ./c ./index.js
-    X (resolving: X, building: X)
 chunk (runtime: main) d_js-xxx.js xx bytes <{c_js}> [rendered]
   > ./c.js 1:0-52
   ./d.js xx bytes [built] [code generated]
     require.ensure item ./d ./c.js
     cjs self exports reference self ./d.js
-    X (resolving: X, building: X)
   ./e.js xx bytes [built] [code generated]
     require.ensure item ./e ./c.js
     cjs self exports reference self ./e.js
-    X (resolving: X, building: X)
 chunk (runtime: main) bundle.js (main) xx bytes (javascript) xx KiB (runtime) >{b_js}< >{c_js}< [entry] [rendered]
   > ./index main
   ./a.js xx bytes [dependent] [built] [code generated]
     cjs self exports reference self ./a.js
     cjs require ./a ./e.js 1:8-14
     cjs require ./a ./index.js 1:8-14
-    X (resolving: X, building: X)
   ./index.js xx bytes [built] [code generated]
     entry ./index
-    X (resolving: X, building: X)
 Rspack x.x.x compiled successfully in X.23"
 `;
 
