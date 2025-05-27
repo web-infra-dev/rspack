@@ -12,6 +12,7 @@ import { AsyncDependenciesBlock } from '@rspack/binding';
 import { AsyncParallelHook } from '@rspack/lite-tapable';
 import { AsyncSeriesBailHook } from '@rspack/lite-tapable';
 import * as binding from '@rspack/binding';
+import { Buffer as Buffer_2 } from 'buffer';
 import { BuiltinPlugin } from '@rspack/binding';
 import { BuiltinPluginName } from '@rspack/binding';
 import { CacheFacade as CacheFacade_2 } from './lib/CacheFacade';
@@ -1200,13 +1201,13 @@ export class Compiler {
     // @internal
     __internal__get_module_execution_results_map(): Map<number, any>;
     // @internal
-    __internal__getModuleExecutionResult(id: number): any;
-    // @internal
     __internal__rebuild(modifiedFiles?: ReadonlySet<string>, removedFiles?: ReadonlySet<string>, callback?: (error: Error | null) => void): void;
     // @internal
     __internal__registerBuiltinPlugin(plugin: binding.BuiltinPlugin): void;
     // @internal
     get __internal__ruleSet(): RuleSetCompiler;
+    // @internal
+    __internal__takeModuleExecutionResult(id: number): any;
     // (undocumented)
     cache: Cache_2;
     // (undocumented)
@@ -2923,12 +2924,11 @@ interface HasDecorator {
 }
 
 // @public (undocumented)
-class Hash {
-    	constructor();
-
-    	digest(encoding?: string): string | Buffer;
-
-    	update(data: string | Buffer, inputEncoding?: string): Hash;
+interface Hash {
+    	// (undocumented)
+    digest: (encoding?: string) => string | Buffer_2;
+    	// (undocumented)
+    update: (data: string | Buffer_2, inputEncoding?: string) => Hash;
 }
 
 // @public (undocumented)
@@ -4567,7 +4567,12 @@ type MakeDirectoryOptions = {
 };
 
 // @public (undocumented)
-type MapOptions = { columns?: boolean; module?: boolean };
+interface MapOptions {
+    	// (undocumented)
+    columns?: boolean;
+    	// (undocumented)
+    module?: boolean;
+}
 
 // @public
 type Matcher = string | RegExp | (string | RegExp)[];
@@ -5788,15 +5793,22 @@ export type PublicPath = "auto" | Filename;
 type Purge = (files?: string | string[] | Set<string>) => void;
 
 // @public (undocumented)
-type RawSourceMap = {
-    	version: number;
-    	sources: string[];
-    	names: string[];
-    	sourceRoot?: string;
-    	sourcesContent?: string[];
-    	mappings: string;
-    	file: string;
-};
+interface RawSourceMap {
+    	// (undocumented)
+    file: string;
+    	// (undocumented)
+    mappings: string;
+    	// (undocumented)
+    names: string[];
+    	// (undocumented)
+    sourceRoot?: string;
+    	// (undocumented)
+    sources: string[];
+    	// (undocumented)
+    sourcesContent?: string[];
+    	// (undocumented)
+    version: number;
+}
 
 // @public (undocumented)
 interface ReactConfig {
@@ -7136,27 +7148,28 @@ export const sharing: {
 export type SnapshotOptions = {};
 
 // @public (undocumented)
-abstract class Source {
+class Source {
+    	constructor();
     	// (undocumented)
-    buffer(): Buffer;
-
+    buffer(): Buffer_2;
     	// (undocumented)
-    map(options?: MapOptions): RawSourceMap | null;
-
+    map(options?: MapOptions): null | RawSourceMap;
     	// (undocumented)
     size(): number;
-
     	// (undocumented)
-    source(): string | Buffer;
-
+    source(): SourceValue;
     	// (undocumented)
-    sourceAndMap(options?: MapOptions): {
-        		source: string | Buffer;
-        		map: Object;
-        	};
-
+    sourceAndMap(options?: MapOptions): SourceAndMap;
     	// (undocumented)
     updateHash(hash: Hash): void;
+}
+
+// @public (undocumented)
+interface SourceAndMap {
+    	// (undocumented)
+    map: null | RawSourceMap;
+    	// (undocumented)
+    source: SourceValue;
 }
 
 // @public (undocumented)
@@ -7194,6 +7207,9 @@ export { SourceMapDevToolPluginOptions }
 export type SourceMapFilename = string;
 
 export { sources }
+
+// @public (undocumented)
+type SourceValue = string | Buffer_2;
 
 // @public (undocumented)
 interface Span {

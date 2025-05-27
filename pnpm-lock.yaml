@@ -11,6 +11,9 @@ patchedDependencies:
   rollup-plugin-dts:
     hash: bc3f29f4636a594eb84c5e3f2d8cbd29c2e6b845f376603b718fb2d41bee6de8
     path: patches/rollup-plugin-dts.patch
+  webpack-sources@3.3.0:
+    hash: 6c5cd9744a1ff9c2374c7ffac6703e74ec00b56bd6d104fb27e6e3c10451cec7
+    path: patches/webpack-sources@3.3.0.patch
 
 importers:
 
@@ -310,9 +313,6 @@ importers:
       '@types/watchpack':
         specifier: ^2.4.4
         version: 2.4.4
-      '@types/webpack-sources':
-        specifier: 3.2.3
-        version: 3.2.3
       browserslist:
         specifier: ^4.24.5
         version: 4.24.5
@@ -339,7 +339,7 @@ importers:
         version: 2.4.3
       webpack-sources:
         specifier: 3.3.0
-        version: 3.3.0
+        version: 3.3.0(patch_hash=6c5cd9744a1ff9c2374c7ffac6703e74ec00b56bd6d104fb27e6e3c10451cec7)
       zod:
         specifier: ^3.25.28
         version: 3.25.28
@@ -481,7 +481,7 @@ importers:
         version: 6.0.1
       webpack-sources:
         specifier: 3.3.0
-        version: 3.3.0
+        version: 3.3.0(patch_hash=6c5cd9744a1ff9c2374c7ffac6703e74ec00b56bd6d104fb27e6e3c10451cec7)
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
@@ -522,9 +522,6 @@ importers:
       '@types/react-dom':
         specifier: ^19.1.5
         version: 19.1.5(@types/react@19.1.4)
-      '@types/webpack-sources':
-        specifier: 3.2.3
-        version: 3.2.3
       '@webdiscus/pug-loader':
         specifier: ^2.11.1
         version: 2.11.1(enhanced-resolve@5.18.1)(prismjs@1.29.0)(pug@3.0.3)(webpack@5.99.9(@swc/core@1.11.24(@swc/helpers@0.5.17)))
@@ -840,7 +837,7 @@ importers:
         version: 2.4.3
       webpack-sources:
         specifier: 3.3.0
-        version: 3.3.0
+        version: 3.3.0(patch_hash=6c5cd9744a1ff9c2374c7ffac6703e74ec00b56bd6d104fb27e6e3c10451cec7)
     devDependencies:
       '@babel/preset-react':
         specifier: ^7.27.1
@@ -3420,9 +3417,6 @@ packages:
   '@types/sockjs@0.3.36':
     resolution: {integrity: sha512-MK9V6NzAS1+Ud7JV9lJLFqW85VbC9dq3LmwZCuBe4wBDgKC0Kj/jd8Xl+nSviU+Qc3+m7umHHyHg//2KSa0a0Q==}
 
-  '@types/source-list-map@0.1.6':
-    resolution: {integrity: sha512-5JcVt1u5HDmlXkwOD2nslZVllBBc7HDuOICfiZah2Z0is8M8g+ddAEawbmd3VjedfDHBzxCaXLs07QEmb7y54g==}
-
   '@types/stack-utils@2.0.3':
     resolution: {integrity: sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==}
 
@@ -3443,9 +3437,6 @@ packages:
 
   '@types/webpack-bundle-analyzer@4.7.0':
     resolution: {integrity: sha512-c5i2ThslSNSG8W891BRvOd/RoCjI2zwph8maD22b1adtSns20j+0azDDMCK06DiVrzTgnwiDl5Ntmu1YRJw8Sg==}
-
-  '@types/webpack-sources@3.2.3':
-    resolution: {integrity: sha512-4nZOdMwSPHZ4pTEZzSp0AsTM4K7Qmu40UKW4tJDiOVs20UzYF9l+qUe4s0ftfN0pin06n+5cWWDJXH+sbhAiDw==}
 
   '@types/ws@8.18.0':
     resolution: {integrity: sha512-8svvI3hMyvN0kKCJMvTJP/x6Y/EoQbepff882wL+Sn5QsXb3etnamgrJq4isrBxSJj5L2AuXcI0+bgkoAXGUJw==}
@@ -10697,8 +10688,6 @@ snapshots:
     dependencies:
       '@types/node': 20.17.50
 
-  '@types/source-list-map@0.1.6': {}
-
   '@types/stack-utils@2.0.3': {}
 
   '@types/tough-cookie@4.0.5': {}
@@ -10725,12 +10714,6 @@ snapshots:
       - esbuild
       - uglify-js
       - webpack-cli
-
-  '@types/webpack-sources@3.2.3':
-    dependencies:
-      '@types/node': 20.17.50
-      '@types/source-list-map': 0.1.6
-      source-map: 0.7.4
 
   '@types/ws@8.18.0':
     dependencies:
@@ -16022,7 +16005,7 @@ snapshots:
 
   webpack-sources@3.2.3: {}
 
-  webpack-sources@3.3.0: {}
+  webpack-sources@3.3.0(patch_hash=6c5cd9744a1ff9c2374c7ffac6703e74ec00b56bd6d104fb27e6e3c10451cec7): {}
 
   webpack@5.99.9(@swc/core@1.11.24(@swc/helpers@0.5.17)):
     dependencies:
