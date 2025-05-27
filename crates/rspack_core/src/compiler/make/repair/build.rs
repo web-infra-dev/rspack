@@ -6,7 +6,7 @@ use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
 use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
   AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilationId, CompilerId,
-  CompilerOptions, DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
+  CompilerOptions, DependencyParents, Module, ResolverFactory, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -14,7 +14,6 @@ pub struct BuildTask {
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub module: Box<dyn Module>,
-  pub current_profile: Option<Box<ModuleProfile>>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub compiler_options: Arc<CompilerOptions>,
   pub plugin_driver: SharedPluginDriver,
@@ -33,13 +32,9 @@ impl Task<MakeTaskContext> for BuildTask {
       compiler_options,
       resolver_factory,
       plugin_driver,
-      current_profile,
       mut module,
       fs,
     } = *self;
-    if let Some(current_profile) = &current_profile {
-      current_profile.mark_building_start();
-    }
 
     plugin_driver
       .compilation_hooks
@@ -61,16 +56,11 @@ impl Task<MakeTaskContext> for BuildTask {
       )
       .await;
 
-    if let Some(current_profile) = &current_profile {
-      current_profile.mark_building_end();
-    }
-
     result.map::<Vec<Box<dyn Task<MakeTaskContext>>>, _>(|build_result| {
       vec![Box::new(BuildResultTask {
         module,
         build_result: Box::new(build_result),
         plugin_driver,
-        current_profile,
       })]
     })
   }
@@ -81,18 +71,17 @@ struct BuildResultTask {
   pub module: Box<dyn Module>,
   pub build_result: Box<BuildResult>,
   pub plugin_driver: SharedPluginDriver,
-  pub current_profile: Option<Box<ModuleProfile>>,
 }
 #[async_trait::async_trait]
 impl Task<MakeTaskContext> for BuildResultTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Main
   }
+
   async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let BuildResultTask {
       mut module,
       build_result,
-      current_profile,
       plugin_driver,
     } = *self;
 
@@ -171,9 +160,6 @@ impl Task<MakeTaskContext> for BuildResultTask {
         .module_graph_module_by_identifier_mut(&module.identifier())
         .expect("Failed to get mgm");
       mgm.all_dependencies = all_dependencies.clone();
-      if let Some(current_profile) = current_profile {
-        mgm.set_profile(current_profile);
-      }
     }
 
     let module_identifier = module.identifier();

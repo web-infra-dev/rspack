@@ -4,7 +4,7 @@ use super::{build::BuildTask, MakeTaskContext};
 use crate::{
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
-  BoxDependency, Module, ModuleIdentifier, ModuleProfile,
+  BoxDependency, Module, ModuleIdentifier,
 };
 
 #[derive(Debug)]
@@ -13,7 +13,6 @@ pub struct AddTask {
   pub module: Box<dyn Module>,
   pub module_graph_module: Box<ModuleGraphModule>,
   pub dependencies: Vec<BoxDependency>,
-  pub current_profile: Option<Box<ModuleProfile>>,
 }
 
 #[async_trait::async_trait]
@@ -76,7 +75,6 @@ impl Task<MakeTaskContext> for AddTask {
       compiler_id: context.compiler_id,
       compilation_id: context.compilation_id,
       module: self.module,
-      current_profile: self.current_profile,
       resolver_factory: context.resolver_factory.clone(),
       compiler_options: context.compiler_options.clone(),
       plugin_driver: context.plugin_driver.clone(),

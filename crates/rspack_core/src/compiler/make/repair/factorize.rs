@@ -9,7 +9,7 @@ use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
   BoxDependency, CompilationId, CompilerId, CompilerOptions, Context, ExportInfoData,
   ExportsInfoData, FactorizeInfo, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  ModuleIdentifier, ModuleLayer, ModuleProfile, Resolve, ResolverFactory,
+  ModuleIdentifier, ModuleLayer, Resolve, ResolverFactory,
 };
 
 #[derive(Debug)]
@@ -25,7 +25,6 @@ pub struct FactorizeTask {
   pub dependencies: Vec<BoxDependency>,
   pub resolve_options: Option<Arc<Resolve>>,
   pub options: Arc<CompilerOptions>,
-  pub current_profile: Option<Box<ModuleProfile>>,
   pub resolver_factory: Arc<ResolverFactory>,
 }
 
@@ -35,9 +34,6 @@ impl Task<MakeTaskContext> for FactorizeTask {
     TaskType::Background
   }
   async fn background_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {
-    if let Some(current_profile) = &self.current_profile {
-      current_profile.mark_factory_start();
-    }
     let dependency = &self.dependencies[0];
 
     let context = if let Some(context) = dependency.get_context()
@@ -101,10 +97,6 @@ impl Task<MakeTaskContext> for FactorizeTask {
       }
     };
 
-    if let Some(current_profile) = &self.current_profile {
-      current_profile.mark_factory_end();
-    }
-
     let factorize_info = FactorizeInfo::new(
       create_data.diagnostics,
       create_data
@@ -123,7 +115,6 @@ impl Task<MakeTaskContext> for FactorizeTask {
       original_module_identifier: self.original_module_identifier,
       factory_result,
       dependencies: create_data.dependencies,
-      current_profile: self.current_profile,
       exports_info_related: ExportsInfoRelated {
         exports_info,
         other_exports_info,
@@ -149,7 +140,6 @@ pub struct FactorizeResultTask {
   /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.
   pub factory_result: Option<ModuleFactoryResult>,
   pub dependencies: Vec<BoxDependency>,
-  pub current_profile: Option<Box<ModuleProfile>>,
   pub exports_info_related: ExportsInfoRelated,
   pub factorize_info: FactorizeInfo,
 }
@@ -164,7 +154,6 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
       original_module_identifier,
       factory_result,
       mut dependencies,
-      current_profile,
       exports_info_related,
       mut factorize_info,
     } = *self;
@@ -241,7 +230,6 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
       module,
       module_graph_module: Box::new(mgm),
       dependencies,
-      current_profile,
     })])
   }
 }

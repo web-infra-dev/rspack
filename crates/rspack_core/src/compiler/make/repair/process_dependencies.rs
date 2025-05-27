@@ -5,7 +5,7 @@ use rustc_hash::FxHashMap as HashMap;
 use super::{factorize::FactorizeTask, MakeTaskContext};
 use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
-  ContextDependency, DependencyId, Module, ModuleIdentifier, ModuleProfile,
+  ContextDependency, DependencyId, Module, ModuleIdentifier,
 };
 
 #[derive(Debug)]
@@ -67,10 +67,6 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
 
     let mut res: Vec<Box<dyn Task<MakeTaskContext>>> = vec![];
     for dependencies in sorted_dependencies.into_values() {
-      let current_profile = context
-        .compiler_options
-        .profile
-        .then(Box::<ModuleProfile>::default);
       let original_module_source = module_graph
         .module_by_identifier(&original_module_identifier)
         .and_then(|m| m.as_normal_module())
@@ -103,7 +99,6 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
         dependencies,
         resolve_options: module.get_resolve_options(),
         options: context.compiler_options.clone(),
-        current_profile,
         resolver_factory: context.resolver_factory.clone(),
       }));
     }

@@ -17,8 +17,7 @@ use crate::{
   old_cache::Cache as OldCache,
   utils::task_loop::{run_task_loop, Task},
   BuildDependency, Compilation, CompilationId, CompilerId, CompilerOptions, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ModuleFactory, ModuleProfile, ResolverFactory,
-  SharedPluginDriver,
+  DependencyTemplateType, DependencyType, ModuleFactory, ResolverFactory, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -130,10 +129,6 @@ pub async fn repair(
           let dependency = module_graph
             .dependency_by_id(&dep_id)
             .expect("dependency not found");
-          let current_profile = compilation
-            .options
-            .profile
-            .then(Box::<ModuleProfile>::default);
           Box::new(factorize::FactorizeTask {
             compiler_id: compilation.compiler_id(),
             compilation_id: compilation.id(),
@@ -146,7 +141,6 @@ pub async fn repair(
             dependencies: vec![dependency.clone()],
             resolve_options: None,
             options: compilation.options.clone(),
-            current_profile,
             resolver_factory: compilation.resolver_factory.clone(),
           }) as Box<dyn Task<MakeTaskContext>>
         })

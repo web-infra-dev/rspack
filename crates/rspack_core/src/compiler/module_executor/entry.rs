@@ -8,7 +8,7 @@ use super::{
 use crate::{
   compiler::make::repair::{factorize::FactorizeTask, MakeTaskContext},
   utils::task_loop::{Task, TaskResult, TaskType},
-  Context, Dependency, LoaderImportDependency, ModuleProfile, PublicPath,
+  Context, Dependency, LoaderImportDependency, PublicPath,
 };
 
 /// A task for generate import module entry.
@@ -85,10 +85,6 @@ impl Task<ExecutorTaskContext> for EntryTask {
           dependencies: vec![dep],
           resolve_options: None,
           options: origin_context.compiler_options.clone(),
-          current_profile: origin_context
-            .compiler_options
-            .profile
-            .then(Box::<ModuleProfile>::default),
           resolver_factory: origin_context.resolver_factory.clone(),
         })]));
         (*v.insert(dep_id), true)
