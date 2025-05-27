@@ -3,7 +3,6 @@ use std::{
   collections::hash_map,
   fmt::Debug,
   ops::Deref,
-  sync::Arc,
 };
 
 use rspack_cacheable::{
@@ -11,7 +10,8 @@ use rspack_cacheable::{
   with::{AsRefStr, AsVec},
 };
 use rspack_collections::BstSet;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{ FxHashMap as HashMap, FxHashSet as HashSet };
+use ustr::Ustr;
 
 use crate::{EntryOptions, EntryRuntime};
 
@@ -19,7 +19,7 @@ use crate::{EntryOptions, EntryRuntime};
 #[derive(Debug, Default, Clone)]
 pub struct RuntimeSpec {
   #[cacheable(with=AsVec<AsRefStr>)]
-  inner: BstSet<Arc<str>>,
+  inner: BstSet<Ustr>,
   key: String,
 }
 
@@ -52,28 +52,28 @@ impl std::cmp::PartialEq for RuntimeSpec {
 impl std::cmp::Eq for RuntimeSpec {}
 
 impl Deref for RuntimeSpec {
-  type Target = BstSet<Arc<str>>;
+  type Target = BstSet<Ustr>;
 
   fn deref(&self) -> &Self::Target {
     &self.inner
   }
 }
 
-impl From<BstSet<Arc<str>>> for RuntimeSpec {
-  fn from(value: BstSet<Arc<str>>) -> Self {
+impl From<BstSet<Ustr>> for RuntimeSpec {
+  fn from(value: BstSet<Ustr>) -> Self {
     Self::new(value)
   }
 }
 
-impl FromIterator<Arc<str>> for RuntimeSpec {
-  fn from_iter<T: IntoIterator<Item = Arc<str>>>(iter: T) -> Self {
+impl FromIterator<Ustr> for RuntimeSpec {
+  fn from_iter<T: IntoIterator<Item = Ustr>>(iter: T) -> Self {
     Self::new(BstSet::from_iter(iter))
   }
 }
 
 impl IntoIterator for RuntimeSpec {
-  type Item = Arc<str>;
-  type IntoIter = <BstSet<Arc<str>> as IntoIterator>::IntoIter;
+  type Item = Ustr;
+  type IntoIter = <BstSet<Ustr> as IntoIterator>::IntoIter;
 
   fn into_iter(self) -> Self::IntoIter {
     self.inner.into_iter()
@@ -81,7 +81,7 @@ impl IntoIterator for RuntimeSpec {
 }
 
 impl RuntimeSpec {
-  pub fn new(inner: BstSet<Arc<str>>) -> Self {
+  pub fn new(inner: BstSet<Ustr>) -> Self {
     let mut this = Self {
       inner,
       key: String::new(),
@@ -112,7 +112,7 @@ impl RuntimeSpec {
     Self::new(res)
   }
 
-  pub fn insert(&mut self, r: Arc<str>) -> bool {
+  pub fn insert(&mut self, r: Ustr) -> bool {
     let update = self.inner.insert(r);
     if update {
       self.update_key();

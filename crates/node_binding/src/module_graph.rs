@@ -1,4 +1,4 @@
-use std::{ptr::NonNull, sync::Arc};
+use std::ptr::NonNull;
 
 use napi::{Either, Env, JsString};
 use napi_derive::napi;
@@ -82,13 +82,13 @@ impl JsModuleGraph {
     
     let (_, module_graph) = self.as_ref()?;
 
-    let mut runtime: BstSet<Arc<str>> = BstSet::default();
+    let mut runtime: BstSet<ustr::Ustr> = BstSet::default();
     match js_runtime {
       Either::A(s) => {
-        runtime.insert(Arc::from(s));
+        runtime.insert(s.into());
       }
       Either::B(vec) => {
-        runtime.extend(vec.into_iter().map(Arc::from));
+        runtime.extend(vec.iter().map(String::as_str).map(ustr::Ustr::from));
       }
     };
     let used_exports =

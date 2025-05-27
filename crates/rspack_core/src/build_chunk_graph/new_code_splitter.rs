@@ -2,7 +2,7 @@ use std::{
   borrow::Cow,
   hash::BuildHasherDefault,
   iter::once,
-  sync::{atomic::AtomicU32, Arc},
+  sync::atomic::AtomicU32,
 };
 
 use dashmap::mapref::one::Ref;
@@ -421,7 +421,7 @@ impl CodeSplitter {
         Self::get_entry_runtime(entry, compilation, &mut entry_runtime, &mut visited)
       {
         diagnostics.push(Diagnostic::from(error));
-        let tmp_runtime = once(Arc::from(entry.clone())).collect::<RuntimeSpec>();
+        let tmp_runtime = once(ustr::Ustr::from(entry)).collect::<RuntimeSpec>();
         entry_runtime.insert(entry, tmp_runtime.clone());
       };
     }

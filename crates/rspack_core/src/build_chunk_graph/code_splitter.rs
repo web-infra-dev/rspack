@@ -1,7 +1,7 @@
 use std::{
   collections::HashSet as RawHashSet,
   hash::{BuildHasherDefault, Hash},
-  sync::{atomic::AtomicU32, Arc},
+  sync::atomic::AtomicU32,
 };
 
 use indexmap::{IndexMap as RawIndexMap, IndexSet as RawIndexSet};
@@ -130,12 +130,12 @@ impl ChunkGroupInfo {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
-pub(crate) struct OptionalRuntimeSpec(pub Vec<Arc<str>>);
+pub(crate) struct OptionalRuntimeSpec(pub Vec<ustr::Ustr>);
 
 impl From<Option<RuntimeSpec>> for OptionalRuntimeSpec {
   fn from(value: Option<RuntimeSpec>) -> Self {
     let mut vec = value.unwrap_or_default().into_iter().collect::<Vec<_>>();
-    vec.sort();
+    vec.sort_unstable();
     Self(vec)
   }
 }

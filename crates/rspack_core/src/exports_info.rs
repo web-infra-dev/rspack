@@ -1037,7 +1037,7 @@ impl ExportInfo {
       let mut max = UsageState::Unused;
       if let Some(runtime) = runtime {
         for item in runtime.iter() {
-          let Some(usage) = used_in_runtime.get(item.as_ref()) else {
+          let Some(usage) = used_in_runtime.get(item) else {
             continue;
           };
           match usage {
@@ -1081,7 +1081,7 @@ impl ExportInfo {
         if let Some(runtime) = runtime {
           if runtime
             .iter()
-            .all(|item| !used_in_runtime.contains_key(item.as_ref()))
+            .all(|item| !used_in_runtime.contains_key(item))
           {
             return None;
           }
@@ -1507,7 +1507,7 @@ pub struct ExportInfoData {
   has_use_in_runtime_info: bool,
   can_mangle_use: Option<bool>,
   global_used: Option<UsageState>,
-  used_in_runtime: Option<HashMap<Arc<str>, UsageState>>,
+  used_in_runtime: Option<HashMap<ustr::Ustr, UsageState>>,
 }
 
 #[derive(Debug, Hash, Clone, Copy)]
