@@ -1,27 +1,41 @@
 name: Ecosystem CI
 
 on:
+  merge_group:
+    types: [checks_requested]
   workflow_dispatch:
     inputs:
       pr:
         type: number
         description: "Run ecosystem ci PR number"
         required: true
-      suite:
+      include:
         description: "testsuite to run. runs all testsuits when `-`."
         required: false
         type: choice
+        default:
+          - suite: nextjs
+            os: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
+            shard: 1/7
         options:
-          - "-"
-          - modernjs
-          # - nx
-          - rspress
-          - rsbuild
-          - rslib
-          - examples
-          - devserver
-          - plugin
-          - lynx-stack
+          - suite: "-"
+            os: ubuntu-22.04
+          - suite: "modernjs"
+            os: ubuntu-22.04
+          - suite: "rspress"
+            os: ubuntu-22.04
+          - suite: "rsbuild"
+            os: ubuntu-22.04
+          - suite: "rslib"
+            os: ubuntu-22.04
+          - suite: "examples"
+            os: ubuntu-22.04
+          - suite: "devserver"
+            os: ubuntu-22.04
+          - suite: "plugin"
+            os: ubuntu-22.04
+          - suite: "lynx-stack"
+            os: ubuntu-22.04
       suiteRef:
         description: "suite ref to use"
         required: true
@@ -128,11 +142,11 @@ jobs:
   eco-ci:
     needs: [build, calculate-eco-ci-suite]
     strategy:
-      matrix: ${{fromJson(needs.calculate-eco-ci-suite.outputs.suites)}}
+      matrix:
+        include: ${{fromJson(needs.calculate-eco-ci-suite.outputs.include)}}
       fail-fast: false
-    name: eco-ci (${{ matrix.suite }})
-    // runs-on: ubuntu-22.04
-    runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
+    name: eco-ci (${{ matrix.suite }} ${{ matrix.shard || '' }})
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -181,10 +195,11 @@ jobs:
 
           SUITE='${{ matrix.suite }}'
           SUITE_REF='${{ inputs.suiteRef || '-' }}'
+          SHARD = '${{ matrix.shard && '--shard ' || '' }}${{ matrix.shard || '' }}'
           CONCLUSION='success'
           if [[ "$SUITE_REF" != "-" ]]; then
             # run test suite with suiteRef
-            pnpm tsx ecosystem-ci.ts run-suites --suite-commit "$SUITE_REF" "$SUITE" || CONCLUSION='failure'
+            pnpm tsx ecosystem-ci.ts run-suites "$SHARD" --suite-commit "$SUITE_REF" "$SUITE" || CONCLUSION='failure'
             echo "finish run $SUITE with $SUITE_REF"
           else
             # run test suite
