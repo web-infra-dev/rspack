@@ -100,16 +100,3 @@ impl AsRefStrConverter for Box<str> {
     s.into()
   }
 }
-
-// for Ustr
-impl AsRefStrConverter for ustr::Ustr {
-  fn as_str(&self) -> &str {
-    self.as_str()
-  }
-  fn from_str(s: &str) -> Self
-  where
-    Self: Sized,
-  {
-    s.into()
-  }
-}

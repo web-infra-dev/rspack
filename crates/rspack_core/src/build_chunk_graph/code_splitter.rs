@@ -8,8 +8,8 @@ use indexmap::{IndexMap as RawIndexMap, IndexSet as RawIndexSet};
 use itertools::Itertools;
 use num_bigint::BigUint;
 use rspack_collections::{
-  impl_item_ukey, Database, DatabaseItem, IdentifierHasher, IdentifierIndexSet, IdentifierMap,
-  Ukey, UkeyIndexMap, UkeyIndexSet, UkeyMap, UkeySet,
+  impl_item_ukey, Database, DatabaseItem, Identifier, IdentifierHasher, IdentifierIndexSet,
+  IdentifierMap, Ukey, UkeyIndexMap, UkeyIndexSet, UkeyMap, UkeySet,
 };
 use rspack_error::{error, Diagnostic, Error, Result};
 use rspack_util::itoa;
@@ -130,7 +130,7 @@ impl ChunkGroupInfo {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
-pub(crate) struct OptionalRuntimeSpec(pub Vec<ustr::Ustr>);
+pub(crate) struct OptionalRuntimeSpec(pub Vec<Identifier>);
 
 impl From<Option<RuntimeSpec>> for OptionalRuntimeSpec {
   fn from(value: Option<RuntimeSpec>) -> Self {

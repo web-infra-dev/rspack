@@ -4,8 +4,8 @@ use rspack_cacheable::{
   cacheable,
   with::{AsRefStr, AsVec},
 };
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use ustr::Ustr;
+use rspack_collections::{Identifier, IdentifierSet};
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{EntryOptions, EntryRuntime};
 
@@ -13,7 +13,7 @@ use crate::{EntryOptions, EntryRuntime};
 #[derive(Debug, Default, Clone)]
 pub struct RuntimeSpec {
   #[cacheable(with=AsVec<AsRefStr>)]
-  inner: HashSet<Ustr>,
+  inner: IdentifierSet,
   key: String,
 }
 
@@ -46,28 +46,28 @@ impl std::cmp::PartialEq for RuntimeSpec {
 impl std::cmp::Eq for RuntimeSpec {}
 
 impl Deref for RuntimeSpec {
-  type Target = HashSet<Ustr>;
+  type Target = IdentifierSet;
 
   fn deref(&self) -> &Self::Target {
     &self.inner
   }
 }
 
-impl From<HashSet<Ustr>> for RuntimeSpec {
-  fn from(value: HashSet<Ustr>) -> Self {
+impl From<IdentifierSet> for RuntimeSpec {
+  fn from(value: IdentifierSet) -> Self {
     Self::new(value)
   }
 }
 
-impl FromIterator<Ustr> for RuntimeSpec {
-  fn from_iter<T: IntoIterator<Item = Ustr>>(iter: T) -> Self {
-    Self::new(HashSet::from_iter(iter))
+impl FromIterator<Identifier> for RuntimeSpec {
+  fn from_iter<T: IntoIterator<Item = Identifier>>(iter: T) -> Self {
+    Self::new(IdentifierSet::from_iter(iter))
   }
 }
 
 impl IntoIterator for RuntimeSpec {
-  type Item = Ustr;
-  type IntoIter = <HashSet<Ustr> as IntoIterator>::IntoIter;
+  type Item = Identifier;
+  type IntoIter = <IdentifierSet as IntoIterator>::IntoIter;
 
   fn into_iter(self) -> Self::IntoIter {
     self.inner.into_iter()
@@ -75,7 +75,7 @@ impl IntoIterator for RuntimeSpec {
 }
 
 impl RuntimeSpec {
-  pub fn new(inner: HashSet<Ustr>) -> Self {
+  pub fn new(inner: IdentifierSet) -> Self {
     let mut this = Self {
       inner,
       key: String::new(),
@@ -106,7 +106,7 @@ impl RuntimeSpec {
     Self::new(res)
   }
 
-  pub fn insert(&mut self, r: Ustr) -> bool {
+  pub fn insert(&mut self, r: Identifier) -> bool {
     let update = self.inner.insert(r);
     if update {
       self.update_key();
@@ -130,7 +130,7 @@ impl RuntimeSpec {
       self.key = String::new();
       return;
     }
-    let mut ordered = self.inner.iter().map(AsRef::as_ref).collect::<Vec<_>>();
+    let mut ordered = self.inner.iter().map(|s| s.as_str()).collect::<Vec<_>>();
     ordered.sort_unstable();
     self.key = ordered.join("_");
   }
@@ -210,7 +210,7 @@ pub fn filter_runtime(
     Some(runtime) => {
       let mut some = false;
       let mut every = true;
-      let mut result = HashSet::default();
+      let mut result = IdentifierSet::default();
 
       for &r in runtime.iter() {
         let cur = RuntimeSpec::from_iter([r]);
@@ -288,7 +288,7 @@ pub fn subtract_runtime_condition(
       if let Some(a) = runtime {
         a.difference(b).copied().collect()
       } else {
-        HashSet::default()
+        IdentifierSet::default()
       }
     }
   };

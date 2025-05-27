@@ -2,6 +2,7 @@ use std::ptr::NonNull;
 
 use napi::{Either, Env, JsString};
 use napi_derive::napi;
+use rspack_collections::{Identifier, IdentifierSet};
 use rspack_core::{Compilation, ModuleGraph, RuntimeSpec};
 
 use crate::{
@@ -78,17 +79,15 @@ impl JsModuleGraph {
     js_module: ModuleObjectRef,
     js_runtime: Either<String, Vec<String>>,
   ) -> napi::Result<Option<Either<bool, Vec<JsString<'a>>>>> {
-    use rustc_hash::FxHashSet as HashSet;
-
     let (_, module_graph) = self.as_ref()?;
 
-    let mut runtime: HashSet<ustr::Ustr> = Default::default();
+    let mut runtime = IdentifierSet::default();
     match js_runtime {
       Either::A(s) => {
         runtime.insert(s.into());
       }
       Either::B(vec) => {
-        runtime.extend(vec.iter().map(String::as_str).map(ustr::Ustr::from));
+        runtime.extend(vec.iter().map(String::as_str).map(Identifier::from));
       }
     };
     let used_exports =

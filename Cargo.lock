@@ -4558,7 +4558,6 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
- "ustr-fxhash",
 ]
 
 [[package]]
