@@ -121,7 +121,7 @@ pub async fn repair(
         return vec![Box::new(process_dependencies::ProcessDependenciesTask {
           original_module_identifier,
           dependencies,
-        }) as Box<dyn Task<MakeTaskContext> + Send + Sync>];
+        }) as Box<dyn Task<MakeTaskContext>>];
       }
       // entry dependencies
       dependencies
@@ -148,7 +148,7 @@ pub async fn repair(
             options: compilation.options.clone(),
             current_profile,
             resolver_factory: compilation.resolver_factory.clone(),
-          }) as Box<dyn Task<MakeTaskContext> + Send + Sync>
+          }) as Box<dyn Task<MakeTaskContext>>
         })
         .collect::<Vec<_>>()
     })

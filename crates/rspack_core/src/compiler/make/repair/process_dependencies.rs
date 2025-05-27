@@ -65,7 +65,7 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
       .module_by_identifier(&original_module_identifier)
       .expect("Module expected");
 
-    let mut res: Vec<Box<dyn Task<MakeTaskContext> + Send + Sync>> = vec![];
+    let mut res: Vec<Box<dyn Task<MakeTaskContext>>> = vec![];
     for dependencies in sorted_dependencies.into_values() {
       let current_profile = context
         .compiler_options

@@ -9,7 +9,7 @@ use crate::{
   make::repair::MakeTaskContext, task_loop::Task, DependencyId, ModuleIdentifier, ModuleIssuer,
 };
 
-type BoxTask = Box<dyn Task<ExecutorTaskContext> + Send + Sync>;
+type BoxTask = Box<dyn Task<ExecutorTaskContext>>;
 
 /// Tracks whether a module and its submodules have been built.
 #[derive(Debug, Default)]

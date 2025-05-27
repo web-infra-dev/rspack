@@ -65,7 +65,7 @@ impl Task<MakeTaskContext> for BuildTask {
       current_profile.mark_building_end();
     }
 
-    result.map::<Vec<Box<dyn Task<MakeTaskContext> + Send + Sync>>, _>(|build_result| {
+    result.map::<Vec<Box<dyn Task<MakeTaskContext>>>, _>(|build_result| {
       vec![Box::new(BuildResultTask {
         module,
         build_result: Box::new(build_result),
