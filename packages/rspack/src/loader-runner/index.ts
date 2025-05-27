@@ -256,7 +256,7 @@ export function runLoaders(
 	context: JsLoaderContext,
 	callback: (loaderContext: JsLoaderContext) => void
 ): void {
-	runLoadersAsync(compiler, context).then(ctx => callback(ctx));
+	runLoadersAsync(compiler, context).then(callback);
 }
 
 async function runLoadersAsync(

@@ -1,5 +1,6 @@
 use std::{collections::HashMap, ptr::NonNull, sync::Arc};
 
+use derive_more::Debug;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{LoaderContext, Module, RunnerContext};
@@ -81,23 +82,29 @@ impl From<LoaderState> for JsLoaderState {
 }
 
 #[napi(object)]
+#[derive(Debug)]
 pub struct JsLoaderContext {
+  #[debug(skip)]
   #[napi(ts_type = "Readonly<JsResourceData>")]
   pub resource_data: JsResourceData,
   /// Will be deprecated. Use module.module_identifier instead
   #[napi(js_name = "_moduleIdentifier", ts_type = "Readonly<string>")]
   pub module_identifier: String,
   #[napi(js_name = "_module", ts_type = "Module")]
+  #[debug(skip)]
   pub module: ModuleObject,
   #[napi(ts_type = "Readonly<boolean>")]
   pub hot: bool,
 
   /// Content maybe empty in pitching stage
+  #[debug(skip)]
   pub content: Either<Null, Buffer>,
   #[napi(ts_type = "any")]
+  #[debug(skip)]
   pub additional_data: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
   #[napi(js_name = "__internal__parseMeta")]
   pub parse_meta: HashMap<String, String>,
+  #[debug(skip)]
   pub source_map: Option<Buffer>,
   pub cacheable: bool,
   pub file_dependencies: Vec<String>,
@@ -105,9 +112,11 @@ pub struct JsLoaderContext {
   pub missing_dependencies: Vec<String>,
   pub build_dependencies: Vec<String>,
 
+  #[debug(skip)]
   pub loader_items: Vec<JsLoaderItem>,
   pub loader_index: i32,
   #[napi(ts_type = "Readonly<JsLoaderState>")]
+  #[debug(skip)]
   pub loader_state: JsLoaderState,
   #[napi(js_name = "__internal__error")]
   pub error: Option<JsRspackError>,

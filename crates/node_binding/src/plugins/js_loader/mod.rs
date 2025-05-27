@@ -24,7 +24,7 @@ use crate::{RspackResultToNapiResultExt, COMPILER_REFERENCES};
 pub type JsLoaderRunner = ThreadsafeFunction<
   (
     JsLoaderContext,
-    tokio::sync::oneshot::Sender<napi::Result<JsLoaderContext>>,
+    tokio::sync::oneshot::Sender<JsLoaderContext>,
   ),
   (),
   FnArgs<(JsLoaderContext, napi_value)>,
@@ -33,44 +33,38 @@ pub type JsLoaderRunner = ThreadsafeFunction<
   0,
 >;
 
-unsafe extern "C" fn raw_done<Value>(
+unsafe extern "C" fn raw_done(
   env: sys::napi_env,
-  cbinfo: sys::napi_callback_info,
-) -> sys::napi_value
-where
-  Value: FromNapiValue,
-{
-  handle_done_callback::<Value>(env, cbinfo)
-    .unwrap_or_else(|err| throw_error(env, err, "Error in done"))
+  cb_info: sys::napi_callback_info,
+) -> sys::napi_value {
+  handle_done_callback(env, cb_info).unwrap_or_else(|err| throw_error(env, err, "Error in done"))
 }
 
 #[inline(always)]
-fn handle_done_callback<Value>(
+fn handle_done_callback(
   env: sys::napi_env,
-  cbinfo: sys::napi_callback_info,
-) -> napi::Result<sys::napi_value>
-where
-  Value: FromNapiValue,
-{
+  cb_info: sys::napi_callback_info,
+) -> napi::Result<sys::napi_value> {
   let mut callback_values = [ptr::null_mut()];
-  let mut rust_cb = ptr::null_mut();
+  let mut data = ptr::null_mut();
   check_status!(
     unsafe {
       sys::napi_get_cb_info(
         env,
-        cbinfo,
+        cb_info,
         &mut 1,
         callback_values.as_mut_ptr(),
         ptr::null_mut(),
-        &mut rust_cb,
+        &mut data,
       )
     },
-    "Get callback info from finally callback failed"
+    "Get callback info from loader runner callback failed"
   )?;
 
-  let tx: Box<tokio::sync::oneshot::Sender<Value>> = unsafe { Box::from_raw(rust_cb.cast()) };
+  let tx: Box<tokio::sync::oneshot::Sender<JsLoaderContext>> =
+    unsafe { Box::from_raw(data.cast()) };
 
-  let value: Value = unsafe { FromNapiValue::from_napi_value(env, callback_values[0]) }?;
+  let value = unsafe { FromNapiValue::from_napi_value(env, callback_values[0]) }?;
   let _ = tx.send(value);
 
   Ok(ptr::null_mut())
@@ -146,19 +140,21 @@ extern "C" fn napi_js_callback(
         .build_callback(
           |ctx: ThreadsafeCallContext<(
             JsLoaderContext,
-            tokio::sync::oneshot::Sender<napi::Result<JsLoaderContext>>,
+            tokio::sync::oneshot::Sender<JsLoaderContext>,
           )>| {
-            let (context, sender): (_, _) = ctx.value;
+            let context = ctx.value.0;
+            let sender = ctx.value.1;
             let mut done = ptr::null_mut();
             const DONE: &[u8; 5] = b"done\0";
+            let data = Box::into_raw(Box::new(sender)).cast();
             check_status!(
               unsafe {
                 sys::napi_create_function(
                   ctx.env.raw(),
                   DONE.as_ptr().cast(),
                   4,
-                  Some(raw_done::<JsLoaderContext>),
-                  Box::into_raw(Box::new(sender)).cast(),
+                  Some(raw_done),
+                  data,
                   &mut done,
                 )
               },

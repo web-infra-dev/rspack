@@ -35,12 +35,12 @@ pub(crate) async fn loader_yield(
   let read_guard = self.runner.read().await;
   match &*read_guard {
     Some(runner) => {
-      let (tx, rx) = tokio::sync::oneshot::channel::<napi::Result<JsLoaderContext>>();
+      let (tx, rx) = tokio::sync::oneshot::channel::<JsLoaderContext>();
       runner
         .call_async((loader_context.try_into()?, tx))
         .await
         .into_diagnostic()?;
-      let new_cx = rx.await.into_diagnostic()?.into_diagnostic()?;
+      let new_cx = rx.await.into_diagnostic()?;
       drop(read_guard);
 
       merge_loader_context(loader_context, new_cx)?;
@@ -62,7 +62,7 @@ pub(crate) async fn loader_yield(
       };
 
       let read_guard = self.runner.read().await;
-      let (tx, rx) = tokio::sync::oneshot::channel::<napi::Result<JsLoaderContext>>();
+      let (tx, rx) = tokio::sync::oneshot::channel::<JsLoaderContext>();
       #[allow(clippy::unwrap_used)]
       read_guard
         .as_ref()
@@ -70,7 +70,7 @@ pub(crate) async fn loader_yield(
         .call_async((loader_context.try_into()?, tx))
         .await
         .into_diagnostic()?;
-      let new_cx = rx.await.into_diagnostic()?.into_diagnostic()?;
+      let new_cx = rx.await.into_diagnostic()?;
       drop(read_guard);
 
       merge_loader_context(loader_context, new_cx)?;
@@ -131,7 +131,6 @@ pub(crate) fn merge_loader_context(
       } else {
         rspack_core::Content::from(Into::<Vec<u8>>::into(c))
       };
-
       Some(content)
     }
   };
