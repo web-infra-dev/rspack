@@ -131,8 +131,8 @@ jobs:
       matrix: ${{fromJson(needs.calculate-eco-ci-suite.outputs.suites)}}
       fail-fast: false
     name: eco-ci (${{ matrix.suite }})
-    runs-on: ubuntu-22.04
-    #    runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
+    // runs-on: ubuntu-22.04
+    runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -172,7 +172,7 @@ jobs:
 
           RSPACK_DIR=$(pwd)
           cd ..
-          git clone --single-branch --depth 1 https://github.com/web-infra-dev/rspack-ecosystem-ci.git
+          git clone --single-branch --branch nextjs --depth 1 https://github.com/web-infra-dev/rspack-ecosystem-ci.git
           cd rspack-ecosystem-ci
           pnpm i --frozen-lockfile
 
