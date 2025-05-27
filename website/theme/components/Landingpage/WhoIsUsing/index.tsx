@@ -148,7 +148,7 @@ const companyList: Company[] = [
     name: 'Miro',
     logo: miroLogo,
     url: 'https://miro.com',
-    width: 140,
+    width: 120,
   },
 ];
 
