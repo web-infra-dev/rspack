@@ -24,7 +24,7 @@ it("verify importing css js source map", async () => {
 	const out = fs.readFileSync(__filename, "utf-8");
 	expect(
 		await checkMap(out, source, {
-			// *${id}* as the search key to aviod conflict with `Object.defineProperty(exports, ${id}, ...)`
+			// *${id}* as the search key to avoid conflict with `Object.defineProperty(exports, ${id}, ...)`
 			['"*a0*"']: "webpack:///a.js",
 			['"*a1*"']: "webpack:///a.js"
 		}, false)
