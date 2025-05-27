@@ -70,9 +70,7 @@ pub async fn run_task_loop<Ctx: 'static + Send + Sync>(
     let sync_task_res_tx = res_tx.clone();
     s.spawn(|ctx| async move {
       while let Some(task) = sync_rx.recv().await {
-        sync_task_res_tx
-          .send(task.main_run(ctx).await)
-          .expect("failed to send task result");
+        sync_task_res_tx.send(task.main_run(ctx).await).unwrap();
       }
       Ok(())
     });
@@ -103,7 +101,7 @@ pub async fn run_task_loop<Ctx: 'static + Send + Sync>(
             }
             TaskType::Main => {
               *active_task_count += 1;
-              sync_tx.send(task).expect("failed to send main task");
+              sync_tx.send(task).unwrap();
             }
           }
         }
