@@ -119,7 +119,7 @@ export class NormalProcessor<
 				.concat(function (this: TCompiler<T>) {
 					this.hooks.compilation.tap("TestCasesTest", compilation => {
 						const hooks: never[] = [
-							// CHANGE: the follwing hooks are not supported yet, so comment it out
+							// CHANGE: the following hooks are not supported yet, so comment it out
 							// "optimize",
 							// "optimizeModules",
 							// "optimizeChunks",
