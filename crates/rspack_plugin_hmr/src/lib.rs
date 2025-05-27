@@ -79,7 +79,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   let mut hot_update_main_content_by_runtime = all_old_runtime
     .iter()
-    .map(|runtime| (runtime.clone(), HotUpdateContent::default()))
+    .map(|&runtime| (runtime, HotUpdateContent::default()))
     .collect::<HashMap<_, HotUpdateContent>>();
 
   if hot_update_main_content_by_runtime.is_empty() {

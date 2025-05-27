@@ -1,9 +1,4 @@
-use std::{
-  borrow::Cow,
-  hash::BuildHasherDefault,
-  iter::once,
-  sync::atomic::AtomicU32,
-};
+use std::{borrow::Cow, hash::BuildHasherDefault, iter::once, sync::atomic::AtomicU32};
 
 use dashmap::mapref::one::Ref;
 use indexmap::IndexSet;

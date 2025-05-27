@@ -79,7 +79,7 @@ impl JsModuleGraph {
     js_runtime: Either<String, Vec<String>>,
   ) -> napi::Result<Option<Either<bool, Vec<JsString<'a>>>>> {
     use rustc_hash::FxHashSet as HashSet;
-    
+
     let (_, module_graph) = self.as_ref()?;
 
     let mut runtime: HashSet<ustr::Ustr> = Default::default();

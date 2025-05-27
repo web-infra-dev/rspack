@@ -1694,8 +1694,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .chunk_groups_for_merging
           .insert((target_ukey, process_block));
         let mut updated = false;
-        for r in runtime.iter() {
-          updated |= target_cgi.runtime.insert(r.clone());
+        for &r in runtime.iter() {
+          updated |= target_cgi.runtime.insert(r);
         }
         if updated {
           self.outdated_chunk_group_info.insert(target_ukey);

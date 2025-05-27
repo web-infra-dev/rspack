@@ -6,14 +6,14 @@ use rspack_cacheable::{
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  filter_runtime, import_statement, AsContextDependency,
-  AwaitDependenciesInitFragment, BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState,
-  Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
-  DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ErrorSpan, ExportProvided, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, ModuleDependency, ModuleGraph, ProvidedExports, RuntimeCondition, RuntimeSpec,
-  SharedSourceMap, TemplateContext, TemplateReplaceSource,
+   filter_runtime, import_statement, AsContextDependency,
+   AwaitDependenciesInitFragment, BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState,
+   Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
+   DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
+   DependencyTemplateType, DependencyType, ErrorSpan, ExportProvided, ExportsType,
+   ExtendedReferencedExport, FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey,
+   InitFragmentStage, ModuleDependency, ModuleGraph, ProvidedExports, RuntimeCondition, RuntimeSpec,
+   SharedSourceMap, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},

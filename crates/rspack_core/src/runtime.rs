@@ -1,15 +1,10 @@
-use std::{
-  cmp::Ordering,
-  collections::hash_map,
-  fmt::Debug,
-  ops::Deref,
-};
+use std::{cmp::Ordering, collections::hash_map, fmt::Debug, ops::Deref};
 
 use rspack_cacheable::{
   cacheable,
   with::{AsRefStr, AsVec},
 };
-use rustc_hash::{ FxHashMap as HashMap, FxHashSet as HashSet };
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use ustr::Ustr;
 
 use crate::{EntryOptions, EntryRuntime};
@@ -57,7 +52,6 @@ impl Deref for RuntimeSpec {
     &self.inner
   }
 }
-
 
 impl From<HashSet<Ustr>> for RuntimeSpec {
   fn from(value: HashSet<Ustr>) -> Self {
@@ -108,7 +102,7 @@ impl RuntimeSpec {
   }
 
   pub fn subtract(&self, b: &RuntimeSpec) -> Self {
-    let res = self.inner.difference(&b.inner).cloned().collect();
+    let res = self.inner.difference(&b.inner).copied().collect();
     Self::new(res)
   }
 
@@ -122,7 +116,7 @@ impl RuntimeSpec {
 
   pub fn extend(&mut self, other: &Self) {
     let prev = self.inner.len();
-    self.inner.extend(other.inner.iter().cloned());
+    self.inner.extend(other.inner.iter().copied());
     if prev != self.inner.len() {
       self.update_key();
     }
@@ -157,7 +151,7 @@ pub enum RuntimeMode {
 }
 
 pub fn is_runtime_equal(a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
-  &a.key == &b.key
+  a.key == b.key
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -194,12 +188,12 @@ impl RuntimeCondition {
     } else {
       None
     }
-  }  
+  }
 }
 
 pub fn merge_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> RuntimeSpec {
   let mut set = a.inner.clone();
-  set.extend(b.inner.iter().cloned());
+  set.extend(b.inner.iter().copied());
   RuntimeSpec::new(set)
 }
 
@@ -218,12 +212,12 @@ pub fn filter_runtime(
       let mut every = true;
       let mut result = HashSet::default();
 
-      for r in runtime.iter() {
-        let cur = RuntimeSpec::from_iter([r.clone()]);
+      for &r in runtime.iter() {
+        let cur = RuntimeSpec::from_iter([r]);
         let v = filter(Some(&cur));
         if v {
           some = true;
-          result.insert(r.clone());
+          result.insert(r);
         } else {
           every = false;
         }
@@ -289,12 +283,10 @@ pub fn subtract_runtime_condition(
     (_, RuntimeCondition::Boolean(true)) => return RuntimeCondition::Boolean(false),
     (_, RuntimeCondition::Boolean(false)) => return a.clone(),
     (RuntimeCondition::Boolean(false), _) => return RuntimeCondition::Boolean(false),
-    (RuntimeCondition::Spec(a), RuntimeCondition::Spec(b)) => {
-      a.difference(b).cloned().collect()
-    }
+    (RuntimeCondition::Spec(a), RuntimeCondition::Spec(b)) => a.difference(b).copied().collect(),
     (RuntimeCondition::Boolean(true), RuntimeCondition::Spec(b)) => {
       if let Some(a) = runtime {
-        a.difference(b).cloned().collect()
+        a.difference(b).copied().collect()
       } else {
         HashSet::default()
       }

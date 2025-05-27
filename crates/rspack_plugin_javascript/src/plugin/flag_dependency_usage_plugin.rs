@@ -3,10 +3,10 @@ use std::collections::{hash_map::Entry, VecDeque};
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
   get_entry_runtime, incremental::IncrementalPasses, is_exports_object_referenced,
-  is_no_exports_referenced, AsyncDependenciesBlockIdentifier, BuildMetaExportsType,
-  Compilation, CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId,
-  ExportsInfo, ExtendedReferencedExport, GroupOptions, ModuleIdentifier, Plugin, ReferencedExport,
-  RuntimeSpec, UsageState,
+  is_no_exports_referenced, AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation,
+  CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfo,
+  ExtendedReferencedExport, GroupOptions, ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec,
+  UsageState,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};

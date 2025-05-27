@@ -1299,8 +1299,8 @@ impl ExportInfo {
         .used_in_runtime
         .get_or_insert(HashMap::default());
       let mut changed = false;
-      for k in runtime.iter() {
-        match used_in_runtime.entry(k.clone()) {
+      for &k in runtime.iter() {
+        match used_in_runtime.entry(k) {
           Entry::Occupied(mut occ) => match (&new_value, occ.get()) {
             (new, _) if new == &UsageState::Unused => {
               occ.remove();
@@ -1349,8 +1349,8 @@ impl ExportInfo {
         .get_or_insert(HashMap::default());
       let mut changed = false;
 
-      for k in runtime.iter() {
-        match used_in_runtime.entry(k.clone()) {
+      for &k in runtime.iter() {
+        match used_in_runtime.entry(k) {
           Entry::Occupied(mut occ) => match (&new_value, occ.get()) {
             (new, old) if condition(old) && new == &UsageState::Unused => {
               occ.remove();
