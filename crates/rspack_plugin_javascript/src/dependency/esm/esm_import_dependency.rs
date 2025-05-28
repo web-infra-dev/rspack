@@ -10,7 +10,7 @@ use rspack_core::{
   AwaitDependenciesInitFragment, BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState,
   Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
   DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ErrorSpan, ExportInfoProvided, ExportsType,
+  DependencyTemplateType, DependencyType, ErrorSpan, ExportProvided, ExportsType,
   ExtendedReferencedExport, FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey,
   InitFragmentStage, ModuleDependency, ModuleGraph, ProvidedExports, RuntimeCondition, RuntimeSpec,
   SharedSourceMap, TemplateContext, TemplateReplaceSource,
@@ -285,7 +285,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
     if (!matches!(exports_type, ExportsType::DefaultWithNamed) || ids[0] != "default")
       && matches!(
         module_graph.is_export_provided(&imported_module_identifier, ids),
-        Some(false)
+        Some(ExportProvided::NotProvided)
       )
     {
       let mut pos = 0;
@@ -298,10 +298,10 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         let export_info = exports_info.get_read_only_export_info(module_graph, id);
         if matches!(
           export_info.provided(module_graph),
-          Some(ExportInfoProvided::False)
+          Some(ExportProvided::NotProvided)
         ) {
           let provided_exports = exports_info.get_provided_exports(module_graph);
-          let more_info = if let ProvidedExports::Vec(exports) = &provided_exports {
+          let more_info = if let ProvidedExports::ProvidedNames(exports) = &provided_exports {
             if exports.is_empty() {
               " (module has no exports)".to_string()
             } else {
@@ -426,7 +426,7 @@ impl Dependency for ESMImportSideEffectDependency {
     {
       module.get_side_effects_connection_state(module_graph, module_chain)
     } else {
-      ConnectionState::Bool(true)
+      ConnectionState::Active(true)
     }
   }
 
@@ -460,7 +460,7 @@ impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
     if let Some(module) = module_graph.module_by_identifier(&id) {
       module.get_side_effects_connection_state(module_graph, &mut IdentifierSet::default())
     } else {
-      ConnectionState::Bool(true)
+      ConnectionState::Active(true)
     }
   }
 }

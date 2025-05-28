@@ -173,7 +173,7 @@ impl Dependency for ESMImportSpecifierDependency {
     _module_graph: &ModuleGraph,
     _module_chain: &mut IdentifierSet,
   ) -> ConnectionState {
-    ConnectionState::Bool(false)
+    ConnectionState::Active(false)
   }
 
   fn _get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {

@@ -153,7 +153,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         let active_state = connection.active_state(&module_graph, runtime.as_ref());
 
         match active_state {
-          ConnectionState::Bool(false) => {
+          ConnectionState::Active(false) => {
             continue;
           }
           ConnectionState::TransitiveOnly => {

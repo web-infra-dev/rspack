@@ -763,7 +763,7 @@ impl Module for NormalModule {
     module_chain: &mut IdentifierSet,
   ) -> ConnectionState {
     if let Some(side_effect_free) = self.factory_meta().and_then(|m| m.side_effect_free) {
-      return ConnectionState::Bool(!side_effect_free);
+      return ConnectionState::Active(!side_effect_free);
     }
     if Some(true) == self.build_meta().side_effect_free {
       // use module chain instead of is_evaluating_side_effects to mut module graph
@@ -771,15 +771,15 @@ impl Module for NormalModule {
         return ConnectionState::CircularConnection;
       }
       module_chain.insert(self.identifier());
-      let mut current = ConnectionState::Bool(false);
+      let mut current = ConnectionState::Active(false);
       for dependency_id in self.get_dependencies().iter() {
         if let Some(dependency) = module_graph.dependency_by_id(dependency_id) {
           let state =
             dependency.get_module_evaluation_side_effects_state(module_graph, module_chain);
-          if matches!(state, ConnectionState::Bool(true)) {
+          if matches!(state, ConnectionState::Active(true)) {
             // TODO add optimization bailout
             module_chain.remove(&self.identifier());
-            return ConnectionState::Bool(true);
+            return ConnectionState::Active(true);
           } else if !matches!(state, ConnectionState::CircularConnection) {
             current = current + state;
           }
@@ -788,7 +788,7 @@ impl Module for NormalModule {
       module_chain.remove(&self.identifier());
       return current;
     }
-    ConnectionState::Bool(true)
+    ConnectionState::Active(true)
   }
 
   fn get_concatenation_bailout_reason(

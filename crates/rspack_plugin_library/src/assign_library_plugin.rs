@@ -8,7 +8,7 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier, ApplyContext, BoxModule, Chunk, ChunkUkey, CodeGenerationDataTopLevelDeclarations,
   Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules,
-  CompilationParams, CompilerCompilation, CompilerOptions, EntryData, ExportInfoProvided, Filename,
+  CompilationParams, CompilerCompilation, CompilerOptions, EntryData, ExportProvided, Filename,
   LibraryExport, LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData,
   Plugin, PluginContext, RuntimeGlobals, SourceType, UsageState,
 };
@@ -269,7 +269,7 @@ async fn render_startup(
     for export_info in exports_info.ordered_exports(&module_graph) {
       if matches!(
         export_info.provided(&module_graph),
-        Some(ExportInfoProvided::False)
+        Some(ExportProvided::NotProvided)
       ) {
         continue;
       }

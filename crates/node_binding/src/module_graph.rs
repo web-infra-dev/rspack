@@ -93,9 +93,9 @@ impl JsModuleGraph {
     let used_exports =
       module_graph.get_used_exports(&js_module.identifier, Some(&RuntimeSpec::new(runtime)));
     Ok(match used_exports {
-      rspack_core::UsedExports::Null => None,
-      rspack_core::UsedExports::Bool(b) => Some(Either::A(b)),
-      rspack_core::UsedExports::Vec(vec) => Some(Either::B(
+      rspack_core::UsedExports::Unknown => None,
+      rspack_core::UsedExports::UsedNamespace(b) => Some(Either::A(b)),
+      rspack_core::UsedExports::UsedNames(vec) => Some(Either::B(
         vec
           .into_iter()
           .map(|atom| env.create_string(atom.as_str()))

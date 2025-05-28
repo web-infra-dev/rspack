@@ -31,7 +31,7 @@ use crate::{
   AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
   ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation, CompilationAsset, CompilationId,
   CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
-  DependenciesBlock, DependencyId, ExportInfoProvided, ExternalModule, ModuleGraph, ModuleLayer,
+  DependenciesBlock, DependencyId, ExportProvided, ExternalModule, ModuleGraph, ModuleLayer,
   ModuleType, NormalModule, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
   SharedPluginDriver, SourceType,
 };
@@ -366,7 +366,7 @@ pub trait Module:
     _module_graph: &ModuleGraph,
     _module_chain: &mut IdentifierSet,
   ) -> ConnectionState {
-    ConnectionState::Bool(true)
+    ConnectionState::Active(true)
   }
 
   fn need_build(&self) -> bool {
@@ -436,7 +436,7 @@ fn get_exports_type_impl(
         if let Some(export_info) =
           mg.get_read_only_export_info(&identifier, Atom::from("__esModule"))
         {
-          if matches!(export_info.provided(mg), Some(ExportInfoProvided::False)) {
+          if matches!(export_info.provided(mg), Some(ExportProvided::NotProvided)) {
             handle_default(default_object)
           } else {
             let Some(target) = export_info.get_target(mg) else {

@@ -769,7 +769,7 @@ impl CodeSplitter {
       for conn in conns {
         let conn_state = conn.active_state(module_graph, runtime);
         match conn_state {
-          crate::ConnectionState::Bool(true) => {
+          crate::ConnectionState::Active(true) => {
             modules.insert(*m);
             continue 'outer;
           }
@@ -779,7 +779,7 @@ impl CodeSplitter {
             modules.extend(extra_modules.iter().copied());
             blocks.extend(extra_blocks.iter().copied());
           }
-          crate::ConnectionState::Bool(false) => {}
+          crate::ConnectionState::Active(false) => {}
           crate::ConnectionState::CircularConnection => {}
         }
       }

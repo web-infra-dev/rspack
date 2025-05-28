@@ -85,7 +85,7 @@ impl Dependency for ESMExportExpressionDependency {
 
   fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
     Some(ExportsSpec {
-      exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::String(
+      exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::String(
         JS_DEFAULT_KEYWORD.clone(),
       )]),
       priority: Some(1),
@@ -103,7 +103,7 @@ impl Dependency for ESMExportExpressionDependency {
     _module_graph: &rspack_core::ModuleGraph,
     _module_chain: &mut IdentifierSet,
   ) -> rspack_core::ConnectionState {
-    rspack_core::ConnectionState::Bool(false)
+    rspack_core::ConnectionState::Active(false)
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

@@ -103,7 +103,7 @@ impl Dependency for CommonJsExportsDependency {
       ..Default::default()
     })];
     Some(ExportsSpec {
-      exports: ExportsOfExportsSpec::Array(vec),
+      exports: ExportsOfExportsSpec::Names(vec),
       ..Default::default()
     })
   }

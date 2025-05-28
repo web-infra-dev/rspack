@@ -14,7 +14,7 @@ use rspack_core::{
   filter_runtime,
   incremental::IncrementalPasses,
   merge_runtime, ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions,
-  ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
+  ExportProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
   ModuleGraph, ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext, ProvidedExports,
   RuntimeCondition, RuntimeSpec, SourceType,
 };
@@ -174,8 +174,10 @@ impl ModuleConcatenationPlugin {
       if imported_names.iter().all(|item| match item {
         ExtendedReferencedExport::Array(arr) => !arr.is_empty(),
         ExtendedReferencedExport::Export(export) => !export.name.is_empty(),
-      }) || matches!(mg.get_provided_exports(mi), ProvidedExports::Vec(_))
-      {
+      }) || matches!(
+        mg.get_provided_exports(mi),
+        ProvidedExports::ProvidedNames(_)
+      ) {
         set.insert(*con.module_identifier());
       }
     }
@@ -805,7 +807,7 @@ impl ModuleConcatenationPlugin {
           .filter(|export_info| {
             !matches!(
               export_info.provided(&module_graph),
-              Some(ExportInfoProvided::True)
+              Some(ExportProvided::Provided)
             )
           })
           .copied()
