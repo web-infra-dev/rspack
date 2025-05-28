@@ -1,7 +1,6 @@
 use std::collections::{hash_map::Entry, VecDeque};
 
 use rspack_collections::{IdentifierMap, IdentifierSet};
-use rspack_error::{miette::diagnostic, Error};
 use rustc_hash::FxHashMap as HashMap;
 
 use super::context::ExecutorTaskContext;
@@ -185,27 +184,13 @@ impl ModuleTracker {
   }
 
   /// Handle entry task.
-  pub fn on_entry(
-    &mut self,
-    is_new: bool,
-    dep_id: DependencyId,
-    get_task: impl FnOnce(Option<Error>) -> Option<BoxTask>,
-  ) -> Vec<BoxTask> {
+  pub fn on_entry(&mut self, is_new: bool, dep_id: DependencyId, task: BoxTask) -> Vec<BoxTask> {
     let Entry::Vacant(entry) = self.entry_finish_task.entry(dep_id) else {
-      // entry task already exist means have circular build dependency
-      let _ = get_task(Some(
-        diagnostic!(
-          "task exist for {:?}, maybe have a circular build dependency",
-          dep_id
-        )
-        .into(),
-      ));
-      return vec![];
+      // Entry task already exist means have circular build dependency.
+      // You should call self.is_running to check this before run on_entry.
+      panic!("The added task is running, maybe have a circular build dependency.",)
     };
 
-    let Some(task) = get_task(None) else {
-      return vec![];
-    };
     if is_new {
       // insert it and wait for it to factorize.
       entry.insert(task);
@@ -214,5 +199,10 @@ impl ModuleTracker {
       // The target module is complete and the task can be run.
       self.calc_runnable_tasks(vec![task])
     }
+  }
+
+  /// Check if a dep_id is running
+  pub fn is_running(&self, dep_id: &DependencyId) -> bool {
+    self.entry_finish_task.contains_key(dep_id)
   }
 }
