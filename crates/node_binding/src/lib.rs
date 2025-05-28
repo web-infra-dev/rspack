@@ -335,7 +335,7 @@ impl JsCompiler {
     let compilation_id = compilation.id();
 
     JsCompilationWrapper::cleanup_last_compilation(compilation_id);
-    JsChunkWrapper::cleanup_last_compilation(compilation_id);
+    ChunkWrapper::cleanup_last_compilation(compilation_id);
     JsChunkGroupWrapper::cleanup_last_compilation(compilation_id);
     DependencyWrapper::cleanup_last_compilation(compilation_id);
     AsyncDependenciesBlockWrapper::cleanup_last_compilation(compilation_id);

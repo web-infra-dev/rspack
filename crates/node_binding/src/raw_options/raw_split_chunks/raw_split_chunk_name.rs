@@ -6,7 +6,7 @@ use rspack_collections::DatabaseItem;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_split_chunks::{ChunkNameGetter, ChunkNameGetterFnCtx};
 
-use crate::{JsChunkWrapper, ModuleObject};
+use crate::{ChunkWrapper, ModuleObject};
 
 pub(super) type RawChunkOptionName =
   Either3<String, bool, ThreadsafeFunction<JsChunkOptionNameCtx, Option<String>>>;
@@ -20,8 +20,8 @@ pub(super) fn default_chunk_option_name() -> ChunkNameGetter {
 pub struct JsChunkOptionNameCtx {
   #[napi(ts_type = "Module")]
   pub module: ModuleObject,
-  #[napi(ts_type = "JsChunk[]")]
-  pub chunks: Vec<JsChunkWrapper>,
+  #[napi(ts_type = "Chunk[]")]
+  pub chunks: Vec<ChunkWrapper>,
   pub cache_group_key: String,
 }
 
@@ -32,7 +32,7 @@ impl<'a> From<ChunkNameGetterFnCtx<'a>> for JsChunkOptionNameCtx {
       chunks: value
         .chunks
         .iter()
-        .map(|chunk| JsChunkWrapper::new(chunk.ukey(), value.compilation))
+        .map(|chunk| ChunkWrapper::new(chunk.ukey(), value.compilation))
         .collect(),
       cache_group_key: value.cache_group_key.to_string(),
     }

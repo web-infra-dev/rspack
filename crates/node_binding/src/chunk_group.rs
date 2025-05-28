@@ -9,7 +9,7 @@ use rspack_core::{
 use rspack_napi::OneShotRef;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{JsChunkWrapper, ModuleObject, ModuleObjectRef};
+use crate::{ChunkWrapper, ModuleObject, ModuleObjectRef};
 
 #[napi]
 pub struct JsChunkGroup {
@@ -33,14 +33,14 @@ impl JsChunkGroup {
 
 #[napi]
 impl JsChunkGroup {
-  #[napi(getter, ts_return_type = "JsChunk[]")]
-  pub fn chunks(&self) -> napi::Result<Vec<JsChunkWrapper>> {
+  #[napi(getter, ts_return_type = "Chunk[]")]
+  pub fn chunks(&self) -> napi::Result<Vec<ChunkWrapper>> {
     let (compilation, chunk_graph) = self.as_ref()?;
     Ok(
       chunk_graph
         .chunks
         .iter()
-        .map(|ukey| JsChunkWrapper::new(*ukey, compilation))
+        .map(|ukey| ChunkWrapper::new(*ukey, compilation))
         .collect::<Vec<_>>(),
     )
   }
@@ -127,18 +127,18 @@ impl JsChunkGroup {
     )
   }
 
-  #[napi(ts_return_type = "JsChunk")]
-  pub fn get_runtime_chunk(&self) -> napi::Result<JsChunkWrapper> {
+  #[napi(ts_return_type = "Chunk")]
+  pub fn get_runtime_chunk(&self) -> napi::Result<ChunkWrapper> {
     let (compilation, chunk_group) = self.as_ref()?;
     let chunk_ukey = chunk_group.get_runtime_chunk(&compilation.chunk_group_by_ukey);
-    Ok(JsChunkWrapper::new(chunk_ukey, compilation))
+    Ok(ChunkWrapper::new(chunk_ukey, compilation))
   }
 
-  #[napi(ts_return_type = "JsChunk")]
-  pub fn get_entrypoint_chunk(&self) -> napi::Result<JsChunkWrapper> {
+  #[napi(ts_return_type = "Chunk")]
+  pub fn get_entrypoint_chunk(&self) -> napi::Result<ChunkWrapper> {
     let (compilation, chunk_group) = self.as_ref()?;
     let chunk_ukey = chunk_group.get_entrypoint_chunk();
-    Ok(JsChunkWrapper::new(chunk_ukey, compilation))
+    Ok(ChunkWrapper::new(chunk_ukey, compilation))
   }
 
   #[napi]

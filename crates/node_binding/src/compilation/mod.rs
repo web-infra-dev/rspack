@@ -24,10 +24,10 @@ use rustc_hash::FxHashMap;
 
 use super::PathWithInfo;
 use crate::{
-  entry::JsEntryOptions, utils::callbackify, AssetInfo, EntryDependency, ErrorCode,
-  JsAddingRuntimeModule, JsAsset, JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper,
-  JsCompatSource, JsFilename, JsModuleGraph, JsPathData, JsRspackDiagnostic, JsRspackError,
-  JsStats, JsStatsOptimizationBailout, ModuleObject, RspackResultToNapiResultExt, ToJsCompatSource,
+  entry::JsEntryOptions, utils::callbackify, AssetInfo, Chunk, ChunkWrapper, EntryDependency,
+  ErrorCode, JsAddingRuntimeModule, JsAsset, JsChunkGraph, JsChunkGroupWrapper, JsCompatSource,
+  JsFilename, JsModuleGraph, JsPathData, JsRspackDiagnostic, JsRspackError, JsStats,
+  JsStatsOptimizationBailout, ModuleObject, RspackResultToNapiResultExt, ToJsCompatSource,
   COMPILER_REFERENCES,
 };
 
@@ -223,15 +223,15 @@ impl JsCompilation {
     Ok(compilation.named_chunks.keys().cloned().collect::<Vec<_>>())
   }
 
-  #[napi(ts_return_type = "JsChunk | null")]
-  pub fn get_named_chunk(&self, name: String) -> Result<Option<JsChunkWrapper>> {
+  #[napi(ts_return_type = "Chunk | null")]
+  pub fn get_named_chunk(&self, name: String) -> Result<Option<ChunkWrapper>> {
     let compilation = self.as_ref()?;
 
     Ok(compilation.named_chunks.get(&name).and_then(|c| {
       compilation
         .chunk_by_ukey
         .get(c)
-        .map(|chunk| JsChunkWrapper::new(chunk.ukey(), compilation))
+        .map(|chunk| ChunkWrapper::new(chunk.ukey(), compilation))
     }))
   }
 
@@ -676,7 +676,7 @@ impl JsCompilation {
   #[napi]
   pub fn add_runtime_module(
     &mut self,
-    chunk: &JsChunk,
+    chunk: &Chunk,
     runtime_module: JsAddingRuntimeModule,
   ) -> napi::Result<()> {
     let compilation = self.as_mut()?;

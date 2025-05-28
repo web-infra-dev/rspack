@@ -5,8 +5,8 @@ use napi_derive::napi;
 use rspack_core::{ChunkGraph, Compilation, ModuleId, SourceType};
 
 use crate::{
-  AsyncDependenciesBlock, JsChunk, JsChunkGroupWrapper, JsChunkWrapper, JsRuntimeSpec,
-  ModuleObject, ModuleObjectRef,
+  AsyncDependenciesBlock, Chunk, ChunkWrapper, JsChunkGroupWrapper, JsRuntimeSpec, ModuleObject,
+  ModuleObjectRef,
 };
 
 pub type JsModuleId = Either<String, u32>;
@@ -41,7 +41,7 @@ impl JsChunkGraph {
 #[napi]
 impl JsChunkGraph {
   #[napi(ts_return_type = "boolean")]
-  pub fn has_chunk_entry_dependent_chunks(&self, chunk: &JsChunk) -> Result<bool> {
+  pub fn has_chunk_entry_dependent_chunks(&self, chunk: &Chunk) -> Result<bool> {
     let compilation = self.as_ref()?;
     Ok(
       compilation
@@ -51,7 +51,7 @@ impl JsChunkGraph {
   }
 
   #[napi(ts_return_type = "Module[]")]
-  pub fn get_chunk_modules(&self, chunk: &JsChunk) -> Result<Vec<ModuleObject>> {
+  pub fn get_chunk_modules(&self, chunk: &Chunk) -> Result<Vec<ModuleObject>> {
     let compilation = self.as_ref()?;
 
     let module_graph = compilation.get_module_graph();
@@ -68,7 +68,7 @@ impl JsChunkGraph {
   }
 
   #[napi(ts_return_type = "Module[]")]
-  pub fn get_chunk_entry_modules(&self, chunk: &JsChunk) -> Result<Vec<ModuleObject>> {
+  pub fn get_chunk_entry_modules(&self, chunk: &Chunk) -> Result<Vec<ModuleObject>> {
     let compilation = self.as_ref()?;
 
     let modules = compilation
@@ -85,7 +85,7 @@ impl JsChunkGraph {
   }
 
   #[napi(ts_return_type = "number")]
-  pub fn get_number_of_entry_modules(&self, chunk: &JsChunk) -> Result<u32> {
+  pub fn get_number_of_entry_modules(&self, chunk: &Chunk) -> Result<u32> {
     let compilation = self.as_ref()?;
 
     Ok(
@@ -95,11 +95,11 @@ impl JsChunkGraph {
     )
   }
 
-  #[napi(ts_return_type = "JsChunk[]")]
+  #[napi(ts_return_type = "Chunk[]")]
   pub fn get_chunk_entry_dependent_chunks_iterable(
     &self,
-    chunk: &JsChunk,
-  ) -> Result<Vec<JsChunkWrapper>> {
+    chunk: &Chunk,
+  ) -> Result<Vec<ChunkWrapper>> {
     let compilation = self.as_ref()?;
 
     let chunks = compilation
@@ -113,7 +113,7 @@ impl JsChunkGraph {
     Ok(
       chunks
         .into_iter()
-        .map(|c| JsChunkWrapper::new(c, compilation))
+        .map(|c| ChunkWrapper::new(c, compilation))
         .collect::<Vec<_>>(),
     )
   }
@@ -121,7 +121,7 @@ impl JsChunkGraph {
   #[napi(ts_return_type = "Module[]")]
   pub fn get_chunk_modules_iterable_by_source_type(
     &self,
-    chunk: &JsChunk,
+    chunk: &Chunk,
     source_type: String,
   ) -> Result<Vec<ModuleObject>> {
     let compilation = self.as_ref()?;
@@ -139,8 +139,8 @@ impl JsChunkGraph {
     )
   }
 
-  #[napi(ts_args_type = "module: Module", ts_return_type = "JsChunk[]")]
-  pub fn get_module_chunks(&self, module: ModuleObjectRef) -> Result<Vec<JsChunkWrapper>> {
+  #[napi(ts_args_type = "module: Module", ts_return_type = "Chunk[]")]
+  pub fn get_module_chunks(&self, module: ModuleObjectRef) -> Result<Vec<ChunkWrapper>> {
     let compilation = self.as_ref()?;
 
     Ok(
@@ -148,7 +148,7 @@ impl JsChunkGraph {
         .chunk_graph
         .get_module_chunks(module.identifier)
         .iter()
-        .map(|chunk| JsChunkWrapper::new(*chunk, compilation))
+        .map(|chunk| ChunkWrapper::new(*chunk, compilation))
         .collect(),
     )
   }
