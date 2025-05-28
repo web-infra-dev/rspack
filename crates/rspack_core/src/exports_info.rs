@@ -1037,7 +1037,7 @@ impl ExportInfo {
       let mut max = UsageState::Unused;
       if let Some(runtime) = runtime {
         for item in runtime.iter() {
-          let Some(usage) = used_in_runtime.get(item.as_ref()) else {
+          let Some(usage) = used_in_runtime.get(item) else {
             continue;
           };
           match usage {
@@ -1081,7 +1081,7 @@ impl ExportInfo {
         if let Some(runtime) = runtime {
           if runtime
             .iter()
-            .all(|item| !used_in_runtime.contains_key(item.as_ref()))
+            .all(|item| !used_in_runtime.contains_key(item))
           {
             return None;
           }
@@ -1295,12 +1295,10 @@ impl ExportInfo {
   ) -> bool {
     if let Some(runtime) = runtime {
       let export_info_mut = mg.get_export_info_mut_by_id(self);
-      let used_in_runtime = export_info_mut
-        .used_in_runtime
-        .get_or_insert(HashMap::default());
+      let used_in_runtime = export_info_mut.used_in_runtime.get_or_insert_default();
       let mut changed = false;
-      for k in runtime.iter() {
-        match used_in_runtime.entry(k.clone()) {
+      for &k in runtime.iter() {
+        match used_in_runtime.entry(k) {
           Entry::Occupied(mut occ) => match (&new_value, occ.get()) {
             (new, _) if new == &UsageState::Unused => {
               occ.remove();
@@ -1344,13 +1342,11 @@ impl ExportInfo {
   ) -> bool {
     if let Some(runtime) = runtime {
       let export_info_mut = mg.get_export_info_mut_by_id(self);
-      let used_in_runtime = export_info_mut
-        .used_in_runtime
-        .get_or_insert(HashMap::default());
+      let used_in_runtime = export_info_mut.used_in_runtime.get_or_insert_default();
       let mut changed = false;
 
-      for k in runtime.iter() {
-        match used_in_runtime.entry(k.clone()) {
+      for &k in runtime.iter() {
+        match used_in_runtime.entry(k) {
           Entry::Occupied(mut occ) => match (&new_value, occ.get()) {
             (new, old) if condition(old) && new == &UsageState::Unused => {
               occ.remove();
@@ -1507,7 +1503,7 @@ pub struct ExportInfoData {
   has_use_in_runtime_info: bool,
   can_mangle_use: Option<bool>,
   global_used: Option<UsageState>,
-  used_in_runtime: Option<HashMap<Arc<str>, UsageState>>,
+  used_in_runtime: Option<ustr::UstrMap<UsageState>>,
 }
 
 #[derive(Debug, Hash, Clone, Copy)]

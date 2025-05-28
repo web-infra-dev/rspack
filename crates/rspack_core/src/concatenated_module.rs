@@ -630,7 +630,7 @@ impl Module for ConcatenatedModule {
       Some(Cow::Owned(
         generation_runtime
           .intersection(self_runtime)
-          .cloned()
+          .copied()
           .collect::<RuntimeSpec>(),
       ))
     } else {
@@ -1301,7 +1301,7 @@ impl Module for ConcatenatedModule {
       Some(Cow::Owned(
         generation_runtime
           .intersection(self_runtime)
-          .cloned()
+          .copied()
           .collect::<RuntimeSpec>(),
       ))
     } else {

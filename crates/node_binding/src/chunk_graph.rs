@@ -1,4 +1,4 @@
-use std::{ptr::NonNull, sync::Arc};
+use std::ptr::NonNull;
 
 use napi::{Either, Result};
 use napi_derive::napi;
@@ -173,8 +173,8 @@ impl JsChunkGraph {
   ) -> napi::Result<Option<&str>> {
     let compilation = self.as_ref()?;
     let Some(runtime) = js_runtime.map(|js_runtime| match js_runtime {
-      Either::A(str) => std::iter::once(str).map(Arc::from).collect(),
-      Either::B(vec) => vec.into_iter().map(Arc::from).collect(),
+      Either::A(str) => std::iter::once(str).map(Into::into).collect(),
+      Either::B(vec) => vec.into_iter().map(Into::into).collect(),
     }) else {
       return Ok(None);
     };

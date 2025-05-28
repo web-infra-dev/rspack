@@ -1,9 +1,4 @@
-use std::{
-  borrow::Cow,
-  hash::BuildHasherDefault,
-  iter::once,
-  sync::{atomic::AtomicU32, Arc},
-};
+use std::{borrow::Cow, hash::BuildHasherDefault, iter::once, sync::atomic::AtomicU32};
 
 use dashmap::mapref::one::Ref;
 use indexmap::IndexSet;
@@ -421,7 +416,7 @@ impl CodeSplitter {
         Self::get_entry_runtime(entry, compilation, &mut entry_runtime, &mut visited)
       {
         diagnostics.push(Diagnostic::from(error));
-        let tmp_runtime = once(Arc::from(entry.clone())).collect::<RuntimeSpec>();
+        let tmp_runtime = once(ustr::Ustr::from(entry.as_str())).collect::<RuntimeSpec>();
         entry_runtime.insert(entry, tmp_runtime.clone());
       };
     }
@@ -695,12 +690,12 @@ impl CodeSplitter {
           entry
         ));
       }
-      let mut runtime = None;
+      let mut runtime: Option<RuntimeSpec> = None;
       for dep in depend_on {
         let other_runtime = Self::get_entry_runtime(dep, compilation, entry_runtime, visited)?;
         match &mut runtime {
           Some(runtime) => {
-            *runtime = merge_runtime(runtime, &other_runtime);
+            runtime.extend(&other_runtime);
           }
           None => {
             runtime = Some(other_runtime);
