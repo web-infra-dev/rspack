@@ -2702,6 +2702,11 @@ export type Experiments = {
 	 * @default false
 	 */
 	parallelLoader?: boolean;
+	/**
+	 * Enable inline constants
+	 * @default false
+	 */
+	inlineConstants?: boolean;
 };
 //#endregion
 

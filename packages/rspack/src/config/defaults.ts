@@ -253,6 +253,9 @@ const applyExperimentsDefaults = (
 
 	// IGNORE(experiments.parallelLoader): Rspack specific configuration for parallel loader execution
 	D(experiments, "parallelLoader", false);
+
+	// IGNORE(experiments.inlineConstants): Rspack specific configuration for inline constants
+	D(experiments, "inlineConstants", false);
 };
 
 const applybundlerInfoDefaults = (

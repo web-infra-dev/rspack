@@ -42,8 +42,8 @@ use crate::{
   define_es_module_flag_statement, filter_runtime, impl_source_map_config, merge_runtime_condition,
   merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   reserved_names::RESERVED_NAMES, returning_function, runtime_condition_expression,
-  subtract_runtime_condition, to_identifier, AsyncDependenciesBlockIdentifier, BoxDependency,
-  BoxDependencyTemplate, BoxModuleDependency, BuildContext, BuildInfo, BuildMeta,
+  subtract_runtime_condition, to_identifier, to_normal_comment, AsyncDependenciesBlockIdentifier,
+  BoxDependency, BoxDependencyTemplate, BoxModuleDependency, BuildContext, BuildInfo, BuildMeta,
   BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments,
   CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
   CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
@@ -51,8 +51,8 @@ use crate::{
   ErrorSpan, ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta, IdentCollector,
   LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType, Resolve, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsageState, DEFAULT_EXPORT,
-  NAMESPACE_OBJECT_EXPORT,
+  RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, UsageState, UsedName, UsedNameItem,
+  DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -904,6 +904,7 @@ impl Module for ConcatenatedModule {
 
     let mut exports_map: HashMap<Atom, String> = HashMap::default();
     let mut unused_exports: HashSet<Atom> = HashSet::default();
+    let mut inlined_exports: HashSet<Atom> = HashSet::default();
 
     let root_info = module_to_info_map
       .get(&self.root_module_ctxt.id)
@@ -934,6 +935,10 @@ impl Module for ConcatenatedModule {
 
       let Some(used_name) = used_name else {
         unused_exports.insert(name);
+        continue;
+      };
+      let UsedNameItem::Str(used_name) = used_name else {
+        inlined_exports.insert(name);
         continue;
       };
       exports_map.insert(used_name.clone(), {
@@ -1031,6 +1036,13 @@ impl Module for ConcatenatedModule {
         join_atom(unused_exports.iter(), ", ")
       )));
     }
+    // List inlined exports
+    if !inlined_exports.is_empty() {
+      result.add(RawStringSource::from(format!(
+        "\n// INLINED EXPORTS: {}\n",
+        join_atom(inlined_exports.iter(), ", ")
+      )));
+    }
 
     let mut namespace_object_sources: IdentifierMap<String> = IdentifierMap::default();
 
@@ -1077,7 +1089,9 @@ impl Module for ConcatenatedModule {
             continue;
           }
 
-          if let Some(used_name) = export_info.get_used_name(&module_graph, None, runtime) {
+          if let Some(UsedNameItem::Str(used_name)) =
+            export_info.get_used_name(&module_graph, None, runtime)
+          {
             let final_name = Self::get_final_name(
               &compilation.get_module_graph(),
               module_info_id,
@@ -2108,16 +2122,36 @@ impl ConcatenatedModule {
           && let Some(direct_export) = info.export_map.as_ref().and_then(|map| map.get(export_id))
         {
           if let Some(used_name) = exports_info.get_used_name(mg, runtime, &export_name) {
-            // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L402-L404
-            let used_name = used_name.to_used_name_vec();
-
-            return Binding::Symbol(SymbolBinding {
-              info_id: info.module,
-              name: direct_export.as_str().into(),
-              ids: used_name[1..].to_vec(),
-              export_name,
-              comment: None,
-            });
+            match used_name {
+              UsedName::Normal(used_name) => {
+                // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L402-L404
+                return Binding::Symbol(SymbolBinding {
+                  info_id: info.module,
+                  name: direct_export.as_str().into(),
+                  ids: used_name[1..].to_vec(),
+                  export_name,
+                  comment: None,
+                });
+              }
+              UsedName::Inlined(inlined) => {
+                return Binding::Raw(RawBinding {
+                  raw_name: format!(
+                    "{} {}",
+                    to_normal_comment(&format!(
+                      "inlined export {}",
+                      property_access(&export_name, 0)
+                    )),
+                    inlined.render()
+                  )
+                  .into(),
+                  // Inlined export is definitely a terminal binding
+                  ids: vec![],
+                  export_name,
+                  info_id: info.module,
+                  comment: None,
+                });
+              }
+            }
           } else {
             return Binding::Raw(RawBinding {
               raw_name: "/* unused export */ undefined".into(),
@@ -2188,46 +2222,73 @@ impl ConcatenatedModule {
           let used_name = exports_info
             .get_used_name(mg, runtime, &export_name)
             .expect("should have export name");
-          let used_name = used_name.to_used_name_vec();
-          return Binding::Raw(RawBinding {
-            info_id: info.module,
-            raw_name: info
-              .namespace_object_name
-              .as_ref()
-              .expect("should have raw name")
-              .as_str()
-              .into(),
-            ids: used_name,
-            export_name,
-            comment: None,
-          });
+          return match used_name {
+            UsedName::Normal(used_name) => Binding::Raw(RawBinding {
+              info_id: info.module,
+              raw_name: info
+                .namespace_object_name
+                .as_ref()
+                .expect("should have raw name")
+                .as_str()
+                .into(),
+              ids: used_name,
+              export_name,
+              comment: None,
+            }),
+            // Inlined namespace export symbol is not possible for now but we compat it here
+            UsedName::Inlined(inlined) => Binding::Raw(RawBinding {
+              info_id: info.module,
+              raw_name: inlined.render().into(),
+              // Inlined export is definitely a terminal binding
+              ids: vec![],
+              export_name,
+              comment: None,
+            }),
+          };
         }
 
         panic!(
           "Cannot get final name for export '{}'",
-          join_atom(export_name.iter(), ".")
+          property_access(&export_name, 0)
         );
       }
       ModuleInfo::External(info) => {
         if let Some(used_name) = exports_info.get_used_name(mg, runtime, &export_name) {
-          let used_name = used_name.to_used_name_vec();
-          let comment = if used_name == export_name {
-            String::new()
-          } else {
-            Template::to_normal_comment(&join_atom(export_name.iter(), ","))
-          };
-          Binding::Raw(RawBinding {
-            raw_name: format!(
-              "{}{}",
-              info.name.as_ref().expect("should have name"),
-              comment
-            )
-            .into(),
-            ids: used_name,
-            export_name,
-            info_id: info.module,
-            comment: None,
-          })
+          match used_name {
+            UsedName::Normal(used_name) => {
+              let comment = if used_name == export_name {
+                String::new()
+              } else {
+                to_normal_comment(&property_access(&export_name, 0))
+              };
+              Binding::Raw(RawBinding {
+                raw_name: format!(
+                  "{}{}",
+                  info.name.as_ref().expect("should have name"),
+                  comment
+                )
+                .into(),
+                ids: used_name,
+                export_name,
+                info_id: info.module,
+                comment: None,
+              })
+            }
+            UsedName::Inlined(inlined) => {
+              let comment = to_normal_comment(&format!(
+                "inlined export {}",
+                property_access(&export_name, 0)
+              ));
+              Binding::Raw(RawBinding {
+                raw_name: format!("{}{}", inlined.render(), comment).into(),
+                // Inlined export is definitely a terminal binding
+                ids: vec![],
+                export_name,
+                info_id: info.module,
+                comment: None,
+              })
+            }
+          }
         } else {
           Binding::Raw(RawBinding {
             raw_name: "/* unused export */ undefined".into(),
