@@ -2,7 +2,7 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsCacheable, AsOption, AsPreset, AsVec, Skip},
 };
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
   get_exports_type, property_access, AsContextDependency, ConnectionState, Dependency,
@@ -172,6 +172,7 @@ impl Dependency for ESMImportSpecifierDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_chain: &mut IdentifierSet,
+    _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
     ConnectionState::Active(false)
   }

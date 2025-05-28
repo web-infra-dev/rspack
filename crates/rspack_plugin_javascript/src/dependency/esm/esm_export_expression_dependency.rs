@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
-use rspack_collections::{Identifier, IdentifierSet};
+use rspack_collections::{Identifier, IdentifierMap, IdentifierSet};
 use rspack_core::{
   property_access, rspack_sources::ReplacementEnforce, AsContextDependency, AsModuleDependency,
   Compilation, Dependency, DependencyCodeGeneration, DependencyId, DependencyLocation,
@@ -102,6 +102,7 @@ impl Dependency for ESMExportExpressionDependency {
     &self,
     _module_graph: &rspack_core::ModuleGraph,
     _module_chain: &mut IdentifierSet,
+    _connection_state_cache: &mut IdentifierMap<rspack_core::ConnectionState>,
   ) -> rspack_core::ConnectionState {
     rspack_core::ConnectionState::Active(false)
   }
