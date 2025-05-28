@@ -341,7 +341,7 @@ export type HashDigest = string;
 export type HashDigestLength = number;
 
 /** The hashing algorithm to use. */
-export type HashFunction = "md4" | "xxhash64";
+export type HashFunction = "md4" | "xxhash64" | "sha256";
 
 /** An optional salt to update the hash. */
 export type HashSalt = string;

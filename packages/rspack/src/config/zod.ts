@@ -276,7 +276,8 @@ const hashDigestLength = z.number() satisfies z.ZodType<t.HashDigestLength>;
 
 const hashFunction = z.enum([
 	"md4",
-	"xxhash64"
+	"xxhash64",
+	"sha256"
 ]) satisfies z.ZodType<t.HashFunction>;
 
 const hashSalt = z.string() satisfies z.ZodType<t.HashSalt>;
