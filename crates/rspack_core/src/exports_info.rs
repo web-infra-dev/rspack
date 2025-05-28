@@ -15,7 +15,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsPreset, AsVec},
 };
-use rspack_collections::{impl_item_ukey, IdentifierMap, Ukey, UkeySet};
+use rspack_collections::{impl_item_ukey, Ukey, UkeySet};
 use rspack_util::{atom::Atom, ext::DynHash};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
@@ -1503,7 +1503,7 @@ pub struct ExportInfoData {
   has_use_in_runtime_info: bool,
   can_mangle_use: Option<bool>,
   global_used: Option<UsageState>,
-  used_in_runtime: Option<IdentifierMap<UsageState>>,
+  used_in_runtime: Option<ustr::UstrMap<UsageState>>,
 }
 
 #[derive(Debug, Hash, Clone, Copy)]

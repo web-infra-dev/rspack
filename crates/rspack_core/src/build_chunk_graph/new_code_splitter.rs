@@ -4,8 +4,8 @@ use dashmap::mapref::one::Ref;
 use indexmap::IndexSet;
 use rayon::prelude::*;
 use rspack_collections::{
-  DatabaseItem, Identifier, IdentifierDashMap, IdentifierHasher, IdentifierIndexMap,
-  IdentifierIndexSet, IdentifierMap, IdentifierSet, Ukey, UkeyMap,
+  DatabaseItem, IdentifierDashMap, IdentifierHasher, IdentifierIndexMap, IdentifierIndexSet,
+  IdentifierMap, IdentifierSet, Ukey, UkeyMap,
 };
 use rspack_error::{error, Diagnostic, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -416,7 +416,7 @@ impl CodeSplitter {
         Self::get_entry_runtime(entry, compilation, &mut entry_runtime, &mut visited)
       {
         diagnostics.push(Diagnostic::from(error));
-        let tmp_runtime = once(Identifier::from(entry.as_str())).collect::<RuntimeSpec>();
+        let tmp_runtime = once(ustr::Ustr::from(entry.as_str())).collect::<RuntimeSpec>();
         entry_runtime.insert(entry, tmp_runtime.clone());
       };
     }

@@ -4,7 +4,6 @@ use rspack_cacheable::{
   cacheable,
   with::{AsRefStr, AsVec},
 };
-use rspack_collections::{Identifier, IdentifierSet};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{EntryOptions, EntryRuntime};
@@ -13,7 +12,7 @@ use crate::{EntryOptions, EntryRuntime};
 #[derive(Debug, Default, Clone)]
 pub struct RuntimeSpec {
   #[cacheable(with=AsVec<AsRefStr>)]
-  inner: IdentifierSet,
+  inner: ustr::UstrSet,
   key: String,
 }
 
@@ -46,28 +45,28 @@ impl std::cmp::PartialEq for RuntimeSpec {
 impl std::cmp::Eq for RuntimeSpec {}
 
 impl Deref for RuntimeSpec {
-  type Target = IdentifierSet;
+  type Target = ustr::UstrSet;
 
   fn deref(&self) -> &Self::Target {
     &self.inner
   }
 }
 
-impl From<IdentifierSet> for RuntimeSpec {
-  fn from(value: IdentifierSet) -> Self {
+impl From<ustr::UstrSet> for RuntimeSpec {
+  fn from(value: ustr::UstrSet) -> Self {
     Self::new(value)
   }
 }
 
-impl FromIterator<Identifier> for RuntimeSpec {
-  fn from_iter<T: IntoIterator<Item = Identifier>>(iter: T) -> Self {
-    Self::new(IdentifierSet::from_iter(iter))
+impl FromIterator<ustr::Ustr> for RuntimeSpec {
+  fn from_iter<T: IntoIterator<Item = ustr::Ustr>>(iter: T) -> Self {
+    Self::new(ustr::UstrSet::from_iter(iter))
   }
 }
 
 impl IntoIterator for RuntimeSpec {
-  type Item = Identifier;
-  type IntoIter = <IdentifierSet as IntoIterator>::IntoIter;
+  type Item = ustr::Ustr;
+  type IntoIter = <ustr::UstrSet as IntoIterator>::IntoIter;
 
   fn into_iter(self) -> Self::IntoIter {
     self.inner.into_iter()
@@ -75,7 +74,7 @@ impl IntoIterator for RuntimeSpec {
 }
 
 impl RuntimeSpec {
-  pub fn new(inner: IdentifierSet) -> Self {
+  pub fn new(inner: ustr::UstrSet) -> Self {
     let mut this = Self {
       inner,
       key: String::new(),
@@ -106,7 +105,7 @@ impl RuntimeSpec {
     Self::new(res)
   }
 
-  pub fn insert(&mut self, r: Identifier) -> bool {
+  pub fn insert(&mut self, r: ustr::Ustr) -> bool {
     let update = self.inner.insert(r);
     if update {
       self.update_key();
@@ -210,7 +209,7 @@ pub fn filter_runtime(
     Some(runtime) => {
       let mut some = false;
       let mut every = true;
-      let mut result = IdentifierSet::default();
+      let mut result = ustr::UstrSet::default();
 
       for &r in runtime.iter() {
         let cur = RuntimeSpec::from_iter([r]);
@@ -288,7 +287,7 @@ pub fn subtract_runtime_condition(
       if let Some(a) = runtime {
         a.difference(b).copied().collect()
       } else {
-        IdentifierSet::default()
+        ustr::UstrSet::default()
       }
     }
   };

@@ -13,10 +13,10 @@ use rspack_core::{
   },
   filter_runtime,
   incremental::IncrementalPasses,
-  ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions,
-  ExportProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
-  ModuleGraph, ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext, ProvidedExports,
-  RuntimeCondition, RuntimeSpec, SourceType,
+  ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions, ExportProvided,
+  ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph,
+  ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext, ProvidedExports, RuntimeCondition,
+  RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};

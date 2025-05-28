@@ -2,7 +2,6 @@ use std::ptr::NonNull;
 
 use napi::{Either, Env, JsString};
 use napi_derive::napi;
-use rspack_collections::{Identifier, IdentifierSet};
 use rspack_core::{Compilation, ModuleGraph, RuntimeSpec};
 
 use crate::{
@@ -81,13 +80,13 @@ impl JsModuleGraph {
   ) -> napi::Result<Option<Either<bool, Vec<JsString<'a>>>>> {
     let (_, module_graph) = self.as_ref()?;
 
-    let mut runtime = IdentifierSet::default();
+    let mut runtime = ustr::UstrSet::default();
     match js_runtime {
       Either::A(s) => {
         runtime.insert(s.into());
       }
       Either::B(vec) => {
-        runtime.extend(vec.iter().map(String::as_str).map(Identifier::from));
+        runtime.extend(vec.iter().map(String::as_str).map(ustr::Ustr::from));
       }
     };
     let used_exports =
