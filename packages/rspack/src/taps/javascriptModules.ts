@@ -1,5 +1,4 @@
 import * as binding from "@rspack/binding";
-import { Chunk } from "../Chunk";
 import { JavascriptModulesPlugin } from "../builtin-plugin";
 import { createHash } from "../util/createHash";
 import type { CreatePartialRegisters } from "./types";
@@ -18,12 +17,12 @@ export const createJavaScriptModulesHooksRegisters: CreatePartialRegisters<
 			},
 
 			function (queried) {
-				return function (chunk: binding.JsChunk) {
+				return function (chunk: binding.Chunk) {
 					if (!getCompiler().options.output.hashFunction) {
 						throw new Error("'output.hashFunction' cannot be undefined");
 					}
 					const hash = createHash(getCompiler().options.output.hashFunction!);
-					queried.call(Chunk.__from_binding(chunk), hash);
+					queried.call(chunk, hash);
 					let digestResult: Buffer | string;
 					if (getCompiler().options.output.hashDigest) {
 						digestResult = hash.digest(

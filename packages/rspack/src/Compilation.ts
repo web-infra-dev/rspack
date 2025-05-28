@@ -20,7 +20,7 @@ import type {
 export type { AssetInfo } from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
 import type { Source } from "webpack-sources";
-import { Chunk } from "./Chunk";
+import type { Chunk } from "./Chunk";
 import { ChunkGraph } from "./ChunkGraph";
 import { ChunkGroup } from "./ChunkGroup";
 import type { Compiler } from "./Compiler";
@@ -58,6 +58,8 @@ import { createFakeCompilationDependencies } from "./util/fake";
 import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
 import { JsSource } from "./util/source";
+// patch Chunk
+import "./Chunk";
 // patch Chunks
 import "./Chunks";
 // patch CodeGenerationResults
@@ -492,8 +494,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			},
 			get: (property: unknown) => {
 				if (typeof property === "string") {
-					const binding = this.#inner.getNamedChunk(property);
-					return binding ? Chunk.__from_binding(binding) : undefined;
+					return this.#inner.getNamedChunk(property);
 				}
 			}
 		});
@@ -949,7 +950,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	addRuntimeModule(chunk: Chunk, runtimeModule: RuntimeModule) {
 		runtimeModule.attach(this, chunk, this.chunkGraph);
 		this.#inner.addRuntimeModule(
-			Chunk.__to_binding(chunk),
+			chunk,
 			RuntimeModule.__to_binding(this, runtimeModule)
 		);
 	}

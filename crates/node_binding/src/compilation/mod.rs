@@ -223,7 +223,7 @@ impl JsCompilation {
     Ok(compilation.named_chunks.keys().cloned().collect::<Vec<_>>())
   }
 
-  #[napi(ts_return_type = "Chunk | null")]
+  #[napi(ts_return_type = "Chunk")]
   pub fn get_named_chunk(&self, name: String) -> Result<Option<ChunkWrapper>> {
     let compilation = self.as_ref()?;
 

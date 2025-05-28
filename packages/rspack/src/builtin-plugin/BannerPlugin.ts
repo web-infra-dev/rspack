@@ -1,6 +1,6 @@
 import {
 	BuiltinPluginName,
-	type JsChunk,
+	type Chunk,
 	type RawBannerPluginOptions
 } from "@rspack/binding";
 
@@ -12,7 +12,7 @@ export type Rules = Rule[] | Rule;
 
 export type BannerFunction = (args: {
 	hash: string;
-	chunk: JsChunk;
+	chunk: Chunk;
 	filename: string;
 }) => string;
 

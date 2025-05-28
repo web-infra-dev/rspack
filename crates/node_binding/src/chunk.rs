@@ -88,7 +88,7 @@ impl Chunk {
     )
   }
 
-  #[napi(getter)]
+  #[napi(getter, js_name = "_files")]
   pub fn files(&self) -> napi::Result<Vec<&String>> {
     let (_, chunk) = self.as_ref()?;
     let mut files = Vec::from_iter(chunk.files());
@@ -96,7 +96,7 @@ impl Chunk {
     Ok(files)
   }
 
-  #[napi(getter)]
+  #[napi(getter, js_name = "_runtime")]
   pub fn runtime(&self) -> napi::Result<Vec<&str>> {
     let (_, chunk) = self.as_ref()?;
     Ok(chunk.runtime().iter().map(|r| r.as_ref()).collect())
@@ -155,7 +155,7 @@ impl Chunk {
     })
   }
 
-  #[napi(getter)]
+  #[napi(getter, js_name = "_auxiliaryFiles")]
   pub fn auxiliary_files(&self) -> napi::Result<Vec<&String>> {
     let (_, chunk) = self.as_ref()?;
     Ok(chunk.auxiliary_files().iter().collect::<Vec<_>>())
@@ -218,8 +218,8 @@ impl Chunk {
     )
   }
 
-  #[napi(ts_return_type = "JsChunkGroup[]")]
-  pub fn groups(&self) -> napi::Result<Vec<JsChunkGroupWrapper>> {
+  #[napi(getter, js_name = "_groupsIterable", ts_return_type = "JsChunkGroup[]")]
+  pub fn groups_iterable(&self) -> napi::Result<Vec<JsChunkGroupWrapper>> {
     let (compilation, chunk) = self.as_ref()?;
     let mut groups = chunk
       .groups()

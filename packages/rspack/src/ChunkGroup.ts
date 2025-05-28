@@ -1,6 +1,6 @@
 import type { JsChunkGroup } from "@rspack/binding";
 
-import { Chunk } from "./Chunk";
+import type { Chunk } from "./Chunk";
 import type { Module } from "./Module";
 
 const CHUNK_GROUP_MAPPINGS = new WeakMap<JsChunkGroup, ChunkGroup>();
@@ -31,9 +31,7 @@ export class ChunkGroup {
 			chunks: {
 				enumerable: true,
 				get: () => {
-					return this.#inner.chunks.map(binding =>
-						Chunk.__from_binding(binding)
-					);
+					return this.#inner.chunks;
 				}
 			},
 			index: {
