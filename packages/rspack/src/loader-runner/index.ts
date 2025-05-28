@@ -407,6 +407,41 @@ export async function runLoaders(
 			)
 		);
 	} as LoaderContext["importModule"];
+	loaderContext.loadModule = function loadModule(request, callback) {
+		compiler
+			._lastCompilation!.__internal_getInner()
+			.loadModule(
+				request,
+				context._module.identifier(),
+				loaderContext.context || "",
+				function (err, m) {
+					if (err) {
+						callback(err);
+						return;
+					}
+					if (!m) {
+						callback(new Error("module generate failed"));
+						return;
+					}
+					// add build info
+					const buildInfo = m.buildInfo;
+					for (const dep of buildInfo._buildDependencies) {
+						loaderContext.addBuildDependency(dep);
+					}
+					for (const dep of buildInfo._contextDependencies) {
+						loaderContext.addContextDependency(dep);
+					}
+					for (const dep of buildInfo._missingDependencies) {
+						loaderContext.addMissingDependency(dep);
+					}
+					for (const dep of buildInfo._fileDependencies) {
+						loaderContext.addDependency(dep);
+					}
+					const source = m._originalSource();
+					callback(null, source?.source, source?.map, m);
+				}
+			);
+	};
 	Object.defineProperty(loaderContext, "resource", {
 		enumerable: true,
 		get: () => {
