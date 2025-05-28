@@ -326,6 +326,26 @@ export interface LoaderContext<OptionsType = {}> {
 		options?: ImportModuleOptions
 	): Promise<T>;
 	/**
+	 * Load a module at the build time.
+	 *
+	 * @example
+	 * ```ts
+	 * const modulePath = path.resolve(__dirname, 'some-module.ts');
+	 * this.loadModule(modulePath, function(err, source, sourceMap, module) {
+	 *   ...
+	 * });
+	 * ```
+	 */
+	loadModule(
+		request: string,
+		callback: (
+			err?: null | Error,
+			source?: string | Buffer,
+			sourceMap?: string,
+			module?: Module
+		) => void
+	): void;
+	/**
 	 * Access to the `compilation` object's `inputFileSystem` property.
 	 */
 	fs: any;

@@ -1,10 +1,12 @@
 mod compilation;
 pub mod make;
 mod module_executor;
+mod module_loader;
 mod rebuild;
 use std::sync::{atomic::AtomicU32, Arc};
 
 use futures::future::join_all;
+use module_loader::ModuleLoader;
 use rspack_cacheable::cacheable;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
@@ -155,6 +157,7 @@ impl Compiler {
     let old_cache = Arc::new(OldCache::new(options.clone()));
     let incremental = Incremental::new_cold(options.experiments.incremental);
     let module_executor = ModuleExecutor::default();
+    let module_loader = ModuleLoader::default();
 
     let id = CompilerId::new();
 
@@ -174,6 +177,7 @@ impl Compiler {
         old_cache.clone(),
         incremental,
         Some(module_executor),
+        Some(module_loader),
         Default::default(),
         Default::default(),
         input_filesystem.clone(),
@@ -225,6 +229,7 @@ impl Compiler {
         self.cache.clone(),
         self.old_cache.clone(),
         Incremental::new_cold(self.options.experiments.incremental),
+        Some(Default::default()),
         Some(Default::default()),
         Default::default(),
         Default::default(),

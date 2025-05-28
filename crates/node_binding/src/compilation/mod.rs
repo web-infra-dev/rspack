@@ -24,7 +24,7 @@ use rustc_hash::FxHashMap;
 
 use super::PathWithInfo;
 use crate::{
-  entry::JsEntryOptions, utils::callbackify, AssetInfo, EntryDependency, ErrorCode,
+  entry::JsEntryOptions, gen_tsfn, utils::callbackify, AssetInfo, EntryDependency, ErrorCode,
   JsAddingRuntimeModule, JsAsset, JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper,
   JsCompatSource, JsFilename, JsModuleGraph, JsPathData, JsRspackDiagnostic, JsRspackError,
   JsStats, JsStatsOptimizationBailout, ModuleObject, RspackResultToNapiResultExt, ToJsCompatSource,
@@ -664,6 +664,55 @@ impl JsCompilation {
         drop(reference);
       },
     )
+  }
+
+  #[allow(clippy::too_many_arguments)]
+  #[napi(
+    ts_args_type = "request: string, original_module: string, original_module_context: string, callback: (err?: Error | null, module?: Module) => void"
+  )]
+  pub fn load_module(
+    &self,
+    reference: Reference<JsCompilation>,
+    request: String,
+    original_module: String,
+    original_module_context: String,
+    callback: Function<'static>,
+  ) -> Result<(), ErrorCode> {
+    let compilation = self
+      .as_ref()
+      .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
+
+    let tsfn = gen_tsfn(callback, || {
+      drop(reference);
+    })?;
+
+    let compiler_id = compilation.compiler_id();
+    let module_loader = compilation
+      .module_loader
+      .as_ref()
+      .expect("should have module loader");
+    module_loader
+      .load_module(
+        request,
+        rspack_core::Context::from(original_module_context),
+        ModuleIdentifier::from(original_module),
+        move |r| match r {
+          Err(err) => {
+            tsfn(Err(napi::Error::from_reason(err.to_string())));
+          }
+          Ok(module) => {
+            let js_module = ModuleObject::with_ptr(
+              NonNull::new(
+                module.as_ref() as *const dyn rspack_core::Module as *mut dyn rspack_core::Module
+              )
+              .expect("should transform module to ModuleObject success"),
+              compiler_id,
+            );
+            tsfn(Ok(js_module));
+          }
+        },
+      )
+      .to_napi_result()
   }
 
   #[napi(getter)]

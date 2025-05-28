@@ -36,6 +36,7 @@ use tracing::instrument;
 use super::{
   make::{make_module_graph, update_module_graph, MakeArtifact, MakeParam},
   module_executor::ModuleExecutor,
+  module_loader::ModuleLoader,
   rebuild::CompilationRecords,
   CompilerId,
 };
@@ -277,6 +278,7 @@ pub struct Compilation {
   import_var_map: IdentifierDashMap<ImportVarMap>,
 
   pub module_executor: Option<ModuleExecutor>,
+  pub module_loader: Option<ModuleLoader>,
   in_finish_make: AtomicBool,
 
   pub modified_files: HashSet<ArcPath>,
@@ -327,6 +329,7 @@ impl Compilation {
     old_cache: Arc<OldCache>,
     incremental: Incremental,
     module_executor: Option<ModuleExecutor>,
+    module_loader: Option<ModuleLoader>,
     modified_files: HashSet<ArcPath>,
     removed_files: HashSet<ArcPath>,
     input_filesystem: Arc<dyn ReadableFileSystem>,
@@ -395,6 +398,7 @@ impl Compilation {
       import_var_map: IdentifierDashMap::default(),
 
       module_executor,
+      module_loader,
       in_finish_make: AtomicBool::new(false),
 
       make_artifact: Default::default(),
@@ -917,6 +921,13 @@ impl Compilation {
       self.module_executor = Some(module_executor);
     }
 
+    // run module_loader
+    if let Some(module_loader) = &mut self.module_loader {
+      let mut module_loader = std::mem::take(module_loader);
+      module_loader.hook_before_make(self).await?;
+      self.module_loader = Some(module_loader);
+    }
+
     let artifact = std::mem::take(&mut self.make_artifact);
     self.make_artifact = make_module_graph(self, artifact).await?;
 
@@ -1362,6 +1373,13 @@ impl Compilation {
       let mut module_executor = std::mem::take(module_executor);
       module_executor.hook_after_finish_modules(self).await?;
       self.module_executor = Some(module_executor);
+    }
+
+    // sync assets to compilation from module_loader
+    if let Some(module_loader) = &mut self.module_loader {
+      let mut module_loader = std::mem::take(module_loader);
+      module_loader.hook_after_finish_modules(self).await?;
+      self.module_loader = Some(module_loader);
     }
 
     logger.time_end(start);
