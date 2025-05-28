@@ -57,19 +57,19 @@ function useFooterData() {
       items: [
         {
           title: 'Rsbuild',
-          link: 'https://rsbuild.dev/',
+          link: 'https://rsbuild.rs/',
         },
         {
           title: 'Rslib',
-          link: 'https://lib.rsbuild.dev/',
+          link: 'https://rspack.rs/',
         },
         {
           title: 'Rspress',
-          link: 'https://rspress.dev/',
+          link: 'https://rspress.rs/',
         },
         {
           title: 'Rsdoctor',
-          link: 'https://rsdoctor.dev/',
+          link: 'https://rsdoctor.rs/',
         },
         {
           title: 'Rstest',

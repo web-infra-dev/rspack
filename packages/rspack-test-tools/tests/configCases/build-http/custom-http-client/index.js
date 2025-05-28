@@ -1,5 +1,5 @@
-import allowedModule from "http://test.rspack.dev/allowed-module.js";
-import regexModule from "http://test.rspack.dev/regex-module.js";
+import allowedModule from "http://test.rspack.rs/allowed-module.js";
+import regexModule from "http://test.rspack.rs/regex-module.js";
 // import restrictedModule from "http://localhost:8999/restricted-module.js";
 
 it("should load a module from an allowed URI using string pattern", () => {

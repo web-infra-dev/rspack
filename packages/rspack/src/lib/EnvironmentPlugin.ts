@@ -53,7 +53,7 @@ class EnvironmentPlugin {
 			if (value === undefined) {
 				compiler.hooks.thisCompilation.tap("EnvironmentPlugin", compilation => {
 					const error = new WebpackError(
-						`EnvironmentPlugin - ${key} environment variable is undefined.\n\nYou can pass an object with default values to suppress this warning.\nSee https://rspack.dev/plugins/webpack/environment-plugin for example.`
+						`EnvironmentPlugin - ${key} environment variable is undefined.\n\nYou can pass an object with default values to suppress this warning.\nSee https://rspack.rs/plugins/webpack/environment-plugin for example.`
 					);
 
 					error.name = "EnvVariableNotDefinedError";
