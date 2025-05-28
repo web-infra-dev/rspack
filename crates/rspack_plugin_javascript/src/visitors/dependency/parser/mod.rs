@@ -231,7 +231,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) worker_index: u32,
   pub(crate) build_meta: &'parser mut BuildMeta,
   pub build_info: &'parser mut BuildInfo,
-  pub(crate) resource_data: &'parser ResourceData,
+  pub resource_data: &'parser ResourceData,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
   pub(crate) definitions_db: ScopeInfoDB,
   pub(crate) compiler_options: &'parser CompilerOptions,
