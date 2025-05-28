@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use regex::Regex;
 use rspack_core::{
   incremental::IncrementalPasses, ApplyContext, BuildMetaExportsType, Compilation,
-  CompilationOptimizeCodeGeneration, CompilerOptions, ExportInfoProvided, ExportsInfo, ModuleGraph,
+  CompilationOptimizeCodeGeneration, CompilerOptions, ExportProvided, ExportsInfo, ModuleGraph,
   Plugin, PluginContext, UsageState,
 };
 use rspack_error::Result;
@@ -114,7 +114,7 @@ fn mangle_exports_info(
 
   if !avoid_mangle_non_provided && deterministic {
     for export_info in exports_info.owned_exports(mg) {
-      if !matches!(export_info.provided(mg), Some(ExportInfoProvided::False)) {
+      if !matches!(export_info.provided(mg), Some(ExportProvided::NotProvided)) {
         avoid_mangle_non_provided = true;
         break;
       }
@@ -133,7 +133,7 @@ fn mangle_exports_info(
           && name.len() == 2
           && MANGLE_NAME_DETERMINISTIC_REG.is_match(name.as_str()))
         || (avoid_mangle_non_provided
-          && !matches!(export_info.provided(mg), Some(ExportInfoProvided::True)));
+          && !matches!(export_info.provided(mg), Some(ExportProvided::Provided)));
 
       if can_not_mangle {
         export_info.set_used_name(mg, name.clone());

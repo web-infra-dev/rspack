@@ -28,6 +28,7 @@ rspack_paths             = { workspace = true }
 rspack_plugin_html       = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
 rspack_plugin_rsdoctor   = { workspace = true }
+rspack_plugin_rstest     = { workspace = true }
 rspack_plugin_runtime    = { workspace = true }
 rspack_util              = { workspace = true }
 
@@ -105,6 +106,7 @@ serde                                  = { workspace = true }
 serde_json                             = { workspace = true }
 swc_core                               = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
 tokio                                  = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "tracing"] }
+ustr                                   = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["parking_lot"] }

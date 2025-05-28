@@ -8,8 +8,8 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_comment_with_nl, ApplyContext, BoxModule, BuildMetaExportsType, ChunkGraph,
   ChunkInitFragments, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
-  CompilerOptions, ExportInfo, ExportInfoProvided, ExportsInfo, Module, ModuleGraph,
-  ModuleIdentifier, Plugin, PluginContext, UsageState,
+  CompilerOptions, ExportInfo, ExportProvided, ExportsInfo, Module, ModuleGraph, ModuleIdentifier,
+  Plugin, PluginContext, UsageState,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -120,7 +120,7 @@ fn print_exports_info_to_source<F>(
     if target.is_some()
       || !matches!(
         other_exports_info.provided(module_graph),
-        Some(ExportInfoProvided::False)
+        Some(ExportProvided::NotProvided)
       )
       || other_exports_info.get_used(module_graph, None) != UsageState::Unused
     {

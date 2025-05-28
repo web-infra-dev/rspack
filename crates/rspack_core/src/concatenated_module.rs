@@ -48,7 +48,7 @@ use crate::{
   CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
   CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
   ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId, DependencyType,
-  ErrorSpan, ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta, IdentCollector,
+  ErrorSpan, ExportProvided, ExportsArgument, ExportsType, FactoryMeta, IdentCollector,
   LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType, Resolve, RuntimeCondition,
   RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsageState, DEFAULT_EXPORT,
@@ -630,7 +630,7 @@ impl Module for ConcatenatedModule {
       Some(Cow::Owned(
         generation_runtime
           .intersection(self_runtime)
-          .cloned()
+          .copied()
           .collect::<RuntimeSpec>(),
       ))
     } else {
@@ -926,7 +926,7 @@ impl Module for ConcatenatedModule {
         .unwrap_or("".into());
       if matches!(
         export_info.provided(&module_graph),
-        Some(ExportInfoProvided::False)
+        Some(ExportProvided::NotProvided)
       ) {
         continue;
       }
@@ -1072,7 +1072,7 @@ impl Module for ConcatenatedModule {
         for export_info in exports_info.ordered_exports(&module_graph) {
           if matches!(
             export_info.provided(&module_graph),
-            Some(ExportInfoProvided::False)
+            Some(ExportProvided::NotProvided)
           ) {
             continue;
           }
@@ -1301,7 +1301,7 @@ impl Module for ConcatenatedModule {
       Some(Cow::Owned(
         generation_runtime
           .intersection(self_runtime)
-          .cloned()
+          .copied()
           .collect::<RuntimeSpec>(),
       ))
     } else {
@@ -1382,6 +1382,7 @@ impl Module for ConcatenatedModule {
     &self,
     _module_graph: &ModuleGraph,
     _module_chain: &mut IdentifierSet,
+    _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
     self.root_module_ctxt.side_effect_connection_state
   }
@@ -2089,7 +2090,7 @@ impl ConcatenatedModule {
         let export_id = export_name.first().cloned();
         if matches!(
           export_info.provided(mg),
-          Some(crate::ExportInfoProvided::False)
+          Some(crate::ExportProvided::NotProvided)
         ) {
           needed_namespace_objects.insert(info.module);
           return Binding::Raw(RawBinding {

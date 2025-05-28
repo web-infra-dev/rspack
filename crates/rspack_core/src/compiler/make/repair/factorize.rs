@@ -32,7 +32,7 @@ pub struct FactorizeTask {
 #[async_trait::async_trait]
 impl Task<MakeTaskContext> for FactorizeTask {
   fn get_task_type(&self) -> TaskType {
-    TaskType::Async
+    TaskType::Background
   }
   async fn background_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {
     if let Some(current_profile) = &self.current_profile {
@@ -157,7 +157,7 @@ pub struct FactorizeResultTask {
 #[async_trait::async_trait]
 impl Task<MakeTaskContext> for FactorizeResultTask {
   fn get_task_type(&self) -> TaskType {
-    TaskType::Sync
+    TaskType::Main
   }
   async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let FactorizeResultTask {

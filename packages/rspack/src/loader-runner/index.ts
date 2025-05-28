@@ -380,11 +380,11 @@ async function runLoadersAsync(
 					});
 					if (res.error) {
 						onError(
-							compiler.__internal__getModuleExecutionResult(res.id) ??
-								new Error(err)
+							compiler.__internal__takeModuleExecutionResult(res.id) ??
+								new Error(res.error)
 						);
 					} else {
-						onDone(compiler.__internal__getModuleExecutionResult(res.id));
+						onDone(compiler.__internal__takeModuleExecutionResult(res.id));
 					}
 				}
 			};

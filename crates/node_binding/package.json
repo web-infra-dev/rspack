@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding",
-  "version": "1.3.11",
+  "version": "1.3.12",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "binding.js",
@@ -47,8 +47,7 @@
       "aarch64-unknown-linux-gnu",
       "aarch64-apple-darwin",
       "aarch64-unknown-linux-musl",
-      "aarch64-pc-windows-msvc",
-      "wasm32-wasip1-threads"
+      "aarch64-pc-windows-msvc"
     ],
     "wasm": {
       "initialMemory": 16384,

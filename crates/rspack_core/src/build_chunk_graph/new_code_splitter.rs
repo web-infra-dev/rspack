@@ -1,9 +1,4 @@
-use std::{
-  borrow::Cow,
-  hash::BuildHasherDefault,
-  iter::once,
-  sync::{atomic::AtomicU32, Arc},
-};
+use std::{borrow::Cow, hash::BuildHasherDefault, iter::once, sync::atomic::AtomicU32};
 
 use dashmap::mapref::one::Ref;
 use indexmap::IndexSet;
@@ -421,7 +416,7 @@ impl CodeSplitter {
         Self::get_entry_runtime(entry, compilation, &mut entry_runtime, &mut visited)
       {
         diagnostics.push(Diagnostic::from(error));
-        let tmp_runtime = once(Arc::from(entry.clone())).collect::<RuntimeSpec>();
+        let tmp_runtime = once(ustr::Ustr::from(entry.as_str())).collect::<RuntimeSpec>();
         entry_runtime.insert(entry, tmp_runtime.clone());
       };
     }
@@ -695,12 +690,12 @@ impl CodeSplitter {
           entry
         ));
       }
-      let mut runtime = None;
+      let mut runtime: Option<RuntimeSpec> = None;
       for dep in depend_on {
         let other_runtime = Self::get_entry_runtime(dep, compilation, entry_runtime, visited)?;
         match &mut runtime {
           Some(runtime) => {
-            *runtime = merge_runtime(runtime, &other_runtime);
+            runtime.extend(&other_runtime);
           }
           None => {
             runtime = Some(other_runtime);
@@ -769,7 +764,7 @@ impl CodeSplitter {
       for conn in conns {
         let conn_state = conn.active_state(module_graph, runtime);
         match conn_state {
-          crate::ConnectionState::Bool(true) => {
+          crate::ConnectionState::Active(true) => {
             modules.insert(*m);
             continue 'outer;
           }
@@ -779,7 +774,7 @@ impl CodeSplitter {
             modules.extend(extra_modules.iter().copied());
             blocks.extend(extra_blocks.iter().copied());
           }
-          crate::ConnectionState::Bool(false) => {}
+          crate::ConnectionState::Active(false) => {}
           crate::ConnectionState::CircularConnection => {}
         }
       }

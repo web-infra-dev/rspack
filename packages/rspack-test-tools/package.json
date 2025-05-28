@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "1.3.11",
+  "version": "1.3.12",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
@@ -42,10 +42,10 @@
     "directory": "packages/rspack-test-tools"
   },
   "dependencies": {
-    "@babel/generator": "7.27.1",
-    "@babel/parser": "7.27.2",
-    "@babel/traverse": "7.27.1",
-    "@babel/types": "7.27.1",
+    "@babel/generator": "7.27.3",
+    "@babel/parser": "7.27.3",
+    "@babel/traverse": "7.27.3",
+    "@babel/types": "7.27.3",
     "cross-env": "^7.0.3",
     "csv-to-markdown-table": "^1.5.0",
     "deepmerge": "^4.3.1",
@@ -79,9 +79,8 @@
     "@types/babel__traverse": "7.20.7",
     "@types/fs-extra": "11.0.4",
     "@types/jsdom": "^21.1.7",
-    "@types/react": "^19.1.4",
+    "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.5",
-    "@types/webpack-sources": "3.2.3",
     "@webdiscus/pug-loader": "^2.11.1",
     "acorn": "^8.14.1",
     "babel-loader": "^10.0.0",
@@ -105,7 +104,7 @@
     "source-map": "^0.7.4",
     "source-map-loader": "^5.0.0",
     "style-loader": "^4.0.0",
-    "terser": "5.39.2",
+    "terser": "5.40.0",
     "typescript": "^5.8.3",
     "wast-loader": "^1.14.1",
     "worker-rspack-loader": "^3.1.2"

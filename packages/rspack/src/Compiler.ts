@@ -1015,8 +1015,10 @@ class Compiler {
 	 * Note: This is not a webpack public API, maybe removed in future.
 	 * @internal
 	 */
-	__internal__getModuleExecutionResult(id: number) {
-		return this.#moduleExecutionResultsMap.get(id);
+	__internal__takeModuleExecutionResult(id: number) {
+		const result = this.#moduleExecutionResultsMap.get(id);
+		this.#moduleExecutionResultsMap.delete(id);
+		return result;
 	}
 
 	/**
