@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fmt::write, path::PathBuf};
+use std::{borrow::Cow, collections::HashSet, fmt::write, path::PathBuf};
 
 use itertools::Itertools;
 use rspack_collections::{IdentifierMap, UkeyMap};
@@ -40,6 +40,7 @@ impl ChunkGraph {
     let mut visited_group_nodes: HashMap<ChunkGroupUkey, String> = HashMap::default();
     let mut visited_group_edges: HashSet<(ChunkGroupUkey, ChunkGroupUkey, bool)> = HashSet::new();
     let mut visiting_groups: Vec<ChunkGroupUkey> = Vec::new();
+    let module_graph = compilation.get_module_graph();
     // generate following chunk_group_info as dto record info
     // <td title="chunk_group_name"></td><td title="chunk1"></td><td title="chunk2"></td>
     let get_debug_chunk_group_info = |chunk_group_ukey: &ChunkGroupUkey| {
@@ -47,8 +48,33 @@ impl ChunkGraph {
         .chunk_group_by_ukey
         .get(&chunk_group_ukey)
         .expect("should have chunk group");
-      let chunk_group_name_id = chunk_group_ukey.as_u32().to_string();
-      let chunk_group_name = chunk_group.name().unwrap_or(chunk_group_name_id.as_str());
+
+      let chunk_group_name = chunk_group
+        .name()
+        .map(|name| Cow::Borrowed(name))
+        .unwrap_or_else(|| {
+          let mut origins = chunk_group
+            .origins()
+            .iter()
+            .filter_map(|record| {
+              record.request.as_deref().and_then(|request| {
+                record.module.as_ref().map(|module_id| {
+                  (
+                    module_graph
+                      .module_by_identifier(module_id)
+                      .expect("should have module")
+                      .readable_identifier(&compilation.options.context),
+                    request,
+                  )
+                })
+              })
+            })
+            .map(|(module, request)| format!("{} {}", module, request))
+            .collect::<Vec<_>>();
+
+          origins.sort();
+          Cow::Owned(origins.join("\n"))
+        });
       let table_header = format!("<tr><td bgcolor=\"#aaa\">{}</td></tr>", chunk_group_name);
       let bg_color = if chunk_group.is_initial() {
         "green"
