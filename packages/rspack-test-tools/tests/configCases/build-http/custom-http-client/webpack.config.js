@@ -11,7 +11,7 @@ module.exports = {
 				"http://test.rspack.rs/allowed",
 
 				// Allow paths matching a regex pattern (should match regex-module.js)
-				/^http:\/\/test\.rspack\.dev\/regex.*/
+				/^http:\/\/test\.rspack\.rs\/regex.*/
 
 				// Intentionally not including restricted-module.js to test blocking behavior
 			],
