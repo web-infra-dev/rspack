@@ -24,8 +24,8 @@ use rustc_hash::FxHashMap;
 
 use super::PathWithInfo;
 use crate::{
-  entry::JsEntryOptions, utils::callbackify, AssetInfo, Chunk, ChunkWrapper, EntryDependency,
-  ErrorCode, JsAddingRuntimeModule, JsAsset, JsChunkGraph, JsChunkGroupWrapper, JsCompatSource,
+  entry::JsEntryOptions, utils::callbackify, AssetInfo, Chunk, ChunkGraph, ChunkGroupWrapper,
+  ChunkWrapper, EntryDependency, ErrorCode, JsAddingRuntimeModule, JsAsset, JsCompatSource,
   JsFilename, JsModuleGraph, JsPathData, JsRspackDiagnostic, JsRspackError, JsStats,
   JsStatsOptimizationBailout, ModuleObject, RspackResultToNapiResultExt, ToJsCompatSource,
   COMPILER_REFERENCES,
@@ -248,14 +248,14 @@ impl JsCompilation {
     )
   }
 
-  #[napi(ts_return_type = "JsChunkGroup")]
-  pub fn get_named_chunk_group(&self, name: String) -> Result<Option<JsChunkGroupWrapper>> {
+  #[napi(ts_return_type = "ChunkGroup")]
+  pub fn get_named_chunk_group(&self, name: String) -> Result<Option<ChunkGroupWrapper>> {
     let compilation = self.as_ref()?;
     Ok(
       compilation
         .named_chunk_groups
         .get(&name)
-        .map(|ukey| JsChunkGroupWrapper::new(*ukey, compilation)),
+        .map(|ukey| ChunkGroupWrapper::new(*ukey, compilation)),
     )
   }
 
@@ -355,29 +355,29 @@ impl JsCompilation {
     Ok(())
   }
 
-  #[napi(getter, ts_return_type = "JsChunkGroup[]")]
-  pub fn entrypoints(&self) -> Result<Vec<JsChunkGroupWrapper>> {
+  #[napi(getter, ts_return_type = "ChunkGroup[]")]
+  pub fn entrypoints(&self) -> Result<Vec<ChunkGroupWrapper>> {
     let compilation = self.as_ref()?;
 
     Ok(
       compilation
         .entrypoints()
         .values()
-        .map(|ukey| JsChunkGroupWrapper::new(*ukey, compilation))
+        .map(|ukey| ChunkGroupWrapper::new(*ukey, compilation))
         .collect(),
     )
   }
 
-  #[napi(getter, ts_return_type = "JsChunkGroup[]")]
-  pub fn chunk_groups(&self) -> Result<Vec<JsChunkGroupWrapper>> {
+  #[napi(getter, ts_return_type = "ChunkGroup[]")]
+  pub fn chunk_groups(&self) -> Result<Vec<ChunkGroupWrapper>> {
     let compilation = self.as_ref()?;
 
     Ok(
       compilation
         .chunk_group_by_ukey
         .keys()
-        .map(|ukey| JsChunkGroupWrapper::new(*ukey, compilation))
-        .collect::<Vec<JsChunkGroupWrapper>>(),
+        .map(|ukey| ChunkGroupWrapper::new(*ukey, compilation))
+        .collect::<Vec<ChunkGroupWrapper>>(),
     )
   }
 
@@ -696,9 +696,9 @@ impl JsCompilation {
   }
 
   #[napi(getter)]
-  pub fn chunk_graph(&self) -> napi::Result<JsChunkGraph> {
+  pub fn chunk_graph(&self) -> napi::Result<ChunkGraph> {
     let compilation = self.as_ref()?;
-    Ok(JsChunkGraph::new(compilation))
+    Ok(ChunkGraph::new(compilation))
   }
 
   #[napi(

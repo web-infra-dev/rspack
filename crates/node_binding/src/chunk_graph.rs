@@ -2,10 +2,10 @@ use std::ptr::NonNull;
 
 use napi::{Either, Result};
 use napi_derive::napi;
-use rspack_core::{ChunkGraph, Compilation, ModuleId, SourceType};
+use rspack_core::{Compilation, ModuleId, SourceType};
 
 use crate::{
-  AsyncDependenciesBlock, Chunk, ChunkWrapper, JsChunkGroupWrapper, JsRuntimeSpec, ModuleObject,
+  AsyncDependenciesBlock, Chunk, ChunkGroupWrapper, ChunkWrapper, JsRuntimeSpec, ModuleObject,
   ModuleObjectRef,
 };
 
@@ -20,14 +20,14 @@ pub fn to_js_module_id(module_id: &ModuleId) -> JsModuleId {
 }
 
 #[napi]
-pub struct JsChunkGraph {
+pub struct ChunkGraph {
   compilation: NonNull<Compilation>,
 }
 
-impl JsChunkGraph {
+impl ChunkGraph {
   pub fn new(compilation: &Compilation) -> Self {
     #[allow(clippy::unwrap_used)]
-    JsChunkGraph {
+    ChunkGraph {
       compilation: NonNull::new(compilation as *const Compilation as *mut Compilation).unwrap(),
     }
   }
@@ -39,7 +39,7 @@ impl JsChunkGraph {
 }
 
 #[napi]
-impl JsChunkGraph {
+impl ChunkGraph {
   #[napi(ts_return_type = "boolean")]
   pub fn has_chunk_entry_dependent_chunks(&self, chunk: &Chunk) -> Result<bool> {
     let compilation = self.as_ref()?;
@@ -160,12 +160,15 @@ impl JsChunkGraph {
   pub fn get_module_id(&self, module: ModuleObjectRef) -> napi::Result<Option<JsModuleId>> {
     let compilation = self.as_ref()?;
     Ok(
-      ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier)
+      rspack_core::ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier)
         .map(to_js_module_id),
     )
   }
 
-  #[napi(ts_args_type = "module: Module, runtime: string | string[] | undefined")]
+  #[napi(
+    js_name = "_getModuleHash",
+    ts_args_type = "module: Module, runtime: string | string[] | undefined"
+  )]
   pub fn get_module_hash(
     &self,
     js_module: ModuleObjectRef,
@@ -179,22 +182,22 @@ impl JsChunkGraph {
       return Ok(None);
     };
     Ok(
-      ChunkGraph::get_module_hash(compilation, js_module.identifier, &runtime)
+      rspack_core::ChunkGraph::get_module_hash(compilation, js_module.identifier, &runtime)
         .map(|hash| hash.encoded()),
     )
   }
 
-  #[napi(ts_return_type = "JsChunkGroup | null")]
+  #[napi(ts_return_type = "ChunkGroup | null")]
   pub fn get_block_chunk_group(
     &self,
     js_block: &AsyncDependenciesBlock,
-  ) -> napi::Result<Option<JsChunkGroupWrapper>> {
+  ) -> napi::Result<Option<ChunkGroupWrapper>> {
     let compilation = self.as_ref()?;
     Ok(
       compilation
         .chunk_graph
         .get_block_chunk_group(&js_block.block_id, &compilation.chunk_group_by_ukey)
-        .map(|chunk_group| JsChunkGroupWrapper::new(chunk_group.ukey, compilation)),
+        .map(|chunk_group| ChunkGroupWrapper::new(chunk_group.ukey, compilation)),
     )
   }
 }

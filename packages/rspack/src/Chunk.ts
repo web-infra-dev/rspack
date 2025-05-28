@@ -1,5 +1,4 @@
 import { Chunk } from "@rspack/binding";
-import type { ChunkGroup } from "./ChunkGroup";
 
 Object.defineProperty(Chunk.prototype, "files", {
 	get(this: Chunk) {

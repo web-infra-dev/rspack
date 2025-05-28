@@ -98,8 +98,36 @@ export declare class Chunk {
   getAllAsyncChunks(): Chunk[]
   getAllInitialChunks(): Chunk[]
   getAllReferencedChunks(): Chunk[]
-  get _groupsIterable(): JsChunkGroup[]
+  get _groupsIterable(): ChunkGroup[]
   getEntryOptions(): EntryOptionsDTO | undefined
+}
+
+export declare class ChunkGraph {
+  hasChunkEntryDependentChunks(chunk: Chunk): boolean
+  getChunkModules(chunk: Chunk): Module[]
+  getChunkEntryModules(chunk: Chunk): Module[]
+  getNumberOfEntryModules(chunk: Chunk): number
+  getChunkEntryDependentChunksIterable(chunk: Chunk): Chunk[]
+  getChunkModulesIterableBySourceType(chunk: Chunk, sourceType: string): Module[]
+  getModuleChunks(module: Module): Chunk[]
+  getModuleId(module: Module): string | number | null
+  _getModuleHash(module: Module, runtime: string | string[] | undefined): string | null
+  getBlockChunkGroup(jsBlock: AsyncDependenciesBlock): ChunkGroup | null
+}
+
+export declare class ChunkGroup {
+  get chunks(): Chunk[]
+  get index(): number | undefined
+  get name(): string | undefined
+  get origins(): Array<JsChunkGroupOrigin>
+  get childrenIterable(): ChunkGroup[]
+  isInitial(): boolean
+  getParents(): ChunkGroup[]
+  getRuntimeChunk(): Chunk
+  getEntrypointChunk(): Chunk
+  getFiles(): Array<string>
+  getModulePreOrderIndex(module: Module): number | null
+  getModulePostOrderIndex(module: Module): number | null
 }
 
 export declare class Chunks {
@@ -200,34 +228,6 @@ export declare class ExternalModule {
   _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
 }
 
-export declare class JsChunkGraph {
-  hasChunkEntryDependentChunks(chunk: Chunk): boolean
-  getChunkModules(chunk: Chunk): Module[]
-  getChunkEntryModules(chunk: Chunk): Module[]
-  getNumberOfEntryModules(chunk: Chunk): number
-  getChunkEntryDependentChunksIterable(chunk: Chunk): Chunk[]
-  getChunkModulesIterableBySourceType(chunk: Chunk, sourceType: string): Module[]
-  getModuleChunks(module: Module): Chunk[]
-  getModuleId(module: Module): string | number | null
-  getModuleHash(module: Module, runtime: string | string[] | undefined): string | null
-  getBlockChunkGroup(jsBlock: AsyncDependenciesBlock): JsChunkGroup | null
-}
-
-export declare class JsChunkGroup {
-  get chunks(): Chunk[]
-  get index(): number | undefined
-  get name(): string | undefined
-  get origins(): Array<JsChunkGroupOrigin>
-  get childrenIterable(): JsChunkGroup[]
-  isInitial(): boolean
-  getParents(): JsChunkGroup[]
-  getRuntimeChunk(): Chunk
-  getEntrypointChunk(): Chunk
-  getFiles(): Array<string>
-  getModulePreOrderIndex(module: Module): number | null
-  getModulePostOrderIndex(module: Module): number | null
-}
-
 export declare class JsCompilation {
   updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)): void
   getAssets(): Readonly<JsAsset>[]
@@ -240,7 +240,7 @@ export declare class JsCompilation {
   getNamedChunkKeys(): Array<string>
   getNamedChunk(name: string): Chunk
   getNamedChunkGroupKeys(): Array<string>
-  getNamedChunkGroup(name: string): JsChunkGroup
+  getNamedChunkGroup(name: string): ChunkGroup
   setAssetSource(name: string, source: JsCompatSource): void
   deleteAssetSource(name: string): void
   getAssetFilenames(): Array<string>
@@ -248,8 +248,8 @@ export declare class JsCompilation {
   emitAsset(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
   deleteAsset(filename: string): void
   renameAsset(filename: string, newName: string): void
-  get entrypoints(): JsChunkGroup[]
-  get chunkGroups(): JsChunkGroup[]
+  get entrypoints(): ChunkGroup[]
+  get chunkGroups(): ChunkGroup[]
   get hash(): string | null
   dependencies(): JsDependencies
   pushDiagnostic(diagnostic: JsRspackDiagnostic): void
@@ -278,7 +278,7 @@ export declare class JsCompilation {
   get entries(): JsEntries
   addRuntimeModule(chunk: Chunk, runtimeModule: JsAddingRuntimeModule): void
   get moduleGraph(): JsModuleGraph
-  get chunkGraph(): JsChunkGraph
+  get chunkGraph(): ChunkGraph
   addEntry(args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, Module][]) => void): void
   addInclude(args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, Module][]) => void): void
   get codeGenerationResults(): CodeGenerationResults

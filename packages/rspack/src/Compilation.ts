@@ -10,6 +10,7 @@
 import * as binding from "@rspack/binding";
 import type {
 	AssetInfo,
+	ChunkGroup,
 	Dependency,
 	ExternalObject,
 	JsCompatSourceOwned,
@@ -21,11 +22,10 @@ export type { AssetInfo } from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
 import type { Source } from "webpack-sources";
 import type { Chunk } from "./Chunk";
-import { ChunkGraph } from "./ChunkGraph";
-import { ChunkGroup } from "./ChunkGroup";
+import type { ChunkGraph } from "./ChunkGraph";
 import type { Compiler } from "./Compiler";
 import type { ContextModuleFactory } from "./ContextModuleFactory";
-import { Entrypoint } from "./Entrypoint";
+import type { Entrypoint } from "./Entrypoint";
 import { cutOffLoaderExecution } from "./ErrorHelpers";
 import type { Module } from "./Module";
 import ModuleGraph from "./ModuleGraph";
@@ -401,7 +401,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.children = [];
 		this.needAdditionalPass = false;
 
-		this.chunkGraph = ChunkGraph.__from_binding(inner.chunkGraph);
+		this.chunkGraph = inner.chunkGraph;
 		this.moduleGraph = ModuleGraph.__from_binding(inner.moduleGraph);
 
 		this.#addIncludeDispatcher = new AddEntryItemDispatcher(
@@ -433,17 +433,12 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 */
 	get entrypoints(): ReadonlyMap<string, Entrypoint> {
 		return new Map(
-			this.#inner.entrypoints.map(binding => {
-				const entrypoint = Entrypoint.__from_binding(binding);
-				return [entrypoint.name!, entrypoint];
-			})
+			this.#inner.entrypoints.map(entrypoint => [entrypoint.name!, entrypoint])
 		);
 	}
 
 	get chunkGroups(): ReadonlyArray<ChunkGroup> {
-		return this.#inner.chunkGroups.map(binding =>
-			ChunkGroup.__from_binding(binding)
-		);
+		return this.#inner.chunkGroups;
 	}
 
 	/**
@@ -459,8 +454,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			},
 			get: (property: unknown) => {
 				if (typeof property === "string") {
-					const binding = this.#inner.getNamedChunkGroup(property);
-					return ChunkGroup.__from_binding(binding);
+					return this.#inner.getNamedChunkGroup(property);
 				}
 			}
 		});

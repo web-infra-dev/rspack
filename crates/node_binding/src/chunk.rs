@@ -5,7 +5,7 @@ use napi_derive::napi;
 use rspack_core::{Compilation, CompilationId};
 use rspack_napi::OneShotRef;
 
-use crate::{compilation::entries::EntryOptionsDTO, JsChunkGroupWrapper};
+use crate::{compilation::entries::EntryOptionsDTO, ChunkGroupWrapper};
 
 #[napi]
 pub struct Chunk {
@@ -218,8 +218,8 @@ impl Chunk {
     )
   }
 
-  #[napi(getter, js_name = "_groupsIterable", ts_return_type = "JsChunkGroup[]")]
-  pub fn groups_iterable(&self) -> napi::Result<Vec<JsChunkGroupWrapper>> {
+  #[napi(getter, js_name = "_groupsIterable", ts_return_type = "ChunkGroup[]")]
+  pub fn groups_iterable(&self) -> napi::Result<Vec<ChunkGroupWrapper>> {
     let (compilation, chunk) = self.as_ref()?;
     let mut groups = chunk
       .groups()
@@ -230,7 +230,7 @@ impl Chunk {
     Ok(
       groups
         .iter()
-        .map(|group| JsChunkGroupWrapper::new(group.ukey, compilation))
+        .map(|group| ChunkGroupWrapper::new(group.ukey, compilation))
         .collect::<Vec<_>>(),
     )
   }

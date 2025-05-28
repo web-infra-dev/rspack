@@ -1,33 +1,3 @@
-import type { JsChunkGroup } from "@rspack/binding";
+import type { ChunkGroup } from "@rspack/binding";
 
-import type { Chunk } from "./Chunk";
-import { ChunkGroup } from "./ChunkGroup";
-
-const ENTRYPOINT_MAPPINGS = new WeakMap<JsChunkGroup, Entrypoint>();
-
-export class Entrypoint extends ChunkGroup {
-	#inner: JsChunkGroup;
-
-	static __from_binding(binding: JsChunkGroup): Entrypoint {
-		let entrypoint = ENTRYPOINT_MAPPINGS.get(binding);
-		if (entrypoint) {
-			return entrypoint;
-		}
-		entrypoint = new Entrypoint(binding);
-		ENTRYPOINT_MAPPINGS.set(binding, entrypoint);
-		return entrypoint;
-	}
-
-	protected constructor(binding: JsChunkGroup) {
-		super(binding);
-		this.#inner = binding;
-	}
-
-	getRuntimeChunk(): Readonly<Chunk | null> {
-		return this.#inner.getRuntimeChunk();
-	}
-
-	getEntrypointChunk(): Readonly<Chunk | null> {
-		return this.#inner.getEntrypointChunk();
-	}
-}
+export type Entrypoint = ChunkGroup;
