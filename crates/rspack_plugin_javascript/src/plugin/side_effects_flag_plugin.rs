@@ -671,7 +671,11 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
     .map(|(module_identifier, module)| {
       (
         *module_identifier,
-        module.get_side_effects_connection_state(&module_graph, &mut Default::default()),
+        module.get_side_effects_connection_state(
+          &module_graph,
+          &mut Default::default(),
+          &mut Default::default(),
+        ),
       )
     })
     .collect();

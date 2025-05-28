@@ -4,7 +4,7 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsPreset, Skip},
 };
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   filter_runtime, import_statement, merge_runtime, AsContextDependency,
   AwaitDependenciesInitFragment, BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState,
@@ -419,12 +419,13 @@ impl Dependency for ESMImportSideEffectDependency {
     &self,
     module_graph: &ModuleGraph,
     module_chain: &mut IdentifierSet,
+    connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
     if let Some(module) = module_graph
       .module_identifier_by_dependency_id(&self.id)
       .and_then(|module_identifier| module_graph.module_by_identifier(module_identifier))
     {
-      module.get_side_effects_connection_state(module_graph, module_chain)
+      module.get_side_effects_connection_state(module_graph, module_chain, connection_state_cache)
     } else {
       ConnectionState::Active(true)
     }
@@ -458,7 +459,11 @@ impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
   ) -> ConnectionState {
     let id = *conn.module_identifier();
     if let Some(module) = module_graph.module_by_identifier(&id) {
-      module.get_side_effects_connection_state(module_graph, &mut IdentifierSet::default())
+      module.get_side_effects_connection_state(
+        module_graph,
+        &mut IdentifierSet::default(),
+        &mut IdentifierMap::default(),
+      )
     } else {
       ConnectionState::Active(true)
     }

@@ -12,7 +12,7 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsOption, AsPreset, AsVec},
 };
-use rspack_collections::{Identifiable, Identifier, IdentifierSet};
+use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::RspackHashDigest;
@@ -365,6 +365,7 @@ pub trait Module:
     &self,
     _module_graph: &ModuleGraph,
     _module_chain: &mut IdentifierSet,
+    _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
     ConnectionState::Active(true)
   }

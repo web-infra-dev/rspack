@@ -579,8 +579,11 @@ impl ModuleConcatenationPlugin {
         .get_presentational_dependencies()
         .map(|deps| deps.to_vec()),
       context: Some(compilation.options.context.clone()),
-      side_effect_connection_state: box_module
-        .get_side_effects_connection_state(&module_graph, &mut IdentifierSet::default()),
+      side_effect_connection_state: box_module.get_side_effects_connection_state(
+        &module_graph,
+        &mut IdentifierSet::default(),
+        &mut IdentifierMap::default(),
+      ),
       factory_meta: box_module.factory_meta().cloned(),
       build_meta: box_module.build_meta().clone(),
       module_argument: box_module.get_module_argument(),
