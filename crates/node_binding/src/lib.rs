@@ -9,13 +9,14 @@ extern crate rspack_allocator;
 use std::{cell::RefCell, sync::Arc};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
+use fs_node::HybridFileSystem;
 use napi::{bindgen_prelude::*, CallContext};
 use rspack_collections::UkeyMap;
 use rspack_core::{
   BoxDependency, Compilation, CompilerId, EntryOptions, ModuleIdentifier, PluginExt,
 };
 use rspack_error::Diagnostic;
-use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
+use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
 
 use crate::fs_node::{NodeFileSystem, ThreadsafeNodeFS};
 
@@ -138,7 +139,7 @@ impl JsCompiler {
     env: Env,
     mut this: This,
     compiler_path: String,
-    options: RawOptions,
+    mut options: RawOptions,
     builtin_plugins: Vec<BuiltinPlugin>,
     register_js_taps: RegisterJsTaps,
     output_filesystem: ThreadsafeNodeFS,
@@ -167,14 +168,36 @@ impl JsCompiler {
       bp.append_to(env, &mut this, &mut plugins)?;
     }
 
+    let use_input_fs = options.experiments.use_input_file_system.take();
     let compiler_options: rspack_core::CompilerOptions = options.try_into().to_napi_result()?;
 
     tracing::debug!(name:"normalized_options", options=?&compiler_options);
 
-    let input_file_system = input_filesystem.map(|fs| {
-      let binding: Arc<dyn ReadableFileSystem> =
-        Arc::new(NodeFileSystem::new(fs).expect("Failed to create readable filesystem"));
-      binding
+    let input_file_system: Option<Arc<dyn ReadableFileSystem>> = input_filesystem.and_then(|fs| {
+      use_input_fs.and_then(|use_input_file_system| {
+        let node_fs = NodeFileSystem::new(fs).expect("Failed to create readable filesystem");
+
+        match use_input_file_system {
+          WithBool::True => {
+            let binding: Arc<dyn ReadableFileSystem> = Arc::new(node_fs);
+            return Some(binding);
+          }
+          WithBool::False => {
+            return None;
+          }
+          WithBool::Value(allowlist) => {
+            if allowlist.len() == 0 {
+              return None;
+            }
+            let binding: Arc<dyn ReadableFileSystem> = Arc::new(HybridFileSystem::new(
+              allowlist,
+              node_fs,
+              NativeFileSystem::new(compiler_options.resolve.pnp.unwrap_or(false)),
+            ));
+            return Some(binding);
+          }
+        }
+      })
     });
 
     if let Some(fs) = &input_file_system {

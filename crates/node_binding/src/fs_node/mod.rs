@@ -5,3 +5,6 @@ pub use write::NodeFileSystem;
 
 mod node;
 pub use node::ThreadsafeNodeFS;
+
+mod hybrid;
+pub use hybrid::HybridFileSystem;

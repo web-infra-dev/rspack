@@ -846,7 +846,7 @@ class Compiler {
 			this.intermediateFileSystem
 				? ThreadsafeIntermediateNodeFS.__to_binding(this.intermediateFileSystem)
 				: undefined,
-			this.inputFileSystem && this.options.experiments.useInputFileSystem
+			this.inputFileSystem && options.experiments.useInputFileSystem
 				? ThreadsafeInputNodeFS.__to_binding(this.inputFileSystem)
 				: undefined,
 			ResolverFactory.__to_binding(this.resolverFactory)
