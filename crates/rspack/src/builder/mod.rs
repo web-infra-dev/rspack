@@ -898,7 +898,8 @@ impl CompilerOptionsBuilder {
     });
 
     let target = f!(self.target.take(), || {
-      let use_browserlist = browserslist_target::load(None, context.as_str()).is_some();
+      let use_browserlist =
+        rspack_browserslist::load_browserslist(None, context.as_str()).is_some();
 
       // If it's not able to find config with regard to context, then `browserslist_rs` will fallback to default query,
       // making it always a non-empty value.

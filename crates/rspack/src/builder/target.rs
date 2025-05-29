@@ -1,3 +1,4 @@
+use rspack_browserslist::load_browserslist;
 use rspack_core::Context;
 
 /// Targets type.
@@ -258,8 +259,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
   {
     let rest = captures.get(1).map(|m| m.as_str());
 
-    let browsers =
-      super::browserslist_target::load(rest.map(|r| r.trim()), context).unwrap_or_default();
+    let browsers = load_browserslist(rest.map(|r| r.trim()), context).unwrap_or_default();
 
     if browsers.is_empty() {
       panic!("No browserslist config found for target '{target}'. Please configure browserslist.");
