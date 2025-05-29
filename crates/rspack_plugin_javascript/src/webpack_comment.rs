@@ -372,7 +372,7 @@ fn analyze_comments(
             add_magic_comment_warning(
               source_file,
               item_name,
-              "true or false",
+              "a boolean",
               &captures,
               warning_diagnostics,
               error_span(),
