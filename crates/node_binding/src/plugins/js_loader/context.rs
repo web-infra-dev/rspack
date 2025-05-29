@@ -80,36 +80,10 @@ impl From<LoaderState> for JsLoaderState {
   }
 }
 
-// JsResourceData is only accessed by JavaScript within JsLoaderContext and is not used by Rust code.
-pub struct ReadonlyResourceDataWrapper {
-  i: Option<ReadonlyResourceData>,
-}
-
-impl ToNapiValue for ReadonlyResourceDataWrapper {
-  unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
-    #[allow(clippy::unwrap_used)]
-    ToNapiValue::to_napi_value(env, val.i.unwrap())
-  }
-}
-
-impl FromNapiValue for ReadonlyResourceDataWrapper {
-  unsafe fn from_napi_value(_env: sys::napi_env, _napi_val: sys::napi_value) -> Result<Self> {
-    Ok(ReadonlyResourceDataWrapper { i: None })
-  }
-}
-
-impl From<Arc<rspack_core::ResourceData>> for ReadonlyResourceDataWrapper {
-  fn from(value: Arc<rspack_core::ResourceData>) -> Self {
-    ReadonlyResourceDataWrapper {
-      i: Some(value.clone().into()),
-    }
-  }
-}
-
 #[napi(object)]
 pub struct JsLoaderContext {
   #[napi(ts_type = "Readonly<JsResourceData>")]
-  pub resource_data: ReadonlyResourceDataWrapper,
+  pub resource_data: ReadonlyResourceData,
   /// Will be deprecated. Use module.module_identifier instead
   #[napi(js_name = "_moduleIdentifier", ts_type = "Readonly<string>")]
   pub module_identifier: String,

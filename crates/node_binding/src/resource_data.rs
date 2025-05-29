@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use napi::bindgen_prelude::{FromNapiRef, FromNapiValue};
 use napi_derive::napi;
 use rspack_core::ResourceData;
 
@@ -24,16 +25,12 @@ impl ReadonlyResourceData {
 
   #[napi(getter)]
   pub fn query(&self) -> Option<&str> {
-    self.i.resource_query.as_ref().map(|query| query.as_str())
+    self.i.resource_query.as_deref()
   }
 
   #[napi(getter)]
   pub fn fragment(&self) -> Option<&str> {
-    self
-      .i
-      .resource_fragment
-      .as_ref()
-      .map(|fragment| fragment.as_str())
+    self.i.resource_fragment.as_deref()
   }
 
   #[napi(getter)]
@@ -48,6 +45,16 @@ impl ReadonlyResourceData {
       .resource_description
       .as_ref()
       .map(|data| data.path().to_string_lossy().to_string())
+  }
+}
+
+impl FromNapiValue for ReadonlyResourceData {
+  unsafe fn from_napi_value(
+    env: napi::sys::napi_env,
+    napi_val: napi::sys::napi_value,
+  ) -> napi::Result<Self> {
+    let resource_data: &ReadonlyResourceData = FromNapiRef::from_napi_ref(env, napi_val)?;
+    Ok(resource_data.i.clone().into())
   }
 }
 
