@@ -702,6 +702,7 @@ pub fn process_export_info(
       &ExportInfoGetter::exports_info(export_info_data).expect("should have exports info"),
     ) {
       for export_info in exports_info.id.ordered_exports(module_graph) {
+        let export_info_data = export_info.as_data(module_graph);
         process_export_info(
           module_graph,
           runtime,
