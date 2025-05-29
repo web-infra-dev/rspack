@@ -412,7 +412,7 @@ impl ExternalModule {
               String::new()
             };
             match used_exports {
-              UsedExports::Bool(true) | UsedExports::Null => {
+              UsedExports::UsedNamespace(true) | UsedExports::Unknown => {
                 chunk_init_fragments.push(
                   NormalInitFragment::new(
                     format!(
@@ -439,7 +439,7 @@ impl ExternalModule {
                 );
                 concatenation_scope.register_namespace_export(&namespace_export_with_name);
               }
-              UsedExports::Bool(false) => {
+              UsedExports::UsedNamespace(false) => {
                 let content = format!(
                   "import {}{};\n",
                   json_stringify(request.primary()),
@@ -458,7 +458,7 @@ impl ExternalModule {
                   .boxed(),
                 );
               }
-              UsedExports::Vec(atoms) => {
+              UsedExports::UsedNames(atoms) => {
                 let info = concatenation_scope
                   .modules_map
                   .get(&concatenation_scope.current_module.module)

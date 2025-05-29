@@ -13,10 +13,11 @@ use rspack_core::{
   },
   filter_runtime,
   incremental::IncrementalPasses,
-  ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions, ExportProvided,
+  ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions,
+  ConcatenatedModuleConcatenatedInfo, ConcatenatedModuleInfo, ExportProvided,
   ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph,
   ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext, ProvidedExports, RuntimeCondition,
-  RuntimeSpec, SourceType,
+  RuntimeSpec, SourceType, UsedExports,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -1070,7 +1071,7 @@ async fn concatenated_info(
     .expect("should have module");
 
   if module.as_external_module().is_some() {
-    if let UsedExports::Vec(atoms) = module_graph.get_used_exports(&curr_module, runtime) {
+    if let UsedExports::UsedNames(atoms) = module_graph.get_used_exports(&curr_module, runtime) {
       for atom in atoms {
         let name = if atom == "default" {
           module_graph

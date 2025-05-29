@@ -641,7 +641,7 @@ impl Module for ConcatenatedModule {
     let runtime = runtime.as_deref();
     let context = compilation.options.context.clone();
 
-    let (modules_with_info, mut module_to_info_map) =
+    let (modules_with_info, module_to_info_map) =
       self.get_modules_with_info(&compilation.get_module_graph(), runtime);
 
     // Set with modules that need a generated namespace object
@@ -651,16 +651,6 @@ impl Module for ConcatenatedModule {
     // Prepare a ReplaceSource for the final source
     //
     let mut all_used_names: HashSet<Atom> = RESERVED_NAMES.iter().map(|s| Atom::new(*s)).collect();
-    for (id, info) in module_to_info_map.iter_mut() {
-      if let ModuleInfo::Concatenated(info) = info {
-        compilation
-          .plugin_driver
-          .concatenated_module_hooks
-          .concatenated_info
-          .call(compilation, *id, runtime, info, &mut all_used_names)
-          .await?;
-      }
-    }
 
     let arc_map = Arc::new(module_to_info_map);
 
@@ -708,6 +698,17 @@ impl Module for ConcatenatedModule {
       };
       if info.ast.is_some() {
         all_used_names.extend(info.all_used_names.clone());
+      }
+    }
+
+    for (id, info) in module_to_info_map.iter_mut() {
+      if let ModuleInfo::Concatenated(info) = info {
+        compilation
+          .plugin_driver
+          .concatenated_module_hooks
+          .concatenated_info
+          .call(compilation, *id, runtime, info, &mut all_used_names)
+          .await?;
       }
     }
 
