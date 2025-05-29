@@ -18,8 +18,9 @@ const getBrowserslistTargetHandler = memoize(() => browserslistTargetHandler);
  * @returns default target
  */
 export const getDefaultTarget = (context: string): "browserslist" | "web" => {
-	const browsers = binding.loadBrowserslist(null, context);
-	return browsers ? "browserslist" : "web";
+	const { findConfig } = require("browserslist-load-config");
+	const config = findConfig(context);
+	return config ? "browserslist" : "web";
 };
 
 export type PlatformTargetProperties = {

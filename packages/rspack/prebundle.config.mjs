@@ -17,6 +17,7 @@ export default {
 			copyDts: true
 		},
 		"graceful-fs",
+		"browserslist-load-config",
 		{
 			name: "watchpack",
 			externals: {

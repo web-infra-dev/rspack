@@ -10,6 +10,7 @@
       "watchpack": ["./compiled/watchpack"],
       "@swc/types": ["./compiled/@swc/types"],
       "graceful-fs": ["./compiled/graceful-fs"],
+      "browserslist-load-config": ["./compiled/browserslist-load-config"],
       "enhanced-resolve": ["./compiled/enhanced-resolve"],
       "enhanced-resolve/lib/CachedInputFileSystem": [
         "./compiled/enhanced-resolve/CachedInputFileSystem"
