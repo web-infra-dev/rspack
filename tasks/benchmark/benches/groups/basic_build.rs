@@ -57,14 +57,14 @@ pub fn basic_benchmark(c: &mut Criterion) {
   });
   let fs = Arc::new(fs);
 
-  c.bench_function("basic", |b| {
+  c.bench_function("rust@bundle-basic", |b| {
     b.to_async(&rt).iter(|| {
       let fs = fs.clone();
       basic_compile(fs, false)
     });
   });
 
-  c.bench_function("basic_sourcemap", |b| {
+  c.bench_function("rust@bundle-basic_sourcemap", |b| {
     b.to_async(&rt).iter(|| {
       let fs = fs.clone();
       basic_compile(fs, true)
