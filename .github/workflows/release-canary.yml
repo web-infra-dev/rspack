@@ -101,7 +101,7 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Release Canary
-        if: { { inputs.profile != 'debug' } }
+        if: ${{ inputs.profile != 'debug' }}
         run: |
           ./x version snapshot
           pnpm run build:js:canary
@@ -110,7 +110,7 @@ jobs:
           NPM_TOKEN: ${{ secrets.RSPACK_CANARY_RELEASE_TOKEN }}
 
       - name: Release Debug
-        if: { { inputs.profile == 'debug' } }
+        if: ${{ inputs.profile == 'debug' }}
         run: |
           pnpm run build:js
           ./x version debug
