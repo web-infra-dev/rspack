@@ -6,8 +6,8 @@ use rspack_core::{
   to_identifier, ApplyContext, BoxDependency, ChunkUkey, CodeGenerationExportsFinalNames,
   Compilation, CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation,
   CompilerFinishMake, CompilerOptions, ConcatenatedModule, ConcatenatedModuleExportsDefinitions,
-  DependenciesBlock, Dependency, DependencyId, LibraryOptions, ModuleGraph, ModuleIdentifier,
-  Plugin, PluginContext, RuntimeSpec,
+  DependenciesBlock, Dependency, DependencyId, ExportInfoGetter, LibraryOptions, ModuleGraph,
+  ModuleIdentifier, Plugin, PluginContext, RuntimeSpec,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
@@ -173,10 +173,14 @@ async fn render_startup(
   {
     let exports_info = module_graph.get_exports_info(module_id);
     for export_info in exports_info.ordered_exports(&module_graph) {
-      let info_name = export_info.name(&module_graph).expect("should have name");
-      let used_name = export_info
-        .get_used_name(&module_graph, Some(info_name), Some(chunk.runtime()))
-        .expect("name can't be empty");
+      let info_name =
+        ExportInfoGetter::name(export_info.as_data(&module_graph)).expect("should have name");
+      let used_name = ExportInfoGetter::get_used_name(
+        export_info.as_data(&module_graph),
+        Some(info_name),
+        Some(chunk.runtime()),
+      )
+      .expect("name can't be empty");
 
       let final_name = exports_final_names.get(used_name.as_str());
 
