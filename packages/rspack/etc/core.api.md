@@ -2458,6 +2458,7 @@ export type Experiments = {
     rspackFuture?: RspackFutureOptions;
     buildHttp?: HttpUriOptions;
     parallelLoader?: boolean;
+    useInputFileSystem?: UseInputFileSystem;
 };
 
 // @public (undocumented)
@@ -2515,6 +2516,8 @@ export interface ExperimentsNormalized {
     rspackFuture?: RspackFutureOptions;
     // (undocumented)
     topLevelAwait?: boolean;
+    // (undocumented)
+    useInputFileSystem?: boolean | RegExp[];
 }
 
 // @public (undocumented)
@@ -6583,6 +6586,7 @@ declare namespace rspackExports {
         Incremental,
         IncrementalPresets,
         HttpUriOptions,
+        UseInputFileSystem,
         Experiments,
         Watch,
         WatchOptions,
@@ -8842,6 +8846,9 @@ type UpdateOperator = "++" | "--";
 
 // @public
 type UsageStateType = 0 | 1 | 2 | 3 | 4;
+
+// @public
+export type UseInputFileSystem = boolean | RegExp[];
 
 // @public (undocumented)
 export const util: {

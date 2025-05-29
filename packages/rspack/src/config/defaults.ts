@@ -253,6 +253,10 @@ const applyExperimentsDefaults = (
 
 	// IGNORE(experiments.parallelLoader): Rspack specific configuration for parallel loader execution
 	D(experiments, "parallelLoader", false);
+
+	// IGNORE(experiments.useInputFileSystem): Rspack specific configuration
+	// Enable `useInputFileSystem` will introduce much more fs overheads,  So disable by default.
+	D(experiments, "useInputFileSystem", false);
 };
 
 const applybundlerInfoDefaults = (

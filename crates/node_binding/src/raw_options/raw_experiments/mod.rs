@@ -7,8 +7,9 @@ use raw_cache::{normalize_raw_experiment_cache_options, RawExperimentCacheOption
 use raw_incremental::RawIncremental;
 use raw_rspack_future::RawRspackFuture;
 use rspack_core::{incremental::IncrementalOptions, Experiments};
+use rspack_regex::RspackRegex;
 
-use super::WithFalse;
+use super::{WithBool, WithFalse};
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
@@ -23,6 +24,7 @@ pub struct RawExperiments {
     ts_type = r#"boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }"#
   )]
   pub cache: RawExperimentCacheOptions,
+  pub use_input_file_system: Option<WithBool<Vec<RspackRegex>>>,
 }
 
 impl From<RawExperiments> for Experiments {

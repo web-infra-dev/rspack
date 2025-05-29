@@ -285,7 +285,7 @@ export declare class JsCompilation {
 }
 
 export declare class JsCompiler {
-  constructor(compilerPath: string, options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory)
+  constructor(compilerPath: string, options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
@@ -369,6 +369,7 @@ export declare class JsModuleGraph {
 
 export declare class JsResolver {
   resolveSync(path: string, request: string): JsResourceData | false
+  resolve(path: string, request: string): Promise<JsResourceData | false>
   withOptions(raw?: RawResolveOptionsWithDependencyType | undefined | null): JsResolver
 }
 
@@ -2701,6 +2702,7 @@ export interface ThreadsafeNodeFS {
   readFile: (name: string) => Promise<Buffer | string | void>
   stat: (name: string) => Promise<NodeFsStats | void>
   lstat: (name: string) => Promise<NodeFsStats | void>
+  realpath: (name: string) => Promise<string | void>
   open: (name: string, flags: string) => Promise<number | void>
   rename: (from: string, to: string) => Promise<void>
   close: (fd: number) => Promise<void>

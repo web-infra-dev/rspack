@@ -17,6 +17,8 @@ module.exports = {
 				});
 				break;
 			case "2":
+				break;
+			case "3":
 				checkChunkModules(stats, {
 					"dyn-1": ["dyn-1.js", "m.js"],
 					"dyn-2": ["dyn-2.js", "m.js"],
