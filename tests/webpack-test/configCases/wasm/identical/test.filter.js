@@ -4,4 +4,4 @@
 //   return supportsWebAssembly();
 // };
 
-module.exports = () => { return "TODO: support AsyncWebAssemblyModulesPlugin.getCompilationHooks" }
+module.exports = () => "TODO: support AsyncWebAssemblyModulesPlugin.getCompilationHooks"

@@ -507,73 +507,73 @@ Rspack x.x.x compiled successfully in X.23"
 
 exports[`StatsTestCases should print correct stats for errors-space-error 1`] = `
 "assets by status xx bytes [cached] 1 asset
-./loader!./index.js xx bytes [built] [code generated] [2 errors]
+./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
   │ stack3
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
 
 Rspack x.x.x compiled with 2 errors in X.23
 
 assets by status xx bytes [cached] 1 asset
-./loader!./index.js xx bytes [built] [code generated] [2 errors]
+./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
   │ stack3
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
 
 Rspack x.x.x compiled with 2 errors in X.23
 
 assets by status xx bytes [cached] 1 asset
-./loader!./index.js xx bytes [built] [code generated] [2 errors]
+./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
   │ stack3
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
 
 Rspack x.x.x compiled with 2 errors in X.23
 
 assets by status xx bytes [cached] 1 asset
-./loader!./index.js xx bytes [built] [code generated] [2 errors]
+./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
   │ stack3
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
 
 Rspack x.x.x compiled with 2 errors in X.23
 
 assets by status xx bytes [cached] 1 asset
-./loader!./index.js xx bytes [built] [code generated] [2 errors]
+./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
   │ stack3
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
 
 Rspack x.x.x compiled with 2 errors in X.23
 
 assets by status xx bytes [cached] 1 asset
-./loader!./index.js xx bytes [built] [code generated] [2 errors]
+./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
   │ stack3
 
-ERROR in ./index.js (./loader!./index.js)
+ERROR in ./index.js (./loader.js!./index.js)
   × stack1stack2
 
 Rspack x.x.x compiled with 2 errors in X.23"
@@ -1078,7 +1078,7 @@ ERROR in ./not-xxx.js 1:8-25
 
 ERROR in ./parse-xxx.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expression expected
+  ╰─▶   × JavaScript parse error: Expression expected
          ╭─[3:4]
        1 │ Here
        2 │ could
@@ -1113,7 +1113,7 @@ ERROR in ./not-xxx.js 1:8-25
 
 ERROR in ./parse-xxx.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expression expected
+  ╰─▶   × JavaScript parse error: Expression expected
          ╭─[3:4]
        1 │ Here
        2 │ could
@@ -1277,7 +1277,7 @@ cacheable modules xx bytes
 
 ERROR in ./b.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected ';', '}' or <eof>
+  ╰─▶   × JavaScript parse error: Expected ';', '}' or <eof>
          ╭─[6:7]
        4 │ includes
        5 │ a
@@ -1307,7 +1307,7 @@ WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset
   │       warning.pro-xxx.js
 
 WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
-  │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
+  │ For more info visit https://rspack.rs/guide/optimization/code-splitting
 
 Rspack x.x.x compiled with 3 warnings in X.23
 
@@ -1322,7 +1322,7 @@ WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset
   │       warning.pro-xxx.js
 
 WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
-  │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
+  │ For more info visit https://rspack.rs/guide/optimization/code-splitting
 
 Rspack x.x.x compiled with 3 warnings in X.23
 
@@ -1353,7 +1353,7 @@ WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset
   │       warning.pro-xxx.js
 
 WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
-  │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
+  │ For more info visit https://rspack.rs/guide/optimization/code-splitting
 
 Rspack x.x.x compiled with 3 warnings in X.23"
 `;
@@ -1429,7 +1429,7 @@ Entrypoint <CLR=BOLD>sec</CLR> xx KiB = <CLR=32,BOLD>sec.js</CLR>
 
 <CLR=33,BOLD>WARNING</CLR> in <CLR=33>⚠<CLR=0> Rspack performance recommendations:
   <CLR=33>│<CLR=0> You can limit the size of your bundles by using import() to lazy load some parts of your application.
-  <CLR=33>│<CLR=0> For more info visit https://www.rspack.dev/guide/optimization/code-splitting
+  <CLR=33>│<CLR=0> For more info visit https://rspack.rs/guide/optimization/code-splitting
 <CLR=0>
 
 Rspack x.x.x compiled with <CLR=33,BOLD>3 warnings</CLR> in X s"
@@ -1477,7 +1477,7 @@ Entrypoint <CLR=BOLD>sec</CLR> <CLR=33,BOLD>[big]</CLR> xx KiB = <CLR=32,BOLD>se
 
 <CLR=31,BOLD>ERROR</CLR> in <CLR=31>×<CLR=0> Rspack performance recommendations:
   <CLR=31>│<CLR=0> You can limit the size of your bundles by using import() to lazy load some parts of your application.
-  <CLR=31>│<CLR=0> For more info visit https://www.rspack.dev/guide/optimization/code-splitting
+  <CLR=31>│<CLR=0> For more info visit https://rspack.rs/guide/optimization/code-splitting
 <CLR=0>
 
 Rspack x.x.x compiled with <CLR=31,BOLD>3 errors</CLR> in X s"
@@ -2912,6 +2912,46 @@ WARNING in ./index.js
    ╰────
 
 Rspack x.x.x compiled with 1 warning in X.23"
+`;
+
+exports[`StatsTestCases should print correct stats for wasm-explorer-examples-sync 1`] = `
+"assets by path *.wasm xx KiB
+  asset a0f3fcadb09a1a9b.module.wasm xx bytes [emitted] [immutable]
+  asset 4d75fb9d421cb1ec.module.wasm xx bytes [emitted] [immutable]
+  asset 448bdf8d3829b42d.module.wasm xx bytes [emitted] [immutable]
+  asset 28c603ffa1d25701.module.wasm xx bytes [emitted] [immutable]
+  asset 4f244726a350135b.module.wasm xx bytes [emitted] [immutable]
+  asset 934e4a526f464eac.module.wasm xx bytes [emitted] [immutable]
+assets by path *.js xx KiB
+  asset bundle.js xx KiB [emitted] (name: main)
+  asset 718.bundle.js xx KiB [emitted]
+  asset 159.bundle.js xx bytes [emitted] (id hint: vendors)
+chunk (runtime: main) 159.bundle.js (id hint: vendors) xx bytes [rendered] split chunk (cache group: defaultVendors)
+  ./node_modules/env.js xx bytes [built] [code generated]
+chunk (runtime: main) 28c603ffa1d25701.module.wasm, 448bdf8d3829b42d.module.wasm, 4d75fb9d421cb1ec.module.wasm, 4f244726a350135b.module.wasm, 718.bundle.js, 934e4a526f464eac.module.wasm, a0f3fcadb09a1a9b.module.wasm xx KiB (javascript) xx KiB (wasm) [rendered]
+  ./Q_rsqrt.wasm xx bytes (wasm) xx bytes (javascript) [dependent] [built] [code generated]
+  ./duff.wasm xx bytes (wasm) xx bytes (javascript) [dependent] [built] [code generated]
+  ./fact.wasm xx bytes (wasm) xx bytes (javascript) [dependent] [built] [code generated]
+  ./fast-math.wasm xx bytes (wasm) xx bytes (javascript) [dependent] [built] [code generated]
+  ./popcnt.wasm xx bytes (wasm) xx bytes (javascript) [dependent] [built] [code generated]
+  ./testFunction.wasm xx bytes (wasm) xx bytes (javascript) [dependent] [built] [code generated]
+  ./tests.js xx KiB [built] [code generated]
+chunk (runtime: main) bundle.js (main) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
+  ./index.js xx bytes [built] [code generated]
+runtime modules xx KiB 11 modules
+cacheable modules xx KiB (wasm) xx KiB (javascript)
+  webassembly modules xx KiB (wasm) xx bytes (javascript)
+    ./Q_rsqrt.wasm xx bytes (wasm) xx bytes (javascript) [built] [code generated]
+    ./testFunction.wasm xx bytes (wasm) xx bytes (javascript) [built] [code generated]
+    ./fact.wasm xx bytes (wasm) xx bytes (javascript) [built] [code generated]
+    ./popcnt.wasm xx bytes (wasm) xx bytes (javascript) [built] [code generated]
+    ./fast-math.wasm xx bytes (wasm) xx bytes (javascript) [built] [code generated]
+    ./duff.wasm xx bytes (wasm) xx bytes (javascript) [built] [code generated]
+  javascript modules xx KiB
+    ./index.js xx bytes [built] [code generated]
+    ./tests.js xx KiB [built] [code generated]
+    ./node_modules/env.js xx bytes [built] [code generated]
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for worker-public-path 1`] = `

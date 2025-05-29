@@ -1,5 +1,5 @@
 <picture>
-  <img alt="Rspack Banner" src="https://assets.rspack.dev/rspack/rspack-banner.png">
+  <img alt="Rspack Banner" src="https://assets.rspack.rs/rspack/rspack-banner.png">
 </picture>
 
 # Rspack
@@ -20,17 +20,30 @@ Rspack 是一个基于 Rust 编写的高性能 JavaScript 打包工具，它提�
 ## ✨ 特性
 
 - 🚀 **启动速度极快**: 基于 Rust 实现，构建速度极快，带给你极致的开发体验。
-- ⚡ **闪电般的 HMR**: 内置增量编译机制，HMR 速度极快，完全胜任大型项目的开发。
+- ⚡ **闪电般的 HMR**: 内置增量编译机制，HMR 速度极快，完美胜任大型项目的开发。
 - 📦 **兼容 webpack 生态**: 兼容 webpack 生态中的 plugin 和 loader，无缝衔接社区中沉淀的优秀库。
 - 🎨 **模块联邦**: 为 Module Federation 提供一流的支持，助力开发规模化的 Web 应用。
 - 🛠️ **默认生产优化**: 默认内置多种优化策略，如 Tree Shaking、代码压缩等等。
 - 🎯 **框架无关**: 不和任何前端框架绑定，保证足够的灵活性。
 
-请阅读 [Rspack 介绍](https://rspack.dev/zh/guide/start/introduction) 章节来了解更多。
+请阅读 [Rspack 介绍](https://rspack.rs/zh/guide/start/introduction) 章节来了解更多。
+
+## 🦀 Rstack
+
+Rstack 是一个围绕 Rspack 打造的 JavaScript 统一工具链，具有优秀的性能和一致的架构。
+
+| 名称                                                  | 描述           |
+| ----------------------------------------------------- | -------------- |
+| [Rspack](https://github.com/web-infra-dev/rspack)     | 打包工具       |
+| [Rsbuild](https://github.com/web-infra-dev/rsbuild)   | 构建工具       |
+| [Rslib](https://github.com/web-infra-dev/rslib)       | 库开发工具     |
+| [Rspress](https://github.com/web-infra-dev/rspress)   | 静态站点生成器 |
+| [Rsdoctor](https://github.com/web-infra-dev/rsdoctor) | 构建分析工具   |
+| [Rstest](https://github.com/web-infra-dev/rstest)     | 测试框架       |
 
 ## 快速上手
 
-请阅读[快速上手](https://rspack.dev/zh/guide/start/quick-start)。
+请阅读[快速上手](https://rspack.rs/zh/guide/start/quick-start)。
 
 ## 参与贡献
 
@@ -45,12 +58,8 @@ Rspack 是一个基于 Rust 编写的高性能 JavaScript 打包工具，它提�
 | 名称                                                                                 | 描述                                                                         |
 | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
 | [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack)                    | 与 Rspack 相关的精彩内容列表                                                 |
-| [Rspack 1.x 文档](https://rspack.dev/zh/)                                            | Rspack 1.x 版本的文档（最新）                                                |
-| [Rspack 0.x 文档](https://v0.rspack.dev/zh/)                                         | Rspack 0.x 版本的文档                                                        |
-| [Rsbuild](https://github.com/web-infra-dev/rsbuild)                                  | 基于 Rspack 的构建工具                                                       |
-| [Rspress](https://github.com/web-infra-dev/rspress)                                  | 基于 Rsbuild 的静态站点生成器                                                |
-| [Rsdoctor](https://github.com/web-infra-dev/rsdoctor)                                | 针对 Rspack 的一站式构建分析工具                                             |
-| [Rslib](https://github.com/web-infra-dev/rslib)                                      | 基于 Rsbuild 的 library 开发工具                                             |
+| [Rspack 1.x 文档](https://rspack.rs/zh/)                                             | Rspack 1.x 版本的文档（最新）                                                |
+| [Rspack 0.x 文档](https://v0.rspack.rs/zh/)                                          | Rspack 0.x 版本的文档                                                        |
 | [rspack-dev-server](https://github.com/web-infra-dev/rspack-dev-server)              | Rspack 的开发服务器                                                          |
 | [rstack-examples](https://github.com/rspack-contrib/rstack-examples)                 | Rstack 生态（Rspack、Rsbuild、Rspress、Rsdoctor）的示例                      |
 | [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                    | Rust 版本的 [webpack-sources](https://www.npmjs.com/package/webpack-sources) |

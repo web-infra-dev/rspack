@@ -7,7 +7,7 @@ const title = ref("Rspack + Vue");
 
 <template>
 	<div>
-		<a href="https://www.rspack.dev/" target="_blank">
+		<a href="https://rspack.rs/" target="_blank">
 			<img src="./assets/rspack.svg" class="logo" alt="Rspack logo" />
 		</a>
 		<a href="https://vuejs.org/" target="_blank">

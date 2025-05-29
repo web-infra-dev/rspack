@@ -211,11 +211,9 @@ pub fn export_from_import(
     let exports_info = compilation
       .get_module_graph()
       .get_exports_info(&module_identifier);
-    let Some(used_name) = exports_info.get_used_name(
-      &compilation.get_module_graph(),
-      *runtime,
-      crate::UsedName::Vec(export_name.to_vec()),
-    ) else {
+    let Some(used_name) =
+      exports_info.get_used_name(&compilation.get_module_graph(), *runtime, export_name)
+    else {
       return format!(
         "{} undefined",
         to_normal_comment(&property_access(export_name, 0))

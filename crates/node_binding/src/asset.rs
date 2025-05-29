@@ -1,8 +1,9 @@
 use napi::{
   bindgen_prelude::{
-    Array, Either, FromNapiValue, Object, ToNapiValue, TypeName, Unknown, ValidateNapiValue,
+    Array, Either, FromNapiValue, JsObjectValue, Object, ToNapiValue, TypeName, Unknown,
+    ValidateNapiValue,
   },
-  sys, Env, NapiRaw,
+  sys, Env, JsValue,
 };
 use napi_derive::napi;
 use rspack_core::Reflector;
@@ -90,7 +91,7 @@ unsafe fn napi_value_to_json(
   match value.get_type()? {
     napi::ValueType::Null => Ok(Some(serde_json::Value::Null)),
     napi::ValueType::Boolean => {
-      let b = value.coerce_to_bool()?.get_value()?;
+      let b = value.coerce_to_bool()?;
       Ok(Some(serde_json::Value::Bool(b)))
     }
     napi::ValueType::Number => {

@@ -62,6 +62,7 @@ import {
 	createJavaScriptModulesHooksRegisters,
 	createNormalModuleFactoryHooksRegisters
 } from "./taps";
+import { TraceHookPlugin } from "./trace/traceHookPlugin";
 import type {
 	InputFileSystem,
 	IntermediateFileSystem,
@@ -248,6 +249,7 @@ class Compiler {
 		);
 		new JsLoaderRspackPlugin(this).apply(this);
 		new ExecuteModulePlugin().apply(this);
+		new TraceHookPlugin().apply(this);
 
 		// this.hooks.shutdown.tap("rspack:cleanup", () => {
 		// 	// Delayed rspack cleanup to the next tick.
@@ -1013,8 +1015,10 @@ class Compiler {
 	 * Note: This is not a webpack public API, maybe removed in future.
 	 * @internal
 	 */
-	__internal__getModuleExecutionResult(id: number) {
-		return this.#moduleExecutionResultsMap.get(id);
+	__internal__takeModuleExecutionResult(id: number) {
+		const result = this.#moduleExecutionResultsMap.get(id);
+		this.#moduleExecutionResultsMap.delete(id);
+		return result;
 	}
 
 	/**

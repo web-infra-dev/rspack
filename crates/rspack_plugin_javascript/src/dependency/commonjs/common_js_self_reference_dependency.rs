@@ -143,10 +143,10 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
     let used = if dep.names.is_empty() {
       module_graph
         .get_exports_info(&module.identifier())
-        .get_used_name(&module_graph, *runtime, UsedName::Vec(dep.names.clone()))
-        .unwrap_or_else(|| UsedName::Vec(dep.names.clone()))
+        .get_used_name(&module_graph, *runtime, &dep.names)
+        .unwrap_or_else(|| UsedName::Normal(dep.names.clone()))
     } else {
-      UsedName::Vec(dep.names.clone())
+      UsedName::Normal(dep.names.clone())
     };
 
     let exports_argument = module.get_exports_argument();
@@ -173,8 +173,7 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
         base,
         property_access(
           match used {
-            UsedName::Str(name) => vec![name].into_iter(),
-            UsedName::Vec(names) => names.into_iter(),
+            UsedName::Normal(names) => names.into_iter(),
           },
           0
         )

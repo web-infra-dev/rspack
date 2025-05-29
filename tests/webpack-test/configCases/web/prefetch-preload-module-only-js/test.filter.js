@@ -1,2 +1,1 @@
-// no links in document.head._children
-module.exports = () => false
+module.exports = () => "FIXME: unexpected css prefetch/preload runtime"

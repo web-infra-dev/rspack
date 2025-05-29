@@ -75,7 +75,7 @@ impl SplitChunksPlugin {
           .expect("Should have a module");
         let having_violating_source_type = violating_source_types
           .iter()
-          .any(|ty: &SourceType| module.source_types().contains(ty));
+          .any(|ty: &SourceType| module.source_types(&module_graph).contains(ty));
         if having_violating_source_type {
           Some(module)
         } else {

@@ -1,1 +1,1 @@
-module.exports = () => { return "FIXME: entry path parsed failed" }
+module.exports = () => "FIXME: entry path parsed failed"

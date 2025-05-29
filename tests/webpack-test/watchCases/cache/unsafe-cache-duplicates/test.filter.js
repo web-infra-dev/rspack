@@ -1,4 +1,2 @@
 
-// TODO: Should create a issue for this test
-// FIXME: timeout
-module.exports = () => { return false }
+module.exports = () => "NOPLAN: cache is different with webpack"

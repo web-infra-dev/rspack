@@ -1,1 +1,1 @@
-module.exports = () => "webpack.ids.DeterministicModuleIdsPlugin";
+module.exports = () => "NOPLAN: support webpack.ids.DeterministicModuleIdsPlugin";

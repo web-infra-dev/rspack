@@ -197,15 +197,6 @@ pub enum CrossOriginLoading {
   Enable(String),
 }
 
-impl std::fmt::Display for CrossOriginLoading {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      CrossOriginLoading::Disable => write!(f, "false"),
-      CrossOriginLoading::Enable(value) => write!(f, "\"{value}\""),
-    }
-  }
-}
-
 #[derive(Default, Clone, Copy, Debug)]
 pub struct PathData<'a> {
   pub filename: Option<&'a str>,

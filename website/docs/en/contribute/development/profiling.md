@@ -56,19 +56,19 @@ Node.js currently only supports `--perf-prof` on Linux platforms. JavaScript pro
 
 Rspack’s JavaScript typically runs in the Node.js thread. Select the Node.js thread to view the time distribution on the Node.js side.
 
-![Javascript Profiling](https://assets.rspack.dev/rspack/assets/profiling-javascript.png)
+![Javascript Profiling](https://assets.rspack.rs/rspack/assets/profiling-javascript.png)
 
 #### Rust profiling
 
 Rspack’s Rust code usually runs in the tokio thread. Select the tokio thread to view the time distribution on the Rust side.
 
-![Rust Profiling](https://assets.rspack.dev/rspack/assets/profiling-rust.png)
+![Rust Profiling](https://assets.rspack.rs/rspack/assets/profiling-rust.png)
 
 ### Rsdoctor timeline
 
 If we want to analyze the time cost of loaders and plugins or the compilation behavior of loaders, we can use Rsdoctor to view:
 
-![image](https://assets.rspack.dev/others/assets/rsdoctor/rsdoctor-loader-timeline.png)
+![image](https://assets.rspack.rs/others/assets/rsdoctor/rsdoctor-loader-timeline.png)
 
 Refer to [Rsdoctor Compilation Analysis](/guide/optimization/profile#use-rsdoctor)
 

@@ -36,7 +36,7 @@ module.exports = {
 		@@ -23,4 +23,3 @@
 		- <CLR=XX,BOLD>ERROR</CLR> in <CLR=XX>×<CLR=XX> Rspack performance recommendations:
 		- <CLR=XX>│<CLR=XX> You can limit the size of your bundles by using import() to lazy load some parts of your application.
-		- <CLR=XX>│<CLR=XX> For more info visit https://www.rspack.dev/guide/optimization/code-splitting
+		- <CLR=XX>│<CLR=XX> For more info visit https://rspack.rs/guide/optimization/code-splitting
 		- <CLR=XX>
 		+ <CLR=XX,BOLD>ERROR</CLR> in <CLR=BOLD>webpack performance recommendations:
 		+ You can limit the size of your bundles by using import() or require.ensure to lazy load some parts of your application.

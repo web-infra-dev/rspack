@@ -1,10 +1,10 @@
 [package]
-description = "rspack futures"
-edition     = "2021"
-license     = "MIT"
-name        = "rspack_futures"
-repository  = "https://github.com/web-infra-dev/rspack"
-version     = "0.2.0"
+description       = "rspack futures"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_futures"
+repository        = "https://github.com/web-infra-dev/rspack"
+version           = "0.2.0"
 
 [dependencies]
 tokio = { workspace = true, features = ["rt"] }

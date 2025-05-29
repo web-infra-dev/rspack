@@ -1,16 +1,19 @@
 // @ts-check
 import { copyFileSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 /** @type {import('prebundle').Config} */
 export default {
 	dependencies: [
 		{
 			name: "zod",
+			copyDts: true
+		},
+		{
+			name: "webpack-sources",
 			copyDts: true
 		},
 		"graceful-fs",
@@ -58,19 +61,6 @@ export default {
 
 				// add an empty CachedInputFileSystem.d.ts file to prevent ts error
 				writeFileSync(join(distPath, "CachedInputFileSystem.d.ts"), "");
-			}
-		},
-		{
-			name: "webpack-sources",
-			ignoreDts: true,
-			afterBundle(task) {
-				const dtsInputPath = join(
-					__dirname,
-					"declarations/webpack-sources.d.ts"
-				);
-				const dtsContent = readFileSync(dtsInputPath, "utf-8");
-				const dtsOutputPath = join(task.distPath, "index.d.ts");
-				writeFileSync(dtsOutputPath, dtsContent, "utf-8");
 			}
 		},
 		{

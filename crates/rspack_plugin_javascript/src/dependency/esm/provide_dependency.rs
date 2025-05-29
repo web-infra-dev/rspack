@@ -127,8 +127,7 @@ impl DependencyCodeGeneration for ProvideDependency {
 fn path_to_string(path: Option<&UsedName>) -> String {
   match path {
     Some(p) => match p {
-      UsedName::Str(str) => format!("[\"{}\"]", str.as_str()),
-      UsedName::Vec(vec) if !vec.is_empty() => vec
+      UsedName::Normal(vec) if !vec.is_empty() => vec
         .iter()
         .map(|part| format!("[\"{}\"]", part.as_str()))
         .join(""),
@@ -175,8 +174,7 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       return;
     };
     let exports_info = module_graph.get_exports_info(con.module_identifier());
-    let used_name =
-      exports_info.get_used_name(&module_graph, *runtime, UsedName::Vec(dep.ids.clone()));
+    let used_name = exports_info.get_used_name(&module_graph, *runtime, &dep.ids.clone());
     init_fragments.push(Box::new(NormalInitFragment::new(
       format!(
         "/* provided dependency */ var {} = {}{};\n",

@@ -3,10 +3,10 @@ use std::collections::{hash_map::Entry, VecDeque};
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
   get_entry_runtime, incremental::IncrementalPasses, is_exports_object_referenced,
-  is_no_exports_referenced, merge_runtime, AsyncDependenciesBlockIdentifier, BuildMetaExportsType,
-  Compilation, CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId,
-  ExportsInfo, ExtendedReferencedExport, GroupOptions, ModuleIdentifier, Plugin, ReferencedExport,
-  RuntimeSpec, UsageState,
+  is_no_exports_referenced, AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation,
+  CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfo,
+  ExtendedReferencedExport, GroupOptions, ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec,
+  UsageState,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -59,8 +59,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         Some(get_entry_runtime(entry_name, &entry.options, &entries))
       };
       if let Some(runtime) = runtime.as_ref() {
-        let tem_global_runtime = global_runtime.get_or_insert_default();
-        global_runtime = Some(merge_runtime(tem_global_runtime, runtime));
+        global_runtime.get_or_insert_default().extend(runtime);
       }
       for &dep in entry.dependencies.iter() {
         self.process_entry_dependency(dep, runtime.clone(), &mut q);
@@ -153,7 +152,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         let active_state = connection.active_state(&module_graph, runtime.as_ref());
 
         match active_state {
-          ConnectionState::Bool(false) => {
+          ConnectionState::Active(false) => {
             continue;
           }
           ConnectionState::TransitiveOnly => {

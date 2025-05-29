@@ -82,7 +82,7 @@ impl ModuleGraphConnection {
     runtime: Option<&RuntimeSpec>,
   ) -> ConnectionState {
     if !self.conditional {
-      return ConnectionState::Bool(self.active);
+      return ConnectionState::Active(self.active);
     }
 
     module_graph.get_condition_state(self, runtime)
@@ -101,18 +101,20 @@ impl ModuleGraphConnection {
 #[cacheable]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ConnectionState {
-  Bool(bool),
+  Active(bool),
+  // While determining the active state, this flag is used to signal a circular connection.
   CircularConnection,
+  // Module itself is not connected, but transitive modules are connected transitively.
   TransitiveOnly,
 }
 
 impl ConnectionState {
   pub fn is_true(&self) -> bool {
-    matches!(self, ConnectionState::Bool(true))
+    matches!(self, ConnectionState::Active(true))
   }
 
   pub fn is_not_false(&self) -> bool {
-    !matches!(self, ConnectionState::Bool(false))
+    !matches!(self, ConnectionState::Active(false))
   }
 
   pub fn is_false(&self) -> bool {
@@ -123,13 +125,15 @@ impl ConnectionState {
 impl std::ops::Add for ConnectionState {
   type Output = Self;
   fn add(self, other: Self) -> Self::Output {
-    if matches!(self, ConnectionState::Bool(true)) || matches!(other, ConnectionState::Bool(true)) {
-      return ConnectionState::Bool(true);
+    if matches!(self, ConnectionState::Active(true))
+      || matches!(other, ConnectionState::Active(true))
+    {
+      return ConnectionState::Active(true);
     }
-    if matches!(self, ConnectionState::Bool(false)) {
+    if matches!(self, ConnectionState::Active(false)) {
       return other;
     }
-    if matches!(other, ConnectionState::Bool(false)) {
+    if matches!(other, ConnectionState::Active(false)) {
       return self;
     }
     if matches!(self, ConnectionState::TransitiveOnly) {

@@ -124,7 +124,7 @@ impl Dependency {
   }
 
   #[napi(getter)]
-  pub fn ids(&mut self, env: Env) -> napi::Result<Either<Vec<JsString>, ()>> {
+  pub fn ids<'a>(&mut self, env: &'a Env) -> napi::Result<Either<Vec<JsString<'a>>, ()>> {
     let (dependency, compilation) = self.as_ref()?;
 
     Ok(match compilation {

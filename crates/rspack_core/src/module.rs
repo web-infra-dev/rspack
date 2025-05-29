@@ -12,7 +12,7 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsOption, AsPreset, AsVec},
 };
-use rspack_collections::{Identifiable, Identifier, IdentifierSet};
+use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::RspackHashDigest;
@@ -31,7 +31,7 @@ use crate::{
   AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
   ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation, CompilationAsset, CompilationId,
   CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
-  DependenciesBlock, DependencyId, ExportInfoProvided, ExternalModule, ModuleGraph, ModuleLayer,
+  DependenciesBlock, DependencyId, ExportProvided, ExternalModule, ModuleGraph, ModuleLayer,
   ModuleType, NormalModule, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
   SharedPluginDriver, SourceType,
 };
@@ -231,7 +231,7 @@ pub trait Module:
   fn module_type(&self) -> &ModuleType;
 
   /// Defines what kind of code generation results this module can generate.
-  fn source_types(&self) -> &[SourceType];
+  fn source_types(&self, module_graph: &ModuleGraph) -> &[SourceType];
 
   /// The source of the module. This could be optional, modules like the `NormalModule` can have the corresponding source.
   /// However, modules that is created from "nowhere" (e.g. `ExternalModule` and `MissingModule`) does not have its source.
@@ -365,8 +365,9 @@ pub trait Module:
     &self,
     _module_graph: &ModuleGraph,
     _module_chain: &mut IdentifierSet,
+    _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
-    ConnectionState::Bool(true)
+    ConnectionState::Active(true)
   }
 
   fn need_build(&self) -> bool {
@@ -436,7 +437,7 @@ fn get_exports_type_impl(
         if let Some(export_info) =
           mg.get_read_only_export_info(&identifier, Atom::from("__esModule"))
         {
-          if matches!(export_info.provided(mg), Some(ExportInfoProvided::False)) {
+          if matches!(export_info.provided(mg), Some(ExportProvided::NotProvided)) {
             handle_default(default_object)
           } else {
             let Some(target) = export_info.get_target(mg) else {
@@ -627,8 +628,8 @@ mod test {
   use super::Module;
   use crate::{
     AsyncDependenciesBlockIdentifier, BuildContext, BuildResult, CodeGenerationResult, Compilation,
-    ConcatenationScope, Context, DependenciesBlock, DependencyId, ModuleExt, ModuleType,
-    RuntimeSpec, SourceType,
+    ConcatenationScope, Context, DependenciesBlock, DependencyId, ModuleExt, ModuleGraph,
+    ModuleType, RuntimeSpec, SourceType,
   };
 
   #[cacheable]
@@ -678,7 +679,7 @@ mod test {
           unreachable!()
         }
 
-        fn source_types(&self) -> &[SourceType] {
+        fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
           unreachable!()
         }
 

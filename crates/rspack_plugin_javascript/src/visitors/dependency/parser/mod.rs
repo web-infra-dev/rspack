@@ -8,10 +8,11 @@ use std::{borrow::Cow, fmt::Display, rc::Rc, sync::Arc};
 
 use bitflags::bitflags;
 pub use call_hooks_name::CallHooksName;
+use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_core::{
   AdditionalData, AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo,
-  BuildMeta, CompilerOptions, JavascriptParserOptions, JavascriptParserUrl, ModuleIdentifier,
-  ModuleLayer, ModuleType, ResourceData, SpanExt,
+  BuildMeta, CompilerOptions, DependencyRange, JavascriptParserOptions, JavascriptParserUrl,
+  ModuleIdentifier, ModuleLayer, ModuleType, ResourceData, SpanExt,
 };
 use rspack_error::miette::Diagnostic;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -100,6 +101,15 @@ pub struct ExpressionExpressionInfo {
   pub members: Vec<Atom>,
   pub members_optionals: Vec<bool>,
   pub member_ranges: Vec<Span>,
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
+pub struct DestructuringAssignmentProperty {
+  pub range: DependencyRange,
+  #[cacheable(with=AsPreset)]
+  pub id: Atom,
+  pub shorthand: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -209,7 +219,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) errors: Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub(crate) warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub dependencies: Vec<BoxDependency>,
-  pub(crate) presentational_dependencies: Vec<BoxDependencyTemplate>,
+  pub presentational_dependencies: Vec<BoxDependencyTemplate>,
   // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
   // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
   #[allow(clippy::vec_box)]
@@ -221,7 +231,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) worker_index: u32,
   pub(crate) build_meta: &'parser mut BuildMeta,
   pub build_info: &'parser mut BuildInfo,
-  pub(crate) resource_data: &'parser ResourceData,
+  pub resource_data: &'parser ResourceData,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
   pub(crate) definitions_db: ScopeInfoDB,
   pub(crate) compiler_options: &'parser CompilerOptions,
@@ -236,9 +246,8 @@ pub struct JavascriptParser<'parser> {
   // TODO: delete `enter_call`
   pub(crate) enter_call: u32,
   pub(crate) member_expr_in_optional_chain: bool,
-  // TODO: delete `properties_in_destructuring`
-  pub(crate) properties_in_destructuring: FxHashMap<Atom, FxHashSet<Atom>>,
-  pub(crate) destructuring_assignment_properties: Option<FxHashMap<Span, FxHashSet<String>>>,
+  pub(crate) destructuring_assignment_properties:
+    Option<FxHashMap<Span, FxHashSet<DestructuringAssignmentProperty>>>,
   pub(crate) semicolons: &'parser mut FxHashSet<BytePos>,
   pub(crate) statement_path: Vec<StatementPath>,
   pub(crate) prev_statement: Option<StatementPath>,
@@ -391,7 +400,6 @@ impl<'parser> JavascriptParser<'parser> {
       worker_index: 0,
       module_identifier,
       member_expr_in_optional_chain: false,
-      properties_in_destructuring: Default::default(),
       destructuring_assignment_properties: None,
       semicolons,
       statement_path: Default::default(),
@@ -950,7 +958,10 @@ impl<'parser> JavascriptParser<'parser> {
     self.definitions_db.get(self.definitions, str).is_none()
   }
 
-  pub fn destructuring_assignment_properties_for(&self, span: &Span) -> Option<FxHashSet<String>> {
+  pub fn destructuring_assignment_properties_for(
+    &self,
+    span: &Span,
+  ) -> Option<FxHashSet<DestructuringAssignmentProperty>> {
     self
       .destructuring_assignment_properties
       .as_ref()

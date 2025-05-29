@@ -1,6 +1,7 @@
 mod chunks;
 mod code_generation_results;
 mod dependencies;
+mod diagnostics;
 pub mod entries;
 
 use std::{cell::RefCell, collections::HashMap, path::Path, ptr::NonNull};
@@ -8,49 +9,48 @@ use std::{cell::RefCell, collections::HashMap, path::Path, ptr::NonNull};
 use chunks::Chunks;
 pub use code_generation_results::*;
 use dependencies::JsDependencies;
+use diagnostics::Diagnostics;
 use entries::JsEntries;
-use napi::{NapiRaw, NapiValue};
 use napi_derive::napi;
-use once_cell::sync::OnceCell;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{
   rspack_sources::BoxSource, BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions,
   FactorizeInfo, ModuleIdentifier, Reflector,
 };
-use rspack_error::{Diagnostic, ToStringResultToRspackResultExt};
-use rspack_napi::{napi::bindgen_prelude::*, OneShotRef, WeakRef};
+use rspack_error::{Diagnostic, RspackSeverity, ToStringResultToRspackResultExt};
+use rspack_napi::napi::bindgen_prelude::*;
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rustc_hash::FxHashMap;
 
 use super::PathWithInfo;
 use crate::{
-  entry::JsEntryOptions, utils::callbackify, AssetInfo, EntryDependency, JsAddingRuntimeModule,
-  JsAsset, JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper, JsCompatSource, JsFilename,
-  JsModuleGraph, JsPathData, JsRspackDiagnostic, JsRspackError, JsStats,
-  JsStatsOptimizationBailout, ModuleObject, RspackResultToNapiResultExt, ToJsCompatSource,
+  entry::JsEntryOptions, utils::callbackify, AssetInfo, EntryDependency, ErrorCode,
+  JsAddingRuntimeModule, JsAsset, JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper,
+  JsCompatSource, JsFilename, JsModuleGraph, JsPathData, JsRspackDiagnostic, JsRspackError,
+  JsStats, JsStatsOptimizationBailout, ModuleObject, RspackResultToNapiResultExt, ToJsCompatSource,
   COMPILER_REFERENCES,
 };
-
-thread_local! {
-  static CHUNKS_SYMBOL: OnceCell<OneShotRef> = const { OnceCell::new() };
-}
 
 #[napi]
 pub struct JsCompilation {
   #[allow(dead_code)]
   pub(crate) id: CompilationId,
   pub(crate) inner: NonNull<Compilation>,
-  chunks_ref: OnceCell<WeakRef>,
 }
 
 impl JsCompilation {
-  fn as_ref(&self) -> napi::Result<&'static Compilation> {
+  pub(crate) fn new(id: CompilationId, inner: NonNull<Compilation>) -> Self {
+    #[allow(clippy::unwrap_used)]
+    Self { id, inner }
+  }
+
+  pub(crate) fn as_ref(&self) -> napi::Result<&'static Compilation> {
     // SAFETY: The memory address of rspack_core::Compilation will not change,
     // so as long as the Compiler is not dropped, we can safely return a 'static reference.
     Ok(unsafe { self.inner.as_ref() })
   }
 
-  fn as_mut(&mut self) -> napi::Result<&'static mut Compilation> {
+  pub(crate) fn as_mut(&mut self) -> napi::Result<&'static mut Compilation> {
     // SAFETY: The memory address of rspack_core::Compilation will not change,
     // so as long as the Compiler is not dropped, we can safely return a 'static reference.
     Ok(unsafe { self.inner.as_mut() })
@@ -212,29 +212,8 @@ impl JsCompilation {
   }
 
   #[napi(getter, ts_return_type = "Chunks")]
-  pub fn chunks(
-    &self,
-    env: &Env,
-    mut this: This,
-    reference: Reference<JsCompilation>,
-  ) -> Result<&WeakRef> {
-    let raw_env = env.raw();
-
-    self.chunks_ref.get_or_try_init(move || {
-      let symbol: napi::Result<napi::JsObject> = CHUNKS_SYMBOL.with(move |once_cell| {
-        let r = once_cell.get_or_try_init(move || {
-          let symbol = env.create_symbol(Some("chunks"))?;
-          OneShotRef::new(raw_env, symbol)
-        })?;
-
-        let napi_val = unsafe { ToNapiValue::to_napi_value(raw_env, r)? };
-        Ok(unsafe { Object::from_raw_unchecked(raw_env, napi_val) })
-      });
-
-      let mut jsobject = Chunks::new(reference.downgrade()).get_jsobject(env)?;
-      this.object.set_property(symbol?, &jsobject)?;
-      WeakRef::new(env.raw(), &mut jsobject)
-    })
+  pub fn chunks(&self, reference: Reference<JsCompilation>) -> Result<Chunks> {
+    Ok(Chunks::new(reference.downgrade()))
   }
 
   #[napi]
@@ -424,20 +403,6 @@ impl JsCompilation {
     Ok(())
   }
 
-  #[napi]
-  pub fn splice_diagnostic(
-    &mut self,
-    start: u32,
-    end: u32,
-    replace_with: Vec<crate::JsRspackDiagnostic>,
-  ) -> Result<()> {
-    let compilation = self.as_mut()?;
-
-    let diagnostics = replace_with.into_iter().map(Into::into).collect();
-    compilation.splice_diagnostic(start as usize, end as usize, diagnostics);
-    Ok(())
-  }
-
   #[napi(ts_args_type = r#"diagnostic: ExternalObject<'Diagnostic'>"#)]
   pub fn push_native_diagnostic(&mut self, diagnostic: &External<Diagnostic>) -> Result<()> {
     let compilation = self.as_mut()?;
@@ -459,20 +424,31 @@ impl JsCompilation {
     Ok(())
   }
 
+  #[napi(getter)]
+  pub fn errors(&self, reference: Reference<JsCompilation>) -> Result<Diagnostics> {
+    Ok(Diagnostics::new(
+      RspackSeverity::Error,
+      reference.downgrade(),
+    ))
+  }
+
+  #[napi(getter)]
+  pub fn warnings(&self, reference: Reference<JsCompilation>) -> Result<Diagnostics> {
+    Ok(Diagnostics::new(
+      RspackSeverity::Warn,
+      reference.downgrade(),
+    ))
+  }
+
   #[napi]
   pub fn get_errors(&self) -> Result<Vec<JsRspackError>> {
     let compilation = self.as_ref()?;
 
     let colored = compilation.options.stats.colors;
-    Ok(
-      compilation
-        .get_errors_sorted()
-        .map(|d| {
-          JsRspackError::try_from_diagnostic(d, colored)
-            .expect("should convert diagnostic to `JsRspackError`")
-        })
-        .collect(),
-    )
+    compilation
+      .get_errors_sorted()
+      .map(|d| JsRspackError::try_from_diagnostic(d, colored))
+      .collect()
   }
 
   #[napi]
@@ -480,15 +456,11 @@ impl JsCompilation {
     let compilation = self.as_ref()?;
 
     let colored = compilation.options.stats.colors;
-    Ok(
-      compilation
-        .get_warnings_sorted()
-        .map(|d| {
-          JsRspackError::try_from_diagnostic(d, colored)
-            .expect("should convert diagnostic to `JsRspackError`")
-        })
-        .collect(),
-    )
+
+    compilation
+      .get_warnings_sorted()
+      .map(|d| JsRspackError::try_from_diagnostic(d, colored))
+      .collect()
   }
 
   #[napi]
@@ -596,9 +568,11 @@ impl JsCompilation {
     &mut self,
     reference: Reference<JsCompilation>,
     module_identifiers: Vec<String>,
-    f: Function,
-  ) -> Result<()> {
-    let compilation = self.as_mut()?;
+    f: Function<'static>,
+  ) -> Result<(), ErrorCode> {
+    let compilation = self
+      .as_mut()
+      .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
 
     callbackify(
       f,
@@ -633,11 +607,13 @@ impl JsCompilation {
     layer: Option<String>,
     public_path: Option<JsFilename>,
     base_uri: Option<String>,
-    original_module: Option<String>,
+    original_module: String,
     original_module_context: Option<String>,
-    callback: Function,
-  ) -> Result<()> {
-    let compilation = self.as_ref()?;
+    callback: Function<'static>,
+  ) -> Result<(), ErrorCode> {
+    let compilation = self
+      .as_ref()
+      .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
 
     callbackify(
       callback,
@@ -653,7 +629,7 @@ impl JsCompilation {
             public_path.map(|p| p.into()),
             base_uri,
             original_module_context.map(rspack_core::Context::from),
-            original_module.map(ModuleIdentifier::from),
+            ModuleIdentifier::from(original_module),
           )
           .await;
 
@@ -732,20 +708,24 @@ impl JsCompilation {
     &mut self,
     reference: Reference<JsCompilation>,
     js_args: Vec<(String, &mut EntryDependency, Option<JsEntryOptions>)>,
-    f: Function,
-  ) -> napi::Result<()> {
-    let compilation = self.as_mut()?;
+    f: Function<'static>,
+  ) -> napi::Result<(), ErrorCode> {
+    let compilation = self
+      .as_mut()
+      .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
 
     let Some(mut compiler_reference) = COMPILER_REFERENCES.with(|ref_cell| {
       let references = ref_cell.borrow_mut();
       references.get(&compilation.compiler_id()).cloned()
     }) else {
-      return Err(napi::Error::from_reason(
+      return Err(napi::Error::new(
+        napi::Status::GenericFailure.into(),
         "Unable to addEntry now. The Compiler has been garbage collected by JavaScript.",
       ));
     };
     let Some(js_compiler) = compiler_reference.get_mut() else {
-      return Err(napi::Error::from_reason(
+      return Err(napi::Error::new(
+        napi::Status::GenericFailure.into(),
         "Unable to addEntry now. The Compiler has been garbage collected by JavaScript.",
       ));
     };
@@ -780,7 +760,8 @@ impl JsCompilation {
         };
         Ok((dependency, options))
       })
-      .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()?;
+      .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()
+      .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
 
     callbackify(
       f,
@@ -829,20 +810,24 @@ impl JsCompilation {
     &mut self,
     reference: Reference<JsCompilation>,
     js_args: Vec<(String, &mut EntryDependency, Option<JsEntryOptions>)>,
-    f: Function,
-  ) -> napi::Result<()> {
-    let compilation = self.as_mut()?;
+    f: Function<'static>,
+  ) -> napi::Result<(), ErrorCode> {
+    let compilation = self
+      .as_mut()
+      .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
 
     let Some(mut compiler_reference) = COMPILER_REFERENCES.with(|ref_cell| {
       let references = ref_cell.borrow_mut();
       references.get(&compilation.compiler_id()).cloned()
     }) else {
-      return Err(napi::Error::from_reason(
+      return Err(napi::Error::new(
+        napi::Status::GenericFailure.into(),
         "Unable to addInclude now. The Compiler has been garbage collected by JavaScript.",
       ));
     };
     let Some(js_compiler) = compiler_reference.get_mut() else {
-      return Err(napi::Error::from_reason(
+      return Err(napi::Error::new(
+        napi::Status::GenericFailure.into(),
         "Unable to addInclude now. The Compiler has been garbage collected by JavaScript.",
       ));
     };
@@ -877,7 +862,8 @@ impl JsCompilation {
         };
         Ok((dependency, options))
       })
-      .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()?;
+      .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()
+      .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
 
     callbackify(
       f,
@@ -934,16 +920,15 @@ impl ToNapiValue for JsAddEntryItemCallbackArgs {
     let env_wrapper = Env::from_raw(env);
     let mut js_array = env_wrapper.create_array(0)?;
 
+    let raw_undefined = Undefined::to_napi_value(env, ())?;
+    let undefined = Unknown::from_napi_value(env, raw_undefined)?;
     for result in val.0 {
       let js_result = match result {
-        Either::A(msg) => vec![
-          env_wrapper.create_string(&msg)?.into_unknown(),
-          env_wrapper.get_undefined()?.into_unknown(),
-        ],
+        Either::A(msg) => vec![env_wrapper.create_string(&msg)?.to_unknown(), undefined],
         Either::B(module) => {
           let napi_val = ToNapiValue::to_napi_value(env, module)?;
           let js_module = Unknown::from_napi_value(env, napi_val)?;
-          vec![env_wrapper.get_undefined()?.into_unknown(), js_module]
+          vec![undefined, js_module]
         }
       };
       js_array.insert(js_result)?;
@@ -1003,11 +988,7 @@ impl ToNapiValue for JsCompilationWrapper {
           ToNapiValue::to_napi_value(env, r.clone())
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
-          let js_compilation = JsCompilation {
-            id: val.id,
-            inner: val.inner,
-            chunks_ref: OnceCell::new(),
-          };
+          let js_compilation = JsCompilation::new(val.id, val.inner);
           let napi_value = ToNapiValue::to_napi_value(env, js_compilation)?;
           let reference: Reference<JsCompilation> = Reference::from_napi_value(env, napi_value)?;
           let weak_reference = entry.insert(reference.downgrade());

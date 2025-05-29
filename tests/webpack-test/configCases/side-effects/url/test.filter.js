@@ -1,2 +1,2 @@
-// TODO: Should create a issue for this test
-module.exports = () => { return "FIXME: not contain orphan: true" }
+
+module.exports = () => "FIXME: not contain orphan: true"

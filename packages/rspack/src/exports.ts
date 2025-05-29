@@ -29,6 +29,7 @@ export { ContextModule } from "./ContextModule";
 export { ConcatenatedModule } from "./ConcatenatedModule";
 export { ExternalModule } from "./ExternalModule";
 export type { NormalModuleFactory } from "./NormalModuleFactory";
+export type { default as ModuleGraph } from "./ModuleGraph";
 export { RuntimeGlobals } from "./RuntimeGlobals";
 export type {
 	StatsAsset,
@@ -106,6 +107,7 @@ export { IgnorePlugin, type IgnorePluginOptions } from "./builtin-plugin";
 export { ProvidePlugin } from "./builtin-plugin";
 export { DefinePlugin } from "./builtin-plugin";
 export { ProgressPlugin } from "./builtin-plugin";
+export { RstestPlugin } from "./builtin-plugin";
 export { EntryPlugin } from "./builtin-plugin";
 export { DynamicEntryPlugin } from "./builtin-plugin";
 export { ExternalsPlugin } from "./builtin-plugin";
@@ -366,7 +368,7 @@ export const experiments: Experiments = {
 			// make sure run cleanupGlobalTrace first so we can safely append Node.js trace to it otherwise it will overlap
 			cleanupGlobalTrace();
 
-			JavaScriptTracer.cleanupJavaScriptTrace();
+			await JavaScriptTracer.cleanupJavaScriptTrace();
 		}
 	},
 	RemoveDuplicateModulesPlugin,

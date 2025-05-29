@@ -48,10 +48,10 @@ use crate::{
   CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
   CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
   ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId, DependencyType,
-  ErrorSpan, ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta, IdentCollector,
+  ErrorSpan, ExportProvided, ExportsArgument, ExportsType, FactoryMeta, IdentCollector,
   LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType, Resolve, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsageState, UsedName, DEFAULT_EXPORT,
+  RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsageState, DEFAULT_EXPORT,
   NAMESPACE_OBJECT_EXPORT,
 };
 
@@ -195,6 +195,7 @@ pub struct ConcatenatedModuleInfo {
   pub interop_default_access_name: Option<Atom>,
   pub global_scope_ident: Vec<ConcatenatedModuleIdent>,
   pub idents: Vec<ConcatenatedModuleIdent>,
+  pub all_used_names: HashSet<Atom>,
   pub binding_to_ref: HashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>>,
 
   pub public_path_auto_replace: Option<bool>,
@@ -522,7 +523,7 @@ impl Module for ConcatenatedModule {
     &mut self.root_module_ctxt.build_meta
   }
 
-  fn source_types(&self) -> &[SourceType] {
+  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     &[SourceType::JavaScript]
   }
 
@@ -629,7 +630,7 @@ impl Module for ConcatenatedModule {
       Some(Cow::Owned(
         generation_runtime
           .intersection(self_runtime)
-          .cloned()
+          .copied()
           .collect::<RuntimeSpec>(),
       ))
     } else {
@@ -686,42 +687,8 @@ impl Module for ConcatenatedModule {
       let Some(ModuleInfo::Concatenated(info)) = module_to_info_map.get_mut(module_info_id) else {
         continue;
       };
-      if let Some(ref ast) = info.ast {
-        let mut collector = IdentCollector::default();
-        ast.visit(|program, _ctxt| {
-          program.visit_with(&mut collector);
-        });
-        for ident in collector.ids {
-          if ident.id.ctxt == info.global_ctxt {
-            info.global_scope_ident.push(ident.clone());
-            all_used_names.insert(ident.id.sym.clone());
-          }
-          if ident.is_class_expr_with_ident {
-            all_used_names.insert(ident.id.sym.clone());
-            continue;
-          }
-          // deconflict naming from inner scope, the module level deconflict will be finished
-          // you could see tests/webpack-test/cases/scope-hoisting/renaming-4967 as a example
-          // during module eval phase.
-          if ident.id.ctxt != info.module_ctxt {
-            all_used_names.insert(ident.id.sym.clone());
-          }
-          info.idents.push(ident);
-        }
-        let mut binding_to_ref: HashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>> =
-          HashMap::default();
-
-        for ident in info.idents.iter() {
-          match binding_to_ref.entry((ident.id.sym.clone(), ident.id.ctxt)) {
-            Entry::Occupied(mut occ) => {
-              occ.get_mut().push(ident.clone());
-            }
-            Entry::Vacant(vac) => {
-              vac.insert(vec![ident.clone()]);
-            }
-          };
-        }
-        info.binding_to_ref = binding_to_ref;
+      if info.ast.is_some() {
+        all_used_names.extend(info.all_used_names.clone());
       }
     }
 
@@ -959,7 +926,7 @@ impl Module for ConcatenatedModule {
         .unwrap_or("".into());
       if matches!(
         export_info.provided(&module_graph),
-        Some(ExportInfoProvided::False)
+        Some(ExportProvided::NotProvided)
       ) {
         continue;
       }
@@ -1105,7 +1072,7 @@ impl Module for ConcatenatedModule {
         for export_info in exports_info.ordered_exports(&module_graph) {
           if matches!(
             export_info.provided(&module_graph),
-            Some(ExportInfoProvided::False)
+            Some(ExportProvided::NotProvided)
           ) {
             continue;
           }
@@ -1334,7 +1301,7 @@ impl Module for ConcatenatedModule {
       Some(Cow::Owned(
         generation_runtime
           .intersection(self_runtime)
-          .cloned()
+          .copied()
           .collect::<RuntimeSpec>(),
       ))
     } else {
@@ -1415,6 +1382,7 @@ impl Module for ConcatenatedModule {
     &self,
     _module_graph: &ModuleGraph,
     _module_chain: &mut IdentifierSet,
+    _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
     self.root_module_ctxt.side_effect_connection_state
   }
@@ -1764,7 +1732,7 @@ impl ConcatenatedModule {
               &fm,
               span.start as usize,
               span.end as usize,
-              "JavaScript parsing error:\n".to_string(),
+              "JavaScript parse error:\n".to_string(),
               err.kind().msg().to_string(),
             )
             .with_kind(DiagnosticKind::JavaScript)
@@ -1773,9 +1741,10 @@ impl ConcatenatedModule {
         }
       };
       let mut ast = Ast::new(program, cm, Some(comments));
-
+      let mut all_used_names = HashSet::default();
       let mut global_ctxt = SyntaxContext::empty();
       let mut module_ctxt = SyntaxContext::empty();
+      let mut collector = IdentCollector::default();
 
       ast.transform(|program, context| {
         global_ctxt = global_ctxt.apply_mark(context.unresolved_mark);
@@ -1785,11 +1754,45 @@ impl ConcatenatedModule {
           context.top_level_mark,
           false,
         ));
+        program.visit_with(&mut collector);
       });
-
-      let result_source = ReplaceSource::new(source.clone());
       module_info.module_ctxt = module_ctxt;
       module_info.global_ctxt = global_ctxt;
+
+      for ident in collector.ids {
+        if ident.id.ctxt == module_info.global_ctxt {
+          module_info.global_scope_ident.push(ident.clone());
+          all_used_names.insert(ident.id.sym.clone());
+        }
+        if ident.is_class_expr_with_ident {
+          all_used_names.insert(ident.id.sym.clone());
+          continue;
+        }
+        // deconflict naming from inner scope, the module level deconflict will be finished
+        // you could see tests/webpack-test/cases/scope-hoisting/renaming-4967 as a example
+        // during module eval phase.
+        if ident.id.ctxt != module_info.module_ctxt {
+          all_used_names.insert(ident.id.sym.clone());
+        }
+        module_info.idents.push(ident);
+      }
+      module_info.all_used_names = all_used_names;
+
+      let mut binding_to_ref: HashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>> =
+        HashMap::default();
+
+      for ident in module_info.idents.iter() {
+        match binding_to_ref.entry((ident.id.sym.clone(), ident.id.ctxt)) {
+          Entry::Occupied(mut occ) => {
+            occ.get_mut().push(ident.clone());
+          }
+          Entry::Vacant(vac) => {
+            vac.insert(vec![ident.clone()]);
+          }
+        };
+      }
+      module_info.binding_to_ref = binding_to_ref;
+      let result_source = ReplaceSource::new(source.clone());
       module_info.ast = Some(ast);
       module_info.runtime_requirements = runtime_requirements;
       module_info.internal_source = Some(source);
@@ -2087,7 +2090,7 @@ impl ConcatenatedModule {
         let export_id = export_name.first().cloned();
         if matches!(
           export_info.provided(mg),
-          Some(crate::ExportInfoProvided::False)
+          Some(crate::ExportProvided::NotProvided)
         ) {
           needed_namespace_objects.insert(info.module);
           return Binding::Raw(RawBinding {
@@ -2105,9 +2108,7 @@ impl ConcatenatedModule {
         if let Some(ref export_id) = export_id
           && let Some(direct_export) = info.export_map.as_ref().and_then(|map| map.get(export_id))
         {
-          if let Some(used_name) =
-            exports_info.get_used_name(mg, runtime, UsedName::Vec(export_name.clone()))
-          {
+          if let Some(used_name) = exports_info.get_used_name(mg, runtime, &export_name) {
             // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L402-L404
             let used_name = used_name.to_used_name_vec();
 
@@ -2186,7 +2187,7 @@ impl ConcatenatedModule {
         if info.namespace_export_symbol.is_some() {
           // That's how webpack write https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L463-L471
           let used_name = exports_info
-            .get_used_name(mg, runtime, UsedName::Vec(export_name.clone()))
+            .get_used_name(mg, runtime, &export_name)
             .expect("should have export name");
           let used_name = used_name.to_used_name_vec();
           return Binding::Raw(RawBinding {
@@ -2209,9 +2210,7 @@ impl ConcatenatedModule {
         );
       }
       ModuleInfo::External(info) => {
-        if let Some(used_name) =
-          exports_info.get_used_name(mg, runtime, UsedName::Vec(export_name.clone()))
-        {
+        if let Some(used_name) = exports_info.get_used_name(mg, runtime, &export_name) {
           let used_name = used_name.to_used_name_vec();
           let comment = if used_name == export_name {
             String::new()

@@ -19,6 +19,7 @@ import intuitLogo from './assets/intuit.svg';
 import khanAcademyLogo from './assets/khan-academy.svg';
 import kuaishouLogo from './assets/kuaishou.svg';
 import microsoftLogo from './assets/microsoft.svg';
+import miroLogo from './assets/miro.svg';
 import nioLogo from './assets/nio.svg';
 import sequoiaLogo from './assets/sequoia.svg';
 import tiktokLogo from './assets/tiktok.svg';
@@ -142,6 +143,12 @@ const companyList: Company[] = [
     logo: verkadaLogo,
     url: 'https://verkada.com',
     width: 180,
+  },
+  {
+    name: 'Miro',
+    logo: miroLogo,
+    url: 'https://miro.com',
+    width: 120,
   },
 ];
 

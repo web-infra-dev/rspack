@@ -1,10 +1,13 @@
 #![allow(clippy::comparison_chain)]
 
-use std::{borrow::Cow, hash::Hash, sync::Arc};
+use std::{
+  borrow::Cow,
+  hash::Hash,
+  sync::{Arc, LazyLock},
+};
 
 use async_trait::async_trait;
-use rayon::prelude::*;
-use rspack_collections::DatabaseItem;
+use rspack_collections::{DatabaseItem, ItemUkey};
 use rspack_core::{
   get_css_chunk_filename_template,
   rspack_sources::{
@@ -12,15 +15,16 @@ use rspack_core::{
     SourceExt,
   },
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
-  CompilationContentHash, CompilationParams, CompilationRenderManifest,
+  CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, DependencyType,
-  LibIdentOptions, Module, ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin,
-  PublicPath, RenderManifestEntry, RuntimeGlobals, SelfModuleFactory, SourceType,
+  Module, ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin, PublicPath,
+  RenderManifestEntry, RuntimeGlobals, SelfModuleFactory, SourceType,
 };
-use rspack_error::{Diagnostic, Result};
+use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
 use rspack_hook::plugin_hook;
 use rspack_plugin_runtime::is_enabled_for_chunk;
+use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
@@ -29,17 +33,37 @@ use crate::{
     CssSelfReferenceLocalIdentDependencyTemplate, CssSupports, CssUrlDependencyTemplate,
   },
   parser_and_generator::{CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator},
-  plugin::CssPluginInner,
+  plugin::{CssModulesPluginHooks, CssModulesRenderSource, CssPluginInner},
   runtime::CssLoadingRuntimeModule,
   utils::AUTO_PUBLIC_PATH_PLACEHOLDER,
   CssPlugin,
 };
+
+static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, Box<CssModulesPluginHooks>>> =
+  LazyLock::new(Default::default);
 
 struct CssModuleDebugInfo<'a> {
   pub module: &'a dyn Module,
 }
 
 impl CssPlugin {
+  pub fn get_compilation_hooks(
+    id: CompilationId,
+  ) -> dashmap::mapref::one::Ref<'static, CompilationId, Box<CssModulesPluginHooks>> {
+    if !COMPILATION_HOOKS_MAP.contains_key(&id) {
+      COMPILATION_HOOKS_MAP.insert(id, Default::default());
+    }
+    COMPILATION_HOOKS_MAP
+      .get(&id)
+      .expect("should have js plugin drive")
+  }
+
+  pub fn get_compilation_hooks_mut(
+    id: CompilationId,
+  ) -> dashmap::mapref::one::RefMut<'static, CompilationId, Box<CssModulesPluginHooks>> {
+    COMPILATION_HOOKS_MAP.entry(id).or_default()
+  }
+
   fn get_chunk_unused_local_idents(
     compilation: &Compilation,
     chunk: &Chunk,
@@ -61,10 +85,10 @@ impl CssPlugin {
       .collect()
   }
 
-  fn render_chunk(
+  async fn render_chunk(
     &self,
     compilation: &Compilation,
-    mg: &ModuleGraph,
+    mg: &ModuleGraph<'_>,
     chunk: &Chunk,
     output_path: &str,
     css_import_modules: Vec<&dyn Module>,
@@ -72,7 +96,7 @@ impl CssPlugin {
   ) -> Result<(BoxSource, Vec<Diagnostic>)> {
     let (ordered_css_modules, conflicts) =
       Self::get_ordered_chunk_css_modules(chunk, compilation, css_import_modules, css_modules);
-    let source = Self::render_chunk_to_source(compilation, chunk, &ordered_css_modules)?;
+    let source = Self::render_chunk_to_source(compilation, chunk, &ordered_css_modules).await?;
 
     let content = source.source();
     let len = AUTO_PUBLIC_PATH_PLACEHOLDER.len();
@@ -123,7 +147,7 @@ impl CssPlugin {
     Ok((source, diagnostics))
   }
 
-  fn render_chunk_to_source(
+  async fn render_chunk_to_source(
     compilation: &Compilation,
     chunk: &Chunk,
     ordered_css_modules: &[&dyn Module],
@@ -146,95 +170,82 @@ impl CssPlugin {
       })
       .collect::<Result<Vec<_>>>()?;
 
-    let source = module_sources
-      .into_par_iter()
-      // TODO(hyf0): I couldn't think of a situation where a module doesn't have `Source`.
-      // Should we return a Error if there is a `None` in `module_sources`?
-      // Webpack doesn't throw. It just do a best-effort checking https://github.com/webpack/webpack/blob/5e3c4d0ddf8ae6a6e45fea42be4e8950fe49c0bb/lib/css/CssModulesPlugin.js#L565-L568
-      .flatten()
-      .fold(
-        ConcatSource::default,
-        |mut acc, (debug_info, data, cur_source)| {
-          let (start, end) = Self::render_module_debug_info(compilation, &debug_info);
-          acc.add(start);
+    let module_sources = rspack_futures::scope::<_, Result<_>>(|token| {
+      module_sources
+        .into_iter()
+        .flatten()
+        .for_each(|(debug_info, data, cur_source)| {
+          let s = unsafe { token.used((compilation, chunk.ukey(), debug_info, data, cur_source)) };
+          s.spawn(
+            |(compilation, chunk, debug_info, data, cur_source)| async move {
+              let hooks = Self::get_compilation_hooks(compilation.id());
+              let mut post_module_container = {
+                let mut container_source = ConcatSource::default();
 
-          let mut num_close_bracket = 0;
+                let mut num_close_bracket = 0;
 
-          // TODO: use PrefixSource to create indent
-          if let Some(media) = data.get::<CssMedia>() {
-            num_close_bracket += 1;
-            acc.add(RawSource::from(format!("@media {}{{\n", media)));
-          }
+                // TODO: use PrefixSource to create indent
+                if let Some(media) = data.get::<CssMedia>() {
+                  num_close_bracket += 1;
+                  container_source.add(RawSource::from(format!("@media {}{{\n", media)));
+                }
 
-          if let Some(supports) = data.get::<CssSupports>() {
-            num_close_bracket += 1;
-            acc.add(RawSource::from(format!("@supports ({}) {{\n", supports)));
-          }
+                if let Some(supports) = data.get::<CssSupports>() {
+                  num_close_bracket += 1;
+                  container_source.add(RawSource::from(format!("@supports ({}) {{\n", supports)));
+                }
 
-          if let Some(layer) = data.get::<CssLayer>() {
-            num_close_bracket += 1;
-            acc.add(RawSource::from(format!(
-              "@layer{} {{\n",
-              if let CssLayer::Named(layer) = &layer {
-                Cow::Owned(format!(" {}", layer))
-              } else {
-                Cow::Borrowed("")
-              }
-            )));
-          }
+                if let Some(layer) = data.get::<CssLayer>() {
+                  num_close_bracket += 1;
+                  container_source.add(RawSource::from(format!(
+                    "@layer{} {{\n",
+                    if let CssLayer::Named(layer) = &layer {
+                      Cow::Owned(format!(" {}", layer))
+                    } else {
+                      Cow::Borrowed("")
+                    }
+                  )));
+                }
 
-          acc.add(cur_source.clone());
+                container_source.add(cur_source.clone());
 
-          for _ in 0..num_close_bracket {
-            acc.add(RawStringSource::from_static("\n}"));
-          }
-          acc.add(RawStringSource::from_static("\n"));
+                for _ in 0..num_close_bracket {
+                  container_source.add(RawStringSource::from_static("\n}"));
+                }
+                container_source.add(RawStringSource::from_static("\n"));
+                CssModulesRenderSource {
+                  source: container_source.boxed(),
+                }
+              };
 
-          acc.add(end);
-          acc
-        },
-      )
-      .reduce(ConcatSource::default, |mut acc, cur| {
-        acc.add(cur);
-        acc
-      });
+              let chunk_ukey = chunk.ukey().as_u32().into();
+              hooks
+                .render_module_package
+                .call(
+                  compilation,
+                  &chunk_ukey,
+                  debug_info.module,
+                  &mut post_module_container,
+                )
+                .await?;
 
-    Ok(source)
-  }
+              Ok(post_module_container.source)
+            },
+          );
+        });
+    })
+    .await
+    .into_iter()
+    .map(|r| r.to_rspack_result())
+    .collect::<Result<Vec<_>>>()?;
 
-  fn render_module_debug_info(
-    compilation: &Compilation,
-    debug_info: &CssModuleDebugInfo,
-  ) -> (ConcatSource, ConcatSource) {
-    let mut start = ConcatSource::default();
-    let mut end = ConcatSource::default();
+    let mut source = ConcatSource::default();
 
-    if !compilation.options.mode.is_development() {
-      return (start, end);
+    for module_source in module_sources.into_iter() {
+      source.add(module_source?);
     }
 
-    let context = compilation.options.context.as_str();
-    let module = debug_info.module;
-
-    let debug_module_id = module
-      .lib_ident(LibIdentOptions { context })
-      .unwrap_or("None".into());
-
-    start.add(RawStringSource::from(format!(
-      "/* #region {:?} */\n",
-      debug_module_id,
-    )));
-
-    start.add(RawStringSource::from(format!(
-      "/*\n- type: {}\n*/\n",
-      module.module_type(),
-    )));
-
-    end.add(RawStringSource::from(format!(
-      "/* #endregion {debug_module_id:?} */\n\n"
-    )));
-
-    (start, end)
+    Ok(source)
   }
 }
 
@@ -415,14 +426,16 @@ async fn render_manifest(
     .old_cache
     .chunk_render_occasion
     .use_cache(compilation, chunk, &SourceType::Css, || async {
-      let (source, diagnostics) = self.render_chunk(
-        compilation,
-        &module_graph,
-        chunk,
-        &output_path,
-        css_import_modules,
-        css_modules,
-      )?;
+      let (source, diagnostics) = self
+        .render_chunk(
+          compilation,
+          &module_graph,
+          chunk,
+          &output_path,
+          css_import_modules,
+          css_modules,
+        )
+        .await?;
       Ok((CachedSource::new(source).boxed(), diagnostics))
     })
     .await?;

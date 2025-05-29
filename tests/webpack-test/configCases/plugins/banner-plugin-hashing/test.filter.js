@@ -1,1 +1,1 @@
-module.exports = () => { return "FIXME: expect to have full hash" }
+module.exports = () => "FIXME: expect to have full hash"

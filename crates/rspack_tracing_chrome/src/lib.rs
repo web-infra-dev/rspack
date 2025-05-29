@@ -6,20 +6,20 @@ use std::{
   marker::PhantomData,
   path::Path,
   sync::{
-    Arc, Mutex,
     atomic::{AtomicUsize, Ordering},
     mpsc,
     mpsc::Sender,
+    Arc, Mutex,
   },
   thread::JoinHandle,
 };
 
-use serde_json::{Value as JsonValue, json};
-use tracing_core::{Event, Subscriber, field::Field, span};
+use serde_json::{json, Value as JsonValue};
+use tracing_core::{field::Field, span, Event, Subscriber};
 use tracing_subscriber::{
-  Layer,
   layer::Context,
   registry::{LookupSpan, SpanRef},
+  Layer,
 };
 
 thread_local! {
@@ -433,8 +433,8 @@ where
         serde_json::to_writer(&mut write, &entry).unwrap();
         has_started = true;
       }
-
-      write.write_all(b"\n]").unwrap();
+      // we need to merge tracing with js side, so don't end it early
+      // write.write_all(b"\n]").unwrap();
       write.flush().unwrap();
     });
 
