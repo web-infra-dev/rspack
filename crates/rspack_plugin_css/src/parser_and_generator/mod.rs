@@ -697,10 +697,7 @@ fn get_used_exports<'a>(
       let export_info = mg.get_read_only_export_info(&identifier, name.as_str().into());
 
       if let Some(export_info) = export_info {
-        matches!(
-          ExportInfoGetter::get_used(export_info.as_data(mg), runtime),
-          UsageState::Unused
-        )
+        ExportInfoGetter::get_used(export_info.as_data(mg), runtime) != UsageState::Unused
       } else {
         true
       }

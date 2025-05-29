@@ -17,10 +17,9 @@ use crate::utils::mangle_exports::{
 };
 
 fn can_mangle(exports_info: ExportsInfo, mg: &ModuleGraph) -> bool {
-  if matches!(
-    ExportInfoGetter::get_used(exports_info.other_exports_info(mg).as_data(mg), None),
-    UsageState::Unused
-  ) {
+  if ExportInfoGetter::get_used(exports_info.other_exports_info(mg).as_data(mg), None)
+    != UsageState::Unused
+  {
     return false;
   }
   let mut has_something_to_mangle = false;

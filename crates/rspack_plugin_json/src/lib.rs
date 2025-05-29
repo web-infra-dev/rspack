@@ -278,10 +278,9 @@ fn create_object_for_exports_info(
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
 ) -> JsonValue {
-  if matches!(
-    ExportInfoGetter::get_used(exports_info.other_exports_info(mg).as_data(mg), runtime),
-    UsageState::Unused
-  ) {
+  if ExportInfoGetter::get_used(exports_info.other_exports_info(mg).as_data(mg), runtime)
+    != UsageState::Unused
+  {
     return data;
   }
 

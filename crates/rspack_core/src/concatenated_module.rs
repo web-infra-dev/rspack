@@ -973,7 +973,7 @@ impl Module for ConcatenatedModule {
       runtime,
     );
     // Add ESM compatibility flag (must be first because of possible circular dependencies)
-    if matches!(used, UsageState::Used) {
+    if used != UsageState::Unused {
       should_add_esm_flag = true
     }
 
