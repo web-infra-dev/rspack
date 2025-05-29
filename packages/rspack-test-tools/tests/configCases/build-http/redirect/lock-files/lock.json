@@ -7,6 +7,13 @@
       "content_type": "image/png",
       "valid_until": 1748223968250,
       "etag": "W/\"70f400bdbff19f7b1859bc4856f593134cfad96dd1f157b19647bdce9bef5433\""
+    },
+    "https://github.com/web-infra-dev/rspack/raw/main/packages/rspack-test-tools/tests/configCases/asset/_images/file.png": {
+      "resolved": "https://github.com/web-infra-dev/rspack/raw/main/packages/rspack-test-tools/tests/configCases/asset/_images/file.png",
+      "integrity": "sha512-atUj9bZUhzadMFYTNmufaNze7iJSkXZuOyX69FQ5ygafYUAwwIylTHFP2/epRPrEibFRWov54NMZHhvLv+ap3w==",
+      "content_type": "image/png",
+      "valid_until": 1748429297752,
+      "etag": "W/\"70f400bdbff19f7b1859bc4856f593134cfad96dd1f157b19647bdce9bef5433\""
     }
   }
 }

@@ -1,16 +1,10 @@
-use std::{
-  cmp::Ordering,
-  collections::{hash_map, hash_set},
-  fmt::Debug,
-  ops::Deref,
-  sync::Arc,
-};
+use std::{cmp::Ordering, collections::hash_map, fmt::Debug, ops::Deref};
 
 use rspack_cacheable::{
   cacheable,
   with::{AsRefStr, AsVec},
 };
-use rustc_hash::{FxHashMap as HashMap, FxHashSet};
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{EntryOptions, EntryRuntime};
 
@@ -18,7 +12,7 @@ use crate::{EntryOptions, EntryRuntime};
 #[derive(Debug, Default, Clone)]
 pub struct RuntimeSpec {
   #[cacheable(with=AsVec<AsRefStr>)]
-  inner: FxHashSet<Arc<str>>,
+  inner: ustr::UstrSet,
   key: String,
 }
 
@@ -51,28 +45,28 @@ impl std::cmp::PartialEq for RuntimeSpec {
 impl std::cmp::Eq for RuntimeSpec {}
 
 impl Deref for RuntimeSpec {
-  type Target = FxHashSet<Arc<str>>;
+  type Target = ustr::UstrSet;
 
   fn deref(&self) -> &Self::Target {
     &self.inner
   }
 }
 
-impl From<FxHashSet<Arc<str>>> for RuntimeSpec {
-  fn from(value: FxHashSet<Arc<str>>) -> Self {
+impl From<ustr::UstrSet> for RuntimeSpec {
+  fn from(value: ustr::UstrSet) -> Self {
     Self::new(value)
   }
 }
 
-impl FromIterator<Arc<str>> for RuntimeSpec {
-  fn from_iter<T: IntoIterator<Item = Arc<str>>>(iter: T) -> Self {
-    Self::new(FxHashSet::from_iter(iter))
+impl FromIterator<ustr::Ustr> for RuntimeSpec {
+  fn from_iter<T: IntoIterator<Item = ustr::Ustr>>(iter: T) -> Self {
+    Self::new(ustr::UstrSet::from_iter(iter))
   }
 }
 
 impl IntoIterator for RuntimeSpec {
-  type Item = Arc<str>;
-  type IntoIter = hash_set::IntoIter<Self::Item>;
+  type Item = ustr::Ustr;
+  type IntoIter = <ustr::UstrSet as IntoIterator>::IntoIter;
 
   fn into_iter(self) -> Self::IntoIter {
     self.inner.into_iter()
@@ -80,7 +74,7 @@ impl IntoIterator for RuntimeSpec {
 }
 
 impl RuntimeSpec {
-  pub fn new(inner: FxHashSet<Arc<str>>) -> Self {
+  pub fn new(inner: ustr::UstrSet) -> Self {
     let mut this = Self {
       inner,
       key: String::new(),
@@ -107,16 +101,24 @@ impl RuntimeSpec {
   }
 
   pub fn subtract(&self, b: &RuntimeSpec) -> Self {
-    let res = &self.inner - &b.inner;
+    let res = self.inner.difference(&b.inner).copied().collect();
     Self::new(res)
   }
 
-  pub fn insert(&mut self, r: Arc<str>) -> bool {
+  pub fn insert(&mut self, r: ustr::Ustr) -> bool {
     let update = self.inner.insert(r);
     if update {
       self.update_key();
     }
     update
+  }
+
+  pub fn extend(&mut self, other: &Self) {
+    let prev = self.inner.len();
+    self.inner.extend(other.inner.iter().copied());
+    if prev != self.inner.len() {
+      self.update_key();
+    }
   }
 
   fn update_key(&mut self) {
@@ -127,9 +129,9 @@ impl RuntimeSpec {
       self.key = String::new();
       return;
     }
-    let mut ordered = self.inner.iter().cloned().collect::<Vec<_>>();
+    let mut ordered = self.inner.iter().map(|s| s.as_str()).collect::<Vec<_>>();
     ordered.sort_unstable();
-    self.key = ordered.join("_")
+    self.key = ordered.join("_");
   }
 
   pub fn as_str(&self) -> &str {
@@ -148,17 +150,7 @@ pub enum RuntimeMode {
 }
 
 pub fn is_runtime_equal(a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
-  if a.len() != b.len() {
-    return false;
-  }
-
-  for a in a.iter() {
-    if !b.contains(a) {
-      return false;
-    }
-  }
-
-  true
+  a.key == b.key
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -188,16 +180,19 @@ impl RuntimeCondition {
       None
     }
   }
+
+  pub fn as_spec_mut(&mut self) -> Option<&mut RuntimeSpec> {
+    if let Self::Spec(v) = self {
+      Some(v)
+    } else {
+      None
+    }
+  }
 }
 
 pub fn merge_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> RuntimeSpec {
-  let mut set = FxHashSet::default();
-  for r in a.iter() {
-    set.insert(r.clone());
-  }
-  for r in b.iter() {
-    set.insert(r.clone());
-  }
+  let mut set = a.inner.clone();
+  set.extend(b.inner.iter().copied());
   RuntimeSpec::new(set)
 }
 
@@ -214,14 +209,14 @@ pub fn filter_runtime(
     Some(runtime) => {
       let mut some = false;
       let mut every = true;
-      let mut result = FxHashSet::default();
+      let mut result = ustr::UstrSet::default();
 
-      for r in runtime.iter() {
-        let cur = RuntimeSpec::from_iter([r.clone()]);
+      for &r in runtime.iter() {
+        let cur = RuntimeSpec::from_iter([r]);
         let v = filter(Some(&cur));
         if v {
           some = true;
-          result.insert(r.clone());
+          result.insert(r);
         } else {
           every = false;
         }
@@ -287,26 +282,12 @@ pub fn subtract_runtime_condition(
     (_, RuntimeCondition::Boolean(true)) => return RuntimeCondition::Boolean(false),
     (_, RuntimeCondition::Boolean(false)) => return a.clone(),
     (RuntimeCondition::Boolean(false), _) => return RuntimeCondition::Boolean(false),
-    (RuntimeCondition::Spec(a), RuntimeCondition::Spec(b)) => {
-      let mut set = FxHashSet::default();
-      for item in a.iter() {
-        if !b.contains(item) {
-          set.insert(item.clone());
-        }
-      }
-      set
-    }
+    (RuntimeCondition::Spec(a), RuntimeCondition::Spec(b)) => a.difference(b).copied().collect(),
     (RuntimeCondition::Boolean(true), RuntimeCondition::Spec(b)) => {
       if let Some(a) = runtime {
-        let mut set = FxHashSet::default();
-        for item in a.iter() {
-          if !b.contains(item) {
-            set.insert(item.clone());
-          }
-        }
-        set
+        a.difference(b).copied().collect()
       } else {
-        FxHashSet::default()
+        ustr::UstrSet::default()
       }
     }
   };
@@ -321,18 +302,7 @@ pub fn get_runtime_key(runtime: &RuntimeSpec) -> &str {
 }
 
 pub fn compare_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> Ordering {
-  if a == b {
-    return Ordering::Equal;
-  }
-  let a_key = get_runtime_key(a);
-  let b_key = get_runtime_key(b);
-  if a_key < b_key {
-    return Ordering::Less;
-  }
-  if a_key > b_key {
-    return Ordering::Greater;
-  }
-  Ordering::Equal
+  a.key.cmp(&b.key)
 }
 
 #[derive(Default, Clone, Debug, PartialEq, Eq)]

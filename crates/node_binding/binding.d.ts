@@ -41,7 +41,7 @@ export interface NormalModule extends Module {
 	readonly userRequest: string;
 	readonly rawRequest: string;
 	readonly resourceResolveData: JsResourceData | undefined;
-	readonly loaders: ReadonlyArray<JsLoaderItem>;
+	readonly loaders: JsLoaderItem[];
 	get matchResource(): string | undefined;
 	set matchResource(val: string | undefined);
 }
@@ -1269,6 +1269,7 @@ export interface JsStatsError {
   moduleDescriptor?: JsModuleDescriptor
   message: string
   chunkName?: string
+  code?: string
   chunkEntry?: boolean
   chunkInitial?: boolean
   loc?: string
@@ -1408,6 +1409,7 @@ export interface JsStatsWarning {
   name?: string
   message: string
   chunkName?: string
+  code?: string
   chunkEntry?: boolean
   chunkInitial?: boolean
   file?: string

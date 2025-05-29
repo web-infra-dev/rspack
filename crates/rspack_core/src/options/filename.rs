@@ -310,6 +310,8 @@ fn render_template(
   // chunk-level
   if let Some(name) = options.chunk_name {
     t = t.map(|t| t.replace_all(NAME_PLACEHOLDER, name));
+  } else if let Some(id) = options.chunk_id {
+    t = t.map(|t| t.replace_all(NAME_PLACEHOLDER, id));
   }
   if let Some(hash) = options.chunk_hash {
     t = t.map(|t| {

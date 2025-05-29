@@ -6,14 +6,14 @@ use rspack_cacheable::{
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  filter_runtime, import_statement, merge_runtime, AsContextDependency,
-  AwaitDependenciesInitFragment, BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState,
-  Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
-  DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ErrorSpan, ExportProvided, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, ModuleDependency, ModuleGraph, ProvidedExports, RuntimeCondition, RuntimeSpec,
-  SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  filter_runtime, import_statement, AsContextDependency, AwaitDependenciesInitFragment,
+  BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
+  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  ErrorSpan, ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo,
+  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
+  ModuleGraph, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -180,10 +180,10 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
         {
           merged_runtime_condition = old_runtime_condition;
         } else {
-          merged_runtime_condition = RuntimeCondition::Spec(merge_runtime(
-            old_runtime_condition.as_spec().expect("should be spec"),
-            merged_runtime_condition.as_spec().expect("should be spec"),
-          ));
+          merged_runtime_condition
+            .as_spec_mut()
+            .expect("should be spec")
+            .extend(old_runtime_condition.as_spec().expect("should be spec"));
         }
       }
       emitted_modules.insert(*ref_module, merged_runtime_condition);

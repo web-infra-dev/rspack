@@ -630,7 +630,7 @@ impl Module for ConcatenatedModule {
       Some(Cow::Owned(
         generation_runtime
           .intersection(self_runtime)
-          .cloned()
+          .copied()
           .collect::<RuntimeSpec>(),
       ))
     } else {
@@ -1301,7 +1301,7 @@ impl Module for ConcatenatedModule {
       Some(Cow::Owned(
         generation_runtime
           .intersection(self_runtime)
-          .cloned()
+          .copied()
           .collect::<RuntimeSpec>(),
       ))
     } else {
@@ -1732,7 +1732,7 @@ impl ConcatenatedModule {
               &fm,
               span.start as usize,
               span.end as usize,
-              "JavaScript parsing error:\n".to_string(),
+              "JavaScript parse error:\n".to_string(),
               err.kind().msg().to_string(),
             )
             .with_kind(DiagnosticKind::JavaScript)

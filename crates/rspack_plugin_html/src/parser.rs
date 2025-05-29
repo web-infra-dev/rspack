@@ -84,7 +84,7 @@ pub fn html_parse_error_to_traceable_error(error: Error, fm: &SourceFile) -> rsp
     fm,
     span.start as usize,
     span.end as usize,
-    "HTML parsing error".to_string(),
+    "HTML parse error".to_string(),
     message.to_string(),
   )
   .with_kind(DiagnosticKind::Html);

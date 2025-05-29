@@ -6,8 +6,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::extract_hash_pattern;
 use crate::{
-  merge_runtime, EntryData, EntryOptions, Filename, RuntimeSpec, CHUNK_HASH_PLACEHOLDER,
-  CONTENT_HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER, HASH_PLACEHOLDER,
+  EntryData, EntryOptions, Filename, RuntimeSpec, CHUNK_HASH_PLACEHOLDER, CONTENT_HASH_PLACEHOLDER,
+  FULL_HASH_PLACEHOLDER, HASH_PLACEHOLDER,
 };
 
 pub fn get_entry_runtime(
@@ -36,10 +36,7 @@ pub fn get_entry_runtime(
           queue.push(depend.clone());
         }
       } else {
-        result = merge_runtime(
-          &result,
-          &RuntimeSpec::from_entry(&name, options.runtime.as_ref()),
-        );
+        result.extend(&RuntimeSpec::from_entry(&name, options.runtime.as_ref()));
       }
     }
     result

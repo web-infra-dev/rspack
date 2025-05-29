@@ -177,6 +177,8 @@ export default defineConfig({
     ],
     source: {
       preEntry: ['./theme/tailwind.css'],
+    },
+    resolve: {
       alias: {
         '@builtIns': path.join(__dirname, 'components', 'builtIns'),
         '@components': path.join(__dirname, 'components'),

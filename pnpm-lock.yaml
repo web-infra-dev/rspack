@@ -455,6 +455,9 @@ importers:
       jsdom:
         specifier: ^26.1.0
         version: 26.1.0
+      loader-utils:
+        specifier: ^2.0.4
+        version: 2.0.4
       memfs:
         specifier: 4.17.2
         version: 4.17.2

@@ -1,5 +1,5 @@
 import * as path from "path";
-import { type Compilation, rspack, NormalModule } from "@rspack/core";
+import { type Chunk, type ChunkGroup, type Compilation, Module, ModuleGraph, NormalModule, rspack } from "@rspack/core";
 import { beforeAll, bench, describe } from "vitest";
 import rspackConfig from "./fixtures/ts-react/rspack.config";
 
@@ -125,7 +125,7 @@ describe("TypeScript React project", () => {
 
 	bench("record module", () => {
 		function recordModule(mod: NormalModule) {
-			let resource =
+			const resource =
 				mod.type === 'css/mini-extract'
 				? mod.identifier().slice(mod.identifier().lastIndexOf('!') + 1)
 				: mod.resource
@@ -134,7 +134,7 @@ describe("TypeScript React project", () => {
 				return
 			}
 
-			let ssrNamedModuleId = path.relative(
+			const ssrNamedModuleId = path.relative(
 				context,
 				mod.resourceResolveData?.path || resource
 			);
@@ -185,6 +185,44 @@ describe("TypeScript React project", () => {
 		for (const module of theCompilation.modules) {
 			if (module instanceof NormalModule) {
 				isCSSMod(module);
+			}
+		}
+	});
+
+	bench("record chunk group", () => {
+		const checkedChunkGroups = new Set()
+      	const checkedChunks = new Set()
+
+		for (const [_entryName, entrypoint] of theCompilation.entrypoints) {
+			recordChunkGroup(entrypoint)
+		}
+
+		function recordChunkGroup(chunkGroup: ChunkGroup) {
+			if (checkedChunkGroups.has(chunkGroup)) return
+			checkedChunkGroups.add(chunkGroup)
+
+			chunkGroup.chunks.forEach((chunk: Chunk) => {
+				if (checkedChunks.has(chunk)) return
+				checkedChunks.add(chunk)
+				const entryMods = theCompilation.chunkGraph.getChunkEntryModulesIterable(chunk)
+				
+				for (const mod of entryMods) {
+					for (const connection of theCompilation.moduleGraph.getOutgoingConnectionsInOrder(mod)) {
+						const dependency = connection.dependency
+						if (!dependency) continue
+						const clientEntryMod = theCompilation.moduleGraph.getResolvedModule(
+							dependency
+						) as NormalModule
+						const modId = theCompilation.chunkGraph.getModuleId(
+							clientEntryMod
+						) as string | number | null
+					}
+				}
+			})
+
+			// Walk through all children chunk groups too.
+			for (const child of chunkGroup.childrenIterable) {
+				recordChunkGroup(child)
 			}
 		}
 	});
