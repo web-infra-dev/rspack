@@ -1,3 +1,4 @@
+use core::fmt;
 use std::{borrow::Cow, collections::HashSet};
 
 use itertools::Itertools;
@@ -36,7 +37,7 @@ static INDENT: &str = "    ";
 impl ChunkGraph {
   // convert chunk graph to dot format
   // 1. support chunk_group dump visualizer
-  pub fn to_dot(&self, compilation: &Compilation) -> std::io::Result<String> {
+  pub fn to_dot(&self, compilation: &Compilation) -> std::result::Result<String, fmt::Error> {
     let mut visited_group_nodes: HashMap<ChunkGroupUkey, String> = HashMap::default();
     let mut visited_group_edges: HashSet<(ChunkGroupUkey, ChunkGroupUkey, bool)> = HashSet::new();
     let mut visiting_groups: Vec<ChunkGroupUkey> = Vec::new();
@@ -133,8 +134,8 @@ impl ChunkGraph {
       }
       visited_group_nodes.insert(chunk_group_ukey, chunk_group_name.clone());
     }
-    use std::io::Write;
-    let mut dot = Vec::new();
+    use std::fmt::Write;
+    let mut dot = String::new();
     // write header
     writeln!(&mut dot, "digraph G {{")?;
     // neato layout engine is more readable
@@ -164,9 +165,7 @@ impl ChunkGraph {
     }
     // write footer
     write!(&mut dot, "}}")?;
-    let result = String::from_utf8_lossy(&dot).to_string();
-
-    Ok(result)
+    Ok(dot)
   }
   pub fn generate_dot(&self, compilation: &Compilation, dotfile_name: &str) {
     // do not generate dot file if there is no query
