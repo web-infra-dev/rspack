@@ -1,12 +1,12 @@
-use std::{borrow::Cow, collections::HashSet, fmt::write, path::PathBuf};
+use std::{borrow::Cow, collections::HashSet};
 
 use itertools::Itertools;
 use rspack_collections::{IdentifierMap, UkeyMap};
+use rspack_util::env::has_query;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  chunk, chunk_group, AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, Compilation,
-  ModuleIdentifier,
+  AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier,
 };
 
 pub mod chunk_graph_chunk;
@@ -46,13 +46,11 @@ impl ChunkGraph {
     let get_debug_chunk_group_info = |chunk_group_ukey: &ChunkGroupUkey| {
       let chunk_group = compilation
         .chunk_group_by_ukey
-        .get(&chunk_group_ukey)
+        .get(chunk_group_ukey)
         .expect("should have chunk group");
 
-      let chunk_group_name = chunk_group
-        .name()
-        .map(|name| Cow::Borrowed(name))
-        .unwrap_or_else(|| {
+      let chunk_group_name = chunk_group.name().map_or_else(
+        || {
           let mut origins = chunk_group
             .origins()
             .iter()
@@ -74,7 +72,9 @@ impl ChunkGraph {
 
           origins.sort();
           Cow::Owned(origins.join("\n"))
-        });
+        },
+        |name| Cow::Borrowed(name),
+      );
       let table_header = format!("<tr><td bgcolor=\"#aaa\">{}</td></tr>", chunk_group_name);
       let bg_color = if chunk_group.is_initial() {
         "green"
@@ -85,7 +85,7 @@ impl ChunkGraph {
       let requests = chunk_group
         .chunks
         .iter()
-        .filter_map(|chunk_ukey| {
+        .map(|chunk_ukey| {
           let chunk: &crate::Chunk = compilation
             .chunk_by_ukey
             .get(chunk_ukey)
@@ -94,20 +94,20 @@ impl ChunkGraph {
           // let mg = self.get_ordered_chunk_modules(chunk_ukey, mg);
           // let modules = mg.iter().map(|m| m.identifier()).collect::<Vec<_>>();
           if let Some(name) = chunk.name() {
-            return Some(name.to_string());
+            return name.to_string();
           }
           let id = chunk_ukey.as_u32().to_string();
-          return Some(id);
+          id
         })
         .map(|chunk_name| format!("    <tr><td>{}</td></tr>", chunk_name))
         .join("\n");
 
-      let table_body = format!("{}", requests);
+      let table_body = requests.to_string();
 
-      return format!(
+      format!(
         "\n<<table bgcolor=\"{}\">\n{}\n{}\n</table>>\n",
         bg_color, table_header, table_body
-      );
+      )
     };
 
     // push entry_point chunk group into visiting queue
@@ -139,17 +139,17 @@ impl ChunkGraph {
     use std::io::Write;
     let mut dot = Vec::new();
     // write header
-    write!(&mut dot, "digraph G {{\n")?;
+    writeln!(&mut dot, "digraph G {{")?;
     // neato layout engine is more readable
-    write!(&mut dot, "layout=neato;\n")?;
-    write!(&mut dot, "overlap=false;\n")?;
-    write!(&mut dot, "node [shape=plaintext];\n")?;
-    write!(&mut dot, "edge [arrowsize=0.5];\n")?;
+    writeln!(&mut dot, "layout=neato;")?;
+    writeln!(&mut dot, "overlap=false;")?;
+    writeln!(&mut dot, "node [shape=plaintext];")?;
+    writeln!(&mut dot, "edge [arrowsize=0.5];")?;
 
     // write all node info
     for (node_id, node_info) in visited_group_nodes.iter() {
-      write!(&mut dot, "{} {} [\n", INDENT, node_id.as_u32())?;
-      write!(&mut dot, "label={}", node_info)?;
+      writeln!(&mut dot, "{} {} [", INDENT, node_id.as_u32())?;
+      write!(&mut dot, "label={node_info}")?;
       write!(&mut dot, "\n];\n")?;
     }
     // write all edge info
@@ -163,16 +163,20 @@ impl ChunkGraph {
         if edge.2 { "solid" } else { "dotted" }
       )?;
       write!(&mut dot, "]")?;
-      write!(&mut dot, ";\n")?;
+      writeln!(&mut dot, ";")?;
     }
     // write footer
     write!(&mut dot, "}}")?;
     let result = String::from_utf8_lossy(&dot).to_string();
 
-    return Ok(result);
+    Ok(result)
   }
-  pub fn generate_dot(&self, compilation: &Compilation, dotfile_name: &str) -> std::io::Result<()> {
-    let result = self.to_dot(compilation)?;
+  pub fn generate_dot(&self, compilation: &Compilation, dotfile_name: &str) {
+    // do not generate dot file if there is no query
+    if !has_query() {
+      return;
+    }
+    let result = self.to_dot(compilation).expect("to_dot failed");
     std::fs::write(
       format!(
         "{}-{}.dot",
@@ -180,7 +184,7 @@ impl ChunkGraph {
         dotfile_name
       ),
       &result,
-    )?;
-    Ok(())
+    )
+    .expect("write dot file failed");
   }
 }

@@ -14,8 +14,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let start = logger.time("ensure chunk conditions");
   compilation
     .chunk_graph
-    .generate_dot(compilation, "before-ensure-chunk-conditions")
-    .unwrap();
+    .generate_dot(compilation, "before-ensure-chunk-conditions");
   let mut source_module_chunks = HashMap::default();
   compilation
     .get_module_graph()
