@@ -202,13 +202,28 @@ type DevMiddlewareContext<
 };
 type Server = any;
 
-type MiddlewareHandler = any;
-type MiddlewareObject = {
+type MiddlewareHandler<
+	RequestInternal extends Request = Request,
+	ResponseInternal extends Response = Response,
+> = (
+	req: RequestInternal,
+	res: ResponseInternal,
+	next: NextFunction
+) => void | Promise<void>;
+
+type MiddlewareObject<
+	RequestInternal extends Request = Request,
+	ResponseInternal extends Response = Response,
+> = {
 	name?: string;
 	path?: string;
-	middleware: MiddlewareHandler;
+	middleware: MiddlewareHandler<RequestInternal, ResponseInternal>;
 };
-export type Middleware = MiddlewareObject | MiddlewareHandler;
+export type Middleware<
+	RequestInternal extends Request = Request,
+	ResponseInternal extends Response = Response,
+> = MiddlewareObject<RequestInternal, ResponseInternal> | MiddlewareHandler<RequestInternal, ResponseInternal>;
+
 type OpenApp = {
 	name?: string | undefined;
 	arguments?: string[] | undefined;
