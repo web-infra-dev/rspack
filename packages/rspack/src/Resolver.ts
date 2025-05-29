@@ -1,6 +1,9 @@
 import type * as binding from "@rspack/binding";
 import { type Resolve, getRawResolve } from "./config";
-import type { ResolveCallback } from "./config/adapterRuleUse";
+import type {
+	ErrorWithDetails,
+	ResolveCallback
+} from "./config/adapterRuleUse";
 
 type ResolveContext = {};
 
@@ -33,9 +36,16 @@ export class Resolver {
 		resolveContext: ResolveContext,
 		callback: ResolveCallback
 	): void {
-		this.binding.resolve(path, request, (error, data) =>
-			callback(error, data?.resource, data)
-		);
+		try {
+			const data = this.binding.resolveSync(path, request);
+			if (data === false) {
+				callback(null, false);
+				return;
+			}
+			callback(null, data.resource, data);
+		} catch (err) {
+			callback(err as ErrorWithDetails);
+		}
 	}
 
 	withOptions({
