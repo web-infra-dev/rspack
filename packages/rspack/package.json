@@ -51,7 +51,6 @@
     "@rslib/core": "0.9.0",
     "@types/graceful-fs": "4.1.9",
     "@types/watchpack": "^2.4.4",
-    "browserslist": "^4.24.5",
     "enhanced-resolve": "5.18.1",
     "graceful-fs": "^4.2.11",
     "prebundle": "^1.3.3",
@@ -66,8 +65,7 @@
   "dependencies": {
     "@module-federation/runtime-tools": "0.14.3",
     "@rspack/binding": "workspace:*",
-    "@rspack/lite-tapable": "1.0.1",
-    "caniuse-lite": "^1.0.30001718"
+    "@rspack/lite-tapable": "1.0.1"
   },
   "peerDependencies": {
     "@swc/helpers": ">=0.5.1"

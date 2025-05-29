@@ -1459,6 +1459,8 @@ export interface KnownAssetInfo {
   isOverSizeLimit?: boolean
 }
 
+export declare function loadBrowserslist(input: string | undefined | null, context: string): Array<string> | null
+
 export declare function minify(source: string, options: string): Promise<TransformOutput>
 
 export interface NodeFsStats {

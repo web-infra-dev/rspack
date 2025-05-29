@@ -1,3 +1,4 @@
+import binding from "@rspack/binding";
 /**
  * The following code is modified based on
  * https://github.com/webpack/webpack/blob/4b4ca3b/lib/config/target.js
@@ -17,7 +18,7 @@ const getBrowserslistTargetHandler = memoize(() => browserslistTargetHandler);
  * @returns default target
  */
 export const getDefaultTarget = (context: string): "browserslist" | "web" => {
-	const browsers = getBrowserslistTargetHandler().load(null, context);
+	const browsers = binding.loadBrowserslist(null, context);
 	return browsers ? "browserslist" : "web";
 };
 
@@ -136,7 +137,7 @@ const TARGETS: Array<
 		/^browserslist(?::(.+))?$/,
 		(rest, context) => {
 			const browserslistTargetHandler = getBrowserslistTargetHandler();
-			const browsers = browserslistTargetHandler.load(
+			const browsers = binding.loadBrowserslist(
 				rest ? rest.trim() : null,
 				context
 			);

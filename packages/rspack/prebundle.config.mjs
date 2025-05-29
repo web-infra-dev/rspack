@@ -24,26 +24,6 @@ export default {
 			}
 		},
 		{
-			name: "browserslist",
-			ignoreDts: true,
-			externals: {
-				"caniuse-lite": "caniuse-lite",
-				"/^caniuse-lite(/.*)/": "caniuse-lite$1"
-			},
-			// preserve the `require(require.resolve())`
-			beforeBundle(task) {
-				const nodeFile = join(task.depPath, "node.js");
-				const content = readFileSync(nodeFile, "utf-8");
-				writeFileSync(
-					nodeFile,
-					content.replaceAll(
-						"require(require.resolve",
-						'eval("require")(require.resolve'
-					)
-				);
-			}
-		},
-		{
 			name: "enhanced-resolve",
 			externals: {
 				tapable: "@rspack/lite-tapable",
