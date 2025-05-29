@@ -97,6 +97,7 @@ inventory = { version = "0.3.17" }
 rkyv      = { version = "=0.8.8" }
 
 # Must be pinned with the same swc versions
+pnp                 = { version = "0.9.0" }
 swc                 = { version = "=22.0.0" }
 swc_config          = { version = "=2.0.0" }
 swc_core            = { version = "=23.2.0", default-features = false, features = ["parallel_rayon"] }
@@ -105,8 +106,6 @@ swc_error_reporters = { version = "=11.0.0" }
 swc_html            = { version = "=17.0.0" }
 swc_html_minifier   = { version = "=17.0.0", default-features = false }
 swc_node_comments   = { version = "=9.0.0" }
-
-pnp = { version = "0.9.0" }
 
 rspack_dojang = { version = "0.1.11" }
 
