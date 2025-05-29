@@ -1,14 +1,13 @@
-use std::collections::HashSet;
-
-use rkyv::{Archive, Deserialize, Serialize};
+use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
 use rspack_core::{
-  impl_runtime_module, module_raw, ChunkGraph, ChunkUkey, Compilation, DependencyId,
-  ModuleIdentifier, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  impl_runtime_module, module_raw, ChunkUkey, Compilation, DependencyId, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleStage,
 };
 use rspack_error::Result;
 
-#[derive(Debug, Default, Clone, Hash, PartialEq, Eq, Archive, Serialize, Deserialize)]
+#[cacheable]
+#[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub struct EmbedFederationRuntimeModuleOptions {
   pub collected_dependency_ids: Vec<DependencyId>,
 }
@@ -38,63 +37,86 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
   }
 
   async fn generate(&self, compilation: &Compilation) -> Result<String> {
-    let _chunk_ukey = self
+    println!("🔧 EmbedFederationRuntimeModule::generate called");
+
+    let chunk_ukey = self
       .chunk
       .expect("Chunk should be attached to RuntimeModule");
 
+    let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
+    println!("   - chunk: {:?}", chunk.name());
+
     let collected_deps = &self.options.collected_dependency_ids;
+    println!("   - collected_deps count: {}", collected_deps.len());
+
     if collected_deps.is_empty() {
+      println!("   ❌ No federation runtime dependencies to embed");
       return Ok("// No federation runtime dependencies to embed.".to_string());
     }
 
-    let mut found_module_identifier: Option<ModuleIdentifier> = None;
-    let mut target_dep_id: Option<DependencyId> = None;
     let module_graph = compilation.get_module_graph();
+    let mut federation_runtime_modules = Vec::new();
 
+    // Find ALL federation runtime dependencies in this chunk
     for dep_id in collected_deps.iter() {
+      println!("   - checking dep_id: {:?}", dep_id);
       if let Some(module_dyn) = module_graph.get_module_by_dependency_id(dep_id) {
-        let current_chunk_ukey = self.chunk.unwrap();
-        if compilation
+        let is_in_chunk = compilation
           .chunk_graph
-          .is_module_in_chunk(&module_dyn.identifier(), current_chunk_ukey)
-        {
-          found_module_identifier = Some(module_dyn.identifier());
-          target_dep_id = Some(*dep_id);
-          break;
+          .is_module_in_chunk(&module_dyn.identifier(), chunk_ukey);
+        println!("     - module found, is_in_chunk: {}", is_in_chunk);
+        if is_in_chunk {
+          federation_runtime_modules.push(*dep_id);
         }
+      } else {
+        println!("     - module not found in module graph");
       }
     }
 
-    if found_module_identifier.is_none() {
-      return Ok("// Federation runtime entry module not found in this chunk.".to_string());
-    }
-    let _target_module_identifier = found_module_identifier.unwrap();
-    let final_dep_id =
-      target_dep_id.expect("Dependency ID should be found if module identifier is found");
-
-    let mut runtime_requirements = RuntimeGlobals::default();
-
-    let module_str = module_raw(
-      compilation,
-      &mut runtime_requirements,
-      &final_dep_id,
-      &"".to_string(),
-      false,
+    println!(
+      "   - federation_runtime_modules count: {}",
+      federation_runtime_modules.len()
     );
 
+    if federation_runtime_modules.is_empty() {
+      println!("   ❌ Federation runtime entry modules not found in this chunk");
+      return Ok("// Federation runtime entry modules not found in this chunk.".to_string());
+    }
+
+    // Generate the module raw code for each federation runtime dependency
+    let mut runtime_requirements = RuntimeGlobals::default();
+    let mut module_executions = Vec::new();
+
+    for dep_id in federation_runtime_modules {
+      let module_str = module_raw(
+        compilation,
+        &mut runtime_requirements,
+        &dep_id,
+        &"".to_string(),
+        false,
+      );
+      module_executions.push(format!("\t\t{}", module_str));
+    }
+
+    // Generate the oldStartup wrapper pattern with all federation runtime modules
     let result = format!(
-      "var oldStartup = {startup_var};
+      r#"var oldStartup = {startup};
 var hasRun = false;
-{startup_var} = function() {{
-  if (!hasRun) {{
-    hasRun = true;
-    {module_str}
-  }}
-  if(oldStartup) return oldStartup.apply(this, arguments);
-}};
-",
-      startup_var = RuntimeGlobals::STARTUP,
-      module_str = module_str
+{startup} = function() {{
+	if (!hasRun) {{
+		hasRun = true;
+{module_executions}
+	}}
+	return oldStartup();
+}};"#,
+      startup = RuntimeGlobals::STARTUP.name(),
+      module_executions = module_executions.join("\n")
+    );
+
+    println!(
+      "   ✅ Generated oldStartup wrapper with {} federation modules: {} chars",
+      module_executions.len(),
+      result.len()
     );
     Ok(result)
   }
@@ -104,6 +126,6 @@ var hasRun = false;
   }
 
   fn stage(&self) -> RuntimeModuleStage {
-    RuntimeModuleStage::Attach
+    RuntimeModuleStage::from(11) // Attach + 1, ensures it runs after RemoteRuntimeModule (which uses Attach=10)
   }
 }

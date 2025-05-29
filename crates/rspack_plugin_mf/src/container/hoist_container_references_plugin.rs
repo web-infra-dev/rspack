@@ -5,8 +5,8 @@ use std::{
 
 use async_trait::async_trait;
 use rspack_core::{
-  ApplyContext, ChunkUkey, Compilation, CompilationOptimizeChunks, CompilerCompilation,
-  CompilerOptions, Dependency, DependencyId, Module, ModuleIdentifier, Plugin, PluginContext,
+  ApplyContext, Compilation, CompilationOptimizeChunks, CompilerCompilation, CompilerOptions,
+  Dependency, DependencyId, Module, ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -79,6 +79,7 @@ async fn compilation(
   _params: &mut rspack_core::CompilationParams,
 ) -> Result<()> {
   let hooks = FederationModulesPlugin::get_compilation_hooks(compilation);
+
   hooks
     .add_container_entry_dependency
     .lock()
@@ -86,6 +87,7 @@ async fn compilation(
     .tap(ContainerEntryDepCollector {
       set: Arc::clone(&self.container_entry_deps),
     });
+
   hooks
     .add_federation_runtime_dependency
     .lock()
@@ -93,6 +95,7 @@ async fn compilation(
     .tap(FederationRuntimeDepCollector {
       set: Arc::clone(&self.federation_runtime_deps),
     });
+
   hooks
     .add_remote_dependency
     .lock()
@@ -100,82 +103,146 @@ async fn compilation(
     .tap(RemoteDepCollector {
       set: Arc::clone(&self.remote_deps),
     });
+
   Ok(())
 }
 
-#[plugin_hook(CompilationOptimizeChunks for HoistContainerReferencesPlugin)]
+#[plugin_hook(CompilationOptimizeChunks for HoistContainerReferencesPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED + 1)]
 async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
-  // Helper: recursively collect all referenced modules (skipping async blocks for "initial" type)
+  // Helper: recursively collect all referenced modules (matching TypeScript implementation)
   fn get_all_referenced_modules(
     compilation: &Compilation,
     module: &dyn Module,
     ty: &str,
-    visited: &mut HashSet<ModuleIdentifier>,
   ) -> HashSet<ModuleIdentifier> {
     let mut collected = HashSet::new();
+    let mut visited = HashSet::new();
     let mut stack = VecDeque::new();
-    stack.push_back(module.identifier());
 
-    while let Some(module_id) = stack.pop_front() {
-      if !visited.insert(module_id) {
-        continue;
-      }
-      collected.insert(module_id);
+    let module_id = module.identifier();
+    collected.insert(module_id);
+    visited.insert(module_id);
+    stack.push_back(module_id);
+
+    while let Some(current_module_id) = stack.pop_front() {
       let module_graph = compilation.get_module_graph();
-      if let Some(module) = module_graph.module_by_identifier(&module_id) {
-        for conn in module_graph.get_outgoing_connections(&module_id) {
-          let connected_id = conn.module_identifier();
-          if ty == "initial" {
-            let parent_block = module_graph.get_parent_block(&conn.dependency_id);
-            if parent_block.is_some() {
-              // skip async blocks for "initial"
-              continue;
-            }
-          }
-          stack.push_back(*connected_id);
+
+      for conn in module_graph.get_outgoing_connections(&current_module_id) {
+        let connected_id = *conn.module_identifier();
+
+        // Skip if module has already been visited
+        if visited.contains(&connected_id) {
+          continue;
         }
+
+        // Handle 'initial' type (skipping async blocks)
+        if ty == "initial" {
+          let parent_block = module_graph.get_parent_block(&conn.dependency_id);
+          if parent_block.is_some() {
+            // Skip async blocks for "initial"
+            continue;
+          }
+        }
+
+        // Add connected module to collection and stack
+        collected.insert(connected_id);
+        visited.insert(connected_id);
+        stack.push_back(connected_id);
       }
     }
+
     collected
   }
 
-  // Get all runtime chunks (entrypoint runtime chunks)
-  let runtime_chunks: HashSet<ChunkUkey> = compilation
-    .entrypoints
-    .values()
-    .filter_map(|entrypoint_ukey| {
-      compilation
-        .chunk_group_by_ukey
-        .get(entrypoint_ukey)
-        .map(|group| group.get_runtime_chunk(&compilation.chunk_group_by_ukey))
-    })
-    .collect();
+  // Helper: get runtime chunks from entrypoints (matching TypeScript implementation)
+  fn get_runtime_chunks(compilation: &Compilation) -> HashSet<rspack_core::ChunkUkey> {
+    let mut runtime_chunks = HashSet::new();
+    for entrypoint_ukey in compilation.entrypoints.values() {
+      if let Some(entrypoint) = compilation.chunk_group_by_ukey.get(entrypoint_ukey) {
+        let runtime_chunk = entrypoint.get_runtime_chunk(&compilation.chunk_group_by_ukey);
+        runtime_chunks.insert(runtime_chunk);
+      }
+    }
+    runtime_chunks
+  }
 
-  // Hoist referenced modules to runtime chunks
+  // Helper: clean up chunks by disconnecting unused modules (matching TypeScript implementation)
+  fn clean_up_chunks(compilation: &mut Compilation, modules: &mut HashSet<ModuleIdentifier>) {
+    for module_id in modules.iter() {
+      let chunks_vec: Vec<_> = compilation
+        .chunk_graph
+        .get_module_chunks(*module_id)
+        .iter()
+        .copied()
+        .collect();
+
+      for chunk_ukey in chunks_vec {
+        let chunk = compilation.chunk_by_ukey.get(&chunk_ukey);
+        let has_runtime = chunk.map_or(false, |c| c.has_runtime(&compilation.chunk_group_by_ukey));
+
+        if !has_runtime {
+          compilation
+            .chunk_graph
+            .disconnect_chunk_and_module(&chunk_ukey, *module_id);
+
+          if compilation
+            .chunk_graph
+            .get_number_of_chunk_modules(&chunk_ukey)
+            == 0
+            && compilation
+              .chunk_graph
+              .get_number_of_entry_modules(&chunk_ukey)
+              == 0
+          {
+            compilation.chunk_graph.remove_chunk(&chunk_ukey);
+            let removed_chunk = compilation.chunk_by_ukey.remove(&chunk_ukey);
+
+            // Remove from named chunks if it has a name
+            if let Some(chunk) = removed_chunk {
+              if let Some(name) = chunk.name() {
+                compilation.named_chunks.remove(name);
+              }
+            }
+          }
+        }
+      }
+    }
+    modules.clear();
+  }
+
+  let _runtime_chunks = get_runtime_chunks(compilation);
   let mut all_modules_to_hoist = HashSet::new();
-  for dep_id in self
-    .container_entry_deps
-    .lock()
-    .unwrap()
-    .iter()
-    .chain(self.federation_runtime_deps.lock().unwrap().iter())
-    .chain(self.remote_deps.lock().unwrap().iter())
-  {
+
+  // Process container entry dependencies
+  for dep_id in self.container_entry_deps.lock().unwrap().iter() {
     let module_graph = compilation.get_module_graph();
     if let Some(module_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
       if let Some(module) = module_graph.module_by_identifier(&module_id) {
-        let referenced =
-          get_all_referenced_modules(compilation, module.as_ref(), "initial", &mut HashSet::new());
-        all_modules_to_hoist.extend(&referenced);
-        for module_id in &referenced {
-          for &runtime_chunk in &runtime_chunks {
-            if !compilation
-              .chunk_graph
-              .is_module_in_chunk(module_id, runtime_chunk)
-            {
-              compilation
-                .chunk_graph
-                .connect_chunk_and_module(runtime_chunk, *module_id);
+        let referenced_modules =
+          get_all_referenced_modules(compilation, module.as_ref(), "initial");
+        all_modules_to_hoist.extend(&referenced_modules);
+
+        // Get module runtimes and hoist to corresponding runtime chunks
+        let runtime_specs: Vec<_> = compilation
+          .chunk_graph
+          .get_module_runtimes_iter(*module_id, &compilation.chunk_by_ukey)
+          .cloned()
+          .collect();
+
+        for runtime_spec in runtime_specs {
+          // Find runtime chunks by name - iterate over each runtime in the spec
+          for runtime_name in runtime_spec.iter() {
+            if let Some(runtime_chunk) = compilation.named_chunks.get(runtime_name.as_ref()) {
+              for &ref_module_id in &referenced_modules {
+                if !compilation
+                  .chunk_graph
+                  .is_module_in_chunk(&ref_module_id, *runtime_chunk)
+                {
+                  compilation
+                    .chunk_graph
+                    .connect_chunk_and_module(*runtime_chunk, ref_module_id);
+                }
+              }
             }
           }
         }
@@ -183,34 +250,82 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     }
   }
 
-  // Cleanup: disconnect hoisted modules from non-runtime chunks and remove empty chunks
-  for module_id in &all_modules_to_hoist {
-    let chunks_vec: Vec<_> = compilation
-      .chunk_graph
-      .get_module_chunks(*module_id)
-      .iter()
-      .copied()
-      .collect();
-    for chunk_ukey in chunks_vec {
-      if !runtime_chunks.contains(&chunk_ukey) {
-        compilation
+  // Process federation runtime dependencies
+  for dep_id in self.federation_runtime_deps.lock().unwrap().iter() {
+    let module_graph = compilation.get_module_graph();
+    if let Some(module_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
+      if let Some(module) = module_graph.module_by_identifier(&module_id) {
+        let referenced_modules =
+          get_all_referenced_modules(compilation, module.as_ref(), "initial");
+        all_modules_to_hoist.extend(&referenced_modules);
+
+        // Get module runtimes and hoist to corresponding runtime chunks
+        let runtime_specs: Vec<_> = compilation
           .chunk_graph
-          .disconnect_chunk_and_module(&chunk_ukey, *module_id);
-        if compilation
-          .chunk_graph
-          .get_number_of_chunk_modules(&chunk_ukey)
-          == 0
-          && compilation
-            .chunk_graph
-            .get_number_of_entry_modules(&chunk_ukey)
-            == 0
-        {
-          compilation.chunk_graph.remove_chunk(&chunk_ukey);
-          compilation.chunk_by_ukey.remove(&chunk_ukey);
+          .get_module_runtimes_iter(*module_id, &compilation.chunk_by_ukey)
+          .cloned()
+          .collect();
+
+        for runtime_spec in runtime_specs {
+          // Find runtime chunks by name - iterate over each runtime in the spec
+          for runtime_name in runtime_spec.iter() {
+            if let Some(runtime_chunk) = compilation.named_chunks.get(runtime_name.as_ref()) {
+              for &ref_module_id in &referenced_modules {
+                if !compilation
+                  .chunk_graph
+                  .is_module_in_chunk(&ref_module_id, *runtime_chunk)
+                {
+                  compilation
+                    .chunk_graph
+                    .connect_chunk_and_module(*runtime_chunk, ref_module_id);
+                }
+              }
+            }
+          }
         }
       }
     }
   }
+
+  // Process remote dependencies
+  for dep_id in self.remote_deps.lock().unwrap().iter() {
+    let module_graph = compilation.get_module_graph();
+    if let Some(module_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
+      if let Some(module) = module_graph.module_by_identifier(&module_id) {
+        let referenced_modules =
+          get_all_referenced_modules(compilation, module.as_ref(), "initial");
+        all_modules_to_hoist.extend(&referenced_modules);
+
+        // Get module runtimes and hoist to corresponding runtime chunks
+        let runtime_specs: Vec<_> = compilation
+          .chunk_graph
+          .get_module_runtimes_iter(*module_id, &compilation.chunk_by_ukey)
+          .cloned()
+          .collect();
+
+        for runtime_spec in runtime_specs {
+          // Find runtime chunks by name - iterate over each runtime in the spec
+          for runtime_name in runtime_spec.iter() {
+            if let Some(runtime_chunk) = compilation.named_chunks.get(runtime_name.as_ref()) {
+              for &ref_module_id in &referenced_modules {
+                if !compilation
+                  .chunk_graph
+                  .is_module_in_chunk(&ref_module_id, *runtime_chunk)
+                {
+                  compilation
+                    .chunk_graph
+                    .connect_chunk_and_module(*runtime_chunk, ref_module_id);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Cleanup: disconnect hoisted modules from non-runtime chunks (matching TypeScript implementation)
+  clean_up_chunks(compilation, &mut all_modules_to_hoist);
 
   Ok(None)
 }
@@ -220,7 +335,7 @@ impl Plugin for HoistContainerReferencesPlugin {
     "HoistContainerReferencesPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compiler_hooks

@@ -82,6 +82,19 @@ impl FederationModulesPlugin {
       .or_insert_with(|| Arc::new(FederationModulesPluginCompilationHooks::default()))
       .clone()
   }
+
+  pub fn get_compilation_hooks_by_id(
+    compilation_id: CompilationId,
+  ) -> Arc<FederationModulesPluginCompilationHooks> {
+    let mut map = FEDERATION_MODULES_PLUGIN_HOOKS_MAP
+      .get_or_init(|| Mutex::new(HashMap::new()))
+      .lock()
+      .expect("Failed to lock FEDERATION_MODULES_PLUGIN_HOOKS_MAP");
+    map
+      .entry(compilation_id)
+      .or_insert_with(|| Arc::new(FederationModulesPluginCompilationHooks::default()))
+      .clone()
+  }
 }
 
 // Hook into the compilation process

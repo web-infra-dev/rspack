@@ -1,5 +1,5 @@
 module.exports = {
 	findBundle: function (i, options) {
-		return i === 0 ? "./other.js" : "./module/main.mjs";
+		return i === 0 ? "./main.js" : "./module/main.mjs";
 	}
 };

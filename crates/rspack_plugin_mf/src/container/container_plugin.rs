@@ -71,6 +71,13 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
     self.options.share_scope.clone(),
     self.options.enhanced,
   );
+
+  // Call the federation hook for container entry dependency tracking
+  let hooks =
+    super::federation_modules_plugin::FederationModulesPlugin::get_compilation_hooks(compilation);
+  let hook = hooks.add_container_entry_dependency.lock().await;
+  let _ = hook.call(&dep).await;
+
   compilation
     .add_entry(
       Box::new(dep),

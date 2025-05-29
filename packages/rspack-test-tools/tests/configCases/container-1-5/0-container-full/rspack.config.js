@@ -1,5 +1,7 @@
-const { ModuleFederationPlugin } = require("@rspack/core").container;
+const { ModuleFederationPluginV1: ModuleFederationPlugin } =
+	require("@rspack/core").container;
 
+/** @type {ConstructorParameters<typeof ModuleFederationPlugin>[0]} */
 const common = {
 	name: "container",
 	exposes: {
@@ -18,16 +20,9 @@ const common = {
 /** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
 	{
-		entry: {
-			main: "./index.js",
-			other: "./other.js"
-		},
 		output: {
 			filename: "[name].js",
 			uniqueName: "0-container-full"
-		},
-		optimization: {
-			runtimeChunk: false
 		},
 		plugins: [
 			new ModuleFederationPlugin({

@@ -14,7 +14,6 @@ use rspack_plugin_javascript::{JavascriptModulesRenderStartup, JsPlugin, RenderS
 use rspack_sources::{ConcatSource, RawStringSource, SourceExt};
 
 use super::{
-  container_entry_module::ContainerEntryModule,
   embed_federation_runtime_module::{
     EmbedFederationRuntimeModule, EmbedFederationRuntimeModuleOptions,
   },
@@ -60,33 +59,6 @@ impl EmbedFederationRuntimePlugin {
   }
 }
 
-// Helper to check if a chunk should get the federation runtime module
-fn is_enabled_for_chunk(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-
-  // Skip build time chunks
-  if chunk.name() == Some("build time chunk") {
-    return false;
-  }
-
-  // Get entry modules for the chunk
-  let entry_modules = compilation.chunk_graph.get_chunk_entry_modules(chunk_ukey);
-
-  // Check if this is a container chunk (has ContainerEntryModule)
-  if let Some(module_id) = entry_modules.last() {
-    let module_graph = compilation.get_module_graph();
-    if let Some(module) = module_graph.module_by_identifier(module_id) {
-      if module.as_any().is::<ContainerEntryModule>() {
-        // Container chunks NEED the runtime module for initContainer/getContainer functions
-        return true;
-      }
-    }
-  }
-
-  // Regular entry chunks also need the runtime module
-  true
-}
-
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for EmbedFederationRuntimePlugin)]
 async fn additional_chunk_runtime_requirements_tree(
   &self,
@@ -95,9 +67,36 @@ async fn additional_chunk_runtime_requirements_tree(
   runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-  if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-    runtime_requirements.insert(RuntimeGlobals::STARTUP);
+  println!(
+    "📋 AdditionalChunkRuntimeRequirements for chunk: {:?}",
+    chunk.name()
+  );
+
+  // Skip build time chunks
+  if chunk.name() == Some("build time chunk") {
+    println!("   ❌ Skipping: build time chunk");
+    return Ok(());
   }
+
+  // Add STARTUP requirement to runtime chunks OR application chunks with entry modules
+  let has_runtime = chunk.has_runtime(&compilation.chunk_group_by_ukey);
+  let has_entry_modules = compilation
+    .chunk_graph
+    .get_number_of_entry_modules(chunk_ukey)
+    > 0;
+  let is_enabled = has_runtime || has_entry_modules;
+
+  println!("   - has_runtime: {}", has_runtime);
+  println!("   - has_entry_modules: {}", has_entry_modules);
+  println!("   - is_enabled: {}", is_enabled);
+
+  if is_enabled {
+    println!("   ✅ Adding STARTUP runtime requirement (federation-enabled chunk)");
+    runtime_requirements.insert(RuntimeGlobals::STARTUP);
+  } else {
+    println!("   ❌ Not federation-enabled - not adding STARTUP requirement");
+  }
+
   Ok(())
 }
 
@@ -107,28 +106,44 @@ async fn runtime_requirement_in_tree(
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
-  _runtime_requirements: &RuntimeGlobals,
+  runtime_requirements: &RuntimeGlobals,
   _runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
-  if is_enabled_for_chunk(compilation, chunk_ukey) {
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-    if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-      let collected_ids_snapshot = self
-        .collected_dependency_ids
-        .lock()
-        .unwrap()
-        .iter()
-        .cloned()
-        .collect::<Vec<DependencyId>>();
-      let emro = EmbedFederationRuntimeModuleOptions {
-        collected_dependency_ids: collected_ids_snapshot,
-      };
-      compilation.add_runtime_module(
-        chunk_ukey,
-        Box::new(EmbedFederationRuntimeModule::new(emro)),
-      )?;
-    }
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  println!("🔧 RuntimeRequirementInTree for chunk: {:?}", chunk.name());
+  println!("   - runtime_requirements: {:?}", runtime_requirements);
+
+  // Skip build time chunks
+  if chunk.name() == Some("build time chunk") {
+    println!("   ❌ Skipping: build time chunk");
+    return Ok(None);
   }
+
+  // Only add EmbedFederationRuntimeModule to runtime chunks
+  let has_runtime = chunk.has_runtime(&compilation.chunk_group_by_ukey);
+  if has_runtime {
+    println!("   ✅ Adding EmbedFederationRuntimeModule to runtime chunk");
+
+    let collected_ids_snapshot = self
+      .collected_dependency_ids
+      .lock()
+      .unwrap()
+      .iter()
+      .cloned()
+      .collect::<Vec<DependencyId>>();
+
+    let emro = EmbedFederationRuntimeModuleOptions {
+      collected_dependency_ids: collected_ids_snapshot,
+    };
+
+    compilation.add_runtime_module(
+      chunk_ukey,
+      Box::new(EmbedFederationRuntimeModule::new(emro)),
+    )?;
+  } else {
+    println!("   ❌ Non-runtime chunk - not adding EmbedFederationRuntimeModule");
+  }
+
   Ok(None)
 }
 
@@ -166,34 +181,71 @@ async fn render_startup(
   render_source: &mut RenderSource,
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-  let entry_module_count = compilation
+  println!(
+    "🔍 EmbedFederationRuntimePlugin::render_startup for chunk: {:?}",
+    chunk.name()
+  );
+
+  // Skip build time chunks
+  if chunk.name() == Some("build time chunk") {
+    println!("   ❌ Skipping: build time chunk");
+    return Ok(());
+  }
+
+  // Check if this chunk needs federation runtime initialization
+  let collected_deps = self
+    .collected_dependency_ids
+    .lock()
+    .unwrap()
+    .iter()
+    .cloned()
+    .collect::<Vec<DependencyId>>();
+  let has_federation_deps = !collected_deps.is_empty();
+
+  if !has_federation_deps {
+    println!("   ✅ No federation dependencies - no action needed");
+    return Ok(());
+  }
+
+  let has_runtime = chunk.has_runtime(&compilation.chunk_group_by_ukey);
+  let has_entry_modules = compilation
     .chunk_graph
-    .get_number_of_entry_modules(chunk_ukey);
+    .get_number_of_entry_modules(chunk_ukey)
+    > 0;
 
-  if entry_module_count == 0 {
+  // For chunks with both runtime and entry modules (like container chunk):
+  // The JavaScript plugin already handles the startup call in its render_startup logic.
+  // We should not interfere.
+  if has_runtime && has_entry_modules {
+    println!("   ✅ Runtime chunk with entry modules - JavaScript plugin handles startup, no action needed");
     return Ok(());
   }
 
-  let tree_runtime_requirements =
-    ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
+  // For entry chunks that delegate their runtime to other chunks:
+  // These chunks need the startup call to ensure federation runtime gets initialized
+  // in the delegated runtime chunk.
+  if !has_runtime && has_entry_modules {
+    println!("   🚀 Entry chunk delegating to runtime chunk - adding startup call");
 
-  if tree_runtime_requirements.contains(RuntimeGlobals::STARTUP)
-    || tree_runtime_requirements.contains(RuntimeGlobals::STARTUP_NO_DEFAULT)
-  {
-    return Ok(());
+    let mut startup_with_call = ConcatSource::default();
+
+    // Add runtime startup call at the beginning to ensure federation initialization
+    startup_with_call.add(RawStringSource::from(
+      "\n// Federation runtime initialization call\n",
+    ));
+    startup_with_call.add(RawStringSource::from(format!(
+      "{}();\n",
+      RuntimeGlobals::STARTUP.name()
+    )));
+
+    // Add the original startup source
+    startup_with_call.add(render_source.source.clone());
+
+    render_source.source = startup_with_call.boxed();
+  } else {
+    println!("   ✅ Non-entry chunk - no startup call needed");
   }
 
-  let mut startup_with_call = ConcatSource::default();
-
-  startup_with_call.add(RawStringSource::from(
-    "\n// Entrypoint: appended startup call because none was added automatically\n",
-  ));
-  startup_with_call.add(RawStringSource::from(format!(
-    "{}();\n",
-    RuntimeGlobals::STARTUP.name()
-  )));
-  startup_with_call.add(render_source.source.clone());
-  render_source.source = startup_with_call.boxed();
   Ok(())
 }
 
