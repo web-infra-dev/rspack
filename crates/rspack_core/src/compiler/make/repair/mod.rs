@@ -21,6 +21,7 @@ use crate::{
   SharedPluginDriver,
 };
 
+#[derive(Debug)]
 pub struct MakeTaskContext {
   pub compiler_id: CompilerId,
   // compilation info
@@ -60,11 +61,6 @@ impl MakeTaskContext {
       output_fs: compilation.output_filesystem.clone(),
       artifact,
     }
-  }
-
-  pub fn transform_to_make_artifact(self) -> MakeArtifact {
-    let Self { artifact, .. } = self;
-    artifact
   }
 
   // TODO use module graph with make artifact
@@ -160,5 +156,5 @@ pub async fn repair(
 
   let mut ctx = MakeTaskContext::new(compilation, artifact, compilation.cache.clone());
   run_task_loop(&mut ctx, init_tasks).await?;
-  Ok(ctx.transform_to_make_artifact())
+  Ok(ctx.artifact)
 }

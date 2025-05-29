@@ -4,4 +4,4 @@
 // 	return fs.existsSync(path.join(__dirname, "TEST.FILTER.JS"));
 // };
 // TODO: Works on Linux but fail on Windows
-module.exports = () => false;
+module.exports = () => "TODO: support CaseSensitiveModulesWarning";

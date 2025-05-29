@@ -2,6 +2,3 @@ export * from "external1-alias";
 export * from "external2-alias";
 
 ;// CONCATENATED MODULE: ./case1.js
-
-
-

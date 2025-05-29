@@ -1,2 +1,1 @@
-// moduleIds: hashed is not implemented
-module.exports = () => false;
+module.exports = () => "NOPLAN: moduleIds: 'hashed' has been deprecated"

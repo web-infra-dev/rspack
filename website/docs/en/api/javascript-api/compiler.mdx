@@ -12,6 +12,10 @@ import { Badge } from '@theme';
 
 # Compiler
 
+The Compiler is a core object in Rspack. A Compiler instance is created whenever you call Rspack's [JavaScript API](/api/javascript-api/index) or [CLI](/api/cli).
+
+It provides methods like [run](#run) and [watch](#watch) to start builds, while exposing various [Compiler hooks](/api/plugin-api/compiler-hooks) that allow Rspack plugins to intervene at different stages of the build process.
+
 ## Compiler methods
 
 ### run

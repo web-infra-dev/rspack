@@ -83,13 +83,13 @@ module.exports = {
 		+         "esModule": true,
 		+         "exportsConvention": "as-is",
 		+         "exportsOnly": false,
-		+         "localIdentName": "[uniqueName]-[id]-[local]",
+		+         "localIdentName": "[id]-[local]",
 		+       },
 		+       "css/module": Object {
 		+         "esModule": true,
 		+         "exportsConvention": "as-is",
 		+         "exportsOnly": false,
-		+         "localIdentName": "[uniqueName]-[id]-[local]",
+		+         "localIdentName": "[id]-[local]",
 		+       },
 		@@ ... @@
 		+         },

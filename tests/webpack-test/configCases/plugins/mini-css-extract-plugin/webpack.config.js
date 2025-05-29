@@ -1,4 +1,5 @@
-var MCEP = require("mini-css-extract-plugin");
+// var MCEP = require("mini-css-extract-plugin");
+var MCEP = require("@rspack/core").CssExtractRspackPlugin;
 
 /** @type {(number, any) => import("@rspack/core").Configuration} */
 const config = (i, options) => ({
@@ -44,9 +45,12 @@ const config = (i, options) => ({
 					"a",
 					"b",
 					"c",
-					"chunk_js-_43b60",
-					"chunk_js-_43b61",
-					"chunk_js-_43b62",
+					// CHANGE:
+					// "chunk_js-_43b60",
+					// "chunk_js-_43b61",
+					// "chunk_js-_43b62",
+					"chunk_js-_d2ab0",
+					"chunk_js-_d2ab1",
 					"d_css",
 					"x"
 				]);

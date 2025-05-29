@@ -16,7 +16,7 @@ use swc_core::common::{Span, Spanned as _};
 use super::DefineValue;
 use crate::{
   utils::eval::{evaluate_to_string, BasicEvaluatedExpression},
-  visitors::JavascriptParser,
+  visitors::{DestructuringAssignmentProperty, JavascriptParser},
   JavascriptParserPlugin,
 };
 
@@ -580,7 +580,11 @@ fn dep(
   }
 }
 
-fn to_code(code: &Value, asi_safe: Option<bool>, obj_keys: Option<FxHashSet<String>>) -> Cow<str> {
+fn to_code(
+  code: &Value,
+  asi_safe: Option<bool>,
+  obj_keys: Option<FxHashSet<DestructuringAssignmentProperty>>,
+) -> Cow<str> {
   fn wrap_ansi(code: Cow<str>, is_arr: bool, asi_safe: Option<bool>) -> Cow<str> {
     match asi_safe {
       Some(true) if is_arr => code,
@@ -604,7 +608,10 @@ fn to_code(code: &Value, asi_safe: Option<bool>, obj_keys: Option<FxHashSet<Stri
       let elements = obj
         .iter()
         .filter_map(|(key, value)| {
-          if obj_keys.as_ref().is_none_or(|keys| keys.contains(key)) {
+          if obj_keys
+            .as_ref()
+            .is_none_or(|keys| keys.iter().any(|prop| prop.id.as_str() == key))
+          {
             Some(format!("{}:{}", json!(key), to_code(value, None, None)))
           } else {
             None

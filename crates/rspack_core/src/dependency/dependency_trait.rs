@@ -2,7 +2,7 @@ use std::{any::Any, fmt::Debug};
 
 use dyn_clone::{clone_trait_object, DynClone};
 use rspack_cacheable::cacheable_dyn;
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_error::Diagnostic;
 use rspack_util::{atom::Atom, ext::AsAny};
 
@@ -67,8 +67,9 @@ pub trait Dependency:
     &self,
     _module_graph: &ModuleGraph,
     _module_chain: &mut IdentifierSet,
+    _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
-    ConnectionState::Bool(true)
+    ConnectionState::Active(true)
   }
 
   fn loc(&self) -> Option<DependencyLocation> {

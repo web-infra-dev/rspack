@@ -1,11 +1,10 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   filter_runtime, runtime_condition_expression, AsContextDependency, AsModuleDependency,
   Compilation, ConnectionState, Dependency, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, ModuleGraph, ModuleIdentifier,
   RuntimeCondition, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedByExports,
-  UsedName,
 };
 use rspack_util::ext::DynHash;
 
@@ -43,8 +42,7 @@ impl PureExpressionDependency {
         let exports_info = module_graph.get_exports_info(&self.module_identifier);
         filter_runtime(runtime, |cur_runtime| {
           set.iter().any(|id| {
-            exports_info.get_used(&module_graph, UsedName::Str(id.clone()), cur_runtime)
-              != UsageState::Unused
+            exports_info.get_used(&module_graph, &[id.clone()], cur_runtime) != UsageState::Unused
           })
         })
       }
@@ -75,8 +73,9 @@ impl Dependency for PureExpressionDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_chain: &mut IdentifierSet,
+    _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
-    ConnectionState::Bool(false)
+    ConnectionState::Active(false)
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

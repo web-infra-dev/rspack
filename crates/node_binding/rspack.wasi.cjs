@@ -9,9 +9,9 @@ const { WASI: __nodeWASI } = require('node:wasi')
 const { Worker } = require('node:worker_threads')
 
 const {
-  instantiateNapiModuleSync: __emnapiInstantiateNapiModuleSync,
-  getDefaultContext: __emnapiGetDefaultContext,
   createOnMessage: __wasmCreateOnMessageForFsProxy,
+  getDefaultContext: __emnapiGetDefaultContext,
+  instantiateNapiModuleSync: __emnapiInstantiateNapiModuleSync,
 } = require('@napi-rs/wasm-runtime')
 
 const __rootDir = __nodePath.parse(process.cwd()).root
@@ -65,6 +65,29 @@ const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule
     worker.onmessage = ({ data }) => {
       __wasmCreateOnMessageForFsProxy(__nodeFs)(data)
     }
+
+    // The main thread of Node.js waits for all the active handles before exiting.
+    // But Rust threads are never waited without `thread::join`.
+    // So here we hack the code of Node.js to prevent the workers from being referenced (active).
+    // According to https://github.com/nodejs/node/blob/19e0d472728c79d418b74bddff588bea70a403d0/lib/internal/worker.js#L415,
+    // a worker is consist of two handles: kPublicPort and kHandle.
+    {
+      const kPublicPort = Object.getOwnPropertySymbols(worker).find(s =>
+        s.toString().includes("kPublicPort")
+      );
+      if (kPublicPort) {
+        worker[kPublicPort].ref = () => {};
+      }
+
+      const kHandle = Object.getOwnPropertySymbols(worker).find(s =>
+        s.toString().includes("kHandle")
+      );
+      if (kPublicPort) {
+        worker[kHandle].ref = () => {};
+      }
+
+      worker.unref();
+    }
     return worker
   },
   overwriteImports(importObject) {
@@ -84,7 +107,7 @@ const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule
     }
   },
 })
-
+module.exports = __napiModule.exports
 module.exports.Assets = __napiModule.exports.Assets
 module.exports.AsyncDependenciesBlock = __napiModule.exports.AsyncDependenciesBlock
 module.exports.BuildInfo = __napiModule.exports.BuildInfo
@@ -94,6 +117,7 @@ module.exports.CodeGenerationResults = __napiModule.exports.CodeGenerationResult
 module.exports.ConcatenatedModule = __napiModule.exports.ConcatenatedModule
 module.exports.ContextModule = __napiModule.exports.ContextModule
 module.exports.Dependency = __napiModule.exports.Dependency
+module.exports.Diagnostics = __napiModule.exports.Diagnostics
 module.exports.EntryDataDto = __napiModule.exports.EntryDataDto
 module.exports.EntryDataDTO = __napiModule.exports.EntryDataDTO
 module.exports.EntryDependency = __napiModule.exports.EntryDependency

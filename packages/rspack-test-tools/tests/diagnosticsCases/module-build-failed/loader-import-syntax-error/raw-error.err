@@ -1,0 +1,12 @@
+Array [
+  Object {
+    code: ModuleBuildError,
+    moduleIdentifier: <TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-build-failed/loader-import-syntax-error/loader.js??ruleSet[1].rules[0].use[0]!<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-build-failed/loader-import-syntax-error/index.js,
+    moduleName: ./index.js,
+  },
+  Object {
+    code: ModuleParseError,
+    moduleIdentifier: <TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-build-failed/loader-import-syntax-error/syntax-error.js,
+    moduleName: ,
+  },
+]

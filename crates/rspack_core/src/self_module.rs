@@ -12,7 +12,8 @@ use rspack_util::source_map::SourceMapKind;
 use crate::{
   impl_module_meta_info, AsyncDependenciesBlockIdentifier, BuildInfo, BuildMeta, ChunkUkey,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  FactoryMeta, LibIdentOptions, Module, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec,
+  SourceType,
 };
 
 #[impl_source_map_config]
@@ -88,7 +89,7 @@ impl Module for SelfModule {
     &ModuleType::Fallback
   }
 
-  fn source_types(&self) -> &[SourceType] {
+  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     &[SourceType::JavaScript]
   }
 

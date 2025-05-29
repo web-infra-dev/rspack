@@ -24,7 +24,7 @@ it("verify es6 (esmodule) minify bundle source map", async () => {
 	const out = fs.readFileSync(__filename, "utf-8");
 	expect(
 		await checkMap(out, source, {
-			// *${id}* as the search key to aviod conflict with `Object.defineProperty(exports, ${id}, ...)`
+			// *${id}* as the search key to avoid conflict with `Object.defineProperty(exports, ${id}, ...)`
 			// "*a0*", "*a1*" is eliminate by minify
 			['"*a2*"']: checkColumn("webpack:///a.js"),
 			// "*b0*", "*b1*" is eliminate by minify

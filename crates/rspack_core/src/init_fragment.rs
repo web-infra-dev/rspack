@@ -40,6 +40,7 @@ pub enum InitFragmentKey {
   ModuleDecorator(String /* module_id */),
   ESMFakeNamespaceObjectFragment(String),
   Const(String),
+  // ModuleName(String),
 }
 
 impl InitFragmentKey {

@@ -495,7 +495,7 @@ function createRawModuleRuleUsesImpl(
 		return [];
 	}
 
-	return uses.map((use, index) => {
+	return uses.filter(Boolean).map((use, index) => {
 		let o: string | undefined;
 		let isBuiltin = false;
 		if (use.loader.startsWith(BUILTIN_LOADER_PREFIX)) {

@@ -5,7 +5,7 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   incremental::{self, IncrementalPasses},
   ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
-  DependenciesBlock, DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfo,
+  DependenciesBlock, DependencyId, ExportNameOrSpec, ExportProvided, ExportsInfo,
   ExportsOfExportsSpec, ExportsSpec, Logger, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
   Plugin, PluginContext,
 };
@@ -53,7 +53,7 @@ impl<'a> FlagDependencyExportsState<'a> {
         let other_exports_info = exports_info.other_exports_info(self.mg);
         if !matches!(
           other_exports_info.provided(self.mg),
-          Some(ExportInfoProvided::Null)
+          Some(ExportProvided::Unknown)
         ) {
           exports_info.set_has_provide_info(self.mg);
           exports_info.set_unknown_exports_provided(self.mg, false, None, None, None, None);
@@ -159,7 +159,7 @@ impl<'a> FlagDependencyExportsState<'a> {
       }
     }
     match exports {
-      ExportsOfExportsSpec::True => {
+      ExportsOfExportsSpec::UnknownExports => {
         if exports_info.set_unknown_exports_provided(
           self.mg,
           global_can_mangle.unwrap_or_default(),
@@ -171,8 +171,8 @@ impl<'a> FlagDependencyExportsState<'a> {
           self.changed = true;
         };
       }
-      ExportsOfExportsSpec::Null => {}
-      ExportsOfExportsSpec::Array(ele) => {
+      ExportsOfExportsSpec::NoExports => {}
+      ExportsOfExportsSpec::Names(ele) => {
         self.merge_exports(
           exports_info,
           ele,
@@ -248,10 +248,10 @@ impl<'a> FlagDependencyExportsState<'a> {
       if let Some(provided) = export_info.provided(self.mg)
         && matches!(
           provided,
-          ExportInfoProvided::False | ExportInfoProvided::Null
+          ExportProvided::NotProvided | ExportProvided::Unknown
         )
       {
-        export_info.set_provided(self.mg, Some(ExportInfoProvided::True));
+        export_info.set_provided(self.mg, Some(ExportProvided::Provided));
         self.changed = true;
       }
 

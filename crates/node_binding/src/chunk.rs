@@ -59,7 +59,7 @@ impl JsChunk {
   }
 
   #[napi(getter)]
-  pub fn id_name_hints(&self, env: Env) -> napi::Result<Vec<JsString>> {
+  pub fn id_name_hints<'a>(&self, env: &'a Env) -> napi::Result<Vec<JsString<'a>>> {
     let (_, chunk) = self.as_ref()?;
     chunk
       .id_name_hints()

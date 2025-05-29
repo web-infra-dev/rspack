@@ -2,7 +2,7 @@
 
 mod hot_module_replacement;
 
-use std::{collections::hash_map, sync::Arc};
+use std::collections::hash_map;
 
 use async_trait::async_trait;
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
@@ -79,8 +79,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   let mut hot_update_main_content_by_runtime = all_old_runtime
     .iter()
-    .map(|runtime| (runtime.clone(), HotUpdateContent::default()))
-    .collect::<HashMap<Arc<str>, HotUpdateContent>>();
+    .map(|&runtime| (runtime, HotUpdateContent::default()))
+    .collect::<HashMap<_, HotUpdateContent>>();
 
   if hot_update_main_content_by_runtime.is_empty() {
     return Ok(());
@@ -208,11 +208,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       } else {
         for removed in removed_from_runtime.iter() {
           for runtime in runtimes.values() {
-            if runtime.contains(removed.as_ref()) {
+            if runtime.contains(removed) {
               continue;
             }
           }
-          if let Some(content) = hot_update_main_content_by_runtime.get_mut(removed.as_ref()) {
+          if let Some(content) = hot_update_main_content_by_runtime.get_mut(removed) {
             content.removed_modules.insert(old_module_id.clone());
           }
         }
@@ -330,7 +330,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       new_runtime.iter().for_each(|runtime| {
-        if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime.as_ref()) {
+        if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime) {
           info.updated_chunk_ids.insert(chunk_id.clone());
         }
       });

@@ -3,10 +3,10 @@ use std::sync::Arc;
 use rspack_error::BatchErrors;
 use swc_core::{
   base::config::IsModule,
-  common::{FileName, SourceFile, comments::Comments, input::SourceFileInput},
+  common::{comments::Comments, input::SourceFileInput, FileName, SourceFile},
   ecma::{
     ast::{EsVersion, Program as SwcProgram},
-    parser::{self, Parser, Syntax, lexer::Lexer},
+    parser::{self, lexer::Lexer, Parser, Syntax},
   },
 };
 use swc_node_comments::SwcComments;
@@ -14,7 +14,7 @@ use swc_node_comments::SwcComments;
 use super::JavaScriptCompiler;
 use crate::{
   ast::{self, Ast},
-  error::{DedupEcmaErrors, ecma_parse_error_deduped_to_rspack_error},
+  error::{ecma_parse_error_deduped_to_rspack_error, DedupEcmaErrors},
 };
 
 impl JavaScriptCompiler {

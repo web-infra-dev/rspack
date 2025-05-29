@@ -2,10 +2,10 @@ use std::{hash::Hash, sync::Arc};
 
 use rspack_error::BatchErrors;
 use swc_core::{
-  common::{GLOBALS, Globals, Mark, SourceMap, errors::Handler, sync::Lrc, util::take::Take},
+  common::{errors::Handler, sync::Lrc, util::take::Take, Globals, Mark, SourceMap, GLOBALS},
   ecma::{
     ast::{Module, Program as SwcProgram},
-    transforms::base::helpers::{HELPERS, HelperData, Helpers},
+    transforms::base::helpers::{HelperData, Helpers, HELPERS},
     visit::{Fold, FoldWith, Visit, VisitMut, VisitMutWith, VisitWith},
   },
 };

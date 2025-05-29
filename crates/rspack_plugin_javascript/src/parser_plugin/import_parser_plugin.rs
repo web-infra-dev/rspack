@@ -102,7 +102,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         referenced_properties_in_destructuring
           .iter()
           .cloned()
-          .map(Atom::from)
+          .map(|x| x.id)
           .collect_vec(),
       );
     }
@@ -126,6 +126,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         node.span.into(),
         exports,
         attributes,
+        parser.in_try,
       ));
       let source_map: SharedSourceMap = parser.source_map.clone();
       let mut block = AsyncDependenciesBlock::new(

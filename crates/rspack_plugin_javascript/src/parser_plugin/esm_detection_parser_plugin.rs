@@ -16,7 +16,7 @@ use crate::{
 impl JavascriptParser<'_> {
   fn throw_top_level_await_error(&mut self, msg: String, span: Span) {
     self.errors.push(Box::new(create_traceable_error(
-      "JavaScript parsing error".into(),
+      "JavaScript parse error".into(),
       msg,
       self.source_file,
       span.into(),

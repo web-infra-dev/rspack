@@ -1,6 +1,6 @@
 #![feature(let_chains)]
 
-use std::{borrow::Cow, hash::Hasher, path::PathBuf};
+use std::{borrow::Cow, collections::HashSet, hash::Hasher, path::PathBuf};
 
 use asset_exports_dependency::AssetExportsDependency;
 use async_trait::async_trait;
@@ -31,10 +31,19 @@ pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_ASSET_AUTO_PUBLI
 #[derive(Debug, Default)]
 pub struct AssetPlugin;
 
-static ASSET_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
-  &[SourceType::Asset, SourceType::JavaScript];
+static JS_AND_CSS_URL_TYPES: &[SourceType; 2] = &[SourceType::JavaScript, SourceType::CssUrl];
+static JS_TYPES: &[SourceType; 1] = &[SourceType::JavaScript];
+static CSS_URL_TYPES: &[SourceType; 1] = &[SourceType::CssUrl];
+static NO_TYPES: &[SourceType; 0] = &[];
 
-static ASSET_SOURCE_MODULE_SOURCE_TYPE_LIST: &[SourceType; 1] = &[SourceType::JavaScript];
+static ASSET_AND_JS_AND_CSS_URL_TYPES: &[SourceType; 3] = &[
+  SourceType::Asset,
+  SourceType::JavaScript,
+  SourceType::CssUrl,
+];
+static ASSET_AND_JS_TYPES: &[SourceType; 2] = &[SourceType::Asset, SourceType::JavaScript];
+static ASSET_AND_CSS_URL_TYPES: &[SourceType; 2] = &[SourceType::Asset, SourceType::CssUrl];
+static ASSET_TYPES: &[SourceType; 1] = &[SourceType::Asset];
 
 const DEFAULT_ENCODING: &str = "base64";
 
@@ -337,17 +346,60 @@ const DEFAULT_MAX_SIZE: f64 = 8096.0;
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for AssetParserAndGenerator {
-  fn source_types(&self) -> &[SourceType] {
-    if let Some(config) = self.parsed_asset_config.as_ref() {
-      if config.is_source() || config.is_inline() || !self.emit {
-        ASSET_SOURCE_MODULE_SOURCE_TYPE_LIST
-      } else {
-        ASSET_MODULE_SOURCE_TYPE_LIST
+  fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType] {
+    let mut source_types = HashSet::new();
+    let module_id = module.identifier();
+    for connection in module_graph.get_incoming_connections(&module_id) {
+      if let Some(module) = connection
+        .original_module_identifier
+        .and_then(|id| module_graph.module_by_identifier(&id))
+      {
+        let module_type = module.module_type();
+        source_types.insert(SourceType::from(module_type));
       }
+    }
+
+    if source_types.is_empty() {
+      if self
+        .parsed_asset_config
+        .as_ref()
+        .is_some_and(|x| x.is_source() || x.is_inline())
+        || !self.emit
+      {
+        return JS_TYPES;
+      } else {
+        return ASSET_AND_JS_TYPES;
+      }
+    }
+
+    let has_js = source_types.contains(&SourceType::JavaScript);
+    let has_css = source_types.contains(&SourceType::Css);
+
+    if self
+      .parsed_asset_config
+      .as_ref()
+      .is_some_and(|x| x.is_source() || x.is_inline())
+      || !self.emit
+    {
+      return if has_js && has_css {
+        JS_AND_CSS_URL_TYPES
+      } else if has_js {
+        JS_TYPES
+      } else if has_css {
+        CSS_URL_TYPES
+      } else {
+        NO_TYPES
+      };
+    }
+
+    if has_js && has_css {
+      ASSET_AND_JS_AND_CSS_URL_TYPES
+    } else if has_js {
+      ASSET_AND_JS_TYPES
+    } else if has_css {
+      ASSET_AND_CSS_URL_TYPES
     } else {
-      // If module is failed to build, then the `parsed_asset_config` is not set.
-      // Align with webpacks's asset module: https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/asset/AssetGenerator.js#L386
-      ASSET_MODULE_SOURCE_TYPE_LIST
+      ASSET_TYPES
     }
   }
 
@@ -355,7 +407,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     let original_source_size = module.source().map_or(0, |source| source.size()) as f64;
     match source_type.unwrap_or(&SourceType::Asset) {
       SourceType::Asset => original_source_size,
-      SourceType::JavaScript => {
+      SourceType::JavaScript | SourceType::CssUrl => {
         if module.source().is_none() {
           return 0.0;
         }
@@ -465,7 +517,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     let import_mode = self.get_import_mode(module_generator_options)?;
 
     let result = match generate_context.requested_source_type {
-      SourceType::JavaScript => {
+      SourceType::JavaScript | SourceType::CssUrl => {
         let exported_content = if parsed_asset_config.is_inline() {
           let resource_data: &ResourceData = normal_module.resource_resolved_data();
           let data_url = module_generator_options.and_then(|x| x.asset_data_url());
@@ -575,6 +627,10 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         } else {
           unreachable!()
         };
+
+        if generate_context.requested_source_type == SourceType::CssUrl {
+          return Ok(RawStringSource::from("").boxed());
+        }
 
         if import_mode.is_preserve() && parsed_asset_config.is_resource() {
           let is_module = compilation.options.output.module;

@@ -2,19 +2,19 @@ name: CI-Rust
 
 on:
   pull_request:
-    types: [ opened, synchronize ]
+    types: [opened, synchronize]
   merge_group:
-    types: [ checks_requested ]
+    types: [checks_requested]
   workflow_dispatch:
   push:
     branches:
       - main
     paths:
-      - '.github/workflows/**'
-      - 'crates/**'
-      - 'Cargo.lock'
-      - 'Cargo.toml'
-      - 'rust-toolchain.toml'
+      - ".github/workflows/**"
+      - "crates/**"
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "rust-toolchain.toml"
     tags-ignore:
       - "**"
 jobs:
@@ -39,7 +39,7 @@ jobs:
               - "website/**"
   rust_check:
     name: Rust check
-    needs: [ check-changed ]
+    needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS ||  '"ubuntu-22.04"') }}
     steps:
@@ -72,7 +72,7 @@ jobs:
         run: taplo format --check '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'
 
   rust_unused_dependencies:
-    needs: [ check-changed ]
+    needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     name: Check Rust Dependencies
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
@@ -83,20 +83,20 @@ jobs:
           key: check
 
       - name: Install cargo-deny
-        uses: taiki-e/install-action@97a83ae1347bc407f550a16fb0694d6f446eec88 # v2
+        uses: taiki-e/install-action@84c20235bedc3797c7e1ddf685c574a4a6c666da # v2
         with:
           tool: cargo-deny@0.16
       - name: Check licenses
-        run: cargo deny check license
+        run: cargo deny check license bans
 
-      - uses: cargo-bins/cargo-binstall@13f9d60d5358393bf14644dba56d9f123bc5d595 # v1.12.4
+      - uses: cargo-bins/cargo-binstall@5cbf019d8cb9b9d5b086218c41458ea35d817691 # v1.12.5
       - run: cargo binstall --no-confirm cargo-shear@1.1.12 --force
       - run: cargo shear
 
   rust_test:
     name: Rust test
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
-    needs: [ check-changed ]
+    needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -149,7 +149,7 @@ jobs:
     # When code changed, it will check if any of the test jobs failed.
     # When *only* doc changed, it will run as success directly
     name: Rust Test Required Check
-    needs: [ rust_test, rust_check, check-changed ]
+    needs: [rust_test, rust_check, check-changed]
     if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
     steps:
@@ -160,4 +160,3 @@ jobs:
         run: echo "Tess Failed" && exit 1
       - name: No check to Run test
         run: echo "Success"
-

@@ -4,7 +4,7 @@ use rspack_core::{
   property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier, ApplyContext, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
-  CompilerOptions, ExportInfoProvided, ExportsType, LibraryOptions, ModuleGraph, ModuleIdentifier,
+  CompilerOptions, ExportProvided, ExportsType, LibraryOptions, ModuleGraph, ModuleIdentifier,
   Plugin, PluginContext,
 };
 use rspack_error::{error_bail, Result};
@@ -83,7 +83,7 @@ async fn render_startup(
   for export_info in exports_info.ordered_exports(&module_graph) {
     if matches!(
       export_info.provided(&module_graph),
-      Some(ExportInfoProvided::False)
+      Some(ExportProvided::NotProvided)
     ) {
       continue;
     };

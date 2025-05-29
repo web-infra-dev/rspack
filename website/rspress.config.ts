@@ -1,7 +1,9 @@
 import path from 'node:path';
 import { pluginSass } from '@rsbuild/plugin-sass';
+import { pluginAlgolia } from '@rspress/plugin-algolia';
 import { pluginLlms } from '@rspress/plugin-llms';
 import { pluginRss } from '@rspress/plugin-rss';
+import { transformerNotationHighlight } from '@shikijs/transformers';
 import { pluginGoogleAnalytics } from 'rsbuild-plugin-google-analytics';
 import { pluginOpenGraph } from 'rsbuild-plugin-open-graph';
 import { pluginFontOpenSans } from 'rspress-plugin-font-open-sans';
@@ -24,7 +26,12 @@ export default defineConfig({
   globalStyles: path.join(__dirname, 'theme', 'index.css'),
   markdown: {
     checkDeadLinks: true,
-    highlightLanguages: [['rs', 'rust']],
+    shiki: {
+      transformers: [transformerNotationHighlight()],
+      langAlias: {
+        ejs: 'js',
+      },
+    },
   },
   search: {
     codeBlocks: true,
@@ -34,6 +41,7 @@ export default defineConfig({
     exclude: ['**/types/*.mdx'],
   },
   plugins: [
+    pluginAlgolia(),
     pluginLlms(),
     pluginSitemap({
       domain: PUBLISH_URL,
@@ -169,6 +177,8 @@ export default defineConfig({
     ],
     source: {
       preEntry: ['./theme/tailwind.css'],
+    },
+    resolve: {
       alias: {
         '@builtIns': path.join(__dirname, 'components', 'builtIns'),
         '@components': path.join(__dirname, 'components'),
