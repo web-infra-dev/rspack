@@ -5378,9 +5378,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_resolver"
-version = "0.5.6"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6175326c187f3b310a3694ca5681bba8e024c46e35cdfb6f796629a64c599143"
+checksum = "9e3bb6b0edc681de93831f8f3e531b9338afbea4ef6f49534ac025d11d1bca2d"
 dependencies = [
  "async-trait",
  "cfg-if",

@@ -1,12 +1,21 @@
 import * as path from "path";
 import { type Chunk, type ChunkGroup, type Compilation, Module, ModuleGraph, NormalModule, rspack } from "@rspack/core";
-import { beforeAll, bench, describe } from "vitest";
+import { beforeAll, bench as vitestBench, describe, type BenchmarkAPI } from "vitest";
 import rspackConfig from "./fixtures/ts-react/rspack.config";
 
 const BARREL_OPTIMIZATION_PREFIX = '__barrel_optimize__';
 
 let context: string;
 let theCompilation: Compilation;
+
+// Mark benchmarks on JavaScript files with `js@` prefix
+const bench = ((name, ...args) => vitestBench(typeof name === "function" ? name : `js@${name}`, ...args)) as BenchmarkAPI;
+bench.fn = vitestBench.fn
+bench.todo = vitestBench.todo;
+bench.only = vitestBench.only;
+bench.skip = vitestBench.skip;
+bench.skipIf = vitestBench.skipIf;
+bench.runIf = vitestBench.runIf;
 
 beforeAll(() => {
 	return new Promise((resolve, reject) =>
@@ -127,9 +136,9 @@ describe("TypeScript React project", () => {
 		function recordModule(mod: NormalModule) {
 			const resource =
 				mod.type === 'css/mini-extract'
-				? mod.identifier().slice(mod.identifier().lastIndexOf('!') + 1)
-				: mod.resource
-	
+					? mod.identifier().slice(mod.identifier().lastIndexOf('!') + 1)
+					: mod.resource
+
 			if (!resource) {
 				return
 			}
@@ -171,14 +180,14 @@ describe("TypeScript React project", () => {
 			loaders?: { loader: string }[]
 		}): boolean {
 			return !!(
-			  	mod.type === 'css/mini-extract' ||
-			  	(mod.resource && regexCSS.test(mod.resource)) ||
-			 	mod.loaders?.some(
+				mod.type === 'css/mini-extract' ||
+				(mod.resource && regexCSS.test(mod.resource)) ||
+				mod.loaders?.some(
 					({ loader }) =>
 						loader.includes('next-style-loader/index.js') ||
 						loader.includes('rspack.CssExtractRspackPlugin.loader') ||
 						loader.includes('@vanilla-extract/webpack-plugin/loader/')
-			  	)
+				)
 			)
 		}
 
@@ -191,7 +200,7 @@ describe("TypeScript React project", () => {
 
 	bench("record chunk group", () => {
 		const checkedChunkGroups = new Set()
-      	const checkedChunks = new Set()
+		const checkedChunks = new Set()
 
 		for (const [_entryName, entrypoint] of theCompilation.entrypoints) {
 			recordChunkGroup(entrypoint)
@@ -205,7 +214,7 @@ describe("TypeScript React project", () => {
 				if (checkedChunks.has(chunk)) return
 				checkedChunks.add(chunk)
 				const entryMods = theCompilation.chunkGraph.getChunkEntryModulesIterable(chunk)
-				
+
 				for (const mod of entryMods) {
 					for (const connection of theCompilation.moduleGraph.getOutgoingConnectionsInOrder(mod)) {
 						const dependency = connection.dependency
