@@ -61,7 +61,7 @@ function useFooterData() {
         },
         {
           title: 'Rslib',
-          link: 'https://rspack.rs/',
+          link: 'https://rslib.rs/',
         },
         {
           title: 'Rspress',
@@ -73,7 +73,7 @@ function useFooterData() {
         },
         {
           title: 'Rstest',
-          link: 'https://github.com/web-infra-dev/rstest',
+          link: 'https://rstest.rs/',
         },
       ],
     },
