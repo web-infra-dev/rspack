@@ -97,7 +97,6 @@ inventory = { version = "0.3.17" }
 rkyv      = { version = "=0.8.8" }
 
 # Must be pinned with the same swc versions
-petgraph            = { version = "*" }
 pnp                 = { version = "0.9.0" }
 swc                 = { version = "=22.0.0" }
 swc_config          = { version = "=2.0.0" }
