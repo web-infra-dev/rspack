@@ -544,6 +544,17 @@ const applyOutputDefaults = (
 		futureDefaults: boolean;
 	}
 ) => {
+	// Warn if [contenthash] is used in output.filename in development mode
+	if (
+		development &&
+		typeof output.filename === "string" &&
+		output.filename.includes("[contenthash]")
+	) {
+		console.warn(
+			"[Rspack] Warning: Using [contenthash] in output.filename in development mode will bloat memory. It is recommended to use [name] or [hash] instead."
+		);
+	}
+
 	const getLibraryName = (library: Library): string => {
 		const libraryName =
 			typeof library === "object" &&
