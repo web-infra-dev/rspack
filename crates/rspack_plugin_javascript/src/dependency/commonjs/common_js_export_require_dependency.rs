@@ -147,17 +147,19 @@ impl CommonJsExportRequireDependency {
         unreachable!();
       };
       for imported_export_info in imported_exports_info.ordered_exports(mg) {
-        let name = ExportInfoGetter::name(imported_export_info.as_data(mg));
+        let imported_export_info_data = imported_export_info.as_data(mg);
+        let name = ExportInfoGetter::name(imported_export_info_data);
         if let Some(name) = name {
           if matches!(
-            ExportInfoGetter::provided(imported_export_info.as_data(mg)),
+            ExportInfoGetter::provided(imported_export_info_data),
             Some(ExportProvided::NotProvided)
           ) {
             continue;
           }
           if let Some(exports_info) = exports_info {
             let export_info = exports_info.get_read_only_export_info(mg, name);
-            let used = ExportInfoGetter::get_used(export_info.as_data(mg), runtime);
+            let export_info_data = export_info.as_data(mg);
+            let used = ExportInfoGetter::get_used(export_info_data, runtime);
             if matches!(used, UsageState::Unused) {
               continue;
             }
@@ -295,7 +297,8 @@ impl Dependency for CommonJsExportRequireDependency {
 
     for name in &self.names {
       let export_info = exports_info.get_read_only_export_info(mg, name);
-      let used = ExportInfoGetter::get_used(export_info.as_data(mg), runtime);
+      let export_info_data = export_info.as_data(mg);
+      let used = ExportInfoGetter::get_used(export_info_data, runtime);
       if matches!(used, UsageState::Unused) {
         return vec![ExtendedReferencedExport::Array(vec![])];
       }
@@ -303,7 +306,7 @@ impl Dependency for CommonJsExportRequireDependency {
         return get_full_result();
       }
 
-      match ExportInfoGetter::exports_info(export_info.as_data(mg)) {
+      match ExportInfoGetter::exports_info(export_info_data) {
         Some(v) => exports_info = v,
         None => return get_full_result(),
       };
@@ -318,10 +321,11 @@ impl Dependency for CommonJsExportRequireDependency {
 
     let mut referenced_exports = vec![];
     for export_info in exports_info.ordered_exports(mg) {
+      let export_info_data = export_info.as_data(mg);
       let prefix = ids
         .iter()
         .chain(
-          if let Some(name) = ExportInfoGetter::name(export_info.as_data(mg)) {
+          if let Some(name) = ExportInfoGetter::name(export_info_data) {
             vec![name]
           } else {
             vec![]

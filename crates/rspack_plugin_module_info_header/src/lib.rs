@@ -95,7 +95,7 @@ fn print_exports_info_to_source<F>(
 
     source.add(RawStringSource::from(to_comment_with_nl(&export_str)));
 
-    if let Some(exports_info) = &ExportInfoGetter::exports_info(export_info.as_data(module_graph)) {
+    if let Some(exports_info) = &ExportInfoGetter::exports_info(info) {
       print_exports_info_to_source(
         source,
         &format!("{ident}  "),
@@ -115,16 +115,16 @@ fn print_exports_info_to_source<F>(
 
   if show_other_exports {
     let other_exports_info = exports_info_id.other_exports_info(module_graph);
+    let other_exports_info_data = other_exports_info.as_data(module_graph);
 
     let target = other_exports_info.get_target(module_graph);
 
     if target.is_some()
       || !matches!(
-        ExportInfoGetter::provided(other_exports_info.as_data(module_graph)),
+        ExportInfoGetter::provided(other_exports_info_data),
         Some(ExportProvided::NotProvided)
       )
-      || ExportInfoGetter::get_used(other_exports_info.as_data(module_graph), None)
-        != UsageState::Unused
+      || ExportInfoGetter::get_used(other_exports_info_data, None) != UsageState::Unused
     {
       let title = if !printed_exports.is_empty() || already_printed_exports > 0 {
         "other exports"
@@ -132,9 +132,8 @@ fn print_exports_info_to_source<F>(
         "exports"
       };
 
-      let provide_info =
-        ExportInfoGetter::get_provided_info(other_exports_info.as_data(module_graph));
-      let used_info = ExportInfoGetter::get_used_info(other_exports_info.as_data(module_graph));
+      let provide_info = ExportInfoGetter::get_provided_info(other_exports_info_data);
+      let used_info = ExportInfoGetter::get_used_info(other_exports_info_data);
       let target_desc = match target {
         Some(resolve_target) => {
           format!(" -> {}", request_shortener(&resolve_target.module))
