@@ -5,8 +5,8 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationFinishModules, CompilationParams, CompilerCompilation, CompilerOptions, EntryData,
-  LibraryExport, LibraryOptions, LibraryType, ModuleIdentifier, Plugin, PluginContext,
-  RuntimeGlobals, UsageState,
+  ExportInfoSetter, LibraryExport, LibraryOptions, LibraryType, ModuleIdentifier, Plugin,
+  PluginContext, RuntimeGlobals, UsageState,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -152,8 +152,9 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     let mut module_graph = compilation.get_module_graph_mut();
     if let Some(export) = export {
       let export_info = module_graph.get_export_info(module_identifier, &(export.as_str()).into());
-      export_info.set_used(&mut module_graph, UsageState::Used, Some(&runtime));
-      export_info.set_can_mangle_use(&mut module_graph, Some(false));
+      let info = export_info.as_data_mut(&mut module_graph);
+      ExportInfoSetter::set_used(info, UsageState::Used, Some(&runtime));
+      ExportInfoSetter::set_can_mangle_use(info, Some(false));
     } else {
       let exports_info = module_graph.get_exports_info(&module_identifier);
       if self.ns_object_used {

@@ -3,8 +3,8 @@ use std::sync::LazyLock;
 use regex::Regex;
 use rspack_core::{
   incremental::IncrementalPasses, ApplyContext, BuildMetaExportsType, Compilation,
-  CompilationOptimizeCodeGeneration, CompilerOptions, ExportProvided, ExportsInfo, ModuleGraph,
-  Plugin, PluginContext, UsageState,
+  CompilationOptimizeCodeGeneration, CompilerOptions, ExportInfoSetter, ExportProvided,
+  ExportsInfo, ModuleGraph, Plugin, PluginContext, UsageState,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -136,7 +136,7 @@ fn mangle_exports_info(
           && !matches!(export_info.provided(mg), Some(ExportProvided::Provided)));
 
       if can_not_mangle {
-        export_info.set_used_name(mg, name.clone());
+        ExportInfoSetter::set_used_name(export_info.as_data_mut(mg), name.clone());
         used_names.insert(name.to_string());
       } else {
         mangleable_exports.push(export_info);
@@ -186,7 +186,7 @@ fn mangle_exports_info(
       0,
     );
     for (export_info, name) in export_info_used_name {
-      export_info.set_used_name(mg, name.into());
+      ExportInfoSetter::set_used_name(export_info.as_data_mut(mg), name.into());
     }
   } else {
     let mut used_exports = Vec::new();
@@ -214,7 +214,7 @@ fn mangle_exports_info(
           }
           i += 1;
         }
-        export_info.set_used_name(mg, name.into());
+        ExportInfoSetter::set_used_name(export_info.as_data_mut(mg), name.into());
       }
     }
   }
