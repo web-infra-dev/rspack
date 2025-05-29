@@ -91,9 +91,6 @@ impl ChunkGraph {
             .chunk_by_ukey
             .get(chunk_ukey)
             .expect("should have chunk");
-          // let mg = &compilation.get_module_graph();
-          // let mg = self.get_ordered_chunk_modules(chunk_ukey, mg);
-          // let modules = mg.iter().map(|m| m.identifier()).collect::<Vec<_>>();
           if let Some(name) = chunk.name() {
             return name.to_string();
           }
