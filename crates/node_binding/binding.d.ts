@@ -405,6 +405,15 @@ export declare class RawExternalItemFnCtx {
   getResolver(): JsResolver
 }
 
+export declare class ReadonlyResourceData {
+  get resource(): string
+  get path(): string | null
+  get query(): string | null
+  get fragment(): string | null
+  get descriptionFileData(): any | null
+  get descriptionFilePath(): string | null
+}
+
 export declare class Sources {
   _get(sourceType: string): JsCompatSourceOwned | null
 }
