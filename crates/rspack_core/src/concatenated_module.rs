@@ -85,28 +85,37 @@ pub struct RootModuleContext {
 #[allow(unused)]
 #[derive(Debug, Clone)]
 pub struct RawBinding {
-  info_id: ModuleIdentifier,
-  raw_name: Atom,
-  comment: Option<String>,
-  ids: Vec<Atom>,
-  export_name: Vec<Atom>,
+  pub info_id: ModuleIdentifier,
+  pub raw_name: Atom,
+  pub comment: Option<String>,
+  pub ids: Vec<Atom>,
+  pub export_name: Vec<Atom>,
 }
 
 #[allow(unused)]
 #[derive(Debug, Clone)]
 pub struct SymbolBinding {
   /// corresponding to a ConcatenatedModuleInfo, ref https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L93-L100
-  info_id: ModuleIdentifier,
-  name: Atom,
-  comment: Option<String>,
-  ids: Vec<Atom>,
-  export_name: Vec<Atom>,
+  pub info_id: ModuleIdentifier,
+  pub name: Atom,
+  pub comment: Option<String>,
+  pub ids: Vec<Atom>,
+  pub export_name: Vec<Atom>,
 }
 
 #[derive(Debug, Clone)]
 pub enum Binding {
   Raw(RawBinding),
   Symbol(SymbolBinding),
+}
+
+impl Binding {
+  pub fn identifier(&self) -> ModuleIdentifier {
+    match self {
+      Binding::Raw(raw_binding) => raw_binding.info_id,
+      Binding::Symbol(symbol_binding) => symbol_binding.info_id,
+    }
+  }
 }
 
 #[derive(Debug)]
@@ -187,6 +196,7 @@ pub struct ConcatenatedModuleInfo {
   pub export_map: Option<HashMap<Atom, String>>,
   pub raw_export_map: Option<HashMap<Atom, String>>,
   pub namespace_object_name: Option<Atom>,
+  pub namespace_object_source: Option<String>,
   pub interop_namespace_object_used: bool,
   pub interop_namespace_object_name: Option<Atom>,
   pub interop_namespace_object2_used: bool,
@@ -1811,7 +1821,7 @@ impl ConcatenatedModule {
   }
 
   #[allow(clippy::too_many_arguments)]
-  fn get_final_name(
+  pub fn get_final_name(
     module_graph: &ModuleGraph,
     info: &ModuleIdentifier,
     export_name: Vec<Atom>,
@@ -1898,7 +1908,7 @@ impl ConcatenatedModule {
   }
 
   #[allow(clippy::too_many_arguments)]
-  fn get_final_binding(
+  pub fn get_final_binding(
     mg: &ModuleGraph,
     info_id: &ModuleIdentifier,
     mut export_name: Vec<Atom>,
@@ -2048,7 +2058,7 @@ impl ConcatenatedModule {
             raw_name: info
               .namespace_object_name
               .clone()
-              .expect("should have namespace_object_name"),
+              .unwrap_or_else(|| panic!("should have namespace_object_name:{}", info.module)),
             ids: export_name.clone(),
             export_name,
             info_id: info.module,
