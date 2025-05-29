@@ -90,8 +90,8 @@ impl RspackHash {
   }
 
   pub fn digest(self, digest: &HashDigest) -> RspackHashDigest {
-    // The maximum value of xxhash and md4 output
-    let mut result = [0; 16];
+    // The maximum value of sha256, the largest possible hash
+    let mut result = [0; 32];
     let len;
 
     match self {
@@ -173,11 +173,11 @@ impl From<&str> for RspackHashDigest {
 }
 
 impl RspackHashDigest {
-  /// `inner ` must be empty or come from a short hash output (< 128bit)
+  /// `inner ` must be empty or come from a hash up to 256 bits
   pub fn new(inner: &[u8], digest: &HashDigest) -> Self {
     let encoded = match digest {
       HashDigest::Hex => {
-        let mut buf = [0; 32];
+        let mut buf = [0; 64];
         let s = hex(inner, &mut buf);
         s.into()
       }
