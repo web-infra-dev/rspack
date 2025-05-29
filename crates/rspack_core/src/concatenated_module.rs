@@ -1295,6 +1295,9 @@ impl Module for ConcatenatedModule {
     compilation: &Compilation,
     generation_runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
+    use rayon::prelude::*;
+    use tokio::runtime::Handle;
+
     let mut hasher = RspackHash::from(&compilation.options.output);
     let runtime = if let Some(self_runtime) = &self.runtime
       && let Some(generation_runtime) = generation_runtime
@@ -1309,32 +1312,47 @@ impl Module for ConcatenatedModule {
       generation_runtime.map(Cow::Borrowed)
     };
     let runtime = runtime.as_deref();
-    for info in self.create_concatenation_list(
+    let list = self.create_concatenation_list(
       self.root_module_ctxt.id,
       self.modules.iter().map(|item| item.id).collect(),
       runtime,
       &compilation.get_module_graph(),
-    ) {
-      match info {
-        ConcatenationEntry::Concatenated(e) => {
-          compilation
-            .get_module_graph()
-            .module_by_identifier(&e.module)
-            .expect("should have module")
-            .get_runtime_hash(compilation, generation_runtime)
-            .await?
-            .encoded()
-            .dyn_hash(&mut hasher);
-        }
-        ConcatenationEntry::External(e) => {
-          ChunkGraph::get_module_id(
-            &compilation.module_ids_artifact,
-            e.module(&compilation.get_module_graph()),
-          )
-          .dyn_hash(&mut hasher);
-        }
-      };
-    }
+    );
+    let handle = Handle::current();
+
+    let to_hash = |info: &_| match info {
+      ConcatenationEntry::Concatenated(e) => {
+        let mg = compilation.get_module_graph();
+        let fut = mg
+          .module_by_identifier(&e.module)
+          .expect("should have module")
+          .get_runtime_hash(compilation, generation_runtime);
+        let result = tokio::task::block_in_place(|| handle.block_on(fut));
+        result.map(|digest| Box::new(digest) as Box<dyn DynHash + Send>)
+      }
+      ConcatenationEntry::External(e) => {
+        let maybe_module_id = ChunkGraph::get_module_id(
+          &compilation.module_ids_artifact,
+          e.module(&compilation.get_module_graph()),
+        )
+        .cloned();
+        Ok(Box::new(maybe_module_id) as Box<_>)
+      }
+    };
+
+    if list.len() > 2 {
+      let list = list.par_iter().map(to_hash).collect::<Result<Vec<_>>>()?;
+
+      for digest in list {
+        digest.dyn_hash(&mut hasher);
+      }
+    } else {
+      for digest in list.iter().map(to_hash) {
+        let digest = digest?;
+        digest.dyn_hash(&mut hasher);
+      }
+    };
+
     module_update_hash(self, &mut hasher, compilation, generation_runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
