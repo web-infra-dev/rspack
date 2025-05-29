@@ -81,22 +81,19 @@ async fn render_startup(
     .expect("should have build meta");
   let exports_type = boxed_module.get_exports_type(&module_graph, boxed_module.build_info().strict);
   for export_info in exports_info.ordered_exports(&module_graph) {
+    let export_info_data = export_info.as_data(&module_graph);
     if matches!(
-      ExportInfoGetter::provided(export_info.as_data(&module_graph)),
+      ExportInfoGetter::provided(export_info_data),
       Some(ExportProvided::NotProvided)
     ) {
       continue;
     };
 
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-    let info_name =
-      ExportInfoGetter::name(export_info.as_data(&module_graph)).expect("should have name");
-    let used_name = ExportInfoGetter::get_used_name(
-      export_info.as_data(&module_graph),
-      Some(info_name),
-      Some(chunk.runtime()),
-    )
-    .expect("name can't be empty");
+    let info_name = ExportInfoGetter::name(export_info_data).expect("should have name");
+    let used_name =
+      ExportInfoGetter::get_used_name(export_info_data, Some(info_name), Some(chunk.runtime()))
+        .expect("name can't be empty");
     let var_name = format!("__webpack_exports__{}", to_identifier(info_name));
 
     if info_name == "default"

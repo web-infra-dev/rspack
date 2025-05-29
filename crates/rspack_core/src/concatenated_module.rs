@@ -920,17 +920,15 @@ impl Module for ConcatenatedModule {
     let mut exports_final_names: Vec<(String, String)> = vec![];
 
     for export_info in exports_info.ordered_exports(&module_graph) {
-      let name = ExportInfoGetter::name(export_info.as_data(&module_graph))
-        .cloned()
-        .unwrap_or("".into());
+      let info = export_info.as_data(&module_graph);
+      let name = ExportInfoGetter::name(info).cloned().unwrap_or("".into());
       if matches!(
-        ExportInfoGetter::provided(export_info.as_data(&module_graph)),
+        ExportInfoGetter::provided(info),
         Some(ExportProvided::NotProvided)
       ) {
         continue;
       }
-      let used_name =
-        ExportInfoGetter::get_used_name(export_info.as_data(&module_graph), None, runtime);
+      let used_name = ExportInfoGetter::get_used_name(info, None, runtime);
 
       let Some(used_name) = used_name else {
         unused_exports.insert(name);
@@ -953,7 +951,7 @@ impl Module for ConcatenatedModule {
         exports_final_names.push((used_name.to_string(), final_name.clone()));
         format!(
           "/* {} */ {}",
-          if ExportInfoGetter::is_reexport(export_info.as_data(&module_graph)) {
+          if ExportInfoGetter::is_reexport(info) {
             "reexport"
           } else {
             "binding"

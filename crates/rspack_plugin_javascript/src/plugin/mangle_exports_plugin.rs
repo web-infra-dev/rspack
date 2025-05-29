@@ -25,7 +25,7 @@ fn can_mangle(exports_info: ExportsInfo, mg: &ModuleGraph) -> bool {
   }
   let mut has_something_to_mangle = false;
   for export_info in exports_info.exports(mg) {
-    if export_info.can_mangle(mg) == Some(true) {
+    if ExportInfoGetter::can_mangle(export_info.as_data(mg)) == Some(true) {
       has_something_to_mangle = true;
     }
   }
@@ -128,23 +128,24 @@ fn mangle_exports_info(
   }
 
   for export_info in exports_info.owned_exports(mg).collect::<Vec<_>>() {
-    if !ExportInfoGetter::has_used_name(export_info.as_data(mg)) {
-      let name = ExportInfoGetter::name(export_info.as_data(mg))
+    let export_info_data = export_info.as_data_mut(mg);
+    if !ExportInfoGetter::has_used_name(export_info_data) {
+      let name = ExportInfoGetter::name(export_info_data)
         .expect("the name of export_info inserted in exports_info can not be `None`")
         .clone();
-      let can_not_mangle = export_info.can_mangle(mg) != Some(true)
+      let can_not_mangle = ExportInfoGetter::can_mangle(export_info_data) != Some(true)
         || (name.len() == 1 && MANGLE_NAME_NORMAL_REG.is_match(name.as_str()))
         || (deterministic
           && name.len() == 2
           && MANGLE_NAME_DETERMINISTIC_REG.is_match(name.as_str()))
         || (avoid_mangle_non_provided
           && !matches!(
-            ExportInfoGetter::provided(export_info.as_data(mg)),
+            ExportInfoGetter::provided(export_info_data),
             Some(ExportProvided::Provided)
           ));
 
       if can_not_mangle {
-        ExportInfoSetter::set_used_name(export_info.as_data_mut(mg), name.clone());
+        ExportInfoSetter::set_used_name(export_info_data, name.clone());
         used_names.insert(name.to_string());
       } else {
         mangleable_exports.push(export_info);
@@ -152,14 +153,14 @@ fn mangle_exports_info(
     }
 
     // we need to re get export info to avoid extending immutable borrow lifetime
-    if ExportInfoGetter::exports_info_owned(export_info.as_data(mg)) {
-      let used = ExportInfoGetter::get_used(export_info.as_data(mg), None);
+    let export_info_data = export_info.as_data(mg);
+    if ExportInfoGetter::exports_info_owned(export_info_data) {
+      let used = ExportInfoGetter::get_used(export_info_data, None);
       if used == UsageState::OnlyPropertiesUsed || used == UsageState::Unused {
         mangle_exports_info(
           mg,
           deterministic,
-          ExportInfoGetter::exports_info(export_info.as_data(mg))
-            .expect("should have exports info id"),
+          ExportInfoGetter::exports_info(export_info_data).expect("should have exports info id"),
           false,
         );
       }

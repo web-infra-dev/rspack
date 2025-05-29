@@ -162,21 +162,6 @@ impl ExportInfo {
       .find_target_impl(mg, valid_target_module_filter, visited)
   }
 
-  pub fn can_mangle(&self, mg: &ModuleGraph) -> Option<bool> {
-    let info = self.as_data(mg);
-    match info.can_mangle_provide {
-      Some(true) => info.can_mangle_use,
-      Some(false) => Some(false),
-      None => {
-        if info.can_mangle_use == Some(false) {
-          Some(false)
-        } else {
-          None
-        }
-      }
-    }
-  }
-
   pub fn has_info(
     &self,
     mg: &ModuleGraph,
@@ -697,7 +682,8 @@ pub fn process_export_info(
   already_visited: &mut UkeySet<ExportInfo>,
 ) {
   if let Some(export_info) = export_info {
-    let used = ExportInfoGetter::get_used(export_info.as_data(module_graph), runtime);
+    let export_info_data = export_info.as_data(module_graph);
+    let used = ExportInfoGetter::get_used(export_info_data, runtime);
     if used == UsageState::Unused {
       return;
     }
@@ -713,8 +699,7 @@ pub fn process_export_info(
       return;
     }
     if let Some(exports_info) = module_graph.try_get_exports_info_by_id(
-      &ExportInfoGetter::exports_info(export_info.as_data(module_graph))
-        .expect("should have exports info"),
+      &ExportInfoGetter::exports_info(export_info_data).expect("should have exports info"),
     ) {
       for export_info in exports_info.id.ordered_exports(module_graph) {
         process_export_info(
@@ -722,14 +707,14 @@ pub fn process_export_info(
           runtime,
           referenced_export,
           if default_points_to_self
-            && ExportInfoGetter::name(export_info.as_data(module_graph))
+            && ExportInfoGetter::name(export_info_data)
               .map(|name| name == "default")
               .unwrap_or_default()
           {
             prefix.clone()
           } else {
             let mut value = prefix.clone();
-            if let Some(name) = ExportInfoGetter::name(export_info.as_data(module_graph)) {
+            if let Some(name) = ExportInfoGetter::name(export_info_data) {
               value.push(name.clone());
             }
             value
