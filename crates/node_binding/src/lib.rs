@@ -180,13 +180,11 @@ impl JsCompiler {
         match use_input_file_system {
           WithBool::True => {
             let binding: Arc<dyn ReadableFileSystem> = Arc::new(node_fs);
-            return Some(binding);
+            Some(binding)
           }
-          WithBool::False => {
-            return None;
-          }
+          WithBool::False => None,
           WithBool::Value(allowlist) => {
-            if allowlist.len() == 0 {
+            if allowlist.is_empty() {
               return None;
             }
             let binding: Arc<dyn ReadableFileSystem> = Arc::new(HybridFileSystem::new(
@@ -194,7 +192,7 @@ impl JsCompiler {
               node_fs,
               NativeFileSystem::new(compiler_options.resolve.pnp.unwrap_or(false)),
             ));
-            return Some(binding);
+            Some(binding)
           }
         }
       })

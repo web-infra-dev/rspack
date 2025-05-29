@@ -31,9 +31,9 @@ impl HybridFileSystem {
       .iter()
       .any(|regexp| regexp.test(path.as_str()))
     {
-      return &self.node_fs;
+      &self.node_fs
     } else {
-      return &self.native_fs;
+      &self.native_fs
     }
   }
 }
