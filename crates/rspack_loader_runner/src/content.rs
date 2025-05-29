@@ -257,7 +257,7 @@ impl ResourceData {
   }
 }
 
-/// Used for [Rule.descriptionData](https://www.rspack.dev/config/module.html#ruledescriptiondata) and
+/// Used for [Rule.descriptionData](https://rspack.rs/config/module.html#ruledescriptiondata) and
 /// package.json.sideEffects in tree shaking.
 #[cacheable]
 #[derive(Debug, Clone)]

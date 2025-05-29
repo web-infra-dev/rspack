@@ -1,4 +1,0 @@
-/en / 200
-
-# Redirect rspack.org to rspack.dev
-https://rspack.org/* https://rspack.dev/:splat 301!

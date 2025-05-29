@@ -1,5 +1,5 @@
 <picture>
-  <img alt="Rspack Banner" src="https://assets.rspack.dev/rspack/rspack-banner.png">
+  <img alt="Rspack Banner" src="https://assets.rspack.rs/rspack/rspack-banner.png">
 </picture>
 
 # Rspack
@@ -26,7 +26,7 @@ Rspack is a high performance JavaScript bundler written in Rust. It offers stron
 - 🛠️ **Production Optimization**: Various optimization strategies are built in by default, such as tree shaking, minification, etc.
 - 🎯 **Framework Agnostic**: Not bound to any frontend framework, ensuring enough flexibility.
 
-Read [Introduction](https://rspack.dev/guide/start/introduction) for details.
+Read [Introduction](https://rspack.rs/guide/start/introduction) for details.
 
 ## 🦀 Rstack
 
@@ -43,7 +43,7 @@ Rstack is a unified JavaScript toolchain built around Rspack, with high performa
 
 ## Getting started
 
-See [Quick start](https://rspack.dev/guide/start/quick-start).
+See [Quick start](https://rspack.rs/guide/start/quick-start).
 
 ## Contribution
 
@@ -62,8 +62,8 @@ Come chat with us on [Discord](https://discord.gg/79ZZ66GH9E)! Rspack team and R
 | Name                                                                                 | Description                                                                     |
 | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
 | [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack)                    | A curated list of awesome things related to Rspack                              |
-| [Rspack 1.x documentation](https://rspack.dev/)                                      | Documentation for Rspack 1.x (latest)                                           |
-| [Rspack 0.x documentation](https://v0.rspack.dev/)                                   | Documentation for Rspack 0.x version                                            |
+| [Rspack 1.x documentation](https://rspack.rs/)                                       | Documentation for Rspack 1.x (latest)                                           |
+| [Rspack 0.x documentation](https://v0.rspack.rs/)                                    | Documentation for Rspack 0.x version                                            |
 | [rspack-dev-server](https://github.com/web-infra-dev/rspack-dev-server)              | Dev server for Rspack                                                           |
 | [rstack-examples](https://github.com/rspack-contrib/rstack-examples)                 | Examples showcasing Rstack ecosystem tools (Rspack, Rsbuild, Rspress, Rsdoctor) |
 | [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                    | Rust port of [webpack-sources](https://www.npmjs.com/package/webpack-sources)   |
@@ -75,7 +75,7 @@ Come chat with us on [Discord](https://discord.gg/79ZZ66GH9E)! Rspack team and R
 
 ## Benchmark
 
-See [Benchmark](https://rspack-ecosystem-benchmark.rspack.dev/).
+See [Benchmark](https://ecosystem-benchmark.rspack.rs/).
 
 ## Credits
 

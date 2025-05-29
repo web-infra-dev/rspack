@@ -7,7 +7,7 @@ _November 7, 2024_
 
 # Announcing Rspack 1.1
 
-![Rspack 1.1](https://assets.rspack.dev/rspack/rspack-banner-v1-1.png)
+![Rspack 1.1](https://assets.rspack.rs/rspack/rspack-banner-v1-1.png)
 
 > Posted by [@LingyuCoder](https://github.com/LingyuCoder), [@ahabhgk](https://github.com/ahabhgk), [@GiveMe-A-Name](https://github.com/GiveMe-A-Name), [@9aoy](https://github.com/9aoy), [@chenjiahan](https://github.com/chenjiahan)
 
@@ -36,7 +36,7 @@ According to our benchmarks, Rspack v1.1 is **10% faster** than v1.0.
 
 <img
   width="850"
-  src="https://assets.rspack.dev/rspack/assets/rspack-1-1-perf-comparison.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-1-1-perf-comparison.png"
   alt="Rspack v1.1 vs v1.0"
 />
 
@@ -44,7 +44,7 @@ A major optimization is that Rspack uses a better scheduling strategy inspired b
 
 ### New incremental rebuild
 
-In the early versions of Rspack 0.x, we implemented [experiments.incrementalRebuild](https://v0.rspack.dev/config/experiments#experimentsincrementalrebuild). As this feature gradually stabilized, we removed the experiments configuration and enabled it by default.
+In the early versions of Rspack 0.x, we implemented [experiments.incrementalRebuild](https://v0.rspack.rs/config/experiments#experimentsincrementalrebuild). As this feature gradually stabilized, we removed the experiments configuration and enabled it by default.
 
 However, this feature only enabled incrementality for the `make` and `emitAssets` stages of the rebuild. For many projects, the loader in the `make` stage takes a lot of time. At that time, this feature had a relatively obvious performance improvement in rebuild for these projects. But there are still some projects that take a lot of time in stages other than `make`. Therefore, we optimized and expanded this feature and gradually introduced this feature into other stages, such as `buildChunkGraph`, `providedExports`, `moduleCodegen`, etc.
 
@@ -54,7 +54,7 @@ In a case of 10000 React components, the HMR becomes 38% faster:
 
 <img
   width="850"
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-1-new-incremental-compare.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-1-new-incremental-compare.png"
   alt="10000 React Components with new incremental enabled"
 />
 
@@ -115,7 +115,7 @@ To fix this, we recently refactored the configuration types and added JSDoc comm
 
 <img
   width="850"
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-1-config-intellisense.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-1-config-intellisense.png"
   alt="configuration intellisense in IDE"
 />
 
@@ -145,13 +145,13 @@ Rsbuild v1.1 upgraded to Rspack v1.1 and introduced several new features.
 
 ### CLI shortcuts
 
-Rsbuild now supports enabling CLI shortcuts through the [dev.cliShortcuts](https://rsbuild.dev/config/dev/cli-shortcuts) config. If you are using Rsbuild CLI, it is enabled by default.
+Rsbuild now supports enabling CLI shortcuts through the [dev.cliShortcuts](https://rsbuild.rs/config/dev/cli-shortcuts) config. If you are using Rsbuild CLI, it is enabled by default.
 
 The CLI shortcut allows you to clear the console, open the browser, restart the server, or customize any shortcut you want.
 
 <img
   width="650"
-  src="https://assets.rspack.dev/rsbuild/assets/rsbuild-cli-shortcuts.png"
+  src="https://assets.rspack.rs/rsbuild/assets/rsbuild-cli-shortcuts.png"
   alt="Rsbuild CLI shortcuts"
 />
 
@@ -160,7 +160,7 @@ The CLI shortcut allows you to clear the console, open the browser, restart the 
 Rsbuild dev server now provides a report page at `/rsbuild-dev-server` that allows you to view all static assets generated during the current build.
 
 <img
-  src="https://assets.rspack.dev/rsbuild/assets/assets-report-page.png"
+  src="https://assets.rspack.rs/rsbuild/assets/assets-report-page.png"
   alt="rsbuild-dev-server"
   width="600"
 />
@@ -169,10 +169,10 @@ Rsbuild dev server now provides a report page at `/rsbuild-dev-server` that allo
 
 Rsbuild 1.1 introduced some new configurations:
 
-- [server.base](https://rsbuild.dev/config/server/base): Set the base path of the server.
-- [source.assetsInclude](https://rsbuild.dev/config/source/assets-include): Set the additional files that should be treated as static assets.
-- [output.filename.assets](https://rsbuild.dev/config/output/filename): Set the name of other static assets.
-- [output.distPath.assets](https://rsbuild.dev/config/output/dist-path): Set the output directory of other static assets.
+- [server.base](https://rsbuild.rs/config/server/base): Set the base path of the server.
+- [source.assetsInclude](https://rsbuild.rs/config/source/assets-include): Set the additional files that should be treated as static assets.
+- [output.filename.assets](https://rsbuild.rs/config/output/filename): Set the name of other static assets.
+- [output.distPath.assets](https://rsbuild.rs/config/output/dist-path): Set the output directory of other static assets.
 
 ## Upgrade guide
 

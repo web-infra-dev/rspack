@@ -58,19 +58,19 @@ Node.js 目前仅在 Linux 平台支持 `--perf-prof`，而 Samply 里的 JavaSc
 
 Rspack 的 JavaScript 代码通常执行在 Node.js 线程里，选择 Node.js 线程查看 Node.js 侧的耗时分布。
 
-![Javascript Profiling](https://assets.rspack.dev/rspack/assets/profiling-javascript.png)
+![Javascript Profiling](https://assets.rspack.rs/rspack/assets/profiling-javascript.png)
 
 #### Rust profiler
 
 Rspack 的 Rust 代码通常执行在 tokio 线程里，选择 tokio 线程就可以查看 Rust 侧的耗时分布。
 
-![Rust Profiling](https://assets.rspack.dev/rspack/assets/profiling-rust.png)
+![Rust Profiling](https://assets.rspack.rs/rspack/assets/profiling-rust.png)
 
 ### Rsdoctor timeline
 
 如果你需要分析 Loader 和 Plugin 耗时或者 Loader 的编译行为，可以利用 Rsdoctor 来查看：
 
-![image](https://assets.rspack.dev/others/assets/rsdoctor/rsdoctor-loader-timeline.png)
+![image](https://assets.rspack.rs/others/assets/rsdoctor/rsdoctor-loader-timeline.png)
 
 参考 [Rsdoctor Compilation Analysis](/guide/optimization/profile#rsdoctor-%E7%9A%84%E7%BC%96%E8%AF%91%E5%88%86%E6%9E%90)
 

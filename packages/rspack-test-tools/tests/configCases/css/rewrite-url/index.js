@@ -14,5 +14,5 @@ it("should rewrite the css url()", function () {
 	const c = /c: url\((.*)\);/.exec(css)[1];
 	expect(c).toBe("#ccc");
 	const d = /d: url\((.*)\);/.exec(css)[1];
-	expect(d).toBe("https://rspack.dev/tests/~img.png");
+	expect(d).toBe("https://rspack.rs/tests/~img.png");
 });

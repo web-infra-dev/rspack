@@ -159,7 +159,7 @@ for (const binding of bindings) {
 	fs.writeFileSync(`${output}/${pkgJson.main}`, binary);
 
 	const README = `<picture>
-  <img alt="Rspack Banner" src="https://assets.rspack.dev/rspack/rspack-banner.png">
+  <img alt="Rspack Banner" src="https://assets.rspack.rs/rspack/rspack-banner.png">
 </picture>
 
 # ${pkgJson.name}
@@ -170,7 +170,7 @@ This package does *NOT* follow [semantic versioning](https://semver.org/).
 
 ## Documentation
 
-See [https://rspack.dev](https://rspack.dev) for details.
+See [https://rspack.rs](https://rspack.rs) for details.
 
 ## License
 

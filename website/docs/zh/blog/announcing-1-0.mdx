@@ -7,7 +7,7 @@ _2024 年 8 月 28 日_
 
 # Rspack 1.0 发布公告
 
-![](https://assets.rspack.dev/rspack/rspack-banner-v1-0.png)
+![](https://assets.rspack.rs/rspack/rspack-banner-v1-0.png)
 
 ---
 
@@ -17,7 +17,7 @@ Rspack 是基于 Rust 编写的下一代 JavaScript 打包工具， 兼容 webpa
 
 在 18 个月前，我们开源了 Rspack 0.1，并收到了大量来自社区的反馈和贡献。在这期间，170 位贡献者参与了 Rspack 开发，提交了超过 5000 个 pull request 和超过 2000 个 issues，帮助 Rspack 快速迭代了 80 个版本。同时，Rspack 的 npm 周下载量也突破了 10 万 🎉
 
-![Rspack Stats](https://assets.rspack.dev/rspack/assets/rspack-v1-0-stats.png)
+![Rspack Stats](https://assets.rspack.rs/rspack/assets/rspack-v1-0-stats.png)
 
 今天，Rspack 终于到达了一个崭新的阶段 —— 1.0。这意味着 Rspack 已经达到生产稳定，覆盖了 webpack 绝大多数的 API 和功能，并已经做好支持更多用户的准备。
 
@@ -25,13 +25,13 @@ Rspack 是基于 Rust 编写的下一代 JavaScript 打包工具， 兼容 webpa
 
 自 Rspack 开源以来，已经有众多企业和开发者在生产环境使用 Rspack，Rspack 每周的 npm 下载量也突破了 10 万。
 
-![Rspack downloads](https://assets.rspack.dev/rspack/assets/rspack-v1-0-downloads.png)
+![Rspack downloads](https://assets.rspack.rs/rspack/assets/rspack-v1-0-downloads.png)
 
 在字节跳动内部，Rspack 的周下载量超过 40 万，有超过 1000 个 Web 应用在使用 Rspack，包括 TikTok、抖音、飞书、Coze 等。这些项目接入 Rspack 后，显著改进了构建耗时和迭代效率。这也帮助我们发现了 Rspack 早期的一些设计问题，促使我们改进架构，在迁移成本、性能和灵活性等方面做好权衡。
 
 我们也看到更多的企业级用户开始使用 Rspack，包括微软、Amazon、阿里巴巴、Intuit、Bit.dev、Discord 等等。我们很高兴 Rspack 能够帮助这些企业用户实现渐进式迁移，也期望未来与更多的企业和开发者建立合作和交流。
 
-![Who is using](https://assets.rspack.dev/rspack/assets/rspack-v1-0-who-is-using.png)
+![Who is using](https://assets.rspack.rs/rspack/assets/rspack-v1-0-who-is-using.png)
 
 ## 新特性
 
@@ -39,11 +39,11 @@ Rspack 是基于 Rust 编写的下一代 JavaScript 打包工具， 兼容 webpa
 
 ### 更极致的性能
 
-作为基于 Rust 实现的 Bundler，性能始终是 Rspack 的一个核心指标。从 Rspack 0.1 发布以来，我们对 Rspack 做了大量的性能改进，优化各个场景下的性能表现，并支持了 [lazy compilation](https://rspack.dev/config/experiments#experimentslazycompilation) 等核心功能，以保障 Rspack 在大型项目中有更佳的性能。
+作为基于 Rust 实现的 Bundler，性能始终是 Rspack 的一个核心指标。从 Rspack 0.1 发布以来，我们对 Rspack 做了大量的性能改进，优化各个场景下的性能表现，并支持了 [lazy compilation](/config/experiments#experimentslazycompilation) 等核心功能，以保障 Rspack 在大型项目中有更佳的性能。
 
 下图是 Rspack 0.1 与 Rspack 1.0 在 [benchmark](https://github.com/rspack-contrib/performance-compare) 中的 build 性能对比。可以看到，Rspack 在实现大量新特性的同时，也显著提升了构建性能：
 
-![Rspack benchmark](https://assets.rspack.dev/rspack/assets/rspack-v1-0-benchmark.png)
+![Rspack benchmark](https://assets.rspack.rs/rspack/assets/rspack-v1-0-benchmark.png)
 
 值得注意的是，Rspack 当前的架构和代码实现仍有许多优化空间。在 1.0 发布后，我们计划继续将 Rspack 的性能提升数倍 🚀，从而更好地支持大型应用开发。
 
@@ -51,7 +51,7 @@ Rspack 是基于 Rust 编写的下一代 JavaScript 打包工具， 兼容 webpa
 
 在 0.1 刚发布的时候，Rspack 尚未实现许多的 webpack API 和 Hooks，只能兼容有限的 webpack 插件和 loaders，这使我们需要 fork 一些社区库来适配 Rspack，例如早期的 [@rspack/plugin-html](https://www.npmjs.com/package/@rspack/plugin-html)、[@rspack/plugin-minify](https://www.npmjs.com/package/@rspack/plugin-minify) 和 [@rspack/plugin-node-polyfill](https://www.npmjs.com/package/@rspack/plugin-node-polyfill)。
 
-随着 API 支持的日益完善，Rspack 适配了越来越多的 webpack 插件和 loaders。目前，Rspack 已经兼容了社区几乎所有的 loader。在下载量最高的 50 个 [webpack 插件](https://rspack.dev/guide/compatibility/plugin) 中，80% 以上都可以在 Rspack 中使用，或是找到替代方案。
+随着 API 支持的日益完善，Rspack 适配了越来越多的 webpack 插件和 loaders。目前，Rspack 已经兼容了社区几乎所有的 loader。在下载量最高的 50 个 [webpack 插件](/guide/compatibility/plugin) 中，80% 以上都可以在 Rspack 中使用，或是找到替代方案。
 
 在此基础上，Rspack 支持了更多的库和框架，包括 React、Preact、Vue、Solid、Svelte、NestJS 等。我们也感谢社区众多插件的维护者主动适配 Rspack，如 [unplugin](https://github.com/unjs/unplugin) 和 [node-polyfill-webpack-plugin](https://www.npmjs.com/package/node-polyfill-webpack-plugin) 等。这里尤其要感谢 [Alexander Akait](https://github.com/alexander-akait)，他作为 webpack 的主要维护者之一，帮助我们支持了许多 webpack loaders 和插件。
 
@@ -59,7 +59,7 @@ Rspack 是基于 Rust 编写的下一代 JavaScript 打包工具， 兼容 webpa
 
 ### 更小的包体积
 
-生产构建的包体积一直是 Rspack 最为关注的核心指标。自 0.1 发布以来，Rspack 逐步对齐了 webpack 的各个产物优化能力，实现了完整的 [split chunks](https://rspack.dev/plugins/webpack/split-chunks-plugin#splitchunksplugin)、[tree shaking](https://rspack.dev/guide/optimization/tree-shaking)、[scope hoisting](https://rspack.dev/config/optimization#optimizationconcatenatemodules)、[mangle exports](https://rspack.dev/config/optimization#optimizationmangleexports) 等重要特性。
+生产构建的包体积一直是 Rspack 最为关注的核心指标。自 0.1 发布以来，Rspack 逐步对齐了 webpack 的各个产物优化能力，实现了完整的 [split chunks](/plugins/webpack/split-chunks-plugin#splitchunksplugin)、[tree shaking](/guide/optimization/tree-shaking)、[scope hoisting](/config/optimization#optimizationconcatenatemodules)、[mangle exports](/config/optimization#optimizationmangleexports) 等重要特性。
 
 当一个项目从 webpack 迁移到 Rspack 后，这些优化能够保障，在提升开发体验的同时，产物的包体积仍与 webpack 处于同一水平。在部分场景下，Rspack 的产物体积已经略优于 webpack。
 
@@ -75,9 +75,9 @@ Rspack 是基于 Rust 编写的下一代 JavaScript 打包工具， 兼容 webpa
 
 在 1.0 中，我们改进了 configuration、JavaScript API、plugin API 的稳定性，这保证了上层的工具和框架能够更加轻松地与 Rspack 集成。同时，我们还完善了官网的指南和 API 文档。
 
-Rspack 1.0 还包含一个[全新的文档首页](https://rspack.dev/)，感谢设计师 Emily Jackson 和团队成员 [Zack Jackson](https://github.com/ScriptedAlchemy) 为此付出的努力。
+Rspack 1.0 还包含一个[全新的文档首页](/)，感谢设计师 Emily Jackson 和团队成员 [Zack Jackson](https://github.com/ScriptedAlchemy) 为此付出的努力。
 
-![Rspack Homepage](https://assets.rspack.dev/rspack/assets/rspack-v1-0-homepage.png)
+![Rspack Homepage](https://assets.rspack.rs/rspack/assets/rspack-v1-0-homepage.png)
 
 ## 为什么是 Rspack
 
@@ -91,7 +91,7 @@ Rspack 当前的目标是：
 
 ### Rspack Stack
 
-![Rspack Stack](https://assets.rspack.dev/rspack/assets/rspack-v1-0-rstack.png)
+![Rspack Stack](https://assets.rspack.rs/rspack/assets/rspack-v1-0-rstack.png)
 
 Rstack 是 "Rspack Stack" 的缩写，代表以 Rspack 为核心的一整套技术栈，包含以下工具：
 
@@ -114,16 +114,16 @@ Rspack 1.0 是对标 webpack v5 设计的，这帮助了大量使用 webpack 的
 
 ## 如何使用 1.0
 
-如果你正在使用 Rspack 0.7 或更早的版本，请留意 1.0 版本包含一些不兼容更新，为此我们准备了详细的文档来帮助升级，请参考：[从 Rspack 0.x 迁移](https://rspack.dev/zh/guide/migration/rspack_0.x)。
+如果你正在使用 Rspack 0.7 或更早的版本，请留意 1.0 版本包含一些不兼容更新，为此我们准备了详细的文档来帮助升级，请参考：[从 Rspack 0.x 迁移](/guide/migration/rspack_0.x)。
 
-如果你还未使用过 Rspack，请参考 [快速上手](https://rspack.dev/zh/guide/start/quick-start) 来接入 Rspack，也欢迎为 [Rspack GitHub 仓库](https://github.com/web-infra-dev/rspack) 点亮一颗 Star 🌟。
+如果你还未使用过 Rspack，请参考 [快速上手](/guide/start/quick-start) 来接入 Rspack，也欢迎为 [Rspack GitHub 仓库](https://github.com/web-infra-dev/rspack) 点亮一颗 Star 🌟。
 
 ## 下一步
 
 Rspack 1.0 是一个全新的起点，在本次发布后，Rspack 团队将聚焦于以下目标：
 
 - **开发 Rspack 1.x。** Rspack 将在 1.x 版本迭代 12～18 个月，并带来更多的新特性和改进。
-- **发布 Rsbuild 1.0。** 它基于 Rspack 1.0，并支持[多环境构建](https://rsbuild.dev/guide/advanced/environments)。目前 Rsbuild 已发布 1.0 RC，预计在 9 月发布正式版。
+- **发布 Rsbuild 1.0。** 它基于 Rspack 1.0，并支持[多环境构建](https://rsbuild.rs/guide/advanced/environments)。目前 Rsbuild 已发布 1.0 RC，预计在 9 月发布正式版。
 - **发布 Rsdoctor 1.0。** 该版本将改进对 Vue 项目的支持，并提供适用于 CI / CD 环境的[报告模式](https://github.com/web-infra-dev/rsdoctor/issues/408)。
 - **开发 Rslib 0.x。** Rslib 是基于 Rsbuild 的 library 构建工具，详见 [Rslib 仓库](https://github.com/web-infra-dev/rslib)。
 - **开发 Rspress 2.0。** 它将基于 React 19 实现，并改进一些过去不合理的设计，详见 [Rspress v2.0 planning](https://github.com/web-infra-dev/rspress/discussions/1105)。
@@ -146,11 +146,11 @@ Rspack 缓存能力的演进路线，是依次实现 memory cache、persistent c
 
 ### 稳定的 Rust API
 
-目前，上层工具可以使用 JS API 来集成 Rspack，这提供了良好的扩展性。但是 Rust 和 JavaScript 存在通信开销，这在一定程度上限制了 Rspack 的性能。我们也提供了 [SWC Wasm plugin](https://rspack.dev/guide/features/builtin-swc-loader#jscexperimentalplugins) 以支持扩展，但是 Wasm 的性能相比 native 语言仍然有一定差距，为了给上层工具提供更灵活的接入方式和更好的性能，我们计划开放 Rspack 的 Rust API 用于集成。
+目前，上层工具可以使用 JS API 来集成 Rspack，这提供了良好的扩展性。但是 Rust 和 JavaScript 存在通信开销，这在一定程度上限制了 Rspack 的性能。我们也提供了 [SWC Wasm plugin](/guide/features/builtin-swc-loader#jscexperimentalplugins) 以支持扩展，但是 Wasm 的性能相比 native 语言仍然有一定差距，为了给上层工具提供更灵活的接入方式和更好的性能，我们计划开放 Rspack 的 Rust API 用于集成。
 
 ### React Server Components 支持
 
-在字节跳动内部，我们已经基于 Rspack 实验性地支持了 RSC（React Server Components），并在一个大型 web 项目中得到验证。未来 Rspack 将会为 RSC 提供一等公民的支持，提供更多的核心能力来帮助实现 RSC。例如，目前 Rspack 已经支持 [layer](https://rspack.dev/config/experiments#experimentslayers) 特性，能够在单次打包时构建出多种环境的产物。
+在字节跳动内部，我们已经基于 Rspack 实验性地支持了 RSC（React Server Components），并在一个大型 web 项目中得到验证。未来 Rspack 将会为 RSC 提供一等公民的支持，提供更多的核心能力来帮助实现 RSC。例如，目前 Rspack 已经支持 [layer](/config/experiments#experimentslayers) 特性，能够在单次打包时构建出多种环境的产物。
 
 ### 改进 ESM 产物
 
@@ -170,7 +170,7 @@ Rspack 的发展离不开广大的社区贡献者和社区伙伴，这里特别�
 
 在开源社区上，Rspack 获得了 2024 年度 [Breakthrough of the Year 奖项](https://osawards.com/javascript/)，这对于 Rspack 团队是一个很大的鼓舞，感谢所有投票支持 Rspack 的开发者：
 
-![Rspack OSS Awards](https://assets.rspack.dev/rspack/assets/rspack-v1-0-osawards.png)
+![Rspack OSS Awards](https://assets.rspack.rs/rspack/assets/rspack-v1-0-osawards.png)
 
 自 0.1 发布后，我们和社区的多个团队建立了深入的合作关系。例如：
 
@@ -182,19 +182,19 @@ Rspack 的发展离不开广大的社区贡献者和社区伙伴，这里特别�
 
 最后，再次感谢所有为 Rspack 生态贡献过的开发者 ❤️：
 
-![Rspack Contributors](https://assets.rspack.dev/rspack/assets/rspack-v1-0-contributors.png)
+![Rspack Contributors](https://assets.rspack.rs/rspack/assets/rspack-v1-0-contributors.png)
 
 ## 常见问题
 
 ### 发布 1.0 意味着什么？
 
-1.0 的发布，意味着 Rspack 实现了 webpack 的核心功能，API 达到稳定。在未来 12～18 个月内，我们会保证 Rspack 1.x API 的稳定性，开发者可以放心地基于 Rspack API 开发上层的框架和工具。在 1.x 的迭代期间，我们仍然可能会发现一些 Rspack 不合理的设计，我们将通过 [future flags](https://rspack.dev/config/experiments#experimentsrspackfuture) 的方式，实现渐进式地升级。
+1.0 的发布，意味着 Rspack 实现了 webpack 的核心功能，API 达到稳定。在未来 12～18 个月内，我们会保证 Rspack 1.x API 的稳定性，开发者可以放心地基于 Rspack API 开发上层的框架和工具。在 1.x 的迭代期间，我们仍然可能会发现一些 Rspack 不合理的设计，我们将通过 [future flags](/config/experiments#experimentsrspackfuture) 的方式，实现渐进式地升级。
 
 ### 什么时候发布 Rsbuild 1.0？
 
 我们正在进行 Rsbuild 1.0 发布的准备工作，并计划于 9 月上旬正式发布。
 
-在发布 Rspack 1.0 的同时，我们也已经发布了 Rsbuild 1.0 RC 版本，后续 Rsbuild 将不再引入不兼容更新。请参考 [从 Rsbuild 0.x 迁移](https://rsbuild.dev/zh/guide/migration/rsbuild-0-x) 升级到 Rsbuild 1.0 RC。
+在发布 Rspack 1.0 的同时，我们也已经发布了 Rsbuild 1.0 RC 版本，后续 Rsbuild 将不再引入不兼容更新。请参考 [从 Rsbuild 0.x 迁移](https://rsbuild.rs/zh/guide/migration/rsbuild-0-x) 升级到 Rsbuild 1.0 RC。
 
 ### Rspack 遵循语义化版本吗？
 
@@ -204,7 +204,7 @@ Rspack 遵循语义化版本（semver），不会在 minor 或 patch release 中
 
 #### 实验性特性
 
-Rspack 提供了一些实验性特性，这些特性可以通过 [experiments](https://rspack.dev/config/experiments) 配置项使用。在 minor release 中，Rspack 可能对这些实验性特性的 public API 做一些调整，并在更新日志中对这些变动进行详细的说明。因此，如果你使用了实验性特性，请留意 minor 版本的更新日志。
+Rspack 提供了一些实验性特性，这些特性可以通过 [experiments](/config/experiments) 配置项使用。在 minor release 中，Rspack 可能对这些实验性特性的 public API 做一些调整，并在更新日志中对这些变动进行详细的说明。因此，如果你使用了实验性特性，请留意 minor 版本的更新日志。
 
 #### SWC 相关特性
 

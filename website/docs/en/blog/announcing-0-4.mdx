@@ -15,22 +15,22 @@ Rspack no longer supports Node.js 14, Node.js 16+ is now required.
 
 ### Make @rspack/core as peer dependency of @rspack/cli
 
-`@rspack/core` is now a peer dependency of `@rspack/cli` rather than a direct dependency. This means that you need to manually install `@rspack/core` with `@rspack/cli` now. aligning Rspack more closely with webpack. In the long term, the positioning of `@rspack/cli` will no longer be an out-of-the-box solution. We will align `@rspack/cli` with webpack-cli and may even directly support the use of `@rspack/core` in `webpack-cli`. We recommend [Rsbuild](https://rsbuild.dev/) as an out-of-the-box solution.
+`@rspack/core` is now a peer dependency of `@rspack/cli` rather than a direct dependency. This means that you need to manually install `@rspack/core` with `@rspack/cli` now. aligning Rspack more closely with webpack. In the long term, the positioning of `@rspack/cli` will no longer be an out-of-the-box solution. We will align `@rspack/cli` with webpack-cli and may even directly support the use of `@rspack/core` in `webpack-cli`. We recommend [Rsbuild](https://rsbuild.rs/) as an out-of-the-box solution.
 
 ### Deprecating default transformation
 
 `experiments.rspackFuture.disableTransformByDefault` is enabled by default in v0.4.0. For people that still need the legacy behavior, you may manually set this option to `false`.
 
-This feature primarily addresses three categories of problems: [builtins](https://v0.rspack.dev/config/builtins) code transformation features, [target](/config/target), and custom [Rule.type](/config/module#ruletype).
+This feature primarily addresses three categories of problems: [builtins](https://v0.rspack.rs/config/builtins) code transformation features, [target](/config/target), and custom [Rule.type](/config/module#ruletype).
 
-1. Removal of support for some [builtins](https://v0.rspack.dev/config/builtins) features:
+1. Removal of support for some [builtins](https://v0.rspack.rs/config/builtins) features:
 
-- [builtins.relay](https://v0.rspack.dev/config/builtins#builtinsrelay): moved to `rspackExperiments.relay`
-- [builtins.react](https://v0.rspack.dev/config/builtins#builtinsreact): moved to `jsc.transform.react`
-- [builtins.emotion](https://v0.rspack.dev/config/builtins#builtinsemotion): moved to `rspackExperiments.emotion`
-- [builtins.pluginImport](https://v0.rspack.dev/config/builtins#builtinspluginimport): moved to `rspackExperiments.import`
-- [builtins.decorator](https://v0.rspack.dev/config/builtins#builtinsdecorator): moved to `jsc.parser.decorators`
-- [builtins.presetEnv](https://v0.rspack.dev/config/builtins#builtinspresetenv): moved to `jsc.env`
+- [builtins.relay](https://v0.rspack.rs/config/builtins#builtinsrelay): moved to `rspackExperiments.relay`
+- [builtins.react](https://v0.rspack.rs/config/builtins#builtinsreact): moved to `jsc.transform.react`
+- [builtins.emotion](https://v0.rspack.rs/config/builtins#builtinsemotion): moved to `rspackExperiments.emotion`
+- [builtins.pluginImport](https://v0.rspack.rs/config/builtins#builtinspluginimport): moved to `rspackExperiments.import`
+- [builtins.decorator](https://v0.rspack.rs/config/builtins#builtinsdecorator): moved to `jsc.parser.decorators`
+- [builtins.presetEnv](https://v0.rspack.rs/config/builtins#builtinspresetenv): moved to `jsc.env`
 
 ```js title="rspack.config.mjs"
 export default {
