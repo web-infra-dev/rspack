@@ -7,7 +7,7 @@ use rspack_plugin_javascript::{
   JavascriptParserPlugin,
 };
 use swc_core::{
-  common::Spanned,
+  common::{BytePos, Span, Spanned},
   ecma::ast::{CallExpr, Ident, MemberExpr, UnaryExpr},
 };
 
@@ -34,22 +34,29 @@ pub struct RstestParserPlugin;
 
 impl RstestParserPlugin {
   fn process_hoist_mock(&self, parser: &mut JavascriptParser, call_expr: &CallExpr) {
-    parser
-      .presentational_dependencies
-      .push(Box::new(MockHoistDependency::new()));
+    // let xx = call_expr.span.spn
 
-    parser
-      .presentational_dependencies
-      .push(Box::new(ConstDependency::new(
-        call_expr.callee.span().into(),
-        "__webpack_require__.set_mock".to_string().into(),
-        None,
-      )));
+    // parser
+    //   .presentational_dependencies
+    //   .push(Box::new(MockHoistDependency::new()));
+
+    dbg!(call_expr.span());
+
+    let top_span = Span::new(BytePos(0), BytePos(0));
+    let offset = call_expr.span.hi() - call_expr.span.lo();
+
+    // parser
+    //   .presentational_dependencies
+    //   .push(Box::new(ConstDependency::new(
+    //     // call_expr.callee.span().into(),
+    //     top_span.into(),
+    //     "__webpack_require__.set_mock\n".to_string().into(),
+    //     None,
+    //   )));
 
     match call_expr.args.len() {
-      // TODO: mock a module to __mocks__
       1 => {}
-      // mock a module
+      // TODO: mock a module to __mocks__ folder
       2 => {
         let first_arg = &call_expr.args[0];
         let second_arg = &call_expr.args[1];
@@ -57,6 +64,8 @@ impl RstestParserPlugin {
         if first_arg.spread.is_some() || second_arg.spread.is_some() {
           return;
         }
+
+        dbg!(second_arg);
 
         if let Some(lit) = first_arg.expr.as_lit() {
           if let Some(lit) = lit.as_str() {
@@ -84,7 +93,7 @@ impl RstestParserPlugin {
     //   .presentational_dependencies
     //   .push(Box::new(ConstDependency::new(
     //     call_expr.span().into(),
-    //     "QQQ".into(),
+    //     "".into(),
     //     None,
     //   )));
   }
@@ -110,6 +119,19 @@ impl RstestParserPlugin {
 }
 
 impl JavascriptParserPlugin for RstestParserPlugin {
+  fn pre_declarator(
+    &self,
+    _parser: &mut JavascriptParser,
+    declarator: &swc_core::ecma::ast::VarDeclarator,
+    declaration: &swc_core::ecma::ast::VarDecl,
+  ) -> Option<bool> {
+    // let fn_decl = stmt.as_function_decl()?;
+    // let ident = fn_decl.ident()?;
+    // let name = ident.sym.as_str();
+    dbg!(declarator, declaration);
+    None
+  }
+
   fn call(
     &self,
     parser: &mut rspack_plugin_javascript::visitors::JavascriptParser,
@@ -118,7 +140,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
   ) -> Option<bool> {
     if for_name == RS_MOCK {
       self.process_hoist_mock(parser, call_expr);
-      Some(true)
+      None
     } else {
       None
     }

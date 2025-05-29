@@ -2,8 +2,9 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   module_id, AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  ExtendedReferencedExport, FactorizeInfo, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  ModuleDependency, ModuleGraph, NormalInitFragment, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -126,6 +127,12 @@ impl DependencyTemplate for MockModuleIdDependencyTemplate {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let TemplateContext {
+      module,
+      init_fragments,
+      ..
+    } = code_generatable_context;
+
     let dep = dep
       .as_any()
       .downcast_ref::<MockModuleIdDependency>()
@@ -143,5 +150,28 @@ impl DependencyTemplate for MockModuleIdDependencyTemplate {
       .as_str(),
       None,
     );
+
+    // let init = NormalInitFragment::new(
+    //   format!(
+    //     "__rs__.mock({}, async () => {{
+    //   const b = await import('./b.js')
+    //   return {{ name: 'ok', b }}
+    //       }})
+    // ",
+    //     module_id(
+    //       code_generatable_context.compilation,
+    //       &dep.id,
+    //       &dep.request,
+    //       dep.weak,
+    //     )
+    //     .as_str(),
+    //   ),
+    //   InitFragmentStage::StageProvides,
+    //   0,
+    //   InitFragmentKey::Const(format!("retest mock_module {}", dep.request)),
+    //   None,
+    // );
+
+    // init_fragments.push(init.boxed());
   }
 }
