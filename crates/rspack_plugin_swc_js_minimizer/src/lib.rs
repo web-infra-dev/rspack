@@ -12,6 +12,7 @@ use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
+  diagnostics::MinifyError,
   rspack_sources::{
     ConcatSource, MapOptions, RawStringSource, Source, SourceExt, SourceMapSource,
     SourceMapSourceOptions,
@@ -19,7 +20,7 @@ use rspack_core::{
   AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
   CompilerCompilation, Plugin, PluginContext,
 };
-use rspack_error::{miette::IntoDiagnostic, Diagnostic, Result};
+use rspack_error::{miette::IntoDiagnostic, Diagnostic, DiagnosticExt, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_javascript_compiler::JavaScriptCompiler;
@@ -304,7 +305,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         ) {
             Ok(r) => r,
             Err(e) => {
-              tx.send(e.into()).into_diagnostic()?;
+              let errors = e.into_inner().into_iter().map(|err| {
+                Diagnostic::from(MinifyError(err).boxed()).with_file(Some(filename.into()))
+              }).collect::<Vec<_>>();
+              tx.send(errors).into_diagnostic()?;
               return Ok(())
             },
         };

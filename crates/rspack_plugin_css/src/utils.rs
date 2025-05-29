@@ -414,8 +414,8 @@ pub fn css_parsing_traceable_error(
     start as usize,
     end as usize,
     match severity {
-      RspackSeverity::Error => "CSS parsing error".to_string(),
-      RspackSeverity::Warn => "CSS parsing warning".to_string(),
+      RspackSeverity::Error => "CSS parse error".to_string(),
+      RspackSeverity::Warn => "CSS parse warning".to_string(),
     },
     message.into(),
   )

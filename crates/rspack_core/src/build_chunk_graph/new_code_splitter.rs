@@ -97,6 +97,15 @@ impl ChunkDesc {
     }
   }
 
+  pub(crate) fn outgoings_mut(
+    &mut self,
+  ) -> &mut IndexSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>> {
+    match self {
+      ChunkDesc::Entry(entry) => &mut entry.outgoing_blocks,
+      ChunkDesc::Chunk(chunk) => &mut chunk.outgoing_blocks,
+    }
+  }
+
   pub(crate) fn incomings(&self) -> &HashSet<AsyncDependenciesBlockIdentifier> {
     match self {
       ChunkDesc::Entry(entry) => &entry.incoming_blocks,

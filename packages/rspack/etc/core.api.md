@@ -3973,6 +3973,7 @@ type KnownStatsCompilation = {
 // @public (undocumented)
 type KnownStatsError = {
     message: string;
+    code?: StatsErrorCode | string;
     chunkName?: string;
     chunkEntry?: boolean;
     chunkInitial?: boolean;
@@ -4733,7 +4734,7 @@ type ModuleFilterItemTypes = RegExp | string | ((name: string, module: any, type
 type ModuleFilterTypes = boolean | ModuleFilterItemTypes | ModuleFilterItemTypes[];
 
 // @public (undocumented)
-class ModuleGraph {
+export class ModuleGraph {
     constructor(binding: JsModuleGraph);
     // (undocumented)
     static __from_binding(binding: JsModuleGraph): ModuleGraph;
@@ -6274,6 +6275,7 @@ declare namespace rspackExports {
         ConcatenatedModule,
         ExternalModule,
         NormalModuleFactory,
+        ModuleGraph,
         RuntimeGlobals,
         StatsAsset,
         StatsChunk,
@@ -7324,6 +7326,15 @@ export type StatsCompilation = KnownStatsCompilation & Record<string, any>;
 
 // @public (undocumented)
 export type StatsError = KnownStatsError & Record<string, any>;
+
+// @public (undocumented)
+enum StatsErrorCode {
+    ChunkMinificationError = "ChunkMinificationError",
+    ChunkMinificationWarning = "ChunkMinificationWarning",
+    ModuleBuildError = "ModuleBuildError",
+    ModuleParseError = "ModuleParseError",
+    ModuleParseWarning = "ModuleParseWarning"
+}
 
 // @public (undocumented)
 class StatsFactory {

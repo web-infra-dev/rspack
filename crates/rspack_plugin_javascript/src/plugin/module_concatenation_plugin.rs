@@ -70,10 +70,10 @@ impl ConcatConfiguration {
     self.warnings.insert(module, problem);
   }
 
-  fn get_warnings_sorted(&self) -> IdentifierMap<Warning> {
+  fn get_warnings_sorted(&self) -> Vec<(ModuleIdentifier, Warning)> {
     let mut sorted_warnings: Vec<_> = self.warnings.clone().into_iter().collect();
-    sorted_warnings.sort_by(|a, b| a.0.cmp(&b.0));
-    sorted_warnings.into_iter().collect()
+    sorted_warnings.sort_by_key(|(id, _)| *id);
+    sorted_warnings
   }
 
   fn get_modules(&self) -> &IdentifierIndexSet {

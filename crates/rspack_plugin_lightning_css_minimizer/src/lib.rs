@@ -15,6 +15,7 @@ use lightningcss::{
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
+  diagnostics::MinifyError,
   rspack_sources::{
     MapOptions, RawStringSource, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,
   },
@@ -297,7 +298,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
       original.get_info_mut().minimized.replace(true);
       Ok(())
-    })?;
+    }).map_err(MinifyError)?;
 
   compilation.extend_diagnostics(all_warnings.into_inner().expect("should lock"));
 

@@ -220,6 +220,11 @@ pub fn remove_available_modules(
       continue;
     }
 
+    let outgoings = chunk.outgoings_mut();
+    for remove_id in &removed {
+      outgoings.swap_remove(remove_id);
+    }
+
     let chunk = &chunks[chunk_index].1.chunk_desc;
     let outgoings = chunk.outgoings();
 
@@ -229,7 +234,7 @@ pub fn remove_available_modules(
       // if all incomings from current chunk are removed, we can remove this child
       if child_chunk.incomings().iter().all(|incoming| {
         // if all incomings are not from current chunk, we disconnect them
-        !removed.contains(incoming) && !outgoings.contains(incoming)
+        !outgoings.contains(incoming)
       }) {
         disconnect_children.insert(*child);
       }

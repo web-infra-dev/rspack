@@ -1,6 +1,6 @@
 ERROR in ./a.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: 'const' declarations must be initialized
+  ╰─▶   × JavaScript parse error: 'const' declarations must be initialized
          ╭─[2:7]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
@@ -14,7 +14,7 @@ ERROR in ./a.js
 
 ERROR in ./a.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected a semicolon
+  ╰─▶   × JavaScript parse error: Expected a semicolon
          ╭─[2:9]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
@@ -28,7 +28,7 @@ ERROR in ./a.js
 
 ERROR in ./a.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expression expected
+  ╰─▶   × JavaScript parse error: Expression expected
          ╭─[6:0]
        4 │     d = 10
        5 │     g = CONST
@@ -41,7 +41,7 @@ ERROR in ./a.js
 
 ERROR in ./b.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: 'const' declarations must be initialized
+  ╰─▶   × JavaScript parse error: 'const' declarations must be initialized
          ╭─[2:7]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
@@ -55,7 +55,7 @@ ERROR in ./b.js
 
 ERROR in ./b.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected a semicolon
+  ╰─▶   × JavaScript parse error: Expected a semicolon
          ╭─[2:9]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
@@ -69,7 +69,7 @@ ERROR in ./b.js
 
 ERROR in ./b.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expression expected
+  ╰─▶   × JavaScript parse error: Expression expected
          ╭─[6:0]
        4 │     d = 10
        5 │     g = CONST
@@ -82,7 +82,7 @@ ERROR in ./b.js
 
 ERROR in ./c.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: 'const' declarations must be initialized
+  ╰─▶   × JavaScript parse error: 'const' declarations must be initialized
          ╭─[2:7]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
@@ -96,7 +96,7 @@ ERROR in ./c.js
 
 ERROR in ./c.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected a semicolon
+  ╰─▶   × JavaScript parse error: Expected a semicolon
          ╭─[2:9]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
@@ -110,7 +110,7 @@ ERROR in ./c.js
 
 ERROR in ./c.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expression expected
+  ╰─▶   × JavaScript parse error: Expression expected
          ╭─[6:0]
        4 │     d = 10
        5 │     g = CONST
@@ -123,7 +123,7 @@ ERROR in ./c.js
 
 ERROR in ./d.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: 'const' declarations must be initialized
+  ╰─▶   × JavaScript parse error: 'const' declarations must be initialized
          ╭─[2:7]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
@@ -137,7 +137,7 @@ ERROR in ./d.js
 
 ERROR in ./d.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected a semicolon
+  ╰─▶   × JavaScript parse error: Expected a semicolon
          ╭─[2:9]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
@@ -151,7 +151,7 @@ ERROR in ./d.js
 
 ERROR in ./d.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expression expected
+  ╰─▶   × JavaScript parse error: Expression expected
          ╭─[6:0]
        4 │     d = 10
        5 │     g = CONST
@@ -164,7 +164,7 @@ ERROR in ./d.js
 
 ERROR in ./e.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: 'const' declarations must be initialized
+  ╰─▶   × JavaScript parse error: 'const' declarations must be initialized
          ╭─[2:7]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
@@ -178,7 +178,7 @@ ERROR in ./e.js
 
 ERROR in ./e.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected a semicolon
+  ╰─▶   × JavaScript parse error: Expected a semicolon
          ╭─[2:9]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
@@ -192,7 +192,7 @@ ERROR in ./e.js
 
 ERROR in ./e.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expression expected
+  ╰─▶   × JavaScript parse error: Expression expected
          ╭─[6:0]
        4 │     d = 10
        5 │     g = CONST
@@ -205,7 +205,7 @@ ERROR in ./e.js
 
 ERROR in ./f.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: 'const' declarations must be initialized
+  ╰─▶   × JavaScript parse error: 'const' declarations must be initialized
          ╭─[2:7]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
@@ -219,7 +219,7 @@ ERROR in ./f.js
 
 ERROR in ./f.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected a semicolon
+  ╰─▶   × JavaScript parse error: Expected a semicolon
          ╭─[2:9]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
@@ -233,7 +233,7 @@ ERROR in ./f.js
 
 ERROR in ./f.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expression expected
+  ╰─▶   × JavaScript parse error: Expression expected
          ╭─[6:0]
        4 │     d = 10
        5 │     g = CONST
@@ -246,7 +246,7 @@ ERROR in ./f.js
 
 ERROR in ./g.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: 'const' declarations must be initialized
+  ╰─▶   × JavaScript parse error: 'const' declarations must be initialized
          ╭─[2:7]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
@@ -260,7 +260,7 @@ ERROR in ./g.js
 
 ERROR in ./g.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected a semicolon
+  ╰─▶   × JavaScript parse error: Expected a semicolon
          ╭─[2:9]
        1 │ const CONST = 9000 % 2;
        2 │ const  D {
@@ -274,7 +274,7 @@ ERROR in ./g.js
 
 ERROR in ./g.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expression expected
+  ╰─▶   × JavaScript parse error: Expression expected
          ╭─[6:0]
        4 │     d = 10
        5 │     g = CONST

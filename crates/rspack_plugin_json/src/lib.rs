@@ -98,7 +98,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               // one character offset
               start_offset,
               start_offset + 1,
-              "Json parsing error".to_string(),
+              "JSON parse error".to_string(),
               format!("Unexpected character {ch}"),
             )
             .with_kind(DiagnosticKind::Json)
@@ -113,7 +113,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               source.into_owned(),
               offset,
               offset,
-              "Json parsing error".to_string(),
+              "JSON parse error".to_string(),
               format!("{e}"),
             )
             .with_kind(DiagnosticKind::Json)

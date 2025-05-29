@@ -1,12 +1,15 @@
-import { fooValue1, fooValue2, fooValue3 } from './foo'
-import { barValue } from './bar'
-import { bazValue1, bazValue2 } from './baz'
+import { file1, file2, metaFile1, dir1, dir2, metaDir1, typeofMetaFile, typeofMetaDir } from './foo'
+import { file, dir } from './bar'
 
 console.log(
-	fooValue1,
-	fooValue2,
-	fooValue3,
-	barValue,
-	bazValue1,
-	bazValue2
+	file1,
+	file2,
+	metaFile1,
+	dir1,
+	dir2,
+	metaDir1,
+	typeofMetaFile,
+	typeofMetaDir,
+	file,
+	dir
 )
