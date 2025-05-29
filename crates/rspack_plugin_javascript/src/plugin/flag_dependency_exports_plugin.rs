@@ -5,7 +5,7 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   incremental::{self, IncrementalPasses},
   ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
-  DependenciesBlock, DependencyId, ExportNameOrSpec, ExportProvided, ExportsInfo,
+  DependenciesBlock, DependencyId, ExportInfoSetter, ExportNameOrSpec, ExportProvided, ExportsInfo,
   ExportsOfExportsSpec, ExportsSpec, Logger, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
   Plugin, PluginContext,
 };
@@ -154,8 +154,12 @@ impl<'a> FlagDependencyExportsState<'a> {
     let export_dependencies = &export_desc.dependencies;
     if let Some(hide_export) = export_desc.hide_export {
       for name in hide_export.iter() {
-        let from_exports_info = exports_info.get_export_info(self.mg, name);
-        from_exports_info.unset_target(self.mg, &dep_id);
+        ExportInfoSetter::unset_target(
+          exports_info
+            .get_export_info(self.mg, name)
+            .as_data_mut(self.mg),
+          &dep_id,
+        );
       }
     }
     match exports {
@@ -251,17 +255,20 @@ impl<'a> FlagDependencyExportsState<'a> {
           ExportProvided::NotProvided | ExportProvided::Unknown
         )
       {
-        export_info.set_provided(self.mg, Some(ExportProvided::Provided));
+        ExportInfoSetter::set_provided(
+          export_info.as_data_mut(self.mg),
+          Some(ExportProvided::Provided),
+        );
         self.changed = true;
       }
 
       if Some(false) != export_info.can_mangle_provide(self.mg) && can_mangle == Some(false) {
-        export_info.set_can_mangle_provide(self.mg, Some(false));
+        ExportInfoSetter::set_can_mangle_provide(export_info.as_data_mut(self.mg), Some(false));
         self.changed = true;
       }
 
       if terminal_binding && !export_info.terminal_binding(self.mg) {
-        export_info.set_terminal_binding(self.mg, true);
+        ExportInfoSetter::set_terminal_binding(export_info.as_data_mut(self.mg), true);
         self.changed = true;
       }
 
@@ -279,7 +286,7 @@ impl<'a> FlagDependencyExportsState<'a> {
       // because `create_nested_exports_info` needs `&mut ModuleGraph`
       if let Some(from) = from {
         let changed = if hidden {
-          export_info.unset_target(self.mg, &dep_id)
+          ExportInfoSetter::unset_target(export_info.as_data_mut(self.mg), &dep_id)
         } else {
           let fallback = rspack_core::Nullable::Value(vec![name.clone()]);
           let export_name = if let Some(from) = from_export {
@@ -287,8 +294,8 @@ impl<'a> FlagDependencyExportsState<'a> {
           } else {
             Some(&fallback)
           };
-          export_info.set_target(
-            self.mg,
+          ExportInfoSetter::set_target(
+            export_info.as_data_mut(self.mg),
             Some(dep_id),
             Some(from.dependency_id),
             export_name,
@@ -325,7 +332,7 @@ impl<'a> FlagDependencyExportsState<'a> {
           self.changed = true;
         }
       } else if export_info.exports_info(self.mg) != target_exports_info {
-        export_info.set_exports_info(self.mg, target_exports_info);
+        ExportInfoSetter::set_exports_info(export_info.as_data_mut(self.mg), target_exports_info);
         self.changed = true;
       }
     }
