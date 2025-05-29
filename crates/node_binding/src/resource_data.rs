@@ -1,5 +1,61 @@
+use std::sync::Arc;
+
 use napi_derive::napi;
 use rspack_core::ResourceData;
+
+// Converting the descriptionFileData property to a JSObject may become a performance bottleneck.
+// Therefore, ResourceData is exposed as a class instance with properties accessed lazily.
+#[napi]
+pub struct ReadonlyResourceData {
+  i: Arc<rspack_core::ResourceData>,
+}
+
+#[napi]
+impl ReadonlyResourceData {
+  #[napi(getter)]
+  pub fn resource(&self) -> &str {
+    self.i.resource.as_str()
+  }
+
+  #[napi(getter)]
+  pub fn path(&self) -> Option<&str> {
+    self.i.resource_path.as_ref().map(|path| path.as_str())
+  }
+
+  #[napi(getter)]
+  pub fn query(&self) -> Option<&str> {
+    self.i.resource_query.as_ref().map(|query| query.as_str())
+  }
+
+  #[napi(getter)]
+  pub fn fragment(&self) -> Option<&str> {
+    self
+      .i
+      .resource_fragment
+      .as_ref()
+      .map(|fragment| fragment.as_str())
+  }
+
+  #[napi(getter)]
+  pub fn description_file_data(&mut self) -> Option<&serde_json::Value> {
+    self.i.resource_description.as_ref().map(|data| data.json())
+  }
+
+  #[napi(getter)]
+  pub fn description_file_path(&mut self) -> Option<String> {
+    self
+      .i
+      .resource_description
+      .as_ref()
+      .map(|data| data.path().to_string_lossy().to_string())
+  }
+}
+
+impl From<Arc<rspack_core::ResourceData>> for ReadonlyResourceData {
+  fn from(value: Arc<rspack_core::ResourceData>) -> Self {
+    Self { i: value }
+  }
+}
 
 #[napi(object)]
 pub struct JsResourceData {
