@@ -67,15 +67,15 @@ impl ChunkGraph {
                 })
               })
             })
-            .map(|(module, request)| format!("{} {}", module, request))
+            .map(|(module, request)| format!("{module} {request}"))
             .collect::<Vec<_>>();
 
           origins.sort();
           Cow::Owned(origins.join("\n"))
         },
-        |name| Cow::Borrowed(name),
+        Cow::Borrowed,
       );
-      let table_header = format!("<tr><td bgcolor=\"#aaa\">{}</td></tr>", chunk_group_name);
+      let table_header = format!("<tr><td bgcolor=\"#aaa\">{chunk_group_name}</td></tr>");
       let bg_color = if chunk_group.is_initial() {
         "green"
       } else {
@@ -96,18 +96,15 @@ impl ChunkGraph {
           if let Some(name) = chunk.name() {
             return name.to_string();
           }
-          let id = chunk_ukey.as_u32().to_string();
-          id
+
+          chunk_ukey.as_u32().to_string()
         })
-        .map(|chunk_name| format!("    <tr><td>{}</td></tr>", chunk_name))
+        .map(|chunk_name| format!("    <tr><td>{chunk_name}</td></tr>"))
         .join("\n");
 
       let table_body = requests.to_string();
 
-      format!(
-        "\n<<table bgcolor=\"{}\">\n{}\n{}\n</table>>\n",
-        bg_color, table_header, table_body
-      )
+      format!("\n<<table bgcolor=\"{bg_color}\">\n{table_header}\n{table_body}\n</table>>\n")
     };
 
     // push entry_point chunk group into visiting queue
