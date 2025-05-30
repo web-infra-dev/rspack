@@ -37,20 +37,15 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
   }
 
   async fn generate(&self, compilation: &Compilation) -> Result<String> {
-    println!("🔧 EmbedFederationRuntimeModule::generate called");
-
     let chunk_ukey = self
       .chunk
       .expect("Chunk should be attached to RuntimeModule");
 
     let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
-    println!("   - chunk: {:?}", chunk.name());
 
     let collected_deps = &self.options.collected_dependency_ids;
-    println!("   - collected_deps count: {}", collected_deps.len());
 
     if collected_deps.is_empty() {
-      println!("   ❌ No federation runtime dependencies to embed");
       return Ok("// No federation runtime dependencies to embed.".to_string());
     }
 
@@ -59,27 +54,17 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
 
     // Find ALL federation runtime dependencies in this chunk
     for dep_id in collected_deps.iter() {
-      println!("   - checking dep_id: {:?}", dep_id);
       if let Some(module_dyn) = module_graph.get_module_by_dependency_id(dep_id) {
         let is_in_chunk = compilation
           .chunk_graph
           .is_module_in_chunk(&module_dyn.identifier(), chunk_ukey);
-        println!("     - module found, is_in_chunk: {}", is_in_chunk);
         if is_in_chunk {
           federation_runtime_modules.push(*dep_id);
         }
-      } else {
-        println!("     - module not found in module graph");
       }
     }
 
-    println!(
-      "   - federation_runtime_modules count: {}",
-      federation_runtime_modules.len()
-    );
-
     if federation_runtime_modules.is_empty() {
-      println!("   ❌ Federation runtime entry modules not found in this chunk");
       return Ok("// Federation runtime entry modules not found in this chunk.".to_string());
     }
 
@@ -107,11 +92,6 @@ var hasRun = false;
       module_executions = module_executions.join("\n")
     );
 
-    println!(
-      "   ✅ Generated oldStartup wrapper with {} federation modules: {} chars",
-      module_executions.len(),
-      result.len()
-    );
     Ok(result)
   }
 
