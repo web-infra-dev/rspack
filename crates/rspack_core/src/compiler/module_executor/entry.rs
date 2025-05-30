@@ -95,7 +95,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
       let mg = origin_context.artifact.get_module_graph();
       // the module in module executor need to check.
       if mg
-        .module_by_identifier(&meta.origin_module_identifier)
+        .module_graph_module_by_identifier(&meta.origin_module_identifier)
         .is_some()
       {
         execute_task.finish_with_error(
