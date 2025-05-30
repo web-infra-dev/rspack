@@ -1,20 +1,3 @@
-//! # ContainerPlugin
-//!
-//! This plugin creates Module Federation containers that expose modules to be consumed by other
-//! applications. It sets up the container entry point and integrates with the federation hook
-//! system for dependency tracking and optimization.
-//!
-//! ## Key Features:
-//! - **Container Creation**: Creates container entry dependencies and modules
-//! - **Module Exposure**: Exposes specified modules through the container interface
-//! - **Federation Integration**: Calls federation hooks to track container entry dependencies
-//! - **Runtime Module Management**: Adds ExposeRuntimeModule for container functionality
-//!
-//! ## Recent Enhancement:
-//! Now integrates with FederationModulesPlugin hooks to enable container entry dependency
-//! tracking, which allows other plugins (like HoistContainerReferencesPlugin) to optimize
-//! the placement and loading of container-related modules.
-
 use std::sync::Arc;
 
 use async_trait::async_trait;
