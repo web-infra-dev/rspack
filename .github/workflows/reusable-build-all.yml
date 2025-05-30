@@ -1,12 +1,9 @@
-name: Reusable Release
+name: Build All Bindings
 
 on:
   workflow_call:
     inputs:
       target:
-        required: true
-        type: string
-      runner: # Runner labels
         required: true
         type: string
       profile: # Rust profile, "ci" or "production" or "profiling"
@@ -24,31 +21,35 @@ on:
       ref: # Git reference to checkout
         required: false
         type: string
-
-permissions:
-  # Allow commenting on issues
-  issues: write
-
 jobs:
   build:
-    uses: ./.github/workflows/reusable-build-build.yml
+    name: Build All
+    strategy:
+      fail-fast: false # Build and test everything so we can look at all the errors
+      matrix:
+        array:
+          - target: x86_64-unknown-linux-gnu
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+          - target: aarch64-unknown-linux-gnu
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+          - target: x86_64-unknown-linux-musl
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+          - target: aarch64-unknown-linux-musl
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+          - target: i686-pc-windows-msvc
+            runner: ${{ '"windows-latest"' }}
+          - target: x86_64-pc-windows-msvc
+            runner: ${{ '"windows-latest"' }}
+          - target: aarch64-pc-windows-msvc
+            runner: ${{ '"windows-latest"' }}
+          - target: x86_64-apple-darwin
+            runner: ${{ '"macos-latest"' }}
+          - target: aarch64-apple-darwin
+            runner: ${{ '"macos-latest"' }}
+    uses: ./.github/workflows/reusable-build.yml
     with:
-      target: ${{ inputs.target }}
-      runner: ${{ inputs.runner }}
+      ref: ${{ inputs.commit }}
+      target: ${{ matrix.array.target }}
+      runner: ${{ matrix.array.runner }}
       profile: ${{ inputs.profile }}
-      ref: ${{ inputs.ref }}
-  test:
-    if: inputs.test
-    needs: build
-    uses: ./.github/workflows/reusable-build-test.yml
-    with:
-      target: ${{ inputs.target }}
-      runner: ${{ inputs.runner }}
-      ref: ${{ inputs.ref }}
-  bench:
-    uses: ./.github/workflows/reusable-build-bench.yml
-    if: inputs.bench
-    with:
-      target: ${{ inputs.target }}
-      runner: '"ubuntu-22.04"'
-      ref: ${{ inputs.ref }}
+      test: ${{ inputs.test }}
