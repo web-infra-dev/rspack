@@ -13,7 +13,7 @@ use serde::Serialize;
 use super::{
   container_entry_dependency::ContainerEntryDependency,
   container_entry_module_factory::ContainerEntryModuleFactory,
-  expose_runtime_module::ExposeRuntimeModule,
+  expose_runtime_module::ExposeRuntimeModule, federation_modules_plugin::FederationModulesPlugin,
 };
 
 #[derive(Debug)]
@@ -73,8 +73,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   );
 
   // Call federation hook for dependency tracking
-  let hooks =
-    super::federation_modules_plugin::FederationModulesPlugin::get_compilation_hooks(compilation);
+  let hooks = FederationModulesPlugin::get_compilation_hooks(compilation);
   let hook = hooks.add_container_entry_dependency.lock().await;
   let _ = hook.call(&dep).await;
 
