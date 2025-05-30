@@ -4,7 +4,7 @@ use napi::{
 };
 use rspack_core::{parse_resource, ResourceData, ResourceParsedData};
 
-use crate::{impl_module_methods, plugins::JsLoaderItem, JsResourceData, Module};
+use crate::{impl_module_methods, plugins::JsLoaderItem, Module, ReadonlyResourceDataWrapper};
 
 #[napi]
 #[repr(C)]
@@ -31,7 +31,7 @@ impl NormalModule {
     let resource_resolve_data = Object::from_raw(env.raw(), unsafe {
       ToNapiValue::to_napi_value(
         env.raw(),
-        JsResourceData::from(resource_resolved_data.clone()),
+        ReadonlyResourceDataWrapper::from(resource_resolved_data.clone()),
       )?
     });
     let loaders = Object::from_raw(env.raw(), unsafe {
