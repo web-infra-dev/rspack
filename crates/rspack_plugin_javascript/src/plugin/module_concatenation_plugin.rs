@@ -13,10 +13,10 @@ use rspack_core::{
   },
   filter_runtime,
   incremental::IncrementalPasses,
-  ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions, ExportProvided,
-  ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph,
-  ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext, ProvidedExports, RuntimeCondition,
-  RuntimeSpec, SourceType,
+  ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions, ExportInfoGetter,
+  ExportProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
+  ModuleGraph, ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext, ProvidedExports,
+  RuntimeCondition, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -775,7 +775,7 @@ impl ModuleConcatenationPlugin {
         let unknown_exports = relevant_exports
           .iter()
           .filter(|export_info| {
-            export_info.is_reexport(&module_graph)
+            ExportInfoGetter::is_reexport(export_info.as_data(&module_graph))
               && export_info.get_target(&module_graph).is_none()
           })
           .copied()
@@ -784,11 +784,14 @@ impl ModuleConcatenationPlugin {
           let cur_bailout_reason = unknown_exports
             .into_iter()
             .map(|export_info| {
-              let name = export_info
-                .name(&module_graph)
+              let name = ExportInfoGetter::name(export_info.as_data(&module_graph))
                 .map(|name| name.to_string())
                 .unwrap_or("other exports".to_string());
-              format!("{} : {}", name, export_info.get_used_info(&module_graph))
+              format!(
+                "{} : {}",
+                name,
+                ExportInfoGetter::get_used_info(export_info.as_data(&module_graph))
+              )
             })
             .collect::<Vec<String>>()
             .join(", ");
@@ -809,7 +812,7 @@ impl ModuleConcatenationPlugin {
           .iter()
           .filter(|export_info| {
             !matches!(
-              export_info.provided(&module_graph),
+              ExportInfoGetter::provided(export_info.as_data(&module_graph)),
               Some(ExportProvided::Provided)
             )
           })
@@ -820,15 +823,14 @@ impl ModuleConcatenationPlugin {
           let cur_bailout_reason = unknown_provided_exports
             .into_iter()
             .map(|export_info| {
-              let name = export_info
-                .name(&module_graph)
+              let name = ExportInfoGetter::name(export_info.as_data(&module_graph))
                 .map(|name| name.to_string())
                 .unwrap_or("other exports".to_string());
               format!(
                 "{} : {} and {}",
                 name,
-                export_info.get_provided_info(&module_graph),
-                export_info.get_used_info(&module_graph),
+                ExportInfoGetter::get_provided_info(export_info.as_data(&module_graph)),
+                ExportInfoGetter::get_used_info(export_info.as_data(&module_graph)),
               )
             })
             .collect::<Vec<String>>()

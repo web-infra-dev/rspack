@@ -6,16 +6,16 @@ use std::{
   sync::{atomic::Ordering::Relaxed, Arc},
 };
 
-use itertools::Itertools;
 use rspack_collections::{impl_item_ukey, Ukey, UkeySet};
 use rspack_util::{atom::Atom, ext::DynHash};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
 
 use super::{
-  ExportInfoTargetValue, ExportProvided, ExportsInfo, ExportsInfoData, FindTargetRetEnum,
-  FindTargetRetValue, ResolvedExportInfoTarget, ResolvedExportInfoTargetWithCircular,
-  TerminalBinding, UnResolvedExportInfoTarget, UsageState, NEXT_EXPORT_INFO_UKEY,
+  ExportInfoGetter, ExportInfoTargetValue, ExportProvided, ExportsInfo, ExportsInfoData,
+  FindTargetRetEnum, FindTargetRetValue, ResolvedExportInfoTarget,
+  ResolvedExportInfoTargetWithCircular, TerminalBinding, UnResolvedExportInfoTarget, UsageState,
+  NEXT_EXPORT_INFO_UKEY,
 };
 use crate::{Compilation, DependencyId, ModuleGraph, ModuleIdentifier, RuntimeSpec};
 
@@ -29,199 +29,12 @@ impl ExportInfo {
     Self(NEXT_EXPORT_INFO_UKEY.fetch_add(1, Relaxed).into())
   }
 
-  pub fn name<'a>(&self, mg: &'a ModuleGraph) -> Option<&'a Atom> {
-    self.as_data(mg).name.as_ref()
-  }
-
-  pub fn provided<'a>(&self, mg: &'a ModuleGraph) -> Option<&'a ExportProvided> {
-    self.as_data(mg).provided.as_ref()
-  }
-
-  pub fn can_mangle_provide(&self, mg: &ModuleGraph) -> Option<bool> {
-    self.as_data(mg).can_mangle_provide
-  }
-
-  pub fn can_mangle_use(&self, mg: &ModuleGraph) -> Option<bool> {
-    self.as_data(mg).can_mangle_use
-  }
-
-  pub fn terminal_binding(&self, mg: &ModuleGraph) -> bool {
-    self.as_data(mg).terminal_binding
-  }
-
-  pub fn exports_info_owned(&self, mg: &ModuleGraph) -> bool {
-    self.as_data(mg).exports_info_owned
-  }
-
-  pub fn exports_info(&self, mg: &ModuleGraph) -> Option<ExportsInfo> {
-    self.as_data(mg).exports_info
-  }
-
   pub fn as_data<'a>(&self, mg: &'a ModuleGraph) -> &'a ExportInfoData {
     mg.get_export_info_by_id(self)
   }
 
   pub fn as_data_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ExportInfoData {
     mg.get_export_info_mut_by_id(self)
-  }
-
-  pub fn get_provided_info(&self, mg: &ModuleGraph) -> &'static str {
-    let export_info = self.as_data(mg);
-    match export_info.provided {
-      Some(ExportProvided::NotProvided) => "not provided",
-      Some(ExportProvided::Unknown) => "maybe provided (runtime-defined)",
-      Some(ExportProvided::Provided) => "provided",
-      None => "no provided info",
-    }
-  }
-
-  pub fn get_rename_info(&self, mg: &ModuleGraph) -> Cow<str> {
-    let export_info_data = self.as_data(mg);
-
-    match (&export_info_data.used_name, &export_info_data.name) {
-      (Some(used), Some(name)) if used != name => return format!("renamed to {used}").into(),
-      (Some(used), None) => return format!("renamed to {used}").into(),
-      _ => {}
-    }
-
-    match (self.can_mangle_provide(mg), self.can_mangle_use(mg)) {
-      (None, None) => "missing provision and use info prevents renaming",
-      (None, Some(false)) => "usage prevents renaming (no provision info)",
-      (None, Some(true)) => "missing provision info prevents renaming",
-
-      (Some(true), None) => "missing usage info prevents renaming",
-      (Some(true), Some(false)) => "usage prevents renaming",
-      (Some(true), Some(true)) => "could be renamed",
-
-      (Some(false), None) => "provision prevents renaming (no use info)",
-      (Some(false), Some(false)) => "usage and provision prevents renaming",
-      (Some(false), Some(true)) => "provision prevents renaming",
-    }
-    .into()
-  }
-
-  pub fn get_used_info(&self, mg: &ModuleGraph) -> Cow<str> {
-    let export_info = self.as_data(mg);
-    if let Some(global_used) = export_info.global_used {
-      return match global_used {
-        UsageState::Unused => "unused".into(),
-        UsageState::NoInfo => "no usage info".into(),
-        UsageState::Unknown => "maybe used (runtime-defined)".into(),
-        UsageState::Used => "used".into(),
-        UsageState::OnlyPropertiesUsed => "only properties used".into(),
-      };
-    } else if let Some(used_in_runtime) = &export_info.used_in_runtime {
-      let mut map = HashMap::default();
-
-      for (runtime, used) in used_in_runtime.iter() {
-        let list = map.entry(*used).or_insert(vec![]);
-        list.push(runtime);
-      }
-
-      let specific_info: Vec<String> = map
-        .iter()
-        .map(|(used, runtimes)| match used {
-          UsageState::NoInfo => format!("no usage info in {}", runtimes.iter().join(", ")),
-          UsageState::Unknown => format!(
-            "maybe used in {} (runtime-defined)",
-            runtimes.iter().join(", ")
-          ),
-          UsageState::Used => format!("used in {}", runtimes.iter().join(", ")),
-          UsageState::OnlyPropertiesUsed => {
-            format!("only properties used in {}", runtimes.iter().join(", "))
-          }
-          UsageState::Unused => {
-            // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ExportsInfo.js#L1470-L1481
-            unreachable!()
-          }
-        })
-        .collect();
-
-      if !specific_info.is_empty() {
-        return specific_info.join("; ").into();
-      }
-    }
-
-    if export_info.has_use_in_runtime_info {
-      "unused".into()
-    } else {
-      "no usage info".into()
-    }
-  }
-
-  pub fn get_used(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> UsageState {
-    let info = self.as_data(mg);
-    if !info.has_use_in_runtime_info {
-      return UsageState::NoInfo;
-    }
-    if let Some(global_used) = info.global_used {
-      return global_used;
-    }
-    if let Some(used_in_runtime) = info.used_in_runtime.as_ref() {
-      let mut max = UsageState::Unused;
-      if let Some(runtime) = runtime {
-        for item in runtime.iter() {
-          let Some(usage) = used_in_runtime.get(item) else {
-            continue;
-          };
-          match usage {
-            UsageState::Used => return UsageState::Used,
-            _ => {
-              max = std::cmp::max(max, *usage);
-            }
-          }
-        }
-      } else {
-        for usage in used_in_runtime.values() {
-          match usage {
-            UsageState::Used => return UsageState::Used,
-            _ => {
-              max = std::cmp::max(max, *usage);
-            }
-          }
-        }
-      }
-      max
-    } else {
-      UsageState::Unused
-    }
-  }
-
-  /// Webpack returns `false | string`, we use `Option<Atom>` to avoid declare a redundant enum
-  /// type
-  pub fn get_used_name(
-    &self,
-    mg: &ModuleGraph,
-    fallback_name: Option<&Atom>,
-    runtime: Option<&RuntimeSpec>,
-  ) -> Option<Atom> {
-    let info = self.as_data(mg);
-    if info.has_use_in_runtime_info {
-      if let Some(usage) = info.global_used {
-        if matches!(usage, UsageState::Unused) {
-          return None;
-        }
-      } else if let Some(used_in_runtime) = info.used_in_runtime.as_ref() {
-        if let Some(runtime) = runtime {
-          if runtime
-            .iter()
-            .all(|item| !used_in_runtime.contains_key(item))
-          {
-            return None;
-          }
-        }
-      } else {
-        return None;
-      }
-    }
-    if let Some(used_name) = info.used_name.as_ref() {
-      return Some(used_name.clone());
-    }
-    if let Some(name) = info.name.as_ref() {
-      Some(name.clone())
-    } else {
-      fallback_name.cloned()
-    }
   }
 
   pub fn create_nested_exports_info(&self, mg: &mut ModuleGraph) -> ExportsInfo {
@@ -272,11 +85,6 @@ impl ExportInfo {
     {
       exports_info.set_has_use_info(mg);
     }
-  }
-
-  pub fn is_reexport(&self, mg: &ModuleGraph) -> bool {
-    let info = self.as_data(mg);
-    !info.terminal_binding && info.target_is_set && !info.target.is_empty()
   }
 
   pub fn get_terminal_binding(&self, mg: &ModuleGraph) -> Option<TerminalBinding> {
@@ -335,10 +143,6 @@ impl ExportInfo {
     self.as_data(mg).get_max_target()
   }
 
-  pub fn has_used_name(&self, mg: &ModuleGraph) -> bool {
-    self.as_data(mg).used_name.is_some()
-  }
-
   pub fn find_target(
     &self,
     mg: &ModuleGraph,
@@ -358,21 +162,6 @@ impl ExportInfo {
       .find_target_impl(mg, valid_target_module_filter, visited)
   }
 
-  pub fn can_mangle(&self, mg: &ModuleGraph) -> Option<bool> {
-    let info = self.as_data(mg);
-    match info.can_mangle_provide {
-      Some(true) => info.can_mangle_use,
-      Some(false) => Some(false),
-      None => {
-        if info.can_mangle_use == Some(false) {
-          Some(false)
-        } else {
-          None
-        }
-      }
-    }
-  }
-
   pub fn has_info(
     &self,
     mg: &ModuleGraph,
@@ -383,7 +172,8 @@ impl ExportInfo {
     data.used_name.is_some()
       || data.provided.is_some()
       || data.terminal_binding
-      || (self.get_used(mg, runtime) != base_info.get_used(mg, runtime))
+      || (ExportInfoGetter::get_used(self.as_data(mg), runtime)
+        != ExportInfoGetter::get_used(base_info.as_data(mg), runtime))
   }
 
   pub fn update_hash_with_visited(
@@ -400,7 +190,7 @@ impl ExportInfo {
     } else {
       data.name.dyn_hash(hasher);
     }
-    self.get_used(mg, runtime).dyn_hash(hasher);
+    ExportInfoGetter::get_used(data, runtime).dyn_hash(hasher);
     data.provided.dyn_hash(hasher);
     data.terminal_binding.dyn_hash(hasher);
     if let Some(exports_info) = data.exports_info
@@ -688,7 +478,9 @@ impl MaybeDynamicTargetExportInfo {
 
   pub fn provided<'a>(&'a self, mg: &'a ModuleGraph) -> Option<&'a ExportProvided> {
     match self {
-      MaybeDynamicTargetExportInfo::Static(export_info) => export_info.provided(mg),
+      MaybeDynamicTargetExportInfo::Static(export_info) => {
+        ExportInfoGetter::provided(export_info.as_data(mg))
+      }
       MaybeDynamicTargetExportInfo::Dynamic { data, .. } => data.provided.as_ref(),
     }
   }
@@ -890,7 +682,8 @@ pub fn process_export_info(
   already_visited: &mut UkeySet<ExportInfo>,
 ) {
   if let Some(export_info) = export_info {
-    let used = export_info.get_used(module_graph, runtime);
+    let export_info_data = export_info.as_data(module_graph);
+    let used = ExportInfoGetter::get_used(export_info_data, runtime);
     if used == UsageState::Unused {
       return;
     }
@@ -906,25 +699,23 @@ pub fn process_export_info(
       return;
     }
     if let Some(exports_info) = module_graph.try_get_exports_info_by_id(
-      &export_info
-        .exports_info(module_graph)
-        .expect("should have exports info"),
+      &ExportInfoGetter::exports_info(export_info_data).expect("should have exports info"),
     ) {
       for export_info in exports_info.id.ordered_exports(module_graph) {
+        let export_info_data = export_info.as_data(module_graph);
         process_export_info(
           module_graph,
           runtime,
           referenced_export,
           if default_points_to_self
-            && export_info
-              .name(module_graph)
+            && ExportInfoGetter::name(export_info_data)
               .map(|name| name == "default")
               .unwrap_or_default()
           {
             prefix.clone()
           } else {
             let mut value = prefix.clone();
-            if let Some(name) = export_info.name(module_graph) {
+            if let Some(name) = ExportInfoGetter::name(export_info_data) {
               value.push(name.clone());
             }
             value

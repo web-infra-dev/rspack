@@ -48,11 +48,11 @@ use crate::{
   CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
   CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
   ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId, DependencyType,
-  ErrorSpan, ExportProvided, ExportsArgument, ExportsType, FactoryMeta, IdentCollector,
-  LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType, Resolve, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsageState, DEFAULT_EXPORT,
-  NAMESPACE_OBJECT_EXPORT,
+  ErrorSpan, ExportInfoGetter, ExportProvided, ExportsArgument, ExportsType, FactoryMeta,
+  IdentCollector, LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument,
+  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType, Resolve,
+  RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsageState,
+  DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -920,17 +920,15 @@ impl Module for ConcatenatedModule {
     let mut exports_final_names: Vec<(String, String)> = vec![];
 
     for export_info in exports_info.ordered_exports(&module_graph) {
-      let name = export_info
-        .name(&module_graph)
-        .cloned()
-        .unwrap_or("".into());
+      let info = export_info.as_data(&module_graph);
+      let name = ExportInfoGetter::name(info).cloned().unwrap_or("".into());
       if matches!(
-        export_info.provided(&module_graph),
+        ExportInfoGetter::provided(info),
         Some(ExportProvided::NotProvided)
       ) {
         continue;
       }
-      let used_name = export_info.get_used_name(&module_graph, None, runtime);
+      let used_name = ExportInfoGetter::get_used_name(info, None, runtime);
 
       let Some(used_name) = used_name else {
         unused_exports.insert(name);
@@ -953,7 +951,7 @@ impl Module for ConcatenatedModule {
         exports_final_names.push((used_name.to_string(), final_name.clone()));
         format!(
           "/* {} */ {}",
-          if export_info.is_reexport(&module_graph) {
+          if ExportInfoGetter::is_reexport(info) {
             "reexport"
           } else {
             "binding"
@@ -966,14 +964,16 @@ impl Module for ConcatenatedModule {
     let mut result = ConcatSource::default();
     let mut should_add_esm_flag = false;
 
+    let used = ExportInfoGetter::get_used(
+      compilation
+        .get_module_graph()
+        .get_exports_info(&self.id())
+        .other_exports_info(&module_graph)
+        .as_data(&module_graph),
+      runtime,
+    );
     // Add ESM compatibility flag (must be first because of possible circular dependencies)
-    if compilation
-      .get_module_graph()
-      .get_exports_info(&self.id())
-      .other_exports_info(&module_graph)
-      .get_used(&module_graph, runtime)
-      != UsageState::Unused
-    {
+    if used != UsageState::Unused {
       should_add_esm_flag = true
     }
 
@@ -1071,18 +1071,19 @@ impl Module for ConcatenatedModule {
         let exports_info = module_graph.get_exports_info(module_info_id);
         for export_info in exports_info.ordered_exports(&module_graph) {
           if matches!(
-            export_info.provided(&module_graph),
+            ExportInfoGetter::provided(export_info.as_data(&module_graph)),
             Some(ExportProvided::NotProvided)
           ) {
             continue;
           }
 
-          if let Some(used_name) = export_info.get_used_name(&module_graph, None, runtime) {
+          if let Some(used_name) =
+            ExportInfoGetter::get_used_name(export_info.as_data(&module_graph), None, runtime)
+          {
             let final_name = Self::get_final_name(
               &compilation.get_module_graph(),
               module_info_id,
-              vec![export_info
-                .name(&module_graph)
+              vec![ExportInfoGetter::name(export_info.as_data(&module_graph))
                 .cloned()
                 .unwrap_or("".into())],
               &mut module_to_info_map,

@@ -5,9 +5,9 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   incremental::{self, IncrementalPasses},
   ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
-  DependenciesBlock, DependencyId, ExportInfoSetter, ExportNameOrSpec, ExportProvided, ExportsInfo,
-  ExportsOfExportsSpec, ExportsSpec, Logger, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
-  Plugin, PluginContext,
+  DependenciesBlock, DependencyId, ExportInfoGetter, ExportInfoSetter, ExportNameOrSpec,
+  ExportProvided, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, Logger, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -52,7 +52,7 @@ impl<'a> FlagDependencyExportsState<'a> {
       if is_module_without_exports {
         let other_exports_info = exports_info.other_exports_info(self.mg);
         if !matches!(
-          other_exports_info.provided(self.mg),
+          ExportInfoGetter::provided(other_exports_info.as_data(self.mg)),
           Some(ExportProvided::Unknown)
         ) {
           exports_info.set_has_provide_info(self.mg);
@@ -249,26 +249,26 @@ impl<'a> FlagDependencyExportsState<'a> {
           ),
         };
       let export_info = exports_info.get_export_info(self.mg, &name);
-      if let Some(provided) = export_info.provided(self.mg)
+      let export_info_data = export_info.as_data_mut(self.mg);
+      if let Some(provided) = ExportInfoGetter::provided(export_info_data)
         && matches!(
           provided,
           ExportProvided::NotProvided | ExportProvided::Unknown
         )
       {
-        ExportInfoSetter::set_provided(
-          export_info.as_data_mut(self.mg),
-          Some(ExportProvided::Provided),
-        );
+        ExportInfoSetter::set_provided(export_info_data, Some(ExportProvided::Provided));
         self.changed = true;
       }
 
-      if Some(false) != export_info.can_mangle_provide(self.mg) && can_mangle == Some(false) {
-        ExportInfoSetter::set_can_mangle_provide(export_info.as_data_mut(self.mg), Some(false));
+      if Some(false) != ExportInfoGetter::can_mangle_provide(export_info_data)
+        && can_mangle == Some(false)
+      {
+        ExportInfoSetter::set_can_mangle_provide(export_info_data, Some(false));
         self.changed = true;
       }
 
-      if terminal_binding && !export_info.terminal_binding(self.mg) {
-        ExportInfoSetter::set_terminal_binding(export_info.as_data_mut(self.mg), true);
+      if terminal_binding && !ExportInfoGetter::terminal_binding(export_info_data) {
+        ExportInfoSetter::set_terminal_binding(export_info_data, true);
         self.changed = true;
       }
 
@@ -284,9 +284,10 @@ impl<'a> FlagDependencyExportsState<'a> {
 
       // shadowing the previous `export_info_mut` to reduce the mut borrow life time,
       // because `create_nested_exports_info` needs `&mut ModuleGraph`
+      let export_info_data = export_info.as_data_mut(self.mg);
       if let Some(from) = from {
         let changed = if hidden {
-          ExportInfoSetter::unset_target(export_info.as_data_mut(self.mg), &dep_id)
+          ExportInfoSetter::unset_target(export_info_data, &dep_id)
         } else {
           let fallback = rspack_core::Nullable::Value(vec![name.clone()]);
           let export_name = if let Some(from) = from_export {
@@ -295,7 +296,7 @@ impl<'a> FlagDependencyExportsState<'a> {
             Some(&fallback)
           };
           ExportInfoSetter::set_target(
-            export_info.as_data_mut(self.mg),
+            export_info_data,
             Some(dep_id),
             Some(from.dependency_id),
             export_name,
@@ -323,16 +324,16 @@ impl<'a> FlagDependencyExportsState<'a> {
         }
       }
 
-      if export_info.exports_info_owned(self.mg) {
-        let changed = export_info
-          .exports_info(self.mg)
+      let export_info_data = export_info.as_data_mut(self.mg);
+      if ExportInfoGetter::exports_info_owned(export_info_data) {
+        let changed = ExportInfoGetter::exports_info(export_info_data)
           .expect("should have exports_info when exports_info_owned is true")
           .set_redirect_name_to(self.mg, target_exports_info);
         if changed {
           self.changed = true;
         }
-      } else if export_info.exports_info(self.mg) != target_exports_info {
-        ExportInfoSetter::set_exports_info(export_info.as_data_mut(self.mg), target_exports_info);
+      } else if ExportInfoGetter::exports_info(export_info_data) != target_exports_info {
+        ExportInfoSetter::set_exports_info(export_info_data, target_exports_info);
         self.changed = true;
       }
     }
