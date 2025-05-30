@@ -458,6 +458,7 @@ const ZodSwcModuleConfig = z.union([
 ]) satisfies z.ZodType<ModuleConfig>;
 
 export const ZodSwcConfig = z.strictObject({
+	$schema: z.string().optional(),
 	test: z.string().or(z.string().array()).optional(),
 	exclude: z.string().or(z.string().array()).optional(),
 	env: ZodSwcEnvConfig.optional(),
