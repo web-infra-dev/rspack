@@ -862,9 +862,7 @@ export interface JsLinkPreloadData {
 }
 
 export interface JsLoaderContext {
-  resourceData: Readonly<JsResourceData>
-  /** Will be deprecated. Use module.module_identifier instead */
-  _moduleIdentifier: Readonly<string>
+  resource: string
   _module: Module
   hot: Readonly<boolean>
   /** Content maybe empty in pitching stage */
@@ -1464,6 +1462,8 @@ export interface KnownAssetInfo {
   /** whether this asset is over the size limit */
   isOverSizeLimit?: boolean
 }
+
+export declare function loadBrowserslist(input: string | undefined | null, context: string): Array<string> | null
 
 export declare function minify(source: string, options: string): Promise<TransformOutput>
 

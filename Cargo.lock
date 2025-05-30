@@ -4000,11 +4000,11 @@ name = "rspack"
 version = "0.2.0"
 dependencies = [
  "bitflags 2.6.0",
- "browserslist-rs",
  "enum-tag",
  "indexmap 2.7.1",
  "insta",
  "regex",
+ "rspack_browserslist",
  "rspack_core",
  "rspack_error",
  "rspack_fs",
@@ -4083,6 +4083,7 @@ version = "0.2.0"
 dependencies = [
  "browserslist-rs",
  "lightningcss",
+ "regex",
 ]
 
 [[package]]
@@ -4472,6 +4473,7 @@ version = "0.2.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "browserslist-rs",
  "color-backtrace",
  "cow-utils",
  "derive_more 1.0.0",
