@@ -46,7 +46,7 @@ async fn additional_tree_runtime_requirements(
   chunk_ukey: &ChunkUkey,
   _runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
-  // Add base FederationRuntimeModule
+  // Add base FederationRuntimeModule which is responsible for providing bundler data to the runtime.
   compilation.add_runtime_module(chunk_ukey, Box::<FederationRuntimeModule>::default())?;
 
   Ok(())

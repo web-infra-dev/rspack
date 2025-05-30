@@ -22,18 +22,15 @@ use super::{
   federation_runtime_dependency::FederationRuntimeDependency,
 };
 
-// Hook definitions
 define_hook!(AddContainerEntryDependencyHook: Series(dependency: &ContainerEntryDependency));
 define_hook!(AddFederationRuntimeDependencyHook: Series(dependency: &FederationRuntimeDependency));
 define_hook!(AddRemoteDependencyHook: Series(dependency: &dyn Dependency));
 
-// Struct to hold instances of the hooks for a specific compilation
 pub struct FederationModulesPluginCompilationHooks {
   pub add_container_entry_dependency: Arc<TokioMutex<AddContainerEntryDependencyHookHook>>,
   pub add_federation_runtime_dependency: Arc<TokioMutex<AddFederationRuntimeDependencyHookHook>>,
   pub add_remote_dependency: Arc<TokioMutex<AddRemoteDependencyHookHook>>,
 }
-
 impl Default for FederationModulesPluginCompilationHooks {
   fn default() -> Self {
     Self {
@@ -48,7 +45,6 @@ impl Default for FederationModulesPluginCompilationHooks {
   }
 }
 
-// Static map to store hooks per CompilationId
 static FEDERATION_MODULES_PLUGIN_HOOKS_MAP: OnceLock<
   Mutex<HashMap<CompilationId, Arc<FederationModulesPluginCompilationHooks>>>,
 > = OnceLock::new();
@@ -91,7 +87,6 @@ impl FederationModulesPlugin {
   }
 }
 
-// Hook into the compilation process
 #[plugin_hook(CompilerCompilation for FederationModulesPlugin)]
 async fn compilation(
   &self,

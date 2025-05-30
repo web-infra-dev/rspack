@@ -64,12 +64,12 @@ async fn additional_chunk_runtime_requirements_tree(
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
-  // Skip build time chunks - these are development-only and don't need federation runtime
+  // Skip build time chunks
   if chunk.name() == Some("build time chunk") {
     return Ok(());
   }
 
-  // Determine if this chunk needs federation runtime support
+  // Check if chunk needs federation runtime support
   let has_runtime = chunk.has_runtime(&compilation.chunk_group_by_ukey);
   let has_entry_modules = compilation
     .chunk_graph
@@ -80,7 +80,7 @@ async fn additional_chunk_runtime_requirements_tree(
   let is_enabled = has_runtime || has_entry_modules;
 
   if is_enabled {
-    // Add STARTUP requirement to enable startup function creation
+    // Add STARTUP requirement
     runtime_requirements.insert(RuntimeGlobals::STARTUP);
   }
 
@@ -106,7 +106,7 @@ async fn runtime_requirement_in_tree(
   // Only inject EmbedFederationRuntimeModule into runtime chunks
   let has_runtime = chunk.has_runtime(&compilation.chunk_group_by_ukey);
   if has_runtime {
-    // Collect current snapshot of federation dependencies
+    // Collect federation dependencies snapshot
     let collected_ids_snapshot = self
       .collected_dependency_ids
       .lock()
@@ -119,7 +119,7 @@ async fn runtime_requirement_in_tree(
       collected_dependency_ids: collected_ids_snapshot,
     };
 
-    // Inject EmbedFederationRuntimeModule into this runtime chunk
+    // Inject EmbedFederationRuntimeModule
     compilation.add_runtime_module(
       chunk_ukey,
       Box::new(EmbedFederationRuntimeModule::new(emro)),
@@ -147,7 +147,7 @@ async fn compilation(
     .await
     .tap(collector);
 
-  // Register the render startup hook
+  // Register render startup hook, patches entrypoints
   let mut js_hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
   js_hooks.render_startup.tap(render_startup::new(self));
 
@@ -194,11 +194,11 @@ async fn render_startup(
     return Ok(());
   }
 
-  // Entry chunks delegating to runtime: need explicit startup calls
+  // Entry chunks delegating to runtime need explicit startup calls
   if !has_runtime && has_entry_modules {
     let mut startup_with_call = ConcatSource::default();
 
-    // Add runtime startup call to trigger federation initialization
+    // Add startup call
     startup_with_call.add(RawStringSource::from("\n// Federation startup call\n"));
     startup_with_call.add(RawStringSource::from(format!(
       "{}();\n",

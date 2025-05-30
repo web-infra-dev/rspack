@@ -32,7 +32,6 @@ pub struct HoistContainerReferencesPlugin {
   remote_deps: Arc<Mutex<HashSet<DependencyId>>>,
 }
 
-// Structs for hook handlers
 struct ContainerEntryDepCollector {
   set: Arc<Mutex<HashSet<DependencyId>>>,
 }
@@ -131,7 +130,7 @@ async fn compilation(
 
 #[plugin_hook(CompilationOptimizeChunks for HoistContainerReferencesPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED + 1)]
 async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
-  // Helper: recursively collect all referenced modules (matching TypeScript implementation)
+  // Helper: recursively collect all referenced modules
   fn get_all_referenced_modules(
     compilation: &Compilation,
     module: &dyn Module,
@@ -152,21 +151,20 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       for conn in module_graph.get_outgoing_connections(&current_module_id) {
         let connected_id = *conn.module_identifier();
 
-        // Skip if module has already been visited
+        // Skip if already visited
         if visited.contains(&connected_id) {
           continue;
         }
 
-        // Handle 'initial' type (skipping async blocks)
+        // Handle 'initial' type - skip async blocks
         if ty == "initial" {
           let parent_block = module_graph.get_parent_block(&conn.dependency_id);
           if parent_block.is_some() {
-            // Skip async blocks for "initial"
             continue;
           }
         }
 
-        // Add connected module to collection and stack
+        // Add to collection and stack
         collected.insert(connected_id);
         visited.insert(connected_id);
         stack.push_back(connected_id);
@@ -176,7 +174,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     collected
   }
 
-  // Helper: get runtime chunks from entrypoints (matching TypeScript implementation)
+  // Helper: get runtime chunks from entrypoints
   fn get_runtime_chunks(compilation: &Compilation) -> HashSet<rspack_core::ChunkUkey> {
     let mut runtime_chunks = HashSet::new();
     for entrypoint_ukey in compilation.entrypoints.values() {
@@ -188,7 +186,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     runtime_chunks
   }
 
-  // Helper: clean up chunks by disconnecting unused modules (matching TypeScript implementation)
+  // Helper: clean up chunks by disconnecting unused modules
   fn clean_up_chunks(compilation: &mut Compilation, modules: &mut HashSet<ModuleIdentifier>) {
     for module_id in modules.iter() {
       let chunks_vec: Vec<_> = compilation
@@ -249,7 +247,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           get_all_referenced_modules(compilation, module.as_ref(), "initial");
         all_modules_to_hoist.extend(&referenced_modules);
 
-        // Get module runtimes and hoist to corresponding runtime chunks
+        // Get module runtimes and hoist to runtime chunks
         let runtime_specs: Vec<_> = compilation
           .chunk_graph
           .get_module_runtimes_iter(*module_id, &compilation.chunk_by_ukey)
@@ -257,7 +255,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           .collect();
 
         for runtime_spec in runtime_specs {
-          // Find runtime chunks by name - iterate over each runtime in the spec
+          // Find runtime chunks by name
           for runtime_name in runtime_spec.iter() {
             if let Some(runtime_chunk) = compilation.named_chunks.get(runtime_name.as_ref()) {
               for &ref_module_id in &referenced_modules {
@@ -291,7 +289,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           get_all_referenced_modules(compilation, module.as_ref(), "initial");
         all_modules_to_hoist.extend(&referenced_modules);
 
-        // Get module runtimes and hoist to corresponding runtime chunks
+        // Get module runtimes and hoist to runtime chunks
         let runtime_specs: Vec<_> = compilation
           .chunk_graph
           .get_module_runtimes_iter(*module_id, &compilation.chunk_by_ukey)
@@ -299,7 +297,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           .collect();
 
         for runtime_spec in runtime_specs {
-          // Find runtime chunks by name - iterate over each runtime in the spec
+          // Find runtime chunks by name
           for runtime_name in runtime_spec.iter() {
             if let Some(runtime_chunk) = compilation.named_chunks.get(runtime_name.as_ref()) {
               for &ref_module_id in &referenced_modules {
@@ -333,7 +331,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           get_all_referenced_modules(compilation, module.as_ref(), "initial");
         all_modules_to_hoist.extend(&referenced_modules);
 
-        // Get module runtimes and hoist to corresponding runtime chunks
+        // Get module runtimes and hoist to runtime chunks
         let runtime_specs: Vec<_> = compilation
           .chunk_graph
           .get_module_runtimes_iter(*module_id, &compilation.chunk_by_ukey)
@@ -341,7 +339,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           .collect();
 
         for runtime_spec in runtime_specs {
-          // Find runtime chunks by name - iterate over each runtime in the spec
+          // Find runtime chunks by name
           for runtime_name in runtime_spec.iter() {
             if let Some(runtime_chunk) = compilation.named_chunks.get(runtime_name.as_ref()) {
               for &ref_module_id in &referenced_modules {
@@ -361,7 +359,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     }
   }
 
-  // Cleanup: disconnect hoisted modules from non-runtime chunks (matching TypeScript implementation)
+  // Cleanup: disconnect hoisted modules from non-runtime chunks
   clean_up_chunks(compilation, &mut all_modules_to_hoist);
 
   Ok(None)
