@@ -231,7 +231,7 @@ impl NormalModule {
     &mut self.match_resource
   }
 
-  pub fn resource_resolved_data(&self) -> &ResourceData {
+  pub fn resource_resolved_data(&self) -> &Arc<ResourceData> {
     &self.resource_data
   }
 

@@ -40,7 +40,7 @@ export interface NormalModule extends Module {
 	readonly request: string;
 	readonly userRequest: string;
 	readonly rawRequest: string;
-	readonly resourceResolveData: JsResourceData | undefined;
+	readonly resourceResolveData: Readonly<JsResourceData> | undefined;
 	readonly loaders: JsLoaderItem[];
 	get matchResource(): string | undefined;
 	set matchResource(val: string | undefined);
