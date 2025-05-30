@@ -101,10 +101,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
   fn try_from(x: RawRuleSetCondition) -> rspack_error::Result<Self> {
     let result = match x {
       RawRuleSetCondition::string(s) => Self::String(s),
-      RawRuleSetCondition::regexp(r) => {
-        let reg = RspackRegex::with_flags(&r.source, &r.flags)?;
-        Self::Regexp(reg)
-      }
+      RawRuleSetCondition::regexp(r) => Self::Regexp(r),
       RawRuleSetCondition::logical(mut l) => {
         let l = l.get_mut(0).ok_or_else(|| {
           error!("TODO: use Box after https://github.com/napi-rs/napi-rs/issues/1500 landed")
