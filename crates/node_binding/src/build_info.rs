@@ -45,11 +45,11 @@ impl Assets {
 }
 
 #[napi]
-pub struct BuildInfo {
+pub struct KnownBuildInfo {
   module_reference: WeakReference<Module>,
 }
 
-impl BuildInfo {
+impl KnownBuildInfo {
   pub fn new(module_reference: WeakReference<Module>) -> Self {
     Self { module_reference }
   }
@@ -78,7 +78,7 @@ impl BuildInfo {
 }
 
 #[napi]
-impl BuildInfo {
+impl KnownBuildInfo {
   #[napi(getter, js_name = "_assets", ts_return_type = "Assets")]
   pub fn assets(&mut self) -> napi::Result<Reflector> {
     self.with_ref(|module| Ok(module.build_info().assets.reflector()))

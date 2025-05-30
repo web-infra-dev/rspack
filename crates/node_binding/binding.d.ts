@@ -24,8 +24,8 @@ export interface Module {
 	get useSourceMap(): boolean;
 	get useSimpleSourceMap(): boolean;
 	get _readableIdentifier(): string;
-	buildInfo: BuildInfo & Record<string, any>;
-	buildMeta: BuildInfo & Record<string, any>;
+	buildInfo: KnownBuildInfo & Record<string, any>;
+	buildMeta: KnownBuildInfo & Record<string, any>;
 }
 
 interface NormalModuleConstructor {
@@ -74,7 +74,7 @@ export declare class AsyncDependenciesBlock {
   get blocks(): AsyncDependenciesBlock[]
 }
 
-export declare class BuildInfo {
+export declare class KnownBuildInfo {
   get _assets(): Assets
   get _fileDependencies(): Array<string>
   get _contextDependencies(): Array<string>

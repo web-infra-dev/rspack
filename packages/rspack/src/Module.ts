@@ -183,7 +183,7 @@ declare module "@rspack/binding" {
 		[$assets]: Record<string, Source>;
 	}
 
-	interface BuildInfo {
+	interface KnownBuildInfo {
 		assets: Record<string, Source>;
 		fileDependencies: Set<string>;
 		contextDependencies: Set<string>;
@@ -192,10 +192,10 @@ declare module "@rspack/binding" {
 	}
 }
 
-Object.defineProperty(binding.BuildInfo.prototype, "assets", {
+Object.defineProperty(binding.KnownBuildInfo.prototype, "assets", {
 	enumerable: true,
 	configurable: true,
-	get(this: binding.BuildInfo): Record<string, Source> {
+	get(this: binding.KnownBuildInfo): Record<string, Source> {
 		if (this._assets[$assets]) {
 			return this._assets[$assets];
 		}
@@ -219,34 +219,34 @@ Object.defineProperty(binding.BuildInfo.prototype, "assets", {
 	}
 });
 
-Object.defineProperty(binding.BuildInfo.prototype, "fileDependencies", {
+Object.defineProperty(binding.KnownBuildInfo.prototype, "fileDependencies", {
 	enumerable: true,
 	configurable: true,
-	get(this: binding.BuildInfo): Set<string> {
+	get(this: binding.KnownBuildInfo): Set<string> {
 		return new Set(this._fileDependencies);
 	}
 });
 
-Object.defineProperty(binding.BuildInfo.prototype, "contextDependencies", {
+Object.defineProperty(binding.KnownBuildInfo.prototype, "contextDependencies", {
 	enumerable: true,
 	configurable: true,
-	get(this: binding.BuildInfo): Set<string> {
+	get(this: binding.KnownBuildInfo): Set<string> {
 		return new Set(this._contextDependencies);
 	}
 });
 
-Object.defineProperty(binding.BuildInfo.prototype, "missingDependencies", {
+Object.defineProperty(binding.KnownBuildInfo.prototype, "missingDependencies", {
 	enumerable: true,
 	configurable: true,
-	get(this: binding.BuildInfo): Set<string> {
+	get(this: binding.KnownBuildInfo): Set<string> {
 		return new Set(this._missingDependencies);
 	}
 });
 
-Object.defineProperty(binding.BuildInfo.prototype, "buildDependencies", {
+Object.defineProperty(binding.KnownBuildInfo.prototype, "buildDependencies", {
 	enumerable: true,
 	configurable: true,
-	get(this: binding.BuildInfo): Set<string> {
+	get(this: binding.KnownBuildInfo): Set<string> {
 		return new Set(this._buildDependencies);
 	}
 });
