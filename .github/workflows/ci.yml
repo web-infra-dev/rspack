@@ -50,6 +50,17 @@ jobs:
             document_changed:
               - "website/**"
 
+  test-eco-ci:
+    name: Run Ecosystem CI
+    uses: ./.github/workflows/ecosystem-ci.yml
+    with:
+      pr: 10483
+      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
   test-linux:
     name: Test Linux
     needs: [check-changed]
