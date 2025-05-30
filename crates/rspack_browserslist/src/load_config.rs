@@ -63,6 +63,7 @@ pub fn parse<'a>(input: Option<&str>, context: &'a str) -> BrowserslistHandlerCo
 }
 
 /// Loads the browsers list based on the input and context.
+#[cfg(not(target_arch = "wasm32"))]
 pub fn load_browserslist(input: Option<&str>, context: &str) -> Option<Vec<String>> {
   let BrowserslistHandlerConfig {
     config_path,
@@ -84,7 +85,12 @@ pub fn load_browserslist(input: Option<&str>, context: &str) -> Option<Vec<Strin
   match if let Some(q) = query {
     browserslist::resolve(vec![q], &opts)
   } else {
-    browserslist::execute(&opts)
+    // browserslist::execute can not be used in wasm32
+    if cfg!(target_arch = "wasm32") {
+      Ok(Vec::new())
+    } else {
+      browserslist::execute(&opts)
+    }
   } {
     Ok(browsers) => Some(browsers.into_iter().map(|d| d.to_string()).collect()),
     Err(_) => None,
