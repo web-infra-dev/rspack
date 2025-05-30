@@ -149,32 +149,3 @@ jobs:
           GITHUB_OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
           CFA_PROJECT_ID: ${{ secrets.CFA_PROJECT_ID }}
           CFA_SECRET: ${{ secrets.CFA_SECRET }}
-  build-debug:
-    strategy:
-      fail-fast: false # Build and test everything so we can look at all the errors
-      matrix:
-        array:
-          - target: x86_64-unknown-linux-gnu
-            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS }}
-          - target: aarch64-unknown-linux-gnu
-            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS }}
-          - target: x86_64-unknown-linux-musl
-            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS }}
-          - target: aarch64-unknown-linux-musl
-            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS }}
-          - target: i686-pc-windows-msvc
-            runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
-          - target: x86_64-pc-windows-msvc
-            runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
-          - target: aarch64-pc-windows-msvc
-            runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
-          - target: x86_64-apple-darwin
-            runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
-          - target: aarch64-apple-darwin
-            runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      target: ${{ matrix.array.target }}
-      runner: ${{ matrix.array.runner }}
-      test: false
-      profile: "debug"
