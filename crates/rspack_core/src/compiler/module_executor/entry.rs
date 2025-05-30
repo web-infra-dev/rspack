@@ -92,14 +92,21 @@ impl Task<ExecutorTaskContext> for EntryTask {
     executed_entry_deps.insert(dep_id);
 
     if tracker.is_running(&dep_id) {
-      execute_task.finish_with_error(
-        diagnostic!(
-          "The added task is running, maybe have a circular build dependency. MetaInfo: {:?}",
-          meta
-        )
-        .into(),
-      );
-      return Ok(vec![]);
+      let mg = origin_context.artifact.get_module_graph();
+      // the module in module executor need to check.
+      if mg
+        .module_graph_module_by_identifier(&meta.origin_module_identifier)
+        .is_some()
+      {
+        execute_task.finish_with_error(
+          diagnostic!(
+            "The added task is running, maybe have a circular build dependency. MetaInfo: {:?}",
+            meta
+          )
+          .into(),
+        );
+        return Ok(vec![]);
+      }
     }
 
     res.extend(tracker.on_entry(is_new, dep_id, Box::new(execute_task)));
