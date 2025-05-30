@@ -215,15 +215,12 @@ impl From<RawVersionWrapper> for ConsumeVersion {
 pub struct RawModuleFederationRuntimePluginOptions {
   #[napi(ts_type = "string | undefined")]
   pub entry_runtime: Option<String>,
-  #[napi(ts_type = "string | undefined")]
-  pub runtime_chunk: Option<String>,
 }
 
 impl From<RawModuleFederationRuntimePluginOptions> for ModuleFederationRuntimePluginOptions {
   fn from(value: RawModuleFederationRuntimePluginOptions) -> Self {
     Self {
       entry_runtime: value.entry_runtime,
-      runtime_chunk: value.runtime_chunk,
     }
   }
 }

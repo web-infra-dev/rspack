@@ -24,7 +24,6 @@ use super::{
 #[derive(Debug, Default, Deserialize, Clone)]
 pub struct ModuleFederationRuntimePluginOptions {
   pub entry_runtime: Option<String>,
-  pub runtime_chunk: Option<String>,
 }
 
 #[plugin]
