@@ -1,3 +1,26 @@
+//! # ModuleFederationRuntimePlugin
+//!
+//! This is the main orchestration plugin for Module Federation runtime functionality. It coordinates
+//! all other federation plugins and manages the overall federation runtime lifecycle, including
+//! dependency creation, runtime module injection, and plugin coordination.
+//!
+//! ## Core Responsibilities:
+//! - **Plugin Orchestration**: Automatically applies EmbedFederationRuntimePlugin and HoistContainerReferencesPlugin
+//! - **Runtime Dependency Management**: Creates and includes federation runtime dependencies in the compilation
+//! - **Configuration Handling**: Manages entry_runtime and runtime_chunk configuration options
+//! - **Runtime Module Integration**: Adds the base FederationRuntimeModule for core federation functionality
+//!
+//! ## Plugin Coordination:
+//! This plugin acts as the entry point that sets up the entire Module Federation system by:
+//! 1. Adding the base FederationRuntimeModule to chunks
+//! 2. Creating federation runtime dependencies from entry_runtime configuration
+//! 3. Automatically applying supporting plugins (EmbedFederationRuntimePlugin, HoistContainerReferencesPlugin)
+//! 4. Integrating with the compilation lifecycle via finish_make and additional_tree_runtime_requirements hooks
+//!
+//! ## Configuration Options:
+//! - `entry_runtime`: Specifies the federation runtime entry module
+//! - `runtime_chunk`: Specifies the target runtime chunk for federation modules
+
 use async_trait::async_trait;
 use rspack_core::{
   ApplyContext, BoxDependency, ChunkUkey, Compilation,

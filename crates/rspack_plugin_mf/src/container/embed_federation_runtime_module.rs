@@ -1,3 +1,28 @@
+//! # EmbedFederationRuntimeModule
+//!
+//! This runtime module is responsible for embedding and initializing Module Federation runtime
+//! dependencies within JavaScript chunks. It ensures that federation runtime modules are executed
+//! before any other modules that depend on them.
+//!
+//! ## Key Features:
+//! - Collects federation runtime dependencies from the compilation
+//! - Generates JavaScript code that wraps the startup function to ensure federation modules run first
+//! - Uses an "oldStartup wrapper" pattern to maintain execution order
+//! - Runs at stage 11 (after RemoteRuntimeModule) to ensure proper initialization sequence
+//!
+//! ## Generated Code Pattern:
+//! ```javascript
+//! var oldStartup = __webpack_require__.startup;
+//! var hasRun = false;
+//! __webpack_require__.startup = function() {
+//!   if (!hasRun) {
+//!     hasRun = true;
+//!     // Federation runtime modules execute here
+//!   }
+//!   return oldStartup();
+//! };
+//! ```
+
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
 use rspack_core::{

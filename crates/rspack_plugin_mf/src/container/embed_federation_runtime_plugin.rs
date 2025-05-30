@@ -1,3 +1,25 @@
+//! # EmbedFederationRuntimePlugin
+//!
+//! This plugin manages the initialization and embedding of Module Federation runtime dependencies
+//! across different types of chunks in the compilation. It ensures that federation runtime is
+//! properly initialized before any federated modules are executed.
+//!
+//! ## Key Responsibilities:
+//! - **Dependency Collection**: Collects federation runtime dependencies via hooks
+//! - **Runtime Requirements**: Adds STARTUP runtime requirements to federation-enabled chunks
+//! - **Runtime Module Injection**: Injects EmbedFederationRuntimeModule into runtime chunks
+//! - **Startup Call Management**: Handles startup call injection for entry chunks that delegate to runtime chunks
+//!
+//! ## Chunk Handling Strategy:
+//! - **Runtime chunks with entry modules**: JavaScript plugin handles startup (no interference)
+//! - **Entry chunks delegating to runtime**: Adds explicit startup calls for federation initialization
+//! - **Non-federation chunks**: Skipped to avoid unnecessary overhead
+//!
+//! ## Hook Integration:
+//! - Taps into `AddFederationRuntimeDependencyHook` to collect dependencies
+//! - Uses `JavascriptModulesRenderStartup` to inject startup calls when needed
+//! - Integrates with compilation lifecycle hooks for runtime module management
+
 use std::{
   collections::HashSet,
   sync::{Arc, Mutex},
