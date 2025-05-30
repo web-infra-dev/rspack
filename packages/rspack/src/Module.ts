@@ -185,6 +185,10 @@ declare module "@rspack/binding" {
 
 	interface BuildInfo {
 		assets: Record<string, Source>;
+		fileDependencies: Set<string>;
+		contextDependencies: Set<string>;
+		missingDependencies: Set<string>;
+		buildDependencies: Set<string>;
 	}
 }
 
@@ -212,6 +216,38 @@ Object.defineProperty(binding.BuildInfo.prototype, "assets", {
 			value: assets
 		});
 		return assets;
+	}
+});
+
+Object.defineProperty(binding.BuildInfo.prototype, "fileDependencies", {
+	enumerable: true,
+	configurable: true,
+	get(this: binding.BuildInfo): Set<string> {
+		return new Set(this._fileDependencies);
+	}
+});
+
+Object.defineProperty(binding.BuildInfo.prototype, "contextDependencies", {
+	enumerable: true,
+	configurable: true,
+	get(this: binding.BuildInfo): Set<string> {
+		return new Set(this._contextDependencies);
+	}
+});
+
+Object.defineProperty(binding.BuildInfo.prototype, "missingDependencies", {
+	enumerable: true,
+	configurable: true,
+	get(this: binding.BuildInfo): Set<string> {
+		return new Set(this._missingDependencies);
+	}
+});
+
+Object.defineProperty(binding.BuildInfo.prototype, "buildDependencies", {
+	enumerable: true,
+	configurable: true,
+	get(this: binding.BuildInfo): Set<string> {
+		return new Set(this._buildDependencies);
 	}
 });
 

@@ -24,8 +24,8 @@ export interface Module {
 	get useSourceMap(): boolean;
 	get useSimpleSourceMap(): boolean;
 	get _readableIdentifier(): string;
-	buildInfo: Record<string, any>;
-	buildMeta: Record<string, any>;
+	buildInfo: BuildInfo & Record<string, any>;
+	buildMeta: BuildInfo & Record<string, any>;
 }
 
 interface NormalModuleConstructor {
