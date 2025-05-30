@@ -1,2 +1,2 @@
-// TODO: Should create a issue for this test
-module.exports = () => { return "FIXME: expect 'required' to be 'style'" }
+
+module.exports = () => "FIXME: expect 'required' to be 'style'"

@@ -1,2 +1,6 @@
-// RuleSetRule generator generator entry can be a function
-module.exports = () => false;
+const { FilteredStatus } = require("../../../lib/util/filterUtil");
+
+module.exports = () => [
+  FilteredStatus.PARTIAL_PASS,
+  "TODO: support function as generator.exportsConvention of css/module"
+];

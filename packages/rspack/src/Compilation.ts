@@ -8,15 +8,14 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 import * as binding from "@rspack/binding";
-import {
-	type AssetInfo,
-	type Dependency,
-	type ExternalObject,
-	type JsCompatSourceOwned,
-	type JsCompilation,
-	type JsPathData,
-	JsRspackSeverity,
-	type JsRuntimeModule
+import type {
+	AssetInfo,
+	Dependency,
+	ExternalObject,
+	JsCompatSourceOwned,
+	JsCompilation,
+	JsPathData,
+	JsRuntimeModule
 } from "@rspack/binding";
 export type { AssetInfo } from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
@@ -33,7 +32,7 @@ import ModuleGraph from "./ModuleGraph";
 import type { NormalModuleCompilationHooks } from "./NormalModule";
 import type { NormalModuleFactory } from "./NormalModuleFactory";
 import type { ResolverFactory } from "./ResolverFactory";
-import { JsRspackDiagnostic, type RspackError } from "./RspackError";
+import type { RspackError } from "./RspackError";
 import { RuntimeModule } from "./RuntimeModule";
 import {
 	Stats,
@@ -63,6 +62,7 @@ import { JsSource } from "./util/source";
 import "./Chunks";
 // patch CodeGenerationResults
 import "./CodeGenerationResults";
+import { createDiagnosticArray } from "./Diagnostics";
 import type { CodeGenerationResult } from "./taps/compilation";
 
 export type Assets = Record<string, Source>;
@@ -200,6 +200,9 @@ export const checkCompilation = (compilation: Compilation) => {
 export class Compilation {
 	#inner: JsCompilation;
 	#shutdown: boolean;
+	#errors?: RspackError[];
+	#warnings?: RspackError[];
+	#chunks?: ReadonlySet<Chunk>;
 
 	hooks: Readonly<{
 		processAssets: liteTapable.AsyncSeriesHook<Assets>;
@@ -470,7 +473,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	get chunks(): ReadonlySet<Chunk> {
-		return this.#inner.chunks;
+		if (!this.#chunks) {
+			this.#chunks = this.#inner.chunks;
+		}
+		return this.#chunks;
 	}
 
 	/**
@@ -704,197 +710,31 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	get errors(): RspackError[] {
-		const inner = this.#inner;
-		type ErrorType = RspackError;
-		const errors = inner.getErrors();
-		const proxyMethod = [
-			{
-				method: "push",
-				handler(
-					target: typeof Array.prototype.push,
-					thisArg: Array<ErrorType>,
-					errs: ErrorType[]
-				) {
-					for (let i = 0; i < errs.length; i++) {
-						const error = errs[i];
-						inner.pushDiagnostic(
-							JsRspackDiagnostic.__to_binding(error, JsRspackSeverity.Error)
-						);
-					}
-					return Reflect.apply(target, thisArg, errs);
-				}
-			},
-			{
-				method: "pop",
-				handler(target: typeof Array.prototype.pop, thisArg: Array<ErrorType>) {
-					inner.spliceDiagnostic(errors.length - 1, errors.length, []);
-					return Reflect.apply(target, thisArg, []);
-				}
-			},
-			{
-				method: "shift",
-				handler(
-					target: typeof Array.prototype.shift,
-					thisArg: Array<ErrorType>
-				) {
-					inner.spliceDiagnostic(0, 1, []);
-					return Reflect.apply(target, thisArg, []);
-				}
-			},
-			{
-				method: "unshift",
-				handler(
-					target: typeof Array.prototype.unshift,
-					thisArg: Array<ErrorType>,
-					errs: ErrorType[]
-				) {
-					const errList = errs.map(error => {
-						return JsRspackDiagnostic.__to_binding(
-							error,
-							JsRspackSeverity.Error
-						);
-					});
-					inner.spliceDiagnostic(0, 0, errList);
-					return Reflect.apply(target, thisArg, errs);
-				}
-			},
-			{
-				method: "splice",
-				handler(
-					target: typeof Array.prototype.splice,
-					thisArg: Array<ErrorType>,
-					[startIdx, delCount, ...errors]: [number, number, ...ErrorType[]]
-				) {
-					const errList = errors.map(error => {
-						return JsRspackDiagnostic.__to_binding(
-							error,
-							JsRspackSeverity.Error
-						);
-					});
-					inner.spliceDiagnostic(startIdx, startIdx + delCount, errList);
-					return Reflect.apply(target, thisArg, [
-						startIdx,
-						delCount,
-						...errors
-					]);
-				}
-			}
-		];
-
-		for (const item of proxyMethod) {
-			const proxiedMethod = new Proxy(errors[item.method as any], {
-				apply: item.handler as any
-			});
-			errors[item.method as any] = proxiedMethod;
+		if (!this.#errors) {
+			this.#errors = createDiagnosticArray(this.#inner.errors);
 		}
-		return errors;
+		return this.#errors;
 	}
 
 	set errors(errors: RspackError[]) {
-		const inner = this.#inner;
-		const length = inner.getErrors().length;
-		inner.spliceDiagnostic(
-			0,
-			length,
-			errors.map(error => {
-				return JsRspackDiagnostic.__to_binding(error, JsRspackSeverity.Error);
-			})
-		);
+		if (!this.#errors) {
+			this.#errors = createDiagnosticArray(this.#inner.errors);
+		}
+		this.#errors.splice(0, this.#errors.length, ...errors);
 	}
 
 	get warnings(): RspackError[] {
-		const inner = this.#inner;
-		type WarnType = Error | RspackError;
-		const warnings = inner.getWarnings();
-		const proxyMethod = [
-			{
-				method: "push",
-				handler(
-					target: typeof Array.prototype.push,
-					thisArg: Array<WarnType>,
-					warns: WarnType[]
-				) {
-					for (const warn of warns) {
-						inner.pushDiagnostic(
-							JsRspackDiagnostic.__to_binding(warn, JsRspackSeverity.Warn)
-						);
-					}
-					return Reflect.apply(target, thisArg, warns);
-				}
-			},
-			{
-				method: "pop",
-				handler(target: typeof Array.prototype.pop, thisArg: Array<WarnType>) {
-					inner.spliceDiagnostic(warnings.length - 1, warnings.length, []);
-					return Reflect.apply(target, thisArg, []);
-				}
-			},
-			{
-				method: "shift",
-				handler(
-					target: typeof Array.prototype.shift,
-					thisArg: Array<WarnType>
-				) {
-					inner.spliceDiagnostic(0, 1, []);
-					return Reflect.apply(target, thisArg, []);
-				}
-			},
-			{
-				method: "unshift",
-				handler(
-					target: typeof Array.prototype.unshift,
-					thisArg: Array<WarnType>,
-					warns: WarnType[]
-				) {
-					inner.spliceDiagnostic(
-						0,
-						0,
-						warns.map(warn =>
-							JsRspackDiagnostic.__to_binding(warn, JsRspackSeverity.Warn)
-						)
-					);
-					return Reflect.apply(target, thisArg, warns);
-				}
-			},
-			{
-				method: "splice",
-				handler(
-					target: typeof Array.prototype.splice,
-					thisArg: Array<WarnType>,
-					[startIdx, delCount, ...warns]: [number, number, ...WarnType[]]
-				) {
-					const warnList = warns.map(warn =>
-						JsRspackDiagnostic.__to_binding(warn, JsRspackSeverity.Warn)
-					);
-					inner.spliceDiagnostic(startIdx, startIdx + delCount, warnList);
-					return Reflect.apply(target, thisArg, [
-						startIdx,
-						delCount,
-						...warnList
-					]);
-				}
-			}
-		];
-
-		for (const item of proxyMethod) {
-			const proxiedMethod = new Proxy(warnings[item.method as any], {
-				apply: item.handler as any
-			});
-			warnings[item.method as any] = proxiedMethod;
+		if (!this.#warnings) {
+			this.#warnings = createDiagnosticArray(this.#inner.warnings);
 		}
-		return warnings;
+		return this.#warnings;
 	}
 
 	set warnings(warnings: RspackError[]) {
-		const inner = this.#inner;
-		const length = inner.getWarnings().length;
-		inner.spliceDiagnostic(
-			0,
-			length,
-			warnings.map(warning => {
-				return JsRspackDiagnostic.__to_binding(warning, JsRspackSeverity.Warn);
-			})
-		);
+		if (!this.#warnings) {
+			this.#warnings = createDiagnosticArray(this.#inner.warnings);
+		}
+		this.#warnings.splice(0, this.#warnings.length, ...warnings);
 	}
 
 	getPath(filename: string, data: PathData = {}) {

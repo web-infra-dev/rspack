@@ -8,6 +8,7 @@ use indexmap::IndexMap;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
 use rspack_collections::Identifier;
 use rspack_core::{
+  property_access,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
   AssetInfo, BoxDependency, BuildMetaExportsType, ChunkGraph, Compilation,
   DependencyType::WasmImport,
@@ -34,7 +35,7 @@ pub(crate) static WASM_SOURCE_TYPE: &[SourceType; 2] = &[SourceType::Wasm, Sourc
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for AsyncWasmParserAndGenerator {
-  fn source_types(&self) -> &[SourceType] {
+  fn source_types(&self, _module: &dyn Module, _module_graph: &ModuleGraph) -> &[SourceType] {
     WASM_SOURCE_TYPE
   }
 
@@ -199,17 +200,17 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                 .expect("should be wasm import dependency");
 
               let dep_name = serde_json::to_string(dep.name()).expect("should be ok.");
-              let used_name = module_graph
+              let Some(UsedName::Normal(used_name)) = module_graph
                 .get_exports_info(&mgm.module_identifier)
-                .get_used_name(module_graph, *runtime, UsedName::Str(dep.name().into()));
-              let Some(UsedName::Str(used_name)) = used_name else {
+                .get_used_name(module_graph, *runtime, &[dep.name().into()])
+              else {
                 return;
               };
               let request = dep.request();
               let val = (
                 mgm.module_identifier,
                 dep_name,
-                serde_json::to_string(&used_name).expect("should convert to json string"),
+                property_access(used_name, 0),
               );
               if let Some(deps) = wasm_deps_by_request.get_mut(&request) {
                 deps.push(val);
@@ -233,7 +234,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
               .map(|(id, name, used_name)| {
                 let import_var = dep_modules.get(&id).expect("should be ok");
                 let import_var = &import_var.0;
-                format!("{name}: {import_var}[{used_name}]")
+                format!("{name}: {import_var}{used_name}")
               })
               .collect::<Vec<_>>()
               .join(",\n");

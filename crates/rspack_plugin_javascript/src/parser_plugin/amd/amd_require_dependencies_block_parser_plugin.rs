@@ -114,7 +114,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
       for option in options.iter() {
         let result = self.process_item(parser, block_deps, call_expr, option);
         if result.is_none() {
-          self.process_context(parser, block_deps, call_expr, param);
+          self.process_context(parser, block_deps, call_expr, option);
         }
       }
 

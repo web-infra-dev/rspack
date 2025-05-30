@@ -10,9 +10,9 @@ use swc_core::ecma::atoms::Atom;
 use super::{AffectType, FactorizeInfo};
 use crate::{
   create_exports_object_referenced, AsContextDependency, AsDependencyCodeGeneration, Context,
-  ContextMode, ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyType,
-  ExtendedReferencedExport, ImportAttributes, ModuleDependency, ModuleGraph, ModuleLayer,
-  ReferencedExport, RuntimeSpec,
+  ContextMode, ContextNameSpaceObject, ContextOptions, ContextTypePrefix, Dependency,
+  DependencyCategory, DependencyId, DependencyType, ExportsType, ExtendedReferencedExport,
+  ImportAttributes, ModuleDependency, ModuleGraph, ModuleLayer, ReferencedExport, RuntimeSpec,
 };
 
 #[cacheable]
@@ -80,10 +80,44 @@ impl Dependency for ContextElementDependency {
 
   fn get_referenced_exports(
     &self,
-    _module_graph: &ModuleGraph,
+    module_graph: &ModuleGraph,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     if let Some(referenced_exports) = &self.referenced_exports {
+      if matches!(
+        self.dependency_type,
+        DependencyType::ContextElement(ContextTypePrefix::Import)
+      ) && referenced_exports
+        .first()
+        .is_some_and(|export| export == "default")
+      {
+        let is_strict = module_graph
+          .get_parent_module(&self.id)
+          .and_then(|id| module_graph.module_by_identifier(id))
+          .and_then(|m| m.as_context_module())
+          .map(|m| {
+            matches!(
+              m.get_context_options().namespace_object,
+              ContextNameSpaceObject::Strict
+            )
+          });
+
+        let exports_type = is_strict.and_then(|is_strict| {
+          module_graph
+            .get_module_by_dependency_id(&self.id)
+            .map(|m| m.get_exports_type(module_graph, is_strict))
+        });
+
+        if let Some(exports_type) = exports_type
+          && matches!(
+            exports_type,
+            ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
+          )
+        {
+          return create_exports_object_referenced();
+        }
+      }
+
       referenced_exports
         .iter()
         .map(|export| {

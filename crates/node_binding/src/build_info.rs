@@ -1,6 +1,6 @@
 use napi::{
   bindgen_prelude::{Object, ToNapiValue, WeakReference},
-  Env, JsString, NapiValue,
+  Env, JsString,
 };
 use rspack_core::{Reflector, WeakBindingCell};
 use rustc_hash::FxHashMap;
@@ -34,7 +34,7 @@ impl Assets {
 #[napi]
 impl Assets {
   #[napi]
-  pub fn keys(&self, env: &Env) -> napi::Result<Vec<JsString>> {
+  pub fn keys<'a>(&self, env: &'a Env) -> napi::Result<Vec<JsString<'a>>> {
     self.with_ref(|assets| {
       assets
         .keys()
@@ -57,7 +57,7 @@ impl BuildInfo {
   pub fn get_jsobject(self, env: &Env) -> napi::Result<Object> {
     let raw_env = env.raw();
     let napi_val = unsafe { ToNapiValue::to_napi_value(raw_env, self)? };
-    Ok(unsafe { Object::from_raw_unchecked(raw_env, napi_val) })
+    Ok(Object::from_raw(raw_env, napi_val))
   }
 
   fn with_ref<T>(

@@ -138,9 +138,9 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       {
         let mut content = vec![];
         for prop in referenced_properties_in_destructuring {
-          if prop == "url" {
+          if prop.id == "url" {
             content.push(format!(r#"url: "{}""#, self.import_meta_url(parser)))
-          } else if prop == "webpack" {
+          } else if prop.id == "webpack" {
             content.push(format!(
               r#"webpack: {}"#,
               self.import_meta_webpack_version()
@@ -148,8 +148,8 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
           } else {
             content.push(format!(
               r#"[{}]: {}"#,
-              serde_json::to_string(&prop).expect("json stringify failed"),
-              self.import_meta_unknown_property(&vec![prop])
+              serde_json::to_string(&prop.id).expect("json stringify failed"),
+              self.import_meta_unknown_property(&vec![prop.id.to_string()])
             ));
           }
         }

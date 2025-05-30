@@ -1,3 +1,1 @@
-module.exports = () => {
-	return "NOPLAN: support module.unsafeCache and snapshot.managedPaths";
-};
+module.exports = () => "NOPLAN: support module.unsafeCache and snapshot.managedPaths";

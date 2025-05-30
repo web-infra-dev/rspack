@@ -12,6 +12,7 @@ import { AsyncDependenciesBlock } from '@rspack/binding';
 import { AsyncParallelHook } from '@rspack/lite-tapable';
 import { AsyncSeriesBailHook } from '@rspack/lite-tapable';
 import * as binding from '@rspack/binding';
+import { Buffer as Buffer_2 } from 'buffer';
 import { BuiltinPlugin } from '@rspack/binding';
 import { BuiltinPluginName } from '@rspack/binding';
 import { CacheFacade as CacheFacade_2 } from './lib/CacheFacade';
@@ -27,7 +28,7 @@ import { EntryDependency } from '@rspack/binding';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
 import { ExternalModule } from '@rspack/binding';
-import { ExternalObject } from '@rspack/binding';
+import type { ExternalObject } from '@rspack/binding';
 import { fs } from 'fs';
 import { default as fs_2 } from 'graceful-fs';
 import { HookMap } from '@rspack/lite-tapable';
@@ -44,7 +45,7 @@ import type { JsBuildMeta } from '@rspack/binding';
 import { JsChunk } from '@rspack/binding';
 import type { JsChunkGraph } from '@rspack/binding';
 import type { JsChunkGroup } from '@rspack/binding';
-import { JsCompilation } from '@rspack/binding';
+import type { JsCompilation } from '@rspack/binding';
 import type { JsExportsInfo } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
@@ -54,7 +55,7 @@ import { JsRsdoctorChunkGraph } from '@rspack/binding';
 import { JsRsdoctorModuleGraph } from '@rspack/binding';
 import { JsRsdoctorModuleIdsPatch } from '@rspack/binding';
 import { JsRsdoctorModuleSourcesPatch } from '@rspack/binding';
-import { JsRuntimeModule } from '@rspack/binding';
+import type { JsRuntimeModule } from '@rspack/binding';
 import type { JsStats } from '@rspack/binding';
 import type { JsStatsCompilation } from '@rspack/binding';
 import type { JsStatsError } from '@rspack/binding';
@@ -73,6 +74,7 @@ import { RawIgnorePluginOptions } from '@rspack/binding';
 import { RawOptions } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
 import { RawProvideOptions } from '@rspack/binding';
+import { RawRstestPluginOptions } from '@rspack/binding';
 import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { RawSubresourceIntegrityPluginOptions } from '@rspack/binding';
 import { readFileSync } from 'fs';
@@ -84,7 +86,7 @@ import { Server as Server_2 } from 'tls';
 import { Server as Server_3 } from 'http';
 import { ServerOptions as ServerOptions_2 } from 'https';
 import { ServerResponse as ServerResponse_2 } from 'http';
-import { RawSourceMapDevToolPluginOptions as SourceMapDevToolPluginOptions } from '@rspack/binding';
+import { SourceMapDevToolPluginOptions } from '@rspack/binding';
 import sources = require('../compiled/webpack-sources');
 import { StatSyncFn } from 'fs';
 import { SyncBailHook } from '@rspack/lite-tapable';
@@ -927,7 +929,7 @@ class CodeGenerationResult {
 type CodeValue = RecursiveArrayOrRecord<CodeValuePrimitive>;
 
 // @public (undocumented)
-type CodeValuePrimitive = null | undefined | RegExp | Function | string | number | boolean | bigint | undefined;
+type CodeValuePrimitive = null | undefined | RegExp | Function | string | number | boolean | bigint;
 
 // @public (undocumented)
 interface CommonJsConfig extends BaseModuleConfig {
@@ -1033,18 +1035,18 @@ export class Compilation {
     // (undocumented)
     getAsset(name: string): Readonly<Asset> | void;
     // (undocumented)
-    getAssetPath(filename: Filename, data?: PathData): string;
+    getAssetPath(filename: string, data?: PathData): string;
     // (undocumented)
-    getAssetPathWithInfo(filename: Filename, data?: PathData): binding.PathWithInfo;
+    getAssetPathWithInfo(filename: string, data?: PathData): binding.PathWithInfo;
     getAssets(): ReadonlyArray<Asset>;
     // (undocumented)
     getCache(name: string): CacheFacade_2;
     // (undocumented)
     getLogger(name: string | (() => string)): Logger_3;
     // (undocumented)
-    getPath(filename: Filename, data?: PathData): string;
+    getPath(filename: string, data?: PathData): string;
     // (undocumented)
-    getPathWithInfo(filename: Filename, data?: PathData): binding.PathWithInfo;
+    getPathWithInfo(filename: string, data?: PathData): binding.PathWithInfo;
     // (undocumented)
     getStats(): Stats;
     // (undocumented)
@@ -1199,13 +1201,13 @@ export class Compiler {
     // @internal
     __internal__get_module_execution_results_map(): Map<number, any>;
     // @internal
-    __internal__getModuleExecutionResult(id: number): any;
-    // @internal
     __internal__rebuild(modifiedFiles?: ReadonlySet<string>, removedFiles?: ReadonlySet<string>, callback?: (error: Error | null) => void): void;
     // @internal
     __internal__registerBuiltinPlugin(plugin: binding.BuiltinPlugin): void;
     // @internal
     get __internal__ruleSet(): RuleSetCompiler;
+    // @internal
+    __internal__takeModuleExecutionResult(id: number): any;
     // (undocumented)
     cache: Cache_2;
     // (undocumented)
@@ -1623,9 +1625,7 @@ export const CopyRspackPlugin: {
 
 // @public (undocumented)
 export type CopyRspackPluginOptions = {
-    patterns: (string | ({
-        from: string;
-    } & Partial<RawCopyPattern>))[];
+    patterns: (string | (Pick<RawCopyPattern, "from"> & Partial<Omit<RawCopyPattern, "from">>))[];
 };
 
 // @public (undocumented)
@@ -1653,6 +1653,24 @@ export type CssAutoParserOptions = {
 
 // @public
 export type CssChunkFilename = Filename;
+
+// @public (undocumented)
+const CssChunkingPlugin: {
+    new (options: CssChunkingPluginOptions): {
+        name: binding.BuiltinPluginName;
+        _args: [options: CssChunkingPluginOptions];
+        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler_2): binding.BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
+
+// @public (undocumented)
+interface CssChunkingPluginOptions {
+    nextjs?: boolean;
+    // (undocumented)
+    strict?: boolean;
+}
 
 // @public (undocumented)
 export interface CssExtractRspackLoaderOptions {
@@ -2448,6 +2466,8 @@ export const experiments: Experiments_2;
 // @public (undocumented)
 interface Experiments_2 {
     // (undocumented)
+    CssChunkingPlugin: typeof CssChunkingPlugin;
+    // (undocumented)
     globalTrace: {
         register: (filter: string, layer: "chrome" | "logger", output: string) => Promise<void>;
         cleanup: () => Promise<void>;
@@ -2904,12 +2924,11 @@ interface HasDecorator {
 }
 
 // @public (undocumented)
-class Hash {
-    	constructor();
-
-    	digest(encoding?: string): string | Buffer;
-
-    	update(data: string | Buffer, inputEncoding?: string): Hash;
+interface Hash {
+    	// (undocumented)
+    digest: (encoding?: string) => string | Buffer_2;
+    	// (undocumented)
+    update: (data: string | Buffer_2, inputEncoding?: string) => Hash;
 }
 
 // @public (undocumented)
@@ -3954,6 +3973,7 @@ type KnownStatsCompilation = {
 // @public (undocumented)
 type KnownStatsError = {
     message: string;
+    code?: StatsErrorCode | string;
     chunkName?: string;
     chunkEntry?: boolean;
     chunkInitial?: boolean;
@@ -4548,7 +4568,12 @@ type MakeDirectoryOptions = {
 };
 
 // @public (undocumented)
-type MapOptions = { columns?: boolean; module?: boolean };
+interface MapOptions {
+    	// (undocumented)
+    columns?: boolean;
+    	// (undocumented)
+    module?: boolean;
+}
 
 // @public
 type Matcher = string | RegExp | (string | RegExp)[];
@@ -4709,7 +4734,7 @@ type ModuleFilterItemTypes = RegExp | string | ((name: string, module: any, type
 type ModuleFilterTypes = boolean | ModuleFilterItemTypes | ModuleFilterItemTypes[];
 
 // @public (undocumented)
-class ModuleGraph {
+export class ModuleGraph {
     constructor(binding: JsModuleGraph);
     // (undocumented)
     static __from_binding(binding: JsModuleGraph): ModuleGraph;
@@ -5769,15 +5794,22 @@ export type PublicPath = "auto" | Filename;
 type Purge = (files?: string | string[] | Set<string>) => void;
 
 // @public (undocumented)
-type RawSourceMap = {
-    	version: number;
-    	sources: string[];
-    	names: string[];
-    	sourceRoot?: string;
-    	sourcesContent?: string[];
-    	mappings: string;
-    	file: string;
-};
+interface RawSourceMap {
+    	// (undocumented)
+    file: string;
+    	// (undocumented)
+    mappings: string;
+    	// (undocumented)
+    names: string[];
+    	// (undocumented)
+    sourceRoot?: string;
+    	// (undocumented)
+    sources: string[];
+    	// (undocumented)
+    sourcesContent?: string[];
+    	// (undocumented)
+    version: number;
+}
 
 // @public (undocumented)
 interface ReactConfig {
@@ -6243,6 +6275,7 @@ declare namespace rspackExports {
         ConcatenatedModule,
         ExternalModule,
         NormalModuleFactory,
+        ModuleGraph,
         RuntimeGlobals,
         StatsAsset,
         StatsChunk,
@@ -6277,6 +6310,7 @@ declare namespace rspackExports {
         ProvidePlugin,
         DefinePlugin,
         ProgressPlugin,
+        RstestPlugin,
         EntryPlugin,
         DynamicEntryPlugin,
         ExternalsPlugin,
@@ -6700,6 +6734,17 @@ export type RspackSeverity = binding.JsRspackSeverity;
 export const rspackVersion: string;
 
 // @public (undocumented)
+export const RstestPlugin: {
+    new (rstest: RawRstestPluginOptions): {
+        name: BuiltinPluginName;
+        _args: [rstest: RawRstestPluginOptions];
+        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler_2): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
+
+// @public (undocumented)
 type Rule = string | RegExp;
 
 // @public (undocumented)
@@ -7105,27 +7150,28 @@ export const sharing: {
 export type SnapshotOptions = {};
 
 // @public (undocumented)
-abstract class Source {
+class Source {
+    	constructor();
     	// (undocumented)
-    buffer(): Buffer;
-
+    buffer(): Buffer_2;
     	// (undocumented)
-    map(options?: MapOptions): RawSourceMap | null;
-
+    map(options?: MapOptions): null | RawSourceMap;
     	// (undocumented)
     size(): number;
-
     	// (undocumented)
-    source(): string | Buffer;
-
+    source(): SourceValue;
     	// (undocumented)
-    sourceAndMap(options?: MapOptions): {
-        		source: string | Buffer;
-        		map: Object;
-        	};
-
+    sourceAndMap(options?: MapOptions): SourceAndMap;
     	// (undocumented)
     updateHash(hash: Hash): void;
+}
+
+// @public (undocumented)
+interface SourceAndMap {
+    	// (undocumented)
+    map: null | RawSourceMap;
+    	// (undocumented)
+    source: SourceValue;
 }
 
 // @public (undocumented)
@@ -7163,6 +7209,9 @@ export { SourceMapDevToolPluginOptions }
 export type SourceMapFilename = string;
 
 export { sources }
+
+// @public (undocumented)
+type SourceValue = string | Buffer_2;
 
 // @public (undocumented)
 interface Span {
@@ -7277,6 +7326,15 @@ export type StatsCompilation = KnownStatsCompilation & Record<string, any>;
 
 // @public (undocumented)
 export type StatsError = KnownStatsError & Record<string, any>;
+
+// @public (undocumented)
+enum StatsErrorCode {
+    ChunkMinificationError = "ChunkMinificationError",
+    ChunkMinificationWarning = "ChunkMinificationWarning",
+    ModuleBuildError = "ModuleBuildError",
+    ModuleParseError = "ModuleParseError",
+    ModuleParseWarning = "ModuleParseWarning"
+}
 
 // @public (undocumented)
 class StatsFactory {

@@ -1,7 +1,7 @@
 use std::{
   collections::HashSet as RawHashSet,
   hash::{BuildHasherDefault, Hash},
-  sync::{atomic::AtomicU32, Arc},
+  sync::atomic::AtomicU32,
 };
 
 use indexmap::{IndexMap as RawIndexMap, IndexSet as RawIndexSet};
@@ -130,12 +130,12 @@ impl ChunkGroupInfo {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
-pub(crate) struct OptionalRuntimeSpec(pub Vec<Arc<str>>);
+pub(crate) struct OptionalRuntimeSpec(pub Vec<ustr::Ustr>);
 
 impl From<Option<RuntimeSpec>> for OptionalRuntimeSpec {
   fn from(value: Option<RuntimeSpec>) -> Self {
     let mut vec = value.unwrap_or_default().into_iter().collect::<Vec<_>>();
-    vec.sort();
+    vec.sort_unstable();
     Self(vec)
   }
 }
@@ -1694,8 +1694,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .chunk_groups_for_merging
           .insert((target_ukey, process_block));
         let mut updated = false;
-        for r in runtime.iter() {
-          updated |= target_cgi.runtime.insert(r.clone());
+        for &r in runtime.iter() {
+          updated |= target_cgi.runtime.insert(r);
         }
         if updated {
           self.outdated_chunk_group_info.insert(target_ukey);

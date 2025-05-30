@@ -1,10 +1,10 @@
 use napi::{
   bindgen_prelude::{FromNapiMutRef, Object, ToNapiValue},
-  CallContext, Either, NapiRaw, NapiValue,
+  CallContext, Either, JsObject, NapiRaw,
 };
 use rspack_core::{parse_resource, ResourceData, ResourceParsedData};
 
-use crate::{impl_module_methods, plugins::JsLoaderItem, JsResourceData, Module};
+use crate::{impl_module_methods, plugins::JsLoaderItem, Module, ReadonlyResourceDataWrapper};
 
 #[napi]
 #[repr(C)]
@@ -28,32 +28,26 @@ impl NormalModule {
     let request = env.create_string(module.request())?;
     let user_request = env.create_string(module.user_request())?;
     let raw_request = env.create_string(module.raw_request())?;
-    let resource_resolve_data = unsafe {
-      Object::from_raw_unchecked(
+    let resource_resolve_data = Object::from_raw(env.raw(), unsafe {
+      ToNapiValue::to_napi_value(
         env.raw(),
-        ToNapiValue::to_napi_value(
-          env.raw(),
-          JsResourceData::from(resource_resolved_data.clone()),
-        )?,
-      )
-    };
-    let loaders = unsafe {
-      Object::from_raw_unchecked(
+        ReadonlyResourceDataWrapper::from(resource_resolved_data.clone()),
+      )?
+    });
+    let loaders = Object::from_raw(env.raw(), unsafe {
+      ToNapiValue::to_napi_value(
         env.raw(),
-        ToNapiValue::to_napi_value(
-          env.raw(),
-          module
-            .loaders()
-            .iter()
-            .map(JsLoaderItem::from)
-            .collect::<Vec<_>>(),
-        )?,
-      )
-    };
+        module
+          .loaders()
+          .iter()
+          .map(JsLoaderItem::from)
+          .collect::<Vec<_>>(),
+      )?
+    });
 
     #[js_function]
     pub fn match_resource_getter(ctx: CallContext) -> napi::Result<Either<&String, ()>> {
-      let this = ctx.this_unchecked::<Object>();
+      let this = ctx.this_unchecked::<JsObject>();
       let env = ctx.env.raw();
       let wrapped_value = unsafe { NormalModule::from_napi_mut_ref(env, this.raw())? };
 
@@ -66,7 +60,7 @@ impl NormalModule {
 
     #[js_function(1)]
     pub fn match_resource_setter(ctx: CallContext) -> napi::Result<()> {
-      let this = ctx.this_unchecked::<Object>();
+      let this = ctx.this_unchecked::<JsObject>();
       let env = ctx.env.raw();
       let wrapped_value = unsafe { NormalModule::from_napi_mut_ref(env, this.raw())? };
 

@@ -3,7 +3,13 @@ use rspack_napi::napi::{
   bindgen_prelude::*, threadsafe_function::ThreadsafeFunctionCallMode, Result,
 };
 
-pub fn callbackify<R, F>(f: Function, fut: F, call_js_back: impl FnOnce() + 'static) -> Result<()>
+use crate::ErrorCode;
+
+pub fn callbackify<R, F>(
+  f: Function<'static>,
+  fut: F,
+  call_js_back: impl FnOnce() + 'static,
+) -> Result<(), ErrorCode>
 where
   R: 'static + ToNapiValue,
   F: 'static + Send + Future<Output = Result<R>>,
@@ -22,7 +28,8 @@ where
         }
         Ok(ctx.value)
       },
-    )?;
+    )
+    .map_err(|err| napi::Error::new(ErrorCode::Napi(err.status), err.reason.clone()))?;
 
   napi::bindgen_prelude::spawn(async move {
     let res = fut.await;

@@ -13,6 +13,14 @@ import { ApiMeta } from '@components/ApiMeta';
 
 # Compilation hooks
 
+Compilation hooks are the primary extension method for Rspack plugins. These hooks enable developers to intervene at various stages of the build process.
+
+This document lists the available Compilation hooks in Rspack, detailing their triggering timing, parameters, and usage examples.
+
+:::tip
+See the [Compilation](/api/javascript-api/compilation) for more information about the Compilation object.
+:::
+
 :::info
 The main compilation logic of Rspack runs on the Rust side. For factors such as stability, performance, and architecture, after the Rust side compilation objects are transferred to the JavaScript side when using hooks, the modifications on these objects will not be synchronized to the Rust side. Therefore, most of hooks are "read-only".
 :::

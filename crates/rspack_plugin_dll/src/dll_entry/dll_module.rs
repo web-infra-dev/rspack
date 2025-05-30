@@ -8,8 +8,8 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource},
   AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, Dependency,
-  DependencyId, EntryDependency, FactoryMeta, Module, ModuleType, RuntimeGlobals, RuntimeSpec,
-  SourceType,
+  DependencyId, EntryDependency, FactoryMeta, Module, ModuleGraph, ModuleType, RuntimeGlobals,
+  RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -65,7 +65,7 @@ impl Module for DllModule {
     &ModuleType::JsDynamic
   }
 
-  fn source_types(&self) -> &[SourceType] {
+  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     &[SourceType::JavaScript]
   }
 

@@ -90,7 +90,7 @@ pub struct CssParserAndGenerator {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for CssParserAndGenerator {
-  fn source_types(&self) -> &[SourceType] {
+  fn source_types(&self, _module: &dyn Module, _module_graph: &ModuleGraph) -> &[SourceType] {
     if self.exports_only {
       CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST
     } else {

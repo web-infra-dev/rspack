@@ -1,6 +1,6 @@
 ERROR in ./b.css
   × Module parse failed:
-  ╰─▶   × CSS parsing error: Any '@import' rules must precede all other rules
+  ╰─▶   × CSS parse error: Any '@import' rules must precede all other rules
          ╭─[5:0]
        3 │ }
        4 │
@@ -15,7 +15,7 @@ ERROR in ./b.css
 
 ERROR in ./c.css
   × Module parse failed:
-  ╰─▶   × CSS parsing error: Any '@import' rules must precede all other rules
+  ╰─▶   × CSS parse error: Any '@import' rules must precede all other rules
          ╭─[4:0]
        2 │   background: red;
        3 │ }
@@ -30,7 +30,7 @@ ERROR in ./c.css
 
 ERROR in ./c.css
   × Module parse failed:
-  ╰─▶   × CSS parsing error: Any '@import' rules must precede all other rules
+  ╰─▶   × CSS parse error: Any '@import' rules must precede all other rules
          ╭─[5:0]
        3 │ }
        4 │ @import "./a.css";

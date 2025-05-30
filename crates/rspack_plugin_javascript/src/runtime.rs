@@ -35,7 +35,15 @@ pub async fn render_chunk_modules(
             output_path,
           )
           .await
-          .map(|result| result.map(|(s, f, a)| (module.identifier(), s, f, a)))
+          .map(|result| {
+            result.map(|(s, f, a)| {
+              let identifier = module.identifier();
+              let id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, identifier)
+                .expect("module_id should exit")
+                .clone();
+              (id, identifier, s, f, a)
+            })
+          })
         },
       );
     });
@@ -55,12 +63,20 @@ pub async fn render_chunk_modules(
   if module_code_array.is_empty() {
     return Ok(None);
   }
-
-  module_code_array.sort_unstable_by_key(|(module_identifier, _, _, _)| *module_identifier);
+  // align with this https://github.com/webpack/webpack/blob/af1c86da6f53642f02605d2a8e0e53f5961bcbfa/lib/javascript/JavascriptModulesPlugin.js#L784
+  module_code_array.sort_unstable_by(
+    |(left_id, left_identifier, ..), (right_id, right_identifier, ..)| {
+      if left_id == right_id {
+        left_identifier.cmp(right_identifier)
+      } else {
+        left_id.cmp(right_id)
+      }
+    },
+  );
 
   let chunk_init_fragments = module_code_array.iter().fold(
     ChunkInitFragments::default(),
-    |mut chunk_init_fragments, (_, _, fragments, additional_fragments)| {
+    |mut chunk_init_fragments, (_, _, _, fragments, additional_fragments)| {
       chunk_init_fragments.extend((*fragments).clone());
       chunk_init_fragments.extend(additional_fragments.clone());
       chunk_init_fragments
@@ -69,7 +85,7 @@ pub async fn render_chunk_modules(
 
   let module_sources: Vec<_> = module_code_array
     .into_iter()
-    .map(|(_, source, _, _)| source)
+    .map(|(_, _, source, _, _)| source)
     .collect();
   let module_sources = module_sources
     .into_par_iter()

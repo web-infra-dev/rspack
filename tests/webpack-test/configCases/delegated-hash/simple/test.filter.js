@@ -1,1 +1,1 @@
-module.exports = () => { return "TODO: DelegatedPlugin is not exposed" }
+module.exports = () => "TODO: DelegatedPlugin is not exposed"

@@ -1,2 +1,2 @@
-// TODO: Should create a issue for this test
-module.exports = () => { return "FIXME: missing warnings" }
+
+module.exports = () => "FIXME: missing warnings"

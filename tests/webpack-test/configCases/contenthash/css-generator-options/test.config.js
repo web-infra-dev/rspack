@@ -15,6 +15,6 @@ module.exports = {
 	},
 	afterExecute: () => {
 		expect(allBundles.size).toBe(7);
-		expect(allCss.size).toBe(7);
+		expect(allCss.size).toBe(5);
 	}
 };

@@ -1,2 +1,1 @@
-// loaderContext.loadModule is not supported
-module.exports = () => false;
+module.exports = () => "TODO: loaderContext.loadModule is not supported and progress plugin cache not ported to javascript";

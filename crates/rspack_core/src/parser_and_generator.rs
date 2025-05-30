@@ -87,7 +87,7 @@ pub struct GenerateContext<'a> {
 #[async_trait::async_trait]
 pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
   /// The source types that the generator can generate (the source types you can make requests for)
-  fn source_types(&self) -> &[SourceType];
+  fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType];
   /// Parse the source and return the dependencies and the ast or source
   async fn parse<'a>(
     &mut self,

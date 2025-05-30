@@ -1,6 +1,6 @@
 use napi::{
   bindgen_prelude::{Object, ToNapiValue, WeakReference},
-  Env, NapiValue,
+  Env,
 };
 use rspack_core::Compilation;
 
@@ -28,7 +28,7 @@ impl Chunks {
   pub fn get_jsobject(self, env: &Env) -> napi::Result<Object> {
     let raw_env = env.raw();
     let napi_val = unsafe { ToNapiValue::to_napi_value(raw_env, self)? };
-    Ok(unsafe { Object::from_raw_unchecked(raw_env, napi_val) })
+    Ok(Object::from_raw(raw_env, napi_val))
   }
 }
 

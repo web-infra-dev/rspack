@@ -6,7 +6,7 @@ use rspack_cacheable::{
 use rspack_core::{
   module_raw, process_export_info, property_access, AsContextDependency, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportInfoProvided, ExportNameOrSpec, ExportSpec,
+  DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportProvided, ExportSpec,
   ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
   ModuleDependency, ModuleGraph, ModuleIdentifier, Nullable, ReferencedExport, RuntimeGlobals,
   RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
@@ -91,7 +91,7 @@ impl CommonJsExportRequireDependency {
       imported_exports_info
         .other_exports_info(mg)
         .provided(mg)
-        .is_some_and(|provided| matches!(provided, ExportInfoProvided::False))
+        .is_some_and(|provided| matches!(provided, ExportProvided::NotProvided))
     });
 
     let no_extra_imports = exports_info.is_some_and(|exports_info| {
@@ -127,7 +127,7 @@ impl CommonJsExportRequireDependency {
             let imported_export_info = imported_exports_info.get_read_only_export_info(mg, name);
             if matches!(
               imported_export_info.provided(mg),
-              Some(ExportInfoProvided::False)
+              Some(ExportProvided::NotProvided)
             ) {
               continue;
             }
@@ -146,7 +146,7 @@ impl CommonJsExportRequireDependency {
         if let Some(name) = name {
           if matches!(
             imported_export_info.provided(mg),
-            Some(ExportInfoProvided::False)
+            Some(ExportProvided::NotProvided)
           ) {
             continue;
           }
@@ -197,7 +197,7 @@ impl Dependency for CommonJsExportRequireDependency {
       };
       let from = mg.connection_by_dependency_id(&self.id)?;
       Some(ExportsSpec {
-        exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
+        exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
           name: name.to_owned(),
           from: Some(from.to_owned()),
           can_mangle: Some(false),
@@ -215,7 +215,7 @@ impl Dependency for CommonJsExportRequireDependency {
       let from = mg.connection_by_dependency_id(&self.id)?;
       if let Some(reexport_info) = self.get_star_reexports(mg, None, from.module_identifier()) {
         Some(ExportsSpec {
-          exports: ExportsOfExportsSpec::Array(
+          exports: ExportsOfExportsSpec::Names(
             reexport_info
               .iter()
               .map(|name| {
@@ -236,7 +236,7 @@ impl Dependency for CommonJsExportRequireDependency {
         })
       } else {
         Some(ExportsSpec {
-          exports: ExportsOfExportsSpec::True,
+          exports: ExportsOfExportsSpec::UnknownExports,
           from: if ids.is_empty() {
             Some(from.to_owned())
           } else {
@@ -252,7 +252,7 @@ impl Dependency for CommonJsExportRequireDependency {
         unreachable!();
       };
       Some(ExportsSpec {
-        exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
+        exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
           name: name.to_owned(),
           can_mangle: Some(false),
           ..Default::default()
@@ -422,11 +422,9 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();
 
-    let used = mg.get_exports_info(&module.identifier()).get_used_name(
-      mg,
-      *runtime,
-      UsedName::Vec(dep.names.clone()),
-    );
+    let used = mg
+      .get_exports_info(&module.identifier())
+      .get_used_name(mg, *runtime, &dep.names);
 
     let base = if dep.base.is_exports() {
       runtime_requirements.insert(RuntimeGlobals::EXPORTS);
@@ -453,15 +451,14 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
       let ids = dep.get_ids(mg);
       if let Some(used_imported) = mg
         .get_exports_info(&imported_module.identifier())
-        .get_used_name(mg, *runtime, UsedName::Vec(ids.to_vec()))
+        .get_used_name(mg, *runtime, ids)
       {
         require_expr = format!(
           "{}{}",
           require_expr,
           property_access(
             match used_imported {
-              UsedName::Str(name) => vec![name].into_iter(),
-              UsedName::Vec(names) => names.into_iter(),
+              UsedName::Normal(names) => names.into_iter(),
             },
             0
           )
@@ -475,8 +472,7 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
           "{base}{} = {require_expr}",
           property_access(
             match used {
-              UsedName::Str(name) => vec![name].into_iter(),
-              UsedName::Vec(names) => names.into_iter(),
+              UsedName::Normal(names) => names.into_iter(),
             },
             0
           )

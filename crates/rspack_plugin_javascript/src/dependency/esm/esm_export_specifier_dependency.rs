@@ -2,7 +2,7 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsPreset, Skip},
 };
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
@@ -63,7 +63,7 @@ impl Dependency for ESMExportSpecifierDependency {
 
   fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
     Some(ExportsSpec {
-      exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::String(self.name.clone())]),
+      exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::String(self.name.clone())]),
       priority: Some(1),
       can_mangle: None,
       terminal_binding: Some(true),
@@ -78,8 +78,9 @@ impl Dependency for ESMExportSpecifierDependency {
     &self,
     _module_graph: &rspack_core::ModuleGraph,
     _module_chain: &mut IdentifierSet,
+    _connection_state_cache: &mut IdentifierMap<rspack_core::ConnectionState>,
   ) -> rspack_core::ConnectionState {
-    rspack_core::ConnectionState::Bool(false)
+    rspack_core::ConnectionState::Active(false)
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
@@ -140,13 +141,10 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
 
     let used_name = {
       let exports_info = module_graph.get_exports_info(&module.identifier());
-      let used_name =
-        exports_info.get_used_name(&module_graph, *runtime, UsedName::Str(dep.name.clone()));
+      let used_name = exports_info.get_used_name(&module_graph, *runtime, &[dep.name.clone()]);
       used_name.map(|item| match item {
-        UsedName::Str(name) => name,
-        UsedName::Vec(vec) => {
-          // vec.contains(&dep.name)
-          // TODO: should align webpack
+        UsedName::Normal(vec) => {
+          // only have one value for export specifier dependency
           vec[0].clone()
         }
       })

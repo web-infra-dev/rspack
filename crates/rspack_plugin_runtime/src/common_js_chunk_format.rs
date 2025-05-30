@@ -138,7 +138,9 @@ async fn render_chunk(
       "// load runtime\nvar {} = require({});\n",
       RuntimeGlobals::REQUIRE,
       json_stringify(&get_relative_path(
-        &base_chunk_output_name,
+        base_chunk_output_name
+          .trim_start_matches("/")
+          .trim_start_matches("\\"),
         &runtime_chunk_output_name
       ))
     )));

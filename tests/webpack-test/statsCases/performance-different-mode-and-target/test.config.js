@@ -24,7 +24,7 @@ module.exports = {
 		+ warning.pro-web.js
 		@@ -11,2 +14,3 @@
 		- WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
-		- │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
+		- │ For more info visit https://rspack.rs/guide/optimization/code-splitting
 		+ WARNING in webpack performance recommendations:
 		+ You can limit the size of your bundles by using import() or require.ensure to lazy load some parts of your application.
 		+ For more info visit https://webpack.js.org/guides/code-splitting/
@@ -48,7 +48,7 @@ module.exports = {
 		+ warning.pro-webworker.js
 		@@ -26,2 +33,3 @@
 		- WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
-		- │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
+		- │ For more info visit https://rspack.rs/guide/optimization/code-splitting
 		+ WARNING in webpack performance recommendations:
 		+ You can limit the size of your bundles by using import() or require.ensure to lazy load some parts of your application.
 		+ For more info visit https://webpack.js.org/guides/code-splitting/
@@ -84,7 +84,7 @@ module.exports = {
 		+ warning.pro-node-with-hints-set.js
 		@@ -57,2 +68,3 @@
 		- WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
-		- │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
+		- │ For more info visit https://rspack.rs/guide/optimization/code-splitting
 		+ WARNING in webpack performance recommendations:
 		+ You can limit the size of your bundles by using import() or require.ensure to lazy load some parts of your application.
 		+ For more info visit https://webpack.js.org/guides/code-splitting/

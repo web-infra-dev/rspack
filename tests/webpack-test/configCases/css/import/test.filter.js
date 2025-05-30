@@ -1,2 +1,1 @@
-// Many "Module not found: Can't resolve" errors
-module.exports = () => false;
+module.exports = () => "FIXME: Many `Module not found: Can't resolve` errors";

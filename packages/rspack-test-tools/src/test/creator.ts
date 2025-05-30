@@ -344,10 +344,16 @@ export class BasicCaseCreator<T extends ECompilerType> {
 		testConfig: TTestConfig<T>
 	): boolean | string {
 		const filterPath = path.join(src, "test.filter.js");
-		return (
-			fs.existsSync(filterPath) &&
-			!require(filterPath)(this._options, testConfig)
-		);
+		// no test.filter.js, should not skip
+		if (!fs.existsSync(filterPath)) {
+			return false;
+		}
+		// test.filter.js exists, skip if it returns false|string|array
+		const filtered = require(filterPath)(this._options, testConfig);
+		if (typeof filtered === "string" || Array.isArray(filtered)) {
+			return true;
+		}
+		return !filtered;
 	}
 
 	protected createTester(

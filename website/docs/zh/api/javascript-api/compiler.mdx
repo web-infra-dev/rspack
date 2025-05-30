@@ -12,6 +12,10 @@ import { Badge } from '@theme';
 
 # Compiler
 
+Compiler 是 Rspack 内部的核心对象，当你调用 Rspack 的 [JavaScript API](/api/javascript-api/index) 或 [CLI](/api/cli) 时，都会创建一个 Compiler 实例。
+
+它提供了 [run](#run) 和 [watch](#watch) 等方法来启动构建，同时暴露了丰富的 [Compiler 钩子](/api/plugin-api/compiler-hooks)，使 Rspack 插件能够干预构建的各个阶段。
+
 ## Compiler 对象方法
 
 ### run

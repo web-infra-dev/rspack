@@ -35,7 +35,7 @@ impl Dependency for JsonExportsDependency {
   fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
     Some(ExportsSpec {
       exports: get_exports_from_data(&self.data, self.exports_depth, 1)
-        .unwrap_or(ExportsOfExportsSpec::Null),
+        .unwrap_or(ExportsOfExportsSpec::NoExports),
       ..Default::default()
     })
   }
@@ -76,7 +76,7 @@ fn get_exports_from_data(
     | JsonValue::Boolean(_) => {
       return None;
     }
-    JsonValue::Object(obj) => ExportsOfExportsSpec::Array(
+    JsonValue::Object(obj) => ExportsOfExportsSpec::Names(
       obj
         .iter()
         .map(|(k, v)| {
@@ -85,9 +85,9 @@ fn get_exports_from_data(
             can_mangle: Some(true),
             exports: get_exports_from_data(v, exports_depth, cur_depth + 1).map(
               |item| match item {
-                ExportsOfExportsSpec::True => unreachable!(),
-                ExportsOfExportsSpec::Null => unreachable!(),
-                ExportsOfExportsSpec::Array(arr) => arr,
+                ExportsOfExportsSpec::UnknownExports => unreachable!(),
+                ExportsOfExportsSpec::NoExports => unreachable!(),
+                ExportsOfExportsSpec::Names(arr) => arr,
               },
             ),
             ..Default::default()
@@ -99,7 +99,7 @@ fn get_exports_from_data(
       if arr.len() > 100 {
         return None;
       }
-      ExportsOfExportsSpec::Array(
+      ExportsOfExportsSpec::Names(
         arr
           .iter()
           .enumerate()
@@ -109,8 +109,10 @@ fn get_exports_from_data(
               can_mangle: Some(true),
               exports: get_exports_from_data(item, exports_depth, cur_depth + 1).map(|item| {
                 match item {
-                  ExportsOfExportsSpec::True | ExportsOfExportsSpec::Null => unreachable!(),
-                  ExportsOfExportsSpec::Array(arr) => arr,
+                  ExportsOfExportsSpec::UnknownExports | ExportsOfExportsSpec::NoExports => {
+                    unreachable!()
+                  }
+                  ExportsOfExportsSpec::Names(arr) => arr,
                 }
               }),
               ..Default::default()

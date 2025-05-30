@@ -54,7 +54,7 @@ impl EntryDependency {
   }
 
   #[napi(getter)]
-  pub fn request(&mut self, env: Env) -> napi::Result<napi::Either<JsString, ()>> {
+  pub fn request<'a>(&mut self, env: &'a Env) -> napi::Result<napi::Either<JsString<'a>, ()>> {
     Ok(Either::A(env.create_string(&self.request)?))
   }
 }

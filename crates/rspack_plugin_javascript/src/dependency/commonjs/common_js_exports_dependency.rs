@@ -103,7 +103,7 @@ impl Dependency for CommonJsExportsDependency {
       ..Default::default()
     })];
     Some(ExportsSpec {
-      exports: ExportsOfExportsSpec::Array(vec),
+      exports: ExportsOfExportsSpec::Names(vec),
       ..Default::default()
     })
   }
@@ -164,7 +164,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
 
     let used = module_graph
       .get_exports_info(&module.identifier())
-      .get_used_name(&module_graph, *runtime, UsedName::Vec(dep.names.clone()));
+      .get_used_name(&module_graph, *runtime, &dep.names);
 
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();
@@ -192,8 +192,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
             base,
             property_access(
               match used {
-                UsedName::Str(name) => vec![name].into_iter(),
-                UsedName::Vec(names) => names.into_iter(),
+                UsedName::Normal(names) => names.into_iter(),
               },
               0
             )
@@ -220,8 +219,8 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       }
     } else if dep.base.is_define_property() {
       if let Some(value_range) = &dep.value_range {
-        if let Some(used) = used {
-          if let UsedName::Vec(used) = used {
+        if let Some(UsedName::Normal(used)) = used {
+          if !used.is_empty() {
             source.replace(
               dep.range.start,
               value_range.start,

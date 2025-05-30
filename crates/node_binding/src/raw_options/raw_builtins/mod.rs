@@ -1,3 +1,4 @@
+mod css_chunking;
 mod raw_banner;
 mod raw_bundle_info;
 mod raw_circular_dependency;
@@ -19,8 +20,8 @@ mod raw_sri;
 mod raw_swc_js_minimizer;
 
 use napi::{
-  bindgen_prelude::{FromNapiValue, Object},
-  Env, JsUnknown,
+  bindgen_prelude::{FromNapiValue, JsObjectValue, Object},
+  Env, Unknown,
 };
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
@@ -40,10 +41,10 @@ use rspack_plugin_circular_dependencies::CircularDependencyRspackPlugin;
 use rspack_plugin_context_replacement::ContextReplacementPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
 use rspack_plugin_css::CssPlugin;
+use rspack_plugin_css_chunking::CssChunkingPlugin;
 use rspack_plugin_devtool::{
   EvalDevToolModulePlugin, EvalSourceMapDevToolPlugin, SourceMapDevToolModuleOptionsPlugin,
   SourceMapDevToolModuleOptionsPluginOptions, SourceMapDevToolPlugin,
-  SourceMapDevToolPluginOptions,
 };
 use rspack_plugin_dll::{
   DllEntryPlugin, DllReferenceAgencyPlugin, FlagAllModulesAsUsedPlugin, LibManifestPlugin,
@@ -60,7 +61,7 @@ use rspack_plugin_ignore::IgnorePlugin;
 use rspack_plugin_javascript::{
   api_plugin::APIPlugin, define_plugin::DefinePlugin, provide_plugin::ProvidePlugin,
   FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin, JsPlugin,
-  MangleExportsPlugin, ModuleConcatenationPlugin, ModuleInfoHeaderPlugin, SideEffectsFlagPlugin,
+  MangleExportsPlugin, ModuleConcatenationPlugin, SideEffectsFlagPlugin,
 };
 use rspack_plugin_json::JsonPlugin;
 use rspack_plugin_library::enable_library_plugin;
@@ -71,12 +72,14 @@ use rspack_plugin_mf::{
   ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin, ModuleFederationRuntimePlugin,
   ProvideSharedPlugin, ShareRuntimePlugin,
 };
+use rspack_plugin_module_info_header::ModuleInfoHeaderPlugin;
 use rspack_plugin_no_emit_on_errors::NoEmitOnErrorsPlugin;
 use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_real_content_hash::RealContentHashPlugin;
 use rspack_plugin_remove_duplicate_modules::RemoveDuplicateModulesPlugin;
 use rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin;
 use rspack_plugin_rsdoctor::RsdoctorPlugin;
+use rspack_plugin_rstest::RstestPlugin;
 use rspack_plugin_runtime::{
   enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, BundlerInfoPlugin,
   ChunkPrefetchPreloadPlugin, CommonJsChunkFormatPlugin, ModuleChunkFormatPlugin, RuntimePlugin,
@@ -94,6 +97,7 @@ use rspack_plugin_web_worker_template::web_worker_template_plugin;
 use rspack_plugin_worker::WorkerPlugin;
 
 pub use self::{
+  css_chunking::CssChunkingPluginOptions,
   raw_banner::RawBannerPluginOptions,
   raw_circular_dependency::RawCircularDependencyRspackPluginOptions,
   raw_copy::RawCopyRspackPluginOptions,
@@ -117,8 +121,8 @@ use crate::{
   entry::JsEntryPluginOptions, plugins::JsLoaderRspackPlugin, JsLoaderRunnerGetter,
   RawContextReplacementPluginOptions, RawDynamicEntryPluginOptions,
   RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
-  RawHttpExternalsRspackPluginOptions, RawRsdoctorPluginOptions, RawSourceMapDevToolPluginOptions,
-  RawSplitChunksOptions,
+  RawHttpExternalsRspackPluginOptions, RawRsdoctorPluginOptions, RawRstestPluginOptions,
+  RawSplitChunksOptions, SourceMapDevToolPluginOptions,
 };
 
 #[napi(string_enum)]
@@ -205,6 +209,7 @@ pub enum BuiltinPluginName {
   CssExtractRspackPlugin,
   SubresourceIntegrityPlugin,
   RsdoctorPlugin,
+  RstestPlugin,
   CircularDependencyRspackPlugin,
 
   // rspack js adapter plugins
@@ -213,16 +218,17 @@ pub enum BuiltinPluginName {
   LazyCompilationPlugin,
   ModuleInfoHeaderPlugin,
   HttpUriPlugin,
+  CssChunkingPlugin,
 }
 
 #[napi(object)]
-pub struct BuiltinPlugin {
+pub struct BuiltinPlugin<'a> {
   pub name: BuiltinPluginName,
-  pub options: JsUnknown,
+  pub options: Unknown<'a>,
   pub can_inherent_from_parent: Option<bool>,
 }
 
-impl BuiltinPlugin {
+impl<'a> BuiltinPlugin<'a> {
   pub fn append_to(
     self,
     env: Env,
@@ -482,8 +488,8 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::AssetModulesPlugin => plugins.push(AssetPlugin::default().boxed()),
       BuiltinPluginName::SourceMapDevToolPlugin => {
-        let options: SourceMapDevToolPluginOptions =
-          downcast_into::<RawSourceMapDevToolPluginOptions>(self.options)
+        let options: rspack_plugin_devtool::SourceMapDevToolPluginOptions =
+          downcast_into::<SourceMapDevToolPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .into();
         plugins.push(
@@ -496,8 +502,8 @@ impl BuiltinPlugin {
         plugins.push(SourceMapDevToolPlugin::new(options).boxed());
       }
       BuiltinPluginName::EvalSourceMapDevToolPlugin => {
-        let options: SourceMapDevToolPluginOptions =
-          downcast_into::<RawSourceMapDevToolPluginOptions>(self.options)
+        let options: rspack_plugin_devtool::SourceMapDevToolPluginOptions =
+          downcast_into::<SourceMapDevToolPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .into();
         plugins.push(
@@ -704,6 +710,12 @@ impl BuiltinPlugin {
         let options = raw_options.into();
         plugins.push(RsdoctorPlugin::new(options).boxed());
       }
+      BuiltinPluginName::RstestPlugin => {
+        let raw_options = downcast_into::<RawRstestPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+        let options = raw_options.into();
+        plugins.push(RstestPlugin::new(options).boxed());
+      }
       BuiltinPluginName::SubresourceIntegrityPlugin => {
         let raw_options = downcast_into::<RawSubresourceIntegrityPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
@@ -715,11 +727,16 @@ impl BuiltinPlugin {
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         plugins.push(ModuleInfoHeaderPlugin::new(verbose).boxed());
       }
+      BuiltinPluginName::CssChunkingPlugin => {
+        let options = downcast_into::<CssChunkingPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+        plugins.push(CssChunkingPlugin::new(options.into()).boxed());
+      }
     }
     Ok(())
   }
 }
 
-fn downcast_into<T: FromNapiValue + 'static>(o: JsUnknown) -> Result<T> {
+fn downcast_into<T: FromNapiValue + 'static>(o: Unknown) -> Result<T> {
   rspack_napi::downcast_into(o).to_rspack_result()
 }

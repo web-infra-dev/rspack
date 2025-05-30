@@ -16,4 +16,4 @@
 // 	}
 // };
 
-module.exports = () => { return "FIXME: link is not supported when clean" }
+module.exports = () => "FIXME: link is not supported when clean" 

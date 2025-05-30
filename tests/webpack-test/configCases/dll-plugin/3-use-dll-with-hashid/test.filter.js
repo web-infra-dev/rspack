@@ -1,1 +1,1 @@
-module.exports = () => { return "NOPLAN: moduleIds: hashed has been deprecated" }
+module.exports = () => "NOPLAN: moduleIds: hashed has been deprecated"

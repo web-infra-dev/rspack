@@ -27,7 +27,7 @@ pub struct OneShotRef {
 }
 
 impl OneShotRef {
-  pub fn new<T: ToNapiValue + 'static>(env: napi_env, val: T) -> Result<Self> {
+  pub fn new<T: ToNapiValue>(env: napi_env, val: T) -> Result<Self> {
     let napi_value = unsafe { ToNapiValue::to_napi_value(env, val)? };
 
     let mut napi_ref = ptr::null_mut();

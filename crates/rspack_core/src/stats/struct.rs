@@ -40,6 +40,7 @@ pub struct ExtendedStatsOptions {
 #[derive(Debug)]
 pub struct StatsError<'a> {
   pub message: String,
+  pub code: Option<String>,
   pub module_identifier: Option<ModuleIdentifier>,
   pub module_name: Option<Cow<'a, str>>,
   pub module_id: Option<ModuleId>,
@@ -59,6 +60,7 @@ pub struct StatsError<'a> {
 pub struct StatsWarning<'a> {
   pub name: Option<String>,
   pub message: String,
+  pub code: Option<String>,
   pub module_identifier: Option<ModuleIdentifier>,
   pub module_name: Option<Cow<'a, str>>,
   pub module_id: Option<ModuleId>,

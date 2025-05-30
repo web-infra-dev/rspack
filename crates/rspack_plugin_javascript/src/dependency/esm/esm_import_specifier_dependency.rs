@@ -1,16 +1,16 @@
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsOption, AsPreset, AsVec, Skip},
+  with::{AsCacheable, AsOption, AsPreset, AsVec, Skip},
 };
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
   get_exports_type, property_access, AsContextDependency, ConnectionState, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExportPresenceMode, ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes,
-  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleReferenceOptions, ReferencedExport,
-  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedByExports,
+  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleReferenceOptions, RuntimeSpec,
+  SharedSourceMap, Template, TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
 };
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
@@ -20,6 +20,7 @@ use super::{
   create_resource_identifier_for_esm_dependency,
   esm_import_dependency::esm_import_dependency_get_linking_error, esm_import_dependency_apply,
 };
+use crate::visitors::DestructuringAssignmentProperty;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -38,8 +39,8 @@ pub struct ESMImportSpecifierDependency {
   call: bool,
   direct_import: bool,
   used_by_exports: Option<UsedByExports>,
-  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
-  referenced_properties_in_destructuring: Option<HashSet<Atom>>,
+  #[cacheable(with=AsOption<AsVec<AsCacheable>>)]
+  referenced_properties_in_destructuring: Option<HashSet<DestructuringAssignmentProperty>>,
   resource_identifier: String,
   export_presence_mode: ExportPresenceMode,
   attributes: Option<ImportAttributes>,
@@ -62,7 +63,7 @@ impl ESMImportSpecifierDependency {
     call: bool,
     direct_import: bool,
     export_presence_mode: ExportPresenceMode,
-    referenced_properties_in_destructuring: Option<HashSet<Atom>>,
+    referenced_properties_in_destructuring: Option<HashSet<DestructuringAssignmentProperty>>,
     attributes: Option<ImportAttributes>,
     source_map: Option<SharedSourceMap>,
   ) -> Self {
@@ -106,13 +107,13 @@ impl ESMImportSpecifierDependency {
         .map(|prop| {
           if let Some(v) = ids {
             let mut value = v.to_vec();
-            value.push(prop.clone());
-            ReferencedExport::new(value, false)
+            value.push(prop.id.clone());
+            value
           } else {
-            ReferencedExport::new(vec![prop.clone()], false)
+            vec![prop.id.clone()]
           }
         })
-        .map(ExtendedReferencedExport::Export)
+        .map(ExtendedReferencedExport::Array)
         .collect::<Vec<_>>()
     } else if let Some(v) = ids {
       vec![ExtendedReferencedExport::Array(v.to_vec())]
@@ -171,8 +172,9 @@ impl Dependency for ESMImportSpecifierDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_chain: &mut IdentifierSet,
+    _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
-    ConnectionState::Bool(false)
+    ConnectionState::Active(false)
   }
 
   fn _get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
@@ -399,6 +401,62 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
       source.insert(dep.range.end, format!(": {export_expr}").as_str(), None);
     } else {
       source.replace(dep.range.start, dep.range.end, export_expr.as_str(), None);
+    }
+
+    let module_graph = code_generatable_context.compilation.get_module_graph();
+    if let Some(referenced_properties) = &dep.referenced_properties_in_destructuring {
+      let mut prefixed_ids = ids.to_vec();
+
+      let module = module_graph
+        .get_module_by_dependency_id(&dep.id)
+        .expect("should have imported module");
+
+      if ids.first().is_some_and(|id| id == "default") {
+        let self_module = module_graph
+          .get_parent_module(&dep.id)
+          .and_then(|id| module_graph.module_by_identifier(id))
+          .expect("should have parent module");
+        let exports_type =
+          module.get_exports_type(&module_graph, self_module.build_meta().strict_esm_module);
+        if matches!(
+          exports_type,
+          ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
+        ) && !ids.is_empty()
+        {
+          prefixed_ids = ids[1..].to_vec();
+        }
+      }
+
+      for prop in referenced_properties {
+        let mut concated_ids = prefixed_ids.clone();
+        concated_ids.push(prop.id.clone());
+        let Some(new_name) = module_graph
+          .get_exports_info(&module.identifier())
+          .get_used_name(
+            &module_graph,
+            code_generatable_context.runtime,
+            &concated_ids,
+          )
+          .and_then(|used| match used {
+            UsedName::Normal(names) => names.last().cloned(),
+          })
+        else {
+          return;
+        };
+
+        if new_name == prop.id {
+          continue;
+        }
+
+        let comment = Template::to_normal_comment(prop.id.as_str());
+        let key = format!("{}{}", comment, new_name);
+        let content = if prop.shorthand {
+          format!("{key}: {}", prop.id)
+        } else {
+          key
+        };
+        source.replace(prop.range.start, prop.range.end, &content, None);
+      }
     }
   }
 }

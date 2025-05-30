@@ -1,1 +1,1 @@
-module.exports = () => { return "NOPLAN: compilation.hooks.dependencyReferencedExports not supported" }
+module.exports = () => "NOPLAN: compilation.hooks.dependencyReferencedExports not supported"

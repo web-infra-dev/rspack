@@ -1125,7 +1125,7 @@ impl<'a> ModuleGraph<'a> {
       .loop_partials(|p| p.connection_to_condition.get(&connection.dependency_id))
       .expect("should have condition");
     match condition {
-      DependencyCondition::False => ConnectionState::Bool(false),
+      DependencyCondition::False => ConnectionState::Active(false),
       DependencyCondition::Fn(f) => f.get_connection_state(connection, runtime, self),
     }
   }
@@ -1134,14 +1134,14 @@ impl<'a> ModuleGraph<'a> {
   //   - None: it's unknown
   //   - Some(true): provided
   //   - Some(false): not provided
-  pub fn is_export_provided(&self, id: &ModuleIdentifier, names: &[Atom]) -> Option<bool> {
-    self.module_graph_module_by_identifier(id).and_then(|mgm| {
-      match mgm.exports.is_export_provided(self, names)? {
-        ExportProvided::True => Some(true),
-        ExportProvided::False => Some(false),
-        ExportProvided::Null => None,
-      }
-    })
+  pub fn is_export_provided(
+    &self,
+    id: &ModuleIdentifier,
+    names: &[Atom],
+  ) -> Option<ExportProvided> {
+    self
+      .module_graph_module_by_identifier(id)
+      .and_then(|mgm| mgm.exports.is_export_provided(self, names))
   }
 
   // todo remove it after module_graph_partial remove all of dependency_id_to_*

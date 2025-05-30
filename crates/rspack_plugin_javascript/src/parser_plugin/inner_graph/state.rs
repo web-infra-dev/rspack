@@ -2,7 +2,7 @@ use std::collections::hash_map::Entry;
 
 use rspack_core::UsedByExports;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use swc_core::{common::Span, ecma::atoms::Atom};
+use swc_core::common::Span;
 
 use super::plugin::TopLevelSymbol;
 use crate::{
@@ -16,9 +16,9 @@ pub type UsageCallback = Box<dyn Fn(&mut JavascriptParser, Option<UsedByExports>
 
 #[derive(Default)]
 pub struct InnerGraphState {
-  pub(crate) inner_graph: HashMap<Atom, InnerGraphMapValue>,
-  pub(crate) usage_callback_map: HashMap<Atom, Vec<UsageCallback>>,
-  current_top_level_symbol: Option<Atom>,
+  pub(crate) inner_graph: HashMap<TopLevelSymbol, InnerGraphMapValue>,
+  pub(crate) usage_callback_map: HashMap<TopLevelSymbol, Vec<UsageCallback>>,
+  current_top_level_symbol: Option<TopLevelSymbol>,
   enable: bool,
 
   pub(crate) statement_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
@@ -47,11 +47,11 @@ impl InnerGraphState {
     self.enable
   }
 
-  pub fn set_top_level_symbol(&mut self, symbol: Option<Atom>) {
+  pub fn set_top_level_symbol(&mut self, symbol: Option<TopLevelSymbol>) {
     self.current_top_level_symbol = symbol;
   }
 
-  pub fn get_top_level_symbol(&self) -> Option<Atom> {
+  pub fn get_top_level_symbol(&self) -> Option<TopLevelSymbol> {
     if self.is_enabled() {
       self.current_top_level_symbol.clone()
     } else {
@@ -59,7 +59,7 @@ impl InnerGraphState {
     }
   }
 
-  pub fn add_usage(&mut self, symbol: Atom, usage: InnerGraphMapUsage) {
+  pub fn add_usage(&mut self, symbol: TopLevelSymbol, usage: InnerGraphMapUsage) {
     if !self.is_enabled() {
       return;
     }

@@ -5,7 +5,7 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportProvided,
-  TemplateContext, TemplateReplaceSource, UsageState, UsedExports, UsedName,
+  TemplateContext, TemplateReplaceSource, UsageState, UsedExports,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -56,9 +56,9 @@ impl ExportInfoDependency {
         .get_exports_info(&module_identifier)
         .get_used_exports(&module_graph, *runtime);
       return Some(match used_exports {
-        UsedExports::Null => "null".to_owned(),
-        UsedExports::Bool(value) => value.to_string(),
-        UsedExports::Vec(exports) => {
+        UsedExports::Unknown => "null".to_owned(),
+        UsedExports::UsedNamespace(value) => value.to_string(),
+        UsedExports::UsedNames(exports) => {
           format!(
             r#"[{}]"#,
             exports
@@ -87,13 +87,11 @@ impl ExportInfoDependency {
         can_mangle.map(|v| v.to_string())
       }
       "used" => {
-        let used =
-          exports_info.get_used(&module_graph, UsedName::Vec(export_name.clone()), *runtime);
+        let used = exports_info.get_used(&module_graph, &export_name.clone(), *runtime);
         Some((!matches!(used, UsageState::Unused)).to_string())
       }
       "useInfo" => {
-        let used_state =
-          exports_info.get_used(&module_graph, UsedName::Vec(export_name.clone()), *runtime);
+        let used_state = exports_info.get_used(&module_graph, &export_name.clone(), *runtime);
         Some(
           (match used_state {
             UsageState::Used => "true",
@@ -109,9 +107,9 @@ impl ExportInfoDependency {
         .is_export_provided(&module_graph, export_name)
         .map(|provided| {
           (match provided {
-            ExportProvided::True => "true",
-            ExportProvided::False => "false",
-            ExportProvided::Null => "null",
+            ExportProvided::Provided => "true",
+            ExportProvided::NotProvided => "false",
+            ExportProvided::Unknown => "null",
           })
           .to_owned()
         }),

@@ -10,7 +10,7 @@ it("should not parse css modules in type: css", () => {
     const links = document.getElementsByTagName("link");
     const css = links[1].sheet.css;
 
-	expect(css).toMatch(/\:local\(\.foo\)/);
+    expect(css).toMatch(/\:local\(\.foo\)/);
     expect(css).toMatch(/\:global\(\.bar\)/);
 });
 
@@ -21,26 +21,27 @@ it("should compile type: css/module", () => {
     expect(style1.class1).toBe('_style1_local_css-class1');
 });
 
-it("should compile type: css/global", (done) => {
-    const element = document.createElement(".class3");
-    const style = getComputedStyle(element);
-    expect(style.getPropertyValue("color")).toBe(" red");
-    expect(style2.class4).toBe('_style2_global_css-class4');
-    done()
-});
+// CHANGE: not support css/global
+// it("should compile type: css/global", (done) => {
+//     const element = document.createElement(".class3");
+//     const style = getComputedStyle(element);
+//     expect(style.getPropertyValue("color")).toBe(" red");
+//     expect(style2.class4).toBe('_style2_global_css-class4');
+//     done()
+// });
 
 it("should not parse css modules in type: css/auto", () => {
-	const style = getComputedStyle(document.body);
-	expect(style.getPropertyValue("background")).toBe(" red");
-	const links = document.getElementsByTagName("link");
-	const css = links[1].sheet.css;
-	expect(css).toMatch(/\:local\(\.baz\)/);
-	expect(css).toMatch(/\:global\(\.qux\)/);
+    const style = getComputedStyle(document.body);
+    expect(style.getPropertyValue("background")).toBe(" red");
+    const links = document.getElementsByTagName("link");
+    const css = links[1].sheet.css;
+    expect(css).toMatch(/\:local\(\.baz\)/);
+    expect(css).toMatch(/\:global\(\.qux\)/);
 });
 
 it("should parse css modules in type: css/auto", () => {
-	const element = document.createElement(".class3");
-	const style = getComputedStyle(element);
-	expect(style.getPropertyValue("color")).toBe(" red");
-	expect(style3.class3).toBe('_style4_modules_css-class3');
+    const element = document.createElement(".class3");
+    const style = getComputedStyle(element);
+    expect(style.getPropertyValue("color")).toBe(" red");
+    expect(style3.class3).toBe('_style4_modules_css-class3');
 });

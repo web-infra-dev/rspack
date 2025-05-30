@@ -339,8 +339,9 @@ impl ChunkGraph {
     let mut hasher = FxHasher::default();
     let mg = compilation.get_module_graph();
     let module_identifier = module.identifier();
+    let module_graph = compilation.get_module_graph();
     Self::get_module_id(&compilation.module_ids_artifact, module_identifier).dyn_hash(&mut hasher);
-    module.source_types().dyn_hash(&mut hasher);
+    module.source_types(&module_graph).dyn_hash(&mut hasher);
     ModuleGraph::is_async(compilation, &module_identifier).dyn_hash(&mut hasher);
     mg.get_exports_info(&module_identifier)
       .update_hash(&mg, &mut hasher, compilation, runtime);

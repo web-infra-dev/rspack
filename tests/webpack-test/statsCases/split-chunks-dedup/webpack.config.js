@@ -1,8 +1,5 @@
 const webpack = require("@rspack/core");
 const { ModuleFederationPlugin } = webpack.container;
-const {
-	WEBPACK_MODULE_TYPE_PROVIDE
-} = require("../../../lib/ModuleTypeConstants");
 
 const chunkIdChunkNameMap = new Map();
 const usedSharedModuleNames = new Set();
@@ -33,7 +30,8 @@ module.exports = {
 					if (group.origins) {
 						for (const origin of group.origins) {
 							if (
-								origin.module.type === WEBPACK_MODULE_TYPE_PROVIDE &&
+								// CHANGE: origin.module.type === WEBPACK_MODULE_TYPE_PROVIDE
+								origin.module.type === "provide-module" &&
 								chunk.id
 							) {
 								if (chunkIdChunkNameMap.has(chunk.id)) {

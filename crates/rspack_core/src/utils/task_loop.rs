@@ -23,10 +23,10 @@ pub type TaskResult<Ctx> = Result<Vec<Box<dyn Task<Ctx>>>>;
 
 /// Task type
 pub enum TaskType {
-  /// Sync Task
-  Sync,
-  /// Async Task
-  Async,
+  /// Main Task
+  Main,
+  /// Background Task
+  Background,
 }
 
 /// Used for define tasks
@@ -36,8 +36,8 @@ pub enum TaskType {
 pub trait Task<Ctx>: Debug + Send + Any + AsAny {
   /// Return the task type
   ///
-  /// Return `TaskType::Sync` will run `self::sync_run`
-  /// Return `TaskType::Async` will run `self::async_run`
+  /// Return `TaskType::Main` will run `self::main_run`
+  /// Return `TaskType::Background` will run `self::background_run`
   fn get_task_type(&self) -> TaskType;
 
   /// can be running in main thread
@@ -56,15 +56,6 @@ pub async fn run_task_loop<Ctx: 'static>(
   ctx: &mut Ctx,
   init_tasks: Vec<Box<dyn Task<Ctx>>>,
 ) -> Result<()> {
-  run_task_loop_with_event(ctx, init_tasks, |_, task| task).await
-}
-
-/// Run task loop with event
-pub async fn run_task_loop_with_event<Ctx: 'static>(
-  ctx: &mut Ctx,
-  init_tasks: Vec<Box<dyn Task<Ctx>>>,
-  before_task_run: impl Fn(&mut Ctx, Box<dyn Task<Ctx>>) -> Box<dyn Task<Ctx>>,
-) -> Result<()> {
   // create channel to receive async task result
   let (tx, mut rx) = mpsc::unbounded_channel::<TaskResult<Ctx>>();
   // mark whether the task loop has been returned
@@ -79,9 +70,8 @@ pub async fn run_task_loop_with_event<Ctx: 'static>(
     }
 
     if let Some(task) = task {
-      let task = before_task_run(ctx, task);
       match task.get_task_type() {
-        TaskType::Async => {
+        TaskType::Background => {
           let tx = tx.clone();
           let is_expected_shutdown = is_expected_shutdown.clone();
           active_task_count += 1;
@@ -95,7 +85,7 @@ pub async fn run_task_loop_with_event<Ctx: 'static>(
             .in_current_span(),
           ));
         }
-        TaskType::Sync => {
+        TaskType::Main => {
           // merge sync task result directly
           match task.main_run(ctx).await {
             Ok(r) => queue.extend(r),
@@ -154,7 +144,7 @@ mod test {
   #[async_trait::async_trait]
   impl Task<Context> for SyncTask {
     fn get_task_type(&self) -> TaskType {
-      TaskType::Sync
+      TaskType::Main
     }
     async fn main_run(self: Box<Self>, context: &mut Context) -> TaskResult<Context> {
       if context.sync_return_error {
@@ -180,7 +170,7 @@ mod test {
   #[async_trait::async_trait]
   impl Task<Context> for AsyncTask {
     fn get_task_type(&self) -> TaskType {
-      TaskType::Async
+      TaskType::Background
     }
     async fn background_run(self: Box<Self>) -> TaskResult<Context> {
       tokio::time::sleep(std::time::Duration::from_millis(10)).await;

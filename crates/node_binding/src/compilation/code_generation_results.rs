@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use napi::Either;
 use rspack_core::{Reflector, WeakBindingCell};
 use rustc_hash::FxHashMap;
@@ -112,8 +110,8 @@ impl CodeGenerationResults {
   pub fn get(&self, module: ModuleObjectRef, runtime: JsRuntimeSpec) -> napi::Result<Reflector> {
     self.with_ref(|code_generation_results| {
       let rt: Option<rspack_core::RuntimeSpec> = runtime.map(|val| match val {
-        Either::A(str) => std::iter::once(str).map(Arc::from).collect(),
-        Either::B(vec) => vec.into_iter().map(Arc::from).collect(),
+        Either::A(str) => std::iter::once(str).map(Into::into).collect(),
+        Either::B(vec) => vec.into_iter().map(Into::into).collect(),
       });
 
       let code_generation_result = code_generation_results.get(&module.identifier, rt.as_ref());

@@ -104,7 +104,8 @@ export const applyRspackOptionsDefaults = (
 		asyncWebAssembly: options.experiments.asyncWebAssembly!,
 		css: options.experiments.css,
 		targetProperties,
-		mode: options.mode
+		mode: options.mode,
+		uniqueName: options.output.uniqueName
 	});
 
 	applyOutputDefaults(options.output, {
@@ -305,12 +306,14 @@ const applyModuleDefaults = (
 		asyncWebAssembly,
 		css,
 		targetProperties,
-		mode
+		mode,
+		uniqueName
 	}: {
 		asyncWebAssembly: boolean;
 		css?: boolean;
 		targetProperties: any;
 		mode?: Mode;
+		uniqueName?: string;
 	}
 ) => {
 	assertNotNill(module.parser);
@@ -374,11 +377,11 @@ const applyModuleDefaults = (
 			!targetProperties || !targetProperties.document
 		);
 		D(module.generator["css/auto"], "exportsConvention", "as-is");
-		D(
-			module.generator["css/auto"],
-			"localIdentName",
-			"[uniqueName]-[id]-[local]"
-		);
+		const localIdentName =
+			uniqueName && uniqueName.length > 0
+				? "[uniqueName]-[id]-[local]"
+				: "[id]-[local]";
+		D(module.generator["css/auto"], "localIdentName", localIdentName);
 		D(module.generator["css/auto"], "esModule", true);
 
 		F(module.generator, "css/module", () => ({}));
@@ -389,11 +392,7 @@ const applyModuleDefaults = (
 			!targetProperties || !targetProperties.document
 		);
 		D(module.generator["css/module"], "exportsConvention", "as-is");
-		D(
-			module.generator["css/module"],
-			"localIdentName",
-			"[uniqueName]-[id]-[local]"
-		);
+		D(module.generator["css/module"], "localIdentName", localIdentName);
 		D(module.generator["css/module"], "esModule", true);
 	}
 
@@ -770,7 +769,8 @@ const applyOutputDefaults = (
 			if (tp.fetchWasm) return "fetch";
 			if (tp.nodeBuiltins) return "async-node";
 			if (tp.nodeBuiltins === null || tp.fetchWasm === null) {
-				return "universal";
+				// return "universal";
+				return false;
 			}
 		}
 		return false;

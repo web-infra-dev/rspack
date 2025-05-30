@@ -40,8 +40,8 @@ export interface NormalModule extends Module {
 	readonly request: string;
 	readonly userRequest: string;
 	readonly rawRequest: string;
-	readonly resourceResolveData: JsResourceData | undefined;
-	readonly loaders: ReadonlyArray<JsLoaderItem>;
+	readonly resourceResolveData: Readonly<JsResourceData> | undefined;
+	readonly loaders: JsLoaderItem[];
 	get matchResource(): string | undefined;
 	set matchResource(val: string | undefined);
 }
@@ -122,6 +122,14 @@ export declare class Dependency {
   get critical(): boolean
   set critical(val: boolean)
   get ids(): Array<string> | undefined
+}
+
+export declare class Diagnostics {
+  get length(): number
+  values(): Array<JsRspackError>
+  get(index: number): JsRspackError | undefined
+  set(index: number, error: JsRspackError): void
+  spliceWithArray(index: number, deleteCount?: number | undefined | null, newItems?: Array<JsRspackError> | undefined | null): Array<JsRspackError>
 }
 
 export declare class EntryDataDto {
@@ -245,9 +253,10 @@ export declare class JsCompilation {
   get hash(): string | null
   dependencies(): JsDependencies
   pushDiagnostic(diagnostic: JsRspackDiagnostic): void
-  spliceDiagnostic(start: number, end: number, replaceWith: Array<JsRspackDiagnostic>): void
   pushNativeDiagnostic(diagnostic: ExternalObject<'Diagnostic'>): void
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
+  get errors(): Diagnostics
+  get warnings(): Diagnostics
   getErrors(): Array<JsRspackError>
   getWarnings(): Array<JsRspackError>
   getStats(): JsStats
@@ -265,7 +274,7 @@ export declare class JsCompilation {
    * Using async and mutable reference to `Compilation` at the same time would likely to cause data races.
    */
   rebuildModule(moduleIdentifiers: Array<string>, f: any): void
-  importModule(request: string, layer: string | undefined | null, publicPath: JsFilename | undefined | null, baseUri: string | undefined | null, originalModule: string | undefined | null, originalModuleContext: string | undefined | null, callback: any): void
+  importModule(request: string, layer: string | undefined | null, publicPath: JsFilename | undefined | null, baseUri: string | undefined | null, originalModule: string, originalModuleContext: string | undefined | null, callback: any): void
   get entries(): JsEntries
   addRuntimeModule(chunk: JsChunk, runtimeModule: JsAddingRuntimeModule): void
   get moduleGraph(): JsModuleGraph
@@ -360,6 +369,7 @@ export declare class JsModuleGraph {
 
 export declare class JsResolver {
   resolveSync(path: string, request: string): JsResourceData | false
+  resolve(path: string, request: string, callback: (err: null | Error, req?: JsResourceData) => void): void
   withOptions(raw?: RawResolveOptionsWithDependencyType | undefined | null): JsResolver
 }
 
@@ -394,6 +404,11 @@ export declare class ModuleGraphConnection {
 export declare class RawExternalItemFnCtx {
   data(): RawExternalItemFnCtxData
   getResolver(): JsResolver
+}
+
+export declare class ReadonlyResourceData {
+  get descriptionFileData(): any
+  get descriptionFilePath(): string
 }
 
 export declare class Sources {
@@ -484,11 +499,13 @@ export declare enum BuiltinPluginName {
   CssExtractRspackPlugin = 'CssExtractRspackPlugin',
   SubresourceIntegrityPlugin = 'SubresourceIntegrityPlugin',
   RsdoctorPlugin = 'RsdoctorPlugin',
+  RstestPlugin = 'RstestPlugin',
   CircularDependencyRspackPlugin = 'CircularDependencyRspackPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin',
   ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin',
-  HttpUriPlugin = 'HttpUriPlugin'
+  HttpUriPlugin = 'HttpUriPlugin',
+  CssChunkingPlugin = 'CssChunkingPlugin'
 }
 
 export declare function cleanupGlobalTrace(): void
@@ -496,6 +513,11 @@ export declare function cleanupGlobalTrace(): void
 export interface ContextInfo {
   issuer: string
   issuerLayer?: string
+}
+
+export interface CssChunkingPluginOptions {
+  strict?: boolean
+  exclude?: RegExp
 }
 
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
@@ -1253,6 +1275,7 @@ export interface JsStatsError {
   moduleDescriptor?: JsModuleDescriptor
   message: string
   chunkName?: string
+  code?: string
   chunkEntry?: boolean
   chunkInitial?: boolean
   loc?: string
@@ -1392,6 +1415,7 @@ export interface JsStatsWarning {
   name?: string
   message: string
   chunkName?: string
+  code?: string
   chunkEntry?: boolean
   chunkInitial?: boolean
   file?: string
@@ -1613,20 +1637,93 @@ export interface RawContextReplacementPluginOptions {
 }
 
 export interface RawCopyGlobOptions {
+  /**
+   * Whether the match is case sensitive
+   * @default true
+   */
   caseSensitiveMatch?: boolean
+  /**
+   * Whether to match files starting with `.`
+   * @default true
+   */
   dot?: boolean
+  /**
+   * An array of strings in glob format, which can be used to ignore specific paths
+   * @default undefined
+   */
   ignore?: Array<string>
 }
 
 export interface RawCopyPattern {
+  /**
+   * The source path of the copy operation, which can be an absolute path, a relative
+   * path, or a glob pattern. It can refer to a file or a directory. If a relative path
+   * is passed, it is relative to the `context` option.
+   * @default undefined
+   */
   from: string
+  /**
+   * The destination path of the copy operation, which can be an absolute path, a
+   * relative path, or a template string. If not specified, it is equal to Rspack's
+   * `output.path`.
+   * @default Rspack's `output.path`
+   */
   to?: string | ((pathData: { context: string; absoluteFilename?: string }) => string | Promise<string>)
+  /**
+   * `context` is a path to be prepended to `from` and removed from the start of the
+   * result paths. `context` can be an absolute path or a relative path. If it is a
+   * relative path, then it will be converted to an absolute path based on Rspack's
+   * `context`.
+   * `context` should be explicitly set only when `from` contains a glob. Otherwise,
+   * `context` is automatically set based on whether `from` is a file or a directory:
+   * - If `from` is a file, then `context` is its directory. The result path will be
+   * the filename alone.
+   * - If `from` is a directory, then `context` equals `from`. The result paths will
+   * be the paths of the directory's contents (including nested contents), relative
+   * to the directory.
+   * @default Rspack's `context`
+   */
   context?: string
+  /**
+   * Specify the type of [to](#to), which can be a directory, a file, or a template
+   * name in Rspack. If not specified, it will be automatically inferred.
+   * The automatic inference rules are as follows:
+   * - `dir`: If `to` has no extension, or ends on `/`.
+   * - `file`: If `to` is not a directory and is not a template.
+   * - `template`: If `to` contains a template pattern.
+   * @default undefined
+   */
   toType?: string
+  /**
+   * Whether to ignore the error if there are missing files or directories.
+   * @default false
+   */
   noErrorOnMissing: boolean
+  /**
+   * Whether to force the copy operation to overwrite the destination file if it
+   * already exists.
+   * @default false
+   */
   force: boolean
+  /**
+   * The priority of the copy operation. The higher the priority, the earlier the copy
+   * operation will be executed. When `force` is set to `true`, if a matching file is
+   * found, the one with higher priority will overwrite the one with lower priority.
+   * @default 0
+   */
   priority: number
+  /**
+   * Set the glob options for the copy operation.
+   * @default undefined
+   */
   globOptions: RawCopyGlobOptions
+  /**
+   * Allows to add some assets info to the copied files, which may affect some behaviors
+   * in the build process. For example, by default, the copied JS and CSS files will be
+   * minified by Rspack's minimizer, if you want to skip minification for copied files,
+   * you can set `info.minimized` to `true`.
+   * @default undefined
+   */
   info?: RawInfo
   /**
    * Determines whether to copy file permissions from the source to the destination.
@@ -1635,10 +1732,15 @@ export interface RawCopyPattern {
    * @default false
    */
   copyPermissions?: boolean
-  transform?: { transformer: (input: string, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>  } | ((input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>)
+  /**
+   * Allows to modify the file contents.
+   * @default undefined
+   */
+  transform?: { transformer: (input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>  } | ((input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>)
 }
 
 export interface RawCopyRspackPluginOptions {
+  /** An array of objects that describe the copy operations to be performed. */
   patterns: Array<RawCopyPattern>
 }
 
@@ -1919,6 +2021,10 @@ export interface RawIncremental {
 
 export interface RawInfo {
   immutable?: boolean
+  /**
+   * Whether to skip minification for the copied files.
+   * @default false
+   */
   minimized?: boolean
   chunkHash?: Array<string>
   contentHash?: Array<string>
@@ -2339,6 +2445,10 @@ export interface RawRspackFuture {
 
 }
 
+export interface RawRstestPluginOptions {
+  injectModulePathName: boolean
+}
+
 export interface RawRuleSetCondition {
   type: RawRuleSetConditionType
   string?: string
@@ -2375,24 +2485,6 @@ export interface RawSizeLimitsPluginOptions {
   hints?: "error" | "warning"
   maxAssetSize?: number
   maxEntrypointSize?: number
-}
-
-export interface RawSourceMapDevToolPluginOptions {
-  append?: (false | null) | string | Function
-  columns?: boolean
-  fallbackModuleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
-  fileContext?: string
-  filename?: (false | null) | string
-  module?: boolean
-  moduleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
-  namespace?: string
-  noSources?: boolean
-  publicPath?: string
-  sourceRoot?: string
-  test?: string | RegExp | (string | RegExp)[]
-  include?: string | RegExp | (string | RegExp)[]
-  exclude?: string | RegExp | (string | RegExp)[]
-  debugIds?: boolean
 }
 
 export interface RawSplitChunkSizes {
@@ -2456,10 +2548,6 @@ export interface RawSwcJsMinimizerRspackPluginOptions {
 export interface RawToOptions {
   context: string
   absoluteFilename?: string
-}
-
-export interface RawTransformOptions {
-transformer: { transformer: (input: string, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>  }
 }
 
 export interface RawTrustedTypes {
@@ -2588,6 +2676,24 @@ export interface RegisterJsTaps {
  */
 export declare function shutdownAsyncRuntime(): void
 
+export interface SourceMapDevToolPluginOptions {
+  append?: (false | null) | string | Function
+  columns?: boolean
+  fallbackModuleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
+  fileContext?: string
+  filename?: (false | null) | string
+  module?: boolean
+  moduleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
+  namespace?: string
+  noSources?: boolean
+  publicPath?: string
+  sourceRoot?: string
+  test?: string | RegExp | (string | RegExp)[]
+  include?: string | RegExp | (string | RegExp)[]
+  exclude?: string | RegExp | (string | RegExp)[]
+  debugIds?: boolean
+}
+
 /**
  * Start the async runtime manually.
  *
@@ -2621,4 +2727,5 @@ export declare function transform(source: string, options: string): Promise<Tran
 export interface TransformOutput {
   code: string
   map?: string
+  diagnostics: Array<string>
 }

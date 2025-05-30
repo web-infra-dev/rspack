@@ -8,13 +8,13 @@ pub use swc_core::base::BoolOrDataConfig;
 use swc_core::{
   atoms::Atom,
   base::{
-    BoolOr,
     config::{IsModule, JsMinifyCommentOption, JsMinifyFormatOptions, SourceMapsConfig},
+    BoolOr,
   },
   common::{
-    BytePos, FileName, Mark,
     comments::{Comments, SingleThreadedComments},
     errors::HANDLER,
+    BytePos, FileName, Mark,
   },
   ecma::{
     ast::Ident,
@@ -25,17 +25,17 @@ use swc_core::{
       hygiene::hygiene,
       resolver,
     },
-    visit::{Visit, VisitMutWith, noop_visit_type},
+    visit::{noop_visit_type, Visit, VisitMutWith},
   },
 };
 pub use swc_ecma_minifier::option::{
-  MangleOptions, MinifyOptions, TopLevelOptions,
   terser::{TerserCompressorOptions, TerserEcmaVersion},
+  MangleOptions, MinifyOptions, TopLevelOptions,
 };
 
 use super::{
-  JavaScriptCompiler, TransformOutput,
   stringify::{PrintOptions, SourceMapConfig},
+  JavaScriptCompiler, TransformOutput,
 };
 use crate::error::with_rspack_error_handler;
 
@@ -129,6 +129,7 @@ impl JavaScriptCompiler {
               jsx: true,
               decorators: true,
               decorators_before_export: true,
+              import_attributes: true,
               ..Default::default()
             }),
             opts

@@ -1,5 +1,5 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AffectType, AsContextDependency, AsDependencyCodeGeneration, ConnectionState, Dependency,
   DependencyCategory, DependencyId, DependencyRange, DependencyType, FactorizeInfo,
@@ -100,6 +100,7 @@ impl Dependency for CssDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_chain: &mut IdentifierSet,
+    _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
     ConnectionState::TransitiveOnly
   }

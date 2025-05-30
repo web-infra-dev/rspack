@@ -3,7 +3,8 @@ use std::sync::Arc;
 use rayon::prelude::*;
 use rspack_cacheable::{
   cacheable, from_bytes, to_bytes,
-  with::{AsOption, AsTuple2, AsVec, Inline},
+  utils::OwnedOrRef,
+  with::{AsOption, AsOwned, AsTuple2, AsVec},
   SerializeError,
 };
 use rspack_collections::IdentifierSet;
@@ -22,31 +23,20 @@ const SCOPE: &str = "occasion_make_module_graph";
 
 /// The value struct of current storage scope
 #[cacheable]
-struct Node {
-  pub mgm: ModuleGraphModule,
-  pub module: BoxModule,
-  // (dependency, parent_block)
-  // TODO remove parent block info after connection contains it
-  pub dependencies: Vec<(BoxDependency, Option<AsyncDependenciesBlockIdentifier>)>,
-  pub connections: Vec<ModuleGraphConnection>,
-  pub blocks: Vec<AsyncDependenciesBlock>,
-}
-
-#[cacheable(as=Node)]
-struct NodeRef<'a> {
-  #[cacheable(with=Inline)]
-  pub mgm: &'a ModuleGraphModule,
-  #[cacheable(with=Inline)]
-  pub module: &'a BoxModule,
-  #[cacheable(with=AsVec<AsTuple2<Inline, AsOption<Inline>>>)]
+struct Node<'a> {
+  #[cacheable(with=AsOwned)]
+  pub mgm: OwnedOrRef<'a, ModuleGraphModule>,
+  #[cacheable(with=AsOwned)]
+  pub module: OwnedOrRef<'a, BoxModule>,
+  #[cacheable(with=AsVec<AsTuple2<AsOwned, AsOption<AsOwned>>>)]
   pub dependencies: Vec<(
-    &'a BoxDependency,
-    Option<&'a AsyncDependenciesBlockIdentifier>,
+    OwnedOrRef<'a, BoxDependency>,
+    Option<OwnedOrRef<'a, AsyncDependenciesBlockIdentifier>>,
   )>,
-  #[cacheable(with=AsVec<Inline>)]
-  pub connections: Vec<&'a ModuleGraphConnection>,
-  #[cacheable(with=AsVec<Inline>)]
-  pub blocks: Vec<&'a AsyncDependenciesBlock>,
+  #[cacheable(with=AsVec<AsOwned>)]
+  pub connections: Vec<OwnedOrRef<'a, ModuleGraphConnection>>,
+  #[cacheable(with=AsVec<AsOwned>)]
+  pub blocks: Vec<OwnedOrRef<'a, AsyncDependenciesBlock>>,
 }
 
 #[tracing::instrument("Cache::Occasion::Make::ModuleGraph::save", skip_all)]
@@ -75,15 +65,17 @@ pub fn save_module_graph(
       let blocks = module
         .get_blocks()
         .par_iter()
-        .map(|block_id| mg.block_by_id(block_id).expect("should have block"))
+        .map(|block_id| mg.block_by_id(block_id).expect("should have block").into())
         .collect::<Vec<_>>();
       let dependencies = mgm
         .all_dependencies
         .par_iter()
         .map(|dep_id| {
           (
-            mg.dependency_by_id(dep_id).expect("should have dependency"),
-            mg.get_parent_block(dep_id),
+            mg.dependency_by_id(dep_id)
+              .expect("should have dependency")
+              .into(),
+            mg.get_parent_block(dep_id).map(Into::into),
           )
         })
         .collect::<Vec<_>>();
@@ -93,11 +85,12 @@ pub fn save_module_graph(
         .map(|dep_id| {
           mg.connection_by_dependency_id(dep_id)
             .expect("should have connection")
+            .into()
         })
         .collect::<Vec<_>>();
-      let node = NodeRef {
-        mgm,
-        module,
+      let node = Node {
+        mgm: mgm.into(),
+        module: module.into(),
         dependencies,
         connections,
         blocks,
@@ -141,36 +134,41 @@ pub async fn recovery_module_graph(
         .expect("unexpected module graph deserialize failed")
     })
     .with_max_len(1)
-    .consume(|mut node| {
+    .consume(|node| {
+      let mut mgm = node.mgm.into_owned();
+      let module = node.module.into_owned();
       for (index_in_block, (dep, parent_block)) in node.dependencies.into_iter().enumerate() {
+        let dep = dep.into_owned();
         mg.set_parents(
           *dep.id(),
           DependencyParents {
-            block: parent_block,
-            module: node.module.identifier(),
+            block: parent_block.map(|b| b.into_owned()),
+            module: module.identifier(),
             index_in_block,
           },
         );
         mg.add_dependency(dep);
       }
       for con in node.connections {
+        let con = con.into_owned();
         need_check_dep.push((con.dependency_id, *con.module_identifier()));
         mg.cache_recovery_connection(con);
       }
       for block in node.blocks {
+        let block = block.into_owned();
         mg.add_block(Box::new(block));
       }
       // recovery exports/export info
       let other_exports_info = ExportInfoData::new(None, None);
       let side_effects_only_info = ExportInfoData::new(Some("*side effects only*".into()), None);
       let exports_info = ExportsInfoData::new(other_exports_info.id(), side_effects_only_info.id());
-      node.mgm.exports = exports_info.id();
+      mgm.exports = exports_info.id();
       mg.set_exports_info(exports_info.id(), exports_info);
       mg.set_export_info(side_effects_only_info.id(), side_effects_only_info);
       mg.set_export_info(other_exports_info.id(), other_exports_info);
 
-      mg.add_module_graph_module(node.mgm);
-      mg.add_module(node.module);
+      mg.add_module_graph_module(mgm);
+      mg.add_module(module);
     });
   let mut force_build_dependencies = HashSet::default();
   // recovery incoming connections

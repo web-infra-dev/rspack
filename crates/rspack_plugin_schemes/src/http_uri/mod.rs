@@ -13,7 +13,10 @@ use rspack_core::{
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveInScheme,
   NormalModuleReadResource, Plugin, PluginContext, ResourceData, Scheme,
 };
-use rspack_error::{miette, AnyhowResultToRspackResultExt, Result};
+use rspack_error::{
+  miette::{self, diagnostic},
+  AnyhowResultToRspackResultExt, Result,
+};
 use rspack_fs::WritableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::{AssetCondition, AssetConditions};
@@ -27,6 +30,22 @@ static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
 pub struct HttpUriPlugin {
   options: HttpUriPluginOptions,
 }
+
+async fn get_info(url: &str, options: &HttpUriPluginOptions) -> miette::Result<ContentFetchResult> {
+  // Check if the URL is allowed
+  if !options.allowed_uris.is_allowed(url) {
+    return Err(
+      diagnostic!(
+        "{} doesn't match the allowedUris policy. These URIs are allowed:\n{}",
+        url,
+        options.allowed_uris.get_allowed_uris_description(),
+      )
+      .into(),
+    );
+  }
+  resolve_content(url, options).await
+}
+
 // recursively handle http redirect
 async fn resolve_content(
   url: &str,
@@ -52,7 +71,7 @@ impl HttpUriPlugin {
     url: &Url,
     mimetype: Option<String>,
   ) -> Result<bool> {
-    let resolved_result = resolve_content(url.as_str(), &self.options).await?;
+    let resolved_result = get_info(url.as_str(), &self.options).await?;
 
     let context = get_resource_context(&resolved_result.entry.resolved);
     resource_data.set_context(context);
@@ -154,7 +173,7 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
   if (resource_data.get_scheme().is_http() || resource_data.get_scheme().is_https())
     && EXTERNAL_HTTP_REQUEST.is_match(&resource_data.resource)
   {
-    let content_result = resolve_content(&resource_data.resource, &self.options).await?;
+    let content_result = get_info(&resource_data.resource, &self.options).await?;
 
     return Ok(Some(Content::from(content_result.content().to_vec())));
   }

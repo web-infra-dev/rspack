@@ -77,7 +77,7 @@ module.exports = [
 					test: /\.css$/,
 					type: "css/module",
 					generator: {
-						exportsConvention: name => name.toUpperCase()
+						// exportsConvention: name => name.toUpperCase()
 					}
 				}
 			]

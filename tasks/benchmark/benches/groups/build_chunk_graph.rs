@@ -195,7 +195,7 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
 
   assert!(compiler.compilation.get_errors().next().is_none());
 
-  c.bench_function("build_chunk_graph", |b| {
+  c.bench_function("rust@build_chunk_graph", |b| {
     b.iter_with_setup_wrapper(|runner| {
       reset_chunk_graph_state(&mut compiler.compilation);
       runner.run(|| {
@@ -205,7 +205,7 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
     });
   });
 
-  c.bench_function("build_chunk_graph_parallel", |b| {
+  c.bench_function("rust@build_chunk_graph_parallel", |b| {
     b.iter_with_setup_wrapper(|runner| {
       reset_chunk_graph_state(&mut compiler.compilation);
       runner.run(|| {

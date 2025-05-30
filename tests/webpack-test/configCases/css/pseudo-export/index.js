@@ -6,7 +6,7 @@ it("should allow to dynamic import a css module", done => {
 				nsObj({
 					a: "a",
 					abc: "a b c",
-					comments: "abc/****/   /* hello world *//****/   def",
+					comments: "abc      def",
 					whitespace: "abc\n\tdef",
 					default: "default"
 				})
@@ -26,7 +26,7 @@ it("should allow to reexport a css module", done => {
 				nsObj({
 					a: "a",
 					abc: "a b c",
-					comments: "abc/****/   /* hello world *//****/   def",
+					comments: "abc      def",
 					whitespace: "abc\n\tdef"
 				})
 			);
@@ -45,7 +45,7 @@ it("should allow to import a css module", done => {
 				nsObj({
 					a: "a",
 					abc: "a b c",
-					comments: "abc/****/   /* hello world *//****/   def",
+					comments: "abc      def",
 					whitespace: "abc\n\tdef",
 					default: "default"
 				})

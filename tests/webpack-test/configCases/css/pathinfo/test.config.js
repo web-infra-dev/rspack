@@ -14,13 +14,15 @@ module.exports = {
 			"utf-8"
 		);
 
+		// CHANGE: readable identifier does not starts with `css: `
+		// because rspack use NormalModule to render css
 		if (
-			!source.includes(`/*!********************************!*\\
-  !*** css ./style-imported.css ***!
-  \\********************************/`) &&
-			!source.includes(`/*!***********************!*\\
-  !*** css ./style.css ***!
-  \\***********************/`)
+			!source.includes(`/*!****************************!*\\
+  !*** ./style-imported.css ***!
+  \\****************************/`) &&
+			!source.includes(`/*!*******************!*\\
+  !*** ./style.css ***!
+  \\*******************/`)
 		) {
 			throw new Error("The `pathinfo` option doesn't work.");
 		}

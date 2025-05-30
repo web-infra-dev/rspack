@@ -8,8 +8,10 @@
 use std::{fmt, sync::Arc};
 mod artifacts;
 mod binding;
+mod exports;
 pub use artifacts::*;
 pub use binding::*;
+pub use exports::*;
 mod dependencies_block;
 pub mod diagnostics;
 pub mod incremental;
@@ -34,8 +36,6 @@ mod normal_module;
 pub mod old_cache;
 mod raw_module;
 pub use raw_module::*;
-mod exports_info;
-pub use exports_info::*;
 pub mod module;
 pub mod parser_and_generator;
 pub use concatenated_module::*;
@@ -115,6 +115,7 @@ pub mod debug_info;
 pub enum SourceType {
   JavaScript,
   Css,
+  CssUrl,
   Wasm,
   Asset,
   Expose,
@@ -133,6 +134,7 @@ impl std::fmt::Display for SourceType {
     match self {
       SourceType::JavaScript => write!(f, "javascript"),
       SourceType::Css => write!(f, "css"),
+      SourceType::CssUrl => write!(f, "css-url"),
       SourceType::Wasm => write!(f, "wasm"),
       SourceType::Asset => write!(f, "asset"),
       SourceType::Expose => write!(f, "expose"),
@@ -161,6 +163,19 @@ impl From<&str> for SourceType {
       "unknown" => Self::Unknown,
       "css-import" => Self::CssImport,
       other => SourceType::Custom(other.into()),
+    }
+  }
+}
+
+impl From<&ModuleType> for SourceType {
+  fn from(value: &ModuleType) -> Self {
+    match value {
+      ModuleType::JsAuto | ModuleType::JsEsm | ModuleType::JsDynamic => Self::JavaScript,
+      ModuleType::Css | ModuleType::CssModule | ModuleType::CssAuto => Self::Css,
+      ModuleType::WasmSync | ModuleType::WasmAsync => Self::Wasm,
+      ModuleType::Asset | ModuleType::AssetInline | ModuleType::AssetResource => Self::Asset,
+      ModuleType::ConsumeShared => Self::ConsumeShared,
+      _ => Self::Unknown,
     }
   }
 }

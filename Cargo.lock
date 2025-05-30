@@ -537,9 +537,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.6"
+version = "1.2.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d6dbb628b8f8555f86d0323c2eb39e3ec81901f4b83e091db8a6a76d316a333"
+checksum = "32db95edf998450acc7881c932f94cd9b05c87b4b2599e8bab064753da4acfd1"
 dependencies = [
  "shlex",
 ]
@@ -644,9 +644,9 @@ dependencies = [
 
 [[package]]
 name = "color-backtrace"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "150fd80a270c0671379f388c8204deb6a746bb4eac8a6c03fe2460b2c0127ea0"
+checksum = "2123a5984bd52ca861c66f66a9ab9883b27115c607f801f86c1bc2a84eb69f0f"
 dependencies = [
  "backtrace",
  "termcolor",
@@ -923,9 +923,9 @@ checksum = "790eea4361631c5e7d22598ecd5723ff611904e3344ce8720784c93e3d83d40b"
 
 [[package]]
 name = "crossbeam-channel"
-version = "0.5.14"
+version = "0.5.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06ba6d68e24814cb8de6bb986db8222d3a027d15872cabc0d18817bc3c0e4471"
+checksum = "82b8f8f868b36967f9606790d1903570de9ceaf870a7bf9fbbd3016d636a2cb2"
 dependencies = [
  "crossbeam-utils",
 ]
@@ -2751,9 +2751,9 @@ dependencies = [
 
 [[package]]
 name = "napi"
-version = "3.0.0-alpha.33"
+version = "3.0.0-beta.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c857a2b38c994db8bec785554ab4216d45ad63469832070c86a992be0b5491ad"
+checksum = "3357a01f87a8c7a1b060067212436b0ab9d3b1f06084406edb926a64b7400985"
 dependencies = [
  "anyhow",
  "bitflags 2.6.0",
@@ -2767,17 +2767,18 @@ dependencies = [
 
 [[package]]
 name = "napi-build"
-version = "2.1.6"
+version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e28acfa557c083f6e254a786e01ba253fc56f18ee000afcd4f79af735f73a6da"
+checksum = "03acbfa4f156a32188bfa09b86dc11a431b5725253fc1fc6f6df5bed273382c4"
 
 [[package]]
 name = "napi-derive"
-version = "3.0.0-alpha.29"
+version = "3.0.0-beta.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7165d931d54f68115e651330d5fe0ae0081133d3f4ee3ab55b0b808f0c23f71"
+checksum = "cb71c236fe23004d7abf4a00ad5e86332ea3468f6c48935d283a5d71aa7cca0c"
 dependencies = [
  "convert_case 0.8.0",
+ "ctor",
  "napi-derive-backend",
  "proc-macro2",
  "quote",
@@ -2786,9 +2787,9 @@ dependencies = [
 
 [[package]]
 name = "napi-derive-backend"
-version = "2.0.0-alpha.28"
+version = "2.0.0-beta.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce3f36354262054df8e1c3a73bdcd36ea13f130feb1e4d86b67cab9e10d6ef6d"
+checksum = "6aeebae33f1d5d0ad2b65d97e4fa1266d46454dd1a74dc4a9f1f406e7358f5eb"
 dependencies = [
  "convert_case 0.8.0",
  "proc-macro2",
@@ -3913,15 +3914,14 @@ dependencies = [
 
 [[package]]
 name = "ring"
-version = "0.17.8"
+version = "0.17.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c17fa4cb658e3583423e915b9f3acc01cceaee1860e33d59ebae66adc3a2dc0d"
+checksum = "a4689e6c2294d81e88dc6261c768b63bc4fcdb852be6d1352498b114f61383b7"
 dependencies = [
  "cc",
  "cfg-if",
  "getrandom 0.2.15",
  "libc",
- "spin",
  "untrusted",
  "windows-sys 0.52.0",
 ]
@@ -4500,6 +4500,7 @@ dependencies = [
  "rspack_loader_runner",
  "rspack_loader_swc",
  "rspack_loader_testing",
+ "rspack_macros",
  "rspack_napi",
  "rspack_napi_macros",
  "rspack_paths",
@@ -4509,6 +4510,7 @@ dependencies = [
  "rspack_plugin_context_replacement",
  "rspack_plugin_copy",
  "rspack_plugin_css",
+ "rspack_plugin_css_chunking",
  "rspack_plugin_devtool",
  "rspack_plugin_dll",
  "rspack_plugin_dynamic_entry",
@@ -4527,12 +4529,14 @@ dependencies = [
  "rspack_plugin_limit_chunk_count",
  "rspack_plugin_merge_duplicate_chunks",
  "rspack_plugin_mf",
+ "rspack_plugin_module_info_header",
  "rspack_plugin_no_emit_on_errors",
  "rspack_plugin_progress",
  "rspack_plugin_real_content_hash",
  "rspack_plugin_remove_duplicate_modules",
  "rspack_plugin_remove_empty_chunks",
  "rspack_plugin_rsdoctor",
+ "rspack_plugin_rstest",
  "rspack_plugin_runtime",
  "rspack_plugin_runtime_chunk",
  "rspack_plugin_schemes",
@@ -4554,6 +4558,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "ustr-fxhash",
 ]
 
 [[package]]
@@ -4655,15 +4660,16 @@ dependencies = [
  "async-trait",
  "cow-utils",
  "css-module-lexer",
+ "dashmap 6.1.0",
  "heck 0.5.0",
  "indexmap 2.7.1",
  "once_cell",
- "rayon",
  "regex",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
+ "rspack_futures",
  "rspack_hash",
  "rspack_hook",
  "rspack_plugin_runtime",
@@ -4673,6 +4679,21 @@ dependencies = [
  "tokio",
  "tracing",
  "urlencoding",
+]
+
+[[package]]
+name = "rspack_plugin_css_chunking"
+version = "0.2.0"
+dependencies = [
+ "indexmap 2.7.1",
+ "rspack_collections",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
+ "rspack_plugin_css",
+ "rspack_regex",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -4784,7 +4805,6 @@ dependencies = [
  "rspack_hash",
  "rspack_hook",
  "rspack_paths",
- "rspack_plugin_css",
  "rspack_plugin_javascript",
  "rspack_plugin_runtime",
  "rspack_util",
@@ -5023,6 +5043,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_plugin_module_info_header"
+version = "0.2.0"
+dependencies = [
+ "async-trait",
+ "regex",
+ "rspack_cacheable",
+ "rspack_collections",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hash",
+ "rspack_hook",
+ "rspack_plugin_css",
+ "rspack_plugin_javascript",
+ "rustc-hash 2.1.0",
+ "tracing",
+]
+
+[[package]]
 name = "rspack_plugin_no_emit_on_errors"
 version = "0.2.0"
 dependencies = [
@@ -5105,6 +5143,20 @@ dependencies = [
  "rspack_util",
  "rustc-hash 2.1.0",
  "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_rstest"
+version = "0.2.0"
+dependencies = [
+ "async-trait",
+ "rspack_cacheable",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
+ "rspack_plugin_javascript",
+ "swc_core",
  "tracing",
 ]
 
@@ -5328,9 +5380,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_resolver"
-version = "0.5.6"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6175326c187f3b310a3694ca5681bba8e024c46e35cdfb6f796629a64c599143"
+checksum = "9e3bb6b0edc681de93831f8f3e531b9338afbea4ef6f49534ac025d11d1bca2d"
 dependencies = [
  "async-trait",
  "cfg-if",
@@ -9250,9 +9302,9 @@ dependencies = [
 
 [[package]]
 name = "xxhash-rust"
-version = "0.8.14"
+version = "0.8.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7d48f1b18be023c95e7b75f481cac649d74be7c507ff4a407c55cfb957f7934"
+checksum = "fdd20c5420375476fbd4394763288da7eb0cc0b8c11deed431a91562af7335d3"
 
 [[package]]
 name = "yansi"

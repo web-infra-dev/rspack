@@ -8,8 +8,8 @@ use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildResult, ChunkGraph, CodeGenerationData, CodeGenerationResult, Compilation,
   ConcatenationScope, Context, DependenciesBlock, DependencyId, DependencyRange, FactoryMeta,
-  LibIdentOptions, Module, ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext,
+  LibIdentOptions, Module, ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleLayer,
+  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -109,7 +109,7 @@ impl_empty_diagnosable_trait!(LazyCompilationProxyModule);
 impl Module for LazyCompilationProxyModule {
   impl_module_meta_info!();
 
-  fn source_types(&self) -> &[SourceType] {
+  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     &SOURCE_TYPE
   }
 

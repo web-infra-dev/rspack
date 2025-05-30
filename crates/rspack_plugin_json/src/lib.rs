@@ -40,7 +40,7 @@ struct JsonParserAndGenerator {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for JsonParserAndGenerator {
-  fn source_types(&self) -> &[SourceType] {
+  fn source_types(&self, _module: &dyn Module, _module_graph: &ModuleGraph) -> &[SourceType] {
     &[SourceType::JavaScript]
   }
 
@@ -98,7 +98,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               // one character offset
               start_offset,
               start_offset + 1,
-              "Json parsing error".to_string(),
+              "JSON parse error".to_string(),
               format!("Unexpected character {ch}"),
             )
             .with_kind(DiagnosticKind::Json)
@@ -113,7 +113,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               source.into_owned(),
               offset,
               offset,
-              "Json parsing error".to_string(),
+              "JSON parse error".to_string(),
               format!("{e}"),
             )
             .with_kind(DiagnosticKind::Json)
@@ -202,7 +202,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
             json_str.cow_replace('\\', r"\\").cow_replace('\'', r"\'")
           ))
         } else {
-          json_str
+          json_str.cow_replace("\"__proto__\":", "[\"__proto__\"]:")
         };
         let content = if let Some(ref mut scope) = concatenation_scope {
           scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);

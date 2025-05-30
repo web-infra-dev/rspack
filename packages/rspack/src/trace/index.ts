@@ -6,9 +6,9 @@ export interface ChromeEvent {
 	ph?: string;
 	cat?: string; // cat is used to show different track in perfetto with id
 	ts?: number;
-	pid?: number;
-	tid?: number;
-	id?: number; // updated to allow string id
+	pid?: number | string;
+	tid?: number | string;
+	id?: number | string; // updated to allow string id
 	args?: {
 		[key: string]: any;
 	};
@@ -29,7 +29,8 @@ export class JavaScriptTracer {
 	static output: string;
 	// inspector session for CPU Profiler
 	static session: import("node:inspector").Session;
-
+	// plugin counter for different channel in trace viewer, choose 100 to avoid conflict with known tracks
+	static counter = 100;
 	static async initJavaScriptTrace(layer: string, output: string) {
 		const { Session } = await import("node:inspector");
 		this.session = new Session();
@@ -48,12 +49,19 @@ export class JavaScriptTracer {
 		}
 	}
 
+	/**
+	 *
+	 * @param isEnd true means we are at the end of tracing,and can append ']' to close the json
+	 * @returns
+	 */
 	static async cleanupJavaScriptTrace() {
 		if (!this.layer.includes("chrome")) {
 			return;
 		}
-
-		this.session.post("Profiler.stop", (err, param) => {
+		const profileHandler = (
+			err: Error | null,
+			param: import("node:inspector").Profiler.StopReturnType
+		) => {
 			let cpu_profile: import("node:inspector").Profiler.Profile | undefined;
 			if (err) {
 				console.error("Error stopping profiler:", err);
@@ -91,21 +99,33 @@ export class JavaScriptTracer {
 					}
 				});
 			}
-			const originTrace = fs.readFileSync(this.output, "utf-8");
-			// this is hack, [] is empty and [{}] is not empty
-			const originTraceIsEmpty = !originTrace.includes("{");
-			const eventMsg =
-				(this.events.length > 0 && !originTraceIsEmpty ? "," : "") +
-				this.events
-					.map(x => {
-						return JSON.stringify(x);
-					})
-					.join(",\n");
-
-			// a naive implementation to merge rust & Node.js trace, we can't use JSON.parse because sometime the trace file is too big to parse
-			const newTrace = originTrace.replace(/]$/, `${eventMsg}\n]`);
-			fs.writeFileSync(this.output, newTrace, {
-				flush: true
+			const is_empty = fs.statSync(this.output).size === 0;
+			const fd = fs.openSync(this.output, "a");
+			// stream write to file to avoid large string memory issue
+			let first = is_empty;
+			for (const event of this.events) {
+				if (!first) {
+					fs.writeFileSync(fd, ",\n");
+				}
+				fs.writeFileSync(fd, JSON.stringify(event));
+				first = false;
+			}
+			// even lots of tracing tools supports json without ending ], we end it for better compat with other tools
+			fs.writeFileSync(fd, "\n]");
+			fs.closeSync(fd);
+		};
+		return new Promise<void>((resolve, reject) => {
+			this.session.post("Profiler.stop", (err, params) => {
+				if (err) {
+					reject(err);
+				} else {
+					try {
+						profileHandler(err, params);
+						resolve();
+					} catch (err) {
+						reject(err);
+					}
+				}
 			});
 		});
 	}

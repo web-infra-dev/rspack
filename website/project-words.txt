@@ -89,6 +89,7 @@ Llms
 magic-akari
 memfs
 mimalloc
+miro
 modulegeneratorassetdataurl
 modulegeneratorassetdataurlencoding
 modulegeneratorassetdataurlmimetype
@@ -140,6 +141,7 @@ proxied
 proxying
 px2rem
 pxtorem
+quininer
 recognise
 resolvepnp
 Rollup
@@ -166,6 +168,8 @@ rustup
 samply
 sanyuan
 Shenzhen
+shiki
+shikijs
 shulaoda
 sockjs
 sokra

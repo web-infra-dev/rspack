@@ -14,7 +14,7 @@ use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 use crate::{
   dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info, module_update_hash,
   BuildInfo, BuildMeta, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, DependencyId, FactoryMeta, Module, ModuleIdentifier, ModuleType,
+  DependenciesBlock, DependencyId, FactoryMeta, Module, ModuleGraph, ModuleIdentifier, ModuleType,
   RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
@@ -101,7 +101,7 @@ impl Module for RawModule {
     &ModuleType::JsAuto
   }
 
-  fn source_types(&self) -> &[SourceType] {
+  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     RAW_MODULE_SOURCE_TYPES
   }
 

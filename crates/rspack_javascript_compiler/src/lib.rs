@@ -2,4 +2,4 @@ pub mod ast;
 mod compiler;
 mod error;
 
-pub use compiler::{JavaScriptCompiler, TransformOutput, minify, parse, transform};
+pub use compiler::{minify, parse, transform, JavaScriptCompiler, TransformOutput};

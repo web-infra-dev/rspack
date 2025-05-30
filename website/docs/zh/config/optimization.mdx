@@ -158,7 +158,7 @@ export default {
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
-是否检测并移除那些已经存在于父 chunks 中的模块。这项优化有助于减少打包产物中的重复模块。
+是否检测并移除那些已经存在于父 chunks 中的模块。这项优化有助于减少打包产物中的重复模块，这通常可以优化整体的构建性能（通过减小了后续 chunk 优化的计算量）并减小产物体积。
 
 这项优化默认开启，如果需要禁用，可以将 `optimization.removeAvailableModules` 设置为 `false`：
 
@@ -170,8 +170,8 @@ export default {
 };
 ```
 
-:::tip
-不建议禁用这项优化，因为这可能会导致打包产物体积显著增加。
+:::danger
+禁用这项优化是危险的，因为它可能会显著增加包大小，并显著地降低构建速度。
 :::
 
 ## optimization.removeEmptyChunks
@@ -296,31 +296,6 @@ export default {
   ]}
 />
 
-```json
-{
-  "name": "npm module",
-  "version": "1.0.0",
-  "sideEffects": ["**/src/*.js"]
-}
-```
-
-告诉 Rspack 识别 package.json 中的 `sideEffects` 标志或者 `module.rules`（模块配置中的规则），以跳过那些被标记为没有副作用但未被使用的模块。
-
-:::tip
-请注意，如果你的项目需要使用 npm 模块的话，`sideEffects` 应该在 npm 模块的 `package.json` 文件中，并需要在你自己的项目的 `package.json` 中将 `sideEffects` 设置为 `false`。
-:::
-
-`optimization.sideEffects` 依赖于启用 [`optimization.providedExports`](#optimizationprovidedexports)。这在构建时会有一定的成本，但消除模块对性能有积极的影响，因为生成的代码更少。这个优化的效果取决于你的代码库，尝试使用它来获得可能的性能提升。
-
-```js title="rspack.config.mjs"
-export default {
-  //...
-  optimization: {
-    sideEffects: true,
-  },
-};
-```
-
 如果你只希望 Rspack 使用手动指定的 `sideEffects` 标志（通过 `package.json` 和 `module.rule.sideEffects`），而不分析源代码，可以这样配置：
 
 ```js title="rspack.config.mjs"
@@ -332,10 +307,21 @@ export default {
 };
 ```
 
-默认情况下，`'flag'` 值在非生产环境构建中使用。
+配置为 `flag` 会让 Rspack 仅识别 package.json 中的 `sideEffects` 标志或者 `module.rules`（模块配置中的规则），以跳过那些被标记为没有副作用但未被使用的模块。
+
+配置为 `true` 会让 Rspack 除了识别用户主动标记以外，还会尝试分析未被标记的 module 源码是否包含副作用。
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  optimization: {
+    sideEffects: true,
+  },
+};
+```
 
 :::tip
-当 `optimization.sideEffects` 为 `true` 时，如果模块中只包含无副作用的语句，Rspack 也会将它们标记为无副作用。
+`optimization.sideEffects` 依赖于启用 [`optimization.providedExports`](#optimizationprovidedexports)。这在构建时会有一定的成本，但消除模块对性能有积极的影响，因为生成的代码更少。这个优化的效果取决于你的代码库，尝试使用它来获得可能的性能提升。
 :::
 
 ## optimization.usedExports

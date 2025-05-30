@@ -9,7 +9,6 @@ use rspack_core::PathData;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_devtool::{
   Append, EvalDevToolModulePluginOptions, ModuleFilenameTemplate, ModuleFilenameTemplateFnCtx,
-  SourceMapDevToolPluginOptions,
 };
 
 use crate::{into_asset_conditions, RawAssetConditions};
@@ -98,7 +97,7 @@ fn normalize_raw_module_filename_template(
 }
 
 #[napi(object, object_to_js = false)]
-pub struct RawSourceMapDevToolPluginOptions {
+pub struct SourceMapDevToolPluginOptions {
   #[napi(ts_type = "(false | null) | string | Function")]
   pub append: Option<RawAppend>,
   pub columns: Option<bool>,
@@ -123,8 +122,8 @@ pub struct RawSourceMapDevToolPluginOptions {
   pub debug_ids: Option<bool>,
 }
 
-impl From<RawSourceMapDevToolPluginOptions> for SourceMapDevToolPluginOptions {
-  fn from(opts: RawSourceMapDevToolPluginOptions) -> Self {
+impl From<SourceMapDevToolPluginOptions> for rspack_plugin_devtool::SourceMapDevToolPluginOptions {
+  fn from(opts: SourceMapDevToolPluginOptions) -> Self {
     let append = opts.append.map(normalize_raw_append);
     let filename = opts.filename.and_then(|raw| match raw {
       Either3::A(_) | Either3::B(_) => None,

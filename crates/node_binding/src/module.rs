@@ -1,6 +1,7 @@
+#![allow(deprecated)]
 use std::{any::TypeId, cell::RefCell, ptr::NonNull, sync::Arc};
 
-use napi::{CallContext, JsString, JsSymbol, NapiRaw, NapiValue};
+use napi::{CallContext, JsObject, JsString, JsSymbol, NapiRaw};
 use napi_derive::napi;
 use once_cell::unsync::OnceCell;
 use rspack_collections::{IdentifierMap, UkeyMap};
@@ -59,7 +60,7 @@ impl Module {
 
     #[js_function]
     fn context_getter(ctx: CallContext) -> napi::Result<Either<String, ()>> {
-      let this = ctx.this_unchecked::<Object>();
+      let this = ctx.this_unchecked::<JsObject>();
       let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
       let (_, module) = wrapped_value.as_ref()?;
       Ok(match module.get_context() {
@@ -70,7 +71,7 @@ impl Module {
 
     #[js_function]
     fn layer_getter(ctx: CallContext) -> napi::Result<Either<&String, ()>> {
-      let this = ctx.this_unchecked::<Object>();
+      let this = ctx.this_unchecked::<JsObject>();
       let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
       let (_, module) = wrapped_value.as_ref()?;
       Ok(match module.get_layer() {
@@ -81,7 +82,7 @@ impl Module {
 
     #[js_function]
     fn use_source_map_getter(ctx: CallContext) -> napi::Result<bool> {
-      let this = ctx.this_unchecked::<Object>();
+      let this = ctx.this_unchecked::<JsObject>();
       let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
       let (_, module) = wrapped_value.as_ref()?;
       Ok(module.get_source_map_kind().source_map())
@@ -89,7 +90,7 @@ impl Module {
 
     #[js_function]
     fn use_simple_source_map_getter(ctx: CallContext) -> napi::Result<bool> {
-      let this = ctx.this_unchecked::<Object>();
+      let this = ctx.this_unchecked::<JsObject>();
       let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
       let (_, module) = wrapped_value.as_ref()?;
       Ok(module.get_source_map_kind().source_map())
@@ -97,7 +98,7 @@ impl Module {
 
     #[js_function]
     fn factory_meta_getter(ctx: CallContext) -> napi::Result<JsFactoryMeta> {
-      let this = ctx.this_unchecked::<Object>();
+      let this = ctx.this_unchecked::<JsObject>();
       let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
       let (_, module) = wrapped_value.as_ref()?;
       Ok(match module.as_normal_module() {
@@ -117,7 +118,7 @@ impl Module {
 
     #[js_function(1)]
     fn factory_meta_setter(ctx: CallContext) -> napi::Result<()> {
-      let this = ctx.this_unchecked::<Object>();
+      let this = ctx.this_unchecked::<JsObject>();
       let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
       let module = wrapped_value.as_mut()?;
       let factory_meta = ctx.get::<JsFactoryMeta>(0)?;
@@ -127,7 +128,7 @@ impl Module {
 
     #[js_function]
     fn readable_identifier_getter(ctx: napi::CallContext) -> napi::Result<String> {
-      let this = ctx.this::<Object>()?;
+      let this = ctx.this_unchecked::<JsObject>();
       let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
       let (_, module) = wrapped_value.as_ref()?;
       Ok(
@@ -140,7 +141,7 @@ impl Module {
 
     #[js_function]
     fn build_info_getter(ctx: CallContext) -> napi::Result<Object> {
-      let mut this = ctx.this::<Object>()?;
+      let mut this = ctx.this_unchecked::<JsObject>();
       let env = ctx.env;
       let raw_env = env.raw();
       let mut reference: Reference<Module> =
@@ -153,9 +154,9 @@ impl Module {
         let sym = unsafe {
           #[allow(clippy::unwrap_used)]
           let napi_val = ToNapiValue::to_napi_value(env.raw(), once_cell.get().unwrap())?;
-          JsSymbol::from_raw_unchecked(env.raw(), napi_val)
+          JsSymbol::from_napi_value(env.raw(), napi_val)
         };
-        this.set_property(sym, &build_info)
+        this.set_property(sym, build_info)
       })?;
       let r = WeakRef::new(raw_env, &mut build_info)?;
       let result = r.as_object(env);
@@ -165,7 +166,7 @@ impl Module {
 
     #[js_function(1)]
     fn build_info_setter(ctx: CallContext) -> napi::Result<()> {
-      let mut this = ctx.this_unchecked::<Object>();
+      let mut this = ctx.this_unchecked::<JsObject>();
       let input_object = ctx.get::<Object>(0)?;
       let env = ctx.env;
       let raw_env = env.raw();
@@ -179,17 +180,17 @@ impl Module {
         napi::KeyFilter::AllProperties,
         napi::KeyConversion::KeepNumbers,
       )?;
-      let names = Array::from_unknown(names.into_unknown())?;
+      let names = Array::from_unknown(names.to_unknown())?;
       for index in 0..names.len() {
         if let Some(name) = names.get::<Unknown>(index)? {
-          let name_clone = unsafe { Object::from_raw_unchecked(env.raw(), name.raw()) };
+          let name_clone = Object::from_raw(env.raw(), name.raw());
           let name_str = name_clone.coerce_to_string()?.into_string();
           // known build info properties
           if name_str == "assets" {
             // TODO: Currently, setting assets is not supported.
             continue;
           } else {
-            let value = input_object.get_property::<&Unknown, Unknown>(&name)?;
+            let value = input_object.get_property::<Unknown, Unknown>(name)?;
             new_instrance.set_property::<Unknown, Unknown>(name, value)?;
           }
         }
@@ -199,9 +200,9 @@ impl Module {
         let sym = unsafe {
           #[allow(clippy::unwrap_used)]
           let napi_val = ToNapiValue::to_napi_value(env.raw(), once_cell.get().unwrap())?;
-          JsSymbol::from_raw_unchecked(env.raw(), napi_val)
+          JsSymbol::from_napi_value(env.raw(), napi_val)
         };
-        this.set_property(sym, &new_instrance)
+        this.set_property(sym, new_instrance)
       })?;
       reference.build_info_ref = Some(WeakRef::new(raw_env, &mut new_instrance)?);
       Ok(())
@@ -220,7 +221,7 @@ impl Module {
       Property::new("buildInfo")?
         .with_getter(build_info_getter)
         .with_setter(build_info_setter),
-      Property::new("buildMeta")?.with_value(&env.create_object()?),
+      Property::new("buildMeta")?.with_value(&Object::new(env)?),
     ])?;
 
     MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
@@ -228,7 +229,7 @@ impl Module {
       let symbol = unsafe {
         #[allow(clippy::unwrap_used)]
         let napi_val = ToNapiValue::to_napi_value(env.raw(), once_cell.get().unwrap())?;
-        JsSymbol::from_raw_unchecked(env.raw(), napi_val)
+        JsSymbol::from_napi_value(env.raw(), napi_val)?
       };
       object.set_property(symbol, identifier)
     })?;
@@ -351,11 +352,11 @@ impl Module {
   }
 
   #[napi]
-  pub fn lib_ident(
+  pub fn lib_ident<'a>(
     &mut self,
-    env: &Env,
+    env: &'a Env,
     options: JsLibIdentOptions,
-  ) -> napi::Result<Option<JsString>> {
+  ) -> napi::Result<Option<JsString<'a>>> {
     let (_, module) = self.as_ref()?;
     Ok(
       match module.lib_ident(LibIdentOptions {
@@ -803,8 +804,7 @@ thread_local! {
   pub(crate) static COMPILATION_HOOKS_MAP_SYMBOL: OnceCell<OneShotRef> = Default::default();
 }
 
-#[module_exports]
-fn init(mut exports: Object, env: Env) -> napi::Result<()> {
+pub(super) fn init(mut exports: Object, env: Env) -> napi::Result<()> {
   let module_identifier_symbol = OneShotRef::new(env.raw(), env.create_symbol(None)?)?;
   exports.set_named_property("MODULE_IDENTIFIER_SYMBOL", &module_identifier_symbol)?;
   MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {

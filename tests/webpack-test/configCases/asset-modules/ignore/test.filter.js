@@ -1,1 +1,1 @@
-module.exports = () => { return 'TODO: https://github.com/web-infra-dev/rspack/issues/8531' }
+module.exports = () => 'TODO: https://github.com/web-infra-dev/rspack/issues/8531' 

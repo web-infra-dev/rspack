@@ -117,6 +117,7 @@ pub enum DependencyType {
   DllEntry,
   DelegatedSource,
   ExtractCSS,
+  Rstest,
 }
 
 impl DependencyType {
@@ -190,6 +191,7 @@ impl DependencyType {
       DependencyType::ModuleDecorator => "module decorator",
       DependencyType::DelegatedSource => "delegated source",
       DependencyType::ExtractCSS => "extract css",
+      DependencyType::Rstest => "rstest",
     }
   }
 }

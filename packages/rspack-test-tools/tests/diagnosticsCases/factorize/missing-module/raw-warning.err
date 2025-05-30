@@ -1,0 +1,6 @@
+Array [
+  Object {
+    moduleIdentifier: <TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/missing-module/index.js,
+    moduleName: ./index.js,
+  },
+]

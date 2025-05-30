@@ -760,6 +760,10 @@ export interface IDiagnosticProcessorOptions<T extends ECompilerType> extends Om
     format?: (output: string) => string;
     // (undocumented)
     snapshot: string;
+    // (undocumented)
+    snapshotErrors: string;
+    // (undocumented)
+    snapshotWarning: string;
 }
 
 // @public (undocumented)

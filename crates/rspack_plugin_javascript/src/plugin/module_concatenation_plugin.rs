@@ -13,10 +13,10 @@ use rspack_core::{
   },
   filter_runtime,
   incremental::IncrementalPasses,
-  merge_runtime, ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions,
-  ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
-  ModuleGraph, ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext, ProvidedExports,
-  RuntimeCondition, RuntimeSpec, SourceType,
+  ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions, ExportProvided,
+  ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph,
+  ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext, ProvidedExports, RuntimeCondition,
+  RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -70,10 +70,10 @@ impl ConcatConfiguration {
     self.warnings.insert(module, problem);
   }
 
-  fn get_warnings_sorted(&self) -> IdentifierMap<Warning> {
+  fn get_warnings_sorted(&self) -> Vec<(ModuleIdentifier, Warning)> {
     let mut sorted_warnings: Vec<_> = self.warnings.clone().into_iter().collect();
-    sorted_warnings.sort_by(|a, b| a.0.cmp(&b.0));
-    sorted_warnings.into_iter().collect()
+    sorted_warnings.sort_by_key(|(id, _)| *id);
+    sorted_warnings
   }
 
   fn get_modules(&self) -> &IdentifierIndexSet {
@@ -174,8 +174,10 @@ impl ModuleConcatenationPlugin {
       if imported_names.iter().all(|item| match item {
         ExtendedReferencedExport::Array(arr) => !arr.is_empty(),
         ExtendedReferencedExport::Export(export) => !export.name.is_empty(),
-      }) || matches!(mg.get_provided_exports(mi), ProvidedExports::Vec(_))
-      {
+      }) || matches!(
+        mg.get_provided_exports(mi),
+        ProvidedExports::ProvidedNames(_)
+      ) {
         set.insert(*con.module_identifier());
       }
     }
@@ -310,7 +312,7 @@ impl ModuleConcatenationPlugin {
 
         let mut origin_runtime = RuntimeSpec::default();
         for r in chunk_graph.get_module_runtimes_iter(*origin_module, chunk_by_ukey) {
-          origin_runtime = merge_runtime(&origin_runtime, r);
+          origin_runtime.extend(r);
         }
 
         let is_intersect = if let Some(runtime) = runtime {
@@ -453,10 +455,10 @@ impl ModuleConcatenationPlugin {
 
           // here two runtime_condition must be `RuntimeCondition::Spec`
           if current_runtime_condition != RuntimeCondition::Boolean(false) {
-            current_runtime_condition = RuntimeCondition::Spec(merge_runtime(
-              current_runtime_condition.as_spec().expect("should be spec"),
-              runtime_condition.as_spec().expect("should be spec"),
-            ));
+            current_runtime_condition
+              .as_spec_mut()
+              .expect("should be spec")
+              .extend(runtime_condition.as_spec().expect("should be spec"));
           } else {
             current_runtime_condition = runtime_condition;
           }
@@ -554,7 +556,7 @@ impl ModuleConcatenationPlugin {
     let box_module = module_graph
       .module_by_identifier(&root_module_id)
       .expect("should have module");
-    let root_module_source_types = box_module.source_types();
+    let root_module_source_types = box_module.source_types(&module_graph);
     let is_root_module_asset_module = root_module_source_types.contains(&SourceType::Asset);
 
     let root_module_ctxt = RootModuleContext {
@@ -577,8 +579,11 @@ impl ModuleConcatenationPlugin {
         .get_presentational_dependencies()
         .map(|deps| deps.to_vec()),
       context: Some(compilation.options.context.clone()),
-      side_effect_connection_state: box_module
-        .get_side_effects_connection_state(&module_graph, &mut IdentifierSet::default()),
+      side_effect_connection_state: box_module.get_side_effects_connection_state(
+        &module_graph,
+        &mut IdentifierSet::default(),
+        &mut IdentifierMap::default(),
+      ),
       factory_meta: box_module.factory_meta().cloned(),
       build_meta: box_module.build_meta().clone(),
       module_argument: box_module.get_module_argument(),
@@ -654,7 +659,8 @@ impl ModuleConcatenationPlugin {
           .module_by_identifier(m)
           .expect("should exist module");
 
-        let source_types = chunk_graph.get_chunk_module_source_types(&chunk_ukey, module);
+        let source_types =
+          chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, &module_graph);
 
         if source_types.len() == 1 {
           chunk_graph.disconnect_chunk_and_module(&chunk_ukey, *m);
@@ -681,7 +687,8 @@ impl ModuleConcatenationPlugin {
           .module_by_identifier(&root_module_id)
           .expect("should exist module");
 
-        let source_types = chunk_graph.get_chunk_module_source_types(&chunk_ukey, module);
+        let source_types =
+          chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, &module_graph);
         let new_source_types = source_types
           .iter()
           .filter(|source_type| !matches!(source_type, SourceType::JavaScript))
@@ -803,7 +810,7 @@ impl ModuleConcatenationPlugin {
           .filter(|export_info| {
             !matches!(
               export_info.provided(&module_graph),
-              Some(ExportInfoProvided::True)
+              Some(ExportProvided::Provided)
             )
           })
           .copied()
@@ -897,12 +904,12 @@ impl ModuleConcatenationPlugin {
       if used_as_inner.contains(current_root) {
         continue;
       }
-      let mut chunk_runtime = Default::default();
+      let mut chunk_runtime = RuntimeSpec::default();
       for r in compilation
         .chunk_graph
         .get_module_runtimes_iter(*current_root, &compilation.chunk_by_ukey)
       {
-        chunk_runtime = merge_runtime(&chunk_runtime, r);
+        chunk_runtime.extend(r);
       }
       let module_graph = compilation.get_module_graph();
       let exports_info = module_graph.get_exports_info(current_root);

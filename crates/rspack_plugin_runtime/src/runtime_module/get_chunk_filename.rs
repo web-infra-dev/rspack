@@ -330,7 +330,11 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
 
         let filename = compilation
           .get_path(
-            &Filename::from(
+            &Filename::from(if let Some(template) = fake_filename.template() {
+              #[allow(clippy::unwrap_used)]
+              serde_json::to_string(template).unwrap()
+            } else {
+              #[allow(clippy::unwrap_used)]
               serde_json::to_string(
                 fake_filename
                   .render(
@@ -346,8 +350,8 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                   .await?
                   .as_str(),
               )
-              .expect("invalid json to_string"),
-            ),
+              .unwrap()
+            }),
             PathData::default()
               .chunk_id_optional(chunk_id.as_deref())
               .chunk_hash_optional(chunk_hash.as_deref())

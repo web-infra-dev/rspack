@@ -1,10 +1,4 @@
-import {
-  containerStyle,
-  descStyle,
-  innerContainerStyle,
-  titleAndDescStyle,
-  titleStyle,
-} from '@rstack-dev/doc-ui/section-style';
+import { containerStyle } from '@rstack-dev/doc-ui/section-style';
 import { ToolStack as BaseToolStack } from '@rstack-dev/doc-ui/tool-stack';
 import type React from 'react';
 import { memo } from 'react';
@@ -17,13 +11,7 @@ const ToolStack: React.FC = memo(() => {
 
   return (
     <section className={containerStyle}>
-      <div className={innerContainerStyle}>
-        <div className={titleAndDescStyle}>
-          <h2 className={titleStyle}>{t('toolStackTitle')}</h2>
-          <p className={descStyle}>{t('toolStackDesc')}</p>
-        </div>
-        <BaseToolStack lang={lang} />
-      </div>
+      <BaseToolStack lang={lang} />
     </section>
   );
 });

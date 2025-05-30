@@ -9,6 +9,8 @@
  */
 
 declare namespace Rspack {
+	type ModuleId = string | number;
+
 	type DeclinedEvent =
 		| {
 				type: "declined";
@@ -169,6 +171,49 @@ declare namespace Rspack {
 		id: string | number;
 		(dependency: string): unknown;
 	}
+
+	interface Module {
+		exports: any;
+		id: ModuleId;
+		loaded: boolean;
+		parents: NodeJS.Module["id"][] | null | undefined;
+		children: NodeJS.Module["id"][];
+		hot?: Hot | undefined;
+	}
+
+	interface RequireResolve {
+		(id: string): ModuleId;
+	}
+
+	interface Require {
+		(path: string): any;
+		<T>(path: string): T;
+		(paths: string[], callback: (...modules: any[]) => void): void;
+		resolve: NodeJS.RequireResolve;
+		ensure(
+			dependencies: string[],
+			callback: (require: (module: string) => void) => void,
+			errorCallback?: (error: Error) => void,
+			chunkName?: string
+		): Rspack.Context;
+		context(
+			request: string,
+			includeSubdirectories?: boolean,
+			filter?: RegExp,
+			mode?: "sync" | "eager" | "weak" | "lazy" | "lazy-once"
+		): Rspack.Context;
+		resolveWeak(dependency: string): void;
+		cache: {
+			[id: string]: NodeJS.Module | undefined;
+		};
+	}
+
+	interface Process {
+		env: {
+			[key: string]: any;
+			NODE_ENV: "development" | "production" | (string & {});
+		};
+	}
 }
 
 interface ImportMeta {
@@ -220,25 +265,12 @@ declare var __non_webpack_require__: (id: any) => unknown;
 declare const __system_context__: object;
 
 declare namespace NodeJS {
-	interface Module {
-		hot: Rspack.Hot;
-	}
-
-	interface Require {
-		ensure(
-			dependencies: string[],
-			callback: (require: (module: string) => void) => void,
-			errorCallback?: (error: Error) => void,
-			chunkName?: string
-		): void;
-		context(
-			request: string,
-			includeSubdirectories?: boolean,
-			filter?: RegExp,
-			mode?: "sync" | "eager" | "weak" | "lazy" | "lazy-once"
-		): Rspack.Context;
-		include(dependency: string): void;
-		resolveWeak(dependency: string): void;
-		onError?: (error: Error) => void;
-	}
+	interface Module extends Rspack.Module {}
+	interface Require extends Rspack.Require {}
+	interface RequireResolve extends Rspack.RequireResolve {}
+	interface Process extends Rspack.Process {}
 }
+
+declare var module: NodeJS.Module;
+declare var require: NodeJS.Require;
+declare var process: NodeJS.Process;

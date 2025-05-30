@@ -1,2 +1,6 @@
-// Cannot find module './style2.global.css'
-module.exports = () => false;
+const { FilteredStatus } = require("../../../lib/util/filterUtil");
+
+module.exports = () => [
+  FilteredStatus.PARTIAL_PASS,
+  "TODO: support module type css/global"
+];

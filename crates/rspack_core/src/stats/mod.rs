@@ -344,8 +344,11 @@ impl Stats<'_> {
           });
 
         let mut children_by_order = HashMap::<ChunkGroupOrderKey, Vec<String>>::default();
+        let chunk_filter = |_: &ChunkUkey, __: &Compilation| true;
         for order in &orders {
-          if let Some(order_chlidren) = c.get_child_ids_by_order(order, self.compilation) {
+          if let Some(order_chlidren) =
+            c.get_child_ids_by_order(order, self.compilation, &chunk_filter)
+          {
             children_by_order.insert(
               order.clone(),
               order_chlidren
@@ -613,10 +616,12 @@ impl Stats<'_> {
           self.compilation,
           &self.compilation.options,
         );
+        let code = d.code().map(|code| code.to_string());
         StatsError {
           message: diagnostic_displayer
             .emit_diagnostic(d)
             .expect("should print diagnostics"),
+          code,
           module_identifier,
           module_name,
           module_id: module_id.flatten(),
@@ -672,11 +677,14 @@ impl Stats<'_> {
           &self.compilation.options,
         );
 
+        let code = d.code().map(|code| code.to_string());
+
         StatsWarning {
           name: d.code().map(|c| c.to_string()),
           message: diagnostic_displayer
             .emit_diagnostic(d)
             .expect("should print diagnostics"),
+          code,
           module_identifier,
           module_name,
           module_id: module_id.flatten(),
@@ -749,7 +757,7 @@ impl Stats<'_> {
       .contains(&identifier);
 
     let sizes = module
-      .source_types()
+      .source_types(module_graph)
       .iter()
       .map(|t| StatsSourceTypeSize {
         source_type: *t,
@@ -1035,9 +1043,9 @@ impl Stats<'_> {
           .get_module_graph()
           .get_used_exports(&module.identifier(), None)
         {
-          UsedExports::Null => Some(StatsUsedExports::Null),
-          UsedExports::Vec(v) => Some(StatsUsedExports::Vec(v)),
-          UsedExports::Bool(b) => Some(StatsUsedExports::Bool(b)),
+          UsedExports::Unknown => Some(StatsUsedExports::Null),
+          UsedExports::UsedNames(v) => Some(StatsUsedExports::Vec(v)),
+          UsedExports::UsedNamespace(b) => Some(StatsUsedExports::Bool(b)),
         }
       } else {
         None
@@ -1052,7 +1060,7 @@ impl Stats<'_> {
             .get_module_graph()
             .get_provided_exports(module.identifier())
           {
-            ProvidedExports::Vec(v) => Some(v),
+            ProvidedExports::ProvidedNames(v) => Some(v),
             _ => None,
           }
         } else {

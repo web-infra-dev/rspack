@@ -1,7 +1,7 @@
 use cow_utils::CowUtils;
 use derive_more::Debug;
 use napi::{
-  bindgen_prelude::{Buffer, FnArgs},
+  bindgen_prelude::{Buffer, FnArgs, Promise},
   Either,
 };
 use napi_derive::napi;
@@ -9,25 +9,14 @@ use rspack_core::rspack_sources::RawSource;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_copy::{
   CopyGlobOptions, CopyPattern, CopyRspackPluginOptions, Info, Related, ToOption, ToType,
-  Transformer,
+  TransformerFn,
 };
 
-type TransformerFn = ThreadsafeFunction<FnArgs<(Buffer, String)>, Either<String, Buffer>>;
-type RawTransformer = Either<RawTransformOptions, TransformerFn>;
+type RawTransformer = ThreadsafeFunction<FnArgs<(Buffer, String)>, Promise<Either<String, Buffer>>>;
 
 type RawToFn = ThreadsafeFunction<RawToOptions, String>;
 
 type RawTo = Either<String, RawToFn>;
-
-#[derive(Debug, Clone)]
-#[napi(object, object_to_js = false)]
-pub struct RawTransformOptions {
-  #[debug(skip)]
-  #[napi(
-    ts_type = "{ transformer: (input: string, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>  }"
-  )]
-  pub transformer: TransformerFn,
-}
 
 #[derive(Debug, Clone)]
 #[napi(object)]
@@ -39,27 +28,72 @@ pub struct RawToOptions {
 #[derive(Debug, Clone)]
 #[napi(object, object_to_js = false)]
 pub struct RawCopyPattern {
+  /// The source path of the copy operation, which can be an absolute path, a relative
+  /// path, or a glob pattern. It can refer to a file or a directory. If a relative path
+  /// is passed, it is relative to the `context` option.
+  /// @default undefined
   pub from: String,
+  /// The destination path of the copy operation, which can be an absolute path, a
+  /// relative path, or a template string. If not specified, it is equal to Rspack's
+  /// `output.path`.
+  /// @default Rspack's `output.path`
   #[debug(skip)]
   #[napi(
     ts_type = "string | ((pathData: { context: string; absoluteFilename?: string }) => string | Promise<string>)"
   )]
   pub to: Option<RawTo>,
+  /// `context` is a path to be prepended to `from` and removed from the start of the
+  /// result paths. `context` can be an absolute path or a relative path. If it is a
+  /// relative path, then it will be converted to an absolute path based on Rspack's
+  /// `context`.
+  /// `context` should be explicitly set only when `from` contains a glob. Otherwise,
+  /// `context` is automatically set based on whether `from` is a file or a directory:
+  /// - If `from` is a file, then `context` is its directory. The result path will be
+  /// the filename alone.
+  /// - If `from` is a directory, then `context` equals `from`. The result paths will
+  /// be the paths of the directory's contents (including nested contents), relative
+  /// to the directory.
+  /// @default Rspack's `context`
   pub context: Option<String>,
+  /// Specify the type of [to](#to), which can be a directory, a file, or a template
+  /// name in Rspack. If not specified, it will be automatically inferred.
+  /// The automatic inference rules are as follows:
+  /// - `dir`: If `to` has no extension, or ends on `/`.
+  /// - `file`: If `to` is not a directory and is not a template.
+  /// - `template`: If `to` contains a template pattern.
+  /// @default undefined
   pub to_type: Option<String>,
+  /// Whether to ignore the error if there are missing files or directories.
+  /// @default false
   pub no_error_on_missing: bool,
+  /// Whether to force the copy operation to overwrite the destination file if it
+  /// already exists.
+  /// @default false
   pub force: bool,
+  /// The priority of the copy operation. The higher the priority, the earlier the copy
+  /// operation will be executed. When `force` is set to `true`, if a matching file is
+  /// found, the one with higher priority will overwrite the one with lower priority.
+  /// @default 0
   pub priority: i32,
+  /// Set the glob options for the copy operation.
+  /// @default undefined
   pub glob_options: RawCopyGlobOptions,
+  /// Allows to add some assets info to the copied files, which may affect some behaviors
+  /// in the build process. For example, by default, the copied JS and CSS files will be
+  /// minified by Rspack's minimizer, if you want to skip minification for copied files,
+  /// you can set `info.minimized` to `true`.
+  /// @default undefined
   pub info: Option<RawInfo>,
   /// Determines whether to copy file permissions from the source to the destination.
   /// When set to true, the plugin will preserve executable permissions and other file modes.
   /// This is particularly useful when copying scripts or executable files.
   /// @default false
   pub copy_permissions: Option<bool>,
+  /// Allows to modify the file contents.
+  /// @default undefined
   #[debug(skip)]
   #[napi(
-    ts_type = "{ transformer: (input: string, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>  } | ((input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>)"
+    ts_type = "{ transformer: (input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>  } | ((input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>)"
   )]
   pub transform: Option<RawTransformer>,
 }
@@ -68,6 +102,8 @@ pub struct RawCopyPattern {
 #[napi(object)]
 pub struct RawInfo {
   pub immutable: Option<bool>,
+  /// Whether to skip minification for the copied files.
+  /// @default false
   pub minimized: Option<bool>,
   pub chunk_hash: Option<Vec<String>>,
   pub content_hash: Option<Vec<String>>,
@@ -86,14 +122,21 @@ pub struct RawRelated {
 #[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawCopyGlobOptions {
+  /// Whether the match is case sensitive
+  /// @default true
   pub case_sensitive_match: Option<bool>,
+  /// Whether to match files starting with `.`
+  /// @default true
   pub dot: Option<bool>,
+  /// An array of strings in glob format, which can be used to ignore specific paths
+  /// @default undefined
   pub ignore: Option<Vec<String>>,
 }
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawCopyRspackPluginOptions {
+  /// An array of objects that describe the copy operations to be performed.
   pub patterns: Vec<RawCopyPattern>,
 }
 
@@ -157,43 +200,20 @@ impl From<RawCopyPattern> for CopyPattern {
         }),
       },
       copy_permissions,
-      transform: transform.map(|transformer| match transformer {
-        Either::A(transformer_with_cache_options) => Transformer::Opt((
-          Box::new(move |input, absolute_filename| {
-            let f = transformer_with_cache_options.transformer.clone();
-
-            fn convert_to_enum(input: Either<String, Buffer>) -> RawSource {
-              match input {
+      transform_fn: transform.map(|transformer| -> TransformerFn {
+        Box::new(move |input, absolute_filename| {
+          let f = transformer.clone();
+          Box::pin(async move {
+            f.call_with_promise((input.into(), absolute_filename.to_owned()).into())
+              .await
+              .map(|input| match input {
                 Either::A(s) => RawSource::from(s),
                 Either::B(b) => RawSource::from(Vec::<u8>::from(b)),
-              }
-            }
-
-            Box::pin(async move {
-              f.call_with_sync((input.into(), absolute_filename.to_owned()).into())
-                .await
-                .map(convert_to_enum)
-            })
-          }),
-          None, // transformer_with_cache_options.cache,
-        )),
-        Either::B(f) => Transformer::Fn(Box::new(move |input, absolute_filename| {
-          let f = f.clone();
-
-          fn convert_to_enum(input: Either<String, Buffer>) -> RawSource {
-            match input {
-              Either::A(s) => RawSource::from(s),
-              Either::B(b) => RawSource::from(Vec::<u8>::from(b)),
-            }
-          }
-
-          Box::pin(async move {
-            f.call_with_sync((input.into(), absolute_filename.to_owned()).into())
-              .await
-              .map(convert_to_enum)
+              })
           })
-        })),
+        })
       }),
+      cache: None,
     }
   }
 }

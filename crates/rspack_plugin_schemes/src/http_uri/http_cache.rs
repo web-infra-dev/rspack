@@ -417,15 +417,6 @@ impl HttpCache {
 }
 
 pub async fn fetch_content(url: &str, options: &HttpUriPluginOptions) -> Result<FetchResultType> {
-  // Check if the URL is allowed
-  if !options.allowed_uris.is_allowed(url) {
-    return Err(anyhow::anyhow!(
-      "{} doesn't match the allowedUris policy. These URIs are allowed:\n{}",
-      url,
-      options.allowed_uris.get_allowed_uris_description()
-    ));
-  }
-
   let http_cache = HttpCache::new(
     options.cache_location.clone(),
     options.lockfile_location.clone(),

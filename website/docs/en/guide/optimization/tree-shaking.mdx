@@ -68,7 +68,31 @@ import { foo } from './util.js';
 
 In this case, none of the exports from `util.js` are used, and it’s analyzed as having no side effects, permitting the entire deletion of `util.js`.
 
-You may manually indicate whether a module retains side effects through `package.json` or `module.rules`. For information on how to do so, please consult [sideEffects](/config/optimization#optimizationsideeffects).
+You may manually indicate whether a module retains side effects through `package.json` or `module.rules`. To to do so, you should enable [optimization.sideEffects](/config/optimization#optimizationsideeffects).
+
+In `package.json`, you can use `true` or `false` to mark whether all modules under the current package contain side effects.
+
+```json title="package.json"
+{
+  "name": "package",
+  "version": "1.0.0",
+  "sideEffects": false
+}
+```
+
+The above `package.json` indicates that all modules under this package are considered side-effect-free.
+
+You can also use glob patterns or string matching to specify specific modules. Unmatched modules will automatically be treated as side-effect-free. Therefore, if manually marking side effects, you must ensure that all unmarked modules are truly free of side effects.
+
+```json title="package.json"
+{
+  "name": "package",
+  "version": "1.0.0",
+  "sideEffects": ["./src/main.js", "*.css"]
+}
+```
+
+Above `package.json` indicates that only `./src/main.js` and all `.css` files are considered to have side effects, while all other modules are treated as side-effect-free.
 
 ## Re-export analysis
 

@@ -11,17 +11,17 @@ it("verify es6 (esmodule) bundle source map", async () => {
 	const source = fs.readFileSync(__filename + ".map", "utf-8");
 	const map = JSON.parse(source);
 	expect(map.sources).toEqual([
-		"webpack:///../../../../dist/helper/util/checkSourceMap.js",
 		"webpack:///./b-dir/c-dir/c.js",
 		"webpack:///./b-dir/b.js",
 		"webpack:///./a.js",
+		"webpack:///../../../../dist/helper/util/checkSourceMap.js",
 		"webpack:///./index.js",
 	]);
 	expect(map.file).toEqual("bundle0.js");
 	const out = fs.readFileSync(__filename, "utf-8");
 	expect(
 		await checkMap(out, source, {
-			// *${id}* as the search key to aviod conflict with `Object.defineProperty(exports, ${id}, ...)`
+			// *${id}* as the search key to avoid conflict with `Object.defineProperty(exports, ${id}, ...)`
 			['"*a0*"']: "webpack:///a.js",
 			['"*a1*"']: "webpack:///a.js",
 			// The result is generated upon `OriginalSource`

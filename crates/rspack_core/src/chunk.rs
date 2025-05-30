@@ -12,7 +12,7 @@ use rspack_hash::{RspackHash, RspackHashDigest};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use crate::{
-  chunk_graph_chunk::ChunkId, compare_chunk_group, merge_runtime, sort_group_by_index, ChunkGraph,
+  chunk_graph_chunk::ChunkId, compare_chunk_group, sort_group_by_index, ChunkGraph,
   ChunkGroupByUkey, ChunkGroupOrderKey, ChunkGroupUkey, ChunkHashesArtifact, ChunkIdsArtifact,
   ChunkUkey, Compilation, EntryOptions, Filename, ModuleGraph, RenderManifestEntry, RuntimeSpec,
   SourceType,
@@ -324,7 +324,7 @@ impl Chunk {
         new_chunk.add_group(group.ukey);
       });
     new_chunk.id_name_hints.extend(self.id_name_hints.clone());
-    new_chunk.runtime = merge_runtime(&new_chunk.runtime, &self.runtime);
+    new_chunk.runtime.extend(&self.runtime);
   }
 
   pub fn can_be_initial(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> bool {
@@ -796,10 +796,11 @@ impl Chunk {
     )
   }
 
-  pub fn get_child_ids_by_order(
+  pub fn get_child_ids_by_order<F: Fn(&ChunkUkey, &Compilation) -> bool>(
     &self,
     order: &ChunkGroupOrderKey,
     compilation: &Compilation,
+    filter_fn: &F,
   ) -> Option<Vec<ChunkId>> {
     self
       .get_children_of_type_in_order(order, compilation, true)
@@ -808,26 +809,31 @@ impl Chunk {
           .iter()
           .flat_map(|(_, child_chunks)| {
             child_chunks.iter().filter_map(|chunk_ukey| {
-              compilation
-                .chunk_by_ukey
-                .expect_get(chunk_ukey)
-                .id(&compilation.chunk_ids_artifact)
-                .cloned()
+              if filter_fn(chunk_ukey, compilation) {
+                compilation
+                  .chunk_by_ukey
+                  .expect_get(chunk_ukey)
+                  .id(&compilation.chunk_ids_artifact)
+                  .cloned()
+              } else {
+                None
+              }
             })
           })
           .collect_vec()
       })
   }
 
-  pub fn get_child_ids_by_orders_map(
+  pub fn get_child_ids_by_orders_map<F: Fn(&ChunkUkey, &Compilation) -> bool>(
     &self,
     include_direct_children: bool,
     compilation: &Compilation,
+    filter_fn: &F,
   ) -> HashMap<ChunkGroupOrderKey, IndexMap<ChunkId, Vec<ChunkId>, BuildHasherDefault<FxHasher>>>
   {
     let mut result = HashMap::default();
 
-    fn add_child_ids_by_orders_to_map(
+    fn add_child_ids_by_orders_to_map<F: Fn(&ChunkUkey, &Compilation) -> bool>(
       chunk_ukey: &ChunkUkey,
       order: &ChunkGroupOrderKey,
       result: &mut HashMap<
@@ -835,11 +841,12 @@ impl Chunk {
         IndexMap<ChunkId, Vec<ChunkId>, BuildHasherDefault<FxHasher>>,
       >,
       compilation: &Compilation,
+      filter_fn: &F,
     ) {
       let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
       if let (Some(chunk_id), Some(child_chunk_ids)) = (
         chunk.id(&compilation.chunk_ids_artifact).cloned(),
-        chunk.get_child_ids_by_order(order, compilation),
+        chunk.get_child_ids_by_order(order, compilation, filter_fn),
       ) {
         result
           .entry(order.clone())
@@ -864,12 +871,14 @@ impl Chunk {
           &ChunkGroupOrderKey::Prefetch,
           &mut result,
           compilation,
+          filter_fn,
         );
         add_child_ids_by_orders_to_map(
           &chunk_ukey,
           &ChunkGroupOrderKey::Preload,
           &mut result,
           compilation,
+          filter_fn,
         );
       }
     }
@@ -880,16 +889,29 @@ impl Chunk {
         &ChunkGroupOrderKey::Prefetch,
         &mut result,
         compilation,
+        filter_fn,
       );
       add_child_ids_by_orders_to_map(
         &chunk_ukey,
         &ChunkGroupOrderKey::Preload,
         &mut result,
         compilation,
+        filter_fn,
       );
     }
 
     result
+  }
+
+  pub fn has_child_by_order<F: Fn(&ChunkUkey, &Compilation) -> bool>(
+    &self,
+    compilation: &Compilation,
+    r#type: &ChunkGroupOrderKey,
+    include_direct_children: bool,
+    filter_fn: &F,
+  ) -> bool {
+    let map = self.get_child_ids_by_orders_map(include_direct_children, compilation, filter_fn);
+    map.get(r#type).is_some_and(|map| !map.is_empty())
   }
 }
 

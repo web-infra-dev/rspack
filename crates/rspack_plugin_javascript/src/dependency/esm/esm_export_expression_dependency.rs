@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
-use rspack_collections::{Identifier, IdentifierSet};
+use rspack_collections::{Identifier, IdentifierMap, IdentifierSet};
 use rspack_core::{
   property_access, rspack_sources::ReplacementEnforce, AsContextDependency, AsModuleDependency,
   Compilation, Dependency, DependencyCodeGeneration, DependencyId, DependencyLocation,
@@ -85,7 +85,7 @@ impl Dependency for ESMExportExpressionDependency {
 
   fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
     Some(ExportsSpec {
-      exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::String(
+      exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::String(
         JS_DEFAULT_KEYWORD.clone(),
       )]),
       priority: Some(1),
@@ -102,8 +102,9 @@ impl Dependency for ESMExportExpressionDependency {
     &self,
     _module_graph: &rspack_core::ModuleGraph,
     _module_chain: &mut IdentifierSet,
+    _connection_state_cache: &mut IdentifierMap<rspack_core::ConnectionState>,
   ) -> rspack_core::ConnectionState {
-    rspack_core::ConnectionState::Bool(false)
+    rspack_core::ConnectionState::Active(false)
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
@@ -163,7 +164,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       let module_graph = compilation.get_module_graph();
       module_graph
         .get_exports_info(module_identifier)
-        .get_used_name(&module_graph, *runtime, UsedName::Str(name.into()))
+        .get_used_name(&module_graph, *runtime, &[name.into()])
     }
 
     if let Some(declaration) = &dep.declaration {
@@ -192,8 +193,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
           module.get_exports_argument(),
           vec![(
             match used {
-              UsedName::Str(s) => s,
-              UsedName::Vec(v) => v
+              UsedName::Normal(v) => v
                 .iter()
                 .map(|i| i.to_string())
                 .collect_vec()
@@ -232,8 +232,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
             module.get_exports_argument(),
             vec![(
               match used {
-                UsedName::Str(s) => s,
-                UsedName::Vec(v) => v
+                UsedName::Normal(v) => v
                   .iter()
                   .map(|i| i.to_string())
                   .collect_vec()
@@ -250,8 +249,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
             module.get_exports_argument(),
             property_access(
               match used {
-                UsedName::Str(name) => vec![name].into_iter(),
-                UsedName::Vec(names) => names.into_iter(),
+                UsedName::Normal(names) => names.into_iter(),
               },
               0
             )

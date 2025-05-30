@@ -5,10 +5,11 @@ use std::{
 
 use regex::Regex;
 use rspack_core::{
-  ApplyContext, BoxModule, CompilerOptions, ContextInfo, DependencyMeta, ExternalItem,
-  ExternalItemFnCtx, ExternalItemValue, ExternalModule, ExternalRequest, ExternalRequestValue,
-  ExternalType, ExternalTypeEnum, ModuleDependency, ModuleExt, ModuleFactoryCreateData,
-  NormalModuleFactoryFactorize, Plugin, PluginContext, ResolveOptionsWithDependencyType,
+  ApplyContext, BoxModule, CompilerOptions, ContextInfo, DependencyMeta, DependencyType,
+  ExternalItem, ExternalItemFnCtx, ExternalItemValue, ExternalModule, ExternalRequest,
+  ExternalRequestValue, ExternalType, ExternalTypeEnum, ModuleDependency, ModuleExt,
+  ModuleFactoryCreateData, NormalModuleFactoryFactorize, Plugin, PluginContext,
+  ResolveOptionsWithDependencyType, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -104,7 +105,7 @@ impl ExternalsPlugin {
       None
     }
 
-    let dependency_meta: DependencyMeta = DependencyMeta {
+    let mut dependency_meta: DependencyMeta = DependencyMeta {
       attributes: dependency.get_attributes().cloned(),
       external_type: {
         if dependency
@@ -123,7 +124,14 @@ impl ExternalsPlugin {
           None
         }
       },
+      source_type: None,
     };
+
+    if r#type.as_ref().is_some_and(|t| t == "asset")
+      && matches!(dependency.dependency_type(), DependencyType::CssUrl)
+    {
+      dependency_meta.source_type = Some(SourceType::CssUrl);
+    }
 
     Some(ExternalModule::new(
       external_module_config,

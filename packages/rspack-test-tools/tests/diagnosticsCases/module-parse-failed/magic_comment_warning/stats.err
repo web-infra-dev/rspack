@@ -23,7 +23,7 @@ WARNING in ./index.js
 
 WARNING in ./index.js
   ⚠ Module parse warning:
-  ╰─▶   ⚠ Magic comments parse failed: `webpackIgnore` expected true or false, but received: asdf.
+  ╰─▶   ⚠ Magic comments parse failed: `webpackIgnore` expected a boolean, but received: asdf.
          ╭─[4:17]
        2 │   webpackPrefetch: "aaa",
        3 │   webpackPreload: "aaa",

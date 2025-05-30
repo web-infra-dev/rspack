@@ -131,7 +131,7 @@ pub fn impl_runtime_module(
         &::rspack_core::ModuleType::Runtime
       }
 
-      fn source_types(&self) -> &[::rspack_core::SourceType] {
+      fn source_types(&self, module_graph: &::rspack_core::ModuleGraph) -> &[::rspack_core::SourceType] {
         &[::rspack_core::SourceType::JavaScript]
       }
 

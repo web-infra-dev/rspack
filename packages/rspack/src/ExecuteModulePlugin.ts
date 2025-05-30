@@ -1,5 +1,3 @@
-import vm from "node:vm";
-
 import { RuntimeGlobals } from ".";
 import type { Compiler } from "./Compiler";
 
@@ -13,6 +11,7 @@ export default class ExecuteModulePlugin {
 			compilation.hooks.executeModule.tap(
 				"executeModule",
 				(options, context) => {
+					const vm = require("node:vm");
 					const moduleObject = options.moduleObject;
 					const source = options.codeGenerationResult.get("javascript");
 					if (source === undefined) return;

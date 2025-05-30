@@ -218,7 +218,7 @@ As some StatsOutput test cases contain hashes, when you modify the output code, 
 
 This test uses `rspack-test-tools/tests/fixtures` as the source code for the build, so the test case is written as a single file. Its structure is as follows:
 
-```js {8-11} title="{case}.js"
+```js title="{case}.js"
 type TStatsAPICaseConfig = {
   description: string, // Case description
   options?: (context: ITestContext) => TCompilerOptions<T>, // Case build configuration
@@ -226,6 +226,7 @@ type TStatsAPICaseConfig = {
   check?: (stats: TCompilerStats<T>, compiler: TCompiler<T>) => Promise<void>, // Function to check the stats for the case
 };
 
+// [!code highlight:4]
 /** @type {import('../..').TStatsAPICaseConfig} */
 module.exports = {
   // ...
@@ -254,11 +255,12 @@ This test case is similar to a typical rspack project and can specify build conf
 
 This test case is similar to a typical rspack project, but it will add a `test.config.js` file in the case directory and specify a `validate()` method to check the hash information in the `stats` object after the build is complete:
 
-```js {5-8} title="test.config.js"
+```js title="test.config.js"
 type THashCaseConfig = {
   validate?: (stats: TCompilerStats<T>) => void,
 };
 
+// [!code highlight:4]
 /** @type {import('../..').THashCaseConfig} */
 module.exports = {
   // ...
@@ -276,7 +278,7 @@ module.exports = {
 
 This test uses `rspack-test-tools/tests/fixtures` as the source code for the build, so the test case is written as a single file. Its structure is as follows:
 
-```js {9-12} title="{case.js}"
+```js title="{case.js}"
 interface TCompilerCaseConfig {
   description: string; // Description of the test case
   options?: (context: ITestContext) => TCompilerOptions<T>; // Test case build configuration
@@ -289,6 +291,7 @@ interface TCompilerCaseConfig {
   ) => Promise<void>; // Check function for the test case
 }
 
+// [!code highlight:4]
 /** @type {import('../..').TCompilerCaseConfig} */
 module.exports = {
   // ...
@@ -308,7 +311,7 @@ This test does not execute real builds; it only generates build configurations a
 
 This test uses `rspack-test-tools/tests/fixtures` as the source code for the build, so the test case is written as a single file. Its structure is as follows:
 
-```js {8-11} title="{case}.js"
+```js title="{case}.js"
 interface TDefaultsCaseConfig {
   description: string; // Description of the test case
   cwd?: string; // process.cwd for generating the build configuration of the test case, default is the `rspack-test-tools` directory
@@ -319,6 +322,7 @@ interface TDefaultsCaseConfig {
   ) => Promise<void>; // Differences from the default configuration
 }
 
+// [!code highlight:4]
 /** @type {import('../..').TDefaultsCaseConfig} */
 module.exports = {
   // ...
@@ -338,7 +342,7 @@ The details for the Error test are as follows:
 
 This test uses `rspack-test-tools/tests/fixtures` as the source code for the build, so the test case is written as a single file. Its structure is as follows:
 
-```js {8-11} title="{case}.js"
+```js title="{case}.js"
 interface TErrorCaseConfig {
   description: string; // Description of the test case
   options?: (
@@ -349,6 +353,7 @@ interface TErrorCaseConfig {
   check?: (stats: TStatsDiagnostics) => Promise<void>; // Function to check the test case
 }
 
+// [!code highlight:4]
 /** @type {import('../..').TErrorCaseConfig} */
 module.exports = {
   // ...
@@ -368,7 +373,7 @@ This test records the input and output of the hook and stores it in the snapshot
 
 This test uses `rspack-test-tools/tests/fixtures` as the source code for the build, so the test case is written as a single file. Its structure is as follows:
 
-```js {8-11} title="{case}/test.js"
+```js title="{case}/test.js"
 interface THookCaseConfig {
   description: string; // Description of the test case
   options?: (
@@ -379,6 +384,7 @@ interface THookCaseConfig {
   check?: (context: ITestContext) => Promise<void>; // Callback after the build is completed
 }
 
+// [!code highlight:4]
 /** @type {import("../../../..").THookCaseConfig} */
 module.exports = {
   // ...

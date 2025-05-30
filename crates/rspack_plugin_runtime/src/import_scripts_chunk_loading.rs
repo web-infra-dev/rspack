@@ -44,7 +44,7 @@ async fn runtime_requirements_in_tree(
         runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
         runtime_requirements_mut.insert(RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME);
       }
-      RuntimeGlobals::BASE_URI if is_enabled_for_chunk => {
+      RuntimeGlobals::BASE_URI | RuntimeGlobals::ON_CHUNKS_LOADED if is_enabled_for_chunk => {
         has_chunk_loading = true;
       }
       _ => {}

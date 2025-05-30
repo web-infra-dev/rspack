@@ -2,13 +2,12 @@ use std::{hash::Hash, sync::Arc};
 
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  merge_runtime,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier, ApplyContext, BoxDependency, ChunkUkey, CodeGenerationExportsFinalNames,
   Compilation, CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation,
   CompilerFinishMake, CompilerOptions, ConcatenatedModule, ConcatenatedModuleExportsDefinitions,
   DependenciesBlock, Dependency, DependencyId, LibraryOptions, ModuleGraph, ModuleIdentifier,
-  Plugin, PluginContext,
+  Plugin, PluginContext, RuntimeSpec,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
@@ -121,7 +120,10 @@ impl ModernModuleLibraryPlugin {
       let chunk_runtime = compilation
         .chunk_graph
         .get_module_runtimes_iter(*module_id, &compilation.chunk_by_ukey)
-        .fold(Default::default(), |acc, r| merge_runtime(&acc, r));
+        .fold(RuntimeSpec::default(), |mut acc, r| {
+          acc.extend(r);
+          acc
+        });
 
       let current_configuration: ConcatConfiguration =
         ConcatConfiguration::new(*module_id, Some(chunk_runtime.clone()));

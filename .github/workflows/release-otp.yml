@@ -44,7 +44,7 @@ jobs:
       force-use-github-runner: true
 
   build:
-    needs: [ get-runner-labels ]
+    needs: [get-runner-labels]
     strategy:
       fail-fast: false # Build and test everything so we can look at all the errors
       matrix:

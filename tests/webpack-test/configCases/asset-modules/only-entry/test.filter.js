@@ -1,2 +1,1 @@
-// __STATS_I__ is not defined
-module.exports = () => false;
+module.exports = () => "FIXME: generated unexpected main.js";

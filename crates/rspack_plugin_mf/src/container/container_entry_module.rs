@@ -11,8 +11,8 @@ use rspack_core::{
   BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult,
   ChunkGroupOptions, CodeGenerationResult, Compilation, ConcatenationScope, Context,
   DependenciesBlock, Dependency, DependencyId, FactoryMeta, GroupOptions, LibIdentOptions, Module,
-  ModuleDependency, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec,
+  SourceType, StaticExportsDependency, StaticExportsSpec,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -116,7 +116,7 @@ impl Module for ContainerEntryModule {
     &ModuleType::JsDynamic
   }
 
-  fn source_types(&self) -> &[SourceType] {
+  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     &[SourceType::JavaScript, SourceType::Expose]
   }
 

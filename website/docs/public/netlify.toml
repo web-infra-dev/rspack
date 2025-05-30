@@ -1,0 +1,19 @@
+# Redirect rspack.dev to rspack.rs
+[[redirects]]
+from = "https://rspack.dev/*"
+to = "https://rspack.rs/:splat"
+status = 301
+force = true
+
+# Redirect rspack.org to rspack.rs
+[[redirects]]
+from = "https://rspack.org/*"
+to = "https://rspack.rs/:splat"
+status = 301
+force = true
+
+# Ensure @rspress/plugin-client-redirects can work
+[[redirects]]
+from = "/*"
+to = "/404.html"
+status = 404

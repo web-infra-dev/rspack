@@ -1,3 +1,3 @@
 module.exports = [
-	[/`webpackFetchPriority` expected true or "low", "high" or "auto"/]
+	[/`webpackFetchPriority` expected "low", "high" or "auto", but received: "unknown"/]
 ];

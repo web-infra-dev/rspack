@@ -1,1 +1,1 @@
-module.exports = () => false;
+module.exports = () => "FIXME: more errors than expected";

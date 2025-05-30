@@ -1,2 +1,6 @@
-// css class is prefixed with an unexpected '-'
-module.exports = () => false;
+const { FilteredStatus } = require("../../../lib/util/filterUtil");
+
+module.exports = () => [
+  FilteredStatus.PARTIAL_PASS,
+  "FIXME: ident name not contain loader path"
+];

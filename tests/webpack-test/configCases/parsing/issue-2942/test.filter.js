@@ -1,1 +1,1 @@
-module.exports = () => { return "NOPLAN: support parser.system to parse systemjs" }
+module.exports = () => "NOPLAN: support parser.system to parse systemjs"

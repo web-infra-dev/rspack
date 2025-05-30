@@ -4,6 +4,9 @@ package.json
 dist/
 packages/rspack/src/config/schema.check.js
 
+# Ignore lock files
+pnpm-lock.yaml
+
 # Ignore example fixtures
 
 # Ignore test related

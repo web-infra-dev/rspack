@@ -155,7 +155,7 @@ registries = [
 # https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html
 [bans]
 # Lint level for when multiple versions of the same crate are detected
-multiple-versions = "warn"
+multiple-versions = "deny"
 # Lint level for when a crate version requirement is `*`
 wildcards = "allow"
 # The graph highlighting used when creating dotgraphs for crates
@@ -210,9 +210,37 @@ deny = [
 #exact = true
 
 # Certain crates/versions that will be skipped when doing duplicate detection.
+# Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
-    #"ansi_term@0.11.0",
-    #{ crate = "ansi_term@0.11.0", reason = "you can specify a reason why it can't be updated/removed" },
+    { crate = "ahash", reason = "external dependency"},
+    { crate = "base64-simd", reason = "external dependency"},
+    { crate = "convert_case", reason = "external dependency"},
+    { crate = "dashmap", reason = "external dependency"},
+    { crate = "hashbrown", reason = "external dependency"},
+    { crate = "itertools", reason = "external dependency"},
+    { crate = "miniz_oxide", reason = "external dependency"},
+    { crate = "outref", reason = "external dependency"},
+    { crate = "path-clean", reason = "external dependency"},
+    { crate = "ptr_meta", reason = "external dependency"},
+    { crate = "ptr_meta_derive", reason = "external dependency"},
+    { crate = "regex-automata", reason = "external dependency"},
+    { crate = "regex-syntax", reason = "external dependency"},
+    { crate = "rkyv", reason = "FIXME: need to be fixed"},
+    { crate = "rkyv_derive", reason = "FIXME: need to be fixed"},
+    { crate = "rustc-hash", reason = "external dependency"},
+    { crate = "semver", reason = "external dependency"},
+    { crate = "syn", reason = "external dependency"},
+    { crate = "thiserror", reason = "external dependency"},
+    { crate = "thiserror-impl", reason = "external dependency"},
+    { crate = "unicode-width", reason = "external dependency"},
+    { crate = "windows-targets", reason = "external dependency"},
+    { crate = "windows_aarch64_gnullvm", reason = "external dependency"},
+    { crate = "windows_aarch64_msvc", reason = "external dependency"},
+    { crate = "windows_i686_gnu", reason = "external dependency"},
+    { crate = "windows_i686_msvc", reason = "external dependency"},
+    { crate = "windows_x86_64_gnu", reason = "external dependency"},
+    { crate = "windows_x86_64_gnullvm", reason = "external dependency"},
+    { crate = "windows_x86_64_msvc", reason = "external dependency"},
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive

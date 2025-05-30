@@ -1,13 +1,6 @@
-/* #region "./style.module.css?imported" */
-/*
-- type: css/auto
-*/
+/*!***********************************!*\
+  !*** ./style.module.css?imported ***!
+  \***********************************/
 
 
 .local {}
-
-
-
-
-/* #endregion "./style.module.css?imported" */
-

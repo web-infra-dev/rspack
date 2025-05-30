@@ -143,8 +143,8 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
         let exports_info = module_graph.get_exports_info(&module.identifier());
 
         let provided_exports = match exports_info.get_provided_exports(&module_graph) {
-          ProvidedExports::Vec(vec) => Some(DllManifestContentItemExports::Vec(vec)),
-          ProvidedExports::True => Some(DllManifestContentItemExports::True),
+          ProvidedExports::ProvidedNames(vec) => Some(DllManifestContentItemExports::Vec(vec)),
+          ProvidedExports::ProvidedAll => Some(DllManifestContentItemExports::True),
           _ => None,
         };
 

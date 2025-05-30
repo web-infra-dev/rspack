@@ -8,7 +8,22 @@ module.exports = {
 		bb: "./import-circular/index.js",
 		cc: "./no-cycle/index.js",
 		dd: "./ignore-circular/a.js",
-		ee: "./multiple-circular/a.js"
+		ee: "./multiple-circular/a.js",
+		ff: {
+			import: "./multiple-circular/a.js",
+			layer: "f"
+		}
+	},
+	experiments: {
+		layers: true
+	},
+	module: {
+		rules: [
+			{
+				test: /\.js$/,
+				loader: "./loader.js"
+			}
+		]
 	},
 	plugins: [
 		new CircularDependencyRspackPlugin({

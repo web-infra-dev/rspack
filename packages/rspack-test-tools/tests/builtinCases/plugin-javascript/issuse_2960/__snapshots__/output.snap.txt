@@ -5,21 +5,6 @@ __webpack_require__("./resources sync recursive ^\\.\\/pre_.*\\.js$")(`./pre_${i
 
 
 }),
-"./resources/pre_a.js": (function () {
-console.log("a");
-
-
-}),
-"./resources/pre_b.js": (function () {
-console.log("a");
-
-
-}),
-"./resources/pre_c.js": (function () {
-console.log("a");
-
-
-}),
 "./resources sync recursive ^\\.\\/pre_.*\\.js$": (function (module, __unused_webpack_exports, __webpack_require__) {
 var map = {
   "./pre_a.js": "./resources/pre_a.js",
@@ -46,6 +31,21 @@ webpackContext.keys = function webpackContextKeys() {
 webpackContext.resolve = webpackContextResolve;
 module.exports = webpackContext;
 webpackContext.id = "./resources sync recursive ^\\.\\/pre_.*\\.js$";
+
+
+}),
+"./resources/pre_a.js": (function () {
+console.log("a");
+
+
+}),
+"./resources/pre_b.js": (function () {
+console.log("a");
+
+
+}),
+"./resources/pre_c.js": (function () {
+console.log("a");
 
 
 }),

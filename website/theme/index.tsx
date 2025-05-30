@@ -1,3 +1,7 @@
+import {
+  Search as PluginAlgoliaSearch,
+  ZH_LOCALES,
+} from '@rspress/plugin-algolia/runtime';
 import { Announcement } from '@rstack-dev/doc-ui/announcement';
 import { ConfigProvider } from '@rstack-dev/doc-ui/antd';
 import { NavIcon } from '@rstack-dev/doc-ui/nav-icon';
@@ -52,6 +56,23 @@ const Layout = () => {
   );
 };
 
-export { Layout, HomeLayout };
+const Search = () => {
+  const lang = useLang();
+  return (
+    <PluginAlgoliaSearch
+      docSearchProps={{
+        appId: 'TQOGCXPBUD', // cspell:disable-line
+        apiKey: '8c30f9d1f12e786a132af15ea30cf997', // cspell:disable-line
+        indexName: 'rspack',
+        searchParameters: {
+          facetFilters: [`lang:${lang}`],
+        },
+      }}
+      locales={ZH_LOCALES}
+    />
+  );
+};
+
+export { Layout, HomeLayout, Search };
 
 export * from 'rspress/theme';
