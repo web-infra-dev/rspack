@@ -437,13 +437,14 @@ fn get_exports_type_impl(
         if let Some(export_info) =
           mg.get_read_only_export_info(&identifier, Atom::from("__esModule"))
         {
+          let export_info_data = export_info.as_data(mg);
           if matches!(
-            ExportInfoGetter::provided(export_info.as_data(mg)),
+            ExportInfoGetter::provided(export_info_data),
             Some(ExportProvided::NotProvided)
           ) {
             handle_default(default_object)
           } else {
-            let Some(target) = export_info.get_target(mg) else {
+            let Some(target) = export_info_data.get_target(mg) else {
               return ExportsType::Dynamic;
             };
             if target

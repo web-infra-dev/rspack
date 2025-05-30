@@ -60,6 +60,18 @@ impl ExportsInfo {
     mg.get_exports_info_by_id(self)
   }
 
+  pub fn as_data<'a>(&self, mg: &'a ModuleGraph) -> &'a ExportsInfoData {
+    mg.get_exports_info_by_id(self)
+  }
+
+  fn as_exports_info_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ExportsInfoData {
+    mg.get_exports_info_mut_by_id(self)
+  }
+
+  pub fn as_data_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ExportsInfoData {
+    mg.get_exports_info_mut_by_id(self)
+  }
+
   pub fn is_export_provided(&self, mg: &ModuleGraph, names: &[Atom]) -> Option<ExportProvided> {
     let name = names.first()?;
     let info = self.get_read_only_export_info(mg, name);
@@ -116,7 +128,7 @@ impl ExportsInfo {
   /// # Panic
   /// it will panic if you provide a export info that does not exists in the module graph
   pub fn set_has_provide_info(&self, mg: &mut ModuleGraph) {
-    let exports_info = mg.get_exports_info_by_id(self);
+    let exports_info = self.as_exports_info(mg);
     let redirect_id = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
     let export_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
@@ -143,7 +155,7 @@ impl ExportsInfo {
   }
 
   pub fn set_redirect_name_to(&self, mg: &mut ModuleGraph, id: Option<ExportsInfo>) -> bool {
-    let exports_info = mg.get_exports_info_mut_by_id(self);
+    let exports_info = self.as_exports_info_mut(mg);
     if exports_info.redirect_to == id {
       return false;
     }
@@ -168,7 +180,7 @@ impl ExportsInfo {
       }
     }
 
-    let exports_info = mg.get_exports_info_by_id(self);
+    let exports_info = self.as_exports_info(mg);
     let redirect_to = exports_info.redirect_to;
     let other_exports_info = exports_info.other_exports_info;
     let exports_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
@@ -263,7 +275,7 @@ impl ExportsInfo {
   }
 
   pub fn get_read_only_export_info(&self, mg: &ModuleGraph, name: &Atom) -> ExportInfo {
-    let exports_info = mg.get_exports_info_by_id(self);
+    let exports_info = self.as_exports_info(mg);
     let redirect_to = exports_info.redirect_to;
     let other_exports_info = exports_info.other_exports_info;
     let export_info = exports_info.exports.get(name);
@@ -277,7 +289,7 @@ impl ExportsInfo {
   }
 
   pub fn get_export_info(&self, mg: &mut ModuleGraph, name: &Atom) -> ExportInfo {
-    let exports_info = mg.get_exports_info_by_id(self);
+    let exports_info: &ExportsInfoData = self.as_exports_info(mg);
     let redirect_id = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
     let export_info_id = exports_info.exports.get(name);
@@ -288,12 +300,12 @@ impl ExportsInfo {
       return redirect_id.get_export_info(mg, name);
     }
 
-    let other_export_info = mg.get_export_info_by_id(&other_exports_info_id);
+    let other_export_info = other_exports_info_id.as_data(mg);
     let new_info = ExportInfoData::new(Some(name.clone()), Some(other_export_info));
     let new_info_id = new_info.id;
     mg.set_export_info(new_info_id, new_info);
 
-    let exports_info = mg.get_exports_info_mut_by_id(self);
+    let exports_info = self.as_exports_info_mut(mg);
     exports_info.exports.insert(name.clone(), new_info_id);
     new_info_id
   }
@@ -306,7 +318,7 @@ impl ExportsInfo {
     mg: &ModuleGraph,
     name: &Atom,
   ) -> MaybeDynamicTargetExportInfo {
-    let exports_info = mg.get_exports_info_by_id(self);
+    let exports_info = self.as_exports_info(mg);
     let redirect_id = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
     let export_info_id = exports_info.exports.get(name);
@@ -345,7 +357,7 @@ impl ExportsInfo {
   }
 
   pub fn set_has_use_info(&self, mg: &mut ModuleGraph) {
-    let exports_info = mg.get_exports_info_by_id(self);
+    let exports_info = self.as_exports_info(mg);
     let side_effects_only_info_id = exports_info.side_effects_only_info;
     let redirect_to_id = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
@@ -368,7 +380,7 @@ impl ExportsInfo {
 
   pub fn set_used_without_info(&self, mg: &mut ModuleGraph, runtime: Option<&RuntimeSpec>) -> bool {
     let mut changed = false;
-    let exports_info = mg.get_exports_info_mut_by_id(self);
+    let exports_info = self.as_exports_info_mut(mg);
     let redirect = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
     // avoid use ref and mut ref at the same time
@@ -402,7 +414,7 @@ impl ExportsInfo {
     runtime: Option<&RuntimeSpec>,
   ) -> bool {
     let mut changed = false;
-    let exports_info = mg.get_exports_info_mut_by_id(self);
+    let exports_info = self.as_exports_info_mut(mg);
     let export_info_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
     for export_info_id in export_info_id_list {
       let export_info = export_info_id.as_data_mut(mg);
@@ -420,7 +432,7 @@ impl ExportsInfo {
     runtime: Option<&RuntimeSpec>,
   ) -> bool {
     let mut changed = false;
-    let exports_info = mg.get_exports_info_by_id(self);
+    let exports_info = self.as_exports_info(mg);
     let export_info_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
     let redirect_to_id = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
@@ -456,7 +468,7 @@ impl ExportsInfo {
     mg: &mut ModuleGraph,
     runtime: Option<&RuntimeSpec>,
   ) -> bool {
-    let exports_info = mg.get_exports_info_by_id(self);
+    let exports_info = self.as_exports_info(mg);
     let side_effects_only_info_id = exports_info.side_effects_only_info;
     ExportInfoSetter::set_used_conditionally(
       side_effects_only_info_id.as_data_mut(mg),
@@ -776,7 +788,10 @@ impl ExportsInfo {
     visited.insert(*self);
     let data = self.as_exports_info(mg);
     for export_info in self.ordered_exports(mg) {
-      if export_info.has_info(mg, data.other_exports_info, runtime) {
+      let export_info_data = export_info.as_data(mg);
+      let base_info_data = data.other_exports_info.as_data(mg);
+
+      if ExportInfoGetter::has_info(export_info_data, base_info_data, runtime) {
         export_info.update_hash_with_visited(mg, hasher, compilation, runtime, visited);
       }
     }
