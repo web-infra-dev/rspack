@@ -1,5 +1,5 @@
 <picture>
-  <img alt="Rspack Banner" src="https://assets.rspack.dev/rspack/rspack-banner.png">
+  <img alt="Rspack Banner" src="https://assets.rspack.rs/rspack/rspack-banner.png">
 </picture>
 
 # @rspack/core
@@ -8,7 +8,7 @@ The fast Rust-based web bundler with webpack-compatible API.
 
 ## Documentation
 
-See <https://rspack.dev> for details.
+See <https://rspack.rs> for details.
 
 ## License
 

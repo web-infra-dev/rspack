@@ -40,7 +40,7 @@ export interface NormalModule extends Module {
 	readonly request: string;
 	readonly userRequest: string;
 	readonly rawRequest: string;
-	readonly resourceResolveData: JsResourceData | undefined;
+	readonly resourceResolveData: Readonly<JsResourceData> | undefined;
 	readonly loaders: JsLoaderItem[];
 	get matchResource(): string | undefined;
 	set matchResource(val: string | undefined);
@@ -369,6 +369,7 @@ export declare class JsModuleGraph {
 
 export declare class JsResolver {
   resolveSync(path: string, request: string): JsResourceData | false
+  resolve(path: string, request: string, callback: (err: null | Error, req?: JsResourceData) => void): void
   withOptions(raw?: RawResolveOptionsWithDependencyType | undefined | null): JsResolver
 }
 
@@ -403,6 +404,11 @@ export declare class ModuleGraphConnection {
 export declare class RawExternalItemFnCtx {
   data(): RawExternalItemFnCtxData
   getResolver(): JsResolver
+}
+
+export declare class ReadonlyResourceData {
+  get descriptionFileData(): any
+  get descriptionFilePath(): string
 }
 
 export declare class Sources {

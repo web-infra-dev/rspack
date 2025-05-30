@@ -20,7 +20,7 @@ module.exports = {
 				type: "asset/resource",
 				generator: {
 					filename: "[name][ext]",
-					publicPath: "https://test.rspack.dev/cdn/"
+					publicPath: "https://test.rspack.rs/cdn/"
 				}
 			}
 		]

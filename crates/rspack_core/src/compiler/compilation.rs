@@ -1472,6 +1472,9 @@ impl Compilation {
       } else {
         build_chunk_graph(compilation)?;
       }
+      compilation
+        .chunk_graph
+        .generate_dot(compilation, "after-code-splitting");
       logger.time_end(start);
       Ok(compilation)
     })

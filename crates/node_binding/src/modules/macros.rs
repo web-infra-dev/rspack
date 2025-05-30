@@ -10,10 +10,7 @@ macro_rules! impl_module_methods {
         use napi::bindgen_prelude::{JavaScriptClassExt, JsObjectValue, JsValue};
 
         let mut instance = self.into_instance(env)?;
-        // The returned Object's lifetime should be tied to the input Env's lifetime, not the ClassInstance itself.
-        // Fix in: https://github.com/napi-rs/napi-rs/pull/2655
-        let mut object =
-        unsafe { std::mem::transmute::<napi::bindgen_prelude::Object, napi::bindgen_prelude::Object<'static>>(instance.as_object(env)) };
+        let mut object = instance.as_object(env);
         let (_, module) = instance.module.as_ref()?;
 
         #[js_function]

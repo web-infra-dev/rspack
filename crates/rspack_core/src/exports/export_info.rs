@@ -1,6 +1,6 @@
 use std::{
   borrow::Cow,
-  collections::{hash_map::Entry, VecDeque},
+  collections::VecDeque,
   hash::Hash,
   rc::Rc,
   sync::{atomic::Ordering::Relaxed, Arc},
@@ -15,9 +15,9 @@ use serde::Serialize;
 use super::{
   ExportInfoTargetValue, ExportProvided, ExportsInfo, ExportsInfoData, FindTargetRetEnum,
   FindTargetRetValue, ResolvedExportInfoTarget, ResolvedExportInfoTargetWithCircular,
-  TerminalBinding, UnResolvedExportInfoTarget, UsageFilterFnTy, UsageState, NEXT_EXPORT_INFO_UKEY,
+  TerminalBinding, UnResolvedExportInfoTarget, UsageState, NEXT_EXPORT_INFO_UKEY,
 };
-use crate::{Compilation, DependencyId, ModuleGraph, ModuleIdentifier, Nullable, RuntimeSpec};
+use crate::{Compilation, DependencyId, ModuleGraph, ModuleIdentifier, RuntimeSpec};
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 pub struct ExportInfo(Ukey);
@@ -29,75 +29,44 @@ impl ExportInfo {
     Self(NEXT_EXPORT_INFO_UKEY.fetch_add(1, Relaxed).into())
   }
 
-  pub fn reset_provide_info(&self, mg: &mut ModuleGraph) {
-    let data = self.as_export_info_mut(mg);
-    data.provided = None;
-    data.can_mangle_provide = None;
-    data.exports_info_owned = false;
-    data.exports_info = None;
-    data.target_is_set = false;
-    data.target.clear();
-    data.terminal_binding = false;
-  }
-
   pub fn name<'a>(&self, mg: &'a ModuleGraph) -> Option<&'a Atom> {
-    self.as_export_info(mg).name.as_ref()
+    self.as_data(mg).name.as_ref()
   }
 
   pub fn provided<'a>(&self, mg: &'a ModuleGraph) -> Option<&'a ExportProvided> {
-    self.as_export_info(mg).provided.as_ref()
-  }
-
-  pub fn set_provided(&self, mg: &mut ModuleGraph, value: Option<ExportProvided>) {
-    self.as_export_info_mut(mg).provided = value;
+    self.as_data(mg).provided.as_ref()
   }
 
   pub fn can_mangle_provide(&self, mg: &ModuleGraph) -> Option<bool> {
-    self.as_export_info(mg).can_mangle_provide
-  }
-
-  pub fn set_can_mangle_provide(&self, mg: &mut ModuleGraph, value: Option<bool>) {
-    self.as_export_info_mut(mg).can_mangle_provide = value;
+    self.as_data(mg).can_mangle_provide
   }
 
   pub fn can_mangle_use(&self, mg: &ModuleGraph) -> Option<bool> {
-    self.as_export_info(mg).can_mangle_use
-  }
-
-  pub fn set_can_mangle_use(&self, mg: &mut ModuleGraph, value: Option<bool>) {
-    self.as_export_info_mut(mg).can_mangle_use = value;
+    self.as_data(mg).can_mangle_use
   }
 
   pub fn terminal_binding(&self, mg: &ModuleGraph) -> bool {
-    self.as_export_info(mg).terminal_binding
-  }
-
-  pub fn set_terminal_binding(&self, mg: &mut ModuleGraph, value: bool) {
-    self.as_export_info_mut(mg).terminal_binding = value;
+    self.as_data(mg).terminal_binding
   }
 
   pub fn exports_info_owned(&self, mg: &ModuleGraph) -> bool {
-    self.as_export_info(mg).exports_info_owned
+    self.as_data(mg).exports_info_owned
   }
 
   pub fn exports_info(&self, mg: &ModuleGraph) -> Option<ExportsInfo> {
-    self.as_export_info(mg).exports_info
+    self.as_data(mg).exports_info
   }
 
-  pub fn set_exports_info(&self, mg: &mut ModuleGraph, value: Option<ExportsInfo>) {
-    self.as_export_info_mut(mg).exports_info = value;
-  }
-
-  pub fn as_export_info<'a>(&self, mg: &'a ModuleGraph) -> &'a ExportInfoData {
+  pub fn as_data<'a>(&self, mg: &'a ModuleGraph) -> &'a ExportInfoData {
     mg.get_export_info_by_id(self)
   }
 
-  pub fn as_export_info_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ExportInfoData {
+  pub fn as_data_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ExportInfoData {
     mg.get_export_info_mut_by_id(self)
   }
 
   pub fn get_provided_info(&self, mg: &ModuleGraph) -> &'static str {
-    let export_info = self.as_export_info(mg);
+    let export_info = self.as_data(mg);
     match export_info.provided {
       Some(ExportProvided::NotProvided) => "not provided",
       Some(ExportProvided::Unknown) => "maybe provided (runtime-defined)",
@@ -107,7 +76,7 @@ impl ExportInfo {
   }
 
   pub fn get_rename_info(&self, mg: &ModuleGraph) -> Cow<str> {
-    let export_info_data = self.as_export_info(mg);
+    let export_info_data = self.as_data(mg);
 
     match (&export_info_data.used_name, &export_info_data.name) {
       (Some(used), Some(name)) if used != name => return format!("renamed to {used}").into(),
@@ -132,7 +101,7 @@ impl ExportInfo {
   }
 
   pub fn get_used_info(&self, mg: &ModuleGraph) -> Cow<str> {
-    let export_info = self.as_export_info(mg);
+    let export_info = self.as_data(mg);
     if let Some(global_used) = export_info.global_used {
       return match global_used {
         UsageState::Unused => "unused".into(),
@@ -181,7 +150,7 @@ impl ExportInfo {
   }
 
   pub fn get_used(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> UsageState {
-    let info = self.as_export_info(mg);
+    let info = self.as_data(mg);
     if !info.has_use_in_runtime_info {
       return UsageState::NoInfo;
     }
@@ -226,7 +195,7 @@ impl ExportInfo {
     fallback_name: Option<&Atom>,
     runtime: Option<&RuntimeSpec>,
   ) -> Option<Atom> {
-    let info = self.as_export_info(mg);
+    let info = self.as_data(mg);
     if info.has_use_in_runtime_info {
       if let Some(usage) = info.global_used {
         if matches!(usage, UsageState::Unused) {
@@ -256,14 +225,14 @@ impl ExportInfo {
   }
 
   pub fn create_nested_exports_info(&self, mg: &mut ModuleGraph) -> ExportsInfo {
-    let export_info = self.as_export_info(mg);
+    let export_info = self.as_data(mg);
 
     if export_info.exports_info_owned {
       return export_info
         .exports_info
         .expect("should have exports_info when exports_info is true");
     }
-    let export_info_mut = self.as_export_info_mut(mg);
+    let export_info_mut = self.as_data_mut(mg);
     export_info_mut.exports_info_owned = true;
     let other_exports_info = ExportInfoData::new(None, None);
     let side_effects_only_info = ExportInfoData::new(Some("*side effects only*".into()), None);
@@ -306,12 +275,12 @@ impl ExportInfo {
   }
 
   pub fn is_reexport(&self, mg: &ModuleGraph) -> bool {
-    let info = self.as_export_info(mg);
+    let info = self.as_data(mg);
     !info.terminal_binding && info.target_is_set && !info.target.is_empty()
   }
 
   pub fn get_terminal_binding(&self, mg: &ModuleGraph) -> Option<TerminalBinding> {
-    let info = self.as_export_info(mg);
+    let info = self.as_data(mg);
     if info.terminal_binding {
       return Some(TerminalBinding::ExportInfo(*self));
     }
@@ -323,70 +292,6 @@ impl ExportInfo {
     exports_info
       .get_read_only_export_info_recursive(mg, &export)
       .map(TerminalBinding::ExportInfo)
-  }
-
-  pub fn unset_target(&self, mg: &mut ModuleGraph, key: &DependencyId) -> bool {
-    let info = self.as_export_info_mut(mg);
-    if !info.target_is_set {
-      false
-    } else {
-      info.target.remove(&Some(*key)).is_some()
-    }
-  }
-
-  pub fn set_target(
-    &self,
-    mg: &mut ModuleGraph,
-    key: Option<DependencyId>,
-    dependency: Option<DependencyId>,
-    export_name: Option<&Nullable<Vec<Atom>>>,
-    priority: Option<u8>,
-  ) -> bool {
-    let export_name = match export_name {
-      Some(Nullable::Null) => None,
-      Some(Nullable::Value(vec)) => Some(vec),
-      None => None,
-    };
-    let normalized_priority = priority.unwrap_or(0);
-    let info = self.as_export_info_mut(mg);
-    if !info.target_is_set {
-      info.target.insert(
-        key,
-        ExportInfoTargetValue {
-          dependency,
-          export: export_name.cloned(),
-          priority: normalized_priority,
-        },
-      );
-      info.target_is_set = true;
-      return true;
-    }
-    let Some(old_target) = info.target.get_mut(&key) else {
-      if dependency.is_none() {
-        return false;
-      }
-
-      info.target.insert(
-        key,
-        ExportInfoTargetValue {
-          dependency,
-          export: export_name.cloned(),
-          priority: normalized_priority,
-        },
-      );
-      return true;
-    };
-    if old_target.dependency != dependency
-      || old_target.priority != normalized_priority
-      || old_target.export.as_ref() != export_name
-    {
-      old_target.export = export_name.cloned();
-      old_target.priority = normalized_priority;
-      old_target.dependency = dependency;
-      return true;
-    }
-
-    false
   }
 
   pub fn get_target(&self, mg: &ModuleGraph) -> Option<ResolvedExportInfoTarget> {
@@ -411,7 +316,7 @@ impl ExportInfo {
     resolve_filter: ResolveFilterFnTy,
     already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
   ) -> Option<ResolvedExportInfoTargetWithCircular> {
-    let data = self.as_export_info(mg);
+    let data = self.as_data(mg);
     if !data.target_is_set || data.target.is_empty() {
       return None;
     }
@@ -427,149 +332,11 @@ impl ExportInfo {
     &self,
     mg: &'a ModuleGraph,
   ) -> Cow<'a, HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
-    self.as_export_info(mg).get_max_target()
-  }
-
-  pub fn set_used_without_info(&self, mg: &mut ModuleGraph, runtime: Option<&RuntimeSpec>) -> bool {
-    let mut changed = false;
-    let flag = self.set_used(mg, UsageState::NoInfo, runtime);
-    changed |= flag;
-    let export_info = mg.get_export_info_mut_by_id(self);
-    if !matches!(export_info.can_mangle_use, Some(false)) {
-      export_info.can_mangle_use = Some(false);
-      changed = true;
-    }
-    changed
-  }
-
-  pub fn set_used(
-    &self,
-    mg: &mut ModuleGraph,
-    new_value: UsageState,
-    runtime: Option<&RuntimeSpec>,
-  ) -> bool {
-    if let Some(runtime) = runtime {
-      let export_info_mut = mg.get_export_info_mut_by_id(self);
-      let used_in_runtime = export_info_mut.used_in_runtime.get_or_insert_default();
-      let mut changed = false;
-      for &k in runtime.iter() {
-        match used_in_runtime.entry(k) {
-          Entry::Occupied(mut occ) => match (&new_value, occ.get()) {
-            (new, _) if new == &UsageState::Unused => {
-              occ.remove();
-              changed = true;
-            }
-            (new, old) if new != old => {
-              occ.insert(new_value);
-              changed = true;
-            }
-            (_new, _old) => {}
-          },
-          Entry::Vacant(vac) => {
-            if new_value != UsageState::Unused {
-              vac.insert(new_value);
-              changed = true;
-            }
-          }
-        }
-      }
-      if used_in_runtime.is_empty() {
-        export_info_mut.used_in_runtime = None;
-        changed = true;
-      }
-      return changed;
-    } else {
-      let export_info = mg.get_export_info_mut_by_id(self);
-      if export_info.global_used != Some(new_value) {
-        export_info.global_used = Some(new_value);
-        return true;
-      }
-    }
-    false
-  }
-
-  pub fn set_used_conditionally(
-    &self,
-    mg: &mut ModuleGraph,
-    condition: UsageFilterFnTy<UsageState>,
-    new_value: UsageState,
-    runtime: Option<&RuntimeSpec>,
-  ) -> bool {
-    if let Some(runtime) = runtime {
-      let export_info_mut = mg.get_export_info_mut_by_id(self);
-      let used_in_runtime = export_info_mut.used_in_runtime.get_or_insert_default();
-      let mut changed = false;
-
-      for &k in runtime.iter() {
-        match used_in_runtime.entry(k) {
-          Entry::Occupied(mut occ) => match (&new_value, occ.get()) {
-            (new, old) if condition(old) && new == &UsageState::Unused => {
-              occ.remove();
-              changed = true;
-            }
-            (new, old) if condition(old) && new != old => {
-              occ.insert(new_value);
-              changed = true;
-            }
-            _ => {}
-          },
-          Entry::Vacant(vac) => {
-            if new_value != UsageState::Unused && condition(&UsageState::Unused) {
-              vac.insert(new_value);
-              changed = true;
-            }
-          }
-        }
-      }
-      if used_in_runtime.is_empty() {
-        export_info_mut.used_in_runtime = None;
-        changed = true;
-      }
-      return changed;
-    } else {
-      let export_info = mg.get_export_info_mut_by_id(self);
-      if let Some(global_used) = export_info.global_used {
-        if global_used != new_value && condition(&global_used) {
-          export_info.global_used = Some(new_value);
-          return true;
-        }
-      } else {
-        export_info.global_used = Some(new_value);
-        return true;
-      }
-    }
-    false
-  }
-
-  pub fn set_used_in_unknown_way(
-    &self,
-    mg: &mut ModuleGraph,
-    runtime: Option<&RuntimeSpec>,
-  ) -> bool {
-    let mut changed = false;
-
-    if self.set_used_conditionally(
-      mg,
-      Box::new(|value| value < &UsageState::Unknown),
-      UsageState::Unknown,
-      runtime,
-    ) {
-      changed = true;
-    }
-    let export_info = mg.get_export_info_mut_by_id(self);
-    if export_info.can_mangle_use != Some(false) {
-      export_info.can_mangle_use = Some(false);
-      changed = true;
-    }
-    changed
+    self.as_data(mg).get_max_target()
   }
 
   pub fn has_used_name(&self, mg: &ModuleGraph) -> bool {
-    self.as_export_info(mg).used_name.is_some()
-  }
-
-  pub fn set_used_name(&self, mg: &mut ModuleGraph, name: Atom) {
-    self.as_export_info_mut(mg).used_name = Some(name)
+    self.as_data(mg).used_name.is_some()
   }
 
   pub fn find_target(
@@ -587,12 +354,12 @@ impl ExportInfo {
     visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
   ) -> FindTargetRetEnum {
     self
-      .as_export_info(mg)
+      .as_data(mg)
       .find_target_impl(mg, valid_target_module_filter, visited)
   }
 
   pub fn can_mangle(&self, mg: &ModuleGraph) -> Option<bool> {
-    let info = self.as_export_info(mg);
+    let info = self.as_data(mg);
     match info.can_mangle_provide {
       Some(true) => info.can_mangle_use,
       Some(false) => Some(false),
@@ -612,7 +379,7 @@ impl ExportInfo {
     base_info: ExportInfo,
     runtime: Option<&RuntimeSpec>,
   ) -> bool {
-    let data = self.as_export_info(mg);
+    let data = self.as_data(mg);
     data.used_name.is_some()
       || data.provided.is_some()
       || data.terminal_binding
@@ -627,7 +394,7 @@ impl ExportInfo {
     runtime: Option<&RuntimeSpec>,
     visited: &mut UkeySet<ExportsInfo>,
   ) {
-    let data = self.as_export_info(mg);
+    let data = self.as_data(mg);
     if let Some(used_name) = &data.used_name {
       used_name.dyn_hash(hasher);
     } else {
@@ -1025,7 +792,7 @@ impl ExportInfo {
     dependency: DependencyId,
     target_export: Option<Vec<Atom>>,
   ) {
-    let export_info_mut = self.as_export_info_mut(mg);
+    let export_info_mut = self.as_data_mut(mg);
     export_info_mut.target.clear();
     export_info_mut.target.insert(
       None,

@@ -12,7 +12,9 @@ pub struct EnsureChunkConditionsPlugin;
 async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   let logger = compilation.get_logger(self.name());
   let start = logger.time("ensure chunk conditions");
-
+  compilation
+    .chunk_graph
+    .generate_dot(compilation, "before-ensure-chunk-conditions");
   let mut source_module_chunks = HashMap::default();
   compilation
     .get_module_graph()

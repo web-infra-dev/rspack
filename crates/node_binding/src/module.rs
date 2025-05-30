@@ -55,10 +55,7 @@ pub struct Module {
 impl Module {
   pub(crate) fn custom_into_instance(self, env: &Env) -> napi::Result<ClassInstance<Self>> {
     let mut instance = self.into_instance(env)?;
-    // The returned Object's lifetime should be tied to the input Env's lifetime, not the ClassInstance itself.
-    // Fix in: https://github.com/napi-rs/napi-rs/pull/2655
-    let mut object =
-      unsafe { std::mem::transmute::<Object, Object<'static>>(instance.as_object(env)) };
+    let mut object = instance.as_object(env);
     let (_, module) = (*instance).as_ref()?;
 
     #[js_function]
