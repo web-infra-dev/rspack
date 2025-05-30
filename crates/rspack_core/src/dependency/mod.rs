@@ -11,6 +11,7 @@ mod dependency_type;
 mod entry;
 mod factorize_info;
 mod loader_import;
+mod loader_load;
 mod module_dependency;
 mod runtime_requirements_dependency;
 mod runtime_template;
@@ -31,7 +32,8 @@ pub use dependency_trait::*;
 pub use dependency_type::DependencyType;
 pub use entry::*;
 pub use factorize_info::FactorizeInfo;
-pub use loader_import::*;
+pub use loader_import::LoaderImportDependency;
+pub use loader_load::LoaderLoadDependency;
 pub use module_dependency::*;
 pub use runtime_requirements_dependency::{
   RuntimeRequirementsDependency, RuntimeRequirementsDependencyTemplate,

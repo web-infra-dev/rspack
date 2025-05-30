@@ -77,7 +77,7 @@ impl Task<MakeTaskContext> for BuildTask {
 }
 
 #[derive(Debug)]
-struct BuildResultTask {
+pub struct BuildResultTask {
   pub module: Box<dyn Module>,
   pub build_result: Box<BuildResult>,
   pub plugin_driver: SharedPluginDriver,

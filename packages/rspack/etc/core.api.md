@@ -4326,6 +4326,7 @@ export interface LoaderContext<OptionsType = {}> {
     importModule<T = any>(request: string, options?: ImportModuleOptions): Promise<T>;
     loaderIndex: number;
     loaders: LoaderObject[];
+    loadModule(request: string, callback: (err?: null | Error, source?: string | Buffer, sourceMap?: string, module?: Module) => void): void;
     mode?: Mode;
     // @deprecated (undocumented)
     _module: Module;
