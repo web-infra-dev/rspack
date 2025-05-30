@@ -75,7 +75,7 @@ fn print_exports_info_to_source<F>(
     let usage_info = ExportInfoGetter::get_used_info(info);
     let rename_info = ExportInfoGetter::get_rename_info(info);
 
-    let target_desc = match export_info.get_target(module_graph) {
+    let target_desc = match info.get_target(module_graph) {
       Some(resolve_target) => {
         let target_module = request_shortener(&resolve_target.module);
         match resolve_target.export {
@@ -117,7 +117,7 @@ fn print_exports_info_to_source<F>(
     let other_exports_info = exports_info_id.other_exports_info(module_graph);
     let other_exports_info_data = other_exports_info.as_data(module_graph);
 
-    let target = other_exports_info.get_target(module_graph);
+    let target = other_exports_info_data.get_target(module_graph);
 
     if target.is_some()
       || !matches!(
