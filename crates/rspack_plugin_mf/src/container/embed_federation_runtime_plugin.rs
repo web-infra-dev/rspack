@@ -4,7 +4,7 @@ use std::{
 };
 
 use rspack_core::{
-  ApplyContext, ChunkGraph, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationParams, CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions,
   DependencyId, ModuleIdentifier, Plugin, PluginContext, RuntimeGlobals,
 };
@@ -20,11 +20,6 @@ use super::{
   federation_modules_plugin::{AddFederationRuntimeDependencyHook, FederationModulesPlugin},
   federation_runtime_dependency::FederationRuntimeDependency,
 };
-
-#[derive(Debug, Default)]
-struct EmbedFederationRuntimePluginOptions {
-  // Currently no options, but can be extended later
-}
 
 struct FederationRuntimeDependencyCollector {
   collected_dependency_ids: Arc<Mutex<HashSet<DependencyId>>>,
@@ -45,17 +40,12 @@ impl AddFederationRuntimeDependencyHook for FederationRuntimeDependencyCollector
 #[plugin]
 #[derive(Debug)]
 pub struct EmbedFederationRuntimePlugin {
-  #[allow(dead_code)]
-  options: EmbedFederationRuntimePluginOptions,
   collected_dependency_ids: Arc<Mutex<HashSet<DependencyId>>>,
 }
 
 impl EmbedFederationRuntimePlugin {
   pub fn new() -> Self {
-    Self::new_inner(
-      EmbedFederationRuntimePluginOptions::default(),
-      Arc::new(Mutex::new(HashSet::new())),
-    )
+    Self::new_inner(Arc::new(Mutex::new(HashSet::new())))
   }
 }
 
