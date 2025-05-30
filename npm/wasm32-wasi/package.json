@@ -5,7 +5,7 @@
   "description": "Node binding for rspack",
   "main": "rspack.wasi.cjs",
   "browser": "rspack.wasi-browser.js",
-  "homepage": "https://rspack.dev",
+  "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {
     "type": "git",

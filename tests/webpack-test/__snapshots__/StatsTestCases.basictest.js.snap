@@ -1307,7 +1307,7 @@ WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset
   │       warning.pro-xxx.js
 
 WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
-  │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
+  │ For more info visit https://rspack.rs/guide/optimization/code-splitting
 
 Rspack x.x.x compiled with 3 warnings in X.23
 
@@ -1322,7 +1322,7 @@ WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset
   │       warning.pro-xxx.js
 
 WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
-  │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
+  │ For more info visit https://rspack.rs/guide/optimization/code-splitting
 
 Rspack x.x.x compiled with 3 warnings in X.23
 
@@ -1353,7 +1353,7 @@ WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset
   │       warning.pro-xxx.js
 
 WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
-  │ For more info visit https://www.rspack.dev/guide/optimization/code-splitting
+  │ For more info visit https://rspack.rs/guide/optimization/code-splitting
 
 Rspack x.x.x compiled with 3 warnings in X.23"
 `;
@@ -1429,7 +1429,7 @@ Entrypoint <CLR=BOLD>sec</CLR> xx KiB = <CLR=32,BOLD>sec.js</CLR>
 
 <CLR=33,BOLD>WARNING</CLR> in <CLR=33>⚠<CLR=0> Rspack performance recommendations:
   <CLR=33>│<CLR=0> You can limit the size of your bundles by using import() to lazy load some parts of your application.
-  <CLR=33>│<CLR=0> For more info visit https://www.rspack.dev/guide/optimization/code-splitting
+  <CLR=33>│<CLR=0> For more info visit https://rspack.rs/guide/optimization/code-splitting
 <CLR=0>
 
 Rspack x.x.x compiled with <CLR=33,BOLD>3 warnings</CLR> in X s"
@@ -1477,7 +1477,7 @@ Entrypoint <CLR=BOLD>sec</CLR> <CLR=33,BOLD>[big]</CLR> xx KiB = <CLR=32,BOLD>se
 
 <CLR=31,BOLD>ERROR</CLR> in <CLR=31>×<CLR=0> Rspack performance recommendations:
   <CLR=31>│<CLR=0> You can limit the size of your bundles by using import() to lazy load some parts of your application.
-  <CLR=31>│<CLR=0> For more info visit https://www.rspack.dev/guide/optimization/code-splitting
+  <CLR=31>│<CLR=0> For more info visit https://rspack.rs/guide/optimization/code-splitting
 <CLR=0>
 
 Rspack x.x.x compiled with <CLR=31,BOLD>3 errors</CLR> in X s"

@@ -11,10 +11,10 @@ it("verify es6 (esmodule) bundle source map", async () => {
 	const source = fs.readFileSync(__filename + ".map", "utf-8");
 	const map = JSON.parse(source);
 	expect(map.sources).toEqual([
-		"webpack:///../../../../dist/helper/util/checkSourceMap.js",
 		"webpack:///./b-dir/c-dir/c.js",
 		"webpack:///./b-dir/b.js",
 		"webpack:///./a.js",
+		"webpack:///../../../../dist/helper/util/checkSourceMap.js",
 		"webpack:///./index.js",
 	]);
 	expect(map.file).toEqual("bundle0.js");

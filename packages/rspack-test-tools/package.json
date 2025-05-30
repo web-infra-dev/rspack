@@ -34,7 +34,7 @@
     "access": "public",
     "provenance": true
   },
-  "homepage": "https://rspack.dev",
+  "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {
     "type": "git",

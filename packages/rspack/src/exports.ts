@@ -29,6 +29,7 @@ export { ContextModule } from "./ContextModule";
 export { ConcatenatedModule } from "./ConcatenatedModule";
 export { ExternalModule } from "./ExternalModule";
 export type { NormalModuleFactory } from "./NormalModuleFactory";
+export type { default as ModuleGraph } from "./ModuleGraph";
 export { RuntimeGlobals } from "./RuntimeGlobals";
 export type {
 	StatsAsset,

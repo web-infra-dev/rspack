@@ -38,7 +38,7 @@
   "engines": {
     "node": ">=16.0.0"
   },
-  "homepage": "https://rspack.dev",
+  "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {
     "type": "git",

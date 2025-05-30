@@ -8,7 +8,7 @@ use rspack_cacheable::{
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
-  process_export_info, property_access, property_name, string_of_used_name, AsContextDependency,
+  process_export_info, property_access, property_name, AsContextDependency,
   ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
@@ -515,7 +515,7 @@ impl ESMExportImportedSpecifierDependency {
           None,
           &[mode.name.expect("should have name")],
         );
-        let key = string_of_used_name(used_name.as_ref());
+        let key = render_used_name(used_name.as_ref());
 
         let init_fragment = self
           .get_reexport_fragment(
@@ -534,7 +534,7 @@ impl ESMExportImportedSpecifierDependency {
           None,
           &[mode.name.expect("should have name")],
         );
-        let key = string_of_used_name(used_name.as_ref());
+        let key = render_used_name(used_name.as_ref());
         let init_fragment = self
           .get_reexport_fragment(
             ctxt,
@@ -552,7 +552,7 @@ impl ESMExportImportedSpecifierDependency {
           None,
           &[mode.name.expect("should have name")],
         );
-        let key = string_of_used_name(used_name.as_ref());
+        let key = render_used_name(used_name.as_ref());
 
         let init_fragment = self
           .get_reexport_fragment(
@@ -572,7 +572,7 @@ impl ESMExportImportedSpecifierDependency {
           None,
           &[mode.name.expect("should have name")],
         );
-        let key = string_of_used_name(used_name.as_ref());
+        let key = render_used_name(used_name.as_ref());
         self.get_reexport_fake_namespace_object_fragments(ctxt, key, &import_var, mode.fake_type);
       }
       ExportModeType::ReexportUndefined => {
@@ -581,7 +581,7 @@ impl ESMExportImportedSpecifierDependency {
           None,
           &[mode.name.expect("should have name")],
         );
-        let key = string_of_used_name(used_name.as_ref());
+        let key = render_used_name(used_name.as_ref());
 
         let init_fragment = self
           .get_reexport_fragment(
@@ -614,7 +614,7 @@ impl ESMExportImportedSpecifierDependency {
           let used_name =
             mg.get_exports_info(&module_identifier)
               .get_used_name(mg, None, &[name.clone()]);
-          let key = string_of_used_name(used_name.as_ref());
+          let key = render_used_name(used_name.as_ref());
 
           if checked {
             let key =
@@ -1537,5 +1537,19 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
       esm_import_dependency_apply(dep, dep.source_order, code_generatable_context);
       dep.add_export_fragments(code_generatable_context, mode);
     }
+  }
+}
+
+pub fn render_used_name(used: Option<&UsedName>) -> String {
+  match used {
+    Some(UsedName::Normal(value_key)) => {
+      if value_key.len() == 1 {
+        return value_key[0].to_string();
+      }
+      property_access(value_key, 0)
+        .trim_start_matches('.')
+        .to_string()
+    }
+    None => "/* unused export */ undefined".to_string(),
   }
 }

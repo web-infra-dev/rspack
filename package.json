@@ -47,7 +47,7 @@
     "api-extractor:ci": "pnpm --filter \"@rspack/*\" api-extractor:ci",
     "bench:ci": "cargo codspeed run && pnpm --filter bench run bench"
   },
-  "homepage": "https://rspack.dev",
+  "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {
     "type": "git",
