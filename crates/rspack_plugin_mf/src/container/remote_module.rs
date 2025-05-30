@@ -8,15 +8,15 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   ChunkGraph, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
-  DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleGraph, ModuleIdentifier, ModuleType,
-  RuntimeSpec, SourceType,
+  Dependency, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleGraph, ModuleIdentifier,
+  ModuleType, RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::source_map::SourceMapKind;
 
 use super::{
-  fallback_dependency::FallbackDependency,
+  fallback_dependency::FallbackDependency, federation_modules_plugin::FederationModulesPlugin,
   remote_to_external_dependency::RemoteToExternalDependency,
 };
 use crate::{
@@ -142,15 +142,38 @@ impl Module for RemoteModule {
 
   async fn build(
     &mut self,
-    _build_context: BuildContext,
-    _: Option<&Compilation>,
+    build_context: BuildContext,
+    _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let mut dependencies: Vec<BoxDependency> = Vec::new();
+
     if self.external_requests.len() == 1 {
       let dep = RemoteToExternalDependency::new(self.external_requests[0].clone());
+
+      // Call federation hooks here using the BuildContext - this runs before optimize_chunks!
+      let hooks =
+        FederationModulesPlugin::get_compilation_hooks_by_id(build_context.compilation_id);
+      hooks
+        .add_remote_dependency
+        .lock()
+        .await
+        .call(&dep as &dyn Dependency)
+        .await?;
+
       dependencies.push(Box::new(dep));
     } else {
       let dep = FallbackDependency::new(self.external_requests.clone());
+
+      // Call federation hooks here using the BuildContext - this runs before optimize_chunks!
+      let hooks =
+        FederationModulesPlugin::get_compilation_hooks_by_id(build_context.compilation_id);
+      hooks
+        .add_remote_dependency
+        .lock()
+        .await
+        .call(&dep as &dyn Dependency)
+        .await?;
+
       dependencies.push(Box::new(dep));
     }
 
