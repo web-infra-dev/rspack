@@ -74,8 +74,12 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 
   // Call federation hook for dependency tracking
   let hooks = FederationModulesPlugin::get_compilation_hooks(compilation);
-  let hook = hooks.add_container_entry_dependency.lock().await;
-  let _ = hook.call(&dep).await;
+  hooks
+    .add_container_entry_dependency
+    .lock()
+    .await
+    .call(&dep)
+    .await?;
 
   compilation
     .add_entry(

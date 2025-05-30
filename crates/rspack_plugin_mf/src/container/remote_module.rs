@@ -153,8 +153,12 @@ impl Module for RemoteModule {
       // Call federation hooks here using the BuildContext - this runs before optimize_chunks!
       let hooks =
         FederationModulesPlugin::get_compilation_hooks_by_id(build_context.compilation_id);
-      let hook = hooks.add_remote_dependency.lock().await;
-      let _ = hook.call(&dep as &dyn Dependency).await;
+      hooks
+        .add_remote_dependency
+        .lock()
+        .await
+        .call(&dep as &dyn Dependency)
+        .await?;
 
       dependencies.push(Box::new(dep));
     } else {
@@ -163,8 +167,12 @@ impl Module for RemoteModule {
       // Call federation hooks here using the BuildContext - this runs before optimize_chunks!
       let hooks =
         FederationModulesPlugin::get_compilation_hooks_by_id(build_context.compilation_id);
-      let hook = hooks.add_remote_dependency.lock().await;
-      let _ = hook.call(&dep as &dyn Dependency).await;
+      hooks
+        .add_remote_dependency
+        .lock()
+        .await
+        .call(&dep as &dyn Dependency)
+        .await?;
 
       dependencies.push(Box::new(dep));
     }
