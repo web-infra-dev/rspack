@@ -1,0 +1,54 @@
+name: Reusable Release
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        required: true
+        type: string
+      runner: # Runner labels
+        required: true
+        type: string
+      profile: # Rust profile, "ci" or "production" or "profiling"
+        default: "ci"
+        required: false
+        type: string
+      test: # Run tests?
+        type: boolean
+        required: false
+        default: false
+      bench: # Run benchmarks?
+        type: boolean
+        required: false
+        default: false
+      ref: # Git reference to checkout
+        required: false
+        type: string
+
+permissions:
+  # Allow commenting on issues
+  issues: write
+
+jobs:
+  build:
+    uses: ./.github/workflows/reusable-build-build.yml
+    with:
+      target: ${{ inputs.target }}
+      runner: ${{ inputs.runner }}
+      profile: ${{ inputs.profile }}
+      ref: ${{ inputs.ref }}
+  test:
+    if: inputs.test
+    needs: build
+    uses: ./.github/workflows/reusable-build-test.yml
+    with:
+      target: ${{ inputs.target }}
+      runner: ${{ inputs.runner }}
+      ref: ${{ inputs.ref }}
+  bench:
+    uses: ./.github/workflows/reusable-build-bench.yml
+    if: inputs.bench
+    with:
+      target: ${{ inputs.target }}
+      runner: '"ubuntu-22.04"'
+      ref: ${{ inputs.ref }}

@@ -100,10 +100,20 @@ jobs:
       - name: Resolve dependencies for bindings
         run: pnpm install --no-frozen-lockfile
 
-      - name: Release
+      - name: Release Canary
+        if: ${{ inputs.profile != 'debug' }}
         run: |
           ./x version snapshot
           pnpm run build:js:canary
           ./x publish snapshot --tag canary
+        env:
+          NPM_TOKEN: ${{ secrets.RSPACK_CANARY_RELEASE_TOKEN }}
+
+      - name: Release Debug
+        if: ${{ inputs.profile == 'debug' }}
+        run: |
+          pnpm run build:js
+          ./x version debug
+          ./x publish stable --dry-run --tag latest
         env:
           NPM_TOKEN: ${{ secrets.RSPACK_CANARY_RELEASE_TOKEN }}
