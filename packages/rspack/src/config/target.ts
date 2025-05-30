@@ -140,12 +140,10 @@ const TARGETS: Array<
 		"Resolve features from browserslist. Will resolve browserslist config automatically. Only browser or node queries are supported (electron is not supported). Examples: 'browserslist:modern' to use 'modern' environment from browserslist config",
 		/^browserslist(?::(.+))?$/,
 		(rest, context) => {
-			const browsers = binding.loadBrowserslist(
-				rest ? rest.trim() : null,
-				context
-			);
+			const inlineQuery = rest ? rest.trim() : null;
+			const browsers = binding.loadBrowserslist(inlineQuery, context);
 
-			if (!browsers || !hasBrowserslistConfig(context)) {
+			if (!browsers || (!inlineQuery && !hasBrowserslistConfig(context))) {
 				throw new Error(`No browserslist config found to handle the 'browserslist' target.
 See https://github.com/browserslist/browserslist#queries for possible ways to provide a config.
 The recommended way is to add a 'browserslist' key to your package.json and list supported browsers (resp. node.js versions).
