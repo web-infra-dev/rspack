@@ -8,9 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import type { JsStatsChunk as Chunk } from "@rspack/binding";
-
-import type { ChunkGroup } from "../ChunkGroup";
+import type { JsStatsChunk as Chunk, ChunkGroup } from "@rspack/binding";
 
 export type Comparator = <T>(arg0: T, arg1: T) => -1 | 0 | 1;
 

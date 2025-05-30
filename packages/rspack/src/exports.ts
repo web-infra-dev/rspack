@@ -20,7 +20,7 @@ import { RspackOptionsApply } from "./rspackOptionsApply";
 export { RspackOptionsApply, RspackOptionsApply as WebpackOptionsApply };
 
 export type { Chunk } from "./Chunk";
-export type { ChunkGroup } from "./ChunkGroup";
+export type { ChunkGroup } from "@rspack/binding";
 export type { ResolveData, ResourceDataWithData } from "./Module";
 export { MultiStats } from "./MultiStats";
 export { Module } from "./Module";
