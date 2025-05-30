@@ -15,7 +15,7 @@ it('should load the component from container', () => {
 
 it('should have correct __webpack_require__.x distribution in entry chunks', () => {
   const distPath = __dirname;
-  const isESM = distPath.includes('/module');
+  const isESM = distPath.includes('/module') || distPath.includes('\\module');
   const ext = isESM ? '.mjs' : '.js';
   
   const countInFile = (filename, pattern) => {
@@ -31,7 +31,7 @@ it('should have correct __webpack_require__.x distribution in entry chunks', () 
 
 it('should have correct __webpack_require__.x distribution in runtime chunks', () => {
   const distPath = __dirname;
-  const isESM = distPath.includes('/module');
+  const isESM = distPath.includes('/module') || distPath.includes('\\module');
   const ext = isESM ? '.mjs' : '.js';
   
   const countInFile = (filename, pattern) => {
@@ -47,7 +47,7 @@ it('should have correct __webpack_require__.x distribution in runtime chunks', (
 
 it('should have correct __webpack_require__.x distribution in Module Federation container', () => {
   const distPath = __dirname;
-  const isESM = distPath.includes('/module');
+  const isESM = distPath.includes('/module') || distPath.includes('\\module');
   const ext = isESM ? '.mjs' : '.js';
   
   const countInFile = (filename, pattern) => {
@@ -62,7 +62,7 @@ it('should have correct __webpack_require__.x distribution in Module Federation 
 
 it('should have correct federation runtime distribution', () => {
   const distPath = __dirname;
-  const isESM = distPath.includes('/module');
+  const isESM = distPath.includes('/module') || distPath.includes('\\module');
   const ext = isESM ? '.mjs' : '.js';
   
   const countInFile = (filename, pattern) => {
