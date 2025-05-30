@@ -4,16 +4,27 @@
 //! across different types of chunks in the compilation. It ensures that federation runtime is
 //! properly initialized before any federated modules are executed.
 //!
-//! ## Key Responsibilities:
-//! - **Dependency Collection**: Collects federation runtime dependencies via hooks
-//! - **Runtime Requirements**: Adds STARTUP runtime requirements to federation-enabled chunks
-//! - **Runtime Module Injection**: Injects EmbedFederationRuntimeModule into runtime chunks
-//! - **Startup Call Management**: Handles startup call injection for entry chunks that delegate to runtime chunks
+//! ## What Gets Added to Different Chunk Types:
 //!
-//! ## Chunk Handling Strategy:
-//! - **Runtime chunks with entry modules**: JavaScript plugin handles startup (no interference)
-//! - **Entry chunks delegating to runtime**: Adds explicit startup calls for federation initialization
-//! - **Non-federation chunks**: Skipped to avoid unnecessary overhead
+//! ### Runtime Chunks:
+//! - **EmbedFederationRuntimeModule**: Injected into all runtime chunks that have federation dependencies
+//! - **STARTUP Runtime Requirement**: Added to enable the startup wrapper functionality
+//! - **Purpose**: The runtime module generates an "oldStartup wrapper" that ensures federation modules execute first
+//!
+//! ### Entry Chunks (Delegating to Runtime):
+//! - **Explicit Startup Calls**: Injected via `render_startup` hook when chunk delegates runtime to another chunk
+//! - **STARTUP Runtime Requirement**: Added to signal federation dependency presence
+//! - **Purpose**: Ensures federation runtime initialization happens in the delegated runtime chunk
+//!
+//! ### Entry Chunks (With Own Runtime):
+//! - **STARTUP Runtime Requirement**: Added to enable federation functionality
+//! - **No Interference**: JavaScript plugin handles startup calls naturally, so no additional injection needed
+//! - **Purpose**: Leverages existing startup mechanism without conflicts
+//!
+//! ## Activation Conditions:
+//! - Plugin only activates when federation runtime dependencies are present
+//! - Skips "build time chunk" to avoid development-only chunks
+//! - Only processes chunks that are federation-enabled (runtime OR entry modules present)
 //!
 //! ## Hook Integration:
 //! - Taps into `AddFederationRuntimeDependencyHook` to collect dependencies
@@ -80,20 +91,27 @@ async fn additional_chunk_runtime_requirements_tree(
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
-  // Skip build time chunks
+  // Skip build time chunks - these are development-only and don't need federation runtime
   if chunk.name() == Some("build time chunk") {
     return Ok(());
   }
 
-  // Add STARTUP requirement to runtime chunks OR application chunks with entry modules
+  // Determine if this chunk needs federation runtime support
   let has_runtime = chunk.has_runtime(&compilation.chunk_group_by_ukey);
   let has_entry_modules = compilation
     .chunk_graph
     .get_number_of_entry_modules(chunk_ukey)
     > 0;
+
+  // Federation is enabled for:
+  // 1. Runtime chunks (need to host the federation runtime module)
+  // 2. Entry chunks (need startup calls for federation initialization)
   let is_enabled = has_runtime || has_entry_modules;
 
   if is_enabled {
+    // Add STARTUP requirement to enable federation runtime initialization
+    // - For runtime chunks: enables EmbedFederationRuntimeModule injection
+    // - For entry chunks: signals need for federation startup handling
     runtime_requirements.insert(RuntimeGlobals::STARTUP);
   }
 
@@ -111,14 +129,17 @@ async fn runtime_requirement_in_tree(
 ) -> Result<Option<()>> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
-  // Skip build time chunks
+  // Skip build time chunks - these are development-only and don't need federation runtime
   if chunk.name() == Some("build time chunk") {
     return Ok(None);
   }
 
-  // Only add EmbedFederationRuntimeModule to runtime chunks
+  // Only inject EmbedFederationRuntimeModule into runtime chunks
+  // Runtime chunks are responsible for hosting the federation initialization logic
   let has_runtime = chunk.has_runtime(&compilation.chunk_group_by_ukey);
   if has_runtime {
+    // Collect current snapshot of federation dependencies
+    // This ensures the runtime module has access to all federation deps discovered so far
     let collected_ids_snapshot = self
       .collected_dependency_ids
       .lock()
@@ -127,10 +148,14 @@ async fn runtime_requirement_in_tree(
       .cloned()
       .collect::<Vec<DependencyId>>();
 
+    // Create runtime module options with collected dependencies
     let emro = EmbedFederationRuntimeModuleOptions {
       collected_dependency_ids: collected_ids_snapshot,
     };
 
+    // Inject EmbedFederationRuntimeModule into this runtime chunk
+    // This module will generate the "oldStartup wrapper" code that ensures
+    // federation runtime modules execute before any other modules
     compilation.add_runtime_module(
       chunk_ukey,
       Box::new(EmbedFederationRuntimeModule::new(emro)),
@@ -175,12 +200,13 @@ async fn render_startup(
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
-  // Skip build time chunks
+  // Skip build time chunks - these are development-only and don't need federation runtime
   if chunk.name() == Some("build time chunk") {
     return Ok(());
   }
 
-  // Check if this chunk needs federation runtime initialization
+  // Only process chunks that have federation dependencies
+  // No point in adding startup calls if there's no federation runtime to initialize
   let collected_deps = self
     .collected_dependency_ids
     .lock()
@@ -200,20 +226,22 @@ async fn render_startup(
     .get_number_of_entry_modules(chunk_ukey)
     > 0;
 
-  // For chunks with both runtime and entry modules (like container chunk):
-  // The JavaScript plugin already handles the startup call in its render_startup logic.
-  // We should not interfere.
+  // SCENARIO 1: Runtime chunks with entry modules (e.g., container chunks)
+  // The JavaScript plugin already handles startup calls in its render_startup logic.
+  // Our EmbedFederationRuntimeModule will wrap the startup function, so we don't interfere.
   if has_runtime && has_entry_modules {
     return Ok(());
   }
 
-  // For entry chunks that delegate their runtime to other chunks:
-  // These chunks need the startup call to ensure federation runtime gets initialized
-  // in the delegated runtime chunk.
+  // SCENARIO 2: Entry chunks that delegate their runtime to other chunks
+  // These chunks need explicit startup calls to trigger federation initialization
+  // in their delegated runtime chunks.
   if !has_runtime && has_entry_modules {
     let mut startup_with_call = ConcatSource::default();
 
     // Add runtime startup call at the beginning to ensure federation initialization
+    // This call will execute in the delegated runtime chunk where EmbedFederationRuntimeModule
+    // has wrapped the startup function with federation runtime initialization
     startup_with_call.add(RawStringSource::from(
       "\n// Federation runtime initialization call\n",
     ));
@@ -222,11 +250,14 @@ async fn render_startup(
       RuntimeGlobals::STARTUP.name()
     )));
 
-    // Add the original startup source
+    // Add the original startup source after the federation call
     startup_with_call.add(render_source.source.clone());
 
     render_source.source = startup_with_call.boxed();
   }
+
+  // SCENARIO 3: Other chunk types (no runtime, no entry modules) are ignored
+  // These don't need federation startup handling
 
   Ok(())
 }
