@@ -117,7 +117,7 @@ async fn runtime_requirement_in_tree(
     let collected_ids_snapshot = self
       .collected_dependency_ids
       .lock()
-      .unwrap()
+      .expect("Failed to lock collected_dependency_ids")
       .iter()
       .cloned()
       .collect::<Vec<DependencyId>>();
@@ -186,7 +186,7 @@ async fn render_startup(
   let collected_deps = self
     .collected_dependency_ids
     .lock()
-    .unwrap()
+    .expect("Failed to lock collected_dependency_ids")
     .iter()
     .cloned()
     .collect::<Vec<DependencyId>>();

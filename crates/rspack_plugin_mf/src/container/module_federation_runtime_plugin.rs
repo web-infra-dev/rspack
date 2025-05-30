@@ -18,17 +18,10 @@ use super::{
 };
 
 // Plugin options from JS
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Default, Deserialize, Clone)]
 pub struct ModuleFederationRuntimePluginOptions {
   pub entry_runtime: Option<String>,
-}
-
-impl Default for ModuleFederationRuntimePluginOptions {
-  fn default() -> Self {
-    Self {
-      entry_runtime: None,
-    }
-  }
+  pub runtime_chunk: Option<String>,
 }
 
 #[plugin]
@@ -40,12 +33,6 @@ pub struct ModuleFederationRuntimePlugin {
 impl ModuleFederationRuntimePlugin {
   pub fn new(options: ModuleFederationRuntimePluginOptions) -> Self {
     Self::new_inner(options)
-  }
-}
-
-impl Default for ModuleFederationRuntimePlugin {
-  fn default() -> Self {
-    Self::new(ModuleFederationRuntimePluginOptions::default())
   }
 }
 

@@ -88,13 +88,7 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
     let mut module_executions = Vec::new();
 
     for dep_id in federation_runtime_modules {
-      let module_str = module_raw(
-        compilation,
-        &mut runtime_requirements,
-        &dep_id,
-        &"".to_string(),
-        false,
-      );
+      let module_str = module_raw(compilation, &mut runtime_requirements, &dep_id, "", false);
       module_executions.push(format!("\t\t{}", module_str));
     }
 

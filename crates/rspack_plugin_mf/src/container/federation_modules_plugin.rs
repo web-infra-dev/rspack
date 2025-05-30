@@ -13,9 +13,7 @@ use tokio::sync::Mutex as TokioMutex;
 
 use super::{
   container_entry_dependency::ContainerEntryDependency,
-  // fallback_dependency::FallbackDependency, // Marked as unused by compiler previously
   federation_runtime_dependency::FederationRuntimeDependency,
-  // remote_to_external_dependency::RemoteToExternalDependency, // Marked as unused by compiler previously
 };
 
 // Hook definitions
@@ -25,10 +23,8 @@ define_hook!(AddRemoteDependencyHook: Series(dependency: &dyn Dependency));
 
 // Struct to hold instances of the hooks for a specific compilation
 pub struct FederationModulesPluginCompilationHooks {
-  #[allow(dead_code)] // Added allow(dead_code)
   pub add_container_entry_dependency: Arc<TokioMutex<AddContainerEntryDependencyHookHook>>,
-  pub add_federation_runtime_dependency: Arc<TokioMutex<AddFederationRuntimeDependencyHookHook>>, // This one is used
-  #[allow(dead_code)] // Added allow(dead_code)
+  pub add_federation_runtime_dependency: Arc<TokioMutex<AddFederationRuntimeDependencyHookHook>>,
   pub add_remote_dependency: Arc<TokioMutex<AddRemoteDependencyHookHook>>,
 }
 
@@ -51,22 +47,14 @@ static FEDERATION_MODULES_PLUGIN_HOOKS_MAP: OnceLock<
   Mutex<HashMap<CompilationId, Arc<FederationModulesPluginCompilationHooks>>>,
 > = OnceLock::new();
 
-#[derive(Debug, Default)]
-pub struct FederationModulesPluginOptions {
-  // Options for the plugin, if any, can be added here
-}
-
 #[plugin]
-#[derive(Debug)]
-pub struct FederationModulesPlugin {
-  #[allow(dead_code)] // Options might be used later
-  options: FederationModulesPluginOptions,
-}
+#[derive(Debug, Default)]
+pub struct FederationModulesPlugin;
 
 impl FederationModulesPlugin {
-  #[allow(dead_code)] // Added allow(dead_code)
-  pub fn new(options: FederationModulesPluginOptions) -> Self {
-    Self::new_inner(options)
+  #[allow(dead_code)]
+  pub fn new() -> Self {
+    Self::new_inner()
   }
 
   pub fn get_compilation_hooks(
@@ -101,10 +89,9 @@ impl FederationModulesPlugin {
 #[plugin_hook(CompilerCompilation for FederationModulesPlugin)]
 async fn compilation(
   &self,
-  _compilation: &mut Compilation, // Changed to _compilation as hooks are not directly used here now
+  _compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  // let _hooks = Self::get_compilation_hooks(compilation); // No longer need to get hooks if not used in this function
   Ok(())
 }
 

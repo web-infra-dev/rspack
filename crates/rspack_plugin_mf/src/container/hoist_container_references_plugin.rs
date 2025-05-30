@@ -36,7 +36,11 @@ impl super::federation_modules_plugin::AddContainerEntryDependencyHook
   for ContainerEntryDepCollector
 {
   async fn run(&self, dep: &ContainerEntryDependency) -> Result<()> {
-    self.set.lock().unwrap().insert(dep.id().clone());
+    self
+      .set
+      .lock()
+      .expect("Failed to lock container entry deps")
+      .insert(*dep.id());
     Ok(())
   }
 }
@@ -50,7 +54,11 @@ impl super::federation_modules_plugin::AddFederationRuntimeDependencyHook
   for FederationRuntimeDepCollector
 {
   async fn run(&self, dep: &FederationRuntimeDependency) -> Result<()> {
-    self.set.lock().unwrap().insert(dep.id().clone());
+    self
+      .set
+      .lock()
+      .expect("Failed to lock federation runtime deps")
+      .insert(*dep.id());
     Ok(())
   }
 }
@@ -63,10 +71,18 @@ struct RemoteDepCollector {
 impl super::federation_modules_plugin::AddRemoteDependencyHook for RemoteDepCollector {
   async fn run(&self, dep: &dyn Dependency) -> Result<()> {
     if let Some(dep) = dep.downcast_ref::<RemoteToExternalDependency>() {
-      self.set.lock().unwrap().insert(dep.id().clone());
+      self
+        .set
+        .lock()
+        .expect("Failed to lock remote deps")
+        .insert(*dep.id());
     }
     if let Some(dep) = dep.downcast_ref::<FallbackDependency>() {
-      self.set.lock().unwrap().insert(dep.id().clone());
+      self
+        .set
+        .lock()
+        .expect("Failed to lock remote deps")
+        .insert(*dep.id());
     }
     Ok(())
   }
@@ -178,7 +194,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
       for chunk_ukey in chunks_vec {
         let chunk = compilation.chunk_by_ukey.get(&chunk_ukey);
-        let has_runtime = chunk.map_or(false, |c| c.has_runtime(&compilation.chunk_group_by_ukey));
+        let has_runtime = chunk.is_some_and(|c| c.has_runtime(&compilation.chunk_group_by_ukey));
 
         if !has_runtime {
           compilation
@@ -214,10 +230,15 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let mut all_modules_to_hoist = HashSet::new();
 
   // Process container entry dependencies
-  for dep_id in self.container_entry_deps.lock().unwrap().iter() {
+  for dep_id in self
+    .container_entry_deps
+    .lock()
+    .expect("Failed to lock container entry deps")
+    .iter()
+  {
     let module_graph = compilation.get_module_graph();
     if let Some(module_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
-      if let Some(module) = module_graph.module_by_identifier(&module_id) {
+      if let Some(module) = module_graph.module_by_identifier(module_id) {
         let referenced_modules =
           get_all_referenced_modules(compilation, module.as_ref(), "initial");
         all_modules_to_hoist.extend(&referenced_modules);
@@ -251,10 +272,15 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   }
 
   // Process federation runtime dependencies
-  for dep_id in self.federation_runtime_deps.lock().unwrap().iter() {
+  for dep_id in self
+    .federation_runtime_deps
+    .lock()
+    .expect("Failed to lock federation runtime deps")
+    .iter()
+  {
     let module_graph = compilation.get_module_graph();
     if let Some(module_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
-      if let Some(module) = module_graph.module_by_identifier(&module_id) {
+      if let Some(module) = module_graph.module_by_identifier(module_id) {
         let referenced_modules =
           get_all_referenced_modules(compilation, module.as_ref(), "initial");
         all_modules_to_hoist.extend(&referenced_modules);
@@ -288,10 +314,15 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   }
 
   // Process remote dependencies
-  for dep_id in self.remote_deps.lock().unwrap().iter() {
+  for dep_id in self
+    .remote_deps
+    .lock()
+    .expect("Failed to lock remote deps")
+    .iter()
+  {
     let module_graph = compilation.get_module_graph();
     if let Some(module_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
-      if let Some(module) = module_graph.module_by_identifier(&module_id) {
+      if let Some(module) = module_graph.module_by_identifier(module_id) {
         let referenced_modules =
           get_all_referenced_modules(compilation, module.as_ref(), "initial");
         all_modules_to_hoist.extend(&referenced_modules);

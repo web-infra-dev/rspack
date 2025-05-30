@@ -2054,6 +2054,7 @@ export interface RawModuleArg {
 
 export interface RawModuleFederationRuntimePluginOptions {
   entryRuntime?: string | undefined
+  runtimeChunk?: string | undefined
 }
 
 export interface RawModuleFilenameTemplateFnCtx {
