@@ -1,7 +1,8 @@
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 
 use napi::{
   bindgen_prelude::{JavaScriptClassExt, JsObjectValue, ToNapiValue},
+  sys::napi_value,
   Env, JsValue, Property,
 };
 use napi_derive::napi;
@@ -10,23 +11,47 @@ use napi_derive::napi;
 // Additionally, descriptionFileData and descriptionFilePath are rarely used, so they are exposed via getter methods and only converted to JSObject when accessed.
 #[napi]
 pub struct ReadonlyResourceData {
-  i: Arc<rspack_core::ResourceData>,
+  i: Weak<rspack_core::ResourceData>,
+}
+
+impl ReadonlyResourceData {
+  pub fn with_ref<R>(
+    &self,
+    f: impl FnOnce(&rspack_core::ResourceData) -> napi::Result<R>,
+  ) -> napi::Result<R> {
+    match self.i.upgrade() {
+      Some(arc) => f(arc.as_ref()),
+      None => Err(napi::Error::from_reason(
+        "ResourceData has been dropped by Rust.",
+      )),
+    }
+  }
 }
 
 #[napi]
 impl ReadonlyResourceData {
-  #[napi(getter)]
-  pub fn description_file_data(&self) -> Option<&serde_json::Value> {
-    self.i.resource_description.as_ref().map(|data| data.json())
+  #[napi(getter, ts_return_type = "any")]
+  pub fn description_file_data(&self, env: &Env) -> napi::Result<Option<napi_value>> {
+    self.with_ref(|resource_data| {
+      resource_data
+        .resource_description
+        .as_ref()
+        .map(|desc| unsafe { ToNapiValue::to_napi_value(env.raw(), desc.json()) })
+        .transpose()
+    })
   }
 
-  #[napi(getter)]
-  pub fn description_file_path(&self) -> Option<String> {
-    self
-      .i
-      .resource_description
-      .as_ref()
-      .map(|data| data.path().to_string_lossy().to_string())
+  #[napi(getter, ts_return_type = "string")]
+  pub fn description_file_path(&self, env: &Env) -> napi::Result<Option<napi_value>> {
+    self.with_ref(|resource_data| {
+      resource_data
+        .resource_description
+        .as_ref()
+        .map(|data| unsafe {
+          ToNapiValue::to_napi_value(env.raw(), data.path().to_string_lossy().as_ref())
+        })
+        .transpose()
+    })
   }
 }
 
@@ -58,7 +83,9 @@ impl ToNapiValue for ReadonlyResourceDataWrapper {
       properties.push(Property::new("fragment")?.with_value(&fragment_str));
     }
 
-    let template = ReadonlyResourceData { i: resource_data };
+    let template = ReadonlyResourceData {
+      i: Arc::downgrade(&resource_data),
+    };
     let instance = template.into_instance(&env_wrapper)?;
     let mut object = instance.as_object(&env_wrapper);
     object.define_properties(&properties)?;

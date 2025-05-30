@@ -407,8 +407,8 @@ export declare class RawExternalItemFnCtx {
 }
 
 export declare class ReadonlyResourceData {
-  get descriptionFileData(): any | null
-  get descriptionFilePath(): string | null
+  get descriptionFileData(): any
+  get descriptionFilePath(): string
 }
 
 export declare class Sources {
