@@ -862,9 +862,7 @@ export interface JsLinkPreloadData {
 }
 
 export interface JsLoaderContext {
-  resourceData: Readonly<JsResourceData>
-  /** Will be deprecated. Use module.module_identifier instead */
-  _moduleIdentifier: Readonly<string>
+  resource: string
   _module: Module
   hot: Readonly<boolean>
   /** Content maybe empty in pitching stage */
