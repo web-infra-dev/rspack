@@ -1,7 +1,7 @@
 //! # ModuleFederationRuntimePlugin
 //!
-//! Main orchestration plugin for Module Federation runtime functionality. Coordinates
-//! federation plugins, manages runtime dependencies, and adds the base FederationRuntimeModule.
+//! Main orchestration plugin for Module Federation runtime functionality.
+//! Coordinates federation plugins, manages runtime dependencies, and adds the base FederationRuntimeModule.
 
 use async_trait::async_trait;
 use rspack_core::{
@@ -13,16 +13,14 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use serde::Deserialize;
 
-// Import FederationModulesPlugin and its hooks, and FederationRuntimeDependency
-use super::federation_modules_plugin::FederationModulesPlugin;
 use super::{
   embed_federation_runtime_plugin::EmbedFederationRuntimePlugin,
+  federation_modules_plugin::FederationModulesPlugin,
   federation_runtime_dependency::FederationRuntimeDependency,
   federation_runtime_module::FederationRuntimeModule,
   hoist_container_references_plugin::HoistContainerReferencesPlugin,
 };
 
-// Plugin options from JS
 #[derive(Debug, Default, Deserialize, Clone)]
 pub struct ModuleFederationRuntimePluginOptions {
   pub entry_runtime: Option<String>,
@@ -48,7 +46,7 @@ async fn additional_tree_runtime_requirements(
   chunk_ukey: &ChunkUkey,
   _runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
-  // Add the original FederationRuntimeModule
+  // Add base FederationRuntimeModule
   compilation.add_runtime_module(chunk_ukey, Box::<FederationRuntimeModule>::default())?;
 
   Ok(())
@@ -63,9 +61,8 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
 
     hooks
       .add_federation_runtime_dependency
-      .lock() // TokioMutex: .lock() returns a future
-      .await // Await future to get guard
-      // .expect("Failed to lock add_federation_runtime_dependency hook for calling") // Not needed for Tokio MutexGuard
+      .lock()
+      .await
       .call(&federation_runtime_dep)
       .await?;
 
@@ -98,6 +95,7 @@ impl Plugin for ModuleFederationRuntimePlugin {
       .finish_make
       .tap(finish_make::new(self));
 
+    // Apply supporting plugins
     EmbedFederationRuntimePlugin::default()
       .apply(PluginContext::with_context(ctx.context), options)?;
     HoistContainerReferencesPlugin::default()
