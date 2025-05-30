@@ -15,9 +15,9 @@ use serde::Deserialize;
 
 use super::{
   embed_federation_runtime_plugin::EmbedFederationRuntimePlugin,
+  federation_data_runtime_module::FederationDataRuntimeModule,
   federation_modules_plugin::FederationModulesPlugin,
   federation_runtime_dependency::FederationRuntimeDependency,
-  federation_runtime_module::FederationRuntimeModule,
   hoist_container_references_plugin::HoistContainerReferencesPlugin,
 };
 
@@ -47,7 +47,7 @@ async fn additional_tree_runtime_requirements(
   _runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
   // Add base FederationRuntimeModule which is responsible for providing bundler data to the runtime.
-  compilation.add_runtime_module(chunk_ukey, Box::<FederationRuntimeModule>::default())?;
+  compilation.add_runtime_module(chunk_ukey, Box::<FederationDataRuntimeModule>::default())?;
 
   Ok(())
 }

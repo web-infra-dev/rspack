@@ -1,3 +1,9 @@
+//! # FederationDataRuntimeModule
+//!
+//! Runtime module that provides base federation data to the runtime environment.
+//! Generates federation configuration including chunk matchers and root output directory
+//! that federation runtime needs to operate correctly.
+
 use async_trait::async_trait;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
@@ -9,19 +15,19 @@ use rspack_plugin_runtime::chunk_has_js;
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct FederationRuntimeModule {
+pub struct FederationDataRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
 }
 
-impl Default for FederationRuntimeModule {
+impl Default for FederationDataRuntimeModule {
   fn default() -> Self {
     Self::with_default(Identifier::from("module_federation/runtime"), None)
   }
 }
 
 #[async_trait]
-impl RuntimeModule for FederationRuntimeModule {
+impl RuntimeModule for FederationDataRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }

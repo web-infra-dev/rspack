@@ -93,7 +93,7 @@ async fn runtime_requirement_in_tree(
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
-  runtime_requirements: &RuntimeGlobals,
+  _runtime_requirements: &RuntimeGlobals,
   _runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);

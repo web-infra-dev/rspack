@@ -47,8 +47,6 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       .chunk
       .expect("Chunk should be attached to RuntimeModule");
 
-    let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
-
     let collected_deps = &self.options.collected_dependency_ids;
 
     if collected_deps.is_empty() {
