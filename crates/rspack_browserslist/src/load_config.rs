@@ -63,7 +63,6 @@ pub fn parse<'a>(input: Option<&str>, context: &'a str) -> BrowserslistHandlerCo
 }
 
 /// Loads the browsers list based on the input and context.
-#[cfg(not(target_arch = "wasm32"))]
 pub fn load_browserslist(input: Option<&str>, context: &str) -> Option<Vec<String>> {
   let BrowserslistHandlerConfig {
     config_path,
