@@ -7,7 +7,7 @@ use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
 
-use crate::{JsRspackError, ModuleObject, ReadonlyResourceData};
+use crate::{JsRspackError, ModuleObject};
 
 #[napi(object)]
 #[derive(Hash)]
@@ -82,11 +82,7 @@ impl From<LoaderState> for JsLoaderState {
 
 #[napi(object)]
 pub struct JsLoaderContext {
-  #[napi(ts_type = "Readonly<JsResourceData>")]
-  pub resource_data: ReadonlyResourceData,
-  /// Will be deprecated. Use module.module_identifier instead
-  #[napi(js_name = "_moduleIdentifier", ts_type = "Readonly<string>")]
-  pub module_identifier: String,
+  pub resource: String,
   #[napi(js_name = "_module", ts_type = "Module")]
   pub module: ModuleObject,
   #[napi(ts_type = "Readonly<boolean>")]
@@ -128,8 +124,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
 
     #[allow(clippy::unwrap_used)]
     Ok(JsLoaderContext {
-      resource_data: cx.resource_data.clone().into(),
-      module_identifier: module.identifier().to_string(),
+      resource: cx.resource_data.resource.clone(),
       module: ModuleObject::with_ptr(
         NonNull::new(module as *const dyn Module as *mut dyn Module).unwrap(),
         cx.context.compiler_id,
