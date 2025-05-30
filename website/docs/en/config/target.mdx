@@ -7,6 +7,7 @@ import WebpackLicense from '@components/WebpackLicense';
 Used to configure the target environment of Rspack output and the ECMAScript version of Rspack runtime code.
 
 - **Type:** `string | string[]`
+- **Default:** `browserslist` if the current project has a browserslist config, otherwise `web`.
 
 ## string
 
@@ -63,10 +64,10 @@ For this case, you can define multiple Rspack configurations for bundling based 
 
 ## browserslist
 
-If a project has a browserslist config, then Rspack will use it for:
+If the current project has a browserslist config, then Rspack will use it for:
 
-- Determinate ES-features that may be used to generate a runtime-code.
-- Infer an environment (e.g: `last 2 node versions` the same as `target: "node"` with some [`output.environment`](/config/output#outputenvironment) settings).
+- Determinate ES-features that may be used to generate the **Rspack runtime code** (this will not affect the transpilation result of user code).
+- Infer a target environment (e.g: `last 2 node versions` the same as `target: "node"` with some [`output.environment`](/config/output#outputenvironment) settings).
 
 :::tip What is Browserslist
 [Browserslist](https://browsersl.ist/) can specify which browsers your web application can run in, it provides a configuration for specifying browsers range. Browserslist has become a standard in the industry, it is used by libraries such as Autoprefixer, Babel, ESLint, PostCSS, SWC and webpack.
@@ -74,7 +75,7 @@ If a project has a browserslist config, then Rspack will use it for:
 
 Supported browserslist values:
 
-- `browserslist` - use automatically resolved browserslist config and environment (from the nearest `package.json` or `BROWSERSLIST` environment variable, see [browserslist documentation](https://github.com/browserslist/browserslist#queries) for details)
+- `browserslist` - use automatically resolved browserslist config and environment (from the nearest `.browserslistrc` file, `package.json`'s `browserslist` field, or `BROWSERSLIST` environment variable, see [browserslist documentation](https://github.com/browserslist/browserslist#queries) for details)
 - `browserslist:modern` - use `modern` environment from automatically resolved browserslist config
 - `browserslist:last 2 versions` - use an explicit browserslist query (config will be ignored)
 - `browserslist:/path/to/config` - explicitly specify browserslist config
