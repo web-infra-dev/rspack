@@ -27,9 +27,7 @@ use super::{
 #[plugin]
 #[derive(Debug, Default)]
 pub struct HoistContainerReferencesPlugin {
-  container_entry_deps: Arc<Mutex<HashSet<DependencyId>>>,
-  federation_runtime_deps: Arc<Mutex<HashSet<DependencyId>>>,
-  remote_deps: Arc<Mutex<HashSet<DependencyId>>>,
+  federation_deps: Arc<Mutex<HashSet<DependencyId>>>,
 }
 
 struct ContainerEntryDepCollector {
@@ -44,7 +42,7 @@ impl super::federation_modules_plugin::AddContainerEntryDependencyHook
     self
       .set
       .lock()
-      .expect("Failed to lock container entry deps")
+      .expect("Failed to lock federation deps")
       .insert(*dep.id());
     Ok(())
   }
@@ -62,7 +60,7 @@ impl super::federation_modules_plugin::AddFederationRuntimeDependencyHook
     self
       .set
       .lock()
-      .expect("Failed to lock federation runtime deps")
+      .expect("Failed to lock federation deps")
       .insert(*dep.id());
     Ok(())
   }
@@ -79,14 +77,14 @@ impl super::federation_modules_plugin::AddRemoteDependencyHook for RemoteDepColl
       self
         .set
         .lock()
-        .expect("Failed to lock remote deps")
+        .expect("Failed to lock federation deps")
         .insert(*dep.id());
     }
     if let Some(dep) = dep.downcast_ref::<FallbackDependency>() {
       self
         .set
         .lock()
-        .expect("Failed to lock remote deps")
+        .expect("Failed to lock federation deps")
         .insert(*dep.id());
     }
     Ok(())
@@ -106,7 +104,7 @@ async fn compilation(
     .lock()
     .await
     .tap(ContainerEntryDepCollector {
-      set: Arc::clone(&self.container_entry_deps),
+      set: Arc::clone(&self.federation_deps),
     });
 
   hooks
@@ -114,7 +112,7 @@ async fn compilation(
     .lock()
     .await
     .tap(FederationRuntimeDepCollector {
-      set: Arc::clone(&self.federation_runtime_deps),
+      set: Arc::clone(&self.federation_deps),
     });
 
   hooks
@@ -122,7 +120,7 @@ async fn compilation(
     .lock()
     .await
     .tap(RemoteDepCollector {
-      set: Arc::clone(&self.remote_deps),
+      set: Arc::clone(&self.federation_deps),
     });
 
   Ok(())
@@ -233,95 +231,11 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let _runtime_chunks = get_runtime_chunks(compilation);
   let mut all_modules_to_hoist = HashSet::new();
 
-  // Process container entry dependencies
+  // Process all federation dependencies (container, runtime, and remote)
   for dep_id in self
-    .container_entry_deps
+    .federation_deps
     .lock()
-    .expect("Failed to lock container entry deps")
-    .iter()
-  {
-    let module_graph = compilation.get_module_graph();
-    if let Some(module_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
-      if let Some(module) = module_graph.module_by_identifier(module_id) {
-        let referenced_modules =
-          get_all_referenced_modules(compilation, module.as_ref(), "initial");
-        all_modules_to_hoist.extend(&referenced_modules);
-
-        // Get module runtimes and hoist to runtime chunks
-        let runtime_specs: Vec<_> = compilation
-          .chunk_graph
-          .get_module_runtimes_iter(*module_id, &compilation.chunk_by_ukey)
-          .cloned()
-          .collect();
-
-        for runtime_spec in runtime_specs {
-          // Find runtime chunks by name
-          for runtime_name in runtime_spec.iter() {
-            if let Some(runtime_chunk) = compilation.named_chunks.get(runtime_name.as_str()) {
-              for &ref_module_id in &referenced_modules {
-                if !compilation
-                  .chunk_graph
-                  .is_module_in_chunk(&ref_module_id, *runtime_chunk)
-                {
-                  compilation
-                    .chunk_graph
-                    .connect_chunk_and_module(*runtime_chunk, ref_module_id);
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // Process federation runtime dependencies
-  for dep_id in self
-    .federation_runtime_deps
-    .lock()
-    .expect("Failed to lock federation runtime deps")
-    .iter()
-  {
-    let module_graph = compilation.get_module_graph();
-    if let Some(module_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
-      if let Some(module) = module_graph.module_by_identifier(module_id) {
-        let referenced_modules =
-          get_all_referenced_modules(compilation, module.as_ref(), "initial");
-        all_modules_to_hoist.extend(&referenced_modules);
-
-        // Get module runtimes and hoist to runtime chunks
-        let runtime_specs: Vec<_> = compilation
-          .chunk_graph
-          .get_module_runtimes_iter(*module_id, &compilation.chunk_by_ukey)
-          .cloned()
-          .collect();
-
-        for runtime_spec in runtime_specs {
-          // Find runtime chunks by name
-          for runtime_name in runtime_spec.iter() {
-            if let Some(runtime_chunk) = compilation.named_chunks.get(runtime_name.as_str()) {
-              for &ref_module_id in &referenced_modules {
-                if !compilation
-                  .chunk_graph
-                  .is_module_in_chunk(&ref_module_id, *runtime_chunk)
-                {
-                  compilation
-                    .chunk_graph
-                    .connect_chunk_and_module(*runtime_chunk, ref_module_id);
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // Process remote dependencies
-  for dep_id in self
-    .remote_deps
-    .lock()
-    .expect("Failed to lock remote deps")
+    .expect("Failed to lock federation deps")
     .iter()
   {
     let module_graph = compilation.get_module_graph();
