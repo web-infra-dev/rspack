@@ -3,9 +3,6 @@ name: Build All Bindings
 on:
   workflow_call:
     inputs:
-      target:
-        required: true
-        type: string
       profile: # Rust profile, "ci" or "production" or "profiling"
         default: "ci"
         required: false
