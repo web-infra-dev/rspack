@@ -16,20 +16,20 @@ loader_swc            = ["rspack_loader_swc"]
 loaders               = ["loader_lightningcss", "loader_preact_refresh", "loader_react_refresh", "loader_swc"]
 
 [dependencies]
-bitflags        = { workspace = true }
-browserslist-rs = { workspace = true }
-enum-tag        = { workspace = true }
-indexmap        = { workspace = true, features = ["rayon"] }
-regex           = { workspace = true }
-rspack_core     = { workspace = true }
-rspack_error    = { workspace = true }
-rspack_fs       = { workspace = true }
-rspack_hash     = { workspace = true }
-rspack_ids      = { workspace = true }
-rspack_paths    = { workspace = true }
-rspack_regex    = { workspace = true }
-rustc-hash      = { workspace = true }
-serde_json      = { workspace = true }
+bitflags            = { workspace = true }
+enum-tag            = { workspace = true }
+indexmap            = { workspace = true, features = ["rayon"] }
+regex               = { workspace = true }
+rspack_browserslist = { workspace = true }
+rspack_core         = { workspace = true }
+rspack_error        = { workspace = true }
+rspack_fs           = { workspace = true }
+rspack_hash         = { workspace = true }
+rspack_ids          = { workspace = true }
+rspack_paths        = { workspace = true }
+rspack_regex        = { workspace = true }
+rustc-hash          = { workspace = true }
+serde_json          = { workspace = true }
 
 # Plugins
 rspack_plugin_asset                   = { workspace = true }
