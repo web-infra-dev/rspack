@@ -112,8 +112,8 @@ jobs:
       - name: Release Debug
         if: ${{ inputs.profile == 'debug' }}
         run: |
-          pnpm run build:js
           ./x version debug
-          ./x publish --dry-run --mode debug --tag latest
+          pnpm run build:js
+          ./x publish --tag latest
         env:
           NPM_TOKEN: ${{ secrets.RSPACK_CANARY_RELEASE_TOKEN }}

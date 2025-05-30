@@ -112,7 +112,10 @@ export async function version_handler(version, options) {
 			continue;
 		}
 
-		let newPackageJson;
+		let newPackageJson = {
+			...packageJson,
+			version: nextVersion
+		};
 		if (version === "snapshot") {
 			const nextName = getNextName(packageJson.name, "canary");
 			newPackageJson = {
