@@ -84,10 +84,13 @@ pub fn load_browserslist(input: Option<&str>, context: &str) -> Option<Vec<Strin
   match if let Some(q) = query {
     browserslist::resolve(vec![q], &opts)
   } else {
-    // browserslist::execute can not be used in wasm32
-    if cfg!(target_arch = "wasm32") {
+    // browserslist::execute only works on non-wasm targets
+    #[cfg(target_arch = "wasm32")]
+    {
       Ok(Vec::new())
-    } else {
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
       browserslist::execute(&opts)
     }
   } {
