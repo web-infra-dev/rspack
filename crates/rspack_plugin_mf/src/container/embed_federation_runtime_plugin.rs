@@ -8,18 +8,25 @@
 //!
 //! ### Runtime Chunks:
 //! - **EmbedFederationRuntimeModule**: Injected into all runtime chunks that have federation dependencies
-//! - **STARTUP Runtime Requirement**: Added to enable the startup wrapper functionality
-//! - **Purpose**: The runtime module generates an "oldStartup wrapper" that ensures federation modules execute first
+//! - **STARTUP Runtime Requirement**: Signals that a startup function should be created for entry module execution
+//! - **Purpose**: The runtime module wraps the startup function to ensure federation modules execute first
 //!
 //! ### Entry Chunks (Delegating to Runtime):
-//! - **Explicit Startup Calls**: Injected via `render_startup` hook when chunk delegates runtime to another chunk
-//! - **STARTUP Runtime Requirement**: Added to signal federation dependency presence
-//! - **Purpose**: Ensures federation runtime initialization happens in the delegated runtime chunk
+//! - **Explicit Startup Calls**: Injected via `render_startup` hook to call the startup function in delegated runtime
+//! - **STARTUP Runtime Requirement**: Signals need for startup function creation in the runtime chunk
+//! - **Purpose**: Ensures the delegated runtime chunk's startup function gets called to initialize federation
 //!
 //! ### Entry Chunks (With Own Runtime):
-//! - **STARTUP Runtime Requirement**: Added to enable federation functionality
-//! - **No Interference**: JavaScript plugin handles startup calls naturally, so no additional injection needed
-//! - **Purpose**: Leverages existing startup mechanism without conflicts
+//! - **STARTUP Runtime Requirement**: Signals that a startup function should be created for entry module execution
+//! - **No Interference**: JavaScript plugin creates startup function naturally, EmbedFederationRuntimeModule wraps it
+//! - **Purpose**: Leverages existing webpack startup mechanism while adding federation initialization
+//!
+//! ## STARTUP Runtime Requirement Explained:
+//! The STARTUP runtime requirement tells the JavaScript modules plugin to:
+//! 1. Create a `__webpack_require__.startup` function that executes entry modules
+//! 2. Instead of inlining entry execution, wrap it in a callable function
+//! 3. Allow runtime modules (like ours) to intercept and modify the startup process
+//! 4. Enable deferred or conditional execution of entry modules
 //!
 //! ## Activation Conditions:
 //! - Plugin only activates when federation runtime dependencies are present
@@ -109,9 +116,9 @@ async fn additional_chunk_runtime_requirements_tree(
   let is_enabled = has_runtime || has_entry_modules;
 
   if is_enabled {
-    // Add STARTUP requirement to enable federation runtime initialization
-    // - For runtime chunks: enables EmbedFederationRuntimeModule injection
-    // - For entry chunks: signals need for federation startup handling
+    // Add STARTUP requirement to enable startup function creation
+    // - For runtime chunks: enables creation of __webpack_require__.startup function that can be wrapped
+    // - For entry chunks: signals that entry module execution should be wrapped in a callable function
     runtime_requirements.insert(RuntimeGlobals::STARTUP);
   }
 
@@ -227,19 +234,19 @@ async fn render_startup(
     > 0;
 
   // SCENARIO 1: Runtime chunks with entry modules (e.g., container chunks)
-  // The JavaScript plugin already handles startup calls in its render_startup logic.
+  // The JavaScript plugin already creates a startup function and calls it naturally.
   // Our EmbedFederationRuntimeModule will wrap the startup function, so we don't interfere.
   if has_runtime && has_entry_modules {
     return Ok(());
   }
 
   // SCENARIO 2: Entry chunks that delegate their runtime to other chunks
-  // These chunks need explicit startup calls to trigger federation initialization
-  // in their delegated runtime chunks.
+  // These chunks need explicit startup calls to trigger the startup function
+  // in their delegated runtime chunks (where federation initialization happens).
   if !has_runtime && has_entry_modules {
     let mut startup_with_call = ConcatSource::default();
 
-    // Add runtime startup call at the beginning to ensure federation initialization
+    // Add runtime startup call at the beginning to trigger startup function execution
     // This call will execute in the delegated runtime chunk where EmbedFederationRuntimeModule
     // has wrapped the startup function with federation runtime initialization
     startup_with_call.add(RawStringSource::from(
