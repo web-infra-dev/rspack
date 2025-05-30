@@ -1,27 +1,8 @@
 //! # EmbedFederationRuntimeModule
 //!
-//! This runtime module is responsible for embedding and initializing Module Federation runtime
-//! dependencies within JavaScript chunks. It ensures that federation runtime modules are executed
-//! before any other modules that depend on them.
-//!
-//! ## Key Features:
-//! - Collects federation runtime dependencies from the compilation
-//! - Generates JavaScript code that wraps the startup function to ensure federation modules run first
-//! - Uses an "oldStartup wrapper" pattern to maintain execution order
-//! - Runs at stage 11 (after RemoteRuntimeModule) to ensure proper initialization sequence
-//!
-//! ## Generated Code Pattern:
-//! ```javascript
-//! var oldStartup = __webpack_require__.startup;
-//! var hasRun = false;
-//! __webpack_require__.startup = function() {
-//!   if (!hasRun) {
-//!     hasRun = true;
-//!     // Federation runtime modules execute here
-//!   }
-//!   return oldStartup();
-//! };
-//! ```
+//! Runtime module that wraps the startup function to ensure federation runtime dependencies
+//! execute before other modules. Generates an "oldStartup wrapper" pattern that intercepts
+//! and modifies the startup execution order.
 
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
@@ -77,7 +58,7 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
     let module_graph = compilation.get_module_graph();
     let mut federation_runtime_modules = Vec::new();
 
-    // Find ALL federation runtime dependencies in this chunk
+    // Find federation runtime dependencies in this chunk
     for dep_id in collected_deps.iter() {
       if let Some(module_dyn) = module_graph.get_module_by_dependency_id(dep_id) {
         let is_in_chunk = compilation
@@ -93,7 +74,7 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       return Ok("// Federation runtime entry modules not found in this chunk.".to_string());
     }
 
-    // Generate the module raw code for each federation runtime dependency
+    // Generate module execution code for each federation runtime dependency
     let mut runtime_requirements = RuntimeGlobals::default();
     let mut module_executions = Vec::new();
 
@@ -102,7 +83,7 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       module_executions.push(format!("\t\t{}", module_str));
     }
 
-    // Generate the oldStartup wrapper pattern with all federation runtime modules
+    // Generate oldStartup wrapper pattern
     let result = format!(
       r#"var oldStartup = {startup};
 var hasRun = false;
@@ -125,6 +106,6 @@ var hasRun = false;
   }
 
   fn stage(&self) -> RuntimeModuleStage {
-    RuntimeModuleStage::from(11) // Attach + 1, ensures it runs after RemoteRuntimeModule (which uses Attach=10)
+    RuntimeModuleStage::from(11) // Run after RemoteRuntimeModule (stage 10)
   }
 }

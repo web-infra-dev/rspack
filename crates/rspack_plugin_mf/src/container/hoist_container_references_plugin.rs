@@ -1,26 +1,8 @@
 //! # HoistContainerReferencesPlugin
 //!
-//! This plugin optimizes Module Federation chunk placement by hoisting container references and
-//! their dependencies to runtime chunks. It ensures that federation-related modules are available
-//! in the correct runtime context for proper initialization and execution.
-//!
-//! ## Key Optimization Features:
-//! - **Dependency Collection**: Collects container entry, federation runtime, and remote dependencies
-//! - **Reference Hoisting**: Recursively collects all referenced modules (matching TypeScript implementation)
-//! - **Runtime Chunk Placement**: Moves federation dependencies to appropriate runtime chunks
-//! - **Chunk Cleanup**: Disconnects unused modules from non-runtime chunks to reduce bundle size
-//!
-//! ## Processing Strategy:
-//! 1. Collects dependencies via federation hooks during compilation
-//! 2. During chunk optimization, recursively finds all referenced modules
-//! 3. Hoists these modules to their corresponding runtime chunks
-//! 4. Cleans up by removing modules from non-runtime chunks where they're no longer needed
-//!
-//! ## Benefits:
-//! - Ensures federation modules are available when needed
-//! - Reduces duplicate code across chunks
-//! - Optimizes runtime chunk composition for federation scenarios
-//! - Maintains webpack Module Federation compatibility
+//! Optimizes Module Federation chunk placement by hoisting container references and
+//! their dependencies to runtime chunks. Recursively collects referenced modules
+//! and moves them to appropriate runtime chunks for proper federation execution.
 
 use std::{
   collections::{HashSet, VecDeque},

@@ -1,24 +1,8 @@
 //! # FederationModulesPlugin
 //!
-//! This plugin provides the central hook management system for Module Federation. It acts as the
-//! coordination point between different federation plugins by defining and managing compilation-specific
-//! hooks that allow plugins to communicate and share dependency information.
-//!
-//! ## Core Hook System:
-//! - **AddContainerEntryDependencyHook**: Tracks container entry dependencies for optimization
-//! - **AddFederationRuntimeDependencyHook**: Tracks federation runtime dependencies for initialization
-//! - **AddRemoteDependencyHook**: Tracks remote module dependencies for loading
-//!
-//! ## Architecture:
-//! - Uses a static map to store hooks per compilation ID
-//! - Provides thread-safe access to hooks via TokioMutex
-//! - Enables loose coupling between federation plugins
-//! - Supports both compilation instance and ID-based hook retrieval
-//!
-//! ## Usage Pattern:
-//! Other federation plugins use `FederationModulesPlugin::get_compilation_hooks(compilation)`
-//! to access the hooks and either tap into them (as listeners) or call them (as emitters).
-//! This creates a publish-subscribe pattern for federation-related events.
+//! Central hook management system for Module Federation. Provides compilation-specific hooks
+//! that allow federation plugins to communicate and share dependency information through
+//! a publish-subscribe pattern.
 
 use std::{
   collections::HashMap,
