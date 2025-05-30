@@ -8,8 +8,8 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   ChunkGraph, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
-  DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleGraph, ModuleIdentifier, ModuleType,
-  RuntimeSpec, SourceType,
+  Dependency, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleGraph, ModuleIdentifier,
+  ModuleType, RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -204,7 +204,6 @@ impl Module for RemoteModule {
         init: DataInitInfo::ExternalModuleId(id.cloned()),
       }],
     });
-
     Ok(codegen)
   }
 
@@ -214,7 +213,7 @@ impl Module for RemoteModule {
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHash::from(&compilation.options.output);
-    module_update_hash(self as &dyn Module, &mut hasher, compilation, runtime);
+    module_update_hash(self, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 }

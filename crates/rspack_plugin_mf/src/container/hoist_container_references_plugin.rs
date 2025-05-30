@@ -257,7 +257,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         for runtime_spec in runtime_specs {
           // Find runtime chunks by name
           for runtime_name in runtime_spec.iter() {
-            if let Some(runtime_chunk) = compilation.named_chunks.get(runtime_name.as_ref()) {
+            if let Some(runtime_chunk) = compilation.named_chunks.get(runtime_name.as_str()) {
               for &ref_module_id in &referenced_modules {
                 if !compilation
                   .chunk_graph
@@ -299,7 +299,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         for runtime_spec in runtime_specs {
           // Find runtime chunks by name
           for runtime_name in runtime_spec.iter() {
-            if let Some(runtime_chunk) = compilation.named_chunks.get(runtime_name.as_ref()) {
+            if let Some(runtime_chunk) = compilation.named_chunks.get(runtime_name.as_str()) {
               for &ref_module_id in &referenced_modules {
                 if !compilation
                   .chunk_graph
@@ -341,7 +341,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         for runtime_spec in runtime_specs {
           // Find runtime chunks by name
           for runtime_name in runtime_spec.iter() {
-            if let Some(runtime_chunk) = compilation.named_chunks.get(runtime_name.as_ref()) {
+            if let Some(runtime_chunk) = compilation.named_chunks.get(runtime_name.as_str()) {
               for &ref_module_id in &referenced_modules {
                 if !compilation
                   .chunk_graph
