@@ -66,8 +66,8 @@ export default {
 
 如果当前项目存在 browserslist 配置，那么 Rspack 将会使用它：
 
-- 确定可用于运行时代码的 ES 特性。
-- 推断环境（例如：`last 2 node versions` 等价于 `target: node`，并会进行一些 [`output.environment`](/config/output#outputenvironment) 设置).
+- 确定可用于 **Rspack 的运行时代码** 的 ES 特性（这不会影响用户代码的转移结果）。
+- 推断目标环境（例如：`last 2 node versions` 等价于 `target: node`，并会进行一些 [`output.environment`](/config/output#outputenvironment) 设置).
 
 :::tip 什么是 Browserslist
 [Browserslist](https://browsersl.ist/) 可以指定 web 应用能够在哪些浏览器中正常运行，它提供了统一的配置格式，并且已经成为了前端社区中的标准。Browserslist 被 Autoprefixer, Babel, ESLint, PostCSS，SWC 和 webpack 等库所使用。

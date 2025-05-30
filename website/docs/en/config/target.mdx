@@ -66,8 +66,8 @@ For this case, you can define multiple Rspack configurations for bundling based 
 
 If the current project has a browserslist config, then Rspack will use it for:
 
-- Determinate ES-features that may be used to generate a runtime-code.
-- Infer an environment (e.g: `last 2 node versions` the same as `target: "node"` with some [`output.environment`](/config/output#outputenvironment) settings).
+- Determinate ES-features that may be used to generate the **Rspack runtime code** (this will not affect the transpilation result of user code).
+- Infer a target environment (e.g: `last 2 node versions` the same as `target: "node"` with some [`output.environment`](/config/output#outputenvironment) settings).
 
 :::tip What is Browserslist
 [Browserslist](https://browsersl.ist/) can specify which browsers your web application can run in, it provides a configuration for specifying browsers range. Browserslist has become a standard in the industry, it is used by libraries such as Autoprefixer, Babel, ESLint, PostCSS, SWC and webpack.
