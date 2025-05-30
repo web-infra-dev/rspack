@@ -17,7 +17,6 @@ loaders               = ["loader_lightningcss", "loader_preact_refresh", "loader
 
 [dependencies]
 bitflags            = { workspace = true }
-browserslist-rs     = { workspace = true }
 enum-tag            = { workspace = true }
 indexmap            = { workspace = true, features = ["rayon"] }
 regex               = { workspace = true }

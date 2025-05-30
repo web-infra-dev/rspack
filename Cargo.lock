@@ -4000,7 +4000,6 @@ name = "rspack"
 version = "0.2.0"
 dependencies = [
  "bitflags 2.6.0",
- "browserslist-rs",
  "enum-tag",
  "indexmap 2.7.1",
  "insta",
