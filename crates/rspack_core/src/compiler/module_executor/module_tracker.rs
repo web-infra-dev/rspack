@@ -19,12 +19,12 @@ pub struct ModuleTracker {
   /// If the submodules count is usize::MAX means the module is building.
   unfinished_module: IdentifierMap<usize>,
 
-  /// Entry dependency id to target box task.
+  /// Entry dependency id to target box tasks.
   ///
   /// when entry dependency submodules are built,
-  /// 1. if reused_unfinished_module is empty, return box task directly.
-  /// 2. if reused_unfinished_module is not empty, add box task to pending_callbacks.
-  entry_finish_task: HashMap<DependencyId, BoxTask>,
+  /// 1. if reused_unfinished_module is empty, return box tasks directly.
+  /// 2. if reused_unfinished_module is not empty, add box tasks to pending_callbacks.
+  entry_finish_tasks: HashMap<DependencyId, Vec<BoxTask>>,
 
   /// Reused and unfinished modules.
   ///
@@ -65,7 +65,7 @@ impl ModuleTracker {
     mid: ModuleIdentifier,
   ) -> Vec<BoxTask> {
     let mut queue = VecDeque::from(vec![mid]);
-    let mut tasks = vec![];
+    let mut ready_tasks = vec![];
     let module_graph = context.artifact.get_module_graph();
     while let Some(module_identifier) = queue.pop_front() {
       tracing::debug!("finish build module {:?}", module_identifier);
@@ -88,8 +88,8 @@ impl ModuleTracker {
             let connection = module_graph
               .connection_by_dependency_id(dep_id)
               .expect("should have connection");
-            if let Some(task) = self.entry_finish_task.remove(&connection.dependency_id) {
-              tasks.push(task);
+            if let Some(tasks) = self.entry_finish_tasks.remove(&connection.dependency_id) {
+              ready_tasks.extend(tasks);
             }
           }
         }
@@ -104,7 +104,7 @@ impl ModuleTracker {
       };
     }
 
-    self.calc_runnable_tasks(tasks)
+    self.calc_runnable_tasks(ready_tasks)
   }
 
   /// Set a dependency as finished. Returns runnable box tasks.
@@ -121,8 +121,8 @@ impl ModuleTracker {
   ) -> Vec<BoxTask> {
     let Some(origin_mid) = origin_mid else {
       // entry
-      if let Some(task) = self.entry_finish_task.remove(&dep_id) {
-        return self.calc_runnable_tasks(vec![task]);
+      if let Some(tasks) = self.entry_finish_tasks.remove(&dep_id) {
+        return self.calc_runnable_tasks(tasks);
       }
       return vec![];
     };
@@ -185,24 +185,26 @@ impl ModuleTracker {
 
   /// Handle entry task.
   pub fn on_entry(&mut self, is_new: bool, dep_id: DependencyId, task: BoxTask) -> Vec<BoxTask> {
-    let Entry::Vacant(entry) = self.entry_finish_task.entry(dep_id) else {
-      // Entry task already exist means have circular build dependency.
-      // You should call self.is_running to check this before run on_entry.
-      panic!("The added task is running, maybe have a circular build dependency.",)
-    };
-
-    if is_new {
-      // insert it and wait for it to factorize.
-      entry.insert(task);
-      vec![]
-    } else {
-      // The target module is complete and the task can be run.
-      self.calc_runnable_tasks(vec![task])
+    match self.entry_finish_tasks.entry(dep_id) {
+      Entry::Occupied(mut entry) => {
+        entry.get_mut().push(task);
+        vec![]
+      }
+      Entry::Vacant(entry) => {
+        if is_new {
+          // insert it and wait for it to factorize.
+          entry.insert(vec![task]);
+          vec![]
+        } else {
+          // The target module is complete and the task can be run.
+          self.calc_runnable_tasks(vec![task])
+        }
+      }
     }
   }
 
   /// Check if a dep_id is running
   pub fn is_running(&self, dep_id: &DependencyId) -> bool {
-    self.entry_finish_task.contains_key(dep_id)
+    self.entry_finish_tasks.contains_key(dep_id)
   }
 }
