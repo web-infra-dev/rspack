@@ -21,6 +21,8 @@ pub struct JsLoaderItem {
   // status
   pub normal_executed: bool,
   pub pitch_executed: bool,
+
+  pub no_pitch: bool,
 }
 
 impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
@@ -32,6 +34,8 @@ impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
       data: value.data().clone(),
       normal_executed: value.normal_executed(),
       pitch_executed: value.pitch_executed(),
+
+      no_pitch: false,
     }
   }
 }
@@ -50,6 +54,7 @@ where
         r#type: r#type.to_string(),
         pitch_executed: false,
         normal_executed: false,
+        no_pitch: false,
       };
     }
     Self {
@@ -58,6 +63,7 @@ where
       r#type: String::default(),
       pitch_executed: false,
       normal_executed: false,
+      no_pitch: false,
     }
   }
 }

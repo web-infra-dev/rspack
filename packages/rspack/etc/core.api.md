@@ -4383,6 +4383,8 @@ class LoaderObject {
     // @internal
     loaderItem: JsLoaderItem;
     // (undocumented)
+    set noPitch(value: boolean);
+    // (undocumented)
     normal?: Function;
     // (undocumented)
     get normalExecuted(): boolean;

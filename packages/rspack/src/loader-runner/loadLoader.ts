@@ -74,6 +74,9 @@ function handleResult(
 	loader.normal = typeof module === "function" ? module : module.default;
 	loader.pitch = (module as ModuleObject).pitch;
 	loader.raw = (module as ModuleObject).raw;
+	if (!loader.pitch) {
+		loader.noPitch = true;
+	}
 	if (
 		typeof loader.normal !== "function" &&
 		typeof loader.pitch !== "function"
