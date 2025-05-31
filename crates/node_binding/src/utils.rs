@@ -11,7 +11,7 @@ pub fn callbackify<R, F>(
   call_js_back: impl FnOnce() + 'static,
 ) -> Result<(), ErrorCode>
 where
-  R: 'static + ToNapiValue,
+  R: 'static + JsValuesTupleIntoVec,
   F: 'static + Send + Future<Output = Result<R>>,
 {
   let mut call_js_back = Some(Box::new(call_js_back));
@@ -19,7 +19,7 @@ where
   let tsfn = f
     .build_threadsafe_function::<R>()
     .callee_handled::<true>()
-    .max_queue_size::<1>()
+    .max_queue_size::<0>()
     .weak::<false>()
     .build_callback(
       move |ctx: napi::threadsafe_function::ThreadsafeCallContext<_>| {

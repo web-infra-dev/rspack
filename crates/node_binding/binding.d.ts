@@ -368,8 +368,8 @@ export declare class JsModuleGraph {
 }
 
 export declare class JsResolver {
-  resolveSync(path: string, request: string): JsResourceData | false
-  resolve(path: string, request: string, callback: (err: null | Error, req?: JsResourceData) => void): void
+  resolveSync(path: string, request: string): string | false
+  resolve(path: string, request: string, callback: (err: null | Error, res?: string | false, req?: ResolveRequest) => void): void
   withOptions(raw?: RawResolveOptionsWithDependencyType | undefined | null): JsResolver
 }
 
@@ -407,6 +407,14 @@ export declare class RawExternalItemFnCtx {
 }
 
 export declare class ReadonlyResourceData {
+  get descriptionFileData(): any
+  get descriptionFilePath(): string
+}
+
+export declare class ResolveRequest {
+  get path(): string
+  get query(): string
+  get fragment(): string
   get descriptionFileData(): any
   get descriptionFilePath(): string
 }

@@ -1,19 +1,66 @@
 use std::{path::Path, sync::Arc};
 
 use napi::{
-  bindgen_prelude::{block_on, Function},
-  Either,
+  bindgen_prelude::{block_on, FnArgs, Function},
+  Either, Env, JsString,
 };
 use napi_derive::napi;
-use rspack_core::{ResolveOptionsWithDependencyType, Resolver, ResolverFactory, ResourceData};
+use rspack_core::{ResolveOptionsWithDependencyType, Resolver, ResolverFactory};
 
 use crate::{
   callbackify,
   raw_resolve::{
     normalize_raw_resolve_options_with_dependency_type, RawResolveOptionsWithDependencyType,
   },
-  ErrorCode, JsResourceData,
+  ErrorCode,
 };
+
+#[napi]
+pub struct ResolveRequest {
+  i: rspack_core::Resource,
+}
+
+#[napi]
+impl ResolveRequest {
+  #[napi(getter)]
+  pub fn path(&self) -> &str {
+    self.i.path.as_str()
+  }
+
+  #[napi(getter)]
+  pub fn query(&self) -> &str {
+    &self.i.query
+  }
+
+  #[napi(getter)]
+  pub fn fragment(&self) -> &str {
+    &self.i.fragment
+  }
+
+  #[napi(getter, ts_return_type = "any")]
+  pub fn description_file_data(&self) -> Option<&serde_json::Value> {
+    self.i.description_data.as_ref().map(|desc| desc.json())
+  }
+
+  #[napi(getter, ts_return_type = "string")]
+  pub fn description_file_path<'a>(&self, env: &'a Env) -> napi::Result<Option<JsString<'a>>> {
+    self
+      .i
+      .description_data
+      .as_ref()
+      .map(|desc| {
+        let path = desc.path().to_string_lossy();
+        env.create_string(path.as_ref())
+      })
+      .transpose()
+  }
+}
+
+impl From<rspack_core::Resource> for ResolveRequest {
+  fn from(value: rspack_core::Resource) -> Self {
+    Self { i: value }
+  }
+}
 
 #[napi]
 #[derive(Debug)]
@@ -38,16 +85,12 @@ impl JsResolver {
 }
 #[napi]
 impl JsResolver {
-  #[napi(ts_return_type = "JsResourceData | false")]
-  pub fn resolve_sync(
-    &self,
-    path: String,
-    request: String,
-  ) -> napi::Result<Either<JsResourceData, bool>> {
+  #[napi(ts_return_type = "string | false")]
+  pub fn resolve_sync(&self, path: String, request: String) -> napi::Result<Either<String, bool>> {
     block_on(async move {
       match self.resolver.resolve(Path::new(&path), &request).await {
         Ok(rspack_core::ResolveResult::Resource(resource)) => {
-          Ok(Either::A(ResourceData::from(resource).into()))
+          Ok(Either::A(resource.path.into_string()))
         }
         Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(false)),
         Err(err) => Err(napi::Error::from_reason(format!("{:?}", err))),
@@ -56,7 +99,7 @@ impl JsResolver {
   }
 
   #[napi(
-    ts_args_type = "path: string, request: string, callback: (err: null | Error, req?: JsResourceData) => void"
+    ts_args_type = "path: string, request: string, callback: (err: null | Error, res?: string | false, req?: ResolveRequest) => void"
   )]
   pub fn resolve(
     &self,
@@ -70,10 +113,13 @@ impl JsResolver {
       f,
       async move {
         match resolver.resolve(Path::new(&path), &request).await {
-          Ok(rspack_core::ResolveResult::Resource(resource)) => Ok(
-            Either::<JsResourceData, bool>::A(ResourceData::from(resource).into()),
-          ),
-          Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(false)),
+          Ok(rspack_core::ResolveResult::Resource(resource)) => Ok(FnArgs::from((
+            Either::<String, bool>::A(resource.path.to_string()),
+            Either::<ResolveRequest, ()>::A(ResolveRequest::from(resource)),
+          ))),
+          Ok(rspack_core::ResolveResult::Ignored) => {
+            Ok(FnArgs::from((Either::B(false), Either::B(()))))
+          }
           Err(err) => Err(napi::Error::from_reason(format!("{:?}", err))),
         }
       },
