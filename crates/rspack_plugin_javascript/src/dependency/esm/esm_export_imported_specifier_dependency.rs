@@ -142,7 +142,7 @@ impl ESMExportImportedSpecifierDependency {
     let exports_info = module_graph.get_exports_info(parent_module);
 
     let is_name_unused = if let Some(ref name) = name {
-      exports_info.get_used(module_graph, &[name.clone()], runtime) == UsageState::Unused
+      exports_info.get_used(module_graph, std::slice::from_ref(name), runtime) == UsageState::Unused
     } else {
       !exports_info.is_used(module_graph, runtime)
     };
@@ -611,9 +611,11 @@ impl ESMExportImportedSpecifierDependency {
             continue;
           }
 
-          let used_name =
-            mg.get_exports_info(&module_identifier)
-              .get_used_name(mg, None, &[name.clone()]);
+          let used_name = mg.get_exports_info(&module_identifier).get_used_name(
+            mg,
+            None,
+            std::slice::from_ref(&name),
+          );
           let key = render_used_name(used_name.as_ref());
 
           if checked {
@@ -735,10 +737,7 @@ impl ESMExportImportedSpecifierDependency {
     runtime_requirements.insert(RuntimeGlobals::EXPORTS);
     runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
     let mut export_map = vec![];
-    export_map.push((
-      key.into(),
-      format!("/* {} */ {}", comment, return_value).into(),
-    ));
+    export_map.push((key.into(), format!("/* {comment} */ {return_value}").into()));
     let module_graph = compilation.get_module_graph();
     let module = module_graph
       .module_by_identifier(&module.identifier())
@@ -797,7 +796,7 @@ impl ESMExportImportedSpecifierDependency {
   fn get_return_value(name: String, value_key: ValueKey) -> String {
     match value_key {
       ValueKey::False => "/* unused export */ undefined".to_string(),
-      ValueKey::Null => format!("{}_default.a", name),
+      ValueKey::Null => format!("{name}_default.a"),
       ValueKey::Name => name,
       ValueKey::Vec(value_key) => format!("{}{}", name, property_access(value_key, 0)),
     }
@@ -1220,7 +1219,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         self
           .name
           .as_ref()
-          .map(|name| format!("(reexported as '{}')", name))
+          .map(|name| format!("(reexported as '{name}')"))
           .unwrap_or_default(),
         should_error,
       ) {

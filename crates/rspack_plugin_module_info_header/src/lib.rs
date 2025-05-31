@@ -78,7 +78,7 @@ fn print_exports_info_to_source<F>(
       Some(resolve_target) => {
         let target_module = request_shortener(&resolve_target.module);
         match resolve_target.export {
-          None => format!("-> {}", target_module),
+          None => format!("-> {target_module}"),
           Some(es) => {
             let exp = es.iter().map(|a| a.as_str()).collect::<Vec<_>>().join(".");
             format!(" -> {target_module} {exp}")

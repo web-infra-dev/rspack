@@ -66,10 +66,7 @@ impl ModuleFilenameHelpers {
         let module = module_graph
           .module_by_identifier(module_identifier)
           .unwrap_or_else(|| {
-            panic!(
-              "failed to find a module for the given identifier '{}'",
-              module_identifier
-            )
+            panic!("failed to find a module for the given identifier '{module_identifier}'")
           });
 
         let short_identifier = module.readable_identifier(context).to_string();

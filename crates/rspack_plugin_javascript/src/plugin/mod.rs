@@ -1122,7 +1122,7 @@ impl JsPlugin {
             let high = span.real_hi();
 
             if identifier.shorthand {
-              replace_source.insert(high, &format!(": {}", new_name), None);
+              replace_source.insert(high, &format!(": {new_name}"), None);
               continue;
             }
 

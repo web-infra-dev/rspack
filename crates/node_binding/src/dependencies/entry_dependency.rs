@@ -15,8 +15,7 @@ impl EntryDependency {
     match &self.dependency_id {
         Some(dependency_id) => {
           Err(napi::Error::from_reason(format!(
-            "Dependency with id = {:?} has already been resolved. Reusing EntryDependency is not allowed because Rust requires its ownership.",
-            dependency_id
+            "Dependency with id = {dependency_id:?} has already been resolved. Reusing EntryDependency is not allowed because Rust requires its ownership."
         )))
         }
         None => {

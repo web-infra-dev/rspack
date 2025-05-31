@@ -211,7 +211,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           generate_context
             .runtime_requirements
             .insert(RuntimeGlobals::MODULE);
-          format!(r#"module.exports = {}"#, json_expr)
+          format!(r#"module.exports = {json_expr}"#)
         };
         Ok(RawStringSource::from(content).boxed())
       }

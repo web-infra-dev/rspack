@@ -328,7 +328,7 @@ impl HttpCache {
       Err(_) => {
         let digest = Sha512::digest(url_str.as_bytes());
         let hex_digest = self.to_hex_string(&digest)[..20].to_string();
-        return format!("invalid-url_{}", hex_digest);
+        return format!("invalid-url_{hex_digest}");
       }
     };
 
@@ -345,7 +345,7 @@ impl HttpCache {
 
     // Limit extension to 20 chars as webpack does
     let ext = if let Some(ext) = ext_opt {
-      let ext_str = format!(".{}", ext);
+      let ext_str = format!(".{ext}");
       if ext_str.len() > 20 {
         String::new()
       } else {
@@ -379,7 +379,7 @@ impl HttpCache {
 
     // Combine basename and query, limited to 150 chars
     let name_component = if !query.is_empty() {
-      format!("{}_{}", basename, query)
+      format!("{basename}_{query}")
     } else {
       basename
     };
@@ -389,10 +389,7 @@ impl HttpCache {
       name_component
     };
 
-    format!(
-      "{}/{}_{}{}",
-      folder_component, name_component, hash_digest, ext
-    )
+    format!("{folder_component}/{name_component}_{hash_digest}{ext}")
   }
 
   /// Convert a string to a safe path component (similar to webpack's toSafePath)
@@ -410,7 +407,7 @@ impl HttpCache {
     let mut result = String::with_capacity(bytes.len() * 2);
     for b in bytes {
       use std::fmt::Write;
-      write!(result, "{:02x}", b).unwrap();
+      write!(result, "{b:02x}").expect("write hex failed");
     }
     result
   }
