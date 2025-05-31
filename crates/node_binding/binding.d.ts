@@ -24,8 +24,8 @@ export interface Module {
 	get useSourceMap(): boolean;
 	get useSimpleSourceMap(): boolean;
 	get _readableIdentifier(): string;
-	buildInfo: Record<string, any>;
-	buildMeta: Record<string, any>;
+	buildInfo: KnownBuildInfo & Record<string, any>;
+	buildMeta: KnownBuildInfo & Record<string, any>;
 }
 
 interface NormalModuleConstructor {
@@ -74,8 +74,12 @@ export declare class AsyncDependenciesBlock {
   get blocks(): AsyncDependenciesBlock[]
 }
 
-export declare class BuildInfo {
+export declare class KnownBuildInfo {
   get _assets(): Assets
+  get _fileDependencies(): Array<string>
+  get _contextDependencies(): Array<string>
+  get _missingDependencies(): Array<string>
+  get _buildDependencies(): Array<string>
 }
 
 export declare class Chunks {

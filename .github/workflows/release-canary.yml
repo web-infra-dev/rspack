@@ -20,6 +20,7 @@ on:
           - release
           - profiling
           - ci
+          - debug
         description: "profiling means release with debug info for profiling, ci means release with debug info and faster build time"
 
 permissions:

@@ -29,15 +29,14 @@ export async function getLastVersion(root) {
 	}
 }
 
-export function getNextName(name) {
+export function getNextName(name, scopePostfix = "canary") {
 	if (["monorepo"].includes(name)) {
 		return name;
 	}
 	if (name === "create-rspack") {
 		return "create-rspack-canary";
 	}
-	const nextName = name.replace(/^@rspack/, "@rspack-canary");
-	return nextName;
+	return name.replace(/^@rspack/, `@rspack-${scopePostfix}`);
 }
 
 export async function getSnapshotVersion(lastVersion) {
@@ -48,8 +47,9 @@ export async function getSnapshotVersion(lastVersion) {
 		.replace(/[^\d]/g, "");
 	return `${lastVersion}-canary-${commitId}-${dateTime}`;
 }
+
 export async function version_handler(version, options) {
-	const allowedVersion = ["major", "minor", "patch", "snapshot"];
+	const allowedVersion = ["major", "minor", "patch", "snapshot", "debug"];
 	const allowPretags = ["alpha", "beta", "rc"];
 	const { pre } = options;
 	if (!allowedVersion.includes(version)) {
@@ -71,6 +71,8 @@ export async function version_handler(version, options) {
 	let nextVersion;
 	if (version === "snapshot") {
 		nextVersion = await getSnapshotVersion(semver.inc(lastVersion, "patch"));
+	} else if (version === "debug") {
+		nextVersion = lastVersion;
 	} else {
 		if (hasPre) {
 			const existsPreTag = allowPretags.find(i => lastVersion.includes(i));
@@ -110,17 +112,22 @@ export async function version_handler(version, options) {
 			continue;
 		}
 
-		let newPackageJson;
+		let newPackageJson = {
+			...packageJson,
+			version: nextVersion
+		};
 		if (version === "snapshot") {
-			const nextName = getNextName(packageJson.name);
+			const nextName = getNextName(packageJson.name, "canary");
 			newPackageJson = {
 				...packageJson,
 				name: nextName,
 				version: nextVersion
 			};
-		} else {
+		} else if (version === "debug") {
+			const nextName = getNextName(packageJson.name, "debug");
 			newPackageJson = {
 				...packageJson,
+				name: nextName,
 				version: nextVersion
 			};
 		}

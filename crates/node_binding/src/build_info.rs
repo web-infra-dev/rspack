@@ -45,11 +45,11 @@ impl Assets {
 }
 
 #[napi]
-pub struct BuildInfo {
+pub struct KnownBuildInfo {
   module_reference: WeakReference<Module>,
 }
 
-impl BuildInfo {
+impl KnownBuildInfo {
   pub fn new(module_reference: WeakReference<Module>) -> Self {
     Self { module_reference }
   }
@@ -78,9 +78,57 @@ impl BuildInfo {
 }
 
 #[napi]
-impl BuildInfo {
+impl KnownBuildInfo {
   #[napi(getter, js_name = "_assets", ts_return_type = "Assets")]
   pub fn assets(&mut self) -> napi::Result<Reflector> {
     self.with_ref(|module| Ok(module.build_info().assets.reflector()))
+  }
+
+  #[napi(getter, js_name = "_fileDependencies")]
+  pub fn file_dependencies<'a>(&mut self, env: &'a Env) -> napi::Result<Vec<JsString<'a>>> {
+    self.with_ref(|module| {
+      module
+        .build_info()
+        .file_dependencies
+        .iter()
+        .map(|dependency| env.create_string(dependency.to_string_lossy().as_ref()))
+        .collect::<napi::Result<Vec<JsString>>>()
+    })
+  }
+
+  #[napi(getter, js_name = "_contextDependencies")]
+  pub fn context_dependencies<'a>(&mut self, env: &'a Env) -> napi::Result<Vec<JsString<'a>>> {
+    self.with_ref(|module| {
+      module
+        .build_info()
+        .context_dependencies
+        .iter()
+        .map(|dependency| env.create_string(dependency.to_string_lossy().as_ref()))
+        .collect::<napi::Result<Vec<JsString>>>()
+    })
+  }
+
+  #[napi(getter, js_name = "_missingDependencies")]
+  pub fn missing_dependencies<'a>(&mut self, env: &'a Env) -> napi::Result<Vec<JsString<'a>>> {
+    self.with_ref(|module| {
+      module
+        .build_info()
+        .missing_dependencies
+        .iter()
+        .map(|dependency| env.create_string(dependency.to_string_lossy().as_ref()))
+        .collect::<napi::Result<Vec<JsString>>>()
+    })
+  }
+
+  #[napi(getter, js_name = "_buildDependencies")]
+  pub fn build_dependencies<'a>(&mut self, env: &'a Env) -> napi::Result<Vec<JsString<'a>>> {
+    self.with_ref(|module| {
+      module
+        .build_info()
+        .build_dependencies
+        .iter()
+        .map(|dependency| env.create_string(dependency.to_string_lossy().as_ref()))
+        .collect::<napi::Result<Vec<JsString>>>()
+    })
   }
 }
