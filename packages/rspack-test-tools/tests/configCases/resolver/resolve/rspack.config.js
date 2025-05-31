@@ -11,7 +11,7 @@ class Plugin {
                 normalResolver.resolve({}, __dirname, "./index.js", {}, (error, res, req) => {
                     expect(error).toBeNull();
                     expect(res).toBe(path.join(__dirname, "/index.js"));
-                    expect(req.resource).toBe(path.join(__dirname, "/index.js"));
+                    expect(req.path).toBe(path.join(__dirname, "/index.js"));
                     callback();
                 });
             });

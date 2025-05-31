@@ -2,16 +2,14 @@ import type * as binding from "@rspack/binding";
 import { type Resolve, getRawResolve } from "./config";
 import type { ResolveCallback } from "./config/adapterRuleUse";
 
+export type { ResolveRequest } from "@rspack/binding";
+
 type ResolveContext = {};
 
 type ResolveOptionsWithDependencyType = Resolve & {
 	dependencyCategory?: string;
 	resolveToContext?: boolean;
 };
-
-export type ResourceData = binding.JsResourceData;
-
-export type ResolveRequest = ResourceData;
 
 export class Resolver {
 	binding: binding.JsResolver;
@@ -21,9 +19,7 @@ export class Resolver {
 	}
 
 	resolveSync(context: object, path: string, request: string): string | false {
-		const data = this.binding.resolveSync(path, request);
-		if (data === false) return data;
-		return data.resource;
+		return this.binding.resolveSync(path, request);
 	}
 
 	resolve(
@@ -33,9 +29,7 @@ export class Resolver {
 		resolveContext: ResolveContext,
 		callback: ResolveCallback
 	): void {
-		this.binding.resolve(path, request, (error, data) =>
-			callback(error, data?.resource, data)
-		);
+		this.binding.resolve(path, request, callback);
 	}
 
 	withOptions({
