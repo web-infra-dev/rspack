@@ -808,9 +808,6 @@ importers:
       '@swc/helpers':
         specifier: 0.5.17
         version: 0.5.17
-      browserslist:
-        specifier: ^4.25.0
-        version: 4.25.0
       enhanced-resolve:
         specifier: 5.18.1
         version: 5.18.1
