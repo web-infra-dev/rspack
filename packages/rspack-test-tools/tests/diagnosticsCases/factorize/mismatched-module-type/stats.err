@@ -1,11 +1,11 @@
 ERROR in ./app.js
   × Module parse failed:
-  ╰─▶   × JavaScript parse error: Unterminated regexp literal
-         ╭─[4:31]
+  ╰─▶   × JavaScript parse error: Expression expected
+         ╭─[4:32]
        2 │     createElement() {}
        3 │ };
        4 │ export const App = () => <div></div>;
-         ·                                ──────
+         ·                                 ─────
          ╰────
       
   help: 
@@ -27,19 +27,6 @@ ERROR in ./app.js
 ERROR in ./app.js
   × Module parse failed:
   ╰─▶   × JavaScript parse error: Expression expected
-         ╭─[4:32]
-       2 │     createElement() {}
-       3 │ };
-       4 │ export const App = () => <div></div>;
-         ·                                 ─────
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
-
-ERROR in ./app.js
-  × Module parse failed:
-  ╰─▶   × JavaScript parse error: Expression expected
          ╭─[4:30]
        2 │     createElement() {}
        3 │ };
@@ -50,7 +37,7 @@ ERROR in ./app.js
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./app.jsx
+ERROR in ./app.js
   × Module parse failed:
   ╰─▶   × JavaScript parse error: Unterminated regexp literal
          ╭─[4:31]
@@ -58,6 +45,19 @@ ERROR in ./app.jsx
        3 │ };
        4 │ export const App = () => <div></div>;
          ·                                ──────
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./app.jsx
+  × Module parse failed:
+  ╰─▶   × JavaScript parse error: Expression expected
+         ╭─[4:32]
+       2 │     createElement() {}
+       3 │ };
+       4 │ export const App = () => <div></div>;
+         ·                                 ─────
          ╰────
       
   help: 
@@ -79,11 +79,11 @@ ERROR in ./app.jsx
 ERROR in ./app.jsx
   × Module parse failed:
   ╰─▶   × JavaScript parse error: Expression expected
-         ╭─[4:32]
+         ╭─[4:30]
        2 │     createElement() {}
        3 │ };
        4 │ export const App = () => <div></div>;
-         ·                                 ─────
+         ·                               ─
          ╰────
       
   help: 
@@ -91,12 +91,12 @@ ERROR in ./app.jsx
 
 ERROR in ./app.jsx
   × Module parse failed:
-  ╰─▶   × JavaScript parse error: Expression expected
-         ╭─[4:30]
+  ╰─▶   × JavaScript parse error: Unterminated regexp literal
+         ╭─[4:31]
        2 │     createElement() {}
        3 │ };
        4 │ export const App = () => <div></div>;
-         ·                               ─
+         ·                                ──────
          ╰────
       
   help: 

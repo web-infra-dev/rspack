@@ -1,12 +1,11 @@
 ERROR in ./index.js
   × Module parse failed:
-  ╰─▶   × JavaScript parse error: 'const' declarations must be initialized
-         ╭─[2:6]
-       1 │ const CONST = 9000 % 2;
-       2 │ const D {
-         ·       ─
+  ╰─▶   × JavaScript parse error: Expression expected
+         ╭─[5:0]
        3 │     d = 10
        4 │     g = CONST
+       5 │ }
+         · ─
          ╰────
       
   help: 
@@ -14,12 +13,13 @@ ERROR in ./index.js
 
 ERROR in ./index.js
   × Module parse failed:
-  ╰─▶   × JavaScript parse error: Expression expected
-         ╭─[5:0]
+  ╰─▶   × JavaScript parse error: 'const' declarations must be initialized
+         ╭─[2:6]
+       1 │ const CONST = 9000 % 2;
+       2 │ const D {
+         ·       ─
        3 │     d = 10
        4 │     g = CONST
-       5 │ }
-         · ─
          ╰────
       
   help: 

@@ -422,12 +422,12 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for commons-plugin-issue-4980 1`] = `
-"asset app.65cf6affbf0cd0c0-xxx.js xx bytes [emitted] [immutable] (name: app)
+"asset app.824f7ad4e050d52c-xxx.js xx bytes [emitted] [immutable] (name: app)
 orphan modules xx bytes [orphan] 3 modules
 ./entry-xxx.js xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X.23
 
-asset app.61e784f58e359016-xxx.js xx bytes [emitted] [immutable] (name: app)
+asset app.05ce3dc57a31149c-xxx.js xx bytes [emitted] [immutable] (name: app)
 orphan modules xx bytes [orphan] 3 modules
 ./entry-xxx.js xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X.23"
@@ -696,8 +696,8 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for immutable 1`] = `
-"asset d4e3657fcff58763.js xx KiB [emitted] [immutable] (name: main)
-asset 861a015ed5554248.js xx bytes [emitted] [immutable]"
+"asset 39070086cb7cbb92.js xx KiB [emitted] [immutable] (name: main)
+asset cc8bb03cea0d9f6f.js xx bytes [emitted] [immutable]"
 `;
 
 exports[`StatsTestCases should print correct stats for import-context-filter 1`] = `
