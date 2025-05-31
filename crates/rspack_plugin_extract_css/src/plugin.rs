@@ -425,8 +425,7 @@ despite it was not able to fulfill desired ordering with these modules:
         {
           need_supports = true;
           source.add(RawStringSource::from(format!(
-            "@supports ({}) {{\n",
-            supports
+            "@supports ({supports}) {{\n"
           )));
         }
 
@@ -434,11 +433,11 @@ despite it was not able to fulfill desired ordering with these modules:
           && !media.is_empty()
         {
           need_media = true;
-          source.add(RawStringSource::from(format!("@media {} {{\n", media)));
+          source.add(RawStringSource::from(format!("@media {media} {{\n")));
         }
 
         if let Some(layer) = &module.layer {
-          source.add(RawStringSource::from(format!("@layer {} {{\n", layer)));
+          source.add(RawStringSource::from(format!("@layer {layer} {{\n")));
         }
 
         // different from webpack, add `enforce_relative` to preserve './'

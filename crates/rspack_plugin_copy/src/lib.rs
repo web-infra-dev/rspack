@@ -266,7 +266,7 @@ impl CopyRspackPlugin {
 
     // TODO cache
 
-    logger.debug(format!("reading '{}'...", absolute_filename));
+    logger.debug(format!("reading '{absolute_filename}'..."));
     // TODO inputFileSystem
 
     #[cfg(not(target_family = "wasm"))]
@@ -276,7 +276,7 @@ impl CopyRspackPlugin {
 
     let source_vec = match data {
       Ok(data) => {
-        logger.debug(format!("read '{}'...", absolute_filename));
+        logger.debug(format!("read '{absolute_filename}'..."));
 
         data
       }
@@ -293,10 +293,7 @@ impl CopyRspackPlugin {
     let mut source = RawSource::from(source_vec.clone());
 
     if let Some(transformer) = &pattern.transform_fn {
-      logger.debug(format!(
-        "transforming content for '{}'...",
-        absolute_filename
-      ));
+      logger.debug(format!("transforming content for '{absolute_filename}'..."));
       // TODO: support cache in the future.
       handle_transform(
         transformer,
@@ -310,8 +307,7 @@ impl CopyRspackPlugin {
 
     let filename = if matches!(&to_type, ToType::Template) {
       logger.log(format!(
-        "interpolating template '{}' for '${}'...`",
-        filename, source_filename
+        "interpolating template '{filename}' for '${source_filename}'...`"
       ));
 
       let content_hash = Self::get_content_hash(
@@ -332,8 +328,7 @@ impl CopyRspackPlugin {
         .await?;
 
       logger.log(format!(
-        "interpolated template '{template_str}' for '{}'",
-        filename
+        "interpolated template '{template_str}' for '{filename}'"
       ));
 
       template_str
@@ -376,8 +371,7 @@ impl CopyRspackPlugin {
     };
 
     logger.log(format!(
-      "starting to process a pattern from '{}' using '{:?}' context",
-      normalized_orig_from, pattern_context
+      "starting to process a pattern from '{normalized_orig_from}' using '{pattern_context:?}' context"
     ));
 
     let mut context =
@@ -389,21 +383,21 @@ impl CopyRspackPlugin {
       context.join(&normalized_orig_from)
     };
 
-    logger.debug(format!("getting stats for '{}'...", abs_from));
+    logger.debug(format!("getting stats for '{abs_from}'..."));
 
     let from_type = if let Ok(meta) = fs::metadata(&abs_from) {
       if meta.is_dir() {
-        logger.debug(format!("determined '{}' is a directory", abs_from));
+        logger.debug(format!("determined '{abs_from}' is a directory"));
         FromType::Dir
       } else if meta.is_file() {
-        logger.debug(format!("determined '{}' is a file", abs_from));
+        logger.debug(format!("determined '{abs_from}' is a file"));
         FromType::File
       } else {
-        logger.debug(format!("determined '{}' is a unknown", abs_from));
+        logger.debug(format!("determined '{abs_from}' is a unknown"));
         FromType::Glob
       }
     } else {
-      logger.debug(format!("determined '{}' is a glob", abs_from));
+      logger.debug(format!("determined '{abs_from}' is a glob"));
       FromType::Glob
     };
 
@@ -417,7 +411,7 @@ impl CopyRspackPlugin {
     let mut need_add_context_to_dependency = false;
     let glob_query = match from_type {
       FromType::Dir => {
-        logger.debug(format!("added '{}' as a context dependency", abs_from));
+        logger.debug(format!("added '{abs_from}' as a context dependency"));
         context_dependencies.insert(abs_from.clone().into_std_path_buf());
         context = abs_from.as_path().into();
 
@@ -430,7 +424,7 @@ impl CopyRspackPlugin {
         escaped.as_str().to_string()
       }
       FromType::File => {
-        logger.debug(format!("added '{}' as a file dependency", abs_from));
+        logger.debug(format!("added '{abs_from}' as a file dependency"));
         file_dependencies.insert(abs_from.clone().into_std_path_buf());
         context = abs_from.parent().unwrap_or(Utf8Path::new("")).into();
 
@@ -681,28 +675,25 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           // Make sure the output directory exists
           if let Some(parent) = dest_path.parent() {
             fs::create_dir_all(parent).unwrap_or_else(|e| {
-              logger.warn(format!("Failed to create directory {:?}: {}", parent, e));
+              logger.warn(format!("Failed to create directory {parent:?}: {e}"));
             });
           }
 
           // Make sure the file exists before trying to set permissions
           if !dest_path.exists() {
             logger.warn(format!(
-              "Destination file {:?} does not exist, cannot copy permissions",
-              dest_path
+              "Destination file {dest_path:?} does not exist, cannot copy permissions"
             ));
             continue;
           }
 
           if let Err(e) = fs::set_permissions(dest_path, permissions) {
             logger.warn(format!(
-              "Failed to copy permissions from {:?} to {:?}: {}",
-              source_path, dest_path, e
+              "Failed to copy permissions from {source_path:?} to {dest_path:?}: {e}"
             ));
           } else {
             logger.log(format!(
-              "Successfully copied permissions from {:?} to {:?}",
-              source_path, dest_path
+              "Successfully copied permissions from {source_path:?} to {dest_path:?}"
             ));
           }
         }

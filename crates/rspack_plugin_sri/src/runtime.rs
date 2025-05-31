@@ -23,7 +23,7 @@ fn add_attribute(tag: &str, code: &str, cross_origin_loading: &CrossOriginLoadin
     SRI_HASH_VARIABLE_REFERENCE,
     match cross_origin_loading {
       CrossOriginLoading::Disable => "false".to_string(),
-      CrossOriginLoading::Enable(v) => format!("'{}'", v),
+      CrossOriginLoading::Enable(v) => format!("'{v}'"),
     }
   )
 }
@@ -107,7 +107,7 @@ fn generate_sri_hash_placeholders(
       .filter_map(|c| {
         let chunk_id = serde_json::to_string(c.as_str()).ok()?;
         let placeholder = serde_json::to_string(&make_placeholder(hash_funcs, c.as_str())).ok()?;
-        Some(format!("{}: {}", chunk_id, placeholder))
+        Some(format!("{chunk_id}: {placeholder}"))
       })
       .collect::<Vec<_>>()
       .join(",")

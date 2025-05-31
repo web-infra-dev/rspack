@@ -449,7 +449,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         }
 
         let comment = Template::to_normal_comment(prop.id.as_str());
-        let key = format!("{}{}", comment, new_name);
+        let key = format!("{comment}{new_name}");
         let content = if prop.shorthand {
           format!("{key}: {}", prop.id)
         } else {

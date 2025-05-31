@@ -46,7 +46,7 @@ impl std::fmt::Display for ErrorReason {
       ErrorReason::Detail(detail) => {
         write!(f, "{}", detail.reason)?;
         for line in detail.packs.iter().take(5) {
-          write!(f, "\n{}", line)?;
+          write!(f, "\n{line}")?;
         }
         if detail.packs.len() > 5 {
           write!(f, "\n...")?;
@@ -56,11 +56,11 @@ impl std::fmt::Display for ErrorReason {
         if let Some(e) = e.downcast_ref::<Error>() {
           write!(f, "{}", e.inner)?;
         } else {
-          write!(f, "{}", e)?;
+          write!(f, "{e}")?;
         }
       }
       ErrorReason::Reason(e) => {
-        write!(f, "{}", e)?;
+        write!(f, "{e}")?;
       }
     };
     Ok(())
@@ -150,9 +150,9 @@ impl Error {
 impl std::fmt::Display for Error {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     if let Some(t) = &self.r#type {
-      write!(f, "{} ", t)?;
+      write!(f, "{t} ")?;
       if let Some(scope) = self.scope {
-        write!(f, "scope `{}` ", scope)?;
+        write!(f, "scope `{scope}` ")?;
       }
       write!(f, "failed due to")?;
       write!(f, " {}", self.inner)?;

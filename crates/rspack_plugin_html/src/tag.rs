@@ -193,8 +193,8 @@ impl HtmlPluginTag {
 
   pub fn create_meta(meta: &HashMap<String, HashMap<String, String>>) -> Vec<HtmlPluginTag> {
     meta
-      .iter()
-      .map(|(_, value)| HtmlPluginTag {
+      .values()
+      .map(|value| HtmlPluginTag {
         tag_name: "meta".to_string(),
         attributes: value
           .iter()
@@ -265,7 +265,7 @@ impl fmt::Display for HtmlPluginTag {
         String::new()
       }
     );
-    write!(f, "{}", res)
+    write!(f, "{res}")
   }
 }
 

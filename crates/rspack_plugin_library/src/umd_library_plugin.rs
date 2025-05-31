@@ -152,10 +152,9 @@ async fn render(
       )
     };
     format!(
-      r#"function webpackLoadOptionalExternalModuleAmd({}) {{
-      return factory({});
-    }}"#,
-      wrapper_arguments, factory_arguments
+      r#"function webpackLoadOptionalExternalModuleAmd({wrapper_arguments}) {{
+      return factory({factory_arguments});
+    }}"#
     )
   };
 
@@ -179,7 +178,7 @@ async fn render(
   };
 
   let name = if let Some(commonjs) = &names.commonjs {
-    library_name(&[commonjs.clone()], chunk, compilation).await?
+    library_name(std::slice::from_ref(commonjs), chunk, compilation).await?
   } else if let Some(root) = &names.root {
     library_name(root, chunk, compilation).await?
   } else {
@@ -370,7 +369,7 @@ fn externals_require_array(
         let mut expr = if let Some(rest) = request.rest() {
           format!("require({}){}", primary, &accessor_to_object_access(rest))
         } else {
-          format!("require({})", primary)
+          format!("require({primary})")
         };
         if module_graph.is_optional(&m.id) {
           expr = format!("(function webpackLoadOptionalExternalModule() {{ try {{ return {expr}; }} catch(e) {{}} }}())");

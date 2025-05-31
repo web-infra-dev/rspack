@@ -93,7 +93,7 @@ impl RootStrategy for SplitPackStrategy {
       FSError::from_message(
         &meta_path,
         FSOperation::Read,
-        format!("parse root meta failed: {}", e),
+        format!("parse root meta failed: {e}"),
       )
     })?;
     let scopes = reader

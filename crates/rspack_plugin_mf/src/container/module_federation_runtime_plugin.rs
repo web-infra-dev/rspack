@@ -86,9 +86,8 @@ chunkMatcher: function(chunkId) {{
   };
 
   let root_output_dir_str = format!(
-    r#"rootOutputDir: "{}",
-"#,
-    root_output_dir
+    r#"rootOutputDir: "{root_output_dir}",
+"#
   );
 
   format!(
@@ -98,10 +97,7 @@ if(!{federation_global}){{
         {chunk_matcher}{root_output_dir_str}
     }};
 }}
-"#,
-    federation_global = federation_global,
-    chunk_matcher = chunk_matcher,
-    root_output_dir_str = root_output_dir_str
+"#
   )
 }
 

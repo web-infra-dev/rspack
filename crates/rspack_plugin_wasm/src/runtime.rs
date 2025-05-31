@@ -62,7 +62,7 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
     Ok(get_async_wasm_loading(
       &self
         .generate_load_binary_code
-        .cow_replace("$PATH", &format!("\"{}\"", path))
+        .cow_replace("$PATH", &format!("\"{path}\""))
         .cow_replace(
           "$IMPORT_META_NAME",
           compilation.options.output.import_meta_name.as_str(),

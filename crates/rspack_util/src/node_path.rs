@@ -341,7 +341,7 @@ impl NodePath for Utf8PathBuf {
     }
 
     if is_absolute {
-      Utf8PathBuf::from(format!("/{}", normalized_path))
+      Utf8PathBuf::from(format!("/{normalized_path}"))
     } else {
       Utf8PathBuf::from(normalized_path)
     }
@@ -401,7 +401,7 @@ impl NodePath for Utf8PathBuf {
             if j < len || j != last {
               if first_part == "." || first_part == "?" {
                 // We matched a device root (e.g. \\\\.\\PHYSICALDRIVE0)
-                device = Some(Cow::from(format!("\\\\{}", first_part)));
+                device = Some(Cow::from(format!("\\\\{first_part}")));
                 root_end = 4;
               } else if j == len {
                 // We matched a UNC root only
@@ -453,21 +453,21 @@ impl NodePath for Utf8PathBuf {
         && is_windows_device_root(&tail.as_bytes()[0])
         && tail.as_bytes().get(1) == Some(&b':')
       {
-        return Utf8PathBuf::from(format!(".\\{}", tail));
+        return Utf8PathBuf::from(format!(".\\{tail}"));
       }
       let mut index = path.find(':');
       while let Some(i) = index {
         if i == path.len() - 1 || path.as_bytes().get(i + 1).is_some_and(is_path_separator) {
-          return Utf8PathBuf::from(format!(".\\{}", tail));
+          return Utf8PathBuf::from(format!(".\\{tail}"));
         }
         index = path[i + 1..].find(':').map(|next| next + i + 1);
       }
     }
 
     match device {
-      Some(device) if is_absolute => Utf8PathBuf::from(format!("{}\\{}", device, tail)),
-      Some(device) => Utf8PathBuf::from(format!("{}{}", device, tail)),
-      None if is_absolute => Utf8PathBuf::from(format!("\\{}", tail)),
+      Some(device) if is_absolute => Utf8PathBuf::from(format!("{device}\\{tail}")),
+      Some(device) => Utf8PathBuf::from(format!("{device}{tail}")),
+      None if is_absolute => Utf8PathBuf::from(format!("\\{tail}")),
       _ => Utf8PathBuf::from(tail),
     }
   }

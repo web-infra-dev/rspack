@@ -96,7 +96,7 @@ impl DependencyTemplate for RequireEnsureDependencyTemplate {
     source.replace(
       dep.range.start,
       dep.content_range.start,
-      &format!("{}.then((", promise),
+      &format!("{promise}.then(("),
       None,
     );
     code_generatable_context

@@ -24,7 +24,7 @@ use rspack_util::itoa;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 fn format_bailout_reason(msg: &str) -> String {
-  format!("ModuleConcatenation bailout: {}", msg)
+  format!("ModuleConcatenation bailout: {msg}")
 }
 
 #[derive(Clone, Debug)]
@@ -102,9 +102,7 @@ pub struct ModuleConcatenationPlugin {
 impl ModuleConcatenationPlugin {
   fn format_bailout_warning(&self, module: ModuleIdentifier, warning: &Warning) -> String {
     match warning {
-      Warning::Problem(id) => {
-        format_bailout_reason(&format!("Cannot concat with {}: {}", module, id))
-      }
+      Warning::Problem(id) => format_bailout_reason(&format!("Cannot concat with {module}: {id}")),
       Warning::Id(id) => {
         let reason = self.get_inner_bailout_reason(id);
         let reason_with_prefix = match reason {
@@ -112,14 +110,10 @@ impl ModuleConcatenationPlugin {
           None => "".to_string(),
         };
         if id == &module {
-          format_bailout_reason(&format!(
-            "Cannot concat with {}{}",
-            module, reason_with_prefix
-          ))
+          format_bailout_reason(&format!("Cannot concat with {module}{reason_with_prefix}"))
         } else {
           format_bailout_reason(&format!(
-            "Cannot concat with {} because of {}{}",
-            module, id, reason_with_prefix
+            "Cannot concat with {module} because of {id}{reason_with_prefix}"
           ))
         }
       }
@@ -286,8 +280,7 @@ impl ModuleConcatenationPlugin {
           // let mut explanations: Vec<_> = importing_explanations.into_iter().collect();
           // explanations.sort();
           format!(
-            "Module {} is referenced",
-            module_readable_identifier,
+            "Module {module_readable_identifier} is referenced",
             // if !explanations.is_empty() {
             //   format!("by: {}", explanations.join(", "))
             // } else {
@@ -594,7 +587,7 @@ impl ModuleConcatenationPlugin {
       .map(|id| {
         let module = module_graph
           .module_by_identifier(id)
-          .unwrap_or_else(|| panic!("should have module {}", id));
+          .unwrap_or_else(|| panic!("should have module {id}"));
         let inner_module = ConcatenatedInnerModule {
           id: *id,
           size: module.size(

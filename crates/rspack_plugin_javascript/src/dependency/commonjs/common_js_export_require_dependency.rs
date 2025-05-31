@@ -431,7 +431,7 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
       exports_argument.to_string()
     } else if dep.base.is_module_exports() {
       runtime_requirements.insert(RuntimeGlobals::MODULE);
-      format!("{}.exports", module_argument)
+      format!("{module_argument}.exports")
     } else if dep.base.is_this() {
       runtime_requirements.insert(RuntimeGlobals::THIS_AS_EXPORTS);
       "this".to_string()
@@ -477,7 +477,7 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
             0
           )
         ),
-        None => format!("/* unused reexport */ {}", require_expr),
+        None => format!("/* unused reexport */ {require_expr}"),
       };
       source.replace(dep.range.start, dep.range.end, expr.as_str(), None)
     } else if dep.base.is_define_property() {

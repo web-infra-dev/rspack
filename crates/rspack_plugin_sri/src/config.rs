@@ -26,7 +26,7 @@ impl From<String> for IntegrityHtmlPlugin {
       "JavaScript" => Self::JavaScriptPlugin,
       "Native" => Self::NativePlugin,
       "Disabled" => Self::Disabled,
-      _ => panic!("Invalid integrity html plugin: {}", value),
+      _ => panic!("Invalid integrity html plugin: {value}"),
     }
   }
 }

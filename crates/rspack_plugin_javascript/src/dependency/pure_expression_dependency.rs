@@ -42,7 +42,8 @@ impl PureExpressionDependency {
         let exports_info = module_graph.get_exports_info(&self.module_identifier);
         filter_runtime(runtime, |cur_runtime| {
           set.iter().any(|id| {
-            exports_info.get_used(&module_graph, &[id.clone()], cur_runtime) != UsageState::Unused
+            exports_info.get_used(&module_graph, std::slice::from_ref(id), cur_runtime)
+              != UsageState::Unused
           })
         })
       }

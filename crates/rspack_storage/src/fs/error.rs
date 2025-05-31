@@ -114,10 +114,10 @@ impl std::fmt::Display for BatchFSError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     write!(f, "{}", self.message)?;
     if let Some(join_error) = &self.join_error {
-      write!(f, " due to `{}`", join_error)?;
+      write!(f, " due to `{join_error}`")?;
     } else {
       for error in self.errors.iter().take(5) {
-        write!(f, "\n{}", error)?;
+        write!(f, "\n{error}")?;
       }
       if self.errors.len() > 5 {
         write!(f, "\n...")?;

@@ -36,7 +36,7 @@ impl RstestParserPlugin {
         .and_then(|p| p.parent())
         .map(|p| p.to_string())
         .unwrap_or_default();
-      format!("'{}'", resource_path)
+      format!("'{resource_path}'")
     }
   }
 }

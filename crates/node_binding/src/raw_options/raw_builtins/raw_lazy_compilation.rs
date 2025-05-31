@@ -70,7 +70,7 @@ impl From<RawLazyCompilationTest> for LazyCompilationTest<LazyCompilationTestFn>
     match value.0 {
       Either::A(regex) => Self::Regex(
         RspackRegex::with_flags(&regex.source, &regex.flags).unwrap_or_else(|_| {
-          let msg = format!("[lazyCompilation]incorrect regex {:?}", regex);
+          let msg = format!("[lazyCompilation]incorrect regex {regex:?}");
           panic!("{msg}");
         }),
       ),

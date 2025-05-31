@@ -127,7 +127,11 @@ installedChunks[chunkId] = 0;
               RuntimeGlobals::MODULE_FACTORIES
             ))
             .unwrap_or_default(),
-          with_hmr.then_some("return moduleIds").unwrap_or_default(),
+          if with_hmr {
+            "return moduleIds"
+          } else {
+            Default::default()
+          },
         ),
       );
       let load_initial_chunk_data = if initial_chunk_ids.len() > 2 {
@@ -202,7 +206,7 @@ installedChunks[chunkId] = 0;
         let cross_origin_content = if let CrossOriginLoading::Enable(cross_origin) =
           &compilation.options.output.cross_origin_loading
         {
-          format!("link.crossOrigin = '{}';", cross_origin)
+          format!("link.crossOrigin = '{cross_origin}';")
         } else {
           "".to_string()
         };

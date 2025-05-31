@@ -13,8 +13,7 @@ pub const PLACEHOLDER_PREFIX: &str = "*-*-*-CHUNK-SRI-HASH-";
 pub static PLACEHOLDER_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
   let escaped_prefix = regex::escape(PLACEHOLDER_PREFIX);
   regex::Regex::new(&format!(
-    r"{}[a-zA-Z0-9=/+]+(\s+sha\d{{3}}-[a-zA-Z0-9=/+]+)*",
-    escaped_prefix
+    r"{escaped_prefix}[a-zA-Z0-9=/+]+(\s+sha\d{{3}}-[a-zA-Z0-9=/+]+)*"
   ))
   .expect("should initialize `Regex`")
 });
@@ -66,7 +65,7 @@ fn recurse_chunk(
 }
 
 pub fn make_placeholder(hash_funcs: &Vec<SubresourceIntegrityHashFunction>, id: &str) -> String {
-  let placeholder_source = format!("{}{}", PLACEHOLDER_PREFIX, id);
+  let placeholder_source = format!("{PLACEHOLDER_PREFIX}{id}");
   let filler = compute_integrity(hash_funcs, &placeholder_source);
   format!(
     "{}{}",

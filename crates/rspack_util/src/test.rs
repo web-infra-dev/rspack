@@ -8,8 +8,8 @@ pub fn is_hot_test() -> bool {
 }
 
 pub static HOT_TEST_DEFINE_GLOBAL: LazyLock<String> = LazyLock::new(|| {
-  is_hot_test()
-    .then(|| {
+  if is_hot_test() {
+    {
       r#"
       self.__HMR_UPDATED_RUNTIME__ = {
         javascript: {
@@ -25,55 +25,65 @@ pub static HOT_TEST_DEFINE_GLOBAL: LazyLock<String> = LazyLock::new(|| {
       };
       "#
       .to_string()
-    })
-    .unwrap_or_default()
+    }
+  } else {
+    Default::default()
+  }
 });
 
 pub static HOT_TEST_STATUS_CHANGE: LazyLock<String> = LazyLock::new(|| {
-  is_hot_test()
-    .then(|| {
+  if is_hot_test() {
+    {
       r#"
       self.__HMR_UPDATED_RUNTIME__.statusPath.push(newStatus);
       "#
       .to_string()
-    })
-    .unwrap_or_default()
+    }
+  } else {
+    Default::default()
+  }
 });
 
 pub static HOT_TEST_OUTDATED: LazyLock<String> = LazyLock::new(|| {
-  is_hot_test()
-    .then(|| {
+  if is_hot_test() {
+    {
       r#"
       self.__HMR_UPDATED_RUNTIME__.javascript.outdatedModules = outdatedModules;
 	    self.__HMR_UPDATED_RUNTIME__.javascript.outdatedDependencies = outdatedDependencies;
       "#
       .to_string()
-    })
-    .unwrap_or_default()
+    }
+  } else {
+    Default::default()
+  }
 });
 
 pub static HOT_TEST_DISPOSE: LazyLock<String> = LazyLock::new(|| {
-  is_hot_test()
-    .then(|| {
+  if is_hot_test() {
+    {
       r#"
       if (disposeHandlers.length > 0) {
         self.__HMR_UPDATED_RUNTIME__.javascript.disposedModules.push(moduleId);
       }
       "#
       .to_string()
-    })
-    .unwrap_or_default()
+    }
+  } else {
+    Default::default()
+  }
 });
 
 pub static HOT_TEST_UPDATED: LazyLock<String> = LazyLock::new(|| {
-  is_hot_test()
-    .then(|| {
+  if is_hot_test() {
+    {
       r#"
       self.__HMR_UPDATED_RUNTIME__.javascript.updatedModules.push(updateModuleId);
       "#
       .to_string()
-    })
-    .unwrap_or_default()
+    }
+  } else {
+    Default::default()
+  }
 });
 
 pub static HOT_TEST_RUNTIME: LazyLock<String> = LazyLock::new(|| {
@@ -93,12 +103,14 @@ pub static HOT_TEST_RUNTIME: LazyLock<String> = LazyLock::new(|| {
 });
 
 pub static HOT_TEST_ACCEPT: LazyLock<String> = LazyLock::new(|| {
-  is_hot_test()
-    .then(|| {
+  if is_hot_test() {
+    {
       r#"
       self.__HMR_UPDATED_RUNTIME__.javascript.acceptedModules.push(dependency);
       "#
       .to_string()
-    })
-    .unwrap_or_default()
+    }
+  } else {
+    Default::default()
+  }
 });

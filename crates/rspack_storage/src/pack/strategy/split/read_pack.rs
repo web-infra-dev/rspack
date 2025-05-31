@@ -31,7 +31,7 @@ impl PackReadStrategy for SplitPackStrategy {
           FSError::from_message(
             path,
             FSOperation::Read,
-            format!("parse pack key lengths failed: {}", e),
+            format!("parse pack key lengths failed: {e}"),
           )
         })
       })
@@ -65,7 +65,7 @@ impl PackReadStrategy for SplitPackStrategy {
           FSError::from_message(
             path,
             FSOperation::Read,
-            format!("parse pack key lengths failed: {}", e),
+            format!("parse pack key lengths failed: {e}"),
           )
         })
       })
@@ -82,7 +82,7 @@ impl PackReadStrategy for SplitPackStrategy {
           FSError::from_message(
             path,
             FSOperation::Read,
-            format!("parse pack content lengths failed: {}", e),
+            format!("parse pack content lengths failed: {e}"),
           )
         })
       })
@@ -97,7 +97,7 @@ impl PackReadStrategy for SplitPackStrategy {
           FSError::from_message(
             path,
             FSOperation::Read,
-            format!("parse pack generations failed: {}", e),
+            format!("parse pack generations failed: {e}"),
           )
         })
       })

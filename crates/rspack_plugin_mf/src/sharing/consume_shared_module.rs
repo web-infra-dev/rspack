@@ -49,17 +49,26 @@ impl ConsumeSharedModule {
         .as_ref()
         .map(|v| v.to_string())
         .unwrap_or_else(|| "*".to_string()),
-      options
-        .strict_version
-        .then_some(" (strict)")
-        .unwrap_or_default(),
-      options.singleton.then_some(" (strict)").unwrap_or_default(),
+      if options.strict_version {
+        " (strict)"
+      } else {
+        Default::default()
+      },
+      if options.singleton {
+        " (strict)"
+      } else {
+        Default::default()
+      },
       options
         .import_resolved
         .as_ref()
         .map(|f| format!(" (fallback: {f})"))
         .unwrap_or_default(),
-      options.eager.then_some(" (eager)").unwrap_or_default(),
+      if options.eager {
+        " (eager)"
+      } else {
+        Default::default()
+      },
     );
     Self {
       blocks: Vec::new(),
@@ -72,7 +81,7 @@ impl ConsumeSharedModule {
         options
           .import
           .as_ref()
-          .map(|r| format!("/{}", r))
+          .map(|r| format!("/{r}"))
           .unwrap_or_default()
       ),
       readable_identifier: identifier,
@@ -195,7 +204,7 @@ impl Module for ConsumeSharedModule {
         function += "Singleton";
       }
       let version = json_stringify(&version.to_string());
-      args.push(format!("loaders.parseRange({})", version));
+      args.push(format!("loaders.parseRange({version})"));
       function += "VersionCheck";
     } else if self.options.singleton {
       function += "Singleton";

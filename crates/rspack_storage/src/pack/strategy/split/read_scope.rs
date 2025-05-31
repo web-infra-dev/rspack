@@ -110,7 +110,7 @@ async fn read_scope_meta(
         Error::from_reason(
           Some(ErrorType::Load),
           Some(scope),
-          format!("parse option meta failed: {}", e),
+          format!("parse option meta failed: {e}"),
         )
       })
     })
@@ -152,14 +152,14 @@ async fn read_scope_meta(
                 Error::from_reason(
                   Some(ErrorType::Load),
                   Some(scope),
-                  format!("parse file meta failed: {}", e),
+                  format!("parse file meta failed: {e}"),
                 )
               })?,
               generation: i[3].parse::<usize>().map_err(|e| {
                 Error::from_reason(
                   Some(ErrorType::Load),
                   Some(scope),
-                  format!("parse file meta failed: {}", e),
+                  format!("parse file meta failed: {e}"),
                 )
               })?,
               wrote: true,

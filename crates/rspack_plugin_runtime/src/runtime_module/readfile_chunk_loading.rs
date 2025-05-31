@@ -62,11 +62,11 @@ impl ReadFileChunkLoadingRuntimeModule {
 
     match id {
       TemplateId::Raw => base_id,
-      TemplateId::WithOnChunkLoad => format!("{}_with_on_chunk_load", base_id),
-      TemplateId::WithLoading => format!("{}_with_loading", base_id),
-      TemplateId::WithExternalInstallChunk => format!("{}_with_external_install_chunk", base_id),
-      TemplateId::WithHmr => format!("{}_with_hmr", base_id),
-      TemplateId::WithHmrManifest => format!("{}_with_hmr_manifest", base_id),
+      TemplateId::WithOnChunkLoad => format!("{base_id}_with_on_chunk_load"),
+      TemplateId::WithLoading => format!("{base_id}_with_loading"),
+      TemplateId::WithExternalInstallChunk => format!("{base_id}_with_external_install_chunk"),
+      TemplateId::WithHmr => format!("{base_id}_with_hmr"),
+      TemplateId::WithHmrManifest => format!("{base_id}_with_hmr_manifest"),
     }
   }
 }

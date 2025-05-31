@@ -147,7 +147,8 @@ impl DependencyConditionFn for UsedByExportsDependencyCondition {
       .expect("should have parent module");
     let exports_info = mg.get_exports_info(module_identifier);
     for export_name in self.used_by_exports.iter() {
-      if exports_info.get_used(mg, &[export_name.clone()], runtime) != UsageState::Unused {
+      if exports_info.get_used(mg, std::slice::from_ref(export_name), runtime) != UsageState::Unused
+      {
         return ConnectionState::Active(true);
       }
     }

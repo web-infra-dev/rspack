@@ -187,12 +187,12 @@ impl CssPlugin {
                 // TODO: use PrefixSource to create indent
                 if let Some(media) = data.get::<CssMedia>() {
                   num_close_bracket += 1;
-                  container_source.add(RawSource::from(format!("@media {}{{\n", media)));
+                  container_source.add(RawSource::from(format!("@media {media}{{\n")));
                 }
 
                 if let Some(supports) = data.get::<CssSupports>() {
                   num_close_bracket += 1;
-                  container_source.add(RawSource::from(format!("@supports ({}) {{\n", supports)));
+                  container_source.add(RawSource::from(format!("@supports ({supports}) {{\n")));
                 }
 
                 if let Some(layer) = data.get::<CssLayer>() {
@@ -200,7 +200,7 @@ impl CssPlugin {
                   container_source.add(RawSource::from(format!(
                     "@layer{} {{\n",
                     if let CssLayer::Named(layer) = &layer {
-                      Cow::Owned(format!(" {}", layer))
+                      Cow::Owned(format!(" {layer}"))
                     } else {
                       Cow::Borrowed("")
                     }

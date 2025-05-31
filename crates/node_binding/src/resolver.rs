@@ -50,7 +50,7 @@ impl JsResolver {
           Ok(Either::A(ResourceData::from(resource).into()))
         }
         Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(false)),
-        Err(err) => Err(napi::Error::from_reason(format!("{:?}", err))),
+        Err(err) => Err(napi::Error::from_reason(format!("{err:?}"))),
       }
     })
   }
@@ -74,7 +74,7 @@ impl JsResolver {
             Either::<JsResourceData, bool>::A(ResourceData::from(resource).into()),
           ),
           Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(false)),
-          Err(err) => Err(napi::Error::from_reason(format!("{:?}", err))),
+          Err(err) => Err(napi::Error::from_reason(format!("{err:?}"))),
         }
       },
       || {},

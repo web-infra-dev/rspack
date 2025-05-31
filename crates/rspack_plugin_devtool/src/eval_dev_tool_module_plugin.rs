@@ -281,7 +281,7 @@ fn encode_uri(string: &str) -> Cow<str> {
       if let Cow::Owned(mut inner) = r {
         let mut b = [0u8; 4];
         for &octet in c.encode_utf8(&mut b).as_bytes() {
-          write!(&mut inner, "%{:02X}", octet).unwrap();
+          write!(&mut inner, "%{octet:02X}").expect("write failed");
         }
         r = Cow::Owned(inner);
       }

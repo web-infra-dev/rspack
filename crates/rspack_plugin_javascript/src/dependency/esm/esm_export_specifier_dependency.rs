@@ -141,7 +141,8 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
 
     let used_name = {
       let exports_info = module_graph.get_exports_info(&module.identifier());
-      let used_name = exports_info.get_used_name(&module_graph, *runtime, &[dep.name.clone()]);
+      let used_name =
+        exports_info.get_used_name(&module_graph, *runtime, std::slice::from_ref(&dep.name));
       used_name.map(|item| match item {
         UsedName::Normal(vec) => {
           // only have one value for export specifier dependency

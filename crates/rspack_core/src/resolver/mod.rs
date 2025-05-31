@@ -223,11 +223,9 @@ which tries to resolve these kind of requests in the current directory too.",
       Err(_) => normalized_path.parent(),
     };
 
-    if file_name.is_some() && parent_path.is_some() {
-      let file_name = file_name.expect("fail to get the filename of the current resolved module");
-      let parent_path =
-        parent_path.expect("fail to get the parent path of the current resolved module");
-
+    if let Some(file_name) = file_name
+      && let Some(parent_path) = parent_path
+    {
       // read the files in the parent directory
       if let Ok(files) = fs::read_dir(parent_path) {
         let mut requested_names = vec![file_name

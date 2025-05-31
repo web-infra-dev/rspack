@@ -16,7 +16,7 @@ fn transform_like_babel_plugin_import(s: &str, sym: &str, f: &mut fmt::Formatter
         write!(f, "{}{}", sym, c.to_lowercase())?;
       }
     } else {
-      write!(f, "{}", c)?;
+      write!(f, "{c}")?;
     }
     is_first = false
   }
