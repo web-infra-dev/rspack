@@ -70,7 +70,7 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
       if dep.r#type == NameType::FileName {
         if let Some(resource_path) = resource_path {
           let init = NormalInitFragment::new(
-            format!("const __filename = '{}';\n", resource_path),
+            format!("const __filename = '{resource_path}';\n"),
             InitFragmentStage::StageConstants,
             0,
             InitFragmentKey::Const(format!("retest __filename {}", m.id())),
@@ -82,7 +82,7 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
       } else if dep.r#type == NameType::DirName {
         if let Some(context) = context {
           let init = NormalInitFragment::new(
-            format!("const __dirname = '{}';\n", context),
+            format!("const __dirname = '{context}';\n"),
             InitFragmentStage::StageConstants,
             0,
             InitFragmentKey::Const(format!("retest __dirname {}", m.id())),

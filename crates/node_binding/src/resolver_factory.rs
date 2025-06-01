@@ -82,7 +82,7 @@ impl JsResolverFactory {
         Ok(JsResolver::new(resolver_factory, options))
       }
       _ => {
-        Err(napi::Error::from_reason(format!("Invalid resolver type '{}' specified. Rspack only supports 'normal', 'context', and 'loader' types.", r#type)))
+        Err(napi::Error::from_reason(format!("Invalid resolver type '{type}' specified. Rspack only supports 'normal', 'context', and 'loader' types.")))
       }
     }
   }

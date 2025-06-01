@@ -36,7 +36,7 @@ pub async fn transform(source: String, options: String) -> napi::Result<Transfor
       |_| noop_pass(),
     )
     .map(TransformOutput::from)
-    .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("{}", e)))
+    .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("{e}")))
 }
 
 #[napi]
@@ -55,7 +55,7 @@ pub async fn minify(source: String, options: String) -> napi::Result<TransformOu
       let v = e.into_inner();
       let err = v
         .into_iter()
-        .map(|e| format!("{:?}", e))
+        .map(|e| format!("{e:?}"))
         .collect::<Vec<_>>()
         .join("\n");
 

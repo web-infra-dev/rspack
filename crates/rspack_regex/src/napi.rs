@@ -50,10 +50,7 @@ impl FromNapiValue for RspackRegex {
     } else {
       Err(napi::Error::new(
         napi::Status::ObjectExpected,
-        format!(
-          "Expect value to be '[object RegExp]', but received {}",
-          object_type
-        ),
+        format!("Expect value to be '[object RegExp]', but received {object_type}"),
       ))
     }
   }

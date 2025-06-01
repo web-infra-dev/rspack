@@ -76,7 +76,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
             if chunk_group.is_initial() {
               return Err(
                 rspack_error::InternalError::new(
-                  format!("Cannot fulfil chunk condition of {}", module_id),
+                  format!("Cannot fulfil chunk condition of {module_id}"),
                   Default::default(),
                 )
                 .into(),
