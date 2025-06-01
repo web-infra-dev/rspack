@@ -15,6 +15,8 @@ use rspack_plugin_javascript::{
 };
 
 use crate::{
+  mock_hoist_dependency::MockHoistDependencyTemplate,
+  mock_module_id_dependency::MockModuleIdDependencyTemplate,
   module_path_name_dependency::ModulePathNameDependencyTemplate, parser_plugin::RstestParserPlugin,
 };
 
@@ -67,6 +69,16 @@ async fn compilation(
   compilation.set_dependency_template(
     ModulePathNameDependencyTemplate::template_type(),
     Arc::new(ModulePathNameDependencyTemplate::default()),
+  );
+
+  compilation.set_dependency_template(
+    MockHoistDependencyTemplate::template_type(),
+    Arc::new(MockHoistDependencyTemplate::default()),
+  );
+
+  compilation.set_dependency_template(
+    MockModuleIdDependencyTemplate::template_type(),
+    Arc::new(MockModuleIdDependencyTemplate::default()),
   );
   Ok(())
 }
