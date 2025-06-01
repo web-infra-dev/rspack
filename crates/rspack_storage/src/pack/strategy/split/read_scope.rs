@@ -300,9 +300,9 @@ mod tests {
     mock_scope_meta_file(&ScopeMeta::get_path(path), fs, options, 3).await?;
     for bucket_id in 0..options.bucket_size {
       for pack_no in 0..3 {
-        let unique_id = format!("{}_{}", bucket_id, pack_no);
-        let pack_name = format!("pack_name_{}_{}", bucket_id, pack_no);
-        let pack_path = path.join(format!("./{}/{}", bucket_id, pack_name));
+        let unique_id = format!("{bucket_id}_{pack_no}");
+        let pack_name = format!("pack_name_{bucket_id}_{pack_no}");
+        let pack_path = path.join(format!("./{bucket_id}/{pack_name}"));
         mock_pack_file(&pack_path, &unique_id, 10, fs).await?;
       }
     }
