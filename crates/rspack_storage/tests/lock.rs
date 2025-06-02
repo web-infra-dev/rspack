@@ -106,8 +106,8 @@ mod test_storage_lock {
     for i in 0..100 {
       storage.set(
         "test_scope",
-        format!("key_{:0>3}", i).as_bytes().to_vec(),
-        format!("val_{:0>3}", i).as_bytes().to_vec(),
+        format!("key_{i:0>3}").as_bytes().to_vec(),
+        format!("val_{i:0>3}").as_bytes().to_vec(),
       );
     }
     let rx = storage.trigger_save()?;

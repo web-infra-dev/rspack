@@ -51,8 +51,8 @@ mod test_storage_error {
     for i in 0..1000 {
       storage.set(
         "test_scope",
-        format!("key_{:0>3}", i).as_bytes().to_vec(),
-        format!("val_{:0>3}", i).as_bytes().to_vec(),
+        format!("key_{i:0>3}").as_bytes().to_vec(),
+        format!("val_{i:0>3}").as_bytes().to_vec(),
       );
     }
     let rx = storage.trigger_save()?;
@@ -106,10 +106,7 @@ mod test_storage_error {
       .split(",")
       .next()
       .expect("should have first pack");
-    Ok(Utf8PathBuf::from(format!(
-      "{}/0/{}",
-      scope_name, first_pack
-    )))
+    Ok(Utf8PathBuf::from(format!("{scope_name}/0/{first_pack}")))
   }
 
   async fn test_recovery_remove_pack(

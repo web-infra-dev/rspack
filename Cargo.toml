@@ -32,7 +32,7 @@ anyhow             = { version = "1.0.95", features = ["backtrace"] }
 anymap             = { package = "anymap3", version = "1.0.1" }
 async-recursion    = { version = "1.1.1" }
 async-trait        = { version = "0.1.84" }
-bitflags           = { version = "2.6.0" }
+bitflags           = { version = "2.9.1" }
 browserslist-rs    = { version = "0.18.1" }
 camino             = { version = "1.1.9" }
 concat-string      = { version = "1.0.1" }

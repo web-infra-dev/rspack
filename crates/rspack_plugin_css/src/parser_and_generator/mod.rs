@@ -631,9 +631,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
               ns_obj,
               left,
               right,
-              with_hmr
-                .then_some("module.hot.accept();\n")
-                .unwrap_or_default()
+              if with_hmr {
+                "module.hot.accept();\n"
+              } else {
+                Default::default()
+              }
             )
           }
         };
