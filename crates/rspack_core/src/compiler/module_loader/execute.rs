@@ -1,4 +1,4 @@
-use rspack_error::{miette::miette, Error};
+use rspack_error::{miette::miette, Error, RspackSeverity};
 
 use super::context::{Callback, LoadModuleMeta, LoadTaskContext};
 use crate::{
@@ -55,6 +55,14 @@ impl Task<LoadTaskContext> for ExecuteTask {
     let module = mg
       .get_module_by_dependency_id(entry_dep_id)
       .expect("should module exist");
+    // check build error
+    let diagnostics = module.diagnostics();
+    for d in diagnostics.as_ref() {
+      if matches!(d.severity(), RspackSeverity::Error) {
+        callback.0(Err(miette!(d.to_string())));
+        return Ok(vec![]);
+      }
+    }
     callback.0(Ok(module));
     Ok(vec![])
   }
