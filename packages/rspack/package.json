@@ -46,7 +46,7 @@
     "directory": "packages/rspack"
   },
   "devDependencies": {
-    "@rslib/core": "0.9.0",
+    "@rslib/core": "0.9.1",
     "@swc/core": "1.11.29",
     "@swc/types": "0.1.21",
     "@types/graceful-fs": "4.1.9",
@@ -60,7 +60,7 @@
     "typescript": "^5.8.3",
     "watchpack": "^2.4.4",
     "webpack-sources": "3.3.0",
-    "zod": "^3.25.31",
+    "zod": "^3.25.49",
     "zod-validation-error": "3.4.1"
   },
   "dependencies": {
