@@ -137,7 +137,10 @@ jobs:
 
       - name: Release Full
         run: |
-          ./x publish stable --otp --tag ${{inputs.tag}} ${{inputs.dry_run && '--dry-run' || '--no-dry-run'}} ${{inputs.push_tags && '--push-tags' || '--no-push-tags'}}
+          echo ${{ inputs.dry_run }}
+          echo ${{ inputs.dry_run && '--dry-run' }}
+          echo ${{ inputs.dry_run && '--dry-run' || '--no-dry-run' }}
+          echo ./x publish stable --otp --tag ${{inputs.tag}} ${{inputs.dry_run && '--dry-run' || '--no-dry-run'}} ${{inputs.push_tags && '--push-tags' || '--no-push-tags'}}
         env:
           NPM_TOKEN: ${{ secrets.OTP_NPM_TOKEN }}
           REPOSITORY: ${{ github.repository }}
