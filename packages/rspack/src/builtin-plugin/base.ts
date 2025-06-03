@@ -4,7 +4,7 @@ import type { Compiler, RspackPluginInstance } from "..";
 
 type AffectedHooks = keyof Compiler["hooks"];
 
-export const HOOKS_CAN_NOT_INHERENT_FROM_PARENT = [
+const HOOKS_CAN_NOT_INHERENT_FROM_PARENT = [
 	"make",
 	"compile",
 	"emit",

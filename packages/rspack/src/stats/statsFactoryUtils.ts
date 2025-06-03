@@ -3,11 +3,7 @@ import type * as binding from "@rspack/binding";
 import type { JsOriginRecord } from "@rspack/binding";
 import type { Compilation } from "../Compilation";
 import type { StatsOptions } from "../config";
-import {
-	type Comparator,
-	compareIds,
-	compareSelect
-} from "../util/comparators";
+import { compareIds, compareSelect } from "../util/comparators";
 import type { StatsFactory, StatsFactoryContext } from "./StatsFactory";
 
 export type KnownStatsChunkGroup = {
@@ -354,27 +350,6 @@ export type SimpleExtractors = {
 	>;
 };
 
-export const uniqueArray = <T, I>(
-	items: Iterable<T>,
-	selector: (arg: T) => Iterable<I>
-): I[] => {
-	const set: Set<I> = new Set();
-	for (const item of items) {
-		for (const i of selector(item)) {
-			set.add(i);
-		}
-	}
-	return Array.from(set);
-};
-
-export const uniqueOrderedArray = <T, I>(
-	items: Iterable<T>,
-	selector: (arg: T) => Iterable<I>,
-	comparator: Comparator
-): I[] => {
-	return uniqueArray(items, selector).sort(comparator);
-};
-
 export const iterateConfig = (
 	config: Record<string, Record<string, Function>>,
 	options: StatsOptions,
@@ -416,7 +391,7 @@ type Child = {
 
 type ItemChildren = Child[];
 
-export const getTotalItems = (children: ItemChildren) => {
+const getTotalItems = (children: ItemChildren) => {
 	let count = 0;
 	for (const child of children) {
 		if (!child.children && !child.filteredChildren) {

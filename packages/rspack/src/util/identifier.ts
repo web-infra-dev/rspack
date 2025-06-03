@@ -275,21 +275,6 @@ const _makePathsRelative = (context: string, identifier: string): string => {
 export const makePathsRelative = makeCacheableWithContext(_makePathsRelative);
 
 /**
- *
- * @param {string} context context for relative path
- * @param {string} identifier identifier for path
- * @returns {string} a converted relative path
- */
-const _makePathsAbsolute = (context: string, identifier: string): string => {
-	return identifier
-		.split(SEGMENTS_SPLIT_REGEXP)
-		.map(str => requestToAbsolute(context, str))
-		.join("");
-};
-
-export const makePathsAbsolute = makeCacheableWithContext(_makePathsAbsolute);
-
-/**
  * @param {string} context absolute context path
  * @param {string} request any request string may containing absolute paths, query string, etc.
  * @returns {string} a new request string avoiding absolute paths when possible
@@ -354,41 +339,3 @@ const _parseResourceWithoutFragment = (
 export const parseResourceWithoutFragment = makeCacheable(
 	_parseResourceWithoutFragment
 );
-
-/**
- * @param filename the filename which should be undone
- * @param outputPath the output path that is restored (only relevant when filename contains "..")
- * @param enforceRelative true returns ./ for empty paths
- * @returns repeated ../ to leave the directory of the provided filename to be back on output dir
- */
-export const getUndoPath = (
-	filename: string,
-	outputPath: string,
-	enforceRelative: boolean
-): string => {
-	let depth = -1;
-	let append = "";
-	let path = outputPath.replace(/[\\/]$/, "");
-
-	for (const part of filename.split(/[/\\]+/)) {
-		if (part === "..") {
-			if (depth > -1) {
-				depth--;
-			} else {
-				const i = path.lastIndexOf("/");
-				const j = path.lastIndexOf("\\");
-				const pos = i < 0 ? j : j < 0 ? i : Math.max(i, j);
-				if (pos < 0) return `${path}/`;
-				append = `${path.slice(pos + 1)}/${append}`;
-				path = path.slice(0, pos);
-			}
-		} else if (part !== ".") {
-			depth++;
-		}
-	}
-	return depth > 0
-		? `${"../".repeat(depth)}${append}`
-		: enforceRelative
-			? `./${append}`
-			: append;
-};
