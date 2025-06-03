@@ -3,7 +3,10 @@ use rspack_paths::ArcPath;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::context::LoadTaskContext;
-use crate::utils::task_loop::{Task, TaskResult, TaskType};
+use crate::{
+  utils::task_loop::{Task, TaskResult, TaskType},
+  FactorizeInfo, ModuleGraph,
+};
 
 #[derive(Debug)]
 pub struct CleanModuleTask {
@@ -17,7 +20,8 @@ impl Task<LoadTaskContext> for CleanModuleTask {
   }
 
   async fn main_run(self: Box<Self>, context: &mut LoadTaskContext) -> TaskResult<LoadTaskContext> {
-    let mut mg = context.origin_context.artifact.get_module_graph_mut();
+    let artifact = &mut context.origin_context.artifact;
+    let mut mg = ModuleGraph::new(vec![], Some(&mut artifact.module_graph_partial));
     let mut affected_module = vec![];
     for (mid, module) in mg.modules() {
       if module.need_build() || module.depends_on(&self.changed_files) {
@@ -29,6 +33,15 @@ impl Task<LoadTaskContext> for CleanModuleTask {
       for (dep_id, _) in mg.revoke_module(&mid) {
         mg.revoke_dependency(&dep_id, true);
         affect_deps.push(dep_id);
+      }
+    }
+
+    // check dependency factorize failed
+    for dep_id in &artifact.make_failed_dependencies {
+      let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
+      let info = FactorizeInfo::get_from(dep).expect("should have factorize info");
+      if info.depends_on(&self.changed_files) {
+        affect_deps.push(*dep_id);
       }
     }
     context.entries.retain(|_k, v| !affect_deps.contains(v));
