@@ -1659,7 +1659,7 @@ impl Compilation {
           _ => None,
         })
         .collect();
-      // also cleaup for updated modules, for `insert(); insert();` the second insert() won't override the first insert() on code_generation_results
+      // also cleanup for updated modules, for `insert(); insert();` the second insert() won't override the first insert() on code_generation_results
       for module in &modules {
         self.code_generation_results.remove(module);
       }
