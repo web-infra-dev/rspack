@@ -896,6 +896,7 @@ export interface JsLoaderItem {
   data: any
   normalExecuted: boolean
   pitchExecuted: boolean
+  noPitch: boolean
 }
 
 export declare enum JsLoaderState {
