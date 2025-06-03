@@ -48,10 +48,7 @@ type ObjectParsedPropertyEntry = {
 };
 
 const mergeCache = new WeakMap<Obj, WeakMap<Obj, Obj>>();
-const setPropertyCache = new WeakMap<
-	Obj,
-	Map<string, Map<string | number | boolean, Obj>>
->();
+
 export const DELETE = Symbol("DELETE");
 
 /**
@@ -87,44 +84,6 @@ export const cachedCleverMerge = <First, Second>(
 	const newMerge = _cleverMerge(first, second, true);
 	innerCache.set(second, newMerge);
 	return newMerge;
-};
-
-/**
- * @param obj object
- * @param property property
- * @param value assignment value
- * @returns new object
- */
-export const cachedSetProperty = (
-	obj: Obj,
-	property: string,
-	value: string | number | boolean
-) => {
-	let mapByProperty = setPropertyCache.get(obj);
-
-	if (mapByProperty === undefined) {
-		mapByProperty = new Map();
-		setPropertyCache.set(obj, mapByProperty);
-	}
-
-	let mapByValue = mapByProperty.get(property);
-
-	if (mapByValue === undefined) {
-		mapByValue = new Map();
-		mapByProperty.set(property, mapByValue);
-	}
-
-	let result = mapByValue.get(value);
-
-	if (result) return result;
-
-	result = {
-		...obj,
-		[property]: value
-	};
-	mapByValue.set(value, result);
-
-	return result;
 };
 
 const parseCache = new WeakMap<Obj, ParsedObject>();
@@ -544,73 +503,3 @@ const mergeSingleValue = (a: any, b: any, internalCaching: boolean) => {
 			throw new Error("Not implemented");
 	}
 };
-
-/**
- * @param obj the object
- * @returns the object without operations like "..." or DELETE
- */
-export const removeOperations = <O extends Obj>(obj: O): O => {
-	const newObj: Obj = {};
-	for (const key of Object.keys(obj)) {
-		const value = obj[key];
-		const type = getValueType(value);
-		switch (type) {
-			case VALUE_TYPE_UNDEFINED:
-			case VALUE_TYPE_DELETE:
-				break;
-			case VALUE_TYPE_OBJECT:
-				newObj[key] = removeOperations(value);
-				break;
-			case VALUE_TYPE_ARRAY_EXTEND:
-				newObj[key] = (value as string[]).filter(i => i !== "...");
-				break;
-			default:
-				newObj[key] = value;
-				break;
-		}
-	}
-	return newObj;
-};
-
-/**
- * @param obj the object
- * @param byProperty the by description
- * @param values values
- * @returns object with merged byProperty
- */
-export const resolveByProperty = <O extends Obj | null, P extends PropertyKey>(
-	obj: O,
-	byProperty: P,
-	...values: any[]
-): Omit<O, P> | undefined => {
-	if (!isPropertyInObject(obj, byProperty)) {
-		return obj;
-	}
-	const { [byProperty]: _byValue, ..._remaining } = obj;
-	const remaining = _remaining;
-	const byValue = _byValue;
-	if (typeof byValue === "object") {
-		const key = values[0] as PropertyKey;
-		if (key in byValue) {
-			return cachedCleverMerge(remaining, byValue[key as keyof typeof byValue]);
-		}
-		if ("default" in byValue) {
-			return cachedCleverMerge(remaining, byValue.default);
-		}
-		return remaining;
-	}
-	if (typeof byValue === "function") {
-		const result = byValue.apply(null, values);
-		return cachedCleverMerge(
-			remaining,
-			resolveByProperty(result, byProperty, ...values)
-		);
-	}
-};
-
-function isPropertyInObject<
-	O extends Obj | undefined | null,
-	P extends PropertyKey
->(obj: O, property: P): obj is NonNullable<O> & Record<P, any> {
-	return typeof obj === "object" && obj !== null && property in obj;
-}
