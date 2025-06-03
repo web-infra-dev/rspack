@@ -829,7 +829,7 @@ impl ModuleConcatenationPlugin {
           .iter()
           .filter(|export_info| {
             let export_info_data = export_info.as_data(&module_graph);
-            ExportInfoGetter::is_reexport(&export_info_data)
+            ExportInfoGetter::is_reexport(export_info_data)
               && export_info_data.get_target(&module_graph).is_none()
           })
           .copied()
@@ -972,7 +972,8 @@ impl ModuleConcatenationPlugin {
       let module_graph = compilation.get_module_graph();
       let exports_info = module_graph.get_exports_info(current_root);
       let filtered_runtime = filter_runtime(Some(&chunk_runtime), |r| {
-        let exports_info_data = ExportsInfoGetter::as_nested_data(&exports_info, &module_graph);
+        let exports_info_data =
+          ExportsInfoGetter::as_nested_data(&exports_info, &module_graph, None);
         ExportsInfoGetter::is_module_used(&exports_info_data, r)
       });
       let active_runtime = match filtered_runtime {

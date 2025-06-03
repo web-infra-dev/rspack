@@ -13,11 +13,11 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ESMExportInitFragment, ExportInfo, ExportInfoGetter, ExportNameOrSpec, ExportPresenceMode,
-  ExportProvided, ExportSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  NormalInitFragment, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap, Template,
-  TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  ExportProvided, ExportSpec, ExportsInfo, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec,
+  ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, JavascriptParserOptions, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, NormalInitFragment, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  SharedSourceMap, Template, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -144,7 +144,8 @@ impl ESMExportImportedSpecifierDependency {
     let is_name_unused = if let Some(ref name) = name {
       exports_info.get_used(module_graph, std::slice::from_ref(name), runtime) == UsageState::Unused
     } else {
-      !exports_info.is_used(module_graph, runtime)
+      let exports_info_data = ExportsInfoGetter::as_nested_data(&exports_info, module_graph, None);
+      !ExportsInfoGetter::is_used(&exports_info_data, runtime)
     };
     if is_name_unused {
       let mut mode = ExportMode::new(ExportModeType::Unused);

@@ -303,7 +303,7 @@ impl ExportInfoData {
     if !self.target_is_set || self.target.is_empty() {
       return None;
     }
-    let hash_key = MaybeDynamicTargetExportInfoHashKey::ExportInfo(self.id.clone());
+    let hash_key = MaybeDynamicTargetExportInfoHashKey::ExportInfo(self.id);
     if already_visited.contains(&hash_key) {
       return Some(ResolvedExportInfoTargetWithCircular::Circular);
     }

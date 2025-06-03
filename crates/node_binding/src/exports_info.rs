@@ -53,7 +53,7 @@ impl JsExportsInfo {
       Either::A(str) => std::iter::once(str).map(Into::into).collect(),
       Either::B(vec) => vec.into_iter().map(Into::into).collect(),
     });
-    let exports_info = ExportsInfoGetter::as_nested_data(&self.exports_info, &module_graph);
+    let exports_info = ExportsInfoGetter::as_nested_data(&self.exports_info, &module_graph, None);
     Ok(ExportsInfoGetter::is_module_used(
       &exports_info,
       runtime.as_ref(),
