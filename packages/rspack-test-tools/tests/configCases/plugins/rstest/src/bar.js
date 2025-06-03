@@ -1,1 +1,2 @@
-export const barValue = 'bar: ' + __dirname
+export const file = __filename
+export const dir = __dirname

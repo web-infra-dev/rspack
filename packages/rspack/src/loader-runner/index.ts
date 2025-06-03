@@ -197,6 +197,11 @@ export class LoaderObject {
 		this.loaderItem.normalExecuted = true;
 	}
 
+	set noPitch(value: boolean) {
+		assert(value);
+		this.loaderItem.noPitch = true;
+	}
+
 	shouldYield() {
 		return this.request.startsWith(BUILTIN_LOADER_PREFIX);
 	}
@@ -258,8 +263,7 @@ export async function runLoaders(
 	const loaderState = context.loaderState;
 	const pitch = loaderState === JsLoaderState.Pitching;
 
-	//
-	const { resource } = context.resourceData;
+	const { resource } = context;
 	JavaScriptTracer.startAsync({
 		name: `run_js_loaders${pitch ? ":pitch" : ":normal"}`,
 		args: {
@@ -286,7 +290,6 @@ export async function runLoaders(
 	loaderContext.loaders = context.loaderItems.map(item => {
 		return LoaderObject.__from_binding(item, compiler);
 	});
-	// console.log(loaderContext.loaders)
 
 	loaderContext.hot = context.hot;
 	loaderContext.context = contextDirectory;
@@ -947,11 +950,7 @@ export async function runLoaders(
 		);
 	};
 
-	const isomorphoicRun = async (
-		fn: Function,
-		args: any[],
-		resourceData: JsLoaderContext["resourceData"] // used for tracing for further analysis
-	) => {
+	const isomorphoicRun = async (fn: Function, args: any[]) => {
 		const currentLoaderObject = getCurrentLoader(loaderContext);
 		const parallelism = enableParallelism(currentLoaderObject);
 		const pitch = loaderState === JsLoaderState.Pitching;
@@ -1013,15 +1012,11 @@ export async function runLoaders(
 					}
 					if (!fn) continue;
 
-					const args = await isomorphoicRun(
-						fn,
-						[
-							loaderContext.remainingRequest,
-							loaderContext.previousRequest,
-							currentLoaderObject.loaderItem.data
-						],
-						context.resourceData
-					);
+					const args = await isomorphoicRun(fn, [
+						loaderContext.remainingRequest,
+						loaderContext.previousRequest,
+						currentLoaderObject.loaderItem.data
+					]);
 
 					const hasArg = args.some((value: any) => value !== undefined);
 
@@ -1060,11 +1055,11 @@ export async function runLoaders(
 						currentLoaderObject.normalExecuted = true;
 					}
 					if (!fn) continue;
-					[content, sourceMap, additionalData] = await isomorphoicRun(
-						fn,
-						[content, sourceMap, additionalData],
-						context.resourceData
-					);
+					[content, sourceMap, additionalData] = await isomorphoicRun(fn, [
+						content,
+						sourceMap,
+						additionalData
+					]);
 				}
 
 				context.content = isNil(content) ? null : toBuffer(content);

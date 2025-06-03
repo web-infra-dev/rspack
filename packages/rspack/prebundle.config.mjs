@@ -1,10 +1,9 @@
 // @ts-check
 import { copyFileSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 /** @type {import('prebundle').Config} */
 export default {
@@ -13,31 +12,16 @@ export default {
 			name: "zod",
 			copyDts: true
 		},
+		{
+			name: "webpack-sources",
+			copyDts: true
+		},
 		"graceful-fs",
+		"browserslist-load-config",
 		{
 			name: "watchpack",
 			externals: {
 				"graceful-fs": "../graceful-fs/index.js"
-			}
-		},
-		{
-			name: "browserslist",
-			ignoreDts: true,
-			externals: {
-				"caniuse-lite": "caniuse-lite",
-				"/^caniuse-lite(/.*)/": "caniuse-lite$1"
-			},
-			// preserve the `require(require.resolve())`
-			beforeBundle(task) {
-				const nodeFile = join(task.depPath, "node.js");
-				const content = readFileSync(nodeFile, "utf-8");
-				writeFileSync(
-					nodeFile,
-					content.replaceAll(
-						"require(require.resolve",
-						'eval("require")(require.resolve'
-					)
-				);
 			}
 		},
 		{
@@ -58,19 +42,6 @@ export default {
 
 				// add an empty CachedInputFileSystem.d.ts file to prevent ts error
 				writeFileSync(join(distPath, "CachedInputFileSystem.d.ts"), "");
-			}
-		},
-		{
-			name: "webpack-sources",
-			ignoreDts: true,
-			afterBundle(task) {
-				const dtsInputPath = join(
-					__dirname,
-					"declarations/webpack-sources.d.ts"
-				);
-				const dtsContent = readFileSync(dtsInputPath, "utf-8");
-				const dtsOutputPath = join(task.distPath, "index.d.ts");
-				writeFileSync(dtsOutputPath, dtsContent, "utf-8");
 			}
 		},
 		{

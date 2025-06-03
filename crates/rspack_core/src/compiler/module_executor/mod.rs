@@ -9,6 +9,7 @@ use std::sync::Arc;
 
 use context::{ExecutorTaskContext, ImportModuleMeta};
 use entry::EntryTask;
+use execute::ExecuteTask;
 pub use execute::{ExecuteModuleId, ExecutedRuntimeModule};
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierDashSet};
 use rspack_error::Result;
@@ -161,11 +162,14 @@ impl ModuleExecutor {
     let (tx, rx) = oneshot::channel();
     sender
       .send(Event::ImportModule(EntryTask {
-        meta,
+        meta: meta.clone(),
         origin_module_context,
-        public_path,
-        base_uri,
-        result_sender: tx,
+        execute_task: ExecuteTask {
+          meta,
+          public_path,
+          base_uri,
+          result_sender: tx,
+        },
       }))
       .expect("should success");
     let (execute_result, assets, code_generated_modules, executed_runtime_modules) =

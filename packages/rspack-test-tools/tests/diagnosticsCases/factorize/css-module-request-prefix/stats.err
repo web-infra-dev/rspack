@@ -1,6 +1,6 @@
 WARNING in ./index.css
   ⚠ Module parse warning:
-  ╰─▶   ⚠ CSS parsing warning: '@import' or 'url()' with a request starts with '~' is deprecated.
+  ╰─▶   ⚠ CSS parse warning: '@import' or 'url()' with a request starts with '~' is deprecated.
          ╭─[1:0]
        1 │ @import "~pkg";
          · ───────────────
@@ -11,7 +11,7 @@ WARNING in ./index.css
 
 WARNING in ./index.css
   ⚠ Module parse warning:
-  ╰─▶   ⚠ CSS parsing warning: '@import' or 'url()' with a request starts with '~' is deprecated.
+  ╰─▶   ⚠ CSS parse warning: '@import' or 'url()' with a request starts with '~' is deprecated.
          ╭─[4:20]
        2 │
        3 │ .class {

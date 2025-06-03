@@ -3,10 +3,10 @@ use std::collections::{hash_map::Entry, VecDeque};
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
   get_entry_runtime, incremental::IncrementalPasses, is_exports_object_referenced,
-  is_no_exports_referenced, merge_runtime, AsyncDependenciesBlockIdentifier, BuildMetaExportsType,
-  Compilation, CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId,
-  ExportsInfo, ExtendedReferencedExport, GroupOptions, ModuleIdentifier, Plugin, ReferencedExport,
-  RuntimeSpec, UsageState,
+  is_no_exports_referenced, AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation,
+  CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId,
+  ExportInfoSetter, ExportsInfo, ExtendedReferencedExport, GroupOptions, ModuleIdentifier, Plugin,
+  ReferencedExport, RuntimeSpec, UsageState,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -59,8 +59,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         Some(get_entry_runtime(entry_name, &entry.options, &entries))
       };
       if let Some(runtime) = runtime.as_ref() {
-        let tem_global_runtime = global_runtime.get_or_insert_default();
-        global_runtime = Some(merge_runtime(tem_global_runtime, runtime));
+        global_runtime.get_or_insert_default().extend(runtime);
       }
       for &dep in entry.dependencies.iter() {
         self.process_entry_dependency(dep, runtime.clone(), &mut q);
@@ -153,7 +152,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         let active_state = connection.active_state(&module_graph, runtime.as_ref());
 
         match active_state {
-          ConnectionState::Bool(false) => {
+          ConnectionState::Active(false) => {
             continue;
           }
           ConnectionState::TransitiveOnly => {
@@ -329,14 +328,17 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           for (i, used_export) in used_exports.into_iter().enumerate() {
             let export_info = current_exports_info.get_export_info(&mut module_graph, &used_export);
             if !can_mangle {
-              export_info.set_can_mangle_use(&mut module_graph, Some(false));
+              ExportInfoSetter::set_can_mangle_use(
+                export_info.as_data_mut(&mut module_graph),
+                Some(false),
+              );
             }
             let last_one = i == len - 1;
             if !last_one {
               let nested_info = export_info.get_nested_exports_info(&module_graph);
               if let Some(nested_info) = nested_info {
-                let changed_flag = export_info.set_used_conditionally(
-                  &mut module_graph,
+                let changed_flag = ExportInfoSetter::set_used_conditionally(
+                  export_info.as_data_mut(&mut module_graph),
                   Box::new(|used| used == &UsageState::Unused),
                   UsageState::OnlyPropertiesUsed,
                   runtime.as_ref(),
@@ -359,8 +361,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               }
             }
 
-            let changed_flag = export_info.set_used_conditionally(
-              &mut module_graph,
+            let changed_flag = ExportInfoSetter::set_used_conditionally(
+              export_info.as_data_mut(&mut module_graph),
               Box::new(|v| v != &UsageState::Used),
               UsageState::Used,
               runtime.as_ref(),

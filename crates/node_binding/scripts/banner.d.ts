@@ -24,8 +24,8 @@ export interface Module {
 	get useSourceMap(): boolean;
 	get useSimpleSourceMap(): boolean;
 	get _readableIdentifier(): string;
-	buildInfo: Record<string, any>;
-	buildMeta: Record<string, any>;
+	buildInfo: KnownBuildInfo & Record<string, any>;
+	buildMeta: KnownBuildInfo & Record<string, any>;
 }
 
 interface NormalModuleConstructor {
@@ -40,8 +40,8 @@ export interface NormalModule extends Module {
 	readonly request: string;
 	readonly userRequest: string;
 	readonly rawRequest: string;
-	readonly resourceResolveData: JsResourceData | undefined;
-	readonly loaders: ReadonlyArray<JsLoaderItem>;
+	readonly resourceResolveData: Readonly<JsResourceData> | undefined;
+	readonly loaders: JsLoaderItem[];
 	get matchResource(): string | undefined;
 	set matchResource(val: string | undefined);
 }

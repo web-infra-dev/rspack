@@ -183,15 +183,19 @@ declare module "@rspack/binding" {
 		[$assets]: Record<string, Source>;
 	}
 
-	interface BuildInfo {
+	interface KnownBuildInfo {
 		assets: Record<string, Source>;
+		fileDependencies: Set<string>;
+		contextDependencies: Set<string>;
+		missingDependencies: Set<string>;
+		buildDependencies: Set<string>;
 	}
 }
 
-Object.defineProperty(binding.BuildInfo.prototype, "assets", {
+Object.defineProperty(binding.KnownBuildInfo.prototype, "assets", {
 	enumerable: true,
 	configurable: true,
-	get(this: binding.BuildInfo): Record<string, Source> {
+	get(this: binding.KnownBuildInfo): Record<string, Source> {
 		if (this._assets[$assets]) {
 			return this._assets[$assets];
 		}
@@ -212,6 +216,38 @@ Object.defineProperty(binding.BuildInfo.prototype, "assets", {
 			value: assets
 		});
 		return assets;
+	}
+});
+
+Object.defineProperty(binding.KnownBuildInfo.prototype, "fileDependencies", {
+	enumerable: true,
+	configurable: true,
+	get(this: binding.KnownBuildInfo): Set<string> {
+		return new Set(this._fileDependencies);
+	}
+});
+
+Object.defineProperty(binding.KnownBuildInfo.prototype, "contextDependencies", {
+	enumerable: true,
+	configurable: true,
+	get(this: binding.KnownBuildInfo): Set<string> {
+		return new Set(this._contextDependencies);
+	}
+});
+
+Object.defineProperty(binding.KnownBuildInfo.prototype, "missingDependencies", {
+	enumerable: true,
+	configurable: true,
+	get(this: binding.KnownBuildInfo): Set<string> {
+		return new Set(this._missingDependencies);
+	}
+});
+
+Object.defineProperty(binding.KnownBuildInfo.prototype, "buildDependencies", {
+	enumerable: true,
+	configurable: true,
+	get(this: binding.KnownBuildInfo): Set<string> {
+		return new Set(this._buildDependencies);
 	}
 });
 

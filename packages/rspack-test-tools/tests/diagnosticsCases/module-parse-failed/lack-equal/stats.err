@@ -1,6 +1,6 @@
 ERROR in ./index.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expression expected
+  ╰─▶   × JavaScript parse error: Expression expected
          ╭─[5:0]
        3 │     d = 10
        4 │     g = CONST
@@ -13,7 +13,7 @@ ERROR in ./index.js
 
 ERROR in ./index.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: 'const' declarations must be initialized
+  ╰─▶   × JavaScript parse error: 'const' declarations must be initialized
          ╭─[2:6]
        1 │ const CONST = 9000 % 2;
        2 │ const D {
@@ -27,7 +27,7 @@ ERROR in ./index.js
 
 ERROR in ./index.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected a semicolon
+  ╰─▶   × JavaScript parse error: Expected a semicolon
          ╭─[2:8]
        1 │ const CONST = 9000 % 2;
        2 │ const D {

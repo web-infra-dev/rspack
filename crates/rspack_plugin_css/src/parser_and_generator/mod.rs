@@ -16,9 +16,10 @@ use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
   BoxDependencyTemplate, BoxModuleDependency, BuildMetaDefaultObject, BuildMetaExportsType,
   ChunkGraph, Compilation, ConstDependency, CssExportsConvention, Dependency, DependencyId,
-  DependencyRange, DependencyType, GenerateContext, LocalIdentName, Module, ModuleGraph,
-  ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext, ParseResult,
-  ParserAndGenerator, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext, UsageState,
+  DependencyRange, DependencyType, ExportInfoGetter, GenerateContext, LocalIdentName, Module,
+  ModuleGraph, ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext,
+  ParseResult, ParserAndGenerator, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext,
+  UsageState,
 };
 use rspack_error::{
   miette::Diagnostic, IntoTWithDiagnosticArray, Result, RspackSeverity, TWithDiagnosticArray,
@@ -590,11 +591,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
         } else {
           let mg = generate_context.compilation.get_module_graph();
           let (ns_obj, left, right) = if self.es_module
-            && mg
-              .get_exports_info(&module.identifier())
-              .other_exports_info(&mg)
-              .get_used(&mg, generate_context.runtime)
-              != UsageState::Unused
+            && ExportInfoGetter::get_used(
+              mg.get_exports_info(&module.identifier())
+                .other_exports_info(&mg)
+                .as_data(&mg),
+              generate_context.runtime,
+            ) != UsageState::Unused
           {
             (RuntimeGlobals::MAKE_NAMESPACE_OBJECT.name(), "(", ")")
           } else {
@@ -631,9 +633,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
               ns_obj,
               left,
               right,
-              with_hmr
-                .then_some("module.hot.accept();\n")
-                .unwrap_or_default()
+              if with_hmr {
+                "module.hot.accept();\n"
+              } else {
+                Default::default()
+              }
             )
           }
         };
@@ -695,7 +699,7 @@ fn get_used_exports<'a>(
       let export_info = mg.get_read_only_export_info(&identifier, name.as_str().into());
 
       if let Some(export_info) = export_info {
-        export_info.get_used(mg, runtime) != UsageState::Unused
+        ExportInfoGetter::get_used(export_info.as_data(mg), runtime) != UsageState::Unused
       } else {
         true
       }
@@ -723,7 +727,10 @@ fn get_unused_local_ident(
         let export_info = mg.get_read_only_export_info(&identifier, name.as_str().into());
 
         if let Some(export_info) = export_info {
-          matches!(export_info.get_used(mg, runtime), UsageState::Unused)
+          matches!(
+            ExportInfoGetter::get_used(export_info.as_data(mg), runtime),
+            UsageState::Unused
+          )
         } else {
           false
         }

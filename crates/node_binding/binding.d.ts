@@ -24,8 +24,8 @@ export interface Module {
 	get useSourceMap(): boolean;
 	get useSimpleSourceMap(): boolean;
 	get _readableIdentifier(): string;
-	buildInfo: Record<string, any>;
-	buildMeta: Record<string, any>;
+	buildInfo: KnownBuildInfo & Record<string, any>;
+	buildMeta: KnownBuildInfo & Record<string, any>;
 }
 
 interface NormalModuleConstructor {
@@ -40,8 +40,8 @@ export interface NormalModule extends Module {
 	readonly request: string;
 	readonly userRequest: string;
 	readonly rawRequest: string;
-	readonly resourceResolveData: JsResourceData | undefined;
-	readonly loaders: ReadonlyArray<JsLoaderItem>;
+	readonly resourceResolveData: Readonly<JsResourceData> | undefined;
+	readonly loaders: JsLoaderItem[];
 	get matchResource(): string | undefined;
 	set matchResource(val: string | undefined);
 }
@@ -72,10 +72,6 @@ export declare class Assets {
 export declare class AsyncDependenciesBlock {
   get dependencies(): Dependency[]
   get blocks(): AsyncDependenciesBlock[]
-}
-
-export declare class BuildInfo {
-  get _assets(): Assets
 }
 
 export declare class Chunks {
@@ -369,7 +365,7 @@ export declare class JsModuleGraph {
 
 export declare class JsResolver {
   resolveSync(path: string, request: string): JsResourceData | false
-  resolve(path: string, request: string): Promise<JsResourceData | false>
+  resolve(path: string, request: string, callback: (err: null | Error, req?: JsResourceData) => void): void
   withOptions(raw?: RawResolveOptionsWithDependencyType | undefined | null): JsResolver
 }
 
@@ -381,6 +377,14 @@ export declare class JsResolverFactory {
 export declare class JsStats {
   toJson(jsOptions: JsStatsOptions): JsStatsCompilation
   getLogging(acceptedTypes: number): Array<JsStatsLogging>
+}
+
+export declare class KnownBuildInfo {
+  get _assets(): Assets
+  get _fileDependencies(): Array<string>
+  get _contextDependencies(): Array<string>
+  get _missingDependencies(): Array<string>
+  get _buildDependencies(): Array<string>
 }
 
 export declare class Module {
@@ -404,6 +408,11 @@ export declare class ModuleGraphConnection {
 export declare class RawExternalItemFnCtx {
   data(): RawExternalItemFnCtxData
   getResolver(): JsResolver
+}
+
+export declare class ReadonlyResourceData {
+  get descriptionFileData(): any
+  get descriptionFilePath(): string
 }
 
 export declare class Sources {
@@ -857,9 +866,7 @@ export interface JsLinkPreloadData {
 }
 
 export interface JsLoaderContext {
-  resourceData: Readonly<JsResourceData>
-  /** Will be deprecated. Use module.module_identifier instead */
-  _moduleIdentifier: Readonly<string>
+  resource: string
   _module: Module
   hot: Readonly<boolean>
   /** Content maybe empty in pitching stage */
@@ -889,6 +896,7 @@ export interface JsLoaderItem {
   data: any
   normalExecuted: boolean
   pitchExecuted: boolean
+  noPitch: boolean
 }
 
 export declare enum JsLoaderState {
@@ -1270,6 +1278,7 @@ export interface JsStatsError {
   moduleDescriptor?: JsModuleDescriptor
   message: string
   chunkName?: string
+  code?: string
   chunkEntry?: boolean
   chunkInitial?: boolean
   loc?: string
@@ -1409,6 +1418,7 @@ export interface JsStatsWarning {
   name?: string
   message: string
   chunkName?: string
+  code?: string
   chunkEntry?: boolean
   chunkInitial?: boolean
   file?: string
@@ -1457,6 +1467,8 @@ export interface KnownAssetInfo {
   /** whether this asset is over the size limit */
   isOverSizeLimit?: boolean
 }
+
+export declare function loadBrowserslist(input: string | undefined | null, context: string): Array<string> | null
 
 export declare function minify(source: string, options: string): Promise<TransformOutput>
 
@@ -1863,6 +1875,7 @@ incremental?: false | { [key: string]: boolean }
 parallelCodeSplitting: boolean
 rspackFuture?: RawRspackFuture
 cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
+useInputFileSystem?: WithBool<Array<RspackRegex>>
 }
 
 export interface RawExperimentSnapshotOptions {

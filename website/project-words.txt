@@ -21,6 +21,7 @@ builtinspresetenv
 builtinswc
 bundleless
 Bundleless
+browserslistrc
 bvanjoi
 chakra
 chapple
@@ -89,6 +90,7 @@ Llms
 magic-akari
 memfs
 mimalloc
+miro
 modulegeneratorassetdataurl
 modulegeneratorassetdataurlencoding
 modulegeneratorassetdataurlmimetype

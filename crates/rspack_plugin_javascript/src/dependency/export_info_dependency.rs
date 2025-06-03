@@ -4,8 +4,8 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportProvided,
-  TemplateContext, TemplateReplaceSource, UsageState, UsedExports,
+  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportInfoGetter,
+  ExportProvided, TemplateContext, TemplateReplaceSource, UsageState, UsedExports,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -56,9 +56,9 @@ impl ExportInfoDependency {
         .get_exports_info(&module_identifier)
         .get_used_exports(&module_graph, *runtime);
       return Some(match used_exports {
-        UsedExports::Null => "null".to_owned(),
-        UsedExports::Bool(value) => value.to_string(),
-        UsedExports::Vec(exports) => {
+        UsedExports::Unknown => "null".to_owned(),
+        UsedExports::UsedNamespace(value) => value.to_string(),
+        UsedExports::UsedNames(exports) => {
           format!(
             r#"[{}]"#,
             exports
@@ -78,11 +78,13 @@ impl ExportInfoDependency {
         let can_mangle = if let Some(export_info) =
           exports_info.get_read_only_export_info_recursive(&module_graph, export_name)
         {
-          export_info.can_mangle(&module_graph)
+          ExportInfoGetter::can_mangle(export_info.as_data(&module_graph))
         } else {
-          exports_info
-            .other_exports_info(&module_graph)
-            .can_mangle(&module_graph)
+          ExportInfoGetter::can_mangle(
+            exports_info
+              .other_exports_info(&module_graph)
+              .as_data(&module_graph),
+          )
         };
         can_mangle.map(|v| v.to_string())
       }
@@ -107,9 +109,9 @@ impl ExportInfoDependency {
         .is_export_provided(&module_graph, export_name)
         .map(|provided| {
           (match provided {
-            ExportProvided::True => "true",
-            ExportProvided::False => "false",
-            ExportProvided::Null => "null",
+            ExportProvided::Provided => "true",
+            ExportProvided::NotProvided => "false",
+            ExportProvided::Unknown => "null",
           })
           .to_owned()
         }),

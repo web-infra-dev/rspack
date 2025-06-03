@@ -616,10 +616,12 @@ impl Stats<'_> {
           self.compilation,
           &self.compilation.options,
         );
+        let code = d.code().map(|code| code.to_string());
         StatsError {
           message: diagnostic_displayer
             .emit_diagnostic(d)
             .expect("should print diagnostics"),
+          code,
           module_identifier,
           module_name,
           module_id: module_id.flatten(),
@@ -675,11 +677,14 @@ impl Stats<'_> {
           &self.compilation.options,
         );
 
+        let code = d.code().map(|code| code.to_string());
+
         StatsWarning {
           name: d.code().map(|c| c.to_string()),
           message: diagnostic_displayer
             .emit_diagnostic(d)
             .expect("should print diagnostics"),
+          code,
           module_identifier,
           module_name,
           module_id: module_id.flatten(),
@@ -1038,9 +1043,9 @@ impl Stats<'_> {
           .get_module_graph()
           .get_used_exports(&module.identifier(), None)
         {
-          UsedExports::Null => Some(StatsUsedExports::Null),
-          UsedExports::Vec(v) => Some(StatsUsedExports::Vec(v)),
-          UsedExports::Bool(b) => Some(StatsUsedExports::Bool(b)),
+          UsedExports::Unknown => Some(StatsUsedExports::Null),
+          UsedExports::UsedNames(v) => Some(StatsUsedExports::Vec(v)),
+          UsedExports::UsedNamespace(b) => Some(StatsUsedExports::Bool(b)),
         }
       } else {
         None
@@ -1055,7 +1060,7 @@ impl Stats<'_> {
             .get_module_graph()
             .get_provided_exports(module.identifier())
           {
-            ProvidedExports::Vec(v) => Some(v),
+            ProvidedExports::ProvidedNames(v) => Some(v),
             _ => None,
           }
         } else {

@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "1.3.11",
+  "version": "1.3.13",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
@@ -38,7 +38,7 @@
   "engines": {
     "node": ">=16.0.0"
   },
-  "homepage": "https://rspack.dev",
+  "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {
     "type": "git",
@@ -46,29 +46,27 @@
     "directory": "packages/rspack"
   },
   "devDependencies": {
-    "@swc/core": "1.11.24",
+    "@rslib/core": "0.9.1",
+    "@swc/core": "1.11.29",
     "@swc/types": "0.1.21",
-    "@rslib/core": "0.8.0",
     "@types/graceful-fs": "4.1.9",
     "@types/watchpack": "^2.4.4",
-    "@types/webpack-sources": "3.2.3",
-    "browserslist": "^4.24.5",
+    "browserslist-load-config": "^1.0.0",
     "enhanced-resolve": "5.18.1",
     "graceful-fs": "^4.2.11",
     "prebundle": "^1.3.3",
+    "tinypool": "^1.0.2",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",
-    "watchpack": "^2.4.3",
+    "watchpack": "^2.4.4",
     "webpack-sources": "3.3.0",
-    "zod": "^3.25.28",
-    "zod-validation-error": "3.4.1",
-    "tinypool": "^1.0.2"
+    "zod": "^3.25.49",
+    "zod-validation-error": "3.4.1"
   },
   "dependencies": {
-    "@module-federation/runtime-tools": "0.14.0",
+    "@module-federation/runtime-tools": "0.14.3",
     "@rspack/binding": "workspace:*",
-    "@rspack/lite-tapable": "1.0.1",
-    "caniuse-lite": "^1.0.30001718"
+    "@rspack/lite-tapable": "1.0.1"
   },
   "peerDependencies": {
     "@swc/helpers": ">=0.5.1"

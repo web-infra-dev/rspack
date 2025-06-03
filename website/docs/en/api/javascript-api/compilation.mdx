@@ -30,6 +30,24 @@ In Rspack, the real compilation object runs on the Rust side, and the JavaScript
 Therefore, some complex data structures and methods will not be supported on the JavaScript compilation object, the data is **read-only** and the structure may differ from webpack.
 :::
 
+## Get compilation object
+
+You can get the current compilation object via [compiler.hooks.thisCompilation](/api/plugin-api/compiler-hooks#thiscompilation) or [compiler.hooks.compilation](/api/plugin-api/compiler-hooks#compilation) hooks.
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.thisCompilation.tap('ExamplePlugin', compilation => {
+      console.log('thisCompilation hook called:', compilation);
+    });
+
+    compiler.hooks.compilation.tap('ExamplePlugin', compilation => {
+      console.log('compilation hook called:', compilation);
+    });
+  }
+}
+```
+
 ## Compilation methods
 
 ### emitAsset

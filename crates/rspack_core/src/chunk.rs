@@ -12,7 +12,7 @@ use rspack_hash::{RspackHash, RspackHashDigest};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use crate::{
-  chunk_graph_chunk::ChunkId, compare_chunk_group, merge_runtime, sort_group_by_index, ChunkGraph,
+  chunk_graph_chunk::ChunkId, compare_chunk_group, sort_group_by_index, ChunkGraph,
   ChunkGroupByUkey, ChunkGroupOrderKey, ChunkGroupUkey, ChunkHashesArtifact, ChunkIdsArtifact,
   ChunkUkey, Compilation, EntryOptions, Filename, ModuleGraph, RenderManifestEntry, RuntimeSpec,
   SourceType,
@@ -324,7 +324,7 @@ impl Chunk {
         new_chunk.add_group(group.ukey);
       });
     new_chunk.id_name_hints.extend(self.id_name_hints.clone());
-    new_chunk.runtime = merge_runtime(&new_chunk.runtime, &self.runtime);
+    new_chunk.runtime.extend(&self.runtime);
   }
 
   pub fn can_be_initial(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> bool {

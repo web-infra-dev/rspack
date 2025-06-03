@@ -7,7 +7,7 @@ use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
 
-use crate::{JsResourceData, JsRspackError, ModuleObject};
+use crate::{JsRspackError, ModuleObject};
 
 #[napi(object)]
 #[derive(Hash)]
@@ -21,6 +21,8 @@ pub struct JsLoaderItem {
   // status
   pub normal_executed: bool,
   pub pitch_executed: bool,
+
+  pub no_pitch: bool,
 }
 
 impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
@@ -32,6 +34,8 @@ impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
       data: value.data().clone(),
       normal_executed: value.normal_executed(),
       pitch_executed: value.pitch_executed(),
+
+      no_pitch: false,
     }
   }
 }
@@ -50,6 +54,7 @@ where
         r#type: r#type.to_string(),
         pitch_executed: false,
         normal_executed: false,
+        no_pitch: false,
       };
     }
     Self {
@@ -58,6 +63,7 @@ where
       r#type: String::default(),
       pitch_executed: false,
       normal_executed: false,
+      no_pitch: false,
     }
   }
 }
@@ -82,11 +88,7 @@ impl From<LoaderState> for JsLoaderState {
 
 #[napi(object)]
 pub struct JsLoaderContext {
-  #[napi(ts_type = "Readonly<JsResourceData>")]
-  pub resource_data: JsResourceData,
-  /// Will be deprecated. Use module.module_identifier instead
-  #[napi(js_name = "_moduleIdentifier", ts_type = "Readonly<string>")]
-  pub module_identifier: String,
+  pub resource: String,
   #[napi(js_name = "_module", ts_type = "Module")]
   pub module: ModuleObject,
   #[napi(ts_type = "Readonly<boolean>")]
@@ -128,8 +130,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
 
     #[allow(clippy::unwrap_used)]
     Ok(JsLoaderContext {
-      resource_data: cx.resource_data.as_ref().into(),
-      module_identifier: module.identifier().to_string(),
+      resource: cx.resource_data.resource.clone(),
       module: ModuleObject::with_ptr(
         NonNull::new(module as *const dyn Module as *mut dyn Module).unwrap(),
         cx.context.compiler_id,

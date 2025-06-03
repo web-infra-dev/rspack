@@ -48,13 +48,13 @@ impl Dependency for StaticExportsDependency {
   fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
     Some(ExportsSpec {
       exports: match &self.exports {
-        StaticExportsSpec::Array(exports) => ExportsOfExportsSpec::Array(
+        StaticExportsSpec::Array(exports) => ExportsOfExportsSpec::Names(
           exports
             .iter()
             .map(|item| ExportNameOrSpec::String(item.clone()))
             .collect::<Vec<_>>(),
         ),
-        StaticExportsSpec::True => ExportsOfExportsSpec::True,
+        StaticExportsSpec::True => ExportsOfExportsSpec::UnknownExports,
       },
       can_mangle: Some(self.can_mangle),
       ..Default::default()

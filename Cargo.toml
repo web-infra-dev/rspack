@@ -5,9 +5,9 @@ resolver = "2"                     # See https://doc.rust-lang.org/cargo/referen
 [workspace.package]
 authors       = ["Rspack Teams"]
 categories    = ["bundler", "development-tools", "web-programming"]
-documentation = "https://rspack.dev/"
+documentation = "https://rspack.rs/"
 edition       = "2021"
-homepage      = "https://rspack.dev/"
+homepage      = "https://rspack.rs/"
 license       = "MIT"
 repository    = "https://github.com/web-infra-dev/rspack"
 
@@ -32,7 +32,7 @@ anyhow             = { version = "1.0.95", features = ["backtrace"] }
 anymap             = { package = "anymap3", version = "1.0.1" }
 async-recursion    = { version = "1.1.1" }
 async-trait        = { version = "0.1.84" }
-bitflags           = { version = "2.6.0" }
+bitflags           = { version = "2.9.1" }
 browserslist-rs    = { version = "0.18.1" }
 camino             = { version = "1.1.9" }
 concat-string      = { version = "1.0.1" }
@@ -54,7 +54,7 @@ itertools          = { version = "0.14.0" }
 json               = { version = "0.12.4" }
 lightningcss       = { version = "1.0.0-alpha.64", default-features = false, features = ["grid", "serde"] }
 linked_hash_set    = { version = "0.1.5" }
-mimalloc           = { version = "0.2.3", package = "mimalloc-rspack" }
+mimalloc           = { version = "0.2.4", package = "mimalloc-rspack" }
 mime_guess         = { version = "2.0.5" }
 once_cell          = { version = "1.20.2" }
 parcel_sourcemap   = { version = "2.1.1" }
@@ -66,7 +66,7 @@ quote              = { version = "1.0.38" }
 rayon              = { version = "1.10.0" }
 regex              = { version = "1.11.1" }
 ropey              = { version = "1.6.1" }
-rspack_resolver    = { features = ["package_json_raw_json_api"], version = "0.5.6" }
+rspack_resolver    = { features = ["package_json_raw_json_api"], version = "0.6.0" }
 rspack_sources     = { version = "0.4.8" }
 rustc-hash         = { version = "2.1.0" }
 scopeguard         = "1.2.0"
@@ -88,15 +88,16 @@ ustr               = { package = "ustr-fxhash", version = "1.0.1" }
 xxhash-rust        = { version = "0.8.14" }
 
 # Pinned
-napi        = { version = "3.0.0-beta.1" }
+napi        = { version = "3.0.0-beta.2" }
 napi-build  = { version = "2.2.0" }
-napi-derive = { version = "3.0.0-beta.1" }
+napi-derive = { version = "3.0.0-beta.2" }
 
 # Serialize and Deserialize
 inventory = { version = "0.3.17" }
 rkyv      = { version = "=0.8.8" }
 
 # Must be pinned with the same swc versions
+pnp                 = { version = "0.9.0" }
 swc                 = { version = "=22.0.0" }
 swc_config          = { version = "=2.0.0" }
 swc_core            = { version = "=23.2.0", default-features = false, features = ["parallel_rayon"] }
@@ -105,8 +106,6 @@ swc_error_reporters = { version = "=11.0.0" }
 swc_html            = { version = "=17.0.0" }
 swc_html_minifier   = { version = "=17.0.0", default-features = false }
 swc_node_comments   = { version = "=9.0.0" }
-
-pnp = { version = "0.9.0" }
 
 rspack_dojang = { version = "0.1.11" }
 

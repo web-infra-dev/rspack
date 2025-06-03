@@ -18,9 +18,9 @@ use rspack_util::source_map::SourceMapKind;
 
 use super::JsCompatSourceOwned;
 use crate::{
-  AssetInfo, AsyncDependenciesBlockWrapper, BuildInfo, ConcatenatedModule, ContextModule,
-  DependencyWrapper, ExternalModule, JsChunkWrapper, JsCodegenerationResults, JsCompatSource,
-  JsCompiler, NormalModule, ToJsCompatSource, COMPILER_REFERENCES,
+  AssetInfo, AsyncDependenciesBlockWrapper, ConcatenatedModule, ContextModule, DependencyWrapper,
+  ExternalModule, JsChunkWrapper, JsCodegenerationResults, JsCompatSource, JsCompiler,
+  KnownBuildInfo, NormalModule, ToJsCompatSource, COMPILER_REFERENCES,
 };
 
 #[napi(object)]
@@ -55,10 +55,7 @@ pub struct Module {
 impl Module {
   pub(crate) fn custom_into_instance(self, env: &Env) -> napi::Result<ClassInstance<Self>> {
     let mut instance = self.into_instance(env)?;
-    // The returned Object's lifetime should be tied to the input Env's lifetime, not the ClassInstance itself.
-    // Fix in: https://github.com/napi-rs/napi-rs/pull/2655
-    let mut object =
-      unsafe { std::mem::transmute::<Object, Object<'static>>(instance.as_object(env)) };
+    let mut object = instance.as_object(env);
     let (_, module) = (*instance).as_ref()?;
 
     #[js_function]
@@ -152,7 +149,7 @@ impl Module {
       if let Some(r) = &reference.build_info_ref {
         return r.as_object(env);
       }
-      let mut build_info = BuildInfo::new(reference.downgrade()).get_jsobject(env)?;
+      let mut build_info = KnownBuildInfo::new(reference.downgrade()).get_jsobject(env)?;
       MODULE_BUILD_INFO_SYMBOL.with(|once_cell| {
         let sym = unsafe {
           #[allow(clippy::unwrap_used)]
@@ -175,7 +172,7 @@ impl Module {
       let raw_env = env.raw();
       let mut reference: Reference<Module> =
         unsafe { Reference::from_napi_value(raw_env, this.raw())? };
-      let new_build_info = BuildInfo::new(reference.downgrade());
+      let new_build_info = KnownBuildInfo::new(reference.downgrade());
       let mut new_instrance = new_build_info.get_jsobject(env)?;
 
       let names = input_object.get_all_property_names(

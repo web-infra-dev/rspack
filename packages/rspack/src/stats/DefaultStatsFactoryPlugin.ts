@@ -617,6 +617,10 @@ const EXTRACT_ERROR: Record<
 > = {
 	_: (object, error) => {
 		object.message = error.message;
+		// `error.code` is rspack-specific
+		if (error.code) {
+			object.code = error.code;
+		}
 		if (error.chunkName) {
 			object.chunkName = error.chunkName;
 		}

@@ -103,7 +103,7 @@ impl Dependency for CommonJsExportsDependency {
       ..Default::default()
     })];
     Some(ExportsSpec {
-      exports: ExportsOfExportsSpec::Array(vec),
+      exports: ExportsOfExportsSpec::Names(vec),
       ..Default::default()
     })
   }
@@ -174,7 +174,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       exports_argument.to_string()
     } else if dep.base.is_module_exports() {
       runtime_requirements.insert(RuntimeGlobals::MODULE);
-      format!("{}.exports", module_argument)
+      format!("{module_argument}.exports")
     } else if dep.base.is_this() {
       runtime_requirements.insert(RuntimeGlobals::THIS_AS_EXPORTS);
       "this".to_string()

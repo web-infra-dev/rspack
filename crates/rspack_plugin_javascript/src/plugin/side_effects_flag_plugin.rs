@@ -671,7 +671,11 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
     .map(|(module_identifier, module)| {
       (
         *module_identifier,
-        module.get_side_effects_connection_state(&module_graph, &mut Default::default()),
+        module.get_side_effects_connection_state(
+          &module_graph,
+          &mut Default::default(),
+          &mut Default::default(),
+        ),
       )
     })
     .collect();
@@ -744,7 +748,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
   let inner_start = logger.time("find optimizable connections");
   let artifact: SideEffectsOptimizeArtifact = modules
     .par_iter()
-    .filter(|module| side_effects_state_map[module] == ConnectionState::Bool(false))
+    .filter(|module| side_effects_state_map[module] == ConnectionState::Active(false))
     .flat_map(|module| {
       module_graph
         .get_incoming_connections(module)
@@ -788,7 +792,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
     let module_graph = compilation.get_module_graph();
     do_optimizes = new_connections
       .into_par_iter()
-      .filter(|(_, module)| side_effects_state_map[module] == ConnectionState::Bool(false))
+      .filter(|(_, module)| side_effects_state_map[module] == ConnectionState::Active(false))
       .filter_map(|(connection, _)| module_graph.connection_by_dependency_id(&connection))
       .filter_map(|connection| {
         can_optimize_connection(connection, &side_effects_state_map, &module_graph)
@@ -853,7 +857,7 @@ fn can_optimize_connection(
     let target = export_info.can_move_target(
       module_graph,
       Rc::new(|target: &ResolvedExportInfoTarget, _| {
-        side_effects_state_map[&target.module] == ConnectionState::Bool(false)
+        side_effects_state_map[&target.module] == ConnectionState::Active(false)
       }),
     )?;
     if !module_graph.can_update_module(&dependency_id, &target.module) {
@@ -896,7 +900,7 @@ fn can_optimize_connection(
     let target = export_info.get_target_with_filter(
       module_graph,
       Rc::new(|target: &ResolvedExportInfoTarget, _| {
-        side_effects_state_map[&target.module] == ConnectionState::Bool(false)
+        side_effects_state_map[&target.module] == ConnectionState::Active(false)
       }),
     )?;
     if !module_graph.can_update_module(&dependency_id, &target.module) {

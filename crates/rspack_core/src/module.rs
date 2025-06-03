@@ -12,7 +12,7 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsOption, AsPreset, AsVec},
 };
-use rspack_collections::{Identifiable, Identifier, IdentifierSet};
+use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::RspackHashDigest;
@@ -31,9 +31,9 @@ use crate::{
   AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
   ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation, CompilationAsset, CompilationId,
   CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
-  DependenciesBlock, DependencyId, ExportInfoProvided, ExternalModule, ModuleGraph, ModuleLayer,
-  ModuleType, NormalModule, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
-  SharedPluginDriver, SourceType,
+  DependenciesBlock, DependencyId, ExportInfoGetter, ExportProvided, ExternalModule, ModuleGraph,
+  ModuleLayer, ModuleType, NormalModule, RawModule, Resolve, ResolverFactory, RuntimeSpec,
+  SelfModule, SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext {
@@ -365,8 +365,9 @@ pub trait Module:
     &self,
     _module_graph: &ModuleGraph,
     _module_chain: &mut IdentifierSet,
+    _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
-    ConnectionState::Bool(true)
+    ConnectionState::Active(true)
   }
 
   fn need_build(&self) -> bool {
@@ -436,7 +437,10 @@ fn get_exports_type_impl(
         if let Some(export_info) =
           mg.get_read_only_export_info(&identifier, Atom::from("__esModule"))
         {
-          if matches!(export_info.provided(mg), Some(ExportInfoProvided::False)) {
+          if matches!(
+            ExportInfoGetter::provided(export_info.as_data(mg)),
+            Some(ExportProvided::NotProvided)
+          ) {
             handle_default(default_object)
           } else {
             let Some(target) = export_info.get_target(mg) else {

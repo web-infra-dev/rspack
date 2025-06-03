@@ -1,14 +1,16 @@
 use std::collections::hash_map::Entry;
 
+use rspack_error::miette::diagnostic;
+
 use super::{
   context::{ExecutorTaskContext, ImportModuleMeta},
-  execute::{ExecuteResultSender, ExecuteTask},
+  execute::ExecuteTask,
   overwrite::overwrite_tasks,
 };
 use crate::{
   compiler::make::repair::{factorize::FactorizeTask, MakeTaskContext},
   utils::task_loop::{Task, TaskResult, TaskType},
-  Context, Dependency, LoaderImportDependency, ModuleProfile, PublicPath,
+  Context, Dependency, LoaderImportDependency, ModuleProfile,
 };
 
 /// A task for generate import module entry.
@@ -16,9 +18,7 @@ use crate::{
 pub struct EntryTask {
   pub meta: ImportModuleMeta,
   pub origin_module_context: Option<Context>,
-  pub public_path: Option<PublicPath>,
-  pub base_uri: Option<String>,
-  pub result_sender: ExecuteResultSender,
+  pub execute_task: ExecuteTask,
 }
 #[async_trait::async_trait]
 impl Task<ExecutorTaskContext> for EntryTask {
@@ -33,9 +33,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
     let Self {
       meta,
       origin_module_context,
-      public_path,
-      base_uri,
-      result_sender,
+      execute_task,
     } = *self;
     let ExecutorTaskContext {
       entries,
@@ -44,18 +42,12 @@ impl Task<ExecutorTaskContext> for EntryTask {
       executed_entry_deps,
     } = context;
 
-    let task = ExecuteTask {
-      meta: meta.clone(),
-      public_path,
-      base_uri,
-      result_sender,
-    };
     let mut res = vec![];
     let (dep_id, is_new) = match entries.entry(meta.clone()) {
       Entry::Vacant(v) => {
         // not exist, generate a new dependency
         let dep = Box::new(LoaderImportDependency::new(
-          meta.request,
+          meta.request.clone(),
           origin_module_context.unwrap_or(Context::from("")),
         ));
         let dep_id = *dep.id();
@@ -99,13 +91,25 @@ impl Task<ExecutorTaskContext> for EntryTask {
     // mark as executed
     executed_entry_deps.insert(dep_id);
 
-    res.extend(tracker.on_entry(is_new, dep_id, |error| match error {
-      Some(error) => {
-        task.finish_with_error(error);
-        None
+    if tracker.is_running(&dep_id) {
+      let mg = origin_context.artifact.get_module_graph();
+      // the module in module executor need to check.
+      if mg
+        .module_graph_module_by_identifier(&meta.origin_module_identifier)
+        .is_some()
+      {
+        execute_task.finish_with_error(
+          diagnostic!(
+            "The added task is running, maybe have a circular build dependency. MetaInfo: {:?}",
+            meta
+          )
+          .into(),
+        );
+        return Ok(vec![]);
       }
-      None => Some(Box::new(task)),
-    }));
+    }
+
+    res.extend(tracker.on_entry(is_new, dep_id, Box::new(execute_task)));
 
     Ok(res)
   }

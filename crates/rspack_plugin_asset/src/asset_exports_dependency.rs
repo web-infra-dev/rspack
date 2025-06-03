@@ -26,7 +26,7 @@ impl Dependency for AssetExportsDependency {
 
   fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
     Some(ExportsSpec {
-      exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::String("default".into())]),
+      exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::String("default".into())]),
       priority: Some(1),
       terminal_binding: Some(true),
       ..Default::default()

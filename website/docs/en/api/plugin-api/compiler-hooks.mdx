@@ -372,17 +372,19 @@ Executes a plugin after compilation parameters are created.
 
 ## `compile`
 
-Called right after `beforeCompile`, before a new compilation is created.
+Called right after `beforeCompile`, before a new [compilation object](/api/javascript-api/compilation) is created.
 
 - **Type:** `SyncHook<[]>`
 
 ## `thisCompilation`
 
-Called while initializing the compilation, right before calling the `compilation` hook.
+Called while initializing the compilation, can be used to get the current compilation object.
+
+You can use the `compilation` parameter to access the properties of the compilation object, or register [compilation hooks](/api/plugin-api/compilation-hooks).
 
 - **Type:** `SyncHook<[Compilation]>`
 - **Arguments:**
-  - `Compilation`: created [compilation](/api/javascript-api/compilation) object
+  - `compilation`: created [compilation](/api/javascript-api/compilation) object
 
 <Collapse>
   <CollapsePanel
@@ -393,14 +395,34 @@ Called while initializing the compilation, right before calling the `compilation
     <CompilationType />
   </CollapsePanel>
 </Collapse>
+
+- **Example:**
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.thisCompilation.tap('ExamplePlugin', compilation => {
+      console.log('compilation created:', compilation);
+
+      compilation.hooks.make.tap('ExamplePlugin', compilation => {
+        console.log("compilation's make hook called:", compilation);
+      });
+    });
+  }
+}
+```
 
 ## `compilation`
 
-Runs a plugin after a compilation has been created.
+Called after the compilation object is created, can be used to get the current compilation object.
+
+You can use the `compilation` parameter to access the properties of the compilation object, or register [compilation hooks](/api/plugin-api/compilation-hooks).
+
+`compilation` hook is called after the [thisCompilation](#thiscompilation) hook, and `thisCompilation` hook is not copied to child compiler, while `compilation` hook is copied to child compiler.
 
 - **Type:** `SyncHook<[Compilation]>`
 - **Arguments:**
-  - `Compilation`: created [compilation](/api/javascript-api/compilation) object
+  - `compilation`: created [compilation](/api/javascript-api/compilation) object
 
 <Collapse>
   <CollapsePanel
@@ -411,6 +433,20 @@ Runs a plugin after a compilation has been created.
     <CompilationType />
   </CollapsePanel>
 </Collapse>
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.compilation.tap('ExamplePlugin', compilation => {
+      console.log('compilation created:', compilation);
+
+      compilation.hooks.make.tap('ExamplePlugin', compilation => {
+        console.log("compilation's make hook called:", compilation);
+      });
+    });
+  }
+}
+```
 
 ## `make`
 

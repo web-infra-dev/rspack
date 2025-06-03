@@ -9,6 +9,15 @@ use rspack_loader_runner::State as LoaderState;
 
 use super::{JsLoaderContext, JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 
+impl JsLoaderRspackPlugin {
+  async fn update_loaders_without_pitch(&self, list: Vec<String>) {
+    let mut loaders_without_pitch = self.loaders_without_pitch.write().await;
+    for path in list {
+      loaders_without_pitch.insert(path);
+    }
+  }
+}
+
 #[plugin_hook(NormalModuleLoaderShouldYield for JsLoaderRspackPlugin, tracing=false)]
 pub(crate) async fn loader_should_yield(
   &self,
@@ -18,7 +27,17 @@ pub(crate) async fn loader_should_yield(
     s @ LoaderState::Init | s @ LoaderState::ProcessResource | s @ LoaderState::Finished => {
       panic!("Unexpected loader runner state: {s:?}")
     }
-    LoaderState::Pitching | LoaderState::Normal => Ok(Some(
+    LoaderState::Pitching => {
+      let current_loader = loader_context.current_loader();
+      if current_loader.request().starts_with(BUILTIN_LOADER_PREFIX) {
+        Ok(Some(false))
+      } else {
+        let loaders_without_pitch = self.loaders_without_pitch.read().await;
+        let should_yield = !loaders_without_pitch.contains(current_loader.path().as_str());
+        Ok(Some(should_yield))
+      }
+    }
+    LoaderState::Normal => Ok(Some(
       !loader_context
         .current_loader()
         .request()
@@ -42,6 +61,13 @@ pub(crate) async fn loader_yield(
         .await
         .into_diagnostic()?;
       drop(read_guard);
+
+      if loader_context.state() == LoaderState::Pitching {
+        let list = collect_loaders_without_pitch(loader_context, &new_cx);
+        if !list.is_empty() {
+          self.update_loaders_without_pitch(list).await;
+        }
+      }
 
       merge_loader_context(loader_context, new_cx)?;
     }
@@ -72,6 +98,13 @@ pub(crate) async fn loader_yield(
         .await
         .into_diagnostic()?;
       drop(read_guard);
+
+      if loader_context.state() == LoaderState::Pitching {
+        let list = collect_loaders_without_pitch(loader_context, &new_cx);
+        if !list.is_empty() {
+          self.update_loaders_without_pitch(list).await;
+        }
+      }
 
       merge_loader_context(loader_context, new_cx)?;
     }
@@ -175,4 +208,17 @@ pub(crate) fn merge_loader_context(
   to.parse_meta = from.parse_meta.into_iter().collect();
 
   Ok(())
+}
+
+fn collect_loaders_without_pitch(
+  ctx: &LoaderContext<RunnerContext>,
+  js_ctx: &JsLoaderContext,
+) -> Vec<String> {
+  let mut list = Vec::new();
+  for (js_loader_item, loader_item) in js_ctx.loader_items.iter().zip(ctx.loader_items.iter()) {
+    if js_loader_item.no_pitch {
+      list.push(loader_item.path().to_string());
+    }
+  }
+  list
 }

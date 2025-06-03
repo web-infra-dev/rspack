@@ -7,7 +7,7 @@ use rspack_core::{
   CompilationAdditionalChunkRuntimeRequirements, CompilationDependentFullHash, CompilationParams,
   CompilerCompilation, CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
 };
-use rspack_error::Result;
+use rspack_error::{miette, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
@@ -132,7 +132,9 @@ async fn render_chunk(
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
   if matches!(chunk.kind(), ChunkKind::HotUpdate) {
-    unreachable!("HMR is not implemented for module chunk format yet");
+    return Err(miette::miette!(
+      "HMR is not implemented for module chunk format yet"
+    ));
   }
 
   let mut sources = ConcatSource::default();

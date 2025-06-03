@@ -61,7 +61,7 @@ pub fn ecma_parse_error_deduped_to_rspack_error(
     fm,
     span.start as usize,
     span.end as usize,
-    format!("{file_type} parsing error"),
+    format!("{file_type} parse error"),
     message,
   )
   .with_kind(diagnostic_kind)
