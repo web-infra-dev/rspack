@@ -10,10 +10,10 @@ use rspack_core::{
   BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ErrorSpan, ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo,
-  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
-  ModuleGraph, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource,
+  ErrorSpan, ExportInfoGetter, ExportProvided, ExportsType, ExtendedReferencedExport,
+  FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  ModuleDependency, ModuleGraph, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -297,7 +297,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         pos += 1;
         let export_info = exports_info.get_read_only_export_info(module_graph, id);
         if matches!(
-          export_info.provided(module_graph),
+          ExportInfoGetter::provided(export_info.as_data(module_graph)),
           Some(ExportProvided::NotProvided)
         ) {
           let provided_exports = exports_info.get_provided_exports(module_graph);
