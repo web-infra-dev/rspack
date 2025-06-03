@@ -49,7 +49,7 @@ impl Dependency for MockModuleIdDependency {
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::RstestModuleMock
+    &DependencyType::RstestMockModuleId
   }
 
   fn range(&self) -> Option<&DependencyRange> {
@@ -115,7 +115,7 @@ pub struct MockModuleIdDependencyTemplate;
 
 impl MockModuleIdDependencyTemplate {
   pub fn template_type() -> DependencyTemplateType {
-    DependencyTemplateType::Dependency(DependencyType::RstestModuleMock)
+    DependencyTemplateType::Dependency(DependencyType::RstestMockModuleId)
   }
 }
 

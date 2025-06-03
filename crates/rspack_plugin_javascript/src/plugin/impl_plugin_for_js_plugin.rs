@@ -377,7 +377,7 @@ async fn compilation(
   );
   // Rstest
   compilation.set_dependency_factory(
-    DependencyType::RstestModuleMock,
+    DependencyType::RstestMockModuleId,
     params.normal_module_factory.clone(),
   );
   Ok(())

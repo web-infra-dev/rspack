@@ -1,17 +1,28 @@
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, DependencyCodeGeneration, DependencyTemplate,
-  DependencyTemplateType, DependencyType, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  Module, NormalInitFragment, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, AsModuleDependency, DependencyCodeGeneration, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, NormalInitFragment, TemplateContext, TemplateReplaceSource,
 };
+use swc_core::common::Span;
 
 #[cacheable]
 #[derive(Debug, Clone)]
-pub struct MockHoistDependency {}
+pub struct MockHoistDependency {
+  #[cacheable(with=Skip)]
+  call_expr_span: Span,
+  #[cacheable(with=Skip)]
+  callee_span: Span,
+  request: String,
+}
 
 impl MockHoistDependency {
-  pub fn new() -> Self {
-    Self {}
+  pub fn new(call_expr_span: Span, callee_span: Span, request: String) -> Self {
+    Self {
+      call_expr_span,
+      callee_span,
+      request,
+    }
   }
 }
 
@@ -39,35 +50,44 @@ impl DependencyTemplate for MockHoistDependencyTemplate {
   fn render(
     &self,
     dep: &dyn DependencyCodeGeneration,
-    _source: &mut TemplateReplaceSource,
+    source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let TemplateContext {
-      module,
-      init_fragments,
-      ..
-    } = code_generatable_context;
+    let TemplateContext { init_fragments, .. } = code_generatable_context;
 
-    let m = module.as_normal_module();
-    if let Some(m) = m {
-      let resource_path = &m.resource_resolved_data().resource_path;
+    let dep = dep
+      .as_any()
+      .downcast_ref::<MockHoistDependency>()
+      .expect("ModulePathNameDependencyTemplate can only be applied to ModulePathNameDependency");
+    let request = &dep.request;
 
-      let dep = dep
-        .as_any()
-        .downcast_ref::<MockHoistDependency>()
-        .expect("ModulePathNameDependencyTemplate can only be applied to ModulePathNameDependency");
+    // Placeholder of hoist target.
+    let init = NormalInitFragment::new(
+      format!("/* RSTEST:MOCK_PLACEHOLDER:{request} */;"),
+      InitFragmentStage::StageConstants,
+      0,
+      InitFragmentKey::Const(format!("retest mock_hoist {request}")),
+      None,
+    );
 
-      if let Some(resource_path) = resource_path {
-        let init = NormalInitFragment::new(
-          format!("// MOCK: const __filename = '{}';\n", resource_path),
-          InitFragmentStage::StageConstants,
-          0,
-          InitFragmentKey::Const(format!("retest mock_hoist {}", m.id())),
-          None,
-        );
+    // Start before hoist.
+    let callee_range: DependencyRange = dep.callee_span.into();
+    source.replace(
+      callee_range.start,
+      callee_range.end,
+      format!("/* RSTEST:MOCK_HOIST_START:{request} */__webpack_require__.set_mock").as_ref(),
+      None,
+    );
 
-        init_fragments.push(init.boxed());
-      }
-    }
+    // End before hoist.
+    let range: DependencyRange = dep.call_expr_span.into();
+    source.replace(
+      range.end, // count the trailing semicolon
+      range.end,
+      format!("/* RSTEST:MOCK_HOIST_END:{request} */").as_ref(),
+      None,
+    );
+
+    init_fragments.push(init.boxed());
   }
 }

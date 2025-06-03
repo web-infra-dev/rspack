@@ -1,7 +1,5 @@
 use rspack_core::{ConstDependency, SpanExt};
 use rspack_plugin_javascript::{
-  // dependency::RequireResolveDependency,
-  dependency::RequireResolveDependency,
   utils::{self, eval},
   visitors::JavascriptParser,
   JavascriptParserPlugin,
@@ -34,18 +32,6 @@ pub struct RstestParserPlugin;
 
 impl RstestParserPlugin {
   fn process_hoist_mock(&self, parser: &mut JavascriptParser, call_expr: &CallExpr) {
-    parser
-      .presentational_dependencies
-      .push(Box::new(MockHoistDependency::new()));
-
-    parser
-      .presentational_dependencies
-      .push(Box::new(ConstDependency::new(
-        call_expr.callee.span().into(),
-        "__webpack_require__.set_mock".to_string().into(),
-        None,
-      )));
-
     match call_expr.args.len() {
       // TODO: mock a module to __mocks__
       1 => {}
@@ -61,11 +47,18 @@ impl RstestParserPlugin {
         if let Some(lit) = first_arg.expr.as_lit() {
           if let Some(lit) = lit.as_str() {
             parser
+              .presentational_dependencies
+              .push(Box::new(MockHoistDependency::new(
+                call_expr.span(),
+                call_expr.callee.span(),
+                lit.value.to_string(),
+              )));
+
+            parser
               .dependencies
               .push(Box::new(MockModuleIdDependency::new(
                 lit.value.to_string(),
                 first_arg.span().into(),
-                // true,
                 false,
                 parser.in_try,
                 rspack_core::DependencyCategory::Esm,
@@ -79,14 +72,6 @@ impl RstestParserPlugin {
         panic!("`rs.mock` function expects 1 or 2 arguments, got more than 2");
       }
     }
-
-    // parser
-    //   .presentational_dependencies
-    //   .push(Box::new(ConstDependency::new(
-    //     call_expr.span().into(),
-    //     "QQQ".into(),
-    //     None,
-    //   )));
   }
 
   fn process_import_meta(&self, parser: &mut JavascriptParser, r#type: ModulePathType) -> String {
@@ -118,7 +103,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
   ) -> Option<bool> {
     if for_name == RS_MOCK {
       self.process_hoist_mock(parser, call_expr);
-      Some(true)
+      Some(false)
     } else {
       None
     }

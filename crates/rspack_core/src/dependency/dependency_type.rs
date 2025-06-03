@@ -118,7 +118,7 @@ pub enum DependencyType {
   DelegatedSource,
   ExtractCSS,
   RstestModulePath,
-  RstestModuleMock,
+  RstestMockModuleId,
   RstestHoistMock,
 }
 
@@ -194,7 +194,7 @@ impl DependencyType {
       DependencyType::DelegatedSource => "delegated source",
       DependencyType::ExtractCSS => "extract css",
       DependencyType::RstestModulePath => "rstest module path",
-      DependencyType::RstestModuleMock => "rstest module mock",
+      DependencyType::RstestMockModuleId => "rstest mock module id",
       DependencyType::RstestHoistMock => "rstest hoist mock",
     }
   }
