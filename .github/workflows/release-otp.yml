@@ -43,6 +43,17 @@ jobs:
     with:
       force-use-github-runner: true
 
+  debug-inputs:
+    name: Debug Inputs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print Inputs
+        run: |
+          echo ${{ inputs.dry_run }}
+          echo ${{ inputs.dry_run && '--dry-run' }}
+          echo ${{ inputs.dry_run && '--dry-run' || '--no-dry-run' }}
+          echo ./x publish stable --otp --tag ${{inputs.tag}} ${{inputs.dry_run && '--dry-run' || '--no-dry-run'}} ${{inputs.push_tags && '--push-tags' || '--no-push-tags'}}
+
   build:
     needs: [get-runner-labels]
     strategy:
