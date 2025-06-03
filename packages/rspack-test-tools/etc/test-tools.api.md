@@ -256,7 +256,7 @@ export function createHookCase(name: string, src: string, dist: string, source: 
 export function createHotCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
 
 // @public (undocumented)
-export function createHotNewIncrementalCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"], documentType: EDocumentType): void;
+export function createHotNewIncrementalCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"], webpackCases: boolean): void;
 
 // @public (undocumented)
 export function createHotStepCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
@@ -897,9 +897,9 @@ export interface IHookProcessorOptions<T extends ECompilerType> extends ISnapsho
 // @public (undocumented)
 export interface IHotNewIncrementalProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "runable"> {
     // (undocumented)
-    documentType?: EDocumentType;
-    // (undocumented)
     target: TCompilerOptions<T>["target"];
+    // (undocumented)
+    webpackCases: boolean;
 }
 
 // @public (undocumented)

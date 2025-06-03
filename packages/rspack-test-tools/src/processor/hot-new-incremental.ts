@@ -11,21 +11,24 @@ import { HotProcessor } from "./hot";
 export interface IHotNewIncrementalProcessorOptions<T extends ECompilerType>
 	extends Omit<IBasicProcessorOptions<T>, "runable"> {
 	target: TCompilerOptions<T>["target"];
-	documentType?: EDocumentType;
+	webpackCases: boolean;
 }
 
 export class HotNewIncrementalProcessor<
 	T extends ECompilerType
 > extends HotProcessor<T> {
 	constructor(protected _hotOptions: IHotNewIncrementalProcessorOptions<T>) {
-		super(_hotOptions);
+		super({
+			defaultOptions: HotNewIncrementalProcessor.defaultOptions,
+			..._hotOptions
+		});
 	}
 
 	async run(env: ITestEnv, context: ITestContext) {
 		context.setValue(
 			this._options.name,
 			"documentType",
-			this._hotOptions.documentType
+			this._hotOptions.webpackCases ? EDocumentType.Fake : EDocumentType.JSDOM
 		);
 		await super.run(env, context);
 	}
@@ -50,7 +53,7 @@ export class HotNewIncrementalProcessor<
 		if (this._hotOptions.compilerType === ECompilerType.Rspack) {
 			const rspackOptions = options as TCompilerOptions<ECompilerType.Rspack>;
 			rspackOptions.experiments ??= {};
-			rspackOptions.experiments.incremental ??= "advance";
+			rspackOptions.experiments.incremental ??= "advance-silent";
 		} else {
 			throw new Error(
 				"HotNewIncrementalProcessor should only used for Rspack."
