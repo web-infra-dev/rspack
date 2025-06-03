@@ -46,6 +46,13 @@
 ```js title=main.js
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
+"./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+/* ESM import */var _style_module_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.module.css");
+
+
+
+}),
 "./b.module.css": (function (module, __unused_webpack_exports, __webpack_require__) {
 var exports = {
   "b-1": "./_b.module_./_b-1--/___4907546f794ca5c2<_49",
@@ -73,13 +80,6 @@ var exports = {
 };
 
 __webpack_require__.r(module.exports = exports);
-
-
-}),
-"./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-/* ESM import */var _style_module_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.module.css");
-
 
 
 }),
