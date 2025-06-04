@@ -22,12 +22,6 @@ pub struct ErrorSpan {
   pub end: u32,
 }
 
-impl ErrorSpan {
-  pub fn new(start: u32, end: u32) -> Self {
-    Self { start, end }
-  }
-}
-
 impl From<Span> for ErrorSpan {
   fn from(span: Span) -> Self {
     Self {

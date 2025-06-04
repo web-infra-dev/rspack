@@ -83,13 +83,13 @@ jobs:
           key: check
 
       - name: Install cargo-deny
-        uses: taiki-e/install-action@84c20235bedc3797c7e1ddf685c574a4a6c666da # v2
+        uses: taiki-e/install-action@1cefd1553b1693f47889dc747f7d230904296a3b # v2
         with:
           tool: cargo-deny@0.16
       - name: Check licenses
         run: cargo deny check license bans
 
-      - uses: cargo-bins/cargo-binstall@5cbf019d8cb9b9d5b086218c41458ea35d817691 # v1.12.5
+      - uses: cargo-bins/cargo-binstall@e8c9cc3599f6c4063d143083205f98ca25d91677 # v1.12.6
       - run: cargo binstall --no-confirm cargo-shear@1.1.12 --force
       - run: cargo shear
 

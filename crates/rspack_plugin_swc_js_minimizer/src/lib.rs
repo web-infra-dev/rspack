@@ -26,7 +26,7 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_javascript_compiler::JavaScriptCompiler;
 use rspack_plugin_javascript::{ExtractedCommentsInfo, JavascriptModulesChunkHash, JsPlugin};
 use rspack_util::asset_condition::AssetConditions;
-use swc_config::config_types::BoolOrDataConfig;
+use swc_config::types::BoolOrDataConfig;
 use swc_core::{
   base::config::JsMinifyFormatOptions,
   common::comments::{CommentKind, SingleThreadedComments},

@@ -19,7 +19,7 @@ use jsonc_parser::parse_to_serde_value;
 use rspack_error::{miette::MietteDiagnostic, AnyhowResultToRspackResultExt, Error};
 use rspack_util::{itoa, source_map::SourceMapKind, swc::minify_file_comments};
 use serde_json::error::Category;
-use swc_config::{merge::Merge, IsModule};
+use swc_config::{is_module::IsModule, merge::Merge};
 pub use swc_core::base::config::Options as SwcOptions;
 use swc_core::{
   base::{
@@ -404,6 +404,7 @@ impl<'a> JavaScriptTransformer<'a> {
           self.options.output_path.as_deref(),
           self.options.source_root.clone(),
           self.options.source_file_name.clone(),
+          self.config.source_map_ignore_list.clone(),
           handler,
           Some(self.config.clone()),
           Some(&self.comments),
