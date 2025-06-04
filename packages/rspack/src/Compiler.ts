@@ -1052,10 +1052,6 @@ class Compiler {
 	__internal__get_module_execution_results_map() {
 		return this.#moduleExecutionResultsMap;
 	}
-
-	#needsBinding(ifs?: false | RegExp[]) {
-		return Array.isArray(ifs) && ifs.length > 0;
-	}
 }
 
 export { Compiler };
