@@ -4309,6 +4309,7 @@ dependencies = [
  "stacker",
  "swc_config",
  "swc_core",
+ "swc_ecma_lexer",
  "swc_ecma_minifier",
  "swc_error_reporters",
  "swc_node_comments",

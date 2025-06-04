@@ -18,7 +18,7 @@ use swc_core::{
   common::{comments::Comments, input::SourceFileInput, FileName, SyntaxContext},
   ecma::{
     ast,
-    parser::{lexer::Lexer, EsSyntax, Syntax},
+    parser::{EsSyntax, Syntax},
   },
 };
 use swc_node_comments::SwcComments;
@@ -175,19 +175,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     );
     let comments = SwcComments::default();
     let target = ast::EsVersion::EsNext;
-    let parser_lexer = Lexer::new(
-      Syntax::Es(EsSyntax {
-        allow_return_outside_function: matches!(
-          module_type,
-          ModuleType::JsDynamic | ModuleType::JsAuto
-        ),
-        import_attributes: true,
-        ..Default::default()
-      }),
-      target,
-      SourceFileInput::from(&*fm),
-      Some(&comments),
-    );
 
     let lexer = swc_ecma_lexer::Lexer::new(
       Syntax::Es(EsSyntax {
@@ -207,7 +194,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let mut ast = match javascript_compiler.parse_with_lexer(
       &fm,
-      parser_lexer,
+      lexer.clone(),
       module_type_to_is_module(module_type),
       Some(comments.clone()),
     ) {

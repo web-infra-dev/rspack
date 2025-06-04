@@ -6,9 +6,10 @@ use swc_core::{
   common::{comments::Comments, input::SourceFileInput, FileName, SourceFile},
   ecma::{
     ast::{EsVersion, Program as SwcProgram},
-    parser::{self, lexer::Lexer, Parser, Syntax},
+    parser::{self, Syntax},
   },
 };
+use swc_ecma_lexer::{Lexer, Parser};
 use swc_node_comments::SwcComments;
 
 use super::JavaScriptCompiler;
