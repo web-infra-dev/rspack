@@ -12,25 +12,25 @@ module.exports = {
 		{
 			apply: compiler => {
 				compiler.hooks.afterCompile.tap("SimpleInputFileSystem", () => {
-					// assert(readFileCalled, "readFile should be called");
-					// assert(stateCalled, "stat should be called");
+					assert(readFileCalled, "readFile should be called");
+					assert(stateCalled, "stat should be called");
 				});
 				compiler.hooks.beforeCompile.tap("SimpleInputFileSystem", () => {
 					// simple file system just works for test case
 					compiler.inputFileSystem = {
 						readFile(p, cb) {
-							console.log("read file", p);
 							readFileCalled = true;
 							cb(
 								null,
-								`it("should read file simple file",()=>{
-								expect(1).toBe(1);
-							})`
+								`
+								require("./disk.js");
+								it("should read file simple file",()=>{
+								  expect(1).toBe(1);
+							  })`
 							);
 						},
 						stat(p, cb) {
 							stateCalled = true;
-							console.log("stat file", p);
 							cb(null, {
 								isFile() {
 									return true;
