@@ -89,7 +89,7 @@ xxhash-rust        = { version = "0.8.14" }
 
 # Pinned
 napi        = { version = "3.0.0-beta.5" }
-napi-build  = { version = "2.2.0" }
+napi-build  = { version = "3.0.0-beta.0" }
 napi-derive = { version = "3.0.0-beta.5" }
 
 # Serialize and Deserialize
