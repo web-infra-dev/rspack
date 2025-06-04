@@ -12,7 +12,6 @@ import { AsyncDependenciesBlock } from '@rspack/binding';
 import { AsyncParallelHook } from '@rspack/lite-tapable';
 import { AsyncSeriesBailHook } from '@rspack/lite-tapable';
 import * as binding from '@rspack/binding';
-import { Buffer as Buffer_2 } from 'buffer';
 import { BuiltinPlugin } from '@rspack/binding';
 import { BuiltinPluginName } from '@rspack/binding';
 import { CacheFacade as CacheFacade_2 } from './lib/CacheFacade';
@@ -2517,7 +2516,7 @@ export interface ExperimentsNormalized {
     // (undocumented)
     topLevelAwait?: boolean;
     // (undocumented)
-    useInputFileSystem?: boolean | RegExp[];
+    useInputFileSystem?: false | RegExp[];
 }
 
 // @public (undocumented)
@@ -2927,11 +2926,12 @@ interface HasDecorator {
 }
 
 // @public (undocumented)
-interface Hash {
-    	// (undocumented)
-    digest: (encoding?: string) => string | Buffer_2;
-    	// (undocumented)
-    update: (data: string | Buffer_2, inputEncoding?: string) => Hash;
+class Hash {
+    	constructor();
+
+    	digest(encoding?: string): string | Buffer;
+
+    	update(data: string | Buffer, inputEncoding?: string): Hash;
 }
 
 // @public (undocumented)
@@ -4573,12 +4573,7 @@ type MakeDirectoryOptions = {
 };
 
 // @public (undocumented)
-interface MapOptions {
-    	// (undocumented)
-    columns?: boolean;
-    	// (undocumented)
-    module?: boolean;
-}
+type MapOptions = { columns?: boolean; module?: boolean };
 
 // @public
 type Matcher = string | RegExp | (string | RegExp)[];
@@ -5799,22 +5794,15 @@ export type PublicPath = "auto" | Filename;
 type Purge = (files?: string | string[] | Set<string>) => void;
 
 // @public (undocumented)
-interface RawSourceMap {
-    	// (undocumented)
-    file: string;
-    	// (undocumented)
-    mappings: string;
-    	// (undocumented)
-    names: string[];
-    	// (undocumented)
-    sourceRoot?: string;
-    	// (undocumented)
-    sources: string[];
-    	// (undocumented)
-    sourcesContent?: string[];
-    	// (undocumented)
-    version: number;
-}
+type RawSourceMap = {
+    	version: number;
+    	sources: string[];
+    	names: string[];
+    	sourceRoot?: string;
+    	sourcesContent?: string[];
+    	mappings: string;
+    	file: string;
+};
 
 // @public (undocumented)
 interface ReactConfig {
@@ -7156,28 +7144,27 @@ export const sharing: {
 export type SnapshotOptions = {};
 
 // @public (undocumented)
-class Source {
-    	constructor();
+abstract class Source {
     	// (undocumented)
-    buffer(): Buffer_2;
+    buffer(): Buffer;
+
     	// (undocumented)
-    map(options?: MapOptions): null | RawSourceMap;
+    map(options?: MapOptions): RawSourceMap | null;
+
     	// (undocumented)
     size(): number;
+
     	// (undocumented)
-    source(): SourceValue;
+    source(): string | Buffer;
+
     	// (undocumented)
-    sourceAndMap(options?: MapOptions): SourceAndMap;
+    sourceAndMap(options?: MapOptions): {
+        		source: string | Buffer;
+        		map: Object;
+        	};
+
     	// (undocumented)
     updateHash(hash: Hash): void;
-}
-
-// @public (undocumented)
-interface SourceAndMap {
-    	// (undocumented)
-    map: null | RawSourceMap;
-    	// (undocumented)
-    source: SourceValue;
 }
 
 // @public (undocumented)
@@ -7215,9 +7202,6 @@ export { SourceMapDevToolPluginOptions }
 export type SourceMapFilename = string;
 
 export { sources }
-
-// @public (undocumented)
-type SourceValue = string | Buffer_2;
 
 // @public (undocumented)
 interface Span {
@@ -8850,7 +8834,7 @@ type UpdateOperator = "++" | "--";
 type UsageStateType = 0 | 1 | 2 | 3 | 4;
 
 // @public
-export type UseInputFileSystem = boolean | RegExp[];
+export type UseInputFileSystem = false | RegExp[];
 
 // @public (undocumented)
 export const util: {
