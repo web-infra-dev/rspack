@@ -843,10 +843,42 @@ To accomplish this, one can change the inputFileSystem. For example, you can rep
 But due to the overheads calling file system implemented in Node.js side, it will slow down Rspack a lot.
 So we make a trade off by providing the `useInputFileSystem` config, to tell rspack to read file from the native file system or from modified inputFileSystem.
 
-Here is an Example.
-When access to `virtual_entry.js` and `src/another_virtual.js` which match the regular expressions of `experiments.useInputFileSystem`,
-Rspack will use the input file system wrapped by `VirtualModulesPlugin`; other than that, `src/disk_file.js` will be accessed by the native file system.
-In normal project, there are not much files need to be access by the input file system, config `experiments.useInputFileSystem` properly will keep Rspack running fast.
+In below example, you can simply replace the default input file system to any file system satisfied the [`InputFileSystem`](/api/javascript-api/compiler#inputfilesystem-1) interface.
+
+:::info Note
+The replacing of `compiler.inputFileSystem` will only take effect before `compiler.run` called; Replacing after `compiler.run` will not take effect.
+:::
+
+More detailed case can be found in this [test case](https://github.com/web-infra-dev/rspack/tree/main/packages/rspack-test-tools/tests/configCases/input-file-system/webpack.config.js)
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    index: './virtual_index.js',
+  },
+  plugins: [
+    {
+      apply: compiler => {
+        compiler.hooks.beforeCompile.tap('SimpleInputFileSystem', () => {
+          compiler.inputFileSystem = {
+            readFile(path, cb) {
+              cb(null, `// the file content`);
+            },
+            stat(p, cb) {
+              cb(null, fsState);
+            },
+          };
+        });
+      },
+    },
+  ],
+  experiments: {
+    useInputFileSystem: [/virtual_.*\.js/],
+  },
+};
+```
+
+### Work with webpack-virtual-modules
 
 ```js title="rspack.config.mjs"
 import VirtualModulesPlugin from 'webpack-virtual-modules';
@@ -867,3 +899,6 @@ export default {
   },
 };
 ```
+
+When access to `virtual_entry.js` and `src/another_virtual.js` which match the regular expressions of `experiments.useInputFileSystem`,
+Rspack will use the input file system wrapped by `VirtualModulesPlugin`; other than that, `src/disk_file.js` will be accessed by the native file system.
