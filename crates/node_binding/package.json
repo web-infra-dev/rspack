@@ -27,7 +27,7 @@
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
-    "@napi-rs/cli": "3.0.0-alpha.81",
+    "@napi-rs/cli": "3.0.0-alpha.84",
     "@napi-rs/wasm-runtime": "^0.2.10",
     "emnapi": "^1.4.3",
     "typescript": "^5.8.3",
