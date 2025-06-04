@@ -7,6 +7,6 @@ it("should minify outputModule", async () => {
 		"utf-8"
 	);
 	expect(
-		out.startsWith('import*as s from"https://test.rspack.rs/test.js"')
+		out.startsWith('import s from"https://test.rspack.rs/test.js"')
 	).toBe(true);
 });
