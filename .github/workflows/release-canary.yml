@@ -104,6 +104,6 @@ jobs:
         run: |
           ./x version snapshot
           pnpm run build:js:canary
-          ./x publish snapshot --tag canary
+          ./x publish snapshot --tag latest
         env:
           NPM_TOKEN: ${{ secrets.RSPACK_CANARY_RELEASE_TOKEN }}
