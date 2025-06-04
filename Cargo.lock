@@ -1893,7 +1893,7 @@ dependencies = [
  "new_debug_unreachable",
  "once_cell",
  "phf",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "triomphe",
 ]
 
@@ -2751,15 +2751,17 @@ dependencies = [
 
 [[package]]
 name = "napi"
-version = "3.0.0-beta.2"
+version = "3.0.0-beta.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3357a01f87a8c7a1b060067212436b0ab9d3b1f06084406edb926a64b7400985"
+checksum = "2e0d1af803835267849e6816cc15ae1d53370e6bf8e1c721363ad50ca2ae1637"
 dependencies = [
  "anyhow",
  "bitflags 2.9.1",
  "ctor",
- "napi-build",
+ "napi-build 3.0.0-beta.0",
  "napi-sys",
+ "nohash-hasher",
+ "rustc-hash 2.1.1",
  "serde",
  "serde_json",
  "tokio",
@@ -2772,10 +2774,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "03acbfa4f156a32188bfa09b86dc11a431b5725253fc1fc6f6df5bed273382c4"
 
 [[package]]
-name = "napi-derive"
-version = "3.0.0-beta.2"
+name = "napi-build"
+version = "3.0.0-beta.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb71c236fe23004d7abf4a00ad5e86332ea3468f6c48935d283a5d71aa7cca0c"
+checksum = "42908a235da4c4a18c481eb5a8bb38570daa18581a68c508ca8efab662e38bc6"
+
+[[package]]
+name = "napi-derive"
+version = "3.0.0-beta.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c48e8ab579e603cb66e0f9048303d25fca9f4275f421c0af150a40080bd299d"
 dependencies = [
  "convert_case 0.8.0",
  "ctor",
@@ -2787,9 +2795,9 @@ dependencies = [
 
 [[package]]
 name = "napi-derive-backend"
-version = "2.0.0-beta.2"
+version = "2.0.0-beta.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6aeebae33f1d5d0ad2b65d97e4fa1266d46454dd1a74dc4a9f1f406e7358f5eb"
+checksum = "0a767a2d3aa9fe20f7032b9e90912e8061224dc48fcfd5a3e8716dbef8ba39a5"
 dependencies = [
  "convert_case 0.8.0",
  "proc-macro2",
@@ -2800,9 +2808,9 @@ dependencies = [
 
 [[package]]
 name = "napi-sys"
-version = "3.0.0-alpha.1"
+version = "3.0.0-alpha.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cc061b99c514ad4b7abc99d4db1ca24b9542b7ff48b4760bd9f82b24611534d"
+checksum = "c4401c63f866b42d673a8b213d5662c84a0701b0f6c3acff7e2b9fc439f1675d"
 dependencies = [
  "libloading",
 ]
@@ -2838,6 +2846,12 @@ checksum = "77a5d83df9f36fe23f0c3648c6bbb8b0298bb5f1939c8f2704431371f4b84d43"
 dependencies = [
  "smallvec",
 ]
+
+[[package]]
+name = "nohash-hasher"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2bf50223579dc7cdcfb3bfcacf7069ff68243f8c363f62ffa99cf000a6b9c451"
 
 [[package]]
 name = "nom"
@@ -3115,7 +3129,7 @@ dependencies = [
  "phf",
  "phf_codegen",
  "precomputed-hash",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "smallvec",
  "static-self",
@@ -3414,7 +3428,7 @@ dependencies = [
  "dashmap 5.5.3",
  "from_variant",
  "once_cell",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "semver 1.0.24",
  "serde",
  "st-map",
@@ -3553,7 +3567,7 @@ dependencies = [
  "pin-project-lite",
  "quinn-proto",
  "quinn-udp",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "rustls",
  "socket2",
  "thiserror 2.0.9",
@@ -3572,7 +3586,7 @@ dependencies = [
  "getrandom 0.3.2",
  "rand 0.9.1",
  "ring",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "rustls",
  "rustls-pki-types",
  "slab",
@@ -4035,7 +4049,7 @@ dependencies = [
  "rspack_plugin_wasm",
  "rspack_plugin_worker",
  "rspack_regex",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde_json",
  "tokio",
 ]
@@ -4121,7 +4135,7 @@ dependencies = [
  "rspack_cacheable",
  "rspack_resolver",
  "rspack_sources",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde_json",
  "swc_core",
  "ustr-fxhash",
@@ -4189,7 +4203,7 @@ dependencies = [
  "rspack_sources",
  "rspack_storage",
  "rspack_util",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "scopeguard",
  "serde",
  "serde_json",
@@ -4270,7 +4284,7 @@ dependencies = [
  "async-trait",
  "rspack_error",
  "rspack_macros",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "tracing",
 ]
 
@@ -4286,7 +4300,7 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "rspack_util",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "tracing",
 ]
 
@@ -4303,7 +4317,7 @@ dependencies = [
  "rspack_error",
  "rspack_sources",
  "rspack_util",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "serde_json",
  "stacker",
@@ -4377,7 +4391,7 @@ dependencies = [
  "rspack_paths",
  "rspack_sources",
  "rspack_util",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde_json",
  "tokio",
  "tracing",
@@ -4397,7 +4411,7 @@ dependencies = [
  "rspack_javascript_compiler",
  "rspack_loader_runner",
  "rspack_swc_plugin_import",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "serde_json",
  "stacker",
@@ -4481,7 +4495,7 @@ dependencies = [
  "glob",
  "heck 0.5.0",
  "napi",
- "napi-build",
+ "napi-build 2.2.0",
  "napi-derive",
  "once_cell",
  "ropey",
@@ -4553,7 +4567,7 @@ dependencies = [
  "rspack_regex",
  "rspack_tracing",
  "rspack_util",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "serde_json",
  "swc_core",
@@ -4617,7 +4631,7 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "rspack_regex",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "tracing",
 ]
 
@@ -4630,7 +4644,7 @@ dependencies = [
  "rspack_hook",
  "rspack_paths",
  "rspack_regex",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "tracing",
 ]
 
@@ -4649,7 +4663,7 @@ dependencies = [
  "rspack_hash",
  "rspack_hook",
  "rspack_paths",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "sugar_path",
  "tokio",
  "tracing",
@@ -4676,7 +4690,7 @@ dependencies = [
  "rspack_hook",
  "rspack_plugin_runtime",
  "rspack_util",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde_json",
  "tokio",
  "tracing",
@@ -4718,7 +4732,7 @@ dependencies = [
  "rspack_hook",
  "rspack_plugin_javascript",
  "rspack_util",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "simd-json",
  "sugar_path",
  "tracing",
@@ -4738,7 +4752,7 @@ dependencies = [
  "rspack_paths",
  "rspack_plugin_externals",
  "rspack_util",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "serde_json",
  "tracing",
@@ -4765,7 +4779,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "tracing",
 ]
 
@@ -4810,7 +4824,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_plugin_runtime",
  "rspack_util",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "serde_json",
  "tokio",
@@ -4833,7 +4847,7 @@ dependencies = [
  "rspack_plugin_css",
  "rspack_plugin_javascript",
  "rspack_util",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde_json",
  "tokio",
  "tracing",
@@ -4913,7 +4927,7 @@ dependencies = [
  "rspack_paths",
  "rspack_regex",
  "rspack_util",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde_json",
  "sugar_path",
  "swc_core",
@@ -4950,7 +4964,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_regex",
  "rspack_util",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "tokio",
  "tracing",
 ]
@@ -4969,7 +4983,7 @@ dependencies = [
  "rspack_hash",
  "rspack_hook",
  "rspack_plugin_javascript",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde_json",
  "swc_core",
  "tracing",
@@ -5011,7 +5025,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "tracing",
 ]
 
@@ -5032,7 +5046,7 @@ dependencies = [
  "rspack_loader_runner",
  "rspack_plugin_runtime",
  "rspack_util",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "serde_json",
  "tokio",
@@ -5053,7 +5067,7 @@ dependencies = [
  "rspack_hook",
  "rspack_plugin_css",
  "rspack_plugin_javascript",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "tracing",
 ]
 
@@ -5097,7 +5111,7 @@ dependencies = [
  "rspack_hash",
  "rspack_hook",
  "rspack_util",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "tracing",
 ]
 
@@ -5108,7 +5122,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "tracing",
 ]
 
@@ -5138,7 +5152,7 @@ dependencies = [
  "rspack_hook",
  "rspack_paths",
  "rspack_util",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "tokio",
  "tracing",
 ]
@@ -5176,7 +5190,7 @@ dependencies = [
  "rspack_hook",
  "rspack_plugin_javascript",
  "rspack_util",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde_json",
  "tokio",
  "tracing",
@@ -5248,7 +5262,7 @@ dependencies = [
  "rspack_hook",
  "rspack_regex",
  "rspack_util",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "tracing",
 ]
 
@@ -5278,7 +5292,7 @@ dependencies = [
  "rspack_plugin_real_content_hash",
  "rspack_plugin_runtime",
  "rspack_util",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde_json",
  "sha2",
  "tokio",
@@ -5317,7 +5331,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "tracing",
 ]
 
@@ -5389,7 +5403,7 @@ dependencies = [
  "indexmap 2.7.1",
  "json-strip-comments",
  "pnp",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
@@ -5407,7 +5421,7 @@ dependencies = [
  "dyn-clone",
  "itertools 0.13.0",
  "memchr",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "serde_json",
  "simd-json",
@@ -5426,7 +5440,7 @@ dependencies = [
  "rspack_error",
  "rspack_fs",
  "rspack_paths",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "tokio",
  "tracing",
 ]
@@ -5438,7 +5452,7 @@ dependencies = [
  "cow-utils",
  "handlebars",
  "heck 0.5.0",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "swc_core",
 ]
@@ -5476,7 +5490,7 @@ dependencies = [
  "rspack_cacheable",
  "rspack_paths",
  "rspack_regex",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "serde_json",
  "sugar_path",
@@ -5499,9 +5513,9 @@ checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
 name = "rustc-hash"
-version = "2.1.0"
+version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7fb8039b3032c191086b10f11f319a6e99e1e82889c5cc6046f515c9db1d497"
+checksum = "357703d41365b4b27c590e3ed91eabb1b663f07c4c084095e60cbed4362dff0d"
 
 [[package]]
 name = "rustc_version"
@@ -6214,7 +6228,7 @@ dependencies = [
  "parking_lot",
  "pathdiff",
  "regex",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "serde_json",
  "sourcemap",
@@ -6260,7 +6274,7 @@ dependencies = [
  "bumpalo",
  "hashbrown 0.14.5",
  "ptr_meta 0.3.0",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "triomphe",
 ]
 
@@ -6275,7 +6289,7 @@ dependencies = [
  "once_cell",
  "rancor",
  "rkyv 0.8.8",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
 ]
 
@@ -6289,7 +6303,7 @@ dependencies = [
  "dashmap 5.5.3",
  "once_cell",
  "regex",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
 ]
 
@@ -6312,7 +6326,7 @@ dependencies = [
  "parking_lot",
  "rancor",
  "rkyv 0.8.8",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "siphasher",
  "sourcemap",
@@ -6335,7 +6349,7 @@ dependencies = [
  "base64",
  "once_cell",
  "pathdiff",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "serde_json",
  "sourcemap",
@@ -6421,7 +6435,7 @@ dependencies = [
  "phf",
  "rancor",
  "rkyv 0.8.8",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "scoped-tls",
  "serde",
  "string_enum",
@@ -6443,7 +6457,7 @@ dependencies = [
  "num-bigint",
  "once_cell",
  "regex",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "sourcemap",
  "swc_allocator",
@@ -6472,7 +6486,7 @@ version = "13.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cff1612d4d90df938533b5308634be1228c6bf14d7141c9f7787c99b5b26f4cc"
 dependencies = [
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "swc_atoms",
  "swc_common",
  "swc_ecma_ast",
@@ -6506,7 +6520,7 @@ dependencies = [
  "arrayvec",
  "indexmap 2.7.1",
  "is-macro",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "serde_derive",
  "smallvec",
@@ -6634,7 +6648,7 @@ version = "14.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c412ba2452b20fdcb791448c6606ba43fa84f80e23b0b2fef0cc9ee02794d12c"
 dependencies = [
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "swc_atoms",
  "swc_common",
  "swc_ecma_ast",
@@ -6690,7 +6704,7 @@ dependencies = [
  "num-bigint",
  "num-traits",
  "phf",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "smallvec",
  "smartstring",
@@ -6713,7 +6727,7 @@ dependencies = [
  "par-core",
  "parking_lot",
  "regex",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "swc_atoms",
  "swc_common",
@@ -6737,7 +6751,7 @@ dependencies = [
  "parking_lot",
  "path-clean 0.1.0",
  "pathdiff",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "serde_json",
  "swc_atoms",
@@ -6764,7 +6778,7 @@ dependencies = [
  "phf",
  "radix_fmt",
  "regex",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "ryu-js",
  "serde",
  "serde_json",
@@ -6797,7 +6811,7 @@ dependencies = [
  "num-bigint",
  "num-traits",
  "phf",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "smallvec",
  "smartstring",
@@ -6821,7 +6835,7 @@ dependencies = [
  "indexmap 2.7.1",
  "once_cell",
  "preset_env_base",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "semver 1.0.24",
  "serde",
  "serde_json",
@@ -6844,7 +6858,7 @@ dependencies = [
  "anyhow",
  "proc-macro2",
  "quote",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "swc_atoms",
  "swc_common",
  "swc_ecma_ast",
@@ -6887,7 +6901,7 @@ dependencies = [
  "par-core",
  "phf",
  "rayon",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "smallvec",
  "swc_atoms",
@@ -6976,7 +6990,7 @@ dependencies = [
  "path-clean 1.0.1",
  "pathdiff",
  "regex",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "swc_atoms",
  "swc_cached",
@@ -7002,7 +7016,7 @@ dependencies = [
  "par-core",
  "petgraph 0.7.1",
  "rayon",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde_json",
  "swc_atoms",
  "swc_common",
@@ -7022,7 +7036,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "193237e318421ef621c2b3958b4db174770c5280ef999f1878f2df93a2837ca6"
 dependencies = [
  "either",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "smallvec",
  "swc_atoms",
@@ -7045,7 +7059,7 @@ dependencies = [
  "dashmap 5.5.3",
  "indexmap 2.7.1",
  "once_cell",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "sha1",
  "string_enum",
@@ -7068,7 +7082,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a647a99548ead69e5e87cf2b7caa7921e8a81e252e13e3180c3101a1d911fa6b"
 dependencies = [
  "once_cell",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "ryu-js",
  "serde",
  "swc_atoms",
@@ -7088,7 +7102,7 @@ checksum = "4d7858f1eccac3c8a85b97ba3820020583efa28bc766d253f0a93d7bbc54c985"
 dependencies = [
  "bitflags 2.9.1",
  "indexmap 2.7.1",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "swc_atoms",
  "swc_common",
  "swc_ecma_ast",
@@ -7110,7 +7124,7 @@ dependencies = [
  "par-core",
  "par-iter",
  "rayon",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "ryu-js",
  "swc_atoms",
  "swc_common",
@@ -7194,7 +7208,7 @@ checksum = "0e9d3601b31a2a9b6ffc5bb97561a172b28adb62b0ae11e8c2165edd16bc1ad5"
 dependencies = [
  "auto_impl",
  "bitflags 2.9.1",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "swc_atoms",
  "swc_common",
  "swc_html_ast",
@@ -7221,7 +7235,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "185b629f67bfe9d3952a248152462ae3b98d7e6295b687e3724712eb4db1cc4f"
 dependencies = [
  "once_cell",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "serde_json",
  "swc_atoms",
@@ -7246,7 +7260,7 @@ version = "9.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "343b47e824ac6eea458c14b191f97ce353cf3f66c2a1cb77e630e81404460e9f"
 dependencies = [
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "swc_atoms",
  "swc_common",
  "swc_html_ast",
@@ -7260,7 +7274,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2fb0be1e55563de2d6de3a01f08826490076334adbc2c837aec1fb5fc93085c6"
 dependencies = [
  "once_cell",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "serde_json",
  "swc_atoms",
@@ -7298,7 +7312,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7b9ded5a3355c56eb1148491c70bd4f85f7fcb706d40c0a86a67260cbcb560c3"
 dependencies = [
  "dashmap 5.5.3",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "swc_atoms",
  "swc_common",
 ]
@@ -7313,7 +7327,7 @@ dependencies = [
  "bytecheck 0.8.0",
  "rancor",
  "rkyv 0.8.8",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "swc_common",
  "swc_ecma_ast",
  "swc_trace_macro",
@@ -7331,7 +7345,7 @@ dependencies = [
  "futures",
  "once_cell",
  "parking_lot",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "serde_json",
  "swc_atoms",
@@ -7377,7 +7391,7 @@ checksum = "6d73c21cecc518e0107f890012a747fa679cb0faf04f32fc8f5bd618040eb8fe"
 dependencies = [
  "better_scoped_tls",
  "once_cell",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
  "serde_json",
  "swc_common",
@@ -7391,7 +7405,7 @@ checksum = "2c01b8c9b645f4b3b39664477166876bdc239c9b5f785389e117dee822dbcec5"
 dependencies = [
  "bitflags 2.9.1",
  "petgraph 0.7.1",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "swc_atoms",
  "swc_common",
  "swc_ecma_ast",
@@ -8045,7 +8059,7 @@ dependencies = [
  "byteorder",
  "lazy_static",
  "parking_lot",
- "rustc-hash 2.1.0",
+ "rustc-hash 2.1.1",
  "serde",
 ]
 
