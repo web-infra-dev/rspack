@@ -45,6 +45,33 @@ pub struct BuildContext {
   pub fs: Arc<dyn ReadableFileSystem>,
 }
 
+pub struct ExternalFields {
+  serialized_fields: HashMap<String, JsonValue>,
+  fetch_serialized_fields:
+    Option<Box<dyn Fn() -> Option<HashMap<String, JsonValue>> + Send + Sync>>,
+}
+
+impl ExternalFields {
+  pub fn new() -> Self {
+    Self {
+      serialized_fields: HashMap::default(),
+      fetch_serialized_fields: None,
+    }
+  }
+
+  pub fn get(&self, key: &str) -> Option<&JsonValue> {
+    self.serialized_fields.get(key)
+  }
+
+  pub fn serialize(&mut self) {
+    if let Some(fetch_serialized_fields) = &self.fetch_serialized_fields {
+      if let Some(serialized_fields) = fetch_serialized_fields() {
+        self.serialized_fields = serialized_fields;
+      }
+    }
+  }
+}
+
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct BuildInfo {
@@ -69,6 +96,9 @@ pub struct BuildInfo {
   pub module_concatenation_bailout: Option<String>,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
+  /// Stores external fields from the JS side (Record<string, any>),
+  /// while other properties are stored in KnownBuildInfo.
+  pub external_fields: HashMap<String, JsonValue>,
 }
 
 impl Default for BuildInfo {
@@ -91,6 +121,7 @@ impl Default for BuildInfo {
       module_concatenation_bailout: None,
       assets: Default::default(),
       module: false,
+      external_fields: Default::default(),
     }
   }
 }

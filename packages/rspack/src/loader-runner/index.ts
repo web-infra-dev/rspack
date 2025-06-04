@@ -1101,6 +1101,7 @@ export async function runLoaders(
 			id2: resource
 		}
 	});
+	context._module.buildInfo.serializeCustomFields();
 	return context;
 }
 
