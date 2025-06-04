@@ -25,8 +25,8 @@ impl ModuleTracker {
     self.finish_dep(dep_id)
   }
 
-  /// Handle add task with resolved module.
-  pub fn on_add_resolved_module(&mut self, dep_id: &DependencyId) -> Vec<BoxTask> {
+  /// Handle add task with built module.
+  pub fn on_add_built_module(&mut self, dep_id: &DependencyId) -> Vec<BoxTask> {
     self.finish_dep(dep_id)
   }
 

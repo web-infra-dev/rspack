@@ -49,10 +49,15 @@ impl Task<LoadTaskContext> for OverwriteTask {
     // add task
     if let Some(add_task) = origin_task.as_any().downcast_ref::<AddTask>() {
       let dep_id = *add_task.dependencies[0].id();
+      let mid = add_task.module.identifier();
 
       let mut res = overwrite_tasks(origin_task.main_run(origin_context).await?);
       if res.is_empty() {
-        res.extend(tracker.on_add_resolved_module(&dep_id));
+        let mg = origin_context.artifact.get_module_graph();
+        // module exist means it has already been built.
+        if mg.module_by_identifier(&mid).is_some() {
+          res.extend(tracker.on_add_built_module(&dep_id));
+        }
       }
       return Ok(res);
     }
