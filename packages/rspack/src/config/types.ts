@@ -2631,7 +2631,7 @@ export type HttpUriOptions = HttpUriPluginOptions;
 /**
  * Options for experiments.useInputFileSystem
  */
-export type UseInputFileSystem = boolean | RegExp[];
+export type UseInputFileSystem = false | RegExp[];
 
 /**
  * Experimental features configuration.

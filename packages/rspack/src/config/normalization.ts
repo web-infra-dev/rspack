@@ -354,7 +354,8 @@ export const getNormalizedRspackOptions = (
 			),
 			parallelCodeSplitting: experiments.parallelCodeSplitting,
 			buildHttp: experiments.buildHttp,
-			parallelLoader: experiments.parallelLoader
+			parallelLoader: experiments.parallelLoader,
+			experiments: experiments.useInputFileSystem
 		})),
 		watch: config.watch,
 		watchOptions: cloneObject(config.watchOptions),
@@ -628,7 +629,7 @@ export interface ExperimentsNormalized {
 	rspackFuture?: RspackFutureOptions;
 	buildHttp?: HttpUriPluginOptions;
 	parallelLoader?: boolean;
-	useInputFileSystem?: boolean | RegExp[];
+	useInputFileSystem?: false | RegExp[];
 }
 
 export type IgnoreWarningsNormalized = ((

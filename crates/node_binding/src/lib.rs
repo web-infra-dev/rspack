@@ -180,12 +180,8 @@ impl JsCompiler {
         let node_fs = NodeFileSystem::new(fs).expect("Failed to create readable filesystem");
 
         match use_input_file_system {
-          WithBool::True => {
-            let binding: Arc<dyn ReadableFileSystem> = Arc::new(node_fs);
-            Some(binding)
-          }
-          WithBool::False => None,
-          WithBool::Value(allowlist) => {
+          WithFalse::False => None,
+          WithFalse::True(allowlist) => {
             if allowlist.is_empty() {
               return None;
             }

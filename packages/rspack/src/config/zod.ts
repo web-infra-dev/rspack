@@ -1494,7 +1494,7 @@ const buildHttpOptions = z.object({
 }) satisfies z.ZodType<t.HttpUriOptions>;
 
 const useInputFileSystem = z.union([
-	z.boolean(),
+	z.literal(false),
 	z.array(z.instanceof(RegExp))
 ]) satisfies z.ZodType<t.UseInputFileSystem>;
 
