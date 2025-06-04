@@ -197,6 +197,11 @@ export class LoaderObject {
 		this.loaderItem.normalExecuted = true;
 	}
 
+	set noPitch(value: boolean) {
+		assert(value);
+		this.loaderItem.noPitch = true;
+	}
+
 	shouldYield() {
 		return this.request.startsWith(BUILTIN_LOADER_PREFIX);
 	}

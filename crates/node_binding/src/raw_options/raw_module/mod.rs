@@ -52,10 +52,10 @@ pub enum RawRuleSetCondition {
 impl Debug for RawRuleSetCondition {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
-      RawRuleSetCondition::string(s) => write!(f, "RawRuleSetCondition::string({:?})", s),
-      RawRuleSetCondition::regexp(r) => write!(f, "RawRuleSetCondition::regexp({:?})", r),
-      RawRuleSetCondition::logical(l) => write!(f, "RawRuleSetCondition::logical({:?})", l),
-      RawRuleSetCondition::array(a) => write!(f, "RawRuleSetCondition::array({:?})", a),
+      RawRuleSetCondition::string(s) => write!(f, "RawRuleSetCondition::string({s:?})"),
+      RawRuleSetCondition::regexp(r) => write!(f, "RawRuleSetCondition::regexp({r:?})"),
+      RawRuleSetCondition::logical(l) => write!(f, "RawRuleSetCondition::logical({l:?})"),
+      RawRuleSetCondition::array(a) => write!(f, "RawRuleSetCondition::array({a:?})"),
       RawRuleSetCondition::func(_) => write!(f, "RawRuleSetCondition::func(...)"),
     }
   }

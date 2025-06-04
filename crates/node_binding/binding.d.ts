@@ -24,8 +24,8 @@ export interface Module {
 	get useSourceMap(): boolean;
 	get useSimpleSourceMap(): boolean;
 	get _readableIdentifier(): string;
-	buildInfo: Record<string, any>;
-	buildMeta: Record<string, any>;
+	buildInfo: KnownBuildInfo & Record<string, any>;
+	buildMeta: KnownBuildInfo & Record<string, any>;
 }
 
 interface NormalModuleConstructor {
@@ -72,10 +72,6 @@ export declare class Assets {
 export declare class AsyncDependenciesBlock {
   get dependencies(): Dependency[]
   get blocks(): AsyncDependenciesBlock[]
-}
-
-export declare class BuildInfo {
-  get _assets(): Assets
 }
 
 export declare class Chunks {
@@ -381,6 +377,14 @@ export declare class JsResolverFactory {
 export declare class JsStats {
   toJson(jsOptions: JsStatsOptions): JsStatsCompilation
   getLogging(acceptedTypes: number): Array<JsStatsLogging>
+}
+
+export declare class KnownBuildInfo {
+  get _assets(): Assets
+  get _fileDependencies(): Array<string>
+  get _contextDependencies(): Array<string>
+  get _missingDependencies(): Array<string>
+  get _buildDependencies(): Array<string>
 }
 
 export declare class Module {
@@ -892,6 +896,7 @@ export interface JsLoaderItem {
   data: any
   normalExecuted: boolean
   pitchExecuted: boolean
+  noPitch: boolean
 }
 
 export declare enum JsLoaderState {
@@ -1462,6 +1467,8 @@ export interface KnownAssetInfo {
   /** whether this asset is over the size limit */
   isOverSizeLimit?: boolean
 }
+
+export declare function loadBrowserslist(input: string | undefined | null, context: string): Array<string> | null
 
 export declare function minify(source: string, options: string): Promise<TransformOutput>
 

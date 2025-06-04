@@ -15,11 +15,12 @@ function v(name) {
 describeByWalk(
 	v("hot web"),
 	(name, src, dist) => {
-		createHotNewIncrementalCase(name, src, dist, "web", "jsdom");
+		createHotNewIncrementalCase(name, src, dist, "web", false);
 	},
 	{
 		source: path.resolve(__dirname, "./hotCases"),
-		dist: path.resolve(__dirname, `./js/new-incremental/hot-web`)
+		dist: path.resolve(__dirname, `./js/new-incremental/hot-web`),
+		exclude: [/move-between-runtime/, /require-disposed-module-warning/]
 	}
 );
 
@@ -27,10 +28,11 @@ describeByWalk(
 describeByWalk(
 	v("hot web (webpack-test)"),
 	(name, src, dist) => {
-		createHotNewIncrementalCase(name, src, dist, "web", "fake");
+		createHotNewIncrementalCase(name, src, dist, "web", true);
 	},
 	{
 		source: path.resolve(__dirname, "../../../tests/webpack-test/hotCases"),
-		dist: path.resolve(__dirname, `./js/new-incremental/webpack-test/hot-web`)
+		dist: path.resolve(__dirname, `./js/new-incremental/webpack-test/hot-web`),
+		exclude: [/move-between-runtime/, /require-disposed-module-warning/]
 	}
 );

@@ -376,8 +376,7 @@ mod tests {
     assert!(!(fs.exists(root.join("scope2/scope_meta").as_path()).await?));
 
     // wait for saving to files
-    rx.await
-      .unwrap_or_else(|e| panic!("save failed: {:?}", e))?;
+    rx.await.unwrap_or_else(|e| panic!("save failed: {e:?}"))?;
 
     assert_eq!(manager.load("scope1").await?.len(), 100);
     assert_eq!(manager.load("scope2").await?.len(), 100);
@@ -437,8 +436,7 @@ mod tests {
       .mtime_ms;
 
     // wait for updating files
-    rx.await
-      .unwrap_or_else(|e| panic!("save failed: {:?}", e))?;
+    rx.await.unwrap_or_else(|e| panic!("save failed: {e:?}"))?;
     assert_eq!(manager.load("scope1").await?.len(), 100);
     assert_eq!(manager.load("scope2").await?.len(), 50);
     assert_ne!(
@@ -498,8 +496,7 @@ mod tests {
     );
     let rx = manager.save(scope_updates)?;
     // assert_eq!(manager.load("scope1").await?.len(), 100);
-    rx.await
-      .unwrap_or_else(|e| panic!("save failed: {:?}", e))?;
+    rx.await.unwrap_or_else(|e| panic!("save failed: {e:?}"))?;
     // assert_eq!(manager.load("scope1").await?.len(), 100);
 
     // // will override cache files to new one

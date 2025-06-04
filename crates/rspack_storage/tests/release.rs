@@ -80,8 +80,8 @@ mod test_storage_release {
     for i in 0..1000 {
       storage.set(
         scope_name,
-        format!("key_{:0>3}", i).as_bytes().to_vec(),
-        format!("val_{:0>3}", i).as_bytes().to_vec(),
+        format!("key_{i:0>3}").as_bytes().to_vec(),
+        format!("val_{i:0>3}").as_bytes().to_vec(),
       );
     }
     storage.trigger_save()?.await.expect("should save")?;
@@ -95,8 +95,8 @@ mod test_storage_release {
     for i in 0..100 {
       storage.set(
         scope_name,
-        format!("key_{:0>3}", i).as_bytes().to_vec(),
-        format!("new_{:0>3}", i).as_bytes().to_vec(),
+        format!("key_{i:0>3}").as_bytes().to_vec(),
+        format!("new_{i:0>3}").as_bytes().to_vec(),
       );
     }
     storage.trigger_save()?.await.expect("should save")?;
@@ -110,8 +110,8 @@ mod test_storage_release {
     for i in 100..200 {
       storage.set(
         scope_name,
-        format!("key_{:0>3}", i).as_bytes().to_vec(),
-        format!("new_{:0>3}", i).as_bytes().to_vec(),
+        format!("key_{i:0>3}").as_bytes().to_vec(),
+        format!("new_{i:0>3}").as_bytes().to_vec(),
       );
     }
     storage.trigger_save()?.await.expect("should save")?;
@@ -125,8 +125,8 @@ mod test_storage_release {
     for i in 200..300 {
       storage.set(
         scope_name,
-        format!("key_{:0>3}", i).as_bytes().to_vec(),
-        format!("new_{:0>3}", i).as_bytes().to_vec(),
+        format!("key_{i:0>3}").as_bytes().to_vec(),
+        format!("new_{i:0>3}").as_bytes().to_vec(),
       );
     }
     storage.trigger_save()?.await.expect("should save")?;
@@ -140,8 +140,8 @@ mod test_storage_release {
     for i in 300..400 {
       storage.set(
         scope_name,
-        format!("key_{:0>3}", i).as_bytes().to_vec(),
-        format!("new_{:0>3}", i).as_bytes().to_vec(),
+        format!("key_{i:0>3}").as_bytes().to_vec(),
+        format!("new_{i:0>3}").as_bytes().to_vec(),
       );
     }
     storage.trigger_save()?.await.expect("should save")?;
@@ -155,8 +155,8 @@ mod test_storage_release {
     for i in 400..500 {
       storage.set(
         scope_name,
-        format!("key_{:0>3}", i).as_bytes().to_vec(),
-        format!("new_{:0>3}", i).as_bytes().to_vec(),
+        format!("key_{i:0>3}").as_bytes().to_vec(),
+        format!("new_{i:0>3}").as_bytes().to_vec(),
       );
     }
     storage.trigger_save()?.await.expect("should save")?;
@@ -170,8 +170,8 @@ mod test_storage_release {
     for i in 500..600 {
       storage.set(
         scope_name,
-        format!("key_{:0>3}", i).as_bytes().to_vec(),
-        format!("new_{:0>3}", i).as_bytes().to_vec(),
+        format!("key_{i:0>3}").as_bytes().to_vec(),
+        format!("new_{i:0>3}").as_bytes().to_vec(),
       );
     }
     storage.trigger_save()?.await.expect("should save")?;

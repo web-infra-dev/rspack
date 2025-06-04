@@ -1160,6 +1160,7 @@ impl CodeSplitter {
 
           let entry_chunk = compilation.chunk_by_ukey.expect_get_mut(&entry_chunk_ukey);
           entrypoint.set_entrypoint_chunk(entry_chunk_ukey);
+          entrypoint.connect_chunk(entry_chunk);
 
           if initial {
             entrypoints.insert(entry.clone().expect("entry has name"), entrypoint.ukey);
@@ -1172,9 +1173,18 @@ impl CodeSplitter {
 
           if let Some(filename) = &options.filename {
             entry_chunk.set_filename_template(Some(filename.clone()));
-          }
 
-          entrypoint.connect_chunk(entry_chunk);
+            if filename.has_hash_placeholder() && let Some(diagnostic) = compilation.incremental.disable_passes(
+              IncrementalPasses::CHUNKS_RENDER,
+              "Chunk filename that dependent on full hash",
+              "chunk filename that dependent on full hash is not supported in incremental compilation",
+            ) {
+              if let Some(diagnostic) = diagnostic {
+                compilation.push_diagnostic(diagnostic);
+              }
+              compilation.chunk_render_artifact.clear();
+            }
+          }
 
           if let Some(name) = entrypoint.kind.name() {
             compilation

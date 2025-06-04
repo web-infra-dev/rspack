@@ -45,12 +45,12 @@ impl JsonpChunkLoadingRuntimeModule {
 
     match id {
       TemplateId::Raw => base_id.to_string(),
-      TemplateId::WithPrefetch => format!("{}_with_prefetch", base_id),
-      TemplateId::WithPreload => format!("{}_with_preload", base_id),
-      TemplateId::WithHmr => format!("{}_with_hmr", base_id),
-      TemplateId::WithHmrManifest => format!("{}_with_hmr_manifest", base_id),
-      TemplateId::WithOnChunkLoad => format!("{}_with_on_chunk_load", base_id),
-      TemplateId::WithCallback => format!("{}_with_callback", base_id),
+      TemplateId::WithPrefetch => format!("{base_id}_with_prefetch"),
+      TemplateId::WithPreload => format!("{base_id}_with_preload"),
+      TemplateId::WithHmr => format!("{base_id}_with_hmr"),
+      TemplateId::WithHmrManifest => format!("{base_id}_with_hmr_manifest"),
+      TemplateId::WithOnChunkLoad => format!("{base_id}_with_on_chunk_load"),
+      TemplateId::WithCallback => format!("{base_id}_with_callback"),
     }
   }
 }
@@ -165,7 +165,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       match with_hmr {
         true => {
           let state_expression = format!("{}_jsonp", RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
-          format!("{} = {} || ", state_expression, state_expression)
+          format!("{state_expression} = {state_expression} || ")
         }
         false => "".to_string(),
       },
@@ -213,7 +213,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       let cross_origin = match cross_origin_loading {
         CrossOriginLoading::Disable => "".to_string(),
         CrossOriginLoading::Enable(v) => {
-          format!("link.crossOrigin = '{}';", v)
+          format!("link.crossOrigin = '{v}';")
         }
       };
       let link_prefetch_code = r#"
@@ -272,10 +272,9 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
             format!(
               r#"
               if (link.href.indexOf(window.location.origin + '/') !== 0) {{
-                link.crossOrigin = '{}';
+                link.crossOrigin = '{v}';
               }}
-              "#,
-              v
+              "#
             )
           }
         }

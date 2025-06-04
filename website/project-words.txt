@@ -21,6 +21,7 @@ builtinspresetenv
 builtinswc
 bundleless
 Bundleless
+browserslistrc
 bvanjoi
 chakra
 chapple

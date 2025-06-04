@@ -41,7 +41,7 @@ impl ProvideSharedDependency {
       &request,
       &name,
       &version,
-      eager.then_some("eager").unwrap_or_default(),
+      if eager { "eager" } else { Default::default() },
     );
     Self {
       id: DependencyId::new(),

@@ -112,7 +112,7 @@ impl SizeLimitsPlugin {
           format_size(*size),
           files
             .iter()
-            .map(|file| format!("      {}", file))
+            .map(|file| format!("      {file}"))
             .collect::<Vec<_>>()
             .join("\n")
         )

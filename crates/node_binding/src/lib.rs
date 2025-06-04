@@ -23,6 +23,7 @@ mod allocator;
 mod asset;
 mod asset_condition;
 mod async_dependency_block;
+mod browserslist;
 mod build_info;
 mod chunk;
 mod chunk_graph;
@@ -65,6 +66,7 @@ mod utils;
 pub use asset::*;
 pub use asset_condition::*;
 pub use async_dependency_block::*;
+pub use browserslist::*;
 pub use build_info::*;
 pub use chunk::*;
 pub use chunk_graph::*;
@@ -413,7 +415,7 @@ fn init() {
     .thread_name_fn(|| {
       static ATOMIC_ID: AtomicUsize = AtomicUsize::new(0);
       let id = ATOMIC_ID.fetch_add(1, Ordering::SeqCst);
-      format!("tokio-{}", id)
+      format!("tokio-{id}")
     })
     .enable_all()
     .build()

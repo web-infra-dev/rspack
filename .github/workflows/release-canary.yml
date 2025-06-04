@@ -20,6 +20,7 @@ on:
           - release
           - profiling
           - ci
+          - debug
         description: "profiling means release with debug info for profiling, ci means release with debug info and faster build time"
 
 permissions:
@@ -103,6 +104,6 @@ jobs:
         run: |
           ./x version snapshot
           pnpm run build:js:canary
-          ./x publish snapshot --tag canary
+          ./x publish snapshot --tag latest
         env:
           NPM_TOKEN: ${{ secrets.RSPACK_CANARY_RELEASE_TOKEN }}

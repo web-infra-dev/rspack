@@ -508,7 +508,7 @@ mod tests_extract_regex {
     let captures = WEBPACK_MAGIC_COMMENT_REGEXP.captures(raw)?;
     let item_name = captures.name("_0").map(|x| x.as_str().to_string())?;
     let item_value = captures
-      .name(&format!("_{}", index))
+      .name(&format!("_{index}"))
       .map(|x| x.as_str().to_string())?;
     Some((item_name, item_value))
   }

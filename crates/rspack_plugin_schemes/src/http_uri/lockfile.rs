@@ -40,7 +40,7 @@ impl Lockfile {
     let version = data.get("version").and_then(|v| v.as_u64()).unwrap_or(1);
 
     if version != 1 {
-      return Err(format!("Unsupported lockfile version {}", version));
+      return Err(format!("Unsupported lockfile version {version}"));
     }
 
     let mut lockfile = Lockfile::new();
@@ -133,7 +133,7 @@ impl LockfileAsync for Lockfile {
     let content = filesystem
       .read_file(utf8_path)
       .await
-      .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("{:?}", e)))?;
+      .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("{e:?}")))?;
     let content_str =
       String::from_utf8(content).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
     Lockfile::parse(&content_str).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))

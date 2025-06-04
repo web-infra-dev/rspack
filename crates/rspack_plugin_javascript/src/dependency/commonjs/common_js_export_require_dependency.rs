@@ -6,10 +6,10 @@ use rspack_cacheable::{
 use rspack_core::{
   module_raw, process_export_info, property_access, AsContextDependency, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportProvided, ExportSpec,
-  ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, Nullable, ReferencedExport, RuntimeGlobals,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  DependencyTemplateType, DependencyType, ExportInfoGetter, ExportNameOrSpec, ExportProvided,
+  ExportSpec, ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
+  FactorizeInfo, ModuleDependency, ModuleGraph, ModuleIdentifier, Nullable, ReferencedExport,
+  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
@@ -88,14 +88,16 @@ impl CommonJsExportRequireDependency {
     }
 
     let no_extra_exports = imported_exports_info.is_some_and(|imported_exports_info| {
-      imported_exports_info
-        .other_exports_info(mg)
-        .provided(mg)
-        .is_some_and(|provided| matches!(provided, ExportProvided::NotProvided))
+      let provided =
+        ExportInfoGetter::provided(imported_exports_info.other_exports_info(mg).as_data(mg));
+      matches!(provided, Some(ExportProvided::NotProvided))
     });
 
     let no_extra_imports = exports_info.is_some_and(|exports_info| {
-      exports_info.other_exports_info(mg).get_used(mg, runtime) == UsageState::Unused
+      matches!(
+        ExportInfoGetter::get_used(exports_info.other_exports_info(mg).as_data(mg), runtime),
+        UsageState::Unused
+      )
     });
 
     if !no_extra_exports && !no_extra_imports {
@@ -116,8 +118,11 @@ impl CommonJsExportRequireDependency {
         unreachable!();
       };
       for export_info in exports_info.ordered_exports(mg) {
-        let name = export_info.name(mg);
-        if matches!(export_info.get_used(mg, runtime), UsageState::Unused) {
+        let name = ExportInfoGetter::name(export_info.as_data(mg));
+        if matches!(
+          ExportInfoGetter::get_used(export_info.as_data(mg), runtime),
+          UsageState::Unused
+        ) {
           continue;
         }
         if let Some(name) = name {
@@ -126,7 +131,7 @@ impl CommonJsExportRequireDependency {
           } else if let Some(imported_exports_info) = imported_exports_info {
             let imported_export_info = imported_exports_info.get_read_only_export_info(mg, name);
             if matches!(
-              imported_export_info.provided(mg),
+              ExportInfoGetter::provided(imported_export_info.as_data(mg)),
               Some(ExportProvided::NotProvided)
             ) {
               continue;
@@ -142,17 +147,20 @@ impl CommonJsExportRequireDependency {
         unreachable!();
       };
       for imported_export_info in imported_exports_info.ordered_exports(mg) {
-        let name = imported_export_info.name(mg);
+        let imported_export_info_data = imported_export_info.as_data(mg);
+        let name = ExportInfoGetter::name(imported_export_info_data);
         if let Some(name) = name {
           if matches!(
-            imported_export_info.provided(mg),
+            ExportInfoGetter::provided(imported_export_info_data),
             Some(ExportProvided::NotProvided)
           ) {
             continue;
           }
           if let Some(exports_info) = exports_info {
             let export_info = exports_info.get_read_only_export_info(mg, name);
-            if matches!(export_info.get_used(mg, runtime), UsageState::Unused) {
+            let export_info_data = export_info.as_data(mg);
+            let used = ExportInfoGetter::get_used(export_info_data, runtime);
+            if matches!(used, UsageState::Unused) {
               continue;
             }
             exports.insert(name.to_owned());
@@ -289,7 +297,8 @@ impl Dependency for CommonJsExportRequireDependency {
 
     for name in &self.names {
       let export_info = exports_info.get_read_only_export_info(mg, name);
-      let used = export_info.get_used(mg, runtime);
+      let export_info_data = export_info.as_data(mg);
+      let used = ExportInfoGetter::get_used(export_info_data, runtime);
       if matches!(used, UsageState::Unused) {
         return vec![ExtendedReferencedExport::Array(vec![])];
       }
@@ -297,14 +306,14 @@ impl Dependency for CommonJsExportRequireDependency {
         return get_full_result();
       }
 
-      match export_info.exports_info(mg) {
+      match ExportInfoGetter::exports_info(export_info_data) {
         Some(v) => exports_info = v,
         None => return get_full_result(),
       };
     }
 
     if !matches!(
-      exports_info.other_exports_info(mg).get_used(mg, runtime),
+      ExportInfoGetter::get_used(exports_info.other_exports_info(mg).as_data(mg), runtime),
       UsageState::Unused
     ) {
       return get_full_result();
@@ -312,13 +321,16 @@ impl Dependency for CommonJsExportRequireDependency {
 
     let mut referenced_exports = vec![];
     for export_info in exports_info.ordered_exports(mg) {
+      let export_info_data = export_info.as_data(mg);
       let prefix = ids
         .iter()
-        .chain(if let Some(name) = export_info.name(mg) {
-          vec![name]
-        } else {
-          vec![]
-        })
+        .chain(
+          if let Some(name) = ExportInfoGetter::name(export_info_data) {
+            vec![name]
+          } else {
+            vec![]
+          },
+        )
         .map(|i| i.to_owned())
         .collect_vec();
       process_export_info(
@@ -431,7 +443,7 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
       exports_argument.to_string()
     } else if dep.base.is_module_exports() {
       runtime_requirements.insert(RuntimeGlobals::MODULE);
-      format!("{}.exports", module_argument)
+      format!("{module_argument}.exports")
     } else if dep.base.is_this() {
       runtime_requirements.insert(RuntimeGlobals::THIS_AS_EXPORTS);
       "this".to_string()
@@ -477,7 +489,7 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
             0
           )
         ),
-        None => format!("/* unused reexport */ {}", require_expr),
+        None => format!("/* unused reexport */ {require_expr}"),
       };
       source.replace(dep.range.start, dep.range.end, expr.as_str(), None)
     } else if dep.base.is_define_property() {
