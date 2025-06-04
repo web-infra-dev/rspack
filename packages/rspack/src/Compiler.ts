@@ -837,6 +837,12 @@ class Compiler {
 
 		this.#registers = this.#createHooksRegisters();
 
+		const inputFileSystem =
+			this.inputFileSystem &&
+			ThreadsafeInputNodeFS.needsBinding(options.experiments.useInputFileSystem)
+				? ThreadsafeInputNodeFS.__to_binding(this.inputFileSystem)
+				: undefined;
+
 		this.#instance = new instanceBinding.JsCompiler(
 			this.compilerPath,
 			rawOptions,
@@ -846,9 +852,7 @@ class Compiler {
 			this.intermediateFileSystem
 				? ThreadsafeIntermediateNodeFS.__to_binding(this.intermediateFileSystem)
 				: undefined,
-			this.inputFileSystem && options.experiments.useInputFileSystem
-				? ThreadsafeInputNodeFS.__to_binding(this.inputFileSystem)
-				: undefined,
+			inputFileSystem,
 			ResolverFactory.__to_binding(this.resolverFactory)
 		);
 
@@ -1047,6 +1051,10 @@ class Compiler {
 	 */
 	__internal__get_module_execution_results_map() {
 		return this.#moduleExecutionResultsMap;
+	}
+
+	#needsBinding(ifs?: false | RegExp[]) {
+		return Array.isArray(ifs) && ifs.length > 0;
 	}
 }
 

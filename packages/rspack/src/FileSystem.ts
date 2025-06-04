@@ -148,6 +148,10 @@ class ThreadsafeInputNodeFS implements ThreadsafeNodeFS {
 	static __to_binding(fs?: InputFileSystem) {
 		return new this(fs);
 	}
+
+	static needsBinding(ifs?: false | RegExp[]) {
+		return Array.isArray(ifs) && ifs.length > 0;
+	}
 }
 
 class ThreadsafeOutputNodeFS implements ThreadsafeNodeFS {
