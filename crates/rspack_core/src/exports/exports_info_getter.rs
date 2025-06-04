@@ -6,13 +6,28 @@ use rustc_hash::FxHashMap as HashMap;
 use super::{ExportInfoData, ExportInfoGetter, ExportProvided, ExportsInfo, UsageState};
 use crate::{ModuleGraph, RuntimeSpec};
 
+/**
+ * Used to store data pre-fetched from Module Graph
+ * so that subsequent exports data reads don't need to access Module Graph
+ */
 #[derive(Debug, Clone)]
 pub struct NestedExportsInfoWrapper<'a> {
+  /**
+   * The exports info data that will be accessed from the entry
+   * stored in a map to prevent circular references
+   * When redirect, this data can be cloned to generate a new NestedExportsInfoWrapper with a new entry
+   */
   pub exports: Arc<HashMap<ExportsInfo, NestedExportsInfoData<'a>>>,
+  /**
+   * The entry of the current exports info
+   */
   pub entry: ExportsInfo,
 }
 
 impl<'a> NestedExportsInfoWrapper<'a> {
+  /**
+   * Get the data of the current exports info
+   */
   pub fn data(&self) -> &NestedExportsInfoData<'a> {
     self
       .exports
@@ -20,6 +35,9 @@ impl<'a> NestedExportsInfoWrapper<'a> {
       .expect("should have nested exports info")
   }
 
+  /**
+   * Generate a new NestedExportsInfoWrapper with a new entry
+   */
   pub fn redirect(&self, entry: ExportsInfo) -> NestedExportsInfoWrapper<'_> {
     NestedExportsInfoWrapper {
       exports: self.exports.clone(),
@@ -128,6 +146,11 @@ pub struct NestedExportInfoData<'a> {
 pub struct ExportsInfoGetter;
 
 impl ExportsInfoGetter {
+  /**
+   * Generate a NestedExportsInfoWrapper from the entry
+   * if names is provided, it will pre-fetch the exports info data of the export info items of specific names
+   * if names is not provided, it will not pre-fetch any export info item
+   */
   pub fn as_nested_data<'a>(
     id: &ExportsInfo,
     mg: &'a ModuleGraph,
