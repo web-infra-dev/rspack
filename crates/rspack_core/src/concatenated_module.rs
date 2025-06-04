@@ -1,6 +1,6 @@
 use std::{
   borrow::Cow,
-  collections::hash_map::Entry,
+  collections::{hash_map::Entry, BTreeMap},
   fmt::Debug,
   hash::{BuildHasherDefault, Hasher},
   sync::{Arc, LazyLock},
@@ -45,22 +45,24 @@ use crate::{
   subtract_runtime_condition, to_identifier, AsyncDependenciesBlockIdentifier, BoxDependency,
   BoxDependencyTemplate, BoxModuleDependency, BuildContext, BuildInfo, BuildMeta,
   BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments,
-  CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
+  ChunkRenderContext, CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
   CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
-  ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId, DependencyType,
-  ErrorSpan, ExportInfoGetter, ExportProvided, ExportsArgument, ExportsType, FactoryMeta,
-  IdentCollector, LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument,
-  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType, Resolve,
-  RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsageState,
-  DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
+  ConcatenationScope, ConditionalInitFragment, ConnectionState, Context, DependenciesBlock,
+  DependencyId, DependencyType, ErrorSpan, ExportInfoGetter, ExportProvided, ExportsArgument,
+  ExportsType, FactoryMeta, IdentCollector, InitFragment, InitFragmentStage, LibIdentOptions,
+  MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph, ModuleGraphConnection,
+  ModuleIdentifier, ModuleLayer, ModuleType, Resolve, RuntimeCondition, RuntimeGlobals,
+  RuntimeSpec, SourceType, SpanExt, Template, UsageState, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
 define_hook!(ConcatenatedModuleExportsDefinitions: SeriesBail(exports_definitions: &mut ExportsDefinitionArgs, is_entry_module: bool) -> bool);
+define_hook!(ConcatenatedModuleConcatenatedInfo: Series(compilation: &Compilation, module: ModuleIdentifier, runtime: Option<&RuntimeSpec>, info: &mut ConcatenatedModuleInfo, all_used_names: &mut HashSet<Atom>));
 
 #[derive(Debug, Default)]
 pub struct ConcatenatedModuleHooks {
   pub exports_definitions: ConcatenatedModuleExportsDefinitionsHook,
+  pub concatenated_info: ConcatenatedModuleConcatenatedInfoHook,
 }
 
 #[cacheable]
@@ -171,6 +173,8 @@ pub struct ConcatenatedModuleImportInfo<'a> {
   range_start: Option<u32>,
 }
 
+pub type ConcatenatedImportMap = Option<IndexMap<(String, Option<String>), HashSet<Atom>>>;
+
 #[derive(Debug, Clone, Default)]
 pub struct ConcatenatedModuleInfo {
   pub index: usize,
@@ -186,6 +190,7 @@ pub struct ConcatenatedModuleInfo {
   pub internal_names: HashMap<Atom, Atom>,
   pub export_map: Option<HashMap<Atom, String>>,
   pub raw_export_map: Option<HashMap<Atom, String>>,
+  pub import_map: ConcatenatedImportMap,
   pub namespace_object_name: Option<Atom>,
   pub interop_namespace_object_used: bool,
   pub interop_namespace_object_name: Option<Atom>,
@@ -358,6 +363,12 @@ impl ModuleInfo {
       ModuleInfo::Concatenated(c) => c.index,
     }
   }
+}
+
+#[derive(Default)]
+struct ImportSpec {
+  atoms: BTreeMap<Atom, Atom>,
+  default_import: Option<Atom>,
 }
 
 #[impl_source_map_config]
@@ -648,19 +659,27 @@ impl Module for ConcatenatedModule {
     // Generate source code and analyze scopes
     // Prepare a ReplaceSource for the final source
     //
+    let mut all_used_names: HashSet<Atom> = RESERVED_NAMES.iter().map(|s| Atom::new(*s)).collect();
+
     let arc_map = Arc::new(module_to_info_map);
 
     let tmp = rspack_futures::scope::<_, Result<_>>(|token| {
       arc_map.iter().for_each(|(id, info)| {
-        let s = unsafe { token.used((&self, &compilation, &arc_map, runtime, id, info)) };
-        s.spawn(
-          |(module, compilation, arc_map, runtime, id, info)| async move {
-            let updated_module_info = module
-              .analyze_module(compilation, Arc::clone(arc_map), info.clone(), runtime)
-              .await?;
-            Ok((*id, updated_module_info))
-          },
-        );
+        let concatenation_scope = if let ModuleInfo::Concatenated(info) = &info {
+          let concatenation_scope = ConcatenationScope::new(arc_map.clone(), info.as_ref().clone());
+
+          Some(concatenation_scope)
+        } else {
+          None
+        };
+
+        let s = unsafe { token.used((&self, &compilation, runtime, id, info)) };
+        s.spawn(|(module, compilation, runtime, id, info)| async move {
+          let updated_module_info = module
+            .analyze_module(compilation, info.clone(), runtime, concatenation_scope)
+            .await?;
+          Ok((*id, updated_module_info))
+        });
       })
     })
     .await
@@ -679,7 +698,6 @@ impl Module for ConcatenatedModule {
       module_to_info_map.insert(id, module_info);
     }
 
-    let mut all_used_names: HashSet<Atom> = RESERVED_NAMES.iter().map(|s| Atom::new(*s)).collect();
     let mut top_level_declarations: HashSet<Atom> = HashSet::default();
     let mut public_path_auto_replace: bool = false;
 
@@ -692,7 +710,20 @@ impl Module for ConcatenatedModule {
       }
     }
 
+    for (id, info) in module_to_info_map.iter_mut() {
+      if let ModuleInfo::Concatenated(info) = info {
+        compilation
+          .plugin_driver
+          .concatenated_module_hooks
+          .concatenated_info
+          .call(compilation, *id, runtime, info, &mut all_used_names)
+          .await?;
+      }
+    }
+
     let module_graph = compilation.get_module_graph();
+    let mut import_stmts = IndexMap::<(String, Option<String>), ImportSpec>::default();
+
     for info in module_to_info_map.values_mut() {
       // Get used names in the scope
 
@@ -739,6 +770,55 @@ impl Module for ConcatenatedModule {
               all_used_names.insert(name.clone());
               info.internal_names.insert(name.clone(), name.clone());
               top_level_declarations.insert(name.clone());
+            }
+          }
+
+          // Iterate over imported symbols
+          if let Some(import_map) = &info.import_map {
+            for ((source, attr), imported_atoms) in import_map.iter() {
+              let entry = import_stmts.entry((source.clone(), attr.clone()));
+              let total_imported_atoms = entry.or_default();
+
+              for atom in imported_atoms {
+                // already import this symbol
+                if let Some(internal_atom) = total_imported_atoms.atoms.get(atom) {
+                  info
+                    .internal_names
+                    .insert(atom.clone(), internal_atom.clone());
+                  // if the imported symbol is exported, we rename the export as well
+                  if let Some(raw_export_map) = info.raw_export_map.as_mut()
+                    && raw_export_map.contains_key(atom)
+                  {
+                    raw_export_map.insert(atom.clone(), internal_atom.to_string());
+                  }
+                  continue;
+                }
+
+                let new_name = if all_used_names.contains(atom) {
+                  let new_name = find_new_name(atom, &all_used_names, None, &readable_identifier);
+                  all_used_names.insert(new_name.clone());
+                  // if the imported symbol is exported, we rename the export as well
+                  if let Some(raw_export_map) = info.raw_export_map.as_mut()
+                    && raw_export_map.contains_key(atom)
+                  {
+                    raw_export_map.insert(atom.clone(), new_name.to_string());
+                  }
+                  new_name
+                } else {
+                  all_used_names.insert(atom.clone());
+                  atom.clone()
+                };
+
+                info.internal_names.insert(atom.clone(), new_name.clone());
+
+                if atom == "default" {
+                  total_imported_atoms.default_import = Some(new_name.clone());
+                } else {
+                  total_imported_atoms
+                    .atoms
+                    .insert(atom.clone(), new_name.clone());
+                }
+              }
             }
           }
 
@@ -828,7 +908,6 @@ impl Module for ConcatenatedModule {
       }
     }
 
-    let module_graph = compilation.get_module_graph();
     let mut info_map: IdentifierIndexMap<Vec<_>> = IdentifierIndexMap::default();
     // Find and replace references to modules
     // Splitting read and write to avoid violating rustc borrow rules
@@ -961,8 +1040,52 @@ impl Module for ConcatenatedModule {
       });
     }
 
-    let mut result = ConcatSource::default();
+    let mut result: ConcatSource = ConcatSource::default();
     let mut should_add_esm_flag = false;
+    let mut chunk_init_fragments: Vec<Box<dyn InitFragment<ChunkRenderContext>>> = Vec::new();
+
+    for ((source, attr), import_spec) in import_stmts {
+      let atoms = import_spec.atoms;
+      let default_import = import_spec.default_import;
+      let import_stmt = if atoms.is_empty() {
+        format!(
+          "import {}{source}{};\n",
+          default_import
+            .map(|default_atom| { format!("{default_atom} from ") })
+            .unwrap_or_default(),
+          attr.unwrap_or_default()
+        )
+      } else {
+        format!(
+          "import {}{{ {} }} from {source}{};\n",
+          default_import
+            .map(|default_atom| { format!("{default_atom}, ") })
+            .unwrap_or_default(),
+          atoms
+            .iter()
+            .map(|(atom, internal)| {
+              if atom == internal {
+                atom.to_string()
+              } else {
+                format!("{atom} as {internal}")
+              }
+            })
+            .collect::<Vec<String>>()
+            .join(", "),
+          attr.unwrap_or_default()
+        )
+      };
+
+      // result.add(RawStringSource::from(import_stmt));
+      chunk_init_fragments.push(Box::new(ConditionalInitFragment::new(
+        import_stmt.clone(),
+        InitFragmentStage::StageESMImports,
+        0,
+        crate::InitFragmentKey::ESMImport(import_stmt),
+        None,
+        RuntimeCondition::Boolean(true),
+      )));
+    }
 
     let used = ExportInfoGetter::get_used(
       compilation
@@ -1149,8 +1272,6 @@ impl Module for ConcatenatedModule {
         result.add(RawStringSource::from(source.as_str()));
       }
     }
-
-    let mut chunk_init_fragments = Vec::new();
 
     // Evaluate modules in order
     let module_graph = compilation.get_module_graph();
@@ -1670,14 +1791,15 @@ impl ConcatenatedModule {
   async fn analyze_module(
     &self,
     compilation: &Compilation,
-    module_info_map: Arc<IdentifierIndexMap<ModuleInfo>>,
     info: ModuleInfo,
     runtime: Option<&RuntimeSpec>,
+    concatenation_scope: Option<ConcatenationScope>,
   ) -> Result<ModuleInfo> {
     if let ModuleInfo::Concatenated(box info) = info {
       let module_id = info.module;
+      let concatenation_scope =
+        concatenation_scope.expect("should have concatenation scope for concatenated module");
 
-      let concatenation_scope = ConcatenationScope::new(module_info_map, info);
       let module_graph = compilation.get_module_graph();
       let module = module_graph
         .module_by_identifier(&module_id)
@@ -2140,7 +2262,7 @@ impl ConcatenatedModule {
           return Binding::Raw(RawBinding {
             info_id: info.module,
             raw_name: raw_export.as_str().into(),
-            ids: export_name.clone(),
+            ids: export_name[1..].to_vec(),
             export_name,
             comment: None,
           });
@@ -2206,8 +2328,9 @@ impl ConcatenatedModule {
         }
 
         panic!(
-          "Cannot get final name for export '{}'",
-          join_atom(export_name.iter(), ".")
+          "Cannot get final name for export '{}' of module '{}'",
+          join_atom(export_name.iter(), "."),
+          module.identifier()
         );
       }
       ModuleInfo::External(info) => {
