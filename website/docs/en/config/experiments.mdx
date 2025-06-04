@@ -828,3 +828,42 @@ import { something } from 'https://example.com/module.js';
 // Or import assets
 import imageUrl from 'https://example.com/image.png';
 ```
+
+## experiments.useInputFileSystem
+
+<ApiMeta addedVersion="1.3.14" />
+
+- **Type:** `false | RegExp[]`
+- **Default:** `false`
+
+By default, Rspack reads files from disk using a native file system.
+However, it is possible to change the file system using a different kind of file system.
+To accomplish this, one can change the inputFileSystem. For example, you can replace the default inputFileSystem with memfs to virtual Modules.
+
+But due to the overheads calling file system implemented in Node.js side, it will slow down Rspack a lot.
+So we make a trade off by providing the `useInputFileSystem` config, to tell rspack to read file from the native file system or from modified inputFileSystem.
+
+Here is an Example.
+When access to `virtual_entry.js` and `src/another_virtual.js` which match the regular expressions of `experiments.useInputFileSystem`,
+rspack will use the input file system wrapped by `VirtualModulesPlugin`; other than that, `src/disk_file.js` will use the native file system to read files.
+In normal project, there are not much files need to be access by the input file system, config `experiments.useInputFileSystem` properly with keep Rspack running fast.
+
+```js title="rspack.config.mjs"
+import VirtualModulesPlugin from 'webpack-virtual-modules';
+
+var virtualModules = new VirtualModulesPlugin({
+  'virtual_entry.js': `
+    require("./src/another_virtual.js");
+    require("./src/disk_file.js")
+    `,
+  'src/another_virtual.js': 'module.exports = 42',
+});
+
+export default {
+  entry: './virtual_entry.js',
+  plugins: [virtualModules],
+  experiments: {
+    useInputFileSystem: [/.*virtual.*\.js$/],
+  },
+};
+```

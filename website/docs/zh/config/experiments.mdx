@@ -829,3 +829,41 @@ import { something } from 'https://example.com/module.js';
 // Or import assets
 import imageUrl from 'https://example.com/image.png';
 ```
+
+## experiments.useInputFileSystem
+
+<ApiMeta addedVersion="1.3.14" />
+
+- **类型:** `false | RegExp[]`
+- **默认值:** `false`
+
+默认情况下，Rspack 使用原生文件系统从磁盘读取文件。
+但你也可以通过更换 inputFileSystem，使用其他类型的文件系统。例如，可以用 memfs 替代默认文件系统来支持虚拟模块。
+
+不过，由于调用 Node.js 实现的文件系统存在性能开销，会显著拖慢 Rspack 的运行速度。
+因此，Rspack 提供了 `useInputFileSystem` 配置项，用于控制是使用原生文件系统还是自定义的 inputFileSystem。
+
+举个例子：
+当访问 `virtual_entry.js` 和 `src/another_virtual.js` 时，它们匹配了 `experiments.useInputFileSystem` 中的正则规则，Rspack 会通过 `VirtualModulesPlugin` 包装的输入文件系统读取它们；而像 `src/disk_file.js`，则会使用原生文件系统读取。
+
+一般项目中，只有少量文件需要通过自定义文件系统访问，合理配置 `experiments.useInputFileSystem` 可以确保 Rspack 高效运行。
+
+```js title="rspack.config.mjs"
+import VirtualModulesPlugin from 'webpack-virtual-modules';
+
+var virtualModules = new VirtualModulesPlugin({
+  'virtual_entry.js': `
+    require("./src/another_virtual.js");
+    require("./src/disk_file.js")
+    `,
+  'src/another_virtual.js': 'module.exports = 42',
+});
+
+export default {
+  entry: './virtual_entry.js',
+  plugins: [virtualModules],
+  experiments: {
+    useInputFileSystem: [/.*virtual.*\.js$/],
+  },
+};
+```
