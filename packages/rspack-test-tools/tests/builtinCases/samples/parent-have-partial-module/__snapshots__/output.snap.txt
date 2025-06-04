@@ -28,7 +28,7 @@ __webpack_require__.r(__webpack_exports__);
 /* ESM import */var _exist__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./exist.js");
 /* ESM import */var _exist__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_exist__WEBPACK_IMPORTED_MODULE_0__);
 
-__webpack_require__.e(/* import() */ "shared_js-_5ce21").then(__webpack_require__.bind(__webpack_require__, "./shared.js"));
+__webpack_require__.e(/* import() */ "shared_js-_38af1").then(__webpack_require__.bind(__webpack_require__, "./shared.js"));
 
 
 }),
@@ -39,7 +39,7 @@ __webpack_require__.e(/* import() */ "shared_js-_5ce21").then(__webpack_require_
 ```js title=parent-2_js.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["parent-2_js"], {
 "./parent-2.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
-__webpack_require__.e(/* import() */ "shared_js-_5ce20").then(__webpack_require__.bind(__webpack_require__, "./shared.js"));
+__webpack_require__.e(/* import() */ "shared_js-_38af0").then(__webpack_require__.bind(__webpack_require__, "./shared.js"));
 
 
 }),
@@ -47,8 +47,8 @@ __webpack_require__.e(/* import() */ "shared_js-_5ce20").then(__webpack_require_
 }]);
 ```
 
-```js title=shared_js-_5ce20.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["shared_js-_5ce20"], {
+```js title=shared_js-_38af0.js
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["shared_js-_38af0"], {
 "./exist.js": (function () {
 console.log("exist");
 
@@ -69,9 +69,9 @@ console.log("shared");
 }]);
 ```
 
-```js title=shared_js-_5ce21.js
+```js title=shared_js-_38af1.js
 "use strict";
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["shared_js-_5ce21"], {
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["shared_js-_38af1"], {
 "./shared.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 /* ESM import */var _exist__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./exist.js");

@@ -166,7 +166,7 @@ impl JavaScriptCompiler {
 
     let map = if source_map_config.enable {
       let combined_source_map =
-        source_map.build_source_map_with_config(&src_map_buf, input_source_map, source_map_config);
+        source_map.build_source_map(&src_map_buf, input_source_map.cloned(), source_map_config);
 
       let mappings = encode_mappings(combined_source_map.tokens().map(|token| Mapping {
         generated_line: token.get_dst_line() + 1,
