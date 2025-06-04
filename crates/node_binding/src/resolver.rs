@@ -47,7 +47,7 @@ impl JsResolver {
     block_on(self._resolve(path, request))
   }
 
-  pub async fn _resolve(
+  async fn _resolve(
     &self,
     path: String,
     request: String,
