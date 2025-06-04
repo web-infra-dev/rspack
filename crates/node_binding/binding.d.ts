@@ -1875,7 +1875,7 @@ incremental?: false | { [key: string]: boolean }
 parallelCodeSplitting: boolean
 rspackFuture?: RawRspackFuture
 cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
-useInputFileSystem?: false | Array<Regex>
+useInputFileSystem?: false | Array<RegExp>
 }
 
 export interface RawExperimentSnapshotOptions {

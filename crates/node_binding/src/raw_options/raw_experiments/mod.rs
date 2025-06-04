@@ -24,7 +24,7 @@ pub struct RawExperiments {
     ts_type = r#"boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }"#
   )]
   pub cache: RawExperimentCacheOptions,
-  #[napi(ts_type = "false | Array<Regex>")]
+  #[napi(ts_type = "false | Array<RegExp>")]
   pub use_input_file_system: Option<WithFalse<Vec<RspackRegex>>>,
 }
 

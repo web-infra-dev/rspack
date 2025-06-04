@@ -355,7 +355,7 @@ export const getNormalizedRspackOptions = (
 			parallelCodeSplitting: experiments.parallelCodeSplitting,
 			buildHttp: experiments.buildHttp,
 			parallelLoader: experiments.parallelLoader,
-			experiments: experiments.useInputFileSystem
+			useInputFileSystem: experiments.useInputFileSystem
 		})),
 		watch: config.watch,
 		watchOptions: cloneObject(config.watchOptions),
