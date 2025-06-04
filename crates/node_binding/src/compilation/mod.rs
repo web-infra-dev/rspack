@@ -668,12 +668,13 @@ impl JsCompilation {
 
   #[allow(clippy::too_many_arguments)]
   #[napi(
-    ts_args_type = "request: string, original_module: string, original_module_context: string, callback: (err?: Error | null, module?: Module) => void"
+    ts_args_type = "request: string, layer: string | undefined, original_module: string, original_module_context: string, callback: (err?: Error | null, module?: Module) => void"
   )]
   pub fn load_module(
     &self,
     reference: Reference<JsCompilation>,
     request: String,
+    layer: Option<String>,
     original_module: String,
     original_module_context: String,
     callback: Function<'static>,
@@ -694,6 +695,7 @@ impl JsCompilation {
     module_loader
       .load_module(
         request,
+        layer,
         rspack_core::Context::from(original_module_context),
         ModuleIdentifier::from(original_module),
         move |r| match r {

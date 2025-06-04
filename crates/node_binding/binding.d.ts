@@ -271,7 +271,7 @@ export declare class JsCompilation {
    */
   rebuildModule(moduleIdentifiers: Array<string>, f: any): void
   importModule(request: string, layer: string | undefined | null, publicPath: JsFilename | undefined | null, baseUri: string | undefined | null, originalModule: string, originalModuleContext: string | undefined | null, callback: any): void
-  loadModule(request: string, original_module: string, original_module_context: string, callback: (err?: Error | null, module?: Module) => void): void
+  loadModule(request: string, layer: string | undefined, original_module: string, original_module_context: string, callback: (err?: Error | null, module?: Module) => void): void
   get entries(): JsEntries
   addRuntimeModule(chunk: JsChunk, runtimeModule: JsAddingRuntimeModule): void
   get moduleGraph(): JsModuleGraph

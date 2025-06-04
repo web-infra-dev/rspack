@@ -107,6 +107,7 @@ impl ModuleLoader {
   pub fn load_module(
     &self,
     request: String,
+    layer: Option<String>,
     origin_module_context: Context,
     origin_module_identifier: Identifier,
     callback: impl FnOnce(Result<&BoxModule>) + 'static,
@@ -119,6 +120,7 @@ impl ModuleLoader {
     let meta = LoadModuleMeta {
       origin_module_identifier,
       request,
+      layer,
     };
     sender
       .send(Event::LoadModule(EntryTask {

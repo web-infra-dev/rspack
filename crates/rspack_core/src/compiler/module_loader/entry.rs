@@ -69,7 +69,7 @@ impl Task<LoadTaskContext> for EntryTask {
           original_module_identifier: None,
           original_module_source: None,
           issuer: None,
-          issuer_layer: None,
+          issuer_layer: meta.layer.clone(),
           original_module_context: None,
           dependencies: vec![dep],
           resolve_options: None,

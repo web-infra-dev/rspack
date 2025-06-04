@@ -412,6 +412,7 @@ export async function runLoaders(
 			._lastCompilation!.__internal_getInner()
 			.loadModule(
 				request,
+				context._module.layer,
 				context._module.identifier(),
 				loaderContext.context || "",
 				function (err, m) {

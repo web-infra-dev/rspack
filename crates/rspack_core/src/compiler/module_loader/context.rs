@@ -22,6 +22,7 @@ impl std::fmt::Debug for Callback {
 pub struct LoadModuleMeta {
   pub origin_module_identifier: ModuleIdentifier,
   pub request: String,
+  pub layer: Option<String>,
 }
 
 /// A task context for module executor.
