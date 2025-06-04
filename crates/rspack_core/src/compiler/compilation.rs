@@ -1120,6 +1120,27 @@ impl Compilation {
 
   #[instrument("Compilation::create_chunk_assets", skip_all)]
   async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    if self.options.output.filename.has_hash_placeholder()
+      || self.options.output.chunk_filename.has_hash_placeholder()
+      || self.options.output.css_filename.has_hash_placeholder()
+      || self
+        .options
+        .output
+        .css_chunk_filename
+        .has_hash_placeholder()
+    {
+      if let Some(diagnostic) = self.incremental.disable_passes(
+        IncrementalPasses::CHUNKS_RENDER,
+        "Chunk filename that dependent on full hash",
+        "chunk filename that dependent on full hash is not supported in incremental compilation",
+      ) {
+        if let Some(diagnostic) = diagnostic {
+          self.push_diagnostic(diagnostic);
+        }
+        self.chunk_render_artifact.clear();
+      }
+    }
+
     let chunks = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::CHUNKS_RENDER)
@@ -1549,6 +1570,15 @@ impl Compilation {
 
     self.assign_runtime_ids();
 
+    let start = logger.time("optimize code generation");
+    plugin_driver
+      .compilation_hooks
+      .optimize_code_generation
+      .call(self)
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeCodeGeneration"))?;
+    logger.time_end(start);
+
     let create_module_hashes_modules = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::MODULES_HASHES)
@@ -1609,15 +1639,6 @@ impl Compilation {
       .create_module_hashes(create_module_hashes_modules)
       .await?;
 
-    let start = logger.time("optimize code generation");
-    plugin_driver
-      .compilation_hooks
-      .optimize_code_generation
-      .call(self)
-      .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeCodeGeneration"))?;
-    logger.time_end(start);
-
     let start = logger.time("code generation");
     let code_generation_modules = if let Some(mutations) = self
       .incremental
@@ -1638,6 +1659,10 @@ impl Compilation {
           _ => None,
         })
         .collect();
+      // also cleanup for updated modules, for `insert(); insert();` the second insert() won't override the first insert() on code_generation_results
+      for module in &modules {
+        self.code_generation_results.remove(module);
+      }
       tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MODULES_CODEGEN, %mutations);
       let logger = self.get_logger("rspack.incremental.modulesCodegen");
       logger.log(format!(
@@ -2078,7 +2103,7 @@ impl Compilation {
     if !full_hash_chunks.is_empty()
       && let Some(diagnostic) = self.incremental.disable_passes(
         IncrementalPasses::CHUNKS_HASHES,
-        "Chunks that dependent on full hash",
+        "Chunk content that dependent on full hash",
         "it requires calculating the hashes of all the chunks, which is a global effect",
       )
     {
