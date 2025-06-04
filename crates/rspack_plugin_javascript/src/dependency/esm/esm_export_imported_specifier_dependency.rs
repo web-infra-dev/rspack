@@ -121,13 +121,9 @@ impl ESMExportImportedSpecifierDependency {
   }
 
   // TODO cache get_mode result
-  pub fn get_mode(
-    &self,
-    name: Option<Atom>,
-    module_graph: &ModuleGraph,
-    id: &DependencyId,
-    runtime: Option<&RuntimeSpec>,
-  ) -> ExportMode {
+  pub fn get_mode(&self, module_graph: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> ExportMode {
+    let id = &self.id;
+    let name = self.name.clone();
     let imported_module_identifier = if let Some(imported_module_identifier) =
       module_graph.module_identifier_by_dependency_id(id)
     {
@@ -1044,7 +1040,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   }
 
   fn get_exports(&self, mg: &ModuleGraph) -> Option<ExportsSpec> {
-    let mode = self.get_mode(self.name.clone(), mg, &self.id, None);
+    let mode = self.get_mode(mg, None);
     match mode.ty {
       ExportModeType::Missing => None,
       ExportModeType::Unused => {
@@ -1251,7 +1247,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     module_graph: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
-    let mode = self.get_mode(self.name.clone(), module_graph, &self.id, runtime);
+    let mode = self.get_mode(module_graph, runtime);
     match mode.ty {
       ExportModeType::Missing
       | ExportModeType::Unused
@@ -1328,12 +1324,7 @@ impl DependencyConditionFn for ESMExportImportedSpecifierDependencyCondition {
     let down_casted_dep = dep
       .downcast_ref::<ESMExportImportedSpecifierDependency>()
       .expect("should be ESMExportImportedSpecifierDependency");
-    let mode = down_casted_dep.get_mode(
-      down_casted_dep.name.clone(),
-      module_graph,
-      &down_casted_dep.id,
-      runtime,
-    );
+    let mode = down_casted_dep.get_mode(module_graph, runtime);
     ConnectionState::Active(!matches!(
       mode.ty,
       ExportModeType::Unused | ExportModeType::EmptyStar
@@ -1531,7 +1522,7 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
     } = code_generatable_context;
 
     let module_graph = compilation.get_module_graph();
-    let mode = dep.get_mode(dep.name.clone(), &module_graph, &dep.id, *runtime);
+    let mode = dep.get_mode(&module_graph, *runtime);
 
     if let Some(ref mut scope) = concatenation_scope {
       if matches!(mode.ty, ExportModeType::ReexportUndefined) {
