@@ -845,8 +845,8 @@ So we make a trade off by providing the `useInputFileSystem` config, to tell rsp
 
 Here is an Example.
 When access to `virtual_entry.js` and `src/another_virtual.js` which match the regular expressions of `experiments.useInputFileSystem`,
-rspack will use the input file system wrapped by `VirtualModulesPlugin`; other than that, `src/disk_file.js` will use the native file system to read files.
-In normal project, there are not much files need to be access by the input file system, config `experiments.useInputFileSystem` properly with keep Rspack running fast.
+Rspack will use the input file system wrapped by `VirtualModulesPlugin`; other than that, `src/disk_file.js` will be accessed by the native file system.
+In normal project, there are not much files need to be access by the input file system, config `experiments.useInputFileSystem` properly will keep Rspack running fast.
 
 ```js title="rspack.config.mjs"
 import VirtualModulesPlugin from 'webpack-virtual-modules';
