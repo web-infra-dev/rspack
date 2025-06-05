@@ -6,8 +6,8 @@ use rspack_core::{
   incremental::{self, IncrementalPasses},
   ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
   DependenciesBlock, DependencyId, ExportInfoGetter, ExportInfoSetter, ExportNameOrSpec,
-  ExportProvided, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, Logger, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, Plugin, PluginContext,
+  ExportProvided, ExportsInfo, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, Logger,
+  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -310,11 +310,16 @@ impl<'a> FlagDependencyExportsState<'a> {
       let export_info_data = export_info.as_data(self.mg);
       let target = export_info_data.get_target(self.mg);
 
-      let mut target_exports_info: Option<ExportsInfo> = None;
+      let mut target_exports_info = None;
       if let Some(target) = target {
-        let target_module_exports_info = self.mg.get_exports_info(&target.module);
-        target_exports_info =
-          target_module_exports_info.get_nested_exports_info(self.mg, target.export.as_deref());
+        let target_module_exports_info = ExportsInfoGetter::as_nested_data(
+          &self.mg.get_exports_info(&target.module),
+          self.mg,
+          target.export.as_deref(),
+        );
+        target_exports_info = target_module_exports_info
+          .get_nested_exports_info(target.export.as_deref())
+          .map(|data| data.id);
         match self.dependencies.entry(target.module) {
           Entry::Occupied(mut occ) => {
             occ.get_mut().insert(self.current_module_id);

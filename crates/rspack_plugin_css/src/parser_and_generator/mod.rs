@@ -16,16 +16,16 @@ use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
   BoxDependencyTemplate, BoxModuleDependency, BuildMetaDefaultObject, BuildMetaExportsType,
   ChunkGraph, Compilation, ConstDependency, CssExportsConvention, Dependency, DependencyId,
-  DependencyRange, DependencyType, ExportInfoGetter, GenerateContext, LocalIdentName, Module,
-  ModuleGraph, ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext,
-  ParseResult, ParserAndGenerator, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext,
-  UsageState,
+  DependencyRange, DependencyType, ExportInfoGetter, ExportsInfoGetter, GenerateContext,
+  LocalIdentName, Module, ModuleGraph, ModuleIdentifier, ModuleInitFragments, ModuleType,
+  NormalModule, ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, RuntimeSpec,
+  SourceType, TemplateContext, UsageState,
 };
 use rspack_error::{
   miette::Diagnostic, IntoTWithDiagnosticArray, Result, RspackSeverity, TWithDiagnosticArray,
 };
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_util::ext::DynHash;
+use rspack_util::{atom::Atom, ext::DynHash};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
@@ -693,13 +693,19 @@ fn get_used_exports<'a>(
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
 ) -> IndexMap<&'a str, &'a IndexSet<CssExport>> {
+  let exports_info = mg
+    .module_graph_module_by_identifier(&identifier)
+    .map(|mgm| ExportsInfoGetter::as_nested_data(&mgm.exports, mg, None));
+
   exports
     .iter()
     .filter(|(name, _)| {
-      let export_info = mg.get_read_only_export_info(&identifier, name.as_str().into());
+      let export_info = exports_info
+        .as_ref()
+        .map(|info| info.get_read_only_export_info(&Atom::from(name.as_str())));
 
       if let Some(export_info) = export_info {
-        ExportInfoGetter::get_used(export_info.as_data(mg), runtime) != UsageState::Unused
+        ExportInfoGetter::get_used(export_info, runtime) != UsageState::Unused
       } else {
         true
       }
@@ -720,15 +726,21 @@ fn get_unused_local_ident(
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
 ) -> CodeGenerationDataUnusedLocalIdent {
+  let exports_info = mg
+    .module_graph_module_by_identifier(&identifier)
+    .map(|mgm| ExportsInfoGetter::as_nested_data(&mgm.exports, mg, None));
+
   CodeGenerationDataUnusedLocalIdent {
     idents: exports
       .iter()
       .filter(|(name, _)| {
-        let export_info = mg.get_read_only_export_info(&identifier, name.as_str().into());
+        let export_info = exports_info
+          .as_ref()
+          .map(|info| info.get_read_only_export_info(&Atom::from(name.as_str())));
 
         if let Some(export_info) = export_info {
           matches!(
-            ExportInfoGetter::get_used(export_info.as_data(mg), runtime),
+            ExportInfoGetter::get_used(export_info, runtime),
             UsageState::Unused
           )
         } else {

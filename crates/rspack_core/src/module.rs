@@ -31,9 +31,9 @@ use crate::{
   AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
   ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation, CompilationAsset, CompilationId,
   CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
-  DependenciesBlock, DependencyId, ExportInfoGetter, ExportProvided, ExternalModule, ModuleGraph,
-  ModuleLayer, ModuleType, NormalModule, RawModule, Resolve, ResolverFactory, RuntimeSpec,
-  SelfModule, SharedPluginDriver, SourceType,
+  DependenciesBlock, DependencyId, ExportInfoGetter, ExportProvided, ExportsInfoGetter,
+  ExternalModule, ModuleGraph, ModuleLayer, ModuleType, NormalModule, RawModule, Resolve,
+  ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext {
@@ -402,6 +402,9 @@ fn get_exports_type_impl(
 ) -> ExportsType {
   let export_type = &build_meta.exports_type;
   let default_object = &build_meta.default_object;
+  let exports_info = mg
+    .module_graph_module_by_identifier(&identifier)
+    .map(|mgm| ExportsInfoGetter::as_nested_data(&mgm.exports, mg, None));
   match export_type {
     BuildMetaExportsType::Flagged => {
       if strict {
@@ -434,17 +437,17 @@ fn get_exports_type_impl(
           }
         }
 
-        if let Some(export_info) =
-          mg.get_read_only_export_info(&identifier, Atom::from("__esModule"))
+        if let Some(export_info) = exports_info
+          .as_ref()
+          .map(|info| info.get_read_only_export_info(&Atom::from("__esModule")))
         {
-          let export_info_data = export_info.as_data(mg);
           if matches!(
-            ExportInfoGetter::provided(export_info_data),
+            ExportInfoGetter::provided(export_info),
             Some(ExportProvided::NotProvided)
           ) {
             handle_default(default_object)
           } else {
-            let Some(target) = export_info_data.get_target(mg) else {
+            let Some(target) = export_info.get_target(mg) else {
               return ExportsType::Dynamic;
             };
             if target

@@ -969,8 +969,11 @@ impl ESMExportImportedSpecifierDependency {
         if conflicting_module.identifier() == imported_module.identifier() {
           continue;
         }
+        let conflicting_exports_info = module_graph
+          .module_graph_module_by_identifier(&conflicting_module.identifier())
+          .map(|mgm| ExportsInfoGetter::as_nested_data(&mgm.exports, module_graph, None));
         let Some(conflicting_export_info) =
-          module_graph.get_read_only_export_info(&conflicting_module.identifier(), name.to_owned())
+          conflicting_exports_info.map(|info| info.get_read_only_export_info(name).id())
         else {
           continue;
         };

@@ -72,44 +72,6 @@ impl ExportsInfo {
     mg.get_exports_info_mut_by_id(self)
   }
 
-  pub fn is_export_provided(&self, mg: &ModuleGraph, names: &[Atom]) -> Option<ExportProvided> {
-    let name = names.first()?;
-    let info = self.get_read_only_export_info(mg, name);
-    let info_data = info.as_data(mg);
-    if let Some(exports_info) = ExportInfoGetter::exports_info(info_data)
-      && names.len() > 1
-    {
-      return exports_info.is_export_provided(mg, &names[1..]);
-    }
-    let provided = ExportInfoGetter::provided(info_data)?;
-
-    match provided {
-      ExportProvided::Provided => {
-        if names.len() == 1 {
-          Some(ExportProvided::Provided)
-        } else {
-          None
-        }
-      }
-      _ => Some(*provided),
-    }
-  }
-
-  pub fn is_module_used(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> bool {
-    if self.is_used(mg, runtime) {
-      return true;
-    }
-
-    let exports_info = self.as_exports_info(mg);
-    if !matches!(
-      ExportInfoGetter::get_used(exports_info.side_effects_only_info.as_data(mg), runtime),
-      UsageState::Unused
-    ) {
-      return true;
-    }
-    false
-  }
-
   // TODO: remove this, we should refactor ExportInfo into ExportName and ExportProvideInfo and ExportUsedInfo
   // ExportProvideInfo is created by FlagDependencyExportsPlugin, and should not mutate after create
   // ExportUsedInfo is created by FlagDependencyUsagePlugin or Plugin::finish_modules, and should not mutate after create

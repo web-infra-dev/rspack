@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportInfoGetter,
-  InitFragmentKey, InitFragmentStage, ModuleGraph, NormalInitFragment, RuntimeGlobals,
-  TemplateContext, TemplateReplaceSource, UsageState,
+  ExportsInfoGetter, InitFragmentKey, InitFragmentStage, ModuleGraph, NormalInitFragment,
+  RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsageState,
 };
 use swc_core::atoms::Atom;
 
@@ -52,11 +52,13 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
     let module = module_graph
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
-    let exports_info = module_graph.get_exports_info(&module.identifier());
+    let exports_info = ExportsInfoGetter::as_nested_data(
+      &module_graph.get_exports_info(&module.identifier()),
+      &module_graph,
+      None,
+    );
     let used = ExportInfoGetter::get_used(
-      exports_info
-        .get_read_only_export_info(&module_graph, &Atom::from("__esModule"))
-        .as_data(&module_graph),
+      exports_info.get_read_only_export_info(&Atom::from("__esModule")),
       *runtime,
     );
     if !matches!(used, UsageState::Unused) {

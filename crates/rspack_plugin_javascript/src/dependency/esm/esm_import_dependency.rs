@@ -10,10 +10,10 @@ use rspack_core::{
   BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ErrorSpan, ExportInfoGetter, ExportProvided, ExportsType, ExtendedReferencedExport,
-  FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleDependency, ModuleGraph, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap,
-  TemplateContext, TemplateReplaceSource,
+  ErrorSpan, ExportInfoGetter, ExportProvided, ExportsInfoGetter, ExportsType,
+  ExtendedReferencedExport, FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, ModuleDependency, ModuleGraph, ProvidedExports, RuntimeCondition, RuntimeSpec,
+  SharedSourceMap, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -289,18 +289,22 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       )
     {
       let mut pos = 0;
-      let mut maybe_exports_info = Some(module_graph.get_exports_info(&imported_module_identifier));
+      let mut maybe_exports_info = Some(ExportsInfoGetter::as_nested_data(
+        &module_graph.get_exports_info(&imported_module_identifier),
+        module_graph,
+        Some(ids),
+      ));
       while pos < ids.len()
-        && let Some(exports_info) = maybe_exports_info
+        && let Some(exports_info) = &maybe_exports_info
       {
         let id = &ids[pos];
         pos += 1;
-        let export_info = exports_info.get_read_only_export_info(module_graph, id);
+        let export_info = exports_info.get_read_only_export_info(id);
         if matches!(
-          ExportInfoGetter::provided(export_info.as_data(module_graph)),
+          ExportInfoGetter::provided(export_info),
           Some(ExportProvided::NotProvided)
         ) {
-          let provided_exports = exports_info.get_provided_exports(module_graph);
+          let provided_exports = ExportsInfoGetter::get_provided_exports(exports_info);
           let more_info = if let ProvidedExports::ProvidedNames(exports) = &provided_exports {
             if exports.is_empty() {
               " (module has no exports)".to_string()
@@ -330,7 +334,11 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
           );
           return Some(create_error(msg));
         }
-        maybe_exports_info = ExportInfoGetter::exports_info(export_info.as_data(module_graph));
+        let Some(nested_exports_info) = ExportInfoGetter::exports_info(export_info) else {
+          maybe_exports_info = None;
+          continue;
+        };
+        maybe_exports_info = Some(exports_info.redirect(nested_exports_info));
       }
       let msg = format!(
         "export {} {} was not found in '{}'",

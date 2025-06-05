@@ -3,7 +3,9 @@ use std::{collections::BTreeMap, sync::Arc};
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
 
-use super::{ExportInfoData, ExportInfoGetter, ExportProvided, ExportsInfo, UsageState};
+use super::{
+  ExportInfoData, ExportInfoGetter, ExportProvided, ExportsInfo, ProvidedExports, UsageState,
+};
 use crate::{ModuleGraph, RuntimeSpec};
 
 /**
@@ -26,6 +28,15 @@ pub struct PrefetchedExportsInfoWrapper<'a> {
 
 impl<'a> PrefetchedExportsInfoWrapper<'a> {
   /**
+   * Generate a new PrefetchedExportsInfoWrapper with a new entry
+   */
+  pub fn redirect(&self, entry: ExportsInfo) -> Self {
+    Self {
+      exports: self.exports.clone(),
+      entry,
+    }
+  }
+  /**
    * Get the data of the current exports info
    */
   pub fn data(&self) -> &PrefetchedExportsInfoData<'a> {
@@ -33,16 +44,6 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       .exports
       .get(&self.entry)
       .expect("should have nested exports info")
-  }
-
-  /**
-   * Generate a new PrefetchedExportsInfoWrapper with a new entry
-   */
-  pub fn redirect(&self, entry: ExportsInfo) -> PrefetchedExportsInfoWrapper<'_> {
-    PrefetchedExportsInfoWrapper {
-      exports: self.exports.clone(),
-      entry,
-    }
   }
 
   pub fn other_exports_info(&self) -> &ExportInfoData {
@@ -91,7 +92,12 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
         return None;
       }
     }
-    Some(self.data())
+    Some(
+      self
+        .exports
+        .get(exports_info)
+        .expect("should have nested exports info"),
+    )
   }
 
   fn get_read_only_export_info_recursive_impl(
@@ -138,7 +144,7 @@ pub struct PrefetchedExportsInfoData<'a> {
 
   pub(crate) side_effects_only_info: PrefetchedExportInfoData<'a>,
   pub(crate) redirect_to: Option<ExportsInfo>,
-  // pub(crate) id: ExportsInfo,
+  pub(crate) id: ExportsInfo,
 }
 
 #[derive(Debug, Clone)]
@@ -223,7 +229,7 @@ impl ExportsInfoGetter {
             // exports_info: side_effects_only_info_data.exports_info,
           },
           redirect_to: exports_info.redirect_to,
-          // id: *id,
+          id: *id,
         },
       );
     }
@@ -295,5 +301,70 @@ impl ExportsInfoGetter {
       }
       _ => Some(*provided),
     }
+  }
+
+  pub fn get_provided_exports(info: &NestedExportsInfoWrapper) -> ProvidedExports {
+    if info.data().redirect_to.is_none() {
+      match ExportInfoGetter::provided(info.other_exports_info()) {
+        Some(ExportProvided::Unknown) => {
+          return ProvidedExports::ProvidedAll;
+        }
+        Some(ExportProvided::Provided) => {
+          return ProvidedExports::ProvidedAll;
+        }
+        None => {
+          return ProvidedExports::Unknown;
+        }
+        _ => {}
+      }
+    }
+    let mut ret = vec![];
+    for (_, export_info) in info.exports() {
+      match export_info.provided {
+        Some(ExportProvided::Provided | ExportProvided::Unknown) | None => {
+          ret.push(export_info.name.clone().unwrap_or("".into()));
+        }
+        _ => {}
+      }
+    }
+    if let Some(redirect) = &info.data().redirect_to {
+      let redirected = info.redirect(*redirect);
+      let provided_exports = Self::get_provided_exports(&redirected);
+      let inner = match provided_exports {
+        ProvidedExports::Unknown => return ProvidedExports::Unknown,
+        ProvidedExports::ProvidedAll => return ProvidedExports::ProvidedAll,
+        ProvidedExports::ProvidedNames(arr) => arr,
+      };
+      for item in inner {
+        if !ret.contains(&item) {
+          ret.push(item);
+        }
+      }
+    }
+    ProvidedExports::ProvidedNames(ret)
+  }
+
+  pub fn get_used(
+    info: &NestedExportsInfoWrapper,
+    names: &[Atom],
+    runtime: Option<&RuntimeSpec>,
+  ) -> UsageState {
+    if names.len() == 1 {
+      let value = &names[0];
+      let info = info.get_read_only_export_info(value);
+      let used = ExportInfoGetter::get_used(info, runtime);
+      return used;
+    }
+    if names.is_empty() {
+      return ExportInfoGetter::get_used(info.other_exports_info(), runtime);
+    }
+    let info_data = info.get_read_only_export_info(&names[0]);
+    if let Some(exports_info) = &info_data.exports_info
+      && names.len() > 1
+    {
+      let redirected = info.redirect(*exports_info);
+      return Self::get_used(&redirected, &names[1..], runtime);
+    }
+    ExportInfoGetter::get_used(info_data, runtime)
   }
 }

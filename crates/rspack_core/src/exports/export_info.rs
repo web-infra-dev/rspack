@@ -13,7 +13,7 @@ use serde::Serialize;
 
 use super::{
   ExportInfoGetter, ExportInfoTargetValue, ExportProvided, ExportsInfo, ExportsInfoData,
-  FindTargetRetEnum, FindTargetRetValue, ResolvedExportInfoTarget,
+  ExportsInfoGetter, FindTargetRetEnum, FindTargetRetValue, ResolvedExportInfoTarget,
   ResolvedExportInfoTargetWithCircular, TerminalBinding, UnResolvedExportInfoTarget, UsageState,
   NEXT_EXPORT_INFO_UKEY,
 };
@@ -88,13 +88,14 @@ impl ExportInfo {
       return Some(TerminalBinding::ExportInfo(*self));
     }
     let target = info.get_target(mg)?;
+
     let exports_info = mg.get_exports_info(&target.module);
     let Some(export) = target.export else {
       return Some(TerminalBinding::ExportsInfo(exports_info));
     };
-    exports_info
-      .get_read_only_export_info_recursive(mg, &export)
-      .map(TerminalBinding::ExportInfo)
+    ExportsInfoGetter::as_nested_data(&exports_info, mg, Some(&export))
+      .get_read_only_export_info_recursive(&export)
+      .map(|data| TerminalBinding::ExportInfo(data.id))
   }
 
   pub fn update_hash_with_visited(

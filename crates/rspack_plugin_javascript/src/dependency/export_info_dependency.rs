@@ -79,15 +79,11 @@ impl ExportInfoDependency {
     match prop.to_string().as_str() {
       "canMangle" => {
         let can_mangle = if let Some(export_info) =
-          exports_info.get_read_only_export_info_recursive(&module_graph, export_name)
+          exports_info_data.get_read_only_export_info_recursive(export_name)
         {
-          ExportInfoGetter::can_mangle(export_info.as_data(&module_graph))
+          ExportInfoGetter::can_mangle(export_info)
         } else {
-          ExportInfoGetter::can_mangle(
-            exports_info
-              .other_exports_info(&module_graph)
-              .as_data(&module_graph),
-          )
+          ExportInfoGetter::can_mangle(exports_info_data.other_exports_info())
         };
         can_mangle.map(|v| v.to_string())
       }
