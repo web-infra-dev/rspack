@@ -16,11 +16,13 @@ pub type ModuleGraphCacheArtifact = Arc<ModuleGraphCacheArtifactInner>;
 pub struct ModuleGraphCacheArtifactInner {
   freezed: AtomicBool,
   get_mode_cache: GetModeCache,
+  determine_export_assignments_cache: DetermineExportAssignmentsCache,
 }
 
 impl ModuleGraphCacheArtifactInner {
   pub fn freeze(&self) {
     self.get_mode_cache.freeze();
+    self.determine_export_assignments_cache.freeze();
     self.freezed.store(true, Ordering::Relaxed);
   }
 
@@ -38,11 +40,32 @@ impl ModuleGraphCacheArtifactInner {
     }
 
     match self.get_mode_cache.get(&key) {
-      Some(mode) => mode,
+      Some(value) => value,
       None => {
-        let mode = f();
-        self.get_mode_cache.set(key, mode.clone());
-        mode
+        let value = f();
+        self.get_mode_cache.set(key, value.clone());
+        value
+      }
+    }
+  }
+
+  pub fn cached_determine_export_assignments<F: FnOnce() -> DetermineExportAssignmentsValue>(
+    &self,
+    key: DetermineExportAssignmentsKey,
+    f: F,
+  ) -> DetermineExportAssignmentsValue {
+    if !self.freezed.load(Ordering::Relaxed) {
+      return f();
+    }
+
+    match self.determine_export_assignments_cache.get(&key) {
+      Some(value) => value,
+      None => {
+        let value = f();
+        self
+          .determine_export_assignments_cache
+          .set(key, value.clone());
+        value
       }
     }
   }
@@ -51,7 +74,7 @@ impl ModuleGraphCacheArtifactInner {
 type GetModeCacheKey = (DependencyId, Option<RuntimeSpec>);
 
 #[derive(Debug, Default)]
-pub struct GetModeCache {
+struct GetModeCache {
   cache: Mutex<IndexMap<GetModeCacheKey, ExportMode>>,
 }
 
@@ -66,6 +89,33 @@ impl GetModeCache {
   }
 
   fn set(&self, key: GetModeCacheKey, value: ExportMode) {
+    self
+      .cache
+      .lock()
+      .expect("should get lock")
+      .insert(key, value);
+  }
+}
+
+type DetermineExportAssignmentsKey = (Vec<DependencyId>, Option<DependencyId>);
+type DetermineExportAssignmentsValue = (Vec<Atom>, Vec<usize>);
+
+#[derive(Debug, Default)]
+struct DetermineExportAssignmentsCache {
+  cache: Mutex<IndexMap<DetermineExportAssignmentsKey, DetermineExportAssignmentsValue>>,
+}
+
+impl DetermineExportAssignmentsCache {
+  fn freeze(&self) {
+    self.cache.lock().expect("should get lock").clear();
+  }
+
+  fn get(&self, key: &DetermineExportAssignmentsKey) -> Option<DetermineExportAssignmentsValue> {
+    let inner = self.cache.lock().expect("should get lock");
+    inner.get(key).cloned()
+  }
+
+  fn set(&self, key: DetermineExportAssignmentsKey, value: DetermineExportAssignmentsValue) {
     self
       .cache
       .lock()

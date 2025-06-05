@@ -1431,6 +1431,7 @@ impl Compilation {
       self.get_module_graph().modules().keys().copied().collect()
     };
     let module_graph = self.get_module_graph();
+    let module_graph_cache = &self.module_graph_cache_artifact;
     let dependencies_diagnostics: DependenciesDiagnosticsArtifact = modules
       .par_iter()
       .map(|module_identifier| {
@@ -1441,7 +1442,7 @@ impl Compilation {
           .all_dependencies
           .iter()
           .filter_map(|dependency_id| module_graph.dependency_by_id(dependency_id))
-          .filter_map(|dependency| dependency.get_diagnostics(&module_graph))
+          .filter_map(|dependency| dependency.get_diagnostics(&module_graph, module_graph_cache))
           .flatten()
           .collect::<Vec<_>>();
         (*module_identifier, diagnostics)

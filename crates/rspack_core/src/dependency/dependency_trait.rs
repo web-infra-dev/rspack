@@ -101,7 +101,11 @@ pub trait Dependency:
     None
   }
 
-  fn get_diagnostics(&self, _module_graph: &ModuleGraph) -> Option<Vec<Diagnostic>> {
+  fn get_diagnostics(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+  ) -> Option<Vec<Diagnostic>> {
     None
   }
 
