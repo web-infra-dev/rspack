@@ -77,7 +77,7 @@ impl FromNapiValue for AssetInfo {
       if let Some(name) = names.get::<String>(index)? {
         if !known_field_names.contains(&name) {
           let value = object.get_named_property::<Unknown>(&name)?;
-          if let Some(json_value) = unknown_to_json_value(env, value)? {
+          if let Some(json_value) = unknown_to_json_value(value)? {
             extras.insert(name, json_value);
           }
         }

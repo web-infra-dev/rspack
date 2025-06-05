@@ -247,6 +247,7 @@ impl Module {
 
     MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
       let identifier = env.create_string(module.identifier().as_str())?;
+      #[allow(clippy::unwrap_used)]
       let symbol = once_cell.get().unwrap();
       properties.push(
         Property::new()

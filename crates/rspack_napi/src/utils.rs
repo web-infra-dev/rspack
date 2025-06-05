@@ -1,6 +1,5 @@
 use napi::{
   bindgen_prelude::{Array, FromNapiValue, JsObjectValue, Object, Unknown},
-  sys::napi_env,
   Env, JsValue,
 };
 
@@ -46,17 +45,14 @@ pub fn object_clone<'a>(env: &Env, object: &'a Object<'a>) -> napi::Result<Objec
   Ok(new_object)
 }
 
-pub fn unknown_to_json_value(
-  env: napi_env,
-  value: Unknown,
-) -> napi::Result<Option<serde_json::Value>> {
+pub fn unknown_to_json_value(value: Unknown) -> napi::Result<Option<serde_json::Value>> {
   if value.is_array()? {
     let js_array = Array::from_unknown(value)?;
     let mut array = Vec::with_capacity(js_array.len() as usize);
 
     for index in 0..js_array.len() {
       if let Some(item) = js_array.get::<Unknown>(index)? {
-        if let Some(json_val) = unknown_to_json_value(env, item)? {
+        if let Some(json_val) = unknown_to_json_value(item)? {
           array.push(json_val);
         } else {
           array.push(serde_json::Value::Null);
@@ -95,7 +91,7 @@ pub fn unknown_to_json_value(
       for index in 0..names.len() {
         if let Some(name) = names.get::<String>(index)? {
           let prop_val = object.get_named_property::<Unknown>(&name)?;
-          if let Some(json_val) = unknown_to_json_value(env, prop_val)? {
+          if let Some(json_val) = unknown_to_json_value(prop_val)? {
             map.insert(name, json_val);
           }
         }

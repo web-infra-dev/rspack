@@ -25,6 +25,7 @@ import {
 	SourceMapSource
 } from "webpack-sources";
 
+import { syncCustomFields } from "../BuildInfo";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import { NormalModule } from "../NormalModule";
@@ -61,7 +62,6 @@ import {
 	loadLoader,
 	runSyncOrAsync
 } from "./utils";
-import { syncCustomFields } from "../BuildInfo";
 
 function createLoaderObject(
 	loader: JsLoaderItem,

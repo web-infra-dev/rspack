@@ -210,6 +210,7 @@ fn create_known_private_properties(env: &Env) -> napi::Result<Vec<Property>> {
   let mut properties = vec![];
 
   BUILD_INFO_ASSETS_SYMBOL.with(|once_cell| {
+    #[allow(clippy::unwrap_used)]
     let symbol = once_cell.get().unwrap();
     properties.push(
       Property::new()
@@ -224,6 +225,7 @@ fn create_known_private_properties(env: &Env) -> napi::Result<Vec<Property>> {
   })?;
 
   BUILD_INFO_FILE_DEPENDENCIES_SYMBOL.with(|once_cell| {
+    #[allow(clippy::unwrap_used)]
     let symbol = once_cell.get().unwrap();
     properties.push(
       Property::new()
@@ -247,6 +249,7 @@ fn create_known_private_properties(env: &Env) -> napi::Result<Vec<Property>> {
   })?;
 
   BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL.with(|once_cell| {
+    #[allow(clippy::unwrap_used)]
     let symbol = once_cell.get().unwrap();
     properties.push(
       Property::new()
@@ -270,6 +273,7 @@ fn create_known_private_properties(env: &Env) -> napi::Result<Vec<Property>> {
   })?;
 
   BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL.with(|once_cell| {
+    #[allow(clippy::unwrap_used)]
     let symbol = once_cell.get().unwrap();
     properties.push(
       Property::new()
@@ -293,6 +297,7 @@ fn create_known_private_properties(env: &Env) -> napi::Result<Vec<Property>> {
   })?;
 
   BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL.with(|once_cell| {
+    #[allow(clippy::unwrap_used)]
     let symbol = once_cell.get().unwrap();
     properties.push(
       Property::new()
@@ -344,7 +349,7 @@ impl ToNapiValue for BuildInfo {
             if let Some(name) = names.get::<String>(index)? {
               if !KNOWN_BUILD_INFO_FIELD_NAMES.contains(name.as_str()) {
                 let value = object.get_named_property::<Unknown>(&name)?;
-                if let Some(json_value) = unknown_to_json_value(env.raw(), value)? {
+                if let Some(json_value) = unknown_to_json_value(value)? {
                   extras.insert(name, json_value);
                 }
               }
@@ -371,6 +376,7 @@ impl ToNapiValue for BuildInfo {
       Ok(())
     })?;
     SYNC_CUSTOM_FIELDS_SYMBOL.with(|once_cell| {
+      #[allow(clippy::unwrap_used)]
       let symbol = once_cell.get().unwrap();
       properties.push(
         Property::new()
