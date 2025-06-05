@@ -164,7 +164,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       ExportsInfoGetter::get_used_name(
         &compilation
           .get_module_graph()
-          .get_prefetched_exports_info(module_identifier, Some(&[name.into()])),
+          .get_prefetched_exports_info(module_identifier, None),
         *runtime,
         &[name.into()],
       )

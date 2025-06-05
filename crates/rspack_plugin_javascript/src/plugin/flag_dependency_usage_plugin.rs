@@ -18,6 +18,7 @@ enum ModuleOrAsyncDependenciesBlock {
   Module(ModuleIdentifier),
   AsyncDependenciesBlock(AsyncDependenciesBlockIdentifier),
 }
+
 #[allow(unused)]
 pub struct FlagDependencyUsagePluginProxy<'a> {
   global: bool,

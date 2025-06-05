@@ -44,7 +44,8 @@ impl JsExportsInfo {
       Either::A(str) => std::iter::once(str).map(Into::into).collect(),
       Either::B(vec) => vec.into_iter().map(Into::into).collect(),
     });
-    Ok(self.exports_info.is_used(&module_graph, runtime.as_ref()))
+    let exports_info = ExportsInfoGetter::prefetch(&self.exports_info, &module_graph, None);
+    Ok(ExportsInfoGetter::is_used(&exports_info, runtime.as_ref()))
   }
 
   #[napi(ts_args_type = "runtime: string | string[] | undefined")]

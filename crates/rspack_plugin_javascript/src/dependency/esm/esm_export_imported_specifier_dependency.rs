@@ -139,8 +139,7 @@ impl ESMExportImportedSpecifierDependency {
     let parent_module = module_graph
       .get_parent_module(id)
       .expect("should have parent module");
-    let exports_info = module_graph
-      .get_prefetched_exports_info(parent_module, name.as_ref().map(std::slice::from_ref));
+    let exports_info = module_graph.get_prefetched_exports_info(parent_module, None);
 
     let is_name_unused = if let Some(ref name) = name {
       ExportsInfoGetter::get_used(&exports_info, std::slice::from_ref(name), runtime)

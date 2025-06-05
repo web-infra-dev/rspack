@@ -395,27 +395,6 @@ impl ExportsInfo {
     key
   }
 
-  pub fn is_used(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> bool {
-    let info = self.as_exports_info(mg);
-    if let Some(redirect_to) = info.redirect_to {
-      if redirect_to.is_used(mg, runtime) {
-        return true;
-      }
-    } else {
-      let other_exports_info = &info.other_exports_info;
-      if ExportInfoGetter::get_used(other_exports_info.as_data(mg), runtime) != UsageState::Unused {
-        return true;
-      }
-    }
-
-    for export_info in info.exports.values() {
-      if ExportInfoGetter::get_used(export_info.as_data(mg), runtime) != UsageState::Unused {
-        return true;
-      }
-    }
-    false
-  }
-
   pub fn update_hash(
     &self,
     mg: &ModuleGraph,
