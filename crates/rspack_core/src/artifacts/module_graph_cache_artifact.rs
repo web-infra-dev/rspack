@@ -97,7 +97,12 @@ impl GetModeCache {
   }
 }
 
-type DetermineExportAssignmentsKey = (Vec<DependencyId>, Option<DependencyId>);
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub enum DetermineExportAssignmentsKind {
+  All,
+  Other,
+}
+type DetermineExportAssignmentsKey = (DependencyId, DetermineExportAssignmentsKind);
 type DetermineExportAssignmentsValue = (Vec<Atom>, Vec<usize>);
 
 #[derive(Debug, Default)]
