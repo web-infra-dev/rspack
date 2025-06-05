@@ -88,11 +88,12 @@ impl ExportInfoDependency {
         can_mangle.map(|v| v.to_string())
       }
       "used" => {
-        let used = exports_info.get_used(&module_graph, &export_name.clone(), *runtime);
+        let used = ExportsInfoGetter::get_used(&exports_info_data, &export_name.clone(), *runtime);
         Some((!matches!(used, UsageState::Unused)).to_string())
       }
       "useInfo" => {
-        let used_state = exports_info.get_used(&module_graph, &export_name.clone(), *runtime);
+        let used_state =
+          ExportsInfoGetter::get_used(&exports_info_data, &export_name.clone(), *runtime);
         Some(
           (match used_state {
             UsageState::Used => "true",

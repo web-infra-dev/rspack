@@ -618,30 +618,6 @@ impl ExportsInfo {
     true
   }
 
-  pub fn get_used(
-    &self,
-    mg: &ModuleGraph,
-    names: &[Atom],
-    runtime: Option<&RuntimeSpec>,
-  ) -> UsageState {
-    if names.len() == 1 {
-      let value = &names[0];
-      let info = self.get_read_only_export_info(mg, value);
-      let used = ExportInfoGetter::get_used(info.as_data(mg), runtime);
-      return used;
-    }
-    if names.is_empty() {
-      return ExportInfoGetter::get_used(self.other_exports_info(mg).as_data(mg), runtime);
-    }
-    let info = self.get_read_only_export_info(mg, &names[0]);
-    if let Some(exports_info) = ExportInfoGetter::exports_info(info.as_data(mg))
-      && names.len() > 1
-    {
-      return exports_info.get_used(mg, &names[1..], runtime);
-    }
-    ExportInfoGetter::get_used(info.as_data(mg), runtime)
-  }
-
   pub fn get_usage_key(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> UsageKey {
     let exports_info = self.as_exports_info(mg);
 

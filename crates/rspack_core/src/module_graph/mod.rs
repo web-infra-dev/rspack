@@ -8,7 +8,8 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  Dependency, ExportProvided, ExportsInfoGetter, ProvidedExports, RuntimeSpec, UsedExports,
+  Dependency, ExportProvided, ExportsInfoGetter, PrefetchedExportsInfoWrapper, ProvidedExports,
+  RuntimeSpec, UsedExports,
 };
 mod module;
 pub use module::*;
@@ -1016,6 +1017,15 @@ impl<'a> ModuleGraph<'a> {
       .loop_partials(|p| p.exports_info_map.get(&mgm.exports))
       .expect("should have exports info")
       .id()
+  }
+
+  pub fn get_prefetched_exports_info(
+    &self,
+    module_identifier: &ModuleIdentifier,
+    names: Option<&[Atom]>,
+  ) -> PrefetchedExportsInfoWrapper<'_> {
+    let exports_info = self.get_exports_info(module_identifier);
+    ExportsInfoGetter::prefetch(&exports_info, self, names)
   }
 
   pub fn get_exports_info_by_id(&self, id: &ExportsInfo) -> &ExportsInfoData {
