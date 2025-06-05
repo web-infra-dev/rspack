@@ -9,6 +9,7 @@ use url::Url;
 
 use super::JavascriptParserPlugin;
 use crate::{
+  dependency::{ImportMetaResolveDependency, ImportMetaResolveHeaderDependency},
   utils::eval,
   visitors::{
     create_traceable_error, expr_name, AllowedMemberTypes, ExportedVariableInfo, JavascriptParser,
@@ -56,6 +57,54 @@ impl ImportMetaPlugin {
       property_access(members, 1)
     )
   }
+
+  fn process_import_meta_resolve(
+    &self,
+    parser: &mut JavascriptParser,
+    call_expr: &swc_core::ecma::ast::CallExpr,
+  ) {
+    if call_expr.args.len() != 1 {
+      return;
+    }
+
+    let argument_expr = &call_expr.args[0].expr;
+    let param = parser.evaluate_expression(argument_expr);
+    let import_meta_resolve_header_dependency = Box::new(ImportMetaResolveHeaderDependency::new(
+      call_expr.callee.span().into(),
+      Some(parser.source_map.clone()),
+    ));
+
+    if param.is_conditional() {
+      for option in param.options() {
+        self.process_import_meta_resolve_item(parser, option);
+      }
+      parser
+        .dependencies
+        .push(import_meta_resolve_header_dependency);
+    } else {
+      self.process_import_meta_resolve_item(parser, &param);
+      parser
+        .dependencies
+        .push(import_meta_resolve_header_dependency);
+    }
+  }
+
+  fn process_import_meta_resolve_item(
+    &self,
+    parser: &mut JavascriptParser,
+    param: &eval::BasicEvaluatedExpression,
+  ) {
+    if param.is_string() {
+      let (start, end) = param.range();
+      parser
+        .dependencies
+        .push(Box::new(ImportMetaResolveDependency::new(
+          param.string().to_string(),
+          (start, end - 1).into(),
+          parser.in_try,
+        )));
+    }
+  }
 }
 
 impl JavascriptParserPlugin for ImportMetaPlugin {
@@ -70,6 +119,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       expr_name::IMPORT_META_URL
       | expr_name::IMPORT_META_FILENAME
       | expr_name::IMPORT_META_DIRNAME => Some("string".to_string()),
+      expr_name::IMPORT_META_RESOLVE => Some("function".to_string()),
       expr_name::IMPORT_META_WEBPACK => Some("number".to_string()),
       _ => expr
         .arg
@@ -149,6 +199,16 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
           .push(Box::new(ConstDependency::new(
             unary_expr.span().into(),
             "'string'".into(),
+            None,
+          )));
+        Some(true)
+      }
+      expr_name::IMPORT_META_RESOLVE => {
+        parser
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            unary_expr.span().into(),
+            "'function'".into(),
             None,
           )));
         Some(true)
@@ -300,6 +360,19 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       }
       _ => None,
     }
+  }
+
+  fn call(
+    &self,
+    parser: &mut JavascriptParser,
+    call_expr: &swc_core::ecma::ast::CallExpr,
+    for_name: &str,
+  ) -> Option<bool> {
+    if for_name == expr_name::IMPORT_META_RESOLVE {
+      self.process_import_meta_resolve(parser, call_expr);
+      return Some(true);
+    }
+    None
   }
 
   fn unhandled_expression_member_chain(

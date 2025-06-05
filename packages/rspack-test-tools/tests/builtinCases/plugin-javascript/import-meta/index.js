@@ -48,6 +48,13 @@ it("should return correct import.meta.dirname", () => {
 	if (import.meta.dirname.indexOf("import-meta") === -1) require("fail");
 });
 
+it("should return correct import.meta.resolve", () => {
+	expect(typeof import.meta.resolve).toBe("function");
+	if (typeof import.meta.resolve !== "function") require("fail");
+	expect(import.meta.resolve("./index.js")).toBe(__filename);
+	expect(import.meta["resolve"]("./index.js")).toBe(__filename);
+});
+
 it("should return undefined for unknown property", () => {
 	expect(import.meta.other).toBe(undefined);
 	if (typeof import.meta.other !== "undefined") require("fail");
