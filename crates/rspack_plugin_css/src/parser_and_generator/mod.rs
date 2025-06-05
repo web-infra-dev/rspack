@@ -695,7 +695,7 @@ fn get_used_exports<'a>(
 ) -> IndexMap<&'a str, &'a IndexSet<CssExport>> {
   let exports_info = mg
     .module_graph_module_by_identifier(&identifier)
-    .map(|mgm| ExportsInfoGetter::as_nested_data(&mgm.exports, mg, None));
+    .map(|mgm| ExportsInfoGetter::prefetch(&mgm.exports, mg, None));
 
   exports
     .iter()
@@ -728,7 +728,7 @@ fn get_unused_local_ident(
 ) -> CodeGenerationDataUnusedLocalIdent {
   let exports_info = mg
     .module_graph_module_by_identifier(&identifier)
-    .map(|mgm| ExportsInfoGetter::as_nested_data(&mgm.exports, mg, None));
+    .map(|mgm| ExportsInfoGetter::prefetch(&mgm.exports, mg, None));
 
   CodeGenerationDataUnusedLocalIdent {
     idents: exports

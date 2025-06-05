@@ -289,7 +289,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       )
     {
       let mut pos = 0;
-      let mut maybe_exports_info = Some(ExportsInfoGetter::as_nested_data(
+      let mut maybe_exports_info = Some(ExportsInfoGetter::prefetch(
         &module_graph.get_exports_info(&imported_module_identifier),
         module_graph,
         Some(ids),

@@ -93,7 +93,7 @@ impl ExportInfo {
     let Some(export) = target.export else {
       return Some(TerminalBinding::ExportsInfo(exports_info));
     };
-    ExportsInfoGetter::as_nested_data(&exports_info, mg, Some(&export))
+    ExportsInfoGetter::prefetch(&exports_info, mg, Some(&export))
       .get_read_only_export_info_recursive(&export)
       .map(|data| TerminalBinding::ExportInfo(data.id))
   }

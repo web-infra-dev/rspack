@@ -312,7 +312,7 @@ impl<'a> FlagDependencyExportsState<'a> {
 
       let mut target_exports_info = None;
       if let Some(target) = target {
-        let target_module_exports_info = ExportsInfoGetter::as_nested_data(
+        let target_module_exports_info = ExportsInfoGetter::prefetch(
           &self.mg.get_exports_info(&target.module),
           self.mg,
           target.export.as_deref(),

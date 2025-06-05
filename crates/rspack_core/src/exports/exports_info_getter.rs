@@ -139,18 +139,18 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
 
 #[derive(Debug, Clone)]
 pub struct PrefetchedExportsInfoData<'a> {
-  pub(crate) exports: BTreeMap<&'a Atom, PrefetchedExportInfoData<'a>>,
-  pub(crate) other_exports_info: PrefetchedExportInfoData<'a>,
+  pub exports: BTreeMap<&'a Atom, PrefetchedExportInfoData<'a>>,
+  pub other_exports_info: PrefetchedExportInfoData<'a>,
 
-  pub(crate) side_effects_only_info: PrefetchedExportInfoData<'a>,
-  pub(crate) redirect_to: Option<ExportsInfo>,
-  pub(crate) id: ExportsInfo,
+  pub side_effects_only_info: PrefetchedExportInfoData<'a>,
+  pub redirect_to: Option<ExportsInfo>,
+  pub id: ExportsInfo,
 }
 
 #[derive(Debug, Clone)]
 pub struct PrefetchedExportInfoData<'a> {
-  pub(crate) inner: &'a ExportInfoData,
-  // pub(crate) exports_info: Option<ExportsInfo>,
+  pub inner: &'a ExportInfoData,
+  // pub exports_info: Option<ExportsInfo>,
 }
 pub struct ExportsInfoGetter;
 
@@ -303,7 +303,7 @@ impl ExportsInfoGetter {
     }
   }
 
-  pub fn get_provided_exports(info: &NestedExportsInfoWrapper) -> ProvidedExports {
+  pub fn get_provided_exports(info: &PrefetchedExportsInfoWrapper) -> ProvidedExports {
     if info.data().redirect_to.is_none() {
       match ExportInfoGetter::provided(info.other_exports_info()) {
         Some(ExportProvided::Unknown) => {
@@ -345,7 +345,7 @@ impl ExportsInfoGetter {
   }
 
   pub fn get_used(
-    info: &NestedExportsInfoWrapper,
+    info: &PrefetchedExportsInfoWrapper,
     names: &[Atom],
     runtime: Option<&RuntimeSpec>,
   ) -> UsageState {

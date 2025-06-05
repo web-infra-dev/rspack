@@ -68,7 +68,7 @@ impl CommonJsExportRequireDependency {
     imported_module: &ModuleIdentifier,
   ) -> Option<FxHashSet<Atom>> {
     let ids = self.get_ids(mg);
-    let mut imported_exports_info = Some(ExportsInfoGetter::as_nested_data(
+    let mut imported_exports_info = Some(ExportsInfoGetter::prefetch(
       &mg.get_exports_info(imported_module),
       mg,
       Some(ids),
@@ -85,7 +85,7 @@ impl CommonJsExportRequireDependency {
       imported_exports_info = nested.map(|id| nested_exports_info.redirect(id));
     }
 
-    let mut exports_info = Some(ExportsInfoGetter::as_nested_data(
+    let mut exports_info = Some(ExportsInfoGetter::prefetch(
       &mg.get_exports_info(
         mg.get_parent_module(&self.id)
           .expect("Should get parent module"),
@@ -304,7 +304,7 @@ impl Dependency for CommonJsExportRequireDependency {
     if self.result_used {
       return get_full_result();
     }
-    let mut exports_info = ExportsInfoGetter::as_nested_data(
+    let mut exports_info = ExportsInfoGetter::prefetch(
       &mg.get_exports_info(
         mg.get_parent_module(&self.id)
           .expect("Can not get parent module"),

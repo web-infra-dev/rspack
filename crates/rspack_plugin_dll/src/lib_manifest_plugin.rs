@@ -141,7 +141,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
       let ident = module.lib_ident(LibIdentOptions { context });
 
       if let Some(ident) = ident {
-        let exports_info = ExportsInfoGetter::as_nested_data(
+        let exports_info = ExportsInfoGetter::prefetch(
           &module_graph.get_exports_info(&module.identifier()),
           &module_graph,
           None,

@@ -279,7 +279,7 @@ fn create_object_for_exports_info(
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
 ) -> JsonValue {
-  let exports_info_data = ExportsInfoGetter::as_nested_data(&exports_info, mg, None);
+  let exports_info_data = ExportsInfoGetter::prefetch(&exports_info, mg, None);
 
   if ExportInfoGetter::get_used(exports_info_data.other_exports_info(), runtime)
     != UsageState::Unused

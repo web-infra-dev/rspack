@@ -404,7 +404,7 @@ fn get_exports_type_impl(
   let default_object = &build_meta.default_object;
   let exports_info = mg
     .module_graph_module_by_identifier(&identifier)
-    .map(|mgm| ExportsInfoGetter::as_nested_data(&mgm.exports, mg, None));
+    .map(|mgm| ExportsInfoGetter::prefetch(&mgm.exports, mg, None));
   match export_type {
     BuildMetaExportsType::Flagged => {
       if strict {

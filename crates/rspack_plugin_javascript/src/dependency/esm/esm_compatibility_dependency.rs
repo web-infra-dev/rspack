@@ -52,7 +52,7 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
     let module = module_graph
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
-    let exports_info = ExportsInfoGetter::as_nested_data(
+    let exports_info = ExportsInfoGetter::prefetch(
       &module_graph.get_exports_info(&module.identifier()),
       &module_graph,
       None,
