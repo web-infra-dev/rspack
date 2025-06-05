@@ -4,6 +4,7 @@ use dyn_clone::{clone_trait_object, DynClone};
 use rspack_cacheable::cacheable_dyn;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_error::Diagnostic;
+use rspack_location::DependencyLocation;
 use rspack_util::{atom::Atom, ext::AsAny};
 
 use super::{
@@ -12,7 +13,7 @@ use super::{
 };
 use crate::{
   create_exports_object_referenced, AsContextDependency, ConnectionState, Context,
-  DependencyLocation, ExtendedReferencedExport, ImportAttributes, ModuleGraph, ModuleLayer,
+  ExtendedReferencedExport, ImportAttributes, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer,
   RuntimeSpec, UsedByExports,
 };
 
@@ -58,7 +59,11 @@ pub trait Dependency:
     None
   }
 
-  fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
+  fn get_exports(
+    &self,
+    _mg: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+  ) -> Option<ExportsSpec> {
     None
   }
 
@@ -103,6 +108,7 @@ pub trait Dependency:
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     create_exports_object_referenced()

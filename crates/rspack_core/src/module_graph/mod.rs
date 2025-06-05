@@ -8,7 +8,7 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  Dependency, ExportProvided, ExportsInfoGetter, PrefetchExportsInfoMode,
+  Dependency, ExportProvided, ExportsInfoGetter, ModuleGraphCacheArtifact, PrefetchExportsInfoMode,
   PrefetchedExportsInfoWrapper, RuntimeSpec,
 };
 mod module;
@@ -894,7 +894,11 @@ impl<'a> ModuleGraph<'a> {
       .and_then(|mgm| mgm.issuer().get_module(self))
   }
 
-  pub fn is_optional(&self, module_id: &ModuleIdentifier) -> bool {
+  pub fn is_optional(
+    &self,
+    module_id: &ModuleIdentifier,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+  ) -> bool {
     let mut has_connections = false;
     for connection in self.get_incoming_connections(module_id) {
       let Some(dependency) = self
@@ -903,7 +907,8 @@ impl<'a> ModuleGraph<'a> {
       else {
         return false;
       };
-      if !dependency.get_optional() || !connection.is_target_active(self, None) {
+      if !dependency.get_optional() || !connection.is_target_active(self, None, module_graph_cache)
+      {
         return false;
       }
       has_connections = true;
@@ -1118,13 +1123,16 @@ impl<'a> ModuleGraph<'a> {
     &self,
     connection: &ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
+    module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ConnectionState {
     let condition = self
       .loop_partials(|p| p.connection_to_condition.get(&connection.dependency_id))
       .expect("should have condition");
     match condition {
       DependencyCondition::False => ConnectionState::Active(false),
-      DependencyCondition::Fn(f) => f.get_connection_state(connection, runtime, self),
+      DependencyCondition::Fn(f) => {
+        f.get_connection_state(connection, runtime, self, module_graph_cache)
+      }
     }
   }
 

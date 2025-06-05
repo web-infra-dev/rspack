@@ -6,8 +6,8 @@ use rspack_core::{
   Compilation, Dependency, DependencyCodeGeneration, DependencyId, DependencyLocation,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ESMExportInitFragment, ExportNameOrSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec,
-  ModuleGraph, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SharedSourceMap,
-  TemplateContext, TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
+  ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec,
+  SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
 };
 use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
@@ -84,7 +84,11 @@ impl Dependency for ESMExportExpressionDependency {
     self.range.to_loc(self.source_map.as_ref())
   }
 
-  fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
+  fn get_exports(
+    &self,
+    _mg: &ModuleGraph,
+    _mg_cache: &ModuleGraphCacheArtifact,
+  ) -> Option<ExportsSpec> {
     Some(ExportsSpec {
       exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::String(
         JS_DEFAULT_KEYWORD.clone(),

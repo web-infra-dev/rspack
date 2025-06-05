@@ -7,8 +7,8 @@ use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ESMExportInitFragment, ExportNameOrSpec,
-  ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, PrefetchExportsInfoMode,
-  SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
+  ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphCacheArtifact,
+  PrefetchExportsInfoMode, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
@@ -62,7 +62,11 @@ impl Dependency for ESMExportSpecifierDependency {
     &DependencyType::EsmExportSpecifier
   }
 
-  fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
+  fn get_exports(
+    &self,
+    _mg: &ModuleGraph,
+    _mg_cache: &ModuleGraphCacheArtifact,
+  ) -> Option<ExportsSpec> {
     Some(ExportsSpec {
       exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::String(self.name.clone())]),
       priority: Some(1),

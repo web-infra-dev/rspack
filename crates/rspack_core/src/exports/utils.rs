@@ -13,7 +13,8 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   ConnectionState, DependencyCondition, DependencyConditionFn, DependencyId, ExportsInfoGetter,
-  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, PrefetchExportsInfoMode, RuntimeSpec,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier,
+  PrefetchExportsInfoMode, RuntimeSpec,
 };
 
 pub static NEXT_EXPORTS_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
@@ -141,6 +142,7 @@ impl DependencyConditionFn for UsedByExportsDependencyCondition {
     _conn: &ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
+    _mg_cache: &ModuleGraphCacheArtifact,
   ) -> ConnectionState {
     let module_identifier = mg
       .get_parent_module(&self.dependency_id)

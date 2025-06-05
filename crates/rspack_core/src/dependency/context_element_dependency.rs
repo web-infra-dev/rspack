@@ -12,7 +12,8 @@ use crate::{
   create_exports_object_referenced, AsContextDependency, AsDependencyCodeGeneration, Context,
   ContextMode, ContextNameSpaceObject, ContextOptions, ContextTypePrefix, Dependency,
   DependencyCategory, DependencyId, DependencyType, ExportsType, ExtendedReferencedExport,
-  ImportAttributes, ModuleDependency, ModuleGraph, ModuleLayer, ReferencedExport, RuntimeSpec,
+  ImportAttributes, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer,
+  ReferencedExport, RuntimeSpec,
 };
 
 #[cacheable]
@@ -81,6 +82,7 @@ impl Dependency for ContextElementDependency {
   fn get_referenced_exports(
     &self,
     module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     if let Some(referenced_exports) = &self.referenced_exports {
