@@ -43,6 +43,7 @@ use crate::{
     amd_require_item_dependency::AMDRequireItemDependencyTemplate,
     local_module_dependency::LocalModuleDependencyTemplate,
     unsupported_dependency::UnsupportedDependencyTemplate,
+    ImportMetaResolveDependencyTemplate, ImportMetaResolveHeaderDependencyTemplate,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
 };
@@ -134,6 +135,10 @@ async fn compilation(
   compilation.set_dependency_factory(
     DependencyType::ImportMetaContext,
     params.context_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::ImportMetaResolve,
+    params.normal_module_factory.clone(),
   );
   // ImportPlugin
   compilation.set_dependency_factory(
@@ -302,6 +307,14 @@ async fn compilation(
   compilation.set_dependency_template(
     ImportMetaContextDependencyTemplate::template_type(),
     Arc::new(ImportMetaContextDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ImportMetaResolveDependencyTemplate::template_type(),
+    Arc::new(ImportMetaResolveDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ImportMetaResolveHeaderDependencyTemplate::template_type(),
+    Arc::new(ImportMetaResolveHeaderDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
     RequireContextDependencyTemplate::template_type(),
