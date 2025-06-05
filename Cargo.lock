@@ -2751,14 +2751,14 @@ dependencies = [
 
 [[package]]
 name = "napi"
-version = "3.0.0-beta.6"
+version = "3.0.0-beta.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e0d1af803835267849e6816cc15ae1d53370e6bf8e1c721363ad50ca2ae1637"
+checksum = "738f7ddf53c70b9bbddaf876317c985640a2c89061035fa87ff171fd93193e37"
 dependencies = [
  "anyhow",
  "bitflags 2.9.1",
  "ctor",
- "napi-build",
+ "napi-build 2.2.1",
  "napi-sys",
  "nohash-hasher",
  "rustc-hash 2.1.1",
@@ -2766,6 +2766,12 @@ dependencies = [
  "serde_json",
  "tokio",
 ]
+
+[[package]]
+name = "napi-build"
+version = "2.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44e0e3177307063d3e7e55b7dd7b648cca9d7f46daa35422c0d98cc2bf48c2c1"
 
 [[package]]
 name = "napi-build"
@@ -4489,7 +4495,7 @@ dependencies = [
  "glob",
  "heck 0.5.0",
  "napi",
- "napi-build",
+ "napi-build 3.0.0-beta.0",
  "napi-derive",
  "once_cell",
  "ropey",
