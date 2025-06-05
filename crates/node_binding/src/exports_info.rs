@@ -2,7 +2,7 @@ use std::ptr::NonNull;
 
 use napi::Either;
 use napi_derive::napi;
-use rspack_core::{Compilation, ExportsInfo, ModuleGraph, RuntimeSpec};
+use rspack_core::{Compilation, ExportsInfo, ExportsInfoGetter, ModuleGraph, RuntimeSpec};
 
 use crate::JsRuntimeSpec;
 
@@ -53,11 +53,11 @@ impl JsExportsInfo {
       Either::A(str) => std::iter::once(str).map(Into::into).collect(),
       Either::B(vec) => vec.into_iter().map(Into::into).collect(),
     });
-    Ok(
-      self
-        .exports_info
-        .is_module_used(&module_graph, runtime.as_ref()),
-    )
+    let exports_info = ExportsInfoGetter::prefetch(&self.exports_info, &module_graph, None);
+    Ok(ExportsInfoGetter::is_module_used(
+      &exports_info,
+      runtime.as_ref(),
+    ))
   }
 
   #[napi(ts_args_type = "runtime: string | string[] | undefined")]

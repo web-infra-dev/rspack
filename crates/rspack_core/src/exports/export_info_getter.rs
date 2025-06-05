@@ -4,8 +4,8 @@ use itertools::Itertools;
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
 
-use super::{ExportInfoData, ExportProvided, ExportsInfo, UsageState};
-use crate::RuntimeSpec;
+use super::{ExportInfoData, ExportInfoTargetValue, ExportProvided, ExportsInfo, UsageState};
+use crate::{DependencyId, RuntimeSpec};
 
 pub struct ExportInfoGetter;
 
@@ -221,5 +221,29 @@ impl ExportInfoGetter {
 
   pub fn has_used_name(info: &ExportInfoData) -> bool {
     info.used_name.is_some()
+  }
+
+  pub fn get_max_target(
+    info: &ExportInfoData,
+  ) -> Cow<HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
+    if info.target.len() <= 1 {
+      return Cow::Borrowed(&info.target);
+    }
+    let mut max_priority = u8::MIN;
+    let mut min_priority = u8::MAX;
+    for value in info.target.values() {
+      max_priority = max_priority.max(value.priority);
+      min_priority = min_priority.min(value.priority);
+    }
+    if max_priority == min_priority {
+      return Cow::Borrowed(&info.target);
+    }
+    let mut map = HashMap::default();
+    for (k, v) in info.target.iter() {
+      if max_priority == v.priority {
+        map.insert(*k, v.clone());
+      }
+    }
+    Cow::Owned(map)
   }
 }

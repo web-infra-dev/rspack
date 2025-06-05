@@ -8,7 +8,7 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  Dependency, ExportProvided, ProvidedExports, RuntimeSpec, UsedExports,
+  Dependency, ExportProvided, ExportsInfoGetter, ProvidedExports, RuntimeSpec, UsedExports,
 };
 mod module;
 pub use module::*;
@@ -1139,9 +1139,10 @@ impl<'a> ModuleGraph<'a> {
     id: &ModuleIdentifier,
     names: &[Atom],
   ) -> Option<ExportProvided> {
-    self
-      .module_graph_module_by_identifier(id)
-      .and_then(|mgm| mgm.exports.is_export_provided(self, names))
+    self.module_graph_module_by_identifier(id).and_then(|mgm| {
+      let exports_info = ExportsInfoGetter::prefetch(&mgm.exports, self, Some(names));
+      ExportsInfoGetter::is_export_provided(&exports_info, names)
+    })
   }
 
   // todo remove it after module_graph_partial remove all of dependency_id_to_*

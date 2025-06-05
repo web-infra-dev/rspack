@@ -307,7 +307,8 @@ impl<'a> FlagDependencyExportsState<'a> {
       }
 
       // Recalculate target exportsInfo
-      let target = export_info.get_target(self.mg);
+      let export_info_data = export_info.as_data(self.mg);
+      let target = export_info_data.get_target(self.mg);
 
       let mut target_exports_info: Option<ExportsInfo> = None;
       if let Some(target) = target {
