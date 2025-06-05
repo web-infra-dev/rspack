@@ -65,6 +65,7 @@ impl Task<LoadTaskContext> for OverwriteTask {
     // build result task
     if let Some(build_result_task) = origin_task.as_any().downcast_ref::<BuildResultTask>() {
       let module_identifier = build_result_task.module.identifier();
+      // ignore create sub module tasks
       let _ = origin_task.main_run(origin_context).await?;
       return Ok(tracker.on_build_result(origin_context, &module_identifier));
     }
