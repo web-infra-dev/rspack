@@ -145,8 +145,7 @@ impl DependencyConditionFn for UsedByExportsDependencyCondition {
     let module_identifier = mg
       .get_parent_module(&self.dependency_id)
       .expect("should have parent module");
-    let exports_info =
-      ExportsInfoGetter::prefetch(&mg.get_exports_info(module_identifier), mg, None);
+    let exports_info = mg.get_prefetched_exports_info(module_identifier, None);
     for export_name in self.used_by_exports.iter() {
       if ExportsInfoGetter::get_used(&exports_info, std::slice::from_ref(export_name), runtime)
         != UsageState::Unused

@@ -6,8 +6,8 @@ use rspack_core::{
   incremental::{self, IncrementalPasses},
   ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
   DependenciesBlock, DependencyId, ExportInfoGetter, ExportInfoSetter, ExportNameOrSpec,
-  ExportProvided, ExportsInfo, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, Logger,
-  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, Plugin, PluginContext,
+  ExportProvided, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, Logger, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -312,11 +312,9 @@ impl<'a> FlagDependencyExportsState<'a> {
 
       let mut target_exports_info = None;
       if let Some(target) = target {
-        let target_module_exports_info = ExportsInfoGetter::prefetch(
-          &self.mg.get_exports_info(&target.module),
-          self.mg,
-          target.export.as_deref(),
-        );
+        let target_module_exports_info = self
+          .mg
+          .get_prefetched_exports_info(&target.module, target.export.as_deref());
         target_exports_info = target_module_exports_info
           .get_nested_exports_info(target.export.as_deref())
           .map(|data| data.id);

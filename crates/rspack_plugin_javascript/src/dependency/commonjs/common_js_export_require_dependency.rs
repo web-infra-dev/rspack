@@ -7,10 +7,9 @@ use rspack_core::{
   module_raw, process_export_info, property_access, AsContextDependency, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportInfoGetter, ExportNameOrSpec, ExportProvided,
-  ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  Nullable, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedName,
+  ExportSpec, ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
+  FactorizeInfo, ModuleDependency, ModuleGraph, ModuleIdentifier, Nullable, ReferencedExport,
+  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
@@ -68,11 +67,8 @@ impl CommonJsExportRequireDependency {
     imported_module: &ModuleIdentifier,
   ) -> Option<FxHashSet<Atom>> {
     let ids = self.get_ids(mg);
-    let mut imported_exports_info = Some(ExportsInfoGetter::prefetch(
-      &mg.get_exports_info(imported_module),
-      mg,
-      Some(ids),
-    ));
+    let mut imported_exports_info =
+      Some(mg.get_prefetched_exports_info(imported_module, Some(ids)));
 
     if !ids.is_empty() {
       let Some(nested_exports_info) = &imported_exports_info else {
@@ -85,14 +81,13 @@ impl CommonJsExportRequireDependency {
       imported_exports_info = nested.map(|id| nested_exports_info.redirect(id));
     }
 
-    let mut exports_info = Some(ExportsInfoGetter::prefetch(
-      &mg.get_exports_info(
+    let mut exports_info = Some(
+      mg.get_prefetched_exports_info(
         mg.get_parent_module(&self.id)
           .expect("Should get parent module"),
+        Some(&self.names),
       ),
-      mg,
-      Some(&self.names),
-    ));
+    );
 
     if !self.names.is_empty() {
       let Some(nested_exports_info) = &exports_info else {
@@ -304,12 +299,9 @@ impl Dependency for CommonJsExportRequireDependency {
     if self.result_used {
       return get_full_result();
     }
-    let mut exports_info = ExportsInfoGetter::prefetch(
-      &mg.get_exports_info(
-        mg.get_parent_module(&self.id)
-          .expect("Can not get parent module"),
-      ),
-      mg,
+    let mut exports_info = mg.get_prefetched_exports_info(
+      mg.get_parent_module(&self.id)
+        .expect("Can not get parent module"),
       Some(&self.names),
     );
 

@@ -139,11 +139,8 @@ impl ESMExportImportedSpecifierDependency {
     let parent_module = module_graph
       .get_parent_module(id)
       .expect("should have parent module");
-    let exports_info = ExportsInfoGetter::prefetch(
-      &module_graph.get_exports_info(parent_module),
-      module_graph,
-      name.as_ref().map(std::slice::from_ref),
-    );
+    let exports_info = module_graph
+      .get_prefetched_exports_info(parent_module, name.as_ref().map(std::slice::from_ref));
 
     let is_name_unused = if let Some(ref name) = name {
       ExportsInfoGetter::get_used(&exports_info, std::slice::from_ref(name), runtime)
@@ -303,11 +300,8 @@ impl ESMExportImportedSpecifierDependency {
       module_graph,
       None,
     );
-    let imported_exports_info = ExportsInfoGetter::prefetch(
-      &module_graph.get_exports_info(imported_module_identifier),
-      module_graph,
-      None,
-    );
+    let imported_exports_info =
+      module_graph.get_prefetched_exports_info(imported_module_identifier, None);
 
     let no_extra_exports = matches!(
       ExportInfoGetter::provided(imported_exports_info.other_exports_info()),
@@ -966,9 +960,8 @@ impl ESMExportImportedSpecifierDependency {
         if conflicting_module.identifier() == imported_module.identifier() {
           continue;
         }
-        let conflicting_exports_info = module_graph
-          .module_graph_module_by_identifier(&conflicting_module.identifier())
-          .map(|mgm| ExportsInfoGetter::prefetch(&mgm.exports, module_graph, None));
+        let conflicting_exports_info =
+          module_graph.get_prefetched_exports_info_optional(&conflicting_module.identifier(), None);
         let Some(conflicting_export_info) =
           conflicting_exports_info.map(|info| info.get_read_only_export_info(name).id())
         else {

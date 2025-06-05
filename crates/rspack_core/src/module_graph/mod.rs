@@ -8,8 +8,8 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  Dependency, ExportProvided, ExportsInfoGetter, PrefetchedExportsInfoWrapper, ProvidedExports,
-  RuntimeSpec, UsedExports,
+  Dependency, ExportsInfoGetter, PrefetchedExportsInfoWrapper, ProvidedExports, RuntimeSpec,
+  UsedExports,
 };
 mod module;
 pub use module::*;
@@ -1019,6 +1019,16 @@ impl<'a> ModuleGraph<'a> {
       .id()
   }
 
+  pub fn get_prefetched_exports_info_optional(
+    &self,
+    module_identifier: &ModuleIdentifier,
+    names: Option<&[Atom]>,
+  ) -> Option<PrefetchedExportsInfoWrapper<'_>> {
+    self
+      .module_graph_module_by_identifier(module_identifier)
+      .map(|mgm| ExportsInfoGetter::prefetch(&mgm.exports, self, names))
+  }
+
   pub fn get_prefetched_exports_info(
     &self,
     module_identifier: &ModuleIdentifier,
@@ -1132,21 +1142,6 @@ impl<'a> ModuleGraph<'a> {
       DependencyCondition::False => ConnectionState::Active(false),
       DependencyCondition::Fn(f) => f.get_connection_state(connection, runtime, self),
     }
-  }
-
-  // returns: Option<bool>
-  //   - None: it's unknown
-  //   - Some(true): provided
-  //   - Some(false): not provided
-  pub fn is_export_provided(
-    &self,
-    id: &ModuleIdentifier,
-    names: &[Atom],
-  ) -> Option<ExportProvided> {
-    self.module_graph_module_by_identifier(id).and_then(|mgm| {
-      let exports_info = ExportsInfoGetter::prefetch(&mgm.exports, self, Some(names));
-      ExportsInfoGetter::is_export_provided(&exports_info, names)
-    })
   }
 
   // todo remove it after module_graph_partial remove all of dependency_id_to_*

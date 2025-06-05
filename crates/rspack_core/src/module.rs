@@ -31,9 +31,9 @@ use crate::{
   AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
   ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation, CompilationAsset, CompilationId,
   CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
-  DependenciesBlock, DependencyId, ExportInfoGetter, ExportProvided, ExportsInfoGetter,
-  ExternalModule, ModuleGraph, ModuleLayer, ModuleType, NormalModule, RawModule, Resolve,
-  ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
+  DependenciesBlock, DependencyId, ExportInfoGetter, ExportProvided, ExternalModule, ModuleGraph,
+  ModuleLayer, ModuleType, NormalModule, RawModule, Resolve, ResolverFactory, RuntimeSpec,
+  SelfModule, SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext {
@@ -402,9 +402,7 @@ fn get_exports_type_impl(
 ) -> ExportsType {
   let export_type = &build_meta.exports_type;
   let default_object = &build_meta.default_object;
-  let exports_info = mg
-    .module_graph_module_by_identifier(&identifier)
-    .map(|mgm| ExportsInfoGetter::prefetch(&mgm.exports, mg, None));
+  let exports_info = mg.get_prefetched_exports_info_optional(&identifier, None);
   match export_type {
     BuildMetaExportsType::Flagged => {
       if strict {

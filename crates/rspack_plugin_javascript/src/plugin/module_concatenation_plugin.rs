@@ -970,10 +970,9 @@ impl ModuleConcatenationPlugin {
         chunk_runtime.extend(r);
       }
       let module_graph = compilation.get_module_graph();
-      let exports_info = module_graph.get_exports_info(current_root);
+      let exports_info = module_graph.get_prefetched_exports_info(current_root, None);
       let filtered_runtime = filter_runtime(Some(&chunk_runtime), |r| {
-        let exports_info_data = ExportsInfoGetter::prefetch(&exports_info, &module_graph, None);
-        ExportsInfoGetter::is_module_used(&exports_info_data, r)
+        ExportsInfoGetter::is_module_used(&exports_info, r)
       });
       let active_runtime = match filtered_runtime {
         RuntimeCondition::Boolean(true) => Some(chunk_runtime.clone()),

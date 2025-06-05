@@ -72,28 +72,26 @@ impl ExportInfoDependency {
       });
     }
 
-    let exports_info = module_graph.get_exports_info(&module_identifier);
-    let exports_info_data =
-      ExportsInfoGetter::prefetch(&exports_info, &module_graph, Some(export_name));
+    let exports_info =
+      module_graph.get_prefetched_exports_info(&module_identifier, Some(export_name));
 
     match prop.to_string().as_str() {
       "canMangle" => {
         let can_mangle = if let Some(export_info) =
-          exports_info_data.get_read_only_export_info_recursive(export_name)
+          exports_info.get_read_only_export_info_recursive(export_name)
         {
           ExportInfoGetter::can_mangle(export_info)
         } else {
-          ExportInfoGetter::can_mangle(exports_info_data.other_exports_info())
+          ExportInfoGetter::can_mangle(exports_info.other_exports_info())
         };
         can_mangle.map(|v| v.to_string())
       }
       "used" => {
-        let used = ExportsInfoGetter::get_used(&exports_info_data, &export_name.clone(), *runtime);
+        let used = ExportsInfoGetter::get_used(&exports_info, &export_name.clone(), *runtime);
         Some((!matches!(used, UsageState::Unused)).to_string())
       }
       "useInfo" => {
-        let used_state =
-          ExportsInfoGetter::get_used(&exports_info_data, &export_name.clone(), *runtime);
+        let used_state = ExportsInfoGetter::get_used(&exports_info, &export_name.clone(), *runtime);
         Some(
           (match used_state {
             UsageState::Used => "true",
@@ -106,7 +104,7 @@ impl ExportInfoDependency {
         )
       }
       "provideInfo" => {
-        ExportsInfoGetter::is_export_provided(&exports_info_data, export_name).map(|provided| {
+        ExportsInfoGetter::is_export_provided(&exports_info, export_name).map(|provided| {
           (match provided {
             ExportProvided::Provided => "true",
             ExportProvided::NotProvided => "false",

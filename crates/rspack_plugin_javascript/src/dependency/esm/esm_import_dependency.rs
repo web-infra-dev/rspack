@@ -282,18 +282,17 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       return None;
     }
     let imported_module_identifier = imported_module.identifier();
+    let exports_info =
+      module_graph.get_prefetched_exports_info(&imported_module_identifier, Some(ids));
     if (!matches!(exports_type, ExportsType::DefaultWithNamed) || ids[0] != "default")
       && matches!(
-        module_graph.is_export_provided(&imported_module_identifier, ids),
+        ExportsInfoGetter::is_export_provided(&exports_info, ids),
         Some(ExportProvided::NotProvided)
       )
     {
       let mut pos = 0;
-      let mut maybe_exports_info = Some(ExportsInfoGetter::prefetch(
-        &module_graph.get_exports_info(&imported_module_identifier),
-        module_graph,
-        Some(ids),
-      ));
+      let mut maybe_exports_info =
+        Some(module_graph.get_prefetched_exports_info(&imported_module_identifier, Some(ids)));
       while pos < ids.len()
         && let Some(exports_info) = &maybe_exports_info
       {

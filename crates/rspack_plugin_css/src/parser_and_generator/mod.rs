@@ -16,10 +16,10 @@ use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
   BoxDependencyTemplate, BoxModuleDependency, BuildMetaDefaultObject, BuildMetaExportsType,
   ChunkGraph, Compilation, ConstDependency, CssExportsConvention, Dependency, DependencyId,
-  DependencyRange, DependencyType, ExportInfoGetter, ExportsInfoGetter, GenerateContext,
-  LocalIdentName, Module, ModuleGraph, ModuleIdentifier, ModuleInitFragments, ModuleType,
-  NormalModule, ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, RuntimeSpec,
-  SourceType, TemplateContext, UsageState,
+  DependencyRange, DependencyType, ExportInfoGetter, GenerateContext, LocalIdentName, Module,
+  ModuleGraph, ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext,
+  ParseResult, ParserAndGenerator, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext,
+  UsageState,
 };
 use rspack_error::{
   miette::Diagnostic, IntoTWithDiagnosticArray, Result, RspackSeverity, TWithDiagnosticArray,
@@ -693,9 +693,7 @@ fn get_used_exports<'a>(
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
 ) -> IndexMap<&'a str, &'a IndexSet<CssExport>> {
-  let exports_info = mg
-    .module_graph_module_by_identifier(&identifier)
-    .map(|mgm| ExportsInfoGetter::prefetch(&mgm.exports, mg, None));
+  let exports_info = mg.get_prefetched_exports_info_optional(&identifier, None);
 
   exports
     .iter()
@@ -726,9 +724,7 @@ fn get_unused_local_ident(
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
 ) -> CodeGenerationDataUnusedLocalIdent {
-  let exports_info = mg
-    .module_graph_module_by_identifier(&identifier)
-    .map(|mgm| ExportsInfoGetter::prefetch(&mgm.exports, mg, None));
+  let exports_info = mg.get_prefetched_exports_info_optional(&identifier, None);
 
   CodeGenerationDataUnusedLocalIdent {
     idents: exports

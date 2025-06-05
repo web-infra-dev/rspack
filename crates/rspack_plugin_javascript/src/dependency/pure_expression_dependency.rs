@@ -40,11 +40,7 @@ impl PureExpressionDependency {
       Some(UsedByExports::Bool(false)) => RuntimeCondition::Boolean(false),
       Some(UsedByExports::Set(ref set)) => {
         let module_graph = compilation.get_module_graph();
-        let exports_info = ExportsInfoGetter::prefetch(
-          &module_graph.get_exports_info(&self.module_identifier),
-          &module_graph,
-          None,
-        );
+        let exports_info = module_graph.get_prefetched_exports_info(&self.module_identifier, None);
         filter_runtime(runtime, |cur_runtime| {
           set.iter().any(|id| {
             ExportsInfoGetter::get_used(&exports_info, std::slice::from_ref(id), cur_runtime)
