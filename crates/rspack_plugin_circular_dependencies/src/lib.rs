@@ -108,6 +108,7 @@ impl AggregatedDependency {
           | DependencyType::LazyImport
           | DependencyType::ImportMetaHotAccept
           | DependencyType::ImportMetaHotDecline
+          | DependencyType::ImportMetaResolve
           | DependencyType::ModuleHotAccept
           | DependencyType::ModuleHotDecline
           | DependencyType::RequireResolve
