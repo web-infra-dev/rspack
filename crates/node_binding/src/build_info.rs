@@ -6,8 +6,9 @@ use napi::{
   },
   Env, JsString, JsValue, Property, PropertyAttributes, Unknown,
 };
+use once_cell::unsync::OnceCell;
 use rspack_core::{Reflector, WeakBindingCell};
-use rspack_napi::unknown_to_json_value;
+use rspack_napi::{unknown_to_json_value, OneShotRef};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::Module;
@@ -213,8 +214,8 @@ impl ToNapiValue for BuildInfo {
     let napi_val = ToNapiValue::to_napi_value(env, known)?;
     let mut object = Object::from_raw(env, napi_val);
 
-    let serialize_fn: napi::bindgen_prelude::Function<'_, (), ()> = env_wrapper
-      .create_function_from_closure("serialize", |ctx| {
+    let sync_custom_fields_fn: napi::bindgen_prelude::Function<'_, (), ()> = env_wrapper
+      .create_function_from_closure("syncCustomFields", |ctx| {
         let object = ctx.this::<Object>()?;
         let env = ctx.env;
         let this: &mut KnownBuildInfo = FromNapiMutRef::from_napi_mut_ref(env.raw(), object.raw())?;
@@ -245,17 +246,41 @@ impl ToNapiValue for BuildInfo {
       properties.reserve(extras.len() + 1);
       for (key, value) in extras {
         let napi_val = ToNapiValue::to_napi_value(env, value)?;
-        properties.push(Property::new(key)?.with_value(&Object::from_raw(env, napi_val)));
+        properties.push(
+          Property::new()
+            .with_utf8_name(key)?
+            .with_value(&Object::from_raw(env, napi_val)),
+        );
       }
       Ok(())
     })?;
-    properties.push(
-      Property::new("serialize")?
-        .with_value(&serialize_fn)
-        .with_property_attributes(PropertyAttributes::Configurable),
-    );
+    SYNC_CUSTOM_FIELDS_SYMBOL.with(|once_cell| {
+      let symbol = once_cell.get().unwrap();
+      properties.push(
+        Property::new()
+          .with_name(&env_wrapper, symbol)?
+          .with_value(&sync_custom_fields_fn)
+          .with_property_attributes(PropertyAttributes::Configurable),
+      );
+      Ok::<(), napi::Error>(())
+    })?;
     object.define_properties(&properties)?;
 
     Ok(napi_val)
   }
+}
+
+thread_local! {
+  pub(crate) static SYNC_CUSTOM_FIELDS_SYMBOL: OnceCell<OneShotRef> = Default::default();
+}
+
+pub(super) fn init(mut exports: Object, env: Env) -> napi::Result<()> {
+  let sync_custom_fields_symbol =
+    OneShotRef::new(env.raw(), env.create_symbol(Some("SYNC_CUSTOM_FIELDS"))?)?;
+  exports.set_named_property("SYNC_CUSTOM_FIELDS_SYMBOL", &sync_custom_fields_symbol)?;
+  SYNC_CUSTOM_FIELDS_SYMBOL.with(|once_cell| {
+    once_cell.get_or_init(move || sync_custom_fields_symbol);
+  });
+
+  Ok(())
 }

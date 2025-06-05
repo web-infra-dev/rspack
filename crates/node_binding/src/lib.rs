@@ -497,6 +497,7 @@ fn node_init(mut _exports: Object, env: Env) -> Result<()> {
 pub fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
   node_init(exports, env)?;
   module::init(exports, env)?;
+  build_info::init(exports, env)?;
   Ok(())
 }
 
