@@ -14,6 +14,8 @@ export const MODULE_IDENTIFIER_SYMBOL: unique symbol;
 
 export const COMPILATION_HOOKS_MAP_SYMBOL: unique symbol;
 
+export type BuildInfo = KnownBuildInfo & Record<string, any>;
+
 export interface Module {
 	[MODULE_IDENTIFIER_SYMBOL]: string;
 	readonly type: string;
@@ -24,8 +26,8 @@ export interface Module {
 	get useSourceMap(): boolean;
 	get useSimpleSourceMap(): boolean;
 	get _readableIdentifier(): string;
-	buildInfo: KnownBuildInfo & Record<string, any>;
-	buildMeta: KnownBuildInfo & Record<string, any>;
+	buildInfo: BuildInfo;
+	buildMeta: Record<string, any>;
 }
 
 interface NormalModuleConstructor {

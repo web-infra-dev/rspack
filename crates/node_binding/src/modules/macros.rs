@@ -141,7 +141,7 @@ macro_rules! impl_module_methods {
           if let Some(r) = &reference.build_info_ref {
             return r.as_object(env);
           }
-          let mut build_info = $crate::KnownBuildInfo::new(reference.downgrade()).get_jsobject(env)?;
+          let mut build_info = $crate::BuildInfo::new(reference.downgrade()).get_jsobject(env)?;
           $crate::MODULE_BUILD_INFO_SYMBOL.with(|once_cell| {
             let sym = unsafe {
               #[allow(clippy::unwrap_used)]
@@ -166,7 +166,7 @@ macro_rules! impl_module_methods {
           let raw_env = env.raw();
           let mut reference: napi::bindgen_prelude::Reference<Module> =
             unsafe { napi::bindgen_prelude::Reference::from_napi_value(raw_env, this.raw())? };
-          let new_build_info = $crate::KnownBuildInfo::new(reference.downgrade());
+          let new_build_info = $crate::BuildInfo::new(reference.downgrade());
           let mut new_instrance = new_build_info.get_jsobject(env)?;
 
           let names = input_object.get_all_property_names(

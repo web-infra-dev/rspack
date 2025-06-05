@@ -1101,7 +1101,12 @@ export async function runLoaders(
 			id2: resource
 		}
 	});
-	context._module.buildInfo.serializeCustomFields();
+
+	if (compiler.options.experiments.cache && compiler.options?.cache) {
+		// Serialize buildInfo to the Rust side for later persistent caching by Rust.
+		context._module.buildInfo.serialize();
+	}
+
 	return context;
 }
 
