@@ -12,13 +12,13 @@ use rspack_core::{
   ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ESMExportInitFragment, ExportInfoGetter, ExportMode, ExportModeType, ExportNameOrSpec,
-  ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec,
-  ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, JavascriptParserOptions, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
-  RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap, StarReexportsInfo, Template,
-  TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  DetermineExportAssignmentsKind, ESMExportInitFragment, ExportInfoGetter, ExportMode,
+  ExportModeType, ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfo,
+  ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
+  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment,
+  NormalReexportItem, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap,
+  StarReexportsInfo, Template, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -474,11 +474,10 @@ impl ESMExportImportedSpecifierDependency {
     if let Some(all_star_exports) = self.all_star_exports(module_graph)
       && !all_star_exports.is_empty()
     {
-      let key = (all_star_exports.to_vec(), None);
-      let (names, dependency_indices) = module_graph_cache
-        .cached_determine_export_assignments(key, || {
-          determine_export_assignments(module_graph, all_star_exports, None)
-        });
+      let (names, dependency_indices) = module_graph_cache.cached_determine_export_assignments(
+        (self.id, DetermineExportAssignmentsKind::All),
+        || determine_export_assignments(module_graph, all_star_exports, None),
+      );
 
       return Some(DiscoverActiveExportsFromOtherStarExportsRet {
         names,
@@ -489,11 +488,10 @@ impl ESMExportImportedSpecifierDependency {
     }
 
     if let Some(other_star_exports) = &self.other_star_exports {
-      let key = (other_star_exports.to_vec(), None);
-      let (names, dependency_indices) = module_graph_cache
-        .cached_determine_export_assignments(key, || {
-          determine_export_assignments(module_graph, other_star_exports, Some(self.id))
-        });
+      let (names, dependency_indices) = module_graph_cache.cached_determine_export_assignments(
+        (self.id, DetermineExportAssignmentsKind::Other),
+        || determine_export_assignments(module_graph, other_star_exports, Some(self.id)),
+      );
       return Some(DiscoverActiveExportsFromOtherStarExportsRet {
         names,
         names_slice: dependency_indices[i - 1],
