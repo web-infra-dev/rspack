@@ -344,15 +344,16 @@ impl ExternalModule {
           .map(|s| s.as_str())
           .expect("should have module id");
         let external_variable = format!("__WEBPACK_EXTERNAL_MODULE_{}__", to_identifier(id));
-        let check_external_variable = if module_graph.is_optional(&self.id) {
-          format!(
-            "if(typeof {} === 'undefined') {{ {} }}\n",
-            external_variable,
-            throw_missing_module_error_block(&self.user_request)
-          )
-        } else {
-          String::new()
-        };
+        let check_external_variable =
+          if module_graph.is_optional(&self.id, &compilation.module_graph_cache_artifact) {
+            format!(
+              "if(typeof {} === 'undefined') {{ {} }}\n",
+              external_variable,
+              throw_missing_module_error_block(&self.user_request)
+            )
+          } else {
+            String::new()
+          };
         format!(
           "{}{} = {};",
           check_external_variable,
@@ -367,15 +368,16 @@ impl ExternalModule {
       ),
       "var" | "promise" | "const" | "let" | "assign" if let Some(request) = request => {
         let external_variable = get_request_string(request);
-        let check_external_variable = if module_graph.is_optional(&self.id) {
-          format!(
-            "if(typeof {} === 'undefined') {{ {} }}\n",
-            external_variable,
-            throw_missing_module_error_block(&get_request_string(request))
-          )
-        } else {
-          String::new()
-        };
+        let check_external_variable =
+          if module_graph.is_optional(&self.id, &compilation.module_graph_cache_artifact) {
+            format!(
+              "if(typeof {} === 'undefined') {{ {} }}\n",
+              external_variable,
+              throw_missing_module_error_block(&get_request_string(request))
+            )
+          } else {
+            String::new()
+          };
         format!(
           "{}{} = {};",
           check_external_variable,
@@ -481,15 +483,16 @@ if(typeof {global} !== "undefined") return resolve();
       _ => {
         if let Some(request) = request {
           let external_variable = get_request_string(request);
-          let check_external_variable = if module_graph.is_optional(&self.id) {
-            format!(
-              "if(typeof {} === 'undefined') {{ {} }}\n",
-              external_variable,
-              throw_missing_module_error_block(&get_request_string(request))
-            )
-          } else {
-            String::new()
-          };
+          let check_external_variable =
+            if module_graph.is_optional(&self.id, &compilation.module_graph_cache_artifact) {
+              format!(
+                "if(typeof {} === 'undefined') {{ {} }}\n",
+                external_variable,
+                throw_missing_module_error_block(&get_request_string(request))
+              )
+            } else {
+              String::new()
+            };
           format!(
             "{}{} = {};",
             check_external_variable,
@@ -723,7 +726,9 @@ impl Module for ExternalModule {
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHash::from(&compilation.options.output);
     self.id.dyn_hash(&mut hasher);
-    let is_optional = compilation.get_module_graph().is_optional(&self.id);
+    let is_optional = compilation
+      .get_module_graph()
+      .is_optional(&self.id, &compilation.module_graph_cache_artifact);
     is_optional.dyn_hash(&mut hasher);
     module_update_hash(self, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))

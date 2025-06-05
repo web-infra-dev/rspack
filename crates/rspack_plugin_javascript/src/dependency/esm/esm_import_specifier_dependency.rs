@@ -9,8 +9,9 @@ use rspack_core::{
   DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExportPresenceMode, ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes,
-  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleReferenceOptions, RuntimeSpec,
-  SharedSourceMap, Template, TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
+  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleReferenceOptions, RuntimeSpec, SharedSourceMap, Template, TemplateContext,
+  TemplateReplaceSource, UsedByExports, UsedName,
 };
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
@@ -208,6 +209,7 @@ impl Dependency for ESMImportSpecifierDependency {
   fn get_referenced_exports(
     &self,
     module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     let mut ids = self.get_ids(module_graph);
@@ -325,7 +327,11 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
     let reference_mgm = module_graph.module_graph_module_by_dependency_id(&dep.id);
     let connection = module_graph.connection_by_dependency_id(&dep.id);
     let is_target_active = if let Some(con) = connection {
-      con.is_target_active(&module_graph, *runtime)
+      con.is_target_active(
+        &module_graph,
+        *runtime,
+        &compilation.module_graph_cache_artifact,
+      )
     } else {
       true
     };

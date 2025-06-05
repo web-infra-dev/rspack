@@ -7,8 +7,8 @@ use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ESMExportInitFragment, ExportNameOrSpec,
-  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, UsedName,
+  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphCacheArtifact, SharedSourceMap,
+  TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -61,7 +61,11 @@ impl Dependency for ESMExportSpecifierDependency {
     &DependencyType::EsmExportSpecifier
   }
 
-  fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
+  fn get_exports(
+    &self,
+    _mg: &ModuleGraph,
+    _mg_cache: &ModuleGraphCacheArtifact,
+  ) -> Option<ExportsSpec> {
     Some(ExportsSpec {
       exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::String(self.name.clone())]),
       priority: Some(1),

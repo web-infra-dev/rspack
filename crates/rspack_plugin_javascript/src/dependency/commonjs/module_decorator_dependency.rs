@@ -3,8 +3,8 @@ use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, AsContextDependency, ChunkGraph,
   Compilation, Dependency, DependencyCodeGeneration, DependencyId, DependencyTemplate,
   DependencyTemplateType, DependencyType, FactorizeInfo, InitFragmentKey, InitFragmentStage,
-  ModuleDependency, NormalInitFragment, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  ModuleDependency, ModuleGraphCacheArtifact, NormalInitFragment, RuntimeGlobals, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
@@ -79,6 +79,7 @@ impl Dependency for ModuleDecoratorDependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &rspack_core::ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<rspack_core::ExtendedReferencedExport> {
     if self.allow_exports_access {

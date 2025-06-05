@@ -24,7 +24,8 @@ use crate::{
   merge_runtime, AsyncDependenciesBlockIdentifier, ChunkGroup, ChunkGroupKind, ChunkGroupOptions,
   ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, ConnectionState, DependenciesBlock,
   DependencyId, DependencyLocation, EntryDependency, EntryRuntime, GroupOptions, Logger,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, RuntimeSpec, SyntheticDependencyLocation,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, RuntimeSpec,
+  SyntheticDependencyLocation,
 };
 
 type IndexMap<K, V, H = FxHasher> = RawIndexMap<K, V, BuildHasherDefault<H>>;
@@ -310,13 +311,14 @@ fn get_active_state_of_connections(
   connections: &[DependencyId],
   runtime: Option<&RuntimeSpec>,
   module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
 ) -> ConnectionState {
   let mut iter = connections.iter();
   let id = iter.next().expect("should have connection");
   let mut merged = module_graph
     .connection_by_dependency_id(id)
     .expect("should have connection")
-    .active_state(module_graph, runtime);
+    .active_state(module_graph, runtime, module_graph_cache);
   if merged.is_true() {
     return merged;
   }
@@ -324,7 +326,7 @@ fn get_active_state_of_connections(
     let c = module_graph
       .connection_by_dependency_id(c)
       .expect("should have connection");
-    merged = merged + c.active_state(module_graph, runtime);
+    merged = merged + c.active_state(module_graph, runtime, module_graph_cache);
     if merged.is_true() {
       return merged;
     }
@@ -1648,8 +1650,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let modules = map
         .get_mut(&block_id)
         .expect("should have modules in block_modules_runtime_map");
-      let active_state =
-        get_active_state_of_connections(&connections, runtime, &compilation.get_module_graph());
+      let active_state = get_active_state_of_connections(
+        &connections,
+        runtime,
+        &compilation.get_module_graph(),
+        &compilation.module_graph_cache_artifact,
+      );
       modules.push((module_identifier, active_state, connections));
     }
   }
@@ -1771,6 +1777,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             connections,
             Some(&cgi.runtime),
             &compilation.get_module_graph(),
+            &compilation.module_graph_cache_artifact,
           );
           if active_state.is_false() {
             continue;

@@ -304,7 +304,8 @@ impl ChunkGraph {
       if visited_modules.contains(module_identifier) {
         continue;
       }
-      let active_state = connection.active_state(&mg, runtime);
+      let active_state =
+        connection.active_state(&mg, runtime, &compilation.module_graph_cache_artifact);
       if active_state.is_false() {
         continue;
       }
@@ -313,7 +314,11 @@ impl ChunkGraph {
         runtime,
         |runtime| {
           let runtime = runtime.map(|r| RuntimeSpec::from_iter([r.as_str().into()]));
-          let active_state = connection.active_state(&mg, runtime.as_ref());
+          let active_state = connection.active_state(
+            &mg,
+            runtime.as_ref(),
+            &compilation.module_graph_cache_artifact,
+          );
           active_state.hash(&mut hasher);
         },
         true,

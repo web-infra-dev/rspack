@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use rspack_cacheable::cacheable;
 
-use crate::{DependencyId, ModuleGraph, ModuleIdentifier, RuntimeSpec};
+use crate::{DependencyId, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, RuntimeSpec};
 
 #[cacheable]
 #[derive(Debug, Clone, Eq)]
@@ -56,12 +56,17 @@ impl ModuleGraphConnection {
     self.active = value;
   }
 
-  pub fn is_active(&self, module_graph: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> bool {
+  pub fn is_active(
+    &self,
+    module_graph: &ModuleGraph,
+    runtime: Option<&RuntimeSpec>,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+  ) -> bool {
     if !self.conditional {
       return self.active;
     }
     module_graph
-      .get_condition_state(self, runtime)
+      .get_condition_state(self, runtime, module_graph_cache)
       .is_not_false()
   }
 
@@ -69,23 +74,27 @@ impl ModuleGraphConnection {
     &self,
     module_graph: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
+    module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> bool {
     if !self.conditional {
       return self.active;
     }
-    module_graph.get_condition_state(self, runtime).is_true()
+    module_graph
+      .get_condition_state(self, runtime, module_graph_cache)
+      .is_true()
   }
 
   pub fn active_state(
     &self,
     module_graph: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
+    module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ConnectionState {
     if !self.conditional {
       return ConnectionState::Active(self.active);
     }
 
-    module_graph.get_condition_state(self, runtime)
+    module_graph.get_condition_state(self, runtime, module_graph_cache)
   }
 
   pub fn module_identifier(&self) -> &ModuleIdentifier {

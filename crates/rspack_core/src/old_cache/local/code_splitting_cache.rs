@@ -106,7 +106,14 @@ impl CodeSplittingCache {
 
         'outer: for (m, connections) in active_modules {
           for conn in connections {
-            if conn.active_state(&module_graph, None).is_not_false() {
+            if conn
+              .active_state(
+                &module_graph,
+                None,
+                &this_compilation.module_graph_cache_artifact,
+              )
+              .is_not_false()
+            {
               res.push(m);
               continue 'outer;
             }
@@ -239,7 +246,11 @@ impl CodeSplittingCache {
 
       'outer: for (m, conns) in current_outgoings_map.iter() {
         for conn in conns {
-          let conn_state = conn.active_state(&module_graph, None);
+          let conn_state = conn.active_state(
+            &module_graph,
+            None,
+            &this_compilation.module_graph_cache_artifact,
+          );
           if conn_state.is_not_false() {
             current_outgoings.insert(*m);
             continue 'outer;

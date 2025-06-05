@@ -12,8 +12,8 @@ use rspack_core::{
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ErrorSpan, ExportInfoGetter, ExportProvided, ExportsType, ExtendedReferencedExport,
   FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleDependency, ModuleGraph, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap,
-  TemplateContext, TemplateReplaceSource,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ProvidedExports, RuntimeCondition,
+  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -120,7 +120,11 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   let module_graph = compilation.get_module_graph();
   let connection = module_graph.connection_by_dependency_id(module_dependency.id());
   let is_target_active = if let Some(con) = connection {
-    Some(con.is_target_active(&module_graph, *runtime))
+    Some(con.is_target_active(
+      &module_graph,
+      *runtime,
+      &compilation.module_graph_cache_artifact,
+    ))
   } else {
     Some(true)
   };
@@ -133,7 +137,9 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     RuntimeCondition::Boolean(false)
   } else if let Some(connection) = module_graph.connection_by_dependency_id(module_dependency.id())
   {
-    filter_runtime(*runtime, |r| connection.is_target_active(&module_graph, r))
+    filter_runtime(*runtime, |r| {
+      connection.is_target_active(&module_graph, r, &compilation.module_graph_cache_artifact)
+    })
   } else {
     RuntimeCondition::Boolean(true)
   };
@@ -438,6 +444,7 @@ impl Dependency for ESMImportSideEffectDependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     vec![]
@@ -456,6 +463,7 @@ impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
     conn: &rspack_core::ModuleGraphConnection,
     _runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ConnectionState {
     let id = *conn.module_identifier();
     if let Some(module) = module_graph.module_by_identifier(&id) {

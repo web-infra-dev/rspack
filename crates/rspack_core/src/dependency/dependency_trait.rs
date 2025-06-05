@@ -12,7 +12,8 @@ use super::{
 };
 use crate::{
   create_exports_object_referenced, AsContextDependency, ConnectionState, Context,
-  ExtendedReferencedExport, ImportAttributes, ModuleGraph, ModuleLayer, RuntimeSpec, UsedByExports,
+  ExtendedReferencedExport, ImportAttributes, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer,
+  RuntimeSpec, UsedByExports,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -57,7 +58,11 @@ pub trait Dependency:
     None
   }
 
-  fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
+  fn get_exports(
+    &self,
+    _mg: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+  ) -> Option<ExportsSpec> {
     None
   }
 
@@ -102,6 +107,7 @@ pub trait Dependency:
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     create_exports_object_referenced()
