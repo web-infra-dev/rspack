@@ -436,12 +436,12 @@ export default {
 };
 ```
 
-然而，当通过多个 Entry、代码拆分或各种插件创建多个包时，你应该使用以下替换之一来给每个包一个唯一的名字...
+然而，当通过多个 Entry、代码分割或各种插件创建多个包时，你应该使用以下替换之一来给每个包一个唯一的名字...
 
 :::info 对于拆分成多个 bundle 的情况的描述
 
-Rspack 会对用户输入的代码进行代码拆分优化，这些优化可能包括但不限于：code splitting、bundle splitting，或通过其他插件实现的代码拆分等。
-这些代码拆分的行为会导致生成多个 bundle，因此 bundle 的文件名需要动态生成。
+Rspack 会对用户输入的代码进行代码分割优化，这些优化可能包括但不限于：code splitting、bundle splitting，或通过其他插件实现的代码分割等。
+这些代码分割的行为会导致生成多个 bundle，因此 bundle 的文件名需要动态生成。
 
 {
 // TODO: 补充 Glossary link

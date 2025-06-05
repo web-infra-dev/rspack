@@ -32,28 +32,28 @@ type Devtool = 'string' | false;
   - Extremely fast build speed
 - **Full source code mapping needed** → Proceed to [Step 3](#step-3-configure-sourcemap)
 
-### Step 3: Configure SourceMap
+### Step 3: Configure source map
 
-Set `devtool: 'source-map'`, A full SourceMap is emitted as a separate file. It adds a `//# sourceMapURL` comment to the bundle so development tools know where to find it.
+Set `devtool: 'source-map'`, A full source map is emitted as a separate file. It adds a `//# sourceMapURL` comment to the bundle so development tools know where to find it.
 
-It also supports combination with the following modifiers to improve performance and control SourceMap generation.
+It also supports combination with the following modifiers to improve performance and control source map generation.
 
 Performance optimization modifiers, to speed up the build, usually used in development environments:
 
-| Modifier | Effect                                                                                                                                       | Performance improvement |
-| -------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| eval     | Each module is executed with `eval()` and a SourceMap is added as a DataUrl to the `eval()`, avoiding chunk-level multiple SourceMap concate | ⚡⚡⚡                  |
-| cheap    | Maps line numbers only (no columns), ignores source maps from loaders                                                                        | ⚡⚡                    |
-| module   | Processes source maps from loaders to map to original code (line-only mapping)                                                               | ⚡                      |
+| Modifier | Effect                                                                                                                                         | Performance improvement |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| eval     | Each module is executed with `eval()` and a source map is added as a DataUrl to the `eval()`, avoiding chunk-level multiple source map concate | ⚡⚡⚡                  |
+| cheap    | Maps line numbers only (no columns), ignores source maps from loaders                                                                          | ⚡⚡                    |
+| module   | Processes source maps from loaders to map to original code (line-only mapping)                                                                 | ⚡                      |
 
-Functional modifiers, to control SourceMap generation, usually used in production environments:
+Functional modifiers, to control source map generation, usually used in production environments:
 
-| Modifier  | Effect                                                                                                                                      |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| hidden    | SourceMap is emitted as a separate file, but no `//# sourceMappingURL=[url]` comment is added to the bundle, protecting source code privacy |
-| inline    | SourceMap is added as a DataUrl to the bundle                                                                                               |
-| nosources | SourceMap is created without the `sourcesContent` in it                                                                                     |
-| debugids  | SourceMap is created with the `debugId` in it                                                                                               |
+| Modifier  | Effect                                                                                                                                       |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| hidden    | source map is emitted as a separate file, but no `//# sourceMappingURL=[url]` comment is added to the bundle, protecting source code privacy |
+| inline    | source map is added as a DataUrl to the bundle                                                                                               |
+| nosources | source map is created without the `sourcesContent` in it                                                                                     |
+| debugids  | source map is created with the `debugId` in it                                                                                               |
 
 We expect a certain pattern when validate devtool name, pay attention and don't mix up the sequence of devtool string. The pattern is: `[inline-|hidden-|eval-][nosources-][cheap-[module-]]source-map[-debugids]`.
 
@@ -63,34 +63,26 @@ We expect a certain pattern when validate devtool name, pay attention and don't 
 
 The following options are ideal for development:
 
-`eval` - Each module is executed with `eval()` and `//# sourceURL`. This is pretty fast. The main disadvantage is that it doesn't display line numbers correctly since it gets mapped to transpiled code instead of the original code (No Source Maps from Loaders).
+`eval` - Each module is executed with `eval()` and `//# sourceURL`. This is pretty fast. The main disadvantage is that it doesn't display line numbers correctly since it gets mapped to transpiled code instead of the original code (No source maps from Loaders).
 
-`eval-source-map` - Each module is executed with `eval()` and a SourceMap is added as a DataUrl to the `eval()`. Initially it is slow, but it provides fast rebuild speed and yields real files. Line numbers are correctly mapped since it gets mapped to the original code. It yields the best quality SourceMaps for development.
+`eval-source-map` - Each module is executed with `eval()` and a source map is added as a DataUrl to the `eval()`. Initially it is slow, but it provides fast rebuild speed and yields real files. Line numbers are correctly mapped since it gets mapped to the original code. It yields the best quality source maps for development.
 
-`eval-cheap-source-map` - Similar to `eval-source-map`, each module is executed with `eval()`. It is "cheap" because it doesn't have column mappings, it only maps line numbers. It ignores SourceMaps from Loaders and only display transpiled code similar to the eval devtool.
+`eval-cheap-source-map` - Similar to `eval-source-map`, each module is executed with `eval()`. It is "cheap" because it doesn't have column mappings, it only maps line numbers. It ignores source maps from Loaders and only display transpiled code similar to the eval devtool.
 
-`eval-cheap-module-source-map` - Similar to `eval-cheap-source-map`, however, in this case Source Maps from Loaders are processed for better results. However Loader Source Maps are simplified to a single mapping per line.
+`eval-cheap-module-source-map` - Similar to `eval-cheap-source-map`, however, in this case source maps from Loaders are processed for better results. However Loader source maps are simplified to a single mapping per line.
 
 ### Production
 
 These options are typically used in production:
 
-'false' - No SourceMap is emitted. This is a good option to start with.
+'false' - No source map is emitted. This is a good option to start with.
 
-`source-map` - A full SourceMap is emitted as a separate file. It adds a reference comment to the bundle so development tools know where to find it.
+`source-map` - A full source map is emitted as a separate file. It adds a reference comment to the bundle so development tools know where to find it.
 
-:::warning
-You should configure your server to disallow access to the Source Map file for normal users!
-:::
+`hidden-source-map` - Same as `source-map`, but doesn't add a reference comment to the bundle. Useful if you only want source maps to map error stack traces from error reports, but don't want to expose your source map for the browser development tools.
 
-`hidden-source-map` - Same as `source-map`, but doesn't add a reference comment to the bundle. Useful if you only want SourceMaps to map error stack traces from error reports, but don't want to expose your SourceMap for the browser development tools.
+`nosources-source-map` - A source map is created without the `sourcesContent` (the original source code) in it. It still exposes the original filenames and structure and can be used to map stack traces on the client without exposing the source code. This kind of source map can be deployed to the web server if you can accept the file name being exposed.
 
 :::warning
-You should not deploy the Source Map file to the webserver. Instead only use it for error report tooling.
-:::
-
-`nosources-source-map` - A SourceMap is created without the `sourcesContent` in it. It can be used to map stack traces on the client without exposing all of the source code. You can deploy the Source Map file to the webserver.
-
-:::warning
-It still exposes original filenames and structure, but it doesn't expose the original code.
+When using `source-map` or `hidden-source-map`, do not deploy the source maps (`.map` file) to the public web server or CDN. Public source maps will expose your source code and may bring security risks.
 :::

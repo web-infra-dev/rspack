@@ -30,7 +30,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
     '作为 webpack 的升级替代品，带来更强大的功能和卓越的生产力。',
 
   featureCodeSplitting:
-    '将代码拆分成更小的 bundles，实现按需加载并提高页面性能。',
+    '将代码分割成更小的 bundles，实现按需加载并提高页面性能。',
   featureTreeShaking:
     '检测并消除最终 bundle 中未使用的代码，以减少构建产物的大小。',
   featurePlugins: '提供丰富的插件钩子，并与大多数 webpack 插件兼容。',
