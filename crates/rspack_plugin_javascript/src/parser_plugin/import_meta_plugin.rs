@@ -26,6 +26,26 @@ impl ImportMetaPlugin {
       .to_string()
   }
 
+  fn import_meta_filename(&self, parser: &JavascriptParser) -> String {
+    Url::from_file_path(parser.resource_data.resource())
+      .expect("should be a path")
+      .to_file_path()
+      .expect("should be a path")
+      .to_string_lossy()
+      .into_owned()
+  }
+
+  fn import_meta_dirname(&self, parser: &JavascriptParser) -> String {
+    Url::from_file_path(parser.resource_data.resource())
+      .expect("should be a path")
+      .to_file_path()
+      .expect("should be a path")
+      .parent()
+      .expect("should have a parent")
+      .to_string_lossy()
+      .into_owned()
+  }
+
   fn import_meta_webpack_version(&self) -> String {
     "5".to_string()
   }
@@ -46,26 +66,34 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     expr: &'a swc_core::ecma::ast::UnaryExpr,
     for_name: &str,
   ) -> Option<eval::BasicEvaluatedExpression<'a>> {
-    let mut evaluated = None;
-    if for_name == expr_name::IMPORT_META {
-      evaluated = Some("object".to_string());
-    } else if for_name == expr_name::IMPORT_META_URL {
-      evaluated = Some("string".to_string());
-    } else if for_name == expr_name::IMPORT_META_WEBPACK {
-      evaluated = Some("number".to_string())
-    } else if let Some(member_expr) = expr.arg.as_member()
-      && let Some(meta_expr) = member_expr.obj.as_meta_prop()
-      && meta_expr
-        .get_root_name()
-        .is_some_and(|name| name == expr_name::IMPORT_META)
-      && (match &member_expr.prop {
-        MemberProp::Ident(_) => true,
-        MemberProp::Computed(computed) => computed.expr.is_lit(),
-        _ => false,
-      })
-    {
-      evaluated = Some("undefined".to_string())
-    }
+    let evaluated = match for_name {
+      expr_name::IMPORT_META => Some("object".to_string()),
+      expr_name::IMPORT_META_URL
+      | expr_name::IMPORT_META_FILENAME
+      | expr_name::IMPORT_META_DIRNAME => Some("string".to_string()),
+      expr_name::IMPORT_META_WEBPACK => Some("number".to_string()),
+      _ => expr
+        .arg
+        .as_member()
+        .and_then(|member_expr| {
+          member_expr
+            .obj
+            .as_meta_prop()
+            .filter(|meta_expr| {
+              meta_expr
+                .get_root_name()
+                .is_some_and(|name| name == expr_name::IMPORT_META)
+            })
+            .map(|_| member_expr)
+        })
+        .filter(|member_expr| match &member_expr.prop {
+          MemberProp::Ident(_) => true,
+          MemberProp::Computed(computed) => computed.expr.is_lit(),
+          _ => false,
+        })
+        .map(|_| "undefined".to_string()),
+    };
+
     evaluated.map(|e| eval::evaluate_to_string(e, expr.span.real_lo(), expr.span.real_hi()))
   }
 
@@ -76,16 +104,24 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     start: u32,
     end: u32,
   ) -> Option<eval::BasicEvaluatedExpression<'static>> {
-    if for_name == expr_name::IMPORT_META_WEBPACK {
-      Some(eval::evaluate_to_number(5_f64, start, end))
-    } else if for_name == expr_name::IMPORT_META_URL {
-      Some(eval::evaluate_to_string(
+    match for_name {
+      expr_name::IMPORT_META_WEBPACK => Some(eval::evaluate_to_number(5_f64, start, end)),
+      expr_name::IMPORT_META_URL => Some(eval::evaluate_to_string(
         self.import_meta_url(parser),
         start,
         end,
-      ))
-    } else {
-      None
+      )),
+      expr_name::IMPORT_META_FILENAME => Some(eval::evaluate_to_string(
+        self.import_meta_filename(parser),
+        start,
+        end,
+      )),
+      expr_name::IMPORT_META_DIRNAME => Some(eval::evaluate_to_string(
+        self.import_meta_dirname(parser),
+        start,
+        end,
+      )),
+      _ => None,
     }
   }
 
@@ -122,29 +158,34 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     unary_expr: &swc_core::ecma::ast::UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == expr_name::IMPORT_META {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
-        unary_expr.span().into(),
-        "'object'".into(),
-        None,
-      )));
-      Some(true)
-    } else if for_name == expr_name::IMPORT_META_URL {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
-        unary_expr.span().into(),
-        "'string'".into(),
-        None,
-      )));
-      Some(true)
-    } else if for_name == expr_name::IMPORT_META_WEBPACK {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
-        unary_expr.span().into(),
-        "'number'".into(),
-        None,
-      )));
-      Some(true)
-    } else {
-      None
+    match for_name {
+      expr_name::IMPORT_META => {
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          unary_expr.span().into(),
+          "'object'".into(),
+          None,
+        )));
+        Some(true)
+      }
+      expr_name::IMPORT_META_URL
+      | expr_name::IMPORT_META_FILENAME
+      | expr_name::IMPORT_META_DIRNAME => {
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          unary_expr.span().into(),
+          "'string'".into(),
+          None,
+        )));
+        Some(true)
+      }
+      expr_name::IMPORT_META_WEBPACK => {
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          unary_expr.span().into(),
+          "'number'".into(),
+          None,
+        )));
+        Some(true)
+      }
+      _ => None,
     }
   }
 
@@ -170,20 +211,36 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         parser.destructuring_assignment_properties.get(&span)
       {
         let mut content = vec![];
-        for prop in referenced_properties_in_destructuring.iter() {
-          if prop.id == "url" {
-            content.push(format!(r#"url: "{}""#, self.import_meta_url(parser)))
-          } else if prop.id == "webpack" {
-            content.push(format!(
-              r#"webpack: {}"#,
-              self.import_meta_webpack_version()
-            ));
-          } else {
-            content.push(format!(
-              r#"[{}]: {}"#,
-              serde_json::to_string(&prop.id).expect("json stringify failed"),
-              self.import_meta_unknown_property(&vec![prop.id.to_string()])
-            ));
+        for prop in referenced_properties_in_destructuring {
+          match prop.id.as_str() {
+            "url" => {
+              content.push(format!(r#"url: "{}""#, self.import_meta_url(parser)));
+            }
+            "filename" => {
+              content.push(format!(
+                r#"filename: "{}""#,
+                self.import_meta_filename(parser)
+              ));
+            }
+            "dirname" => {
+              content.push(format!(
+                r#"dirname: "{}""#,
+                self.import_meta_dirname(parser)
+              ));
+            }
+            "webpack" => {
+              content.push(format!(
+                r#"webpack: {}"#,
+                self.import_meta_webpack_version()
+              ));
+            }
+            _ => {
+              content.push(format!(
+                r#"[{}]: {}"#,
+                serde_json::to_string(&prop.id).expect("json stringify failed"),
+                self.import_meta_unknown_property(&vec![prop.id.to_string()])
+              ));
+            }
           }
         }
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
@@ -227,24 +284,44 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     member_expr: &swc_core::ecma::ast::MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == expr_name::IMPORT_META_URL {
-      // import.meta.url
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
-        member_expr.span().into(),
-        format!("'{}'", self.import_meta_url(parser)).into(),
-        None,
-      )));
-      Some(true)
-    } else if for_name == expr_name::IMPORT_META_WEBPACK {
-      // import.meta.webpack
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
-        member_expr.span().into(),
-        self.import_meta_webpack_version().into(),
-        None,
-      )));
-      Some(true)
-    } else {
-      None
+    match for_name {
+      expr_name::IMPORT_META_URL => {
+        // import.meta.url
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          member_expr.span().into(),
+          format!("'{}'", self.import_meta_url(parser)).into(),
+          None,
+        )));
+        Some(true)
+      }
+      expr_name::IMPORT_META_FILENAME => {
+        // import.meta.filename
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          member_expr.span().into(),
+          format!("'{}'", self.import_meta_filename(parser)).into(),
+          None,
+        )));
+        Some(true)
+      }
+      expr_name::IMPORT_META_DIRNAME => {
+        // import.meta.dirname
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          member_expr.span().into(),
+          format!("'{}'", self.import_meta_dirname(parser)).into(),
+          None,
+        )));
+        Some(true)
+      }
+      expr_name::IMPORT_META_WEBPACK => {
+        // import.meta.webpack
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          member_expr.span().into(),
+          self.import_meta_webpack_version().into(),
+          None,
+        )));
+        Some(true)
+      }
+      _ => None,
     }
   }
 
