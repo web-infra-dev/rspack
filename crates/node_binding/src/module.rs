@@ -3,26 +3,30 @@ use std::{any::TypeId, cell::RefCell, ptr::NonNull, sync::Arc};
 
 use napi::{CallContext, JsObject, JsString, JsSymbol, NapiRaw};
 use napi_derive::napi;
-use once_cell::unsync::OnceCell;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
   FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage, SourceType,
 };
-use rspack_loader_lightningcss::lightningcss::properties;
 use rspack_napi::{
   napi::bindgen_prelude::*, string::JsStringExt, threadsafe_function::ThreadsafeFunction,
-  OneShotInstanceRef, OneShotRef, WeakRef,
+  OneShotInstanceRef, WeakRef,
 };
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_util::source_map::SourceMapKind;
 
 use super::JsCompatSourceOwned;
 use crate::{
-  AssetInfo, AsyncDependenciesBlockWrapper, BuildInfo, ConcatenatedModule, ContextModule,
-  DependencyWrapper, ExternalModule, JsChunkWrapper, JsCodegenerationResults, JsCompatSource,
-  JsCompiler, NormalModule, ToJsCompatSource, COMPILER_REFERENCES,
+  define_symbols, AssetInfo, AsyncDependenciesBlockWrapper, BuildInfo, ConcatenatedModule,
+  ContextModule, DependencyWrapper, ExternalModule, JsChunkWrapper, JsCodegenerationResults,
+  JsCompatSource, JsCompiler, NormalModule, ToJsCompatSource, COMPILER_REFERENCES,
 };
+
+define_symbols! {
+  MODULE_IDENTIFIER_SYMBOL => "MODULE_IDENTIFIER_SYMBOL",
+  MODULE_BUILD_INFO_SYMBOL => "MODULE_BUILD_INFO_SYMBOL",
+  COMPILATION_HOOKS_MAP_SYMBOL => "COMPILATION_HOOKS_MAP_SYMBOL",
+}
 
 #[napi(object)]
 pub struct JsLibIdentOptions {
@@ -816,92 +820,3 @@ pub struct JsDefaultObjectRedirectWarnObject {
 }
 
 pub type JsBuildMetaDefaultObject = Either<String, JsBuildMetaDefaultObjectRedirectWarn>;
-
-macro_rules! define_symbols {
-  (
-    $(
-      $(#[$meta:meta])*
-      $cell:ident => $name:expr
-    ),* $(,)?
-  ) => {
-    thread_local! {
-      $(
-        $(#[$meta])*
-        pub(crate) static $cell: ::once_cell::unsync::OnceCell<OneShotRef> = Default::default();
-      )*
-    }
-
-    pub(super) fn init(mut exports: napi::bindgen_prelude::Object, env: napi::Env) -> napi::Result<()> {
-      $(
-        let symbol = OneShotRef::new(env.raw(), env.create_symbol(Some($name))?)?;
-        exports.set_named_property(concat!($name, "_SYMBOL"), &symbol)?;
-        $cell.with(|once_cell| {
-          once_cell.get_or_init(move || symbol);
-        });
-      )*
-      Ok(())
-    }
-  };
-}
-
-define_symbols! {
-  MODULE_IDENTIFIER_SYMBOL => "MODULE_IDENTIFIER_SYMBOL",
-  MODULE_BUILD_INFO_SYMBOL => "MODULE_BUILD_INFO_SYMBOL",
-  MODULE_READABLE_IDENTIFIER_SYMBOL => "MODULE_READABLE_IDENTIFIER_SYMBOL",
-  COMPILATION_HOOKS_MAP_SYMBOL => "COMPILATION_HOOKS_MAP_SYMBOL",
-  SYNC_CUSTOM_FIELDS_SYMBOL => "SYNC_CUSTOM_FIELDS",
-}
-
-// thread_local! {
-//   pub(crate) static MODULE_IDENTIFIER_SYMBOL: OnceCell<OneShotRef> = Default::default();
-//   pub(crate) static MODULE_BUILD_INFO_SYMBOL: OnceCell<OneShotRef> = Default::default();
-//   pub(crate) static MODULE_READABLE_IDENTIFIER_SYMBOL: OnceCell<OneShotRef> = Default::default();
-
-//   pub(crate) static COMPILATION_HOOKS_MAP_SYMBOL: OnceCell<OneShotRef> = Default::default();
-// }
-
-// pub(super) fn init(mut exports: Object, env: Env) -> napi::Result<()> {
-//   let module_identifier_symbol = OneShotRef::new(
-//     env.raw(),
-//     env.create_symbol(Some("MODULE_IDENTIFIER_SYMBOL"))?,
-//   )?;
-//   exports.set_named_property("MODULE_IDENTIFIER_SYMBOL", &module_identifier_symbol)?;
-//   MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
-//     once_cell.get_or_init(move || module_identifier_symbol);
-//   });
-
-//   let module_readable_identifier_symbol = OneShotRef::new(
-//     env.raw(),
-//     env.create_symbol(Some("MODULE_READABLE_IDENTIFIER_SYMBOL"))?,
-//   )?;
-//   exports.set_named_property(
-//     "MODULE_READABLE_IDENTIFIER_SYMBOL",
-//     &module_readable_identifier_symbol,
-//   )?;
-//   MODULE_READABLE_IDENTIFIER_SYMBOL.with(|once_cell| {
-//     once_cell.get_or_init(move || module_readable_identifier_symbol);
-//   });
-
-//   let compilation_hooks_map_symbol = OneShotRef::new(
-//     env.raw(),
-//     env.create_symbol(Some("COMPILATION_HOOKS_MAP_SYMBOL"))?,
-//   )?;
-//   exports.set_named_property(
-//     "COMPILATION_HOOKS_MAP_SYMBOL",
-//     &compilation_hooks_map_symbol,
-//   )?;
-//   COMPILATION_HOOKS_MAP_SYMBOL.with(|once_cell| {
-//     once_cell.get_or_init(move || compilation_hooks_map_symbol);
-//   });
-
-//   let module_build_info_symbol = OneShotRef::new(
-//     env.raw(),
-//     env.create_symbol(Some("MODULE_BUILD_INFO_SYMBOL"))?,
-//   )?;
-//   exports.set_named_property("MODULE_BUILD_INFO_SYMBOL", &module_build_info_symbol)?;
-//   MODULE_BUILD_INFO_SYMBOL.with(|once_cell| {
-//     once_cell.get_or_init(move || module_build_info_symbol);
-//   });
-
-//   Ok(())
-// }

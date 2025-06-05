@@ -249,20 +249,18 @@ macro_rules! impl_module_methods {
             .with_utf8_name("_readableIdentifier")?
             .with_getter(readable_identifier_getter),
         );
-        object.define_properties(&properties)?;
-
-        $crate::MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
+        $crate:: MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
           let identifier = env.create_string(module.identifier().as_str())?;
-          let symbol = unsafe {
-            #[allow(clippy::unwrap_used)]
-            let napi_val = napi::bindgen_prelude::ToNapiValue::to_napi_value(
-              env.raw(),
-              once_cell.get().unwrap(),
-            )?;
-            <napi::JsSymbol as napi::bindgen_prelude::FromNapiValue>::from_napi_value(env.raw(), napi_val)?
-          };
-          object.set_property(symbol, identifier)
+          let symbol = once_cell.get().unwrap();
+          properties.push(
+            napi::bindgen_prelude::Property::new()
+              .with_name(env, symbol)?
+              .with_value(&identifier)
+              .with_property_attributes(napi::bindgen_prelude::PropertyAttributes::Configurable),
+          );
+          Ok::<(), napi::Error>(())
         })?;
+        object.define_properties(&properties)?;
 
         Ok(instance)
       }

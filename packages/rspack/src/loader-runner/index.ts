@@ -61,6 +61,7 @@ import {
 	loadLoader,
 	runSyncOrAsync
 } from "./utils";
+import { syncCustomFields } from "../BuildInfo";
 
 function createLoaderObject(
 	loader: JsLoaderItem,
@@ -1103,8 +1104,7 @@ export async function runLoaders(
 	});
 
 	if (compiler.options.experiments.cache && compiler.options?.cache) {
-		// Serialize buildInfo to the Rust side for later persistent caching by Rust.
-		context._module.buildInfo.serialize();
+		syncCustomFields(context._module.buildInfo);
 	}
 
 	return context;

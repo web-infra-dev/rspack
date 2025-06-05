@@ -6,12 +6,20 @@ use napi::{
   },
   Env, JsString, JsValue, Property, PropertyAttributes, Unknown,
 };
-use once_cell::unsync::OnceCell;
 use rspack_core::{Reflector, WeakBindingCell};
-use rspack_napi::{unknown_to_json_value, OneShotRef};
+use rspack_napi::unknown_to_json_value;
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::Module;
+use crate::{define_symbols, Module};
+
+define_symbols! {
+  BUILD_INFO_ASSETS_SYMBOL => "BUILD_INFO_ASSETS_SYMBOL",
+  BUILD_INFO_FILE_DEPENDENCIES_SYMBOL => "BUILD_INFO_FILE_DEPENDENCIES_SYMBOL",
+  BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL => "BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL",
+  BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL => "BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL",
+  BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL => "BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL",
+  SYNC_CUSTOM_FIELDS_SYMBOL => "SYNC_CUSTOM_FIELDS_SYMBOL",
+}
 
 // Record<string, Source>
 #[napi]
@@ -53,15 +61,10 @@ impl Assets {
 static KNOWN_BUILD_INFO_FIELD_NAMES: LazyLock<FxHashSet<&'static str>> = LazyLock::new(|| {
   FxHashSet::from_iter(vec![
     "assets",
-    "_assets",
     "fileDependencies",
-    "_fileDependencies",
     "contextDependencies",
-    "_contextDependencies",
     "missingDependencies",
-    "_missingDependencies",
     "buildDependencies",
-    "_buildDependencies",
   ])
 });
 
@@ -203,6 +206,118 @@ impl BuildInfo {
   }
 }
 
+fn create_known_private_properties(env: &Env) -> napi::Result<Vec<Property>> {
+  let mut properties = vec![];
+
+  BUILD_INFO_ASSETS_SYMBOL.with(|once_cell| {
+    let symbol = once_cell.get().unwrap();
+    properties.push(
+      Property::new()
+        .with_name(env, symbol)?
+        .with_getter_closure(|env, this| {
+          let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
+          wrapped_value.with_ref(|module| Ok(module.build_info().assets.reflector()))
+        })
+        .with_property_attributes(PropertyAttributes::Configurable),
+    );
+    Ok::<(), napi::Error>(())
+  })?;
+
+  BUILD_INFO_FILE_DEPENDENCIES_SYMBOL.with(|once_cell| {
+    let symbol = once_cell.get().unwrap();
+    properties.push(
+      Property::new()
+        .with_name(env, symbol)?
+        .with_getter_closure(|env, this| {
+          let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
+          let env_ref = &env;
+          let result = wrapped_value.with_ref(|module| {
+            module
+              .build_info()
+              .file_dependencies
+              .iter()
+              .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
+              .collect::<napi::Result<Vec<JsString>>>()
+          });
+          unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
+        })
+        .with_property_attributes(PropertyAttributes::Configurable),
+    );
+    Ok::<(), napi::Error>(())
+  })?;
+
+  BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL.with(|once_cell| {
+    let symbol = once_cell.get().unwrap();
+    properties.push(
+      Property::new()
+        .with_name(env, symbol)?
+        .with_getter_closure(|env, this| {
+          let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
+          let env_ref = &env;
+          let result = wrapped_value.with_ref(|module| {
+            module
+              .build_info()
+              .context_dependencies
+              .iter()
+              .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
+              .collect::<napi::Result<Vec<JsString>>>()
+          });
+          unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
+        })
+        .with_property_attributes(PropertyAttributes::Configurable),
+    );
+    Ok::<(), napi::Error>(())
+  })?;
+
+  BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL.with(|once_cell| {
+    let symbol = once_cell.get().unwrap();
+    properties.push(
+      Property::new()
+        .with_name(env, symbol)?
+        .with_getter_closure(|env, this| {
+          let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
+          let env_ref = &env;
+          let result = wrapped_value.with_ref(|module| {
+            module
+              .build_info()
+              .missing_dependencies
+              .iter()
+              .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
+              .collect::<napi::Result<Vec<JsString>>>()
+          });
+          unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
+        })
+        .with_property_attributes(PropertyAttributes::Configurable),
+    );
+    Ok::<(), napi::Error>(())
+  })?;
+
+  BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL.with(|once_cell| {
+    let symbol = once_cell.get().unwrap();
+    properties.push(
+      Property::new()
+        .with_name(env, symbol)?
+        .with_getter_closure(|env, this| {
+          let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
+          let env_ref = &env;
+          let result = wrapped_value.with_ref(|module| {
+            module
+              .build_info()
+              .build_dependencies
+              .iter()
+              .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
+              .collect::<napi::Result<Vec<JsString>>>()
+          });
+          unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
+        })
+        .with_property_attributes(PropertyAttributes::Configurable),
+    );
+    Ok::<(), napi::Error>(())
+  })?;
+
+  Ok(properties)
+}
+
 impl ToNapiValue for BuildInfo {
   unsafe fn to_napi_value(
     env: napi::sys::napi_env,
@@ -213,6 +328,8 @@ impl ToNapiValue for BuildInfo {
     let known = KnownBuildInfo::new(module_reference.clone());
     let napi_val = ToNapiValue::to_napi_value(env, known)?;
     let mut object = Object::from_raw(env, napi_val);
+
+    let mut properties = create_known_private_properties(&env_wrapper)?;
 
     let sync_custom_fields_fn: napi::bindgen_prelude::Function<'_, (), ()> = env_wrapper
       .create_function_from_closure("syncCustomFields", |ctx| {
@@ -240,7 +357,6 @@ impl ToNapiValue for BuildInfo {
         })
       })?;
 
-    let mut properties = vec![];
     val.with_ref(|module| {
       let extras = &module.build_info().extras;
       properties.reserve(extras.len() + 1);
@@ -268,19 +384,4 @@ impl ToNapiValue for BuildInfo {
 
     Ok(napi_val)
   }
-}
-
-thread_local! {
-  pub(crate) static SYNC_CUSTOM_FIELDS_SYMBOL: OnceCell<OneShotRef> = Default::default();
-}
-
-pub(super) fn init(mut exports: Object, env: Env) -> napi::Result<()> {
-  let sync_custom_fields_symbol =
-    OneShotRef::new(env.raw(), env.create_symbol(Some("SYNC_CUSTOM_FIELDS"))?)?;
-  exports.set_named_property("SYNC_CUSTOM_FIELDS_SYMBOL", &sync_custom_fields_symbol)?;
-  SYNC_CUSTOM_FIELDS_SYMBOL.with(|once_cell| {
-    once_cell.get_or_init(move || sync_custom_fields_symbol);
-  });
-
-  Ok(())
 }
