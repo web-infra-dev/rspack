@@ -12,7 +12,7 @@ patchedDependencies:
     hash: bc3f29f4636a594eb84c5e3f2d8cbd29c2e6b845f376603b718fb2d41bee6de8
     path: patches/rollup-plugin-dts.patch
   webpack-sources@3.3.2:
-    hash: f5ec91ce15a9fbf464c414b0b24c5adb8cfcb80df870dc6deff1ca718245e8e1
+    hash: 488e04e10706980da34067f6ad8c408b1eb45e65c49685929419ebb9abf9b96e
     path: patches/webpack-sources@3.3.2.patch
 
 importers:
@@ -336,7 +336,7 @@ importers:
         version: 2.4.4
       webpack-sources:
         specifier: 3.3.2
-        version: 3.3.2(patch_hash=f5ec91ce15a9fbf464c414b0b24c5adb8cfcb80df870dc6deff1ca718245e8e1)
+        version: 3.3.2(patch_hash=488e04e10706980da34067f6ad8c408b1eb45e65c49685929419ebb9abf9b96e)
       zod:
         specifier: ^3.25.50
         version: 3.25.50
@@ -481,7 +481,7 @@ importers:
         version: 6.0.1
       webpack-sources:
         specifier: 3.3.2
-        version: 3.3.2(patch_hash=f5ec91ce15a9fbf464c414b0b24c5adb8cfcb80df870dc6deff1ca718245e8e1)
+        version: 3.3.2(patch_hash=488e04e10706980da34067f6ad8c408b1eb45e65c49685929419ebb9abf9b96e)
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
@@ -834,7 +834,7 @@ importers:
         version: 2.4.4
       webpack-sources:
         specifier: 3.3.2
-        version: 3.3.2(patch_hash=f5ec91ce15a9fbf464c414b0b24c5adb8cfcb80df870dc6deff1ca718245e8e1)
+        version: 3.3.2(patch_hash=488e04e10706980da34067f6ad8c408b1eb45e65c49685929419ebb9abf9b96e)
     devDependencies:
       '@babel/preset-react':
         specifier: ^7.27.1
@@ -15686,7 +15686,7 @@ snapshots:
       flat: 5.0.2
       wildcard: 2.0.1
 
-  webpack-sources@3.3.2(patch_hash=f5ec91ce15a9fbf464c414b0b24c5adb8cfcb80df870dc6deff1ca718245e8e1): {}
+  webpack-sources@3.3.2(patch_hash=488e04e10706980da34067f6ad8c408b1eb45e65c49685929419ebb9abf9b96e): {}
 
   webpack@5.99.9(@swc/core@1.11.29(@swc/helpers@0.5.17)):
     dependencies:
@@ -15713,7 +15713,7 @@ snapshots:
       tapable: 2.2.2
       terser-webpack-plugin: 5.3.14(@swc/core@1.11.29(@swc/helpers@0.5.17))(webpack@5.99.9(@swc/core@1.11.29(@swc/helpers@0.5.17)))
       watchpack: 2.4.4
-      webpack-sources: 3.3.2(patch_hash=f5ec91ce15a9fbf464c414b0b24c5adb8cfcb80df870dc6deff1ca718245e8e1)
+      webpack-sources: 3.3.2(patch_hash=488e04e10706980da34067f6ad8c408b1eb45e65c49685929419ebb9abf9b96e)
     transitivePeerDependencies:
       - '@swc/core'
       - esbuild
