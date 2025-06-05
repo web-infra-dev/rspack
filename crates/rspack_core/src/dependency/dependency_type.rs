@@ -73,6 +73,8 @@ pub enum DependencyType {
   ImportContext,
   // import.meta.webpackContext
   ImportMetaContext,
+  // import.meta.resolve
+  ImportMetaResolve,
   // commonjs require context
   CommonJSRequireContext,
   // require.context
@@ -177,6 +179,7 @@ impl DependencyType {
       DependencyType::ExportInfoApi => "export info api",
       // TODO: mode
       DependencyType::ImportMetaContext => "import.meta context",
+      DependencyType::ImportMetaResolve => "import.meta.resolve",
       DependencyType::ContainerExposed => "container exposed",
       DependencyType::ContainerEntry => "container entry",
       DependencyType::DllEntry => "dll entry",

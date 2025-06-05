@@ -2,8 +2,10 @@ use rspack_core::{
   CachedConstDependency, ConstDependency, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption,
   RuntimeGlobals, get_context, parse_resource,
 };
+use rspack_util::SpanExt;
 use sugar_path::SugarPath;
 use swc_core::{common::Spanned, ecma::ast::Expr};
+use url::Url;
 
 use crate::{
   JavascriptParserPlugin,
@@ -170,6 +172,47 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     None
   }
 
+  fn r#typeof(
+    &self,
+    parser: &mut JavascriptParser,
+    unary_expr: &swc_core::ecma::ast::UnaryExpr,
+    for_name: &str,
+  ) -> Option<bool> {
+    use crate::visitors::expr_name;
+
+    match for_name {
+      expr_name::IMPORT_META_FILENAME | expr_name::IMPORT_META_DIRNAME => {
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          unary_expr.span().into(),
+          "'string'".into(),
+          None,
+        )));
+        Some(true)
+      }
+      _ => None,
+    }
+  }
+
+  fn evaluate_typeof<'a>(
+    &self,
+    _parser: &mut JavascriptParser,
+    expr: &'a swc_core::ecma::ast::UnaryExpr,
+    for_name: &str,
+  ) -> Option<eval::BasicEvaluatedExpression<'a>> {
+    use crate::visitors::expr_name;
+
+    match for_name {
+      expr_name::IMPORT_META_FILENAME | expr_name::IMPORT_META_DIRNAME => {
+        Some(eval::evaluate_to_string(
+          "string".to_string(),
+          expr.span.real_lo(),
+          expr.span.real_hi(),
+        ))
+      }
+      _ => None,
+    }
+  }
+
   fn evaluate_identifier(
     &self,
     parser: &mut JavascriptParser,
@@ -177,6 +220,8 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     start: u32,
     end: u32,
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
+    use crate::visitors::expr_name;
+
     if for_name == DIR_NAME {
       if parser
         .compiler_options
@@ -206,17 +251,103 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         start,
         end,
       ))
+    } else if for_name == expr_name::IMPORT_META_FILENAME {
+      let filename = Url::from_file_path(parser.resource_data.resource())
+        .expect("should be a path")
+        .to_file_path()
+        .expect("should be a path")
+        .to_string_lossy()
+        .into_owned();
+      Some(eval::evaluate_to_string(filename, start, end))
+    } else if for_name == expr_name::IMPORT_META_DIRNAME {
+      let dirname = Url::from_file_path(parser.resource_data.resource())
+        .expect("should be a path")
+        .to_file_path()
+        .expect("should be a path")
+        .parent()
+        .expect("should have a parent")
+        .to_string_lossy()
+        .into_owned();
+      Some(eval::evaluate_to_string(dirname, start, end))
     } else {
       None
     }
   }
 
+  fn member(
+    &self,
+    parser: &mut JavascriptParser,
+    member_expr: &swc_core::ecma::ast::MemberExpr,
+    for_name: &str,
+  ) -> Option<bool> {
+    use crate::visitors::expr_name;
+
+    match for_name {
+      expr_name::IMPORT_META_FILENAME => {
+        // import.meta.filename
+        let filename = Url::from_file_path(parser.resource_data.resource())
+          .expect("should be a path")
+          .to_file_path()
+          .expect("should be a path")
+          .to_string_lossy()
+          .into_owned();
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          member_expr.span().into(),
+          format!("'{filename}'").into(),
+          None,
+        )));
+        Some(true)
+      }
+      expr_name::IMPORT_META_DIRNAME => {
+        // import.meta.dirname
+        let dirname = Url::from_file_path(parser.resource_data.resource())
+          .expect("should be a path")
+          .to_file_path()
+          .expect("should be a path")
+          .parent()
+          .expect("should have a parent")
+          .to_string_lossy()
+          .into_owned();
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          member_expr.span().into(),
+          format!("'{dirname}'").into(),
+          None,
+        )));
+        Some(true)
+      }
+      _ => None,
+    }
+  }
+
   fn import_meta_property_in_destructuring(
     &self,
-    _parser: &mut JavascriptParser,
-    _property: &DestructuringAssignmentProperty,
+    parser: &mut JavascriptParser,
+    property: &DestructuringAssignmentProperty,
   ) -> Option<String> {
-    // TODO: implement import.meta.filename/dirname in destructuring
-    None
+    match property.id.as_str() {
+      "filename" => {
+        // This is the same as the url.fileURLToPath() of the import.meta.url
+        let filename = Url::from_file_path(parser.resource_data.resource())
+          .expect("should be a path")
+          .to_file_path()
+          .expect("should be a path")
+          .to_string_lossy()
+          .into_owned();
+        Some(format!(r#"filename: "{}""#, filename))
+      }
+      "dirname" => {
+        // This is the same as the path.dirname() of the import.meta.filename
+        let dirname = Url::from_file_path(parser.resource_data.resource())
+          .expect("should be a path")
+          .to_file_path()
+          .expect("should be a path")
+          .parent()
+          .expect("should have a parent")
+          .to_string_lossy()
+          .into_owned();
+        Some(format!(r#"dirname: "{}""#, dirname))
+      }
+      _ => None,
+    }
   }
 }
