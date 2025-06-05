@@ -1,24 +1,8 @@
 # Bundle analysis
 
-## webpack-bundle-analyzer
-
-Rspack's Command Line Interface (CLI) supports bundle analysis out-of-box via the `--analyze` option. It uses [webpack-bundle-analyzer](https://www.npmjs.com/package/webpack-bundle-analyzer) behind the scenes.
-
-```sh
-$ rspack build --analyze
-```
-
-## bundle-stats and statoscope
-
-You can also generate a `stats.json` file for further analysis with other bundle analysis tools like [bundle-stats](https://github.com/relative-ci/bundle-stats) or [statoscope](https://statoscope.tech/):
-
-```sh
-$ rspack build --json stats.json
-```
-
 ## Rsdoctor's bundle analysis
 
-Rsdoctor provides the `Bundle Size` module, which is mainly used to analyze the information of the outputs of Rspack, including the size of resources, duplicate packages, and module reference relationships:
+[Rsdoctor](/guide/optimization/use-rsdoctor) provides the `Bundle Size` module, which is mainly used to analyze the information of the outputs of Rspack, including the size of resources, duplicate packages, and module reference relationships:
 
 - **Bundle Overview**: Displays the total number and size of artifacts, as well as the number and size of each file type. It also shows the duplicate packages and their reference chains.
 - **Bundle Analysis Module**: Analyzes the size and code information of the build artifacts' resources (**Assets**) and the included **Modules**. In this module, you can view the **actual code size of modules after packaging** in the Assets, as well as the original code or **packaged code segments** and **module reference relationships**.
@@ -44,3 +28,19 @@ You can use [Rsdoctor](https://rsdoctor.rs) to detect whether there are duplicat
 ![](https://assets.rspack.rs/others/assets/rsdoctor/overall-alerts.jpg)
 
 For more details, see [Rsdoctor - Duplicate Dependency Problem](https://rsdoctor.rs/blog/topic/duplicate-pkg-problem).
+
+## webpack-bundle-analyzer
+
+Rspack's Command Line Interface (CLI) supports bundle analysis out-of-box via the `--analyze` option. It uses [webpack-bundle-analyzer](https://www.npmjs.com/package/webpack-bundle-analyzer) behind the scenes.
+
+```sh
+$ rspack build --analyze
+```
+
+## bundle-stats and statoscope
+
+You can also generate a `stats.json` file for further analysis with other bundle analysis tools like [bundle-stats](https://github.com/relative-ci/bundle-stats) or [statoscope](https://statoscope.tech/):
+
+```sh
+$ rspack build --json stats.json
+```
