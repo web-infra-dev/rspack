@@ -136,6 +136,54 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     }
     data.other_exports_info.inner
   }
+
+  pub fn get_relevant_exports(&self, runtime: Option<&RuntimeSpec>) -> Vec<&ExportInfoData> {
+    self.get_relevant_exports_impl(&self.entry, runtime)
+  }
+
+  fn get_relevant_exports_impl(
+    &self,
+    exports_info: &ExportsInfo,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Vec<&ExportInfoData> {
+    let data = self
+      .exports
+      .get(exports_info)
+      .expect("should have nested exports info");
+
+    let mut list = vec![];
+    for export_info in data.exports.values() {
+      let used = ExportInfoGetter::get_used(export_info.inner, runtime);
+      if matches!(used, UsageState::Unused) {
+        continue;
+      }
+      if matches!(
+        ExportInfoGetter::provided(export_info.inner),
+        Some(ExportProvided::NotProvided)
+      ) {
+        continue;
+      }
+      list.push(export_info.inner);
+    }
+    if let Some(redirect) = &data.redirect_to {
+      for export_info in self.get_relevant_exports_impl(redirect, runtime) {
+        let name = ExportInfoGetter::name(export_info);
+        if !data.exports.contains_key(name.unwrap_or(&"".into())) {
+          list.push(export_info);
+        }
+      }
+    }
+
+    let other_export_info = data.other_exports_info.inner;
+    if !matches!(
+      ExportInfoGetter::provided(other_export_info),
+      Some(ExportProvided::NotProvided)
+    ) && ExportInfoGetter::get_used(other_export_info, runtime) != UsageState::Unused
+    {
+      list.push(other_export_info);
+    }
+    list
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -409,5 +457,37 @@ impl ExportsInfoGetter {
     }
     arr.extend(names.iter().skip(1).cloned());
     Some(UsedName::Normal(arr))
+  }
+
+  pub fn is_equally_used(
+    info: &PrefetchedExportsInfoWrapper,
+    a: &RuntimeSpec,
+    b: &RuntimeSpec,
+  ) -> bool {
+    if let Some(redirect) = &info.data().redirect_to {
+      let redirected = info.redirect(*redirect);
+      if Self::is_equally_used(&redirected, a, b) {
+        return false;
+      }
+    } else {
+      if ExportInfoGetter::get_used(info.other_exports_info(), Some(a))
+        != ExportInfoGetter::get_used(info.other_exports_info(), Some(b))
+      {
+        return false;
+      }
+    }
+    if ExportInfoGetter::get_used(info.side_effects_only_info(), Some(a))
+      != ExportInfoGetter::get_used(info.side_effects_only_info(), Some(b))
+    {
+      return false;
+    }
+    for (_, export_info) in info.exports() {
+      if ExportInfoGetter::get_used(export_info, Some(a))
+        != ExportInfoGetter::get_used(export_info, Some(b))
+      {
+        return false;
+      }
+    }
+    true
   }
 }

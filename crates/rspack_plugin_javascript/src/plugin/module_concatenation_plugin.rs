@@ -823,14 +823,13 @@ impl ModuleConcatenationPlugin {
           return (false, false, module_id, bailout_reason);
         }
 
-        let exports_info = module_graph.get_exports_info(&module_id);
-        let relevant_exports = exports_info.get_relevant_exports(&module_graph, None);
+        let exports_info = module_graph.get_prefetched_exports_info(&module_id, None);
+        let relevant_exports = exports_info.get_relevant_exports(None);
         let unknown_exports = relevant_exports
           .iter()
           .filter(|export_info| {
-            let export_info_data = export_info.as_data(&module_graph);
-            ExportInfoGetter::is_reexport(export_info_data)
-              && export_info_data.get_target(&module_graph).is_none()
+            ExportInfoGetter::is_reexport(export_info)
+              && export_info.get_target(&module_graph).is_none()
           })
           .copied()
           .collect::<Vec<_>>();
@@ -838,13 +837,13 @@ impl ModuleConcatenationPlugin {
           let cur_bailout_reason = unknown_exports
             .into_iter()
             .map(|export_info| {
-              let name = ExportInfoGetter::name(export_info.as_data(&module_graph))
+              let name = ExportInfoGetter::name(export_info)
                 .map(|name| name.to_string())
                 .unwrap_or("other exports".to_string());
               format!(
                 "{} : {}",
                 name,
-                ExportInfoGetter::get_used_info(export_info.as_data(&module_graph))
+                ExportInfoGetter::get_used_info(export_info)
               )
             })
             .collect::<Vec<String>>()
@@ -866,7 +865,7 @@ impl ModuleConcatenationPlugin {
           .iter()
           .filter(|export_info| {
             !matches!(
-              ExportInfoGetter::provided(export_info.as_data(&module_graph)),
+              ExportInfoGetter::provided(export_info),
               Some(ExportProvided::Provided)
             )
           })
@@ -877,14 +876,14 @@ impl ModuleConcatenationPlugin {
           let cur_bailout_reason = unknown_provided_exports
             .into_iter()
             .map(|export_info| {
-              let name = ExportInfoGetter::name(export_info.as_data(&module_graph))
+              let name = ExportInfoGetter::name(export_info)
                 .map(|name| name.to_string())
                 .unwrap_or("other exports".to_string());
               format!(
                 "{} : {} and {}",
                 name,
-                ExportInfoGetter::get_provided_info(export_info.as_data(&module_graph)),
-                ExportInfoGetter::get_used_info(export_info.as_data(&module_graph)),
+                ExportInfoGetter::get_provided_info(export_info),
+                ExportInfoGetter::get_used_info(export_info),
               )
             })
             .collect::<Vec<String>>()

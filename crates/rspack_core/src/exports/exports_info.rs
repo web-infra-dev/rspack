@@ -8,7 +8,7 @@ use serde::Serialize;
 
 use super::{
   ExportInfo, ExportInfoData, ExportInfoGetter, ExportInfoSetter, ExportProvided,
-  MaybeDynamicTargetExportInfo, ProvidedExports, UsageKey, UsageState, UsedExports, UsedName,
+  MaybeDynamicTargetExportInfo, ProvidedExports, UsageKey, UsageState, UsedExports,
   NEXT_EXPORTS_INFO_UKEY,
 };
 use crate::{Compilation, DependencyId, ModuleGraph, Nullable, RuntimeSpec};
@@ -218,20 +218,6 @@ impl ExportsInfo {
       }
     }
     changed
-  }
-
-  pub fn get_read_only_export_info(&self, mg: &ModuleGraph, name: &Atom) -> ExportInfo {
-    let exports_info = self.as_exports_info(mg);
-    let redirect_to = exports_info.redirect_to;
-    let other_exports_info = exports_info.other_exports_info;
-    let export_info = exports_info.exports.get(name);
-    if let Some(export_info) = export_info {
-      return *export_info;
-    }
-    if let Some(redirect_to) = redirect_to {
-      return redirect_to.get_read_only_export_info(mg, name);
-    }
-    other_exports_info
   }
 
   pub fn get_export_info(&self, mg: &mut ModuleGraph, name: &Atom) -> ExportInfo {
@@ -496,82 +482,6 @@ impl ExportsInfo {
     }
 
     UsedExports::UsedNames(res)
-  }
-
-  /// exports that are relevant (not unused and potential provided)
-  pub fn get_relevant_exports(
-    &self,
-    mg: &ModuleGraph,
-    runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExportInfo> {
-    let info = self.as_exports_info(mg);
-    let mut list = vec![];
-    for export_info in info.exports.values() {
-      let export_info_data = export_info.as_data(mg);
-      let used = ExportInfoGetter::get_used(export_info_data, runtime);
-      if matches!(used, UsageState::Unused) {
-        continue;
-      }
-      if matches!(
-        ExportInfoGetter::provided(export_info_data),
-        Some(ExportProvided::NotProvided)
-      ) {
-        continue;
-      }
-      list.push(*export_info);
-    }
-    if let Some(redirect_to) = info.redirect_to {
-      for id in redirect_to.get_relevant_exports(mg, runtime) {
-        let name = ExportInfoGetter::name(id.as_data(mg));
-        if !info.exports.contains_key(name.unwrap_or(&"".into())) {
-          list.push(id);
-        }
-      }
-    }
-
-    let other_export_info = info.other_exports_info;
-    let other_export_info_data = other_export_info.as_data(mg);
-    if !matches!(
-      ExportInfoGetter::provided(other_export_info_data),
-      Some(ExportProvided::NotProvided)
-    ) && ExportInfoGetter::get_used(other_export_info_data, runtime) != UsageState::Unused
-    {
-      list.push(info.other_exports_info);
-    }
-    list
-  }
-
-  pub fn is_equally_used(&self, mg: &ModuleGraph, a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
-    let info = self.as_exports_info(mg);
-    if let Some(redirect_to) = info.redirect_to {
-      if redirect_to.is_equally_used(mg, a, b) {
-        return false;
-      }
-    } else {
-      let other_exports_info = info.other_exports_info;
-      let other_exports_info_data = other_exports_info.as_data(mg);
-      if ExportInfoGetter::get_used(other_exports_info_data, Some(a))
-        != ExportInfoGetter::get_used(other_exports_info_data, Some(b))
-      {
-        return false;
-      }
-    }
-    let side_effects_only_info = info.side_effects_only_info;
-    let side_effects_only_info_data = side_effects_only_info.as_data(mg);
-    if ExportInfoGetter::get_used(side_effects_only_info_data, Some(a))
-      != ExportInfoGetter::get_used(side_effects_only_info_data, Some(b))
-    {
-      return false;
-    }
-    for export_info in self.owned_exports(mg) {
-      let export_info_data = export_info.as_data(mg);
-      if ExportInfoGetter::get_used(export_info_data, Some(a))
-        != ExportInfoGetter::get_used(export_info_data, Some(b))
-      {
-        return false;
-      }
-    }
-    true
   }
 
   pub fn get_usage_key(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> UsageKey {

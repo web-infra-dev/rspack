@@ -3,7 +3,7 @@
 use rspack_collections::UkeySet;
 use rspack_core::{
   incremental::Mutation, is_runtime_equal, ChunkUkey, Compilation, CompilationOptimizeChunks,
-  Plugin, PluginContext,
+  ExportsInfoGetter, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -96,9 +96,11 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
             .chunk_graph
             .get_chunk_modules(&chunk_ukey, &compilation.get_module_graph())
           {
-            let exports_info = module_graph.get_exports_info(&module.identifier());
-            if !exports_info.is_equally_used(&module_graph, chunk.runtime(), other_chunk.runtime())
-            {
+            if !ExportsInfoGetter::is_equally_used(
+              &module_graph.get_prefetched_exports_info(&module.identifier(), None),
+              chunk.runtime(),
+              other_chunk.runtime(),
+            ) {
               continue 'outer;
             }
           }
