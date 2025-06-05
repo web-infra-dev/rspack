@@ -31,6 +31,7 @@
     "lint-ci:js": "biome check --diagnostic-level=warn --no-errors-on-unmatched --max-diagnostics=none",
     "lint:rs": "node ./scripts/check_rust_dependency.cjs",
     "build:binding:dev": "pnpm --filter @rspack/binding run build:dev",
+    "build:binding:debug ": "pnpm --filter @rspack/binding run build:dev",
     "build:binding:ci": "pnpm --filter @rspack/binding run build:ci",
     "build:binding:release": "pnpm --filter @rspack/binding run build:release",
     "build:binding:profiling": "pnpm --filter @rspack/binding run build:profiling",
