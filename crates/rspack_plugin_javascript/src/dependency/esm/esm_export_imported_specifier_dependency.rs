@@ -292,30 +292,29 @@ impl ESMExportImportedSpecifierDependency {
     exports_info: Option<ExportsInfo>,
     imported_module_identifier: &ModuleIdentifier,
   ) -> StarReexportsInfo {
-    let exports_info = exports_info.unwrap_or_else(|| {
-      // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L425
-      let parent_module = module_graph
-        .get_parent_module(&self.id)
-        .expect("should have parent module");
-      module_graph.get_exports_info(parent_module)
-    });
-    let imported_exports_info = module_graph.get_exports_info(imported_module_identifier);
+    let exports_info = ExportsInfoGetter::prefetch(
+      &exports_info.unwrap_or_else(|| {
+        // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L425
+        let parent_module = module_graph
+          .get_parent_module(&self.id)
+          .expect("should have parent module");
+        module_graph.get_exports_info(parent_module)
+      }),
+      module_graph,
+      None,
+    );
+    let imported_exports_info = ExportsInfoGetter::prefetch(
+      &module_graph.get_exports_info(imported_module_identifier),
+      module_graph,
+      None,
+    );
 
     let no_extra_exports = matches!(
-      ExportInfoGetter::provided(
-        imported_exports_info
-          .other_exports_info(module_graph)
-          .as_data(module_graph)
-      ),
+      ExportInfoGetter::provided(imported_exports_info.other_exports_info()),
       Some(ExportProvided::NotProvided)
     );
     let no_extra_imports = matches!(
-      ExportInfoGetter::get_used(
-        exports_info
-          .other_exports_info(module_graph)
-          .as_data(module_graph),
-        runtime
-      ),
+      ExportInfoGetter::get_used(exports_info.other_exports_info(), runtime),
       UsageState::Unused
     );
 
@@ -353,25 +352,22 @@ impl ESMExportImportedSpecifierDependency {
     };
 
     if no_extra_imports {
-      for export_info in exports_info.ordered_exports(module_graph) {
-        let export_info_data = export_info.as_data(module_graph);
-        let export_name = ExportInfoGetter::name(export_info_data)
+      for (_, export_info) in exports_info.exports() {
+        let export_name = ExportInfoGetter::name(export_info)
           .cloned()
           .unwrap_or_default();
         if ignored_exports.contains(&export_name)
           || matches!(
-            ExportInfoGetter::get_used(export_info_data, runtime),
+            ExportInfoGetter::get_used(export_info, runtime),
             UsageState::Unused
           )
         {
           continue;
         }
 
-        let imported_export_info =
-          imported_exports_info.get_read_only_export_info(module_graph, &export_name);
-        let imported_export_info_data = imported_export_info.as_data(module_graph);
+        let imported_export_info = imported_exports_info.get_read_only_export_info(&export_name);
         if matches!(
-          ExportInfoGetter::provided(imported_export_info_data),
+          ExportInfoGetter::provided(imported_export_info),
           Some(ExportProvided::NotProvided)
         ) {
           continue;
@@ -388,7 +384,7 @@ impl ESMExportImportedSpecifierDependency {
 
         exports.insert(export_name.clone());
         if matches!(
-          ExportInfoGetter::provided(imported_export_info_data),
+          ExportInfoGetter::provided(imported_export_info),
           Some(ExportProvided::Provided)
         ) {
           continue;
@@ -396,24 +392,21 @@ impl ESMExportImportedSpecifierDependency {
         checked.insert(export_name);
       }
     } else if no_extra_exports {
-      for imported_export_info in imported_exports_info.ordered_exports(module_graph) {
-        let imported_export_info_data = imported_export_info.as_data(module_graph);
-        let imported_export_info_name = ExportInfoGetter::name(imported_export_info_data)
+      for (_, imported_export_info) in imported_exports_info.exports() {
+        let imported_export_info_name = ExportInfoGetter::name(imported_export_info)
           .cloned()
           .unwrap_or_default();
         if ignored_exports.contains(&imported_export_info_name)
           || matches!(
-            ExportInfoGetter::provided(imported_export_info_data),
+            ExportInfoGetter::provided(imported_export_info),
             Some(ExportProvided::NotProvided)
           )
         {
           continue;
         }
-        let export_info =
-          exports_info.get_read_only_export_info(module_graph, &imported_export_info_name);
-        let export_info_data = export_info.as_data(module_graph);
+        let export_info = exports_info.get_read_only_export_info(&imported_export_info_name);
         if matches!(
-          ExportInfoGetter::get_used(export_info_data, runtime),
+          ExportInfoGetter::get_used(export_info, runtime),
           UsageState::Unused
         ) {
           continue;
@@ -430,7 +423,7 @@ impl ESMExportImportedSpecifierDependency {
 
         exports.insert(imported_export_info_name.clone());
         if matches!(
-          ExportInfoGetter::provided(imported_export_info_data),
+          ExportInfoGetter::provided(imported_export_info),
           Some(ExportProvided::Provided)
         ) {
           continue;

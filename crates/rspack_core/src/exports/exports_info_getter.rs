@@ -378,7 +378,7 @@ impl ExportsInfoGetter {
     if names.len() == 1 {
       let name = &names[0];
       let info = info.get_read_only_export_info(name);
-      let used_name = ExportInfoGetter::get_used_name(&info, Some(name), runtime);
+      let used_name = ExportInfoGetter::get_used_name(info, Some(name), runtime);
       return used_name.map(|n| UsedName::Normal(vec![n]));
     }
     if names.is_empty() {
@@ -388,7 +388,7 @@ impl ExportsInfoGetter {
       return Some(UsedName::Normal(names.to_vec()));
     }
     let export_info = info.get_read_only_export_info(&names[0]);
-    let used_name = ExportInfoGetter::get_used_name(&export_info, Some(&names[0]), runtime)?;
+    let used_name = ExportInfoGetter::get_used_name(export_info, Some(&names[0]), runtime)?;
     let mut arr = if used_name == names[0] && names.len() == 1 {
       names.to_vec()
     } else {
@@ -398,7 +398,7 @@ impl ExportsInfoGetter {
       return Some(UsedName::Normal(arr));
     }
     if let Some(exports_info) = &export_info.exports_info
-      && ExportInfoGetter::get_used(&export_info, runtime) == UsageState::OnlyPropertiesUsed
+      && ExportInfoGetter::get_used(export_info, runtime) == UsageState::OnlyPropertiesUsed
     {
       let nested_exports_info = info.redirect(*exports_info);
       let nested = Self::get_used_name(&nested_exports_info, runtime, &names[1..])?;
