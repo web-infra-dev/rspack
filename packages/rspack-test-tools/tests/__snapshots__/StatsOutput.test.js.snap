@@ -58,7 +58,7 @@ runtime modules xx KiB
     [no exports]
     [used exports unknown]
   
-Rspack compiled successfully (18cc1e9efd1c355c)
+Rspack compiled successfully (cb468c46ad9d7f18)
 `;
 
 exports[`statsOutput statsOutput/builtin-swc-loader-parse-error should print correct stats for 1`] = `
@@ -206,20 +206,20 @@ runtime modules 647 bytes 3 modules
 exports[`statsOutput statsOutput/minify-error should print correct stats for 1`] = `
 ERROR in main.js
   × Chunk minification failed:
-  ╰─▶   × JavaScript parse error: Expected a semicolon
-         ╭─[1:8]
+  ╰─▶   × JavaScript parse error: 'const' declarations must be initialized
+         ╭─[1:6]
        1 │ const a {}
-         ·         ─
+         ·       ─
        2 │ (() => { // webpackBootstrap
        3 │ console.log(0);
          ╰────
 
 ERROR in main.js
   × Chunk minification failed:
-  ╰─▶   × JavaScript parse error: 'const' declarations must be initialized
-         ╭─[1:6]
+  ╰─▶   × JavaScript parse error: Expected a semicolon
+         ╭─[1:8]
        1 │ const a {}
-         ·       ─
+         ·         ─
        2 │ (() => { // webpackBootstrap
        3 │ console.log(0);
          ╰────

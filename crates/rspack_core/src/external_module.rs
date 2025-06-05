@@ -18,7 +18,7 @@ use crate::{
   DependenciesBlock, DependencyId, ExternalType, FactoryMeta, ImportAttributes, InitFragmentExt,
   InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleGraph, ModuleType,
   NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, NAMESPACE_OBJECT_EXPORT,
+  StaticExportsSpec, UsedExports, NAMESPACE_OBJECT_EXPORT,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -270,6 +270,7 @@ impl ExternalModule {
     compilation: &Compilation,
     request: Option<&ExternalRequestValue>,
     external_type: &ExternalType,
+    runtime: Option<&RuntimeSpec>,
     concatenation_scope: Option<&mut ConcatenationScope>,
   ) -> Result<(BoxSource, ChunkInitFragments, RuntimeGlobals)> {
     let mut chunk_init_fragments: ChunkInitFragments = Default::default();
@@ -398,43 +399,107 @@ impl ExternalModule {
             to_identifier(&request.primary)
           };
 
-          chunk_init_fragments.push(
-            NormalInitFragment::new(
-              format!(
-                "import * as __WEBPACK_EXTERNAL_MODULE_{}__ from {}{};\n",
-                id.clone(),
-                json_stringify(request.primary()),
-                {
-                  let meta = &self.dependency_meta.attributes;
-                  if let Some(meta) = meta {
-                    format!(
-                      " with {}",
-                      serde_json::to_string(meta).expect("json stringify failed"),
-                    )
-                  } else {
-                    String::new()
-                  }
-                },
-              ),
-              InitFragmentStage::StageESMImports,
-              0,
-              InitFragmentKey::ModuleExternal(request.primary().into()),
-              None,
-            )
-            .boxed(),
-          );
-
           if let Some(concatenation_scope) = concatenation_scope {
-            let external_module_id = format!("__WEBPACK_EXTERNAL_MODULE_{id}__");
-            let namespace_export_with_name = format!(
-              "{}{}{}",
-              NAMESPACE_OBJECT_EXPORT,
-              &external_module_id,
-              &property_access(request.iter(), 1)
-            );
-            concatenation_scope.register_namespace_export(&namespace_export_with_name);
+            let exports_info = module_graph.get_exports_info(&self.identifier());
+            let used_exports = exports_info.get_used_exports(&module_graph, runtime);
+            let meta = &self.dependency_meta.attributes;
+            let attributes = meta.as_ref().map(|meta| {
+              format!(
+                " with {}",
+                serde_json::to_string(meta).expect("json stringify failed"),
+              )
+            });
+            match used_exports {
+              UsedExports::UsedNamespace(true) | UsedExports::Unknown => {
+                chunk_init_fragments.push(
+                  NormalInitFragment::new(
+                    format!(
+                      "import * as __WEBPACK_EXTERNAL_MODULE_{}__ from {}{};\n",
+                      id.clone(),
+                      json_stringify(request.primary()),
+                      attributes.unwrap_or_default()
+                    ),
+                    InitFragmentStage::StageESMImports,
+                    module_graph
+                      .get_pre_order_index(&self.identifier())
+                      .map_or(0, |num| num as i32),
+                    InitFragmentKey::ModuleExternal(request.primary().into()),
+                    None,
+                  )
+                  .boxed(),
+                );
+                let external_module_id = format!("__WEBPACK_EXTERNAL_MODULE_{id}__");
+                let namespace_export_with_name = format!(
+                  "{}{}{}",
+                  NAMESPACE_OBJECT_EXPORT,
+                  &external_module_id,
+                  &property_access(request.iter(), 1)
+                );
+                concatenation_scope.register_namespace_export(&namespace_export_with_name);
+              }
+              UsedExports::UsedNamespace(false) => {
+                let content = format!(
+                  "import {}{};\n",
+                  json_stringify(request.primary()),
+                  attributes.unwrap_or_default()
+                );
+                chunk_init_fragments.push(
+                  NormalInitFragment::new(
+                    content.clone(),
+                    InitFragmentStage::StageESMImports,
+                    module_graph
+                      .get_pre_order_index(&self.identifier())
+                      .map_or(0, |num| num as i32),
+                    InitFragmentKey::ModuleExternal(content),
+                    None,
+                  )
+                  .boxed(),
+                );
+              }
+              UsedExports::UsedNames(atoms) => {
+                concatenation_scope.register_import(
+                  json_stringify(request.primary()),
+                  attributes.clone(),
+                  None,
+                );
+                for atom in &atoms {
+                  concatenation_scope.register_import(
+                    json_stringify(request.primary()),
+                    attributes.clone(),
+                    Some(atom.clone()),
+                  );
+                  concatenation_scope.register_raw_export(atom.clone(), atom.to_string());
+                }
+              }
+            }
+
             String::new()
           } else {
+            chunk_init_fragments.push(
+              NormalInitFragment::new(
+                format!(
+                  "import * as __WEBPACK_EXTERNAL_MODULE_{}__ from {}{};\n",
+                  id.clone(),
+                  json_stringify(request.primary()),
+                  {
+                    let meta = &self.dependency_meta.attributes;
+                    if let Some(meta) = meta {
+                      format!(
+                        " with {}",
+                        serde_json::to_string(meta).expect("json stringify failed"),
+                      )
+                    } else {
+                      String::new()
+                    }
+                  },
+                ),
+                InitFragmentStage::StageESMImports,
+                0,
+                InitFragmentKey::ModuleExternal(request.primary().into()),
+                None,
+              )
+              .boxed(),
+            );
             format!(
               r#"
 {} = __WEBPACK_EXTERNAL_MODULE_{}__;
@@ -664,7 +729,7 @@ impl Module for ExternalModule {
   async fn code_generation(
     &self,
     compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
+    runtime: Option<&RuntimeSpec>,
     mut concatenation_scope: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
@@ -698,6 +763,7 @@ impl Module for ExternalModule {
           compilation,
           request,
           external_type,
+          runtime,
           concatenation_scope.as_mut(),
         )?;
         cgr.add(SourceType::JavaScript, source);

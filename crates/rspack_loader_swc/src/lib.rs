@@ -14,7 +14,7 @@ use rspack_core::{Mode, RunnerContext};
 use rspack_error::{miette, Diagnostic, Result};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
-use swc_config::{config_types::MergingOption, merge::Merge};
+use swc_config::{merge::Merge, types::MergingOption};
 use swc_core::{
   base::config::{InputSourceMap, TransformConfig},
   common::FileName,
