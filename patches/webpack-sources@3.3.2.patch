@@ -1,21 +1,18 @@
 # Ensure the types.d.ts can be parsed by api-extractor
 diff --git a/types.d.ts b/types.d.ts
-index 08fad8920a89c3af97a8f6f706c566634bcd6fc9..241925cb470f7a2ed1c3cb011d86d49037727601 100644
+index f58f6dfe6a2c2098385d1ccf33200baeb31b2166..89ae401ce6bec901a0912ac05fca4d6511783b24 100644
 --- a/types.d.ts
 +++ b/types.d.ts
-@@ -269,7 +269,7 @@ declare interface StreamChunksOptions {
+@@ -271,7 +271,6 @@ declare interface StreamChunksOptions {
  	finalSource?: boolean;
  	columns?: boolean;
  }
 -declare namespace exports {
-+
  	export namespace util {
  		export namespace stringBufferUtils {
  			export let disableDualStringBufferCaching: () => void;
-@@ -318,6 +318,3 @@ declare namespace exports {
- 		GeneratedSourceInfo,
- 		StreamChunksOptions
+@@ -322,4 +321,3 @@ declare namespace exports {
  	};
--}
--
+ }
+ 
 -export = exports;
