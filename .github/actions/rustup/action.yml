@@ -65,7 +65,6 @@ runs:
 
     - name: Cargo cache
       uses: ./.github/actions/rustup/cargo
-      if: ${{ runner.os != 'Windows' }}
       with:
         key: ${{ inputs.key }}
         save-if: ${{ inputs.save-if }}
