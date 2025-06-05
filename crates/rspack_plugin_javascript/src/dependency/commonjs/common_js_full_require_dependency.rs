@@ -5,7 +5,7 @@ use rspack_cacheable::{
 use rspack_core::{
   module_id, property_access, to_normal_comment, AsContextDependency, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsType,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoGetter, ExportsType,
   ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, RuntimeGlobals,
   RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
 };
@@ -175,9 +175,12 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
     );
 
     if let Some(imported_module) = module_graph.module_graph_module_by_dependency_id(&dep.id) {
-      let used = module_graph
-        .get_exports_info(&imported_module.module_identifier)
-        .get_used_name(&module_graph, *runtime, &dep.names);
+      let used = ExportsInfoGetter::get_used_name(
+        &module_graph
+          .get_prefetched_exports_info(&imported_module.module_identifier, Some(&dep.names)),
+        *runtime,
+        &dep.names,
+      );
 
       if let Some(used) = used {
         let comment = to_normal_comment(&property_access(dep.names.clone(), 0));

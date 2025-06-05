@@ -5,9 +5,9 @@ use rspack_core::{
   property_access, rspack_sources::ReplacementEnforce, AsContextDependency, AsModuleDependency,
   Compilation, Dependency, DependencyCodeGeneration, DependencyId, DependencyLocation,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ESMExportInitFragment, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
-  RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
-  DEFAULT_EXPORT,
+  ESMExportInitFragment, ExportNameOrSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec,
+  ModuleGraph, RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
 };
 use swc_core::atoms::Atom;
 
@@ -161,10 +161,13 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       runtime: &Option<&RuntimeSpec>,
       module_identifier: &Identifier,
     ) -> Option<UsedName> {
-      let module_graph = compilation.get_module_graph();
-      module_graph
-        .get_exports_info(module_identifier)
-        .get_used_name(&module_graph, *runtime, &[name.into()])
+      ExportsInfoGetter::get_used_name(
+        &compilation
+          .get_module_graph()
+          .get_prefetched_exports_info(module_identifier, Some(&[name.into()])),
+        *runtime,
+        &[name.into()],
+      )
     }
 
     if let Some(declaration) = &dep.declaration {

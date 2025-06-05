@@ -5,9 +5,10 @@ use rspack_cacheable::{
 use rspack_core::{
   property_access, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec,
-  ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph,
-  NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedName,
+  DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoGetter,
+  ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  ModuleGraph, NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  UsedName,
 };
 use swc_core::atoms::Atom;
 
@@ -162,9 +163,11 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
 
-    let used = module_graph
-      .get_exports_info(&module.identifier())
-      .get_used_name(&module_graph, *runtime, &dep.names);
+    let used = ExportsInfoGetter::get_used_name(
+      &module_graph.get_prefetched_exports_info(&module.identifier(), Some(&dep.names)),
+      *runtime,
+      &dep.names,
+    );
 
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();

@@ -406,50 +406,6 @@ impl ExportsInfo {
     )
   }
 
-  /// `Option<UsedName>` correspond to webpack `string | string[] | false`
-  pub fn get_used_name(
-    &self,
-    mg: &ModuleGraph,
-    runtime: Option<&RuntimeSpec>,
-    names: &[Atom],
-  ) -> Option<UsedName> {
-    if names.len() == 1 {
-      let name = &names[0];
-      let info = self.get_read_only_export_info(mg, name);
-      let used_name = ExportInfoGetter::get_used_name(info.as_data(mg), Some(name), runtime);
-      return used_name.map(|n| UsedName::Normal(vec![n]));
-    }
-    if names.is_empty() {
-      if !self.is_used(mg, runtime) {
-        return None;
-      }
-      return Some(UsedName::Normal(names.to_vec()));
-    }
-    let export_info = self.get_read_only_export_info(mg, &names[0]);
-    let export_info_data = export_info.as_data(mg);
-    let used_name = ExportInfoGetter::get_used_name(export_info_data, Some(&names[0]), runtime)?;
-    let mut arr = if used_name == names[0] && names.len() == 1 {
-      names.to_vec()
-    } else {
-      vec![used_name]
-    };
-    if names.len() == 1 {
-      return Some(UsedName::Normal(arr));
-    }
-    if let Some(exports_info) = ExportInfoGetter::exports_info(export_info_data)
-      && ExportInfoGetter::get_used(export_info_data, runtime) == UsageState::OnlyPropertiesUsed
-    {
-      let nested = exports_info.get_used_name(mg, runtime, &names[1..]);
-      let nested = nested?;
-      arr.extend(match nested {
-        UsedName::Normal(names) => names,
-      });
-      return Some(UsedName::Normal(arr));
-    }
-    arr.extend(names.iter().skip(1).cloned());
-    Some(UsedName::Normal(arr))
-  }
-
   pub fn get_provided_exports(&self, mg: &ModuleGraph) -> ProvidedExports {
     let info = self.as_exports_info(mg);
     let other_exports_info_data = info.other_exports_info.as_data(mg);

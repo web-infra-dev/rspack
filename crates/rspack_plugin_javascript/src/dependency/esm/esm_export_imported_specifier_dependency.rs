@@ -484,6 +484,7 @@ impl ESMExportImportedSpecifierDependency {
     let mut fragments = vec![];
     let mg = &compilation.get_module_graph();
     let module_identifier = module.identifier();
+    let exports_info = mg.get_prefetched_exports_info(&module.identifier(), None);
     let import_var = compilation.get_import_var(&self.id);
     match mode.ty {
       ExportModeType::Missing | ExportModeType::EmptyStar => {
@@ -512,8 +513,8 @@ impl ESMExportImportedSpecifierDependency {
         .boxed(),
       ),
       ExportModeType::ReexportDynamicDefault => {
-        let used_name = mg.get_exports_info(&module.identifier()).get_used_name(
-          mg,
+        let used_name = ExportsInfoGetter::get_used_name(
+          &exports_info,
           None,
           &[mode.name.expect("should have name")],
         );
@@ -531,8 +532,8 @@ impl ESMExportImportedSpecifierDependency {
         fragments.push(init_fragment);
       }
       ExportModeType::ReexportNamedDefault => {
-        let used_name = mg.get_exports_info(&module.identifier()).get_used_name(
-          mg,
+        let used_name = ExportsInfoGetter::get_used_name(
+          &exports_info,
           None,
           &[mode.name.expect("should have name")],
         );
@@ -549,8 +550,8 @@ impl ESMExportImportedSpecifierDependency {
         fragments.push(init_fragment);
       }
       ExportModeType::ReexportNamespaceObject => {
-        let used_name = mg.get_exports_info(&module.identifier()).get_used_name(
-          mg,
+        let used_name = ExportsInfoGetter::get_used_name(
+          &exports_info,
           None,
           &[mode.name.expect("should have name")],
         );
@@ -569,8 +570,8 @@ impl ESMExportImportedSpecifierDependency {
       }
       ExportModeType::ReexportFakeNamespaceObject => {
         // TODO: reexport fake namespace object
-        let used_name = mg.get_exports_info(&module.identifier()).get_used_name(
-          mg,
+        let used_name = ExportsInfoGetter::get_used_name(
+          &exports_info,
           None,
           &[mode.name.expect("should have name")],
         );
@@ -578,8 +579,8 @@ impl ESMExportImportedSpecifierDependency {
         self.get_reexport_fake_namespace_object_fragments(ctxt, key, &import_var, mode.fake_type);
       }
       ExportModeType::ReexportUndefined => {
-        let used_name = mg.get_exports_info(&module.identifier()).get_used_name(
-          mg,
+        let used_name = ExportsInfoGetter::get_used_name(
+          &exports_info,
           None,
           &[mode.name.expect("should have name")],
         );
@@ -613,11 +614,8 @@ impl ESMExportImportedSpecifierDependency {
             continue;
           }
 
-          let used_name = mg.get_exports_info(&module_identifier).get_used_name(
-            mg,
-            None,
-            std::slice::from_ref(&name),
-          );
+          let used_name =
+            ExportsInfoGetter::get_used_name(&exports_info, None, std::slice::from_ref(&name));
           let key = render_used_name(used_name.as_ref());
 
           if checked {
@@ -651,9 +649,10 @@ impl ESMExportImportedSpecifierDependency {
               runtime_condition,
             )));
           } else {
-            let used_name = mg
-              .get_exports_info(imported_module)
-              .get_used_name(mg, None, &ids);
+            let imported_module_exports_info =
+              mg.get_prefetched_exports_info(imported_module, Some(&ids));
+            let used_name =
+              ExportsInfoGetter::get_used_name(&imported_module_exports_info, None, &ids);
             let init_fragment = self
               .get_reexport_fragment(ctxt, "reexport safe", key, &import_var, used_name.into())
               .boxed();

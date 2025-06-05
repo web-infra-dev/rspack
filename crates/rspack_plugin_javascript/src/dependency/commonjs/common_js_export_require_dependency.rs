@@ -7,9 +7,10 @@ use rspack_core::{
   module_raw, process_export_info, property_access, AsContextDependency, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportInfoGetter, ExportNameOrSpec, ExportProvided,
-  ExportSpec, ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
-  FactorizeInfo, ModuleDependency, ModuleGraph, ModuleIdentifier, Nullable, ReferencedExport,
-  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ExportsType,
+  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  Nullable, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  UsageState, UsedName,
 };
 use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
@@ -440,9 +441,11 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();
 
-    let used = mg
-      .get_exports_info(&module.identifier())
-      .get_used_name(mg, *runtime, &dep.names);
+    let used = ExportsInfoGetter::get_used_name(
+      &mg.get_prefetched_exports_info(&module.identifier(), Some(&dep.names)),
+      *runtime,
+      &dep.names,
+    );
 
     let base = if dep.base.is_exports() {
       runtime_requirements.insert(RuntimeGlobals::EXPORTS);
@@ -467,10 +470,11 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
 
     if let Some(imported_module) = mg.get_module_by_dependency_id(&dep.id) {
       let ids = dep.get_ids(mg);
-      if let Some(used_imported) = mg
-        .get_exports_info(&imported_module.identifier())
-        .get_used_name(mg, *runtime, ids)
-      {
+      if let Some(used_imported) = ExportsInfoGetter::get_used_name(
+        &mg.get_prefetched_exports_info(&imported_module.identifier(), Some(ids)),
+        *runtime,
+        ids,
+      ) {
         require_expr = format!(
           "{}{}",
           require_expr,
