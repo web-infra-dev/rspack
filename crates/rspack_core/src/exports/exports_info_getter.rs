@@ -5,6 +5,7 @@ use rustc_hash::FxHashMap as HashMap;
 
 use super::{
   ExportInfoData, ExportInfoGetter, ExportProvided, ExportsInfo, ProvidedExports, UsageState,
+  UsedName,
 };
 use crate::{ModuleGraph, RuntimeSpec};
 
@@ -366,5 +367,47 @@ impl ExportsInfoGetter {
       return Self::get_used(&redirected, &names[1..], runtime);
     }
     ExportInfoGetter::get_used(info_data, runtime)
+  }
+
+  /// `Option<UsedName>` correspond to webpack `string | string[] | false`
+  pub fn get_used_name(
+    info: &PrefetchedExportsInfoWrapper,
+    runtime: Option<&RuntimeSpec>,
+    names: &[Atom],
+  ) -> Option<UsedName> {
+    if names.len() == 1 {
+      let name = &names[0];
+      let info = info.get_read_only_export_info(name);
+      let used_name = ExportInfoGetter::get_used_name(&info, Some(name), runtime);
+      return used_name.map(|n| UsedName::Normal(vec![n]));
+    }
+    if names.is_empty() {
+      if !Self::is_used(info, runtime) {
+        return None;
+      }
+      return Some(UsedName::Normal(names.to_vec()));
+    }
+    let export_info = info.get_read_only_export_info(&names[0]);
+    let used_name = ExportInfoGetter::get_used_name(&export_info, Some(&names[0]), runtime)?;
+    let mut arr = if used_name == names[0] && names.len() == 1 {
+      names.to_vec()
+    } else {
+      vec![used_name]
+    };
+    if names.len() == 1 {
+      return Some(UsedName::Normal(arr));
+    }
+    if let Some(exports_info) = &export_info.exports_info
+      && ExportInfoGetter::get_used(&export_info, runtime) == UsageState::OnlyPropertiesUsed
+    {
+      let nested_exports_info = info.redirect(*exports_info);
+      let nested = Self::get_used_name(&nested_exports_info, runtime, &names[1..])?;
+      arr.extend(match nested {
+        UsedName::Normal(names) => names,
+      });
+      return Some(UsedName::Normal(arr));
+    }
+    arr.extend(names.iter().skip(1).cloned());
+    Some(UsedName::Normal(arr))
   }
 }

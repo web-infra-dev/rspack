@@ -220,22 +220,6 @@ impl ExportsInfo {
     changed
   }
 
-  pub fn get_read_only_export_info_recursive(
-    &self,
-    mg: &ModuleGraph,
-    names: &[Atom],
-  ) -> Option<ExportInfo> {
-    if names.is_empty() {
-      return None;
-    }
-    let export_info = self.get_read_only_export_info(mg, &names[0]);
-    if names.len() == 1 {
-      return Some(export_info);
-    }
-    let exports_info = ExportInfoGetter::exports_info(export_info.as_data(mg))?;
-    exports_info.get_read_only_export_info_recursive(mg, &names[1..])
-  }
-
   pub fn get_read_only_export_info(&self, mg: &ModuleGraph, name: &Atom) -> ExportInfo {
     let exports_info = self.as_exports_info(mg);
     let redirect_to = exports_info.redirect_to;
@@ -298,24 +282,6 @@ impl ExportsInfo {
       other_export_info: other_exports_info_id,
       data,
     }
-  }
-
-  pub fn get_nested_exports_info(
-    &self,
-    mg: &ModuleGraph,
-    name: Option<&[Atom]>,
-  ) -> Option<ExportsInfo> {
-    if let Some(name) = name
-      && !name.is_empty()
-    {
-      let info = self.get_read_only_export_info(mg, &name[0]);
-      if let Some(exports_info) = ExportInfoGetter::exports_info(info.as_data(mg)) {
-        return exports_info.get_nested_exports_info(mg, Some(&name[1..]));
-      } else {
-        return None;
-      }
-    }
-    Some(*self)
   }
 
   pub fn set_has_use_info(&self, mg: &mut ModuleGraph) {

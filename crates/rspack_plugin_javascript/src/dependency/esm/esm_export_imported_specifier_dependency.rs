@@ -139,13 +139,17 @@ impl ESMExportImportedSpecifierDependency {
     let parent_module = module_graph
       .get_parent_module(id)
       .expect("should have parent module");
-    let exports_info = module_graph.get_exports_info(parent_module);
+    let exports_info = ExportsInfoGetter::prefetch(
+      &module_graph.get_exports_info(parent_module),
+      module_graph,
+      name.as_ref().map(std::slice::from_ref),
+    );
 
     let is_name_unused = if let Some(ref name) = name {
-      exports_info.get_used(module_graph, std::slice::from_ref(name), runtime) == UsageState::Unused
+      ExportsInfoGetter::get_used(&exports_info, std::slice::from_ref(name), runtime)
+        == UsageState::Unused
     } else {
-      let exports_info_data = ExportsInfoGetter::prefetch(&exports_info, module_graph, None);
-      !ExportsInfoGetter::is_used(&exports_info_data, runtime)
+      !ExportsInfoGetter::is_used(&exports_info, runtime)
     };
     if is_name_unused {
       let mut mode = ExportMode::new(ExportModeType::Unused);
@@ -167,10 +171,10 @@ impl ESMExportImportedSpecifierDependency {
           return export_mode;
         }
         ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
-          let export_info = exports_info.get_read_only_export_info(module_graph, name);
+          let export_info = exports_info.get_read_only_export_info(name);
           let mut export_mode = ExportMode::new(ExportModeType::ReexportNamedDefault);
           export_mode.name = Some(name.clone());
-          export_mode.partial_namespace_export_info = Some(export_info);
+          export_mode.partial_namespace_export_info = Some(export_info.id());
           return export_mode;
         }
         _ => {}
@@ -179,7 +183,7 @@ impl ESMExportImportedSpecifierDependency {
 
     // reexporting with a fixed name
     if let Some(name) = name {
-      let export_info = exports_info.get_read_only_export_info(module_graph, &name);
+      let export_info = exports_info.get_read_only_export_info(&name);
       if !ids.is_empty() {
         // export { name as name }
         match imported_exports_type {
@@ -195,7 +199,7 @@ impl ESMExportImportedSpecifierDependency {
               ids: ids.to_vec(),
               hidden: false,
               checked: false,
-              export_info,
+              export_info: export_info.id(),
             }]);
             return export_mode;
           }
@@ -206,21 +210,21 @@ impl ESMExportImportedSpecifierDependency {
           ExportsType::DefaultOnly => {
             let mut export_mode = ExportMode::new(ExportModeType::ReexportFakeNamespaceObject);
             export_mode.name = Some(name);
-            export_mode.partial_namespace_export_info = Some(export_info);
+            export_mode.partial_namespace_export_info = Some(export_info.id());
             export_mode.fake_type = 0;
             return export_mode;
           }
           ExportsType::DefaultWithNamed => {
             let mut export_mode = ExportMode::new(ExportModeType::ReexportFakeNamespaceObject);
             export_mode.name = Some(name);
-            export_mode.partial_namespace_export_info = Some(export_info);
+            export_mode.partial_namespace_export_info = Some(export_info.id());
             export_mode.fake_type = 2;
             return export_mode;
           }
           _ => {
             let mut export_mode = ExportMode::new(ExportModeType::ReexportNamespaceObject);
             export_mode.name = Some(name);
-            export_mode.partial_namespace_export_info = Some(export_info);
+            export_mode.partial_namespace_export_info = Some(export_info.id());
             return export_mode;
           }
         }
@@ -235,7 +239,7 @@ impl ESMExportImportedSpecifierDependency {
     } = self.get_star_reexports(
       module_graph,
       runtime,
-      Some(exports_info),
+      Some(exports_info.data().id),
       imported_module_identifier,
     );
     if let Some(exports) = exports {
@@ -255,7 +259,7 @@ impl ESMExportImportedSpecifierDependency {
             .as_ref()
             .map(|c| c.contains(&export_name))
             .unwrap_or_default(),
-          export_info: exports_info.get_read_only_export_info(module_graph, &export_name),
+          export_info: exports_info.get_read_only_export_info(&export_name).id(),
         })
         .collect::<Vec<_>>();
 
@@ -266,7 +270,7 @@ impl ESMExportImportedSpecifierDependency {
             ids: vec![export_name.clone()],
             hidden: true,
             checked: false,
-            export_info: exports_info.get_read_only_export_info(module_graph, export_name),
+            export_info: exports_info.get_read_only_export_info(export_name).id(),
           });
         }
       }
