@@ -203,24 +203,51 @@ macro_rules! impl_module_methods {
         }
 
         properties.push(
-          napi::Property::new("type")?
+          napi::Property::new()
+            .with_utf8_name("type")?
             .with_value(&env.create_string(module.module_type().as_str())?),
         );
-        properties.push(napi::Property::new("context")?.with_getter(context_getter));
-        properties.push(napi::Property::new("layer")?.with_getter(layer_getter));
-        properties.push(napi::Property::new("useSourceMap")?.with_getter(use_source_map_getter));
         properties.push(
-          napi::Property::new("useSimpleSourceMap")?.with_getter(use_simple_source_map_getter),
+          napi::Property::new()
+            .with_utf8_name("context")?
+            .with_getter(context_getter)
         );
         properties.push(
-          napi::Property::new("factoryMeta")?
+          napi::Property::new()
+            .with_utf8_name("layer")?
+            .with_getter(layer_getter)
+        );
+        properties.push(
+          napi::Property::new()
+            .with_utf8_name("useSourceMap")?
+            .with_getter(use_source_map_getter)
+        );
+        properties.push(
+          napi::Property::new()
+            .with_utf8_name("useSimpleSourceMap")?
+            .with_getter(use_simple_source_map_getter),
+        );
+        properties.push(
+          napi::Property::new()
+            .with_utf8_name("factoryMeta")?
             .with_getter(factory_meta_getter)
             .with_setter(factory_meta_setter),
         );
-        properties.push(napi::Property::new("buildInfo")?.with_getter(build_info_getter).with_setter(build_info_setter));
-        properties.push(napi::Property::new("buildMeta")?.with_value(&napi::bindgen_prelude::Object::new(env)?));
         properties.push(
-          napi::Property::new("_readableIdentifier")?.with_getter(readable_identifier_getter),
+          napi::Property::new()
+            .with_utf8_name("buildInfo")?
+            .with_getter(build_info_getter)
+            .with_setter(build_info_setter)
+        );
+        properties.push(
+          napi::Property::new()
+            .with_utf8_name("buildMeta")?
+            .with_value(&napi::bindgen_prelude::Object::new(env)?)
+        );
+        properties.push(
+          napi::Property::new()
+            .with_utf8_name("_readableIdentifier")?
+            .with_getter(readable_identifier_getter),
         );
         object.define_properties(&properties)?;
 

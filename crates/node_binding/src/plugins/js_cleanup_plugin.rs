@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use async_trait::async_trait;
 use derive_more::Debug;
-use napi::{bindgen_prelude::External, threadsafe_function::ThreadsafeFunction};
+use napi::{bindgen_prelude::External, threadsafe_function::ThreadsafeFunction, Status};
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   ApplyContext, Compilation, CompilationRevokedModules, CompilerFinishMake, CompilerMake,
@@ -15,6 +15,7 @@ pub type CleanupRevokedModulesTsFn = ThreadsafeFunction<
   External<Vec<ModuleIdentifier>>,
   (),
   External<Vec<ModuleIdentifier>>,
+  Status,
   false,
   true,
   1,

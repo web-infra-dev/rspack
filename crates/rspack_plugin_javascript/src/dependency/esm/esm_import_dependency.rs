@@ -330,7 +330,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
           );
           return Some(create_error(msg));
         }
-        maybe_exports_info = export_info.get_nested_exports_info(module_graph);
+        maybe_exports_info = ExportInfoGetter::exports_info(export_info.as_data(module_graph));
       }
       let msg = format!(
         "export {} {} was not found in '{}'",

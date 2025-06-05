@@ -5,8 +5,8 @@ use rspack_core::{
   get_entry_runtime, incremental::IncrementalPasses, is_exports_object_referenced,
   is_no_exports_referenced, AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation,
   CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId,
-  ExportInfoSetter, ExportsInfo, ExtendedReferencedExport, GroupOptions, ModuleIdentifier, Plugin,
-  ReferencedExport, RuntimeSpec, UsageState,
+  ExportInfoGetter, ExportInfoSetter, ExportsInfo, ExtendedReferencedExport, GroupOptions,
+  ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -335,7 +335,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             }
             let last_one = i == len - 1;
             if !last_one {
-              let nested_info = export_info.get_nested_exports_info(&module_graph);
+              let nested_info = ExportInfoGetter::exports_info(export_info.as_data(&module_graph));
               if let Some(nested_info) = nested_info {
                 let changed_flag = ExportInfoSetter::set_used_conditionally(
                   export_info.as_data_mut(&mut module_graph),

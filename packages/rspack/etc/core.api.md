@@ -1069,7 +1069,7 @@ export class Compilation {
         Iterable<Module>
         ], void>;
         finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
-        chunkHash: liteTapable.SyncHook<[Chunk, Hash_2], void>;
+        chunkHash: liteTapable.SyncHook<[Chunk, Hash], void>;
         chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
         processWarnings: liteTapable.SyncWaterfallHook<[Error[]]>;
         succeedModule: liteTapable.SyncHook<[Module], void>;
@@ -1176,7 +1176,7 @@ export class Compilation {
 
 // @public (undocumented)
 type CompilationHooks = {
-    chunkHash: liteTapable.SyncHook<[Chunk, Hash_2]>;
+    chunkHash: liteTapable.SyncHook<[Chunk, Hash]>;
 };
 
 // @public (undocumented)
@@ -2924,15 +2924,7 @@ interface HasDecorator {
 }
 
 // @public (undocumented)
-interface Hash {
-    	// (undocumented)
-    digest: (encoding?: string) => string | Buffer_2;
-    	// (undocumented)
-    update: (data: string | Buffer_2, inputEncoding?: string) => Hash;
-}
-
-// @public (undocumented)
-class Hash_2 {
+class Hash {
     digest(): Buffer;
     digest(encoding: string): string;
     // (undocumented)
@@ -2944,11 +2936,11 @@ class Hash_2 {
 // @public (undocumented)
 interface HashableObject {
     // (undocumented)
-    updateHash(hash: Hash_2): void;
+    updateHash(hash: Hash): void;
 }
 
 // @public (undocumented)
-type HashConstructor = typeof Hash_2;
+type HashConstructor = typeof Hash;
 
 // @public
 export type HashDigest = string;
@@ -2958,6 +2950,14 @@ export type HashDigestLength = number;
 
 // @public
 export type HashFunction = "md4" | "xxhash64";
+
+// @public (undocumented)
+interface HashLike {
+    	// (undocumented)
+    digest: (encoding?: string) => string | Buffer_2;
+    	// (undocumented)
+    update: (data: string | Buffer_2, inputEncoding?: string) => HashLike;
+}
 
 // @public
 export type HashSalt = string;
@@ -4346,7 +4346,7 @@ export interface LoaderContext<OptionsType = {}> {
     utils: {
         absolutify: (context: string, request: string) => string;
         contextify: (context: string, request: string) => string;
-        createHash: (algorithm?: string) => Hash_2;
+        createHash: (algorithm?: string) => Hash;
     };
     version: 2;
 }
@@ -5798,7 +5798,11 @@ type Purge = (files?: string | string[] | Set<string>) => void;
 // @public (undocumented)
 interface RawSourceMap {
     	// (undocumented)
+    debugId?: string;
+    	// (undocumented)
     file: string;
+    	// (undocumented)
+    ignoreList?: number[];
     	// (undocumented)
     mappings: string;
     	// (undocumented)
@@ -6093,7 +6097,7 @@ class Resolver {
     // (undocumented)
     resolveSync(context: object, path: string, request: string): string | false;
     // (undocumented)
-    withOptions({ dependencyCategory, resolveToContext, ...resolve }: ResolveOptionsWithDependencyType_2): Resolver;
+    withOptions(options: ResolveOptionsWithDependencyType_2): Resolver;
 }
 
 // @public (undocumented)
@@ -7165,7 +7169,7 @@ class Source {
     	// (undocumented)
     sourceAndMap(options?: MapOptions): SourceAndMap;
     	// (undocumented)
-    updateHash(hash: Hash): void;
+    updateHash(hash: HashLike): void;
 }
 
 // @public (undocumented)

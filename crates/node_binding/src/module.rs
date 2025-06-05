@@ -209,19 +209,35 @@ impl Module {
     }
 
     object.define_properties(&[
-      Property::new("type")?.with_value(&env.create_string(module.module_type().as_str())?),
-      Property::new("context")?.with_getter(context_getter),
-      Property::new("layer")?.with_getter(layer_getter),
-      Property::new("useSourceMap")?.with_getter(use_source_map_getter),
-      Property::new("useSimpleSourceMap")?.with_getter(use_simple_source_map_getter),
-      Property::new("factoryMeta")?
+      Property::new()
+        .with_utf8_name("type")?
+        .with_value(&env.create_string(module.module_type().as_str())?),
+      Property::new()
+        .with_utf8_name("context")?
+        .with_getter(context_getter),
+      Property::new()
+        .with_utf8_name("layer")?
+        .with_getter(layer_getter),
+      Property::new()
+        .with_utf8_name("useSourceMap")?
+        .with_getter(use_source_map_getter),
+      Property::new()
+        .with_utf8_name("useSimpleSourceMap")?
+        .with_getter(use_simple_source_map_getter),
+      Property::new()
+        .with_utf8_name("factoryMeta")?
         .with_getter(factory_meta_getter)
         .with_setter(factory_meta_setter),
-      Property::new("_readableIdentifier")?.with_getter(readable_identifier_getter),
-      Property::new("buildInfo")?
+      Property::new()
+        .with_utf8_name("_readableIdentifier")?
+        .with_getter(readable_identifier_getter),
+      Property::new()
+        .with_utf8_name("buildInfo")?
         .with_getter(build_info_getter)
         .with_setter(build_info_setter),
-      Property::new("buildMeta")?.with_value(&Object::new(env)?),
+      Property::new()
+        .with_utf8_name("buildMeta")?
+        .with_value(&Object::new(env)?),
     ])?;
 
     MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {

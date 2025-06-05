@@ -22,8 +22,15 @@ use tokio::sync::RwLock;
 
 use crate::{RspackResultToNapiResultExt, COMPILER_REFERENCES};
 
-pub type JsLoaderRunner =
-  ThreadsafeFunction<JsLoaderContext, Promise<JsLoaderContext>, JsLoaderContext, false, true, 0>;
+pub type JsLoaderRunner = ThreadsafeFunction<
+  JsLoaderContext,
+  Promise<JsLoaderContext>,
+  JsLoaderContext,
+  Status,
+  false,
+  true,
+  0,
+>;
 
 struct JsLoaderRunnerGetterData {
   compiler_id: CompilerId,

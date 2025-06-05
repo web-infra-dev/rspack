@@ -14,7 +14,9 @@ impl ExternalModule {
     let (_, module) = self.as_ref()?;
     let user_request = env.create_string(module.user_request())?;
 
-    let properties = vec![napi::Property::new("userRequest")?.with_value(&user_request)];
+    let properties = vec![napi::Property::new()
+      .with_utf8_name("userRequest")?
+      .with_value(&user_request)];
     Self::new_inherited(self, env, properties)
   }
 

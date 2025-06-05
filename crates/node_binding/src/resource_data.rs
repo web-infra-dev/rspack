@@ -69,18 +69,34 @@ impl ToNapiValue for ReadonlyResourceDataWrapper {
     let resource_data = val.i;
     let mut properties = vec![];
     let resource = env_wrapper.create_string(&resource_data.resource)?;
-    properties.push(Property::new("resource")?.with_value(&resource));
+    properties.push(
+      Property::new()
+        .with_utf8_name("resource")?
+        .with_value(&resource),
+    );
     if let Some(path) = &resource_data.resource_path {
       let path_str = env_wrapper.create_string(path.as_str())?;
-      properties.push(Property::new("path")?.with_value(&path_str));
+      properties.push(
+        Property::new()
+          .with_utf8_name("path")?
+          .with_value(&path_str),
+      );
     }
     if let Some(query) = &resource_data.resource_query {
       let query_str = env_wrapper.create_string(query)?;
-      properties.push(Property::new("query")?.with_value(&query_str));
+      properties.push(
+        Property::new()
+          .with_utf8_name("query")?
+          .with_value(&query_str),
+      );
     }
     if let Some(fragment) = &resource_data.resource_fragment {
       let fragment_str = env_wrapper.create_string(fragment)?;
-      properties.push(Property::new("fragment")?.with_value(&fragment_str));
+      properties.push(
+        Property::new()
+          .with_utf8_name("fragment")?
+          .with_value(&fragment_str),
+      );
     }
 
     let template = ReadonlyResourceData {
