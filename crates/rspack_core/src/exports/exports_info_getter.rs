@@ -11,24 +11,24 @@ use crate::{ModuleGraph, RuntimeSpec};
  * so that subsequent exports data reads don't need to access Module Graph
  */
 #[derive(Debug, Clone)]
-pub struct NestedExportsInfoWrapper<'a> {
+pub struct PrefetchedExportsInfoWrapper<'a> {
   /**
    * The exports info data that will be accessed from the entry
    * stored in a map to prevent circular references
-   * When redirect, this data can be cloned to generate a new NestedExportsInfoWrapper with a new entry
+   * When redirect, this data can be cloned to generate a new PrefetchedExportsInfoWrapper with a new entry
    */
-  pub exports: Arc<HashMap<ExportsInfo, NestedExportsInfoData<'a>>>,
+  pub exports: Arc<HashMap<ExportsInfo, PrefetchedExportsInfoData<'a>>>,
   /**
    * The entry of the current exports info
    */
   pub entry: ExportsInfo,
 }
 
-impl<'a> NestedExportsInfoWrapper<'a> {
+impl<'a> PrefetchedExportsInfoWrapper<'a> {
   /**
    * Get the data of the current exports info
    */
-  pub fn data(&self) -> &NestedExportsInfoData<'a> {
+  pub fn data(&self) -> &PrefetchedExportsInfoData<'a> {
     self
       .exports
       .get(&self.entry)
@@ -36,10 +36,10 @@ impl<'a> NestedExportsInfoWrapper<'a> {
   }
 
   /**
-   * Generate a new NestedExportsInfoWrapper with a new entry
+   * Generate a new PrefetchedExportsInfoWrapper with a new entry
    */
-  pub fn redirect(&self, entry: ExportsInfo) -> NestedExportsInfoWrapper<'_> {
-    NestedExportsInfoWrapper {
+  pub fn redirect(&self, entry: ExportsInfo) -> PrefetchedExportsInfoWrapper<'_> {
+    PrefetchedExportsInfoWrapper {
       exports: self.exports.clone(),
       entry,
     }
@@ -69,7 +69,10 @@ impl<'a> NestedExportsInfoWrapper<'a> {
     self.get_read_only_export_info_recursive_impl(&self.entry, names)
   }
 
-  pub fn get_nested_exports_info(&self, name: Option<&[Atom]>) -> Option<&NestedExportsInfoData> {
+  pub fn get_nested_exports_info(
+    &self,
+    name: Option<&[Atom]>,
+  ) -> Option<&PrefetchedExportsInfoData> {
     self.get_nested_exports_info_impl(&self.entry, name)
   }
 
@@ -77,7 +80,7 @@ impl<'a> NestedExportsInfoWrapper<'a> {
     &self,
     exports_info: &ExportsInfo,
     name: Option<&[Atom]>,
-  ) -> Option<&NestedExportsInfoData> {
+  ) -> Option<&PrefetchedExportsInfoData> {
     if let Some(name) = name
       && !name.is_empty()
     {
@@ -129,17 +132,17 @@ impl<'a> NestedExportsInfoWrapper<'a> {
 }
 
 #[derive(Debug, Clone)]
-pub struct NestedExportsInfoData<'a> {
-  pub(crate) exports: BTreeMap<&'a Atom, NestedExportInfoData<'a>>,
-  pub(crate) other_exports_info: NestedExportInfoData<'a>,
+pub struct PrefetchedExportsInfoData<'a> {
+  pub(crate) exports: BTreeMap<&'a Atom, PrefetchedExportInfoData<'a>>,
+  pub(crate) other_exports_info: PrefetchedExportInfoData<'a>,
 
-  pub(crate) side_effects_only_info: NestedExportInfoData<'a>,
+  pub(crate) side_effects_only_info: PrefetchedExportInfoData<'a>,
   pub(crate) redirect_to: Option<ExportsInfo>,
   // pub(crate) id: ExportsInfo,
 }
 
 #[derive(Debug, Clone)]
-pub struct NestedExportInfoData<'a> {
+pub struct PrefetchedExportInfoData<'a> {
   pub(crate) inner: &'a ExportInfoData,
   // pub(crate) exports_info: Option<ExportsInfo>,
 }
@@ -147,19 +150,19 @@ pub struct ExportsInfoGetter;
 
 impl ExportsInfoGetter {
   /**
-   * Generate a NestedExportsInfoWrapper from the entry
+   * Generate a PrefetchedExportsInfoWrapper from the entry
    * if names is provided, it will pre-fetch the exports info data of the export info items of specific names
    * if names is not provided, it will not pre-fetch any export info item
    */
-  pub fn as_nested_data<'a>(
+  pub fn prefetch<'a>(
     id: &ExportsInfo,
     mg: &'a ModuleGraph,
     names: Option<&[Atom]>,
-  ) -> NestedExportsInfoWrapper<'a> {
-    fn create_nested_exports<'a>(
+  ) -> PrefetchedExportsInfoWrapper<'a> {
+    fn prefetch_exports<'a>(
       id: &ExportsInfo,
       mg: &'a ModuleGraph,
-      res: &mut HashMap<ExportsInfo, NestedExportsInfoData<'a>>,
+      res: &mut HashMap<ExportsInfo, PrefetchedExportsInfoData<'a>>,
       names: Option<&[Atom]>,
     ) {
       if res.contains_key(id) {
@@ -176,7 +179,7 @@ impl ExportsInfoGetter {
           .is_some_and(|is_match| is_match)
         {
           if let Some(nested_exports_info) = export_info_data.exports_info {
-            create_nested_exports(
+            prefetch_exports(
               &nested_exports_info,
               mg,
               res,
@@ -187,7 +190,7 @@ impl ExportsInfoGetter {
 
         exports.insert(
           key,
-          NestedExportInfoData {
+          PrefetchedExportInfoData {
             inner: export_info_data,
             // exports_info: export_info_data.exports_info,
           },
@@ -195,27 +198,27 @@ impl ExportsInfoGetter {
       }
       let other_exports_info_data = exports_info.other_exports_info.as_data(mg);
       if let Some(other_exports) = other_exports_info_data.exports_info {
-        create_nested_exports(&other_exports, mg, res, None);
+        prefetch_exports(&other_exports, mg, res, None);
       }
 
       let side_effects_only_info_data = exports_info.side_effects_only_info.as_data(mg);
       if let Some(side_exports) = side_effects_only_info_data.exports_info {
-        create_nested_exports(&side_exports, mg, res, None);
+        prefetch_exports(&side_exports, mg, res, None);
       }
 
       if let Some(redirect_to) = exports_info.redirect_to {
-        create_nested_exports(&redirect_to, mg, res, names);
+        prefetch_exports(&redirect_to, mg, res, names);
       }
 
       res.insert(
         *id,
-        NestedExportsInfoData {
+        PrefetchedExportsInfoData {
           exports,
-          other_exports_info: NestedExportInfoData {
+          other_exports_info: PrefetchedExportInfoData {
             inner: other_exports_info_data,
             // exports_info: other_exports_info_data.exports_info,
           },
-          side_effects_only_info: NestedExportInfoData {
+          side_effects_only_info: PrefetchedExportInfoData {
             inner: side_effects_only_info_data,
             // exports_info: side_effects_only_info_data.exports_info,
           },
@@ -226,14 +229,17 @@ impl ExportsInfoGetter {
     }
 
     let mut res = HashMap::default();
-    create_nested_exports(id, mg, &mut res, names);
-    NestedExportsInfoWrapper {
+    prefetch_exports(id, mg, &mut res, names);
+    PrefetchedExportsInfoWrapper {
       exports: Arc::new(res),
       entry: *id,
     }
   }
 
-  pub fn is_module_used(info: &NestedExportsInfoWrapper, runtime: Option<&RuntimeSpec>) -> bool {
+  pub fn is_module_used(
+    info: &PrefetchedExportsInfoWrapper,
+    runtime: Option<&RuntimeSpec>,
+  ) -> bool {
     if Self::is_used(info, runtime) {
       return true;
     }
@@ -247,7 +253,7 @@ impl ExportsInfoGetter {
     false
   }
 
-  pub fn is_used(info: &NestedExportsInfoWrapper, runtime: Option<&RuntimeSpec>) -> bool {
+  pub fn is_used(info: &PrefetchedExportsInfoWrapper, runtime: Option<&RuntimeSpec>) -> bool {
     if let Some(redirect) = &info.data().redirect_to {
       let redirected = info.redirect(*redirect);
       if Self::is_used(&redirected, runtime) {
@@ -266,7 +272,7 @@ impl ExportsInfoGetter {
   }
 
   pub fn is_export_provided(
-    info: &NestedExportsInfoWrapper,
+    info: &PrefetchedExportsInfoWrapper,
     names: &[Atom],
   ) -> Option<ExportProvided> {
     let name = names.first()?;

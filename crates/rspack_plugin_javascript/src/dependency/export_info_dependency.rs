@@ -74,7 +74,7 @@ impl ExportInfoDependency {
 
     let exports_info = module_graph.get_exports_info(&module_identifier);
     let exports_info_data =
-      ExportsInfoGetter::as_nested_data(&exports_info, &module_graph, Some(export_name));
+      ExportsInfoGetter::prefetch(&exports_info, &module_graph, Some(export_name));
 
     match prop.to_string().as_str() {
       "canMangle" => {
