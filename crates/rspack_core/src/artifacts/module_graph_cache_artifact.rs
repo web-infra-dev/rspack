@@ -8,7 +8,7 @@ use indexmap::IndexMap;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::atoms::Atom;
 
-use crate::{DependencyId, ExportInfo, RuntimeSpec};
+use crate::{DependencyId, ExportInfo, RuntimeKey};
 
 pub type ModuleGraphCacheArtifact = Arc<ModuleGraphCacheArtifactInner>;
 
@@ -71,7 +71,7 @@ impl ModuleGraphCacheArtifactInner {
   }
 }
 
-type GetModeCacheKey = (DependencyId, Option<RuntimeSpec>);
+type GetModeCacheKey = (DependencyId, Option<RuntimeKey>);
 
 #[derive(Debug, Default)]
 struct GetModeCache {

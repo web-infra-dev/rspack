@@ -8,7 +8,7 @@ use rspack_cacheable::{
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
-  process_export_info, property_access, property_name, AsContextDependency,
+  get_runtime_key, process_export_info, property_access, property_name, AsContextDependency,
   ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
@@ -127,7 +127,10 @@ impl ESMExportImportedSpecifierDependency {
     runtime: Option<&RuntimeSpec>,
     module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ExportMode {
-    let key = (self.id, runtime.cloned());
+    let key = (
+      self.id,
+      runtime.map(|runtime| get_runtime_key(runtime).to_owned()),
+    );
     module_graph_cache.cached_get_mode(key, || {
       self.get_mode_inner(module_graph, module_graph_cache, runtime)
     })
