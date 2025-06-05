@@ -69,7 +69,7 @@ jobs:
     with:
       target: x86_64-pc-windows-msvc
       profile: "dev"
-      runner: ${{ vars.WINDOWS_RUNNER_LABELS || '"windows-latest"' }}
+      runner: ${{ vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"' }}
       test: true
 
   test-mac:
