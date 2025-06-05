@@ -235,9 +235,8 @@ impl ExportInfoData {
       if valid_target_module_filter(&target.module) {
         return FindTargetRetEnum::Value(target);
       }
-      let exports_info = mg.get_exports_info(&target.module);
+      let exports_info = mg.get_prefetched_exports_info(&target.module, None);
       let export_info = exports_info.get_export_info_without_mut_module_graph(
-        mg,
         &target.export.as_ref().expect("should have export")[0],
       );
       let export_info_hash_key = export_info.as_hash_key();
@@ -373,11 +372,11 @@ impl ExportInfoData {
 // and the Static variant represents the most situation which FlagDependencyExportsPlugin can
 // analyze the exports statically.
 #[derive(Debug)]
-pub enum MaybeDynamicTargetExportInfo {
-  Static(ExportInfo),
+pub enum MaybeDynamicTargetExportInfo<'a> {
+  Static(&'a ExportInfoData),
   Dynamic {
     export_name: Atom,
-    other_export_info: ExportInfo,
+    other_export_info: &'a ExportInfoData,
     data: ExportInfoData,
   },
 }
@@ -391,11 +390,11 @@ pub enum MaybeDynamicTargetExportInfoHashKey {
   },
 }
 
-impl MaybeDynamicTargetExportInfo {
+impl<'a> MaybeDynamicTargetExportInfo<'a> {
   pub fn as_hash_key(&self) -> MaybeDynamicTargetExportInfoHashKey {
     match self {
       MaybeDynamicTargetExportInfo::Static(export_info) => {
-        MaybeDynamicTargetExportInfoHashKey::ExportInfo(*export_info)
+        MaybeDynamicTargetExportInfoHashKey::ExportInfo(export_info.id())
       }
       MaybeDynamicTargetExportInfo::Dynamic {
         export_name,
@@ -403,16 +402,14 @@ impl MaybeDynamicTargetExportInfo {
         ..
       } => MaybeDynamicTargetExportInfoHashKey::TemporaryData {
         export_name: export_name.clone(),
-        other_export_info: *other_export_info,
+        other_export_info: other_export_info.id(),
       },
     }
   }
 
-  pub fn provided<'a>(&'a self, mg: &'a ModuleGraph) -> Option<&'a ExportProvided> {
+  pub fn provided(&'a self) -> Option<&'a ExportProvided> {
     match self {
-      MaybeDynamicTargetExportInfo::Static(export_info) => {
-        ExportInfoGetter::provided(export_info.as_data(mg))
-      }
+      MaybeDynamicTargetExportInfo::Static(export_info) => ExportInfoGetter::provided(export_info),
       MaybeDynamicTargetExportInfo::Dynamic { data, .. } => data.provided.as_ref(),
     }
   }
@@ -433,8 +430,7 @@ impl MaybeDynamicTargetExportInfo {
   ) -> FindTargetRetEnum {
     match self {
       MaybeDynamicTargetExportInfo::Static(export_info) => {
-        let data = export_info.as_data(mg);
-        data.find_target_impl(mg, valid_target_module_filter, visited)
+        export_info.find_target_impl(mg, valid_target_module_filter, visited)
       }
       MaybeDynamicTargetExportInfo::Dynamic { data, .. } => {
         data.find_target_impl(mg, valid_target_module_filter, visited)
@@ -462,8 +458,7 @@ impl MaybeDynamicTargetExportInfo {
   ) -> Option<ResolvedExportInfoTargetWithCircular> {
     match self {
       MaybeDynamicTargetExportInfo::Static(export_info) => {
-        let export_info_data = export_info.as_data(mg);
-        export_info_data.get_target_proxy(mg, resolve_filter, already_visited)
+        export_info.get_target_proxy(mg, resolve_filter, already_visited)
       }
       MaybeDynamicTargetExportInfo::Dynamic { data, .. } => {
         if !data.target_is_set || data.target.is_empty() {
@@ -479,14 +474,10 @@ impl MaybeDynamicTargetExportInfo {
     }
   }
 
-  fn get_max_target<'a>(
-    &'a self,
-    mg: &'a ModuleGraph,
-  ) -> Cow<'a, HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
+  fn get_max_target(&self) -> Cow<HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
     match self {
       MaybeDynamicTargetExportInfo::Static(export_info) => {
-        let data = export_info.as_data(mg);
-        ExportInfoGetter::get_max_target(data)
+        ExportInfoGetter::get_max_target(export_info)
       }
       MaybeDynamicTargetExportInfo::Dynamic { data, .. } => ExportInfoGetter::get_max_target(data),
     }
@@ -498,11 +489,11 @@ impl MaybeDynamicTargetExportInfo {
     resolve_filter: ResolveFilterFnTy,
   ) -> Option<ResolvedExportInfoTarget> {
     let data = match self {
-      MaybeDynamicTargetExportInfo::Static(export_info) => export_info.as_data(mg),
+      MaybeDynamicTargetExportInfo::Static(export_info) => *export_info,
       MaybeDynamicTargetExportInfo::Dynamic { data, .. } => data,
     };
     let target = data.get_target_with_filter(mg, resolve_filter)?;
-    let max_target = self.get_max_target(mg);
+    let max_target = self.get_max_target();
     let original_target = max_target
       .values()
       .next()
@@ -568,8 +559,8 @@ fn resolve_target(
         return Some(ResolvedExportInfoTargetWithCircular::Target(target));
       };
 
-      let exports_info = mg.get_exports_info(&target.module);
-      let export_info = exports_info.get_export_info_without_mut_module_graph(mg, name);
+      let exports_info = mg.get_prefetched_exports_info(&target.module, None);
+      let export_info = exports_info.get_export_info_without_mut_module_graph(name);
       let export_info_hash_key = export_info.as_hash_key();
       if already_visited.contains(&export_info_hash_key) {
         return Some(ResolvedExportInfoTargetWithCircular::Circular);

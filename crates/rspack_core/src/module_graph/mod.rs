@@ -1067,13 +1067,9 @@ impl<'a> ModuleGraph<'a> {
     active_partial.exports_info_map.insert(id, info);
   }
 
-  pub fn try_get_export_info_by_id(&self, id: &ExportInfo) -> Option<&ExportInfoData> {
-    self.loop_partials(|p| p.export_info_map.get(id))
-  }
-
   pub fn get_export_info_by_id(&self, id: &ExportInfo) -> &ExportInfoData {
     self
-      .try_get_export_info_by_id(id)
+      .loop_partials(|p| p.export_info_map.get(id))
       .expect("should have export info")
   }
 

@@ -2194,10 +2194,7 @@ impl ConcatenatedModule {
     let exports_info = mg.get_prefetched_exports_info(&info.id(), Some(&export_name));
     // webpack use `get_exports_info` here, https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L377-L377
     // But in our arch, there is no way to modify module graph during code_generation phase, so we use `get_export_info_without_mut_module_graph` instead.`
-    let export_info = exports_info
-      .data()
-      .id
-      .get_export_info_without_mut_module_graph(mg, &export_name[0]);
+    let export_info = exports_info.get_export_info_without_mut_module_graph(&export_name[0]);
     let export_info_hash_key = export_info.as_hash_key();
 
     if already_visited.contains(&export_info_hash_key) {
@@ -2216,7 +2213,7 @@ impl ConcatenatedModule {
       ModuleInfo::Concatenated(info) => {
         let export_id = export_name.first().cloned();
         if matches!(
-          export_info.provided(mg),
+          export_info.provided(),
           Some(crate::ExportProvided::NotProvided)
         ) {
           needed_namespace_objects.insert(info.module);

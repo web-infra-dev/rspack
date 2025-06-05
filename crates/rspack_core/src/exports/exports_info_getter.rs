@@ -7,7 +7,7 @@ use super::{
   ExportInfoData, ExportInfoGetter, ExportProvided, ExportsInfo, ProvidedExports, UsageState,
   UsedName,
 };
-use crate::{ModuleGraph, RuntimeSpec, UsedExports};
+use crate::{MaybeDynamicTargetExportInfo, ModuleGraph, RuntimeSpec, UsedExports};
 
 /**
  * Used to store data pre-fetched from Module Graph
@@ -290,6 +290,39 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       }
     }
     ProvidedExports::ProvidedNames(ret)
+  }
+
+  // An alternative version of `get_export_info`, and don't need `&mut ModuleGraph`.
+  // You can use this when you can't or don't want to use `&mut ModuleGraph`.
+  // Currently this function is used to finding a reexport's target.
+  pub fn get_export_info_without_mut_module_graph(
+    &self,
+    name: &Atom,
+  ) -> MaybeDynamicTargetExportInfo {
+    self.get_export_info_without_mut_module_graph_impl(&self.entry, name)
+  }
+
+  fn get_export_info_without_mut_module_graph_impl(
+    &self,
+    exports_info: &ExportsInfo,
+    name: &Atom,
+  ) -> MaybeDynamicTargetExportInfo {
+    let data = self
+      .exports
+      .get(exports_info)
+      .expect("should have nested exports info");
+    if let Some(export_info) = data.exports.get(name) {
+      return MaybeDynamicTargetExportInfo::Static(export_info.inner);
+    }
+    if let Some(redirect) = &data.redirect_to {
+      return self.get_export_info_without_mut_module_graph_impl(redirect, name);
+    }
+
+    MaybeDynamicTargetExportInfo::Dynamic {
+      export_name: name.clone(),
+      other_export_info: data.other_exports_info.inner,
+      data: ExportInfoData::new(Some(name.clone()), Some(data.other_exports_info.inner)),
+    }
   }
 }
 

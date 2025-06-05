@@ -851,8 +851,8 @@ fn can_optimize_connection(
   if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
     && let Some(name) = &dep.name
   {
-    let exports_info = module_graph.get_exports_info(&original_module);
-    let export_info = exports_info.get_export_info_without_mut_module_graph(module_graph, name);
+    let exports_info = module_graph.get_prefetched_exports_info(&original_module, None);
+    let export_info = exports_info.get_export_info_without_mut_module_graph(name);
 
     let target = export_info.can_move_target(
       module_graph,
@@ -876,7 +876,7 @@ fn can_optimize_connection(
       .unwrap_or_else(|| ids.get(1..).unwrap_or_default().to_vec());
     let need_move_target = match export_info {
       MaybeDynamicTargetExportInfo::Static(export_info) => Some(SideEffectsDoOptimizeMoveTarget {
-        export_info,
+        export_info: export_info.id(),
         target_export: target.export,
       }),
       MaybeDynamicTargetExportInfo::Dynamic { .. } => None,
@@ -894,8 +894,9 @@ fn can_optimize_connection(
     && let ids = dep.get_ids(module_graph)
     && !ids.is_empty()
   {
-    let exports_info = module_graph.get_exports_info(connection.module_identifier());
-    let export_info = exports_info.get_export_info_without_mut_module_graph(module_graph, &ids[0]);
+    let exports_info =
+      module_graph.get_prefetched_exports_info(connection.module_identifier(), None);
+    let export_info = exports_info.get_export_info_without_mut_module_graph(&ids[0]);
 
     let target = export_info.get_target_with_filter(
       module_graph,

@@ -7,8 +7,8 @@ use rspack_util::atom::Atom;
 use serde::Serialize;
 
 use super::{
-  ExportInfo, ExportInfoData, ExportInfoGetter, ExportInfoSetter, ExportProvided,
-  MaybeDynamicTargetExportInfo, UsageKey, UsageState, NEXT_EXPORTS_INFO_UKEY,
+  ExportInfo, ExportInfoData, ExportInfoGetter, ExportInfoSetter, ExportProvided, UsageKey,
+  UsageState, NEXT_EXPORTS_INFO_UKEY,
 };
 use crate::{Compilation, DependencyId, ModuleGraph, Nullable, RuntimeSpec};
 
@@ -239,34 +239,6 @@ impl ExportsInfo {
     let exports_info = self.as_exports_info_mut(mg);
     exports_info.exports.insert(name.clone(), new_info_id);
     new_info_id
-  }
-
-  // An alternative version of `get_export_info`, and don't need `&mut ModuleGraph`.
-  // You can use this when you can't or don't want to use `&mut ModuleGraph`.
-  // Currently this function is used to finding a reexport's target.
-  pub fn get_export_info_without_mut_module_graph(
-    &self,
-    mg: &ModuleGraph,
-    name: &Atom,
-  ) -> MaybeDynamicTargetExportInfo {
-    let exports_info = self.as_exports_info(mg);
-    let redirect_id = exports_info.redirect_to;
-    let other_exports_info_id = exports_info.other_exports_info;
-    let export_info_id = exports_info.exports.get(name);
-    if let Some(export_info_id) = export_info_id {
-      return MaybeDynamicTargetExportInfo::Static(*export_info_id);
-    }
-    if let Some(redirect_id) = redirect_id {
-      return redirect_id.get_export_info_without_mut_module_graph(mg, name);
-    }
-
-    let other_export_info = mg.get_export_info_by_id(&other_exports_info_id);
-    let data = ExportInfoData::new(Some(name.clone()), Some(other_export_info));
-    MaybeDynamicTargetExportInfo::Dynamic {
-      export_name: name.clone(),
-      other_export_info: other_exports_info_id,
-      data,
-    }
   }
 
   pub fn set_has_use_info(&self, mg: &mut ModuleGraph) {
