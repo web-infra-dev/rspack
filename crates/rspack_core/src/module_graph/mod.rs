@@ -9,7 +9,6 @@ use swc_core::ecma::atoms::Atom;
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
   Dependency, ExportsInfoGetter, PrefetchedExportsInfoWrapper, ProvidedExports, RuntimeSpec,
-  UsedExports,
 };
 mod module;
 pub use module::*;
@@ -1103,17 +1102,6 @@ impl<'a> ModuleGraph<'a> {
       .module_graph_module_by_identifier(&module_id)
       .expect("should have module graph module");
     mgm.exports.get_provided_exports(self)
-  }
-
-  pub fn get_used_exports(
-    &self,
-    id: &ModuleIdentifier,
-    runtime: Option<&RuntimeSpec>,
-  ) -> UsedExports {
-    let mgm = self
-      .module_graph_module_by_identifier(id)
-      .expect("should have module graph module");
-    mgm.exports.get_used_exports(self, runtime)
   }
 
   pub fn get_optimization_bailout_mut(&mut self, id: &ModuleIdentifier) -> &mut Vec<String> {

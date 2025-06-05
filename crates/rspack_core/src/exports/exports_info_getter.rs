@@ -7,7 +7,7 @@ use super::{
   ExportInfoData, ExportInfoGetter, ExportProvided, ExportsInfo, ProvidedExports, UsageState,
   UsedName,
 };
-use crate::{ModuleGraph, RuntimeSpec};
+use crate::{ModuleGraph, RuntimeSpec, UsedExports};
 
 /**
  * Used to store data pre-fetched from Module Graph
@@ -183,6 +183,65 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       list.push(other_export_info);
     }
     list
+  }
+
+  pub fn get_used_exports(&self, runtime: Option<&RuntimeSpec>) -> UsedExports {
+    self.get_used_exports_impl(&self.entry, runtime)
+  }
+
+  fn get_used_exports_impl(
+    &self,
+    exports_info: &ExportsInfo,
+    runtime: Option<&RuntimeSpec>,
+  ) -> UsedExports {
+    let data = self
+      .exports
+      .get(exports_info)
+      .expect("should have nested exports info");
+    if data.redirect_to.is_none() {
+      match ExportInfoGetter::get_used(data.other_exports_info.inner, runtime) {
+        UsageState::NoInfo => return UsedExports::Unknown,
+        UsageState::Unknown | UsageState::OnlyPropertiesUsed | UsageState::Used => {
+          return UsedExports::UsedNamespace(true);
+        }
+        _ => (),
+      }
+    }
+
+    let mut res = vec![];
+    for export_info in data.exports.values() {
+      let used = ExportInfoGetter::get_used(export_info.inner, runtime);
+      match used {
+        UsageState::NoInfo => return UsedExports::Unknown,
+        UsageState::Unknown => return UsedExports::UsedNamespace(true),
+        UsageState::OnlyPropertiesUsed | UsageState::Used => {
+          if let Some(name) = export_info.inner.name.clone() {
+            res.push(name);
+          }
+        }
+        _ => (),
+      }
+    }
+
+    if let Some(redirect) = &data.redirect_to {
+      let inner = self.get_used_exports_impl(redirect, runtime);
+      match inner {
+        UsedExports::UsedNames(v) => res.extend(v),
+        UsedExports::Unknown | UsedExports::UsedNamespace(true) => return inner,
+        _ => (),
+      }
+    }
+
+    if res.is_empty() {
+      let used = ExportInfoGetter::get_used(&data.side_effects_only_info.inner, runtime);
+      match used {
+        UsageState::NoInfo => return UsedExports::Unknown,
+        UsageState::Unused => return UsedExports::UsedNamespace(false),
+        _ => (),
+      }
+    }
+
+    UsedExports::UsedNames(res)
   }
 }
 

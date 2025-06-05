@@ -435,55 +435,6 @@ impl ExportsInfo {
     ProvidedExports::ProvidedNames(ret)
   }
 
-  pub fn get_used_exports(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> UsedExports {
-    let info = self.as_exports_info(mg);
-    if info.redirect_to.is_none() {
-      match ExportInfoGetter::get_used(info.other_exports_info.as_data(mg), runtime) {
-        UsageState::NoInfo => return UsedExports::Unknown,
-        UsageState::Unknown | UsageState::OnlyPropertiesUsed | UsageState::Used => {
-          return UsedExports::UsedNamespace(true);
-        }
-        _ => (),
-      }
-    }
-
-    let mut res = vec![];
-    for export_info_id in info.exports.values() {
-      let export_info_id_data = export_info_id.as_data(mg);
-      let used = ExportInfoGetter::get_used(export_info_id_data, runtime);
-      match used {
-        UsageState::NoInfo => return UsedExports::Unknown,
-        UsageState::Unknown => return UsedExports::UsedNamespace(true),
-        UsageState::OnlyPropertiesUsed | UsageState::Used => {
-          if let Some(name) = export_info_id_data.name.clone() {
-            res.push(name);
-          }
-        }
-        _ => (),
-      }
-    }
-
-    if let Some(redirect) = info.redirect_to {
-      let inner = redirect.get_used_exports(mg, runtime);
-      match inner {
-        UsedExports::UsedNames(v) => res.extend(v),
-        UsedExports::Unknown | UsedExports::UsedNamespace(true) => return inner,
-        _ => (),
-      }
-    }
-
-    if res.is_empty() {
-      let used = ExportInfoGetter::get_used(info.side_effects_only_info.as_data(mg), runtime);
-      match used {
-        UsageState::NoInfo => return UsedExports::Unknown,
-        UsageState::Unused => return UsedExports::UsedNamespace(false),
-        _ => (),
-      }
-    }
-
-    UsedExports::UsedNames(res)
-  }
-
   pub fn get_usage_key(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> UsageKey {
     let exports_info = self.as_exports_info(mg);
 

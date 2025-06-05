@@ -1038,11 +1038,10 @@ impl Stats<'_> {
           .used_exports
           .is_enable()
       {
-        match self
-          .compilation
-          .get_module_graph()
-          .get_used_exports(&module.identifier(), None)
-        {
+        let module_graph = self.compilation.get_module_graph();
+        let exports_info = module_graph.get_prefetched_exports_info(&module.identifier(), None);
+        let used_exports = exports_info.get_used_exports(None);
+        match used_exports {
           UsedExports::Unknown => Some(StatsUsedExports::Null),
           UsedExports::UsedNames(v) => Some(StatsUsedExports::Vec(v)),
           UsedExports::UsedNamespace(b) => Some(StatsUsedExports::Bool(b)),

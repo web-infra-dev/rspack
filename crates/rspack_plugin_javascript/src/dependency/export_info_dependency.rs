@@ -51,11 +51,11 @@ impl ExportInfoDependency {
     let prop = &self.property;
     let module_graph = compilation.get_module_graph();
     let module_identifier = module.identifier();
+    let exports_info =
+      module_graph.get_prefetched_exports_info(&module_identifier, Some(export_name));
 
     if export_name.is_empty() && prop == "usedExports" {
-      let used_exports = module_graph
-        .get_exports_info(&module_identifier)
-        .get_used_exports(&module_graph, *runtime);
+      let used_exports = exports_info.get_used_exports(*runtime);
       return Some(match used_exports {
         UsedExports::Unknown => "null".to_owned(),
         UsedExports::UsedNamespace(value) => value.to_string(),
@@ -71,9 +71,6 @@ impl ExportInfoDependency {
         }
       });
     }
-
-    let exports_info =
-      module_graph.get_prefetched_exports_info(&module_identifier, Some(export_name));
 
     match prop.to_string().as_str() {
       "canMangle" => {
