@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{
+  atomic::{AtomicBool, Ordering},
+  Arc, Mutex,
+};
 
 use derive_more::derive::Debug;
 use indexmap::IndexMap;
@@ -7,33 +10,64 @@ use swc_core::atoms::Atom;
 
 use crate::{DependencyId, ExportInfo, RuntimeSpec};
 
-#[derive(Debug, Default, Clone)]
-pub struct ModuleGraphCacheArtifact {
-  pub get_mode_cache: GetModeCache,
+pub type ModuleGraphCacheArtifact = Arc<ModuleGraphCacheArtifactInner>;
+
+#[derive(Debug, Default)]
+pub struct ModuleGraphCacheArtifactInner {
+  freezed: AtomicBool,
+  get_mode_cache: GetModeCache,
 }
 
-impl ModuleGraphCacheArtifact {
-  pub fn freeze(&self) {}
+impl ModuleGraphCacheArtifactInner {
+  pub fn freeze(&self) {
+    self.get_mode_cache.freeze();
+    self.freezed.store(true, Ordering::Relaxed);
+  }
 
-  pub fn unfreeze(&self) {}
+  pub fn unfreeze(&self) {
+    self.freezed.store(false, Ordering::Relaxed);
+  }
+
+  pub fn cached_get_mode<F: FnOnce() -> ExportMode>(
+    &self,
+    key: GetModeCacheKey,
+    f: F,
+  ) -> ExportMode {
+    if !self.freezed.load(Ordering::Relaxed) {
+      return f();
+    }
+
+    match self.get_mode_cache.get(&key) {
+      Some(mode) => mode,
+      None => {
+        let mode = f();
+        self.get_mode_cache.set(key, mode.clone());
+        mode
+      }
+    }
+  }
 }
 
 type GetModeCacheKey = (DependencyId, Option<RuntimeSpec>);
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct GetModeCache {
-  inner: Arc<Mutex<IndexMap<GetModeCacheKey, ExportMode>>>,
+  cache: Mutex<IndexMap<GetModeCacheKey, ExportMode>>,
 }
 
 impl GetModeCache {
-  pub fn get(&self, key: &GetModeCacheKey) -> Option<ExportMode> {
-    let inner = self.inner.lock().expect("should get lock");
+  fn freeze(&self) {
+    self.cache.lock().expect("should get lock").clear();
+  }
+
+  fn get(&self, key: &GetModeCacheKey) -> Option<ExportMode> {
+    let inner = self.cache.lock().expect("should get lock");
     inner.get(key).cloned()
   }
 
-  pub fn set(&self, key: GetModeCacheKey, value: ExportMode) {
+  fn set(&self, key: GetModeCacheKey, value: ExportMode) {
     self
-      .inner
+      .cache
       .lock()
       .expect("should get lock")
       .insert(key, value);

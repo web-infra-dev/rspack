@@ -1490,6 +1490,7 @@ impl Compilation {
     // so now we can start to create a chunk graph based on the module graph
 
     let start = logger.time("create chunks");
+    self.module_graph_cache_artifact.freeze();
     use_code_splitting_cache(self, |compilation| async {
       let start = logger.time("rebuild chunk graph");
       if compilation.options.experiments.parallel_code_splitting {
