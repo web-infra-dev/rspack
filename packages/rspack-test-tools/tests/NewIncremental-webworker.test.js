@@ -20,11 +20,7 @@ describeByWalk(
 	{
 		source: path.resolve(__dirname, "./hotCases"),
 		dist: path.resolve(__dirname, `./js/new-incremental/hot-worker`),
-		exclude: [
-			/^css$/,
-			/move-between-runtime/,
-			/require-disposed-module-warning/
-		]
+		exclude: [/^css$/, /require-disposed-module-warning/]
 	}
 );
 

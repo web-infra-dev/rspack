@@ -51,10 +51,7 @@ pub struct CacheableChunkItem {
 pub struct CodeSplitter {
   cache_chunk_desc: HashMap<CreateChunkRoot, Vec<CacheableChunkItem>>,
   cache_chunks: UkeyMap<CacheUkey, Chunk>,
-
   pub module_deps: ModuleDeps,
-  pub module_deps_without_runtime:
-    IdentifierDashMap<(Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>)>,
   pub module_ordinal: IdentifierMap<u64>,
 }
 
@@ -117,6 +114,13 @@ impl ChunkDesc {
     match self {
       ChunkDesc::Entry(entry) => &mut entry.chunk_modules,
       ChunkDesc::Chunk(chunk) => &mut chunk.chunk_modules,
+    }
+  }
+
+  pub(crate) fn chunk_modules(&self) -> &IdentifierSet {
+    match self {
+      ChunkDesc::Entry(entry) => &entry.chunk_modules,
+      ChunkDesc::Chunk(chunk) => &chunk.chunk_modules,
     }
   }
 
@@ -233,7 +237,7 @@ impl CreateChunkRoot {
           )
           .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
         {
-          splitter.fill_chunk_modules(*m, Some(runtime), &module_graph, &mut ctx);
+          splitter.fill_chunk_modules(*m, runtime, &module_graph, &mut ctx);
         }
 
         vec![ChunkDesc::Entry(Box::new(EntryChunkDesc {
@@ -287,7 +291,7 @@ impl CreateChunkRoot {
             continue;
           };
 
-          splitter.fill_chunk_modules(*m, Some(runtime), &module_graph, &mut ctx);
+          splitter.fill_chunk_modules(*m, runtime, &module_graph, &mut ctx);
         }
 
         if let Some(group_option) = block.get_group_options()
@@ -375,14 +379,21 @@ impl CodeSplitter {
       cache_chunk_desc: Default::default(),
       cache_chunks: Default::default(),
       module_deps: Default::default(),
-      module_deps_without_runtime: Default::default(),
       module_ordinal,
+    }
+  }
+
+  fn invalidate_outgoing_cache(&mut self, module: ModuleIdentifier) {
+    // refresh module traversal result in the last compilation
+    for map in self.module_deps.values() {
+      map.remove(&module);
     }
   }
 
   // modify the module ordinal for changed_modules
   pub fn invalidate(&mut self, changed_modules: impl Iterator<Item = ModuleIdentifier>) {
     let module_ordinal = &mut self.module_ordinal;
+    let mut invalidate_outgoing_module = IdentifierSet::default();
 
     for module in changed_modules {
       // add ordinal for new modules
@@ -390,12 +401,7 @@ impl CodeSplitter {
         module_ordinal.insert(module, module_ordinal.len() as u64);
       }
 
-      // refresh module traversal result in the last compilation
-      for map in self.module_deps.values() {
-        map.remove(&module);
-      }
-
-      self.module_deps_without_runtime.remove(&module);
+      invalidate_outgoing_module.insert(module);
 
       // remove chunks that contains changed module
       self.cache_chunk_desc.retain(|_, chunks| {
@@ -405,8 +411,18 @@ impl CodeSplitter {
           ChunkDesc::Chunk(normal_chunk_desc) => !normal_chunk_desc.chunk_modules.contains(&module),
         });
 
+        if !can_reuse {
+          for chunk in chunks.iter() {
+            invalidate_outgoing_module.extend(chunk.chunk_desc.chunk_modules().iter().copied());
+          }
+        }
+
         can_reuse
       });
+    }
+
+    for m in invalidate_outgoing_module {
+      self.invalidate_outgoing_cache(m);
     }
   }
 
@@ -485,7 +501,7 @@ impl CodeSplitter {
         continue;
       }
 
-      let guard = self.outgoings_modules(&module, Some(runtime.as_ref()), &module_graph);
+      let guard = self.outgoings_modules(&module, runtime.as_ref(), &module_graph);
       let (modules, blocks) = guard.value();
       let blocks = blocks.clone();
       for m in modules {
@@ -731,14 +747,10 @@ impl CodeSplitter {
   pub fn outgoings_modules(
     &self,
     module: &ModuleIdentifier,
-    runtime: Option<&RuntimeSpec>,
+    runtime: &RuntimeSpec,
     module_graph: &ModuleGraph,
   ) -> Ref<ModuleIdentifier, (Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>)> {
-    let module_map = if let Some(runtime) = runtime {
-      self.module_deps.get(runtime).expect("should have value")
-    } else {
-      &self.module_deps_without_runtime
-    };
+    let module_map = self.module_deps.get(runtime).expect("should have value");
 
     let guard = module_map.get(module);
 
@@ -771,7 +783,7 @@ impl CodeSplitter {
 
     'outer: for (m, conns) in outgoings.iter() {
       for conn in conns {
-        let conn_state = conn.active_state(module_graph, runtime);
+        let conn_state = conn.active_state(module_graph, Some(runtime));
         match conn_state {
           crate::ConnectionState::Active(true) => {
             modules.insert(*m);
@@ -797,7 +809,7 @@ impl CodeSplitter {
   fn fill_chunk_modules(
     &self,
     target_module: ModuleIdentifier,
-    runtime: Option<&RuntimeSpec>,
+    runtime: &RuntimeSpec,
     module_graph: &ModuleGraph,
     ctx: &mut FillCtx,
   ) {
@@ -971,7 +983,7 @@ impl CodeSplitter {
             if !self.module_deps.contains_key(runtime) {
               self.module_deps.insert(runtime.clone(), Default::default());
             }
-            let guard = self.outgoings_modules(&m, Some(runtime), &module_graph);
+            let guard = self.outgoings_modules(&m, runtime, &module_graph);
             let (modules, blocks) = guard.value();
 
             for m in modules.iter().rev() {
@@ -1111,6 +1123,10 @@ impl CodeSplitter {
         // skip empty chunk
         skipped.insert(idx);
         continue;
+      }
+
+      if !reuse {
+        chunk_desc.chunk_modules();
       }
 
       match chunk_desc {
