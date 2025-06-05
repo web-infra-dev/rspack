@@ -1054,11 +1054,10 @@ impl Stats<'_> {
     if options.provided_exports {
       stats.provided_exports =
         if !executed && self.compilation.options.optimization.provided_exports {
-          match self
-            .compilation
-            .get_module_graph()
-            .get_provided_exports(module.identifier())
-          {
+          let module_graph = self.compilation.get_module_graph();
+          let exports_info = module_graph.get_prefetched_exports_info(&module.identifier(), None);
+          let provided_exports = exports_info.get_provided_exports();
+          match provided_exports {
             ProvidedExports::ProvidedNames(v) => Some(v),
             _ => None,
           }

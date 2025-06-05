@@ -8,8 +8,7 @@ use serde::Serialize;
 
 use super::{
   ExportInfo, ExportInfoData, ExportInfoGetter, ExportInfoSetter, ExportProvided,
-  MaybeDynamicTargetExportInfo, ProvidedExports, UsageKey, UsageState, UsedExports,
-  NEXT_EXPORTS_INFO_UKEY,
+  MaybeDynamicTargetExportInfo, UsageKey, UsageState, NEXT_EXPORTS_INFO_UKEY,
 };
 use crate::{Compilation, DependencyId, ModuleGraph, Nullable, RuntimeSpec};
 
@@ -390,49 +389,6 @@ impl ExportsInfo {
       UsageState::Used,
       runtime,
     )
-  }
-
-  pub fn get_provided_exports(&self, mg: &ModuleGraph) -> ProvidedExports {
-    let info = self.as_exports_info(mg);
-    let other_exports_info_data = info.other_exports_info.as_data(mg);
-    if info.redirect_to.is_none() {
-      match ExportInfoGetter::provided(other_exports_info_data) {
-        Some(ExportProvided::Unknown) => {
-          return ProvidedExports::ProvidedAll;
-        }
-        Some(ExportProvided::Provided) => {
-          return ProvidedExports::ProvidedAll;
-        }
-        None => {
-          return ProvidedExports::Unknown;
-        }
-        _ => {}
-      }
-    }
-    let mut ret = vec![];
-    for export_info_id in info.exports.values() {
-      let export_info = export_info_id.as_data(mg);
-      match export_info.provided {
-        Some(ExportProvided::Provided | ExportProvided::Unknown) | None => {
-          ret.push(export_info.name.clone().unwrap_or("".into()));
-        }
-        _ => {}
-      }
-    }
-    if let Some(exports_info) = info.redirect_to {
-      let provided_exports = exports_info.get_provided_exports(mg);
-      let inner = match provided_exports {
-        ProvidedExports::Unknown => return ProvidedExports::Unknown,
-        ProvidedExports::ProvidedAll => return ProvidedExports::ProvidedAll,
-        ProvidedExports::ProvidedNames(arr) => arr,
-      };
-      for item in inner {
-        if !ret.contains(&item) {
-          ret.push(item);
-        }
-      }
-    }
-    ProvidedExports::ProvidedNames(ret)
   }
 
   pub fn get_usage_key(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> UsageKey {

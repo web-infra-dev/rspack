@@ -233,7 +233,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     }
 
     if res.is_empty() {
-      let used = ExportInfoGetter::get_used(&data.side_effects_only_info.inner, runtime);
+      let used = ExportInfoGetter::get_used(data.side_effects_only_info.inner, runtime);
       match used {
         UsageState::NoInfo => return UsedExports::Unknown,
         UsageState::Unused => return UsedExports::UsedNamespace(false),
@@ -242,6 +242,54 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     }
 
     UsedExports::UsedNames(res)
+  }
+
+  pub fn get_provided_exports(&self) -> ProvidedExports {
+    self.get_provided_exports_impl(&self.entry)
+  }
+
+  fn get_provided_exports_impl(&self, exports_info: &ExportsInfo) -> ProvidedExports {
+    let data = self
+      .exports
+      .get(exports_info)
+      .expect("should have nested exports info");
+    if data.redirect_to.is_none() {
+      match ExportInfoGetter::provided(data.other_exports_info.inner) {
+        Some(ExportProvided::Unknown) => {
+          return ProvidedExports::ProvidedAll;
+        }
+        Some(ExportProvided::Provided) => {
+          return ProvidedExports::ProvidedAll;
+        }
+        None => {
+          return ProvidedExports::Unknown;
+        }
+        _ => {}
+      }
+    }
+    let mut ret = vec![];
+    for export_info in data.exports.values() {
+      match export_info.inner.provided {
+        Some(ExportProvided::Provided | ExportProvided::Unknown) | None => {
+          ret.push(export_info.inner.name.clone().unwrap_or("".into()));
+        }
+        _ => {}
+      }
+    }
+    if let Some(exports_info) = data.redirect_to {
+      let provided_exports = self.get_provided_exports_impl(&exports_info);
+      let inner = match provided_exports {
+        ProvidedExports::Unknown => return ProvidedExports::Unknown,
+        ProvidedExports::ProvidedAll => return ProvidedExports::ProvidedAll,
+        ProvidedExports::ProvidedNames(arr) => arr,
+      };
+      for item in inner {
+        if !ret.contains(&item) {
+          ret.push(item);
+        }
+      }
+    }
+    ProvidedExports::ProvidedNames(ret)
   }
 }
 
@@ -528,12 +576,10 @@ impl ExportsInfoGetter {
       if Self::is_equally_used(&redirected, a, b) {
         return false;
       }
-    } else {
-      if ExportInfoGetter::get_used(info.other_exports_info(), Some(a))
-        != ExportInfoGetter::get_used(info.other_exports_info(), Some(b))
-      {
-        return false;
-      }
+    } else if ExportInfoGetter::get_used(info.other_exports_info(), Some(a))
+      != ExportInfoGetter::get_used(info.other_exports_info(), Some(b))
+    {
+      return false;
     }
     if ExportInfoGetter::get_used(info.side_effects_only_info(), Some(a))
       != ExportInfoGetter::get_used(info.side_effects_only_info(), Some(b))

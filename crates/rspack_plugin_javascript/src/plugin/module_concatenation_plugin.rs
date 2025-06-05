@@ -202,13 +202,13 @@ impl ModuleConcatenationPlugin {
       // implemented ModuleDependency Trait.
       let module_dep = dep.as_module_dependency().expect("should be module dep");
       let imported_names = module_dep.get_referenced_exports(mg, None);
+      let exports_info = mg.get_prefetched_exports_info(&mi, None);
+      let provided_exports = exports_info.get_provided_exports();
       if imported_names.iter().all(|item| match item {
         ExtendedReferencedExport::Array(arr) => !arr.is_empty(),
         ExtendedReferencedExport::Export(export) => !export.name.is_empty(),
-      }) || matches!(
-        mg.get_provided_exports(mi),
-        ProvidedExports::ProvidedNames(_)
-      ) {
+      }) || matches!(provided_exports, ProvidedExports::ProvidedNames(_))
+      {
         set.insert(*con.module_identifier());
       }
     }

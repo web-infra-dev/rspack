@@ -8,7 +8,7 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  Dependency, ExportsInfoGetter, PrefetchedExportsInfoWrapper, ProvidedExports, RuntimeSpec,
+  Dependency, ExportsInfoGetter, PrefetchedExportsInfoWrapper, RuntimeSpec,
 };
 mod module;
 pub use module::*;
@@ -1095,13 +1095,6 @@ impl<'a> ModuleGraph<'a> {
       panic!("should have active partial");
     };
     active_partial.export_info_map.insert(id, info);
-  }
-
-  pub fn get_provided_exports(&self, module_id: ModuleIdentifier) -> ProvidedExports {
-    let mgm = self
-      .module_graph_module_by_identifier(&module_id)
-      .expect("should have module graph module");
-    mgm.exports.get_provided_exports(self)
   }
 
   pub fn get_optimization_bailout_mut(&mut self, id: &ModuleIdentifier) -> &mut Vec<String> {
