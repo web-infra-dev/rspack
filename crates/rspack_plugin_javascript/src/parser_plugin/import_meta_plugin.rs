@@ -26,6 +26,7 @@ impl ImportMetaPlugin {
       .to_string()
   }
 
+  // This is the same as the url.fileURLToPath() of the import.meta.url
   fn import_meta_filename(&self, parser: &JavascriptParser) -> String {
     Url::from_file_path(&parser.resource_data.resource)
       .expect("should be a url")
@@ -35,6 +36,7 @@ impl ImportMetaPlugin {
       .into_owned()
   }
 
+  // This is the same as the path.dirname() of the import.meta.filename
   fn import_meta_dirname(&self, parser: &JavascriptParser) -> String {
     Url::from_file_path(&parser.resource_data.resource)
       .expect("should be a url")
