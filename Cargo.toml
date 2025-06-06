@@ -210,11 +210,6 @@ debug         = 2       # debug build will cause runtime panic if codegen-unints
 incremental   = true
 panic         = "abort"
 
-[profile.debug]
-codegen-units = 16
-inherits      = "dev"
-opt-level     = 3
-
 # This is for release build for users
 [profile.release]
 codegen-units = 1
