@@ -64,7 +64,7 @@
     "zod-validation-error": "3.4.1"
   },
   "dependencies": {
-    "@module-federation/runtime-tools": "0.14.3",
+    "@module-federation/runtime-tools": "0.15.0",
     "@rspack/binding": "workspace:*",
     "@rspack/lite-tapable": "1.0.1"
   },
