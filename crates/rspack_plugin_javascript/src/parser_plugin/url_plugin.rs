@@ -93,7 +93,7 @@ impl JavascriptParserPlugin for URLPlugin {
           RuntimeGlobals::BASE_URI.name().into(),
           Some(RuntimeGlobals::BASE_URI),
         )));
-      return None;
+      return Some(true);
     }
 
     if let Some((request, start, end)) = get_url_request(parser, expr) {
