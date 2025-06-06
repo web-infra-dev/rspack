@@ -1066,6 +1066,7 @@ export interface JsRsdoctorModule {
   belongModules: Array<number>
   chunks: Array<number>
   issuerPath: Array<number>
+  bailoutReason?: string
 }
 
 export interface JsRsdoctorModuleGraph {
