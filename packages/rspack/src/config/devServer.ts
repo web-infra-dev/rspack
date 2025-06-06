@@ -12,9 +12,9 @@ type Logger = ReturnType<Compiler["getInfrastructureLogger"]>;
 type MultiWatching = MultiCompiler["watch"];
 type BasicServer = import("net").Server | import("tls").Server;
 
-type ReadStream = typeof import("fs").ReadStream;
-type IncomingMessage = typeof import("http").IncomingMessage;
-type ServerResponse = typeof import("http").ServerResponse;
+type ReadStream = import("fs").ReadStream;
+type IncomingMessage = import("http").IncomingMessage;
+type ServerResponse = import("http").ServerResponse;
 type ServerOptions = import("https").ServerOptions & {
 	spdy?: {
 		plain?: boolean | undefined;
@@ -143,7 +143,10 @@ type Static = {
 
 type ServerType<
 	A extends BasicApplication = BasicApplication,
-	S extends BasicServer = import("http").Server<IncomingMessage, ServerResponse>
+	S extends BasicServer = import("http").Server<
+		typeof import("http").IncomingMessage,
+		typeof import("http").ServerResponse
+	>
 > =
 	| "http"
 	| "https"
@@ -154,7 +157,10 @@ type ServerType<
 
 type ServerConfiguration<
 	A extends BasicApplication = BasicApplication,
-	S extends BasicServer = import("http").Server<IncomingMessage, ServerResponse>
+	S extends BasicServer = import("http").Server<
+		typeof import("http").IncomingMessage,
+		typeof import("http").ServerResponse
+	>
 > = {
 	type?: ServerType<A, S> | undefined;
 	options?: ServerOptions | undefined;
@@ -202,13 +208,30 @@ type DevMiddlewareContext<
 };
 type Server = any;
 
-type MiddlewareHandler = any;
-type MiddlewareObject = {
+type MiddlewareHandler<
+	RequestInternal extends Request = Request,
+	ResponseInternal extends Response = Response
+> = (
+	req: RequestInternal,
+	res: ResponseInternal,
+	next: NextFunction
+) => void | Promise<void>;
+
+type MiddlewareObject<
+	RequestInternal extends Request = Request,
+	ResponseInternal extends Response = Response
+> = {
 	name?: string;
 	path?: string;
-	middleware: MiddlewareHandler;
+	middleware: MiddlewareHandler<RequestInternal, ResponseInternal>;
 };
-export type Middleware = MiddlewareObject | MiddlewareHandler;
+export type Middleware<
+	RequestInternal extends Request = Request,
+	ResponseInternal extends Response = Response
+> =
+	| MiddlewareObject<RequestInternal, ResponseInternal>
+	| MiddlewareHandler<RequestInternal, ResponseInternal>;
+
 type OpenApp = {
 	name?: string | undefined;
 	arguments?: string[] | undefined;
@@ -244,7 +267,10 @@ type ClientConfiguration = {
 
 export type DevServerOptions<
 	A extends BasicApplication = BasicApplication,
-	S extends BasicServer = import("http").Server<IncomingMessage, ServerResponse>
+	S extends BasicServer = import("http").Server<
+		typeof import("http").IncomingMessage,
+		typeof import("http").ServerResponse
+	>
 > = {
 	ipc?: string | boolean | undefined;
 	host?: string | undefined;
