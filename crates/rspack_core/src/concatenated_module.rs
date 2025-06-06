@@ -2218,7 +2218,7 @@ impl ConcatenatedModule {
       ModuleInfo::Concatenated(info) => {
         let export_id = export_name.first().cloned();
         if matches!(
-          export_info.provided(mg),
+          export_info.provided(),
           Some(crate::ExportProvided::NotProvided)
         ) {
           needed_namespace_objects.insert(info.module);

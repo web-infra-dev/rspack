@@ -876,7 +876,7 @@ fn can_optimize_connection(
       .unwrap_or_else(|| ids.get(1..).unwrap_or_default().to_vec());
     let need_move_target = match export_info {
       MaybeDynamicTargetExportInfo::Static(export_info) => Some(SideEffectsDoOptimizeMoveTarget {
-        export_info,
+        export_info: export_info.id(),
         target_export: target.export,
       }),
       MaybeDynamicTargetExportInfo::Dynamic { .. } => None,
