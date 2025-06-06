@@ -6,6 +6,7 @@ use rspack_hash::RspackHashDigest;
 use rspack_paths::ArcPath;
 use rustc_hash::{FxHashMap, FxHashSet};
 
+use super::module_loader::ModuleLoader;
 use crate::{
   chunk_graph_chunk::ChunkId,
   chunk_graph_module::ModuleId,
@@ -55,6 +56,7 @@ impl Compiler {
         self.old_cache.clone(),
         Incremental::new_hot(self.options.experiments.incremental),
         Some(ModuleExecutor::default()),
+        Some(ModuleLoader::default()),
         modified_files,
         removed_files,
         self.input_filesystem.clone(),
@@ -80,6 +82,7 @@ impl Compiler {
 
         // reuse module executor
         new_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
+        new_compilation.module_loader = std::mem::take(&mut self.compilation.module_loader);
       }
       if new_compilation
         .incremental
