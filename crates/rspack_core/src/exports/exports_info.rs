@@ -313,17 +313,17 @@ impl ExportsInfo {
   // An alternative version of `get_export_info`, and don't need `&mut ModuleGraph`.
   // You can use this when you can't or don't want to use `&mut ModuleGraph`.
   // Currently this function is used to finding a reexport's target.
-  pub fn get_export_info_without_mut_module_graph(
+  pub fn get_export_info_without_mut_module_graph<'a>(
     &self,
-    mg: &ModuleGraph,
+    mg: &'a ModuleGraph,
     name: &Atom,
-  ) -> MaybeDynamicTargetExportInfo {
+  ) -> MaybeDynamicTargetExportInfo<'a> {
     let exports_info = self.as_exports_info(mg);
     let redirect_id = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
     let export_info_id = exports_info.exports.get(name);
     if let Some(export_info_id) = export_info_id {
-      return MaybeDynamicTargetExportInfo::Static(*export_info_id);
+      return MaybeDynamicTargetExportInfo::Static(export_info_id.as_data(mg));
     }
     if let Some(redirect_id) = redirect_id {
       return redirect_id.get_export_info_without_mut_module_graph(mg, name);
@@ -333,7 +333,7 @@ impl ExportsInfo {
     let data = ExportInfoData::new(Some(name.clone()), Some(other_export_info));
     MaybeDynamicTargetExportInfo::Dynamic {
       export_name: name.clone(),
-      other_export_info: other_exports_info_id,
+      other_export_info,
       data,
     }
   }
