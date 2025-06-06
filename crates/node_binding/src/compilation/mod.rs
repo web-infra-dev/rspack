@@ -446,7 +446,7 @@ impl JsCompilation {
 
     compilation
       .get_errors_sorted()
-      .map(|d| JsRspackError::try_from_diagnostic(d))
+      .map(|d| JsRspackError::try_from_diagnostic(compilation, d))
       .collect()
   }
 
@@ -456,7 +456,7 @@ impl JsCompilation {
 
     compilation
       .get_warnings_sorted()
-      .map(|d| JsRspackError::try_from_diagnostic(d))
+      .map(|d| JsRspackError::try_from_diagnostic(compilation, d))
       .collect()
   }
 
