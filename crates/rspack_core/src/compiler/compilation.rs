@@ -1393,10 +1393,14 @@ impl Compilation {
     }
 
     logger.time_end(start);
+
+    // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2988
+    self.module_graph_cache_artifact.freeze();
     // Collect dependencies diagnostics at here to make sure:
     // 1. after finish_modules: has provide exports info
     // 2. before optimize dependencies: side effects free module hasn't been skipped
     self.collect_dependencies_diagnostics();
+    self.module_graph_cache_artifact.unfreeze();
 
     // take make diagnostics
     let diagnostics = self.make_artifact.diagnostics();
