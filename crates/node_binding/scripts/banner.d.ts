@@ -73,6 +73,16 @@ export interface ContextModule extends Module {
 export interface ExternalModule extends Module {
 	readonly userRequest: string;
 }
+
+export interface RspackError {
+	name: string;
+  	message: string;
+	module?: Module;
+	loc?: string;
+	file?: string;
+	stack?: string;
+	hideStack?: boolean;
+}
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */

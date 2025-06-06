@@ -6,8 +6,8 @@ use napi::{
   Env, JsValue, Status,
 };
 use napi_derive::napi;
-use rspack_core::Compilation;
-use rspack_error::{miette, Diagnostic, Error, Result, RspackSeverity};
+use rspack_core::{diagnostics::ModuleBuildError, Compilation};
+use rspack_error::{miette, Diagnostic, DiagnosticExt, Error, Result, RspackSeverity};
 use rspack_napi::napi::check_status;
 
 use crate::ModuleObject;
@@ -35,7 +35,7 @@ impl AsRef<str> for ErrorCode {
 #[napi(object, object_to_js = false)]
 pub struct JsRspackDiagnostic {
   pub severity: JsRspackSeverity,
-  pub error: JsRspackError,
+  pub error: RspackError,
 }
 
 impl From<JsRspackDiagnostic> for Diagnostic {
@@ -69,7 +69,7 @@ impl From<JsRspackSeverity> for miette::Severity {
 }
 
 #[derive(Debug)]
-pub struct JsRspackError {
+pub struct RspackError {
   pub name: String,
   pub message: String,
   pub stack: Option<String>,
@@ -77,9 +77,10 @@ pub struct JsRspackError {
   pub loc: Option<String>,
   pub hide_stack: Option<bool>,
   pub file: Option<String>,
+  pub error: Option<Box<RspackError>>,
 }
 
-impl napi::bindgen_prelude::TypeName for JsRspackError {
+impl napi::bindgen_prelude::TypeName for RspackError {
   fn type_name() -> &'static str {
     "RspackError"
   }
@@ -88,7 +89,7 @@ impl napi::bindgen_prelude::TypeName for JsRspackError {
   }
 }
 
-impl ToNapiValue for JsRspackError {
+impl ToNapiValue for RspackError {
   unsafe fn to_napi_value(
     env: napi::sys::napi_env,
     val: Self,
@@ -102,6 +103,7 @@ impl ToNapiValue for JsRspackError {
       loc,
       hide_stack,
       file,
+      error,
     } = val;
 
     let message = env_wrapper.create_string(&message)?;
@@ -127,12 +129,15 @@ impl ToNapiValue for JsRspackError {
     if let Some(file) = file {
       obj.set("file", file)?;
     }
+    if let Some(error) = error {
+      obj.set("error", *error)?;
+    }
     ToNapiValue::to_napi_value(env, obj)
   }
 }
 
-impl FromNapiValue for JsRspackError {
-  unsafe fn from_napi_value(env: napi_env, napi_val: napi_value) -> napi::Result<JsRspackError> {
+impl FromNapiValue for RspackError {
+  unsafe fn from_napi_value(env: napi_env, napi_val: napi_value) -> napi::Result<RspackError> {
     #[allow(unused_variables)]
     let env_wrapper = Env::from(env);
     #[allow(unused_mut)]
@@ -140,35 +145,39 @@ impl FromNapiValue for JsRspackError {
     let name: String = obj
       .get("name")
       .map_err(|mut err| {
-        err.reason = format!("{} on {}.{}", err.reason, "JsRspackError", "name");
+        err.reason = format!("{} on {}.{}", err.reason, "RspackError", "name");
         err
       })?
       .ok_or_else(|| napi::Error::new(Status::InvalidArg, "Missing field name"))?;
     let message: String = obj
       .get("message")
       .map_err(|mut err| {
-        err.reason = format!("{} on {}.{}", err.reason, "JsRspackError", "message");
+        err.reason = format!("{} on {}.{}", err.reason, "RspackError", "message");
         err
       })?
       .ok_or_else(|| napi::Error::new(Status::InvalidArg, "Missing field message"))?;
     let stack: Option<String> = obj.get("stack").map_err(|mut err| {
-      err.reason = format!("{} on {}.{}", err.reason, "JsRspackError", "stack");
+      err.reason = format!("{} on {}.{}", err.reason, "RspackError", "stack");
       err
     })?;
     let module: Option<ModuleObject> = obj.get("module").map_err(|mut err| {
-      err.reason = format!("{} on {}.{}", err.reason, "JsRspackError", "module");
+      err.reason = format!("{} on {}.{}", err.reason, "RspackError", "module");
       err
     })?;
     let loc: Option<String> = obj.get("loc").map_err(|mut err| {
-      err.reason = format!("{} on {}.{}", err.reason, "JsRspackError", "loc");
+      err.reason = format!("{} on {}.{}", err.reason, "RspackError", "loc");
       err
     })?;
     let hide_stack: Option<bool> = obj.get("hideStack").map_err(|mut err| {
-      err.reason = format!("{} on {}.{}", err.reason, "JsRspackError", "hideStack");
+      err.reason = format!("{} on {}.{}", err.reason, "RspackError", "hideStack");
       err
     })?;
     let file: Option<String> = obj.get("file").map_err(|mut err| {
-      err.reason = format!("{} on {}.{}", err.reason, "JsRspackError", "file");
+      err.reason = format!("{} on {}.{}", err.reason, "RspackError", "file");
+      err
+    })?;
+    let error: Option<RspackError> = obj.get("error").map_err(|mut err| {
+      err.reason = format!("{} on {}.{}", err.reason, "RspackError", "file");
       err
     })?;
     let val = Self {
@@ -179,18 +188,49 @@ impl FromNapiValue for JsRspackError {
       loc,
       hide_stack,
       file,
+      error: error.map(Box::new),
     };
     Ok(val)
   }
 }
 
-impl napi::bindgen_prelude::ValidateNapiValue for JsRspackError {}
+impl napi::bindgen_prelude::ValidateNapiValue for RspackError {}
 
-impl JsRspackError {
+impl From<&dyn miette::Diagnostic> for RspackError {
+  fn from(value: &dyn miette::Diagnostic) -> Self {
+    let mut name = "Error".to_string();
+    if let Some(code) = value.code() {
+      name = code.to_string();
+    } else if let Some(severity) = value.severity() {
+      name = match severity {
+        miette::Severity::Advice => "Warn".to_string(),
+        miette::Severity::Warning => "Warn".to_string(),
+        miette::Severity::Error => "Error".to_string(),
+      };
+    }
+
+    Self {
+      name,
+      message: value.to_string(),
+      stack: None,
+      module: None,
+      loc: None,
+      hide_stack: None,
+      file: None,
+      error: None,
+    }
+  }
+}
+
+impl RspackError {
   pub fn try_from_diagnostic(
     compilation: &Compilation,
     diagnostic: &Diagnostic,
   ) -> napi::Result<Self> {
+    let message = diagnostic
+      .render_report(false)
+      .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+
     let mut module = None;
     if let Some(module_identifier) = diagnostic.module_identifier() {
       if let Some(m) = compilation.module_by_identifier(&module_identifier) {
@@ -201,6 +241,8 @@ impl JsRspackError {
       }
     }
 
+    let error: Option<RspackError> = diagnostic.diagnostic_source().map(|source| source.into());
+
     Ok(Self {
       name: diagnostic.code().map(|n| n.to_string()).unwrap_or_else(|| {
         match diagnostic.severity() {
@@ -208,24 +250,36 @@ impl JsRspackError {
           rspack_error::RspackSeverity::Warn => "Warn".to_string(),
         }
       }),
-      message: diagnostic.message(),
+      message,
       stack: diagnostic.stack(),
       module,
       loc: diagnostic.loc(),
       file: diagnostic.file().map(|f| f.as_str().to_string()),
       hide_stack: diagnostic.hide_stack(),
+      error: error.map(Box::new),
     })
   }
 
   pub fn into_diagnostic(self, severity: RspackSeverity) -> Diagnostic {
-    (match severity {
-      RspackSeverity::Error => Diagnostic::error,
-      RspackSeverity::Warn => Diagnostic::warn,
-    })(self.name, self.message)
-    .with_file(self.file.map(Into::into))
-    .with_module_identifier(self.module.map(|module| *module.identifier()))
-    .with_stack(self.stack)
-    .with_hide_stack(self.hide_stack)
+    let diagnostic = if self.name == "ModuleBuildError" {
+      let source = if let Some(error) = self.error {
+        miette::MietteDiagnostic::new(error.message).with_code(error.name)
+      } else {
+        miette::MietteDiagnostic::new(self.message)
+      };
+      Diagnostic::from(ModuleBuildError::new(source.into()).boxed())
+    } else {
+      (match severity {
+        RspackSeverity::Error => Diagnostic::error,
+        RspackSeverity::Warn => Diagnostic::warn,
+      })(self.name, self.message)
+    };
+
+    diagnostic
+      .with_file(self.file.map(Into::into))
+      .with_module_identifier(self.module.map(|module| *module.identifier()))
+      .with_stack(self.stack)
+      .with_hide_stack(self.hide_stack)
   }
 }
 

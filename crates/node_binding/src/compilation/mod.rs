@@ -26,9 +26,9 @@ use super::PathWithInfo;
 use crate::{
   entry::JsEntryOptions, utils::callbackify, AssetInfo, EntryDependency, ErrorCode,
   JsAddingRuntimeModule, JsAsset, JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper,
-  JsCompatSource, JsFilename, JsModuleGraph, JsPathData, JsRspackDiagnostic, JsRspackError,
-  JsStats, JsStatsOptimizationBailout, ModuleObject, RspackResultToNapiResultExt, ToJsCompatSource,
-  COMPILER_REFERENCES,
+  JsCompatSource, JsFilename, JsModuleGraph, JsPathData, JsRspackDiagnostic, JsStats,
+  JsStatsOptimizationBailout, ModuleObject, RspackError, RspackResultToNapiResultExt,
+  ToJsCompatSource, COMPILER_REFERENCES,
 };
 
 #[napi]
@@ -441,22 +441,22 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_errors(&self) -> Result<Vec<JsRspackError>> {
+  pub fn get_errors(&self) -> Result<Vec<RspackError>> {
     let compilation = self.as_ref()?;
 
     compilation
       .get_errors_sorted()
-      .map(|d| JsRspackError::try_from_diagnostic(compilation, d))
+      .map(|d| RspackError::try_from_diagnostic(compilation, d))
       .collect()
   }
 
   #[napi]
-  pub fn get_warnings(&self) -> Result<Vec<JsRspackError>> {
+  pub fn get_warnings(&self) -> Result<Vec<RspackError>> {
     let compilation = self.as_ref()?;
 
     compilation
       .get_warnings_sorted()
-      .map(|d| JsRspackError::try_from_diagnostic(compilation, d))
+      .map(|d| RspackError::try_from_diagnostic(compilation, d))
       .collect()
   }
 
