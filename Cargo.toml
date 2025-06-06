@@ -214,6 +214,7 @@ panic         = "abort"
 codegen-units = 16
 inherits      = "dev"
 opt-level     = 3
+strip         = "debuginfo"
 
 # This is for release build for users
 [profile.release]
