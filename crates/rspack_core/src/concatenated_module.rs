@@ -795,7 +795,11 @@ impl Module for ConcatenatedModule {
                 }
 
                 let new_name = if all_used_names.contains(atom) {
-                  let new_name = find_new_name(atom, &all_used_names, None, &readable_identifier);
+                  let new_name = if atom == "default" {
+                    find_new_name("", &all_used_names, None, &source.replace("\"", ""))
+                  } else {
+                    find_new_name(atom, &all_used_names, None, &readable_identifier)
+                  };
                   all_used_names.insert(new_name.clone());
                   // if the imported symbol is exported, we rename the export as well
                   if let Some(raw_export_map) = info.raw_export_map.as_mut()
