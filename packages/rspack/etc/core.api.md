@@ -425,6 +425,7 @@ interface BaseModuleConfig {
     outFileExtension?: "js" | "mjs" | "cjs";
     // (undocumented)
     preserveImportMeta?: boolean;
+    resolveFully?: boolean;
     strict?: boolean;
     strictMode?: boolean;
 }
@@ -3450,6 +3451,10 @@ interface JscConfig {
     loose?: boolean;
     // (undocumented)
     minify?: JsMinifyOptions;
+    // (undocumented)
+    output?: {
+        charset?: 'utf8' | 'ascii';
+    };
     parser?: ParserConfig;
     // (undocumented)
     paths?: {
@@ -8105,6 +8110,7 @@ interface TransformConfig {
     decoratorMetadata?: boolean;
     decoratorVersion?: "2021-12" | "2022-03";
     legacyDecorator?: boolean;
+    nativeClassProperties?: boolean;
     optimizer?: OptimizerConfig;
     react?: ReactConfig;
     // (undocumented)

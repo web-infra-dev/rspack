@@ -19,8 +19,7 @@ describeByWalk(
 	},
 	{
 		source: path.resolve(__dirname, "./hotCases"),
-		dist: path.resolve(__dirname, `./js/new-incremental/hot-web`),
-		exclude: [/move-between-runtime/, /require-disposed-module-warning/]
+		dist: path.resolve(__dirname, `./js/new-incremental/hot-web`)
 	}
 );
 
@@ -33,6 +32,9 @@ describeByWalk(
 	{
 		source: path.resolve(__dirname, "../../../tests/webpack-test/hotCases"),
 		dist: path.resolve(__dirname, `./js/new-incremental/webpack-test/hot-web`),
-		exclude: [/require-disposed-module-warning/]
+		exclude: [
+			// there is a self reference module in this case causing the make phase didn't found the module is removed
+			/require-disposed-module-warning/
+		]
 	}
 );
