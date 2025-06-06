@@ -47,8 +47,8 @@
   },
   "devDependencies": {
     "@rslib/core": "0.9.1",
-    "@swc/core": "1.11.29",
-    "@swc/types": "0.1.21",
+    "@swc/core": "1.11.31",
+    "@swc/types": "0.1.22",
     "@types/graceful-fs": "4.1.9",
     "@types/watchpack": "^2.4.4",
     "browserslist-load-config": "^1.0.0",
@@ -60,7 +60,7 @@
     "typescript": "^5.8.3",
     "watchpack": "^2.4.4",
     "webpack-sources": "3.3.2",
-    "zod": "^3.25.50",
+    "zod": "^3.25.53",
     "zod-validation-error": "3.4.1"
   },
   "dependencies": {
