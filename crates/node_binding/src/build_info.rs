@@ -6,7 +6,7 @@ use napi::{
   },
   Env, JsString, JsValue, Property, PropertyAttributes, Unknown,
 };
-use rspack_core::{Reflector, WeakBindingCell};
+use rspack_core::WeakBindingCell;
 use rspack_napi::unknown_to_json_value;
 use rustc_hash::{FxHashMap, FxHashSet};
 
