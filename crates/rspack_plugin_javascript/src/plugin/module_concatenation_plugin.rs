@@ -16,7 +16,7 @@ use rspack_core::{
   ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions, ExportInfoGetter,
   ExportProvided, ExportsInfoGetter, ExtendedReferencedExport, LibIdentOptions, Logger, Module,
   ModuleExt, ModuleGraph, ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
+  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -972,7 +972,11 @@ impl ModuleConcatenationPlugin {
       let module_graph = compilation.get_module_graph();
       let exports_info = module_graph.get_exports_info(current_root);
       let filtered_runtime = filter_runtime(Some(&chunk_runtime), |r| {
-        let exports_info_data = ExportsInfoGetter::prefetch(&exports_info, &module_graph, None);
+        let exports_info_data = ExportsInfoGetter::prefetch(
+          &exports_info,
+          &module_graph,
+          PrefetchExportsInfoMode::AllExports,
+        );
         ExportsInfoGetter::is_module_used(&exports_info_data, r)
       });
       let active_runtime = match filtered_runtime {

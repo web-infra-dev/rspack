@@ -8,8 +8,8 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  Dependency, ExportProvided, ExportsInfoGetter, PrefetchedExportsInfoWrapper, ProvidedExports,
-  RuntimeSpec, UsedExports,
+  Dependency, ExportProvided, ExportsInfoGetter, PrefetchExportsInfoMode,
+  PrefetchedExportsInfoWrapper, ProvidedExports, RuntimeSpec, UsedExports,
 };
 mod module;
 pub use module::*;
@@ -1019,23 +1019,23 @@ impl<'a> ModuleGraph<'a> {
       .id()
   }
 
-  pub fn get_prefetched_exports_info_optional(
-    &self,
+  pub fn get_prefetched_exports_info_optional<'b>(
+    &'b self,
     module_identifier: &ModuleIdentifier,
-    names: Option<&[Atom]>,
-  ) -> Option<PrefetchedExportsInfoWrapper<'_>> {
+    mode: PrefetchExportsInfoMode<'b>,
+  ) -> Option<PrefetchedExportsInfoWrapper<'b>> {
     self
       .module_graph_module_by_identifier(module_identifier)
-      .map(|mgm| ExportsInfoGetter::prefetch(&mgm.exports, self, names))
+      .map(move |mgm| ExportsInfoGetter::prefetch(&mgm.exports, self, mode))
   }
 
-  pub fn get_prefetched_exports_info(
-    &self,
+  pub fn get_prefetched_exports_info<'b>(
+    &'b self,
     module_identifier: &ModuleIdentifier,
-    names: Option<&[Atom]>,
-  ) -> PrefetchedExportsInfoWrapper<'_> {
+    mode: PrefetchExportsInfoMode<'b>,
+  ) -> PrefetchedExportsInfoWrapper<'b> {
     let exports_info = self.get_exports_info(module_identifier);
-    ExportsInfoGetter::prefetch(&exports_info, self, names)
+    ExportsInfoGetter::prefetch(&exports_info, self, mode)
   }
 
   pub fn get_exports_info_by_id(&self, id: &ExportsInfo) -> &ExportsInfoData {
@@ -1156,7 +1156,11 @@ impl<'a> ModuleGraph<'a> {
     names: &[Atom],
   ) -> Option<ExportProvided> {
     self.module_graph_module_by_identifier(id).and_then(|mgm| {
-      let exports_info = ExportsInfoGetter::prefetch(&mgm.exports, self, Some(names));
+      let exports_info = ExportsInfoGetter::prefetch(
+        &mgm.exports,
+        self,
+        PrefetchExportsInfoMode::NamedNestedExports(names),
+      );
       ExportsInfoGetter::is_export_provided(&exports_info, names)
     })
   }

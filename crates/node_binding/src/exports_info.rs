@@ -2,7 +2,9 @@ use std::ptr::NonNull;
 
 use napi::Either;
 use napi_derive::napi;
-use rspack_core::{Compilation, ExportsInfo, ExportsInfoGetter, ModuleGraph, RuntimeSpec};
+use rspack_core::{
+  Compilation, ExportsInfo, ExportsInfoGetter, ModuleGraph, PrefetchExportsInfoMode, RuntimeSpec,
+};
 use rspack_util::atom::Atom;
 
 use crate::JsRuntimeSpec;
@@ -44,7 +46,11 @@ impl JsExportsInfo {
       Either::A(str) => std::iter::once(str).map(Into::into).collect(),
       Either::B(vec) => vec.into_iter().map(Into::into).collect(),
     });
-    let exports_info = ExportsInfoGetter::prefetch(&self.exports_info, &module_graph, None);
+    let exports_info = ExportsInfoGetter::prefetch(
+      &self.exports_info,
+      &module_graph,
+      PrefetchExportsInfoMode::AllExports,
+    );
     Ok(ExportsInfoGetter::is_used(&exports_info, runtime.as_ref()))
   }
 
@@ -55,7 +61,11 @@ impl JsExportsInfo {
       Either::A(str) => std::iter::once(str).map(Into::into).collect(),
       Either::B(vec) => vec.into_iter().map(Into::into).collect(),
     });
-    let exports_info = ExportsInfoGetter::prefetch(&self.exports_info, &module_graph, None);
+    let exports_info = ExportsInfoGetter::prefetch(
+      &self.exports_info,
+      &module_graph,
+      PrefetchExportsInfoMode::AllExports,
+    );
     Ok(ExportsInfoGetter::is_module_used(
       &exports_info,
       runtime.as_ref(),
@@ -94,7 +104,11 @@ impl JsExportsInfo {
       Either::A(s) => vec![Atom::from(s)],
       Either::B(v) => v.into_iter().map(Into::into).collect::<Vec<_>>(),
     };
-    let exports_info = ExportsInfoGetter::prefetch(&self.exports_info, &module_graph, Some(&names));
+    let exports_info = ExportsInfoGetter::prefetch(
+      &self.exports_info,
+      &module_graph,
+      PrefetchExportsInfoMode::NamedNestedExports(&names),
+    );
     let used = ExportsInfoGetter::get_used(&exports_info, &names, runtime.as_ref());
     Ok(used as u32)
   }

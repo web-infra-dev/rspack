@@ -14,7 +14,8 @@ use rspack_core::{
   DependencyType::WasmImport,
   ExportsInfoGetter, Filename, GenerateContext, Module, ModuleDependency, ModuleGraph, ModuleId,
   ModuleIdentifier, NormalModule, ParseContext, ParseResult, ParserAndGenerator, PathData,
-  RuntimeGlobals, SourceType, StaticExportsDependency, StaticExportsSpec, UsedName,
+  PrefetchExportsInfoMode, RuntimeGlobals, SourceType, StaticExportsDependency, StaticExportsSpec,
+  UsedName,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_util::itoa;
@@ -201,7 +202,10 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 
               let dep_name = serde_json::to_string(dep.name()).expect("should be ok.");
               let Some(UsedName::Normal(used_name)) = ExportsInfoGetter::get_used_name(
-                &module_graph.get_prefetched_exports_info(&mgm.module_identifier, None),
+                &module_graph.get_prefetched_exports_info(
+                  &mgm.module_identifier,
+                  PrefetchExportsInfoMode::NamedExports(&[dep.name().into()]),
+                ),
                 *runtime,
                 &[dep.name().into()],
               ) else {

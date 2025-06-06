@@ -17,7 +17,9 @@ use super::{
   ResolvedExportInfoTargetWithCircular, TerminalBinding, UnResolvedExportInfoTarget, UsageState,
   NEXT_EXPORT_INFO_UKEY,
 };
-use crate::{Compilation, DependencyId, ModuleGraph, ModuleIdentifier, RuntimeSpec};
+use crate::{
+  Compilation, DependencyId, ModuleGraph, ModuleIdentifier, PrefetchExportsInfoMode, RuntimeSpec,
+};
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 pub struct ExportInfo(Ukey);
@@ -93,9 +95,13 @@ impl ExportInfo {
     let Some(export) = target.export else {
       return Some(TerminalBinding::ExportsInfo(exports_info));
     };
-    ExportsInfoGetter::prefetch(&exports_info, mg, Some(&export))
-      .get_read_only_export_info_recursive(&export)
-      .map(|data| TerminalBinding::ExportInfo(data.id))
+    ExportsInfoGetter::prefetch(
+      &exports_info,
+      mg,
+      PrefetchExportsInfoMode::NamedNestedExports(&export),
+    )
+    .get_read_only_export_info_recursive(&export)
+    .map(|data| TerminalBinding::ExportInfo(data.id))
   }
 
   pub fn update_hash_with_visited(
@@ -235,10 +241,12 @@ impl ExportInfoData {
       if valid_target_module_filter(&target.module) {
         return FindTargetRetEnum::Value(target);
       }
-      let exports_info = mg.get_prefetched_exports_info(&target.module, None);
-      let export_info = exports_info.get_export_info_without_mut_module_graph(
-        &target.export.as_ref().expect("should have export")[0],
+      let name = &target.export.as_ref().expect("should have export")[0];
+      let exports_info = mg.get_prefetched_exports_info(
+        &target.module,
+        PrefetchExportsInfoMode::NamedExports(std::slice::from_ref(name)),
       );
+      let export_info = exports_info.get_export_info_without_mut_module_graph(name);
       let export_info_hash_key = export_info.as_hash_key();
       if visited.contains(&export_info_hash_key) {
         return FindTargetRetEnum::Undefined;
@@ -559,7 +567,10 @@ fn resolve_target(
         return Some(ResolvedExportInfoTargetWithCircular::Target(target));
       };
 
-      let exports_info = mg.get_prefetched_exports_info(&target.module, None);
+      let exports_info = mg.get_prefetched_exports_info(
+        &target.module,
+        PrefetchExportsInfoMode::NamedExports(std::slice::from_ref(name)),
+      );
       let export_info = exports_info.get_export_info_without_mut_module_graph(name);
       let export_info_hash_key = export_info.as_hash_key();
       if already_visited.contains(&export_info_hash_key) {

@@ -17,8 +17,8 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CompilerOptions, ExportInfoGetter,
   ExportsInfo, ExportsInfoGetter, GenerateContext, Module, ModuleGraph, ParseOption,
-  ParserAndGenerator, Plugin, RuntimeGlobals, RuntimeSpec, SourceType, UsageState,
-  NAMESPACE_OBJECT_EXPORT,
+  ParserAndGenerator, Plugin, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SourceType,
+  UsageState, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::{
   miette::diagnostic, DiagnosticExt, DiagnosticKind, IntoTWithDiagnosticArray, Result,
@@ -279,7 +279,8 @@ fn create_object_for_exports_info(
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
 ) -> JsonValue {
-  let exports_info_data = ExportsInfoGetter::prefetch(&exports_info, mg, None);
+  let exports_info_data =
+    ExportsInfoGetter::prefetch(&exports_info, mg, PrefetchExportsInfoMode::AllExports);
 
   if ExportInfoGetter::get_used(exports_info_data.other_exports_info(), runtime)
     != UsageState::Unused

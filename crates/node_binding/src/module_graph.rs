@@ -2,7 +2,7 @@ use std::ptr::NonNull;
 
 use napi::{Either, Env, JsString};
 use napi_derive::napi;
-use rspack_core::{Compilation, ModuleGraph, RuntimeSpec};
+use rspack_core::{Compilation, ModuleGraph, PrefetchExportsInfoMode, RuntimeSpec};
 
 use crate::{
   DependencyObject, JsExportsInfo, ModuleGraphConnectionWrapper, ModuleObject, ModuleObjectRef,
@@ -89,7 +89,8 @@ impl JsModuleGraph {
         runtime.extend(vec.iter().map(String::as_str).map(ustr::Ustr::from));
       }
     };
-    let exports_info = module_graph.get_prefetched_exports_info(&js_module.identifier, None);
+    let exports_info = module_graph
+      .get_prefetched_exports_info(&js_module.identifier, PrefetchExportsInfoMode::AllExports);
     let used_exports = exports_info.get_used_exports(Some(&RuntimeSpec::new(runtime)));
     Ok(match used_exports {
       rspack_core::UsedExports::Unknown => None,
