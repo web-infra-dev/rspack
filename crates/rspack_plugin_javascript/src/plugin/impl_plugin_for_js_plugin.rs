@@ -375,6 +375,11 @@ async fn compilation(
     RuntimeRequirementsDependencyTemplate::template_type(),
     Arc::new(RuntimeRequirementsDependencyTemplate::default()),
   );
+  // Rstest
+  compilation.set_dependency_factory(
+    DependencyType::RstestMockModuleId,
+    params.normal_module_factory.clone(),
+  );
   Ok(())
 }
 

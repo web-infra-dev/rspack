@@ -5158,6 +5158,7 @@ name = "rspack_plugin_rstest"
 version = "0.2.0"
 dependencies = [
  "async-trait",
+ "regex",
  "rspack_cacheable",
  "rspack_core",
  "rspack_error",
