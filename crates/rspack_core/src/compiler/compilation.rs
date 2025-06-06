@@ -936,6 +936,9 @@ impl Compilation {
   ) -> Result<T> {
     let artifact = std::mem::take(&mut self.make_artifact);
 
+    // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
+    self.module_graph_cache_artifact.unfreeze();
+
     self.make_artifact = update_module_graph(
       self,
       artifact,
