@@ -37,7 +37,13 @@ impl_diagnostic_transparent!(EmptyDependency);
 ///////////////////// Module /////////////////////
 
 #[derive(Debug)]
-pub struct ModuleBuildError(pub Error);
+pub struct ModuleBuildError(Error);
+
+impl ModuleBuildError {
+  pub fn new(error: Error) -> Self {
+    Self(error)
+  }
+}
 
 impl std::error::Error for ModuleBuildError {
   fn source(&self) -> ::core::option::Option<&(dyn std::error::Error + 'static)> {

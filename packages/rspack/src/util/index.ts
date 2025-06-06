@@ -1,4 +1,3 @@
-import type { JsRspackError } from "@rspack/binding";
 import type { LoaderObject } from "../loader-runner";
 
 export function isNil(value: unknown): value is null | undefined {
@@ -49,36 +48,6 @@ export function serializeObject(
 	}
 
 	return toBuffer(JSON.stringify(map));
-}
-
-export function concatErrorMsgAndStack(
-	err: Error | JsRspackError | string
-): JsRspackError {
-	if (typeof err === "string") {
-		return new Error(err);
-	}
-	const hideStack = "hideStack" in err && err.hideStack;
-	if (!hideStack && "stack" in err) {
-		// This is intended to be different than webpack,
-		// here we want to treat the almost the same as `Error.stack` just without the stack.
-		// Webpack uses `Error.message`, however it does not contain the `Error.prototype.name`
-		// `xxx` -> `Error: xxx`. So they behave the same even if `hideStack` is set to `true`.
-		err.message = err.stack || err.toString();
-	} else {
-		// This is intended to be different than webpack,
-		// here we want to treat the almost the same as `Error.stack` just without the stack.
-		// Webpack uses `Error.message`, however it does not contain the `Error.prototype.name`
-		// `xxx` -> `Error: xxx`. So they behave the same even if `hideStack` is set to `true`.
-		err.message = err.toString();
-	}
-	// maybe `null`, use `undefined` to compatible with `Option<String>`
-	err.stack = err.stack || undefined;
-
-	if ("loc" in err) {
-		err.loc = JSON.stringify(err.loc);
-	}
-
-	return err;
 }
 
 export function indent(str: string, prefix: string) {

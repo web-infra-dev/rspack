@@ -446,7 +446,7 @@ impl Module for NormalModule {
 
           let stack = captured_error.take_stack();
           Diagnostic::from(
-            ModuleBuildError(error!(if captured_error.hide_stack.unwrap_or_default() {
+            ModuleBuildError::new(error!(if captured_error.hide_stack.unwrap_or_default() {
               captured_error.take_message()
             } else {
               stack
@@ -470,7 +470,7 @@ impl Module for NormalModule {
           let node_error = r.downcast_ref::<NodeError>();
           let stack = node_error.and_then(|e| e.stack.clone());
           let hide_stack = node_error.and_then(|e| e.hide_stack);
-          let e = ModuleBuildError(r).boxed();
+          let e = ModuleBuildError::new(r).boxed();
           Diagnostic::from(e)
             .with_stack(stack)
             .with_hide_stack(hide_stack)

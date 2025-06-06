@@ -7,7 +7,7 @@ use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
 
-use crate::{JsRspackError, ModuleObject};
+use crate::{ModuleObject, RspackError};
 
 #[napi(object)]
 #[derive(Hash)]
@@ -112,7 +112,7 @@ pub struct JsLoaderContext {
   #[napi(ts_type = "Readonly<JsLoaderState>")]
   pub loader_state: JsLoaderState,
   #[napi(js_name = "__internal__error")]
-  pub error: Option<JsRspackError>,
+  pub error: Option<RspackError>,
 
   /// UTF-8 hint for `content`
   /// - Some(true): `content` is a `UTF-8` encoded sequence
