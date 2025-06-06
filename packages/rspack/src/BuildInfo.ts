@@ -102,9 +102,9 @@ const knownBuildInfoFields: Set<string> = new Set([
 	"buildDependencies"
 ]);
 
-export const syncCustomFields = (buildInfo: binding.BuildInfo) => {
+export const commitCustomFieldsToRust = (buildInfo: binding.BuildInfo) => {
 	// Sync custom buildInfo fields to the Rust side for later persistent caching by Rust.
 	if (Object.keys(buildInfo).some(key => !knownBuildInfoFields.has(key))) {
-		buildInfo[binding.SYNC_CUSTOM_FIELDS_SYMBOL]();
+		buildInfo[binding.COMMIT_CUSTOM_FIELDS_SYMBOL]();
 	}
 };

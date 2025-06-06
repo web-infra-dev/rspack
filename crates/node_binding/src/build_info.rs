@@ -18,7 +18,7 @@ define_symbols! {
   BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL => "BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL",
   BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL => "BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL",
   BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL => "BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL",
-  SYNC_CUSTOM_FIELDS_SYMBOL => "SYNC_CUSTOM_FIELDS_SYMBOL",
+  COMMIT_CUSTOM_FIELDS_SYMBOL => "COMMIT_CUSTOM_FIELDS_SYMBOL",
 }
 
 // Record<string, Source>
@@ -280,8 +280,8 @@ impl ToNapiValue for BuildInfo {
 
     let mut properties = create_known_private_properties(&env_wrapper)?;
 
-    let sync_custom_fields_fn: napi::bindgen_prelude::Function<'_, (), ()> = env_wrapper
-      .create_function_from_closure("syncCustomFields", |ctx| {
+    let commit_custom_fields_fn: napi::bindgen_prelude::Function<'_, (), ()> = env_wrapper
+      .create_function_from_closure("commitCustomFieldsToRust", |ctx| {
         let object = ctx.this::<Object>()?;
         let env = ctx.env;
         let this: &mut KnownBuildInfo = FromNapiMutRef::from_napi_mut_ref(env.raw(), object.raw())?;
@@ -319,13 +319,13 @@ impl ToNapiValue for BuildInfo {
       }
       Ok(())
     })?;
-    SYNC_CUSTOM_FIELDS_SYMBOL.with(|once_cell| {
+    COMMIT_CUSTOM_FIELDS_SYMBOL.with(|once_cell| {
       #[allow(clippy::unwrap_used)]
       let symbol = once_cell.get().unwrap();
       properties.push(
         Property::new()
           .with_name(&env_wrapper, symbol)?
-          .with_value(&sync_custom_fields_fn)
+          .with_value(&commit_custom_fields_fn)
           .with_property_attributes(PropertyAttributes::Configurable),
       );
       Ok::<(), napi::Error>(())

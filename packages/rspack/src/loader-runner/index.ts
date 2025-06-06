@@ -25,7 +25,7 @@ import {
 	SourceMapSource
 } from "webpack-sources";
 
-import { syncCustomFields } from "../BuildInfo";
+import { commitCustomFieldsToRust } from "../BuildInfo";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import { NormalModule } from "../NormalModule";
@@ -1104,7 +1104,7 @@ export async function runLoaders(
 	});
 
 	if (compiler.options.experiments.cache && compiler.options?.cache) {
-		syncCustomFields(context._module.buildInfo);
+		commitCustomFieldsToRust(context._module.buildInfo);
 	}
 
 	return context;

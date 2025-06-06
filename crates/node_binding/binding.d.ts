@@ -19,7 +19,7 @@ export const BUILD_INFO_FILE_DEPENDENCIES_SYMBOL: unique symbol;
 export const BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL: unique symbol;
 export const BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL: unique symbol;
 export const BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL: unique symbol;
-export const SYNC_CUSTOM_FIELDS_SYMBOL: unique symbol;
+export const COMMIT_CUSTOM_FIELDS_SYMBOL: unique symbol;
 
 interface KnownBuildInfo {
 	[BUILD_INFO_ASSETS_SYMBOL]: Assets,
@@ -27,7 +27,7 @@ interface KnownBuildInfo {
 	[BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL]: string[],
 	[BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL]: string[],
 	[BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL]: string[],
-	[SYNC_CUSTOM_FIELDS_SYMBOL](): void;
+	[COMMIT_CUSTOM_FIELDS_SYMBOL](): void;
 }
 
 export type BuildInfo = KnownBuildInfo & Record<string, any>;
