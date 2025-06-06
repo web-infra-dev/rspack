@@ -5,8 +5,8 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportInfoGetter,
-  ExportProvided, ExportsInfoGetter, TemplateContext, TemplateReplaceSource, UsageState,
-  UsedExports,
+  ExportProvided, ExportsInfoGetter, PrefetchExportsInfoMode, TemplateContext,
+  TemplateReplaceSource, UsageState, UsedExports,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -73,8 +73,6 @@ impl ExportInfoDependency {
     }
 
     let exports_info = module_graph.get_exports_info(&module_identifier);
-    let exports_info_data =
-      ExportsInfoGetter::prefetch(&exports_info, &module_graph, Some(export_name));
 
     match prop.to_string().as_str() {
       "canMangle" => {
@@ -109,6 +107,11 @@ impl ExportInfoDependency {
         )
       }
       "provideInfo" => {
+        let exports_info_data = ExportsInfoGetter::prefetch(
+          &exports_info,
+          &module_graph,
+          PrefetchExportsInfoMode::NamedNestedExports(export_name),
+        );
         ExportsInfoGetter::is_export_provided(&exports_info_data, export_name).map(|provided| {
           (match provided {
             ExportProvided::Provided => "true",

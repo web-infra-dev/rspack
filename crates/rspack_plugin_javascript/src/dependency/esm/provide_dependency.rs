@@ -8,8 +8,8 @@ use rspack_core::{
   DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoGetter,
   ExtendedReferencedExport, FactorizeInfo, InitFragmentKey, InitFragmentStage, ModuleDependency,
-  ModuleGraph, NormalInitFragment, RuntimeSpec, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, UsedName,
+  ModuleGraph, NormalInitFragment, PrefetchExportsInfoMode, RuntimeSpec, SharedSourceMap,
+  TemplateContext, TemplateReplaceSource, UsedName,
 };
 use rspack_util::ext::DynHash;
 use swc_core::atoms::Atom;
@@ -174,7 +174,10 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       return;
     };
     let used_name = ExportsInfoGetter::get_used_name(
-      &module_graph.get_prefetched_exports_info(con.module_identifier(), Some(&dep.ids)),
+      &module_graph.get_prefetched_exports_info(
+        con.module_identifier(),
+        PrefetchExportsInfoMode::NamedNestedExports(&dep.ids),
+      ),
       *runtime,
       &dep.ids,
     );

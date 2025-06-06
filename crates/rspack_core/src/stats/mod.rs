@@ -20,8 +20,8 @@ pub use r#struct::*;
 
 use crate::{
   BoxModule, BoxRuntimeModule, Chunk, ChunkGraph, ChunkGroupOrderKey, ChunkGroupUkey, ChunkUkey,
-  Compilation, ExecutedRuntimeModule, LogType, ModuleGraph, ModuleIdentifier, ProvidedExports,
-  SourceType, UsedExports,
+  Compilation, ExecutedRuntimeModule, LogType, ModuleGraph, ModuleIdentifier,
+  PrefetchExportsInfoMode, ProvidedExports, SourceType, UsedExports,
 };
 
 #[derive(Debug, Clone)]
@@ -1039,7 +1039,8 @@ impl Stats<'_> {
           .is_enable()
       {
         let module_graph = self.compilation.get_module_graph();
-        let exports_info = module_graph.get_prefetched_exports_info(&module.identifier(), None);
+        let exports_info = module_graph
+          .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::AllExports);
         let used_exports = exports_info.get_used_exports(None);
         match used_exports {
           UsedExports::Unknown => Some(StatsUsedExports::Null),
@@ -1055,7 +1056,8 @@ impl Stats<'_> {
       stats.provided_exports =
         if !executed && self.compilation.options.optimization.provided_exports {
           let module_graph = self.compilation.get_module_graph();
-          let exports_info = module_graph.get_prefetched_exports_info(&module.identifier(), None);
+          let exports_info = module_graph
+            .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::AllExports);
           let provided_exports = exports_info.get_provided_exports();
           match provided_exports {
             ProvidedExports::ProvidedNames(v) => Some(v),

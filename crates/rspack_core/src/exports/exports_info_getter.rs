@@ -1,13 +1,22 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use rspack_util::atom::Atom;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::{
   ExportInfoData, ExportInfoGetter, ExportProvided, ExportsInfo, ProvidedExports, UsageState,
   UsedName,
 };
 use crate::{MaybeDynamicTargetExportInfo, ModuleGraph, RuntimeSpec, UsedExports};
+
+#[derive(Debug, Clone)]
+pub enum PrefetchExportsInfoMode<'a> {
+  Default,                           // prefetch without exports
+  NamedExports(&'a [Atom]),          // prefetch with named exports but no nested exports
+  AllExports,                        // prefetch with all exports but no nested exports
+  NamedNestedExports(&'a [Atom]),    // prefetch with named exports and its nested chain
+  NamedNestedAllExports(&'a [Atom]), // prefetch with named nested exports and all exports on its chain
+}
 
 /**
  * Used to store data pre-fetched from Module Graph
@@ -67,8 +76,44 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     self.get_read_only_export_info_impl(&self.entry, name)
   }
 
+  fn get_read_only_export_info_impl(
+    &self,
+    exports_info: &ExportsInfo,
+    name: &Atom,
+  ) -> &ExportInfoData {
+    let data = self
+      .exports
+      .get(exports_info)
+      .expect("should have nested exports info");
+    if let Some(export_info) = data.exports.get(name) {
+      return export_info.inner;
+    }
+    if let Some(redirect) = &data.redirect_to {
+      return self.get_read_only_export_info_impl(redirect, name);
+    }
+    data.other_exports_info.inner
+  }
+
   pub fn get_read_only_export_info_recursive(&self, names: &[Atom]) -> Option<&ExportInfoData> {
     self.get_read_only_export_info_recursive_impl(&self.entry, names)
+  }
+
+  fn get_read_only_export_info_recursive_impl(
+    &self,
+    exports_info: &ExportsInfo,
+    names: &[Atom],
+  ) -> Option<&ExportInfoData> {
+    if names.is_empty() {
+      return None;
+    }
+    let export_info = self.get_read_only_export_info_impl(exports_info, &names[0]);
+    if names.len() == 1 {
+      return Some(export_info);
+    }
+    export_info
+      .exports_info
+      .as_ref()
+      .and_then(move |nested| self.get_read_only_export_info_recursive_impl(nested, &names[1..]))
   }
 
   pub fn get_nested_exports_info(
@@ -99,42 +144,6 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
         .get(exports_info)
         .expect("should have nested exports info"),
     )
-  }
-
-  fn get_read_only_export_info_recursive_impl(
-    &self,
-    exports_info: &ExportsInfo,
-    names: &[Atom],
-  ) -> Option<&ExportInfoData> {
-    if names.is_empty() {
-      return None;
-    }
-    let export_info = self.get_read_only_export_info_impl(exports_info, &names[0]);
-    if names.len() == 1 {
-      return Some(export_info);
-    }
-    export_info
-      .exports_info
-      .as_ref()
-      .and_then(move |nested| self.get_read_only_export_info_recursive_impl(nested, &names[1..]))
-  }
-
-  fn get_read_only_export_info_impl(
-    &self,
-    exports_info: &ExportsInfo,
-    name: &Atom,
-  ) -> &ExportInfoData {
-    let data = self
-      .exports
-      .get(exports_info)
-      .expect("should have nested exports info");
-    if let Some(export_info) = data.exports.get(name) {
-      return export_info.inner;
-    }
-    if let Some(redirect) = &data.redirect_to {
-      return self.get_read_only_export_info_impl(redirect, name);
-    }
-    data.other_exports_info.inner
   }
 
   pub fn get_relevant_exports(&self, runtime: Option<&RuntimeSpec>) -> Vec<&ExportInfoData> {
@@ -352,57 +361,107 @@ impl ExportsInfoGetter {
   pub fn prefetch<'a>(
     id: &ExportsInfo,
     mg: &'a ModuleGraph,
-    names: Option<&[Atom]>,
+    mode: PrefetchExportsInfoMode<'a>,
   ) -> PrefetchedExportsInfoWrapper<'a> {
     fn prefetch_exports<'a>(
       id: &ExportsInfo,
       mg: &'a ModuleGraph,
       res: &mut HashMap<ExportsInfo, PrefetchedExportsInfoData<'a>>,
-      names: Option<&[Atom]>,
+      mode: PrefetchExportsInfoMode<'a>,
     ) {
       if res.contains_key(id) {
         return;
       }
-      let exports_info = id.as_data(mg);
-      let mut exports = BTreeMap::new();
-      for (key, value) in exports_info.exports.iter() {
-        let export_info_data = value.as_data(mg);
 
-        if names
-          .and_then(|names| names.first())
-          .map(|name| name == key)
-          .is_some_and(|is_match| is_match)
-        {
-          if let Some(nested_exports_info) = export_info_data.exports_info {
-            prefetch_exports(
-              &nested_exports_info,
-              mg,
-              res,
-              names.map(|names| &names[1..]),
+      let exports_info = id.as_data(mg);
+      let exports = match mode {
+        PrefetchExportsInfoMode::Default => BTreeMap::new(),
+        PrefetchExportsInfoMode::NamedExports(names) => {
+          let names = names.iter().collect::<HashSet<_>>();
+          let mut exports = BTreeMap::new();
+          for (key, value) in exports_info.exports.iter() {
+            if !names.contains(key) {
+              continue;
+            }
+            exports.insert(
+              key,
+              PrefetchedExportInfoData {
+                inner: value.as_data(mg),
+                // exports_info: export_info_data.exports_info,
+              },
             );
           }
+          exports
         }
+        PrefetchExportsInfoMode::AllExports => {
+          let mut exports = BTreeMap::new();
+          for (key, value) in exports_info.exports.iter() {
+            exports.insert(
+              key,
+              PrefetchedExportInfoData {
+                inner: value.as_data(mg),
+                // exports_info: export_info_data.exports_info,
+              },
+            );
+          }
+          exports
+        }
+        PrefetchExportsInfoMode::NamedNestedExports(names) => {
+          let mut exports = BTreeMap::new();
+          if let Some(name) = names.first() {
+            if let Some(export_info) = exports_info.exports.get(name) {
+              let export_info = export_info.as_data(mg);
+              let nested_mode = PrefetchExportsInfoMode::NamedNestedExports(&names[1..]);
+              if let Some(nested_exports_info) = export_info.exports_info {
+                prefetch_exports(&nested_exports_info, mg, res, nested_mode);
+              }
+              exports.insert(
+                name,
+                PrefetchedExportInfoData {
+                  inner: export_info,
+                  // exports_info: export_info_data.exports_info,
+                },
+              );
+            }
+          }
+          exports
+        }
+        PrefetchExportsInfoMode::NamedNestedAllExports(names) => {
+          let mut exports = BTreeMap::new();
+          for (key, value) in exports_info.exports.iter() {
+            let export_info = value.as_data(mg);
 
-        exports.insert(
-          key,
-          PrefetchedExportInfoData {
-            inner: export_info_data,
-            // exports_info: export_info_data.exports_info,
-          },
-        );
-      }
+            if names.first().is_some_and(|name| name == key) {
+              if let Some(nested_exports_info) = export_info.exports_info {
+                let nested_mode = PrefetchExportsInfoMode::NamedNestedAllExports(&names[1..]);
+                prefetch_exports(&nested_exports_info, mg, res, nested_mode);
+              }
+            }
+
+            exports.insert(
+              key,
+              PrefetchedExportInfoData {
+                inner: export_info,
+                // exports_info: export_info_data.exports_info,
+              },
+            );
+          }
+          exports
+        }
+      };
+
       let other_exports_info_data = exports_info.other_exports_info.as_data(mg);
       if let Some(other_exports) = other_exports_info_data.exports_info {
-        prefetch_exports(&other_exports, mg, res, None);
+        prefetch_exports(&other_exports, mg, res, PrefetchExportsInfoMode::Default);
       }
 
       let side_effects_only_info_data = exports_info.side_effects_only_info.as_data(mg);
       if let Some(side_exports) = side_effects_only_info_data.exports_info {
-        prefetch_exports(&side_exports, mg, res, None);
+        prefetch_exports(&side_exports, mg, res, PrefetchExportsInfoMode::Default);
       }
 
       if let Some(redirect_to) = exports_info.redirect_to {
-        prefetch_exports(&redirect_to, mg, res, names);
+        prefetch_exports(&redirect_to, mg, res, mode);
       }
 
       res.insert(
@@ -424,7 +483,7 @@ impl ExportsInfoGetter {
     }
 
     let mut res = HashMap::default();
-    prefetch_exports(id, mg, &mut res, names);
+    prefetch_exports(id, mg, &mut res, mode);
     PrefetchedExportsInfoWrapper {
       exports: Arc::new(res),
       entry: *id,

@@ -18,8 +18,8 @@ use rspack_core::{
   ChunkGraph, Compilation, ConstDependency, CssExportsConvention, Dependency, DependencyId,
   DependencyRange, DependencyType, ExportInfoGetter, GenerateContext, LocalIdentName, Module,
   ModuleGraph, ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext,
-  ParseResult, ParserAndGenerator, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext,
-  UsageState,
+  ParseResult, ParserAndGenerator, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec,
+  SourceType, TemplateContext, UsageState,
 };
 use rspack_error::{
   miette::Diagnostic, IntoTWithDiagnosticArray, Result, RspackSeverity, TWithDiagnosticArray,
@@ -693,7 +693,15 @@ fn get_used_exports<'a>(
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
 ) -> IndexMap<&'a str, &'a IndexSet<CssExport>> {
-  let exports_info = mg.get_prefetched_exports_info_optional(&identifier, None);
+  let exports_names = exports
+    .iter()
+    .map(|(name, _)| Atom::from(name.as_str()))
+    .collect::<Vec<_>>();
+
+  let exports_info = mg.get_prefetched_exports_info_optional(
+    &identifier,
+    PrefetchExportsInfoMode::NamedExports(&exports_names),
+  );
 
   exports
     .iter()
@@ -724,15 +732,22 @@ fn get_unused_local_ident(
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
 ) -> CodeGenerationDataUnusedLocalIdent {
-  let exports_info = mg.get_prefetched_exports_info_optional(&identifier, None);
+  let exports_names = exports
+    .iter()
+    .map(|(name, _)| Atom::from(name.as_str()))
+    .collect::<Vec<_>>();
+  let exports_info = mg.get_prefetched_exports_info_optional(
+    &identifier,
+    PrefetchExportsInfoMode::NamedExports(&exports_names),
+  );
 
   CodeGenerationDataUnusedLocalIdent {
-    idents: exports
+    idents: exports_names
       .iter()
-      .filter(|(name, _)| {
+      .filter(|name| {
         let export_info = exports_info
           .as_ref()
-          .map(|info| info.get_read_only_export_info(&Atom::from(name.as_str())));
+          .map(|info| info.get_read_only_export_info(name));
 
         if let Some(export_info) = export_info {
           matches!(
@@ -743,7 +758,7 @@ fn get_unused_local_ident(
           false
         }
       })
-      .filter_map(|(export_name, _)| local_names.get(export_name).cloned())
+      .filter_map(|export_name| local_names.get(export_name.as_str()).cloned())
       .collect(),
   }
 }
