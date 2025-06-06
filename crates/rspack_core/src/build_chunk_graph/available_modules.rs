@@ -93,13 +93,21 @@ pub fn remove_available_modules(
   let mut pending = HashSet::<usize>::default();
   let module_graph = compilation.get_module_graph();
 
+  let mut entry_with_depend_on = HashSet::<usize>::default();
+
   let mut stack = roots
     .iter()
     .filter(|root| {
-      let is_entry_without_depend_on = chunk_incomings[**root] == 0 && matches!(&chunks[**root].1.chunk_desc, ChunkDesc::Entry(box EntryChunkDesc{initial, ..}) if *initial);
+      let is_entry = matches!(&chunks[**root].1.chunk_desc, ChunkDesc::Entry(box EntryChunkDesc{initial, ..}) if *initial);
+      let is_entry_without_depend_on = is_entry && chunk_incomings[**root] == 0;
       if is_entry_without_depend_on {
         pending.insert(**root);
       }
+
+      if is_entry && chunk_incomings[**root] > 0 {
+        entry_with_depend_on.insert(**root);
+      }
+
       is_entry_without_depend_on
     })
     .map(|root| (AvailableModules::default(), *root, false))
@@ -119,6 +127,8 @@ pub fn remove_available_modules(
         // if already calculated
         let res = if force_continue {
           Cow::Borrowed(curr)
+        } else if entry_with_depend_on.contains(&chunk_index) {
+          Cow::Owned(curr.union(&parent_available_modules))
         } else {
           Cow::Owned(curr.intersect(&parent_available_modules))
         };
@@ -216,7 +226,13 @@ pub fn remove_available_modules(
       !in_parent
     });
 
-    if removed.is_empty() {
+    if let ChunkDesc::Entry(box entry_chunk) = chunk {
+      entry_chunk
+        .entry_modules
+        .retain(|m| !available.is_module_available(*m));
+    }
+
+    if removed.is_empty() || entry_with_depend_on.contains(&chunk_index) {
       continue;
     }
 
