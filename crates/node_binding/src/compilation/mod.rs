@@ -444,10 +444,9 @@ impl JsCompilation {
   pub fn get_errors(&self) -> Result<Vec<JsRspackError>> {
     let compilation = self.as_ref()?;
 
-    let colored = compilation.options.stats.colors;
     compilation
       .get_errors_sorted()
-      .map(|d| JsRspackError::try_from_diagnostic(d, colored))
+      .map(|d| JsRspackError::try_from_diagnostic(d))
       .collect()
   }
 
@@ -455,11 +454,9 @@ impl JsCompilation {
   pub fn get_warnings(&self) -> Result<Vec<JsRspackError>> {
     let compilation = self.as_ref()?;
 
-    let colored = compilation.options.stats.colors;
-
     compilation
       .get_warnings_sorted()
-      .map(|d| JsRspackError::try_from_diagnostic(d, colored))
+      .map(|d| JsRspackError::try_from_diagnostic(d))
       .collect()
   }
 

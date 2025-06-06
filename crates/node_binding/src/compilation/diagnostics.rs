@@ -61,9 +61,7 @@ impl Diagnostics {
     diagnostics
       .iter()
       .filter(|diagnostic| diagnostic.severity() == self.severity)
-      .map(|diagnostic| {
-        JsRspackError::try_from_diagnostic(diagnostic, compilation.options.stats.colors)
-      })
+      .map(|diagnostic| JsRspackError::try_from_diagnostic(diagnostic))
       .collect::<napi::Result<Vec<JsRspackError>>>()
   }
 
@@ -81,8 +79,7 @@ impl Diagnostics {
       .nth(index as usize);
     Ok(match diagnostic {
       Some(diagnostic) => {
-        let colors = compilation.options.stats.colors;
-        let js_rspack_error = JsRspackError::try_from_diagnostic(diagnostic, colors)?;
+        let js_rspack_error = JsRspackError::try_from_diagnostic(diagnostic)?;
         Either::A(js_rspack_error)
       }
       None => Either::B(()),
@@ -136,7 +133,6 @@ impl Diagnostics {
   ) -> napi::Result<Vec<JsRspackError>> {
     let severity = self.severity;
     let compilation = self.as_mut()?;
-    let colors = compilation.options.stats.colors;
 
     let diagnostics = compilation.diagnostics_mut();
 
@@ -197,7 +193,7 @@ impl Diagnostics {
 
     removed
       .into_iter()
-      .map(|d| JsRspackError::try_from_diagnostic(&d, colors))
+      .map(|d| JsRspackError::try_from_diagnostic(&d))
       .collect::<napi::Result<Vec<_>>>()
   }
 }
