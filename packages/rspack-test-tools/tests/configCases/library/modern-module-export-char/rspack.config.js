@@ -31,9 +31,9 @@ module.exports = {
 					const bundle = Object.values(assets)[0]._value;
 					expect(bundle)
 						.toContain(`var __webpack_exports__cjsInterop = (foo_default());
-export { external_external_module_default as defaultImport, namedImport, __webpack_exports__cjsInterop as cjsInterop };`);
+export { external_module as defaultImport, namedImport, __webpack_exports__cjsInterop as cjsInterop };`);
 					expect(bundle).toContain(
-						'import external_external_module_default, { namedImport } from "external-module";'
+						'import external_module, { namedImport } from "external-module";'
 					);
 				});
 			};

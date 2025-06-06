@@ -25,7 +25,7 @@ use rspack_javascript_compiler::ast::Ast;
 use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
 };
-use rspack_util::{ext::DynHash, itoa, source_map::SourceMapKind, swc::join_atom};
+use rspack_util::{ext::DynHash, itoa, json_stringify, source_map::SourceMapKind, swc::join_atom};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::{
   common::{FileName, Spanned, SyntaxContext},
@@ -795,7 +795,11 @@ impl Module for ConcatenatedModule {
                 }
 
                 let new_name = if all_used_names.contains(atom) {
-                  let new_name = find_new_name(atom, &all_used_names, None, &readable_identifier);
+                  let new_name = if atom == "default" {
+                    find_new_name("", &all_used_names, None, source)
+                  } else {
+                    find_new_name(atom, &all_used_names, None, &readable_identifier)
+                  };
                   all_used_names.insert(new_name.clone());
                   // if the imported symbol is exported, we rename the export as well
                   if let Some(raw_export_map) = info.raw_export_map.as_mut()
@@ -1049,15 +1053,16 @@ impl Module for ConcatenatedModule {
       let default_import = import_spec.default_import;
       let import_stmt = if atoms.is_empty() {
         format!(
-          "import {}{source}{};\n",
+          "import {}{}{};\n",
           default_import
             .map(|default_atom| { format!("{default_atom} from ") })
             .unwrap_or_default(),
+          json_stringify(&source),
           attr.unwrap_or_default()
         )
       } else {
         format!(
-          "import {}{{ {} }} from {source}{};\n",
+          "import {}{{ {} }} from {}{};\n",
           default_import
             .map(|default_atom| { format!("{default_atom}, ") })
             .unwrap_or_default(),
@@ -1072,6 +1077,7 @@ impl Module for ConcatenatedModule {
             })
             .collect::<Vec<String>>()
             .join(", "),
+          json_stringify(&source),
           attr.unwrap_or_default()
         )
       };

@@ -458,13 +458,13 @@ impl ExternalModule {
               }
               UsedExports::UsedNames(atoms) => {
                 concatenation_scope.register_import(
-                  json_stringify(request.primary()),
+                  request.primary().to_string(),
                   attributes.clone(),
                   None,
                 );
                 for atom in &atoms {
                   concatenation_scope.register_import(
-                    json_stringify(request.primary()),
+                    request.primary().to_string(),
                     attributes.clone(),
                     Some(atom.clone()),
                   );
