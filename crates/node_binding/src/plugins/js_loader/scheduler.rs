@@ -117,9 +117,20 @@ pub(crate) fn merge_loader_context(
   mut from: JsLoaderContext,
 ) -> Result<()> {
   if let Some(error) = from.error {
+    // 将 JS 传来的 Error message 转换为 Rust 需要的格式
+    // https://github.com/webpack/webpack/blob/93743d233ab4fa36738065ebf8df5f175323b906/lib/ModuleBuildError.js
+    let message = if let Some(stack) = error.stack.clone() {
+      if error.hide_stack != Some(true) {
+        stack
+      } else {
+        error.message
+      }
+    } else {
+      error.message
+    };
     return Err(
       CapturedLoaderError::new(
-        error.message,
+        message,
         error.stack,
         error.hide_stack,
         from.file_dependencies,

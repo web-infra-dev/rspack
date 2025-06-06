@@ -38,7 +38,6 @@ import {
 } from "../config/adapterRuleUse";
 import { JavaScriptTracer } from "../trace";
 import {
-	concatErrorMsgAndStack,
 	isNil,
 	serializeObject,
 	stringifyLoaderObject,
@@ -560,9 +559,7 @@ export async function runLoaders(
 		error.message = `${error.message} (from: ${stringifyLoaderObject(
 			loaderContext.loaders[loaderContext.loaderIndex]
 		)})`;
-		error = concatErrorMsgAndStack(error);
-		(error as RspackError).moduleIdentifier =
-			loaderContext._module.identifier();
+		(error as RspackError).module = loaderContext._module;
 		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
 			error,
 			severity: JsRspackSeverity.Error
@@ -577,9 +574,7 @@ export async function runLoaders(
 		warning.message = `${warning.message} (from: ${stringifyLoaderObject(
 			loaderContext.loaders[loaderContext.loaderIndex]
 		)})`;
-		warning = concatErrorMsgAndStack(warning);
-		(warning as RspackError).moduleIdentifier =
-			loaderContext._module.identifier();
+		(warning as RspackError).module = loaderContext._module;
 		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
 			error: warning,
 			severity: JsRspackSeverity.Warn
