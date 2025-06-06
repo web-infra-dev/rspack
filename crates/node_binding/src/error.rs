@@ -78,6 +78,8 @@ pub struct RspackError {
   pub hide_stack: Option<bool>,
   pub file: Option<String>,
   pub error: Option<Box<RspackError>>,
+  /// The name of the parent error in the error chain, used to determine rendering logic.
+  pub display_type: Option<String>,
 }
 
 impl napi::bindgen_prelude::TypeName for RspackError {
@@ -104,6 +106,7 @@ impl ToNapiValue for RspackError {
       hide_stack,
       file,
       error,
+      ..
     } = val;
 
     let message = env_wrapper.create_string(&message)?;
@@ -116,6 +119,8 @@ impl ToNapiValue for RspackError {
     obj.set("name", name)?;
     if let Some(stack) = stack {
       obj.set("stack", stack)?;
+    } else {
+      obj.set("stack", ())?;
     }
     if let Some(module) = module {
       obj.set("module", module)?;
@@ -189,12 +194,38 @@ impl FromNapiValue for RspackError {
       hide_stack,
       file,
       error: error.map(Box::new),
+      display_type: None,
     };
     Ok(val)
   }
 }
 
 impl napi::bindgen_prelude::ValidateNapiValue for RspackError {}
+
+impl std::fmt::Display for RspackError {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "{}: ", self.name)?;
+    if self.display_type.as_deref() == Some("ModuleBuildError") {
+      // https://github.com/webpack/webpack/blob/93743d233ab4fa36738065ebf8df5f175323b906/lib/ModuleBuildError.js
+      let message = if let Some(stack) = &self.stack {
+        if self.hide_stack != Some(true) {
+          stack
+        } else {
+          &self.message
+        }
+      } else {
+        &self.message
+      };
+      write!(f, "{}", message)
+    } else {
+      write!(f, "{}", &self.message)
+    }
+  }
+}
+
+impl std::error::Error for RspackError {}
+
+impl miette::Diagnostic for RspackError {}
 
 impl From<&dyn miette::Diagnostic> for RspackError {
   fn from(value: &dyn miette::Diagnostic) -> Self {
@@ -209,20 +240,32 @@ impl From<&dyn miette::Diagnostic> for RspackError {
       };
     }
 
+    let mut message = value.to_string();
+    let prefix = format!("{}: ", name);
+    if message.starts_with(&prefix) {
+      message = message[prefix.len()..].to_string();
+    }
+
     Self {
       name,
-      message: value.to_string(),
+      message,
       stack: None,
       module: None,
       loc: None,
       hide_stack: None,
       file: None,
       error: None,
+      display_type: None,
     }
   }
 }
 
 impl RspackError {
+  pub fn with_display_type<T: Into<String>>(mut self, display_type: T) -> Self {
+    self.display_type = Some(display_type.into());
+    self
+  }
+
   pub fn try_from_diagnostic(
     compilation: &Compilation,
     diagnostic: &Diagnostic,
@@ -241,7 +284,7 @@ impl RspackError {
       }
     }
 
-    let error: Option<RspackError> = diagnostic.diagnostic_source().map(|source| source.into());
+    let error: Option<RspackError> = diagnostic.diagnostic_source().map(Into::into);
 
     Ok(Self {
       name: diagnostic.code().map(|n| n.to_string()).unwrap_or_else(|| {
@@ -257,17 +300,18 @@ impl RspackError {
       file: diagnostic.file().map(|f| f.as_str().to_string()),
       hide_stack: diagnostic.hide_stack(),
       error: error.map(Box::new),
+      display_type: None,
     })
   }
 
   pub fn into_diagnostic(self, severity: RspackSeverity) -> Diagnostic {
     let diagnostic = if self.name == "ModuleBuildError" {
       let source = if let Some(error) = self.error {
-        miette::MietteDiagnostic::new(error.message).with_code(error.name)
+        miette::Error::new(error.with_display_type("ModuleBuildError"))
       } else {
-        miette::MietteDiagnostic::new(self.message)
+        miette::Error::new(miette::MietteDiagnostic::new(self.message))
       };
-      Diagnostic::from(ModuleBuildError::new(source.into()).boxed())
+      Diagnostic::from(ModuleBuildError::new(source).boxed())
     } else {
       (match severity {
         RspackSeverity::Error => Diagnostic::error,

@@ -476,6 +476,7 @@ pub struct ModuleObject {
 }
 
 unsafe impl Send for ModuleObject {}
+unsafe impl Sync for ModuleObject {}
 
 impl ModuleObject {
   pub fn with_ref(module: &dyn rspack_core::Module, compiler_id: CompilerId) -> Self {
