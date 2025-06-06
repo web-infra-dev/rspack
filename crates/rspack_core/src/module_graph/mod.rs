@@ -8,7 +8,8 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  Dependency, ExportProvided, ExportsInfoGetter, ProvidedExports, RuntimeSpec, UsedExports,
+  Dependency, ExportProvided, ExportsInfoGetter, PrefetchedExportsInfoWrapper, ProvidedExports,
+  RuntimeSpec, UsedExports,
 };
 mod module;
 pub use module::*;
@@ -1018,6 +1019,25 @@ impl<'a> ModuleGraph<'a> {
       .id()
   }
 
+  pub fn get_prefetched_exports_info_optional(
+    &self,
+    module_identifier: &ModuleIdentifier,
+    names: Option<&[Atom]>,
+  ) -> Option<PrefetchedExportsInfoWrapper<'_>> {
+    self
+      .module_graph_module_by_identifier(module_identifier)
+      .map(|mgm| ExportsInfoGetter::prefetch(&mgm.exports, self, names))
+  }
+
+  pub fn get_prefetched_exports_info(
+    &self,
+    module_identifier: &ModuleIdentifier,
+    names: Option<&[Atom]>,
+  ) -> PrefetchedExportsInfoWrapper<'_> {
+    let exports_info = self.get_exports_info(module_identifier);
+    ExportsInfoGetter::prefetch(&exports_info, self, names)
+  }
+
   pub fn get_exports_info_by_id(&self, id: &ExportsInfo) -> &ExportsInfoData {
     self
       .try_get_exports_info_by_id(id)
@@ -1048,13 +1068,9 @@ impl<'a> ModuleGraph<'a> {
     active_partial.exports_info_map.insert(id, info);
   }
 
-  pub fn try_get_export_info_by_id(&self, id: &ExportInfo) -> Option<&ExportInfoData> {
-    self.loop_partials(|p| p.export_info_map.get(id))
-  }
-
   pub fn get_export_info_by_id(&self, id: &ExportInfo) -> &ExportInfoData {
     self
-      .try_get_export_info_by_id(id)
+      .loop_partials(|p| p.export_info_map.get(id))
       .expect("should have export info")
   }
 

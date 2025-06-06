@@ -89,8 +89,8 @@ impl JsModuleGraph {
         runtime.extend(vec.iter().map(String::as_str).map(ustr::Ustr::from));
       }
     };
-    let used_exports =
-      module_graph.get_used_exports(&js_module.identifier, Some(&RuntimeSpec::new(runtime)));
+    let exports_info = module_graph.get_prefetched_exports_info(&js_module.identifier, None);
+    let used_exports = exports_info.get_used_exports(Some(&RuntimeSpec::new(runtime)));
     Ok(match used_exports {
       rspack_core::UsedExports::Unknown => None,
       rspack_core::UsedExports::UsedNamespace(b) => Some(Either::A(b)),
