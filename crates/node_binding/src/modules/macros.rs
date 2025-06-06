@@ -141,7 +141,7 @@ macro_rules! impl_module_methods {
           if let Some(r) = &reference.build_info_ref {
             return r.as_object(env);
           }
-          let mut build_info = $crate::KnownBuildInfo::new(reference.downgrade()).get_jsobject(env)?;
+          let mut build_info = $crate::BuildInfo::new(reference.downgrade()).get_jsobject(env)?;
           $crate::MODULE_BUILD_INFO_SYMBOL.with(|once_cell| {
             let sym = unsafe {
               #[allow(clippy::unwrap_used)]
@@ -166,7 +166,7 @@ macro_rules! impl_module_methods {
           let raw_env = env.raw();
           let mut reference: napi::bindgen_prelude::Reference<Module> =
             unsafe { napi::bindgen_prelude::Reference::from_napi_value(raw_env, this.raw())? };
-          let new_build_info = $crate::KnownBuildInfo::new(reference.downgrade());
+          let new_build_info = $crate::BuildInfo::new(reference.downgrade());
           let mut new_instrance = new_build_info.get_jsobject(env)?;
 
           let names = input_object.get_all_property_names(
@@ -249,20 +249,18 @@ macro_rules! impl_module_methods {
             .with_utf8_name("_readableIdentifier")?
             .with_getter(readable_identifier_getter),
         );
-        object.define_properties(&properties)?;
-
-        $crate::MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
+        $crate:: MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
           let identifier = env.create_string(module.identifier().as_str())?;
-          let symbol = unsafe {
-            #[allow(clippy::unwrap_used)]
-            let napi_val = napi::bindgen_prelude::ToNapiValue::to_napi_value(
-              env.raw(),
-              once_cell.get().unwrap(),
-            )?;
-            <napi::JsSymbol as napi::bindgen_prelude::FromNapiValue>::from_napi_value(env.raw(), napi_val)?
-          };
-          object.set_property(symbol, identifier)
+          let symbol = once_cell.get().unwrap();
+          properties.push(
+            napi::bindgen_prelude::Property::new()
+              .with_name(env, symbol)?
+              .with_value(&identifier)
+              .with_property_attributes(napi::bindgen_prelude::PropertyAttributes::Configurable),
+          );
+          Ok::<(), napi::Error>(())
         })?;
+        object.define_properties(&properties)?;
 
         Ok(instance)
       }

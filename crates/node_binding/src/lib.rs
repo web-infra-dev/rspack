@@ -33,6 +33,7 @@ mod codegen_result;
 mod compilation;
 mod compiler;
 mod context_module_factory;
+mod define_symbols;
 mod dependencies;
 mod dependency;
 mod diagnostic;
@@ -496,7 +497,8 @@ fn node_init(mut _exports: Object, env: Env) -> Result<()> {
 #[napi(module_exports)]
 pub fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
   node_init(exports, env)?;
-  module::init(exports, env)?;
+  module::export_symbols(exports, env)?;
+  build_info::export_symbols(exports, env)?;
   Ok(())
 }
 
