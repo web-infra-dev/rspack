@@ -50,7 +50,7 @@ jobs:
         with:
           key: ${{ inputs.target }}-${{ inputs.profile }}
           # don't need use cache in self-hosted windows; benefits of build with cargo build are wasted by cache restore
-          save-if: ${{ runner.environment !='self-hosted' || runner.os != 'Windows' }}
+          save-if: ${{ runner.environment != 'self-hosted'  || runner.os != 'Windows' }}
 
       # setup rust target for native runner
       - name: Setup Rust Target

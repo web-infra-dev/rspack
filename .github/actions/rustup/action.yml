@@ -67,4 +67,4 @@ runs:
       uses: ./.github/actions/rustup/cargo
       with:
         key: ${{ inputs.key }}
-        save-if: ${{ inputs.save-if }}
+        save-if: ${{ inputs.save-if == 'true' }}
