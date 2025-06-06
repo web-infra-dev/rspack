@@ -25,6 +25,7 @@ import {
 	SourceMapSource
 } from "webpack-sources";
 
+import { commitCustomFieldsToRust } from "../BuildInfo";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import { NormalModule } from "../NormalModule";
@@ -1096,6 +1097,11 @@ export async function runLoaders(
 			id2: resource
 		}
 	});
+
+	if (compiler.options.experiments.cache && compiler.options?.cache) {
+		commitCustomFieldsToRust(context._module.buildInfo);
+	}
+
 	return context;
 }
 

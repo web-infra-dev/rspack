@@ -69,6 +69,10 @@ pub struct BuildInfo {
   pub module_concatenation_bailout: Option<String>,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
+  /// Stores external fields from the JS side (Record<string, any>),
+  /// while other properties are stored in KnownBuildInfo.
+  #[cacheable(with=AsPreset)]
+  pub extras: serde_json::Map<String, serde_json::Value>,
 }
 
 impl Default for BuildInfo {
@@ -91,6 +95,7 @@ impl Default for BuildInfo {
       module_concatenation_bailout: None,
       assets: Default::default(),
       module: false,
+      extras: Default::default(),
     }
   }
 }

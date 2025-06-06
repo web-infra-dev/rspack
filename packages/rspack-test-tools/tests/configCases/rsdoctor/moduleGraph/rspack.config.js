@@ -38,6 +38,8 @@ module.exports = {
 							expect(issuerPathList).toContain(value);
 						});
 
+						expect(normalModules[0].bailoutReason).toBeTruthy();
+
 						const entryModule = modules.find(
 							module => module.isEntry && module.kind === "concatenated"
 						);
