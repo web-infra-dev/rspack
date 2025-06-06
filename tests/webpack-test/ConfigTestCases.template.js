@@ -731,7 +731,7 @@ const describeCases = config => {
 									}
 									// give a free pass to compilation that generated an error
 									if (
-										!stats.hasErrors() &&
+										stats.hasErrors() &&
 										filesCount !== optionsArr.length
 									) {
 										return done(
