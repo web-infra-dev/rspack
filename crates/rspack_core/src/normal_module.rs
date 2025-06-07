@@ -367,6 +367,8 @@ impl Module for NormalModule {
   }
 
   #[tracing::instrument("NormalModule:build", skip_all, fields(
+    perfetto.track_name = format!("Module Build"),
+    perfetto.process_name = format!("Rspack Build Detail"),
     module.resource = self.resource_resolved_data().resource.as_str(),
     module.identifier = self.identifier().as_str(),
     id2 = self.resource_data.resource.as_str(),
@@ -413,10 +415,7 @@ impl Module for NormalModule {
       },
       build_context.fs.clone(),
     )
-    .instrument(info_span!(
-      "NormalModule:run_loaders",
-      id2 = self.resource_data.resource.as_str(),
-    ))
+    .instrument(info_span!("NormalModule:run_loaders",))
     .await;
     let (mut loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
