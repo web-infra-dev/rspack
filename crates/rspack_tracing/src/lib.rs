@@ -1,12 +1,12 @@
-mod chrome;
+mod perfetto;
 mod stdout;
 mod tracer;
 
 use std::{fs, io, path::PathBuf};
 
-pub use chrome::ChromeTracer;
+pub use perfetto::PerfettoTracer;
 pub use stdout::StdoutTracer;
-pub use tracer::Tracer;
+pub use tracer::{TraceEvent, Tracer};
 use tracing_subscriber::fmt::writer::BoxMakeWriter;
 pub(crate) enum TraceWriter {
   Stdout,

@@ -1,0 +1,22 @@
+[package]
+authors.workspace       = true
+categories.workspace    = true
+documentation.workspace = true
+edition.workspace       = true
+homepage.workspace      = true
+license.workspace       = true
+name                    = "rspack_tracing_perfetto"
+repository.workspace    = true
+version                 = "0.2.0"
+
+[dependencies]
+bytes               = { version = "*" }
+chrono              = "0.4.38"
+micromegas-perfetto = { version = "*" }
+prost               = "0.13"
+rand                = "0.9"
+thread-id           = "5.0"
+tracing             = { version = "*" }
+tracing-subscriber  = { version = "*" }
+[lints]
+workspace = true

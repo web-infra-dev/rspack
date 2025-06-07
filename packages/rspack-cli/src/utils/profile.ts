@@ -33,7 +33,7 @@ export async function applyProfile(
 ) {
 	const { asyncExitHook } = await import("exit-hook");
 
-	if (traceLayer !== "chrome" && traceLayer !== "logger") {
+	if (traceLayer !== "logger" && traceLayer !== "perfetto") {
 		throw new Error(`unsupported trace layer: ${traceLayer}`);
 	}
 
@@ -46,11 +46,15 @@ export async function applyProfile(
 			defaultOutputDir,
 			"trace.json"
 		);
+		const defaultRustTracePerfettOutput = path.join(
+			defaultOutputDir,
+			"trace.pftrace"
+		);
 		const defaultRustTraceLoggerOutput = "stdout";
 
 		const defaultTraceOutput =
-			traceLayer === "chrome"
-				? defaultRustTraceChromeOutput
+			traceLayer === "perfetto"
+				? defaultRustTracePerfettOutput
 				: defaultRustTraceLoggerOutput;
 
 		// biome-ignore lint/style/noParameterAssign: setting default value makes sense

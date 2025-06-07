@@ -116,7 +116,9 @@ pub const SWC_LOADER_IDENTIFIER: &str = "builtin:swc-loader";
 #[async_trait::async_trait]
 impl Loader<RunnerContext> for SwcLoader {
   #[tracing::instrument("loader:builtin-swc", skip_all, fields(
-    id2 =loader_context.resource(),
+    perfetto.track_name = "loader:builtin-swc",
+    perfetto.process_name = "Loader Analysis",
+    resource =loader_context.resource(),
   ))]
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
     #[allow(unused_mut)]

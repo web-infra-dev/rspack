@@ -259,10 +259,15 @@ export async function runLoaders(
 	const pitch = loaderState === JsLoaderState.Pitching;
 
 	const { resource } = context;
+	const uuid = JavaScriptTracer.uuid();
+
 	JavaScriptTracer.startAsync({
-		name: `run_js_loaders${pitch ? ":pitch" : ":normal"}`,
+		name: "run_js_loaders",
+		uuid,
+		ph: "b",
 		args: {
-			id2: resource
+			is_pitch: String(pitch),
+			resource: resource
 		}
 	});
 	const splittedResource = resource && parsePathQueryFragment(resource);
@@ -327,8 +332,10 @@ export async function runLoaders(
 	) {
 		JavaScriptTracer.startAsync({
 			name: "importModule",
+			uuid,
 			args: {
-				id2: resource
+				is_pitch: String(pitch),
+				resource: resource
 			}
 		});
 		const options = userOptions ? userOptions : {};
@@ -341,8 +348,10 @@ export async function runLoaders(
 				if (err) {
 					JavaScriptTracer.endAsync({
 						name: "importModule",
+						uuid,
 						args: {
-							id2: resource
+							is_pitch: String(pitch),
+							resource: resource
 						}
 					});
 					onError(err);
@@ -364,8 +373,10 @@ export async function runLoaders(
 					}
 					JavaScriptTracer.endAsync({
 						name: "importModule",
+						uuid,
 						args: {
-							id2: resource
+							is_pitch: String(pitch),
+							resource: resource
 						}
 					});
 					if (res.error) {
@@ -952,11 +963,12 @@ export async function runLoaders(
 		const loaderName = extractLoaderName(currentLoaderObject!.request);
 		let result: any;
 		JavaScriptTracer.startAsync({
-			name: `js_loader:${pitch ? "pitch:" : ""}${loaderName}`,
+			name: loaderName,
 			cat: "rspack",
+			uuid,
 			args: {
-				id2: resource,
-				"loader.request": currentLoaderObject?.request
+				is_pitch: String(pitch),
+				resource: resource
 			}
 		});
 		if (parallelism) {
@@ -975,10 +987,11 @@ export async function runLoaders(
 			result = (await runSyncOrAsync(fn, loaderContext, args)) || [];
 		}
 		JavaScriptTracer.endAsync({
-			name: `js_loader:${pitch ? "pitch:" : ""}${loaderName}`,
+			name: loaderName,
+			uuid,
 			args: {
-				id2: resource,
-				"loader.request": currentLoaderObject?.request
+				is_pitch: String(pitch),
+				resource: resource
 			}
 		});
 		return result;
@@ -1091,9 +1104,11 @@ export async function runLoaders(
 					};
 	}
 	JavaScriptTracer.endAsync({
-		name: `run_js_loaders${pitch ? ":pitch" : ":normal"}`,
+		name: "run_js_loaders",
+		uuid,
 		args: {
-			id2: resource
+			is_pitch: String(pitch),
+			resource: resource
 		}
 	});
 	return context;

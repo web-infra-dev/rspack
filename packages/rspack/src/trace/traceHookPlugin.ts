@@ -31,6 +31,7 @@ const makeInterceptorFor =
 			return { ...tapInfo, fn: newFn };
 		}
 	});
+
 const interceptAllHooksFor = (
 	instance: any,
 	tracer: typeof JavaScriptTracer,
@@ -51,31 +52,30 @@ const makeNewTraceTapFn = (
 	tracer: typeof JavaScriptTracer,
 	{ name: pluginName, type, fn }: { name: string; type: string; fn: Function }
 ) => {
-	const name = `${pluginName}:${hookName}`;
-	const id = pluginName; // used for track
 	switch (type) {
 		case "promise":
 			return (...args: any[]) => {
-				const id2 = tracer.counter++;
+				const uuid = tracer.uuid();
 				tracer.startAsync({
-					name,
-					id,
+					name: hookName,
+					trackName: pluginName,
+					uuid,
 					args: {
-						id2,
 						compilerName,
 						hookName,
 						pluginName
 					}
 				});
+
 				const promise =
 					/** @type {Promise<(...args: EXPECTED_ANY[]) => EXPECTED_ANY>} */
 					fn(...args);
 				return promise.then((r: any) => {
 					tracer.endAsync({
-						name,
-						id,
+						name: hookName,
+						trackName: pluginName,
+						uuid,
 						args: {
-							id2,
 							compilerName,
 							hookName,
 							pluginName
@@ -86,12 +86,12 @@ const makeNewTraceTapFn = (
 			};
 		case "async":
 			return (...args: any[]) => {
-				const id2 = tracer.counter++;
+				const uuid = tracer.uuid();
 				tracer.startAsync({
-					name,
-					id,
+					name: hookName,
+					trackName: pluginName,
+					uuid,
 					args: {
-						id2,
 						compilerName,
 						hookName,
 						pluginName
@@ -105,10 +105,10 @@ const makeNewTraceTapFn = (
 					 */
 					(...r: any[]) => {
 						tracer.endAsync({
-							name,
-							id,
+							name: hookName,
+							trackName: pluginName,
+							uuid,
 							args: {
-								id2,
 								compilerName,
 								hookName,
 								pluginName
@@ -120,18 +120,18 @@ const makeNewTraceTapFn = (
 			};
 		case "sync":
 			return (...args: any[]) => {
-				const id2 = tracer.counter++;
+				const uuid = tracer.uuid();
 				// Do not instrument ourself due to the CPU
 				// profile needing to be the last event in the trace.
-				if (name === PLUGIN_NAME) {
+				if (pluginName === PLUGIN_NAME) {
 					return fn(...args);
 				}
 
 				tracer.startAsync({
-					name,
-					id,
+					name: hookName,
+					trackName: pluginName,
+					uuid,
 					args: {
-						id2,
 						compilerName,
 						hookName,
 						pluginName
@@ -142,10 +142,10 @@ const makeNewTraceTapFn = (
 					r = fn(...args);
 				} catch (err) {
 					tracer.endAsync({
-						name,
-						id,
+						name: hookName,
+						trackName: pluginName,
+						uuid,
 						args: {
-							id2: compilerName,
 							hookName,
 							pluginName
 						}
@@ -153,10 +153,10 @@ const makeNewTraceTapFn = (
 					throw err;
 				}
 				tracer.endAsync({
-					name,
-					id,
+					name: hookName,
+					trackName: pluginName,
+					uuid,
 					args: {
-						id2,
 						compilerName,
 						hookName,
 						pluginName
