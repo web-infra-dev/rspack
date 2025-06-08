@@ -1,5 +1,5 @@
-import type { z } from "zod";
 import { fromZodError } from "zod-validation-error";
+import type { z } from "zod/v4";
 
 export class ValidationError extends Error {
 	constructor(message: string) {
@@ -72,6 +72,7 @@ export function validate<T extends z.ZodType>(
 function toValidationError(error: z.ZodError): ValidationError {
 	const issueSeparator = "$issue$";
 	const prefixSeparator = "$prefix$";
+	//@ts-expect-error TODO(colinaaa): fix this
 	const validationErr = fromZodError(error, {
 		prefix:
 			"Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.",

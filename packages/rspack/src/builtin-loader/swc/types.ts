@@ -25,7 +25,7 @@ import type {
 	UmdConfig
 } from "@swc/types";
 import type { Assumptions } from "@swc/types/assumptions";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { memoize } from "../../util/memoize";
 import {
 	type PluginImportOptions,
