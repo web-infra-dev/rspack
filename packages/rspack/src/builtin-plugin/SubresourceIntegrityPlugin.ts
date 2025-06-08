@@ -8,7 +8,7 @@ import {
 	type RawSubresourceIntegrityPluginOptions
 } from "@rspack/binding";
 import type { AsyncSeriesWaterfallHook } from "@rspack/lite-tapable";
-import { z } from "zod";
+import { z } from "zod/v4";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { CrossOriginLoading } from "../config/types";
