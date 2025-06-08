@@ -42,6 +42,61 @@ describe("Validation", () => {
 
 	describe("loose-unrecognized-keys", () => {
 		createTestCase(
+			"should not be failed for builtin:swc-loader errors",
+			{
+				module: {
+					rules: [
+						{
+							test: /\.js$/,
+							use: {
+								loader: "builtin:swc-loader",
+								options: {
+									_additionalProperty: "foo",
+									rspackExperiments: {
+										_additionalProperty: "bar"
+									}
+								}
+							}
+						},
+						{
+							test: /\.js$/,
+							loader: "builtin:swc-loader",
+							options: {
+								_additionalProperty: "foo",
+								rspackExperiments: {
+									_additionalProperty: "bar"
+								}
+							}
+						}
+					]
+				}
+			},
+			message => {
+				expect(message).toMatchInlineSnapshot(`
+			Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
+			- Invalid options of 'builtin:swc-loader': Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
+			- Unrecognized key(s) in object: '_additionalProperty' at "rspackExperiments"
+			- Unrecognized key(s) in object: '_additionalProperty' at "module.rules[0].use"
+			- Invalid options of 'builtin:swc-loader': Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
+			- Unrecognized key(s) in object: '_additionalProperty' at "rspackExperiments"
+			- Unrecognized key(s) in object: '_additionalProperty' at "module.rules[1]"
+		`);
+			},
+			"loose-unrecognized-keys",
+			log => {
+				expect(log).toMatchInlineSnapshot(`
+			Array [
+			  Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
+			- Unrecognized key(s) in object: '_additionalProperty' at "module.rules[0].use.options.rspackExperiments"
+			- Unrecognized key(s) in object: '_additionalProperty' at "module.rules[0].use.options"
+			- Unrecognized key(s) in object: '_additionalProperty' at "module.rules[1].options.rspackExperiments"
+			- Unrecognized key(s) in object: '_additionalProperty' at "module.rules[1].options",
+			]
+		`);
+			}
+		);
+
+		createTestCase(
 			"additional properties in loose-unrecognized-keys should be ignored",
 			{
 				_additionalProperty: "test"
@@ -124,6 +179,92 @@ describe("Validation", () => {
 
 	describe("loose", () => {
 		createTestCase(
+			"should not be failed for builtin:swc-loader errors",
+			{
+				module: {
+					rules: [
+						{
+							test: /\.js$/,
+							use: {
+								loader: "builtin:swc-loader",
+								options: {
+									_additionalProperty: "foo",
+									rspackExperiments: {
+										_additionalProperty: "bar"
+									}
+								}
+							}
+						},
+						{
+							test: /\.js$/,
+							loader: "builtin:swc-loader",
+							options: {
+								_additionalProperty: "foo",
+								rspackExperiments: {
+									_additionalProperty: "bar"
+								}
+							}
+						}
+					]
+				}
+			},
+			message => {
+				throw new Error("should not have error");
+			},
+			"loose",
+			log => {
+				expect(log).toMatchInlineSnapshot(`
+			Array [
+			  Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
+			- Unrecognized key(s) in object: '_additionalProperty' at "module.rules[0].use.options.rspackExperiments"
+			- Unrecognized key(s) in object: '_additionalProperty' at "module.rules[0].use.options"
+			- Invalid options of 'builtin:swc-loader': Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
+			- Unrecognized key(s) in object: '_additionalProperty' at "rspackExperiments"
+			- Unrecognized key(s) in object: '_additionalProperty' at "module.rules[0].use"
+			- Unrecognized key(s) in object: '_additionalProperty' at "module.rules[1].options.rspackExperiments"
+			- Unrecognized key(s) in object: '_additionalProperty' at "module.rules[1].options"
+			- Invalid options of 'builtin:swc-loader': Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
+			- Unrecognized key(s) in object: '_additionalProperty' at "rspackExperiments"
+			- Unrecognized key(s) in object: '_additionalProperty' at "module.rules[1]",
+			]
+		`);
+			}
+		);
+
+		createTestCase(
+			"should not be failed for wrong externals with output.libraryTarget: umd",
+			{
+				externals: [
+					{
+						foo: {
+							commonjs2: "foo"
+						}
+					}
+				],
+				output: {
+					library: {
+						type: "umd"
+					}
+				}
+			},
+			message => {
+				throw new Error("should not have error");
+			},
+			"loose",
+			log => {
+				expect(log).toMatchInlineSnapshot(`
+			Array [
+			  Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
+			- Expected string, received object at "externals[0]", or Input not instance of RegExp at "externals[0]", or Expected string, received object at "externals[0].foo", or Expected boolean, received object at "externals[0].foo", or Expected array, received object at "externals[0].foo", or Required at "externals[0].foo.root"
+			- Required at "externals[0].foo.commonjs"
+			- Required at "externals[0].foo.amd"
+			- External object must have "root", "commonjs", "commonjs2", "amd" properties when "libraryType" or "externalsType" is "umd" at "externals[0].foo", or Expected function, received object at "externals[0]", or Expected function, received object at "externals[0]", or Expected function, received object at "externals[0]", or Expected string, received array at "externals", or Input not instance of RegExp at "externals", or Expected object, received array at "externals", or Expected function, received array at "externals", or Expected function, received array at "externals", or Expected function, received array at "externals",
+			]
+		`);
+			}
+		);
+
+		createTestCase(
 			"should not be failed for any errors",
 			{
 				context: "./",
@@ -150,6 +291,88 @@ describe("Validation", () => {
 	});
 
 	describe("strict", () => {
+		createTestCase(
+			"should failed for builtin:swc-loader errors",
+			{
+				module: {
+					rules: [
+						{
+							test: /\.js$/,
+							use: {
+								loader: "builtin:swc-loader",
+								options: {
+									_additionalProperty: "foo",
+									rspackExperiments: {
+										_additionalProperty: "bar"
+									}
+								}
+							}
+						},
+						{
+							test: /\.js$/,
+							loader: "builtin:swc-loader",
+							options: {
+								_additionalProperty: "foo",
+								rspackExperiments: {
+									_additionalProperty: "bar"
+								}
+							}
+						}
+					]
+				}
+			},
+			message => {
+				expect(message).toMatchInlineSnapshot(`
+			Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
+			- Unrecognized key(s) in object: '_additionalProperty' at "module.rules[0].use.options.rspackExperiments"
+			- Unrecognized key(s) in object: '_additionalProperty' at "module.rules[0].use.options"
+			- Invalid options of 'builtin:swc-loader': Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
+			- Unrecognized key(s) in object: '_additionalProperty' at "rspackExperiments"
+			- Unrecognized key(s) in object: '_additionalProperty' at "module.rules[0].use"
+			- Unrecognized key(s) in object: '_additionalProperty' at "module.rules[1].options.rspackExperiments"
+			- Unrecognized key(s) in object: '_additionalProperty' at "module.rules[1].options"
+			- Invalid options of 'builtin:swc-loader': Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
+			- Unrecognized key(s) in object: '_additionalProperty' at "rspackExperiments"
+			- Unrecognized key(s) in object: '_additionalProperty' at "module.rules[1]"
+		`);
+			},
+			"strict",
+			log => {
+				throw new Error("should not have log");
+			}
+		);
+
+		createTestCase(
+			"should not be failed for wrong externals with output.libraryTarget: umd",
+			{
+				externals: [
+					{
+						foo: {
+							commonjs2: "foo"
+						}
+					}
+				],
+				output: {
+					library: {
+						type: "umd"
+					}
+				}
+			},
+			message => {
+				expect(message).toMatchInlineSnapshot(`
+			Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
+			- Expected string, received object at "externals[0]", or Input not instance of RegExp at "externals[0]", or Expected string, received object at "externals[0].foo", or Expected boolean, received object at "externals[0].foo", or Expected array, received object at "externals[0].foo", or Required at "externals[0].foo.root"
+			- Required at "externals[0].foo.commonjs"
+			- Required at "externals[0].foo.amd"
+			- External object must have "root", "commonjs", "commonjs2", "amd" properties when "libraryType" or "externalsType" is "umd" at "externals[0].foo", or Expected function, received object at "externals[0]", or Expected function, received object at "externals[0]", or Expected function, received object at "externals[0]", or Expected string, received array at "externals", or Input not instance of RegExp at "externals", or Expected object, received array at "externals", or Expected function, received array at "externals", or Expected function, received array at "externals", or Expected function, received array at "externals"
+		`);
+			},
+			"strict",
+			log => {
+				throw new Error("should not have log");
+			}
+		);
+
 		createTestCase(
 			"not absolute context",
 			{
