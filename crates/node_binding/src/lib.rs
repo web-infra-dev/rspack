@@ -449,7 +449,7 @@ thread_local! {
 #[napi]
 pub fn register_global_trace(
   filter: String,
-  #[napi(ts_arg_type = "\"chrome\" | \"logger\" | \"perfetto\" ")] layer: String,
+  #[napi(ts_arg_type = " \"logger\" | \"perfetto\" ")] layer: String,
   output: String,
 ) -> anyhow::Result<()> {
   GLOBAL_TRACE_STATE.with(|state| {
@@ -460,7 +460,7 @@ pub fn register_global_trace(
         // chrome is just alias of perfetto
         "perfetto"=> Box::new(PerfettoTracer::default()),
         _ => anyhow::bail!(
-          "Unexpected layer: {}, supported layers:'logger', 'console' ",
+          "Unexpected layer: {}, supported layers:'logger', 'perfetto' ",
           layer
         ),
       };

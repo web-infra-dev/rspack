@@ -2585,7 +2585,7 @@ export interface RealDependencyLocation {
  * Author Donny/강동윤
  * Copyright (c)
  */
-export declare function registerGlobalTrace(filter: string, layer: "chrome" | "logger" | "perfetto" , output: string): void
+export declare function registerGlobalTrace(filter: string, layer:  "logger" | "perfetto" , output: string): void
 
 export declare enum RegisterJsTapKind {
   CompilerThisCompilation = 0,

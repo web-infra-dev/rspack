@@ -74,20 +74,16 @@ impl Tracer for PerfettoTracer {
     for event in events {
       // handle async begin event
       if event.ph == "b" {
+        // create a new scope sliced packet if it's not created before
         let (javascript_scoped_descriptor, parent_uuid) = create_scope_sliced_packet(
           event
             .process_name
             .unwrap_or(JAVASCRIPT_ANALYSIS_TRACK.to_string()),
         );
         let mut packet = idl::TracePacket::default();
-        let span_track_descriptor = create_track_descriptor(
-          unique_uuid(),
-          Some(parent_uuid),
-          event.track_name,
-          None,
-          None,
-          None,
-        );
+        // specify the track name for track event using track_descriptor
+        let span_track_descriptor =
+          create_track_descriptor(unique_uuid(), Some(parent_uuid), event.track_name);
         let final_uuid = span_track_descriptor.uuid();
         let debug_annotations = to_debug_annotation(event.args);
         let mut track_event = create_event(
@@ -144,8 +140,7 @@ impl Tracer for PerfettoTracer {
           .event_id_map
           .entry(event.uuid)
           .or_insert_with(unique_uuid);
-        let event_track_descriptor =
-          create_track_descriptor(*uuid, None, event.track_name, None, None, None);
+        let event_track_descriptor = create_track_descriptor(*uuid, None, event.track_name);
         let final_uuid = event_track_descriptor.uuid();
         let mut packet = idl::TracePacket::default();
         let debug_annotations = to_debug_annotation(event.args);

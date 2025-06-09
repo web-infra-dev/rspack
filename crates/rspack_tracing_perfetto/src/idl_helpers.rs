@@ -26,9 +26,6 @@ pub fn create_track_descriptor(
   uuid: u64,
   parent_uuid: Option<u64>,
   name: Option<impl AsRef<str>>,
-  process: Option<idl::ProcessDescriptor>,
-  thread: Option<idl::ThreadDescriptor>,
-  counter: Option<idl::CounterDescriptor>,
 ) -> idl::TrackDescriptor {
   let desc = idl::TrackDescriptor {
     uuid: Some(uuid),
@@ -36,9 +33,6 @@ pub fn create_track_descriptor(
     static_or_dynamic_name: name
       .map(|s| s.as_ref().to_string())
       .map(idl::track_descriptor::StaticOrDynamicName::Name),
-    thread,
-    counter,
-    process,
     ..Default::default()
   };
   desc
@@ -98,9 +92,6 @@ pub fn create_scope_sliced_packet(scope_name: String) -> (Option<TracePacket>, u
     uuid,              // uuid
     None,              // parent_uuid
     Some(&scope_name), // name
-    None,              // process
-    None,              // thread descriptor
-    None,              // counter descriptor
   );
   let packet = idl::TracePacket {
     data: Some(idl::trace_packet::Data::TrackDescriptor(track_descriptor)),

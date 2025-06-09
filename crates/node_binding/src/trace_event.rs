@@ -18,7 +18,7 @@ pub struct RawTraceEvent {
   pub uuid: u32,
   // timestamp in microseconds
   pub ts: BigInt,
-  // ph
+  // chrome trace event ph
   pub ph: String,
   // category
   pub categories: Option<Vec<String>>,

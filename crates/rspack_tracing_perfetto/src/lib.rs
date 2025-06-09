@@ -220,9 +220,6 @@ where
           unique_uuid(),      // uuid
           Some(process_uuid), // use process uuid for separate thread name
           Some(name),         // name
-          None,
-          None, // thread descriptor
-          None,
         )
       })
       .or(inherited_track_descriptor)
@@ -231,9 +228,6 @@ where
           unique_uuid(),             // uuid
           Some(process_uuid),        // parent_uuid
           Some(DEFAULT_THREAD_NAME), // name
-          None,                      // process
-          None,                      // thread descriptor
-          None,
         )
       });
 
@@ -328,9 +322,6 @@ where
           unique_uuid(),      // uuid
           Some(process_uuid), // use process uuid for separate thread name
           Some(name),         // name
-          None,
-          None, // thread descriptor
-          None,
         )
       })
       .or(inherited_track_descriptor)
@@ -339,9 +330,6 @@ where
           unique_uuid(),             // uuid
           Some(process_uuid),        // parent_uuid
           Some(DEFAULT_THREAD_NAME), // name
-          None,                      // process
-          None,                      // thread descriptor
-          None,
         )
       });
     let metadata = event.metadata();
