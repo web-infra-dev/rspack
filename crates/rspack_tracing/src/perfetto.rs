@@ -4,7 +4,8 @@ use rspack_tracing_perfetto::{
   idl,
   idl::TrackDescriptor,
   idl_helpers::{
-    create_event, create_track_descriptor, custom_scope_packet, unique_uuid, DebugAnnotations,
+    create_event, create_scope_sliced_packet, create_track_descriptor, unique_uuid,
+    DebugAnnotations,
   },
   prost::Message,
   BytesMut, PerfettoLayer,
@@ -35,6 +36,7 @@ fn to_debug_annotation(map: Option<HashMap<String, String>>) -> DebugAnnotations
   annotations
 }
 impl PerfettoTracer {
+  // write the log and the related track descriptor to the writer
   fn write_log(&mut self, log: &mut idl::Trace, track_descriptor: Option<TrackDescriptor>) {
     let mut buf = BytesMut::new();
     if let Some(task_descriptor) = track_descriptor {
@@ -68,12 +70,11 @@ impl Tracer for PerfettoTracer {
   }
 
   fn teardown(&mut self) {}
-  // FIXME: we may use async-local storage to support nested async stack in the future
   fn sync_trace(&mut self, events: Vec<crate::TraceEvent>) {
     for event in events {
-      // handle begin
+      // handle async begin event
       if event.ph == "b" {
-        let (javascript_scoped_descriptor, parent_uuid) = custom_scope_packet(
+        let (javascript_scoped_descriptor, parent_uuid) = create_scope_sliced_packet(
           event
             .process_name
             .unwrap_or(JAVASCRIPT_ANALYSIS_TRACK.to_string()),
@@ -114,6 +115,7 @@ impl Tracer for PerfettoTracer {
             },
           ),
         );
+        // handle async end event
       } else if event.ph == "e" {
         if let Some((desc, mut trace)) = self.track_state.remove(&event.uuid) {
           let mut packet = idl::TracePacket::default();

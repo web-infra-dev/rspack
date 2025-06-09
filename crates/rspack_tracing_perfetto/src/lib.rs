@@ -15,7 +15,7 @@ use tracing::{
 };
 use tracing_subscriber::{fmt::MakeWriter, layer::Context, registry::LookupSpan, Layer};
 
-use crate::idl_helpers::custom_scope_packet;
+use crate::idl_helpers::create_scope_sliced_packet;
 
 pub mod idl_helpers;
 static DEFAULT_PROCESS_NAME: &str = "Rspack Build Overall";
@@ -211,7 +211,7 @@ where
 
     attrs.record(&mut visitor);
     let (custom_scope_packet, process_uuid) =
-      custom_scope_packet(user_process_name.unwrap_or(DEFAULT_PROCESS_NAME.to_string()));
+      create_scope_sliced_packet(user_process_name.unwrap_or(DEFAULT_PROCESS_NAME.to_string()));
 
     // resolve the optional track descriptor for this span (either inherited from parent or user set, or None)
     let span_track_descriptor = user_track_name
@@ -321,7 +321,7 @@ where
       })
       .flatten();
     let (custom_scope_packet, process_uuid) =
-      custom_scope_packet(user_process_name.unwrap_or(DEFAULT_PROCESS_NAME.to_string()));
+      create_scope_sliced_packet(user_process_name.unwrap_or(DEFAULT_PROCESS_NAME.to_string()));
     let event_track_descriptor = user_track_name
       .map(|name| {
         create_track_descriptor(
