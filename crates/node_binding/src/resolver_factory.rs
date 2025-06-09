@@ -36,12 +36,10 @@ impl JsResolverFactory {
   }
 
   pub fn get_resolver_factory(&mut self, resolve_options: Resolve) -> Arc<ResolverFactory> {
-    // 计算 resolve_options 的哈希值
     let mut hasher = rustc_hash::FxHasher::default();
     resolve_options.hash(&mut hasher);
     let hash = hasher.finish();
 
-    // 使用哈希值作为键来检查和缓存 ResolverFactory
     match self.cached_resolver_factories.get(&hash) {
       Some(resolver_factory) => resolver_factory.clone(),
 
