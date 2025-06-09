@@ -40,7 +40,7 @@ pub struct ModulePathNameDependencyTemplate;
 
 impl ModulePathNameDependencyTemplate {
   pub fn template_type() -> DependencyTemplateType {
-    DependencyTemplateType::Dependency(DependencyType::Rstest)
+    DependencyTemplateType::Dependency(DependencyType::RstestModulePath)
   }
 }
 
