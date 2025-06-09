@@ -398,11 +398,7 @@ export declare class JsStats {
 }
 
 export declare class KnownBuildInfo {
-  get _assets(): Assets
-  get _fileDependencies(): Array<string>
-  get _contextDependencies(): Array<string>
-  get _missingDependencies(): Array<string>
-  get _buildDependencies(): Array<string>
+
 }
 
 export declare class Module {
@@ -678,7 +674,7 @@ export interface JsChunkAssetArgs {
 export interface JsChunkGroupOrigin {
   module?: Module | undefined
   request?: string
-  loc?: string | JsRealDependencyLocation
+  loc?: string | RealDependencyLocation
 }
 
 export interface JsChunkOptionNameCtx {
@@ -958,11 +954,6 @@ export interface JsPathDataChunkLike {
   id?: string
 }
 
-export interface JsRealDependencyLocation {
-  start: JsSourcePosition
-  end?: JsSourcePosition
-}
-
 export interface JsResolveArgs {
   request: string
   context: string
@@ -1150,7 +1141,7 @@ export interface JsRspackError {
   name: string
   message: string
   moduleIdentifier?: string
-  loc?: string
+  loc?: DependencyLocation
   file?: string
   stack?: string
   hideStack?: boolean
@@ -1185,11 +1176,6 @@ export interface JsRuntimeRequirementInTreeArg {
 
 export interface JsRuntimeRequirementInTreeResult {
   allRuntimeRequirements: JsRuntimeGlobals
-}
-
-export interface JsSourcePosition {
-  line: number
-  column: number
 }
 
 export interface JsStatsAsset {
@@ -2574,6 +2560,11 @@ export interface RawTrustedTypes {
   onPolicyCreationFailure?: string
 }
 
+export interface RealDependencyLocation {
+  start: SourcePosition
+  end?: SourcePosition
+}
+
 /**
  * Some code is modified based on
  * https://github.com/swc-project/swc/blob/d1d0607158ab40463d1b123fed52cc526eba8385/bindings/binding_core_node/src/util.rs#L29-L58
@@ -2713,6 +2704,11 @@ export interface SourceMapDevToolPluginOptions {
   debugIds?: boolean
 }
 
+export interface SourcePosition {
+  line: number
+  column?: number
+}
+
 /**
  * Start the async runtime manually.
  *
@@ -2720,6 +2716,10 @@ export interface SourceMapDevToolPluginOptions {
  * Usually it's used in test.
  */
 export declare function startAsyncRuntime(): void
+
+export interface SyntheticDependencyLocation {
+  name: string
+}
 
 export interface ThreadsafeNodeFS {
   writeFile: (name: string, content: Buffer) => Promise<void>

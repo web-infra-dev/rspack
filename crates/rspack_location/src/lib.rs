@@ -45,7 +45,9 @@ impl RealDependencyLocation {
 impl fmt::Display for RealDependencyLocation {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     if let Some(end) = self.end {
-      if self.start.line == end.line {
+      if self.start.line == end.line && self.start.column == end.column {
+        write!(f, "{}:{}", itoa!(self.start.line), itoa!(self.start.column))
+      } else if self.start.line == end.line {
         write!(
           f,
           "{}:{}-{}",
