@@ -12,8 +12,12 @@ use crate::{DependencyId, ExportInfo, RuntimeKey};
 
 pub type ModuleGraphCacheArtifact = Arc<ModuleGraphCacheArtifactInner>;
 
+/// This is a rust port of `ModuleGraph.cached` and `ModuleGraph.dependencyCacheProvide` in webpack.
+/// We use this to cache the result of functions with high computational overhead.
 #[derive(Debug, Default)]
 pub struct ModuleGraphCacheArtifactInner {
+  /// Webpack enables module graph caches by creating new cache maps and disable them by setting them to undefined.
+  /// But in rust I think it's better to use a bool flag to avoid memory reallocation.
   freezed: AtomicBool,
   get_mode_cache: GetModeCache,
   determine_export_assignments_cache: DetermineExportAssignmentsCache,
@@ -97,6 +101,11 @@ impl GetModeCache {
   }
 }
 
+/// Webpack cache the result of `determineExportAssignments` with the keys of dependencies arraris of `allStarExports.dependencies` and `otherStarExports` + `this`(DependencyId).
+/// See: https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L645
+///
+/// From my observation, the arraries `allStarExports` and `otherStarExports`, which only attach to one HarmonyExportImportedSpecifierDependency, are compared by their references in JavaScript.
+/// So I think we can just use a simple enum to distinguish these two cases.
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum DetermineExportAssignmentsKind {
   All,
