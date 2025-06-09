@@ -1,5 +1,6 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::sync::Arc;
 
+use indexmap::IndexMap;
 use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -337,7 +338,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
 
 #[derive(Debug, Clone)]
 pub struct PrefetchedExportsInfoData<'a> {
-  pub exports: BTreeMap<&'a Atom, PrefetchedExportInfoData<'a>>,
+  pub exports: IndexMap<&'a Atom, PrefetchedExportInfoData<'a>>,
   pub other_exports_info: PrefetchedExportInfoData<'a>,
 
   pub side_effects_only_info: PrefetchedExportInfoData<'a>,
@@ -375,10 +376,10 @@ impl ExportsInfoGetter {
 
       let exports_info = id.as_data(mg);
       let exports = match mode {
-        PrefetchExportsInfoMode::Default => BTreeMap::new(),
+        PrefetchExportsInfoMode::Default => IndexMap::new(),
         PrefetchExportsInfoMode::NamedExports(names) => {
           let names = names.iter().collect::<HashSet<_>>();
-          let mut exports = BTreeMap::new();
+          let mut exports = IndexMap::new();
           for (key, value) in exports_info.exports.iter() {
             if !names.contains(key) {
               continue;
@@ -394,7 +395,7 @@ impl ExportsInfoGetter {
           exports
         }
         PrefetchExportsInfoMode::AllExports => {
-          let mut exports = BTreeMap::new();
+          let mut exports = IndexMap::new();
           for (key, value) in exports_info.exports.iter() {
             exports.insert(
               key,
@@ -407,7 +408,7 @@ impl ExportsInfoGetter {
           exports
         }
         PrefetchExportsInfoMode::NamedNestedExports(names) => {
-          let mut exports = BTreeMap::new();
+          let mut exports = IndexMap::new();
           if let Some(name) = names.first() {
             if let Some(export_info) = exports_info.exports.get(name) {
               let export_info = export_info.as_data(mg);
@@ -427,7 +428,7 @@ impl ExportsInfoGetter {
           exports
         }
         PrefetchExportsInfoMode::NamedNestedAllExports(names) => {
-          let mut exports = BTreeMap::new();
+          let mut exports = IndexMap::new();
           for (key, value) in exports_info.exports.iter() {
             let export_info = value.as_data(mg);
 
