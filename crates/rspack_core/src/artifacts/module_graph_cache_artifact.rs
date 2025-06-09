@@ -6,8 +6,7 @@ use std::sync::{
 pub use determine_export_assignments::DetermineExportAssignmentsKey;
 use determine_export_assignments::*;
 use get_mode::*;
-use indexmap::IndexMap;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::atoms::Atom;
 
 use crate::{DependencyId, ExportInfo, RuntimeKey};
@@ -83,7 +82,7 @@ pub(super) mod get_mode {
 
   #[derive(Debug, Default)]
   pub struct GetModeCache {
-    cache: Mutex<IndexMap<GetModeCacheKey, ExportMode>>,
+    cache: Mutex<HashMap<GetModeCacheKey, ExportMode>>,
   }
 
   impl GetModeCache {
@@ -123,7 +122,7 @@ pub(super) mod determine_export_assignments {
 
   #[derive(Debug, Default)]
   pub struct DetermineExportAssignmentsCache {
-    cache: Mutex<IndexMap<DetermineExportAssignmentsKey, DetermineExportAssignmentsValue>>,
+    cache: Mutex<HashMap<DetermineExportAssignmentsKey, DetermineExportAssignmentsValue>>,
   }
 
   impl DetermineExportAssignmentsCache {
