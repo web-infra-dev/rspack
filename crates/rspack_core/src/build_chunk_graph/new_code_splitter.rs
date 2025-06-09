@@ -861,7 +861,7 @@ impl CodeSplitter {
             });
 
           let guard =
-            self.outgoings_modules(&target_module, runtime, module_graph, &module_graph_cache);
+            self.outgoings_modules(&target_module, runtime, module_graph, module_graph_cache);
           let (_, (outgoing_modules, blocks)) = guard.pair();
           let mut outgoing_modules = outgoing_modules.clone();
 

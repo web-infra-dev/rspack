@@ -84,7 +84,7 @@ impl<'a> FlagDependencyExportsState<'a> {
       self.process_dependencies_block(
         &module_id,
         &mut exports_specs_from_dependencies,
-        &self.mg_cache,
+        self.mg_cache,
       );
       self.mg_cache.unfreeze();
 

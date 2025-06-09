@@ -1422,8 +1422,8 @@ impl From<Option<UsedName>> for ValueKey {
 impl AsContextDependency for ESMExportImportedSpecifierDependency {}
 
 /// return (names, dependency_indices)
-fn determine_export_assignments<'a>(
-  module_graph: &'a ModuleGraph,
+fn determine_export_assignments(
+  module_graph: &ModuleGraph,
   dependencies: &[DependencyId],
   additional_dependency: Option<DependencyId>,
 ) -> (Vec<Atom>, Vec<usize>) {
