@@ -3,7 +3,7 @@ use std::sync::{
   Arc, Mutex,
 };
 
-pub use determine_export_assignments::DetermineExportAssignmentsKind;
+pub use determine_export_assignments::DetermineExportAssignmentsKey;
 use determine_export_assignments::*;
 use get_mode::*;
 use indexmap::IndexMap;
@@ -108,18 +108,17 @@ pub(super) mod get_mode {
 
 pub(super) mod determine_export_assignments {
   use super::*;
+  use crate::ModuleIdentifier;
 
   /// Webpack cache the result of `determineExportAssignments` with the keys of dependencies arraris of `allStarExports.dependencies` and `otherStarExports` + `this`(DependencyId).
   /// See: https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L645
   ///
-  /// From my observation, the arraries `allStarExports` and `otherStarExports`, which only attach to one HarmonyExportImportedSpecifierDependency, are compared by their references in JavaScript.
-  /// So I think we can just use a simple enum to distinguish these two cases.
+  /// However, we can simplify the cache key since dependencies under the same parent module share `allStarExports` and copy their own `otherStarExports`.
   #[derive(Debug, PartialEq, Eq, Hash)]
-  pub enum DetermineExportAssignmentsKind {
-    All,
-    Other,
+  pub enum DetermineExportAssignmentsKey {
+    All(ModuleIdentifier),
+    Other(DependencyId),
   }
-  pub type DetermineExportAssignmentsKey = (DependencyId, DetermineExportAssignmentsKind);
   pub type DetermineExportAssignmentsValue = (Vec<Atom>, Vec<usize>);
 
   #[derive(Debug, Default)]

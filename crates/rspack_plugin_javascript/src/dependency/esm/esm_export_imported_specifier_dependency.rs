@@ -12,7 +12,7 @@ use rspack_core::{
   ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  DetermineExportAssignmentsKind, ESMExportInitFragment, ExportInfoGetter, ExportMode,
+  DetermineExportAssignmentsKey, ESMExportInitFragment, ExportInfoGetter, ExportMode,
   ExportModeType, ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfo,
   ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
   ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions,
@@ -102,14 +102,14 @@ impl ESMExportImportedSpecifierDependency {
   pub fn all_star_exports<'a>(
     &self,
     module_graph: &'a ModuleGraph,
-  ) -> Option<&'a Vec<DependencyId>> {
+  ) -> Option<(ModuleIdentifier, &'a Vec<DependencyId>)> {
     let module = module_graph
       .get_parent_module(&self.id)
       .and_then(|ident| module_graph.module_by_identifier(ident));
 
     if let Some(module) = module {
       let build_info = module.build_info();
-      Some(&build_info.all_star_exports)
+      Some((module.identifier(), &build_info.all_star_exports))
     } else {
       None
     }
@@ -473,11 +473,11 @@ impl ESMExportImportedSpecifierDependency {
     }
     let i = self.other_star_exports.as_ref()?.len();
 
-    if let Some(all_star_exports) = self.all_star_exports(module_graph)
+    if let Some((module_identifier, all_star_exports)) = self.all_star_exports(module_graph)
       && !all_star_exports.is_empty()
     {
       let (names, dependency_indices) = module_graph_cache.cached_determine_export_assignments(
-        (self.id, DetermineExportAssignmentsKind::All),
+        DetermineExportAssignmentsKey::All(module_identifier),
         || determine_export_assignments(module_graph, all_star_exports, None),
       );
 
@@ -490,10 +490,10 @@ impl ESMExportImportedSpecifierDependency {
     }
 
     if let Some(other_star_exports) = &self.other_star_exports {
-      let (names, dependency_indices) = module_graph_cache.cached_determine_export_assignments(
-        (self.id, DetermineExportAssignmentsKind::Other),
-        || determine_export_assignments(module_graph, other_star_exports, Some(self.id)),
-      );
+      let (names, dependency_indices) = module_graph_cache
+        .cached_determine_export_assignments(DetermineExportAssignmentsKey::Other(self.id), || {
+          determine_export_assignments(module_graph, other_star_exports, Some(self.id))
+        });
       return Some(DiscoverActiveExportsFromOtherStarExportsRet {
         names,
         names_slice: dependency_indices[i - 1],
@@ -966,7 +966,8 @@ impl ESMExportImportedSpecifierDependency {
           continue;
         }
 
-        let dependencies = if let Some(all_star_exports) = self.all_star_exports(module_graph) {
+        let dependencies = if let Some((_, all_star_exports)) = self.all_star_exports(module_graph)
+        {
           all_star_exports
             .iter()
             .filter_map(|id| module_graph.dependency_by_id(id))
