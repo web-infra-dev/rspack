@@ -32,28 +32,28 @@ type Devtool = 'string' | false;
   - 极快的构建速度
 - **需要源码映射** → 进入[步骤3](#步骤3配置-source-map)
 
-### 步骤3：配置 SourceMap
+### 步骤3：配置 source map
 
-设置 `devtool: 'source-map'` 时，SourceMap 作为一个单独的文件生成。bundle 添加 `//# sourceMapURL` 注释，以便开发工具知道在哪里可以找到它。
+设置 `devtool: 'source-map'` 时，source map 作为一个单独的文件生成。bundle 添加 `//# sourceMapURL` 注释，以便开发工具知道在哪里可以找到它。
 
-它还支持与以下修饰符进行组合，以提升性能或控制 SourceMap 生成。
+它还支持与以下修饰符进行组合，以提升性能或控制 source map 生成。
 
 性能优化修饰符，提升构建速度，通常用于开发环境：
 
-| 修饰符 | 效果                                                                                                                     | 性能提升 |
-| ------ | ------------------------------------------------------------------------------------------------------------------------ | -------- |
-| eval   | 每个模块都使用 `eval()` 执行，并且将模块 SourceMap 转换为 DataUrl 后添加到 `eval()` 中，避免 chunk 级 SourceMap 合并计算 | ⚡⚡     |
-| cheap  | 仅计算行映射，忽略列映射。仅映射到转译后的代码，忽略来自 loader 的 SourceMap                                             | ⚡⚡     |
-| module | 处理来自 loader 的 SourceMap，以映射到源代码。仅计算行映射，忽略列映射                                                   | ⚡       |
+| 修饰符 | 效果                                                                                                                       | 性能提升 |
+| ------ | -------------------------------------------------------------------------------------------------------------------------- | -------- |
+| eval   | 每个模块都使用 `eval()` 执行，并且将模块 source map 转换为 DataUrl 后添加到 `eval()` 中，避免 chunk 级 source map 合并计算 | ⚡⚡     |
+| cheap  | 仅计算行映射，忽略列映射。仅映射到转译后的代码，忽略来自 loader 的 source map                                              | ⚡⚡     |
+| module | 处理来自 loader 的 source map，以映射到源代码。仅计算行映射，忽略列映射                                                    | ⚡       |
 
-功能修饰符，按需控制 SourceMap 的生成，通常用于生产环境：
+功能修饰符，按需控制 source map 的生成，通常用于生产环境：
 
-| 修饰符    | 效果                                                                                                   |
-| --------- | ------------------------------------------------------------------------------------------------------ |
-| hidden    | SourceMap 作为一个单独的文件生成，但不会为 bundle 添加 `//# sourceMappingURL=[url]` 注释，保护源码隐私 |
-| inline    | SourceMap 以 base64 内联到 bundle 中，不生成单独的文件                                                 |
-| nosources | 创建的 SourceMap 不包含 `sourcesContent`（源代码内容）                                                 |
-| debugids  | 创建的 SourceMap 增加 `debugId` 字段                                                                   |
+| 修饰符    | 效果                                                                                                    |
+| --------- | ------------------------------------------------------------------------------------------------------- |
+| hidden    | source map 作为一个单独的文件生成，但不会为 bundle 添加 `//# sourceMappingURL=[url]` 注释，保护源码隐私 |
+| inline    | source map 以 base64 内联到 bundle 中，不生成单独的文件                                                 |
+| nosources | 创建的 source map 不包含 `sourcesContent`（源代码内容）                                                 |
+| debugids  | 创建的 source map 增加 `debugId` 字段                                                                   |
 
 验证 `devtool` 的配置时，我们期望的格式是 `[inline-|hidden-|eval-][nosources-][cheap-[module-]]source-map[-debugids]`.
 
@@ -65,24 +65,24 @@ type Devtool = 'string' | false;
 
 `eval` - 每个模块都使用 `eval()` 执行，并且都有 `//# sourceURL`。优点是构建性能极快，缺点是，不会映射到源代码。
 
-`eval-source-map` - 每个模块使用 `eval()` 执行，并且将模块 SourceMap 转换为 DataUrl 后添加到 `eval()` 中，避免 chunk 级 SourceMap 合并计算。
+`eval-source-map` - 每个模块使用 `eval()` 执行，并且将模块 source map 转换为 DataUrl 后添加到 `eval()` 中，避免 chunk 级 source map 合并计算。
 
-`eval-cheap-source-map` - 类似 `eval-source-map`，每个模块使用 `eval()` 执行。SourceMap 不计算列映射，只是映射行。忽略源自 loader 的 SourceMap，仅映射到转译后的代码。
+`eval-cheap-source-map` - 类似 `eval-source-map`，每个模块使用 `eval()` 执行。source map 不计算列映射，只是映射行。忽略源自 loader 的 source map，仅映射到转译后的代码。
 
-`eval-cheap-module-source-map` - 类似 `eval-cheap-source-map`，并且，但会处理源自 loader 的 SourceMap，映射到源代码。然而，SourceMap 不计算列映射，只是映射行。
+`eval-cheap-module-source-map` - 类似 `eval-cheap-source-map`，并且，但会处理源自 loader 的 source map，映射到源代码。然而，source map 不计算列映射，只是映射行。
 
 ### 生产环境
 
 这些选项通常用于生产环境中：
 
-`false` - 不生成 SourceMap。
+`false` - 不生成 source map。
 
-`source-map` - SourceMap 作为一个单独的文件生成。bundle 添加 `//# sourceMapURL` 注释，以便开发工具知道在哪里可以找到它。
+`source-map` - source map 作为一个单独的文件生成。bundle 添加 `//# sourceMapURL` 注释，以便开发工具知道在哪里可以找到它。
+
+`hidden-source-map` - 与 `source-map` 相同，但不会为 bundle 添加 `//# sourceMapURL` 注释。你可以将 source map 用于错误报告工具，来映射源自客户端的错误堆栈，而不必向浏览器暴露你的 source map。
+
+`nosources-source-map` - 创建的 source map 不包含 `sourcesContent`（源代码内容）。它仍然会暴露原始的文件名和文件结构，并且可以在客户端用于映射错误堆栈，而无需暴露源代码。如果你可以接受文件名被暴露，那么这种类型的 source map 可以部署到 Web 服务器上。
 
 :::warning
-你应该配置你的服务器，不允许普通用户访问 SourceMap 文件！
+在使用 `source-map` 或 `hidden-source-map` 时，请勿将 source maps (`.map` 文件) 部署到公开访问的 Web 服务器或 CDN 上。公开 source maps 会暴露你的源代码，并且可能带来安全风险。
 :::
-
-`hidden-source-map` - 与 `source-map` 相同，但不会为 bundle 添加 `//# sourceMapURL` 注释。你可以将 SourceMap 用于错误报告工具，来映射源自客户端的错误堆栈，而不必向浏览器暴露你的 SourceMap。
-
-`nosources-source-map` - 创建的 SourceMap 不包含 `sourcesContent`（源代码内容）。用来映射客户端上的错误堆栈，而不会暴露源代码，但仍然会暴露原始的文件名和结构。

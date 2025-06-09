@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Compilation } from "../../Compilation";
+import { anyFunction } from "../../config/utils";
 import { validate } from "../../util/validate";
 
 const compilationOptionsMap: WeakMap<Compilation, HtmlRspackPluginOptions> =
@@ -9,23 +10,15 @@ export type TemplateRenderFunction = (
 	params: Record<string, any>
 ) => string | Promise<string>;
 
-const templateRenderFunction = z
-	.function()
-	.args(z.record(z.string(), z.any()))
-	.returns(
-		z.string().or(z.promise(z.string()))
-	) satisfies z.ZodType<TemplateRenderFunction>;
+const templateRenderFunction =
+	anyFunction satisfies z.ZodType<TemplateRenderFunction>;
 
 export type TemplateParamFunction = (
 	params: Record<string, any>
 ) => Record<string, any> | Promise<Record<string, any>>;
 
-const templateParamFunction = z
-	.function()
-	.args(z.record(z.string(), z.any()))
-	.returns(
-		z.record(z.string(), z.any()).or(z.promise(z.record(z.string(), z.any())))
-	) satisfies z.ZodType<TemplateParamFunction>;
+const templateParamFunction =
+	anyFunction satisfies z.ZodType<TemplateParamFunction>;
 
 export type HtmlRspackPluginOptions = {
 	/** The title to use for the generated HTML document. */
@@ -120,13 +113,8 @@ export type HtmlRspackPluginOptions = {
 	[key: string]: any;
 };
 
-const templateFilenameFunction = z
-	.function()
-	.args(z.string())
-	.returns(z.string());
-
 const pluginOptionsSchema = z.object({
-	filename: z.string().or(templateFilenameFunction).optional(),
+	filename: z.string().or(anyFunction).optional(),
 	template: z
 		.string()
 		.refine(

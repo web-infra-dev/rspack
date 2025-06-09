@@ -1,12 +1,22 @@
 # 生产优化
 
-## 源码映射
+## 代码分割
 
-生产环境下建议开启 SourceMap，以便于调试，但切记不要将 SourceMap 同产物一起上传到线上。SourceMap 会带来一定的性能开销，如果你的项目较大，建议选择一个性能较好的配置（更多配置选项见 [devtool](config/devtool)，如 `source-map` 配置选项。
+Rspack 支持代码分割特性，允许让你对代码进行分割，控制生成的资源体积和资源数量来获取资源加载性能的提升。
+
+参考 [代码分割](/guide/optimization/code-splitting) 章节了解更多。
+
+## Tree shaking
+
+Rspack 支持 tree shaking 功能，这是一个在 JavaScript 生态中广泛使用的术语，主要用于去除未被访问的代码，俗称“死代码”。
+
+参考 [Tree shaking](/guide/optimization/tree-shaking) 章节了解更多。
 
 ## 代码压缩
 
-在执行生产构建时，Rspack 默认使用内置的压缩器对 JavaScript 和 CSS 代码进行压缩，你可以使用 [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) 和 [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 来进行配置。
+在执行生产构建时，Rspack 默认使用内置的压缩器对 JavaScript 和 CSS 代码进行压缩。
+
+如果你需要自定义压缩选项，可以使用 [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) 和 [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 来进行配置。
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';

@@ -94,25 +94,6 @@ jobs:
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
       test: false
 
-  failure_notification:
-    name: Failure Notification
-    needs: [test-linux, test-windows, test-mac]
-    if: ${{ failure() && !cancelled() && github.ref_name == 'main' && github.repository_owner == 'web-infra-dev' }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: 20
-      - shell: bash
-        run: ./scripts/alert/lark.js
-        env:
-          TITLE: CI failed on main branch
-          DESCRIPTION: |
-            commitID: [${{github.sha}}](${{github.server_url}}/${{github.repository}}/commit/${{github.sha}})
-          URL: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
-          LARK_WEBHOOK_URL: ${{secrets.LARK_WEBHOOK_URL}}
-
   test_required_check:
     # this job will be used for GitHub actions to determine required job success or not;
     # When code changed, it will check if any of the test jobs failed.
