@@ -81,34 +81,6 @@ impl<W: PerfettoWriter> PerfettoLayer<W> {
     self.config.debug_annotations = value;
     self
   }
-
-  /// Configures whether or not spans/events be recorded based on the occurrence of a field name.
-  ///
-  /// Sometimes, not all the events/spans should be treated as perfetto trace, you can append a
-  /// field to indicate that this even/span should be captured into trace:
-  ///
-  /// ```rust
-  /// use rspack_tracing_perfetto::PerfettoLayer;
-  /// use tracing_subscriber::{layer::SubscriberExt, prelude::*, Registry};
-  ///
-  /// let layer = PerfettoLayer::new(std::fs::File::open("/tmp/test.pftrace").unwrap())
-  ///   .with_filter_by_marker(|field_name| field_name == "perfetto");
-  /// tracing_subscriber::registry().with(layer).init();
-  ///
-  /// // this event will be record, as it contains a `perfetto` field
-  /// tracing::info!(perfetto = true, my_bool = true);
-  ///
-  /// // this span will be record, as it contains a `perfetto` field
-  /// #[tracing::instrument(fields(perfetto = true))]
-  /// fn to_instr() {
-  ///   // this event will be ignored
-  ///   tracing::info!(my_bool = true);
-  /// }
-  /// ```
-  pub fn with_filter_by_marker(mut self, filter: fn(&str) -> bool) -> Self {
-    self.config.filter = Some(filter);
-    self
-  }
   // flush tracing to disk
   pub fn flush(&self) {
     let _ = self.writer.flush();
