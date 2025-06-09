@@ -19,7 +19,7 @@ pub struct ModuleGraphCacheArtifactInner {
   /// Webpack enables module graph caches by creating new cache maps and disable them by setting them to undefined.
   /// But in rust I think it's better to use a bool flag to avoid memory reallocation.
   freezed: AtomicBool,
-  get_mode_cache: get_mode::GetModeCache,
+  get_mode_cache: GetModeCache,
   determine_export_assignments_cache: DetermineExportAssignmentsCache,
 }
 
