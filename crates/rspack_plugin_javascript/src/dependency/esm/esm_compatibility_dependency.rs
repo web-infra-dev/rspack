@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportInfoGetter,
-  InitFragmentKey, InitFragmentStage, ModuleGraph, NormalInitFragment, RuntimeGlobals,
-  TemplateContext, TemplateReplaceSource, UsageState,
+  InitFragmentKey, InitFragmentStage, ModuleGraph, NormalInitFragment, PrefetchExportsInfoMode,
+  RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsageState,
 };
 use swc_core::atoms::Atom;
 
@@ -52,13 +52,12 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
     let module = module_graph
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
-    let exports_info = module_graph.get_exports_info(&module.identifier());
-    let used = ExportInfoGetter::get_used(
-      exports_info
-        .get_read_only_export_info(&module_graph, &Atom::from("__esModule"))
-        .as_data(&module_graph),
-      *runtime,
+    let name = Atom::from("__esModule");
+    let exports_info = module_graph.get_prefetched_exports_info(
+      &module.identifier(),
+      PrefetchExportsInfoMode::NamedExports(std::slice::from_ref(&name)),
     );
+    let used = ExportInfoGetter::get_used(exports_info.get_read_only_export_info(&name), *runtime);
     if !matches!(used, UsageState::Unused) {
       runtime_requirements.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
       runtime_requirements.insert(RuntimeGlobals::EXPORTS);
