@@ -18,7 +18,7 @@ pub struct PerfettoTracer {
   writer: Option<std::fs::File>,
 }
 // convert hashmap to perfetto debug annotations
-// the value ks always json string
+// the values are always json string
 fn to_debug_annotation(map: Option<HashMap<String, String>>) -> DebugAnnotations {
   let mut annotations = DebugAnnotations::default();
   if let Some(map) = map {
