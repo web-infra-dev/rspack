@@ -1,5 +1,5 @@
 import nodePath from "node:path";
-import { type SyncParseReturnType, ZodIssueCode, z } from "zod";
+import { ZodIssueCode, z } from "zod";
 import { ZodSwcLoaderOptions } from "../builtin-loader/swc/types";
 import { validate } from "../util/validate";
 import type * as t from "./types";
@@ -881,56 +881,78 @@ export const externalsType = z.enum([
 ]) satisfies z.ZodType<t.ExternalsType>;
 //#endregion
 
-const externalObjectValue = new ZodRspackCrossChecker<
-	t.ExternalItemUmdValue | t.ExternalItemObjectValue
->({
-	patterns: [
-		{
-			test: config => {
-				let isLibraryUmd = false;
-				const library = config?.output?.library;
-				if (typeof library === "object" && "type" in library) {
-					isLibraryUmd = library.type === "umd";
-				} else {
-					isLibraryUmd = config?.output?.libraryTarget === "umd";
-				}
-				if (isLibraryUmd) {
-					return (
-						config?.externalsType === undefined ||
-						config?.externalsType === "umd"
-					);
-				}
-				return false;
-			},
-			type: z.strictObject({
-				root: z.string().or(z.string().array()),
-				commonjs: z.string().or(z.string().array()),
-				commonjs2: z.string().or(z.string().array()),
-				amd: z.string().or(z.string().array())
-			}),
-			issue: res => {
-				if ((res as SyncParseReturnType).status === "aborted") {
-					return [
-						{
-							fatal: true,
-							code: ZodIssueCode.custom,
-							message: `External object must have "root", "commonjs", "commonjs2", "amd" properties when "libraryType" or "externalsType" is "umd"`
-						}
-					];
-				}
-				return [];
+const externalItemObjectValue = z.record(
+	z.string(),
+	z.string().or(z.string().array())
+) satisfies z.ZodType<t.ExternalItemObjectValue>;
+
+const externalItemUmdValue = z.strictObject({
+	root: z.string().or(z.string().array()),
+	commonjs: z.string().or(z.string().array()),
+	commonjs2: z.string().or(z.string().array()),
+	amd: z.string().or(z.string().array())
+}) satisfies z.ZodType<t.ExternalItemUmdValue>;
+
+const externalUmdChecker = (config: t.RspackOptions, ctx: z.RefinementCtx) => {
+	let isLibraryUmd = false;
+	const library = config?.output?.library;
+	if (typeof library === "object" && "type" in library) {
+		isLibraryUmd = library.type === "umd";
+	} else {
+		isLibraryUmd = config?.output?.libraryTarget === "umd";
+	}
+
+	if (!isLibraryUmd) {
+		return;
+	}
+
+	if (config?.externalsType !== undefined && config?.externalsType !== "umd") {
+		return;
+	}
+
+	if (!Array.isArray(config?.externals)) {
+		checkExternalItem(config?.externals, ["externals"]);
+	} else {
+		config.externals.forEach((external, index) =>
+			checkExternalItem(external, ["externals", index])
+		);
+	}
+
+	function checkExternalItem(
+		externalItem: t.ExternalItem | undefined,
+		path: (string | number)[]
+	) {
+		if (typeof externalItem === "object" && externalItem !== null) {
+			for (const [key, value] of Object.entries(externalItem)) {
+				checkExternalItemValue(value, [...path, key]);
 			}
 		}
-	],
-	default: z.record(z.string(), z.string().or(z.string().array()))
-});
+	}
+
+	function checkExternalItemValue(
+		externalItemValue: t.ExternalItemValue | undefined,
+		path: (string | number)[]
+	) {
+		if (typeof externalItemValue === "object" && externalItemValue !== null) {
+			const result = externalItemUmdValue.safeParse(externalItemValue);
+			if (!result.success) {
+				ctx.addIssue({
+					code: ZodIssueCode.custom,
+					message: `External object must have "root", "commonjs", "commonjs2", "amd" properties when "libraryType" or "externalsType" is "umd"`,
+					path
+				});
+			}
+			return;
+		}
+	}
+};
 
 // #region Externals
 const externalItemValue = z
 	.string()
 	.or(z.boolean())
 	.or(z.string().array().min(1))
-	.or(externalObjectValue) satisfies z.ZodType<t.ExternalItemValue>;
+	.or(externalItemObjectValue) satisfies z.ZodType<t.ExternalItemValue>;
 
 const externalItemObjectUnknown = z.record(
 	z.string(),
@@ -1424,37 +1446,39 @@ const performance = z
 	.or(z.literal(false)) satisfies z.ZodType<t.Performance>;
 //#endregion
 
-export const rspackOptions = z.strictObject({
-	name: name.optional(),
-	dependencies: dependencies.optional(),
-	extends: z.union([z.string(), z.array(z.string())]).optional(),
-	entry: entry.optional(),
-	output: output.optional(),
-	target: target.optional(),
-	mode: mode.optional(),
-	experiments: experiments.optional(),
-	externals: externals.optional(),
-	externalsType: externalsType.optional(),
-	externalsPresets: externalsPresets.optional(),
-	infrastructureLogging: infrastructureLogging.optional(),
-	cache: cacheOptions.optional(),
-	context: context.optional(),
-	devtool: devTool.optional(),
-	node: node.optional(),
-	loader: loader.optional(),
-	ignoreWarnings: ignoreWarnings.optional(),
-	watchOptions: watchOptions.optional(),
-	watch: watch.optional(),
-	stats: statsValue.optional(),
-	snapshot: snapshotOptions.optional(),
-	optimization: optimization.optional(),
-	resolve: resolveOptions.optional(),
-	resolveLoader: resolveOptions.optional(),
-	plugins: plugins.optional(),
-	devServer: devServer.optional(),
-	module: moduleOptions.optional(),
-	profile: profile.optional(),
-	amd: amd.optional(),
-	bail: bail.optional(),
-	performance: performance.optional()
-}) satisfies z.ZodType<t.RspackOptions>;
+export const rspackOptions = z
+	.strictObject({
+		name: name.optional(),
+		dependencies: dependencies.optional(),
+		extends: z.union([z.string(), z.array(z.string())]).optional(),
+		entry: entry.optional(),
+		output: output.optional(),
+		target: target.optional(),
+		mode: mode.optional(),
+		experiments: experiments.optional(),
+		externals: externals.optional(),
+		externalsType: externalsType.optional(),
+		externalsPresets: externalsPresets.optional(),
+		infrastructureLogging: infrastructureLogging.optional(),
+		cache: cacheOptions.optional(),
+		context: context.optional(),
+		devtool: devTool.optional(),
+		node: node.optional(),
+		loader: loader.optional(),
+		ignoreWarnings: ignoreWarnings.optional(),
+		watchOptions: watchOptions.optional(),
+		watch: watch.optional(),
+		stats: statsValue.optional(),
+		snapshot: snapshotOptions.optional(),
+		optimization: optimization.optional(),
+		resolve: resolveOptions.optional(),
+		resolveLoader: resolveOptions.optional(),
+		plugins: plugins.optional(),
+		devServer: devServer.optional(),
+		module: moduleOptions.optional(),
+		profile: profile.optional(),
+		amd: amd.optional(),
+		bail: bail.optional(),
+		performance: performance.optional()
+	})
+	.superRefine(externalUmdChecker) satisfies z.ZodType<t.RspackOptions>;
