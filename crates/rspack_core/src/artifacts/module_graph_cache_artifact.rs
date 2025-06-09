@@ -3,13 +3,14 @@ use std::sync::{
   Arc, Mutex,
 };
 
-use derive_more::derive::Debug;
+pub use determine_export_assignments::DetermineExportAssignmentsKind;
+use determine_export_assignments::*;
+use get_mode::*;
 use indexmap::IndexMap;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::atoms::Atom;
 
 use crate::{DependencyId, ExportInfo, RuntimeKey};
-
 pub type ModuleGraphCacheArtifact = Arc<ModuleGraphCacheArtifactInner>;
 
 /// This is a rust port of `ModuleGraph.cached` and `ModuleGraph.dependencyCacheProvide` in webpack.
@@ -19,7 +20,7 @@ pub struct ModuleGraphCacheArtifactInner {
   /// Webpack enables module graph caches by creating new cache maps and disable them by setting them to undefined.
   /// But in rust I think it's better to use a bool flag to avoid memory reallocation.
   freezed: AtomicBool,
-  get_mode_cache: GetModeCache,
+  get_mode_cache: get_mode::GetModeCache,
   determine_export_assignments_cache: DetermineExportAssignmentsCache,
 }
 
@@ -75,66 +76,77 @@ impl ModuleGraphCacheArtifactInner {
   }
 }
 
-type GetModeCacheKey = (DependencyId, Option<RuntimeKey>);
+pub(super) mod get_mode {
+  use super::*;
 
-#[derive(Debug, Default)]
-struct GetModeCache {
-  cache: Mutex<IndexMap<GetModeCacheKey, ExportMode>>,
+  pub type GetModeCacheKey = (DependencyId, Option<RuntimeKey>);
+
+  #[derive(Debug, Default)]
+  pub struct GetModeCache {
+    cache: Mutex<IndexMap<GetModeCacheKey, ExportMode>>,
+  }
+
+  impl GetModeCache {
+    pub fn freeze(&self) {
+      self.cache.lock().expect("should get lock").clear();
+    }
+
+    pub fn get(&self, key: &GetModeCacheKey) -> Option<ExportMode> {
+      let inner = self.cache.lock().expect("should get lock");
+      inner.get(key).cloned()
+    }
+
+    pub fn set(&self, key: GetModeCacheKey, value: ExportMode) {
+      self
+        .cache
+        .lock()
+        .expect("should get lock")
+        .insert(key, value);
+    }
+  }
 }
 
-impl GetModeCache {
-  fn freeze(&self) {
-    self.cache.lock().expect("should get lock").clear();
+pub(super) mod determine_export_assignments {
+  use super::*;
+
+  /// Webpack cache the result of `determineExportAssignments` with the keys of dependencies arraris of `allStarExports.dependencies` and `otherStarExports` + `this`(DependencyId).
+  /// See: https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L645
+  ///
+  /// From my observation, the arraries `allStarExports` and `otherStarExports`, which only attach to one HarmonyExportImportedSpecifierDependency, are compared by their references in JavaScript.
+  /// So I think we can just use a simple enum to distinguish these two cases.
+  #[derive(Debug, PartialEq, Eq, Hash)]
+  pub enum DetermineExportAssignmentsKind {
+    All,
+    Other,
+  }
+  pub type DetermineExportAssignmentsKey = (DependencyId, DetermineExportAssignmentsKind);
+  pub type DetermineExportAssignmentsValue = (Vec<Atom>, Vec<usize>);
+
+  #[derive(Debug, Default)]
+  pub struct DetermineExportAssignmentsCache {
+    cache: Mutex<IndexMap<DetermineExportAssignmentsKey, DetermineExportAssignmentsValue>>,
   }
 
-  fn get(&self, key: &GetModeCacheKey) -> Option<ExportMode> {
-    let inner = self.cache.lock().expect("should get lock");
-    inner.get(key).cloned()
-  }
+  impl DetermineExportAssignmentsCache {
+    pub fn freeze(&self) {
+      self.cache.lock().expect("should get lock").clear();
+    }
 
-  fn set(&self, key: GetModeCacheKey, value: ExportMode) {
-    self
-      .cache
-      .lock()
-      .expect("should get lock")
-      .insert(key, value);
-  }
-}
+    pub fn get(
+      &self,
+      key: &DetermineExportAssignmentsKey,
+    ) -> Option<DetermineExportAssignmentsValue> {
+      let inner = self.cache.lock().expect("should get lock");
+      inner.get(key).cloned()
+    }
 
-/// Webpack cache the result of `determineExportAssignments` with the keys of dependencies arraris of `allStarExports.dependencies` and `otherStarExports` + `this`(DependencyId).
-/// See: https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L645
-///
-/// From my observation, the arraries `allStarExports` and `otherStarExports`, which only attach to one HarmonyExportImportedSpecifierDependency, are compared by their references in JavaScript.
-/// So I think we can just use a simple enum to distinguish these two cases.
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub enum DetermineExportAssignmentsKind {
-  All,
-  Other,
-}
-type DetermineExportAssignmentsKey = (DependencyId, DetermineExportAssignmentsKind);
-type DetermineExportAssignmentsValue = (Vec<Atom>, Vec<usize>);
-
-#[derive(Debug, Default)]
-struct DetermineExportAssignmentsCache {
-  cache: Mutex<IndexMap<DetermineExportAssignmentsKey, DetermineExportAssignmentsValue>>,
-}
-
-impl DetermineExportAssignmentsCache {
-  fn freeze(&self) {
-    self.cache.lock().expect("should get lock").clear();
-  }
-
-  fn get(&self, key: &DetermineExportAssignmentsKey) -> Option<DetermineExportAssignmentsValue> {
-    let inner = self.cache.lock().expect("should get lock");
-    inner.get(key).cloned()
-  }
-
-  fn set(&self, key: DetermineExportAssignmentsKey, value: DetermineExportAssignmentsValue) {
-    self
-      .cache
-      .lock()
-      .expect("should get lock")
-      .insert(key, value);
+    pub fn set(&self, key: DetermineExportAssignmentsKey, value: DetermineExportAssignmentsValue) {
+      self
+        .cache
+        .lock()
+        .expect("should get lock")
+        .insert(key, value);
+    }
   }
 }
 
