@@ -94,8 +94,7 @@ impl Task<MakeTaskContext> for FactorizeTask {
         }
         create_data.diagnostics.insert(
           0,
-          Into::<Diagnostic>::into(e)
-            .with_loc(create_data.dependencies[0].loc().map(|loc| loc.to_string())),
+          Into::<Diagnostic>::into(e).with_loc(create_data.dependencies[0].loc()),
         );
         None
       }

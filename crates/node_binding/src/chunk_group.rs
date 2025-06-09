@@ -2,14 +2,11 @@ use std::{cell::RefCell, ptr::NonNull};
 
 use napi::{bindgen_prelude::ToNapiValue, Either, Env, JsString};
 use napi_derive::napi;
-use rspack_core::{
-  ChunkGroup, ChunkGroupUkey, Compilation, CompilationId, DependencyLocation,
-  RealDependencyLocation, SourcePosition,
-};
+use rspack_core::{ChunkGroup, ChunkGroupUkey, Compilation, CompilationId};
 use rspack_napi::OneShotRef;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{JsChunkWrapper, ModuleObject, ModuleObjectRef};
+use crate::{location::RealDependencyLocation, JsChunkWrapper, ModuleObject, ModuleObjectRef};
 
 #[napi]
 pub struct JsChunkGroup {
@@ -72,8 +69,8 @@ impl JsChunkGroup {
     for origin in origins {
       let loc = if let Some(loc) = &origin.loc {
         Some(match loc {
-          DependencyLocation::Real(real) => Either::B(real.clone().into()),
-          DependencyLocation::Synthetic(synthetic) => {
+          rspack_core::DependencyLocation::Real(real) => Either::B(real.into()),
+          rspack_core::DependencyLocation::Synthetic(synthetic) => {
             Either::A(env.create_string(&synthetic.name)?)
           }
         })
@@ -248,34 +245,5 @@ pub struct JsChunkGroupOrigin<'a> {
   #[napi(ts_type = "Module | undefined")]
   pub module: Option<ModuleObject>,
   pub request: Option<JsString<'a>>,
-  pub loc: Option<Either<JsString<'a>, JsRealDependencyLocation>>,
-}
-
-#[napi(object, object_from_js = false)]
-pub struct JsRealDependencyLocation {
-  pub start: JsSourcePosition,
-  pub end: Option<JsSourcePosition>,
-}
-
-impl From<RealDependencyLocation> for JsRealDependencyLocation {
-  fn from(value: RealDependencyLocation) -> Self {
-    Self {
-      start: value.start.into(),
-      end: value.end.map(JsSourcePosition::from),
-    }
-  }
-}
-#[napi(object, object_from_js = false)]
-pub struct JsSourcePosition {
-  pub line: u32,
-  pub column: u32,
-}
-
-impl From<SourcePosition> for JsSourcePosition {
-  fn from(value: SourcePosition) -> Self {
-    Self {
-      line: value.line as u32,
-      column: value.column as u32,
-    }
-  }
+  pub loc: Option<Either<JsString<'a>, RealDependencyLocation>>,
 }

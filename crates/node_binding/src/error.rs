@@ -1,6 +1,8 @@
 use napi_derive::napi;
 use rspack_error::{miette, Diagnostic, Error, Result, RspackSeverity};
 
+use crate::DependencyLocation;
+
 pub enum ErrorCode {
   Napi(napi::Status),
   Custom(String),
@@ -63,7 +65,7 @@ pub struct JsRspackError {
   pub name: String,
   pub message: String,
   pub module_identifier: Option<String>,
-  pub loc: Option<String>,
+  pub loc: Option<DependencyLocation>,
   pub file: Option<String>,
   pub stack: Option<String>,
   pub hide_stack: Option<bool>,
@@ -84,7 +86,7 @@ impl JsRspackError {
       }),
       message,
       module_identifier: diagnostic.module_identifier().map(|d| d.to_string()),
-      loc: diagnostic.loc(),
+      loc: diagnostic.loc().map(Into::into),
       file: diagnostic.file().map(|f| f.as_str().to_string()),
       stack: diagnostic.stack(),
       hide_stack: diagnostic.hide_stack(),
