@@ -1,6 +1,6 @@
 use std::sync::{
   atomic::{AtomicBool, Ordering},
-  Arc, Mutex,
+  Arc, RwLock,
 };
 
 pub use determine_export_assignments::DetermineExportAssignmentsKey;
@@ -82,23 +82,23 @@ pub(super) mod get_mode {
 
   #[derive(Debug, Default)]
   pub struct GetModeCache {
-    cache: Mutex<HashMap<GetModeCacheKey, ExportMode>>,
+    cache: RwLock<HashMap<GetModeCacheKey, ExportMode>>,
   }
 
   impl GetModeCache {
     pub fn freeze(&self) {
-      self.cache.lock().expect("should get lock").clear();
+      self.cache.write().expect("should get lock").clear();
     }
 
     pub fn get(&self, key: &GetModeCacheKey) -> Option<ExportMode> {
-      let inner = self.cache.lock().expect("should get lock");
+      let inner = self.cache.read().expect("should get lock");
       inner.get(key).cloned()
     }
 
     pub fn set(&self, key: GetModeCacheKey, value: ExportMode) {
       self
         .cache
-        .lock()
+        .write()
         .expect("should get lock")
         .insert(key, value);
     }
@@ -122,26 +122,26 @@ pub(super) mod determine_export_assignments {
 
   #[derive(Debug, Default)]
   pub struct DetermineExportAssignmentsCache {
-    cache: Mutex<HashMap<DetermineExportAssignmentsKey, DetermineExportAssignmentsValue>>,
+    cache: RwLock<HashMap<DetermineExportAssignmentsKey, DetermineExportAssignmentsValue>>,
   }
 
   impl DetermineExportAssignmentsCache {
     pub fn freeze(&self) {
-      self.cache.lock().expect("should get lock").clear();
+      self.cache.write().expect("should get lock").clear();
     }
 
     pub fn get(
       &self,
       key: &DetermineExportAssignmentsKey,
     ) -> Option<DetermineExportAssignmentsValue> {
-      let inner = self.cache.lock().expect("should get lock");
+      let inner = self.cache.read().expect("should get lock");
       inner.get(key).cloned()
     }
 
     pub fn set(&self, key: DetermineExportAssignmentsKey, value: DetermineExportAssignmentsValue) {
       self
         .cache
-        .lock()
+        .write()
         .expect("should get lock")
         .insert(key, value);
     }
