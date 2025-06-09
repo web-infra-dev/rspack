@@ -1,7 +1,14 @@
 use std::fmt::{self, Debug};
 
+pub use itoa::Buffer;
 use rspack_cacheable::cacheable;
-use rspack_util::itoa;
+
+#[macro_export]
+macro_rules! itoa {
+  ($i:expr) => {{
+    itoa::Buffer::new().format($i)
+  }};
+}
 
 /// Represents a position in the source file, including the line number and column number.
 #[cacheable]

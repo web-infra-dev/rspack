@@ -4,6 +4,7 @@ use cow_utils::CowUtils;
 use miette::{GraphicalTheme, IntoDiagnostic, MietteDiagnostic};
 use rspack_cacheable::{cacheable, with::Unsupported};
 use rspack_collections::Identifier;
+use rspack_location::DependencyLocation;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 
 use crate::{graphical::GraphicalReportHandler, Error};
@@ -64,7 +65,7 @@ impl fmt::Display for RspackSeverity {
 pub struct Diagnostic {
   inner: Arc<miette::Error>,
   module_identifier: Option<Identifier>,
-  loc: Option<String>,
+  loc: Option<DependencyLocation>,
   file: Option<Utf8PathBuf>,
   hide_stack: Option<bool>,
   chunk: Option<u32>,
@@ -167,11 +168,11 @@ impl Diagnostic {
     self
   }
 
-  pub fn loc(&self) -> Option<String> {
-    self.loc.clone()
+  pub fn loc(&self) -> Option<&DependencyLocation> {
+    self.loc.as_ref()
   }
 
-  pub fn with_loc(mut self, loc: Option<String>) -> Self {
+  pub fn with_loc(mut self, loc: Option<DependencyLocation>) -> Self {
     self.loc = loc;
     self
   }
