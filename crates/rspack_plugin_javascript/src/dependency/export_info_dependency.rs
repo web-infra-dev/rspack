@@ -74,7 +74,7 @@ impl ExportInfoDependency {
 
     let exports_info = module_graph.get_prefetched_exports_info(
       &module_identifier,
-      PrefetchExportsInfoMode::NamedNestedExports(&export_name),
+      PrefetchExportsInfoMode::NamedNestedExports(export_name),
     );
 
     match prop.to_string().as_str() {
@@ -89,11 +89,11 @@ impl ExportInfoDependency {
         can_mangle.map(|v| v.to_string())
       }
       "used" => {
-        let used = ExportsInfoGetter::get_used(&exports_info, &export_name, *runtime);
+        let used = ExportsInfoGetter::get_used(&exports_info, export_name, *runtime);
         Some((!matches!(used, UsageState::Unused)).to_string())
       }
       "useInfo" => {
-        let used_state = ExportsInfoGetter::get_used(&exports_info, &export_name, *runtime);
+        let used_state = ExportsInfoGetter::get_used(&exports_info, export_name, *runtime);
         Some(
           (match used_state {
             UsageState::Used => "true",

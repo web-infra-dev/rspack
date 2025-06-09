@@ -176,7 +176,11 @@ impl DependencyTemplate for ProvideDependencyTemplate {
     let used_name = ExportsInfoGetter::get_used_name(
       &module_graph.get_prefetched_exports_info(
         con.module_identifier(),
-        PrefetchExportsInfoMode::NamedNestedExports(&dep.ids),
+        if dep.ids.is_empty() {
+          PrefetchExportsInfoMode::AllExports
+        } else {
+          PrefetchExportsInfoMode::NamedNestedExports(&dep.ids)
+        },
       ),
       *runtime,
       &dep.ids,
