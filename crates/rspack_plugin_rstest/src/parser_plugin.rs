@@ -4,6 +4,7 @@ use rspack_plugin_javascript::{
   visitors::JavascriptParser,
   JavascriptParserPlugin,
 };
+use rspack_util::json_stringify;
 use swc_core::{
   common::Spanned,
   ecma::ast::{CallExpr, Ident, MemberExpr, UnaryExpr},
@@ -77,7 +78,7 @@ impl RstestParserPlugin {
   fn process_import_meta(&self, parser: &mut JavascriptParser, r#type: ModulePathType) -> String {
     if r#type == ModulePathType::FileName {
       if let Some(resource_path) = &parser.resource_data.resource_path {
-        format!("'{}'", resource_path.clone().into_string())
+        json_stringify(&resource_path.clone().into_string())
       } else {
         "''".to_string()
       }
@@ -89,7 +90,7 @@ impl RstestParserPlugin {
         .and_then(|p| p.parent())
         .map(|p| p.to_string())
         .unwrap_or_default();
-      format!("'{resource_path}'")
+      json_stringify(&resource_path)
     }
   }
 }
