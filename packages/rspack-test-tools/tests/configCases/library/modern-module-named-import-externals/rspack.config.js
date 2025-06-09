@@ -35,7 +35,7 @@ module.exports = {
 					expect(source).toMatchInlineSnapshot(`
 				import { HomeLayout as external_externals0_HomeLayout, a } from "externals0";
 				import { a as external_externals1_a } from "externals1";
-				import external_externals2_default from "externals2";
+				import externals2 from "externals2";
 				import "externals4";
 				import * as __WEBPACK_EXTERNAL_MODULE_externals3__ from "externals3";
 
@@ -76,7 +76,7 @@ module.exports = {
 
 
 				external_externals1_a;
-				external_externals2_default;
+				externals2;
 				__WEBPACK_EXTERNAL_MODULE_externals3__;
 
 				export { a };
