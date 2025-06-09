@@ -1,8 +1,14 @@
-use std::sync::Arc;
+use core::panic;
+use std::{
+  hash::{Hash, Hasher},
+  sync::Arc,
+};
 
 use napi_derive::napi;
 use rspack_core::{Resolve, ResolverFactory};
 use rspack_fs::{NativeFileSystem, ReadableFileSystem};
+use rustc_hash::FxHashMap;
+use tracing::level_filters::LevelFilter;
 
 use crate::{
   raw_resolve::{
@@ -13,8 +19,7 @@ use crate::{
 
 #[napi]
 pub struct JsResolverFactory {
-  pub(crate) resolver_factory: Option<Arc<ResolverFactory>>,
-  pub(crate) loader_resolver_factory: Option<Arc<ResolverFactory>>,
+  pub(crate) cached_resolver_factories: FxHashMap<u64, Arc<ResolverFactory>>,
   pub(crate) input_filesystem: Arc<dyn ReadableFileSystem>,
 }
 
@@ -23,15 +28,21 @@ impl JsResolverFactory {
   #[napi(constructor)]
   pub fn new(pnp: bool) -> napi::Result<Self> {
     let input_filesystem = Arc::new(NativeFileSystem::new(pnp));
+
     Ok(Self {
-      resolver_factory: None,
-      loader_resolver_factory: None,
+      cached_resolver_factories: FxHashMap::default(),
       input_filesystem,
     })
   }
 
   pub fn get_resolver_factory(&mut self, resolve_options: Resolve) -> Arc<ResolverFactory> {
-    match &self.resolver_factory {
+    // 计算 resolve_options 的哈希值
+    let mut hasher = rustc_hash::FxHasher::default();
+    resolve_options.hash(&mut hasher);
+    let hash = hasher.finish();
+
+    // 使用哈希值作为键来检查和缓存 ResolverFactory
+    match self.cached_resolver_factories.get(&hash) {
       Some(resolver_factory) => resolver_factory.clone(),
 
       None => {
@@ -39,24 +50,17 @@ impl JsResolverFactory {
           resolve_options,
           self.input_filesystem.clone(),
         ));
-        self.resolver_factory = Some(resolver_factory.clone());
+        self
+          .cached_resolver_factories
+          .insert(hash, resolver_factory.clone());
         resolver_factory
       }
     }
   }
 
+  #[deprecated(note = "Use get_resolver_factory instead")]
   pub fn get_loader_resolver_factory(&mut self, resolve_options: Resolve) -> Arc<ResolverFactory> {
-    match &self.loader_resolver_factory {
-      Some(resolver_factory) => resolver_factory.clone(),
-      None => {
-        let resolver_factory = Arc::new(ResolverFactory::new(
-          resolve_options,
-          self.input_filesystem.clone(),
-        ));
-        self.loader_resolver_factory = Some(resolver_factory.clone());
-        resolver_factory
-      }
-    }
+    self.get_resolver_factory(resolve_options)
   }
 
   #[napi(ts_args_type = "type: string, options?: RawResolveOptionsWithDependencyType")]
@@ -73,7 +77,7 @@ impl JsResolverFactory {
       }
       "loader" => {
         let options = normalize_raw_resolve_options_with_dependency_type(raw, false).to_napi_result()?;
-        let resolver_factory = self.get_loader_resolver_factory(*options.resolve_options.clone().unwrap_or_default());
+        let resolver_factory = self.get_resolver_factory(*options.resolve_options.clone().unwrap_or_default());
         Ok(JsResolver::new(resolver_factory, options))
       }
       "context" => {

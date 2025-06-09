@@ -175,8 +175,8 @@ impl JsCompiler {
 
     let resolver_factory =
       (*resolver_factory_reference).get_resolver_factory(compiler_options.resolve.clone());
-    let loader_resolver_factory = (*resolver_factory_reference)
-      .get_loader_resolver_factory(compiler_options.resolve_loader.clone());
+    let loader_resolver_factory =
+      (*resolver_factory_reference).get_resolver_factory(compiler_options.resolve_loader.clone());
 
     let intermediate_filesystem: Option<Arc<dyn IntermediateFileSystem>> =
       if let Some(fs) = intermediate_filesystem {
