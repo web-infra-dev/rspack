@@ -89,9 +89,9 @@ ustr               = { package = "ustr-fxhash", version = "1.0.1" }
 xxhash-rust        = { version = "0.8.14" }
 
 # Pinned
-napi        = { version = "3.0.0-beta.5" }
+napi        = { version = "3.0.0-beta.8" }
 napi-build  = { version = "3.0.0-beta.0" }
-napi-derive = { version = "3.0.0-beta.5" }
+napi-derive = { version = "3.0.0-beta.8" }
 
 # Serialize and Deserialize
 inventory = { version = "0.3.17" }
