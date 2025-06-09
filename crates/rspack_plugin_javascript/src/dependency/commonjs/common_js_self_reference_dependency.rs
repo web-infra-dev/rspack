@@ -5,8 +5,9 @@ use rspack_cacheable::{
 use rspack_core::{
   property_access, AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, RuntimeGlobals,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName,
+  ExportsInfoGetter, ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph,
+  PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  UsedName,
 };
 use swc_core::atoms::Atom;
 
@@ -141,10 +142,19 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
       .expect("should have mgm");
 
     let used = if dep.names.is_empty() {
-      module_graph
-        .get_exports_info(&module.identifier())
-        .get_used_name(&module_graph, *runtime, &dep.names)
-        .unwrap_or_else(|| UsedName::Normal(dep.names.clone()))
+      ExportsInfoGetter::get_used_name(
+        &module_graph.get_prefetched_exports_info(
+          &module.identifier(),
+          if dep.names.is_empty() {
+            PrefetchExportsInfoMode::AllExports
+          } else {
+            PrefetchExportsInfoMode::NamedNestedExports(&dep.names)
+          },
+        ),
+        *runtime,
+        &dep.names,
+      )
+      .unwrap_or_else(|| UsedName::Normal(dep.names.clone()))
     } else {
       UsedName::Normal(dep.names.clone())
     };
