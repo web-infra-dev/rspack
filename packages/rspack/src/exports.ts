@@ -369,7 +369,6 @@ export const experiments: Experiments = {
 			JavaScriptTracer.initCpuProfiler();
 		},
 		async cleanup() {
-			console.info("Cleaning up global trace...");
 			await JavaScriptTracer.cleanupJavaScriptTrace();
 			await syncTraceEvent(JavaScriptTracer.events);
 			cleanupGlobalTrace();
