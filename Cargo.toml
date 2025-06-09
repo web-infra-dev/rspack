@@ -51,6 +51,7 @@ indexmap           = { version = "2.7.0" }
 indoc              = { version = "2.0.5" }
 insta              = { version = "1.42.0" }
 itertools          = { version = "0.14.0" }
+itoa               = { version = "1.0.14" }
 json               = { version = "0.12.4" }
 lightningcss       = { version = "1.0.0-alpha.64", default-features = false, features = ["grid", "serde"] }
 linked_hash_set    = { version = "0.1.5" }
@@ -138,6 +139,7 @@ rspack_loader_react_refresh            = { version = "0.2.0", path = "crates/rsp
 rspack_loader_runner                   = { version = "0.2.0", path = "crates/rspack_loader_runner" }
 rspack_loader_swc                      = { version = "0.2.0", path = "crates/rspack_loader_swc" }
 rspack_loader_testing                  = { version = "0.2.0", path = "crates/rspack_loader_testing" }
+rspack_location                        = { version = "0.2.0", path = "crates/rspack_location" }
 rspack_macros                          = { version = "0.2.0", path = "crates/rspack_macros" }
 rspack_napi                            = { version = "0.2.0", path = "crates/rspack_napi" }
 rspack_napi_macros                     = { version = "0.2.0", path = "crates/rspack_napi_macros" }

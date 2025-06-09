@@ -625,7 +625,7 @@ impl Stats<'_> {
           module_identifier,
           module_name,
           module_id: module_id.flatten(),
-          loc: d.loc(),
+          loc: d.loc().map(|loc| loc.to_string()),
           file: d.file(),
 
           chunk_name: chunk.and_then(|c| c.name()),
@@ -688,7 +688,7 @@ impl Stats<'_> {
           module_identifier,
           module_name,
           module_id: module_id.flatten(),
-          loc: d.loc(),
+          loc: d.loc().map(|loc| loc.to_string()),
           file: d.file(),
 
           chunk_name: chunk.and_then(|c| c.name()),
