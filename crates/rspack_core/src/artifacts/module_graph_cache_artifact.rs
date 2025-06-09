@@ -27,11 +27,11 @@ impl ModuleGraphCacheArtifactInner {
   pub fn freeze(&self) {
     self.get_mode_cache.freeze();
     self.determine_export_assignments_cache.freeze();
-    self.freezed.store(true, Ordering::Relaxed);
+    self.freezed.store(true, Ordering::Release);
   }
 
   pub fn unfreeze(&self) {
-    self.freezed.store(false, Ordering::Relaxed);
+    self.freezed.store(false, Ordering::Release);
   }
 
   pub fn cached_get_mode<F: FnOnce() -> ExportMode>(
@@ -39,7 +39,7 @@ impl ModuleGraphCacheArtifactInner {
     key: GetModeCacheKey,
     f: F,
   ) -> ExportMode {
-    if !self.freezed.load(Ordering::Relaxed) {
+    if !self.freezed.load(Ordering::Acquire) {
       return f();
     }
 
@@ -58,7 +58,7 @@ impl ModuleGraphCacheArtifactInner {
     key: DetermineExportAssignmentsKey,
     f: F,
   ) -> DetermineExportAssignmentsValue {
-    if !self.freezed.load(Ordering::Relaxed) {
+    if !self.freezed.load(Ordering::Acquire) {
       return f();
     }
 
