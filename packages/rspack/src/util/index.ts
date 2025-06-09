@@ -74,10 +74,6 @@ export function concatErrorMsgAndStack(
 	// maybe `null`, use `undefined` to compatible with `Option<String>`
 	err.stack = err.stack || undefined;
 
-	if ("loc" in err) {
-		err.loc = JSON.stringify(err.loc);
-	}
-
 	return err;
 }
 
