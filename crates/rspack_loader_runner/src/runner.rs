@@ -28,7 +28,7 @@ impl<Context> LoaderContext<Context> {
 
 #[tracing::instrument("LoaderRunner:process_resource",
   skip_all,
-  fields(id2 = loader_context.resource_data.resource)
+  fields(resource= loader_context.resource_data.resource)
 )]
 async fn process_resource<Context: Send>(
   loader_context: &mut LoaderContext<Context>,
@@ -134,7 +134,7 @@ pub async fn run_loaders<Context: Send>(
           cx.state.transition(State::ProcessResource);
           continue;
         }
-        let span = info_span!("run_loader:pitch:yield_to_js", id2 = resource);
+        let span = info_span!("run_loader:pitch:yield_to_js", resource);
         if cx.start_yielding().instrument(span).await? {
           if cx.content.is_some() {
             cx.state.transition(State::Normal);
@@ -150,7 +150,7 @@ pub async fn run_loaders<Context: Send>(
 
         cx.current_loader().set_pitch_executed();
         let loader = cx.current_loader().loader().clone();
-        let span = info_span!("run_loader:pitch", id2 = resource);
+        let span = info_span!("run_loader:pitch", resource);
         loader.pitch(&mut cx).instrument(span).await?;
         if cx.content.is_some() {
           cx.state.transition(State::Normal);
@@ -159,7 +159,7 @@ pub async fn run_loaders<Context: Send>(
         }
       }
       State::ProcessResource => {
-        let span = info_span!("run_loader:process_resource", id2 = resource);
+        let span = info_span!("run_loader:process_resource", resource);
         process_resource(&mut cx, fs.clone())
           .instrument(span)
           .await?;
@@ -176,7 +176,7 @@ pub async fn run_loaders<Context: Send>(
           cx.state.transition(State::Finished);
           continue;
         }
-        let span = info_span!("run_loader:yield_to_js", id2 = resource);
+        let span = info_span!("run_loader:yield_to_js", resource);
         if cx.start_yielding().instrument(span).await? {
           continue;
         }
@@ -189,7 +189,7 @@ pub async fn run_loaders<Context: Send>(
         cx.current_loader().set_normal_executed();
         let loader = cx.current_loader().loader().clone();
 
-        let span = info_span!("run_loader:normal", id2 = resource);
+        let span = info_span!("run_loader:normal", resource);
         loader.run(&mut cx).instrument(span).await?;
         if !cx.current_loader().finish_called() {
           // If nothing is returned from this loader,

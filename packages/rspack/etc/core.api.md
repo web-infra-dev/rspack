@@ -2470,7 +2470,7 @@ interface Experiments_2 {
     CssChunkingPlugin: typeof CssChunkingPlugin;
     // (undocumented)
     globalTrace: {
-        register: (filter: string, layer: "chrome" | "logger", output: string) => Promise<void>;
+        register: (filter: string, layer: "logger" | "chrome" | "perfetto", output: string) => Promise<void>;
         cleanup: () => Promise<void>;
     };
     // (undocumented)

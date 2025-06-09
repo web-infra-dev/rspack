@@ -461,7 +461,6 @@ class Compiler {
 			this.hooks.afterDone.call(stats!);
 
 			instanceBinding.shutdownAsyncRuntime();
-			instanceBinding.cleanupGlobalTrace();
 			isRuntimeShutdown = true;
 		};
 

@@ -2,7 +2,7 @@ import fs from "fs";
 import { resolve } from "path";
 import { run } from "../../utils/test-utils";
 
-const defaultTracePath = "./trace.json";
+const defaultTracePath = "./rspack.pftrace";
 const customTracePath = "./custom/trace.json";
 
 function findDefaultOutputDirname() {

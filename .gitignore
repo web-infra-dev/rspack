@@ -238,3 +238,4 @@ diff_output
 
 # rspack trace file
 trace.json
+*.pftrace
