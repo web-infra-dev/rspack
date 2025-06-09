@@ -136,7 +136,6 @@ impl ESMExportImportedSpecifierDependency {
     })
   }
 
-  // TODO cache get_mode result
   fn get_mode_inner(
     &self,
     module_graph: &ModuleGraph,
