@@ -96,6 +96,9 @@ mod ukey;
 pub use ukey::*;
 pub mod resolver;
 pub use resolver::*;
+pub use rspack_location::{
+  DependencyLocation, RealDependencyLocation, SourcePosition, SyntheticDependencyLocation,
+};
 pub mod concatenated_module;
 pub mod reserved_names;
 

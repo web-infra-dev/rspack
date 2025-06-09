@@ -5,7 +5,6 @@ use miette::{GraphicalTheme, IntoDiagnostic, MietteDiagnostic};
 use rspack_cacheable::{cacheable, with::Unsupported};
 use rspack_collections::Identifier;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
-use swc_core::common::{SourceMap, Span};
 
 use crate::{graphical::GraphicalReportHandler, Error};
 
@@ -57,38 +56,6 @@ impl fmt::Display for RspackSeverity {
         RspackSeverity::Warn => "warning",
       }
     )
-  }
-}
-
-#[cacheable]
-#[derive(Debug, Clone, Copy)]
-pub struct SourcePosition {
-  pub line: usize,
-  pub column: usize,
-}
-
-#[cacheable]
-#[derive(Debug, Clone, Copy)]
-pub struct ErrorLocation {
-  pub start: SourcePosition,
-  pub end: SourcePosition,
-}
-
-impl ErrorLocation {
-  pub fn new(span: Span, source_map: &SourceMap) -> Self {
-    let lo = source_map.lookup_char_pos(span.lo());
-    let hi = source_map.lookup_char_pos(span.hi());
-
-    ErrorLocation {
-      start: SourcePosition {
-        line: lo.line,
-        column: lo.col_display,
-      },
-      end: SourcePosition {
-        line: hi.line,
-        column: hi.col_display,
-      },
-    }
   }
 }
 
