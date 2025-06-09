@@ -35,7 +35,7 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-pc-windows-msvc
-      profile: "debug"
+      profile: "ci"
       runner: ${{ vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"' }}
       test: true
 
