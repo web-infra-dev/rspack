@@ -5174,6 +5174,7 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "rspack_plugin_javascript",
+ "rspack_util",
  "swc_core",
  "tracing",
 ]
