@@ -12,11 +12,11 @@ use crate::{MaybeDynamicTargetExportInfo, ModuleGraph, RuntimeSpec, UsedExports}
 
 #[derive(Debug, Clone)]
 pub enum PrefetchExportsInfoMode<'a> {
-  Default,                           // prefetch without exports
-  NamedExports(&'a [Atom]),          // prefetch with named exports but no nested exports
-  AllExports,                        // prefetch with all exports but no nested exports
-  NamedNestedExports(&'a [Atom]),    // prefetch with named exports and its nested chain
-  NamedNestedAllExports(&'a [Atom]), // prefetch with named nested exports and all exports on its chain
+  Default,                              // prefetch without exports
+  NamedExports(Vec<&'a Atom>),          // prefetch with named exports but no nested exports
+  AllExports,                           // prefetch with all exports but no nested exports
+  NamedNestedExports(Vec<&'a Atom>),    // prefetch with named exports and its nested chain
+  NamedNestedAllExports(Vec<&'a Atom>), // prefetch with named nested exports and all exports on its chain
 }
 
 /**
@@ -377,8 +377,8 @@ impl ExportsInfoGetter {
       let exports_info = id.as_data(mg);
       let exports = match mode {
         PrefetchExportsInfoMode::Default => IndexMap::new(),
-        PrefetchExportsInfoMode::NamedExports(names) => {
-          let names = names.iter().collect::<HashSet<_>>();
+        PrefetchExportsInfoMode::NamedExports(ref names) => {
+          let names = names.iter().copied().collect::<HashSet<_>>();
           let mut exports = IndexMap::new();
           for (key, value) in exports_info.exports.iter() {
             if !names.contains(key) {
@@ -407,17 +407,17 @@ impl ExportsInfoGetter {
           }
           exports
         }
-        PrefetchExportsInfoMode::NamedNestedExports(names) => {
+        PrefetchExportsInfoMode::NamedNestedExports(ref names) => {
           let mut exports = IndexMap::new();
           if let Some(name) = names.first() {
-            if let Some(export_info) = exports_info.exports.get(name) {
+            if let Some(export_info) = exports_info.exports.get(*name) {
               let export_info = export_info.as_data(mg);
-              let nested_mode = PrefetchExportsInfoMode::NamedNestedExports(&names[1..]);
+              let nested_mode = PrefetchExportsInfoMode::NamedNestedExports(names[1..].to_vec());
               if let Some(nested_exports_info) = export_info.exports_info {
                 prefetch_exports(&nested_exports_info, mg, res, nested_mode);
               }
               exports.insert(
-                name,
+                *name,
                 PrefetchedExportInfoData {
                   inner: export_info,
                   // exports_info: export_info_data.exports_info,
@@ -427,14 +427,15 @@ impl ExportsInfoGetter {
           }
           exports
         }
-        PrefetchExportsInfoMode::NamedNestedAllExports(names) => {
+        PrefetchExportsInfoMode::NamedNestedAllExports(ref names) => {
           let mut exports = IndexMap::new();
           for (key, value) in exports_info.exports.iter() {
             let export_info = value.as_data(mg);
 
-            if names.first().is_some_and(|name| name == key) {
+            if names.first().is_some_and(|name| *name == key) {
               if let Some(nested_exports_info) = export_info.exports_info {
-                let nested_mode = PrefetchExportsInfoMode::NamedNestedAllExports(&names[1..]);
+                let nested_mode =
+                  PrefetchExportsInfoMode::NamedNestedAllExports(names[1..].to_vec());
                 prefetch_exports(&nested_exports_info, mg, res, nested_mode);
               }
             }

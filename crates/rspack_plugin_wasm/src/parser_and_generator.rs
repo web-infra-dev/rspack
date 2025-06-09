@@ -201,10 +201,11 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                 .expect("should be wasm import dependency");
 
               let dep_name = serde_json::to_string(dep.name()).expect("should be ok.");
+              let name = Atom::from(dep.name());
               let Some(UsedName::Normal(used_name)) = ExportsInfoGetter::get_used_name(
                 &module_graph.get_prefetched_exports_info(
                   &mgm.module_identifier,
-                  PrefetchExportsInfoMode::NamedExports(&[dep.name().into()]),
+                  PrefetchExportsInfoMode::NamedExports(vec![&name]),
                 ),
                 *runtime,
                 &[dep.name().into()],

@@ -1159,7 +1159,7 @@ impl<'a> ModuleGraph<'a> {
       let exports_info = ExportsInfoGetter::prefetch(
         &mgm.exports,
         self,
-        PrefetchExportsInfoMode::NamedNestedExports(names),
+        PrefetchExportsInfoMode::NamedNestedExports(names.iter().collect::<Vec<_>>()),
       );
       ExportsInfoGetter::is_export_provided(&exports_info, names)
     })

@@ -12,8 +12,8 @@ use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  ConnectionState, DependencyCondition, DependencyConditionFn, DependencyId, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
+  ConnectionState, DependencyCondition, DependencyConditionFn, DependencyId, ExportsInfoGetter,
+  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, PrefetchExportsInfoMode, RuntimeSpec,
 };
 
 pub static NEXT_EXPORTS_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
@@ -145,9 +145,14 @@ impl DependencyConditionFn for UsedByExportsDependencyCondition {
     let module_identifier = mg
       .get_parent_module(&self.dependency_id)
       .expect("should have parent module");
-    let exports_info = mg.get_exports_info(module_identifier);
+    let names = self.used_by_exports.iter().collect::<Vec<_>>();
+    let exports_info = mg.get_prefetched_exports_info(
+      module_identifier,
+      PrefetchExportsInfoMode::NamedExports(names),
+    );
     for export_name in self.used_by_exports.iter() {
-      if exports_info.get_used(mg, std::slice::from_ref(export_name), runtime) != UsageState::Unused
+      if ExportsInfoGetter::get_used(&exports_info, std::slice::from_ref(export_name), runtime)
+        != UsageState::Unused
       {
         return ConnectionState::Active(true);
       }

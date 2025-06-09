@@ -442,7 +442,7 @@ fn get_exports_type_impl(
         let name = Atom::from("__esModule");
         let exports_info = mg.get_prefetched_exports_info_optional(
           &identifier,
-          PrefetchExportsInfoMode::NamedExports(std::slice::from_ref(&name)),
+          PrefetchExportsInfoMode::NamedExports(vec![&name]),
         );
         if let Some(export_info) = exports_info
           .as_ref()

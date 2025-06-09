@@ -110,7 +110,7 @@ impl ExportInfoDependency {
         let exports_info_data = ExportsInfoGetter::prefetch(
           &exports_info,
           &module_graph,
-          PrefetchExportsInfoMode::NamedNestedExports(export_name),
+          PrefetchExportsInfoMode::NamedNestedExports(export_name.iter().collect::<Vec<_>>()),
         );
         ExportsInfoGetter::is_export_provided(&exports_info_data, export_name).map(|provided| {
           (match provided {
