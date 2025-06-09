@@ -398,11 +398,7 @@ export declare class JsStats {
 }
 
 export declare class KnownBuildInfo {
-  get _assets(): Assets
-  get _fileDependencies(): Array<string>
-  get _contextDependencies(): Array<string>
-  get _missingDependencies(): Array<string>
-  get _buildDependencies(): Array<string>
+
 }
 
 export declare class Module {
