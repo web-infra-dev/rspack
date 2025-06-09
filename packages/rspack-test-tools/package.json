@@ -16,7 +16,7 @@
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json",
     "dev": "tsc -b -w",
-    "test": "cross-env RUST_BACKTRACE=full pnpm run --stream /^test:.*/",
+    "test": "cross-env RUST_BACKTRACE=full pnpm run --stream /^test:.*/ -t watch/entries/dynamic-entries",
     "testu": "pnpm run --stream /^test:.*/ -u",
     "test:base": "cross-env node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.js --passWithNoTests",
     "test:hot": "cross-env RSPACK_HOT_TEST=true node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.hot.js --passWithNoTests",
