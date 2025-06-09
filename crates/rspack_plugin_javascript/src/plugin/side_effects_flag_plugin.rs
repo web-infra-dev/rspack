@@ -854,7 +854,7 @@ fn can_optimize_connection(
   {
     let exports_info = module_graph.get_prefetched_exports_info(
       &original_module,
-      PrefetchExportsInfoMode::NamedExports(vec![name]),
+      PrefetchExportsInfoMode::NamedExports(std::slice::from_ref(name)),
     );
     let export_info = exports_info.get_export_info_without_mut_module_graph(name);
 
@@ -900,7 +900,7 @@ fn can_optimize_connection(
   {
     let exports_info = module_graph.get_prefetched_exports_info(
       connection.module_identifier(),
-      PrefetchExportsInfoMode::NamedExports(vec![&ids[0]]),
+      PrefetchExportsInfoMode::NamedExports(std::slice::from_ref(&ids[0])),
     );
     let export_info = exports_info.get_export_info_without_mut_module_graph(&ids[0]);
 

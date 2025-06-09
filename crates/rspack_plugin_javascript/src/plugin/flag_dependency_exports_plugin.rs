@@ -315,7 +315,7 @@ impl<'a> FlagDependencyExportsState<'a> {
         let target_module_exports_info = self.mg.get_prefetched_exports_info(
           &target.module,
           if let Some(names) = &target.export {
-            PrefetchExportsInfoMode::NamedNestedExports(names.iter().collect::<Vec<_>>())
+            PrefetchExportsInfoMode::NamedNestedExports(names)
           } else {
             PrefetchExportsInfoMode::Default
           },

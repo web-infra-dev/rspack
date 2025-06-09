@@ -205,7 +205,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
               let Some(UsedName::Normal(used_name)) = ExportsInfoGetter::get_used_name(
                 &module_graph.get_prefetched_exports_info(
                   &mgm.module_identifier,
-                  PrefetchExportsInfoMode::NamedExports(vec![&name]),
+                  PrefetchExportsInfoMode::NamedExports(std::slice::from_ref(&name)),
                 ),
                 *runtime,
                 &[dep.name().into()],

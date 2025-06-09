@@ -211,7 +211,7 @@ pub fn export_from_import(
     let Some(used_name) = ExportsInfoGetter::get_used_name(
       &compilation.get_module_graph().get_prefetched_exports_info(
         &module_identifier,
-        PrefetchExportsInfoMode::NamedNestedExports(export_name.iter().collect::<Vec<_>>()),
+        PrefetchExportsInfoMode::NamedNestedExports(export_name),
       ),
       *runtime,
       export_name,

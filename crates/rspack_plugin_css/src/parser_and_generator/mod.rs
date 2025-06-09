@@ -700,7 +700,7 @@ fn get_used_exports<'a>(
 
   let exports_info = mg.get_prefetched_exports_info_optional(
     &identifier,
-    PrefetchExportsInfoMode::NamedExports(exports_names.iter().collect::<Vec<_>>()),
+    PrefetchExportsInfoMode::NamedExports(&exports_names),
   );
 
   exports
@@ -738,7 +738,7 @@ fn get_unused_local_ident(
     .collect::<Vec<_>>();
   let exports_info = mg.get_prefetched_exports_info_optional(
     &identifier,
-    PrefetchExportsInfoMode::NamedExports(exports_names.iter().collect::<Vec<_>>()),
+    PrefetchExportsInfoMode::NamedExports(&exports_names),
   );
 
   CodeGenerationDataUnusedLocalIdent {
