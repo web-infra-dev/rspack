@@ -83,6 +83,8 @@ export interface RspackError {
 	stack?: string;
 	hideStack?: boolean;
 }
+
+export type DependencyLocation = SyntheticDependencyLocation | RealDependencyLocation;
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */

@@ -2459,6 +2459,7 @@ export type Experiments = {
     rspackFuture?: RspackFutureOptions;
     buildHttp?: HttpUriOptions;
     parallelLoader?: boolean;
+    useInputFileSystem?: UseInputFileSystem;
 };
 
 // @public (undocumented)
@@ -2470,7 +2471,7 @@ interface Experiments_2 {
     CssChunkingPlugin: typeof CssChunkingPlugin;
     // (undocumented)
     globalTrace: {
-        register: (filter: string, layer: "chrome" | "logger", output: string) => Promise<void>;
+        register: (filter: string, layer: "logger" | "perfetto", output: string) => Promise<void>;
         cleanup: () => Promise<void>;
     };
     // (undocumented)
@@ -2516,6 +2517,8 @@ export interface ExperimentsNormalized {
     rspackFuture?: RspackFutureOptions;
     // (undocumented)
     topLevelAwait?: boolean;
+    // (undocumented)
+    useInputFileSystem?: false | RegExp[];
 }
 
 // @public (undocumented)
@@ -6594,6 +6597,7 @@ declare namespace rspackExports {
         Incremental,
         IncrementalPresets,
         HttpUriOptions,
+        UseInputFileSystem,
         Experiments,
         Watch,
         WatchOptions,
@@ -8854,6 +8858,9 @@ type UpdateOperator = "++" | "--";
 
 // @public
 type UsageStateType = 0 | 1 | 2 | 3 | 4;
+
+// @public
+export type UseInputFileSystem = false | RegExp[];
 
 // @public (undocumented)
 export const util: {

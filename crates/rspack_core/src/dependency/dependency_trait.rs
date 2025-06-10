@@ -8,11 +8,12 @@ use rspack_util::{atom::Atom, ext::AsAny};
 
 use super::{
   dependency_template::AsDependencyCodeGeneration, module_dependency::*, DependencyCategory,
-  DependencyId, DependencyLocation, DependencyRange, DependencyType, ExportsSpec,
+  DependencyId, DependencyRange, DependencyType, ExportsSpec,
 };
 use crate::{
   create_exports_object_referenced, AsContextDependency, ConnectionState, Context,
-  ExtendedReferencedExport, ImportAttributes, ModuleGraph, ModuleLayer, RuntimeSpec, UsedByExports,
+  DependencyLocation, ExtendedReferencedExport, ImportAttributes, ModuleGraph, ModuleLayer,
+  RuntimeSpec, UsedByExports,
 };
 
 #[derive(Debug, Clone, Copy)]

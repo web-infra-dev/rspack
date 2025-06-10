@@ -39,7 +39,7 @@
     "rimraf": "^5.0.10",
     "url-loader": "^4.1.1",
     "source-map": "^0.7.4",
-    "terser": "5.40.0",
+    "terser": "5.41.0",
     "terser-webpack-plugin": "^5.3.14",
     "ts-loader": "^9.5.2",
     "typescript": "^5.8.3"

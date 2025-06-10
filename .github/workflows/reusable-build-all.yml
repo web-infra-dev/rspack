@@ -45,7 +45,7 @@ jobs:
             runner: ${{ '"macos-latest"' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
-      ref: ${{ inputs.commit }}
+      ref: ${{ inputs.ref }}
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
       profile: ${{ inputs.profile }}

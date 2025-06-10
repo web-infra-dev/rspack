@@ -9,6 +9,5 @@ version           = "0.2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [features]
 [dependencies]
-rspack_tracing_chrome = { workspace = true }
-tracing               = { workspace = true }
-tracing-subscriber    = { workspace = true, features = ["env-filter"] }
+rspack_tracing_perfetto = { workspace = true }
+tracing-subscriber      = { workspace = true, features = ["env-filter", "json"] }

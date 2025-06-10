@@ -9,15 +9,19 @@ extern crate rspack_allocator;
 use std::{cell::RefCell, sync::Arc};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
+use fs_node::HybridFileSystem;
 use napi::{bindgen_prelude::*, CallContext};
 use rspack_collections::UkeyMap;
 use rspack_core::{
   BoxDependency, Compilation, CompilerId, EntryOptions, ModuleIdentifier, PluginExt,
 };
 use rspack_error::Diagnostic;
-use rspack_fs::IntermediateFileSystem;
+use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
 
-use crate::fs_node::{NodeFileSystem, ThreadsafeNodeFS};
+use crate::{
+  fs_node::{NodeFileSystem, ThreadsafeNodeFS},
+  trace_event::RawTraceEvent,
+};
 
 mod allocator;
 mod asset;
@@ -43,6 +47,7 @@ mod filename;
 mod fs_node;
 mod html;
 mod identifier;
+mod location;
 mod module;
 mod module_graph;
 mod module_graph_connection;
@@ -62,6 +67,7 @@ mod runtime;
 mod source;
 mod stats;
 mod swc;
+mod trace_event;
 mod utils;
 
 pub use asset::*;
@@ -83,6 +89,7 @@ pub use error::*;
 pub use exports_info::*;
 pub use filename::*;
 pub use html::*;
+pub use location::*;
 pub use module::*;
 pub use module_graph::*;
 pub use module_graph_connection::*;
@@ -98,7 +105,7 @@ use resolver_factory::*;
 pub use resource_data::*;
 pub use rsdoctor::*;
 use rspack_macros::rspack_version;
-use rspack_tracing::{ChromeTracer, StdoutTracer, Tracer};
+use rspack_tracing::{PerfettoTracer, StdoutTracer, TraceEvent, Tracer};
 pub use rstest::*;
 pub use runtime::*;
 use rustc_hash::FxHashMap;
@@ -141,11 +148,12 @@ impl JsCompiler {
     env: Env,
     mut this: This,
     compiler_path: String,
-    options: RawOptions,
+    mut options: RawOptions,
     builtin_plugins: Vec<BuiltinPlugin>,
     register_js_taps: RegisterJsTaps,
     output_filesystem: ThreadsafeNodeFS,
     intermediate_filesystem: Option<ThreadsafeNodeFS>,
+    input_filesystem: Option<ThreadsafeNodeFS>,
     mut resolver_factory_reference: Reference<JsResolverFactory>,
   ) -> Result<Self> {
     tracing::info!(name:"rspack_version", version = rspack_version!());
@@ -169,9 +177,35 @@ impl JsCompiler {
       bp.append_to(env, &mut this, &mut plugins)?;
     }
 
+    let use_input_fs = options.experiments.use_input_file_system.take();
     let compiler_options: rspack_core::CompilerOptions = options.try_into().to_napi_result()?;
 
     tracing::debug!(name:"normalized_options", options=?&compiler_options);
+
+    let input_file_system: Option<Arc<dyn ReadableFileSystem>> = input_filesystem.and_then(|fs| {
+      use_input_fs.and_then(|use_input_file_system| {
+        let node_fs = NodeFileSystem::new(fs).expect("Failed to create readable filesystem");
+
+        match use_input_file_system {
+          WithFalse::False => None,
+          WithFalse::True(allowlist) => {
+            if allowlist.is_empty() {
+              return None;
+            }
+            let binding: Arc<dyn ReadableFileSystem> = Arc::new(HybridFileSystem::new(
+              allowlist,
+              node_fs,
+              NativeFileSystem::new(compiler_options.resolve.pnp.unwrap_or(false)),
+            ));
+            Some(binding)
+          }
+        }
+      })
+    });
+
+    if let Some(fs) = &input_file_system {
+      resolver_factory_reference.input_filesystem = fs.clone();
+    }
 
     let resolver_factory =
       (*resolver_factory_reference).get_resolver_factory(compiler_options.resolve.clone());
@@ -199,7 +233,7 @@ impl JsCompiler {
           .to_napi_result_with_message(|e| format!("Failed to create writable filesystem: {e}"))?,
       )),
       intermediate_filesystem,
-      None,
+      input_file_system,
       Some(resolver_factory),
       Some(loader_resolver_factory),
     );
@@ -433,7 +467,6 @@ fn print_error_diagnostic(e: rspack_error::Error, colored: bool) -> String {
 thread_local! {
   static GLOBAL_TRACE_STATE: RefCell<TraceState> = const { RefCell::new(TraceState::Off) };
 }
-
 /**
  * Some code is modified based on
  * https://github.com/swc-project/swc/blob/d1d0607158ab40463d1b123fed52cc526eba8385/bindings/binding_core_node/src/util.rs#L29-L58
@@ -444,17 +477,17 @@ thread_local! {
 #[napi]
 pub fn register_global_trace(
   filter: String,
-  #[napi(ts_arg_type = "\"chrome\" | \"logger\" ")] layer: String,
+  #[napi(ts_arg_type = " \"logger\" | \"perfetto\" ")] layer: String,
   output: String,
 ) -> anyhow::Result<()> {
   GLOBAL_TRACE_STATE.with(|state| {
     let mut state = state.borrow_mut();
     if let TraceState::Off = *state {
       let mut tracer: Box<dyn Tracer> = match layer.as_str() {
-        "chrome" => Box::new(ChromeTracer::default()),
         "logger" => Box::new(StdoutTracer),
+        "perfetto"=> Box::new(PerfettoTracer::default()),
         _ => anyhow::bail!(
-          "Unexpected layer: {}, supported layers: 'chrome', 'logger', 'console' ",
+          "Unexpected layer: {}, supported layers:'logger', 'perfetto' ",
           layer
         ),
       };
@@ -486,6 +519,33 @@ pub fn cleanup_global_trace() {
       tracer.teardown();
     }
     *state = TraceState::Off;
+  });
+}
+// sync Node.js event to Rust side
+#[napi]
+pub fn sync_trace_event(events: Vec<RawTraceEvent>) {
+  use std::borrow::BorrowMut;
+  GLOBAL_TRACE_STATE.with(|state| {
+    let mut state = state.borrow_mut();
+    if let TraceState::On(tracer) = &mut **state.borrow_mut() {
+      tracer.sync_trace(
+        events
+          .into_iter()
+          .map(|event| TraceEvent {
+            name: event.name,
+            track_name: event.track_name,
+            process_name: event.process_name,
+            args: event
+              .args
+              .map(|args| args.into_iter().map(|(k, v)| (k, v.to_string())).collect()),
+            uuid: event.uuid,
+            ts: event.ts.get_u64().1,
+            ph: event.ph,
+            categories: event.categories,
+          })
+          .collect(),
+      );
+    }
   });
 }
 

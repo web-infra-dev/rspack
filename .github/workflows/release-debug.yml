@@ -61,6 +61,6 @@ jobs:
         run: |
           pnpm run build:js
           ./x version debug
-          ./x publish stable --dry-run --tag latest
+          ./x publish stable --tag latest
         env:
           NPM_TOKEN: ${{ secrets.RSPACK_CANARY_RELEASE_TOKEN }}

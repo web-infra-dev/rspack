@@ -20,7 +20,6 @@ module.exports = {
 		};
 	},
 	async check() {
-		console.log("--------", errors[0]);
 		expect(errors).toMatchInlineSnapshot(`
 		Array [
 		  Object {

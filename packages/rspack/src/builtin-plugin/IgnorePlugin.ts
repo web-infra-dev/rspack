@@ -4,6 +4,7 @@ import {
 } from "@rspack/binding";
 import { z } from "zod";
 
+import { anyFunction } from "../config/utils";
 import { validate } from "../util/validate";
 import { create } from "./base";
 
@@ -26,7 +27,7 @@ const IgnorePluginOptions = z.union([
 		resourceRegExp: z.instanceof(RegExp)
 	}),
 	z.object({
-		checkResource: z.function(z.tuple([z.string(), z.string()]), z.boolean())
+		checkResource: anyFunction
 	})
 ]) satisfies z.ZodType<IgnorePluginOptions>;
 

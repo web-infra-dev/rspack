@@ -4,8 +4,8 @@ use cow_utils::CowUtils;
 use miette::{GraphicalTheme, IntoDiagnostic, MietteDiagnostic};
 use rspack_cacheable::{cacheable, with::Unsupported};
 use rspack_collections::Identifier;
+use rspack_location::DependencyLocation;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
-use swc_core::common::{SourceMap, Span};
 
 use crate::{graphical::GraphicalReportHandler, Error};
 
