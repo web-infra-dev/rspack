@@ -50,7 +50,9 @@ module.exports = [
 		plugins: [
 			new RstestSimpleRuntimePlugin(),
 			new RstestPlugin({
-				injectModulePathName: true
+				injectModulePathName: true,
+				importMetaPathName: true,
+				hoistMockModule: true
 			})
 		]
 	},
