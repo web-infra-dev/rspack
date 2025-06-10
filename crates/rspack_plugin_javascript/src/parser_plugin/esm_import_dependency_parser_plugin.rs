@@ -94,6 +94,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       )));
     parser.unset_asi_position(import_decl.span_hi());
     Some(true)
+    // Some(false)
   }
 
   fn import_specifier(
@@ -116,6 +117,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       }),
     );
     Some(true)
+    // Some(false)
   }
 
   fn identifier(
@@ -165,6 +167,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     );
 
     Some(true)
+    // Some(false)
   }
 
   fn call_member_chain(
@@ -299,6 +302,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       }),
     );
 
+    // Some(false)
     Some(true)
   }
 }
