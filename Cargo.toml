@@ -197,7 +197,7 @@ rspack_storage                         = { version = "0.2.0", path = "crates/rsp
 rspack_swc_plugin_import               = { version = "0.2.0", path = "crates/swc_plugin_import" }
 rspack_testing                         = { version = "0.2.0", path = "crates/rspack_testing" }
 rspack_tracing                         = { version = "0.2.0", path = "crates/rspack_tracing" }
-rspack_tracing_chrome                  = { version = "0.2.0", path = "crates/rspack_tracing_chrome" }
+rspack_tracing_perfetto                = { version = "0.2.0", path = "crates/rspack_tracing_perfetto" }
 rspack_util                            = { version = "0.2.0", path = "crates/rspack_util" }
 
 [workspace.metadata.release]

@@ -2558,6 +2558,17 @@ export interface RawToOptions {
   absoluteFilename?: string
 }
 
+export interface RawTraceEvent {
+  name: string
+  trackName?: string
+  processName?: string
+  args?: Record<string, string>
+  uuid: number
+  ts: bigint
+  ph: string
+  categories?: Array<string>
+}
+
 export interface RawTrustedTypes {
   policyName?: string
   onPolicyCreationFailure?: string
@@ -2575,7 +2586,7 @@ export interface RealDependencyLocation {
  * Author Donny/강동윤
  * Copyright (c)
  */
-export declare function registerGlobalTrace(filter: string, layer: "chrome" | "logger" , output: string): void
+export declare function registerGlobalTrace(filter: string, layer:  "logger" | "perfetto" , output: string): void
 
 export declare enum RegisterJsTapKind {
   CompilerThisCompilation = 0,
@@ -2719,6 +2730,8 @@ export interface SourcePosition {
  * Usually it's used in test.
  */
 export declare function startAsyncRuntime(): void
+
+export declare function syncTraceEvent(events: Array<RawTraceEvent>): void
 
 export interface SyntheticDependencyLocation {
   name: string

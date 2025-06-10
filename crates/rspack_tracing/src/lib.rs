@@ -1,12 +1,12 @@
-mod chrome;
+mod perfetto;
 mod stdout;
 mod tracer;
 
 use std::{fs, io, path::PathBuf};
 
-pub use chrome::ChromeTracer;
+pub use perfetto::PerfettoTracer;
 pub use stdout::StdoutTracer;
-pub use tracer::Tracer;
+pub use tracer::{TraceEvent, Tracer};
 use tracing_subscriber::fmt::writer::BoxMakeWriter;
 pub(crate) enum TraceWriter {
   Stdout,
@@ -31,16 +31,6 @@ impl TraceWriter {
       TraceWriter::Stderr => BoxMakeWriter::new(io::stderr),
       TraceWriter::File { path } => {
         BoxMakeWriter::new(fs::File::create(path).expect("Failed to create trace file"))
-      }
-    }
-  }
-
-  pub fn writer(&self) -> Box<dyn io::Write + Send + 'static> {
-    match self {
-      TraceWriter::Stdout => Box::new(io::stdout()),
-      TraceWriter::Stderr => Box::new(io::stderr()),
-      TraceWriter::File { path } => {
-        Box::new(fs::File::create(path).expect("Failed to create trace file"))
       }
     }
   }

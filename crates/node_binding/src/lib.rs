@@ -18,7 +18,10 @@ use rspack_core::{
 use rspack_error::Diagnostic;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
 
-use crate::fs_node::{NodeFileSystem, ThreadsafeNodeFS};
+use crate::{
+  fs_node::{NodeFileSystem, ThreadsafeNodeFS},
+  trace_event::RawTraceEvent,
+};
 
 mod allocator;
 mod asset;
@@ -64,6 +67,7 @@ mod runtime;
 mod source;
 mod stats;
 mod swc;
+mod trace_event;
 mod utils;
 
 pub use asset::*;
@@ -101,7 +105,7 @@ use resolver_factory::*;
 pub use resource_data::*;
 pub use rsdoctor::*;
 use rspack_macros::rspack_version;
-use rspack_tracing::{ChromeTracer, StdoutTracer, Tracer};
+use rspack_tracing::{PerfettoTracer, StdoutTracer, TraceEvent, Tracer};
 pub use rstest::*;
 pub use runtime::*;
 use rustc_hash::FxHashMap;
@@ -463,7 +467,6 @@ fn print_error_diagnostic(e: rspack_error::Error, colored: bool) -> String {
 thread_local! {
   static GLOBAL_TRACE_STATE: RefCell<TraceState> = const { RefCell::new(TraceState::Off) };
 }
-
 /**
  * Some code is modified based on
  * https://github.com/swc-project/swc/blob/d1d0607158ab40463d1b123fed52cc526eba8385/bindings/binding_core_node/src/util.rs#L29-L58
@@ -474,17 +477,17 @@ thread_local! {
 #[napi]
 pub fn register_global_trace(
   filter: String,
-  #[napi(ts_arg_type = "\"chrome\" | \"logger\" ")] layer: String,
+  #[napi(ts_arg_type = " \"logger\" | \"perfetto\" ")] layer: String,
   output: String,
 ) -> anyhow::Result<()> {
   GLOBAL_TRACE_STATE.with(|state| {
     let mut state = state.borrow_mut();
     if let TraceState::Off = *state {
       let mut tracer: Box<dyn Tracer> = match layer.as_str() {
-        "chrome" => Box::new(ChromeTracer::default()),
         "logger" => Box::new(StdoutTracer),
+        "perfetto"=> Box::new(PerfettoTracer::default()),
         _ => anyhow::bail!(
-          "Unexpected layer: {}, supported layers: 'chrome', 'logger', 'console' ",
+          "Unexpected layer: {}, supported layers:'logger', 'perfetto' ",
           layer
         ),
       };
@@ -516,6 +519,33 @@ pub fn cleanup_global_trace() {
       tracer.teardown();
     }
     *state = TraceState::Off;
+  });
+}
+// sync Node.js event to Rust side
+#[napi]
+pub fn sync_trace_event(events: Vec<RawTraceEvent>) {
+  use std::borrow::BorrowMut;
+  GLOBAL_TRACE_STATE.with(|state| {
+    let mut state = state.borrow_mut();
+    if let TraceState::On(tracer) = &mut **state.borrow_mut() {
+      tracer.sync_trace(
+        events
+          .into_iter()
+          .map(|event| TraceEvent {
+            name: event.name,
+            track_name: event.track_name,
+            process_name: event.process_name,
+            args: event
+              .args
+              .map(|args| args.into_iter().map(|(k, v)| (k, v.to_string())).collect()),
+            uuid: event.uuid,
+            ts: event.ts.get_u64().1,
+            ph: event.ph,
+            categories: event.categories,
+          })
+          .collect(),
+      );
+    }
   });
 }
 

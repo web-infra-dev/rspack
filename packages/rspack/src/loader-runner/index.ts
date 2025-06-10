@@ -7,7 +7,7 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/loader-runner/blob/main/LICENSE
  */
-
+const LOADER_PROCESS_NAME = "Loader Analysis";
 import querystring from "node:querystring";
 
 import assert from "node:assert";
@@ -265,10 +265,16 @@ export async function runLoaders(
 	const pitch = loaderState === JsLoaderState.Pitching;
 
 	const { resource } = context;
+	const uuid = JavaScriptTracer.uuid();
+
 	JavaScriptTracer.startAsync({
-		name: `run_js_loaders${pitch ? ":pitch" : ":normal"}`,
+		name: "run_js_loaders",
+		processName: LOADER_PROCESS_NAME,
+		uuid,
+		ph: "b",
 		args: {
-			id2: resource
+			is_pitch: pitch,
+			resource: resource
 		}
 	});
 	const splittedResource = resource && parsePathQueryFragment(resource);
@@ -333,8 +339,12 @@ export async function runLoaders(
 	) {
 		JavaScriptTracer.startAsync({
 			name: "importModule",
+			processName: LOADER_PROCESS_NAME,
+
+			uuid,
 			args: {
-				id2: resource
+				is_pitch: pitch,
+				resource: resource
 			}
 		});
 		const options = userOptions ? userOptions : {};
@@ -347,8 +357,11 @@ export async function runLoaders(
 				if (err) {
 					JavaScriptTracer.endAsync({
 						name: "importModule",
+						processName: LOADER_PROCESS_NAME,
+						uuid,
 						args: {
-							id2: resource
+							is_pitch: pitch,
+							resource: resource
 						}
 					});
 					onError(err);
@@ -370,8 +383,11 @@ export async function runLoaders(
 					}
 					JavaScriptTracer.endAsync({
 						name: "importModule",
+						processName: LOADER_PROCESS_NAME,
+						uuid,
 						args: {
-							id2: resource
+							is_pitch: pitch,
+							resource: resource
 						}
 					});
 					if (res.error) {
@@ -958,11 +974,13 @@ export async function runLoaders(
 		const loaderName = extractLoaderName(currentLoaderObject!.request);
 		let result: any;
 		JavaScriptTracer.startAsync({
-			name: `js_loader:${pitch ? "pitch:" : ""}${loaderName}`,
-			cat: "rspack",
+			name: loaderName,
+			trackName: loaderName,
+			processName: LOADER_PROCESS_NAME,
+			uuid,
 			args: {
-				id2: resource,
-				"loader.request": currentLoaderObject?.request
+				is_pitch: pitch,
+				resource: resource
 			}
 		});
 		if (parallelism) {
@@ -981,10 +999,13 @@ export async function runLoaders(
 			result = (await runSyncOrAsync(fn, loaderContext, args)) || [];
 		}
 		JavaScriptTracer.endAsync({
-			name: `js_loader:${pitch ? "pitch:" : ""}${loaderName}`,
+			name: loaderName,
+			trackName: loaderName,
+			processName: LOADER_PROCESS_NAME,
+			uuid,
 			args: {
-				id2: resource,
-				"loader.request": currentLoaderObject?.request
+				is_pitch: pitch,
+				resource: resource
 			}
 		});
 		return result;
@@ -1097,9 +1118,11 @@ export async function runLoaders(
 					};
 	}
 	JavaScriptTracer.endAsync({
-		name: `run_js_loaders${pitch ? ":pitch" : ":normal"}`,
+		name: "run_js_loaders",
+		uuid,
 		args: {
-			id2: resource
+			is_pitch: pitch,
+			resource: resource
 		}
 	});
 
