@@ -148,7 +148,7 @@ impl DependencyConditionFn for UsedByExportsDependencyCondition {
     let names = self.used_by_exports.iter().cloned().collect::<Vec<_>>();
     let exports_info = mg.get_prefetched_exports_info(
       module_identifier,
-      PrefetchExportsInfoMode::NamedExports(&names),
+      PrefetchExportsInfoMode::NamedExports(names.iter().collect()),
     );
     for export_name in self.used_by_exports.iter() {
       if ExportsInfoGetter::get_used(&exports_info, std::slice::from_ref(export_name), runtime)

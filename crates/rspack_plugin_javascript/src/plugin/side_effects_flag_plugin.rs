@@ -14,6 +14,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{AssertUtf8, Utf8Path};
+use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
 use swc_core::{
   common::{comments, comments::Comments, Span, Spanned, SyntaxContext, GLOBALS},
@@ -854,7 +855,7 @@ fn can_optimize_connection(
   {
     let exports_info = module_graph.get_prefetched_exports_info(
       &original_module,
-      PrefetchExportsInfoMode::NamedExports(std::slice::from_ref(name)),
+      PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([name])),
     );
     let export_info = exports_info.get_export_info_without_mut_module_graph(name);
 
@@ -900,7 +901,7 @@ fn can_optimize_connection(
   {
     let exports_info = module_graph.get_prefetched_exports_info(
       connection.module_identifier(),
-      PrefetchExportsInfoMode::NamedExports(std::slice::from_ref(&ids[0])),
+      PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&ids[0]])),
     );
     let export_info = exports_info.get_export_info_without_mut_module_graph(&ids[0]);
 

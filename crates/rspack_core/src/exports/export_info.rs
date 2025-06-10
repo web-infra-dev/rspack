@@ -244,7 +244,7 @@ impl ExportInfoData {
       let name = &target.export.as_ref().expect("should have export")[0];
       let exports_info = mg.get_prefetched_exports_info(
         &target.module,
-        PrefetchExportsInfoMode::NamedExports(std::slice::from_ref(name)),
+        PrefetchExportsInfoMode::NamedExports(HashSet::from_iter([name])),
       );
       let export_info = exports_info.get_export_info_without_mut_module_graph(name);
       let export_info_hash_key = export_info.as_hash_key();
@@ -569,7 +569,7 @@ fn resolve_target(
 
       let exports_info = mg.get_prefetched_exports_info(
         &target.module,
-        PrefetchExportsInfoMode::NamedExports(std::slice::from_ref(name)),
+        PrefetchExportsInfoMode::NamedExports(HashSet::from_iter([name])),
       );
       let export_info = exports_info.get_export_info_without_mut_module_graph(name);
       let export_info_hash_key = export_info.as_hash_key();

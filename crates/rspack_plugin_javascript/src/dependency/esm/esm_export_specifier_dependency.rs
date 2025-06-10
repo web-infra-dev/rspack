@@ -10,6 +10,7 @@ use rspack_core::{
   ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, PrefetchExportsInfoMode,
   SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
 };
+use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
 
 // Create _webpack_require__.d(__webpack_exports__, {}) for each export.
@@ -142,7 +143,7 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
     let used_name = {
       let exports_info = module_graph.get_prefetched_exports_info(
         &module.identifier(),
-        PrefetchExportsInfoMode::NamedExports(std::slice::from_ref(&dep.name)),
+        PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&dep.name])),
       );
       let used_name =
         ExportsInfoGetter::get_used_name(&exports_info, *runtime, std::slice::from_ref(&dep.name));

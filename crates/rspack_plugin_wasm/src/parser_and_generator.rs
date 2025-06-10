@@ -18,7 +18,7 @@ use rspack_core::{
   UsedName,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use rspack_util::itoa;
+use rspack_util::{fx_hash::FxHashSet, itoa};
 use swc_core::atoms::Atom;
 use wasmparser::{Import, Parser, Payload};
 
@@ -205,7 +205,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
               let Some(UsedName::Normal(used_name)) = ExportsInfoGetter::get_used_name(
                 &module_graph.get_prefetched_exports_info(
                   &mgm.module_identifier,
-                  PrefetchExportsInfoMode::NamedExports(std::slice::from_ref(&name)),
+                  PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&name])),
                 ),
                 *runtime,
                 &[dep.name().into()],

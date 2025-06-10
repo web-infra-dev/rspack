@@ -81,7 +81,8 @@ impl CommonJsExportRequireDependency {
         .get_nested_exports_info(Some(ids))
         .map(|data| data.id);
 
-      imported_exports_info = nested.map(|id| nested_exports_info.redirect(id));
+      imported_exports_info =
+        nested.map(|id| ExportsInfoGetter::prefetch(&id, mg, PrefetchExportsInfoMode::AllExports));
     }
 
     let mut exports_info = Some(
@@ -99,7 +100,8 @@ impl CommonJsExportRequireDependency {
       let nested = nested_exports_info
         .get_nested_exports_info(Some(&self.names))
         .map(|data| data.id);
-      exports_info = nested.map(|id| nested_exports_info.redirect(id));
+      exports_info =
+        nested.map(|id| ExportsInfoGetter::prefetch(&id, mg, PrefetchExportsInfoMode::AllExports));
     };
 
     let no_extra_exports = imported_exports_info.as_ref().is_some_and(|data| {
@@ -319,7 +321,7 @@ impl Dependency for CommonJsExportRequireDependency {
       }
 
       match ExportInfoGetter::exports_info(export_info) {
-        Some(v) => exports_info = exports_info.redirect(v),
+        Some(v) => exports_info = exports_info.redirect(v, false),
         None => return get_full_result(),
       };
     }

@@ -341,7 +341,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
           maybe_exports_info = None;
           continue;
         };
-        maybe_exports_info = Some(exports_info.redirect(nested_exports_info));
+        maybe_exports_info = Some(exports_info.redirect(nested_exports_info, true));
       }
       let msg = format!(
         "export {} {} was not found in '{}'",

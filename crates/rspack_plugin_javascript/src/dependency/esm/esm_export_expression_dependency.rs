@@ -9,6 +9,7 @@ use rspack_core::{
   ModuleGraph, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SharedSourceMap,
   TemplateContext, TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
 };
+use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
 
 use crate::parser_plugin::JS_DEFAULT_KEYWORD;
@@ -165,7 +166,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       ExportsInfoGetter::get_used_name(
         &compilation.get_module_graph().get_prefetched_exports_info(
           module_identifier,
-          PrefetchExportsInfoMode::NamedExports(std::slice::from_ref(&name)),
+          PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&name])),
         ),
         *runtime,
         std::slice::from_ref(&name),
