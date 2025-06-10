@@ -8,7 +8,7 @@ export * from "./error";
 export * from "./hash";
 export * from "./hook";
 export * from "./hot";
-export * from "./hot-new-incremental";
+export * from "./hot-incremental";
 export * from "./hot-step";
 export * from "./multi";
 export * from "./normal";
