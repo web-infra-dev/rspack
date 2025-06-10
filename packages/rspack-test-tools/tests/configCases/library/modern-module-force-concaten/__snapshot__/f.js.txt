@@ -1,11 +1,11 @@
 import { createRequire as __WEBPACK_EXTERNAL_createRequire } from "node:module";
 var __webpack_modules__ = ({
-17: (function (module) {
+80: (function (module) {
 module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("path");
 
 }),
-441: (function (module, __unused_webpack_exports, __webpack_require__) {
-const path = __webpack_require__(17)
+687: (function (module, __unused_webpack_exports, __webpack_require__) {
+const path = __webpack_require__(80)
 
 module.exports = path.sep
 
@@ -67,7 +67,7 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
 /************************************************************************/
 
 // EXTERNAL MODULE: ./f/bar.cjs
-var bar = __webpack_require__(441);
+var bar = __webpack_require__(687);
 var bar_default = /*#__PURE__*/__webpack_require__.n(bar);
 ;// CONCATENATED MODULE: ./f/foo.js
 const foo = 'foo'

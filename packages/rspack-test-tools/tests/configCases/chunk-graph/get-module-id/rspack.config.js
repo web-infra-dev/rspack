@@ -33,6 +33,6 @@ module.exports = [
 		optimization: {
 			moduleIds: "deterministic"
 		},
-		plugins: [new Plugin([10])]
+		plugins: [new Plugin([973])]
 	}
 ];

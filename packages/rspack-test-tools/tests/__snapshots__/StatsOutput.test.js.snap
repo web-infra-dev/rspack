@@ -2,12 +2,12 @@
 
 exports[`statsOutput statsOutput/auxiliary-files-test should print correct stats for 1`] = `
 PublicPath: auto
-asset bundle.js xx KiB {909} [emitted] (name: main)
-asset 98396dbfd5c74c34.png 7 bytes ({909}) [emitted] [immutable] [from: raw.png] (auxiliary name: main)
+asset bundle.js xx KiB {873} [emitted] (name: main)
+asset 98396dbfd5c74c34.png 7 bytes ({873}) [emitted] [immutable] [from: raw.png] (auxiliary name: main)
 Entrypoint main xx KiB (7 bytes) = bundle.js xx KiB (98396dbfd5c74c34.png 7 bytes)
-chunk {909} (runtime: main) bundle.js (main) 7 bytes (asset) 159 bytes (javascript) xx KiB (runtime) [entry] [rendered]
+chunk {873} (runtime: main) bundle.js (main) 7 bytes (asset) 159 bytes (javascript) xx KiB (runtime) [entry] [rendered]
   > ./index main
-  ./index.js + 1 modules [686] 117 bytes {909} [depth 0] [code generated]
+  ./index.js + 1 modules [485] 117 bytes {873} [depth 0] [code generated]
     [no exports]
     [no exports used]
     entry ./index
@@ -15,11 +15,11 @@ chunk {909} (runtime: main) bundle.js (main) 7 bytes (asset) 159 bytes (javascri
     |   [no exports]
     |   [no exports used]
     |   ModuleConcatenation bailout: Module is an entry point
-    | ./raw.png [193] 42 bytes (javascript) 7 bytes (asset) {909} [depth 1] [built] [code generated]
+    | ./raw.png [778] 42 bytes (javascript) 7 bytes (asset) {873} [depth 1] [built] [code generated]
     |   [exports: default]
     |   [no exports used]
     |   esm import ./raw.png ./index.js 2:0-33
-  ./raw.png [193] 42 bytes (javascript) 7 bytes (asset) {909} [depth 1] [built] [code generated]
+  ./raw.png [778] 42 bytes (javascript) 7 bytes (asset) {873} [depth 1] [built] [code generated]
     [exports: default]
     [no exports used]
     esm import ./raw.png ./index.js 2:0-33
@@ -32,9 +32,9 @@ modules by path ./ 235 bytes (javascript) 7 bytes (asset)
     ./stringModule.js 1 bytes [depth 1] [orphan] [built]
       [module unused]
       ModuleConcatenation bailout: Module is not an ECMAScript module
-      esm import ./stringModule [686] ./index.js 1:0-41
+      esm import ./stringModule [485] ./index.js 1:0-41
   code generated modules 159 bytes (javascript) 7 bytes (asset) [code generated]
-    ./index.js + 1 modules [686] 117 bytes {909} [depth 0] [code generated]
+    ./index.js + 1 modules [485] 117 bytes {873} [depth 0] [code generated]
       [no exports]
       [no exports used]
       entry ./index
@@ -42,23 +42,23 @@ modules by path ./ 235 bytes (javascript) 7 bytes (asset)
       |   [no exports]
       |   [no exports used]
       |   ModuleConcatenation bailout: Module is an entry point
-      | ./raw.png [193] 42 bytes (javascript) 7 bytes (asset) {909} [depth 1] [built] [code generated]
+      | ./raw.png [778] 42 bytes (javascript) 7 bytes (asset) {873} [depth 1] [built] [code generated]
       |   [exports: default]
       |   [no exports used]
       |   esm import ./raw.png ./index.js 2:0-33
-    ./raw.png [193] 42 bytes (javascript) 7 bytes (asset) {909} [depth 1] [built] [code generated]
+    ./raw.png [778] 42 bytes (javascript) 7 bytes (asset) {873} [depth 1] [built] [code generated]
       [exports: default]
       [no exports used]
       esm import ./raw.png ./index.js 2:0-33
 runtime modules xx KiB
-  webpack/runtime/auto_public_path xx KiB {909} [code generated]
+  webpack/runtime/auto_public_path xx KiB {873} [code generated]
     [no exports]
     [used exports unknown]
-  webpack/runtime/global 216 bytes {909} [code generated]
+  webpack/runtime/global 216 bytes {873} [code generated]
     [no exports]
     [used exports unknown]
   
-Rspack compiled successfully (cb468c46ad9d7f18)
+Rspack compiled successfully (1265bda9049482d4)
 `;
 
 exports[`statsOutput statsOutput/builtin-swc-loader-parse-error should print correct stats for 1`] = `
@@ -95,8 +95,8 @@ Rspack x.x.x compiled successfully in X s
 `;
 
 exports[`statsOutput statsOutput/filename should print correct stats for 1`] = `
-asset 909.xxxx.js xx KiB [emitted] (name: main)
-asset 521.xxxx.js 320 bytes [emitted]
+asset 873.xxxx.js xx KiB [emitted] (name: main)
+asset 465.xxxx.js 320 bytes [emitted]
 runtime modules xx KiB 11 modules
 cacheable modules 70 bytes
   ./index.js 38 bytes [built] [code generated]
@@ -142,50 +142,50 @@ Rspack compiled with 1 error
 exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct stats for 1`] = `
 1 chunks:
   asset bundle1.js xx KiB [emitted] (name: main)
-  chunk (runtime: main) bundle1.js (main) 219 bytes (javascript) xx KiB (runtime) <{909}> >{909}< [entry] [rendered]
+  chunk (runtime: main) bundle1.js (main) 219 bytes (javascript) xx KiB (runtime) <{873}> >{873}< [entry] [rendered]
     dependent modules 96 bytes [dependent] 4 modules
     ./index.js 123 bytes [built] [code generated]
   1 chunks (Rspack x.x.x) compiled successfully in X s
 
 2 chunks:
   asset bundle2.js xx KiB [emitted] (name: main)
-  asset 76.bundle2.js 491 bytes [emitted] (name: c)
-  chunk (runtime: main) 76.bundle2.js (c) 74 bytes <{76}> <{909}> >{76}< [rendered]
-    dependent modules 44 bytes [dependent] 2 modules
-    ./c.js 30 bytes [built] [code generated]
-  chunk (runtime: main) bundle2.js (main) 145 bytes (javascript) xx KiB (runtime) >{76}< [entry] [rendered]
+  asset 99.bundle2.js 491 bytes [emitted] (name: c)
+  chunk (runtime: main) bundle2.js (main) 145 bytes (javascript) xx KiB (runtime) >{99}< [entry] [rendered]
     dependent modules 22 bytes [dependent] 1 module
     ./index.js 123 bytes [built] [code generated]
+  chunk (runtime: main) 99.bundle2.js (c) 74 bytes <{873}> <{99}> >{99}< [rendered]
+    dependent modules 44 bytes [dependent] 2 modules
+    ./c.js 30 bytes [built] [code generated]
   2 chunks (Rspack x.x.x) compiled successfully in X s
 
 3 chunks:
   asset bundle3.js xx KiB [emitted] (name: main)
-  asset 76.bundle3.js 385 bytes [emitted] (name: c)
-  asset 345.bundle3.js 182 bytes [emitted]
-  chunk (runtime: main) 345.bundle3.js 44 bytes <{76}> [rendered]
+  asset 99.bundle3.js 385 bytes [emitted] (name: c)
+  asset 215.bundle3.js 182 bytes [emitted]
+  chunk (runtime: main) 215.bundle3.js 44 bytes <{99}> [rendered]
     ./d.js 22 bytes [built] [code generated]
     ./e.js 22 bytes [built] [code generated]
-  chunk (runtime: main) 76.bundle3.js (c) 30 bytes <{909}> >{345}< [rendered]
-    ./c.js 30 bytes [built] [code generated]
-  chunk (runtime: main) bundle3.js (main) 145 bytes (javascript) xx KiB (runtime) >{76}< [entry] [rendered]
+  chunk (runtime: main) bundle3.js (main) 145 bytes (javascript) xx KiB (runtime) >{99}< [entry] [rendered]
     dependent modules 22 bytes [dependent] 1 module
     ./index.js 123 bytes [built] [code generated]
+  chunk (runtime: main) 99.bundle3.js (c) 30 bytes <{873}> >{215}< [rendered]
+    ./c.js 30 bytes [built] [code generated]
   3 chunks (Rspack x.x.x) compiled successfully in X s
 
 4 chunks:
   asset bundle4.js xx KiB [emitted] (name: main)
-  asset 76.bundle4.js 385 bytes [emitted] (name: c)
-  asset 697.bundle4.js 128 bytes [emitted]
-  asset 753.bundle4.js 128 bytes [emitted]
-  chunk (runtime: main) 697.bundle4.js 22 bytes <{76}> [rendered]
-    ./e.js 22 bytes [built] [code generated]
-  chunk (runtime: main) 753.bundle4.js 22 bytes <{76}> [rendered]
+  asset 99.bundle4.js 384 bytes [emitted] (name: c)
+  asset 762.bundle4.js 128 bytes [emitted]
+  asset 95.bundle4.js 127 bytes [emitted]
+  chunk (runtime: main) 762.bundle4.js 22 bytes <{99}> [rendered]
     ./d.js 22 bytes [built] [code generated]
-  chunk (runtime: main) 76.bundle4.js (c) 30 bytes <{909}> >{697}< >{753}< [rendered]
-    ./c.js 30 bytes [built] [code generated]
-  chunk (runtime: main) bundle4.js (main) 145 bytes (javascript) xx KiB (runtime) >{76}< [entry] [rendered]
+  chunk (runtime: main) bundle4.js (main) 145 bytes (javascript) xx KiB (runtime) >{99}< [entry] [rendered]
     dependent modules 22 bytes [dependent] 1 module
     ./index.js 123 bytes [built] [code generated]
+  chunk (runtime: main) 95.bundle4.js 22 bytes <{99}> [rendered]
+    ./e.js 22 bytes [built] [code generated]
+  chunk (runtime: main) 99.bundle4.js (c) 30 bytes <{873}> >{762}< >{95}< [rendered]
+    ./c.js 30 bytes [built] [code generated]
   4 chunks (Rspack x.x.x) compiled successfully in X s
 `;
 
@@ -229,7 +229,7 @@ Rspack compiled with 2 errors
 
 exports[`statsOutput statsOutput/named-chunk-group should print correct stats for 1`] = `
 Entrypoint main xx KiB = main.js
-Chunk Group cimanyd 320 bytes = cimanyd.js
+Chunk Group cimanyd 319 bytes = cimanyd.js
 `;
 
 exports[`statsOutput statsOutput/nonexistent-import-source-error should print correct stats for 1`] = `
@@ -309,8 +309,8 @@ Rspack compiled with 1 error
 
 exports[`statsOutput statsOutput/performance-disabled should print correct stats for 1`] = `
 asset main.js xx KiB [emitted] (name: main)
-asset 697.js 128 bytes [emitted]
-asset 753.js 128 bytes [emitted]
+asset 762.js 128 bytes [emitted]
+asset 95.js 127 bytes [emitted]
 Entrypoint main xx KiB = main.js
 runtime modules xx KiB 12 modules
 cacheable modules xx KiB
@@ -325,8 +325,8 @@ Rspack x.x.x compiled successfully in X s
 
 exports[`statsOutput statsOutput/performance-error should print correct stats for 1`] = `
 asset main.js xx KiB [emitted] [big] (name: main)
-asset 697.js 128 bytes [emitted]
-asset 753.js 128 bytes [emitted]
+asset 762.js 128 bytes [emitted]
+asset 95.js 127 bytes [emitted]
 Entrypoint main [big] xx KiB = main.js
 runtime modules xx KiB 12 modules
 cacheable modules xx KiB
@@ -351,8 +351,8 @@ Rspack x.x.x compiled with 2 errors in X s
 
 exports[`statsOutput statsOutput/performance-no-hints should print correct stats for 1`] = `
 asset main.js xx KiB [emitted] [big] (name: main)
-asset 697.js 128 bytes [emitted]
-asset 753.js 128 bytes [emitted]
+asset 762.js 128 bytes [emitted]
+asset 95.js 127 bytes [emitted]
 Entrypoint main [big] xx KiB = main.js
 runtime modules xx KiB 12 modules
 cacheable modules xx KiB
@@ -366,17 +366,17 @@ Rspack x.x.x compiled successfully in X s
 `;
 
 exports[`statsOutput statsOutput/prefetch-preload-mixed should print correct stats for 1`] = `
-chunk (runtime: main) a1.js (a1) 1 bytes <{74}> [rendered]
-chunk (runtime: main) c2.js (c2) 1 bytes <{76}> [rendered]
-chunk (runtime: main) c1.js (c1) 1 bytes <{76}> [rendered]
-chunk (runtime: main) b3.js (b3) 1 bytes <{751}> [rendered]
-chunk (runtime: main) b2.js (b2) 1 bytes <{751}> [rendered]
-chunk (runtime: main) a.js (a) 136 bytes <{909}> >{330}< >{740}< (prefetch: {330} {740}) [rendered]
-chunk (runtime: main) a2.js (a2) 1 bytes <{74}> [rendered]
-chunk (runtime: main) b.js (b) 203 bytes <{909}> >{438}< >{439}< >{826}< (prefetch: {826} {438}) (preload: {439}) [rendered]
-chunk (runtime: main) c.js (c) 134 bytes <{909}> >{380}< >{433}< (preload: {433} {380}) [rendered]
-chunk (runtime: main) b1.js (b1) 1 bytes <{751}> [rendered]
-chunk (runtime: main) main.js (main) 195 bytes (javascript) xx KiB (runtime) >{74}< >{751}< >{76}< (prefetch: {74} {751} {76}) [entry] [rendered]
+chunk (runtime: main) a.js (a) 136 bytes <{873}> >{390}< >{547}< (prefetch: {390} {547}) [rendered]
+chunk (runtime: main) b3.js (b3) 1 bytes <{620}> [rendered]
+chunk (runtime: main) a1.js (a1) 1 bytes <{117}> [rendered]
+chunk (runtime: main) a2.js (a2) 1 bytes <{117}> [rendered]
+chunk (runtime: main) b.js (b) 203 bytes <{873}> >{147}< >{621}< >{668}< (prefetch: {621} {147}) (preload: {668}) [rendered]
+chunk (runtime: main) b1.js (b1) 1 bytes <{620}> [rendered]
+chunk (runtime: main) b2.js (b2) 1 bytes <{620}> [rendered]
+chunk (runtime: main) main.js (main) 195 bytes (javascript) xx KiB (runtime) >{117}< >{620}< >{99}< (prefetch: {117} {620} {99}) [entry] [rendered]
+chunk (runtime: main) c2.js (c2) 1 bytes <{99}> [rendered]
+chunk (runtime: main) c1.js (c1) 1 bytes <{99}> [rendered]
+chunk (runtime: main) c.js (c) 134 bytes <{873}> >{913}< >{952}< (preload: {952} {913}) [rendered]
 `;
 
 exports[`statsOutput statsOutput/reasons should print correct stats for 1`] = `
@@ -435,10 +435,10 @@ Rspack x.x.x compiled successfully in X s
 `;
 
 exports[`statsOutput statsOutput/side-effects-bailouts should print correct stats for 1`] = `
-asset main.js 177 bytes {909} [emitted] (name: main)
-chunk {909} (runtime: main) main.js (main) 91 bytes [entry] [rendered]
+asset main.js 177 bytes {873} [emitted] (name: main)
+chunk {873} (runtime: main) main.js (main) 91 bytes [entry] [rendered]
 orphan modules 91 bytes [orphan] 2 modules
-./index.js + 1 modules [911] 91 bytes {909} [code generated]
+./index.js + 1 modules [304] 91 bytes {873} [code generated]
   [no exports]
   [no exports used]
   entry ./index.js

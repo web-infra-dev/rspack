@@ -67,8 +67,8 @@ Array [
         40,
         123,
         10,
-        54,
-        48,
+        52,
+        57,
         48,
         58,
         32,
@@ -1022,8 +1022,8 @@ Array [
         95,
         95,
         40,
-        54,
-        48,
+        52,
+        57,
         48,
         41,
         59,
@@ -1040,7 +1040,7 @@ Array [
     "outputPath": "<HOOK_DIST_DIR>/compiler#assetEmitted/basic",
     "source": (() => { // webpackBootstrap
 var __webpack_modules__ = ({
-600: (function (module) {
+490: (function (module) {
 module.exports = "This is hook"
 
 
@@ -1075,7 +1075,7 @@ return module.exports;
 // startup
 // Load entry module and return exports
 // This entry module is referenced by other modules so it can't be inlined
-var __webpack_exports__ = __webpack_require__(600);
+var __webpack_exports__ = __webpack_require__(490);
 })()
 ;,
     "targetPath": "<HOOK_DIST_DIR>/compiler#assetEmitted/basic/main.js",
