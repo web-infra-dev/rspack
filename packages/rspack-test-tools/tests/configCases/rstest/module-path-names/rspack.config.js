@@ -14,7 +14,9 @@ module.exports = [
 		},
 		plugins: [
 			new RstestPlugin({
-				injectModulePathName: true
+				injectModulePathName: true,
+				importMetaPathName: true,
+				hoistMockModule: true
 			})
 		]
 	},
@@ -30,7 +32,9 @@ module.exports = [
 		},
 		plugins: [
 			new RstestPlugin({
-				injectModulePathName: true
+				injectModulePathName: true,
+				importMetaPathName: true,
+				hoistMockModule: true
 			})
 		],
 		optimization: {
