@@ -27,6 +27,7 @@ pub struct RstestPluginOptions {
   pub module_path_name: bool,
   pub hoist_mock_module: bool,
   pub import_meta_path_name: bool,
+  pub manual_mock_root: String,
 }
 
 #[derive(Debug)]
@@ -105,6 +106,7 @@ async fn nmf_parser(
       self.options.module_path_name,
       self.options.hoist_mock_module,
       self.options.import_meta_path_name,
+      self.options.manual_mock_root.clone(),
     )) as BoxJavascriptParserPlugin);
   }
 

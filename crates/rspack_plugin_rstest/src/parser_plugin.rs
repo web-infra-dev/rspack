@@ -1,3 +1,4 @@
+use camino::Utf8PathBuf;
 use rspack_core::{ConstDependency, SpanExt};
 use rspack_plugin_javascript::{
   utils::{self, eval},
@@ -6,7 +7,7 @@ use rspack_plugin_javascript::{
 };
 use rspack_util::json_stringify;
 use swc_core::{
-  common::Spanned,
+  common::{Span, Spanned},
   ecma::ast::{CallExpr, Ident, MemberExpr, UnaryExpr},
 };
 
@@ -33,21 +34,89 @@ pub struct RstestParserPlugin {
   pub module_path_name: bool,
   pub hoist_mock_module: bool,
   pub import_meta_path_name: bool,
+  pub manual_mock_root: String,
 }
 
 impl RstestParserPlugin {
-  pub fn new(module_path_name: bool, hoist_mock_module: bool, import_meta_path_name: bool) -> Self {
+  pub fn new(
+    module_path_name: bool,
+    hoist_mock_module: bool,
+    import_meta_path_name: bool,
+    manual_mock_root: String,
+  ) -> Self {
     Self {
       module_path_name,
       hoist_mock_module,
       import_meta_path_name,
+      manual_mock_root,
     }
   }
 
   fn process_hoist_mock(&self, parser: &mut JavascriptParser, call_expr: &CallExpr) {
     match call_expr.args.len() {
-      // TODO: mock a module to __mocks__
-      1 => {}
+      1 => {
+        let first_arg = &call_expr.args[0];
+        if let Some(lit) = first_arg.expr.as_lit() {
+          if let Some(lit) = lit.as_str() {
+            parser
+              .presentational_dependencies
+              .push(Box::new(MockHoistDependency::new(
+                call_expr.span(),
+                call_expr.callee.span(),
+                lit.value.to_string(),
+              )));
+
+            // Mock to alongside.
+            let path_buf = Utf8PathBuf::from(lit.value.to_string());
+            let is_relative_request = path_buf.starts_with("."); // TODO: consider alias?
+
+            let mocked_target = if is_relative_request {
+              // Mock relative request to alongside `__mocks__` directory.
+              path_buf
+                .parent()
+                .map(|p| {
+                  p.join("__mocks__")
+                    .join(path_buf.file_name().unwrap_or_default())
+                })
+                .unwrap_or_else(|| Utf8PathBuf::from("__mocks__").join(path_buf))
+            } else {
+              // Mock non-relative request to `manual_mock_root` directory.
+              Utf8PathBuf::from(&self.manual_mock_root).join(&path_buf)
+            };
+
+            // __webpack_require__.set_mock({a ,}{b});
+            // {a, }
+            if let Some(alongside_mock_request) = mocked_target.as_std_path().to_str() {
+              parser
+                .dependencies
+                .push(Box::new(MockModuleIdDependency::new(
+                  alongside_mock_request.to_string(),
+                  first_arg.span().into(),
+                  false,
+                  true,
+                  rspack_core::DependencyCategory::Esm,
+                  Some(", ".to_string()),
+                )));
+            }
+
+            // {b}
+            let span2 = Span::new(
+              first_arg.span().hi() + swc_core::common::BytePos(0),
+              first_arg.span().hi() + swc_core::common::BytePos(0),
+            );
+            parser
+              .dependencies
+              .push(Box::new(MockModuleIdDependency::new(
+                lit.value.to_string(),
+                span2.into(),
+                false,
+                true,
+                rspack_core::DependencyCategory::Esm,
+                None,
+              )));
+          }
+        }
+      }
       // mock a module
       2 => {
         let first_arg = &call_expr.args[0];
@@ -73,8 +142,11 @@ impl RstestParserPlugin {
                 lit.value.to_string(),
                 first_arg.span().into(),
                 false,
-                parser.in_try,
+                true,
                 rspack_core::DependencyCategory::Esm,
+                // MockType::MockFactory,
+                // lit.value.to_string(),
+                None,
               )));
           } else {
             panic!("`rs.mock` function expects a string literal as the first argument");

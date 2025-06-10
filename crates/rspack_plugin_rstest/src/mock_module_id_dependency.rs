@@ -16,6 +16,7 @@ pub struct MockModuleIdDependency {
   optional: bool,
   factorize_info: FactorizeInfo,
   category: DependencyCategory,
+  pub suffix: Option<String>,
 }
 
 impl MockModuleIdDependency {
@@ -25,15 +26,18 @@ impl MockModuleIdDependency {
     weak: bool,
     optional: bool,
     category: DependencyCategory,
+    suffix: Option<String>,
   ) -> Self {
     Self {
       range,
       request,
       weak,
+      // mock_type,
       optional,
       id: DependencyId::new(),
       factorize_info: Default::default(),
       category,
+      suffix, // original_request,
     }
   }
 }
@@ -134,13 +138,16 @@ impl DependencyTemplate for MockModuleIdDependencyTemplate {
     source.replace(
       dep.range.start,
       dep.range.end,
-      module_id(
-        code_generatable_context.compilation,
-        &dep.id,
-        &dep.request,
-        dep.weak,
-      )
-      .as_str(),
+      &format!(
+        "{}{}",
+        module_id(
+          code_generatable_context.compilation,
+          &dep.id,
+          &dep.request,
+          dep.weak,
+        ),
+        dep.suffix.as_deref().unwrap_or("")
+      ),
       None,
     );
   }
