@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rspack_error::{Diagnostic, ErrorLocation};
+use rspack_error::Diagnostic;
 use rspack_sources::BoxSource;
 
 use super::{add::AddTask, MakeTaskContext};

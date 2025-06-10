@@ -71,45 +71,13 @@ impl From<JsRspackSeverity> for miette::Severity {
   }
 }
 
-#[napi(object)]
-#[derive(Debug)]
-pub struct SourcePosition {
-  pub line: u32,
-  pub column: Option<u32>,
-}
-
-impl From<&rspack_error::SourcePosition> for SourcePosition {
-  fn from(value: &rspack_error::SourcePosition) -> Self {
-    Self {
-      line: value.line as u32,
-      column: Some(value.column as u32),
-    }
-  }
-}
-
-#[napi(object)]
-#[derive(Debug)]
-pub struct RealDependencyLocation {
-  pub start: SourcePosition,
-  pub end: Option<SourcePosition>,
-}
-
-impl From<&rspack_error::ErrorLocation> for RealDependencyLocation {
-  fn from(value: &rspack_error::ErrorLocation) -> Self {
-    Self {
-      start: value.start.into(),
-      end: value.end.as_ref().map(Into::into),
-    }
-  }
-}
-
 #[derive(Debug)]
 pub struct RspackError {
   pub name: String,
   pub message: String,
   pub stack: Option<String>,
   pub module: Option<ModuleObject>,
-  pub loc: Option<RealDependencyLocation>,
+  pub loc: Option<DependencyLocation>,
   pub hide_stack: Option<bool>,
   pub file: Option<String>,
   pub error: Option<Box<RspackError>>,
@@ -178,10 +146,7 @@ impl ToNapiValue for RspackError {
 
 impl FromNapiValue for RspackError {
   unsafe fn from_napi_value(env: napi_env, napi_val: napi_value) -> napi::Result<RspackError> {
-    #[allow(unused_variables)]
-    let env_wrapper = Env::from(env);
-    #[allow(unused_mut)]
-    let mut obj = Object::from_napi_value(env, napi_val)?;
+    let obj = Object::from_napi_value(env, napi_val)?;
     let name: String = obj
       .get("name")
       .map_err(|mut err| {
@@ -204,7 +169,7 @@ impl FromNapiValue for RspackError {
       err.reason = format!("{} on {}.{}", err.reason, "RspackError", "module");
       err
     })?;
-    let loc: Option<RealDependencyLocation> = obj.get("loc").map_err(|mut err| {
+    let loc: Option<DependencyLocation> = obj.get("loc").map_err(|mut err| {
       err.reason = format!("{} on {}.{}", err.reason, "RspackError", "loc");
       err
     })?;
@@ -251,7 +216,7 @@ impl std::fmt::Display for RspackError {
       } else {
         &self.message
       };
-      write!(f, "{}", message)
+      write!(f, "{message}")
     } else {
       write!(f, "{}", &self.message)
     }
@@ -276,7 +241,7 @@ impl From<&dyn miette::Diagnostic> for RspackError {
     }
 
     let mut message = value.to_string();
-    let prefix = format!("{}: ", name);
+    let prefix = format!("{name}: ");
     if message.starts_with(&prefix) {
       message = message[prefix.len()..].to_string();
     }
@@ -305,7 +270,6 @@ impl RspackError {
     compilation: &Compilation,
     diagnostic: &Diagnostic,
   ) -> napi::Result<Self> {
-    println!("Diagnostic: {:?}", diagnostic);
     let message = diagnostic.message();
 
     let mut module = None;
@@ -330,7 +294,7 @@ impl RspackError {
       message,
       stack: diagnostic.stack(),
       module,
-      loc: diagnostic.loc(),
+      loc: diagnostic.loc().map(Into::into),
       file: diagnostic.file().map(|f| f.as_str().to_string()),
       hide_stack: diagnostic.hide_stack(),
       error: error.map(Box::new),

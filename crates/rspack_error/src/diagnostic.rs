@@ -175,11 +175,11 @@ impl Diagnostic {
     self
   }
 
-  pub fn loc(&self) -> Option<&ErrorLocation> {
+  pub fn loc(&self) -> Option<&DependencyLocation> {
     self.loc.as_ref()
   }
 
-  pub fn with_loc(mut self, loc: Option<ErrorLocation>) -> Self {
+  pub fn with_loc(mut self, loc: Option<DependencyLocation>) -> Self {
     self.loc = loc;
     self
   }
