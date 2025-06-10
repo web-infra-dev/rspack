@@ -32,7 +32,7 @@ import type { ExternalObject } from '@rspack/binding';
 import { fs } from 'fs';
 import { default as fs_2 } from 'graceful-fs';
 import { HookMap } from '@rspack/lite-tapable';
-import { IncomingMessage as IncomingMessage_2 } from 'http';
+import { IncomingMessage } from 'http';
 import { inspect } from 'node:util';
 import type { JsAddingRuntimeModule } from '@rspack/binding';
 import type { JsAfterEmitData } from '@rspack/binding';
@@ -85,7 +85,7 @@ import { Server } from 'net';
 import { Server as Server_2 } from 'tls';
 import { Server as Server_3 } from 'http';
 import { ServerOptions as ServerOptions_2 } from 'https';
-import { ServerResponse as ServerResponse_2 } from 'http';
+import { ServerResponse } from 'http';
 import { SourceMapDevToolPluginOptions } from '@rspack/binding';
 import sources = require('../compiled/webpack-sources');
 import { StatSyncFn } from 'fs';
@@ -1809,7 +1809,7 @@ export { Dependency }
 type DependencyLocation = any;
 
 // @public (undocumented)
-type DevMiddlewareContext<RequestInternal extends IncomingMessage = IncomingMessage, ResponseInternal extends ServerResponse = ServerResponse> = {
+type DevMiddlewareContext<RequestInternal extends IncomingMessage_2 = IncomingMessage_2, ResponseInternal extends ServerResponse_2 = ServerResponse_2> = {
     state: boolean;
     stats: Stats | MultiStats | undefined;
     callbacks: Callback_2[];
@@ -1821,7 +1821,7 @@ type DevMiddlewareContext<RequestInternal extends IncomingMessage = IncomingMess
 };
 
 // @public (undocumented)
-type DevMiddlewareOptions<RequestInternal extends IncomingMessage = IncomingMessage, ResponseInternal extends ServerResponse = ServerResponse> = {
+type DevMiddlewareOptions<RequestInternal extends IncomingMessage_2 = IncomingMessage_2, ResponseInternal extends ServerResponse_2 = ServerResponse_2> = {
     mimeTypes?: {
         [key: string]: string;
     } | undefined;
@@ -1849,6 +1849,9 @@ export interface DevServer extends DevServerOptions {
 }
 
 // @public (undocumented)
+export type DevServerMiddleware<RequestInternal extends Request_2 = Request_2, ResponseInternal extends Response_2 = Response_2> = MiddlewareObject<RequestInternal, ResponseInternal> | MiddlewareHandler<RequestInternal, ResponseInternal>;
+
+// @public (undocumented)
 type DevServerOptions<A extends BasicApplication = BasicApplication, S extends BasicServer = Server_3<IncomingMessage, ServerResponse>> = {
     ipc?: string | boolean | undefined;
     host?: string | undefined;
@@ -1871,7 +1874,7 @@ type DevServerOptions<A extends BasicApplication = BasicApplication, S extends B
     client?: boolean | ClientConfiguration | undefined;
     headers?: Headers_2 | ((req: Request_2, res: Response_2, context: DevMiddlewareContext<Request_2, Response_2> | undefined) => Headers_2) | undefined;
     onListening?: ((devServer: Server_4) => void) | undefined;
-    setupMiddlewares?: ((middlewares: Middleware[], devServer: Server_4) => Middleware[]) | undefined;
+    setupMiddlewares?: ((middlewares: DevServerMiddleware[], devServer: Server_4) => DevServerMiddleware[]) | undefined;
 };
 
 // @public
@@ -3253,7 +3256,7 @@ interface ImportNamespaceSpecifier extends Node_4, HasSpan {
 type ImportSpecifier = NamedImportSpecifier | ImportDefaultSpecifier | ImportNamespaceSpecifier;
 
 // @public (undocumented)
-type IncomingMessage = IncomingMessage_2;
+type IncomingMessage_2 = IncomingMessage;
 
 // @public
 export type Incremental = {
@@ -4141,7 +4144,7 @@ interface LabeledStatement extends Node_4, HasSpan {
 export type Layer = string | null;
 
 // @public (undocumented)
-const lazyCompilationMiddleware: (compiler: Compiler, userOptions?: LazyCompilationOptions | boolean) => Middleware;
+const lazyCompilationMiddleware: (compiler: Compiler, userOptions?: LazyCompilationOptions | boolean) => DevServerMiddleware;
 
 // @public
 export type LazyCompilationOptions = {
@@ -4636,16 +4639,13 @@ interface MethodProperty extends PropBase, Fn {
 }
 
 // @public (undocumented)
-type Middleware = MiddlewareObject | MiddlewareHandler;
+type MiddlewareHandler<RequestInternal extends Request_2 = Request_2, ResponseInternal extends Response_2 = Response_2> = (req: RequestInternal, res: ResponseInternal, next: NextFunction) => void | Promise<void>;
 
 // @public (undocumented)
-type MiddlewareHandler = any;
-
-// @public (undocumented)
-type MiddlewareObject = {
+type MiddlewareObject<RequestInternal extends Request_2 = Request_2, ResponseInternal extends Response_2 = Response_2> = {
     name?: string;
     path?: string;
-    middleware: MiddlewareHandler;
+    middleware: MiddlewareHandler<RequestInternal, ResponseInternal>;
 };
 
 // @public (undocumented)
@@ -4658,7 +4658,7 @@ type MkdirSync = (path: PathLike, options: MakeDirectoryOptions) => undefined | 
 export type Mode = "development" | "production" | "none";
 
 // @public (undocumented)
-type ModifyResponseData<RequestInternal extends IncomingMessage = IncomingMessage, ResponseInternal extends ServerResponse = ServerResponse> = (req: RequestInternal, res: ResponseInternal, data: Buffer | ReadStream, byteLength: number) => ResponseData;
+type ModifyResponseData<RequestInternal extends IncomingMessage_2 = IncomingMessage_2, ResponseInternal extends ServerResponse_2 = ServerResponse_2> = (req: RequestInternal, res: ResponseInternal, data: Buffer | ReadStream, byteLength: number) => ResponseData;
 
 export { Module }
 
@@ -6030,7 +6030,7 @@ const RemoveDuplicateModulesPlugin: {
 };
 
 // @public (undocumented)
-type Request_2 = IncomingMessage;
+type Request_2 = IncomingMessage_2;
 
 // @public
 export type Resolve = ResolveOptions;
@@ -6135,7 +6135,7 @@ export type ResourceDataWithData = ResourceData & {
 };
 
 // @public (undocumented)
-type Response_2 = ServerResponse;
+type Response_2 = ServerResponse_2;
 
 // @public (undocumented)
 type ResponseData = {
@@ -6603,6 +6603,7 @@ declare namespace rspackExports {
         Watch,
         WatchOptions,
         DevServer,
+        DevServerMiddleware,
         IgnoreWarnings,
         Profile,
         Amd,
@@ -7050,7 +7051,7 @@ type ServerOptions = ServerOptions_2 & {
 };
 
 // @public (undocumented)
-type ServerResponse = ServerResponse_2;
+type ServerResponse_2 = ServerResponse;
 
 // @public (undocumented)
 type ServerType<A extends BasicApplication = BasicApplication, S extends BasicServer = Server_3<IncomingMessage, ServerResponse>> = "http" | "https" | "spdy" | "http2" | string | ((arg0: ServerOptions, arg1: A) => S);

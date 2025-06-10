@@ -2759,6 +2759,8 @@ export type WatchOptions = {
  * Options for devServer, it based on `webpack-dev-server@5`
  * */
 export interface DevServer extends DevServerOptions {}
+
+export type { Middleware as DevServerMiddleware } from "./devServer";
 //#endregion
 
 //#region IgnoreWarnings
