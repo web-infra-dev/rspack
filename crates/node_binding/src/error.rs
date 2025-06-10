@@ -7,7 +7,10 @@ use napi::{
 };
 use napi_derive::napi;
 use rspack_core::{diagnostics::ModuleBuildError, Compilation};
-use rspack_error::{miette, Diagnostic, DiagnosticExt, Error, Result, RspackSeverity};
+use rspack_error::{
+  miette::{self, LabeledSpan, MietteDiagnostic},
+  Diagnostic, DiagnosticExt, Error, Result, RspackSeverity,
+};
 use rspack_napi::napi::check_status;
 
 use crate::ModuleObject;
@@ -68,13 +71,45 @@ impl From<JsRspackSeverity> for miette::Severity {
   }
 }
 
+#[napi(object)]
+#[derive(Debug)]
+pub struct SourcePosition {
+  pub line: u32,
+  pub column: Option<u32>,
+}
+
+impl From<&rspack_error::SourcePosition> for SourcePosition {
+  fn from(value: &rspack_error::SourcePosition) -> Self {
+    Self {
+      line: value.line as u32,
+      column: Some(value.column as u32),
+    }
+  }
+}
+
+#[napi(object)]
+#[derive(Debug)]
+pub struct RealDependencyLocation {
+  pub start: SourcePosition,
+  pub end: Option<SourcePosition>,
+}
+
+impl From<&rspack_error::ErrorLocation> for RealDependencyLocation {
+  fn from(value: &rspack_error::ErrorLocation) -> Self {
+    Self {
+      start: value.start.into(),
+      end: value.end.as_ref().map(Into::into),
+    }
+  }
+}
+
 #[derive(Debug)]
 pub struct RspackError {
   pub name: String,
   pub message: String,
   pub stack: Option<String>,
   pub module: Option<ModuleObject>,
-  pub loc: Option<String>,
+  pub loc: Option<RealDependencyLocation>,
   pub hide_stack: Option<bool>,
   pub file: Option<String>,
   pub error: Option<Box<RspackError>>,
@@ -109,10 +144,10 @@ impl ToNapiValue for RspackError {
       ..
     } = val;
 
-    let message = env_wrapper.create_string(&message)?;
+    let js_string = env_wrapper.create_string(&message)?;
     let mut obj = ptr::null_mut();
     check_status!(unsafe {
-      sys::napi_create_error(env, ptr::null_mut(), message.raw(), &mut obj)
+      sys::napi_create_error(env, ptr::null_mut(), js_string.raw(), &mut obj)
     })?;
 
     let mut obj = Object::from_raw(env, obj);
@@ -169,7 +204,7 @@ impl FromNapiValue for RspackError {
       err.reason = format!("{} on {}.{}", err.reason, "RspackError", "module");
       err
     })?;
-    let loc: Option<String> = obj.get("loc").map_err(|mut err| {
+    let loc: Option<RealDependencyLocation> = obj.get("loc").map_err(|mut err| {
       err.reason = format!("{} on {}.{}", err.reason, "RspackError", "loc");
       err
     })?;
@@ -266,13 +301,12 @@ impl RspackError {
     self
   }
 
-  pub fn try_from_diagnostic(
+  pub fn try_from_top_level_diagnostic(
     compilation: &Compilation,
     diagnostic: &Diagnostic,
   ) -> napi::Result<Self> {
-    let message = diagnostic
-      .render_report(false)
-      .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    println!("Diagnostic: {:?}", diagnostic);
+    let message = diagnostic.message();
 
     let mut module = None;
     if let Some(module_identifier) = diagnostic.module_identifier() {
@@ -313,10 +347,11 @@ impl RspackError {
       };
       Diagnostic::from(ModuleBuildError::new(source).boxed())
     } else {
-      (match severity {
-        RspackSeverity::Error => Diagnostic::error,
-        RspackSeverity::Warn => Diagnostic::warn,
-      })(self.name, self.message)
+      let miette_diagnostic = MietteDiagnostic::new(self.message)
+        .with_code(self.name)
+        .with_label(LabeledSpan::new(None, 1, 1))
+        .with_severity(severity.into());
+      Diagnostic::from(miette_diagnostic.boxed())
     };
 
     diagnostic

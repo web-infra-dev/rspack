@@ -61,7 +61,7 @@ impl Diagnostics {
     diagnostics
       .iter()
       .filter(|diagnostic| diagnostic.severity() == self.severity)
-      .map(|diagnostic| RspackError::try_from_diagnostic(compilation, diagnostic))
+      .map(|diagnostic| RspackError::try_from_top_level_diagnostic(compilation, diagnostic))
       .collect::<napi::Result<Vec<RspackError>>>()
   }
 
@@ -79,7 +79,7 @@ impl Diagnostics {
       .nth(index as usize);
     Ok(match diagnostic {
       Some(diagnostic) => {
-        let js_rspack_error = RspackError::try_from_diagnostic(compilation, diagnostic)?;
+        let js_rspack_error = RspackError::try_from_top_level_diagnostic(compilation, diagnostic)?;
         Either::A(js_rspack_error)
       }
       None => Either::B(()),
@@ -193,7 +193,7 @@ impl Diagnostics {
 
     removed
       .into_iter()
-      .map(|d| RspackError::try_from_diagnostic(compilation, &d))
+      .map(|d| RspackError::try_from_top_level_diagnostic(compilation, &d))
       .collect::<napi::Result<Vec<_>>>()
   }
 }

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rspack_error::Diagnostic;
+use rspack_error::{Diagnostic, ErrorLocation};
 use rspack_sources::BoxSource;
 
 use super::{add::AddTask, MakeTaskContext};
@@ -94,8 +94,12 @@ impl Task<MakeTaskContext> for FactorizeTask {
         }
         create_data.diagnostics.insert(
           0,
-          Into::<Diagnostic>::into(e)
-            .with_loc(create_data.dependencies[0].loc().map(|loc| loc.to_string())),
+          Into::<Diagnostic>::into(e).with_loc(create_data.dependencies[0].loc().map(|loc| {
+            ErrorLocation {
+              start: loc.start.
+              end: todo!(),
+            }
+          })),
         );
         None
       }
