@@ -10,6 +10,8 @@ pub struct RawRstestPluginOptions {
   pub import_meta_path_name: bool,
   // Hoist mock module to the top of the module.
   pub hoist_mock_module: bool,
+  // Root of the manual mock directory.
+  pub manual_mock_root: String,
 }
 
 impl From<RawRstestPluginOptions> for RstestPluginOptions {
@@ -18,6 +20,7 @@ impl From<RawRstestPluginOptions> for RstestPluginOptions {
       module_path_name: value.inject_module_path_name,
       hoist_mock_module: value.hoist_mock_module,
       import_meta_path_name: value.import_meta_path_name,
+      manual_mock_root: value.manual_mock_root,
     }
   }
 }
