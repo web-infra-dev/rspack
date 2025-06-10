@@ -9,10 +9,10 @@ use rspack_core::{
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct CommonJsRequireDependency {
-  id: DependencyId,
-  request: String,
+  pub id: DependencyId,
+  pub request: String,
   optional: bool,
-  range: DependencyRange,
+  pub range: DependencyRange,
   range_expr: Option<DependencyRange>,
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
