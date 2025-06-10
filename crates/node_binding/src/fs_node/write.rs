@@ -1,12 +1,16 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use napi::{bindgen_prelude::Either3, Either};
-use rspack_fs::{
-  Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, ReadStream, Result,
-  RspackResultToFsResultExt, WritableFileSystem, WriteStream,
+use napi::{
+  bindgen_prelude::{block_on, Either3},
+  Either,
 };
-use rspack_paths::Utf8Path;
+use rspack_fs::{
+  Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, ReadStream,
+  ReadableFileSystem, Result, RspackResultToFsResultExt, WritableFileSystem, WriteStream,
+};
+use rspack_paths::{Utf8Path, Utf8PathBuf};
+use tracing::instrument;
 
 use super::node::ThreadsafeNodeFS;
 
@@ -150,6 +154,106 @@ impl IntermediateFileSystemExtras for NodeFileSystem {
 }
 
 impl IntermediateFileSystem for NodeFileSystem {}
+
+#[async_trait]
+impl ReadableFileSystem for NodeFileSystem {
+  #[instrument(skip(self), level = "debug")]
+  async fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+    self
+      .0
+      .read_file
+      .call_with_promise(path.as_str().to_string())
+      .await
+      .to_fs_result()
+      // TODO: simplify the return value?
+      .map(|result| match result {
+        Either3::A(buf) => buf.into(),
+        Either3::B(str) => str.into(),
+        Either3::C(_) => vec![],
+      })
+  }
+  #[instrument(skip(self), level = "debug")]
+  fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+    block_on(self.read(path))
+  }
+
+  #[instrument(skip(self), level = "debug")]
+  async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    let res = self
+      .0
+      .stat
+      .call_with_promise(path.as_str().to_string())
+      .await
+      .to_fs_result()?;
+    match res {
+      Either::A(stats) => Ok(stats.into()),
+      Either::B(_) => Err(Error::new(
+        std::io::ErrorKind::Other,
+        "input file system call stat failed",
+      )),
+    }
+  }
+
+  #[instrument(skip(self), level = "debug")]
+  fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    block_on(self.metadata(path))
+  }
+
+  #[instrument(skip(self), level = "debug")]
+  async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    let res = self
+      .0
+      .lstat
+      .call_with_promise(path.as_str().to_string())
+      .await
+      .to_fs_result()?;
+    match res {
+      Either::A(stats) => Ok(stats.into()),
+      Either::B(_) => Err(Error::new(
+        std::io::ErrorKind::Other,
+        "input file system call lstat failed",
+      )),
+    }
+  }
+
+  #[instrument(skip(self), level = "debug")]
+  async fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
+    let res = self
+      .0
+      .realpath
+      .call_with_promise(path.as_str().to_string())
+      .await
+      .to_fs_result()?;
+    match res {
+      Either::A(str) => Ok(Utf8PathBuf::from(str)),
+      Either::B(_) => Err(Error::new(
+        std::io::ErrorKind::Other,
+        "input file system call realpath failed",
+      )),
+    }
+  }
+
+  #[instrument(skip(self), level = "debug")]
+  async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+    let res = self
+      .0
+      .read_dir
+      .call_with_promise(dir.as_str().to_string())
+      .await
+      .to_fs_result()?;
+    match res {
+      Either::A(list) => Ok(list),
+      Either::B(_) => Err(Error::new(
+        std::io::ErrorKind::Other,
+        "input file system call read_dir failed",
+      )),
+    }
+  }
+  #[instrument(skip(self), level = "debug")]
+  fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+    block_on(ReadableFileSystem::read_dir(self, dir))
+  }
+}
 
 #[derive(Debug)]
 pub struct NodeReadStream {

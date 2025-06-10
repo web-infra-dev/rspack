@@ -1346,6 +1346,11 @@ const buildHttpOptions = z.object({
 	httpClient: anyFunction.optional()
 }) satisfies z.ZodType<t.HttpUriOptions>;
 
+const useInputFileSystem = z.union([
+	z.literal(false),
+	z.array(z.instanceof(RegExp))
+]) satisfies z.ZodType<t.UseInputFileSystem>;
+
 const experiments = z.strictObject({
 	cache: z.boolean().optional().or(experimentCacheOptions),
 	lazyCompilation: z.boolean().optional().or(lazyCompilationOptions),
@@ -1365,7 +1370,8 @@ const experiments = z.strictObject({
 	futureDefaults: z.boolean().optional(),
 	rspackFuture: rspackFutureOptions.optional(),
 	buildHttp: buildHttpOptions.optional(),
-	parallelLoader: z.boolean().optional()
+	parallelLoader: z.boolean().optional(),
+	useInputFileSystem: useInputFileSystem.optional()
 }) satisfies z.ZodType<t.Experiments>;
 //#endregion
 

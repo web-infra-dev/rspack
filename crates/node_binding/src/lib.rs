@@ -9,13 +9,14 @@ extern crate rspack_allocator;
 use std::{cell::RefCell, sync::Arc};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
+use fs_node::HybridFileSystem;
 use napi::{bindgen_prelude::*, CallContext};
 use rspack_collections::UkeyMap;
 use rspack_core::{
   BoxDependency, Compilation, CompilerId, EntryOptions, ModuleIdentifier, PluginExt,
 };
 use rspack_error::Diagnostic;
-use rspack_fs::IntermediateFileSystem;
+use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
 
 use crate::fs_node::{NodeFileSystem, ThreadsafeNodeFS};
 
@@ -143,11 +144,12 @@ impl JsCompiler {
     env: Env,
     mut this: This,
     compiler_path: String,
-    options: RawOptions,
+    mut options: RawOptions,
     builtin_plugins: Vec<BuiltinPlugin>,
     register_js_taps: RegisterJsTaps,
     output_filesystem: ThreadsafeNodeFS,
     intermediate_filesystem: Option<ThreadsafeNodeFS>,
+    input_filesystem: Option<ThreadsafeNodeFS>,
     mut resolver_factory_reference: Reference<JsResolverFactory>,
   ) -> Result<Self> {
     tracing::info!(name:"rspack_version", version = rspack_version!());
@@ -171,9 +173,35 @@ impl JsCompiler {
       bp.append_to(env, &mut this, &mut plugins)?;
     }
 
+    let use_input_fs = options.experiments.use_input_file_system.take();
     let compiler_options: rspack_core::CompilerOptions = options.try_into().to_napi_result()?;
 
     tracing::debug!(name:"normalized_options", options=?&compiler_options);
+
+    let input_file_system: Option<Arc<dyn ReadableFileSystem>> = input_filesystem.and_then(|fs| {
+      use_input_fs.and_then(|use_input_file_system| {
+        let node_fs = NodeFileSystem::new(fs).expect("Failed to create readable filesystem");
+
+        match use_input_file_system {
+          WithFalse::False => None,
+          WithFalse::True(allowlist) => {
+            if allowlist.is_empty() {
+              return None;
+            }
+            let binding: Arc<dyn ReadableFileSystem> = Arc::new(HybridFileSystem::new(
+              allowlist,
+              node_fs,
+              NativeFileSystem::new(compiler_options.resolve.pnp.unwrap_or(false)),
+            ));
+            Some(binding)
+          }
+        }
+      })
+    });
+
+    if let Some(fs) = &input_file_system {
+      resolver_factory_reference.input_filesystem = fs.clone();
+    }
 
     let resolver_factory =
       (*resolver_factory_reference).get_resolver_factory(compiler_options.resolve.clone());
@@ -201,7 +229,7 @@ impl JsCompiler {
           .to_napi_result_with_message(|e| format!("Failed to create writable filesystem: {e}"))?,
       )),
       intermediate_filesystem,
-      None,
+      input_file_system,
       Some(resolver_factory),
       Some(loader_resolver_factory),
     );
