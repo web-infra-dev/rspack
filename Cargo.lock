@@ -5525,6 +5525,7 @@ dependencies = [
  "concat-string",
  "cow-utils",
  "dashmap 6.1.0",
+ "fnv",
  "indexmap 2.7.1",
  "itoa",
  "regex",

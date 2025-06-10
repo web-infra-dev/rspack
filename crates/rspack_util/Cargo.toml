@@ -24,6 +24,7 @@ serde            = { workspace = true }
 serde_json       = { workspace = true }
 sugar_path       = { workspace = true }
 unicase          = { workspace = true }
+fnv              = { workspace = true }
 
 swc_config = { workspace = true }
 swc_core   = { workspace = true, features = ["base", "ecma_ast"] }
