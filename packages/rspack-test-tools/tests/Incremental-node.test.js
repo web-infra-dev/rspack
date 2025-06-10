@@ -4,22 +4,22 @@ process.env.RSPACK_CONFIG_VALIDATE = "loose-silent";
 const path = require("path");
 const {
 	describeByWalk,
-	createHotNewIncrementalCase
+	createHotIncrementalCase
 } = require("@rspack/test-tools");
 
 function v(name) {
-	return path.join(__dirname, `new-incremental ${name}`);
+	return path.join(__dirname, `incremental ${name}`);
 }
 
 // Run tests rspack-test-tools/tests/hotCases in target async-node
 describeByWalk(
 	v("hot async-node"),
 	(name, src, dist) => {
-		createHotNewIncrementalCase(name, src, dist, "async-node", false);
+		createHotIncrementalCase(name, src, dist, "async-node", false);
 	},
 	{
 		source: path.resolve(__dirname, "./hotCases"),
-		dist: path.resolve(__dirname, `./js/new-incremental/hot-async-node`),
+		dist: path.resolve(__dirname, `./js/incremental/hot-async-node`),
 		exclude: [/^css$/]
 	}
 );
@@ -28,13 +28,13 @@ describeByWalk(
 describeByWalk(
 	v("hot async-node (webpack-test)"),
 	(name, src, dist) => {
-		createHotNewIncrementalCase(name, src, dist, "async-node", true);
+		createHotIncrementalCase(name, src, dist, "async-node", true);
 	},
 	{
 		source: path.resolve(__dirname, "../../../tests/webpack-test/hotCases"),
 		dist: path.resolve(
 			__dirname,
-			`./js/new-incremental/webpack-test/hot-async-node`
+			`./js/incremental/webpack-test/hot-async-node`
 		),
 		exclude: [/require-disposed-module-warning/]
 	}
@@ -44,11 +44,11 @@ describeByWalk(
 describeByWalk(
 	v("hot node (webpack-test)"),
 	(name, src, dist) => {
-		createHotNewIncrementalCase(name, src, dist, "node", true);
+		createHotIncrementalCase(name, src, dist, "node", true);
 	},
 	{
 		source: path.resolve(__dirname, "../../../tests/webpack-test/hotCases"),
-		dist: path.resolve(__dirname, `./js/new-incremental/webpack-test/hot-node`),
+		dist: path.resolve(__dirname, `./js/incremental/webpack-test/hot-node`),
 		exclude: [/require-disposed-module-warning/]
 	}
 );
