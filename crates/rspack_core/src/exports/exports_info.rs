@@ -8,8 +8,7 @@ use serde::Serialize;
 
 use super::{
   ExportInfo, ExportInfoData, ExportInfoGetter, ExportInfoSetter, ExportProvided,
-  MaybeDynamicTargetExportInfo, ProvidedExports, UsageKey, UsageState, UsedExports, UsedName,
-  NEXT_EXPORTS_INFO_UKEY,
+  MaybeDynamicTargetExportInfo, UsageKey, UsageState, UsedName, NEXT_EXPORTS_INFO_UKEY,
 };
 use crate::{Compilation, DependencyId, ModuleGraph, Nullable, RuntimeSpec};
 
@@ -520,98 +519,6 @@ impl ExportsInfo {
     }
     arr.extend(names.iter().skip(1).cloned());
     Some(UsedName::Normal(arr))
-  }
-
-  pub fn get_provided_exports(&self, mg: &ModuleGraph) -> ProvidedExports {
-    let info = self.as_exports_info(mg);
-    let other_exports_info_data = info.other_exports_info.as_data(mg);
-    if info.redirect_to.is_none() {
-      match ExportInfoGetter::provided(other_exports_info_data) {
-        Some(ExportProvided::Unknown) => {
-          return ProvidedExports::ProvidedAll;
-        }
-        Some(ExportProvided::Provided) => {
-          return ProvidedExports::ProvidedAll;
-        }
-        None => {
-          return ProvidedExports::Unknown;
-        }
-        _ => {}
-      }
-    }
-    let mut ret = vec![];
-    for export_info_id in info.exports.values() {
-      let export_info = export_info_id.as_data(mg);
-      match export_info.provided {
-        Some(ExportProvided::Provided | ExportProvided::Unknown) | None => {
-          ret.push(export_info.name.clone().unwrap_or("".into()));
-        }
-        _ => {}
-      }
-    }
-    if let Some(exports_info) = info.redirect_to {
-      let provided_exports = exports_info.get_provided_exports(mg);
-      let inner = match provided_exports {
-        ProvidedExports::Unknown => return ProvidedExports::Unknown,
-        ProvidedExports::ProvidedAll => return ProvidedExports::ProvidedAll,
-        ProvidedExports::ProvidedNames(arr) => arr,
-      };
-      for item in inner {
-        if !ret.contains(&item) {
-          ret.push(item);
-        }
-      }
-    }
-    ProvidedExports::ProvidedNames(ret)
-  }
-
-  pub fn get_used_exports(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> UsedExports {
-    let info = self.as_exports_info(mg);
-    if info.redirect_to.is_none() {
-      match ExportInfoGetter::get_used(info.other_exports_info.as_data(mg), runtime) {
-        UsageState::NoInfo => return UsedExports::Unknown,
-        UsageState::Unknown | UsageState::OnlyPropertiesUsed | UsageState::Used => {
-          return UsedExports::UsedNamespace(true);
-        }
-        _ => (),
-      }
-    }
-
-    let mut res = vec![];
-    for export_info_id in info.exports.values() {
-      let export_info_id_data = export_info_id.as_data(mg);
-      let used = ExportInfoGetter::get_used(export_info_id_data, runtime);
-      match used {
-        UsageState::NoInfo => return UsedExports::Unknown,
-        UsageState::Unknown => return UsedExports::UsedNamespace(true),
-        UsageState::OnlyPropertiesUsed | UsageState::Used => {
-          if let Some(name) = export_info_id_data.name.clone() {
-            res.push(name);
-          }
-        }
-        _ => (),
-      }
-    }
-
-    if let Some(redirect) = info.redirect_to {
-      let inner = redirect.get_used_exports(mg, runtime);
-      match inner {
-        UsedExports::UsedNames(v) => res.extend(v),
-        UsedExports::Unknown | UsedExports::UsedNamespace(true) => return inner,
-        _ => (),
-      }
-    }
-
-    if res.is_empty() {
-      let used = ExportInfoGetter::get_used(info.side_effects_only_info.as_data(mg), runtime);
-      match used {
-        UsageState::NoInfo => return UsedExports::Unknown,
-        UsageState::Unused => return UsedExports::UsedNamespace(false),
-        _ => (),
-      }
-    }
-
-    UsedExports::UsedNames(res)
   }
 
   /// exports that are relevant (not unused and potential provided)
