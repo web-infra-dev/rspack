@@ -399,8 +399,11 @@ fn init() {
     thread,
   };
 
-  unsafe {
-    sftrace_setup::setup();
+  #[cfg(feature = "sftrace-setup")]
+  if std::env::var_os("SFTRACE_OUTPUT_FILE").is_some() {
+    unsafe {
+      sftrace_setup::setup();
+    }
   }
 
   panic::install_panic_handler();

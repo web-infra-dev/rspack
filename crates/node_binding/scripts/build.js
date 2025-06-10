@@ -38,6 +38,9 @@ async function build() {
 			"--pipe",
 			`"node ./scripts/dts-header.js"`
 		];
+		let features = [];
+		let envs = { ...process.env };
+
 		if (values.profile) {
 			args.push("--profile", values.profile);
 		}
@@ -52,15 +55,23 @@ async function build() {
 		}
 		if (!process.env.DISABLE_PLUGIN) {
 			args.push("--no-default-features");
-			args.push("--features plugin");
+			features.push("plugin");
 		}
 		args.push("--no-dts-cache");
+		if (values.profile === "release-debug") {
+			features.push("sftrace-setup");
+			envs.RUSTFLAGS = "-Zinstrument-xray=always";
+		}
+		if (features.length) {
+			args.push("--features " + features.join(","));
+		}
 
 		console.log(`Run command: napi ${args.join(" ")}`);
 
 		let cp = spawn("napi", args, {
 			stdio: "inherit",
-			shell: true
+			shell: true,
+			env: envs,
 		});
 
 		cp.on("error", reject);

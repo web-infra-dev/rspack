@@ -14,7 +14,6 @@ crate-type = ["cdylib"]
 plugin = ["rspack_loader_swc/plugin"]
 
 [dependencies]
-sftrace-setup            = { path = "../../../sftrace/setup" }
 anyhow                   = { workspace = true }
 browserslist-rs          = { workspace = true }
 ropey                    = { workspace = true }
@@ -112,9 +111,8 @@ ustr                                   = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["parking_lot"] }
-
 rspack_tracing = { workspace = true }
-
+sftrace-setup = { workspace = true, optional = true }
 
 [build-dependencies]
 napi-build = { workspace = true }
