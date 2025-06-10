@@ -457,7 +457,6 @@ pub fn register_global_trace(
     if let TraceState::Off = *state {
       let mut tracer: Box<dyn Tracer> = match layer.as_str() {
         "logger" => Box::new(StdoutTracer),
-        // chrome is just alias of perfetto
         "perfetto"=> Box::new(PerfettoTracer::default()),
         _ => anyhow::bail!(
           "Unexpected layer: {}, supported layers:'logger', 'perfetto' ",
