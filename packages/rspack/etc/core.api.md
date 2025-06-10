@@ -6296,6 +6296,7 @@ declare namespace rspackExports {
         StatsCompilation,
         StatsError,
         StatsModule,
+        StatsErrorCode,
         Stats,
         RuntimeModule,
         EntryDependency,
@@ -7343,7 +7344,7 @@ export type StatsCompilation = KnownStatsCompilation & Record<string, any>;
 export type StatsError = KnownStatsError & Record<string, any>;
 
 // @public (undocumented)
-enum StatsErrorCode {
+export enum StatsErrorCode {
     ChunkMinificationError = "ChunkMinificationError",
     ChunkMinificationWarning = "ChunkMinificationWarning",
     ModuleBuildError = "ModuleBuildError",

@@ -38,6 +38,7 @@ export type {
 	StatsError,
 	StatsModule
 } from "./Stats";
+export { StatsErrorCode } from "./stats/statsFactoryUtils";
 export { Stats } from "./Stats";
 export { RuntimeModule } from "./RuntimeModule";
 export {
