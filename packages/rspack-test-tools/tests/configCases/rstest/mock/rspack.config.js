@@ -1,3 +1,4 @@
+const path = require("path");
 const { RstestPlugin } = require("@rspack/core");
 
 class RstestSimpleRuntimePlugin {
@@ -50,7 +51,10 @@ module.exports = [
 		plugins: [
 			new RstestSimpleRuntimePlugin(),
 			new RstestPlugin({
-				injectModulePathName: true
+				injectModulePathName: true,
+				hoistMockModule: true,
+				importMetaPathName: true,
+				manualMockRoot: path.resolve(__dirname, "__mocks__")
 			})
 		]
 	},

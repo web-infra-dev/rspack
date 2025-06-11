@@ -9,6 +9,7 @@ version     = "0.2.0"
 
 [dependencies]
 async-trait              = { workspace = true }
+camino                   = { workspace = true }
 regex                    = { workspace = true }
 rspack_cacheable         = { workspace = true }
 rspack_core              = { workspace = true }
