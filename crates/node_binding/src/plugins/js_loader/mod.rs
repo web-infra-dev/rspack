@@ -150,6 +150,8 @@ impl JsLoaderRunnerGetter {
 pub(crate) struct JsLoaderRspackPlugin {
   compiler_id: once_cell::sync::OnceCell<CompilerId>,
   pub(crate) runner_getter: JsLoaderRunnerGetter,
+  /// This complex data structure is used to avoid deadlock when running loaders which contains `importModule`
+  /// See: https://github.com/web-infra-dev/rspack/pull/10632
   pub(crate) runner: Mutex<Arc<tokio::sync::OnceCell<JsLoaderRunner>>>,
   pub(crate) loaders_without_pitch: RwLock<FxHashSet<String>>,
 }
