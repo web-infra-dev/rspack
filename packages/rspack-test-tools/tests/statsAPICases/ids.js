@@ -17,9 +17,9 @@ module.exports = {
 		};
 		expect(stats?.toJson(options)).toMatchSnapshot();
 		expect(stats?.toString(options)).toMatchInlineSnapshot(`
-		asset main.js 204 bytes {909} [emitted] (name: main)
-		chunk {909} (runtime: main) main.js (main) 55 bytes [entry] [rendered]
-		./fixtures/a.js [585] 55 bytes {909} [built] [code generated]
+		asset main.js 204 bytes {889} [emitted] (name: main)
+		chunk {889} (runtime: main) main.js (main) 55 bytes [entry] [rendered]
+		./fixtures/a.js [195] 55 bytes {889} [built] [code generated]
 	`);
 	}
 };
