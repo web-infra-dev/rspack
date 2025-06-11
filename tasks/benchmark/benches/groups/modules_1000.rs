@@ -20,7 +20,7 @@ async fn basic_compile(production: bool) {
   let dir = std::env::var("CARGO_MANIFEST_DIR")
     .map(|dir| {
       PathBuf::from(dir)
-        .join("../../../.bench/rspack-benchcases")
+        .join("../../.bench/rspack-benchcases")
         .canonicalize()
         .unwrap()
     })
@@ -30,14 +30,14 @@ async fn basic_compile(production: bool) {
         .map(|workspace_root| PathBuf::from(workspace_root).join(".bench/rspack-benchcases")),
     )
     .unwrap()
-    .join("10000");
+    .join("1000");
 
   // dbg!(&dir);
 
   let mut builder = Compiler::builder();
   builder
     .context(dir.to_string_lossy().to_string())
-    .entry("main", "./index.jsx")
+    .entry("main", "./src/index.jsx")
     .module(ModuleOptions::builder().rule(ModuleRule {
       test: Some(RuleSetCondition::Regexp(
         RspackRegex::new("\\.(j|t)s(x)?$").unwrap(),
@@ -55,12 +55,8 @@ async fn basic_compile(production: bool) {
                     "react": {
                         "runtime": "automatic",
                     },
-                },
-                "externalHelpers": true,
+                }
             },
-            "env": {
-              "targets": "Chrome >= 48"
-            }
         }).to_string()),
       }]),
         ..Default::default()
@@ -94,16 +90,16 @@ async fn basic_compile(production: bool) {
     .is_empty());
 }
 
-pub fn modules_10000_benchmark(c: &mut Criterion) {
+pub fn modules_1000_benchmark(c: &mut Criterion) {
   let rt = Builder::new_multi_thread().build().unwrap();
 
-  c.bench_function("10000_production", |b| {
+  c.bench_function("1000_production", |b| {
     b.to_async(&rt).iter(|| basic_compile(true));
   });
 
-  c.bench_function("10000_development", |b| {
+  c.bench_function("1000_development", |b| {
     b.to_async(&rt).iter(|| basic_compile(false));
   });
 }
 
-criterion_group!(modules_10000, modules_10000_benchmark);
+criterion_group!(modules_1000, modules_1000_benchmark);
