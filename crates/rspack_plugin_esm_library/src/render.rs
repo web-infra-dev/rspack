@@ -2,26 +2,27 @@ use std::{borrow::Cow, collections::hash_map::Entry, sync::Arc};
 
 use rspack_collections::{IdentifierIndexSet, IdentifierMap, UkeyIndexMap, UkeyMap, UkeySet};
 use rspack_core::{
-  AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkUkey, Compilation, ConcatenatedModule,
-  ConcatenatedModuleIdent, ConcatenatedModuleInfo, ConcatenationScope, IdentCollector, ModuleInfo,
-  NAMESPACE_OBJECT_EXPORT, PathData, PathInfo, RuntimeGlobals, SourceType, SpanExt, find_new_name,
-  get_js_chunk_filename_template, property_access,
+  find_new_name, get_js_chunk_filename_template, property_access,
   reserved_names::RESERVED_NAMES,
   rspack_sources::{ConcatSource, RawSource, RawStringSource, ReplaceSource},
+  AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkUkey, Compilation, ConcatenatedModule,
+  ConcatenatedModuleIdent, ConcatenatedModuleInfo, ConcatenationScope, IdentCollector, ModuleInfo,
+  PathData, PathInfo, RuntimeGlobals, SourceType, SpanExt, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::Result;
 use rspack_javascript_compiler::ast::Ast;
 use rspack_plugin_javascript::{
-  RenderSource, render_bootstrap, render_require,
+  render_bootstrap, render_require,
   runtime::{render_chunk_runtime_modules, render_module, render_runtime_modules},
   visitors::swc_visitor::resolver,
+  RenderSource,
 };
 use rspack_util::{
   atom::Atom,
   fx_hash::{FxHashMap, FxHashSet, FxIndexSet},
 };
 
-use crate::{EsmLibraryPlugin, dependency::dyn_import::NAMESPACE_SYMBOL};
+use crate::{dependency::dyn_import::NAMESPACE_SYMBOL, EsmLibraryPlugin};
 impl EsmLibraryPlugin {
   pub(crate) fn get_runtime_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
     let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
@@ -154,6 +155,18 @@ impl EsmLibraryPlugin {
 
     // render cross module links
     let mut render_source = ConcatSource::default();
+
+    // render namespace before render module contents
+    for m in &chunk_link.hoisted_modules {
+      let info = concatenated_modules_map
+        .get(m)
+        .expect("should have info")
+        .as_concatenated();
+      if let Some(namespace) = &info.namespace_object_source {
+        render_source.add(RawStringSource::from(format!("{}\n", namespace)));
+      }
+    }
+
     for m in &chunk_link.hoisted_modules {
       let info = concatenated_modules_map
         .get(m)
@@ -178,18 +191,28 @@ impl EsmLibraryPlugin {
                   let imported_id = raw_binding.info_id;
                   let is_property_access = !raw_binding.ids.is_empty();
                   let symbol = &raw_binding.raw_name;
+
+                  let needs_require_module = matches!(
+                    concatenated_modules_map
+                      .get(&imported_id)
+                      .expect("should have info"),
+                    ModuleInfo::External(_)
+                  );
+
                   let local = if let Some(local) = required_symbols.get(&imported_id) {
                     local.clone()
                   } else if used_names.contains(symbol) {
                     let local = find_new_name(&symbol, &chunk_link.used_names, None, "");
                     used_names.insert(local.clone());
-                    required_symbols.insert(imported_id, local.clone());
                     local
                   } else {
                     used_names.insert(symbol.clone());
-                    required_symbols.insert(imported_id, symbol.clone());
                     symbol.clone()
                   };
+
+                  if needs_require_module {
+                    required_symbols.insert(imported_id, local.clone());
+                  }
 
                   let ref_chunk = Self::get_module_chunk(imported_id, compilation);
                   let reference = format!(
@@ -200,7 +223,7 @@ impl EsmLibraryPlugin {
                   );
 
                   let runtime_chunk = Self::get_runtime_chunk(*chunk_ukey, compilation);
-                  let require_symbol: swc_core::atoms::Atom = RuntimeGlobals::REQUIRE.name().into();
+                  let require_symbol: Atom = RuntimeGlobals::REQUIRE.name().into();
 
                   imported_chunks.insert(
                     runtime_chunk,
