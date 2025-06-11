@@ -5,10 +5,11 @@ use rspack_core::{
   property_access, rspack_sources::ReplacementEnforce, AsContextDependency, AsModuleDependency,
   Compilation, Dependency, DependencyCodeGeneration, DependencyId, DependencyLocation,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ESMExportInitFragment, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
-  RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
-  DEFAULT_EXPORT,
+  ESMExportInitFragment, ExportNameOrSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec,
+  ModuleGraph, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SharedSourceMap,
+  TemplateContext, TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
 };
+use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
 
 use crate::parser_plugin::JS_DEFAULT_KEYWORD;
@@ -161,10 +162,15 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       runtime: &Option<&RuntimeSpec>,
       module_identifier: &Identifier,
     ) -> Option<UsedName> {
-      let module_graph = compilation.get_module_graph();
-      module_graph
-        .get_exports_info(module_identifier)
-        .get_used_name(&module_graph, *runtime, &[name.into()])
+      let name = Atom::from(name);
+      ExportsInfoGetter::get_used_name(
+        &compilation.get_module_graph().get_prefetched_exports_info(
+          module_identifier,
+          PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&name])),
+        ),
+        *runtime,
+        std::slice::from_ref(&name),
+      )
     }
 
     if let Some(declaration) = &dep.declaration {

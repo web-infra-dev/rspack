@@ -7,9 +7,10 @@ use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ESMExportInitFragment, ExportNameOrSpec,
-  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, UsedName,
+  ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, PrefetchExportsInfoMode,
+  SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
 };
+use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
 
 // Create _webpack_require__.d(__webpack_exports__, {}) for each export.
@@ -140,9 +141,12 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       .expect("should have module graph module");
 
     let used_name = {
-      let exports_info = module_graph.get_exports_info(&module.identifier());
+      let exports_info = module_graph.get_prefetched_exports_info(
+        &module.identifier(),
+        PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&dep.name])),
+      );
       let used_name =
-        exports_info.get_used_name(&module_graph, *runtime, std::slice::from_ref(&dep.name));
+        ExportsInfoGetter::get_used_name(&exports_info, *runtime, std::slice::from_ref(&dep.name));
       used_name.map(|item| match item {
         UsedName::Normal(vec) => {
           // only have one value for export specifier dependency

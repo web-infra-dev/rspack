@@ -17,8 +17,8 @@ use crate::{
   ChunkUkey, CodeGenerationDataUrl, CodeGenerationResult, Compilation, ConcatenationScope, Context,
   DependenciesBlock, DependencyId, ExternalType, FactoryMeta, ImportAttributes, InitFragmentExt,
   InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleGraph, ModuleType,
-  NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, UsedExports, NAMESPACE_OBJECT_EXPORT,
+  NormalInitFragment, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec, UsedExports, NAMESPACE_OBJECT_EXPORT,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -429,8 +429,9 @@ impl ExternalModule {
           };
 
           if let Some(concatenation_scope) = concatenation_scope {
-            let exports_info = module_graph.get_exports_info(&self.identifier());
-            let used_exports = exports_info.get_used_exports(&module_graph, runtime);
+            let exports_info = module_graph
+              .get_prefetched_exports_info(&self.identifier(), PrefetchExportsInfoMode::AllExports);
+            let used_exports = exports_info.get_used_exports(runtime);
             let meta = &self.dependency_meta.attributes;
             let attributes = meta.as_ref().map(|meta| {
               format!(
