@@ -67,10 +67,6 @@ jobs:
         with:
           tool-cache: false
 
-      - name: Rm d.ts
-        run: |
-          rm -rf crates/node_binding/*.d.ts
-
       # Linux
       - name: Build x86_64-unknown-linux-gnu native
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && inputs.profile == 'ci' }}
