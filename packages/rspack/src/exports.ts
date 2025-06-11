@@ -339,7 +339,7 @@ import {
 import { JavaScriptTracer } from "./trace";
 
 ///// Experiments SWC /////
-import { minify, minifySync, transform, transformSync, } from "./swc";
+import { minify, minifySync, transform, transformSync } from "./swc";
 
 interface Experiments {
 	globalTrace: {
@@ -390,7 +390,7 @@ export const experiments: Experiments = {
 		minify,
 		transform,
 		minifySync,
-		transformSync,
+		transformSync
 	},
 	CssChunkingPlugin
 };

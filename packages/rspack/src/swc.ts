@@ -21,7 +21,6 @@ export function minifySync(
 	return binding.minifySync(source, _options);
 }
 
-
 export async function transform(
 	source: string,
 	options?: TransformOptions
@@ -38,4 +37,3 @@ export function transformSync(
 	const _options = JSON.stringify(options || {});
 	return binding.transformSync(source, _options);
 }
-
