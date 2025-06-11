@@ -24,3 +24,6 @@ tokio            = { workspace = true }
 [[bench]]
 harness = false
 name    = "benches"
+
+[package.metadata.cargo-shear]
+ignored = ["rspack_cacheable"]
