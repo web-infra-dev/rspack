@@ -1,5 +1,9 @@
 import type yargs from "yargs";
-
+// detect whether Node.js enable type strip or type transform feature
+function hasNativeTSSupport() {
+	// see https://nodejs.org/api/process.html#processfeaturestypescript
+	return !!process.features.typescript;
+}
 /**
  * Apply common options for all commands
  */
@@ -18,7 +22,8 @@ export const commonOptions = (yargs: yargs.Argv) => {
 		},
 		configLoader: {
 			type: "string",
-			default: "register",
+			// if Node.js enable native typescript support, use `native` as default, but user can override it
+			default: hasNativeTSSupport() ? "native" : "register",
 			describe:
 				"Specify the loader to load the config file, can be `native` or `register`."
 		},
