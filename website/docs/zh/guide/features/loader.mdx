@@ -2,15 +2,19 @@ import { Stability } from '@components/ApiMeta';
 
 # Loader
 
-Loader 可以对文件内容进行转换，你可以借助 Loader，将 Rspack 中非一等公民支持的文件转换为一等公民类型，以被 Rspack 所正确识别。
+Loader 是一种模块转换器，它将各种类型的模块转换为 Rspack 能够理解和打包的格式。通过 Loader，你可以扩展 Rspack 来支持处理额外的模块类型（如 JSX、Markdown、Sass、Less 等）。
 
-:::tip
+## 内置支持的模块
 
-Loader 属于对资源的前处理，而 [Rule.type](/config/module#ruletype) 则属于对资源的后处理，后者定义了 Rspack 支持的一等公民类型。
+Rspack 内置了对 JavaScript、CSS、JSON、静态资源等模块类型的支持，可以通过 [Rule.type](/config/module#ruletype) 来配置。
 
-:::
+Loader 用于对资源做前置处理，而 `Rule.type` 则用于对资源做后置处理。
 
-目前 Rspack 已经支持了社区几乎所有的 loader。如果你发现有不支持的 loader，欢迎通过 [GitHub Issues](https://github.com/web-infra-dev/rspack/issues) 与我们交流。
+## webpack loader 兼容
+
+Rspack 允许你使用社区中绝大多数的 webpack loaders。查看 [awesome-rspack - Rspack loaders](https://github.com/web-infra-dev/awesome-rspack?tab=readme-ov-file#rspack-loaders) 发现社区提供的 loaders。
+
+如果你发现有 Rspack 不支持的 loader，欢迎通过 [GitHub Issues](https://github.com/web-infra-dev/rspack/issues) 与我们交流。
 
 ## 开发 Loader
 
@@ -20,7 +24,7 @@ Loader 属于对资源的前处理，而 [Rule.type](/config/module#ruletype) �
 
 ### 使用 Less
 
-CSS 为 Rspack 的一等公民，因此对于 CSS 文件的处理是原生支持的。而对于 `Less` 文件来说，则需要借助外部的 [less-loader](https://github.com/webpack-contrib/less-loader) 对文件的内容做相应的转换：
+虽然 Rspack 内置了对 CSS 的支持，但对于 `.less` 文件来说，你需要借助外部的 [less-loader](https://github.com/webpack-contrib/less-loader) 对 `.less` 文件的内容做相应的转换：
 
 ```js title="rspack.config.mjs"
 export default {
