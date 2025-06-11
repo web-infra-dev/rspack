@@ -2,13 +2,11 @@ import { Stability } from '@components/ApiMeta';
 
 # Loader
 
-Loader 是一种模块转换器，它将各种类型的模块转换为 Rspack 能够理解和打包的格式。通过 Loader，你可以扩展 Rspack 来处理额外的模块类型（如 JSX、Markdown、Sass、Less 等）。
+Rspack 内置了对 JavaScript、CSS、JSON、静态资源等模块类型的支持。
 
-## 内置支持的模块
+Loader 是一种模块转换器，它将各种类型的模块转换为 Rspack 支持的类型。通过使用不同类型的 Loader，你可以扩展 Rspack 来处理额外的模块类型，例如 JSX、Markdown、Sass、Less 等。
 
-Rspack 内置了对 JavaScript、CSS、JSON、静态资源等模块类型的支持，可以通过 [Rule.type](/config/module#ruletype) 来配置。
-
-Loader 用于对资源做前置处理，而 `Rule.type` 则用于对资源做后置处理。
+Loader 对模块进行预处理，将它们转换为 Rspack 支持的类型，例如使用 [sass-loader](https://github.com/webpack-contrib/sass-loader) 将 Sass 文件转换为 CSS，或者使用 [builtin:swc-loader](/guide/features/builtin-swc-loader) 将 JSX 文件转换为 JavaScript。而配置 [Rule.type](/config/module#ruletype) 则可以指定如何对 Rspack 已内置支持的模块进行后置处理。
 
 ## webpack loader 兼容
 
@@ -24,7 +22,7 @@ Rspack 允许你使用社区中绝大多数的 webpack loaders。查看 [awesome
 
 ### 使用 Less
 
-虽然 Rspack 内置了对 CSS 的支持，但对于 `.less` 文件来说，你需要借助外部的 [less-loader](https://github.com/webpack-contrib/less-loader) 对 `.less` 文件的内容做相应的转换：
+你可以使用 [less-loader](https://github.com/webpack-contrib/less-loader) 对 `.less` 文件的内容做相应的转换：
 
 ```js title="rspack.config.mjs"
 export default {
