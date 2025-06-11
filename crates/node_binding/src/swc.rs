@@ -51,7 +51,9 @@ pub fn transform_sync(source: String, options: String) -> napi::Result<Transform
   if let Ok(handle) = tokio::runtime::Handle::try_current() {
     handle.block_on(future)
   } else {
-    tokio::runtime::Runtime::new().unwrap().block_on(future)
+    tokio::runtime::Runtime::new()
+      .map_err(|e| napi::Error::new(napi::Status::GenericFailure, e))?
+      .block_on(future)
   }
 }
 
