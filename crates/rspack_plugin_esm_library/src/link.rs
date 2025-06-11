@@ -6,11 +6,12 @@ use rspack_collections::{
   UkeySet,
 };
 use rspack_core::{
-  Binding, BoxModule, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkLinkContext,
-  ChunkUkey, Compilation, ConcatenatedModule, ConcatenatedModuleIdent, ConcatenatedModuleInfo,
-  ConcatenationScope, ExportInfoGetter, ExportProvided, IdentCollector, ModuleIdentifier,
-  ModuleInfo, RuntimeGlobals, SourceType, find_new_name, property_name,
-  reserved_names::RESERVED_NAMES, returning_function, rspack_sources::ReplaceSource,
+  find_new_name, property_name, reserved_names::RESERVED_NAMES, returning_function,
+  rspack_sources::ReplaceSource, Binding, BoxModule, BuildMetaDefaultObject, BuildMetaExportsType,
+  ChunkGraph, ChunkLinkContext, ChunkUkey, Compilation, ConcatenatedModule,
+  ConcatenatedModuleIdent, ConcatenatedModuleInfo, ConcatenationScope, ExportInfoGetter,
+  ExportProvided, IdentCollector, ModuleIdentifier, ModuleInfo, RuntimeGlobals, SourceType,
+  NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::Result;
 use rspack_javascript_compiler::ast::Ast;
@@ -23,7 +24,7 @@ use swc_core::{
   common::{FileName, SyntaxContext},
   ecma::{
     ast::{EsVersion, Program},
-    parser::{Syntax, parse_file_as_module},
+    parser::{parse_file_as_module, Syntax},
   },
 };
 
@@ -288,6 +289,42 @@ impl EsmLibraryPlugin {
 
         let concate_info = info.as_concatenated_mut();
         concate_info.internal_names = internal_names;
+
+        // Handle the name passed through by namespace_export_symbol
+        if let Some(ref namespace_export_symbol) = concate_info.namespace_export_symbol {
+          if namespace_export_symbol.starts_with(NAMESPACE_OBJECT_EXPORT)
+            && namespace_export_symbol.len() > NAMESPACE_OBJECT_EXPORT.len()
+          {
+            let name =
+              Atom::from(namespace_export_symbol[NAMESPACE_OBJECT_EXPORT.len()..].to_string());
+            all_used_names.insert(name.clone());
+            concate_info
+              .internal_names
+              .insert(namespace_export_symbol.clone(), name.clone());
+            top_level_declarations.insert(name.clone());
+          }
+        }
+
+        // Handle namespaceObjectName for concatenated type
+        let namespace_object_name =
+          if let Some(ref namespace_export_symbol) = concate_info.namespace_export_symbol {
+            concate_info
+              .internal_names
+              .get(namespace_export_symbol)
+              .cloned()
+          } else {
+            Some(find_new_name(
+              "namespaceObject",
+              &all_used_names,
+              None,
+              &readable_identifier,
+            ))
+          };
+        if let Some(namespace_object_name) = namespace_object_name {
+          all_used_names.insert(namespace_object_name.clone());
+          concate_info.namespace_object_name = Some(namespace_object_name.clone());
+          top_level_declarations.insert(namespace_object_name);
+        }
       }
 
       for external_module in compilation
@@ -401,100 +438,136 @@ impl EsmLibraryPlugin {
       link.entry(chunk).or_default().exports = exports;
     }
 
-    let namespace_object_sources: IdentifierMap<String> = IdentifierMap::default();
+    let mut namespace_object_sources: IdentifierMap<String> = IdentifierMap::default();
+
     let mut visited = FxHashSet::default();
-    while let Some(module_info_id) = needed_namespace_objects.pop() {
-      if visited.contains(&module_info_id) {
-        continue;
-      }
-      visited.insert(module_info_id);
-      let module_info = concate_modules_map
-        .get_mut(&module_info_id)
-        .map(|m| m.as_concatenated_mut())
-        .expect("should have module info");
+    // webpack require iterate the needed_namespace_objects and mutate `needed_namespace_objects`
+    // at the same time, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L1514
+    // Which is impossible in rust, using a fixed point algorithm  to reach the same goal.
+    loop {
+      let mut changed = false;
+      // using the previous round snapshot `needed_namespace_objects` to iterate, and modify the
+      // original `needed_namespace_objects` during the iteration,
+      // if there is no new id inserted into `needed_namespace_objects`, break the outer loop
+      for module_info_id in needed_namespace_objects.clone().iter() {
+        if visited.contains(module_info_id) {
+          continue;
+        }
+        visited.insert(*module_info_id);
+        changed = true;
 
-      let module_graph = compilation.get_module_graph();
-      let box_module = module_graph
-        .module_by_identifier(&module_info_id)
-        .expect("should have box module");
-      let module_readable_identifier = box_module.readable_identifier(&compilation.options.context);
-      let strict_esm_module = box_module.build_meta().strict_esm_module;
-      let name_space_name = module_info.namespace_object_name.clone();
+        let module_info = concate_modules_map
+          .get(module_info_id)
+          .map(|m| m.as_concatenated())
+          .expect("should have module info");
 
-      if module_info.namespace_export_symbol.is_some() {
-        continue;
-      }
+        let module_graph = compilation.get_module_graph();
+        let box_module = module_graph
+          .module_by_identifier(module_info_id)
+          .expect("should have box module");
+        let module_readable_identifier =
+          box_module.readable_identifier(&compilation.options.context);
+        let strict_esm_module = box_module.build_meta().strict_esm_module;
+        let name_space_name = module_info.namespace_object_name.clone();
 
-      let mut ns_obj = Vec::new();
-      let exports_info = module_graph.get_exports_info(&module_info_id);
-
-      for export_info in exports_info.ordered_exports(&module_graph) {
-        let export_info = export_info.as_data(&module_graph);
-
-        if matches!(
-          ExportInfoGetter::provided(export_info),
-          Some(ExportProvided::NotProvided)
-        ) {
+        if let Some(ref _namespace_export_symbol) = module_info.namespace_export_symbol {
           continue;
         }
 
-        if let Some(used_name) = ExportInfoGetter::get_used_name(export_info, None, None) {
-          let final_name = ConcatenatedModule::get_final_name(
-            &compilation.get_module_graph(),
-            &module_info_id,
-            vec![
-              ExportInfoGetter::name(export_info)
+        let mut ns_obj = Vec::new();
+        let exports_info = module_graph.get_exports_info(module_info_id);
+        for export_info in exports_info.ordered_exports(&module_graph) {
+          if matches!(
+            ExportInfoGetter::provided(export_info.as_data(&module_graph)),
+            Some(ExportProvided::NotProvided)
+          ) {
+            continue;
+          }
+
+          if let Some(used_name) =
+            ExportInfoGetter::get_used_name(export_info.as_data(&module_graph), None, None)
+          {
+            let final_name = ConcatenatedModule::get_final_name(
+              &compilation.get_module_graph(),
+              module_info_id,
+              vec![ExportInfoGetter::name(export_info.as_data(&module_graph))
                 .cloned()
-                .unwrap_or("".into()),
-            ],
-            concate_modules_map,
-            None,
-            &mut needed_namespace_objects,
-            false,
-            false,
-            strict_esm_module,
-            Some(true),
-            &compilation.options.context,
-          );
-          ns_obj.push(format!(
-            "\n  {}: {}",
-            property_name(&used_name).expect("should have property_name"),
-            returning_function(&compilation.options.output.environment, &final_name, "")
-          ));
+                .unwrap_or("".into())],
+              concate_modules_map,
+              None,
+              &mut needed_namespace_objects,
+              false,
+              false,
+              strict_esm_module,
+              Some(true),
+              &compilation.options.context,
+            );
+
+            ns_obj.push(format!(
+              "\n  {}: {}",
+              property_name(&used_name).expect("should have property_name"),
+              returning_function(&compilation.options.output.environment, &final_name, "")
+            ));
+          }
         }
-      }
+        // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1539
+        let name = name_space_name.expect("should have name_space_name");
+        let define_getters = if !ns_obj.is_empty() {
+          format!(
+            "{}({}, {{ {} }});\n",
+            RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+            name,
+            ns_obj.join(",")
+          )
+        } else {
+          String::new()
+        };
 
-      let module_info = concate_modules_map
-        .get_mut(&module_info_id)
-        .map(|m| m.as_concatenated_mut())
-        .expect("should have module info");
+        let module_info = concate_modules_map
+          .get_mut(module_info_id)
+          .map(|m| m.as_concatenated_mut())
+          .expect("should have module info");
 
-      let name = name_space_name.expect("should have name_space_name");
-      let define_getters = if !ns_obj.is_empty() {
+        if !ns_obj.is_empty() {
+          module_info
+            .runtime_requirements
+            .insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+        }
+
+        namespace_object_sources.insert(
+          *module_info_id,
+          format!(
+            "// NAMESPACE OBJECT: {}\nvar {} = {{}};\n{}({});\n{}\n",
+            module_readable_identifier,
+            name,
+            RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
+            name,
+            define_getters
+          ),
+        );
+
         module_info
           .runtime_requirements
           .insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
-        format!(
-          "{}({}, {{ {} }});\n",
-          RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-          name,
-          ns_obj.join(",")
-        )
-      } else {
-        String::new()
-      };
+      }
+      if !changed {
+        break;
+      }
+    }
 
-      module_info
-        .runtime_requirements
-        .insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
-      module_info.namespace_object_source = Some(format!(
-        "// NAMESPACE OBJECT: {}\nvar {} = {{}};\n{}({});\n{}\n",
-        module_readable_identifier,
-        name,
-        RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
-        name,
-        define_getters
-      ));
+    for (module, namespace_source) in namespace_object_sources {
+      let info = concate_modules_map
+        .get_mut(&module)
+        .expect("should have module info")
+        .as_concatenated_mut();
+      info.namespace_object_source = Some(namespace_source);
+    }
+
+    // Define required namespace objects (must be before evaluation modules)
+    for info in concate_modules_map.values() {
+      let Some(info) = info.try_as_concatenated() else {
+        continue;
+      };
     }
 
     compilation.chunk_graph.link = Some(link);
