@@ -4,7 +4,7 @@
 
 use std::{path::PathBuf, sync::Arc};
 
-use criterion::{criterion_group, criterion_main};
+use criterion::criterion_group;
 use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_core::{
