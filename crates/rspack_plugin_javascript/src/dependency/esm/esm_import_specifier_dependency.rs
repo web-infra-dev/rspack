@@ -8,9 +8,10 @@ use rspack_core::{
   get_exports_type, property_access, AsContextDependency, ConnectionState, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportPresenceMode, ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes,
-  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleReferenceOptions, RuntimeSpec,
-  SharedSourceMap, Template, TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
+  ExportPresenceMode, ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo,
+  ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleReferenceOptions,
+  PrefetchExportsInfoMode, RuntimeSpec, SharedSourceMap, Template, TemplateContext,
+  TemplateReplaceSource, UsedByExports, UsedName,
 };
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
@@ -430,17 +431,22 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
       for prop in referenced_properties {
         let mut concated_ids = prefixed_ids.clone();
         concated_ids.push(prop.id.clone());
-        let Some(new_name) = module_graph
-          .get_exports_info(&module.identifier())
-          .get_used_name(
-            &module_graph,
-            code_generatable_context.runtime,
-            &concated_ids,
-          )
-          .and_then(|used| match used {
-            UsedName::Normal(names) => names.last().cloned(),
-          })
-        else {
+        let used_name = ExportsInfoGetter::get_used_name(
+          &module_graph.get_prefetched_exports_info(
+            &module.identifier(),
+            if concated_ids.is_empty() {
+              PrefetchExportsInfoMode::AllExports
+            } else {
+              PrefetchExportsInfoMode::NamedNestedExports(&concated_ids)
+            },
+          ),
+          code_generatable_context.runtime,
+          &concated_ids,
+        )
+        .and_then(|used| match used {
+          UsedName::Normal(names) => names.last().cloned(),
+        });
+        let Some(new_name) = used_name else {
           return;
         };
 

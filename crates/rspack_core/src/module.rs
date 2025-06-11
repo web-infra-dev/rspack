@@ -32,8 +32,8 @@ use crate::{
   ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation, CompilationAsset, CompilationId,
   CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
   DependenciesBlock, DependencyId, ExportInfoGetter, ExportProvided, ExternalModule, ModuleGraph,
-  ModuleLayer, ModuleType, NormalModule, RawModule, Resolve, ResolverFactory, RuntimeSpec,
-  SelfModule, SharedPluginDriver, SourceType,
+  ModuleLayer, ModuleType, NormalModule, PrefetchExportsInfoMode, RawModule, Resolve,
+  ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext {
@@ -439,17 +439,22 @@ fn get_exports_type_impl(
           }
         }
 
-        if let Some(export_info) =
-          mg.get_read_only_export_info(&identifier, Atom::from("__esModule"))
+        let name = Atom::from("__esModule");
+        let exports_info = mg.get_prefetched_exports_info_optional(
+          &identifier,
+          PrefetchExportsInfoMode::NamedExports(HashSet::from_iter([&name])),
+        );
+        if let Some(export_info) = exports_info
+          .as_ref()
+          .map(|info| info.get_read_only_export_info(&name))
         {
-          let export_info_data = export_info.as_data(mg);
           if matches!(
-            ExportInfoGetter::provided(export_info_data),
+            ExportInfoGetter::provided(export_info),
             Some(ExportProvided::NotProvided)
           ) {
             handle_default(default_object)
           } else {
-            let Some(target) = export_info_data.get_target(mg) else {
+            let Some(target) = export_info.get_target(mg) else {
               return ExportsType::Dynamic;
             };
             if target
