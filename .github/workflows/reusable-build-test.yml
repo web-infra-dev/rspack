@@ -102,6 +102,9 @@ jobs:
         with:
           save-if: ${{ github.ref_name == 'main' && matrix.node == '18' }}
 
+      - name: Build JS
+        run: pnpm run build:js
+
       ### x86_64-unknown-linux-gnu
       - name: Test x86_64-unknown-linux-gnu
         timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
