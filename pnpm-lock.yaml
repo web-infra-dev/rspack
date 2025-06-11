@@ -10309,7 +10309,7 @@ snapshots:
   '@types/fs-extra@11.0.4':
     dependencies:
       '@types/jsonfile': 6.1.4
-      '@types/node': 20.17.57
+      '@types/node': 20.17.55
 
   '@types/geojson@7946.0.16': {}
 
