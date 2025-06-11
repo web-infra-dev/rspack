@@ -23,8 +23,7 @@ impl From<CompilerTransformOutput> for TransformOutput {
   }
 }
 
-#[napi]
-pub async fn transform(source: String, options: String) -> napi::Result<TransformOutput> {
+fn _napi_transform(source: String, options: String) -> napi::Result<TransformOutput> {
   let options: SwcOptions = serde_json::from_str(&options)?;
   let compiler = JavaScriptCompiler::new();
   compiler
@@ -40,7 +39,23 @@ pub async fn transform(source: String, options: String) -> napi::Result<Transfor
 }
 
 #[napi]
-pub async fn minify(source: String, options: String) -> napi::Result<TransformOutput> {
+pub async fn transform(source: String, options: String) -> napi::Result<TransformOutput> {
+  _napi_transform(source, options)
+}
+
+#[napi]
+pub fn transform_sync(source: String, options: String) -> napi::Result<TransformOutput> {
+  let future = async move { _napi_transform(source, options) };
+  // Fork from https://github.com/swc-project/swc/blob/main/crates/swc/src/plugin.rs#L76-L81
+  // Ensure swc wasm plugin can get async contexts from tokio.
+  if let Ok(handle) = tokio::runtime::Handle::try_current() {
+    handle.block_on(future)
+  } else {
+    tokio::runtime::Runtime::new().unwrap().block_on(future)
+  }
+}
+
+fn _napi_minify(source: String, options: String) -> napi::Result<TransformOutput> {
   let options: JsMinifyOptions = serde_json::from_str(&options)?;
   let compiler = JavaScriptCompiler::new();
   compiler
@@ -61,4 +76,14 @@ pub async fn minify(source: String, options: String) -> napi::Result<TransformOu
 
       napi::Error::new(napi::Status::GenericFailure, err)
     })
+}
+
+#[napi]
+pub async fn minify(source: String, options: String) -> napi::Result<TransformOutput> {
+  _napi_minify(source, options)
+}
+
+#[napi]
+pub fn minify_sync(source: String, options: String) -> napi::Result<TransformOutput> {
+  _napi_minify(source, options)
 }

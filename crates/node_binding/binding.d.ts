@@ -1479,6 +1479,8 @@ export declare function loadBrowserslist(input: string | undefined | null, conte
 
 export declare function minify(source: string, options: string): Promise<TransformOutput>
 
+export declare function minifySync(source: string, options: string): TransformOutput
+
 export interface NodeFsStats {
   isFile: boolean
   isDirectory: boolean
@@ -2765,3 +2767,5 @@ export interface TransformOutput {
   map?: string
   diagnostics: Array<string>
 }
+
+export declare function transformSync(source: string, options: string): TransformOutput
