@@ -21,11 +21,11 @@ module.exports = {
 			);
 			compiler.hooks.afterEmit.tap("Test", () => {
 				expect(files).toMatchInlineSnapshot(`
-Object {
-  "260.bundle0.js": true,
-  "bundle0.js": true,
-}
-`);
+			Object {
+			  "694.bundle0.js": true,
+			  "bundle0.js": true,
+			}
+		`);
 			});
 		}
 	]
