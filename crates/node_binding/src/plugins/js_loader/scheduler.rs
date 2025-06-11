@@ -51,64 +51,32 @@ pub(crate) async fn loader_yield(
   &self,
   loader_context: &mut LoaderContext<RunnerContext>,
 ) -> Result<()> {
-  let read_guard = self.runner.read().await;
-  match &*read_guard {
-    Some(runner) => {
-      let new_cx = runner
-        .call_async(loader_context.try_into()?)
-        .await
-        .into_diagnostic()?
-        .await
-        .into_diagnostic()?;
-      drop(read_guard);
-
-      if loader_context.state() == LoaderState::Pitching {
-        let list = collect_loaders_without_pitch(loader_context, &new_cx);
-        if !list.is_empty() {
-          self.update_loaders_without_pitch(list).await;
-        }
-      }
-
-      merge_loader_context(loader_context, new_cx)?;
-    }
-    None => {
-      drop(read_guard);
-
-      {
-        let mut write_guard = self.runner.write().await;
-        #[allow(clippy::unwrap_used)]
-        let compiler_id = self.compiler_id.get().unwrap();
-        #[allow(clippy::unwrap_used)]
-        let runner = self
-          .runner_getter
-          .call(compiler_id)
-          .await
-          .into_diagnostic()?;
-        *write_guard = Some(runner);
-      };
-
-      let read_guard = self.runner.read().await;
+  let runner = self.runner.lock().expect("should get lock").clone();
+  let runner = runner
+    .get_or_try_init(|| async {
       #[allow(clippy::unwrap_used)]
-      let new_cx = read_guard
-        .as_ref()
-        .unwrap()
-        .call_async(loader_context.try_into()?)
-        .await
-        .into_diagnostic()?
-        .await
-        .into_diagnostic()?;
-      drop(read_guard);
+      let compiler_id = self.compiler_id.get().unwrap();
+      self.runner_getter.call(compiler_id).await
+    })
+    .await
+    .into_diagnostic()?;
 
-      if loader_context.state() == LoaderState::Pitching {
-        let list = collect_loaders_without_pitch(loader_context, &new_cx);
-        if !list.is_empty() {
-          self.update_loaders_without_pitch(list).await;
-        }
-      }
+  let new_cx = runner
+    .call_async(loader_context.try_into()?)
+    .await
+    .into_diagnostic()?
+    .await
+    .into_diagnostic()?;
 
-      merge_loader_context(loader_context, new_cx)?;
+  if loader_context.state() == LoaderState::Pitching {
+    let list = collect_loaders_without_pitch(loader_context, &new_cx);
+    if !list.is_empty() {
+      self.update_loaders_without_pitch(list).await;
     }
-  };
+  }
+
+  merge_loader_context(loader_context, new_cx)?;
+
   Ok(())
 }
 
