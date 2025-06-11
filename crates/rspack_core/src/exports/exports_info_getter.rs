@@ -76,6 +76,9 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
   }
 
   pub fn other_exports_info(&self) -> &ExportInfoData {
+    if let Some(redirect) = self.get_redirect_to_in_exports_info(&self.entry) {
+      return self.get_other_in_exports_info(redirect);
+    }
     self.get_other_in_exports_info(&self.entry)
   }
 
