@@ -431,6 +431,13 @@ fn init() {
     thread,
   };
 
+  #[cfg(feature = "sftrace-setup")]
+  if std::env::var_os("SFTRACE_OUTPUT_FILE").is_some() {
+    unsafe {
+      sftrace_setup::setup();
+    }
+  }
+
   panic::install_panic_handler();
   // control the number of blocking threads, similar as https://github.com/tokio-rs/tokio/blob/946401c345d672d357693740bc51f77bc678c5c4/tokio/src/loom/std/mod.rs#L93
   const ENV_BLOCKING_THREADS: &str = "RSPACK_BLOCKING_THREADS";

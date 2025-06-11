@@ -4615,6 +4615,7 @@ dependencies = [
  "rustc-hash 2.1.1",
  "serde",
  "serde_json",
+ "sftrace-setup",
  "swc_core",
  "tokio",
  "tracing",
@@ -5904,6 +5905,12 @@ dependencies = [
  "serde",
  "version_check",
 ]
+
+[[package]]
+name = "sftrace-setup"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e3fd16d5db34706ab7200fb106bb1006f1801d1af9efabd65fb78ad8b9c8b0e"
 
 [[package]]
 name = "sha1"

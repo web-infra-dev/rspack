@@ -87,6 +87,7 @@ url                = { version = "2.5.4" }
 urlencoding        = { version = "2.1.3" }
 ustr               = { package = "ustr-fxhash", version = "1.0.1" }
 xxhash-rust        = { version = "0.8.14" }
+sftrace-setup      = { version = "0.1.0" }
 
 # Pinned
 napi        = { version = "3.0.0-beta.8" }
