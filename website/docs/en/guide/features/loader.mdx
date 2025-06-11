@@ -4,7 +4,7 @@ Rspack has built-in support for JavaScript, CSS, JSON, and static assets modules
 
 A loader is a transformer that converts various types of modules into Rspack supported types. By using different kinds of loaders, you can extend Rspack to process additional module types, including JSX, Markdown, Sass, Less, and more.
 
-A loader performs pre-processing of modules, transforming them into Rspack supported types, such as using [sass-loader](https://github.com/webpack-contrib/sass-loader) to convert Sass files to CSS, or using [builtin:swc-loader](/guide/features/builtin-swc-loader) to convert JSX files to JavaScript. Whereas the configuration [Rule.type](/config/module#ruletype) specifies how to post-process modules that are already built-in supported by Rspack.
+When Rspack bundles a module, it first pre-processes the module through loaders, transforming it into a Rspack supported module type, and then post-processes the module according to the [Rule.type](/config/module#ruletype).
 
 ## Compatibility with webpack loaders
 
