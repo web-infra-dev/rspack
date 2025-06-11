@@ -80,10 +80,7 @@ impl JsResolver {
             Either::<JsResourceData, bool>::A(ResourceData::from(resource).into()),
           ),
           Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(false)),
-          Err(err) => Err(napi::Error::new(
-            ErrorCode::Napi(napi::Status::GenericFailure),
-            format!("{err:?}"),
-          )),
+          Err(err) => Err(napi::Error::from_reason(format!("{err:?}"))),
         }
       },
       || {},

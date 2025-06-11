@@ -12,13 +12,12 @@ pub fn callbackify<R, F>(
 ) -> Result<(), ErrorCode>
 where
   R: 'static + ToNapiValue,
-  F: 'static + Send + Future<Output = Result<R, ErrorCode>>,
+  F: 'static + Send + Future<Output = Result<R>>,
 {
   let mut call_js_back = Some(Box::new(call_js_back));
 
   let tsfn = f
     .build_threadsafe_function::<R>()
-    .error_status::<ErrorCode>()
     .callee_handled::<true>()
     .max_queue_size::<1>()
     .weak::<false>()
