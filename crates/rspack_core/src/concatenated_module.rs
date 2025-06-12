@@ -51,9 +51,9 @@ use crate::{
   DependencyId, DependencyType, ErrorSpan, ExportInfoGetter, ExportProvided, ExportsArgument,
   ExportsInfoGetter, ExportsType, FactoryMeta, IdentCollector, InitFragment, InitFragmentStage,
   LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType, PrefetchExportsInfoMode,
-  Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template,
-  UsageState, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType,
+  PrefetchExportsInfoMode, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType,
+  SpanExt, Template, UsageState, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -651,8 +651,11 @@ impl Module for ConcatenatedModule {
     let runtime = runtime.as_deref();
     let context = compilation.options.context.clone();
 
-    let (modules_with_info, module_to_info_map) =
-      self.get_modules_with_info(&compilation.get_module_graph(), runtime);
+    let (modules_with_info, module_to_info_map) = self.get_modules_with_info(
+      &compilation.get_module_graph(),
+      &compilation.module_graph_cache_artifact,
+      runtime,
+    );
 
     // Set with modules that need a generated namespace object
     let mut needed_namespace_objects = IdentifierIndexSet::default();
@@ -1442,6 +1445,7 @@ impl Module for ConcatenatedModule {
       self.modules.iter().map(|item| item.id).collect(),
       runtime,
       &compilation.get_module_graph(),
+      &compilation.module_graph_cache_artifact,
     ) {
       match info {
         ConcatenationEntry::Concatenated(e) => {
@@ -1536,6 +1540,7 @@ impl ConcatenatedModule {
   fn get_modules_with_info(
     &self,
     mg: &ModuleGraph,
+    mg_cache: &ModuleGraphCacheArtifact,
     runtime: Option<&RuntimeSpec>,
   ) -> (
     Vec<(ModuleIdentifier, Option<RuntimeCondition>)>,
@@ -1546,6 +1551,7 @@ impl ConcatenatedModule {
       self.modules.iter().map(|item| item.id).collect(),
       runtime,
       mg,
+      mg_cache,
     );
     let mut list = vec![];
     let mut map = IdentifierIndexMap::default();
@@ -1605,18 +1611,20 @@ impl ConcatenatedModule {
     mut module_set: IdentifierIndexSet,
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
+    mg_cache: &ModuleGraphCacheArtifact,
   ) -> Vec<ConcatenationEntry> {
     let mut list = vec![];
     let mut exists_entries = IdentifierMap::default();
     exists_entries.insert(root_module, RuntimeCondition::Boolean(true));
 
-    let imports = self.get_concatenated_imports(&root_module, &root_module, runtime, mg);
+    let imports = self.get_concatenated_imports(&root_module, &root_module, runtime, mg, mg_cache);
     for i in imports {
       self.enter_module(
         root_module,
         &mut module_set,
         runtime,
         mg,
+        mg_cache,
         i.connection,
         i.runtime_condition,
         &mut exists_entries,
@@ -1638,6 +1646,7 @@ impl ConcatenatedModule {
     module_set: &mut IdentifierIndexSet,
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
+    mg_cache: &ModuleGraphCacheArtifact,
     con: &ModuleGraphConnection,
     runtime_condition: RuntimeCondition,
     exists_entry: &mut IdentifierMap<RuntimeCondition>,
@@ -1657,13 +1666,14 @@ impl ConcatenatedModule {
           module, self.root_module_ctxt.id,
         );
       }
-      let imports = self.get_concatenated_imports(module, &root_module, runtime, mg);
+      let imports = self.get_concatenated_imports(module, &root_module, runtime, mg, mg_cache);
       for import in imports {
         self.enter_module(
           root_module,
           module_set,
           runtime,
           mg,
+          mg_cache,
           import.connection,
           import.runtime_condition,
           exists_entry,
@@ -1712,6 +1722,7 @@ impl ConcatenatedModule {
     root_module_id: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
     mg: &'a ModuleGraph,
+    mg_cache: &'a ModuleGraphCacheArtifact,
   ) -> Vec<ConnectionWithRuntimeCondition<'a>> {
     let mut connections: Vec<&ModuleGraphConnection> =
       mg.get_ordered_outgoing_connections(module_id).collect();
@@ -1732,7 +1743,7 @@ impl ConcatenatedModule {
         }
 
         if !(connection.resolved_original_module_identifier == Some(*module_id)
-          && connection.is_target_active(mg, self.runtime.as_ref()))
+          && connection.is_target_active(mg, self.runtime.as_ref(), mg_cache))
         {
           return None;
         }
@@ -1764,8 +1775,9 @@ impl ConcatenatedModule {
     let mut references_map: IndexMap<ModuleIdentifier, ConnectionWithRuntimeCondition> =
       IndexMap::default();
     for reference in references {
-      let runtime_condition =
-        filter_runtime(runtime, |r| reference.connection.is_target_active(mg, r));
+      let runtime_condition = filter_runtime(runtime, |r| {
+        reference.connection.is_target_active(mg, r, mg_cache)
+      });
       if matches!(runtime_condition, RuntimeCondition::Boolean(false)) {
         continue;
       }

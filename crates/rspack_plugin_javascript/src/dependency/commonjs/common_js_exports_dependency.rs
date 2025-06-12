@@ -7,8 +7,8 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoGetter,
   ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleGraph, NormalInitFragment, PrefetchExportsInfoMode, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource, UsedName,
+  ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, PrefetchExportsInfoMode,
+  RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::atoms::Atom;
 
@@ -97,7 +97,11 @@ impl Dependency for CommonJsExportsDependency {
     &DependencyType::CjsExports
   }
 
-  fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
+  fn get_exports(
+    &self,
+    _mg: &ModuleGraph,
+    _mg_cache: &ModuleGraphCacheArtifact,
+  ) -> Option<ExportsSpec> {
     let vec = vec![ExportNameOrSpec::ExportSpec(ExportSpec {
       name: self.names[0].clone(),
       can_mangle: Some(false), // in webpack, object own property may not be mangled

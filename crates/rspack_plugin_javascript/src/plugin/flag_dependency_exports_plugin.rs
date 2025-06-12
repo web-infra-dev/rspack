@@ -7,7 +7,8 @@ use rspack_core::{
   ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
   DependenciesBlock, DependencyId, ExportInfoGetter, ExportInfoSetter, ExportNameOrSpec,
   ExportProvided, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, Logger, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, Plugin, PluginContext, PrefetchExportsInfoMode,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Plugin, PluginContext,
+  PrefetchExportsInfoMode,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -16,15 +17,17 @@ use swc_core::ecma::atoms::Atom;
 
 struct FlagDependencyExportsState<'a> {
   mg: &'a mut ModuleGraph<'a>,
+  mg_cache: &'a ModuleGraphCacheArtifact,
   changed: bool,
   current_module_id: ModuleIdentifier,
   dependencies: IdentifierMap<IdentifierSet>,
 }
 
 impl<'a> FlagDependencyExportsState<'a> {
-  pub fn new(mg: &'a mut ModuleGraph<'a>) -> Self {
+  pub fn new(mg: &'a mut ModuleGraph<'a>, mg_cache: &'a ModuleGraphCacheArtifact) -> Self {
     Self {
       mg,
+      mg_cache,
       changed: false,
       current_module_id: ModuleIdentifier::default(),
       dependencies: IdentifierMap::default(),
@@ -76,7 +79,15 @@ impl<'a> FlagDependencyExportsState<'a> {
       self.current_module_id = module_id;
       let mut exports_specs_from_dependencies: IndexMap<DependencyId, ExportsSpec> =
         IndexMap::default();
-      self.process_dependencies_block(&module_id, &mut exports_specs_from_dependencies);
+
+      self.mg_cache.freeze();
+      self.process_dependencies_block(
+        &module_id,
+        &mut exports_specs_from_dependencies,
+        self.mg_cache,
+      );
+      self.mg_cache.unfreeze();
+
       let exports_info = self.mg.get_exports_info(&module_id);
       for (dep_id, exports_spec) in exports_specs_from_dependencies.into_iter() {
         self.process_exports_spec(dep_id, exports_spec, exports_info);
@@ -100,15 +111,21 @@ impl<'a> FlagDependencyExportsState<'a> {
     &self,
     module_identifier: &ModuleIdentifier,
     exports_specs_from_dependencies: &mut IndexMap<DependencyId, ExportsSpec>,
+    module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> Option<()> {
     let block = &**self.mg.module_by_identifier(module_identifier)?;
-    self.process_dependencies_block_inner(block, exports_specs_from_dependencies)
+    self.process_dependencies_block_inner(
+      block,
+      exports_specs_from_dependencies,
+      module_graph_cache,
+    )
   }
 
   fn process_dependencies_block_inner<B: DependenciesBlock + ?Sized>(
     &self,
     block: &B,
     exports_specs_from_dependencies: &mut IndexMap<DependencyId, ExportsSpec>,
+    module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> Option<()> {
     for dep_id in block.get_dependencies().iter() {
       let dep = self
@@ -117,13 +134,17 @@ impl<'a> FlagDependencyExportsState<'a> {
         .expect("should have dependency");
       self.process_dependency(
         *dep_id,
-        dep.get_exports(self.mg),
+        dep.get_exports(self.mg, module_graph_cache),
         exports_specs_from_dependencies,
       );
     }
     for block_id in block.get_blocks() {
       let block = self.mg.block_by_id(block_id)?;
-      self.process_dependencies_block_inner(block, exports_specs_from_dependencies);
+      self.process_dependencies_block_inner(
+        block,
+        exports_specs_from_dependencies,
+        module_graph_cache,
+      );
     }
     None
   }
@@ -385,7 +406,9 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       .copied()
       .collect()
   };
-  FlagDependencyExportsState::new(&mut compilation.get_module_graph_mut()).apply(modules);
+  let module_graph_cache = compilation.module_graph_cache_artifact.clone();
+  let mut module_graph = compilation.get_module_graph_mut();
+  FlagDependencyExportsState::new(&mut module_graph, &module_graph_cache).apply(modules);
   Ok(())
 }
 

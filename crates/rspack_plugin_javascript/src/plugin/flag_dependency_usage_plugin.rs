@@ -142,6 +142,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       }
       for dep_id in dep_id_list.into_iter() {
         let module_graph = self.compilation.get_module_graph();
+        let module_graph_cache = &self.compilation.module_graph_cache_artifact;
         let connection = module_graph.connection_by_dependency_id(&dep_id);
 
         let connection = if let Some(connection) = connection {
@@ -149,7 +150,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         } else {
           continue;
         };
-        let active_state = connection.active_state(&module_graph, runtime.as_ref());
+        let active_state =
+          connection.active_state(&module_graph, runtime.as_ref(), module_graph_cache);
 
         match active_state {
           ConnectionState::Active(false) => {
@@ -172,7 +174,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           .expect("should have dep");
 
         let referenced_exports = if let Some(md) = dep.as_module_dependency() {
-          md.get_referenced_exports(&module_graph, runtime.as_ref())
+          md.get_referenced_exports(&module_graph, module_graph_cache, runtime.as_ref())
         } else if dep.as_context_dependency().is_some() {
           vec![ExtendedReferencedExport::Array(vec![])]
         } else {

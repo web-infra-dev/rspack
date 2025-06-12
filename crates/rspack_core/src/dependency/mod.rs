@@ -43,7 +43,10 @@ pub use span::SpanExt;
 pub use static_exports_dependency::{StaticExportsDependency, StaticExportsSpec};
 use swc_core::ecma::atoms::Atom;
 
-use crate::{ConnectionState, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec};
+use crate::{
+  ConnectionState, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier,
+  RuntimeSpec,
+};
 
 #[derive(Debug, Default)]
 pub struct ExportSpec {
@@ -112,6 +115,7 @@ pub trait DependencyConditionFn: Sync + Send {
     conn: &ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ConnectionState;
 }
 

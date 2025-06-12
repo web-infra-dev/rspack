@@ -8,16 +8,17 @@ use rspack_cacheable::{
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
-  process_export_info, property_access, property_name, AsContextDependency,
+  get_runtime_key, process_export_info, property_access, property_name, AsContextDependency,
   ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ESMExportInitFragment, ExportInfo, ExportInfoGetter, ExportNameOrSpec, ExportPresenceMode,
-  ExportProvided, ExportSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  NormalInitFragment, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap, Template,
-  TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  DetermineExportAssignmentsKey, ESMExportInitFragment, ExportInfoGetter, ExportMode,
+  ExportModeType, ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfo,
+  ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
+  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment,
+  NormalReexportItem, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap,
+  StarReexportsInfo, Template, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -101,14 +102,14 @@ impl ESMExportImportedSpecifierDependency {
   pub fn all_star_exports<'a>(
     &self,
     module_graph: &'a ModuleGraph,
-  ) -> Option<&'a Vec<DependencyId>> {
+  ) -> Option<(ModuleIdentifier, &'a Vec<DependencyId>)> {
     let module = module_graph
       .get_parent_module(&self.id)
       .and_then(|ident| module_graph.module_by_identifier(ident));
 
     if let Some(module) = module {
       let build_info = module.build_info();
-      Some(&build_info.all_star_exports)
+      Some((module.identifier(), &build_info.all_star_exports))
     } else {
       None
     }
@@ -120,14 +121,29 @@ impl ESMExportImportedSpecifierDependency {
       .unwrap_or_else(|| self.ids.as_slice())
   }
 
-  // TODO cache get_mode result
-  pub fn get_mode(
+  fn get_mode(
     &self,
-    name: Option<Atom>,
     module_graph: &ModuleGraph,
-    id: &DependencyId,
+    runtime: Option<&RuntimeSpec>,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+  ) -> ExportMode {
+    let key = (
+      self.id,
+      runtime.map(|runtime| get_runtime_key(runtime).to_owned()),
+    );
+    module_graph_cache.cached_get_mode(key, || {
+      self.get_mode_inner(module_graph, module_graph_cache, runtime)
+    })
+  }
+
+  fn get_mode_inner(
+    &self,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     runtime: Option<&RuntimeSpec>,
   ) -> ExportMode {
+    let id = &self.id;
+    let name = self.name.clone();
     let imported_module_identifier = if let Some(imported_module_identifier) =
       module_graph.module_identifier_by_dependency_id(id)
     {
@@ -233,6 +249,7 @@ impl ESMExportImportedSpecifierDependency {
       hidden,
     } = self.get_star_reexports(
       module_graph,
+      module_graph_cache,
       runtime,
       Some(exports_info),
       imported_module_identifier,
@@ -283,6 +300,7 @@ impl ESMExportImportedSpecifierDependency {
   pub fn get_star_reexports(
     &self,
     module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     runtime: Option<&RuntimeSpec>,
     exports_info: Option<ExportsInfo>,
     imported_module_identifier: &ModuleIdentifier,
@@ -321,14 +339,13 @@ impl ESMExportImportedSpecifierDependency {
     };
 
     let hidden_exports = self
-      .discover_active_exports_from_other_star_exports(module_graph)
+      .discover_active_exports_from_other_star_exports(module_graph, module_graph_cache)
       .map(|other_star_exports| {
         other_star_exports
           .names
           .into_iter()
           .take(other_star_exports.names_slice)
           .filter(|name| !ignored_exports.contains(name))
-          .cloned()
           .collect::<HashSet<_>>()
       });
     if !no_extra_exports && !no_extra_imports {
@@ -442,10 +459,11 @@ impl ESMExportImportedSpecifierDependency {
     }
   }
 
-  pub fn discover_active_exports_from_other_star_exports<'a>(
+  pub fn discover_active_exports_from_other_star_exports(
     &self,
-    module_graph: &'a ModuleGraph,
-  ) -> Option<DiscoverActiveExportsFromOtherStarExportsRet<'a>> {
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+  ) -> Option<DiscoverActiveExportsFromOtherStarExportsRet> {
     if let Some(other_star_exports) = &self.other_star_exports {
       if other_star_exports.is_empty() {
         return None;
@@ -455,11 +473,13 @@ impl ESMExportImportedSpecifierDependency {
     }
     let i = self.other_star_exports.as_ref()?.len();
 
-    if let Some(all_star_exports) = self.all_star_exports(module_graph)
+    if let Some((module_identifier, all_star_exports)) = self.all_star_exports(module_graph)
       && !all_star_exports.is_empty()
     {
-      let (names, dependency_indices) =
-        determine_export_assignments(module_graph, all_star_exports, None);
+      let (names, dependency_indices) = module_graph_cache.cached_determine_export_assignments(
+        DetermineExportAssignmentsKey::All(module_identifier),
+        || determine_export_assignments(module_graph, all_star_exports, None),
+      );
 
       return Some(DiscoverActiveExportsFromOtherStarExportsRet {
         names,
@@ -470,8 +490,10 @@ impl ESMExportImportedSpecifierDependency {
     }
 
     if let Some(other_star_exports) = &self.other_star_exports {
-      let (names, dependency_indices) =
-        determine_export_assignments(module_graph, other_star_exports, Some(self.id));
+      let (names, dependency_indices) = module_graph_cache
+        .cached_determine_export_assignments(DetermineExportAssignmentsKey::Other(self.id), || {
+          determine_export_assignments(module_graph, other_star_exports, Some(self.id))
+        });
       return Some(DiscoverActiveExportsFromOtherStarExportsRet {
         names,
         names_slice: dependency_indices[i - 1],
@@ -491,6 +513,7 @@ impl ESMExportImportedSpecifierDependency {
     let compilation = ctxt.compilation;
     let mut fragments = vec![];
     let mg = &compilation.get_module_graph();
+    let mg_cache = &compilation.module_graph_cache_artifact;
     let module_identifier = module.identifier();
     let import_var = compilation.get_import_var(&self.id);
     match mode.ty {
@@ -634,7 +657,9 @@ impl ESMExportImportedSpecifierDependency {
             let runtime_condition = if self.weak() {
               RuntimeCondition::Boolean(false)
             } else if let Some(connection) = mg.connection_by_dependency_id(self.id()) {
-              filter_runtime(ctxt.runtime, |r| connection.is_target_active(mg, r))
+              filter_runtime(ctxt.runtime, |r| {
+                connection.is_target_active(mg, r, mg_cache)
+              })
             } else {
               RuntimeCondition::Boolean(true)
             };
@@ -865,6 +890,7 @@ impl ESMExportImportedSpecifierDependency {
     &self,
     ids: &[Atom],
     module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     should_error: bool,
   ) -> Option<Vec<Diagnostic>> {
     let create_error = |message: String| {
@@ -908,7 +934,7 @@ impl ESMExportImportedSpecifierDependency {
     if ids.is_empty()
       && self.name.is_none()
       && let Some(potential_conflicts) =
-        self.discover_active_exports_from_other_star_exports(module_graph)
+        self.discover_active_exports_from_other_star_exports(module_graph, module_graph_cache)
       && potential_conflicts.names_slice > 0
     {
       let own_names = HashSet::from_iter(
@@ -940,7 +966,8 @@ impl ESMExportImportedSpecifierDependency {
           continue;
         }
 
-        let dependencies = if let Some(all_star_exports) = self.all_star_exports(module_graph) {
+        let dependencies = if let Some((_, all_star_exports)) = self.all_star_exports(module_graph)
+        {
           all_star_exports
             .iter()
             .filter_map(|id| module_graph.dependency_by_id(id))
@@ -950,7 +977,7 @@ impl ESMExportImportedSpecifierDependency {
           Vec::new()
         };
         let Some(conflicting_dependency) = find_dependency_for_name(
-          potential_conflicts.names.iter().copied().enumerate(),
+          potential_conflicts.names.iter().enumerate(),
           potential_conflicts.dependency_indices.iter(),
           name,
           dependencies.iter().copied(),
@@ -1003,8 +1030,8 @@ impl ESMExportImportedSpecifierDependency {
 }
 
 #[derive(Debug)]
-pub struct DiscoverActiveExportsFromOtherStarExportsRet<'a> {
-  names: Vec<&'a Atom>,
+pub struct DiscoverActiveExportsFromOtherStarExportsRet {
+  names: Vec<Atom>,
   names_slice: usize,
   pub dependency_indices: Vec<usize>,
   pub dependency_index: usize,
@@ -1043,8 +1070,12 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     self.attributes.as_ref()
   }
 
-  fn get_exports(&self, mg: &ModuleGraph) -> Option<ExportsSpec> {
-    let mode = self.get_mode(self.name.clone(), mg, &self.id, None);
+  fn get_exports(
+    &self,
+    mg: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+  ) -> Option<ExportsSpec> {
+    let mode = self.get_mode(mg, None, module_graph_cache);
     match mode.ty {
       ExportModeType::Missing => None,
       ExportModeType::Unused => {
@@ -1053,10 +1084,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
       }
       ExportModeType::EmptyStar => Some(ExportsSpec {
         exports: ExportsOfExportsSpec::Names(vec![]),
-        hide_export: mode
-          .hidden
-          .clone()
-          .map(|item| item.into_iter().collect::<Vec<_>>()),
+        hide_export: mode.hidden.map(|item| item.into_iter().collect::<Vec<_>>()),
         dependencies: Some(vec![*mg
           .module_identifier_by_dependency_id(self.id())
           .expect("should have module")]),
@@ -1214,7 +1242,11 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   }
 
   // #[tracing::instrument(skip_all)]
-  fn get_diagnostics(&self, module_graph: &ModuleGraph) -> Option<Vec<Diagnostic>> {
+  fn get_diagnostics(
+    &self,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+  ) -> Option<Vec<Diagnostic>> {
     let module = module_graph.get_parent_module(&self.id)?;
     let module = module_graph.module_by_identifier(module)?;
     let ids = self.get_ids(module_graph);
@@ -1236,9 +1268,12 @@ impl Dependency for ESMExportImportedSpecifierDependency {
       ) {
         diagnostics.push(error);
       }
-      if let Some(errors) =
-        self.get_conflicting_star_exports_errors(ids, module_graph, should_error)
-      {
+      if let Some(errors) = self.get_conflicting_star_exports_errors(
+        ids,
+        module_graph,
+        module_graph_cache,
+        should_error,
+      ) {
         diagnostics.extend(errors);
       }
       return Some(diagnostics);
@@ -1249,9 +1284,10 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   fn get_referenced_exports(
     &self,
     module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
-    let mode = self.get_mode(self.name.clone(), module_graph, &self.id, runtime);
+    let mode = self.get_mode(module_graph, runtime, module_graph_cache);
     match mode.ty {
       ExportModeType::Missing
       | ExportModeType::Unused
@@ -1321,6 +1357,7 @@ impl DependencyConditionFn for ESMExportImportedSpecifierDependencyCondition {
     _conn: &rspack_core::ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ConnectionState {
     let dep = module_graph
       .dependency_by_id(&self.0)
@@ -1328,12 +1365,7 @@ impl DependencyConditionFn for ESMExportImportedSpecifierDependencyCondition {
     let down_casted_dep = dep
       .downcast_ref::<ESMExportImportedSpecifierDependency>()
       .expect("should be ESMExportImportedSpecifierDependency");
-    let mode = down_casted_dep.get_mode(
-      down_casted_dep.name.clone(),
-      module_graph,
-      &down_casted_dep.id,
-      runtime,
-    );
+    let mode = down_casted_dep.get_mode(module_graph, runtime, module_graph_cache);
     ConnectionState::Active(!matches!(
       mode.ty,
       ExportModeType::Unused | ExportModeType::EmptyStar
@@ -1389,72 +1421,15 @@ impl From<Option<UsedName>> for ValueKey {
 
 impl AsContextDependency for ESMExportImportedSpecifierDependency {}
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum ExportModeType {
-  Missing,
-  Unused,
-  EmptyStar,
-  ReexportDynamicDefault,
-  ReexportNamedDefault,
-  ReexportNamespaceObject,
-  ReexportFakeNamespaceObject,
-  ReexportUndefined,
-  NormalReexport,
-  DynamicReexport,
-}
-
-#[derive(Debug)]
-pub struct NormalReexportItem {
-  pub name: Atom,
-  pub ids: Vec<Atom>,
-  pub hidden: bool,
-  pub checked: bool,
-  pub export_info: ExportInfo,
-}
-
-#[derive(Debug)]
-pub struct ExportMode {
-  /// corresponding to `type` field in webpack's `EpxortMode`
-  pub ty: ExportModeType,
-  pub items: Option<Vec<NormalReexportItem>>,
-  pub name: Option<Atom>,
-  pub fake_type: u8,
-  pub partial_namespace_export_info: Option<ExportInfo>,
-  pub ignored: Option<HashSet<Atom>>,
-  pub hidden: Option<HashSet<Atom>>,
-}
-
-impl ExportMode {
-  pub fn new(ty: ExportModeType) -> Self {
-    Self {
-      ty,
-      items: None,
-      name: None,
-      fake_type: 0,
-      partial_namespace_export_info: None,
-      ignored: None,
-      hidden: None,
-    }
-  }
-}
-
-#[derive(Debug, Default)]
-pub struct StarReexportsInfo {
-  exports: Option<HashSet<Atom>>,
-  checked: Option<HashSet<Atom>>,
-  ignored_exports: HashSet<Atom>,
-  hidden: Option<HashSet<Atom>>,
-}
-
 /// return (names, dependency_indices)
-fn determine_export_assignments<'a>(
-  module_graph: &'a ModuleGraph,
+fn determine_export_assignments(
+  module_graph: &ModuleGraph,
   dependencies: &[DependencyId],
   additional_dependency: Option<DependencyId>,
-) -> (Vec<&'a Atom>, Vec<usize>) {
+) -> (Vec<Atom>, Vec<usize>) {
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L109
   // js `Set` keep the insertion order, use `IndexSet` to align there behavior
-  let mut names: IndexSet<&Atom, BuildHasherDefault<FxHasher>> = IndexSet::default();
+  let mut names: IndexSet<Atom, BuildHasherDefault<FxHasher>> = IndexSet::default();
   let mut dependency_indices =
     Vec::with_capacity(dependencies.len() + usize::from(additional_dependency.is_some()));
 
@@ -1472,7 +1447,7 @@ fn determine_export_assignments<'a>(
         ) && export_info_name != "default"
           && !names.contains(export_info_name)
         {
-          names.insert(export_info_name);
+          names.insert(export_info_name.clone());
         }
       }
     }
@@ -1531,7 +1506,8 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
     } = code_generatable_context;
 
     let module_graph = compilation.get_module_graph();
-    let mode = dep.get_mode(dep.name.clone(), &module_graph, &dep.id, *runtime);
+    let module_graph_cache = &compilation.module_graph_cache_artifact;
+    let mode = dep.get_mode(&module_graph, *runtime, module_graph_cache);
 
     if let Some(ref mut scope) = concatenation_scope {
       if matches!(mode.ty, ExportModeType::ReexportUndefined) {
