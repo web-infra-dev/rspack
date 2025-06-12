@@ -4,6 +4,7 @@ use either::Either;
 use rspack_cacheable::cacheable;
 use rspack_collections::{impl_item_ukey, Ukey, UkeySet};
 use rspack_util::atom::Atom;
+use rustc_hash::FxHashSet;
 use serde::Serialize;
 
 use super::{
@@ -129,7 +130,7 @@ impl ExportsInfo {
     &self,
     mg: &mut ModuleGraph,
     can_mangle: bool,
-    exclude_exports: &Option<Vec<Atom>>,
+    exclude_exports: &Option<FxHashSet<Atom>>,
     target_key: Option<DependencyId>,
     target_module: Option<DependencyId>,
     priority: Option<u8>,

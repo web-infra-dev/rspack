@@ -1068,9 +1068,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
       }
       ExportMode::EmptyStar(mode) => Some(ExportsSpec {
         exports: ExportsOfExportsSpec::Names(vec![]),
-        hide_export: mode
-          .hidden
-          .map(|hidden| hidden.into_iter().collect::<Vec<_>>()),
+        hide_export: mode.hidden,
         dependencies: Some(vec![*mg
           .module_identifier_by_dependency_id(self.id())
           .expect("should have module")]),
@@ -1175,16 +1173,13 @@ impl Dependency for ESMExportImportedSpecifierDependency {
           exports: ExportsOfExportsSpec::UnknownExports,
           from: from.cloned(),
           can_mangle: Some(false),
-          hide_export: mode
-            .hidden
-            .clone()
-            .map(|hidden| hidden.into_iter().collect::<Vec<_>>()),
+          hide_export: mode.hidden.clone(),
           exclude_exports: {
             let mut exclude_exports = mode.ignored;
             if let Some(hidden) = mode.hidden {
               exclude_exports.extend(hidden);
             }
-            Some(exclude_exports.into_iter().collect::<Vec<_>>())
+            Some(exclude_exports)
           },
           dependencies: Some(vec![*from.expect("should have module").module_identifier()]),
           ..Default::default()

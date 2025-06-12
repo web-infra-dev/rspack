@@ -37,7 +37,7 @@ pub use runtime_requirements_dependency::{
   RuntimeRequirementsDependency, RuntimeRequirementsDependencyTemplate,
 };
 pub use runtime_template::*;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
 pub use span::SpanExt;
 pub use static_exports_dependency::{StaticExportsDependency, StaticExportsSpec};
@@ -106,8 +106,8 @@ pub struct ExportsSpec {
   pub terminal_binding: Option<bool>,
   pub from: Option<ModuleGraphConnection>,
   pub dependencies: Option<Vec<ModuleIdentifier>>,
-  pub hide_export: Option<Vec<Atom>>,
-  pub exclude_exports: Option<Vec<Atom>>,
+  pub hide_export: Option<FxHashSet<Atom>>,
+  pub exclude_exports: Option<FxHashSet<Atom>>,
 }
 
 pub trait DependencyConditionFn: Sync + Send {
