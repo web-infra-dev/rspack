@@ -44,11 +44,11 @@ jobs:
       - name: Install cargo-codspeed binary
         uses: taiki-e/install-action@1cefd1553b1693f47889dc747f7d230904296a3b # v2
         with:
-          tool: cargo-codspeed@2.10.1
+          tool: cargo-codspeed@2.7.2
 
       - name: Build Benchmark
-        # env:
-        #   RUSTFLAGS: "-C debuginfo=1 -C strip=none -g --cfg codspeed"
+        env:
+          RUSTFLAGS: "-C debuginfo=1 -C strip=none -g --cfg codspeed"
         run: cargo codspeed build -p rspack_benchmark --features codspeed
 
       - name: Wait for build job
