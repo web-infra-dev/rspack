@@ -166,15 +166,6 @@ jobs:
           export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
-      - name: Upload artifact
-        if: ${{ inputs.target != 'wasm32-wasip1-threads' }}
-        uses: ./.github/actions/artifact/upload
-        with:
-          name: bindings-${{ inputs.target }}
-          path: |
-            crates/node_binding/*.node
-            crates/node_binding/*.d.ts
-
       # WASM
       - name: Build wasm32-wasip1-threads with linux in Docker
         if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
@@ -182,15 +173,11 @@ jobs:
           unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
           DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads pnpm --filter @rspack/binding build:release --profile ${{ inputs.profile }}
 
-      - name: Upload WASM artifact
-        if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
+      - name: Upload artifact
         uses: ./.github/actions/artifact/upload
         with:
           name: bindings-${{ inputs.target }}
           path: |
+            crates/node_binding/*.node
             crates/node_binding/*.d.ts
             crates/node_binding/rspack.wasm32-wasi.wasm
-            crates/node_binding/rspack.wasi.cjs
-            crates/node_binding/rspack.wasi-browser.js
-            crates/node_binding/wasi-worker.mjs
-            crates/node_binding/wasi-worker-browser.mjs

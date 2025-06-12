@@ -123,8 +123,28 @@ for (const binding of bindings) {
 		const pkgJson = require(path.join(output, "package.json"));
 
 		optionalDependencies[pkgJson.name] = "workspace:*";
-		for (const file of pkgJson.files) {
-			fs.copyFileSync(path.join(binding, file), path.join(output, file));
+
+		// Copy wasm artifact
+		fs.copyFileSync(
+			path.join(binding, "rspack.wasm32-wasi.wasm"),
+			path.join(output, "rspack.wasm32-wasi.wasm")
+		);
+
+		// Copy wasm js runtimes from the node_binding crate
+		const NODE_BINDING_CRATE = path.resolve(
+			__dirname,
+			"../crates/node_binding/"
+		);
+		for (const file of [
+			"rspack.wasi.cjs",
+			"rspack.wasi-browser.js",
+			"wasi-worker.mjs",
+			"wasi-worker-browser.mjs"
+		]) {
+			fs.copyFileSync(
+				path.join(NODE_BINDING_CRATE, file),
+				path.join(output, file)
+			);
 		}
 
 		const README = generateReadme(pkgJson.name);
