@@ -59,8 +59,8 @@ async function build() {
 		}
 		args.push("--no-dts-cache");
 		if (values.profile === "release-debug") {
-			// features.push("sftrace-setup");
-			// envs.RUSTFLAGS = "-Zinstrument-xray=always";
+			features.push("sftrace-setup");
+			envs.RUSTFLAGS = "-Zinstrument-xray=always";
 		}
 		if (features.length) {
 			args.push("--features " + features.join(","));
