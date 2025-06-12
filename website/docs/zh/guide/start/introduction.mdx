@@ -102,17 +102,17 @@ Rspack 比 webpack 快得益于如下几方面：
 
 ### 和 Turbopack 的区别
 
-Rspack 和 turbopack 都是基于 Rust 实现的 bundler，且都发挥了 Rust 语言的优势。
+Rspack 和 Turbopack 都是基于 Rust 实现的 bundler，且都发挥了 Rust 语言的优势。
 
-与 turbopack 不同的是，Rspack 选择了对 webpack 生态兼容的路线，一方面，这些兼容可能会带来一定的性能开销，但在实际的业务落地中，我们发现对于大部分的应用来说，这些性能开销是可以接受的，另一方面，这些兼容也使得 Rspack 可以更好地与上层的框架和生态进行集成，能够实现业务的渐进式迁移。
+与 Turbopack 不同的是，Rspack 选择了对 webpack 生态兼容的路线，一方面，这些兼容可能会带来一定的性能开销，但在实际的业务落地中，我们发现对于大部分的应用来说，这些性能开销是可以接受的，另一方面，这些兼容也使得 Rspack 可以更好地与上层的框架和生态进行集成，能够实现业务的渐进式迁移。
 
 ### 和 Rollup 的区别
 
-Rspack 和 Rollup 虽然都是打包工具，但是两者的侧重领域不同，Rollup 更适合用于打包库，而 Rspack 适合用于打包应用。因此 Rspack 对打包应用进行了很多优化，如 HMR、Bundle splitting 等功能，而 Rollup 则比 Rspack 的编译产物对库更为友好，如更好的 ESM 产物支持。 社区上也有很多的工具在 Rollup 基础上进行了一定的封装，提供了对应用打包更友好的支持，如 vite 和 wmr, 目前 Rspack 比 Rollup 有更好的生产环境构建性能。
+Rspack 和 Rollup 虽然都是打包工具，但是两者的侧重领域不同，Rollup 更适合用于打包库，而 Rspack 适合用于打包应用。因此 Rspack 对打包应用进行了很多优化，如 HMR、Bundle splitting 等功能，而 Rollup 则比 Rspack 的编译产物对库更为友好，如更好的 ESM 产物支持。 社区上也有很多的工具在 Rollup 基础上进行了一定的封装，提供了对应用打包更友好的支持，如 Vite, 目前 Rspack 比 Rollup 有更好的生产环境构建性能。
 
 ### 和 Parcel 的区别
 
-Rspack 的整体架构与 [Parcel](https://parceljs.org/) 有很多共同之处。例如都将 CSS 资源视为一等公民，都支持基于 filter 的 transformer。然而，Parcel 更加注重开箱即用的体验，而 Rspack 更加注重为上层框架提供灵活的配置。Parcel 开创性地设计了 Unified Graph 和使 HTML 成为一等公民的特性。Rspack 也计划在未来支持这些特性。
+Rspack 的整体架构与 [Parcel](https://parceljs.org/) 有很多共同之处。例如都内置支持 CSS 资源，都支持基于 filter 的 transformer。然而，Parcel 更加注重开箱即用的体验，而 Rspack 更加注重为上层框架提供灵活的配置。Parcel 开创性地设计了 Unified Graph 和内置对 HTML 的支持。Rspack 也计划在未来支持这些特性。
 
 ## 下一步
 
