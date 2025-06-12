@@ -51,6 +51,7 @@ indexmap           = { version = "2.7.0" }
 indoc              = { version = "2.0.5" }
 insta              = { version = "1.42.0" }
 itertools          = { version = "0.14.0" }
+itoa               = { version = "1.0.14" }
 json               = { version = "0.12.4" }
 lightningcss       = { version = "1.0.0-alpha.64", default-features = false, features = ["grid", "serde"] }
 linked_hash_set    = { version = "0.1.5" }
@@ -86,11 +87,12 @@ url                = { version = "2.5.4" }
 urlencoding        = { version = "2.1.3" }
 ustr               = { package = "ustr-fxhash", version = "1.0.1" }
 xxhash-rust        = { version = "0.8.14" }
+sftrace-setup      = { version = "0.1.0" }
 
 # Pinned
-napi        = { version = "3.0.0-beta.5" }
+napi        = { version = "3.0.0-beta.8" }
 napi-build  = { version = "3.0.0-beta.0" }
-napi-derive = { version = "3.0.0-beta.5" }
+napi-derive = { version = "3.0.0-beta.8" }
 
 # Serialize and Deserialize
 inventory = { version = "0.3.17" }
@@ -138,6 +140,7 @@ rspack_loader_react_refresh            = { version = "0.2.0", path = "crates/rsp
 rspack_loader_runner                   = { version = "0.2.0", path = "crates/rspack_loader_runner" }
 rspack_loader_swc                      = { version = "0.2.0", path = "crates/rspack_loader_swc" }
 rspack_loader_testing                  = { version = "0.2.0", path = "crates/rspack_loader_testing" }
+rspack_location                        = { version = "0.2.0", path = "crates/rspack_location" }
 rspack_macros                          = { version = "0.2.0", path = "crates/rspack_macros" }
 rspack_napi                            = { version = "0.2.0", path = "crates/rspack_napi" }
 rspack_napi_macros                     = { version = "0.2.0", path = "crates/rspack_napi_macros" }
@@ -195,7 +198,7 @@ rspack_storage                         = { version = "0.2.0", path = "crates/rsp
 rspack_swc_plugin_import               = { version = "0.2.0", path = "crates/swc_plugin_import" }
 rspack_testing                         = { version = "0.2.0", path = "crates/rspack_testing" }
 rspack_tracing                         = { version = "0.2.0", path = "crates/rspack_tracing" }
-rspack_tracing_chrome                  = { version = "0.2.0", path = "crates/rspack_tracing_chrome" }
+rspack_tracing_perfetto                = { version = "0.2.0", path = "crates/rspack_tracing_perfetto" }
 rspack_util                            = { version = "0.2.0", path = "crates/rspack_util" }
 
 [workspace.metadata.release]

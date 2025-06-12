@@ -254,7 +254,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) current_tag_info: Option<TagInfoId>,
   pub(crate) local_modules: Vec<LocalModule>,
   // ===== scope info =======
-  pub(crate) in_try: bool,
+  pub in_try: bool,
   pub(crate) in_short_hand: bool,
   pub(super) definitions: ScopeInfoId,
   pub(crate) top_level_scope: TopLevelScope,

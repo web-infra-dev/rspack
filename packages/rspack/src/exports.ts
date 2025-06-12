@@ -38,6 +38,7 @@ export type {
 	StatsError,
 	StatsModule
 } from "./Stats";
+export { StatsErrorCode } from "./stats/statsFactoryUtils";
 export { Stats } from "./Stats";
 export { RuntimeModule } from "./RuntimeModule";
 export {
@@ -330,7 +331,11 @@ export type {
 export type { SubresourceIntegrityPluginOptions } from "./builtin-plugin";
 
 ///// Experiments Stuff /////
-import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";
+import {
+	cleanupGlobalTrace,
+	registerGlobalTrace,
+	syncTraceEvent
+} from "@rspack/binding";
 import { JavaScriptTracer } from "./trace";
 
 ///// Experiments SWC /////
@@ -340,7 +345,7 @@ interface Experiments {
 	globalTrace: {
 		register: (
 			filter: string,
-			layer: "chrome" | "logger",
+			layer: "logger" | "perfetto",
 			output: string
 		) => Promise<void>;
 		cleanup: () => Promise<void>;
@@ -365,10 +370,9 @@ export const experiments: Experiments = {
 			JavaScriptTracer.initCpuProfiler();
 		},
 		async cleanup() {
-			// make sure run cleanupGlobalTrace first so we can safely append Node.js trace to it otherwise it will overlap
-			cleanupGlobalTrace();
-
 			await JavaScriptTracer.cleanupJavaScriptTrace();
+			await syncTraceEvent(JavaScriptTracer.events);
+			cleanupGlobalTrace();
 		}
 	},
 	RemoveDuplicateModulesPlugin,

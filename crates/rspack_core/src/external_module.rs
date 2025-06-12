@@ -17,8 +17,8 @@ use crate::{
   ChunkUkey, CodeGenerationDataUrl, CodeGenerationResult, Compilation, ConcatenationScope, Context,
   DependenciesBlock, DependencyId, ExternalType, FactoryMeta, ImportAttributes, InitFragmentExt,
   InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleGraph, ModuleType,
-  NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, UsedExports, NAMESPACE_OBJECT_EXPORT,
+  NormalInitFragment, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec, UsedExports, NAMESPACE_OBJECT_EXPORT,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -97,10 +97,14 @@ fn get_namespace_object_export(
 }
 
 fn get_source_for_global_variable_external(
-  variable_names: &ExternalRequestValue,
+  variable_names: Option<&ExternalRequestValue>,
   external_type: &ExternalType,
 ) -> String {
-  let object_lookup = property_access(variable_names.iter(), 0);
+  let object_lookup = if let Some(variable_names) = variable_names {
+    property_access(variable_names.iter(), 0)
+  } else {
+    "[undefined]".to_string()
+  };
   format!("{external_type}{object_lookup}")
 }
 
@@ -110,17 +114,20 @@ fn get_request_string(request: &ExternalRequestValue) -> String {
   format!("{variable_name}{object_lookup}")
 }
 
-fn get_source_for_commonjs(module_and_specifiers: &ExternalRequestValue) -> String {
-  let module_name = module_and_specifiers.primary();
-  format!(
-    "require({}){}",
-    json_stringify(module_name),
-    property_access(module_and_specifiers.iter(), 1)
-  )
+fn get_source_for_commonjs(module_and_specifiers: Option<&ExternalRequestValue>) -> String {
+  let (module_name, properties) = if let Some(module_and_specifiers) = module_and_specifiers {
+    (
+      module_and_specifiers.primary(),
+      property_access(module_and_specifiers.iter(), 1),
+    )
+  } else {
+    ("undefined", String::new())
+  };
+  format!("require({}){}", json_stringify(module_name), properties)
 }
 
 fn get_source_for_import(
-  module_and_specifiers: &ExternalRequestValue,
+  module_and_specifiers: Option<&ExternalRequestValue>,
   compilation: &Compilation,
   attributes: &Option<ImportAttributes>,
 ) -> String {
@@ -139,11 +146,19 @@ fn get_source_for_import(
 
       format!(
         "{}{}",
-        serde_json::to_string(module_and_specifiers.primary()).expect("invalid json to_string"),
+        if let Some(module_and_specifiers) = module_and_specifiers {
+          serde_json::to_string(module_and_specifiers.primary()).expect("invalid json to_string")
+        } else {
+          "undefined".to_string()
+        },
         attributes_str
       )
     },
-    property_access(module_and_specifiers.iter(), 1)
+    if let Some(module_and_specifiers) = module_and_specifiers {
+      property_access(module_and_specifiers.iter(), 1)
+    } else {
+      String::new()
+    }
   )
 }
 
@@ -280,31 +295,29 @@ impl ExternalModule {
     let module_graph = compilation.get_module_graph();
 
     let source = match resolved_external_type {
-      "this" if let Some(request) = request => format!(
+      "this" => format!(
         "{} = (function() {{ return {}; }}());",
         get_namespace_object_export(concatenation_scope, supports_const),
-        get_source_for_global_variable_external(request, external_type)
+        get_source_for_global_variable_external(request, external_type),
       ),
-      "window" | "self" if let Some(request) = request => format!(
+      "window" | "self" => format!(
         "{} = {};",
         get_namespace_object_export(concatenation_scope, supports_const),
         get_source_for_global_variable_external(request, external_type)
       ),
-      "global" if let Some(request) = request => format!(
+      "global" => format!(
         "{} = {};",
         get_namespace_object_export(concatenation_scope, supports_const),
         get_source_for_global_variable_external(request, &compilation.options.output.global_object)
       ),
-      "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static"
-        if let Some(request) = request =>
-      {
+      "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" => {
         format!(
           "{} = {};",
           get_namespace_object_export(concatenation_scope, supports_const),
           get_source_for_commonjs(request)
         )
       }
-      "node-commonjs" if let Some(request) = request => {
+      "node-commonjs" => {
         let need_prefix = compilation
           .options
           .output
@@ -325,12 +338,20 @@ impl ExternalModule {
             )
             .boxed(),
           );
+          let (request, specifiers) = if let Some(request) = request {
+            (
+              json_stringify(request.primary()),
+              property_access(request.iter(), 1),
+            )
+          } else {
+            ("undefined".to_string(), String::new())
+          };
           format!(
             "{} = __WEBPACK_EXTERNAL_createRequire({}.url)({}){};",
             get_namespace_object_export(concatenation_scope, supports_const),
             compilation.options.output.import_meta_name,
-            json_stringify(request.primary()),
-            property_access(request.iter(), 1)
+            request,
+            specifiers
           )
         } else {
           format!(
@@ -361,14 +382,20 @@ impl ExternalModule {
           external_variable
         )
       }
-      "import" if let Some(request) = request => format!(
+      "import" => format!(
         "{} = {};",
         get_namespace_object_export(concatenation_scope, supports_const),
         get_source_for_import(request, compilation, &self.dependency_meta.attributes)
       ),
-      "var" | "promise" | "const" | "let" | "assign" if let Some(request) = request => {
-        let external_variable = get_request_string(request);
-        let check_external_variable = if module_graph.is_optional(&self.id) {
+      "var" | "promise" | "const" | "let" | "assign" => {
+        let external_variable = if let Some(request) = request {
+          get_request_string(request)
+        } else {
+          "undefined".to_string()
+        };
+        let check_external_variable = if module_graph.is_optional(&self.id)
+          && let Some(request) = request
+        {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
             external_variable,
@@ -384,8 +411,10 @@ impl ExternalModule {
           external_variable
         )
       }
-      "module" if let Some(request) = request => {
-        if compilation.options.output.module {
+      "module" => {
+        if compilation.options.output.module
+          && let Some(request) = request
+        {
           let id: Cow<'_, str> = if to_identifier(&request.primary) != request.primary {
             let mut hasher = RspackHash::from(&compilation.options.output);
             request.primary.hash(&mut hasher);
@@ -400,8 +429,9 @@ impl ExternalModule {
           };
 
           if let Some(concatenation_scope) = concatenation_scope {
-            let exports_info = module_graph.get_exports_info(&self.identifier());
-            let used_exports = exports_info.get_used_exports(&module_graph, runtime);
+            let exports_info = module_graph
+              .get_prefetched_exports_info(&self.identifier(), PrefetchExportsInfoMode::AllExports);
+            let used_exports = exports_info.get_used_exports(runtime);
             let meta = &self.dependency_meta.attributes;
             let attributes = meta.as_ref().map(|meta| {
               format!(
@@ -458,13 +488,13 @@ impl ExternalModule {
               }
               UsedExports::UsedNames(atoms) => {
                 concatenation_scope.register_import(
-                  json_stringify(request.primary()),
+                  request.primary().to_string(),
                   attributes.clone(),
                   None,
                 );
                 for atom in &atoms {
                   concatenation_scope.register_import(
-                    json_stringify(request.primary()),
+                    request.primary().to_string(),
                     attributes.clone(),
                     Some(atom.clone()),
                   );
@@ -544,26 +574,26 @@ if(typeof {global} !== "undefined") return resolve();
         )
       }
       _ => {
-        if let Some(request) = request {
-          let external_variable = get_request_string(request);
-          let check_external_variable = if module_graph.is_optional(&self.id) {
-            format!(
-              "if(typeof {} === 'undefined') {{ {} }}\n",
-              external_variable,
-              throw_missing_module_error_block(&get_request_string(request))
-            )
-          } else {
-            String::new()
-          };
+        let external_variable = if let Some(request) = request {
+          get_request_string(request)
+        } else {
+          "undefined".to_string()
+        };
+        let check_external_variable = if module_graph.is_optional(&self.id) {
           format!(
-            "{}{} = {};",
-            check_external_variable,
-            get_namespace_object_export(concatenation_scope, supports_const),
-            get_request_string(request)
+            "if(typeof {} === 'undefined') {{ {} }}\n",
+            &external_variable,
+            throw_missing_module_error_block(&external_variable)
           )
         } else {
           String::new()
-        }
+        };
+        format!(
+          "{}{} = {};",
+          check_external_variable,
+          get_namespace_object_export(concatenation_scope, supports_const),
+          external_variable,
+        )
       }
     };
     Ok((

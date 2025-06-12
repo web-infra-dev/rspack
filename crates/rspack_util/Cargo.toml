@@ -14,7 +14,7 @@ concat-string    = { workspace = true }
 cow-utils        = { workspace = true }
 dashmap          = { workspace = true }
 indexmap         = { workspace = true }
-itoa             = { version = "1.0.14" }
+itoa             = { workspace = true }
 regex            = { workspace = true }
 ropey            = { workspace = true }
 rspack_cacheable = { workspace = true }

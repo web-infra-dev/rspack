@@ -73,6 +73,8 @@ export interface ContextModule extends Module {
 export interface ExternalModule extends Module {
 	readonly userRequest: string;
 }
+
+export type DependencyLocation = SyntheticDependencyLocation | RealDependencyLocation;
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */
@@ -299,7 +301,7 @@ export declare class JsCompilation {
 }
 
 export declare class JsCompiler {
-  constructor(compilerPath: string, options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory)
+  constructor(compilerPath: string, options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
@@ -398,11 +400,7 @@ export declare class JsStats {
 }
 
 export declare class KnownBuildInfo {
-  get _assets(): Assets
-  get _fileDependencies(): Array<string>
-  get _contextDependencies(): Array<string>
-  get _missingDependencies(): Array<string>
-  get _buildDependencies(): Array<string>
+
 }
 
 export declare class Module {
@@ -678,7 +676,7 @@ export interface JsChunkAssetArgs {
 export interface JsChunkGroupOrigin {
   module?: Module | undefined
   request?: string
-  loc?: string | JsRealDependencyLocation
+  loc?: string | RealDependencyLocation
 }
 
 export interface JsChunkOptionNameCtx {
@@ -958,11 +956,6 @@ export interface JsPathDataChunkLike {
   id?: string
 }
 
-export interface JsRealDependencyLocation {
-  start: JsSourcePosition
-  end?: JsSourcePosition
-}
-
 export interface JsResolveArgs {
   request: string
   context: string
@@ -1150,7 +1143,7 @@ export interface JsRspackError {
   name: string
   message: string
   moduleIdentifier?: string
-  loc?: string
+  loc?: DependencyLocation
   file?: string
   stack?: string
   hideStack?: boolean
@@ -1185,11 +1178,6 @@ export interface JsRuntimeRequirementInTreeArg {
 
 export interface JsRuntimeRequirementInTreeResult {
   allRuntimeRequirements: JsRuntimeGlobals
-}
-
-export interface JsSourcePosition {
-  line: number
-  column: number
 }
 
 export interface JsStatsAsset {
@@ -1894,6 +1882,7 @@ incremental?: false | { [key: string]: boolean }
 parallelCodeSplitting: boolean
 rspackFuture?: RawRspackFuture
 cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
+useInputFileSystem?: false | Array<RegExp>
 }
 
 export interface RawExperimentSnapshotOptions {
@@ -2569,9 +2558,25 @@ export interface RawToOptions {
   absoluteFilename?: string
 }
 
+export interface RawTraceEvent {
+  name: string
+  trackName?: string
+  processName?: string
+  args?: Record<string, string>
+  uuid: number
+  ts: bigint
+  ph: string
+  categories?: Array<string>
+}
+
 export interface RawTrustedTypes {
   policyName?: string
   onPolicyCreationFailure?: string
+}
+
+export interface RealDependencyLocation {
+  start: SourcePosition
+  end?: SourcePosition
 }
 
 /**
@@ -2581,7 +2586,7 @@ export interface RawTrustedTypes {
  * Author Donny/강동윤
  * Copyright (c)
  */
-export declare function registerGlobalTrace(filter: string, layer: "chrome" | "logger" , output: string): void
+export declare function registerGlobalTrace(filter: string, layer:  "logger" | "perfetto" , output: string): void
 
 export declare enum RegisterJsTapKind {
   CompilerThisCompilation = 0,
@@ -2713,6 +2718,11 @@ export interface SourceMapDevToolPluginOptions {
   debugIds?: boolean
 }
 
+export interface SourcePosition {
+  line: number
+  column?: number
+}
+
 /**
  * Start the async runtime manually.
  *
@@ -2720,6 +2730,12 @@ export interface SourceMapDevToolPluginOptions {
  * Usually it's used in test.
  */
 export declare function startAsyncRuntime(): void
+
+export declare function syncTraceEvent(events: Array<RawTraceEvent>): void
+
+export interface SyntheticDependencyLocation {
+  name: string
+}
 
 export interface ThreadsafeNodeFS {
   writeFile: (name: string, content: Buffer) => Promise<void>
@@ -2731,6 +2747,7 @@ export interface ThreadsafeNodeFS {
   readFile: (name: string) => Promise<Buffer | string | void>
   stat: (name: string) => Promise<NodeFsStats | void>
   lstat: (name: string) => Promise<NodeFsStats | void>
+  realpath: (name: string) => Promise<string | void>
   open: (name: string, flags: string) => Promise<number | void>
   rename: (from: string, to: string) => Promise<void>
   close: (fd: number) => Promise<void>

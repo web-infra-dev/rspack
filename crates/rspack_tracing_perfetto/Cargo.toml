@@ -5,14 +5,15 @@ documentation.workspace = true
 edition.workspace       = true
 homepage.workspace      = true
 license.workspace       = true
-name                    = "rspack_tracing_chrome"
+name                    = "rspack_tracing_perfetto"
 repository.workspace    = true
 version                 = "0.2.0"
 
 [dependencies]
-serde_json         = { workspace = true }
-tracing-core       = "0.1.32"
-tracing-subscriber = { workspace = true }
-
+bytes               = { version = "*" }
+micromegas-perfetto = { version = "*" }
+prost               = "0.13"
+tracing             = { workspace = true }
+tracing-subscriber  = { workspace = true }
 [lints]
 workspace = true

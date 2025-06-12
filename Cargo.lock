@@ -2632,6 +2632,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "micromegas-perfetto"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf00fa025e680c9ac4fef886b4448d3cd6eaa6afa09946ff8fcb67f15c73f73c"
+dependencies = [
+ "anyhow",
+ "prost",
+ "xxhash-rust",
+]
+
+[[package]]
 name = "miette"
 version = "7.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2751,14 +2762,14 @@ dependencies = [
 
 [[package]]
 name = "napi"
-version = "3.0.0-beta.6"
+version = "3.0.0-beta.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e0d1af803835267849e6816cc15ae1d53370e6bf8e1c721363ad50ca2ae1637"
+checksum = "c502f122fc89e92c6222810b3144411c6f945da5aa3b713ddfad3bdcae7c9bb4"
 dependencies = [
  "anyhow",
  "bitflags 2.9.1",
  "ctor",
- "napi-build",
+ "napi-build 2.2.1",
  "napi-sys",
  "nohash-hasher",
  "rustc-hash 2.1.1",
@@ -2769,15 +2780,21 @@ dependencies = [
 
 [[package]]
 name = "napi-build"
+version = "2.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44e0e3177307063d3e7e55b7dd7b648cca9d7f46daa35422c0d98cc2bf48c2c1"
+
+[[package]]
+name = "napi-build"
 version = "3.0.0-beta.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42908a235da4c4a18c481eb5a8bb38570daa18581a68c508ca8efab662e38bc6"
 
 [[package]]
 name = "napi-derive"
-version = "3.0.0-beta.6"
+version = "3.0.0-beta.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c48e8ab579e603cb66e0f9048303d25fca9f4275f421c0af150a40080bd299d"
+checksum = "fcf1e732a67e934b069d6d527251d6288753a36840572abe132a7aed9e77f0bc"
 dependencies = [
  "convert_case 0.8.0",
  "ctor",
@@ -2789,9 +2806,9 @@ dependencies = [
 
 [[package]]
 name = "napi-derive-backend"
-version = "2.0.0-beta.6"
+version = "2.0.0-beta.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a767a2d3aa9fe20f7032b9e90912e8061224dc48fcfd5a3e8716dbef8ba39a5"
+checksum = "462b775ba74791c98989fadc46c4bb2ec53016427be4d420d31c4bbaab34b308"
 dependencies = [
  "convert_case 0.8.0",
  "proc-macro2",
@@ -3488,6 +3505,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37d3544b3f2748c54e147655edb5025752e2303145b5aefb3c3ea2c78b973bb0"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "prost"
+version = "0.13.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2796faa41db3ec313a31f7624d9286acf277b52de526150b7e69f3debf891ee5"
+dependencies = [
+ "bytes",
+ "prost-derive",
+]
+
+[[package]]
+name = "prost-derive"
+version = "0.13.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a56d757972c98b346a9b766e3f02746cde6dd1cd1d1d563472929fdd74bec4d"
+dependencies = [
+ "anyhow",
+ "itertools 0.14.0",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.95",
 ]
 
 [[package]]
@@ -4189,6 +4229,7 @@ dependencies = [
  "rspack_hook",
  "rspack_javascript_compiler",
  "rspack_loader_runner",
+ "rspack_location",
  "rspack_macros",
  "rspack_napi",
  "rspack_paths",
@@ -4232,6 +4273,7 @@ dependencies = [
  "owo-colors",
  "rspack_cacheable",
  "rspack_collections",
+ "rspack_location",
  "rspack_paths",
  "serde_json",
  "swc_core",
@@ -4429,6 +4471,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_location"
+version = "0.2.0"
+dependencies = [
+ "itoa",
+ "rspack_cacheable",
+]
+
+[[package]]
 name = "rspack_macros"
 version = "0.2.0"
 dependencies = [
@@ -4490,7 +4540,7 @@ dependencies = [
  "glob",
  "heck 0.5.0",
  "napi",
- "napi-build",
+ "napi-build 3.0.0-beta.0",
  "napi-derive",
  "once_cell",
  "ropey",
@@ -4565,6 +4615,7 @@ dependencies = [
  "rustc-hash 2.1.1",
  "serde",
  "serde_json",
+ "sftrace-setup",
  "swc_core",
  "tokio",
  "tracing",
@@ -5158,11 +5209,13 @@ name = "rspack_plugin_rstest"
 version = "0.2.0"
 dependencies = [
  "async-trait",
+ "regex",
  "rspack_cacheable",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
  "rspack_plugin_javascript",
+ "rspack_util",
  "swc_core",
  "tracing",
 ]
@@ -5457,17 +5510,18 @@ dependencies = [
 name = "rspack_tracing"
 version = "0.2.0"
 dependencies = [
- "rspack_tracing_chrome",
- "tracing",
+ "rspack_tracing_perfetto",
  "tracing-subscriber",
 ]
 
 [[package]]
-name = "rspack_tracing_chrome"
+name = "rspack_tracing_perfetto"
 version = "0.2.0"
 dependencies = [
- "serde_json",
- "tracing-core",
+ "bytes",
+ "micromegas-perfetto",
+ "prost",
+ "tracing",
  "tracing-subscriber",
 ]
 
@@ -5851,6 +5905,12 @@ dependencies = [
  "serde",
  "version_check",
 ]
+
+[[package]]
+name = "sftrace-setup"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e3fd16d5db34706ab7200fb106bb1006f1801d1af9efabd65fb78ad8b9c8b0e"
 
 [[package]]
 name = "sha1"
@@ -7830,6 +7890,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tracing-serde"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "704b1aeb7be0d0a84fc9828cae51dab5970fee5088f83d1dd7ee6f6246fc6ff1"
+dependencies = [
+ "serde",
+ "tracing-core",
+]
+
+[[package]]
 name = "tracing-subscriber"
 version = "0.3.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7839,12 +7909,15 @@ dependencies = [
  "nu-ansi-term",
  "once_cell",
  "regex",
+ "serde",
+ "serde_json",
  "sharded-slab",
  "smallvec",
  "thread_local",
  "tracing",
  "tracing-core",
  "tracing-log",
+ "tracing-serde",
 ]
 
 [[package]]

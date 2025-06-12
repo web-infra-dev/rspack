@@ -181,3 +181,4 @@ jobs:
           path: |
             crates/node_binding/*.node
             crates/node_binding/*.wasm
+            crates/node_binding/*.d.ts
