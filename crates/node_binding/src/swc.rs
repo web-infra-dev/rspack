@@ -1,3 +1,4 @@
+use napi::bindgen_prelude::within_runtime_if_available;
 use rspack_javascript_compiler::{
   minify::JsMinifyOptions, transform::SwcOptions, JavaScriptCompiler,
   TransformOutput as CompilerTransformOutput,
@@ -23,8 +24,7 @@ impl From<CompilerTransformOutput> for TransformOutput {
   }
 }
 
-#[napi]
-pub async fn transform(source: String, options: String) -> napi::Result<TransformOutput> {
+fn _transform(source: String, options: String) -> napi::Result<TransformOutput> {
   let options: SwcOptions = serde_json::from_str(&options)?;
   let compiler = JavaScriptCompiler::new();
   compiler
@@ -40,7 +40,16 @@ pub async fn transform(source: String, options: String) -> napi::Result<Transfor
 }
 
 #[napi]
-pub async fn minify(source: String, options: String) -> napi::Result<TransformOutput> {
+pub async fn transform(source: String, options: String) -> napi::Result<TransformOutput> {
+  _transform(source, options)
+}
+
+#[napi]
+pub fn transform_sync(source: String, options: String) -> napi::Result<TransformOutput> {
+  within_runtime_if_available(|| _transform(source, options))
+}
+
+fn _minify(source: String, options: String) -> napi::Result<TransformOutput> {
   let options: JsMinifyOptions = serde_json::from_str(&options)?;
   let compiler = JavaScriptCompiler::new();
   compiler
@@ -61,4 +70,14 @@ pub async fn minify(source: String, options: String) -> napi::Result<TransformOu
 
       napi::Error::new(napi::Status::GenericFailure, err)
     })
+}
+
+#[napi]
+pub async fn minify(source: String, options: String) -> napi::Result<TransformOutput> {
+  _minify(source, options)
+}
+
+#[napi]
+pub fn minify_sync(source: String, options: String) -> napi::Result<TransformOutput> {
+  _minify(source, options)
 }
