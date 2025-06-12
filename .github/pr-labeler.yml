@@ -8,3 +8,5 @@
   - "/^fix/"
 "release: document":
   - "/^docs/"
+"release: refactor":
+  - "/^refactor/"
