@@ -1,3 +1,3 @@
 module.exports = [
-	[/Expected 'md4' \| 'xxhash64', received 'abc' at "output.hashFunction"/]
+	[/Expected 'md4' \| 'xxhash64' \| 'sha256', received 'abc' at "output.hashFunction"/]
 ];
