@@ -74,6 +74,28 @@ function parseTriple(rawTriple) {
 	};
 }
 
+function generateReadme(pkgName) {
+	const README = `<picture>
+  <img alt="Rspack Banner" src="https://assets.rspack.rs/rspack/rspack-banner.png">
+</picture>
+
+# ${pkgName}
+
+Private node binding crate for rspack.
+
+This package does *NOT* follow [semantic versioning](https://semver.org/).
+
+## Documentation
+
+See [https://rspack.rs](https://rspack.rs) for details.
+
+## License
+
+Rspack is [MIT licensed](https://github.com/web-infra-dev/rspack/blob/main/LICENSE).
+`;
+	return README;
+}
+
 const ARTIFACTS = path.resolve(__dirname, "../artifacts");
 const NPM = path.resolve(__dirname, "../npm");
 
@@ -101,11 +123,29 @@ for (const binding of bindings) {
 
 	// rspack.linux-x64-musl.node
 	const file = files[0];
-	assert(path.extname(file) === ".node", `Expected .node file in ${binding}`);
+	assert(
+		[".node", ".wasm"].includes(path.extname(file)),
+		`Expected .node or .wasm file in ${binding}`
+	);
 	const binary = fs.readFileSync(path.join(binding, file));
 
 	const name = path.basename(binding);
 	assert(name.startsWith("bindings-"));
+
+	if (binding.includes("wasm")) {
+		// The pkg of wasm binding is more complex, so we create it manually.
+		const output = path.join(NPM, "wasm32-wasi");
+		const pkgJson = require(path.join(output, "package.json"));
+
+		optionalDependencies["@rspack/binding-wasm32-wasi"] = "workspace:*";
+		fs.writeFileSync(`${output}/rspack.wasm32-wasi.wasm`, binary);
+
+		const README = generateReadme(pkgJson.name);
+		fs.writeFileSync(`${output}/README.md`, README);
+		releasingPackages.push(pkgJson.name);
+
+		continue;
+	}
 
 	// x86_64-unknown-linux-musl
 	const {
@@ -157,24 +197,7 @@ for (const binding of bindings) {
 	fs.writeFileSync(`${output}/package.json`, JSON.stringify(pkgJson, null, 2));
 	fs.writeFileSync(`${output}/${pkgJson.main}`, binary);
 
-	const README = `<picture>
-  <img alt="Rspack Banner" src="https://assets.rspack.rs/rspack/rspack-banner.png">
-</picture>
-
-# ${pkgJson.name}
-
-Private node binding crate for rspack.
-
-This package does *NOT* follow [semantic versioning](https://semver.org/).
-
-## Documentation
-
-See [https://rspack.rs](https://rspack.rs) for details.
-
-## License
-
-Rspack is [MIT licensed](https://github.com/web-infra-dev/rspack/blob/main/LICENSE).
-`;
+	const README = generateReadme(pkgJson.name);
 
 	fs.writeFileSync(`${output}/README.md`, README);
 	releasingPackages.push(pkgJson.name);
