@@ -117,35 +117,34 @@ const bindings = fs
 const optionalDependencies = {};
 
 for (const binding of bindings) {
+	// The pkg of wasm binding is more complex, so we create it manually.
+	if (binding.includes("wasm")) {
+		const output = path.join(NPM, "wasm32-wasi");
+		const pkgJson = require(path.join(output, "package.json"));
+
+		optionalDependencies[pkgJson.name] = "workspace:*";
+		for (const file of pkgJson.files) {
+			fs.copyFileSync(path.join(binding, file), path.join(output, file));
+		}
+
+		const README = generateReadme(pkgJson.name);
+		fs.writeFileSync(path.join(output, "README.md"), README);
+
+		releasingPackages.push(pkgJson.name);
+		continue;
+	}
+
 	// bindings-x86_64-unknown-linux-musl
 	const files = fs.readdirSync(binding);
 	assert(files.length === 1, `Expected only one file in ${binding}`);
 
 	// rspack.linux-x64-musl.node
 	const file = files[0];
-	assert(
-		[".node", ".wasm"].includes(path.extname(file)),
-		`Expected .node or .wasm file in ${binding}`
-	);
+	assert(path.extname(file) === ".node", `Expected .node file in ${binding}`);
 	const binary = fs.readFileSync(path.join(binding, file));
 
 	const name = path.basename(binding);
 	assert(name.startsWith("bindings-"));
-
-	if (binding.includes("wasm")) {
-		// The pkg of wasm binding is more complex, so we create it manually.
-		const output = path.join(NPM, "wasm32-wasi");
-		const pkgJson = require(path.join(output, "package.json"));
-
-		optionalDependencies["@rspack/binding-wasm32-wasi"] = "workspace:*";
-		fs.writeFileSync(`${output}/rspack.wasm32-wasi.wasm`, binary);
-
-		const README = generateReadme(pkgJson.name);
-		fs.writeFileSync(`${output}/README.md`, README);
-		releasingPackages.push(pkgJson.name);
-
-		continue;
-	}
 
 	// x86_64-unknown-linux-musl
 	const {
