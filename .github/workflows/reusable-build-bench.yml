@@ -47,9 +47,9 @@ jobs:
           tool: cargo-codspeed@2.10.1
 
       - name: Build Benchmark
-        env:
-          RUSTFLAGS: "-C debuginfo=1 -C strip=none -g --cfg codspeed"
-        run: cargo codspeed build -p rspack_benchmark --features codspeed --jobs 1
+        # env:
+        #   RUSTFLAGS: "-C debuginfo=1 -C strip=none -g --cfg codspeed"
+        run: cargo codspeed build -p rspack_benchmark --features codspeed
 
       - name: Wait for build job
         uses: lewagon/wait-on-check-action@ccfb013c15c8afb7bf2b7c028fb74dc5a068cccc # v1.3.4
