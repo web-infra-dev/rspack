@@ -1453,7 +1453,7 @@ CompilerOptions {
         top_level_await: true,
         rspack_future: RspackFuture,
         cache: Disabled,
-        inline_constants: false,
+        inline_const: false,
     },
     node: Some(
         NodeOption {

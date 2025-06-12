@@ -2463,7 +2463,7 @@ export type Experiments = {
     buildHttp?: HttpUriOptions;
     parallelLoader?: boolean;
     useInputFileSystem?: UseInputFileSystem;
-    inlineConstants?: boolean;
+    inlineConst?: boolean;
 };
 
 // @public (undocumented)
@@ -2508,7 +2508,7 @@ export interface ExperimentsNormalized {
     // (undocumented)
     incremental?: false | Incremental;
     // (undocumented)
-    inlineConstants?: boolean;
+    inlineConst?: boolean;
     // (undocumented)
     layers?: boolean;
     // (undocumented)
@@ -3434,6 +3434,7 @@ export type JavascriptParserOptions = {
     requireDynamic?: boolean;
     requireResolve?: boolean;
     importDynamic?: boolean;
+    inlineConst?: boolean;
 };
 
 // @public (undocumented)

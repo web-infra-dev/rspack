@@ -19,7 +19,7 @@ function config(index, { concatenateModules } = {}) {
 			moduleIds: "named"
 		},
 		experiments: {
-			inlineConstants: true
+			inlineConst: true
 		}
 	};
 }

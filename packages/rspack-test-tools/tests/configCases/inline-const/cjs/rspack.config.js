@@ -5,6 +5,6 @@ module.exports = {
 		moduleIds: "named"
 	},
 	experiments: {
-		inlineConstants: true
+		inlineConst: true
 	}
 };

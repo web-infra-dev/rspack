@@ -628,7 +628,7 @@ export interface ExperimentsNormalized {
 	buildHttp?: HttpUriPluginOptions;
 	parallelLoader?: boolean;
 	useInputFileSystem?: false | RegExp[];
-	inlineConstants?: boolean;
+	inlineConst?: boolean;
 }
 
 export type IgnoreWarningsNormalized = ((

@@ -367,7 +367,8 @@ impl<'parser> JavascriptParser<'parser> {
         unresolved_mark,
       )));
     }
-    if compiler_options.experiments.inline_constants {
+    // disabled by default for now, it's still experimental
+    if javascript_options.inline_const == Some(true) {
       plugins.push(Box::new(parser_plugin::InlineConstPlugin));
     }
     plugins.append(parser_plugins);

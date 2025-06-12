@@ -1,6 +1,6 @@
 use rspack_core::{
   ConnectionState, DependencyConditionFn, DependencyId, EvaluatedInlinableValue, ModuleGraph,
-  ModuleGraphConnection, RuntimeSpec, UsedName,
+  ModuleGraphConnection, ParserOptions, RuntimeSpec, UsedName,
 };
 use swc_core::ecma::{
   ast::{ModuleDecl, ModuleItem, Program, VarDeclKind},
@@ -121,9 +121,19 @@ impl DependencyConditionFn for InlineConstDependencyCondition {
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
   ) -> ConnectionState {
+    let bailout = ConnectionState::Active(true);
     let module = mg
-      .module_identifier_by_dependency_id(&self.dependency_id)
-      .expect("should have parent module");
+      .get_module_by_dependency_id(&self.dependency_id)
+      .expect("should have target module");
+    if let Some(module) = module.as_normal_module()
+      && let Some(options) = module.get_parser_options()
+      && let Some(options) = options.get_javascript()
+      && options.inline_const != Some(true)
+    {
+      // bailout if the target module didn't enable inline const
+      return bailout;
+    }
+    let module = &module.identifier();
     let dependency = mg
       .dependency_by_id(&self.dependency_id)
       .expect("should have dependency");
@@ -138,7 +148,7 @@ impl DependencyConditionFn for InlineConstDependencyCondition {
     ) {
       return ConnectionState::Active(false);
     }
-    ConnectionState::Active(true)
+    bailout
   }
 
   fn handle_composed(&self, primary: ConnectionState, rest: ConnectionState) -> ConnectionState {

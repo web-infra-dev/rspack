@@ -1883,7 +1883,7 @@ parallelCodeSplitting: boolean
 rspackFuture?: RawRspackFuture
 cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
 useInputFileSystem?: false | Array<RegExp>
-inlineConstants: boolean
+inlineConst: boolean
 }
 
 export interface RawExperimentSnapshotOptions {
@@ -2093,6 +2093,11 @@ export interface RawJavascriptParserOptions {
    * @experimental
    */
   importDynamic?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  inlineConst?: boolean
 }
 
 export interface RawJsonGeneratorOptions {

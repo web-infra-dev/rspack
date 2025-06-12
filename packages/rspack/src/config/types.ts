@@ -1097,6 +1097,9 @@ export type JavascriptParserOptions = {
 
 	// TODO: add docs
 	importDynamic?: boolean;
+
+	/** Inline const values in this module */
+	inlineConst?: boolean;
 };
 
 export type JsonParserOptions = {
@@ -2716,7 +2719,7 @@ export type Experiments = {
 	 * Enable inline constants
 	 * @default false
 	 */
-	inlineConstants?: boolean;
+	inlineConst?: boolean;
 };
 //#endregion
 
