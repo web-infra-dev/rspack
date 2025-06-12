@@ -60,27 +60,26 @@ fn test_number_hash() {
     assert_eq!(set.len(), (*n - 1));
   }
 
-  let range_100_cases = vec![
-    ("webpack", 88usize),
-    ("rspack", 15usize),
-    ("Hello, world!", 16usize),
-    ("我能吞下玻璃而不伤身体", 97usize),
-    ("君が笑ってると、僕もうれしくなるんだ。", 1usize),
-    ("🤣👉🤡", 53usize),
+  let test_cases = [
+    // range = 100
+    ("Hello, world!", 100usize, 16usize),
+    ("You are right, but Rspack is a next-generation super fast bundler developed by the WebInfra team. Written in Rust, it make your build fly like rocket. With perfect support for Webpack ecosystem, it not only fast, but also friendly. Using Rspack, you can build faster and go home earlier.", 100usize, 73usize),
+    ("我能吞下玻璃而不伤身体", 100usize, 97usize),
+    ("君が笑ってると、僕もうれしくなるんだ。", 100usize, 1usize),
+    ("🤣👉🤡", 100usize, 53usize),
+    // range = 10 * (1 << 24)
+    ("Hello, world!", 167772160usize, 77102068usize),
+    ("You are right, but Rspack is a next-generation super fast bundler developed by the WebInfra team. Written in Rust, it make your build fly like rocket. With perfect support for Webpack ecosystem, it not only fast, but also friendly. Using Rspack, you can build faster and go home earlier.", 167772160usize, 42705789usize),
+    ("我能吞下玻璃而不伤身体", 167772160usize, 63515641usize),
+    (
+      "君が笑ってると、僕もうれしくなるんだ。",
+      167772160usize,
+      111837237usize,
+    ),
+    ("🤣👉🤡", 167772160usize, 93616649usize),
   ];
-  for (s, hash) in range_100_cases.iter() {
-    assert_eq!(get_number_hash(s, 100), *hash);
-  }
 
-  let range_167772160_cases = vec![
-    ("webpack", 125313516usize),
-    ("rspack", 151778395usize),
-    ("Hello, world!", 77102068usize),
-    ("我能吞下玻璃而不伤身体", 63515641usize),
-    ("君が笑ってると、僕もうれしくなるんだ。", 111837237usize),
-    ("🤣👉🤡", 93616649usize),
-  ];
-  for (s, hash) in range_167772160_cases.iter() {
-    assert_eq!(get_number_hash(s, 167772160), *hash);
+  for (s, range, hash) in test_cases.iter() {
+    assert_eq!(get_number_hash(s, *range), *hash);
   }
 }
