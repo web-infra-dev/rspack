@@ -117,7 +117,9 @@ rspack_dojang = { version = "0.1.11" }
 rspack                                 = { version = "0.2.0", path = "crates/rspack" }
 rspack_allocator                       = { version = "0.2.0", path = "crates/rspack_allocator" }
 rspack_base64                          = { version = "0.2.0", path = "crates/rspack_base64" }
-rspack_binding                         = { version = "0.2.0", path = "crates/rspack_binding" }
+rspack_binding_api                     = { version = "0.2.0", path = "crates/rspack_binding_api" }
+rspack_binding_build                   = { version = "0.2.0", path = "crates/rspack_binding_build" }
+rspack_binding_builder                 = { version = "0.2.0", path = "crates/rspack_binding_builder" }
 rspack_browserslist                    = { version = "0.2.0", path = "crates/rspack_browserslist" }
 rspack_builtin                         = { version = "0.2.0", path = "crates/rspack_builtin" }
 rspack_cacheable                       = { version = "0.2.0", path = "crates/rspack_cacheable" }

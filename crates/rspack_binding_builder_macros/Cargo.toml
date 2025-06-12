@@ -1,0 +1,17 @@
+[package]
+description       = "rspack node builder"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_binding_builder_macros"
+repository        = "https://github.com/web-infra-dev/rspack"
+version           = "0.2.0"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+rspack_binding_builder = { workspace = true }
+
+proc-macro2 = { workspace = true }
+quote       = { workspace = true }
+syn         = { workspace = true, features = ["full"] }

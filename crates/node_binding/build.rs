@@ -1,4 +1,3 @@
 fn main() {
-  println!("cargo::rustc-check-cfg=cfg(tokio_unstable)");
-  napi_build::setup();
+  rspack_binding_build::setup();
 }

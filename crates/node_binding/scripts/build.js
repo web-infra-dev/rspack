@@ -38,7 +38,7 @@ async function build() {
 			// "--no-const-enum",
 			"--no-dts-header",
 			"--pipe",
-			`"node ./scripts/dts-header.js"`
+			`"node ${path.resolve(__dirname, "dts-header.js")}"`
 		];
 		let features = [];
 		let envs = { ...process.env };
