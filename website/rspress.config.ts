@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { pluginSass } from '@rsbuild/plugin-sass';
+import { pluginAlgolia } from '@rspress/plugin-algolia';
 import { pluginLlms } from '@rspress/plugin-llms';
 import { pluginRss } from '@rspress/plugin-rss';
 import { transformerNotationHighlight } from '@shikijs/transformers';
@@ -9,7 +10,7 @@ import { pluginFontOpenSans } from 'rspress-plugin-font-open-sans';
 import pluginSitemap from 'rspress-plugin-sitemap';
 import { defineConfig } from 'rspress/config';
 
-const PUBLISH_URL = 'https://rspack.dev';
+const PUBLISH_URL = 'https://rspack.rs';
 
 export default defineConfig({
   root: path.join(__dirname, 'docs'),
@@ -17,10 +18,10 @@ export default defineConfig({
   description:
     'Rspack is a high performance JavaScript bundler written in Rust. It offers strong compatibility with the webpack ecosystem, and lightning fast build speeds.',
   logo: {
-    light: 'https://assets.rspack.dev/rspack/navbar-logo-light.png',
-    dark: 'https://assets.rspack.dev/rspack/navbar-logo-dark.png',
+    light: 'https://assets.rspack.rs/rspack/navbar-logo-light.png',
+    dark: 'https://assets.rspack.rs/rspack/navbar-logo-dark.png',
   },
-  icon: 'https://assets.rspack.dev/rspack/favicon-128x128.png',
+  icon: 'https://assets.rspack.rs/rspack/favicon-128x128.png',
   lang: 'en',
   globalStyles: path.join(__dirname, 'theme', 'index.css'),
   markdown: {
@@ -40,6 +41,7 @@ export default defineConfig({
     exclude: ['**/types/*.mdx'],
   },
   plugins: [
+    pluginAlgolia(),
     pluginLlms(),
     pluginSitemap({
       domain: PUBLISH_URL,
@@ -152,7 +154,7 @@ export default defineConfig({
         // default
         return 'rspack-og-image.png';
       };
-      return `<meta property="og:image" content="https://assets.rspack.dev/rspack/${getOgImage()}">`;
+      return `<meta property="og:image" content="https://assets.rspack.rs/rspack/${getOgImage()}">`;
     },
   ],
   builderConfig: {
@@ -175,6 +177,8 @@ export default defineConfig({
     ],
     source: {
       preEntry: ['./theme/tailwind.css'],
+    },
+    resolve: {
       alias: {
         '@builtIns': path.join(__dirname, 'components', 'builtIns'),
         '@components': path.join(__dirname, 'components'),

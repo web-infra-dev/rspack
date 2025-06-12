@@ -89,14 +89,16 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
                 format!(
                   "webpack/container/reference/{}{}",
                   key,
-                  (i > 0)
-                    .then(|| format!("/fallback-{}", itoa!(i)))
-                    .unwrap_or_default()
+                  if i > 0 {
+                    format!("/fallback-{}", itoa!(i))
+                  } else {
+                    Default::default()
+                  }
                 )
               }
             })
             .collect(),
-          format!(".{}", internal_request),
+          format!(".{internal_request}"),
           config.share_scope.clone(),
           key.to_string(),
         )

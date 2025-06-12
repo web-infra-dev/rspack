@@ -89,14 +89,17 @@ pub fn remove_available_modules(
   chunk_parents: &mut [Vec<usize>],
   chunk_children: &mut [Vec<usize>],
 ) {
-  let mut chunk_incomings: Vec<usize> = chunk_parents.iter().map(|parents| parents.len()).collect();
+  let mut chunk_incomings: Vec<HashSet<usize>> = chunk_parents
+    .iter()
+    .map(|parents| parents.iter().copied().collect())
+    .collect();
   let mut pending = HashSet::<usize>::default();
   let module_graph = compilation.get_module_graph();
 
   let mut stack = roots
     .iter()
     .filter(|root| {
-      let is_entry_without_depend_on = chunk_incomings[**root] == 0 && matches!(&chunks[**root].1.chunk_desc, ChunkDesc::Entry(box EntryChunkDesc{initial, ..}) if *initial);
+      let is_entry_without_depend_on = chunk_incomings[**root].is_empty() && matches!(&chunks[**root].1.chunk_desc, ChunkDesc::Entry(box EntryChunkDesc{initial, ..}) if *initial);
       if is_entry_without_depend_on {
         pending.insert(**root);
       }
@@ -110,10 +113,6 @@ pub fn remove_available_modules(
   while !pending.is_empty() || !stack.is_empty() {
     while let Some((parent_available_modules, chunk_index, force_continue)) = stack.pop() {
       let (_, chunk) = &mut chunks[chunk_index];
-
-      if chunk_incomings[chunk_index] >= 1 {
-        chunk_incomings[chunk_index] -= 1;
-      }
 
       let curr_parents_modules = if let Some(curr) = &mut available_modules[chunk_index] {
         // if already calculated
@@ -138,20 +137,21 @@ pub fn remove_available_modules(
       };
 
       // we have incomings that are not calculated, wait till we calculated
-      if chunk_incomings[chunk_index] != 0 {
+      if !chunk_incomings[chunk_index].is_empty() && !force_continue {
         pending.insert(chunk_index);
         continue;
       }
 
       // if we reach here, means all incomings have calculated (if no cycle)
       //, we can continue calculate children
-      pending.remove(&chunk_index);
 
       let curr_chunk_modules = chunk.chunk_desc.chunk_modules_ordinal();
       let child_available = curr_parents_modules.union(curr_chunk_modules);
 
       for child in &chunk_children[chunk_index] {
         let child_chunk = &mut chunks[*child].1.chunk_desc;
+
+        chunk_incomings[*child].remove(&chunk_index);
 
         if matches!(
           &child_chunk,
@@ -220,6 +220,11 @@ pub fn remove_available_modules(
       continue;
     }
 
+    let outgoings = chunk.outgoings_mut();
+    for remove_id in &removed {
+      outgoings.swap_remove(remove_id);
+    }
+
     let chunk = &chunks[chunk_index].1.chunk_desc;
     let outgoings = chunk.outgoings();
 
@@ -229,7 +234,7 @@ pub fn remove_available_modules(
       // if all incomings from current chunk are removed, we can remove this child
       if child_chunk.incomings().iter().all(|incoming| {
         // if all incomings are not from current chunk, we disconnect them
-        !removed.contains(incoming) && !outgoings.contains(incoming)
+        !outgoings.contains(incoming)
       }) {
         disconnect_children.insert(*child);
       }

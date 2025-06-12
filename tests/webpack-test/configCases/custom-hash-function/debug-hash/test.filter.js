@@ -1,2 +1,2 @@
 // debug hash is not implemented
-module.exports = () => false;
+module.exports = () => "NOPLAN: support debug hash function";

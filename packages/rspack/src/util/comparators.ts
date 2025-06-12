@@ -8,10 +8,6 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import type { JsStatsChunk as Chunk } from "@rspack/binding";
-
-import type { ChunkGroup } from "../ChunkGroup";
-
 export type Comparator = <T>(arg0: T, arg1: T) => -1 | 0 | 1;
 
 type Selector<A, B> = (input: A) => B;
@@ -77,17 +73,6 @@ export const compareIds = <T = string | number>(a: T, b: T): -1 | 0 | 1 => {
 	if (a < b) return -1;
 	if (a > b) return 1;
 	return 0;
-};
-
-export const compareChunksById = (a: Chunk, b: Chunk): -1 | 0 | 1 => {
-	return compareIds(a.id || "", b.id || "");
-};
-
-export const compareChunkGroupsByIndex = (
-	a: ChunkGroup,
-	b: ChunkGroup
-): -1 | 0 | 1 => {
-	return a.index! < b.index! ? -1 : 1;
 };
 
 const compareSelectCache: TwoKeyWeakMap<

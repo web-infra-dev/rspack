@@ -8,7 +8,7 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_comment_with_nl, ApplyContext, BoxModule, BuildMetaExportsType, ChunkGraph,
   ChunkInitFragments, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
-  CompilerOptions, ExportInfo, ExportInfoProvided, ExportsInfo, Module, ModuleGraph,
+  CompilerOptions, ExportInfo, ExportInfoGetter, ExportProvided, ExportsInfo, Module, ModuleGraph,
   ModuleIdentifier, Plugin, PluginContext, UsageState,
 };
 use rspack_error::Result;
@@ -66,19 +66,20 @@ fn print_exports_info_to_source<F>(
 
   // print the exports
   for export_info in &printed_exports {
-    let export_name: String = export_info
-      .name(module_graph)
+    let info = export_info.as_data(module_graph);
+
+    let export_name: String = ExportInfoGetter::name(info)
       .map(|n| n.to_string())
       .unwrap_or("null".into());
-    let provide_info = export_info.get_provided_info(module_graph);
-    let usage_info = export_info.get_used_info(module_graph);
-    let rename_info = export_info.get_rename_info(module_graph);
+    let provide_info = ExportInfoGetter::get_provided_info(info);
+    let usage_info = ExportInfoGetter::get_used_info(info);
+    let rename_info = ExportInfoGetter::get_rename_info(info);
 
-    let target_desc = match export_info.get_target(module_graph) {
+    let target_desc = match info.get_target(module_graph) {
       Some(resolve_target) => {
         let target_module = request_shortener(&resolve_target.module);
         match resolve_target.export {
-          None => format!("-> {}", target_module),
+          None => format!("-> {target_module}"),
           Some(es) => {
             let exp = es.iter().map(|a| a.as_str()).collect::<Vec<_>>().join(".");
             format!(" -> {target_module} {exp}")
@@ -94,7 +95,7 @@ fn print_exports_info_to_source<F>(
 
     source.add(RawStringSource::from(to_comment_with_nl(&export_str)));
 
-    if let Some(exports_info) = &export_info.exports_info(module_graph) {
+    if let Some(exports_info) = &ExportInfoGetter::exports_info(info) {
       print_exports_info_to_source(
         source,
         &format!("{ident}  "),
@@ -114,15 +115,16 @@ fn print_exports_info_to_source<F>(
 
   if show_other_exports {
     let other_exports_info = exports_info_id.other_exports_info(module_graph);
+    let other_exports_info_data = other_exports_info.as_data(module_graph);
 
-    let target = other_exports_info.get_target(module_graph);
+    let target = other_exports_info_data.get_target(module_graph);
 
     if target.is_some()
       || !matches!(
-        other_exports_info.provided(module_graph),
-        Some(ExportInfoProvided::False)
+        ExportInfoGetter::provided(other_exports_info_data),
+        Some(ExportProvided::NotProvided)
       )
-      || other_exports_info.get_used(module_graph, None) != UsageState::Unused
+      || ExportInfoGetter::get_used(other_exports_info_data, None) != UsageState::Unused
     {
       let title = if !printed_exports.is_empty() || already_printed_exports > 0 {
         "other exports"
@@ -130,8 +132,8 @@ fn print_exports_info_to_source<F>(
         "exports"
       };
 
-      let provide_info = other_exports_info.get_provided_info(module_graph);
-      let used_info = other_exports_info.get_used_info(module_graph);
+      let provide_info = ExportInfoGetter::get_provided_info(other_exports_info_data);
+      let used_info = ExportInfoGetter::get_used_info(other_exports_info_data);
       let target_desc = match target {
         Some(resolve_target) => {
           format!(" -> {}", request_shortener(&resolve_target.module))

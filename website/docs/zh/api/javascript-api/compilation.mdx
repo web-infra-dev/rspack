@@ -30,6 +30,24 @@ Compilation 对象是 Rspack 构建过程中的核心对象之一，每当 Rspac
 因此，部分较为复杂的数据结构和方法将不会在 JavaScript Compilation 上支持，同时**数据只读**且结构可能与 webpack 存在差异。
 :::
 
+## 获取 compilation 对象
+
+你可以通过 [compiler.hooks.thisCompilation](/api/plugin-api/compiler-hooks#thiscompilation) 或 [compiler.hooks.compilation](/api/plugin-api/compiler-hooks#compilation) 钩子来获取当前的 compilation 对象。
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.thisCompilation.tap('ExamplePlugin', compilation => {
+      console.log('thisCompilation hook called:', compilation);
+    });
+
+    compiler.hooks.compilation.tap('ExamplePlugin', compilation => {
+      console.log('compilation hook called:', compilation);
+    });
+  }
+}
+```
+
 ## Compilation 对象方法
 
 ### emitAsset

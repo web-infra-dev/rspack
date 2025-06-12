@@ -7,7 +7,7 @@ _2024 年 11 月 07 日_
 
 # Rspack 1.1 发布公告
 
-![Rspack 1.1](https://assets.rspack.dev/rspack/rspack-banner-v1-1.png)
+![Rspack 1.1](https://assets.rspack.rs/rspack/rspack-banner-v1-1.png)
 
 > 由 [@LingyuCoder](https://github.com/LingyuCoder)，[@ahabhgk](https://github.com/ahabhgk)，[@GiveMe-A-Name](https://github.com/GiveMe-A-Name)，[@9aoy](https://github.com/9aoy)，[@chenjiahan](https://github.com/chenjiahan) 发布
 
@@ -36,7 +36,7 @@ Rspack v1.1 和 Rsbuild v1.1 已经正式发布！
 
 <img
   width="850"
-  src="https://assets.rspack.dev/rspack/assets/rspack-1-1-perf-comparison.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-1-1-perf-comparison.png"
   alt="Rspack v1.1 与 v1.0 的性能对比"
 />
 
@@ -44,7 +44,7 @@ Rspack v1.1 和 Rsbuild v1.1 已经正式发布！
 
 ### 新的增量构建
 
-在 Rspack 0.x 的早期版本中，我们实现了[experiments.incrementalRebuild](https://v0.rspack.dev/config/experiments#experimentsincrementalrebuild)。随着这个功能逐渐稳定，我们移除了实验性配置并默认启用。
+在 Rspack 0.x 的早期版本中，我们实现了[experiments.incrementalRebuild](https://v0.rspack.rs/config/experiments#experimentsincrementalrebuild)。随着这个功能逐渐稳定，我们移除了实验性配置并默认启用。
 
 然而，此功能仅在重新构建时的 `make` 和 `emitAssets` 阶段做到了增量。许多项目在 `make` 阶段运行 loader 会花费大量时间。当时对于这些项目，此功能在重新构建时有相对明显的性能提升。但仍有一些项目在 `make` 之外的其他阶段花费大量时间。因此，我们对这个功能进行了优化和扩展，逐渐将增量引入到其他阶段，如 `buildChunkGraph`、`providedExports`、`moduleCodegen` 等。
 
@@ -54,7 +54,7 @@ Rspack v1.1 和 Rsbuild v1.1 已经正式发布！
 
 <img
   width="850"
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-1-new-incremental-compare.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-1-new-incremental-compare.png"
   alt="启用新增量的 10000 个 React 组件"
 />
 
@@ -106,7 +106,7 @@ export default {
 };
 ```
 
-> 更多详细信息请参考 [HtmlRspackPlugin](https://rspack.dev/plugins/rspack/html-rspack-plugin)
+> 更多详细信息请参考 [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin)
 
 ### 优化 JSDoc
 
@@ -116,7 +116,7 @@ Rspack 使用 [zod](https://github.com/colinhacks/zod) 验证用户配置并推�
 
 <img
   width="850"
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-1-config-intellisense.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-1-config-intellisense.png"
   alt="IDE 中的配置智能感知"
 />
 
@@ -146,13 +146,13 @@ Rsbuild v1.1 在升级到 Rspack v1.1 的同时引入了几个新功能。
 
 ### CLI 快捷方式
 
-Rsbuild 现在可通过 [dev.cliShortcuts](https://rsbuild.dev/config/dev/cli-shortcuts) 启用 CLI 快捷方式。如果你已在使用 Rsbuild CLI，则该功能默认开启。
+Rsbuild 现在可通过 [dev.cliShortcuts](https://rsbuild.rs/config/dev/cli-shortcuts) 启用 CLI 快捷方式。如果你已在使用 Rsbuild CLI，则该功能默认开启。
 
 CLI 快捷方式允许你清空控制台、打开浏览器、重启服务器或自定义任何你想要的快捷键。
 
 <img
   width="650"
-  src="https://assets.rspack.dev/rsbuild/assets/rsbuild-cli-shortcuts.png"
+  src="https://assets.rspack.rs/rsbuild/assets/rsbuild-cli-shortcuts.png"
   alt="Rsbuild CLI 快捷方式"
 />
 
@@ -161,7 +161,7 @@ CLI 快捷方式允许你清空控制台、打开浏览器、重启服务器或�
 Rsbuild 开发服务器现在会在 `/rsbuild-dev-server` 路径下提供了一个报告页面，允许你查看当前构建期间生成的所有静态资源。
 
 <img
-  src="https://assets.rspack.dev/rsbuild/assets/assets-report-page.png"
+  src="https://assets.rspack.rs/rsbuild/assets/assets-report-page.png"
   alt="rsbuild-dev-server"
   width="600"
 />
@@ -170,10 +170,10 @@ Rsbuild 开发服务器现在会在 `/rsbuild-dev-server` 路径下提供了一�
 
 Rsbuild 1.1 引入了一些新配置：
 
-- [server.base](https://rsbuild.dev/config/server/base)：设置服务器的基础路径。
-- [source.assetsInclude](https://rsbuild.dev/config/source/assets-include)：设置额外被作为静态资源处理的文件。
-- [output.filename.assets](https://rsbuild.dev/config/output/filename)：设置额外静态资源的名称。
-- [output.distPath.assets](https://rsbuild.dev/config/output/dist-path)：设置额外静态资源的输出目录。
+- [server.base](https://rsbuild.rs/config/server/base)：设置服务器的基础路径。
+- [source.assetsInclude](https://rsbuild.rs/config/source/assets-include)：设置额外被作为静态资源处理的文件。
+- [output.filename.assets](https://rsbuild.rs/config/output/filename)：设置额外静态资源的名称。
+- [output.distPath.assets](https://rsbuild.rs/config/output/dist-path)：设置额外静态资源的输出目录。
 
 ## 升级指南
 

@@ -20,8 +20,8 @@ pub use r#struct::*;
 
 use crate::{
   BoxModule, BoxRuntimeModule, Chunk, ChunkGraph, ChunkGroupOrderKey, ChunkGroupUkey, ChunkUkey,
-  Compilation, ExecutedRuntimeModule, LogType, ModuleGraph, ModuleIdentifier, ProvidedExports,
-  SourceType, UsedExports,
+  Compilation, ExecutedRuntimeModule, LogType, ModuleGraph, ModuleIdentifier,
+  PrefetchExportsInfoMode, ProvidedExports, SourceType, UsedExports,
 };
 
 #[derive(Debug, Clone)]
@@ -616,14 +616,16 @@ impl Stats<'_> {
           self.compilation,
           &self.compilation.options,
         );
+        let code = d.code().map(|code| code.to_string());
         StatsError {
           message: diagnostic_displayer
             .emit_diagnostic(d)
             .expect("should print diagnostics"),
+          code,
           module_identifier,
           module_name,
           module_id: module_id.flatten(),
-          loc: d.loc(),
+          loc: d.loc().map(|loc| loc.to_string()),
           file: d.file(),
 
           chunk_name: chunk.and_then(|c| c.name()),
@@ -675,15 +677,18 @@ impl Stats<'_> {
           &self.compilation.options,
         );
 
+        let code = d.code().map(|code| code.to_string());
+
         StatsWarning {
           name: d.code().map(|c| c.to_string()),
           message: diagnostic_displayer
             .emit_diagnostic(d)
             .expect("should print diagnostics"),
+          code,
           module_identifier,
           module_name,
           module_id: module_id.flatten(),
-          loc: d.loc(),
+          loc: d.loc().map(|loc| loc.to_string()),
           file: d.file(),
 
           chunk_name: chunk.and_then(|c| c.name()),
@@ -1033,14 +1038,14 @@ impl Stats<'_> {
           .used_exports
           .is_enable()
       {
-        match self
-          .compilation
-          .get_module_graph()
-          .get_used_exports(&module.identifier(), None)
-        {
-          UsedExports::Null => Some(StatsUsedExports::Null),
-          UsedExports::Vec(v) => Some(StatsUsedExports::Vec(v)),
-          UsedExports::Bool(b) => Some(StatsUsedExports::Bool(b)),
+        let module_graph = self.compilation.get_module_graph();
+        let exports_info = module_graph
+          .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::AllExports);
+        let used_exports = exports_info.get_used_exports(None);
+        match used_exports {
+          UsedExports::Unknown => Some(StatsUsedExports::Null),
+          UsedExports::UsedNames(v) => Some(StatsUsedExports::Vec(v)),
+          UsedExports::UsedNamespace(b) => Some(StatsUsedExports::Bool(b)),
         }
       } else {
         None
@@ -1050,12 +1055,12 @@ impl Stats<'_> {
     if options.provided_exports {
       stats.provided_exports =
         if !executed && self.compilation.options.optimization.provided_exports {
-          match self
-            .compilation
-            .get_module_graph()
-            .get_provided_exports(module.identifier())
-          {
-            ProvidedExports::Vec(v) => Some(v),
+          let module_graph = self.compilation.get_module_graph();
+          let exports_info = module_graph
+            .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::AllExports);
+          let provided_exports = exports_info.get_provided_exports();
+          match provided_exports {
+            ProvidedExports::ProvidedNames(v) => Some(v),
             _ => None,
           }
         } else {

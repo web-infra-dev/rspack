@@ -1,2 +1,2 @@
-// TODO: Should create a issue for this test
-module.exports = () => { return "TODO: support loadModule" }
+
+module.exports = () => "TODO: support loadModule"

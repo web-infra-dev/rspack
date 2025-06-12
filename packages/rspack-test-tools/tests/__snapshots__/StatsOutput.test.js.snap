@@ -58,7 +58,7 @@ runtime modules xx KiB
     [no exports]
     [used exports unknown]
   
-Rspack compiled successfully (18cc1e9efd1c355c)
+Rspack compiled successfully (cb468c46ad9d7f18)
 `;
 
 exports[`statsOutput statsOutput/builtin-swc-loader-parse-error should print correct stats for 1`] = `
@@ -127,7 +127,7 @@ exports[`statsOutput statsOutput/legacy-ie-css-warning should print correct stat
 exports[`statsOutput statsOutput/let-keyword-as-variable-name-error should print correct stats for 1`] = `
 ERROR in ./index.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Unexpected token \`let\`. Expected let is reserved in const, let, class declaration
+  ╰─▶   × JavaScript parse error: Unexpected token \`let\`. Expected let is reserved in const, let, class declaration
          ╭────
        1 │ let let = let;
          ·     ───
@@ -204,21 +204,25 @@ runtime modules 647 bytes 3 modules
 `;
 
 exports[`statsOutput statsOutput/minify-error should print correct stats for 1`] = `
-ERROR in × JavaScript parsing error: 'const' declarations must be initialized
-   ╭─[1:6]
- 1 │ const a {}
-   ·       ─
- 2 │ (() => { // webpackBootstrap
- 3 │ console.log(0);
-   ╰────
+ERROR in main.js
+  × Chunk minification failed:
+  ╰─▶   × JavaScript parse error: 'const' declarations must be initialized
+         ╭─[1:6]
+       1 │ const a {}
+         ·       ─
+       2 │ (() => { // webpackBootstrap
+       3 │ console.log(0);
+         ╰────
 
-ERROR in × JavaScript parsing error: Expected a semicolon
-   ╭─[1:8]
- 1 │ const a {}
-   ·         ─
- 2 │ (() => { // webpackBootstrap
- 3 │ console.log(0);
-   ╰────
+ERROR in main.js
+  × Chunk minification failed:
+  ╰─▶   × JavaScript parse error: Expected a semicolon
+         ╭─[1:8]
+       1 │ const a {}
+         ·         ─
+       2 │ (() => { // webpackBootstrap
+       3 │ console.log(0);
+         ╰────
 
 Rspack compiled with 2 errors
 `;
@@ -287,7 +291,7 @@ chunk (runtime: runtime~e2) runtime~e2.js (runtime~e2) xx KiB [initial] [rendere
 exports[`statsOutput statsOutput/parse-error should print correct stats for 1`] = `
 ERROR in ./b.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Expected ';', '}' or <eof>
+  ╰─▶   × JavaScript parse error: Expected ';', '}' or <eof>
          ╭─[6:7]
        4 │ includes
        5 │ a

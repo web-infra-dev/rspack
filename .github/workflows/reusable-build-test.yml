@@ -90,7 +90,7 @@ jobs:
           path: crates/node_binding/
 
       - name: Show restored binding
-        run: ls -lah crates/node_binding/*.node
+        run: ls -lah crates/node_binding/
 
       - name: Setup Pnpm
         uses: ./.github/actions/pnpm/setup

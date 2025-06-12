@@ -1,8 +1,11 @@
-use std::{ptr::NonNull, sync::Arc};
+use std::ptr::NonNull;
 
 use napi::Either;
 use napi_derive::napi;
-use rspack_core::{Compilation, ExportsInfo, ModuleGraph, RuntimeSpec};
+use rspack_core::{
+  Compilation, ExportsInfo, ExportsInfoGetter, ModuleGraph, PrefetchExportsInfoMode, RuntimeSpec,
+};
+use rspack_util::atom::Atom;
 
 use crate::JsRuntimeSpec;
 
@@ -40,32 +43,41 @@ impl JsExportsInfo {
   pub fn is_used(&self, js_runtime: JsRuntimeSpec) -> napi::Result<bool> {
     let module_graph = self.as_ref()?;
     let runtime: Option<RuntimeSpec> = js_runtime.map(|js_rt| match js_rt {
-      Either::A(str) => std::iter::once(str).map(Arc::from).collect(),
-      Either::B(vec) => vec.into_iter().map(Arc::from).collect(),
+      Either::A(str) => std::iter::once(str).map(Into::into).collect(),
+      Either::B(vec) => vec.into_iter().map(Into::into).collect(),
     });
-    Ok(self.exports_info.is_used(&module_graph, runtime.as_ref()))
+    let exports_info = ExportsInfoGetter::prefetch(
+      &self.exports_info,
+      &module_graph,
+      PrefetchExportsInfoMode::AllExports,
+    );
+    Ok(ExportsInfoGetter::is_used(&exports_info, runtime.as_ref()))
   }
 
   #[napi(ts_args_type = "runtime: string | string[] | undefined")]
   pub fn is_module_used(&self, js_runtime: JsRuntimeSpec) -> napi::Result<bool> {
     let module_graph = self.as_ref()?;
     let runtime: Option<RuntimeSpec> = js_runtime.map(|js_rt| match js_rt {
-      Either::A(str) => std::iter::once(str).map(Arc::from).collect(),
-      Either::B(vec) => vec.into_iter().map(Arc::from).collect(),
+      Either::A(str) => std::iter::once(str).map(Into::into).collect(),
+      Either::B(vec) => vec.into_iter().map(Into::into).collect(),
     });
-    Ok(
-      self
-        .exports_info
-        .is_module_used(&module_graph, runtime.as_ref()),
-    )
+    let exports_info = ExportsInfoGetter::prefetch(
+      &self.exports_info,
+      &module_graph,
+      PrefetchExportsInfoMode::AllExports,
+    );
+    Ok(ExportsInfoGetter::is_module_used(
+      &exports_info,
+      runtime.as_ref(),
+    ))
   }
 
   #[napi(ts_args_type = "runtime: string | string[] | undefined")]
   pub fn set_used_in_unknown_way(&mut self, js_runtime: JsRuntimeSpec) -> napi::Result<bool> {
     let mut module_graph = self.as_mut()?;
     let runtime: Option<RuntimeSpec> = js_runtime.map(|js_rt| match js_rt {
-      Either::A(str) => std::iter::once(str).map(Arc::from).collect(),
-      Either::B(vec) => vec.into_iter().map(Arc::from).collect(),
+      Either::A(str) => std::iter::once(str).map(Into::into).collect(),
+      Either::B(vec) => vec.into_iter().map(Into::into).collect(),
     });
     Ok(
       self
@@ -85,19 +97,19 @@ impl JsExportsInfo {
   ) -> napi::Result<u32> {
     let module_graph = self.as_ref()?;
     let runtime: Option<RuntimeSpec> = js_runtime.map(|js_rt| match js_rt {
-      Either::A(str) => std::iter::once(str).map(Arc::from).collect(),
-      Either::B(vec) => vec.into_iter().map(Arc::from).collect(),
+      Either::A(str) => std::iter::once(str).map(Into::into).collect(),
+      Either::B(vec) => vec.into_iter().map(Into::into).collect(),
     });
-    let used = match js_name {
-      Either::A(s) => self
-        .exports_info
-        .get_used(&module_graph, &[s.into()], runtime.as_ref()),
-      Either::B(v) => self.exports_info.get_used(
-        &module_graph,
-        v.into_iter().map(Into::into).collect::<Vec<_>>().as_slice(),
-        runtime.as_ref(),
-      ),
+    let names = match js_name {
+      Either::A(s) => vec![Atom::from(s)],
+      Either::B(v) => v.into_iter().map(Into::into).collect::<Vec<_>>(),
     };
+    let exports_info = ExportsInfoGetter::prefetch(
+      &self.exports_info,
+      &module_graph,
+      PrefetchExportsInfoMode::NamedNestedExports(&names),
+    );
+    let used = ExportsInfoGetter::get_used(&exports_info, &names, runtime.as_ref());
     Ok(used as u32)
   }
 }

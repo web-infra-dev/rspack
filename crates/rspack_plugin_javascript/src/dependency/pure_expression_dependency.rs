@@ -1,12 +1,14 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   filter_runtime, runtime_condition_expression, AsContextDependency, AsModuleDependency,
   Compilation, ConnectionState, Dependency, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, ModuleGraph, ModuleIdentifier,
-  RuntimeCondition, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedByExports,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, ExportsInfoGetter, ModuleGraph,
+  ModuleIdentifier, PrefetchExportsInfoMode, RuntimeCondition, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, UsageState, UsedByExports,
 };
 use rspack_util::ext::DynHash;
+use rustc_hash::FxHashSet;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -39,10 +41,15 @@ impl PureExpressionDependency {
       Some(UsedByExports::Bool(false)) => RuntimeCondition::Boolean(false),
       Some(UsedByExports::Set(ref set)) => {
         let module_graph = compilation.get_module_graph();
-        let exports_info = module_graph.get_exports_info(&self.module_identifier);
+        let names = set.iter().collect::<FxHashSet<_>>();
+        let exports_info = module_graph.get_prefetched_exports_info(
+          &self.module_identifier,
+          PrefetchExportsInfoMode::NamedExports(names),
+        );
         filter_runtime(runtime, |cur_runtime| {
           set.iter().any(|id| {
-            exports_info.get_used(&module_graph, &[id.clone()], cur_runtime) != UsageState::Unused
+            ExportsInfoGetter::get_used(&exports_info, std::slice::from_ref(id), cur_runtime)
+              != UsageState::Unused
           })
         })
       }
@@ -73,8 +80,9 @@ impl Dependency for PureExpressionDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_chain: &mut IdentifierSet,
+    _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
-    ConnectionState::Bool(false)
+    ConnectionState::Active(false)
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

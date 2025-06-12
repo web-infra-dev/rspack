@@ -367,17 +367,19 @@ class ExamplePlugin {
 
 ## `compile`
 
-在一个新的 compilation 创建之前调用。
+在一个新的 [compilation 对象](/api/javascript-api/compilation) 被创建之前调用。
 
 - **类型：** `SyncHook<[]>`
 
 ## `thisCompilation`
 
-创建 compilation 时调用，在触发 compilation 钩子之前调用。
+在创建 compilation 对象时调用，用于获取当前的 compilation 对象。
+
+你可以通过 `compilation` 参数来访问 compilation 对象的属性，或是注册 [compilation hooks](/api/plugin-api/compilation-hooks)。
 
 - **类型：** `SyncHook<[Compilation]>`
 - **参数：**
-  - `Compilation`: 创建的 [Compilation](/api/javascript-api/compilation) 对象
+  - `compilation`: 创建的 [compilation 对象](/api/javascript-api/compilation)
 
 <Collapse>
   <CollapsePanel
@@ -388,14 +390,34 @@ class ExamplePlugin {
     <CompilationType />
   </CollapsePanel>
 </Collapse>
+
+- **示例：**
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.thisCompilation.tap('ExamplePlugin', compilation => {
+      console.log('compilation created:', compilation);
+
+      compilation.hooks.make.tap('ExamplePlugin', compilation => {
+        console.log("compilation's make hook called:", compilation);
+      });
+    });
+  }
+}
+```
 
 ## `compilation`
 
-compilation 创建之后执行。
+在 compilation 对象创建之后调用，用于获取当前的 compilation 对象。
+
+你可以使用 `compilation` 参数来访问 compilation 对象的属性，或是注册 [compilation hooks](/api/plugin-api/compilation-hooks)。
+
+`compilation` 钩子的调用晚于 [thisCompilation](#thiscompilation) 钩子，并且 `thisCompilation` 钩子不会被复制到 child compiler 中，而 `compilation` 钩子会被复制到 child compiler 中。
 
 - **类型：** `SyncHook<[Compilation]>`
 - **参数：**
-  - `Compilation`: 创建的 [Compilation](/api/javascript-api/compilation) 对象
+  - `compilation`: 创建的 [compilation](/api/javascript-api/compilation) 对象
 
 <Collapse>
   <CollapsePanel
@@ -406,6 +428,21 @@ compilation 创建之后执行。
     <CompilationType />
   </CollapsePanel>
 </Collapse>
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.compilation.tap('ExamplePlugin', compilation => {
+      console.log('compilation created:', compilation);
+
+      compilation.hooks.make.tap('ExamplePlugin', compilation => {
+        console.log("compilation's make hook called:", compilation);
+      });
+    });
+  }
+}
+```
+
 ## `make`
 
 在 make 阶段开始前调用，在 make 阶段会以 entry 为起点构建模块依赖图，并使用 loader 处理各个模块。

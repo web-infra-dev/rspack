@@ -1,6 +1,6 @@
 ERROR in ./index.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: The top-level-await experiment is not enabled (set experiments.topLevelAwait: true to enabled it)
+  ╰─▶   × JavaScript parse error: The top-level-await experiment is not enabled (set experiments.topLevelAwait: true to enabled it)
          ╭─[3:4]
        1 │ const a = await Promise.resolve("aaa");
        2 │
@@ -15,7 +15,7 @@ ERROR in ./index.js
 
 ERROR in ./index.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: The top-level-await experiment is not enabled (set experiments.topLevelAwait: true to enabled it)
+  ╰─▶   × JavaScript parse error: The top-level-await experiment is not enabled (set experiments.topLevelAwait: true to enabled it)
          ╭─[1:10]
        1 │ const a = await Promise.resolve("aaa");
          ·           ─────

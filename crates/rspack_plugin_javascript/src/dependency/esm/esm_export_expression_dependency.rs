@@ -1,13 +1,15 @@
 use itertools::Itertools;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   property_access, rspack_sources::ReplacementEnforce, AsContextDependency, AsModuleDependency,
   Dependency, DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ESMExportInitFragment,
-  ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, RuntimeGlobals,
-  SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
+  ExportNameOrSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
+  PrefetchExportsInfoMode, RuntimeGlobals, SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  UsedName, DEFAULT_EXPORT,
 };
+use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
 
 use crate::parser_plugin::JS_DEFAULT_KEYWORD;
@@ -84,7 +86,7 @@ impl Dependency for ESMExportExpressionDependency {
 
   fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
     Some(ExportsSpec {
-      exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::String(
+      exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::String(
         JS_DEFAULT_KEYWORD.clone(),
       )]),
       priority: Some(1),
@@ -101,8 +103,9 @@ impl Dependency for ESMExportExpressionDependency {
     &self,
     _module_graph: &rspack_core::ModuleGraph,
     _module_chain: &mut IdentifierSet,
+    _connection_state_cache: &mut IdentifierMap<rspack_core::ConnectionState>,
   ) -> rspack_core::ConnectionState {
-    rspack_core::ConnectionState::Bool(false)
+    rspack_core::ConnectionState::Active(false)
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
@@ -154,6 +157,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
     } = code_generatable_context;
 
     let mg = compilation.get_module_graph();
+    let module_identifier = module.identifier();
 
     if let Some(declaration) = &dep.declaration {
       let name = match declaration {
@@ -171,10 +175,13 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
 
       if let Some(scope) = concatenation_scope {
         scope.register_export(JS_DEFAULT_KEYWORD.clone(), name.to_string());
-      } else if let Some(used) = mg.get_exports_info(&module.identifier()).get_used_name(
-        &mg,
+      } else if let Some(used) = ExportsInfoGetter::get_used_name(
+        &mg.get_prefetched_exports_info(
+          &module_identifier,
+          PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&*JS_DEFAULT_KEYWORD])),
+        ),
         *runtime,
-        &[JS_DEFAULT_KEYWORD.clone()],
+        std::slice::from_ref(&JS_DEFAULT_KEYWORD),
       ) && let UsedName::Normal(used) = used
       {
         init_fragments.push(Box::new(ESMExportInitFragment::new(
@@ -208,10 +215,13 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
           "/* ESM default export */ {} {DEFAULT_EXPORT} = ",
           if supports_const { "const" } else { "var" }
         )
-      } else if let Some(used) = mg.get_exports_info(&module.identifier()).get_used_name(
-        &mg,
+      } else if let Some(used) = ExportsInfoGetter::get_used_name(
+        &mg.get_prefetched_exports_info(
+          &module_identifier,
+          PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&*JS_DEFAULT_KEYWORD])),
+        ),
         *runtime,
-        &[JS_DEFAULT_KEYWORD.clone()],
+        std::slice::from_ref(&JS_DEFAULT_KEYWORD),
       ) {
         if let UsedName::Normal(used) = used {
           runtime_requirements.insert(RuntimeGlobals::EXPORTS);

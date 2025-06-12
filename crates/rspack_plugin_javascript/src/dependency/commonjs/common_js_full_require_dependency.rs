@@ -5,9 +5,9 @@ use rspack_cacheable::{
 use rspack_core::{
   module_id, property_access, to_normal_comment, AsContextDependency, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, RuntimeGlobals,
-  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoGetter, ExportsType,
+  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, PrefetchExportsInfoMode,
+  RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::atoms::Atom;
 
@@ -170,9 +170,18 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
 
     let require_expr = if let Some(imported_module) =
       module_graph.module_graph_module_by_dependency_id(&dep.id)
-      && let used = module_graph
-        .get_exports_info(&imported_module.module_identifier)
-        .get_used_name(&module_graph, *runtime, &dep.names)
+      && let used = ExportsInfoGetter::get_used_name(
+        &module_graph.get_prefetched_exports_info(
+          &imported_module.module_identifier,
+          if dep.names.is_empty() {
+            PrefetchExportsInfoMode::AllExports
+          } else {
+            PrefetchExportsInfoMode::NamedNestedExports(&dep.names)
+          },
+        ),
+        *runtime,
+        &dep.names,
+      )
       && let Some(used) = used
     {
       let comment = to_normal_comment(&property_access(&dep.names, 0));

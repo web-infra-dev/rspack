@@ -8,7 +8,6 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import asyncLib from "../util/asyncLib";
 import { getter as getLazyHashedEtag } from "./cache/getLazyHashedEtag.js";
 import { mergeEtags } from "./cache/mergeEtags.js";
 
@@ -24,107 +23,11 @@ type CallbackNormalErrorCache<T> = (
 	result?: T
 ) => void;
 
-type CallbackNormalErrorCacheWithIndex<T> = (
-	err?: WebpackError | null,
-	result?: T,
-	i?: number
-) => void;
-
-function forEachBail<T, Z>(
-	array: T[],
-	iterator: (arg0: T, arg1: CallbackNormalErrorCache<Z>, arg2: number) => void,
-	callback: CallbackNormalErrorCacheWithIndex<Z>
-): void {
-	if (array.length === 0) {
-		callback();
-		return;
-	}
-
-	let i = 0;
-	const next = () => {
-		/** @type {boolean|undefined} */
-		let loop: boolean | undefined = undefined;
-		iterator(
-			array[i++],
-			(err, result) => {
-				if (err || result !== undefined || i >= array.length) {
-					return callback(err, result, i);
-				}
-				if (loop === false) while (next());
-				loop = true;
-			},
-			i
-		);
-		if (!loop) loop = false;
-		return loop;
-	};
-	while (next());
-}
-
 abstract class BaseCache {
 	abstract get<T>(callback: CallbackCache<T>): void;
 	abstract getPromise<T>(): Promise<T | undefined>;
 	abstract store<T>(data: T, callback: CallbackCache<void>): void;
 	abstract storePromise<T>(data: T): Promise<void>;
-}
-
-export class MultiItemCache implements BaseCache {
-	_items: ItemCacheFacade[];
-
-	/**
-	 * @param items item caches
-	 * @returns
-	 */
-	constructor(items: ItemCacheFacade[]) {
-		this._items = items;
-		if (items.length === 1) return items[0] as any;
-	}
-
-	/**
-	 * @param callback signals when the value is retrieved
-	 * @returns
-	 */
-	get<T>(callback: CallbackCache<T>) {
-		forEachBail(
-			this._items,
-			(item: ItemCacheFacade, callback: any) => item.get(callback),
-			callback
-		);
-	}
-
-	/**
-	 * @returns promise with the data
-	 */
-	async getPromise<T>(): Promise<T | undefined> {
-		for (let i = 0; i < this._items.length; i++) {
-			const result = await this._items[i].getPromise<T>();
-			if (result !== undefined) {
-				return result;
-			}
-		}
-		return undefined;
-	}
-
-	/**
-	 * @param data the value to store
-	 * @param callback signals when the value is stored
-	 * @returns
-	 */
-	store<T>(data: T, callback: CallbackCache<void>): void {
-		asyncLib.each(
-			this._items,
-			(item, callback) => item.store(data, callback),
-			callback
-		);
-	}
-
-	/**
-	 * @param data the value to store
-	 * @returns promise signals when the value is stored
-	 */
-	async storePromise<T>(data: T): Promise<void> {
-		await Promise.all(this._items.map(item => item.storePromise(data)));
-	}
 }
 
 export class ItemCacheFacade implements BaseCache {

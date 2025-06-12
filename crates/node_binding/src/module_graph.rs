@@ -1,9 +1,8 @@
-use std::{ptr::NonNull, sync::Arc};
+use std::ptr::NonNull;
 
 use napi::{Either, Env, JsString};
 use napi_derive::napi;
-use rspack_core::{Compilation, ModuleGraph, RuntimeSpec};
-use rustc_hash::FxHashSet;
+use rspack_core::{Compilation, ModuleGraph, PrefetchExportsInfoMode, RuntimeSpec};
 
 use crate::{
   DependencyObject, JsExportsInfo, ModuleGraphConnectionWrapper, ModuleObject, ModuleObjectRef,
@@ -81,21 +80,22 @@ impl JsModuleGraph {
   ) -> napi::Result<Option<Either<bool, Vec<JsString<'a>>>>> {
     let (_, module_graph) = self.as_ref()?;
 
-    let mut runtime: FxHashSet<Arc<str>> = FxHashSet::default();
+    let mut runtime = ustr::UstrSet::default();
     match js_runtime {
       Either::A(s) => {
-        runtime.insert(Arc::from(s));
+        runtime.insert(s.into());
       }
       Either::B(vec) => {
-        runtime.extend(vec.into_iter().map(Arc::from));
+        runtime.extend(vec.iter().map(String::as_str).map(ustr::Ustr::from));
       }
     };
-    let used_exports =
-      module_graph.get_used_exports(&js_module.identifier, Some(&RuntimeSpec::new(runtime)));
+    let exports_info = module_graph
+      .get_prefetched_exports_info(&js_module.identifier, PrefetchExportsInfoMode::AllExports);
+    let used_exports = exports_info.get_used_exports(Some(&RuntimeSpec::new(runtime)));
     Ok(match used_exports {
-      rspack_core::UsedExports::Null => None,
-      rspack_core::UsedExports::Bool(b) => Some(Either::A(b)),
-      rspack_core::UsedExports::Vec(vec) => Some(Either::B(
+      rspack_core::UsedExports::Unknown => None,
+      rspack_core::UsedExports::UsedNamespace(b) => Some(Either::A(b)),
+      rspack_core::UsedExports::UsedNames(vec) => Some(Either::B(
         vec
           .into_iter()
           .map(|atom| env.create_string(atom.as_str()))

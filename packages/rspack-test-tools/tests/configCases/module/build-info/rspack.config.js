@@ -10,6 +10,22 @@ class Plugin {
 
 			// known build info
 			expect(Object.keys(entryModule.buildInfo.assets)).toContain("foo.txt");
+
+			expect(entryModule.buildInfo.fileDependencies.size).toBe(1);
+			expect(
+				entryModule.buildInfo.fileDependencies.has(
+					path.join(__dirname, "index.js")
+				)
+			).toBe(true);
+
+			expect(entryModule.buildInfo.buildDependencies.size).toBe(1);
+			expect(entryModule.buildInfo.buildDependencies.has("./build.txt")).toBe(
+				true
+			);
+
+			expect(entryModule.buildInfo.contextDependencies.size).toBe(0);
+
+			expect(entryModule.buildInfo.missingDependencies.size).toBe(0);
 		});
 	}
 }

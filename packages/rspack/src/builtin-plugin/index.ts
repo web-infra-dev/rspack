@@ -51,6 +51,7 @@ export * from "./NaturalModuleIdsPlugin";
 export * from "./NodeTargetPlugin";
 export * from "./OccurrenceChunkIdsPlugin";
 export * from "./ProgressPlugin";
+export * from "./RstestPlugin";
 export * from "./ProvidePlugin";
 export * from "./RealContentHashPlugin";
 export * from "./RemoveEmptyChunksPlugin";

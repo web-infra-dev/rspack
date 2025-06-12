@@ -1,1 +1,1 @@
-module.exports = () => { return "TODO: compilation.hooks.afterSeal not supported" }
+module.exports = () => "TODO: compilation.hooks.afterSeal not supported"

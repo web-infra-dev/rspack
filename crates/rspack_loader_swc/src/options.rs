@@ -4,7 +4,7 @@ use rspack_cacheable::{
 };
 use rspack_swc_plugin_import::{ImportOptions, RawImportOptions};
 use serde::Deserialize;
-use swc_config::config_types::BoolConfig;
+use swc_config::{file_pattern::FilePattern, types::BoolConfig};
 use swc_core::base::config::{
   Config, ErrorConfig, FileMatcher, InputSourceMap, IsModule, JscConfig, ModuleConfig, Options,
   SourceMapsConfig,
@@ -75,6 +75,9 @@ pub struct SwcLoaderJsOptions {
   pub schema: Option<String>,
 
   #[serde(default)]
+  pub source_map_ignore_list: Option<FilePattern>,
+
+  #[serde(default)]
   pub rspack_experiments: Option<RawRspackExperiments>,
 }
 
@@ -118,6 +121,7 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
       is_module,
       schema,
       rspack_experiments,
+      source_map_ignore_list,
     } = option;
     let mut source_maps: Option<SourceMapsConfig> = source_maps;
     if source_maps.is_none() && source_map.is_some() {
@@ -145,6 +149,7 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
           error,
           is_module,
           schema,
+          source_map_ignore_list,
         },
         ..Default::default()
       },

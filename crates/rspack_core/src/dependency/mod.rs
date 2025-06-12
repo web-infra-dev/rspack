@@ -45,7 +45,7 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   ConnectionState, EvaluatedInlinableValue, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
-  ReferencedExport, RuntimeSpec,
+  RuntimeSpec,
 };
 
 #[derive(Debug, Default)]
@@ -91,10 +91,10 @@ impl Default for ExportNameOrSpec {
 
 #[derive(Debug, Default)]
 pub enum ExportsOfExportsSpec {
-  True,
+  UnknownExports,
   #[default]
-  Null,
-  Array(Vec<ExportNameOrSpec>),
+  NoExports,
+  Names(Vec<ExportNameOrSpec>),
 }
 
 #[derive(Debug, Default)]
@@ -108,37 +108,6 @@ pub struct ExportsSpec {
   pub dependencies: Option<Vec<ModuleIdentifier>>,
   pub hide_export: Option<Vec<Atom>>,
   pub exclude_exports: Option<Vec<Atom>>,
-}
-
-pub enum ExportsReferencedType {
-  No,     // NO_EXPORTS_REFERENCED
-  Object, // EXPORTS_OBJECT_REFERENCED
-  String(Box<Vec<Vec<Atom>>>),
-  Value(Box<Vec<ReferencedExport>>),
-}
-
-impl From<Atom> for ExportsReferencedType {
-  fn from(value: Atom) -> Self {
-    ExportsReferencedType::String(Box::new(vec![vec![value]]))
-  }
-}
-
-impl From<Vec<Vec<Atom>>> for ExportsReferencedType {
-  fn from(value: Vec<Vec<Atom>>) -> Self {
-    ExportsReferencedType::String(Box::new(value))
-  }
-}
-
-impl From<Vec<Atom>> for ExportsReferencedType {
-  fn from(value: Vec<Atom>) -> Self {
-    ExportsReferencedType::String(Box::new(vec![value]))
-  }
-}
-
-impl From<Vec<ReferencedExport>> for ExportsReferencedType {
-  fn from(value: Vec<ReferencedExport>) -> Self {
-    ExportsReferencedType::Value(Box::new(value))
-  }
 }
 
 pub trait DependencyConditionFn: Sync + Send {
@@ -193,7 +162,7 @@ impl DependencyCondition {
     mg: &ModuleGraph,
   ) -> ConnectionState {
     match self {
-      Self::False => ConnectionState::Bool(false),
+      Self::False => ConnectionState::Active(false),
       Self::Fn(f) => f.get_connection_state(connection, runtime, mg),
       Self::Composed(box (primary, rest)) => {
         let primary_state = primary.get_connection_state(connection, runtime, mg);

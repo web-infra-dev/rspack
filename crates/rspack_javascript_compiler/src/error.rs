@@ -1,14 +1,14 @@
 use std::{
   fmt::Debug,
-  sync::{Arc, mpsc},
+  sync::{mpsc, Arc},
 };
 
 use rspack_cacheable::cacheable;
-use rspack_error::{BatchErrors, DiagnosticKind, TraceableError, error};
+use rspack_error::{error, BatchErrors, DiagnosticKind, TraceableError};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::{
+  errors::{Emitter, Handler, HANDLER},
   SourceFile, SourceMap, Span, Spanned,
-  errors::{Emitter, HANDLER, Handler},
 };
 
 /// Using `u32` instead of `usize` to reduce memory usage,
@@ -20,12 +20,6 @@ use swc_core::common::{
 pub struct ErrorSpan {
   pub start: u32,
   pub end: u32,
-}
-
-impl ErrorSpan {
-  pub fn new(start: u32, end: u32) -> Self {
-    Self { start, end }
-  }
 }
 
 impl From<Span> for ErrorSpan {
@@ -85,7 +79,7 @@ pub fn ecma_parse_error_deduped_to_rspack_error(
     fm,
     span.start as usize,
     span.end as usize,
-    "JavaScript parsing error".into(),
+    "JavaScript parse error".into(),
     message,
   )
   .with_kind(DiagnosticKind::JavaScript)

@@ -24,10 +24,10 @@ use rustc_hash::FxHashMap;
 
 use super::PathWithInfo;
 use crate::{
-  entry::JsEntryOptions, utils::callbackify, AssetInfo, EntryDependency, JsAddingRuntimeModule,
-  JsAsset, JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper, JsCompatSource, JsFilename,
-  JsModuleGraph, JsPathData, JsRspackDiagnostic, JsRspackError, JsStats,
-  JsStatsOptimizationBailout, ModuleObject, RspackResultToNapiResultExt, ToJsCompatSource,
+  entry::JsEntryOptions, utils::callbackify, AssetInfo, EntryDependency, ErrorCode,
+  JsAddingRuntimeModule, JsAsset, JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper,
+  JsCompatSource, JsFilename, JsModuleGraph, JsPathData, JsRspackDiagnostic, JsRspackError,
+  JsStats, JsStatsOptimizationBailout, ModuleObject, RspackResultToNapiResultExt, ToJsCompatSource,
   COMPILER_REFERENCES,
 };
 
@@ -569,8 +569,10 @@ impl JsCompilation {
     reference: Reference<JsCompilation>,
     module_identifiers: Vec<String>,
     f: Function<'static>,
-  ) -> Result<()> {
-    let compilation = self.as_mut()?;
+  ) -> Result<(), ErrorCode> {
+    let compilation = self
+      .as_mut()
+      .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
 
     callbackify(
       f,
@@ -605,11 +607,13 @@ impl JsCompilation {
     layer: Option<String>,
     public_path: Option<JsFilename>,
     base_uri: Option<String>,
-    original_module: Option<String>,
+    original_module: String,
     original_module_context: Option<String>,
     callback: Function<'static>,
-  ) -> Result<()> {
-    let compilation = self.as_ref()?;
+  ) -> Result<(), ErrorCode> {
+    let compilation = self
+      .as_ref()
+      .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
 
     callbackify(
       callback,
@@ -625,7 +629,7 @@ impl JsCompilation {
             public_path.map(|p| p.into()),
             base_uri,
             original_module_context.map(rspack_core::Context::from),
-            original_module.map(ModuleIdentifier::from),
+            ModuleIdentifier::from(original_module),
           )
           .await;
 
@@ -705,19 +709,23 @@ impl JsCompilation {
     reference: Reference<JsCompilation>,
     js_args: Vec<(String, &mut EntryDependency, Option<JsEntryOptions>)>,
     f: Function<'static>,
-  ) -> napi::Result<()> {
-    let compilation = self.as_mut()?;
+  ) -> napi::Result<(), ErrorCode> {
+    let compilation = self
+      .as_mut()
+      .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
 
     let Some(mut compiler_reference) = COMPILER_REFERENCES.with(|ref_cell| {
       let references = ref_cell.borrow_mut();
       references.get(&compilation.compiler_id()).cloned()
     }) else {
-      return Err(napi::Error::from_reason(
+      return Err(napi::Error::new(
+        napi::Status::GenericFailure.into(),
         "Unable to addEntry now. The Compiler has been garbage collected by JavaScript.",
       ));
     };
     let Some(js_compiler) = compiler_reference.get_mut() else {
-      return Err(napi::Error::from_reason(
+      return Err(napi::Error::new(
+        napi::Status::GenericFailure.into(),
         "Unable to addEntry now. The Compiler has been garbage collected by JavaScript.",
       ));
     };
@@ -752,7 +760,8 @@ impl JsCompilation {
         };
         Ok((dependency, options))
       })
-      .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()?;
+      .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()
+      .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
 
     callbackify(
       f,
@@ -802,19 +811,23 @@ impl JsCompilation {
     reference: Reference<JsCompilation>,
     js_args: Vec<(String, &mut EntryDependency, Option<JsEntryOptions>)>,
     f: Function<'static>,
-  ) -> napi::Result<()> {
-    let compilation = self.as_mut()?;
+  ) -> napi::Result<(), ErrorCode> {
+    let compilation = self
+      .as_mut()
+      .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
 
     let Some(mut compiler_reference) = COMPILER_REFERENCES.with(|ref_cell| {
       let references = ref_cell.borrow_mut();
       references.get(&compilation.compiler_id()).cloned()
     }) else {
-      return Err(napi::Error::from_reason(
+      return Err(napi::Error::new(
+        napi::Status::GenericFailure.into(),
         "Unable to addInclude now. The Compiler has been garbage collected by JavaScript.",
       ));
     };
     let Some(js_compiler) = compiler_reference.get_mut() else {
-      return Err(napi::Error::from_reason(
+      return Err(napi::Error::new(
+        napi::Status::GenericFailure.into(),
         "Unable to addInclude now. The Compiler has been garbage collected by JavaScript.",
       ));
     };
@@ -849,7 +862,8 @@ impl JsCompilation {
         };
         Ok((dependency, options))
       })
-      .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()?;
+      .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()
+      .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
 
     callbackify(
       f,

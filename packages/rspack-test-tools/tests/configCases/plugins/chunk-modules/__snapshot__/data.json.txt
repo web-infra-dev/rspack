@@ -1,33 +1,33 @@
 Object {
-  "515": Object {
-    "entryModules": Array [],
-    "modules": Array [
+  515: Object {
+    entryModules: Array [],
+    modules: Array [
       Object {
-        "context": "<COMPILER_CONTEXT>",
-        "identifier": "<COMPILER_CONTEXT>/async.js",
-        "resource": "<COMPILER_CONTEXT>/async.js",
+        context: <COMPILER_CONTEXT>,
+        identifier: <COMPILER_CONTEXT>/async.js,
+        resource: <COMPILER_CONTEXT>/async.js,
       },
     ],
   },
-  "909": Object {
-    "entryModules": Array [
+  909: Object {
+    entryModules: Array [
       Object {
-        "context": "<COMPILER_CONTEXT>",
-        "identifier": "<COMPILER_CONTEXT>/index.js",
-        "resource": "<COMPILER_CONTEXT>/index.js",
+        context: <COMPILER_CONTEXT>,
+        identifier: <COMPILER_CONTEXT>/index.js,
+        resource: <COMPILER_CONTEXT>/index.js,
       },
     ],
-    "modules": Array [
+    modules: Array [
       Object {
-        "context": "<COMPILER_CONTEXT>",
-        "identifier": "<COMPILER_CONTEXT>/index.js",
-        "resource": "<COMPILER_CONTEXT>/index.js",
+        context: <COMPILER_CONTEXT>,
+        identifier: <COMPILER_CONTEXT>/index.js,
+        resource: <COMPILER_CONTEXT>/index.js,
       },
       Object {
-        "identifier": "external node-commonjs \"fs\"",
+        identifier: external node-commonjs "fs",
       },
       Object {
-        "identifier": "external node-commonjs \"path\"",
+        identifier: external node-commonjs "path",
       },
     ],
   },

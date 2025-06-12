@@ -7,7 +7,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
   ApplyContext, BoxModule, ChunkInitFragments, ChunkUkey, Compilation,
   CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation,
-  CompilerOptions, ModuleIdentifier, Plugin, PluginContext, RuntimeGlobals,
+  CompilerOptions, Filename, ModuleIdentifier, PathData, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -89,7 +89,7 @@ async fn eval_devtool_plugin_compilation(
 async fn eval_devtool_plugin_render_module_content(
   &self,
   compilation: &Compilation,
-  _chunk_ukey: &ChunkUkey,
+  chunk_ukey: &ChunkUkey,
   module: &BoxModule,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
@@ -102,6 +102,22 @@ async fn eval_devtool_plugin_render_module_content(
     return Ok(());
   }
 
+  let chunk = compilation.chunk_by_ukey.get(chunk_ukey);
+  let path_data = PathData::default()
+    .chunk_id_optional(
+      chunk.and_then(|c| c.id(&compilation.chunk_ids_artifact).map(|id| id.as_str())),
+    )
+    .chunk_name_optional(chunk.and_then(|c| c.name()))
+    .chunk_hash_optional(chunk.and_then(|c| {
+      c.rendered_hash(
+        &compilation.chunk_hashes_artifact,
+        compilation.options.output.hash_digest_length,
+      )
+    }));
+
+  let filename = Filename::from(self.namespace.as_str());
+  let namespace = compilation.get_path(&filename, path_data).await?;
+
   let output_options = &compilation.options.output;
   let str = match &self.module_filename_template {
     ModuleFilenameTemplate::String(s) => ModuleFilenameHelpers::create_filename_of_string_template(
@@ -109,7 +125,7 @@ async fn eval_devtool_plugin_render_module_content(
       compilation,
       s,
       output_options,
-      &self.namespace,
+      &namespace,
     ),
     ModuleFilenameTemplate::Fn(f) => {
       ModuleFilenameHelpers::create_filename_of_fn_template(
@@ -117,7 +133,7 @@ async fn eval_devtool_plugin_render_module_content(
         compilation,
         f,
         output_options,
-        &self.namespace,
+        &namespace,
       )
       .await?
     }
@@ -265,7 +281,7 @@ fn encode_uri(string: &str) -> Cow<str> {
       if let Cow::Owned(mut inner) = r {
         let mut b = [0u8; 4];
         for &octet in c.encode_utf8(&mut b).as_bytes() {
-          write!(&mut inner, "%{:02X}", octet).unwrap();
+          write!(&mut inner, "%{octet:02X}").expect("write failed");
         }
         r = Cow::Owned(inner);
       }

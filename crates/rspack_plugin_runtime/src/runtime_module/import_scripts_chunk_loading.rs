@@ -61,8 +61,8 @@ impl ImportScriptsChunkLoadingRuntimeModule {
 
     match id {
       TemplateId::Raw => base_id.to_string(),
-      TemplateId::WithHmr => format!("{}_with_hmr", base_id),
-      TemplateId::WithHmrManifest => format!("{}_with_hmr_manifest", base_id),
+      TemplateId::WithHmr => format!("{base_id}_with_hmr"),
+      TemplateId::WithHmrManifest => format!("{base_id}_with_hmr_manifest"),
     }
   }
 }
@@ -108,6 +108,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
     let with_hmr_manifest = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
     let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+    let with_callback = runtime_requirements.contains(RuntimeGlobals::CHUNK_CALLBACK);
 
     let condition_map =
       compilation
@@ -138,7 +139,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       ));
     }
 
-    if with_loading {
+    if with_loading || with_callback {
       let chunk_loading_global_expr = format!(
         "{}[\"{}\"]",
         &compilation.options.output.global_object, &compilation.options.output.chunk_loading_global
@@ -180,6 +181,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
         Some(serde_json::json!({
           "_body": body,
           "_chunk_loading_global_expr": chunk_loading_global_expr,
+          "_with_loading": with_loading,
         })),
       )?;
 

@@ -1,14 +1,17 @@
+mod context;
 mod ctrl;
 mod entry;
 mod execute;
+mod module_tracker;
 mod overwrite;
 
 use std::sync::Arc;
 
-use dashmap::{mapref::entry::Entry, DashMap};
-use execute::BeforeExecuteBuildTask;
+use context::{ExecutorTaskContext, ImportModuleMeta};
+use entry::EntryTask;
+use execute::ExecuteTask;
 pub use execute::{ExecuteModuleId, ExecutedRuntimeModule};
-use rspack_collections::{Identifier, IdentifierDashMap, IdentifierDashSet, IdentifierSet};
+use rspack_collections::{Identifier, IdentifierDashMap, IdentifierDashSet};
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::{
@@ -20,38 +23,26 @@ use tokio::{
 };
 
 use self::{
-  ctrl::{CtrlTask, Event, ExecuteParam},
-  execute::{ExecuteModuleResult, ExecuteTask},
-  overwrite::OverwriteTask,
+  ctrl::{CtrlTask, Event},
+  execute::ExecuteModuleResult,
 };
-use super::make::{
-  cutout::Cutout,
-  repair::{repair, MakeTaskContext},
-  MakeArtifact, MakeParam,
-};
+use super::make::{repair::MakeTaskContext, update_module_graph, MakeArtifact, MakeParam};
 use crate::{
-  cache::MemoryCache, task_loop::run_task_loop_with_event, Compilation, CompilationAsset, Context,
-  Dependency, DependencyId, LoaderImportDependency, PublicPath,
+  cache::MemoryCache, task_loop::run_task_loop, Compilation, CompilationAsset, Context,
+  DependencyId, PublicPath,
 };
-
-#[derive(Debug)]
-struct DepStatus {
-  id: DependencyId,
-  should_update: bool,
-}
 
 #[derive(Debug, Default)]
 pub struct ModuleExecutor {
-  cutout: Cutout,
-  request_dep_map: DashMap<(String, Option<String>), DepStatus>,
+  // data
   pub make_artifact: MakeArtifact,
-  pub rebuild_origins: Option<IdentifierSet>,
+  pub entries: HashMap<ImportModuleMeta, DependencyId>,
 
+  // temporary data, used by hook_after_finish_modules
   event_sender: Option<UnboundedSender<Event>>,
-  stop_receiver: Option<oneshot::Receiver<MakeArtifact>>,
+  stop_receiver: Option<oneshot::Receiver<ExecutorTaskContext>>,
   module_assets: IdentifierDashMap<HashMap<String, CompilationAsset>>,
   code_generated_modules: IdentifierDashSet,
-  module_code_generated_modules: IdentifierDashMap<IdentifierDashSet>,
   pub executed_runtime_modules: IdentifierDashMap<ExecutedRuntimeModule>,
 }
 
@@ -66,42 +57,17 @@ impl ModuleExecutor {
     if !compilation.removed_files.is_empty() {
       params.push(MakeParam::RemovedFiles(compilation.removed_files.clone()));
     }
-    make_artifact.built_modules = Default::default();
-    make_artifact.revoked_modules = Default::default();
+    make_artifact.reset_temporary_data();
 
-    compilation
-      .plugin_driver
-      .compilation_hooks
-      .update_module_graph
-      .call(&mut params, &make_artifact)
-      .await?;
+    // update the module affected by modified_files
+    make_artifact = update_module_graph(compilation, make_artifact, params).await?;
 
-    // Modules imported by `importModule` are passively loaded.
-    let mut build_dependencies = self.cutout.cutout_artifact(&mut make_artifact, params);
-
-    compilation
-      .plugin_driver
-      .compilation_hooks
-      .revoked_modules
-      .call(&make_artifact.revoked_modules)
-      .await?;
-
-    let mut build_dependencies_id = build_dependencies
-      .iter()
-      .map(|(id, _)| *id)
-      .collect::<HashSet<_>>();
-    for mut dep_status in self.request_dep_map.iter_mut() {
-      if build_dependencies_id.contains(&dep_status.id) {
-        dep_status.should_update = true;
-        build_dependencies_id.remove(&dep_status.id);
-      }
-    }
-    build_dependencies.retain(|dep| build_dependencies_id.contains(&dep.0));
-    make_artifact = repair(compilation, make_artifact, build_dependencies)
-      .await
-      .unwrap_or_default();
-
-    let mut ctx = MakeTaskContext::new(compilation, make_artifact, Arc::new(MemoryCache));
+    let mut ctx = ExecutorTaskContext {
+      origin_context: MakeTaskContext::new(compilation, make_artifact, Arc::new(MemoryCache)),
+      tracker: Default::default(),
+      entries: std::mem::take(&mut self.entries),
+      executed_entry_deps: Default::default(),
+    };
     let (event_sender, event_receiver) = unbounded_channel();
     let (stop_sender, stop_receiver) = oneshot::channel();
     self.event_sender = Some(event_sender.clone());
@@ -109,42 +75,47 @@ impl ModuleExecutor {
     // avoid coop budget consumed to zero cause hang risk
     // related to https://tokio.rs/blog/2020-04-preemption
     tokio::spawn(task::unconstrained(async move {
-      let _ = run_task_loop_with_event(
-        &mut ctx,
-        vec![Box::new(CtrlTask::new(event_receiver))],
-        |_, task| {
-          Box::new(OverwriteTask {
-            origin_task: task,
-            event_sender: event_sender.clone(),
-          })
-        },
-      )
-      .await;
+      let _ = run_task_loop(&mut ctx, vec![Box::new(CtrlTask { event_receiver })]).await;
 
-      stop_sender
-        .send(ctx.transform_to_make_artifact())
-        .expect("should success");
+      // ignore error, stop_receiver may be dropped if make stage occur error.
+      let _ = stop_sender.send(ctx);
     }));
 
     Ok(())
   }
 
-  pub async fn hook_after_finish_modules(&mut self, compilation: &mut Compilation) {
+  pub async fn hook_after_finish_modules(&mut self, compilation: &mut Compilation) -> Result<()> {
     let sender = std::mem::take(&mut self.event_sender);
     sender
       .expect("should have sender")
-      .send(Event::Stop())
+      .send(Event::Stop)
       .expect("should success");
 
     let stop_receiver = std::mem::take(&mut self.stop_receiver);
-    if let Ok(make_artifact) = stop_receiver.expect("should have receiver").await {
-      self.make_artifact = make_artifact;
-    } else {
+    let Ok(ctx) = stop_receiver.expect("should have receiver").await else {
       panic!("receive make artifact failed");
-    }
+    };
+    self.make_artifact = ctx.origin_context.artifact;
+    self.entries = ctx.entries;
 
-    let cutout = std::mem::take(&mut self.cutout);
-    cutout.fix_artifact(&mut self.make_artifact);
+    // clean removed entries
+    let removed_module = compilation
+      .make_artifact
+      .revoked_modules
+      .iter()
+      .chain(self.make_artifact.revoked_modules.iter())
+      .collect::<HashSet<_>>();
+    self.entries.retain(|k, v| {
+      !removed_module.contains(&k.origin_module_identifier) || ctx.executed_entry_deps.contains(v)
+    });
+    self.make_artifact = update_module_graph(
+      compilation,
+      std::mem::take(&mut self.make_artifact),
+      vec![MakeParam::BuildEntryAndClean(
+        self.entries.values().copied().collect(),
+      )],
+    )
+    .await?;
 
     let mut mg = compilation.make_artifact.get_module_graph_mut();
     let module_assets = std::mem::take(&mut self.module_assets);
@@ -155,8 +126,6 @@ impl ModuleExecutor {
       }
     }
 
-    //    let module_code_generation_modules = std::mem::take(&mut self.module_code_generated_modules);
-
     let diagnostics = self.make_artifact.diagnostics();
     compilation.extend_diagnostics(diagnostics);
 
@@ -166,22 +135,8 @@ impl ModuleExecutor {
     }
 
     // remove useless *_dependencies incremental info
-    self
-      .make_artifact
-      .file_dependencies
-      .reset_incremental_info();
-    self
-      .make_artifact
-      .context_dependencies
-      .reset_incremental_info();
-    self
-      .make_artifact
-      .missing_dependencies
-      .reset_incremental_info();
-    self
-      .make_artifact
-      .build_dependencies
-      .reset_incremental_info();
+    self.make_artifact.reset_dependencies_incremental_info();
+    Ok(())
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -191,97 +146,45 @@ impl ModuleExecutor {
     layer: Option<String>,
     public_path: Option<PublicPath>,
     base_uri: Option<String>,
-    original_module_context: Option<Context>,
-    original_module_identifier: Option<Identifier>,
+    origin_module_context: Option<Context>,
+    origin_module_identifier: Identifier,
   ) -> ExecuteModuleResult {
     let sender = self
       .event_sender
       .as_ref()
       .expect("should have event sender");
-    let is_entry_rebuild = self
-      .rebuild_origins
-      .as_ref()
-      .is_some_and(|set| original_module_identifier.is_some_and(|i| set.contains(&i)));
 
-    let (param, dep_id) = match self.request_dep_map.entry((request.clone(), layer.clone())) {
-      Entry::Vacant(v) => {
-        let dep = LoaderImportDependency::new(
-          request.clone(),
-          original_module_context.unwrap_or(Context::from("")),
-        );
-        let dep_id = *dep.id();
-        v.insert(DepStatus {
-          id: dep_id,
-          should_update: false,
-        });
-        (ExecuteParam::Entry(Box::new(dep), layer.clone()), dep_id)
-      }
-      Entry::Occupied(mut v) => {
-        let dep_status = v.get_mut();
-        let dep_id = dep_status.id;
-        if dep_status.should_update {
-          let dep = LoaderImportDependency::new_with_id(
-            dep_id,
-            request.clone(),
-            original_module_context.unwrap_or(Context::from("")),
-          );
-          dep_status.should_update = false;
-          (ExecuteParam::Entry(Box::new(dep), layer.clone()), dep_id)
-        } else if is_entry_rebuild {
-          let dep = LoaderImportDependency::new_with_id(
-            dep_id,
-            request.clone(),
-            original_module_context.unwrap_or(Context::from("")),
-          );
-          (ExecuteParam::Entry(Box::new(dep), layer.clone()), dep_id)
-        } else {
-          (ExecuteParam::DependencyId(dep_id), dep_id)
-        }
-      }
+    let meta = ImportModuleMeta {
+      origin_module_identifier,
+      request,
+      layer,
     };
-
     let (tx, rx) = oneshot::channel();
     sender
-      .send(Event::ExecuteModule(
-        param,
-        ExecuteTask {
-          entry_dep_id: dep_id,
-          layer,
+      .send(Event::ImportModule(EntryTask {
+        meta: meta.clone(),
+        origin_module_context,
+        execute_task: ExecuteTask {
+          meta,
           public_path,
           base_uri,
           result_sender: tx,
         },
-        if is_entry_rebuild {
-          Some(BeforeExecuteBuildTask {
-            entry_dep_id: dep_id,
-          })
-        } else {
-          None
-        },
-      ))
+      }))
       .expect("should success");
     let (execute_result, assets, code_generated_modules, executed_runtime_modules) =
       rx.await.expect("should receiver success");
 
-    if execute_result.error.is_none()
-      && let Some(original_module_identifier) = original_module_identifier
-    {
+    if execute_result.error.is_none() {
       self
         .module_assets
-        .entry(original_module_identifier)
+        .entry(origin_module_identifier)
         .or_default()
         .extend(assets);
     }
 
     for id in code_generated_modules {
       self.code_generated_modules.insert(id);
-      if let Some(original_module_identifier) = original_module_identifier {
-        self
-          .module_code_generated_modules
-          .entry(original_module_identifier)
-          .or_default()
-          .insert(id);
-      }
     }
 
     for runtime_module in executed_runtime_modules {

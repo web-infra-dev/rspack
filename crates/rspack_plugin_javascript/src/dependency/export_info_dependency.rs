@@ -4,8 +4,9 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportProvided, Inlinable,
-  TemplateContext, TemplateReplaceSource, UsageState, UsedExports,
+  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportInfoGetter,
+  ExportProvided, ExportsInfoGetter, Inlinable, PrefetchExportsInfoMode, TemplateContext,
+  TemplateReplaceSource, UsageState, UsedExports,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -52,13 +53,13 @@ impl ExportInfoDependency {
     let module_identifier = module.identifier();
 
     if export_name.is_empty() && prop == "usedExports" {
-      let used_exports = module_graph
-        .get_exports_info(&module_identifier)
-        .get_used_exports(&module_graph, *runtime);
+      let exports_info = module_graph
+        .get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::AllExports);
+      let used_exports = exports_info.get_used_exports(*runtime);
       return Some(match used_exports {
-        UsedExports::Null => "null".to_owned(),
-        UsedExports::Bool(value) => value.to_string(),
-        UsedExports::Vec(exports) => {
+        UsedExports::Unknown => "null".to_owned(),
+        UsedExports::UsedNamespace(value) => value.to_string(),
+        UsedExports::UsedNames(exports) => {
           format!(
             r#"[{}]"#,
             exports
@@ -71,42 +72,41 @@ impl ExportInfoDependency {
       });
     }
 
-    let exports_info = module_graph.get_exports_info(&module_identifier);
+    let exports_info = module_graph.get_prefetched_exports_info(
+      &module_identifier,
+      PrefetchExportsInfoMode::NamedNestedExports(export_name),
+    );
 
     match prop.to_string().as_str() {
       "canMangle" => {
         let can_mangle = if let Some(export_info) =
-          exports_info.get_read_only_export_info_recursive(&module_graph, export_name)
+          exports_info.get_read_only_export_info_recursive(export_name)
         {
-          export_info.can_mangle(&module_graph)
+          ExportInfoGetter::can_mangle(export_info)
         } else {
-          exports_info
-            .other_exports_info(&module_graph)
-            .can_mangle(&module_graph)
+          ExportInfoGetter::can_mangle(exports_info.other_exports_info())
         };
         can_mangle.map(|v| v.to_string())
       }
       "inlinable" => {
-        let inlinable = if let Some(export_info) =
-          exports_info.get_read_only_export_info_recursive(&module_graph, export_name)
-        {
-          export_info.inlinable(&module_graph)
-        } else {
-          exports_info
-            .other_exports_info(&module_graph)
-            .inlinable(&module_graph)
-        };
+        let inlinable = ExportInfoGetter::inlinable(
+          if let Some(export_info) = exports_info.get_read_only_export_info_recursive(export_name) {
+            export_info
+          } else {
+            exports_info.other_exports_info()
+          },
+        );
         Some(match inlinable {
           Inlinable::Inlined(inlined) => format!("inlined {}", inlined.render()),
           _ => "no inline".to_string(),
         })
       }
       "used" => {
-        let used = exports_info.get_used(&module_graph, &export_name.clone(), *runtime);
+        let used = ExportsInfoGetter::get_used(&exports_info, export_name, *runtime);
         Some((!matches!(used, UsageState::Unused)).to_string())
       }
       "useInfo" => {
-        let used_state = exports_info.get_used(&module_graph, &export_name.clone(), *runtime);
+        let used_state = ExportsInfoGetter::get_used(&exports_info, export_name, *runtime);
         Some(
           (match used_state {
             UsageState::Used => "true",
@@ -118,16 +118,16 @@ impl ExportInfoDependency {
           .to_owned(),
         )
       }
-      "provideInfo" => exports_info
-        .is_export_provided(&module_graph, export_name)
-        .map(|provided| {
+      "provideInfo" => {
+        ExportsInfoGetter::is_export_provided(&exports_info, export_name).map(|provided| {
           (match provided {
-            ExportProvided::True => "true",
-            ExportProvided::False => "false",
-            ExportProvided::Null => "null",
+            ExportProvided::Provided => "true",
+            ExportProvided::NotProvided => "false",
+            ExportProvided::Unknown => "null",
           })
           .to_owned()
-        }),
+        })
+      }
       _ => None,
     }
   }

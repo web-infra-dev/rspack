@@ -29,6 +29,7 @@ export { ContextModule } from "./ContextModule";
 export { ConcatenatedModule } from "./ConcatenatedModule";
 export { ExternalModule } from "./ExternalModule";
 export type { NormalModuleFactory } from "./NormalModuleFactory";
+export type { default as ModuleGraph } from "./ModuleGraph";
 export { RuntimeGlobals } from "./RuntimeGlobals";
 export type {
 	StatsAsset,
@@ -37,6 +38,7 @@ export type {
 	StatsError,
 	StatsModule
 } from "./Stats";
+export { StatsErrorCode } from "./stats/statsFactoryUtils";
 export { Stats } from "./Stats";
 export { RuntimeModule } from "./RuntimeModule";
 export {
@@ -106,6 +108,7 @@ export { IgnorePlugin, type IgnorePluginOptions } from "./builtin-plugin";
 export { ProvidePlugin } from "./builtin-plugin";
 export { DefinePlugin } from "./builtin-plugin";
 export { ProgressPlugin } from "./builtin-plugin";
+export { RstestPlugin } from "./builtin-plugin";
 export { EntryPlugin } from "./builtin-plugin";
 export { DynamicEntryPlugin } from "./builtin-plugin";
 export { ExternalsPlugin } from "./builtin-plugin";
@@ -328,7 +331,11 @@ export type {
 export type { SubresourceIntegrityPluginOptions } from "./builtin-plugin";
 
 ///// Experiments Stuff /////
-import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";
+import {
+	cleanupGlobalTrace,
+	registerGlobalTrace,
+	syncTraceEvent
+} from "@rspack/binding";
 import { JavaScriptTracer } from "./trace";
 
 ///// Experiments SWC /////
@@ -338,7 +345,7 @@ interface Experiments {
 	globalTrace: {
 		register: (
 			filter: string,
-			layer: "chrome" | "logger",
+			layer: "logger" | "perfetto",
 			output: string
 		) => Promise<void>;
 		cleanup: () => Promise<void>;
@@ -363,10 +370,9 @@ export const experiments: Experiments = {
 			JavaScriptTracer.initCpuProfiler();
 		},
 		async cleanup() {
-			// make sure run cleanupGlobalTrace first so we can safely append Node.js trace to it otherwise it will overlap
+			await JavaScriptTracer.cleanupJavaScriptTrace();
+			await syncTraceEvent(JavaScriptTracer.events);
 			cleanupGlobalTrace();
-
-			JavaScriptTracer.cleanupJavaScriptTrace();
 		}
 	},
 	RemoveDuplicateModulesPlugin,

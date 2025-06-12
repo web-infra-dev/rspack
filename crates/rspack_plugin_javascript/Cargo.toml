@@ -1,10 +1,10 @@
 [package]
-description = "rspack javascript plugin"
-edition     = "2021"
-license     = "MIT"
-name        = "rspack_plugin_javascript"
-repository  = "https://github.com/web-infra-dev/rspack"
-version     = "0.2.0"
+description       = "rspack javascript plugin"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_plugin_javascript"
+repository        = "https://github.com/web-infra-dev/rspack"
+version           = "0.2.0"
 [dependencies]
 anymap = { workspace = true }
 async-trait = { workspace = true }
@@ -49,6 +49,7 @@ swc_core = { workspace = true, features = [
   "base",
   "ecma_quote",
 ] }
+swc_ecma_lexer = { workspace = true }
 swc_node_comments = { workspace = true }
 tracing = { workspace = true }
 url = { workspace = true }

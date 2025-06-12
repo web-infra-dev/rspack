@@ -9,6 +9,8 @@ const creator = new BasicCaseCreator({
 		new DiagnosticProcessor({
 			name,
 			snapshot: "./stats.err",
+			snapshotErrors: "./raw-error.err",
+			snapshotWarning: "./raw-warning.err",
 			configFiles: ["rspack.config.js", "webpack.config.js"],
 			compilerType: ECompilerType.Rspack,
 			format: (output: string) => {

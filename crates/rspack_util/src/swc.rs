@@ -1,4 +1,4 @@
-use swc_config::config_types::BoolOr;
+use swc_config::types::BoolOr;
 use swc_core::{
   atoms::Atom,
   base::config::JsMinifyCommentOption,

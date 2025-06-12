@@ -1,3 +1,4 @@
 module.exports = [
-	[/JavaScript parsing error: The keyword 'let' is reserved in strict mode/]
+	[/JavaScript parse error: `let` cannot be used as an identifier in strict mode/],
+	[/JavaScript parse error: `let` cannot be used as an identifier in strict mode/]
 ];

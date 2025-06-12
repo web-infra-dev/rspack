@@ -2,7 +2,7 @@
 
 //! Rspack is a high performance JavaScript bundler written in Rust. It offers strong compatibility with the webpack ecosystem, allowing for seamless replacement of webpack, and provides lightning fast build.
 //!
-//! For guide level documentation, please refer to the [Rspack Guide](https://rspack.dev/guide/start/introduction).
+//! For guide level documentation, please refer to the [Rspack Guide](https://rspack.rs/guide/start/introduction).
 //!
 //! ## Example
 //!

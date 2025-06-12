@@ -73,6 +73,11 @@ impl Default for CompilerId {
     Self::new()
   }
 }
+impl CompilerId {
+  pub fn as_u32(&self) -> u32 {
+    self.0
+  }
+}
 
 #[derive(Debug)]
 pub struct Compiler {
@@ -230,11 +235,12 @@ impl Compiler {
       ),
     );
     match self.cache.before_compile(&mut self.compilation).await {
-      Ok(is_hot) => {
-        if is_hot {
-          // If it's a hot start, we can use incremental
-          self.compilation.incremental = Incremental::new_hot(self.options.experiments.incremental);
-        }
+      Ok(_is_hot) => {
+        // TODO: disable it for now, enable it once persistent cache is added to all artifacts
+        // if is_hot {
+        //   // If it's a hot start, we can use incremental
+        //   self.compilation.incremental = Incremental::new_hot(self.options.experiments.incremental);
+        // }
       }
       Err(err) => self.compilation.push_diagnostic(err.into()),
     }

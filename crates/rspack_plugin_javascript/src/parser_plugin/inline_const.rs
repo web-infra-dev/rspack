@@ -136,9 +136,9 @@ impl DependencyConditionFn for InlineConstDependencyCondition {
       exports_info.get_used_name(mg, runtime, ids),
       Some(UsedName::Inlined(_))
     ) {
-      return ConnectionState::Bool(false);
+      return ConnectionState::Active(false);
     }
-    ConnectionState::Bool(true)
+    ConnectionState::Active(true)
   }
 
   fn handle_composed(&self, primary: ConnectionState, rest: ConnectionState) -> ConnectionState {

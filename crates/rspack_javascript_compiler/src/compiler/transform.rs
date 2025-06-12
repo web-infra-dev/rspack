@@ -12,32 +12,31 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
-use anyhow::{Context, bail};
+use anyhow::{bail, Context};
 use base64::prelude::*;
 use indoc::formatdoc;
 use jsonc_parser::parse_to_serde_value;
-use rspack_error::{AnyhowResultToRspackResultExt, Error, miette::MietteDiagnostic};
+use rspack_error::{miette::MietteDiagnostic, AnyhowResultToRspackResultExt, Error};
 use rspack_util::{itoa, source_map::SourceMapKind, swc::minify_file_comments};
 use serde_json::error::Category;
-use swc_config::{IsModule, merge::Merge};
+use swc_config::{is_module::IsModule, merge::Merge};
 pub use swc_core::base::config::Options as SwcOptions;
 use swc_core::{
   base::{
-    BoolOr,
     config::{
       BuiltInput, Config, ConfigFile, InputSourceMap, JsMinifyCommentOption, JsMinifyFormatOptions,
       Rc, RootMode, SourceMapsConfig,
     },
-    sourcemap,
+    sourcemap, BoolOr,
   },
   common::{
-    FileName, GLOBALS, Mark, SourceFile, SourceMap,
     comments::{Comments, SingleThreadedComments},
     errors::Handler,
+    FileName, Mark, SourceFile, SourceMap, GLOBALS,
   },
   ecma::{
     ast::{EsVersion, Pass, Program},
-    parser::{Syntax, parse_file_as_module, parse_file_as_program, parse_file_as_script},
+    parser::{parse_file_as_module, parse_file_as_program, parse_file_as_script, Syntax},
     transforms::base::helpers::{self, Helpers},
   },
 };
@@ -45,8 +44,8 @@ use swc_error_reporters::handler::try_with_handler;
 use url::Url;
 
 use super::{
-  JavaScriptCompiler, TransformOutput,
   stringify::{PrintOptions, SourceMapConfig},
+  JavaScriptCompiler, TransformOutput,
 };
 
 impl JavaScriptCompiler {
@@ -405,6 +404,7 @@ impl<'a> JavaScriptTransformer<'a> {
           self.options.output_path.as_deref(),
           self.options.source_root.clone(),
           self.options.source_file_name.clone(),
+          self.config.source_map_ignore_list.clone(),
           handler,
           Some(self.config.clone()),
           Some(&self.comments),
@@ -462,7 +462,7 @@ impl<'a> JavaScriptTransformer<'a> {
               The version of the SWC Wasm plugin you're using might not be compatible with `builtin:swc-loader`.
               The `swc_core` version of the current `rspack_core` is {swc_core_version}. 
               Please check the `swc_core` version of SWC Wasm plugin to make sure these versions are within the compatible range.
-              See this guide as a reference for selecting SWC Wasm plugin versions: https://rspack.dev/errors/swc-plugin-version"};
+              See this guide as a reference for selecting SWC Wasm plugin versions: https://rspack.rs/errors/swc-plugin-version"};
             MietteDiagnostic::new(format!("{error_msg}{help_msg}")).with_code(SWC_MIETTE_DIAGNOSTIC_CODE)
           } else {
             let error_msg = err.to_pretty_string();

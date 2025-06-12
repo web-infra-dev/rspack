@@ -219,7 +219,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) errors: Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub(crate) warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub dependencies: Vec<BoxDependency>,
-  pub(crate) presentational_dependencies: Vec<BoxDependencyTemplate>,
+  pub presentational_dependencies: Vec<BoxDependencyTemplate>,
   // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
   // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
   #[allow(clippy::vec_box)]
@@ -230,7 +230,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) comments: Option<&'parser dyn Comments>,
   pub(crate) build_meta: &'parser mut BuildMeta,
   pub build_info: &'parser mut BuildInfo,
-  pub(crate) resource_data: &'parser ResourceData,
+  pub resource_data: &'parser ResourceData,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
   pub(crate) definitions_db: ScopeInfoDB,
   pub(crate) compiler_options: &'parser CompilerOptions,
@@ -251,7 +251,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) prev_statement: Option<StatementPath>,
   pub(crate) current_tag_info: Option<TagInfoId>,
   // ===== scope info =======
-  pub(crate) in_try: bool,
+  pub in_try: bool,
   pub(crate) in_short_hand: bool,
   pub(super) definitions: ScopeInfoId,
   pub(crate) top_level_scope: TopLevelScope,

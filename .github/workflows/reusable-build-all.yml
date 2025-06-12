@@ -1,0 +1,52 @@
+name: Build All Bindings
+
+on:
+  workflow_call:
+    inputs:
+      profile: # Rust profile, "ci" or "production" or "profiling"
+        default: "ci"
+        required: false
+        type: string
+      test: # Run tests?
+        type: boolean
+        required: false
+        default: false
+      bench: # Run benchmarks?
+        type: boolean
+        required: false
+        default: false
+      ref: # Git reference to checkout
+        required: false
+        type: string
+jobs:
+  build:
+    name: Build All
+    strategy:
+      fail-fast: false # Build and test everything so we can look at all the errors
+      matrix:
+        array:
+          - target: x86_64-unknown-linux-gnu
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+          - target: aarch64-unknown-linux-gnu
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+          - target: x86_64-unknown-linux-musl
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+          - target: aarch64-unknown-linux-musl
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+          - target: i686-pc-windows-msvc
+            runner: ${{ '"windows-latest"' }}
+          - target: x86_64-pc-windows-msvc
+            runner: ${{ '"windows-latest"' }}
+          - target: aarch64-pc-windows-msvc
+            runner: ${{ '"windows-latest"' }}
+          - target: x86_64-apple-darwin
+            runner: ${{ '"macos-latest"' }}
+          - target: aarch64-apple-darwin
+            runner: ${{ '"macos-latest"' }}
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      ref: ${{ inputs.ref }}
+      target: ${{ matrix.array.target }}
+      runner: ${{ matrix.array.runner }}
+      profile: ${{ inputs.profile }}
+      test: ${{ inputs.test }}

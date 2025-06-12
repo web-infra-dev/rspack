@@ -55,14 +55,12 @@ use crate::{
   DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, Entry, EntryData,
   EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap, Logger,
   ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier, ModuleIdsArtifact, PathData,
-  ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpecMap, RuntimeTemplate,
+  ResolverFactory, RuntimeGlobals, RuntimeMode, RuntimeModule, RuntimeSpecMap, RuntimeTemplate,
   SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats,
 };
 
 define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));
 define_hook!(CompilationBuildModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
-// NOTE: This is a Rspack-specific hook and has not been standardized yet. Do not expose it to the JS side.
-define_hook!(CompilationUpdateModuleGraph: Series(params: &mut Vec<MakeParam>, artifact: &MakeArtifact));
 define_hook!(CompilationRevokedModules: Series(revoked_modules: &IdentifierSet));
 define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
 define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
@@ -100,7 +98,6 @@ define_hook!(CompilationAfterSeal: Series(compilation: &mut Compilation),tracing
 pub struct CompilationHooks {
   pub add_entry: CompilationAddEntryHook,
   pub build_module: CompilationBuildModuleHook,
-  pub update_module_graph: CompilationUpdateModuleGraphHook,
   pub revoked_modules: CompilationRevokedModulesHook,
   pub still_valid_module: CompilationStillValidModuleHook,
   pub succeed_module: CompilationSucceedModuleHook,
@@ -935,20 +932,12 @@ impl Compilation {
   ) -> Result<T> {
     let artifact = std::mem::take(&mut self.make_artifact);
 
-    if let Some(module_executor) = &mut self.module_executor {
-      module_executor.rebuild_origins = Some(module_identifiers.clone());
-    }
-
     self.make_artifact = update_module_graph(
       self,
       artifact,
       vec![MakeParam::ForceBuildModules(module_identifiers.clone())],
     )
     .await?;
-
-    if let Some(module_executor) = &mut self.module_executor {
-      module_executor.rebuild_origins = None;
-    }
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers
@@ -1131,6 +1120,27 @@ impl Compilation {
 
   #[instrument("Compilation::create_chunk_assets", skip_all)]
   async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    if self.options.output.filename.has_hash_placeholder()
+      || self.options.output.chunk_filename.has_hash_placeholder()
+      || self.options.output.css_filename.has_hash_placeholder()
+      || self
+        .options
+        .output
+        .css_chunk_filename
+        .has_hash_placeholder()
+    {
+      if let Some(diagnostic) = self.incremental.disable_passes(
+        IncrementalPasses::CHUNKS_RENDER,
+        "Chunk filename that dependent on full hash",
+        "chunk filename that dependent on full hash is not supported in incremental compilation",
+      ) {
+        if let Some(diagnostic) = diagnostic {
+          self.push_diagnostic(diagnostic);
+        }
+        self.chunk_render_artifact.clear();
+      }
+    }
+
     let chunks = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::CHUNKS_RENDER)
@@ -1371,7 +1381,7 @@ impl Compilation {
     // sync assets to compilation from module_executor
     if let Some(module_executor) = &mut self.module_executor {
       let mut module_executor = std::mem::take(module_executor);
-      module_executor.hook_after_finish_modules(self).await;
+      module_executor.hook_after_finish_modules(self).await?;
       self.module_executor = Some(module_executor);
     }
 
@@ -1483,6 +1493,9 @@ impl Compilation {
       } else {
         build_chunk_graph(compilation)?;
       }
+      compilation
+        .chunk_graph
+        .generate_dot(compilation, "after-code-splitting");
       logger.time_end(start);
       Ok(compilation)
     })
@@ -1557,6 +1570,15 @@ impl Compilation {
 
     self.assign_runtime_ids();
 
+    let start = logger.time("optimize code generation");
+    plugin_driver
+      .compilation_hooks
+      .optimize_code_generation
+      .call(self)
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeCodeGeneration"))?;
+    logger.time_end(start);
+
     let create_module_hashes_modules = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::MODULES_HASHES)
@@ -1602,6 +1624,58 @@ impl Compilation {
           _ => {}
         }
       }
+
+      // check if module runtime changes
+      for mi in mg.modules().keys() {
+        let module_runtimes = self
+          .chunk_graph
+          .get_module_runtimes(*mi, &self.chunk_by_ukey);
+        let module_runtime_keys = module_runtimes
+          .values()
+          .map(get_runtime_key)
+          .collect::<Vec<_>>();
+
+        if let Some(runtime_map) = self.cgm_hash_artifact.get_runtime_map(mi) {
+          if module_runtimes.is_empty() {
+            // module has no runtime, skip
+            continue;
+          }
+          if module_runtimes.len() == 1 {
+            // single runtime
+            if !matches!(runtime_map.mode, RuntimeMode::SingleEntry)
+              || runtime_map
+                .single_runtime
+                .as_ref()
+                .expect("should have single runtime for single entry")
+                != module_runtimes
+                  .values()
+                  .next()
+                  .expect("should have at least one runtime")
+            {
+              modules.insert(*mi);
+            }
+          } else {
+            // multiple runtimes
+            if matches!(runtime_map.mode, RuntimeMode::SingleEntry) {
+              modules.insert(*mi);
+              continue;
+            }
+
+            if runtime_map.map.len() != module_runtimes.len() {
+              modules.insert(*mi);
+              continue;
+            }
+
+            for runtime_key in runtime_map.map.keys() {
+              if !module_runtime_keys.contains(&runtime_key.as_str()) {
+                modules.insert(*mi);
+                break;
+              }
+            }
+          }
+        }
+      }
+
       tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MODULES_HASHES, %mutations, ?modules);
       let logger = self.get_logger("rspack.incremental.modulesHashes");
       logger.log(format!(
@@ -1609,6 +1683,7 @@ impl Compilation {
         modules.len(),
         mg.modules().len()
       ));
+
       modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
@@ -1616,15 +1691,6 @@ impl Compilation {
     self
       .create_module_hashes(create_module_hashes_modules)
       .await?;
-
-    let start = logger.time("optimize code generation");
-    plugin_driver
-      .compilation_hooks
-      .optimize_code_generation
-      .call(self)
-      .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeCodeGeneration"))?;
-    logger.time_end(start);
 
     let start = logger.time("code generation");
     let code_generation_modules = if let Some(mutations) = self
@@ -1646,6 +1712,10 @@ impl Compilation {
           _ => None,
         })
         .collect();
+      // also cleanup for updated modules, for `insert(); insert();` the second insert() won't override the first insert() on code_generation_results
+      for module in &modules {
+        self.code_generation_results.remove(module);
+      }
       tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MODULES_CODEGEN, %mutations);
       let logger = self.get_logger("rspack.incremental.modulesCodegen");
       logger.log(format!(
@@ -2086,7 +2156,7 @@ impl Compilation {
     if !full_hash_chunks.is_empty()
       && let Some(diagnostic) = self.incremental.disable_passes(
         IncrementalPasses::CHUNKS_HASHES,
-        "Chunks that dependent on full hash",
+        "Chunk content that dependent on full hash",
         "it requires calculating the hashes of all the chunks, which is a global effect",
       )
     {

@@ -7,7 +7,7 @@ _2025 年 3 月 28 日_
 
 # Rspack 1.3 发布公告
 
-![Rspack 1.3](https://assets.rspack.dev/rspack/rspack-banner-v1-3.png)
+![Rspack 1.3](https://assets.rspack.rs/rspack/rspack-banner-v1-3.png)
 
 ---
 
@@ -21,7 +21,7 @@ Rspack 1.3 已经正式发布！
   - [Lazy compilation 改进](#lazy-compilation-改进)
   - [支持 AMD 模块](#支持-amd-模块)
 - 性能优化
-  - [代码拆分提速 25%](#代码拆分提速-25)
+  - [代码分割提速 25%](#代码分割提速-25)
   - [产物体积优化](#产物体积优化)
   - [内存优化](#内存优化)
 - Rstack 进展
@@ -130,11 +130,11 @@ export default {
 
 ## 性能优化
 
-### 代码拆分提速 25%
+### 代码分割提速 25%
 
-在 Rspack 1.2 中，我们引入了 [experiments.parallelCodeSplitting](/config/experiments#experimentsparallelcodesplitting) 选项来开启新版的代码拆分算法。
+在 Rspack 1.2 中，我们引入了 [experiments.parallelCodeSplitting](/config/experiments#experimentsparallelcodesplitting) 选项来开启新版的代码分割算法。
 
-从 Rspack 1.3 开始，该选项已经默认开启，并使代码拆分的速度提升 **25%**。
+从 Rspack 1.3 开始，该选项已经默认开启，并使代码分割的速度提升 **25%**。
 
 ### 产物体积优化
 
@@ -161,7 +161,7 @@ Rspack 现在在 macOS 上默认使用 [mimalloc](https://github.com/microsoft/m
 Rspack 1.3 还实现了清理过期缓存的内部机制 `maxGenerations`。这个参数控制了缓存的存活时间，Rspack 默认将这个值设置为 1，意味着如果特定缓存在下一轮编译中没有被使用，该缓存将会被清除。
 
 <img
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-3-memory-improve-max-generations.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-3-memory-improve-max-generations.png"
   width="760"
   alt="Max generations"
 />
@@ -169,7 +169,7 @@ Rspack 1.3 还实现了清理过期缓存的内部机制 `maxGenerations`。这�
 ## Rstack 进展
 
 <img
-  src="https://assets.rspack.dev/rstack/rstack-overview.png"
+  src="https://assets.rspack.rs/rstack/rstack-overview.png"
   width="760"
   alt="Rstack"
 />
@@ -186,13 +186,13 @@ Rsdoctor 1.0 版本带来了诸多的新特性：
 - 通过 Rust 重写耗时较长的数据处理逻辑，分析性能提升超过 20%；
 - 新增模块搜索功能，用于快速分析模块引用关系和模块大小。
 
-> 参考 [Rsdoctor 1.0 发布博客](https://rsdoctor.dev/zh/blog/release/release-note-1_0) 了解更多。
+> 参考 [Rsdoctor 1.0 发布博客](https://rsdoctor.rs/zh/blog/release/release-note-1_0) 了解更多。
 
 ### Rsbuild 1.3
 
 Rsbuild 1.3 已经与 Rspack 1.3 同步发布，值得关注的特性有：
 
-- 支持通过 [?inline](https://rsbuild.dev/zh/guide/basic/css-usage#inline) 查询参数引用 CSS 文件编译后的内容，并将其作为字符串导入：
+- 支持通过 [?inline](https://rsbuild.rs/zh/guide/basic/css-usage#inline) 查询参数引用 CSS 文件编译后的内容，并将其作为字符串导入：
 
 ```js
 import inlineCss from './style.css?inline';
@@ -200,7 +200,7 @@ import inlineCss from './style.css?inline';
 console.log(inlineCss); // 输出编译后的 CSS 文件内容
 ```
 
-- 支持通过 [?raw](https://rsbuild.dev/zh/guide/basic/css-usage#raw) 查询参数引用 CSS 文件和静态资源的原始内容，并将其作为字符串导入：
+- 支持通过 [?raw](https://rsbuild.rs/zh/guide/basic/css-usage#raw) 查询参数引用 CSS 文件和静态资源的原始内容，并将其作为字符串导入：
 
 ```js
 import rawSvg from './logo.svg?raw';

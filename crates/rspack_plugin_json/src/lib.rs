@@ -15,9 +15,10 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CompilerOptions, ExportsInfo,
-  GenerateContext, Module, ModuleGraph, ParseOption, ParserAndGenerator, Plugin, RuntimeGlobals,
-  RuntimeSpec, SourceType, UsageState, UsedNameItem, NAMESPACE_OBJECT_EXPORT,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CompilerOptions, ExportInfoGetter,
+  ExportsInfo, ExportsInfoGetter, GenerateContext, Module, ModuleGraph, ParseOption,
+  ParserAndGenerator, Plugin, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SourceType,
+  UsageState, UsedNameItem, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::{
   miette::diagnostic, DiagnosticExt, DiagnosticKind, IntoTWithDiagnosticArray, Result,
@@ -98,7 +99,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               // one character offset
               start_offset,
               start_offset + 1,
-              "Json parsing error".to_string(),
+              "JSON parse error".to_string(),
               format!("Unexpected character {ch}"),
             )
             .with_kind(DiagnosticKind::Json)
@@ -113,7 +114,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               source.into_owned(),
               offset,
               offset,
-              "Json parsing error".to_string(),
+              "JSON parse error".to_string(),
               format!("{e}"),
             )
             .with_kind(DiagnosticKind::Json)
@@ -184,10 +185,15 @@ impl ParserAndGenerator for JsonParserAndGenerator {
 
         let final_json = match json_data {
           json::JsonValue::Object(_) | json::JsonValue::Array(_)
-            if exports_info
-              .other_exports_info(&module_graph)
-              .get_used(&module_graph, *runtime)
-              == UsageState::Unused =>
+            if matches!(
+              ExportInfoGetter::get_used(
+                exports_info
+                  .other_exports_info(&module_graph)
+                  .as_data(&module_graph),
+                *runtime
+              ),
+              UsageState::Unused
+            ) =>
           {
             create_object_for_exports_info(json_data.clone(), exports_info, *runtime, &module_graph)
           }
@@ -211,7 +217,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           generate_context
             .runtime_requirements
             .insert(RuntimeGlobals::MODULE);
-          format!(r#"module.exports = {}"#, json_expr)
+          format!(r#"module.exports = {json_expr}"#)
         };
         Ok(RawStringSource::from(content).boxed())
       }
@@ -273,7 +279,12 @@ fn create_object_for_exports_info(
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
 ) -> JsonValue {
-  if exports_info.other_exports_info(mg).get_used(mg, runtime) != UsageState::Unused {
+  let exports_info_data =
+    ExportsInfoGetter::prefetch(&exports_info, mg, PrefetchExportsInfoMode::AllExports);
+
+  if ExportInfoGetter::get_used(exports_info_data.other_exports_info(), runtime)
+    != UsageState::Unused
+  {
     return data;
   }
 
@@ -286,13 +297,13 @@ fn create_object_for_exports_info(
     JsonValue::Object(mut obj) => {
       let mut used_pair = vec![];
       for (key, value) in obj.iter_mut() {
-        let export_info = exports_info.get_read_only_export_info(mg, &key.into());
-        let used = export_info.get_used(mg, runtime);
+        let export_info = exports_info_data.get_read_only_export_info(&key.into());
+        let used = ExportInfoGetter::get_used(export_info, runtime);
         if used == UsageState::Unused {
           continue;
         }
         let new_value = if used == UsageState::OnlyPropertiesUsed
-          && let Some(exports_info) = export_info.exports_info(mg)
+          && let Some(exports_info) = ExportInfoGetter::exports_info(export_info)
         {
           // avoid clone
           let temp = std::mem::replace(value, JsonValue::Null);
@@ -300,9 +311,9 @@ fn create_object_for_exports_info(
         } else {
           std::mem::replace(value, JsonValue::Null)
         };
-        let UsedNameItem::Str(used_name) = export_info
-          .get_used_name(mg, Some(&(key.into())), runtime)
-          .expect("should have used name")
+        let UsedNameItem::Str(used_name) =
+          ExportInfoGetter::get_used_name(export_info, Some(&(key.into())), runtime)
+            .expect("should have used name")
         else {
           continue;
         };
@@ -321,14 +332,14 @@ fn create_object_for_exports_info(
         .into_iter()
         .enumerate()
         .map(|(i, item)| {
-          let export_info = exports_info.get_read_only_export_info(mg, &itoa!(i).into());
-          let used = export_info.get_used(mg, runtime);
+          let export_info = exports_info_data.get_read_only_export_info(&itoa!(i).into());
+          let used = ExportInfoGetter::get_used(export_info, runtime);
           if used == UsageState::Unused {
             return None;
           }
           max_used_index = max_used_index.max(i);
           if used == UsageState::OnlyPropertiesUsed
-            && let Some(exports_info) = export_info.exports_info(mg)
+            && let Some(exports_info) = ExportInfoGetter::exports_info(export_info)
           {
             Some(create_object_for_exports_info(
               item,
@@ -341,9 +352,10 @@ fn create_object_for_exports_info(
           }
         })
         .collect::<Vec<_>>();
-      let arr_length_used = exports_info
-        .get_read_only_export_info(mg, &"length".into())
-        .get_used(mg, runtime);
+      let arr_length_used = ExportInfoGetter::get_used(
+        exports_info_data.get_read_only_export_info(&"length".into()),
+        runtime,
+      );
       let array_length_when_used = match arr_length_used {
         UsageState::Unused => None,
         _ => Some(original_len),

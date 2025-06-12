@@ -420,6 +420,14 @@ function f2() {
 
 开启模块拼接优化，允许将多个模块拼接成单个模块以降低产物体积，提升压缩效率。此优化需要开启 [optimization.providedExports](#optimizationprovidedexports) 和 [optimization.usedExports](#optimizationusedexports)。默认情况下，`optimization.concatenateModules` 在 `production` 模式下启用，其它模式则禁用。
 
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    concatenateModules: false,
+  },
+};
+```
+
 ## optimization.nodeEnv
 
 <PropertyType

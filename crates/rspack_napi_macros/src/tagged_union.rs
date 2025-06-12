@@ -56,7 +56,7 @@ pub fn expand(tokens: TokenStream) -> TokenStream {
     })
     .collect::<Vec<TokenStream>>();
 
-  let union_type_name = Ident::new(&format!("{}Type", original_name), Span::call_site());
+  let union_type_name = Ident::new(&format!("{original_name}Type"), Span::call_site());
 
   let as_str_impl = {
     let arms = field_idents
@@ -140,6 +140,6 @@ pub fn expand(tokens: TokenStream) -> TokenStream {
 }
 
 fn get_intermediate_ident(name: &str) -> Ident {
-  let new_name = format!("__rspack_napi__{}", name);
+  let new_name = format!("__rspack_napi__{name}");
   Ident::new(&new_name, Span::call_site())
 }

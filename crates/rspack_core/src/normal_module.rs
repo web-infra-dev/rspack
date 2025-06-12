@@ -14,7 +14,7 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsMap, AsOption, AsPreset, Skip},
 };
-use rspack_collections::{Identifiable, IdentifierSet};
+use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_error::{error, Diagnosable, Diagnostic, DiagnosticExt, NodeError, Result, Severity};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
@@ -231,7 +231,7 @@ impl NormalModule {
     &mut self.match_resource
   }
 
-  pub fn resource_resolved_data(&self) -> &ResourceData {
+  pub fn resource_resolved_data(&self) -> &Arc<ResourceData> {
     &self.resource_data
   }
 
@@ -281,7 +281,7 @@ impl NormalModule {
 
   #[tracing::instrument(
     "NormalModule:build_hash", skip_all,fields(
-    id2 = self.resource_data.resource.as_str()
+    resource = self.resource_data.resource.as_str()
   )
 )]
   fn init_build_hash(
@@ -367,9 +367,10 @@ impl Module for NormalModule {
   }
 
   #[tracing::instrument("NormalModule:build", skip_all, fields(
+    perfetto.track_name = format!("Module Build"),
+    perfetto.process_name = format!("Rspack Build Detail"),
     module.resource = self.resource_resolved_data().resource.as_str(),
     module.identifier = self.identifier().as_str(),
-    id2 = self.resource_data.resource.as_str(),
     module.loaders = ?self.loaders.iter().map(|l| l.identifier().as_str()).collect::<Vec<_>>())
   )]
   async fn build(
@@ -413,10 +414,7 @@ impl Module for NormalModule {
       },
       build_context.fs.clone(),
     )
-    .instrument(info_span!(
-      "NormalModule:run_loaders",
-      id2 = self.resource_data.resource.as_str(),
-    ))
+    .instrument(info_span!("NormalModule:run_loaders",))
     .await;
     let (mut loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
@@ -761,9 +759,14 @@ impl Module for NormalModule {
     &self,
     module_graph: &ModuleGraph,
     module_chain: &mut IdentifierSet,
+    connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
+    if let Some(state) = connection_state_cache.get(&self.id) {
+      return *state;
+    }
+
     if let Some(side_effect_free) = self.factory_meta().and_then(|m| m.side_effect_free) {
-      return ConnectionState::Bool(!side_effect_free);
+      return ConnectionState::Active(!side_effect_free);
     }
     if Some(true) == self.build_meta().side_effect_free {
       // use module chain instead of is_evaluating_side_effects to mut module graph
@@ -771,24 +774,29 @@ impl Module for NormalModule {
         return ConnectionState::CircularConnection;
       }
       module_chain.insert(self.identifier());
-      let mut current = ConnectionState::Bool(false);
+      let mut current = ConnectionState::Active(false);
       for dependency_id in self.get_dependencies().iter() {
         if let Some(dependency) = module_graph.dependency_by_id(dependency_id) {
-          let state =
-            dependency.get_module_evaluation_side_effects_state(module_graph, module_chain);
-          if matches!(state, ConnectionState::Bool(true)) {
+          let state = dependency.get_module_evaluation_side_effects_state(
+            module_graph,
+            module_chain,
+            connection_state_cache,
+          );
+          if matches!(state, ConnectionState::Active(true)) {
             // TODO add optimization bailout
             module_chain.remove(&self.identifier());
-            return ConnectionState::Bool(true);
+            connection_state_cache.insert(self.id, ConnectionState::Active(true));
+            return ConnectionState::Active(true);
           } else if !matches!(state, ConnectionState::CircularConnection) {
             current = current + state;
           }
         }
       }
       module_chain.remove(&self.identifier());
+      connection_state_cache.insert(self.id, current);
       return current;
     }
-    ConnectionState::Bool(true)
+    ConnectionState::Active(true)
   }
 
   fn get_concatenation_bailout_reason(

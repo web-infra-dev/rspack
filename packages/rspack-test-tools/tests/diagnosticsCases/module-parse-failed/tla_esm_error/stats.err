@@ -1,6 +1,6 @@
 ERROR in ./index.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Top-level-await is only supported in EcmaScript Modules
+  ╰─▶   × JavaScript parse error: Top-level-await is only supported in EcmaScript Modules
          ╭─[3:4]
        1 │ await Promise.resolve("aaa");
        2 │
@@ -13,7 +13,7 @@ ERROR in ./index.js
 
 ERROR in ./index.js
   × Module parse failed:
-  ╰─▶   × JavaScript parsing error: Top-level-await is only supported in EcmaScript Modules
+  ╰─▶   × JavaScript parse error: Top-level-await is only supported in EcmaScript Modules
          ╭─[1:0]
        1 │ await Promise.resolve("aaa");
          · ─────

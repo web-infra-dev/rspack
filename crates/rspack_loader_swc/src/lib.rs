@@ -14,7 +14,7 @@ use rspack_core::{Mode, RunnerContext};
 use rspack_error::{miette, Diagnostic, Result};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
-use swc_config::{config_types::MergingOption, merge::Merge};
+use swc_config::{merge::Merge, types::MergingOption};
 use swc_core::{
   base::config::{InputSourceMap, TransformConfig},
   common::FileName,
@@ -116,7 +116,9 @@ pub const SWC_LOADER_IDENTIFIER: &str = "builtin:swc-loader";
 #[async_trait::async_trait]
 impl Loader<RunnerContext> for SwcLoader {
   #[tracing::instrument("loader:builtin-swc", skip_all, fields(
-    id2 =loader_context.resource(),
+    perfetto.track_name = "loader:builtin-swc",
+    perfetto.process_name = "Loader Analysis",
+    resource =loader_context.resource(),
   ))]
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
     #[allow(unused_mut)]

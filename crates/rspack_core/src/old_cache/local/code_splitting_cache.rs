@@ -185,12 +185,7 @@ impl CodeSplittingCache {
       return false;
     }
 
-    if self.new_code_splitter.module_deps.is_empty()
-      && self
-        .new_code_splitter
-        .module_deps_without_runtime
-        .is_empty()
-    {
+    if self.new_code_splitter.module_deps.is_empty() {
       logger.log("no cache detected, rebuilding chunk graph");
       return false;
     }
@@ -256,18 +251,6 @@ impl CodeSplittingCache {
           for out in outgoings {
             previous_outgoings.insert(*out);
           }
-        }
-      }
-
-      if let Some(outgoings) = self
-        .new_code_splitter
-        .module_deps_without_runtime
-        .get(&module)
-      {
-        newly_added_module = false;
-        let (outgoings, _blocks) = outgoings.value();
-        for out in outgoings {
-          previous_outgoings.insert(*out);
         }
       }
 

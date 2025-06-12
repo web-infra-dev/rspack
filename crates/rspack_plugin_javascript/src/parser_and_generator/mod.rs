@@ -119,8 +119,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   }
 
   #[tracing::instrument("JavaScriptParser:parse", skip_all,fields(
-    resource = parse_context.resource_data.resource.as_str(),
-    id2 = parse_context.resource_data.resource.as_str(),
+    resource = parse_context.resource_data.resource.as_str()
   ))]
   async fn parse<'a>(
     &mut self,
@@ -175,7 +174,21 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     );
     let comments = SwcComments::default();
     let target = ast::EsVersion::EsNext;
-    let lexer = Lexer::new(
+    let parser_lexer = Lexer::new(
+      Syntax::Es(EsSyntax {
+        allow_return_outside_function: matches!(
+          module_type,
+          ModuleType::JsDynamic | ModuleType::JsAuto
+        ),
+        import_attributes: true,
+        ..Default::default()
+      }),
+      target,
+      SourceFileInput::from(&*fm),
+      Some(&comments),
+    );
+
+    let lexer = swc_ecma_lexer::Lexer::new(
       Syntax::Es(EsSyntax {
         allow_return_outside_function: matches!(
           module_type,
@@ -193,7 +206,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let mut ast = match javascript_compiler.parse_with_lexer(
       &fm,
-      lexer.clone(),
+      parser_lexer,
       module_type_to_is_module(module_type),
       Some(comments.clone()),
     ) {

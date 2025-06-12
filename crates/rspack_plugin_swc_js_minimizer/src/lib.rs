@@ -12,6 +12,7 @@ use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
+  diagnostics::MinifyError,
   rspack_sources::{
     ConcatSource, MapOptions, RawStringSource, Source, SourceExt, SourceMapSource,
     SourceMapSourceOptions,
@@ -19,13 +20,13 @@ use rspack_core::{
   AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
   CompilerCompilation, Plugin, PluginContext,
 };
-use rspack_error::{miette::IntoDiagnostic, Diagnostic, Result};
+use rspack_error::{miette::IntoDiagnostic, Diagnostic, DiagnosticExt, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_javascript_compiler::JavaScriptCompiler;
 use rspack_plugin_javascript::{ExtractedCommentsInfo, JavascriptModulesChunkHash, JsPlugin};
 use rspack_util::asset_condition::AssetConditions;
-use swc_config::config_types::BoolOrDataConfig;
+use swc_config::types::BoolOrDataConfig;
 use swc_core::{
   base::config::JsMinifyFormatOptions,
   common::comments::{CommentKind, SingleThreadedComments},
@@ -218,7 +219,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           ..Default::default()
           };
         let extract_comments_option = options.extract_comments.as_ref().map(|extract_comments| {
-          let comments_filename = format!("{}.LICENSE.txt", filename);
+          let comments_filename = format!("{filename}.LICENSE.txt");
           let banner = match &extract_comments.banner {
             OptionWrapper::Default => {
               let dir = Path::new(filename).parent().expect("should has parent");
@@ -304,7 +305,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         ) {
             Ok(r) => r,
             Err(e) => {
-              tx.send(e.into()).into_diagnostic()?;
+              let errors = e.into_inner().into_iter().map(|err| {
+                Diagnostic::from(MinifyError(err).boxed()).with_file(Some(filename.into()))
+              }).collect::<Vec<_>>();
+              tx.send(errors).into_diagnostic()?;
               return Ok(())
             },
         };

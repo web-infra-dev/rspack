@@ -2,15 +2,16 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsCacheable, AsOption, AsPreset, AsVec, Skip},
 };
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   create_exports_object_referenced, export_from_import, get_exports_type, property_access,
   to_normal_comment, AsContextDependency, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyId, DependencyLocation, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, DependencyType, ExportPresenceMode, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, ImportAttributes, JavascriptParserOptions,
-  ModuleDependency, ModuleGraph, ModuleReferenceOptions, ReferencedExport, RuntimeSpec,
-  SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportPresenceMode,
+  ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes,
+  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleReferenceOptions,
+  PrefetchExportsInfoMode, ReferencedExport, RuntimeSpec, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource, UsedByExports, UsedName,
 };
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
@@ -176,8 +177,9 @@ impl Dependency for ESMImportSpecifierDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_chain: &mut IdentifierSet,
+    _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
-    ConnectionState::Bool(false)
+    ConnectionState::Active(false)
   }
 
   fn _get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
@@ -429,18 +431,22 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
       for prop in referenced_properties {
         let mut concated_ids = prefixed_ids.clone();
         concated_ids.push(prop.id.clone());
-        let Some(new_name) = module_graph
-          .get_exports_info(&module.identifier())
-          .get_used_name(
-            &module_graph,
-            code_generatable_context.runtime,
-            &concated_ids,
-          )
-          .and_then(|used| match used {
-            UsedName::Normal(names) => names.last().cloned(),
-            UsedName::Inlined(_) => unreachable!("should not inline for destructuring"),
-          })
-        else {
+        let Some(new_name) = ExportsInfoGetter::get_used_name(
+          &module_graph.get_prefetched_exports_info(
+            &module.identifier(),
+            if concated_ids.is_empty() {
+              PrefetchExportsInfoMode::AllExports
+            } else {
+              PrefetchExportsInfoMode::NamedNestedExports(&concated_ids)
+            },
+          ),
+          code_generatable_context.runtime,
+          &concated_ids,
+        )
+        .and_then(|used| match used {
+          UsedName::Normal(names) => names.last().cloned(),
+          UsedName::Inlined(_) => unreachable!("should not inline for destructuring"),
+        }) else {
           return;
         };
 
@@ -449,7 +455,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         }
 
         let comment = to_normal_comment(prop.id.as_str());
-        let key = format!("{}{}", comment, new_name);
+        let key = format!("{comment}{new_name}");
         let content = if prop.shorthand {
           format!("{key}: {}", prop.id)
         } else {

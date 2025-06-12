@@ -1,10 +1,10 @@
 [package]
-description = "rspack error"
-edition     = "2021"
-license     = "MIT"
-name        = "rspack_error"
-repository  = "https://github.com/web-infra-dev/rspack"
-version     = "0.2.0"
+description       = "rspack error"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_error"
+repository        = "https://github.com/web-infra-dev/rspack"
+version           = "0.2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -17,6 +17,7 @@ once_cell          = { workspace = true }
 owo-colors         = "4.0.0"
 rspack_cacheable   = { workspace = true }
 rspack_collections = { workspace = true }
+rspack_location    = { workspace = true }
 rspack_paths       = { workspace = true }
 serde_json         = { workspace = true }
 swc_core           = { workspace = true, features = ["common", "common_concurrent"] }

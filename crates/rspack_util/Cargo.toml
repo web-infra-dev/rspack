@@ -1,10 +1,10 @@
 [package]
-description = "rspack util"
-edition     = "2021"
-license     = "MIT"
-name        = "rspack_util"
-repository  = "https://github.com/web-infra-dev/rspack"
-version     = "0.2.0"
+description       = "rspack util"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_util"
+repository        = "https://github.com/web-infra-dev/rspack"
+version           = "0.2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -14,7 +14,7 @@ concat-string    = { workspace = true }
 cow-utils        = { workspace = true }
 dashmap          = { workspace = true }
 indexmap         = { workspace = true }
-itoa             = { version = "1.0.14" }
+itoa             = { workspace = true }
 regex            = { workspace = true }
 ropey            = { workspace = true }
 rspack_cacheable = { workspace = true }

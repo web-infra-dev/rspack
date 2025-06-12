@@ -10,7 +10,7 @@ Rspack 支持代码分割特性，允许让你对代码进行分割，控制生�
 
 ## 动态导入（dynamic import）
 
-当涉及到动态代码拆分时， Rspack 使用符合 ECMAScript 提案的 [import()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import) 语法来实现动态导入。
+当涉及到动态代码分割时， Rspack 使用符合 ECMAScript 提案的 [import()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import) 语法来实现动态导入。
 
 我们在 `index.js` 通过 `import()` 来动态导入 2 个模块，从而分离出一个新的 Chunk。
 
@@ -127,7 +127,7 @@ export default {
 
 下图是一个例子，展示了 cacheGroup 中是否带 name 配置对最终产物 Chunk 的影响。
 
-![](https://assets.rspack.dev/rspack/assets/rspack-splitchunks-name-explain.png)
+![](https://assets.rspack.rs/rspack/assets/rspack-splitchunks-name-explain.png)
 
 ## Prefetching/Preloading 模块
 

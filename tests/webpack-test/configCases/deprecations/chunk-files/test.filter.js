@@ -1,1 +1,1 @@
-module.exports = () => { return "TODO: chunk files API not be full supported" }
+module.exports = () => "TODO: chunk files API not be full supported"

@@ -8,8 +8,10 @@
 use std::{fmt, sync::Arc};
 mod artifacts;
 mod binding;
+mod exports;
 pub use artifacts::*;
 pub use binding::*;
+pub use exports::*;
 mod dependencies_block;
 pub mod diagnostics;
 pub mod incremental;
@@ -32,8 +34,6 @@ mod normal_module;
 pub mod old_cache;
 mod raw_module;
 pub use raw_module::*;
-mod exports_info;
-pub use exports_info::*;
 pub mod module;
 pub mod parser_and_generator;
 pub use concatenated_module::*;
@@ -94,6 +94,9 @@ mod ukey;
 pub use ukey::*;
 pub mod resolver;
 pub use resolver::*;
+pub use rspack_location::{
+  DependencyLocation, RealDependencyLocation, SourcePosition, SyntheticDependencyLocation,
+};
 pub mod concatenated_module;
 pub mod reserved_names;
 

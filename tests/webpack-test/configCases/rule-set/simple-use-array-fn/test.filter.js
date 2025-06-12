@@ -1,2 +1,2 @@
-// TODO: Should create a issue for this test
-module.exports = () => { return "TODO: missing deprecations" }
+
+module.exports = () => "TODO: missing deprecations"

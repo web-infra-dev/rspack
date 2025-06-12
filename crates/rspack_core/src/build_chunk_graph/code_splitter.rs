@@ -1,7 +1,7 @@
 use std::{
   collections::HashSet as RawHashSet,
   hash::{BuildHasherDefault, Hash},
-  sync::{atomic::AtomicU32, Arc},
+  sync::atomic::AtomicU32,
 };
 
 use indexmap::{IndexMap as RawIndexMap, IndexSet as RawIndexSet};
@@ -130,12 +130,12 @@ impl ChunkGroupInfo {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
-pub(crate) struct OptionalRuntimeSpec(pub Vec<Arc<str>>);
+pub(crate) struct OptionalRuntimeSpec(pub Vec<ustr::Ustr>);
 
 impl From<Option<RuntimeSpec>> for OptionalRuntimeSpec {
   fn from(value: Option<RuntimeSpec>) -> Self {
     let mut vec = value.unwrap_or_default().into_iter().collect::<Vec<_>>();
-    vec.sort();
+    vec.sort_unstable();
     Self(vec)
   }
 }
@@ -396,11 +396,24 @@ impl CodeSplitter {
     self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
     let runtime = get_entry_runtime(name, options, &compilation.entries);
     let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
+
+    let mut incremental_diagnostic = None;
     if let Some(filename) = &entry_data.options.filename {
       chunk.set_filename_template(Some(filename.clone()));
+
+      if filename.has_hash_placeholder()
+        && let Some(diagnostic) = compilation.incremental.disable_passes(
+          IncrementalPasses::CHUNKS_RENDER,
+          "Chunk filename that dependent on full hash",
+          "chunk filename that dependent on full hash is not supported in incremental compilation",
+        )
+      {
+        incremental_diagnostic = diagnostic;
+        compilation.chunk_render_artifact.clear();
+      }
     }
 
-    compilation.chunk_graph.add_chunk(chunk.ukey());
+    compilation.chunk_graph.add_chunk(chunk_ukey);
 
     let mut entrypoint = ChunkGroup::new(ChunkGroupKind::new_entrypoint(
       true,
@@ -496,7 +509,13 @@ impl CodeSplitter {
       self.named_chunk_groups.insert(name.to_string(), cgi);
     }
 
-    Ok((entrypoint.ukey, modules))
+    let entrypoint_ukey = entrypoint.ukey;
+
+    if let Some(diagnostic) = incremental_diagnostic {
+      compilation.push_diagnostic(diagnostic);
+    }
+
+    Ok((entrypoint_ukey, modules))
   }
 
   pub fn set_entry_runtime_and_depend_on(
@@ -1694,8 +1713,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .chunk_groups_for_merging
           .insert((target_ukey, process_block));
         let mut updated = false;
-        for r in runtime.iter() {
-          updated |= target_cgi.runtime.insert(r.clone());
+        for &r in runtime.iter() {
+          updated |= target_cgi.runtime.insert(r);
         }
         if updated {
           self.outdated_chunk_group_info.insert(target_ukey);

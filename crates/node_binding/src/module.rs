@@ -3,7 +3,6 @@ use std::{any::TypeId, cell::RefCell, ptr::NonNull, sync::Arc};
 
 use napi::{CallContext, JsObject, JsString, JsSymbol, NapiRaw};
 use napi_derive::napi;
-use once_cell::unsync::OnceCell;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
@@ -11,17 +10,23 @@ use rspack_core::{
 };
 use rspack_napi::{
   napi::bindgen_prelude::*, string::JsStringExt, threadsafe_function::ThreadsafeFunction,
-  OneShotInstanceRef, OneShotRef, WeakRef,
+  OneShotInstanceRef, WeakRef,
 };
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_util::source_map::SourceMapKind;
 
 use super::JsCompatSourceOwned;
 use crate::{
-  AssetInfo, AsyncDependenciesBlockWrapper, BuildInfo, ConcatenatedModule, ContextModule,
-  DependencyWrapper, ExternalModule, JsChunkWrapper, JsCodegenerationResults, JsCompatSource,
-  JsCompiler, NormalModule, ToJsCompatSource, COMPILER_REFERENCES,
+  define_symbols, AssetInfo, AsyncDependenciesBlockWrapper, BuildInfo, ConcatenatedModule,
+  ContextModule, DependencyWrapper, ExternalModule, JsChunkWrapper, JsCodegenerationResults,
+  JsCompatSource, JsCompiler, NormalModule, ToJsCompatSource, COMPILER_REFERENCES,
 };
+
+define_symbols! {
+  MODULE_IDENTIFIER_SYMBOL => "MODULE_IDENTIFIER_SYMBOL",
+  MODULE_BUILD_INFO_SYMBOL => "MODULE_BUILD_INFO_SYMBOL",
+  COMPILATION_HOOKS_MAP_SYMBOL => "COMPILATION_HOOKS_MAP_SYMBOL",
+}
 
 #[napi(object)]
 pub struct JsLibIdentOptions {
@@ -55,10 +60,7 @@ pub struct Module {
 impl Module {
   pub(crate) fn custom_into_instance(self, env: &Env) -> napi::Result<ClassInstance<Self>> {
     let mut instance = self.into_instance(env)?;
-    // The returned Object's lifetime should be tied to the input Env's lifetime, not the ClassInstance itself.
-    // Fix in: https://github.com/napi-rs/napi-rs/pull/2655
-    let mut object =
-      unsafe { std::mem::transmute::<Object, Object<'static>>(instance.as_object(env)) };
+    let mut object = instance.as_object(env);
     let (_, module) = (*instance).as_ref()?;
 
     #[js_function]
@@ -211,31 +213,52 @@ impl Module {
       Ok(())
     }
 
-    object.define_properties(&[
-      Property::new("type")?.with_value(&env.create_string(module.module_type().as_str())?),
-      Property::new("context")?.with_getter(context_getter),
-      Property::new("layer")?.with_getter(layer_getter),
-      Property::new("useSourceMap")?.with_getter(use_source_map_getter),
-      Property::new("useSimpleSourceMap")?.with_getter(use_simple_source_map_getter),
-      Property::new("factoryMeta")?
+    let mut properties = vec![
+      Property::new()
+        .with_utf8_name("type")?
+        .with_value(&env.create_string(module.module_type().as_str())?),
+      Property::new()
+        .with_utf8_name("context")?
+        .with_getter(context_getter),
+      Property::new()
+        .with_utf8_name("layer")?
+        .with_getter(layer_getter),
+      Property::new()
+        .with_utf8_name("useSourceMap")?
+        .with_getter(use_source_map_getter),
+      Property::new()
+        .with_utf8_name("useSimpleSourceMap")?
+        .with_getter(use_simple_source_map_getter),
+      Property::new()
+        .with_utf8_name("factoryMeta")?
         .with_getter(factory_meta_getter)
         .with_setter(factory_meta_setter),
-      Property::new("_readableIdentifier")?.with_getter(readable_identifier_getter),
-      Property::new("buildInfo")?
+      Property::new()
+        .with_utf8_name("_readableIdentifier")?
+        .with_getter(readable_identifier_getter),
+      Property::new()
+        .with_utf8_name("buildInfo")?
         .with_getter(build_info_getter)
         .with_setter(build_info_setter),
-      Property::new("buildMeta")?.with_value(&Object::new(env)?),
-    ])?;
+      Property::new()
+        .with_utf8_name("buildMeta")?
+        .with_value(&Object::new(env)?),
+    ];
 
     MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
       let identifier = env.create_string(module.identifier().as_str())?;
-      let symbol = unsafe {
-        #[allow(clippy::unwrap_used)]
-        let napi_val = ToNapiValue::to_napi_value(env.raw(), once_cell.get().unwrap())?;
-        JsSymbol::from_napi_value(env.raw(), napi_val)?
-      };
-      object.set_property(symbol, identifier)
+      #[allow(clippy::unwrap_used)]
+      let symbol = once_cell.get().unwrap();
+      properties.push(
+        Property::new()
+          .with_name(env, symbol)?
+          .with_value(&identifier)
+          .with_property_attributes(PropertyAttributes::Configurable),
+      );
+      Ok::<(), napi::Error>(())
     })?;
+
+    object.define_properties(&properties)?;
 
     Ok(instance)
   }
@@ -798,36 +821,3 @@ pub struct JsDefaultObjectRedirectWarnObject {
 }
 
 pub type JsBuildMetaDefaultObject = Either<String, JsBuildMetaDefaultObjectRedirectWarn>;
-
-thread_local! {
-  pub(crate) static MODULE_IDENTIFIER_SYMBOL: OnceCell<OneShotRef> = Default::default();
-
-  pub(crate) static MODULE_BUILD_INFO_SYMBOL: OnceCell<OneShotRef> = Default::default();
-
-  pub(crate) static COMPILATION_HOOKS_MAP_SYMBOL: OnceCell<OneShotRef> = Default::default();
-}
-
-pub(super) fn init(mut exports: Object, env: Env) -> napi::Result<()> {
-  let module_identifier_symbol = OneShotRef::new(env.raw(), env.create_symbol(None)?)?;
-  exports.set_named_property("MODULE_IDENTIFIER_SYMBOL", &module_identifier_symbol)?;
-  MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
-    once_cell.get_or_init(move || module_identifier_symbol);
-  });
-
-  let compilation_hooks_map_symbol = OneShotRef::new(env.raw(), env.create_symbol(None)?)?;
-  exports.set_named_property(
-    "COMPILATION_HOOKS_MAP_SYMBOL",
-    &compilation_hooks_map_symbol,
-  )?;
-  COMPILATION_HOOKS_MAP_SYMBOL.with(|once_cell| {
-    once_cell.get_or_init(move || compilation_hooks_map_symbol);
-  });
-
-  let module_build_info_symbol = OneShotRef::new(env.raw(), env.create_symbol(None)?)?;
-  exports.set_named_property("MODULE_BUILD_INFO_SYMBOL", &module_build_info_symbol)?;
-  MODULE_BUILD_INFO_SYMBOL.with(|once_cell| {
-    once_cell.get_or_init(move || module_build_info_symbol);
-  });
-
-  Ok(())
-}

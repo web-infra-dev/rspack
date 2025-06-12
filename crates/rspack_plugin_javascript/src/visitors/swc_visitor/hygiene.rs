@@ -13,6 +13,6 @@ pub fn hygiene(keep_class_names: bool, top_level_mark: Mark) -> impl 'static + P
     top_level_mark,
     ignore_eval: false,
     // FIXME: support user passing preserved_symbols in the future
-    preserved_symbols: Default::default(),
+    // preserved_symbols: Default::default(),
   })
 }

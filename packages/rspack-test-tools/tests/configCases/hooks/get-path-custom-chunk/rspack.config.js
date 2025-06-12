@@ -18,6 +18,19 @@ class Plugin {
 					contentHashType: "javascript"
 				})
 			).toBe("chunkid-chunkname-chunkhash-contenthash");
+
+			expect(
+				compilation.getPath("[name]-[chunkhash]-[contenthash]", {
+					chunk: {
+						id: "chunkid",
+						hash: "chunkhash",
+						contentHash: {
+							javascript: "contenthash"
+						}
+					},
+					contentHashType: "javascript"
+				})
+			).toBe("chunkid-chunkhash-contenthash");
 		});
 		compiler.hooks.done.tap(pluginName, stats => {
 			let json = stats.toJson();

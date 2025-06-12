@@ -284,6 +284,10 @@ export class WatchProcessor<
 			(
 				options as TCompilerOptions<ECompilerType.Rspack>
 			).experiments!.rspackFuture!.bundlerInfo!.force ??= false;
+			// test incremental: "safe" here, we test default incremental in Incremental-*.test.js
+			(
+				options as TCompilerOptions<ECompilerType.Rspack>
+			).experiments!.incremental ??= "safe";
 
 			if (!global.printLogger) {
 				options.infrastructureLogging = {

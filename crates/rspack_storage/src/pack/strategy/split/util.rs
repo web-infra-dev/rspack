@@ -124,13 +124,10 @@ pub mod test_pack_utils {
     for bucket_id in 0..options.bucket_size {
       let mut pack_meta_list = vec![];
       for pack_no in 0..pack_count {
-        let pack_name = format!("pack_name_{}_{}", bucket_id, pack_no);
-        let pack_hash = format!("pack_hash_{}_{}", bucket_id, pack_no);
+        let pack_name = format!("pack_name_{bucket_id}_{pack_no}");
+        let pack_hash = format!("pack_hash_{bucket_id}_{pack_no}");
         let pack_size = 100;
-        pack_meta_list.push(format!(
-          "{},{},{},{}",
-          pack_name, pack_hash, pack_size, generation
-        ));
+        pack_meta_list.push(format!("{pack_name},{pack_hash},{pack_size},{generation}"));
       }
       writer.write_line(pack_meta_list.join(" ").as_str()).await?;
     }
@@ -153,8 +150,8 @@ pub mod test_pack_utils {
     let mut contents = vec![];
     let generations = vec![1_usize; item_count];
     for i in 0..item_count {
-      keys.push(format!("key_{}_{}", unique_id, i).as_bytes().to_vec());
-      contents.push(format!("val_{}_{}", unique_id, i).as_bytes().to_vec());
+      keys.push(format!("key_{unique_id}_{i}").as_bytes().to_vec());
+      contents.push(format!("val_{unique_id}_{i}").as_bytes().to_vec());
     }
     writer
       .write_line(keys.iter().map(|k| k.len()).join(" ").as_str())

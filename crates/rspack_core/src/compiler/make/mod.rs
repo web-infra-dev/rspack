@@ -1,4 +1,4 @@
-pub mod cutout;
+mod cutout;
 pub mod repair;
 
 use rspack_collections::IdentifierSet;
@@ -177,6 +177,11 @@ impl MakeArtifact {
     });
     module_diagnostics.chain(dep_diagnostics).collect()
   }
+
+  pub fn reset_temporary_data(&mut self) {
+    self.built_modules = Default::default();
+    self.revoked_modules = Default::default();
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -219,8 +224,7 @@ pub async fn make_module_graph(
   }
 
   // reset temporary data
-  artifact.built_modules = Default::default();
-  artifact.revoked_modules = Default::default();
+  artifact.reset_temporary_data();
   artifact = update_module_graph(compilation, artifact, params).await?;
   Ok(artifact)
 }
@@ -228,17 +232,10 @@ pub async fn make_module_graph(
 pub async fn update_module_graph(
   compilation: &Compilation,
   mut artifact: MakeArtifact,
-  mut params: Vec<MakeParam>,
+  params: Vec<MakeParam>,
 ) -> Result<MakeArtifact> {
   artifact.state = MakeArtifactState::Initialized;
   let mut cutout = Cutout::default();
-
-  compilation
-    .plugin_driver
-    .compilation_hooks
-    .update_module_graph
-    .call(&mut params, &artifact)
-    .await?;
 
   let build_dependencies = cutout.cutout_artifact(&mut artifact, params);
 

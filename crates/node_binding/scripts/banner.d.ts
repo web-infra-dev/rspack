@@ -14,6 +14,24 @@ export const MODULE_IDENTIFIER_SYMBOL: unique symbol;
 
 export const COMPILATION_HOOKS_MAP_SYMBOL: unique symbol;
 
+export const BUILD_INFO_ASSETS_SYMBOL: unique symbol;
+export const BUILD_INFO_FILE_DEPENDENCIES_SYMBOL: unique symbol;
+export const BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL: unique symbol;
+export const BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL: unique symbol;
+export const BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL: unique symbol;
+export const COMMIT_CUSTOM_FIELDS_SYMBOL: unique symbol;
+
+interface KnownBuildInfo {
+	[BUILD_INFO_ASSETS_SYMBOL]: Assets,
+	[BUILD_INFO_FILE_DEPENDENCIES_SYMBOL]: string[],
+	[BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL]: string[],
+	[BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL]: string[],
+	[BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL]: string[],
+	[COMMIT_CUSTOM_FIELDS_SYMBOL](): void;
+}
+
+export type BuildInfo = KnownBuildInfo & Record<string, any>;
+
 export interface Module {
 	[MODULE_IDENTIFIER_SYMBOL]: string;
 	readonly type: string;
@@ -24,7 +42,7 @@ export interface Module {
 	get useSourceMap(): boolean;
 	get useSimpleSourceMap(): boolean;
 	get _readableIdentifier(): string;
-	buildInfo: Record<string, any>;
+	buildInfo: BuildInfo;
 	buildMeta: Record<string, any>;
 }
 
@@ -40,8 +58,8 @@ export interface NormalModule extends Module {
 	readonly request: string;
 	readonly userRequest: string;
 	readonly rawRequest: string;
-	readonly resourceResolveData: JsResourceData | undefined;
-	readonly loaders: ReadonlyArray<JsLoaderItem>;
+	readonly resourceResolveData: Readonly<JsResourceData> | undefined;
+	readonly loaders: JsLoaderItem[];
 	get matchResource(): string | undefined;
 	set matchResource(val: string | undefined);
 }
@@ -55,6 +73,8 @@ export interface ContextModule extends Module {
 export interface ExternalModule extends Module {
 	readonly userRequest: string;
 }
+
+export type DependencyLocation = SyntheticDependencyLocation | RealDependencyLocation;
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */

@@ -1,2 +1,2 @@
 // function plugins not executed
-module.exports = () => false;
+module.exports = () => "TODO: support resolve plugins";

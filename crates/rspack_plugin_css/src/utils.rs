@@ -235,7 +235,7 @@ pub fn stringified_exports<'a>(
   let decl_name = "exports";
   Ok((
     decl_name,
-    format!("var {} = {{\n{}}};", decl_name, stringified_exports),
+    format!("var {decl_name} = {{\n{stringified_exports}}};"),
   ))
 }
 
@@ -336,7 +336,7 @@ pub fn unescape(s: &str) -> Cow<str> {
         if m.len() > 2 {
           if let Ok(r_u32) = u32::from_str_radix(m[1..].trim(), 16) {
             if let Some(ch) = char::from_u32(r_u32) {
-              return Some(format!("{}", ch));
+              return Some(format!("{ch}"));
             }
           }
           None
@@ -414,8 +414,8 @@ pub fn css_parsing_traceable_error(
     start as usize,
     end as usize,
     match severity {
-      RspackSeverity::Error => "CSS parsing error".to_string(),
-      RspackSeverity::Warn => "CSS parsing warning".to_string(),
+      RspackSeverity::Error => "CSS parse error".to_string(),
+      RspackSeverity::Warn => "CSS parse warning".to_string(),
     },
     message.into(),
   )

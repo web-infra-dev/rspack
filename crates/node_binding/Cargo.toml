@@ -1,11 +1,11 @@
 [package]
-description = "node binding"
-edition     = "2021"
-license     = "MIT"
-name        = "rspack_node"
-publish     = false
-repository  = "https://github.com/web-infra-dev/rspack"
-version     = "0.2.0"
+description       = "node binding"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_node"
+publish           = false
+repository        = "https://github.com/web-infra-dev/rspack"
+version           = "0.2.0"
 
 [lib]
 crate-type = ["cdylib"]
@@ -15,8 +15,10 @@ plugin = ["rspack_loader_swc/plugin"]
 
 [dependencies]
 anyhow                   = { workspace = true }
+browserslist-rs          = { workspace = true }
 ropey                    = { workspace = true }
 rspack_allocator         = { workspace = true }
+rspack_browserslist      = { workspace = true }
 rspack_collections       = { workspace = true }
 rspack_core              = { workspace = true, features = ["napi"] }
 rspack_error             = { workspace = true }
@@ -28,6 +30,7 @@ rspack_paths             = { workspace = true }
 rspack_plugin_html       = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
 rspack_plugin_rsdoctor   = { workspace = true }
+rspack_plugin_rstest     = { workspace = true }
 rspack_plugin_runtime    = { workspace = true }
 rspack_util              = { workspace = true }
 
@@ -41,14 +44,13 @@ tracing-subscriber = { workspace = true }
 napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow", "napi7", "compat-mode"] }
 napi-derive = { workspace = true, features = ["compat-mode"] }
 
-color-backtrace = "0.6.1"
+color-backtrace = "0.7.0"
 
 derive_more                            = { workspace = true, features = ["debug"] }
 futures                                = { workspace = true }
 glob                                   = { workspace = true }
 heck                                   = { workspace = true }
 once_cell                              = { workspace = true }
-rspack_browserslist                    = { workspace = true }
 rspack_cacheable                       = { workspace = true }
 rspack_ids                             = { workspace = true }
 rspack_javascript_compiler             = { workspace = true }
@@ -58,6 +60,7 @@ rspack_loader_react_refresh            = { workspace = true }
 rspack_loader_runner                   = { workspace = true }
 rspack_loader_swc                      = { workspace = true }
 rspack_loader_testing                  = { workspace = true }
+rspack_macros                          = { workspace = true }
 rspack_napi_macros                     = { workspace = true }
 rspack_plugin_asset                    = { workspace = true }
 rspack_plugin_banner                   = { workspace = true }
@@ -104,12 +107,12 @@ serde                                  = { workspace = true }
 serde_json                             = { workspace = true }
 swc_core                               = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
 tokio                                  = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "tracing"] }
+ustr                                   = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-tokio = { workspace = true, features = ["parking_lot"] }
-
 rspack_tracing = { workspace = true }
-
+sftrace-setup  = { workspace = true, optional = true }
+tokio          = { workspace = true, features = ["parking_lot"] }
 
 [build-dependencies]
 napi-build = { workspace = true }

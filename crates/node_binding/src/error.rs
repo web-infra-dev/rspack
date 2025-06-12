@@ -1,5 +1,27 @@
 use napi_derive::napi;
-use rspack_error::{miette, Diagnostic, Result, RspackSeverity};
+use rspack_error::{miette, Diagnostic, Error, Result, RspackSeverity};
+
+use crate::DependencyLocation;
+
+pub enum ErrorCode {
+  Napi(napi::Status),
+  Custom(String),
+}
+
+impl From<napi::Status> for ErrorCode {
+  fn from(value: napi::Status) -> Self {
+    Self::Napi(value)
+  }
+}
+
+impl AsRef<str> for ErrorCode {
+  fn as_ref(&self) -> &str {
+    match self {
+      ErrorCode::Napi(status) => status.as_ref(),
+      ErrorCode::Custom(code) => code.as_str(),
+    }
+  }
+}
 
 #[napi(object)]
 pub struct JsRspackDiagnostic {
@@ -43,7 +65,7 @@ pub struct JsRspackError {
   pub name: String,
   pub message: String,
   pub module_identifier: Option<String>,
-  pub loc: Option<String>,
+  pub loc: Option<DependencyLocation>,
   pub file: Option<String>,
   pub stack: Option<String>,
   pub hide_stack: Option<bool>,
@@ -64,7 +86,7 @@ impl JsRspackError {
       }),
       message,
       module_identifier: diagnostic.module_identifier().map(|d| d.to_string()),
-      loc: diagnostic.loc(),
+      loc: diagnostic.loc().map(Into::into),
       file: diagnostic.file().map(|f| f.as_str().to_string()),
       stack: diagnostic.stack(),
       hide_stack: diagnostic.hide_stack(),
@@ -83,9 +105,9 @@ impl JsRspackError {
   }
 }
 
-pub trait RspackResultToNapiResultExt<T, E: ToString> {
-  fn to_napi_result(self) -> napi::Result<T>;
-  fn to_napi_result_with_message(self, f: impl FnOnce(E) -> String) -> napi::Result<T>;
+pub trait RspackResultToNapiResultExt<T, E, S: AsRef<str> = napi::Status> {
+  fn to_napi_result(self) -> napi::Result<T, S>;
+  fn to_napi_result_with_message(self, f: impl FnOnce(E) -> String) -> napi::Result<T, S>;
 }
 
 impl<T, E: ToString> RspackResultToNapiResultExt<T, E> for Result<T, E> {
@@ -94,5 +116,31 @@ impl<T, E: ToString> RspackResultToNapiResultExt<T, E> for Result<T, E> {
   }
   fn to_napi_result_with_message(self, f: impl FnOnce(E) -> String) -> napi::Result<T> {
     self.map_err(|e| napi::Error::from_reason(f(e)))
+  }
+}
+
+impl<T> RspackResultToNapiResultExt<T, Error, ErrorCode> for Result<T, Error> {
+  fn to_napi_result(self) -> napi::Result<T, ErrorCode> {
+    self.map_err(|e| {
+      napi::Error::new(
+        e.code()
+          .map(|code| ErrorCode::Custom(code.to_string()))
+          .unwrap_or_else(|| ErrorCode::Napi(napi::Status::GenericFailure)),
+        e.to_string(),
+      )
+    })
+  }
+  fn to_napi_result_with_message(
+    self,
+    f: impl FnOnce(Error) -> String,
+  ) -> napi::Result<T, ErrorCode> {
+    self.map_err(|e| {
+      napi::Error::new(
+        e.code()
+          .map(|code| ErrorCode::Custom(code.to_string()))
+          .unwrap_or_else(|| ErrorCode::Napi(napi::Status::GenericFailure)),
+        f(e),
+      )
+    })
   }
 }

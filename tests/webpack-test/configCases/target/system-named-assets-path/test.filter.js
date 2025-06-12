@@ -1,1 +1,1 @@
-module.exports = () => false
+module.exports = () => "NOPLAN: support systemjs"

@@ -32,7 +32,7 @@ pub struct FactorizeTask {
 #[async_trait::async_trait]
 impl Task<MakeTaskContext> for FactorizeTask {
   fn get_task_type(&self) -> TaskType {
-    TaskType::Async
+    TaskType::Background
   }
   async fn background_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {
     if let Some(current_profile) = &self.current_profile {
@@ -94,8 +94,7 @@ impl Task<MakeTaskContext> for FactorizeTask {
         }
         create_data.diagnostics.insert(
           0,
-          Into::<Diagnostic>::into(e)
-            .with_loc(create_data.dependencies[0].loc().map(|loc| loc.to_string())),
+          Into::<Diagnostic>::into(e).with_loc(create_data.dependencies[0].loc()),
         );
         None
       }
@@ -157,7 +156,7 @@ pub struct FactorizeResultTask {
 #[async_trait::async_trait]
 impl Task<MakeTaskContext> for FactorizeResultTask {
   fn get_task_type(&self) -> TaskType {
-    TaskType::Sync
+    TaskType::Main
   }
   async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let FactorizeResultTask {

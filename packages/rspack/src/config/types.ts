@@ -2629,6 +2629,11 @@ export type IncrementalPresets =
 export type HttpUriOptions = HttpUriPluginOptions;
 
 /**
+ * Options for experiments.useInputFileSystem
+ */
+export type UseInputFileSystem = false | RegExp[];
+
+/**
  * Experimental features configuration.
  */
 export type Experiments = {
@@ -2703,6 +2708,11 @@ export type Experiments = {
 	 */
 	parallelLoader?: boolean;
 	/**
+	 * Enable Node.js input file system
+	 * @default false
+	 */
+	useInputFileSystem?: UseInputFileSystem;
+	/**
 	 * Enable inline constants
 	 * @default false
 	 */
@@ -2754,6 +2764,8 @@ export type WatchOptions = {
  * Options for devServer, it based on `webpack-dev-server@5`
  * */
 export interface DevServer extends DevServerOptions {}
+
+export type { Middleware as DevServerMiddleware } from "./devServer";
 //#endregion
 
 //#region IgnoreWarnings

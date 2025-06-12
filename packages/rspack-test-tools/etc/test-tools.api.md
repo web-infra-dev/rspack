@@ -256,7 +256,7 @@ export function createHookCase(name: string, src: string, dist: string, source: 
 export function createHotCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
 
 // @public (undocumented)
-export function createHotNewIncrementalCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"], documentType: EDocumentType): void;
+export function createHotIncrementalCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"], webpackCases: boolean): void;
 
 // @public (undocumented)
 export function createHotStepCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
@@ -280,7 +280,7 @@ export function createTreeShakingCase(name: string, src: string, dist: string): 
 export function createWatchCase(name: string, src: string, dist: string, temp: string): void;
 
 // @public (undocumented)
-export function createWatchNewIncrementalCase(name: string, src: string, dist: string, temp: string, options?: WatchNewIncrementalOptions): void;
+export function createWatchIncrementalCase(name: string, src: string, dist: string, temp: string, options?: WatchIncrementalOptions): void;
 
 // @public (undocumented)
 export class DefaultsConfigProcessor<T extends ECompilerType> extends SimpleTaskProcessor<T> {
@@ -532,14 +532,14 @@ export class HookTaskProcessor<T extends ECompilerType> extends SnapshotProcesso
 }
 
 // @public (undocumented)
-export class HotNewIncrementalProcessor<T extends ECompilerType> extends HotProcessor<T> {
-    constructor(_hotOptions: IHotNewIncrementalProcessorOptions<T>);
+export class HotIncrementalProcessor<T extends ECompilerType> extends HotProcessor<T> {
+    constructor(_hotOptions: IHotIncrementalProcessorOptions<T>);
     // (undocumented)
     afterAll(context: ITestContext): Promise<void>;
     // (undocumented)
-    static defaultOptions<T extends ECompilerType>(this: HotNewIncrementalProcessor<T>, context: ITestContext): TCompilerOptions<T>;
+    static defaultOptions<T extends ECompilerType>(this: HotIncrementalProcessor<T>, context: ITestContext): TCompilerOptions<T>;
     // (undocumented)
-    protected _hotOptions: IHotNewIncrementalProcessorOptions<T>;
+    protected _hotOptions: IHotIncrementalProcessorOptions<T>;
     // (undocumented)
     run(env: ITestEnv, context: ITestContext): Promise<void>;
 }
@@ -760,6 +760,10 @@ export interface IDiagnosticProcessorOptions<T extends ECompilerType> extends Om
     format?: (output: string) => string;
     // (undocumented)
     snapshot: string;
+    // (undocumented)
+    snapshotErrors: string;
+    // (undocumented)
+    snapshotWarning: string;
 }
 
 // @public (undocumented)
@@ -891,11 +895,11 @@ export interface IHookProcessorOptions<T extends ECompilerType> extends ISnapsho
 }
 
 // @public (undocumented)
-export interface IHotNewIncrementalProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "runable"> {
-    // (undocumented)
-    documentType?: EDocumentType;
+export interface IHotIncrementalProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "runable"> {
     // (undocumented)
     target: TCompilerOptions<T>["target"];
+    // (undocumented)
+    webpackCases: boolean;
 }
 
 // @public (undocumented)
@@ -1661,7 +1665,7 @@ export type TUpdateOptions = {
 };
 
 // @public (undocumented)
-export type WatchNewIncrementalOptions = {
+export type WatchIncrementalOptions = {
     ignoreNotFriendlyForIncrementalWarnings?: boolean;
 };
 

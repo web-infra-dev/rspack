@@ -4,7 +4,7 @@ use napi::{
 };
 use rspack_core::{parse_resource, ResourceData, ResourceParsedData};
 
-use crate::{impl_module_methods, plugins::JsLoaderItem, JsResourceData, Module};
+use crate::{impl_module_methods, plugins::JsLoaderItem, Module, ReadonlyResourceDataWrapper};
 
 #[napi]
 #[repr(C)]
@@ -31,7 +31,7 @@ impl NormalModule {
     let resource_resolve_data = Object::from_raw(env.raw(), unsafe {
       ToNapiValue::to_napi_value(
         env.raw(),
-        JsResourceData::from(resource_resolved_data.clone()),
+        ReadonlyResourceDataWrapper::from(resource_resolved_data.clone()),
       )?
     });
     let loaders = Object::from_raw(env.raw(), unsafe {
@@ -86,13 +86,26 @@ impl NormalModule {
     }
 
     let properties = vec![
-      napi::Property::new("resource")?.with_value(&resource),
-      napi::Property::new("request")?.with_value(&request),
-      napi::Property::new("userRequest")?.with_value(&user_request),
-      napi::Property::new("rawRequest")?.with_value(&raw_request),
-      napi::Property::new("resourceResolveData")?.with_value(&resource_resolve_data),
-      napi::Property::new("loaders")?.with_value(&loaders),
-      napi::Property::new("matchResource")?
+      napi::Property::new()
+        .with_utf8_name("resource")?
+        .with_value(&resource),
+      napi::Property::new()
+        .with_utf8_name("request")?
+        .with_value(&request),
+      napi::Property::new()
+        .with_utf8_name("userRequest")?
+        .with_value(&user_request),
+      napi::Property::new()
+        .with_utf8_name("rawRequest")?
+        .with_value(&raw_request),
+      napi::Property::new()
+        .with_utf8_name("resourceResolveData")?
+        .with_value(&resource_resolve_data),
+      napi::Property::new()
+        .with_utf8_name("loaders")?
+        .with_value(&loaders),
+      napi::Property::new()
+        .with_utf8_name("matchResource")?
         .with_getter(match_resource_getter)
         .with_setter(match_resource_setter),
     ];

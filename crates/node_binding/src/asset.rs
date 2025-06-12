@@ -7,7 +7,7 @@ use napi::{
 };
 use napi_derive::napi;
 use rspack_core::Reflector;
-use rspack_napi::string::JsStringExt;
+use rspack_napi::unknown_to_json_value;
 use rspack_napi_macros::field_names;
 use rustc_hash::FxHashSet;
 
@@ -65,85 +65,19 @@ pub struct AssetInfo {
   extras: serde_json::Map<String, serde_json::Value>,
 }
 
-unsafe fn napi_value_to_json(
-  env: sys::napi_env,
-  value: Unknown,
-) -> napi::Result<Option<serde_json::Value>> {
-  if value.is_array()? {
-    let js_array = Array::from_unknown(value)?;
-    let mut array = Vec::with_capacity(js_array.len() as usize);
-
-    for index in 0..js_array.len() {
-      if let Some(item) = js_array.get::<Unknown>(index)? {
-        if let Some(json_val) = napi_value_to_json(env, item)? {
-          array.push(json_val);
-        } else {
-          array.push(serde_json::Value::Null);
-        }
-      } else {
-        array.push(serde_json::Value::Null);
-      }
-    }
-
-    return Ok(Some(serde_json::Value::Array(array)));
-  }
-
-  match value.get_type()? {
-    napi::ValueType::Null => Ok(Some(serde_json::Value::Null)),
-    napi::ValueType::Boolean => {
-      let b = value.coerce_to_bool()?;
-      Ok(Some(serde_json::Value::Bool(b)))
-    }
-    napi::ValueType::Number => {
-      let number = value.coerce_to_number()?.get_double()?;
-      let f64_val = serde_json::Number::from_f64(number);
-      match f64_val {
-        Some(n) => Ok(Some(serde_json::Value::Number(n))),
-        None => Ok(None),
-      }
-    }
-    napi::ValueType::String => {
-      let s = value.coerce_to_string()?.into_string();
-      Ok(Some(serde_json::Value::String(s)))
-    }
-    napi::ValueType::Object => {
-      let js_obj = value.coerce_to_object()?;
-      let mut map = serde_json::Map::new();
-
-      let names = Array::from_napi_value(env, js_obj.get_property_names()?.raw())?;
-      for index in 0..names.len() {
-        if let Some(name) = names.get::<String>(index)? {
-          let prop_val = js_obj.get_named_property::<Unknown>(&name)?;
-          if let Some(json_val) = napi_value_to_json(env, prop_val)? {
-            map.insert(name, json_val);
-          }
-        }
-      }
-
-      Ok(Some(serde_json::Value::Object(map)))
-    }
-    napi::ValueType::Undefined
-    | napi::ValueType::Symbol
-    | napi::ValueType::Function
-    | napi::ValueType::External
-    | napi::ValueType::BigInt
-    | napi::ValueType::Unknown => Ok(None),
-  }
-}
-
 impl FromNapiValue for AssetInfo {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> napi::Result<Self> {
     let known = KnownAssetInfo::from_napi_value(env, napi_val)?;
     let known_field_names = FxHashSet::from_iter(KnownAssetInfo::field_names());
 
     let mut extras = serde_json::Map::new();
-    let js_obj = Object::from_napi_value(env, napi_val)?;
-    let names = Array::from_napi_value(env, js_obj.get_property_names()?.raw())?;
+    let object = Object::from_napi_value(env, napi_val)?;
+    let names = Array::from_napi_value(env, object.get_property_names()?.raw())?;
     for index in 0..names.len() {
       if let Some(name) = names.get::<String>(index)? {
         if !known_field_names.contains(&name) {
-          let value = js_obj.get_named_property::<Unknown>(&name)?;
-          if let Some(json_value) = napi_value_to_json(env, value)? {
+          let value = object.get_named_property::<Unknown>(&name)?;
+          if let Some(json_value) = unknown_to_json_value(value)? {
             extras.insert(name, json_value);
           }
         }

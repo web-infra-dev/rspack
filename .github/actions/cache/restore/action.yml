@@ -15,7 +15,7 @@ inputs:
 
 outputs:
   cache-hit:
-    description: 'A boolean value to indicate an exact match was found for the primary key'
+    description: "A boolean value to indicate an exact match was found for the primary key"
     value: ${{ steps.github-cache.outputs.cache-hit == 'true' || steps.local-cache.outputs.cache-hit == 'true' }}
 
 runs:
@@ -32,7 +32,7 @@ runs:
     - name: Restore cache to local
       id: local-cache
       if: ${{ runner.environment == 'self-hosted' }}
-      uses: lynx-infra/cache/restore@558d7c999f9f97ac02ed7e711503bb81d82ff8ee # main
+      uses: lynx-infra/cache/restore@5c6160a6a4c7fca80a2f3057bb9dfc9513fcb732 # main
       with:
         key: ${{ inputs.key }}
         path: ${{ inputs.path }}

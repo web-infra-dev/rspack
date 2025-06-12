@@ -4,4 +4,4 @@
 // };
 
 // Missing warning `This prevents using hashes of each other and should be avoided`
-module.exports = () => { return "FIXME: missing warning" }
+module.exports = () => "FIXME: missing warning"

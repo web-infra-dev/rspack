@@ -138,7 +138,7 @@ async fn recovery_lock(
     FSError::from_message(
       &lock_file,
       FSOperation::Read,
-      format!("parse utf8 failed: {}", e),
+      format!("parse utf8 failed: {e}"),
     )
   })?;
   let files = lock_file_content
@@ -355,7 +355,7 @@ async fn try_remove_version(
     FSError::from_message(
       &meta,
       FSOperation::Read,
-      format!("parse option meta failed: {}", e),
+      format!("parse option meta failed: {e}"),
     )
   })?;
   let current = current_time();
