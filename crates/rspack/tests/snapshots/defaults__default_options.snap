@@ -1417,6 +1417,9 @@ CompilerOptions {
                             import_dynamic: Some(
                                 true,
                             ),
+                            inline_const: Some(
+                                false,
+                            ),
                         },
                     ),
                 },

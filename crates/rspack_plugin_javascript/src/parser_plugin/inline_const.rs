@@ -1,6 +1,6 @@
 use rspack_core::{
   ConnectionState, DependencyConditionFn, DependencyId, EvaluatedInlinableValue, ModuleGraph,
-  ModuleGraphConnection, ParserOptions, RuntimeSpec, UsedName,
+  ModuleGraphConnection, RuntimeSpec, UsedName,
 };
 use swc_core::ecma::{
   ast::{ModuleDecl, ModuleItem, Program, VarDeclKind},
