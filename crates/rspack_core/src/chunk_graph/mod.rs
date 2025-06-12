@@ -1,19 +1,37 @@
 use core::fmt;
-use std::{borrow::Cow, collections::HashSet};
+use std::borrow::Cow;
 
 use itertools::Itertools;
-use rspack_collections::{IdentifierMap, UkeyMap};
-use rspack_util::env::has_query;
-use rustc_hash::FxHashMap as HashMap;
+use rspack_collections::{IdentifierIndexSet, IdentifierMap, UkeyIndexMap, UkeyMap};
+use rspack_util::{atom::Atom, env::has_query};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier,
+  AsyncDependenciesBlockIdentifier, Binding, ChunkGroupUkey, ChunkUkey, Compilation,
+  ModuleIdentifier,
 };
 
 pub mod chunk_graph_chunk;
 pub mod chunk_graph_module;
 pub use chunk_graph_chunk::{ChunkGraphChunk, ChunkSizeOptions};
 pub use chunk_graph_module::{ChunkGraphModule, ModuleId};
+
+#[derive(Debug, Clone, Default)]
+pub struct ChunkLinkContext {
+  // specifier order doesn't matter, we can sort them based on name
+  pub exports: IdentifierMap<HashSet<Atom>>,
+
+  pub needed_namespace_objects: IdentifierIndexSet,
+  pub hoisted_modules: IdentifierIndexSet,
+  pub ref_to_final_name: HashMap<String, ModuleReference>,
+  pub used_names: HashSet<Atom>,
+}
+
+#[derive(Debug, Clone)]
+pub enum ModuleReference {
+  Binding(Binding),
+  Str(String),
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraph {
@@ -24,6 +42,9 @@ pub struct ChunkGraph {
   chunk_graph_chunk_by_chunk_ukey: UkeyMap<ChunkUkey, ChunkGraphChunk>,
 
   runtime_ids: HashMap<String, Option<String>>,
+
+  // only used for esm output
+  pub link: Option<UkeyMap<ChunkUkey, ChunkLinkContext>>,
 }
 
 impl ChunkGraph {
@@ -39,7 +60,8 @@ impl ChunkGraph {
   // 1. support chunk_group dump visualizer
   pub fn to_dot(&self, compilation: &Compilation) -> std::result::Result<String, fmt::Error> {
     let mut visited_group_nodes: HashMap<ChunkGroupUkey, String> = HashMap::default();
-    let mut visited_group_edges: HashSet<(ChunkGroupUkey, ChunkGroupUkey, bool)> = HashSet::new();
+    let mut visited_group_edges: HashSet<(ChunkGroupUkey, ChunkGroupUkey, bool)> =
+      HashSet::default();
     let mut visiting_groups: Vec<ChunkGroupUkey> = Vec::new();
     let module_graph = compilation.get_module_graph();
     // generate following chunk_group_info as dto record info

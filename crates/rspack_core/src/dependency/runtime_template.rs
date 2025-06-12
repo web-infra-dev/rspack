@@ -672,7 +672,7 @@ fn missing_module_statement(request: &str) -> String {
   format!("{};\n", missing_module(request))
 }
 
-fn missing_module_promise(request: &str) -> String {
+pub fn missing_module_promise(request: &str) -> String {
   format!(
     "Promise.resolve().then({})",
     throw_missing_module_error_function(request)
