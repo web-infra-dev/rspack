@@ -129,7 +129,7 @@ impl ExportsInfo {
     &self,
     mg: &mut ModuleGraph,
     can_mangle: bool,
-    exclude_exports: Option<Vec<Atom>>,
+    exclude_exports: &Option<Vec<Atom>>,
     target_key: Option<DependencyId>,
     target_module: Option<DependencyId>,
     priority: Option<u8>,
