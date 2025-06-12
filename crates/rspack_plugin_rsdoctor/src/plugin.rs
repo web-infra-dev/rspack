@@ -318,11 +318,9 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
 
     if let Some(rsd_module) = rsd_modules.get_mut(&module_id) {
       rsd_module.issuer_path = Some(issuer_path);
-    }
-    if let Some(rsd_module) = rsd_modules.get_mut(&module_id) {
       let (_, module) = module;
       let bailout_reason = module_graph.get_optimization_bailout(&module.identifier());
-      rsd_module.bailout_reason = Some(bailout_reason.join(", "));
+      rsd_module.bailout_reason = bailout_reason.into_iter().map(|s| s.to_string()).collect();
     }
   }
 
