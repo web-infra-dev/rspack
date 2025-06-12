@@ -140,6 +140,12 @@ impl Cutout {
         remove_entry_dependencies.push(*dep_id);
       }
 
+      // should not build remove_entry_dependencies
+      build_deps = build_deps
+        .drain()
+        .filter(|(dep_id, _)| !remove_entry_dependencies.contains(dep_id))
+        .collect();
+
       for dep_id in remove_entry_dependencies {
         artifact.revoke_dependency(&dep_id, true);
         entry_dependencies.remove(&dep_id);
