@@ -82,7 +82,10 @@ async fn basic_compile(production: bool) {
   let mut compiler = builder.build().unwrap();
 
   compiler.run().await.unwrap();
-  dbg!(compiler.compilation.get_errors().collect::<Vec<_>>());
+  println!(
+    "{:?}",
+    compiler.compilation.get_errors().collect::<Vec<_>>()
+  );
   assert!(compiler
     .compilation
     .get_errors()
