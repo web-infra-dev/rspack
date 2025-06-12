@@ -7,8 +7,8 @@ publish           = false
 repository        = "https://github.com/web-infra-dev/rspack"
 version           = "0.2.0"
 
-[lib]
-crate-type = ["cdylib"]
+# [lib]
+# crate-type = ["cdylib"]
 
 [features]
 plugin = ["rspack_loader_swc/plugin"]
@@ -110,9 +110,9 @@ tokio                                  = { workspace = true, features = ["rt", "
 ustr                                   = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-tokio = { workspace = true, features = ["parking_lot"] }
 rspack_tracing = { workspace = true }
-sftrace-setup = { workspace = true, optional = true }
+sftrace-setup  = { workspace = true, optional = true }
+tokio          = { workspace = true, features = ["parking_lot"] }
 
 [build-dependencies]
-napi-build = { workspace = true }
+rspack_node_build = { workspace = true }

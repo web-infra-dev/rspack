@@ -441,92 +441,92 @@ export interface BuiltinPlugin {
   canInherentFromParent?: boolean
 }
 
-export declare enum BuiltinPluginName {
-  DefinePlugin = 'DefinePlugin',
-  ProvidePlugin = 'ProvidePlugin',
-  BannerPlugin = 'BannerPlugin',
-  IgnorePlugin = 'IgnorePlugin',
-  ProgressPlugin = 'ProgressPlugin',
-  EntryPlugin = 'EntryPlugin',
-  DynamicEntryPlugin = 'DynamicEntryPlugin',
-  ExternalsPlugin = 'ExternalsPlugin',
-  NodeTargetPlugin = 'NodeTargetPlugin',
-  ElectronTargetPlugin = 'ElectronTargetPlugin',
-  EnableChunkLoadingPlugin = 'EnableChunkLoadingPlugin',
-  EnableLibraryPlugin = 'EnableLibraryPlugin',
-  EnableWasmLoadingPlugin = 'EnableWasmLoadingPlugin',
-  FetchCompileAsyncWasmPlugin = 'FetchCompileAsyncWasmPlugin',
-  ChunkPrefetchPreloadPlugin = 'ChunkPrefetchPreloadPlugin',
-  CommonJsChunkFormatPlugin = 'CommonJsChunkFormatPlugin',
-  ArrayPushCallbackChunkFormatPlugin = 'ArrayPushCallbackChunkFormatPlugin',
-  ModuleChunkFormatPlugin = 'ModuleChunkFormatPlugin',
-  HotModuleReplacementPlugin = 'HotModuleReplacementPlugin',
-  LimitChunkCountPlugin = 'LimitChunkCountPlugin',
-  WorkerPlugin = 'WorkerPlugin',
-  WebWorkerTemplatePlugin = 'WebWorkerTemplatePlugin',
-  MergeDuplicateChunksPlugin = 'MergeDuplicateChunksPlugin',
-  SplitChunksPlugin = 'SplitChunksPlugin',
-  RemoveDuplicateModulesPlugin = 'RemoveDuplicateModulesPlugin',
-  ShareRuntimePlugin = 'ShareRuntimePlugin',
-  ContainerPlugin = 'ContainerPlugin',
-  ContainerReferencePlugin = 'ContainerReferencePlugin',
-  ProvideSharedPlugin = 'ProvideSharedPlugin',
-  ConsumeSharedPlugin = 'ConsumeSharedPlugin',
-  ModuleFederationRuntimePlugin = 'ModuleFederationRuntimePlugin',
-  NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
-  NaturalModuleIdsPlugin = 'NaturalModuleIdsPlugin',
-  DeterministicModuleIdsPlugin = 'DeterministicModuleIdsPlugin',
-  NaturalChunkIdsPlugin = 'NaturalChunkIdsPlugin',
-  NamedChunkIdsPlugin = 'NamedChunkIdsPlugin',
-  DeterministicChunkIdsPlugin = 'DeterministicChunkIdsPlugin',
-  OccurrenceChunkIdsPlugin = 'OccurrenceChunkIdsPlugin',
-  RealContentHashPlugin = 'RealContentHashPlugin',
-  RemoveEmptyChunksPlugin = 'RemoveEmptyChunksPlugin',
-  EnsureChunkConditionsPlugin = 'EnsureChunkConditionsPlugin',
-  WarnCaseSensitiveModulesPlugin = 'WarnCaseSensitiveModulesPlugin',
-  DataUriPlugin = 'DataUriPlugin',
-  FileUriPlugin = 'FileUriPlugin',
-  RuntimePlugin = 'RuntimePlugin',
-  JsonModulesPlugin = 'JsonModulesPlugin',
-  InferAsyncModulesPlugin = 'InferAsyncModulesPlugin',
-  JavascriptModulesPlugin = 'JavascriptModulesPlugin',
-  AsyncWebAssemblyModulesPlugin = 'AsyncWebAssemblyModulesPlugin',
-  AssetModulesPlugin = 'AssetModulesPlugin',
-  SourceMapDevToolPlugin = 'SourceMapDevToolPlugin',
-  EvalSourceMapDevToolPlugin = 'EvalSourceMapDevToolPlugin',
-  EvalDevToolModulePlugin = 'EvalDevToolModulePlugin',
-  SideEffectsFlagPlugin = 'SideEffectsFlagPlugin',
-  FlagDependencyExportsPlugin = 'FlagDependencyExportsPlugin',
-  FlagDependencyUsagePlugin = 'FlagDependencyUsagePlugin',
-  MangleExportsPlugin = 'MangleExportsPlugin',
-  ModuleConcatenationPlugin = 'ModuleConcatenationPlugin',
-  CssModulesPlugin = 'CssModulesPlugin',
-  APIPlugin = 'APIPlugin',
-  RuntimeChunkPlugin = 'RuntimeChunkPlugin',
-  SizeLimitsPlugin = 'SizeLimitsPlugin',
-  NoEmitOnErrorsPlugin = 'NoEmitOnErrorsPlugin',
-  ContextReplacementPlugin = 'ContextReplacementPlugin',
-  DllEntryPlugin = 'DllEntryPlugin',
-  DllReferenceAgencyPlugin = 'DllReferenceAgencyPlugin',
-  LibManifestPlugin = 'LibManifestPlugin',
-  FlagAllModulesAsUsedPlugin = 'FlagAllModulesAsUsedPlugin',
-  HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
-  CopyRspackPlugin = 'CopyRspackPlugin',
-  HtmlRspackPlugin = 'HtmlRspackPlugin',
-  SwcJsMinimizerRspackPlugin = 'SwcJsMinimizerRspackPlugin',
-  LightningCssMinimizerRspackPlugin = 'LightningCssMinimizerRspackPlugin',
-  BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
-  CssExtractRspackPlugin = 'CssExtractRspackPlugin',
-  SubresourceIntegrityPlugin = 'SubresourceIntegrityPlugin',
-  RsdoctorPlugin = 'RsdoctorPlugin',
-  RstestPlugin = 'RstestPlugin',
-  CircularDependencyRspackPlugin = 'CircularDependencyRspackPlugin',
-  JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
-  LazyCompilationPlugin = 'LazyCompilationPlugin',
-  ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin',
-  HttpUriPlugin = 'HttpUriPlugin',
-  CssChunkingPlugin = 'CssChunkingPlugin'
-}
+export type BuiltinPluginName =
+  | { type: 'DefinePlugin' }
+  | { type: 'ProvidePlugin' }
+  | { type: 'BannerPlugin' }
+  | { type: 'IgnorePlugin' }
+  | { type: 'ProgressPlugin' }
+  | { type: 'EntryPlugin' }
+  | { type: 'DynamicEntryPlugin' }
+  | { type: 'ExternalsPlugin' }
+  | { type: 'NodeTargetPlugin' }
+  | { type: 'ElectronTargetPlugin' }
+  | { type: 'EnableChunkLoadingPlugin' }
+  | { type: 'EnableLibraryPlugin' }
+  | { type: 'EnableWasmLoadingPlugin' }
+  | { type: 'FetchCompileAsyncWasmPlugin' }
+  | { type: 'ChunkPrefetchPreloadPlugin' }
+  | { type: 'CommonJsChunkFormatPlugin' }
+  | { type: 'ArrayPushCallbackChunkFormatPlugin' }
+  | { type: 'ModuleChunkFormatPlugin' }
+  | { type: 'HotModuleReplacementPlugin' }
+  | { type: 'LimitChunkCountPlugin' }
+  | { type: 'WorkerPlugin' }
+  | { type: 'WebWorkerTemplatePlugin' }
+  | { type: 'MergeDuplicateChunksPlugin' }
+  | { type: 'SplitChunksPlugin' }
+  | { type: 'RemoveDuplicateModulesPlugin' }
+  | { type: 'ShareRuntimePlugin' }
+  | { type: 'ContainerPlugin' }
+  | { type: 'ContainerReferencePlugin' }
+  | { type: 'ProvideSharedPlugin' }
+  | { type: 'ConsumeSharedPlugin' }
+  | { type: 'ModuleFederationRuntimePlugin' }
+  | { type: 'NamedModuleIdsPlugin' }
+  | { type: 'NaturalModuleIdsPlugin' }
+  | { type: 'DeterministicModuleIdsPlugin' }
+  | { type: 'NaturalChunkIdsPlugin' }
+  | { type: 'NamedChunkIdsPlugin' }
+  | { type: 'DeterministicChunkIdsPlugin' }
+  | { type: 'OccurrenceChunkIdsPlugin' }
+  | { type: 'RealContentHashPlugin' }
+  | { type: 'RemoveEmptyChunksPlugin' }
+  | { type: 'EnsureChunkConditionsPlugin' }
+  | { type: 'WarnCaseSensitiveModulesPlugin' }
+  | { type: 'DataUriPlugin' }
+  | { type: 'FileUriPlugin' }
+  | { type: 'RuntimePlugin' }
+  | { type: 'JsonModulesPlugin' }
+  | { type: 'InferAsyncModulesPlugin' }
+  | { type: 'JavascriptModulesPlugin' }
+  | { type: 'AsyncWebAssemblyModulesPlugin' }
+  | { type: 'AssetModulesPlugin' }
+  | { type: 'SourceMapDevToolPlugin' }
+  | { type: 'EvalSourceMapDevToolPlugin' }
+  | { type: 'EvalDevToolModulePlugin' }
+  | { type: 'SideEffectsFlagPlugin' }
+  | { type: 'FlagDependencyExportsPlugin' }
+  | { type: 'FlagDependencyUsagePlugin' }
+  | { type: 'MangleExportsPlugin' }
+  | { type: 'ModuleConcatenationPlugin' }
+  | { type: 'CssModulesPlugin' }
+  | { type: 'APIPlugin' }
+  | { type: 'RuntimeChunkPlugin' }
+  | { type: 'SizeLimitsPlugin' }
+  | { type: 'NoEmitOnErrorsPlugin' }
+  | { type: 'ContextReplacementPlugin' }
+  | { type: 'DllEntryPlugin' }
+  | { type: 'DllReferenceAgencyPlugin' }
+  | { type: 'LibManifestPlugin' }
+  | { type: 'FlagAllModulesAsUsedPlugin' }
+  | { type: 'HttpExternalsRspackPlugin' }
+  | { type: 'CopyRspackPlugin' }
+  | { type: 'HtmlRspackPlugin' }
+  | { type: 'SwcJsMinimizerRspackPlugin' }
+  | { type: 'LightningCssMinimizerRspackPlugin' }
+  | { type: 'BundlerInfoRspackPlugin' }
+  | { type: 'CssExtractRspackPlugin' }
+  | { type: 'SubresourceIntegrityPlugin' }
+  | { type: 'RsdoctorPlugin' }
+  | { type: 'RstestPlugin' }
+  | { type: 'CircularDependencyRspackPlugin' }
+  | { type: 'JsLoaderRspackPlugin' }
+  | { type: 'LazyCompilationPlugin' }
+  | { type: 'ModuleInfoHeaderPlugin' }
+  | { type: 'HttpUriPlugin' }
+  | { type: 'CssChunkingPlugin' }
+  | { type: 'Custom', field0: string }
 
 export declare function cleanupGlobalTrace(): void
 

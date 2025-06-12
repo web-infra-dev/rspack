@@ -1,0 +1,19 @@
+[package]
+description       = "rspack node builder"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_node_builder"
+repository        = "https://github.com/web-infra-dev/rspack"
+version           = "0.2.0"
+
+# [lib]
+# crate-type = ["cdylib"]
+
+[features]
+plugin = ["rspack_node/plugin"]
+
+[dependencies]
+rspack_core  = { workspace = true }
+rspack_error = { workspace = true }
+rspack_napi  = { workspace = true }
+rspack_node  = { workspace = true }

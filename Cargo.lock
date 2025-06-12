@@ -4540,7 +4540,6 @@ dependencies = [
  "glob",
  "heck 0.5.0",
  "napi",
- "napi-build 3.0.0-beta.0",
  "napi-derive",
  "once_cell",
  "ropey",
@@ -4564,6 +4563,7 @@ dependencies = [
  "rspack_macros",
  "rspack_napi",
  "rspack_napi_macros",
+ "rspack_node_build",
  "rspack_paths",
  "rspack_plugin_asset",
  "rspack_plugin_banner",
@@ -4621,6 +4621,46 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "ustr-fxhash",
+]
+
+[[package]]
+name = "rspack_node_build"
+version = "0.2.0"
+dependencies = [
+ "napi-build 3.0.0-beta.0",
+]
+
+[[package]]
+name = "rspack_node_builder"
+version = "0.2.0"
+dependencies = [
+ "rspack_core",
+ "rspack_error",
+ "rspack_napi",
+ "rspack_node",
+]
+
+[[package]]
+name = "rspack_node_builder_macros"
+version = "0.2.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "rspack_node_builder",
+ "syn 2.0.95",
+]
+
+[[package]]
+name = "rspack_node_builder_testing"
+version = "0.2.0"
+dependencies = [
+ "rspack_core",
+ "rspack_error",
+ "rspack_napi",
+ "rspack_node",
+ "rspack_node_build",
+ "rspack_node_builder",
+ "rspack_node_builder_macros",
 ]
 
 [[package]]

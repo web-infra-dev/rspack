@@ -1,3 +1,4 @@
+#![cfg_attr(feature = "cdylib", crate_type = "cdylib")]
 #![recursion_limit = "256"]
 #![feature(let_chains)]
 #![feature(try_blocks)]
@@ -99,7 +100,7 @@ pub use options::*;
 pub use path_data::*;
 pub use plugins::buildtime_plugins;
 use plugins::*;
-pub use raw_options::*;
+pub use raw_options::{register_custom_plugin, CustomPluginBuilder, *};
 pub use resolver::*;
 use resolver_factory::*;
 pub use resource_data::*;

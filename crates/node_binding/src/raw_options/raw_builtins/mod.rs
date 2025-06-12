@@ -19,6 +19,8 @@ mod raw_size_limits;
 mod raw_sri;
 mod raw_swc_js_minimizer;
 
+use std::cell::RefCell;
+
 use napi::{
   bindgen_prelude::{FromNapiValue, JsObjectValue, Object},
   Env, Unknown,
@@ -94,6 +96,7 @@ use rspack_plugin_wasm::{
 };
 use rspack_plugin_web_worker_template::web_worker_template_plugin;
 use rspack_plugin_worker::WorkerPlugin;
+use rustc_hash::FxHashMap as HashMap;
 
 pub use self::{
   css_chunking::CssChunkingPluginOptions,
@@ -218,6 +221,31 @@ pub enum BuiltinPluginName {
   ModuleInfoHeaderPlugin,
   HttpUriPlugin,
   CssChunkingPlugin,
+  Custom(String),
+}
+
+pub type CustomPluginBuilder = for<'a> fn(
+  env: Env,
+  options: Unknown<'a>,
+  can_inherent_from_parent: Option<bool>,
+) -> napi::Result<BoxPlugin>;
+
+thread_local! {
+  static CUSTOMED_PLUGINS_CTOR: RefCell<HashMap<String, CustomPluginBuilder>> = RefCell::new(HashMap::default());
+}
+
+#[doc(hidden)]
+pub fn register_custom_plugin(
+  name: &'static str,
+  plugin_builder: CustomPluginBuilder,
+) -> std::result::Result<(), ()> {
+  CUSTOMED_PLUGINS_CTOR.with_borrow_mut(|ctors| match ctors.entry(name.to_string()) {
+    std::collections::hash_map::Entry::Occupied(_) => return Err(()),
+    std::collections::hash_map::Entry::Vacant(vacant_entry) => {
+      vacant_entry.insert(plugin_builder);
+      Ok(())
+    }
+  })
 }
 
 #[napi(object)]
@@ -728,6 +756,15 @@ impl<'a> BuiltinPlugin<'a> {
         let options = downcast_into::<CssChunkingPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         plugins.push(CssChunkingPlugin::new(options.into()).boxed());
+      }
+      BuiltinPluginName::Custom(ref name) => {
+        CUSTOMED_PLUGINS_CTOR.with_borrow(|ctors| {
+          let ctor = ctors.get(name).ok_or_else(|| {
+            napi::Error::from_reason(format!("Expected plugin installed '{name}'"))
+          })?;
+          plugins.push(ctor(env, self.options, self.can_inherent_from_parent)?);
+          Ok::<_, napi::Error>(())
+        })?;
       }
     }
     Ok(())
