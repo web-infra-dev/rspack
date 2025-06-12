@@ -1,3 +1,4 @@
+use napi::bindgen_prelude::within_runtime_if_available;
 use rspack_javascript_compiler::{
   minify::JsMinifyOptions, transform::SwcOptions, JavaScriptCompiler,
   TransformOutput as CompilerTransformOutput,
@@ -45,16 +46,7 @@ pub async fn transform(source: String, options: String) -> napi::Result<Transfor
 
 #[napi]
 pub fn transform_sync(source: String, options: String) -> napi::Result<TransformOutput> {
-  let future = async move { _transform(source, options) };
-  // Fork from https://github.com/swc-project/swc/blob/main/crates/swc/src/plugin.rs#L76-L81
-  // Ensure swc wasm plugin can get async contexts from tokio.
-  if let Ok(handle) = tokio::runtime::Handle::try_current() {
-    handle.block_on(future)
-  } else {
-    tokio::runtime::Runtime::new()
-      .map_err(|e| napi::Error::new(napi::Status::GenericFailure, e))?
-      .block_on(future)
-  }
+  within_runtime_if_available(|| _transform(source, options))
 }
 
 fn _minify(source: String, options: String) -> napi::Result<TransformOutput> {
