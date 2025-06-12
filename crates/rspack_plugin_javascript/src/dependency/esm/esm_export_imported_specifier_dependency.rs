@@ -285,10 +285,10 @@ impl ESMExportImportedSpecifierDependency {
       }
       ExportMode::NormalReexport(ExportModeNormalReexport { items })
     } else {
-      ExportMode::DynamicReexport(ExportModeDynamicReexport {
+      ExportMode::DynamicReexport(Box::new(ExportModeDynamicReexport {
         ignored: ignored_exports,
         hidden,
-      })
+      }))
     }
   }
 

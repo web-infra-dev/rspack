@@ -168,7 +168,7 @@ pub enum ExportMode {
   ReexportFakeNamespaceObject(ExportModeFakeNamespaceObject),
   ReexportUndefined(ExportModeReexportUndefined),
   NormalReexport(ExportModeNormalReexport),
-  DynamicReexport(ExportModeDynamicReexport),
+  DynamicReexport(Box<ExportModeDynamicReexport>),
 }
 
 #[derive(Debug, Clone)]
