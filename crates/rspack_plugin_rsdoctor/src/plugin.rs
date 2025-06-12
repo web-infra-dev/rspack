@@ -320,7 +320,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
       rsd_module.issuer_path = Some(issuer_path);
       let (_, module) = module;
       let bailout_reason = module_graph.get_optimization_bailout(&module.identifier());
-      rsd_module.bailout_reason = bailout_reason.into_iter().map(|s| s.to_string()).collect();
+      rsd_module.bailout_reason = bailout_reason.iter().map(|s| s.to_string()).collect();
     }
   }
 
