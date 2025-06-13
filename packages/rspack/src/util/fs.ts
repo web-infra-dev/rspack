@@ -690,11 +690,17 @@ export interface FileSystemInfoEntry {
 	timestamp?: number;
 }
 
+export interface WatcherDependencies {
+	all: Array<string>;
+	add: Array<string>;
+	remove: Array<string>;
+}
+
 export interface WatchFileSystem {
 	watch(
-		files: Iterable<string>,
-		directories: Iterable<string>,
-		missing: Iterable<string>,
+		files: WatcherDependencies,
+		directories: WatcherDependencies,
+		missing: WatcherDependencies,
 		startTime: number,
 		options: WatchOptions,
 		callback: (
@@ -705,5 +711,5 @@ export interface WatchFileSystem {
 			removedFiles: Set<string>
 		) => void,
 		callbackUndelayed: (fileName: string, changeTime: number) => void
-	): Watcher;
+	): Promise<Watcher>;
 }

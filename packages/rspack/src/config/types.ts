@@ -2712,6 +2712,12 @@ export type Experiments = {
 	 * @default false
 	 */
 	useInputFileSystem?: UseInputFileSystem;
+
+	/**
+	 * Enable native watcher
+	 * @default false
+	 */
+	nativeWatcher?: boolean;
 };
 //#endregion
 

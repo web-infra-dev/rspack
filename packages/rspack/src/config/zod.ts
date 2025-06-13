@@ -1393,7 +1393,8 @@ const experiments = z.strictObject({
 	rspackFuture: rspackFutureOptions.optional(),
 	buildHttp: buildHttpOptions.optional(),
 	parallelLoader: z.boolean().optional(),
-	useInputFileSystem: useInputFileSystem.optional()
+	useInputFileSystem: useInputFileSystem.optional(),
+	nativeWatcher: z.boolean().optional()
 }) satisfies z.ZodType<t.Experiments>;
 //#endregion
 

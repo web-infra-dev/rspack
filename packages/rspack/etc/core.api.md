@@ -965,6 +965,12 @@ export class Compilation {
     // @internal
     __internal_getInner(): binding.JsCompilation;
     // (undocumented)
+    get addedContextDependencies(): string[];
+    // (undocumented)
+    get addedFileDependencies(): string[];
+    // (undocumented)
+    get addedMissingDependencies(): string[];
+    // (undocumented)
     addEntry(context: string, dependency: ReturnType<typeof EntryPlugin.createDependency>, optionsOrName: EntryOptions | string, callback: (err?: null | WebpackError_2, module?: Module) => void): void;
     // (undocumented)
     addInclude(context: string, dependency: ReturnType<typeof EntryPlugin.createDependency>, options: EntryOptions, callback: (err?: null | WebpackError_2, module?: Module) => void): void;
@@ -1159,6 +1165,12 @@ export class Compilation {
     static PROCESS_ASSETS_STAGE_SUMMARIZE: number;
     // (undocumented)
     rebuildModule(module: Module, f: (err: Error | null, module: Module | null) => void): void;
+    // (undocumented)
+    get removedContextDependencies(): string[];
+    // (undocumented)
+    get removedFileDependencies(): string[];
+    // (undocumented)
+    get removedMissingDependencies(): string[];
     // (undocumented)
     renameAsset(filename: string, newFilename: string): void;
     // (undocumented)
@@ -2463,6 +2475,7 @@ export type Experiments = {
     buildHttp?: HttpUriOptions;
     parallelLoader?: boolean;
     useInputFileSystem?: UseInputFileSystem;
+    nativeWatcher?: boolean;
 };
 
 // @public (undocumented)
@@ -2510,6 +2523,8 @@ export interface ExperimentsNormalized {
     layers?: boolean;
     // (undocumented)
     lazyCompilation?: false | LazyCompilationOptions;
+    // (undocumented)
+    nativeWatcher?: boolean;
     // (undocumented)
     outputModule?: boolean;
     // (undocumented)
@@ -8973,6 +8988,16 @@ class Watcher_2 extends EventEmitter {
 }
 
 // @public (undocumented)
+interface WatcherDependencies {
+    // (undocumented)
+    add: Array<string>;
+    // (undocumented)
+    all: Array<string>;
+    // (undocumented)
+    remove: Array<string>;
+}
+
+// @public (undocumented)
 interface WatcherInfo {
     // (undocumented)
     changes: Set<string>;
@@ -8997,7 +9022,7 @@ type WatchFiles = {
 // @public (undocumented)
 interface WatchFileSystem {
     // (undocumented)
-    watch(files: Iterable<string>, directories: Iterable<string>, missing: Iterable<string>, startTime: number, options: WatchOptions, callback: (error: Error | null, fileTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, contextTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, changedFiles: Set<string>, removedFiles: Set<string>) => void, callbackUndelayed: (fileName: string, changeTime: number) => void): Watcher;
+    watch(files: WatcherDependencies, directories: WatcherDependencies, missing: WatcherDependencies, startTime: number, options: WatchOptions, callback: (error: Error | null, fileTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, contextTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, changedFiles: Set<string>, removedFiles: Set<string>) => void, callbackUndelayed: (fileName: string, changeTime: number) => void): Promise<Watcher>;
 }
 
 // @public (undocumented)
@@ -9040,7 +9065,7 @@ export class Watching {
     // (undocumented)
     suspended: boolean;
     // (undocumented)
-    watch(files: Iterable<string>, dirs: Iterable<string>, missing: Iterable<string>): void;
+    watch(files: WatcherDependencies, dirs: WatcherDependencies, missing: WatcherDependencies): Promise<void>;
     // (undocumented)
     watcher?: Watcher;
     // (undocumented)

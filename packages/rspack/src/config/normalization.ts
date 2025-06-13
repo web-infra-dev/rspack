@@ -628,6 +628,7 @@ export interface ExperimentsNormalized {
 	buildHttp?: HttpUriPluginOptions;
 	parallelLoader?: boolean;
 	useInputFileSystem?: false | RegExp[];
+	nativeWatcher?: boolean;
 }
 
 export type IgnoreWarningsNormalized = ((

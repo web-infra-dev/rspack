@@ -13,7 +13,11 @@ import type { Callback } from "@rspack/lite-tapable";
 import type { Compilation, Compiler } from ".";
 import { Stats } from ".";
 import type { WatchOptions } from "./config";
-import type { FileSystemInfoEntry, Watcher } from "./util/fs";
+import type {
+	FileSystemInfoEntry,
+	Watcher,
+	WatcherDependencies
+} from "./util/fs";
 
 export class Watching {
 	watcher?: Watcher;
@@ -74,14 +78,14 @@ export class Watching {
 		});
 	}
 
-	watch(
-		files: Iterable<string>,
-		dirs: Iterable<string>,
-		missing: Iterable<string>
+	async watch(
+		files: WatcherDependencies,
+		dirs: WatcherDependencies,
+		missing: WatcherDependencies
 	) {
 		this.pausedWatcher = undefined;
 		// SAFETY: `watchFileSystem` is expected to be initialized.
-		this.watcher = this.compiler.watchFileSystem!.watch(
+		this.watcher = await this.compiler.watchFileSystem!.watch(
 			files,
 			dirs,
 			missing,
@@ -362,9 +366,27 @@ export class Watching {
 		compilation.endTime = Date.now();
 		const cbs = this.callbacks;
 		this.callbacks = [];
-		const fileDependencies = new Set([...compilation.fileDependencies]);
-		const contextDependencies = new Set([...compilation.contextDependencies]);
-		const missingDependencies = new Set([...compilation.missingDependencies]);
+		const fileWatchDependencies: WatcherDependencies = {
+			all: [...compilation.fileDependencies],
+			add: compilation.addedFileDependencies,
+			remove: compilation.removedFileDependencies
+		};
+
+		const contextWatchDependencies: WatcherDependencies = {
+			all: [...compilation.contextDependencies],
+			add: compilation.addedContextDependencies,
+			remove: compilation.removedContextDependencies
+		};
+
+		const missingWatchDependencies: WatcherDependencies = {
+			all: [...compilation.missingDependencies],
+			add: compilation.addedMissingDependencies,
+			remove: compilation.removedMissingDependencies
+		};
+
+		// const fileDependencies = new Set([...compilation.fileDependencies]);
+		// const contextDependencies = new Set([...compilation.contextDependencies]);
+		// const missingDependencies = new Set([...compilation.missingDependencies]);
 
 		this.compiler.hooks.done.callAsync(stats, err => {
 			if (err) return handleError(err, cbs);
@@ -373,9 +395,9 @@ export class Watching {
 			process.nextTick(() => {
 				if (!this.#closed) {
 					this.watch(
-						fileDependencies,
-						contextDependencies,
-						missingDependencies
+						fileWatchDependencies,
+						contextWatchDependencies,
+						missingWatchDependencies
 					);
 				}
 			});
