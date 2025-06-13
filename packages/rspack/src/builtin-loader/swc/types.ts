@@ -405,7 +405,12 @@ const ZodSwcJscConfig = z.strictObject({
 	baseUrl: z.string().optional(),
 	paths: z.record(z.string(), z.string().array()).optional(),
 	minify: ZodSwcJsMinifyOptions.optional(),
-	preserveAllComments: z.boolean().optional()
+	preserveAllComments: z.boolean().optional(),
+	output: z
+		.strictObject({
+			charset: z.enum(["utf8", "ascii"]).optional()
+		})
+		.optional()
 }) satisfies z.ZodType<JscConfig>;
 
 const ZodSwcBaseModuleConfig = z.strictObject({
