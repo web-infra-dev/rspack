@@ -1,6 +1,6 @@
 import nodePath from "node:path";
 import { ZodIssueCode, z } from "zod";
-import { ZodSwcLoaderOptions } from "../builtin-loader/swc/types";
+import { getZodSwcLoaderOptionsSchema } from "../builtin-loader/swc/types";
 import { validate } from "../util/validate";
 import type * as t from "./types";
 import { ZodRspackCrossChecker, anyFunction } from "./utils";
@@ -458,15 +458,19 @@ const ruleSetLoaderWithOptions =
 				type: z.strictObject({
 					ident: z.string().optional(),
 					loader: z.literal("builtin:swc-loader"),
-					options: ZodSwcLoaderOptions,
+					options: getZodSwcLoaderOptionsSchema(),
 					parallel: z.boolean().optional()
 				}),
 				issue: (res, _, input) => {
 					try {
-						const message = validate(input.data.options, ZodSwcLoaderOptions, {
-							output: false,
-							strategy: "strict"
-						});
+						const message = validate(
+							input.data.options,
+							getZodSwcLoaderOptionsSchema(),
+							{
+								output: false,
+								strategy: "strict"
+							}
+						);
 						if (message) {
 							return [
 								{
@@ -540,7 +544,7 @@ const extendedBaseRuleSetRule: z.ZodType<t.RuleSetRule> =
 const extendedSwcRuleSetRule: z.ZodType<t.RuleSetRule> = baseRuleSetRule
 	.extend({
 		loader: z.literal("builtin:swc-loader"),
-		options: ZodSwcLoaderOptions
+		options: getZodSwcLoaderOptionsSchema()
 	})
 	.extend({
 		oneOf: z.lazy(() => ruleSetRule.or(falsy).array()).optional(),
@@ -556,10 +560,14 @@ const ruleSetRule = new ZodRspackCrossChecker<t.RuleSetRule>({
 			type: extendedSwcRuleSetRule,
 			issue: (res, _, input) => {
 				try {
-					const message = validate(input.data.options, ZodSwcLoaderOptions, {
-						output: false,
-						strategy: "strict"
-					});
+					const message = validate(
+						input.data.options,
+						getZodSwcLoaderOptionsSchema(),
+						{
+							output: false,
+							strategy: "strict"
+						}
+					);
 					if (message) {
 						return [
 							{
