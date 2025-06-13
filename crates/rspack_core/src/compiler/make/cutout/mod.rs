@@ -73,11 +73,9 @@ impl Cutout {
             if module.depends_on(&files) {
               // add module id
               force_build_modules.insert(module.identifier());
-              // process parent module id
+              // process module dependencies
               for connect in module_graph.get_incoming_connections(&module.identifier()) {
-                if let Some(original_module_identifier) = connect.original_module_identifier {
-                  force_build_modules.insert(original_module_identifier);
-                }
+                force_build_deps.insert(connect.dependency_id);
               }
             }
           }
