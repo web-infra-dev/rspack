@@ -1,6 +1,6 @@
 use std::collections::hash_map::Entry;
 
-use indexmap::IndexMap;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   incremental::{self, IncrementalPasses},
@@ -79,20 +79,17 @@ impl<'a> FlagDependencyExportsState<'a> {
     while let Some(module_id) = q.dequeue() {
       self.changed = false;
       self.current_module_id = module_id;
-      exports_specs_from_dependencies.clear();
 
       self.mg_cache.freeze();
-      self.process_dependencies_block(
-        &module_id,
-        &mut exports_specs_from_dependencies,
-        self.mg_cache,
-      );
+      let exports_specs_from_dependencies =
+        self.process_dependencies_block(&module_id, self.mg_cache);
       self.mg_cache.unfreeze();
 
       let exports_info = self.mg.get_exports_info(&module_id);
       for (dep_id, exports_spec) in exports_specs_from_dependencies.iter() {
         self.process_exports_spec(*dep_id, exports_spec, exports_info);
       }
+
       if self.changed {
         self.notify_dependencies(&mut q);
       }
@@ -111,55 +108,50 @@ impl<'a> FlagDependencyExportsState<'a> {
   pub fn process_dependencies_block(
     &self,
     module_identifier: &ModuleIdentifier,
-    exports_specs_from_dependencies: &mut IndexMap<DependencyId, ExportsSpec>,
     module_graph_cache: &ModuleGraphCacheArtifact,
-  ) -> Option<()> {
-    let block = &**self.mg.module_by_identifier(module_identifier)?;
-    self.process_dependencies_block_inner(
-      block,
-      exports_specs_from_dependencies,
-      module_graph_cache,
-    )
+  ) -> Vec<(DependencyId, ExportsSpec)> {
+    if let Some(block) = self.mg.module_by_identifier(module_identifier) {
+      self.process_dependencies_block_inner(&**block, module_graph_cache)
+    } else {
+      vec![]
+    }
   }
 
   fn process_dependencies_block_inner<B: DependenciesBlock + ?Sized>(
     &self,
     block: &B,
-    exports_specs_from_dependencies: &mut IndexMap<DependencyId, ExportsSpec>,
     module_graph_cache: &ModuleGraphCacheArtifact,
-  ) -> Option<()> {
-    for dep_id in block.get_dependencies().iter() {
-      let dep = self
-        .mg
-        .dependency_by_id(dep_id)
-        .expect("should have dependency");
-      self.process_dependency(
-        *dep_id,
-        dep.get_exports(self.mg, module_graph_cache),
-        exports_specs_from_dependencies,
-      );
-    }
-    for block_id in block.get_blocks() {
-      let block = self.mg.block_by_id(block_id)?;
-      self.process_dependencies_block_inner(
-        block,
-        exports_specs_from_dependencies,
-        module_graph_cache,
-      );
-    }
-    None
-  }
+  ) -> Vec<(DependencyId, ExportsSpec)> {
+    let mg = &self.mg;
+    let mut res = block
+      .get_dependencies()
+      .par_iter()
+      .filter_map(|dep_id| {
+        let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
+        dep
+          .get_exports(mg, module_graph_cache)
+          .map(|exports_spec| (*dep_id, exports_spec))
+      })
+      .collect::<Vec<_>>();
 
-  pub fn process_dependency(
-    &self,
-    dep_id: DependencyId,
-    exports_specs: Option<ExportsSpec>,
-    exports_specs_from_dependencies: &mut IndexMap<DependencyId, ExportsSpec>,
-  ) -> Option<()> {
-    // this is why we can bubble here. https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/FlagDependencyExportsPlugin.js#L140
-    let exports_specs = exports_specs?;
-    exports_specs_from_dependencies.insert(dep_id, exports_specs);
-    Some(())
+    res.extend(
+      block
+        .get_blocks()
+        .par_iter()
+        .filter_map(|block_id| {
+          let block = mg.block_by_id(block_id)?;
+          Some(self.process_dependencies_block_inner(block, module_graph_cache))
+        })
+        .reduce(
+          || vec![],
+          |mut acc, block_res| {
+            acc.extend(block_res);
+            acc
+          },
+        ),
+    );
+
+    res
   }
 
   pub fn process_exports_spec(
