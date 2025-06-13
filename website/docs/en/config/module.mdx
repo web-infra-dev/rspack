@@ -302,6 +302,27 @@ export default {
 };
 ```
 
+### module.parser.javascript.unknownContextCritical
+
+<PropertyType
+  type="boolean | undefined"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
+
+Enable warnings for unknown dynamic dependencies (`require(['test'])`).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        unknownContextCritical: false,
+      },
+    },
+  },
+};
+```
+
 ### module.parser.javascript.wrappedContextCritical
 
 <PropertyType
