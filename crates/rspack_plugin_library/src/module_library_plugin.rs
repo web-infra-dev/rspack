@@ -5,7 +5,7 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier, ApplyContext, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
   CompilerOptions, ExportInfoGetter, ExportProvided, ExportsType, LibraryOptions, ModuleGraph,
-  ModuleIdentifier, Plugin, PluginContext, UsedNameItem,
+  ModuleIdentifier, Plugin, PluginContext, PrefetchExportsInfoMode, UsedNameItem,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
@@ -75,24 +75,24 @@ async fn render_startup(
       "__webpack_exports__ = await __webpack_exports__;\n",
     ));
   }
-  let exports_info = module_graph.get_exports_info(module);
+  let exports_info =
+    module_graph.get_prefetched_exports_info(module, PrefetchExportsInfoMode::AllExports);
   let boxed_module = module_graph
     .module_by_identifier(module)
     .expect("should have build meta");
   let exports_type = boxed_module.get_exports_type(&module_graph, boxed_module.build_info().strict);
-  for export_info in exports_info.ordered_exports(&module_graph) {
-    let export_info_data = export_info.as_data(&module_graph);
+  for (_, export_info) in exports_info.exports() {
     if matches!(
-      ExportInfoGetter::provided(export_info_data),
+      ExportInfoGetter::provided(export_info),
       Some(ExportProvided::NotProvided)
     ) {
       continue;
     };
 
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-    let info_name = ExportInfoGetter::name(export_info_data).expect("should have name");
+    let info_name = ExportInfoGetter::name(export_info).expect("should have name");
     let used_name =
-      ExportInfoGetter::get_used_name(export_info_data, Some(info_name), Some(chunk.runtime()))
+      ExportInfoGetter::get_used_name(export_info, Some(info_name), Some(chunk.runtime()))
         .expect("name can't be empty");
     let var_name = format!("__webpack_exports__{}", to_identifier(info_name));
 

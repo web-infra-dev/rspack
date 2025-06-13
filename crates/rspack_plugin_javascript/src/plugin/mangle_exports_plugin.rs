@@ -4,7 +4,8 @@ use regex::Regex;
 use rspack_core::{
   incremental::IncrementalPasses, ApplyContext, BuildMetaExportsType, Compilation,
   CompilationOptimizeCodeGeneration, CompilerOptions, ExportInfoGetter, ExportInfoSetter,
-  ExportProvided, ExportsInfo, ModuleGraph, Plugin, PluginContext, UsageState,
+  ExportProvided, ExportsInfo, ExportsInfoGetter, ModuleGraph, Plugin, PluginContext,
+  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, UsageState,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -16,15 +17,13 @@ use crate::utils::mangle_exports::{
   number_to_identifier, NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS, NUMBER_OF_IDENTIFIER_START_CHARS,
 };
 
-fn can_mangle(exports_info: ExportsInfo, mg: &ModuleGraph) -> bool {
-  if ExportInfoGetter::get_used(exports_info.other_exports_info(mg).as_data(mg), None)
-    != UsageState::Unused
-  {
+fn can_mangle(exports_info: &PrefetchedExportsInfoWrapper<'_>) -> bool {
+  if ExportInfoGetter::get_used(exports_info.other_exports_info(), None) != UsageState::Unused {
     return false;
   }
   let mut has_something_to_mangle = false;
-  for export_info in exports_info.exports(mg) {
-    if ExportInfoGetter::can_mangle(export_info.as_data(mg)) == Some(true) {
+  for (_, export_info) in exports_info.exports() {
+    if ExportInfoGetter::can_mangle(export_info) == Some(true) {
       has_something_to_mangle = true;
     }
   }
@@ -106,27 +105,34 @@ fn mangle_exports_info(
   exports_info: ExportsInfo,
   is_namespace: bool,
 ) {
-  if !can_mangle(exports_info, mg) {
-    return;
-  }
-
   let mut used_names = FxHashSet::default();
   let mut mangleable_exports = Vec::new();
   let mut avoid_mangle_non_provided = !is_namespace;
 
-  if !avoid_mangle_non_provided && deterministic {
-    for export_info in exports_info.owned_exports(mg) {
-      if !matches!(
-        ExportInfoGetter::provided(export_info.as_data(mg)),
-        Some(ExportProvided::NotProvided)
-      ) {
-        avoid_mangle_non_provided = true;
-        break;
+  let export_list = {
+    let exports_info =
+      ExportsInfoGetter::prefetch(&exports_info, mg, PrefetchExportsInfoMode::AllExports);
+    if !can_mangle(&exports_info) {
+      return;
+    }
+    if !avoid_mangle_non_provided && deterministic {
+      for (_, export_info) in exports_info.exports() {
+        if !matches!(
+          ExportInfoGetter::provided(export_info),
+          Some(ExportProvided::NotProvided)
+        ) {
+          avoid_mangle_non_provided = true;
+          break;
+        }
       }
     }
-  }
+    exports_info
+      .exports()
+      .map(|(_, export_info)| export_info.id())
+      .collect::<Vec<_>>()
+  };
 
-  for export_info in exports_info.owned_exports(mg).collect::<Vec<_>>() {
+  for export_info in export_list {
     let export_info_data = export_info.as_data_mut(mg);
     if !ExportInfoGetter::has_used_name(export_info_data) {
       let name = ExportInfoGetter::name(export_info_data)
