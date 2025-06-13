@@ -568,23 +568,3 @@ pub fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
   build_info::export_symbols(exports, env)?;
   Ok(())
 }
-
-#[napi]
-/// Shutdown the tokio runtime manually.
-///
-/// This is required for the wasm target with `tokio_unstable` cfg.
-/// In the wasm runtime, the `park` threads will hang there until the tokio::Runtime is shutdown.
-pub fn shutdown_async_runtime() {
-  #[cfg(all(target_family = "wasm", tokio_unstable))]
-  napi::bindgen_prelude::shutdown_async_runtime();
-}
-
-#[napi]
-/// Start the async runtime manually.
-///
-/// This is required when the async runtime is shutdown manually.
-/// Usually it's used in test.
-pub fn start_async_runtime() {
-  #[cfg(all(target_family = "wasm", tokio_unstable))]
-  napi::bindgen_prelude::start_async_runtime();
-}
