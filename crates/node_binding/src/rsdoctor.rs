@@ -27,7 +27,7 @@ pub struct JsRsdoctorModule {
   pub belong_modules: Vec<i32>,
   pub chunks: Vec<i32>,
   pub issuer_path: Vec<i32>,
-  pub bailout_reason: Option<String>,
+  pub bailout_reason: Vec<String>,
 }
 
 impl From<RsdoctorModule> for JsRsdoctorModule {
@@ -50,7 +50,7 @@ impl From<RsdoctorModule> for JsRsdoctorModule {
         .into_iter()
         .filter_map(|i| i.ukey)
         .collect::<Vec<_>>(),
-      bailout_reason: value.bailout_reason,
+      bailout_reason: value.bailout_reason.into_iter().collect::<Vec<_>>(),
     }
   }
 }

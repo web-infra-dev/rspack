@@ -2463,6 +2463,7 @@ export type Experiments = {
     buildHttp?: HttpUriOptions;
     parallelLoader?: boolean;
     useInputFileSystem?: UseInputFileSystem;
+    inlineConst?: boolean;
 };
 
 // @public (undocumented)
@@ -2489,6 +2490,8 @@ interface Experiments_2 {
     swc: {
         transform: typeof transform;
         minify: typeof minify;
+        transformSync: typeof transformSync;
+        minifySync: typeof minifySync;
     };
 }
 
@@ -2506,6 +2509,8 @@ export interface ExperimentsNormalized {
     futureDefaults?: boolean;
     // (undocumented)
     incremental?: false | Incremental;
+    // (undocumented)
+    inlineConst?: boolean;
     // (undocumented)
     layers?: boolean;
     // (undocumented)
@@ -3431,6 +3436,7 @@ export type JavascriptParserOptions = {
     requireDynamic?: boolean;
     requireResolve?: boolean;
     importDynamic?: boolean;
+    inlineConst?: boolean;
 };
 
 // @public (undocumented)
@@ -4650,6 +4656,9 @@ type MiddlewareObject<RequestInternal extends Request_2 = Request_2, ResponseInt
 
 // @public (undocumented)
 function minify(source: string, options?: JsMinifyOptions): Promise<TransformOutput>;
+
+// @public (undocumented)
+function minifySync(source: string, options?: JsMinifyOptions): TransformOutput;
 
 // @public (undocumented)
 type MkdirSync = (path: PathLike, options: MakeDirectoryOptions) => undefined | string;
@@ -8124,6 +8133,9 @@ interface TransformConfig {
     useDefineForClassFields?: boolean;
     verbatimModuleSyntax?: boolean;
 }
+
+// @public (undocumented)
+function transformSync(source: string, options?: Options): TransformOutput;
 
 // @public (undocumented)
 type TruePlusMinus = true | "+" | "-";

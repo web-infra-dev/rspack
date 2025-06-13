@@ -3,7 +3,8 @@ use std::collections::hash_map::Entry;
 use rspack_util::atom::Atom;
 
 use super::{
-  ExportInfoData, ExportInfoTargetValue, ExportProvided, ExportsInfo, UsageFilterFnTy, UsageState,
+  ExportInfoData, ExportInfoTargetValue, ExportProvided, ExportsInfo, Inlinable, UsageFilterFnTy,
+  UsageState,
 };
 use crate::{DependencyId, Nullable, RuntimeSpec};
 
@@ -13,6 +14,7 @@ impl ExportInfoSetter {
   pub fn reset_provide_info(info: &mut ExportInfoData) {
     info.provided = None;
     info.can_mangle_provide = None;
+    info.inlinable = Inlinable::NoByProvide;
     info.exports_info_owned = false;
     info.exports_info = None;
     info.target_is_set = false;
@@ -38,6 +40,10 @@ impl ExportInfoSetter {
 
   pub fn set_exports_info(info: &mut ExportInfoData, value: Option<ExportsInfo>) {
     info.exports_info = value;
+  }
+
+  pub fn set_inlinable(info: &mut ExportInfoData, inlinable: Inlinable) {
+    info.inlinable = inlinable;
   }
 
   pub fn set_used_name(info: &mut ExportInfoData, name: Atom) {
@@ -209,6 +215,10 @@ impl ExportInfoSetter {
       info.can_mangle_use = Some(false);
       changed = true;
     }
+    if info.inlinable.can_inline() {
+      info.inlinable = Inlinable::NoByUse;
+      changed = true;
+    }
     changed
   }
 
@@ -216,8 +226,12 @@ impl ExportInfoSetter {
     let mut changed = false;
     let flag = ExportInfoSetter::set_used(info, UsageState::NoInfo, runtime);
     changed |= flag;
-    if !matches!(info.can_mangle_use, Some(false)) {
+    if info.can_mangle_use != Some(false) {
       info.can_mangle_use = Some(false);
+      changed = true;
+    }
+    if info.inlinable.can_inline() {
+      info.inlinable = Inlinable::NoByUse;
       changed = true;
     }
     changed

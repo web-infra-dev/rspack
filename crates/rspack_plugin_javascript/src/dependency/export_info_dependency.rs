@@ -5,7 +5,7 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportInfoGetter,
-  ExportProvided, ExportsInfoGetter, PrefetchExportsInfoMode, TemplateContext,
+  ExportProvided, ExportsInfoGetter, Inlinable, PrefetchExportsInfoMode, TemplateContext,
   TemplateReplaceSource, UsageState, UsedExports,
 };
 use swc_core::ecma::atoms::Atom;
@@ -87,6 +87,19 @@ impl ExportInfoDependency {
           ExportInfoGetter::can_mangle(exports_info.other_exports_info())
         };
         can_mangle.map(|v| v.to_string())
+      }
+      "inlinable" => {
+        let inlinable = ExportInfoGetter::inlinable(
+          if let Some(export_info) = exports_info.get_read_only_export_info_recursive(export_name) {
+            export_info
+          } else {
+            exports_info.other_exports_info()
+          },
+        );
+        Some(match inlinable {
+          Inlinable::Inlined(inlined) => format!("inlined {}", inlined.render()),
+          _ => "no inline".to_string(),
+        })
       }
       "used" => {
         let used = ExportsInfoGetter::get_used(&exports_info, export_name, *runtime);

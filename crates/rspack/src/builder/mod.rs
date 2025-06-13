@@ -1712,6 +1712,7 @@ impl ModuleOptionsBuilder {
           require_dynamic: Some(true),
           require_resolve: Some(true),
           import_dynamic: Some(true),
+          inline_const: Some(false),
           ..Default::default()
         }),
       );
@@ -3667,6 +3668,8 @@ pub struct ExperimentsBuilder {
   parallel_code_splitting: Option<bool>,
   /// Whether to enable async web assembly.
   async_web_assembly: Option<bool>,
+  /// Whether to enable inline constants.
+  inline_const: Option<bool>,
   // TODO: lazy compilation
 }
 
@@ -3683,6 +3686,7 @@ impl From<Experiments> for ExperimentsBuilder {
       future_defaults: None,
       css: None,
       async_web_assembly: None,
+      inline_const: Some(value.inline_const),
     }
   }
 }
@@ -3700,6 +3704,7 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
       css: value.css.take(),
       parallel_code_splitting: value.parallel_code_splitting.take(),
       async_web_assembly: value.async_web_assembly.take(),
+      inline_const: value.inline_const.take(),
     }
   }
 }
@@ -3791,6 +3796,7 @@ impl ExperimentsBuilder {
     w!(self.output_module, false);
 
     let parallel_code_splitting = d!(self.parallel_code_splitting, false);
+    let inline_const = d!(self.inline_const, production);
 
     Ok(Experiments {
       layers,
@@ -3799,6 +3805,7 @@ impl ExperimentsBuilder {
       rspack_future,
       parallel_code_splitting,
       cache,
+      inline_const,
     })
   }
 }

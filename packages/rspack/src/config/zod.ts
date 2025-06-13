@@ -642,6 +642,7 @@ const requireAsExpression = z.boolean();
 const requireDynamic = z.boolean();
 const requireResolve = z.boolean();
 const importDynamic = z.boolean();
+const inlineConst = z.boolean();
 
 const javascriptParserOptions = z.strictObject({
 	dynamicImportMode: dynamicImportMode.optional(),
@@ -663,7 +664,8 @@ const javascriptParserOptions = z.strictObject({
 	requireAsExpression: requireAsExpression.optional(),
 	requireDynamic: requireDynamic.optional(),
 	requireResolve: requireResolve.optional(),
-	importDynamic: importDynamic.optional()
+	importDynamic: importDynamic.optional(),
+	inlineConst: inlineConst.optional()
 	// #endregion
 }) satisfies z.ZodType<t.JavascriptParserOptions>;
 
@@ -1393,7 +1395,8 @@ const experiments = z.strictObject({
 	rspackFuture: rspackFutureOptions.optional(),
 	buildHttp: buildHttpOptions.optional(),
 	parallelLoader: z.boolean().optional(),
-	useInputFileSystem: useInputFileSystem.optional()
+	useInputFileSystem: useInputFileSystem.optional(),
+	inlineConst: z.boolean().optional()
 }) satisfies z.ZodType<t.Experiments>;
 //#endregion
 

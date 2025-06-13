@@ -26,6 +26,7 @@ pub struct RawExperiments {
   pub cache: RawExperimentCacheOptions,
   #[napi(ts_type = "false | Array<RegExp>")]
   pub use_input_file_system: Option<WithFalse<Vec<RspackRegex>>>,
+  pub inline_const: bool,
 }
 
 impl From<RawExperiments> for Experiments {
@@ -43,6 +44,7 @@ impl From<RawExperiments> for Experiments {
       top_level_await: value.top_level_await,
       rspack_future: value.rspack_future.unwrap_or_default().into(),
       cache: normalize_raw_experiment_cache_options(value.cache),
+      inline_const: value.inline_const,
     }
   }
 }
