@@ -359,7 +359,6 @@ impl<'a> JavaScriptTransformer<'a> {
         parse_file_as_script(&fm, syntax, target, comments, &mut errors).map(Program::Script)
       }
       IsModule::Unknown => parse_file_as_program(&fm, syntax, target, comments, &mut errors),
-      // TODO:
       IsModule::CommonJS => {
         parse_file_as_commonjs(&fm, syntax, target, comments, &mut errors).map(Program::Script)
       }
@@ -484,8 +483,7 @@ impl<'a> JavaScriptTransformer<'a> {
         BoolOr::Bool(true) | BoolOr::Data(JsMinifyCommentOption::PreserveAllComments) => true,
         BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments) => false,
         BoolOr::Bool(false) => false,
-        // TODO: handle JsMinifyCommentOption::PreserveRegexComments
-        BoolOr::Data(JsMinifyCommentOption::PreserveRegexComments { .. }) => todo!(),
+        BoolOr::Data(JsMinifyCommentOption::PreserveRegexComments { .. }) => false,
       };
 
       minify_file_comments(
