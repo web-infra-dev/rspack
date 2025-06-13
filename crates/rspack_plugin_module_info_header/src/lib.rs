@@ -8,8 +8,9 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_comment_with_nl, ApplyContext, BoxModule, BuildMetaExportsType, ChunkGraph,
   ChunkInitFragments, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
-  CompilerOptions, ExportInfo, ExportInfoGetter, ExportProvided, ExportsInfo, Module, ModuleGraph,
-  ModuleIdentifier, Plugin, PluginContext, UsageState,
+  CompilerOptions, ExportInfo, ExportInfoGetter, ExportProvided, ExportsInfoGetter, Module,
+  ModuleGraph, ModuleIdentifier, Plugin, PluginContext, PrefetchExportsInfoMode,
+  PrefetchedExportsInfoWrapper, UsageState,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -35,30 +36,31 @@ pub struct ModuleInfoHeaderPlugin {
 fn print_exports_info_to_source<F>(
   source: &mut ConcatSource,
   ident: &str,
-  exports_info_id: ExportsInfo,
+  exports_info: &PrefetchedExportsInfoWrapper<'_>,
   request_shortener: &F,
   already_printed: &mut FxHashSet<ExportInfo>,
   module_graph: &ModuleGraph,
 ) where
   F: Fn(&ModuleIdentifier) -> String,
 {
-  let other_exports_info = exports_info_id.other_exports_info(module_graph);
+  let other_exports_info = exports_info.other_exports_info();
 
   let mut already_printed_exports = 0;
 
   let mut printed_exports = vec![];
 
-  for export_info in exports_info_id.ordered_exports(module_graph) {
-    if !already_printed.contains(&export_info) {
-      already_printed.insert(export_info);
+  for (_, export_info) in exports_info.exports() {
+    let export_info_id = export_info.id();
+    if !already_printed.contains(&export_info_id) {
+      already_printed.insert(export_info_id);
       printed_exports.push(export_info);
     } else {
       already_printed_exports += 1;
     }
   }
   let mut show_other_exports = false;
-  if !already_printed.contains(&other_exports_info) {
-    already_printed.insert(other_exports_info);
+  if !already_printed.contains(&other_exports_info.id()) {
+    already_printed.insert(other_exports_info.id());
     show_other_exports = true;
   } else {
     already_printed_exports += 1;
@@ -66,16 +68,14 @@ fn print_exports_info_to_source<F>(
 
   // print the exports
   for export_info in &printed_exports {
-    let info = export_info.as_data(module_graph);
-
-    let export_name: String = ExportInfoGetter::name(info)
+    let export_name: String = ExportInfoGetter::name(export_info)
       .map(|n| n.to_string())
       .unwrap_or("null".into());
-    let provide_info = ExportInfoGetter::get_provided_info(info);
-    let usage_info = ExportInfoGetter::get_used_info(info);
-    let rename_info = ExportInfoGetter::get_rename_info(info);
+    let provide_info = ExportInfoGetter::get_provided_info(export_info);
+    let usage_info = ExportInfoGetter::get_used_info(export_info);
+    let rename_info = ExportInfoGetter::get_rename_info(export_info);
 
-    let target_desc = match info.get_target(module_graph) {
+    let target_desc = match export_info.get_target(module_graph) {
       Some(resolve_target) => {
         let target_module = request_shortener(&resolve_target.module);
         match resolve_target.export {
@@ -95,11 +95,16 @@ fn print_exports_info_to_source<F>(
 
     source.add(RawStringSource::from(to_comment_with_nl(&export_str)));
 
-    if let Some(exports_info) = &ExportInfoGetter::exports_info(info) {
+    if let Some(exports_info) = &ExportInfoGetter::exports_info(export_info) {
+      let exports_info = ExportsInfoGetter::prefetch(
+        exports_info,
+        module_graph,
+        PrefetchExportsInfoMode::AllExports,
+      );
       print_exports_info_to_source(
         source,
         &format!("{ident}  "),
-        *exports_info,
+        &exports_info,
         request_shortener,
         already_printed,
         module_graph,
@@ -114,17 +119,13 @@ fn print_exports_info_to_source<F>(
   }
 
   if show_other_exports {
-    let other_exports_info = exports_info_id.other_exports_info(module_graph);
-    let other_exports_info_data = other_exports_info.as_data(module_graph);
-
-    let target = other_exports_info_data.get_target(module_graph);
-
+    let target = other_exports_info.get_target(module_graph);
     if target.is_some()
       || !matches!(
-        ExportInfoGetter::provided(other_exports_info_data),
+        ExportInfoGetter::provided(other_exports_info),
         Some(ExportProvided::NotProvided)
       )
-      || ExportInfoGetter::get_used(other_exports_info_data, None) != UsageState::Unused
+      || ExportInfoGetter::get_used(other_exports_info, None) != UsageState::Unused
     {
       let title = if !printed_exports.is_empty() || already_printed_exports > 0 {
         "other exports"
@@ -132,8 +133,8 @@ fn print_exports_info_to_source<F>(
         "exports"
       };
 
-      let provide_info = ExportInfoGetter::get_provided_info(other_exports_info_data);
-      let used_info = ExportInfoGetter::get_used_info(other_exports_info_data);
+      let provide_info = ExportInfoGetter::get_provided_info(other_exports_info);
+      let used_info = ExportInfoGetter::get_used_info(other_exports_info);
       let target_desc = match target {
         Some(resolve_target) => {
           format!(" -> {}", request_shortener(&resolve_target.module))
@@ -241,7 +242,8 @@ async fn render_js_module_package(
 
     let module_graph = compilation.get_module_graph();
 
-    let exports_info = module_graph.get_exports_info(&module.identifier());
+    let exports_info = module_graph
+      .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::AllExports);
 
     if !matches!(export_type, BuildMetaExportsType::Unset) {
       let request_shortener = |id: &ModuleIdentifier| {
@@ -255,7 +257,7 @@ async fn render_js_module_package(
       print_exports_info_to_source(
         &mut new_source,
         "",
-        exports_info,
+        &exports_info,
         &request_shortener,
         &mut FxHashSet::default(),
         &module_graph,
