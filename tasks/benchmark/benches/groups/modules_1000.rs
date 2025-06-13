@@ -17,18 +17,13 @@ use serde_json::json;
 use tokio::runtime::Builder;
 
 async fn basic_compile(production: bool) {
-  let dir = std::env::var("CARGO_MANIFEST_DIR")
+  let dir = std::env::var("CARGO_WORKSPACE_DIR")
     .map(|dir| {
       PathBuf::from(dir)
-        .join("../../.bench/rspack-benchcases")
+        .join(".bench/rspack-benchcases")
         .canonicalize()
         .unwrap()
     })
-    .or(
-      // This is a workaround for the issue where the CARGO_MANIFEST_DIR is not set in the test environment
-      std::env::var("CODSPEED_CARGO_WORKSPACE_ROOT")
-        .map(|workspace_root| PathBuf::from(workspace_root).join(".bench/rspack-benchcases")),
-    )
     .unwrap()
     .join("1000");
 
