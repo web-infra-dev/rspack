@@ -74,8 +74,6 @@ impl<'a> FlagDependencyExportsState<'a> {
       q.enqueue(module_id);
     }
 
-    let mut exports_specs_from_dependencies: IndexMap<DependencyId, ExportsSpec> =
-      IndexMap::default();
     while let Some(module_id) = q.dequeue() {
       self.changed = false;
       self.current_module_id = module_id;
@@ -142,13 +140,10 @@ impl<'a> FlagDependencyExportsState<'a> {
           let block = mg.block_by_id(block_id)?;
           Some(self.process_dependencies_block_inner(block, module_graph_cache))
         })
-        .reduce(
-          || vec![],
-          |mut acc, block_res| {
-            acc.extend(block_res);
-            acc
-          },
-        ),
+        .reduce(Vec::default, |mut acc, block_res| {
+          acc.extend(block_res);
+          acc
+        }),
     );
 
     res
