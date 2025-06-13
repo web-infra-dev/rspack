@@ -590,11 +590,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
           return Ok(concate_source.boxed());
         } else {
           let mg = generate_context.compilation.get_module_graph();
+          let exports_info =
+            mg.get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
           let (ns_obj, left, right) = if self.es_module
             && ExportInfoGetter::get_used(
-              mg.get_exports_info(&module.identifier())
-                .other_exports_info(&mg)
-                .as_data(&mg),
+              exports_info.other_exports_info(),
               generate_context.runtime,
             ) != UsageState::Unused
           {
