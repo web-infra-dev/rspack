@@ -35,6 +35,9 @@ impl From<RawRspackExperiments> for RspackExperiments {
 #[serde(rename_all = "camelCase", default)]
 pub struct SwcLoaderJsOptions {
   #[serde(default)]
+  pub auto_parser: BoolConfig<false>,
+
+  #[serde(default)]
   pub source_maps: Option<SourceMapsConfig>,
 
   pub source_map: Option<SourceMapsConfig>,
@@ -85,6 +88,7 @@ pub struct SwcLoaderJsOptions {
 #[derive(Debug)]
 pub(crate) struct SwcCompilerOptionsWithAdditional {
   raw_options: String,
+  pub(crate) auto_parser: bool,
   pub(crate) swc_options: Options,
   pub(crate) rspack_experiments: RspackExperiments,
 }
@@ -122,6 +126,7 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
       schema,
       rspack_experiments,
       source_map_ignore_list,
+      auto_parser,
     } = option;
     let mut source_maps: Option<SourceMapsConfig> = source_maps;
     if source_maps.is_none() && source_map.is_some() {
@@ -133,6 +138,7 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
       }
     }
     Ok(SwcCompilerOptionsWithAdditional {
+      auto_parser: auto_parser.into_bool(),
       raw_options: value.into(),
       swc_options: Options {
         config: Config {
