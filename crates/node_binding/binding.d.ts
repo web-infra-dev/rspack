@@ -2694,14 +2694,6 @@ export interface RegisterJsTaps {
   registerRsdoctorPluginAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorAssetPatch) => Promise<boolean | undefined>); stage: number; }>
 }
 
-/**
- * Shutdown the tokio runtime manually.
- *
- * This is required for the wasm target with `tokio_unstable` cfg.
- * In the wasm runtime, the `park` threads will hang there until the tokio::Runtime is shutdown.
- */
-export declare function shutdownAsyncRuntime(): void
-
 export interface SourceMapDevToolPluginOptions {
   append?: (false | null) | string | Function
   columns?: boolean
@@ -2724,14 +2716,6 @@ export interface SourcePosition {
   line: number
   column?: number
 }
-
-/**
- * Start the async runtime manually.
- *
- * This is required when the async runtime is shutdown manually.
- * Usually it's used in test.
- */
-export declare function startAsyncRuntime(): void
 
 export declare function syncTraceEvent(events: Array<RawTraceEvent>): void
 
