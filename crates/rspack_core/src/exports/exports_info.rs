@@ -130,7 +130,7 @@ impl ExportsInfo {
     &self,
     mg: &mut ModuleGraph,
     can_mangle: bool,
-    exclude_exports: &Option<FxHashSet<Atom>>,
+    exclude_exports: Option<&FxHashSet<Atom>>,
     target_key: Option<DependencyId>,
     target_module: Option<DependencyId>,
     priority: Option<u8>,
@@ -138,7 +138,7 @@ impl ExportsInfo {
     let mut changed = false;
 
     if let Some(exclude_exports) = &exclude_exports {
-      for name in exclude_exports {
+      for name in exclude_exports.iter() {
         self.get_export_info(mg, name);
       }
     }

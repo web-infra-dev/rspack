@@ -59,7 +59,7 @@ impl<'a> FlagDependencyExportsState<'a> {
           Some(ExportProvided::Unknown)
         ) {
           exports_info.set_has_provide_info(self.mg);
-          exports_info.set_unknown_exports_provided(self.mg, false, &None, None, None, None);
+          exports_info.set_unknown_exports_provided(self.mg, false, None, None, None, None);
           continue;
         }
       }
@@ -189,7 +189,7 @@ impl<'a> FlagDependencyExportsState<'a> {
         if exports_info.set_unknown_exports_provided(
           self.mg,
           global_can_mangle.unwrap_or_default(),
-          &export_desc.exclude_exports,
+          export_desc.exclude_exports.as_ref(),
           global_from.map(|_| dep_id),
           global_from.map(|_| dep_id),
           *global_priority,
