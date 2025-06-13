@@ -5,7 +5,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use criterion::criterion_group;
-use rspack::builder::Builder as _;
+use rspack::builder::{Builder as _, OptimizationOptionsBuilder};
 use rspack_benchmark::Criterion;
 use rspack_core::{
   Compiler, Experiments, Mode, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleUse,
@@ -38,6 +38,7 @@ async fn basic_compile(production: bool) {
   builder
     .context(dir.to_string_lossy().to_string())
     .entry("main", "./src/index.jsx")
+    .optimization(OptimizationOptionsBuilder::default().minimize(false))
     .module(ModuleOptions::builder().rule(ModuleRule {
       test: Some(RuleSetCondition::Regexp(
         RspackRegex::new("\\.(j|t)s(x)?$").unwrap(),
