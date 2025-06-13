@@ -17,11 +17,6 @@ class Plugin {
                 }
             });
         });
-
-        compiler.hooks.done.tap("PLUGIN", stats => {
-            // Ignore: Module not found: Can't resolve "./foo.js"
-            stats.compilation.errors = [];
-        });
     }
 }
 
