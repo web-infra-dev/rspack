@@ -1863,7 +1863,7 @@ impl ConcatenatedModule {
           "{}",
           self.readable_identifier(&compilation.options.context),
         ))),
-        source_code.into(),
+        source_code.to_string(),
       );
       let comments = SwcComments::default();
       let mut module_info = concatenation_scope.current_module;
