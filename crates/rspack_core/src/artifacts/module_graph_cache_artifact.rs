@@ -157,44 +157,68 @@ pub struct NormalReexportItem {
   pub export_info: ExportInfo,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum ExportModeType {
+#[derive(Debug, Clone)]
+pub enum ExportMode {
   Missing,
-  Unused,
-  EmptyStar,
-  ReexportDynamicDefault,
-  ReexportNamedDefault,
-  ReexportNamespaceObject,
-  ReexportFakeNamespaceObject,
-  ReexportUndefined,
-  NormalReexport,
-  DynamicReexport,
+  Unused(ExportModeUnused),
+  EmptyStar(ExportModeEmptyStar),
+  ReexportDynamicDefault(ExportModeReexportDynamicDefault),
+  ReexportNamedDefault(ExportModeReexportNamedDefault),
+  ReexportNamespaceObject(ExportModeReexportNamespaceObject),
+  ReexportFakeNamespaceObject(ExportModeFakeNamespaceObject),
+  ReexportUndefined(ExportModeReexportUndefined),
+  NormalReexport(ExportModeNormalReexport),
+  DynamicReexport(Box<ExportModeDynamicReexport>),
 }
 
 #[derive(Debug, Clone)]
-pub struct ExportMode {
-  /// corresponding to `type` field in webpack's `EpxortMode`
-  pub ty: ExportModeType,
-  pub items: Option<Vec<NormalReexportItem>>,
-  pub name: Option<Atom>,
-  pub fake_type: u8,
-  pub partial_namespace_export_info: Option<ExportInfo>,
-  pub ignored: Option<HashSet<Atom>>,
+pub struct ExportModeUnused {
+  pub name: Atom,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExportModeEmptyStar {
   pub hidden: Option<HashSet<Atom>>,
 }
 
-impl ExportMode {
-  pub fn new(ty: ExportModeType) -> Self {
-    Self {
-      ty,
-      items: None,
-      name: None,
-      fake_type: 0,
-      partial_namespace_export_info: None,
-      ignored: None,
-      hidden: None,
-    }
-  }
+#[derive(Debug, Clone)]
+pub struct ExportModeReexportDynamicDefault {
+  pub name: Atom,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExportModeReexportNamedDefault {
+  pub name: Atom,
+  pub partial_namespace_export_info: ExportInfo,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExportModeReexportNamespaceObject {
+  pub name: Atom,
+  pub partial_namespace_export_info: ExportInfo,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExportModeFakeNamespaceObject {
+  pub name: Atom,
+  pub fake_type: u8,
+  pub partial_namespace_export_info: ExportInfo,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExportModeReexportUndefined {
+  pub name: Atom,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExportModeNormalReexport {
+  pub items: Vec<NormalReexportItem>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExportModeDynamicReexport {
+  pub ignored: HashSet<Atom>,
+  pub hidden: Option<HashSet<Atom>>,
 }
 
 #[derive(Debug, Default)]

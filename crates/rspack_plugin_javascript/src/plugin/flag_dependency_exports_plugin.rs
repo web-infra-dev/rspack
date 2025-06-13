@@ -74,11 +74,12 @@ impl<'a> FlagDependencyExportsState<'a> {
       q.enqueue(module_id);
     }
 
+    let mut exports_specs_from_dependencies: IndexMap<DependencyId, ExportsSpec> =
+      IndexMap::default();
     while let Some(module_id) = q.dequeue() {
       self.changed = false;
       self.current_module_id = module_id;
-      let mut exports_specs_from_dependencies: IndexMap<DependencyId, ExportsSpec> =
-        IndexMap::default();
+      exports_specs_from_dependencies.clear();
 
       self.mg_cache.freeze();
       self.process_dependencies_block(
@@ -89,8 +90,8 @@ impl<'a> FlagDependencyExportsState<'a> {
       self.mg_cache.unfreeze();
 
       let exports_info = self.mg.get_exports_info(&module_id);
-      for (dep_id, exports_spec) in exports_specs_from_dependencies.into_iter() {
-        self.process_exports_spec(dep_id, exports_spec, exports_info);
+      for (dep_id, exports_spec) in exports_specs_from_dependencies.iter() {
+        self.process_exports_spec(*dep_id, exports_spec, exports_info);
       }
       if self.changed {
         self.notify_dependencies(&mut q);
@@ -164,7 +165,7 @@ impl<'a> FlagDependencyExportsState<'a> {
   pub fn process_exports_spec(
     &mut self,
     dep_id: DependencyId,
-    export_desc: ExportsSpec,
+    export_desc: &ExportsSpec,
     exports_info: ExportsInfo,
   ) {
     let exports = &export_desc.exports;
@@ -173,7 +174,7 @@ impl<'a> FlagDependencyExportsState<'a> {
     let global_priority = &export_desc.priority;
     let global_terminal_binding = export_desc.terminal_binding.unwrap_or(false);
     let export_dependencies = &export_desc.dependencies;
-    if let Some(hide_export) = export_desc.hide_export {
+    if let Some(hide_export) = &export_desc.hide_export {
       for name in hide_export.iter() {
         ExportInfoSetter::unset_target(
           exports_info
@@ -188,7 +189,7 @@ impl<'a> FlagDependencyExportsState<'a> {
         if exports_info.set_unknown_exports_provided(
           self.mg,
           global_can_mangle.unwrap_or_default(),
-          export_desc.exclude_exports,
+          export_desc.exclude_exports.as_ref(),
           global_from.map(|_| dep_id),
           global_from.map(|_| dep_id),
           *global_priority,
