@@ -526,7 +526,7 @@ impl ESMExportImportedSpecifierDependency {
       }
       ExportMode::Unused(ExportModeUnused { name }) => fragments.push(
         NormalInitFragment::new(
-          to_normal_comment(&format!("unused ESM reexport {}", name)),
+          to_normal_comment(&format!("unused ESM reexport {name}")),
           InitFragmentStage::StageESMExports,
           1,
           InitFragmentKey::unique(),
