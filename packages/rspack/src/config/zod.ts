@@ -1396,7 +1396,8 @@ const experiments = z.strictObject({
 	buildHttp: buildHttpOptions.optional(),
 	parallelLoader: z.boolean().optional(),
 	useInputFileSystem: useInputFileSystem.optional(),
-	inlineConst: z.boolean().optional()
+	inlineConst: z.boolean().optional(),
+	nativeWatcher: z.boolean().optional(),
 }) satisfies z.ZodType<t.Experiments>;
 //#endregion
 

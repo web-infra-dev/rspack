@@ -686,17 +686,17 @@ export type Output = {
  * */
 export type ResolveAlias =
 	| {
-			[x: string]: string | false | (string | false)[];
-	  }
+		[x: string]: string | false | (string | false)[];
+	}
 	| false;
 
 /** The replacement of [tsconfig-paths-webpack-plugin](https://www.npmjs.com/package/tsconfig-paths-webpack-plugin) in Rspack. */
 export type ResolveTsConfig =
 	| string
 	| {
-			configFile: string;
-			references?: string[] | "auto" | undefined;
-	  };
+		configFile: string;
+		references?: string[] | "auto" | undefined;
+	};
 
 /** Used to configure the Rspack module resolution */
 export type ResolveOptions = {
@@ -1498,13 +1498,13 @@ export type ExternalItem =
 	| ExternalItemObjectUnknown
 	| ((data: ExternalItemFunctionData) => ExternalItemValue)
 	| ((
-			data: ExternalItemFunctionData,
-			callback: (
-				err?: Error,
-				result?: ExternalItemValue,
-				type?: ExternalsType
-			) => void
-	  ) => void)
+		data: ExternalItemFunctionData,
+		callback: (
+			err?: Error,
+			result?: ExternalItemValue,
+			type?: ExternalsType
+		) => void
+	) => void)
 	| ((data: ExternalItemFunctionData) => Promise<ExternalItemValue>);
 
 /**
@@ -2146,8 +2146,8 @@ export type OptimizationRuntimeChunk =
 	| "single"
 	| "multiple"
 	| {
-			name?: string | ((value: { name: string }) => string);
-	  };
+		name?: string | ((value: { name: string }) => string);
+	};
 
 export type OptimizationSplitChunksNameFunction = (
 	module: Module,
@@ -2454,22 +2454,22 @@ export type Optimization = {
 export type ExperimentCacheOptions =
 	| boolean
 	| {
-			type: "memory";
-	  }
+		type: "memory";
+	}
 	| {
-			type: "persistent";
-			buildDependencies?: string[];
-			version?: string;
-			snapshot?: {
-				immutablePaths?: Array<string | RegExp>;
-				unmanagedPaths?: Array<string | RegExp>;
-				managedPaths?: Array<string | RegExp>;
-			};
-			storage?: {
-				type: "filesystem";
-				directory?: string;
-			};
-	  };
+		type: "persistent";
+		buildDependencies?: string[];
+		version?: string;
+		snapshot?: {
+			immutablePaths?: Array<string | RegExp>;
+			unmanagedPaths?: Array<string | RegExp>;
+			managedPaths?: Array<string | RegExp>;
+		};
+		storage?: {
+			type: "filesystem";
+			directory?: string;
+		};
+	};
 
 /**
  * Options for future Rspack features.
@@ -2720,6 +2720,12 @@ export type Experiments = {
 	 * @default false
 	 */
 	inlineConst?: boolean;
+
+	/**
+	 * Enable native watcher
+	 * @default false
+	 */
+	nativeWatcher?: boolean;
 };
 //#endregion
 
@@ -2766,7 +2772,7 @@ export type WatchOptions = {
 /**
  * Options for devServer, it based on `webpack-dev-server@5`
  * */
-export interface DevServer extends DevServerOptions {}
+export interface DevServer extends DevServerOptions { }
 
 export type { Middleware as DevServerMiddleware } from "./devServer";
 //#endregion
@@ -2808,25 +2814,25 @@ export type Bail = boolean;
 export type Performance =
 	| false
 	| {
-			/**
-			 * Filter function to select assets that are checked.
-			 */
-			assetFilter?: (assetFilename: string) => boolean;
-			/**
-			 * Sets the format of the hints: warnings, errors or nothing at all.
-			 */
-			hints?: false | "warning" | "error";
-			/**
-			 * File size limit (in bytes) when exceeded, that webpack will provide performance hints.
-			 * @default 250000
-			 */
-			maxAssetSize?: number;
-			/**
-			 * Total size of an entry point (in bytes).
-			 * @default 250000
-			 */
-			maxEntrypointSize?: number;
-	  };
+		/**
+		 * Filter function to select assets that are checked.
+		 */
+		assetFilter?: (assetFilename: string) => boolean;
+		/**
+		 * Sets the format of the hints: warnings, errors or nothing at all.
+		 */
+		hints?: false | "warning" | "error";
+		/**
+		 * File size limit (in bytes) when exceeded, that webpack will provide performance hints.
+		 * @default 250000
+		 */
+		maxAssetSize?: number;
+		/**
+		 * Total size of an entry point (in bytes).
+		 * @default 250000
+		 */
+		maxEntrypointSize?: number;
+	};
 //#endregion
 
 export type RspackOptions = {

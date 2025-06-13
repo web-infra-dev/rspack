@@ -15,7 +15,8 @@ import type {
 	FileSystemInfoEntry,
 	InputFileSystem,
 	WatchFileSystem,
-	Watcher
+	Watcher,
+	WatcherDependencies
 } from "../util/fs";
 
 export default class NodeWatchFileSystem implements WatchFileSystem {
@@ -30,10 +31,10 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 		};
 	}
 
-	watch(
-		files: Iterable<string>,
-		directories: Iterable<string>,
-		missing: Iterable<string>,
+	async watch(
+		_files: WatcherDependencies,
+		_directories: WatcherDependencies,
+		_missing: WatcherDependencies,
 		startTime: number,
 		options: Watchpack.WatchOptions,
 		callback: (
@@ -44,7 +45,11 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 			removedFiles: Set<string>
 		) => void,
 		callbackUndelayed: (fileName: string, changeTime: number) => void
-	): Watcher {
+	): Promise<Watcher> {
+		const files = _files.all;
+		const directories = _directories.all;
+		const missing = _missing.all;
+
 		if (!files || typeof files[Symbol.iterator] !== "function") {
 			throw new Error("Invalid arguments: 'files'");
 		}

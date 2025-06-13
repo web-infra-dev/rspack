@@ -883,6 +883,30 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		d => this.#inner.addFileDependencies(d)
 	);
 
+	get addedFileDependencies() {
+		return this.#inner.dependencies().addedFileDependencies;
+	}
+
+	get removedFileDependencies() {
+		return this.#inner.dependencies().removedFileDependencies;
+	}
+
+	get addedContextDependencies() {
+		return this.#inner.dependencies().addedContextDependencies;
+	}
+
+	get removedContextDependencies() {
+		return this.#inner.dependencies().removedContextDependencies;
+	}
+
+	get addedMissingDependencies() {
+		return this.#inner.dependencies().addedMissingDependencies;
+	}
+
+	get removedMissingDependencies() {
+		return this.#inner.dependencies().removedMissingDependencies;
+	}
+
 	contextDependencies = createFakeCompilationDependencies(
 		() => this.#inner.dependencies().contextDependencies,
 		d => this.#inner.addContextDependencies(d)
