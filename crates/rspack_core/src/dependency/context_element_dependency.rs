@@ -123,7 +123,11 @@ impl Dependency for ContextElementDependency {
       referenced_exports
         .iter()
         .map(|export| {
-          ExtendedReferencedExport::Export(ReferencedExport::new(vec![export.clone()], false))
+          ExtendedReferencedExport::Export(ReferencedExport::new(
+            vec![export.clone()],
+            false,
+            false,
+          ))
         })
         .collect_vec()
     } else {

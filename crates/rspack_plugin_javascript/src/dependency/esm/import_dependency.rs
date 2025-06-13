@@ -46,6 +46,7 @@ pub fn create_import_dependency_referenced_exports(
       refs.push(ExtendedReferencedExport::Export(ReferencedExport::new(
         vec![referenced_export.clone()],
         false,
+        false,
       )));
     }
     refs

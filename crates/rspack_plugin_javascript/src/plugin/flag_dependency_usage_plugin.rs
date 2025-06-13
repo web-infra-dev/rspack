@@ -6,7 +6,7 @@ use rspack_core::{
   is_no_exports_referenced, AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation,
   CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId,
   ExportInfoGetter, ExportInfoSetter, ExportsInfo, ExtendedReferencedExport, GroupOptions,
-  ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState,
+  Inlinable, ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -235,6 +235,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
                         occ.insert(ExtendedReferencedExport::Export(ReferencedExport {
                           name: std::mem::take(&mut export.name),
                           can_mangle: export.can_mangle && old_item.can_mangle,
+                          can_inline: export.can_inline && old_item.can_inline,
                         }));
                       }
                     }
@@ -314,9 +315,11 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       }
 
       for used_export_info in used_exports {
-        let (can_mangle, used_exports) = match used_export_info {
-          ExtendedReferencedExport::Array(used_exports) => (true, used_exports),
-          ExtendedReferencedExport::Export(export) => (export.can_mangle, export.name),
+        let (used_exports, can_mangle, can_inline) = match used_export_info {
+          ExtendedReferencedExport::Array(used_exports) => (used_exports, true, true),
+          ExtendedReferencedExport::Export(export) => {
+            (export.name, export.can_mangle, export.can_inline)
+          }
         };
         if used_exports.is_empty() {
           let flag = mgm_exports_info.set_used_in_unknown_way(&mut module_graph, runtime.as_ref());
@@ -333,6 +336,12 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               ExportInfoSetter::set_can_mangle_use(
                 export_info.as_data_mut(&mut module_graph),
                 Some(false),
+              );
+            }
+            if !can_inline {
+              ExportInfoSetter::set_inlinable(
+                export_info.as_data_mut(&mut module_graph),
+                Inlinable::NoByUse,
               );
             }
             let last_one = i == len - 1;

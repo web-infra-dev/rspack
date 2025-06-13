@@ -8,7 +8,8 @@ use serde::Serialize;
 
 use super::{
   ExportInfo, ExportInfoData, ExportInfoGetter, ExportInfoSetter, ExportProvided,
-  MaybeDynamicTargetExportInfo, UsageKey, UsageState, UsedName, NEXT_EXPORTS_INFO_UKEY,
+  MaybeDynamicTargetExportInfo, UsageKey, UsageState, UsedName, UsedNameItem,
+  NEXT_EXPORTS_INFO_UKEY,
 };
 use crate::{Compilation, DependencyId, ModuleGraph, Nullable, RuntimeSpec};
 
@@ -327,7 +328,7 @@ impl ExportsInfo {
       );
       changed |= flag;
       let other_export_info = mg.get_export_info_mut_by_id(&other_exports_info_id);
-      if !matches!(other_export_info.can_mangle_use, Some(false)) {
+      if other_export_info.can_mangle_use != Some(false) {
         other_export_info.can_mangle_use = Some(false);
         changed = true;
       }
@@ -416,7 +417,10 @@ impl ExportsInfo {
       let name = &names[0];
       let info = self.get_read_only_export_info(mg, name);
       let used_name = ExportInfoGetter::get_used_name(info.as_data(mg), Some(name), runtime);
-      return used_name.map(|n| UsedName::Normal(vec![n]));
+      return used_name.map(|name| match name {
+        UsedNameItem::Str(name) => UsedName::Normal(vec![name]),
+        UsedNameItem::Inlined(inlined) => UsedName::Inlined(inlined),
+      });
     }
     if names.is_empty() {
       if !self.is_used(mg, runtime) {
@@ -426,11 +430,10 @@ impl ExportsInfo {
     }
     let export_info = self.get_read_only_export_info(mg, &names[0]);
     let export_info_data = export_info.as_data(mg);
-    let used_name = ExportInfoGetter::get_used_name(export_info_data, Some(&names[0]), runtime)?;
-    let mut arr = if used_name == names[0] && names.len() == 1 {
-      names.to_vec()
-    } else {
-      vec![used_name]
+    let first = ExportInfoGetter::get_used_name(export_info_data, Some(&names[0]), runtime)?;
+    let mut arr = match first {
+      UsedNameItem::Inlined(inlined) => return Some(UsedName::Inlined(inlined)),
+      UsedNameItem::Str(first) => vec![first],
     };
     if names.len() == 1 {
       return Some(UsedName::Normal(arr));
@@ -438,11 +441,12 @@ impl ExportsInfo {
     if let Some(exports_info) = ExportInfoGetter::exports_info(export_info_data)
       && ExportInfoGetter::get_used(export_info_data, runtime) == UsageState::OnlyPropertiesUsed
     {
-      let nested = exports_info.get_used_name(mg, runtime, &names[1..]);
-      let nested = nested?;
-      arr.extend(match nested {
+      let nested = exports_info.get_used_name(mg, runtime, &names[1..])?;
+      let nested = match nested {
+        UsedName::Inlined(inlined) => return Some(UsedName::Inlined(inlined)),
         UsedName::Normal(names) => names,
-      });
+      };
+      arr.extend(nested);
       return Some(UsedName::Normal(arr));
     }
     arr.extend(names.iter().skip(1).cloned());

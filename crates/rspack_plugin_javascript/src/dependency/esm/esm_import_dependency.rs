@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsPreset, Skip},
@@ -122,12 +120,12 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   let module_graph_cache = &compilation.module_graph_cache_artifact;
   let connection = module_graph.connection_by_dependency_id(module_dependency.id());
   let is_target_active = if let Some(con) = connection {
-    Some(con.is_target_active(&module_graph, *runtime, module_graph_cache))
+    con.is_target_active(&module_graph, *runtime, module_graph_cache)
   } else {
-    Some(true)
+    true
   };
   // Bailout only if the module does exist and not active.
-  if is_target_active.is_some_and(|x| !x) {
+  if !is_target_active {
     return;
   }
 
@@ -505,11 +503,10 @@ impl ModuleDependency for ESMImportSideEffectDependency {
     self.request = request.into();
   }
 
-  // TODO: It's from ESMImportSideEffectDependency.
   fn get_condition(&self) -> Option<DependencyCondition> {
-    Some(DependencyCondition::Fn(Arc::new(
+    Some(DependencyCondition::new_fn(
       ESMImportSideEffectDependencyCondition,
-    )))
+    ))
   }
 
   fn factorize_info(&self) -> &FactorizeInfo {

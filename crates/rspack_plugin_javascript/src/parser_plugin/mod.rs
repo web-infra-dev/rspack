@@ -16,6 +16,7 @@ mod import_meta_context_dependency_parser_plugin;
 mod import_meta_plugin;
 mod import_parser_plugin;
 mod initialize_evaluating;
+mod inline_const;
 mod inner_graph;
 mod javascript_meta_info_plugin;
 mod node_stuff_plugin;
@@ -53,7 +54,8 @@ pub(crate) use self::{
   import_meta_plugin::{ImportMetaDisabledPlugin, ImportMetaPlugin},
   import_parser_plugin::ImportParserPlugin,
   initialize_evaluating::InitializeEvaluating,
-  inner_graph::{plugin::*, state::InnerGraphState},
+  inline_const::{InlineConstDependencyCondition, InlineConstPlugin},
+  inner_graph::{get_dependency_used_by_exports_condition, plugin::*, state::InnerGraphState},
   javascript_meta_info_plugin::JavascriptMetaInfoPlugin,
   node_stuff_plugin::NodeStuffPlugin,
   override_strict_plugin::OverrideStrictPlugin,

@@ -19,9 +19,7 @@ pub use dependencies_block::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, DependenciesBlock,
 };
 mod fake_namespace_object;
-mod template;
 pub use fake_namespace_object::*;
-pub use template::Template;
 mod runtime_template;
 pub use runtime_template::*;
 mod module_profile;

@@ -44,8 +44,8 @@ pub use static_exports_dependency::{StaticExportsDependency, StaticExportsSpec};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  ConnectionState, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier,
-  RuntimeSpec,
+  ConnectionState, EvaluatedInlinableValue, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
 };
 
 #[derive(Debug, Default)]
@@ -59,6 +59,7 @@ pub struct ExportSpec {
   pub hidden: Option<bool>,
   pub from: Option<ModuleGraphConnection>,
   pub from_export: Option<ModuleGraphConnection>,
+  pub inlinable: Option<EvaluatedInlinableValue>,
 }
 
 #[derive(Debug)]
@@ -117,20 +118,70 @@ pub trait DependencyConditionFn: Sync + Send {
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ConnectionState;
+
+  fn handle_composed(&self, primary: ConnectionState, rest: ConnectionState) -> ConnectionState {
+    // merge by default
+    primary + rest
+  }
 }
 
 #[derive(Clone)]
 pub enum DependencyCondition {
   False,
   Fn(Arc<dyn DependencyConditionFn>),
+  Composed(Box<(Arc<dyn DependencyConditionFn>, DependencyCondition)>),
+}
+
+impl DependencyCondition {
+  pub fn new_false() -> Self {
+    Self::False
+  }
+
+  pub fn new_fn(f: impl DependencyConditionFn + 'static) -> Self {
+    Self::Fn(Arc::new(f))
+  }
+
+  pub fn new_composed(
+    primary: impl DependencyConditionFn + 'static,
+    rest: DependencyCondition,
+  ) -> Self {
+    Self::Composed(Box::new((Arc::new(primary), rest)))
+  }
+
+  pub fn is_false(&self) -> bool {
+    matches!(self, Self::False)
+  }
+
+  pub fn is_fn(&self) -> bool {
+    matches!(self, Self::Fn(_))
+  }
+
+  pub fn get_connection_state(
+    &self,
+    connection: &ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    mg: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+  ) -> ConnectionState {
+    match self {
+      Self::False => ConnectionState::Active(false),
+      Self::Fn(f) => f.get_connection_state(connection, runtime, mg, module_graph_cache),
+      Self::Composed(box (primary, rest)) => {
+        let primary_state =
+          primary.get_connection_state(connection, runtime, mg, module_graph_cache);
+        let rest_state = rest.get_connection_state(connection, runtime, mg, module_graph_cache);
+        primary.handle_composed(primary_state, rest_state)
+      }
+    }
+  }
 }
 
 impl std::fmt::Debug for DependencyCondition {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
-      // Self::Nil => write!(f, "Nil"),
       Self::False => write!(f, "False"),
       Self::Fn(_) => write!(f, "Fn"),
+      Self::Composed(_) => write!(f, "Composed"),
     }
   }
 }

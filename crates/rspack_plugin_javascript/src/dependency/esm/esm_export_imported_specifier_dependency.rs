@@ -1,4 +1,4 @@
-use std::{hash::BuildHasherDefault, sync::Arc};
+use std::hash::BuildHasherDefault;
 
 use indexmap::{IndexMap, IndexSet};
 use rspack_cacheable::{
@@ -8,8 +8,8 @@ use rspack_cacheable::{
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
-  get_runtime_key, process_export_info, property_access, property_name, AsContextDependency,
-  ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
+  get_runtime_key, process_export_info, property_access, property_name, to_normal_comment,
+  AsContextDependency, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   DetermineExportAssignmentsKey, ESMExportInitFragment, ExportInfoGetter, ExportMode,
@@ -18,7 +18,7 @@ use rspack_core::{
   ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions,
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment,
   NormalReexportItem, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap,
-  StarReexportsInfo, Template, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -531,7 +531,7 @@ impl ESMExportImportedSpecifierDependency {
       }
       ExportModeType::Unused => fragments.push(
         NormalInitFragment::new(
-          Template::to_comment(&format!(
+          to_normal_comment(&format!(
             "unused ESM reexport {}",
             mode.name.unwrap_or_default()
           )),
@@ -668,7 +668,7 @@ impl ESMExportImportedSpecifierDependency {
               name,
               &import_var,
               ids[0].clone(),
-              ValueKey::Vec(ids),
+              ValueKey::UsedName(UsedName::Normal(ids)),
             );
             let is_async = ModuleGraph::is_async(compilation, &module_identifier);
             fragments.push(Box::new(ConditionalInitFragment::new(
@@ -833,7 +833,10 @@ impl ESMExportImportedSpecifierDependency {
       ValueKey::False => "/* unused export */ undefined".to_string(),
       ValueKey::Null => format!("{name}_default.a"),
       ValueKey::Name => name,
-      ValueKey::Vec(value_key) => format!("{}{}", name, property_access(value_key, 0)),
+      ValueKey::UsedName(used) => match used {
+        UsedName::Normal(used) => format!("{}{}", name, property_access(used, 0)),
+        UsedName::Inlined(inlined) => inlined.render().into_owned(),
+      },
     }
   }
 
@@ -1389,9 +1392,9 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
 
   fn get_condition(&self) -> Option<DependencyCondition> {
     let id = self.id;
-    Some(DependencyCondition::Fn(Arc::new(
+    Some(DependencyCondition::new_fn(
       ESMExportImportedSpecifierDependencyCondition(id),
-    )))
+    ))
   }
 
   fn factorize_info(&self) -> &FactorizeInfo {
@@ -1407,14 +1410,14 @@ enum ValueKey {
   False,
   Null,
   Name,
-  Vec(Vec<Atom>),
+  UsedName(UsedName),
 }
 
 impl From<Option<UsedName>> for ValueKey {
   fn from(value: Option<UsedName>) -> Self {
     match value {
-      Some(UsedName::Normal(atoms)) => Self::Vec(atoms),
       None => Self::False,
+      Some(used) => Self::UsedName(used),
     }
   }
 }
@@ -1526,16 +1529,10 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
   }
 }
 
-pub fn render_used_name(used: Option<&UsedName>) -> String {
+fn render_used_name(used: Option<&UsedName>) -> String {
   match used {
-    Some(UsedName::Normal(value_key)) => {
-      if value_key.len() == 1 {
-        return value_key[0].to_string();
-      }
-      property_access(value_key, 0)
-        .trim_start_matches('.')
-        .to_string()
-    }
     None => "/* unused export */ undefined".to_string(),
+    Some(UsedName::Normal(value_key)) if value_key.len() == 1 => value_key[0].to_string(),
+    _ => unreachable!("export should only have one name"),
   }
 }
