@@ -20,8 +20,8 @@ pub use r#struct::*;
 
 use crate::{
   BoxModule, BoxRuntimeModule, Chunk, ChunkGraph, ChunkGroupOrderKey, ChunkGroupUkey, ChunkUkey,
-  Compilation, ExecutedRuntimeModule, LogType, ModuleGraph, ModuleIdentifier,
-  PrefetchExportsInfoMode, ProvidedExports, SourceType, UsedExports,
+  Compilation, ExecutedRuntimeModule, LogType, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, PrefetchExportsInfoMode, ProvidedExports, SourceType, UsedExports,
 };
 
 #[derive(Debug, Clone)]
@@ -230,6 +230,8 @@ impl Stats<'_> {
     f: impl Fn(Vec<StatsModule>) -> T,
   ) -> Result<T> {
     let module_graph = self.compilation.get_module_graph();
+    let module_graph_cache = &self.compilation.module_graph_cache_artifact;
+
     let executor_module_graph = self
       .compilation
       .module_executor
@@ -240,7 +242,16 @@ impl Stats<'_> {
       .modules()
       .values()
       .par_bridge()
-      .map(|module| self.get_module(&module_graph, module, false, None, options))
+      .map(|module| {
+        self.get_module(
+          &module_graph,
+          module_graph_cache,
+          module,
+          false,
+          None,
+          options,
+        )
+      })
       .collect::<Result<_>>()?;
 
     let runtime_modules = self
@@ -251,12 +262,22 @@ impl Stats<'_> {
       .collect::<Result<Vec<_>>>()?;
     modules.extend(runtime_modules);
 
+    let executor_module_graph_cache = ModuleGraphCacheArtifact::default();
     if let Some(executor_module_graph) = &executor_module_graph {
       let executed_modules: Vec<StatsModule> = executor_module_graph
         .modules()
         .values()
         .par_bridge()
-        .map(|module| self.get_module(executor_module_graph, module, true, None, options))
+        .map(|module| {
+          self.get_module(
+            executor_module_graph,
+            &executor_module_graph_cache,
+            module,
+            true,
+            None,
+            options,
+          )
+        })
         .collect::<Result<_>>()?;
 
       modules.extend(executed_modules);
@@ -291,6 +312,7 @@ impl Stats<'_> {
     f: impl Fn(Vec<StatsChunk>) -> T,
   ) -> Result<T> {
     let module_graph = self.compilation.get_module_graph();
+    let module_graph_cache = &self.compilation.module_graph_cache_artifact;
     let chunk_graph = &self.compilation.chunk_graph;
     let context = &self.compilation.options.context;
     let chunk_group_by_ukey = &self.compilation.chunk_group_by_ukey;
@@ -310,7 +332,7 @@ impl Stats<'_> {
         };
 
         let root_modules = chunk_graph
-          .get_chunk_root_modules(&c.ukey(), &module_graph)
+          .get_chunk_root_modules(&c.ukey(), &module_graph, module_graph_cache)
           .into_iter()
           .collect::<IdentifierSet>();
 
@@ -328,7 +350,16 @@ impl Stats<'_> {
             .get_chunk_modules(&c.ukey(), &module_graph);
           let mut chunk_modules = chunk_modules
             .into_iter()
-            .map(|m| self.get_module(&module_graph, m, false, Some(&root_modules), options))
+            .map(|m| {
+              self.get_module(
+                &module_graph,
+                module_graph_cache,
+                m,
+                false,
+                Some(&root_modules),
+                options,
+              )
+            })
             .collect::<Result<Vec<_>>>()?;
           sort_modules(&mut chunk_modules);
           Some(chunk_modules)
@@ -730,6 +761,7 @@ impl Stats<'_> {
   fn get_module<'a>(
     &'a self,
     module_graph: &'a ModuleGraph<'a>,
+    module_graph_cache: &'a ModuleGraphCacheArtifact,
     module: &'a BoxModule,
     executed: bool,
     root_modules: Option<&IdentifierSet>,
@@ -888,7 +920,7 @@ impl Stats<'_> {
       stats.pre_order_index = module_graph.get_pre_order_index(&identifier);
       stats.post_order_index = module_graph.get_post_order_index(&identifier);
       stats.cacheable = Some(module.build_info().cacheable);
-      stats.optional = Some(module_graph.is_optional(&identifier));
+      stats.optional = Some(module_graph.is_optional(&identifier, module_graph_cache));
       stats.orphan = Some(orphan);
       stats.dependent = dependent;
       stats.issuer = issuer.map(|i| i.identifier());
@@ -1081,7 +1113,16 @@ impl Stats<'_> {
           .get_modules()
           .par_iter()
           .filter_map(|m| module_graph.module_by_identifier(&m.id))
-          .map(|module| self.get_module(module_graph, module, executed, root_modules, options))
+          .map(|module| {
+            self.get_module(
+              module_graph,
+              module_graph_cache,
+              module,
+              executed,
+              root_modules,
+              options,
+            )
+          })
           .collect::<Result<_>>()?;
         sort_modules(&mut modules);
         stats.modules = Some(modules);

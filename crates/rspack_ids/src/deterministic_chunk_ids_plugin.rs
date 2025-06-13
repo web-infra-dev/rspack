@@ -42,6 +42,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
 
   let chunk_graph = &compilation.chunk_graph;
   let module_graph = compilation.get_module_graph();
+  let module_graph_cache = &compilation.module_graph_cache_artifact;
   let context = self
     .context
     .clone()
@@ -61,7 +62,15 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
 
   assign_deterministic_ids(
     chunks,
-    |chunk| get_full_chunk_name(chunk, chunk_graph, &module_graph, &context),
+    |chunk| {
+      get_full_chunk_name(
+        chunk,
+        chunk_graph,
+        &module_graph,
+        module_graph_cache,
+        &context,
+      )
+    },
     |a, b| {
       compare_chunks_natural(
         chunk_graph,

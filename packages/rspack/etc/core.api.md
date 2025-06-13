@@ -2490,6 +2490,8 @@ interface Experiments_2 {
     swc: {
         transform: typeof transform;
         minify: typeof minify;
+        transformSync: typeof transformSync;
+        minifySync: typeof minifySync;
     };
 }
 
@@ -4654,6 +4656,9 @@ type MiddlewareObject<RequestInternal extends Request_2 = Request_2, ResponseInt
 
 // @public (undocumented)
 function minify(source: string, options?: JsMinifyOptions): Promise<TransformOutput>;
+
+// @public (undocumented)
+function minifySync(source: string, options?: JsMinifyOptions): TransformOutput;
 
 // @public (undocumented)
 type MkdirSync = (path: PathLike, options: MakeDirectoryOptions) => undefined | string;
@@ -8128,6 +8133,9 @@ interface TransformConfig {
     useDefineForClassFields?: boolean;
     verbatimModuleSyntax?: boolean;
 }
+
+// @public (undocumented)
+function transformSync(source: string, options?: Options): TransformOutput;
 
 // @public (undocumented)
 type TruePlusMinus = true | "+" | "-";

@@ -8,9 +8,9 @@ use rspack_core::{
   Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportInfoGetter, ExportNameOrSpec,
   ExportProvided, ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  Nullable, PrefetchExportsInfoMode, ReferencedExport, RuntimeGlobals, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, Nullable, PrefetchExportsInfoMode, ReferencedExport, RuntimeGlobals,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
@@ -210,7 +210,11 @@ impl Dependency for CommonJsExportRequireDependency {
     &DependencyType::CjsExportRequire
   }
 
-  fn get_exports(&self, mg: &ModuleGraph) -> Option<ExportsSpec> {
+  fn get_exports(
+    &self,
+    mg: &ModuleGraph,
+    _mg_cache: &ModuleGraphCacheArtifact,
+  ) -> Option<ExportsSpec> {
     let ids = self.get_ids(mg);
 
     if self.names.len() == 1 {
@@ -288,6 +292,7 @@ impl Dependency for CommonJsExportRequireDependency {
   fn get_referenced_exports(
     &self,
     mg: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     let ids = self.get_ids(mg);

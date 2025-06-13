@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rspack_core::{
   ConnectionState, DependencyCondition, DependencyConditionFn, DependencyId, ModuleGraph,
-  ModuleGraphConnection, RuntimeSpec, UsageState, UsedByExports,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeSpec, UsageState, UsedByExports,
 };
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
@@ -22,6 +22,7 @@ impl DependencyConditionFn for UsedByExportsDependencyCondition {
     _conn: &ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ConnectionState {
     let module_identifier = mg
       .get_parent_module(&self.dependency_id)

@@ -44,8 +44,8 @@ pub use static_exports_dependency::{StaticExportsDependency, StaticExportsSpec};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  ConnectionState, EvaluatedInlinableValue, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
-  RuntimeSpec,
+  ConnectionState, EvaluatedInlinableValue, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
 };
 
 #[derive(Debug, Default)]
@@ -116,6 +116,7 @@ pub trait DependencyConditionFn: Sync + Send {
     conn: &ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ConnectionState;
 
   fn handle_composed(&self, primary: ConnectionState, rest: ConnectionState) -> ConnectionState {
@@ -160,13 +161,15 @@ impl DependencyCondition {
     connection: &ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ConnectionState {
     match self {
       Self::False => ConnectionState::Active(false),
-      Self::Fn(f) => f.get_connection_state(connection, runtime, mg),
+      Self::Fn(f) => f.get_connection_state(connection, runtime, mg, module_graph_cache),
       Self::Composed(box (primary, rest)) => {
-        let primary_state = primary.get_connection_state(connection, runtime, mg);
-        let rest_state = rest.get_connection_state(connection, runtime, mg);
+        let primary_state =
+          primary.get_connection_state(connection, runtime, mg, module_graph_cache);
+        let rest_state = rest.get_connection_state(connection, runtime, mg, module_graph_cache);
         primary.handle_composed(primary_state, rest_state)
       }
     }

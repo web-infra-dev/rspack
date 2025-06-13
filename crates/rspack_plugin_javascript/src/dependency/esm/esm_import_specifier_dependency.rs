@@ -9,9 +9,9 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyCondition, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportPresenceMode,
   ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes,
-  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleReferenceOptions,
-  PrefetchExportsInfoMode, ReferencedExport, RuntimeSpec, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, UsedByExports, UsedName,
+  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleReferenceOptions, PrefetchExportsInfoMode, ReferencedExport, RuntimeSpec, SharedSourceMap,
+  TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
 };
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
@@ -191,7 +191,11 @@ impl Dependency for ESMImportSpecifierDependency {
   }
 
   // #[tracing::instrument(skip_all)]
-  fn get_diagnostics(&self, module_graph: &ModuleGraph) -> Option<Vec<Diagnostic>> {
+  fn get_diagnostics(
+    &self,
+    module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+  ) -> Option<Vec<Diagnostic>> {
     let module = module_graph.get_parent_module(&self.id)?;
     let module = module_graph.module_by_identifier(module)?;
     if let Some(should_error) = self
@@ -213,6 +217,7 @@ impl Dependency for ESMImportSpecifierDependency {
   fn get_referenced_exports(
     &self,
     module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     let mut ids = self.get_ids(module_graph);
@@ -339,7 +344,11 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
     let connection = module_graph.connection_by_dependency_id(&dep.id);
     // Early return if target is not active and export is not inlined
     if let Some(con) = connection
-      && !con.is_target_active(&module_graph, *runtime)
+      && !con.is_target_active(
+        &module_graph,
+        *runtime,
+        &compilation.module_graph_cache_artifact,
+      )
       && !module_graph
         .get_exports_info(con.module_identifier())
         .get_used_name(&module_graph, *runtime, ids)

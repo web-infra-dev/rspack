@@ -61,6 +61,7 @@ impl Dependency for CssSelfReferenceLocalIdentDependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &rspack_core::ModuleGraph,
+    _module_graph_cache: &rspack_core::ModuleGraphCacheArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     self

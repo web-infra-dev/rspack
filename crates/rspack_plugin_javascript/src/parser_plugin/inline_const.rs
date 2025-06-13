@@ -1,6 +1,6 @@
 use rspack_core::{
   ConnectionState, DependencyConditionFn, DependencyId, EvaluatedInlinableValue, ModuleGraph,
-  ModuleGraphConnection, RuntimeSpec, UsedName,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeSpec, UsedName,
 };
 use swc_core::ecma::{
   ast::{ModuleDecl, ModuleItem, Program, VarDeclKind},
@@ -120,6 +120,7 @@ impl DependencyConditionFn for InlineConstDependencyCondition {
     _conn: &ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ConnectionState {
     let bailout = ConnectionState::Active(true);
     let module = mg

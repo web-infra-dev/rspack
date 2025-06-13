@@ -8,8 +8,8 @@ use rspack_core::{
   DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoGetter,
   ExtendedReferencedExport, FactorizeInfo, InitFragmentKey, InitFragmentStage, ModuleDependency,
-  ModuleGraph, NormalInitFragment, PrefetchExportsInfoMode, RuntimeSpec, SharedSourceMap,
-  TemplateContext, TemplateReplaceSource, UsedName,
+  ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, PrefetchExportsInfoMode, RuntimeSpec,
+  SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use rspack_util::ext::DynHash;
 use swc_core::atoms::Atom;
@@ -70,6 +70,7 @@ impl Dependency for ProvideDependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     if self.ids.is_empty() {
