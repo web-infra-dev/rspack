@@ -1,5 +1,5 @@
 Object {
-  515: Object {
+  230: Object {
     entryModules: Array [],
     modules: Array [
       Object {
@@ -9,7 +9,7 @@ Object {
       },
     ],
   },
-  909: Object {
+  889: Object {
     entryModules: Array [
       Object {
         context: <COMPILER_CONTEXT>,

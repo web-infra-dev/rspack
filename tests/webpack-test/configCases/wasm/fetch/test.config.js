@@ -8,7 +8,8 @@ module.exports = {
 			case 0:
 				return ["bundle0.mjs"];
 			case 1:
-				return ["chunks/260.async.js", "bundle1.js"];
+				// CHANGE: bundle id is different
+				return ["chunks/694.async.js", "bundle1.js"];
 			// case 2:
 			// 	return ["bundle2.mjs"];
 			// case 3:
