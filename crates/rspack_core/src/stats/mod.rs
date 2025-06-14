@@ -9,7 +9,7 @@ use rspack_error::{
   emitter::{
     DiagnosticDisplay, DiagnosticDisplayer, StdioDiagnosticDisplay, StringDiagnosticDisplay,
   },
-  Result,
+  ErrorLocation, Result, SourcePosition,
 };
 use rustc_hash::FxHashMap as HashMap;
 
@@ -23,6 +23,18 @@ use crate::{
   Compilation, ExecutedRuntimeModule, LogType, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleIdentifier, PrefetchExportsInfoMode, ProvidedExports, SourceType, UsedExports,
 };
+
+fn format_position(pos: &SourcePosition) -> String {
+  format!("{}:{}", pos.line, pos.column)
+}
+
+fn format_location(loc: &ErrorLocation) -> String {
+  format!(
+    "{}-{}",
+    format_position(&loc.start),
+    format_position(&loc.end)
+  )
+}
 
 #[derive(Debug, Clone)]
 pub struct Stats<'compilation> {
@@ -656,7 +668,7 @@ impl Stats<'_> {
           module_identifier,
           module_name,
           module_id: module_id.flatten(),
-          loc: d.loc().map(|loc| loc.to_string()),
+          loc: d.loc().map(format_location),
           file: d.file(),
 
           chunk_name: chunk.and_then(|c| c.name()),
@@ -719,7 +731,7 @@ impl Stats<'_> {
           module_identifier,
           module_name,
           module_id: module_id.flatten(),
-          loc: d.loc().map(|loc| loc.to_string()),
+          loc: d.loc().map(format_location),
           file: d.file(),
 
           chunk_name: chunk.and_then(|c| c.name()),

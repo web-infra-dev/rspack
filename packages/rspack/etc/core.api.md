@@ -6269,7 +6269,7 @@ abstract class RspackBuiltinPlugin implements RspackPluginInstance {
 type RspackConfiguration = Configuration_2;
 
 // @public (undocumented)
-export type RspackError = binding.JsRspackError;
+export type RspackError = binding.RspackError;
 
 declare namespace rspackExports {
     export {
