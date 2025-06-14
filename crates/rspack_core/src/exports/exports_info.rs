@@ -14,6 +14,8 @@ use super::{
 };
 use crate::{Compilation, DependencyId, ModuleGraph, Nullable, RuntimeSpec};
 
+// asdfasdf
+
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 pub struct ExportsInfo(Ukey);
