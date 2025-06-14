@@ -5,6 +5,7 @@ import {
 import { z } from "zod";
 
 import { anyFunction } from "../config/utils";
+import { memoize } from "../util/memoize";
 import { validate } from "../util/validate";
 import { create } from "./base";
 
@@ -21,20 +22,23 @@ export type IgnorePluginOptions =
 			checkResource: NonNullable<RawIgnorePluginOptions["checkResource"]>;
 	  };
 
-const IgnorePluginOptions = z.union([
-	z.object({
-		contextRegExp: z.instanceof(RegExp).optional(),
-		resourceRegExp: z.instanceof(RegExp)
-	}),
-	z.object({
-		checkResource: anyFunction
-	})
-]) satisfies z.ZodType<IgnorePluginOptions>;
+const getIgnorePluginOptionsSchema = memoize(
+	() =>
+		z.union([
+			z.object({
+				contextRegExp: z.instanceof(RegExp).optional(),
+				resourceRegExp: z.instanceof(RegExp)
+			}),
+			z.object({
+				checkResource: anyFunction
+			})
+		]) satisfies z.ZodType<IgnorePluginOptions>
+);
 
 export const IgnorePlugin = create(
 	BuiltinPluginName.IgnorePlugin,
 	(options: IgnorePluginOptions): RawIgnorePluginOptions => {
-		validate(options, IgnorePluginOptions);
+		validate(options, getIgnorePluginOptionsSchema());
 
 		return options;
 	}
