@@ -49,34 +49,12 @@ impl Cutout {
             }
           }));
         }
-        MakeParam::ModifiedFiles(files) => {
+        MakeParam::ModifiedFiles(files) | MakeParam::RemovedFiles(files) => {
           for module in module_graph.modules().values() {
             // check has dependencies modified
             if module.depends_on(&files) {
               // add module id
               force_build_modules.insert(module.identifier());
-            }
-          }
-          for dep_id in &artifact.make_failed_dependencies {
-            let dep = module_graph
-              .dependency_by_id(dep_id)
-              .expect("should have dependency");
-            let info = FactorizeInfo::get_from(dep).expect("should have factorize info");
-            if info.depends_on(&files) {
-              force_build_deps.insert(*dep_id);
-            }
-          }
-        }
-        MakeParam::RemovedFiles(files) => {
-          for module in module_graph.modules().values() {
-            // check has dependencies modified
-            if module.depends_on(&files) {
-              // add module id
-              force_build_modules.insert(module.identifier());
-              // process module dependencies
-              for connect in module_graph.get_incoming_connections(&module.identifier()) {
-                force_build_deps.insert(connect.dependency_id);
-              }
             }
           }
           for dep_id in &artifact.make_failed_dependencies {
