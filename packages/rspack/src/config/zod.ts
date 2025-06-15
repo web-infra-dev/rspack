@@ -1,6 +1,6 @@
 import nodePath from "node:path";
 import { ZodIssueCode, z } from "zod";
-import { createMessageBuilder, fromError } from "zod-validation-error";
+import { fromError } from "zod-validation-error";
 import { ZodSwcLoaderOptions } from "../builtin-loader/swc/types";
 import type * as t from "./types";
 import { anyFunction } from "./utils";
