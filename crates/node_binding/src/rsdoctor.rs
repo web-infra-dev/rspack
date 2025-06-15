@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use rustc_hash::FxHashSet as HashSet;
 
 use napi::Either;
 use napi_derive::napi;
@@ -454,23 +454,27 @@ impl From<RawRsdoctorPluginOptions> for RsdoctorPluginOptions {
   fn from(value: RawRsdoctorPluginOptions) -> Self {
     Self {
       module_graph_features: match value.module_graph_features {
-        Either::A(true) => HashSet::from([
-          RsdoctorPluginModuleGraphFeature::ModuleGraph,
-          RsdoctorPluginModuleGraphFeature::ModuleIds,
-          RsdoctorPluginModuleGraphFeature::ModuleSources,
-        ]),
-        Either::A(false) => HashSet::new(),
+        Either::A(true) => {
+          let mut set = HashSet::default();
+          set.insert(RsdoctorPluginModuleGraphFeature::ModuleGraph);
+          set.insert(RsdoctorPluginModuleGraphFeature::ModuleIds);
+          set.insert(RsdoctorPluginModuleGraphFeature::ModuleSources);
+          set
+        },
+        Either::A(false) => HashSet::default(),
         Either::B(features) => features
           .into_iter()
           .map(RsdoctorPluginModuleGraphFeature::from)
           .collect::<HashSet<_>>(),
       },
       chunk_graph_features: match value.chunk_graph_features {
-        Either::A(true) => HashSet::from([
-          RsdoctorPluginChunkGraphFeature::ChunkGraph,
-          RsdoctorPluginChunkGraphFeature::Assets,
-        ]),
-        Either::A(false) => HashSet::new(),
+        Either::A(true) => {
+          let mut set = HashSet::default();
+          set.insert(RsdoctorPluginChunkGraphFeature::ChunkGraph);
+          set.insert(RsdoctorPluginChunkGraphFeature::Assets);
+          set
+        },
+        Either::A(false) => HashSet::default(),
         Either::B(features) => features
           .into_iter()
           .map(RsdoctorPluginChunkGraphFeature::from)

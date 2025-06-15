@@ -87,7 +87,7 @@ impl ChunkDesc {
 
   pub(crate) fn outgoings(
     &self,
-  ) -> &IndexSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>> {
+  ) -> &IndexSet<AsyncDependenciesBlockIdentifier> {
     match self {
       ChunkDesc::Entry(entry) => &entry.outgoing_blocks,
       ChunkDesc::Chunk(chunk) => &chunk.outgoing_blocks,
@@ -96,7 +96,7 @@ impl ChunkDesc {
 
   pub(crate) fn outgoings_mut(
     &mut self,
-  ) -> &mut IndexSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>> {
+  ) -> &mut IndexSet<AsyncDependenciesBlockIdentifier> {
     match self {
       ChunkDesc::Entry(entry) => &mut entry.outgoing_blocks,
       ChunkDesc::Chunk(chunk) => &mut chunk.outgoing_blocks,
@@ -147,7 +147,7 @@ pub struct EntryChunkDesc {
 
   // use incoming and outgoing to track chunk relations,
   // entry has no incomings
-  outgoing_blocks: IndexSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>>,
+  outgoing_blocks: IndexSet<AsyncDependenciesBlockIdentifier>,
   incoming_blocks: HashSet<AsyncDependenciesBlockIdentifier>,
 
   runtime: RuntimeSpec,
@@ -164,14 +164,14 @@ pub struct NormalChunkDesc {
 
   // use incoming and outgoing to track chunk relations
   incoming_blocks: HashSet<AsyncDependenciesBlockIdentifier>,
-  outgoing_blocks: IndexSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>>,
+  outgoing_blocks: IndexSet<AsyncDependenciesBlockIdentifier>,
   runtime: RuntimeSpec,
 }
 
 #[derive(Default, Debug)]
 struct FillCtx {
   pub chunk_modules: IdentifierSet,
-  pub out_goings: IndexSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>>,
+  pub out_goings: IndexSet<AsyncDependenciesBlockIdentifier>,
   pub pre_order_indices: IdentifierMap<usize>,
   pub post_order_indices: IdentifierMap<usize>,
   pub module_ordinal: AvailableModules,
@@ -433,7 +433,7 @@ impl CodeSplitter {
     compilation: &mut Compilation,
   ) -> Result<Vec<CreateChunkRoot>> {
     // determine runtime and chunkLoading
-    let mut entry_runtime: std::collections::HashMap<&str, RuntimeSpec, rustc_hash::FxBuildHasher> =
+    let mut entry_runtime: HashMap<&str, RuntimeSpec> =
       HashMap::default();
     let mut diagnostics = vec![];
     for entry in compilation.entries.keys() {

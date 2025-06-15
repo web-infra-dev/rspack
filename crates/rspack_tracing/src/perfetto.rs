@@ -1,4 +1,5 @@
-use std::{collections::HashMap, io::Write};
+use std::io::Write;
+use rustc_hash::FxHashMap as HashMap;
 
 use rspack_tracing_perfetto::{
   idl,
@@ -20,7 +21,7 @@ pub struct PerfettoTracer {
 }
 // convert hashmap to perfetto debug annotations
 // the values are always json string
-fn to_debug_annotation(map: Option<HashMap<String, String>>) -> DebugAnnotations {
+fn to_debug_annotation(map: Option<rustc_hash::FxHashMap<String, String>>) -> DebugAnnotations {
   let mut annotations = DebugAnnotations::default();
   if let Some(map) = map {
     for (key, value) in map {

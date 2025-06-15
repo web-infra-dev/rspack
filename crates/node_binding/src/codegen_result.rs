@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use rustc_hash::FxHashMap as HashMap;
 
 use napi_derive::napi;
 use rspack_core::{get_runtime_key, CodeGenerationResult, CodeGenerationResults};

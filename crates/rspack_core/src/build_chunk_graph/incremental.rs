@@ -1,4 +1,5 @@
-use std::{collections::HashSet, hash::BuildHasherDefault};
+use std::hash::BuildHasherDefault;
+use rustc_hash::FxHashSet;
 
 use num_bigint::BigUint;
 use rspack_collections::{
@@ -255,13 +256,10 @@ impl CodeSplitter {
     &self,
     compilation: &Compilation,
     modules: impl Iterator<Item = ModuleIdentifier>,
-  ) -> HashSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>> {
+  ) -> FxHashSet<AsyncDependenciesBlockIdentifier> {
     let chunk_graph: &crate::ChunkGraph = &compilation.chunk_graph;
     let mut chunk_groups = UkeySet::default();
-    let mut removed: HashSet<
-      AsyncDependenciesBlockIdentifier,
-      BuildHasherDefault<IdentifierHasher>,
-    > = Default::default();
+    let mut removed: FxHashSet<AsyncDependenciesBlockIdentifier> = Default::default();
     for m in modules {
       let Some(cgm) = chunk_graph.chunk_graph_module_by_module_identifier.get(&m) else {
         continue;
@@ -641,10 +639,7 @@ struct CacheResult {
   pub pre_order_indices: IdentifierMap<usize>,
   pub post_order_indices: IdentifierMap<usize>,
   pub skipped_modules: IdentifierIndexSet,
-  pub outgoings: std::collections::HashSet<
-    AsyncDependenciesBlockIdentifier,
-    BuildHasherDefault<IdentifierHasher>,
-  >,
+  pub outgoings: FxHashSet<AsyncDependenciesBlockIdentifier>,
 }
 
 #[derive(Debug, Clone)]

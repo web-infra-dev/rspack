@@ -39,7 +39,7 @@ pub fn get_number_hash(str: &str, range: usize) -> usize {
 #[test]
 fn test_number_hash() {
   for n in [10, 100, 1000, 10000].iter() {
-    let mut set = std::collections::HashSet::new();
+    let mut set = rustc_hash::FxHashSet::new();
     for i in 0..(*n * 200) {
       set.insert(get_number_hash(&format!("{i}"), *n));
       if set.len() >= (*n - 1) {

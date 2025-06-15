@@ -1,4 +1,4 @@
-use std::collections::{hash_map::Entry, VecDeque};
+use std::collections::VecDeque;
 
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
@@ -11,7 +11,8 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{queue::Queue, swc::join_atom};
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap};
+use std::collections::hash_map::Entry;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 enum ModuleOrAsyncDependenciesBlock {

@@ -1,10 +1,11 @@
 use std::{
   borrow::Cow,
-  collections::HashMap,
   env, fs,
   hash::{DefaultHasher, Hash, Hasher},
   path::{Path, PathBuf},
 };
+
+use rustc_hash::FxHashMap as HashMap;
 
 use anyhow::Context;
 use cow_utils::CowUtils;
@@ -46,7 +47,7 @@ impl HtmlPluginAssets {
     html_file_name: &Filename,
   ) -> Result<(HtmlPluginAssets, HashMap<String, &'a CompilationAsset>)> {
     let mut assets: HtmlPluginAssets = HtmlPluginAssets::default();
-    let mut asset_map = HashMap::new();
+    let mut asset_map = HashMap::default();
     assets.public_path = public_path.to_string();
 
     let sorted_entry_names: Vec<&String> =

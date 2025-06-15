@@ -1,6 +1,5 @@
-use std::collections::hash_map::Entry;
-
 use rspack_util::atom::Atom;
+use rustc_hash::FxHashMap;
 
 use super::{
   ExportInfoData, ExportInfoTargetValue, ExportProvided, ExportsInfo, Inlinable, UsageFilterFnTy,
@@ -121,7 +120,7 @@ impl ExportInfoSetter {
       let mut changed = false;
       for &k in runtime.iter() {
         match used_in_runtime.entry(k) {
-          Entry::Occupied(mut occ) => match (&new_value, occ.get()) {
+          std::collections::hash_map::Entry::Occupied(mut occ) => match (&new_value, occ.get()) {
             (new, _) if new == &UsageState::Unused => {
               occ.remove();
               changed = true;
@@ -132,7 +131,7 @@ impl ExportInfoSetter {
             }
             (_new, _old) => {}
           },
-          Entry::Vacant(vac) => {
+          std::collections::hash_map::Entry::Vacant(vac) => {
             if new_value != UsageState::Unused {
               vac.insert(new_value);
               changed = true;
@@ -164,7 +163,7 @@ impl ExportInfoSetter {
 
       for &k in runtime.iter() {
         match used_in_runtime.entry(k) {
-          Entry::Occupied(mut occ) => match (&new_value, occ.get()) {
+          std::collections::hash_map::Entry::Occupied(mut occ) => match (&new_value, occ.get()) {
             (new, old) if condition(old) && new == &UsageState::Unused => {
               occ.remove();
               changed = true;
@@ -175,7 +174,7 @@ impl ExportInfoSetter {
             }
             _ => {}
           },
-          Entry::Vacant(vac) => {
+          std::collections::hash_map::Entry::Vacant(vac) => {
             if new_value != UsageState::Unused && condition(&UsageState::Unused) {
               vac.insert(new_value);
               changed = true;

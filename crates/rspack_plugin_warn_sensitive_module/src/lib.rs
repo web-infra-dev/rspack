@@ -1,6 +1,6 @@
 // https://github.com/webpack/webpack/blob/main/lib/WarnCaseSensitiveModulesPlugin.js
 
-use std::collections::HashMap;
+use rustc_hash::FxHashMap as HashMap;
 
 use cow_utils::CowUtils;
 use rspack_collections::{Identifier, IdentifierSet};

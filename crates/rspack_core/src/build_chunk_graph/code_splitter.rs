@@ -57,8 +57,7 @@ pub struct ChunkGroupInfo {
   // A derived attribute, therefore utilizing interior mutability to manage updates
   resulting_available_modules: Option<BigUint>,
 
-  pub outgoing_blocks:
-    RawHashSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>>,
+  pub outgoing_blocks: rustc_hash::FxHashSet<AsyncDependenciesBlockIdentifier>,
 }
 
 impl DatabaseItem for ChunkGroupInfo {

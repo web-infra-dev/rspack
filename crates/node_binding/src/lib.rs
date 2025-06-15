@@ -287,7 +287,7 @@ impl JsCompiler {
     removed_files: Vec<String>,
     f: Function<'static>,
   ) -> Result<(), ErrorCode> {
-    use std::collections::HashSet;
+    use rustc_hash::FxHashSet as HashSet;
 
     unsafe {
       self.run(reference, |compiler, guard| {

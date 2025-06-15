@@ -1,4 +1,6 @@
-use std::{collections::HashMap, fmt, path::PathBuf, str::FromStr};
+use std::{fmt, path::PathBuf, str::FromStr};
+
+use rustc_hash::FxHashMap as HashMap;
 
 use futures::future::BoxFuture;
 use rspack_core::{Compilation, PublicPath};

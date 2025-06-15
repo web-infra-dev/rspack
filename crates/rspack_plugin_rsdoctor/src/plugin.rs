@@ -103,8 +103,8 @@ impl fmt::Display for RsdoctorPluginChunkGraphFeature {
 
 #[derive(Default, Debug)]
 pub struct RsdoctorPluginOptions {
-  pub module_graph_features: std::collections::HashSet<RsdoctorPluginModuleGraphFeature>,
-  pub chunk_graph_features: std::collections::HashSet<RsdoctorPluginChunkGraphFeature>,
+  pub module_graph_features: HashSet<RsdoctorPluginModuleGraphFeature>,
+  pub chunk_graph_features: HashSet<RsdoctorPluginChunkGraphFeature>,
 }
 
 #[plugin]

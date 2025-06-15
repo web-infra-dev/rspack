@@ -124,7 +124,7 @@ mod test_algo {
   use super::*;
 
   impl Algo {
-    fn end_with_pats(&self) -> std::collections::HashSet<&str> {
+    fn end_with_pats(&self) -> rustc_hash::FxHashSet<&str> {
       match self {
         Algo::EndWith { pats } => pats.iter().map(|s| s.as_str()).collect(),
         Algo::Regress(_) => panic!("expect EndWith"),
@@ -148,7 +148,7 @@ mod test_algo {
 
   #[test]
   fn correct_end_with() {
-    use std::collections::HashSet;
+    use rustc_hash::FxHashSet as HashSet;
     let algo = Algo::new("\\.js$", "").unwrap();
     assert_eq!(algo.end_with_pats(), HashSet::from([".js"]));
     let algo = Algo::new("\\.(jsx?|tsx?)$", "").unwrap();

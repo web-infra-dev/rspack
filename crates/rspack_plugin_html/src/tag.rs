@@ -1,5 +1,5 @@
 use core::fmt;
-use std::collections::HashMap;
+use rustc_hash::FxHashMap as HashMap;
 
 use itertools::Itertools;
 use serde::{

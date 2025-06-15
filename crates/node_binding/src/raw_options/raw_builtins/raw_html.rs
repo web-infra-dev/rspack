@@ -1,4 +1,6 @@
-use std::{collections::HashMap, str::FromStr};
+use std::str::FromStr;
+
+use rustc_hash::FxHashMap as HashMap;
 
 use napi::bindgen_prelude::{Either3, Promise};
 use napi_derive::napi;

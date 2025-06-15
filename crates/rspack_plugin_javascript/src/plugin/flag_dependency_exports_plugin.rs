@@ -1,7 +1,6 @@
-use std::collections::hash_map::Entry;
-
 use indexmap::IndexMap;
 use rspack_collections::{IdentifierMap, IdentifierSet};
+use rustc_hash::FxHashMap;
 use rspack_core::{
   incremental::{self, IncrementalPasses},
   ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
@@ -216,10 +215,10 @@ impl<'a> FlagDependencyExportsState<'a> {
     if let Some(export_dependencies) = export_dependencies {
       for export_dep in export_dependencies {
         match self.dependencies.entry(*export_dep) {
-          Entry::Occupied(mut occ) => {
+          std::collections::hash_map::Entry::Occupied(mut occ) => {
             occ.get_mut().insert(self.current_module_id);
           }
-          Entry::Vacant(vac) => {
+          std::collections::hash_map::Entry::Vacant(vac) => {
             vac.insert(IdentifierSet::from_iter([self.current_module_id]));
           }
         }
@@ -364,10 +363,10 @@ impl<'a> FlagDependencyExportsState<'a> {
           .get_nested_exports_info(target.export.as_deref())
           .map(|data| data.id);
         match self.dependencies.entry(target.module) {
-          Entry::Occupied(mut occ) => {
+          std::collections::hash_map::Entry::Occupied(mut occ) => {
             occ.get_mut().insert(self.current_module_id);
           }
-          Entry::Vacant(vac) => {
+          std::collections::hash_map::Entry::Vacant(vac) => {
             vac.insert(IdentifierSet::from_iter([self.current_module_id]));
           }
         }

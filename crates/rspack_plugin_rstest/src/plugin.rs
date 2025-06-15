@@ -48,7 +48,7 @@ impl RstestPlugin {
   fn update_source(
     &self,
     old: BoxSource,
-    replace_map: &std::collections::HashMap<String, MockFlagPos>,
+    replace_map: &rustc_hash::FxHashMap<String, MockFlagPos>,
   ) -> BoxSource {
     let old_source = old.to_owned();
     let mut replace = ReplaceSource::new(old_source);
@@ -150,8 +150,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   let regex =
     regex::Regex::new(r"\/\* RSTEST:MOCK_(.*?):(.*?) \*\/").expect("should initialize `Regex`");
-  let mut pos_map: std::collections::HashMap<String, MockFlagPos> =
-    std::collections::HashMap::new();
+  let mut pos_map: rustc_hash::FxHashMap<String, MockFlagPos> =
+    rustc_hash::FxHashMap::default();
 
   for file in files {
     let _res = compilation.update_asset(file.as_str(), |old, info| {

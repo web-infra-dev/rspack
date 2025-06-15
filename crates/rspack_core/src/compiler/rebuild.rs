@@ -21,8 +21,8 @@ impl Compiler {
   ))]
   pub async fn rebuild(
     &mut self,
-    changed_files: std::collections::HashSet<String>,
-    deleted_files: std::collections::HashSet<String>,
+    changed_files: rustc_hash::FxHashSet<String>,
+    deleted_files: rustc_hash::FxHashSet<String>,
   ) -> Result<()> {
     let records = CompilationRecords::record(&self.compilation);
 

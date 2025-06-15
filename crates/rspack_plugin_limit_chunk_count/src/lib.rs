@@ -2,7 +2,7 @@
 
 mod chunk_combination;
 
-use std::collections::HashSet;
+use rustc_hash::FxHashSet as HashSet;
 
 use chunk_combination::{ChunkCombination, ChunkCombinationBucket, ChunkCombinationUkey};
 use rspack_collections::{UkeyMap, UkeySet};

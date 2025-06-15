@@ -1,6 +1,7 @@
 use std::collections::hash_map::Entry;
 
 use rspack_error::miette::diagnostic;
+use rustc_hash::FxHashMap;
 
 use super::{
   context::{ExecutorTaskContext, ImportModuleMeta},

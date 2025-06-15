@@ -4152,6 +4152,7 @@ dependencies = [
  "rspack_macros",
  "rspack_resolver",
  "rspack_sources",
+ "rustc-hash 2.1.1",
  "serde_json",
  "smol_str",
  "swc_core",
@@ -4919,6 +4920,7 @@ dependencies = [
  "rspack_hook",
  "rspack_paths",
  "rspack_util",
+ "rustc-hash 2.1.1",
  "serde",
  "serde_json",
  "sha2",
@@ -5063,6 +5065,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
+ "rustc-hash 2.1.1",
  "tracing",
 ]
 
@@ -5218,6 +5221,7 @@ dependencies = [
  "rspack_hook",
  "rspack_plugin_javascript",
  "rspack_util",
+ "rustc-hash 2.1.1",
  "swc_core",
  "tracing",
 ]
@@ -5293,6 +5297,7 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "rspack_util",
+ "rustc-hash 2.1.1",
  "tracing",
 ]
 
@@ -5513,6 +5518,7 @@ name = "rspack_tracing"
 version = "0.2.0"
 dependencies = [
  "rspack_tracing_perfetto",
+ "rustc-hash 2.1.1",
  "tracing-subscriber",
 ]
 

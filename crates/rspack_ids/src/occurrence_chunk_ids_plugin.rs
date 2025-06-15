@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use rustc_hash::FxHashMap as HashMap;
 
 use itertools::Itertools;
 use rspack_collections::DatabaseItem;
@@ -44,7 +44,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<
   let chunk_graph = &compilation.chunk_graph;
   let module_graph = &compilation.get_module_graph();
   let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
-  let mut occurs_in_initial_chunks_map = HashMap::new();
+  let mut occurs_in_initial_chunks_map = HashMap::default();
 
   for chunk in compilation.chunk_by_ukey.values() {
     let mut occurs = 0;
