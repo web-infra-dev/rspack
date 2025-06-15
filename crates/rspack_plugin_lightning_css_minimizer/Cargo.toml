@@ -20,6 +20,7 @@ rspack_error = { workspace = true }
 rspack_hash  = { workspace = true }
 rspack_hook  = { workspace = true }
 rspack_util  = { workspace = true }
+rustc-hash   = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing", "ropey"]

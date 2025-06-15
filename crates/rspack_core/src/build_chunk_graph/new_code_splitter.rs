@@ -433,8 +433,7 @@ impl CodeSplitter {
     compilation: &mut Compilation,
   ) -> Result<Vec<CreateChunkRoot>> {
     // determine runtime and chunkLoading
-    let mut entry_runtime: std::collections::HashMap<&str, RuntimeSpec, rustc_hash::FxBuildHasher> =
-      HashMap::default();
+    let mut entry_runtime: rustc_hash::FxHashMap<&str, RuntimeSpec> = HashMap::default();
     let mut diagnostics = vec![];
     for entry in compilation.entries.keys() {
       let mut visited = vec![];

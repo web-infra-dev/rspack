@@ -1,7 +1,7 @@
 use core::fmt;
-use std::collections::HashMap;
 
 use itertools::Itertools;
+use rustc_hash::FxHashMap as HashMap;
 use serde::{
   de::{MapAccess, Visitor},
   ser::SerializeMap,

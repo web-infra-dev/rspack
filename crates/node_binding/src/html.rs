@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use cow_utils::CowUtils;
 use napi::Either;
 use napi_derive::napi;
@@ -10,6 +8,7 @@ use rspack_plugin_html::{
   AfterEmitData, AfterTemplateExecutionData, AlterAssetTagGroupsData, AlterAssetTagsData,
   BeforeAssetTagGenerationData, BeforeEmitData,
 };
+use rustc_hash::FxHashMap as HashMap;
 
 #[napi(object)]
 pub struct JsHtmlPluginTag {

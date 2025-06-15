@@ -10,4 +10,5 @@ version           = "0.2.0"
 [features]
 [dependencies]
 rspack_tracing_perfetto = { workspace = true }
+rustc-hash              = { workspace = true }
 tracing-subscriber      = { workspace = true, features = ["env-filter", "json"] }

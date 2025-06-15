@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-
 use napi_derive::napi;
 use rspack_plugin_split_chunks::SplitChunkSizes;
+use rustc_hash::FxHashMap as HashMap;
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]

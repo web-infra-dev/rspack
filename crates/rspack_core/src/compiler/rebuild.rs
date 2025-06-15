@@ -4,7 +4,7 @@ use rspack_collections::{DatabaseItem, IdentifierMap};
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rspack_paths::ArcPath;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::{FxHashMap, FxHashSet, FxHashSet as HashSet};
 
 use crate::{
   chunk_graph_chunk::ChunkId,
@@ -21,8 +21,8 @@ impl Compiler {
   ))]
   pub async fn rebuild(
     &mut self,
-    changed_files: std::collections::HashSet<String>,
-    deleted_files: std::collections::HashSet<String>,
+    changed_files: HashSet<String>,
+    deleted_files: HashSet<String>,
   ) -> Result<()> {
     let records = CompilationRecords::record(&self.compilation);
 

@@ -1,7 +1,5 @@
 // https://github.com/webpack/webpack/blob/main/lib/WarnCaseSensitiveModulesPlugin.js
 
-use std::collections::HashMap;
-
 use cow_utils::CowUtils;
 use rspack_collections::{Identifier, IdentifierSet};
 use rspack_core::{
@@ -10,7 +8,7 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
-use rustc_hash::{FxBuildHasher, FxHashMap};
+use rustc_hash::{FxBuildHasher, FxHashMap as HashMap, FxHashMap};
 
 #[plugin]
 #[derive(Debug, Default)]

@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-
 use napi_derive::napi;
 use rspack_plugin_extract_css::plugin::{CssExtractOptions, InsertType};
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::JsFilename;
 

@@ -46,7 +46,7 @@ fn create_provide_dep(
   None
 }
 
-type ProvideValue = std::collections::HashMap<String, Vec<String>>;
+type ProvideValue = rustc_hash::FxHashMap<String, Vec<String>>;
 
 #[plugin]
 #[derive(Default, Debug, Clone)]
