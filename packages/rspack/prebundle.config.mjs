@@ -1,17 +1,11 @@
 // @ts-check
-import { copyFileSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { copyFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-
-const __filename = fileURLToPath(import.meta.url);
 
 /** @type {import('prebundle').Config} */
 export default {
 	dependencies: [
-		{
-			name: "zod",
-			copyDts: true
-		},
 		{
 			name: "webpack-sources",
 			copyDts: true

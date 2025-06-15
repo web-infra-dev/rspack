@@ -6,7 +6,6 @@
     "resolveJsonModule": true,
     "emitDeclarationOnly": true,
     "paths": {
-      "zod": ["./compiled/zod"],
       "watchpack": ["./compiled/watchpack"],
       "@swc/types": ["./compiled/@swc/types"],
       "graceful-fs": ["./compiled/graceful-fs"],
