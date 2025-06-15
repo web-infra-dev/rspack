@@ -470,7 +470,7 @@ const builtinSWCLoaderChecker = (
 
 	if (!res.success) {
 		const validationErr = fromError(res.error, {
-			prefix: "Invalid options for 'builtin:swc-loader'",
+			prefix: "Invalid options for 'builtin:swc-loader'"
 		});
 		ctx.addIssue({
 			code: "custom",
