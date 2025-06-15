@@ -1,18 +1,24 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
     "lib": ["DOM", "ES2020"],
-    "module": "ESNext",
     "jsx": "preserve",
-    "jsxImportSource": "vue",
-    "strict": true,
+    "target": "ES2020",
     "noEmit": true,
     "skipLibCheck": true,
-    "isolatedModules": true,
+    "jsxImportSource": "vue",
+    "useDefineForClassFields": true,
+
+    /* modules */
+    "module": "ESNext",
+    "verbatimModuleSyntax": true,
     "resolveJsonModule": true,
     "moduleResolution": "bundler",
-    "useDefineForClassFields": true,
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+
+    /* type checking */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
   },
   "include": ["src"],
   "ts-node": {
