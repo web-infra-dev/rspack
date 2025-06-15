@@ -1,6 +1,6 @@
 import nodePath from "node:path";
+import { createErrorMap, fromZodError } from "zod-validation-error/v4";
 import { z } from "zod/v4";
-import { fromZodError } from "zod-validation-error";
 import { getZodSwcLoaderOptionsSchema } from "../builtin-loader/swc/types";
 import type * as t from "./types";
 import { anyFunction, numberOrInfinity } from "./utils";
@@ -468,9 +468,11 @@ const builtinSWCLoaderChecker = (
 	const res = getZodSwcLoaderOptionsSchema().safeParse(data.options);
 
 	if (!res.success) {
-		//@ts-expect-error TODO(colinaaa): fix this
 		const validationErr = fromZodError(res.error, {
-			prefix: "Invalid options for 'builtin:swc-loader'"
+			prefix: "Invalid options for 'builtin:swc-loader'",
+			error: createErrorMap({
+				issuesInTitleCase: false
+			})
 		});
 		ctx.addIssue({
 			code: "custom",
