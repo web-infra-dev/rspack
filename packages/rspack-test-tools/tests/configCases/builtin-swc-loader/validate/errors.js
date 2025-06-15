@@ -1,5 +1,5 @@
 module.exports = [
   [
-    /Invalid options of 'builtin:swc-loader'/
+    /Invalid options for 'builtin:swc-loader'/
   ],
 ];
