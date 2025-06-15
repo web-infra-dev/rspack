@@ -1,5 +1,5 @@
 import nodePath from "node:path";
-import { z, ZodIssueCode } from "zod";
+import { ZodIssueCode, z } from "zod";
 import { ZodSwcLoaderOptions } from "../builtin-loader/swc/types";
 import type * as t from "./types";
 import { anyFunction } from "./utils";
