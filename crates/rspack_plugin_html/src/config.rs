@@ -1,8 +1,9 @@
-use std::{collections::HashMap, fmt, path::PathBuf, str::FromStr};
+use std::{fmt, path::PathBuf, str::FromStr};
 
 use futures::future::BoxFuture;
 use rspack_core::{Compilation, PublicPath};
 use rspack_error::Result;
+use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 use sugar_path::SugarPath;
 

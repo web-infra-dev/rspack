@@ -1,7 +1,6 @@
 #![feature(let_chains)]
 
 use std::{
-  collections::HashSet,
   hash::Hash,
   sync::{Arc, LazyLock, RwLock},
 };
@@ -218,7 +217,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               .map(|exclude| Features::from_bits_truncate(*exclude))
               .unwrap_or(Features::empty()),
           };
-          let mut unused_symbols = HashSet::from_iter(minimizer_options.unused_symbols.clone());
+          let mut unused_symbols = std::collections::HashSet::from_iter(minimizer_options.unused_symbols.clone());
           if self.options.remove_unused_local_idents
             && let Some(css_unused_idents) = original.info.css_unused_idents.take()
           {

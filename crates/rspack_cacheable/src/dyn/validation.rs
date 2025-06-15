@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use rkyv::bytecheck::CheckBytes;
+use rustc_hash::FxHashMap as HashMap;
 
 use super::VTablePtr;
 use crate::{DeserializeError, Validator};

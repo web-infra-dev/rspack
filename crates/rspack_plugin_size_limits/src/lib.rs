@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_core::{
@@ -9,6 +7,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::size::format_size;
+use rustc_hash::FxHashMap as HashMap;
 
 pub type AssetFilterFn = Box<dyn for<'a> Fn(&'a str) -> BoxFuture<'a, Result<bool>> + Sync + Send>;
 

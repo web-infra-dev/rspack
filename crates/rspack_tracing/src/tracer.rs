@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-
+use rustc_hash::FxHashMap as HashMap;
 use tracing_subscriber::{Layer, Registry};
 #[derive(Debug)]
 pub struct TraceEvent {

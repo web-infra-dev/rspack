@@ -108,7 +108,7 @@ use rspack_macros::rspack_version;
 use rspack_tracing::{PerfettoTracer, StdoutTracer, TraceEvent, Tracer};
 pub use rstest::*;
 pub use runtime::*;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 pub use source::*;
 pub use stats::*;
 pub use swc::*;
@@ -287,8 +287,6 @@ impl JsCompiler {
     removed_files: Vec<String>,
     f: Function<'static>,
   ) -> Result<(), ErrorCode> {
-    use std::collections::HashSet;
-
     unsafe {
       self.run(reference, |compiler, guard| {
         callbackify(
