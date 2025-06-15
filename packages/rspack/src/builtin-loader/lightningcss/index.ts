@@ -24,42 +24,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
  */
 
-const BROWSER_MAPPING: Record<string, string | null> = {
-	and_chr: "chrome",
-	and_ff: "firefox",
-	ie_mob: "ie",
-	op_mob: "opera",
-	and_qq: null,
-	and_uc: null,
-	baidu: null,
-	bb: null,
-	kaios: null,
-	op_mini: null
-};
-
-export function browserslistToTargets(
-	browserslist: string[]
-): Record<string, number> {
-	const targets: Record<string, number> = {};
-	for (const browser of browserslist) {
-		const [name, v] = browser.split(" ");
-		if (BROWSER_MAPPING[name] === null) {
-			continue;
-		}
-
-		const version = parseVersion(v);
-		if (version == null) {
-			continue;
-		}
-
-		if (targets[name] == null || version < targets[name]) {
-			targets[name] = version;
-		}
-	}
-
-	return targets;
-}
-
 export function toFeatures(featureOptions: FeatureOptions): Features {
 	let feature = 0;
 	for (const key of Reflect.ownKeys(featureOptions)) {
@@ -139,19 +103,6 @@ export function toFeatures(featureOptions: FeatureOptions): Features {
 		}
 	}
 	return feature;
-}
-
-function parseVersion(version: string) {
-	const [major, minor = 0, patch = 0] = version
-		.split("-")[0]
-		.split(".")
-		.map(v => Number.parseInt(v, 10));
-
-	if (Number.isNaN(major) || Number.isNaN(minor) || Number.isNaN(patch)) {
-		return null;
-	}
-
-	return (major << 16) | (minor << 8) | patch;
 }
 
 export enum Features {

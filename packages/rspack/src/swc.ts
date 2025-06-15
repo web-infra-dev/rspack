@@ -13,6 +13,14 @@ export async function minify(
 	return binding.minify(source, _options);
 }
 
+export function minifySync(
+	source: string,
+	options?: JsMinifyOptions
+): TransformOutput {
+	const _options = JSON.stringify(options || {});
+	return binding.minifySync(source, _options);
+}
+
 export async function transform(
 	source: string,
 	options?: TransformOptions
@@ -20,4 +28,12 @@ export async function transform(
 	const _options = JSON.stringify(options || {});
 
 	return binding.transform(source, _options);
+}
+
+export function transformSync(
+	source: string,
+	options?: TransformOptions
+): TransformOutput {
+	const _options = JSON.stringify(options || {});
+	return binding.transformSync(source, _options);
 }

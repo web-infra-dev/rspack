@@ -2,6 +2,8 @@ import * as binding from "@rspack/binding";
 import type { Source } from "webpack-sources";
 import type { ResourceData } from "./Resolver";
 import { JsSource } from "./util/source";
+// patch buildInfo
+import "./BuildInfo";
 
 export type ResourceDataWithData = ResourceData & {
 	data?: Record<string, any>;
@@ -175,81 +177,6 @@ export class ContextModuleFactoryAfterResolveData {
 export type ContextModuleFactoryAfterResolveResult =
 	| false
 	| ContextModuleFactoryAfterResolveData;
-
-const $assets: unique symbol = Symbol("assets");
-
-declare module "@rspack/binding" {
-	interface Assets {
-		[$assets]: Record<string, Source>;
-	}
-
-	interface KnownBuildInfo {
-		assets: Record<string, Source>;
-		fileDependencies: Set<string>;
-		contextDependencies: Set<string>;
-		missingDependencies: Set<string>;
-		buildDependencies: Set<string>;
-	}
-}
-
-Object.defineProperty(binding.KnownBuildInfo.prototype, "assets", {
-	enumerable: true,
-	configurable: true,
-	get(this: binding.KnownBuildInfo): Record<string, Source> {
-		if (this._assets[$assets]) {
-			return this._assets[$assets];
-		}
-		const assets = new Proxy(Object.create(null), {
-			ownKeys: () => {
-				return this._assets.keys();
-			},
-			getOwnPropertyDescriptor() {
-				return {
-					enumerable: true,
-					configurable: true
-				};
-			}
-		}) as Record<string, Source>;
-		Object.defineProperty(this._assets, $assets, {
-			enumerable: false,
-			configurable: true,
-			value: assets
-		});
-		return assets;
-	}
-});
-
-Object.defineProperty(binding.KnownBuildInfo.prototype, "fileDependencies", {
-	enumerable: true,
-	configurable: true,
-	get(this: binding.KnownBuildInfo): Set<string> {
-		return new Set(this._fileDependencies);
-	}
-});
-
-Object.defineProperty(binding.KnownBuildInfo.prototype, "contextDependencies", {
-	enumerable: true,
-	configurable: true,
-	get(this: binding.KnownBuildInfo): Set<string> {
-		return new Set(this._contextDependencies);
-	}
-});
-
-Object.defineProperty(binding.KnownBuildInfo.prototype, "missingDependencies", {
-	enumerable: true,
-	configurable: true,
-	get(this: binding.KnownBuildInfo): Set<string> {
-		return new Set(this._missingDependencies);
-	}
-});
-
-Object.defineProperty(binding.KnownBuildInfo.prototype, "buildDependencies", {
-	enumerable: true,
-	configurable: true,
-	get(this: binding.KnownBuildInfo): Set<string> {
-		return new Set(this._buildDependencies);
-	}
-});
 
 Object.defineProperty(binding.Module.prototype, "identifier", {
 	enumerable: true,

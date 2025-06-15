@@ -58,7 +58,6 @@ jobs:
       - name: Trim paths
         run: |
           echo $'\n' >> .cargo/config.toml
-          echo '[unstable]' >> .cargo/config.toml
           echo 'trim-paths = true' >> .cargo/config.toml
 
       # Fix: Resolve disk space error "ENOSPC: no space left on device" on GitHub Actions runners
@@ -181,3 +180,4 @@ jobs:
           path: |
             crates/node_binding/*.node
             crates/node_binding/*.wasm
+            crates/node_binding/*.d.ts

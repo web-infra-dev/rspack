@@ -405,7 +405,12 @@ const ZodSwcJscConfig = z.strictObject({
 	baseUrl: z.string().optional(),
 	paths: z.record(z.string(), z.string().array()).optional(),
 	minify: ZodSwcJsMinifyOptions.optional(),
-	preserveAllComments: z.boolean().optional()
+	preserveAllComments: z.boolean().optional(),
+	output: z
+		.strictObject({
+			charset: z.enum(["utf8", "ascii"]).optional()
+		})
+		.optional()
 }) satisfies z.ZodType<JscConfig>;
 
 const ZodSwcBaseModuleConfig = z.strictObject({
@@ -457,7 +462,7 @@ const ZodSwcModuleConfig = z.union([
 	ZodSwcSystemjsConfig
 ]) satisfies z.ZodType<ModuleConfig>;
 
-export const ZodSwcConfig = z.strictObject({
+const ZodSwcConfig = z.strictObject({
 	$schema: z.string().optional(),
 	test: z.string().or(z.string().array()).optional(),
 	exclude: z.string().or(z.string().array()).optional(),

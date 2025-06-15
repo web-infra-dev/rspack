@@ -61,7 +61,7 @@ impl From<String> for RsdoctorPluginModuleGraphFeature {
       "graph" => RsdoctorPluginModuleGraphFeature::ModuleGraph,
       "ids" => RsdoctorPluginModuleGraphFeature::ModuleIds,
       "sources" => RsdoctorPluginModuleGraphFeature::ModuleSources,
-      _ => panic!("invalid module graph feature: {}", value),
+      _ => panic!("invalid module graph feature: {value}"),
     }
   }
 }
@@ -87,7 +87,7 @@ impl From<String> for RsdoctorPluginChunkGraphFeature {
     match value.as_str() {
       "graph" => RsdoctorPluginChunkGraphFeature::ChunkGraph,
       "assets" => RsdoctorPluginChunkGraphFeature::Assets,
-      _ => panic!("invalid chunk graph feature: {}", value),
+      _ => panic!("invalid chunk graph feature: {value}"),
     }
   }
 }
@@ -129,10 +129,7 @@ impl RsdoctorPlugin {
     {
       return true;
     }
-    panic!(
-      "module graph feature \"{}\" need \"graph\" to be enabled",
-      feature
-    );
+    panic!("module graph feature \"{feature}\" need \"graph\" to be enabled");
   }
 
   pub fn has_chunk_graph_feature(&self, feature: RsdoctorPluginChunkGraphFeature) -> bool {
@@ -146,10 +143,7 @@ impl RsdoctorPlugin {
     {
       return true;
     }
-    panic!(
-      "chunk graph feature \"{}\" need \"graph\" to be enabled",
-      feature
-    );
+    panic!("chunk graph feature \"{feature}\" need \"graph\" to be enabled");
   }
 
   pub fn get_compilation_hooks(
@@ -230,7 +224,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       .await
     {
       Ok(_) => {}
-      Err(e) => panic!("rsdoctor send chunk graph failed: {}", e),
+      Err(e) => panic!("rsdoctor send chunk graph failed: {e}"),
     };
   });
 
@@ -324,6 +318,9 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
 
     if let Some(rsd_module) = rsd_modules.get_mut(&module_id) {
       rsd_module.issuer_path = Some(issuer_path);
+      let (_, module) = module;
+      let bailout_reason = module_graph.get_optimization_bailout(&module.identifier());
+      rsd_module.bailout_reason = bailout_reason.iter().map(|s| s.to_string()).collect();
     }
   }
 
@@ -342,7 +339,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
       .await
     {
       Ok(_) => {}
-      Err(e) => panic!("rsdoctor send module graph failed: {}", e),
+      Err(e) => panic!("rsdoctor send module graph failed: {e}"),
     };
   });
 
@@ -370,7 +367,7 @@ async fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
       .await
     {
       Ok(_) => {}
-      Err(e) => panic!("rsdoctor send module ids failed: {}", e),
+      Err(e) => panic!("rsdoctor send module ids failed: {e}"),
     };
   });
 
@@ -398,7 +395,7 @@ async fn after_code_generation(&self, compilation: &mut Compilation) -> Result<(
       .await
     {
       Ok(_) => {}
-      Err(e) => panic!("rsdoctor send module sources failed: {}", e),
+      Err(e) => panic!("rsdoctor send module sources failed: {e}"),
     };
   });
   Ok(())
@@ -435,7 +432,7 @@ async fn after_process_asssets(&self, compilation: &mut Compilation) -> Result<(
       .await
     {
       Ok(_) => {}
-      Err(e) => panic!("rsdoctor send assets failed: {}", e),
+      Err(e) => panic!("rsdoctor send assets failed: {e}"),
     };
   });
 

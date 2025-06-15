@@ -1,9 +1,10 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, InitFragmentKey,
-  InitFragmentStage, ModuleGraph, NormalInitFragment, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource, UsageState,
+  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportInfoGetter,
+  InitFragmentKey, InitFragmentStage, ModuleGraph, NormalInitFragment, PrefetchExportsInfoMode,
+  RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsageState,
 };
+use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
 
 // Mark module `__esModule`.
@@ -52,13 +53,13 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
     let module = module_graph
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
-    let exports_info = module_graph.get_exports_info(&module.identifier());
-    if !matches!(
-      exports_info
-        .get_read_only_export_info(&module_graph, &Atom::from("__esModule"),)
-        .get_used(&module_graph, *runtime),
-      UsageState::Unused
-    ) {
+    let name = Atom::from("__esModule");
+    let exports_info = module_graph.get_prefetched_exports_info(
+      &module.identifier(),
+      PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&name])),
+    );
+    let used = ExportInfoGetter::get_used(exports_info.get_read_only_export_info(&name), *runtime);
+    if !matches!(used, UsageState::Unused) {
       runtime_requirements.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
       runtime_requirements.insert(RuntimeGlobals::EXPORTS);
       init_fragments.push(Box::new(NormalInitFragment::new(

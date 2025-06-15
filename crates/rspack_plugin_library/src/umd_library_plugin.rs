@@ -5,8 +5,8 @@ use rspack_core::{
   ApplyContext, Chunk, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, ExternalRequest,
   Filename, LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject,
-  LibraryOptions, LibraryType, ModuleGraph, PathData, Plugin, PluginContext, RuntimeGlobals,
-  SourceType,
+  LibraryOptions, LibraryType, ModuleGraph, ModuleGraphCacheArtifact, PathData, Plugin,
+  PluginContext, RuntimeGlobals, SourceType,
 };
 use rspack_error::{error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
@@ -108,6 +108,7 @@ async fn render(
     .supports_arrow_function();
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let module_graph = compilation.get_module_graph();
+  let module_graph_cache = &compilation.module_graph_cache_artifact;
   let modules = compilation
     .chunk_graph
     .get_chunk_modules_identifier(chunk_ukey)
@@ -128,7 +129,7 @@ async fn render(
 
   if self.optional_amd_external_as_global {
     for module in &externals {
-      if module_graph.is_optional(&module.id) {
+      if module_graph.is_optional(&module.id, module_graph_cache) {
         optional_externals.push(*module);
       } else {
         required_externals.push(*module);
@@ -152,10 +153,9 @@ async fn render(
       )
     };
     format!(
-      r#"function webpackLoadOptionalExternalModuleAmd({}) {{
-      return factory({});
-    }}"#,
-      wrapper_arguments, factory_arguments
+      r#"function webpackLoadOptionalExternalModuleAmd({wrapper_arguments}) {{
+      return factory({factory_arguments});
+    }}"#
     )
   };
 
@@ -179,7 +179,7 @@ async fn render(
   };
 
   let name = if let Some(commonjs) = &names.commonjs {
-    library_name(&[commonjs.clone()], chunk, compilation).await?
+    library_name(std::slice::from_ref(commonjs), chunk, compilation).await?
   } else if let Some(root) = &names.root {
     library_name(root, chunk, compilation).await?
   } else {
@@ -192,7 +192,7 @@ async fn render(
       exports[{}] = factory({});\n",
       get_auxiliary_comment("commonjs", auxiliary_comment),
       name,
-      externals_require_array("commonjs", &externals, &module_graph)?,
+      externals_require_array("commonjs", &externals, &module_graph, module_graph_cache)?,
     );
     let root_code = format!(
       "{}
@@ -226,7 +226,7 @@ async fn render(
     } else {
       format!(
         "var a = typeof exports === 'object' ? factory({}) : factory({});\n",
-        externals_require_array("commonjs", &externals, &module_graph)?,
+        externals_require_array("commonjs", &externals, &module_graph, module_graph_cache)?,
         externals_root_array(&externals)?
       )
     };
@@ -248,7 +248,7 @@ async fn render(
           module.exports = factory({});
       }}"#,
     get_auxiliary_comment("commonjs2", auxiliary_comment),
-    externals_require_array("commonjs2", &externals, &module_graph)?
+    externals_require_array("commonjs2", &externals, &module_graph, module_graph_cache)?
   )));
   source.add(RawStringSource::from(format!(
     "else if(typeof define === 'function' && define.amd) {{
@@ -355,6 +355,7 @@ fn externals_require_array(
   external_type: &str,
   externals: &[&ExternalModule],
   module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
 ) -> Result<String> {
   Ok(
     externals
@@ -370,9 +371,9 @@ fn externals_require_array(
         let mut expr = if let Some(rest) = request.rest() {
           format!("require({}){}", primary, &accessor_to_object_access(rest))
         } else {
-          format!("require({})", primary)
+          format!("require({primary})")
         };
-        if module_graph.is_optional(&m.id) {
+        if module_graph.is_optional(&m.id, module_graph_cache) {
           expr = format!("(function webpackLoadOptionalExternalModule() {{ try {{ return {expr}; }} catch(e) {{}} }}())");
         }
         Ok(expr)

@@ -2,7 +2,12 @@ mod context;
 mod resolver;
 mod scheduler;
 
-use std::{ffi::c_void, fmt::Debug, ptr};
+use std::{
+  ffi::c_void,
+  fmt::Debug,
+  ptr,
+  sync::{Arc, Mutex},
+};
 
 pub use context::{JsLoaderContext, JsLoaderItem};
 use napi::{
@@ -10,19 +15,26 @@ use napi::{
   sys::{napi_call_threadsafe_function, napi_threadsafe_function},
   threadsafe_function::ThreadsafeFunction,
 };
-use once_cell::sync::OnceCell;
 use rspack_core::{
   ApplyContext, Compilation, CompilationParams, CompilerEmit, CompilerId, CompilerOptions,
   CompilerThisCompilation, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use tokio::sync::RwLock;
+use rustc_hash::FxHashSet;
+use tokio::sync::{OnceCell, RwLock};
 
 use crate::{RspackResultToNapiResultExt, COMPILER_REFERENCES};
 
-pub type JsLoaderRunner =
-  ThreadsafeFunction<JsLoaderContext, Promise<JsLoaderContext>, JsLoaderContext, false, true, 0>;
+pub type JsLoaderRunner = ThreadsafeFunction<
+  JsLoaderContext,
+  Promise<JsLoaderContext>,
+  JsLoaderContext,
+  Status,
+  false,
+  true,
+  0,
+>;
 
 struct JsLoaderRunnerGetterData {
   compiler_id: CompilerId,
@@ -136,14 +148,22 @@ impl JsLoaderRunnerGetter {
 
 #[plugin]
 pub(crate) struct JsLoaderRspackPlugin {
-  compiler_id: OnceCell<CompilerId>,
+  compiler_id: once_cell::sync::OnceCell<CompilerId>,
   pub(crate) runner_getter: JsLoaderRunnerGetter,
-  pub(crate) runner: RwLock<Option<JsLoaderRunner>>,
+  /// This complex data structure is used to avoid deadlock when running loaders which contain `importModule`
+  /// See: https://github.com/web-infra-dev/rspack/pull/10632
+  pub(crate) runner: Mutex<Arc<tokio::sync::OnceCell<JsLoaderRunner>>>,
+  pub(crate) loaders_without_pitch: RwLock<FxHashSet<String>>,
 }
 
 impl JsLoaderRspackPlugin {
   pub fn new(runner_getter: JsLoaderRunnerGetter) -> Self {
-    Self::new_inner(Default::default(), runner_getter, RwLock::new(None))
+    Self::new_inner(
+      Default::default(),
+      runner_getter,
+      Mutex::default(),
+      RwLock::new(FxHashSet::default()),
+    )
   }
 }
 
@@ -166,8 +186,7 @@ async fn this_compilation(
 
 #[plugin_hook(CompilerEmit for JsLoaderRspackPlugin)]
 async fn done(&self, _compilation: &mut Compilation) -> Result<()> {
-  let mut write_guard = self.runner.write().await;
-  *write_guard = None;
+  *self.runner.lock().expect("should get lock") = Arc::new(OnceCell::new());
   Ok(())
 }
 

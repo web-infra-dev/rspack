@@ -46,5 +46,3 @@ export class AbstractMethodError extends WebpackError {
 		this.name = "AbstractMethodError";
 	}
 }
-
-export default AbstractMethodError;

@@ -95,7 +95,18 @@ pub fn format_diagnostic(diagnostic: JsDiagnostic) -> Result<External<Diagnostic
   Ok(External::new(
     Diagnostic::from(error)
       .with_file(file.map(Into::into))
-      .with_loc(loc.map(|l| l.to_string()))
+      .with_loc(loc.map(|l| {
+        rspack_core::DependencyLocation::Real(rspack_core::RealDependencyLocation {
+          start: rspack_core::SourcePosition {
+            line: l.sl as usize + 1,
+            column: l.sc as usize,
+          },
+          end: Some(rspack_core::SourcePosition {
+            line: l.el as usize + 1,
+            column: l.ec as usize,
+          }),
+        })
+      }))
       .with_module_identifier(module_identifier.map(Into::into)),
   ))
 }

@@ -1342,6 +1342,14 @@ CompilerOptions {
         parser: Some(
             ParserOptionsMap(
                 {
+                    "json": Json(
+                        JsonParserOptions {
+                            exports_depth: Some(
+                                4294967295,
+                            ),
+                            parse: ParseOption::None,
+                        },
+                    ),
                     "asset": Asset(
                         AssetParserOptions {
                             data_url_condition: Some(
@@ -1409,14 +1417,9 @@ CompilerOptions {
                             import_dynamic: Some(
                                 true,
                             ),
-                        },
-                    ),
-                    "json": Json(
-                        JsonParserOptions {
-                            exports_depth: Some(
-                                4294967295,
+                            inline_const: Some(
+                                false,
                             ),
-                            parse: ParseOption::None,
                         },
                     ),
                 },
@@ -1453,6 +1456,7 @@ CompilerOptions {
         top_level_await: true,
         rspack_future: RspackFuture,
         cache: Disabled,
+        inline_const: false,
     },
     node: Some(
         NodeOption {

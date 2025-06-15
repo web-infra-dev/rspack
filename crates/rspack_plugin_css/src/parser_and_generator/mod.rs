@@ -16,15 +16,16 @@ use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
   BoxDependencyTemplate, BoxModuleDependency, BuildMetaDefaultObject, BuildMetaExportsType,
   ChunkGraph, Compilation, ConstDependency, CssExportsConvention, Dependency, DependencyId,
-  DependencyRange, DependencyType, GenerateContext, LocalIdentName, Module, ModuleGraph,
-  ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext, ParseResult,
-  ParserAndGenerator, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext, UsageState,
+  DependencyRange, DependencyType, ExportInfoGetter, GenerateContext, LocalIdentName, Module,
+  ModuleGraph, ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext,
+  ParseResult, ParserAndGenerator, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec,
+  SourceType, TemplateContext, UsageState,
 };
 use rspack_error::{
   miette::Diagnostic, IntoTWithDiagnosticArray, Result, RspackSeverity, TWithDiagnosticArray,
 };
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_util::ext::DynHash;
+use rspack_util::{atom::Atom, ext::DynHash};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
@@ -590,11 +591,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
         } else {
           let mg = generate_context.compilation.get_module_graph();
           let (ns_obj, left, right) = if self.es_module
-            && mg
-              .get_exports_info(&module.identifier())
-              .other_exports_info(&mg)
-              .get_used(&mg, generate_context.runtime)
-              != UsageState::Unused
+            && ExportInfoGetter::get_used(
+              mg.get_exports_info(&module.identifier())
+                .other_exports_info(&mg)
+                .as_data(&mg),
+              generate_context.runtime,
+            ) != UsageState::Unused
           {
             (RuntimeGlobals::MAKE_NAMESPACE_OBJECT.name(), "(", ")")
           } else {
@@ -631,9 +633,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
               ns_obj,
               left,
               right,
-              with_hmr
-                .then_some("module.hot.accept();\n")
-                .unwrap_or_default()
+              if with_hmr {
+                "module.hot.accept();\n"
+              } else {
+                Default::default()
+              }
             )
           }
         };
@@ -689,13 +693,25 @@ fn get_used_exports<'a>(
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
 ) -> IndexMap<&'a str, &'a IndexSet<CssExport>> {
+  let exports_names = exports
+    .iter()
+    .map(|(name, _)| Atom::from(name.as_str()))
+    .collect::<Vec<_>>();
+
+  let exports_info = mg.get_prefetched_exports_info_optional(
+    &identifier,
+    PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter(exports_names.iter())),
+  );
+
   exports
     .iter()
     .filter(|(name, _)| {
-      let export_info = mg.get_read_only_export_info(&identifier, name.as_str().into());
+      let export_info = exports_info
+        .as_ref()
+        .map(|info| info.get_read_only_export_info(&Atom::from(name.as_str())));
 
       if let Some(export_info) = export_info {
-        export_info.get_used(mg, runtime) != UsageState::Unused
+        ExportInfoGetter::get_used(export_info, runtime) != UsageState::Unused
       } else {
         true
       }
@@ -716,19 +732,33 @@ fn get_unused_local_ident(
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
 ) -> CodeGenerationDataUnusedLocalIdent {
+  let exports_names = exports
+    .iter()
+    .map(|(name, _)| Atom::from(name.as_str()))
+    .collect::<Vec<_>>();
+  let exports_info = mg.get_prefetched_exports_info_optional(
+    &identifier,
+    PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter(exports_names.iter())),
+  );
+
   CodeGenerationDataUnusedLocalIdent {
-    idents: exports
+    idents: exports_names
       .iter()
-      .filter(|(name, _)| {
-        let export_info = mg.get_read_only_export_info(&identifier, name.as_str().into());
+      .filter(|name| {
+        let export_info = exports_info
+          .as_ref()
+          .map(|info| info.get_read_only_export_info(name));
 
         if let Some(export_info) = export_info {
-          matches!(export_info.get_used(mg, runtime), UsageState::Unused)
+          matches!(
+            ExportInfoGetter::get_used(export_info, runtime),
+            UsageState::Unused
+          )
         } else {
           false
         }
       })
-      .filter_map(|(export_name, _)| local_names.get(export_name).cloned())
+      .filter_map(|export_name| local_names.get(export_name.as_str()).cloned())
       .collect(),
   }
 }

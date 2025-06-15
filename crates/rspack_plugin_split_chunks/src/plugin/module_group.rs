@@ -643,7 +643,7 @@ async fn merge_matched_item_into_module_group_map(
     let selected_chunks_key = match chunk_key_to_string.entry(selected_chunks_key) {
       hash_map::Entry::Occupied(entry) => entry.get().to_string(),
       hash_map::Entry::Vacant(entry) => {
-        let key = format!("{:x}", selected_chunks_key);
+        let key = format!("{selected_chunks_key:x}");
         entry.insert(key.clone());
         key
       }

@@ -1097,6 +1097,9 @@ export type JavascriptParserOptions = {
 
 	// TODO: add docs
 	importDynamic?: boolean;
+
+	/** Inline const values in this module */
+	inlineConst?: boolean;
 };
 
 export type JsonParserOptions = {
@@ -2629,6 +2632,11 @@ export type IncrementalPresets =
 export type HttpUriOptions = HttpUriPluginOptions;
 
 /**
+ * Options for experiments.useInputFileSystem
+ */
+export type UseInputFileSystem = false | RegExp[];
+
+/**
  * Experimental features configuration.
  */
 export type Experiments = {
@@ -2702,6 +2710,16 @@ export type Experiments = {
 	 * @default false
 	 */
 	parallelLoader?: boolean;
+	/**
+	 * Enable Node.js input file system
+	 * @default false
+	 */
+	useInputFileSystem?: UseInputFileSystem;
+	/**
+	 * Enable inline constants
+	 * @default false
+	 */
+	inlineConst?: boolean;
 };
 //#endregion
 
@@ -2749,6 +2767,8 @@ export type WatchOptions = {
  * Options for devServer, it based on `webpack-dev-server@5`
  * */
 export interface DevServer extends DevServerOptions {}
+
+export type { Middleware as DevServerMiddleware } from "./devServer";
 //#endregion
 
 //#region IgnoreWarnings

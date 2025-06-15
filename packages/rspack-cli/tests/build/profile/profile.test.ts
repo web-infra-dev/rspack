@@ -2,7 +2,7 @@ import fs from "fs";
 import { resolve } from "path";
 import { run } from "../../utils/test-utils";
 
-const defaultTracePath = "./trace.json";
+const defaultTracePath = "./rspack.pftrace";
 const customTracePath = "./custom/trace.json";
 
 function findDefaultOutputDirname() {
@@ -50,20 +50,32 @@ describe("profile", () => {
 			__dirname,
 			[],
 			{},
-			{ RSPACK_PROFILE: "rspack,respack_resolver" }
+			{
+				NO_COLOR: "1",
+				RSPACK_PROFILE: "rspack,respack_resolver",
+				RSPACK_TRACE_OUTPUT: defaultTracePath,
+				RSPACK_TRACE_LAYER: "logger"
+			}
 		);
 		expect(exitCode).toBe(0);
 		const dirname = findDefaultOutputDirname();
-		const trace = resolve(dirname, defaultTracePath);
-		expect(fs.existsSync(trace)).toBeTruthy();
-		const out: { cat?: string }[] = JSON.parse(fs.readFileSync(trace, "utf-8"));
+		const tracePath = resolve(dirname, defaultTracePath);
+		expect(fs.existsSync(tracePath)).toBeTruthy();
+		const content = fs.readFileSync(tracePath, "utf-8");
+		const out: any[] = content
+			.trim()
+			.split("\n")
+			.map(line => {
+				return JSON.parse(line);
+			});
+
 		expect(
 			out
-				.filter(line => line.cat)
+				.filter(line => line.target)
 				.every(
 					line =>
-						line.cat!.startsWith("rspack") ||
-						line.cat!.startsWith("disabled-by-default-v8.cpu_profiler")
+						line.target.startsWith("rspack") ||
+						line.target.startsWith("rspack_resolver")
 				)
 		).toBe(true);
 	});
@@ -74,12 +86,13 @@ describe("profile", () => {
 			[],
 			{},
 			{
-				RSPACK_PROFILE: "ALL",
+				RSPACK_PROFILE: "OVERVIEW",
 				RSPACK_TRACE_OUTPUT: customTracePath
 			}
 		);
 		expect(exitCode).toBe(0);
-		expect(fs.existsSync(resolve(__dirname, customTracePath))).toBeTruthy();
+		const dirname = findDefaultOutputDirname();
+		expect(fs.existsSync(resolve(dirname, customTracePath))).toBeTruthy();
 	});
 
 	it("should be able to use logger trace layer and default output should be stdout", async () => {

@@ -6,8 +6,8 @@ use rspack_core::{
   to_identifier, ApplyContext, BoxDependency, ChunkUkey, CodeGenerationExportsFinalNames,
   Compilation, CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation,
   CompilerFinishMake, CompilerOptions, ConcatenatedModule, ConcatenatedModuleExportsDefinitions,
-  DependenciesBlock, Dependency, DependencyId, LibraryOptions, ModuleGraph, ModuleIdentifier,
-  Plugin, PluginContext, RuntimeSpec,
+  DependenciesBlock, Dependency, DependencyId, ExportInfoGetter, LibraryOptions, ModuleGraph,
+  ModuleIdentifier, Plugin, PluginContext, RuntimeSpec, UsedNameItem,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
@@ -157,6 +157,7 @@ async fn render_startup(
 
   let mut exports = vec![];
   let mut exports_with_property_access = vec![];
+  let mut exports_with_inlined = vec![];
 
   let Some(_) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());
@@ -173,10 +174,22 @@ async fn render_startup(
   {
     let exports_info = module_graph.get_exports_info(module_id);
     for export_info in exports_info.ordered_exports(&module_graph) {
-      let info_name = export_info.name(&module_graph).expect("should have name");
-      let used_name = export_info
-        .get_used_name(&module_graph, Some(info_name), Some(chunk.runtime()))
-        .expect("name can't be empty");
+      let info_name =
+        ExportInfoGetter::name(export_info.as_data(&module_graph)).expect("should have name");
+      let used_name = ExportInfoGetter::get_used_name(
+        export_info.as_data(&module_graph),
+        Some(info_name),
+        Some(chunk.runtime()),
+      )
+      .expect("name can't be empty");
+
+      let used_name = match used_name {
+        UsedNameItem::Inlined(inlined) => {
+          exports_with_inlined.push((inlined, info_name));
+          continue;
+        }
+        UsedNameItem::Str(used_name) => used_name,
+      };
 
       let final_name = exports_final_names.get(used_name.as_str());
 
@@ -190,7 +203,7 @@ async fn render_startup(
         } else if info_name == final_name {
           exports.push(info_name.to_string());
         } else {
-          exports.push(format!("{} as {}", final_name, info_name));
+          exports.push(format!("{final_name} as {info_name}"));
         }
       }
     }
@@ -199,11 +212,21 @@ async fn render_startup(
       let var_name = format!("__webpack_exports__{}", to_identifier(info_name));
 
       source.add(RawStringSource::from(format!(
-        "var {var_name} = {};\n",
-        final_name
+        "var {var_name} = {final_name};\n"
       )));
 
-      exports.push(format!("{} as {}", var_name, info_name));
+      exports.push(format!("{var_name} as {info_name}"));
+    }
+
+    for (inlined, info_name) in exports_with_inlined.iter() {
+      let var_name = format!("__webpack_exports__{}", to_identifier(info_name));
+
+      source.add(RawStringSource::from(format!(
+        "var {var_name} = {};\n",
+        inlined.render()
+      )));
+
+      exports.push(format!("{var_name} as {info_name}"));
     }
   }
 

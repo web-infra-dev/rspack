@@ -73,7 +73,7 @@ impl TryFrom<RawConfig> for Config {
         .targets
         .map(browserslist_to_lightningcss_targets)
         .transpose()
-        .to_rspack_result_with_message(|e| format!("Failed to parse browserslist: {}", e))?
+        .to_rspack_result_with_message(|e| format!("Failed to parse browserslist: {e}"))?
         .flatten(),
       include: value.include,
       exclude: value.exclude,

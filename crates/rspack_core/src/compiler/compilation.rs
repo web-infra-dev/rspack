@@ -54,9 +54,10 @@ use crate::{
   CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyCodeGeneration,
   DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, Entry, EntryData,
   EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap, Logger,
-  ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier, ModuleIdsArtifact, PathData,
-  ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpecMap, RuntimeTemplate,
-  SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats,
+  ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier,
+  ModuleIdsArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeMode, RuntimeModule,
+  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
+  Stats,
 };
 
 define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));
@@ -257,6 +258,8 @@ pub struct Compilation {
   pub chunk_hashes_artifact: ChunkHashesArtifact,
   // artifact for create_chunk_assets
   pub chunk_render_artifact: ChunkRenderArtifact,
+  // artifact for caching get_mode
+  pub module_graph_cache_artifact: ModuleGraphCacheArtifact,
 
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
@@ -376,6 +379,7 @@ impl Compilation {
       cgc_runtime_requirements_artifact: Default::default(),
       chunk_hashes_artifact: Default::default(),
       chunk_render_artifact: Default::default(),
+      module_graph_cache_artifact: Default::default(),
       code_generated_modules: Default::default(),
       build_time_executed_modules: Default::default(),
       cache,
@@ -932,6 +936,9 @@ impl Compilation {
   ) -> Result<T> {
     let artifact = std::mem::take(&mut self.make_artifact);
 
+    // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
+    self.module_graph_cache_artifact.unfreeze();
+
     self.make_artifact = update_module_graph(
       self,
       artifact,
@@ -1120,6 +1127,27 @@ impl Compilation {
 
   #[instrument("Compilation::create_chunk_assets", skip_all)]
   async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    if self.options.output.filename.has_hash_placeholder()
+      || self.options.output.chunk_filename.has_hash_placeholder()
+      || self.options.output.css_filename.has_hash_placeholder()
+      || self
+        .options
+        .output
+        .css_chunk_filename
+        .has_hash_placeholder()
+    {
+      if let Some(diagnostic) = self.incremental.disable_passes(
+        IncrementalPasses::CHUNKS_RENDER,
+        "Chunk filename that dependent on full hash",
+        "chunk filename that dependent on full hash is not supported in incremental compilation",
+      ) {
+        if let Some(diagnostic) = diagnostic {
+          self.push_diagnostic(diagnostic);
+        }
+        self.chunk_render_artifact.clear();
+      }
+    }
+
     let chunks = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::CHUNKS_RENDER)
@@ -1365,10 +1393,14 @@ impl Compilation {
     }
 
     logger.time_end(start);
+
+    // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2988
+    self.module_graph_cache_artifact.freeze();
     // Collect dependencies diagnostics at here to make sure:
     // 1. after finish_modules: has provide exports info
     // 2. before optimize dependencies: side effects free module hasn't been skipped
     self.collect_dependencies_diagnostics();
+    self.module_graph_cache_artifact.unfreeze();
 
     // take make diagnostics
     let diagnostics = self.make_artifact.diagnostics();
@@ -1406,6 +1438,7 @@ impl Compilation {
       self.get_module_graph().modules().keys().copied().collect()
     };
     let module_graph = self.get_module_graph();
+    let module_graph_cache = &self.module_graph_cache_artifact;
     let dependencies_diagnostics: DependenciesDiagnosticsArtifact = modules
       .par_iter()
       .map(|module_identifier| {
@@ -1416,7 +1449,7 @@ impl Compilation {
           .all_dependencies
           .iter()
           .filter_map(|dependency_id| module_graph.dependency_by_id(dependency_id))
-          .filter_map(|dependency| dependency.get_diagnostics(&module_graph))
+          .filter_map(|dependency| dependency.get_diagnostics(&module_graph, module_graph_cache))
           .flatten()
           .collect::<Vec<_>>();
         (*module_identifier, diagnostics)
@@ -1465,6 +1498,7 @@ impl Compilation {
     // so now we can start to create a chunk graph based on the module graph
 
     let start = logger.time("create chunks");
+    self.module_graph_cache_artifact.freeze();
     use_code_splitting_cache(self, |compilation| async {
       let start = logger.time("rebuild chunk graph");
       if compilation.options.experiments.parallel_code_splitting {
@@ -1549,6 +1583,15 @@ impl Compilation {
 
     self.assign_runtime_ids();
 
+    let start = logger.time("optimize code generation");
+    plugin_driver
+      .compilation_hooks
+      .optimize_code_generation
+      .call(self)
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeCodeGeneration"))?;
+    logger.time_end(start);
+
     let create_module_hashes_modules = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::MODULES_HASHES)
@@ -1594,6 +1637,58 @@ impl Compilation {
           _ => {}
         }
       }
+
+      // check if module runtime changes
+      for mi in mg.modules().keys() {
+        let module_runtimes = self
+          .chunk_graph
+          .get_module_runtimes(*mi, &self.chunk_by_ukey);
+        let module_runtime_keys = module_runtimes
+          .values()
+          .map(get_runtime_key)
+          .collect::<Vec<_>>();
+
+        if let Some(runtime_map) = self.cgm_hash_artifact.get_runtime_map(mi) {
+          if module_runtimes.is_empty() {
+            // module has no runtime, skip
+            continue;
+          }
+          if module_runtimes.len() == 1 {
+            // single runtime
+            if !matches!(runtime_map.mode, RuntimeMode::SingleEntry)
+              || runtime_map
+                .single_runtime
+                .as_ref()
+                .expect("should have single runtime for single entry")
+                != module_runtimes
+                  .values()
+                  .next()
+                  .expect("should have at least one runtime")
+            {
+              modules.insert(*mi);
+            }
+          } else {
+            // multiple runtimes
+            if matches!(runtime_map.mode, RuntimeMode::SingleEntry) {
+              modules.insert(*mi);
+              continue;
+            }
+
+            if runtime_map.map.len() != module_runtimes.len() {
+              modules.insert(*mi);
+              continue;
+            }
+
+            for runtime_key in runtime_map.map.keys() {
+              if !module_runtime_keys.contains(&runtime_key.as_str()) {
+                modules.insert(*mi);
+                break;
+              }
+            }
+          }
+        }
+      }
+
       tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MODULES_HASHES, %mutations, ?modules);
       let logger = self.get_logger("rspack.incremental.modulesHashes");
       logger.log(format!(
@@ -1601,6 +1696,7 @@ impl Compilation {
         modules.len(),
         mg.modules().len()
       ));
+
       modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
@@ -1608,15 +1704,6 @@ impl Compilation {
     self
       .create_module_hashes(create_module_hashes_modules)
       .await?;
-
-    let start = logger.time("optimize code generation");
-    plugin_driver
-      .compilation_hooks
-      .optimize_code_generation
-      .call(self)
-      .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeCodeGeneration"))?;
-    logger.time_end(start);
 
     let start = logger.time("code generation");
     let code_generation_modules = if let Some(mutations) = self
@@ -1638,6 +1725,10 @@ impl Compilation {
           _ => None,
         })
         .collect();
+      // also cleanup for updated modules, for `insert(); insert();` the second insert() won't override the first insert() on code_generation_results
+      for module in &modules {
+        self.code_generation_results.remove(module);
+      }
       tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MODULES_CODEGEN, %mutations);
       let logger = self.get_logger("rspack.incremental.modulesCodegen");
       logger.log(format!(
@@ -2078,7 +2169,7 @@ impl Compilation {
     if !full_hash_chunks.is_empty()
       && let Some(diagnostic) = self.incremental.disable_passes(
         IncrementalPasses::CHUNKS_HASHES,
-        "Chunks that dependent on full hash",
+        "Chunk content that dependent on full hash",
         "it requires calculating the hashes of all the chunks, which is a global effect",
       )
     {

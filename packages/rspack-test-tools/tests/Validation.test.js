@@ -147,6 +147,29 @@ describe("Validation", () => {
 		`);
 			}
 		);
+
+		createTestCase(
+			"function type",
+			{
+				ignoreWarnings: [new Map()],
+				output: {
+					devtoolModuleFilenameTemplate: new Set()
+				}
+			},
+			message => {
+				throw new Error("should not have error");
+			},
+			"loose",
+			log => {
+				expect(log).toMatchInlineSnapshot(`
+			Array [
+			  Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
+			- Expected string, received set at "output.devtoolModuleFilenameTemplate", or Expected function, received set at "output.devtoolModuleFilenameTemplate"
+			- Input not instance of RegExp at "ignoreWarnings[0]", or Expected function, received map at "ignoreWarnings[0]",
+			]
+		`);
+			}
+		);
 	});
 
 	describe("strict", () => {
@@ -189,6 +212,29 @@ describe("Validation", () => {
 				throw new Error("should not have log");
 			}
 		);
+
+		createTestCase(
+			"function type",
+			{
+				ignoreWarnings: [new Map()],
+				output: {
+					devtoolModuleFilenameTemplate: new Set(),
+					filename: []
+				}
+			},
+			message => {
+				expect(message).toMatchInlineSnapshot(`
+			Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
+			- Expected string, received array at "output.filename", or Expected function, received array at "output.filename"
+			- Expected string, received set at "output.devtoolModuleFilenameTemplate", or Expected function, received set at "output.devtoolModuleFilenameTemplate"
+			- Input not instance of RegExp at "ignoreWarnings[0]", or Expected function, received map at "ignoreWarnings[0]"
+		`);
+			},
+			"strict",
+			log => {
+				throw new Error("should not have log");
+			}
+		);
 	});
 
 	describe("default (strict)", () => {
@@ -223,6 +269,28 @@ describe("Validation", () => {
 			- The provided value "./" must be an absolute path. at "context"
 			- Unrecognized key(s) in object: '_additionalProperty' at "optimization"
 			- Unrecognized key(s) in object: '_additionalProperty'
+		`);
+			},
+			log => {
+				throw new Error("should not have log");
+			}
+		);
+
+		createTestCase(
+			"function type",
+			{
+				ignoreWarnings: [new Map()],
+				output: {
+					devtoolModuleFilenameTemplate: new Set(),
+					filename: []
+				}
+			},
+			message => {
+				expect(message).toMatchInlineSnapshot(`
+			Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
+			- Expected string, received array at "output.filename", or Expected function, received array at "output.filename"
+			- Expected string, received set at "output.devtoolModuleFilenameTemplate", or Expected function, received set at "output.devtoolModuleFilenameTemplate"
+			- Input not instance of RegExp at "ignoreWarnings[0]", or Expected function, received map at "ignoreWarnings[0]"
 		`);
 			},
 			log => {

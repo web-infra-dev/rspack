@@ -73,6 +73,7 @@ impl CodeSplittingCache {
     }
 
     let module_graph = this_compilation.get_module_graph();
+    let module_graph_cache = &this_compilation.module_graph_cache_artifact;
     let affected_modules = mutations.get_affected_modules_with_module_graph(&module_graph);
     let previous_modules_map = &self.code_splitter.block_modules_runtime_map;
 
@@ -106,7 +107,10 @@ impl CodeSplittingCache {
 
         'outer: for (m, connections) in active_modules {
           for conn in connections {
-            if conn.active_state(&module_graph, None).is_not_false() {
+            if conn
+              .active_state(&module_graph, None, module_graph_cache)
+              .is_not_false()
+            {
               res.push(m);
               continue 'outer;
             }
@@ -185,12 +189,7 @@ impl CodeSplittingCache {
       return false;
     }
 
-    if self.new_code_splitter.module_deps.is_empty()
-      && self
-        .new_code_splitter
-        .module_deps_without_runtime
-        .is_empty()
-    {
+    if self.new_code_splitter.module_deps.is_empty() {
       logger.log("no cache detected, rebuilding chunk graph");
       return false;
     }
@@ -214,6 +213,7 @@ impl CodeSplittingCache {
     }
 
     let module_graph = this_compilation.get_module_graph();
+    let module_graph_cache = &this_compilation.module_graph_cache_artifact;
     let affected_modules = mutations.get_affected_modules_with_module_graph(&module_graph);
 
     for module in affected_modules.clone() {
@@ -239,7 +239,7 @@ impl CodeSplittingCache {
 
       'outer: for (m, conns) in current_outgoings_map.iter() {
         for conn in conns {
-          let conn_state = conn.active_state(&module_graph, None);
+          let conn_state = conn.active_state(&module_graph, None, module_graph_cache);
           if conn_state.is_not_false() {
             current_outgoings.insert(*m);
             continue 'outer;
@@ -256,18 +256,6 @@ impl CodeSplittingCache {
           for out in outgoings {
             previous_outgoings.insert(*out);
           }
-        }
-      }
-
-      if let Some(outgoings) = self
-        .new_code_splitter
-        .module_deps_without_runtime
-        .get(&module)
-      {
-        newly_added_module = false;
-        let (outgoings, _blocks) = outgoings.value();
-        for out in outgoings {
-          previous_outgoings.insert(*out);
         }
       }
 

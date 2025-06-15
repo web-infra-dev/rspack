@@ -3,7 +3,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCodeGeneration,
   DependencyId, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
-  RuntimeSpec,
+  ModuleGraphCacheArtifact, RuntimeSpec,
 };
 use rspack_util::{ext::DynHash, itoa};
 
@@ -32,7 +32,11 @@ impl Dependency for JsonExportsDependency {
     &self.id
   }
 
-  fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
+  fn get_exports(
+    &self,
+    _mg: &ModuleGraph,
+    _mg_cache: &ModuleGraphCacheArtifact,
+  ) -> Option<ExportsSpec> {
     Some(ExportsSpec {
       exports: get_exports_from_data(&self.data, self.exports_depth, 1)
         .unwrap_or(ExportsOfExportsSpec::NoExports),

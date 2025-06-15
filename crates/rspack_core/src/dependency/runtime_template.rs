@@ -6,10 +6,10 @@ use swc_core::ecma::atoms::Atom;
 use crate::{
   compile_boolean_matcher_from_lists, contextify, property_access, to_comment, to_normal_comment,
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
-  DependencyId, Environment, ExportsArgument, ExportsType, FakeNamespaceObjectMode,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, Module, ModuleGraph, ModuleId,
-  ModuleIdentifier, NormalInitFragment, PathInfo, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  TemplateContext,
+  DependencyId, Environment, ExportsArgument, ExportsInfoGetter, ExportsType,
+  FakeNamespaceObjectMode, InitFragmentExt, InitFragmentKey, InitFragmentStage, Module,
+  ModuleGraph, ModuleId, ModuleIdentifier, NormalInitFragment, PathInfo, PrefetchExportsInfoMode,
+  RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext, UsedName,
 };
 
 pub fn runtime_condition_expression(
@@ -208,18 +208,35 @@ pub fn export_from_import(
     .as_deref()
     .unwrap_or(export_name);
   if !export_name.is_empty() {
-    let exports_info = compilation
-      .get_module_graph()
-      .get_exports_info(&module_identifier);
-    let Some(used_name) =
-      exports_info.get_used_name(&compilation.get_module_graph(), *runtime, export_name)
-    else {
-      return format!(
-        "{} undefined",
-        to_normal_comment(&property_access(export_name, 0))
-      );
+    let used_name = match ExportsInfoGetter::get_used_name(
+      &compilation.get_module_graph().get_prefetched_exports_info(
+        &module_identifier,
+        PrefetchExportsInfoMode::NamedNestedExports(export_name),
+      ),
+      *runtime,
+      export_name,
+    ) {
+      Some(UsedName::Normal(used_name)) => used_name,
+      Some(UsedName::Inlined(inlined)) => {
+        return format!(
+          "{} {}",
+          to_normal_comment(&format!(
+            "inlined export {}",
+            property_access(export_name, 0)
+          )),
+          inlined.render()
+        )
+      }
+      None => {
+        return format!(
+          "{} undefined",
+          to_normal_comment(&format!(
+            "unused export {}",
+            property_access(export_name, 0)
+          ))
+        )
+      }
     };
-    let used_name = used_name.as_ref();
     let comment = if used_name != export_name {
       to_normal_comment(&property_access(export_name, 0))
     } else {

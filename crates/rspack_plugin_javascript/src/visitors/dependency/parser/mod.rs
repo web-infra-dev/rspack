@@ -228,7 +228,6 @@ pub struct JavascriptParser<'parser> {
   pub additional_data: Option<AdditionalData>,
   pub parse_meta: FxHashMap<String, String>,
   pub(crate) comments: Option<&'parser dyn Comments>,
-  pub(crate) worker_index: u32,
   pub(crate) build_meta: &'parser mut BuildMeta,
   pub build_info: &'parser mut BuildInfo,
   pub resource_data: &'parser ResourceData,
@@ -242,7 +241,6 @@ pub struct JavascriptParser<'parser> {
   // TODO: remove `is_esm` after `ESMExports::isEnabled`
   pub(crate) is_esm: bool,
   pub(crate) in_tagged_template_tag: bool,
-  pub(crate) parser_exports_state: Option<bool>,
   // TODO: delete `enter_call`
   pub(crate) enter_call: u32,
   pub(crate) member_expr_in_optional_chain: bool,
@@ -252,14 +250,18 @@ pub struct JavascriptParser<'parser> {
   pub(crate) statement_path: Vec<StatementPath>,
   pub(crate) prev_statement: Option<StatementPath>,
   pub(crate) current_tag_info: Option<TagInfoId>,
-  pub(crate) local_modules: Vec<LocalModule>,
   // ===== scope info =======
-  pub(crate) in_try: bool,
+  pub in_try: bool,
   pub(crate) in_short_hand: bool,
   pub(super) definitions: ScopeInfoId,
   pub(crate) top_level_scope: TopLevelScope,
+  // ===== states =======
+  pub(crate) worker_index: u32,
+  pub(crate) parser_exports_state: Option<bool>,
+  pub(crate) local_modules: Vec<LocalModule>,
   pub(crate) last_esm_import_order: i32,
   pub(crate) inner_graph: InnerGraphState,
+  pub(crate) has_inlinable_const_decls: bool,
 }
 
 impl<'parser> JavascriptParser<'parser> {
@@ -365,6 +367,10 @@ impl<'parser> JavascriptParser<'parser> {
         unresolved_mark,
       )));
     }
+    // disabled by default for now, it's still experimental
+    if javascript_options.inline_const == Some(true) {
+      plugins.push(Box::new(parser_plugin::InlineConstPlugin));
+    }
     plugins.append(parser_plugins);
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
@@ -409,6 +415,7 @@ impl<'parser> JavascriptParser<'parser> {
       additional_data,
       parse_meta,
       local_modules: Default::default(),
+      has_inlinable_const_decls: true,
     }
   }
 

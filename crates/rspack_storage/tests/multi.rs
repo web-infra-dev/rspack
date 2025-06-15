@@ -53,13 +53,13 @@ mod test_storage_multi {
     for i in 0..500 {
       storage.set(
         "scope_1",
-        format!("scope_1_key_{:0>3}", i).as_bytes().to_vec(),
-        format!("scope_1_val_{:0>3}", i).as_bytes().to_vec(),
+        format!("scope_1_key_{i:0>3}").as_bytes().to_vec(),
+        format!("scope_1_val_{i:0>3}").as_bytes().to_vec(),
       );
       storage.set(
         "scope_2",
-        format!("scope_2_key_{:0>3}", i).as_bytes().to_vec(),
-        format!("scope_2_val_{:0>3}", i).as_bytes().to_vec(),
+        format!("scope_2_key_{i:0>3}").as_bytes().to_vec(),
+        format!("scope_2_val_{i:0>3}").as_bytes().to_vec(),
       );
     }
     let rx = storage.trigger_save()?;

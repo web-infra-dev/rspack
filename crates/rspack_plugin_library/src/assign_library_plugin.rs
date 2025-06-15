@@ -8,9 +8,10 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier, ApplyContext, BoxModule, Chunk, ChunkUkey, CodeGenerationDataTopLevelDeclarations,
   Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules,
-  CompilationParams, CompilerCompilation, CompilerOptions, EntryData, ExportInfoSetter,
-  ExportProvided, Filename, LibraryExport, LibraryName, LibraryNonUmdObject, LibraryOptions,
-  ModuleIdentifier, PathData, Plugin, PluginContext, RuntimeGlobals, SourceType, UsageState,
+  CompilationParams, CompilerCompilation, CompilerOptions, EntryData, ExportInfoGetter,
+  ExportInfoSetter, ExportProvided, Filename, LibraryExport, LibraryName, LibraryNonUmdObject,
+  LibraryOptions, ModuleIdentifier, PathData, Plugin, PluginContext, RuntimeGlobals, SourceType,
+  UsageState,
 };
 use rspack_error::{error, error_bail, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
@@ -268,13 +269,12 @@ async fn render_startup(
     let mut provided = vec![];
     for export_info in exports_info.ordered_exports(&module_graph) {
       if matches!(
-        export_info.provided(&module_graph),
+        ExportInfoGetter::provided(export_info.as_data(&module_graph)),
         Some(ExportProvided::NotProvided)
       ) {
         continue;
       }
-      let export_info_name = export_info
-        .name(&module_graph)
+      let export_info_name = ExportInfoGetter::name(export_info.as_data(&module_graph))
         .expect("should have name")
         .to_string();
       provided.push(export_info_name.clone());

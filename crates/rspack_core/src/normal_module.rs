@@ -281,7 +281,7 @@ impl NormalModule {
 
   #[tracing::instrument(
     "NormalModule:build_hash", skip_all,fields(
-    id2 = self.resource_data.resource.as_str()
+    resource = self.resource_data.resource.as_str()
   )
 )]
   fn init_build_hash(
@@ -299,6 +299,10 @@ impl NormalModule {
     "meta".hash(&mut hasher);
     build_meta.hash(&mut hasher);
     hasher.digest(&output_options.hash_digest)
+  }
+
+  pub fn get_parser_options(&self) -> Option<&ParserOptions> {
+    self.parser_options.as_ref()
   }
 
   pub fn get_generator_options(&self) -> Option<&GeneratorOptions> {
@@ -367,9 +371,10 @@ impl Module for NormalModule {
   }
 
   #[tracing::instrument("NormalModule:build", skip_all, fields(
+    perfetto.track_name = format!("Module Build"),
+    perfetto.process_name = format!("Rspack Build Detail"),
     module.resource = self.resource_resolved_data().resource.as_str(),
     module.identifier = self.identifier().as_str(),
-    id2 = self.resource_data.resource.as_str(),
     module.loaders = ?self.loaders.iter().map(|l| l.identifier().as_str()).collect::<Vec<_>>())
   )]
   async fn build(
@@ -413,10 +418,7 @@ impl Module for NormalModule {
       },
       build_context.fs.clone(),
     )
-    .instrument(info_span!(
-      "NormalModule:run_loaders",
-      id2 = self.resource_data.resource.as_str(),
-    ))
+    .instrument(info_span!("NormalModule:run_loaders",))
     .await;
     let (mut loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),

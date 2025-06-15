@@ -1,24 +1,14 @@
 import nodePath from "node:path";
-import type { AssetInfo, RawFuncUseCtx } from "@rspack/binding";
-import { type SyncParseReturnType, ZodIssueCode, z } from "zod";
-import { Chunk } from "../Chunk";
-import { ChunkGraph } from "../ChunkGraph";
-import type { Compilation, PathData } from "../Compilation";
-import { Module } from "../Module";
-import ModuleGraph from "../ModuleGraph";
+import { ZodIssueCode, z } from "zod";
 import { ZodSwcLoaderOptions } from "../builtin-loader/swc/types";
 import { validate } from "../util/validate";
-import type { ResolveCallback } from "./adapterRuleUse";
 import type * as t from "./types";
-import { ZodRspackCrossChecker } from "./utils";
+import { ZodRspackCrossChecker, anyFunction } from "./utils";
 
 const filenameTemplate = z.string() satisfies z.ZodType<t.FilenameTemplate>;
 
 const filename = filenameTemplate.or(
-	z
-		.function()
-		.args(z.custom<PathData>(), z.custom<AssetInfo>().optional())
-		.returns(z.string())
+	anyFunction
 ) satisfies z.ZodType<t.Filename>;
 
 //#region Name
@@ -193,11 +183,7 @@ const entryStatic = entryObject.or(
 	entryUnnamed
 ) satisfies z.ZodType<t.EntryStatic>;
 
-const entryDynamic = z
-	.function()
-	.returns(
-		entryStatic.or(z.promise(entryStatic))
-	) satisfies z.ZodType<t.EntryDynamic>;
+const entryDynamic = anyFunction satisfies z.ZodType<t.EntryDynamic>;
 
 const entry = entryStatic.or(entryDynamic) satisfies z.ZodType<t.Entry>;
 //#endregion
@@ -245,11 +231,7 @@ const enabledLibraryTypes = z.array(
 const clean = z.union([
 	z.boolean(),
 	z.strictObject({
-		keep: z
-			.instanceof(RegExp)
-			.or(z.string())
-			.or(z.function().args(z.string()).returns(z.boolean()))
-			.optional()
+		keep: z.instanceof(RegExp).or(z.string()).or(anyFunction).optional()
 	})
 ]) satisfies z.ZodType<t.Clean>;
 
@@ -305,7 +287,7 @@ const devtoolNamespace = z.string() satisfies z.ZodType<t.DevtoolNamespace>;
 
 const devtoolModuleFilenameTemplate = z.union([
 	z.string(),
-	z.function(z.tuple([z.any()]), z.any())
+	anyFunction
 ]) satisfies z.ZodType<t.DevtoolModuleFilenameTemplate>;
 
 const devtoolFallbackModuleFilenameTemplate =
@@ -441,7 +423,7 @@ const resolveOptions: z.ZodType<t.ResolveOptions> = baseResolveOptions.extend({
 const baseRuleSetCondition = z
 	.instanceof(RegExp)
 	.or(z.string())
-	.or(z.function().args(z.string()).returns(z.boolean()));
+	.or(anyFunction);
 
 const ruleSetCondition: z.ZodType<t.RuleSetCondition> = baseRuleSetCondition
 	.or(z.lazy(() => ruleSetConditions))
@@ -521,9 +503,7 @@ const ruleSetUseItem = ruleSetLoader.or(
 
 const ruleSetUse = ruleSetUseItem
 	.or(ruleSetUseItem.array())
-	.or(
-		z.function().args(z.custom<RawFuncUseCtx>()).returns(ruleSetUseItem.array())
-	) satisfies z.ZodType<t.RuleSetUse>;
+	.or(anyFunction) satisfies z.ZodType<t.RuleSetUse>;
 
 const baseRuleSetRule = z.strictObject({
 	test: ruleSetCondition.optional(),
@@ -662,6 +642,7 @@ const requireAsExpression = z.boolean();
 const requireDynamic = z.boolean();
 const requireResolve = z.boolean();
 const importDynamic = z.boolean();
+const inlineConst = z.boolean();
 
 const javascriptParserOptions = z.strictObject({
 	dynamicImportMode: dynamicImportMode.optional(),
@@ -683,7 +664,8 @@ const javascriptParserOptions = z.strictObject({
 	requireAsExpression: requireAsExpression.optional(),
 	requireDynamic: requireDynamic.optional(),
 	requireResolve: requireResolve.optional(),
-	importDynamic: importDynamic.optional()
+	importDynamic: importDynamic.optional(),
+	inlineConst: inlineConst.optional()
 	// #endregion
 }) satisfies z.ZodType<t.JavascriptParserOptions>;
 
@@ -705,16 +687,8 @@ const assetGeneratorDataUrlOptions = z.strictObject({
 	mimetype: z.string().optional()
 }) satisfies z.ZodType<t.AssetGeneratorDataUrlOptions>;
 
-const assetGeneratorDataUrlFunction = z
-	.function()
-	.args(
-		z.instanceof(Buffer),
-		z.strictObject({
-			filename: z.string(),
-			module: z.custom<Module>()
-		})
-	)
-	.returns(z.string()) satisfies z.ZodType<t.AssetGeneratorDataUrlFunction>;
+const assetGeneratorDataUrlFunction =
+	anyFunction satisfies z.ZodType<t.AssetGeneratorDataUrlFunction>;
 
 const assetGeneratorDataUrl = assetGeneratorDataUrlOptions.or(
 	assetGeneratorDataUrlFunction
@@ -787,10 +761,7 @@ const generatorOptionsByModuleTypeKnown = z.strictObject({
 
 const generatorOptionsByModuleType = generatorOptionsByModuleTypeKnown;
 
-const noParseOptionSingle = z
-	.string()
-	.or(z.instanceof(RegExp))
-	.or(z.function().args(z.string()).returns(z.boolean()));
+const noParseOptionSingle = z.string().or(z.instanceof(RegExp)).or(anyFunction);
 const noParseOption = noParseOptionSingle.or(
 	z.array(noParseOptionSingle)
 ) satisfies z.ZodType<t.NoParseOption>;
@@ -912,120 +883,89 @@ export const externalsType = z.enum([
 ]) satisfies z.ZodType<t.ExternalsType>;
 //#endregion
 
-const externalObjectValue = new ZodRspackCrossChecker<
-	t.ExternalItemUmdValue | t.ExternalItemObjectValue
->({
-	patterns: [
-		{
-			test: config => {
-				let isLibraryUmd = false;
-				const library = config?.output?.library;
-				if (typeof library === "object" && "type" in library) {
-					isLibraryUmd = library.type === "umd";
-				} else {
-					isLibraryUmd = config?.output?.libraryTarget === "umd";
-				}
-				if (isLibraryUmd) {
-					return (
-						config?.externalsType === undefined ||
-						config?.externalsType === "umd"
-					);
-				}
-				return false;
-			},
-			type: z.strictObject({
-				root: z.string().or(z.string().array()),
-				commonjs: z.string().or(z.string().array()),
-				commonjs2: z.string().or(z.string().array()),
-				amd: z.string().or(z.string().array())
-			}),
-			issue: res => {
-				if ((res as SyncParseReturnType).status === "aborted") {
-					return [
-						{
-							fatal: true,
-							code: ZodIssueCode.custom,
-							message: `External object must have "root", "commonjs", "commonjs2", "amd" properties when "libraryType" or "externalsType" is "umd"`
-						}
-					];
-				}
-				return [];
+const externalItemObjectValue = z.record(
+	z.string(),
+	z.string().or(z.string().array())
+) satisfies z.ZodType<t.ExternalItemObjectValue>;
+
+const externalItemUmdValue = z.strictObject({
+	root: z.string().or(z.string().array()),
+	commonjs: z.string().or(z.string().array()),
+	commonjs2: z.string().or(z.string().array()),
+	amd: z.string().or(z.string().array())
+}) satisfies z.ZodType<t.ExternalItemUmdValue>;
+
+const externalUmdChecker = (config: t.RspackOptions, ctx: z.RefinementCtx) => {
+	let isLibraryUmd = false;
+	const library = config?.output?.library;
+	if (typeof library === "object" && "type" in library) {
+		isLibraryUmd = library.type === "umd";
+	} else {
+		isLibraryUmd = config?.output?.libraryTarget === "umd";
+	}
+
+	if (!isLibraryUmd) {
+		return;
+	}
+
+	if (config?.externalsType !== undefined && config?.externalsType !== "umd") {
+		return;
+	}
+
+	if (!Array.isArray(config?.externals)) {
+		checkExternalItem(config?.externals, ["externals"]);
+	} else {
+		config.externals.forEach((external, index) =>
+			checkExternalItem(external, ["externals", index])
+		);
+	}
+
+	function checkExternalItem(
+		externalItem: t.ExternalItem | undefined,
+		path: (string | number)[]
+	) {
+		if (typeof externalItem === "object" && externalItem !== null) {
+			for (const [key, value] of Object.entries(externalItem)) {
+				checkExternalItemValue(value, [...path, key]);
 			}
 		}
-	],
-	default: z.record(z.string(), z.string().or(z.string().array()))
-});
+	}
+
+	function checkExternalItemValue(
+		externalItemValue: t.ExternalItemValue | undefined,
+		path: (string | number)[]
+	) {
+		if (typeof externalItemValue === "object" && externalItemValue !== null) {
+			const result = externalItemUmdValue.safeParse(externalItemValue);
+			if (!result.success) {
+				ctx.addIssue({
+					code: ZodIssueCode.custom,
+					message: `External object must have "root", "commonjs", "commonjs2", "amd" properties when "libraryType" or "externalsType" is "umd"`,
+					path
+				});
+			}
+			return;
+		}
+	}
+};
 
 // #region Externals
 const externalItemValue = z
 	.string()
 	.or(z.boolean())
 	.or(z.string().array().min(1))
-	.or(externalObjectValue) satisfies z.ZodType<t.ExternalItemValue>;
+	.or(externalItemObjectValue) satisfies z.ZodType<t.ExternalItemValue>;
 
 const externalItemObjectUnknown = z.record(
 	z.string(),
 	externalItemValue
 ) satisfies z.ZodType<t.ExternalItemObjectUnknown>;
 
-const externalItemFunctionData = z.strictObject({
-	context: z.string().optional(),
-	dependencyType: z.string().optional(),
-	request: z.string().optional(),
-	contextInfo: z
-		.strictObject({
-			issuer: z.string(),
-			issuerLayer: z.string().or(z.null()).optional()
-		})
-		.optional(),
-	getResolve: z
-		.function()
-		.returns(
-			z
-				.function()
-				.args(z.string(), z.string())
-				.returns(z.promise(z.string()))
-				.or(
-					z
-						.function()
-						.args(z.string(), z.string(), z.custom<ResolveCallback>())
-						.returns(z.void())
-				)
-		)
-		.optional()
-}) satisfies z.ZodType<t.ExternalItemFunctionData>;
-
 const externalItem = z
 	.string()
 	.or(z.instanceof(RegExp))
 	.or(externalItemObjectUnknown)
-	.or(
-		z
-			.function()
-			.args(
-				externalItemFunctionData as z.ZodType<t.ExternalItemFunctionData>,
-				z
-					.function()
-					.args(
-						z.instanceof(Error).optional(),
-						externalItemValue.optional(),
-						externalsType.optional()
-					)
-					.returns(z.void())
-			)
-	)
-	.or(
-		z
-			.function()
-			.args(externalItemFunctionData as z.ZodType<t.ExternalItemFunctionData>)
-			.returns(z.promise(externalItemValue))
-	)
-	.or(
-		z
-			.function()
-			.args(externalItemFunctionData as z.ZodType<t.ExternalItemFunctionData>)
-			.returns(externalItemValue)
-	) satisfies z.ZodType<t.ExternalItem>;
+	.or(anyFunction) satisfies z.ZodType<t.ExternalItem>;
 
 const externals = externalItem
 	.array()
@@ -1048,9 +988,7 @@ const externalsPresets = z.strictObject({
 const filterItemTypes = z
 	.instanceof(RegExp)
 	.or(z.string())
-	.or(
-		z.function().args(z.string()).returns(z.boolean())
-	) satisfies z.ZodType<t.FilterItemTypes>;
+	.or(anyFunction) satisfies z.ZodType<t.FilterItemTypes>;
 
 const filterTypes = filterItemTypes
 	.array()
@@ -1194,27 +1132,17 @@ const statsOptions = z.strictObject({
 	assetsSpace: z.number().optional(),
 	orphanModules: z.boolean().optional(),
 	excludeModules: z
-		.array(
-			z
-				.string()
-				.or(z.instanceof(RegExp))
-				.or(z.function(z.tuple([z.string(), z.any(), z.any()]), z.boolean()))
-		)
+		.array(z.string().or(z.instanceof(RegExp)).or(anyFunction))
 		.or(z.string())
 		.or(z.instanceof(RegExp))
-		.or(z.function(z.tuple([z.string(), z.any(), z.any()]), z.boolean()))
+		.or(anyFunction)
 		.or(z.boolean())
 		.optional(),
 	excludeAssets: z
-		.array(
-			z
-				.string()
-				.or(z.instanceof(RegExp))
-				.or(z.function(z.tuple([z.string(), z.any()]), z.boolean()))
-		)
+		.array(z.string().or(z.instanceof(RegExp)).or(anyFunction))
 		.or(z.string())
 		.or(z.instanceof(RegExp))
-		.or(z.function(z.tuple([z.string(), z.any()]), z.boolean()))
+		.or(anyFunction)
 		.optional(),
 	modulesSort: z.string().optional(),
 	chunkModulesSort: z.string().optional(),
@@ -1268,24 +1196,12 @@ const optimizationRuntimeChunk = z
 	.or(z.boolean())
 	.or(
 		z.strictObject({
-			name: z
-				.string()
-				.or(
-					z
-						.function()
-						.args(z.strictObject({ name: z.string() }))
-						.returns(z.string())
-				)
-				.optional()
+			name: z.string().or(anyFunction).optional()
 		})
 	) satisfies z.ZodType<t.OptimizationRuntimeChunk>;
 
-const optimizationSplitChunksNameFunction = z
-	.function()
-	.args(z.instanceof(Module), z.array(z.instanceof(Chunk)), z.string())
-	.returns(
-		z.string().optional()
-	) satisfies z.ZodType<t.OptimizationSplitChunksNameFunction>;
+const optimizationSplitChunksNameFunction =
+	anyFunction satisfies z.ZodType<t.OptimizationSplitChunksNameFunction>;
 
 const optimizationSplitChunksName = z
 	.string()
@@ -1294,12 +1210,7 @@ const optimizationSplitChunksName = z
 const optimizationSplitChunksChunks = z
 	.enum(["initial", "async", "all"])
 	.or(z.instanceof(RegExp))
-	.or(
-		z
-			.function()
-			.args(z.instanceof(Chunk, { message: "Input not instance of Chunk" }))
-			.returns(z.boolean())
-	);
+	.or(anyFunction);
 const optimizationSplitChunksSizes = z
 	.number()
 	.or(z.record(z.string(), z.number()));
@@ -1321,32 +1232,13 @@ const sharedOptimizationSplitChunksCacheGroup = {
 	automaticNameDelimiter: z.string().optional()
 };
 const optimizationSplitChunksCacheGroup = z.strictObject({
-	test: z
-		.string()
-		.or(z.instanceof(RegExp))
-		.or(
-			z
-				.function()
-				.args(
-					z.instanceof(Module) /** FIXME: lack of CacheGroupContext */,
-					z.object({
-						moduleGraph: z.instanceof(ModuleGraph),
-						chunkGraph: z.instanceof(ChunkGraph)
-					})
-				)
-				.returns(z.boolean())
-		)
-		.optional(),
+	test: z.string().or(z.instanceof(RegExp)).or(anyFunction).optional(),
 	priority: z.number().optional(),
 	enforce: z.boolean().optional(),
 	reuseExistingChunk: z.boolean().optional(),
 	type: z.string().or(z.instanceof(RegExp)).optional(),
 	idHint: z.string().optional(),
-	layer: z
-		.string()
-		.or(z.instanceof(RegExp))
-		.or(z.function(z.tuple([z.string().optional()]), z.boolean()))
-		.optional(),
+	layer: z.string().or(z.instanceof(RegExp)).or(anyFunction).optional(),
 	...sharedOptimizationSplitChunksCacheGroup
 }) satisfies z.ZodType<t.OptimizationSplitChunksCacheGroup>;
 
@@ -1443,10 +1335,7 @@ const experimentCacheOptions = z
 const lazyCompilationOptions = z.object({
 	imports: z.boolean().optional(),
 	entries: z.boolean().optional(),
-	test: z
-		.instanceof(RegExp)
-		.or(z.function().args(z.custom<Module>()).returns(z.boolean()))
-		.optional(),
+	test: z.instanceof(RegExp).or(anyFunction).optional(),
 	client: z.string().optional(),
 	serverUrl: z.string().optional(),
 	prefix: z.string().optional()
@@ -1478,20 +1367,13 @@ const buildHttpOptions = z.object({
 	upgrade: z.boolean().optional(),
 	// proxy: z.string().optional(),
 	// frozen: z.boolean().optional(),
-	httpClient: z
-		.function()
-		.args(z.string(), z.record(z.string(), z.string()))
-		.returns(
-			z.promise(
-				z.object({
-					status: z.number(),
-					headers: z.record(z.string(), z.string()),
-					body: z.instanceof(Buffer)
-				})
-			)
-		)
-		.optional()
+	httpClient: anyFunction.optional()
 }) satisfies z.ZodType<t.HttpUriOptions>;
+
+const useInputFileSystem = z.union([
+	z.literal(false),
+	z.array(z.instanceof(RegExp))
+]) satisfies z.ZodType<t.UseInputFileSystem>;
 
 const experiments = z.strictObject({
 	cache: z.boolean().optional().or(experimentCacheOptions),
@@ -1512,7 +1394,9 @@ const experiments = z.strictObject({
 	futureDefaults: z.boolean().optional(),
 	rspackFuture: rspackFutureOptions.optional(),
 	buildHttp: buildHttpOptions.optional(),
-	parallelLoader: z.boolean().optional()
+	parallelLoader: z.boolean().optional(),
+	useInputFileSystem: useInputFileSystem.optional(),
+	inlineConst: z.boolean().optional()
 }) satisfies z.ZodType<t.Experiments>;
 //#endregion
 
@@ -1542,12 +1426,7 @@ const devServer = z.custom<t.DevServer>();
 //#region IgnoreWarnings
 const ignoreWarnings = z
 	.instanceof(RegExp)
-	.or(
-		z
-			.function()
-			.args(z.instanceof(Error), z.custom<Compilation>())
-			.returns(z.boolean())
-	)
+	.or(anyFunction)
 	.array() satisfies z.ZodType<t.IgnoreWarnings>;
 //#endregion
 
@@ -1568,7 +1447,7 @@ const bail = z.boolean() satisfies z.ZodType<t.Bail>;
 //#region Performance
 const performance = z
 	.strictObject({
-		assetFilter: z.function().args(z.string()).returns(z.boolean()).optional(),
+		assetFilter: anyFunction.optional(),
 		hints: z.enum(["error", "warning"]).or(z.literal(false)).optional(),
 		maxAssetSize: z.number().optional(),
 		maxEntrypointSize: z.number().optional()
@@ -1576,37 +1455,39 @@ const performance = z
 	.or(z.literal(false)) satisfies z.ZodType<t.Performance>;
 //#endregion
 
-export const rspackOptions = z.strictObject({
-	name: name.optional(),
-	dependencies: dependencies.optional(),
-	extends: z.union([z.string(), z.array(z.string())]).optional(),
-	entry: entry.optional(),
-	output: output.optional(),
-	target: target.optional(),
-	mode: mode.optional(),
-	experiments: experiments.optional(),
-	externals: externals.optional(),
-	externalsType: externalsType.optional(),
-	externalsPresets: externalsPresets.optional(),
-	infrastructureLogging: infrastructureLogging.optional(),
-	cache: cacheOptions.optional(),
-	context: context.optional(),
-	devtool: devTool.optional(),
-	node: node.optional(),
-	loader: loader.optional(),
-	ignoreWarnings: ignoreWarnings.optional(),
-	watchOptions: watchOptions.optional(),
-	watch: watch.optional(),
-	stats: statsValue.optional(),
-	snapshot: snapshotOptions.optional(),
-	optimization: optimization.optional(),
-	resolve: resolveOptions.optional(),
-	resolveLoader: resolveOptions.optional(),
-	plugins: plugins.optional(),
-	devServer: devServer.optional(),
-	module: moduleOptions.optional(),
-	profile: profile.optional(),
-	amd: amd.optional(),
-	bail: bail.optional(),
-	performance: performance.optional()
-}) satisfies z.ZodType<t.RspackOptions>;
+export const rspackOptions = z
+	.strictObject({
+		name: name.optional(),
+		dependencies: dependencies.optional(),
+		extends: z.union([z.string(), z.array(z.string())]).optional(),
+		entry: entry.optional(),
+		output: output.optional(),
+		target: target.optional(),
+		mode: mode.optional(),
+		experiments: experiments.optional(),
+		externals: externals.optional(),
+		externalsType: externalsType.optional(),
+		externalsPresets: externalsPresets.optional(),
+		infrastructureLogging: infrastructureLogging.optional(),
+		cache: cacheOptions.optional(),
+		context: context.optional(),
+		devtool: devTool.optional(),
+		node: node.optional(),
+		loader: loader.optional(),
+		ignoreWarnings: ignoreWarnings.optional(),
+		watchOptions: watchOptions.optional(),
+		watch: watch.optional(),
+		stats: statsValue.optional(),
+		snapshot: snapshotOptions.optional(),
+		optimization: optimization.optional(),
+		resolve: resolveOptions.optional(),
+		resolveLoader: resolveOptions.optional(),
+		plugins: plugins.optional(),
+		devServer: devServer.optional(),
+		module: moduleOptions.optional(),
+		profile: profile.optional(),
+		amd: amd.optional(),
+		bail: bail.optional(),
+		performance: performance.optional()
+	})
+	.superRefine(externalUmdChecker) satisfies z.ZodType<t.RspackOptions>;

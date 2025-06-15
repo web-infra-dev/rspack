@@ -78,6 +78,24 @@ impl ConcatenationScope {
     }
   }
 
+  pub fn register_import(
+    &mut self,
+    import_source: String,
+    attributes: Option<String>,
+    import_symbol: Option<Atom>,
+  ) {
+    let raw_import_map = self.current_module.import_map.get_or_insert_default();
+    let entry = raw_import_map
+      .entry((import_source, attributes))
+      .or_default();
+
+    let Some(import_symbol) = import_symbol else {
+      return;
+    };
+
+    entry.insert(import_symbol);
+  }
+
   pub fn register_namespace_export(&mut self, symbol: &str) {
     self.current_module.namespace_export_symbol = Some(symbol.into());
   }

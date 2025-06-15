@@ -13,6 +13,13 @@ impl CgmHashArtifact {
     self.module_to_hashes.is_empty()
   }
 
+  pub fn get_runtime_map(
+    &self,
+    module: &ModuleIdentifier,
+  ) -> Option<&RuntimeSpecMap<RspackHashDigest>> {
+    self.module_to_hashes.get(module)
+  }
+
   pub fn get(&self, module: &ModuleIdentifier, runtime: &RuntimeSpec) -> Option<&RspackHashDigest> {
     let hashes = self.module_to_hashes.get(module)?;
     hashes.get(runtime)

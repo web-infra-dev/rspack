@@ -102,6 +102,9 @@ jobs:
         with:
           path: artifacts
 
+      - name: Clean artifacts
+        run: find artifacts -type f -name '*.d.ts'  | xargs rm -f
+
       - name: Build node packages
         run: pnpm run build:js
 

@@ -81,7 +81,7 @@ impl SplitChunksPlugin {
       if let Some(chunk_reason) = new_chunk_mut.chunk_reason_mut() {
         chunk_reason.push_str(&format!(" (cache group: {})", cache_group.key.as_str()));
         if let Some(chunk_name) = &module_group.chunk_name {
-          chunk_reason.push_str(&format!(" (name: {})", chunk_name));
+          chunk_reason.push_str(&format!(" (name: {chunk_name})"));
         }
       }
 

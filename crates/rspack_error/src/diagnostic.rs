@@ -4,8 +4,8 @@ use cow_utils::CowUtils;
 use miette::{GraphicalTheme, IntoDiagnostic, MietteDiagnostic};
 use rspack_cacheable::{cacheable, with::Unsupported};
 use rspack_collections::Identifier;
+use rspack_location::DependencyLocation;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
-use swc_core::common::{SourceMap, Span};
 
 use crate::{graphical::GraphicalReportHandler, Error};
 
@@ -60,44 +60,12 @@ impl fmt::Display for RspackSeverity {
   }
 }
 
-#[cacheable]
-#[derive(Debug, Clone, Copy)]
-pub struct SourcePosition {
-  pub line: usize,
-  pub column: usize,
-}
-
-#[cacheable]
-#[derive(Debug, Clone, Copy)]
-pub struct ErrorLocation {
-  pub start: SourcePosition,
-  pub end: SourcePosition,
-}
-
-impl ErrorLocation {
-  pub fn new(span: Span, source_map: &SourceMap) -> Self {
-    let lo = source_map.lookup_char_pos(span.lo());
-    let hi = source_map.lookup_char_pos(span.hi());
-
-    ErrorLocation {
-      start: SourcePosition {
-        line: lo.line,
-        column: lo.col_display,
-      },
-      end: SourcePosition {
-        line: hi.line,
-        column: hi.col_display,
-      },
-    }
-  }
-}
-
 #[cacheable(with=Unsupported)]
 #[derive(Debug, Clone)]
 pub struct Diagnostic {
   inner: Arc<miette::Error>,
   module_identifier: Option<Identifier>,
-  loc: Option<String>,
+  loc: Option<DependencyLocation>,
   file: Option<Utf8PathBuf>,
   hide_stack: Option<bool>,
   chunk: Option<u32>,
@@ -200,11 +168,11 @@ impl Diagnostic {
     self
   }
 
-  pub fn loc(&self) -> Option<String> {
-    self.loc.clone()
+  pub fn loc(&self) -> Option<&DependencyLocation> {
+    self.loc.as_ref()
   }
 
-  pub fn with_loc(mut self, loc: Option<String>) -> Self {
+  pub fn with_loc(mut self, loc: Option<DependencyLocation>) -> Self {
     self.loc = loc;
     self
   }

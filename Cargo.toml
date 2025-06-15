@@ -51,10 +51,11 @@ indexmap           = { version = "2.7.0" }
 indoc              = { version = "2.0.5" }
 insta              = { version = "1.42.0" }
 itertools          = { version = "0.14.0" }
+itoa               = { version = "1.0.14" }
 json               = { version = "0.12.4" }
 lightningcss       = { version = "1.0.0-alpha.64", default-features = false, features = ["grid", "serde"] }
 linked_hash_set    = { version = "0.1.5" }
-mimalloc           = { version = "0.2.3", package = "mimalloc-rspack" }
+mimalloc           = { version = "0.2.4", package = "mimalloc-rspack" }
 mime_guess         = { version = "2.0.5" }
 once_cell          = { version = "1.20.2" }
 parcel_sourcemap   = { version = "2.1.1" }
@@ -72,6 +73,7 @@ rustc-hash         = { version = "2.1.0" }
 scopeguard         = "1.2.0"
 serde              = { version = "1.0.217" }
 serde_json         = { version = "1.0.134" }
+sftrace-setup      = { version = "0.1.0" }
 sha2               = { version = "0.10.8" }
 simd-json          = { version = "0.14.3" }
 smol_str           = { version = "0.3.0" }
@@ -88,9 +90,9 @@ ustr               = { package = "ustr-fxhash", version = "1.0.1" }
 xxhash-rust        = { version = "0.8.14" }
 
 # Pinned
-napi        = { version = "3.0.0-beta.2" }
-napi-build  = { version = "2.2.0" }
-napi-derive = { version = "3.0.0-beta.2" }
+napi        = { version = "3.0.0-beta.8" }
+napi-build  = { version = "3.0.0-beta.0" }
+napi-derive = { version = "3.0.0-beta.8" }
 
 # Serialize and Deserialize
 inventory = { version = "0.3.17" }
@@ -98,14 +100,15 @@ rkyv      = { version = "=0.8.8" }
 
 # Must be pinned with the same swc versions
 pnp                 = { version = "0.9.0" }
-swc                 = { version = "=22.0.0" }
-swc_config          = { version = "=2.0.0" }
-swc_core            = { version = "=23.2.0", default-features = false, features = ["parallel_rayon"] }
-swc_ecma_minifier   = { version = "=17.0.0", default-features = false }
-swc_error_reporters = { version = "=11.0.0" }
-swc_html            = { version = "=17.0.0" }
-swc_html_minifier   = { version = "=17.0.0", default-features = false }
-swc_node_comments   = { version = "=9.0.0" }
+swc                 = { version = "=26.0.0" }
+swc_config          = { version = "=3.1.1" }
+swc_core            = { version = "=27.0.4", default-features = false, features = ["parallel_rayon"] }
+swc_ecma_lexer      = { version = "=15.0.1" }
+swc_ecma_minifier   = { version = "=21.0.3", default-features = false }
+swc_error_reporters = { version = "=14.0.0" }
+swc_html            = { version = "=21.0.0" }
+swc_html_minifier   = { version = "=21.0.0", default-features = false }
+swc_node_comments   = { version = "=12.0.0" }
 
 rspack_dojang = { version = "0.1.11" }
 
@@ -137,6 +140,7 @@ rspack_loader_react_refresh            = { version = "0.2.0", path = "crates/rsp
 rspack_loader_runner                   = { version = "0.2.0", path = "crates/rspack_loader_runner" }
 rspack_loader_swc                      = { version = "0.2.0", path = "crates/rspack_loader_swc" }
 rspack_loader_testing                  = { version = "0.2.0", path = "crates/rspack_loader_testing" }
+rspack_location                        = { version = "0.2.0", path = "crates/rspack_location" }
 rspack_macros                          = { version = "0.2.0", path = "crates/rspack_macros" }
 rspack_napi                            = { version = "0.2.0", path = "crates/rspack_napi" }
 rspack_napi_macros                     = { version = "0.2.0", path = "crates/rspack_napi_macros" }
@@ -194,7 +198,7 @@ rspack_storage                         = { version = "0.2.0", path = "crates/rsp
 rspack_swc_plugin_import               = { version = "0.2.0", path = "crates/swc_plugin_import" }
 rspack_testing                         = { version = "0.2.0", path = "crates/rspack_testing" }
 rspack_tracing                         = { version = "0.2.0", path = "crates/rspack_tracing" }
-rspack_tracing_chrome                  = { version = "0.2.0", path = "crates/rspack_tracing_chrome" }
+rspack_tracing_perfetto                = { version = "0.2.0", path = "crates/rspack_tracing_perfetto" }
 rspack_util                            = { version = "0.2.0", path = "crates/rspack_util" }
 
 [workspace.metadata.release]
@@ -208,6 +212,12 @@ codegen-units = 16
 debug         = 2       # debug build will cause runtime panic if codegen-unints is default
 incremental   = true
 panic         = "abort"
+
+[profile.release-debug]
+codegen-units = 16
+inherits      = "dev"
+opt-level     = 3
+strip         = "debuginfo"
 
 # This is for release build for users
 [profile.release]

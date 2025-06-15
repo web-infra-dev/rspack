@@ -211,7 +211,7 @@ declare namespace Rspack {
 	interface Process {
 		env: {
 			[key: string]: any;
-			NODE_ENV: 'development' | 'production' | (string & {});
+			NODE_ENV: "development" | "production" | (string & {});
 		};
 	}
 }

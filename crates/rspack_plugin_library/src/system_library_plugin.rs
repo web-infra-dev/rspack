@@ -151,7 +151,7 @@ async fn render(
   source.add(RawStringSource::from_static("return {\n"));
   if !is_has_external_modules {
     // setter : { [function(module){},...] },
-    let setters = format!("setters: [{}],\n", setters);
+    let setters = format!("setters: [{setters}],\n");
     source.add(RawStringSource::from(setters))
   }
   source.add(RawStringSource::from_static("execute: function() {\n"));

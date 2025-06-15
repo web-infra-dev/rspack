@@ -13,7 +13,7 @@ use regex::Regex;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
   compare_runtime, BoxModule, Chunk, ChunkGraph, ChunkGroupByUkey, ChunkUkey, Compilation,
-  ModuleGraph, ModuleIdentifier, ModuleIdsArtifact,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
 };
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
@@ -201,14 +201,15 @@ pub fn get_short_chunk_name(
   context: &str,
   delimiter: &str,
   module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
 ) -> String {
   let modules = chunk_graph
-    .get_chunk_root_modules(&chunk.ukey(), module_graph)
+    .get_chunk_root_modules(&chunk.ukey(), module_graph, module_graph_cache)
     .iter()
     .map(|id| {
       module_graph
         .module_by_identifier(id)
-        .unwrap_or_else(|| panic!("Module not found {}", id))
+        .unwrap_or_else(|| panic!("Module not found {id}"))
     })
     .collect::<Vec<_>>();
   let short_module_names = modules
@@ -250,9 +251,10 @@ pub fn get_long_chunk_name(
   context: &str,
   delimiter: &str,
   module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
 ) -> String {
   let modules = chunk_graph
-    .get_chunk_root_modules(&chunk.ukey(), module_graph)
+    .get_chunk_root_modules(&chunk.ukey(), module_graph, module_graph_cache)
     .iter()
     .map(|id| {
       module_graph
@@ -286,6 +288,7 @@ pub fn get_full_chunk_name(
   chunk: &Chunk,
   chunk_graph: &ChunkGraph,
   module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   context: &str,
 ) -> String {
   if let Some(name) = chunk.name() {
@@ -293,7 +296,7 @@ pub fn get_full_chunk_name(
   }
 
   let full_module_names = chunk_graph
-    .get_chunk_root_modules(&chunk.ukey(), module_graph)
+    .get_chunk_root_modules(&chunk.ukey(), module_graph, module_graph_cache)
     .iter()
     .map(|id| {
       module_graph

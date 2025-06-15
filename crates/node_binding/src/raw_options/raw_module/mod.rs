@@ -52,10 +52,10 @@ pub enum RawRuleSetCondition {
 impl Debug for RawRuleSetCondition {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
-      RawRuleSetCondition::string(s) => write!(f, "RawRuleSetCondition::string({:?})", s),
-      RawRuleSetCondition::regexp(r) => write!(f, "RawRuleSetCondition::regexp({:?})", r),
-      RawRuleSetCondition::logical(l) => write!(f, "RawRuleSetCondition::logical({:?})", l),
-      RawRuleSetCondition::array(a) => write!(f, "RawRuleSetCondition::array({:?})", a),
+      RawRuleSetCondition::string(s) => write!(f, "RawRuleSetCondition::string({s:?})"),
+      RawRuleSetCondition::regexp(r) => write!(f, "RawRuleSetCondition::regexp({r:?})"),
+      RawRuleSetCondition::logical(l) => write!(f, "RawRuleSetCondition::logical({l:?})"),
+      RawRuleSetCondition::array(a) => write!(f, "RawRuleSetCondition::array({a:?})"),
       RawRuleSetCondition::func(_) => write!(f, "RawRuleSetCondition::func(...)"),
     }
   }
@@ -101,10 +101,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
   fn try_from(x: RawRuleSetCondition) -> rspack_error::Result<Self> {
     let result = match x {
       RawRuleSetCondition::string(s) => Self::String(s),
-      RawRuleSetCondition::regexp(r) => {
-        let reg = RspackRegex::with_flags(&r.source, &r.flags)?;
-        Self::Regexp(reg)
-      }
+      RawRuleSetCondition::regexp(r) => Self::Regexp(r),
       RawRuleSetCondition::logical(mut l) => {
         let l = l.get_mut(0).ok_or_else(|| {
           error!("TODO: use Box after https://github.com/napi-rs/napi-rs/issues/1500 landed")
@@ -292,6 +289,9 @@ pub struct RawJavascriptParserOptions {
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub import_dynamic: Option<bool>,
+  /// This option is experimental in Rspack only and subject to change or be removed anytime.
+  /// @experimental
+  pub inline_const: Option<bool>,
 }
 
 impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
@@ -332,6 +332,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       require_dynamic: value.require_dynamic,
       require_resolve: value.require_resolve,
       import_dynamic: value.import_dynamic,
+      inline_const: value.inline_const,
     }
   }
 }
