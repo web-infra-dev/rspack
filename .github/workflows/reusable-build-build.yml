@@ -16,6 +16,11 @@ on:
       ref: # Git reference to checkout
         required: false
         type: string
+      prefer_docker:
+        required: false
+        default: true
+        type: boolean
+        description: "Prefer docker build"
 env:
   # Since CI builds are more akin to from-scratch builds, incremental compilation adds unnecessary dependency-tracking and IO overhead, reducing caching effectiveness.
   # https://github.com/rust-lang/rust-analyzer/blob/25368d24308d6a94ffe8b99f0122bcf5a2175322/.github/workflows/ci.yaml#L11
@@ -70,14 +75,14 @@ jobs:
 
       # Linux
       - name: Build x86_64-unknown-linux-gnu native
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && inputs.profile == 'ci' }}
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && inputs.prefer_docker != 'true' }}
         run: |
           unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
           rustup target add x86_64-unknown-linux-gnu
           RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:ci
 
       - name: Build x86_64-unknown-linux-gnu in Docker
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && inputs.profile != 'ci' }}
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && inputs.prefer_docker == 'true' }}
         uses: ./.github/actions/docker/linux-build
         with:
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
@@ -172,7 +177,7 @@ jobs:
         if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
         run: |
           unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
-          DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads pnpm --filter @rspack/binding build:release --profile ${{ inputs.profile }}
+          DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads pnpm --filter @rspack/binding build:${{ inputs.profile }}
 
       - name: Upload artifact
         uses: ./.github/actions/artifact/upload
