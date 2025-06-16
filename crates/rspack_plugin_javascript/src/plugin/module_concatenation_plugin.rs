@@ -847,7 +847,8 @@ impl ModuleConcatenationPlugin {
           let cur_bailout_reason = unknown_exports
             .into_iter()
             .map(|export_info| {
-              let name = ExportInfoGetter::name(export_info)
+              let name = export_info
+                .name()
                 .map(|name| name.to_string())
                 .unwrap_or("other exports".to_string());
               format!(
@@ -873,12 +874,7 @@ impl ModuleConcatenationPlugin {
         }
         let unknown_provided_exports = relevant_exports
           .iter()
-          .filter(|export_info| {
-            !matches!(
-              ExportInfoGetter::provided(export_info),
-              Some(ExportProvided::Provided)
-            )
-          })
+          .filter(|export_info| !matches!(export_info.provided(), Some(ExportProvided::Provided)))
           .copied()
           .collect::<Vec<_>>();
 
@@ -886,7 +882,8 @@ impl ModuleConcatenationPlugin {
           let cur_bailout_reason = unknown_provided_exports
             .into_iter()
             .map(|export_info| {
-              let name = ExportInfoGetter::name(export_info)
+              let name = export_info
+                .name()
                 .map(|name| name.to_string())
                 .unwrap_or("other exports".to_string());
               format!(

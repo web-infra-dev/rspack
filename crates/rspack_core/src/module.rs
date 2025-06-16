@@ -31,9 +31,9 @@ use crate::{
   AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
   ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation, CompilationAsset, CompilationId,
   CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
-  DependenciesBlock, DependencyId, ExportInfoGetter, ExportProvided, ExternalModule, ModuleGraph,
-  ModuleLayer, ModuleType, NormalModule, PrefetchExportsInfoMode, RawModule, Resolve,
-  ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
+  DependenciesBlock, DependencyId, ExportProvided, ExternalModule, ModuleGraph, ModuleLayer,
+  ModuleType, NormalModule, PrefetchExportsInfoMode, RawModule, Resolve, ResolverFactory,
+  RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext {
@@ -448,10 +448,7 @@ fn get_exports_type_impl(
           .as_ref()
           .map(|info| info.get_read_only_export_info(&name))
         {
-          if matches!(
-            ExportInfoGetter::provided(export_info),
-            Some(ExportProvided::NotProvided)
-          ) {
+          if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
             handle_default(default_object)
           } else {
             let Some(target) = export_info.get_target(mg) else {

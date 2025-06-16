@@ -1009,13 +1009,8 @@ impl Module for ConcatenatedModule {
     let mut exports_final_names: Vec<(String, String)> = vec![];
 
     for (_, export_info) in exports_info.exports() {
-      let name = ExportInfoGetter::name(export_info)
-        .cloned()
-        .unwrap_or("".into());
-      if matches!(
-        ExportInfoGetter::provided(export_info),
-        Some(ExportProvided::NotProvided)
-      ) {
+      let name = export_info.name().cloned().unwrap_or("".into());
+      if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
         continue;
       }
       let used_name = ExportInfoGetter::get_used_name(export_info, None, runtime);
@@ -1213,10 +1208,7 @@ impl Module for ConcatenatedModule {
         let exports_info = module_graph
           .get_prefetched_exports_info(module_info_id, PrefetchExportsInfoMode::AllExports);
         for (_, export_info) in exports_info.exports() {
-          if matches!(
-            ExportInfoGetter::provided(export_info),
-            Some(ExportProvided::NotProvided)
-          ) {
+          if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
             continue;
           }
 
@@ -1226,9 +1218,7 @@ impl Module for ConcatenatedModule {
             let final_name = Self::get_final_name(
               &compilation.get_module_graph(),
               module_info_id,
-              vec![ExportInfoGetter::name(export_info)
-                .cloned()
-                .unwrap_or("".into())],
+              vec![export_info.name().cloned().unwrap_or("".into())],
               &mut module_to_info_map,
               runtime,
               &mut needed_namespace_objects,

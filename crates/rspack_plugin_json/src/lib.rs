@@ -299,7 +299,7 @@ fn create_object_for_exports_info(
           continue;
         }
         let new_value = if used == UsageState::OnlyPropertiesUsed
-          && let Some(exports_info) = ExportInfoGetter::exports_info(export_info)
+          && let Some(exports_info) = export_info.exports_info()
         {
           // avoid clone
           let temp = std::mem::replace(value, JsonValue::Null);
@@ -337,7 +337,7 @@ fn create_object_for_exports_info(
           }
           max_used_index = max_used_index.max(i);
           if used == UsageState::OnlyPropertiesUsed
-            && let Some(exports_info) = ExportInfoGetter::exports_info(export_info)
+            && let Some(exports_info) = export_info.exports_info()
           {
             let exports_info =
               ExportsInfoGetter::prefetch(&exports_info, mg, PrefetchExportsInfoMode::AllExports);

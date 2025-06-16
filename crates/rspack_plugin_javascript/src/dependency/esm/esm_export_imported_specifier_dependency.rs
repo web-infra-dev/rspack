@@ -314,11 +314,10 @@ impl ESMExportImportedSpecifierDependency {
       .as_data(module_graph);
 
     let no_extra_exports = matches!(
-      ExportInfoGetter::provided(
-        imported_exports_info
-          .other_exports_info
-          .as_data(module_graph)
-      ),
+      imported_exports_info
+        .other_exports_info
+        .as_data(module_graph)
+        .provided(),
       Some(ExportProvided::NotProvided)
     );
     let no_extra_imports = matches!(
@@ -364,9 +363,7 @@ impl ESMExportImportedSpecifierDependency {
     if no_extra_imports {
       for export_info in exports_info.exports.values() {
         let export_info_data = export_info.as_data(module_graph);
-        let export_name = ExportInfoGetter::name(export_info_data)
-          .cloned()
-          .unwrap_or_default();
+        let export_name = export_info_data.name().cloned().unwrap_or_default();
         if ignored_exports.contains(&export_name)
           || matches!(
             ExportInfoGetter::get_used(export_info_data, runtime),
@@ -381,7 +378,7 @@ impl ESMExportImportedSpecifierDependency {
           .get_read_only_export_info(module_graph, &export_name);
         let imported_export_info_data = imported_export_info.as_data(module_graph);
         if matches!(
-          ExportInfoGetter::provided(imported_export_info_data),
+          imported_export_info_data.provided(),
           Some(ExportProvided::NotProvided)
         ) {
           continue;
@@ -398,7 +395,7 @@ impl ESMExportImportedSpecifierDependency {
 
         exports.insert(export_name.clone());
         if matches!(
-          ExportInfoGetter::provided(imported_export_info_data),
+          imported_export_info_data.provided(),
           Some(ExportProvided::Provided)
         ) {
           continue;
@@ -408,12 +405,13 @@ impl ESMExportImportedSpecifierDependency {
     } else if no_extra_exports {
       for imported_export_info in imported_exports_info.exports.values() {
         let imported_export_info_data = imported_export_info.as_data(module_graph);
-        let imported_export_info_name = ExportInfoGetter::name(imported_export_info_data)
+        let imported_export_info_name = imported_export_info_data
+          .name()
           .cloned()
           .unwrap_or_default();
         if ignored_exports.contains(&imported_export_info_name)
           || matches!(
-            ExportInfoGetter::provided(imported_export_info_data),
+            imported_export_info_data.provided(),
             Some(ExportProvided::NotProvided)
           )
         {
@@ -441,7 +439,7 @@ impl ESMExportImportedSpecifierDependency {
 
         exports.insert(imported_export_info_name.clone());
         if matches!(
-          ExportInfoGetter::provided(imported_export_info_data),
+          imported_export_info_data.provided(),
           Some(ExportProvided::Provided)
         ) {
           continue;
@@ -958,13 +956,10 @@ impl ESMExportImportedSpecifierDependency {
         IndexMap::default();
       for export_info in exports_info.as_data(module_graph).exports.values() {
         let export_info_data = export_info.as_data(module_graph);
-        if !matches!(
-          ExportInfoGetter::provided(export_info_data),
-          Some(ExportProvided::Provided)
-        ) {
+        if !matches!(export_info_data.provided(), Some(ExportProvided::Provided)) {
           continue;
         }
-        let Some(name) = ExportInfoGetter::name(export_info_data) else {
+        let Some(name) = export_info_data.name() else {
           continue;
         };
         if name == "default" {
@@ -1439,12 +1434,9 @@ fn determine_export_assignments(
       for export_info in exports_info.exports.values() {
         let export_info_data = export_info.as_data(module_graph);
         // SAFETY: This is safe because a real export can't export empty string
-        let export_info_name =
-          ExportInfoGetter::name(export_info_data).expect("export name is empty");
-        if matches!(
-          ExportInfoGetter::provided(export_info_data),
-          Some(ExportProvided::Provided)
-        ) && export_info_name != "default"
+        let export_info_name = export_info_data.name().expect("export name is empty");
+        if matches!(export_info_data.provided(), Some(ExportProvided::Provided))
+          && export_info_name != "default"
           && !names.contains(export_info_name)
         {
           names.insert(export_info_name.clone());

@@ -3,9 +3,9 @@ use std::sync::LazyLock;
 use regex::Regex;
 use rspack_core::{
   incremental::IncrementalPasses, ApplyContext, BuildMetaExportsType, Compilation,
-  CompilationOptimizeCodeGeneration, CompilerOptions, ExportInfoGetter, ExportInfoSetter,
-  ExportProvided, ExportsInfo, ExportsInfoGetter, ModuleGraph, Plugin, PluginContext,
-  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, UsageState,
+  CompilationOptimizeCodeGeneration, CompilerOptions, ExportInfoGetter, ExportProvided,
+  ExportsInfo, ExportsInfoGetter, ModuleGraph, Plugin, PluginContext, PrefetchExportsInfoMode,
+  PrefetchedExportsInfoWrapper, UsageState,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -117,10 +117,7 @@ fn mangle_exports_info(
     }
     if !avoid_mangle_non_provided && deterministic {
       for (_, export_info) in exports_info.exports() {
-        if !matches!(
-          ExportInfoGetter::provided(export_info),
-          Some(ExportProvided::NotProvided)
-        ) {
+        if !matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
           avoid_mangle_non_provided = true;
           break;
         }
@@ -135,7 +132,8 @@ fn mangle_exports_info(
   for export_info in export_list {
     let export_info_data = export_info.as_data_mut(mg);
     if !ExportInfoGetter::has_used_name(export_info_data) {
-      let name = ExportInfoGetter::name(export_info_data)
+      let name = export_info_data
+        .name()
         .expect("the name of export_info inserted in exports_info can not be `None`")
         .clone();
       let can_not_mangle = ExportInfoGetter::can_mangle(export_info_data) != Some(true)
@@ -144,13 +142,10 @@ fn mangle_exports_info(
           && name.len() == 2
           && MANGLE_NAME_DETERMINISTIC_REG.is_match(name.as_str()))
         || (avoid_mangle_non_provided
-          && !matches!(
-            ExportInfoGetter::provided(export_info_data),
-            Some(ExportProvided::Provided)
-          ));
+          && !matches!(export_info_data.provided(), Some(ExportProvided::Provided)));
 
       if can_not_mangle {
-        ExportInfoSetter::set_used_name(export_info_data, name.clone());
+        export_info_data.set_used_name(name.clone());
         used_names.insert(name.to_string());
       } else {
         mangleable_exports.push(export_info);
@@ -159,13 +154,15 @@ fn mangle_exports_info(
 
     // we need to re get export info to avoid extending immutable borrow lifetime
     let export_info_data = export_info.as_data(mg);
-    if ExportInfoGetter::exports_info_owned(export_info_data) {
+    if export_info_data.exports_info_owned() {
       let used = ExportInfoGetter::get_used(export_info_data, None);
       if used == UsageState::OnlyPropertiesUsed || used == UsageState::Unused {
         mangle_exports_info(
           mg,
           deterministic,
-          ExportInfoGetter::exports_info(export_info_data).expect("should have exports info id"),
+          export_info_data
+            .exports_info()
+            .expect("should have exports info id"),
           false,
         );
       }
@@ -177,17 +174,8 @@ fn mangle_exports_info(
     let mut export_info_used_name = FxHashMap::default();
     assign_deterministic_ids(
       mangleable_exports,
-      |e| {
-        ExportInfoGetter::name(e.as_data(mg))
-          .expect("should have name")
-          .to_string()
-      },
-      |a, b| {
-        compare_strings_numeric(
-          ExportInfoGetter::name(a.as_data(mg)),
-          ExportInfoGetter::name(b.as_data(mg)),
-        )
-      },
+      |e| e.as_data(mg).name().expect("should have name").to_string(),
+      |a, b| compare_strings_numeric(a.as_data(mg).name(), b.as_data(mg).name()),
       |e, id| {
         let name = number_to_identifier(id as u32);
         let size = used_names.len();
@@ -208,7 +196,7 @@ fn mangle_exports_info(
       0,
     );
     for (export_info, name) in export_info_used_name {
-      ExportInfoSetter::set_used_name(export_info.as_data_mut(mg), name.into());
+      export_info.as_data_mut(mg).set_used_name(name.into());
     }
   } else {
     let mut used_exports = Vec::new();
@@ -223,18 +211,10 @@ fn mangle_exports_info(
       }
     }
 
-    used_exports.sort_by(|a, b| {
-      compare_strings_numeric(
-        ExportInfoGetter::name(a.as_data(mg)),
-        ExportInfoGetter::name(b.as_data(mg)),
-      )
-    });
-    unused_exports.sort_by(|a, b| {
-      compare_strings_numeric(
-        ExportInfoGetter::name(a.as_data(mg)),
-        ExportInfoGetter::name(b.as_data(mg)),
-      )
-    });
+    used_exports
+      .sort_by(|a, b| compare_strings_numeric(a.as_data(mg).name(), b.as_data(mg).name()));
+    unused_exports
+      .sort_by(|a, b| compare_strings_numeric(a.as_data(mg).name(), b.as_data(mg).name()));
 
     let mut i = 0;
     for list in [used_exports, unused_exports] {
@@ -247,7 +227,7 @@ fn mangle_exports_info(
           }
           i += 1;
         }
-        ExportInfoSetter::set_used_name(export_info.as_data_mut(mg), name.into());
+        export_info.as_data_mut(mg).set_used_name(name.into());
       }
     }
   }
