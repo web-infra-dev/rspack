@@ -3,6 +3,7 @@ use std::{fmt::Debug, rc::Rc, sync::LazyLock};
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
+  do_move_target,
   incremental::{self, IncrementalPasses, Mutation},
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta,
   DependencyId, FactoryMeta, Logger, MaybeDynamicTargetExportInfo, ModuleFactoryCreateData,
@@ -835,7 +836,11 @@ fn do_optimize_connection(
     target_export,
   }) = need_move_target
   {
-    export_info.do_move_target(module_graph, dependency, target_export);
+    do_move_target(
+      export_info.as_data_mut(module_graph),
+      dependency,
+      target_export,
+    );
   }
   (dependency, target_module)
 }
@@ -905,7 +910,7 @@ fn can_optimize_connection(
     );
     let export_info = exports_info.get_export_info_without_mut_module_graph(&ids[0]);
 
-    let target = export_info.get_target_with_filter(
+    let target = export_info.get_target(
       module_graph,
       Rc::new(|target: &ResolvedExportInfoTarget| {
         side_effects_state_map[&target.module] == ConnectionState::Active(false)

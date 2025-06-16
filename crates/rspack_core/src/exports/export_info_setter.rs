@@ -3,7 +3,9 @@ use std::collections::hash_map::Entry;
 use rspack_util::atom::Atom;
 
 use super::{ExportInfoData, ExportInfoTargetValue, Inlinable, UsageFilterFnTy, UsageState};
-use crate::{DependencyId, Nullable, RuntimeSpec};
+use crate::{
+  DependencyId, ExportInfo, ExportsInfo, ExportsInfoData, ModuleGraph, Nullable, RuntimeSpec,
+};
 
 pub struct ExportInfoSetter;
 
@@ -204,5 +206,50 @@ impl ExportInfoSetter {
       changed = true;
     }
     changed
+  }
+
+  pub fn create_nested_exports_info(info: &ExportInfo, mg: &mut ModuleGraph) -> ExportsInfo {
+    let info = info.as_data_mut(mg);
+    if info.exports_info_owned() {
+      return info
+        .exports_info()
+        .expect("should have exports_info when exports_info is true");
+    }
+
+    info.set_exports_info_owned(true);
+    let other_exports_info = ExportInfoData::new(None, None);
+    let side_effects_only_info = ExportInfoData::new(Some("*side effects only*".into()), None);
+    let new_exports_info =
+      ExportsInfoData::new(other_exports_info.id(), side_effects_only_info.id());
+    let new_exports_info_id = new_exports_info.id();
+
+    let old_exports_info = info.exports_info();
+    info.set_exports_info_owned(true);
+    info.set_exports_info(Some(new_exports_info_id));
+
+    mg.set_exports_info(new_exports_info_id, new_exports_info);
+    mg.set_export_info(other_exports_info.id(), other_exports_info);
+    mg.set_export_info(side_effects_only_info.id(), side_effects_only_info);
+
+    new_exports_info_id.set_has_provide_info(mg);
+    if let Some(exports_info) = old_exports_info {
+      exports_info.set_redirect_name_to(mg, Some(new_exports_info_id));
+    }
+    new_exports_info_id
+  }
+
+  pub fn set_has_use_info(info: &ExportInfo, mg: &mut ModuleGraph) {
+    let info = info.as_data_mut(mg);
+    if !info.has_use_in_runtime_info() {
+      info.set_has_use_in_runtime_info(true);
+    }
+    if info.can_mangle_use().is_none() {
+      info.set_can_mangle_use(Some(true));
+    }
+    if info.exports_info_owned()
+      && let Some(exports_info) = info.exports_info()
+    {
+      exports_info.set_has_use_info(mg);
+    }
   }
 }

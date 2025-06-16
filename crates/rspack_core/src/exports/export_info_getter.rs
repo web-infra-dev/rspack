@@ -204,7 +204,7 @@ impl ExportInfoGetter {
     info: &ExportInfoData,
   ) -> Cow<HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
     if info.target().len() <= 1 {
-      return Cow::Borrowed(&info.target());
+      return Cow::Borrowed(info.target());
     }
     let mut max_priority = u8::MIN;
     let mut min_priority = u8::MAX;
@@ -213,7 +213,7 @@ impl ExportInfoGetter {
       min_priority = min_priority.min(value.priority);
     }
     if max_priority == min_priority {
-      return Cow::Borrowed(&info.target());
+      return Cow::Borrowed(info.target());
     }
     let mut map = HashMap::default();
     for (k, v) in info.target().iter() {

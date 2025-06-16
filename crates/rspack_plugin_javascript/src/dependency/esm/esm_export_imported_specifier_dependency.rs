@@ -7,21 +7,22 @@ use rspack_cacheable::{
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
-  get_runtime_key, process_export_info, property_access, property_name, to_normal_comment,
-  AsContextDependency, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
-  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  DetermineExportAssignmentsKey, ESMExportInitFragment, ExportInfoGetter, ExportMode,
-  ExportModeDynamicReexport, ExportModeEmptyStar, ExportModeFakeNamespaceObject,
-  ExportModeNormalReexport, ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
-  ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
-  ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfo, ExportsInfoGetter,
-  ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
-  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment,
-  NormalReexportItem, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  SharedSourceMap, StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
+  filter_runtime, get_exports_type, get_runtime_key, get_terminal_binding, property_access,
+  property_name, to_normal_comment, AsContextDependency, ConditionalInitFragment, ConnectionState,
+  Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
+  DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, DetermineExportAssignmentsKey, ESMExportInitFragment,
+  ExportInfoGetter, ExportMode, ExportModeDynamicReexport, ExportModeEmptyStar,
+  ExportModeFakeNamespaceObject, ExportModeNormalReexport, ExportModeReexportDynamicDefault,
+  ExportModeReexportNamedDefault, ExportModeReexportNamespaceObject, ExportModeReexportUndefined,
+  ExportModeUnused, ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfo,
+  ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
+  FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, NormalInitFragment, NormalReexportItem, PrefetchExportsInfoMode,
+  RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap, StarReexportsInfo,
+  TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -990,7 +991,7 @@ impl ESMExportImportedSpecifierDependency {
         ) else {
           continue;
         };
-        let Some(target) = export_info.get_terminal_binding(module_graph) else {
+        let Some(target) = get_terminal_binding(export_info_data, module_graph) else {
           continue;
         };
         let Some(conflicting_module) =
@@ -1006,7 +1007,8 @@ impl ESMExportImportedSpecifierDependency {
         else {
           continue;
         };
-        let Some(conflicting_target) = conflicting_export_info.get_terminal_binding(module_graph)
+        let Some(conflicting_target) =
+          get_terminal_binding(conflicting_export_info.as_data(module_graph), module_graph)
         else {
           continue;
         };
@@ -1299,7 +1301,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         ..
       }) => {
         let mut referenced_exports = vec![];
-        process_export_info(
+        collect_referenced_export_items(
           module_graph,
           runtime,
           &mut referenced_exports,
@@ -1319,7 +1321,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
           if item.hidden {
             continue;
           }
-          process_export_info(
+          collect_referenced_export_items(
             module_graph,
             runtime,
             &mut referenced_exports,

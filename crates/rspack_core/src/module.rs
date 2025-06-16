@@ -28,12 +28,12 @@ use serde::Serialize;
 
 use crate::{
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
-  AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
-  ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation, CompilationAsset, CompilationId,
-  CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
-  DependenciesBlock, DependencyId, ExportProvided, ExternalModule, ModuleGraph, ModuleLayer,
-  ModuleType, NormalModule, PrefetchExportsInfoMode, RawModule, Resolve, ResolverFactory,
-  RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
+  get_target, AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate,
+  BoxModuleDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation, CompilationAsset,
+  CompilationId, CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context,
+  ContextModule, DependenciesBlock, DependencyId, ExportProvided, ExternalModule, ModuleGraph,
+  ModuleLayer, ModuleType, NormalModule, PrefetchExportsInfoMode, RawModule, Resolve,
+  ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext {
@@ -451,7 +451,7 @@ fn get_exports_type_impl(
           if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
             handle_default(default_object)
           } else {
-            let Some(target) = export_info.get_target(mg) else {
+            let Some(target) = get_target(export_info, mg) else {
               return ExportsType::Dynamic;
             };
             if target

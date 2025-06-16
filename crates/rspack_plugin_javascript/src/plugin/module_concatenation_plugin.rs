@@ -11,7 +11,7 @@ use rspack_core::{
   concatenated_module::{
     is_esm_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
   },
-  filter_runtime,
+  filter_runtime, get_target,
   incremental::IncrementalPasses,
   ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions, ExportInfoGetter,
   ExportProvided, ExportsInfoGetter, ExtendedReferencedExport, LibIdentOptions, Logger, Module,
@@ -839,7 +839,7 @@ impl ModuleConcatenationPlugin {
           .iter()
           .filter(|export_info| {
             ExportInfoGetter::is_reexport(export_info)
-              && export_info.get_target(&module_graph).is_none()
+              && get_target(export_info, &module_graph).is_none()
           })
           .copied()
           .collect::<Vec<_>>();

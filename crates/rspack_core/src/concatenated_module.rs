@@ -2317,14 +2317,14 @@ impl ConcatenatedModule {
           Arc::new(|module: &ModuleIdentifier| module_to_info_map.contains_key(module)),
         );
         match reexport {
-          crate::FindTargetRetEnum::Undefined => {}
-          crate::FindTargetRetEnum::False => {
+          crate::FindTargetResult::NoTarget => {}
+          crate::FindTargetResult::NoValidTarget => {
             panic!(
               "Target module of reexport is not part of the concatenation (export '{:?}')",
               &export_id
             );
           }
-          crate::FindTargetRetEnum::Value(reexport) => {
+          crate::FindTargetResult::ValidTarget(reexport) => {
             if let Some(ref_info) = module_to_info_map.get(&reexport.module) {
               // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L457
               let build_meta = mg

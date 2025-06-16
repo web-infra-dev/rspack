@@ -232,13 +232,13 @@ impl ExportsInfo {
     // this clone aiming to avoid use the mutable ref and immutable ref at the same time.
     let export_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
     for export_info in export_id_list {
-      export_info.set_has_use_info(mg);
+      ExportInfoSetter::set_has_use_info(&export_info, mg);
     }
-    side_effects_only_info_id.set_has_use_info(mg);
+    ExportInfoSetter::set_has_use_info(&side_effects_only_info_id, mg);
     if let Some(redirect) = redirect_to_id {
       redirect.set_has_use_info(mg);
     } else {
-      other_exports_info_id.set_has_use_info(mg);
+      ExportInfoSetter::set_has_use_info(&other_exports_info_id, mg);
       let other_exports_info = mg.get_export_info_mut_by_id(&other_exports_info_id);
       if other_exports_info.can_mangle_use().is_none() {
         other_exports_info.set_can_mangle_use(Some(true));
@@ -471,10 +471,4 @@ impl ExportsInfoData {
   pub fn id(&self) -> ExportsInfo {
     self.id
   }
-}
-
-#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq)]
-pub enum TerminalBinding {
-  ExportInfo(ExportInfo),
-  ExportsInfo(ExportsInfo),
 }

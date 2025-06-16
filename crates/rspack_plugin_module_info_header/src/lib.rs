@@ -5,6 +5,7 @@ use regex::Regex;
 use rspack_cacheable::with::AsVecConverter;
 use rspack_collections::Identifiable;
 use rspack_core::{
+  get_target,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_comment_with_nl, ApplyContext, BoxModule, BuildMetaExportsType, ChunkGraph,
   ChunkInitFragments, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
@@ -76,7 +77,7 @@ fn print_exports_info_to_source<F>(
     let usage_info = ExportInfoGetter::get_used_info(export_info);
     let rename_info = ExportInfoGetter::get_rename_info(export_info);
 
-    let target_desc = match export_info.get_target(module_graph) {
+    let target_desc = match get_target(export_info, module_graph) {
       Some(resolve_target) => {
         let target_module = request_shortener(&resolve_target.module);
         match resolve_target.export {
@@ -120,7 +121,7 @@ fn print_exports_info_to_source<F>(
   }
 
   if show_other_exports {
-    let target = other_exports_info.get_target(module_graph);
+    let target = get_target(other_exports_info, module_graph);
     if target.is_some()
       || !matches!(
         other_exports_info.provided(),
