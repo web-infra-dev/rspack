@@ -1,24 +1,20 @@
 use std::{collections::hash_map::Entry, sync::Arc};
 
 use rayon::prelude::*;
-use rspack_collections::{
-  IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeyIndexMap, UkeyMap,
-  UkeySet,
-};
+use rspack_collections::{IdentifierIndexSet, IdentifierMap, UkeyMap};
 use rspack_core::{
   find_new_name, property_name, reserved_names::RESERVED_NAMES, returning_function,
   rspack_sources::ReplaceSource, Binding, BoxModule, BuildMetaDefaultObject, BuildMetaExportsType,
-  ChunkGraph, ChunkLinkContext, ChunkUkey, Compilation, ConcatenatedModule,
-  ConcatenatedModuleIdent, ConcatenatedModuleInfo, ConcatenationScope, ExportInfoGetter,
-  ExportProvided, IdentCollector, ModuleIdentifier, ModuleInfo, RuntimeGlobals, SourceType,
-  UsedNameItem, NAMESPACE_OBJECT_EXPORT,
+  ChunkLinkContext, ChunkUkey, Compilation, ConcatenatedModule, ConcatenatedModuleIdent,
+  ExportInfoGetter, ExportProvided, IdentCollector, ModuleIdentifier, ModuleInfo, RuntimeGlobals,
+  SourceType, UsedNameItem, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::Result;
 use rspack_javascript_compiler::ast::Ast;
 use rspack_plugin_javascript::visitors::swc_visitor::resolver;
 use rspack_util::{
   atom::Atom,
-  fx_hash::{FxHashMap, FxHashSet, FxIndexSet},
+  fx_hash::{FxHashMap, FxHashSet},
 };
 use swc_core::{
   common::{FileName, SyntaxContext},
@@ -33,14 +29,13 @@ use crate::EsmLibraryPlugin;
 impl EsmLibraryPlugin {
   pub(crate) async fn link(&self, compilation: &mut Compilation) -> Result<()> {
     let module_graph = compilation.get_module_graph();
-    let all_chunks: Vec<ChunkUkey> = compilation.chunk_by_ukey.keys().copied().collect();
     let mut concate_modules_map = self.concatenated_modules_map.lock().await;
     let concate_modules_map = Arc::get_mut(
       concate_modules_map
         .get_mut(&compilation.id().0)
         .expect("should has compilation"),
     )
-    .unwrap();
+    .expect("should have map for compilation");
     let mut link: UkeyMap<ChunkUkey, ChunkLinkContext> = compilation
       .chunk_by_ukey
       .keys()
@@ -48,7 +43,7 @@ impl EsmLibraryPlugin {
         let modules = compilation.chunk_graph.get_chunk_modules_identifier(ukey);
 
         let mut hoisted_modules = modules
-          .into_iter()
+          .iter()
           .copied()
           .filter(|m| {
             let info = concate_modules_map
@@ -75,7 +70,7 @@ impl EsmLibraryPlugin {
     concate_modules_map
       .par_iter_mut()
       .for_each(|(id, info)| match info {
-        rspack_core::ModuleInfo::External(external_module_info) => {}
+        rspack_core::ModuleInfo::External(_external_module_info) => {}
         rspack_core::ModuleInfo::Concatenated(concate_info) => {
           let codegen_res = compilation.code_generation_results.get(id, None);
           let Some(js_source) = codegen_res.get(&SourceType::JavaScript) else {
@@ -86,7 +81,7 @@ impl EsmLibraryPlugin {
             codegen_res
               .concatenation_scope
               .as_ref()
-              .unwrap()
+              .expect("should have concatenation scope")
               .current_module
               .clone(),
           );
@@ -191,7 +186,7 @@ impl EsmLibraryPlugin {
         exports_type,
         BuildMetaExportsType::Dynamic | BuildMetaExportsType::Unset
       ) {
-        let external_name_interop: Atom = format!("{}_default", readable_identifier).into();
+        let external_name_interop: Atom = format!("{readable_identifier}_default").into();
         info.set_interop_default_access_name(Some(external_name_interop.clone()));
       }
     });
@@ -204,7 +199,7 @@ impl EsmLibraryPlugin {
         .iter()
         .map(|s| Atom::new(*s))
         .chain(chunk_link.hoisted_modules.iter().flat_map(|m| {
-          let info = concate_modules_map.get(m).unwrap();
+          let info = concate_modules_map.get(m).expect("should have info");
           info
             .as_concatenated()
             .global_scope_ident
@@ -215,19 +210,24 @@ impl EsmLibraryPlugin {
       let mut top_level_declarations = FxHashSet::default();
 
       for id in &chunk_link.hoisted_modules {
-        let concate_info = concate_modules_map.get_mut(id).unwrap().as_concatenated();
+        let concate_info = concate_modules_map
+          .get_mut(id)
+          .expect("should have info")
+          .as_concatenated();
         all_used_names.extend(concate_info.all_used_names.clone());
       }
 
       // deconflict top level symbols
       for id in &chunk_link.hoisted_modules {
-        let module = module_graph.module_by_identifier(&id).unwrap();
+        let module = module_graph
+          .module_by_identifier(id)
+          .expect("should have module");
         let exports_type = module.build_meta().exports_type;
         let default_object = module.build_meta().default_object;
         let readable_identifier = module.readable_identifier(&compilation.options.context);
-        let info = concate_modules_map.get_mut(id).unwrap();
-
-        let concate_info = info.as_concatenated_mut();
+        let info = concate_modules_map
+          .get_mut(id)
+          .expect("should have module info");
 
         // Handle additional logic based on module build meta
         if exports_type != BuildMetaExportsType::Namespace {
@@ -267,9 +267,6 @@ impl EsmLibraryPlugin {
           top_level_declarations.insert(external_name_interop.clone());
         }
 
-        let codegen_res = compilation.code_generation_results.get(&id, None);
-        let concatenation_scope = codegen_res.concatenation_scope.as_ref().unwrap();
-
         let mut internal_names = FxHashMap::default();
         let concate_info = info.as_concatenated();
 
@@ -279,7 +276,7 @@ impl EsmLibraryPlugin {
           }
 
           if all_used_names.contains(atom) {
-            let new_name = find_new_name(&atom, &all_used_names, None, &readable_identifier);
+            let new_name = find_new_name(atom, &all_used_names, None, &readable_identifier);
             all_used_names.insert(new_name.clone());
             internal_names.insert(atom.clone(), new_name);
           } else {
@@ -292,18 +289,17 @@ impl EsmLibraryPlugin {
         concate_info.internal_names = internal_names;
 
         // Handle the name passed through by namespace_export_symbol
-        if let Some(ref namespace_export_symbol) = concate_info.namespace_export_symbol {
-          if namespace_export_symbol.starts_with(NAMESPACE_OBJECT_EXPORT)
-            && namespace_export_symbol.len() > NAMESPACE_OBJECT_EXPORT.len()
-          {
-            let name =
-              Atom::from(namespace_export_symbol[NAMESPACE_OBJECT_EXPORT.len()..].to_string());
-            all_used_names.insert(name.clone());
-            concate_info
-              .internal_names
-              .insert(namespace_export_symbol.clone(), name.clone());
-            top_level_declarations.insert(name.clone());
-          }
+        if let Some(ref namespace_export_symbol) = concate_info.namespace_export_symbol
+          && namespace_export_symbol.starts_with(NAMESPACE_OBJECT_EXPORT)
+          && namespace_export_symbol.len() > NAMESPACE_OBJECT_EXPORT.len()
+        {
+          let name =
+            Atom::from(namespace_export_symbol[NAMESPACE_OBJECT_EXPORT.len()..].to_string());
+          all_used_names.insert(name.clone());
+          concate_info
+            .internal_names
+            .insert(namespace_export_symbol.clone(), name.clone());
+          top_level_declarations.insert(name.clone());
         }
 
         // Handle namespaceObjectName for concatenated type
@@ -336,7 +332,7 @@ impl EsmLibraryPlugin {
       {
         let ModuleInfo::External(info) = concate_modules_map
           .get_mut(&external_module.identifier())
-          .unwrap()
+          .expect("should have external module info")
         else {
           unreachable!("should be un-scope-hoisted module");
         };
@@ -359,14 +355,14 @@ impl EsmLibraryPlugin {
     let mut needed_namespace_objects = IdentifierIndexSet::default();
 
     for (chunk, chunk_link) in &mut link {
-      let all_used_names = chunk_used_names
-        .get_mut(chunk)
-        .expect("should have all_used_names");
       let mut ref_to_final_name = FxHashMap::default();
 
       for m in chunk_link.hoisted_modules.clone() {
         let codegen_res = compilation.code_generation_results.get(&m, None);
-        let concatenation_scope = codegen_res.concatenation_scope.as_ref().unwrap();
+        let concatenation_scope = codegen_res
+          .concatenation_scope
+          .as_ref()
+          .expect("should have concatenation scope for scope hoisted module");
 
         for (ref_module, refs) in &concatenation_scope.refs {
           for (ref_string, options) in refs.iter() {
@@ -394,7 +390,7 @@ impl EsmLibraryPlugin {
             let module_id = binding.identifier();
             let ref_chunk = Self::get_module_chunk(module_id, compilation);
             match &binding {
-              Binding::Raw(raw_binding) => {
+              Binding::Raw(_raw_binding) => {
                 // import to non-scope-hoisted module or namespace name
               }
               Binding::Symbol(symbol_binding) => {
@@ -411,7 +407,10 @@ impl EsmLibraryPlugin {
             }
 
             ref_to_final_name.insert(
-              ref_string.strip_suffix("._").unwrap().to_string(),
+              ref_string
+                .strip_suffix("._")
+                .expect("should have prefix: '._'")
+                .to_string(),
               rspack_core::ModuleReference::Binding(binding),
             );
           }
@@ -564,13 +563,6 @@ impl EsmLibraryPlugin {
       info.namespace_object_source = Some(namespace_source);
     }
 
-    // Define required namespace objects (must be before evaluation modules)
-    for info in concate_modules_map.values() {
-      let Some(info) = info.try_as_concatenated() else {
-        continue;
-      };
-    }
-
     compilation.chunk_graph.link = Some(link);
     Ok(())
   }
@@ -585,6 +577,6 @@ impl EsmLibraryPlugin {
       unimplemented!("module is in multiple chunks");
     }
 
-    chunks.into_iter().next().unwrap().clone()
+    *chunks.iter().next().expect("at least one chunk")
   }
 }

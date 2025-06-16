@@ -1,14 +1,14 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  AsModuleDependency, ChunkGraph, ChunkUkey, Compilation, DependencyTemplate, ExportInfoGetter,
-  ExportProvided, ModuleIdentifier, RuntimeGlobals, UsageState, missing_module_promise,
+  missing_module_promise, AsModuleDependency, ChunkGraph, ChunkUkey, Compilation,
+  DependencyTemplate, ExportInfoGetter, ModuleIdentifier, RuntimeGlobals, UsageState,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
 
 use crate::EsmLibraryPlugin;
 
-pub static NAMESPACE_SYMBOL: &'static str = "mod";
+pub static NAMESPACE_SYMBOL: &str = "mod";
 
 #[derive(Debug, Default)]
 pub struct DynamicImportDependencyTemplate;
@@ -140,12 +140,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       all_exports
         .iter()
         .map(|export| export.as_data(&module_graph))
-        .filter(|export| {
-          !matches!(
-            ExportInfoGetter::get_used(&export, None),
-            UsageState::Unused
-          )
-        })
+        .filter(|export| !matches!(ExportInfoGetter::get_used(export, None), UsageState::Unused))
         .filter_map(|export| ExportInfoGetter::name(export))
         .map(|ref_export| {
           format!(
