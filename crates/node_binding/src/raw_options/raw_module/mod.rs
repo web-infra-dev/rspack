@@ -650,7 +650,8 @@ pub struct RawAssetGeneratorDataUrlFnCtx {
 
 impl From<AssetGeneratorDataUrlFnCtx<'_>> for RawAssetGeneratorDataUrlFnCtx {
   fn from(value: AssetGeneratorDataUrlFnCtx) -> Self {
-    // AssetGeneratorDataUrlFn is called during the make phase, at which point the module cannot be accessed from the moduleGraph.
+    // AssetGeneratorDataUrlFn may be called during the importModule process,
+    // at which point the corresponding Module is not present in compilation.moduleGraph.
     // Therefore, we use a raw pointer to allow JavaScript to access the Module.
     Self {
       filename: value.filename,
