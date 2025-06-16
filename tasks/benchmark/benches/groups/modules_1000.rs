@@ -17,13 +17,9 @@ use serde_json::json;
 use tokio::runtime::Builder;
 
 async fn basic_compile(production: bool) {
-  let dir = std::env::var("CARGO_WORKSPACE_DIR")
-    .map(|dir| {
-      PathBuf::from(dir)
-        .join(".bench/rspack-benchcases")
-        .canonicalize()
-        .unwrap()
-    })
+  let dir = PathBuf::from(env!("CARGO_WORKSPACE_DIR"))
+    .join(".bench/rspack-benchcases")
+    .canonicalize()
     .unwrap()
     .join("1000");
 
