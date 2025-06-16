@@ -60,6 +60,13 @@ impl fmt::Display for RspackSeverity {
   }
 }
 
+#[cacheable]
+#[derive(Debug, Clone, Copy)]
+pub struct SourcePosition {
+  pub line: usize,
+  pub column: usize,
+}
+
 #[cacheable(with=Unsupported)]
 #[derive(Debug, Clone)]
 pub struct Diagnostic {
@@ -168,11 +175,11 @@ impl Diagnostic {
     self
   }
 
-  pub fn loc(&self) -> Option<&DependencyLocation> {
+  pub fn loc(&self) -> Option<&ErrorLocation> {
     self.loc.as_ref()
   }
 
-  pub fn with_loc(mut self, loc: Option<DependencyLocation>) -> Self {
+  pub fn with_loc(mut self, loc: Option<ErrorLocation>) -> Self {
     self.loc = loc;
     self
   }

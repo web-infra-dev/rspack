@@ -1,6 +1,6 @@
 import type * as binding from "@rspack/binding";
 
-export type RspackError = binding.JsRspackError;
+export type { RspackError } from "@rspack/binding";
 export type RspackSeverity = binding.JsRspackSeverity;
 
 export class NonErrorEmittedError extends Error {

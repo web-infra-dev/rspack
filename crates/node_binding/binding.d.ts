@@ -74,7 +74,15 @@ export interface ExternalModule extends Module {
 	readonly userRequest: string;
 }
 
-export type DependencyLocation = SyntheticDependencyLocation | RealDependencyLocation;
+export interface RspackError {
+	name: string;
+  message: string;
+	module?: Module;
+	loc?: string;
+	file?: string;
+	stack?: string;
+	hideStack?: boolean;
+}
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */
@@ -142,10 +150,10 @@ export declare class Dependency {
 
 export declare class Diagnostics {
   get length(): number
-  values(): Array<JsRspackError>
-  get(index: number): JsRspackError | undefined
-  set(index: number, error: JsRspackError): void
-  spliceWithArray(index: number, deleteCount?: number | undefined | null, newItems?: Array<JsRspackError> | undefined | null): Array<JsRspackError>
+  values(): Array<RspackError>
+  get(index: number): RspackError | undefined
+  set(index: number, error: RspackError): void
+  spliceWithArray(index: number, deleteCount?: number | undefined | null, newItems?: Array<RspackError> | undefined | null): Array<RspackError>
 }
 
 export declare class EntryDataDto {
@@ -273,8 +281,8 @@ export declare class JsCompilation {
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
   get errors(): Diagnostics
   get warnings(): Diagnostics
-  getErrors(): Array<JsRspackError>
-  getWarnings(): Array<JsRspackError>
+  getErrors(): Array<RspackError>
+  getWarnings(): Array<RspackError>
   getStats(): JsStats
   getAssetPath(filename: string, data: JsPathData): string
   getAssetPathWithInfo(filename: string, data: JsPathData): PathWithInfo
@@ -898,7 +906,7 @@ export interface JsLoaderContext {
   loaderItems: Array<JsLoaderItem>
   loaderIndex: number
   loaderState: Readonly<JsLoaderState>
-  __internal__error?: JsRspackError
+  __internal__error?: RspackError
   /**
    * UTF-8 hint for `content`
    * - Some(true): `content` is a `UTF-8` encoded sequence
@@ -1136,17 +1144,7 @@ export interface JsRsdoctorVariable {
 
 export interface JsRspackDiagnostic {
   severity: JsRspackSeverity
-  error: JsRspackError
-}
-
-export interface JsRspackError {
-  name: string
-  message: string
-  moduleIdentifier?: string
-  loc?: DependencyLocation
-  file?: string
-  stack?: string
-  hideStack?: boolean
+  error: RspackError
 }
 
 export declare enum JsRspackSeverity {
