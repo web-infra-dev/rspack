@@ -1,6 +1,14 @@
 allow-dbg-in-tests    = true
 allow-unwrap-in-tests = true
-
+# always use FxHasher for performance reason
+# rule modified from https://github.com/rust-lang/rust-analyzer/blob/master/clippy.toml#L1C1-L5C2
+disallowed-types = [
+    { path = "indexmap::HashMap", reason = "use FxIndexMap" }, 
+    { path = "indexmap::IndexSet", reason = "use FxIndexSet" },
+    { path = "std::collections::HashMap", reason = "use FxHashMap" },
+    { path = "std::collections::HashSet", reason = "use FxHashSet" },
+    { path = "std::collections::hash_map::RandomState", reason = "use BuildHasherDefault<FxHasher>"}
+]
 disallowed-methods = [
   
   { path = "str::to_ascii_lowercase", reason = "To avoid memory allocation, use `cow_utils::CowUtils::cow_to_ascii_lowercase` instead." },
