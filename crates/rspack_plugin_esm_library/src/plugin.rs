@@ -1,37 +1,21 @@
-use std::{
-  borrow::Cow,
-  collections::hash_map::{Entry, OccupiedEntry},
-  path::{Path, PathBuf},
-  sync::{Arc, LazyLock},
-};
+use std::sync::{Arc, LazyLock};
 
-use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator};
 use regex::Regex;
-use rspack_collections::{
-  IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeyIndexMap, UkeyMap,
-};
+use rspack_collections::IdentifierIndexMap;
 use rspack_core::{
-  reserved_names::RESERVED_NAMES,
-  rspack_sources::{ConcatSource, RawSource, ReplaceSource, Source},
-  AssetInfo, BoxModule, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  rspack_sources::{ReplaceSource, Source},
+  AssetInfo, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAfterCodeGeneration, CompilationAfterSeal, CompilationConcatenationScope,
   CompilationFinishModules, CompilationParams, CompilationProcessAssets, CompilerCompilation,
-  ConcatenatedModuleIdent, ConcatenatedModuleInfo, ConcatenationScope, DependencyId, ExportInfo,
-  ExportInfoGetter, ExportProvided, ExternalModuleInfo, IdentCollector, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, ModuleInfo, Plugin, RuntimeCondition, RuntimeGlobals,
-  SourceType,
+  ConcatenatedModuleInfo, ConcatenationScope, ExportInfoGetter, ExportProvided, ExternalModuleInfo,
+  ModuleGraph, ModuleIdentifier, ModuleInfo, Plugin, RuntimeCondition, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_javascript_compiler::ast::Ast;
 use rspack_plugin_javascript::{
-  dependency::ImportDependencyTemplate, visitors::swc_visitor::resolver,
-  JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
+  dependency::ImportDependencyTemplate, JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
 };
-use rspack_util::{
-  atom::Atom,
-  fx_hash::{FxHashMap, FxHashSet, FxIndexSet},
-};
+use rspack_util::fx_hash::FxHashMap;
 use sugar_path::SugarPath;
 use tokio::sync::Mutex;
 
@@ -97,7 +81,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
 
   for (idx, (module_identifier, module)) in modules.into_iter().enumerate() {
     // make sure all exports are provided
-    let exports_info = module_graph.get_exports_info(&module_identifier);
+    let exports_info = module_graph.get_exports_info(module_identifier);
 
     let mut should_scope_hoisting = true;
     if module.as_normal_module().is_none()
@@ -221,14 +205,6 @@ async fn additional_chunk_runtime_requirements(
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
-  let chunk_link = compilation
-    .chunk_graph
-    .link
-    .as_ref()
-    .unwrap()
-    .get(chunk_ukey)
-    .unwrap();
-
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
   if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
@@ -269,13 +245,26 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       for captures in RSPACK_ESM_CHUNK_PLACEHOLDER_RE.find_iter(&source.source()) {
         let whole_str = captures.as_str();
-        let chunk_ukey = whole_str.strip_prefix("__RSPACK_ESM_CHUNK_").unwrap();
-        let chunk_ukey = ChunkUkey::from(chunk_ukey.parse::<u32>().unwrap());
+        let chunk_ukey = whole_str
+          .strip_prefix("__RSPACK_ESM_CHUNK_")
+          .expect("should have correct prefix");
+        let chunk_ukey =
+          ChunkUkey::from(chunk_ukey.parse::<u32>().expect("should have chunk ukey"));
         let start = captures.range().start as u32;
         let end = captures.range().end as u32;
-        let chunk = compilation.chunk_by_ukey.get(&chunk_ukey).unwrap();
+        let chunk = compilation
+          .chunk_by_ukey
+          .get(&chunk_ukey)
+          .expect("should have chunk");
 
-        let chunk_path = output_path.join(chunk.files().iter().next().unwrap().as_str());
+        let chunk_path = output_path.join(
+          chunk
+            .files()
+            .iter()
+            .next()
+            .expect("at least one path")
+            .as_str(),
+        );
         let relative = chunk_path.relative(self_path.as_path());
         let import_str = if relative.starts_with(".") {
           relative.to_string_lossy().to_string()
@@ -292,7 +281,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     compilation
       .assets_mut()
       .get_mut(&replace_name)
-      .unwrap()
+      .expect("should have asset")
       .set_source(Some(Arc::new(replace_source)));
   }
 
