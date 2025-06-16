@@ -3,9 +3,11 @@
 mod options;
 mod plugin;
 mod transformer;
+mod utils;
 
 use std::default::Default;
 
+use cow_utils::CowUtils;
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
@@ -18,7 +20,10 @@ use swc_config::{merge::Merge, types::MergingOption};
 use swc_core::{
   base::config::{InputSourceMap, TransformConfig},
   common::FileName,
+  ecma::parser::{EsSyntax, Syntax, TsSyntax},
 };
+
+use crate::utils::extension_name_to_parser_type;
 
 #[cacheable]
 #[derive(Debug)]
@@ -48,12 +53,47 @@ impl SwcLoader {
       .resource_path()
       .map(|p| p.to_path_buf())
       .unwrap_or_default();
+
     let Some(content) = loader_context.take_content() else {
       return Ok(());
     };
 
     let swc_options = {
       let mut swc_options = self.options_with_additional.swc_options.clone();
+
+      // read the `auto_parser` config of this loader options
+      let auto_parser = self.options_with_additional.auto_parser;
+
+      if auto_parser {
+        let extension_name = resource_path.extension();
+        if let Some(extension_name) = extension_name {
+          // .tsx | .ts | .jsx | .js
+          let lowercase_extension_name = CowUtils::cow_to_ascii_lowercase(extension_name);
+          // get parser_type
+          let parser_type = extension_name_to_parser_type(&lowercase_extension_name);
+
+          if parser_type.is_typescript {
+            swc_options
+              .config
+              .jsc
+              .syntax
+              .merge(Some(Syntax::Typescript(TsSyntax {
+                tsx: parser_type.is_jsx,
+                ..Default::default()
+              })));
+          } else {
+            swc_options
+              .config
+              .jsc
+              .syntax
+              .merge(Some(Syntax::Es(EsSyntax {
+                jsx: parser_type.is_jsx,
+                ..Default::default()
+              })));
+          }
+        }
+      }
+
       if swc_options.config.jsc.transform.as_ref().is_some() {
         let mut transform = TransformConfig::default();
         transform.react.development =
