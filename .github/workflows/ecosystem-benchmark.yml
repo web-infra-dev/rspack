@@ -72,7 +72,7 @@ jobs:
 
   bench:
     needs: [build]
-    runs-on: [self-hosted, benchmark]
+    runs-on: ${{fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-latest"') }}
     outputs:
       diff-result: ${{ steps.run-benchmark.outputs.diff-result }}
     steps:
