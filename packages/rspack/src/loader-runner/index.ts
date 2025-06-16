@@ -61,6 +61,7 @@ import {
 	loadLoader,
 	runSyncOrAsync
 } from "./utils";
+import { cleanUp } from "../ErrorHelpers";
 
 function createLoaderObject(
 	loader: JsLoaderItem,
@@ -577,6 +578,9 @@ export async function runLoaders(
 			loaderContext.loaders[loaderContext.loaderIndex]
 		)})`;
 		(error as RspackError).module = loaderContext._module;
+		(error as RspackError).details = err.stack
+			? cleanUp(err.stack, err.message)
+			: undefined;
 		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
 			error,
 			severity: JsRspackSeverity.Error

@@ -12,3 +12,19 @@ const cutOffByFlag = (stack: string, flag: string) => {
 
 export const cutOffLoaderExecution = (stack: string) =>
 	cutOffByFlag(stack, loaderFlag);
+
+export const cleanUp = (stack: string, message: string): string => {
+	stack = cutOffLoaderExecution(stack);
+	stack = cutOffMessage(stack, message);
+	return stack;
+};
+
+export const cutOffMessage = (stack: string, message: string): string => {
+	const nextLine = stack.indexOf("\n");
+	if (nextLine === -1) {
+		return stack === message ? "" : stack;
+	} else {
+		const firstLine = stack.slice(0, nextLine);
+		return firstLine === message ? stack.slice(nextLine + 1) : stack;
+	}
+};

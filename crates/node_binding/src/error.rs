@@ -77,6 +77,7 @@ pub struct RspackError {
   pub severity: Option<Severity>,
   pub name: String,
   pub message: String,
+  pub details: Option<String>,
   pub stack: Option<String>,
   pub module: Option<ModuleObject>,
   pub loc: Option<DependencyLocation>,
@@ -105,6 +106,7 @@ impl ToNapiValue for RspackError {
     let Self {
       name,
       message,
+      details,
       stack,
       module,
       loc,
@@ -122,6 +124,9 @@ impl ToNapiValue for RspackError {
 
     let mut obj = Object::from_raw(env, obj);
     obj.set("name", name)?;
+    if let Some(details) = details {
+      obj.set("details", details)?;
+    }
     if let Some(stack) = stack {
       obj.set("stack", stack)?;
     } else {
@@ -163,34 +168,20 @@ impl FromNapiValue for RspackError {
         err
       })?
       .ok_or_else(|| napi::Error::new(Status::InvalidArg, "Missing field message"))?;
-    let stack: Option<String> = obj.get("stack").map_err(|mut err| {
-      err.reason = format!("{} on {}.{}", err.reason, "RspackError", "stack");
-      err
-    })?;
-    let module: Option<ModuleObject> = obj.get("module").map_err(|mut err| {
-      err.reason = format!("{} on {}.{}", err.reason, "RspackError", "module");
-      err
-    })?;
-    let loc: Option<DependencyLocation> = obj.get("loc").map_err(|mut err| {
-      err.reason = format!("{} on {}.{}", err.reason, "RspackError", "loc");
-      err
-    })?;
-    let hide_stack: Option<bool> = obj.get("hideStack").map_err(|mut err| {
-      err.reason = format!("{} on {}.{}", err.reason, "RspackError", "hideStack");
-      err
-    })?;
-    let file: Option<String> = obj.get("file").map_err(|mut err| {
-      err.reason = format!("{} on {}.{}", err.reason, "RspackError", "file");
-      err
-    })?;
-    let error: Option<RspackError> = obj.get("error").map_err(|mut err| {
-      err.reason = format!("{} on {}.{}", err.reason, "RspackError", "file");
-      err
-    })?;
+
+    let details: Option<String> = obj.get("details").ok().flatten();
+    let stack: Option<String> = obj.get("stack").ok().flatten();
+    let module: Option<ModuleObject> = obj.get("module").ok().flatten();
+    let loc: Option<DependencyLocation> = obj.get("loc").ok().flatten();
+    let hide_stack: Option<bool> = obj.get("hideStack").ok().flatten();
+    let file: Option<String> = obj.get("file").ok().flatten();
+    let error: Option<RspackError> = obj.get("error").ok().flatten();
+
     let val = Self {
       severity: None,
       name,
       message,
+      details,
       stack,
       module,
       loc,
@@ -205,8 +196,30 @@ impl FromNapiValue for RspackError {
 
 impl napi::bindgen_prelude::ValidateNapiValue for RspackError {}
 
-// The default error message format for RspackError is consistent with JavaScript's Error.
-// To optimize the display format for child errors, you can set `display_type` to switch to a different error message format.
+// The error printing logic here is consistent with Webpack Stats.
+// The printing order for StatsError is configured in lib/stats/DefaultStatsPrinterPlugin.js.
+// const ERROR_PREFERRED_ORDER = [
+//   "compilerPath",
+//   "chunkId",
+//   "chunkEntry",
+//   "chunkInitial",
+//   "file",
+//   "separator!",
+//   "moduleName",
+//   "loc",
+//   "separator!",
+//   "message",
+//   "separator!",
+//   "details",
+//   "separator!",
+//   "filteredDetails",
+//   "separator!",
+//   "stack",
+//   "separator!",
+//   "missing",
+//   "separator!",
+//   "moduleTrace"
+// ];
 impl std::fmt::Display for RspackError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     write!(f, "{}: ", self.name)?;
@@ -223,7 +236,11 @@ impl std::fmt::Display for RspackError {
       };
       write!(f, "{message}")
     } else {
-      write!(f, "{}", &self.message)
+      write!(f, "{}", &self.message)?;
+      if let Some(details) = &self.details {
+        write!(f, "{}", details)?;
+      }
+      Ok(())
     }
   }
 }
@@ -257,6 +274,7 @@ impl From<&dyn miette::Diagnostic> for RspackError {
       severity: None,
       name,
       message,
+      details: None,
       stack: None,
       module: None,
       loc: None,
@@ -299,6 +317,7 @@ impl RspackError {
         .map(|n| n.to_string())
         .unwrap_or_else(|| "Error".to_string()),
       message,
+      details: None,
       stack: diagnostic.stack(),
       module,
       loc: diagnostic.loc().map(Into::into),

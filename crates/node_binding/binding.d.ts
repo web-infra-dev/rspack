@@ -76,7 +76,8 @@ export interface ExternalModule extends Module {
 
 export interface RspackError {
 	name: string;
-  	message: string;
+	message: string;
+	details?: string;
 	module?: Module;
 	loc?: string;
 	file?: string;
