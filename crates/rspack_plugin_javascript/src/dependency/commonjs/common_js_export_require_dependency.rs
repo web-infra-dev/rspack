@@ -4,13 +4,13 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  module_raw, process_export_info, property_access, AsContextDependency, Dependency,
-  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportInfoGetter, ExportNameOrSpec, ExportProvided,
-  ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  Nullable, PrefetchExportsInfoMode, ReferencedExport, RuntimeGlobals, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  module_raw, process_export_info, property_access, to_normal_comment, AsContextDependency,
+  Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportInfoGetter, ExportNameOrSpec,
+  ExportProvided, ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ExportsType,
+  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, Nullable, PrefetchExportsInfoMode, ReferencedExport, RuntimeGlobals,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
@@ -210,7 +210,11 @@ impl Dependency for CommonJsExportRequireDependency {
     &DependencyType::CjsExportRequire
   }
 
-  fn get_exports(&self, mg: &ModuleGraph) -> Option<ExportsSpec> {
+  fn get_exports(
+    &self,
+    mg: &ModuleGraph,
+    _mg_cache: &ModuleGraphCacheArtifact,
+  ) -> Option<ExportsSpec> {
     let ids = self.get_ids(mg);
 
     if self.names.len() == 1 {
@@ -288,6 +292,7 @@ impl Dependency for CommonJsExportRequireDependency {
   fn get_referenced_exports(
     &self,
     mg: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     let ids = self.get_ids(mg);
@@ -298,6 +303,7 @@ impl Dependency for CommonJsExportRequireDependency {
         vec![ExtendedReferencedExport::Export(ReferencedExport {
           name: ids.to_vec(),
           can_mangle: false,
+          can_inline: false,
         })]
       }
     };
@@ -361,6 +367,7 @@ impl Dependency for CommonJsExportRequireDependency {
         ExtendedReferencedExport::Export(ReferencedExport {
           name: name.to_owned(),
           can_mangle: false,
+          can_inline: false,
         })
       })
       .collect_vec()
@@ -471,17 +478,9 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
       unreachable!()
     };
 
-    let mut require_expr = module_raw(
-      compilation,
-      runtime_requirements,
-      &dep.id,
-      &dep.request,
-      false,
-    );
-
-    if let Some(imported_module) = mg.get_module_by_dependency_id(&dep.id) {
-      let ids = dep.get_ids(mg);
-      if let Some(used_imported) = ExportsInfoGetter::get_used_name(
+    let require_expr = if let Some(imported_module) = mg.get_module_by_dependency_id(&dep.id)
+      && let ids = dep.get_ids(mg)
+      && let Some(used_imported) = ExportsInfoGetter::get_used_name(
         &mg.get_prefetched_exports_info(
           &imported_module.identifier(),
           if ids.is_empty() {
@@ -493,30 +492,43 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
         *runtime,
         ids,
       ) {
-        require_expr = format!(
-          "{}{}",
-          require_expr,
-          property_access(
-            match used_imported {
-              UsedName::Normal(names) => names.into_iter(),
-            },
-            0
+      let comment = to_normal_comment(&property_access(ids, 0));
+      match used_imported {
+        UsedName::Normal(used_imported) => {
+          format!(
+            "{}{}{}",
+            module_raw(
+              compilation,
+              runtime_requirements,
+              &dep.id,
+              &dep.request,
+              false,
+            ),
+            comment,
+            property_access(used_imported, 0)
           )
-        )
+        }
+        UsedName::Inlined(inlined) => format!("{}{}", comment, inlined.render()),
       }
-    }
+    } else {
+      module_raw(
+        compilation,
+        runtime_requirements,
+        &dep.id,
+        &dep.request,
+        false,
+      )
+    };
 
     if dep.base.is_expression() {
       let expr = match used {
-        Some(used) => format!(
-          "{base}{} = {require_expr}",
-          property_access(
-            match used {
-              UsedName::Normal(names) => names.into_iter(),
-            },
-            0
-          )
-        ),
+        Some(UsedName::Normal(used)) => {
+          format!("{base}{} = {require_expr}", property_access(used, 0))
+        }
+        Some(UsedName::Inlined(_)) => {
+          // Export a inlinable const from cjs is not possible for now but we compat it here
+          format!("/* inlined reexport */ {require_expr}")
+        }
         None => format!("/* unused reexport */ {require_expr}"),
       };
       source.replace(dep.range.start, dep.range.end, expr.as_str(), None)

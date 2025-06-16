@@ -6,8 +6,8 @@ use rspack_core::{
   create_exports_object_referenced, module_namespace_promise, AsContextDependency, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportsType, ExtendedReferencedExport, FactorizeInfo,
-  ImportAttributes, ModuleDependency, ModuleGraph, ReferencedExport, TemplateContext,
-  TemplateReplaceSource,
+  ImportAttributes, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport,
+  TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -45,6 +45,7 @@ pub fn create_import_dependency_referenced_exports(
       }
       refs.push(ExtendedReferencedExport::Export(ReferencedExport::new(
         vec![referenced_export.clone()],
+        false,
         false,
       )));
     }
@@ -121,6 +122,7 @@ impl Dependency for ImportDependency {
   fn get_referenced_exports(
     &self,
     module_graph: &rspack_core::ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<rspack_core::ExtendedReferencedExport> {
     create_import_dependency_referenced_exports(&self.id, &self.referenced_exports, module_graph)

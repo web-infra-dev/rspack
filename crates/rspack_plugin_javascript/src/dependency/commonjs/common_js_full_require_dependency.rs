@@ -6,8 +6,9 @@ use rspack_core::{
   module_id, property_access, to_normal_comment, AsContextDependency, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoGetter, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, PrefetchExportsInfoMode,
-  RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
+  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource, UsedName,
 };
 use swc_core::atoms::Atom;
 
@@ -76,6 +77,7 @@ impl Dependency for CommonJsFullRequireDependency {
   fn get_referenced_exports(
     &self,
     module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     if self.is_call
@@ -168,14 +170,9 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
     let module_graph = compilation.get_module_graph();
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
 
-    let mut require_expr = format!(
-      r#"{}({})"#,
-      RuntimeGlobals::REQUIRE,
-      module_id(compilation, &dep.id, &dep.request, false)
-    );
-
-    if let Some(imported_module) = module_graph.module_graph_module_by_dependency_id(&dep.id) {
-      let used = ExportsInfoGetter::get_used_name(
+    let require_expr = if let Some(imported_module) =
+      module_graph.module_graph_module_by_dependency_id(&dep.id)
+      && let used = ExportsInfoGetter::get_used_name(
         &module_graph.get_prefetched_exports_info(
           &imported_module.module_identifier,
           if dep.names.is_empty() {
@@ -186,26 +183,33 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
         ),
         *runtime,
         &dep.names,
-      );
-
-      if let Some(used) = used {
-        let comment = to_normal_comment(&property_access(dep.names.clone(), 0));
-        require_expr = format!(
-          "{}{}{}",
-          require_expr,
-          comment,
-          property_access(
-            match used {
-              UsedName::Normal(names) => names.into_iter(),
-            },
-            0
+      )
+      && let Some(used) = used
+    {
+      let comment = to_normal_comment(&property_access(&dep.names, 0));
+      let mut require_expr = match used {
+        UsedName::Normal(used) => {
+          format!(
+            "{}({}){}{}",
+            RuntimeGlobals::REQUIRE,
+            module_id(compilation, &dep.id, &dep.request, false),
+            comment,
+            property_access(used, 0)
           )
-        );
-        if dep.asi_safe {
-          require_expr = format!("({require_expr})");
         }
+        UsedName::Inlined(inlined) => format!("{}{}", comment, inlined.render()),
+      };
+      if dep.asi_safe {
+        require_expr = format!("({require_expr})");
       }
-    }
+      require_expr
+    } else {
+      format!(
+        r#"{}({})"#,
+        RuntimeGlobals::REQUIRE,
+        module_id(compilation, &dep.id, &dep.request, false)
+      )
+    };
 
     source.replace(dep.range.start, dep.range.end, &require_expr, None);
   }

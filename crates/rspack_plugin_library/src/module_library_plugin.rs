@@ -5,7 +5,7 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier, ApplyContext, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
   CompilerOptions, ExportInfoGetter, ExportProvided, ExportsType, LibraryOptions, ModuleGraph,
-  ModuleIdentifier, Plugin, PluginContext,
+  ModuleIdentifier, Plugin, PluginContext, UsedNameItem,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
@@ -107,8 +107,12 @@ async fn render_startup(
       )));
     } else {
       source.add(RawStringSource::from(format!(
-        "var {var_name} = __webpack_exports__{};\n",
-        property_access(vec![used_name], 0)
+        "var {var_name} = {};\n",
+        match used_name {
+          UsedNameItem::Str(used_name) =>
+            format!("__webpack_exports__{}", property_access(vec![used_name], 0)),
+          UsedNameItem::Inlined(inlined) => inlined.render().into_owned(),
+        }
       )));
     }
     exports.push(format!("{var_name} as {info_name}"));

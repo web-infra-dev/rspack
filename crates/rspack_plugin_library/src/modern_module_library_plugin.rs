@@ -7,7 +7,7 @@ use rspack_core::{
   Compilation, CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation,
   CompilerFinishMake, CompilerOptions, ConcatenatedModule, ConcatenatedModuleExportsDefinitions,
   DependenciesBlock, Dependency, DependencyId, ExportInfoGetter, LibraryOptions, ModuleGraph,
-  ModuleIdentifier, Plugin, PluginContext, RuntimeSpec,
+  ModuleIdentifier, Plugin, PluginContext, RuntimeSpec, UsedNameItem,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
@@ -157,6 +157,7 @@ async fn render_startup(
 
   let mut exports = vec![];
   let mut exports_with_property_access = vec![];
+  let mut exports_with_inlined = vec![];
 
   let Some(_) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());
@@ -182,6 +183,14 @@ async fn render_startup(
       )
       .expect("name can't be empty");
 
+      let used_name = match used_name {
+        UsedNameItem::Inlined(inlined) => {
+          exports_with_inlined.push((inlined, info_name));
+          continue;
+        }
+        UsedNameItem::Str(used_name) => used_name,
+      };
+
       let final_name = exports_final_names.get(used_name.as_str());
 
       let contains_char =
@@ -204,6 +213,17 @@ async fn render_startup(
 
       source.add(RawStringSource::from(format!(
         "var {var_name} = {final_name};\n"
+      )));
+
+      exports.push(format!("{var_name} as {info_name}"));
+    }
+
+    for (inlined, info_name) in exports_with_inlined.iter() {
+      let var_name = format!("__webpack_exports__{}", to_identifier(info_name));
+
+      source.add(RawStringSource::from(format!(
+        "var {var_name} = {};\n",
+        inlined.render()
       )));
 
       exports.push(format!("{var_name} as {info_name}"));

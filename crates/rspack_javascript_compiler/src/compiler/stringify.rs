@@ -195,7 +195,7 @@ impl JavaScriptCompiler {
           .collect::<Vec<_>>(),
         combined_source_map
           .source_contents()
-          .map(Option::unwrap_or_default)
+          .flatten()
           .map(ToString::to_string)
           .collect::<Vec<_>>(),
         combined_source_map

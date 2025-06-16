@@ -2463,6 +2463,7 @@ export type Experiments = {
     buildHttp?: HttpUriOptions;
     parallelLoader?: boolean;
     useInputFileSystem?: UseInputFileSystem;
+    inlineConst?: boolean;
 };
 
 // @public (undocumented)
@@ -2489,6 +2490,8 @@ interface Experiments_2 {
     swc: {
         transform: typeof transform;
         minify: typeof minify;
+        transformSync: typeof transformSync;
+        minifySync: typeof minifySync;
     };
 }
 
@@ -2506,6 +2509,8 @@ export interface ExperimentsNormalized {
     futureDefaults?: boolean;
     // (undocumented)
     incremental?: false | Incremental;
+    // (undocumented)
+    inlineConst?: boolean;
     // (undocumented)
     layers?: boolean;
     // (undocumented)
@@ -3431,6 +3436,7 @@ export type JavascriptParserOptions = {
     requireDynamic?: boolean;
     requireResolve?: boolean;
     importDynamic?: boolean;
+    inlineConst?: boolean;
 };
 
 // @public (undocumented)
@@ -4144,7 +4150,7 @@ interface LabeledStatement extends Node_4, HasSpan {
 export type Layer = string | null;
 
 // @public (undocumented)
-const lazyCompilationMiddleware: (compiler: Compiler, userOptions?: LazyCompilationOptions | boolean) => DevServerMiddleware;
+const lazyCompilationMiddleware: (compiler: Compiler | MultiCompiler) => MiddlewareHandler;
 
 // @public
 export type LazyCompilationOptions = {
@@ -4652,6 +4658,9 @@ type MiddlewareObject<RequestInternal extends Request_2 = Request_2, ResponseInt
 function minify(source: string, options?: JsMinifyOptions): Promise<TransformOutput>;
 
 // @public (undocumented)
+function minifySync(source: string, options?: JsMinifyOptions): TransformOutput;
+
+// @public (undocumented)
 type MkdirSync = (path: PathLike, options: MakeDirectoryOptions) => undefined | string;
 
 // @public
@@ -4816,6 +4825,8 @@ export class MultiCompiler {
     hooks: {
         done: liteTapable.SyncHook<MultiStats>;
         invalid: liteTapable.MultiHook<liteTapable.SyncHook<[string | null, number]>>;
+        beforeCompile: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[CompilationParams]>>;
+        shutdown: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[]>>;
         run: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[Compiler]>>;
         watchClose: liteTapable.SyncHook<[]>;
         watchRun: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[Compiler]>>;
@@ -4854,6 +4865,8 @@ export class MultiCompiler {
     // (undocumented)
     get watchFileSystem(): WatchFileSystem;
     set watchFileSystem(value: WatchFileSystem);
+    // (undocumented)
+    watching?: MultiWatching;
 }
 
 // @public (undocumented)
@@ -4890,6 +4903,8 @@ class MultiWatching {
     compiler: MultiCompiler;
     // (undocumented)
     invalidate(callback: Callback<Error, void>): void;
+    // (undocumented)
+    invalidateWithChangesAndRemovals(changedFiles?: Set<string>, removedFiles?: Set<string>, callback?: Callback<Error, void>): void;
     // (undocumented)
     resume(): void;
     // (undocumented)
@@ -8124,6 +8139,9 @@ interface TransformConfig {
     useDefineForClassFields?: boolean;
     verbatimModuleSyntax?: boolean;
 }
+
+// @public (undocumented)
+function transformSync(source: string, options?: Options): TransformOutput;
 
 // @public (undocumented)
 type TruePlusMinus = true | "+" | "-";
