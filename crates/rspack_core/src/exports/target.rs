@@ -4,9 +4,9 @@ use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  DependencyId, ExportInfo, ExportInfoData, ExportInfoGetter, ExportInfoTargetValue, ExportsInfo,
-  ExportsInfoGetter, MaybeDynamicTargetExportInfo, MaybeDynamicTargetExportInfoHashKey,
-  ModuleGraph, ModuleIdentifier, PrefetchExportsInfoMode,
+  DependencyId, ExportInfo, ExportInfoData, ExportInfoGetter, ExportsInfo, ExportsInfoGetter,
+  MaybeDynamicTargetExportInfo, MaybeDynamicTargetExportInfoHashKey, ModuleGraph, ModuleIdentifier,
+  PrefetchExportsInfoMode,
 };
 
 #[derive(Debug, Hash, Clone, Copy, PartialEq, Eq)]
@@ -69,23 +69,6 @@ pub fn get_terminal_binding(
   )
   .get_read_only_export_info_recursive(&export)
   .map(|data| TerminalBinding::ExportInfo(data.id()))
-}
-
-pub fn do_move_target(
-  export_info: &mut ExportInfoData,
-  dependency: DependencyId,
-  target_export: Option<Vec<Atom>>,
-) {
-  export_info.target_mut().clear();
-  export_info.target_mut().insert(
-    None,
-    ExportInfoTargetValue {
-      dependency: Some(dependency),
-      export: target_export,
-      priority: 0,
-    },
-  );
-  export_info.set_target_is_set(true);
 }
 
 pub(crate) fn find_target_from_export_info(
