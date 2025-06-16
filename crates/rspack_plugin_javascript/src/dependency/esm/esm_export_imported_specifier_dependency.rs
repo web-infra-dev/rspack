@@ -20,8 +20,8 @@ use rspack_core::{
   ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
   ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions,
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment,
-  NormalReexportItem, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap,
-  StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  NormalReexportItem, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  SharedSourceMap, StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -538,19 +538,13 @@ impl ESMExportImportedSpecifierDependency {
         )
         .boxed(),
       ),
-      ExportModeType::ReexportDynamicDefault(ExportModeReexportDynamicDefault { name }) => {
+      ExportMode::ReexportDynamicDefault(ExportModeReexportDynamicDefault { name }) => {
         let exports_info = mg.get_prefetched_exports_info(
           &module_identifier,
-          PrefetchExportsInfoMode::NamedExports(HashSet::from_iter(vec![mode
-            .name
-            .as_ref()
-            .expect("should have name")])),
+          PrefetchExportsInfoMode::NamedExports(HashSet::from_iter(vec![&name])),
         );
-        let used_name = ExportsInfoGetter::get_used_name(
-          &exports_info,
-          None,
-          std::slice::from_ref(mode.name.as_ref().expect("should have name")),
-        );
+        let used_name =
+          ExportsInfoGetter::get_used_name(&exports_info, None, std::slice::from_ref(&name));
         let key = render_used_name(used_name.as_ref());
 
         let init_fragment = self
@@ -564,19 +558,13 @@ impl ESMExportImportedSpecifierDependency {
           .boxed();
         fragments.push(init_fragment);
       }
-      ExportModeType::ReexportNamedDefault(mode) => {
+      ExportMode::ReexportNamedDefault(mode) => {
         let exports_info = mg.get_prefetched_exports_info(
           &module_identifier,
-          PrefetchExportsInfoMode::NamedExports(HashSet::from_iter(vec![mode
-            .name
-            .as_ref()
-            .expect("should have name")])),
+          PrefetchExportsInfoMode::NamedExports(HashSet::from_iter(vec![&mode.name])),
         );
-        let used_name = ExportsInfoGetter::get_used_name(
-          &exports_info,
-          None,
-          std::slice::from_ref(mode.name.as_ref().expect("should have name")),
-        );
+        let used_name =
+          ExportsInfoGetter::get_used_name(&exports_info, None, std::slice::from_ref(&mode.name));
         let key = render_used_name(used_name.as_ref());
         let init_fragment = self
           .get_reexport_fragment(
@@ -589,19 +577,13 @@ impl ESMExportImportedSpecifierDependency {
           .boxed();
         fragments.push(init_fragment);
       }
-      ExportModeType::ReexportNamespaceObject(mode) => {
+      ExportMode::ReexportNamespaceObject(mode) => {
         let exports_info = mg.get_prefetched_exports_info(
           &module_identifier,
-          PrefetchExportsInfoMode::NamedExports(HashSet::from_iter(vec![mode
-            .name
-            .as_ref()
-            .expect("should have name")])),
+          PrefetchExportsInfoMode::NamedExports(HashSet::from_iter(vec![&mode.name])),
         );
-        let used_name = ExportsInfoGetter::get_used_name(
-          &exports_info,
-          None,
-          std::slice::from_ref(mode.name.as_ref().expect("should have name")),
-        );
+        let used_name =
+          ExportsInfoGetter::get_used_name(&exports_info, None, std::slice::from_ref(&mode.name));
         let key = render_used_name(used_name.as_ref());
 
         let init_fragment = self
@@ -619,32 +601,20 @@ impl ESMExportImportedSpecifierDependency {
         // TODO: reexport fake namespace object
         let exports_info = mg.get_prefetched_exports_info(
           &module_identifier,
-          PrefetchExportsInfoMode::NamedExports(HashSet::from_iter(vec![mode
-            .name
-            .as_ref()
-            .expect("should have name")])),
+          PrefetchExportsInfoMode::NamedExports(HashSet::from_iter(vec![&mode.name])),
         );
-        let used_name = ExportsInfoGetter::get_used_name(
-          &exports_info,
-          None,
-          std::slice::from_ref(mode.name.as_ref().expect("should have name")),
-        );
+        let used_name =
+          ExportsInfoGetter::get_used_name(&exports_info, None, std::slice::from_ref(&mode.name));
         let key = render_used_name(used_name.as_ref());
         self.get_reexport_fake_namespace_object_fragments(ctxt, key, &import_var, mode.fake_type);
       }
       ExportMode::ReexportUndefined(mode) => {
         let exports_info = mg.get_prefetched_exports_info(
           &module_identifier,
-          PrefetchExportsInfoMode::NamedExports(HashSet::from_iter(vec![mode
-            .name
-            .as_ref()
-            .expect("should have name")])),
+          PrefetchExportsInfoMode::NamedExports(HashSet::from_iter(vec![&mode.name])),
         );
-        let used_name = ExportsInfoGetter::get_used_name(
-          &exports_info,
-          None,
-          std::slice::from_ref(mode.name.as_ref().expect("should have name")),
-        );
+        let used_name =
+          ExportsInfoGetter::get_used_name(&exports_info, None, std::slice::from_ref(&mode.name));
         let key = render_used_name(used_name.as_ref());
 
         let init_fragment = self
@@ -665,14 +635,13 @@ impl ESMExportImportedSpecifierDependency {
         let names = mode
           .items
           .iter()
-          .flatten()
           .map(|item| item.name.clone())
           .collect::<Vec<_>>();
         let exports_info = mg.get_prefetched_exports_info(
           &module_identifier,
           PrefetchExportsInfoMode::NamedExports(HashSet::from_iter(names.iter())),
         );
-        for item in mode.items.into_iter().flatten() {
+        for item in mode.items.into_iter() {
           let NormalReexportItem {
             name,
             ids,

@@ -1,6 +1,5 @@
 use std::{collections::BTreeMap, hash::Hash, sync::atomic::Ordering::Relaxed};
 
-use either::Either;
 use rspack_cacheable::cacheable;
 use rspack_collections::{impl_item_ukey, Ukey};
 use rspack_util::atom::Atom;
@@ -8,8 +7,8 @@ use rustc_hash::FxHashSet;
 use serde::Serialize;
 
 use super::{
-  ExportInfo, ExportInfoData, ExportInfoGetter, ExportInfoSetter, ExportProvided, UsageKey,
-  UsageState, UsedName, UsedNameItem, NEXT_EXPORTS_INFO_UKEY,
+  ExportInfo, ExportInfoData, ExportInfoGetter, ExportInfoSetter, ExportProvided, UsageState,
+  UsedName, UsedNameItem, NEXT_EXPORTS_INFO_UKEY,
 };
 use crate::{DependencyId, ModuleGraph, Nullable, RuntimeSpec};
 
@@ -416,38 +415,6 @@ impl ExportsInfo {
       return exports_info.get_used(mg, &names[1..], runtime);
     }
     ExportInfoGetter::get_used(info.as_data(mg), runtime)
-  }
-
-  pub fn get_usage_key(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> UsageKey {
-    let exports_info = self.as_data(mg);
-
-    // only expand capacity when this has redirect_to
-    let mut key = UsageKey(Vec::with_capacity(exports_info.exports.len() + 2));
-
-    if let Some(redirect_to) = &exports_info.redirect_to {
-      key.add(Either::Left(Box::new(
-        redirect_to.get_usage_key(mg, runtime),
-      )));
-    } else {
-      key.add(Either::Right(ExportInfoGetter::get_used(
-        exports_info.other_exports_info.as_data(mg),
-        runtime,
-      )));
-    };
-
-    key.add(Either::Right(ExportInfoGetter::get_used(
-      exports_info.side_effects_only_info.as_data(mg),
-      runtime,
-    )));
-
-    for export_info in exports_info.exports.values() {
-      key.add(Either::Right(ExportInfoGetter::get_used(
-        export_info.as_data(mg),
-        runtime,
-      )));
-    }
-
-    key
   }
 
   pub fn is_used(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> bool {

@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use either::Either;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use rspack_util::{atom::Atom, ext::DynHash};
@@ -9,7 +10,7 @@ use super::{
   ExportInfoData, ExportInfoGetter, ExportProvided, ExportsInfo, ProvidedExports, UsageState,
   UsedName, UsedNameItem,
 };
-use crate::{MaybeDynamicTargetExportInfo, ModuleGraph, RuntimeSpec, UsedExports};
+use crate::{MaybeDynamicTargetExportInfo, ModuleGraph, RuntimeSpec, UsageKey, UsedExports};
 
 #[derive(Debug, Clone)]
 pub enum PrefetchExportsInfoMode<'a> {
@@ -809,5 +810,40 @@ impl ExportsInfoGetter {
     }
     arr.extend(names.iter().skip(1).cloned());
     Some(UsedName::Normal(arr))
+  }
+
+  pub fn get_usage_key(
+    info: &PrefetchedExportsInfoWrapper,
+    runtime: Option<&RuntimeSpec>,
+  ) -> UsageKey {
+    // only expand capacity when this has redirect_to
+    let mut key = UsageKey(Vec::with_capacity(info.exports().count() + 2));
+
+    if let Some(redirect_to) = &info.data().redirect_to {
+      let redirected = info.redirect(*redirect_to, false);
+      key.add(Either::Left(Box::new(Self::get_usage_key(
+        &redirected,
+        runtime,
+      ))));
+    } else {
+      key.add(Either::Right(ExportInfoGetter::get_used(
+        info.other_exports_info(),
+        runtime,
+      )));
+    };
+
+    key.add(Either::Right(ExportInfoGetter::get_used(
+      info.side_effects_only_info(),
+      runtime,
+    )));
+
+    for (_, export_info) in info.exports() {
+      key.add(Either::Right(ExportInfoGetter::get_used(
+        export_info,
+        runtime,
+      )));
+    }
+
+    key
   }
 }
