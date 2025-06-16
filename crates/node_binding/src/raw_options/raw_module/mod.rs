@@ -653,6 +653,7 @@ impl From<AssetGeneratorDataUrlFnCtx<'_>> for RawAssetGeneratorDataUrlFnCtx {
     // AssetGeneratorDataUrlFn may be called during the importModule process,
     // at which point the corresponding Module is not present in compilation.moduleGraph.
     // Therefore, we use a raw pointer to allow JavaScript to access the Module.
+    #[allow(clippy::unwrap_used)]
     Self {
       filename: value.filename,
       module: ModuleObject::with_ptr(
