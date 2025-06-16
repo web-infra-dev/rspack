@@ -41,7 +41,6 @@ export interface Module {
 	set factoryMeta(factoryMeta: JsFactoryMeta);
 	get useSourceMap(): boolean;
 	get useSimpleSourceMap(): boolean;
-	get _readableIdentifier(): string;
 	buildInfo: BuildInfo;
 	buildMeta: Record<string, any>;
 }

@@ -9,13 +9,6 @@ Object.defineProperty(binding.ExternalModule.prototype, "identifier", {
 		return this[binding.MODULE_IDENTIFIER_SYMBOL];
 	}
 });
-Object.defineProperty(binding.ExternalModule.prototype, "readableIdentifier", {
-	enumerable: true,
-	configurable: true,
-	value(this: binding.ExternalModule) {
-		return this._readableIdentifier;
-	}
-});
 Object.defineProperty(binding.ExternalModule.prototype, "originalSource", {
 	enumerable: true,
 	configurable: true,
