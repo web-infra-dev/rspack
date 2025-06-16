@@ -36,7 +36,6 @@ module.exports = {
 		  },
 		  "message": "Module not found: Can't resolve './answer' in '<TEST_TOOLS_ROOT>/tests/fixtures/errors/resolve-fail-esm'",
 		  "module": NormalModule {
-		    "_readableIdentifier": "./index.js",
 		    "buildInfo": KnownBuildInfo {},
 		    "buildMeta": Object {},
 		    "context": "<TEST_TOOLS_ROOT>/tests/fixtures/errors/resolve-fail-esm",

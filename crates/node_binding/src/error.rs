@@ -73,8 +73,6 @@ impl From<JsRspackSeverity> for miette::Severity {
 
 #[derive(Debug)]
 pub struct RspackError {
-  // Only used for display on the Rust side; this value is set when converting to a Diagnostic struct.
-  pub severity: Option<Severity>,
   pub name: String,
   pub message: String,
   pub details: Option<String>,
@@ -84,7 +82,9 @@ pub struct RspackError {
   pub hide_stack: Option<bool>,
   pub file: Option<String>,
   pub error: Option<Box<RspackError>>,
-  /// The name of the parent error in the error chain, used to determine rendering logic.
+  // Only used for display on the Rust side; this value is set when converting to a Diagnostic struct.
+  pub severity: Option<Severity>,
+  /// nly used for display on the Rust side; the name of the parent error in the error chain, used to determine rendering logic.
   pub display_type: Option<String>,
 }
 

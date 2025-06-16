@@ -30,7 +30,6 @@ module.exports = {
 		},
 		    index: 0,
 		    module: NormalModule {
-		      _readableIdentifier: ./require.main.require.js,
 		      buildInfo: KnownBuildInfo {},
 		      buildMeta: Object {},
 		      context: <TEST_TOOLS_ROOT>/tests/fixtures/errors,
