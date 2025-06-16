@@ -787,22 +787,26 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 						);
 					}
 				}
-				let trace: string[] | undefined;
-				switch (type) {
-					case LogType.warn:
-					case LogType.error:
-					case LogType.trace:
-						trace = cutOffLoaderExecution(new Error("Trace").stack!)
-							.split("\n")
-							.slice(3);
-						break;
-				}
+
 				const logEntry: LogEntry = {
 					time: Date.now(),
 					type,
 					args,
-					trace
+					get trace() {
+						let trace: string[] | undefined;
+						switch (type) {
+							case LogType.warn:
+							case LogType.error:
+							case LogType.trace:
+								trace = cutOffLoaderExecution(new Error("Trace").stack!)
+									.split("\n")
+									.slice(3);
+								break;
+						}
+						return trace;
+					}
 				};
+
 				if (this.hooks.log.call(logName, logEntry) === undefined) {
 					if (logEntry.type === LogType.profileEnd) {
 						if (typeof console.profileEnd === "function") {
