@@ -44,6 +44,8 @@ pub struct DependencyParents {
   pub index_in_block: usize,
 }
 
+/// A partial module graph that contains modified parts of the origin make_phased module_graph during seal phase
+/// persistent cache will always use the origin make_phased module and ignore all module_graph change in the modified parts of ModuleGraphPartial in seal phase
 #[derive(Debug, Default)]
 pub struct ModuleGraphPartial {
   /// Module indexed by `ModuleIdentifier`.
