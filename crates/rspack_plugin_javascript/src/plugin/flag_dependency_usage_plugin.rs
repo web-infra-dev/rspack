@@ -44,7 +44,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     }
     let mut q = Queue::new();
     let mg = &mut module_graph;
-    // debug_exports_info!(mg);
     for exports_info in self.exports_info_module_map.keys() {
       exports_info.set_has_use_info(mg);
     }

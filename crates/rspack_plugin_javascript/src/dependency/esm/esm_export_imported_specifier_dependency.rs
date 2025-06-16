@@ -1315,12 +1315,12 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         );
         referenced_exports
           .into_iter()
-          .map(ExtendedReferencedExport::Array)
+          .map(|i| ExtendedReferencedExport::Array(i.into_iter().map(|i| i.to_owned()).collect()))
           .collect::<Vec<_>>()
       }
       ExportMode::NormalReexport(mode) => {
         let mut referenced_exports = vec![];
-        for item in mode.items {
+        for item in &mode.items {
           if item.hidden {
             continue;
           }
@@ -1328,7 +1328,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
             module_graph,
             runtime,
             &mut referenced_exports,
-            item.ids,
+            item.ids.iter().collect(),
             Some(item.export_info),
             false,
             &mut Default::default(),
@@ -1336,7 +1336,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         }
         referenced_exports
           .into_iter()
-          .map(ExtendedReferencedExport::Array)
+          .map(|i| ExtendedReferencedExport::Array(i.into_iter().map(|i| i.to_owned()).collect()))
           .collect::<Vec<_>>()
       }
     }

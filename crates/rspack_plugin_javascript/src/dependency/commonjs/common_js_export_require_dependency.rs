@@ -348,7 +348,6 @@ impl Dependency for CommonJsExportRequireDependency {
         } else {
           vec![]
         })
-        .map(|i| i.to_owned())
         .collect_vec();
       process_export_info(
         mg,
@@ -362,10 +361,10 @@ impl Dependency for CommonJsExportRequireDependency {
     }
 
     referenced_exports
-      .iter()
+      .into_iter()
       .map(|name| {
         ExtendedReferencedExport::Export(ReferencedExport {
-          name: name.to_owned(),
+          name: name.into_iter().map(|i| i.to_owned()).collect_vec(),
           can_mangle: false,
           can_inline: false,
         })
