@@ -861,7 +861,7 @@ fn can_optimize_connection(
 
     let target = export_info.can_move_target(
       module_graph,
-      Rc::new(|target: &ResolvedExportInfoTarget, _| {
+      Rc::new(|target: &ResolvedExportInfoTarget| {
         side_effects_state_map[&target.module] == ConnectionState::Active(false)
       }),
     )?;
@@ -907,7 +907,7 @@ fn can_optimize_connection(
 
     let target = export_info.get_target_with_filter(
       module_graph,
-      Rc::new(|target: &ResolvedExportInfoTarget, _| {
+      Rc::new(|target: &ResolvedExportInfoTarget| {
         side_effects_state_map[&target.module] == ConnectionState::Active(false)
       }),
     )?;

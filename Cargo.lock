@@ -5070,6 +5070,7 @@ dependencies = [
 name = "rspack_plugin_merge_duplicate_chunks"
 version = "0.2.0"
 dependencies = [
+ "rayon",
  "rspack_collections",
  "rspack_core",
  "rspack_error",

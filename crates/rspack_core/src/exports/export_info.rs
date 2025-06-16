@@ -7,7 +7,7 @@ use std::{
 };
 
 use rspack_collections::{impl_item_ukey, Ukey, UkeySet};
-use rspack_util::{atom::Atom, ext::DynHash};
+use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
 
@@ -17,9 +17,7 @@ use super::{
   ResolvedExportInfoTargetWithCircular, TerminalBinding, UnResolvedExportInfoTarget, UsageState,
   NEXT_EXPORT_INFO_UKEY,
 };
-use crate::{
-  Compilation, DependencyId, ModuleGraph, ModuleIdentifier, PrefetchExportsInfoMode, RuntimeSpec,
-};
+use crate::{DependencyId, ModuleGraph, ModuleIdentifier, PrefetchExportsInfoMode, RuntimeSpec};
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 pub struct ExportInfo(Ukey);
@@ -102,31 +100,6 @@ impl ExportInfo {
     )
     .get_read_only_export_info_recursive(&export)
     .map(|data| TerminalBinding::ExportInfo(data.id))
-  }
-
-  pub fn update_hash_with_visited(
-    &self,
-    mg: &ModuleGraph,
-    hasher: &mut dyn std::hash::Hasher,
-    compilation: &Compilation,
-    runtime: Option<&RuntimeSpec>,
-    visited: &mut UkeySet<ExportsInfo>,
-  ) {
-    let data = self.as_data(mg);
-    if let Some(used_name) = &data.used_name {
-      used_name.dyn_hash(hasher);
-    } else {
-      data.name.dyn_hash(hasher);
-    }
-    ExportInfoGetter::get_used(data, runtime).dyn_hash(hasher);
-    data.provided.dyn_hash(hasher);
-    data.terminal_binding.dyn_hash(hasher);
-    data.inlinable.dyn_hash(hasher);
-    if let Some(exports_info) = data.exports_info
-      && !visited.contains(&exports_info)
-    {
-      exports_info.update_hash_with_visited(mg, hasher, compilation, runtime, visited);
-    }
   }
 }
 
@@ -291,7 +264,7 @@ impl ExportInfoData {
   }
 
   pub fn get_target(&self, mg: &ModuleGraph) -> Option<ResolvedExportInfoTarget> {
-    self.get_target_with_filter(mg, Rc::new(|_, _| true))
+    self.get_target_with_filter(mg, Rc::new(|_| true))
   }
 
   pub fn get_target_with_filter(
@@ -540,7 +513,7 @@ impl ExportInfo {
   }
 }
 
-pub type ResolveFilterFnTy<'a> = Rc<dyn Fn(&ResolvedExportInfoTarget, &ModuleGraph) -> bool + 'a>;
+pub type ResolveFilterFnTy<'a> = Rc<dyn Fn(&ResolvedExportInfoTarget) -> bool + 'a>;
 
 fn resolve_target(
   input_target: Option<UnResolvedExportInfoTarget>,
@@ -561,7 +534,7 @@ fn resolve_target(
     if target.export.is_none() {
       return Some(ResolvedExportInfoTargetWithCircular::Target(target));
     }
-    if !resolve_filter(&target, mg) {
+    if !resolve_filter(&target) {
       return Some(ResolvedExportInfoTargetWithCircular::Target(target));
     }
     loop {
@@ -607,7 +580,7 @@ fn resolve_target(
           }
         }
       }
-      if !resolve_filter(&target, mg) {
+      if !resolve_filter(&target) {
         return Some(ResolvedExportInfoTargetWithCircular::Target(target));
       }
       already_visited.insert(export_info_hash_key);
@@ -646,7 +619,7 @@ pub fn process_export_info(
     if let Some(exports_info) = module_graph.try_get_exports_info_by_id(
       &ExportInfoGetter::exports_info(export_info_data).expect("should have exports info"),
     ) {
-      for export_info in exports_info.id.ordered_exports(module_graph) {
+      for export_info in exports_info.exports.values() {
         let export_info_data = export_info.as_data(module_graph);
         process_export_info(
           module_graph,
@@ -665,7 +638,7 @@ pub fn process_export_info(
             }
             value
           },
-          Some(export_info),
+          Some(*export_info),
           false,
           already_visited,
         );

@@ -10,8 +10,8 @@ use rspack_core::{
   Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules,
   CompilationParams, CompilerCompilation, CompilerOptions, EntryData, ExportInfoGetter,
   ExportInfoSetter, ExportProvided, Filename, LibraryExport, LibraryName, LibraryNonUmdObject,
-  LibraryOptions, ModuleIdentifier, PathData, Plugin, PluginContext, RuntimeGlobals, SourceType,
-  UsageState,
+  LibraryOptions, ModuleIdentifier, PathData, Plugin, PluginContext, PrefetchExportsInfoMode,
+  RuntimeGlobals, SourceType, UsageState,
 };
 use rspack_error::{error, error_bail, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
@@ -265,16 +265,17 @@ async fn render_startup(
   if matches!(self.options.unnamed, Unnamed::Static) {
     let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
     let module_graph = compilation.get_module_graph();
-    let exports_info = module_graph.get_exports_info(module);
+    let exports_info =
+      module_graph.get_prefetched_exports_info(module, PrefetchExportsInfoMode::AllExports);
     let mut provided = vec![];
-    for export_info in exports_info.ordered_exports(&module_graph) {
+    for (_, export_info) in exports_info.exports() {
       if matches!(
-        ExportInfoGetter::provided(export_info.as_data(&module_graph)),
+        ExportInfoGetter::provided(export_info),
         Some(ExportProvided::NotProvided)
       ) {
         continue;
       }
-      let export_info_name = ExportInfoGetter::name(export_info.as_data(&module_graph))
+      let export_info_name = ExportInfoGetter::name(export_info)
         .expect("should have name")
         .to_string();
       provided.push(export_info_name.clone());
