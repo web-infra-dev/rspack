@@ -62,7 +62,9 @@ jobs:
           path: target/codspeed/
 
       - name: Show Codspeed
-        run: find target/codspeed/
+        run: |
+          ls -Rl target/codspeed/
+          chmod +x  target/codspeed/instrumentation/rspack_benchmark/benches
 
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm/setup
