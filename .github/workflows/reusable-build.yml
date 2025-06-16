@@ -42,7 +42,7 @@ jobs:
       runner: ${{ inputs.runner }}
       profile: ${{ inputs.profile }}
       ref: ${{ inputs.ref }}
-      prefer_docker: inputs.prefer_docker
+      prefer_docker: ${{ inputs.prefer_docker }}
   test:
     if: inputs.test
     needs: build

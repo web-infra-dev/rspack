@@ -40,6 +40,7 @@ jobs:
       profile: "release"
       test: false
       bench: false
+      prefer_docker: false
 
   create-comment:
     runs-on: ubuntu-latest
