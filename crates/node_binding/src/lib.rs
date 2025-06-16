@@ -431,6 +431,13 @@ fn init() {
     thread,
   };
 
+  #[cfg(feature = "sftrace-setup")]
+  if std::env::var_os("SFTRACE_OUTPUT_FILE").is_some() {
+    unsafe {
+      sftrace_setup::setup();
+    }
+  }
+
   panic::install_panic_handler();
   // control the number of blocking threads, similar as https://github.com/tokio-rs/tokio/blob/946401c345d672d357693740bc51f77bc678c5c4/tokio/src/loom/std/mod.rs#L93
   const ENV_BLOCKING_THREADS: &str = "RSPACK_BLOCKING_THREADS";
@@ -560,24 +567,4 @@ pub fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
   module::export_symbols(exports, env)?;
   build_info::export_symbols(exports, env)?;
   Ok(())
-}
-
-#[napi]
-/// Shutdown the tokio runtime manually.
-///
-/// This is required for the wasm target with `tokio_unstable` cfg.
-/// In the wasm runtime, the `park` threads will hang there until the tokio::Runtime is shutdown.
-pub fn shutdown_async_runtime() {
-  #[cfg(all(target_family = "wasm", tokio_unstable))]
-  napi::bindgen_prelude::shutdown_async_runtime();
-}
-
-#[napi]
-/// Start the async runtime manually.
-///
-/// This is required when the async runtime is shutdown manually.
-/// Usually it's used in test.
-pub fn start_async_runtime() {
-  #[cfg(all(target_family = "wasm", tokio_unstable))]
-  napi::bindgen_prelude::start_async_runtime();
 }

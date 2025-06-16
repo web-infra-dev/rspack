@@ -6,8 +6,9 @@ use rspack_core::{
   incremental::{self, IncrementalPasses},
   ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
   DependenciesBlock, DependencyId, ExportInfoGetter, ExportInfoSetter, ExportNameOrSpec,
-  ExportProvided, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, Logger, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, Plugin, PluginContext,
+  ExportProvided, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, Inlinable, Logger, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Plugin, PluginContext,
+  PrefetchExportsInfoMode,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -16,15 +17,17 @@ use swc_core::ecma::atoms::Atom;
 
 struct FlagDependencyExportsState<'a> {
   mg: &'a mut ModuleGraph<'a>,
+  mg_cache: &'a ModuleGraphCacheArtifact,
   changed: bool,
   current_module_id: ModuleIdentifier,
   dependencies: IdentifierMap<IdentifierSet>,
 }
 
 impl<'a> FlagDependencyExportsState<'a> {
-  pub fn new(mg: &'a mut ModuleGraph<'a>) -> Self {
+  pub fn new(mg: &'a mut ModuleGraph<'a>, mg_cache: &'a ModuleGraphCacheArtifact) -> Self {
     Self {
       mg,
+      mg_cache,
       changed: false,
       current_module_id: ModuleIdentifier::default(),
       dependencies: IdentifierMap::default(),
@@ -71,15 +74,24 @@ impl<'a> FlagDependencyExportsState<'a> {
       q.enqueue(module_id);
     }
 
+    let mut exports_specs_from_dependencies: IndexMap<DependencyId, ExportsSpec> =
+      IndexMap::default();
     while let Some(module_id) = q.dequeue() {
       self.changed = false;
       self.current_module_id = module_id;
-      let mut exports_specs_from_dependencies: IndexMap<DependencyId, ExportsSpec> =
-        IndexMap::default();
-      self.process_dependencies_block(&module_id, &mut exports_specs_from_dependencies);
+      exports_specs_from_dependencies.clear();
+
+      self.mg_cache.freeze();
+      self.process_dependencies_block(
+        &module_id,
+        &mut exports_specs_from_dependencies,
+        self.mg_cache,
+      );
+      self.mg_cache.unfreeze();
+
       let exports_info = self.mg.get_exports_info(&module_id);
-      for (dep_id, exports_spec) in exports_specs_from_dependencies.into_iter() {
-        self.process_exports_spec(dep_id, exports_spec, exports_info);
+      for (dep_id, exports_spec) in exports_specs_from_dependencies.iter() {
+        self.process_exports_spec(*dep_id, exports_spec, exports_info);
       }
       if self.changed {
         self.notify_dependencies(&mut q);
@@ -100,15 +112,21 @@ impl<'a> FlagDependencyExportsState<'a> {
     &self,
     module_identifier: &ModuleIdentifier,
     exports_specs_from_dependencies: &mut IndexMap<DependencyId, ExportsSpec>,
+    module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> Option<()> {
     let block = &**self.mg.module_by_identifier(module_identifier)?;
-    self.process_dependencies_block_inner(block, exports_specs_from_dependencies)
+    self.process_dependencies_block_inner(
+      block,
+      exports_specs_from_dependencies,
+      module_graph_cache,
+    )
   }
 
   fn process_dependencies_block_inner<B: DependenciesBlock + ?Sized>(
     &self,
     block: &B,
     exports_specs_from_dependencies: &mut IndexMap<DependencyId, ExportsSpec>,
+    module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> Option<()> {
     for dep_id in block.get_dependencies().iter() {
       let dep = self
@@ -117,13 +135,17 @@ impl<'a> FlagDependencyExportsState<'a> {
         .expect("should have dependency");
       self.process_dependency(
         *dep_id,
-        dep.get_exports(self.mg),
+        dep.get_exports(self.mg, module_graph_cache),
         exports_specs_from_dependencies,
       );
     }
     for block_id in block.get_blocks() {
       let block = self.mg.block_by_id(block_id)?;
-      self.process_dependencies_block_inner(block, exports_specs_from_dependencies);
+      self.process_dependencies_block_inner(
+        block,
+        exports_specs_from_dependencies,
+        module_graph_cache,
+      );
     }
     None
   }
@@ -143,7 +165,7 @@ impl<'a> FlagDependencyExportsState<'a> {
   pub fn process_exports_spec(
     &mut self,
     dep_id: DependencyId,
-    export_desc: ExportsSpec,
+    export_desc: &ExportsSpec,
     exports_info: ExportsInfo,
   ) {
     let exports = &export_desc.exports;
@@ -152,7 +174,7 @@ impl<'a> FlagDependencyExportsState<'a> {
     let global_priority = &export_desc.priority;
     let global_terminal_binding = export_desc.terminal_binding.unwrap_or(false);
     let export_dependencies = &export_desc.dependencies;
-    if let Some(hide_export) = export_desc.hide_export {
+    if let Some(hide_export) = &export_desc.hide_export {
       for name in hide_export.iter() {
         ExportInfoSetter::unset_target(
           exports_info
@@ -167,7 +189,7 @@ impl<'a> FlagDependencyExportsState<'a> {
         if exports_info.set_unknown_exports_provided(
           self.mg,
           global_can_mangle.unwrap_or_default(),
-          export_desc.exclude_exports,
+          export_desc.exclude_exports.as_ref(),
           global_from.map(|_| dep_id),
           global_from.map(|_| dep_id),
           *global_priority,
@@ -213,41 +235,52 @@ impl<'a> FlagDependencyExportsState<'a> {
     dep_id: DependencyId,
   ) {
     for export_name_or_spec in exports {
-      let (name, can_mangle, terminal_binding, exports, from, from_export, priority, hidden) =
-        match export_name_or_spec {
-          ExportNameOrSpec::String(name) => (
-            name.clone(),
-            global_export_info.can_mangle,
-            global_export_info.terminal_binding,
-            None::<&Vec<ExportNameOrSpec>>,
-            global_export_info.from.cloned(),
-            None::<&rspack_core::Nullable<Vec<Atom>>>,
-            global_export_info.priority,
-            false,
-          ),
-          ExportNameOrSpec::ExportSpec(spec) => (
-            spec.name.clone(),
-            match spec.can_mangle {
-              Some(v) => Some(v),
-              None => global_export_info.can_mangle,
-            },
-            spec
-              .terminal_binding
-              .unwrap_or(global_export_info.terminal_binding),
-            spec.exports.as_ref(),
-            if spec.from.is_some() {
-              spec.from.clone()
-            } else {
-              global_export_info.from.cloned()
-            },
-            spec.export.as_ref(),
-            match spec.priority {
-              Some(v) => Some(v),
-              None => global_export_info.priority,
-            },
-            spec.hidden.unwrap_or(false),
-          ),
-        };
+      let (
+        name,
+        can_mangle,
+        terminal_binding,
+        exports,
+        from,
+        from_export,
+        priority,
+        hidden,
+        inlinable,
+      ) = match export_name_or_spec {
+        ExportNameOrSpec::String(name) => (
+          name.clone(),
+          global_export_info.can_mangle,
+          global_export_info.terminal_binding,
+          None::<&Vec<ExportNameOrSpec>>,
+          global_export_info.from.cloned(),
+          None::<&rspack_core::Nullable<Vec<Atom>>>,
+          global_export_info.priority,
+          false,
+          None,
+        ),
+        ExportNameOrSpec::ExportSpec(spec) => (
+          spec.name.clone(),
+          match spec.can_mangle {
+            Some(v) => Some(v),
+            None => global_export_info.can_mangle,
+          },
+          spec
+            .terminal_binding
+            .unwrap_or(global_export_info.terminal_binding),
+          spec.exports.as_ref(),
+          if spec.from.is_some() {
+            spec.from.clone()
+          } else {
+            global_export_info.from.cloned()
+          },
+          spec.export.as_ref(),
+          match spec.priority {
+            Some(v) => Some(v),
+            None => global_export_info.priority,
+          },
+          spec.hidden.unwrap_or(false),
+          spec.inlinable,
+        ),
+      };
       let export_info = exports_info.get_export_info(self.mg, &name);
       let export_info_data = export_info.as_data_mut(self.mg);
       if let Some(provided) = ExportInfoGetter::provided(export_info_data)
@@ -264,6 +297,13 @@ impl<'a> FlagDependencyExportsState<'a> {
         && can_mangle == Some(false)
       {
         ExportInfoSetter::set_can_mangle_provide(export_info_data, Some(false));
+        self.changed = true;
+      }
+
+      if let Some(inlined) = inlinable
+        && !ExportInfoGetter::inlinable(export_info_data).can_inline()
+      {
+        ExportInfoSetter::set_inlinable(export_info_data, Inlinable::Inlined(inlined));
         self.changed = true;
       }
 
@@ -310,11 +350,19 @@ impl<'a> FlagDependencyExportsState<'a> {
       let export_info_data = export_info.as_data(self.mg);
       let target = export_info_data.get_target(self.mg);
 
-      let mut target_exports_info: Option<ExportsInfo> = None;
+      let mut target_exports_info = None;
       if let Some(target) = target {
-        let target_module_exports_info = self.mg.get_exports_info(&target.module);
-        target_exports_info =
-          target_module_exports_info.get_nested_exports_info(self.mg, target.export.as_deref());
+        let target_module_exports_info = self.mg.get_prefetched_exports_info(
+          &target.module,
+          if let Some(names) = &target.export {
+            PrefetchExportsInfoMode::NamedNestedExports(names)
+          } else {
+            PrefetchExportsInfoMode::Default
+          },
+        );
+        target_exports_info = target_module_exports_info
+          .get_nested_exports_info(target.export.as_deref())
+          .map(|data| data.id);
         match self.dependencies.entry(target.module) {
           Entry::Occupied(mut occ) => {
             occ.get_mut().insert(self.current_module_id);
@@ -377,7 +425,9 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       .copied()
       .collect()
   };
-  FlagDependencyExportsState::new(&mut compilation.get_module_graph_mut()).apply(modules);
+  let module_graph_cache = compilation.module_graph_cache_artifact.clone();
+  let mut module_graph = compilation.get_module_graph_mut();
+  FlagDependencyExportsState::new(&mut module_graph, &module_graph_cache).apply(modules);
   Ok(())
 }
 

@@ -301,6 +301,10 @@ impl NormalModule {
     hasher.digest(&output_options.hash_digest)
   }
 
+  pub fn get_parser_options(&self) -> Option<&ParserOptions> {
+    self.parser_options.as_ref()
+  }
+
   pub fn get_generator_options(&self) -> Option<&GeneratorOptions> {
     self.generator_options.as_ref()
   }

@@ -8,7 +8,8 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  Dependency, ExportProvided, ExportsInfoGetter, ProvidedExports, RuntimeSpec, UsedExports,
+  Dependency, ExportProvided, ExportsInfoGetter, ModuleGraphCacheArtifact, PrefetchExportsInfoMode,
+  PrefetchedExportsInfoWrapper, RuntimeSpec,
 };
 mod module;
 pub use module::*;
@@ -893,7 +894,11 @@ impl<'a> ModuleGraph<'a> {
       .and_then(|mgm| mgm.issuer().get_module(self))
   }
 
-  pub fn is_optional(&self, module_id: &ModuleIdentifier) -> bool {
+  pub fn is_optional(
+    &self,
+    module_id: &ModuleIdentifier,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+  ) -> bool {
     let mut has_connections = false;
     for connection in self.get_incoming_connections(module_id) {
       let Some(dependency) = self
@@ -902,7 +907,8 @@ impl<'a> ModuleGraph<'a> {
       else {
         return false;
       };
-      if !dependency.get_optional() || !connection.is_target_active(self, None) {
+      if !dependency.get_optional() || !connection.is_target_active(self, None, module_graph_cache)
+      {
         return false;
       }
       has_connections = true;
@@ -1018,6 +1024,25 @@ impl<'a> ModuleGraph<'a> {
       .id()
   }
 
+  pub fn get_prefetched_exports_info_optional<'b>(
+    &'b self,
+    module_identifier: &ModuleIdentifier,
+    mode: PrefetchExportsInfoMode<'b>,
+  ) -> Option<PrefetchedExportsInfoWrapper<'b>> {
+    self
+      .module_graph_module_by_identifier(module_identifier)
+      .map(move |mgm| ExportsInfoGetter::prefetch(&mgm.exports, self, mode))
+  }
+
+  pub fn get_prefetched_exports_info<'b>(
+    &'b self,
+    module_identifier: &ModuleIdentifier,
+    mode: PrefetchExportsInfoMode<'b>,
+  ) -> PrefetchedExportsInfoWrapper<'b> {
+    let exports_info = self.get_exports_info(module_identifier);
+    ExportsInfoGetter::prefetch(&exports_info, self, mode)
+  }
+
   pub fn get_exports_info_by_id(&self, id: &ExportsInfo) -> &ExportsInfoData {
     self
       .try_get_exports_info_by_id(id)
@@ -1048,13 +1073,9 @@ impl<'a> ModuleGraph<'a> {
     active_partial.exports_info_map.insert(id, info);
   }
 
-  pub fn try_get_export_info_by_id(&self, id: &ExportInfo) -> Option<&ExportInfoData> {
-    self.loop_partials(|p| p.export_info_map.get(id))
-  }
-
   pub fn get_export_info_by_id(&self, id: &ExportInfo) -> &ExportInfoData {
     self
-      .try_get_export_info_by_id(id)
+      .loop_partials(|p| p.export_info_map.get(id))
       .expect("should have export info")
   }
 
@@ -1076,24 +1097,6 @@ impl<'a> ModuleGraph<'a> {
       panic!("should have active partial");
     };
     active_partial.export_info_map.insert(id, info);
-  }
-
-  pub fn get_provided_exports(&self, module_id: ModuleIdentifier) -> ProvidedExports {
-    let mgm = self
-      .module_graph_module_by_identifier(&module_id)
-      .expect("should have module graph module");
-    mgm.exports.get_provided_exports(self)
-  }
-
-  pub fn get_used_exports(
-    &self,
-    id: &ModuleIdentifier,
-    runtime: Option<&RuntimeSpec>,
-  ) -> UsedExports {
-    let mgm = self
-      .module_graph_module_by_identifier(id)
-      .expect("should have module graph module");
-    mgm.exports.get_used_exports(self, runtime)
   }
 
   pub fn get_optimization_bailout_mut(&mut self, id: &ModuleIdentifier) -> &mut Vec<String> {
@@ -1120,14 +1123,12 @@ impl<'a> ModuleGraph<'a> {
     &self,
     connection: &ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
+    module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ConnectionState {
     let condition = self
       .loop_partials(|p| p.connection_to_condition.get(&connection.dependency_id))
       .expect("should have condition");
-    match condition {
-      DependencyCondition::False => ConnectionState::Active(false),
-      DependencyCondition::Fn(f) => f.get_connection_state(connection, runtime, self),
-    }
+    condition.get_connection_state(connection, runtime, self, module_graph_cache)
   }
 
   // returns: Option<bool>
@@ -1140,7 +1141,11 @@ impl<'a> ModuleGraph<'a> {
     names: &[Atom],
   ) -> Option<ExportProvided> {
     self.module_graph_module_by_identifier(id).and_then(|mgm| {
-      let exports_info = ExportsInfoGetter::prefetch(&mgm.exports, self, Some(names));
+      let exports_info = ExportsInfoGetter::prefetch(
+        &mgm.exports,
+        self,
+        PrefetchExportsInfoMode::NamedNestedExports(names),
+      );
       ExportsInfoGetter::is_export_provided(&exports_info, names)
     })
   }

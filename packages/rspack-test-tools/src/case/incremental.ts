@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { HotNewIncrementalProcessor } from "../processor/hot-new-incremental";
+import { HotIncrementalProcessor } from "../processor/hot-incremental";
 import { WatchProcessor, WatchStepProcessor } from "../processor/watch";
 import { HotRunnerFactory, WatchRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
@@ -24,7 +24,7 @@ function getHotCreator(target: TTarget, webpackCases: boolean) {
 				describe: true,
 				target,
 				steps: ({ name, target }) => [
-					new HotNewIncrementalProcessor({
+					new HotIncrementalProcessor({
 						name,
 						target: target as TTarget,
 						compilerType: ECompilerType.Rspack,
@@ -40,7 +40,7 @@ function getHotCreator(target: TTarget, webpackCases: boolean) {
 	return hotCreators.get(key)!;
 }
 
-export function createHotNewIncrementalCase(
+export function createHotIncrementalCase(
 	name: string,
 	src: string,
 	dist: string,
@@ -56,11 +56,11 @@ const watchCreators: Map<
 	BasicCaseCreator<ECompilerType.Rspack>
 > = new Map();
 
-export type WatchNewIncrementalOptions = {
+export type WatchIncrementalOptions = {
 	ignoreNotFriendlyForIncrementalWarnings?: boolean;
 };
 
-function getWatchCreator(options: WatchNewIncrementalOptions) {
+function getWatchCreator(options: WatchIncrementalOptions) {
 	const key = JSON.stringify(options);
 	if (!watchCreators.has(key)) {
 		watchCreators.set(
@@ -128,12 +128,12 @@ function getWatchCreator(options: WatchNewIncrementalOptions) {
 	return watchCreators.get(key)!;
 }
 
-export function createWatchNewIncrementalCase(
+export function createWatchIncrementalCase(
 	name: string,
 	src: string,
 	dist: string,
 	temp: string,
-	options: WatchNewIncrementalOptions = {}
+	options: WatchIncrementalOptions = {}
 ) {
 	const creator = getWatchCreator(options);
 	creator.create(name, src, dist, temp);

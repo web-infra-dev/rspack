@@ -17,8 +17,8 @@ use crate::{
   ChunkUkey, CodeGenerationDataUrl, CodeGenerationResult, Compilation, ConcatenationScope, Context,
   DependenciesBlock, DependencyId, ExternalType, FactoryMeta, ImportAttributes, InitFragmentExt,
   InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleGraph, ModuleType,
-  NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, UsedExports, NAMESPACE_OBJECT_EXPORT,
+  NormalInitFragment, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec, UsedExports, NAMESPACE_OBJECT_EXPORT,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -293,6 +293,7 @@ impl ExternalModule {
     let supports_const = compilation.options.output.environment.supports_const();
     let resolved_external_type = self.resolve_external_type();
     let module_graph = compilation.get_module_graph();
+    let module_graph_cache = &compilation.module_graph_cache_artifact;
 
     let source = match resolved_external_type {
       "this" => format!(
@@ -366,7 +367,7 @@ impl ExternalModule {
           .map(|s| s.as_str())
           .expect("should have module id");
         let external_variable = format!("__WEBPACK_EXTERNAL_MODULE_{}__", to_identifier(id));
-        let check_external_variable = if module_graph.is_optional(&self.id) {
+        let check_external_variable = if module_graph.is_optional(&self.id, module_graph_cache) {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
             external_variable,
@@ -393,7 +394,7 @@ impl ExternalModule {
         } else {
           "undefined".to_string()
         };
-        let check_external_variable = if module_graph.is_optional(&self.id)
+        let check_external_variable = if module_graph.is_optional(&self.id, module_graph_cache)
           && let Some(request) = request
         {
           format!(
@@ -429,8 +430,9 @@ impl ExternalModule {
           };
 
           if let Some(concatenation_scope) = concatenation_scope {
-            let exports_info = module_graph.get_exports_info(&self.identifier());
-            let used_exports = exports_info.get_used_exports(&module_graph, runtime);
+            let exports_info = module_graph
+              .get_prefetched_exports_info(&self.identifier(), PrefetchExportsInfoMode::AllExports);
+            let used_exports = exports_info.get_used_exports(runtime);
             let meta = &self.dependency_meta.attributes;
             let attributes = meta.as_ref().map(|meta| {
               format!(
@@ -578,7 +580,7 @@ if(typeof {global} !== "undefined") return resolve();
         } else {
           "undefined".to_string()
         };
-        let check_external_variable = if module_graph.is_optional(&self.id) {
+        let check_external_variable = if module_graph.is_optional(&self.id, module_graph_cache) {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
             &external_variable,
@@ -818,7 +820,9 @@ impl Module for ExternalModule {
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHash::from(&compilation.options.output);
     self.id.dyn_hash(&mut hasher);
-    let is_optional = compilation.get_module_graph().is_optional(&self.id);
+    let is_optional = compilation
+      .get_module_graph()
+      .is_optional(&self.id, &compilation.module_graph_cache_artifact);
     is_optional.dyn_hash(&mut hasher);
     module_update_hash(self, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))

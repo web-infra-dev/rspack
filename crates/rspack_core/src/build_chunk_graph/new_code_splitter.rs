@@ -18,8 +18,8 @@ use crate::{
   merge_runtime, AsyncDependenciesBlockIdentifier, Chunk, ChunkGroup, ChunkGroupKind,
   ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, DependenciesBlock,
   DependencyLocation, EntryData, EntryDependency, EntryOptions, EntryRuntime, GroupOptions,
-  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
-  SyntheticDependencyLocation,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier,
+  RuntimeSpec, SyntheticDependencyLocation,
 };
 
 type ModuleDeps = HashMap<
@@ -197,6 +197,7 @@ impl CreateChunkRoot {
 
   fn create(&self, splitter: &CodeSplitter, compilation: &Compilation) -> Vec<ChunkDesc> {
     let module_graph = compilation.get_module_graph();
+    let module_graph_cache = &compilation.module_graph_cache_artifact;
 
     match self {
       CreateChunkRoot::Entry(entry, data, runtime) => {
@@ -237,7 +238,7 @@ impl CreateChunkRoot {
           )
           .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
         {
-          splitter.fill_chunk_modules(*m, runtime, &module_graph, &mut ctx);
+          splitter.fill_chunk_modules(*m, runtime, &module_graph, module_graph_cache, &mut ctx);
         }
 
         vec![ChunkDesc::Entry(Box::new(EntryChunkDesc {
@@ -291,7 +292,7 @@ impl CreateChunkRoot {
             continue;
           };
 
-          splitter.fill_chunk_modules(*m, runtime, &module_graph, &mut ctx);
+          splitter.fill_chunk_modules(*m, runtime, &module_graph, module_graph_cache, &mut ctx);
         }
 
         if let Some(group_option) = block.get_group_options()
@@ -451,6 +452,7 @@ impl CodeSplitter {
     let mut stack = vec![];
     let mut visited = HashSet::default();
     let module_graph = compilation.get_module_graph();
+    let module_graph_cache = &compilation.module_graph_cache_artifact;
     let global_chunk_loading = &compilation.options.output.chunk_loading;
     let mut roots = HashMap::<AsyncDependenciesBlockIdentifier, CreateChunkRoot>::default();
     let mut named_roots = HashMap::<String, CreateChunkRoot>::default();
@@ -501,7 +503,8 @@ impl CodeSplitter {
         continue;
       }
 
-      let guard = self.outgoings_modules(&module, runtime.as_ref(), &module_graph);
+      let guard =
+        self.outgoings_modules(&module, runtime.as_ref(), &module_graph, module_graph_cache);
       let (modules, blocks) = guard.value();
       let blocks = blocks.clone();
       for m in modules {
@@ -749,6 +752,7 @@ impl CodeSplitter {
     module: &ModuleIdentifier,
     runtime: &RuntimeSpec,
     module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> Ref<ModuleIdentifier, (Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>)> {
     let module_map = self.module_deps.get(runtime).expect("should have value");
 
@@ -783,14 +787,14 @@ impl CodeSplitter {
 
     'outer: for (m, conns) in outgoings.iter() {
       for conn in conns {
-        let conn_state = conn.active_state(module_graph, Some(runtime));
+        let conn_state = conn.active_state(module_graph, Some(runtime), module_graph_cache);
         match conn_state {
           crate::ConnectionState::Active(true) => {
             modules.insert(*m);
             continue 'outer;
           }
           crate::ConnectionState::TransitiveOnly => {
-            let transitive = self.outgoings_modules(m, runtime, module_graph);
+            let transitive = self.outgoings_modules(m, runtime, module_graph, module_graph_cache);
             let (extra_modules, extra_blocks) = transitive.value();
             modules.extend(extra_modules.iter().copied());
             blocks.extend(extra_blocks.iter().copied());
@@ -811,6 +815,7 @@ impl CodeSplitter {
     target_module: ModuleIdentifier,
     runtime: &RuntimeSpec,
     module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     ctx: &mut FillCtx,
   ) {
     enum Task {
@@ -855,7 +860,8 @@ impl CodeSplitter {
               value
             });
 
-          let guard = self.outgoings_modules(&target_module, runtime, module_graph);
+          let guard =
+            self.outgoings_modules(&target_module, runtime, module_graph, module_graph_cache);
           let (_, (outgoing_modules, blocks)) = guard.pair();
           let mut outgoing_modules = outgoing_modules.clone();
 
@@ -940,6 +946,7 @@ impl CodeSplitter {
 
     let mut visited = HashSet::default();
     let module_graph = compilation.get_module_graph();
+    let module_graph_cache = &compilation.module_graph_cache_artifact;
 
     queue.reverse();
 
@@ -983,7 +990,7 @@ impl CodeSplitter {
             if !self.module_deps.contains_key(runtime) {
               self.module_deps.insert(runtime.clone(), Default::default());
             }
-            let guard = self.outgoings_modules(&m, runtime, &module_graph);
+            let guard = self.outgoings_modules(&m, runtime, &module_graph, module_graph_cache);
             let (modules, blocks) = guard.value();
 
             for m in modules.iter().rev() {

@@ -4,11 +4,11 @@ process.env.RSPACK_CONFIG_VALIDATE = "loose-silent";
 const path = require("path");
 const {
 	describeByWalk,
-	createWatchNewIncrementalCase
+	createWatchIncrementalCase
 } = require("@rspack/test-tools");
 
 function v(name) {
-	return path.join(__dirname, `new-incremental ${name}`);
+	return path.join(__dirname, `incremental ${name}`);
 }
 
 // Run tests webpack-test/watchCases
@@ -17,14 +17,14 @@ describeByWalk(
 	(name, src, dist) => {
 		const tempDir = path.resolve(
 			__dirname,
-			`./js/new-incremental/webpack-test/temp`
+			`./js/incremental/webpack-test/temp`
 		);
-		createWatchNewIncrementalCase(name, src, dist, path.join(tempDir, name), {
+		createWatchIncrementalCase(name, src, dist, path.join(tempDir, name), {
 			ignoreNotFriendlyForIncrementalWarnings: true
 		});
 	},
 	{
 		source: path.resolve(__dirname, "../../../tests/webpack-test/watchCases"),
-		dist: path.resolve(__dirname, `./js/new-incremental/webpack-test/watch`)
+		dist: path.resolve(__dirname, `./js/incremental/webpack-test/watch`)
 	}
 );

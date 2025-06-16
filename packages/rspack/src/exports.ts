@@ -38,6 +38,7 @@ export type {
 	StatsError,
 	StatsModule
 } from "./Stats";
+export { StatsErrorCode } from "./stats/statsFactoryUtils";
 export { Stats } from "./Stats";
 export { RuntimeModule } from "./RuntimeModule";
 export {
@@ -338,7 +339,7 @@ import {
 import { JavaScriptTracer } from "./trace";
 
 ///// Experiments SWC /////
-import { minify, transform } from "./swc";
+import { minify, minifySync, transform, transformSync } from "./swc";
 
 interface Experiments {
 	globalTrace: {
@@ -356,6 +357,8 @@ interface Experiments {
 	swc: {
 		transform: typeof transform;
 		minify: typeof minify;
+		transformSync: typeof transformSync;
+		minifySync: typeof minifySync;
 	};
 	CssChunkingPlugin: typeof CssChunkingPlugin;
 }
@@ -385,7 +388,9 @@ export const experiments: Experiments = {
 	lazyCompilationMiddleware,
 	swc: {
 		minify,
-		transform
+		transform,
+		minifySync,
+		transformSync
 	},
 	CssChunkingPlugin
 };

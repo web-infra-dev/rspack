@@ -8,18 +8,18 @@ import {
 import type { IBasicProcessorOptions } from "./basic";
 import { HotProcessor } from "./hot";
 
-export interface IHotNewIncrementalProcessorOptions<T extends ECompilerType>
+export interface IHotIncrementalProcessorOptions<T extends ECompilerType>
 	extends Omit<IBasicProcessorOptions<T>, "runable"> {
 	target: TCompilerOptions<T>["target"];
 	webpackCases: boolean;
 }
 
-export class HotNewIncrementalProcessor<
+export class HotIncrementalProcessor<
 	T extends ECompilerType
 > extends HotProcessor<T> {
-	constructor(protected _hotOptions: IHotNewIncrementalProcessorOptions<T>) {
+	constructor(protected _hotOptions: IHotIncrementalProcessorOptions<T>) {
 		super({
-			defaultOptions: HotNewIncrementalProcessor.defaultOptions,
+			defaultOptions: HotIncrementalProcessor.defaultOptions,
 			..._hotOptions
 		});
 	}
@@ -46,7 +46,7 @@ export class HotNewIncrementalProcessor<
 	}
 
 	static defaultOptions<T extends ECompilerType>(
-		this: HotNewIncrementalProcessor<T>,
+		this: HotIncrementalProcessor<T>,
 		context: ITestContext
 	): TCompilerOptions<T> {
 		const options = super.defaultOptions<T>(context);
@@ -55,9 +55,7 @@ export class HotNewIncrementalProcessor<
 			rspackOptions.experiments ??= {};
 			rspackOptions.experiments.incremental ??= "advance-silent";
 		} else {
-			throw new Error(
-				"HotNewIncrementalProcessor should only used for Rspack."
-			);
+			throw new Error("HotIncrementalProcessor should only used for Rspack.");
 		}
 		return options;
 	}

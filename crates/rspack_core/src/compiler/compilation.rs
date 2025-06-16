@@ -54,9 +54,10 @@ use crate::{
   CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyCodeGeneration,
   DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, Entry, EntryData,
   EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap, Logger,
-  ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier, ModuleIdsArtifact, PathData,
-  ResolverFactory, RuntimeGlobals, RuntimeMode, RuntimeModule, RuntimeSpecMap, RuntimeTemplate,
-  SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats,
+  ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier,
+  ModuleIdsArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeMode, RuntimeModule,
+  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
+  Stats,
 };
 
 define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));
@@ -257,6 +258,8 @@ pub struct Compilation {
   pub chunk_hashes_artifact: ChunkHashesArtifact,
   // artifact for create_chunk_assets
   pub chunk_render_artifact: ChunkRenderArtifact,
+  // artifact for caching get_mode
+  pub module_graph_cache_artifact: ModuleGraphCacheArtifact,
 
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
@@ -376,6 +379,7 @@ impl Compilation {
       cgc_runtime_requirements_artifact: Default::default(),
       chunk_hashes_artifact: Default::default(),
       chunk_render_artifact: Default::default(),
+      module_graph_cache_artifact: Default::default(),
       code_generated_modules: Default::default(),
       build_time_executed_modules: Default::default(),
       cache,
@@ -932,6 +936,9 @@ impl Compilation {
   ) -> Result<T> {
     let artifact = std::mem::take(&mut self.make_artifact);
 
+    // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
+    self.module_graph_cache_artifact.unfreeze();
+
     self.make_artifact = update_module_graph(
       self,
       artifact,
@@ -1386,10 +1393,14 @@ impl Compilation {
     }
 
     logger.time_end(start);
+
+    // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2988
+    self.module_graph_cache_artifact.freeze();
     // Collect dependencies diagnostics at here to make sure:
     // 1. after finish_modules: has provide exports info
     // 2. before optimize dependencies: side effects free module hasn't been skipped
     self.collect_dependencies_diagnostics();
+    self.module_graph_cache_artifact.unfreeze();
 
     // take make diagnostics
     let diagnostics = self.make_artifact.diagnostics();
@@ -1427,6 +1438,7 @@ impl Compilation {
       self.get_module_graph().modules().keys().copied().collect()
     };
     let module_graph = self.get_module_graph();
+    let module_graph_cache = &self.module_graph_cache_artifact;
     let dependencies_diagnostics: DependenciesDiagnosticsArtifact = modules
       .par_iter()
       .map(|module_identifier| {
@@ -1437,7 +1449,7 @@ impl Compilation {
           .all_dependencies
           .iter()
           .filter_map(|dependency_id| module_graph.dependency_by_id(dependency_id))
-          .filter_map(|dependency| dependency.get_diagnostics(&module_graph))
+          .filter_map(|dependency| dependency.get_diagnostics(&module_graph, module_graph_cache))
           .flatten()
           .collect::<Vec<_>>();
         (*module_identifier, diagnostics)
@@ -1486,6 +1498,7 @@ impl Compilation {
     // so now we can start to create a chunk graph based on the module graph
 
     let start = logger.time("create chunks");
+    self.module_graph_cache_artifact.freeze();
     use_code_splitting_cache(self, |compilation| async {
       let start = logger.time("rebuild chunk graph");
       if compilation.options.experiments.parallel_code_splitting {

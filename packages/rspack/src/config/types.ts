@@ -1097,6 +1097,9 @@ export type JavascriptParserOptions = {
 
 	// TODO: add docs
 	importDynamic?: boolean;
+
+	/** Inline const values in this module */
+	inlineConst?: boolean;
 };
 
 export type JsonParserOptions = {
@@ -2712,6 +2715,11 @@ export type Experiments = {
 	 * @default false
 	 */
 	useInputFileSystem?: UseInputFileSystem;
+	/**
+	 * Enable inline constants
+	 * @default false
+	 */
+	inlineConst?: boolean;
 };
 //#endregion
 
@@ -2759,6 +2767,8 @@ export type WatchOptions = {
  * Options for devServer, it based on `webpack-dev-server@5`
  * */
 export interface DevServer extends DevServerOptions {}
+
+export type { Middleware as DevServerMiddleware } from "./devServer";
 //#endregion
 
 //#region IgnoreWarnings
