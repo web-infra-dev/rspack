@@ -1,46 +1,26 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use super::{Analyzer, WatchInfo};
-use crate::watcher::register::PathRegister;
+use super::{Analyzer, WatchTarget};
+use crate::watcher::register::{All, PathRegister};
 
 #[derive(Default)]
 pub struct WatcherRootAnalyzer;
 
 impl Analyzer for WatcherRootAnalyzer {
-  fn analyze(&self, register: &PathRegister) -> Vec<WatchInfo> {
+  fn analyze(&self, register: &PathRegister) -> Vec<WatchTarget> {
     let root = self.find_watch_root(register);
-    vec![WatchInfo {
+    vec![WatchTarget {
       path: root,
       mode: notify::RecursiveMode::Recursive,
     }]
   }
 }
 
-#[derive(Debug, Default)]
-struct TreeNode {
-  children: Vec<PathBuf>,
-}
-
-impl TreeNode {
-  fn add_child(&mut self, child: PathBuf) {
-    self.children.push(child);
-  }
-
-  fn only_child(&self) -> Option<&PathBuf> {
-    if self.children.len() == 1 {
-      self.children.first()
-    } else {
-      None
-    }
-  }
-}
-
-type PathTree = HashMap<PathBuf, TreeNode>;
-
 impl WatcherRootAnalyzer {
   /// Returns the find watch root of this [`RootFinder`].
   fn find_watch_root(&self, register: &PathRegister) -> PathBuf {
-    let (tree, root) = self.build_tree(register);
+    let tree_builder = TreeBuilder::new(register.all());
+    let (tree, root) = tree_builder.build_tree();
     self.find_common_root(&tree, &root)
   }
 
@@ -63,49 +43,78 @@ impl WatcherRootAnalyzer {
       path.to_path_buf() // Return the current path if it has no single child
     }
   }
+}
 
-  fn build_tree(&self, register: &PathRegister) -> (PathTree, PathBuf) {
-    let mut tree: PathTree = HashMap::new();
+type PathTree = HashMap<PathBuf, TreeNode>;
+
+#[derive(Debug, Default)]
+struct TreeNode {
+  children: Vec<PathBuf>,
+}
+
+impl TreeNode {
+  fn add_child(&mut self, child: PathBuf) {
+    self.children.push(child);
+  }
+
+  fn only_child(&self) -> Option<&PathBuf> {
+    if self.children.len() == 1 {
+      self.children.first()
+    } else {
+      None
+    }
+  }
+}
+
+/// A helper struct to build a tree representation of watched paths.
+struct TreeBuilder<'a> {
+  watch_paths: All<'a>,
+}
+
+impl<'a> TreeBuilder<'a> {
+  /// Creates a new [`TreeBuilder`] with the given watched paths.
+  fn new(watch_paths: All<'a>) -> Self {
+    Self { watch_paths }
+  }
+
+  /// Builds the tree of watch paths.
+  fn build_tree(self) -> (PathTree, PathBuf) {
+    let mut tree_map: PathTree = HashMap::new();
     let mut root: Option<PathBuf> = None;
 
-    let all = register.all();
-    for p in all {
+    for p in self.watch_paths {
       let path = p.key();
 
       if path.is_dir() {
-        tree.insert(path.to_path_buf(), TreeNode::default());
+        tree_map
+          .entry(path.to_path_buf())
+          .or_insert_with(TreeNode::default);
       }
 
-      if let Some(_root) = self.build_tree_recursive(path, &mut tree) {
+      if let Some(r) = Self::build_tree_recursive(&path, &mut tree_map) {
         if root.is_none() {
-          root = Some(_root);
+          root = Some(r);
         }
       }
     }
 
-    (tree, root.unwrap())
+    (tree_map, root.expect("Root path should exist"))
   }
 
-  fn build_tree_recursive(&self, path: &PathBuf, tree: &mut PathTree) -> Option<PathBuf> {
+  fn build_tree_recursive(path: &PathBuf, tree: &mut PathTree) -> Option<PathBuf> {
     match path.parent() {
       Some(parent) => {
         if let Some(node) = tree.get_mut(parent) {
           node.add_child(path.to_path_buf());
+          None
         } else {
-          // If the parent is not in the tree, we need to add it
-          let parent_node = TreeNode {
-            children: vec![path.to_path_buf()],
-          };
-
+          let mut parent_node = TreeNode::default();
+          parent_node.add_child(path.to_path_buf());
           tree.insert(parent.to_path_buf(), parent_node);
-
-          return self.build_tree_recursive(&parent.to_path_buf(), tree);
+          Self::build_tree_recursive(&parent.to_path_buf(), tree)
         }
-        None
       }
-      None => {
-        Some(path.to_path_buf()) // If there is no parent, we are at the rooth
-      }
+      None => Some(path.to_path_buf()),
     }
   }
 }

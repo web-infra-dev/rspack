@@ -1,7 +1,7 @@
-use std::{hash::RandomState, iter::Chain, path::PathBuf};
+use std::path::PathBuf;
 
 use async_trait::async_trait;
-use dashmap::{iter::Iter, setref::multiple::RefMulti, DashSet as HashSet};
+use dashmap::{setref::multiple::RefMulti, DashSet as HashSet};
 
 use super::IncrementalPaths;
 
@@ -10,11 +10,20 @@ pub trait Ignored: Send + Sync {
   async fn ignore(&self, path: &str) -> bool;
 }
 
+/// An iterator that chains together references to all files, directories, and missing paths
+/// stored in the PathRegister. This allows iteration over all registered paths as a single sequence.
 pub struct All<'a> {
-  chain: Box<dyn Iterator<Item = RefMulti<'a, PathBuf>> + 'a>,
+  inner: Box<dyn Iterator<Item = RefMulti<'a, PathBuf>> + 'a>,
 }
 
 impl<'a> All<'a> {
+  /// Creates a new `All` iterator from the given sets of files, directories, and missing paths.
+  ///
+  /// # Arguments
+  ///
+  /// * `files` - A reference to a set of files.
+  /// * `directories` - A reference to a set of directories.
+  /// * `missing` - A reference to a set of missing paths.
   pub fn new(
     files: &'a HashSet<PathBuf>,
     directories: &'a HashSet<PathBuf>,
@@ -26,7 +35,7 @@ impl<'a> All<'a> {
     let chain = files_iter.chain(directories_iter).chain(missing_iter);
 
     Self {
-      chain: Box::new(chain),
+      inner: Box::new(chain),
     }
   }
 }
@@ -35,7 +44,7 @@ impl<'a> Iterator for All<'a> {
   type Item = RefMulti<'a, PathBuf>;
 
   fn next(&mut self) -> Option<Self::Item> {
-    self.chain.next()
+    self.inner.next()
   }
 }
 
@@ -103,3 +112,24 @@ impl PathRegister {
     }
   }
 }
+
+// mod tests {
+//   use super::*;
+//   use crate::watcher::IncrementalPaths;
+
+//   #[test]
+//   async fn test_path_register() {
+//     let register = PathRegister::new(None);
+//     let files = IncrementalPaths(vec!["file1.txt".to_string()], vec![]);
+//     let directories = IncrementalPaths(vec!["dir1".to_string()], vec![]);
+//     let missing = IncrementalPaths(vec![], vec!["missing.txt".to_string()]);
+
+//     tokio::runtime::Runtime::new().unwrap().block_on(async {
+//       register.save(files, directories, missing).await;
+//     });
+
+//     assert!(register.files.contains(&PathBuf::from("file1.txt")));
+//     assert!(register.directories.contains(&PathBuf::from("dir1")));
+//     assert!(register.missing.contains(&PathBuf::from("missing.txt")));
+//   }
+// }

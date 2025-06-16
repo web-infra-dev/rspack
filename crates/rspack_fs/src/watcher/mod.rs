@@ -1,8 +1,8 @@
 mod analyzer;
 mod disk_watcher;
+mod executor;
 mod register;
 mod trigger;
-mod watcher_executor;
 
 use std::{collections::HashSet, sync::Arc};
 
@@ -10,12 +10,14 @@ type StdReceiver<T> = std::sync::mpsc::Receiver<T>;
 type StdSender<T> = std::sync::mpsc::Sender<T>;
 
 use analyzer::{Analyzer, RecommendedAnalyzer};
+use disk_watcher::DiskWatcher;
+use executor::Executor;
 pub use register::Ignored;
 use register::PathRegister;
 use rspack_error::Result;
 pub(crate) use trigger::{FsEvent, FsEventKind, Trigger};
 
-use crate::watcher::analyzer::WatchInfo;
+use crate::watcher::analyzer::WatchTarget;
 
 pub type IncrementalPaths = (Vec<String>, Vec<String>);
 
@@ -34,18 +36,19 @@ pub struct FsWatcherOptions {
 
 pub struct FsWatcher {
   path_register: Arc<PathRegister>,
-  disk_watcher: disk_watcher::DiskWatcher,
-  executor: watcher_executor::WatcherExecutor,
+  disk_watcher: DiskWatcher,
+  executor: Executor,
   analyzer: RecommendedAnalyzer,
 }
 
 impl FsWatcher {
   pub fn new(options: FsWatcherOptions, ignored: Option<Box<dyn Ignored>>) -> Self {
-    let path_register = Arc::new(PathRegister::new(ignored));
     let (tx, rx) = std::sync::mpsc::channel::<FsEvent>();
+
+    let path_register = Arc::new(PathRegister::new(ignored));
     let trigger = Trigger::new(Arc::clone(&path_register), tx);
-    let disk_watcher = disk_watcher::DiskWatcher::new(options.follow_symlinks, trigger);
-    let executor = watcher_executor::WatcherExecutor::new(rx, options.aggregate_timeout);
+    let disk_watcher = DiskWatcher::new(options.follow_symlinks, trigger);
+    let executor = Executor::new(rx, options.aggregate_timeout);
 
     Self {
       analyzer: RecommendedAnalyzer::default(),
@@ -63,8 +66,8 @@ impl FsWatcher {
     event_handler: Box<dyn EventHandler + Send + Sync>,
   ) -> Result<()> {
     self.wait_for_event(files, directories, missing).await?;
+    self.executor.wait_for_execute(event_handler);
 
-    self.executor.execute(event_handler).await;
     Ok(())
   }
 
@@ -72,7 +75,7 @@ impl FsWatcher {
     // In this implementation, we don't have a specific close operation.
     // If the watcher is using a background thread, we would signal it to stop.
     // For now, we can just return Ok.
-    Ok(())
+    todo!("Implement close operation for FsWatcher");
   }
 
   async fn wait_for_event(
@@ -83,9 +86,9 @@ impl FsWatcher {
   ) -> Result<()> {
     self.path_register.save(files, directories, missing).await;
 
-    let watch_info = self.analyzer.analyze(&self.path_register);
-    for info in watch_info {
-      let WatchInfo { ref path, mode } = info;
+    let watch_target = self.analyzer.analyze(&self.path_register);
+    for info in watch_target {
+      let WatchTarget { ref path, mode } = info;
       self.disk_watcher.watch(path, mode)?;
     }
 
