@@ -185,13 +185,6 @@ Object.defineProperty(binding.Module.prototype, "identifier", {
 		return this[binding.MODULE_IDENTIFIER_SYMBOL];
 	}
 });
-Object.defineProperty(binding.Module.prototype, "readableIdentifier", {
-	enumerable: true,
-	configurable: true,
-	value(this: binding.Module) {
-		return this._readableIdentifier;
-	}
-});
 Object.defineProperty(binding.Module.prototype, "originalSource", {
 	enumerable: true,
 	configurable: true,
@@ -219,7 +212,6 @@ Object.defineProperty(binding.Module.prototype, "emitFile", {
 declare module "@rspack/binding" {
 	interface Module {
 		identifier(): string;
-		readableIdentifier(): string;
 		originalSource(): Source | null;
 		emitFile(filename: string, source: Source, assetInfo?: AssetInfo): void;
 	}
