@@ -793,17 +793,16 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					type,
 					args,
 					get trace() {
-						let trace: string[] | undefined;
 						switch (type) {
 							case LogType.warn:
 							case LogType.error:
 							case LogType.trace:
-								trace = cutOffLoaderExecution(new Error("Trace").stack!)
+								return cutOffLoaderExecution(new Error("Trace").stack!)
 									.split("\n")
 									.slice(3);
-								break;
+							default:
+								return undefined;
 						}
-						return trace;
 					}
 				};
 
