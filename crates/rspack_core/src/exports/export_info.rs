@@ -101,6 +101,25 @@ impl ExportInfo {
     .get_read_only_export_info_recursive(&export)
     .map(|data| TerminalBinding::ExportInfo(data.id))
   }
+
+  pub fn do_move_target(
+    &self,
+    mg: &mut ModuleGraph,
+    dependency: DependencyId,
+    target_export: Option<Vec<Atom>>,
+  ) {
+    let export_info_mut = self.as_data_mut(mg);
+    export_info_mut.target.clear();
+    export_info_mut.target.insert(
+      None,
+      ExportInfoTargetValue {
+        dependency: Some(dependency),
+        export: target_export,
+        priority: 0,
+      },
+    );
+    export_info_mut.target_is_set = true;
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -492,27 +511,6 @@ impl<'a> MaybeDynamicTargetExportInfo<'a> {
   }
 }
 
-impl ExportInfo {
-  pub fn do_move_target(
-    &self,
-    mg: &mut ModuleGraph,
-    dependency: DependencyId,
-    target_export: Option<Vec<Atom>>,
-  ) {
-    let export_info_mut = self.as_data_mut(mg);
-    export_info_mut.target.clear();
-    export_info_mut.target.insert(
-      None,
-      ExportInfoTargetValue {
-        dependency: Some(dependency),
-        export: target_export,
-        priority: 0,
-      },
-    );
-    export_info_mut.target_is_set = true;
-  }
-}
-
 pub type ResolveFilterFnTy<'a> = Rc<dyn Fn(&ResolvedExportInfoTarget) -> bool + 'a>;
 
 fn resolve_target(
@@ -590,11 +588,11 @@ fn resolve_target(
   }
 }
 
-pub fn process_export_info(
-  module_graph: &ModuleGraph,
-  runtime: Option<&RuntimeSpec>,
-  referenced_export: &mut Vec<Vec<Atom>>,
-  prefix: Vec<Atom>,
+pub fn process_export_info<'a>(
+  module_graph: &'a ModuleGraph,
+  runtime: Option<&'a RuntimeSpec>,
+  referenced_export: &mut Vec<Vec<&'a Atom>>,
+  prefix: Vec<&'a Atom>,
   export_info: Option<ExportInfo>,
   default_points_to_self: bool,
   already_visited: &mut UkeySet<ExportInfo>,
@@ -621,6 +619,7 @@ pub fn process_export_info(
     ) {
       for export_info in exports_info.exports.values() {
         let export_info_data = export_info.as_data(module_graph);
+
         process_export_info(
           module_graph,
           runtime,
@@ -634,7 +633,7 @@ pub fn process_export_info(
           } else {
             let mut value = prefix.clone();
             if let Some(name) = ExportInfoGetter::name(export_info_data) {
-              value.push(name.clone());
+              value.push(name);
             }
             value
           },
@@ -648,30 +647,4 @@ pub fn process_export_info(
   } else {
     referenced_export.push(prefix);
   }
-}
-
-#[macro_export]
-macro_rules! debug_all_exports_info {
-  ($mg:expr, $filter:expr) => {
-    for mgm in $mg.module_graph_modules().values() {
-      $crate::debug_exports_info!(mgm, $mg, $filter);
-    }
-  };
-}
-
-#[macro_export]
-macro_rules! debug_exports_info {
-  ($mgm:expr, $mg:expr, $filter:expr) => {
-    if !($filter(&$mgm.module_identifier)) {
-      continue;
-    }
-    dbg!(&$mgm.module_identifier);
-    let exports_info_id = $mgm.exports;
-    let exports_info = $mg.get_exports_info_by_id(&exports_info_id);
-    dbg!(&exports_info);
-    for id in exports_info.exports.values() {
-      let export_info = $mg.get_export_info_by_id(id);
-      dbg!(&export_info);
-    }
-  };
 }
