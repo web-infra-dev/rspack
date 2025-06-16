@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Formatter, sync::Arc};
+use std::{collections::HashMap, fmt::Formatter, ptr::NonNull, sync::Arc};
 
 use derive_more::Debug;
 use napi::{
@@ -650,9 +650,17 @@ pub struct RawAssetGeneratorDataUrlFnCtx {
 
 impl From<AssetGeneratorDataUrlFnCtx<'_>> for RawAssetGeneratorDataUrlFnCtx {
   fn from(value: AssetGeneratorDataUrlFnCtx) -> Self {
+    // AssetGeneratorDataUrlFn is called during the make phase, at which point the module cannot be accessed from the moduleGraph.
+    // Therefore, we use a raw pointer to allow JavaScript to access the Module.
     Self {
       filename: value.filename,
-      module: ModuleObject::with_ref(value.module, value.compilation.compiler_id()),
+      module: ModuleObject::with_ptr(
+        NonNull::new(
+          value.module as *const dyn rspack_core::Module as *mut dyn rspack_core::Module,
+        )
+        .unwrap(),
+        value.compilation.compiler_id(),
+      ),
     }
   }
 }
