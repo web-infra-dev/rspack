@@ -11,7 +11,7 @@ runs:
     - name: Git Clean
       shell: bash
       run: |
-        git config --system core.longpaths true
+        git config --global core.longpaths true
         rm -rf node_modules
         git clean -ffdx -e target
         git reset --hard HEAD
