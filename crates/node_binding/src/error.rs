@@ -238,7 +238,7 @@ impl std::fmt::Display for RspackError {
     } else {
       write!(f, "{}", &self.message)?;
       if let Some(details) = &self.details {
-        write!(f, "{}", details)?;
+        write!(f, "\n{}", details)?;
       }
       Ok(())
     }

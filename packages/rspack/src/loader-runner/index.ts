@@ -573,13 +573,16 @@ export async function runLoaders(
 		if (!(error instanceof Error)) {
 			error = new NonErrorEmittedError(error);
 		}
+		const name = error.name;
+		const message = error.message;
+		const stack = error.stack;
 		error.name = "ModuleError";
-		error.message = `${error.message} (from: ${stringifyLoaderObject(
+		error.message = `${message} (from: ${stringifyLoaderObject(
 			loaderContext.loaders[loaderContext.loaderIndex]
 		)})`;
 		(error as RspackError).module = loaderContext._module;
-		(error as RspackError).details = err.stack
-			? cleanUp(err.stack, err.message)
+		(error as RspackError).details = stack
+			? cleanUp(stack, name, message)
 			: undefined;
 		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
 			error,
@@ -591,11 +594,17 @@ export async function runLoaders(
 		if (!(warning instanceof Error)) {
 			warning = new NonErrorEmittedError(warning);
 		}
+		const name = warning.name;
+		const message = warning.message;
+		const stack = warning.stack;
 		warning.name = "ModuleWarning";
 		warning.message = `${warning.message} (from: ${stringifyLoaderObject(
 			loaderContext.loaders[loaderContext.loaderIndex]
 		)})`;
 		(warning as RspackError).module = loaderContext._module;
+		(warning as RspackError).details = stack
+			? cleanUp(stack, name, message)
+			: undefined;
 		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
 			error: warning,
 			severity: JsRspackSeverity.Warn
