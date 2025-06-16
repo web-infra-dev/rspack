@@ -49,7 +49,7 @@ jobs:
       runner: ${{ inputs.test-runner || inputs.runner }}
       ref: ${{ inputs.ref }}
   codspeed:
-    name: codspeed-build
+    name: Codspeed-build
     if: inputs.bench
     runs-on: ${{  fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-latest"' ) }}
     steps:
@@ -74,6 +74,7 @@ jobs:
         env:
           RUSTFLAGS: "-C debuginfo=1 -C strip=none -g --cfg codspeed"
         run: cargo codspeed build -p rspack_benchmark --features codspeed
+
       - name: Upload Artifact
         uses: ./.github/actions/artifact/upload
         with:
