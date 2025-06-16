@@ -22,8 +22,8 @@ permissions:
   issues: write
 
 jobs:
-  bench:
-    name: Bench
+  codspeed-build:
+    name: CodSpeed Build
     runs-on: ${{ fromJSON(inputs.runner) }}
     defaults:
       run:
@@ -39,25 +39,29 @@ jobs:
         uses: ./.github/actions/rustup
         with:
           save-if: true
-          key: build-bench-${{ inputs.target }}
+          key: build-${{ inputs.target }}
 
       - name: Install cargo-codspeed binary
         uses: taiki-e/install-action@1cefd1553b1693f47889dc747f7d230904296a3b # v2
         with:
           tool: cargo-codspeed@2.10.1
 
-      - name: Build Benchmark
+      - name: Build Binding
         env:
           RUSTFLAGS: "-C debuginfo=1 -C strip=none -g --cfg codspeed"
-        run: cargo codspeed build -p rspack_benchmark --features codspeed
-
-      - name: Wait for build job
-        uses: lewagon/wait-on-check-action@ccfb013c15c8afb7bf2b7c028fb74dc5a068cccc # v1.3.4
+        run: cargo codspeed build -p rspack_node_binding --features codspeed
+  bench:
+    name: Bench
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          check-name: "Test Linux / build / Build"
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 10
+          ref: ${{ inputs.ref }}
+          clean: ${{ runner.environment == 'github-hosted' }}
 
       - name: Download bindings
         uses: ./.github/actions/artifact/download
@@ -67,6 +71,15 @@ jobs:
 
       - name: Show restored binding
         run: ls -lah crates/node_binding/*.node
+
+      - name: Download benches
+        uses: ./.github/actions/artifact/download
+        with:
+          name: codspeed-${{ inputs.target }}
+          path: target/codspeed/
+
+      - name: Show Codspeed
+        run: find target/codspeed/
 
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm/setup
