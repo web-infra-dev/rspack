@@ -1309,7 +1309,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
           runtime,
           &mut referenced_exports,
           vec![],
-          Some(partial_namespace_export_info),
+          Some(partial_namespace_export_info.as_data(module_graph)),
           matches!(mode, ExportMode::ReexportFakeNamespaceObject(_)),
           &mut Default::default(),
         );
@@ -1329,7 +1329,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
             runtime,
             &mut referenced_exports,
             item.ids.iter().collect(),
-            Some(item.export_info),
+            Some(item.export_info.as_data(module_graph)),
             false,
             &mut Default::default(),
           );
