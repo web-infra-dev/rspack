@@ -2,7 +2,7 @@ use core::fmt;
 use std::borrow::Cow;
 
 use itertools::Itertools;
-use rspack_collections::{IdentifierIndexSet, IdentifierMap, UkeyIndexMap, UkeyMap};
+use rspack_collections::{IdentifierIndexSet, IdentifierMap, UkeyMap};
 use rspack_util::{atom::Atom, env::has_query};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 

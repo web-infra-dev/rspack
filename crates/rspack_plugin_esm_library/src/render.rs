@@ -1,32 +1,32 @@
-use std::{borrow::Cow, collections::hash_map::Entry, sync::Arc};
+use std::{borrow::Cow, sync::Arc};
 
-use rspack_collections::{IdentifierIndexSet, IdentifierMap, UkeyIndexMap, UkeyMap, UkeySet};
+use rspack_collections::{IdentifierMap, UkeyMap, UkeySet};
 use rspack_core::{
   find_new_name, get_js_chunk_filename_template, property_access,
-  reserved_names::RESERVED_NAMES,
-  rspack_sources::{ConcatSource, RawSource, RawStringSource, ReplaceSource},
-  AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkUkey, Compilation, ConcatenatedModule,
-  ConcatenatedModuleIdent, ConcatenatedModuleInfo, ConcatenationScope, IdentCollector, ModuleInfo,
-  PathData, PathInfo, RuntimeGlobals, SourceType, SpanExt, NAMESPACE_OBJECT_EXPORT,
+  rspack_sources::{ConcatSource, RawSource, RawStringSource},
+  AssetInfo, BoxModule, ChunkGraph, ChunkUkey, Compilation, ConcatenationScope, ModuleInfo,
+  PathData, PathInfo, RuntimeGlobals, SourceType, SpanExt,
 };
 use rspack_error::Result;
-use rspack_javascript_compiler::ast::Ast;
 use rspack_plugin_javascript::{
-  render_bootstrap, render_require,
-  runtime::{render_chunk_runtime_modules, render_module, render_runtime_modules},
-  visitors::swc_visitor::resolver,
+  render_bootstrap,
+  runtime::{render_module, render_runtime_modules},
   RenderSource,
 };
 use rspack_util::{
   atom::Atom,
-  fx_hash::{FxHashMap, FxHashSet, FxIndexSet},
+  fx_hash::{FxHashMap, FxIndexSet},
 };
 
 use crate::{dependency::dyn_import::NAMESPACE_SYMBOL, EsmLibraryPlugin};
 impl EsmLibraryPlugin {
   pub(crate) fn get_runtime_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
     let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
-    let group = chunk.groups().into_iter().next().unwrap();
+    let group = chunk
+      .groups()
+      .iter()
+      .next()
+      .expect("should have at least one group");
     let group = compilation.chunk_group_by_ukey.expect_get(group);
     let mut stack = vec![group];
     let mut visited = UkeySet::default();
@@ -54,16 +54,16 @@ impl EsmLibraryPlugin {
     &self,
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
-    asset_info: &mut AssetInfo,
+    _asset_info: &mut AssetInfo,
   ) -> Result<Option<RenderSource>> {
     let module_graph = compilation.get_module_graph();
     let chunk_link = compilation
       .chunk_graph
       .link
       .as_ref()
-      .unwrap()
+      .expect("should have set link info")
       .get(chunk_ukey)
-      .unwrap();
+      .expect("should have chunk");
 
     // modules that can be concatenated
     let concatenated_modules = &chunk_link.hoisted_modules;
@@ -91,7 +91,10 @@ impl EsmLibraryPlugin {
     // find import
     let mut decl_source = ConcatSource::default();
 
-    let chunk = compilation.chunk_by_ukey.get(chunk_ukey).unwrap();
+    let chunk = compilation
+      .chunk_by_ukey
+      .get(chunk_ukey)
+      .expect("should have chunk");
     let filename_template = get_js_chunk_filename_template(
       chunk,
       &compilation.options.output,
@@ -130,10 +133,6 @@ impl EsmLibraryPlugin {
       )));
 
       for m in &decl_modules {
-        let codegen_res = compilation
-          .code_generation_results
-          .get(&m.identifier(), None);
-
         let Some((module_source, _, _)) =
           render_module(compilation, chunk_ukey, m, true, true, &output_path).await?
         else {
@@ -192,7 +191,7 @@ impl EsmLibraryPlugin {
         .expect("should have info")
         .as_concatenated();
       if let Some(namespace) = &info.namespace_object_source {
-        render_source.add(RawStringSource::from(format!("{}\n", namespace)));
+        render_source.add(RawStringSource::from(format!("{namespace}\n")));
       }
     }
 
@@ -202,12 +201,11 @@ impl EsmLibraryPlugin {
         .expect("should have info")
         .as_concatenated();
 
-      let mut source = info.source.clone().unwrap();
-      let codegen_res = compilation.code_generation_results.get(m, None);
+      let mut source = info.source.clone().expect("should have source");
       let mut used_names = info.all_used_names.clone();
 
-      for ((atom, ctxt), refs) in &info.binding_to_ref {
-        if let Some(match_module_ref) = ConcatenationScope::match_module_reference(&atom) {
+      for ((atom, _ctxt), refs) in &info.binding_to_ref {
+        if let Some(match_module_ref) = ConcatenationScope::match_module_reference(atom) {
           let final_name = chunk_link
             .ref_to_final_name
             .get(atom.as_str())
@@ -231,7 +229,7 @@ impl EsmLibraryPlugin {
                   let local = if let Some(local) = required_symbols.get(&imported_id) {
                     local.clone()
                   } else if used_names.contains(symbol) {
-                    let local = find_new_name(&symbol, &chunk_link.used_names, None, "");
+                    let local = find_new_name(symbol, &chunk_link.used_names, None, "");
                     used_names.insert(local.clone());
                     local
                   } else {
@@ -243,7 +241,6 @@ impl EsmLibraryPlugin {
                     required_symbols.insert(imported_id, local.clone());
                   }
 
-                  let ref_chunk = Self::get_module_chunk(imported_id, compilation);
                   let reference = format!(
                     "{}{}{}",
                     &local,
@@ -331,7 +328,7 @@ impl EsmLibraryPlugin {
             }
           }
         } else if let Some((index, already_in_chunk, atom)) =
-          ConcatenationScope::match_dynamic_module_reference(&atom)
+          ConcatenationScope::match_dynamic_module_reference(atom)
         {
           let (ref_module, ref_info) = concatenated_modules_map
             .get_index(index)
@@ -347,7 +344,7 @@ impl EsmLibraryPlugin {
             let content = if already_in_chunk {
               Cow::Borrowed(internal_symbol.as_str())
             } else {
-              Cow::Owned(format!("{}.{}", NAMESPACE_SYMBOL, internal_symbol))
+              Cow::Owned(format!("{NAMESPACE_SYMBOL}.{internal_symbol}"))
             };
             source.replace(
               ref_atom.id.span.real_lo(),
@@ -377,16 +374,17 @@ impl EsmLibraryPlugin {
       if matches!(compilation.options.output.pathinfo, PathInfo::Bool(false)) {
         render_source.add(RawStringSource::from(format!(
           "// {}\n",
-          ChunkGraph::get_module_id(&compilation.module_ids_artifact, *m)
-            .map(|id| { id.to_string() })
-            .unwrap_or_else(|| {
+          ChunkGraph::get_module_id(&compilation.module_ids_artifact, *m).map_or_else(
+            || {
               let module = module_graph
                 .module_by_identifier(m)
                 .expect("should have module");
               module
                 .readable_identifier(&compilation.options.context)
                 .to_string()
-            })
+            },
+            |id| { id.to_string() },
+          )
         )));
       }
       render_source.add(source);

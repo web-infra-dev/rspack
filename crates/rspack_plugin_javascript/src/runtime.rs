@@ -313,13 +313,6 @@ pub async fn render_runtime_modules(
 ) -> Result<BoxSource> {
   let mut sources = ConcatSource::default();
 
-  let runtime_modules = compilation
-    .chunk_graph
-    .get_chunk_runtime_modules_in_order(chunk_ukey, compilation)
-    .map(|(m, _)| *m)
-    .collect::<Vec<_>>();
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-
   let runtime_module_sources = rspack_futures::scope::<_, Result<_>>(|token| {
     compilation
       .chunk_graph
