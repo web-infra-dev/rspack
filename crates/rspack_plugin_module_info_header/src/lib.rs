@@ -68,7 +68,8 @@ fn print_exports_info_to_source<F>(
 
   // print the exports
   for export_info in &printed_exports {
-    let export_name: String = ExportInfoGetter::name(export_info)
+    let export_name: String = export_info
+      .name()
       .map(|n| n.to_string())
       .unwrap_or("null".into());
     let provide_info = ExportInfoGetter::get_provided_info(export_info);
@@ -95,7 +96,7 @@ fn print_exports_info_to_source<F>(
 
     source.add(RawStringSource::from(to_comment_with_nl(&export_str)));
 
-    if let Some(exports_info) = &ExportInfoGetter::exports_info(export_info) {
+    if let Some(exports_info) = &export_info.exports_info() {
       let exports_info = ExportsInfoGetter::prefetch(
         exports_info,
         module_graph,
@@ -122,7 +123,7 @@ fn print_exports_info_to_source<F>(
     let target = other_exports_info.get_target(module_graph);
     if target.is_some()
       || !matches!(
-        ExportInfoGetter::provided(other_exports_info),
+        other_exports_info.provided(),
         Some(ExportProvided::NotProvided)
       )
       || ExportInfoGetter::get_used(other_exports_info, None) != UsageState::Unused

@@ -82,15 +82,12 @@ async fn render_startup(
     .expect("should have build meta");
   let exports_type = boxed_module.get_exports_type(&module_graph, boxed_module.build_info().strict);
   for (_, export_info) in exports_info.exports() {
-    if matches!(
-      ExportInfoGetter::provided(export_info),
-      Some(ExportProvided::NotProvided)
-    ) {
+    if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
       continue;
     };
 
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-    let info_name = ExportInfoGetter::name(export_info).expect("should have name");
+    let info_name = export_info.name().expect("should have name");
     let used_name =
       ExportInfoGetter::get_used_name(export_info, Some(info_name), Some(chunk.runtime()))
         .expect("name can't be empty");

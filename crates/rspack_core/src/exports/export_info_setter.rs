@@ -2,59 +2,28 @@ use std::collections::hash_map::Entry;
 
 use rspack_util::atom::Atom;
 
-use super::{
-  ExportInfoData, ExportInfoTargetValue, ExportProvided, ExportsInfo, Inlinable, UsageFilterFnTy,
-  UsageState,
-};
+use super::{ExportInfoData, ExportInfoTargetValue, Inlinable, UsageFilterFnTy, UsageState};
 use crate::{DependencyId, Nullable, RuntimeSpec};
 
 pub struct ExportInfoSetter;
 
 impl ExportInfoSetter {
   pub fn reset_provide_info(info: &mut ExportInfoData) {
-    info.provided = None;
-    info.can_mangle_provide = None;
-    info.inlinable = Inlinable::NoByProvide;
-    info.exports_info_owned = false;
-    info.exports_info = None;
-    info.target_is_set = false;
-    info.target.clear();
-    info.terminal_binding = false;
-  }
-
-  pub fn set_provided(info: &mut ExportInfoData, value: Option<ExportProvided>) {
-    info.provided = value;
-  }
-
-  pub fn set_can_mangle_provide(info: &mut ExportInfoData, value: Option<bool>) {
-    info.can_mangle_provide = value;
-  }
-
-  pub fn set_can_mangle_use(info: &mut ExportInfoData, value: Option<bool>) {
-    info.can_mangle_use = value;
-  }
-
-  pub fn set_terminal_binding(info: &mut ExportInfoData, value: bool) {
-    info.terminal_binding = value;
-  }
-
-  pub fn set_exports_info(info: &mut ExportInfoData, value: Option<ExportsInfo>) {
-    info.exports_info = value;
-  }
-
-  pub fn set_inlinable(info: &mut ExportInfoData, inlinable: Inlinable) {
-    info.inlinable = inlinable;
-  }
-
-  pub fn set_used_name(info: &mut ExportInfoData, name: Atom) {
-    info.used_name = Some(name);
+    info.set_provided(None);
+    info.set_can_mangle_provide(None);
+    info.set_inlinable(Inlinable::NoByProvide);
+    info.set_exports_info(None);
+    info.set_exports_info_owned(false);
+    info.set_target_is_set(false);
+    info.target_mut().clear();
+    info.set_terminal_binding(false);
   }
 
   pub fn unset_target(info: &mut ExportInfoData, key: &DependencyId) -> bool {
-    if !info.target_is_set {
+    if !info.target_is_set() {
       false
     } else {
-      info.target.remove(&Some(*key)).is_some()
+      info.target_mut().remove(&Some(*key)).is_some()
     }
   }
 
@@ -71,8 +40,8 @@ impl ExportInfoSetter {
       None => None,
     };
     let normalized_priority = priority.unwrap_or(0);
-    if !info.target_is_set {
-      info.target.insert(
+    if !info.target_is_set() {
+      info.target_mut().insert(
         key,
         ExportInfoTargetValue {
           dependency,
@@ -80,15 +49,15 @@ impl ExportInfoSetter {
           priority: normalized_priority,
         },
       );
-      info.target_is_set = true;
+      info.set_target_is_set(true);
       return true;
     }
-    let Some(old_target) = info.target.get_mut(&key) else {
+    let Some(old_target) = info.target_mut().get_mut(&key) else {
       if dependency.is_none() {
         return false;
       }
 
-      info.target.insert(
+      info.target_mut().insert(
         key,
         ExportInfoTargetValue {
           dependency,
@@ -117,7 +86,7 @@ impl ExportInfoSetter {
     runtime: Option<&RuntimeSpec>,
   ) -> bool {
     if let Some(runtime) = runtime {
-      let used_in_runtime = info.used_in_runtime.get_or_insert_default();
+      let used_in_runtime = info.used_in_runtime_mut();
       let mut changed = false;
       for &k in runtime.iter() {
         match used_in_runtime.entry(k) {
@@ -141,12 +110,12 @@ impl ExportInfoSetter {
         }
       }
       if used_in_runtime.is_empty() {
-        info.used_in_runtime = None;
+        info.set_used_in_runtime(None);
         changed = true;
       }
       return changed;
-    } else if info.global_used != Some(new_value) {
-      info.global_used = Some(new_value);
+    } else if info.global_used() != Some(new_value) {
+      info.set_global_used(Some(new_value));
       return true;
     }
     false
@@ -159,7 +128,7 @@ impl ExportInfoSetter {
     runtime: Option<&RuntimeSpec>,
   ) -> bool {
     if let Some(runtime) = runtime {
-      let used_in_runtime = info.used_in_runtime.get_or_insert_default();
+      let used_in_runtime = info.used_in_runtime_mut();
       let mut changed = false;
 
       for &k in runtime.iter() {
@@ -184,17 +153,17 @@ impl ExportInfoSetter {
         }
       }
       if used_in_runtime.is_empty() {
-        info.used_in_runtime = None;
+        info.set_used_in_runtime(None);
         changed = true;
       }
       return changed;
-    } else if let Some(global_used) = info.global_used {
+    } else if let Some(global_used) = info.global_used() {
       if global_used != new_value && condition(&global_used) {
-        info.global_used = Some(new_value);
+        info.set_global_used(Some(new_value));
         return true;
       }
     } else {
-      info.global_used = Some(new_value);
+      info.set_global_used(Some(new_value));
       return true;
     }
     false
@@ -211,12 +180,12 @@ impl ExportInfoSetter {
     ) {
       changed = true;
     }
-    if info.can_mangle_use != Some(false) {
-      info.can_mangle_use = Some(false);
+    if info.can_mangle_use() != Some(false) {
+      info.set_can_mangle_use(Some(false));
       changed = true;
     }
-    if info.inlinable.can_inline() {
-      info.inlinable = Inlinable::NoByUse;
+    if info.inlinable().can_inline() {
+      info.set_inlinable(Inlinable::NoByUse);
       changed = true;
     }
     changed
@@ -226,12 +195,12 @@ impl ExportInfoSetter {
     let mut changed = false;
     let flag = ExportInfoSetter::set_used(info, UsageState::NoInfo, runtime);
     changed |= flag;
-    if info.can_mangle_use != Some(false) {
-      info.can_mangle_use = Some(false);
+    if info.can_mangle_use() != Some(false) {
+      info.set_can_mangle_use(Some(false));
       changed = true;
     }
-    if info.inlinable.can_inline() {
-      info.inlinable = Inlinable::NoByUse;
+    if info.inlinable().can_inline() {
+      info.set_inlinable(Inlinable::NoByUse);
       changed = true;
     }
     changed

@@ -175,7 +175,7 @@ async fn render_startup(
     let exports_info =
       module_graph.get_prefetched_exports_info(module_id, PrefetchExportsInfoMode::AllExports);
     for (_, export_info) in exports_info.exports() {
-      let info_name = ExportInfoGetter::name(export_info).expect("should have name");
+      let info_name = export_info.name().expect("should have name");
       let used_name =
         ExportInfoGetter::get_used_name(export_info, Some(info_name), Some(chunk.runtime()))
           .expect("name can't be empty");

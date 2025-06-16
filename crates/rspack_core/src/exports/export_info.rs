@@ -125,27 +125,139 @@ impl ExportInfo {
 #[derive(Debug, Clone)]
 pub struct ExportInfoData {
   // the name could be `null` you could refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad4153d/lib/ExportsInfo.js#L78
-  pub(crate) name: Option<Atom>,
+  name: Option<Atom>,
   /// this is mangled name, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ExportsInfo.js#L1181-L1188
-  pub(crate) used_name: Option<Atom>,
-  pub(crate) target: HashMap<Option<DependencyId>, ExportInfoTargetValue>,
+  used_name: Option<Atom>,
+  target: HashMap<Option<DependencyId>, ExportInfoTargetValue>,
   /// This is rspack only variable, it is used to flag if the target has been initialized
-  pub(crate) target_is_set: bool,
-  pub(crate) provided: Option<ExportProvided>,
-  pub(crate) can_mangle_provide: Option<bool>,
-  pub(crate) can_mangle_use: Option<bool>,
+  target_is_set: bool,
+  provided: Option<ExportProvided>,
+  can_mangle_provide: Option<bool>,
+  can_mangle_use: Option<bool>,
   // only specific export info can be inlined, so other_export_info.inlinable is always NoByProvide
-  pub(crate) inlinable: Inlinable,
-  pub(crate) terminal_binding: bool,
-  pub(crate) id: ExportInfo,
-  pub(crate) exports_info: Option<ExportsInfo>,
-  pub(crate) exports_info_owned: bool,
-  pub(crate) has_use_in_runtime_info: bool,
-  pub(crate) global_used: Option<UsageState>,
-  pub(crate) used_in_runtime: Option<ustr::UstrMap<UsageState>>,
+  inlinable: Inlinable,
+  terminal_binding: bool,
+  id: ExportInfo,
+  exports_info: Option<ExportsInfo>,
+  exports_info_owned: bool,
+  has_use_in_runtime_info: bool,
+  global_used: Option<UsageState>,
+  used_in_runtime: Option<ustr::UstrMap<UsageState>>,
 }
 
 impl ExportInfoData {
+  pub fn name(&self) -> Option<&Atom> {
+    self.name.as_ref()
+  }
+
+  pub fn used_name(&self) -> Option<&Atom> {
+    self.used_name.as_ref()
+  }
+
+  pub fn target(&self) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue> {
+    &self.target
+  }
+
+  pub fn target_is_set(&self) -> bool {
+    self.target_is_set
+  }
+
+  pub fn target_mut(&mut self) -> &mut HashMap<Option<DependencyId>, ExportInfoTargetValue> {
+    &mut self.target
+  }
+
+  pub fn provided(&self) -> Option<ExportProvided> {
+    self.provided
+  }
+
+  pub fn can_mangle_provide(&self) -> Option<bool> {
+    self.can_mangle_provide
+  }
+
+  pub fn can_mangle_use(&self) -> Option<bool> {
+    self.can_mangle_use
+  }
+
+  pub fn inlinable(&self) -> &Inlinable {
+    &self.inlinable
+  }
+
+  pub fn terminal_binding(&self) -> bool {
+    self.terminal_binding
+  }
+
+  pub fn id(&self) -> ExportInfo {
+    self.id
+  }
+
+  pub fn exports_info(&self) -> Option<ExportsInfo> {
+    self.exports_info
+  }
+
+  pub fn exports_info_owned(&self) -> bool {
+    self.exports_info_owned
+  }
+
+  pub fn has_use_in_runtime_info(&self) -> bool {
+    self.has_use_in_runtime_info
+  }
+
+  pub fn global_used(&self) -> Option<UsageState> {
+    self.global_used
+  }
+
+  pub fn used_in_runtime(&self) -> Option<&ustr::UstrMap<UsageState>> {
+    self.used_in_runtime.as_ref()
+  }
+
+  pub fn used_in_runtime_mut(&mut self) -> &mut ustr::UstrMap<UsageState> {
+    self.used_in_runtime.get_or_insert_default()
+  }
+
+  pub fn set_provided(&mut self, value: Option<ExportProvided>) {
+    self.provided = value;
+  }
+
+  pub fn set_can_mangle_provide(&mut self, value: Option<bool>) {
+    self.can_mangle_provide = value;
+  }
+
+  pub fn set_can_mangle_use(&mut self, value: Option<bool>) {
+    self.can_mangle_use = value;
+  }
+
+  pub fn set_terminal_binding(&mut self, value: bool) {
+    self.terminal_binding = value;
+  }
+
+  pub fn set_exports_info(&mut self, value: Option<ExportsInfo>) {
+    self.exports_info = value;
+  }
+
+  pub fn set_exports_info_owned(&mut self, value: bool) {
+    self.exports_info_owned = value;
+  }
+
+  pub fn set_inlinable(&mut self, inlinable: Inlinable) {
+    self.inlinable = inlinable;
+  }
+
+  pub fn set_used_name(&mut self, name: Atom) {
+    self.used_name = Some(name);
+  }
+
+  pub fn set_target_is_set(&mut self, value: bool) {
+    self.target_is_set = value;
+  }
+
+  pub fn set_global_used(&mut self, value: Option<UsageState>) {
+    self.global_used = value;
+  }
+
+  pub fn set_used_in_runtime(&mut self, value: Option<ustr::UstrMap<UsageState>>) {
+    self.used_in_runtime = value;
+  }
+
   pub fn new(name: Option<Atom>, init_from: Option<&ExportInfoData>) -> Self {
     let used_name = init_from.and_then(|init_from| init_from.used_name.clone());
     let global_used = init_from.and_then(|init_from| init_from.global_used);
@@ -205,10 +317,6 @@ impl ExportInfoData {
       global_used,
       inlinable: Inlinable::NoByProvide,
     }
-  }
-
-  pub fn id(&self) -> ExportInfo {
-    self.id
   }
 
   pub fn find_target_impl(
@@ -411,10 +519,10 @@ impl<'a> MaybeDynamicTargetExportInfo<'a> {
     }
   }
 
-  pub fn provided(&'a self) -> Option<&'a ExportProvided> {
+  pub fn provided(&'a self) -> Option<ExportProvided> {
     match self {
-      MaybeDynamicTargetExportInfo::Static(export_info) => ExportInfoGetter::provided(export_info),
-      MaybeDynamicTargetExportInfo::Dynamic { data, .. } => data.provided.as_ref(),
+      MaybeDynamicTargetExportInfo::Static(export_info) => export_info.provided(),
+      MaybeDynamicTargetExportInfo::Dynamic { data, .. } => data.provided(),
     }
   }
 
@@ -614,7 +722,9 @@ pub fn process_export_info<'a>(
       return;
     }
     if let Some(exports_info) = module_graph.try_get_exports_info_by_id(
-      &ExportInfoGetter::exports_info(export_info).expect("should have exports info"),
+      &export_info
+        .exports_info()
+        .expect("should have exports info"),
     ) {
       for export_info in exports_info.exports.values() {
         let export_info = export_info.as_data(module_graph);
@@ -624,14 +734,15 @@ pub fn process_export_info<'a>(
           runtime,
           referenced_export,
           if default_points_to_self
-            && ExportInfoGetter::name(export_info)
+            && export_info
+              .name()
               .map(|name| name == "default")
               .unwrap_or_default()
           {
             prefix.clone()
           } else {
             let mut value = prefix.clone();
-            if let Some(name) = ExportInfoGetter::name(export_info) {
+            if let Some(name) = export_info.name() {
               value.push(name);
             }
             value
