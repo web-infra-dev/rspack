@@ -11,6 +11,8 @@ use rspack_collections::{
   IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeyIndexMap, UkeyMap,
 };
 use rspack_core::{
+  reserved_names::RESERVED_NAMES,
+  rspack_sources::{ConcatSource, RawSource, ReplaceSource, Source},
   AssetInfo, BoxModule, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAfterCodeGeneration, CompilationAfterSeal, CompilationConcatenationScope,
   CompilationFinishModules, CompilationParams, CompilationProcessAssets, CompilerCompilation,
@@ -18,15 +20,13 @@ use rspack_core::{
   ExportInfoGetter, ExportProvided, ExternalModuleInfo, IdentCollector, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, ModuleInfo, Plugin, RuntimeCondition, RuntimeGlobals,
   SourceType,
-  reserved_names::RESERVED_NAMES,
-  rspack_sources::{ConcatSource, RawSource, ReplaceSource, Source},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_javascript_compiler::ast::Ast;
 use rspack_plugin_javascript::{
-  JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
   dependency::ImportDependencyTemplate, visitors::swc_visitor::resolver,
+  JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
 };
 use rspack_util::{
   atom::Atom,
@@ -229,21 +229,20 @@ async fn additional_chunk_runtime_requirements(
     .get(chunk_ukey)
     .unwrap();
 
-  let chunk_modules_len = compilation
-    .chunk_graph
-    .get_chunk_modules_identifier(chunk_ukey)
-    .len();
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
-  let modules = compilation
-    .chunk_graph
-    .get_chunk_modules_identifier(chunk_ukey)
-    .iter()
-    .collect::<Vec<_>>();
+  if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+    let lock = self.concatenated_modules_map_ref.lock().await;
 
-  // chunk that has modules which cannot be scope hoisted should have correct runtime
-  if chunk_modules_len > chunk_link.hoisted_modules.len() {
-    runtime_requirements.insert(RuntimeGlobals::MODULE_FACTORIES);
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+    let modules_info_map = lock
+      .get(&compilation.id().0)
+      .expect("should has compilation");
+
+    for info in modules_info_map.values() {
+      if let Some(info) = info.try_as_concatenated() {
+        runtime_requirements.extend(info.runtime_requirements);
+      }
+    }
   }
 
   Ok(())
