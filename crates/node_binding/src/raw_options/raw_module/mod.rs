@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Formatter, sync::Arc};
+use std::{collections::HashMap, fmt::Formatter, ptr::NonNull, sync::Arc};
 
 use derive_more::Debug;
 use napi::{
@@ -650,9 +650,19 @@ pub struct RawAssetGeneratorDataUrlFnCtx {
 
 impl From<AssetGeneratorDataUrlFnCtx<'_>> for RawAssetGeneratorDataUrlFnCtx {
   fn from(value: AssetGeneratorDataUrlFnCtx) -> Self {
+    // AssetGeneratorDataUrlFn may be called during the importModule process,
+    // at which point the corresponding Module is not present in compilation.moduleGraph.
+    // Therefore, we use a raw pointer to allow JavaScript to access the Module.
+    #[allow(clippy::unwrap_used)]
     Self {
       filename: value.filename,
-      module: ModuleObject::with_ref(value.module, value.compilation.compiler_id()),
+      module: ModuleObject::with_ptr(
+        NonNull::new(
+          value.module as *const dyn rspack_core::Module as *mut dyn rspack_core::Module,
+        )
+        .unwrap(),
+        value.compilation.compiler_id(),
+      ),
     }
   }
 }
