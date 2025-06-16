@@ -3,14 +3,13 @@ use std::{fmt::Debug, rc::Rc, sync::LazyLock};
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  do_move_target,
   incremental::{self, IncrementalPasses, Mutation},
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta,
-  DependencyId, FactoryMeta, Logger, MaybeDynamicTargetExportInfo, ModuleFactoryCreateData,
-  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData,
-  NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode, ResolvedExportInfoTarget,
-  SideEffectsBailoutItemWithSpan, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
-  SideEffectsOptimizeArtifact,
+  DependencyId, ExportInfoSetter, FactoryMeta, Logger, MaybeDynamicTargetExportInfo,
+  ModuleFactoryCreateData, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  NormalModuleCreateData, NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode,
+  ResolvedExportInfoTarget, SideEffectsBailoutItemWithSpan, SideEffectsDoOptimize,
+  SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -836,7 +835,7 @@ fn do_optimize_connection(
     target_export,
   }) = need_move_target
   {
-    do_move_target(
+    ExportInfoSetter::do_move_target(
       export_info.as_data_mut(module_graph),
       dependency,
       target_export,

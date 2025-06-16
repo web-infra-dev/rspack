@@ -82,6 +82,23 @@ impl ExportInfoSetter {
     false
   }
 
+  pub fn do_move_target(
+    export_info: &mut ExportInfoData,
+    dependency: DependencyId,
+    target_export: Option<Vec<Atom>>,
+  ) {
+    export_info.target_mut().clear();
+    export_info.target_mut().insert(
+      None,
+      ExportInfoTargetValue {
+        dependency: Some(dependency),
+        export: target_export,
+        priority: 0,
+      },
+    );
+    export_info.set_target_is_set(true);
+  }
+
   pub fn set_used(
     info: &mut ExportInfoData,
     new_value: UsageState,
