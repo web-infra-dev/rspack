@@ -23,11 +23,37 @@ module.exports = {
 		expect(warnings).toMatchInlineSnapshot(`
 		Array [
 		  Object {
-		  "index": 0,
-		  "message": "  ⚠ Module parse warning:\\n  ╰─▶   ⚠ Unsupported feature: require.main.require() is not supported by Rspack.\\n         ╭────\\n       1 │ require.main.require('./file');\\n         · ──────────────────────────────\\n         ╰────\\n      \\n",
-		  "moduleIdentifier": "<TEST_TOOLS_ROOT>/tests/fixtures/errors/require.main.require.js",
-		  "name": "ModuleParseWarning",
+		    error: Object {
+		  "message": "Unsupported feature: require.main.require() is not supported by Rspack.",
+		  "name": "Error",
+		  "stack": undefined,
 		},
+		    index: 0,
+		    module: NormalModule {
+		      _readableIdentifier: ./require.main.require.js,
+		      buildInfo: KnownBuildInfo {},
+		      buildMeta: Object {},
+		      context: <TEST_TOOLS_ROOT>/tests/fixtures/errors,
+		      factoryMeta: Object {},
+		      layer: undefined,
+		      loaders: Array [],
+		      matchResource: undefined,
+		      rawRequest: ./require.main.require,
+		      request: <TEST_TOOLS_ROOT>/tests/fixtures/errors/require.main.require.js,
+		      resource: <TEST_TOOLS_ROOT>/tests/fixtures/errors/require.main.require.js,
+		      resourceResolveData: ReadonlyResourceData {
+		        fragment: ,
+		        path: <TEST_TOOLS_ROOT>/tests/fixtures/errors/require.main.require.js,
+		        query: ,
+		        resource: <TEST_TOOLS_ROOT>/tests/fixtures/errors/require.main.require.js,
+		      },
+		      type: javascript/auto,
+		      useSimpleSourceMap: false,
+		      useSourceMap: false,
+		      userRequest: <TEST_TOOLS_ROOT>/tests/fixtures/errors/require.main.require.js,
+		    },
+		    name: ModuleParseWarning,
+		  },
 		]
 	`);
 	}

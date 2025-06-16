@@ -1,4 +1,4 @@
-use std::ptr;
+use std::{fmt::Display, ptr};
 
 use napi::{
   bindgen_prelude::{FromNapiValue, Object, ToNapiValue},
@@ -8,7 +8,7 @@ use napi::{
 use napi_derive::napi;
 use rspack_core::{diagnostics::ModuleBuildError, Compilation};
 use rspack_error::{
-  miette::{self, LabeledSpan, MietteDiagnostic},
+  miette::{self, Severity},
   Diagnostic, DiagnosticExt, Error, Result, RspackSeverity,
 };
 use rspack_napi::napi::check_status;
@@ -73,6 +73,8 @@ impl From<JsRspackSeverity> for miette::Severity {
 
 #[derive(Debug)]
 pub struct RspackError {
+  // Only used for display on the Rust side; this value is set when converting to a Diagnostic struct.
+  pub severity: Option<Severity>,
   pub name: String,
   pub message: String,
   pub stack: Option<String>,
@@ -186,6 +188,7 @@ impl FromNapiValue for RspackError {
       err
     })?;
     let val = Self {
+      severity: None,
       name,
       message,
       stack,
@@ -202,6 +205,8 @@ impl FromNapiValue for RspackError {
 
 impl napi::bindgen_prelude::ValidateNapiValue for RspackError {}
 
+// The default error message format for RspackError is consistent with JavaScript's Error.
+// To optimize the display format for child errors, you can set `display_type` to switch to a different error message format.
 impl std::fmt::Display for RspackError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     write!(f, "{}: ", self.name)?;
@@ -225,19 +230,21 @@ impl std::fmt::Display for RspackError {
 
 impl std::error::Error for RspackError {}
 
-impl miette::Diagnostic for RspackError {}
+impl miette::Diagnostic for RspackError {
+  fn code<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
+    Some(Box::new(&self.name))
+  }
+
+  fn severity(&self) -> Option<Severity> {
+    self.severity
+  }
+}
 
 impl From<&dyn miette::Diagnostic> for RspackError {
   fn from(value: &dyn miette::Diagnostic) -> Self {
     let mut name = "Error".to_string();
     if let Some(code) = value.code() {
       name = code.to_string();
-    } else if let Some(severity) = value.severity() {
-      name = match severity {
-        miette::Severity::Advice => "Warn".to_string(),
-        miette::Severity::Warning => "Warn".to_string(),
-        miette::Severity::Error => "Error".to_string(),
-      };
     }
 
     let mut message = value.to_string();
@@ -247,6 +254,7 @@ impl From<&dyn miette::Diagnostic> for RspackError {
     }
 
     Self {
+      severity: None,
       name,
       message,
       stack: None,
@@ -285,12 +293,11 @@ impl RspackError {
     let error: Option<RspackError> = diagnostic.diagnostic_source().map(Into::into);
 
     Ok(Self {
-      name: diagnostic.code().map(|n| n.to_string()).unwrap_or_else(|| {
-        match diagnostic.severity() {
-          rspack_error::RspackSeverity::Error => "Error".to_string(),
-          rspack_error::RspackSeverity::Warn => "Warn".to_string(),
-        }
-      }),
+      severity: None,
+      name: diagnostic
+        .code()
+        .map(|n| n.to_string())
+        .unwrap_or_else(|| "Error".to_string()),
       message,
       stack: diagnostic.stack(),
       module,
@@ -302,7 +309,14 @@ impl RspackError {
     })
   }
 
-  pub fn into_diagnostic(self, severity: RspackSeverity) -> Diagnostic {
+  pub fn into_diagnostic(mut self, severity: RspackSeverity) -> Diagnostic {
+    self.severity = Some(severity.into());
+
+    let file = self.file.clone();
+    let module = self.module.as_ref().map(|module| *module.identifier());
+    let stack = self.stack.clone();
+    let hide_stack = self.hide_stack.clone();
+
     let diagnostic = if self.name == "ModuleBuildError" {
       let source = if let Some(error) = self.error {
         miette::Error::new(error.with_display_type("ModuleBuildError"))
@@ -311,18 +325,14 @@ impl RspackError {
       };
       Diagnostic::from(ModuleBuildError::new(source).boxed())
     } else {
-      let miette_diagnostic = MietteDiagnostic::new(self.message)
-        .with_code(self.name)
-        .with_label(LabeledSpan::new(None, 1, 1))
-        .with_severity(severity.into());
-      Diagnostic::from(miette_diagnostic.boxed())
+      Diagnostic::from(self.boxed())
     };
 
     diagnostic
-      .with_file(self.file.map(Into::into))
-      .with_module_identifier(self.module.map(|module| *module.identifier()))
-      .with_stack(self.stack)
-      .with_hide_stack(self.hide_stack)
+      .with_file(file.map(Into::into))
+      .with_module_identifier(module)
+      .with_stack(stack)
+      .with_hide_stack(hide_stack)
   }
 }
 

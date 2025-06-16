@@ -76,13 +76,15 @@ export interface ExternalModule extends Module {
 
 export interface RspackError {
 	name: string;
-  message: string;
+  	message: string;
 	module?: Module;
 	loc?: string;
 	file?: string;
 	stack?: string;
 	hideStack?: boolean;
 }
+
+export type DependencyLocation = SyntheticDependencyLocation | RealDependencyLocation;
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */
