@@ -180,5 +180,5 @@ jobs:
           name: bindings-${{ inputs.target }}
           path: |
             crates/node_binding/*.node
-            crates/node_binding/*.wasm
             crates/node_binding/*.d.ts
+            crates/node_binding/rspack.wasm32-wasi.wasm

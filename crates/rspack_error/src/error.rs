@@ -127,7 +127,13 @@ impl TraceableError {
     title: String,
     message: String,
   ) -> Self {
-    Self::from_arc_string(Some(source_file.src.clone()), start, end, title, message)
+    Self::from_arc_string(
+      Some(source_file.src.clone().into_string().into()),
+      start,
+      end,
+      title,
+      message,
+    )
   }
 
   pub fn from_file(
