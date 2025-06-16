@@ -3,6 +3,7 @@ use std::collections::hash_map::Entry;
 use indexmap::IndexMap;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
+  get_target,
   incremental::{self, IncrementalPasses},
   ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
   DependenciesBlock, DependencyId, ExportInfoSetter, ExportNameOrSpec, ExportProvided, ExportsInfo,
@@ -310,7 +311,8 @@ impl<'a> FlagDependencyExportsState<'a> {
       }
 
       if let Some(exports) = exports {
-        let nested_exports_info = export_info.create_nested_exports_info(self.mg);
+        let nested_exports_info =
+          ExportInfoSetter::create_nested_exports_info(&export_info, self.mg);
         self.merge_exports(
           nested_exports_info,
           exports,
@@ -345,7 +347,7 @@ impl<'a> FlagDependencyExportsState<'a> {
 
       // Recalculate target exportsInfo
       let export_info_data = export_info.as_data(self.mg);
-      let target = export_info_data.get_target(self.mg);
+      let target = get_target(export_info_data, self.mg);
 
       let mut target_exports_info = None;
       if let Some(target) = target {
