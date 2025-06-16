@@ -24,6 +24,11 @@ on:
       ref: # Git reference to checkout
         required: false
         type: string
+      prefer_docker:
+        required: false
+        default: true
+        type: boolean
+        description: "Prefer to building in docker if supported"
 
 permissions:
   # Allow commenting on issues
@@ -37,6 +42,7 @@ jobs:
       runner: ${{ inputs.runner }}
       profile: ${{ inputs.profile }}
       ref: ${{ inputs.ref }}
+      prefer_docker: inputs.prefer_docker
   test:
     if: inputs.test
     needs: build
