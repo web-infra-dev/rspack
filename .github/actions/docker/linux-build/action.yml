@@ -56,5 +56,5 @@ runs:
           ${{ inputs.options }} \
 
     - name: Fix Permission
-      run: sudo chown -R $USER:$USER ~/.cargo ~/.rustup ./target
+      run: sudo chown -R $USER:$USER ~/.cargo/registry ~/.cargo ~/.rustup ./target
       shell: bash
