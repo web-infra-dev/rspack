@@ -23,10 +23,11 @@ async fn basic_compile(production: bool) {
     .unwrap()
     .join("1000");
 
-  dbg!(&dir);
   println!("{:?}", &dir);
 
   let mut builder = Compiler::builder();
+
+  println!("Builder init");
   builder
     .context(dir.to_string_lossy().to_string())
     .entry("main", "./src/index.jsx")
@@ -65,6 +66,7 @@ async fn basic_compile(production: bool) {
     .input_filesystem(Arc::new(NativeFileSystem::new(false)))
     .output_filesystem(Arc::new(MemoryFileSystem::default()))
     .enable_loader_swc();
+  println!("Builder configured");
 
   if production {
     builder.mode(Mode::Production);
@@ -72,10 +74,11 @@ async fn basic_compile(production: bool) {
     builder.mode(Mode::Development);
   }
 
+  println!("Builder mode set");
   let mut compiler = builder.build().unwrap();
 
+  println!("Compiler before run");
   compiler.run().await.unwrap();
-  dbg!(compiler.compilation.get_errors().collect::<Vec<_>>());
   println!(
     "{:?}",
     compiler.compilation.get_errors().collect::<Vec<_>>()
