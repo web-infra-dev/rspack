@@ -25,17 +25,12 @@ permissions:
   pull-requests: write
 
 jobs:
-  get-runner-labels:
-    name: Get Runner Labels
-    uses: ./.github/workflows/get-runner-labels.yml
-
   build:
     name: Test Linux
-    needs: [get-runner-labels]
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
-      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS ||  needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS ||  '"ubuntu-latest"' }}
       ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr) || github.sha }}
       profile: "release"
       test: false
