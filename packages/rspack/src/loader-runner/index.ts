@@ -28,6 +28,7 @@ import {
 import { commitCustomFieldsToRust } from "../BuildInfo";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
+import { cleanUp } from "../ErrorHelpers";
 import { NormalModule } from "../NormalModule";
 import { NonErrorEmittedError, type RspackError } from "../RspackError";
 import {
@@ -61,7 +62,6 @@ import {
 	loadLoader,
 	runSyncOrAsync
 } from "./utils";
-import { cleanUp } from "../ErrorHelpers";
 
 function createLoaderObject(
 	loader: JsLoaderItem,

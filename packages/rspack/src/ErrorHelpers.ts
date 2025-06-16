@@ -18,9 +18,9 @@ export const cleanUp = (
 	name: string,
 	message: string
 ): string => {
-	stack = cutOffLoaderExecution(stack);
-	stack = cutOffMessage(stack, name, message);
-	return stack;
+	let details = cutOffLoaderExecution(stack);
+	details = cutOffMessage(stack, name, message);
+	return details;
 };
 
 export const cutOffMessage = (
@@ -31,10 +31,9 @@ export const cutOffMessage = (
 	const nextLine = stack.indexOf("\n");
 	if (nextLine === -1) {
 		return stack === message ? "" : stack;
-	} else {
-		const firstLine = stack.slice(0, nextLine);
-		return firstLine === `${name}: ${message}`
-			? stack.slice(nextLine + 1)
-			: stack;
 	}
+	const firstLine = stack.slice(0, nextLine);
+	return firstLine === `${name}: ${message}`
+		? stack.slice(nextLine + 1)
+		: stack;
 };

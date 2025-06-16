@@ -84,7 +84,7 @@ pub struct RspackError {
   pub error: Option<Box<RspackError>>,
   // Only used for display on the Rust side; this value is set when converting to a Diagnostic struct.
   pub severity: Option<Severity>,
-  /// nly used for display on the Rust side; the name of the parent error in the error chain, used to determine rendering logic.
+  // Only used for display on the Rust side; the name of the parent error in the error chain, used to determine rendering logic.
   pub display_type: Option<String>,
 }
 
