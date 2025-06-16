@@ -1,0 +1,47 @@
+name: Codspeed Build
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        required: true
+        type: string
+      runner: # Runner labels
+        required: true
+        type: string
+      ref: # Git reference to checkout
+        required: false
+        type: string
+jobs:
+  codspeed:
+    name: Codspeed-build
+    runs-on: ${{  fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-latest"' ) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          ref: ${{ inputs.ref }}
+          clean: ${{ runner.environment == 'github-hosted' }}
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          save-if: true
+          key: build-bench-${{ inputs.target }}
+
+      - name: Install cargo-codspeed binary
+        uses: taiki-e/install-action@1cefd1553b1693f47889dc747f7d230904296a3b # v2
+        with:
+          tool: cargo-codspeed@2.10.1
+
+      - name: Build Benchmark
+        env:
+          RUSTFLAGS: "-C debuginfo=1 -C strip=none -g --cfg codspeed"
+        run: cargo codspeed build -p rspack_benchmark --features codspeed
+
+      - name: Upload Artifact
+        uses: ./.github/actions/artifact/upload
+        with:
+          name: codspeed-${{ inputs.target }}
+          path: |
+            target/codspeed/**/
