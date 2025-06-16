@@ -15,8 +15,9 @@ use rspack_core::{
   incremental::IncrementalPasses,
   ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions, ExportInfoGetter,
   ExportProvided, ExportsInfoGetter, ExtendedReferencedExport, LibIdentOptions, Logger, Module,
-  ModuleExt, ModuleGraph, ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext,
-  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
+  ModuleExt, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphModule, ModuleIdentifier, Plugin,
+  PluginContext, PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec,
+  SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -176,6 +177,7 @@ impl ModuleConcatenationPlugin {
 
   pub fn get_imports(
     mg: &ModuleGraph,
+    mg_cache: &ModuleGraphCacheArtifact,
     mi: ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
     imports_cache: &mut RuntimeIdentifierCache<IdentifierIndexSet>,
@@ -197,13 +199,13 @@ impl ModuleConcatenationPlugin {
       let Some(con) = mg.connection_by_dependency_id(d) else {
         continue;
       };
-      if !con.is_target_active(mg, runtime) {
+      if !con.is_target_active(mg, runtime, mg_cache) {
         continue;
       }
       // SAFETY: because it is extends ESM dep, we can ensure the dep has been
       // implemented ModuleDependency Trait.
       let module_dep = dep.as_module_dependency().expect("should be module dep");
-      let imported_names = module_dep.get_referenced_exports(mg, None);
+      let imported_names = module_dep.get_referenced_exports(mg, mg_cache, None);
       if imported_names.iter().all(|item| match item {
         ExtendedReferencedExport::Array(arr) => !arr.is_empty(),
         ExtendedReferencedExport::Export(export) => !export.name.is_empty(),
@@ -246,6 +248,7 @@ impl ModuleConcatenationPlugin {
       ..
     } = compilation;
     let module_graph = compilation.get_module_graph();
+    let module_graph_cache = &compilation.module_graph_cache_artifact;
     if let Some(cache_entry) = failure_cache.get(module_id) {
       statistics.cached += 1;
       return Some(cache_entry.clone());
@@ -319,7 +322,7 @@ impl ModuleConcatenationPlugin {
       if let Some(incoming_connections_from_non_modules) = incoming_connections.get(&None) {
         let active_non_modules_connections = incoming_connections_from_non_modules
           .iter()
-          .filter(|&connection| connection.is_active(&module_graph, runtime))
+          .filter(|&connection| connection.is_active(&module_graph, runtime, module_graph_cache))
           .collect::<Vec<_>>();
 
         // TODO: ADD module connection explanations
@@ -371,7 +374,7 @@ impl ModuleConcatenationPlugin {
 
           let active_connections: Vec<_> = connections
             .iter()
-            .filter(|&connection| connection.is_active(&module_graph, runtime))
+            .filter(|&connection| connection.is_active(&module_graph, runtime, module_graph_cache))
             .cloned()
             .collect();
 
@@ -487,7 +490,7 @@ impl ModuleConcatenationPlugin {
           let mut current_runtime_condition = RuntimeCondition::Boolean(false);
           for connection in connections {
             let runtime_condition = filter_runtime(Some(runtime), |runtime| {
-              connection.is_target_active(&module_graph, runtime)
+              connection.is_target_active(&module_graph, runtime, module_graph_cache)
             });
 
             if runtime_condition == RuntimeCondition::Boolean(false) {
@@ -583,7 +586,13 @@ impl ModuleConcatenationPlugin {
       }
     }
 
-    for imp in Self::get_imports(&module_graph, *module_id, runtime, imports_cache) {
+    for imp in Self::get_imports(
+      &module_graph,
+      module_graph_cache,
+      *module_id,
+      runtime,
+      imports_cache,
+    ) {
       candidates.insert(imp);
     }
     statistics.added += 1;
@@ -970,6 +979,7 @@ impl ModuleConcatenationPlugin {
         chunk_runtime.extend(r);
       }
       let module_graph = compilation.get_module_graph();
+      let module_graph_cache = &compilation.module_graph_cache_artifact;
       let exports_info = module_graph.get_exports_info(current_root);
       let filtered_runtime = filter_runtime(Some(&chunk_runtime), |r| {
         let exports_info_data = ExportsInfoGetter::prefetch(
@@ -995,6 +1005,7 @@ impl ModuleConcatenationPlugin {
 
       let imports = Self::get_imports(
         &module_graph,
+        module_graph_cache,
         *current_root,
         active_runtime.as_ref(),
         &mut imports_cache,

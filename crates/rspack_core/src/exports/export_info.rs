@@ -13,7 +13,7 @@ use serde::Serialize;
 
 use super::{
   ExportInfoGetter, ExportInfoTargetValue, ExportProvided, ExportsInfo, ExportsInfoData,
-  ExportsInfoGetter, FindTargetRetEnum, FindTargetRetValue, ResolvedExportInfoTarget,
+  ExportsInfoGetter, FindTargetRetEnum, FindTargetRetValue, Inlinable, ResolvedExportInfoTarget,
   ResolvedExportInfoTargetWithCircular, TerminalBinding, UnResolvedExportInfoTarget, UsageState,
   NEXT_EXPORT_INFO_UKEY,
 };
@@ -121,6 +121,7 @@ impl ExportInfo {
     ExportInfoGetter::get_used(data, runtime).dyn_hash(hasher);
     data.provided.dyn_hash(hasher);
     data.terminal_binding.dyn_hash(hasher);
+    data.inlinable.dyn_hash(hasher);
     if let Some(exports_info) = data.exports_info
       && !visited.contains(&exports_info)
     {
@@ -140,12 +141,14 @@ pub struct ExportInfoData {
   pub(crate) target_is_set: bool,
   pub(crate) provided: Option<ExportProvided>,
   pub(crate) can_mangle_provide: Option<bool>,
+  pub(crate) can_mangle_use: Option<bool>,
+  // only specific export info can be inlined, so other_export_info.inlinable is always NoByProvide
+  pub(crate) inlinable: Inlinable,
   pub(crate) terminal_binding: bool,
   pub(crate) id: ExportInfo,
   pub(crate) exports_info: Option<ExportsInfo>,
   pub(crate) exports_info_owned: bool,
   pub(crate) has_use_in_runtime_info: bool,
-  pub(crate) can_mangle_use: Option<bool>,
   pub(crate) global_used: Option<UsageState>,
   pub(crate) used_in_runtime: Option<ustr::UstrMap<UsageState>>,
 }
@@ -208,6 +211,7 @@ impl ExportInfoData {
       has_use_in_runtime_info,
       can_mangle_use,
       global_used,
+      inlinable: Inlinable::NoByProvide,
     }
   }
 

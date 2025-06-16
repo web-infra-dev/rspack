@@ -20,12 +20,18 @@ class Plugin {
 			expect(module.constructor.name).toBe("NormalModule");
 
 			expect(module.resource).toContain("index.js");
-			expect(module.userRequest).toBe(`${path.join(__dirname, "passthrough-loader.js")}!${path.join(__dirname, "index.js")}`);
+			expect(module.userRequest).toBe(
+				`${path.join(__dirname, "passthrough-loader.js")}!${path.join(__dirname, "index.js")}`
+			);
 			expect(module.rawRequest).toContain("index.js");
 			expect(module.resourceResolveData.fragment).toBe("");
-			expect(module.resourceResolveData.path).toBe(path.join(__dirname, "index.js"));
+			expect(module.resourceResolveData.path).toBe(
+				path.join(__dirname, "index.js")
+			);
 			expect(module.resourceResolveData.query).toBe("");
-			expect(module.resourceResolveData.resource).toBe(path.join(__dirname, "index.js"));
+			expect(module.resourceResolveData.resource).toBe(
+				path.join(__dirname, "index.js")
+			);
 			expect(module.loaders.length).toBe(1);
 			expect(
 				module.loaders.map(({ loader }) =>

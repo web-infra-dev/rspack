@@ -110,9 +110,9 @@ tokio                                  = { workspace = true, features = ["rt", "
 ustr                                   = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-tokio = { workspace = true, features = ["parking_lot"] }
 rspack_tracing = { workspace = true }
-sftrace-setup = { workspace = true, optional = true }
+sftrace-setup  = { workspace = true, optional = true }
+tokio          = { workspace = true, features = ["parking_lot"] }
 
 [build-dependencies]
 napi-build = { workspace = true }

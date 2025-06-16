@@ -4,7 +4,10 @@ use itertools::Itertools;
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
 
-use super::{ExportInfoData, ExportInfoTargetValue, ExportProvided, ExportsInfo, UsageState};
+use super::{
+  ExportInfoData, ExportInfoTargetValue, ExportProvided, ExportsInfo, Inlinable, UsageState,
+  UsedNameItem,
+};
 use crate::{DependencyId, RuntimeSpec};
 
 pub struct ExportInfoGetter;
@@ -38,13 +41,20 @@ impl ExportInfoGetter {
     info.exports_info
   }
 
+  pub fn inlinable(info: &ExportInfoData) -> &Inlinable {
+    &info.inlinable
+  }
+
   /// Webpack returns `false | string`, we use `Option<Atom>` to avoid declare a redundant enum
   /// type
   pub fn get_used_name(
     info: &ExportInfoData,
     fallback_name: Option<&Atom>,
     runtime: Option<&RuntimeSpec>,
-  ) -> Option<Atom> {
+  ) -> Option<UsedNameItem> {
+    if let Inlinable::Inlined(inlined) = &info.inlinable {
+      return Some(UsedNameItem::Inlined(*inlined));
+    }
     if info.has_use_in_runtime_info {
       if let Some(usage) = info.global_used {
         if matches!(usage, UsageState::Unused) {
@@ -64,12 +74,12 @@ impl ExportInfoGetter {
       }
     }
     if let Some(used_name) = info.used_name.as_ref() {
-      return Some(used_name.clone());
+      return Some(UsedNameItem::Str(used_name.clone()));
     }
     if let Some(name) = info.name.as_ref() {
-      Some(name.clone())
+      Some(UsedNameItem::Str(name.clone()))
     } else {
-      fallback_name.cloned()
+      fallback_name.map(|n| UsedNameItem::Str(n.clone()))
     }
   }
 

@@ -289,6 +289,9 @@ pub struct RawJavascriptParserOptions {
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub import_dynamic: Option<bool>,
+  /// This option is experimental in Rspack only and subject to change or be removed anytime.
+  /// @experimental
+  pub inline_const: Option<bool>,
 }
 
 impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
@@ -329,6 +332,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       require_dynamic: value.require_dynamic,
       require_resolve: value.require_resolve,
       import_dynamic: value.import_dynamic,
+      inline_const: value.inline_const,
     }
   }
 }

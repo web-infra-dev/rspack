@@ -1,12 +1,12 @@
 use itertools::Itertools;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
-use rspack_collections::{Identifier, IdentifierMap, IdentifierSet};
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   property_access, rspack_sources::ReplacementEnforce, AsContextDependency, AsModuleDependency,
-  Compilation, Dependency, DependencyCodeGeneration, DependencyId, DependencyLocation,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ESMExportInitFragment, ExportNameOrSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec,
-  ModuleGraph, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SharedSourceMap,
+  Dependency, DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ESMExportInitFragment,
+  ExportNameOrSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
+  ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals, SharedSourceMap,
   TemplateContext, TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
 };
 use rustc_hash::FxHashSet;
@@ -84,7 +84,11 @@ impl Dependency for ESMExportExpressionDependency {
     self.range.to_loc(self.source_map.as_ref())
   }
 
-  fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
+  fn get_exports(
+    &self,
+    _mg: &ModuleGraph,
+    _mg_cache: &ModuleGraphCacheArtifact,
+  ) -> Option<ExportsSpec> {
     Some(ExportsSpec {
       exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::String(
         JS_DEFAULT_KEYWORD.clone(),
@@ -156,22 +160,8 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       ..
     } = code_generatable_context;
 
-    fn get_used_name(
-      name: &str,
-      compilation: &Compilation,
-      runtime: &Option<&RuntimeSpec>,
-      module_identifier: &Identifier,
-    ) -> Option<UsedName> {
-      let name = Atom::from(name);
-      ExportsInfoGetter::get_used_name(
-        &compilation.get_module_graph().get_prefetched_exports_info(
-          module_identifier,
-          PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&name])),
-        ),
-        *runtime,
-        std::slice::from_ref(&name),
-      )
-    }
+    let mg = compilation.get_module_graph();
+    let module_identifier = module.identifier();
 
     if let Some(declaration) = &dep.declaration {
       let name = match declaration {
@@ -189,26 +179,29 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
 
       if let Some(scope) = concatenation_scope {
         scope.register_export(JS_DEFAULT_KEYWORD.clone(), name.to_string());
-      } else if let Some(used) = get_used_name(
-        JS_DEFAULT_KEYWORD.as_str(),
-        compilation,
-        runtime,
-        &module.identifier(),
-      ) {
+      } else if let Some(used) = ExportsInfoGetter::get_used_name(
+        &mg.get_prefetched_exports_info(
+          &module_identifier,
+          PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&*JS_DEFAULT_KEYWORD])),
+        ),
+        *runtime,
+        std::slice::from_ref(&JS_DEFAULT_KEYWORD),
+      ) && let UsedName::Normal(used) = used
+      {
         init_fragments.push(Box::new(ESMExportInitFragment::new(
           module.get_exports_argument(),
           vec![(
-            match used {
-              UsedName::Normal(v) => v
-                .iter()
-                .map(|i| i.to_string())
-                .collect_vec()
-                .join("")
-                .into(),
-            },
+            used
+              .iter()
+              .map(|i| i.to_string())
+              .collect_vec()
+              .join("")
+              .into(),
             Atom::from(format!("/* export default binding */ {name}")),
           )],
         )));
+      } else {
+        // do nothing for unused or inlined
       }
 
       source.replace(
@@ -226,40 +219,39 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
           "/* ESM default export */ {} {DEFAULT_EXPORT} = ",
           if supports_const { "const" } else { "var" }
         )
-      } else if let Some(used) = get_used_name(
-        JS_DEFAULT_KEYWORD.as_str(),
-        compilation,
-        runtime,
-        &module.identifier(),
+      } else if let Some(used) = ExportsInfoGetter::get_used_name(
+        &mg.get_prefetched_exports_info(
+          &module_identifier,
+          PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&*JS_DEFAULT_KEYWORD])),
+        ),
+        *runtime,
+        std::slice::from_ref(&JS_DEFAULT_KEYWORD),
       ) {
-        runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-        if supports_const {
-          init_fragments.push(Box::new(ESMExportInitFragment::new(
-            module.get_exports_argument(),
-            vec![(
-              match used {
-                UsedName::Normal(v) => v
+        if let UsedName::Normal(used) = used {
+          runtime_requirements.insert(RuntimeGlobals::EXPORTS);
+          if supports_const {
+            init_fragments.push(Box::new(ESMExportInitFragment::new(
+              module.get_exports_argument(),
+              vec![(
+                used
                   .iter()
                   .map(|i| i.to_string())
                   .collect_vec()
                   .join("")
                   .into(),
-              },
-              DEFAULT_EXPORT.into(),
-            )],
-          )));
-          format!("/* ESM default export */ const {DEFAULT_EXPORT} = ")
-        } else {
-          format!(
-            r#"/* ESM default export */ {}{} = "#,
-            module.get_exports_argument(),
-            property_access(
-              match used {
-                UsedName::Normal(names) => names.into_iter(),
-              },
-              0
+                DEFAULT_EXPORT.into(),
+              )],
+            )));
+            format!("/* ESM default export */ const {DEFAULT_EXPORT} = ")
+          } else {
+            format!(
+              r#"/* ESM default export */ {}{} = "#,
+              module.get_exports_argument(),
+              property_access(used, 0)
             )
-          )
+          }
+        } else {
+          format!("/* inlined ESM default export */ var {DEFAULT_EXPORT} = ")
         }
       } else {
         format!("/* unused ESM default export */ var {DEFAULT_EXPORT} = ")

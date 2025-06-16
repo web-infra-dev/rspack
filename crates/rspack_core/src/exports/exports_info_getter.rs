@@ -6,7 +6,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::{
   ExportInfoData, ExportInfoGetter, ExportProvided, ExportsInfo, ProvidedExports, UsageState,
-  UsedName,
+  UsedName, UsedNameItem,
 };
 use crate::{MaybeDynamicTargetExportInfo, ModuleGraph, RuntimeSpec, UsedExports};
 
@@ -707,7 +707,10 @@ impl ExportsInfoGetter {
       let name = &names[0];
       let info = info.get_read_only_export_info(name);
       let used_name = ExportInfoGetter::get_used_name(info, Some(name), runtime);
-      return used_name.map(|n| UsedName::Normal(vec![n]));
+      return used_name.map(|name| match name {
+        UsedNameItem::Str(name) => UsedName::Normal(vec![name]),
+        UsedNameItem::Inlined(inlined) => UsedName::Inlined(inlined),
+      });
     }
     if names.is_empty() {
       if !Self::is_used(info, runtime) {
@@ -716,11 +719,10 @@ impl ExportsInfoGetter {
       return Some(UsedName::Normal(names.to_vec()));
     }
     let export_info = info.get_read_only_export_info(&names[0]);
-    let used_name = ExportInfoGetter::get_used_name(export_info, Some(&names[0]), runtime)?;
-    let mut arr = if used_name == names[0] && names.len() == 1 {
-      names.to_vec()
-    } else {
-      vec![used_name]
+    let first = ExportInfoGetter::get_used_name(export_info, Some(&names[0]), runtime)?;
+    let mut arr = match first {
+      UsedNameItem::Inlined(inlined) => return Some(UsedName::Inlined(inlined)),
+      UsedNameItem::Str(first) => vec![first],
     };
     if names.len() == 1 {
       return Some(UsedName::Normal(arr));
@@ -730,9 +732,11 @@ impl ExportsInfoGetter {
     {
       let nested_exports_info = info.redirect(*exports_info, true);
       let nested = Self::get_used_name(&nested_exports_info, runtime, &names[1..])?;
-      arr.extend(match nested {
+      let nested = match nested {
+        UsedName::Inlined(inlined) => return Some(UsedName::Inlined(inlined)),
         UsedName::Normal(names) => names,
-      });
+      };
+      arr.extend(nested);
       return Some(UsedName::Normal(arr));
     }
     arr.extend(names.iter().skip(1).cloned());
