@@ -163,6 +163,7 @@ impl EsmLibraryPlugin {
           concate_info.ast = Some(ast);
           concate_info.source = Some(ReplaceSource::new(js_source.clone()));
           concate_info.internal_source = Some(js_source.clone());
+          concate_info.runtime_requirements = codegen_res.runtime_requirements;
         }
       });
 
@@ -394,8 +395,7 @@ impl EsmLibraryPlugin {
             let ref_chunk = Self::get_module_chunk(module_id, compilation);
             match &binding {
               Binding::Raw(raw_binding) => {
-                // import to non-scope-hoisted module
-                // importer should import the webpack require runtime
+                // import to non-scope-hoisted module or namespace name
               }
               Binding::Symbol(symbol_binding) => {
                 if &ref_chunk != chunk {
@@ -441,6 +441,7 @@ impl EsmLibraryPlugin {
     let mut namespace_object_sources: IdentifierMap<String> = IdentifierMap::default();
 
     let mut visited = FxHashSet::default();
+
     // webpack require iterate the needed_namespace_objects and mutate `needed_namespace_objects`
     // at the same time, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L1514
     // Which is impossible in rust, using a fixed point algorithm  to reach the same goal.

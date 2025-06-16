@@ -155,6 +155,35 @@ impl EsmLibraryPlugin {
 
     // render cross module links
     let mut render_source = ConcatSource::default();
+    let mut export_specifiers = vec![];
+
+    if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+      let chunk_runtime_requirements =
+        ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
+
+      let bootstrap = render_bootstrap(chunk_ukey, compilation).await?;
+
+      if chunk_runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES) {
+        render_source.add(RawStringSource::from_static(
+          "\nvar __webpack_modules__ = {};\n",
+        ));
+      }
+      render_source.add(RawStringSource::from(bootstrap.header.join("\n")));
+      render_source.add(RawSource::from("\n"));
+      render_source.add(RawStringSource::from(bootstrap.startup.join("\n")));
+      render_source.add(render_runtime_modules(compilation, chunk_ukey).await?);
+      render_source.add(RawSource::from("\n"));
+
+      if chunk_runtime_requirements.contains(RuntimeGlobals::EXPORTS) {
+        render_source.add(RawStringSource::from_static(
+          "var __webpack_exports__ = {};\n",
+        ));
+      }
+
+      if chunk_runtime_requirements.contains(RuntimeGlobals::REQUIRE) {
+        export_specifiers.push(RuntimeGlobals::REQUIRE.name());
+      }
+    }
 
     // render namespace before render module contents
     for m in &chunk_link.hoisted_modules {
@@ -371,7 +400,7 @@ impl EsmLibraryPlugin {
     if !runtime_requirements.is_empty() {
       let runtime_chunk = Self::get_runtime_chunk(*chunk_ukey, compilation);
       if &runtime_chunk != chunk_ukey {
-        let require_symbol: swc_core::atoms::Atom = RuntimeGlobals::REQUIRE.name().into();
+        let require_symbol: Atom = RuntimeGlobals::REQUIRE.name().into();
         imported_chunks.insert(
           runtime_chunk,
           std::iter::once((require_symbol.clone(), require_symbol)).collect(),
@@ -458,22 +487,6 @@ impl EsmLibraryPlugin {
     }
 
     final_source.add(render_source);
-
-    let mut export_specifiers = vec![];
-
-    if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-      let bootstrap = render_bootstrap(chunk_ukey, compilation).await?;
-      final_source.add(RawStringSource::from_static(
-        "\nvar __webpack_modules__ = {};\n",
-      ));
-      final_source.add(RawStringSource::from(bootstrap.header.join("\n")));
-      final_source.add(RawSource::from("\n"));
-      final_source.add(RawStringSource::from(bootstrap.startup.join("\n")));
-      final_source.add(render_runtime_modules(compilation, chunk_ukey).await?);
-      final_source.add(RawSource::from("\n"));
-
-      export_specifiers.push(RuntimeGlobals::REQUIRE.name());
-    }
 
     for (id, exports) in &chunk_link.exports {
       let info = concatenated_modules_map
