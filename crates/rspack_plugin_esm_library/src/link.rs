@@ -11,7 +11,7 @@ use rspack_core::{
   ChunkGraph, ChunkLinkContext, ChunkUkey, Compilation, ConcatenatedModule,
   ConcatenatedModuleIdent, ConcatenatedModuleInfo, ConcatenationScope, ExportInfoGetter,
   ExportProvided, IdentCollector, ModuleIdentifier, ModuleInfo, RuntimeGlobals, SourceType,
-  NAMESPACE_OBJECT_EXPORT,
+  UsedNameItem, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::Result;
 use rspack_javascript_compiler::ast::Ast;
@@ -485,7 +485,7 @@ impl EsmLibraryPlugin {
             continue;
           }
 
-          if let Some(used_name) =
+          if let Some(UsedNameItem::Str(used_name)) =
             ExportInfoGetter::get_used_name(export_info.as_data(&module_graph), None, None)
           {
             let final_name = ConcatenatedModule::get_final_name(
