@@ -35,7 +35,7 @@ jobs:
       profile: "release"
       test: false
       bench: false
-      prefer_docker: false
+      prefer_docker: true
 
   create-comment:
     runs-on: ubuntu-latest
