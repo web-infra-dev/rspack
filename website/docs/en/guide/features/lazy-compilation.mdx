@@ -122,9 +122,9 @@ const server = new DevServer(
 server.start();
 ```
 
-`lazyCompilationMiddleware` accepts one parameter:
+`lazyCompilationMiddleware` accepts one parameters:
 
-- `compiler`: The current [Compiler](/api/javascript-api/compiler) instance
+- `compiler`: The current [Compiler](/api/javascript-api/compiler) instance, use `experiments.lazyCompilation` config from it.
 
 ## Customizing lazy compilation endpoint
 
