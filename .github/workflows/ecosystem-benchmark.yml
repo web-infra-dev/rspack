@@ -43,6 +43,7 @@ jobs:
       bench: false
 
   bench:
+    environment: eco-perf
     needs: [build]
     runs-on: [self-hosted, benchmark]
     outputs:
@@ -89,6 +90,7 @@ jobs:
           result=$(node bin/cli.js compare --base latest --current current)
           echo "$result"
           echo "diff-result=${result//$'\n'/'@@'}" >> $GITHUB_OUTPUT
+
       - name: Upload benchmark result
         id: upload-benchmark-data
         run: |
@@ -96,4 +98,4 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           cd rspack-ecosystem-benchmark
-          RSPACK_DIR="$RSPACK_DIR" node bin/upload.js bench ${{ secrets.GITHUB_TOKEN }} ${{ github.sha }}
+          RSPACK_DIR="$RSPACK_DIR" GITHUB_ACTOR=x-access-token node bin/upload.js bench ${{ secrets.PERF_DATA_TOKEN }} ${{ github.sha }}
