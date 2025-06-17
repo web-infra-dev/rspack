@@ -54,9 +54,19 @@ jobs:
       target: ${{ inputs.target }}
       runner: ${{ inputs.test-runner || inputs.runner }}
       ref: ${{ inputs.ref }}
+  codspeed:
+    name: Codspeed-build
+    if: inputs.bench
+    uses: ./.github/workflows/reusable-build-codspeed.yml
+    with:
+      target: ${{ inputs.target }}
+      runner: ${{ inputs.runner }}
+      ref: ${{ inputs.ref }}
+
   bench:
     uses: ./.github/workflows/reusable-build-bench.yml
     if: inputs.bench
+    needs: [build, codspeed]
     with:
       target: ${{ inputs.target }}
       runner: ${{ inputs.runner }}
