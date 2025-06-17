@@ -727,7 +727,10 @@ const allowTarget = z.union([
 		"es2019",
 		"es2020",
 		"es2021",
-		"es2022"
+		"es2022",
+		"es2023",
+		"es2024",
+		"es2025"
 	]),
 	z.literal("node"),
 	z.literal("async-node"),
