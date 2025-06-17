@@ -29,7 +29,7 @@ fn bundle_benchmark(c: &mut Criterion) {
     .unwrap();
 
   for (id, get_compiler) in derive_projects(projects) {
-    group.bench_function(&format!("bundle@{id}"), |b| {
+    group.bench_function(format!("bundle@{id}"), |b| {
       b.to_async(&rt).iter(|| async {
         let mut compiler = get_compiler();
         compiler.build().unwrap().run().await.unwrap();

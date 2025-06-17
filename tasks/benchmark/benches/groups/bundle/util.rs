@@ -10,7 +10,7 @@ use rspack_regex::RspackRegex;
 use serde_json::json;
 
 // Because `CompilerBuilder` is not `Clone`
-pub type CompilerBuilderGenerator = Arc<dyn Fn() -> CompilerBuilder>;
+pub type CompilerBuilderGenerator = Arc<dyn Fn() -> CompilerBuilder + Send + Sync>;
 
 pub struct BuilderOptions {
   pub project: &'static str,
@@ -24,7 +24,7 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
     .join(".bench/rspack-benchcases")
     .canonicalize()
     .unwrap()
-    .join(&options.project);
+    .join(options.project);
 
   builder
     .context(dir.to_string_lossy().to_string())
