@@ -91,7 +91,11 @@ async fn basic_compile(production: bool) {
 }
 
 pub fn modules_1000_benchmark(c: &mut Criterion) {
-  let rt = Builder::new_multi_thread().build().unwrap();
+  // Codspeed can only handle to up to 500 threads by default
+  let rt = Builder::new_multi_thread()
+    .max_blocking_threads(256)
+    .build()
+    .unwrap();
 
   c.bench_function("1000_production", |b| {
     b.to_async(&rt).iter(|| basic_compile(true));
