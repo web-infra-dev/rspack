@@ -11,7 +11,7 @@ use rspack_regex::RspackRegex;
 use serde_json::json;
 use tokio::runtime;
 
-pub mod modules_1000;
+pub mod basic_react;
 pub mod threejs;
 
 criterion_group!(bundle, bundle_benchmark);
@@ -23,10 +23,13 @@ fn bundle_benchmark(c: &mut Criterion) {
   group.sample_size(10);
 
   let projects: &[(&str, Box<dyn Fn() -> Compiler>)] = &[
-    ("1000_production", Box::new(|| modules_1000::compiler(true))),
     (
-      "1000_development",
-      Box::new(|| modules_1000::compiler(false)),
+      "basic-react_production",
+      Box::new(|| basic_react::compiler(true)),
+    ),
+    (
+      "basic_react_development",
+      Box::new(|| basic_react::compiler(false)),
     ),
     ("threejs_production", Box::new(|| threejs::compiler(true))),
     ("threejs_development", Box::new(|| threejs::compiler(false))),
