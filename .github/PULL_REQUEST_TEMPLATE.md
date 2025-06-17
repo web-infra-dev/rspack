@@ -1,10 +1,10 @@
 ## Summary
 
-<!-- Briefly describe what this PR does and why it's needed. -->
+<!-- Describe what this PR does and why. -->
 
-## Related Links
+## Related links
 
-<!-- Provide links of related issues or pages. -->
+<!-- Related issues or discussions. -->
 
 ## Checklist
 
