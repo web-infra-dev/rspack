@@ -1,4 +1,7 @@
-use std::{fmt::Display, ptr};
+use std::{
+  fmt::Display,
+  ptr::{self, NonNull},
+};
 
 use napi::{
   bindgen_prelude::{FromNapiValue, Object, ToNapiValue},
@@ -238,7 +241,7 @@ impl std::fmt::Display for RspackError {
     } else {
       write!(f, "{}", &self.message)?;
       if let Some(details) = &self.details {
-        write!(f, "\n{}", details)?;
+        write!(f, "\n{details}")?;
       }
       Ok(())
     }
@@ -301,10 +304,15 @@ impl RspackError {
     let mut module = None;
     if let Some(module_identifier) = diagnostic.module_identifier() {
       if let Some(m) = compilation.module_by_identifier(&module_identifier) {
-        module = Some(ModuleObject::with_ref(
-          m.as_ref(),
-          compilation.compiler_id(),
-        ));
+        module =
+          Some(ModuleObject::with_ptr(
+            #[allow(clippy::unwrap_used)]
+            NonNull::new(
+              m.as_ref() as *const dyn rspack_core::Module as *mut dyn rspack_core::Module
+            )
+            .unwrap(),
+            compilation.compiler_id(),
+          ));
       }
     }
 
@@ -317,7 +325,7 @@ impl RspackError {
         .map(|n| n.to_string())
         .unwrap_or_else(|| "Error".to_string()),
       message,
-      details: None,
+      details: diagnostic.details(),
       stack: diagnostic.stack(),
       module,
       loc: diagnostic.loc().map(Into::into),
@@ -331,10 +339,12 @@ impl RspackError {
   pub fn into_diagnostic(mut self, severity: RspackSeverity) -> Diagnostic {
     self.severity = Some(severity.into());
 
+    let message = self.message.clone();
+    let details = self.details.clone();
     let file = self.file.clone();
     let module = self.module.as_ref().map(|module| *module.identifier());
     let stack = self.stack.clone();
-    let hide_stack = self.hide_stack.clone();
+    let hide_stack = self.hide_stack;
 
     let diagnostic = if self.name == "ModuleBuildError" {
       let source = if let Some(error) = self.error {
@@ -348,6 +358,8 @@ impl RspackError {
     };
 
     diagnostic
+      .with_message(message)
+      .with_details(details)
       .with_file(file.map(Into::into))
       .with_module_identifier(module)
       .with_stack(stack)

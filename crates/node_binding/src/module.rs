@@ -613,31 +613,31 @@ impl FromNapiValue for ModuleObject {
       Either5::A(normal_module) => Self {
         type_id: TypeId::of::<rspack_core::NormalModule>(),
         identifier: normal_module.module.identifier,
-        module: normal_module.module.module.take(),
+        module: normal_module.module.module,
         compiler_id: normal_module.module.compiler_id,
       },
       Either5::B(concatenated_module) => Self {
         type_id: TypeId::of::<rspack_core::ConcatenatedModule>(),
         identifier: concatenated_module.module.identifier,
-        module: concatenated_module.module.module.take(),
+        module: concatenated_module.module.module,
         compiler_id: concatenated_module.module.compiler_id,
       },
       Either5::C(context_module) => Self {
         type_id: TypeId::of::<rspack_core::ContextModule>(),
         identifier: context_module.module.identifier,
-        module: context_module.module.module.take(),
+        module: context_module.module.module,
         compiler_id: context_module.module.compiler_id,
       },
       Either5::D(external_module) => Self {
         type_id: TypeId::of::<rspack_core::ContextModule>(),
         identifier: external_module.module.identifier,
-        module: external_module.module.module.take(),
+        module: external_module.module.module,
         compiler_id: external_module.module.compiler_id,
       },
       Either5::E(module) => Self {
         type_id: TypeId::of::<dyn rspack_core::Module>(),
         identifier: module.identifier,
-        module: module.module.take(),
+        module: module.module,
         compiler_id: module.compiler_id,
       },
     })

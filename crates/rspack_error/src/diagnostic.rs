@@ -71,6 +71,11 @@ pub struct SourcePosition {
 #[derive(Debug, Clone)]
 pub struct Diagnostic {
   inner: Arc<miette::Error>,
+
+  // The following fields are only used to restore Diagnostic for Rspack.
+  // If the current Diagnostic originates from Rust, these fields will be None.
+  message: Option<String>,
+  details: Option<String>,
   module_identifier: Option<Identifier>,
   loc: Option<DependencyLocation>,
   file: Option<Utf8PathBuf>,
@@ -89,6 +94,8 @@ impl From<miette::Error> for Diagnostic {
   fn from(value: miette::Error) -> Self {
     Self {
       inner: Arc::new(value),
+      message: None,
+      details: None,
       module_identifier: None,
       loc: None,
       file: None,
@@ -116,6 +123,8 @@ impl Diagnostic {
           .with_severity(miette::Severity::Warning),
       )
       .into(),
+      message: None,
+      details: None,
       module_identifier: None,
       loc: None,
       file: None,
@@ -133,6 +142,8 @@ impl Diagnostic {
           .with_severity(miette::Severity::Error),
       )
       .into(),
+      message: None,
+      details: None,
       module_identifier: None,
       loc: None,
       file: None,
@@ -159,7 +170,27 @@ impl Diagnostic {
   }
 
   pub fn message(&self) -> String {
-    self.inner.to_string()
+    match &self.message {
+      Some(message) => message.clone(),
+      None => {
+        let mut name = "Error".to_string();
+        if let Some(code) = self.inner.code() {
+          name = code.to_string();
+        }
+
+        let mut message = self.inner.to_string();
+        let prefix = format!("{name}: ");
+        if message.starts_with(&prefix) {
+          message = message[prefix.len()..].to_string();
+        }
+        message
+      }
+    }
+  }
+
+  pub fn with_message(mut self, message: String) -> Self {
+    self.message = Some(message);
+    self
   }
 
   pub fn severity(&self) -> Severity {
@@ -221,13 +252,12 @@ impl Diagnostic {
   }
 
   pub fn details(&self) -> Option<String> {
-    let hide_stack = self.hide_stack.unwrap_or_default();
-    if hide_stack {
-      // TODO: generate detail content for typed error
-      self.stack()
-    } else {
-      None
-    }
+    self.details.clone()
+  }
+
+  pub fn with_details(mut self, details: Option<String>) -> Self {
+    self.details = details;
+    self
   }
 }
 
