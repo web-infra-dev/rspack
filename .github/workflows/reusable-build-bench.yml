@@ -48,7 +48,7 @@ jobs:
 
       - name: Build Benchmark
         env:
-          RUSTFLAGS: "-C debuginfo=1 -C strip=none -C lto=off -g --cfg codspeed"
+          RUSTFLAGS: "-C debuginfo=1 -C strip=none -g --cfg codspeed"
         run: cargo codspeed build -p rspack_benchmark --features codspeed
 
       - name: Wait for build job
