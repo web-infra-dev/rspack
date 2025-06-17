@@ -36,11 +36,12 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
-      runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+      runner: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-latest"') }}
       ref: ${{ github.sha }}
       profile: "release"
       test: false
       bench: false
+      prefer_docker: false
 
   bench:
     environment: eco-perf
