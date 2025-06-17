@@ -74,6 +74,28 @@ function parseTriple(rawTriple) {
 	};
 }
 
+function generateReadme(pkgName) {
+	const README = `<picture>
+  <img alt="Rspack Banner" src="https://assets.rspack.dev/rspack/rspack-banner.png">
+</picture>
+
+# ${pkgName}
+
+Private node binding crate for rspack.
+
+This package does *NOT* follow [semantic versioning](https://semver.org/).
+
+## Documentation
+
+See [https://rspack.rs](https://rspack.rs) for details.
+
+## License
+
+Rspack is [MIT licensed](https://github.com/web-infra-dev/rspack/blob/main/LICENSE).
+`;
+	return README;
+}
+
 const ARTIFACTS = path.resolve(__dirname, "../artifacts");
 const NPM = path.resolve(__dirname, "../npm");
 
@@ -89,13 +111,49 @@ const bindings = fs
 	.readdirSync(ARTIFACTS, {
 		withFileTypes: true
 	})
-	// We are not going to release wasm yet
-	.filter(item => item.isDirectory() && !item.name.includes("wasm"))
+	.filter(item => item.isDirectory())
 	.map(item => path.join(ARTIFACTS, item.name));
 
 const optionalDependencies = {};
 
 for (const binding of bindings) {
+	// The pkg of wasm binding is more complex, so we create it manually.
+	if (binding.includes("wasm")) {
+		const output = path.join(NPM, "wasm32-wasi");
+		const pkgJson = require(path.join(output, "package.json"));
+
+		optionalDependencies[pkgJson.name] = "workspace:*";
+
+		// Copy wasm artifact
+		fs.copyFileSync(
+			path.join(binding, "rspack.wasm32-wasi.wasm"),
+			path.join(output, "rspack.wasm32-wasi.wasm")
+		);
+
+		// Copy wasm js runtimes from the node_binding crate
+		const NODE_BINDING_CRATE = path.resolve(
+			__dirname,
+			"../crates/node_binding/"
+		);
+		for (const file of [
+			"rspack.wasi.cjs",
+			"rspack.wasi-browser.js",
+			"wasi-worker.mjs",
+			"wasi-worker-browser.mjs"
+		]) {
+			fs.copyFileSync(
+				path.join(NODE_BINDING_CRATE, file),
+				path.join(output, file)
+			);
+		}
+
+		const README = generateReadme(pkgJson.name);
+		fs.writeFileSync(path.join(output, "README.md"), README);
+
+		releasingPackages.push(pkgJson.name);
+		continue;
+	}
+
 	// bindings-x86_64-unknown-linux-musl
 	const files = fs.readdirSync(binding);
 	assert(files.length === 1, `Expected only one file in ${binding}`);
@@ -158,24 +216,7 @@ for (const binding of bindings) {
 	fs.writeFileSync(`${output}/package.json`, JSON.stringify(pkgJson, null, 2));
 	fs.writeFileSync(`${output}/${pkgJson.main}`, binary);
 
-	const README = `<picture>
-  <img alt="Rspack Banner" src="https://assets.rspack.rs/rspack/rspack-banner.png">
-</picture>
-
-# ${pkgJson.name}
-
-Private node binding crate for rspack.
-
-This package does *NOT* follow [semantic versioning](https://semver.org/).
-
-## Documentation
-
-See [https://rspack.rs](https://rspack.rs) for details.
-
-## License
-
-Rspack is [MIT licensed](https://github.com/web-infra-dev/rspack/blob/main/LICENSE).
-`;
+	const README = generateReadme(pkgJson.name);
 
 	fs.writeFileSync(`${output}/README.md`, README);
 	releasingPackages.push(pkgJson.name);

@@ -267,6 +267,11 @@ impl Identifiable for LightningCssLoader {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Loader<RunnerContext> for LightningCssLoader {
+  #[tracing::instrument("loader:lightningcss", skip_all, fields(
+    perfetto.track_name = "loader:lightningcss",
+    perfetto.process_name = "Loader Analysis",
+    resource =loader_context.resource(),
+  ))]
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
     // for better diagnostic, as async_trait macro don't show beautiful error message
     self.loader_impl(loader_context).await

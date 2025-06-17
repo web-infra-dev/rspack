@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsPreset, Skip},
@@ -10,9 +8,10 @@ use rspack_core::{
   BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ErrorSpan, ExportInfoGetter, ExportProvided, ExportsType, ExtendedReferencedExport,
-  FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleDependency, ModuleGraph, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap,
+  ErrorSpan, ExportInfoGetter, ExportProvided, ExportsInfoGetter, ExportsType,
+  ExtendedReferencedExport, FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap,
   TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::{
@@ -118,14 +117,15 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   } = code_generatable_context;
   // Only available when module factorization is successful.
   let module_graph = compilation.get_module_graph();
+  let module_graph_cache = &compilation.module_graph_cache_artifact;
   let connection = module_graph.connection_by_dependency_id(module_dependency.id());
   let is_target_active = if let Some(con) = connection {
-    Some(con.is_target_active(&module_graph, *runtime))
+    con.is_target_active(&module_graph, *runtime, module_graph_cache)
   } else {
-    Some(true)
+    true
   };
   // Bailout only if the module does exist and not active.
-  if is_target_active.is_some_and(|x| !x) {
+  if !is_target_active {
     return;
   }
 
@@ -133,7 +133,9 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     RuntimeCondition::Boolean(false)
   } else if let Some(connection) = module_graph.connection_by_dependency_id(module_dependency.id())
   {
-    filter_runtime(*runtime, |r| connection.is_target_active(&module_graph, r))
+    filter_runtime(*runtime, |r| {
+      connection.is_target_active(&module_graph, r, module_graph_cache)
+    })
   } else {
     RuntimeCondition::Boolean(true)
   };
@@ -282,25 +284,32 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       return None;
     }
     let imported_module_identifier = imported_module.identifier();
+    let exports_info = module_graph.get_prefetched_exports_info(
+      &imported_module_identifier,
+      PrefetchExportsInfoMode::NamedNestedExports(ids),
+    );
     if (!matches!(exports_type, ExportsType::DefaultWithNamed) || ids[0] != "default")
       && matches!(
-        module_graph.is_export_provided(&imported_module_identifier, ids),
+        ExportsInfoGetter::is_export_provided(&exports_info, ids),
         Some(ExportProvided::NotProvided)
       )
     {
       let mut pos = 0;
-      let mut maybe_exports_info = Some(module_graph.get_exports_info(&imported_module_identifier));
+      let mut maybe_exports_info = Some(module_graph.get_prefetched_exports_info(
+        &imported_module_identifier,
+        PrefetchExportsInfoMode::NamedNestedAllExports(ids),
+      ));
       while pos < ids.len()
-        && let Some(exports_info) = maybe_exports_info
+        && let Some(exports_info) = &maybe_exports_info
       {
         let id = &ids[pos];
         pos += 1;
-        let export_info = exports_info.get_read_only_export_info(module_graph, id);
+        let export_info = exports_info.get_read_only_export_info(id);
         if matches!(
-          ExportInfoGetter::provided(export_info.as_data(module_graph)),
+          ExportInfoGetter::provided(export_info),
           Some(ExportProvided::NotProvided)
         ) {
-          let provided_exports = exports_info.get_provided_exports(module_graph);
+          let provided_exports = ExportsInfoGetter::get_provided_exports(exports_info);
           let more_info = if let ProvidedExports::ProvidedNames(exports) = &provided_exports {
             if exports.is_empty() {
               " (module has no exports)".to_string()
@@ -330,7 +339,11 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
           );
           return Some(create_error(msg));
         }
-        maybe_exports_info = ExportInfoGetter::exports_info(export_info.as_data(module_graph));
+        let Some(nested_exports_info) = ExportInfoGetter::exports_info(export_info) else {
+          maybe_exports_info = None;
+          continue;
+        };
+        maybe_exports_info = Some(exports_info.redirect(nested_exports_info, true));
       }
       let msg = format!(
         "export {} {} was not found in '{}'",
@@ -438,6 +451,7 @@ impl Dependency for ESMImportSideEffectDependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     vec![]
@@ -456,6 +470,7 @@ impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
     conn: &rspack_core::ModuleGraphConnection,
     _runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ConnectionState {
     let id = *conn.module_identifier();
     if let Some(module) = module_graph.module_by_identifier(&id) {
@@ -488,11 +503,10 @@ impl ModuleDependency for ESMImportSideEffectDependency {
     self.request = request.into();
   }
 
-  // TODO: It's from ESMImportSideEffectDependency.
   fn get_condition(&self) -> Option<DependencyCondition> {
-    Some(DependencyCondition::Fn(Arc::new(
+    Some(DependencyCondition::new_fn(
       ESMImportSideEffectDependencyCondition,
-    )))
+    ))
   }
 
   fn factorize_info(&self) -> &FactorizeInfo {

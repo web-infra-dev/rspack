@@ -136,6 +136,7 @@ outputlibraryamdcontainer
 outputlibraryumdnameddefine
 outputwasmloading
 perfetto
+pftrace
 Peschke
 pmmmwh
 proxied

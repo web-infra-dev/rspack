@@ -44,15 +44,21 @@ impl JsResolver {
     path: String,
     request: String,
   ) -> napi::Result<Either<JsResourceData, bool>> {
-    block_on(async move {
-      match self.resolver.resolve(Path::new(&path), &request).await {
-        Ok(rspack_core::ResolveResult::Resource(resource)) => {
-          Ok(Either::A(ResourceData::from(resource).into()))
-        }
-        Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(false)),
-        Err(err) => Err(napi::Error::from_reason(format!("{err:?}"))),
+    block_on(self._resolve(path, request))
+  }
+
+  async fn _resolve(
+    &self,
+    path: String,
+    request: String,
+  ) -> napi::Result<Either<JsResourceData, bool>> {
+    match self.resolver.resolve(Path::new(&path), &request).await {
+      Ok(rspack_core::ResolveResult::Resource(resource)) => {
+        Ok(Either::A(ResourceData::from(resource).into()))
       }
-    })
+      Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(false)),
+      Err(err) => Err(napi::Error::from_reason(format!("{err:?}"))),
+    }
   }
 
   #[napi(
@@ -74,7 +80,10 @@ impl JsResolver {
             Either::<JsResourceData, bool>::A(ResourceData::from(resource).into()),
           ),
           Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(false)),
-          Err(err) => Err(napi::Error::from_reason(format!("{err:?}"))),
+          Err(err) => Err(napi::Error::new(
+            ErrorCode::Napi(napi::Status::GenericFailure),
+            format!("{err:?}"),
+          )),
         }
       },
       || {},

@@ -119,8 +119,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   }
 
   #[tracing::instrument("JavaScriptParser:parse", skip_all,fields(
-    resource = parse_context.resource_data.resource.as_str(),
-    id2 = parse_context.resource_data.resource.as_str(),
+    resource = parse_context.resource_data.resource.as_str()
   ))]
   async fn parse<'a>(
     &mut self,

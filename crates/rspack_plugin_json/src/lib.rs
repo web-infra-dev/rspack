@@ -16,8 +16,9 @@ use rspack_core::{
   diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CompilerOptions, ExportInfoGetter,
-  ExportsInfo, GenerateContext, Module, ModuleGraph, ParseOption, ParserAndGenerator, Plugin,
-  RuntimeGlobals, RuntimeSpec, SourceType, UsageState, NAMESPACE_OBJECT_EXPORT,
+  ExportsInfo, ExportsInfoGetter, GenerateContext, Module, ModuleGraph, ParseOption,
+  ParserAndGenerator, Plugin, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SourceType,
+  UsageState, UsedNameItem, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::{
   miette::diagnostic, DiagnosticExt, DiagnosticKind, IntoTWithDiagnosticArray, Result,
@@ -278,7 +279,10 @@ fn create_object_for_exports_info(
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
 ) -> JsonValue {
-  if ExportInfoGetter::get_used(exports_info.other_exports_info(mg).as_data(mg), runtime)
+  let exports_info_data =
+    ExportsInfoGetter::prefetch(&exports_info, mg, PrefetchExportsInfoMode::AllExports);
+
+  if ExportInfoGetter::get_used(exports_info_data.other_exports_info(), runtime)
     != UsageState::Unused
   {
     return data;
@@ -293,13 +297,13 @@ fn create_object_for_exports_info(
     JsonValue::Object(mut obj) => {
       let mut used_pair = vec![];
       for (key, value) in obj.iter_mut() {
-        let export_info = exports_info.get_read_only_export_info(mg, &key.into());
-        let used = ExportInfoGetter::get_used(export_info.as_data(mg), runtime);
+        let export_info = exports_info_data.get_read_only_export_info(&key.into());
+        let used = ExportInfoGetter::get_used(export_info, runtime);
         if used == UsageState::Unused {
           continue;
         }
         let new_value = if used == UsageState::OnlyPropertiesUsed
-          && let Some(exports_info) = ExportInfoGetter::exports_info(export_info.as_data(mg))
+          && let Some(exports_info) = ExportInfoGetter::exports_info(export_info)
         {
           // avoid clone
           let temp = std::mem::replace(value, JsonValue::Null);
@@ -307,9 +311,12 @@ fn create_object_for_exports_info(
         } else {
           std::mem::replace(value, JsonValue::Null)
         };
-        let used_name =
-          ExportInfoGetter::get_used_name(export_info.as_data(mg), Some(&(key.into())), runtime)
-            .expect("should have used name");
+        let UsedNameItem::Str(used_name) =
+          ExportInfoGetter::get_used_name(export_info, Some(&(key.into())), runtime)
+            .expect("should have used name")
+        else {
+          continue;
+        };
         used_pair.push((used_name, new_value));
       }
       let mut new_obj = Object::new();
@@ -325,14 +332,14 @@ fn create_object_for_exports_info(
         .into_iter()
         .enumerate()
         .map(|(i, item)| {
-          let export_info = exports_info.get_read_only_export_info(mg, &itoa!(i).into());
-          let used = ExportInfoGetter::get_used(export_info.as_data(mg), runtime);
+          let export_info = exports_info_data.get_read_only_export_info(&itoa!(i).into());
+          let used = ExportInfoGetter::get_used(export_info, runtime);
           if used == UsageState::Unused {
             return None;
           }
           max_used_index = max_used_index.max(i);
           if used == UsageState::OnlyPropertiesUsed
-            && let Some(exports_info) = ExportInfoGetter::exports_info(export_info.as_data(mg))
+            && let Some(exports_info) = ExportInfoGetter::exports_info(export_info)
           {
             Some(create_object_for_exports_info(
               item,
@@ -346,9 +353,7 @@ fn create_object_for_exports_info(
         })
         .collect::<Vec<_>>();
       let arr_length_used = ExportInfoGetter::get_used(
-        exports_info
-          .get_read_only_export_info(mg, &"length".into())
-          .as_data(mg),
+        exports_info_data.get_read_only_export_info(&"length".into()),
         runtime,
       );
       let array_length_when_used = match arr_length_used {

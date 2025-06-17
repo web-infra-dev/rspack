@@ -8,7 +8,9 @@ An asset is a resource that is used in your application, such as images, fonts, 
 
 ## asset module
 
-An "asset module" is a special module type used to process static resources, such as pictures, fonts, videos, etc.
+An "asset module" is a special module type used to process static assets, such as pictures, fonts, videos, etc.
+
+- [Asset modules](/guide/features/asset-module)
 
 ## bundle
 
@@ -17,6 +19,17 @@ Historically bundlers produced a single output file called a "bundle." The conce
 ## bundle splitting
 
 Bundle splitting is a technique that allows you to split or merge your code into multiple bundles, which is useful for parallel request and better browser caching, it's not used for reducing the initialize bundle size.
+
+- [Code splitting](/guide/optimization/code-splitting)
+
+## built-in module type
+
+In Rspack, built-in module types refer to module types that can be supported without relying on loaders or plugins, such as JavaScript, CSS, JSON, Assets, etc. However, module types that require loaders or plugins to support, such as TypeScript, HTML, Markdown, YAML, etc., are not built-in module types.
+
+- [Asset modules](/guide/features/asset-module)
+- [CSS](/guide/tech/css)
+- [JSON](/guide/tech/json)
+- [Rule.type](/config/module#ruletype)
 
 ## chunk
 
@@ -30,17 +43,17 @@ Chunk graph is a data structure that represents the relationship between chunks.
 
 Code splitting is a technique that allows you to split your code into multiple chunks, and only load the necessary chunks when the application is running. This can help you reduce the size of the initial bundle and speed up the application load time.
 
+- [Code splitting](/guide/optimization/code-splitting)
+
 ## dependency
 
 Dependency is parsed from the transformed code of a module. It is used to store the import relationships of modules for recursively generating the module graph. When code generation, it can inject code of module imports and exports. It can also be used for code replacement and injecting runtime requirements.
 
-## first class module type
-
-In Rspack, first-class module types refer to module types that can be supported without relying on loaders or plugins, such as JavaScript, CSS, JSON, Assets, etc. However, module types that require loaders or plugins to support, such as TypeScript, HTML, Markdown, YAML, etc., are not first-class citizen modules.
-
 ## loader
 
 In bundling terminology, a loader is like a plugin but specifically tasked with transforming module content. For example, we can use a loader to transform a TypeScript module into a JavaScript module, or to transform a CSS module into a JavaScript module that injects the CSS into the page.
+
+- [Loader](/guide/features/loader)
 
 ## module
 
@@ -49,6 +62,8 @@ An application can be split into multiple files called modules, which may be Jav
 ## module type
 
 A module's type determines how it will be parsed and handled by the bundler. For example, we can tell Rspack that the module is a JavaScript module by specifying the module type as JavaScript, and Rspack will use the JavaScript parser to parse the module. If the specified module type is CSS, then Rspack will use a CSS parser to parse the module.
+
+- [Rule.type](/config/module#ruletype)
 
 ## module specifier
 
@@ -62,7 +77,11 @@ import { foo } from './modules/foo.js';
 
 Module resolution is the process of calculating the file path indicated by a module specifier. For example, an import statement includes a module specifier, and Rspack will use the module resolution algorithm to find the corresponding file path.
 
+- [Module resolution](/guide/features/module-resolution)
+
 ## module graph
+
+> module graph is also called dependency graph.
 
 The module graph is a graph data structure that represents relationships between modules. It is a directed graph, where each node in the graph represents a module, and each edge represents the dependency relationship between modules.
 
@@ -74,14 +93,22 @@ The module graph is a graph data structure that represents relationships between
 
 A plugin is a program module that can be used to extend the functionality of Rspack by means of extensibility hooks. It can be used to customize the build process, or to integrate with other tools. Rspack provides lots of hooks which you can use to customize the build process.
 
+- [Plugin](/guide/features/plugin)
+
 ## runtime
 
 The runtime is all the code Rspack needs to connect your modularized application while it's running in the browser or other environments. It contains the loading and resolving logic needed to connect your modules as they interact.
+
+- [optimization.runtimeChunk](/config/optimization#optimizationruntimechunk)
 
 ## scope hoisting
 
 Scope hoisting is a technique that concat modules into a single scope when possible, rather than wrapping each module in a separate function. It can make minification more effective and improve runtime performance by reduce module lookup cost.
 
+- [optimization.concatenateModules](/config/optimization#optimizationconcatenatemodules)
+
 ## tree shaking
 
 Tree shaking is a technique that allows you to remove unused code from your bundle. It a form of compiler dead code elimination, with a focus on minimizing processing of dead code. Compilers like Rspack will accomplish this by analyzing the static structure of your code, and then removing the unused code.
+
+- [Tree shaking](/guide/optimization/tree-shaking)

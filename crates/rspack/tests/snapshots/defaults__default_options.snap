@@ -1417,6 +1417,9 @@ CompilerOptions {
                             import_dynamic: Some(
                                 true,
                             ),
+                            inline_const: Some(
+                                false,
+                            ),
                         },
                     ),
                 },
@@ -1453,6 +1456,7 @@ CompilerOptions {
         top_level_await: true,
         rspack_future: RspackFuture,
         cache: Disabled,
+        inline_const: false,
     },
     node: Some(
         NodeOption {

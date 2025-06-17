@@ -284,6 +284,10 @@ export class WatchProcessor<
 			(
 				options as TCompilerOptions<ECompilerType.Rspack>
 			).experiments!.rspackFuture!.bundlerInfo!.force ??= false;
+			// test incremental: "safe" here, we test default incremental in Incremental-*.test.js
+			(
+				options as TCompilerOptions<ECompilerType.Rspack>
+			).experiments!.incremental ??= "safe";
 
 			if (!global.printLogger) {
 				options.infrastructureLogging = {
@@ -336,6 +340,8 @@ export class WatchStepProcessor<
 				resolve(stats);
 			});
 		});
+		// wait compiler to ready watch the files and diretories
+		await new Promise(resolve => setTimeout(resolve, 100));
 		copyDiff(
 			path.join(context.getSource(), this._watchOptions.stepName),
 			this._watchOptions.tempDir,

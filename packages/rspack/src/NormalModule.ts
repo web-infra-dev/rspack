@@ -14,13 +14,6 @@ Object.defineProperty(binding.NormalModule.prototype, "identifier", {
 		return this[binding.MODULE_IDENTIFIER_SYMBOL];
 	}
 });
-Object.defineProperty(binding.NormalModule.prototype, "readableIdentifier", {
-	enumerable: true,
-	configurable: true,
-	value(this: binding.NormalModule) {
-		return this._readableIdentifier;
-	}
-});
 Object.defineProperty(binding.NormalModule.prototype, "originalSource", {
 	enumerable: true,
 	configurable: true,

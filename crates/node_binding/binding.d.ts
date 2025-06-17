@@ -41,7 +41,6 @@ export interface Module {
 	set factoryMeta(factoryMeta: JsFactoryMeta);
 	get useSourceMap(): boolean;
 	get useSimpleSourceMap(): boolean;
-	get _readableIdentifier(): string;
 	buildInfo: BuildInfo;
 	buildMeta: Record<string, any>;
 }
@@ -111,6 +110,7 @@ export declare class CodeGenerationResults {
 export declare class ConcatenatedModule {
   get rootModule(): Module
   get modules(): Module[]
+  readableIdentifier(): string
   _originalSource(): JsCompatSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
@@ -121,6 +121,7 @@ export declare class ConcatenatedModule {
 }
 
 export declare class ContextModule {
+  readableIdentifier(): string
   _originalSource(): JsCompatSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
@@ -183,6 +184,7 @@ export declare class EntryOptionsDto {
 export type EntryOptionsDTO = EntryOptionsDto
 
 export declare class ExternalModule {
+  readableIdentifier(): string
   _originalSource(): JsCompatSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
@@ -301,7 +303,7 @@ export declare class JsCompilation {
 }
 
 export declare class JsCompiler {
-  constructor(compilerPath: string, options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory)
+  constructor(compilerPath: string, options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
@@ -404,6 +406,7 @@ export declare class KnownBuildInfo {
 }
 
 export declare class Module {
+  readableIdentifier(): string
   _originalSource(): JsCompatSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
@@ -1059,7 +1062,7 @@ export interface JsRsdoctorModule {
   belongModules: Array<number>
   chunks: Array<number>
   issuerPath: Array<number>
-  bailoutReason?: string
+  bailoutReason: Array<string>
 }
 
 export interface JsRsdoctorModuleGraph {
@@ -1479,6 +1482,8 @@ export declare function loadBrowserslist(input: string | undefined | null, conte
 
 export declare function minify(source: string, options: string): Promise<TransformOutput>
 
+export declare function minifySync(source: string, options: string): TransformOutput
+
 export interface NodeFsStats {
   isFile: boolean
   isDirectory: boolean
@@ -1882,6 +1887,8 @@ incremental?: false | { [key: string]: boolean }
 parallelCodeSplitting: boolean
 rspackFuture?: RawRspackFuture
 cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
+useInputFileSystem?: false | Array<RegExp>
+inlineConst: boolean
 }
 
 export interface RawExperimentSnapshotOptions {
@@ -2091,6 +2098,11 @@ export interface RawJavascriptParserOptions {
    * @experimental
    */
   importDynamic?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  inlineConst?: boolean
 }
 
 export interface RawJsonGeneratorOptions {
@@ -2557,6 +2569,17 @@ export interface RawToOptions {
   absoluteFilename?: string
 }
 
+export interface RawTraceEvent {
+  name: string
+  trackName?: string
+  processName?: string
+  args?: Record<string, string>
+  uuid: number
+  ts: bigint
+  ph: string
+  categories?: Array<string>
+}
+
 export interface RawTrustedTypes {
   policyName?: string
   onPolicyCreationFailure?: string
@@ -2574,7 +2597,7 @@ export interface RealDependencyLocation {
  * Author Donny/강동윤
  * Copyright (c)
  */
-export declare function registerGlobalTrace(filter: string, layer: "chrome" | "logger" , output: string): void
+export declare function registerGlobalTrace(filter: string, layer:  "logger" | "perfetto" , output: string): void
 
 export declare enum RegisterJsTapKind {
   CompilerThisCompilation = 0,
@@ -2680,14 +2703,6 @@ export interface RegisterJsTaps {
   registerRsdoctorPluginAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorAssetPatch) => Promise<boolean | undefined>); stage: number; }>
 }
 
-/**
- * Shutdown the tokio runtime manually.
- *
- * This is required for the wasm target with `tokio_unstable` cfg.
- * In the wasm runtime, the `park` threads will hang there until the tokio::Runtime is shutdown.
- */
-export declare function shutdownAsyncRuntime(): void
-
 export interface SourceMapDevToolPluginOptions {
   append?: (false | null) | string | Function
   columns?: boolean
@@ -2711,13 +2726,7 @@ export interface SourcePosition {
   column?: number
 }
 
-/**
- * Start the async runtime manually.
- *
- * This is required when the async runtime is shutdown manually.
- * Usually it's used in test.
- */
-export declare function startAsyncRuntime(): void
+export declare function syncTraceEvent(events: Array<RawTraceEvent>): void
 
 export interface SyntheticDependencyLocation {
   name: string
@@ -2733,6 +2742,7 @@ export interface ThreadsafeNodeFS {
   readFile: (name: string) => Promise<Buffer | string | void>
   stat: (name: string) => Promise<NodeFsStats | void>
   lstat: (name: string) => Promise<NodeFsStats | void>
+  realpath: (name: string) => Promise<string | void>
   open: (name: string, flags: string) => Promise<number | void>
   rename: (from: string, to: string) => Promise<void>
   close: (fd: number) => Promise<void>
@@ -2750,3 +2760,5 @@ export interface TransformOutput {
   map?: string
   diagnostics: Array<string>
 }
+
+export declare function transformSync(source: string, options: string): TransformOutput

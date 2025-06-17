@@ -294,6 +294,7 @@ impl ChunkGraph {
       .hash(&mut hasher);
     let strict = module.get_strict_esm_module();
     let mg = compilation.get_module_graph();
+    let mg_cache = &compilation.module_graph_cache_artifact;
     let mut visited_modules = IdentifierSet::default();
     visited_modules.insert(module.identifier());
     for connection in mg
@@ -304,7 +305,7 @@ impl ChunkGraph {
       if visited_modules.contains(module_identifier) {
         continue;
       }
-      let active_state = connection.active_state(&mg, runtime);
+      let active_state = connection.active_state(&mg, runtime, mg_cache);
       if active_state.is_false() {
         continue;
       }
@@ -313,7 +314,7 @@ impl ChunkGraph {
         runtime,
         |runtime| {
           let runtime = runtime.map(|r| RuntimeSpec::from_iter([r.as_str().into()]));
-          let active_state = connection.active_state(&mg, runtime.as_ref());
+          let active_state = connection.active_state(&mg, runtime.as_ref(), mg_cache);
           active_state.hash(&mut hasher);
         },
         true,

@@ -90,7 +90,7 @@ export default defineConfig({
 
 如下图，左边是首次编译的 Home 入口 Module 内容，右图是触发重编译后对应 Module 的内容。
 
-![image](https://assets.rspack.rs/rspack/assets/lazy-proxy-module.png)
+![image](https://assets.rspack.dev/rspack/assets/lazy-proxy-module.png)
 
 只有当执行对应的入口或时，Rspack 才会编译对应的入口和 Module 以及他们的所有依赖。
 
@@ -107,10 +107,7 @@ import DevServer from 'webpack-dev-server';
 
 const compiler = rspack(config);
 
-const middleware = experiments.lazyCompilationMiddleware(
-  compiler,
-  config.experiments.lazyCompilation,
-);
+const middleware = experiments.lazyCompilationMiddleware(compiler);
 
 const server = new DevServer(
   {
@@ -125,10 +122,9 @@ const server = new DevServer(
 server.start();
 ```
 
-`lazyCompilationMiddleware` 接受两个参数：
+`lazyCompilationMiddleware` 接受 1 个参数：
 
-- `compiler`: 当前的 [Compiler](/api/javascript-api/compiler) 实例
-- `options`: 懒编译的配置，与 [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) 相同
+- `compiler`: 当前的 [Compiler](/api/javascript-api/compiler)，使用该 Compiler 对应的 `experiments.lazyCompilation` 配置。
 
 ## 自定义懒编译端点
 

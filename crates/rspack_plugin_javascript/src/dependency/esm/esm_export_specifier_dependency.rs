@@ -6,10 +6,12 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ESMExportInitFragment, ExportNameOrSpec,
-  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, SharedSourceMap, TemplateContext,
+  DependencyTemplateType, DependencyType, ESMExportInitFragment, EvaluatedInlinableValue,
+  ExportNameOrSpec, ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
+  ModuleGraphCacheArtifact, PrefetchExportsInfoMode, SharedSourceMap, TemplateContext,
   TemplateReplaceSource, UsedName,
 };
+use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
 
 // Create _webpack_require__.d(__webpack_exports__, {}) for each export.
@@ -24,18 +26,21 @@ pub struct ESMExportSpecifierDependency {
   name: Atom,
   #[cacheable(with=AsPreset)]
   value: Atom, // id
+  inline: Option<EvaluatedInlinableValue>,
 }
 
 impl ESMExportSpecifierDependency {
   pub fn new(
     name: Atom,
     value: Atom,
+    inline: Option<EvaluatedInlinableValue>,
     range: DependencyRange,
     source_map: Option<SharedSourceMap>,
   ) -> Self {
     Self {
       name,
       value,
+      inline,
       range,
       source_map,
       id: DependencyId::new(),
@@ -61,9 +66,17 @@ impl Dependency for ESMExportSpecifierDependency {
     &DependencyType::EsmExportSpecifier
   }
 
-  fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
+  fn get_exports(
+    &self,
+    _mg: &ModuleGraph,
+    _mg_cache: &ModuleGraphCacheArtifact,
+  ) -> Option<ExportsSpec> {
     Some(ExportsSpec {
-      exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::String(self.name.clone())]),
+      exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
+        name: self.name.clone(),
+        inlinable: self.inline,
+        ..Default::default()
+      })]),
       priority: Some(1),
       can_mangle: None,
       terminal_binding: Some(true),
@@ -139,18 +152,20 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
 
-    let used_name = {
-      let exports_info = module_graph.get_exports_info(&module.identifier());
-      let used_name =
-        exports_info.get_used_name(&module_graph, *runtime, std::slice::from_ref(&dep.name));
-      used_name.map(|item| match item {
+    let exports_info = module_graph.get_prefetched_exports_info(
+      &module.identifier(),
+      PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&dep.name])),
+    );
+    let used_name =
+      ExportsInfoGetter::get_used_name(&exports_info, *runtime, std::slice::from_ref(&dep.name));
+    if let Some(used_name) = used_name {
+      let used_name = match used_name {
         UsedName::Normal(vec) => {
           // only have one value for export specifier dependency
           vec[0].clone()
         }
-      })
-    };
-    if let Some(used_name) = used_name {
+        UsedName::Inlined(_) => return,
+      };
       init_fragments.push(Box::new(ESMExportInitFragment::new(
         module.get_exports_argument(),
         vec![(used_name, dep.value.clone())],
