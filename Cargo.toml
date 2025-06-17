@@ -229,6 +229,11 @@ opt-level = 3
 panic     = "abort"
 strip     = true
 
+[profile.codspeed]
+inherits = "release"
+debug    = "full"
+strip    = "none"
+
 [profile.release.package]
 
 [profile.release.package.regex-syntax]
