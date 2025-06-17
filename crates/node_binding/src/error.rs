@@ -348,6 +348,7 @@ impl RspackError {
     let message = self.message.clone();
     let details = self.details.clone();
     let file = self.file.clone();
+    let loc = self.loc.as_ref().map(Into::into);
     let module = self.module.as_ref().map(|module| *module.identifier());
     let stack = self.stack.clone();
     let hide_stack = self.hide_stack;
@@ -367,6 +368,7 @@ impl RspackError {
       .with_message(message)
       .with_details(details)
       .with_file(file.map(Into::into))
+      .with_loc(loc)
       .with_module_identifier(module)
       .with_stack(stack)
       .with_hide_stack(hide_stack)
