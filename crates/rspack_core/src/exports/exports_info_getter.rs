@@ -459,17 +459,23 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
 
 #[derive(Debug, Clone)]
 pub struct PrefetchedExportsInfoData<'a> {
-  pub exports: IndexMap<&'a Atom, PrefetchedExportInfoData<'a>>,
-  pub other_exports_info: PrefetchedExportInfoData<'a>,
+  exports: IndexMap<&'a Atom, PrefetchedExportInfoData<'a>>,
+  other_exports_info: PrefetchedExportInfoData<'a>,
 
-  pub side_effects_only_info: PrefetchedExportInfoData<'a>,
-  pub redirect_to: Option<ExportsInfo>,
-  pub id: ExportsInfo,
+  side_effects_only_info: PrefetchedExportInfoData<'a>,
+  redirect_to: Option<ExportsInfo>,
+  id: ExportsInfo,
+}
+
+impl<'a> PrefetchedExportsInfoData<'a> {
+  pub fn id(&self) -> ExportsInfo {
+    self.id
+  }
 }
 
 #[derive(Debug, Clone)]
 pub struct PrefetchedExportInfoData<'a> {
-  pub inner: &'a ExportInfoData,
+  inner: &'a ExportInfoData,
   // pub exports_info: Option<ExportsInfo>,
 }
 pub struct ExportsInfoGetter;
@@ -702,7 +708,7 @@ impl ExportsInfoGetter {
   }
 
   pub fn get_provided_exports(info: &PrefetchedExportsInfoWrapper) -> ProvidedExports {
-    if info.data().redirect_to.is_none() {
+    if info.redirect_to().is_none() {
       match info.other_exports_info().provided() {
         Some(ExportProvided::Unknown) => {
           return ProvidedExports::ProvidedAll;
@@ -725,7 +731,7 @@ impl ExportsInfoGetter {
         _ => {}
       }
     }
-    if let Some(redirect) = &info.data().redirect_to {
+    if let Some(redirect) = info.redirect_to() {
       let redirected = info.redirect(*redirect, false);
       let provided_exports = Self::get_provided_exports(&redirected);
       let inner = match provided_exports {

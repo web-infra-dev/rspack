@@ -361,7 +361,7 @@ impl<'a> FlagDependencyExportsState<'a> {
         );
         target_exports_info = target_module_exports_info
           .get_nested_exports_info(target.export.as_deref())
-          .map(|data| data.id);
+          .map(|data| data.id());
         match self.dependencies.entry(target.module) {
           Entry::Occupied(mut occ) => {
             occ.get_mut().insert(self.current_module_id);
