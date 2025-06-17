@@ -3,7 +3,7 @@
   "private": true,
   "devDependencies": {
     "core-js": "3.43.0",
-    "acorn": "^8.14.1",
+    "acorn": "^8.15.0",
     "date-fns": "^4.1.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
