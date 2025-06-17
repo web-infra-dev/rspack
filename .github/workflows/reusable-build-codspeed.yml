@@ -44,4 +44,4 @@ jobs:
         with:
           name: codspeed-${{ inputs.target }}
           path: |
-            target/codspeed/**/
+            target/codspeed/instrumentation/**/

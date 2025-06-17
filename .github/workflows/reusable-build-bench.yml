@@ -59,7 +59,7 @@ jobs:
         uses: ./.github/actions/artifact/download
         with:
           name: codspeed-${{ inputs.target }}
-          path: target/codspeed/
+          path: target/codspeed/instrumentation/
 
       - name: Show Codspeed
         run: |
