@@ -1,14 +1,8 @@
-use core::panic;
-use std::{
-  hash::{Hash, Hasher},
-  sync::Arc,
-};
+use std::sync::Arc;
 
 use napi_derive::napi;
 use rspack_core::{Resolve, ResolverFactory};
 use rspack_fs::{NativeFileSystem, ReadableFileSystem};
-use rustc_hash::FxHashMap;
-use tracing::level_filters::LevelFilter;
 
 use crate::{
   raw_resolve::{
@@ -19,7 +13,6 @@ use crate::{
 
 #[napi]
 pub struct JsResolverFactory {
-  pub(crate) cached_resolver_factories: FxHashMap<u64, Arc<ResolverFactory>>,
   pub(crate) input_filesystem: Arc<dyn ReadableFileSystem>,
 }
 
@@ -29,31 +22,14 @@ impl JsResolverFactory {
   pub fn new(pnp: bool) -> napi::Result<Self> {
     let input_filesystem = Arc::new(NativeFileSystem::new(pnp));
 
-    Ok(Self {
-      cached_resolver_factories: FxHashMap::default(),
-      input_filesystem,
-    })
+    Ok(Self { input_filesystem })
   }
 
   pub fn get_resolver_factory(&mut self, resolve_options: Resolve) -> Arc<ResolverFactory> {
-    let mut hasher = rustc_hash::FxHasher::default();
-    resolve_options.hash(&mut hasher);
-    let hash = hasher.finish();
-
-    match self.cached_resolver_factories.get(&hash) {
-      Some(resolver_factory) => resolver_factory.clone(),
-
-      None => {
-        let resolver_factory = Arc::new(ResolverFactory::new(
-          resolve_options,
-          self.input_filesystem.clone(),
-        ));
-        self
-          .cached_resolver_factories
-          .insert(hash, resolver_factory.clone());
-        resolver_factory
-      }
-    }
+    Arc::new(ResolverFactory::new(
+      resolve_options,
+      self.input_filesystem.clone(),
+    ))
   }
 
   #[deprecated(note = "Use get_resolver_factory instead")]
@@ -68,12 +44,7 @@ impl JsResolverFactory {
     raw: Option<RawResolveOptionsWithDependencyType>,
   ) -> napi::Result<JsResolver> {
     match r#type.as_str() {
-      "normal" => {
-        let options = normalize_raw_resolve_options_with_dependency_type(raw, false).to_napi_result()?;
-        let resolver_factory = self.get_resolver_factory(*options.resolve_options.clone().unwrap_or_default());
-        Ok(JsResolver::new(resolver_factory, options))
-      }
-      "loader" => {
+      "normal" | "loader" => {
         let options = normalize_raw_resolve_options_with_dependency_type(raw, false).to_napi_result()?;
         let resolver_factory = self.get_resolver_factory(*options.resolve_options.clone().unwrap_or_default());
         Ok(JsResolver::new(resolver_factory, options))

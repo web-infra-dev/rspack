@@ -6,7 +6,8 @@ use napi_derive::napi;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
-  FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage, SourceType,
+  DependencyCategory, FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, Resolve,
+  ResolveOptionsWithDependencyType, RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{
   napi::bindgen_prelude::*, string::JsStringExt, threadsafe_function::ThreadsafeFunction,
@@ -19,7 +20,7 @@ use super::JsCompatSourceOwned;
 use crate::{
   define_symbols, AssetInfo, AsyncDependenciesBlockWrapper, BuildInfo, ConcatenatedModule,
   ContextModule, DependencyWrapper, ExternalModule, JsChunkWrapper, JsCodegenerationResults,
-  JsCompatSource, JsCompiler, NormalModule, ToJsCompatSource, COMPILER_REFERENCES,
+  JsCompatSource, JsCompiler, JsResolver, NormalModule, ToJsCompatSource, COMPILER_REFERENCES,
 };
 
 define_symbols! {
@@ -362,6 +363,19 @@ impl Module {
         })
         .collect::<Vec<_>>(),
     )
+  }
+
+  #[napi(getter, js_name = "_resolver")]
+  pub fn resolver(&mut self) -> napi::Result<JsResolver> {
+    let (compilation, module) = self.as_ref()?;
+    let resolve_options = module.get_resolve_options().unwrap();
+    let resolver_factory = compilation.resolver_factory.clone();
+    let options = ResolveOptionsWithDependencyType {
+      resolve_options: Some(Box::new((*resolve_options).clone())),
+      resolve_to_context: false,
+      dependency_category: DependencyCategory::Unknown,
+    };
+    dbg!(Ok(JsResolver::new(resolver_factory, options)))
   }
 
   #[napi]
