@@ -740,10 +740,10 @@ impl ESMExportImportedSpecifierDependency {
               runtime_condition,
             )));
           } else {
-            let exprots_info = mg.get_exports_info(imported_module);
+            let exports_info = mg.get_exports_info(imported_module);
             let used_name = if ids.is_empty() {
               let exports_info =
-                ExportsInfoGetter::prefetch_used_info_without_name(&exprots_info, mg, None, false);
+                ExportsInfoGetter::prefetch_used_info_without_name(&exports_info, mg, None, false);
               ExportsInfoGetter::get_used_name(
                 GetUsedNameParam::WithoutNames(&exports_info),
                 None,
@@ -751,7 +751,7 @@ impl ESMExportImportedSpecifierDependency {
               )
             } else {
               let exports_info = ExportsInfoGetter::prefetch(
-                &exprots_info,
+                &exports_info,
                 mg,
                 PrefetchExportsInfoMode::NamedNestedExports(&ids),
               );
