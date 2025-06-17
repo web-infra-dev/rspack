@@ -160,11 +160,21 @@ impl ESMExportImportedSpecifierDependency {
       .get_parent_module(id)
       .expect("should have parent module");
     let exports_info = module_graph.get_exports_info(parent_module);
+    let rename = name.clone();
+    let exports_info_data = module_graph.get_prefetched_exports_info(
+      parent_module,
+      if let Some(ref name) = rename {
+        PrefetchExportsInfoMode::NamedExports(HashSet::from_iter(vec![name]))
+      } else {
+        PrefetchExportsInfoMode::AllExports
+      },
+    );
 
     let is_name_unused = if let Some(ref name) = name {
-      exports_info.get_used(module_graph, std::slice::from_ref(name), runtime) == UsageState::Unused
+      ExportsInfoGetter::get_used(&exports_info_data, std::slice::from_ref(name), runtime)
+        == UsageState::Unused
     } else {
-      !exports_info.is_used(module_graph, runtime)
+      !ExportsInfoGetter::is_used(&exports_info_data, runtime)
     };
     if is_name_unused {
       return ExportMode::Unused(ExportModeUnused { name: "*".into() });
@@ -184,10 +194,9 @@ impl ESMExportImportedSpecifierDependency {
           });
         }
         ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
-          let export_info = exports_info.get_read_only_export_info(module_graph, name);
           return ExportMode::ReexportNamedDefault(ExportModeReexportNamedDefault {
             name: name.clone(),
-            partial_namespace_export_info: export_info,
+            partial_namespace_export_info: exports_info_data.get_read_only_export_info(name).id(),
           });
         }
         _ => {}
@@ -196,7 +205,7 @@ impl ESMExportImportedSpecifierDependency {
 
     // reexporting with a fixed name
     if let Some(name) = name {
-      let export_info = exports_info.get_read_only_export_info(module_graph, &name);
+      let export_info = exports_info_data.get_read_only_export_info(&name).id();
       if !ids.is_empty() {
         // export { name as name }
         match imported_exports_type {
@@ -254,22 +263,36 @@ impl ESMExportImportedSpecifierDependency {
       Some(exports_info),
       imported_module_identifier,
     );
+
     if let Some(exports) = exports {
       if exports.is_empty() {
         return ExportMode::EmptyStar(ExportModeEmptyStar { hidden });
       }
 
+      let exports_info_data = module_graph.get_prefetched_exports_info(
+        parent_module,
+        if let Some(hidden) = &hidden {
+          PrefetchExportsInfoMode::NamedExports(HashSet::from_iter(
+            exports.iter().chain(hidden.iter()),
+          ))
+        } else {
+          PrefetchExportsInfoMode::NamedExports(HashSet::from_iter(exports.iter()))
+        },
+      );
+
       let mut items = exports
-        .into_iter()
+        .iter()
         .map(|export_name| NormalReexportItem {
           name: export_name.clone(),
           ids: vec![export_name.clone()],
           hidden: false,
           checked: checked
             .as_ref()
-            .map(|c| c.contains(&export_name))
+            .map(|c| c.contains(export_name))
             .unwrap_or_default(),
-          export_info: exports_info.get_read_only_export_info(module_graph, &export_name),
+          export_info: exports_info_data
+            .get_read_only_export_info(export_name)
+            .id(),
         })
         .collect::<Vec<_>>();
 
@@ -280,7 +303,9 @@ impl ESMExportImportedSpecifierDependency {
             ids: vec![export_name.clone()],
             hidden: true,
             checked: false,
-            export_info: exports_info.get_read_only_export_info(module_graph, export_name),
+            export_info: exports_info_data
+              .get_read_only_export_info(export_name)
+              .id(),
           });
         }
       }

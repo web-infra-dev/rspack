@@ -349,11 +349,19 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         *runtime,
         &compilation.module_graph_cache_artifact,
       )
-      && !module_graph
-        .get_exports_info(con.module_identifier())
-        .get_used_name(&module_graph, *runtime, ids)
-        .map(|used| used.is_inlined())
-        .unwrap_or_default()
+      && {
+        let exports_info = module_graph.get_prefetched_exports_info(
+          con.module_identifier(),
+          if ids.is_empty() {
+            PrefetchExportsInfoMode::AllExports
+          } else {
+            PrefetchExportsInfoMode::NamedNestedExports(ids)
+          },
+        );
+        !ExportsInfoGetter::get_used_name(&exports_info, *runtime, ids)
+          .map(|used| used.is_inlined())
+          .unwrap_or_default()
+      }
     {
       return;
     }

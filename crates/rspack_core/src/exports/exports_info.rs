@@ -7,8 +7,7 @@ use rustc_hash::FxHashSet;
 use serde::Serialize;
 
 use super::{
-  ExportInfo, ExportInfoData, ExportInfoGetter, ExportInfoSetter, ExportProvided, UsageState,
-  UsedName, UsedNameItem, NEXT_EXPORTS_INFO_UKEY,
+  ExportInfo, ExportInfoData, ExportInfoSetter, ExportProvided, UsageState, NEXT_EXPORTS_INFO_UKEY,
 };
 use crate::{DependencyId, ModuleGraph, Nullable, RuntimeSpec};
 
@@ -344,98 +343,6 @@ impl ExportsInfo {
       UsageState::Used,
       runtime,
     )
-  }
-
-  /// `Option<UsedName>` correspond to webpack `string | string[] | false`
-  pub fn get_used_name(
-    &self,
-    mg: &ModuleGraph,
-    runtime: Option<&RuntimeSpec>,
-    names: &[Atom],
-  ) -> Option<UsedName> {
-    if names.len() == 1 {
-      let name = &names[0];
-      let info = self.get_read_only_export_info(mg, name);
-      let used_name = ExportInfoGetter::get_used_name(info.as_data(mg), Some(name), runtime);
-      return used_name.map(|name| match name {
-        UsedNameItem::Str(name) => UsedName::Normal(vec![name]),
-        UsedNameItem::Inlined(inlined) => UsedName::Inlined(inlined),
-      });
-    }
-    if names.is_empty() {
-      if !self.is_used(mg, runtime) {
-        return None;
-      }
-      return Some(UsedName::Normal(names.to_vec()));
-    }
-    let export_info = self.get_read_only_export_info(mg, &names[0]);
-    let export_info_data = export_info.as_data(mg);
-    let first = ExportInfoGetter::get_used_name(export_info_data, Some(&names[0]), runtime)?;
-    let mut arr = match first {
-      UsedNameItem::Inlined(inlined) => return Some(UsedName::Inlined(inlined)),
-      UsedNameItem::Str(first) => vec![first],
-    };
-    if names.len() == 1 {
-      return Some(UsedName::Normal(arr));
-    }
-    if let Some(exports_info) = export_info_data.exports_info()
-      && ExportInfoGetter::get_used(export_info_data, runtime) == UsageState::OnlyPropertiesUsed
-    {
-      let nested = exports_info.get_used_name(mg, runtime, &names[1..])?;
-      let nested = match nested {
-        UsedName::Inlined(inlined) => return Some(UsedName::Inlined(inlined)),
-        UsedName::Normal(names) => names,
-      };
-      arr.extend(nested);
-      return Some(UsedName::Normal(arr));
-    }
-    arr.extend(names.iter().skip(1).cloned());
-    Some(UsedName::Normal(arr))
-  }
-
-  pub fn get_used(
-    &self,
-    mg: &ModuleGraph,
-    names: &[Atom],
-    runtime: Option<&RuntimeSpec>,
-  ) -> UsageState {
-    if names.len() == 1 {
-      let value = &names[0];
-      let info = self.get_read_only_export_info(mg, value);
-      let used = ExportInfoGetter::get_used(info.as_data(mg), runtime);
-      return used;
-    }
-    if names.is_empty() {
-      return ExportInfoGetter::get_used(self.as_data(mg).other_exports_info.as_data(mg), runtime);
-    }
-    let info = self.get_read_only_export_info(mg, &names[0]);
-    if let Some(exports_info) = info.as_data(mg).exports_info()
-      && names.len() > 1
-    {
-      return exports_info.get_used(mg, &names[1..], runtime);
-    }
-    ExportInfoGetter::get_used(info.as_data(mg), runtime)
-  }
-
-  pub fn is_used(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> bool {
-    let info = self.as_data(mg);
-    if let Some(redirect_to) = info.redirect_to {
-      if redirect_to.is_used(mg, runtime) {
-        return true;
-      }
-    } else {
-      let other_exports_info = &info.other_exports_info;
-      if ExportInfoGetter::get_used(other_exports_info.as_data(mg), runtime) != UsageState::Unused {
-        return true;
-      }
-    }
-
-    for export_info in info.exports.values() {
-      if ExportInfoGetter::get_used(export_info.as_data(mg), runtime) != UsageState::Unused {
-        return true;
-      }
-    }
-    false
   }
 }
 
