@@ -24,7 +24,7 @@ permissions:
 jobs:
   bench:
     name: Bench
-    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON(inputs.runner) }}
     defaults:
       run:
         shell: bash
