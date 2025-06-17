@@ -6,7 +6,7 @@ use napi_derive::napi;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
-  DependencyCategory, FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, Resolve,
+  DependencyCategory, FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier,
   ResolveOptionsWithDependencyType, RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{
@@ -369,11 +369,14 @@ impl Module {
   pub fn resolver(&mut self) -> napi::Result<JsResolver> {
     let (compilation, module) = self.as_ref()?;
     let resolver_factory = compilation.resolver_factory.clone();
+    let global_resolve_options = compilation.options.resolve.clone();
+    let resolve_options = match module.get_resolve_options() {
+      Some(resolve_options) => global_resolve_options.merge((*resolve_options).clone()),
+      None => global_resolve_options,
+    };
+    dbg!(&resolve_options);
     let options = ResolveOptionsWithDependencyType {
-      resolve_options: match module.get_resolve_options() {
-        Some(resolve_options) => Some(Box::new((*resolve_options).clone())),
-        None => None,
-      },
+      resolve_options: Some(Box::new(resolve_options)),
       resolve_to_context: false,
       dependency_category: DependencyCategory::Unknown,
     };

@@ -5,15 +5,27 @@ class Plugin {
 	 * @param {import("@rspack/core").Compiler} compiler
 	 */
 	apply(compiler) {
+		/** @param {import('@rspack/core').Resolve} options */
+		const resolveFoo = (options = {}) => {
+			const resolver = compiler.resolverFactory.get("normal", options);
+			const resolved = resolver.resolveSync({}, compiler.context, "./foo");
+			return resolved ? path.basename(resolved) : null;
+		};
+
+		// expect(resolveFoo()).toBe("foo.js");
+
 		const cases = [".mjs", ".js", ".mjs"];
 		for (const ext of cases) {
-			const resolver = compiler.resolverFactory.get("normal", {
-				extensions: [ext, ".js"]
-			});
-			const request = "./foo";
-			const resolved = resolver.resolveSync({}, compiler.context, request);
-			expect(resolved && path.basename(resolved)).toBe(`foo${ext}`);
+			// expect(resolveFoo({ extensions: [ext, ".js"] })).toBe(`foo${ext}`);
 		}
+
+		compiler.hooks.afterResolvers.tap("Plugin", () => {
+			// expect(resolveFoo()).toBe("foo.mjs");
+		});
+
+		compiler.hooks.done.tap("Plugin", () => {
+			expect(resolveFoo()).toBe("foo.mjs");
+		});
 	}
 }
 
