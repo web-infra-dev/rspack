@@ -532,10 +532,7 @@ export async function runLoaders(
 		};
 	};
 
-	const getResolver = memoize(() => {
-		const resolver = new Resolver(context._module._resolver);
-		return resolver;
-	});
+	const getResolver = memoize(() => new Resolver(context._module._resolver()));
 
 	loaderContext.resolve = function resolve(context, request, callback) {
 		getResolver().resolve({}, context, request, getResolveContext(), callback);

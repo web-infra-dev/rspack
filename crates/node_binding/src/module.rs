@@ -365,17 +365,19 @@ impl Module {
     )
   }
 
-  #[napi(getter, js_name = "_resolver")]
+  #[napi(js_name = "_resolver")]
   pub fn resolver(&mut self) -> napi::Result<JsResolver> {
     let (compilation, module) = self.as_ref()?;
-    let resolve_options = module.get_resolve_options().unwrap();
     let resolver_factory = compilation.resolver_factory.clone();
     let options = ResolveOptionsWithDependencyType {
-      resolve_options: Some(Box::new((*resolve_options).clone())),
+      resolve_options: match module.get_resolve_options() {
+        Some(resolve_options) => Some(Box::new((*resolve_options).clone())),
+        None => None,
+      },
       resolve_to_context: false,
       dependency_category: DependencyCategory::Unknown,
     };
-    dbg!(Ok(JsResolver::new(resolver_factory, options)))
+    Ok(JsResolver::new(resolver_factory, options))
   }
 
   #[napi]
