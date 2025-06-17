@@ -1,7 +1,7 @@
 use rspack_core::{
   ConnectionState, DependencyConditionFn, DependencyId, EvaluatedInlinableValue, ExportsInfoGetter,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, PrefetchExportsInfoMode,
-  RuntimeSpec, UsedName,
+  GetUsedNameParam, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  PrefetchExportsInfoMode, RuntimeSpec, UsedName,
 };
 use swc_core::ecma::{
   ast::{ModuleDecl, ModuleItem, Program, VarDeclKind},
@@ -143,16 +143,13 @@ impl DependencyConditionFn for InlineConstDependencyCondition {
       .downcast_ref::<ESMImportSpecifierDependency>()
       .expect("should be ESMImportSpecifierDependency");
     let ids = dependency.get_ids(mg);
-    let exports_info = mg.get_prefetched_exports_info(
-      module,
-      if ids.is_empty() {
-        PrefetchExportsInfoMode::AllExports
-      } else {
-        PrefetchExportsInfoMode::NamedNestedExports(ids)
-      },
-    );
+    if ids.is_empty() {
+      return bailout;
+    }
+    let exports_info =
+      mg.get_prefetched_exports_info(module, PrefetchExportsInfoMode::NamedNestedExports(ids));
     if matches!(
-      ExportsInfoGetter::get_used_name(&exports_info, runtime, ids),
+      ExportsInfoGetter::get_used_name(GetUsedNameParam::WithNames(&exports_info), runtime, ids),
       Some(UsedName::Inlined(_))
     ) {
       return ConnectionState::Active(false);

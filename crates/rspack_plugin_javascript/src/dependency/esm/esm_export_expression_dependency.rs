@@ -5,8 +5,8 @@ use rspack_core::{
   property_access, rspack_sources::ReplacementEnforce, AsContextDependency, AsModuleDependency,
   Dependency, DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ESMExportInitFragment,
-  ExportNameOrSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
-  ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals, SharedSourceMap,
+  ExportNameOrSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam,
+  ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals, SharedSourceMap,
   TemplateContext, TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
 };
 use rustc_hash::FxHashSet;
@@ -180,10 +180,10 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       if let Some(scope) = concatenation_scope {
         scope.register_export(JS_DEFAULT_KEYWORD.clone(), name.to_string());
       } else if let Some(used) = ExportsInfoGetter::get_used_name(
-        &mg.get_prefetched_exports_info(
+        GetUsedNameParam::WithNames(&mg.get_prefetched_exports_info(
           &module_identifier,
           PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&*JS_DEFAULT_KEYWORD])),
-        ),
+        )),
         *runtime,
         std::slice::from_ref(&JS_DEFAULT_KEYWORD),
       ) && let UsedName::Normal(used) = used
@@ -220,10 +220,10 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
           if supports_const { "const" } else { "var" }
         )
       } else if let Some(used) = ExportsInfoGetter::get_used_name(
-        &mg.get_prefetched_exports_info(
+        GetUsedNameParam::WithNames(&mg.get_prefetched_exports_info(
           &module_identifier,
           PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&*JS_DEFAULT_KEYWORD])),
-        ),
+        )),
         *runtime,
         std::slice::from_ref(&JS_DEFAULT_KEYWORD),
       ) {

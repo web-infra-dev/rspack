@@ -8,9 +8,10 @@ use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportInfoGetter,
   ExportNameOrSpec, ExportProvided, ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec,
-  ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, Nullable, PrefetchExportsInfoMode, ReferencedExport,
-  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, Nullable,
+  PrefetchExportsInfoMode, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, UsageState, UsedName,
 };
 use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
@@ -451,18 +452,29 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();
 
-    let used = ExportsInfoGetter::get_used_name(
-      &mg.get_prefetched_exports_info(
+    let used = if dep.names.is_empty() {
+      let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
+        &mg.get_exports_info(&module.identifier()),
+        mg,
+        *runtime,
+        false,
+      );
+      ExportsInfoGetter::get_used_name(
+        GetUsedNameParam::WithoutNames(&exports_info),
+        *runtime,
+        &dep.names,
+      )
+    } else {
+      let exports_info = mg.get_prefetched_exports_info(
         &module.identifier(),
-        if dep.names.is_empty() {
-          PrefetchExportsInfoMode::AllExports
-        } else {
-          PrefetchExportsInfoMode::NamedNestedExports(&dep.names)
-        },
-      ),
-      *runtime,
-      &dep.names,
-    );
+        PrefetchExportsInfoMode::NamedNestedExports(&dep.names),
+      );
+      ExportsInfoGetter::get_used_name(
+        GetUsedNameParam::WithNames(&exports_info),
+        *runtime,
+        &dep.names,
+      )
+    };
 
     let base = if dep.base.is_exports() {
       runtime_requirements.insert(RuntimeGlobals::EXPORTS);
@@ -480,14 +492,14 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
     let require_expr = if let Some(imported_module) = mg.get_module_by_dependency_id(&dep.id)
       && let ids = dep.get_ids(mg)
       && let Some(used_imported) = ExportsInfoGetter::get_used_name(
-        &mg.get_prefetched_exports_info(
+        GetUsedNameParam::WithNames(&mg.get_prefetched_exports_info(
           &imported_module.identifier(),
           if ids.is_empty() {
             PrefetchExportsInfoMode::AllExports
           } else {
             PrefetchExportsInfoMode::NamedNestedExports(ids)
           },
-        ),
+        )),
         *runtime,
         ids,
       ) {

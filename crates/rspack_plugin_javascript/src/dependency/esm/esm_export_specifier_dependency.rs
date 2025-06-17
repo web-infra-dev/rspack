@@ -7,9 +7,9 @@ use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ESMExportInitFragment, EvaluatedInlinableValue,
-  ExportNameOrSpec, ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
-  ModuleGraphCacheArtifact, PrefetchExportsInfoMode, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, UsedName,
+  ExportNameOrSpec, ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec,
+  GetUsedNameParam, ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode,
+  SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
@@ -156,8 +156,11 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       &module.identifier(),
       PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&dep.name])),
     );
-    let used_name =
-      ExportsInfoGetter::get_used_name(&exports_info, *runtime, std::slice::from_ref(&dep.name));
+    let used_name = ExportsInfoGetter::get_used_name(
+      GetUsedNameParam::WithNames(&exports_info),
+      *runtime,
+      std::slice::from_ref(&dep.name),
+    );
     if let Some(used_name) = used_name {
       let used_name = match used_name {
         UsedName::Normal(vec) => {

@@ -978,12 +978,12 @@ impl ModuleConcatenationPlugin {
       let module_graph = compilation.get_module_graph();
       let module_graph_cache = &compilation.module_graph_cache_artifact;
       let exports_info = module_graph.get_exports_info(current_root);
+      let exports_info_data = ExportsInfoGetter::prefetch(
+        &exports_info,
+        &module_graph,
+        PrefetchExportsInfoMode::AllExports,
+      );
       let filtered_runtime = filter_runtime(Some(&chunk_runtime), |r| {
-        let exports_info_data = ExportsInfoGetter::prefetch(
-          &exports_info,
-          &module_graph,
-          PrefetchExportsInfoMode::AllExports,
-        );
         ExportsInfoGetter::is_module_used(&exports_info_data, r)
       });
       let active_runtime = match filtered_runtime {
