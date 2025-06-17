@@ -1,3 +1,5 @@
+const path = require("path");
+
 class Plugin {
 	/**
 	 * @param {import("@rspack/core").Compiler} compiler
@@ -5,16 +7,12 @@ class Plugin {
 	apply(compiler) {
 		const cases = [".mjs", ".js", ".mjs"];
 		for (const ext of cases) {
-			const normalResolver = compiler.resolverFactory.get("normal", {
+			const resolver = compiler.resolverFactory.get("normal", {
 				extensions: [ext, ".js"]
 			});
 			const request = "./foo";
-			const resolved = normalResolver.resolveSync(
-				{},
-				compiler.context,
-				request
-			);
-			expect(resolved && resolved.split("/").at(-1)).toBe(`foo${ext}`);
+			const resolved = resolver.resolveSync({}, compiler.context, request);
+			expect(resolved && path.basename(resolved)).toBe(`foo${ext}`);
 		}
 	}
 }
