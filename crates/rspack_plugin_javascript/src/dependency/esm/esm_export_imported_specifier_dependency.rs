@@ -387,7 +387,7 @@ impl ESMExportImportedSpecifierDependency {
     };
 
     if no_extra_imports {
-      for export_info in exports_info.exports.values() {
+      for export_info in exports_info.exports() {
         let export_info_data = export_info.as_data(module_graph);
         let export_name = export_info_data.name().cloned().unwrap_or_default();
         if ignored_exports.contains(&export_name)
@@ -429,7 +429,7 @@ impl ESMExportImportedSpecifierDependency {
         checked.insert(export_name);
       }
     } else if no_extra_exports {
-      for imported_export_info in imported_exports_info.exports.values() {
+      for imported_export_info in imported_exports_info.exports() {
         let imported_export_info_data = imported_export_info.as_data(module_graph);
         let imported_export_info_name = imported_export_info_data
           .name()
@@ -980,7 +980,7 @@ impl ESMExportImportedSpecifierDependency {
       let exports_info = module_graph.get_exports_info(&imported_module.identifier());
       let mut conflicts: IndexMap<&str, Vec<&Atom>, BuildHasherDefault<FxHasher>> =
         IndexMap::default();
-      for export_info in exports_info.as_data(module_graph).exports.values() {
+      for export_info in exports_info.as_data(module_graph).exports() {
         let export_info_data = export_info.as_data(module_graph);
         if !matches!(export_info_data.provided(), Some(ExportProvided::Provided)) {
           continue;
@@ -1458,7 +1458,7 @@ fn determine_export_assignments(
       let exports_info = module_graph
         .get_exports_info(module_identifier)
         .as_data(module_graph);
-      for export_info in exports_info.exports.values() {
+      for export_info in exports_info.exports() {
         let export_info_data = export_info.as_data(module_graph);
         // SAFETY: This is safe because a real export can't export empty string
         let export_info_name = export_info_data.name().expect("export name is empty");

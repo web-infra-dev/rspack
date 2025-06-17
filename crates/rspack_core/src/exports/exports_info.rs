@@ -35,12 +35,7 @@ impl ExportsInfo {
   // ExportProvideInfo is created by FlagDependencyExportsPlugin, and should not mutate after create
   // ExportUsedInfo is created by FlagDependencyUsagePlugin or Plugin::finish_modules, and should not mutate after create
   pub fn reset_provide_info(&self, mg: &mut ModuleGraph) {
-    let exports = self
-      .as_data(mg)
-      .exports
-      .values()
-      .copied()
-      .collect::<Vec<_>>();
+    let exports = self.as_data(mg).exports().copied().collect::<Vec<_>>();
     for export_info in exports {
       ExportInfoSetter::reset_provide_info(export_info.as_data_mut(mg));
     }
@@ -60,7 +55,7 @@ impl ExportsInfo {
     let exports_info = self.as_data(mg);
     let redirect_id = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
-    let export_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
+    let export_id_list = exports_info.exports().copied().collect::<Vec<_>>();
     for export_info_id in export_id_list {
       let export_info = mg.get_export_info_mut_by_id(&export_info_id);
       if export_info.provided().is_none() {
@@ -112,7 +107,7 @@ impl ExportsInfo {
     let exports_info = self.as_data(mg);
     let redirect_to = exports_info.redirect_to;
     let other_exports_info = exports_info.other_exports_info;
-    let exports_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
+    let exports_id_list = exports_info.exports().copied().collect::<Vec<_>>();
     for export_info in exports_id_list {
       let export_info_data = export_info.as_data_mut(mg);
       if !can_mangle && export_info_data.can_mangle_provide() != Some(false) {
@@ -191,7 +186,7 @@ impl ExportsInfo {
     let exports_info = self.as_data(mg);
     let redirect_to = exports_info.redirect_to;
     let other_exports_info = exports_info.other_exports_info;
-    let export_info = exports_info.exports.get(name);
+    let export_info = exports_info.named_exports(name);
     if let Some(export_info) = export_info {
       return *export_info;
     }
@@ -205,7 +200,7 @@ impl ExportsInfo {
     let exports_info: &ExportsInfoData = self.as_data(mg);
     let redirect_id = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
-    let export_info_id = exports_info.exports.get(name);
+    let export_info_id = exports_info.named_exports(name);
     if let Some(export_info_id) = export_info_id {
       return *export_info_id;
     }
@@ -219,7 +214,7 @@ impl ExportsInfo {
     mg.set_export_info(new_info_id, new_info);
 
     let exports_info = self.as_data_mut(mg);
-    exports_info.exports.insert(name.clone(), new_info_id);
+    exports_info.exports_mut().insert(name.clone(), new_info_id);
     new_info_id
   }
 
@@ -229,7 +224,7 @@ impl ExportsInfo {
     let redirect_to_id = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
     // this clone aiming to avoid use the mutable ref and immutable ref at the same time.
-    let export_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
+    let export_id_list = exports_info.exports().copied().collect::<Vec<_>>();
     for export_info in export_id_list {
       ExportInfoSetter::set_has_use_info(&export_info, mg);
     }
@@ -251,7 +246,7 @@ impl ExportsInfo {
     let redirect = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
     // avoid use ref and mut ref at the same time
-    let export_info_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
+    let export_info_id_list = exports_info.exports().copied().collect::<Vec<_>>();
     for export_info_id in export_info_id_list {
       let flag = ExportInfoSetter::set_used_without_info(export_info_id.as_data_mut(mg), runtime);
       changed |= flag;
@@ -282,7 +277,7 @@ impl ExportsInfo {
   ) -> bool {
     let mut changed = false;
     let exports_info = self.as_data_mut(mg);
-    let export_info_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
+    let export_info_id_list = exports_info.exports().copied().collect::<Vec<_>>();
     for export_info_id in export_info_id_list {
       let export_info = export_info_id.as_data_mut(mg);
       if !matches!(export_info.provided(), Some(ExportProvided::Provided)) {
@@ -300,7 +295,7 @@ impl ExportsInfo {
   ) -> bool {
     let mut changed = false;
     let exports_info = self.as_data(mg);
-    let export_info_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
+    let export_info_id_list = exports_info.exports().copied().collect::<Vec<_>>();
     let redirect_to_id = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
     for export_info_id in export_info_id_list {
@@ -377,5 +372,33 @@ impl ExportsInfoData {
 
   pub fn id(&self) -> ExportsInfo {
     self.id
+  }
+
+  pub fn redirect_to(&self) -> Option<ExportsInfo> {
+    self.redirect_to
+  }
+
+  pub fn other_exports_info(&self) -> ExportInfo {
+    self.other_exports_info
+  }
+
+  pub fn side_effects_only_info(&self) -> ExportInfo {
+    self.side_effects_only_info
+  }
+
+  pub fn exports(&self) -> impl Iterator<Item = &ExportInfo> {
+    self.exports.values()
+  }
+
+  pub fn exports_with_names(&self) -> impl Iterator<Item = (&Atom, &ExportInfo)> {
+    self.exports.iter()
+  }
+
+  pub fn named_exports(&self, name: &Atom) -> Option<&ExportInfo> {
+    self.exports.get(name)
+  }
+
+  pub fn exports_mut(&mut self) -> &mut BTreeMap<Atom, ExportInfo> {
+    &mut self.exports
   }
 }

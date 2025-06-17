@@ -190,7 +190,7 @@ fn is_equally_used(
   {
     return false;
   }
-  for export_info in info.exports.values() {
+  for export_info in info.exports() {
     let export_info_data = export_info.as_data(mg);
     if ExportInfoGetter::get_used(export_info_data, Some(a))
       != ExportInfoGetter::get_used(export_info_data, Some(b))

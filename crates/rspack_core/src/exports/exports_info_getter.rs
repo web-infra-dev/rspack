@@ -498,7 +498,7 @@ impl ExportsInfoGetter {
         PrefetchExportsInfoMode::Default => IndexMap::new(),
         PrefetchExportsInfoMode::NamedExports(ref names) => {
           let mut exports = IndexMap::new();
-          for (key, value) in exports_info.exports.iter() {
+          for (key, value) in exports_info.exports_with_names() {
             if !names.contains(key) {
               continue;
             }
@@ -514,7 +514,7 @@ impl ExportsInfoGetter {
         }
         PrefetchExportsInfoMode::AllExports => {
           let mut exports = IndexMap::new();
-          for (key, value) in exports_info.exports.iter() {
+          for (key, value) in exports_info.exports_with_names() {
             exports.insert(
               key,
               PrefetchedExportInfoData {
@@ -528,7 +528,7 @@ impl ExportsInfoGetter {
         PrefetchExportsInfoMode::NamedNestedExports(names) => {
           let mut exports = IndexMap::new();
           if let Some(name) = names.first() {
-            if let Some(export_info) = exports_info.exports.get(name) {
+            if let Some(export_info) = exports_info.named_exports(name) {
               let export_info = export_info.as_data(mg);
               if let Some(nested_exports_info) = export_info.exports_info() {
                 nested_exports.push((
@@ -549,7 +549,7 @@ impl ExportsInfoGetter {
         }
         PrefetchExportsInfoMode::NamedNestedAllExports(names) => {
           let mut exports = IndexMap::new();
-          for (key, value) in exports_info.exports.iter() {
+          for (key, value) in exports_info.exports_with_names() {
             let export_info = value.as_data(mg);
 
             if names.first().is_some_and(|name| name == key) {
@@ -573,7 +573,7 @@ impl ExportsInfoGetter {
         }
         PrefetchExportsInfoMode::Full => {
           let mut exports = IndexMap::new();
-          for (key, value) in exports_info.exports.iter() {
+          for (key, value) in exports_info.exports_with_names() {
             let export_info = value.as_data(mg);
 
             if let Some(nested_exports_info) = export_info.exports_info() {

@@ -50,7 +50,7 @@ fn is_connection_active(
     runtime: Option<&RuntimeSpec>,
   ) -> bool {
     let exports_info = exports_info.as_data(mg);
-    if let Some(export_info) = exports_info.exports.get(name) {
+    if let Some(export_info) = exports_info.named_exports(name) {
       let export_info = export_info.as_data(mg);
       return ExportInfoGetter::get_used(export_info, runtime) != UsageState::Unused;
     }
