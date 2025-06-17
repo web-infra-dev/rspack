@@ -225,10 +225,10 @@ impl napi::bindgen_prelude::ValidateNapiValue for RspackError {}
 // ];
 impl std::fmt::Display for RspackError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    write!(f, "{}: ", self.name)?;
     if self.display_type.as_deref() == Some("ModuleBuildError") {
       // https://github.com/webpack/webpack/blob/93743d233ab4fa36738065ebf8df5f175323b906/lib/ModuleBuildError.js
       let message = if let Some(stack) = &self.stack {
+        write!(f, "{}: ", self.name)?;
         if self.hide_stack != Some(true) {
           stack
         } else {
@@ -239,9 +239,15 @@ impl std::fmt::Display for RspackError {
       };
       write!(f, "{message}")
     } else {
-      write!(f, "{}", &self.message)?;
       if let Some(details) = &self.details {
+        write!(f, "{}: ", self.name)?;
+        write!(f, "{}", &self.message)?;
         write!(f, "\n{details}")?;
+      } else if let Some(stack) = &self.stack {
+        write!(f, "{stack}")?;
+      } else {
+        write!(f, "{}: ", self.name)?;
+        write!(f, "{}", &self.message)?;
       }
       Ok(())
     }
