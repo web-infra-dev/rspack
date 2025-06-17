@@ -47,7 +47,7 @@ pub struct RsdoctorModule {
   pub modules: HashSet<ModuleUkey>,
   pub belong_modules: HashSet<ModuleUkey>,
   pub issuer_path: Option<Vec<RsdoctorStatsModuleIssuer>>,
-  pub bailout_reason: Option<String>,
+  pub bailout_reason: HashSet<String>,
 }
 
 #[derive(Debug, Default)]

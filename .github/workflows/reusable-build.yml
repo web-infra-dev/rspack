@@ -9,6 +9,9 @@ on:
       runner: # Runner labels
         required: true
         type: string
+      test-runner: # Test Runner labels
+        required: false
+        type: string
       profile: # Rust profile, "ci" or "production" or "profiling"
         default: "ci"
         required: false
@@ -24,6 +27,11 @@ on:
       ref: # Git reference to checkout
         required: false
         type: string
+      prefer_docker:
+        required: false
+        default: true
+        type: boolean
+        description: "Prefer to building in docker if supported"
 
 permissions:
   # Allow commenting on issues
@@ -37,17 +45,28 @@ jobs:
       runner: ${{ inputs.runner }}
       profile: ${{ inputs.profile }}
       ref: ${{ inputs.ref }}
+      prefer_docker: ${{ inputs.prefer_docker }}
   test:
     if: inputs.test
     needs: build
     uses: ./.github/workflows/reusable-build-test.yml
     with:
       target: ${{ inputs.target }}
+      runner: ${{ inputs.test-runner || inputs.runner }}
+      ref: ${{ inputs.ref }}
+  codspeed:
+    name: Codspeed-build
+    if: inputs.bench
+    uses: ./.github/workflows/reusable-build-codspeed.yml
+    with:
+      target: ${{ inputs.target }}
       runner: ${{ inputs.runner }}
       ref: ${{ inputs.ref }}
+
   bench:
     uses: ./.github/workflows/reusable-build-bench.yml
     if: inputs.bench
+    needs: [build, codspeed]
     with:
       target: ${{ inputs.target }}
       runner: '"ubuntu-22.04"'

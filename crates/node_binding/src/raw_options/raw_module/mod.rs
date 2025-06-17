@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Formatter, sync::Arc};
+use std::{collections::HashMap, fmt::Formatter, ptr::NonNull, sync::Arc};
 
 use derive_more::Debug;
 use napi::{
@@ -289,6 +289,9 @@ pub struct RawJavascriptParserOptions {
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub import_dynamic: Option<bool>,
+  /// This option is experimental in Rspack only and subject to change or be removed anytime.
+  /// @experimental
+  pub inline_const: Option<bool>,
 }
 
 impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
@@ -329,6 +332,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       require_dynamic: value.require_dynamic,
       require_resolve: value.require_resolve,
       import_dynamic: value.import_dynamic,
+      inline_const: value.inline_const,
     }
   }
 }
@@ -646,9 +650,19 @@ pub struct RawAssetGeneratorDataUrlFnCtx {
 
 impl From<AssetGeneratorDataUrlFnCtx<'_>> for RawAssetGeneratorDataUrlFnCtx {
   fn from(value: AssetGeneratorDataUrlFnCtx) -> Self {
+    // AssetGeneratorDataUrlFn may be called during the importModule process,
+    // at which point the corresponding Module is not present in compilation.moduleGraph.
+    // Therefore, we use a raw pointer to allow JavaScript to access the Module.
+    #[allow(clippy::unwrap_used)]
     Self {
       filename: value.filename,
-      module: ModuleObject::with_ref(value.module, value.compilation.compiler_id()),
+      module: ModuleObject::with_ptr(
+        NonNull::new(
+          value.module as *const dyn rspack_core::Module as *mut dyn rspack_core::Module,
+        )
+        .unwrap(),
+        value.compilation.compiler_id(),
+      ),
     }
   }
 }

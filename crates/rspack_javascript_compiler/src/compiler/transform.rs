@@ -36,7 +36,10 @@ use swc_core::{
   },
   ecma::{
     ast::{EsVersion, Pass, Program},
-    parser::{parse_file_as_module, parse_file_as_program, parse_file_as_script, Syntax},
+    parser::{
+      parse_file_as_commonjs, parse_file_as_module, parse_file_as_program, parse_file_as_script,
+      Syntax,
+    },
     transforms::base::helpers::{self, Helpers},
   },
 };
@@ -356,6 +359,9 @@ impl<'a> JavaScriptTransformer<'a> {
         parse_file_as_script(&fm, syntax, target, comments, &mut errors).map(Program::Script)
       }
       IsModule::Unknown => parse_file_as_program(&fm, syntax, target, comments, &mut errors),
+      IsModule::CommonJS => {
+        parse_file_as_commonjs(&fm, syntax, target, comments, &mut errors).map(Program::Script)
+      }
     };
 
     for e in errors {
@@ -477,6 +483,7 @@ impl<'a> JavaScriptTransformer<'a> {
         BoolOr::Bool(true) | BoolOr::Data(JsMinifyCommentOption::PreserveAllComments) => true,
         BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments) => false,
         BoolOr::Bool(false) => false,
+        BoolOr::Data(JsMinifyCommentOption::PreserveRegexComments { .. }) => false,
       };
 
       minify_file_comments(
