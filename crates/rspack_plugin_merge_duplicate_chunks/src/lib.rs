@@ -172,19 +172,19 @@ fn is_equally_used(
   b: &RuntimeSpec,
 ) -> bool {
   let info = mg.get_exports_info_by_id(exports_info);
-  if let Some(redirect_to) = &info.redirect_to {
+  if let Some(redirect_to) = &info.redirect_to() {
     if is_equally_used(redirect_to, mg, a, b) {
       return false;
     }
   } else {
-    let other_exports_info = info.other_exports_info.as_data(mg);
+    let other_exports_info = info.other_exports_info().as_data(mg);
     if ExportInfoGetter::get_used(other_exports_info, Some(a))
       != ExportInfoGetter::get_used(other_exports_info, Some(b))
     {
       return false;
     }
   }
-  let side_effects_only_info = info.side_effects_only_info.as_data(mg);
+  let side_effects_only_info = info.side_effects_only_info().as_data(mg);
   if ExportInfoGetter::get_used(side_effects_only_info, Some(a))
     != ExportInfoGetter::get_used(side_effects_only_info, Some(b))
   {

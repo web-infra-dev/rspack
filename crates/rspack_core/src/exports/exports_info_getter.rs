@@ -33,12 +33,15 @@ pub struct PrefetchedExportsInfoWrapper<'a> {
    * stored in a map to prevent circular references
    * When redirect, this data can be cloned to generate a new PrefetchedExportsInfoWrapper with a new entry
    */
-  pub exports: Arc<HashMap<ExportsInfo, PrefetchedExportsInfoData<'a>>>,
+  exports: Arc<HashMap<ExportsInfo, PrefetchedExportsInfoData<'a>>>,
   /**
    * The entry of the current exports info
    */
-  pub entry: ExportsInfo,
-  pub mode: PrefetchExportsInfoMode<'a>,
+  entry: ExportsInfo,
+  /**
+   * The prefetch mode of the current exports info
+   */
+  mode: PrefetchExportsInfoMode<'a>,
 }
 
 impl<'a> PrefetchedExportsInfoWrapper<'a> {
@@ -592,17 +595,17 @@ impl ExportsInfoGetter {
         }
       };
 
-      let other_exports_info_data = exports_info.other_exports_info.as_data(mg);
+      let other_exports_info_data = exports_info.other_exports_info().as_data(mg);
       if let Some(other_exports) = other_exports_info_data.exports_info() {
         nested_exports.push((other_exports, PrefetchExportsInfoMode::Default));
       }
 
-      let side_effects_only_info_data = exports_info.side_effects_only_info.as_data(mg);
+      let side_effects_only_info_data = exports_info.side_effects_only_info().as_data(mg);
       if let Some(side_exports) = side_effects_only_info_data.exports_info() {
         nested_exports.push((side_exports, PrefetchExportsInfoMode::Default));
       }
 
-      if let Some(redirect_to) = exports_info.redirect_to {
+      if let Some(redirect_to) = exports_info.redirect_to() {
         nested_exports.push((redirect_to, mode.clone()));
       }
 
@@ -618,7 +621,7 @@ impl ExportsInfoGetter {
             inner: side_effects_only_info_data,
             // exports_info: side_effects_only_info_data.exports_info,
           },
-          redirect_to: exports_info.redirect_to,
+          redirect_to: exports_info.redirect_to(),
           id: *id,
         },
       );

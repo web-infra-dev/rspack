@@ -54,10 +54,10 @@ fn is_connection_active(
       let export_info = export_info.as_data(mg);
       return ExportInfoGetter::get_used(export_info, runtime) != UsageState::Unused;
     }
-    if let Some(redirect_to) = exports_info.redirect_to {
+    if let Some(redirect_to) = exports_info.redirect_to() {
       is_export_active(name, &redirect_to, mg, runtime)
     } else {
-      ExportInfoGetter::get_used(exports_info.other_exports_info.as_data(mg), runtime)
+      ExportInfoGetter::get_used(exports_info.other_exports_info().as_data(mg), runtime)
         != UsageState::Unused
     }
   }

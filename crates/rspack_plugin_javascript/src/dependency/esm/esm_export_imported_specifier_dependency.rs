@@ -341,14 +341,14 @@ impl ESMExportImportedSpecifierDependency {
 
     let no_extra_exports = matches!(
       imported_exports_info
-        .other_exports_info
+        .other_exports_info()
         .as_data(module_graph)
         .provided(),
       Some(ExportProvided::NotProvided)
     );
     let no_extra_imports = matches!(
       ExportInfoGetter::get_used(
-        exports_info.other_exports_info.as_data(module_graph),
+        exports_info.other_exports_info().as_data(module_graph),
         runtime
       ),
       UsageState::Unused
@@ -400,7 +400,7 @@ impl ESMExportImportedSpecifierDependency {
         }
 
         let imported_export_info = imported_exports_info
-          .id
+          .id()
           .get_read_only_export_info(module_graph, &export_name);
         let imported_export_info_data = imported_export_info.as_data(module_graph);
         if matches!(
@@ -444,7 +444,7 @@ impl ESMExportImportedSpecifierDependency {
           continue;
         }
         let export_info = exports_info
-          .id
+          .id()
           .get_read_only_export_info(module_graph, &imported_export_info_name);
         let export_info_data = export_info.as_data(module_graph);
         if matches!(

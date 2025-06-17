@@ -53,7 +53,7 @@ impl<'a> FlagDependencyExportsState<'a> {
       let is_module_without_exports =
         module.build_meta().exports_type == BuildMetaExportsType::Unset;
       if is_module_without_exports {
-        let other_exports_info = exports_info.as_data(self.mg).other_exports_info;
+        let other_exports_info = exports_info.as_data(self.mg).other_exports_info();
         if !matches!(
           other_exports_info.as_data(self.mg).provided(),
           Some(ExportProvided::Unknown)
