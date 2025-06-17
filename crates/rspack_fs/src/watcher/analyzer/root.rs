@@ -1,25 +1,32 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use super::{Analyzer, WatchTarget};
-use crate::watcher::register::{All, PathRegister};
+use dashmap::DashSet as HashSet;
 
-#[derive(Default)]
-pub struct WatcherRootAnalyzer;
+use super::{Analyzer, WatchPattern};
+use crate::watcher::manager::{All, PathAccessor};
 
-impl Analyzer for WatcherRootAnalyzer {
-  fn analyze(&self, register: &PathRegister) -> Vec<WatchTarget> {
-    let root = self.find_watch_root(register);
-    vec![WatchTarget {
+pub struct WatcherRootAnalyzer<'a> {
+  path_accessor: PathAccessor<'a>,
+}
+
+impl<'a> Analyzer<'a> for WatcherRootAnalyzer<'a> {
+  fn new(path_accessor: PathAccessor<'a>) -> Self {
+    Self { path_accessor }
+  }
+
+  fn analyze(&self) -> Vec<WatchPattern> {
+    let root = self.find_watch_root();
+    vec![WatchPattern {
       path: root,
       mode: notify::RecursiveMode::Recursive,
     }]
   }
 }
 
-impl WatcherRootAnalyzer {
+impl<'a> WatcherRootAnalyzer<'a> {
   /// Returns the find watch root of this [`RootFinder`].
-  fn find_watch_root(&self, register: &PathRegister) -> PathBuf {
-    let tree_builder = TreeBuilder::new(register.all());
+  fn find_watch_root(&self) -> PathBuf {
+    let tree_builder = TreeBuilder::new(self.path_accessor.all());
     let (tree, root) = tree_builder.build_tree();
     self.find_common_root(&tree, &root)
   }
@@ -38,7 +45,7 @@ impl WatcherRootAnalyzer {
   fn find_common_root(&self, tree: &PathTree, path: &PathBuf) -> PathBuf {
     let node = tree.get(path).expect("Path should exist in the tree");
     if let Some(child) = node.only_child() {
-      self.find_common_root(tree, child)
+      self.find_common_root(tree, &child)
     } else {
       path.to_path_buf() // Return the current path if it has no single child
     }
@@ -49,17 +56,17 @@ type PathTree = HashMap<PathBuf, TreeNode>;
 
 #[derive(Debug, Default)]
 struct TreeNode {
-  children: Vec<PathBuf>,
+  children: HashSet<PathBuf>,
 }
 
 impl TreeNode {
-  fn add_child(&mut self, child: PathBuf) {
-    self.children.push(child);
+  fn add_child(&self, child: PathBuf) {
+    self.children.insert(child);
   }
 
-  fn only_child(&self) -> Option<&PathBuf> {
+  fn only_child(&self) -> Option<PathBuf> {
     if self.children.len() == 1 {
-      self.children.first()
+      self.children.iter().next().map(|c| c.key().clone())
     } else {
       None
     }
@@ -108,7 +115,7 @@ impl<'a> TreeBuilder<'a> {
           node.add_child(path.to_path_buf());
           None
         } else {
-          let mut parent_node = TreeNode::default();
+          let parent_node = TreeNode::default();
           parent_node.add_child(path.to_path_buf());
           tree.insert(parent.to_path_buf(), parent_node);
           Self::build_tree_recursive(&parent.to_path_buf(), tree)
@@ -116,5 +123,33 @@ impl<'a> TreeBuilder<'a> {
       }
       None => Some(path.to_path_buf()),
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use dashmap::DashSet as HashSet;
+
+  use super::*;
+
+  #[test]
+  fn test_find_watch_root() {
+    let current_dir = std::env::current_dir().expect("Failed to get current directory");
+    let files = HashSet::with_capacity(3);
+    files.insert(current_dir.join("Cargo.toml"));
+    files.insert(current_dir.join("src"));
+    files.insert(current_dir.join("src/lib.rs"));
+    let directories = HashSet::with_capacity(1);
+    directories.insert(current_dir.clone());
+    let missing = HashSet::new();
+
+    let path_accessor = PathAccessor::new(&files, &directories, &missing);
+
+    let analyzer = WatcherRootAnalyzer::new(path_accessor);
+    let watch_patterns = analyzer.analyze();
+
+    assert_eq!(watch_patterns.len(), 1);
+    assert_eq!(watch_patterns[0].path, current_dir);
+    assert_eq!(watch_patterns[0].mode, notify::RecursiveMode::Recursive);
   }
 }

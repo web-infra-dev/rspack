@@ -1,10 +1,10 @@
 mod analyzer;
 mod disk_watcher;
 mod executor;
-mod register;
+mod manager;
 mod trigger;
 
-use std::{collections::HashSet, sync::Arc};
+use std::{collections::HashSet, path::PathBuf, sync::Arc};
 
 type StdReceiver<T> = std::sync::mpsc::Receiver<T>;
 type StdSender<T> = std::sync::mpsc::Sender<T>;
@@ -12,20 +12,30 @@ type StdSender<T> = std::sync::mpsc::Sender<T>;
 use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
 use executor::Executor;
-pub use register::Ignored;
-use register::PathRegister;
+use manager::PathManager;
+pub use manager::{Ignored, PathUpdater};
 use rspack_error::Result;
-pub(crate) use trigger::{FsEvent, FsEventKind, Trigger};
+use trigger::{FsEvent, FsEventKind, Trigger};
 
-use crate::watcher::analyzer::WatchTarget;
-
-pub type IncrementalPaths = (Vec<String>, Vec<String>);
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub(crate) struct WatchPattern {
+  path: PathBuf,
+  mode: notify::RecursiveMode,
+}
 
 #[async_trait::async_trait]
 pub trait EventHandler {
-  async fn on_event_handle(&self, _changed_files: HashSet<String>, _deleted_files: HashSet<String>);
-  // async fn on_change(&self, _changed_file: String) {}
-  // async fn on_delete(&self, _deleted_file: String) {}
+  async fn on_event_handle(
+    &self,
+    _changed_files: HashSet<String>,
+    _deleted_files: HashSet<String>,
+  ) -> Result<()>;
+  async fn on_change(&self, _changed_file: String) -> Result<()> {
+    Ok(())
+  }
+  async fn on_delete(&self, _deleted_file: String) -> Result<()> {
+    Ok(())
+  }
 }
 
 pub struct FsWatcherOptions {
@@ -35,62 +45,66 @@ pub struct FsWatcherOptions {
 }
 
 pub struct FsWatcher {
-  path_register: Arc<PathRegister>,
+  path_manager: Arc<PathManager>,
   disk_watcher: DiskWatcher,
   executor: Executor,
-  analyzer: RecommendedAnalyzer,
 }
 
 impl FsWatcher {
   pub fn new(options: FsWatcherOptions, ignored: Option<Box<dyn Ignored>>) -> Self {
     let (tx, rx) = std::sync::mpsc::channel::<FsEvent>();
 
-    let path_register = Arc::new(PathRegister::new(ignored));
-    let trigger = Trigger::new(Arc::clone(&path_register), tx);
+    let path_manager = Arc::new(PathManager::new(ignored));
+    let trigger = Trigger::new(Arc::clone(&path_manager), tx);
     let disk_watcher = DiskWatcher::new(options.follow_symlinks, trigger);
     let executor = Executor::new(rx, options.aggregate_timeout);
 
     Self {
-      analyzer: RecommendedAnalyzer::default(),
       disk_watcher,
       executor,
-      path_register,
+      path_manager,
     }
   }
 
   pub async fn watch(
     &mut self,
-    files: IncrementalPaths,
-    directories: IncrementalPaths,
-    missing: IncrementalPaths,
+    files: PathUpdater,
+    directories: PathUpdater,
+    missing: PathUpdater,
     event_handler: Box<dyn EventHandler + Send + Sync>,
   ) -> Result<()> {
     self.wait_for_event(files, directories, missing).await?;
-    self.executor.wait_for_execute(event_handler);
+    self.executor.wait_for_execute(event_handler).await;
 
     Ok(())
   }
 
   pub fn close(&mut self) -> Result<()> {
-    // In this implementation, we don't have a specific close operation.
-    // If the watcher is using a background thread, we would signal it to stop.
-    // For now, we can just return Ok.
-    todo!("Implement close operation for FsWatcher");
+    self.disk_watcher.close();
+
+    Ok(())
+  }
+
+  pub async fn pause(&self) -> Result<()> {
+    self.executor.pause().await;
+
+    Ok(())
   }
 
   async fn wait_for_event(
     &mut self,
-    files: IncrementalPaths,
-    directories: IncrementalPaths,
-    missing: IncrementalPaths,
+    files: PathUpdater,
+    directories: PathUpdater,
+    missing: PathUpdater,
   ) -> Result<()> {
-    self.path_register.save(files, directories, missing).await;
+    self
+      .path_manager
+      .update_paths(files, directories, missing)
+      .await;
 
-    let watch_target = self.analyzer.analyze(&self.path_register);
-    for info in watch_target {
-      let WatchTarget { ref path, mode } = info;
-      self.disk_watcher.watch(path, mode)?;
-    }
+    let analyzer = RecommendedAnalyzer::new(self.path_manager.access());
+    let watch_patterns = analyzer.analyze();
+    self.disk_watcher.watch(watch_patterns.into_iter())?;
 
     Ok(())
   }

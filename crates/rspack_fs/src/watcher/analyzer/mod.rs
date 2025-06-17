@@ -1,17 +1,9 @@
 use std::path::PathBuf;
 
-use notify::RecursiveMode;
-
-use crate::watcher::register::PathRegister;
+use crate::watcher::{manager::PathAccessor, WatchPattern};
 
 mod directories;
 mod root;
-
-#[derive(Debug)]
-pub(crate) struct WatchTarget {
-  pub path: PathBuf,
-  pub mode: RecursiveMode,
-}
 
 /// The `Analyzer` trait defines an interface for analyzing a [`PathRegister`]
 /// and producing a set of [`WatchTarget`]s to be watched by the file system watcher.
@@ -21,7 +13,9 @@ pub(crate) struct WatchTarget {
 /// of the path register.
 ///
 /// The trait is bounded by `Default` to allow easy instantiation.
-pub(crate) trait Analyzer: Default {
+pub(crate) trait Analyzer<'a> {
+  fn new(path_accessor: PathAccessor<'a>) -> Self;
+
   /// Analyze the given [`PathRegister`] and return a list of [`WatchTarget`]s.
   ///
   /// # Arguments
@@ -29,11 +23,11 @@ pub(crate) trait Analyzer: Default {
   ///
   /// # Returns
   /// A vector of [`WatchTarget`]s representing the paths and their watch modes.
-  fn analyze(&self, register: &PathRegister) -> Vec<WatchTarget>;
+  fn analyze(&'a self) -> Vec<WatchPattern>;
 }
 
-fn for_each(register: &PathRegister, mut for_each: impl FnMut(&PathBuf)) {
-  let all = register.all();
+fn for_each<'a>(path_accessor: &PathAccessor<'a>, mut for_each: impl FnMut(&PathBuf)) {
+  let all = path_accessor.all();
   for p in all {
     let path = p.key();
     for_each(path);
@@ -41,7 +35,7 @@ fn for_each(register: &PathRegister, mut for_each: impl FnMut(&PathBuf)) {
 }
 
 #[cfg(any(target_os = "macos", target_os = "windows"))]
-pub type RecommendedAnalyzer = root::WatcherRootAnalyzer;
+pub type RecommendedAnalyzer<'a> = root::WatcherRootAnalyzer<'a>;
 
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-pub type RecommendedAnalyzer = directories::WatcherRootAnalyzer;
+pub type RecommendedAnalyzer<'a> = directories::WatcherRootAnalyzer<'a>;

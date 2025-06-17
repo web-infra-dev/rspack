@@ -1,16 +1,16 @@
-use std::{collections::HashSet, path::PathBuf};
-
+// use std::collections::HashSet;
 use notify::{Event, RecommendedWatcher, Watcher};
+use rspack_util::fx_hash::FxHashSet as HashSet;
 
-use crate::watcher::{trigger, FsEventKind};
+use crate::watcher::{trigger, FsEventKind, WatchPattern};
 
 /// `DiskWatcher` is responsible for managing the underlying file system watcher
 /// and keeping track of the currently watched paths.
 pub struct DiskWatcher {
   /// The actual file system watcher from the `notify` crate.
-  inner: RecommendedWatcher,
-  /// A set of paths that are currently being watched.
-  watch_paths: HashSet<PathBuf>,
+  inner: Option<RecommendedWatcher>,
+  /// A set of pattern that are currently being watched.
+  watch_patterns: HashSet<WatchPattern>,
 }
 
 impl DiskWatcher {
@@ -41,38 +41,49 @@ impl DiskWatcher {
     .expect("Failed to create disk watcher");
 
     DiskWatcher {
-      inner,
-      watch_paths: HashSet::new(),
+      inner: Some(inner),
+      watch_patterns: HashSet::default(),
     }
   }
 
   /// Watches the given path with the specified recursive mode.
   ///
-  /// This method first checks if the path is already being watched.
-  /// It iterates over all currently watched paths:
-  ///   - If the path matches the one to be watched, it sets `wathing` to true.
-  ///   - Regardless, it unwatches all currently watched paths.
-  /// If the path was not already being watched, it starts watching it.
-  ///
-  /// # Arguments
-  ///
-  /// * `path` - The path to watch.
-  /// * `mode` - The recursive mode for watching.
-  ///
   /// # Returns
   ///
   /// * `rspack_error::Result<()>` - Ok if successful, otherwise an error.
-  pub fn watch(&mut self, path: &PathBuf, mode: notify::RecursiveMode) -> rspack_error::Result<()> {
-    if self.watch_paths.contains(path) {
-      return Ok(());
+  pub fn watch(
+    &mut self,
+    patterns: impl Iterator<Item = WatchPattern>,
+  ) -> rspack_error::Result<()> {
+    let patterns: HashSet<WatchPattern> = patterns.collect();
+
+    for pattern in self.watch_patterns.difference(&patterns) {
+      if let Some(watcher) = &mut self.inner {
+        watcher
+          .unwatch(&pattern.path)
+          .map_err(|e| rspack_error::error!(e))?;
+      }
     }
 
-    self
-      .inner
-      .watch(path, mode)
-      .map_err(|e| rspack_error::error!(e))?;
-    self.watch_paths.insert(path.clone());
+    for pattern in patterns {
+      if self.watch_patterns.contains(&pattern) {
+        continue;
+      }
+
+      if let Some(watcher) = &mut self.inner {
+        watcher
+          .watch(&pattern.path, pattern.mode)
+          .map_err(|e| rspack_error::error!(e))?;
+      }
+
+      self.watch_patterns.insert(pattern);
+    }
 
     Ok(())
+  }
+
+  pub fn close(&mut self) {
+    // the trigger.tx is dropped in the FsWatcher
+    std::mem::drop(self.inner.take());
   }
 }

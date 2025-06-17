@@ -55,6 +55,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 			[directories.add, directories.remove],
 			[missing.add, missing.remove],
 			(err: Error | null, changedFiles: string[], removedFiles: string[]) => {
+				// TODO: add fileTimeInfoEntries and contextTimeInfoEntries
 				callback(
 					err,
 					new Map(),
@@ -64,7 +65,8 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 				);
 			},
 			(fileName: string) => {
-				callbackUndelayed(fileName, 0);
+				// TODO: add real change time
+				callbackUndelayed(fileName, Date.now());
 			}
 		);
 
@@ -75,8 +77,15 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 				}
 			},
 
-			pause() {},
+			pause: () => {
+				if (this.#inner) {
+					this.#inner.pause();
+				}
+			},
+
 			getInfo() {
+				// This is a placeholder implementation.
+				// TODO: The actual implementation should return the current state of the watcher.
 				return {
 					changes: new Set(),
 					removals: new Set(),

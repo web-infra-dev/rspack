@@ -3,7 +3,7 @@ use std::boxed::Box;
 use async_trait::async_trait;
 use napi::bindgen_prelude::{FnArgs, Promise};
 use napi_derive::*;
-use rspack_fs::{FsWatcher, FsWatcherOptions, Ignored};
+use rspack_fs::{FsWatcher, FsWatcherOptions, Ignored, PathUpdater};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 
 struct SaftyIgnored {
@@ -73,12 +73,32 @@ impl NativeWatcher {
       String,
       (),
     >,
-    // callback: ThreadsafeFunction<String, bool>,
   ) -> napi::Result<()> {
     let js_event_handler = JsEventHandler::new(callback, callback_undelayed);
+
+    let file_updater = PathUpdater {
+      added: files.0,
+      removed: files.1,
+    };
+
+    let directories_updater = PathUpdater {
+      added: directories.0,
+      removed: directories.1,
+    };
+
+    let missing_updater = PathUpdater {
+      added: missing.0,
+      removed: missing.1,
+    };
+
     self
       .watcher
-      .watch(files, directories, missing, Box::new(js_event_handler))
+      .watch(
+        file_updater,
+        directories_updater,
+        missing_updater,
+        Box::new(js_event_handler),
+      )
       .await
       .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
@@ -87,17 +107,26 @@ impl NativeWatcher {
 
   #[napi]
   pub fn close(&mut self) -> napi::Result<()> {
-    // Implement the close method to stop the watcher
-    // This is a placeholder, actual implementation may vary
-    // TODO: Implement the close method to stop the watcher
-    self.watcher.close().unwrap();
+    self
+      .watcher
+      .close()
+      .map_err(|e| napi::Error::from_reason(e.to_string()))?;
     Ok(())
+  }
+
+  #[napi]
+  pub async fn pause(&self) -> napi::Result<()> {
+    self
+      .watcher
+      .pause()
+      .await
+      .map_err(|e| napi::Error::from_reason(e.to_string()))
   }
 }
 
 struct JsEventHandler {
   callback: ThreadsafeFunction<FnArgs<(Option<napi::Error>, Vec<String>, Vec<String>)>, ()>,
-  _callback_undelayed: ThreadsafeFunction<String, ()>,
+  callback_undelayed: ThreadsafeFunction<String, ()>,
 }
 
 impl JsEventHandler {
@@ -107,7 +136,7 @@ impl JsEventHandler {
   ) -> Self {
     Self {
       callback,
-      _callback_undelayed: callback_undelayed,
+      callback_undelayed,
     }
   }
 }
@@ -118,7 +147,7 @@ impl rspack_fs::EventHandler for JsEventHandler {
     &self,
     changed_files: std::collections::HashSet<String>,
     deleted_files: std::collections::HashSet<String>,
-  ) {
+  ) -> rspack_error::Result<()> {
     let changed_files_vec: Vec<String> = changed_files.into_iter().collect();
     let deleted_files_vec: Vec<String> = deleted_files.into_iter().collect();
 
@@ -128,6 +157,9 @@ impl rspack_fs::EventHandler for JsEventHandler {
         data: (None, changed_files_vec.clone(), deleted_files_vec.clone()),
       })
       .await
-      .unwrap();
+  }
+
+  async fn on_change(&self, changed_file: String) -> rspack_error::Result<()> {
+    self.callback_undelayed.call_with_sync(changed_file).await
   }
 }

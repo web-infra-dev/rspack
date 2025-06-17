@@ -3,7 +3,7 @@ use std::{path::PathBuf, sync::Arc};
 use dashmap::DashSet as HashSet;
 
 use super::StdSender;
-use crate::watcher::register::PathRegister;
+use crate::watcher::manager::PathManager;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FsEventKind {
@@ -87,18 +87,15 @@ impl<'a> DependencyFinder<'a> {
 /// when a relevant file or directory change is detected.
 pub struct Trigger {
   /// Shared reference to the path register, which tracks watched files/directories/missing.
-  path_register: Arc<PathRegister>,
+  path_manager: Arc<PathManager>,
   /// Sender for communicating file system events to the watcher executor.
   tx: StdSender<FsEvent>,
 }
 
 impl Trigger {
   /// Create a new `Trigger` with the given path register and event sender.
-  pub fn new(register: Arc<PathRegister>, tx: StdSender<FsEvent>) -> Self {
-    Self {
-      path_register: register,
-      tx,
-    }
+  pub fn new(path_manager: Arc<PathManager>, tx: StdSender<FsEvent>) -> Self {
+    Self { path_manager, tx }
   }
 
   /// Called when a file system event occurs.
@@ -124,10 +121,12 @@ impl Trigger {
 
   /// Helper to construct a `DependencyFinder` for the current path register state.
   fn finder(&self) -> DependencyFinder<'_> {
+    let accessor = self.path_manager.access();
+
     DependencyFinder {
-      files: self.path_register.files(),
-      directories: self.path_register.directories(),
-      missing: self.path_register.missing(),
+      files: accessor.files(),
+      directories: accessor.directories(),
+      missing: accessor.missing(),
     }
   }
 
@@ -136,5 +135,58 @@ impl Trigger {
   fn trigger_event(&self, path: PathBuf, kind: FsEventKind) {
     let event = FsEvent { path: path, kind };
     _ = self.tx.send(event);
+  }
+}
+#[cfg(test)]
+mod tests {
+
+  use super::*;
+
+  #[test]
+  // WARNING: rust api path.is_dir() and path.is_file() will judge the path is exist or not in disk. So we need using real path to test
+  fn test_find_dependency_for_file() {
+    let files = HashSet::new();
+    let directories = HashSet::new();
+    let missing = HashSet::new();
+
+    let current_dir = std::env::current_dir().expect("Failed to get current directory");
+
+    files.insert(PathBuf::from(current_dir.join("Cargo.toml")));
+    directories.insert(current_dir.clone());
+    let finder = DependencyFinder {
+      files: &files,
+      directories: &directories,
+      missing: &missing,
+    };
+
+    let deps = finder.find_dependency(&current_dir.join("./Cargo.toml"));
+    assert_eq!(deps.len(), 2);
+    println!("deps: {:?}", deps);
+
+    assert!(deps.contains(&current_dir.join("Cargo.toml")));
+    assert!(deps.contains(&current_dir));
+  }
+
+  #[test]
+  fn test_find_dependency_for_directory() {
+    // WARNING: rust api path.is_dir() and path.is_file() will judge the path is exist or not in disk. So we need using real path to test
+    let files = HashSet::new();
+    let directories = HashSet::new();
+    let missing = HashSet::new();
+
+    let current_dir = std::env::current_dir().expect("Failed to get current directory");
+    directories.insert(current_dir.join("src"));
+    directories.insert(current_dir.clone());
+
+    let finder = DependencyFinder {
+      files: &files,
+      directories: &directories,
+      missing: &missing,
+    };
+
+    let deps = finder.find_dependency(&current_dir.join("src").join("lib.rs"));
+    assert_eq!(deps.len(), 2);
+    assert!(deps.contains(&current_dir.join("src")));
+    assert!(deps.contains(&current_dir));
   }
 }
