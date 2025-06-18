@@ -5,9 +5,9 @@ use tokio::sync::Mutex;
 use super::{EventHandler, StdReceiver};
 use crate::watcher::{FsEvent, StdSender};
 
-type SafetyFiles = Safety<HashSet<String>>;
-type Safety<T> = Arc<Mutex<T>>;
-type SafetyReceiver<T> = Safety<StdReceiver<T>>;
+type ThreadSafetyFiles = ThreadSafety<HashSet<String>>;
+type ThreadSafetyReceiver<T> = ThreadSafety<StdReceiver<T>>;
+type ThreadSafety<T> = Arc<Mutex<T>>;
 
 /// `WatcherExecutor` is responsible for managing the execution of file system event handlers,
 /// aggregating file change and delete events, and invoking the provided event handler after
@@ -15,13 +15,13 @@ type SafetyReceiver<T> = Safety<StdReceiver<T>>;
 /// deleted files, and coordinates the event handling logic.
 pub struct Executor {
   aggregate_timeout: u32,
-  rx: SafetyReceiver<FsEvent>,
-  changed_files: SafetyFiles,
-  deleted_files: SafetyFiles,
+  rx: ThreadSafetyReceiver<FsEvent>,
+  changed_files: ThreadSafetyFiles,
+  deleted_files: ThreadSafetyFiles,
   exec_aggreate_tx: StdSender<ExecAggreateEvent>,
-  exec_aggreate_rx: SafetyReceiver<ExecAggreateEvent>,
+  exec_aggreate_rx: ThreadSafetyReceiver<ExecAggreateEvent>,
   exec_tx: StdSender<ExecEvent>,
-  exec_rx: SafetyReceiver<ExecEvent>,
+  exec_rx: ThreadSafetyReceiver<ExecEvent>,
   join_handle: Option<tokio::task::JoinHandle<()>>,
 
   /// The executor is responsible for executing the event handler after a configurable timeout.
@@ -78,7 +78,6 @@ impl Executor {
   }
 
   /// Execute the watcher executor loop.
-  /// TODO: handle missing files
   pub async fn wait_for_execute(&mut self, event_handler: Box<dyn EventHandler + Send + Sync>) {
     if self.join_handle.is_none() {
       let changed_files = Arc::clone(&self.changed_files);
@@ -93,7 +92,8 @@ impl Executor {
           let path = event.path.to_string_lossy().to_string();
           let files = match event.kind {
             super::FsEventKind::Change => &changed_files,
-            super::FsEventKind::Delete => &deleted_files,
+            super::FsEventKind::Remove => &deleted_files,
+            super::FsEventKind::Create => &changed_files,
           };
 
           files.lock().await.insert(path);
@@ -133,19 +133,19 @@ impl Executor {
 
 struct ExecuteHandler {
   event_handler: Arc<Box<dyn EventHandler + Send + Sync>>,
-  exec_rx: SafetyReceiver<ExecEvent>,
-  stoped: Safety<bool>,
+  exec_rx: ThreadSafetyReceiver<ExecEvent>,
+  stoped: ThreadSafety<bool>,
 }
 
 impl ExecuteHandler {
   fn new(
     event_handler: Arc<Box<dyn EventHandler + Send + Sync>>,
-    exec_rx: SafetyReceiver<ExecEvent>,
+    exec_rx: ThreadSafetyReceiver<ExecEvent>,
   ) -> Self {
     Self {
       event_handler,
       exec_rx,
-      stoped: Safety::default(),
+      stoped: ThreadSafety::default(),
     }
   }
 
@@ -156,10 +156,14 @@ impl ExecuteHandler {
 
     let future = async move {
       loop {
-        let stoped = stoped.lock().await;
-        if *stoped {
-          break;
+        {
+          // we need make sure drop the lock imediately
+          let stoped = stoped.lock().await;
+          if *stoped {
+            break;
+          }
         }
+
         if let Ok(event) = exec_rx.lock().await.recv() {
           match event {
             ExecEvent::Execute(event) => {
@@ -170,8 +174,13 @@ impl ExecuteHandler {
                     break;
                   };
                 }
-                super::FsEventKind::Delete => {
+                super::FsEventKind::Remove => {
                   if let Err(_) = event_handler.on_delete(path).await {
+                    break;
+                  };
+                }
+                super::FsEventKind::Create => {
+                  if let Err(_) = event_handler.on_change(path).await {
                     break;
                   };
                 }
@@ -198,19 +207,19 @@ impl ExecuteHandler {
 
 struct ExecuteAggregateHandler {
   event_handler: Arc<Box<dyn EventHandler + Send + Sync>>,
-  changed_files: SafetyFiles,
-  deleted_files: SafetyFiles,
+  changed_files: ThreadSafetyFiles,
+  deleted_files: ThreadSafetyFiles,
   aggregate_timeout: u64,
-  exec_aggreate_rx: Safety<StdReceiver<ExecAggreateEvent>>,
-  stoped: Safety<bool>,
+  exec_aggreate_rx: ThreadSafety<StdReceiver<ExecAggreateEvent>>,
+  stoped: ThreadSafety<bool>,
 }
 
 impl ExecuteAggregateHandler {
   fn new(
     event_handler: Arc<Box<dyn EventHandler + Send + Sync>>,
-    exec_aggreate_rx: Safety<StdReceiver<ExecAggreateEvent>>,
-    changed_files: SafetyFiles,
-    deleted_files: SafetyFiles,
+    exec_aggreate_rx: ThreadSafety<StdReceiver<ExecAggreateEvent>>,
+    changed_files: ThreadSafetyFiles,
+    deleted_files: ThreadSafetyFiles,
     aggregate_timeout: u64,
   ) -> Self {
     Self {
@@ -219,7 +228,7 @@ impl ExecuteAggregateHandler {
       changed_files,
       deleted_files,
       aggregate_timeout,
-      stoped: Safety::default(),
+      stoped: ThreadSafety::default(),
     }
   }
 
@@ -233,9 +242,12 @@ impl ExecuteAggregateHandler {
 
     let future = async move {
       loop {
-        let stoped = stoped.lock().await;
-        if *stoped {
-          break;
+        {
+          // we need make sure drop the lock imediately
+          let stoped = stoped.lock().await;
+          if *stoped {
+            break;
+          }
         }
 
         if let Ok(event) = exec_aggreate_rx.lock().await.recv() {

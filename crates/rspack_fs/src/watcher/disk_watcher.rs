@@ -1,5 +1,5 @@
 // use std::collections::HashSet;
-use notify::{Event, RecommendedWatcher, Watcher};
+use notify::{event::ModifyKind, Event, EventKind, RecommendedWatcher, Watcher};
 use rspack_util::fx_hash::FxHashSet as HashSet;
 
 use crate::watcher::{trigger, FsEventKind, WatchPattern};
@@ -20,10 +20,21 @@ impl DiskWatcher {
     let inner = RecommendedWatcher::new(
       move |result: notify::Result<Event>| match result {
         Ok(event) => {
+          let paths = &event.paths;
+
+          if paths.is_empty() {
+            return; // Ignore events with no paths
+          }
+
           let kind = match event.kind {
-            notify::EventKind::Modify(_) => FsEventKind::Change,
-            notify::EventKind::Remove(_) => FsEventKind::Delete,
-            // TODO: Handle other kinds of events if needed
+            EventKind::Create(_) => FsEventKind::Create,
+            EventKind::Modify(ModifyKind::Data(_) | ModifyKind::Any | ModifyKind::Name(_)) => {
+              FsEventKind::Change
+            }
+            EventKind::Remove(_) => FsEventKind::Remove,
+            // TODO: handle this case /path/to/index.js -> /path/to/index.js.map
+            // path/to/index.js should be removed, and path/to/index.js.map should be changed
+            // Now /path/to/index.js and /path/to/index.js.map will both be changed
             _ => return, // Ignore other kinds of events
           };
           let paths = event.paths;
@@ -57,10 +68,19 @@ impl DiskWatcher {
   ) -> rspack_error::Result<()> {
     let patterns: HashSet<WatchPattern> = patterns.collect();
 
-    for pattern in self.watch_patterns.difference(&patterns) {
+    let already_watched_paths = self
+      .watch_patterns
+      .iter()
+      .map(|p| &p.path)
+      .collect::<HashSet<_>>();
+    let current_should_watch_paths = patterns.iter().map(|p| &p.path).collect::<HashSet<_>>();
+
+    // notify::Watcher only unwatchs the path, so we need to check which paths instead of patterns.
+    for pattern in already_watched_paths.difference(&current_should_watch_paths) {
+      // If the path is no longer in the patterns to watch, unwatch it
       if let Some(watcher) = &mut self.inner {
         watcher
-          .unwatch(&pattern.path)
+          .unwatch(pattern)
           .map_err(|e| rspack_error::error!(e))?;
       }
     }

@@ -1,4 +1,6 @@
-use std::{collections::HashSet, path::PathBuf};
+use std::path::{Path, PathBuf};
+
+use rspack_util::fx_hash::FxHashSet as HashSet;
 
 use super::{for_each, Analyzer, WatchPattern};
 use crate::watcher::manager::PathAccessor;
@@ -18,32 +20,43 @@ impl<'a> Analyzer<'a> for WatcherDirectoriesAnalyzer<'a> {
   }
 
   fn analyze(&self) -> Vec<WatchPattern> {
-    self
-      .find_watch_directories()
-      .into_iter()
-      .map(|path| WatchPattern {
-        path,
-        // WatcherDirectoriesAnalyzer is using in non-macos and non-window os.
-        // so we watch every directory non-recursively.
-        // This is because recursive watching is not available on these platforms.
-        mode: notify::RecursiveMode::NonRecursive,
-      })
-      .collect()
+    self.find_watch_directories().into_iter().collect()
   }
 }
 
 impl<'a> WatcherDirectoriesAnalyzer<'a> {
   /// Finds all directories that should be watched individually (non-recursively).
-  fn find_watch_directories(&self) -> HashSet<PathBuf> {
-    let mut directories = HashSet::new();
+  fn find_watch_directories(&self) -> HashSet<WatchPattern> {
+    let mut patterns = HashSet::default();
     for_each(&self.path_accessor, |path| {
-      if path.is_dir() {
-        directories.insert(path.clone());
-      } else if let Some(parent) = path.parent() {
-        directories.insert(parent.to_path_buf());
+      if let Some((dir, deep)) = self.find_exists_path(path) {
+        // Insert the parent directory of the file
+        patterns.insert(WatchPattern {
+          path: dir,
+          mode: if deep >= 2 {
+            notify::RecursiveMode::Recursive
+          } else {
+            notify::RecursiveMode::NonRecursive
+          },
+        });
       }
     });
-    directories
+    patterns
+  }
+
+  fn find_exists_path(&self, path: &Path) -> Option<(PathBuf, u32)> {
+    let mut current = path.to_path_buf();
+    let mut deep = 0u32;
+    // Traverse up the path until we find a directory that exists
+    while !current.is_dir() {
+      deep += 1;
+      if let Some(parent) = current.parent() {
+        current = parent.to_path_buf();
+      } else {
+        return None; // No parent exists
+      }
+    }
+    Some((current, deep))
   }
 }
 
@@ -64,10 +77,50 @@ mod tests {
     let missing = HashSet::new();
     let path_accessor = PathAccessor::new(&files, &directories, &missing);
     let analyzer = WatcherDirectoriesAnalyzer::new(path_accessor);
-    let watch_directories = analyzer.find_watch_directories();
+    let watch_patterns = analyzer.analyze();
 
-    assert_eq!(watch_directories.len(), 2);
-    assert!(watch_directories.contains(&current_dir));
-    assert!(watch_directories.contains(&current_dir.join("src")));
+    assert_eq!(watch_patterns.len(), 2);
+    assert!(watch_patterns.contains(&{
+      WatchPattern {
+        path: current_dir.clone(),
+        mode: notify::RecursiveMode::NonRecursive,
+      }
+    }));
+    assert!(watch_patterns.contains(&WatchPattern {
+      path: current_dir.join("src"),
+      mode: notify::RecursiveMode::NonRecursive
+    }));
+  }
+
+  #[test]
+  fn test_find_non_exsists_watcher_directories() {
+    let files = HashSet::with_capacity(3);
+    let current_dir = std::env::current_dir().expect("Failed to get current directory");
+    files.insert(current_dir.join("Cargo.toml"));
+    files.insert(current_dir.join("src/a/b/c/d.rs"));
+    let directories = HashSet::new();
+    directories.insert(current_dir.join("src"));
+    directories.insert(current_dir.join("src/b/c/d/e"));
+    let missing = HashSet::new();
+    let path_accessor = PathAccessor::new(&files, &directories, &missing);
+    let analyzer = WatcherDirectoriesAnalyzer::new(path_accessor);
+    let watch_patterns = analyzer.analyze();
+
+    // println!("watch_directories: {:?}", watch_directories)ko
+    assert_eq!(watch_patterns.len(), 3);
+    assert!(watch_patterns.contains(&WatchPattern {
+      path: current_dir.join("src"),
+      mode: notify::RecursiveMode::NonRecursive,
+    }));
+    assert!(watch_patterns.contains(&WatchPattern {
+      path: current_dir.join("src"),
+      mode: notify::RecursiveMode::Recursive,
+    }));
+    assert!(watch_patterns.contains(&WatchPattern {
+      path: current_dir,
+      mode: notify::RecursiveMode::NonRecursive,
+    }));
+    // assert!(watch_directories.contains(&current_dir));
+    // assert!(watch_directories.contains(&current_dir.join("src")));
   }
 }

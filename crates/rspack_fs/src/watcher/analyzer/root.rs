@@ -44,7 +44,14 @@ impl<'a> WatcherRootAnalyzer<'a> {
   /// Panics if the given path doesn't exist in the tree
   fn find_common_root(&self, tree: &PathTree, path: &PathBuf) -> PathBuf {
     let node = tree.get(path).expect("Path should exist in the tree");
-    if let Some(child) = node.only_child() {
+    // We need make sure the path is exists
+    assert!(path.exists(), "Path should exist");
+
+    if let Some(child) = node
+      .only_child()
+      // Check if the child exists in the tree
+      .and_then(|child| if child.exists() { Some(child) } else { None })
+    {
       self.find_common_root(tree, &child)
     } else {
       path.to_path_buf() // Return the current path if it has no single child
@@ -92,7 +99,7 @@ impl<'a> TreeBuilder<'a> {
     for p in self.watch_paths {
       let path = p.key();
 
-      if path.is_dir() {
+      if path.exists() && path.is_dir() {
         tree_map
           .entry(path.to_path_buf())
           .or_insert_with(TreeNode::default);
@@ -151,5 +158,25 @@ mod tests {
     assert_eq!(watch_patterns.len(), 1);
     assert_eq!(watch_patterns[0].path, current_dir);
     assert_eq!(watch_patterns[0].mode, notify::RecursiveMode::Recursive);
+  }
+
+  #[test]
+  fn test_find_with_missing() {
+    let current_dir = std::env::current_dir().expect("Failed to get current directory");
+    let files = HashSet::new();
+    let directories = HashSet::new();
+    let missing = HashSet::with_capacity(2);
+
+    missing.insert(current_dir.join("_missing").join("a"));
+    missing.insert(current_dir.join("_missing").join("b"));
+    missing.insert(current_dir.join("_missing").join("c.js"));
+
+    let path_accessor = PathAccessor::new(&files, &directories, &missing);
+
+    let analyzer = WatcherRootAnalyzer::new(path_accessor);
+    let watch_patterns = analyzer.analyze();
+
+    assert_eq!(watch_patterns.len(), 1);
+    assert_eq!(watch_patterns[0].path, current_dir);
   }
 }

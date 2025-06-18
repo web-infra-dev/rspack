@@ -2,21 +2,8 @@ use std::{path::PathBuf, sync::Arc};
 
 use dashmap::DashSet as HashSet;
 
-use super::StdSender;
+use super::{FsEvent, FsEventKind, StdSender};
 use crate::watcher::manager::PathManager;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FsEventKind {
-  Change,
-  Delete,
-}
-
-#[derive(Debug, Clone)]
-pub struct FsEvent {
-  pub path: PathBuf,
-  pub kind: FsEventKind,
-}
-
 /// `DependencyFinder` provides references to sets of files, directories, and missing paths,
 /// allowing efficient lookup and dependency resolution for a given path.
 ///
@@ -37,17 +24,28 @@ impl<'a> DependencyFinder<'a> {
   /// This method checks if the path is a directory or file and then determines if it is registered
   /// in the dependency sets. If it is a directory, it also recursively adds all parent directories
   /// that are registered as directories or missing.
-  pub fn find_dependency(&self, path: &PathBuf) -> Vec<PathBuf> {
+  pub fn find_associated_event(
+    &self,
+    path: &PathBuf,
+    kind: FsEventKind,
+  ) -> Vec<(PathBuf, FsEventKind)> {
     let mut paths = Vec::new();
 
-    // If the given path is a directory and is registered as a directory, add it to the result.
-    if path.is_dir() && self.contains_directory(path) {
-      paths.push(path.clone());
-    }
+    if path.exists() {
+      // If the given path is a directory and is registered as a directory, add it to the result.
+      if path.is_dir() && self.contains_directory(path) {
+        paths.push((path.clone(), kind));
+      }
 
-    // If the given path is a file and is registered as a file, add it to the result.
-    if path.is_file() && self.contains_file(path) {
-      paths.push(path.clone());
+      // If the given path is a file and is registered as a file, add it to the result.
+      if path.is_file() && self.contains_file(path) {
+        paths.push((path.clone(), kind));
+      }
+    } else {
+      if self.contains_path(path) {
+        // If the path does not exist but is registered as missing, add it to the result.
+        paths.push((path.clone(), kind));
+      }
     }
 
     // Recursively add all parent directories that are registered as directories or missing.
@@ -66,13 +64,18 @@ impl<'a> DependencyFinder<'a> {
     self.directories.contains(path) || self.missing.contains(path)
   }
 
+  fn contains_path(&self, path: &PathBuf) -> bool {
+    self.files.contains(path) || self.directories.contains(path) || self.missing.contains(path)
+  }
+
   /// Recursively adds all parent directories that are registered as directories or missing.
-  fn recursiron_directories(&self, path: &PathBuf, paths: &mut Vec<PathBuf>) {
+  fn recursiron_directories(&self, path: &PathBuf, paths: &mut Vec<(PathBuf, FsEventKind)>) {
     match path.parent() {
       Some(parent) => {
         let parent = parent.to_path_buf();
         if self.contains_directory(&parent) {
-          paths.push(parent.to_path_buf());
+          // For parent directory, it always FsEventKind::Change its recursive children no matter what kind is
+          paths.push((parent.to_path_buf(), FsEventKind::Change));
         }
         self.recursiron_directories(&parent, paths);
       }
@@ -113,9 +116,9 @@ impl Trigger {
   /// - `/path/to`
   pub fn on_event(&self, path: &PathBuf, kind: FsEventKind) {
     let finder = self.finder();
-    let dependencies = finder.find_dependency(path);
-    for dep in dependencies {
-      self.trigger_event(dep, kind);
+    let associated_event = finder.find_associated_event(path, kind);
+    for (path, kind) in associated_event {
+      self.trigger_event(path, kind);
     }
   }
 
@@ -140,43 +143,42 @@ impl Trigger {
 #[cfg(test)]
 mod tests {
 
+  // use std::path::Path;
+
   use super::*;
 
   #[test]
-  // WARNING: rust api path.is_dir() and path.is_file() will judge the path is exist or not in disk. So we need using real path to test
   fn test_find_dependency_for_file() {
     let files = HashSet::new();
     let directories = HashSet::new();
     let missing = HashSet::new();
 
-    let current_dir = std::env::current_dir().expect("Failed to get current directory");
-
-    files.insert(PathBuf::from(current_dir.join("Cargo.toml")));
-    directories.insert(current_dir.clone());
+    files.insert(PathBuf::from("/path/a/b/index.js"));
+    directories.insert(PathBuf::from("/path/a/b"));
     let finder = DependencyFinder {
       files: &files,
       directories: &directories,
       missing: &missing,
     };
 
-    let deps = finder.find_dependency(&current_dir.join("./Cargo.toml"));
-    assert_eq!(deps.len(), 2);
-    println!("deps: {:?}", deps);
+    let associated_events =
+      finder.find_associated_event(&PathBuf::from("/path/a/b/index.js"), FsEventKind::Remove);
 
-    assert!(deps.contains(&current_dir.join("Cargo.toml")));
-    assert!(deps.contains(&current_dir));
+    assert_eq!(associated_events.len(), 2);
+
+    assert!(associated_events.contains(&(PathBuf::from("/path/a/b/index.js"), FsEventKind::Remove)));
+    assert!(associated_events.contains(&(PathBuf::from("/path/a/b"), FsEventKind::Change)));
   }
 
   #[test]
   fn test_find_dependency_for_directory() {
-    // WARNING: rust api path.is_dir() and path.is_file() will judge the path is exist or not in disk. So we need using real path to test
     let files = HashSet::new();
     let directories = HashSet::new();
     let missing = HashSet::new();
 
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
-    directories.insert(current_dir.join("src"));
-    directories.insert(current_dir.clone());
+    directories.insert(PathBuf::from("/path/a/b"));
+    directories.insert(PathBuf::from("/path/a/b/c"));
 
     let finder = DependencyFinder {
       files: &files,
@@ -184,9 +186,10 @@ mod tests {
       missing: &missing,
     };
 
-    let deps = finder.find_dependency(&current_dir.join("src").join("lib.rs"));
-    assert_eq!(deps.len(), 2);
-    assert!(deps.contains(&current_dir.join("src")));
-    assert!(deps.contains(&current_dir));
+    let associated_events =
+      finder.find_associated_event(&PathBuf::from("/path/a/b/c/index.js"), FsEventKind::Create);
+    assert_eq!(associated_events.len(), 2);
+    assert!(associated_events.contains(&(PathBuf::from("/path/a/b/c"), FsEventKind::Change)));
+    assert!(associated_events.contains(&(PathBuf::from("/path/a/b"), FsEventKind::Change)));
   }
 }
