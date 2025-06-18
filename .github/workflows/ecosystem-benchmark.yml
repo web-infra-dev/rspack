@@ -32,7 +32,7 @@ jobs:
     with:
       target: x86_64-unknown-linux-gnu
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS ||  '"ubuntu-latest"' }}
-      ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr) || github.sha }}
+      ref: ${{ inputs.commit_id }}
       profile: "release"
       test: false
       bench: false
@@ -48,7 +48,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ inputs.commit_id }}
 
       - name: Clean
         uses: ./.github/actions/clean
@@ -94,4 +94,4 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           cd rspack-ecosystem-benchmark
-          RSPACK_DIR="$RSPACK_DIR" GITHUB_ACTOR=x-access-token node bin/upload.js ${{ secrets.PERF_DATA_TOKEN }} ${{ github.sha }}
+          RSPACK_DIR="$RSPACK_DIR" GITHUB_ACTOR=x-access-token node bin/upload.js ${{ secrets.PERF_DATA_TOKEN }} ${{ inputs.commit_id }}
