@@ -7,6 +7,7 @@ export default defineConfig({
 		fileParallelism: true,
 		poolOptions: {
 			forks: {
+				minForks: 1,
 				maxForks: 8,
 			}
 		}
