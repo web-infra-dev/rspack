@@ -118,6 +118,16 @@ jobs:
           echo "$result"
           echo "diff-result=${result//$'\n'/'@@'}" >> $GITHUB_OUTPUT
 
+      - name: Upload benchmark result
+        if: github.event_name == 'push'
+        id: upload-benchmark-data
+        run: |
+          RSPACK_DIR=$(pwd)
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cd rspack-ecosystem-benchmark
+          RSPACK_DIR="$RSPACK_DIR" GITHUB_ACTOR=x-access-token node bin/upload.js ${{ secrets.PERF_DATA_TOKEN }} ${{ github.sha }}
+
   comment-compare-results:
     runs-on: ubuntu-latest
     needs: [create-comment, bench]
