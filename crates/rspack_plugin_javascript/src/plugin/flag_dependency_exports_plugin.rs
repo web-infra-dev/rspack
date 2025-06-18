@@ -1,5 +1,3 @@
-use std::collections::hash_map::Entry;
-
 use indexmap::IndexMap;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
@@ -18,20 +16,11 @@ use swc_core::ecma::atoms::Atom;
 struct FlagDependencyExportsState<'a> {
   mg: &'a mut ModuleGraph<'a>,
   mg_cache: &'a ModuleGraphCacheArtifact,
-  changed: bool,
-  current_module_id: ModuleIdentifier,
-  dependencies: IdentifierMap<IdentifierSet>,
 }
 
 impl<'a> FlagDependencyExportsState<'a> {
   pub fn new(mg: &'a mut ModuleGraph<'a>, mg_cache: &'a ModuleGraphCacheArtifact) -> Self {
-    Self {
-      mg,
-      mg_cache,
-      changed: false,
-      current_module_id: ModuleIdentifier::default(),
-      dependencies: IdentifierMap::default(),
-    }
+    Self { mg, mg_cache }
   }
 
   pub fn apply(&mut self, modules: IdentifierSet) {
@@ -76,9 +65,8 @@ impl<'a> FlagDependencyExportsState<'a> {
 
     let mut exports_specs_from_dependencies: IndexMap<DependencyId, ExportsSpec> =
       IndexMap::default();
+    let mut dependencies: IdentifierMap<IdentifierSet> = IdentifierMap::default();
     while let Some(module_id) = q.dequeue() {
-      self.changed = false;
-      self.current_module_id = module_id;
       exports_specs_from_dependencies.clear();
 
       self.mg_cache.freeze();
@@ -90,20 +78,22 @@ impl<'a> FlagDependencyExportsState<'a> {
       self.mg_cache.unfreeze();
 
       let exports_info = self.mg.get_exports_info(&module_id);
+      let mut changed = false;
       for (dep_id, exports_spec) in exports_specs_from_dependencies.iter() {
-        self.process_exports_spec(*dep_id, exports_spec, exports_info);
+        let (is_changed, changed_dependencies) =
+          self.process_exports_spec(&module_id, *dep_id, exports_spec, exports_info);
+        changed |= is_changed;
+        for (module_id, dep_id) in changed_dependencies {
+          dependencies
+            .entry(module_id)
+            .or_insert(IdentifierSet::default())
+            .insert(dep_id);
+        }
       }
-      if self.changed {
-        self.notify_dependencies(&mut q);
-      }
-    }
-  }
-
-  // #[tracing::instrument(skip_all, fields(module = ?self.current_module_id))]
-  pub fn notify_dependencies(&mut self, q: &mut Queue<ModuleIdentifier>) {
-    if let Some(set) = self.dependencies.get(&self.current_module_id) {
-      for mi in set.iter() {
-        q.enqueue(*mi);
+      if changed && let Some(set) = dependencies.get(&module_id) {
+        for mi in set.iter() {
+          q.enqueue(*mi);
+        }
       }
     }
   }
@@ -164,10 +154,13 @@ impl<'a> FlagDependencyExportsState<'a> {
 
   pub fn process_exports_spec(
     &mut self,
+    module_id: &ModuleIdentifier,
     dep_id: DependencyId,
     export_desc: &ExportsSpec,
     exports_info: ExportsInfo,
-  ) {
+  ) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
+    let mut changed = false;
+    let mut dependencies = vec![];
     let exports = &export_desc.exports;
     let global_can_mangle = &export_desc.can_mangle;
     let global_from = export_desc.from.as_ref();
@@ -194,12 +187,13 @@ impl<'a> FlagDependencyExportsState<'a> {
           global_from.map(|_| dep_id),
           *global_priority,
         ) {
-          self.changed = true;
+          changed = true;
         };
       }
       ExportsOfExportsSpec::NoExports => {}
       ExportsOfExportsSpec::Names(ele) => {
-        self.merge_exports(
+        let (merge_changed, merge_dependencies) = self.merge_exports(
+          module_id,
           exports_info,
           ele,
           DefaultExportInfo {
@@ -210,30 +204,30 @@ impl<'a> FlagDependencyExportsState<'a> {
           },
           dep_id,
         );
+        changed |= merge_changed;
+        dependencies.extend(merge_dependencies);
       }
     }
 
     if let Some(export_dependencies) = export_dependencies {
       for export_dep in export_dependencies {
-        match self.dependencies.entry(*export_dep) {
-          Entry::Occupied(mut occ) => {
-            occ.get_mut().insert(self.current_module_id);
-          }
-          Entry::Vacant(vac) => {
-            vac.insert(IdentifierSet::from_iter([self.current_module_id]));
-          }
-        }
+        dependencies.push((*export_dep, *module_id));
       }
     }
+
+    (changed, dependencies)
   }
 
   pub fn merge_exports(
     &mut self,
+    module_id: &ModuleIdentifier,
     exports_info: ExportsInfo,
     exports: &Vec<ExportNameOrSpec>,
     global_export_info: DefaultExportInfo,
     dep_id: DependencyId,
-  ) {
+  ) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
+    let mut changed = false;
+    let mut dependencies = vec![];
     for export_name_or_spec in exports {
       let (
         name,
@@ -290,42 +284,45 @@ impl<'a> FlagDependencyExportsState<'a> {
         )
       {
         export_info_data.set_provided(Some(ExportProvided::Provided));
-        self.changed = true;
+        changed = true;
       }
 
       if Some(false) != export_info_data.can_mangle_provide() && can_mangle == Some(false) {
         export_info_data.set_can_mangle_provide(Some(false));
-        self.changed = true;
+        changed = true;
       }
 
       if let Some(inlined) = inlinable
         && !export_info_data.inlinable().can_inline()
       {
         export_info_data.set_inlinable(Inlinable::Inlined(inlined));
-        self.changed = true;
+        changed = true;
       }
 
       if terminal_binding && !export_info_data.terminal_binding() {
         export_info_data.set_terminal_binding(true);
-        self.changed = true;
+        changed = true;
       }
 
       if let Some(exports) = exports {
         let nested_exports_info =
           ExportInfoSetter::create_nested_exports_info(&export_info, self.mg);
-        self.merge_exports(
+        let (merge_changed, merge_dependencies) = self.merge_exports(
+          module_id,
           nested_exports_info,
           exports,
           global_export_info.clone(),
           dep_id,
         );
+        changed |= merge_changed;
+        dependencies.extend(merge_dependencies);
       }
 
       // shadowing the previous `export_info_mut` to reduce the mut borrow life time,
       // because `create_nested_exports_info` needs `&mut ModuleGraph`
       let export_info_data = export_info.as_data_mut(self.mg);
       if let Some(from) = from {
-        let changed = if hidden {
+        changed |= if hidden {
           ExportInfoSetter::unset_target(export_info_data, &dep_id)
         } else {
           let fallback = rspack_core::Nullable::Value(vec![name.clone()]);
@@ -341,8 +338,7 @@ impl<'a> FlagDependencyExportsState<'a> {
             export_name,
             priority,
           )
-        };
-        self.changed |= changed;
+        }
       }
 
       // Recalculate target exportsInfo
@@ -362,30 +358,22 @@ impl<'a> FlagDependencyExportsState<'a> {
         target_exports_info = target_module_exports_info
           .get_nested_exports_info(target.export.as_deref())
           .map(|data| data.id());
-        match self.dependencies.entry(target.module) {
-          Entry::Occupied(mut occ) => {
-            occ.get_mut().insert(self.current_module_id);
-          }
-          Entry::Vacant(vac) => {
-            vac.insert(IdentifierSet::from_iter([self.current_module_id]));
-          }
-        }
+
+        dependencies.push((target.module, *module_id));
       }
 
       let export_info_data = export_info.as_data_mut(self.mg);
       if export_info_data.exports_info_owned() {
-        let changed = export_info_data
+        changed |= export_info_data
           .exports_info()
           .expect("should have exports_info when exports_info_owned is true")
           .set_redirect_name_to(self.mg, target_exports_info);
-        if changed {
-          self.changed = true;
-        }
       } else if export_info_data.exports_info() != target_exports_info {
         export_info_data.set_exports_info(target_exports_info);
-        self.changed = true;
+        changed = true;
       }
     }
+    (changed, dependencies)
   }
 }
 
