@@ -10,9 +10,7 @@ use rspack_core::{
   Compilation, Compiler, Experiments, Optimization,
 };
 use rspack_fs::{MemoryFileSystem, WritableFileSystem};
-use rspack_tasks::{
-  within_compiler_context_for_testing_sync, CompilerContext, CURRENT_COMPILER_CONTEXT,
-};
+use rspack_tasks::{within_compiler_context_for_testing_sync, CURRENT_COMPILER_CONTEXT};
 use tokio::runtime::Builder;
 
 static NUM_MODULES: usize = 10000;
