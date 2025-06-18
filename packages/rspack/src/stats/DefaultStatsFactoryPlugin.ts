@@ -725,6 +725,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 						LogType.warn,
 						LogType.info,
 						LogType.log,
+						LogType.debug,
 						LogType.group,
 						LogType.groupEnd,
 						LogType.groupCollapsed,

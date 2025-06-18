@@ -81,6 +81,9 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
         ),
         None,
       );
+      code_generatable_context
+        .runtime_requirements
+        .insert(RuntimeGlobals::REQUIRE);
       return;
     };
 
@@ -101,6 +104,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
         ),
         None,
       );
+
       return;
     }
 

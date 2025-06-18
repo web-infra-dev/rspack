@@ -232,6 +232,7 @@ pub struct ExternalModuleInfo {
   pub interop_default_access_used: bool,
   pub interop_default_access_name: Option<Atom>,
   pub name: Option<Atom>,
+  pub runtime_requirements: RuntimeGlobals,
 }
 
 pub struct ConnectionWithRuntimeCondition<'a> {
@@ -366,6 +367,13 @@ impl ModuleInfo {
     match self {
       ModuleInfo::External(e) => e.interop_default_access_name = v,
       ModuleInfo::Concatenated(c) => c.interop_default_access_name = v,
+    }
+  }
+
+  pub fn get_runtime_requirements(&self) -> &RuntimeGlobals {
+    match self {
+      ModuleInfo::External(e) => &e.runtime_requirements,
+      ModuleInfo::Concatenated(c) => &c.runtime_requirements,
     }
   }
 }
@@ -1733,6 +1741,7 @@ impl ConcatenatedModule {
                 interop_default_access_used: false,
                 interop_default_access_name: None,
                 name: None,
+                runtime_requirements: Default::default(),
               };
               vac.insert(ModuleInfo::External(info));
               list.push((module_id, Some(e.runtime_condition)))
