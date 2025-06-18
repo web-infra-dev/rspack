@@ -4121,8 +4121,10 @@ version = "0.2.0"
 dependencies = [
  "criterion2",
  "rspack",
+ "rspack_cacheable",
  "rspack_core",
  "rspack_fs",
+ "rspack_regex",
  "serde_json",
  "tokio",
 ]
