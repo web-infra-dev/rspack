@@ -1,13 +1,13 @@
 use std::{collections::hash_map::Entry, sync::Arc};
 
 use rayon::prelude::*;
-use rspack_collections::{IdentifierIndexSet, IdentifierMap, UkeyMap};
+use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, UkeyMap};
 use rspack_core::{
-  find_new_name, property_name, reserved_names::RESERVED_NAMES, returning_function,
-  rspack_sources::ReplaceSource, Binding, BoxModule, BuildMetaDefaultObject, BuildMetaExportsType,
-  ChunkLinkContext, ChunkUkey, Compilation, ConcatenatedModule, ConcatenatedModuleIdent,
-  ExportInfoGetter, ExportProvided, IdentCollector, ModuleIdentifier, ModuleInfo, RuntimeGlobals,
-  SourceType, UsedNameItem, NAMESPACE_OBJECT_EXPORT,
+  Binding, BoxModule, BuildMetaDefaultObject, BuildMetaExportsType, ChunkLinkContext, ChunkUkey,
+  Compilation, ConcatenatedModule, ConcatenatedModuleIdent, DEFAULT_EXPORT, ExportInfoGetter,
+  ExportProvided, IdentCollector, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT,
+  RuntimeGlobals, SourceType, UsedNameItem, find_new_name, property_name,
+  reserved_names::RESERVED_NAMES, returning_function, rspack_sources::ReplaceSource,
 };
 use rspack_error::Result;
 use rspack_javascript_compiler::ast::Ast;
@@ -20,7 +20,7 @@ use swc_core::{
   common::{FileName, SyntaxContext},
   ecma::{
     ast::{EsVersion, Program},
-    parser::{parse_file_as_module, Syntax},
+    parser::{Syntax, parse_file_as_module},
   },
 };
 
@@ -29,13 +29,16 @@ use crate::EsmLibraryPlugin;
 impl EsmLibraryPlugin {
   pub(crate) async fn link(&self, compilation: &mut Compilation) -> Result<()> {
     let module_graph = compilation.get_module_graph();
+
+    // codegen uses concatenationScope which has hold the concatenated modules map through Arc
     let mut concate_modules_map = self.concatenated_modules_map.lock().await;
     let concate_modules_map = Arc::get_mut(
       concate_modules_map
         .get_mut(&compilation.id().0)
         .expect("should has compilation"),
     )
-    .expect("should have map for compilation");
+    .expect("should have unique access to concatenated modules map");
+
     let mut link: UkeyMap<ChunkUkey, ChunkLinkContext> = compilation
       .chunk_by_ukey
       .keys()
@@ -67,10 +70,16 @@ impl EsmLibraryPlugin {
       })
       .collect();
 
+    // analyze each module
     concate_modules_map
       .par_iter_mut()
       .for_each(|(id, info)| match info {
-        rspack_core::ModuleInfo::External(_external_module_info) => {}
+        rspack_core::ModuleInfo::External(external_module_info) => {
+          // we use Object.assign(__webpack_require__.m, {...}) to register modules
+          external_module_info
+            .runtime_requirements
+            .insert(RuntimeGlobals::REQUIRE | RuntimeGlobals::MODULE_FACTORIES);
+        }
         rspack_core::ModuleInfo::Concatenated(concate_info) => {
           let codegen_res = compilation.code_generation_results.get(id, None);
           let Some(js_source) = codegen_res.get(&SourceType::JavaScript) else {
@@ -351,94 +360,15 @@ impl EsmLibraryPlugin {
     }
 
     // modify cross chunk imports and exports
-    let mut exports = UkeyMap::<ChunkUkey, IdentifierMap<FxHashSet<Atom>>>::default();
     let mut needed_namespace_objects = IdentifierIndexSet::default();
-
-    for (chunk, chunk_link) in &mut link {
-      let mut ref_to_final_name = FxHashMap::default();
-
-      for m in chunk_link.hoisted_modules.clone() {
-        let codegen_res = compilation.code_generation_results.get(&m, None);
-        let concatenation_scope = codegen_res
-          .concatenation_scope
-          .as_ref()
-          .expect("should have concatenation scope for scope hoisted module");
-
-        for (ref_module, refs) in &concatenation_scope.refs {
-          for (ref_string, options) in refs.iter() {
-            if ref_to_final_name.contains_key(ref_string) {
-              continue;
-            }
-
-            // if imported specifier is in the same chunk
-            // the final name is symbol in current chunk
-            // if imported specifier is in other chunk
-            // the final name is symbol in that chunk
-            let binding = ConcatenatedModule::get_final_binding(
-              &module_graph,
-              ref_module,
-              options.ids.clone(),
-              concate_modules_map,
-              None,
-              &mut needed_namespace_objects,
-              options.call,
-              !options.direct_import,
-              options.asi_safe,
-              &mut Default::default(),
-            );
-
-            let module_id = binding.identifier();
-            let ref_chunk = Self::get_module_chunk(module_id, compilation);
-            match &binding {
-              Binding::Raw(_raw_binding) => {
-                // import to non-scope-hoisted module or namespace name
-              }
-              Binding::Symbol(symbol_binding) => {
-                if &ref_chunk != chunk {
-                  // ref chunk should expose the symbol
-                  exports
-                    .entry(ref_chunk)
-                    .or_default()
-                    .entry(module_id)
-                    .or_default()
-                    .insert(symbol_binding.name.clone());
-                }
-              }
-            }
-
-            ref_to_final_name.insert(
-              ref_string
-                .strip_suffix("._")
-                .expect("should have prefix: '._'")
-                .to_string(),
-              rspack_core::ModuleReference::Binding(binding),
-            );
-          }
-        }
-
-        for (ref_module, refs) in &concatenation_scope.dyn_refs {
-          let ref_chunk = Self::get_module_chunk(*ref_module, compilation);
-          if &ref_chunk != chunk {
-            exports
-              .entry(ref_chunk)
-              .or_default()
-              .entry(*ref_module)
-              .or_default()
-              .extend(refs.clone());
-          }
-        }
-      }
-
-      chunk_link.needed_namespace_objects = needed_namespace_objects.clone();
-      chunk_link.ref_to_final_name = ref_to_final_name;
-    }
-
-    for (chunk, exports) in exports {
-      link.entry(chunk).or_default().exports = exports;
-    }
+    self.link_exports(
+      compilation,
+      &mut link,
+      concate_modules_map,
+      &mut needed_namespace_objects,
+    );
 
     let mut namespace_object_sources: IdentifierMap<String> = IdentifierMap::default();
-
     let mut visited = FxHashSet::default();
 
     // webpack require iterate the needed_namespace_objects and mutate `needed_namespace_objects`
@@ -490,9 +420,11 @@ impl EsmLibraryPlugin {
             let final_name = ConcatenatedModule::get_final_name(
               &compilation.get_module_graph(),
               module_info_id,
-              vec![ExportInfoGetter::name(export_info.as_data(&module_graph))
-                .cloned()
-                .unwrap_or("".into())],
+              vec![
+                ExportInfoGetter::name(export_info.as_data(&module_graph))
+                  .cloned()
+                  .unwrap_or("".into()),
+              ],
               concate_modules_map,
               None,
               &mut needed_namespace_objects,
@@ -578,5 +510,105 @@ impl EsmLibraryPlugin {
     }
 
     *chunks.iter().next().expect("at least one chunk")
+  }
+
+  fn link_exports(
+    &self,
+    compilation: &Compilation,
+    link: &mut UkeyMap<ChunkUkey, ChunkLinkContext>,
+    concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
+    needed_namespace_objects: &mut IdentifierIndexSet,
+  ) {
+    let module_graph: rspack_core::ModuleGraph<'_> = compilation.get_module_graph();
+    let mut exports = UkeyMap::<ChunkUkey, IdentifierMap<FxHashSet<Atom>>>::default();
+
+    for (chunk, chunk_link) in link.iter_mut() {
+      let mut ref_to_final_name = FxHashMap::default();
+
+      for m in chunk_link.hoisted_modules.clone() {
+        let codegen_res = compilation.code_generation_results.get(&m, None);
+        let concatenation_scope = codegen_res
+          .concatenation_scope
+          .as_ref()
+          .expect("should have concatenation scope for scope hoisted module");
+
+        for (ref_module, refs) in &concatenation_scope.refs {
+          for (ref_string, options) in refs.iter() {
+            if ref_to_final_name.contains_key(ref_string) {
+              continue;
+            }
+
+            // if imported specifier is in the same chunk
+            // the final name is symbol in current chunk
+            // if imported specifier is in other chunk
+            // the final name is symbol in that chunk
+            let binding = ConcatenatedModule::get_final_binding(
+              &module_graph,
+              ref_module,
+              options.ids.clone(),
+              concate_modules_map,
+              None,
+              needed_namespace_objects,
+              options.call,
+              !options.direct_import,
+              options.asi_safe,
+              &mut Default::default(),
+            );
+
+            let module_id = binding.identifier();
+            let ref_chunk = Self::get_module_chunk(module_id, compilation);
+            match &binding {
+              Binding::Raw(_raw_binding) => {
+                // import to non-scope-hoisted module or namespace name
+              }
+              Binding::Symbol(symbol_binding) => {
+                if &ref_chunk != chunk {
+                  // ref chunk should expose the symbol
+                  exports
+                    .entry(ref_chunk)
+                    .or_default()
+                    .entry(module_id)
+                    .or_default()
+                    .insert(symbol_binding.name.clone());
+                }
+              }
+            }
+
+            ref_to_final_name.insert(
+              ref_string
+                .strip_suffix("._")
+                .expect("should have prefix: '._'")
+                .to_string(),
+              rspack_core::ModuleReference::Binding(binding),
+            );
+          }
+        }
+
+        for (ref_module, refs) in &concatenation_scope.dyn_refs {
+          let ref_chunk = Self::get_module_chunk(*ref_module, compilation);
+          if &ref_chunk != chunk {
+            exports
+              .entry(ref_chunk)
+              .or_default()
+              .entry(*ref_module)
+              .or_default()
+              .extend(refs.iter().map(|atom| {
+                if atom == "default" {
+                  DEFAULT_EXPORT.into()
+                } else {
+                  atom.clone()
+                }
+              }));
+          }
+        }
+      }
+
+      chunk_link.needed_namespace_objects = needed_namespace_objects.clone();
+      chunk_link.ref_to_final_name = ref_to_final_name;
+    }
+
+    for (chunk, exports) in exports {
+      link.entry(chunk).or_default().exports = exports;
+    }
   }
 }

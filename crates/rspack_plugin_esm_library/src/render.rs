@@ -2,23 +2,22 @@ use std::{borrow::Cow, sync::Arc};
 
 use rspack_collections::{IdentifierMap, UkeyMap, UkeySet};
 use rspack_core::{
-  find_new_name, get_js_chunk_filename_template, property_access,
-  rspack_sources::{ConcatSource, RawSource, RawStringSource},
   AssetInfo, BoxModule, ChunkGraph, ChunkUkey, Compilation, ConcatenationScope, ModuleInfo,
-  PathData, PathInfo, RuntimeGlobals, SourceType, SpanExt,
+  PathData, PathInfo, RuntimeGlobals, SourceType, SpanExt, find_new_name,
+  get_js_chunk_filename_template, property_access,
+  rspack_sources::{ConcatSource, RawSource, RawStringSource},
 };
-use rspack_error::Result;
+use rspack_error::{Result, error};
 use rspack_plugin_javascript::{
-  render_bootstrap,
+  RenderSource, render_bootstrap,
   runtime::{render_module, render_runtime_modules},
-  RenderSource,
 };
 use rspack_util::{
   atom::Atom,
   fx_hash::{FxHashMap, FxIndexSet},
 };
 
-use crate::{dependency::dyn_import::NAMESPACE_SYMBOL, EsmLibraryPlugin};
+use crate::{EsmLibraryPlugin, dependency::dyn_import::NAMESPACE_SYMBOL};
 impl EsmLibraryPlugin {
   pub(crate) fn get_runtime_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
     let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
@@ -159,14 +158,12 @@ impl EsmLibraryPlugin {
     if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
       let chunk_runtime_requirements =
         ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
-
-      let bootstrap = render_bootstrap(chunk_ukey, compilation).await?;
-
       if chunk_runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES) {
         render_source.add(RawStringSource::from_static(
           "\nvar __webpack_modules__ = {};\n",
         ));
       }
+      let bootstrap = render_bootstrap(chunk_ukey, compilation).await?;
       render_source.add(RawStringSource::from(bootstrap.header.join("\n")));
       render_source.add(RawSource::from("\n"));
       render_source.add(RawStringSource::from(bootstrap.startup.join("\n")));
@@ -204,8 +201,10 @@ impl EsmLibraryPlugin {
       let mut source = info.source.clone().expect("should have source");
       let mut used_names = info.all_used_names.clone();
 
-      for ((atom, _ctxt), refs) in &info.binding_to_ref {
-        if let Some(match_module_ref) = ConcatenationScope::match_module_reference(atom) {
+      for ((atom, ctxt), refs) in &info.binding_to_ref {
+        if ctxt == &info.global_ctxt
+          && let Some(match_module_ref) = ConcatenationScope::match_module_reference(atom)
+        {
           let final_name = chunk_link
             .ref_to_final_name
             .get(atom.as_str())
@@ -327,8 +326,9 @@ impl EsmLibraryPlugin {
               }
             }
           }
-        } else if let Some((index, already_in_chunk, atom)) =
-          ConcatenationScope::match_dynamic_module_reference(atom)
+        } else if ctxt == &info.global_ctxt
+          && let Some((index, already_in_chunk, atom)) =
+            ConcatenationScope::match_dynamic_module_reference(atom)
         {
           let (ref_module, ref_info) = concatenated_modules_map
             .get_index(index)
@@ -492,10 +492,13 @@ impl EsmLibraryPlugin {
         .expect("should have info")
         .as_concatenated();
       for symbol in exports {
-        let local_symbol = info
-          .internal_names
-          .get(symbol)
-          .expect("should already set internal names for top level symbol");
+        let Some(local_symbol) = info.internal_names.get(symbol) else {
+          return Err(error!(
+            "module {id} should already set internal names for export: {symbol}, internal_names: {:?}",
+            &info.internal_names
+          ));
+        };
+
         export_specifiers.push(local_symbol.as_str());
       }
     }
