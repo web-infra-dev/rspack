@@ -64,6 +64,9 @@ async function build() {
 			features.push("sftrace-setup");
 			envs.RUSTFLAGS = "-Zinstrument-xray=always";
 		}
+		if (values.profile === "dev" || !values.profile) {
+			features.push("color-backtrace");
+		}
 		if (features.length) {
 			args.push("--features " + features.join(","));
 		}
