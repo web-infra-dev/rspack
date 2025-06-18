@@ -78,7 +78,7 @@
     "prettier": "3.5.3",
     "prettier-2": "npm:prettier@2.8.8",
     "rimraf": "^5.0.10",
-    "ts-jest": "29.3.4",
+    "ts-jest": "29.4.0",
     "typescript": "^5.8.3",
     "webpack": "5.99.9",
     "zx": "8.5.5"
