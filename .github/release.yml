@@ -14,12 +14,15 @@ changelog:
     - title: Performance Improvements ⚡
       labels:
         - "release: performance"
-    - title: Exciting New Features 🎉
+    - title: New Features 🎉
       labels:
         - "release: feature"
     - title: Bug Fixes 🐞
       labels:
         - "release: bug fix"
+    - title: Refactor 🔨
+      labels:
+        - "release: refactor"
     - title: Document Updates 📖
       labels:
         - "release: document"

@@ -28,7 +28,6 @@ pub use self::{
 };
 use crate::visitors::ExportedVariableInfo;
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Ty {
   Unknown,

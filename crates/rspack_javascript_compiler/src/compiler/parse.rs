@@ -129,6 +129,7 @@ fn parse_with_lexer(
       IsModule::Bool(true) => parser.parse_module().map(SwcProgram::Module),
       IsModule::Bool(false) => parser.parse_script().map(SwcProgram::Script),
       IsModule::Unknown => parser.parse_program(),
+      IsModule::CommonJS => parser.parse_commonjs().map(SwcProgram::Script),
     };
     let mut errors = parser.take_errors();
     // Using combinator will let rustc unhappy.

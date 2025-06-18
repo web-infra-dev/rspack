@@ -46,12 +46,13 @@ impl JsExportsInfo {
       Either::A(str) => std::iter::once(str).map(Into::into).collect(),
       Either::B(vec) => vec.into_iter().map(Into::into).collect(),
     });
-    let exports_info = ExportsInfoGetter::prefetch(
+    let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
       &self.exports_info,
       &module_graph,
-      PrefetchExportsInfoMode::AllExports,
+      runtime.as_ref(),
+      false,
     );
-    Ok(ExportsInfoGetter::is_used(&exports_info, runtime.as_ref()))
+    Ok(exports_info.is_used())
   }
 
   #[napi(ts_args_type = "runtime: string | string[] | undefined")]
@@ -61,15 +62,13 @@ impl JsExportsInfo {
       Either::A(str) => std::iter::once(str).map(Into::into).collect(),
       Either::B(vec) => vec.into_iter().map(Into::into).collect(),
     });
-    let exports_info = ExportsInfoGetter::prefetch(
+    let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
       &self.exports_info,
       &module_graph,
-      PrefetchExportsInfoMode::AllExports,
-    );
-    Ok(ExportsInfoGetter::is_module_used(
-      &exports_info,
       runtime.as_ref(),
-    ))
+      false,
+    );
+    Ok(exports_info.is_module_used())
   }
 
   #[napi(ts_args_type = "runtime: string | string[] | undefined")]

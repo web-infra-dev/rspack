@@ -1,4 +1,4 @@
-const { existsSync, readFileSync } = require('fs')
+const { existsSync } = require('fs')
 const { join } = require('path')
 
 const { platform, arch } = process
@@ -8,18 +8,8 @@ let localFileExisted = false
 let loadError = null
 
 function isMusl() {
-  // For Node 10
-  if (!process.report || typeof process.report.getReport !== 'function') {
-    try {
-      const lddPath = require('child_process').execSync('which ldd').toString().trim();
-      return readFileSync(lddPath, 'utf8').includes('musl')
-    } catch (e) {
-      return true
-    }
-  } else {
-    const { glibcVersionRuntime } = process.report.getReport().header
-    return !glibcVersionRuntime
-  }
+  const { glibcVersionRuntime } = process.report.getReport().header
+  return !glibcVersionRuntime
 }
 
 switch (platform) {

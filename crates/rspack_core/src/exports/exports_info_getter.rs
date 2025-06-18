@@ -1,14 +1,16 @@
 use std::sync::Arc;
 
+use either::Either;
 use indexmap::IndexMap;
-use rspack_util::atom::Atom;
+use itertools::Itertools;
+use rspack_util::{atom::Atom, ext::DynHash};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::{
   ExportInfoData, ExportInfoGetter, ExportProvided, ExportsInfo, ProvidedExports, UsageState,
-  UsedName,
+  UsedName, UsedNameItem,
 };
-use crate::{MaybeDynamicTargetExportInfo, ModuleGraph, RuntimeSpec, UsedExports};
+use crate::{MaybeDynamicTargetExportInfo, ModuleGraph, RuntimeSpec, UsageKey, UsedExports};
 
 #[derive(Debug, Clone)]
 pub enum PrefetchExportsInfoMode<'a> {
@@ -17,6 +19,7 @@ pub enum PrefetchExportsInfoMode<'a> {
   AllExports,                        // prefetch with all exports but no nested exports
   NamedNestedExports(&'a [Atom]),    // prefetch with named exports and its nested chain
   NamedNestedAllExports(&'a [Atom]), // prefetch with named nested exports and all exports on its chain
+  Full, // prefetch with all related data, this should only be used in hash calculation
 }
 
 /**
@@ -30,12 +33,15 @@ pub struct PrefetchedExportsInfoWrapper<'a> {
    * stored in a map to prevent circular references
    * When redirect, this data can be cloned to generate a new PrefetchedExportsInfoWrapper with a new entry
    */
-  pub exports: Arc<HashMap<ExportsInfo, PrefetchedExportsInfoData<'a>>>,
+  exports: Arc<HashMap<ExportsInfo, PrefetchedExportsInfoData<'a>>>,
   /**
    * The entry of the current exports info
    */
-  pub entry: ExportsInfo,
-  pub mode: PrefetchExportsInfoMode<'a>,
+  entry: ExportsInfo,
+  /**
+   * The prefetch mode of the current exports info
+   */
+  mode: PrefetchExportsInfoMode<'a>,
 }
 
 impl<'a> PrefetchedExportsInfoWrapper<'a> {
@@ -59,6 +65,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
           PrefetchExportsInfoMode::NamedNestedAllExports(names) => {
             PrefetchExportsInfoMode::NamedNestedAllExports(&names[1..])
           }
+          PrefetchExportsInfoMode::Full => PrefetchExportsInfoMode::Full,
         }
       } else {
         self.mode.clone()
@@ -143,9 +150,9 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       PrefetchExportsInfoMode::Default => {
         panic!("should not get named export when mode is Default");
       }
-      PrefetchExportsInfoMode::AllExports | PrefetchExportsInfoMode::NamedNestedAllExports(_) => {
-        data.exports.get(name).map(|data| data.inner)
-      }
+      PrefetchExportsInfoMode::AllExports
+      | PrefetchExportsInfoMode::NamedNestedAllExports(_)
+      | PrefetchExportsInfoMode::Full => data.exports.get(name).map(|data| data.inner),
       PrefetchExportsInfoMode::NamedExports(names) => {
         if names.contains(name) {
           data.exports.get(name).map(|data| data.inner)
@@ -208,7 +215,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       return Some((self.entry, names[0].clone()));
     }
 
-    export_info.exports_info.and_then(move |exports_info| {
+    export_info.exports_info().and_then(move |exports_info| {
       let redirect = self.redirect(exports_info, true);
       redirect.get_read_only_export_info_recursive_impl(&names[1..])
     })
@@ -227,7 +234,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       && !name.is_empty()
     {
       let info = self.get_read_only_export_info(&name[0]);
-      if let Some(exports_info) = &info.exports_info {
+      if let Some(exports_info) = &info.exports_info() {
         let redirect = self.redirect(*exports_info, true);
         return redirect.get_nested_exports_info_impl(Some(&name[1..]));
       } else {
@@ -252,17 +259,14 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       if matches!(used, UsageState::Unused) {
         continue;
       }
-      if matches!(
-        ExportInfoGetter::provided(export_info),
-        Some(ExportProvided::NotProvided)
-      ) {
+      if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
         continue;
       }
       list.push(export_info);
     }
     if let Some(redirect) = self.get_redirect_to_in_exports_info(exports_info) {
       for export_info in self.get_relevant_exports_impl(redirect, runtime) {
-        let name = ExportInfoGetter::name(export_info);
+        let name = export_info.name();
         if self
           .get_named_export_in_exports_info(exports_info, name.unwrap_or(&"".into()))
           .is_none()
@@ -274,7 +278,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
 
     let other_export_info = self.get_other_in_exports_info(exports_info);
     if !matches!(
-      ExportInfoGetter::provided(other_export_info),
+      other_export_info.provided(),
       Some(ExportProvided::NotProvided)
     ) && ExportInfoGetter::get_used(other_export_info, runtime) != UsageState::Unused
     {
@@ -309,7 +313,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
         UsageState::NoInfo => return UsedExports::Unknown,
         UsageState::Unknown => return UsedExports::UsedNamespace(true),
         UsageState::OnlyPropertiesUsed | UsageState::Used => {
-          if let Some(name) = export_info.name.clone() {
+          if let Some(name) = export_info.name().cloned() {
             res.push(name);
           }
         }
@@ -345,7 +349,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
 
   fn get_provided_exports_impl(&self, exports_info: &ExportsInfo) -> ProvidedExports {
     if self.get_redirect_to_in_exports_info(exports_info).is_none() {
-      match ExportInfoGetter::provided(self.get_other_in_exports_info(exports_info)) {
+      match self.get_other_in_exports_info(exports_info).provided() {
         Some(ExportProvided::Unknown) => {
           return ProvidedExports::ProvidedAll;
         }
@@ -360,9 +364,9 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     }
     let mut ret = vec![];
     for (_, export_info) in self.get_exports_in_exports_info(exports_info) {
-      match export_info.provided {
+      match export_info.provided() {
         Some(ExportProvided::Provided | ExportProvided::Unknown) | None => {
-          ret.push(export_info.name.clone().unwrap_or("".into()));
+          ret.push(export_info.name().cloned().unwrap_or("".into()));
         }
         _ => {}
       }
@@ -414,23 +418,97 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       ),
     }
   }
+
+  pub fn update_hash(&self, hasher: &mut dyn std::hash::Hasher, runtime: Option<&RuntimeSpec>) {
+    if !matches!(self.mode, PrefetchExportsInfoMode::Full) {
+      panic!("should not update hash when mode is not Full");
+    }
+
+    fn handle_export_info(
+      export_info: &ExportInfoData,
+      hasher: &mut dyn std::hash::Hasher,
+      runtime: Option<&RuntimeSpec>,
+    ) {
+      if let Some(used_name) = export_info.used_name() {
+        used_name.dyn_hash(hasher);
+      } else {
+        export_info.name().dyn_hash(hasher);
+      }
+      ExportInfoGetter::get_used(export_info, runtime).dyn_hash(hasher);
+      export_info.provided().dyn_hash(hasher);
+      export_info.terminal_binding().dyn_hash(hasher);
+      export_info.inlinable().dyn_hash(hasher);
+    }
+
+    let mut exports = self.exports.values().collect_vec();
+    exports.sort_unstable_by(|a, b| a.id.cmp(&b.id));
+
+    for exports_info in exports {
+      let other_export_info = exports_info.other_exports_info.inner;
+      let side_effects_only_info = exports_info.side_effects_only_info.inner;
+      for export_info in exports_info.exports.values() {
+        if ExportInfoGetter::has_info(export_info.inner, other_export_info, runtime) {
+          handle_export_info(export_info.inner, hasher, runtime);
+        }
+      }
+      handle_export_info(side_effects_only_info, hasher, runtime);
+      handle_export_info(other_export_info, hasher, runtime);
+    }
+  }
 }
 
 #[derive(Debug, Clone)]
 pub struct PrefetchedExportsInfoData<'a> {
-  pub exports: IndexMap<&'a Atom, PrefetchedExportInfoData<'a>>,
-  pub other_exports_info: PrefetchedExportInfoData<'a>,
+  exports: IndexMap<&'a Atom, PrefetchedExportInfoData<'a>>,
+  other_exports_info: PrefetchedExportInfoData<'a>,
 
-  pub side_effects_only_info: PrefetchedExportInfoData<'a>,
-  pub redirect_to: Option<ExportsInfo>,
-  pub id: ExportsInfo,
+  side_effects_only_info: PrefetchedExportInfoData<'a>,
+  redirect_to: Option<ExportsInfo>,
+  id: ExportsInfo,
+}
+
+impl<'a> PrefetchedExportsInfoData<'a> {
+  pub fn id(&self) -> ExportsInfo {
+    self.id
+  }
 }
 
 #[derive(Debug, Clone)]
 pub struct PrefetchedExportInfoData<'a> {
-  pub inner: &'a ExportInfoData,
+  inner: &'a ExportInfoData,
   // pub exports_info: Option<ExportsInfo>,
 }
+
+/**
+ * The used info of the exports info
+ * This should be used when you need to call `get_used_name` or `is_used` or `is_module_used`
+ * that should avoid the unnecessary prefetch of the whole named exports
+ */
+#[derive(Debug, Clone)]
+pub struct PrefetchedExportsInfoUsed<'a> {
+  // if this exports info is used
+  is_used: bool,
+  // if this exports info is used or this module is used
+  is_module_used: bool,
+  // the data wrapper of the exports info
+  // only when you need to get the used info and the full exports info data
+  data: Option<PrefetchedExportsInfoWrapper<'a>>,
+}
+
+impl<'a> PrefetchedExportsInfoUsed<'a> {
+  pub fn is_used(&self) -> bool {
+    self.is_used
+  }
+
+  pub fn is_module_used(&self) -> bool {
+    self.is_module_used
+  }
+
+  pub fn data(&self) -> Option<&PrefetchedExportsInfoWrapper<'a>> {
+    self.data.as_ref()
+  }
+}
+
 pub struct ExportsInfoGetter;
 
 impl ExportsInfoGetter {
@@ -455,11 +533,12 @@ impl ExportsInfoGetter {
       }
 
       let exports_info = id.as_data(mg);
+      let mut nested_exports = vec![];
       let exports = match mode {
         PrefetchExportsInfoMode::Default => IndexMap::new(),
         PrefetchExportsInfoMode::NamedExports(ref names) => {
           let mut exports = IndexMap::new();
-          for (key, value) in exports_info.exports.iter() {
+          for (key, value) in exports_info.exports_with_names() {
             if !names.contains(key) {
               continue;
             }
@@ -475,7 +554,7 @@ impl ExportsInfoGetter {
         }
         PrefetchExportsInfoMode::AllExports => {
           let mut exports = IndexMap::new();
-          for (key, value) in exports_info.exports.iter() {
+          for (key, value) in exports_info.exports_with_names() {
             exports.insert(
               key,
               PrefetchedExportInfoData {
@@ -489,11 +568,13 @@ impl ExportsInfoGetter {
         PrefetchExportsInfoMode::NamedNestedExports(names) => {
           let mut exports = IndexMap::new();
           if let Some(name) = names.first() {
-            if let Some(export_info) = exports_info.exports.get(name) {
+            if let Some(export_info) = exports_info.named_exports(name) {
               let export_info = export_info.as_data(mg);
-              let nested_mode = PrefetchExportsInfoMode::NamedNestedExports(&names[1..]);
-              if let Some(nested_exports_info) = export_info.exports_info {
-                prefetch_exports(&nested_exports_info, mg, res, nested_mode);
+              if let Some(nested_exports_info) = export_info.exports_info() {
+                nested_exports.push((
+                  nested_exports_info,
+                  PrefetchExportsInfoMode::NamedNestedExports(&names[1..]),
+                ));
               }
               exports.insert(
                 name,
@@ -508,14 +589,35 @@ impl ExportsInfoGetter {
         }
         PrefetchExportsInfoMode::NamedNestedAllExports(names) => {
           let mut exports = IndexMap::new();
-          for (key, value) in exports_info.exports.iter() {
+          for (key, value) in exports_info.exports_with_names() {
             let export_info = value.as_data(mg);
 
             if names.first().is_some_and(|name| name == key) {
-              if let Some(nested_exports_info) = export_info.exports_info {
-                let nested_mode = PrefetchExportsInfoMode::NamedNestedAllExports(&names[1..]);
-                prefetch_exports(&nested_exports_info, mg, res, nested_mode);
+              if let Some(nested_exports_info) = export_info.exports_info() {
+                nested_exports.push((
+                  nested_exports_info,
+                  PrefetchExportsInfoMode::NamedNestedAllExports(&names[1..]),
+                ));
               }
+            }
+
+            exports.insert(
+              key,
+              PrefetchedExportInfoData {
+                inner: export_info,
+                // exports_info: export_info_data.exports_info,
+              },
+            );
+          }
+          exports
+        }
+        PrefetchExportsInfoMode::Full => {
+          let mut exports = IndexMap::new();
+          for (key, value) in exports_info.exports_with_names() {
+            let export_info = value.as_data(mg);
+
+            if let Some(nested_exports_info) = export_info.exports_info() {
+              nested_exports.push((nested_exports_info, PrefetchExportsInfoMode::Full));
             }
 
             exports.insert(
@@ -530,18 +632,18 @@ impl ExportsInfoGetter {
         }
       };
 
-      let other_exports_info_data = exports_info.other_exports_info.as_data(mg);
-      if let Some(other_exports) = other_exports_info_data.exports_info {
-        prefetch_exports(&other_exports, mg, res, PrefetchExportsInfoMode::Default);
+      let other_exports_info_data = exports_info.other_exports_info().as_data(mg);
+      if let Some(other_exports) = other_exports_info_data.exports_info() {
+        nested_exports.push((other_exports, PrefetchExportsInfoMode::Default));
       }
 
-      let side_effects_only_info_data = exports_info.side_effects_only_info.as_data(mg);
-      if let Some(side_exports) = side_effects_only_info_data.exports_info {
-        prefetch_exports(&side_exports, mg, res, PrefetchExportsInfoMode::Default);
+      let side_effects_only_info_data = exports_info.side_effects_only_info().as_data(mg);
+      if let Some(side_exports) = side_effects_only_info_data.exports_info() {
+        nested_exports.push((side_exports, PrefetchExportsInfoMode::Default));
       }
 
-      if let Some(redirect_to) = exports_info.redirect_to {
-        prefetch_exports(&redirect_to, mg, res, mode.clone());
+      if let Some(redirect_to) = exports_info.redirect_to() {
+        nested_exports.push((redirect_to, mode.clone()));
       }
 
       res.insert(
@@ -556,10 +658,14 @@ impl ExportsInfoGetter {
             inner: side_effects_only_info_data,
             // exports_info: side_effects_only_info_data.exports_info,
           },
-          redirect_to: exports_info.redirect_to,
+          redirect_to: exports_info.redirect_to(),
           id: *id,
         },
       );
+
+      for (nested_exports_info, nested_mode) in nested_exports {
+        prefetch_exports(&nested_exports_info, mg, res, nested_mode);
+      }
     }
 
     let mut res = HashMap::default();
@@ -568,6 +674,64 @@ impl ExportsInfoGetter {
       exports: Arc::new(res),
       entry: *id,
       mode,
+    }
+  }
+
+  pub fn prefetch_used_info_without_name<'a>(
+    id: &ExportsInfo,
+    mg: &'a ModuleGraph,
+    runtime: Option<&RuntimeSpec>,
+    full_data: bool,
+  ) -> PrefetchedExportsInfoUsed<'a> {
+    if full_data {
+      let data = Self::prefetch(id, mg, PrefetchExportsInfoMode::AllExports);
+      let is_used = Self::is_used(&data, runtime);
+      let is_module_used = Self::is_module_used(&data, runtime);
+      PrefetchedExportsInfoUsed {
+        is_used,
+        is_module_used,
+        data: Some(data),
+      }
+    } else {
+      fn is_exports_info_used(
+        info: &ExportsInfo,
+        runtime: Option<&RuntimeSpec>,
+        mg: &ModuleGraph,
+      ) -> bool {
+        let exports_info = info.as_data(mg);
+        if let Some(redirect) = exports_info.redirect_to() {
+          if is_exports_info_used(&redirect, runtime, mg) {
+            return true;
+          }
+        } else if ExportInfoGetter::get_used(exports_info.other_exports_info().as_data(mg), runtime)
+          != UsageState::Unused
+        {
+          return true;
+        }
+
+        for (_, export_info) in exports_info.exports_with_names() {
+          if ExportInfoGetter::get_used(export_info.as_data(mg), runtime) != UsageState::Unused {
+            return true;
+          }
+        }
+        false
+      }
+
+      let is_used = is_exports_info_used(id, runtime, mg);
+      let is_module_used = if is_used {
+        true
+      } else {
+        !matches!(
+          ExportInfoGetter::get_used(id.as_data(mg).side_effects_only_info().as_data(mg), runtime),
+          UsageState::Unused
+        )
+      };
+
+      PrefetchedExportsInfoUsed {
+        is_used,
+        is_module_used,
+        data: None,
+      }
     }
   }
 
@@ -612,13 +776,13 @@ impl ExportsInfoGetter {
   ) -> Option<ExportProvided> {
     let name = names.first()?;
     let info_data = info.get_read_only_export_info(name);
-    if let Some(nested_exports_info) = &info_data.exports_info
+    if let Some(nested_exports_info) = &info_data.exports_info()
       && names.len() > 1
     {
       let redirected = info.redirect(*nested_exports_info, true);
       return Self::is_export_provided(&redirected, &names[1..]);
     }
-    let provided = ExportInfoGetter::provided(info_data)?;
+    let provided = info_data.provided()?;
 
     match provided {
       ExportProvided::Provided => {
@@ -628,13 +792,13 @@ impl ExportsInfoGetter {
           None
         }
       }
-      _ => Some(*provided),
+      _ => Some(provided),
     }
   }
 
   pub fn get_provided_exports(info: &PrefetchedExportsInfoWrapper) -> ProvidedExports {
-    if info.data().redirect_to.is_none() {
-      match ExportInfoGetter::provided(info.other_exports_info()) {
+    if info.redirect_to().is_none() {
+      match info.other_exports_info().provided() {
         Some(ExportProvided::Unknown) => {
           return ProvidedExports::ProvidedAll;
         }
@@ -649,14 +813,14 @@ impl ExportsInfoGetter {
     }
     let mut ret = vec![];
     for (_, export_info) in info.exports() {
-      match export_info.provided {
+      match export_info.provided() {
         Some(ExportProvided::Provided | ExportProvided::Unknown) | None => {
-          ret.push(export_info.name.clone().unwrap_or("".into()));
+          ret.push(export_info.name().cloned().unwrap_or("".into()));
         }
         _ => {}
       }
     }
-    if let Some(redirect) = &info.data().redirect_to {
+    if let Some(redirect) = info.redirect_to() {
       let redirected = info.redirect(*redirect, false);
       let provided_exports = Self::get_provided_exports(&redirected);
       let inner = match provided_exports {
@@ -688,7 +852,7 @@ impl ExportsInfoGetter {
       return ExportInfoGetter::get_used(info.other_exports_info(), runtime);
     }
     let info_data = info.get_read_only_export_info(&names[0]);
-    if let Some(exports_info) = &info_data.exports_info
+    if let Some(exports_info) = &info_data.exports_info()
       && names.len() > 1
     {
       let redirected = info.redirect(*exports_info, true);
@@ -699,73 +863,104 @@ impl ExportsInfoGetter {
 
   /// `Option<UsedName>` correspond to webpack `string | string[] | false`
   pub fn get_used_name(
-    info: &PrefetchedExportsInfoWrapper,
+    info: GetUsedNameParam<'_>,
     runtime: Option<&RuntimeSpec>,
     names: &[Atom],
   ) -> Option<UsedName> {
-    if names.len() == 1 {
-      let name = &names[0];
-      let info = info.get_read_only_export_info(name);
-      let used_name = ExportInfoGetter::get_used_name(info, Some(name), runtime);
-      return used_name.map(|n| UsedName::Normal(vec![n]));
-    }
-    if names.is_empty() {
-      if !Self::is_used(info, runtime) {
-        return None;
+    match info {
+      GetUsedNameParam::WithoutNames(info) => {
+        if !names.is_empty() {
+          unreachable!();
+        }
+        if !info.is_used {
+          return None;
+        }
+        Some(UsedName::Normal(vec![]))
       }
-      return Some(UsedName::Normal(names.to_vec()));
+      GetUsedNameParam::WithNames(info) => {
+        if names.is_empty() {
+          if !Self::is_used(info, runtime) {
+            return None;
+          }
+          return Some(UsedName::Normal(vec![]));
+        }
+        if names.len() == 1 {
+          let name = &names[0];
+          let info = info.get_read_only_export_info(name);
+          let used_name = ExportInfoGetter::get_used_name(info, Some(name), runtime);
+          return used_name.map(|name| match name {
+            UsedNameItem::Str(name) => UsedName::Normal(vec![name]),
+            UsedNameItem::Inlined(inlined) => UsedName::Inlined(inlined),
+          });
+        }
+        let export_info = info.get_read_only_export_info(&names[0]);
+        let first = ExportInfoGetter::get_used_name(export_info, Some(&names[0]), runtime)?;
+        let mut arr = match first {
+          UsedNameItem::Inlined(inlined) => return Some(UsedName::Inlined(inlined)),
+          UsedNameItem::Str(first) => vec![first],
+        };
+        if names.len() == 1 {
+          return Some(UsedName::Normal(arr));
+        }
+        if let Some(exports_info) = &export_info.exports_info()
+          && ExportInfoGetter::get_used(export_info, runtime) == UsageState::OnlyPropertiesUsed
+        {
+          let nested_exports_info = info.redirect(*exports_info, true);
+          let nested = Self::get_used_name(
+            GetUsedNameParam::WithNames(&nested_exports_info),
+            runtime,
+            &names[1..],
+          )?;
+          let nested = match nested {
+            UsedName::Inlined(inlined) => return Some(UsedName::Inlined(inlined)),
+            UsedName::Normal(names) => names,
+          };
+          arr.extend(nested);
+          return Some(UsedName::Normal(arr));
+        }
+        arr.extend(names.iter().skip(1).cloned());
+        Some(UsedName::Normal(arr))
+      }
     }
-    let export_info = info.get_read_only_export_info(&names[0]);
-    let used_name = ExportInfoGetter::get_used_name(export_info, Some(&names[0]), runtime)?;
-    let mut arr = if used_name == names[0] && names.len() == 1 {
-      names.to_vec()
-    } else {
-      vec![used_name]
-    };
-    if names.len() == 1 {
-      return Some(UsedName::Normal(arr));
-    }
-    if let Some(exports_info) = &export_info.exports_info
-      && ExportInfoGetter::get_used(export_info, runtime) == UsageState::OnlyPropertiesUsed
-    {
-      let nested_exports_info = info.redirect(*exports_info, true);
-      let nested = Self::get_used_name(&nested_exports_info, runtime, &names[1..])?;
-      arr.extend(match nested {
-        UsedName::Normal(names) => names,
-      });
-      return Some(UsedName::Normal(arr));
-    }
-    arr.extend(names.iter().skip(1).cloned());
-    Some(UsedName::Normal(arr))
   }
 
-  pub fn is_equally_used(
+  pub fn get_usage_key(
     info: &PrefetchedExportsInfoWrapper,
-    a: &RuntimeSpec,
-    b: &RuntimeSpec,
-  ) -> bool {
-    if let Some(redirect) = &info.data().redirect_to {
-      let redirected = info.redirect(*redirect, false);
-      if Self::is_equally_used(&redirected, a, b) {
-        return false;
-      }
-    } else if ExportInfoGetter::get_used(info.other_exports_info(), Some(a))
-      != ExportInfoGetter::get_used(info.other_exports_info(), Some(b))
-    {
-      return false;
-    }
-    if ExportInfoGetter::get_used(info.side_effects_only_info(), Some(a))
-      != ExportInfoGetter::get_used(info.side_effects_only_info(), Some(b))
-    {
-      return false;
-    }
+    runtime: Option<&RuntimeSpec>,
+  ) -> UsageKey {
+    // only expand capacity when this has redirect_to
+    let mut key = UsageKey(Vec::with_capacity(info.exports().count() + 2));
+
+    if let Some(redirect_to) = &info.data().redirect_to {
+      let redirected = info.redirect(*redirect_to, false);
+      key.add(Either::Left(Box::new(Self::get_usage_key(
+        &redirected,
+        runtime,
+      ))));
+    } else {
+      key.add(Either::Right(ExportInfoGetter::get_used(
+        info.other_exports_info(),
+        runtime,
+      )));
+    };
+
+    key.add(Either::Right(ExportInfoGetter::get_used(
+      info.side_effects_only_info(),
+      runtime,
+    )));
+
     for (_, export_info) in info.exports() {
-      if ExportInfoGetter::get_used(export_info, Some(a))
-        != ExportInfoGetter::get_used(export_info, Some(b))
-      {
-        return false;
-      }
+      key.add(Either::Right(ExportInfoGetter::get_used(
+        export_info,
+        runtime,
+      )));
     }
-    true
+
+    key
   }
+}
+
+pub enum GetUsedNameParam<'a> {
+  WithoutNames(&'a PrefetchedExportsInfoUsed<'a>),
+  WithNames(&'a PrefetchedExportsInfoWrapper<'a>),
 }

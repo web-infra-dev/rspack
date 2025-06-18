@@ -25,6 +25,17 @@ swc
   .then(result => {
     console.log(result.code);
   });
+
+const output = swc.transformSync(sourceCode, {
+  filename: 'main.ts',
+  jsc: {
+    parser: {
+      syntax: 'typescript',
+    },
+    // ...other options
+  },
+});
+console.log(output.code);
 ```
 
 In addition to using the `swc` API directly, you can also use it in loaders or plugins to help with code transform or minify.
@@ -49,6 +60,29 @@ export default function myLoader(source) {
     .then(result => {
       callback(null, `${result.code}\n${source}`);
     });
+}
+```
+
+```ts title="my-plugin.mjs"
+class MyPlugin {
+  apply(compiler) {
+    const { swc } = compiler.rspack.experiments;
+
+    compiler.hooks.emit.tapAsync('MyPlugin', (compilation, callback) => {
+      const customCode = `
+        const a = 10;
+        const b = 20;
+        // custom code
+      `;
+
+      const output = swc.minifySync(customCode, {
+        compress: true,
+        sourceMap: true,
+        //...other options
+      });
+      // ....
+    });
+  }
 }
 ```
 

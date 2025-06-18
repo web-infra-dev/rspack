@@ -6,9 +6,9 @@ use rspack_core::{
   property_access, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoGetter,
-  ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleGraph, NormalInitFragment, PrefetchExportsInfoMode, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource, UsedName,
+  ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
+  PrefetchExportsInfoMode, RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::atoms::Atom;
 
@@ -97,7 +97,11 @@ impl Dependency for CommonJsExportsDependency {
     &DependencyType::CjsExports
   }
 
-  fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
+  fn get_exports(
+    &self,
+    _mg: &ModuleGraph,
+    _mg_cache: &ModuleGraphCacheArtifact,
+  ) -> Option<ExportsSpec> {
     let vec = vec![ExportNameOrSpec::ExportSpec(ExportSpec {
       name: self.names[0].clone(),
       can_mangle: Some(false), // in webpack, object own property may not be mangled
@@ -163,18 +167,29 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
 
-    let used = ExportsInfoGetter::get_used_name(
-      &module_graph.get_prefetched_exports_info(
+    let used = if dep.names.is_empty() {
+      let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
+        &module_graph.get_exports_info(&module.identifier()),
+        &module_graph,
+        *runtime,
+        false,
+      );
+      ExportsInfoGetter::get_used_name(
+        GetUsedNameParam::WithoutNames(&exports_info),
+        *runtime,
+        &dep.names,
+      )
+    } else {
+      let exports_info = module_graph.get_prefetched_exports_info(
         &module.identifier(),
-        if dep.names.is_empty() {
-          PrefetchExportsInfoMode::AllExports
-        } else {
-          PrefetchExportsInfoMode::NamedNestedExports(&dep.names)
-        },
-      ),
-      *runtime,
-      &dep.names,
-    );
+        PrefetchExportsInfoMode::NamedNestedExports(&dep.names),
+      );
+      ExportsInfoGetter::get_used_name(
+        GetUsedNameParam::WithNames(&exports_info),
+        *runtime,
+        &dep.names,
+      )
+    };
 
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();
@@ -193,38 +208,30 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
     };
 
     if dep.base.is_expression() {
-      if let Some(used) = used {
+      if let Some(UsedName::Normal(used)) = used {
         source.replace(
           dep.range.start,
           dep.range.end,
-          &format!(
-            "{}{}",
-            base,
-            property_access(
-              match used {
-                UsedName::Normal(names) => names.into_iter(),
-              },
-              0
-            )
-          ),
+          &format!("{}{}", base, property_access(used, 0)),
           None,
-        )
+        );
       } else {
+        // Export a inlinable const from cjs is not possible for now but we compat it here
+        let is_inlined = matches!(used, Some(UsedName::Inlined(_)));
+        let placeholder_var = format!(
+          "__webpack_{}_export__",
+          if is_inlined { "inlined" } else { "unused" }
+        );
+        source.replace(dep.range.start, dep.range.end, &placeholder_var, None);
         init_fragments.push(
           NormalInitFragment::new(
-            "var __webpack_unused_export__;\n".to_string(),
+            format!("var {placeholder_var};\n"),
             InitFragmentStage::StageConstants,
             0,
-            InitFragmentKey::CommonJsExports("__webpack_unused_export__".to_owned()),
+            InitFragmentKey::CommonJsExports(placeholder_var),
             None,
           )
           .boxed(),
-        );
-        source.replace(
-          dep.range.start,
-          dep.range.end,
-          "__webpack_unused_export__",
-          None,
         );
       }
     } else if dep.base.is_define_property() {

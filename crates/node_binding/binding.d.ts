@@ -41,7 +41,6 @@ export interface Module {
 	set factoryMeta(factoryMeta: JsFactoryMeta);
 	get useSourceMap(): boolean;
 	get useSimpleSourceMap(): boolean;
-	get _readableIdentifier(): string;
 	buildInfo: BuildInfo;
 	buildMeta: Record<string, any>;
 }
@@ -111,6 +110,7 @@ export declare class CodeGenerationResults {
 export declare class ConcatenatedModule {
   get rootModule(): Module
   get modules(): Module[]
+  readableIdentifier(): string
   _originalSource(): JsCompatSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
@@ -121,6 +121,7 @@ export declare class ConcatenatedModule {
 }
 
 export declare class ContextModule {
+  readableIdentifier(): string
   _originalSource(): JsCompatSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
@@ -183,6 +184,7 @@ export declare class EntryOptionsDto {
 export type EntryOptionsDTO = EntryOptionsDto
 
 export declare class ExternalModule {
+  readableIdentifier(): string
   _originalSource(): JsCompatSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
@@ -404,6 +406,7 @@ export declare class KnownBuildInfo {
 }
 
 export declare class Module {
+  readableIdentifier(): string
   _originalSource(): JsCompatSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
@@ -1059,7 +1062,7 @@ export interface JsRsdoctorModule {
   belongModules: Array<number>
   chunks: Array<number>
   issuerPath: Array<number>
-  bailoutReason?: string
+  bailoutReason: Array<string>
 }
 
 export interface JsRsdoctorModuleGraph {
@@ -1479,6 +1482,8 @@ export declare function loadBrowserslist(input: string | undefined | null, conte
 
 export declare function minify(source: string, options: string): Promise<TransformOutput>
 
+export declare function minifySync(source: string, options: string): TransformOutput
+
 export interface NodeFsStats {
   isFile: boolean
   isDirectory: boolean
@@ -1883,6 +1888,7 @@ parallelCodeSplitting: boolean
 rspackFuture?: RawRspackFuture
 cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
 useInputFileSystem?: false | Array<RegExp>
+inlineConst: boolean
 }
 
 export interface RawExperimentSnapshotOptions {
@@ -2092,6 +2098,11 @@ export interface RawJavascriptParserOptions {
    * @experimental
    */
   importDynamic?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  inlineConst?: boolean
 }
 
 export interface RawJsonGeneratorOptions {
@@ -2692,14 +2703,6 @@ export interface RegisterJsTaps {
   registerRsdoctorPluginAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorAssetPatch) => Promise<boolean | undefined>); stage: number; }>
 }
 
-/**
- * Shutdown the tokio runtime manually.
- *
- * This is required for the wasm target with `tokio_unstable` cfg.
- * In the wasm runtime, the `park` threads will hang there until the tokio::Runtime is shutdown.
- */
-export declare function shutdownAsyncRuntime(): void
-
 export interface SourceMapDevToolPluginOptions {
   append?: (false | null) | string | Function
   columns?: boolean
@@ -2722,14 +2725,6 @@ export interface SourcePosition {
   line: number
   column?: number
 }
-
-/**
- * Start the async runtime manually.
- *
- * This is required when the async runtime is shutdown manually.
- * Usually it's used in test.
- */
-export declare function startAsyncRuntime(): void
 
 export declare function syncTraceEvent(events: Array<RawTraceEvent>): void
 
@@ -2765,3 +2760,5 @@ export interface TransformOutput {
   map?: string
   diagnostics: Array<string>
 }
+
+export declare function transformSync(source: string, options: string): TransformOutput

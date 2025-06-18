@@ -16,9 +16,9 @@ use rspack_core::{
   diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CompilerOptions, ExportInfoGetter,
-  ExportsInfo, ExportsInfoGetter, GenerateContext, Module, ModuleGraph, ParseOption,
-  ParserAndGenerator, Plugin, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SourceType,
-  UsageState, NAMESPACE_OBJECT_EXPORT,
+  ExportsInfoGetter, GenerateContext, Module, ModuleGraph, ParseOption, ParserAndGenerator, Plugin,
+  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeGlobals, RuntimeSpec, SourceType,
+  UsageState, UsedNameItem, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::{
   miette::diagnostic, DiagnosticExt, DiagnosticKind, IntoTWithDiagnosticArray, Result,
@@ -181,21 +181,22 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           .json_data
           .as_ref()
           .expect("should have json data");
-        let exports_info = module_graph.get_exports_info(&module.identifier());
+        let exports_info = module_graph
+          .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::AllExports);
 
         let final_json = match json_data {
           json::JsonValue::Object(_) | json::JsonValue::Array(_)
             if matches!(
-              ExportInfoGetter::get_used(
-                exports_info
-                  .other_exports_info(&module_graph)
-                  .as_data(&module_graph),
-                *runtime
-              ),
+              ExportInfoGetter::get_used(exports_info.other_exports_info(), *runtime),
               UsageState::Unused
             ) =>
           {
-            create_object_for_exports_info(json_data.clone(), exports_info, *runtime, &module_graph)
+            create_object_for_exports_info(
+              json_data.clone(),
+              &exports_info,
+              *runtime,
+              &module_graph,
+            )
           }
           _ => json_data.clone(),
         };
@@ -275,16 +276,11 @@ impl Plugin for JsonPlugin {
 
 fn create_object_for_exports_info(
   data: JsonValue,
-  exports_info: ExportsInfo,
+  exports_info: &PrefetchedExportsInfoWrapper<'_>,
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
 ) -> JsonValue {
-  let exports_info_data =
-    ExportsInfoGetter::prefetch(&exports_info, mg, PrefetchExportsInfoMode::AllExports);
-
-  if ExportInfoGetter::get_used(exports_info_data.other_exports_info(), runtime)
-    != UsageState::Unused
-  {
+  if ExportInfoGetter::get_used(exports_info.other_exports_info(), runtime) != UsageState::Unused {
     return data;
   }
 
@@ -297,22 +293,28 @@ fn create_object_for_exports_info(
     JsonValue::Object(mut obj) => {
       let mut used_pair = vec![];
       for (key, value) in obj.iter_mut() {
-        let export_info = exports_info_data.get_read_only_export_info(&key.into());
+        let export_info = exports_info.get_read_only_export_info(&key.into());
         let used = ExportInfoGetter::get_used(export_info, runtime);
         if used == UsageState::Unused {
           continue;
         }
         let new_value = if used == UsageState::OnlyPropertiesUsed
-          && let Some(exports_info) = ExportInfoGetter::exports_info(export_info)
+          && let Some(exports_info) = export_info.exports_info()
         {
           // avoid clone
           let temp = std::mem::replace(value, JsonValue::Null);
-          create_object_for_exports_info(temp, exports_info, runtime, mg)
+          let exports_info =
+            ExportsInfoGetter::prefetch(&exports_info, mg, PrefetchExportsInfoMode::AllExports);
+          create_object_for_exports_info(temp, &exports_info, runtime, mg)
         } else {
           std::mem::replace(value, JsonValue::Null)
         };
-        let used_name = ExportInfoGetter::get_used_name(export_info, Some(&(key.into())), runtime)
-          .expect("should have used name");
+        let UsedNameItem::Str(used_name) =
+          ExportInfoGetter::get_used_name(export_info, Some(&(key.into())), runtime)
+            .expect("should have used name")
+        else {
+          continue;
+        };
         used_pair.push((used_name, new_value));
       }
       let mut new_obj = Object::new();
@@ -328,18 +330,20 @@ fn create_object_for_exports_info(
         .into_iter()
         .enumerate()
         .map(|(i, item)| {
-          let export_info = exports_info_data.get_read_only_export_info(&itoa!(i).into());
+          let export_info = exports_info.get_read_only_export_info(&itoa!(i).into());
           let used = ExportInfoGetter::get_used(export_info, runtime);
           if used == UsageState::Unused {
             return None;
           }
           max_used_index = max_used_index.max(i);
           if used == UsageState::OnlyPropertiesUsed
-            && let Some(exports_info) = ExportInfoGetter::exports_info(export_info)
+            && let Some(exports_info) = export_info.exports_info()
           {
+            let exports_info =
+              ExportsInfoGetter::prefetch(&exports_info, mg, PrefetchExportsInfoMode::AllExports);
             Some(create_object_for_exports_info(
               item,
-              exports_info,
+              &exports_info,
               runtime,
               mg,
             ))
@@ -349,7 +353,7 @@ fn create_object_for_exports_info(
         })
         .collect::<Vec<_>>();
       let arr_length_used = ExportInfoGetter::get_used(
-        exports_info_data.get_read_only_export_info(&"length".into()),
+        exports_info.get_read_only_export_info(&"length".into()),
         runtime,
       );
       let array_length_when_used = match arr_length_used {

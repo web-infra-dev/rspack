@@ -5,9 +5,9 @@ use rspack_cacheable::{
 use rspack_core::{
   property_access, AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoGetter, ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph,
-  PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsedName,
+  ExportsInfoGetter, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::atoms::Atom;
 
@@ -63,6 +63,7 @@ impl Dependency for CommonJsSelfReferenceDependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     if self.is_call {
@@ -142,19 +143,31 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
       .expect("should have mgm");
 
     let used = if dep.names.is_empty() {
-      ExportsInfoGetter::get_used_name(
-        &module_graph.get_prefetched_exports_info(
+      let used_name = if dep.names.is_empty() {
+        let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
+          &module_graph.get_exports_info(&module.identifier()),
+          &module_graph,
+          *runtime,
+          false,
+        );
+        ExportsInfoGetter::get_used_name(
+          GetUsedNameParam::WithoutNames(&exports_info),
+          *runtime,
+          &dep.names,
+        )
+      } else {
+        let exports_info = module_graph.get_prefetched_exports_info(
           &module.identifier(),
-          if dep.names.is_empty() {
-            PrefetchExportsInfoMode::AllExports
-          } else {
-            PrefetchExportsInfoMode::NamedNestedExports(&dep.names)
-          },
-        ),
-        *runtime,
-        &dep.names,
-      )
-      .unwrap_or_else(|| UsedName::Normal(dep.names.clone()))
+          PrefetchExportsInfoMode::NamedNestedExports(&dep.names),
+        );
+        ExportsInfoGetter::get_used_name(
+          GetUsedNameParam::WithNames(&exports_info),
+          *runtime,
+          &dep.names,
+        )
+      };
+
+      used_name.unwrap_or_else(|| UsedName::Normal(dep.names.clone()))
     } else {
       UsedName::Normal(dep.names.clone())
     };
@@ -178,16 +191,12 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
     source.replace(
       dep.range.start,
       dep.range.end,
-      &format!(
-        "{}{}",
-        base,
-        property_access(
-          match used {
-            UsedName::Normal(names) => names.into_iter(),
-          },
-          0
-        )
-      ),
+      &match used {
+        UsedName::Normal(used) => format!("{}{}", base, property_access(used, 0)),
+        // Export a inlinable const from cjs is not possible for now, so self reference a inlinable
+        // const is also not possible for now, but we compat it here
+        UsedName::Inlined(inlined) => inlined.render().into_owned(),
+      },
       None,
     )
   }

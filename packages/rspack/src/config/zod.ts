@@ -1,9 +1,9 @@
 import nodePath from "node:path";
 import { ZodIssueCode, z } from "zod";
-import { ZodSwcLoaderOptions } from "../builtin-loader/swc/types";
-import { validate } from "../util/validate";
+import { fromZodError } from "zod-validation-error";
+import { getZodSwcLoaderOptionsSchema } from "../builtin-loader/swc/types";
 import type * as t from "./types";
-import { ZodRspackCrossChecker, anyFunction } from "./utils";
+import { anyFunction } from "./utils";
 
 const filenameTemplate = z.string() satisfies z.ZodType<t.FilenameTemplate>;
 
@@ -449,57 +449,39 @@ const ruleSetLoaderOptions = z
 		z.record(z.string(), z.any())
 	) satisfies z.ZodType<t.RuleSetLoaderOptions>;
 
-const ruleSetLoaderWithOptions =
-	new ZodRspackCrossChecker<t.RuleSetLoaderWithOptions>({
-		patterns: [
-			{
-				test: (_, input) =>
-					input?.data?.loader === "builtin:swc-loader" &&
-					typeof input?.data?.options === "object",
-				type: z.strictObject({
-					ident: z.string().optional(),
-					loader: z.literal("builtin:swc-loader"),
-					options: ZodSwcLoaderOptions,
-					parallel: z.boolean().optional()
-				}),
-				issue: (res, _, input) => {
-					try {
-						const message = validate(input.data.options, ZodSwcLoaderOptions, {
-							output: false,
-							strategy: "strict"
-						});
-						if (message) {
-							return [
-								{
-									fatal: true,
-									code: ZodIssueCode.custom,
-									message: `Invalid options of 'builtin:swc-loader': ${message}`
-								}
-							];
-						}
-						return [];
-					} catch (e) {
-						return [
-							{
-								fatal: true,
-								code: ZodIssueCode.custom,
-								message: `Invalid options of 'builtin:swc-loader': ${(e as Error).message}`
-							}
-						];
-					}
-				}
-			}
-		],
-		default: z.strictObject({
-			ident: z.string().optional(),
-			loader: ruleSetLoader,
-			options: ruleSetLoaderOptions.optional(),
-			parallel: z.boolean().optional()
-		})
-	}) satisfies z.ZodType<t.RuleSetLoaderWithOptions>;
+const ruleSetLoaderWithOptions = z.strictObject({
+	ident: z.string().optional(),
+	loader: ruleSetLoader,
+	options: ruleSetLoaderOptions.optional(),
+	parallel: z.boolean().optional()
+}) satisfies z.ZodType<t.RuleSetLoaderWithOptions>;
+
+const builtinSWCLoaderChecker = (
+	data: t.RuleSetLoaderWithOptions | t.RuleSetRule | undefined,
+	ctx: z.RefinementCtx
+) => {
+	if (
+		data?.loader !== "builtin:swc-loader" ||
+		typeof data?.options !== "object"
+	) {
+		return;
+	}
+
+	const res = getZodSwcLoaderOptionsSchema().safeParse(data.options);
+
+	if (!res.success) {
+		const validationErr = fromZodError(res.error, {
+			prefix: "Invalid options for 'builtin:swc-loader'"
+		});
+		ctx.addIssue({
+			code: "custom",
+			message: validationErr.message
+		});
+	}
+};
 
 const ruleSetUseItem = ruleSetLoader.or(
-	ruleSetLoaderWithOptions
+	ruleSetLoaderWithOptions.superRefine(builtinSWCLoaderChecker)
 ) satisfies z.ZodType<t.RuleSetUseItem>;
 
 const ruleSetUse = ruleSetUseItem
@@ -536,55 +518,11 @@ const extendedBaseRuleSetRule: z.ZodType<t.RuleSetRule> =
 	baseRuleSetRule.extend({
 		oneOf: z.lazy(() => ruleSetRule.or(falsy).array()).optional(),
 		rules: z.lazy(() => ruleSetRule.or(falsy).array()).optional()
-	});
+	}) satisfies z.ZodType<t.RuleSetRule>;
 
-const extendedSwcRuleSetRule: z.ZodType<t.RuleSetRule> = baseRuleSetRule
-	.extend({
-		loader: z.literal("builtin:swc-loader"),
-		options: ZodSwcLoaderOptions
-	})
-	.extend({
-		oneOf: z.lazy(() => ruleSetRule.or(falsy).array()).optional(),
-		rules: z.lazy(() => ruleSetRule.or(falsy).array()).optional()
-	});
-
-const ruleSetRule = new ZodRspackCrossChecker<t.RuleSetRule>({
-	patterns: [
-		{
-			test: (_, input) =>
-				input?.data?.loader === "builtin:swc-loader" &&
-				typeof input?.data?.options === "object",
-			type: extendedSwcRuleSetRule,
-			issue: (res, _, input) => {
-				try {
-					const message = validate(input.data.options, ZodSwcLoaderOptions, {
-						output: false,
-						strategy: "strict"
-					});
-					if (message) {
-						return [
-							{
-								fatal: true,
-								code: ZodIssueCode.custom,
-								message: `Invalid options of 'builtin:swc-loader': ${message}`
-							}
-						];
-					}
-					return [];
-				} catch (e) {
-					return [
-						{
-							fatal: true,
-							code: ZodIssueCode.custom,
-							message: `Invalid options of 'builtin:swc-loader': ${(e as Error).message}`
-						}
-					];
-				}
-			}
-		}
-	],
-	default: extendedBaseRuleSetRule
-});
+const ruleSetRule = extendedBaseRuleSetRule.superRefine(
+	builtinSWCLoaderChecker
+);
 
 const ruleSetRules = z.array(
 	z.literal("...").or(ruleSetRule).or(falsy)
@@ -643,6 +581,7 @@ const requireAsExpression = z.boolean();
 const requireDynamic = z.boolean();
 const requireResolve = z.boolean();
 const importDynamic = z.boolean();
+const inlineConst = z.boolean();
 
 const javascriptParserOptions = z.strictObject({
 	dynamicImportMode: dynamicImportMode.optional(),
@@ -664,7 +603,8 @@ const javascriptParserOptions = z.strictObject({
 	requireAsExpression: requireAsExpression.optional(),
 	requireDynamic: requireDynamic.optional(),
 	requireResolve: requireResolve.optional(),
-	importDynamic: importDynamic.optional()
+	importDynamic: importDynamic.optional(),
+	inlineConst: inlineConst.optional()
 	// #endregion
 }) satisfies z.ZodType<t.JavascriptParserOptions>;
 
@@ -788,7 +728,10 @@ const allowTarget = z.union([
 		"es2019",
 		"es2020",
 		"es2021",
-		"es2022"
+		"es2022",
+		"es2023",
+		"es2024",
+		"es2025"
 	]),
 	z.literal("node"),
 	z.literal("async-node"),
@@ -1394,7 +1337,8 @@ const experiments = z.strictObject({
 	rspackFuture: rspackFutureOptions.optional(),
 	buildHttp: buildHttpOptions.optional(),
 	parallelLoader: z.boolean().optional(),
-	useInputFileSystem: useInputFileSystem.optional()
+	useInputFileSystem: useInputFileSystem.optional(),
+	inlineConst: z.boolean().optional()
 }) satisfies z.ZodType<t.Experiments>;
 //#endregion
 

@@ -3,6 +3,7 @@
 require("../../dist/helper/legacy/warmup-webpack");
 const path = require("path");
 const webpack = require("@rspack/core");
+const { LazyCompilationTestPlugin } = require("@rspack/test-tools");
 
 describe("MultiCompiler", function () {
 	jest.setTimeout(20000);
@@ -37,6 +38,84 @@ describe("MultiCompiler", function () {
 			});
 		});
 	}, 20000);
+});
+
+describe("with lazy compilation", function () {
+	it("compiler has unique lazy compilation config", done => {
+		const context = path.join(__dirname, "../fixtures");
+		const configs = [
+			{
+				entry: "./esm/a.js",
+				context
+			},
+			{
+				entry: "./esm/b.js",
+				experiments: {
+					lazyCompilation: {
+						entries: true
+					}
+				},
+				context
+			},
+			{
+				entry: "./esm/d.js",
+				experiments: {
+					lazyCompilation: {
+						entries: false,
+						imports: true
+					}
+				},
+				context
+			}
+		];
+		const compiler = webpack(configs);
+
+		new LazyCompilationTestPlugin().apply(compiler);
+
+		compiler.watch({}, (err, multiStats) => {
+			if (err) {
+				compiler.close(() => {
+					done(err);
+				});
+				return;
+			}
+
+			const [statsA, statsB, statsC] = multiStats.stats;
+
+			expect(
+				statsA.toJson().modules.every(module => {
+					return !module.identifier.includes("lazy-compilation-proxy");
+				})
+			).toBeTruthy();
+
+			// second compiler lazy compile entry
+			expect(
+				statsB.toJson().modules.find(module => {
+					return (
+						module.identifier.includes("lazy-compilation-proxy") &&
+						module.identifier.replaceAll("\\", "/").includes("/esm/b.js")
+					);
+				})
+			).toBeDefined();
+
+			// third compiler lazy compile dyn imports
+			expect(
+				statsC.toJson().modules.find(module => {
+					return (
+						module.identifier.includes("lazy-compilation-proxy") &&
+						module.identifier
+							.replaceAll("\\", "/")
+							.includes("/esm/d-dynamic.js")
+					);
+				})
+			).toBeDefined();
+
+			compiler.close(err => {
+				if (err) return done(err);
+				done();
+			});
+		});
+	});
 });
 
 describe.skip("Pressure test", function () {

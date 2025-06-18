@@ -154,7 +154,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       let export_info = module_graph.get_export_info(module_identifier, &(export.as_str()).into());
       let info = export_info.as_data_mut(&mut module_graph);
       ExportInfoSetter::set_used(info, UsageState::Used, Some(&runtime));
-      ExportInfoSetter::set_can_mangle_use(info, Some(false));
+      info.set_can_mangle_use(Some(false));
     } else {
       let exports_info = module_graph.get_exports_info(&module_identifier);
       if self.ns_object_used {
