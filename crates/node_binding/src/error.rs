@@ -200,29 +200,6 @@ impl FromNapiValue for RspackError {
 impl napi::bindgen_prelude::ValidateNapiValue for RspackError {}
 
 // The error printing logic here is consistent with Webpack Stats.
-// The printing order for StatsError is configured in lib/stats/DefaultStatsPrinterPlugin.js.
-// const ERROR_PREFERRED_ORDER = [
-//   "compilerPath",
-//   "chunkId",
-//   "chunkEntry",
-//   "chunkInitial",
-//   "file",
-//   "separator!",
-//   "moduleName",
-//   "loc",
-//   "separator!",
-//   "message",
-//   "separator!",
-//   "details",
-//   "separator!",
-//   "filteredDetails",
-//   "separator!",
-//   "stack",
-//   "separator!",
-//   "missing",
-//   "separator!",
-//   "moduleTrace"
-// ];
 impl std::fmt::Display for RspackError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     if self.parent_error_name.as_deref() == Some("ModuleBuildError") {
@@ -239,11 +216,7 @@ impl std::fmt::Display for RspackError {
       };
       write!(f, "{message}")
     } else {
-      if let Some(details) = &self.details {
-        write!(f, "{}: ", self.name)?;
-        write!(f, "{}", &self.message)?;
-        write!(f, "\n{details}")?;
-      } else if let Some(stack) = &self.stack
+      if let Some(stack) = &self.stack
         && self.hide_stack != Some(true)
       {
         write!(f, "{stack}")?;
