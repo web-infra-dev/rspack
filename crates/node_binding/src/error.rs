@@ -88,7 +88,7 @@ pub struct RspackError {
   // Only used for display on the Rust side; this value is set when converting to a Diagnostic struct.
   pub severity: Option<Severity>,
   // Only used for display on the Rust side; the name of the parent error in the error chain, used to determine rendering logic.
-  pub display_type: Option<String>,
+  pub parent_error_name: Option<String>,
 }
 
 impl napi::bindgen_prelude::TypeName for RspackError {
@@ -191,7 +191,7 @@ impl FromNapiValue for RspackError {
       hide_stack,
       file,
       error: error.map(Box::new),
-      display_type: None,
+      parent_error_name: None,
     };
     Ok(val)
   }
@@ -225,7 +225,7 @@ impl napi::bindgen_prelude::ValidateNapiValue for RspackError {}
 // ];
 impl std::fmt::Display for RspackError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    if self.display_type.as_deref() == Some("ModuleBuildError") {
+    if self.parent_error_name.as_deref() == Some("ModuleBuildError") {
       // https://github.com/webpack/webpack/blob/93743d233ab4fa36738065ebf8df5f175323b906/lib/ModuleBuildError.js
       let message = if let Some(stack) = &self.stack {
         write!(f, "{}: ", self.name)?;
@@ -292,14 +292,14 @@ impl From<&dyn miette::Diagnostic> for RspackError {
       hide_stack: None,
       file: None,
       error: None,
-      display_type: None,
+      parent_error_name: None,
     }
   }
 }
 
 impl RspackError {
-  pub fn with_display_type<T: Into<String>>(mut self, display_type: T) -> Self {
-    self.display_type = Some(display_type.into());
+  pub fn with_parent_error_name<T: Into<String>>(mut self, parent_error_name: T) -> Self {
+    self.parent_error_name = Some(parent_error_name.into());
     self
   }
 
@@ -340,7 +340,7 @@ impl RspackError {
       file: diagnostic.file().map(|f| f.as_str().to_string()),
       hide_stack: diagnostic.hide_stack(),
       error: error.map(Box::new),
-      display_type: None,
+      parent_error_name: None,
     })
   }
 
@@ -357,7 +357,7 @@ impl RspackError {
 
     let diagnostic = if self.name == "ModuleBuildError" {
       let source = if let Some(error) = self.error {
-        miette::Error::new(error.with_display_type("ModuleBuildError"))
+        miette::Error::new(error.with_parent_error_name("ModuleBuildError"))
       } else {
         miette::Error::new(miette::MietteDiagnostic::new(self.message))
       };

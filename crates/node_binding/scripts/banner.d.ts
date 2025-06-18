@@ -73,7 +73,7 @@ export interface ExternalModule extends Module {
 	readonly userRequest: string;
 }
 
-export interface RspackError {
+export interface RspackError extends Error {
 	name: string;
 	message: string;
 	details?: string;
@@ -82,6 +82,7 @@ export interface RspackError {
 	file?: string;
 	stack?: string;
 	hideStack?: boolean;
+	error?: Error;
 }
 
 export type DependencyLocation = SyntheticDependencyLocation | RealDependencyLocation;

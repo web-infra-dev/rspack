@@ -581,9 +581,10 @@ export async function runLoaders(
 			loaderContext.loaders[loaderContext.loaderIndex]
 		)})`;
 		(error as RspackError).module = loaderContext._module;
-		(error as RspackError).details = stack
-			? cleanUp(stack, name, message)
-			: undefined;
+		(error as RspackError).details =
+			stack && (error as RspackError).hideStack
+				? cleanUp(stack, name, message)
+				: undefined;
 		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
 			error,
 			severity: JsRspackSeverity.Error
