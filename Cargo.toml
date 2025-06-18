@@ -207,6 +207,11 @@ rate-limit = { existing-packages = 70, new-packages = 70 }
 
 # Follow servo's style https://github.com/servo/servo/blob/c95bd9d052d7eae378d31c5be0f92669cadb2c85/Cargo.toml#L175
 
+[profile.bench]
+debug     = true
+lto       = false
+opt-level = 0
+
 # This is for local development
 [profile.dev]
 codegen-units = 16

@@ -10,6 +10,9 @@ use rspack_core::{
   Compilation, Compiler, Experiments, Optimization,
 };
 use rspack_fs::{MemoryFileSystem, WritableFileSystem};
+use rspack_tasks::{
+  within_compiler_context_for_testing_sync, CompilerContext, CURRENT_COMPILER_CONTEXT,
+};
 use tokio::runtime::Builder;
 
 static NUM_MODULES: usize = 10000;
@@ -94,8 +97,12 @@ fn gen_dynamic_module(
   ctx.push((format!("/src/dynamic-{depth}.js").as_str().into(), code));
   true
 }
-
 pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
+  within_compiler_context_for_testing_sync(|| {
+    build_chunk_graph_benchmark_inner(c);
+  })
+}
+pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
   let rt = Builder::new_multi_thread()
     .build()
     .expect("should not fail to build tokio runtime");
@@ -105,7 +112,6 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
   let random_table =
     serde_json::from_str::<Vec<Vec<usize>>>(include_str!("../build_chunk_graph/random_table.json"))
       .expect("should not fail to parse random table json");
-
   let mut compiler = Compiler::builder()
     .context("/")
     .entry("main", "/src/dynamic-0.js")
@@ -117,6 +123,7 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
     .unwrap();
 
   let compiler_id = compiler.id();
+  let compiler_context = CURRENT_COMPILER_CONTEXT.get();
 
   fast_set(
     &mut compiler.compilation,
@@ -138,6 +145,7 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
       compiler.intermediate_filesystem.clone(),
       compiler.output_filesystem.clone(),
       false,
+      compiler_context,
     ),
   );
 
