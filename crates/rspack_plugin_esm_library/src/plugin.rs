@@ -3,17 +3,17 @@ use std::sync::{Arc, LazyLock};
 use regex::Regex;
 use rspack_collections::IdentifierIndexMap;
 use rspack_core::{
-  rspack_sources::{ReplaceSource, Source},
   AssetInfo, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAfterCodeGeneration, CompilationAfterSeal, CompilationConcatenationScope,
   CompilationFinishModules, CompilationParams, CompilationProcessAssets, CompilerCompilation,
   ConcatenatedModuleInfo, ConcatenationScope, ExportInfoGetter, ExportProvided, ExternalModuleInfo,
-  ModuleGraph, ModuleIdentifier, ModuleInfo, Plugin, RuntimeCondition, RuntimeGlobals,
+  Logger, ModuleGraph, ModuleIdentifier, ModuleInfo, Plugin, RuntimeCondition, RuntimeGlobals,
+  rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
-  dependency::ImportDependencyTemplate, JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
+  JavascriptModulesRenderChunkContent, JsPlugin, RenderSource, dependency::ImportDependencyTemplate,
 };
 use rspack_util::fx_hash::FxHashMap;
 use sugar_path::SugarPath;
@@ -24,8 +24,9 @@ use crate::dependency::dyn_import::DynamicImportDependencyTemplate;
 #[plugin]
 #[derive(Debug, Default)]
 pub struct EsmLibraryPlugin {
+  pub concatenated_modules_map_for_codegen:
+    Mutex<FxHashMap<u32, Arc<IdentifierIndexMap<ModuleInfo>>>>,
   pub concatenated_modules_map: Mutex<FxHashMap<u32, Arc<IdentifierIndexMap<ModuleInfo>>>>,
-  pub concatenated_modules_map_ref: Mutex<FxHashMap<u32, Arc<IdentifierIndexMap<ModuleInfo>>>>,
 }
 
 #[plugin_hook(CompilerCompilation for EsmLibraryPlugin, stage=100)]
@@ -64,7 +65,7 @@ async fn after_seal(&self, compilation: &mut Compilation) -> Result<()> {
     .await
     .remove(&compilation.id().0);
   self
-    .concatenated_modules_map_ref
+    .concatenated_modules_map_for_codegen
     .lock()
     .await
     .remove(&compilation.id().0);
@@ -78,22 +79,35 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   let modules = module_graph.modules();
   let mut modules = modules.iter().collect::<Vec<_>>();
   modules.sort_by(|(m1, _), (m2, _)| m1.cmp(m2));
+  let logger = compilation.get_logger("rspack.EsmLibraryPlugin");
 
   for (idx, (module_identifier, module)) in modules.into_iter().enumerate() {
     // make sure all exports are provided
     let exports_info = module_graph.get_exports_info(module_identifier);
 
     let mut should_scope_hoisting = true;
-    if module.as_normal_module().is_none()
-      || module
-        .get_concatenation_bailout_reason(&module_graph, &compilation.chunk_graph)
-        .is_some()
-      || ModuleGraph::is_async(compilation, module_identifier)
-      || !module.build_info().strict
+
+    if module.as_normal_module().is_none() {
+      logger.debug(format!(
+        "module {module_identifier} is not an normal module"
+      ));
+      should_scope_hoisting = false;
+    } else if let Some(reason) =
+      module.get_concatenation_bailout_reason(&module_graph, &compilation.chunk_graph)
     {
+      logger.debug(format!(
+        "module {module_identifier} has bailout reason: {reason}",
+      ));
+      should_scope_hoisting = false;
+    } else if ModuleGraph::is_async(compilation, module_identifier) {
+      logger.debug(format!("module {module_identifier} is an async module"));
+      should_scope_hoisting = false;
+    } else if !module.build_info().strict {
+      logger.debug(format!("module {module_identifier} is not strict module"));
       should_scope_hoisting = false;
     }
 
+    // if we reach here, check exports info
     if should_scope_hoisting {
       let other_export_info = exports_info
         .other_exports_info(&module_graph)
@@ -102,6 +116,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
         ExportInfoGetter::provided(other_export_info),
         Some(ExportProvided::Unknown)
       ) {
+        logger.debug(format!("module {module_identifier} has unknown exports",));
         should_scope_hoisting = false;
       }
 
@@ -111,6 +126,10 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
           ExportInfoGetter::provided(export_info),
           Some(ExportProvided::Provided)
         ) {
+          logger.debug(format!(
+            "module {module_identifier} has export {} that is not provided",
+            ExportInfoGetter::name(export_info).map_or("".to_string(), |name| name.to_string())
+          ));
           should_scope_hoisting = false;
           break;
         }
@@ -118,6 +137,9 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
         if ExportInfoGetter::is_reexport(export_info)
           && export_info.get_target(&module_graph).is_none()
         {
+          logger.debug(format!(
+            "module {module_identifier} has re-export that is not provided",
+          ));
           should_scope_hoisting = false;
           break;
         }
@@ -150,6 +172,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
           interop_namespace_object2_name: None,
           interop_default_access_used: false,
           interop_default_access_name: None,
+          runtime_requirements: RuntimeGlobals::default(),
           name: None,
         }),
       );
@@ -160,8 +183,8 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
 
   // only used for scope
   // we mutably modify data in `self.concatenated_modules_map`
-  let mut concatenated_modules_map_ref = self.concatenated_modules_map_ref.lock().await;
-  concatenated_modules_map_ref.insert(id.0, Arc::new(modules_map.clone()));
+  let mut self_modules_map = self.concatenated_modules_map_for_codegen.lock().await;
+  self_modules_map.insert(id.0, Arc::new(modules_map.clone()));
 
   let mut self_modules_map = self.concatenated_modules_map.lock().await;
   self_modules_map.insert(id.0, Arc::new(modules_map));
@@ -175,7 +198,7 @@ async fn concatenation_scope(
   compilation: &Compilation,
   module: ModuleIdentifier,
 ) -> Result<Option<ConcatenationScope>> {
-  let modules_map = self.concatenated_modules_map_ref.lock().await;
+  let modules_map = self.concatenated_modules_map_for_codegen.lock().await;
   let modules_map = modules_map
     .get(&compilation.id().0)
     .expect("should has compilation");
@@ -208,16 +231,13 @@ async fn additional_chunk_runtime_requirements(
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
   if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-    let lock = self.concatenated_modules_map_ref.lock().await;
-
+    let lock = self.concatenated_modules_map.lock().await;
     let modules_info_map = lock
       .get(&compilation.id().0)
       .expect("should has compilation");
 
     for info in modules_info_map.values() {
-      if let Some(info) = info.try_as_concatenated() {
-        runtime_requirements.extend(info.runtime_requirements);
-      }
+      runtime_requirements.insert(*info.get_runtime_requirements());
     }
   }
 

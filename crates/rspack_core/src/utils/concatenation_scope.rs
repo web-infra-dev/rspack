@@ -217,7 +217,15 @@ impl ConcatenationScope {
         String::from_utf8(hex::decode(&captures[3]).expect("should parse success"))
           .expect("should be utf8 string"),
       );
-      Some((index, already_in_chunk, id))
+      Some((
+        index,
+        already_in_chunk,
+        if id == "default" {
+          DEFAULT_EXPORT.into()
+        } else {
+          id
+        },
+      ))
     } else {
       None
     }
