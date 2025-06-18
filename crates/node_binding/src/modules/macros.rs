@@ -114,23 +114,6 @@ macro_rules! impl_module_methods {
         }
 
         #[js_function]
-        fn readable_identifier_getter(ctx: napi::CallContext) -> napi::Result<String> {
-          let this = ctx.this::<napi::JsObject>()?;
-          let wrapped_value: &mut $module = unsafe {
-            napi::bindgen_prelude::FromNapiMutRef::from_napi_mut_ref(
-              ctx.env.raw(),
-              napi::NapiRaw::raw(&this),
-            )?
-          };
-          let (_, module) = wrapped_value.module.as_ref()?;
-          let res = module
-            .get_context()
-            .map(|ctx| module.readable_identifier(ctx.as_ref()).to_string())
-            .unwrap_or_default();
-          Ok(res)
-        }
-
-        #[js_function]
         fn build_info_getter(ctx: napi::CallContext) -> napi::Result<napi::bindgen_prelude::Object> {
           use napi::{bindgen_prelude::FromNapiValue, NapiRaw};
           let mut this = ctx.this::<napi::JsObject>()?;
@@ -244,11 +227,6 @@ macro_rules! impl_module_methods {
             .with_utf8_name("buildMeta")?
             .with_value(&napi::bindgen_prelude::Object::new(env)?)
         );
-        properties.push(
-          napi::Property::new()
-            .with_utf8_name("_readableIdentifier")?
-            .with_getter(readable_identifier_getter),
-        );
         $crate:: MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
           let identifier = env.create_string(module.identifier().as_str())?;
           let symbol = once_cell.get().unwrap();
@@ -268,6 +246,11 @@ macro_rules! impl_module_methods {
 
     #[napi]
     impl $module {
+      #[napi]
+      pub fn readable_identifier(&mut self) -> napi::Result<String> {
+        self.module.readable_identifier()
+      }
+
       #[napi(js_name = "_originalSource", enumerable = false)]
       pub fn original_source(
         &mut self,

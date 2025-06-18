@@ -4121,8 +4121,10 @@ version = "0.2.0"
 dependencies = [
  "criterion2",
  "rspack",
+ "rspack_cacheable",
  "rspack_core",
  "rspack_fs",
+ "rspack_regex",
  "serde_json",
  "tokio",
 ]
@@ -5070,6 +5072,7 @@ dependencies = [
 name = "rspack_plugin_merge_duplicate_chunks"
 version = "0.2.0"
 dependencies = [
+ "rayon",
  "rspack_collections",
  "rspack_core",
  "rspack_error",

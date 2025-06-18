@@ -208,7 +208,7 @@ type DevMiddlewareContext<
 };
 type Server = any;
 
-type MiddlewareHandler<
+export type MiddlewareHandler<
 	RequestInternal extends Request = Request,
 	ResponseInternal extends Response = Response
 > = (

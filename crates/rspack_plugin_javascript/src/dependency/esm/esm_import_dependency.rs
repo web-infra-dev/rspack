@@ -8,11 +8,11 @@ use rspack_core::{
   BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ErrorSpan, ExportInfoGetter, ExportProvided, ExportsInfoGetter, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap,
-  TemplateContext, TemplateReplaceSource,
+  ErrorSpan, ExportProvided, ExportsInfoGetter, ExportsType, ExtendedReferencedExport,
+  FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode,
+  ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -305,10 +305,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         let id = &ids[pos];
         pos += 1;
         let export_info = exports_info.get_read_only_export_info(id);
-        if matches!(
-          ExportInfoGetter::provided(export_info),
-          Some(ExportProvided::NotProvided)
-        ) {
+        if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
           let provided_exports = ExportsInfoGetter::get_provided_exports(exports_info);
           let more_info = if let ProvidedExports::ProvidedNames(exports) = &provided_exports {
             if exports.is_empty() {
@@ -339,7 +336,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
           );
           return Some(create_error(msg));
         }
-        let Some(nested_exports_info) = ExportInfoGetter::exports_info(export_info) else {
+        let Some(nested_exports_info) = export_info.exports_info() else {
           maybe_exports_info = None;
           continue;
         };

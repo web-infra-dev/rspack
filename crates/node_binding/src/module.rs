@@ -132,19 +132,6 @@ impl Module {
     }
 
     #[js_function]
-    fn readable_identifier_getter(ctx: napi::CallContext) -> napi::Result<String> {
-      let this = ctx.this_unchecked::<JsObject>();
-      let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
-      let (_, module) = wrapped_value.as_ref()?;
-      Ok(
-        module
-          .get_context()
-          .map(|ctx| module.readable_identifier(ctx.as_ref()).to_string())
-          .unwrap_or_default(),
-      )
-    }
-
-    #[js_function]
     fn build_info_getter(ctx: CallContext) -> napi::Result<Object> {
       let mut this = ctx.this_unchecked::<JsObject>();
       let env = ctx.env;
@@ -234,9 +221,6 @@ impl Module {
         .with_getter(factory_meta_getter)
         .with_setter(factory_meta_setter),
       Property::new()
-        .with_utf8_name("_readableIdentifier")?
-        .with_getter(readable_identifier_getter),
-      Property::new()
         .with_utf8_name("buildInfo")?
         .with_getter(build_info_getter)
         .with_setter(build_info_setter),
@@ -306,6 +290,17 @@ impl Module {
 
 #[napi]
 impl Module {
+  #[napi]
+  pub fn readable_identifier(&mut self) -> napi::Result<String> {
+    let (_, module) = self.as_ref()?;
+    Ok(
+      module
+        .get_context()
+        .map(|ctx| module.readable_identifier(ctx.as_ref()).to_string())
+        .unwrap_or_default(),
+    )
+  }
+
   #[napi(js_name = "_originalSource", enumerable = false)]
   pub fn original_source(&mut self, env: &Env) -> napi::Result<Either<JsCompatSource, ()>> {
     let (_, module) = self.as_ref()?;

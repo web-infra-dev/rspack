@@ -25,21 +25,17 @@ permissions:
   pull-requests: write
 
 jobs:
-  get-runner-labels:
-    name: Get Runner Labels
-    uses: ./.github/workflows/get-runner-labels.yml
-
   build:
     name: Test Linux
-    needs: [get-runner-labels]
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
-      runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS ||  '"ubuntu-latest"' }}
       ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr) || github.sha }}
       profile: "release"
       test: false
       bench: false
+      prefer_docker: false
 
   create-comment:
     runs-on: ubuntu-latest
@@ -121,6 +117,16 @@ jobs:
           result=$(node bin/cli.js compare --base latest --current current)
           echo "$result"
           echo "diff-result=${result//$'\n'/'@@'}" >> $GITHUB_OUTPUT
+
+      - name: Upload benchmark result
+        if: github.event_name == 'push'
+        id: upload-benchmark-data
+        run: |
+          RSPACK_DIR=$(pwd)
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cd rspack-ecosystem-benchmark
+          RSPACK_DIR="$RSPACK_DIR" GITHUB_ACTOR=x-access-token node bin/upload.js ${{ secrets.PERF_DATA_TOKEN }} ${{ github.sha }}
 
   comment-compare-results:
     runs-on: ubuntu-latest

@@ -594,7 +594,7 @@ impl JsCompilation {
 
         Ok(modules)
       },
-      || drop(reference),
+      Some(|| drop(reference)),
     )
   }
 
@@ -660,9 +660,9 @@ impl JsCompilation {
         };
         Ok(js_result)
       },
-      || {
+      Some(|| {
         drop(reference);
-      },
+      }),
     )
   }
 
@@ -797,9 +797,9 @@ impl JsCompilation {
 
         Ok(JsAddEntryItemCallbackArgs(results))
       },
-      || {
+      Some(|| {
         drop(reference);
-      },
+      }),
     )
   }
 
@@ -899,9 +899,9 @@ impl JsCompilation {
 
         Ok(JsAddEntryItemCallbackArgs(results))
       },
-      || {
+      Some(|| {
         drop(reference);
-      },
+      }),
     )
   }
 

@@ -9,13 +9,6 @@ Object.defineProperty(binding.ContextModule.prototype, "identifier", {
 		return this[binding.MODULE_IDENTIFIER_SYMBOL];
 	}
 });
-Object.defineProperty(binding.ContextModule.prototype, "readableIdentifier", {
-	enumerable: true,
-	configurable: true,
-	value(this: binding.ContextModule) {
-		return this._readableIdentifier;
-	}
-});
 Object.defineProperty(binding.ContextModule.prototype, "originalSource", {
 	enumerable: true,
 	configurable: true,

@@ -108,7 +108,7 @@ interface AdditionalData {
 type AffectedHooks = keyof Compiler["hooks"];
 
 // @public (undocumented)
-type AllowTarget = "web" | "webworker" | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | "nwjs" | `nwjs${number}` | `nwjs${number}.${number}` | "node-webkit" | `node-webkit${number}` | `node-webkit${number}.${number}` | "browserslist" | `browserslist:${string}`;
+type AllowTarget = "web" | "webworker" | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "es2023" | "es2024" | "es2025" | "node" | "async-node" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | "nwjs" | `nwjs${number}` | `nwjs${number}.${number}` | "node-webkit" | `node-webkit${number}` | `node-webkit${number}.${number}` | "browserslist" | `browserslist:${string}`;
 
 // @public
 export type Amd = false | Record<string, any>;
@@ -4150,7 +4150,7 @@ interface LabeledStatement extends Node_4, HasSpan {
 export type Layer = string | null;
 
 // @public (undocumented)
-const lazyCompilationMiddleware: (compiler: Compiler, userOptions?: LazyCompilationOptions | boolean) => DevServerMiddleware;
+const lazyCompilationMiddleware: (compiler: Compiler | MultiCompiler) => MiddlewareHandler;
 
 // @public
 export type LazyCompilationOptions = {
@@ -4825,6 +4825,8 @@ export class MultiCompiler {
     hooks: {
         done: liteTapable.SyncHook<MultiStats>;
         invalid: liteTapable.MultiHook<liteTapable.SyncHook<[string | null, number]>>;
+        beforeCompile: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[CompilationParams]>>;
+        shutdown: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[]>>;
         run: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[Compiler]>>;
         watchClose: liteTapable.SyncHook<[]>;
         watchRun: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[Compiler]>>;
@@ -4863,6 +4865,8 @@ export class MultiCompiler {
     // (undocumented)
     get watchFileSystem(): WatchFileSystem;
     set watchFileSystem(value: WatchFileSystem);
+    // (undocumented)
+    watching?: MultiWatching;
 }
 
 // @public (undocumented)
@@ -4899,6 +4903,8 @@ class MultiWatching {
     compiler: MultiCompiler;
     // (undocumented)
     invalidate(callback: Callback<Error, void>): void;
+    // (undocumented)
+    invalidateWithChangesAndRemovals(changedFiles?: Set<string>, removedFiles?: Set<string>, callback?: Callback<Error, void>): void;
     // (undocumented)
     resume(): void;
     // (undocumented)
