@@ -7,9 +7,10 @@ use crate::{
   compile_boolean_matcher_from_lists, contextify, property_access, to_comment, to_normal_comment,
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
   DependencyId, Environment, ExportsArgument, ExportsInfoGetter, ExportsType,
-  FakeNamespaceObjectMode, InitFragmentExt, InitFragmentKey, InitFragmentStage, Module,
-  ModuleGraph, ModuleId, ModuleIdentifier, NormalInitFragment, PathInfo, PrefetchExportsInfoMode,
-  RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext, UsedName,
+  FakeNamespaceObjectMode, GetUsedNameParam, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  Module, ModuleGraph, ModuleId, ModuleIdentifier, NormalInitFragment, PathInfo,
+  PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  UsedName,
 };
 
 pub fn runtime_condition_expression(
@@ -209,10 +210,10 @@ pub fn export_from_import(
     .unwrap_or(export_name);
   if !export_name.is_empty() {
     let used_name = match ExportsInfoGetter::get_used_name(
-      &compilation.get_module_graph().get_prefetched_exports_info(
+      GetUsedNameParam::WithNames(&compilation.get_module_graph().get_prefetched_exports_info(
         &module_identifier,
         PrefetchExportsInfoMode::NamedNestedExports(export_name),
-      ),
+      )),
       *runtime,
       export_name,
     ) {

@@ -49,11 +49,11 @@ use crate::{
   CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
   ConcatenationScope, ConditionalInitFragment, ConnectionState, Context, DependenciesBlock,
   DependencyId, DependencyType, ErrorSpan, ExportInfoGetter, ExportProvided, ExportsArgument,
-  ExportsInfoGetter, ExportsType, FactoryMeta, IdentCollector, InitFragment, InitFragmentStage,
-  LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType,
-  PrefetchExportsInfoMode, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType,
-  SpanExt, UsageState, UsedName, UsedNameItem, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
+  ExportsInfoGetter, ExportsType, FactoryMeta, GetUsedNameParam, IdentCollector, InitFragment,
+  InitFragmentStage, LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
+  ModuleType, PrefetchExportsInfoMode, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  SourceType, SpanExt, UsageState, UsedName, UsedNameItem, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -1004,19 +1004,16 @@ impl Module for ConcatenatedModule {
       .expect("should have box module");
     let strict_esm_module = root_module.build_meta().strict_esm_module;
 
-    let exports_info = module_graph.get_exports_info(&root_module_id);
+    let exports_info = module_graph
+      .get_prefetched_exports_info(&root_module_id, PrefetchExportsInfoMode::AllExports);
     let mut exports_final_names: Vec<(String, String)> = vec![];
 
-    for export_info in exports_info.ordered_exports(&module_graph) {
-      let info = export_info.as_data(&module_graph);
-      let name = ExportInfoGetter::name(info).cloned().unwrap_or("".into());
-      if matches!(
-        ExportInfoGetter::provided(info),
-        Some(ExportProvided::NotProvided)
-      ) {
+    for (_, export_info) in exports_info.exports() {
+      let name = export_info.name().cloned().unwrap_or("".into());
+      if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
         continue;
       }
-      let used_name = ExportInfoGetter::get_used_name(info, None, runtime);
+      let used_name = ExportInfoGetter::get_used_name(export_info, None, runtime);
 
       let Some(used_name) = used_name else {
         unused_exports.insert(name);
@@ -1043,7 +1040,7 @@ impl Module for ConcatenatedModule {
         exports_final_names.push((used_name.to_string(), final_name.clone()));
         format!(
           "/* {} */ {}",
-          if ExportInfoGetter::is_reexport(info) {
+          if ExportInfoGetter::is_reexport(export_info) {
             "reexport"
           } else {
             "binding"
@@ -1102,14 +1099,9 @@ impl Module for ConcatenatedModule {
       )));
     }
 
-    let used = ExportInfoGetter::get_used(
-      compilation
-        .get_module_graph()
-        .get_exports_info(&self.id())
-        .other_exports_info(&module_graph)
-        .as_data(&module_graph),
-      runtime,
-    );
+    let exports_info =
+      module_graph.get_prefetched_exports_info(&self.id(), PrefetchExportsInfoMode::Default);
+    let used = ExportInfoGetter::get_used(exports_info.other_exports_info(), runtime);
     // Add ESM compatibility flag (must be first because of possible circular dependencies)
     if used != UsageState::Unused {
       should_add_esm_flag = true
@@ -1213,24 +1205,20 @@ impl Module for ConcatenatedModule {
         }
 
         let mut ns_obj = Vec::new();
-        let exports_info = module_graph.get_exports_info(module_info_id);
-        for export_info in exports_info.ordered_exports(&module_graph) {
-          if matches!(
-            ExportInfoGetter::provided(export_info.as_data(&module_graph)),
-            Some(ExportProvided::NotProvided)
-          ) {
+        let exports_info = module_graph
+          .get_prefetched_exports_info(module_info_id, PrefetchExportsInfoMode::AllExports);
+        for (_, export_info) in exports_info.exports() {
+          if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
             continue;
           }
 
           if let Some(UsedNameItem::Str(used_name)) =
-            ExportInfoGetter::get_used_name(export_info.as_data(&module_graph), None, runtime)
+            ExportInfoGetter::get_used_name(export_info, None, runtime)
           {
             let final_name = Self::get_final_name(
               &compilation.get_module_graph(),
               module_info_id,
-              vec![ExportInfoGetter::name(export_info.as_data(&module_graph))
-                .cloned()
-                .unwrap_or("".into())],
+              vec![export_info.name().cloned().unwrap_or("".into())],
               &mut module_to_info_map,
               runtime,
               &mut needed_namespace_objects,
@@ -2265,9 +2253,11 @@ impl ConcatenatedModule {
         if let Some(ref export_id) = export_id
           && let Some(direct_export) = info.export_map.as_ref().and_then(|map| map.get(export_id))
         {
-          if let Some(used_name) =
-            ExportsInfoGetter::get_used_name(&exports_info, runtime, &export_name)
-          {
+          if let Some(used_name) = ExportsInfoGetter::get_used_name(
+            GetUsedNameParam::WithNames(&exports_info),
+            runtime,
+            &export_name,
+          ) {
             match used_name {
               UsedName::Normal(used_name) => {
                 // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L402-L404
@@ -2329,14 +2319,14 @@ impl ConcatenatedModule {
           Arc::new(|module: &ModuleIdentifier| module_to_info_map.contains_key(module)),
         );
         match reexport {
-          crate::FindTargetRetEnum::Undefined => {}
-          crate::FindTargetRetEnum::False => {
+          crate::FindTargetResult::NoTarget => {}
+          crate::FindTargetResult::NoValidTarget => {
             panic!(
               "Target module of reexport is not part of the concatenation (export '{:?}')",
               &export_id
             );
           }
-          crate::FindTargetRetEnum::Value(reexport) => {
+          crate::FindTargetResult::ValidTarget(reexport) => {
             if let Some(ref_info) = module_to_info_map.get(&reexport.module) {
               // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L457
               let build_meta = mg
@@ -2365,8 +2355,12 @@ impl ConcatenatedModule {
 
         if info.namespace_export_symbol.is_some() {
           // That's how webpack write https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L463-L471
-          let used_name = ExportsInfoGetter::get_used_name(&exports_info, runtime, &export_name)
-            .expect("should have export name");
+          let used_name = ExportsInfoGetter::get_used_name(
+            GetUsedNameParam::WithNames(&exports_info),
+            runtime,
+            &export_name,
+          )
+          .expect("should have export name");
           return match used_name {
             UsedName::Normal(used_name) => Binding::Raw(RawBinding {
               info_id: info.module,
@@ -2399,9 +2393,11 @@ impl ConcatenatedModule {
         );
       }
       ModuleInfo::External(info) => {
-        if let Some(used_name) =
-          ExportsInfoGetter::get_used_name(&exports_info, runtime, &export_name)
-        {
+        if let Some(used_name) = ExportsInfoGetter::get_used_name(
+          GetUsedNameParam::WithNames(&exports_info),
+          runtime,
+          &export_name,
+        ) {
           match used_name {
             UsedName::Normal(used_name) => {
               let comment = if used_name == export_name {

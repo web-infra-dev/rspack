@@ -5,8 +5,8 @@ use rspack_core::{
   get_entry_runtime, incremental::IncrementalPasses, is_exports_object_referenced,
   is_no_exports_referenced, AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation,
   CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId,
-  ExportInfoGetter, ExportInfoSetter, ExportsInfo, ExtendedReferencedExport, GroupOptions,
-  Inlinable, ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState,
+  ExportInfoSetter, ExportsInfo, ExtendedReferencedExport, GroupOptions, Inlinable,
+  ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -44,7 +44,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     }
     let mut q = Queue::new();
     let mg = &mut module_graph;
-    // debug_exports_info!(mg);
     for exports_info in self.exports_info_module_map.keys() {
       exports_info.set_has_use_info(mg);
     }
@@ -333,20 +332,18 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           for (i, used_export) in used_exports.into_iter().enumerate() {
             let export_info = current_exports_info.get_export_info(&mut module_graph, &used_export);
             if !can_mangle {
-              ExportInfoSetter::set_can_mangle_use(
-                export_info.as_data_mut(&mut module_graph),
-                Some(false),
-              );
+              export_info
+                .as_data_mut(&mut module_graph)
+                .set_can_mangle_use(Some(false));
             }
             if !can_inline {
-              ExportInfoSetter::set_inlinable(
-                export_info.as_data_mut(&mut module_graph),
-                Inlinable::NoByUse,
-              );
+              export_info
+                .as_data_mut(&mut module_graph)
+                .set_inlinable(Inlinable::NoByUse);
             }
             let last_one = i == len - 1;
             if !last_one {
-              let nested_info = ExportInfoGetter::exports_info(export_info.as_data(&module_graph));
+              let nested_info = export_info.as_data(&module_graph).exports_info();
               if let Some(nested_info) = nested_info {
                 let changed_flag = ExportInfoSetter::set_used_conditionally(
                   export_info.as_data_mut(&mut module_graph),
