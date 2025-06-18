@@ -53,6 +53,7 @@ Object {
       },
     },
     topLevelAwait: true,
+    typeReexportsPresence: no-tolerant,
     useInputFileSystem: false,
   },
   externals: undefined,
@@ -197,6 +198,7 @@ Object {
         requireDynamic: true,
         requireResolve: true,
         strictExportPresence: false,
+        typeReexportsPresence: no-tolerant,
         url: true,
         worker: Array [
           ...,
