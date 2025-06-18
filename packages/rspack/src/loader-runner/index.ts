@@ -581,10 +581,9 @@ export async function runLoaders(
 			loaderContext.loaders[loaderContext.loaderIndex]
 		)})`;
 		(error as RspackError).module = loaderContext._module;
-		(error as RspackError).details =
-			stack && (error as RspackError).hideStack
-				? cleanUp(stack, name, message)
-				: undefined;
+		(error as RspackError).details = stack
+			? cleanUp(stack, name, message)
+			: undefined;
 		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
 			error,
 			severity: JsRspackSeverity.Error
@@ -1111,7 +1110,7 @@ export async function runLoaders(
 	} catch (e) {
 		if (typeof e !== "object" || e === null) {
 			const error = new Error(
-				"(Emitted value instead of an instance of Error) " + e
+				`(Emitted value instead of an instance of Error) ${e}`
 			);
 			error.name = "NonErrorEmittedError";
 			context.__internal__error = error;

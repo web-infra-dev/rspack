@@ -424,6 +424,7 @@ impl Module for NormalModule {
       Ok(r) => r.split_into_parts(),
       Err(r) => {
         let diagnostic = if r.is::<CapturedLoaderError>() {
+          #[allow(clippy::unwrap_used)]
           let mut captured_error = r.downcast::<CapturedLoaderError>().unwrap();
           self.build_info.cacheable = captured_error.cacheable;
           self.build_info.file_dependencies = captured_error
