@@ -74,7 +74,6 @@ pub struct Diagnostic {
 
   // The following fields are only used to restore Diagnostic for Rspack.
   // If the current Diagnostic originates from Rust, these fields will be None.
-  message: Option<String>,
   details: Option<String>,
   module_identifier: Option<Identifier>,
   loc: Option<DependencyLocation>,
@@ -94,7 +93,6 @@ impl From<miette::Error> for Diagnostic {
   fn from(value: miette::Error) -> Self {
     Self {
       inner: Arc::new(value),
-      message: None,
       details: None,
       module_identifier: None,
       loc: None,
@@ -123,7 +121,6 @@ impl Diagnostic {
           .with_severity(miette::Severity::Warning),
       )
       .into(),
-      message: None,
       details: None,
       module_identifier: None,
       loc: None,
@@ -142,7 +139,6 @@ impl Diagnostic {
           .with_severity(miette::Severity::Error),
       )
       .into(),
-      message: None,
       details: None,
       module_identifier: None,
       loc: None,
@@ -170,27 +166,7 @@ impl Diagnostic {
   }
 
   pub fn message(&self) -> String {
-    match &self.message {
-      Some(message) => message.clone(),
-      None => {
-        let mut name = "Error".to_string();
-        if let Some(code) = self.inner.code() {
-          name = code.to_string();
-        }
-
-        let mut message = self.inner.to_string();
-        let prefix = format!("{name}: ");
-        if message.starts_with(&prefix) {
-          message = message[prefix.len()..].to_string();
-        }
-        message
-      }
-    }
-  }
-
-  pub fn with_message(mut self, message: String) -> Self {
-    self.message = Some(message);
-    self
+    self.inner.to_string()
   }
 
   pub fn severity(&self) -> Severity {

@@ -9,7 +9,6 @@ module.exports = {
 					for (let error of errors) {
 						if (error.message.includes("hide")) {
 							expect(typeof error.details).toBe("string");
-							expect(error.message.includes("stack")).toBeFalsy;
 						} else {
 							expect(typeof error.details).toBe("undefined");
 						}

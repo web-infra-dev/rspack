@@ -317,7 +317,6 @@ impl RspackError {
   pub fn into_diagnostic(mut self, severity: RspackSeverity) -> Diagnostic {
     self.severity = Some(severity.into());
 
-    let message = self.message.clone();
     let details = self.details.clone();
     let file = self.file.clone();
     let loc = self.loc.as_ref().map(Into::into);
@@ -337,7 +336,6 @@ impl RspackError {
     };
 
     diagnostic
-      .with_message(message)
       .with_details(details)
       .with_file(file.map(Into::into))
       .with_loc(loc)
