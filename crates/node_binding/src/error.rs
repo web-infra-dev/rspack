@@ -243,7 +243,9 @@ impl std::fmt::Display for RspackError {
         write!(f, "{}: ", self.name)?;
         write!(f, "{}", &self.message)?;
         write!(f, "\n{details}")?;
-      } else if let Some(stack) = &self.stack {
+      } else if let Some(stack) = &self.stack
+        && self.hide_stack != Some(true)
+      {
         write!(f, "{stack}")?;
       } else {
         write!(f, "{}: ", self.name)?;

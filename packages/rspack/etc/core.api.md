@@ -80,6 +80,7 @@ import { RawSubresourceIntegrityPluginOptions } from '@rspack/binding';
 import { readFileSync } from 'fs';
 import { ReadStream as ReadStream_2 } from 'fs';
 import { Resolver as Resolver_2 } from './Resolver';
+import { RspackError } from '@rspack/binding';
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
 import { Server } from 'net';
 import { Server as Server_2 } from 'tls';
@@ -6274,8 +6275,7 @@ abstract class RspackBuiltinPlugin implements RspackPluginInstance {
 // @public (undocumented)
 type RspackConfiguration = Configuration_2;
 
-// @public (undocumented)
-export type RspackError = binding.RspackError;
+export { RspackError }
 
 declare namespace rspackExports {
     export {
