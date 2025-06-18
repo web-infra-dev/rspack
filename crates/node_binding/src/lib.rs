@@ -270,7 +270,7 @@ impl JsCompiler {
             tracing::debug!("build ok");
             Ok(())
           },
-          || drop(guard),
+          Some(|| drop(guard)),
         )
       })
     }
@@ -306,7 +306,7 @@ impl JsCompiler {
             tracing::debug!("rebuild ok");
             Ok(())
           },
-          || drop(guard),
+          Some(|| drop(guard)),
         )
       })
     }

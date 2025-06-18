@@ -71,7 +71,6 @@ impl JsResolver {
     f: Function<'static>,
   ) -> napi::Result<(), ErrorCode> {
     let resolver = self.resolver.clone();
-
     callbackify(
       f,
       async move {
@@ -86,7 +85,7 @@ impl JsResolver {
           )),
         }
       },
-      || {},
+      None::<fn()>,
     )
   }
 
