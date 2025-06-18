@@ -20,10 +20,11 @@ export class EsmRunner<
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}
 
-			if (
-				file.path.endsWith(".mjs") &&
-				this._options.compilerOptions.experiments?.outputModule
-			) {
+			const options = Array.isArray(this._options.compilerOptions)
+				? this._options.compilerOptions[0]
+				: this._options.compilerOptions.experiments;
+
+			if (file.path.endsWith(".mjs") && options.experiments?.outputModule) {
 				return this.requirers.get("esm")!(currentDirectory, modulePath, {
 					...context,
 					file
