@@ -4,6 +4,11 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
 	plugins: [codspeedPlugin()],
 	test: {
-		fileParallelism: false,
+		fileParallelism: true,
+		poolOptions: {
+			forks: {
+				maxForks: 8,
+			}
+		}
 	}
 });
