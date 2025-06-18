@@ -2464,6 +2464,7 @@ export type Experiments = {
     parallelLoader?: boolean;
     useInputFileSystem?: UseInputFileSystem;
     inlineConst?: boolean;
+    typeReexportsPresence?: JavascriptParserOptions["typeReexportsPresence"];
 };
 
 // @public (undocumented)

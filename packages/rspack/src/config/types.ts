@@ -2726,6 +2726,11 @@ export type Experiments = {
 	 * @default false
 	 */
 	inlineConst?: boolean;
+	/**
+	 * Enable inline constants
+	 * @default false
+	 */
+	typeReexportsPresence?: JavascriptParserOptions["typeReexportsPresence"];
 };
 //#endregion
 

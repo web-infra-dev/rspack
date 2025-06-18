@@ -315,7 +315,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
               parent_module_identifier,
               PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([export_name]))
             ),
-            &[export_name.clone()]
+            std::slice::from_ref(export_name)
           ),
           Some(ExportProvided::Provided)
         )
