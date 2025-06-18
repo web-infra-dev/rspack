@@ -223,6 +223,25 @@ impl ExportPresenceMode {
 }
 
 #[cacheable]
+#[derive(Debug, Default, Clone, Copy, MergeFrom)]
+pub enum TypeReexportPresenceMode {
+  #[default]
+  NoTolerant,
+  Tolerant,
+  TolerantNoCheck,
+}
+
+impl From<&str> for TypeReexportPresenceMode {
+  fn from(value: &str) -> Self {
+    match value {
+      "tolerant" => Self::Tolerant,
+      "tolerant-no-check" => Self::TolerantNoCheck,
+      _ => Self::NoTolerant,
+    }
+  }
+}
+
+#[cacheable]
 #[derive(Debug, Clone, Copy, MergeFrom)]
 pub enum OverrideStrict {
   Strict,
@@ -254,6 +273,7 @@ pub struct JavascriptParserOptions {
   pub import_exports_presence: Option<ExportPresenceMode>,
   pub reexport_exports_presence: Option<ExportPresenceMode>,
   pub strict_export_presence: Option<bool>,
+  pub type_reexports_presence: Option<TypeReexportPresenceMode>,
   pub worker: Option<Vec<String>>,
   pub override_strict: Option<OverrideStrict>,
   pub import_meta: Option<bool>,

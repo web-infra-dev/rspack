@@ -1100,6 +1100,9 @@ export type JavascriptParserOptions = {
 
 	/** Inline const values in this module */
 	inlineConst?: boolean;
+
+	/** Whether to tolerant exportsPresence for type reexport */
+	typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
 };
 
 export type JsonParserOptions = {

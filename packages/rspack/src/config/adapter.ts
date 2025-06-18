@@ -580,7 +580,8 @@ function getRawJavascriptParserOptions(
 		requireDynamic: parser.requireDynamic,
 		requireResolve: parser.requireResolve,
 		importDynamic: parser.importDynamic,
-		inlineConst: parser.inlineConst
+		inlineConst: parser.inlineConst,
+		typeReexportsPresence: parser.typeReexportsPresence
 	};
 }
 

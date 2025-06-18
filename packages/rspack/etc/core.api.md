@@ -2526,6 +2526,8 @@ export interface ExperimentsNormalized {
     // (undocumented)
     topLevelAwait?: boolean;
     // (undocumented)
+    typeReexportsPresence?: JavascriptParserOptions["typeReexportsPresence"];
+    // (undocumented)
     useInputFileSystem?: false | RegExp[];
 }
 
@@ -3437,6 +3439,7 @@ export type JavascriptParserOptions = {
     requireResolve?: boolean;
     importDynamic?: boolean;
     inlineConst?: boolean;
+    typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
 };
 
 // @public (undocumented)
