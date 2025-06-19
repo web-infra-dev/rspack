@@ -341,7 +341,7 @@ export type HashDigest = string;
 export type HashDigestLength = number;
 
 /** The hashing algorithm to use. */
-export type HashFunction = "md4" | "xxhash64";
+export type HashFunction = "md4" | "xxhash64" | "sha256";
 
 /** An optional salt to update the hash. */
 export type HashSalt = string;
@@ -1100,6 +1100,9 @@ export type JavascriptParserOptions = {
 
 	/** Inline const values in this module */
 	inlineConst?: boolean;
+
+	/** Whether to tolerant exportsPresence for type reexport */
+	typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
 };
 
 export type JsonParserOptions = {
@@ -2723,6 +2726,11 @@ export type Experiments = {
 	 * @default false
 	 */
 	inlineConst?: boolean;
+	/**
+	 * Enable inline constants
+	 * @default false
+	 */
+	typeReexportsPresence?: JavascriptParserOptions["typeReexportsPresence"];
 };
 //#endregion
 

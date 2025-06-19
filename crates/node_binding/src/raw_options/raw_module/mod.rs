@@ -16,7 +16,7 @@ use rspack_core::{
   JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions,
   JsonParserOptions, ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions,
   ModuleRule, ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader,
-  OverrideStrict, ParseOption, ParserOptions, ParserOptionsMap,
+  OverrideStrict, ParseOption, ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
 };
 use rspack_error::error;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -292,6 +292,9 @@ pub struct RawJavascriptParserOptions {
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub inline_const: Option<bool>,
+  /// This option is experimental in Rspack only and subject to change or be removed anytime.
+  /// @experimental
+  pub type_reexports_presence: Option<String>,
 }
 
 impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
@@ -323,6 +326,9 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
         .reexport_exports_presence
         .map(|e| ExportPresenceMode::from(e.as_str())),
       strict_export_presence: value.strict_export_presence,
+      type_reexports_presence: value
+        .type_reexports_presence
+        .map(|e| TypeReexportPresenceMode::from(e.as_str())),
       worker: value.worker,
       override_strict: value
         .override_strict
