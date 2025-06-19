@@ -9,6 +9,7 @@ version           = "0.2.0"
 
 [features]
 plugin = ["rspack_loader_swc/plugin"]
+sftrace-setup = [ "dep:sftrace-setup", "rspack_allocator/sftrace-setup" ]
 
 [dependencies]
 anyhow                   = { workspace = true }
