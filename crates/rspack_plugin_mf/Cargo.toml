@@ -8,15 +8,16 @@ version           = "0.2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rspack_cacheable      = { workspace = true }
-rspack_collections    = { workspace = true }
-rspack_core           = { workspace = true }
-rspack_error          = { workspace = true }
-rspack_hash           = { workspace = true }
-rspack_hook           = { workspace = true }
-rspack_loader_runner  = { workspace = true }
-rspack_plugin_runtime = { workspace = true }
-rspack_util           = { workspace = true }
+rspack_cacheable         = { workspace = true }
+rspack_collections       = { workspace = true }
+rspack_core              = { workspace = true }
+rspack_error             = { workspace = true }
+rspack_hash              = { workspace = true }
+rspack_hook              = { workspace = true }
+rspack_loader_runner     = { workspace = true }
+rspack_plugin_javascript = { workspace = true }
+rspack_plugin_runtime    = { workspace = true }
+rspack_util              = { workspace = true }
 
 async-trait = { workspace = true }
 hashlink    = { workspace = true }

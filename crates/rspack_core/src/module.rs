@@ -397,6 +397,12 @@ pub trait Module:
   fn need_id(&self) -> bool {
     true
   }
+
+  /// Get the share_key for ConsumeShared modules.
+  /// Returns None for non-ConsumeShared modules.
+  fn get_consume_shared_key(&self) -> Option<String> {
+    None
+  }
 }
 
 fn get_exports_type_impl(
