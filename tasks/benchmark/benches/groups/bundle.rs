@@ -21,16 +21,19 @@ fn bundle_benchmark(c: &mut Criterion) {
 
   // Codspeed can only handle to up to 500 threads by default
   let rt = runtime::Builder::new_multi_thread()
-    .max_blocking_threads(1)
+    .max_blocking_threads(256)
     .build()
     .unwrap();
 
   for (id, get_compiler) in derive_projects(projects) {
     group.bench_function(format!("bundle@{id}"), |b| {
-      b.to_async(&rt).iter(|| async {
-        let mut compiler = get_compiler();
-        compiler.build().unwrap().run().await.unwrap();
-      });
+      b.to_async(&rt).iter_batched(
+        || get_compiler().build().unwrap(),
+        |mut compiler| async move {
+          compiler.run().await.unwrap();
+        },
+        criterion::BatchSize::SmallInput,
+      );
     });
   }
 }
