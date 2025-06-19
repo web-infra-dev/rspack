@@ -8,7 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import { z } from "zod/v4";
+import * as z from "zod/v4";
 import type { Compiler } from "../Compiler";
 import { LibManifestPlugin } from "../builtin-plugin";
 import { DllEntryPlugin } from "../builtin-plugin/DllEntryPlugin";
