@@ -7,6 +7,8 @@ pub struct BrowserslistHandlerConfig<'a> {
   pub config_path: Option<String>,
   /// Optional environment name
   pub env: Option<String>,
+  /// Optional environment name or query string
+  pub env_or_query: Option<String>,
   /// Optional query string
   pub query: Option<String>,
   /// Context directory path, used for Browserslist Opts.path to locate config
@@ -47,17 +49,21 @@ pub fn parse<'a>(input: Option<&str>, context: &'a str) -> BrowserslistHandlerCo
       return BrowserslistHandlerConfig {
         config_path,
         env,
+        env_or_query: None,
         query: None,
         context,
       };
     }
   }
 
-  // If input is not absolute path with optional env, treat as query string
+  // If input is not absolute path with optional env, it might be:
+  // - query string (from target: 'browserslist:query')
+  // - environment name (from target: 'browserslist:env')
   BrowserslistHandlerConfig {
     config_path: None,
     env: None,
-    query: Some(input.to_string()),
+    env_or_query: Some(input.to_string()),
+    query: None,
     context,
   }
 }
@@ -67,6 +73,7 @@ pub fn load_browserslist(input: Option<&str>, context: &str) -> Option<Vec<Strin
   let BrowserslistHandlerConfig {
     config_path,
     env,
+    env_or_query,
     query,
     context,
   } = parse(input, context);
@@ -83,6 +90,27 @@ pub fn load_browserslist(input: Option<&str>, context: &str) -> Option<Vec<Strin
 
   match if let Some(q) = query {
     browserslist::resolve(vec![q], &opts)
+  } else if let Some(env_or_query_str) = env_or_query {
+    // ambiguous string: try to treat it as query string first
+    match browserslist::resolve(vec![env_or_query_str.as_str()], &opts) {
+      Ok(browsers) => {
+        // successfully parsed as query
+        Ok(browsers)
+      }
+      Err(_) => {
+        // failed to parse as query, try to treat it as environment name
+        opts.env = Some(env_or_query_str);
+
+        #[cfg(target_arch = "wasm32")]
+        {
+          Ok(Vec::new())
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+          browserslist::execute(&opts)
+        }
+      }
+    }
   } else {
     // browserslist::execute only works on non-wasm targets
     #[cfg(target_arch = "wasm32")]
