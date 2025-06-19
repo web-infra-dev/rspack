@@ -393,8 +393,24 @@ pub fn import_statement(
 
   let opt_declaration = if update { "" } else { "var " };
 
+  // Check if this is a side-effect dependency (bare import)
+  // Side-effect imports should NOT be marked as pure
+  let is_pure = compilation
+    .get_module_graph()
+    .dependency_by_id(id)
+    .is_some_and(|dep| {
+      // Check the dependency type to distinguish between bare imports and named/default imports
+      let dep_type = dep.dependency_type();
+      // EsmImport = bare imports (side-effect imports like `import './style.css'`) - should NOT be pure
+      // EsmImportSpecifier = named/default imports (like `import { foo } from 'bar'`) - should be pure
+      matches!(dep_type.as_str(), "esm import specifier") && import_var != "__webpack_require__"
+    });
+
+  let pure_annotation = if is_pure { "/* #__PURE__ */ " } else { "" };
+
   let import_content = format!(
-    "/* ESM import */{opt_declaration}{import_var} = {}({module_id_expr});\n",
+    "/* ESM import */{opt_declaration}{import_var} = {}{}({module_id_expr});\n",
+    pure_annotation,
     RuntimeGlobals::REQUIRE
   );
 
@@ -669,7 +685,7 @@ pub fn module_raw(
   {
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     format!(
-      "{}({})",
+      "/* #__PURE__ */ {}({})",
       RuntimeGlobals::REQUIRE,
       module_id_expr(&compilation.options, request, module_id)
     )

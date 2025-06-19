@@ -234,7 +234,7 @@ impl JsPlugin {
     if use_require {
       header.push(
         format!(
-          "// The require function\nfunction {}(moduleId) {{\n",
+          "// The require function\n// #__NO_SIDE_EFFECTS__\nfunction {}(moduleId) {{\n",
           RuntimeGlobals::REQUIRE
         )
         .into(),

@@ -24,26 +24,10 @@ module.exports = {
 		removeAvailableModules: true,
 		removeEmptyChunks: true,
 		mergeDuplicateChunks: true,
-		moduleIds: "deterministic",
-		chunkIds: "deterministic",
+		moduleIds: "named",
+		chunkIds: "named",
 		// Tree-shaking related optimizations
-		realContentHash: true,
-		splitChunks: {
-			chunks: "all",
-			cacheGroups: {
-				default: {
-					minChunks: 2,
-					priority: -20,
-					reuseExistingChunk: true
-				},
-				vendor: {
-					test: /[\\/]node_modules[\\/]/,
-					name: "vendors",
-					priority: -10,
-					chunks: "all"
-				}
-			}
-		}
+		realContentHash: true
 	},
 	stats: {
 		// Enable comprehensive stats output

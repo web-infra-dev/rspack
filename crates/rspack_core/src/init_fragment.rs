@@ -5,6 +5,7 @@ use std::{
   sync::atomic::AtomicU32,
 };
 
+use cow_utils::CowUtils;
 use dyn_clone::{clone_trait_object, DynClone};
 use hashlink::LinkedHashSet;
 use indexmap::IndexMap;
@@ -365,7 +366,6 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
     context.add_runtime_requirements(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
     self.export_map.sort_by(|a, b| a.0.cmp(&b.0));
 
-
     let exports = format!(
       "{{\n  {}\n}}",
       self
@@ -374,7 +374,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
         .map(|s| {
           let prop = property_name(&s.0)?;
           let value = context.returning_function(&s.1, "");
-          
+
           // Check if the value already contains ConsumeShared macros
           if s.1.contains("@common:if") && s.1.contains("@common:endif") {
             // Value has ConsumeShared macros - handle different cases
@@ -382,41 +382,39 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
               if let Some(condition_end) = s.1[condition_start..].find("\"]") {
                 let condition = &s.1[condition_start..condition_start + condition_end + 2];
                 let share_key = extract_share_key_from_condition(condition);
-                
-                
+
                 // For ConsumeShared modules, ALL exports should be wrapped
-                
+
                 // Check if this is a default export with an object literal (look for both patterns)
                 if prop == "\"default\"" && (s.1.contains("({") || s.1.contains("{ ")) {
-                  
                   // Handle object literal within ConsumeShared default export
                   let processed_value = process_consume_shared_object_literal(&s.1, &share_key);
                   let clean_value_func = context.returning_function(&processed_value, "");
                   Ok(format!(
-                    "/* @common:if {} */ {}: {} /* @common:endif */",
-                    condition, prop, clean_value_func
+                    "/* @common:if {condition} */ {prop}: {clean_value_func} /* @common:endif */"
                   ))
                 } else {
                   // ALL exports should be wrapped for ConsumeShared modules
-                  let clean_value = s.1.replace(&format!("/* @common:if {} */ ", condition), "")
-                                       .replace(" /* @common:endif */", "");
+                  let clean_value = s
+                    .1
+                    .cow_replace(&format!("/* @common:if {condition} */ "), "")
+                    .cow_replace(" /* @common:endif */", "");
                   let clean_value_func = context.returning_function(&clean_value, "");
                   Ok(format!(
-                    "/* @common:if {} */ {}: {} /* @common:endif */",
-                    condition, prop, clean_value_func
+                    "/* @common:if {condition} */ {prop}: {clean_value_func} /* @common:endif */"
                   ))
                 }
               } else {
                 // Fallback if we can't parse the condition
-                Ok(format!("{}: {}", prop, value))
+                Ok(format!("{prop}: {value}"))
               }
             } else {
               // Fallback if we can't find the condition
-              Ok(format!("{}: {}", prop, value))
+              Ok(format!("{prop}: {value}"))
             }
           } else {
             // Standard format for non-ConsumeShared modules
-            Ok(format!("{}: {}", prop, value))
+            Ok(format!("{prop}: {value}"))
           }
         })
         .collect::<Result<Vec<_>>>()?
@@ -753,48 +751,56 @@ fn extract_share_key_from_condition(condition: &str) -> String {
 }
 
 fn process_consume_shared_object_literal(value: &str, share_key: &str) -> String {
-  
   // Try to load usage data from share-usage.json to determine which properties to wrap
   let _unused_exports = load_unused_exports_for_module(share_key);
-  
-  
+
   // Handle different object literal patterns
-  let (_obj_start, _obj_end, before_obj, after_obj, obj_content) = if let Some(start) = value.find("({") {
-    if let Some(end) = value.find("})") {
-      (start, end + 2, &value[..start], &value[end + 2..], &value[start + 2..end])
+  let (_obj_start, _obj_end, before_obj, after_obj, obj_content) =
+    if let Some(start) = value.find("({") {
+      if let Some(end) = value.find("})") {
+        (
+          start,
+          end + 2,
+          &value[..start],
+          &value[end + 2..],
+          &value[start + 2..end],
+        )
+      } else {
+        return value.to_string();
+      }
+    } else if let Some(start) = value.find("{") {
+      if let Some(end) = value.find("}") {
+        (
+          start,
+          end + 1,
+          &value[..start],
+          &value[end + 1..],
+          &value[start + 1..end],
+        )
+      } else {
+        return value.to_string();
+      }
     } else {
       return value.to_string();
-    }
-  } else if let Some(start) = value.find("{") {
-    if let Some(end) = value.find("}") {
-      (start, end + 1, &value[..start], &value[end + 1..], &value[start + 1..end])
-    } else {
-      return value.to_string();
-    }
-  } else {
-    return value.to_string();
-  };
-  
-  
+    };
+
   let properties: Vec<&str> = obj_content
     .split(',')
     .map(|s| s.trim())
     .filter(|s| !s.is_empty())
     .collect();
-  
+
   let wrapped_properties: Vec<String> = properties
     .into_iter()
     .map(|prop| {
       let prop_name = prop.trim();
       // For ConsumeShared modules, wrap ALL properties with conditional macros
-      
       format!(
-        "/* @common:if [condition=\"treeShake.{}.{}\"] */ {} /* @common:endif */",
-        share_key, prop_name, prop_name
+        "/* @common:if [condition=\"treeShake.{share_key}.{prop_name}\"] */ {prop_name} /* @common:endif */"
       )
     })
     .collect();
-  
+
   let result = if value.contains("({") {
     format!(
       "{}({{\n  {}\n}}){}",
@@ -810,8 +816,7 @@ fn process_consume_shared_object_literal(value: &str, share_key: &str) -> String
       after_obj
     )
   };
-  
-  
+
   result
 }
 
@@ -819,16 +824,9 @@ fn load_unused_exports_for_module(share_key: &str) -> Vec<String> {
   // For now, hardcode the api-lib data based on the JSON analysis
   // TODO: Load this dynamically from share-usage.json
   match share_key {
-    "api-lib" => vec![
-      "ApiClient".to_string(),
-      "fetchWithTimeout".to_string(),
-    ],
-    "utility-lib" => vec![
-      "debounce".to_string(),
-    ],
-    "component-lib" => vec![
-      "createCard".to_string(),
-    ],
+    "api-lib" => vec!["ApiClient".to_string(), "fetchWithTimeout".to_string()],
+    "utility-lib" => vec!["debounce".to_string()],
+    "component-lib" => vec!["createCard".to_string()],
     _ => vec![],
   }
 }
