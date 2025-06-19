@@ -12,12 +12,13 @@ use rspack_core::{
   FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode,
   ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource,
+  TemplateReplaceSource, TypeReexportPresenceMode,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
   Diagnostic, DiagnosticExt, TraceableError,
 };
+use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
@@ -294,6 +295,40 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         Some(ExportProvided::NotProvided)
       )
     {
+      // For type re-export cases:
+      //   1. export { T } from "./types";
+      //   2. import { T } from "./types"; export { T };
+      // Check if the export is really a type export, if it is, then skip the error.
+      let type_reexports_presence = parent_module
+        .as_normal_module()
+        .and_then(|m| m.get_parser_options())
+        .and_then(|o| o.get_javascript())
+        .and_then(|o| o.type_reexports_presence)
+        .unwrap_or_default();
+      if !matches!(type_reexports_presence, TypeReexportPresenceMode::NoTolerant)
+        // TODO: Check the parent module is transpiled from typescript
+        && ids.len() == 1
+        && let export_name = &ids[0]
+        && matches!(
+          ExportsInfoGetter::is_export_provided(
+            &module_graph.get_prefetched_exports_info(
+              parent_module_identifier,
+              PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([export_name]))
+            ),
+            std::slice::from_ref(export_name)
+          ),
+          Some(ExportProvided::Provided)
+        )
+      {
+        if matches!(
+          type_reexports_presence,
+          TypeReexportPresenceMode::TolerantNoCheck
+        ) {
+          return None;
+        }
+        // TODO: check if the export is a type export
+        return None;
+      }
       let mut pos = 0;
       let mut maybe_exports_info = Some(module_graph.get_prefetched_exports_info(
         &imported_module_identifier,

@@ -2464,6 +2464,7 @@ export type Experiments = {
     parallelLoader?: boolean;
     useInputFileSystem?: UseInputFileSystem;
     inlineConst?: boolean;
+    typeReexportsPresence?: JavascriptParserOptions["typeReexportsPresence"];
 };
 
 // @public (undocumented)
@@ -2525,6 +2526,8 @@ export interface ExperimentsNormalized {
     rspackFuture?: RspackFutureOptions;
     // (undocumented)
     topLevelAwait?: boolean;
+    // (undocumented)
+    typeReexportsPresence?: JavascriptParserOptions["typeReexportsPresence"];
     // (undocumented)
     useInputFileSystem?: false | RegExp[];
 }
@@ -3437,6 +3440,7 @@ export type JavascriptParserOptions = {
     requireResolve?: boolean;
     importDynamic?: boolean;
     inlineConst?: boolean;
+    typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
 };
 
 // @public (undocumented)
