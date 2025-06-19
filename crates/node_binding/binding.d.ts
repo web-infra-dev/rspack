@@ -2471,6 +2471,9 @@ export interface RawRspackFuture {
 
 export interface RawRstestPluginOptions {
   injectModulePathName: boolean
+  importMetaPathName: boolean
+  hoistMockModule: boolean
+  manualMockRoot: string
 }
 
 export interface RawRuleSetCondition {
