@@ -454,10 +454,10 @@ const ruleSetLoaderWithOptions = z.strictObject({
 	parallel: z.boolean().optional()
 }) satisfies z.ZodType<t.RuleSetLoaderWithOptions>;
 
-const builtinSWCLoaderChecker = (
-	data: t.RuleSetLoaderWithOptions | t.RuleSetRule | undefined,
-	ctx: z.RefinementCtx
-) => {
+const builtinSWCLoaderChecker: z.core.CheckFn<
+	t.RuleSetLoaderWithOptions | t.RuleSetRule | undefined
+> = ctx => {
+	const data = ctx.value;
 	if (
 		data?.loader !== "builtin:swc-loader" ||
 		typeof data?.options !== "object"
@@ -474,15 +474,16 @@ const builtinSWCLoaderChecker = (
 				issuesInTitleCase: false
 			})
 		});
-		ctx.addIssue({
+		ctx.issues.push({
 			code: "custom",
-			message: validationErr.message
+			message: validationErr.message,
+			input: data.options
 		});
 	}
 };
 
 const ruleSetUseItem = ruleSetLoader.or(
-	ruleSetLoaderWithOptions.superRefine(builtinSWCLoaderChecker)
+	ruleSetLoaderWithOptions.check(builtinSWCLoaderChecker)
 ) satisfies z.ZodType<t.RuleSetUseItem>;
 
 const ruleSetUse = ruleSetUseItem
@@ -521,9 +522,7 @@ const extendedBaseRuleSetRule: z.ZodType<t.RuleSetRule> =
 		rules: z.lazy(() => ruleSetRule.or(falsy).array()).optional()
 	}) satisfies z.ZodType<t.RuleSetRule>;
 
-const ruleSetRule = extendedBaseRuleSetRule.superRefine(
-	builtinSWCLoaderChecker
-);
+const ruleSetRule = extendedBaseRuleSetRule.check(builtinSWCLoaderChecker);
 
 const ruleSetRules = z.array(
 	z.literal("...").or(ruleSetRule).or(falsy)
@@ -844,8 +843,9 @@ const externalItemUmdValue = z.strictObject({
 	amd: z.string().or(z.string().array())
 }) satisfies z.ZodType<t.ExternalItemUmdValue>;
 
-const externalUmdChecker = (config: t.RspackOptions, ctx: z.RefinementCtx) => {
+const externalUmdChecker: z.core.CheckFn<t.RspackOptions> = ctx => {
 	let isLibraryUmd = false;
+	const config = ctx.value;
 	const library = config?.output?.library;
 	if (typeof library === "object" && "type" in library) {
 		isLibraryUmd = library.type === "umd";
@@ -887,9 +887,10 @@ const externalUmdChecker = (config: t.RspackOptions, ctx: z.RefinementCtx) => {
 		if (typeof externalItemValue === "object" && externalItemValue !== null) {
 			const result = externalItemUmdValue.safeParse(externalItemValue);
 			if (!result.success) {
-				ctx.addIssue({
+				ctx.issues.push({
 					code: "custom",
 					message: `External object must have "root", "commonjs", "commonjs2", "amd" properties when "libraryType" or "externalsType" is "umd"`,
+					input: externalItemValue,
 					path
 				});
 			}
@@ -1444,4 +1445,4 @@ export const rspackOptions = z
 		bail: bail.optional(),
 		performance: performance.optional()
 	})
-	.superRefine(externalUmdChecker) satisfies z.ZodType<t.RspackOptions>;
+	.check(externalUmdChecker) satisfies z.ZodType<t.RspackOptions>;
