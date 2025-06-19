@@ -325,6 +325,19 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       .module_by_identifier(&module_id)
       .expect("should have module");
     let mgm_exports_info = mgm.exports;
+
+    // Special handling for ConsumeShared modules
+    // ConsumeShared modules need enhanced usage tracking to work properly with tree-shaking
+    if module.module_type() == &rspack_core::ModuleType::ConsumeShared {
+      self.process_consume_shared_module(
+        module_id,
+        used_exports,
+        runtime,
+        force_side_effects,
+        queue,
+      );
+      return;
+    }
     if !used_exports.is_empty() {
       let need_insert = matches!(
         module.build_meta().exports_type,
@@ -427,6 +440,123 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         .set_used_for_side_effects_only(runtime.as_ref());
       if changed_flag {
         batch.push((module_id, runtime));
+      }
+    }
+  }
+
+  /// Enhanced processing for ConsumeShared modules
+  /// This ensures ConsumeShared modules get proper usage tracking like normal modules
+  fn process_consume_shared_module(
+    &mut self,
+    module_id: ModuleIdentifier,
+    used_exports: Vec<ExtendedReferencedExport>,
+    runtime: Option<RuntimeSpec>,
+    force_side_effects: bool,
+    queue: &mut Queue<(ModuleIdentifier, Option<RuntimeSpec>)>,
+  ) {
+    let mut module_graph = self.compilation.get_module_graph_mut();
+    let mgm = module_graph
+      .module_graph_module_by_identifier(&module_id)
+      .expect("should have mgm");
+    let mgm_exports_info = mgm.exports;
+
+    // Process ConsumeShared modules the same as normal modules for usage tracking
+    // This allows proper tree-shaking of ConsumeShared exports
+    if !used_exports.is_empty() {
+      // Handle export usage same as normal modules
+      for used_export_info in used_exports {
+        let (used_exports, can_mangle, can_inline) = match used_export_info {
+          rspack_core::ExtendedReferencedExport::Array(used_exports) => (used_exports, true, true),
+          rspack_core::ExtendedReferencedExport::Export(export) => {
+            (export.name, export.can_mangle, export.can_inline)
+          }
+        };
+
+        if used_exports.is_empty() {
+          // Namespace usage - mark all exports as used in unknown way
+          let flag = mgm_exports_info.set_used_in_unknown_way(&mut module_graph, runtime.as_ref());
+          if flag {
+            queue.enqueue((module_id, runtime.clone()));
+          }
+        } else {
+          // Specific export usage - process each export in the path
+          let mut current_exports_info = mgm_exports_info;
+          let len = used_exports.len();
+
+          for (i, used_export) in used_exports.into_iter().enumerate() {
+            let export_info = current_exports_info.get_export_info(&mut module_graph, &used_export);
+
+            // Apply mangling and inlining constraints
+            if !can_mangle {
+              export_info
+                .as_data_mut(&mut module_graph)
+                .set_can_mangle_use(Some(false));
+            }
+            if !can_inline {
+              export_info
+                .as_data_mut(&mut module_graph)
+                .set_inlinable(rspack_core::Inlinable::NoByUse);
+            }
+
+            let last_one = i == len - 1;
+            if !last_one {
+              // Intermediate property access - mark as OnlyPropertiesUsed
+              let nested_info = export_info.as_data(&module_graph).exports_info();
+              if let Some(nested_info) = nested_info {
+                let changed_flag = rspack_core::ExportInfoSetter::set_used_conditionally(
+                  export_info.as_data_mut(&mut module_graph),
+                  Box::new(|used| used == &rspack_core::UsageState::Unused),
+                  rspack_core::UsageState::OnlyPropertiesUsed,
+                  runtime.as_ref(),
+                );
+                if changed_flag {
+                  let current_module = if current_exports_info == mgm_exports_info {
+                    Some(module_id)
+                  } else {
+                    self
+                      .exports_info_module_map
+                      .get(&current_exports_info)
+                      .cloned()
+                  };
+                  if let Some(current_module) = current_module {
+                    queue.enqueue((current_module, runtime.clone()));
+                  }
+                }
+                current_exports_info = nested_info;
+                continue;
+              }
+            }
+
+            // Final property or direct export - mark as Used
+            let changed_flag = rspack_core::ExportInfoSetter::set_used_conditionally(
+              export_info.as_data_mut(&mut module_graph),
+              Box::new(|v| v != &rspack_core::UsageState::Used),
+              rspack_core::UsageState::Used,
+              runtime.as_ref(),
+            );
+            if changed_flag {
+              let current_module = if current_exports_info == mgm_exports_info {
+                Some(module_id)
+              } else {
+                self
+                  .exports_info_module_map
+                  .get(&current_exports_info)
+                  .cloned()
+              };
+              if let Some(current_module) = current_module {
+                queue.enqueue((current_module, runtime.clone()));
+              }
+            }
+            break;
+          }
+        }
+      }
+    } else {
+      // No specific exports used - handle side effects
+      let changed_flag =
+        mgm_exports_info.set_used_for_side_effects_only(&mut module_graph, runtime.as_ref());
+      if changed_flag {
+        queue.enqueue((module_id, runtime));
       }
     }
   }
