@@ -84,10 +84,7 @@ impl<'a> FlagDependencyExportsState<'a> {
           self.process_exports_spec(&module_id, *dep_id, exports_spec, exports_info);
         changed |= is_changed;
         for (module_id, dep_id) in changed_dependencies {
-          dependencies
-            .entry(module_id)
-            .or_insert(IdentifierSet::default())
-            .insert(dep_id);
+          dependencies.entry(module_id).or_default().insert(dep_id);
         }
       }
       if changed && let Some(set) = dependencies.get(&module_id) {
