@@ -47,7 +47,7 @@ pub fn save_module_graph(
   storage: &Arc<dyn Storage>,
   context: &CacheableContext,
 ) {
-  let mg = ModuleGraph::new(vec![partial], None);
+  let mg = ModuleGraph::new([Some(partial), None], None);
   for identifier in revoked_modules {
     storage.remove(SCOPE, identifier.as_bytes());
   }
@@ -124,7 +124,7 @@ pub async fn recovery_module_graph(
 ) -> Result<(ModuleGraphPartial, HashSet<DependencyId>)> {
   let mut need_check_dep = vec![];
   let mut partial = ModuleGraphPartial::default();
-  let mut mg = ModuleGraph::new(vec![], Some(&mut partial));
+  let mut mg = ModuleGraph::new([None, None], Some(&mut partial));
   storage
     .load(SCOPE)
     .await?

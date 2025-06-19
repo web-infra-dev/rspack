@@ -93,13 +93,13 @@ pub struct ModuleGraphPartial {
 
 #[derive(Debug, Default)]
 pub struct ModuleGraph<'a> {
-  partials: Vec<&'a ModuleGraphPartial>,
+  partials: [Option<&'a ModuleGraphPartial>; 2],
   active: Option<&'a mut ModuleGraphPartial>,
 }
 
 impl<'a> ModuleGraph<'a> {
   pub fn new(
-    partials: Vec<&'a ModuleGraphPartial>,
+    partials: [Option<&'a ModuleGraphPartial>; 2],
     active: Option<&'a mut ModuleGraphPartial>,
   ) -> Self {
     Self { partials, active }
@@ -112,7 +112,7 @@ impl<'a> ModuleGraph<'a> {
       return Some(r);
     }
 
-    for item in self.partials.iter().rev() {
+    for item in self.partials.iter().rev().flatten() {
       if let Some(r) = f(item) {
         return Some(r);
       }
@@ -134,7 +134,7 @@ impl<'a> ModuleGraph<'a> {
     let active_exist = f_exist(active_partial);
     if !active_exist {
       let mut search_result = None;
-      for item in self.partials.iter().rev() {
+      for item in self.partials.iter().rev().flatten() {
         if let Some(r) = f(item) {
           search_result = Some(r);
           break;
@@ -151,7 +151,7 @@ impl<'a> ModuleGraph<'a> {
   /// Return an unordered iterator of modules
   pub fn modules(&self) -> IdentifierMap<&BoxModule> {
     let mut res = IdentifierMap::default();
-    for item in self.partials.iter() {
+    for item in self.partials.iter().flatten() {
       for (k, v) in &item.modules {
         if let Some(v) = v {
           res.insert(*k, v);
@@ -174,7 +174,7 @@ impl<'a> ModuleGraph<'a> {
 
   pub fn module_graph_modules(&self) -> IdentifierMap<&ModuleGraphModule> {
     let mut res = IdentifierMap::default();
-    for item in self.partials.iter() {
+    for item in self.partials.iter().flatten() {
       for (k, v) in &item.module_graph_modules {
         if let Some(v) = v {
           res.insert(*k, v);
@@ -621,7 +621,7 @@ impl<'a> ModuleGraph<'a> {
 
   pub fn dependencies(&self) -> HashMap<DependencyId, &BoxDependency> {
     let mut res = HashMap::default();
-    for item in self.partials.iter() {
+    for item in self.partials.iter().flatten() {
       for (k, v) in &item.dependencies {
         if let Some(v) = v {
           res.insert(*k, v);

@@ -430,14 +430,17 @@ impl Compilation {
   pub fn get_module_graph(&self) -> ModuleGraph {
     if let Some(other_module_graph) = &self.other_module_graph {
       ModuleGraph::new(
-        vec![
-          self.make_artifact.get_module_graph_partial(),
-          other_module_graph,
+        [
+          Some(self.make_artifact.get_module_graph_partial()),
+          Some(other_module_graph),
         ],
         None,
       )
     } else {
-      ModuleGraph::new(vec![self.make_artifact.get_module_graph_partial()], None)
+      ModuleGraph::new(
+        [Some(self.make_artifact.get_module_graph_partial()), None],
+        None,
+      )
     }
   }
 
@@ -464,12 +467,12 @@ impl Compilation {
   pub fn get_module_graph_mut(&mut self) -> ModuleGraph {
     if let Some(other) = &mut self.other_module_graph {
       ModuleGraph::new(
-        vec![self.make_artifact.get_module_graph_partial()],
+        [Some(self.make_artifact.get_module_graph_partial()), None],
         Some(other),
       )
     } else {
       ModuleGraph::new(
-        vec![],
+        [None, None],
         Some(self.make_artifact.get_module_graph_partial_mut()),
       )
     }
