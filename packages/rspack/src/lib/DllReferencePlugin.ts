@@ -9,7 +9,7 @@
  */
 
 import type { JsBuildMeta } from "@rspack/binding";
-import { z } from "zod/v4";
+import * as z from "zod/v4";
 import type { CompilationParams } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import { DllReferenceAgencyPlugin } from "../builtin-plugin";
