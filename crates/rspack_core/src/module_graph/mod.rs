@@ -112,11 +112,9 @@ impl<'a> ModuleGraph<'a> {
       return Some(r);
     }
 
-    for item in self.partials.iter().rev() {
-      if let Some(item) = item {
-        if let Some(r) = f(item) {
-          return Some(r);
-        }
+    for item in self.partials.iter().rev().flatten() {
+      if let Some(r) = f(item) {
+        return Some(r);
       }
     }
     None
@@ -136,12 +134,10 @@ impl<'a> ModuleGraph<'a> {
     let active_exist = f_exist(active_partial);
     if !active_exist {
       let mut search_result = None;
-      for item in self.partials.iter().rev() {
-        if let Some(item) = item {
-          if let Some(r) = f(item) {
-            search_result = Some(r);
-            break;
-          }
+      for item in self.partials.iter().rev().flatten() {
+        if let Some(r) = f(item) {
+          search_result = Some(r);
+          break;
         }
       }
       if let Some(search_result) = search_result {
@@ -155,14 +151,12 @@ impl<'a> ModuleGraph<'a> {
   /// Return an unordered iterator of modules
   pub fn modules(&self) -> IdentifierMap<&BoxModule> {
     let mut res = IdentifierMap::default();
-    for item in self.partials.iter() {
-      if let Some(item) = item {
-        for (k, v) in &item.modules {
-          if let Some(v) = v {
-            res.insert(*k, v);
-          } else {
-            res.remove(k);
-          }
+    for item in self.partials.iter().flatten() {
+      for (k, v) in &item.modules {
+        if let Some(v) = v {
+          res.insert(*k, v);
+        } else {
+          res.remove(k);
         }
       }
     }
@@ -180,14 +174,12 @@ impl<'a> ModuleGraph<'a> {
 
   pub fn module_graph_modules(&self) -> IdentifierMap<&ModuleGraphModule> {
     let mut res = IdentifierMap::default();
-    for item in self.partials.iter() {
-      if let Some(item) = item {
-        for (k, v) in &item.module_graph_modules {
-          if let Some(v) = v {
-            res.insert(*k, v);
-          } else {
-            res.remove(k);
-          }
+    for item in self.partials.iter().flatten() {
+      for (k, v) in &item.module_graph_modules {
+        if let Some(v) = v {
+          res.insert(*k, v);
+        } else {
+          res.remove(k);
         }
       }
     }
@@ -629,14 +621,12 @@ impl<'a> ModuleGraph<'a> {
 
   pub fn dependencies(&self) -> HashMap<DependencyId, &BoxDependency> {
     let mut res = HashMap::default();
-    for item in self.partials.iter() {
-      if let Some(item) = item {
-        for (k, v) in &item.dependencies {
-          if let Some(v) = v {
-            res.insert(*k, v);
-          } else {
-            res.remove(k);
-          }
+    for item in self.partials.iter().flatten() {
+      for (k, v) in &item.dependencies {
+        if let Some(v) = v {
+          res.insert(*k, v);
+        } else {
+          res.remove(k);
         }
       }
     }
