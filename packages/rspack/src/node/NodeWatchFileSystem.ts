@@ -16,7 +16,7 @@ import type {
 	InputFileSystem,
 	WatchFileSystem,
 	Watcher,
-	WatcherDependencies
+	WatcherIncrementalDependencies
 } from "../util/fs";
 
 export default class NodeWatchFileSystem implements WatchFileSystem {
@@ -32,9 +32,9 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 	}
 
 	async watch(
-		_files: WatcherDependencies,
-		_directories: WatcherDependencies,
-		_missing: WatcherDependencies,
+		_files: WatcherIncrementalDependencies,
+		_directories: WatcherIncrementalDependencies,
+		_missing: WatcherIncrementalDependencies,
 		startTime: number,
 		options: Watchpack.WatchOptions,
 		callback: (

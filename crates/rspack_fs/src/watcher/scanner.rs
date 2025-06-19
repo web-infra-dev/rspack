@@ -60,6 +60,7 @@ mod tests {
   use std::thread;
 
   use dashmap::DashSet as HashSet;
+  use rspack_paths::ArcPath;
 
   use super::*;
 
@@ -67,13 +68,13 @@ mod tests {
   fn test_scan() {
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
     let files = HashSet::new();
-    files.insert(current_dir.join("___test_file.txt"));
+    files.insert(ArcPath::from(current_dir.join("___test_file.txt")));
 
     let directories = HashSet::new();
-    directories.insert(current_dir.join("___test_dir/a/b/c"));
+    directories.insert(ArcPath::from(current_dir.join("___test_dir/a/b/c")));
 
     let missing = HashSet::new();
-    missing.insert(current_dir.join("___missing_file.txt"));
+    missing.insert(ArcPath::from(current_dir.join("___missing_file.txt")));
 
     let mut path_manager = PathManager::new(None);
     path_manager.files.extend(files);
@@ -99,11 +100,11 @@ mod tests {
     assert_eq!(collected_events.len(), 2);
 
     assert!(collected_events.contains(&FsEvent {
-      path: current_dir.join("___test_file.txt"),
+      path: ArcPath::from(current_dir.join("___test_file.txt")),
       kind: FsEventKind::Remove
     }));
     assert!(collected_events.contains(&FsEvent {
-      path: current_dir.join("___test_dir/a/b/c"),
+      path: ArcPath::from(current_dir.join("___test_dir/a/b/c")),
       kind: FsEventKind::Remove,
     }));
   }

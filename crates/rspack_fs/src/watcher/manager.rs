@@ -1,7 +1,8 @@
-use std::path::PathBuf;
+use std::{ops::Deref, path::PathBuf};
 
 use async_trait::async_trait;
 use dashmap::{setref::multiple::RefMulti, DashSet as HashSet};
+use rspack_paths::ArcPath;
 
 #[async_trait]
 pub trait Ignored: Send + Sync {
@@ -11,7 +12,7 @@ pub trait Ignored: Send + Sync {
 /// An iterator that chains together references to all files, directories, and missing paths
 /// stored in the PathRegister. This allows iteration over all registered paths as a single sequence.
 pub struct All<'a> {
-  inner: Box<dyn Iterator<Item = RefMulti<'a, PathBuf>> + 'a>,
+  inner: Box<dyn Iterator<Item = RefMulti<'a, ArcPath>> + 'a>,
 }
 
 impl<'a> All<'a> {
@@ -23,9 +24,9 @@ impl<'a> All<'a> {
   /// * `directories` - A reference to a set of directories.
   /// * `missing` - A reference to a set of missing paths.
   pub fn new(
-    files: &'a HashSet<PathBuf>,
-    directories: &'a HashSet<PathBuf>,
-    missing: &'a HashSet<PathBuf>,
+    files: &'a HashSet<ArcPath>,
+    directories: &'a HashSet<ArcPath>,
+    missing: &'a HashSet<ArcPath>,
   ) -> Self {
     let files_iter = files.iter();
     let directories_iter = directories.iter();
@@ -39,24 +40,24 @@ impl<'a> All<'a> {
 }
 
 impl<'a> Iterator for All<'a> {
-  type Item = RefMulti<'a, PathBuf>;
+  type Item = ArcPath;
 
   fn next(&mut self) -> Option<Self::Item> {
-    self.inner.next()
+    self.inner.next().map(|v| v.deref().clone())
   }
 }
 
 pub struct PathAccessor<'a> {
-  files: &'a HashSet<PathBuf>,
-  directories: &'a HashSet<PathBuf>,
-  missing: &'a HashSet<PathBuf>,
+  files: &'a HashSet<ArcPath>,
+  directories: &'a HashSet<ArcPath>,
+  missing: &'a HashSet<ArcPath>,
 }
 
 impl<'a> PathAccessor<'a> {
   pub fn new(
-    files: &'a HashSet<PathBuf>,
-    directories: &'a HashSet<PathBuf>,
-    missing: &'a HashSet<PathBuf>,
+    files: &'a HashSet<ArcPath>,
+    directories: &'a HashSet<ArcPath>,
+    missing: &'a HashSet<ArcPath>,
   ) -> Self {
     Self {
       files,
@@ -65,15 +66,15 @@ impl<'a> PathAccessor<'a> {
     }
   }
 
-  pub fn files(&self) -> &'a HashSet<PathBuf> {
+  pub fn files(&self) -> &'a HashSet<ArcPath> {
     self.files
   }
 
-  pub fn directories(&self) -> &'a HashSet<PathBuf> {
+  pub fn directories(&self) -> &'a HashSet<ArcPath> {
     self.directories
   }
 
-  pub fn missing(&self) -> &'a HashSet<PathBuf> {
+  pub fn missing(&self) -> &'a HashSet<ArcPath> {
     self.missing
   }
 
@@ -95,7 +96,7 @@ impl PathUpdater {
   ///
   /// * `paths` - A reference to the set of paths to update.
   /// * `ignored` - An optional reference to an ignored paths filter.
-  pub async fn update(self, paths: &HashSet<PathBuf>, ignored: &Option<Box<dyn Ignored>>) {
+  pub async fn update(self, paths: &HashSet<ArcPath>, ignored: &Option<Box<dyn Ignored>>) {
     let added_paths = self.added;
     let removed_paths = self.removed;
 
@@ -106,11 +107,11 @@ impl PathUpdater {
         }
       }
 
-      paths.insert(PathBuf::from(added));
+      paths.insert(ArcPath::from(PathBuf::from(added)));
     }
 
     for removed in removed_paths {
-      paths.remove(&PathBuf::from(removed));
+      paths.remove(&ArcPath::from(PathBuf::from(removed)));
     }
   }
 }
@@ -118,9 +119,9 @@ impl PathUpdater {
 /// `PathManager` is responsible for managing the set of registered paths, directories, and missing paths.
 #[derive(Default)]
 pub struct PathManager {
-  pub files: HashSet<PathBuf>,
-  pub directories: HashSet<PathBuf>,
-  pub missing: HashSet<PathBuf>,
+  pub files: HashSet<ArcPath>,
+  pub directories: HashSet<ArcPath>,
+  pub missing: HashSet<ArcPath>,
   pub ignored: Option<Box<dyn Ignored>>,
 }
 
@@ -180,7 +181,7 @@ mod tests {
       ],
       removed: vec![],
     };
-    let paths: HashSet<PathBuf> = HashSet::new();
+    let paths: HashSet<ArcPath> = HashSet::new();
     let ignored = Box::new(TestIgnored {
       ignored: vec!["node_modules".to_string(), ".git".to_string()],
     });
@@ -188,26 +189,31 @@ mod tests {
     updater.update(&paths, &Some(ignored)).await;
 
     let mut path_iter = paths.into_iter().map(|p| p);
-    assert_eq!(path_iter.next(), Some(PathBuf::from("src/index.js")));
+    assert_eq!(
+      path_iter.next(),
+      Some(ArcPath::from(PathBuf::from("src/index.js")))
+    );
     assert_eq!(path_iter.next(), None);
   }
 
   #[test]
   fn test_accessor() {
     let files = HashSet::new();
-    files.insert(PathBuf::from("src/index.js"));
+    let file_0 = ArcPath::from(PathBuf::from("src/index.js"));
+    files.insert(file_0);
 
     let directories = HashSet::new();
-    directories.insert(PathBuf::from("src"));
+    let dir_0 = ArcPath::from(PathBuf::from("src"));
+    directories.insert(dir_0);
 
     let missing = HashSet::new();
-    missing.insert(PathBuf::from("src/page/index.ts"));
+    let miss_0 = ArcPath::from(PathBuf::from("src/page/index.ts"));
+    missing.insert(miss_0);
 
     let accessor = PathAccessor::new(&files, &directories, &missing);
     let mut all_paths = vec![];
 
-    for ref_multi in accessor.all() {
-      let path = ref_multi.key();
+    for path in accessor.all() {
       all_paths.push(path.to_string_lossy().to_string());
     }
 
@@ -239,7 +245,7 @@ mod tests {
     let accessor = path_manager.access();
     let mut all_paths = accessor
       .all()
-      .map(|ref_multi| ref_multi.key().to_string_lossy().to_string())
+      .map(|p| p.to_string_lossy().to_string())
       .collect::<Vec<_>>();
 
     all_paths.sort();

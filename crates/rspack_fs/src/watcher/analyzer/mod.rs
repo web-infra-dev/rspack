@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use rspack_paths::ArcPath;
 
 use crate::watcher::{manager::PathAccessor, WatchPattern};
 
@@ -26,11 +26,10 @@ pub(crate) trait Analyzer<'a> {
   fn analyze(&'a self) -> Vec<WatchPattern>;
 }
 
-fn for_each<'a>(path_accessor: &PathAccessor<'a>, mut for_each: impl FnMut(&PathBuf)) {
+fn for_each<'a>(path_accessor: &PathAccessor<'a>, mut for_each: impl FnMut(ArcPath)) {
   let all = path_accessor.all();
   for p in all {
-    let path = p.key();
-    for_each(path);
+    for_each(p);
   }
 }
 

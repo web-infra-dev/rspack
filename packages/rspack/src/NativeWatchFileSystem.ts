@@ -4,16 +4,16 @@ import type {
 	FileSystemInfoEntry,
 	WatchFileSystem,
 	Watcher,
-	WatcherDependencies
+	WatcherIncrementalDependencies
 } from "./util/fs";
 
 export default class NativeWatchFileSystem implements WatchFileSystem {
 	#inner: binding.NativeWatcher | undefined;
 
 	async watch(
-		files: WatcherDependencies,
-		directories: WatcherDependencies,
-		missing: WatcherDependencies,
+		files: WatcherIncrementalDependencies,
+		directories: WatcherIncrementalDependencies,
+		missing: WatcherIncrementalDependencies,
 		_startTime: number,
 		options: WatchOptions,
 		callback: (
@@ -25,6 +25,33 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 		) => void,
 		callbackUndelayed: (fileName: string, changeTime: number) => void
 	): Promise<Watcher> {
+		if (
+			(!files.added || typeof files.added[Symbol.iterator] !== "function") &&
+			(!files.removed || typeof files.removed[Symbol.iterator] !== "function")
+		) {
+			throw new Error("Invalid arguments: 'files'");
+		}
+
+		if (
+			(!directories.added ||
+				typeof directories.added[Symbol.iterator] !== "function") &&
+			(!directories.removed ||
+				typeof directories.removed[Symbol.iterator] !== "function")
+		) {
+			throw new Error("Invalid arguments: 'directories'");
+		}
+
+		if (typeof callback !== "function") {
+			throw new Error("Invalid arguments: 'callback'");
+		}
+
+		if (typeof options !== "object") {
+			throw new Error("Invalid arguments: 'options'");
+		}
+		if (typeof callbackUndelayed !== "function" && callbackUndelayed) {
+			throw new Error("Invalid arguments: 'callbackUndelayed'");
+		}
+
 		if (!this.#inner) {
 			const ignoredCallback = options.ignored
 				? async (path: string): Promise<boolean> => {
@@ -51,9 +78,9 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 		}
 
 		await this.#inner.watch(
-			[files.add, files.remove],
-			[directories.add, directories.remove],
-			[missing.add, missing.remove],
+			[Array.from(files.added), Array.from(files.removed)],
+			[Array.from(directories.added), Array.from(directories.removed)],
+			[Array.from(missing.added), Array.from(missing.removed)],
 			(err: Error | null, changedFiles: string[], removedFiles: string[]) => {
 				// TODO: add fileTimeInfoEntries and contextTimeInfoEntries
 				callback(

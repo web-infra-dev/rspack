@@ -169,20 +169,15 @@ impl ExecuteHandler {
             ExecEvent::Execute(event) => {
               let path = event.path.to_string_lossy().to_string();
               match event.kind {
-                super::FsEventKind::Change => {
-                  if let Err(_) = event_handler.on_change(path).await {
+                super::FsEventKind::Change | super::FsEventKind::Create => {
+                  if event_handler.on_change(path).await.is_err() {
                     break;
-                  };
+                  }
                 }
                 super::FsEventKind::Remove => {
-                  if let Err(_) = event_handler.on_delete(path).await {
+                  if event_handler.on_delete(path).await.is_err() {
                     break;
-                  };
-                }
-                super::FsEventKind::Create => {
-                  if let Err(_) = event_handler.on_change(path).await {
-                    break;
-                  };
+                  }
                 }
               }
             }
@@ -262,9 +257,10 @@ impl ExecuteAggregateHandler {
 
               let changed_files = std::mem::take(&mut *changed_files);
               let deleted_files = std::mem::take(&mut *deleted_files);
-              if let Err(_) = event_handler
+              if event_handler
                 .on_event_handle(changed_files, deleted_files)
                 .await
+                .is_err()
               {
                 break;
               };

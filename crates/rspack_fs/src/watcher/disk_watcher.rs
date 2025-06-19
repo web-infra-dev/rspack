@@ -1,5 +1,6 @@
 // use std::collections::HashSet;
 use notify::{event::ModifyKind, Event, EventKind, RecommendedWatcher, Watcher};
+use rspack_paths::ArcPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 
 use crate::watcher::{trigger, FsEventKind, WatchPattern};
@@ -15,7 +16,7 @@ pub struct DiskWatcher {
 
 impl DiskWatcher {
   /// Creates a new `DiskWatcher` with the given configuration and trigger.
-  pub fn new<'a>(follow_symlinks: bool, trigger: trigger::Trigger) -> Self {
+  pub fn new(follow_symlinks: bool, trigger: trigger::Trigger) -> Self {
     let config = notify::Config::default().with_follow_symlinks(follow_symlinks);
     let inner = RecommendedWatcher::new(
       move |result: notify::Result<Event>| match result {
@@ -37,14 +38,15 @@ impl DiskWatcher {
             // Now /path/to/index.js and /path/to/index.js.map will both be changed
             _ => return, // Ignore other kinds of events
           };
-          let paths = event.paths;
+          let paths = event.paths.into_iter().map(ArcPath::from);
           for path in paths {
             trigger.on_event(&path, kind);
           }
         }
 
         Err(e) => {
-          eprintln!("Error occurred while watching disk: {}", e);
+          // Handle error, e.g., log it or notify the user
+          eprintln!("Error in file watcher: {e:?}",);
         }
       },
       config,

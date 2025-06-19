@@ -5,7 +5,7 @@ mod manager;
 mod scanner;
 mod trigger;
 
-use std::{collections::HashSet, path::PathBuf, sync::Arc};
+use std::{collections::HashSet, sync::Arc};
 
 type StdReceiver<T> = std::sync::mpsc::Receiver<T>;
 type StdSender<T> = std::sync::mpsc::Sender<T>;
@@ -16,12 +16,13 @@ use executor::Executor;
 use manager::PathManager;
 pub use manager::{Ignored, PathUpdater};
 use rspack_error::Result;
+use rspack_paths::ArcPath;
 use scanner::Scanner;
 use trigger::Trigger;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub(crate) struct WatchPattern {
-  path: PathBuf,
+  path: ArcPath,
   mode: notify::RecursiveMode,
 }
 
@@ -34,7 +35,7 @@ pub enum FsEventKind {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FsEvent {
-  pub path: PathBuf,
+  pub path: ArcPath,
   pub kind: FsEventKind,
 }
 
