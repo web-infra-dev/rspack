@@ -956,34 +956,20 @@ const infrastructureLogging = z.strictObject({
 //#region DevTool
 const devTool = z
 	.literal(false)
+	.or(z.literal("eval"))
 	.or(
-		z.enum([
-			"eval",
-			"cheap-source-map",
-			"cheap-module-source-map",
-			"source-map",
-			"inline-cheap-source-map",
-			"inline-cheap-module-source-map",
-			"inline-source-map",
-			"inline-nosources-cheap-source-map",
-			"inline-nosources-cheap-module-source-map",
-			"inline-nosources-source-map",
-			"nosources-cheap-source-map",
-			"nosources-cheap-module-source-map",
-			"nosources-source-map",
-			"hidden-nosources-cheap-source-map",
-			"hidden-nosources-cheap-module-source-map",
-			"hidden-nosources-source-map",
-			"hidden-cheap-source-map",
-			"hidden-cheap-module-source-map",
-			"hidden-source-map",
-			"eval-cheap-source-map",
-			"eval-cheap-module-source-map",
-			"eval-source-map",
-			"eval-nosources-cheap-source-map",
-			"eval-nosources-cheap-module-source-map",
-			"eval-nosources-source-map"
-		])
+		z.string().refine(
+			val => {
+				// Pattern: [inline-|hidden-|eval-][nosources-][cheap-[module-]]source-map[-debugids]
+				const pattern =
+					/^(inline-|hidden-|eval-)?(nosources-)?(cheap-(module-)?)?source-map(-debugids)?$/;
+				return pattern.test(val);
+			},
+			{
+				error:
+					"Expect value to match the pattern: [inline-|hidden-|eval-][nosources-][cheap-[module-]]source-map[-debugids]"
+			}
+		) as z.ZodType<t.DevTool>
 	) satisfies z.ZodType<t.DevTool>;
 //#endregion
 
