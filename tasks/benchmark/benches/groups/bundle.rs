@@ -15,9 +15,6 @@ criterion_group!(bundle, bundle_benchmark);
 fn bundle_benchmark(c: &mut Criterion) {
   let mut group = c.benchmark_group("bundle");
 
-  #[cfg(feature = "codspeed")]
-  group.sample_size(10);
-
   let projects: Vec<(&'static str, CompilerBuilderGenerator)> = vec![
     ("basic-react", Arc::new(basic_react::compiler)),
     ("threejs", Arc::new(threejs::compiler)),
