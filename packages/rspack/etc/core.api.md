@@ -1877,8 +1877,14 @@ type DevServerOptions<A extends BasicApplication = BasicApplication, S extends B
     setupMiddlewares?: ((middlewares: DevServerMiddleware[], devServer: Server_4) => DevServerMiddleware[]) | undefined;
 };
 
-// @public
-export type DevTool = false | "eval" | "cheap-source-map" | "cheap-module-source-map" | "source-map" | "inline-cheap-source-map" | "inline-cheap-module-source-map" | "inline-source-map" | "inline-nosources-cheap-source-map" | "inline-nosources-cheap-module-source-map" | "inline-nosources-source-map" | "nosources-cheap-source-map" | "nosources-cheap-module-source-map" | "nosources-source-map" | "hidden-nosources-cheap-source-map" | "hidden-nosources-cheap-module-source-map" | "hidden-nosources-source-map" | "hidden-cheap-source-map" | "hidden-cheap-module-source-map" | "hidden-source-map" | "eval-cheap-source-map" | "eval-cheap-module-source-map" | "eval-source-map" | "eval-nosources-cheap-source-map" | "eval-nosources-cheap-module-source-map" | "eval-nosources-source-map";
+// @public (undocumented)
+export type DevTool = false | "eval" | `${DevToolPosition}${DevToolNoSources}${DevToolCheap}source-map${DevToolDebugIds}`;
+
+// @public (undocumented)
+type DevToolCheap = "cheap-" | "cheap-module-" | "";
+
+// @public (undocumented)
+type DevToolDebugIds = "-debugids" | "";
 
 // @public
 export type DevtoolFallbackModuleFilenameTemplate = DevtoolModuleFilenameTemplate;
@@ -1888,6 +1894,12 @@ export type DevtoolModuleFilenameTemplate = string | ((info: any) => any);
 
 // @public
 export type DevtoolNamespace = string;
+
+// @public (undocumented)
+type DevToolNoSources = "nosources-" | "";
+
+// @public
+type DevToolPosition = "inline-" | "hidden-" | "eval-" | "";
 
 // @public (undocumented)
 interface Diagnostic {
@@ -2464,6 +2476,7 @@ export type Experiments = {
     parallelLoader?: boolean;
     useInputFileSystem?: UseInputFileSystem;
     inlineConst?: boolean;
+    typeReexportsPresence?: JavascriptParserOptions["typeReexportsPresence"];
 };
 
 // @public (undocumented)
@@ -2525,6 +2538,8 @@ export interface ExperimentsNormalized {
     rspackFuture?: RspackFutureOptions;
     // (undocumented)
     topLevelAwait?: boolean;
+    // (undocumented)
+    typeReexportsPresence?: JavascriptParserOptions["typeReexportsPresence"];
     // (undocumented)
     useInputFileSystem?: false | RegExp[];
 }
@@ -2961,7 +2976,7 @@ export type HashDigest = string;
 export type HashDigestLength = number;
 
 // @public
-export type HashFunction = "md4" | "xxhash64";
+export type HashFunction = "md4" | "xxhash64" | "sha256";
 
 // @public (undocumented)
 interface HashLike {
@@ -3437,6 +3452,7 @@ export type JavascriptParserOptions = {
     requireResolve?: boolean;
     importDynamic?: boolean;
     inlineConst?: boolean;
+    typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
 };
 
 // @public (undocumented)

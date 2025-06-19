@@ -25,7 +25,8 @@ import type {
 	UmdConfig
 } from "@swc/types";
 import type { Assumptions } from "@swc/types/assumptions";
-import { z } from "zod";
+import * as z from "zod/v4";
+import { numberOrInfinity } from "../../config/utils";
 import { memoize } from "../../util/memoize";
 import {
 	type PluginImportOptions,
@@ -202,7 +203,7 @@ export const getZodSwcLoaderOptionsSchema = memoize(() => {
 		z.literal(2015),
 		z.literal(2016),
 		z.string(),
-		z.number()
+		z.int()
 	]) satisfies z.ZodType<TerserEcmaVersion>;
 
 	const ZodSwcJsFormatOptions = z.strictObject({
@@ -215,12 +216,12 @@ export const getZodSwcLoaderOptionsSchema = memoize(() => {
 			.or(z.literal(false))
 			.optional(),
 		ecma: ZodSwcTerserEcmaVersion.optional(),
-		indentLevel: z.number().optional(),
-		indentStart: z.number().optional(),
+		indentLevel: z.int().optional(),
+		indentStart: z.int().optional(),
 		inlineScript: z.boolean().optional(),
-		keepNumbers: z.number().optional(),
+		keepNumbers: z.int().optional(),
 		keepQuotedProps: z.boolean().optional(),
-		maxLineLen: z.number().optional(),
+		maxLineLen: numberOrInfinity.optional(),
 		preamble: z.string().optional(),
 		quoteKeys: z.boolean().optional(),
 		quoteStyle: z.boolean().optional(),
@@ -269,7 +270,7 @@ export const getZodSwcLoaderOptionsSchema = memoize(() => {
 		keep_infinity: z.boolean().optional(),
 		loops: z.boolean().optional(),
 		negate_iife: z.boolean().optional(),
-		passes: z.number().optional(),
+		passes: numberOrInfinity.optional(),
 		properties: z.boolean().optional(),
 		pure_getters: z.any().optional(),
 		pure_funcs: z.string().array().optional(),
@@ -349,7 +350,7 @@ export const getZodSwcLoaderOptionsSchema = memoize(() => {
 		globals: ZodSwcGlobalPassOption.optional(),
 		jsonify: z
 			.strictObject({
-				minCost: z.number()
+				minCost: numberOrInfinity
 			})
 			.optional()
 	}) satisfies z.ZodType<OptimizerConfig>;

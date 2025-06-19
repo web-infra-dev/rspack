@@ -2103,6 +2103,11 @@ export interface RawJavascriptParserOptions {
    * @experimental
    */
   inlineConst?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  typeReexportsPresence?: string
 }
 
 export interface RawJsonGeneratorOptions {
@@ -2466,6 +2471,9 @@ export interface RawRspackFuture {
 
 export interface RawRstestPluginOptions {
   injectModulePathName: boolean
+  importMetaPathName: boolean
+  hoistMockModule: boolean
+  manualMockRoot: string
 }
 
 export interface RawRuleSetCondition {

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod/v4";
 import { Compilation } from "../../Compilation";
 import { anyFunction } from "../../config/utils";
 import { memoize } from "../../util/memoize";
@@ -120,13 +120,10 @@ const getPluginOptionsSchema = memoize(
 			filename: z.string().or(anyFunction).optional(),
 			template: z
 				.string()
-				.refine(
-					val => !val.includes("!"),
-					() => ({
-						message:
-							"HtmlRspackPlugin does not support template path with loader yet"
-					})
-				)
+				.refine(val => !val.includes("!"), {
+					error:
+						"HtmlRspackPlugin does not support template path with loader yet"
+				})
 				.optional(),
 			templateContent: z.string().or(templateRenderFunction).optional(),
 			templateParameters: z

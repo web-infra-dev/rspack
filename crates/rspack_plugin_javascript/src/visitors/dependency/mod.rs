@@ -60,6 +60,7 @@ pub fn scan_dependencies(
   semicolons: &mut FxHashSet<BytePos>,
   unresolved_mark: Mark,
   parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
+  parser_pre_plugins: &mut Vec<BoxJavascriptParserPlugin>,
   additional_data: Option<AdditionalData>,
   parse_meta: FxHashMap<String, String>,
 ) -> Result<ScanDependenciesResult, Vec<Box<dyn Diagnostic + Send + Sync>>> {
@@ -80,6 +81,7 @@ pub fn scan_dependencies(
     semicolons,
     unresolved_mark,
     parser_plugins,
+    parser_pre_plugins,
     additional_data,
     parse_meta,
   );

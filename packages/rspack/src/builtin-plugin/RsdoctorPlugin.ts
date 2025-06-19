@@ -25,7 +25,7 @@ import {
 	RegisterJsTapKind
 } from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
-import { z } from "zod";
+import * as z from "zod/v4";
 import { type Compilation, checkCompilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { CreatePartialRegisters } from "../taps/types";

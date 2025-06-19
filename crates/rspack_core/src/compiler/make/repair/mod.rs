@@ -65,7 +65,7 @@ impl MakeTaskContext {
 
   // TODO use module graph with make artifact
   pub fn get_module_graph_mut(partial: &mut ModuleGraphPartial) -> ModuleGraph {
-    ModuleGraph::new(vec![], Some(partial))
+    ModuleGraph::new([None, None], Some(partial))
   }
 
   // TODO remove it after incremental rebuild cover all stage

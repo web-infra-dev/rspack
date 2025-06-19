@@ -48,7 +48,7 @@ RSPACK_TRACE_LAYER=perfetto
 
 ```sh
 RSPACK_TRACE_LAYER=logger RSPACK_TRACE_OUTPUT=log.txt rspack dev
-RSPACK_TRACE_LAYER=perfetto RSPACK_TRACE_OUTPUT=perfetto.json rspack dev
+RSPACK_TRACE_LAYER=perfetto RSPACK_TRACE_OUTPUT=rspack.pftrace rspack dev
 ```
 
 ## Tracing Filter

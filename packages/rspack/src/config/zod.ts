@@ -1,9 +1,9 @@
 import nodePath from "node:path";
-import { ZodIssueCode, z } from "zod";
-import { fromZodError } from "zod-validation-error";
+import { createErrorMap, fromZodError } from "zod-validation-error/v4";
+import * as z from "zod/v4";
 import { getZodSwcLoaderOptionsSchema } from "../builtin-loader/swc/types";
 import type * as t from "./types";
-import { anyFunction } from "./utils";
+import { anyFunction, numberOrInfinity } from "./utils";
 
 const filenameTemplate = z.string() satisfies z.ZodType<t.FilenameTemplate>;
 
@@ -20,12 +20,10 @@ const dependencies = z.array(name) satisfies z.ZodType<t.Dependencies>;
 //#endregion
 
 //#region Context
-const context = z.string().refine(
-	val => nodePath.isAbsolute(val),
-	val => ({
-		message: `The provided value ${JSON.stringify(val)} must be an absolute path.`
-	})
-) satisfies z.ZodType<t.Context>;
+const context = z.string().refine(val => nodePath.isAbsolute(val), {
+	error: issue =>
+		`The provided value ${JSON.stringify(issue.input)} must be an absolute path`
+}) satisfies z.ZodType<t.Context>;
 //#endregion
 
 //#region Mode
@@ -272,11 +270,12 @@ const trustedTypes = z.strictObject({
 
 const hashDigest = z.string() satisfies z.ZodType<t.HashDigest>;
 
-const hashDigestLength = z.number() satisfies z.ZodType<t.HashDigestLength>;
+const hashDigestLength = z.int() satisfies z.ZodType<t.HashDigestLength>;
 
 const hashFunction = z.enum([
 	"md4",
-	"xxhash64"
+	"xxhash64",
+	"sha256"
 ]) satisfies z.ZodType<t.HashFunction>;
 
 const hashSalt = z.string() satisfies z.ZodType<t.HashSalt>;
@@ -361,7 +360,7 @@ const output = z.strictObject({
 	devtoolModuleFilenameTemplate: devtoolModuleFilenameTemplate.optional(),
 	devtoolFallbackModuleFilenameTemplate:
 		devtoolFallbackModuleFilenameTemplate.optional(),
-	chunkLoadTimeout: z.number().optional(),
+	chunkLoadTimeout: numberOrInfinity.optional(),
 	charset: z.boolean().optional(),
 	environment: environment.optional(),
 	compareBeforeEmit: z.boolean().optional()
@@ -455,10 +454,10 @@ const ruleSetLoaderWithOptions = z.strictObject({
 	parallel: z.boolean().optional()
 }) satisfies z.ZodType<t.RuleSetLoaderWithOptions>;
 
-const builtinSWCLoaderChecker = (
-	data: t.RuleSetLoaderWithOptions | t.RuleSetRule | undefined,
-	ctx: z.RefinementCtx
-) => {
+const builtinSWCLoaderChecker: z.core.CheckFn<
+	t.RuleSetLoaderWithOptions | t.RuleSetRule | undefined
+> = ctx => {
+	const data = ctx.value;
 	if (
 		data?.loader !== "builtin:swc-loader" ||
 		typeof data?.options !== "object"
@@ -470,17 +469,21 @@ const builtinSWCLoaderChecker = (
 
 	if (!res.success) {
 		const validationErr = fromZodError(res.error, {
-			prefix: "Invalid options for 'builtin:swc-loader'"
+			prefix: "Invalid options for 'builtin:swc-loader'",
+			error: createErrorMap({
+				issuesInTitleCase: false
+			})
 		});
-		ctx.addIssue({
+		ctx.issues.push({
 			code: "custom",
-			message: validationErr.message
+			message: validationErr.message,
+			input: data.options
 		});
 	}
 };
 
 const ruleSetUseItem = ruleSetLoader.or(
-	ruleSetLoaderWithOptions.superRefine(builtinSWCLoaderChecker)
+	ruleSetLoaderWithOptions.check(builtinSWCLoaderChecker)
 ) satisfies z.ZodType<t.RuleSetUseItem>;
 
 const ruleSetUse = ruleSetUseItem
@@ -519,16 +522,14 @@ const extendedBaseRuleSetRule: z.ZodType<t.RuleSetRule> =
 		rules: z.lazy(() => ruleSetRule.or(falsy).array()).optional()
 	}) satisfies z.ZodType<t.RuleSetRule>;
 
-const ruleSetRule = extendedBaseRuleSetRule.superRefine(
-	builtinSWCLoaderChecker
-);
+const ruleSetRule = extendedBaseRuleSetRule.check(builtinSWCLoaderChecker);
 
 const ruleSetRules = z.array(
 	z.literal("...").or(ruleSetRule).or(falsy)
 ) satisfies z.ZodType<t.RuleSetRules>;
 
 const assetParserDataUrlOptions = z.strictObject({
-	maxSize: z.number().optional()
+	maxSize: numberOrInfinity.optional()
 }) satisfies z.ZodType<t.AssetParserDataUrlOptions>;
 
 const assetParserDataUrl =
@@ -559,8 +560,8 @@ const cssModuleParserOptions = z.strictObject({
 }) satisfies z.ZodType<t.CssModuleParserOptions>;
 
 const dynamicImportMode = z.enum(["eager", "lazy", "weak", "lazy-once"]);
-const dynamicImportPreload = z.union([z.boolean(), z.number()]);
-const dynamicImportPrefetch = z.union([z.boolean(), z.number()]);
+const dynamicImportPreload = z.union([z.boolean(), numberOrInfinity]);
+const dynamicImportPrefetch = z.union([z.boolean(), numberOrInfinity]);
 const dynamicImportFetchPriority = z.enum(["low", "high", "auto"]);
 const javascriptParserUrl = z.union([z.literal("relative"), z.boolean()]);
 const exprContextCritical = z.boolean();
@@ -581,6 +582,11 @@ const requireDynamic = z.boolean();
 const requireResolve = z.boolean();
 const importDynamic = z.boolean();
 const inlineConst = z.boolean();
+const typeReexportsPresence = z.enum([
+	"no-tolerant",
+	"tolerant",
+	"tolerant-no-check"
+]);
 
 const javascriptParserOptions = z.strictObject({
 	dynamicImportMode: dynamicImportMode.optional(),
@@ -603,7 +609,8 @@ const javascriptParserOptions = z.strictObject({
 	requireDynamic: requireDynamic.optional(),
 	requireResolve: requireResolve.optional(),
 	importDynamic: importDynamic.optional(),
-	inlineConst: inlineConst.optional()
+	inlineConst: inlineConst.optional(),
+	typeReexportsPresence: typeReexportsPresence.optional()
 	// #endregion
 }) satisfies z.ZodType<t.JavascriptParserOptions>;
 
@@ -836,8 +843,9 @@ const externalItemUmdValue = z.strictObject({
 	amd: z.string().or(z.string().array())
 }) satisfies z.ZodType<t.ExternalItemUmdValue>;
 
-const externalUmdChecker = (config: t.RspackOptions, ctx: z.RefinementCtx) => {
+const externalUmdChecker: z.core.CheckFn<t.RspackOptions> = ctx => {
 	let isLibraryUmd = false;
+	const config = ctx.value;
 	const library = config?.output?.library;
 	if (typeof library === "object" && "type" in library) {
 		isLibraryUmd = library.type === "umd";
@@ -879,9 +887,10 @@ const externalUmdChecker = (config: t.RspackOptions, ctx: z.RefinementCtx) => {
 		if (typeof externalItemValue === "object" && externalItemValue !== null) {
 			const result = externalItemUmdValue.safeParse(externalItemValue);
 			if (!result.success) {
-				ctx.addIssue({
-					code: ZodIssueCode.custom,
+				ctx.issues.push({
+					code: "custom",
 					message: `External object must have "root", "commonjs", "commonjs2", "amd" properties when "libraryType" or "externalsType" is "umd"`,
+					input: externalItemValue,
 					path
 				});
 			}
@@ -948,34 +957,20 @@ const infrastructureLogging = z.strictObject({
 //#region DevTool
 const devTool = z
 	.literal(false)
+	.or(z.literal("eval"))
 	.or(
-		z.enum([
-			"eval",
-			"cheap-source-map",
-			"cheap-module-source-map",
-			"source-map",
-			"inline-cheap-source-map",
-			"inline-cheap-module-source-map",
-			"inline-source-map",
-			"inline-nosources-cheap-source-map",
-			"inline-nosources-cheap-module-source-map",
-			"inline-nosources-source-map",
-			"nosources-cheap-source-map",
-			"nosources-cheap-module-source-map",
-			"nosources-source-map",
-			"hidden-nosources-cheap-source-map",
-			"hidden-nosources-cheap-module-source-map",
-			"hidden-nosources-source-map",
-			"hidden-cheap-source-map",
-			"hidden-cheap-module-source-map",
-			"hidden-source-map",
-			"eval-cheap-source-map",
-			"eval-cheap-module-source-map",
-			"eval-source-map",
-			"eval-nosources-cheap-source-map",
-			"eval-nosources-cheap-module-source-map",
-			"eval-nosources-source-map"
-		])
+		z.string().refine(
+			val => {
+				// Pattern: [inline-|hidden-|eval-][nosources-][cheap-[module-]]source-map[-debugids]
+				const pattern =
+					/^(inline-|hidden-|eval-)?(nosources-)?(cheap-(module-)?)?source-map(-debugids)?$/;
+				return pattern.test(val);
+			},
+			{
+				error:
+					"Expect value to match the pattern: [inline-|hidden-|eval-][nosources-][cheap-[module-]]source-map[-debugids]"
+			}
+		) as z.ZodType<t.DevTool>
 	) satisfies z.ZodType<t.DevTool>;
 //#endregion
 
@@ -1061,16 +1056,16 @@ const statsOptions = z.strictObject({
 	groupModulesByAttributes: z.boolean().optional(),
 	groupModulesByPath: z.boolean().optional(),
 	groupModulesByExtension: z.boolean().optional(),
-	modulesSpace: z.number().optional(),
-	chunkModulesSpace: z.number().optional(),
-	nestedModulesSpace: z.number().optional(),
+	modulesSpace: z.int().optional(),
+	chunkModulesSpace: z.int().optional(),
+	nestedModulesSpace: z.int().optional(),
 	relatedAssets: z.boolean().optional(),
 	groupAssetsByEmitStatus: z.boolean().optional(),
 	groupAssetsByInfo: z.boolean().optional(),
 	groupAssetsByPath: z.boolean().optional(),
 	groupAssetsByExtension: z.boolean().optional(),
 	groupAssetsByChunk: z.boolean().optional(),
-	assetsSpace: z.number().optional(),
+	assetsSpace: z.int().optional(),
 	orphanModules: z.boolean().optional(),
 	excludeModules: z
 		.array(z.string().or(z.instanceof(RegExp)).or(anyFunction))
@@ -1094,12 +1089,12 @@ const statsOptions = z.strictObject({
 	env: z.boolean().optional(),
 	chunkGroupAuxiliary: z.boolean().optional(),
 	chunkGroupChildren: z.boolean().optional(),
-	chunkGroupMaxAssets: z.number().optional(),
+	chunkGroupMaxAssets: numberOrInfinity.optional(),
 	dependentModules: z.boolean().optional(),
 	chunkOrigins: z.boolean().optional(),
 	runtime: z.boolean().optional(),
 	depth: z.boolean().optional(),
-	reasonsSpace: z.number().optional(),
+	reasonsSpace: z.int().optional(),
 	groupReasonsByOrigin: z.boolean().optional(),
 	errorDetails: z.boolean().optional(),
 	errorStack: z.boolean().optional(),
@@ -1107,8 +1102,8 @@ const statsOptions = z.strictObject({
 	cachedModules: z.boolean().optional(),
 	cachedAssets: z.boolean().optional(),
 	cached: z.boolean().optional(),
-	errorsSpace: z.number().optional(),
-	warningsSpace: z.number().optional()
+	errorsSpace: z.int().optional(),
+	warningsSpace: z.int().optional()
 }) satisfies z.ZodType<t.StatsOptions>;
 
 const statsValue = z
@@ -1152,14 +1147,18 @@ const optimizationSplitChunksChunks = z
 	.enum(["initial", "async", "all"])
 	.or(z.instanceof(RegExp))
 	.or(anyFunction);
-const optimizationSplitChunksSizes = z
-	.number()
-	.or(z.record(z.string(), z.number()));
+const optimizationSplitChunksSizes = numberOrInfinity.or(
+	z.record(z.string(), numberOrInfinity)
+);
 const optimizationSplitChunksDefaultSizeTypes = z.array(z.string());
 const sharedOptimizationSplitChunksCacheGroup = {
 	chunks: optimizationSplitChunksChunks.optional(),
 	defaultSizeTypes: optimizationSplitChunksDefaultSizeTypes.optional(),
-	minChunks: z.number().min(1).optional(),
+	minChunks: z
+		.number()
+		.min(1)
+		.or(z.literal(Number.POSITIVE_INFINITY))
+		.optional(),
 	usedExports: z.boolean().optional(),
 	name: optimizationSplitChunksName.optional(),
 	filename: filename.optional(),
@@ -1168,13 +1167,13 @@ const sharedOptimizationSplitChunksCacheGroup = {
 	maxSize: optimizationSplitChunksSizes.optional(),
 	maxAsyncSize: optimizationSplitChunksSizes.optional(),
 	maxInitialSize: optimizationSplitChunksSizes.optional(),
-	maxAsyncRequests: z.number().optional(),
-	maxInitialRequests: z.number().optional(),
+	maxAsyncRequests: numberOrInfinity.optional(),
+	maxInitialRequests: numberOrInfinity.optional(),
 	automaticNameDelimiter: z.string().optional()
 };
 const optimizationSplitChunksCacheGroup = z.strictObject({
 	test: z.string().or(z.instanceof(RegExp)).or(anyFunction).optional(),
-	priority: z.number().optional(),
+	priority: numberOrInfinity.optional(),
 	enforce: z.boolean().optional(),
 	reuseExistingChunk: z.boolean().optional(),
 	type: z.string().or(z.instanceof(RegExp)).optional(),
@@ -1185,15 +1184,15 @@ const optimizationSplitChunksCacheGroup = z.strictObject({
 
 const optimizationSplitChunksOptions = z.strictObject({
 	cacheGroups: z
-		.record(z.literal(false).or(optimizationSplitChunksCacheGroup))
+		.record(z.string(), z.literal(false).or(optimizationSplitChunksCacheGroup))
 		.optional(),
 	fallbackCacheGroup: z
 		.strictObject({
 			chunks: optimizationSplitChunksChunks.optional(),
-			minSize: z.number().optional(),
-			maxSize: z.number().optional(),
-			maxAsyncSize: z.number().optional(),
-			maxInitialSize: z.number().optional(),
+			minSize: numberOrInfinity.optional(),
+			maxSize: numberOrInfinity.optional(),
+			maxAsyncSize: numberOrInfinity.optional(),
+			maxInitialSize: numberOrInfinity.optional(),
 			automaticNameDelimiter: z.string().optional()
 		})
 		.optional(),
@@ -1337,7 +1336,8 @@ const experiments = z.strictObject({
 	buildHttp: buildHttpOptions.optional(),
 	parallelLoader: z.boolean().optional(),
 	useInputFileSystem: useInputFileSystem.optional(),
-	inlineConst: z.boolean().optional()
+	inlineConst: z.boolean().optional(),
+	typeReexportsPresence: typeReexportsPresence.optional()
 }) satisfies z.ZodType<t.Experiments>;
 //#endregion
 
@@ -1347,7 +1347,7 @@ const watch = z.boolean() satisfies z.ZodType<t.Watch>;
 
 //#region WatchOptions
 const watchOptions = z.strictObject({
-	aggregateTimeout: z.number().optional(),
+	aggregateTimeout: numberOrInfinity.optional(),
 	followSymlinks: z.boolean().optional(),
 	ignored: z
 		.string()
@@ -1355,7 +1355,7 @@ const watchOptions = z.strictObject({
 		.or(z.instanceof(RegExp))
 		.or(z.string())
 		.optional(),
-	poll: z.number().or(z.boolean()).optional(),
+	poll: numberOrInfinity.or(z.boolean()).optional(),
 	stdin: z.boolean().optional()
 }) satisfies z.ZodType<t.WatchOptions>;
 //#endregion
@@ -1390,8 +1390,8 @@ const performance = z
 	.strictObject({
 		assetFilter: anyFunction.optional(),
 		hints: z.enum(["error", "warning"]).or(z.literal(false)).optional(),
-		maxAssetSize: z.number().optional(),
-		maxEntrypointSize: z.number().optional()
+		maxAssetSize: numberOrInfinity.optional(),
+		maxEntrypointSize: numberOrInfinity.optional()
 	})
 	.or(z.literal(false)) satisfies z.ZodType<t.Performance>;
 //#endregion
@@ -1431,4 +1431,4 @@ export const rspackOptions = z
 		bail: bail.optional(),
 		performance: performance.optional()
 	})
-	.superRefine(externalUmdChecker) satisfies z.ZodType<t.RspackOptions>;
+	.check(externalUmdChecker) satisfies z.ZodType<t.RspackOptions>;

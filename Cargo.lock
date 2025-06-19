@@ -4313,6 +4313,7 @@ version = "0.2.0"
 dependencies = [
  "md4",
  "rspack_cacheable",
+ "sha2",
  "smol_str",
  "xxhash-rust",
 ]
@@ -5215,6 +5216,7 @@ name = "rspack_plugin_rstest"
 version = "0.2.0"
 dependencies = [
  "async-trait",
+ "camino",
  "regex",
  "rspack_cacheable",
  "rspack_core",

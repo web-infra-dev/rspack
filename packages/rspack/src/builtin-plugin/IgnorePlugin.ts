@@ -2,7 +2,7 @@ import {
 	BuiltinPluginName,
 	type RawIgnorePluginOptions
 } from "@rspack/binding";
-import { z } from "zod";
+import * as z from "zod/v4";
 
 import { anyFunction } from "../config/utils";
 import { memoize } from "../util/memoize";
