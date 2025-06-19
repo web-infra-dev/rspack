@@ -355,23 +355,21 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           let mut current_exports_info = mgm_exports_info;
           let len = used_exports.len();
           for (i, used_export) in used_exports.into_iter().enumerate() {
-            let export_info = current_exports_info.get_export_info(&mut module_graph, &used_export);
+            let export_info = current_exports_info
+              .get_export_info(&mut module_graph, &used_export)
+              .as_data_mut(&mut module_graph);
             if !can_mangle {
-              export_info
-                .as_data_mut(&mut module_graph)
-                .set_can_mangle_use(Some(false));
+              export_info.set_can_mangle_use(Some(false));
             }
             if !can_inline {
-              export_info
-                .as_data_mut(&mut module_graph)
-                .set_inlinable(Inlinable::NoByUse);
+              export_info.set_inlinable(Inlinable::NoByUse);
             }
             let last_one = i == len - 1;
             if !last_one {
-              let nested_info = export_info.as_data(&module_graph).exports_info();
+              let nested_info = export_info.exports_info();
               if let Some(nested_info) = nested_info {
                 let changed_flag = ExportInfoSetter::set_used_conditionally(
-                  export_info.as_data_mut(&mut module_graph),
+                  export_info,
                   Box::new(|used| used == &UsageState::Unused),
                   UsageState::OnlyPropertiesUsed,
                   runtime.as_ref(),
@@ -395,7 +393,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             }
 
             let changed_flag = ExportInfoSetter::set_used_conditionally(
-              export_info.as_data_mut(&mut module_graph),
+              export_info,
               Box::new(|v| v != &UsageState::Used),
               UsageState::Used,
               runtime.as_ref(),
