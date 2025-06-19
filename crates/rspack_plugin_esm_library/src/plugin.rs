@@ -6,8 +6,9 @@ use rspack_core::{
   AssetInfo, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAfterCodeGeneration, CompilationAfterSeal, CompilationConcatenationScope,
   CompilationFinishModules, CompilationParams, CompilationProcessAssets, CompilerCompilation,
-  ConcatenatedModuleInfo, ConcatenationScope, ExportInfoGetter, ExportProvided, ExternalModuleInfo,
-  Logger, ModuleGraph, ModuleIdentifier, ModuleInfo, Plugin, RuntimeCondition, RuntimeGlobals,
+  ConcatenatedModuleInfo, ConcatenationScope, ExportInfoGetter, ExportProvided, ExportsInfoGetter,
+  ExternalModuleInfo, Logger, ModuleGraph, ModuleIdentifier, ModuleInfo, Plugin, RuntimeCondition,
+  RuntimeGlobals, get_target,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::Result;
@@ -85,6 +86,11 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     // make sure all exports are provided
     let exports_info = module_graph.get_exports_info(module_identifier);
 
+    let prefetched_exports_info = module_graph.get_prefetched_exports_info(
+      module_identifier,
+      rspack_core::PrefetchExportsInfoMode::Default,
+    );
+
     let mut should_scope_hoisting = true;
 
     if module.as_normal_module().is_none() {
@@ -110,32 +116,29 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     // if we reach here, check exports info
     if should_scope_hoisting {
       let other_export_info = exports_info
-        .other_exports_info(&module_graph)
+        .as_data(&module_graph)
+        .other_exports_info()
         .as_data(&module_graph);
-      if matches!(
-        ExportInfoGetter::provided(other_export_info),
-        Some(ExportProvided::Unknown)
-      ) {
+      if matches!(other_export_info.provided(), Some(ExportProvided::Unknown)) {
         logger.debug(format!("module {module_identifier} has unknown exports",));
         should_scope_hoisting = false;
       }
 
-      for export_info in exports_info.get_relevant_exports(&module_graph, None) {
-        let export_info = export_info.as_data(&module_graph);
-        if !matches!(
-          ExportInfoGetter::provided(export_info),
-          Some(ExportProvided::Provided)
-        ) {
+      for export_info in prefetched_exports_info.get_relevant_exports(None) {
+        let export_info = export_info;
+        if !matches!(export_info.provided(), Some(ExportProvided::Provided)) {
           logger.debug(format!(
             "module {module_identifier} has export {} that is not provided",
-            ExportInfoGetter::name(export_info).map_or("".to_string(), |name| name.to_string())
+            export_info
+              .name()
+              .map_or("".to_string(), |name| name.to_string())
           ));
           should_scope_hoisting = false;
           break;
         }
 
         if ExportInfoGetter::is_reexport(export_info)
-          && export_info.get_target(&module_graph).is_none()
+          && get_target(export_info, &module_graph).is_none()
         {
           logger.debug(format!(
             "module {module_identifier} has re-export that is not provided",
@@ -156,12 +159,18 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
         })),
       );
     } else {
+      let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
+        &exports_info,
+        &module_graph,
+        None,
+        false,
+      );
       modules_map.insert(
         *module_identifier,
         ModuleInfo::External(ExternalModuleInfo {
           index: idx,
           module: *module_identifier,
-          runtime_condition: if exports_info.is_used(&module_graph, None) {
+          runtime_condition: if exports_info.is_used() {
             RuntimeCondition::Boolean(true)
           } else {
             RuntimeCondition::Boolean(false)
