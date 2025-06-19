@@ -8,7 +8,8 @@ use rspack_core::{
   rspack_sources::BoxSource, sync_module_factory, AsyncDependenciesBlock,
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, LibIdentOptions, Module, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
+  DependencyType, ExportsInfoGetter, FactoryMeta, LibIdentOptions, Module, ModuleGraph,
+  ModuleIdentifier, ModuleType, PrefetchExportsInfoMode, ProvidedExports, RuntimeGlobals,
   RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
@@ -92,6 +93,133 @@ impl ConsumeSharedModule {
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
+  }
+
+  pub fn get_share_key(&self) -> &str {
+    &self.options.share_key
+  }
+
+  /// Copies metadata from the fallback module to make this ConsumeSharedModule act as a true proxy
+  pub fn copy_metadata_from_fallback(&mut self, module_graph: &mut ModuleGraph) -> Result<()> {
+    if let Some(fallback_id) = self.find_fallback_module_id(module_graph) {
+      // Copy build meta from fallback module
+      if let Some(fallback_module) = module_graph.module_by_identifier(&fallback_id) {
+        // Copy build meta information
+        self.build_meta = fallback_module.build_meta().clone();
+        self.build_info = fallback_module.build_info().clone();
+
+        // Copy export information from fallback module to ConsumeShared module
+        self.copy_exports_from_fallback(module_graph, &fallback_id)?;
+      }
+    }
+    Ok(())
+  }
+
+  /// Finds the fallback module identifier for this ConsumeShared module
+  pub fn find_fallback_module_id(&self, module_graph: &ModuleGraph) -> Option<ModuleIdentifier> {
+    // Look through dependencies to find the fallback
+    for dep_id in self.get_dependencies() {
+      if let Some(dep) = module_graph.dependency_by_id(dep_id) {
+        if matches!(dep.dependency_type(), DependencyType::ConsumeSharedFallback) {
+          if let Some(fallback_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
+            return Some(*fallback_id);
+          }
+        }
+      }
+    }
+    None
+  }
+
+  /// Copies export information from fallback module to ConsumeShared module
+  fn copy_exports_from_fallback(
+    &self,
+    module_graph: &mut ModuleGraph,
+    fallback_id: &ModuleIdentifier,
+  ) -> Result<()> {
+    let consume_shared_id = self.identifier();
+
+    // Get exports info for both modules
+    let fallback_exports_info = module_graph.get_exports_info(fallback_id);
+    let consume_shared_exports_info = module_graph.get_exports_info(&consume_shared_id);
+
+    // Get the fallback module's provided exports using prefetched mode
+    let prefetched_fallback = ExportsInfoGetter::prefetch(
+      &fallback_exports_info,
+      module_graph,
+      PrefetchExportsInfoMode::AllExports,
+    );
+
+    let fallback_provided = prefetched_fallback.get_provided_exports();
+
+    // Copy the provided exports to the ConsumeShared module
+    match fallback_provided {
+      ProvidedExports::ProvidedNames(export_names) => {
+        // Copy each specific export from fallback to ConsumeShared
+        for export_name in export_names {
+          // Get or create export info for this export in the ConsumeShared module
+          let consume_shared_export_info =
+            consume_shared_exports_info.get_export_info(module_graph, &export_name);
+          let fallback_export_info =
+            fallback_exports_info.get_export_info(module_graph, &export_name);
+
+          // Copy the provided status
+          if let Some(provided) = fallback_export_info.as_data(module_graph).provided() {
+            consume_shared_export_info
+              .as_data_mut(module_graph)
+              .set_provided(Some(provided));
+          }
+
+          // Copy can_mangle_provide status
+          if let Some(can_mangle) = fallback_export_info
+            .as_data(module_graph)
+            .can_mangle_provide()
+          {
+            consume_shared_export_info
+              .as_data_mut(module_graph)
+              .set_can_mangle_provide(Some(can_mangle));
+          }
+
+          // Copy exports_info if it exists (for nested exports)
+          if let Some(nested_exports_info) =
+            fallback_export_info.as_data(module_graph).exports_info()
+          {
+            consume_shared_export_info
+              .as_data_mut(module_graph)
+              .set_exports_info(Some(nested_exports_info));
+          }
+        }
+
+        // Mark the ConsumeShared module as having complete provide info
+        consume_shared_exports_info.set_has_provide_info(module_graph);
+
+        // Set the "other exports" to not provided (since we copied all specific exports)
+        consume_shared_exports_info.set_unknown_exports_provided(
+          module_graph,
+          false, // not provided
+          None,  // no exclude exports
+          None,  // no can_mangle
+          None,  // no terminal_binding
+          None,  // no target_key
+        );
+      }
+      ProvidedExports::ProvidedAll => {
+        // If fallback provides all exports, mark ConsumeShared the same way
+        consume_shared_exports_info.set_unknown_exports_provided(
+          module_graph,
+          true, // provided
+          None, // no exclude exports
+          None, // no can_mangle
+          None, // no terminal_binding
+          None, // no target_key
+        );
+        consume_shared_exports_info.set_has_provide_info(module_graph);
+      }
+      ProvidedExports::Unknown => {
+        // Keep unknown status - don't copy anything
+      }
+    }
+
+    Ok(())
   }
 }
 
@@ -248,8 +376,12 @@ impl Module for ConsumeSharedModule {
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHash::from(&compilation.options.output);
     self.options.dyn_hash(&mut hasher);
-    module_update_hash(self, &mut hasher, compilation, runtime);
+    module_update_hash(self as &dyn Module, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
+  }
+
+  fn get_consume_shared_key(&self) -> Option<String> {
+    Some(self.options.share_key.clone())
   }
 }
 
