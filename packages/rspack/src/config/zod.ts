@@ -5,6 +5,10 @@ import { getZodSwcLoaderOptionsSchema } from "../builtin-loader/swc/types";
 import type * as t from "./types";
 import { anyFunction, numberOrInfinity } from "./utils";
 
+z.config({
+	jitless: true
+});
+
 const filenameTemplate = z.string() satisfies z.ZodType<t.FilenameTemplate>;
 
 const filename = filenameTemplate.or(
