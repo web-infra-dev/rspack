@@ -2,7 +2,7 @@ use core::fmt;
 use std::borrow::Cow;
 
 use itertools::Itertools;
-use rspack_collections::{IdentifierIndexSet, IdentifierMap, UkeyMap};
+use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, UkeyMap};
 use rspack_util::{atom::Atom, env::has_query};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -20,6 +20,9 @@ pub use chunk_graph_module::{ChunkGraphModule, ModuleId};
 pub struct ChunkLinkContext {
   // specifier order doesn't matter, we can sort them based on name
   pub exports: IdentifierMap<HashSet<Atom>>,
+
+  // import order matters, it affects execution order
+  pub imports: IdentifierIndexMap<HashSet<Atom>>,
 
   pub needed_namespace_objects: IdentifierIndexSet,
   pub hoisted_modules: IdentifierIndexSet,
