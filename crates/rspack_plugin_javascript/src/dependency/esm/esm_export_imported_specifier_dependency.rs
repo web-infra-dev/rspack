@@ -727,18 +727,21 @@ impl ESMExportImportedSpecifierDependency {
               ValueKey::UsedName(UsedName::Normal(ids)),
             );
             let is_async = ModuleGraph::is_async(compilation, &module_identifier);
-            fragments.push(Box::new(ConditionalInitFragment::new(
-              stmt,
-              if is_async {
-                InitFragmentStage::StageAsyncESMImports
-              } else {
-                InitFragmentStage::StageESMImports
-              },
-              self.source_order,
-              key,
-              None,
-              runtime_condition,
-            )));
+            fragments.push(
+              ConditionalInitFragment::new(
+                stmt,
+                if is_async {
+                  InitFragmentStage::StageAsyncESMImports
+                } else {
+                  InitFragmentStage::StageESMImports
+                },
+                self.source_order,
+                key,
+                None,
+                runtime_condition,
+              )
+              .boxed(),
+            );
           } else {
             let exports_info = mg.get_exports_info(imported_module);
             let used_name = if ids.is_empty() {
@@ -845,14 +848,42 @@ impl ESMExportImportedSpecifierDependency {
     runtime_requirements.insert(RuntimeGlobals::EXPORTS);
     runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
     let mut export_map = vec![];
-    export_map.push((
-      key.into(),
-      format!("/* EXPORT */ /* {comment} */ {return_value} /* /EXPORT */").into(),
-    ));
+    let module_graph = compilation.get_module_graph();
+
+    // Check if parent module is ConsumeShared and get share_key from options
+    let consume_shared_info =
+      if let Some(parent_module_id) = module_graph.get_parent_module(&self.id) {
+        if let Some(parent_module) = module_graph.module_by_identifier(parent_module_id) {
+          if parent_module.module_type() == &rspack_core::ModuleType::ConsumeShared {
+            // Use the trait method to get share_key
+            let trait_result = parent_module.get_consume_shared_key();
+
+            trait_result
+          } else {
+            None
+          }
+        } else {
+          None
+        }
+      } else {
+        None
+      };
+
+    // Use macro comments for ConsumeShared modules, standard format otherwise
+    let export_content = if let Some(ref share_key) = consume_shared_info {
+      format!(
+        "/* @common:if [condition=\"treeShake.{}.{}\"] */ /* {comment} */ {return_value} /* @common:endif */",
+        share_key, key
+      )
+    } else {
+      format!("/* {comment} */ {return_value}")
+    };
+
+    export_map.push((key.clone().into(), export_content.into()));
     let module_graph = compilation.get_module_graph();
     let module = module_graph
       .module_by_identifier(&module.identifier())
-      .expect("should have module graph module");
+      .expect("should have mgm");
     ESMExportInitFragment::new(module.get_exports_argument(), export_map)
   }
 
@@ -877,15 +908,50 @@ impl ESMExportImportedSpecifierDependency {
     runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
     runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
     let mut export_map = vec![];
-    let value = format!(
-      r"/* EXPORT */ /* reexport fake namespace object from non-ESM */ {name}_namespace_cache || ({name}_namespace_cache = {}({name}{})) /* /EXPORT */",
-      RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
-      if fake_type == 0 {
-        "".to_string()
+
+    // Check if parent module is ConsumeShared and get share_key from options
+    let consume_shared_info =
+      if let Some(parent_module_id) = module_graph.get_parent_module(&self.id) {
+        if let Some(parent_module) = module_graph.module_by_identifier(parent_module_id) {
+          if parent_module.module_type() == &rspack_core::ModuleType::ConsumeShared {
+            // Use the trait method to get share_key
+            let trait_result = parent_module.get_consume_shared_key();
+
+            trait_result
+          } else {
+            None
+          }
+        } else {
+          None
+        }
       } else {
-        format!(", {fake_type}")
-      }
-    );
+        None
+      };
+
+    // Use macro comments for ConsumeShared modules, standard format otherwise
+    let value = if let Some(ref share_key) = consume_shared_info {
+      format!(
+        "/* @common:if [condition=\"treeShake.{}.{}\"] */ /* reexport fake namespace object from non-ESM */ {name}_namespace_cache || ({name}_namespace_cache = {}({name}{})) /* @common:endif */",
+        share_key,
+        key,
+        RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+        if fake_type == 0 {
+          "".to_string()
+        } else {
+          format!(", {fake_type}")
+        }
+      )
+    } else {
+      format!(
+        "/* reexport fake namespace object from non-ESM */ {name}_namespace_cache || ({name}_namespace_cache = {}({name}{}))",
+        RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+        if fake_type == 0 {
+          "".to_string()
+        } else {
+          format!(", {fake_type}")
+        }
+      )
+    };
     export_map.push((key.into(), value.into()));
     let frags = vec![
       {

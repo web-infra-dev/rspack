@@ -148,9 +148,59 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       return;
     }
     let module_graph = compilation.get_module_graph();
+    let module_identifier = module.identifier();
     let module = module_graph
-      .module_by_identifier(&module.identifier())
+      .module_by_identifier(&module_identifier)
       .expect("should have module graph module");
+
+    // Check if this dependency is related to a ConsumeShared module
+    // For ConsumeShared modules, the fallback module (current) exports should be wrapped with macros
+    let consume_shared_info = {
+      // First check if parent module is ConsumeShared
+      if let Some(parent_module_id) = module_graph.get_parent_module(&dep.id) {
+        if let Some(parent_module) = module_graph.module_by_identifier(parent_module_id) {
+          if parent_module.module_type() == &rspack_core::ModuleType::ConsumeShared {
+            // Direct ConsumeShared parent - use its share key
+            let trait_result = parent_module.get_consume_shared_key();
+
+            trait_result
+          } else {
+            // Check if current module is a fallback for a ConsumeShared module
+            // Look for incoming connections from ConsumeShared modules
+            let mut found_consume_shared = None;
+            for connection in module_graph.get_incoming_connections(&module_identifier) {
+              if let Some(origin_module) = connection.original_module_identifier.as_ref() {
+                if let Some(origin_module_obj) = module_graph.module_by_identifier(origin_module) {
+                  if origin_module_obj.module_type() == &rspack_core::ModuleType::ConsumeShared {
+                    found_consume_shared = origin_module_obj.get_consume_shared_key();
+
+                    break;
+                  }
+                }
+              }
+            }
+            found_consume_shared
+          }
+        } else {
+          None
+        }
+      } else {
+        // No parent - check if this is a fallback module by examining incoming connections
+        let mut found_consume_shared = None;
+        for connection in module_graph.get_incoming_connections(&module_identifier) {
+          if let Some(origin_module) = connection.original_module_identifier.as_ref() {
+            if let Some(origin_module_obj) = module_graph.module_by_identifier(origin_module) {
+              if origin_module_obj.module_type() == &rspack_core::ModuleType::ConsumeShared {
+                found_consume_shared = origin_module_obj.get_consume_shared_key();
+
+                break;
+              }
+            }
+          }
+        }
+        found_consume_shared
+      }
+    };
 
     let exports_info = module_graph.get_prefetched_exports_info(
       &module.identifier(),
@@ -169,9 +219,20 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
         }
         UsedName::Inlined(_) => return,
       };
+
+      // Use macro comments for ConsumeShared modules, regular format otherwise
+      let export_content = if let Some(ref share_key) = consume_shared_info {
+        format!(
+          "/* @common:if [condition=\"treeShake.{}.{}\"] */ {} /* @common:endif */",
+          share_key, dep.name, dep.value
+        )
+      } else {
+        dep.value.to_string()
+      };
+
       init_fragments.push(Box::new(ESMExportInitFragment::new(
         module.get_exports_argument(),
-        vec![(used_name, dep.value.clone())],
+        vec![(used_name, export_content.into())],
       )));
     }
   }
