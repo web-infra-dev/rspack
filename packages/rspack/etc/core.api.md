@@ -2961,7 +2961,7 @@ export type HashDigest = string;
 export type HashDigestLength = number;
 
 // @public
-export type HashFunction = "md4" | "xxhash64";
+export type HashFunction = "md4" | "xxhash64" | "sha256";
 
 // @public (undocumented)
 interface HashLike {

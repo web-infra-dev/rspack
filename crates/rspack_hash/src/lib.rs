@@ -12,6 +12,7 @@ use xxhash_rust::xxh64::Xxh64;
 pub enum HashFunction {
   Xxhash64,
   MD4,
+  SHA256,
 }
 
 impl From<&str> for HashFunction {
@@ -19,6 +20,7 @@ impl From<&str> for HashFunction {
     match value {
       "xxhash64" => HashFunction::Xxhash64,
       "md4" => HashFunction::MD4,
+      "sha256" => HashFunction::SHA256,
       _ => unimplemented!("{}", value),
     }
   }
@@ -57,6 +59,7 @@ impl From<Option<String>> for HashSalt {
 pub enum RspackHash {
   Xxhash64(Box<Xxh64>),
   MD4(Box<md4::Md4>),
+  SHA256(Box<sha2::Sha256>),
 }
 
 impl fmt::Debug for RspackHash {
@@ -64,6 +67,7 @@ impl fmt::Debug for RspackHash {
     match self {
       Self::Xxhash64(_) => write!(f, "RspackHash(Xxhash64)"),
       Self::MD4(_) => write!(f, "RspackHash(MD4)"),
+      Self::SHA256(_) => write!(f, "RspackHash(SHA256"),
     }
   }
 }
@@ -73,6 +77,7 @@ impl RspackHash {
     match function {
       HashFunction::Xxhash64 => Self::Xxhash64(Box::new(Xxh64::new(0))),
       HashFunction::MD4 => Self::MD4(Box::new(md4::Md4::new())),
+      HashFunction::SHA256 => Self::SHA256(Box::new(sha2::Sha256::new())),
     }
   }
 
@@ -85,8 +90,8 @@ impl RspackHash {
   }
 
   pub fn digest(self, digest: &HashDigest) -> RspackHashDigest {
-    // The maximum value of xxhash and md4 output
-    let mut result = [0; 16];
+    // The maximum value of sha256, the largest possible hash
+    let mut result = [0; 32];
     let len;
 
     match self {
@@ -96,6 +101,11 @@ impl RspackHash {
         result[..len].copy_from_slice(&buf);
       }
       RspackHash::MD4(hash) => {
+        let buf = hash.finalize();
+        len = buf.len();
+        result[..len].copy_from_slice(&buf);
+      }
+      RspackHash::SHA256(hash) => {
         let buf = hash.finalize();
         len = buf.len();
         result[..len].copy_from_slice(&buf);
@@ -123,6 +133,18 @@ impl Hasher for RspackHash {
           | (hash[7] as u64);
         msb_u64
       }
+      RspackHash::SHA256(hasher) => {
+        let hash = (**hasher).clone().finalize();
+        let msb_u64: u64 = ((hash[0] as u64) << 56)
+          | ((hash[1] as u64) << 48)
+          | ((hash[2] as u64) << 40)
+          | ((hash[3] as u64) << 32)
+          | ((hash[4] as u64) << 24)
+          | ((hash[5] as u64) << 16)
+          | ((hash[6] as u64) << 8)
+          | (hash[7] as u64);
+        msb_u64
+      }
     }
   }
 
@@ -130,6 +152,7 @@ impl Hasher for RspackHash {
     match self {
       RspackHash::Xxhash64(hasher) => hasher.write(bytes),
       RspackHash::MD4(hasher) => hasher.update(bytes),
+      RspackHash::SHA256(hasher) => hasher.update(bytes),
     }
   }
 }
@@ -150,11 +173,11 @@ impl From<&str> for RspackHashDigest {
 }
 
 impl RspackHashDigest {
-  /// `inner ` must be empty or come from a short hash output (< 128bit)
+  /// `inner ` must be empty or come from a hash up to 256 bits
   pub fn new(inner: &[u8], digest: &HashDigest) -> Self {
     let encoded = match digest {
       HashDigest::Hex => {
-        let mut buf = [0; 32];
+        let mut buf = [0; 64];
         let s = hex(inner, &mut buf);
         s.into()
       }

@@ -137,12 +137,15 @@ impl JavaScriptCompiler {
     let src = {
       let mut buf = vec![];
       {
-        let mut wr = Box::new(text_writer::JsWriter::new(
+        let mut w = text_writer::JsWriter::new(
           source_map.clone(),
           "\n",
           &mut buf,
           source_map_config.enable.then_some(&mut src_map_buf),
-        )) as Box<dyn WriteJs>;
+        );
+
+        w.preamble(&format.preamble).into_diagnostic()?;
+        let mut wr = Box::new(w) as Box<dyn WriteJs>;
 
         if minify {
           wr = Box::new(text_writer::omit_trailing_semi(wr));

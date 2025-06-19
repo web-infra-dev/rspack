@@ -4313,6 +4313,7 @@ version = "0.2.0"
 dependencies = [
  "md4",
  "rspack_cacheable",
+ "sha2",
  "smol_str",
  "xxhash-rust",
 ]

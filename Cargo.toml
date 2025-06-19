@@ -233,6 +233,7 @@ strip     = true
 inherits = "release"
 debug    = "full"
 strip    = "none"
+lto      = "off"
 
 [profile.release.package]
 
